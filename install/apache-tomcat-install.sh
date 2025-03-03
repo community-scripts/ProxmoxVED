@@ -5,7 +5,7 @@
 # License: MIT
 # https://github.com/tteck/Proxmox/raw/main/LICENSE
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -15,11 +15,11 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  gnupg2 \
-  curl \
-  sudo \
-  mc \
-  lsb-release 
+    gnupg2 \
+    curl \
+    sudo \
+    mc \
+    lsb-release
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Adoptium Repository"
@@ -31,91 +31,92 @@ msg_ok "Set up Adoptium Repository"
 
 read -r -p "Which Tomcat version would you like to install? (9, 10.1, 11): " version
 case $version in
-  9)
+9)
     TOMCAT_VERSION="9"
     echo "Which LTS Java version would you like to use? (8, 11, 17, 21): "
     read -r jdk_version
     case $jdk_version in
-      8)
+    8)
         msg_info "Installing Temurin JDK 8 (LTS) for Tomcat $TOMCAT_VERSION"
-        export DEBIAN_FRONTEND=noninteractive apt-get install -y temurin-8-jdk
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get install -y temurin-8-jdk
         msg_ok "Setup Temurin JDK 8 (LTS)"
         ;;
-      11)
+    11)
         msg_info "Installing Temurin JDK 11 (LTS) for Tomcat $TOMCAT_VERSION"
         $STD apt-get install -y temurin-11-jdk
         msg_ok "Setup Temurin JDK 11 (LTS)"
         ;;
-      17)
+    17)
         msg_info "Installing Temurin JDK 17 (LTS) for Tomcat $TOMCAT_VERSION"
         apt-get install -qqy temurin-17-jdk
         msg_ok "Setup Temurin JDK 17 (LTS)"
         ;;
-      21)
+    21)
         msg_info "Installing Temurin JDK 21 (LTS) for Tomcat $TOMCAT_VERSION"
         export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-21-jdk
         msg_ok "Setup Temurin JDK 21 (LTS)"
         ;;
-      *)
+    *)
         msg_error "Invalid JDK version selected. Please enter 8, 11, 17 or 21."
         exit 1
         ;;
     esac
     ;;
-  10|10.1)
+10 | 10.1)
     TOMCAT_VERSION="10"
     echo "Which LTS Java version would you like to use? (11, 17): "
     read -r jdk_version
     case $jdk_version in
-      11)
+    11)
         msg_info "Installing Temurin JDK 11 (LTS) for Tomcat $TOMCAT_VERSION"
         export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-11-jdk
         msg_ok "Setup Temurin JDK 11"
         ;;
-      17)
+    17)
         msg_info "Installing Temurin JDK 17 (LTS) for Tomcat $TOMCAT_VERSION"
         export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-17-jdk
         msg_ok "Setup Temurin JDK 17"
         ;;
-      21)
+    21)
         msg_info "Installing Temurin JDK 21 (LTS) for Tomcat $TOMCAT_VERSION"
         export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-21-jdk
         msg_ok "Setup Temurin JDK 21 (LTS)"
         ;;
-      *)
+    *)
         msg_error "Invalid JDK version selected. Please enter 11 or 17."
         exit 1
         ;;
     esac
     ;;
-  11)
+11)
     TOMCAT_VERSION="11"
     echo "Which LTS Java version would you like to use? (17, 21): "
     read -r jdk_version
     case $jdk_version in
-      17)
+    17)
         msg_info "Installing Temurin JDK 17 (LTS) for Tomcat $TOMCAT_VERSION"
         export DEBIAN_FRONTEND=noninteractive
         apt-get install -qqy temurin-17-jdk
         msg_ok "Setup Temurin JDK 17"
         ;;
-      21)
+    21)
         msg_info "Installing Temurin JDK 21 (LTS) for Tomcat $TOMCAT_VERSION"
         export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-21-jdk
         msg_ok "Setup Temurin JDK 21 (LTS)"
         ;;
-      *)
+    *)
         msg_error "Invalid JDK version selected. Please enter 17 or 21."
         exit 1
         ;;
     esac
     ;;
-  *)
+*)
     msg_error "Invalid Tomcat version selected. Please enter 9, 10.1 or 11."
     exit 1
     ;;
@@ -129,7 +130,7 @@ mkdir -p /opt/tomcat-$TOMCAT_VERSION
 tar --strip-components=1 -xzf /tmp/tomcat.tar.gz -C /opt/tomcat-$TOMCAT_VERSION
 chown -R root:root /opt/tomcat-$TOMCAT_VERSION
 
-cat <<EOF > /etc/systemd/system/tomcat.service
+cat <<EOF >/etc/systemd/system/tomcat.service
 [Unit]
 Description=Apache Tomcat Web Application Container
 After=network.target
