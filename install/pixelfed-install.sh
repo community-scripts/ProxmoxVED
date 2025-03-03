@@ -6,7 +6,7 @@
 # License: MIT
 # https://github.com/tteck/Proxmox/raw/main/LICENSE
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -16,23 +16,23 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  build-essential \
-  gpg \
-  curl \
-  sudo \
-  git \
-  gnupg2 \
-  ca-certificates \
-  lsb-release \
-  php8.3-{fpm,bcmath,ctype,curl,exif,gd,iconv,intl,mbstring,redis,tokenizer,xml,zip,pgsql,pdo-pgsql,bz2,sqlite3} \
-  composer \
-  redis \
-  ffmpeg \
-  jpegoptim \
-  optipng \
-  pngquant \
-  make \
-  mc
+    build-essential \
+    gpg \
+    curl \
+    sudo \
+    git \
+    gnupg2 \
+    ca-certificates \
+    lsb-release \
+    php8.3-{fpm,bcmath,ctype,curl,exif,gd,iconv,intl,mbstring,redis,tokenizer,xml,zip,pgsql,pdo-pgsql,bz2,sqlite3} \
+    composer \
+    redis \
+    ffmpeg \
+    jpegoptim \
+    optipng \
+    pngquant \
+    make \
+    mc
 msg_ok "Installed Dependencies"
 
 msg_info "Configure Redis Socket"
@@ -61,7 +61,7 @@ msg_info "Setup Postgres Database"
 DB_NAME=pixelfed_db
 DB_USER=pixelfed_user
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc|gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
 echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt/sources.list.d/pgdg.list
 apt-get update
 apt-get install -y postgresql-17
@@ -100,7 +100,7 @@ sed -i "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" .env
 sed -i "s/DB_PASSWORD=.*/DB_PASSWORD=$DB_PASS/" .env
 sed -i "s/REDIS_HOST=.*/REDIS_HOST=127.0.0.1/" .env
 sed -i "s/REDIS_PASSWORD=.*/REDIS_PASSWORD=$REDIS_PASS/" .env
-sed -i "s/APP_URL=.*/APP_URL=http:\/\/localhost/" .env  # localhost URL
+sed -i "s/APP_URL=.*/APP_URL=http:\/\/localhost/" .env # localhost URL
 
 php artisan key:generate
 php artisan storage:link
@@ -118,21 +118,6 @@ systemctl restart php8.3-fpm
 msg_ok "Pixelfed successfully set up"
 
 msg_info "Creating Services"
-cat <<EOF >/etc/supervisor/conf.d/pixelfed-worker.conf
-[program:pixelfed-worker]
-command=/usr/bin/php /opt/pixelfed/artisan queue:work
-autostart=true
-autorestart=true
-user=root
-numprocs=1
-redirect_stderr=true
-stdout_logfile=/opt/pixelfed/storage/logs/worker.log
-EOL
-EOF
-supervisorctl reread
-supervisorctl update
-supervisorctl start pixelfed-worker
-
 cat <<EOF >/etc/nginx/sites-available/pixelfed.conf
 server {
     listen 80;
@@ -179,7 +164,21 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
+cat <<EOF >/etc/systemd/system/pixelfed-scheduler.service
+[Unit]
+Description=Pixelfed Scheduler
+After=network.target
 
+[Service]
+User=www-data
+ExecStart=/usr/bin/php /opt/pixelfed/artisan schedule:run
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable --now pixelfed-scheduler
 systemctl enable --now pixelfed-horizon
 msg_ok "Created Services"
 
