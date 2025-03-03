@@ -61,7 +61,7 @@ export default function Page() {
 												`inline`,
 											)}
 										>
-											Scripts by tteck
+											Develop Instance
 										</span>
 									</AnimatedGradientText>
 								</div>
