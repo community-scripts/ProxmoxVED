@@ -104,11 +104,11 @@ EOF
 msg_ok "Setup MinIO"
 
 msg_info "Installing Maxun (Patience)"
-github_get_release "getmaxun/maxun"
-wget -q -O /opt/maxun.tar.gz "$TARBALL_URL"
-tar -xzf /opt/maxun.tar.gz -C /opt
-mv /opt/getmaxun-maxun-* /opt/maxun
-msg_ok "Maxun installed successfully"
+cd /opt
+RELEASE=$(curl -s https://api.github.com/repos/getmaxun/maxun/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+wget -q "https://github.com/getmaxun/maxun/archive/refs/tags/v${RELEASE}.zip"
+unzip -q v${RELEASE}.zip
+mv maxun-${RELEASE} /opt/maxun
 cat <<EOF > /opt/maxun/.env
 # App Setup
 NODE_ENV=development
