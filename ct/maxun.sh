@@ -5,7 +5,6 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/getmaxun/maxun
 
-
 APP="Maxun"
 var_tags="scraper"
 var_disk="7"
@@ -14,7 +13,6 @@ var_ram="3072"
 var_os="debian"
 var_version="12"
 var_unprivileged="1"
-
 
 header_info "$APP"
 variables
@@ -29,10 +27,8 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  github_get_release "getmaxun/maxun"
-  RELEASE=$(cat "/opt/.maxun_version")
-  if [[ ! -f "/opt/.maxun_version" ]] || ! grep -Fxq "$RELEASE" /opt/.maxun_version; then
-
+  RELEASE=$(curl -s https://api.github.com/repos/getmaxun/maxun/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Stopping Services"
     systemctl stop maxun minio redis
     msg_ok "Services Stopped"
