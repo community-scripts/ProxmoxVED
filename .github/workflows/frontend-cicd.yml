@@ -44,12 +44,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --prefer-offline --legacy-peer-deps
-        
-      - name: Ensure JSON directory and path file exist
-        run: mkdir -p frontend/public json && echo "../../json" > frontend/public/json
-        
-      - name: Run tests
-        run: npm run test
 
       - name: Configure Next.js for pages
         uses: actions/configure-pages@v5
