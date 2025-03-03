@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/MickLesk/Proxmox_DEV/main/misc/build.func)
-# Copyright (c) 2021-2024 tteck
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+# Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (Canbiz)
-# License: MIT
-# https://github.com/tteck/Proxmox/raw/main/LICENSE
+# License: MIT | https://github.com/tteck/Proxmox/raw/main/LICENSE
 
 function header_info {
 clear
