@@ -44,7 +44,7 @@ function Navbar() {
 								unoptimized
 								width={18}
 								alt="logo"
-								src="/ProxmoxVED/logo.png"
+								src="/ProxmoxVE/logo.png"
 								className=""
 							/>
 							<span className="hidden md:block">Proxmox VE Helper-Scripts</span>
