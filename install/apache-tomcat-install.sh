@@ -26,9 +26,9 @@ msg_ok "Installed Dependencies"
 
 msg_info "Setting up Adoptium Repository"
 mkdir -p /etc/apt/keyrings
-wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/adoptium.gpg
-echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
-apt-get update
+wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor >/etc/apt/trusted.gpg.d/adoptium.gpg
+echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" >/etc/apt/sources.list.d/adoptium.list
+$STD apt-get update
 msg_ok "Set up Adoptium Repository"
 
 read -r -p "Which Tomcat version would you like to install? (9, 10.1, 11): " version
