@@ -1,5 +1,39 @@
 {
     "files.associations": {
         "*.func": "shellscript"
-    }
+    },
+    "files.eol": "\n",
+    "files.encoding": "utf8",
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "files.autoSave": "afterDelay",
+    "files.autoGuessEncoding": false,
+    
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.wordWrap": "off",
+    "editor.renderWhitespace": "boundary",
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.minimap.enabled": false,
+    
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "terminal.integrated.scrollback": 10000,
+    
+    "[shellscript]": {
+        "editor.defaultFormatter": "foxundermoon.shell-format",
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+    
+    "workbench.colorTheme": "Default Dark+",
+    "workbench.iconTheme": "vscode-icons",
+    
+    "git.autofetch": true,
+    "git.confirmSync": false,
+    "git.enableSmartCommit": true,
+    
+    "extensions.ignoreRecommendations": false,
+    "security.workspace.trust.untrustedFiles": "open"
 }
