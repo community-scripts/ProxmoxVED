@@ -1,0 +1,97 @@
+[
+  {
+    "title": "🆕 New Scripts",
+    "labels": ["new script"]
+  },
+  {
+    "title": "🚀 Updated Scripts",
+    "labels": ["update script"],
+    "subCategories": [
+      {
+        "title": "🐞 Bug Fixes",
+        "labels": ["bugfix"],
+        "notes" : []
+      },
+      {
+        "title": "✨ New Features",
+        "labels": ["feature"],
+        "notes" : []
+      },
+      {
+        "title": "💥 Breaking Changes",
+        "labels": ["breaking change"],
+        "notes" : []
+      }
+    ]
+  },
+  {
+    "title": "🧰 Maintenance",
+    "labels": ["maintenance"],
+    "subCategories": [
+      {
+        "title": "🐞 Bug Fixes",
+        "labels": ["bugfix"],
+        "notes" : []
+      },
+      {
+        "title": "✨ New Features",
+        "labels": ["feature"],
+        "notes" : []
+      },
+      {
+        "title": "💥 Breaking Changes",
+        "labels": ["breaking change"],
+        "notes" : []
+      },
+      {
+        "title": "📡 API",
+        "labels": ["api"],
+        "notes" : []
+      },
+      {
+        "title": "💾 Core",
+        "labels": ["core"],
+        "notes" : []
+      },
+      {
+        "title": "📂 Github",
+        "labels": ["github"],
+        "notes" : []
+      }
+    ]
+  },
+  {
+    "title": "🌐 Website",
+    "labels": ["website"],
+    "subCategories": [
+      {
+        "title": "🐞 Bug Fixes",
+        "labels": ["bugfix"],
+        "notes" : []
+      },
+      {
+        "title": "✨ New Features",
+        "labels": ["feature"],
+        "notes" : []
+      },
+      {
+        "title": "💥 Breaking Changes",
+        "labels": ["breaking change"],
+        "notes" : []
+      },
+      {
+        "title": "📝 Script Information",
+        "labels": ["json"],
+        "notes" : []
+      }
+    ]
+  },
+  {
+    "title": "❔ Unlabelled",
+    "labels": []
+  },
+  {
+    "title": "💥 Breaking Changes",
+    "labels": ["breaking change"]
+  }
+]
