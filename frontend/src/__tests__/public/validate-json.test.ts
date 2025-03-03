@@ -4,7 +4,17 @@ import path from "path";
 import { ScriptSchema, type Script } from "@/app/json-editor/_schemas/schemas";
 import { Metadata } from "@/lib/types";
 
-const jsonDir = path.join(__dirname, '../../json');
+const publicJsonPath = path.join(process.cwd(), 'public/json');
+const getJsonDirectory = async () => {
+  if (!(await fs.stat(publicJsonPath).catch(() => null))) {
+    throw new Error(`JSON path file not found: ${publicJsonPath}`);
+  }
+  const jsonPath = (await fs.readFile(publicJsonPath, "utf-8")).trim();
+  return path.resolve(process.cwd(), jsonPath);
+};
+
+
+const jsonDir = await getJsonDirectory();
 const metadataFileName = "metadata.json";
 const encoding = "utf-8";
 
@@ -15,7 +25,7 @@ describe.each(fileNames)("%s", async (fileName) => {
   let script: Script;
 
   beforeAll(async () => {
-    const filePath =  path.resolve(jsonDir, fileName);
+    const filePath = path.resolve(jsonDir, fileName);
     const fileContent = await fs.readFile(filePath, encoding)
     script = JSON.parse(fileContent);
   })
@@ -36,7 +46,7 @@ describe(`${metadataFileName}`, async () => {
   let metadata: Metadata;
 
   beforeAll(async () => {
-    const filePath =  path.resolve(jsonDir, metadataFileName);
+    const filePath = path.resolve(jsonDir, metadataFileName);
     const fileContent = await fs.readFile(filePath, encoding)
     metadata = JSON.parse(fileContent);
   })
@@ -45,9 +55,9 @@ describe(`${metadataFileName}`, async () => {
     // TODO: create zod schema for metadata. Move zod schemas to /lib/types.ts
     assert(metadata.categories.length > 0);
     metadata.categories.forEach((category) => {
-        assert.isString(category.name)
-        assert.isNumber(category.id)
-        assert.isNumber(category.sort_order)
+      assert.isString(category.name)
+      assert.isNumber(category.id)
+      assert.isNumber(category.sort_order)
     });
   });
 })

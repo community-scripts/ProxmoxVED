@@ -5,7 +5,16 @@ import path from "path";
 
 export const dynamic = "force-static";
 
-const jsonDir = path.join(__dirname, '../../json');
+const publicJsonPath = path.join(process.cwd(), 'public/json');
+const getJsonDirectory = async () => {
+  if (!(await fs.stat(publicJsonPath).catch(() => null))) {
+    throw new Error(`JSON path file not found: ${publicJsonPath}`);
+  }
+  const jsonPath = (await fs.readFile(publicJsonPath, "utf-8")).trim();
+  return path.resolve(process.cwd(), jsonPath);
+};
+
+const jsonDir = await getJsonDirectory();
 const metadataFileName = "metadata.json";
 const encoding = "utf-8";
 
