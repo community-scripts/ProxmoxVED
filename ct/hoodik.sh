@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2021-2024 tteck
-# Author: tteck
-# Co-Author: MickLesk (Canbiz)
-# License: MIT
-# https://github.com/tteck/Proxmox/raw/main/LICENSE
-# Source: https://github.com/matze/wastebin
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (Canbiz)
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 # App Default Values
 APP="Hoodik"
@@ -35,33 +32,33 @@ function update_script() {
   fi
   RELEASE=$(curl -s https://api.github.com/repos/hudikhq/hoodik/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-  msg_info "Stopping Services"
-  systemctl stop hoodik
-  msg_ok "Services Stopped"
+    msg_info "Stopping Services"
+    systemctl stop hoodik
+    msg_ok "Services Stopped"
 
-  msg_info "Updating ${APP} to ${RELEASE}"
-  cd /opt
-  if [ -d hoodik_bak ]; then
-    rm -rf hoodik_bak
-  fi
-  mv hoodik hoodik_bak
-  wget -q "https://github.com/hudikhq/hoodik/archive/refs/tags/${RELEASE}.zip"
-  unzip -q ${RELEASE}.zip 
-  mv hoodik-${RELEASE} /opt/hoodik
-  cd /opt/hoodik
-  cargo update -q
-  cargo build -q --release
-  msg_ok "Updated Hoodik"
+    msg_info "Updating ${APP} to ${RELEASE}"
+    cd /opt
+    if [ -d hoodik_bak ]; then
+      rm -rf hoodik_bak
+    fi
+    mv hoodik hoodik_bak
+    wget -q "https://github.com/hudikhq/hoodik/archive/refs/tags/${RELEASE}.zip"
+    unzip -q ${RELEASE}.zip
+    mv hoodik-${RELEASE} /opt/hoodik
+    cd /opt/hoodik
+    cargo update -q
+    cargo build -q --release
+    msg_ok "Updated Hoodik"
 
-  msg_info "Starting Services"
-  systemctl start hoodik
-  msg_ok "Started Services"
+    msg_info "Starting Services"
+    systemctl start hoodik
+    msg_ok "Started Services"
 
-  msg_info "Cleaning Up"
-  rm -R /opt/${RELEASE}.zip
-  rm -R /opt/hoodik_bak
-  msg_ok "Cleaned"
-  msg_ok "Updated Successfully"
+    msg_info "Cleaning Up"
+    rm -R /opt/${RELEASE}.zip
+    rm -R /opt/hoodik_bak
+    msg_ok "Cleaned"
+    msg_ok "Updated Successfully"
   else
     msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi

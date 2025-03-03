@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2021-2024 communtiy-scripts ORG
+# Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (Canbiz)
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 ## App Default Values
 APP="Koel"
@@ -19,7 +18,7 @@ var_verbose="yes"
 header_info "$APP"
 base_settings
 
-# Core 
+# Core
 variables
 color
 catch_errors
@@ -39,23 +38,23 @@ function update_script() {
     msg_ok "Stopped ${APP} Service"
 
     msg_info "Updating ${APP} to v${RELEASE}"
-	cd /opt
-	wget -q https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip
-	unzip -q koel-${RELEASE}.zip
-	cd /opt/koel
-	composer update --no-interaction >/dev/null 2>&1
-	composer install --no-interaction >/dev/null 2>&1
-	php artisan migrate --force >/dev/null 2>&1
-	php artisan cache:clear >/dev/null 2>&1
-	php artisan config:clear >/dev/null 2>&1
-	php artisan view:clear >/dev/null 2>&1
-	php artisan koel:init --no-interaction >/dev/null 2>&1
+    cd /opt
+    wget -q https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip
+    unzip -q koel-${RELEASE}.zip
+    cd /opt/koel
+    composer update --no-interaction >/dev/null 2>&1
+    composer install --no-interaction >/dev/null 2>&1
+    php artisan migrate --force >/dev/null 2>&1
+    php artisan cache:clear >/dev/null 2>&1
+    php artisan config:clear >/dev/null 2>&1
+    php artisan view:clear >/dev/null 2>&1
+    php artisan koel:init --no-interaction >/dev/null 2>&1
     msg_ok "Updated ${APP} to v${RELEASE}"
 
     msg_info "Starting ${APP} Service"
     systemctl start nginx
-	msg_ok "Started ${APP} Service"
-	
+    msg_ok "Started ${APP} Service"
+
     msg_info "Cleaning up"
     rm -rf /opt/koel-${RELEASE}.zip
     msg_ok "Cleaned"
