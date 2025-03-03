@@ -40,8 +40,7 @@ case $version in
     case $jdk_version in
     8)
         msg_info "Installing Temurin JDK 8 (LTS) for Tomcat $TOMCAT_VERSION"
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get install -y temurin-8-jdk
+        $STD apt-get install -y temurin-8-jdk
         msg_ok "Setup Temurin JDK 8 (LTS)"
         ;;
     11)
@@ -51,12 +50,11 @@ case $version in
         ;;
     17)
         msg_info "Installing Temurin JDK 17 (LTS) for Tomcat $TOMCAT_VERSION"
-        apt-get install -qqy temurin-17-jdk
+        $STD apt-get install -qqy temurin-17-jdk
         msg_ok "Setup Temurin JDK 17 (LTS)"
         ;;
     21)
         msg_info "Installing Temurin JDK 21 (LTS) for Tomcat $TOMCAT_VERSION"
-        export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-21-jdk
         msg_ok "Setup Temurin JDK 21 (LTS)"
         ;;
@@ -73,19 +71,16 @@ case $version in
     case $jdk_version in
     11)
         msg_info "Installing Temurin JDK 11 (LTS) for Tomcat $TOMCAT_VERSION"
-        export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-11-jdk
         msg_ok "Setup Temurin JDK 11"
         ;;
     17)
         msg_info "Installing Temurin JDK 17 (LTS) for Tomcat $TOMCAT_VERSION"
-        export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-17-jdk
         msg_ok "Setup Temurin JDK 17"
         ;;
     21)
         msg_info "Installing Temurin JDK 21 (LTS) for Tomcat $TOMCAT_VERSION"
-        export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-21-jdk
         msg_ok "Setup Temurin JDK 21 (LTS)"
         ;;
@@ -102,13 +97,11 @@ case $version in
     case $jdk_version in
     17)
         msg_info "Installing Temurin JDK 17 (LTS) for Tomcat $TOMCAT_VERSION"
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get install -qqy temurin-17-jdk
+        $STD apt-get install -qqy temurin-17-jdk
         msg_ok "Setup Temurin JDK 17"
         ;;
     21)
         msg_info "Installing Temurin JDK 21 (LTS) for Tomcat $TOMCAT_VERSION"
-        export DEBIAN_FRONTEND=noninteractive
         $STD apt-get install -y temurin-21-jdk
         msg_ok "Setup Temurin JDK 21 (LTS)"
         ;;
