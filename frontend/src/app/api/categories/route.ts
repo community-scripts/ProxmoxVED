@@ -5,7 +5,7 @@ import path from "path";
 
 export const dynamic = "force-static";
 
-const jsonDir = "public/json";
+const jsonDir = path.join(__dirname, '../../json');
 const metadataFileName = "metadata.json";
 const encoding = "utf-8";
 
