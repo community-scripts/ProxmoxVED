@@ -22,7 +22,7 @@ function update_script() {
     header_info
     check_container_storage
     check_container_resources
-    if [[ ! -d /opt/tomcat* ]]; then
+    if ! ls -d /opt/tomcat-* >/dev/null 2>&1; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi
