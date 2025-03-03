@@ -192,14 +192,20 @@ msg_info "Setting up Seafile"
 $STD su - seafile -c "bash /opt/seafile/seafile-server-latest/seafile.sh start"
 $STD su - seafile -c "expect <<EOF
 spawn bash /opt/seafile/seafile-server-latest/seahub.sh start
-expect "What is the email for the admin account" {
-        send "$ADMIN_EMAIL\r"
-}
-expect "What is the password for the admin account" {
-        send "$ADMIN_PASS\r\"
-}
-expect "Enter the password again:" {
-        send "$ADMIN_PASS\r"
+expect {
+    \"What is the email for the admin account\" {
+        send \"$ADMIN_EMAIL\r\"
+        }
+    }
+expect {
+    \"What is the password for the admin account\" {
+        send \"$ADMIN_PASS\r\"
+        }
+    }
+expect {
+    \"Enter the password again:\" {
+        send \"$ADMIN_PASS\r\"
+    }
 }
 expect eof
 EOF"
