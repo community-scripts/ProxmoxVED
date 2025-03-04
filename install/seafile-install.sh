@@ -33,7 +33,7 @@ SEAHUB_DB="seahub_db"
 DB_USER="seafile"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 ADMIN_EMAIL="admin@localhost.local"
-ADMIN_PASS="helper-scripts"
+ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 sudo -u mysql mysql -s -e "CREATE DATABASE $CCNET_DB CHARACTER SET utf8;"
 sudo -u mysql mysql -s -e "CREATE DATABASE $SEAFILE_DB CHARACTER SET utf8;"
 sudo -u mysql mysql -s -e "CREATE DATABASE $SEAHUB_DB CHARACTER SET utf8;"
@@ -189,28 +189,26 @@ sed -i "0,/127.0.0.1/s/127.0.0.1/0.0.0.0/" /opt/seafile/conf/gunicorn.conf.py
 msg_ok "Conf files adjusted"
 
 msg_info "Setting up Seafile" 
-$STD su - seafile -c "/opt/seafile/seafile-server-latest/seafile.sh start"
+$STD su - seafile -c "bash /opt/seafile/seafile-server-latest/seafile.sh start"
 $STD su - seafile -c "expect <<EOF
-spawn /opt/seafile/seafile-server-latest/seahub.sh start
+spawn bash /opt/seafile/seafile-server-latest/seahub.sh start
 expect {
     \"email\" {
-        send \"admin@localhost.local\r\"
+        send \"$ADMIN_EMAIL\r\"
         }
     }
 expect {
     \"password\" {
-        send \"helper-scripts\r\"
+        send \"$ADMIN_PASS\r\"
         }
     }
 expect {
     \"password again\" {
-        send \"helper-scripts\r\"
+        send \"$ADMIN_PASS\r\"
+        }
     }
-}
 expect eof
 EOF"
-$STD su - seafile -c "/opt/seafile/seafile-server-latest/seahub.sh stop"
-$STD su - seafile -c "/opt/seafile/seafile-server-latest/seafile.sh stop"
 msg_ok "Seafile setup"
 
 msg_info "Creating Services"
@@ -237,7 +235,7 @@ RestartSec=5s
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now seafile.service
+systemctl enable -q seafile.service
 msg_ok "Created Services"
 
 msg_info "Creating External Storage script"
