@@ -37,11 +37,10 @@ VAULT=$(curl -s https://api.github.com/repos/dani-garcia/vaultwarden/releases/la
   awk '{print substr($2, 2, length($2)-3) }')
 
 msg_info "Installing Rust"
-wget -qO rustup-init.sh https://sh.rustup.rs
-$STD bash rustup-init.sh -y --profile minimal
+$STD curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 source "$HOME/.cargo/env"
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
-rm rustup-init.sh
+$STD rustup toolchain install
 msg_ok "Installed Rust"
 
 msg_info "Building Vaultwarden ${VAULT} (Patience)"
