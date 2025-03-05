@@ -42,12 +42,20 @@ $STD bash rustup-init.sh -y --profile minimal
 echo 'export PATH=~/.cargo/bin:$PATH' >>~/.bashrc
 export PATH=~/.cargo/bin:$PATH
 rm rustup-init.sh
-$STD rustup toolchain install
 msg_ok "Installed Rust"
 
 msg_info "Building Vaultwarden ${VAULT} (Patience)"
 $STD git clone https://github.com/dani-garcia/vaultwarden
 cd vaultwarden
+if [ -f "rust-toolchain.toml" ]; then
+    LATEST_RUST_VERSION=$(grep 'channel' rust-toolchain.toml | awk -F\" '{print $2}')
+else
+    LATEST_RUST_VERSION="stable"
+fi
+LATEST_RUST_VERSION_FULL="${LATEST_RUST_VERSION}-x86_64-unknown-linux-gnu"
+$STD rustup install "$LATEST_RUST_VERSION_FULL"
+$STD rustup default "$LATEST_RUST_VERSION_FULL"
+$STD rustup override set "$LATEST_RUST_VERSION_FULL"
 $STD cargo build --features "sqlite,mysql,postgresql" --release
 msg_ok "Built Vaultwarden ${VAULT}"
 
