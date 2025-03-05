@@ -31,7 +31,7 @@ curl -fsSL https://dl.packager.io/srv/inventree/InvenTree/key | gpg --dearmor -o
 echo "deb [signed-by=/etc/apt/keyrings/inventree.gpg] https://dl.packager.io/srv/deb/inventree/InvenTree/stable/ubuntu 20.04 main" >/etc/apt/sources.list.d/inventree.list
 msg_ok "Set up InvenTree Repository"
 
-msg_info "Setup ${APPLICATION}"
+msg_info "Setup ${APPLICATION} (Patience)"
 $STD apt-get update
 $STD apt-get install -y inventree
 msg_ok "Setup ${APPLICATION}"
