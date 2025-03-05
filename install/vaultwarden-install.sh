@@ -39,7 +39,8 @@ VAULT=$(curl -s https://api.github.com/repos/dani-garcia/vaultwarden/releases/la
 msg_info "Installing Rust"
 $STD curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 source "$HOME/.cargo/env"
-echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+echo 'export PATH=~/.cargo/bin:$PATH' >>~/.bashrc
+export PATH=~/.cargo/bin:$PATH
 $STD rustup toolchain install
 msg_ok "Installed Rust"
 
