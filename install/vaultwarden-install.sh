@@ -76,11 +76,12 @@ chmod +x /opt/vaultwarden/bin/vaultwarden
 chown -R root:root /opt/vaultwarden/web-vault/
 chmod +r /opt/vaultwarden/.env
 
-service_path="/etc/systemd/system/vaultwarden.service"
-echo "[Unit]
+cat <<EOF >/etc/systemd/system/vaultwarden.service
+[Unit]
 Description=Bitwarden Server (Powered by Vaultwarden)
 Documentation=https://github.com/dani-garcia/vaultwarden
 After=network.target
+
 [Service]
 User=vaultwarden
 Group=vaultwarden
@@ -103,10 +104,11 @@ LockPersonality=yes
 WorkingDirectory=/opt/vaultwarden
 ReadWriteDirectories=/opt/vaultwarden/data
 AmbientCapabilities=CAP_NET_BIND_SERVICE
+
 [Install]
-WantedBy=multi-user.target" >$service_path
-systemctl daemon-reload
-$STD systemctl enable --now vaultwarden.service
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now vaultwarden
 msg_ok "Created Service"
 
 motd_ssh
