@@ -29,9 +29,34 @@ function update_script() {
     fi
     RELEASE=$(curl -s https://api.github.com/repos/matze/wastebin/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
     # Dirty-Fix 03/2025 for missing APP_version.txt on old installations, set to pre-latest release
+    msg_info "Running Migration"
     if [[ ! -f /opt/${APP}_version.txt ]]; then
         echo "2.7.1" >/opt/${APP}_version.txt
+        mkdir -p /opt/wastebin-data
+        cat <<EOF >/opt/wastebin-data/.env
+WASTEBIN_DATABASE_PATH=/opt/wastebin-data/wastebin.db
+WASTEBIN_CACHE_SIZE=1024
+WASTEBIN_HTTP_TIMEOUT=30
+WASTEBIN_SIGNING_KEY=$(openssl rand -hex 32)
+WASTEBIN_PASTE_EXPIRATIONS=0,600,3600=d,86400,604800,2419200,29030400
+EOF
+        systemctl stop wastebin
+        cat <<EOF >/etc/systemd/system/wastebin.service
+[Unit]
+Description=Wastebin Service
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/wastebin
+ExecStart=/opt/wastebin/wastebin
+EnvironmentFile=/opt/wastebin-data/.env
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        systemctl daemon-reload
     fi
+    msg_ok "Migration Done"
     if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
         msg_info "Stopping Wastebin"
         systemctl stop wastebin
@@ -39,7 +64,6 @@ function update_script() {
 
         msg_info "Updating Wastebin"
         temp_file=$(mktemp)
-        RELEASE=$(curl -s https://api.github.com/repos/matze/wastebin/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
         wget -q https://github.com/matze/wastebin/releases/download/${RELEASE}/wastebin_${RELEASE}_x86_64-unknown-linux-musl.zip -O $temp_file
         unzip -q $temp_file
         cp -f wastebin /opt/wastebin/

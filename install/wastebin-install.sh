@@ -28,7 +28,17 @@ unzip -q $temp_file
 mkdir -p /opt/wastebin
 mv wastebin /opt/wastebin/
 chmod +x /opt/wastebin/wastebin
+
+mkdir -p /opt/wastebin-data
+cat <<EOF >/opt/wastebin-data/.env
+WASTEBIN_DATABASE_PATH=/opt/wastebin-data/wastebin.db
+WASTEBIN_CACHE_SIZE=1024
+WASTEBIN_HTTP_TIMEOUT=30
+WASTEBIN_SIGNING_KEY=$(openssl rand -hex 32)
+WASTEBIN_PASTE_EXPIRATIONS=0,600,3600=d,86400,604800,2419200,29030400
+EOF
 echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
+
 msg_ok "Installed Wastebin"
 
 msg_info "Creating Service"
@@ -40,6 +50,7 @@ After=network.target
 [Service]
 WorkingDirectory=/opt/wastebin
 ExecStart=/opt/wastebin/wastebin
+EnvironmentFile=/opt/wastebin-data/.env
 
 [Install]
 WantedBy=multi-user.target
