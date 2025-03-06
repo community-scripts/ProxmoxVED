@@ -37,7 +37,6 @@ function update_script() {
 
         msg_info "Creating Backup"
         $STD tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/cwa /opt/calibre-web/metadata.db
-        cp dirs.json /opt/dirs.json.bak # not sure if necessary
         msg_ok "Backup Created"
 
         msg_info "Updating $APP to v${RELEASE}"
