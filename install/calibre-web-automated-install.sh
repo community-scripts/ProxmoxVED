@@ -43,7 +43,7 @@ curl -fsSLO https://github.com/pgaskin/kepubify/releases/latest/download/kepubif
 chmod +x kepubify-linux-64bit
 msg_ok "Installed Kepubify"
 
-msg_info "Installing Calibre-Web"
+msg_info "Installing Calibre-Web (Patience)"
 rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
 mkdir -p /opt/calibre-web
 $STD apt-get install -y calibre
@@ -83,6 +83,8 @@ $STD git checkout V${RELEASE}
 $STD pip install -r requirements.txt
 wget -q https://raw.githubusercontent.com/vhsdream/cwa-lxc/refs/heads/dev/proxmox-lxc.patch -O /opt/cwa.patch # not for production
 $STD git apply --whitespace=fix /opt/cwa.patch # not for production
+cd scripts
+chmod +x check-cwa-services.sh ingester-service.sh change-detector.sh
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup ${APPLICATION}"
 
