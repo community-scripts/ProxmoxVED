@@ -81,7 +81,7 @@ $STD git clone https://github.com/crocodilestick/Calibre-Web-Automated.git /opt/
 cd /opt/cwa
 $STD git checkout V${RELEASE}
 $STD pip install -r requirements.txt
-wget -q https://raw.githubusercontent.com/vhsdream/cwa-lxc/refs/heads/dev/proxmox-lxc.patch -O /opt/cwa.patch # not for production
+wget -q https://gist.githubusercontent.com/vhsdream/2e81afeff139c5746db1ede88c01cc7b/raw/51238206e87aec6c0abeccce85dec9f2b0c89000/proxmox-lxc.patch -O /opt/cwa.patch # not for production
 $STD git apply --whitespace=fix /opt/cwa.patch # not for production
 cd scripts
 chmod +x check-cwa-services.sh ingest-service.sh change-detector.sh
@@ -89,9 +89,8 @@ echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup ${APPLICATION}"
 
 msg_info "Creating necessary files & directories"
-mkdir -p /opt/cwa/{metadata_change_logs,metadata_temp}
 mkdir -p /opt/cwa-book-ingest
-mkdir -p /var/lib/cwa/{processed_books,log_archive,.cwa_conversion_tmp}
+mkdir -p /var/lib/cwa/{metadata_change_logs,metadata_temp,processed_books,log_archive,.cwa_conversion_tmp}
 mkdir -p /var/lib/cwa/processed_books/{converted,imported,failed,fixed_originals}
 touch /var/lib/cwa/convert-library.log
 msg_ok "Directories & files created"

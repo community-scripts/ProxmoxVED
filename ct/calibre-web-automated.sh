@@ -50,7 +50,7 @@ function update_script() {
         $STD git stash --all
         $STD git pull
         $STD pip install -r requirements.txt
-        wget -q https://raw.githubusercontent.com/vhsdream/cwa-lxc/refs/heads/dev/proxmox-lxc.patch -O /opt/cwa.patch # not for production
+        wget -q https://gist.githubusercontent.com/vhsdream/2e81afeff139c5746db1ede88c01cc7b/raw/51238206e87aec6c0abeccce85dec9f2b0c89000/proxmox-lxc.patch -O /opt/cwa.patch # not for production
         $STD git apply --whitespace=fix /opt/cwa.patch # not for production
         cp -r /opt/cwa/root/app/calibre-web/cps/* /usr/local/lib/python3*/dist-packages/calibreweb/cps
         cd scripts
