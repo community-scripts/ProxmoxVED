@@ -33,11 +33,6 @@ function update_script() {
         systemctl stop paperless-gpt
         msg_ok "Service Stopped"
 
-        msg_info "Backing up .env file"
-        mkdir -p /opt/paperless-gpt-backup
-        [[ -f /opt/paperless-gpt/web-app/.env ]] && cp -f /opt/paperless-gpt/web-app/.env /opt/paperless-gpt-backup/.env
-        msg_ok "Backup Created"
-
         msg_info "Updating Paperless-GPT to ${RELEASE}"
         temp_file=$(mktemp)
         wget -q "https://github.com/icereed/paperless-gpt/archive/refs/tags/v${RELEASE}.tar.gz" -O $temp_file
@@ -55,17 +50,12 @@ function update_script() {
         echo "${RELEASE}" >"/opt/paperless-gpt_version.txt"
         msg_ok "Updated Paperless-GPT to ${RELEASE}"
 
-        msg_info "Restoring .env file"
-        [[ -f /opt/paperless-gpt-backup/.env ]] && mv -f /opt/paperless-gpt-backup/.env /opt/paperless-gpt/web-app/.env
-        msg_ok "Restored .env file"
-
         msg_info "Starting Service"
         systemctl start paperless-gpt
         msg_ok "Started Service"
 
         msg_info "Cleaning Up"
         rm -f $temp_file
-        rm -rf /opt/paperless-gpt-backup
         msg_ok "Cleanup Completed"
 
     else

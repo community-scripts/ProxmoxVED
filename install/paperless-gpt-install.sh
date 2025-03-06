@@ -63,7 +63,11 @@ go mod download
 export CC=musl-gcc
 CGO_ENABLED=1 go build -tags musl -o /dev/null github.com/mattn/go-sqlite3
 CGO_ENABLED=1 go build -tags musl -o paperless-gpt .
+echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
+msg_ok "Setup Paperless-GPT"
 
+msg_info "Setup Environment"
+mkdir -p /opt/paperless-gpt-data
 read -p "Do you want to enter the Paperless local URL now? (y/n) " input_url
 if [[ "$input_url" =~ ^[Yy]$ ]]; then
     read -p "Enter your Paperless-NGX instance URL (e.g., http://192.168.1.100:8000): " PAPERLESS_BASE_URL
@@ -78,7 +82,7 @@ else
     PAPERLESS_API_TOKEN="your_paperless_api_token"
 fi
 
-cat <<EOF >/opt/paperless-gpt/web-app/.env
+cat <<EOF >/opt/paperless-gpt-data/.env
 PAPERLESS_BASE_URL=$PAPERLESS_BASE_URL
 PAPERLESS_API_TOKEN=$PAPERLESS_API_TOKEN
 
@@ -100,8 +104,7 @@ AUTO_OCR_TAG=paperless-gpt-ocr-auto
 
 OCR_LIMIT_PAGES=5
 EOF
-echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
-msg_ok "Setup Paperless-GPT"
+msg_ok "Setup Environment"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/paperless-gpt.service
@@ -115,7 +118,7 @@ WorkingDirectory=/opt/paperless-gpt
 ExecStart=/opt/paperless-gpt/paperless-gpt
 Restart=always
 User=root
-EnvironmentFile=/opt/paperless-gpt/web-app/.env
+EnvironmentFile=/opt/paperless-gpt-data/.env
 
 [Install]
 WantedBy=multi-user.target
