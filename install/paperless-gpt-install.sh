@@ -19,6 +19,7 @@ $STD apt-get install -y \
     curl \
     mc \
     gcc \
+    gnupg \
     ca-certificates \
     musl-dev \
     mupdf \
