@@ -84,7 +84,7 @@ $STD pip install -r requirements.txt
 wget -q https://raw.githubusercontent.com/vhsdream/cwa-lxc/refs/heads/dev/proxmox-lxc.patch -O /opt/cwa.patch # not for production
 $STD git apply --whitespace=fix /opt/cwa.patch # not for production
 cd scripts
-chmod +x check-cwa-services.sh ingester-service.sh change-detector.sh
+chmod +x check-cwa-services.sh ingest-service.sh change-detector.sh
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup ${APPLICATION}"
 
