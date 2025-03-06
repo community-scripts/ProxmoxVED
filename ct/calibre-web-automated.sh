@@ -53,6 +53,8 @@ function update_script() {
         wget -q https://raw.githubusercontent.com/vhsdream/cwa-lxc/refs/heads/dev/proxmox-lxc.patch -O /opt/cwa.patch # not for production
         $STD git apply --whitespace=fix /opt/cwa.patch # not for production
         cp -r /opt/cwa/root/app/calibre-web/cps/* /usr/local/lib/python3*/dist-packages/calibreweb/cps
+        cd scripts
+        chmod +x check-cwa-services.sh ingest-service.sh change-detector.sh
         msg_ok "Updated $APP to v${RELEASE}"
 
         msg_info "Starting $APP"
