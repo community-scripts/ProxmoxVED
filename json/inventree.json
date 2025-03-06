@@ -28,7 +28,7 @@
     ],
     "default_credentials": {
         "username": "admin",
-        "password": "`cat /etc/inventree/admin_password`"
+        "password": "`cat /etc/inventree/admin_password.txt`"
     },
     "notes": [
         {
