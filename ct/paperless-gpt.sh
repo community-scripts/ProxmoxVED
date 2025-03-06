@@ -5,7 +5,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/icereed/paperless-gpt
 
-APP="Debian"
+APP="Paperless-GPT"
 var_tags="os"
 var_cpu="3"
 var_ram="2048"
