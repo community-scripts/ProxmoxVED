@@ -47,6 +47,7 @@ function update_script() {
         cd /opt/calibre-web
         $STD pip install --upgrade calibreweb[goodreads,metadata,kobo]
         cd /opt/cwa
+        $STD git stash --all
         $STD git pull
         $STD pip install -r requirements.txt
         wget -q https://raw.githubusercontent.com/vhsdream/cwa-lxc/refs/heads/dev/proxmox-lxc.patch -O /opt/cwa.patch # not for production
