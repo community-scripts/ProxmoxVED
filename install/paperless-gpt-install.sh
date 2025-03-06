@@ -54,10 +54,9 @@ RELEASE=$(curl -s https://api.github.com/repos/icereed/paperless-gpt/releases/la
 wget -q "https://github.com/icereed/paperless-gpt/archive/refs/tags/v${RELEASE}.tar.gz" -O $temp_file
 tar zxf $temp_file
 mv paperless-gpt-${RELEASE} /opt/paperless-gpt
-
 cd /opt/paperless-gpt/web-app
-npm install
-npm run build
+$STD npm install
+$STD npm run build
 cd /opt/paperless-gpt
 go mod download
 export CC=musl-gcc
