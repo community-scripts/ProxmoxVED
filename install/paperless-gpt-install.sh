@@ -66,7 +66,6 @@ CGO_ENABLED=1 go build -tags musl -o paperless-gpt .
 echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
 msg_ok "Setup Paperless-GPT"
 
-msg_info "Setup Environment"
 mkdir -p /opt/paperless-gpt-data
 read -p "Do you want to enter the Paperless local URL now? (y/n) " input_url
 if [[ "$input_url" =~ ^[Yy]$ ]]; then
@@ -82,6 +81,7 @@ else
     PAPERLESS_API_TOKEN="your_paperless_api_token"
 fi
 
+msg_info "Setup Environment"
 cat <<EOF >/opt/paperless-gpt-data/.env
 PAPERLESS_BASE_URL=$PAPERLESS_BASE_URL
 PAPERLESS_API_TOKEN=$PAPERLESS_API_TOKEN
