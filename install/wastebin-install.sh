@@ -25,7 +25,6 @@ temp_file=$(mktemp)
 RELEASE=$(curl -s https://api.github.com/repos/matze/wastebin/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 wget -q https://github.com/matze/wastebin/releases/download/${RELEASE}/wastebin_${RELEASE}_x86_64-unknown-linux-musl.zip -O $temp_file
 unzip -q $temp_file
-rm -rf wastebin_${RELEASE}_x86_64-unknown-linux-musl.zip
 mkdir -p /opt/wastebin
 mv wastebin /opt/wastebin/
 chmod +x /opt/wastebin/wastebin
@@ -52,6 +51,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -f $temp_file
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"

@@ -28,14 +28,20 @@ function update_script() {
         exit
     fi
     RELEASE=$(curl -s https://api.github.com/repos/matze/wastebin/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+    # Dirty-Fix 03/2025 for missing APP_version.txt on old installations, set to pre-latest release
+    if [[ ! -f /opt/${APP}_version.txt ]]; then
+        echo "2.7.1" >/opt/${APP}_version.txt
+    fi
     if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
         msg_info "Stopping Wastebin"
         systemctl stop wastebin
         msg_ok "Wastebin Stopped"
 
         msg_info "Updating Wastebin"
-        wget -q https://github.com/matze/wastebin/releases/download/${RELEASE}/wastebin_${RELEASE}_x86_64-unknown-linux-musl.tar.zst
-        tar -xf wastebin_${RELEASE}_x86_64-unknown-linux-musl.tar.zst
+        temp_file=$(mktemp)
+        RELEASE=$(curl -s https://api.github.com/repos/matze/wastebin/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+        wget -q https://github.com/matze/wastebin/releases/download/${RELEASE}/wastebin_${RELEASE}_x86_64-unknown-linux-musl.zip -O $temp_file
+        unzip -q $temp_file
         cp -f wastebin /opt/wastebin/
         chmod +x /opt/wastebin/wastebin
         echo "${RELEASE}" >/opt/${APP}_version.txt
@@ -46,8 +52,8 @@ function update_script() {
         msg_ok "Started Wastebin"
 
         msg_info "Cleaning Up"
-        rm -rf wastebin_${RELEASE}_x86_64-unknown-linux-musl.tar.zst
-        msg_ok "Cleaned"
+        rm -f $temp_file
+        msg_ok "Cleanup Completed"
         msg_ok "Updated Successfully"
     else
         msg_ok "No update required. ${APP} is already at v${RELEASE}"
