@@ -19,7 +19,8 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y \
   curl \
   sudo \
-  mc
+  mc \
+  jq # Used for updating checking from json response
 msg_ok "Installed Dependencies"
 
 msg_info "Installing FFmpeg (Patience)"
@@ -59,7 +60,7 @@ msg_info "Setup ${APPLICATION}"
 temp_file=$(mktemp)
 wget -q https://fileflows.com/downloads/zip -O $temp_file
 unzip -q -d /opt/fileflows $temp_file
-chmod +x /opt/fileflows/run-server.sh
+chmod +x /opt/fileflows/fileflows-systemd-entrypoint.sh
 msg_ok "Setup ${APPLICATION}"
 
 # Creating Service
