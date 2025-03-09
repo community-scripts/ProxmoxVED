@@ -25,45 +25,46 @@ function update_script() {
     check_container_resources
 
     # Check if installation is present | -f for file, -d for folder
-    if [[ ! -f [INSTALLATION_CHECK_PATH] ]]; then
+    if [[ ! -d /opt/fileflows ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi
 
-    # Crawling the new version and checking whether an update is required
-    RELEASE=$(curl -fsSL [RELEASE_URL] | [PARSE_RELEASE_COMMAND])
-    if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
-        # Stopping Services
+    UPDATE_AVAILABLE=$(curl -s -X 'GET' "http://${IP}:19200/api/status/update-available" -H 'accept: application/json' | jq .UpdateAvailable)
+    if [[ "${UPDATE_AVAILABLE}" == "true" ]]; then
         msg_info "Stopping $APP"
-        systemctl stop [SERVICE_NAME]
+        systemctl stop fileflows
         msg_ok "Stopped $APP"
 
         # Creating Backup
         msg_info "Creating Backup"
-        tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" [IMPORTANT_PATHS]
+        tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" -C /opt/fileflows Data
         msg_ok "Backup Created"
 
         # Execute Update
-        msg_info "Updating $APP to v${RELEASE}"
-        [UPDATE_COMMANDS]
-        msg_ok "Updated $APP to v${RELEASE}"
+        msg_info "Updating $APP to latest version"
+        temp_file=$(mktemp)
+        wget -q https://fileflows.com/downloads/zip -O $temp_file
+        unzip -oq -d /opt/fileflows $temp_file
+        chmod +x /opt/fileflows/fileflows-systemd-entrypoint.sh
+        msg_ok "Updated $APP to latest version"
 
         # Starting Services
         msg_info "Starting $APP"
-        systemctl start [SERVICE_NAME]
+        systemctl start fileflows
         msg_ok "Started $APP"
 
         # Cleaning up
         msg_info "Cleaning Up"
-        rm -rf [TEMP_FILES]
+        rm -rf $temp_file
         msg_ok "Cleanup Completed"
 
         # Last Action
-        echo "${RELEASE}" >/opt/${APP}_version.txt
         msg_ok "Update Successful"
     else
-        msg_ok "No update required. ${APP} is already at v${RELEASE}"
+      msg_ok "No update required. ${APP} is already at latest version"
     fi
+
     exit
 }
 
@@ -74,4 +75,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:[PORT]${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:19200${CL}"
