@@ -60,26 +60,12 @@ msg_info "Setup ${APPLICATION}"
 temp_file=$(mktemp)
 wget -q https://fileflows.com/downloads/zip -O $temp_file
 unzip -q -d /opt/fileflows $temp_file
-chmod +x /opt/fileflows/fileflows-systemd-entrypoint.sh
+(cd /opt/fileflows/Server && dotnet FileFlows.Server.dll --systemd install --root true)
 msg_ok "Setup ${APPLICATION}"
 
 # Creating Service
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/fileflows.service
-[Unit]
-Description=${APPLICATION} Service
-After=network.target
-
-[Service]
-WorkingDirectory=/opt/fileflows
-ExecStart=/opt/fileflows/fileflows-systemd-entrypoint.sh
-SyslogIdentifier=FileFlows
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
+(cd /opt/fileflows/Server && dotnet FileFlows.Server.dll --systemd install --root true)
 systemctl enable -q --now fileflows.service
 msg_ok "Created Service"
 
