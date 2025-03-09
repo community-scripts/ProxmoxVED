@@ -46,7 +46,6 @@ function update_script() {
         temp_file=$(mktemp)
         wget -q https://fileflows.com/downloads/zip -O $temp_file
         unzip -oq -d /opt/fileflows $temp_file
-        chmod +x /opt/fileflows/fileflows-systemd-entrypoint.sh
         msg_ok "Updated $APP to latest version"
 
         # Starting Services
