@@ -9,8 +9,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    env:
-      GH_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout repository
@@ -20,6 +18,8 @@ jobs:
 
       - name: List Issues in Repository
         id: list_issues
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "Filtering Issues with Label MigrationTest"
 
