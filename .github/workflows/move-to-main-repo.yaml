@@ -23,7 +23,8 @@ jobs:
         run: |
           echo "Filtering Issues with Label MigrationTest"
 
-          gh issue list --label "MigrationTest"
+          gh issue list --label "MigrationTest" --repo community-scripts/ProxmoxVED
+          gh issue list --label "MigrationTest" --json title
 
           script_name=$(gh issue list --label "MigrationTest" --json title --jq '.[0].title')
           echo "Found script name: $script_name"
