@@ -16,16 +16,15 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
     sudo \
+    mc \
     curl
 msg_ok "Installed Dependencies"
 
-msg_info "Downloading Wazuh Installation Files"
-wget https://packages.wazuh.com/4.11/wazuh-install.sh
-msg_ok "Downloaded Wazuh Files"
-
-msg_info "Installing Wazuh"
+msg_info "Setup Wazuh"
+wget -q https://packages.wazuh.com/4.11/wazuh-install.sh
+chmod +x wazuh-install.sh
 bash ./wazuh-install.sh -a
-msg_ok "Installed Wazuh"
+msg_ok "Setup Wazuh"
 
 motd_ssh
 customize
