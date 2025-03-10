@@ -5,7 +5,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://alpinelinux.org/
 
-APP="NPM-Plus"
+APP="NPMplus"
 var_tags="proxy;nginx"
 var_cpu="1"
 var_ram="512"
