@@ -21,7 +21,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing FreePBX (Patience)"
-$STD wget https://raw.githubusercontent.com/FreePBX/sng_freepbx_debian_install/refs/heads/master/sng_freepbx_debian_install.sh
+wget -q https://raw.githubusercontent.com/FreePBX/sng_freepbx_debian_install/refs/heads/master/sng_freepbx_debian_install.sh
 $STD bash ./sng_freepbx_debian_install.sh
 msg_ok "Installed FreePBX"
 
