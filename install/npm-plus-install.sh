@@ -83,6 +83,9 @@ if [[ "$STATUS" != "healthy" ]]; then
     exit 1
 fi
 
+motd_ssh
+customize
+
 msg_info "Get Default Login (Patience)"
 TIMEOUT=60
 while [[ $TIMEOUT -gt 0 ]]; do
@@ -104,6 +107,3 @@ if [[ $TIMEOUT -eq 0 ]]; then
     break
 fi
 msg_ok "Get Default Login Successful"
-
-motd_ssh
-customize
