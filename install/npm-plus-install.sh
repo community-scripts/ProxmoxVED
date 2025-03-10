@@ -57,9 +57,7 @@ yq -i "
 
 msg_info "Starting NPM Plus"
 $STD docker compose up -d
-msg_ok "Started NPM Plus"
 
-msg_info "Get Default Login (Patience)"
 CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
 
 if [[ -z "$CONTAINER_ID" ]]; then
@@ -72,6 +70,7 @@ while [[ $TIMEOUT -gt 0 ]]; do
     STATUS=$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null)
 
     if [[ "$STATUS" == "healthy" ]]; then
+        msg_ok "Started NPM Plus"
         break
     fi
 
@@ -84,6 +83,7 @@ if [[ "$STATUS" != "healthy" ]]; then
     exit 1
 fi
 
+msg_info "Get Default Login (Patience)"
 TIMEOUT=60
 while [[ $TIMEOUT -gt 0 ]]; do
     PASSWORD_LINE=$(docker logs "$CONTAINER_ID" 2>&1 | grep -m1 "Creating a new user: admin@example.org with password:")
@@ -92,7 +92,6 @@ while [[ $TIMEOUT -gt 0 ]]; do
         PASSWORD=$(echo "$PASSWORD_LINE" | gawk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
         msg_ok "Saved default login to /opt/.npm_pwd"
-        msg_ok "Get Default Login Successful"
         break
     fi
 
@@ -104,6 +103,7 @@ if [[ $TIMEOUT -eq 0 ]]; then
     msg_error "Failed to retrieve default login credentials."
     exit 1
 fi
+
 msg_ok "Get Default Login Successful"
 
 read -r -p "Do you want to add Filebrowser too? [y/N]: " FILEBROWSER_INPUT
