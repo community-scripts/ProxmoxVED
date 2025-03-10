@@ -9,7 +9,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      workflow: write
 
     steps:
       - name: Checkout repository
