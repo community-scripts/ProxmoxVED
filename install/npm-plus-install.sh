@@ -51,8 +51,11 @@ msg_ok "Get NginxProxyManager Plus"
 read -r -p "Enter your TZ Timezone (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List): " TZ_INPUT
 read -r -p "Enter your ACME Email: " ACME_EMAIL_INPUT
 
-yq eval "(.services.npmplus.environment |= map(select(. != \"TZ=*\"))) + [\"TZ=$TZ_INPUT\"]" -i /opt/compose.yaml
-yq eval "(.services.npmplus.environment |= map(select(. != \"ACME_EMAIL=*\"))) + [\"ACME_EMAIL=$ACME_EMAIL_INPUT\"]" -i /opt/compose.yaml
+yq -i "
+  .services.npmplus.environment |=
+    (map(select(. != \"TZ=*\" and . != \"ACME_EMAIL=*\")) +
+    [\"TZ=$TZ_INPUT\", \"ACME_EMAIL=$ACME_EMAIL_INPUT\"])
+" /opt/compose.yaml
 
 msg_info "Starting NPM Plus"
 docker compose up -d
