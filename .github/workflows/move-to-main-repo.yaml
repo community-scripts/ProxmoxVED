@@ -32,11 +32,9 @@ jobs:
           script_name="${{ env.script_name }}"
 
           # Check if files exist under /ct, /install, and /json
-          ct_file="ct/$script_name.sh"
-          install_file="install/$script_name-install.sh"
-          json_file="json/$script_name.json"
-
-          echo "Checking for script files:"
+          ct_file="ct/${script_name}.sh"
+          install_file="install/${script_name}-install.sh"
+          json_file="json/${script_name}.json"
 
           if [[ -f "$ct_file" && -f "$install_file" && -f "$json_file" ]]; then
             echo "All required files found."
