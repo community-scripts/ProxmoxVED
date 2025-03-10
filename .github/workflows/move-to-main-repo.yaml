@@ -1,8 +1,6 @@
 name: Move new Scripts to Main Repository
 
 on:
-  schedule:
-    - cron: "1 0 * * *" # Runs daily at 00:01 UTC
   workflow_dispatch:
 
 jobs:
@@ -10,18 +8,62 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: List Issues in Repository
         id: list_issues
         run: |
           echo "Filtering Issues with Label MigrationTest"
-          script_name=$(gh issue list --label "MigrationTest" --json title --jq '.[0].title')  # Assuming the first issue is the one you want
+          script_name=$(gh issue list --label "MigrationTest" --json title --jq '.[0].title')
           echo "Found script name: $script_name"
-          echo "script_name=$script_name" >> $GITHUB_ENV  # Set the script name as an environment variable for later use
 
-      - name: Print Script Name
+          script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]')
+          echo "Lowercase script name: $script_name_lowercase"
+
+          echo "script_name=$script_name_lowercase" >> $GITHUB_ENV
+
+      - name: Check if script files exist
+        id: check_files
         run: |
-          echo "The script name is: ${{ env.script_name }}"
+          script_name="${{ env.script_name }}"
+
+          # Check if files exist under /ct, /install, and /json
+          ct_file="ct/${script_name}.sh"
+          install_file="install/${script_name}-install.sh"
+          json_file="json/${script_name}.json"
+
+          if [[ -f "$ct_file" && -f "$install_file" && -f "$json_file" ]]; then
+            echo "All required files found."
+            echo "files_found=true" >> $GITHUB_ENV
+          else
+            echo "Not all required files were found."
+            echo "files_found=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create PR if files found
+        if: env.files_found == 'true'
+        run: |
+
+          target_repo="community-scripts/ProxmoxVE"
+
+          branch_name="add-script-$script_name"
+
+          commit_message="Add script files for $script_name"
+
+          git checkout -b "$branch_name"
+
+          cp "ct/$script_name.sh" .
+          cp "install/$script_name-install.sh" .
+          cp "json/$script_name.json" .
+
+          git add .
+          git commit -m "$commit_message"
+          git push origin "$branch_name"
+
+          gh pr create --title "Add script files for $script_name" --body "This PR adds the $script_name script files." --base main --head "$branch_name" --repo "$target_repo"
