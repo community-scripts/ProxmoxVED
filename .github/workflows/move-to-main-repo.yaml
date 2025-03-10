@@ -26,7 +26,7 @@ jobs:
           raw_output=$(gh issue list --json title,labels)
           echo "$raw_output"
 
-          filtered_issues=$(echo "$raw_output" | jq -r '.[] | select(.labels[]? == "MigrationTest") | .title')
+          filtered_issues=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "MigrationTest") | .title')
           if [ -z "$filtered_issues" ]; then
             echo "No issues found with label 'MigrationTest'."
           else
@@ -73,7 +73,7 @@ jobs:
       - name: Create PR if files found
         if: env.files_found == 'true'
         env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.MAIN_REPO_WF }}
         run: |
           script_name="wf-test"
 
