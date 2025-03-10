@@ -18,10 +18,41 @@ jobs:
         id: list_issues
         run: |
           echo "Filtering Issues with Label MigrationTest"
-          script_name=$(gh issue list --label "MigrationTest" --json title --jq '.[0].title')  # Assuming the first issue is the one you want
+          script_name=$(gh issue list --label "MigrationTest" --json title --jq '.[0].title')
           echo "Found script name: $script_name"
-          echo "script_name=$script_name" >> $GITHUB_ENV  # Set the script name as an environment variable for later use
 
-      - name: Print Script Name
+          script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]')
+          echo "Lowercase script name: $script_name_lowercase"
+
+          echo "script_name=$script_name_lowercase" >> $GITHUB_ENV
+
+      - name: Check if script files exist
         run: |
-          echo "The script name is: ${{ env.script_name }}"
+          script_name="${{ env.script_name }}"
+
+          ct_file="/ct/$script_name.sh"
+          install_file="/install/$script_name-install.sh"
+          json_file="/json/$script_name.json"
+
+          echo "Checking for script files:"
+
+          if [[ -f "$ct_file" ]]; then
+            echo "Found $ct_file"
+          else
+            echo "File not found: $ct_file"
+            exit 1
+          fi
+
+          if [[ -f "$install_file" ]]; then
+            echo "Found $install_file"
+          else
+            echo "File not found: $install_file"
+            exit 1
+          fi
+
+          if [[ -f "$json_file" ]]; then
+            echo "Found $json_file"
+          else
+            echo "File not found: $json_file"
+            exit 1
+          fi
