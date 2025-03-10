@@ -61,12 +61,30 @@ msg_ok "Started NPM Plus"
 
 msg_info "Get Default Login"
 CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
+
 if [[ -z "$CONTAINER_ID" ]]; then
     msg_error "NPMplus container not found."
     exit 1
 fi
 
-TIMEOUT=30
+TIMEOUT=60
+while [[ $TIMEOUT -gt 0 ]]; do
+    STATUS=$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null)
+
+    if [[ "$STATUS" == "healthy" ]]; then
+        break
+    fi
+
+    sleep 2
+    ((TIMEOUT--))
+done
+
+if [[ "$STATUS" != "healthy" ]]; then
+    msg_error "NPMplus container did not reach a healthy state."
+    exit 1
+fi
+
+TIMEOUT=60
 while [[ $TIMEOUT -gt 0 ]]; do
     PASSWORD_LINE=$(docker logs "$CONTAINER_ID" 2>&1 | grep -m1 "Creating a new user: admin@example.org with password:")
 
@@ -74,7 +92,8 @@ while [[ $TIMEOUT -gt 0 ]]; do
         PASSWORD=$(echo "$PASSWORD_LINE" | gawk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
         msg_ok "Saved default login to /opt/.npm_pwd"
-        break
+        msg_ok "Get Default Login Successful"
+        exit 0
     fi
 
     sleep 2
