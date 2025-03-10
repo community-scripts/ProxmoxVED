@@ -25,23 +25,20 @@ $STD apk add \
 
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Docker"
+msg_info "Installing Docker & Compose"
 $STD apk add docker
 $STD rc-service docker start
 $STD rc-update add docker default
-msg_ok "Installed Docker"
 
 get_latest_release() {
     curl -sL https://api.github.com/repos/$1/releases/latest | grep '"tag_name":' | cut -d'"' -f4
 }
 DOCKER_COMPOSE_LATEST_VERSION=$(get_latest_release "docker/compose")
-
-msg_info "Installing Docker Compose $DOCKER_COMPOSE_LATEST_VERSION"
 DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
 mkdir -p $DOCKER_CONFIG/cli-plugins
 curl -sSL https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_LATEST_VERSION/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
 chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
-msg_ok "Installed Docker Compose $DOCKER_COMPOSE_LATEST_VERSION"
+msg_ok "Installed Docker & Compose"
 
 msg_info "Get NginxProxyManager Plus"
 cd /opt
