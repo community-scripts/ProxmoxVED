@@ -48,7 +48,7 @@ cd /opt
 wget -q https://raw.githubusercontent.com/ZoeyVid/NPMplus/refs/heads/develop/compose.yaml
 msg_ok "Get NginxProxyManager Plus"
 
-read -r -p "Enter your TZ Timezone (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List): " TZ_INPUT
+read -r -p "Enter your TZ Identifier for your Country (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List): " TZ_INPUT
 read -r -p "Enter your ACME Email: " ACME_EMAIL_INPUT
 
 yq -i "
