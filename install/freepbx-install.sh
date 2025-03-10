@@ -29,6 +29,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -rf sng_freepbx_debian_install.sh
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
