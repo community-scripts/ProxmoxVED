@@ -66,7 +66,7 @@ jobs:
       - name: Create PR if files found
         if: env.files_found == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.MAIN_REPO_WF_PERSONAL }}
+          GITHUB_TOKEN: ${{ secrets.REPO_PR_WF }}
         run: |
           script_name="wf-test"
 
