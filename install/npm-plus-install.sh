@@ -41,10 +41,10 @@ curl -sSL https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_LA
 chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 msg_ok "Installed Docker & Compose"
 
-msg_info "Get NginxProxyManager Plus"
+msg_info "Get NPM Plus"
 cd /opt
 wget -q https://raw.githubusercontent.com/ZoeyVid/NPMplus/refs/heads/develop/compose.yaml
-msg_ok "Get NginxProxyManager Plus"
+msg_ok "Get NPM Plus"
 
 read -r -p "Enter your TZ Identifier for your Country (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List): " TZ_INPUT
 read -r -p "Enter your ACME Email: " ACME_EMAIL_INPUT
