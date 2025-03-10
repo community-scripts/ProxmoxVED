@@ -1,8 +1,6 @@
 name: Move new Scripts to Main Repository
 
 on:
-  schedule:
-    - cron: "1 0 * * *" # Runs daily at 00:01 UTC
   workflow_dispatch:
 
 jobs:
