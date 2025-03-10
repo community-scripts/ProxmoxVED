@@ -23,16 +23,20 @@ jobs:
         run: |
           echo "Filtering Issues with Label MigrationTest"
 
-          gh issue list --label "MigrationTest" --repo community-scripts/ProxmoxVED
-          gh issue list --label "MigrationTest" --json title
+          raw_output=$(gh issue list --json title,labels)
+          filtered_issues=$(echo "$raw_output" | jq -r '.[] | select(.labels[]? == "MigrationTest") | .title')
+          if [ -z "$filtered_issues" ]; then
+            echo "No issues found with label 'MigrationTest'."
+          else
 
-          script_name=$(gh issue list --label "MigrationTest" --json title --jq '.[0].title')
-          echo "Found script name: $script_name"
-
-          script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]')
-          echo "Lowercase script name: $script_name_lowercase"
-
-          echo "script_name=$script_name_lowercase" >> $GITHUB_ENV
+            echo "Found script names with 'MigrationTest' label:"
+            echo "$filtered_issues"
+            for script_name in $filtered_issues; do
+              echo "Processing: $script_name"
+              script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]')
+              echo "Lowercase script name: $script_name_lowercase"
+            done
+          fi
 
       - name: Check if script files exist
         id: check_files
