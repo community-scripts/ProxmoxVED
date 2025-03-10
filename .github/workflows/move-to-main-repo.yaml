@@ -73,7 +73,7 @@ jobs:
       - name: Create PR if files found
         if: env.files_found == 'true'
         env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.MAIN_REPO_WF }}
         run: |
           script_name="wf-test"
 
