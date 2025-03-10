@@ -37,6 +37,7 @@ jobs:
               echo "Processing: $script_name"
               script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]')
               echo "Lowercase script name: $script_name_lowercase"
+              echo "script_name=$script_name_lowercase" >> $GITHUB_ENV
             done
           fi
 
