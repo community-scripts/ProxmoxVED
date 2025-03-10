@@ -75,7 +75,7 @@ jobs:
 
           commit_message="Add script files for $script_name"
 
-          git remote add upstream https://github.com/$target-repo.git
+          git remote add upstream https://github.com/${target_repo}.git
 
           git fetch upstream
 
@@ -90,4 +90,4 @@ jobs:
           git commit -m "$commit_message"
           git push origin "$branch_name"
 
-          gh pr create --title "Add script files for $script_name" --body "This PR adds the $script_name script files." --base main --head "community-scripts/ProxmoxVED:$branch_name" --repo "$target_repo"
+          gh pr create --title "Add script files for $script_name" --body "This PR adds the $script_name script files." --base main --head "community-scripts/ProxmoxVED:$branch_name" --repo "${target_repo}"
