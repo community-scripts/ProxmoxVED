@@ -46,6 +46,11 @@ jobs:
             echo "files_found=false" >> $GITHUB_ENV
           fi
 
+      - name: Configure Git user
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
       - name: Create PR if files found
         if: env.files_found == 'true'
         run: |
