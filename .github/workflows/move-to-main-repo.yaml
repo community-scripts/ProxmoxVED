@@ -104,8 +104,5 @@ jobs:
 
           git status
 
-          echo ${{ secrets.MAIN_REPO_WF }} > mytoken.txt
-
-          gh auth login --with-token < mytoken.txt
 
           gh pr create --title "Add script files for $script_name" --body "This PR adds the $script_name script files." --base main --head "community-scripts/ProxmoxVED:$branch_name" --repo "${target_repo}"
