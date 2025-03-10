@@ -37,7 +37,7 @@ jobs:
       - name: Check if script files exist
         id: check_files
         run: |
-          script_name="${{ env.script_name }}"
+          script_name="wf-test"
 
           # Check if files exist under /ct, /install, and /json
           ct_file="ct/${script_name}.sh"
