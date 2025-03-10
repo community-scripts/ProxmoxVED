@@ -24,6 +24,8 @@ jobs:
           echo "Filtering Issues with Label MigrationTest"
 
           raw_output=$(gh issue list --json title,labels)
+          echo "$raw_output"
+
           filtered_issues=$(echo "$raw_output" | jq -r '.[] | select(.labels[]? == "MigrationTest") | .title')
           if [ -z "$filtered_issues" ]; then
             echo "No issues found with label 'MigrationTest'."
@@ -73,6 +75,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
+          script_name="wf-test"
 
           target_repo="community-scripts/ProxmoxVE"
 
