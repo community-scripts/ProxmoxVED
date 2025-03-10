@@ -62,7 +62,7 @@ CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
 
 if [[ -z "$CONTAINER_ID" ]]; then
     msg_error "NPMplus container not found."
-    exit 1
+    break
 fi
 
 TIMEOUT=60
@@ -80,7 +80,7 @@ done
 
 if [[ "$STATUS" != "healthy" ]]; then
     msg_error "NPMplus container did not reach a healthy state."
-    exit 1
+    break
 fi
 
 msg_info "Get Default Login (Patience)"
@@ -101,9 +101,8 @@ done
 
 if [[ $TIMEOUT -eq 0 ]]; then
     msg_error "Failed to retrieve default login credentials."
-    exit 1
+    break
 fi
-
 msg_ok "Get Default Login Successful"
 
 motd_ssh
