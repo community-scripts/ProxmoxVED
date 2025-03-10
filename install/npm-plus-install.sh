@@ -61,5 +61,21 @@ msg_info "Starting NPM Plus"
 docker compose up -d
 msg_ok "Started NPM Plus"
 
+msg_info "Get Default Login"
+CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
+TIMEOUT=30
+while [[ $TIMEOUT -gt 0 ]]; do
+    PASSWORD_LINE=$(docker logs "$CONTAINER_ID" 2>&1 | grep "Creating a new user: admin@example.org with password:")
+
+    if [[ -n "$PASSWORD_LINE" ]]; then
+        PASSWORD=$(echo "$PASSWORD_LINE" | awk '{print $NF}')
+        echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
+        exit 0
+    fi
+
+    sleep 2
+    ((TIMEOUT--))
+done
+
 motd_ssh
 customize
