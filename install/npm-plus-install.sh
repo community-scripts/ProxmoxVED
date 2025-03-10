@@ -14,12 +14,15 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apk add newt
-$STD apk add curl
-$STD apk add openssh
-$STD apk add tzdata
-$STD apk add nano
-$STD apk add mc
+$STD apk add \
+    newt \
+    curl \
+    openssh \
+    tzdata \
+    nano \
+    yq \
+    mc
+
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Docker"
@@ -48,8 +51,8 @@ msg_ok "Get NginxProxyManager Plus"
 read -r -p "Enter your TZ Timezone (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List): " TZ_INPUT
 read -r -p "Enter your ACME Email: " ACME_EMAIL_INPUT
 
-sed -i "s|TZ=.*|TZ=\"$TZ_INPUT\"|g" /opt/compose.yaml
-sed -i "s|ACME_EMAIL=.*|ACME_EMAIL=\"$ACME_EMAIL_INPUT\"|g" /opt/compose.yaml
+yq eval "(.services.npmplus.environment |= map(select(. != \"TZ=*\"))) + [\"TZ=$TZ_INPUT\"]" -i /opt/compose.yaml
+yq eval "(.services.npmplus.environment |= map(select(. != \"ACME_EMAIL=*\"))) + [\"ACME_EMAIL=$ACME_EMAIL_INPUT\"]" -i /opt/compose.yaml
 
 msg_info "Starting NPM Plus"
 docker compose up -d
