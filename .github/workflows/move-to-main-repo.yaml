@@ -83,12 +83,10 @@ jobs:
 
           commit_message="Add script files for $script_name"
 
-          git remote add upstream https://github.com/${target_repo}.git
 
-          git fetch upstream
 
   
-          git checkout -b "$branch_name" upstream/main
+          git checkout -b "$branch_name" 
           
           git status
           
@@ -102,6 +100,10 @@ jobs:
           git status
           
           git push origin "$branch_name"
+
+          git remote add upstream https://github.com/${target_repo}.git
+
+          git fetch upstream
 
           git status
 
