@@ -38,6 +38,10 @@ function update_script() {
         msg_info "Updating $APP to v${RELEASE}"
         tmp_file=$(mktemp)
         wget -q -O /opt/plant-it/server.jar "https://github.com/MDeLuise/plant-it/releases/download/${RELEASE}/server.jar"
+        cd /opt/plant-it/frontend
+        wget -q https://github.com/MDeLuise/plant-it/releases/download/${RELEASE}/client.tar.gz
+        tar -xzf client.tar.gz
+        rm -f client.tar.gz
         echo "${RELEASE}" >/opt/${APP}_version.txt
         msg_ok "Updated $APP to v${RELEASE}"
 

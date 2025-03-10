@@ -20,7 +20,8 @@ $STD apt-get install -y \
     sudo \
     gnupg2 \
     mariadb-server \
-    redis
+    redis \
+    nginx
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Adoptium Repository"
@@ -35,6 +36,7 @@ $STD apt-get install -y temurin-21-jdk
 msg_ok "Setup Temurin JDK 21 (LTS)"
 
 msg_info "Setting up MariaDB"
+JWT_SECRET=$(openssl rand -base64 24 | tr -d '/+=')
 DB_NAME=plantit
 DB_USER=plantit_usr
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
@@ -52,11 +54,11 @@ msg_ok "Set up MariaDB"
 msg_info "Setup Plant-it"
 RELEASE=$(curl -s https://api.github.com/repos/MDeLuise/plant-it/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 wget -q https://github.com/MDeLuise/plant-it/releases/download/${RELEASE}/server.jar
-mkdir -p /opt/plant-it
+mkdir -p /opt/plant-it/{backend,frontend}
 mkdir -p /opt/plant-it-data
-mv -f server.jar /opt/plant-it/server.jar
+mv -f server.jar /opt/plant-it/backend/server.jar
 
-cat <<EOF >/opt/plant-it/server.env
+cat <<EOF >/opt/plant-it/backend/server.env
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_USERNAME=$DB_USER
@@ -64,7 +66,7 @@ MYSQL_PSW=$DB_PASS
 MYSQL_DATABASE=$DB_NAME
 MYSQL_ROOT_PASSWORD=$DB_PASS
 
-JWT_SECRET=putTheSecretHere
+JWT_SECRET=$JWT_SECRET
 JWT_EXP=1
 
 USERS_LIMIT=-1
@@ -74,25 +76,29 @@ FLORACODEX_KEY=
 LOG_LEVEL=DEBUG
 ALLOWED_ORIGINS=*
 
+CACHE_TYPE=redis
 CACHE_TTL=86400
-CACHE_HOST=cache
+CACHE_HOST=localhost
 CACHE_PORT=6379
 EOF
 
+cd /opt/plant-it/frontend
+wget -q https://github.com/MDeLuise/plant-it/releases/download/${RELEASE}/client.tar.gz
+tar -xzf client.tar.gz
 echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
 msg_ok "Setup Plant-it"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/plant-it.service
 [Unit]
-Description=Plant-it Service
+Description=Plant-it Backend Service
 After=syslog.target network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/plant-it/
+WorkingDirectory=/opt/plant-it/backend
+EnvironmentFile=/opt/plant-it/backend/server.env
 ExecStart=/usr/bin/java -jar -Xmx2g server.jar
-EnvironmentFile=/opt/plant-it/server.env
 TimeoutStopSec=20
 KillMode=process
 Restart=on-failure
@@ -101,12 +107,38 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 systemctl enable --now -q plant-it
+
+cat <<EOF >/etc/nginx/nginx.conf
+events {
+    worker_connections 1024;
+}
+
+http {
+    server {
+        listen 3000;
+        server_name localhost;
+
+        root /opt/plant-it/frontend;
+        index index.html;
+
+        location / {
+            try_files \$uri \$uri/ /index.html;
+        }
+
+        error_page 404 /404.html;
+        location = /404.html {
+            internal;
+        }
+    }
+}
+EOF
 msg_ok "Created Service"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -rf /opt/plant-it/frontend/client.tar.gz
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
