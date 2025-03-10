@@ -86,9 +86,9 @@ jobs:
   
           git checkout -b "$branch_name" 
                   
-          cp "/ct/$script_name.sh" .
-          cp "/install/$script_name-install.sh" .
-          cp "/json/$script_name.json" .
+          cp "ct/$script_name.sh" .
+          cp "install/$script_name-install.sh" .
+          cp "json/$script_name.json" .
 
           git add .
 
