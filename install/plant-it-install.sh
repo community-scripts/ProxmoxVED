@@ -15,12 +15,12 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  mc \
-  sudo \
-  gnupg2 \
-  mariadb-server \
-  redis
+    curl \
+    mc \
+    sudo \
+    gnupg2 \
+    mariadb-server \
+    redis
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Adoptium Repository"
@@ -42,10 +42,10 @@ $STD mysql -u root -e "CREATE DATABASE $DB_NAME;"
 $STD mysql -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED WITH mysql_native_password AS PASSWORD('$DB_PASS');"
 $STD mysql -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-  echo "Plant-it Credentials"
-  echo "Plant-it Database User: $DB_USER"
-  echo "Plant-it Database Password: $DB_PASS"
-  echo "Plant-it Database Name: $DB_NAME"
+    echo "Plant-it Credentials"
+    echo "Plant-it Database User: $DB_USER"
+    echo "Plant-it Database Password: $DB_PASS"
+    echo "Plant-it Database Name: $DB_NAME"
 } >>~/plant-it.creds
 msg_ok "Set up MariaDB"
 
@@ -92,7 +92,7 @@ After=syslog.target network.target
 Type=simple
 WorkingDirectory=/opt/plant-it/
 ExecStart=/usr/bin/java -jar -Xmx2g server.jar
-EnvoirmentFile=/opt/plant-it/server.env
+EnvironmentFile=/opt/plant-it/server.env
 TimeoutStopSec=20
 KillMode=process
 Restart=on-failure
