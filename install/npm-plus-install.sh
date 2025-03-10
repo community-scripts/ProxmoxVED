@@ -20,6 +20,7 @@ $STD apk add \
     openssh \
     tzdata \
     nano \
+    gawk \
     yq \
     mc
 
@@ -55,24 +56,36 @@ yq -i "
 " /opt/compose.yaml
 
 msg_info "Starting NPM Plus"
-docker compose up -d
+$STD docker compose up -d
 msg_ok "Started NPM Plus"
 
 msg_info "Get Default Login"
 CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
+if [[ -z "$CONTAINER_ID" ]]; then
+    msg_error "NPMplus container not found."
+    exit 1
+fi
+
 TIMEOUT=30
 while [[ $TIMEOUT -gt 0 ]]; do
-    PASSWORD_LINE=$(docker logs "$CONTAINER_ID" 2>&1 | grep "Creating a new user: admin@example.org with password:")
+    PASSWORD_LINE=$(docker logs "$CONTAINER_ID" 2>&1 | grep -m1 "Creating a new user: admin@example.org with password:")
 
     if [[ -n "$PASSWORD_LINE" ]]; then
-        PASSWORD=$(echo "$PASSWORD_LINE" | awk '{print $NF}')
+        PASSWORD=$(echo "$PASSWORD_LINE" | gawk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
-        exit 0
+        msg_ok "Saved default login to /opt/.npm_pwd"
+        break
     fi
 
     sleep 2
     ((TIMEOUT--))
 done
+
+if [[ $TIMEOUT -eq 0 ]]; then
+    msg_error "Failed to retrieve default login credentials."
+    exit 1
+fi
+msg_ok "Get Default Login Successful"
 
 motd_ssh
 customize
