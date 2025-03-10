@@ -87,5 +87,12 @@ if [[ $TIMEOUT -eq 0 ]]; then
 fi
 msg_ok "Get Default Login Successful"
 
+read -r -p "Do you want to install Filebrowser [y/N]: " FILEBROWSER_INPUT
+if [[ "$FILEBROWSER_INPUT" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+    msg_info "Installing Filebrowser"
+    $STD docker run -d --name filebrowser -v /:/srv -p 8080:80 filebrowser/filebrowser
+    msg_ok "Installed Filebrowser"
+fi
+
 motd_ssh
 customize
