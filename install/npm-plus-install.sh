@@ -62,7 +62,7 @@ CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
 
 if [[ -z "$CONTAINER_ID" ]]; then
     msg_error "NPMplus container not found."
-    break
+    exit 1
 fi
 
 TIMEOUT=60
@@ -80,7 +80,7 @@ done
 
 if [[ "$STATUS" != "healthy" ]]; then
     msg_error "NPMplus container did not reach a healthy state."
-    break
+    exit 1
 fi
 
 msg_info "Get Default Login (Patience)"
