@@ -1,0 +1,27 @@
+name: Move new Scripts to Main Repository
+
+on:
+  schedule:
+    - cron: "1 0 * * *" # Runs daily at 00:01 UTC
+  workflow_dispatch:
+
+jobs:
+  move-to-main-repo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: List Issues in Repository
+        id: list_issues
+        run: |
+          echo "Filtering Issues with Label MigrationTest"
+          script_name=$(gh issue list --label "MigrationTest" --json title --jq '.[0].title')  # Assuming the first issue is the one you want
+          echo "Found script name: $script_name"
+          echo "script_name=$script_name" >> $GITHUB_ENV  # Set the script name as an environment variable for later use
+
+      - name: Print Script Name
+        run: |
+          echo "The script name is: ${{ env.script_name }}"
