@@ -86,7 +86,7 @@ jobs:
   
           git checkout -b "$branch_name" 
 
-          git pull origin/${branch_name} --rebase
+         
                   
           cp "ct/$script_name.sh" .
           cp "install/$script_name-install.sh" .
