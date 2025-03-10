@@ -8,9 +8,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     env:
       GH_TOKEN: ${{ github.token }}
+
     steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -52,7 +61,9 @@ jobs:
           git config --global user.name "GitHub Actions"
 
       - name: Create PR if files found
-        if: env.files_found == 'true'
+        if: ${{ env.files_found }} == "true"
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
 
           target_repo="community-scripts/ProxmoxVE"
