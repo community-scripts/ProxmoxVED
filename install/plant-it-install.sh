@@ -132,6 +132,7 @@ http {
     }
 }
 EOF
+systemctl restart nginx
 msg_ok "Created Service"
 
 motd_ssh
