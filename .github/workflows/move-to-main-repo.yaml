@@ -61,7 +61,7 @@ jobs:
           git config --global user.name "GitHub Actions"
 
       - name: Create PR if files found
-
+        if: ${{ env.files_found }} == "true"
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
