@@ -59,7 +59,7 @@ msg_info "Starting NPM Plus"
 $STD docker compose up -d
 msg_ok "Started NPM Plus"
 
-msg_info "Get Default Login"
+msg_info "Get Default Login (Patience)"
 CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
 
 if [[ -z "$CONTAINER_ID" ]]; then
@@ -93,7 +93,7 @@ while [[ $TIMEOUT -gt 0 ]]; do
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
         msg_ok "Saved default login to /opt/.npm_pwd"
         msg_ok "Get Default Login Successful"
-        exit 0
+        break
     fi
 
     sleep 2
