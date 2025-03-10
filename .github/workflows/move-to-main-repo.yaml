@@ -22,8 +22,9 @@ jobs:
         id: list_issues
         run: |
           echo "Filtering Issues with Label MigrationTest"
-          gh issue list
+
           gh issue list --label "MigrationTest"
+
           script_name=$(gh issue list --label "MigrationTest" --json title --jq '.[0].title')
           echo "Found script name: $script_name"
 
