@@ -86,9 +86,11 @@ jobs:
   
           git checkout -b "$branch_name" 
                   
-          git add ct/$script_name.sh
-          git add origin/main install/$script_name-install.sh
-          git add origin/main json/$script_name.json
+          cp "/ct/$script_name.sh" .
+          cp "/install/$script_name-install.sh" .
+          cp "/json/$script_name.json" .
+
+          git add .
 
           git commit -m "$commit_message"
 
