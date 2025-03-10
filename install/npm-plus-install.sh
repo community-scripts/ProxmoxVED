@@ -71,7 +71,6 @@ while [[ $TIMEOUT -gt 0 ]]; do
 
     if [[ "$STATUS" == "healthy" ]]; then
         msg_ok "Started NPM Plus"
-        break
     fi
 
     sleep 2
@@ -80,7 +79,6 @@ done
 
 if [[ "$STATUS" != "healthy" ]]; then
     msg_error "NPMplus container did not reach a healthy state."
-    exit 1
 fi
 
 msg_info "Get Default Login (Patience)"
@@ -92,7 +90,6 @@ while [[ $TIMEOUT -gt 0 ]]; do
         PASSWORD=$(echo "$PASSWORD_LINE" | gawk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
         msg_ok "Saved default login to /opt/.npm_pwd"
-        break
     fi
 
     sleep 2
@@ -101,7 +98,6 @@ done
 
 if [[ $TIMEOUT -eq 0 ]]; then
     msg_error "Failed to retrieve default login credentials."
-    exit 1
 fi
 msg_ok "Get Default Login Successful"
 
