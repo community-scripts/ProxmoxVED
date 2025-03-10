@@ -79,15 +79,20 @@ jobs:
 
           git fetch upstream
 
-
+  
           git checkout -b "$branch_name" upstream/main
-
+          
+          git status
+          
           git checkout origin/main ct/$script_name.sh
           git checkout origin/main install/$script_name-install.sh
           git checkout origin/main json/$script_name.json
 
           git add .
           git commit -m "$commit_message"
+
+          git status
+          
           git push origin "$branch_name"
 
           git status
