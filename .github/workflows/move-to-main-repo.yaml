@@ -27,32 +27,43 @@ jobs:
           echo "script_name=$script_name_lowercase" >> $GITHUB_ENV
 
       - name: Check if script files exist
+        id: check_files
         run: |
           script_name="${{ env.script_name }}"
 
+          # Check if files exist under /ct, /install, and /json
           ct_file="/ct/$script_name.sh"
           install_file="/install/$script_name-install.sh"
           json_file="/json/$script_name.json"
 
           echo "Checking for script files:"
 
-          if [[ -f "$ct_file" ]]; then
-            echo "Found $ct_file"
+          if [[ -f "$ct_file" && -f "$install_file" && -f "$json_file" ]]; then
+            echo "All required files found."
+            echo "files_found=true" >> $GITHUB_ENV
           else
-            echo "File not found: $ct_file"
-            exit 1
+            echo "Not all required files were found."
+            echo "files_found=false" >> $GITHUB_ENV
           fi
 
-          if [[ -f "$install_file" ]]; then
-            echo "Found $install_file"
-          else
-            echo "File not found: $install_file"
-            exit 1
-          fi
+      - name: Create PR if files found
+        if: env.files_found == 'true'
+        run: |
 
-          if [[ -f "$json_file" ]]; then
-            echo "Found $json_file"
-          else
-            echo "File not found: $json_file"
-            exit 1
-          fi
+          target_repo="community-scripts/ProxmoxVE"
+
+          branch_name="add-script-$script_name"
+
+          commit_message="Add script files for $script_name"
+
+          git checkout -b "$branch_name"
+
+          cp "/ct/$script_name.sh" .
+          cp "/install/$script_name-install.sh" .
+          cp "/json/$script_name.json" .
+
+          git add .
+          git commit -m "$commit_message"
+          git push origin "$branch_name"
+
+          gh pr create --title "Add script files for $script_name" --body "This PR adds the $script_name script files." --base main --head "$branch_name" --repo "$target_repo"
