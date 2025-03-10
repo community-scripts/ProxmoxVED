@@ -43,9 +43,7 @@ jobs:
       - name: Check if script files exist
         id: check_files
         run: |
-          script_name="wf-test"
 
-          # Check if files exist under /ct, /install, and /json
           ct_file="ct/${script_name}.sh"
           install_file="install/${script_name}-install.sh"
           json_file="json/${script_name}.json"
@@ -62,13 +60,6 @@ jobs:
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
-
-      - name: Generate a token
-        id: generate-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Create PR if files found
         if: env.files_found == 'true'
