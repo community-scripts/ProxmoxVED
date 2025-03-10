@@ -5,8 +5,8 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://alpinelinux.org/
 
-APP="Alpine"
-var_tags="os;alpine"
+APP="NPM-Plus"
+var_tags="proxy;nginx"
 var_cpu="1"
 var_ram="512"
 var_disk="0.1"
@@ -20,15 +20,15 @@ color
 catch_errors
 
 function update_script() {
-  UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUPPORT" --radiolist --cancel-button Exit-Script "Spacebar = Select" 11 58 1 \
-    "1" "Check for Alpine Updates" ON \
-    3>&1 1>&2 2>&3)
+    UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUPPORT" --radiolist --cancel-button Exit-Script "Spacebar = Select" 11 58 1 \
+        "1" "Check for Alpine Updates" ON \
+        3>&1 1>&2 2>&3)
 
-  header_info
-  if [ "$UPD" == "1" ]; then
-    apk update && apk upgrade
-    exit
-  fi
+    header_info
+    if [ "$UPD" == "1" ]; then
+        apk update && apk upgrade
+        exit
+    fi
 }
 
 start
