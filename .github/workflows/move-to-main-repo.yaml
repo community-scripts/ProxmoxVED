@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-          token: ${{ github.token }}
+          token: ${{ secrets.GH_MERGE_PAT }}
 
       - name: List Issues in Repository
         id: list_issues
@@ -107,7 +107,8 @@ jobs:
       - name: Push
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.PAT }}
+          github_token: ${{ secrets.GH_MERGE_PAT }}
           repository: community-scripts/ProxmoxVE
           branch: test
           force: true
+
