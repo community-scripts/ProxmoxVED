@@ -79,15 +79,15 @@ jobs:
 
           target_repo="community-scripts/ProxmoxVE"
 
-          branch_name="add-script-$script_name"
+          branch_name="add-script-$script_name-$(date +'%Y%m%d%H%M%S')"
 
           commit_message="Add script files for $script_name"
 
-  
-          git checkout -b "$branch_name" 
 
-         
-                  
+          git checkout -b "$branch_name"
+
+
+
           cp "ct/$script_name.sh" .
           cp "install/$script_name-install.sh" .
           cp "json/$script_name.json" .
@@ -97,7 +97,7 @@ jobs:
           git commit -m "$commit_message"
 
           git status
-          
+
           git push origin "$branch_name"
 
           git remote add upstream https://github.com/${target_repo}.git
@@ -107,7 +107,7 @@ jobs:
           git status
 
           echo ${{ secrets.MAIN_REPO_WF }} > mytoken.txt
-          
+
           gh auth login --with-token < mytoken.txt
-          
+
           gh pr create --title "Add script files for $script_name" --body "This PR adds the $script_name script files." --base main --head "community-scripts/ProxmoxVED:$branch_name" --repo "${target_repo}"
