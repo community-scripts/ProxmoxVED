@@ -70,46 +70,15 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-      - name: Create PR if files found
-        if: env.files_found == 'true'
+      - name: Tets
+        uses: nkoppel/push-files-to-another-repository@v1.1.4
         env:
-          GH_TOKEN: ${{ secrets.MAIN_REPO_WF }}
-        run: |
-          script_name="wf-test"
-
-          target_repo="community-scripts/ProxmoxVE"
-
-          branch_name="add-script-$script_name"
-
-          commit_message="Add script files for $script_name"
-
-
-          git checkout -b "$branch_name"
-
-
-
-          cp "ct/$script_name.sh" .
-          cp "install/$script_name-install.sh" .
-          cp "json/$script_name.json" .
-
-          git add .
-
-          git commit -m "$commit_message"
-
-          git status
-
-          git push origin "$branch_name"
-
-          git remote add upstream https://github.com/${target_repo}.git
-
-          git fetch upstream
-
-          git status
-
-          unset GH_TOKEN
-
-          echo ${{ secrets.MAIN_REPO_WF }} > mytoken.txt
-
-          gh auth login --with-token < mytoken.txt
-
-          gh pr create --title "Add script files for $script_name" --body "This PR adds the $script_name script files." --base main --head "community-scripts/ProxmoxVED:$branch_name" --repo "${target_repo}"
+          API_TOKEN_GITHUB: ${{ secrets.MAIN_REPO_WF }}
+        with:
+          source-files: "ct/${{ env.script_name }}.sh,install/${{ env.script_name }}-install.sh,json/${{ env.script_name }}.json"
+          destination-repository: "community-scripts/ProxmoxVE"
+          destination-branch: "main"
+          commit-message: "Add script files for ${{ env.script_name }}"
+          destination-username: "github-actions"
+          commit-email: "github-actions@github.com"
+          commit-username: "GitHub Actions"
