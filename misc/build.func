@@ -344,7 +344,7 @@ base_settings() {
   VLAN=""
   SSH="no"
   SSH_AUTHORIZED_KEY=""
-  TAGS="community-script;"
+  TAGS="community-script-dev;"
 
   # Override default settings with variables from ct script
   CT_TYPE=${var_unprivileged:-$CT_TYPE}
