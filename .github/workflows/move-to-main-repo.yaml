@@ -21,8 +21,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ vars.MAIN_APP_ID }}
-          private-key: ${{ secrets.MAIN_APP_PRIVATE_KEY }}
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: community-scripts
           repositories: |
             ProxmoxVE
