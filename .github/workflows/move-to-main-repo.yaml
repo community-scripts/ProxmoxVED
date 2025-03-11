@@ -106,6 +106,8 @@ jobs:
 
           git status
 
+          unset GH_TOKEN
+
           echo ${{ secrets.MAIN_REPO_WF }} > mytoken.txt
 
           gh auth login --with-token < mytoken.txt
