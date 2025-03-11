@@ -68,18 +68,15 @@ fi
 TIMEOUT=60
 while [[ $TIMEOUT -gt 0 ]]; do
     STATUS=$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null)
-
-    if [[ "$STATUS" == "healthy" ]]; then
-        msg_ok "Started NPM Plus"
-    fi
-
     sleep 2
     ((TIMEOUT--))
 done
 
 if [[ "$STATUS" != "healthy" ]]; then
     msg_error "NPMplus container did not reach a healthy state."
+    exit 1
 fi
+msg_ok "Started NPM Plus"
 
 msg_info "Get Default Login (Patience)"
 TIMEOUT=60
@@ -89,7 +86,6 @@ while [[ $TIMEOUT -gt 0 ]]; do
     if [[ -n "$PASSWORD_LINE" ]]; then
         PASSWORD=$(echo "$PASSWORD_LINE" | gawk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
-        msg_ok "Saved default login to /opt/.npm_pwd"
     fi
 
     sleep 2
@@ -99,7 +95,7 @@ done
 if [[ $TIMEOUT -eq 0 ]]; then
     msg_error "Failed to retrieve default login credentials."
 fi
-msg_ok "Get Default Login Successful"
+msg_ok "Saved default login to /opt/.npm_pwd"
 
 motd_ssh
 customize
