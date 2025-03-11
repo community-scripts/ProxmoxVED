@@ -98,7 +98,7 @@ jobs:
 
           git config --unset-all http.https://github.com/.extraheader
 
-
+          git auth status
           git push upstream "$branch_name"
 
           gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name." -R $target_repo
