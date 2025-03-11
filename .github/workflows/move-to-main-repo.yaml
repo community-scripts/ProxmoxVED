@@ -95,12 +95,10 @@ jobs:
 
           git commit -m "$commit_message"
 
-          #git config --unset-all http.https://github.com/.extraheader
-          echo $TOKEN
-          echo $TOKEN > mytoken.txt
-          gh auth login --with-token < mytoken.txt
           git remote add upstream https://github.com/${target_repo}.git
           git fetch upstream
+          gh auth status
+
           git push upstream "$branch_name"
 
           gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name." -R $target_repo
