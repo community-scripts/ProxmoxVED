@@ -721,6 +721,7 @@ advanced_settings() {
       if IP6GW=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Enter IPv6 Gateway" 8 58 --title "IPv6 Gateway" 3>&1 1>&2 2>&3); then
         if [ -z $IP6GW ]; then
           IP6GW="Default"
+          IPv6GW=""
           echo -e "${GATEWAY}${BOLD}${DGN}IPv6 Gateway: ${BGN}$IP6GW${CL}"
         else
           IPv6GW=",gw6=$IP6GW"
@@ -1137,7 +1138,7 @@ build_container() {
     -unprivileged $CT_TYPE
     $PW
   "
-  else
+  elif [[ DISABLEIP6 == "no" ]]; then
     export PCT_OPTIONS="
     -features $FEATURES
     -hostname $HN
