@@ -76,40 +76,24 @@ jobs:
           GH_TOKEN: ${{ secrets.MAIN_REPO_WF }}
         run: |
           script_name="wf-test"
-
           target_repo="community-scripts/ProxmoxVE"
-
           branch_name="add-script-$script_name"
-          echo "branch=$branch_name" >> $GITHUB_ENV
-
           commit_message="Add script files for $script_name"
 
+          git remote add upstream https://github.com/${target_repo}.git
 
-          git checkout -b "$branch_name"
+          git pull upstream main
 
+          git switch -c "upstream/$branch_name"
 
-
-          cp "ct/$script_name.sh" .
-          cp "install/$script_name-install.sh" .
-          cp "json/$script_name.json" .
+          git checkout origin/main "ct/$script_name.sh" .
+          git checkout origin/main "install/$script_name-install.sh" .
+          git checkout origin/main "json/$script_name.json" .
 
           git add .
 
           git commit -m "$commit_message"
 
-          git status
+          git push upstream "$branch_name"
 
-          git push origin "$branch_name"
-
-      - name: Open PR
-        id: open_pr
-        uses: rematocorp/open-pull-request-action@v1
-        with:
-          github-token: ${{ secrets.MAIN_REPO_WF }}
-          from-branch: ${{ env.branch }}
-          to-branch: main
-          repository-owner: communtiy-scripts
-          repository: ProxmoxVE
-
-      - name: Echo mergeable PR number
-        run: echo ${{ steps.open_pr.outputs.pull_number }}
+          gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name."
