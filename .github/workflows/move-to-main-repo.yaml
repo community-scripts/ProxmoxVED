@@ -27,13 +27,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-          token: ${{ steps.generate-token.outputs.token }}
-          repository: community-scripts/ProxmoxVE
+          token: ${{ github.token }}
 
       - name: List Issues in Repository
         id: list_issues
         env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "Filtering Issues with Label MigrationTest"
 
@@ -78,10 +77,10 @@ jobs:
 
       - name: Create PR if files found
         env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           script_name="wf-test"
-          target_repo="community-scripts/ProxmoxVED"
+          target_repo="community-scripts/ProxmoxVE"
           branch_name="add-script-$script_name"
           commit_message="Add script files for $script_name"
 
@@ -89,16 +88,17 @@ jobs:
           git fetch upstream
           git checkout -b "$branch_name"
 
-          git checkout upstream/main ct/$script_name.sh
-          git checkout upstream/main install/$script_name-install.sh
-          git checkout upstream/main json/$script_name.json
+          cp "ct/$script_name.sh" .
+          cp "install/$script_name-install.sh" .
+          cp "json/$script_name.json" .
 
           git add .
 
           git commit -m "$commit_message"
-          git config --unset-all http.https://github.com/.extraheader
-          gh auth status
 
-          git push origin "$branch_name"
+          git config --unset-all http.https://github.com/.extraheader
+
+
+          git push upstrean "$branch_name"
 
           gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name." -R $target_repo
