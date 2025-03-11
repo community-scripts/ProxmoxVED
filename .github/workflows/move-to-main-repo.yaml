@@ -82,8 +82,6 @@ jobs:
 
           git remote add upstream https://github.com/${target_repo}.git
 
-          git pull upstream main
-
           git switch -c "upstream/$branch_name"
 
           git checkout origin/main "ct/$script_name.sh" .
