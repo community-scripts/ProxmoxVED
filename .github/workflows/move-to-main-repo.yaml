@@ -82,11 +82,11 @@ jobs:
 
           git remote add upstream https://github.com/${target_repo}.git
 
-          git switch -c "upstream/$branch_name"
+          git checkout -b "$branch_name"
 
-          git checkout origin/main "ct/$script_name.sh" .
-          git checkout origin/main "install/$script_name-install.sh" .
-          git checkout origin/main "json/$script_name.json" .
+          cp "ct/$script_name.sh" .
+          cp "install/$script_name-install.sh" .
+          cp "json/$script_name.json" .
 
           git add .
 
@@ -94,4 +94,4 @@ jobs:
 
           git push upstream "$branch_name"
 
-          gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name."
+          gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name." -R $target_repo
