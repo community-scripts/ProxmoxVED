@@ -7,9 +7,13 @@ jobs:
   move-to-main-repo:
     runs-on: ubuntu-latest
     permissions:
+      deployments: write
       contents: write
-      pull-requests: write
+      statuses: write
       actions: write
+      checks: write
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Generate a token
