@@ -3,17 +3,18 @@ name: Move new Scripts to Main Repository
 on:
   workflow_dispatch:
 
+permissions:
+  deployments: write
+  contents: write
+  statuses: write
+  actions: write
+  checks: write
+  issues: write
+  pull-requests: write
+
 jobs:
   move-to-main-repo:
     runs-on: ubuntu-latest
-    permissions:
-      deployments: write
-      contents: write
-      statuses: write
-      actions: write
-      checks: write
-      issues: write
-      pull-requests: write
 
     steps:
       - name: Generate a token
