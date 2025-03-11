@@ -77,7 +77,7 @@ jobs:
 
       - name: Create PR if files found
         env:
-          TOKEN: ${{ steps.generate-token.outputs.token }}
+          TOKEN: ${{ secrets.MAIN_REPO_WF }}
         run: |
           script_name="wf-test"
           target_repo="community-scripts/ProxmoxVE"
