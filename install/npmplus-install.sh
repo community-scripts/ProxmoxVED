@@ -41,10 +41,10 @@ curl -sSL https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_LA
 chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 msg_ok "Installed Docker & Compose"
 
-msg_info "Get NPM Plus"
+msg_info "Get NPMplus"
 cd /opt
 wget -q https://raw.githubusercontent.com/ZoeyVid/NPMplus/refs/heads/develop/compose.yaml
-msg_ok "Get NPM Plus"
+msg_ok "Get NPMplus"
 
 read -r -p "Enter your TZ Identifier for your Country (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List): " TZ_INPUT
 read -r -p "Enter your ACME Email: " ACME_EMAIL_INPUT
@@ -55,7 +55,7 @@ yq -i "
     [\"TZ=$TZ_INPUT\", \"ACME_EMAIL=$ACME_EMAIL_INPUT\"])
 " /opt/compose.yaml
 
-msg_info "Starting NPM Plus"
+msg_info "Starting NPMplus"
 $STD docker compose up -d
 CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
 
@@ -73,7 +73,7 @@ done
 if [[ "$STATUS" != "healthy" ]]; then
     msg_error "NPMplus container did not reach a healthy state."
 fi
-msg_ok "Started NPM Plus"
+msg_ok "Started NPMplus"
 
 motd_ssh
 customize
