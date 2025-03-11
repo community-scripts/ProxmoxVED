@@ -28,7 +28,7 @@ jobs:
         with:
           ref: main
           token: ${{ steps.generate-token.outputs.token }}
-          persist-credentials: "false"
+          repository: community-scripts/ProxmoxVE
 
       - name: List Issues in Repository
         id: list_issues
@@ -82,7 +82,7 @@ jobs:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           script_name="wf-test"
-          target_repo="community-scripts/ProxmoxVE"
+          target_repo="community-scripts/ProxmoxVED"
           branch_name="add-script-$script_name"
           commit_message="Add script files for $script_name"
 
@@ -90,9 +90,9 @@ jobs:
 
           git checkout -b "$branch_name"
 
-          cp "ct/$script_name.sh" .
-          cp "install/$script_name-install.sh" .
-          cp "json/$script_name.json" .
+          git checkout upstream/main ct/$script_name.sh
+          git checkout upstream/main install/$script_name-install.sh
+          git checkout upstream/main json/$script_name.json
 
           git add .
 
@@ -100,6 +100,6 @@ jobs:
 
           gh auth status
 
-          git push upstream "$branch_name"
+          git push "$branch_name"
 
           gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name." -R $target_repo
