@@ -8,10 +8,8 @@ const jsonDir = "public/json";
 const metadataFileName = "metadata.json";
 const encoding = "utf-8";
 
-const fileNames = (await fs.readdir(jsonDir)).filter((fileName) => {
-  const filePath = path.resolve(jsonDir, fileName);
-  return fileName !== "done";
-});
+const fileNames = (await fs.readdir(jsonDir))
+  .filter((fileName) => fileName !== metadataFileName)
 
 describe.each(fileNames)("%s", async (fileName) => {
   let script: Script;
