@@ -73,7 +73,7 @@ jobs:
       - name: Tets
         uses: nkoppel/push-files-to-another-repository@v1.1.4
         env:
-          API_TOKEN_GITHUB: ${{ secrets.MAIN_REPO_WF }}
+          API_TOKEN_GITHUB: ${{ secrets.MAIN_REPO_WF_PERSONAL }}
         with:
           source-files: "ct/${{ env.script_name }}.sh,install/${{ env.script_name }}-install.sh,json/${{ env.script_name }}.json"
           destination-repository: "community-scripts/ProxmoxVE"
