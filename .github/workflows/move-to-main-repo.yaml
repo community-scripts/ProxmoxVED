@@ -79,7 +79,7 @@ jobs:
 
           target_repo="community-scripts/ProxmoxVE"
 
-          branch_name="add-script-$script_name-$(date +'%Y%m%d%H%M%S')"
+          branch_name="add-script-$script_name"
 
           commit_message="Add script files for $script_name"
 
