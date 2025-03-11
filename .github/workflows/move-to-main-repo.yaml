@@ -103,8 +103,11 @@ jobs:
           git commit -m "$commit_message"
           git remote add upstream https://github.com/${target_repo}.git
           git fetch upstream
-          gh auth status
 
-          git push upstream "$branch_name"
-
-          gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name." -R $target_repo
+      - name: Push
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ steps.app-token.outputs.token }}
+          repository: community-scripts/ProxmoxVE
+          branch: test
+          force: true
