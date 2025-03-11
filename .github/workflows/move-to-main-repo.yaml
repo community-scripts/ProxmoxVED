@@ -108,7 +108,7 @@ jobs:
 
           unset GH_TOKEN
 
-          echo ${{ secrets.MAIN_REPO_WF }} > mytoken.txt
+          echo ${{ secrets.MAIN_REPO_WF_PERSONAL }} > mytoken.txt
 
           gh auth login --with-token < mytoken.txt
 
