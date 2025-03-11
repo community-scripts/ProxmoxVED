@@ -28,10 +28,11 @@ jobs:
             ProxmoxVE
             ProxmoxVED
 
-      - name: Checkout repository
+      - name: Checkout ProxmoxVED (Source Repo)
         uses: actions/checkout@v4
         with:
           ref: main
+          repository: community-scripts/ProxmoxVED
           token: ${{ secrets.GH_MERGE_PAT }}
 
       - name: List Issues in Repository
@@ -48,13 +49,11 @@ jobs:
           if [ -z "$filtered_issues" ]; then
             echo "No issues found with label 'MigrationTest'."
           else
-
             echo "Found script names with 'MigrationTest' label:"
             echo "$filtered_issues"
             for script_name in $filtered_issues; do
               echo "Processing: $script_name"
               script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]')
-              echo "Lowercase script name: $script_name_lowercase"
               echo "script_name=$script_name_lowercase" >> $GITHUB_ENV
             done
           fi
@@ -62,7 +61,6 @@ jobs:
       - name: Check if script files exist
         id: check_files
         run: |
-
           ct_file="ct/${script_name}.sh"
           install_file="install/${script_name}-install.sh"
           json_file="json/${script_name}.json"
@@ -80,11 +78,13 @@ jobs:
         run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-      - run: |
+
+      - name: Configure Git User
+        run: |
           git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
           git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
 
-      - name: Create PR if files found
+      - name: Prepare new branch for PR
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -93,7 +93,6 @@ jobs:
           branch_name="add-script-$script_name"
           commit_message="Add script files for $script_name"
 
-
           git checkout -b "$branch_name"
 
           cp "ct/$script_name.sh" .
@@ -101,21 +100,30 @@ jobs:
           cp "json/$script_name.json" .
           git add .
           git commit -m "$commit_message"
-          git remote add upstream https://github.com/${target_repo}.git
-          git fetch upstream
 
-      - name: Ensure branch exists
+      - name: Clone ProxmoxVE (Target Repo)
         run: |
-          git checkout -b test || git checkout test
+          git clone https://x-access-token:${{ secrets.GH_MERGE_PAT }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
+          cd ProxmoxVE
+          git checkout -b "$branch_name"
+          cp ../ct/$script_name.sh .
+          cp ../install/$script_name-install.sh .
+          cp ../json/$script_name.json .
           git add .
-          git commit -m "Ensure test branch exists" || echo "No changes to commit"
-          
+          git commit -m "$commit_message"
+
       - name: Push to ProxmoxVE
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GH_MERGE_PAT }}
-          repository: community-scripts/ProxmoxVE
-          branch: test
-          force: true
+        run: |
+          cd ProxmoxVE
+          git push --no-thin origin "$branch_name"
 
-
+      - name: Create Pull Request in ProxmoxVE
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_MERGE_PAT }}
+        run: |
+          gh pr create \
+            --repo community-scripts/ProxmoxVE \
+            --head "$branch_name" \
+            --base main \
+            --title "Migrate $script_name to ProxmoxVE" \
+            --body "Automated migration of $script_name from ProxmoxVED to ProxmoxVE."
