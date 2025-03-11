@@ -57,12 +57,10 @@ yq -i "
 
 msg_info "Starting NPM Plus"
 $STD docker compose up -d
-
 CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
 
 if [[ -z "$CONTAINER_ID" ]]; then
     msg_error "NPMplus container not found."
-    exit 1
 fi
 
 TIMEOUT=60
@@ -74,7 +72,6 @@ done
 
 if [[ "$STATUS" != "healthy" ]]; then
     msg_error "NPMplus container did not reach a healthy state."
-    exit 1
 fi
 msg_ok "Started NPM Plus"
 
@@ -82,7 +79,6 @@ msg_info "Get Default Login (Patience)"
 TIMEOUT=60
 while [[ $TIMEOUT -gt 0 ]]; do
     PASSWORD_LINE=$(docker logs "$CONTAINER_ID" 2>&1 | grep -m1 "Creating a new user: admin@example.org with password:")
-
     if [[ -n "$PASSWORD_LINE" ]]; then
         PASSWORD=$(echo "$PASSWORD_LINE" | gawk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
