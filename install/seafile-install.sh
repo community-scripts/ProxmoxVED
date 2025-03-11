@@ -95,7 +95,6 @@ useradd seafile
 mkdir -p /home/seafile
 chown seafile: /home/seafile
 chown seafile: /opt/seafile
-#!/bin/bash
 LATEST_FILE=$(curl -s "https://download.seadrive.org/" | \
   xmlstarlet sel -N s3="http://s3.amazonaws.com/doc/2006-03-01/" \
   -t -m "//s3:Contents[s3:Key[starts-with(text(),'seafile-server')]]" \
