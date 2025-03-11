@@ -97,7 +97,7 @@ jobs:
 
           git commit -m "$commit_message"
 
-          gh auth login --with-token $GH_TOKEN
+          gh auth status
 
           git push upstream "$branch_name"
 
