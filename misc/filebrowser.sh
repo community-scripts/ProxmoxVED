@@ -115,6 +115,9 @@ if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
     mkdir -p /usr/local/community-scripts
     chown root:root /usr/local/community-scripts
     chmod 755 /usr/local/community-scripts
+	touch "$DB_PATH"
+	chown root:root "$DB_PATH"
+	chmod 644 "$DB_PATH"
     msg_ok "Directory created successfully"
 
     read -r -p "Would you like to use No Authentication? (y/N): " auth_prompt
@@ -146,7 +149,8 @@ After=network-online.target
 [Service]
 User=root
 WorkingDirectory=/usr/local/community-scripts
-ExecStartPre=/bin/bash -c '[ ! -f /usr/local/community-scripts/filebrowser.db ] && /usr/local/bin/filebrowser config init -a "0.0.0.0" -p 9000 -d /usr/local/community-scripts/filebrowser.db'
+ExecStartPre=/bin/touch /usr/local/community-scripts/filebrowser.db
+ExecStartPre=/usr/local/bin/filebrowser config set -a "0.0.0.0" -p 9000 -d /usr/local/community-scripts/filebrowser.db
 ExecStart=/usr/local/bin/filebrowser -r / -d /usr/local/community-scripts/filebrowser.db -p 9000
 Restart=always
 
