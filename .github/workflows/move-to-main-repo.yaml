@@ -99,6 +99,6 @@ jobs:
 
           gh auth status
 
-          git push "$branch_name"
+          git push origin "$branch_name"
 
           gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name." -R $target_repo
