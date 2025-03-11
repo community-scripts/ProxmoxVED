@@ -27,8 +27,11 @@ INFO="${BL}ℹ️${CL}"
 APP="FileBrowser"
 INSTALL_PATH="/usr/local/bin/filebrowser"
 DB_PATH="/usr/local/community-scripts/filebrowser.db"
-IP=$(hostname -I | awk '{print $1}')
 DEFAULT_PORT=8080
+
+# Get first non-loopback IP
+IP=$(hostname -I | awk '{print $1}')
+[[ -z "$IP" ]] && IP="127.0.0.1"  # Fallback auf localhost, falls keine IP gefunden wird
 
 # Detect OS
 if [[ -f "/etc/alpine-release" ]]; then
@@ -161,8 +164,8 @@ depend() {
 }
 EOF
         chmod +x "$SERVICE_PATH"
-        rc-update add filebrowser default
-        rc-service filebrowser start
+        rc-update add filebrowser default &>/dev/null
+        rc-service filebrowser start &>/dev/null
     fi
     msg_ok "Service created successfully"
 
