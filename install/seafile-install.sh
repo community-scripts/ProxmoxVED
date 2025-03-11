@@ -18,6 +18,7 @@ $STD apt-get install -y \
     sudo \
     mc \
     wget \
+    curl \
     xmlstarlet \
     expect
 msg_ok "Installed Dependencies"
@@ -199,7 +200,7 @@ echo -e "\nFILE_SERVER_ROOT = \"http://$IP:8082\"" >> /opt/seafile/conf/seahub_s
 echo -e "CSRF_TRUSTED_ORIGINS = ['http://$IP/']" >> /opt/seafile/conf/seahub_settings.py
 msg_ok "Conf files adjusted"
 
-msg_info "Setting up Seafile" 
+msg_info "Setting up Seafile"
 $STD su - seafile -c "bash /opt/seafile/seafile-server-latest/seafile.sh start"
 $STD su - seafile -c "expect <<EOF
 spawn bash /opt/seafile/seafile-server-latest/seahub.sh start
