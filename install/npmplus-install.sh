@@ -52,10 +52,10 @@ while true; do
     if validate_tz "$TZ_INPUT"; then
         break
     fi
-    echo "❌ Invalid timezone! Please enter a valid TZ identifier."
+    msg_error "Invalid timezone! Please enter a valid TZ identifier."
     ((attempts++))
     if ((attempts >= 3)); then
-        echo "❌ Maximum attempts reached. Exiting."
+        msg_error "Maximum attempts reached. Exiting."
         exit 1
     fi
 done
