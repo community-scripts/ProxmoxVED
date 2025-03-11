@@ -28,7 +28,7 @@ jobs:
         with:
           ref: main
           token: ${{ steps.generate-token.outputs.token }}
-          repository: community-scripts/ProxmoxVE
+          persist-credentials: "false"
 
       - name: List Issues in Repository
         id: list_issues
