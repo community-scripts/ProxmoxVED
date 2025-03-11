@@ -104,7 +104,7 @@ LATEST_FILE=$(curl -s "https://download.seadrive.org/" | \
 $STD su - seafile -c "wget -qc https://s3.eu-central-1.amazonaws.com/download.seadrive.org/$LATEST_FILE"
 $STD su - seafile -c "tar -xzf $LATEST_FILE -C /opt/seafile/"
 $STD su - seafile -c "expect <<EOF
-spawn bash /opt/seafile/$LATEST_FILE/setup-seafile-mysql.sh
+spawn bash /opt/seafile/setup-seafile-mysql.sh
 expect {
     \"Press ENTER to continue\" {
         send \"\r\"
