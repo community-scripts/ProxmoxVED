@@ -125,7 +125,7 @@ jobs:
             exit 0
           fi
       
-          git commit -m "$commit_message"
+          git commit -m "${commit_message:-'Add new script'}"
 
 
       - name: Push to ProxmoxVE
