@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: tteck (tteckster) | Co-Author: MickLesk
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 function header_info {
     clear
@@ -10,10 +10,11 @@ function header_info {
     _______ __     ____
    / ____(_) /__  / __ )_________ _      __________  _____
   / /_  / / / _ \/ __  / ___/ __ \ | /| / / ___/ _ \/ ___/
- / __/ / / /  __/ /_/ / /  / /_/ / |/ |/ (__  )  __/ / 
-/_/   /_/_/\___/_____/_/   \____/|__/|__/____/\___/_/   
+ / __/ / / /  __/ /_/ / /  / /_/ / |/ |/ (__  )  __/ /
+/_/   /_/_/\___/_____/_/   \____/|__/|__/____/\___/_/
 EOF
 }
+
 YW=$(echo "\033[33m")
 GN=$(echo "\033[1;92m")
 RD=$(echo "\033[01;31m")
@@ -25,10 +26,23 @@ INFO="${BL}ℹ️${CL}"
 
 APP="FileBrowser"
 INSTALL_PATH="/usr/local/bin/filebrowser"
-SERVICE_PATH="/etc/systemd/system/filebrowser.service"
 DB_PATH="/usr/local/community-scripts/filebrowser.db"
 IP=$(hostname -I | awk '{print $1}')
 DEFAULT_PORT=8080
+
+# Detect OS
+if [[ -f "/etc/alpine-release" ]]; then
+    OS="Alpine"
+    SERVICE_PATH="/etc/init.d/filebrowser"
+    PKG_MANAGER="apk add --no-cache"
+elif [[ -f "/etc/debian_version" ]]; then
+    OS="Debian"
+    SERVICE_PATH="/etc/systemd/system/filebrowser.service"
+    PKG_MANAGER="apt-get install -y"
+else
+    echo -e "${CROSS} Unsupported OS detected. Exiting."
+    exit 1
+fi
 
 header_info
 
@@ -52,8 +66,15 @@ if [ -f "$INSTALL_PATH" ]; then
     read -r -p "Would you like to uninstall ${APP}? (y/N): " uninstall_prompt
     if [[ "${uninstall_prompt,,}" =~ ^(y|yes)$ ]]; then
         msg_info "Uninstalling ${APP}"
-        systemctl disable -q --now filebrowser.service
-        rm -f "$INSTALL_PATH" "$DB_PATH" "$SERVICE_PATH"
+        if [[ "$OS" == "Debian" ]]; then
+            systemctl disable --now filebrowser.service &>/dev/null
+            rm -f "$SERVICE_PATH"
+        else
+            rc-service filebrowser stop &>/dev/null
+            rc-update del filebrowser &>/dev/null
+            rm -f "$SERVICE_PATH"
+        fi
+        rm -f "$INSTALL_PATH" "$DB_PATH"
         msg_ok "${APP} has been uninstalled."
         exit 0
     fi
@@ -61,7 +82,8 @@ if [ -f "$INSTALL_PATH" ]; then
     read -r -p "Would you like to update ${APP}? (y/N): " update_prompt
     if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
         msg_info "Updating ${APP}"
-        curl -fsSL https://github.com/filebrowser/filebrowser/releases/latest/download/linux-amd64-filebrowser.tar.gz | tar -xzv -C /usr/local/bin &>/dev/null
+        wget -qO- https://github.com/filebrowser/filebrowser/releases/latest/download/linux-amd64-filebrowser.tar.gz | tar -xzv -C /usr/local/bin &>/dev/null
+        chmod +x "$INSTALL_PATH"
         msg_ok "Updated ${APP}"
         exit 0
     else
@@ -76,9 +98,10 @@ PORT=${PORT:-$DEFAULT_PORT}
 
 read -r -p "Would you like to install ${APP}? (y/n): " install_prompt
 if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
-    msg_info "Installing ${APP}"
-    apt-get install -y curl &>/dev/null
-    curl -fsSL https://github.com/filebrowser/filebrowser/releases/latest/download/linux-amd64-filebrowser.tar.gz | tar -xzv -C /usr/local/bin &>/dev/null
+    msg_info "Installing ${APP} on ${OS}"
+    $PKG_MANAGER wget tar curl &>/dev/null
+    wget -qO- https://github.com/filebrowser/filebrowser/releases/latest/download/linux-amd64-filebrowser.tar.gz | tar -xzv -C /usr/local/bin &>/dev/null
+    chmod +x "$INSTALL_PATH"
     msg_ok "Installed ${APP}"
 
     msg_info "Creating FileBrowser directory"
@@ -90,12 +113,12 @@ if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
     read -r -p "Would you like to use No Authentication? (y/N): " auth_prompt
     if [[ "${auth_prompt,,}" =~ ^(y|yes)$ ]]; then
         msg_info "Configuring No Authentication"
-          cd /usr/local/community-scripts
-          filebrowser config init -a '0.0.0.0' -p "$PORT" -d "$DB_PATH" &>/dev/null
-          filebrowser config set -a '0.0.0.0' -p "$PORT" -d "$DB_PATH" &>/dev/null
-          filebrowser config init --auth.method=noauth &>/dev/null
-          filebrowser config set --auth.method=noauth &>/dev/null
-          filebrowser users add ID 1 --perm.admin &>/dev/null  
+        cd /usr/local/community-scripts
+        filebrowser config init -a '0.0.0.0' -p "$PORT" -d "$DB_PATH" &>/dev/null
+        filebrowser config set -a '0.0.0.0' -p "$PORT" -d "$DB_PATH" &>/dev/null
+        filebrowser config init --auth.method=noauth &>/dev/null
+        filebrowser config set --auth.method=noauth &>/dev/null
+        filebrowser users add ID 1 --perm.admin &>/dev/null
         msg_ok "No Authentication configured"
     else
         msg_info "Setting up default authentication"
@@ -107,7 +130,8 @@ if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
     fi
 
     msg_info "Creating service"
-    cat <<EOF > "$SERVICE_PATH"
+    if [[ "$OS" == "Debian" ]]; then
+        cat <<EOF > "$SERVICE_PATH"
 [Unit]
 Description=Filebrowser
 After=network-online.target
@@ -121,7 +145,25 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-    systemctl enable -q --now filebrowser.service
+        systemctl enable -q --now filebrowser
+    else
+        cat <<EOF > "$SERVICE_PATH"
+#!/sbin/openrc-run
+
+command="/usr/local/bin/filebrowser"
+command_args="-r / -d $DB_PATH -p $PORT"
+command_background=true
+pidfile="/var/run/filebrowser.pid"
+directory="/usr/local/community-scripts"
+
+depend() {
+    need net
+}
+EOF
+        chmod +x "$SERVICE_PATH"
+        rc-update add filebrowser default
+        rc-service filebrowser start
+    fi
     msg_ok "Service created successfully"
 
     echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://$IP:$PORT${CL}"
