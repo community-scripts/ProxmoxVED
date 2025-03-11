@@ -110,7 +110,12 @@ jobs:
           git add .
           git commit -m "Ensure test branch exists" || echo "No changes to commit"
           
-      - name: Push branch
-        run: |
-          git push --set-upstream origin test --force
+      - name: Push to ProxmoxVE
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GH_MERGE_PAT }}
+          repository: community-scripts/ProxmoxVE
+          branch: test
+          force: true
+
 
