@@ -16,8 +16,8 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          app-id: ${{ vars.PUSH_TO_MAIN_APP_ID }}
+          private-key: ${{ secrets.PUSH_TO_MAIN_APP_SECRET }}
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
       - name: Create PR if files found
         if: env.files_found == 'true'
         env:
-          GH_TOKEN: ${{ secrets.MAIN_REPO_WF }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           script_name="wf-test"
           target_repo="community-scripts/ProxmoxVE"
