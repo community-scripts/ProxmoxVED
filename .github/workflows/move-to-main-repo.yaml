@@ -107,7 +107,7 @@ jobs:
       - name: Push
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ steps.app-token.outputs.token }}
+          github_token: ${{ secrets.MAIN_REPO_WF }}
           repository: community-scripts/ProxmoxVE
           branch: test
           force: true
