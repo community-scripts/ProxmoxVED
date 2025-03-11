@@ -75,7 +75,6 @@ jobs:
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
-          git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
 
       - name: Create PR if files found
         env:
@@ -97,7 +96,7 @@ jobs:
           git add .
 
           git commit -m "$commit_message"
-
+          git config --unset-all http.https://github.com/.extraheader
           gh auth status
 
           git push origin "$branch_name"
