@@ -104,8 +104,13 @@ jobs:
           git remote add upstream https://github.com/${target_repo}.git
           git fetch upstream
 
-      - name: Push
+      - name: Ensure branch exists
         run: |
-          git push --no-thin https://x-access-token:${{ secrets.GH_MERGE_PAT }}@github.com/community-scripts/ProxmoxVE.git test --force
-
+          git checkout -b test || git checkout test
+          git add .
+          git commit -m "Ensure test branch exists" || echo "No changes to commit"
+          
+      - name: Push branch
+        run: |
+          git push --set-upstream origin test --force
 
