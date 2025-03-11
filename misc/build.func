@@ -334,6 +334,7 @@ base_settings() {
   BRG="vmbr0"
   NET="dhcp"
   IPv6="auto"
+  IPv6GW=""
   GATE=""
   IPv6GW=""
   APT_CACHER=""
