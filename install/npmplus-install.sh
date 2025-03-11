@@ -53,8 +53,9 @@ while true; do
         break
     fi
     msg_error "Invalid timezone! Please enter a valid TZ identifier."
-    ((attempts++))
-    if (($attempts -ge 3)); then
+
+    attempts=$((attempts + 1))
+    if [[ "$attempts" -ge 3 ]]; then
         msg_error "Maximum attempts reached. Exiting."
         exit 1
     fi
