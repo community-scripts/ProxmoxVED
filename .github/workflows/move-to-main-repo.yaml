@@ -84,8 +84,7 @@ jobs:
           branch_name="add-script-$script_name"
           commit_message="Add script files for $script_name"
 
-          git remote add upstream https://github.com/${target_repo}.git
-          git fetch upstream
+
           git checkout -b "$branch_name"
 
           cp "ct/$script_name.sh" .
@@ -98,7 +97,8 @@ jobs:
 
           git config --unset-all http.https://github.com/.extraheader
 
-          git auth status
+          git remote add upstream https://github.com/${target_repo}.git
+          git fetch upstream
           git push upstream "$branch_name"
 
           gh pr create --base main --head "$branch_name" --title "$commit_message" --body "This PR adds the script files for $script_name." -R $target_repo
