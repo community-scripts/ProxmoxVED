@@ -336,7 +336,6 @@ base_settings() {
   IPv6="auto"
   IPv6GW=""
   GATE=""
-  IPv6GW=""
   APT_CACHER=""
   APT_CACHER_IP=""
   DISABLEIP6="no"
