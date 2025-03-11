@@ -7,23 +7,28 @@ jobs:
   move-to-main-repo:
     runs-on: ubuntu-latest
     permissions:
+      deployments: write
       contents: write
-      pull-requests: write
+      statuses: write
       actions: write
+      checks: write
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Generate a token
         id: generate-token
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          app-id: ${{ vars.MAIN_APP_ID }}
+          private-key: ${{ secrets.MAIN_APP_PRIVATE_KEY }}
 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: main
           token: ${{ steps.generate-token.outputs.token }}
+          persist-credentials: "false"
 
       - name: List Issues in Repository
         id: list_issues
