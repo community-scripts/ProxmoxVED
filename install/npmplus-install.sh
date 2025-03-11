@@ -46,7 +46,20 @@ cd /opt
 wget -q https://raw.githubusercontent.com/ZoeyVid/NPMplus/refs/heads/develop/compose.yaml
 msg_ok "Get NPMplus"
 
-read -r -p "Enter your TZ Identifier for your Country (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List): " TZ_INPUT
+attempts=0
+while true; do
+    read -r -p "Enter your TZ Identifier (e.g., Europe/Berlin): " TZ_INPUT
+    if validate_tz "$TZ_INPUT"; then
+        break
+    fi
+    echo "❌ Invalid timezone! Please enter a valid TZ identifier."
+    ((attempts++))
+    if ((attempts >= 3)); then
+        echo "❌ Maximum attempts reached. Exiting."
+        exit 1
+    fi
+done
+
 read -r -p "Enter your ACME Email: " ACME_EMAIL_INPUT
 
 yq -i "
