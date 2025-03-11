@@ -18,6 +18,7 @@ $STD apt-get install -y \
     sudo \
     mc \
     wget \
+    xmlstarlet \
     expect
 msg_ok "Installed Dependencies"
 
@@ -93,10 +94,17 @@ useradd seafile
 mkdir -p /home/seafile
 chown seafile: /home/seafile
 chown seafile: /opt/seafile
-$STD su - seafile -c "wget -qc https://s3.eu-central-1.amazonaws.com/download.seadrive.org/seafile-server_11.0.13_x86-64.tar.gz"
-$STD su - seafile -c "tar -xzf seafile-server_11.0.13_x86-64.tar.gz -C /opt/seafile/"
+#!/bin/bash
+LATEST_FILE=$(curl -s "https://download.seadrive.org/" | \
+  xmlstarlet sel -N s3="http://s3.amazonaws.com/doc/2006-03-01/" \
+  -t -m "//s3:Contents[s3:Key[starts-with(text(),'seafile-server')]]" \
+  -v "s3:LastModified" -o " " -v "s3:Key" -n | \
+  sort -r | head -n1 | awk '{print $2}')
+
+$STD su - seafile -c "wget -qc https://s3.eu-central-1.amazonaws.com/download.seadrive.org/$LATEST_FILE"
+$STD su - seafile -c "tar -xzf $LATEST_FILE -C /opt/seafile/"
 $STD su - seafile -c "expect <<EOF
-spawn bash /opt/seafile/seafile-server-11.0.13/setup-seafile-mysql.sh
+spawn bash /opt/seafile/$LATEST_FILE/setup-seafile-mysql.sh
 expect {
     \"Press ENTER to continue\" {
         send \"\r\"
