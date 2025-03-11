@@ -105,10 +105,7 @@ jobs:
           git fetch upstream
 
       - name: Push
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GH_MERGE_PAT }}
-          repository: community-scripts/ProxmoxVE
-          branch: test
-          force: true
+        run: |
+          git push --no-thin https://x-access-token:${{ secrets.GH_MERGE_PAT }}@github.com/community-scripts/ProxmoxVE.git test --force
+
 
