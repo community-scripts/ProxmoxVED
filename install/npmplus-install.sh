@@ -78,12 +78,13 @@ msg_ok "Started NPM Plus"
 msg_info "Get Default Login (Patience)"
 TIMEOUT=60
 while [[ $TIMEOUT -gt 0 ]]; do
-    PASSWORD_LINE=$(docker logs "$CONTAINER_ID" 2>&1 | grep -m1 "Creating a new user: admin@example.org with password:")
+    PASSWORD_LINE=$(docker logs "$CONTAINER_ID" 2>&1 | awk '/Creating a new user:/ {print; exit}')
     if [[ -n "$PASSWORD_LINE" ]]; then
-        PASSWORD=$(echo "$PASSWORD_LINE" | gawk -F 'password: ' '{print $2}')
+        PASSWORD=$(echo "$PASSWORD_LINE" | awk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
+        msg_ok "Saved default login to /opt/.npm_pwd"
+        break
     fi
-
     sleep 2
     ((TIMEOUT--))
 done
@@ -91,7 +92,6 @@ done
 if [[ $TIMEOUT -eq 0 ]]; then
     msg_error "Failed to retrieve default login credentials."
 fi
-msg_ok "Saved default login to /opt/.npm_pwd"
 
 motd_ssh
 customize
