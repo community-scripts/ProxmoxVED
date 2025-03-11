@@ -114,11 +114,19 @@ jobs:
           git clone https://x-access-token:${{ secrets.GH_MERGE_PAT }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
           cd ProxmoxVE
           git checkout -b "$branch_name"
+      
           cp ../ct/$script_name.sh .
           cp ../install/$script_name-install.sh .
           cp ../json/$script_name.json .
+      
           git add .
+          if git diff --cached --exit-code; then
+            echo "No changes detected, skipping commit."
+            exit 0
+          fi
+      
           git commit -m "$commit_message"
+
 
       - name: Push to ProxmoxVE
         run: |
