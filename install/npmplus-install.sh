@@ -75,6 +75,9 @@ if [[ "$STATUS" != "healthy" ]]; then
 fi
 msg_ok "Started NPM Plus"
 
+motd_ssh
+customize
+
 msg_info "Get Default Login (Patience)"
 TIMEOUT=60
 while [[ $TIMEOUT -gt 0 ]]; do
@@ -83,8 +86,6 @@ while [[ $TIMEOUT -gt 0 ]]; do
         PASSWORD=$(echo "$PASSWORD_LINE" | awk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
         msg_ok "Saved default login to /opt/.npm_pwd"
-        motd_ssh
-        customize
         break
     fi
     sleep 2
