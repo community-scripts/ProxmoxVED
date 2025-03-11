@@ -107,7 +107,7 @@ jobs:
           cp "install/$script_name-install.sh" .
           cp "json/$script_name.json" .
           git add .
-          git commit -m "$commit_message"
+          git commit -m "${commit_message:-'Add new script'}"
 
       - name: Clone ProxmoxVE (Target Repo)
         run: |
