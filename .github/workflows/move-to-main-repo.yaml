@@ -86,7 +86,7 @@ jobs:
           commit_message="Add script files for $script_name"
 
           git remote add upstream https://github.com/${target_repo}.git
-
+          git fetch upstream
           git checkout -b "$branch_name"
 
           git checkout upstream/main ct/$script_name.sh
