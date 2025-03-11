@@ -17,11 +17,15 @@ jobs:
 
     steps:
       - name: Generate a token
-        id: generate-token
+        id: app-token
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ vars.MAIN_APP_ID }}
           private-key: ${{ secrets.MAIN_APP_PRIVATE_KEY }}
+          owner: community-scripts
+          repositories: |
+            ProxmoxVE
+            ProxmoxVED
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -70,14 +74,18 @@ jobs:
             echo "files_found=false" >> $GITHUB_ENV
           fi
 
-      - name: Configure Git user
-        run: |
-          git config --global user.email "github-actions@github.com"
-          git config --global user.name "GitHub Actions"
+      - name: Get GitHub App User ID
+        id: get-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+      - run: |
+          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
 
       - name: Create PR if files found
         env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           script_name="wf-test"
           target_repo="community-scripts/ProxmoxVE"
