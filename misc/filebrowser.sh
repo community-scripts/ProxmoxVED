@@ -29,9 +29,13 @@ INSTALL_PATH="/usr/local/bin/filebrowser"
 DB_PATH="/usr/local/community-scripts/filebrowser.db"
 DEFAULT_PORT=8080
 
-# Get first non-loopback IP
-IP=$(hostname -I | awk '{print $1}')
-[[ -z "$IP" ]] && IP="127.0.0.1"  # Fallback auf localhost, falls keine IP gefunden wird
+# Get first non-loopback IP & Detect primary network interface dynamically
+IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
+IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
+
+[[ -z "$IP" ]] && IP=$(hostname -I | awk '{print $1}')
+[[ -z "$IP" ]] && IP="127.0.0.1"
+
 
 # Detect OS
 if [[ -f "/etc/alpine-release" ]]; then
