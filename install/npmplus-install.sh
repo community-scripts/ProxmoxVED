@@ -83,6 +83,8 @@ while [[ $TIMEOUT -gt 0 ]]; do
         PASSWORD=$(echo "$PASSWORD_LINE" | awk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
         msg_ok "Saved default login to /opt/.npm_pwd"
+        motd_ssh
+        customize
         break
     fi
     sleep 2
@@ -92,6 +94,3 @@ done
 if [[ $TIMEOUT -eq 0 ]]; then
     msg_error "Failed to retrieve default login credentials."
 fi
-
-motd_ssh
-customize
