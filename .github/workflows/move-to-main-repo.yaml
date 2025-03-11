@@ -96,7 +96,8 @@ jobs:
           git commit -m "$commit_message"
 
           git config --unset-all http.https://github.com/.extraheader
-
+          echo $TOKEN > mytoken.txt
+          gh auth login --with-token < mytoken.txt
           git remote add upstream https://github.com/${target_repo}.git
           git fetch upstream
           git push upstream "$branch_name"
