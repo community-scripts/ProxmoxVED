@@ -146,7 +146,8 @@ After=network-online.target
 [Service]
 User=root
 WorkingDirectory=/usr/local/community-scripts
-ExecStart=/usr/local/bin/filebrowser -r / -d "$DB_PATH" -p "$PORT"
+ExecStartPre=/bin/bash -c '[ ! -f /usr/local/community-scripts/filebrowser.db ] && /usr/local/bin/filebrowser config init -a "0.0.0.0" -p 9000 -d /usr/local/community-scripts/filebrowser.db'
+ExecStart=/usr/local/bin/filebrowser -r / -d /usr/local/community-scripts/filebrowser.db -p 9000
 Restart=always
 
 [Install]
