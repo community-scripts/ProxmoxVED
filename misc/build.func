@@ -333,7 +333,7 @@ base_settings() {
   HN=$NSAPP
   BRG="vmbr0"
   NET="dhcp"
-  IPv6="auto"
+  IPv6="dhcp"
   IPv6GW=""
   GATE=""
   APT_CACHER=""
@@ -714,7 +714,7 @@ advanced_settings() {
     DISABLEIP6="yes"
   else
 
-    IPv6="auto"
+    IPv6="dhcp"
     DISABLEIP6="no"
 
     if IP6=$(whiptail --backtitle  "[dev] Proxmox VE Helper Scripts" --inputbox "Set IPv6" 8 58 --title "Set IPv6" 3>&1 1>&2 2>&3); then
@@ -732,7 +732,7 @@ advanced_settings() {
         exit_script
       fi
     else
-      IPv6="auto"
+      IPv6="dhcp"
       echo -e "${NETWORK}${BOLD}${DGN}IPv6 Address: ${BGN}SLAAC${CL}"
     fi
   fi
