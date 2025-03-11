@@ -95,7 +95,7 @@ jobs:
 
           git commit -m "$commit_message"
 
-          git config --unset-all http.https://github.com/.extraheader
+          #git config --unset-all http.https://github.com/.extraheader
           echo $TOKEN
           echo $TOKEN > mytoken.txt
           gh auth login --with-token < mytoken.txt
