@@ -107,7 +107,7 @@ export default function Page() {
 							</h1>
 							<div className="max-w-2xl gap-2 flex flex-col text-center sm:text-lg text-sm leading-relaxed tracking-tight text-muted-foreground md:text-xl">
 								<p>
-									On this Website you can find a collection of scripts that are under development and open for testing.
+									On this Website you can find a collection of scripts that are under development and only for testing.
                                     We do not provide any support for these scripts when run in production, but you can help us by testing them and providing feedback.
 								</p>
 							</div>
