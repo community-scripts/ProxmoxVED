@@ -95,11 +95,17 @@ useradd seafile
 mkdir -p /home/seafile
 chown seafile: /home/seafile
 chown seafile: /opt/seafile
+mkdir -p /opt/conf
+chown seafile:seafile /opt/conf
+chmod 755 /opt/conf
+chown -R seafile:seafile /opt/conf
+chmod -R 755 /opt/conf
 LATEST_FILE=$(curl -s "https://download.seadrive.org/" | \
   xmlstarlet sel -N s3="http://s3.amazonaws.com/doc/2006-03-01/" \
   -t -m "//s3:Contents[s3:Key[starts-with(text(),'seafile-server')]]" \
   -v "s3:LastModified" -o " " -v "s3:Key" -n | \
   sort -r | head -n1 | awk '{print $2}')
+
 
 $STD su - seafile -c "wget -qc https://s3.eu-central-1.amazonaws.com/download.seadrive.org/$LATEST_FILE"
 $STD su - seafile -c "tar -xzf $LATEST_FILE --strip-components=1 -C /opt/seafile/"
