@@ -111,7 +111,7 @@ const DataFetcher: React.FC = () => {
   return (
     <div className="p-6 mt-20">
       <h1 className="text-2xl font-bold mb-4 text-center">Created LXCs</h1>
-      <ApplicationChart data={summary} />
+      {summary && <ApplicationChart data={Object.entries(summary.nsapp_count).map(([nsapp]) => ({ nsapp }))} />}
       <p className="text-lg font-bold mt-4"> </p>
       <div className="mb-4 flex justify-between items-center">
         <p className="text-lg font-bold">{summary?.total_entries} results found</p>
