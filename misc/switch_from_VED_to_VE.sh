@@ -25,7 +25,7 @@ function update_container() {
     container=$1
     os=$(pct config "$container" | awk '/^ostype/ {print $2}')
 
-    if [[ "$os" == "ubuntu" || "$os" == "debian" || "$os" == "alpine" ]]; then
+    if [[ "$os" == "ubuntu" || "$os" == "debian" ]]; then
         echo -e "${BL}[Info]${GN} Checking /usr/bin/update in ${BL}$container${CL} (OS: ${GN}$os${CL})"
 
         if pct exec "$container" -- [ -e /usr/bin/update ]; then
