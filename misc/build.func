@@ -713,28 +713,7 @@ advanced_settings() {
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "IPv6" --yesno "Disable IPv6?" 10 58); then
     DISABLEIP6="yes"
   else
-
-    IPv6="dhcp"
     DISABLEIP6="no"
-
-    if IP6=$(whiptail --backtitle  "[dev] Proxmox VE Helper Scripts" --inputbox "Set IPv6" 8 58 --title "Set IPv6" 3>&1 1>&2 2>&3); then
-      IPv6=$IP6
-      echo -e "${NETWORK}${BOLD}${DGN}IPv6 Address: ${BGN}$IPv6${CL}"
-      if IP6GW=$(whiptail --backtitle  "[dev] Proxmox VE Helper Scripts" --inputbox "Enter ipv6 Gateway" 8 58 --title "Enter ipv6 Gateway" 3>&1 1>&2 2>&3); then
-        if [ -z $IP6GW ]; then
-          IPv6GW=""
-          echo -e "${GATEWAY}${BOLD}${DGN}IPv6 Gateway: ${BGN}SLAAC${CL}"
-        else
-          IPv6GW=",gw6=$IP6GW"
-          echo -e "${GATEWAY}${BOLD}${DGN}IPv6 Gateway: ${BGN}$IP6GW${CL}"
-        fi
-      else
-        exit_script
-      fi
-    else
-      IPv6="dhcp"
-      echo -e "${NETWORK}${BOLD}${DGN}IPv6 Address: ${BGN}SLAAC${CL}"
-    fi
   fi
   echo -e "${DISABLEIPV6}${BOLD}${DGN}Disable IPv6: ${BGN}$DISABLEIP6${CL}"
 
