@@ -59,12 +59,12 @@ function hexToRgb(hex: string): number[] {
 
 const Particles: React.FC<ParticlesProps> = ({
   className = "",
-  quantity = 100,
+  quantity = 300,
   staticity = 50,
   ease = 50,
   size = 0.4,
   refresh = false,
-  color = "#ffffff",
+  color = `hsl(${Math.random() * 360}, 100%, 70%)`;
   vx = 0,
   vy = 0,
 }) => {
@@ -148,12 +148,12 @@ const Particles: React.FC<ParticlesProps> = ({
     const y = Math.floor(Math.random() * canvasSize.current.h);
     const translateX = 0;
     const translateY = 0;
-    const pSize = Math.floor(Math.random() * 2) + size;
+    const pSize = Math.random() * 3 + size;
     const alpha = 0;
     const targetAlpha = parseFloat((Math.random() * 0.6 + 0.1).toFixed(1));
-    const dx = (Math.random() - 0.5) * 0.1;
-    const dy = (Math.random() - 0.5) * 0.1;
-    const magnetism = 0.1 + Math.random() * 4;
+	const dx = (Math.random() - 0.5) * 0.3;
+	const dy = (Math.random() - 0.5) * 0.3;
+    const magnetism = 0.1 + Math.random() * 8;
     return {
       x,
       y,
