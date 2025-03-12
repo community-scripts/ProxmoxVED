@@ -47,38 +47,57 @@ function update_motd() {
     container=$1
     os=$(pct config "$container" | awk '/^ostype/ {print $2}')
 
+    echo -e "${BL}[Debug]${GN} Processing container: ${BL}$container${CL} (OS: ${GN}$os${CL})"
+
     if [[ "$os" == "ubuntu" || "$os" == "debian" ]]; then
-        echo -e "${BL}[Info]${GN} Updating MOTD in ${BL}$container${CL} (OS: ${GN}$os${CL})"
+        echo -e "${BL}[Debug]${GN} Entering Debian/Ubuntu MOTD update for container ${BL}$container${CL}"
 
         pct exec "$container" -- bash -c "
           PROFILE_FILE='/etc/profile.d/00_motd.sh'
-          echo 'echo -e \"\"' > \"\$PROFILE_FILE\"
+          echo '[Debug] Creating MOTD file' > /tmp/motd_debug.log
+          echo 'echo -e \"\"" > \"\$PROFILE_FILE\"' >> /tmp/motd_debug.log
           echo 'echo -e \"🌐 Provided by: community-scripts ORG | GitHub: https://github.com/community-scripts/ProxmoxVE\"' >> \"\$PROFILE_FILE\"
-          echo 'echo \"\"' >> \"\$PROFILE_FILE\"
+          echo '[Debug] Writing OS details' >> /tmp/motd_debug.log
           echo 'echo -e \"🖥️ OS: \$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '\"') - Version: \$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '\"')\"' >> \"\$PROFILE_FILE\"
-          echo 'echo -e \"🏠 Hostname: \$(hostname)\"' >> \"\$PROFILE_FILE\"
+          echo '[Debug] Writing IP details' >> /tmp/motd_debug.log
           echo 'echo -e \"💡 IP Address: \$(hostname -I | awk '\''{print \$1}'\'')\"' >> \"\$PROFILE_FILE\"
           chmod -x /etc/update-motd.d/*
         "
 
+        echo -e "${GN}[Debug] Finished Debian/Ubuntu MOTD update for ${BL}$container${CL}"
+
     elif [[ "$os" == "alpine" ]]; then
-        echo -e "${BL}[Info]${GN} Updating MOTD in ${BL}$container${CL} (OS: ${GN}$os${CL})"
+        echo -e "${BL}[Debug]${GN} Entering Alpine MOTD update for container ${BL}$container${CL}"
 
         pct exec "$container" -- /bin/sh -c "
+          echo '[Debug] Alpine: Start updating MOTD' > /tmp/motd_debug.log
           echo 'export TERM=\"xterm-256color\"' >> /root/.bashrc
+          echo '[Debug] Alpine: Set TERM variable' >> /tmp/motd_debug.log
+
           IP=\$(ip -4 addr show eth0 | awk '/inet / {print \$2}' | cut -d/ -f1 | head -n 1)
+          echo '[Debug] Alpine: Fetched IP: '\$IP'' >> /tmp/motd_debug.log
+
           PROFILE_FILE='/etc/profile.d/00_lxc-details.sh'
+          echo '[Debug] Alpine: Writing to profile file' >> /tmp/motd_debug.log
 
           echo 'echo -e \"\"' > \"\$PROFILE_FILE\"
           echo 'echo -e \" LXC Container\"' >> \"\$PROFILE_FILE\"
           echo 'echo -e \" 🌐 Provided by: community-scripts ORG | GitHub: https://github.com/community-scripts/ProxmoxVE\"' >> \"\$PROFILE_FILE\"
+          echo '[Debug] Alpine: Wrote MOTD header' >> /tmp/motd_debug.log
+
           echo 'echo \"\"' >> \"\$PROFILE_FILE\"
           echo 'echo -e \" 🖥️ OS: \$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '\"') - Version: \$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '\"')\"' >> \"\$PROFILE_FILE\"
+          echo '[Debug] Alpine: Wrote OS details' >> /tmp/motd_debug.log
+
           echo 'echo -e \"🏠 Hostname: \$(hostname)\"' >> \"\$PROFILE_FILE\"
           echo 'echo -e \"💡 IP Address: \$IP\"' >> \"\$PROFILE_FILE\"
+          echo '[Debug] Alpine: Wrote hostname & IP' >> /tmp/motd_debug.log
         "
+
+        echo -e "${GN}[Debug] Finished Alpine MOTD update for ${BL}$container${CL}"
     fi
 }
+
 
 function remove_dev_tag() {
     container=$1
