@@ -1,7 +1,7 @@
 "use client";
 
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import React, { useEffect, useRef, useState } from "react";
 
 function useMousePosition() {
     const [mousePosition, setMousePosition] = useState({ x: -9999, y: -9999 });
@@ -69,8 +69,8 @@ const Particles: React.FC<ParticlesProps> = ({
         return colors[Math.floor(Math.random() * colors.length)];
     };
 
-
-    const resizeCanvas = () => {
+    const animationFrameRef = useRef<number | null>(null);
+    const resizeCanvas = useCallback(() => {
         if (!canvasContainerRef.current || !canvasRef.current) return;
 
         canvasSize.current.w = canvasContainerRef.current.offsetWidth;
@@ -88,7 +88,7 @@ const Particles: React.FC<ParticlesProps> = ({
         }
 
         circles.current = Array.from({ length: quantity }, createParticle);
-    };
+    }, [dpr, quantity]);
 
     const createParticle = (): Particle => ({
         x: Math.random() * canvasSize.current.w,
@@ -151,46 +151,58 @@ const Particles: React.FC<ParticlesProps> = ({
         });
     };
 
-    const animateParticles = () => {
+    const animateParticles = useCallback(() => {
         clearCanvas();
         circles.current.forEach((particle) => {
-            const dx = mousePosition.x - particle.x;
-            const dy = mousePosition.y - particle.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < 150) {
-                particle.dx += dx * 0.0005;
-                particle.dy += dy * 0.0005;
-                particle.size = Math.min(particle.size + 0.05, 4);
-            } else {
-                particle.size = Math.max(particle.size - 0.02, 0.8);
-            }
+            particle.size = Math.max(particle.size - 0.01, 0.8);
 
             particle.x += particle.dx + vx;
             particle.y += particle.dy + vy;
-            particle.translateX += (mouse.current.x / (staticity / particle.magnetism) - particle.translateX) / ease;
-            particle.translateY += (mouse.current.y / (staticity / particle.magnetism) - particle.translateY) / ease;
-            particle.alpha = Math.min(particle.alpha + 0.02, particle.targetAlpha);
 
-            drawParticle(particle);
-
-            if (particle.x < -particle.size || particle.x > canvasSize.current.w + particle.size || particle.y < -particle.size || particle.y > canvasSize.current.h + particle.size) {
+            if (
+                particle.x < -particle.size ||
+                particle.x > canvasSize.current.w + particle.size ||
+                particle.y < -particle.size ||
+                particle.y > canvasSize.current.h + particle.size
+            ) {
                 Object.assign(particle, createParticle());
             }
+
+            drawParticle(particle);
         });
 
         connectParticles();
-        requestAnimationFrame(animateParticles);
-    };
+
+        if (!animationFrameRef.current) {
+            animationFrameRef.current = requestAnimationFrame(animateParticles);
+        }
+    }, [vx, vy, staticity, ease]);
+
+
+
 
     useEffect(() => {
-        if (canvasRef.current) {
-            resizeCanvas();
+        resizeCanvas();
+
+        const loop = () => {
             animateParticles();
-            window.addEventListener("resize", resizeCanvas);
-        }
-        return () => window.removeEventListener("resize", resizeCanvas);
-    }, [refresh]);
+            animationFrameRef.current = requestAnimationFrame(loop);
+        };
+
+        animationFrameRef.current = requestAnimationFrame(loop);
+
+        const handleResize = () => resizeCanvas();
+        window.addEventListener("resize", handleResize);
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, [animateParticles]);
+
+
 
     return <div className={cn("pointer-events-none bg-black", className)} ref={canvasContainerRef}><canvas ref={canvasRef} className="size-full" /></div>;
 };
