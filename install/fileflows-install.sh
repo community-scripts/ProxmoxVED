@@ -24,7 +24,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing FFmpeg (Patience)"
-wget https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2024.9.1_all.deb
+wget -q https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2024.9.1_all.deb
 $STD dpkg -i deb-multimedia-keyring_2024.9.1_all.deb
 cat <<EOF >/etc/apt/sources.list.d/backports.list
 deb https://www.deb-multimedia.org bookworm main non-free
@@ -73,13 +73,8 @@ temp_file=$(mktemp)
 wget -q https://fileflows.com/downloads/zip -O $temp_file
 unzip -q -d /opt/fileflows $temp_file
 (cd /opt/fileflows/Server && dotnet FileFlows.Server.dll --systemd install --root true)
-msg_ok "Setup ${APPLICATION}"
-
-# Creating Service
-msg_info "Creating Service"
-(cd /opt/fileflows/Server && dotnet FileFlows.Server.dll --systemd install --root true)
 systemctl enable -q --now fileflows.service
-msg_ok "Created Service"
+msg_ok "Setup ${APPLICATION}"
 
 motd_ssh
 customize
