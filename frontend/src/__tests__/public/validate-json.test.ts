@@ -8,62 +8,46 @@ const jsonDir = "public/json";
 const metadataFileName = "metadata.json";
 const encoding = "utf-8";
 
-let fileNames: string[] = [];
+const fileNames = (await fs.readdir(jsonDir))
+  .filter((fileName) => fileName !== metadataFileName)
 
-try {
-  fileNames = (await fs.readdir(jsonDir)).filter((fileName) => fileName !== metadataFileName);
-} catch (error) {
-  console.warn(`Skipping JSON validation tests: ${error.message}`);
-}
+describe.each(fileNames)("%s", async (fileName) => {
+  let script: Script;
 
-if (fileNames.length === 0) {
-  describe("Dummy Test Suite", () => {
-    it("Skipping JSON tests because no files were found", () => {
-      assert(true);
-    });
-  });
-} else {
-  describe.each(fileNames)("%s", async (fileName) => {
-    let script: Script;
+  beforeAll(async () => {
+    const filePath =  path.resolve(jsonDir, fileName);
+    const fileContent = await fs.readFile(filePath, encoding)
+    script = JSON.parse(fileContent);
+  })
 
-    beforeAll(async () => {
-      const filePath = path.resolve(jsonDir, fileName);
-      const fileContent = await fs.readFile(filePath, encoding);
-      script = JSON.parse(fileContent);
-    });
-
-    it("should have valid json according to script schema", () => {
-      ScriptSchema.parse(script);
-    });
-
-    it("should have a corresponding script file", async () => {
-      for (const method of script.install_methods) {
-        const scriptPath = path.resolve("..", method.script);
-        try {
-          await fs.stat(scriptPath);
-        } catch {
-          assert.fail(`Script file not found: ${scriptPath}`);
-        }
-      }
-    });
+  it("should have valid json according to script schema", () => {
+    ScriptSchema.parse(script);
   });
 
-  describe(`${metadataFileName}`, async () => {
-    let metadata: Metadata;
+  it("should have a corresponding script file", () => {
+    script.install_methods.forEach((method) => {
+      const scriptPath = path.resolve("..", method.script)
+      assert(fs.stat(scriptPath), `Script file not found: ${scriptPath}`)
+    })
+  });
+})
 
-    beforeAll(async () => {
-      const filePath = path.resolve(jsonDir, metadataFileName);
-      const fileContent = await fs.readFile(filePath, encoding);
-      metadata = JSON.parse(fileContent);
-    });
+describe(`${metadataFileName}`, async () => {
+  let metadata: Metadata;
 
-    it("should have valid json according to metadata schema", () => {
-      assert(metadata.categories.length > 0);
-      metadata.categories.forEach((category) => {
-        assert.isString(category.name);
-        assert.isNumber(category.id);
-        assert.isNumber(category.sort_order);
-      });
+  beforeAll(async () => {
+    const filePath =  path.resolve(jsonDir, metadataFileName);
+    const fileContent = await fs.readFile(filePath, encoding)
+    metadata = JSON.parse(fileContent);
+  })
+
+  it("should have valid json according to metadata schema", () => {
+    // TODO: create zod schema for metadata. Move zod schemas to /lib/types.ts
+    assert(metadata.categories.length > 0);
+    metadata.categories.forEach((category) => {
+        assert.isString(category.name)
+        assert.isNumber(category.id)
+        assert.isNumber(category.sort_order)
     });
   });
-}
+})
