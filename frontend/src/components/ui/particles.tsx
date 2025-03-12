@@ -127,7 +127,7 @@ const Particles: React.FC<ParticlesProps> = ({
     const connectParticles = () => {
         if (!context.current) return;
 
-        const maxDistance = 180;
+        const maxDistance = 120;
         circles.current.forEach((p1, i) => {
             for (let j = i + 1; j < circles.current.length; j++) {
                 const p2 = circles.current[j];
