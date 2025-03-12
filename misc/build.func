@@ -1126,8 +1126,7 @@ build_container() {
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
   export IPv6="$IPv6"
-  if [[ DISABLEIP6 == "yes" ]]; then
-     export PCT_OPTIONS="
+  export PCT_OPTIONS="
     -features $FEATURES
     -hostname $HN
     -tags $TAGS
@@ -1140,21 +1139,7 @@ build_container() {
     -unprivileged $CT_TYPE
     $PW
   "
-  elif [[ DISABLEIP6 == "no" ]]; then
-    export PCT_OPTIONS="
-    -features $FEATURES
-    -hostname $HN
-    -tags $TAGS
-    $SD
-    $NS
-    -net0 name=eth0,bridge=$BRG$MAC,ip=$NET$GATE$VLAN$MTU,ip6=$IPv6$IPv6GW
-    -onboot 1
-    -cores $CORE_COUNT
-    -memory $RAM_SIZE
-    -unprivileged $CT_TYPE
-    $PW
-  "
-  fi
+
 
   # This executes create_lxc.sh and creates the container and .conf file
   bash -c "$(wget -qLO - https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/create_lxc.sh)" || exit $?
