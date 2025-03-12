@@ -98,6 +98,9 @@ chown seafile: /opt/seafile
 mkdir -p /opt/conf
 chown seafile:seafile /opt/conf
 chmod 755 /opt/conf
+mkdir -p /opt/ccnet
+chown seafile:seafile /opt/ccnet
+chmod 755 /opt/ccnet
 chown -R seafile:seafile /opt/conf
 chmod -R 755 /opt/conf
 LATEST_FILE=$(curl -s "https://download.seadrive.org/" | \
