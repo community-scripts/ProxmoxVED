@@ -104,10 +104,7 @@ msg_info "Setting ffmpeg variables in fileflows"
 wait_for_api
 
 FFMPEG_UID=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffmpeg" -H 'accept: application/json' | jq -r '.Uid')
-echo "ffmpeg UID: $FFMPEG_UID"
-
 FFPROBE_UID=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
-echo "ffprobe UID: $FFPROBE_UID"
 
 curl -s -X 'DELETE' \
   "http://localhost:19200/api/variable" \
