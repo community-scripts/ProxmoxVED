@@ -68,12 +68,19 @@ function update_motd() {
     elif [[ "$os" == "alpine" ]]; then
         echo -e "${BL}[Debug]${GN} Updating Alpine MOTD in ${BL}$container${CL}"
 
-        pct exec "$container" -- ash -c '
-          mkdir -p /etc/profile.d/
-          IP=$(ip -4 addr show eth0 | awk "/inet / {print \$2}" | cut -d/ -f1 | head -n 1)
-          PROFILE_FILE="/etc/profile.d/00_lxc-details.sh"
+        pct exec "$container" -- /bin/sh -c '
+          echo "[Debug] Alpine: Start updating MOTD" > /tmp/motd_debug.log
+          echo "export TERM=\"xterm-256color\"" >> /root/.bashrc
+          echo "[Debug] Alpine: Set TERM variable" >> /tmp/motd_debug.log
 
-          echo "[Debug] Alpine: Writing to profile file" > /tmp/motd_debug.log
+          mkdir -p /etc/profile.d/
+          echo "[Debug] Alpine: Created /etc/profile.d/" >> /tmp/motd_debug.log
+
+          IP=$(ip -4 addr show eth0 | awk "/inet / {print \$2}" | cut -d/ -f1 | head -n 1)
+          echo "[Debug] Alpine: Fetched IP: $IP" >> /tmp/motd_debug.log
+
+          PROFILE_FILE="/etc/profile.d/00_lxc-details.sh"
+          echo "[Debug] Alpine: Writing to profile file" >> /tmp/motd_debug.log
 
           echo "echo -e \"\"" > \"$PROFILE_FILE\"
           echo "echo -e \" LXC Container\"" >> \"$PROFILE_FILE\"
@@ -81,7 +88,6 @@ function update_motd() {
           echo "echo -e \"🖥️ OS: $(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '\"') - Version: $(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '\"')\"" >> \"$PROFILE_FILE\"
           echo "echo -e \"🏠 Hostname: $(hostname)\"" >> \"$PROFILE_FILE\"
           echo "echo -e \"💡 IP Address: $IP\"" >> \"$PROFILE_FILE\"
-
           echo "[Debug] Alpine: Finished writing MOTD" >> /tmp/motd_debug.log
         '
 
