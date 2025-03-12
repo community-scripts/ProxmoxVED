@@ -130,6 +130,8 @@ const Particles: React.FC<ParticlesProps> = ({
         if (!context.current) return;
 
         const maxDistance = 120;
+        const ctx = context.current; // Store reference to avoid null checks repeatedly
+
         circles.current.forEach((p1, i) => {
             for (let j = i + 1; j < circles.current.length; j++) {
                 const p2 = circles.current[j];
@@ -139,13 +141,13 @@ const Particles: React.FC<ParticlesProps> = ({
 
                 if (distance < maxDistance) {
                     const opacity = 1 - distance / maxDistance;
-                    context.current.strokeStyle = `rgba(255, 0, 255, ${opacity * 0.8})`;
-                    context.current.lineWidth = 0.6;
+                    ctx.strokeStyle = `rgba(255, 0, 255, ${opacity * 0.8})`;
+                    ctx.lineWidth = 0.6;
 
-                    context.current.beginPath();
-                    context.current.moveTo(p1.x, p1.y);
-                    context.current.lineTo(p2.x, p2.y);
-                    context.current.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
                 }
             }
         });
