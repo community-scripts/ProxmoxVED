@@ -24,8 +24,8 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing FFmpeg (Patience)"
-wget -q https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2016.8.1_all.deb
-$STD dpkg -i deb-multimedia-keyring_2016.8.1_all.deb
+wget https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2024.9.1_all.deb
+$STD dpkg -i deb-multimedia-keyring_2024.9.1_all.deb
 cat <<EOF >/etc/apt/sources.list.d/backports.list
 deb https://www.deb-multimedia.org bookworm main non-free
 deb https://www.deb-multimedia.org bookworm-backports main
