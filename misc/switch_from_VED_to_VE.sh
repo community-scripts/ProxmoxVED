@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts
-# Author: MickLesk
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 set -eEuo pipefail
 BL=$(echo "\033[36m")
@@ -50,7 +49,13 @@ function update_motd() {
 
     echo -e "${BL}[Info]${GN} Updating MOTD in ${BL}$container${CL} (OS: ${GN}$os${CL})"
 
-    pct exec "$container" -- ash -c "
+    if [ "$os" = "alpine" ]; then
+        shell="ash"
+    else
+        shell="bash"
+    fi
+
+    pct exec "$container" -- $shell -c "
         if [ \"$os\" = \"alpine\" ]; then
             IP=\$(ip -4 addr show eth0 | awk '/inet / {print \$2}' | cut -d/ -f1 | head -n 1)
         else
@@ -79,20 +84,22 @@ function remove_dev_tag() {
         new_tags=$(echo "$current_tags" | sed 's/,*community-script-dev,*//g' | sed 's/^,//' | sed 's/,$//')
 
         if [[ -z "$new_tags" ]]; then
-            pct set "$container" -delete tags
+            pct set "$container" -tags "community-script"
         else
-            pct set "$container" -tags "$new_tags"
+            pct set "$container" -tags "$new_tags,community-script"
         fi
 
-        echo -e "${GN}[Success]${CL} 'community-script-dev' tag removed from ${BL}$container${CL}.\n"
+        echo -e "${GN}[Success]${CL} 'community-script-dev' tag removed and 'community-script' added for ${BL}$container${CL}.\n"
     fi
+}
+
 }
 
 header_info
 echo "Searching for containers with 'community-script-dev' tag..."
 for container in $(pct list | awk '{if(NR>1) print $1}'); do
     tags=$(pct config "$container" | awk '/^tags/ {print $2}')
-    if [[ "$tags" == *"dev"* ]]; then
+    if [[ "$tags" == *"community-script-dev"* ]]; then
         update_container "$container"
         update_motd "$container"
         remove_dev_tag "$container"
