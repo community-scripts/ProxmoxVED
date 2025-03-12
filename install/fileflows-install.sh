@@ -15,14 +15,14 @@ network_check
 update_os
 
 wait_for_api() {
-  echo "Waiting for API to become available..."
+  msg_info "Waiting for API to become available..."
   while true; do
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:19200/api/system/info")
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:19200/api/system/info" 2>/dev/null || echo "000")
     if [ "$HTTP_STATUS" -eq 200 ]; then
-      echo "API is now available!"
+      msg_info "API is now available!"
       break
     fi
-    echo "API not ready yet (status: $HTTP_STATUS). Retrying in 5 seconds..."
+    msg_info "API not ready yet (status: $HTTP_STATUS). Retrying in 5 seconds..."
     sleep 5
   done
 }
@@ -141,7 +141,7 @@ curl -X 'POST' \
   \"Value\": \"$FFPROBE_PATH\"
 }"
 
-echo "ffmpeg and ffprobe variables have been updated successfully."
+msg_ok "ffmpeg and ffprobe variables have been updated successfully."
 
 motd_ssh
 customize
