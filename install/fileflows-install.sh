@@ -109,7 +109,7 @@ echo "ffmpeg UID: $FFMPEG_UID"
 FFPROBE_UID=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
 echo "ffprobe UID: $FFPROBE_UID"
 
-curl -X 'DELETE' \
+curl -s -X 'DELETE' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
@@ -123,7 +123,7 @@ curl -X 'DELETE' \
 FFMPEG_PATH=$(which ffmpeg)
 FFPROBE_PATH=$(which ffprobe)
 
-curl -X 'POST' \
+curl -s -X 'POST' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
@@ -132,7 +132,7 @@ curl -X 'POST' \
   \"Value\": \"$FFMPEG_PATH\"
 }"
 
-curl -X 'POST' \
+curl -s -X 'POST' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
