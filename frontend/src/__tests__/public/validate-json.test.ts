@@ -4,7 +4,7 @@ import path from "path";
 import { ScriptSchema, type Script } from "@/app/json-editor/_schemas/schemas";
 import { Metadata } from "@/lib/types";
 console.log('Current directory: ' + process.cwd());
-const jsonDir = "public/json";
+const jsonDir = "/public/json";
 const metadataFileName = "metadata.json";
 const encoding = "utf-8";
 
