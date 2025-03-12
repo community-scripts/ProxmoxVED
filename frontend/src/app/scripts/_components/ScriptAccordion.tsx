@@ -46,10 +46,10 @@ export default function ScriptAccordion({
       );
       if (category) {
         setExpandedItem(category.name);
-        handleSelected(selectedScript);
       }
     }
-  }, [selectedScript, items, handleSelected]);
+  }, [selectedScript, items]);
+
   return (
     <Accordion
       type="single"

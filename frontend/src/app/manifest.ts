@@ -7,8 +7,8 @@ export const generateStaticParams = () => {
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Proxmox VE Helper-Scripts",
-    short_name: "Proxmox VE Helper-Scripts",
+    name: "Proxmox VE Helper-Scripts Development",
+    short_name: "Proxmox VE Helper-Scripts Development",
     description:
       "A Re-designed Front-end for the Proxmox VE Helper-Scripts Repository. Featuring over 200+ scripts to help you manage your Proxmox VE environment.",
     theme_color: "#030712",

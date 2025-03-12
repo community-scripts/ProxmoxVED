@@ -11,9 +11,9 @@ import React from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Proxmox VE Helper-Scripts",
+  title: "Proxmox VE Helper-Scripts DEVELOP",
   generator: "Next.js",
-  applicationName: "Proxmox VE Helper-Scripts",
+  applicationName: "Proxmox VE Helper-Scripts DEVELOP",
   referrer: "origin-when-cross-origin",
   keywords: [
     "Proxmox VE",
@@ -23,12 +23,13 @@ export const metadata = {
     "scripts",
     "proxmox",
     "VE",
+    "Development",
   ],
   authors: { name: "Bram Suurd" },
   creator: "Bram Suurd",
   publisher: "Bram Suurd",
   description:
-    "A Front-end for the Proxmox VE Helper-Scripts (Community) Repository. Featuring over 200+ scripts to help you manage your Proxmox VE environment.",
+    "A Front-end for the Proxmox VE Helper-Scripts (DEVELOP) Repository. Featuring over 200+ scripts to help you manage your Proxmox VE environment.",
   favicon: "/app/favicon.ico",
   formatDetection: {
     email: false,
@@ -37,7 +38,7 @@ export const metadata = {
   },
   metadataBase: new URL(`https://community-scripts.github.io/${basePath}/`),
   openGraph: {
-    title: "Proxmox VE Helper-Scripts",
+    title: "Proxmox VE Helper-Scripts DEVELOP",
     description:
       "A Front-end for the Proxmox VE Helper-Scripts (Community) Repository. Featuring over 200+ scripts to help you manage your Proxmox VE environment.",
     url: "/defaultimg.png",

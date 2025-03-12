@@ -103,17 +103,12 @@ export default function Page() {
 
 						<div className="flex flex-col gap-4">
 							<h1 className="max-w-2xl text-center text-3xl font-semibold tracking-tighter md:text-7xl">
-								Make managing your Homelab a breeze
+								Beta Scripts
 							</h1>
 							<div className="max-w-2xl gap-2 flex flex-col text-center sm:text-lg text-sm leading-relaxed tracking-tight text-muted-foreground md:text-xl">
 								<p>
-									We are a community-driven initiative that simplifies the setup
-									of Proxmox Virtual Environment (VE).
-								</p>
-								<p>
-									
-									With 300+ scripts to help you manage your <b>Proxmox VE environment</b>. Whether you&#39;re a seasoned
-									user or a newcomer, we&#39;ve got you covered.
+									On this Website you can find a collection of scripts that are under development and open for testing.
+                                    We do not provide any support for these scripts when run in production, but you can help us by testing them and providing feedback.
 								</p>
 							</div>
 						</div>
