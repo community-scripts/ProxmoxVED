@@ -95,14 +95,21 @@ function remove_dev_tag() {
 
 header_info
 echo "Searching for containers with 'community-script-dev' tag..."
+
+found=0
 for container in $(pct list | awk '{if(NR>1) print $1}'); do
     tags=$(pct config "$container" | awk '/^tags/ {print $2}')
     if [[ "$tags" == *"community-script-dev"* ]]; then
+        found=1
         update_container "$container"
         update_motd "$container"
         remove_dev_tag "$container"
     fi
 done
+if [[ $found -eq 0 ]]; then
+    echo -e "${RD}[Error]${CL} No containers found with the tag 'community-script-dev'. Exiting script."
+    exit 1
+fi
 
 header_info
 echo -e "${GN}The process is complete.${CL}\n"
