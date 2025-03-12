@@ -127,7 +127,7 @@ curl -s -X 'POST' \
   -d "{
   \"Name\": \"ffmpeg\",
   \"Value\": \"$FFMPEG_PATH\"
-}"
+}" 2>/dev/null
 
 curl -s -X 'POST' \
   "http://localhost:19200/api/variable" \
@@ -136,7 +136,7 @@ curl -s -X 'POST' \
   -d "{
   \"Name\": \"ffprobe\",
   \"Value\": \"$FFPROBE_PATH\"
-}"
+}" 2>/dev/null
 
 msg_ok "ffmpeg and ffprobe variables have been updated successfully."
 
