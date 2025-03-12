@@ -41,6 +41,7 @@ interface ParticlesProps {
     refresh?: boolean;
     vx?: number;
     vy?: number;
+    color?: string;
 }
 
 const Particles: React.FC<ParticlesProps> = ({
@@ -52,6 +53,7 @@ const Particles: React.FC<ParticlesProps> = ({
     refresh = false,
     vx = 0.1,
     vy = 0.1,
+    color = "#ff00ff",
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const canvasContainerRef = useRef<HTMLDivElement>(null);
