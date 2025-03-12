@@ -124,19 +124,13 @@ curl -s -X 'POST' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
-  -d "{
-  \"Name\": \"ffmpeg\",
-  \"Value\": \"$FFMPEG_PATH\"
-}" 2>/dev/null
+  -d "{\"Name\":\"ffmpeg\",\"Value\":\"$FFMPEG_PATH\"}" </dev/null 2>/dev/null
 
 curl -s -X 'POST' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
-  -d "{
-  \"Name\": \"ffprobe\",
-  \"Value\": \"$FFPROBE_PATH\"
-}" 2>/dev/null
+  -d "{\"Name\":\"ffprobe\",\"Value\":\"$FFPROBE_PATH\"}" </dev/null 2>/dev/null
 
 msg_ok "ffmpeg and ffprobe variables have been updated successfully."
 
