@@ -12,7 +12,7 @@ interface FilterProps {
 }
 
 const FilterComponent: React.FC<FilterProps> = ({ column, type, activeFilters, onApplyFilter, onRemoveFilter, allData }) => {
-  const [filters, setFilters] = useState<{ operator: string; value: string | number }[]>([
+  const [filters, setFilters] = useState<{ operator: string; value: any }[]>([
     { operator: "equals", value: "" }
   ]);
   const [showFilter, setShowFilter] = useState<boolean>(false);
