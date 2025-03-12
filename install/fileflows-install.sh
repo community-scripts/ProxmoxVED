@@ -17,7 +17,7 @@ update_os
 wait_for_api() {
   echo "Waiting for API to become available..."
   while true; do
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${IP}:19200/api/system/info")
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:19200/api/system/info")
     if [ "$HTTP_STATUS" -eq 200 ]; then
       echo "API is now available!"
       break
@@ -103,14 +103,14 @@ msg_ok "Setup ${APPLICATION}"
 msg_info "Setting ffmpeg variables in fileflows"
 wait_for_api
 
-FFMPEG_UID=$(curl -s -X 'GET' "http://${IP}:19200/api/variable/name/ffmpeg" -H 'accept: application/json' | jq -r '.Uid')
+FFMPEG_UID=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffmpeg" -H 'accept: application/json' | jq -r '.Uid')
 echo "ffmpeg UID: $FFMPEG_UID"
 
-FFPROBE_UID=$(curl -s -X 'GET' "http://${IP}:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
+FFPROBE_UID=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
 echo "ffprobe UID: $FFPROBE_UID"
 
 curl -X 'DELETE' \
-  "http://${IP}:19200/api/variable" \
+  "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
   -d "{
@@ -124,7 +124,7 @@ FFMPEG_PATH=$(which ffmpeg)
 FFPROBE_PATH=$(which ffprobe)
 
 curl -X 'POST' \
-  "http://${IP}:19200/api/variable" \
+  "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
   -d "{
@@ -133,7 +133,7 @@ curl -X 'POST' \
 }"
 
 curl -X 'POST' \
-  "http://${IP}:19200/api/variable" \
+  "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
   -d "{
