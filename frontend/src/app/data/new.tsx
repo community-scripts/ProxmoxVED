@@ -53,7 +53,7 @@ const DataFetcher: React.FC = () => {
   const removeFilter = (column: string, index: number) => {
     setFilters((prev) => {
       const updatedFilters = { ...prev };
-      updatedFilters[column] = updatedFilters[column].filter((_, i) => i !== index);
+      updatedFilters[column] = updatedFilters[column].filter((_: any, i: number) => i !== index);
 
       // If no filters remain, remove the column entry
       if (updatedFilters[column].length === 0) delete updatedFilters[column];
