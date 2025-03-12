@@ -20,17 +20,30 @@ const DataFetcher: React.FC = () => {
   const [data, setData] = useState<DataModel[]>([]);
   const [filteredData, setFilteredData] = useState<DataModel[]>([]);
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const response = await fetch("https://api.htl-braunau.at/data/json");
-      const result: DataModel[] = await response.json();
-      setData(result);
-      setFilteredData(result);
+    const fetchPaginatedData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`https://api.htl-braunau.at/dev/data/paginated?page=${currentPage}&limit=${itemsPerPage === 0 ? '' : itemsPerPage}`);
+        if (!response.ok) throw new Error(`Failed to fetch data: ${response.statusText}`);
+        const result: DataModel[] = await response.json();
+        setData(result);
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchData();
-  }, []);
+    fetchPaginatedData();
+  }, [currentPage, itemsPerPage]);
+
+
 
   const applyFilters = async (column: string, operator: string, value: any) => {
     setFilters((prev) => {
@@ -96,18 +109,18 @@ const DataFetcher: React.FC = () => {
     setFilteredData(filtered);
   }, [filters, data]);
 
-  const columns: { key: string; type: "text" | "number" }[] = [
-    { key: "status", type: "text" },
-    { key: "type", type: "text" },
-    { key: "nsapp", type: "text" },
-    { key: "os_type", type: "text" },
-    { key: "disk_size", type: "number" },
-    { key: "core_count", type: "number" },
-    { key: "ram_size", type: "number" },
-    { key: "method", type: "text" },
-    { key: "pve_version", type: "text" },
-    { key: "created_at", type: "text" }
-  ];
+const columns: { key: string; type: "text" | "number"; label: string }[] = [
+    { key: "status", type: "text", label: "Status" },
+    { key: "type", type: "text", label: "Type" },
+    { key: "nsapp", type: "text", label: "NS App" },
+    { key: "os_type", type: "text", label: "OS Type" },
+    { key: "disk_size", type: "number", label: "Disk Size" },
+    { key: "core_count", type: "number", label: "CPU Cores" },
+    { key: "ram_size", type: "number", label: "RAM Size" },
+    { key: "method", type: "text", label: "Method" },
+    { key: "pve_version", type: "text", label: "PVE Version" },
+    { key: "created_at", type: "text", label: "Created At" }
+];
 
   return (
     <div className="p-6 mt-20">
@@ -116,10 +129,10 @@ const DataFetcher: React.FC = () => {
       <table className="min-w-full table-auto border-collapse">
         <thead>
           <tr>
-            {columns.map(({ key, type }) => (
+            {columns.map(({ key, type, label }) => (
               <th key={key} className="px-4 py-2 border-b text-left">
                 <div className="flex items-center space-x-2">
-                  <span className="font-semibold">{key}</span>
+                  <span className="font-semibold">{label}</span>
                   <FilterComponent
                     column={key}
                     type={type}
@@ -137,7 +150,7 @@ const DataFetcher: React.FC = () => {
         {/* Filters Row - Displays below headers */}
         <thead>
           <tr>
-            {columns.map(({ key }) => (
+            {columns.map(({ key, label }) => (
               <th key={key} className="px-4 py-2 border-b text-left">
                 {filters[key] && filters[key].length > 0 ? (
                   <div className="flex flex-wrap gap-1">
