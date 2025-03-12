@@ -284,7 +284,7 @@ function advanced_settings() {
 }
 
 
-check_root
+root_check
 arch_check
 pve_check
 ssh_check
