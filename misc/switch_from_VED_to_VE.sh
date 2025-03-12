@@ -93,8 +93,6 @@ function remove_dev_tag() {
     fi
 }
 
-}
-
 header_info
 echo "Searching for containers with 'community-script-dev' tag..."
 for container in $(pct list | awk '{if(NR>1) print $1}'); do
