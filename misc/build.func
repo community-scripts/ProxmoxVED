@@ -330,7 +330,7 @@ base_settings() {
   VERBOSE="${1:-no}"
   PW=""
   CT_ID=$NEXTID
-  HN=$NSAPP
+  HN="dev_${NSAPP}"
   BRG="vmbr0"
   NET="dhcp"
   IPv6="auto"
@@ -602,11 +602,12 @@ advanced_settings() {
     exit
   fi
 
-  if CT_NAME=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 $NSAPP --title "HOSTNAME" 3>&1 1>&2 2>&3); then
+if CT_NAME=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 "dev_${NSAPP}" --title "HOSTNAME" 3>&1 1>&2 2>&3); then
     if [ -z "$CT_NAME" ]; then
-      HN="$NSAPP"
+      HN="dev_${NSAPP}"
     else
       HN=$(echo ${CT_NAME,,} | tr -d ' ')
+      [[ $HN != dev_* ]] && HN="dev_${HN}"
     fi
     echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
   else
