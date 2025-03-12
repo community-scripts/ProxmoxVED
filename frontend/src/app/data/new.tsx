@@ -96,7 +96,7 @@ const DataFetcher: React.FC = () => {
     setFilteredData(filtered);
   }, [filters, data]);
 
-  const columns = [
+  const columns: { key: string; type: "text" | "number" }[] = [
     { key: "status", type: "text" },
     { key: "type", type: "text" },
     { key: "nsapp", type: "text" },
