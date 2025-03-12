@@ -106,7 +106,7 @@ wait_for_api
 FFMPEG_UID=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffmpeg" -H 'accept: application/json' | jq -r '.Uid')
 FFPROBE_UID=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
 
-curl -s -X 'DELETE' \
+$STD curl -s -X 'DELETE' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
@@ -120,17 +120,17 @@ curl -s -X 'DELETE' \
 FFMPEG_PATH=$(which ffmpeg)
 FFPROBE_PATH=$(which ffprobe)
 
-curl -s -X 'POST' \
+$STD curl -s -X 'POST' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
-  -d "{\"Name\":\"ffmpeg\",\"Value\":\"$FFMPEG_PATH\"}" </dev/null 2>/dev/null
+  -d "{\"Name\":\"ffmpeg\",\"Value\":\"$FFMPEG_PATH\"}"
 
-curl -s -X 'POST' \
+$STD curl -s -X 'POST' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
-  -d "{\"Name\":\"ffprobe\",\"Value\":\"$FFPROBE_PATH\"}" </dev/null 2>/dev/null
+  -d "{\"Name\":\"ffprobe\",\"Value\":\"$FFPROBE_PATH\"}"
 
 msg_ok "ffmpeg and ffprobe variables have been updated successfully."
 
