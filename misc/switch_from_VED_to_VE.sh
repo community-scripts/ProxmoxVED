@@ -50,33 +50,33 @@ function update_motd() {
     if [[ "$os" == "ubuntu" || "$os" == "debian" ]]; then
         echo -e "${BL}[Info]${GN} Updating MOTD in ${BL}$container${CL} (OS: ${GN}$os${CL})"
 
-        pct exec "$container" -- bash -c '
-          PROFILE_FILE="/etc/profile.d/00_motd.sh"
-          echo "echo -e \"\"" > "$PROFILE_FILE"
-          echo "echo -e \" 🌐 Provided by: community-scripts ORG | GitHub: https://github.com/community-scripts/ProxmoxVE \"" >> "$PROFILE_FILE"
-          echo "echo \"\"" >> "$PROFILE_FILE"
-          echo "echo -e \" 🖥️ OS: $(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '\"') - Version: $(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '\"') \"" >> "$PROFILE_FILE"
-          echo "echo -e \" 🏠 Hostname: $(hostname) \"" >> "$PROFILE_FILE"
-          echo "echo -e \" 💡 IP Address: $(hostname -I | awk '\''{print $1}'\'') \"" >> "$PROFILE_FILE"
+        pct exec "$container" -- bash -c "
+          PROFILE_FILE='/etc/profile.d/00_motd.sh'
+          echo 'echo -e \"\"' > \"\$PROFILE_FILE\"
+          echo 'echo -e \"🌐 Provided by: community-scripts ORG | GitHub: https://github.com/community-scripts/ProxmoxVE\"' >> \"\$PROFILE_FILE\"
+          echo 'echo \"\"' >> \"\$PROFILE_FILE\"
+          echo 'echo -e \"🖥️ OS: \$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '\"') - Version: \$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '\"')\"' >> \"\$PROFILE_FILE\"
+          echo 'echo -e \"🏠 Hostname: \$(hostname)\"' >> \"\$PROFILE_FILE\"
+          echo 'echo -e \"💡 IP Address: \$(hostname -I | awk '\''{print \$1}'\'')\"' >> \"\$PROFILE_FILE\"
           chmod -x /etc/update-motd.d/*
-        '
+        "
 
     elif [[ "$os" == "alpine" ]]; then
         echo -e "${BL}[Info]${GN} Updating MOTD in ${BL}$container${CL} (OS: ${GN}$os${CL})"
 
-        pct exec "$container" -- /bin/sh -c '
-          echo "export TERM='\''xterm-256color'\''" >> /root/.bashrc
-          IP=$(ip -4 addr show eth0 | awk "/inet / {print $2}" | cut -d/ -f1 | head -n 1)
-          PROFILE_FILE="/etc/profile.d/00_lxc-details.sh"
+        pct exec "$container" -- /bin/sh -c "
+          echo 'export TERM=\"xterm-256color\"' >> /root/.bashrc
+          IP=\$(ip -4 addr show eth0 | awk '/inet / {print \$2}' | cut -d/ -f1 | head -n 1)
+          PROFILE_FILE='/etc/profile.d/00_lxc-details.sh'
 
-          echo "echo -e \"\"" > "$PROFILE_FILE"
-          echo "echo -e \" LXC Container\"" >> "$PROFILE_FILE"
-          echo "echo -e \" 🌐 Provided by: community-scripts ORG | GitHub: https://github.com/community-scripts/ProxmoxVE \"" >> "$PROFILE_FILE"
-          echo "echo \"\"" >> "$PROFILE_FILE"
-          echo "echo -e \" 🖥️ OS: $(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '\"') - Version: $(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '\"') \"" >> "$PROFILE_FILE"
-          echo "echo -e \" 🏠 Hostname: $(hostname) \"" >> "$PROFILE_FILE"
-          echo "echo -e \" 💡 IP Address: $IP \"" >> "$PROFILE_FILE"
-        '
+          echo 'echo -e \"\"' > \"\$PROFILE_FILE\"
+          echo 'echo -e \" LXC Container\"' >> \"\$PROFILE_FILE\"
+          echo 'echo -e \" 🌐 Provided by: community-scripts ORG | GitHub: https://github.com/community-scripts/ProxmoxVE\"' >> \"\$PROFILE_FILE\"
+          echo 'echo \"\"' >> \"\$PROFILE_FILE\"
+          echo 'echo -e \" 🖥️ OS: \$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '\"') - Version: \$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '\"')\"' >> \"\$PROFILE_FILE\"
+          echo 'echo -e \"🏠 Hostname: \$(hostname)\"' >> \"\$PROFILE_FILE\"
+          echo 'echo -e \"💡 IP Address: \$IP\"' >> \"\$PROFILE_FILE\"
+        "
     fi
 }
 
