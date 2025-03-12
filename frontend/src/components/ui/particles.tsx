@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 
-// Custom Hook für Mausposition
 function useMousePosition() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -19,7 +18,6 @@ function useMousePosition() {
   return mousePosition;
 }
 
-// Umwandlung von HEX in RGB
 function hexToRgb(hex: string): number[] {
   hex = hex.replace("#", "");
   if (hex.length === 3) {
@@ -32,7 +30,6 @@ function hexToRgb(hex: string): number[] {
   ];
 }
 
-// Partikel-Interface
 interface Particle {
   x: number;
   y: number;
@@ -80,6 +77,19 @@ const Particles: React.FC<ParticlesProps> = ({
   const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1;
   const rgb = hexToRgb(color);
 
+  const createParticle = (): Particle => ({
+    x: Math.random() * canvasSize.current.w,
+    y: Math.random() * canvasSize.current.h,
+    translateX: 0,
+    translateY: 0,
+    size: Math.random() * 2 + size,
+    alpha: 0,
+    targetAlpha: Math.random() * 0.6 + 0.1,
+    dx: (Math.random() - 0.5) * 0.1,
+    dy: (Math.random() - 0.5) * 0.1,
+    magnetism: 0.1 + Math.random() * 4,
+  });
+
   const resizeCanvas = useCallback(() => {
     if (!canvasContainerRef.current || !canvasRef.current) return;
     const { offsetWidth: w, offsetHeight: h } = canvasContainerRef.current;
@@ -97,23 +107,6 @@ const Particles: React.FC<ParticlesProps> = ({
     circles.current = Array.from({ length: quantity }, createParticle);
   }, [quantity]);
 
-  const createParticle = (): Particle => ({
-    x: Math.random() * canvasSize.current.w,
-    y: Math.random() * canvasSize.current.h,
-    translateX: 0,
-    translateY: 0,
-    size: Math.random() * 2 + size,
-    alpha: 0,
-    targetAlpha: Math.random() * 0.6 + 0.1,
-    dx: (Math.random() - 0.5) * 0.1,
-    dy: (Math.random() - 0.5) * 0.1,
-    magnetism: 0.1 + Math.random() * 4,
-  });
-
-  const clearCanvas = () => {
-    context.current?.clearRect(0, 0, canvasSize.current.w, canvasSize.current.h);
-  };
-
   const drawParticle = (particle: Particle) => {
     if (!context.current) return;
     const { x, y, translateX, translateY, size, alpha } = particle;
@@ -124,6 +117,10 @@ const Particles: React.FC<ParticlesProps> = ({
     context.current.fillStyle = `rgba(${rgb.join(",")}, ${alpha})`;
     context.current.fill();
     context.current.restore();
+  };
+
+  const clearCanvas = () => {
+    context.current?.clearRect(0, 0, canvasSize.current.w, canvasSize.current.h);
   };
 
   const animateParticles = () => {
