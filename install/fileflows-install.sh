@@ -14,6 +14,19 @@ setting_up_container
 network_check
 update_os
 
+wait_for_api() {
+  echo "Waiting for API to become available..."
+  while true; do
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${IP}:19200/api/system/info")
+    if [ "$HTTP_STATUS" -eq 200 ]; then
+      echo "API is now available!"
+      break
+    fi
+    echo "API not ready yet (status: $HTTP_STATUS). Retrying in 5 seconds..."
+    sleep 5
+  done
+}
+
 # Installing Dependencies with the 3 core dependencies (curl;sudo;mc)
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
@@ -85,6 +98,50 @@ unzip -q -d /opt/fileflows $temp_file
 (cd /opt/fileflows/Server && dotnet FileFlows.Server.dll --systemd install --root true)
 systemctl enable -q --now fileflows.service
 msg_ok "Setup ${APPLICATION}"
+
+# Modify ffmpeg and ffprobe variables so they point to correct locations
+msg_info "Setting ffmpeg variables in fileflows"
+wait_for_api
+
+FFMPEG_UID=$(curl -s -X 'GET' "http://${IP}:19200/api/variable/name/ffmpeg" -H 'accept: application/json' | jq -r '.Uid')
+echo "ffmpeg UID: $FFMPEG_UID"
+
+FFPROBE_UID=$(curl -s -X 'GET' "http://${IP}:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
+echo "ffprobe UID: $FFPROBE_UID"
+
+curl -X 'DELETE' \
+  "http://${IP}:19200/api/variable" \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d "{
+  \"Uids\": [
+    \"$FFMPEG_UID\",
+    \"$FFPROBE_UID\"
+  ]
+}"
+
+FFMPEG_PATH=$(which ffmpeg)
+FFPROBE_PATH=$(which ffprobe)
+
+curl -X 'POST' \
+  "http://${IP}:19200/api/variable" \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d "{
+  \"Name\": \"ffmpeg\",
+  \"Value\": \"$FFMPEG_PATH\"
+}"
+
+curl -X 'POST' \
+  "http://${IP}:19200/api/variable" \
+  -H 'accept: */*' \
+  -H 'Content-Type: application/json' \
+  -d "{
+  \"Name\": \"ffprobe\",
+  \"Value\": \"$FFPROBE_PATH\"
+}"
+
+echo "ffmpeg and ffprobe variables have been updated successfully."
 
 motd_ssh
 customize
