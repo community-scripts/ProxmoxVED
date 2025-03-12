@@ -99,8 +99,8 @@ function remove_dev_tag() {
     container=$1
     current_tags=$(pct config "$container" | awk '/^tags/ {print $2}')
 
-    if [[ "$current_tags" == *"dev"* ]]; then
-        new_tags=$(echo "$current_tags" | sed 's/,*dev,*//g' | sed 's/^,//' | sed 's/,$//')
+    if [[ "$current_tags" == *"community-script-dev"* ]]; then
+        new_tags=$(echo "$current_tags" | sed 's/,*community-script-dev,*//g' | sed 's/^,//' | sed 's/,$//')
 
         if [[ -z "$new_tags" ]]; then
             pct set "$container" -delete tags
@@ -108,12 +108,12 @@ function remove_dev_tag() {
             pct set "$container" -tags "$new_tags"
         fi
 
-        echo -e "${GN}[Success]${CL} 'dev' tag removed from ${BL}$container${CL}.\n"
+        echo -e "${GN}[Success]${CL} 'community-script-dev' tag removed from ${BL}$container${CL}.\n"
     fi
 }
 
 header_info
-echo "Searching for containers with 'dev' tag..."
+echo "Searching for containers with 'community-script-dev' tag..."
 for container in $(pct list | awk '{if(NR>1) print $1}'); do
     tags=$(pct config "$container" | awk '/^tags/ {print $2}')
     if [[ "$tags" == *"dev"* ]]; then
