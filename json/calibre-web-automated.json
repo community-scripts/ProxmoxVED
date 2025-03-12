@@ -31,13 +31,13 @@
         "password": "admin123"
     },
     "notes": [
-      {
-        "text": "This LXC is not interchangeable with the Calibre-Web LXC",
-        "type": "warning"
-      },
-      {
-        "text": "Options enabled by default: Kobo sync; Goodreads author info; metadata extaction from epub, fb2, pdf; cover extraction from cbr, cbz, cbt files"
-        "type": "info"
-      }
+        {
+            "text": "This LXC is not interchangeable with the Calibre-Web LXC",
+            "type": "warning"
+        },
+        {
+            "text": "Options enabled by default: Kobo sync; Goodreads author info; metadata extaction from epub, fb2, pdf; cover extraction from cbr, cbz, cbt files",
+            "type": "info"
+        }
     ]
 }
