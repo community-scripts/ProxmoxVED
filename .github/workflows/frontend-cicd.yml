@@ -44,11 +44,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --prefer-offline --legacy-peer-deps
-        
-      - name: Fix symbolic link issue
-        run: |
-          rm -rf frontend/public/json
-          ln -s $GITHUB_WORKSPACE/json frontend/public/json
 
       - name: Run tests
         run: npm run test
