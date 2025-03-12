@@ -143,9 +143,9 @@ const DataFetcher: React.FC = () => {
                   <div className="flex flex-wrap gap-1">
                     {filters[key].map((filter: { operator: string; value: any }, index: number) => (
                       <div key={`${key}-${filter.value}-${index}`} className="bg-gray-800 text-white px-2 py-1 rounded flex items-center">
-                        <span className="text-sm italic">
-                          {filter.operator} <b>"{filter.value}"</b>
-                        </span>
+					<span className="text-sm italic">
+					  {filter.operator} <b>&quot;{filter.value}&quot;</b>
+					</span>
                         <button className="text-red-500 ml-2" onClick={() => removeFilter(key, index)}>
                           ✖
                         </button>
