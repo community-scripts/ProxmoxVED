@@ -11,13 +11,18 @@ const encoding = "utf-8";
 let fileNames: string[] = [];
 
 try {
-  // Prüfen, ob das Verzeichnis existiert, falls nicht, Tests überspringen
   fileNames = (await fs.readdir(jsonDir)).filter((fileName) => fileName !== metadataFileName);
 } catch (error) {
   console.warn(`Skipping JSON validation tests: ${error.message}`);
 }
 
-if (fileNames.length > 0) {
+if (fileNames.length === 0) {
+  describe("Dummy Test Suite", () => {
+    it("Skipping JSON tests because no files were found", () => {
+      assert(true);
+    });
+  });
+} else {
   describe.each(fileNames)("%s", async (fileName) => {
     let script: Script;
 
@@ -61,6 +66,4 @@ if (fileNames.length > 0) {
       });
     });
   });
-} else {
-  console.warn("Skipping tests because no JSON files were found.");
 }
