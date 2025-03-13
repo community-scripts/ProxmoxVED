@@ -41,10 +41,10 @@ curl -sSL https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_LA
 chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
 msg_ok "Installed Docker & Compose"
 
-msg_info "Get NPMplus"
+msg_info "Fetching NPMplus"
 cd /opt
 wget -q https://raw.githubusercontent.com/ZoeyVid/NPMplus/refs/heads/develop/compose.yaml
-msg_ok "Get NPMplus"
+msg_ok "Fetched NPMplus"
 
 attempts=0
 while true; do
@@ -69,43 +69,34 @@ yq -i "
     [\"TZ=$TZ_INPUT\", \"ACME_EMAIL=$ACME_EMAIL_INPUT\"])
 " /opt/compose.yaml
 
-msg_info "Starting NPMplus"
+msg_info "Building NPMplus"
 $STD docker compose up -d
-CONTAINER_ID=$(docker ps --format "{{.ID}}" --filter "name=npmplus")
-
-if [[ -z "$CONTAINER_ID" ]]; then
-    msg_error "NPMplus container not found."
-fi
-
-TIMEOUT=60
-while [[ $TIMEOUT -gt 0 ]]; do
-    STATUS=$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null)
+CONTAINER_ID=""
+for i in {1..30}; do
+    CONTAINER_ID=$(docker ps --filter "name=npmplus" --format "{{.ID}}")
+    if [[ -n "$CONTAINER_ID" ]]; then
+        STATUS=$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null || echo "starting")
+        if [[ "$STATUS" == "healthy" ]]; then
+            break
+        fi
+    fi
     sleep 2
-    ((TIMEOUT--))
+    [[ $i -eq 30 ]] && msg_error "NPMplus container did not become healthy." && exit 1
 done
-
-if [[ "$STATUS" != "healthy" ]]; then
-    msg_error "NPMplus container did not reach a healthy state."
-fi
-msg_ok "Started NPMplus"
+msg_ok "Builded NPMplus"
 
 motd_ssh
 customize
 
-msg_info "Get Default Login (Patience)"
-TIMEOUT=60
-while [[ $TIMEOUT -gt 0 ]]; do
+msg_info "Retrieving Default Login (Patience)"
+for i in {1..60}; do
     PASSWORD_LINE=$(docker logs "$CONTAINER_ID" 2>&1 | awk '/Creating a new user:/ {print; exit}')
     if [[ -n "$PASSWORD_LINE" ]]; then
         PASSWORD=$(echo "$PASSWORD_LINE" | awk -F 'password: ' '{print $2}')
         echo -e "username: admin@example.org\npassword: $PASSWORD" >/opt/.npm_pwd
         msg_ok "Saved default login to /opt/.npm_pwd"
-        break
+        exit 0
     fi
     sleep 2
-    ((TIMEOUT--))
+    [[ $i -eq 60 ]] && msg_error "Failed to retrieve default login credentials." && exit 1
 done
-
-if [[ $TIMEOUT -eq 0 ]]; then
-    msg_error "Failed to retrieve default login credentials."
-fi
