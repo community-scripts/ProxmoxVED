@@ -34,9 +34,9 @@ jobs:
 
       - name: Commit JSON
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_MICHEL }}
+          TOKEN: ${{ secrets.PAT_MICHEL }}
         run: |
-          gh auth login --with-token <<< $GITHUB_TOKEN
+          gh auth login --with-token <<< $TOKEN
           gh auth status
           git config --global user.email "michel.roegl-brunner@htl-braunau.at"
           git config --global user.name "GitHub Actions[bot]"
