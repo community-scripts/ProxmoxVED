@@ -34,12 +34,12 @@ jobs:
 
       - name: Commit JSON
         env:
-          TOKEN: ${{ secrets.PAT_MICHEL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh auth login --with-token <<< $TOKEN
-          gh auth status
-          git config --global user.email "michel.roegl-brunner@htl-braunau.at"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Actions[bot]"
+          git checkout -b update_versions
           git add json/versions.json
           git commit -m "Update versions.json"
-          git push --force
+          git push origin update_versions
+          gh pr create --title "[AUTOMATIC PR]Update versions.json" --body "Update versions.json, crawled from newreleases.io" --base main --head update_versions
