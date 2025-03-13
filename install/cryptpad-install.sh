@@ -33,6 +33,8 @@ $STD apt-get update
 $STD apt-get install -y nodejs
 msg_ok "Setup Node.js"
 
+read -p "Do you want to install OnlyOffice components? (Y/N): " onlyoffice
+
 msg_info "Setup ${APPLICATION}"
 RELEASE=$(curl -s https://api.github.com/repos/cryptpad/cryptpad/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 cd /opt
@@ -41,9 +43,12 @@ cd cryptpad
 $STD git checkout $RELEASE
 $STD npm ci
 $STD npm run install:components
-#$STD bash -c ./install-onlyoffice.sh
 cp config/config.example.js config/config.js
 sed -i "80s#//httpAddress: 'localhost'#httpAddress: '0.0.0.0'#g" /opt/cryptpad/config/config.js
+if [[ "$onlyoffice" =~ ^[Yy]$ ]]; then
+    sed '24d' install-onlyoffice.sh
+    $STD bash -c ./install-onlyoffice.sh
+fi
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup ${APPLICATION}"
 
