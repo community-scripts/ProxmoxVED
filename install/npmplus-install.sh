@@ -69,21 +69,26 @@ yq -i "
     [\"TZ=$TZ_INPUT\", \"ACME_EMAIL=$ACME_EMAIL_INPUT\"])
 " /opt/compose.yaml
 
-msg_info "Building NPMplus"
+msg_info "Building and Starting NPMplus (Patience)"
 $STD docker compose up -d
 CONTAINER_ID=""
-for i in {1..30}; do
+for i in {1..60}; do
     CONTAINER_ID=$(docker ps --filter "name=npmplus" --format "{{.ID}}")
     if [[ -n "$CONTAINER_ID" ]]; then
         STATUS=$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER_ID" 2>/dev/null || echo "starting")
         if [[ "$STATUS" == "healthy" ]]; then
+            msg_ok "NPMplus is running and healthy"
             break
+        elif [[ "$STATUS" == "unhealthy" ]]; then
+            msg_error "NPMplus container is unhealthy! Check logs."
+            docker logs "$CONTAINER_ID"
+            exit 1
         fi
     fi
     sleep 2
-    [[ $i -eq 30 ]] && msg_error "NPMplus container did not become healthy." && exit 1
+    [[ $i -eq 60 ]] && msg_error "NPMplus container did not become healthy within 120s." && docker logs "$CONTAINER_ID" && exit 1
 done
-msg_ok "Builded NPMplus"
+msg_ok "Builded and started NPMplus"
 
 motd_ssh
 customize
