@@ -11,6 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          repository: community-scripts/ProxmoxVED
+          ref: main
+
       - name: Crawl from newreleases.io
         env:
           token: ${{ secrets.NEWRELEASES_TOKEN }}
@@ -25,14 +31,8 @@ jobs:
 
           echo "Project Name: $name, Project ID: $id, Version: $version"
           jq -n --arg name "$name" --arg version "$version" '{name: $name, version: $version}' > json/versions.json
-
           done
 
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-        with:
-          repository: community-scripts/ProxmoxVED
-          ref: main
       - name: Commit JSON
         run: |
           git config --global user.email "Github Actions[bot]"
