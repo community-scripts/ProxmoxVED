@@ -43,6 +43,7 @@ cd cryptpad
 $STD git checkout $RELEASE
 $STD npm ci
 $STD npm run install:components
+$STD npm run build
 cp config/config.example.js config/config.js
 IP=$(hostname -I | awk '{print $1}')
 sed -i "51s/localhost/${IP}/g" /opt/cryptpad/config/config.js
