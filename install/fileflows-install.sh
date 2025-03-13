@@ -103,8 +103,8 @@ msg_ok "Setup ${APPLICATION}"
 msg_info "Setting ffmpeg variables in fileflows"
 wait_for_api
 
-FFMPEG_UID=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffmpeg" -H 'accept: application/json' | jq -r '.Uid')
-FFPROBE_UID=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
+ffmpeg_uid=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffmpeg" -H 'accept: application/json' | jq -r '.Uid')
+ffprobe_uid=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
 
 $STD curl -s -X 'DELETE' \
   "http://localhost:19200/api/variable" \
@@ -112,25 +112,25 @@ $STD curl -s -X 'DELETE' \
   -H 'Content-Type: application/json' \
   -d "{
   \"Uids\": [
-    \"$FFMPEG_UID\",
-    \"$FFPROBE_UID\"
+    \"$ffmpeg_uid\",
+    \"$ffprobe_uid\"
   ]
 }"
 
-FFMPEG_PATH=$(which ffmpeg)
-FFPROBE_PATH=$(which ffprobe)
+ffmpeg_path=$(which ffmpeg)
+ffprobe_path=$(which ffprobe)
 
 $STD curl -s -X 'POST' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
-  -d "{\"Name\":\"ffmpeg\",\"Value\":\"$FFMPEG_PATH\"}"
+  -d "{\"Name\":\"ffmpeg\",\"Value\":\"$ffmpeg_path\"}"
 
 $STD curl -s -X 'POST' \
   "http://localhost:19200/api/variable" \
   -H 'accept: */*' \
   -H 'Content-Type: application/json' \
-  -d "{\"Name\":\"ffprobe\",\"Value\":\"$FFPROBE_PATH\"}"
+  -d "{\"Name\":\"ffprobe\",\"Value\":\"$ffprobe_path\"}"
 
 msg_ok "ffmpeg and ffprobe variables have been updated successfully."
 
