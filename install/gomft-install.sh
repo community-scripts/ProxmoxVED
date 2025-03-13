@@ -20,7 +20,6 @@ $STD apt-get install -y \
     mc \
     sqlite3 \
     rclone \
-    build-essential \
     tzdata \
     ca-certificates
 msg_ok "Installed Dependencies"
@@ -35,7 +34,7 @@ ln -sf /usr/local/go/bin/go /usr/local/bin/go
 set -o pipefail
 msg_ok "Setup Golang"
 
-msg_info "Setup {APPLICATION}"
+msg_info "Setup ${APPLICATION}"
 temp_file2=$(mktemp)
 RELEASE=$(curl -s https://api.github.com/repos/StarFleetCPTN/GoMFT/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 wget -q "https://github.com/StarFleetCPTN/GoMFT/archive/refs/tags/v${RELEASE}.tar.gz" -O $temp_file2
@@ -47,6 +46,28 @@ wget -q "https://github.com/StarFleetCPTN/GoMFT/releases/download/v${RELEASE}/go
 #$STD go mod download
 #$STD $HOME/go/bin/templ generate
 chmod +x gomft
+JWT_SECRET_KEY=$(openssl rand -base64 24 | tr -d '/+=')
+
+cat <<EOF >/opt/gomft/.env
+SERVER_ADDRESS=:8080
+DATA_DIR=/opt/gomft/data/gomft
+BACKUP_DIR=/opt/gomft/data/gomft/backups
+JWT_SECRET=$JWT_SECRET_KEY
+BASE_URL=http://localhost:8080
+
+# Email configuration
+EMAIL_ENABLED=false
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_FROM_EMAIL=gomft@example.com
+EMAIL_FROM_NAME=GoMFT
+EMAIL_REPLY_TO=
+EMAIL_ENABLE_TLS=true
+EMAIL_REQUIRE_AUTH=true
+EMAIL_USERNAME=smtp_username
+EMAIL_PASSWORD=smtp_password
+EOF
+
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup ${APPLICATION}"
 

@@ -41,8 +41,13 @@ function update_script() {
         tar -xzf $temp_file
         cp -rf GoMFT-${RELEASE}/* /opt/gomft
         wget -q "https://github.com/StarFleetCPTN/GoMFT/releases/download/v${RELEASE}/gomft-v${RELEASE}-linux-amd64" -O /opt/gomft/gomft
+        chmod +x /opt/gomft/gomft
         echo "${RELEASE}" >/opt/${APP}_version.txt
         msg_ok "Updated $APP to ${RELEASE}"
+
+        msg_info "Cleaning Up"
+        rm -f $temp_file
+        msg_ok "Cleanup Complete"
 
         msg_info "Starting $APP"
         systemctl start gomft
@@ -62,4 +67,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
