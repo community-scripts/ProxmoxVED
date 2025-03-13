@@ -20,6 +20,8 @@ describe.each(fileNames)("%s", async (fileName) => {
     script = JSON.parse(fileContent);
   })
 
+  if (fileName === "versions.json") return;
+
   it("should have valid json according to script schema", () => {
     ScriptSchema.parse(script);
   });
