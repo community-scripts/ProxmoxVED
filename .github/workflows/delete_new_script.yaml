@@ -66,7 +66,7 @@ jobs:
           fi
           git commit -m "Deleted files for issue: ${{ github.event.issue.title }}"
           git push origin $branch
-          gh pr create --title "Delete Files for Issue: ${{ github.event.issue.title }}" --body "Files deleted and committed in $COMMIT_SHA." --base main --head $branch
+          gh pr create --title "Delete Files for ${{ github.event.issue.title }} after Merge to Main" --body "Delete files after merge in main repo." --base main --head $branch
 
           pr_number=$(gh pr list | grep -m 1 $branch | awk '{print $1}')
           #gh pr merge $pr_number --squash
@@ -79,7 +79,7 @@ jobs:
           script: |
             const issue_number = context.payload.issue.number;
 
-            const message = `Files deleted with PR_#${process.env.pr_number}.`;
+            const message = `Files deleted with PR #${process.env.pr_number}`;
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
