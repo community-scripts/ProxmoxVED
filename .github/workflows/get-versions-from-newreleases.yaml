@@ -35,9 +35,11 @@ jobs:
           done
 
       - name: Commit JSON
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_MICHEL }}
         run: |
           git config --global user.email "Github Actions[bot]"
           git config --global user.name "GitHub Actions"
           git add json/versions.json
-          git commit -m "Add new script"
+          git commit -m "Update versions.json"
           git push --force
