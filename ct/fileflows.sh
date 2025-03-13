@@ -31,6 +31,7 @@ function update_script() {
     fi
 
     UPDATE_AVAILABLE=$(curl -s -X 'GET' "http://localhost:19200/api/status/update-available" -H 'accept: application/json' | jq .UpdateAvailable)
+    echo $UPDATE_AVAILABLE
     if [[ "${UPDATE_AVAILABLE}" == "false" ]]; then
         msg_info "Stopping $APP"
         systemctl stop fileflows
