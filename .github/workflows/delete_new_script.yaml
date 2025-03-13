@@ -66,7 +66,7 @@ jobs:
             exit 0
           fi
           git commit -m "Deleted files for issue: ${{ github.event.issue.title }}"
-          git push origin branch
+          git push origin $branch
           gh pr create --title "Delete Files for Issue: ${{ github.event.issue.title }}" --body "Files deleted and committed in $COMMIT_SHA." --base main --head $branch
 
           pr_number=$(gh pr list | grep -m 1 $branch | awk '{print $1}')
