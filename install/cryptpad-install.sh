@@ -46,7 +46,7 @@ $STD npm run install:components
 cp config/config.example.js config/config.js
 sed -i "80s#//httpAddress: 'localhost'#httpAddress: '0.0.0.0'#g" /opt/cryptpad/config/config.js
 if [[ "$onlyoffice" =~ ^[Yy]$ ]]; then
-    sed '24d' install-onlyoffice.sh
+    sed '24d' /opt/cryptpad/install-onlyoffice.sh
     $STD bash -c ./install-onlyoffice.sh
 fi
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
