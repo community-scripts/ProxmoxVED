@@ -41,10 +41,9 @@ wget -q "https://github.com/StarFleetCPTN/GoMFT/archive/refs/tags/v${RELEASE}.ta
 tar -xzf $temp_file2
 mv GoMFT-${RELEASE}/ /opt/gomft
 cd /opt/gomft
-#$STD go install github.com/a-h/templ/cmd/templ@latest
+$STD go install github.com/a-h/templ/cmd/templ@latest
 wget -q "https://github.com/StarFleetCPTN/GoMFT/releases/download/v${RELEASE}/gomft-v${RELEASE}-linux-amd64" -O gomft
-#$STD go mod download
-#$STD $HOME/go/bin/templ generate
+$STD $HOME/go/bin/templ generate
 chmod +x gomft
 JWT_SECRET_KEY=$(openssl rand -base64 24 | tr -d '/+=')
 
