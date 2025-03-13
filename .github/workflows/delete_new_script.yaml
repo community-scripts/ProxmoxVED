@@ -50,22 +50,28 @@ jobs:
 
       - name: Delete Files
         run: |
-          rm -f ct/${TITLE}.sh
-          rm -f install/${TITLE}-install.sh
-          rm -f json/${TITLE}.json
 
       - name: Commit and Push Changes
         run: |
+          branch=$(echo "delete-files_${{ github.event.issue.number }}_${TITLE}" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b $branch
+          rm -f ct/${TITLE}.sh
+          rm -f install/${TITLE}-install.sh
+          rm -f json/${TITLE}.json
           git add .
           if git diff --staged --quiet; then
             echo "No files to delete. Exiting..."
             exit 0
           fi
           git commit -m "Deleted files for issue: ${{ github.event.issue.title }}"
-          git push origin main
-          echo "COMMIT_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          git push origin branch
+          gh pr create --title "Delete Files for Issue: ${{ github.event.issue.title }}" --body "Files deleted and committed in $COMMIT_SHA." --base main --head $branch
+
+          pr_number=$(gh pr list | grep -m 1 $branch | awk '{print $1}')
+          #gh pr merge $pr_number --squash
+          echo pr_number=$pr_number >> $GITHUB_ENV
 
       - name: Comment on Issue
         uses: actions/github-script@v7
@@ -73,8 +79,8 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issue_number = context.payload.issue.number;
-            const commit_sha = process.env.COMMIT_SHA;
-            const message = `Files deleted and committed in [${commit_sha}](https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${commit_sha}).`;
+
+            const message = `Files deleted with PR_#${process.env.pr_number}.`;
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
