@@ -1,4 +1,4 @@
-name: Delete Files on Issue Close (With Existence Check)
+name: Delete Files on Issue Close
 
 on:
   issues:
@@ -48,10 +48,9 @@ jobs:
             exit 0
           fi
 
-      - name: Delete Files
-        run: |
-
       - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           branch=$(echo "delete-files_${{ github.event.issue.number }}_${TITLE}" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
           git config --global user.name "github-actions[bot]"
