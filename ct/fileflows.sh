@@ -24,7 +24,6 @@ function update_script() {
     check_container_storage
     check_container_resources
 
-    # Check if installation is present | -f for file, -d for folder
     if [[ ! -d /opt/fileflows ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
@@ -36,31 +35,26 @@ function update_script() {
         systemctl stop fileflows
         msg_ok "Stopped $APP"
 
-        # Creating Backup
         msg_info "Creating Backup"
         backup_filename="/opt/${APP}_backup_$(date +%F).tar.gz"
         tar -czf $backup_filename -C /opt/fileflows Data
         msg_ok "Backup Created"
 
-        # Execute Update
         msg_info "Updating $APP to latest version"
         temp_file=$(mktemp)
         wget -q https://fileflows.com/downloads/zip -O $temp_file
         unzip -oq -d /opt/fileflows $temp_file
         msg_ok "Updated $APP to latest version"
 
-        # Starting Services
         msg_info "Starting $APP"
         systemctl start fileflows
         msg_ok "Started $APP"
 
-        # Cleaning up
         msg_info "Cleaning Up"
         rm -rf $temp_file
         rm -rf $backup_filename
         msg_ok "Cleanup Completed"
 
-        # Last Action
         msg_ok "Update Successful"
     else
       msg_ok "No update required. ${APP} is already at latest version"

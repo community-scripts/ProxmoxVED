@@ -27,13 +27,12 @@ wait_for_api() {
   done
 }
 
-# Installing Dependencies with the 3 core dependencies (curl;sudo;mc)
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   curl \
   sudo \
   mc \
-  jq # Used for updating checking from json response
+  jq
 msg_ok "Installed Dependencies"
 
 msg_info "Installing FFmpeg"
@@ -90,7 +89,6 @@ $STD apt-get update
 $STD apt-get install -y aspnetcore-runtime-8.0
 msg_ok "Installed ASP.NET Core Runtime"
 
-# Setup App
 msg_info "Setup ${APPLICATION}"
 temp_file=$(mktemp)
 wget -q https://fileflows.com/downloads/zip -O $temp_file
@@ -99,7 +97,6 @@ unzip -q -d /opt/fileflows $temp_file
 systemctl enable -q --now fileflows.service
 msg_ok "Setup ${APPLICATION}"
 
-# Modify ffmpeg and ffprobe variables so they point to correct locations
 msg_info "Setting ffmpeg variables in fileflows"
 wait_for_api
 
@@ -137,7 +134,6 @@ msg_ok "ffmpeg and ffprobe variables have been updated successfully."
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 rm -f $temp_file
 $STD apt-get -y autoremove
