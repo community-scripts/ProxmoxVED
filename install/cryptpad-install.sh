@@ -43,7 +43,7 @@ $STD npm ci
 $STD npm run install:components
 #$STD bash -c ./install-onlyoffice.sh
 cp config/config.example.js config/config.js
-sed -i '80s/localhost/0.0.0.0/g' /opt/cryptpad/config/config.js
+sed -i "80s#//httpAddress: 'localhost'#httpAddress: '0.0.0.0'#g" /opt/cryptpad/config/config.js
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup ${APPLICATION}"
 
