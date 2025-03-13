@@ -40,6 +40,7 @@ function update_script() {
         $STD git checkout $RELEASE
         $STD npm ci
         $STD npm run install:components
+        $STD npm run build
         echo "${RELEASE}" >/opt/${APP}_version.txt
         msg_ok "Updated $APP to ${RELEASE}"
 
