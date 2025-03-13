@@ -38,7 +38,8 @@ function update_script() {
 
         # Creating Backup
         msg_info "Creating Backup"
-        tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" -C /opt/fileflows Data
+        backup_filename="/opt/${APP}_backup_$(date +%F).tar.gz"
+        tar -czf $backup_filename -C /opt/fileflows Data
         msg_ok "Backup Created"
 
         # Execute Update
@@ -56,6 +57,7 @@ function update_script() {
         # Cleaning up
         msg_info "Cleaning Up"
         rm -rf $temp_file
+        rm -rf $backup_filename
         msg_ok "Cleanup Completed"
 
         # Last Action
