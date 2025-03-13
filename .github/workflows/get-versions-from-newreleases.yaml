@@ -22,16 +22,43 @@ jobs:
         env:
           token: ${{ secrets.NEWRELEASES_TOKEN }}
         run: |
-          ls -l
-          projects=$(curl -H "X-Key: $token" \
-          https://api.newreleases.io/v1/projects)
-          echo $projects |  jq -r '.projects[] | "\(.id) \(.name)"'
-          echo $projects > project_json
-          jq -r '.projects[] | "\(.id) \(.name)"' project_json | while read -r id name; do
-          version=$(curl -H "X-Key: $token" \
-          https://api.newreleases.io/v1/projects/$id/latest-release)
+          page=1
+          projects_file="project_json"
+          output_file="json/versions.json"
 
-          jq -n --arg name "$name" --arg version "$version" '{name: $name, version: $version}' >> json/versions.json
+          echo "[]" > $output_file
+
+          while true; do
+
+            echo "Start loop on page: $page"
+
+            projects=$(curl -s -H "X-Key: $token" "https://api.newreleases.io/v1/projects?page=$page")
+            total_pages=$(echo "$projects" | jq -r '.total_pages')
+
+            if [ -z "$total_pages" ] || [ "$total_pages" -eq 0 ]; then
+             echo "No pages available. Exiting."
+             exit 1
+            fi
+            if [ $page == $total_pages ]; then
+              break
+            fi
+
+            if [ -z "$projects" ] || ! echo "$projects" | jq -e '.projects' > /dev/null; then
+              echo "No more projects or invalid response. Exiting."
+              break
+            fi
+
+            echo "$projects" > "$projects_file"
+
+            jq -r '.projects[] | "\(.id) \(.name)"' "$projects_file" | while read -r id name; do
+              version=$(curl -s -H "X-Key: $token" "https://api.newreleases.io/v1/projects/$id/latest-release")
+              version_data=$(echo "$version" | jq -r '.version // empty')
+              if [ -n "$version_data" ]; then
+                jq --arg name "$name" --arg version "$version_data" \
+                  '. += [{"name": $name, "version": $version}]' "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
+              fi
+            done
+            ((page++))
           done
 
       - name: Commit JSON
