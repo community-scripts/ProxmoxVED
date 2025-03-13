@@ -1110,6 +1110,18 @@ build_container() {
         FEATURES="nesting=1"
     fi
 
+    if [ "$ENABLE_NFS" == "yes" ]; then
+        FEATURES+=",nfs=1"
+    fi
+
+    if [ "$ENABLE_CIFS" == "yes" ]; then
+        FEATURES+=",cifs=1"
+    fi
+
+    if [ "$ENABLE_FUSE" == "yes" ]; then
+        FEATURES+=",fuse=1"
+    fi
+
     if [[ $DIAGNOSTICS == "yes" ]]; then
         post_to_api
     fi
