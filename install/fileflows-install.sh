@@ -79,8 +79,7 @@ if [[ "$CTTYPE" == "0" ]]; then
   $STD adduser $(id -u -n) video
   $STD adduser $(id -u -n) render
 fi
-msg_ok "Installed Hardware Acceleration"
-msg_ok "Set Up Hardware Acceleration"
+msg_ok "Installed and Set Up Hardware Acceleration"
 
 msg_info "Installing ASP.NET Core Runtime"
 wget -q https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
