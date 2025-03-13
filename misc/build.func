@@ -821,49 +821,28 @@ advanced_settings() {
         SSH_AUTHORIZED_KEY=""
     fi
     # NFS Feature Selection
-    if NFS_FEATURE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "NFS Support" --radiolist "Enable NFS support in the container?" 10 58 2 \
-        "Yes" "" ON \
-        "No" "" OFF \
-        3>&1 1>&2 2>&3); then
-        if [ "$NFS_FEATURE" == "Yes" ]; then
-            FEATURES+=",nfs=1"
-            echo -e "${NFS}${BOLD}${DGN}NFS Support: ${BGN}Enabled${CL}"
-        else
-            echo -e "${NFS}${BOLD}${DGN}NFS Support: ${BGN}Disabled${CL}"
-        fi
+    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "NFS Support" --yesno "Enable NFS support in the container?" 10 58); then
+        NFS="yes"
     else
-        exit_script
+        NFS="no"
     fi
+    echo -e "${NFS}${BOLD}${DGN}NFS Support: ${BGN}$NFS${CL}"
 
     # CIFS Feature Selection
-    if CIFS_FEATURE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "CIFS Support" --radiolist "Enable CIFS (Samba) support in the container?" 10 58 2 \
-        "Yes" "" ON \
-        "No" "" OFF \
-        3>&1 1>&2 2>&3); then
-        if [ "$CIFS_FEATURE" == "Yes" ]; then
-            FEATURES+=",cifs=1"
-            echo -e "${CIFS}${BOLD}${DGN}CIFS (Samba) Support: ${BGN}Enabled${CL}"
-        else
-            echo -e "${CIFS}${BOLD}${DGN}CIFS (Samba) Support: ${BGN}Disabled${CL}"
-        fi
+    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "CIFS Support" --yesno "Enable CIFS (Samba) support in the container?" 10 58); then
+        CIFS="yes"
     else
-        exit_script
+        CIFS="no"
     fi
+    echo -e "${CIFS}${BOLD}${DGN}CIFS (Samba) Support: ${BGN}$CIFS${CL}"
 
     # FUSE Feature Selection
-    if FUSE_FEATURE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "FUSE Support" --radiolist "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58 2 \
-        "Yes" "" ON \
-        "No" "" OFF \
-        3>&1 1>&2 2>&3); then
-        if [ "$FUSE_FEATURE" == "Yes" ]; then
-            FEATURES+=",fuse=1"
-            echo -e "${FUSE}${BOLD}${DGN}FUSE (Filesystem in Userspace) Support: ${BGN}Enabled${CL}"
-        else
-            echo -e "${FUSE}${BOLD}${DGN}FUSE (Filesystem in Userspace) Support: ${BGN}Disabled${CL}"
-        fi
+    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58); then
+        FUSE="yes"
     else
-        exit_script
+        FUSE="no"
     fi
+    echo -e "${FUSE}${BOLD}${DGN}FUSE (Filesystem in Userspace) Support: ${BGN}$FUSE${CL}"
 
     if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
         VERB="yes"
