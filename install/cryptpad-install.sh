@@ -41,7 +41,7 @@ cd cryptpad
 $STD git checkout $RELEASE
 $STD npm ci
 $STD npm run install:components
-$STD bash -c ./install-onlyoffice.sh
+#$STD bash -c ./install-onlyoffice.sh
 cp config/config.example.js config/config.js
 sed -i '80s/localhost/0.0.0.0/g' /opt/cryptpad/config/config.js
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
