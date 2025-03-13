@@ -7,7 +7,7 @@
   "date_created": "2025-03-07",
   "type": "ct",
   "updateable": true,
-  "privileged": true,
+  "privileged": false,
   "interface_port": 19200,
   "documentation": "https://fileflows.com/docs",
   "website": "https://fileflows.com/",
