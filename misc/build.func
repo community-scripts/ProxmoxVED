@@ -350,6 +350,9 @@ base_settings() {
     SSH="no"
     SSH_AUTHORIZED_KEY=""
     TAGS="community-script-dev;"
+    NFS="no"
+    CIFS="no"
+    FUSE="no"
 
     # Override default settings with variables from ct script
     CT_TYPE=${var_unprivileged:-$CT_TYPE}
@@ -358,6 +361,9 @@ base_settings() {
     RAM_SIZE=${var_ram:-$RAM_SIZE}
     VERB=${var_verbose:-$VERBOSE}
     TAGS="${TAGS}${var_tags:-}"
+    NFS=${var_nfs:-$NFS}
+    CIFS=${var_cifs:-$CIFS}
+    FUSE=${var_fuse:-$FUSE}
 
     # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
     if [ -z "$var_os" ]; then
@@ -814,6 +820,51 @@ advanced_settings() {
     else
         SSH_AUTHORIZED_KEY=""
     fi
+    # NFS Feature Selection
+    if NFS_FEATURE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "NFS Support" --radiolist "Enable NFS support in the container?" 10 58 2 \
+        "Yes" "" ON \
+        "No" "" OFF \
+        3>&1 1>&2 2>&3); then
+        if [ "$NFS_FEATURE" == "Yes" ]; then
+            FEATURES+=",nfs=1"
+            echo -e "${NFS}${BOLD}${DGN}NFS Support: ${BGN}Enabled${CL}"
+        else
+            echo -e "${NFS}${BOLD}${DGN}NFS Support: ${BGN}Disabled${CL}"
+        fi
+    else
+        exit_script
+    fi
+
+    # CIFS Feature Selection
+    if CIFS_FEATURE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "CIFS Support" --radiolist "Enable CIFS (Samba) support in the container?" 10 58 2 \
+        "Yes" "" ON \
+        "No" "" OFF \
+        3>&1 1>&2 2>&3); then
+        if [ "$CIFS_FEATURE" == "Yes" ]; then
+            FEATURES+=",cifs=1"
+            echo -e "${CIFS}${BOLD}${DGN}CIFS (Samba) Support: ${BGN}Enabled${CL}"
+        else
+            echo -e "${CIFS}${BOLD}${DGN}CIFS (Samba) Support: ${BGN}Disabled${CL}"
+        fi
+    else
+        exit_script
+    fi
+
+    # FUSE Feature Selection
+    if FUSE_FEATURE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "FUSE Support" --radiolist "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58 2 \
+        "Yes" "" ON \
+        "No" "" OFF \
+        3>&1 1>&2 2>&3); then
+        if [ "$FUSE_FEATURE" == "Yes" ]; then
+            FEATURES+=",fuse=1"
+            echo -e "${FUSE}${BOLD}${DGN}FUSE (Filesystem in Userspace) Support: ${BGN}Enabled${CL}"
+        else
+            echo -e "${FUSE}${BOLD}${DGN}FUSE (Filesystem in Userspace) Support: ${BGN}Disabled${CL}"
+        fi
+    else
+        exit_script
+    fi
+
     if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
         VERB="yes"
     else
@@ -1084,6 +1135,7 @@ build_container() {
         post_to_api
     fi
 
+    FEATURES="${FEATURES#,}"
     TEMP_DIR=$(mktemp -d)
     pushd $TEMP_DIR >/dev/null
     if [ "$var_os" == "alpine" ]; then
