@@ -361,8 +361,6 @@ base_settings() {
     RAM_SIZE=${var_ram:-$RAM_SIZE}
     VERB=${var_verbose:-$VERBOSE}
     TAGS="${TAGS}${var_tags:-}"
-    ENABLE_NFS=${var_nfs:-$ENABLE_NFS}
-    ENABLE_CIFS=${var_cifs:-$ENABLE_CIFS}
     ENABLE_FUSE=${var_fuse:-$ENABLE_FUSE}
 
     # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
@@ -820,23 +818,7 @@ advanced_settings() {
     else
         SSH_AUTHORIZED_KEY=""
     fi
-    # NFS Feature Selection
-    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "NFS Support" --yesno "Enable NFS support in the container?" 10 58); then
-        ENABLE_NFS="yes"
-    else
-        ENABLE_NFS="no"
-    fi
-    echo -e "${NFS}${BOLD}${DGN}NFS Support: ${BGN}$ENABLE_NFS${CL}"
 
-    # CIFS Feature Selection
-    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "CIFS Support" --yesno "Enable CIFS (Samba) support in the container?" 10 58); then
-        ENABLE_CIFS="yes"
-    else
-        ENABLE_CIFS="no"
-    fi
-    echo -e "${CIFS}${BOLD}${DGN}CIFS (Samba) Support: ${BGN}$ENABLE_CIFS${CL}"
-
-    # FUSE Feature Selection
     if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58); then
         ENABLE_FUSE="yes"
     else
@@ -1108,14 +1090,6 @@ build_container() {
         FEATURES="keyctl=1,nesting=1"
     else
         FEATURES="nesting=1"
-    fi
-
-    if [ "$ENABLE_NFS" == "yes" ]; then
-        FEATURES+=",nfs=1"
-    fi
-
-    if [ "$ENABLE_CIFS" == "yes" ]; then
-        FEATURES+=",cifs=1"
     fi
 
     if [ "$ENABLE_FUSE" == "yes" ]; then
