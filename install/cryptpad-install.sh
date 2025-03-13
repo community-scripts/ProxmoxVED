@@ -44,6 +44,8 @@ $STD git checkout $RELEASE
 $STD npm ci
 $STD npm run install:components
 cp config/config.example.js config/config.js
+IP=$(hostname -I | awk '{print $1}')
+sed -i "51s/localhost/${IP}/g" /opt/cryptpad/config/config.js
 sed -i "80s#//httpAddress: 'localhost'#httpAddress: '0.0.0.0'#g" /opt/cryptpad/config/config.js
 if [[ "$onlyoffice" =~ ^[Yy]$ ]]; then
     $STD bash -c "./install-onlyoffice.sh --accept-license"
