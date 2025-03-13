@@ -28,7 +28,7 @@ jobs:
           jq -r '.projects[] | "\(.id) \(.name)"' project_json | while read -r id name; do
           version=$(curl -H "X-Key: $TOKEN" \
           https://api.newreleases.io/v1/projects/$id/latest-release)
-
+          ls -l
           echo "Project Name: $name, Project ID: $id, Version: $version"
           jq -n --arg name "$name" --arg version "$version" '{name: $name, version: $version}' > json/versions.json
           done
