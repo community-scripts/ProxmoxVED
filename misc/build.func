@@ -350,9 +350,9 @@ base_settings() {
     SSH="no"
     SSH_AUTHORIZED_KEY=""
     TAGS="community-script-dev;"
-    NFS="no"
-    CIFS="no"
-    FUSE="no"
+    ENABLE_NFS="no"
+    ENABLE_CIFS="no"
+    ENABLE_FUSE="no"
 
     # Override default settings with variables from ct script
     CT_TYPE=${var_unprivileged:-$CT_TYPE}
@@ -361,9 +361,9 @@ base_settings() {
     RAM_SIZE=${var_ram:-$RAM_SIZE}
     VERB=${var_verbose:-$VERBOSE}
     TAGS="${TAGS}${var_tags:-}"
-    NFS=${var_nfs:-$NFS}
-    CIFS=${var_cifs:-$CIFS}
-    FUSE=${var_fuse:-$FUSE}
+    ENABLE_NFS=${var_nfs:-$ENABLE_NFS}
+    ENABLE_CIFS=${var_cifs:-$ENABLE_CIFS}
+    ENABLE_FUSE=${var_fuse:-$ENABLE_FUSE}
 
     # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
     if [ -z "$var_os" ]; then
@@ -822,27 +822,27 @@ advanced_settings() {
     fi
     # NFS Feature Selection
     if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "NFS Support" --yesno "Enable NFS support in the container?" 10 58); then
-        NFS="yes"
+        ENABLE_NFS="yes"
     else
-        NFS="no"
+        ENABLE_NFS="no"
     fi
-    echo -e "${NFS}${BOLD}${DGN}NFS Support: ${BGN}$NFS${CL}"
+    echo -e "${NFS}${BOLD}${DGN}NFS Support: ${BGN}$ENABLE_NFS${CL}"
 
     # CIFS Feature Selection
     if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "CIFS Support" --yesno "Enable CIFS (Samba) support in the container?" 10 58); then
-        CIFS="yes"
+        ENABLE_CIFS="yes"
     else
-        CIFS="no"
+        ENABLE_CIFS="no"
     fi
-    echo -e "${CIFS}${BOLD}${DGN}CIFS (Samba) Support: ${BGN}$CIFS${CL}"
+    echo -e "${CIFS}${BOLD}${DGN}CIFS (Samba) Support: ${BGN}$ENABLE_CIFS${CL}"
 
     # FUSE Feature Selection
     if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58); then
-        FUSE="yes"
+        ENABLE_FUSE="yes"
     else
-        FUSE="no"
+        ENABLE_FUSE="no"
     fi
-    echo -e "${FUSE}${BOLD}${DGN}FUSE (Filesystem in Userspace) Support: ${BGN}$FUSE${CL}"
+    echo -e "${FUSE}${BOLD}${DGN}FUSE (Filesystem in Userspace) Support: ${BGN}$ENABLE_FUSE${CL}"
 
     if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
         VERB="yes"
