@@ -14,9 +14,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Issue Title
+      - name: Extract Issue Title (Lowercase & Underscores)
         id: extract_title
-        run: echo "TITLE=$(echo '${{ github.event.issue.title }}' | sed 's/ /_/g')" >> $GITHUB_ENV
+        run: echo "TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')" >> $GITHUB_ENV
 
       - name: Check if Files Exist in community-scripts/ProxmoxVE
         id: check_files
