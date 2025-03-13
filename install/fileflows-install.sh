@@ -19,7 +19,7 @@ wait_for_api() {
   while true; do
     HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:19200/api/system/info" 2>/dev/null || echo "000")
     if [ "$HTTP_STATUS" -eq 200 ]; then
-      msg_info "API is now available!"
+      msg_ok "API is now available!"
       break
     fi
     msg_info "API not ready yet (status: $HTTP_STATUS). Retrying in 5 seconds..."
@@ -36,7 +36,7 @@ $STD apt-get install -y \
   jq # Used for updating checking from json response
 msg_ok "Installed Dependencies"
 
-msg_info "Installing FFmpeg (Patience)"
+msg_info "Installing FFmpeg"
 wget -q https://www.deb-multimedia.org/pool/main/d/deb-multimedia-keyring/deb-multimedia-keyring_2024.9.1_all.deb
 $STD dpkg -i deb-multimedia-keyring_2024.9.1_all.deb
 cat <<EOF >/etc/apt/sources.list.d/backports.list
@@ -44,7 +44,8 @@ deb https://www.deb-multimedia.org bookworm main non-free
 deb https://www.deb-multimedia.org bookworm-backports main
 EOF
 $STD apt update
-DEBIAN_FRONTEND=noninteractive $STD apt-get install -t bookworm-backports ffmpeg -y
+DEBIAN_FRONTEND=noninteractive
+$STD apt-get install -t bookworm-backports ffmpeg -y
 rm -rf /etc/apt/sources.list.d/backports.list deb-multimedia-keyring_2016.8.1_all.deb
 $STD apt update
 msg_ok "Installed FFmpeg"
