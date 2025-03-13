@@ -30,7 +30,7 @@ jobs:
           version=$(curl -H "X-Key: $token" \
           https://api.newreleases.io/v1/projects/$id/latest-release)
 
-          jq -n --arg name "$name" --arg version "$version" '{name: $name, version: $version}' > json/versions.json
+          jq -n --arg name "$name" --arg version "$version" '{name: $name, version: $version}' >> json/versions.json
           done
 
       - name: Commit JSON
