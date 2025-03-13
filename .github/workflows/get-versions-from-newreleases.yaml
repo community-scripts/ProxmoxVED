@@ -25,6 +25,7 @@ jobs:
           ls -l
           projects=$(curl -H "X-Key: $token" \
           https://api.newreleases.io/v1/projects)
+          echo $projects |  jq -r '.projects[] | "\(.id) \(.name)"'
           echo $projects > project_json
           jq -r '.projects[] | "\(.id) \(.name)"' project_json | while read -r id name; do
           version=$(curl -H "X-Key: $token" \
