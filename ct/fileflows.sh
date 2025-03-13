@@ -30,7 +30,7 @@ function update_script() {
         exit
     fi
 
-    UPDATE_AVAILABLE=$(curl -s -X 'GET' "http://${IP}:19200/api/status/update-available" -H 'accept: application/json' | jq .UpdateAvailable)
+    UPDATE_AVAILABLE=$(curl -s -X 'GET' "http://localhost:19200/api/status/update-available" -H 'accept: application/json' | jq .UpdateAvailable)
     if [[ "${UPDATE_AVAILABLE}" == "true" ]]; then
         msg_info "Stopping $APP"
         systemctl stop fileflows
