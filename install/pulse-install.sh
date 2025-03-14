@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Set TERM if not set (for CI/CD environments)
+if [ -z "$TERM" ]; then
+  export TERM=xterm-256color
+fi
+
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: rcourtman
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
