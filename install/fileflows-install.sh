@@ -84,6 +84,16 @@ systemctl enable -q --now fileflows.service
 msg_ok "Setup ${APPLICATION}"
 
 msg_info "Setting ffmpeg variables in fileflows"
+msg_info "Waiting for API to become available..."
+while true; do
+  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:19200/api/system/info" 2>/dev/null || echo "000")
+  if [ "$HTTP_STATUS" -eq 200 ]; then
+    msg_ok "API is now available!"
+    break
+  fi
+  msg_info "API not ready yet (status: $HTTP_STATUS). Retrying in 5 seconds..."
+  sleep 5
+done
 
 ffmpeg_uid=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffmpeg" -H 'accept: application/json' | jq -r '.Uid')
 ffprobe_uid=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
