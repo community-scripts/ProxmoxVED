@@ -84,7 +84,6 @@ systemctl enable -q --now fileflows.service
 msg_ok "Setup ${APPLICATION}"
 
 msg_info "Setting ffmpeg variables in fileflows"
-wait_for_api
 
 ffmpeg_uid=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffmpeg" -H 'accept: application/json' | jq -r '.Uid')
 ffprobe_uid=$(curl -s -X 'GET' "http://localhost:19200/api/variable/name/ffprobe" -H 'accept: application/json' | jq -r '.Uid')
