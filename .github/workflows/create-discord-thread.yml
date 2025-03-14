@@ -1,0 +1,110 @@
+name: Create discord thread when script is ready for testing
+
+on:
+  issues:
+    types:
+      - labeled
+    labels:
+      - "Ready for Testing"
+
+permissions:
+  issues: write
+
+jobs:
+  post_to_discord:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract Issue Title (Lowercase & Underscores)
+        id: extract_title
+        run: echo "TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')" >> $GITHUB_ENV
+
+      - name: Check if Files Exist in community-scripts/ProxmoxVE
+        id: check_files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="community-scripts/ProxmoxVED"
+          API_URL="https://api.github.com/repos/$REPO/contents"
+      
+          FILES=(
+            "ct/${{ env.TITLE }}.sh"
+            "install/${{ env.TITLE }}-install.sh"
+            "json/${{ env.TITLE }}.json"
+          )
+      
+          EXISTING_FILES=()
+      
+          for FILE in "${FILES[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GH_TOKEN" "$API_URL/$FILE")
+            if [ "$STATUS" -eq 200 ]; then
+              EXISTING_FILES+=("$FILE")
+              echo "$FILE exists in $REPO"
+            else
+              echo "$FILE does NOT exist in $REPO"
+            fi
+          done
+          echo "EXISTING_FILES=${EXISTING_FILES[@]}" >> $GITHUB_ENV
+
+      - name: Create message to send
+        id: create_message
+        run: |
+          VAR="The ${{ env.TITLE }} script is ready for testing:\n\n"
+          VAR+="bash -c \"\$(wget -qLO - https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${{ env.TITLE }}.sh)\"\n\n"
+          if [[ " ${EXISTING_FILES[@]} " =~ " json/${TITLE}.json " ]]; then
+             JSON=$(wget -qLO - https://github.com/community-scripts/ProxmoxVED/raw/main/json/${{ env.TITLE }}.json)
+             username=$(echo "$JSON" | jq -r '.default_credentials.username')
+             password=$(echo "$JSON" | jq -r '.default_credentials.password')
+             notes=($(echo "$JSON" | jq -r '.notes[].text'))
+             
+             if [[ -n "$username" && "$username" != "null" || -n "$password" && "$password" != "null" ]]; then
+               VAR+="Default credentials:\n"
+            
+               if [[ -n "$username" && "$username" != "null" ]]; then
+                 VAR+="Username: $username\n"
+               fi
+            
+               if [[ -n "$password" && "$password" != "null" ]]; then
+                 VAR+="Password: $password\n"
+               fi
+               VAR+="\n"
+             fi
+
+             if [ ${#notes[@]} -gt 0 ]; then
+               VAR+="Notes:\n"
+               for note in "${notes[@]}"; do
+                 VAR+="$note\n"
+               done
+               VAR+="\n"
+             fi
+             
+          fi
+          VAR+="Note: This is not in the official repo yet—it's just a dev version! After merging into ProxmoxVE, it will need to be recreated.\n\n"
+          VAR+="Discussion & issue tracking:\n\n"
+          VAR+="${{ github.event.issue.html_url }}"
+          echo "message=$VAR" >> $GITHUB_ENV
+          
+      - name: Create a forumpost in Discord
+        id: post_to_discord
+        env:
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          TITLE: ${{ github.event.issue.title }}
+          MESSAGE: ${{ env.message }}
+        run: |
+          JSON_PAYLOAD=$(jq -n --arg name "Wanted Tester for $TITLE" --arg content "$MESSAGE" '{name: $name, message: {content: $content | gsub("\\\\n"; "\n")}, applied_tags: []}')
+          echo "JSON Payload: $JSON_PAYLOAD"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://discord.com/api/v10/channels/$DISCORD_CHANNEL_ID/threads" \
+            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD")
+            
+          STATUS_CODE=$(echo "$RESPONSE" | tail -n 1)
+          if [ "$STATUS_CODE" -eq 201 ]; then
+            echo "Discord post created successfully!"
+          else
+            echo "Response: $RESPONSE"
+            echo "Failed to create Discord post! Status code: $STATUS_CODE"
+            exit 1
+          fi
