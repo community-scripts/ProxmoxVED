@@ -28,5 +28,14 @@
     "username": "test",
     "password": "password"
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "note1",
+      "type": "warning"
+    },
+    {
+      "text": "note2",
+      "type": "warning"
+    }
+  ]
 }
