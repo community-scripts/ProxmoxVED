@@ -25,17 +25,8 @@
     }
   ],
   "default_credentials": {
-    "username": "test",
-    "password": "password"
+    "username": null,
+    "password": null
   },
-  "notes": [
-    {
-      "text": "note1",
-      "type": "warning"
-    },
-    {
-      "text": "note2",
-      "type": "warning"
-    }
-  ]
+  "notes": []
 }
