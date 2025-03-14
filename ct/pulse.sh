@@ -13,7 +13,7 @@
 
 export SPINNER_PID=""
 
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
 APP="Pulse"
 var_tags="monitoring;proxmox;dashboard"
@@ -39,15 +39,16 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d ${APPPATH} ]]; then
+
+  if [[ ! -d "/opt/${NSAPP}" ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  cd ${APPPATH}
+  cd /opt/${NSAPP}
 
-  if [[ -f ${APPPATH}/${NSAPP}_version.txt ]]; then
-    CURRENT_VERSION=$(cat ${APPPATH}/${NSAPP}_version.txt)
+  if [[ -f /opt/${NSAPP}/${NSAPP}_version.txt ]]; then
+    CURRENT_VERSION=$(cat /opt/${NSAPP}/${NSAPP}_version.txt)
   else
     CURRENT_VERSION="unknown"
   fi
@@ -66,72 +67,62 @@ function update_script() {
   if [[ "$CURRENT_VERSION" != "$LATEST_VERSION" ]]; then
     msg_info "Updating ${APP} from v${CURRENT_VERSION} to v${LATEST_VERSION}"
 
-    if [[ -f ${APPPATH}/.env ]]; then
-      cp ${APPPATH}/.env ${APPPATH}/.env.backup
+    if [[ -f /opt/${NSAPP}/.env ]]; then
+      cp /opt/${NSAPP}/.env /opt/${NSAPP}/.env.backup
 
-      USE_MOCK_DATA=$(grep "USE_MOCK_DATA" ${APPPATH}/.env | cut -d= -f2)
-      MOCK_DATA_ENABLED=$(grep "MOCK_DATA_ENABLED" ${APPPATH}/.env | cut -d= -f2)
-      MOCK_CLUSTER_ENABLED=$(grep "MOCK_CLUSTER_ENABLED" ${APPPATH}/.env | cut -d= -f2 || echo "true")
-      MOCK_CLUSTER_NAME=$(grep "MOCK_CLUSTER_NAME" ${APPPATH}/.env | cut -d= -f2 || echo "Demo Cluster")
+      USE_MOCK_DATA=$(grep "USE_MOCK_DATA" /opt/${NSAPP}/.env | cut -d= -f2)
+      MOCK_DATA_ENABLED=$(grep "MOCK_DATA_ENABLED" /opt/${NSAPP}/.env | cut -d= -f2)
+      MOCK_CLUSTER_ENABLED=$(grep "MOCK_CLUSTER_ENABLED" /opt/${NSAPP}/.env | cut -d= -f2 || echo "true")
+      MOCK_CLUSTER_NAME=$(grep "MOCK_CLUSTER_NAME" /opt/${NSAPP}/.env | cut -d= -f2 || echo "Demo Cluster")
 
       msg_ok "Backed up existing configuration"
     fi
 
-    if [[ -f ${APPPATH}/.env.example ]]; then
-      cp ${APPPATH}/.env.example ${APPPATH}/.env.example.backup
-    fi
+    msg_info "Stopping services"
+    systemctl stop pulse pulse-mock
+    msg_ok "Services stopped"
 
-    $STD git fetch origin
-    $STD git reset --hard origin/main
+    msg_info "Downloading new version"
+    wget -qO- https://github.com/rcourtman/pulse/releases/download/v${LATEST_VERSION}/pulse-${LATEST_VERSION}.tar.gz | tar xz -C /opt/${NSAPP} --strip-components=1
+    msg_ok "New version downloaded"
 
-    if [[ -f ${APPPATH}/.env.backup ]]; then
-      cp ${APPPATH}/.env.backup ${APPPATH}/.env
+    if [[ -f /opt/${NSAPP}/.env.backup ]]; then
+      cp /opt/${NSAPP}/.env.backup /opt/${NSAPP}/.env
 
       if [[ -n "$USE_MOCK_DATA" ]]; then
-        sed -i "s/USE_MOCK_DATA=.*/USE_MOCK_DATA=$USE_MOCK_DATA/" ${APPPATH}/.env
-        sed -i "s/MOCK_DATA_ENABLED=.*/MOCK_DATA_ENABLED=$MOCK_DATA_ENABLED/" ${APPPATH}/.env
+        sed -i "s/USE_MOCK_DATA=.*/USE_MOCK_DATA=$USE_MOCK_DATA/" /opt/${NSAPP}/.env
+        sed -i "s/MOCK_DATA_ENABLED=.*/MOCK_DATA_ENABLED=$MOCK_DATA_ENABLED/" /opt/${NSAPP}/.env
 
-        if grep -q "MOCK_CLUSTER_ENABLED" ${APPPATH}/.env; then
-          sed -i "s/MOCK_CLUSTER_ENABLED=.*/MOCK_CLUSTER_ENABLED=$MOCK_CLUSTER_ENABLED/" ${APPPATH}/.env
+        if grep -q "MOCK_CLUSTER_ENABLED" /opt/${NSAPP}/.env; then
+          sed -i "s/MOCK_CLUSTER_ENABLED=.*/MOCK_CLUSTER_ENABLED=$MOCK_CLUSTER_ENABLED/" /opt/${NSAPP}/.env
         else
-          echo "MOCK_CLUSTER_ENABLED=$MOCK_CLUSTER_ENABLED" >> ${APPPATH}/.env
+          echo "MOCK_CLUSTER_ENABLED=$MOCK_CLUSTER_ENABLED" >> /opt/${NSAPP}/.env
         fi
 
-        if grep -q "MOCK_CLUSTER_NAME" ${APPPATH}/.env; then
-          sed -i "s/MOCK_CLUSTER_NAME=.*/MOCK_CLUSTER_NAME=$MOCK_CLUSTER_NAME/" ${APPPATH}/.env
+        if grep -q "MOCK_CLUSTER_NAME" /opt/${NSAPP}/.env; then
+          sed -i "s/MOCK_CLUSTER_NAME=.*/MOCK_CLUSTER_NAME=$MOCK_CLUSTER_NAME/" /opt/${NSAPP}/.env
         else
-          echo "MOCK_CLUSTER_NAME=$MOCK_CLUSTER_NAME" >> ${APPPATH}/.env
+          echo "MOCK_CLUSTER_NAME=$MOCK_CLUSTER_NAME" >> /opt/${NSAPP}/.env
         fi
       fi
 
       msg_ok "Restored existing configuration"
     fi
 
-    msg_info "Building backend"
-    $STD npm ci
-    $STD npm run build
+    msg_info "Setting file permissions"
+    chown -R root:root /opt/${NSAPP}
+    chmod -R 755 /opt/${NSAPP}
+    chmod 600 /opt/${NSAPP}/.env
+    chmod 644 /opt/${NSAPP}/.env.example
+    msg_ok "File permissions set"
 
-    msg_info "Building frontend"
-    cd ${APPPATH}/frontend
-    $STD npm ci
-    $STD npm run build
+    echo "${LATEST_VERSION}" > /opt/${NSAPP}/${NSAPP}_version.txt
 
-    cd ${APPPATH}
-
-    chown -R root:root ${APPPATH}
-    chmod -R 755 ${APPPATH}
-    chmod 600 ${APPPATH}/.env
-
-    echo "${LATEST_VERSION}" > ${APPPATH}/${NSAPP}_version.txt
-
-    msg_info "Restarting service"
-    $STD systemctl restart ${NSAPP}
+    msg_info "Starting services"
+    systemctl start pulse-mock pulse
+    msg_ok "Services started"
 
     msg_ok "Updated ${APP} to v${LATEST_VERSION}"
-
-    IP=$(hostname -I | awk '{print $1}')
-    echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-    echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:7654${CL}"
   else
     msg_ok "No update required. ${APP} is already at v${LATEST_VERSION}"
   fi
