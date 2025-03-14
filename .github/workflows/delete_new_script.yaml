@@ -1,0 +1,88 @@
+name: Delete Files on Issue Close
+
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  delete-files:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'Migration To ProxmoxVE')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Issue Title (Lowercase & Underscores)
+        id: extract_title
+        run: echo "TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')" >> $GITHUB_ENV
+
+      - name: Check if Files Exist in community-scripts/ProxmoxVE
+        id: check_files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="community-scripts/ProxmoxVE"
+          API_URL="https://api.github.com/repos/$REPO/contents"
+
+          FILES=(
+            "ct/${TITLE}.sh"
+            "install/${TITLE}-install.sh"
+            "json/${TITLE}.json"
+          )
+
+          EXISTS=false
+          for FILE in "${FILES[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GH_TOKEN" "$API_URL/$FILE")
+            if [ "$STATUS" -eq 200 ]; then
+              EXISTS=true
+              echo "$FILE exists in $REPO"
+            else
+              echo "$FILE does NOT exist in $REPO"
+            fi
+          done
+
+          if [ "$EXISTS" = false ]; then
+            echo "No matching files found in $REPO. Exiting..."
+            exit 0
+          fi
+
+      - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch=$(echo "delete-files_${{ github.event.issue.number }}_${TITLE}" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b $branch
+          rm -f ct/${TITLE}.sh
+          rm -f install/${TITLE}-install.sh
+          rm -f json/${TITLE}.json
+          git add .
+          if git diff --staged --quiet; then
+            echo "No files to delete. Exiting..."
+            exit 0
+          fi
+          git commit -m "Deleted files for issue: ${{ github.event.issue.title }}"
+          git push origin $branch
+          gh pr create --title "Delete Files for ${{ github.event.issue.title }} after Merge to Main" --body "Delete files after merge in main repo." --base main --head $branch
+
+          pr_number=$(gh pr list | grep -m 1 $branch | awk '{print $1}')
+          #gh pr merge $pr_number --squash
+          echo pr_number=$pr_number >> $GITHUB_ENV
+
+      - name: Comment on Issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue_number = context.payload.issue.number;
+
+            const message = `Files deleted with PR #${process.env.pr_number}`;
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: message
+            });

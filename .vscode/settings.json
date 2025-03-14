@@ -26,8 +26,6 @@
         "--rcfile",
         ".vscode/.shellcheckrc"
     ],
-    "workbench.colorTheme": "Default Dark+",
-    "workbench.iconTheme": "vscode-icons",
     "git.autofetch": true,
     "git.confirmSync": false,
     "git.enableSmartCommit": true,

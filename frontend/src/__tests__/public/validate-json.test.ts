@@ -6,10 +6,11 @@ import { Metadata } from "@/lib/types";
 console.log('Current directory: ' + process.cwd());
 const jsonDir = "../json";
 const metadataFileName = "metadata.json";
+const versionsFileName = "versions.json";
 const encoding = "utf-8";
 
 const fileNames = (await fs.readdir(jsonDir))
-  .filter((fileName) => fileName !== metadataFileName)
+  .filter((fileName) => fileName !== metadataFileName && fileName !== versionsFileName);
 
 describe.each(fileNames)("%s", async (fileName) => {
   let script: Script;
@@ -19,6 +20,7 @@ describe.each(fileNames)("%s", async (fileName) => {
     const fileContent = await fs.readFile(filePath, encoding)
     script = JSON.parse(fileContent);
   })
+
 
   it("should have valid json according to script schema", () => {
     ScriptSchema.parse(script);
@@ -40,7 +42,6 @@ describe(`${metadataFileName}`, async () => {
     const fileContent = await fs.readFile(filePath, encoding)
     metadata = JSON.parse(fileContent);
   })
-
   it("should have valid json according to metadata schema", () => {
     // TODO: create zod schema for metadata. Move zod schemas to /lib/types.ts
     assert(metadata.categories.length > 0);
