@@ -1,4 +1,3 @@
-## 🚨 Important Notice for New Scripts  
 🛑 **New scripts must first be submitted to [ProxmoxVED](https://github.com/community-scripts/ProxmoxVED) for testing.**  
 PRs for new scripts that skip this process will be closed.
 
