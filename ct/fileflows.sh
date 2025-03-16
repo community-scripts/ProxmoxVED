@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/kkroboth/ProxmoxVED/refs/heads/lxc-fileflows/misc/build.func)
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: kkroboth
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
