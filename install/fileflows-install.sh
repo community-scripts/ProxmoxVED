@@ -19,7 +19,6 @@ $STD apt-get install -y \
   curl \
   sudo \
   mc \
-  jq \
   ffmpeg
 msg_ok "Installed Dependencies"
 
