@@ -208,6 +208,10 @@
     "version": "tc_v0.6.4"
   },
   {
+    "name": "calibre-web-automatedcalibre-webautomated",
+    "version": "1.0"
+  },
+  {
     "name": "firefly-iii/firefly-iii",
     "version": "develop-20250222.4"
   },

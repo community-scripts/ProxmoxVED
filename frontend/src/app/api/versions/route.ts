@@ -11,8 +11,6 @@ const encoding = "utf-8";
 
 const getVersions = async () => {
   const filePath = path.resolve(jsonDir, versionsFileName);
-  console.log("TEST");
-  console.log("FilePath: ", filePath);
   const fileContent = await fs.readFile(filePath, encoding);
   const versions: AppVersion = JSON.parse(fileContent);
   return versions;
@@ -40,9 +38,14 @@ export async function GET(request: Request) {
       }
     );
 
+    console.log("Matched Version: ", matchedVersion);
+    if (!matchedVersion) {
+      return NextResponse.json({name: "No version found", version: "No Version found"});
+    }
     return NextResponse.json(matchedVersion);
+
   } catch (error) {
     console.error(error);
-    return NextResponse.json({name: "name", version: "No version found"});
+    return NextResponse.json({name: "error", version: "No version found - Error"});
   }
 }
