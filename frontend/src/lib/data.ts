@@ -8,3 +8,11 @@ export const fetchCategories = async () => {
   const categories: Category[] = await response.json();
   return categories;
 };
+
+export const fetchVersions = async (slug: string) => {
+    const response = await fetch(`api/versions?slug=${slug}`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch versions: ${response.statusText}`);
+    }
+    return response.json();
+};

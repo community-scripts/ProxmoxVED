@@ -13,6 +13,7 @@ export type Script = {
   website: string | null;
   logo: string | null;
   description: string;
+  version: string;
   install_methods: {
     type: "default" | "alpine";
     script: string;
@@ -46,6 +47,11 @@ export type Category = {
 export type Metadata = {
   categories: Category[];
 };
+
+export interface AppVersion {
+    name: string;
+    version: string;
+}
 
 export interface Version {
   name: string;

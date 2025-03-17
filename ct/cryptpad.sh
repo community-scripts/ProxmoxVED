@@ -35,14 +35,20 @@ function update_script() {
         msg_ok "Stopped $APP"
 
         msg_info "Updating $APP to ${RELEASE}"
+        cp /opt/cryptpad/config/config.js /opt/config.js
+        wget -q "https://github.com/cryptpad/cryptpad/archive/refs/tags/${RELEASE}.tar.gz" -O $temp_file
+        tar zxf $temp_file
+        cp -rf cryptpad-$RELEASE/* /opt/cryptpad
         cd /opt/cryptpad
-        $STD git fetch origin --tags
-        $STD git checkout $RELEASE
         $STD npm ci
         $STD npm run install:components
         $STD npm run build
         echo "${RELEASE}" >/opt/${APP}_version.txt
         msg_ok "Updated $APP to ${RELEASE}"
+
+        msg_info "Cleaning Up"
+        rm -f $temp_file
+        msg_ok "Cleanup Completed"
 
         msg_info "Starting $APP"
         systemctl start cryptpad
