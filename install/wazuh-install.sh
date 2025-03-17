@@ -5,7 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://wazuh.com/
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -20,8 +20,13 @@ $STD apt-get install -y \
     curl
 msg_ok "Installed Dependencies"
 
+# Fetching the latest Wazuh version
+msg_info "Fetching Latest Wazuh Version"
+RELEASE=$(curl -s https://api.github.com/repos/wazuh/wazuh/releases/latest | grep '"tag_name"' | awk -F '"' '{print substr($4, 2)}')
+msg_ok "Latest Wazuh Version: $RELEASE"
+
 msg_info "Setup Wazuh"
-wget -q https://packages.wazuh.com/4.11/wazuh-install.sh
+wget -q https://packages.wazuh.com/$RELEASE/wazuh-install.sh
 chmod +x wazuh-install.sh
 bash ./wazuh-install.sh -a
 msg_ok "Setup Wazuh"
