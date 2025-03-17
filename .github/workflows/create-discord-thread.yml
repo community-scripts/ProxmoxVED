@@ -73,7 +73,7 @@ jobs:
              if [ ${#notes[@]} -gt 0 ]; then
                VAR+="Notes:\n"
                for note in "${notes[@]}"; do
-                 VAR+="$note\n"
+                 VAR+="$note"
                done
                VAR+="\n"
              fi
