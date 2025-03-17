@@ -7,7 +7,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 
 APP="Docspell"
 var_tags="document"
-var_disk="5"
+var_disk="7"
 var_cpu="4"
 var_ram="2048"
 var_os="debian"
