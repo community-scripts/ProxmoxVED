@@ -50,7 +50,7 @@ jobs:
         id: create_message
         run: |
           VAR="The ${{ env.TITLE }} script is ready for testing:\n\n"
-          VAR+="bash -c \"\$(wget -qLO - https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${{ env.TITLE }}.sh)\"\n\n"
+          VAR+="\`\`\`bash -c \"\$(wget -qLO - https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${{ env.TITLE }}.sh)\"\`\`\`\n\n"
           if [[ " ${EXISTING_FILES[@]} " =~ " json/${TITLE}.json " ]]; then
              JSON=$(wget -qLO - https://github.com/community-scripts/ProxmoxVED/raw/main/json/${{ env.TITLE }}.json)
              username=$(echo "$JSON" | jq -r '.default_credentials.username')
