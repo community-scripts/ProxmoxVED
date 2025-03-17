@@ -7,9 +7,9 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 
 APP="Wazuh"
 var_tags="security;monitoring"
-var_cpu="8"
+var_cpu="4"
 var_ram="4096"
-var_disk="24"
+var_disk="10"
 var_os="debian"
 var_version="12"
 var_unprivileged="1"
