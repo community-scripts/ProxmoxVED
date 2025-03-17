@@ -46,6 +46,7 @@ function update_script() {
         $STD npm ci
         $STD npm run install:components
         $STD npm run build
+        cp -f /opt/config.js /opt/cryptpad/config/config.js
         echo "${RELEASE}" >/opt/${APP}_version.txt
         msg_ok "Updated $APP to ${RELEASE}"
 
