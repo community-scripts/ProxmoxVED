@@ -6,7 +6,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # Source: https://github.com/slskd/slskd, https://soularr.net
 
 APP="slskd"
-var_tags="arr,p2p"
+var_tags="arr;p2p"
 var_cpu="1"
 var_ram="512"
 var_disk="4"
@@ -32,7 +32,7 @@ function update_script() {
     RELEASE=$(curl -s https://api.github.com/repos/slskd/slskd/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
     if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
         msg_info "Stopping $APP and Soularr"
-        systemctl stop slskd soularr.timer soularr.service
+        systemctl stop slskd soularr.timer soularr
         msg_ok "Stopped $APP and Soularr"
 
         msg_info "Updating $APP to v${RELEASE}"
@@ -78,5 +78,3 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5030${CL}"
-echo -e "${RAMSIZE}${BL} ${BOLD}Finish configuring Soularr at /opt/soularr/config.ini${CL}"
-echo -e "${ADVANCED}${DGN} Then start with${CL} ${BOLD}${UL}systemctl start soularr.timer${CL}"
