@@ -45,7 +45,6 @@ export async function GET(request: Request) {
     return NextResponse.json(matchedVersion);
 
   } catch (error) {
-    const msg = console.error(error);
-    return NextResponse.json({name: msg, version: "No version found - Error"});
+    return NextResponse.json({name: error, version: "No version found - Error"});
   }
 }

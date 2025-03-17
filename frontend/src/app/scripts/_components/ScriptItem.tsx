@@ -42,14 +42,12 @@ useEffect(() => {
   fetchVersions(item.slug)
     .then((fetchedVersions) => {
       console.log("Fetched Versions: ", fetchedVersions);
-
-      // Ensure fetchedVersions is always an array
       if (Array.isArray(fetchedVersions)) {
         setVersions(fetchedVersions);
       } else if (fetchedVersions && typeof fetchedVersions === "object") {
-        setVersions([fetchedVersions]); // Wrap object in an array
+        setVersions([fetchedVersions]);
       } else {
-        setVersions([]); // Fallback to empty array
+        setVersions([]);
       }
     })
     .catch((error) => console.error("Error fetching versions:", error));
