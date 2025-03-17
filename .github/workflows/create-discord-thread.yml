@@ -61,11 +61,11 @@ jobs:
                VAR+="Default credentials:\n"
             
                if [[ -n "$username" && "$username" != "null" ]]; then
-                 VAR+="Username: \`\`\`$username\`\`\`\n"
+                 VAR+="Username: $username\n"
                fi
             
                if [[ -n "$password" && "$password" != "null" ]]; then
-                 VAR+="Password: \`\`\`$password\`\`\`\n"
+                 VAR+="Password: $password\n"
                fi
                VAR+="\n"
              fi
