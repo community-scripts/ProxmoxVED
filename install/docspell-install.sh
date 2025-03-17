@@ -75,17 +75,11 @@ chmod +x dsc
 mv dsc /usr/bin
 ln -s /etc/docspell-joex /opt/docspell/docspell-joex && ln -s /etc/docspell-restserver /opt/docspell/docspell-restserver && ln -s /usr/bin/dsc /opt/docspell/dsc
 sed -i -E "
-  s|bind\.address = \".*\"|bind.address = \"0.0.0.0\"|;
+  s|bind[[:space:]]*\\{[[:space:]]*address[[:space:]]*=.*|bind { address = \"0.0.0.0\"|;
   s|url = \"jdbc:postgresql://server:5432/db\"|url = \"jdbc:postgresql://localhost:5432/$DB_NAME\"|;
   s|user = \".*\"|user = \"$DB_USER\"|;
   s|password = \".*\"|password = \"$DB_PASS\"|;
-" /opt/docspell/docspell-restserver/docspell-server.conf
-sed -i -E "
-  s|bind\\.address = \".*\"|bind.address = \"0.0.0.0\"|;
-  s|url = \"jdbc:postgresql://server:5432/db\"|url = \"jdbc:postgresql://localhost:5432/$DB_NAME\"|;
-  s|user = \".*\"|user = \"$DB_USER\"|;
-  s|password = \".*\"|password = \"$DB_PASS\"|;
-" /opt/docspell/docspell-joex/docspell-joex.conf
+" /opt/docspell/docspell-restserver/docspell-server.conf /opt/docspell/docspell-joex.conf
 msg_ok "Setup Docspell"
 
 msg_info "Setup Apache Solr"
