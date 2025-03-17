@@ -55,7 +55,7 @@ jobs:
              JSON=$(wget -qLO - https://github.com/community-scripts/ProxmoxVED/raw/main/json/${{ env.TITLE }}.json)
              username=$(echo "$JSON" | jq -r '.default_credentials.username')
              password=$(echo "$JSON" | jq -r '.default_credentials.password')
-             notes=($(echo "$JSON" | jq -r '.notes[].text'))
+             mapfile -t notes_array < <(echo "$JSON" | jq -r '.notes[].text')
              
              if [[ -n "$username" && "$username" != "null" || -n "$password" && "$password" != "null" ]]; then
                VAR+="Default credentials:\n"
@@ -69,15 +69,13 @@ jobs:
                fi
                VAR+="\n"
              fi
-
-             if [ ${#notes[@]} -gt 0 ]; then
-               VAR+="Notes:\n"
-               for note in "${notes[@]}"; do
-                 VAR+="$note"
-               done
-               VAR+="\n"
-             fi
              
+            if [ ${#notes_array[@]} -gt 0 ]; then
+              for note in "${notes_array[@]}"; do
+                VAR+="$note\n"
+              done
+              VAR+="\n"
+            fi
           fi
           VAR+="Note: This is not in the official repo yet—it's just a dev version! After merging into ProxmoxVE, it will need to be recreated.\n\n"
           VAR+="Discussion & issue tracking:\n"
