@@ -1,4 +1,4 @@
-name: Archive Discord Thread on GitHub Issue Closure
+name: Delete Discord Thread on GitHub Issue Closure
 
 on:
   issues:
@@ -21,13 +21,8 @@ jobs:
 
           if [ -n "$THREAD_ID" ]; then
             echo "Thread found: $THREAD_ID. Archiving..."
-            curl -X PATCH "https://discord.com/api/v10/channels/$THREAD_ID" \
-            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{ 
-                  "archived": true,
-                  "locked": true
-                }'
+            curl -X DELETE "https://discord.com/api/v10/channels/$THREAD_ID" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}"
           else
             echo "No thread found for issue: $ISSUE_TITLE"
           fi
