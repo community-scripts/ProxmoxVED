@@ -33,14 +33,15 @@ $STD apt-get update
 $STD apt-get install -y nodejs
 msg_ok "Setup Node.js"
 
-read -p "Do you want to install OnlyOffice components? (Y/N): " onlyoffice
+read -p "Install OnlyOffice components instead of CKEditor? (Y/N): " onlyoffice
 
 msg_info "Setup ${APPLICATION}"
+temp_file=$(mktemp)
 RELEASE=$(curl -s https://api.github.com/repos/cryptpad/cryptpad/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-cd /opt
-$STD git clone https://github.com/cryptpad/cryptpad.git cryptpad
-cd cryptpad
-$STD git checkout $RELEASE
+wget -q "https://github.com/cryptpad/cryptpad/archive/refs/tags/${RELEASE}.tar.gz" -O $temp_file
+tar zxf $temp_file
+mv cryptpad-$RELEASE /opt/cryptpad
+cd /opt/cryptpad
 $STD npm ci
 $STD npm run install:components
 $STD npm run build
@@ -81,6 +82,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -f $temp_file
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
