@@ -36,7 +36,7 @@ function update_script() {
 
         msg_info "Updating $APP to ${RELEASE}"
         temp_dir=$(mktemp -d)
-        cp /opt/cryptpad/config/config.js /opt/config.js
+        cp -f /opt/cryptpad/config/config.js /opt/config.js
         wget -q "https://github.com/cryptpad/cryptpad/archive/refs/tags/${RELEASE}.tar.gz" -P $temp_dir
         cd $temp_dir
         tar zxf $RELEASE.tar.gz
