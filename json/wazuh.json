@@ -16,9 +16,9 @@
             "type": "default",
             "script": "ct/wazuh.sh",
             "resources": {
-                "cpu": 8,
+                "cpu": 4,
                 "ram": 4096,
-                "hdd": 24,
+                "hdd": 10,
                 "os": "debian",
                 "version": "12"
             }
@@ -27,5 +27,11 @@
     "default_credentials": {
         "username": "root",
         "password": null
-    }
+    },
+    "notes": [
+        {
+            "text": "WARNING: Installation sources scripts outside of Community Scripts repo. Please check the source before installing.",
+            "type": "warning"
+        }
+    ]
 }
