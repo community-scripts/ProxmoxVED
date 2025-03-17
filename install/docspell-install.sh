@@ -15,11 +15,9 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
+    unzip \
     htop \
     gnupg2 \
-    curl \
-    sudo \
-    mc \
     ca-certificates \
     default-jdk \
     apt-transport-https \
@@ -30,9 +28,14 @@ $STD apt-get install -y \
     unpaper \
     unoconv \
     wkhtmltopdf \
-    git \
     ocrmypdf \
-    make
+    wget \
+    zip \
+    curl \
+    sudo \
+    git \
+    make \
+    mc
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up PostgreSQL Repository"
