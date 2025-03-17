@@ -26,7 +26,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{ 
                   "archived": true,
-                  "locked": true,
+                  "locked": true
                 }'
           else
             echo "No thread found for issue: $ISSUE_TITLE"
