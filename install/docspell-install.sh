@@ -44,20 +44,6 @@ echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt
 $STD apt-get update
 msg_ok "Set up PostgreSQL Repository"
 
-msg_info "Setup Apache Solr"
-mkdir -p /opt/docspell
-cd /opt/docspell
-SOLR_DOWNLOAD_URL="https://downloads.apache.org/lucene/solr/"
-latest_version=$(curl -s "$SOLR_DOWNLOAD_URL" | grep -oP '(?<=<a href=")[^"]+(?=/">[0-9])' | head -n 1)
-download_url="${SOLR_DOWNLOAD_URL}${latest_version}/solr-${latest_version}.tgz"
-wget -q "$download_url"
-tar xzf "solr-$latest_version.tgz"
-$STD bash "/opt/docspell/solr-$latest_version/bin/install_solr_service.sh" "solr-$latest_version.tgz"
-mv /opt/solr /opt/docspell/solr
-systemctl enable -q --now solr
-$STD su solr -c '/opt/docspell/solr/bin/solr create -c docspell'
-msg_ok "Setup Apache Solr"
-
 msg_info "Install/Set up PostgreSQL Database"
 $STD apt-get install -y postgresql-16
 DB_NAME=docspell_db
@@ -88,9 +74,6 @@ mv dsc_amd* dsc
 chmod +x dsc
 mv dsc /usr/bin
 ln -s /etc/docspell-joex /opt/docspell/docspell-joex && ln -s /etc/docspell-restserver /opt/docspell/docspell-restserver && ln -s /usr/bin/dsc /opt/docspell/dsc
-cd /opt && rm -R solr-$latest_version && rm -R docspell-joex_${Docspell}_all.deb && rm -R docspell-restserver_${Docspell}_all.deb
-cd /opt/docspell && rm -R solr-$latest_version.tgz && rm -R solr-$latest_version
-
 sed -i -E "
   s|bind\.address = \".*\"|bind.address = \"0.0.0.0\"|;
   s|url = \"jdbc:postgresql://server:5432/db\"|url = \"jdbc:postgresql://localhost:5432/$DB_NAME\"|;
@@ -103,14 +86,35 @@ sed -i -E "
   s|user = \".*\"|user = \"$DB_USER\"|;
   s|password = \".*\"|password = \"$DB_PASS\"|;
 " /opt/docspell/docspell-joex/docspell-joex.conf
+msg_ok "Setup Docspell"
 
+msg_info "Setup Apache Solr"
+mkdir -p /opt/docspell
+cd /opt/docspell
+SOLR_DOWNLOAD_URL="https://downloads.apache.org/lucene/solr/"
+latest_version=$(curl -s "$SOLR_DOWNLOAD_URL" | grep -oP '(?<=<a href=")[^"]+(?=/">[0-9])' | head -n 1)
+download_url="${SOLR_DOWNLOAD_URL}${latest_version}/solr-${latest_version}.tgz"
+wget -q "$download_url"
+tar xzf "solr-$latest_version.tgz"
+$STD bash "/opt/docspell/solr-$latest_version/bin/install_solr_service.sh" "solr-$latest_version.tgz"
+mv /opt/solr /opt/docspell/solr
+systemctl enable -q --now solr
+$STD su solr -c '/opt/docspell/solr/bin/solr create -c docspell'
+msg_ok "Setup Apache Solr"
+
+msg_info "Setup Services"
 systemctl enable -q --now docspell-restserver
 systemctl enable -q --now docspell-joex
+msg_ok "Setup Services"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -R /opt/docspell/solr-$latest_version
+rm -R /opt/docspell-joex_${Docspell}_all.deb
+rm -R /opt/docspell-restserver_${Docspell}_all.deb
+cd /opt/docspell/solr-$latest_version.tgz
 $STD apt-get autoremove
 $STD apt-get autoclean
 msg_ok "Cleaned"
