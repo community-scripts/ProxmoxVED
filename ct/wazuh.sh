@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2024 community-scripts ORG
+# Copyright (c) 2025 community-scripts ORG
 # Author: Omar Minaya
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://wazuh.com/
@@ -9,7 +9,7 @@ APP="Wazuh"
 var_tags="security;monitoring"
 var_cpu="4"
 var_ram="4096"
-var_disk="20"
+var_disk="18"
 var_os="debian"
 var_version="12"
 var_unprivileged="1"
