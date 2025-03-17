@@ -35,8 +35,11 @@ function update_script() {
         msg_ok "Stopped $APP"
 
         msg_info "Updating $APP to ${RELEASE}"
+        temp_dir=$(mktemp -d)
+        temp_file=$(mktemp)
         cp /opt/cryptpad/config/config.js /opt/config.js
-        wget -q "https://github.com/cryptpad/cryptpad/archive/refs/tags/${RELEASE}.tar.gz" -O $temp_file
+        wget -q "https://github.com/cryptpad/cryptpad/archive/refs/tags/${RELEASE}.tar.gz" -P $temp_dir -O $temp_file
+        cd $temp_dir
         tar zxf $temp_file
         cp -rf cryptpad-$RELEASE/* /opt/cryptpad
         cd /opt/cryptpad
@@ -47,7 +50,7 @@ function update_script() {
         msg_ok "Updated $APP to ${RELEASE}"
 
         msg_info "Cleaning Up"
-        rm -f $temp_file
+        rm -rf $temp_dir
         msg_ok "Cleanup Completed"
 
         msg_info "Starting $APP"
