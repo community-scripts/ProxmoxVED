@@ -28,7 +28,7 @@ msg_ok "Latest Wazuh Version: $RELEASE"
 msg_info "Setup Wazuh"
 wget -q https://packages.wazuh.com/$RELEASE/wazuh-install.sh
 chmod +x wazuh-install.sh
-bash ./wazuh-install.sh -a
+bash wazuh-install.sh -a
 msg_ok "Setup Wazuh"
 
 motd_ssh
