@@ -24,7 +24,7 @@ jobs:
         run: |
           page=1
           projects_file="project_json"
-          output_file="json/versions.json"
+          output_file="frontend/public/json/versions.json"
 
           echo "[]" > $output_file
 
