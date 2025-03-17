@@ -29,6 +29,8 @@ describe.each(fileNames)("%s", async (fileName) => {
   it("should have a corresponding script file", () => {
     script.install_methods.forEach((method) => {
       const scriptPath = path.resolve("..", method.script)
+      //FIXME: Dose note account for new dir structure and files in /script/tools
+      //Hack by commenting out the check for now
       //assert(fs.stat(scriptPath), `Script file not found: ${scriptPath}`)
     })
   });
