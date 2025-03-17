@@ -36,7 +36,7 @@
       "type": "info"
     },
     {
-      "text": "This LXC includes Soularr; it needs to be configured (/opt/soularr/config.ini) before it will work",
+      "text": "This LXC includes Soularr; finish the configuration (/opt/soularr/config.ini) then start with `systemctl start soularr.timer`",
       "type": "info"
     }
   ]
