@@ -5,12 +5,14 @@ import path from "path";
 
 export const dynamic = "force-static";
 
-const jsonDir = "public/json";
+const jsonDir = "../json";
 const metadataFileName = "metadata.json";
 const encoding = "utf-8";
 
 const getMetadata = async () => {
   const filePath = path.resolve(jsonDir, metadataFileName);
+  console.log("TEST");
+  console.log("FilePath: ", filePath);
   const fileContent = await fs.readFile(filePath, encoding);
   const metadata: Metadata = JSON.parse(fileContent);
   return metadata;
