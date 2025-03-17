@@ -155,14 +155,17 @@ post_update_to_api() {
     local status="${1:-failed}"
     local exit_code="${2:-0}"
     local error_description="$(get_error_description "$exit_code")"
-
     local API_URL="http://api.community-scripts.org/dev/upload/updatestatus"
+    local error="${exit_code}: ${error_description}"
+
+    if [ -z "$error" ]; then
+        error="Unknown error"
+    fi
 
     JSON_PAYLOAD=$(cat <<EOF
 {
     "status": "$status",
-    "error_code": "$exit_code",
-    "error_message": "$error_description",
+    "error": "$error",
     "random_id": "$RANDOM_UUID"
 }
 EOF
