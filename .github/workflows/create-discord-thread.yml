@@ -80,7 +80,7 @@ jobs:
              
           fi
           VAR+="Note: This is not in the official repo yet—it's just a dev version! After merging into ProxmoxVE, it will need to be recreated.\n\n"
-          VAR+="Discussion & issue tracking:\n\n"
+          VAR+="Discussion & issue tracking:\n"
           VAR+="${{ github.event.issue.html_url }}"
           echo "message=$VAR" >> $GITHUB_ENV
           
