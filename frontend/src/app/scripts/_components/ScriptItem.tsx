@@ -1,7 +1,9 @@
 "use client";
 import { Separator } from "@/components/ui/separator";
 import { extractDate } from "@/lib/time";
-import { Script } from "@/lib/types";
+import { Script, AppVersion } from "@/lib/types";
+import { fetchVersions } from "@/lib/data";
+
 import { X } from "lucide-react";
 import Image from "next/image";
 
@@ -15,22 +17,48 @@ import InstallCommand from "./ScriptItems/InstallCommand";
 import InterFaces from "./ScriptItems/InterFaces";
 import Tooltips from "./ScriptItems/Tooltips";
 import { basePath } from "@/config/siteConfig";
+import { useEffect, useState } from "react";
+
+interface ScriptItemProps {
+  item: Script;
+  setSelectedScript: (script: string | null) => void;
+}
 
 function ScriptItem({
   item,
   setSelectedScript,
-}: {
-  item: Script;
-  setSelectedScript: (script: string | null) => void;
-}) {
+}: ScriptItemProps) {
+
+
   const closeScript = () => {
     window.history.pushState({}, document.title, window.location.pathname);
     setSelectedScript(null);
-  };
+};
 
-  const defaultInstallMethod = item.install_methods?.[0];
-  const os = defaultInstallMethod?.resources?.os || "Proxmox Node";
-  const version = defaultInstallMethod?.resources?.version || "";
+ const [versions, setVersions] = useState<AppVersion[]>([]);
+
+
+useEffect(() => {
+  fetchVersions(item.slug)
+    .then((fetchedVersions) => {
+      console.log("Fetched Versions: ", fetchedVersions);
+
+      // Ensure fetchedVersions is always an array
+      if (Array.isArray(fetchedVersions)) {
+        setVersions(fetchedVersions);
+      } else if (fetchedVersions && typeof fetchedVersions === "object") {
+        setVersions([fetchedVersions]); // Wrap object in an array
+      } else {
+        setVersions([]); // Fallback to empty array
+      }
+    })
+    .catch((error) => console.error("Error fetching versions:", error));
+}, [item.name]);
+
+const defaultInstallMethod = item.install_methods?.[0];
+const os = defaultInstallMethod?.resources?.os || "Proxmox Node";
+const version = defaultInstallMethod?.resources?.version || "";
+
 
   return (
     <div className="mr-7 mt-0 flex w-full min-w-fit">
@@ -70,6 +98,16 @@ function ScriptItem({
                     </div>
                     <div className="flex gap-5">
                       <DefaultSettings item={item} />
+                    </div>
+                    <div>
+
+
+                             {versions.length === 0 ? (
+      <p>Loading versions...</p>
+    ) : (
+      <p>Version: {versions[0].version}</p>
+    )}
+
                     </div>
                   </div>
                 </div>
