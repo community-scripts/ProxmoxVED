@@ -24,7 +24,10 @@ jobs:
             curl -X PATCH "https://discord.com/api/v10/channels/$THREAD_ID" \
             -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{ "archived": true }'
+            -d '{ 
+                  "archived": true,
+                  "locked": true,
+                }'
           else
             echo "No thread found for issue: $ISSUE_TITLE"
           fi
