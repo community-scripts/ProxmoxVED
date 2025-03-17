@@ -1,5 +1,7 @@
 import { AppVersion } from "@/lib/types";
+import { error } from "console";
 import { promises as fs } from "fs";
+// import Error from "next/error";
 import { NextResponse } from "next/server";
 import path from "path";
 
@@ -12,39 +14,33 @@ const encoding = "utf-8";
 const getVersions = async () => {
   const filePath = path.resolve(jsonDir, versionsFileName);
   const fileContent = await fs.readFile(filePath, encoding);
-  const versions: AppVersion = JSON.parse(fileContent);
-  return versions;
+  const versions: AppVersion[] = JSON.parse(fileContent);
+
+  const modifiedVersions = versions.map(version => {
+    const nameParts = version.name.split('/');
+    let newName = nameParts[nameParts.length - 1];
+    newName = newName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return { ...version, name: newName };
+  });
+
+  return modifiedVersions;
 };
 
-
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const slug = searchParams.get("slug");
 
-    if (!slug) {
-      return NextResponse.json({ error: "Missing slug parameter" }, { status: 400 });
-    }
-    console.log("Slug: ", slug);
     const versions = await getVersions();
-
-    const cleanedSlug = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-    const matchedVersion = Object.values(versions).find(
-      (version: AppVersion) => {
-        const versionNameParts = version.name.split('/');
-        const cleanedVersionName = versionNameParts[1]?.toLowerCase().replace(/[^a-z0-9]/g, '');
-        return cleanedVersionName === cleanedSlug;
-      }
-    );
-
-    console.log("Matched Version: ", matchedVersion);
-    if (!matchedVersion) {
-      return NextResponse.json({name: "No version found", version: "No Version found"});
-    }
-    return NextResponse.json(matchedVersion);
+    return NextResponse.json(versions);
 
   } catch (error) {
-    return NextResponse.json({name: error, version: "No version found - Error"});
+    console.error(error);
+    const err = error as globalThis.Error;
+    return NextResponse.json({
+      name: err.name,
+      message: err.message || "An unexpected error occurred",
+      version: "No version found - Error"
+    }, {
+      status: 500,
+    });
   }
 }

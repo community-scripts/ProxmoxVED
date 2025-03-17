@@ -9,8 +9,8 @@ export const fetchCategories = async () => {
   return categories;
 };
 
-export const fetchVersions = async (slug: string) => {
-    const response = await fetch(`api/versions?slug=${slug}`);
+export const fetchVersions = async () => {
+    const response = await fetch(`api/versions`);
     if (!response.ok) {
         throw new Error(`Failed to fetch versions: ${response.statusText}`);
     }
