@@ -1,0 +1,30 @@
+name: Archive Discord Thread on GitHub Issue Closure
+
+on:
+  issues:
+    types:
+      - closed
+
+jobs:
+  close_discord_thread:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get thread-ID op and close thread
+        run: |
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+          
+          THREAD_ID=$(curl -s -X GET "https://discord.com/api/v10/guilds/${{ secrets.DISCORD_GUILD_ID }}/threads/active" \
+          -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+          -H "Content-Type: application/json" | \
+          jq -r --arg TITLE "$ISSUE_TITLE" '.threads[] | select(.parent_id == "${{ secrets.DISCORD_CHANNEL_ID }}" and .name == ("Wanted Tester for " + $TITLE)) | .id')
+
+          if [ -n "$THREAD_ID" ]; then
+            echo "Thread found: $THREAD_ID. Archiving..."
+            curl -X PATCH "https://discord.com/api/v10/channels/$THREAD_ID" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{ "archived": true }'
+          else
+            echo "No thread found for issue: $ISSUE_TITLE"
+          fi
