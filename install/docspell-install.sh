@@ -79,7 +79,7 @@ DocspellDSC=$(wget -q https://github.com/docspell/dsc/releases/latest -O - | gre
 cd /opt
 wget -q https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-joex_${Docspell}_all.deb
 wget -q https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-restserver_${Docspell}_all.deb
-dpkg -i docspell-*
+dpkg -i docspell-*.deb
 wget -q https://github.com/docspell/dsc/releases/download/v${DocspellDSC}/dsc_amd64-musl-${DocspellDSC}
 mv dsc_amd* dsc
 chmod +x dsc
