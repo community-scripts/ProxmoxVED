@@ -4,6 +4,7 @@
 
 post_to_api() {
 
+  echo -e "Posting to API..."
   if ! command -v curl &> /dev/null; then
     return
   fi
@@ -42,6 +43,7 @@ EOF
     -H "Content-Type: application/json" \
     -d "$JSON_PAYLOAD") || true
 }
+echo -e "Posting to API... "
 
 get_error_description() {
     local exit_code="$1"
