@@ -13,7 +13,7 @@ export default function Description({ item }: { item: Script }) {
                 AlertColors["warning"],
               )} >
         <AlertCircle className="h-4 min-h-4 w-4 min-w-4" />
-              <span>Unly use for testing, not in production!</span>
+              <span>Only use for testing, not in production!</span>
       </p>
       <p className="text-sm text-muted-foreground pt-4">
         {TextCopyBlock(item.description)}
