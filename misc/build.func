@@ -1591,14 +1591,10 @@ silent() {
 
 exit_script() {
     exit_code=$? # Capture exit status
-
-    if [ $exit_code -ne 0 ]; then
-        local error_description="$(get_error_description "$exit_code")"
-        post_update_to_api "failed" "$exit_code" "$error_description"
-    fi
+        post_update_to_api "failed" "$exit_code"
 }
 
 trap 'exit_script' EXIT
-trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
-trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
-trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
+trap 'post_update_to_api "failed" "2"' ERR
+trap 'post_update_to_api "failed" "130"' SIGINT
+trap 'post_update_to_api "failed" "143"' SIGTERM
