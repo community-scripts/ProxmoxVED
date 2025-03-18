@@ -149,6 +149,7 @@ jobs:
           git push --no-thin origin "$branch_name"
 
       - name: Create Pull Request in ProxmoxVE
+        id: create_pull_request
         env:
           GITHUB_TOKEN: ${{ secrets.GH_MERGE_PAT }}
         run: |
@@ -163,6 +164,7 @@ jobs:
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Comment on Issue
+        if: steps.create_pull_request.outputs.pr_number
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
