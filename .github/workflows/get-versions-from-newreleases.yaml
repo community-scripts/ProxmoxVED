@@ -1,7 +1,9 @@
 name: Crawl Versions from newreleases.io
 
 on:
-  workflow_dispatch:
+  schedule:
+    # Runs at 12:00 AM and 12:00 PM UTC
+    - cron: "0 0,12 * * *"
 
 permissions:
   contents: write
@@ -24,7 +26,7 @@ jobs:
         run: |
           page=1
           projects_file="project_json"
-          output_file="json/versions.json"
+          output_file="frontend/public/json/versions.json"
 
           echo "[]" > $output_file
 
@@ -68,7 +70,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Actions[bot]"
           git checkout -b update_versions || git checkout update_versions
-          git add json/versions.json
+          git add frontend/public/json/versions.json
           git commit -m "Update versions.json"
           git push origin update_versions --force
           gh pr create --title "[AUTOMATIC PR]Update versions.json" --body "Update versions.json, crawled from newreleases.io" --base main --head update_versions

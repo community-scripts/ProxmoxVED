@@ -1,4 +1,4 @@
-"use client";
+
 import { Separator } from "@/components/ui/separator";
 import { extractDate } from "@/lib/time";
 import { Script, AppVersion } from "@/lib/types";
@@ -39,21 +39,19 @@ function ScriptItem({
 
 
 useEffect(() => {
-  fetchVersions(item.slug)
+  fetchVersions()
     .then((fetchedVersions) => {
       console.log("Fetched Versions: ", fetchedVersions);
-
-      // Ensure fetchedVersions is always an array
       if (Array.isArray(fetchedVersions)) {
         setVersions(fetchedVersions);
       } else if (fetchedVersions && typeof fetchedVersions === "object") {
-        setVersions([fetchedVersions]); // Wrap object in an array
+        setVersions([fetchedVersions]);
       } else {
-        setVersions([]); // Fallback to empty array
+        setVersions([]);
       }
     })
     .catch((error) => console.error("Error fetching versions:", error));
-}, [item.name]);
+}, []);
 
 const defaultInstallMethod = item.install_methods?.[0];
 const os = defaultInstallMethod?.resources?.os || "Proxmox Node";
@@ -105,7 +103,9 @@ const version = defaultInstallMethod?.resources?.version || "";
                              {versions.length === 0 ? (
       <p>Loading versions...</p>
     ) : (
-      <p>Version: {versions[0].version}</p>
+      <p>Version: {
+        versions.find((v) => v.name === item.slug.replace(/[^a-z0-9]/g, ''))?.version || "Not found"
+      }</p>
     )}
 
                     </div>

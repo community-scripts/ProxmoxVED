@@ -1,23 +1,139 @@
 [
   {
-    "name": "msgbyte/tianji",
-    "version": "v1.18.21"
-  },
-  {
-    "name": "semaphoreui/semaphore",
-    "version": "v2.13.0-beta3"
-  },
-  {
-    "name": "usememos/memos",
-    "version": "v0.24.1"
-  },
-  {
     "name": "morpheus65535/bazarr",
     "version": "v1.5.1"
   },
   {
     "name": "Jackett/Jackett",
-    "version": "v0.22.1595"
+    "version": "v0.22.1646"
+  },
+  {
+    "name": "fallenbagel/jellyseerr",
+    "version": "v2.5.1"
+  },
+  {
+    "name": "firefly-iii/firefly-iii",
+    "version": "develop-20250222.4"
+  },
+  {
+    "name": "glanceapp/glance",
+    "version": "v0.7.7"
+  },
+  {
+    "name": "semaphoreui/semaphore",
+    "version": "v2.13.0"
+  },
+  {
+    "name": "gethomepage/homepage",
+    "version": "v1.0.4"
+  },
+  {
+    "name": "Donkie/Spoolman",
+    "version": "v0.22.0"
+  },
+  {
+    "name": "pocket-id/pocket-id",
+    "version": "v0.40.1"
+  },
+  {
+    "name": "evcc-io/evcc",
+    "version": "0.201.0"
+  },
+  {
+    "name": "TriliumNext/Notes",
+    "version": "v0.92.4"
+  },
+  {
+    "name": "BookStackApp/BookStack",
+    "version": "v25.02.1"
+  },
+  {
+    "name": "hoarder-app/hoarder",
+    "version": "ios/v1.6.9-0"
+  },
+  {
+    "name": "authelia/authelia",
+    "version": "v4.39.0"
+  },
+  {
+    "name": "pocketbase/pocketbase",
+    "version": "v0.26.1"
+  },
+  {
+    "name": "Kozea/Radicale",
+    "version": "v3.5.0"
+  },
+  {
+    "name": "VictoriaMetrics/VictoriaMetrics",
+    "version": "v1.17.0-victorialogs"
+  },
+  {
+    "name": "msgbyte/tianji",
+    "version": "v1.18.22"
+  },
+  {
+    "name": "duplicati/duplicati",
+    "version": "v2.1.0.111-2.1.0.111_canary_2025-03-15"
+  },
+  {
+    "name": "keycloak/keycloak",
+    "version": "26.1.4"
+  },
+  {
+    "name": "henrygd/beszel",
+    "version": "v0.10.2"
+  },
+  {
+    "name": "navidrome/navidrome",
+    "version": "v0.55.1"
+  },
+  {
+    "name": "Threadfin/Threadfin",
+    "version": "1.2.31"
+  },
+  {
+    "name": "Stirling-Tools/Stirling-PDF",
+    "version": "v0.44.2"
+  },
+  {
+    "name": "ipfs/kubo",
+    "version": "v0.33.2"
+  },
+  {
+    "name": "paperless-ngx/paperless-ngx",
+    "version": "v2.15.0-beta"
+  },
+  {
+    "name": "wazuh/wazuh",
+    "version": "coverity-w11-4.12.0"
+  },
+  {
+    "name": "homarr-labs/homarr",
+    "version": "v1.11.0"
+  },
+  {
+    "name": "ollama/ollama",
+    "version": "v0.6.1"
+  },
+  {
+    "name": "docker/compose",
+    "version": "v2.34.0"
+  },
+  {
+    "name": "FreshRSS/FreshRSS",
+    "version": "1.26.1"
+  },
+  {
+    "name": "kimai/kimai",
+    "version": "2.31.0"
+  },
+  {
+    "name": "zitadel/zitadel",
+    "version": "v2.66.13"
+  },
+  {
+    "name": "usememos/memos",
+    "version": "v0.24.1"
   },
   {
     "name": "openobserve/openobserve",
@@ -28,36 +144,16 @@
     "version": "v4.1.1"
   },
   {
-    "name": "VictoriaMetrics/VictoriaMetrics",
-    "version": "v1.16.0-victorialogs"
-  },
-  {
     "name": "diced/zipline",
     "version": "v4.0.1"
-  },
-  {
-    "name": "Threadfin/Threadfin",
-    "version": "1.2.30"
   },
   {
     "name": "minio/minio",
     "version": "RELEASE.2025-03-12T18-04-18Z"
   },
   {
-    "name": "glanceapp/glance",
-    "version": "v0.7.4"
-  },
-  {
-    "name": "keycloak/keycloak",
-    "version": "26.1.3"
-  },
-  {
     "name": "zwave-js/zwave-js-ui",
     "version": "v9.33.0"
-  },
-  {
-    "name": "zitadel/zitadel",
-    "version": "v2.71.2"
   },
   {
     "name": "cockpit-project/cockpit",
@@ -66,18 +162,6 @@
   {
     "name": "gotson/komga",
     "version": "1.21.2"
-  },
-  {
-    "name": "ollama/ollama",
-    "version": "v0.6.0"
-  },
-  {
-    "name": "fallenbagel/jellyseerr",
-    "version": "preview-fix-proxy-undici-v7"
-  },
-  {
-    "name": "pocket-id/pocket-id",
-    "version": "v0.39.0"
   },
   {
     "name": "benjaminjonard/koillection",
@@ -96,10 +180,6 @@
     "version": "v0.8.2"
   },
   {
-    "name": "Stirling-Tools/Stirling-PDF",
-    "version": "v0.44.1"
-  },
-  {
     "name": "stonith404/pingvin-share",
     "version": "v1.10.3"
   },
@@ -112,16 +192,8 @@
     "version": "2.2.4"
   },
   {
-    "name": "evcc-io/evcc",
-    "version": "0.200.9"
-  },
-  {
     "name": "AlexxIT/go2rtc",
     "version": "v1.9.9"
-  },
-  {
-    "name": "navidrome/navidrome",
-    "version": "v0.55.0"
   },
   {
     "name": "clusterzx/paperless-ai",
@@ -144,16 +216,8 @@
     "version": "v1.9.1-rc.9"
   },
   {
-    "name": "TriliumNext/Notes",
-    "version": "v0.91.6"
-  },
-  {
     "name": "rogerfar/rdt-client",
     "version": "v2.0.102"
-  },
-  {
-    "name": "homarr-labs/homarr",
-    "version": "v1.10.0"
   },
   {
     "name": "prometheus/alertmanager",
@@ -176,20 +240,8 @@
     "version": "v4.2.5"
   },
   {
-    "name": "henrygd/beszel",
-    "version": "v0.10.1"
-  },
-  {
     "name": "open-webui/open-webui",
     "version": "v0.5.20"
-  },
-  {
-    "name": "ipfs/kubo",
-    "version": "v0.33.2"
-  },
-  {
-    "name": "pocketbase/pocketbase",
-    "version": "v0.25.9"
   },
   {
     "name": "matze/wastebin",
@@ -208,16 +260,8 @@
     "version": "tc_v0.6.4"
   },
   {
-    "name": "firefly-iii/firefly-iii",
-    "version": "develop-20250222.4"
-  },
-  {
     "name": "go-gitea/gitea",
     "version": "v1.23.5"
-  },
-  {
-    "name": "duplicati/duplicati",
-    "version": "v2.1.0.5_stable_2025-03-04"
   },
   {
     "name": "bastienwirtz/homer",
@@ -256,10 +300,6 @@
     "version": "v0.8.4"
   },
   {
-    "name": "BookStackApp/BookStack",
-    "version": "v25.02"
-  },
-  {
     "name": "Part-DB/Part-DB-server",
     "version": "v1.16.1"
   },
@@ -296,24 +336,12 @@
     "version": "5.6.1"
   },
   {
-    "name": "FreshRSS/FreshRSS",
-    "version": "1.26.0"
-  },
-  {
-    "name": "kimai/kimai",
-    "version": "2.30.0"
-  },
-  {
     "name": "azukaar/Cosmos-Server",
     "version": "v0.18.3"
   },
   {
     "name": "wavelog/wavelog",
     "version": "2.0.1"
-  },
-  {
-    "name": "docker/compose",
-    "version": "v2.33.1"
   },
   {
     "name": "sabnzbd/sabnzbd",
@@ -334,10 +362,6 @@
   {
     "name": "sbondCo/Watcharr",
     "version": "v2.0.2"
-  },
-  {
-    "name": "authelia/authelia",
-    "version": "v4.38.19"
   },
   {
     "name": "glpi-project/glpi",
@@ -376,24 +400,12 @@
     "version": "v1.9.6"
   },
   {
-    "name": "hoarder-app/hoarder",
-    "version": "sdk/v0.22.0"
-  },
-  {
     "name": "PrivateBin/PrivateBin",
     "version": "1.7.6"
   },
   {
-    "name": "paperless-ngx/paperless-ngx",
-    "version": "v2.14.7"
-  },
-  {
     "name": "hivemq/hivemq-community-edition",
     "version": "2025.1"
-  },
-  {
-    "name": "Kozea/Radicale",
-    "version": "v3.4.1"
   },
   {
     "name": "rustdesk/rustdesk-server",
@@ -432,10 +444,6 @@
     "version": "v0.8.0"
   },
   {
-    "name": "gethomepage/homepage",
-    "version": "v0.10.9"
-  },
-  {
     "name": "MagicMirrorOrg/MagicMirror",
     "version": "v2.30.0"
   },
@@ -446,10 +454,6 @@
   {
     "name": "pymedusa/Medusa",
     "version": "v1.0.22"
-  },
-  {
-    "name": "Donkie/Spoolman",
-    "version": "v0.21.0"
   },
   {
     "name": "phpipam/phpipam",
