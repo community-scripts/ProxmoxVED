@@ -4,6 +4,9 @@ on:
   issues:
     types:
       - labeled
+
+permissions:
+  issues: write
       
 jobs:
   post_to_discord:
@@ -101,3 +104,13 @@ jobs:
             echo "Failed to create Discord post! Status code: $STATUS_CODE"
             exit 1
           fi
+          
+      - name: Comment on Issue
+        id: comment_on_issue
+        env:
+          MESSAGE: ${{ env.message }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo -e "$MESSAGE" > comment.txt
+          sed -i '/Discussion & issue tracking:/,$d' comment.txt
+          gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body-file comment.txt
