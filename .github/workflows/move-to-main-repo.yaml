@@ -58,7 +58,7 @@ jobs:
             script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
             echo "Script Name: $script_name_lowercase"
             echo "script_name=$script_name_lowercase" >> $GITHUB_ENV
-            echo "issue_nr=$issue_nr" >> $GITHUB_ENV
+            echo "issue_nr=$issue_nr" >> $GITHUB_OUTPUT
           fi
 
       - name: Check if script files exist
@@ -70,11 +70,12 @@ jobs:
 
           if [[ -f "$ct_file" && -f "$install_file" && -f "$json_file" ]]; then
             echo "All required files found."
-            echo "files_found=true" >> $GITHUB_ENV
+            echo "files_found=true" >> $GITHUB_OUTPUT
           else
             echo "Not all required files were found."
-            echo "files_found=false" >> $GITHUB_ENV
+            echo "files_found=false" >> $GITHUB_OUTPUT
           fi
+
       - name: Comment if not all Files found
         if: steps.check_files.outputs.files_found == 'false'
         run: |
