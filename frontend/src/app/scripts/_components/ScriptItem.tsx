@@ -97,19 +97,31 @@ function ScriptItem({
                                         <div className="flex gap-5">
                                             <DefaultSettings item={item} />
                                         </div>
-                                        <div>
-                                            {versions.length === 0 ? (
-                                                <p>Loading versions...</p>
-                                            ) : (
-                                                <p>Version: { versions.find((v) =>
+                                        <div>{versions.length === 0 ? (<p>Loading versions...</p>) :
+                                            (<>
+                                                <p className="text-l text-foreground">Version:</p>
+                                                <p className="text-l text-muted-foreground">{versions.find((v) =>
+                                                    v.name === item.slug.replace(/[^a-z0-9]/g, '') ||
+                                                    v.name.includes(item.slug.replace(/[^a-z0-9]/g, '')) ||
+                                                    v.name.replace(/[^a-z0-9]/g, '') === item.slug.replace(/[^a-z0-9]/g, '')
+
+                                                )?.version || "No Version information found"
+                                                }</p>
+                                            <p className="text-l text-foreground">Latest changes:</p>
+                                            <p className="text-l text-muted-foreground">
+                                                {(() => {
+                                                    const matchedVersion = versions.find((v) =>
                                                         v.name === item.slug.replace(/[^a-z0-9]/g, '') ||
                                                         v.name.includes(item.slug.replace(/[^a-z0-9]/g, '')) ||
                                                         v.name.replace(/[^a-z0-9]/g, '') === item.slug.replace(/[^a-z0-9]/g, '')
-
-                                                    )?.version || "Not found"
-                                                }</p>
-                                            )}
-
+                                                    );
+                                                    return matchedVersion?.date ?
+                                                        extractDate(matchedVersion.date as unknown as string) :
+                                                        "No date information found"
+                                                })()}
+                                            </p>
+                                            </>)
+                                        }
                                         </div>
                                     </div>
                                 </div>

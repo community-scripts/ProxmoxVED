@@ -15,11 +15,12 @@ const getVersions = async () => {
   const filePath = path.resolve(jsonDir, versionsFileName);
   const fileContent = await fs.readFile(filePath, encoding);
   const versions: AppVersion[] = JSON.parse(fileContent);
-
+  console.log("Versions: ", versions);
   const modifiedVersions = versions.map(version => {
     let newName = version.name;
+    // Ensure date is included in the returned object
     newName = newName.toLowerCase().replace(/[^a-z0-9/]/g, '');
-    return { ...version, name: newName };
+    return { ...version, name: newName};
   });
 
   return modifiedVersions;

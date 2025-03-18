@@ -51,6 +51,7 @@ export type Metadata = {
 export interface AppVersion {
     name: string;
     version: string;
+    date: Date;
 }
 
 export interface Version {
