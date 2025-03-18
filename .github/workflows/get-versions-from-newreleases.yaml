@@ -21,6 +21,13 @@ jobs:
           repository: community-scripts/ProxmoxVED
           ref: main
 
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Crawl from newreleases.io
         env:
           token: ${{ secrets.NEWRELEASES_TOKEN }}
@@ -66,7 +73,7 @@ jobs:
 
       - name: Commit JSON
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Actions[bot]"
