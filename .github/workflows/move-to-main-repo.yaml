@@ -47,6 +47,9 @@ jobs:
 
           filtered_issues=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "Migration To ProxmoxVE") | .title')
           issue_nr=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "Migration To ProxmoxVE") | .number' | head -n 1)
+          echo $raw_output
+          echo $filtered_issues
+          echo $issue_nr
           if [ -z "$filtered_issues" ]; then
             echo "No issues found with label 'Migration To ProxmoxVE'."
             exit 1
