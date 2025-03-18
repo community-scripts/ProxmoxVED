@@ -1,12 +1,13 @@
 name: Create discord thread when script is ready for testing
 
 on:
+  workflow_dispatch:
   issues:
     types:
       - labeled
     labels:
       - "Ready For Testing"
-
+      
 jobs:
   post_to_discord:
     runs-on: ubuntu-latest
