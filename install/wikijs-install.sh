@@ -19,12 +19,7 @@ $STD apt-get install -y \
   sudo \
   mc \
   git \
-  ca-certificates \
-  gnupg \
-  build-essential \
-  python3 \
-  g++ \
-  make
+  gpg
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Node.js Repository"
