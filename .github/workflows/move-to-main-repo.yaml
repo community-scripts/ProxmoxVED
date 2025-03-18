@@ -16,7 +16,7 @@ permissions:
 jobs:
   move-to-main-repo:
     runs-on: ubuntu-latest
-
+    if: github.event.label.name == 'Migration To ProxmoxVE'
     steps:
       - name: Generate a token
         id: app-token
