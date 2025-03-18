@@ -94,9 +94,6 @@ function ScriptItem({
                                                 Default OS: {os} {version}
                                             </p>
                                         </div>
-                                        <div className="flex gap-5">
-                                            <DefaultSettings item={item} />
-                                        </div>
                                         <div>{versions.length === 0 ? (<p>Loading versions...</p>) :
                                             (<>
                                                 <p className="text-l text-foreground">Version:</p>
@@ -107,26 +104,27 @@ function ScriptItem({
 
                                                 )?.version || "No Version information found"
                                                 }</p>
-                                            <p className="text-l text-foreground">Latest changes:</p>
-                                            <p className="text-l text-muted-foreground">
-                                                {(() => {
-                                                    const matchedVersion = versions.find((v) =>
-                                                        v.name === item.slug.replace(/[^a-z0-9]/g, '') ||
-                                                        v.name.includes(item.slug.replace(/[^a-z0-9]/g, '')) ||
-                                                        v.name.replace(/[^a-z0-9]/g, '') === item.slug.replace(/[^a-z0-9]/g, '')
-                                                    );
-                                                    return matchedVersion?.date ?
-                                                        extractDate(matchedVersion.date as unknown as string) :
-                                                        "No date information found"
-                                                })()}
-                                            </p>
+                                                <p className="text-l text-foreground">Latest changes:</p>
+                                                <p className="text-l text-muted-foreground">
+                                                    {(() => {
+                                                        const matchedVersion = versions.find((v) =>
+                                                            v.name === item.slug.replace(/[^a-z0-9]/g, '') ||
+                                                            v.name.includes(item.slug.replace(/[^a-z0-9]/g, '')) ||
+                                                            v.name.replace(/[^a-z0-9]/g, '') === item.slug.replace(/[^a-z0-9]/g, '')
+                                                        );
+                                                        return matchedVersion?.date ?
+                                                            extractDate(matchedVersion.date as unknown as string) :
+                                                            "No date information found"
+                                                    })()}
+                                                </p>
                                             </>)
                                         }
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="hidden flex-col justify-between gap-2 sm:flex">
+                            <div className="flex flex-col items-end gap-4 ml-auto">
+                                <DefaultSettings item={item} />
                                 <InterFaces item={item} />
                                 <Buttons item={item} />
                             </div>
