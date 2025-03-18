@@ -1,5 +1,9 @@
 [
   {
+    "name": "zitadel/zitadel",
+    "version": "v2.70.5"
+  },
+  {
     "name": "Jackett/Jackett",
     "version": "v0.22.1660"
   },
@@ -138,10 +142,6 @@
   {
     "name": "kimai/kimai",
     "version": "2.31.0"
-  },
-  {
-    "name": "zitadel/zitadel",
-    "version": "v2.66.13"
   },
   {
     "name": "usememos/memos",
