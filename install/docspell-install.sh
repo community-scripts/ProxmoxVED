@@ -79,11 +79,25 @@ chmod +x /usr/bin/yq
 JOEX_CONF="/usr/share/docspell-joex/conf/docspell-joex.conf"
 SERVER_CONF="/usr/share/docspell-restserver/conf/docspell-server.conf"
 sed -i 's|address = "localhost"|address = "0.0.0.0"|' "$JOEX_CONF" "$SERVER_CONF"
+sed -i -E '/backend\s*\{/,/\}/ {
+    /jdbc\s*\{/,/\}/ {
+        s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
+        s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
+        s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
+    }
+}' "$SERVER_CONF"
+sed -i -E '/postgresql\s*\{/,/\}/ {
+    /jdbc\s*\{/,/\}/ {
+        s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
+        s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
+        s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
+    }
+}' "$SERVER_CONF"
 sed -i -E '/jdbc\s*\{/,/\}/ {
     s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
     s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
     s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
-}' "$JOEX_CONF" "$SERVER_CONF"
+}' "$JOEX_CONF"
 msg_ok "Setup Docspell"
 
 msg_info "Setup Apache Solr"
