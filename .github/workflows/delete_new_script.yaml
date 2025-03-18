@@ -29,7 +29,7 @@ jobs:
           FILES=(
             "ct/${TITLE}.sh"
             "install/${TITLE}-install.sh"
-            "json/${TITLE}.json"
+            "frontend/public/json/${TITLE}.json"
           )
 
           EXISTS=false
@@ -58,7 +58,7 @@ jobs:
           git checkout -b $branch
           rm -f ct/${TITLE}.sh
           rm -f install/${TITLE}-install.sh
-          rm -f json/${TITLE}.json
+          rm -f frontend/public/json/${TITLE}.json
           git add .
           if git diff --staged --quiet; then
             echo "No files to delete. Exiting..."
