@@ -1,17 +1,14 @@
 name: Create discord thread when script is ready for testing
 
 on:
-  workflow_dispatch:
   issues:
     types:
       - labeled
-    labels:
-      - "Ready For Testing"
       
 jobs:
   post_to_discord:
     runs-on: ubuntu-latest
-
+    if: contains(github.event.issue.labels.*.name, 'Ready For Testing')
     steps:
       - name: Extract Issue Title (Lowercase & Underscores)
         id: extract_title
