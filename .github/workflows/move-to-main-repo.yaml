@@ -57,7 +57,7 @@ jobs:
             script_name=$(echo "$filtered_issues" | head -n 1) # Nur das erste Issue nehmen
             script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
             echo "Script Name: $script_name_lowercase"
-            echo "script_name=$script_name_lowercase" >> $GITHUB_ENV
+            echo "script_name=$script_name_lowercase" >> $GITHUB_OUTPUT
             echo "issue_nr=$issue_nr" >> $GITHUB_OUTPUT
           fi
 
@@ -81,7 +81,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "Not all required files were found for ${{ steps.list_issues.outputs.script_name }}. Please check the files and try again. Must include ct/APP.sh, install/APP-install.sh, and frontend/public/json/APP.json."
+          script_name="${{ steps.list_issues.outputs.script_name }}"
+          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "Not all required files were found for $script_name. Please check the files and try again. Must include ct/$script_name.sh, install/$script_name-install.sh, and frontend/public/json/$script_name.json."
           exit 1
 
       - name: Get GitHub App User ID
