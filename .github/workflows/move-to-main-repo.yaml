@@ -129,6 +129,20 @@ jobs:
           script_name="${{ steps.list_issues.outputs.script_name }}"
           git clone https://x-access-token:${{ secrets.GH_MERGE_PAT }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
           cd ProxmoxVE
+
+          if [[ -f "ct/${script_name}.sh" ]]; then
+            echo "ct file already exists in ProxmoxVE"
+            exit 1
+          fi
+          if [[ -f "install/${script_name}-install.sh" ]]; then
+            echo "install file already exists in ProxmoxVE"
+            exit 1
+          fi
+          if [[ -f "json/${script_name}.json" ]]; then
+            echo "json file already exists in ProxmoxVE"
+            exit 1
+          fi
+
           git checkout -b "$branch_name"
 
           cp ../ct/$script_name.sh .
