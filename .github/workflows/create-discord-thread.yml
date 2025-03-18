@@ -25,7 +25,7 @@ jobs:
           FILES=(
             "ct/${{ env.TITLE }}.sh"
             "install/${{ env.TITLE }}-install.sh"
-            "json/${{ env.TITLE }}.json"
+            "frontend/public/json/${{ env.TITLE }}.json"
           )
       
           EXISTING_FILES=()
