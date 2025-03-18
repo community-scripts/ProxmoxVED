@@ -168,6 +168,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_MERGE_PAT }}
         run: |
+          script_name="${{ steps.list_issues.outputs.script_name }}"
           gh pr create \
             --repo community-scripts/ProxmoxVE \
             --head "$branch_name" \
