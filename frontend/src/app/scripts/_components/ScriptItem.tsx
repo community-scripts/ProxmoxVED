@@ -57,6 +57,7 @@ function ScriptItem({
     const os = defaultInstallMethod?.resources?.os || "Proxmox Node";
     const version = defaultInstallMethod?.resources?.version || "";
 
+    const [linksVisible, setLinksVisible] = useState<boolean>(false);
 
     return (
         <div className="mr-7 mt-0 flex w-full min-w-fit">
@@ -82,7 +83,7 @@ function ScriptItem({
                                     unoptimized
                                 />
                                 <div className="ml-4 flex flex-col justify-between">
-                                    <div className="flex h-full w-full flex-col justify-between">
+                                    <div className="flex h-full w-full flex-col mb-4">
                                         <div>
                                             <h1 className="text-lg font-semibold">
                                                 {item.name} {getDisplayValueFromType(item.type)}
@@ -126,10 +127,20 @@ function ScriptItem({
                             <div className="flex flex-col items-end gap-4 ml-auto">
                                 <DefaultSettings item={item} />
                                 <InterFaces item={item} />
-                                <Buttons item={item} />
+                                <div>
+                                    <>
+                                        <button
+                                            onClick={() => setLinksVisible(!linksVisible)}
+                                            className="flex items-right justify-right gap-1 mb-2 rounded-md border border-accent bg-accent/20 px-2 py-1 text-l hover:bg-accent w-30"
+                                        >
+                                            Show Links {linksVisible ? '▲' : '▼'}
+                                        </button>
+                                        {linksVisible && <Buttons item={item} />}
+                                    </>
+                                </div>
                             </div>
                         </div>
-                        <Separator className="mt-4" />
+
                         <div>
                             <div className="mt-4">
                                 <Description item={item} />
