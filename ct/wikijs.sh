@@ -41,16 +41,23 @@ function update_script() {
         systemctl stop wikijs
         msg_ok "Stopped ${APP}"
 
-        msg_info "Updating ${APP}"
+        msg_info "Backing up Data"
         mkdir /opt/wikijs-backup
         $SQLITE_INSTALL && cp /opt/wikijs/db.sqlite /opt/wikijs-backup
         cp -R /opt/wikijs/{config.yml,/data} /opt/wikijs-backup
+        msg_ok "Backed up Data"
+
+        msg_info "Updating ${APP}"
         rm -rf /opt/wikijs/*
         cd /opt/wikijs
         wget -q "https://github.com/requarks/wiki/releases/download/v${RELEASE}/wiki-js.tar.gz"
         tar -xzf wiki-js.tar.gz
-        cp -R /opt/wikijs-backup/* /opt/wikijs
         msg_ok "Updated ${APP}"
+
+        msg_info "Restoring Data"
+        cp -R /opt/wikijs-backup/* /opt/wikijs
+        $SQLITE_INSTALL && $STD npm rebuild sqlite3
+        msg_ok "Restored Data"
 
         msg_info "Starting ${APP}"
         systemctl start wikijs
