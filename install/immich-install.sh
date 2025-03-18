@@ -20,6 +20,20 @@ $STD apt-get install -y \
     curl
 msg_ok "Installed Dependencies"
 
+get_latest_release() {
+    curl -sL https://api.github.com/repos/$1/releases/latest | grep '"tag_name":' | cut -d'"' -f4
+}
+
+DOCKER_LATEST_VERSION=$(get_latest_release "moby/moby")
+DOCKER_COMPOSE_LATEST_VERSION=$(get_latest_release "docker/compose")
+
+msg_info "Installing Docker $DOCKER_LATEST_VERSION"
+DOCKER_CONFIG_PATH='/etc/docker/daemon.json'
+mkdir -p $(dirname $DOCKER_CONFIG_PATH)
+echo -e '{\n  "log-driver": "journald"\n}' >/etc/docker/daemon.json
+$STD sh <(curl -sSL https://get.docker.com)
+msg_ok "Installed Docker $DOCKER_LATEST_VERSION"
+
 msg_info "Installing Immich"
 wget -q https://raw.githubusercontent.com/immich-app/immich/main/install.sh
 chmod +x install.sh
