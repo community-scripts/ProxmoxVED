@@ -64,7 +64,7 @@ temp_file=$(mktemp)
 RELEASE=$(curl -s https://api.github.com/repos/Requarks/wiki/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 wget -q "https://github.com/requarks/wiki/releases/download/v${RELEASE}/wiki-js.tar.gz" -O "$temp_file"
 mkdir /opt/wikijs
-tar -xzf "$temp_file"
+tar -xzf "$temp_file" -C /opt/wikijs
 mv /opt/wikijs/config.sample.yml /opt/wikijs/config.yml
 sed -i -E 's|^( *user: ).*|\1'"$DB_USER"'|' /opt/wikijs/config.yml
 sed -i -E 's|^( *pass: ).*|\1'"$DB_PASS"'|' /opt/wikijs/config.yml
