@@ -7,9 +7,6 @@ on:
     labels:
       - "Ready for Testing"
 
-permissions:
-  issues: write
-
 jobs:
   post_to_discord:
     runs-on: ubuntu-latest
