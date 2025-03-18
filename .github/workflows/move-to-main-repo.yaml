@@ -20,8 +20,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          app-id: ${{ vars.PUSH_MAIN_APP_ID }}
+          private-key: ${{ secrets.PUSH_MAIN_APP_SECRET }}
           owner: community-scripts
           repositories: |
             ProxmoxVE
@@ -128,7 +128,7 @@ jobs:
       - name: Clone ProxmoxVE (Target Repo)
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
-          git clone https://x-access-token:${{ secrets.GH_MERGE_PAT }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
+          git clone https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
           cd ProxmoxVE
 
           if [[ -f "ct/${script_name}.sh" ]]; then
@@ -166,7 +166,7 @@ jobs:
       - name: Create Pull Request in ProxmoxVE
         id: create_pull_request
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_MERGE_PAT }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
           gh pr create \
