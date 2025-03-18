@@ -5,7 +5,7 @@ on:
     types:
       - labeled
     labels:
-      - "Ready for Testing"
+      - "Ready For Testing"
 
 jobs:
   post_to_discord:
