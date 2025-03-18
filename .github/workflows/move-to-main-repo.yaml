@@ -169,5 +169,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "A PR has been created for ${{ steps.list_issues.outputs.script_name }}: community-scripts/ProxmoxVE#${{ steps.create_pull_request.outputs.pr_number }}"
-          gh issue label remove ${{ steps.list_issues.outputs.issue_nr }} "Migration To ProxmoxVE"
-          gh issue label add ${{ steps.list_issues.outputs.issue_nr }} "Started Migration To ProxmoxVE"
+          gh issue edit ${{ steps.list_issues.outputs.issue_nr }} --remove-label "Migration To ProxmoxVE" --add-label "Started Migration To ProxmoxVE"
