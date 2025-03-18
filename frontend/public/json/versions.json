@@ -10,6 +10,11 @@
     "date": "2025-03-18T12:51:31Z"
   },
   {
+    "name": "Radarr/Radarr",
+    "version": "v5.20.2.9777",
+    "date": "2025-03-18T12:11:37Z"
+  },
+  {
     "name": "apache/couchdb",
     "version": "3.4.3.post1",
     "date": "2025-03-18T09:44:59Z"
@@ -18,6 +23,11 @@
     "name": "zitadel/zitadel",
     "version": "v2.70.5",
     "date": "2025-03-18T08:08:16Z"
+  },
+  {
+    "name": "nzbgetcom/nzbget",
+    "version": "testing",
+    "date": "2025-03-18T08:06:43Z"
   },
   {
     "name": "Checkmk/checkmk",
@@ -75,9 +85,34 @@
     "date": "2025-03-17T19:16:49Z"
   },
   {
+    "name": "Sonarr/Sonarr",
+    "version": "v4.0.14.2939",
+    "date": "2025-03-17T19:12:37Z"
+  },
+  {
     "name": "TriliumNext/Notes",
     "version": "v0.92.4",
     "date": "2025-03-17T16:00:19Z"
+  },
+  {
+    "name": "HabitRPG/habitica",
+    "version": "v5.34.3",
+    "date": "2025-03-17T14:20:04Z"
+  },
+  {
+    "name": "n8n-io/n8n",
+    "version": "n8n@1.84.0",
+    "date": "2025-03-17T13:58:36Z"
+  },
+  {
+    "name": "Graylog2/graylog2-server",
+    "version": "6.2.0-beta.1",
+    "date": "2025-03-17T13:00:39Z"
+  },
+  {
+    "name": "home-assistant/operating-system",
+    "version": "15.0",
+    "date": "2025-03-17T10:26:18Z"
   },
   {
     "name": "morpheus65535/bazarr",
@@ -115,6 +150,11 @@
     "date": "2025-03-16T21:14:52Z"
   },
   {
+    "name": "autobrr/autobrr",
+    "version": "v1.60.0",
+    "date": "2025-03-16T18:39:49Z"
+  },
+  {
     "name": "pocket-id/pocket-id",
     "version": "v0.40.1",
     "date": "2025-03-16T17:02:54Z"
@@ -140,6 +180,11 @@
     "date": "2025-03-16T11:59:24Z"
   },
   {
+    "name": "Prowlarr/Prowlarr",
+    "version": "v1.32.2.4987",
+    "date": "2025-03-16T09:41:37Z"
+  },
+  {
     "name": "pocketbase/pocketbase",
     "version": "v0.26.1",
     "date": "2025-03-16T08:51:41Z"
@@ -150,6 +195,11 @@
     "date": "2025-03-16T08:12:40Z"
   },
   {
+    "name": "esphome/esphome",
+    "version": "2025.3.0b3",
+    "date": "2025-03-16T06:53:58Z"
+  },
+  {
     "name": "Kozea/Radicale",
     "version": "v3.5.0",
     "date": "2025-03-16T06:05:55Z"
@@ -158,6 +208,16 @@
     "name": "VictoriaMetrics/VictoriaMetrics",
     "version": "v1.17.0-victorialogs",
     "date": "2025-03-16T00:22:43Z"
+  },
+  {
+    "name": "pelican-dev/wings",
+    "version": "v1.0.0-beta10",
+    "date": "2025-03-15T20:24:34Z"
+  },
+  {
+    "name": "pelican-dev/panel",
+    "version": "v1.0.0-beta18",
+    "date": "2025-03-15T20:24:04Z"
   },
   {
     "name": "bunkerity/bunkerweb",
@@ -178,6 +238,11 @@
     "name": "duplicati/duplicati",
     "version": "v2.1.0.111-2.1.0.111_canary_2025-03-15",
     "date": "2025-03-15T11:06:44Z"
+  },
+  {
+    "name": "theonedev/onedev",
+    "version": "vv11.7.5",
+    "date": "2025-03-15T09:53:15Z"
   },
   {
     "name": "henrygd/beszel",
@@ -225,6 +290,21 @@
     "date": "2025-03-14T19:14:52Z"
   },
   {
+    "name": "FlowiseAI/Flowise",
+    "version": "flowise@2.2.7-patch.1",
+    "date": "2025-03-14T14:53:53Z"
+  },
+  {
+    "name": "jupyter/notebook",
+    "version": "v7.3.3",
+    "date": "2025-03-14T13:41:04Z"
+  },
+  {
+    "name": "home-assistant/core",
+    "version": "2025.3.3",
+    "date": "2025-03-14T11:58:45Z"
+  },
+  {
     "name": "docker/compose",
     "version": "v2.34.0",
     "date": "2025-03-14T09:11:17Z"
@@ -235,6 +315,11 @@
     "date": "2025-03-13T21:34:25Z"
   },
   {
+    "name": "dotnetfactory/fluid-calendar",
+    "version": "v1.2.1",
+    "date": "2025-03-13T19:11:35Z"
+  },
+  {
     "name": "kimai/kimai",
     "version": "2.31.0",
     "date": "2025-03-13T17:13:47Z"
@@ -243,6 +328,11 @@
     "name": "usememos/memos",
     "version": "v0.24.1",
     "date": "2025-03-13T14:08:30Z"
+  },
+  {
+    "name": "dgtlmoon/changedetection.io",
+    "version": "0.49.4",
+    "date": "2025-03-13T11:08:16Z"
   },
   {
     "name": "moghtech/komodo",
@@ -260,6 +350,11 @@
     "date": "2025-03-12T22:41:17Z"
   },
   {
+    "name": "jenkinsci/jenkins",
+    "version": "jenkins-2.501",
+    "date": "2025-03-12T21:47:58Z"
+  },
+  {
     "name": "minio/minio",
     "version": "RELEASE.2025-03-12T18-04-18Z",
     "date": "2025-03-12T18:45:21Z"
@@ -275,6 +370,21 @@
     "date": "2025-03-12T13:03:27Z"
   },
   {
+    "name": "syncthing/syncthing",
+    "version": "v1.29.3",
+    "date": "2025-03-12T11:56:30Z"
+  },
+  {
+    "name": "transmission/transmission",
+    "version": "4.1.0-beta.2",
+    "date": "2025-03-12T11:01:28Z"
+  },
+  {
+    "name": "emqx/emqx",
+    "version": "e5.9.0-beta.1",
+    "date": "2025-03-12T09:52:26Z"
+  },
+  {
     "name": "gotson/komga",
     "version": "1.21.2",
     "date": "2025-03-12T04:19:30Z"
@@ -288,6 +398,11 @@
     "name": "benjaminjonard/koillection",
     "version": "1.6.12",
     "date": "2025-03-11T15:04:43Z"
+  },
+  {
+    "name": "OctoPrint/OctoPrint",
+    "version": "1.11.0rc4",
+    "date": "2025-03-11T13:37:12Z"
   },
   {
     "name": "excalidraw/excalidraw",
@@ -310,6 +425,11 @@
     "date": "2025-03-11T05:20:22Z"
   },
   {
+    "name": "stackblitz-labs/bolt.diy",
+    "version": "v0.0.7-hf1",
+    "date": "2025-03-10T20:49:39Z"
+  },
+  {
     "name": "stonith404/pingvin-share",
     "version": "v1.10.3",
     "date": "2025-03-10T20:36:59Z"
@@ -325,6 +445,11 @@
     "date": "2025-03-10T10:40:00Z"
   },
   {
+    "name": "icereed/paperless-gpt",
+    "version": "v0.13.0",
+    "date": "2025-03-10T10:03:12Z"
+  },
+  {
     "name": "AlexxIT/go2rtc",
     "version": "v1.9.9",
     "date": "2025-03-10T03:22:11Z"
@@ -333,6 +458,26 @@
     "name": "clusterzx/paperless-ai",
     "version": "v2.7.4",
     "date": "2025-03-09T19:03:53Z"
+  },
+  {
+    "name": "caddyserver/caddy",
+    "version": "v2.10.0-beta.2",
+    "date": "2025-03-09T13:51:09Z"
+  },
+  {
+    "name": "awawa-dev/HyperHDR",
+    "version": "v21.0.0.0",
+    "date": "2025-03-09T12:25:44Z"
+  },
+  {
+    "name": "Lidarr/Lidarr",
+    "version": "v2.10.1.4589",
+    "date": "2025-03-09T09:51:41Z"
+  },
+  {
+    "name": "Readarr/Readarr",
+    "version": "v0.4.12.2753",
+    "date": "2025-03-09T09:50:51Z"
   },
   {
     "name": "Brandawg93/PeaNUT",
@@ -373,6 +518,11 @@
     "name": "ellite/Wallos",
     "version": "v2.46.1",
     "date": "2025-03-06T16:29:30Z"
+  },
+  {
+    "name": "eclipse-mosquitto/mosquitto",
+    "version": "v2.0.21",
+    "date": "2025-03-06T16:24:56Z"
   },
   {
     "name": "Dolibarr/dolibarr",
@@ -435,6 +585,11 @@
     "date": "2025-03-04T15:35:27Z"
   },
   {
+    "name": "actualbudget/actual",
+    "version": "v25.3.1",
+    "date": "2025-03-03T02:05:36Z"
+  },
+  {
     "name": "Koenkk/zigbee2mqtt",
     "version": "2.1.3",
     "date": "2025-03-02T07:47:30Z"
@@ -460,9 +615,19 @@
     "date": "2025-02-28T16:26:05Z"
   },
   {
+    "name": "photoprism/photoprism",
+    "version": "250228-43447fa38",
+    "date": "2025-02-28T15:18:09Z"
+  },
+  {
     "name": "jhuckaby/Cronicle",
     "version": "v0.9.76",
     "date": "2025-02-28T03:15:18Z"
+  },
+  {
+    "name": "jordan-dalby/ByteStash",
+    "version": "v1.5.7",
+    "date": "2025-02-27T20:04:08Z"
   },
   {
     "name": "docmost/docmost",
@@ -473,6 +638,16 @@
     "name": "cloudflare/cloudflared",
     "version": "2025.2.1",
     "date": "2025-02-27T11:36:11Z"
+  },
+  {
+    "name": "rabbitmq/rabbitmq-server",
+    "version": "v4.0.7",
+    "date": "2025-02-26T19:07:11Z"
+  },
+  {
+    "name": "cross-seed/cross-seed",
+    "version": "v6.11.2",
+    "date": "2025-02-26T14:54:49Z"
   },
   {
     "name": "Part-DB/Part-DB-server",
@@ -500,14 +675,34 @@
     "date": "2025-02-25T14:55:50Z"
   },
   {
+    "name": "ZoeyVid/NPMplus",
+    "version": "2025-02-25-r1",
+    "date": "2025-02-25T13:26:41Z"
+  },
+  {
     "name": "traefik/traefik",
     "version": "v3.3.4",
     "date": "2025-02-25T10:18:58Z"
   },
   {
+    "name": "zabbix/zabbix",
+    "version": "7.2.4",
+    "date": "2025-02-25T09:35:54Z"
+  },
+  {
     "name": "schlagmichdoch/PairDrop",
     "version": "v1.11.2",
     "date": "2025-02-24T19:47:06Z"
+  },
+  {
+    "name": "drakkan/sftpgo",
+    "version": "v2.6.6",
+    "date": "2025-02-24T19:14:46Z"
+  },
+  {
+    "name": "ioBroker/ioBroker",
+    "version": "2025-02-23",
+    "date": "2025-02-24T16:05:06Z"
   },
   {
     "name": "ventoy/Ventoy",
@@ -520,9 +715,24 @@
     "date": "2025-02-23T20:39:48Z"
   },
   {
+    "name": "openhab/openhab-core",
+    "version": "5.0.0.M1",
+    "date": "2025-02-23T14:55:36Z"
+  },
+  {
+    "name": "outline/outline",
+    "version": "v0.82.1-15",
+    "date": "2025-02-23T14:38:09Z"
+  },
+  {
     "name": "TechnitiumSoftware/DnsServer",
     "version": "v13.4.3",
     "date": "2025-02-23T11:08:26Z"
+  },
+  {
+    "name": "OliveTin/OliveTin",
+    "version": "2025.2.21",
+    "date": "2025-02-21T23:09:34Z"
   },
   {
     "name": "azukaar/Cosmos-Server",
@@ -560,14 +770,44 @@
     "date": "2025-02-18T15:50:08Z"
   },
   {
+    "name": "typesense/typesense",
+    "version": "v28.0",
+    "date": "2025-02-18T15:49:57Z"
+  },
+  {
+    "name": "qbittorrent/qBittorrent",
+    "version": "release-5.0.4",
+    "date": "2025-02-18T14:14:11Z"
+  },
+  {
     "name": "postgres/postgres",
     "version": "REL_13_20",
     "date": "2025-02-17T21:17:13Z"
   },
   {
+    "name": "jellyfin/jellyfin",
+    "version": "v10.10.6",
+    "date": "2025-02-16T21:55:45Z"
+  },
+  {
     "name": "sbondCo/Watcharr",
     "version": "v2.0.2",
     "date": "2025-02-16T21:34:29Z"
+  },
+  {
+    "name": "recyclarr/recyclarr",
+    "version": "v7.4.1",
+    "date": "2025-02-15T20:54:00Z"
+  },
+  {
+    "name": "node-red/node-red",
+    "version": "4.0.9",
+    "date": "2025-02-14T17:10:20Z"
+  },
+  {
+    "name": "mayswind/AriaNg",
+    "version": "1.3.10",
+    "date": "2025-02-14T16:23:14Z"
   },
   {
     "name": "MariaDB/server",
@@ -578,6 +818,16 @@
     "name": "glpi-project/glpi",
     "version": "10.0.18",
     "date": "2025-02-12T11:07:02Z"
+  },
+  {
+    "name": "WordPress/WordPress",
+    "version": "6.7.2",
+    "date": "2025-02-11T16:13:18Z"
+  },
+  {
+    "name": "homebridge/homebridge",
+    "version": "v1.9.0",
+    "date": "2025-02-11T13:26:42Z"
   },
   {
     "name": "TasmoAdmin/TasmoAdmin",
@@ -595,6 +845,11 @@
     "date": "2025-02-08T18:45:30Z"
   },
   {
+    "name": "forgejo/forgejo",
+    "version": "v10.0.1",
+    "date": "2025-02-08T13:17:20Z"
+  },
+  {
     "name": "bluenviron/mediamtx",
     "version": "v1.11.3",
     "date": "2025-02-07T19:29:19Z"
@@ -603,6 +858,11 @@
     "name": "apache/cassandra",
     "version": "cassandra-4.0.17",
     "date": "2025-02-07T10:38:54Z"
+  },
+  {
+    "name": "apache/tika",
+    "version": "2.9.3",
+    "date": "2025-02-07T00:15:40Z"
   },
   {
     "name": "actualbudget/actual-server",
@@ -630,6 +890,11 @@
     "date": "2024-12-18T14:35:37Z"
   },
   {
+    "name": "requarks/wiki",
+    "version": "v2.5.306",
+    "date": "2025-02-02T21:19:29Z"
+  },
+  {
     "name": "PrivateBin/PrivateBin",
     "version": "1.7.6",
     "date": "2025-02-01T09:50:52Z"
@@ -650,6 +915,16 @@
     "date": "2025-01-22T22:19:33Z"
   },
   {
+    "name": "crafty-controller/crafty-4",
+    "version": "v4.4.7",
+    "date": "2025-01-20T15:45:06Z"
+  },
+  {
+    "name": "owncast/owncast",
+    "version": "v0.2.1",
+    "date": "2025-01-19T22:40:40Z"
+  },
+  {
     "name": "donaldzou/WGDashboard",
     "version": "v4.1.4",
     "date": "2025-01-19T13:14:19Z"
@@ -658,6 +933,16 @@
     "name": "0xERR0R/blocky",
     "version": "v0.25",
     "date": "2025-01-17T20:49:31Z"
+  },
+  {
+    "name": "petio-team/petio",
+    "version": "v0.5.7",
+    "date": "2025-01-17T15:57:17Z"
+  },
+  {
+    "name": "readeck/readeck",
+    "version": "0.17.1",
+    "date": "2025-01-15T19:13:33Z"
   },
   {
     "name": "influxdata/influxdb",
@@ -690,9 +975,19 @@
     "date": "2025-01-08T14:27:50Z"
   },
   {
+    "name": "nicolargo/glances",
+    "version": "v4.3.0.8",
+    "date": "2025-01-05T13:55:13Z"
+  },
+  {
     "name": "MagicMirrorOrg/MagicMirror",
     "version": "v2.30.0",
     "date": "2025-01-01T14:30:19Z"
+  },
+  {
+    "name": "go-vikunja/vikunja",
+    "version": "v0.24.6",
+    "date": "2024-12-22T20:24:35Z"
   },
   {
     "name": "louislam/uptime-kuma",
@@ -710,9 +1005,19 @@
     "date": "2024-12-16T11:55:50Z"
   },
   {
+    "name": "ArchiveBox/ArchiveBox",
+    "version": "v0.7.3",
+    "date": "2024-12-15T10:18:06Z"
+  },
+  {
     "name": "pymedusa/Medusa",
     "version": "v1.0.22",
     "date": "2024-12-13T12:22:19Z"
+  },
+  {
+    "name": "MDeLuise/plant-it",
+    "version": "0.10.0",
+    "date": "2024-12-10T09:35:26Z"
   },
   {
     "name": "phpipam/phpipam",
@@ -765,6 +1070,11 @@
     "date": "2024-10-29T16:17:48Z"
   },
   {
+    "name": "CorentinTh/it-tools",
+    "version": "v2024.10.22-7ca5933",
+    "date": "2024-10-22T09:58:03Z"
+  },
+  {
     "name": "aceberg/WatchYourLAN",
     "version": "2.0.4",
     "date": "2024-10-20T18:57:37Z"
@@ -773,6 +1083,11 @@
     "name": "NLnetLabs/unbound",
     "version": "release-1.22.0",
     "date": "2024-10-17T08:43:37Z"
+  },
+  {
+    "name": "Notifiarr/notifiarr",
+    "version": "v0.8.3",
+    "date": "2024-10-04T23:49:07Z"
   },
   {
     "name": "Kometa-Team/Kometa",
@@ -825,9 +1140,19 @@
     "date": "2024-05-30T17:20:53Z"
   },
   {
+    "name": "motioneye-project/motioneye",
+    "version": "0.43.1b2",
+    "date": "2024-05-29T20:32:35Z"
+  },
+  {
     "name": "gnmyt/myspeed",
     "version": "v1.0.9",
     "date": "2024-05-21T22:15:33Z"
+  },
+  {
+    "name": "binwiederhier/ntfy",
+    "version": "v2.11.0",
+    "date": "2024-05-13T20:19:54Z"
   },
   {
     "name": "CrazyWolf13/web-check",
@@ -840,6 +1165,11 @@
     "date": "2024-05-04T08:06:50Z"
   },
   {
+    "name": "hakimel/reveal.js",
+    "version": "5.1.0",
+    "date": "2024-04-11T07:03:04Z"
+  },
+  {
     "name": "thelounge/thelounge-deb",
     "version": "v4.4.3",
     "date": "2024-04-06T12:24:35Z"
@@ -848,5 +1178,25 @@
     "name": "louislam/dockge",
     "version": "1.4.2",
     "date": "2024-01-21T17:02:52Z"
+  },
+  {
+    "name": "hyperion-project/hyperion.ng",
+    "version": "2.0.16",
+    "date": "2024-01-18T16:11:07Z"
+  },
+  {
+    "name": "wger-project/wger",
+    "version": "2.2",
+    "date": "2023-12-06T12:08:09Z"
+  },
+  {
+    "name": "sct/overseerr",
+    "version": "preview-test-node-18",
+    "date": "2023-11-06T10:21:37Z"
+  },
+  {
+    "name": "deepch/RTSPtoWeb",
+    "version": "v2.4.3",
+    "date": "2023-03-29T12:05:02Z"
   }
 ]
