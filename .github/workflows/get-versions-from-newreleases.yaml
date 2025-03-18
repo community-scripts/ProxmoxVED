@@ -65,7 +65,7 @@ jobs:
               version_data=$(echo "$version" | jq -r '.version // empty')
               version_date=$(echo "$version" | jq -r '.date // empty')
               if [ -n "$version_data" ]; then
-                jq --arg name "$name" --arg version "$version_data" \
+                jq --arg name "$name" --arg version "$version_data" --arf date "$version_date" \
                   '. += [{"name": $name, "version": $version, "date": $version_date}]' "$output_file" > "$output_file.tmp" && mv "$output_file.tmp" "$output_file"
               fi
             done
