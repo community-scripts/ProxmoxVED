@@ -148,3 +148,12 @@ jobs:
             --base main \
             --title "Migrate $script_name to ProxmoxVE" \
             --body "Automated migration of $script_name from ProxmoxVED to ProxmoxVE."
+          pr_number=$(gh pr list --json number --limit 1 | jq -r '.[0].number')
+          echo "pr_number=$pr_number" >> $GITHUB_ENV
+
+      - name:
+        if: steps.create_pull_request.outputs.pr_number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "A PR has been created for ${{ steps.list_issues.outputs.script_name }}: community-scripts/ProxmoxVE#${{ steps.create_pull_request.outputs.pr_number }}"
