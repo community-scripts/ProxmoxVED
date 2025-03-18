@@ -1,0 +1,33 @@
+{
+    "name": "Immich",
+    "slug": "immich",
+    "categories": [
+        3
+    ],
+    "date_created": "2025-03-18",
+    "type": "ct",
+    "updateable": false,
+    "privileged": false,
+    "interface_port": 2283,
+    "documentation": "https://immich.app/docs",
+    "website": "https://immich.app/",
+    "logo": "https://immich.app/favicon.png",
+    "description": "Immich is a self-hosted photo and video backup solution with AI-powered features.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/immich.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 2048,
+                "hdd": 30,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": null
+    }
+}
