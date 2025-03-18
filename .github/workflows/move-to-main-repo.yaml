@@ -41,13 +41,9 @@ jobs:
         run: |
           echo "Filtering Issues with Label Migration To ProxmoxVE"
           raw_output=$(gh issue list --json title,labels,number)
-          echo "$raw_output"
-
           filtered_issues=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "Migration To ProxmoxVE") | .title' | head -n 1)
           issue_nr=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "Migration To ProxmoxVE") | .number' | head -n 1)
-          echo $raw_output
-          echo $filtered_issues
-          echo $issue_nr
+
           if [ -z "$filtered_issues" ]; then
             echo "No issues found with label 'Migration To ProxmoxVE'."
             exit 1
@@ -67,27 +63,23 @@ jobs:
           install_file="install/${script_name}-install.sh"
           json_file="frontend/public/json/${script_name}.json"
 
-          echo "Checking for files:"
-            echo "CT File: $ct_file"
-            echo "Install File: $install_file"
-            echo "JSON File: $json_file"
 
           if [[ -f "$ct_file" ]]; then
-            echo "ct file found."
+
           else
              echo "ct file not found."
              echo "files_found=false" >> $GITHUB_OUTPUT
              echo "missing=$ct_file" >> $GITHUB_OUTPUT
           fi
           if [[ -f "$install_file" ]]; then
-            echo "install file found."
+
           else
               echo "install file not found."
              echo "files_found=false" >> $GITHUB_OUTPUT
              echo "missing=$install_file" >> $GITHUB_OUTPUT
           fi
           if [[ -f "$json_file" ]]; then
-            echo "json file found."
+
           else
              echo "json file not found."
              echo "files_found=false" >> $GITHUB_OUTPUT
