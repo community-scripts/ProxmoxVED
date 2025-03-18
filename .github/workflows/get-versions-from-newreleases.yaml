@@ -71,6 +71,25 @@ jobs:
           git config --global user.name "GitHub Actions[bot]"
           git checkout -b update_versions || git checkout update_versions
           git add frontend/public/json/versions.json
+          if git diff --cached --quiet; then
+            echo "No changes detected."
+            echo "changed=false" >> "$GITHUB_ENV"
+            exit 0
+          else
+            echo "Changes detected:"
+            git diff --stat --cached
+            echo "changed=true" >> "$GITHUB_ENV"
+          fi
           git commit -m "Update versions.json"
           git push origin update_versions --force
           gh pr create --title "[AUTOMATIC PR]Update versions.json" --body "Update versions.json, crawled from newreleases.io" --base main --head update_versions
+
+      - name: Approve pull request
+        if: env.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "pr-update-app-files" --json number --jq '.[].number')
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr review $PR_NUMBER --approve
+          fi
