@@ -1,6 +1,7 @@
 name: Crawl Versions from newreleases.io
 
 on:
+  workflow_dispatch:
   schedule:
     # Runs at 12:00 AM and 12:00 PM UTC
     - cron: "0 0,12 * * *"
