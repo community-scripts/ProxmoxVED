@@ -79,7 +79,7 @@ ln -s /etc/docspell-joex /opt/docspell/docspell-joex && ln -s /etc/docspell-rest
 #  s|url = \"jdbc:postgresql://server:5432/db\"|url = \"jdbc:postgresql://localhost:5432/$DB_NAME\"|;
 #  s|user = \".*\"|user = \"$DB_USER\"|;
 #  s|password = \".*\"|password = \"$DB_PASS\"|;
-#" /opt/docspell/docspell-restserver/docspell-server.conf /opt/docspell/docspell-joex.conf
+#" /usr/share/docspell-restserver/conf/docspell-server.conf /usr/share/docspell-joex/conf/docspell-joex.conf
 msg_ok "Setup Docspell"
 
 msg_info "Setup Apache Solr"
@@ -108,7 +108,7 @@ msg_info "Cleaning up"
 rm -R /opt/docspell/solr-$latest_version
 rm -R /opt/docspell-joex_${Docspell}_all.deb
 rm -R /opt/docspell-restserver_${Docspell}_all.deb
-cd /opt/docspell/solr-$latest_version.tgz
+rm -R /opt/docspell/solr-$latest_version.tgz
 $STD apt-get autoremove
 $STD apt-get autoclean
 msg_ok "Cleaned"
