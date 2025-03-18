@@ -33,7 +33,6 @@ $STD apt-get install -y \
     zip \
     curl \
     sudo \
-    git \
     make \
     mc
 msg_ok "Installed Dependencies"
@@ -69,18 +68,22 @@ DocspellDSC=$(wget -q https://github.com/docspell/dsc/releases/latest -O - | gre
 cd /opt
 wget -q https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-joex_${Docspell}_all.deb
 wget -q https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-restserver_${Docspell}_all.deb
-dpkg -i docspell-*.deb
+$STD dpkg -i docspell-*.deb
 wget -q https://github.com/docspell/dsc/releases/download/v${DocspellDSC}/dsc_amd64-musl-${DocspellDSC}
 mv dsc_amd* dsc
 chmod +x dsc
 mv dsc /usr/bin
 ln -s /etc/docspell-joex /opt/docspell/docspell-joex && ln -s /etc/docspell-restserver /opt/docspell/docspell-restserver && ln -s /usr/bin/dsc /opt/docspell/dsc
-#sed -i -E "
-#  s|bind[[:space:]]*\\{[[:space:]]*address[[:space:]]*=.*|bind { address = \"0.0.0.0\"|;
-#  s|url = \"jdbc:postgresql://server:5432/db\"|url = \"jdbc:postgresql://localhost:5432/$DB_NAME\"|;
-#  s|user = \".*\"|user = \"$DB_USER\"|;
-#  s|password = \".*\"|password = \"$DB_PASS\"|;
-#" /usr/share/docspell-restserver/conf/docspell-server.conf /usr/share/docspell-joex/conf/docspell-joex.conf
+wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+chmod +x /usr/bin/yq
+JOEX_CONF="/usr/share/docspell-joex/conf/docspell-joex.conf"
+SERVER_CONF="/usr/share/docspell-restserver/conf/docspell-server.conf"
+sed -i 's|address = "localhost"|address = "0.0.0.0"|' "$SERVER_CONF"
+sed -i -E '/jdbc\s*\{/,/\}/ {
+    s|url\s*=.*|url = "jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
+    s|user\s*=.*|user = "'"$DB_USER"'"|;
+    s|password\s*=.*|password = "'"$DB_PASS"'"|;
+}' "$JOEX_CONF" "$SERVER_CONF"
 msg_ok "Setup Docspell"
 
 msg_info "Setup Apache Solr"
