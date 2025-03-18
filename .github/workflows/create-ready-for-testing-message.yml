@@ -1,4 +1,4 @@
-name: Create discord thread when script is ready for testing
+name: Create discord thread and comment on GitHub issue when script is ready for testing
 
 on:
   issues:
