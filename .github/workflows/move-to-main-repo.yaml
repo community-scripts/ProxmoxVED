@@ -2,13 +2,14 @@ name: Move new Scripts to Main Repository
 
 on:
   workflow_dispatch:
+  issues:
+    types:
+      - labeled
+    labels:
+      - "Migration To ProxmoxVE"
 
 permissions:
-  deployments: write
   contents: write
-  statuses: write
-  actions: write
-  checks: write
   issues: write
   pull-requests: write
 
@@ -27,11 +28,6 @@ jobs:
           repositories: |
             ProxmoxVE
             ProxmoxVED
-            
-      - name: Check GitHub authentication
-        run: gh auth status
-        env:
-          GH_TOKEN: ${{ secrets.GH_MERGE_PAT }}
 
       - name: Checkout ProxmoxVED (Source Repo)
         uses: actions/checkout@v4
@@ -45,19 +41,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "Filtering Issues with Label MigrationTest"
+          echo "Filtering Issues with Label Migration To ProxmoxVE"
           raw_output=$(gh issue list --json title,labels)
           echo "$raw_output"
 
-          filtered_issues=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "MigrationTest") | .title')
+          filtered_issues=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "Migration To ProxmoxVE") | .title')
+          issue_nr=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "Migration To ProxmoxVE") | .number' | head -n 1)
           if [ -z "$filtered_issues" ]; then
-            echo "No issues found with label 'MigrationTest'."
+            echo "No issues found with label 'Migration To ProxmoxVE'."
             exit 1
           else
             script_name=$(echo "$filtered_issues" | head -n 1) # Nur das erste Issue nehmen
             script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
             echo "Script Name: $script_name_lowercase"
             echo "script_name=$script_name_lowercase" >> $GITHUB_ENV
+            echo "issue_nr=$issue_nr" >> $GITHUB_ENV
           fi
 
       - name: Check if script files exist
@@ -65,7 +63,7 @@ jobs:
         run: |
           ct_file="ct/${script_name}.sh"
           install_file="install/${script_name}-install.sh"
-          json_file="json/${script_name}.json"
+          json_file="frontend/public/json/${script_name}.json"
 
           if [[ -f "$ct_file" && -f "$install_file" && -f "$json_file" ]]; then
             echo "All required files found."
@@ -74,6 +72,11 @@ jobs:
             echo "Not all required files were found."
             echo "files_found=false" >> $GITHUB_ENV
           fi
+      - name: Comment if not all Files found
+        if: steps.check_files.outputs.files_found == 'false'
+        run: |
+          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "Not all required files were found for ${{ steps.list_issues.outputs.script_name }}. Please check the files and try again. Must include ct/APP.sh, install/APP-install.sh, and frontend/public/json/APP.json."
+          exit 1
 
       - name: Get GitHub App User ID
         id: get-user-id
@@ -114,19 +117,18 @@ jobs:
           git clone https://x-access-token:${{ secrets.GH_MERGE_PAT }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
           cd ProxmoxVE
           git checkout -b "$branch_name"
-      
+
           cp ../ct/$script_name.sh .
           cp ../install/$script_name-install.sh .
           cp ../json/$script_name.json .
-      
+
           git add .
           if git diff --cached --exit-code; then
             echo "No changes detected, skipping commit."
             exit 0
           fi
-      
-          git commit -m "${commit_message:-'Add new script'}"
 
+          git commit -m "${commit_message:-'Add new script'}"
 
       - name: Push to ProxmoxVE
         run: |
