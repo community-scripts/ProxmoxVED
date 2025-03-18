@@ -55,10 +55,12 @@ sed -i \
     -e "/host_url/s/slskd/localhost/" \
     /opt/soularr/config.ini
 sed -i \
-    -e "/^#This\|^#Default\|^INTERVAL/{N;d;}" \
+    -e "/#This\|#Default\|INTERVAL/{N;d;}" \
+    -e "/while\|#Pass/d" \
     -e "\|python|s|app|opt/soularr|; s|python|python3|" \
     -e "/dt/,+2d" \
     /opt/soularr/run.sh
+sed -i -E "/(soularr.py)/s/.{5}$//; /if/,/fi/s/.{4}//" /opt/soularr/run.sh
 chmod +x /opt/soularr/run.sh
 msg_ok "Installed Soularr"
 
