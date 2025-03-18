@@ -63,6 +63,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Setup Docspell (Patience)"
+mkdir -p /opt/docspell
 Docspell=$(wget -q https://github.com/eikek/docspell/releases/latest -O - | grep "title>Release" | cut -d " " -f 5)
 DocspellDSC=$(wget -q https://github.com/docspell/dsc/releases/latest -O - | grep "title>Release" | cut -d " " -f 4 | sed 's/^v//')
 cd /opt
@@ -83,7 +84,6 @@ ln -s /etc/docspell-joex /opt/docspell/docspell-joex && ln -s /etc/docspell-rest
 msg_ok "Setup Docspell"
 
 msg_info "Setup Apache Solr"
-mkdir -p /opt/docspell
 cd /opt/docspell
 SOLR_DOWNLOAD_URL="https://downloads.apache.org/lucene/solr/"
 latest_version=$(curl -s "$SOLR_DOWNLOAD_URL" | grep -oP '(?<=<a href=")[^"]+(?=/">[0-9])' | head -n 1)
