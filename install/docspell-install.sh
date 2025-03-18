@@ -78,11 +78,11 @@ wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 
 chmod +x /usr/bin/yq
 JOEX_CONF="/usr/share/docspell-joex/conf/docspell-joex.conf"
 SERVER_CONF="/usr/share/docspell-restserver/conf/docspell-server.conf"
-sed -i 's|address = "localhost"|address = "0.0.0.0"|' "$SERVER_CONF"
+sed -i 's|address = "localhost"|address = "0.0.0.0"|' "$JOEX_CONF" "$SERVER_CONF"
 sed -i -E '/jdbc\s*\{/,/\}/ {
-    s|url\s*=.*|url = "jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
-    s|user\s*=.*|user = "'"$DB_USER"'"|;
-    s|password\s*=.*|password = "'"$DB_PASS"'"|;
+    s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
+    s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
+    s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
 }' "$JOEX_CONF" "$SERVER_CONF"
 msg_ok "Setup Docspell"
 
