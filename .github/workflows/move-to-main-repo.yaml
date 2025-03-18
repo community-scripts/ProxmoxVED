@@ -78,6 +78,8 @@ jobs:
 
       - name: Comment if not all Files found
         if: steps.check_files.outputs.files_found == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "Not all required files were found for ${{ steps.list_issues.outputs.script_name }}. Please check the files and try again. Must include ct/APP.sh, install/APP-install.sh, and frontend/public/json/APP.json."
           exit 1
