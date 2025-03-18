@@ -68,7 +68,6 @@ jobs:
           install_file="install/${script_name}-install.sh"
           json_file="frontend/public/json/${script_name}.json"
 
-          //check each file seperately
           if [[ -f "$ct_file" ]]; then
             echo "ct file found."
           else
