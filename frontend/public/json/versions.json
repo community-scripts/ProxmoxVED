@@ -1,5 +1,25 @@
 [
   {
+    "name": "advplyr/audiobookshelf",
+    "version": "v2.20.0"
+  },
+  {
+    "name": "bastienwirtz/homer",
+    "version": "v25.03.3"
+  },
+  {
+    "name": "semaphoreui/semaphore",
+    "version": "v2.13.0"
+  },
+  {
+    "name": "Kareadita/Kavita",
+    "version": "v0.8.5.11"
+  },
+  {
+    "name": "TriliumNext/Notes",
+    "version": "v0.92.4"
+  },
+  {
     "name": "morpheus65535/bazarr",
     "version": "v1.5.1"
   },
@@ -20,10 +40,6 @@
     "version": "v0.7.7"
   },
   {
-    "name": "semaphoreui/semaphore",
-    "version": "v2.13.0"
-  },
-  {
     "name": "gethomepage/homepage",
     "version": "v1.0.4"
   },
@@ -38,10 +54,6 @@
   {
     "name": "evcc-io/evcc",
     "version": "0.201.0"
-  },
-  {
-    "name": "TriliumNext/Notes",
-    "version": "v0.92.4"
   },
   {
     "name": "BookStackApp/BookStack",
@@ -200,10 +212,6 @@
     "version": "v2.7.4"
   },
   {
-    "name": "Kareadita/Kavita",
-    "version": "v0.8.5.3"
-  },
-  {
     "name": "YuukanOO/seelf",
     "version": "v2.4.2"
   },
@@ -264,10 +272,6 @@
     "version": "v1.23.5"
   },
   {
-    "name": "bastienwirtz/homer",
-    "version": "v25.03.2"
-  },
-  {
     "name": "sysadminsmedia/homebox",
     "version": "v0.18.0"
   },
@@ -326,10 +330,6 @@
   {
     "name": "schlagmichdoch/PairDrop",
     "version": "v1.11.2"
-  },
-  {
-    "name": "advplyr/audiobookshelf",
-    "version": "v2.19.5"
   },
   {
     "name": "Athou/commafeed",
