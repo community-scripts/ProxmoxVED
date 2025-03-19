@@ -407,106 +407,207 @@ exit_script() {
 advanced_settings() {
     whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar." 8 58
     whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Default distribution for $APP" "Default is: ${var_os} ${var_version} \n \nIf the default Linux distribution is not adhered to, script support will be discontinued. \n" 10 58
-
     if [ "$var_os" != "alpine" ]; then
         var_default_os="${var_os}"
         var_os=""
-        while true; do
-            var_os=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DISTRIBUTION" --radiolist "Choose Distribution" 10 58 2 \
-                "debian" "" $([ "$var_default_os" == "debian" ] && echo "ON" || echo "OFF") \
-                "ubuntu" "" $([ "$var_default_os" == "ubuntu" ] && echo "ON" || echo "OFF") \
-                3>&1 1>&2 2>&3)
-
-            if [ $? -ne 0 ]; then exit_script; fi
-            if [ -n "$var_os" ]; then
-                echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
-                break
+        while [ -z "$var_os" ]; do
+            if [ "$var_default_os" == "debian" ]; then
+                if var_os=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DISTRIBUTION" --radiolist "Choose Distribution" 10 58 2 \
+                    "debian" "" ON \
+                    "ubuntu" "" OFF \
+                    3>&1 1>&2 2>&3); then
+                    if [ -n "$var_os" ]; then
+                        echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
+                    fi
+                else
+                    exit_script
+                fi
+            fi
+            if [ "$var_default_os" == "ubuntu" ]; then
+                if var_os=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DISTRIBUTION" --radiolist "Choose Distribution" 10 58 2 \
+                    "debian" "" OFF \
+                    "ubuntu" "" ON \
+                    3>&1 1>&2 2>&3); then
+                    if [ -n "$var_os" ]; then
+                        echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
+                    fi
+                else
+                    exit_script
+                fi
             fi
         done
     fi
 
-    var_default_version="${var_version}"
-    var_version=""
-    while true; do
-        if [ "$var_os" == "debian" ]; then
-            var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DEBIAN VERSION" --radiolist "Choose Version" 10 58 2 \
-                "11" "Bullseye" $([ "$var_default_version" == "11" ] && echo "ON" || echo "OFF") \
-                "12" "Bookworm" $([ "$var_default_version" == "12" ] && echo "ON" || echo "OFF") \
-                3>&1 1>&2 2>&3)
-        elif [ "$var_os" == "ubuntu" ]; then
-            var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "UBUNTU VERSION" --radiolist "Choose Version" 10 58 4 \
-                "20.04" "Focal" $([ "$var_default_version" == "20.04" ] && echo "ON" || echo "OFF") \
-                "22.04" "Jammy" $([ "$var_default_version" == "22.04" ] && echo "ON" || echo "OFF") \
-                "24.04" "Noble" $([ "$var_default_version" == "24.04" ] && echo "ON" || echo "OFF") \
-                "24.10" "Oracular" $([ "$var_default_version" == "24.10" ] && echo "ON" || echo "OFF") \
-                3>&1 1>&2 2>&3)
-        fi
+    if [ "$var_os" == "debian" ]; then
+        var_default_version="${var_version}"
+        var_version=""
+        while [ -z "$var_version" ]; do
+            if [ "$var_default_version" == "11" ]; then
+                if var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DEBIAN VERSION" --radiolist "Choose Version" 10 58 2 \
+                    "11" "Bullseye" ON \
+                    "12" "Bookworm" OFF \
+                    3>&1 1>&2 2>&3); then
+                    if [ -n "$var_version" ]; then
+                        echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+                    fi
+                else
+                    exit_script
+                fi
+            fi
+            if [ "$var_default_version" == "12" ]; then
+                if var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DEBIAN VERSION" --radiolist "Choose Version" 10 58 2 \
+                    "11" "Bullseye" OFF \
+                    "12" "Bookworm" ON \
+                    3>&1 1>&2 2>&3); then
+                    if [ -n "$var_version" ]; then
+                        echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+                    fi
+                else
+                    exit_script
+                fi
+            fi
+        done
+    fi
 
-        if [ $? -ne 0 ]; then exit_script; fi
-        if [ -n "$var_version" ]; then
-            echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-            break
-        fi
-    done
-
+    if [ "$var_os" == "ubuntu" ]; then
+        var_default_version="${var_version}"
+        var_version=""
+        while [ -z "$var_version" ]; do
+            if [ "$var_default_version" == "20.04" ]; then
+                if var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "UBUNTU VERSION" --radiolist "Choose Version" 10 58 4 \
+                    "20.04" "Focal" ON \
+                    "22.04" "Jammy" OFF \
+                    "24.04" "Noble" OFF \
+                    "24.10" "Oracular" OFF \
+                    3>&1 1>&2 2>&3); then
+                    if [ -n "$var_version" ]; then
+                        echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+                    fi
+                else
+                    exit_script
+                fi
+            elif [ "$var_default_version" == "22.04" ]; then
+                if var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "UBUNTU VERSION" --radiolist "Choose Version" 10 58 4 \
+                    "20.04" "Focal" OFF \
+                    "22.04" "Jammy" ON \
+                    "24.04" "Noble" OFF \
+                    "24.10" "Oracular" OFF \
+                    3>&1 1>&2 2>&3); then
+                    if [ -n "$var_version" ]; then
+                        echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+                    fi
+                else
+                    exit_script
+                fi
+            elif [ "$var_default_version" == "24.04" ]; then
+                if var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "UBUNTU VERSION" --radiolist "Choose Version" 10 58 4 \
+                    "20.04" "Focal" OFF \
+                    "22.04" "Jammy" OFF \
+                    "24.04" "Noble" ON \
+                    "24.10" "Oracular" OFF \
+                    3>&1 1>&2 2>&3); then
+                    if [ -n "$var_version" ]; then
+                        echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+                    fi
+                else
+                    exit_script
+                fi
+            else
+                if var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "UBUNTU VERSION" --radiolist "Choose Version" 10 58 4 \
+                    "20.04" "Focal" OFF \
+                    "22.04" "Jammy" OFF \
+                    "24.04" "Noble" OFF \
+                    "24.10" "Oracular" ON \
+                    3>&1 1>&2 2>&3); then
+                    if [ -n "$var_version" ]; then
+                        echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+                    fi
+                else
+                    exit_script
+                fi
+            fi
+        done
+    fi
+    # Setting Default Tag for Advanced Settings
+    TAGS="community-script-dev;${var_tags:-}"
     CT_DEFAULT_TYPE="${CT_TYPE}"
     CT_TYPE=""
-    while true; do
-        CT_TYPE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "CONTAINER TYPE" --radiolist "Choose Type" 10 58 2 \
-            "1" "Unprivileged" $([ "$CT_DEFAULT_TYPE" == "1" ] && echo "ON" || echo "OFF") \
-            "0" "Privileged" $([ "$CT_DEFAULT_TYPE" == "0" ] && echo "ON" || echo "OFF") \
-            3>&1 1>&2 2>&3)
-
-        if [ $? -ne 0 ]; then exit_script; fi
-        if [ -n "$CT_TYPE" ]; then
-            CT_TYPE_DESC="Unprivileged"
-            if [ "$CT_TYPE" -eq 0 ]; then
-                CT_TYPE_DESC="Privileged"
+    while [ -z "$CT_TYPE" ]; do
+        if [ "$CT_DEFAULT_TYPE" == "1" ]; then
+            if CT_TYPE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "CONTAINER TYPE" --radiolist "Choose Type" 10 58 2 \
+                "1" "Unprivileged" ON \
+                "0" "Privileged" OFF \
+                3>&1 1>&2 2>&3); then
+                if [ -n "$CT_TYPE" ]; then
+                    CT_TYPE_DESC="Unprivileged"
+                    if [ "$CT_TYPE" -eq 0 ]; then
+                        CT_TYPE_DESC="Privileged"
+                    fi
+                    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+                fi
+            else
+                exit_script
             fi
-            echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
-            break
+        fi
+        if [ "$CT_DEFAULT_TYPE" == "0" ]; then
+            if CT_TYPE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "CONTAINER TYPE" --radiolist "Choose Type" 10 58 2 \
+                "1" "Unprivileged" OFF \
+                "0" "Privileged" ON \
+                3>&1 1>&2 2>&3); then
+                if [ -n "$CT_TYPE" ]; then
+                    CT_TYPE_DESC="Unprivileged"
+                    if [ "$CT_TYPE" -eq 0 ]; then
+                        CT_TYPE_DESC="Privileged"
+                    fi
+                    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+                fi
+            else
+                exit_script
+            fi
         fi
     done
 
     while true; do
-        PW1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --passwordbox "\nSet Root Password (needed for root ssh access)" 9 58 --title "PASSWORD (leave blank for automatic login)" 3>&1 1>&2 2>&3)
-
-        if [ $? -ne 0 ]; then exit_script; fi
-
-        if [[ -z "$PW1" ]]; then
-            PW1="Automatic Login"
-            PW=""
-            echo -e "${VERIFYPW}${BOLD}${DGN}Root Password: ${BGN}$PW1${CL}"
-            break
-        elif [[ "$PW1" == *" "* ]]; then
-            whiptail --msgbox "Password cannot contain spaces. Please try again." 8 58
-        elif [ ${#PW1} -lt 5 ]; then
-            whiptail --msgbox "Password must be at least 5 characters long. Please try again." 8 58
-        else
-            PW2=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --passwordbox "\nVerify Root Password" 9 58 --title "PASSWORD VERIFICATION" 3>&1 1>&2 2>&3)
-
-            if [ $? -ne 0 ]; then exit_script; fi
-
-            if [[ "$PW1" == "$PW2" ]]; then
-                PW="-password $PW1"
-                echo -e "${VERIFYPW}${BOLD}${DGN}Root Password: ${BGN}********${CL}"
-                break
+        if PW1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --passwordbox "\nSet Root Password (needed for root ssh access)" 9 58 --title "PASSWORD (leave blank for automatic login)" 3>&1 1>&2 2>&3); then
+            if [[ ! -z "$PW1" ]]; then
+                if [[ "$PW1" == *" "* ]]; then
+                    whiptail --msgbox "Password cannot contain spaces. Please try again." 8 58
+                elif [ ${#PW1} -lt 5 ]; then
+                    whiptail --msgbox "Password must be at least 5 characters long. Please try again." 8 58
+                else
+                    if PW2=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --passwordbox "\nVerify Root Password" 9 58 --title "PASSWORD VERIFICATION" 3>&1 1>&2 2>&3); then
+                        if [[ "$PW1" == "$PW2" ]]; then
+                            PW="-password $PW1"
+                            echo -e "${VERIFYPW}${BOLD}${DGN}Root Password: ${BGN}********${CL}"
+                            break
+                        else
+                            whiptail --msgbox "Passwords do not match. Please try again." 8 58
+                        fi
+                    else
+                        exit_script
+                    fi
+                fi
             else
-                whiptail --msgbox "Passwords do not match. Please try again." 8 58
+                PW1="Automatic Login"
+                PW=""
+                echo -e "${VERIFYPW}${BOLD}${DGN}Root Password: ${BGN}$PW1${CL}"
+                break
             fi
+        else
+            exit_script
         fi
     done
 
     if CT_ID=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Container ID" 8 58 $NEXTID --title "CONTAINER ID" 3>&1 1>&2 2>&3); then
         if [ -z "$CT_ID" ]; then
             CT_ID="$NEXTID"
+            echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}$CT_ID${CL}"
+        else
+            echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}$CT_ID${CL}"
         fi
-        echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}$CT_ID${CL}"
     else
-        exit_script
+        exit
     fi
-}
-
 
     if CT_NAME=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 $NSAPP --title "HOSTNAME" 3>&1 1>&2 2>&3); then
         if [ -z "$CT_NAME" ]; then
