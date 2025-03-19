@@ -28,7 +28,8 @@ msg_ok "Latest Wazuh Version: $RELEASE"
 msg_info "Setup Wazuh"
 wget -q https://packages.wazuh.com/$RELEASE/wazuh-install.sh
 chmod +x wazuh-install.sh
-$STD bash wazuh-install.sh -a
+$STD bash wazuh-install.sh -a | tee ~/wazuh-install.output
+cat ~/wazuh-install.output | grep -E "User|Password" | awk '{$1=$1};1' | sed '1i wazuh-credentials' > ~/wazuh.creds
 msg_ok "Setup Wazuh"
 
 motd_ssh
@@ -36,6 +37,7 @@ customize
 
 msg_info "Cleaning up"
 rm -f wazuh-*.sh
+rm -f ~/wazuh-install.output
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
