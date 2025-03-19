@@ -411,7 +411,7 @@ advanced_settings() {
         var_default_os="${var_os}"
         var_os=""
         while [ -z "$var_os" ]; do
-            var_os=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DISTRIBUTION" --radiolist "Choose Distribution" 10 58 2 \
+            temp_var_os=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DISTRIBUTION" --radiolist "Choose Distribution" 10 58 2 \
                 "debian" "" $([ "$var_default_os" == "debian" ] && echo "ON" || echo "OFF") \
                 "ubuntu" "" $([ "$var_default_os" == "ubuntu" ] && echo "ON" || echo "OFF") \
                 3>&1 1>&2 2>&3)
@@ -419,8 +419,12 @@ advanced_settings() {
             if [ $? -ne 0 ]; then
                 exit_script
             fi
+
+            if [ -n "$temp_var_os" ]; then
+                var_os="$temp_var_os"
+                echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
+            fi
         done
-        echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
     fi
 
     if [ "$var_os" == "debian" ] || [ "$var_os" == "ubuntu" ]; then
@@ -428,12 +432,12 @@ advanced_settings() {
         var_version=""
         while [ -z "$var_version" ]; do
             if [ "$var_os" == "debian" ]; then
-                var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DEBIAN VERSION" --radiolist "Choose Version" 10 58 2 \
+                temp_var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DEBIAN VERSION" --radiolist "Choose Version" 10 58 2 \
                     "11" "Bullseye" $([ "$var_default_version" == "11" ] && echo "ON" || echo "OFF") \
                     "12" "Bookworm" $([ "$var_default_version" == "12" ] && echo "ON" || echo "OFF") \
                     3>&1 1>&2 2>&3)
             elif [ "$var_os" == "ubuntu" ]; then
-                var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "UBUNTU VERSION" --radiolist "Choose Version" 10 58 4 \
+                temp_var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "UBUNTU VERSION" --radiolist "Choose Version" 10 58 4 \
                     "20.04" "Focal" $([ "$var_default_version" == "20.04" ] && echo "ON" || echo "OFF") \
                     "22.04" "Jammy" $([ "$var_default_version" == "22.04" ] && echo "ON" || echo "OFF") \
                     "24.04" "Noble" $([ "$var_default_version" == "24.04" ] && echo "ON" || echo "OFF") \
@@ -444,9 +448,14 @@ advanced_settings() {
             if [ $? -ne 0 ]; then
                 exit_script
             fi
+
+            if [ -n "$temp_var_version" ]; then
+                var_version="$temp_var_version"
+                echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+            fi
         done
-        echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
     fi
+
 
     # Setting Default Tag for Advanced Settings
     TAGS="community-script-dev;${var_tags:-}"
