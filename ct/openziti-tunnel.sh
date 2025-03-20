@@ -3,7 +3,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/m
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: openziti
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://www.openziti.io
+# Source: https://github.com/openziti/ziti
 
 APP="openziti-tunnel"
 var_tags="network;openziti-tunnel"
