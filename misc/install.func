@@ -213,6 +213,13 @@ EOF
     msg_ok "Updated Container OS"
 }
 
+install_core_deps() {
+    msg_info "Installing core dependencies"
+    $STD apt-get update
+    $STD apt-get install -y sudo curl mc
+    msg_ok "Core dependencies installed"
+}
+
 # This function modifies the message of the day (motd) and SSH settings
 motd_ssh() {
     grep -qxF "export TERM='xterm-256color'" /root/.bashrc || echo "export TERM='xterm-256color'" >>/root/.bashrc
