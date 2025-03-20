@@ -34,7 +34,7 @@ if [[ ${prompt} ]]; then
   msg_info "Adding identity"
   echo "${prompt}" > /opt/openziti/etc/identities/identity.jwt
   chown ziti:ziti /opt/openziti/etc/identities/identity.jwt
-  systemctl enable -q --now ziti-edge-tunnel.service
+  systemctl enable -q --now ziti-edge-tunnel
   msg_ok "Service Started"
 else
   systemctl enable ziti-edge-tunnel.service
