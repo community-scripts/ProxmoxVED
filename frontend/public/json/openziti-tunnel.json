@@ -16,7 +16,7 @@
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/openziti.sh",
+            "script": "ct/openziti-tunnel.sh",
             "resources": {
                 "cpu": 1,
                 "ram": 512,
