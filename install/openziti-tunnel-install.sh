@@ -12,12 +12,10 @@ catch_errors
 setting_up_container
 network_check
 update_os
+install_core_deps
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  curl \
-  mc \
-  gpg
+$STD apt-get install -y gpg
 msg_ok "Installed Dependencies"
 
 msg_info "Installing openziti"
