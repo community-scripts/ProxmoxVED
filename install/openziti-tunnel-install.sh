@@ -37,7 +37,7 @@ if [[ ${prompt} ]]; then
   systemctl enable -q --now ziti-edge-tunnel
   msg_ok "Service Started"
 else
-  systemctl enable ziti-edge-tunnel.service
+  systemctl enable -q ziti-edge-tunnel
   msg_error "No identity provided; please place an identity file in /opt/openziti/etc/identities/ and restart the service"
 fi
 
