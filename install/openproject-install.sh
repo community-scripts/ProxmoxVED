@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2025 community-scripts ORG
 # Author: michelroegl-brunner
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/opf/openproject
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -48,21 +48,17 @@ API_KEY=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
 {
-    echo "Netbox-Credentials"
-    echo -e "Netbox Database User: \e[32m$DB_USER\e[0m"
-    echo -e "Netbox Database Password: \e[32m$DB_PASS\e[0m"
-    echo -e "Netbox Database Name: \e[32m$DB_NAME\e[0m"
-    echo -e "Netbox API Key: \e[32m$API_KEY\e[0m"
+    echo "OpenProject-Credentials"
+    echo -e "OpenProject Database User: \e[32m$DB_USER\e[0m"
+    echo -e "OpenProject Database Password: \e[32m$DB_PASS\e[0m"
+    echo -e "OpenProject Database Name: \e[32m$DB_NAME\e[0m"
+    echo -e "OpenProject API Key: \e[32m$API_KEY\e[0m"
 } >>~/openproject.creds
 msg_ok "Set up PostgreSQL"
 
 msg_info "Installing OpenProject"
-$STD apt-get update
 $STD apt-get install -y openproject
 msg_ok "Installed OpenProject"
-
-
-
 
 msg_info "Configure OpenProject"
 IP_ADDR=$(hostname -I | cut -d' ' -f1)
@@ -93,7 +89,6 @@ memcached/autoinstall install
 openproject/admin_email admin@example.net
 openproject/default_language en
 EOF
-
 
 msg_info "Setting up OpenProject"
 $STD sudo openproject configure
