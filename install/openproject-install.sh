@@ -44,6 +44,7 @@ msg_info "Setting up PostgreSQL"
 DB_NAME=openproject
 DB_USER=openproject
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
+API_KEY=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
 {
@@ -51,6 +52,7 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMP
     echo -e "Netbox Database User: \e[32m$DB_USER\e[0m"
     echo -e "Netbox Database Password: \e[32m$DB_PASS\e[0m"
     echo -e "Netbox Database Name: \e[32m$DB_NAME\e[0m"
+    echo -e "Netbox API Key: \e[32m$API_KEY\e[0m"
 } >>~/openproject.creds
 msg_ok "Set up PostgreSQL"
 
@@ -59,7 +61,11 @@ $STD apt-get update
 $STD apt-get install -y openproject
 msg_ok "Installed OpenProject"
 
+
+
+
 msg_info "Configure OpenProject"
+
 cat <<EOF >/etc/openproject/installer.dat
 openproject/edition default
 
@@ -77,7 +83,18 @@ server/variant apache2
 server/hostname openproject.example.com
 server/server_path_prefix
 server/ssl no
+server/variant apache2
+server/server_path_prefix
+repositories/api-key ${API_KEY}
+repositories/svn-install skip
+repositories/git-install install
+repositories/git-path /var/db/openproject/git
+repositories/git-http-backend /usr/lib/git-core/git-http-backend/
+memcached/autoinstall install
+openproject/admin_email admin@example.net
+openproject/default_language en
 EOF
+
 
 msg_info "Setting up OpenProject"
 $STD sudo openproject configure
