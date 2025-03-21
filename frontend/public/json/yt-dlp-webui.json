@@ -39,6 +39,10 @@
     {
       "text": "The config file is located in `/opt/yt-dlp-webui/config.conf`",
       "type": "info"
+    },
+    {
+      "text": "Make sure to either mount an external path or increase the Disk space afterwards",
+      "type": "info"
     }
   ]
 }
