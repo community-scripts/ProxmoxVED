@@ -64,6 +64,7 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
     unzip -q "$tmp_file" -d "$tmp_dir"
     mv "$tmp_dir"/*/* /opt/meilisearch-ui/
     cd /opt/meilisearch-ui
+    sed -i 's|const hash = execSync("git rev-parse HEAD").toString().trim();|const hash = "unknown";|' /opt/meilisearch-ui/vite.config.ts
     pnpm install
     cat <<EOF > /opt/meilisearch-ui/.env.local
 VITE_SINGLETON_MODE=true
