@@ -1,8 +1,10 @@
 {
     "name": "Wazuh",
     "slug": "wazuh",
-    "categories": [1],
-    "date_created": "2024-03-25",
+    "categories": [
+        1
+    ],
+    "date_created": "2025-03-19",
     "type": "ct",
     "updateable": false,
     "privileged": false,
