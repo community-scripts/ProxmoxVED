@@ -110,6 +110,7 @@ jobs:
       - name: Prepare new branch for PR
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        if: false
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
           target_repo="community-scripts/ProxmoxVE"
@@ -146,9 +147,11 @@ jobs:
 
           git checkout -b "$branch_name"
 
-          cp ../ct/$script_name.sh .
-          cp ../install/$script_name-install.sh .
-          cp ../frontend/public/json/$script_name.json .
+          cp ../ct/$script_name.sh ct/.
+          cp ../install/$script_name-install.sh instal/.
+          cp ../frontend/public/json/$script_name.json /frontend/public/json/.
+
+          sed -i 's|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)|' ct/$script_name.sh
 
           git add .
           if git diff --cached --exit-code; then
