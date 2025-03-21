@@ -15,7 +15,7 @@ update_os
 install_core_deps
 
 msg_info "Installing Dependencies"
-sudo apt install -y \
+$STD apt-get install -y \
     sudo \
     ffmpeg
 msg_ok "Installed Dependencies"
@@ -29,7 +29,7 @@ echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Installing yt-dlp"
-wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
+wget -q https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
 chmod a+rx /usr/local/bin/yt-dlp
 msg_ok "Installed yt-dlp"
 
