@@ -107,25 +107,6 @@ jobs:
           echo "Using branch: $branch_name"
           echo "branch_name=$branch_name" >> $GITHUB_ENV
 
-      - name: Prepare new branch for PR
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-        if: false
-        run: |
-          script_name="${{ steps.list_issues.outputs.script_name }}"
-          target_repo="community-scripts/ProxmoxVE"
-          branch_name="add-script-$script_name"
-          commit_message="Add script files for $script_name"
-
-          git checkout -b "$branch_name"
-          sed -i 's|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)|' ct/$script_name.sh
-          cp "ct/$script_name.sh" .
-          cp "install/$script_name-install.sh" .
-          cp "frontend/public/json/$script_name.json" .
-
-          git add .
-          git commit -m "${commit_message:-'Add new script'}"
-
       - name: Clone ProxmoxVE (Target Repo)
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
