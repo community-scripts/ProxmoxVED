@@ -28,6 +28,7 @@ function update_script() {
       exit
    fi
 
+   $STD yt-dlp -U
    RELEASE=$(curl -s https://api.github.com/repos/marcopiovanello/yt-dlp-web-ui/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
    if [[ "${RELEASE}" != "$(cat /opt/yt-dlp-webui_version.txt)" ]] || [[ ! -f /opt/yt-dlp-webui_version.txt ]]; then
       
