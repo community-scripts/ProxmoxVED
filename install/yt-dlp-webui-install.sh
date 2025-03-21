@@ -17,8 +17,7 @@ install_core_deps
 msg_info "Installing Dependencies"
 sudo apt install -y \
     sudo \
-    ffmpeg \
-    yt-dlp
+    ffmpeg
 msg_ok "Installed Dependencies"
 
 msg_info "Installing ${APPLICATION}"
@@ -28,6 +27,11 @@ wget -q "https://github.com/marcopiovanello/yt-dlp-web-ui/releases/download/v${R
 chmod +x /usr/local/bin/yt-dlp-webui
 echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
 msg_ok "Installed ${APPLICATION}"
+
+msg_info "Installing yt-dlp"
+wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
+chmod a+rx /usr/local/bin/yt-dlp
+msg_ok "Installed yt-dlp"
 
 msg_info "Setting up ${APPLICATION}"
 mkdir /downloads
@@ -57,7 +61,7 @@ password: ${RPC_PASSWORD}
 queue_size: 4 # min. 2
 
 # [optional] Full path to the yt-dlp (default: "yt-dlp")
-#downloaderPath: /usr/local/bin/yt-dlp
+downloaderPath: /usr/local/bin/yt-dlp
 
 # [optional] Enable file based logging with rotation (default: false)
 #enable_file_logging: false
