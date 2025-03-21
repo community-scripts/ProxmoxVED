@@ -23,18 +23,25 @@ msg_ok "Installed Dependencies"
 
 msg_info "Setup ${APPLICATION}"
 tmp_file=$(mktemp)
-mkdir -p /opt/meilisearch
-mkdir -p /opt/meilisearch_data
 RELEASE=$(curl -s https://api.github.com/repos/meilisearch/meilisearch/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-wget -q "https://github.com/meilisearch/meilisearch/releases/download/${RELEASE}/meilisearch-linux-amd64" -O $tmp_file
-mv $tmp_file /opt/meilisearch/meilisearch
-chmod +x /opt/meilisearch/meilisearch
-echo "MEILI_MASTER_KEY=\"$(openssl rand -base64 32)\"" >/opt/meilisearch_data/.env
+wget -q https://github.com/meilisearch/meilisearch/releases/latest/download/meilisearch.deb -O $tmp_file
+$STD dpkg -i $tmp_file
+wget -q https://raw.githubusercontent.com/meilisearch/meilisearch/latest/config.toml -O /etc/meilisearch.toml
+MASTER_KEY=$(openssl rand -base64 12)
+LOCAL_IP="$(hostname -I | awk '{print $1}')"
+sed -i \
+    -e 's|^env =.*|env = "production"|' \
+    -e "s|^# master_key =.*|master_key = \"$MASTER_KEY\"|" \
+    -e 's|^db_path =.*|db_path = "/var/lib/meilisearch/data"|' \
+    -e 's|^dump_dir =.*|dump_dir = "/var/lib/meilisearch/dumps"|' \
+    -e 's|^snapshot_dir =.*|snapshot_dir = "/var/lib/meilisearch/snapshots"|' \
+    -e 's|^# no_analytics = true|no_analytics = true|' \
+    /etc/meilisearch.toml
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup ${APPLICATION}"
 
-read -p "Do you want add meilisearch-ui? [y/n]: " -r
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+read -r -p "Do you want add meilisearch-ui? [y/n]: " prompt
+if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
     msg_info "Setting up Node.js Repository"
     mkdir -p /etc/apt/keyrings
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
@@ -57,11 +64,31 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     mv "$tmp_dir"/*/* /opt/meilisearch-ui/
     cd /opt/meilisearch-ui
     pnpm install
-    cat <<EOF > /opt/meilisearch_ui/.env.local
+    cat <<EOF > /opt/meilisearch-ui/.env.local
 VITE_SINGLETON_MODE=true
-VITE_SINGLETON_HOST=http://localhost:7700
-VITE_SINGLETON_API_KEY="$(grep 'MEILI_MASTER_KEY' /opt/meilisearch_data/.env | cut -d '"' -f2)"
+VITE_SINGLETON_HOST=http://${LOCAL_IP}:7700
+VITE_SINGLETON_API_KEY=${MASTER_KEY}
 EOF
+    echo "${RELEASE_UI}" >/opt/${APPLICATION}-ui_version.txt
+    msg_ok "Setup ${APPLICATION}-ui"
+fi
+
+msg_info "Setting up Services"
+cat <<EOF >/etc/systemd/system/meilisearch.service
+[Unit]
+Description=Meilisearch
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/meilisearch --config-file-path /etc/meilisearch.toml
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now meilisearch
+
+if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
 cat <<EOF > /etc/systemd/system/meilisearch-ui.service
 [Unit]
 Description=Meilisearch UI Service
@@ -81,9 +108,10 @@ SyslogIdentifier=meilisearch-ui
 [Install]
 WantedBy=multi-user.target
 EOF
+systemctl enable -q --now meilisearch-ui
+fi
 
-    echo "${RELEASE_UI}" >/opt/${APPLICATION}-ui_version.txt
-    msg_ok "Setup ${APPLICATION}-ui"
+msg_ok "Set up Services"
 
 
 motd_ssh
