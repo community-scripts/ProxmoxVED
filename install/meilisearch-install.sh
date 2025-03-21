@@ -65,7 +65,7 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
     mv "$tmp_dir"/*/* /opt/meilisearch-ui/
     cd /opt/meilisearch-ui
     sed -i 's|const hash = execSync("git rev-parse HEAD").toString().trim();|const hash = "unknown";|' /opt/meilisearch-ui/vite.config.ts
-    pnpm install
+    $STD pnpm install
     cat <<EOF > /opt/meilisearch-ui/.env.local
 VITE_SINGLETON_MODE=true
 VITE_SINGLETON_HOST=http://${LOCAL_IP}:7700
