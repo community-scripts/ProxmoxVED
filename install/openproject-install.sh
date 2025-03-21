@@ -60,7 +60,7 @@ $STD apt-get install -y openproject
 msg_ok "Installed OpenProject"
 
 msg_info "Configure OpenProject"
-cat <<EOF >/etc/openproject/install.dat
+cat <<EOF >/etc/openproject/installer.dat
 openproject/edition default
 
 
