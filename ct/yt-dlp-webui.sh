@@ -6,7 +6,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # Source: https://github.com/marcopiovanello/yt-dlp-web-ui
 
 APP="yt-dlp-webui"
-var_tags="downloads;arr;yt-dlp"
+var_tags="downloads;arr"
 var_cpu="2"
 var_ram="1024"
 var_disk="4"
