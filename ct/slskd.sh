@@ -32,24 +32,19 @@ function update_script() {
     RELEASE=$(curl -s https://api.github.com/repos/slskd/slskd/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
     if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
         msg_info "Stopping $APP and Soularr"
-        systemctl stop slskd soularr.timer soularr
+        systemctl stop slskd soularr.timer soularr.service
         msg_ok "Stopped $APP and Soularr"
 
         msg_info "Updating $APP to v${RELEASE}"
         tmp_file=$(mktemp)
         wget -q "https://github.com/slskd/slskd/releases/download/${RELEASE}/slskd-${RELEASE}-linux-x64.zip" -O $tmp_file
         unzip -q -oj $tmp_file slskd -d /opt/${APP}
+        echo "${RELEASE}" >/opt/${APP}_version.txt
         msg_ok "Updated $APP to v${RELEASE}"
 
-        msg_info "Cleaning Up"
-        rm -rf $tmp_file
-        msg_ok "Cleanup Completed"
-
-        echo "${RELEASE}" >/opt/${APP}_version.txt
-        msg_ok "$APP updated"
         msg_info "Updating Soularr"
-        cp /opt/soularr/config.ini /opt/soularrconfig.ini
-        cp /opt/soularr/run.sh /opt/soularrscript.sh
+        cp /opt/soularr/config.ini /opt/config.ini.bak
+        cp /opt/soularr/run.sh /opt/run.sh.bak
         cd /tmp
         rm -rf /opt/soularr
         wget -q https://github.com/mrusse/soularr/archive/refs/heads/main.zip
@@ -57,12 +52,17 @@ function update_script() {
         mv soularr-main /opt/soularr
         cd /opt/soularr
         $STD pip install -r requirements.txt
-        mv /opt/soularrconfig.ini /opt/soularr/config.ini
-        mv /opt/soularrscript.sh /opt/soularr/run.sh
+        mv /opt/config.ini.bak /opt/soularr/config.ini
+        mv /opt/run.sh.bak /opt/soularr/run.sh
         msg_ok "Soularr updated"
         msg_info "Starting $APP and Soularr"
         systemctl start slskd soularr.timer
         msg_ok "Started $APP and Soularr"
+
+        msg_info "Cleaning Up"
+        rm -rf $tmp_file
+        rm -rf /tmp/main.zip
+        msg_ok "Cleanup Completed"
 
     else
         msg_ok "No update required. ${APP} is already at v${RELEASE}"
