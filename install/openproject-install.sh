@@ -65,7 +65,7 @@ msg_ok "Installed OpenProject"
 
 
 msg_info "Configure OpenProject"
-
+IP_ADDR=$(hostname -I | cut -d' ' -f1)
 cat <<EOF >/etc/openproject/installer.dat
 openproject/edition default
 
@@ -79,7 +79,7 @@ postgres/db_name ${DB_NAME}
 server/autoinstall install
 server/variant apache2
 
-server/hostname openproject.example.com
+server/hostname ${IP_ADDR}
 server/server_path_prefix /openproject
 server/ssl no
 server/variant apache2
