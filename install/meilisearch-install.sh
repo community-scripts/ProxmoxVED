@@ -36,6 +36,7 @@ sed -i \
     -e 's|^dump_dir =.*|dump_dir = "/var/lib/meilisearch/dumps"|' \
     -e 's|^snapshot_dir =.*|snapshot_dir = "/var/lib/meilisearch/snapshots"|' \
     -e 's|^# no_analytics = true|no_analytics = true|' \
+    -e 's|^http_addr =.*|http_addr = "0.0.0.0:7700"|' \
     /etc/meilisearch.toml
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup ${APPLICATION}"
