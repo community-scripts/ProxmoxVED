@@ -153,6 +153,7 @@ post_update_to_api() {
     if [ "$POST_UPDATE_DONE" = true ]; then
         return 0
     fi
+    exit_code=${2:-1}
     local API_URL="http://api.community-scripts.org/dev/upload/updatestatus"
     local status="${1:-failed}"
     if [[ "$status" == "failed" ]]; then
@@ -160,6 +161,7 @@ post_update_to_api() {
     elif [[ "$status" == "success" ]]; then
         local exit_code="${2:-0}"
     fi
+
     if [[ -z "$exit_code" ]]; then
         exit_code=1
     fi
