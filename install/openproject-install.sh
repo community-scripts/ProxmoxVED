@@ -69,7 +69,6 @@ msg_info "Configure OpenProject"
 cat <<EOF >/etc/openproject/installer.dat
 openproject/edition default
 
-
 postgres/retry retry
 postgres/autoinstall reuse
 postgres/db_host 127.0.0.1
@@ -81,7 +80,7 @@ server/autoinstall install
 server/variant apache2
 
 server/hostname openproject.example.com
-server/server_path_prefix
+server/server_path_prefix /openproject
 server/ssl no
 server/variant apache2
 server/server_path_prefix
