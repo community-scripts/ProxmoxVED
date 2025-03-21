@@ -59,9 +59,28 @@ $STD apt-get update
 $STD apt-get install -y openproject
 msg_ok "Installed OpenProject"
 
+msg_info "Configure OpenProject"
+cat <<EOF >/etc/openproject/install.dat
+openproject/edition default
+
+
+postgres/retry retry
+postgres/autoinstall reuse
+postgres/db_host 127.0.0.1
+postgres/db_port 5432
+postgres/db_username ${DB_USER}
+postgres/db_password ${DB_PASS}
+postgres/db_name ${DB_NAME}
+server/autoinstall install
+server/variant apache2
+
+server/hostname openproject.example.com
+server/server_path_prefix
+server/ssl no
+EOF
+
 msg_info "Setting up OpenProject"
 $STD sudo openproject configure
-$STD openproject config:set DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}"
 msg_ok "Set up OpenProject"
 
 motd_ssh
