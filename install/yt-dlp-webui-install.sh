@@ -24,7 +24,7 @@ msg_ok "Installed Dependencies"
 msg_info "Installing ${APPLICATION}"
 mkdir -p /opt/yt-dlp-webui
 RELEASE=$(curl -s https://api.github.com/repos/marcopiovanello/yt-dlp-web-ui/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-wget -q "https://github.com/marcopiovanello/yt-dlp-web-ui/releases/download/v${RELEASE}/yt-dlp-webui_linux-amd64" /usr/local/bin/yt-dlp-webui
+wget -q "https://github.com/marcopiovanello/yt-dlp-web-ui/releases/download/v${RELEASE}/yt-dlp-webui_linux-amd64" -O /usr/local/bin/yt-dlp-webui
 chmod +x /usr/local/bin/yt-dlp-webui
 echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
 msg_ok "Installed ${APPLICATION}"
