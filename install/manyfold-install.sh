@@ -27,7 +27,8 @@ $STD apt-get install -y \
   libmariadb-dev \
   redis-server \
   nginx \
-  libffi-dev
+  libffi-dev \
+  libyaml-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up PostgreSQL"
@@ -74,9 +75,11 @@ chown -R manyfold:manyfold /opt/manyfold
 RUBY_VERSION=$(cat .ruby-version)
 YARN_VERSION=$(grep '"packageManager":' package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 $STD gem install bundler
-rbenv install $RUBY_VERSION
-rbenv global $RUBY_VERSION
-sudo -u manyfold bash -c "bundle install"
+$STD rbenv install $RUBY_VERSION
+export PATH="$HOME/.rbenv/bin:$PATH"
+eval "$(rbenv init -)"
+$STD rbenv global $RUBY_VERSION
+$STD bundle install
 $STD gem install sidekiq
 $STD npm install --global corepack
 corepack enable
