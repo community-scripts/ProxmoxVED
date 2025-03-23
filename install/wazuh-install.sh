@@ -30,7 +30,7 @@ wget -q https://packages.wazuh.com/$RELEASE/wazuh-install.sh
 chmod +x wazuh-install.sh
 
 if [ "$STD" = "silent" ]; then
-    bash wazuh-install.sh -a >> ~/wazuh-install.output 2>&1
+    bash wazuh-install.sh -a >> ~/wazuh-install.output
 else
     bash wazuh-install.sh -a | tee -a ~/wazuh-install.output
 fi
