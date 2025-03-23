@@ -77,8 +77,7 @@ RUBY_VERSION=$(cat .ruby-version)
 YARN_VERSION=$(grep '"packageManager":' package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 $STD gem install bundler
 /bin/bash --login -c "rvm install $RUBY_VERSION"
-/bin/bash --login -c "rvm use --default $RUBY_VERSION"
-$STD bundle install #do not run as root
+sudo -u manyfold bash -c "source /etc/profile.d/rvm.sh && rvm use 3.4.1 && bundle install"
 $STD gem install sidekiq
 $STD npm install --global corepack
 corepack enable
