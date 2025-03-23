@@ -76,8 +76,9 @@ RUBY_VERSION=$(cat .ruby-version)
 YARN_VERSION=$(grep '"packageManager":' package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 $STD gem install bundler
 $STD rbenv install $RUBY_VERSION
-export PATH="$HOME/.rbenv/bin:$PATH"
-eval "$(rbenv init -)"
+echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(rbenv init -)"' >> ~/.bashrc
+source ~/.bashrc
 $STD rbenv global $RUBY_VERSION
 $STD bundle install
 $STD gem install sidekiq
