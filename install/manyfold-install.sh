@@ -26,7 +26,8 @@ $STD apt-get install -y \
   git \
   libmariadb-dev \
   redis-server \
-  nginx
+  nginx \
+  libffi-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up PostgreSQL"
