@@ -105,8 +105,8 @@ HTTPS_ONLY=false
 RAILS_ENV=production
 EOF
 chown manyfold:manyfold /opt/.env
-source /opt/.env && bin/rails db:migrate
-source /opt/.env && bin/rails assets:precompile
+$STD source /opt/.env && bin/rails db:migrate
+$STD source /opt/.env && bin/rails assets:precompile
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed manyfold"
 
@@ -118,8 +118,8 @@ Requires=network.target
 
 [Service]
 Type=simple
-User=manyfold
-Group=manyfold
+User=root
+Group=root
 WorkingDirectory=/opt/manyfold
 EnvironmentFile=/opt/.env
 ExecStart=/usr/bin/bash -lc '/opt/manyfold/bin/rails server -b 127.0.0.1 --port 5000 --environment production'
