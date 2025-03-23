@@ -34,6 +34,7 @@ function update_script() {
         mv /.config/qBittorrent $HOME/.config/
         $STD apt-get remove --purge -y qbittorrent-nox
         sed -i 's@ExecStart=/usr/bin/qbittorrent-nox@ExecStart=/opt/qbittorrent/qbittorrent-nox@g' /etc/systemd/system/qbittorrent-nox.service
+        systemctl daemon-reload
     fi
     FULLRELEASE=$(curl -s https://api.github.com/repos/userdocs/qbittorrent-nox-static/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
     RELEASE=$(echo $FULLRELEASE | cut -c 9-13)
