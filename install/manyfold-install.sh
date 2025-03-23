@@ -82,7 +82,7 @@ $STD gem install sidekiq
 $STD npm install --global corepack
 corepack enable
 $STD corepack prepare $YARN_VERSION --activate
-$STD corepack use $YARN_VERSION --global
+$STD corepack use $YARN_VERSION
 $STD yarn install
 cat <<EOF >/opt/.env
 APP_VERSION=${RELEASE}
