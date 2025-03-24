@@ -48,6 +48,7 @@ tmp_file=$(mktemp)
 RELEASE=$(curl -s https://api.github.com/repos/librenms/librenms/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 wget -q https://github.com/librenms/librenms/archive/refs/tags/${RELEASE}.tar.gz -O $tmp_file
 tar -xzf $tmp_file -C /opt
+mv /opt/librenms-${RELEASE} /opt/librenms
 chown -R librenms:librenms /opt/librenms
 chmod 771 /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
@@ -156,5 +157,6 @@ customize
 
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
+rm -f /temp_file
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
