@@ -138,7 +138,7 @@ jobs:
 
                 for (const category of categorizedPRs) {
                   console.log("Category: ", category);
-                  if(category.labels(label => prLabels.includes("new script"))) {
+                  if(category.labels.some(label => prLabels.includes("new script"))) {
                     category.notes.push(prNote);
                   }
 
