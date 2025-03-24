@@ -144,7 +144,7 @@ jobs:
                   if (category.labels.some(label => prLabels.includes(label))) {
                     if(category.labels.includes("new script")){
                       category.notes.push(prNote);
-                      return;
+                      continue;
                     }
                     if (category.subCategories && category.subCategories.length > 0) {
                       const subCategory = category.subCategories.find(sub =>
