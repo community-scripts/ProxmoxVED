@@ -12,7 +12,6 @@ catch_errors
 setting_up_container
 network_check
 update_os
-install_core_deps
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
@@ -24,12 +23,12 @@ $STD apt-get install -y \
   gpg
 msg_ok "Installed Dependencies"
 
-msg_info "Adding Repository"
+msg_info "Setup OpenProject Repository"
 wget -qO- https://dl.packager.io/srv/opf/openproject/key | gpg --dearmor >/etc/apt/trusted.gpg.d/packager-io.gpg
 wget -O /etc/apt/sources.list.d/openproject.list https://dl.packager.io/srv/opf/openproject/stable/15/installer/debian/12.repo
-msg_ok "Added Repository"
+msg_ok "Setup OpenProject Repository"
 
-msg_info "Setting up PostgreSQL Repository"
+msg_info "Setup PostgreSQL Repository"
 VERSION="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
 echo "deb http://apt.postgresql.org/pub/repos/apt ${VERSION}-pgdg main" >/etc/apt/sources.list.d/pgdg.list
 curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor --output /etc/apt/trusted.gpg.d/postgresql.gpg
@@ -90,9 +89,8 @@ openproject/admin_email admin@example.net
 openproject/default_language en
 EOF
 
-msg_info "Setting up OpenProject"
 $STD sudo openproject configure
-msg_ok "Set up OpenProject"
+msg_ok "Configured OpenProject"
 
 motd_ssh
 customize
