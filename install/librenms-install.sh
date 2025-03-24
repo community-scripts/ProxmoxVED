@@ -30,12 +30,13 @@ $STD apt-get install -y \
   mtr-tiny \
   nginx-full \
   nmap \
-  php8.2-{cli,fpm,gd,gmp,mbstring,mysql,snmp,xml,zip} \
+  php8.2-{cli,fpm,gd,gmp,mbstring,mysql,snmp,xml,zip,curl} \
   python3-{dotenv,pymysql,redis,setuptools,systemd,pip} \
   rrdtool \
   snmp \
   snmpd \
   unzip \
+  git \
   whois
 msg_ok "Installed Dependencies"
 
@@ -49,17 +50,21 @@ RELEASE=$(curl -s https://api.github.com/repos/librenms/librenms/releases/latest
 wget -q https://github.com/librenms/librenms/archive/refs/tags/${RELEASE}.tar.gz -O $tmp_file
 tar -xzf $tmp_file -C /opt
 mv /opt/librenms-${RELEASE} /opt/librenms
-chown -R librenms:librenms /opt/librenms
-chmod 771 /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 msg_ok "Setup Librenms"
 
 msg_info "Setup Composer"
 cd /opt
-wget -q https://getcomposer.org/composer-stable.phar
+wget https://getcomposer.org/composer-stable.phar
 mv composer-stable.phar /usr/bin/composer
 chmod +x /usr/bin/composer
+cd /opt/librenms
+composer install --no-dev -o --no-interaction
+chown -R librenms:librenms /opt/librenms
+chmod 771 /opt/librenms
+setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
+chmod -R ug=rwX /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 msg_ok "Setup Composer"
 
 msg_info "Setup PHP"
@@ -68,12 +73,7 @@ sed -i 's/;date.timezone =/date.timezone = UTC/' /etc/php/8.2/fpm/php.ini
 msg_ok "Setup PHP"
 
 msg_info "Setup MariaDB"
-cat >/etc/mysql/mariadb.conf.d/50-server.cnf <<'EOF'
-[mysqld]
-innodb_file_per_table=1
-lower_case_table_names=0
-EOF
-
+sed -i '/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0' /etc/mysql/mariadb.conf.d/50-server.cnf
 systemctl enable -q --now mariadb
 msg_ok "Setup MariaDB"
 
@@ -103,10 +103,11 @@ sed -i "s/listen = \/run\/php\/php8.2-fpm.sock/listen = \/run\/php-fpm-librenms.
 msg_ok "Configured PHP-FPM"
 
 msg_info "Configure Nginx"
-cat >/etc/nginx/sites-available/librenms <<'EOF'
+IP_ADDR=$(hostname -I | awk '{print $1}')
+cat >/etc/nginx/sites-enabled/librenms <<'EOF'
 server {
  listen      80;
- server_name $(hostname -I | awk '{print $1}');
+ server_name ${IP_ADDR};
  root        /opt/librenms/html;
  index       index.php;
 
@@ -133,6 +134,7 @@ msg_ok "Configured Nginx"
 
 msg_info "Configure Services"
 ln -s /opt/librenms/lnms /usr/bin/lnms
+mkdir -p /etc/bash_completion.d/
 cp /opt/librenms/misc/lnms-completion.bash /etc/bash_completion.d/
 
 cp /opt/librenms/snmpd.conf.example /etc/snmp/snmpd.conf
@@ -140,7 +142,7 @@ cp /opt/librenms/snmpd.conf.example /etc/snmp/snmpd.conf
 RANDOM_STRING=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 sed -i "s/RANDOMSTRINGHERE/$RANDOM_STRING/g" /etc/snmp/snmpd.conf
 echo "SNMP Community String: $RANDOM_STRING" >>~/librenms.creds
-curl -o /usr/bin/distro https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro
+curl -qo /usr/bin/distro https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro
 chmod +x /usr/bin/distro
 systemctl enable -q --now snmpd
 
