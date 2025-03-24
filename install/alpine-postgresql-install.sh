@@ -57,5 +57,52 @@ msg_info "Starting PostgreSQL"
 service postgresql start
 msg_ok "Started PostgreSQL"
 
+read -p "Do you want to install Adminer with Lighttpd? (y/N): " install_adminer
+ if [[ "$install_adminer" =~ ^[Yy]$ ]]; then
+    msg_info "Installing Adminer with Lighttpd"
+  apk add --no-cache lighttpd php php-pdo_pgsql php-session php-json php-mbstring
+  msg_ok "Installed Lighttpd and PHP"
+
+  msg_info "Downloading Adminer"
+  mkdir -p /var/www/adminer
+  curl -L https://github.com/vrana/adminer/releases/download/v4.8.1/adminer-4.8.1.php -o /var/www/adminer/index.php
+  chown -R lighttpd:lighttpd /var/www/adminer
+  msg_ok "Installed Adminer"
+
+  msg_info "Configuring Lighttpd"
+  echo 'server.modules = (
+    "mod_access",
+    "mod_alias",
+    "mod_fastcgi"
+)
+
+server.document-root = "/var/www/adminer"
+server.port = 8080
+server.bind = "0.0.0.0"
+index-file.names = ("index.php")
+
+fastcgi.server = ( ".php" => ((
+    "bin-path" => "/usr/bin/php-cgi",
+    "socket" => "/var/run/php-fcgi.sock"
+)))
+
+server.dir-listing = "disable"
+
+accesslog.filename = "/var/log/lighttpd/access.log"
+server.errorlog = "/var/log/lighttpd/error.log"
+
+include "modules.conf"' > /etc/lighttpd/lighttpd.conf
+
+  rc-update add lighttpd default
+  msg_ok "Configured Lighttpd"
+
+  msg_info "Starting Lighttpd"
+  service lighttpd start
+  msg_ok "Started Lighttpd (Adminer available on Port 8080)"
+  else
+    msg_ok "Skipped Adminer and Lighttpd installation."
+  fi
+}
+
 motd_ssh
 customize
