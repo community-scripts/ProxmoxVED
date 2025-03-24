@@ -116,7 +116,7 @@ jobs:
                         repo: "ProxmoxVED",
                         state: "all",
                         labels: ["Started Migration To ProxmoxVE"]
-                        per_page: 1
+                        per-page: 1
                       });
 
                       const matchingIssue = relatedIssues.find(issue =>
