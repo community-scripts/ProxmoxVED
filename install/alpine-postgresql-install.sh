@@ -65,7 +65,7 @@ read -p "Do you want to install Adminer with Lighttpd? (y/N): " install_adminer
 
   msg_info "Downloading Adminer"
   mkdir -p /var/www/adminer
-  curl -L https://github.com/vrana/adminer/releases/download/v4.8.1/adminer-4.8.1.php -o /var/www/adminer/index.php
+  curl -L "https://www.adminer.org/latest.php" -o /var/www/adminer/index.php
   chown -R lighttpd:lighttpd /var/www/adminer
   msg_ok "Installed Adminer"
 
