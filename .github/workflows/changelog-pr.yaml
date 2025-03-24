@@ -89,7 +89,7 @@ jobs:
 
               const { data: pulls } = await github.rest.pulls.list({
                 owner: context.repo.owner,
-                repo: "ProxmoxVE",
+                repo: "ProxmoxVED",
                 base: "main",
                 state: "closed",
                 sort: "updated",
@@ -136,18 +136,19 @@ jobs:
                 }
 
 
-                // Check if PR has "new script" label
+
                 if (prLabels.includes("new script")) {
-                  // Find the New Script category
                   const newScriptCategory = categorizedPRs.find(category =>
                   category.title === "New Scripts" || category.labels.includes("new script"));
-
                   if (newScriptCategory) {
                   newScriptCategory.notes.push(prNote);
                   }
                 } else {
-                  // Normal category processing for other PRs
-                  for (const category of categorizedPRs) {
+
+                  let categorized = false;
+                  const priorityCategories = categorizedPRs.slice();
+                  for (const category of priorityCategories) {
+                  if (categorized) break;
                   if (category.labels.some(label => prLabels.includes(label))) {
                     if (category.subCategories && category.subCategories.length > 0) {
                     const subCategory = category.subCategories.find(sub =>
@@ -159,10 +160,10 @@ jobs:
                     } else {
                       category.notes.push(prNote);
                     }
-                    }
-                    else{
+                    } else {
                     category.notes.push(prNote);
                     }
+                    categorized = true;
                   }
                   }
                 }
