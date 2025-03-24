@@ -67,7 +67,7 @@ msg_ok "Added manyfold user"
 msg_info "Installing Manyfold"
 RELEASE=$(curl -s https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 cd /opt
-wget -q "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip"
+curl -fsSL "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip"
 unzip -q "v${RELEASE}.zip"
 mv /opt/manyfold-${RELEASE}/ /opt/manyfold
 cd /opt/manyfold

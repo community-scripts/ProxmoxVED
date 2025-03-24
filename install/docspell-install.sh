@@ -15,26 +15,25 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-    unzip \
-    htop \
-    gnupg2 \
-    ca-certificates \
-    default-jdk \
-    apt-transport-https \
-    ghostscript \
-    tesseract-ocr \
-    tesseract-ocr-deu \
-    tesseract-ocr-eng \
-    unpaper \
-    unoconv \
-    wkhtmltopdf \
-    ocrmypdf \
-    wget \
-    zip \
-    curl \
-    sudo \
-    make \
-    mc
+  unzip \
+  htop \
+  gnupg2 \
+  ca-certificates \
+  default-jdk \
+  apt-transport-https \
+  ghostscript \
+  tesseract-ocr \
+  tesseract-ocr-deu \
+  tesseract-ocr-eng \
+  unpaper \
+  unoconv \
+  wkhtmltopdf \
+  ocrmypdf \
+  zip \
+  curl \
+  sudo \
+  make \
+  mc
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up PostgreSQL Repository"
@@ -54,27 +53,27 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 {
-    echo "Docspell-Credentials"
-    echo "Docspell Database Name: $DB_NAME"
-    echo "Docspell Database User: $DB_USER"
-    echo "Docspell Database Password: $DB_PASS"
+  echo "Docspell-Credentials"
+  echo "Docspell Database Name: $DB_NAME"
+  echo "Docspell Database User: $DB_USER"
+  echo "Docspell Database Password: $DB_PASS"
 } >>~/docspell.creds
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Setup Docspell (Patience)"
 mkdir -p /opt/docspell
-Docspell=$(wget -q https://github.com/eikek/docspell/releases/latest -O - | grep "title>Release" | cut -d " " -f 5)
-DocspellDSC=$(wget -q https://github.com/docspell/dsc/releases/latest -O - | grep "title>Release" | cut -d " " -f 4 | sed 's/^v//')
+Docspell=$(curl -fsSL https://github.com/eikek/docspell/releases/latest -O - | grep "title>Release" | cut -d " " -f 5)
+DocspellDSC=$(curl -fsSL https://github.com/docspell/dsc/releases/latest -O - | grep "title>Release" | cut -d " " -f 4 | sed 's/^v//')
 cd /opt
-wget -q https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-joex_${Docspell}_all.deb
-wget -q https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-restserver_${Docspell}_all.deb
+curl -fsSL https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-joex_${Docspell}_all.deb
+curl -fsSL https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-restserver_${Docspell}_all.deb
 $STD dpkg -i docspell-*.deb
-wget -q https://github.com/docspell/dsc/releases/download/v${DocspellDSC}/dsc_amd64-musl-${DocspellDSC}
+curl -fsSL https://github.com/docspell/dsc/releases/download/v${DocspellDSC}/dsc_amd64-musl-${DocspellDSC}
 mv dsc_amd* dsc
 chmod +x dsc
 mv dsc /usr/bin
 ln -s /etc/docspell-joex /opt/docspell/docspell-joex && ln -s /etc/docspell-restserver /opt/docspell/docspell-restserver && ln -s /usr/bin/dsc /opt/docspell/dsc
-wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
 chmod +x /usr/bin/yq
 JOEX_CONF="/usr/share/docspell-joex/conf/docspell-joex.conf"
 SERVER_CONF="/usr/share/docspell-restserver/conf/docspell-server.conf"
@@ -105,7 +104,7 @@ cd /opt/docspell
 SOLR_DOWNLOAD_URL="https://downloads.apache.org/lucene/solr/"
 latest_version=$(curl -s "$SOLR_DOWNLOAD_URL" | grep -oP '(?<=<a href=")[^"]+(?=/">[0-9])' | head -n 1)
 download_url="${SOLR_DOWNLOAD_URL}${latest_version}/solr-${latest_version}.tgz"
-wget -q "$download_url"
+curl -fsSL "$download_url"
 tar xzf "solr-$latest_version.tgz"
 $STD bash "/opt/docspell/solr-$latest_version/bin/install_solr_service.sh" "solr-$latest_version.tgz"
 mv /opt/solr /opt/docspell/solr

@@ -15,9 +15,9 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    sudo \
-    mc \
-    curl
+  sudo \
+  mc \
+  curl
 msg_ok "Installed Dependencies"
 
 # Fetching the latest Wazuh version
@@ -26,15 +26,15 @@ RELEASE=$(curl -s https://api.github.com/repos/wazuh/wazuh/releases/latest | gre
 msg_ok "Latest Wazuh Version: $RELEASE"
 
 msg_info "Setup Wazuh"
-wget -q https://packages.wazuh.com/$RELEASE/wazuh-install.sh
+curl -fsSL https://packages.wazuh.com/$RELEASE/wazuh-install.sh
 chmod +x wazuh-install.sh
 
 if [ "$STD" = "silent" ]; then
-    bash wazuh-install.sh -a >> ~/wazuh-install.output
+  bash wazuh-install.sh -a >>~/wazuh-install.output
 else
-    bash wazuh-install.sh -a | tee -a ~/wazuh-install.output
+  bash wazuh-install.sh -a | tee -a ~/wazuh-install.output
 fi
-cat ~/wazuh-install.output | grep -E "User|Password" | awk '{$1=$1};1' | sed '1i wazuh-credentials' > ~/wazuh.creds
+cat ~/wazuh-install.output | grep -E "User|Password" | awk '{$1=$1};1' | sed '1i wazuh-credentials' >~/wazuh.creds
 msg_ok "Setup Wazuh"
 
 motd_ssh

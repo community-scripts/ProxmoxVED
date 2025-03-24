@@ -115,7 +115,7 @@ $STD apt-get install -y \
   git \
   sudo \
   mc \
-  nginx 
+  nginx
 ```
 
 ### 3.2 **Collapse dependencies**
@@ -154,7 +154,7 @@ Example for a git release:
 
 ```bash
 RELEASE=$(curl -fsSL https://api.github.com/repos/snipe/snipe-it/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-wget -q "https://github.com/snipe/snipe-it/archive/refs/tags/v${RELEASE}.zip"
+curl -fsSL "https://github.com/snipe/snipe-it/archive/refs/tags/v${RELEASE}.zip"
 ```
 
 ### 5.2 **Save the version for update checks**
@@ -192,7 +192,7 @@ msg_ok "Installed Dependencies"
 Example:
 
 ```bash
-wget -q
+curl -fsSL
 unzip -q
 ```
 
