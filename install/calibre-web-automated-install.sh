@@ -81,7 +81,7 @@ $STD git clone https://github.com/crocodilestick/Calibre-Web-Automated.git /opt/
 cd /opt/cwa
 $STD git checkout V${RELEASE}
 $STD pip install -r requirements.txt
-curl -fsSL https://gist.githubusercontent.com/vhsdream/2e81afeff139c5746db1ede88c01cc7b/raw/51238206e87aec6c0abeccce85dec9f2b0c89000/proxmox-lxc.patch -O /opt/cwa.patch # not for production
+curl -fsSL https://gist.githubusercontent.com/vhsdream/2e81afeff139c5746db1ede88c01cc7b/raw/51238206e87aec6c0abeccce85dec9f2b0c89000/proxmox-lxc.patch -o /opt/cwa.patch # not for production
 $STD git apply --whitespace=fix /opt/cwa.patch # not for production
 cd scripts
 chmod +x check-cwa-services.sh ingest-service.sh change-detector.sh

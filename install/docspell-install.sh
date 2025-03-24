@@ -62,8 +62,8 @@ msg_ok "Set up PostgreSQL Database"
 
 msg_info "Setup Docspell (Patience)"
 mkdir -p /opt/docspell
-Docspell=$(curl -fsSL https://github.com/eikek/docspell/releases/latest -O - | grep "title>Release" | cut -d " " -f 5)
-DocspellDSC=$(curl -fsSL https://github.com/docspell/dsc/releases/latest -O - | grep "title>Release" | cut -d " " -f 4 | sed 's/^v//')
+Docspell=$(curl -fsSL https://github.com/eikek/docspell/releases/latest -o - | grep "title>Release" | cut -d " " -f 5)
+DocspellDSC=$(curl -fsSL https://github.com/docspell/dsc/releases/latest -o - | grep "title>Release" | cut -d " " -f 4 | sed 's/^v//')
 cd /opt
 curl -fsSL https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-joex_${Docspell}_all.deb
 curl -fsSL https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-restserver_${Docspell}_all.deb
@@ -73,7 +73,7 @@ mv dsc_amd* dsc
 chmod +x dsc
 mv dsc /usr/bin
 ln -s /etc/docspell-joex /opt/docspell/docspell-joex && ln -s /etc/docspell-restserver /opt/docspell/docspell-restserver && ln -s /usr/bin/dsc /opt/docspell/dsc
-curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/bin/yq
 chmod +x /usr/bin/yq
 JOEX_CONF="/usr/share/docspell-joex/conf/docspell-joex.conf"
 SERVER_CONF="/usr/share/docspell-restserver/conf/docspell-server.conf"

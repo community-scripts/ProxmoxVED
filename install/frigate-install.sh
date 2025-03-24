@@ -56,7 +56,7 @@ msg_ok "Set Up Hardware Acceleration"
 msg_info "Setup Frigate"
 RELEASE=$(curl -s https://api.github.com/repos/blakeblackshear/frigate/releases/latest | jq -r '.tag_name')
 mkdir -p /opt/frigate/models
-curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/${RELEASE}.tar.gz -O frigate.tar.gz
+curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/${RELEASE}.tar.gz -o frigate.tar.gz
 tar -xzf frigate.tar.gz -C /opt/frigate --strip-components 1
 rm -rf frigate.tar.gz
 cd /opt/frigate

@@ -45,7 +45,7 @@ fi
 msg_ok "Installed and Set Up Intel Hardware Acceleration"
 
 msg_info "Installing ASP.NET Core Runtime"
-curl -fsSL https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+curl -fsSL https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -o packages-microsoft-prod.deb
 $STD dpkg -i packages-microsoft-prod.deb
 rm -rf packages-microsoft-prod.deb
 $STD apt-get update
@@ -56,7 +56,7 @@ msg_info "Setup ${APPLICATION}"
 $STD ln -svf /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 $STD ln -svf /usr/bin/ffprobe /usr/local/bin/ffprobe
 temp_file=$(mktemp)
-curl -fsSL https://fileflows.com/downloads/zip -O $temp_file
+curl -fsSL https://fileflows.com/downloads/zip -o $temp_file
 unzip -q -d /opt/fileflows $temp_file
 (cd /opt/fileflows/Server && dotnet FileFlows.Server.dll --systemd install --root true)
 systemctl enable -q --now fileflows.service

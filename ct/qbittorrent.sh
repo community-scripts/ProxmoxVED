@@ -45,7 +45,7 @@ function update_script() {
 
     msg_info "Updating ${APP} to v${RELEASE}"
     rm -f /opt/qbittorrent/qbittorrent-nox
-    curl -fsSL "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${FULLRELEASE}/x86_64-qbittorrent-nox" -O /opt/qbittorrent/qbittorrent-nox
+    curl -fsSL "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${FULLRELEASE}/x86_64-qbittorrent-nox" -o /opt/qbittorrent/qbittorrent-nox
     chmod +x /opt/qbittorrent/qbittorrent-nox
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated $APP to v${RELEASE}"

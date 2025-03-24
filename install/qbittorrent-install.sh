@@ -24,7 +24,7 @@ msg_info "Setup qBittorrent-nox"
 FULLRELEASE=$(curl -s https://api.github.com/repos/userdocs/qbittorrent-nox-static/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 RELEASE=$(echo $RELEASE | cut -c 9-13)
 mkdir -p /opt/qbittorrent
-curl -fsSL "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${FULLRELEASE}/x86_64-qbittorrent-nox -O /opt/qbittorrent/qbittorrent-nox"
+curl -fsSL "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${FULLRELEASE}/x86_64-qbittorrent-nox -o /opt/qbittorrent/qbittorrent-nox"
 chmod +x /opt/qbittorrent/qbittorrent-nox
 mkdir -p $HOME/.config/qBittorrent/
 cat <<EOF >$HOME/.config/qBittorrent/qBittorrent.conf

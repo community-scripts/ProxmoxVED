@@ -24,9 +24,9 @@ msg_ok "Installed Dependencies"
 msg_info "Setup ${APPLICATION}"
 tmp_file=$(mktemp)
 RELEASE=$(curl -s https://api.github.com/repos/meilisearch/meilisearch/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL https://github.com/meilisearch/meilisearch/releases/latest/download/meilisearch.deb -O $tmp_file
+curl -fsSL https://github.com/meilisearch/meilisearch/releases/latest/download/meilisearch.deb -o $tmp_file
 $STD dpkg -i $tmp_file
-curl -fsSL https://raw.githubusercontent.com/meilisearch/meilisearch/latest/config.toml -O /etc/meilisearch.toml
+curl -fsSL https://raw.githubusercontent.com/meilisearch/meilisearch/latest/config.toml -o /etc/meilisearch.toml
 MASTER_KEY=$(openssl rand -base64 12)
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
 sed -i \
@@ -60,7 +60,7 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
     tmp_dir=$(mktemp -d)
     mkdir -p /opt/meilisearch-ui
     RELEASE_UI=$(curl -s https://api.github.com/repos/riccox/meilisearch-ui/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-    curl -fsSL "https://github.com/riccox/meilisearch-ui/archive/refs/tags/${RELEASE_UI}.zip" -O $tmp_file
+    curl -fsSL "https://github.com/riccox/meilisearch-ui/archive/refs/tags/${RELEASE_UI}.zip" -o $tmp_file
     unzip -q "$tmp_file" -d "$tmp_dir"
     mv "$tmp_dir"/*/* /opt/meilisearch-ui/
     cd /opt/meilisearch-ui
