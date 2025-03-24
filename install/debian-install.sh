@@ -12,7 +12,6 @@ catch_errors
 setting_up_container
 network_check
 update_os
-install_core_deps
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y python3
