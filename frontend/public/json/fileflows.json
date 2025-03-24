@@ -19,7 +19,7 @@
       "script": "ct/fileflows.sh",
       "resources": {
         "cpu": 2,
-        "ram": 2048,
+        "ram": 2,
         "hdd": 8,
         "os": "Debian",
         "version": "12"
