@@ -1,0 +1,34 @@
+{
+  "name": "LibreNMS",
+  "slug": "librenms",
+  "categories": [
+    9
+  ],
+  "date_created": "2025-03-24",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://docs.librenms.org/",
+  "website": "https://librenms.org/",
+  "logo": "https://raw.githubusercontent.com/selfhst/icons/refs/heads/main/svg/librenms.svg",
+  "description": "LibreNMS is an open-source, community-driven network monitoring system that provides automatic discovery, alerting, and performance tracking for network devices. It supports a wide range of hardware and integrates with various notification and logging platforms.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/librenms.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
