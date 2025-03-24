@@ -107,7 +107,6 @@ jobs:
 
               for (const pr of filteredPRs) {
                 const prLabels = pr.labels.map(label => label.name.toLowerCase());
-
                 if (pr.user.login.includes("push-app-to-main[bot]")) {
                   console.log("Bot detected");
                   const scriptName = pr.title;
@@ -116,8 +115,8 @@ jobs:
                         owner: context.repo.owner,
                         repo: "ProxmoxVED",
                         state: "all",
-                        labels: ["Started Migration To ProxmoxVE"],
-                        per_page: 5
+                        labels: ["Started Migration To ProxmoxVE"]
+
                       });
                       console.log("Related issues", relatedIssues);
                       const matchingIssue = relatedIssues.find(issue =>
