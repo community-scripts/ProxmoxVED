@@ -114,7 +114,6 @@ jobs:
                 if (pr.user.login.includes("push-app-to-main[bot]")) {
                   console.error("PR created by push-to-main-app");
                   const scriptName = pr.title;
-                  continue;
 
                     try {
                       const { data: relatedIssues } = await github.rest.issues.listForRepo({
