@@ -140,7 +140,7 @@ jobs:
                 }
 
                 for (const category of categorizedPRs) {
-                  if (category.labels.some(label => prLabels.includes(label)) && !category.labels.some(label => prLabels.includes("new script"))) {
+                  if (category.labels.some(label => prLabels.includes(label)) && !prLabels.includes("new script")) {
                     if (category.subCategories && category.subCategories.length > 0) {
                       const subCategory = category.subCategories.find(sub =>
                         sub.labels.some(label => prLabels.includes(label))
