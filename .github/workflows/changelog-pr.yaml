@@ -161,6 +161,7 @@ jobs:
                     }
                   }else if(category.labels.includes("new script")){
                     category.notes.push(prNote);
+                  }
                 }
               }
 
