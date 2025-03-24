@@ -108,7 +108,7 @@ jobs:
               for (const pr of filteredPRs) {
                 const prLabels = pr.labels.map(label => label.name.toLowerCase());
 
-                if (pr.user.login === "push-app-to-main[bot]") {
+                if (pr.user.login.includes("push-app-to-main[bot]")) {
                   console.log("Bot detected");
                   const scriptName = pr.title;
                     try {
