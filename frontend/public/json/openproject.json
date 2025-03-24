@@ -2,8 +2,7 @@
   "name": "OpenProject",
   "slug": "openproject",
   "categories": [
-    25,
-    20
+    25
   ],
   "date_created": "2025-03-21",
   "type": "ct",
