@@ -59,8 +59,9 @@ msg_info "Add ruby-build"
 mkdir -p ~/.rbenv/plugins
 cd ~/.rbenv/plugins
 RUBY_BUILD_RELEASE=$(curl -s https://api.github.com/repos/rbenv/ruby-build/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -s "https://github.com/rbenv/ruby-build/archive/refs/tags/${RUBY_BUILD_RELEASE}.zip" -o ruby-build.zip
+curl -fsSL "https://github.com/rbenv/ruby-build/archive/refs/tags/${RUBY_BUILD_RELEASE}.zip" -o ruby-build.zip
 unzip ruby-build.zip
+mv ruby-build-*/* ~/.rbenv/plugins
 echo "${RUBY_BUILD_RELEASE}" >~/.rbenv/plugins/RUBY_BUILD_version.txt
 msg_ok "Added ruby-build"
 
@@ -168,6 +169,7 @@ customize
 msg_info "Cleaning up"
 rm -rf "/opt/manyfold.zip"
 rm -rf "~/.rbenv/plugins/ruby-build.zip"
+rm -rf "~/.rbenv/plugins/ruby-build-*/*"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
