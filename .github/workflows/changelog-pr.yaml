@@ -149,7 +149,9 @@ jobs:
                       );
 
                       if (subCategory) {
-                        subCategory.notes.push(prNote);
+                        if(!category.lable.includes("new script")){
+                          subCategory.notes.push(prNote);
+                        }
                       } else {
                         category.notes.push(prNote);
                       }
