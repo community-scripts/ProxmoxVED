@@ -6,7 +6,7 @@
 # Source: https://fileflows.com/
 
 # Import Functions und Setup
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -37,10 +37,19 @@ deb http://deb.debian.org/debian bookworm-updates non-free non-free-firmware
 deb-src http://deb.debian.org/debian bookworm-updates non-free non-free-firmware
 EOF
   $STD apt-get update
-  $STD apt-get -y install {intel-media-va-driver-non-free,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools}
+  $STD apt-get install -y \
+    intel-media-va-driver-non-free \
+    ocl-icd-libopencl1 \
+    intel-opencl-icd \
+    vainfo,intel-gpu-tools
 else
   msg_info "Installing Intel Hardware Acceleration"
-  $STD apt-get -y install {va-driver-all,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools}
+  $STD apt-get install -y \
+    va-driver-all \
+    ocl-icd-libopencl1 \
+    intel-opencl-icd \
+    vainfo \
+    intel-gpu-tools
 fi
 msg_ok "Installed and Set Up Intel Hardware Acceleration"
 
