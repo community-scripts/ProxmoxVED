@@ -139,26 +139,25 @@ jobs:
                     }
                 }
 
-                // Find matching category
                 for (const category of categorizedPRs) {
-                  if (category.labels.some(label => prLabels.includes(label))) {
-                    // Check if PR belongs to a subcategory
+                  if (category.labels.some(label => prLabels.includes(label)) && !category.labels.some(label => prLabels.includes("new script"))) {
                     if (category.subCategories && category.subCategories.length > 0) {
                       const subCategory = category.subCategories.find(sub =>
                         sub.labels.some(label => prLabels.includes(label))
                       );
 
                       if (subCategory) {
-                        if(!category.labels.includes("new script")){
                           subCategory.notes.push(prNote);
-                        }
                       } else {
                         category.notes.push(prNote);
                       }
                     } else {
                       category.notes.push(prNote);
                     }
-                  }
+                  }else if (category.labels.includes("new script")) {
+                    if (prLabels.includes("new script")) {
+                      category.notes.push(prNote);
+                    }
                 }
               }
 
