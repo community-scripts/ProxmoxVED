@@ -109,10 +109,9 @@ jobs:
                 const prLabels = pr.labels.map(label => label.name.toLowerCase());
 
                 let prNote = `- ${pr.title} [@${pr.user.login}](https://github.com/${pr.user.login}) ([#${pr.number}](${pr.html_url}))`;
-                console.log("PR: ", pr.title);
-                console.log("USER: ", pr.user.login);
 
-                if (pr.user.login.includes("push-to-main-app")) {
+
+                if (pr.user.login.includes("push-app-to-main[bot]")) {
                   console.error("PR created by push-to-main-app");
                   const scriptName = pr.title;
                   continue;
