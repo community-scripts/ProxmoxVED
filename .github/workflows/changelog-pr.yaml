@@ -108,7 +108,7 @@ jobs:
               for (const pr of filteredPRs) {
                 const prLabels = pr.labels.map(label => label.name.toLowerCase());
                 if (pr.user.login.includes("push-app-to-main[bot]")) {
-                  console.log("Bot detected");
+
                   const scriptName = pr.title;
                     try {
                       const { data: relatedIssues } = await github.rest.issues.listForRepo({
@@ -116,13 +116,13 @@ jobs:
                         repo: "ProxmoxVED",
                         state: "all",
                         labels: ["Started Migration To ProxmoxVE"]
-
+                        per_page: 1
                       });
-                      console.log("Related issues", relatedIssues);
+
                       const matchingIssue = relatedIssues.find(issue =>
                         issue.title.toLowerCase().includes(scriptName.toLowerCase())
                       );
-                      console.log("Matching issue", matchingIssue);
+
                       if (matchingIssue) {
                         const issueAuthor = matchingIssue.user.login;
                         const issueAuthorUrl = `https://github.com/${issueAuthor}`;
