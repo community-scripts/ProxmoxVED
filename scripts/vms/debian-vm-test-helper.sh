@@ -4,8 +4,8 @@
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
-source /dev/stdin <<< $(curl -fsSL - https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
-source /dev/stdin <<< $(curl -fsSL - https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helpers.func)
+source /dev/stdin <<< $(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
+source /dev/stdin <<< $(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helpers.func)
 
 function header_info {
   clear
