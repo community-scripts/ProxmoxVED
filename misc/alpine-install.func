@@ -143,6 +143,11 @@ update_os() {
     $STD apk update
     $STD apk upgrade
     msg_ok "Updated Container OS"
+
+    msg_info "Installing core dependencies"
+    $STD apk update
+    $STD apk add newt curl openssh nano mc
+    msg_ok "Core dependencies installed"
 }
 
 # This function modifies the message of the day (motd) and SSH settings
