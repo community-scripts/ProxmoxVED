@@ -14,7 +14,7 @@ var_os="debian"
 var_version="12"
 var_unprivileged="1"
 
-header_info "$APP" 
+header_info "$APP"
 variables
 color
 catch_errors
@@ -27,7 +27,7 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  if ! command -v pnpm &> /dev/null; then  
+  if ! command -v pnpm &>/dev/null; then
     msg_info "Installing pnpm"
     #export NODE_OPTIONS=--openssl-legacy-provider
     $STD npm install -g pnpm@8.15
@@ -51,7 +51,7 @@ function update_script() {
   msg_ok "Cleaned Old Files"
 
   msg_info "Downloading NPM v${RELEASE}"
-  wget -q https://codeload.github.com/NginxProxyManager/nginx-proxy-manager/tar.gz/v${RELEASE} -O - | tar -xz
+  curl -fsSL https://codeload.github.com/NginxProxyManager/nginx-proxy-manager/tar.gz/v${RELEASE} -O - | tar -xz
   cd nginx-proxy-manager-${RELEASE}
   msg_ok "Downloaded NPM v${RELEASE}"
 

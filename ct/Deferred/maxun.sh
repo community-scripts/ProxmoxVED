@@ -36,7 +36,7 @@ function update_script() {
     msg_info "Updating ${APP} to v${RELEASE}"
     mv /opt/maxun /opt/maxun_bak
     cd /opt
-    wget -q "https://github.com/getmaxun/maxun/archive/refs/tags/v${RELEASE}.zip"
+    curl -fsSL "https://github.com/getmaxun/maxun/archive/refs/tags/v${RELEASE}.zip"
     unzip -q v${RELEASE}.zip
     mv maxun-${RELEASE} /opt/maxun
     mv /opt/maxun_bak/.env /opt/maxun/

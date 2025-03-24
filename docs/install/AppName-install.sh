@@ -6,7 +6,7 @@
 # Source: [SOURCE_URL]
 
 # Import Functions und Setup
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -34,11 +34,11 @@ $STD mysql -u root -e "CREATE DATABASE $DB_NAME;"
 $STD mysql -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED WITH mysql_native_password AS PASSWORD('$DB_PASS');"
 $STD mysql -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-    echo "${APPLICATION} Credentials"
-    echo "Database User: $DB_USER"
-    echo "Database Password: $DB_PASS"
-    echo "Database Name: $DB_NAME"
-} >> ~/$APP_NAME.creds
+  echo "${APPLICATION} Credentials"
+  echo "Database User: $DB_USER"
+  echo "Database Password: $DB_PASS"
+  echo "Database Name: $DB_NAME"
+} >>~/$APP_NAME.creds
 msg_ok "Set up Database"
 
 # Temp
@@ -46,11 +46,11 @@ msg_ok "Set up Database"
 # Setup App
 msg_info "Setup ${APPLICATION}"
 RELEASE=$(curl -s https://api.github.com/repos/[REPO]/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-wget -q "https://github.com/[REPO]/archive/refs/tags/${RELEASE}.zip"
+curl -fsSL "https://github.com/[REPO]/archive/refs/tags/${RELEASE}.zip"
 unzip -q ${RELEASE}.zip
 mv ${APPLICATION}-${RELEASE}/ /opt/${APPLICATION}
-# 
-# 
+#
+#
 #
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup ${APPLICATION}"

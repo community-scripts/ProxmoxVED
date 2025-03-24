@@ -20,7 +20,6 @@ $STD apt-get install -y \
   mc \
   build-essential \
   git \
-  wget \
   libnewt-dev \
   libssl-dev \
   libncurses5-dev \
@@ -79,7 +78,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Installing Asterisk (Patience)"
 cd /usr/src
-wget -q http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-21-current.tar.gz
+curl -fsSL http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-21-current.tar.gz
 tar xf asterisk-21-current.tar.gz
 cd asterisk-21.*
 $STD contrib/scripts/get_mp3_source.sh
@@ -138,7 +137,7 @@ EOF
 
 msg_info "Installing FreePBX"
 cd /usr/local/src
-wget -q http://mirror.freepbx.org/modules/packages/freepbx/freepbx-17.0-latest-EDGE.tgz
+curl -fsSL http://mirror.freepbx.org/modules/packages/freepbx/freepbx-17.0-latest-EDGE.tgz
 tar zxf freepbx-17.0-latest-EDGE.tgz
 cd /usr/local/src/freepbx/
 $STD ./start_asterisk start

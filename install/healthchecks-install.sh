@@ -60,7 +60,7 @@ msg_ok "Set up Database"
 msg_info "Setup healthchecks"
 cd /opt
 RELEASE=$(curl -s https://api.github.com/repos/healthchecks/healthchecks/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-wget -q "https://github.com/healthchecks/healthchecks/archive/refs/tags/v${RELEASE}.zip"
+curl -fsSL "https://github.com/healthchecks/healthchecks/archive/refs/tags/v${RELEASE}.zip"
 unzip -q v${RELEASE}.zip
 mv healthchecks-${RELEASE} /opt/healthchecks
 cd /opt/healthchecks

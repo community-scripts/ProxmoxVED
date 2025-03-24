@@ -15,16 +15,16 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-    curl sudo mc git gpg ca-certificates automake build-essential xz-utils libtool ccache pkg-config \
-    libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev \
-    libjpeg-dev libpng-dev libtiff-dev gfortran openexr libatlas-base-dev libssl-dev libtbb-dev \
-    libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev gcc gfortran \
-    libopenblas-dev liblapack-dev libusb-1.0-0-dev jq moreutils tclsh libhdf5-dev libopenexr-dev
+  curl sudo mc git gpg ca-certificates automake build-essential xz-utils libtool ccache pkg-config \
+  libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev \
+  libjpeg-dev libpng-dev libtiff-dev gfortran openexr libatlas-base-dev libssl-dev libtbb-dev \
+  libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev gcc gfortran \
+  libopenblas-dev liblapack-dev libusb-1.0-0-dev jq moreutils tclsh libhdf5-dev libopenexr-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Python3"
 $STD apt-get install -y \
-    python3 python3-dev python3-setuptools python3-distutils python3-pip
+  python3 python3-dev python3-setuptools python3-distutils python3-pip
 $STD pip install --upgrade pip
 msg_ok "Setup Python3"
 
@@ -39,7 +39,7 @@ msg_ok "Installed Node.js"
 msg_info "Installing go2rtc"
 mkdir -p /usr/local/go2rtc/bin
 cd /usr/local/go2rtc/bin
-wget -qO go2rtc "https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_linux_amd64"
+curl -fsSL "https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_linux_amd64" -o go2rtc
 chmod +x go2rtc
 ln -sf /usr/local/go2rtc/bin/go2rtc /usr/local/bin/go2rtc
 msg_ok "Installed go2rtc"
@@ -47,16 +47,16 @@ msg_ok "Installed go2rtc"
 msg_info "Setting Up Hardware Acceleration"
 $STD apt-get -y install {va-driver-all,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools}
 if [[ "$CTTYPE" == "0" ]]; then
-    chgrp video /dev/dri
-    chmod 755 /dev/dri
-    chmod 660 /dev/dri/*
+  chgrp video /dev/dri
+  chmod 755 /dev/dri
+  chmod 660 /dev/dri/*
 fi
 msg_ok "Set Up Hardware Acceleration"
 
 msg_info "Setup Frigate"
 RELEASE=$(curl -s https://api.github.com/repos/blakeblackshear/frigate/releases/latest | jq -r '.tag_name')
 mkdir -p /opt/frigate/models
-wget -q https://github.com/blakeblackshear/frigate/archive/refs/tags/${RELEASE}.tar.gz -O frigate.tar.gz
+curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/${RELEASE}.tar.gz -O frigate.tar.gz
 tar -xzf frigate.tar.gz -C /opt/frigate --strip-components 1
 rm -rf frigate.tar.gz
 cd /opt/frigate
@@ -102,21 +102,21 @@ cameras:
 EOF
 ln -sf /config/config.yml /opt/frigate/config/config.yml
 if [[ "$CTTYPE" == "0" ]]; then
-    sed -i -e 's/^kvm:x:104:$/render:x:104:root,frigate/' -e 's/^render:x:105:root$/kvm:x:105:/' /etc/group
+  sed -i -e 's/^kvm:x:104:$/render:x:104:root,frigate/' -e 's/^render:x:105:root$/kvm:x:105:/' /etc/group
 else
-    sed -i -e 's/^kvm:x:104:$/render:x:104:frigate/' -e 's/^render:x:105:$/kvm:x:105:/' /etc/group
+  sed -i -e 's/^kvm:x:104:$/render:x:104:frigate/' -e 's/^render:x:105:$/kvm:x:105:/' /etc/group
 fi
 echo "tmpfs   /tmp/cache      tmpfs   defaults        0       0" >>/etc/fstab
 msg_ok "Installed Frigate $RELEASE"
 
 read -p "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it? (y/n): " semantic_choice
 if [[ "$semantic_choice" == "y" ]]; then
-    msg_info "Configuring Semantic Search & AI Models"
-    mkdir -p /opt/frigate/models/semantic_search
-    wget -qO /opt/frigate/models/semantic_search/clip_model.pt https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin
-    msg_ok "Semantic Search Models Installed"
+  msg_info "Configuring Semantic Search & AI Models"
+  mkdir -p /opt/frigate/models/semantic_search
+  curl -fsSL -o /opt/frigate/models/semantic_search/clip_model.pt https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin
+  msg_ok "Semantic Search Models Installed"
 else
-    msg_ok "Skipped Semantic Search Setup"
+  msg_ok "Skipped Semantic Search Setup"
 fi
 msg_info "Building and Installing libUSB without udev"
 wget -qO /tmp/libusb.zip https://github.com/libusb/libusb/archive/v1.0.26.zip
@@ -134,7 +134,7 @@ msg_info "Installing Coral Object Detection Model (Patience)"
 cd /opt/frigate
 export CCACHE_DIR=/root/.ccache
 export CCACHE_MAXSIZE=2G
-wget -q https://github.com/libusb/libusb/archive/v1.0.26.zip
+curl -fsSL https://github.com/libusb/libusb/archive/v1.0.26.zip
 unzip -q v1.0.26.zip
 rm v1.0.26.zip
 cd libusb-1.0.26

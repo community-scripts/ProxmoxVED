@@ -25,7 +25,7 @@ msg_ok "Installed Dependencies"
 msg_info "Setup ${APPLICATION}"
 tmp_file=$(mktemp)
 RELEASE=$(curl -s https://api.github.com/repos/slskd/slskd/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-wget -q "https://github.com/slskd/slskd/releases/download/${RELEASE}/slskd-${RELEASE}-linux-x64.zip" -O $tmp_file
+curl -fsSL "https://github.com/slskd/slskd/releases/download/${RELEASE}/slskd-${RELEASE}-linux-x64.zip" -O $tmp_file
 unzip -q $tmp_file -d /opt/${APPLICATION}
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 JWT_KEY=$(openssl rand -base64 44)
@@ -45,7 +45,7 @@ msg_ok "Setup ${APPLICATION}"
 msg_info "Installing Soularr"
 rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
 cd /tmp
-wget -q https://github.com/mrusse/soularr/archive/refs/heads/main.zip
+curl -fsSL https://github.com/mrusse/soularr/archive/refs/heads/main.zip
 unzip -q main.zip
 mv soularr-main /opt/soularr
 cd /opt/soularr

@@ -20,69 +20,69 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
+  header_info
+  check_container_storage
+  check_container_resources
 
-    if [[ ! -f /opt/meilisearch_version.txt ]]; then
-        msg_error "No Meilisearch Installation Found!"
-        exit
+  if [[ ! -f /opt/meilisearch_version.txt ]]; then
+    msg_error "No Meilisearch Installation Found!"
+    exit
+  fi
+  UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Meilisearch Update" --radiolist --cancel-button Exit-Script "Spacebar = Select" 10 58 2 \
+    "1" "Update Meilisearch" ON \
+    "2" "Update Meilisearch-UI" OFF \
+    3>&1 1>&2 2>&3)
+
+  if [ "$UPD" == "1" ]; then
+    msg_info "Stopping Meilisearch"
+    systemctl stop meilisearch
+    msg_ok "Stopped Meilisearch"
+
+    msg_info "Updating Meilisearch"
+    tmp_file=$(mktemp)
+    RELEASE=$(curl -s https://api.github.com/repos/meilisearch/meilisearch/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+    curl -fsSL https://github.com/meilisearch/meilisearch/releases/latest/download/meilisearch.deb -O $tmp_file
+    $STD dpkg -i $tmp_file
+    echo "$RELEASE" >/opt/meilisearch_version.txt
+    msg_ok "Updated Meilisearch"
+
+    msg_info "Starting Meilisearch"
+    systemctl start meilisearch
+    msg_ok "Started Meilisearch"
+    exit
+  fi
+
+  if [ "$UPD" == "2" ]; then
+    if [[ ! -f /opt/meilisearch-ui_version.txt ]]; then
+      msg_error "No Meilisearch-UI Installation Found!"
+      exit
     fi
-    UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Meilisearch Update" --radiolist --cancel-button Exit-Script "Spacebar = Select" 10 58 2 \
-        "1" "Update Meilisearch" ON \
-        "2" "Update Meilisearch-UI" OFF \
-        3>&1 1>&2 2>&3)
+    msg_info "Stopping Meilisearch-UI"
+    systemctl stop meilisearch-ui
+    msg_ok "Stopped Meilisearch-UI"
 
-    if [ "$UPD" == "1" ]; then
-        msg_info "Stopping Meilisearch"
-        systemctl stop meilisearch
-        msg_ok "Stopped Meilisearch"
+    msg_info "Updating Meilisearch-UI"
+    tmp_file=$(mktemp)
+    tmp_dir=$(mktemp -d)
+    RELEASE_UI=$(curl -s https://api.github.com/repos/riccox/meilisearch-ui/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+    cp /opt/meilisearch-ui/.env.local /tmp/.env.local.bak
+    rm -rf /opt/meilisearch-ui
+    mkdir -p /opt/meilisearch-ui
+    curl -fsSL "https://github.com/riccox/meilisearch-ui/archive/refs/tags/${RELEASE_UI}.zip" -O $tmp_file
+    unzip -q "$tmp_file" -d "$tmp_dir"
+    mv "$tmp_dir"/*/* /opt/meilisearch-ui/
+    cd /opt/meilisearch-ui
+    sed -i 's|const hash = execSync("git rev-parse HEAD").toString().trim();|const hash = "unknown";|' /opt/meilisearch-ui/vite.config.ts
+    mv /tmp/.env.local.bak /opt/meilisearch-ui/.env.local
+    $STD pnpm install
+    echo "$RELEASE_UI" >/opt/meilisearch-ui_version.txt
+    msg_ok "Updated Meilisearch-UI"
 
-        msg_info "Updating Meilisearch"
-        tmp_file=$(mktemp)
-        RELEASE=$(curl -s https://api.github.com/repos/meilisearch/meilisearch/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-        wget -q https://github.com/meilisearch/meilisearch/releases/latest/download/meilisearch.deb -O $tmp_file
-        $STD dpkg -i $tmp_file
-        echo "$RELEASE" >/opt/meilisearch_version.txt
-        msg_ok "Updated Meilisearch"
-
-        msg_info "Starting Meilisearch"
-        systemctl start meilisearch
-        msg_ok "Started Meilisearch"
-        exit
-    fi
-
-    if [ "$UPD" == "2" ]; then
-        if [[ ! -f /opt/meilisearch-ui_version.txt ]]; then
-            msg_error "No Meilisearch-UI Installation Found!"
-            exit
-        fi
-        msg_info "Stopping Meilisearch-UI"
-        systemctl stop meilisearch-ui
-        msg_ok "Stopped Meilisearch-UI"
-
-        msg_info "Updating Meilisearch-UI"
-        tmp_file=$(mktemp)
-        tmp_dir=$(mktemp -d)
-        RELEASE_UI=$(curl -s https://api.github.com/repos/riccox/meilisearch-ui/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-        cp /opt/meilisearch-ui/.env.local /tmp/.env.local.bak
-        rm -rf /opt/meilisearch-ui
-        mkdir -p /opt/meilisearch-ui
-        wget -q "https://github.com/riccox/meilisearch-ui/archive/refs/tags/${RELEASE_UI}.zip" -O $tmp_file
-        unzip -q "$tmp_file" -d "$tmp_dir"
-        mv "$tmp_dir"/*/* /opt/meilisearch-ui/
-        cd /opt/meilisearch-ui
-        sed -i 's|const hash = execSync("git rev-parse HEAD").toString().trim();|const hash = "unknown";|' /opt/meilisearch-ui/vite.config.ts
-        mv /tmp/.env.local.bak /opt/meilisearch-ui/.env.local
-        $STD pnpm install
-        echo "$RELEASE_UI" >/opt/meilisearch-ui_version.txt
-        msg_ok "Updated Meilisearch-UI"
-
-        msg_info "Starting Meilisearch-UI"
-        systemctl start meilisearch-ui
-        msg_ok "Started Meilisearch-UI"
-        exit
-    fi
+    msg_info "Starting Meilisearch-UI"
+    systemctl start meilisearch-ui
+    msg_ok "Started Meilisearch-UI"
+    exit
+  fi
 }
 
 start
