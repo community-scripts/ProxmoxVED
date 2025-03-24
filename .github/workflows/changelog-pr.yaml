@@ -115,7 +115,7 @@ jobs:
                   console.error("PR created by push-to-main-app");
                   const scriptName = pr.title;
                   continue;
-                  if (scriptName) {
+
                     try {
                       const { data: relatedIssues } = await github.rest.issues.listForRepo({
                         owner: context.repo.owner,
@@ -135,9 +135,6 @@ jobs:
                     } catch (error) {
                       console.error(`Error fetching related issues: ${error}`);
                     }
-                  } else {
-                    prNote = `- ${pr.title} ([#${pr.number}](${pr.html_url}))`;
-                  }
                 }
 
                 // Find matching category
