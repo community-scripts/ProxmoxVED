@@ -149,7 +149,7 @@ jobs:
                       );
 
                       if (subCategory) {
-                        if(!category.lable.includes("new script")){
+                        if(!category.labels.includes("new script")){
                           subCategory.notes.push(prNote);
                         }
                       } else {
