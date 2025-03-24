@@ -134,10 +134,10 @@ jobs:
                       prNote = `- ${pr.title} ([#${pr.number}](${pr.html_url}))`;
                     }
                 }
-                console.log(categorizedPRs);
+
 
                 for (const category of categorizedPRs) {
-
+                  console.log(category);
                   if (category.labels.some(label => prLabels.includes(label)) && !category.labels.some(label => prLabels.includes("new script"))) {
                     if (category.subCategories && category.subCategories.length > 0) {
                       const subCategory = category.subCategories.find(sub =>
@@ -150,8 +150,6 @@ jobs:
                         category.notes.push(prNote);
                       }
                     }
-                  }else if (category.labels.some(label => prLabels.includes("new script")){
-                    category.notes.push(prNote);
                   }
                 }
 
