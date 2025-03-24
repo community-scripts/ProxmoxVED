@@ -145,13 +145,13 @@ jobs:
                       );
 
                       if (subCategory) {
-                        if(!category.labels.includes("new script")){
                           subCategory.notes.push(prNote);
-                        }
                       } else {
                         category.notes.push(prNote);
                       }
                     }
+                  }else if (category.labels.some(label => prLabels.includes("new script")){
+                    category.notes.push(prNote);
                   }
                 }
 
