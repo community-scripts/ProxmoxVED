@@ -5,7 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://www.qbittorrent.org/
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -22,7 +22,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Setup qBittorrent-nox"
 FULLRELEASE=$(curl -s https://api.github.com/repos/userdocs/qbittorrent-nox-static/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-RELEASE=$(echo $RELEASE | cut -c 9-13)
+RELEASE=$(echo $FULLRELEASE | cut -c 9-13)
 mkdir -p /opt/qbittorrent
 curl -fsSL "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${FULLRELEASE}/x86_64-qbittorrent-nox -o /opt/qbittorrent/qbittorrent-nox"
 chmod +x /opt/qbittorrent/qbittorrent-nox
