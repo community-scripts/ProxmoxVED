@@ -154,9 +154,12 @@ jobs:
                         category.notes.push(prNote);
                       }
                     } else {
-                      category.notes.push(prNote);
+                      if (!category.labels.includes("new script")) {
+                        category.notes.push(prNote);
+                      }
                     }
-                  }
+                  }else if (category.labels.includes("new script")){
+                    category.notes.push(prNote);
                 }
               }
 
