@@ -25,7 +25,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Setup OpenProject Repository"
 wget -qO- https://dl.packager.io/srv/opf/openproject/key | gpg --dearmor >/etc/apt/trusted.gpg.d/packager-io.gpg
-wget -O /etc/apt/sources.list.d/openproject.list https://dl.packager.io/srv/opf/openproject/stable/15/installer/debian/12.repo
+wget -qO /etc/apt/sources.list.d/openproject.list https://dl.packager.io/srv/opf/openproject/stable/15/installer/debian/12.repo
 msg_ok "Setup OpenProject Repository"
 
 msg_info "Setup PostgreSQL Repository"
