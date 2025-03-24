@@ -112,7 +112,7 @@ jobs:
                 console.log("PR: ", pr.title);
                 console.log("USER: ", pr.user.login);
 
-                if (pr.user.login === "push-app-to-main") {
+                if (pr.user.login === "push-app-to-main[bot]") {
                   const scriptName = pr.title;
                   if (scriptName) {
                     try {
