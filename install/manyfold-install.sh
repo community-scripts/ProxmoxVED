@@ -57,7 +57,7 @@ msg_ok "Installed Node.js/Yarn"
 
 msg_info "Add ruby-build"
 mkdir -p ~/.rbenv/plugins
-git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build
+$STD git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build
 msg_ok "Added ruby-build"
 
 msg_info "Adding manyfold user"
