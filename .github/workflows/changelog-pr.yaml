@@ -112,7 +112,7 @@ jobs:
 
 
                 if (pr.user.login.includes("push-app-to-main[bot]")) {
-                  console.error("PR created by push-to-main-app");
+
                   const scriptName = pr.title;
 
                     try {
@@ -123,12 +123,12 @@ jobs:
                         labels: ["Started Migration To ProxmoxVE"],
                         per_page: 5
                       });
-                      console.log(`Related issues: ${JSON.stringify(relatedIssues, null, 2)}`);
+
                       const matchingIssue = relatedIssues.find(issue =>
                         issue.title.toLowerCase().includes(scriptName.toLowerCase())
 
                       );
-                      console.log(`Matching issue: ${JSON.stringify(matchingIssue, null, 2)}`);
+
                       if (matchingIssue) {
                         const issueAuthor = matchingIssue.user.login;
                         const issueAuthorUrl = `https://github.com/${issueAuthor}`;
