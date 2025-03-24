@@ -110,6 +110,7 @@ jobs:
 
                 let prNote = `- ${pr.title} [@${pr.user.login}](https://github.com/${pr.user.login}) ([#${pr.number}](${pr.html_url}))`;
 
+                console.log("Author: " ,pr.user.login);
 
                 if (pr.user.login.includes("push-app-to-main[bot]")) {
                   const scriptName = pr.title;
