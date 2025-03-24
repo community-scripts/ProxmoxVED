@@ -89,7 +89,7 @@ jobs:
 
               const { data: pulls } = await github.rest.pulls.list({
                 owner: context.repo.owner,
-                repo: "ProxmoxVE",
+                repo: "ProxmoxVED",
                 base: "main",
                 state: "closed",
                 sort: "updated",
