@@ -20,15 +20,18 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -d /var ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-    msg_error "No Update Function Found!"
+  header_info
+  check_container_storage
+  check_container_resources
+  if [[ ! -f /etc/openproject/installer.dat ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+  msg_info "Updating ${APP}"
+  $STD apt-get update
+  $STD apt-get apt-get install --only-upgrade -y openproject
+  msg_ok "Updated ${APP}"
+  exit
 }
 
 start
