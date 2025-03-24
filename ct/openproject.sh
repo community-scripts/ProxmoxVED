@@ -6,7 +6,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # Source: https://github.com/opf/openproject
 
 APP="OpenProject"
-var_tags="notes"
+var_tags="project-management,erp"
 var_cpu="2"
 var_ram="2048"
 var_disk="8"
