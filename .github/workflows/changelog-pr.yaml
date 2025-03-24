@@ -128,14 +128,16 @@ jobs:
                         const issueAuthorUrl = `https://github.com/${issueAuthor}`;
                         prNote = `- ${pr.title} [@${issueAuthor}](${issueAuthorUrl}) ([#${pr.number}](${pr.html_url}))`;
                       }
+                      else {
+                        prNote = `- ${pr.title} ([#${pr.number}](${pr.html_url}))`;
+                      }
                     } catch (error) {
                       console.error(`Error fetching related issues: ${error}`);
                       prNote = `- ${pr.title} ([#${pr.number}](${pr.html_url}))`;
                     }
+                }else{
+                  prNote = `- ${pr.title} [@${pr.user.login}](https://github.com/${pr.user.login}) ([#${pr.number}](${pr.html_url}))`;
                 }
-
-                prNote = `- ${pr.title} [@${pr.user.login}](https://github.com/${pr.user.login}) ([#${pr.number}](${pr.html_url}))`;
-
 
 
                 if (prLabels.includes("new script")) {
