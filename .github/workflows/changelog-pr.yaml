@@ -136,22 +136,34 @@ jobs:
                 }
 
 
-                for (const category of categorizedPRs) {
+                // Check if PR has "new script" label
+                if (prLabels.includes("new script")) {
+                  // Find the New Script category
+                  const newScriptCategory = categorizedPRs.find(category =>
+                  category.title === "New Scripts" || category.labels.includes("new script"));
+
+                  if (newScriptCategory) {
+                  newScriptCategory.notes.push(prNote);
+                  }
+                } else {
+                  // Normal category processing for other PRs
+                  for (const category of categorizedPRs) {
                   if (category.labels.some(label => prLabels.includes(label))) {
                     if (category.subCategories && category.subCategories.length > 0) {
-                      const subCategory = category.subCategories.find(sub =>
-                        sub.labels.some(label => prLabels.includes(label))
-                      );
+                    const subCategory = category.subCategories.find(sub =>
+                      sub.labels.some(label => prLabels.includes(label))
+                    );
 
-                      if (subCategory) {
-                          subCategory.notes.push(prNote);
-                      } else {
-                        category.notes.push(prNote);
-                      }
-                    }
-                    else{
+                    if (subCategory) {
+                      subCategory.notes.push(prNote);
+                    } else {
                       category.notes.push(prNote);
                     }
+                    }
+                    else{
+                    category.notes.push(prNote);
+                    }
+                  }
                   }
                 }
 
