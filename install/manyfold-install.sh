@@ -57,7 +57,11 @@ msg_ok "Installed Node.js/Yarn"
 
 msg_info "Add ruby-build"
 mkdir -p ~/.rbenv/plugins
-$STD git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build
+cd ~/.rbenv/plugins
+RUBY_BUILD_RELEASE=$(curl -s https://api.github.com/repos/rbenv/ruby-build/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+curl -s "https://github.com/rbenv/ruby-build/archive/refs/tags/${RUBY_BUILD_RELEASE}.zip" -o ruby-build.zip
+unzip ruby-build.zip
+echo "${RUBY_BUILD_RELEASE}" >~/.rbenv/plugins/RUBY_BUILD_version.txt
 msg_ok "Added ruby-build"
 
 msg_info "Adding manyfold user"
@@ -67,8 +71,8 @@ msg_ok "Added manyfold user"
 msg_info "Installing Manyfold"
 RELEASE=$(curl -s https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 cd /opt
-curl -fsSL "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip"
-unzip -q "v${RELEASE}.zip"
+curl -fsSL "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip" -o manyfold.zip
+unzip -q manyfold.zip
 mv /opt/manyfold-${RELEASE}/ /opt/manyfold
 cd /opt/manyfold
 chown -R manyfold:manyfold /opt/manyfold
@@ -162,7 +166,8 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -rf "/opt/v${RELEASE}.zip"
+rm -rf "/opt/manyfold.zip"
+rm -rf "~/.rbenv/plugins/ruby-build.zip"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
