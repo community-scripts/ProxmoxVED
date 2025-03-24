@@ -10,17 +10,22 @@
       {
         "title": "🐞 Bug Fixes",
         "labels": ["bugfix"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "✨ New Features",
         "labels": ["feature"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "💥 Breaking Changes",
         "labels": ["breaking change"],
-        "notes" : []
+        "notes": []
+      },
+      {
+        "title": "🔧 Refactor",
+        "labels": ["refactor"],
+        "notes": []
       }
     ]
   },
@@ -31,32 +36,42 @@
       {
         "title": "🐞 Bug Fixes",
         "labels": ["bugfix"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "✨ New Features",
         "labels": ["feature"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "💥 Breaking Changes",
         "labels": ["breaking change"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "📡 API",
         "labels": ["api"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "💾 Core",
         "labels": ["core"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "📂 Github",
         "labels": ["github"],
-        "notes" : []
+        "notes": []
+      },
+      {
+        "title": "📝 Documentation",
+        "labels": ["documentation"],
+        "notes": []
+      },
+      {
+        "title": "🔧 Refactor",
+        "labels": ["refactor"],
+        "notes": []
       }
     ]
   },
@@ -67,22 +82,22 @@
       {
         "title": "🐞 Bug Fixes",
         "labels": ["bugfix"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "✨ New Features",
         "labels": ["feature"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "💥 Breaking Changes",
         "labels": ["breaking change"],
-        "notes" : []
+        "notes": []
       },
       {
         "title": "📝 Script Information",
         "labels": ["json"],
-        "notes" : []
+        "notes": []
       }
     ]
   },
