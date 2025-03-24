@@ -157,7 +157,7 @@ jobs:
             --repo community-scripts/ProxmoxVE \
             --head "$branch_name" \
             --base main \
-            --title "Migrate $script_name to ProxmoxVE" \
+            --title "$script_name" \
             --body "Automated migration of $script_name from ProxmoxVED to ProxmoxVE."
           PR_NUMBER=$(gh pr list --repo community-scripts/ProxmoxVE --head "$branch_name" --json number --jq '.[].number')
           echo "PR_NUMBER=$PR_NUMBER"
