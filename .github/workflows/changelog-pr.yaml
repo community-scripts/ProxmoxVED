@@ -172,9 +172,6 @@ jobs:
             const changelogPath = path.resolve('CHANGELOG.md');
             const categorizedPRs = ${{ steps.get-categorized-prs.outputs.result }};
 
-            console.log(JSON.stringify(categorizedPRs, null, 2));
-
-
             let newReleaseNotes = `## ${today}\n\n`;
             for (const { title, notes, subCategories } of categorizedPRs) {
               const hasSubcategories = subCategories && subCategories.length > 0;
