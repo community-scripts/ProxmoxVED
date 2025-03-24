@@ -47,6 +47,8 @@ Description=qBittorrent client
 After=network.target
 
 [Service]
+Type=simple
+User=root
 ExecStart=/opt/qbittorrent/qbittorrent-nox
 Restart=always
 
