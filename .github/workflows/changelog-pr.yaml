@@ -136,6 +136,7 @@ jobs:
                       }
                     } catch (error) {
                       console.error(`Error fetching related issues: ${error}`);
+                      prNote = `- ${pr.title} ([#${pr.number}](${pr.html_url}))`;
                     }
                 }
 
@@ -154,11 +155,11 @@ jobs:
                         category.notes.push(prNote);
                       }
                     } else {
-                      if (!category.labels.includes("new script")) {
+                      if(!category.labels.includes("new script")) {
                         category.notes.push(prNote);
                       }
                     }
-                  }else if (category.labels.includes("new script")){
+                  }else if(category.labels.includes("new script")){
                     category.notes.push(prNote);
                 }
               }
