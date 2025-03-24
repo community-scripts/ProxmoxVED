@@ -140,7 +140,7 @@ jobs:
                 }
 
                 for (const category of categorizedPRs) {
-                  if (category.labels.some(label => prLabels.includes(label)) && !prLabels.includes("new script")) {
+                  if (category.labels.some(label => prLabels.includes(label)){
                     if (category.subCategories && category.subCategories.length > 0) {
                       const subCategory = category.subCategories.find(sub =>
                         sub.labels.some(label => prLabels.includes(label))
@@ -152,7 +152,9 @@ jobs:
                         category.notes.push(prNote);
                       }
                     } else {
-                      category.notes.push(prNote);
+                      if(!category.labels.includes("new script")) {
+                        category.notes.push(prNote);
+                      }
                     }
                   }else if (category.labels.includes("new script")) {
                     if (prLabels.includes("new script")) {
