@@ -15,9 +15,6 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  sudo \
-  mc \
-  curl \
   apt-transport-https \
   ca-certificates \
   gpg
