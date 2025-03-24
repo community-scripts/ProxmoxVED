@@ -119,6 +119,7 @@ jobs:
                         labels: ["Started Migration To ProxmoxVE"],
                         per_page: 5
                       });
+                      console.log("Related issues", relatedIssues);
                       const matchingIssue = relatedIssues.find(issue =>
                         issue.title.toLowerCase().includes(scriptName.toLowerCase())
                       );
