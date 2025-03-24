@@ -12,11 +12,11 @@
 
 ### 🆕 New Scripts
 
-  - wazuh [@omiinaya](https://github.com/omiinaya) ([#3381](https://github.com/community-scripts/ProxmoxVE/pull/3381))
+  - fileflows [@kkroboth](https://github.com/kkroboth) ([#3392](https://github.com/community-scripts/ProxmoxVE/pull/3392))
+- wazuh [@omiinaya](https://github.com/omiinaya) ([#3381](https://github.com/community-scripts/ProxmoxVE/pull/3381))
 - yt-dlp-webui [@CrazyWolf13](https://github.com/CrazyWolf13) ([#3364](https://github.com/community-scripts/ProxmoxVE/pull/3364))
 - Extension/New Script: Redis Alpine Installation [@MickLesk](https://github.com/MickLesk) ([#3367](https://github.com/community-scripts/ProxmoxVE/pull/3367))
 - Fluid Calendar [@vhsdream](https://github.com/vhsdream) ([#2869](https://github.com/community-scripts/ProxmoxVE/pull/2869))
-- CryptPad [@MickLesk](https://github.com/MickLesk) ([#3205](https://github.com/community-scripts/ProxmoxVE/pull/3205))
 
 ### 🚀 Updated Scripts
 
@@ -80,10 +80,6 @@
     - Better Text for Version Date [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3388](https://github.com/community-scripts/ProxmoxVE/pull/3388))
     - JSON editor note fix [@bvdberg01](https://github.com/bvdberg01) ([#3260](https://github.com/community-scripts/ProxmoxVE/pull/3260))
     - Move cryptpad files to right folders [@bvdberg01](https://github.com/bvdberg01) ([#3242](https://github.com/community-scripts/ProxmoxVE/pull/3242))
-
-  - #### ✨ New Features
-
-    - Add Latest Change Date to Frontend [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3231](https://github.com/community-scripts/ProxmoxVE/pull/3231))
 
   - #### 📝 Script Information
 
