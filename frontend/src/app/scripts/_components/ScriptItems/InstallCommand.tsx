@@ -5,8 +5,12 @@ import { Script } from "@/lib/types";
 import { getDisplayValueFromType } from "../ScriptInfoBlocks";
 
 const getInstallCommand = (scriptPath = "", isAlpine = false) => {
-    return `bash -c "$(curl -fsSL https://github.com/community-scripts/${basePath}/raw/main/${scriptPath})"`;
+    const url = `https://github.com/community-scripts/${basePath}/raw/main/${scriptPath}`;
+    return isAlpine
+        ? `bash -c "$(curl -fsSL ${url})"`
+        : `bash -c "$(curl -fsSL ${url})"`;
 };
+
 
 export default function InstallCommand({ item }: { item: Script }) {
     const alpineScript = item.install_methods.find(
