@@ -4,7 +4,7 @@ import { basePath } from "@/config/siteConfig";
 import { Script } from "@/lib/types";
 import { getDisplayValueFromType } from "../ScriptInfoBlocks";
 
-const getInstallCommand = (scriptPath = "") => {
+const getInstallCommand = (scriptPath = "", isAlpine = false) => {
     return `bash -c "$(curl -fsSL https://github.com/community-scripts/${basePath}/raw/main/${scriptPath})"`;
 };
 
