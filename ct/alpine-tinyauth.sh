@@ -21,6 +21,10 @@ catch_errors
 
 function update_script() {
   header_info
+  if [ ! -d /opt/tinyauth ]; then
+    msg_error "No ${APP} Installation Found!"
+    exit 1
+  fi
   msg_info "Updating Alpine Packages"
   $STD apk update && apk upgrade
   msg_ok "Updated Alpine Packages"
