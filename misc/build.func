@@ -1397,7 +1397,6 @@ start() {
                 exit
                 ;;
             esac
-
             update_script
         fi
     fi
