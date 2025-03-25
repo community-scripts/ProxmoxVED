@@ -25,15 +25,15 @@ $STD apk add \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Gitea"
-apk add --no-cache gitea
+$STD apk add --no-cache gitea
 msg_ok "Installed Gitea"
 
 msg_info "Enabling Gitea Service"
-rc-update add gitea default
+$STD rc-update add gitea default
 msg_ok "Enabled Gitea Service"
 
 msg_info "Starting Gitea"
-service gitea start
+$STD service gitea start
 msg_ok "Started Gitea"
 
 motd_ssh
