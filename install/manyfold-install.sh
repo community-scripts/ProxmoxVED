@@ -93,27 +93,28 @@ $STD corepack prepare $YARN_VERSION --activate
 $STD corepack use $YARN_VERSION
 $STD yarn install
 cat <<EOF >/opt/.env
-APP_VERSION=${RELEASE}
-GUID=1002
-PUID=1001
-PUBLIC_HOSTNAME=subdomain.somehost.org
-PUBLIC_PORT=5000
-SECRET_KEY_BASE=$(bundle exec rails secret)
-REDIS_URL=redis://127.0.0.1:6379/1
-DATABASE_ADAPTER=postgresql
-DATABASE_HOST=127.0.0.1
-DATABASE_USER=${DB_USER}
-DATABASE_PASSWORD=${DB_PASS}
-DATABASE_NAME=${DB_NAME}
-DATABASE_CONNECTION_POOL=16
-MULTIUSER=enabled
-HTTPS_ONLY=false
-RAILS_ENV=production
+export APP_VERSION=${RELEASE}
+export GUID=1002
+export PUID=1001
+export PUBLIC_HOSTNAME=subdomain.somehost.org
+export PUBLIC_PORT=5000
+export SECRET_KEY_BASE=$(bundle exec rails secret)
+export REDIS_URL=redis://127.0.0.1:6379/1
+export DATABASE_ADAPTER=postgresql
+export DATABASE_HOST=127.0.0.1
+export DATABASE_USER=${DB_USER}
+export DATABASE_PASSWORD=${DB_PASS}
+export DATABASE_NAME=${DB_NAME}
+export DATABASE_CONNECTION_POOL=16
+export MULTIUSER=enabled
+export HTTPS_ONLY=false
+export RAILS_ENV=production
 EOF
 chown manyfold:manyfold /opt/.env
-$STD source /opt/.env && bin/rails credentials:edit
-$STD source /opt/.env && bin/rails db:migrate
-$STD source /opt/.env && bin/rails assets:precompile
+source /opt/.env
+$STD bin/rails credentials:edit
+$STD bin/rails db:migrate
+$STD bin/rails assets:precompile
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed manyfold"
 
