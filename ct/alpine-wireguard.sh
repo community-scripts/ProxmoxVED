@@ -28,6 +28,7 @@ function update_script() {
     apk upgrade wireguard-tools
     msg_ok "Updated WireGuard"
 }
+
 start
 build_container
 description

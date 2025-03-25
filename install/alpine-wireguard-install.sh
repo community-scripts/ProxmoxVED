@@ -61,7 +61,7 @@ if [[ "$INSTALL_WGD" =~ ^[Yy]$ ]]; then
     cd /etc/wgdashboard/src || exit
     chmod u+x wgd.sh
     $STD ./wgd.sh install
-    echo "net.ipv4.ip_forward=1" >>/etc/sysctl.conf
+    $STD echo "net.ipv4.ip_forward=1" >>/etc/sysctl.conf
     sysctl -p /etc/sysctl.conf
     msg_ok "Installed WGDashboard"
 
