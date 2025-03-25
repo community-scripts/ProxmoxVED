@@ -21,9 +21,6 @@ $STD apk add \
     nano \
     mc \
     gpg \
-    git \
-    python3 \
-    py3-pip \
     iptables \
     supervisor
 msg_ok "Installed Dependencies"
@@ -34,6 +31,17 @@ msg_ok "Installed WireGuard"
 
 read -rp "Do you want to install WGDashboard? (y/N): " INSTALL_WGD
 if [[ "$INSTALL_WGD" =~ ^[Yy]$ ]]; then
+    msg_info "Installing additional dependencies for WGDashboard"
+    apk add --no-cache \
+        python3 \
+        py3-pip \
+        git \
+        sudo \
+        musl-dev \
+        linux-headers \
+        gcc \
+        python3-dev
+    msg_ok "Installed additional dependencies for WGDashboard"
     msg_info "Installing WGDashboard"
     git clone -q https://github.com/donaldzou/WGDashboard.git /etc/wgdashboard
     cd /etc/wgdashboard/src || exit
@@ -56,8 +64,10 @@ ListenPort = 51820
 EOF
     msg_ok "Created Example Config for WGDashboard"
 
-    msg_info "Creating Supervisor Service for WGDashboard"
-    cat <<EOF >/etc/supervisor.d/wg-dashboard.ini
+msg_info "Creating Supervisor Service for WGDashboard"
+mkdir -p /etc/supervisord.d/
+
+cat <<EOF > /etc/supervisord.d/wg-dashboard.ini
 [program:wg-dashboard]
 command=/etc/wgdashboard/src/wgd.sh start
 autostart=true
@@ -66,9 +76,10 @@ stderr_logfile=/var/log/wg-dashboard.err.log
 stdout_logfile=/var/log/wg-dashboard.out.log
 EOF
 
-    rc-service supervisor restart
-    rc-update add supervisor default
-    msg_ok "Created Supervisor Service for WGDashboard"
+rc-service supervisor restart
+rc-update add supervisor default
+msg_ok "Created Supervisor Service for WGDashboard"
+
 fi
 
 motd_ssh
