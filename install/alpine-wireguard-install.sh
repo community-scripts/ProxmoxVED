@@ -31,7 +31,8 @@ $STD apk add --no-cache wireguard-tools
 if [[ ! -L /etc/init.d/wg-quick.wg0 ]]; then
     ln -s /etc/init.d/wg-quick /etc/init.d/wg-quick.wg0
 fi
-rc-update add wg-quick.wg0 default
+$STD rc-update add wg-quick.wg0 default
+$STD rc-service wg-quick.wg0 start
 msg_ok "Installed WireGuard"
 
 read -rp "Do you want to install WGDashboard? (y/N): " INSTALL_WGD
