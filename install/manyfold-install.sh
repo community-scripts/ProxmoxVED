@@ -76,12 +76,12 @@ mv ruby-build-* ~/.rbenv/plugins/ruby-build
 echo "${RUBY_BUILD_RELEASE}" >~/.rbenv/plugins/RUBY_BUILD_version.txt
 msg_ok "Added ruby-build"
 
-msg_info "Installing ruby version"
+msg_info "Installing ruby ${RUBY_VERSION}"
 $STD rbenv install $RUBY_VERSION
 echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
 echo 'eval "$(rbenv init -)"' >> ~/.bashrc
 source ~/.bashrc
-msg_ok "Installed ruby"
+msg_ok "Installed ruby ${RUBY_VERSION}"
 
 msg_info "Adding manyfold user"
 useradd -m -s /usr/bin/bash manyfold
