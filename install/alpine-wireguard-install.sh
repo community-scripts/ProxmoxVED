@@ -64,10 +64,10 @@ ListenPort = 51820
 EOF
     msg_ok "Created Example Config for WGDashboard"
 
-msg_info "Creating Supervisor Service for WGDashboard"
-mkdir -p /etc/supervisord.d/
+    msg_info "Creating Supervisor Service for WGDashboard"
+    mkdir -p /etc/supervisord.d/
 
-cat <<EOF > /etc/supervisord.d/wg-dashboard.ini
+    cat <<EOF > /etc/supervisord.d/wg-dashboard.ini
 [program:wg-dashboard]
 command=/etc/wgdashboard/src/wgd.sh start
 autostart=true
@@ -76,9 +76,19 @@ stderr_logfile=/var/log/wg-dashboard.err.log
 stdout_logfile=/var/log/wg-dashboard.out.log
 EOF
 
-rc-service supervisor restart
-rc-update add supervisor default
-msg_ok "Created Supervisor Service for WGDashboard"
+    if [[ ! -f /etc/supervisord.conf ]]; then
+        cat <<EOF > /etc/supervisord.conf
+[supervisord]
+nodaemon=true
+
+[include]
+files = /etc/supervisord.d/*.ini
+EOF
+    fi
+
+    msg_info "Starting Supervisor Daemon"
+    nohup supervisord -c /etc/supervisord.conf &>/dev/null &
+    msg_ok "Started Supervisor Daemon"
 
 fi
 
