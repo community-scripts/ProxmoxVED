@@ -69,33 +69,31 @@ ListenPort = 51820
 EOF
     msg_ok "Created Example Config for WGDashboard"
 
-    msg_info "Creating Supervisor Service for WGDashboard"
-    mkdir -p /etc/supervisord.d/
+    msg_info "Creating Service for WGDashboard"
+cat <<EOF > /etc/init.d/wg-dashboard
+#!/sbin/openrc-run
 
-    cat <<EOF > /etc/supervisord.d/wg-dashboard.ini
-[program:wg-dashboard]
-command=/etc/wgdashboard/src/wgd.sh start
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/wg-dashboard.err.log
-stdout_logfile=/var/log/wg-dashboard.out.log
+description="WireGuard Dashboard Service"
+
+depend() {
+    need net
+    after firewall
+}
+
+start() {
+    ebegin "Starting WGDashboard"
+    cd /etc/wgdashboard/src/ || exit 1
+    ./wgd.sh start &
+    eend $?
+}
+
+stop() {
+    ebegin "Stopping WGDashboard"
+    pkill -f "wgd.sh"
+    eend $?
+}
 EOF
-
-    if [[ ! -f /etc/supervisord.conf ]]; then
-        cat <<EOF > /etc/supervisord.conf
-[supervisord]
-nodaemon=true
-
-[include]
-files = /etc/supervisord.d/*.ini
-EOF
-    fi
-
-    msg_info "Starting Supervisor Daemon"
-    nohup supervisord -c /etc/supervisord.conf &>/dev/null &
-    msg_ok "Started Supervisor Daemon"
-
-fi
+msg_ok "Created Service for WGDashboard"
 
 motd_ssh
 customize
