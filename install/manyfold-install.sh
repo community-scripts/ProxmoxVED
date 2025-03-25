@@ -51,7 +51,7 @@ cd /opt
 curl -fsSL "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip" -o manyfold.zip
 unzip -q manyfold.zip
 mv /opt/manyfold-${RELEASE}/ /opt/manyfold
-RUBY_VERSION=$(cat /opt/manyfold.ruby-version)
+RUBY_VERSION=$(cat /opt/manyfold/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Downloaded Manyfold"
