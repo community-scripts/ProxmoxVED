@@ -8,8 +8,8 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 APP="Reactive-Resume"
 var_tags="documents"
 var_cpu="2"
-var_ram="2048"
-var_disk="6"
+var_ram="3072"
+var_disk="8"
 var_os="debian"
 var_version="12"
 var_unprivileged="1"
@@ -24,16 +24,16 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /etc/systemd/system/reactive-resume.service ]]; then
+  if [[ ! -f /etc/systemd/system/Reactive-Resume.service ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
   RELEASE=$(curl -s https://api.github.com/repos/AmruthPillai/Reactive-Resume/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
-    msg_info "Stopping $APP"
-    systemctl stop reactive-resume
-    msg_ok "Stopped $APP"
+    msg_info "Stopping services"
+    systemctl stop Reactive-Resume
+    msg_ok "Stopped services"
 
     msg_info "Updating $APP to v${RELEASE}"
     cp /opt/${APP}/.env /opt/rxresume.env
@@ -41,18 +41,21 @@ function update_script() {
     wget -q "https://github.com/AmruthPillai/Reactive-Resume/archive/refs/tags/v${RELEASE}.zip"
     unzip -q v${RELEASE}.zip
     cp -r ${APP}-${RELEASE}/* /opt/${APP}
+    cd /opt/${APP}
     corepack enable
     export PUPPETEER_SKIP_DOWNLOAD="true"
     export NEXT_TELEMETRY_DISABLED=1
     export CI="true"
-    $STD pnpm install --frozen-lockfile --prefix /opt/${APP}
-    $STD pnpm run build --prefix /opt/${APP}
-    $STD pnpm run prisma:generate --prefix /opt/${APP}
+    $STD pnpm install --frozen-lockfile
+    $STD pnpm run build
+    $STD pnpm run prisma:generate
+    mv /opt/rxresume.env /opt/${APP}/.env
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Updating Minio"
     systemctl stop minio
-    wget -q https://dl.min.io/server/minio/release/linux-amd64/minio_20250312180418.0.0_amd64.deb -O minio.deb
+    cd /tmp
+    wget -q https://dl.min.io/server/minio/release/linux-amd64/minio.deb
     $STD dpkg -i minio.deb
     msg_ok "Updated Minio"
 
@@ -76,14 +79,15 @@ function update_script() {
     msg_ok "Updated Browserless"
 
     msg_info "Starting services"
-    systemctl start minio reactive-resume browserless
+    systemctl start minio Reactive-Resume browserless
     msg_ok "Started services"
 
     msg_info "Cleaning Up"
     rm -f /tmp/minio.deb
+    rm -f /tmp/v${RELEASE}.zip
+    rm -f /tmp/v${TAG}.zip
     rm -rf /tmp/${APP}-${RELEASE}
     rm -rf /tmp/browserless-${TAG}
-
     msg_ok "Cleanup Completed"
 
     echo "${RELEASE}" >/opt/${APP}_version.txt

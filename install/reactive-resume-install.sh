@@ -32,7 +32,7 @@ echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.co
 echo "YES" | /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh &>/dev/null
 $STD apt-get install -y postgresql-16 nodejs
 cd /tmp
-wget -q https://dl.min.io/server/minio/release/linux-amd64/minio_20250312180418.0.0_amd64.deb -O minio.deb
+wget -q https://dl.min.io/server/minio/release/linux-amd64/minio.deb
 $STD dpkg -i minio.deb
 
 msg_info "Setting up Database"
@@ -66,7 +66,7 @@ $STD pnpm run build
 $STD pnpm run prisma:generate
 msg_ok "Installed ${APPLICATION}"
 
-msg_info "Installing Browserless"
+msg_info "Installing Browserless (Patience)"
 cd /tmp
 $STD python3 -m pip install playwright
 wget -q https://github.com/browserless/browserless/archive/refs/tags/v${TAG}.zip
@@ -134,7 +134,7 @@ echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
   echo "Database Password: $DB_PASS"
   echo "Database Name: $DB_NAME"
   echo "Minio Root Password: ${MINIO_PASS}"
-} >>~/$APP_NAME.creds
+} >>~/${APPLICATION}.creds
 msg_ok "Configured applications"
 
 msg_info "Creating Services"
@@ -179,12 +179,11 @@ WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
 systemctl enable -q --now minio.service ${APPLICATION}.service browserless.service
-msg_ok "Created Service"
+msg_ok "Created Services"
 
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 rm -f /tmp/v${RELEASE}.zip
 rm -f /tmp/minio.deb
