@@ -40,3 +40,4 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "Access the web interface at https://${IP}:<port>/zac"

@@ -27,16 +27,12 @@
         }
     ],
     "default_credentials": {
-        "username": "created during installation",
-        "password": "created during installation"
+        "username": null,
+        "password": null
     },
     "notes": [
         {
             "text": "The Openziti Controller installation will prompt for configuration settings during installation.",
-            "type": "info"
-        },
-        {
-            "text": "Access the web interface at https://<ip>:<port>/zac after installation and configuration are complete.",
             "type": "info"
         }
     ]
