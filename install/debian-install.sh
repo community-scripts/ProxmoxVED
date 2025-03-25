@@ -14,13 +14,12 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y lsb-release
+$STD apt-get install -y gnupg2
 msg_ok "Installed Dependencies"
 
 msg_info "Setup DISTRO env"
 DISTRO="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
-echo $DISTRO
-msg_ok "Setup DISTRO"
+msg_ok "Setup $DISTRO"
 
 msg_info "Setting up PostgreSQL Repository"
 curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
