@@ -60,7 +60,7 @@ mkdir -p ~/.rbenv/plugins
 cd ~/.rbenv/plugins
 RUBY_BUILD_RELEASE=$(curl -s https://api.github.com/repos/rbenv/ruby-build/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 curl -fsSL "https://github.com/rbenv/ruby-build/archive/refs/tags/v${RUBY_BUILD_RELEASE}.zip" -o ruby-build.zip
-unzip ruby-build.zip
+unzip -q ruby-build.zip
 mv ruby-build-* ~/.rbenv/plugins/ruby-build
 echo "${RUBY_BUILD_RELEASE}" >~/.rbenv/plugins/RUBY_BUILD_version.txt
 msg_ok "Added ruby-build"
