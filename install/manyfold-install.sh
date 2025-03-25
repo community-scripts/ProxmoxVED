@@ -98,7 +98,6 @@ export GUID=1002
 export PUID=1001
 export PUBLIC_HOSTNAME=subdomain.somehost.org
 export PUBLIC_PORT=5000
-export SECRET_KEY_BASE=$(bundle exec rails secret)
 export REDIS_URL=redis://127.0.0.1:6379/1
 export DATABASE_ADAPTER=postgresql
 export DATABASE_HOST=127.0.0.1
