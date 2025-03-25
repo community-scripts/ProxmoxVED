@@ -50,6 +50,34 @@ apt-get update
 apt-get install -y php
 msg_ok "Setup PHP"
 
+msg_info "Adding Adoptium repository"
+curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor -o /etc/apt/trusted.gpg.d/adoptium.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/adoptium.gpg] https://packages.adoptium.net/artifactory/deb ${VERSION} main" > /etc/apt/sources.list.d/adoptium.list
+apt-get update
+apt-get install -y temurin-11-jdk
+msg_ok "Adoptium installed"
+
+msg_info "Adding Nginx repository"
+curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/debian ${VERSION} nginx" > /etc/apt/sources.list.d/nginx.list
+apt-get update
+apt-get install -y nginx=1.26.3*
+msg_ok "Nginx installed"
+
+msg_info "Adding MongoDB repository"
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
+echo "deb [signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg] http://repo.mongodb.org/apt/debian ${VERSION}/mongodb-org/7.0 main" > /etc/apt/sources.list.d/mongodb-org-7.0.list
+apt-get update
+apt-get install -y mongodb-org
+msg_ok "MongoDB installed"
+
+msg_info "Adding SFTPGo repository"
+curl -fsSL https://ftp.osuosl.org/pub/sftpgo/apt/gpg.key | gpg --dearmor -o /usr/share/keyrings/sftpgo-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/sftpgo-archive-keyring.gpg] https://ftp.osuosl.org/pub/sftpgo/apt ${VERSION} main" > /etc/apt/sources.list.d/sftpgo.list
+apt-get update
+apt-get install -y sftpgo
+msg_ok "SFTPGo installed"
+
 motd_ssh
 customize
 
