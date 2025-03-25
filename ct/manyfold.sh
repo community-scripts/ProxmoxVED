@@ -7,8 +7,8 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 
 APP="Manyfold"
 var_tags="network"
-var_cpu="2"
-var_ram="1024"
+var_cpu="4"
+var_ram="4096"
 var_disk="15"
 var_os="debian"
 var_version="12"
