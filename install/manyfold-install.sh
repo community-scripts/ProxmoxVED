@@ -45,6 +45,17 @@ echo "Manyfold Database Name: $DB_NAME"
 } >> ~/manyfold.creds
 msg_ok "Set up PostgreSQL"
 
+msg_info "Downloading Manyfold"
+RELEASE=$(curl -s https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+cd /opt
+curl -fsSL "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip" -o manyfold.zip
+unzip -q manyfold.zip
+mv /opt/manyfold-${RELEASE}/ /opt/manyfold
+RUBY_VERSION=$(cat .ruby-version)
+YARN_VERSION=$(grep '"packageManager":' package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
+echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
+msg_ok "Downloaded Manyfold"
+
 msg_info "Setting up Node.js/Yarn"
 mkdir -p /etc/apt/keyrings
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
@@ -64,6 +75,13 @@ unzip -q ruby-build.zip
 mv ruby-build-* ~/.rbenv/plugins/ruby-build
 echo "${RUBY_BUILD_RELEASE}" >~/.rbenv/plugins/RUBY_BUILD_version.txt
 msg_ok "Added ruby-build"
+
+msg_info "Installing ruby version"
+$STD rbenv install $RUBY_VERSION
+echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(rbenv init -)"' >> ~/.bashrc
+source ~/.bashrc
+msg_ok "Installed ruby"
 
 msg_info "Adding manyfold user"
 useradd -m -s /usr/bin/bash manyfold
@@ -91,20 +109,9 @@ msg_ok ".env file setup"
 
 msg_info "Installing Manyfold"
 source /opt/.env
-RELEASE=$(curl -s https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-cd /opt
-curl -fsSL "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip" -o manyfold.zip
-unzip -q manyfold.zip
-mv /opt/manyfold-${RELEASE}/ /opt/manyfold
 cd /opt/manyfold
 chown -R manyfold:manyfold /opt/manyfold
-RUBY_VERSION=$(cat .ruby-version)
-YARN_VERSION=$(grep '"packageManager":' package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 $STD gem install bundler
-$STD rbenv install $RUBY_VERSION
-echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
-echo 'eval "$(rbenv init -)"' >> ~/.bashrc
-source ~/.bashrc
 $STD rbenv global $RUBY_VERSION
 $STD bundle install
 $STD gem install sidekiq
@@ -117,7 +124,6 @@ rm /opt/manyfold/config/credentials.yml.enc
 $STD bin/rails credentials:edit
 $STD bin/rails db:migrate
 $STD bin/rails assets:precompile
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed manyfold"
 
 msg_info "Creating Service"
