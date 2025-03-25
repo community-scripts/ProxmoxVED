@@ -26,13 +26,13 @@ $STD apk add \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing WireGuard"
-apk add --no-cache wireguard-tools
+$STD apk add --no-cache wireguard-tools
 msg_ok "Installed WireGuard"
 
 read -rp "Do you want to install WGDashboard? (y/N): " INSTALL_WGD
 if [[ "$INSTALL_WGD" =~ ^[Yy]$ ]]; then
     msg_info "Installing additional dependencies for WGDashboard"
-    apk add --no-cache \
+    $STD apk add --no-cache \
         python3 \
         py3-pip \
         git \
