@@ -18,7 +18,7 @@ $STD apt-get install -y gnupg2
 msg_ok "Installed Dependencies"
 
 msg_info "Setup DISTRO env"
-DISTRO="$(awk -F'=' '/^DISTRO_CODENAME=/{ print $NF }' /etc/os-release)"
+DISTRO="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
 msg_ok "Setup DISTRO"
 
 echo -e $DISTRO
