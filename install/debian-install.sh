@@ -19,7 +19,9 @@ msg_ok "Installed Dependencies"
 
 msg_info "Setup DISTRO env"
 DISTRO="$(awk -F'=' '/^DISTRO_CODENAME=/{ print $NF }' /etc/os-release)"
-msg_ok "Setup $DISTRO"
+msg_ok "Setup DISTRO"
+
+echo -e $DISTRO
 
 msg_info "Setting up PostgreSQL Repository"
 curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
