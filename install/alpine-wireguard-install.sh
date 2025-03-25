@@ -30,7 +30,17 @@ $STD apk add --no-cache wireguard-tools
 if [[ ! -L /etc/init.d/wg-quick.wg0 ]]; then
     ln -s /etc/init.d/wg-quick /etc/init.d/wg-quick.wg0
 fi
-$STD rc-service wg-quick.wg0 start
+
+private_key=$(wg genkey)
+cat <<EOF >/etc/wireguard/wg0.conf
+[Interface]
+PrivateKey = ${private_key}
+Address = 10.0.0.1/24
+SaveConfig = true
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE;
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE;
+ListenPort = 51820
+EOF
 msg_ok "Installed WireGuard"
 
 read -rp "Do you want to install WGDashboard? (y/N): " INSTALL_WGD
@@ -51,25 +61,12 @@ if [[ "$INSTALL_WGD" =~ ^[Yy]$ ]]; then
     cd /etc/wgdashboard/src || exit
     chmod u+x wgd.sh
     $STD ./wgd.sh install
-    echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+    echo "net.ipv4.ip_forward=1" >>/etc/sysctl.conf
     sysctl -p /etc/sysctl.conf
     msg_ok "Installed WGDashboard"
 
-    msg_info "Create Example Config for WGDashboard"
-    private_key=$(wg genkey)
-    cat <<EOF >/etc/wireguard/wg0.conf
-[Interface]
-PrivateKey = ${private_key}
-Address = 10.0.0.1/24
-SaveConfig = true
-PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE;
-PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE;
-ListenPort = 51820
-EOF
-    msg_ok "Created Example Config for WGDashboard"
-
     msg_info "Creating Service for WGDashboard"
-cat <<EOF > /etc/init.d/wg-dashboard
+    cat <<EOF >/etc/init.d/wg-dashboard
 #!/sbin/openrc-run
 
 description="WireGuard Dashboard Service"
@@ -92,7 +89,13 @@ stop() {
     eend $?
 }
 EOF
-msg_ok "Created Service for WGDashboard"
+    msg_ok "Created Service for WGDashboard"
+fi
+
+msg_info "Starting Services"
+rc-update add wg-quick.wg0 default
+rc-service wg-quick.wg0 start
+msg_ok "Started Services"
 
 motd_ssh
 customize
