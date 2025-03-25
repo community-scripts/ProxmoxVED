@@ -109,7 +109,6 @@ msg_ok ".env file setup"
 
 msg_info "Installing Manyfold"
 source /opt/.env
-export RAILS_ENV=production
 cd /opt/manyfold
 chown -R manyfold:manyfold /opt/manyfold
 $STD gem install bundler
