@@ -89,20 +89,21 @@ msg_ok "Added manyfold user"
 
 msg_info "Setting .env file"
 cat <<EOF >/opt/.env
-APP_VERSION=${RELEASE}
-GUID=1002
-PUID=1001
-PUBLIC_HOSTNAME=subdomain.somehost.org
-PUBLIC_PORT=5000
-REDIS_URL=redis://127.0.0.1:6379/1
-DATABASE_ADAPTER=postgresql
-DATABASE_HOST=127.0.0.1
-DATABASE_USER=${DB_USER}
-DATABASE_PASSWORD=${DB_PASS}
-DATABASE_NAME=${DB_NAME}
-DATABASE_CONNECTION_POOL=16
-MULTIUSER=enabled
-HTTPS_ONLY=false
+export APP_VERSION=${RELEASE}
+export GUID=1002
+export PUID=1001
+export PUBLIC_HOSTNAME=subdomain.somehost.org
+export PUBLIC_PORT=5000
+export REDIS_URL=redis://127.0.0.1:6379/1
+export DATABASE_ADAPTER=postgresql
+export DATABASE_HOST=127.0.0.1
+export DATABASE_USER=${DB_USER}
+export DATABASE_PASSWORD=${DB_PASS}
+export DATABASE_NAME=${DB_NAME}
+export DATABASE_CONNECTION_POOL=16
+export MULTIUSER=enabled
+export HTTPS_ONLY=false
+export RAILS_ENV=production
 EOF
 msg_ok ".env file setup"
 
