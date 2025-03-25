@@ -22,7 +22,6 @@ $STD apk add \
     mc \
     gpg \
     iptables \
-    supervisor \
     openrc
 msg_ok "Installed Dependencies"
 
