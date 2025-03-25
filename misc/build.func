@@ -1367,9 +1367,10 @@ start() {
     fi
     SPINNER_PID=""
     install_script
-  fi
-
-  if ! command -v pveversion >/dev/null 2>&1; then
+ else
+     if [ -f /etc/alpine-release ]; then
+      update_script
+    else
     CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC Update/Setting" --menu \
       "Support/Update functions for ${APP} LXC. Choose an option:" \
       12 60 3 \
