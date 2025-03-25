@@ -69,7 +69,28 @@ msg_info "Adding manyfold user"
 useradd -m -s /usr/bin/bash manyfold
 msg_ok "Added manyfold user"
 
+msg_info "Setting .env file"
+cat <<EOF >/opt/.env
+export APP_VERSION=${RELEASE}
+export GUID=1002
+export PUID=1001
+export PUBLIC_HOSTNAME=subdomain.somehost.org
+export PUBLIC_PORT=5000
+export REDIS_URL=redis://127.0.0.1:6379/1
+export DATABASE_ADAPTER=postgresql
+export DATABASE_HOST=127.0.0.1
+export DATABASE_USER=${DB_USER}
+export DATABASE_PASSWORD=${DB_PASS}
+export DATABASE_NAME=${DB_NAME}
+export DATABASE_CONNECTION_POOL=16
+export MULTIUSER=enabled
+export HTTPS_ONLY=false
+export RAILS_ENV=production
+EOF
+msg_ok ".env file setup"
+
 msg_info "Installing Manyfold"
+source /opt/.env
 RELEASE=$(curl -s https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 cd /opt
 curl -fsSL "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip" -o manyfold.zip
@@ -91,26 +112,8 @@ $STD npm install --global corepack
 corepack enable
 $STD corepack prepare $YARN_VERSION --activate
 $STD corepack use $YARN_VERSION
-$STD yarn install
-cat <<EOF >/opt/.env
-export APP_VERSION=${RELEASE}
-export GUID=1002
-export PUID=1001
-export PUBLIC_HOSTNAME=subdomain.somehost.org
-export PUBLIC_PORT=5000
-export REDIS_URL=redis://127.0.0.1:6379/1
-export DATABASE_ADAPTER=postgresql
-export DATABASE_HOST=127.0.0.1
-export DATABASE_USER=${DB_USER}
-export DATABASE_PASSWORD=${DB_PASS}
-export DATABASE_NAME=${DB_NAME}
-export DATABASE_CONNECTION_POOL=16
-export MULTIUSER=enabled
-export HTTPS_ONLY=false
-export RAILS_ENV=production
-EOF
 chown manyfold:manyfold /opt/.env
-source /opt/.env
+rm /opt/manyfold/config/credentials.yml.enc
 $STD bin/rails credentials:edit
 $STD bin/rails db:migrate
 $STD bin/rails assets:precompile
