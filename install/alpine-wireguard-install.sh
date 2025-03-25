@@ -22,11 +22,16 @@ $STD apk add \
     mc \
     gpg \
     iptables \
-    supervisor
+    supervisor \
+    openrc
 msg_ok "Installed Dependencies"
 
 msg_info "Installing WireGuard"
 $STD apk add --no-cache wireguard-tools
+if [[ ! -L /etc/init.d/wg-quick.wg0 ]]; then
+    ln -s /etc/init.d/wg-quick /etc/init.d/wg-quick.wg0
+fi
+rc-update add wg-quick.wg0 default
 msg_ok "Installed WireGuard"
 
 read -rp "Do you want to install WGDashboard? (y/N): " INSTALL_WGD
