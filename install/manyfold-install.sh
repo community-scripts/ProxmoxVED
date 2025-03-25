@@ -109,7 +109,6 @@ msg_ok ".env file setup"
 
 msg_info "Installing Manyfold"
 source /opt/.env
-export RAILS_ENV=production
 cd /opt/manyfold
 chown -R manyfold:manyfold /opt/manyfold
 $STD gem install bundler
@@ -138,8 +137,7 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/opt/manyfold
-EnvironmentFile=/opt/.env
-ExecStart=/usr/bin/bash -lc '/opt/manyfold/bin/rails server -b 127.0.0.1 --port 5000 --environment production'
+ExecStart=/usr/bin/bash -lc 'source /opt/.env && /opt/manyfold/bin/rails server -b 127.0.0.1 --port 5000 --environment production'
 TimeoutSec=30
 RestartSec=15s
 Restart=always
