@@ -89,12 +89,16 @@ stop() {
     eend $?
 }
 EOF
+    chmod +x /etc/init.d/wg-dashboard
+    $STD rc-update add wg-dashboard default
+    $STD rc-service wg-dashboard start
     msg_ok "Created Service for WGDashboard"
+
 fi
 
 msg_info "Starting Services"
-rc-update add wg-quick.wg0 default
-rc-service wg-quick.wg0 start
+$STD rc-update add wg-quick.wg0 default
+$STD rc-service wg-quick.wg0 start
 msg_ok "Started Services"
 
 motd_ssh
