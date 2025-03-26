@@ -117,6 +117,10 @@ msg_info() {
 msg_ok() {
     if [ -n "${SPINNER_PID:-}" ] && ps -p "$SPINNER_PID" >/dev/null 2>&1; then
         kill "$SPINNER_PID" >/dev/null 2>&1
+        sleep 0.1
+        if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
+            kill -9 "$SPINNER_PID" >/dev/null 2>&1
+        fi
         wait "$SPINNER_PID" 2>/dev/null || true
     fi
 
@@ -131,6 +135,10 @@ msg_ok() {
 msg_error() {
     if [ -n "${SPINNER_PID:-}" ] && ps -p "$SPINNER_PID" >/dev/null 2>&1; then
         kill "$SPINNER_PID" >/dev/null 2>&1
+        sleep 0.1
+        if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
+            kill -9 "$SPINNER_PID" >/dev/null 2>&1
+        fi
         wait "$SPINNER_PID" 2>/dev/null || true
     fi
 
