@@ -16,7 +16,7 @@ variables() {
     #ENABLE_FUSE="${ENABLE_FUSE:-no}"                  # Set an global environment variable for enabling FUSE.
 }
 
-#source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
 
 # This function sets various color variables using ANSI escape codes for formatting text in the terminal.
 color() {
@@ -72,7 +72,7 @@ catch_errors() {
 
 # This function is called when an error occurs. It receives the exit code, line number, and command that caused the error, and displays an error message.
 error_handler() {
-    #source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
+    source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
     if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
     printf "\e[?25h"
     local exit_code="$?"
@@ -80,7 +80,7 @@ error_handler() {
     local command="$2"
     local error_description="$(get_error_description "$exit_code")"
     local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL} (${YW}$error_description${CL}): while executing command ${YW}$command${CL}"
-    #post_update_to_api "failed" "$exit_code" "$error_description"
+    post_update_to_api "failed" "$exit_code" "$error_description"
     echo -e "\n$error_message\n"
 }
 
@@ -1412,9 +1412,9 @@ build_container() {
     #    FEATURES+=",fuse=1"
     #fi
 
-    #if [[ $DIAGNOSTICS == "yes" ]]; then
-    #    post_to_api
-    #fi
+    if [[ $DIAGNOSTICS == "yes" ]]; then
+        post_to_api
+    fi
 
     #FEATURES="${FEATURES#,}"
     TEMP_DIR=$(mktemp -d)
@@ -1564,7 +1564,7 @@ EOF
         systemctl start ping-instances.service
     fi
 
-    #post_update_to_api "done" "none"
+    post_update_to_api "done" "none"
 }
 
 set_std_mode() {
@@ -1586,10 +1586,10 @@ silent() {
 
 exit_script() {
     exit_code=$? # Capture exit status
-    #post_update_to_api "failed" "$exit_code"
+    post_update_to_api "failed" "$exit_code"
 }
 
-#trap 'exit_script' EXIT
-#trap 'post_update_to_api "failed" "2"' ERR
-#trap 'post_update_to_api "failed" "130"' SIGINT
-#trap 'post_update_to_api "failed" "143"' SIGTERM
+trap 'exit_script' EXIT
+trap 'post_update_to_api "failed" "2"' ERR
+trap 'post_update_to_api "failed" "130"' SIGINT
+trap 'post_update_to_api "failed" "143"' SIGTERM
