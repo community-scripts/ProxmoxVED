@@ -31,15 +31,15 @@ echo "Start update_script"
 function update_script() {
     header_info
     msg_info "Updating Alpine Packages"
-    $STD apk update && apk upgrade
+    apk update && apk upgrade
     msg_ok "Updated Alpine Packages"
 
     msg_info "Updating Gitea"
-    $STD apk upgrade gitea
+    apk upgrade gitea
     msg_ok "Updated Gitea"
 
     msg_info "Restarting Gitea"
-    $STD rc-service gitea restart
+    rc-service gitea restart
     msg_ok "Restarted Gitea"
 }
 echo "finish update_script"
