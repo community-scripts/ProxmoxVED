@@ -22,7 +22,8 @@ catch_errors
 function update_script() {
     header_info
     msg_info "Updating Alpine Packages"
-    apk update && apk upgrade
+    apk update
+    apk upgrade
     msg_ok "Updated Alpine Packages"
 
     msg_info "Updating Gitea"
