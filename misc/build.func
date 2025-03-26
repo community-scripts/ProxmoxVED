@@ -94,7 +94,7 @@ start_spinner() {
     local term_width=$(tput cols)
 
     {
-        while [ "${SPINNER_ACTIVE:-1}" -eq 1 ]; do
+        while true; do
             printf "\r\e[2K${frames[spin_i]} ${YW}%b${CL}" "$msg" >&2
             spin_i=$(((spin_i + 1) % ${#frames[@]}))
             sleep "$interval"
@@ -102,12 +102,15 @@ start_spinner() {
     } &
 
     SPINNER_PID=$!
+    disown "$SPINNER_PID"
 }
 
 msg_info() {
     local msg="$1"
-    if [ "${SPINNER_ACTIVE:-0}" -eq 1 ]; then
-        return
+    if [ -n "${SPINNER_PID:-}" ] && ps -p "$SPINNER_PID" >/dev/null 2>&1; then
+        kill "$SPINNER_PID" >/dev/null 2>&1
+        sleep 0.1
+        wait "$SPINNER_PID" 2>/dev/null || true
     fi
 
     SPINNER_ACTIVE=1
@@ -128,7 +131,6 @@ msg_ok() {
     printf "\r\e[2K${CM}${GN}%b${CL}\n" "$msg" >&2
     unset SPINNER_PID
     SPINNER_ACTIVE=0
-
     log_message "OK" "$msg"
 }
 
