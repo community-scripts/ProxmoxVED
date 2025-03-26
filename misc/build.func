@@ -1360,6 +1360,7 @@ start() {
         echo "Running on Alpine Linux – minimal update process."
         update_script
         exit_script
+        exit 0
     fi
     LOGDIR="/usr/local/community-scripts/logs"
     mkdir -p "$LOGDIR"
