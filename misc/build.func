@@ -1361,6 +1361,8 @@ start() {
     if [ -f /etc/alpine-release ]; then
         echo "Running on Alpine Linux – minimal update process."
         update_script
+        clear
+        exit_script
         exit
     fi
     if command -v pveversion >/dev/null 2>&1; then
