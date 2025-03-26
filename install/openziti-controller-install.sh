@@ -33,7 +33,7 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   systemctl enable -q --now ziti-controller
 else
   systemctl enable -q ziti-controller
-  msg_err "Configration not provided; Please run /opt/openziti/etc/controller/bootstrap.bash to configure the controller and restart the container"
+  msg_error "Configration not provided; Please run /opt/openziti/etc/controller/bootstrap.bash to configure the controller and restart the container"
 fi
 
 motd_ssh
