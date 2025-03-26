@@ -119,18 +119,35 @@ stop_spinner() {
     SPINNER_ACTIVE=0
 }
 
+declare -A MSG_INFO_SHOWN
+
 msg_info() {
     local msg="$1"
-    stop_spinner
+    if [[ -n "${MSG_INFO_SHOWN["$msg"]}" ]]; then
+        return
+    fi
+    MSG_INFO_SHOWN["$msg"]=1
+
+    if [ "${SPINNER_ACTIVE:-0}" -eq 1 ]; then
+        return
+    fi
+
     SPINNER_ACTIVE=1
     start_spinner "$msg"
 }
 
 msg_ok() {
-    stop_spinner
     local msg="$1"
-    printf "\r\e[2K${CM}${GN}%b${CL}\n" "$msg" >&2
-    log_message "OK" "$msg"
+    if [ -n "${SPINNER_PID:-}" ]; then
+        while ps -p "$SPINNER_PID" >/dev/null 2>&1; do
+            kill "$SPINNER_PID" >/dev/null 2>&1 || break
+            wait "$SPINNER_PID" 2>/dev/null || true
+        done
+    fi
+    printf "\e[?25h\r\e[2K${CM}${GN}%b${CL}\n" "$msg" >&2
+
+    unset SPINNER_PID
+    SPINNER_ACTIVE=0
 }
 
 msg_error() {
