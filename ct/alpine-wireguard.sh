@@ -19,18 +19,6 @@ variables
 color
 catch_errors
 
-
-function update_script() {
-  UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUPPORT" --radiolist --cancel-button Exit-Script "Spacebar = Select" 11 58 1 \
-    "1" "Check for Alpine Updates" ON \
-    3>&1 1>&2 2>&3)
-
-  header_info
-  if [ "$UPD" == "1" ]; then
-    apk update && apk upgrade
-    exit
-  fi
-}
 function update_script() {
     msg_info "Updating Alpine Packages"
     apk update && apk upgrade
