@@ -12,7 +12,7 @@ variables() {
     DIAGNOSTICS="yes"                                 # sets the DIAGNOSTICS variable to "yes", used for the API call.
     METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
     RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
-    #CT_TYPE="${CT_TYPE:-$var_unprivileged}"           # Set an global environment variable for the container type.
+    CT_TYPE="${CT_TYPE:-$var_unprivileged}"           # Set an global environment variable for the container type.
     #ENABLE_FUSE="${ENABLE_FUSE:-no}"                  # Set an global environment variable for enabling FUSE.
 }
 
