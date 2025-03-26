@@ -1362,6 +1362,7 @@ start() {
         exit_script
         exit 0
     fi
+
     LOGDIR="/usr/local/community-scripts/logs"
     mkdir -p "$LOGDIR"
 
@@ -1369,7 +1370,7 @@ start() {
         if ! (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC" --yesno "This will create a New ${APP} LXC. Proceed?" 10 58); then
             clear
             exit_script
-            exit
+            exit 0
         fi
         install_script
     else
@@ -1395,12 +1396,13 @@ start() {
             clear
             log_message "INFO" "Update aborted."
             exit_script
-            exit
+            exit 0
             ;;
         esac
 
         SPINNER_PID=""
         update_script
+        exit 0
     fi
 }
 
