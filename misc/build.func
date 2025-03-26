@@ -12,7 +12,6 @@ variables() {
     DIAGNOSTICS="yes"                                 # sets the DIAGNOSTICS variable to "yes", used for the API call.
     METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
     RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
-    declare -A MSG_INFO_SHOWN
 }
 
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
@@ -120,15 +119,14 @@ stop_spinner() {
     SPINNER_ACTIVE=0
 }
 
+MSG_INFO_SHOWN_LIST=""
+
 msg_info() {
     local msg="$1"
-    if ! declare -p MSG_INFO_SHOWN &>/dev/null; then
-        declare -gA MSG_INFO_SHOWN
-    fi
-    if [[ -n "${MSG_INFO_SHOWN["$msg"]}" ]]; then
+    if echo "$MSG_INFO_SHOWN_LIST" | grep -Fqx "$msg"; then
         return
     fi
-    MSG_INFO_SHOWN["$msg"]=1
+    MSG_INFO_SHOWN_LIST="${MSG_INFO_SHOWN_LIST}${msg}"$'\n'
 
     if [ "${SPINNER_ACTIVE:-0}" -eq 1 ]; then
         return
@@ -140,16 +138,12 @@ msg_info() {
 
 msg_ok() {
     local msg="$1"
-    if [ -n "${SPINNER_PID:-}" ]; then
-        while ps -p "$SPINNER_PID" >/dev/null 2>&1; do
-            kill "$SPINNER_PID" >/dev/null 2>&1 || break
-            wait "$SPINNER_PID" 2>/dev/null || true
-        done
-    fi
+    stop_spinner
     printf "\e[?25h\r\e[2K${CM}${GN}%b${CL}\n" "$msg" >&2
-
     unset SPINNER_PID
     SPINNER_ACTIVE=0
+
+    MSG_INFO_SHOWN_LIST=$(echo "$MSG_INFO_SHOWN_LIST" | grep -Fvx "$msg")
 }
 
 msg_error() {
