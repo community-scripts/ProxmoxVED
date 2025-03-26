@@ -93,8 +93,7 @@ start_spinner() {
     local interval=0.1
 
     {
-        while true; do
-            if [ "${SPINNER_ACTIVE:-0}" -eq 0 ]; then exit; fi
+        while [ "${SPINNER_ACTIVE:-0}" -eq 1 ]; do
             printf "\r\e[2K${frames[spin_i]} ${YW}%b${CL}" "$msg" >&2
             spin_i=$(((spin_i + 1) % ${#frames[@]}))
             sleep "$interval"
@@ -106,16 +105,18 @@ start_spinner() {
 }
 
 stop_spinner() {
-    if [ -n "${SPINNER_PID:-}" ] && ps -p "$SPINNER_PID" >/dev/null 2>&1; then
-        kill "$SPINNER_PID" >/dev/null 2>&1
-        sleep 0.1
+    if [ -n "${SPINNER_PID:-}" ]; then
         if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
-            kill -9 "$SPINNER_PID" >/dev/null 2>&1
+            kill "$SPINNER_PID" >/dev/null 2>&1
+            sleep 0.1
+            if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
+                kill -9 "$SPINNER_PID" >/dev/null 2>&1
+            fi
         fi
         wait "$SPINNER_PID" 2>/dev/null || true
+        unset SPINNER_PID
     fi
     SPINNER_ACTIVE=0
-    unset SPINNER_PID
 }
 
 msg_info() {
