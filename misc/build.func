@@ -1356,23 +1356,15 @@ check_container_storage() {
 }
 
 start() {
-    if [ -f /etc/alpine-release ]; then
-        echo "Running on Alpine Linux – minimal update process."
-        update_script
-        exit_script
-        exit 0
-    fi
     LOGDIR="/usr/local/community-scripts/logs"
     mkdir -p "$LOGDIR"
 
     if command -v pveversion >/dev/null 2>&1; then
-        if ! (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC" --yesno "This will create a New ${APP} LXC. Proceed?" 10 58); then
-            clear
-            exit_script
-            exit
-        fi
         install_script
-    else
+        exit 0
+    fi
+
+    if [ -f /etc/debian_version ]; then
         CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC Update/Setting" --menu \
             "Support/Update functions for ${APP} LXC. Choose an option:" \
             12 60 3 \
@@ -1385,23 +1377,30 @@ start() {
             VERB="no"
             set_std_mode
             log_message "INFO" "Update started (Silent Mode)"
+            update_script
             ;;
         2)
             VERB="yes"
             set_std_mode
             log_message "INFO" "Update started (Verbose Mode)"
+            update_script
             ;;
         3)
             clear
             log_message "INFO" "Update aborted."
             exit_script
-            exit
+            exit 0
             ;;
         esac
-
-        SPINNER_PID=""
-        update_script
     fi
+
+    if [ -f /etc/alpine-release ]; then
+        echo "Running on Alpine Linux – minimal update process."
+        update_script
+        exit 0
+    fi
+    echo "Unsupported OS detected. Exiting."
+    exit 1
 }
 
 # This function collects user settings and integrates all the collected information.
