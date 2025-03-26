@@ -25,9 +25,6 @@ function update_script() {
     $STD apk update && apk upgrade
     msg_ok "Updated Alpine Packages"
 
-    echo "DEBUG: CT_TYPE before update_script=${CT_TYPE:-UNDEFINED}"
-    echo "DEBUG: var_unprivileged=${var_unprivileged:-UNDEFINED}"
-
     msg_info "Updating Gitea"
     $STD apk upgrade gitea
     msg_ok "Updated Gitea"
