@@ -15,15 +15,17 @@ var_version="3.21"
 var_unprivileged="1"
 
 header_info "$APP"
-echo "initialize variables"
+msg_info "Initializing variables..."
 variables
-echo "initialized variables"
-echo "initialize color"
+msg_ok "Initialized variables."
+
+msg_info "Initializing color settings..."
 color
-echo "initialized color"
-echo "initialize catch_errors"
+msg_ok "Initialized color settings."
+
+msg_info "Initializing error handling..."
 catch_errors
-echo "initialized catch_errors"
+msg_ok "Initialized error handling."
 
 echo "Start update_script"
 function update_script() {
@@ -42,12 +44,13 @@ function update_script() {
 }
 echo "finish update_script"
 
-echo "initialize start"
+msg_info "Starting script execution..."
 start
-echo "initialized start"
-echo "initialize build_container"
+msg_ok "Started script execution."
+
+msg_info "Building container..."
 build_container
-echo "initialized build_container"
+msg_ok "Built container."
 description
 
 msg_ok "Completed Successfully!\n"
