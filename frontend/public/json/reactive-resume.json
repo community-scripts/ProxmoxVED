@@ -11,7 +11,7 @@
   "interface_port": 3000,
   "documentation": "https://docs.rxresu.me/",
   "website": "https://rxresu.me",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/png/reactive-resume.png",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/png/reactive-resume-light.png",
   "description": "A one-of-a-kind resume builder that keeps your privacy in mind. Completely secure, customizable, portable, open-source and free forever.",
   "install_methods": [
     {
