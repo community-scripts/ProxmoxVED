@@ -15,19 +15,10 @@ var_version="3.21"
 var_unprivileged="1"
 
 header_info "$APP"
-msg_info "Initializing variables..."
 variables
-msg_ok "Initialized variables."
-
-msg_info "Initializing color settings..."
 color
-msg_ok "Initialized color settings."
-
-msg_info "Initializing error handling..."
 catch_errors
-msg_ok "Initialized error handling."
 
-echo "Start update_script"
 function update_script() {
     header_info
     msg_info "Updating Alpine Packages"
@@ -42,15 +33,9 @@ function update_script() {
     rc-service gitea restart
     msg_ok "Restarted Gitea"
 }
-echo "finish update_script"
 
-msg_info "Starting script execution..."
 start
-msg_ok "Started script execution."
-
-msg_info "Building container..."
 build_container
-msg_ok "Built container."
 description
 
 msg_ok "Completed Successfully!\n"
