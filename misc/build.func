@@ -12,7 +12,6 @@ variables() {
     DIAGNOSTICS="yes"                                 # sets the DIAGNOSTICS variable to "yes", used for the API call.
     METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
     RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
-    CT_TYPE="${CT_TYPE:-$var_unprivileged}"           # Set an environment variable for the container type.
 }
 
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
@@ -60,9 +59,7 @@ color() {
     ROOTSSH="${TAB}🔑${TAB}${CL}"
     CREATING="${TAB}🚀${TAB}${CL}"
     ADVANCED="${TAB}🧩${TAB}${CL}"
-    CIFS="${TAB}🔌${TAB}${CL}"
     FUSE="${TAB}🔧${TAB}${CL}"
-    NFS="${TAB}📂${TAB}${CL}"
 }
 
 # This function enables error handling in the script by setting options and defining a trap for the ERR signal.
@@ -79,9 +76,12 @@ error_handler() {
     local exit_code="$?"
     local line_number="$1"
     local command="$2"
-    local error_description="$(get_error_description "$exit_code")"
-    local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL} (${YW}$error_description${CL}): while executing command ${YW}$command${CL}"
-    post_update_to_api "failed" "$exit_code" "$error_description"
+    ## 26.03.2025 alpine bug
+    #local error_description="$(get_error_description "$exit_code")"
+    #local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL} (${YW}$error_description${CL}): while executing command ${YW}$command${CL}"
+    #post_update_to_api "failed" "$exit_code" "$error_description"
+    local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
+    post_update_to_api "failed" "${command}"
     echo -e "\n$error_message\n"
 }
 
@@ -338,8 +338,9 @@ base_settings() {
     HN=$NSAPP
     BRG="vmbr0"
     NET="dhcp"
-    IPv6="dhcp"
-    IPv6GW=""
+    # 26.03.2025 disabled
+    #IPv6="dhcp"
+    #IPv6GW=""
     GATE=""
     APT_CACHER=""
     APT_CACHER_IP=""
@@ -352,9 +353,8 @@ base_settings() {
     SSH="no"
     SSH_AUTHORIZED_KEY=""
     TAGS="community-script-dev;"
-    ENABLE_NFS="no"
-    ENABLE_CIFS="no"
-    ENABLE_FUSE="no"
+    # 26.03.2025 disabled
+    # ENABLE_FUSE="no"
 
     # Override default settings with variables from ct script
     CT_TYPE=${var_unprivileged:-$CT_TYPE}
@@ -363,7 +363,8 @@ base_settings() {
     RAM_SIZE=${var_ram:-$RAM_SIZE}
     VERB=${var_verbose:-$VERBOSE}
     TAGS="${TAGS}${var_tags:-}"
-    ENABLE_FUSE=${var_fuse:-$ENABLE_FUSE}
+    # 26.03.2025 disabled
+    #ENABLE_FUSE=${var_fuse:-$ENABLE_FUSE}
 
     # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
     if [ -z "$var_os" ]; then
@@ -1358,20 +1359,19 @@ check_container_storage() {
 start() {
     LOGDIR="/usr/local/community-scripts/logs"
     mkdir -p "$LOGDIR"
-    if [ -f /etc/alpine-release ]; then
-        echo "Running on Alpine Linux – minimal update process."
-        update_script
-        return
-    fi
+
     if command -v pveversion >/dev/null 2>&1; then
-        if ! (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC" --yesno "This will create a New ${APP} LXC. Proceed?" 10 58); then
+        if ! (whiptail --backtitle "Proxmox VE Helper Scripts" --title "${APP} LXC" --yesno "This will create a New ${APP} LXC. Proceed?" 10 58); then
             clear
             exit_script
             exit
         fi
+        SPINNER_PID=""
         install_script
-    else
-        CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC Update/Setting" --menu \
+    fi
+
+    if ! command -v pveversion >/dev/null 2>&1; then
+        CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "${APP} LXC Update/Setting" --menu \
             "Support/Update functions for ${APP} LXC. Choose an option:" \
             12 60 3 \
             "1" "YES (Silent Mode)" \
@@ -1411,10 +1411,10 @@ build_container() {
     else
         FEATURES="nesting=1"
     fi
-
-    if [ "$ENABLE_FUSE" == "yes" ]; then
-        FEATURES+=",fuse=1"
-    fi
+    # 26.03.2025 disabled
+    #if [ "$ENABLE_FUSE" == "yes" ]; then
+    #    FEATURES+=",fuse=1"
+    #fi
 
     if [[ $DIAGNOSTICS == "yes" ]]; then
         post_to_api
@@ -1589,12 +1589,42 @@ silent() {
     fi
 }
 
+# 26.03.2025 disabled
+#exit_script() {
+#    exit_code=$? # Capture exit status
+#    post_update_to_api "failed" "$exit_code"
+#}
+
+#trap 'exit_script' EXIT
+#trap 'post_update_to_api "failed" "2"' ERR
+#trap 'post_update_to_api "failed" "130"' SIGINT
+#trap 'post_update_to_api "failed" "143"' SIGTERM
+
 exit_script() {
-    exit_code=$? # Capture exit status
-    post_update_to_api "failed" "$exit_code"
+    exit_code=$? # Capture the exit status of the last executed command
+    #200 exit codes indicate error in create_lxc.sh
+    #100 exit codes indicate error in install.func
+
+    if [ $exit_code -ne 0 ]; then
+        case $exit_code in
+        100) post_update_to_api "failed" "100: Unexpected error in create_lxc.sh" ;;
+        101) post_update_to_api "failed" "101: No network connection detected in create_lxc.sh" ;;
+        200) post_update_to_api "failed" "200: LXC creation failed in create_lxc.sh" ;;
+        201) post_update_to_api "failed" "201: Invalid Storage class in create_lxc.sh" ;;
+        202) post_update_to_api "failed" "202: User aborted menu in create_lxc.sh" ;;
+        203) post_update_to_api "failed" "203: CTID not set in create_lxc.sh" ;;
+        204) post_update_to_api "failed" "204: PCT_OSTYPE not set in create_lxc.sh" ;;
+        205) post_update_to_api "failed" "205: CTID cannot be less than 100 in create_lxc.sh" ;;
+        206) post_update_to_api "failed" "206: CTID already in use in create_lxc.sh" ;;
+        207) post_update_to_api "failed" "207: Template not found in create_lxc.sh" ;;
+        208) post_update_to_api "failed" "208: Error downloading template in create_lxc.sh" ;;
+        209) post_update_to_api "failed" "209: Container creation failed, but template is intact in create_lxc.sh" ;;
+        *) post_update_to_api "failed" "Unknown error, exit code: $exit_code in create_lxc.sh" ;;
+        esac
+    fi
 }
 
 trap 'exit_script' EXIT
-trap 'post_update_to_api "failed" "2"' ERR
-trap 'post_update_to_api "failed" "130"' SIGINT
-trap 'post_update_to_api "failed" "143"' SIGTERM
+trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
+trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
+trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
