@@ -21,11 +21,12 @@ catch_errors
 
 function update_script() {
     msg_info "Updating Alpine Packages"
-    apk update && apk upgrade
+    $STD apk update
+    $STD apk upgrade
     msg_ok "Updated Alpine Packages"
 
     msg_info "Updating WireGuard"
-    apk upgrade wireguard-tools
+    $STD apk upgrade wireguard-tools
     msg_ok "Updated WireGuard"
 }
 
