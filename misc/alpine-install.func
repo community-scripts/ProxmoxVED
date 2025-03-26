@@ -146,7 +146,7 @@ update_os() {
 
     msg_info "Installing core dependencies"
     $STD apk update
-    $STD apk add newt curl openssh nano mc
+    $STD apk add newt curl openssh nano mc ncurses
     msg_ok "Core dependencies installed"
 }
 

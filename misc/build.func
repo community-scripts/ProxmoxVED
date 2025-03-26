@@ -1360,6 +1360,9 @@ start() {
     mkdir -p "$LOGDIR"
     if [ -f /etc/alpine-release ]; then
         echo "Running on Alpine Linux – minimal update process."
+        SPINNER_PID=""
+        ENABLE_FUSE=""
+
         update_script
         return
     fi
