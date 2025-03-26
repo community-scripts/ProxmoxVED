@@ -1358,22 +1358,18 @@ check_container_storage() {
 start() {
     LOGDIR="/usr/local/community-scripts/logs"
     mkdir -p "$LOGDIR"
-    if [ -f /etc/alpine-release ]; then
-        echo "Running on Alpine Linux – minimal update process."
-        SPINNER_PID=""
-        ENABLE_FUSE=""
 
-        update_script
-        return
-    fi
     if command -v pveversion >/dev/null 2>&1; then
         if ! (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC" --yesno "This will create a New ${APP} LXC. Proceed?" 10 58); then
             clear
             exit_script
             exit
         fi
+        SPINNER_PID=""
         install_script
-    else
+    fi
+
+    if ! command -v pveversion >/dev/null 2>&1; then
         CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC Update/Setting" --menu \
             "Support/Update functions for ${APP} LXC. Choose an option:" \
             12 60 3 \
