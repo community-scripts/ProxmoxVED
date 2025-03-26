@@ -28,7 +28,7 @@ msg_ok "Installed openziti"
 read -r -p "Would you like to go through the auto configuration now? <y/N>" prompt
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   msg_info "Starting Configuration"
-  bash /opt/openziti/etc/controller/bootstrap.bash
+  env VERBOSE=0 bash /opt/openziti/etc/controller/bootstrap.bash
   msg_ok "Configuration Completed"
   systemctl enable -q --now ziti-controller
 else
