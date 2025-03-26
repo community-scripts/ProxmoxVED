@@ -119,10 +119,11 @@ stop_spinner() {
     SPINNER_ACTIVE=0
 }
 
-declare -A MSG_INFO_SHOWN
-
 msg_info() {
     local msg="$1"
+    if ! declare -p MSG_INFO_SHOWN &>/dev/null; then
+        declare -gA MSG_INFO_SHOWN
+    fi
     if [[ -n "${MSG_INFO_SHOWN["$msg"]}" ]]; then
         return
     fi
