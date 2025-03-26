@@ -21,8 +21,6 @@ catch_errors
 
 function update_script() {
     header_info
-    check_container_storage
-    check_container_resources
 
     msg_info "Updating Alpine Packages"
     apk update
