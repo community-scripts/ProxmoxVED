@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -20,34 +20,24 @@ color
 catch_errors
 
 function update_script() {
-    if ! apk -e info newt >/dev/null 2>&1; then
-        apk add -q newt
-    fi
-    while true; do
-        CHOICE=$(
-            whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUPPORT" --menu "Select option" 11 58 2 \
-                "1" "Update Alpine" \
-                "2" "Update Gitea" 3>&2 2>&1 1>&3
-        )
-        exit_status=$?
-        if [ $exit_status == 1 ]; then
-            clear
-            exit-script
-        fi
-        header_info
-        case $CHOICE in
-        1)
-            apk update && apk upgrade
-            exit
-            ;;
-        2)
-            apk update && apk upgrade
-            apk upgrade gitea
-            rc-service gitea restart
-            exit
-            ;;
-        esac
-    done
+    header_info
+    check_container_storage
+    check_container_resources
+
+    msg_info "Updating Alpine Packages"
+    apk update
+    apk upgrade
+    msg_ok "Updated Alpine Packages"
+
+    msg_info "Updating Gitea"
+    apk upgrade gitea
+    msg_ok "Updated Gitea"
+
+    msg_info "Restarting Gitea"
+    rc-service gitea restart
+    msg_ok "Restarted Gitea"
+
+    exit 0
 }
 
 start
