@@ -24,13 +24,11 @@
 #   - User group assignments (video/render)
 #   - Interactive menu system via whiptail
 
-#!/usr/bin/env bash
-
 set -euo pipefail
 
 function header_info() {
-  clear
-  cat <<"EOF"
+    clear
+    cat <<"EOF"
 
    __ ___      __  ___              __             __  _
   / // / | /| / / / _ |___________ / /__ _______ _/ /_(_)__  ___
@@ -42,66 +40,69 @@ EOF
 }
 
 function msg() {
-  local type="$1"; shift
-  case "$type" in
+    local type="$1"
+    shift
+    case "$type" in
     info) printf " \033[36m➤\033[0m %s\n" "$*" ;;
-    ok)   printf " \033[32m✔\033[0m %s\n" "$*" ;;
+    ok) printf " \033[32m✔\033[0m %s\n" "$*" ;;
     warn) printf " \033[33m⚠\033[0m %s\n" "$*" >&2 ;;
-    err)  printf " \033[31m✘\033[0m %s\n" "$*" >&2 ;;
-  esac
+    err) printf " \033[31m✘\033[0m %s\n" "$*" >&2 ;;
+    esac
+}
+
+function detect_features() {
+    AVAILABLE_FEATURES=()
+    [[ -e /dev/ttyUSB0 || -e /dev/ttyACM0 ]] && AVAILABLE_FEATURES+=("usb" "🖧  USB Passthrough         " OFF)
+    [[ -e /dev/dri/renderD128 ]] && AVAILABLE_FEATURES+=("intel" "🟦  Intel VAAPI GPU         " OFF)
+    [[ -e /dev/nvidia0 ]] && AVAILABLE_FEATURES+=("nvidia" "🟨  NVIDIA GPU              " OFF)
+    [[ -e /dev/kfd ]] && AVAILABLE_FEATURES+=("amd" "🟥  AMD GPU (ROCm)          " OFF)
+
+    if [[ ${#AVAILABLE_FEATURES[@]} -eq 0 ]]; then
+        msg warn "No supported hardware found on host system."
+        exit 1
+    fi
 }
 
 function select_hw_features() {
-  local opts
-  opts=$(
-    whiptail --title "🔧 Hardware Integration" --checklist \
-    "\nSelect hardware features to passthrough:\n" 20 60 8 \
-    "usb"    "🖧  USB Passthrough         " OFF \
-    "intel"  "🟦  Intel VAAPI GPU         " OFF \
-    "nvidia" "🟨  NVIDIA GPU              " OFF \
-    "amd"    "🟥  AMD GPU (ROCm)          " OFF \
-    3>&1 1>&2 2>&3
-  ) || exit 1
+    local opts
+    opts=$(whiptail --title "🔧 Hardware Options" --checklist \
+        "\nSelect hardware features to passthrough:\n" 20 60 8 \
+        "${AVAILABLE_FEATURES[@]}" 3>&1 1>&2 2>&3) || exit 1
 
-  SELECTED_FEATURES=$(echo "$opts" | tr -d '"')
-  if [[ -z "$SELECTED_FEATURES" ]]; then
-    msg warn "No passthrough options selected"
-    exit 1
-  fi
+    SELECTED_FEATURES=$(echo "$opts" | tr -d '"')
+    if [[ -z "$SELECTED_FEATURES" ]]; then
+        msg warn "No passthrough options selected."
+        exit 1
+    fi
 }
 
-
 function select_lxc_targets() {
-  local list; local opts=()
-  if ! list=$(pct list | awk 'NR>1 {print $1 "|" $2}' | xargs -n1); then
-    msg err "Failed to get container list"
-    exit 1
-  fi
-  while IFS="|" read -r id name; do
-    if [[ -f "/etc/pve/lxc/${id}.conf" ]]; then
-      opts+=("$id" "${name} (${id})" "OFF")
-    fi
-  done <<< "$list"
-  if [[ ${#opts[@]} -eq 0 ]]; then
-    msg warn "No containers found"
-    exit 1
-  fi
-  SELECTED_CTIDS=$(whiptail --title "Select LXC Containers" --checklist \
-    "Choose container(s) to apply passthrough:" 20 60 10 \
-    "${opts[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
-  if [[ -z "$SELECTED_CTIDS" ]]; then
-    msg warn "No containers selected"
-    exit 1
-  fi
+    local list
+    local opts=()
+    list=$(pct list | awk 'NR>1 {print $1 "|" $2}') || return 1
+    while IFS="|" read -r id name; do
+        [[ -f "/etc/pve/lxc/${id}.conf" ]] && opts+=("$id" "$name (CTID: $id)" OFF)
+    done <<<"$list"
+
+    [[ ${#opts[@]} -eq 0 ]] && {
+        msg warn "No LXC containers found."
+        exit 1
+    }
+
+    SELECTED_CTIDS=$(whiptail --title "Select LXC Containers" --checklist \
+        "Choose container(s) to apply passthrough:" 20 60 10 \
+        "${opts[@]}" 3>&1 1>&2 2>&3 | tr -d '"') || exit 1
+
+    [[ -z "$SELECTED_CTIDS" ]] && {
+        msg warn "No containers selected."
+        exit 1
+    }
 }
 
 function apply_usb() {
-  local conf="$1"
-  if ! compgen -G "/dev/ttyUSB* /dev/ttyACM*" >/dev/null; then
-    msg warn "No USB serial devices found, skipping"
-    return 1
-  fi
-  cat <<EOF >> "$conf"
+    local conf="$1"
+    grep -q "dev/ttyUSB" <<<"$(ls /dev 2>/dev/null)" || return 1
+    cat <<EOF >>"$conf"
 # USB Passthrough
 lxc.cgroup2.devices.allow: a
 lxc.cap.drop:
@@ -113,16 +114,12 @@ lxc.mount.entry: /dev/ttyUSB1       dev/ttyUSB1       none bind,optional,create=
 lxc.mount.entry: /dev/ttyACM0       dev/ttyACM0       none bind,optional,create=file
 lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=file
 EOF
-  return 0
 }
 
 function apply_intel() {
-  local conf="$1"
-  if [[ ! -e /dev/dri/renderD128 ]]; then
-    msg warn "Intel GPU not detected, skipping"
-    return 1
-  fi
-  cat <<EOF >> "$conf"
+    local conf="$1"
+    [[ -e /dev/dri/renderD128 ]] || return 1
+    cat <<EOF >>"$conf"
 # Intel VAAPI
 lxc.cgroup2.devices.allow: c 226:* rwm
 lxc.cgroup2.devices.allow: c 29:0 rwm
@@ -130,16 +127,12 @@ lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file
 lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
 lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
 EOF
-  return 0
 }
 
 function apply_nvidia() {
-  local conf="$1"
-  if [[ ! -e /dev/nvidia0 ]]; then
-    msg warn "NVIDIA device not found, skipping"
-    return 1
-  fi
-  cat <<EOF >> "$conf"
+    local conf="$1"
+    [[ -e /dev/nvidia0 ]] || return 1
+    cat <<EOF >>"$conf"
 # NVIDIA GPU
 lxc.cgroup2.devices.allow: c 195:* rwm
 lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
@@ -147,47 +140,60 @@ lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
 lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
 lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,create=file
 EOF
-  return 0
 }
 
 function apply_amd() {
-  local conf="$1"
-  if [[ ! -e /dev/kfd ]]; then
-    msg warn "AMD GPU not found, skipping"
-    return 1
-  fi
-  cat <<EOF >> "$conf"
+    local conf="$1"
+    [[ -e /dev/kfd ]] || return 1
+    cat <<EOF >>"$conf"
 # AMD ROCm GPU
 lxc.cgroup2.devices.allow: c 226:* rwm
 lxc.cgroup2.devices.allow: c 238:* rwm
 lxc.mount.entry: /dev/kfd dev/kfd none bind,optional,create=file
 lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
 EOF
-  return 0
 }
 
 function main() {
-  header_info
-  select_hw_features
-  select_lxc_targets
-  for ctid in $SELECTED_CTIDS; do
-    local conf="/etc/pve/lxc/${ctid}.conf"
-    local updated=0
-    for opt in $SELECTED_FEATURES; do
-      case "$opt" in
-        usb) apply_usb "$conf" && updated=1 ;;
-        intel) apply_intel "$conf" && updated=1 ;;
-        nvidia) apply_nvidia "$conf" && updated=1 ;;
-        amd) apply_amd "$conf" && updated=1 ;;
-      esac
+    header_info
+    detect_features
+    select_hw_features
+    select_lxc_targets
+
+    local updated_cts=()
+    for ctid in $SELECTED_CTIDS; do
+        local conf="/etc/pve/lxc/${ctid}.conf"
+        local updated=0
+
+        for opt in $SELECTED_FEATURES; do
+            case "$opt" in
+            usb) apply_usb "$conf" && updated=1 ;;
+            intel) apply_intel "$conf" && updated=1 ;;
+            nvidia) apply_nvidia "$conf" && updated=1 ;;
+            amd) apply_amd "$conf" && updated=1 ;;
+            esac
+        done
+
+        if [[ "$updated" -eq 1 ]]; then
+            updated_cts+=("$ctid")
+        fi
     done
-    if [[ "$updated" -eq 1 ]]; then
-      msg ok "Hardware passthrough updated in: $conf"
-      printf "\nRestart container %s to apply changes.\n\n" "$ctid"
+
+    if [[ ${#updated_cts[@]} -gt 0 ]]; then
+        msg ok "Hardware passthrough applied to: ${updated_cts[*]}"
+        echo
+        if whiptail --title "Restart Containers" --yesno \
+            "Restart the following containers now?\n\n${updated_cts[*]}" 12 50; then
+            for ctid in "${updated_cts[@]}"; do
+                pct restart "$ctid"
+            done
+            msg ok "Restarted containers: ${updated_cts[*]}"
+        else
+            msg info "You can restart them manually later."
+        fi
     else
-      msg warn "No passthrough changes applied for container $ctid"
+        msg warn "No changes were applied to any container."
     fi
-  done
 }
 
 main
