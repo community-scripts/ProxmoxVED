@@ -66,12 +66,10 @@ function detect_features() {
 }
 
 function select_hw_features() {
-    local opts
-    opts=$(whiptail --title "Hardware Options" --checklist \
+    SELECTED_FEATURES=$(whiptail --title "Hardware Options" --checklist \
         "Select hardware features to passthrough:" 20 60 10 \
-        "${AVAILABLE_FEATURES[@]}" 3>&1 1>&2 2>&3) || exit 1
+        "${AVAILABLE_FEATURES[@]}" 3>&1 1>&2 2>&3 | tr -d '"') || exit 1
 
-    SELECTED_FEATURES=$(echo "$opts" | tr -d '"')
     [[ -z "$SELECTED_FEATURES" ]] && {
         msg warn "No passthrough options selected."
         exit 1
@@ -79,17 +77,19 @@ function select_hw_features() {
 }
 
 function select_lxc_targets() {
-    local list
     local opts=()
-    list=$(pct list | awk 'NR>1 {print $1 "|" $2}') || return 1
-    while IFS="|" read -r id name; do
-        [[ -f "/etc/pve/lxc/${id}.conf" ]] && opts+=("$id" "$name (CTID: $id)" OFF)
-    done <<<"$list"
+    while IFS= read -r line; do
+        local id name conf
+        id=$(awk '{print $1}' <<<"$line")
+        name=$(awk '{print $2}' <<<"$line")
+        conf="/etc/pve/lxc/${id}.conf"
+        [[ -f "$conf" ]] && opts+=("$id" "$name (CTID: $id)" OFF)
+    done < <(pct list | tail -n +2)
 
-    [[ ${#opts[@]} -eq 0 ]] && {
-        msg warn "No LXC containers found."
+    if [[ ${#opts[@]} -eq 0 ]]; then
+        msg warn "No containers found. Make sure you have running LXCs."
         exit 1
-    }
+    fi
 
     SELECTED_CTIDS=$(whiptail --title "Select LXC Containers" --checklist \
         "Choose container(s) to apply passthrough:" 20 60 10 \
@@ -165,16 +165,31 @@ function install_drivers() {
     for opt in $SELECTED_FEATURES; do
         case "$opt" in
         intel)
-            msg info "Installing Intel drivers in CT $ctid..."
-            pct exec "$ctid" -- bash -c "apt-get update && apt-get install -y va-driver-all vainfo intel-gpu-tools ocl-icd-libopencl1 intel-opencl-icd && adduser \$(id -un 0) video && adduser \$(id -un 0) render" >/dev/null 2>&1
+            msg info "Installing Intel drivers/tools in CT $ctid..."
+            pct exec "$ctid" -- bash -c "
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            va-driver-all vainfo intel-gpu-tools \
+            ocl-icd-libopencl1 intel-opencl-icd >/dev/null
+          adduser root video >/dev/null 2>&1 || true
+          adduser root render >/dev/null 2>&1 || true
+        "
             ;;
         nvidia)
-            msg info "Installing NVIDIA drivers/tools in CT $ctid..."
-            pct exec "$ctid" -- bash -c "apt-get update && apt-get install -y nvidia-container-runtime nvidia-utils-525" >/dev/null 2>&1 || true
+            msg info "Installing NVIDIA container tools in CT $ctid..."
+            pct exec "$ctid" -- bash -c "
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            nvidia-container-runtime nvidia-utils-525 >/dev/null 2>&1 || true
+        "
             ;;
         amd)
             msg info "Installing AMD ROCm tools in CT $ctid..."
-            pct exec "$ctid" -- bash -c "apt-get update && apt-get install -y rocm-smi rocm-utils" >/dev/null 2>&1 || true
+            pct exec "$ctid" -- bash -c "
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            rocm-smi rocm-utils >/dev/null 2>&1 || true
+        "
             ;;
         esac
     done
@@ -198,21 +213,19 @@ function main() {
             amd) apply_amd "$conf" && updated=1 ;;
             esac
         done
-        if [[ "$updated" -eq 1 ]]; then
-            updated_cts+=("$ctid")
-            install_drivers "$ctid"
-        fi
+        [[ "$updated" -eq 1 ]] && updated_cts+=("$ctid")
+        install_drivers "$ctid"
     done
 
     if [[ ${#updated_cts[@]} -gt 0 ]]; then
-        msg ok "Updated passthrough in container(s): ${updated_cts[*]}"
-        if whiptail --title "Restart Containers" --yesno "Restart now?\n${updated_cts[*]}" 10 60; then
+        msg ok "Hardware passthrough updated in: ${updated_cts[*]}"
+        if whiptail --yesno "Restart updated container(s)?\n${updated_cts[*]}" 10 60; then
             for ctid in "${updated_cts[@]}"; do
                 pct restart "$ctid"
             done
             msg ok "Containers restarted: ${updated_cts[*]}"
         else
-            msg info "Reboot manually to apply changes."
+            msg info "Please restart the container(s) manually."
         fi
     else
         msg warn "No passthrough or driver changes were applied."
