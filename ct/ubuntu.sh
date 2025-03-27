@@ -7,12 +7,12 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 
 echo -e "Loading..."
 APP="Ubuntu"
-var_tags="os"
-var_cpu="1"
-var_ram="512"
-var_disk="2"
-var_os="ubuntu"
-var_version="24.04"
+var_tags="${var_tags:-os}"
+var_cpu="${var_cpu:-1}"
+var_ram="${var_ram:-512}"
+var_disk="${var_disk:-2}"
+var_os="${var_os:-ubuntu}"
+var_version="${var_version:-24.04}"
 
 header_info "$APP"
 variables

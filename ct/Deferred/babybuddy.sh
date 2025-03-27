@@ -6,13 +6,13 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # Source:
 
 APP="BabyBuddy"
-var_tags="baby"
-var_disk="5"
-var_cpu="2"
-var_ram="2048"
-var_os="debian"
-var_version="12"
-var_unprivileged="1"
+var_tags="${var_tags:-baby}"
+var_disk="${var_disk:-5}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-12}"
+var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
 variables

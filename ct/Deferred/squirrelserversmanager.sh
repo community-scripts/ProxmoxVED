@@ -6,13 +6,13 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # Source:
 
 APP="Squirrel Servers Manager"
-var_tags="manager"
-var_disk="10"
-var_cpu="2"
-var_ram="4096"
-var_os="alpine"
-var_version="3.21"
-var_unprivileged="1"
+var_tags="${var_tags:-manager}"
+var_disk="${var_disk:-10}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-4096}"
+var_os="${var_os:-alpine}"
+var_version="${var_version:-3.21}"
+var_unprivileged="${var_unprivileged:-1}"
 
 variables
 color

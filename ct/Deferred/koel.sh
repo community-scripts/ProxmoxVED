@@ -6,13 +6,13 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 
 ## App Default Values
 APP="Koel"
-var_tags="music;player;homelab"
-var_disk="9"
-var_cpu="3"
-var_ram="3072"
-var_os="debian"
-var_version="12"
-var_verbose="yes"
+var_tags="${var_tags:-music;player;homelab}"
+var_disk="${var_disk:-9}"
+var_cpu="${var_cpu:-3}"
+var_ram="${var_ram:-3072}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-12}"
+var_verbose="${var_verbose:-yes}"
 
 # App Output & Base Settings
 header_info "$APP"
