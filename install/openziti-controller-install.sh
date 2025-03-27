@@ -20,7 +20,7 @@ msg_ok "Installed Dependencies"
 msg_info "Installing openziti"
 mkdir -p --mode=0755 /usr/share/keyrings
 curl -sSLf https://get.openziti.io/tun/package-repos.gpg | gpg --dearmor -o /usr/share/keyrings/openziti.gpg
-echo "deb [signed-by=/usr/share/keyrings/openziti.gpg] https://packages.openziti.org/zitipax-openziti-deb-stable debian main" > /etc/apt/sources.list.d/openziti.list
+echo "deb [signed-by=/usr/share/keyrings/openziti.gpg] https://packages.openziti.org/zitipax-openziti-deb-stable debian main" >/etc/apt/sources.list.d/openziti.list
 $STD apt-get update 
 $STD apt-get install -y openziti-controller openziti-console
 msg_ok "Installed openziti"
