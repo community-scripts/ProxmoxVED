@@ -24,6 +24,8 @@
 #   - User group assignments (video/render)
 #   - Interactive menu system via whiptail
 
+#!/usr/bin/env bash
+
 set -euo pipefail
 
 function header_info() {
@@ -49,53 +51,53 @@ function msg() {
   esac
 }
 
-function select_lxc_container() {
-  local lxc_list; local options=()
-  if ! lxc_list=$(pct list | awk 'NR>1 {print $1}' | xargs -n1); then
-    msg err "Failed to fetch LXC containers"
-    exit 1
-  fi
-  for ctid in $lxc_list; do
-    if [[ -f "/etc/pve/lxc/${ctid}.conf" ]]; then
-      options+=("$ctid" "LXC ${ctid}" "OFF")
-    fi
-  done
-  if [[ ${#options[@]} -eq 0 ]]; then
-    msg warn "No containers found"
-    exit 1
-  fi
-  CTID=$(whiptail --title "Select LXC Container" --checklist \
-    "Choose container to apply hardware passthrough:" 15 50 5 \
-    "${options[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
-  if [[ -z "$CTID" ]]; then
-    msg warn "No container selected"
-    exit 1
-  fi
-  LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
-}
-
-function select_hw_options() {
-  local options=(
+function select_hw_features() {
+  local opts=(
     "usb" "USB Passthrough" OFF
     "intel" "Intel VAAPI GPU" OFF
     "nvidia" "NVIDIA GPU" OFF
     "amd" "AMD GPU (ROCm)" OFF
   )
-  SELECTIONS=$(whiptail --title "Hardware Options" --checklist \
+  SELECTED_FEATURES=$(whiptail --title "Hardware Options" --checklist \
     "Select hardware features to passthrough:" 20 50 10 \
-    "${options[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
-  if [[ -z "$SELECTIONS" ]]; then
+    "${opts[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
+  if [[ -z "$SELECTED_FEATURES" ]]; then
     msg warn "No hardware passthrough options selected"
     exit 1
   fi
 }
 
-function add_usb_passthrough() {
-  if ! ls /dev/ttyUSB* &>/dev/null && ! ls /dev/ttyACM* &>/dev/null; then
-    msg warn "No USB serial devices found"
-    return
+function select_lxc_targets() {
+  local list; local opts=()
+  if ! list=$(pct list | awk 'NR>1 {print $1 "|" $2}' | xargs -n1); then
+    msg err "Failed to get container list"
+    exit 1
   fi
-  cat <<EOF >> "$LXC_CONFIG"
+  while IFS="|" read -r id name; do
+    if [[ -f "/etc/pve/lxc/${id}.conf" ]]; then
+      opts+=("$id" "${name} (${id})" "OFF")
+    fi
+  done <<< "$list"
+  if [[ ${#opts[@]} -eq 0 ]]; then
+    msg warn "No containers found"
+    exit 1
+  fi
+  SELECTED_CTIDS=$(whiptail --title "Select LXC Containers" --checklist \
+    "Choose container(s) to apply passthrough:" 20 60 10 \
+    "${opts[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
+  if [[ -z "$SELECTED_CTIDS" ]]; then
+    msg warn "No containers selected"
+    exit 1
+  fi
+}
+
+function apply_usb() {
+  local conf="$1"
+  if ! compgen -G "/dev/ttyUSB* /dev/ttyACM*" >/dev/null; then
+    msg warn "No USB serial devices found, skipping"
+    return 1
+  fi
+  cat <<EOF >> "$conf"
 # USB Passthrough
 lxc.cgroup2.devices.allow: a
 lxc.cap.drop:
@@ -107,15 +109,16 @@ lxc.mount.entry: /dev/ttyUSB1       dev/ttyUSB1       none bind,optional,create=
 lxc.mount.entry: /dev/ttyACM0       dev/ttyACM0       none bind,optional,create=file
 lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=file
 EOF
-  msg ok "USB passthrough added to $CTID"
+  return 0
 }
 
-function add_intel_gpu() {
+function apply_intel() {
+  local conf="$1"
   if [[ ! -e /dev/dri/renderD128 ]]; then
-    msg warn "Intel GPU not detected"
-    return
+    msg warn "Intel GPU not detected, skipping"
+    return 1
   fi
-  cat <<EOF >> "$LXC_CONFIG"
+  cat <<EOF >> "$conf"
 # Intel VAAPI
 lxc.cgroup2.devices.allow: c 226:* rwm
 lxc.cgroup2.devices.allow: c 29:0 rwm
@@ -123,15 +126,16 @@ lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file
 lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
 lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
 EOF
-  msg ok "Intel VAAPI passthrough added to $CTID"
+  return 0
 }
 
-function add_nvidia_gpu() {
+function apply_nvidia() {
+  local conf="$1"
   if [[ ! -e /dev/nvidia0 ]]; then
-    msg warn "NVIDIA device not found"
-    return
+    msg warn "NVIDIA device not found, skipping"
+    return 1
   fi
-  cat <<EOF >> "$LXC_CONFIG"
+  cat <<EOF >> "$conf"
 # NVIDIA GPU
 lxc.cgroup2.devices.allow: c 195:* rwm
 lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
@@ -139,38 +143,47 @@ lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
 lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
 lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,create=file
 EOF
-  msg ok "NVIDIA passthrough added to $CTID"
+  return 0
 }
 
-function add_amd_gpu() {
+function apply_amd() {
+  local conf="$1"
   if [[ ! -e /dev/kfd ]]; then
-    msg warn "AMD ROCm device not detected"
-    return
+    msg warn "AMD GPU not found, skipping"
+    return 1
   fi
-  cat <<EOF >> "$LXC_CONFIG"
+  cat <<EOF >> "$conf"
 # AMD ROCm GPU
 lxc.cgroup2.devices.allow: c 226:* rwm
 lxc.cgroup2.devices.allow: c 238:* rwm
 lxc.mount.entry: /dev/kfd dev/kfd none bind,optional,create=file
 lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
 EOF
-  msg ok "AMD GPU passthrough added to $CTID"
+  return 0
 }
 
 function main() {
   header_info
-  select_lxc_container
-  select_hw_options
-  for opt in $SELECTIONS; do
-    case "$opt" in
-      usb) add_usb_passthrough ;;
-      intel) add_intel_gpu ;;
-      nvidia) add_nvidia_gpu ;;
-      amd) add_amd_gpu ;;
-    esac
+  select_hw_features
+  select_lxc_targets
+  for ctid in $SELECTED_CTIDS; do
+    local conf="/etc/pve/lxc/${ctid}.conf"
+    local updated=0
+    for opt in $SELECTED_FEATURES; do
+      case "$opt" in
+        usb) apply_usb "$conf" && updated=1 ;;
+        intel) apply_intel "$conf" && updated=1 ;;
+        nvidia) apply_nvidia "$conf" && updated=1 ;;
+        amd) apply_amd "$conf" && updated=1 ;;
+      esac
+    done
+    if [[ "$updated" -eq 1 ]]; then
+      msg ok "Hardware passthrough updated in: $conf"
+      printf "\nRestart container %s to apply changes.\n\n" "$ctid"
+    else
+      msg warn "No passthrough changes applied for container $ctid"
+    fi
   done
-  msg ok "Hardware passthrough updated in: $LXC_CONFIG"
-  printf "\nRestart container %s to apply changes.\n\n" "$CTID"
 }
 
 main
