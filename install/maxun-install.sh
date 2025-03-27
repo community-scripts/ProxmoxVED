@@ -5,7 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/getmaxun/maxun
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -15,11 +15,26 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  gpg \
-  curl \
-  sudo \
-  mc \
-  redis
+    gpg \
+    openssl \
+    redis \
+    libgbm1 \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxkbcommon0 \
+    libglib2.0-0 \
+    libdbus-1-3 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxi6 \
+    libxtst6 \
+    netcat
 msg_ok "Installed Dependencies"
 
 #configure_lxc "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it?" 100 "memory" "16000"
@@ -65,7 +80,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
     echo "Maxun Database Name: $DB_NAME"
     echo "Maxun JWT Secret: $JWT_SECRET"
     echo "Maxun Encryption Key: $ENCRYPTION_KEY"
-} >> ~/maxun.creds
+} >>~/maxun.creds
 msg_ok "Set up Database"
 
 msg_info "Setup MinIO"
@@ -96,11 +111,12 @@ EOF
     echo "__________________"
     echo "MinIO Admin User: $MINIO_USER"
     echo "MinIO Admin Password: $MINIO_PASS"
-} >> ~/maxun.creds
-cat <<EOF > /etc/default/minio
+} >>~/maxun.creds
+cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=${MINIO_USER}
 MINIO_ROOT_PASSWORD=${MINIO_PASS}
 EOF
+systemctl enable -q --now minio
 msg_ok "Setup MinIO"
 
 msg_info "Installing Maxun (Patience)"
@@ -109,8 +125,7 @@ RELEASE=$(curl -s https://api.github.com/repos/getmaxun/maxun/releases/latest | 
 wget -q "https://github.com/getmaxun/maxun/archive/refs/tags/v${RELEASE}.zip"
 unzip -q v${RELEASE}.zip
 mv maxun-${RELEASE} /opt/maxun
-cat <<EOF > /opt/maxun/.env
-# App Setup
+cat <<EOF >/opt/maxun/.env
 NODE_ENV=development
 JWT_SECRET=${JWT_SECRET}
 DB_NAME=${DB_NAME}
@@ -127,15 +142,13 @@ MINIO_SECRET_KEY=${MINIO_PASS}
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 
-# Backend and Frontend URLs and Ports
 BACKEND_PORT=8080
 FRONTEND_PORT=5173
-BACKEND_URL=localhost:8080
-PUBLIC_URL=localhost:5173
-VITE_BACKEND_URL=localhost:8080
-VITE_PUBLIC_URL=localhost:5173
+BACKEND_URL=http://localhost:8080
+PUBLIC_URL=http://localhost:5173
+VITE_BACKEND_URL=http://localhost:8080
+VITE_PUBLIC_URL=http://localhost:5173
 
-# Telemetry Settings
 MAXUN_TELEMETRY=false
 EOF
 
@@ -149,6 +162,11 @@ $STD npx playwright install-deps
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Maxun"
 
+msg_info "Running DB Migrations"
+cd /opt/maxun
+node -e "require('./server/src/db/migrate')().then(() => { console.log('Migrations completed'); })"
+msg_ok "DB Migrations completed"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/maxun.service
 [Unit]
@@ -157,14 +175,13 @@ After=network.target postgresql.service redis.service minio.service
 
 [Service]
 WorkingDirectory=/opt/maxun
-ExecStart=/usr/bin/npm start
+ExecStart=/usr/bin/npm run server
 Restart=always
 EnvironmentFile=/opt/maxun/.env
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now minio
 systemctl enable -q --now maxun
 msg_ok "Created Service"
 
