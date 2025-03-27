@@ -90,6 +90,7 @@ declare -A MSG_INFO_SHOWN
 SPINNER_ACTIVE=0
 SPINNER_PID=""
 SPINNER_MSG=""
+SPINNER_LINE_PRINTED=0
 
 trap 'stop_spinner' EXIT INT TERM HUP
 
@@ -100,10 +101,16 @@ start_spinner() {
     local interval=0.1
 
     SPINNER_MSG="$msg"
+    SPINNER_LINE_PRINTED=0
 
     {
         while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
-            printf "\r\e[2K%s %b" "${frames[spin_i]}" "${YW}${SPINNER_MSG}${CL}" >&2
+            if [[ "$SPINNER_LINE_PRINTED" -eq 0 ]]; then
+                printf "\r\e[2K%s %b\n" "${frames[spin_i]}" "${YW}${SPINNER_MSG}${CL}" >&2
+                SPINNER_LINE_PRINTED=1
+            else
+                printf "\r\e[1A\e[2K%s %b\n" "${frames[spin_i]}" "${YW}${SPINNER_MSG}${CL}" >&2
+            fi
             spin_i=$(((spin_i + 1) % ${#frames[@]}))
             sleep "$interval"
         done
@@ -121,6 +128,7 @@ stop_spinner() {
         wait "$SPINNER_PID" 2>/dev/null || true
     fi
     SPINNER_ACTIVE=0
+    SPINNER_LINE_PRINTED=0
     unset SPINNER_PID
 }
 
