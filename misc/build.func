@@ -1489,30 +1489,24 @@ start() {
 
 # This function collects user settings and integrates all the collected information.
 build_container() {
-    #  if [ "$VERB" == "yes" ]; then set -x; fi
-
-    if [ "$CT_TYPE" == "1" ]; then
+    if [[ "$CT_TYPE" == "1" ]]; then
         FEATURES="keyctl=1,nesting=1"
     else
         FEATURES="nesting=1"
     fi
-    # 26.03.2025 disabled
-    #if [ "$ENABLE_FUSE" == "yes" ]; then
-    #    FEATURES+=",fuse=1"
-    #fi
 
-    if [[ $DIAGNOSTICS == "yes" ]]; then
-        post_to_api
-    fi
+    [[ "$DIAGNOSTICS" == "yes" ]] && post_to_api
 
     FEATURES="${FEATURES#,}"
     TEMP_DIR=$(mktemp -d)
-    pushd $TEMP_DIR >/dev/null
-    if [ "$var_os" == "alpine" ]; then
-        export FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/alpine-install.func)"
+    pushd "$TEMP_DIR" >/dev/null || return 1
+
+    if [[ "$var_os" == "alpine" ]]; then
+        export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/alpine-install.func)"
     else
-        export FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)"
+        export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)"
     fi
+
     export RANDOM_UUID="$RANDOM_UUID"
     export CACHER="$APT_CACHER"
     export CACHER_IP="$APT_CACHER_IP"
@@ -1522,14 +1516,13 @@ build_container() {
     export app="$NSAPP"
     export PASSWORD="$PW"
     export VERBOSE="$VERB"
-    export SSH_ROOT="${SSH}"
+    export SSH_ROOT="$SSH"
     export SSH_AUTHORIZED_KEY
     export CTID="$CT_ID"
     export CTTYPE="$CT_TYPE"
     export PCT_OSTYPE="$var_os"
     export PCT_OSVERSION="$var_version"
     export PCT_DISK_SIZE="$DISK_SIZE"
-    #export IPv6="$IPv6"
     export PCT_OPTIONS="
     -features $FEATURES
     -hostname $HN
@@ -1544,12 +1537,12 @@ build_container() {
     $PW
   "
 
-    # This executes create_lxc.sh and creates the container and .conf file
-    bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/create_lxc.sh)" || exit $?
+    bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/create_lxc.sh)" || return 1
 
-    LXC_CONFIG=/etc/pve/lxc/${CTID}.conf
-    if [ "$CT_TYPE" == "0" ]; then
-        cat <<EOF >>$LXC_CONFIG
+    local config="/etc/pve/lxc/${CTID}.conf"
+
+    append_usb_passthrough() {
+        cat <<EOF >>"$config"
 # USB passthrough
 lxc.cgroup2.devices.allow: a
 lxc.cap.drop:
@@ -1561,11 +1554,10 @@ lxc.mount.entry: /dev/ttyUSB1       dev/ttyUSB1       none bind,optional,create=
 lxc.mount.entry: /dev/ttyACM0       dev/ttyACM0       none bind,optional,create=file
 lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=file
 EOF
-    fi
+    }
 
-    if [ "$CT_TYPE" == "0" ]; then
-        if [[ "$APP" == "Channels" || "$APP" == "Emby" || "$APP" == "ErsatzTV" || "$APP" == "Frigate" || "$APP" == "Jellyfin" || "$APP" == "Plex" || "$APP" == "Scrypted" || "$APP" == "Tdarr" || "$APP" == "Unmanic" || "$APP" == "Ollama" || "$APP" == "FileFlows" ]]; then
-            cat <<EOF >>$LXC_CONFIG
+    append_vaapi_privileged() {
+        cat <<EOF >>"$config"
 # VAAPI hardware transcoding
 lxc.cgroup2.devices.allow: c 226:0 rwm
 lxc.cgroup2.devices.allow: c 226:128 rwm
@@ -1574,32 +1566,34 @@ lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file
 lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
 lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
 EOF
-        fi
-    else
-        if [[ "$APP" == "Channels" || "$APP" == "Emby" || "$APP" == "ErsatzTV" || "$APP" == "Frigate" || "$APP" == "Jellyfin" || "$APP" == "Plex" || "$APP" == "Scrypted" || "$APP" == "Tdarr" || "$APP" == "Unmanic" || "$APP" == "Ollama" || "$APP" == "FileFlows" ]]; then
-            if [[ -e "/dev/dri/renderD128" ]]; then
-                if [[ -e "/dev/dri/card0" ]]; then
-                    cat <<EOF >>$LXC_CONFIG
-# VAAPI hardware transcoding
-dev0: /dev/dri/card0,gid=44
-dev1: /dev/dri/renderD128,gid=104
-EOF
-                else
-                    cat <<EOF >>$LXC_CONFIG
-# VAAPI hardware transcoding
-dev0: /dev/dri/card1,gid=44
-dev1: /dev/dri/renderD128,gid=104
-EOF
-                fi
+    }
+
+    append_vaapi_unprivileged() {
+        if [[ -e "/dev/dri/renderD128" ]]; then
+            if [[ -e "/dev/dri/card0" ]]; then
+                printf "dev0: /dev/dri/card0,gid=44\ndev1: /dev/dri/renderD128,gid=104\n" >>"$config"
+            else
+                printf "dev0: /dev/dri/card1,gid=44\ndev1: /dev/dri/renderD128,gid=104\n" >>"$config"
             fi
         fi
+    }
+
+    is_hw_transcoding_app() {
+        [[ "$APP" =~ ^(Channels|Emby|ErsatzTV|Frigate|Jellyfin|Plex|Scrypted|Tdarr|Unmanic|Ollama|FileFlows)$ ]]
+    }
+
+    if [[ "$CT_TYPE" == "0" ]]; then
+        append_usb_passthrough
+        is_hw_transcoding_app && append_vaapi_privileged
+    else
+        is_hw_transcoding_app && append_vaapi_unprivileged
     fi
 
-    # This starts the container and executes <app>-install.sh
     msg_info "Starting LXC Container"
     pct start "$CTID"
     msg_ok "Started LXC Container"
-    if [ "$var_os" == "alpine" ]; then
+
+    if [[ "$var_os" == "alpine" ]]; then
         sleep 3
         pct exec "$CTID" -- /bin/sh -c 'cat <<EOF >/etc/apk/repositories
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/main
@@ -1607,8 +1601,8 @@ http://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 EOF'
         pct exec "$CTID" -- ash -c "apk add bash >/dev/null"
     fi
-    lxc-attach -n "$CTID" -- bash -c "$(wget -qLO - https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/$var_install.sh)" || exit $?
 
+    lxc-attach -n "$CTID" -- bash -c "$(wget -qLO - https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/$var_install.sh)" || return 1
 }
 
 # This function sets the description of the container.
