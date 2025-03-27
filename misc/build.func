@@ -115,7 +115,7 @@ start_spinner() {
 }
 
 stop_spinner() {
-    if [[ -n "$SPINNER_PID" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
+    if [[ ${SPINNER_PID+v} && -n "$SPINNER_PID" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
         kill "$SPINNER_PID" 2>/dev/null
         sleep 0.1
         kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
