@@ -52,20 +52,24 @@ function msg() {
 }
 
 function select_hw_features() {
-  local opts=(
-    "usb" "USB Passthrough" OFF
-    "intel" "Intel VAAPI GPU" OFF
-    "nvidia" "NVIDIA GPU" OFF
-    "amd" "AMD GPU (ROCm)" OFF
-  )
-  SELECTED_FEATURES=$(whiptail --title "Hardware Options" --checklist \
-    "Select hardware features to passthrough:" 20 50 10 \
-    "${opts[@]}" 3>&1 1>&2 2>&3 | tr -d '"')
+  local opts
+  opts=$(
+    whiptail --title "🔧 Hardware Integration" --checklist \
+    "\nSelect hardware features to passthrough:\n" 20 60 8 \
+    "usb"    "🖧  USB Passthrough         " OFF \
+    "intel"  "🟦  Intel VAAPI GPU         " OFF \
+    "nvidia" "🟨  NVIDIA GPU              " OFF \
+    "amd"    "🟥  AMD GPU (ROCm)          " OFF \
+    3>&1 1>&2 2>&3
+  ) || exit 1
+
+  SELECTED_FEATURES=$(echo "$opts" | tr -d '"')
   if [[ -z "$SELECTED_FEATURES" ]]; then
-    msg warn "No hardware passthrough options selected"
+    msg warn "No passthrough options selected"
     exit 1
   fi
 }
+
 
 function select_lxc_targets() {
   local list; local opts=()
