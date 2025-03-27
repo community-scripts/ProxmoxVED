@@ -61,7 +61,7 @@ color() {
     ADVANCED="${TAB}🧩${TAB}${CL}"
     FUSE="${TAB}🔧${TAB}${CL}"
 
-    preflight_checks
+    #preflight_checks
 }
 
 # This function enables error handling in the script by setting options and defining a trap for the ERR signal.
