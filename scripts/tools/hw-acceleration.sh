@@ -24,6 +24,8 @@
 #   - User group assignments (video/render)
 #   - Interactive menu system via whiptail
 
+#!/usr/bin/env bash
+
 set -euo pipefail
 
 function header_info() {
@@ -52,10 +54,10 @@ function msg() {
 
 function detect_features() {
     AVAILABLE_FEATURES=()
-    [[ -e /dev/ttyUSB0 || -e /dev/ttyACM0 ]] && AVAILABLE_FEATURES+=("usb" "🖧  USB Passthrough         " OFF)
-    [[ -e /dev/dri/renderD128 ]] && AVAILABLE_FEATURES+=("intel" "🟦  Intel VAAPI GPU         " OFF)
-    [[ -e /dev/nvidia0 ]] && AVAILABLE_FEATURES+=("nvidia" "🟨  NVIDIA GPU              " OFF)
-    [[ -e /dev/kfd ]] && AVAILABLE_FEATURES+=("amd" "🟥  AMD GPU (ROCm)          " OFF)
+    [[ -e /dev/ttyUSB0 || -e /dev/ttyACM0 ]] && AVAILABLE_FEATURES+=("usb" "USB Passthrough" OFF)
+    [[ -e /dev/dri/renderD128 ]] && AVAILABLE_FEATURES+=("intel" "Intel VAAPI GPU" OFF)
+    [[ -e /dev/nvidia0 ]] && AVAILABLE_FEATURES+=("nvidia" "NVIDIA GPU" OFF)
+    [[ -e /dev/kfd ]] && AVAILABLE_FEATURES+=("amd" "AMD GPU (ROCm)" OFF)
 
     if [[ ${#AVAILABLE_FEATURES[@]} -eq 0 ]]; then
         msg warn "No supported hardware found on host system."
@@ -65,15 +67,15 @@ function detect_features() {
 
 function select_hw_features() {
     local opts
-    opts=$(whiptail --title "🔧 Hardware Options" --checklist \
-        "\nSelect hardware features to passthrough:\n" 20 60 8 \
+    opts=$(whiptail --title "Hardware Options" --checklist \
+        "Select hardware features to passthrough:" 20 60 10 \
         "${AVAILABLE_FEATURES[@]}" 3>&1 1>&2 2>&3) || exit 1
 
     SELECTED_FEATURES=$(echo "$opts" | tr -d '"')
-    if [[ -z "$SELECTED_FEATURES" ]]; then
+    [[ -z "$SELECTED_FEATURES" ]] && {
         msg warn "No passthrough options selected."
         exit 1
-    fi
+    }
 }
 
 function select_lxc_targets() {
@@ -101,7 +103,8 @@ function select_lxc_targets() {
 
 function apply_usb() {
     local conf="$1"
-    grep -q "dev/ttyUSB" <<<"$(ls /dev 2>/dev/null)" || return 1
+    grep -q "ttyUSB\|ttyACM" <<<"$(ls /dev 2>/dev/null)" || return 1
+    grep -q "ttyUSB" "$conf" 2>/dev/null && return 0
     cat <<EOF >>"$conf"
 # USB Passthrough
 lxc.cgroup2.devices.allow: a
@@ -119,6 +122,7 @@ EOF
 function apply_intel() {
     local conf="$1"
     [[ -e /dev/dri/renderD128 ]] || return 1
+    grep -q "renderD128" "$conf" 2>/dev/null && return 0
     cat <<EOF >>"$conf"
 # Intel VAAPI
 lxc.cgroup2.devices.allow: c 226:* rwm
@@ -132,6 +136,7 @@ EOF
 function apply_nvidia() {
     local conf="$1"
     [[ -e /dev/nvidia0 ]] || return 1
+    grep -q "nvidia0" "$conf" 2>/dev/null && return 0
     cat <<EOF >>"$conf"
 # NVIDIA GPU
 lxc.cgroup2.devices.allow: c 195:* rwm
@@ -145,6 +150,7 @@ EOF
 function apply_amd() {
     local conf="$1"
     [[ -e /dev/kfd ]] || return 1
+    grep -q "/dev/kfd" "$conf" 2>/dev/null && return 0
     cat <<EOF >>"$conf"
 # AMD ROCm GPU
 lxc.cgroup2.devices.allow: c 226:* rwm
@@ -152,6 +158,26 @@ lxc.cgroup2.devices.allow: c 238:* rwm
 lxc.mount.entry: /dev/kfd dev/kfd none bind,optional,create=file
 lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
 EOF
+}
+
+function install_drivers() {
+    local ctid="$1"
+    for opt in $SELECTED_FEATURES; do
+        case "$opt" in
+        intel)
+            msg info "Installing Intel drivers in CT $ctid..."
+            pct exec "$ctid" -- bash -c "apt-get update && apt-get install -y va-driver-all vainfo intel-gpu-tools ocl-icd-libopencl1 intel-opencl-icd && adduser \$(id -un 0) video && adduser \$(id -un 0) render" >/dev/null 2>&1
+            ;;
+        nvidia)
+            msg info "Installing NVIDIA drivers/tools in CT $ctid..."
+            pct exec "$ctid" -- bash -c "apt-get update && apt-get install -y nvidia-container-runtime nvidia-utils-525" >/dev/null 2>&1 || true
+            ;;
+        amd)
+            msg info "Installing AMD ROCm tools in CT $ctid..."
+            pct exec "$ctid" -- bash -c "apt-get update && apt-get install -y rocm-smi rocm-utils" >/dev/null 2>&1 || true
+            ;;
+        esac
+    done
 }
 
 function main() {
@@ -164,7 +190,6 @@ function main() {
     for ctid in $SELECTED_CTIDS; do
         local conf="/etc/pve/lxc/${ctid}.conf"
         local updated=0
-
         for opt in $SELECTED_FEATURES; do
             case "$opt" in
             usb) apply_usb "$conf" && updated=1 ;;
@@ -173,26 +198,24 @@ function main() {
             amd) apply_amd "$conf" && updated=1 ;;
             esac
         done
-
         if [[ "$updated" -eq 1 ]]; then
             updated_cts+=("$ctid")
+            install_drivers "$ctid"
         fi
     done
 
     if [[ ${#updated_cts[@]} -gt 0 ]]; then
-        msg ok "Hardware passthrough applied to: ${updated_cts[*]}"
-        echo
-        if whiptail --title "Restart Containers" --yesno \
-            "Restart the following containers now?\n\n${updated_cts[*]}" 12 50; then
+        msg ok "Updated passthrough in container(s): ${updated_cts[*]}"
+        if whiptail --title "Restart Containers" --yesno "Restart now?\n${updated_cts[*]}" 10 60; then
             for ctid in "${updated_cts[@]}"; do
                 pct restart "$ctid"
             done
-            msg ok "Restarted containers: ${updated_cts[*]}"
+            msg ok "Containers restarted: ${updated_cts[*]}"
         else
-            msg info "You can restart them manually later."
+            msg info "Reboot manually to apply changes."
         fi
     else
-        msg warn "No changes were applied to any container."
+        msg warn "No passthrough or driver changes were applied."
     fi
 }
 
