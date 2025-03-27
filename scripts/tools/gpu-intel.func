@@ -26,6 +26,11 @@ function intel_gpu_available() {
     [[ -e /dev/dri/renderD128 ]] && lspci | grep -qi 'VGA.*Intel'
 }
 
+function is_alpine_ct() {
+    local ctid="$1"
+    pct exec "$ctid" -- sh -c 'grep -qi alpine /etc/os-release' >/dev/null 2>&1
+}
+
 function passthrough_intel_to_lxc() {
     local ctid="$1"
     local conf="/etc/pve/lxc/${ctid}.conf"
@@ -50,13 +55,33 @@ function passthrough_intel_to_lxc() {
 
 function install_intel_tools_in_ct() {
     local ctid="$1"
+
+    if is_alpine_ct "$ctid"; then
+        msg warn "Skipping Intel tool install for Alpine CT $ctid"
+        return 0
+    fi
+
+    read -rp "Install non-free intel-media-va-driver (Debian only)? [y/N]: " confirm
+    if [[ "${confirm,,}" =~ ^(y|yes)$ ]]; then
+        msg info "Enabling non-free sources in $ctid..."
+        pct exec "$ctid" -- bash -c "
+cat <<EOF >/etc/apt/sources.list.d/non-free.list
+deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+EOF
+        "
+    fi
+
     msg info "Installing Intel tools in CT $ctid..."
 
-    pct exec "$ctid" -- bash -c \
-        "apt-get update && \
-     apt-get install -y va-driver-all vainfo intel-gpu-tools ocl-icd-libopencl1 intel-opencl-icd && \
-     adduser \$(id -un 0) video && \
-     adduser \$(id -un 0) render" >/dev/null 2>&1
+    pct exec "$ctid" -- bash -c "
+      apt-get update -qq
+      DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        va-driver-all vainfo intel-gpu-tools ocl-icd-libopencl1 intel-opencl-icd intel-media-va-driver-non-free >/dev/null 2>&1
+      adduser root video >/dev/null 2>&1 || true
+      adduser root render >/dev/null 2>&1 || true
+    "
 
-    msg ok "Installed VAAPI & GPU tools inside CT $ctid"
+    msg ok "Installed Intel VAAPI tools in $ctid"
 }

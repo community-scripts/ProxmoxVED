@@ -35,6 +35,8 @@ function passthrough_amd_to_lxc() {
         return 1
     fi
 
+    grep -q "/dev/kfd" "$conf" 2>/dev/null && return 0
+
     {
         echo "# AMD ROCm GPU"
         echo "lxc.cgroup2.devices.allow: c 226:* rwm"
@@ -49,13 +51,18 @@ function passthrough_amd_to_lxc() {
 
 function install_amd_tools_in_ct() {
     local ctid="$1"
-    msg info "Installing AMD GPU tools in CT $ctid..."
 
-    pct exec "$ctid" -- bash -c \
-        "apt-get update && \
-     apt-get install -y rocm-smi rocm-utils && \
-     adduser \$(id -un 0) video && \
-     adduser \$(id -un 0) render" >/dev/null 2>&1 || true
+    if pct exec "$ctid" -- grep -qi alpine /etc/os-release; then
+        msg warn "Skipping tool installation: Alpine container detected"
+        return 0
+    fi
+
+    msg info "Installing AMD GPU tools in CT $ctid..."
+    pct exec "$ctid" -- bash -c "
+        apt-get update &&
+        DEBIAN_FRONTEND=noninteractive apt-get install -y rocm-smi rocm-utils &&
+        adduser \$(id -un 0) video &&
+        adduser \$(id -un 0) render" >/dev/null 2>&1 || true
 
     msg ok "Installed ROCm tools inside CT $ctid"
 }
