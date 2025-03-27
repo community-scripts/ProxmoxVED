@@ -33,8 +33,6 @@ function update_script() {
     msg_info "Restarting Gitea"
     $STD rc-service gitea restart
     msg_ok "Restarted Gitea"
-
-    exit 0
 }
 
 start
