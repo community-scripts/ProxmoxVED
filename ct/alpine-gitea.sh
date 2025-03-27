@@ -21,7 +21,6 @@ catch_errors
 
 function update_script() {
     header_info
-
     msg_info "Updating Alpine Packages"
     apk update
     apk upgrade
