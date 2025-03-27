@@ -87,6 +87,7 @@ cat <<EOF >/opt/minio/.env
 MINIO_ROOT_USER="storageadmin"
 MINIO_ROOT_PASSWORD="${MINIO_PASS}"
 MINIO_VOLUMES=/opt/minio
+MINIO_OPTS="--address :9000 --console-address 127.0.0.1:9001"
 EOF
 cat <<EOF >/opt/${APPLICATION}/.env
 NODE_ENV=production
@@ -98,11 +99,11 @@ ACCESS_TOKEN_SECRET=${ACCESS_TOKEN}
 REFRESH_TOKEN_SECRET=${REFRESH_TOKEN}
 CHROME_PORT=8080
 CHROME_TOKEN=${CHROME_TOKEN}
-CHROME_URL=ws://${LOCAL_IP}:8080
+CHROME_URL=ws://localhost:8080
 CHROME_IGNORE_HTTPS_ERRORS=true
 MAIL_FROM=noreply@locahost
 # SMTP_URL=smtp://username:password@smtp.server.mail:587 # 
-STORAGE_ENDPOINT=${LOCAL_IP}
+STORAGE_ENDPOINT=localhost
 STORAGE_PORT=9000
 STORAGE_REGION=us-east-1
 STORAGE_BUCKET=rxresume
@@ -123,7 +124,7 @@ STORAGE_SKIP_BUCKET_CHECK=false
 EOF
 cat <<EOF >/opt/browserless/.env
 DEBUG=browserless*,-**:verbose
-HOST=${LOCAL_IP}
+HOST=localhost
 PORT=8080
 TOKEN=${CHROME_TOKEN}
 EOF
