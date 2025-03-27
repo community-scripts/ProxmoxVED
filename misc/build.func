@@ -60,6 +60,8 @@ color() {
     CREATING="${TAB}🚀${TAB}${CL}"
     ADVANCED="${TAB}🧩${TAB}${CL}"
     FUSE="${TAB}🔧${TAB}${CL}"
+
+    preflight_checks
 }
 
 # This function enables error handling in the script by setting options and defining a trap for the ERR signal.
@@ -83,6 +85,72 @@ error_handler() {
     local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
     post_update_to_api "failed" "${command}"
     echo -e "\n$error_message\n"
+}
+
+preflight_checks() {
+    local missing=0
+    local min_disk_mb=2048
+    local required_cmds=(curl wget awk grep sed df ip ping dig hostname pct)
+
+    printf "${SEARCH}${BOLD}${DGN}Performing Preflight Checks:${CL}\n"
+
+    for cmd in "${required_cmds[@]}"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            printf "${CROSS}${RD}Missing required command: ${cmd}${CL}\n"
+            missing=1
+        fi
+    done
+
+    local disk_avail
+    disk_avail=$(df -Pm / | awk 'NR==2 {print $4}')
+    if [[ "$disk_avail" -lt "$min_disk_mb" ]]; then
+        printf "${CROSS}${RD}Disk space is below required threshold: ${disk_avail}MB < ${min_disk_mb}MB${CL}\n"
+        missing=1
+    else
+        printf "${DISKSIZE}${BOLD}${DGN}Free Disk Space: ${BGN}${disk_avail}MB${CL}\n"
+    fi
+
+    if ! ping -c1 -W2 1.1.1.1 >/dev/null; then
+        printf "${CROSS}${RD}No Internet connectivity (1.1.1.1 unreachable)${CL}\n"
+        missing=1
+    else
+        printf "${CM}${GN}Internet Connectivity OK${CL}\n"
+    fi
+
+    if ! dig +short google.com | grep -qE '^[0-9.]+'; then
+        printf "${CROSS}${RD}DNS resolution failed for google.com${CL}\n"
+        missing=1
+    else
+        printf "${CM}${GN}DNS Resolution OK${CL}\n"
+    fi
+
+    if ! ip -4 a | grep -q 'inet '; then
+        printf "${CROSS}${RD}No IPv4 address detected${CL}\n"
+        missing=1
+    else
+        printf "${CM}${GN}IPv4 Detected${CL}\n"
+    fi
+
+    if ip -6 a | grep -q 'inet6' && [[ "$DISABLEIP6" != "yes" ]]; then
+        printf "${CM}${GN}IPv6 Detected${CL}\n"
+    fi
+
+    if ! pct list &>/dev/null; then
+        printf "${CROSS}${RD}Proxmox container system not ready (pct not working)${CL}\n"
+        missing=1
+    fi
+
+    if [[ ! -s /etc/network/interfaces ]]; then
+        printf "${CROSS}${RD}Network config file missing or empty: /etc/network/interfaces${CL}\n"
+        missing=1
+    fi
+
+    if [[ "$missing" -ne 0 ]]; then
+        printf "\n${CROSS}${RD}Preflight checks failed. Fix above errors and re-run the script.${CL}\n"
+        exit 1
+    fi
+
+    printf "\n${CM}${GN}All preflight checks passed successfully.${CL}\n\n"
 }
 
 # This function displays an informational message with logging support.
