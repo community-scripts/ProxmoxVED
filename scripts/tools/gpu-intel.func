@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+# Intel GPU Helper Functions for Proxmox LXC / VAAPI passthrough
+# Author: CanbiZ
+# License: MIT
+
+set -euo pipefail
+
+function exit_script() {
+    printf "⚠️  User exited script\n"
+    exit 0
+}
+
+function msg() {
+    local type="$1"
+    shift
+    case "$type" in
+    info) printf " \033[36m➤\033[0m %s\n" "$@" ;;
+    ok) printf " \033[32m✔\033[0m %s\n" "$@" ;;
+    warn) printf " \033[33m⚠\033[0m %s\n" "$@" >&2 ;;
+    err) printf " \033[31m✘\033[0m %s\n" "$@" >&2 ;;
+    esac
+}
+
+function intel_gpu_available() {
+    [[ -e /dev/dri/renderD128 ]] && lspci | grep -qi 'VGA.*Intel'
+}
+
+function passthrough_intel_to_lxc() {
+    local ctid="$1"
+    local conf="/etc/pve/lxc/${ctid}.conf"
+
+    if ! intel_gpu_available; then
+        msg warn "No Intel iGPU detected on host"
+        return 1
+    fi
+
+    {
+        echo "# Intel iGPU (VAAPI)"
+        echo "lxc.cgroup2.devices.allow: c 226:* rwm"
+        echo "lxc.cgroup2.devices.allow: c 29:0 rwm"
+        echo "lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file"
+        echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir"
+        echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file"
+    } >>"$conf"
+
+    msg ok "Intel VAAPI passthrough applied to CT $ctid"
+    return 0
+}
+
+function install_intel_tools_in_ct() {
+    local ctid="$1"
+    msg info "Installing Intel tools in CT $ctid..."
+
+    pct exec "$ctid" -- bash -c \
+        "apt-get update && \
+     apt-get install -y va-driver-all vainfo intel-gpu-tools ocl-icd-libopencl1 intel-opencl-icd && \
+     adduser \$(id -un 0) video && \
+     adduser \$(id -un 0) render" >/dev/null 2>&1
+
+    msg ok "Installed VAAPI & GPU tools inside CT $ctid"
+}
