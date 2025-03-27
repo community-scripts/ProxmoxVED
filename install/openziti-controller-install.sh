@@ -25,7 +25,6 @@ $STD apt-get update
 $STD apt-get install -y openziti-controller openziti-console
 msg_ok "Installed openziti"
 
-msg_info "Starting configuration"
 read -r -p "Would you like to go through the auto configuration now? <y/N>" prompt
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   IPADDRESS=$(hostname -I | awk '{print $1}')
@@ -39,12 +38,12 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   GEN_PWD=$(head -c128 /dev/urandom | LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^*_+~' | cut -c 1-12)
   read -r -p "Please enter the controller admin password [${GEN_PWD}]:" ZITI_PWD
   ZITI_PWD=${ZITI_PWD:-$GEN_PWD}
-  env VERBOSE=0 \
-      ZITI_CTRL_ADVERTISED_ADDRESS="$ZITI_CTRL_ADVERTISED_ADDRESS" \
-      ZITI_CTRL_ADVERTISED_PORT="$ZITI_CTRL_ADVERTISED_PORT" \
-      ZITI_USER="$ZITI_USER" \
-      ZITI_PWD="$ZITI_PWD" \
-      bash /opt/openziti/etc/controller/bootstrap.bash
+  CONFIG_FILE="/opt/openziti/etc/controller/bootstrap.env"
+  sed -i "s|^ZITI_CTRL_ADVERTISED_ADDRESS=.*|ZITI_CTRL_ADVERTISED_ADDRESS='${ZITI_CTRL_ADVERTISED_ADDRESS}'|" "$CONFIG_FILE"
+  sed -i "s|^ZITI_CTRL_ADVERTISED_PORT=.*|ZITI_CTRL_ADVERTISED_PORT='${ZITI_CTRL_ADVERTISED_PORT}'|" "$CONFIG_FILE"
+  sed -i "s|^ZITI_USER=.*|ZITI_USER='${ZITI_USER}'|" "$CONFIG_FILE"
+  sed -i "s|^ZITI_PWD=.*|ZITI_PWD='${ZITI_PWD}'|" "$CONFIG_FILE"
+  env VERBOSE=0 bash /opt/openziti/etc/controller/bootstrap.bash
   msg_ok "Configuration Completed"
   systemctl enable -q --now ziti-controller
 else
