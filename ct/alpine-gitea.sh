@@ -22,16 +22,16 @@ catch_errors
 function update_script() {
     header_info
     msg_info "Updating Alpine Packages"
-    apk update
-    apk upgrade
+    $STD apk update
+    $STD apk upgrade
     msg_ok "Updated Alpine Packages"
 
     msg_info "Updating Gitea"
-    apk upgrade gitea
+    $STD apk upgrade gitea
     msg_ok "Updated Gitea"
 
     msg_info "Restarting Gitea"
-    rc-service gitea restart
+    $STD rc-service gitea restart
     msg_ok "Restarted Gitea"
 
     exit 0
