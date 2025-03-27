@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+
+# NVIDIA GPU Integration for Proxmox LXC
+# modular nvidia.func for LXC passthrough
+# Author: CanbiZ
+# License: MIT
+
+set -euo pipefail
+
+function nvidia_exit() {
+    printf "⚠️  User exited script\n"
+    exit 0
+}
+
+function nvidia_check_driver_installed() {
+    if ! command -v nvidia-smi &>/dev/null; then
+        return 1
+    fi
+    return 0
+}
+
+function nvidia_get_driver_version() {
+    nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits 2>/dev/null | head -n1
+}
+
+function nvidia_get_cuda_version() {
+    nvidia-smi --query-gpu=cuda_version --format=csv,noheader,nounits 2>/dev/null | head -n1
+}
+
+function nvidia_validate_driver_version() {
+    if ! nvidia_check_driver_installed; then
+        printf "✘ NVIDIA drivers not found on host\n"
+        nvidia_exit
+    fi
+    local version
+    version=$(nvidia_get_driver_version)
+    local major=${version%%.*}
+    if ((major < 500)); then
+        printf "⚠ Detected old NVIDIA driver version: %s\n" "$version"
+        read -r -p "Proceed anyway? [y/N] " confirm
+        [[ "${confirm,,}" =~ ^(y|yes)$ ]] || nvidia_exit
+    fi
+}
+
+function nvidia_validate_cuda_version() {
+    if ! nvidia_check_driver_installed; then
+        printf "✘ NVIDIA drivers not found on host\n"
+        nvidia_exit
+    fi
+    local version
+    version=$(nvidia_get_cuda_version)
+    local major=${version%%.*}
+    if ((major < 11)); then
+        printf "⚠ Detected old CUDA version: %s\n" "$version"
+        read -r -p "Proceed anyway? [y/N] " confirm
+        [[ "${confirm,,}" =~ ^(y|yes)$ ]] || nvidia_exit
+    fi
+}
+
+function nvidia_setup_kernel_modules() {
+    local modfile="/etc/modules-load.d/nvidia.conf"
+    local udevfile="/etc/udev/rules.d/70-nvidia.rules"
+
+    printf "nvidia\nnvidia_uvm\nnvidia_drm\n" >"$modfile"
+
+    cat <<EOF >"$udevfile"
+KERNEL=="nvidia", RUN+="/bin/bash -c '/usr/bin/nvidia-smi -L && chmod 666 /dev/nvidia*'"
+KERNEL=="nvidia_uvm", RUN+="/bin/bash -c '/usr/bin/nvidia-modprobe -c0 -u && chmod 0666 /dev/nvidia-uvm*'"
+EOF
+
+    printf "✔ NVIDIA kernel modules and udev rules applied\n"
+    printf "⚠ Please reboot the Proxmox host for changes to take effect\n"
+}
+
+function nvidia_select_gpu_minor() {
+    local menu=()
+    local maxwidth=0
+    while IFS= read -r devdir; do
+        local pci=${devdir##*/}
+        local info="/proc/driver/nvidia/gpus/${pci}/information"
+        [[ -f "$info" ]] || continue
+        local model minor
+        model=$(awk -F': ' '/Model:/ {print $2}' "$info")
+        minor=$(awk '/Device Minor/ {print $NF}' "$info")
+        menu+=("$minor" "$model" "OFF")
+        ((${#model} > maxwidth)) && maxwidth=${#model}
+    done < <(find /proc/driver/nvidia/gpus -mindepth 1 -type d)
+
+    if ((${#menu[@]} == 0)); then
+        printf "✘ No NVIDIA GPU found\n"
+        return 1
+    fi
+
+    if ((${#menu[@]} == 3)); then
+        printf "%s\n" "${menu[0]}"
+    else
+        whiptail --title "NVIDIA GPU Selection" --radiolist \
+            "Select the GPU to passthrough:" 15 $((maxwidth + 40)) 6 \
+            "${menu[@]}" 3>&1 1>&2 2>&3
+    fi
+}
+
+function nvidia_lxc_passthrough() {
+    local container_id="$1"
+    local minor="$2"
+    local config="/etc/pve/lxc/${container_id}.conf"
+
+    local devices=(
+        "/dev/nvidia${minor}"
+        "/dev/nvidiactl"
+        "/dev/nvidia-uvm"
+        "/dev/nvidia-uvm-tools"
+    )
+
+    local devnum_list=()
+
+    for dev in "${devices[@]}"; do
+        [[ -e "$dev" ]] || continue
+        local major
+        major=$(stat -c '%t' "$dev")
+        local dec_major=$((16#$major))
+        devnum_list+=("$dec_major")
+        echo "lxc.mount.entry: $dev ${dev##*/} none bind,optional,create=file" >>"$config"
+    done
+
+    echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$config"
+
+    for num in "${devnum_list[@]}"; do
+        echo "lxc.cgroup2.devices.allow: c ${num}:* rwm" >>"$config"
+    done
+
+    printf "✔ NVIDIA passthrough configured for CT %s\n" "$container_id"
+}
