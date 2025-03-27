@@ -188,7 +188,7 @@ function main() {
         read -rp "Restart updated container(s)? [y/N]: " restart
         if [[ "${restart,,}" == "y" ]]; then
             for ctid in "${updated_cts[@]}"; do
-                pct restart "$ctid"
+                pct reboot "$ctid"
                 msg ok "Restarted container $ctid"
             done
         else
