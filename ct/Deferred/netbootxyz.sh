@@ -19,11 +19,11 @@ EOF
 header_info
 echo -e "Loading..."
 APP="netboot.xyz"
-var_disk="2"
-var_cpu="1"
-var_ram="512"
-var_os="debian"
-var_version="12"
+var_disk="${var_disk:-2}"
+var_cpu="${var_cpu:-1}"
+var_ram="${var_ram:-512}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-12}"
 variables
 color
 catch_errors
