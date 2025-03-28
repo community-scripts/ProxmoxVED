@@ -18,6 +18,7 @@ $STD apk add \
     newt \
     curl \
     openssh \
+    sudo \
     nano \
     mc \
     gpg
@@ -25,7 +26,7 @@ $STD apk add \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing PostgreSQL and Dependencies"
-apk add --no-cache postgresql postgresql-contrib
+$STD apk add --no-cache postgresql postgresql-contrib
 msg_ok "Installed PostgreSQL"
 
 msg_info "Initializing PostgreSQL Database"
