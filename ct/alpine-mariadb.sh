@@ -21,16 +21,19 @@ catch_errors
 
 function update_script() {
     msg_info "Updating Alpine Packages"
-    apk update && apk upgrade
+    $STD apk update
+    $STD apk upgrade
     msg_ok "Updated Alpine Packages"
 
     msg_info "Updating MariaDB"
-    apk upgrade mariadb mariadb-client
+    $STD apk upgrade mariadb mariadb-client
     msg_ok "Updated MariaDB"
 
     msg_info "Restarting MariaDB"
-    rc-service mariadb restart
+    $STD rc-service mariadb restart
     msg_ok "Restarted MariaDB"
+
+    exit 0
 }
 
 start
