@@ -12,7 +12,6 @@ variables() {
     DIAGNOSTICS="yes"                                 # sets the DIAGNOSTICS variable to "yes", used for the API call.
     METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
     RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
-    CT_TYPE=""                                        # sets the CT_TYPE variable to an empty string.
 }
 
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
@@ -30,15 +29,13 @@ color() {
 
     # Formatting
     CL=$(echo "\033[m")
-    UL=$(echo "\033[4m")
     BOLD=$(echo "\033[1m")
-    BFR="\\r\\033[K"
     HOLD=" "
     TAB="  "
 
     # Icons
     CM="${TAB}✔️${TAB}"
-    CROSS="${TAB}✖️${TAB}"
+    CROSS="${TAB}✖️${TAB}${CL}"
     INFO="${TAB}💡${TAB}${CL}"
     OS="${TAB}🖥️${TAB}${CL}"
     OSVERSION="${TAB}🌟${TAB}${CL}"
