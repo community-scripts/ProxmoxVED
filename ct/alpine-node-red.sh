@@ -3,7 +3,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://redis.io/
+# Source: https://nodered.org
 
 APP="Alpine-Node-Red"
 var_tags="${var_tags:-alpine;automation}"
@@ -21,20 +21,23 @@ catch_errors
 
 function update_script() {
     msg_info "Updating Alpine Packages"
-    apk update && apk upgrade
+    $STD apk update
+    $STD apk upgrade
     msg_ok "Updated Alpine Packages"
 
     msg_info "Updating Node.js and npm"
-    apk upgrade nodejs npm
+    $STD apk upgrade nodejs npm
     msg_ok "Updated Node.js and npm"
 
     msg_info "Updating Node-RED"
-    npm install -g --unsafe-perm node-red
+    $STD npm install -g --unsafe-perm node-red
     msg_ok "Updated Node-RED"
 
     msg_info "Restarting Node-RED"
-    rc-service nodered restart
+    $STD rc-service nodered restart
     msg_ok "Restarted Node-RED"
+
+    exit 0
 }
 
 start
@@ -42,5 +45,6 @@ build_container
 description
 
 msg_ok "Completed Successfully!\n"
-echo -e "${APP} should be reachable on port 1880.
-         ${BL}http://<your-ip>:1880${CL} \n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:1880${CL}"

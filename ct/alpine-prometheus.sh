@@ -21,16 +21,19 @@ catch_errors
 
 function update_script() {
     msg_info "Updating Alpine Packages"
-    apk update && apk upgrade
+    $STD apk update
+    $STD apk upgrade
     msg_ok "Updated Alpine Packages"
 
     msg_info "Updating Prometheus"
-    apk upgrade prometheus
+    $STD apk upgrade prometheus
     msg_ok "Updated Prometheus"
 
     msg_info "Restarting Prometheus"
-    rc-service prometheus restart
+    $STD rc-service prometheus restart
     msg_ok "Restarted Prometheus"
+
+    exit 0
 }
 
 start
@@ -38,3 +41,6 @@ build_container
 description
 
 msg_ok "Completed Successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:9090${CL}"

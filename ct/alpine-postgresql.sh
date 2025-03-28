@@ -21,16 +21,19 @@ catch_errors
 
 function update_script() {
     msg_info "Updating Alpine Packages"
-    apk update && apk upgrade
+    $STD apk update
+    $STD apk upgrade
     msg_ok "Updated Alpine Packages"
 
     msg_info "Updating PostgreSQL"
-    apk upgrade postgresql postgresql-contrib
+    $STD apk upgrade postgresql postgresql-contrib
     msg_ok "Updated PostgreSQL"
 
     msg_info "Restarting PostgreSQL"
-    rc-service postgresql restart
+    $STD rc-service postgresql restart
     msg_ok "Restarted PostgreSQL"
+
+    exit 0
 }
 
 start
@@ -38,3 +41,6 @@ build_container
 description
 
 msg_ok "Completed Successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following IP:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}${IP}:5432${CL}"
