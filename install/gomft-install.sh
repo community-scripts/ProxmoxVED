@@ -23,16 +23,6 @@ $STD apt-get install -y \
   gnupg
 msg_ok "Installed Dependencies"
 
-msg_info "Setting up Golang"
-set +o pipefail
-temp_file=$(mktemp)
-golang_tarball=$(curl -s https://go.dev/dl/ | grep -oP 'go[\d\.]+\.linux-amd64\.tar\.gz' | head -n 1)
-wget -q https://golang.org/dl/"$golang_tarball" -O "$temp_file"
-tar -C /usr/local -xzf "$temp_file"
-ln -sf /usr/local/go/bin/go /usr/local/bin/go
-set -o pipefail
-msg_ok "Setup Golang"
-
 msg_info "Setting up Node.js Repository"
 mkdir -p /etc/apt/keyrings
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
@@ -43,6 +33,16 @@ msg_info "Installing Node.js"
 $STD apt-get update
 $STD apt-get install -y nodejs
 msg_ok "Installed Node.js"
+
+msg_info "Setting up Golang"
+set +o pipefail
+temp_file=$(mktemp)
+golang_tarball=$(curl -s https://go.dev/dl/ | grep -oP 'go[\d\.]+\.linux-amd64\.tar\.gz' | head -n 1)
+wget -q https://golang.org/dl/"$golang_tarball" -O "$temp_file"
+tar -C /usr/local -xzf "$temp_file"
+ln -sf /usr/local/go/bin/go /usr/local/bin/go
+set -o pipefail
+msg_ok "Setup Golang"
 
 msg_info "Setup ${APPLICATION} (Patience)"
 temp_file=$(mktemp)
