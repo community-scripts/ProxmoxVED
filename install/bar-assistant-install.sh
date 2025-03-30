@@ -31,7 +31,6 @@ curl -fsSL https://github.com/meilisearch/meilisearch/releases/latest/download/m
 $STD dpkg -i meilisearch.deb
 curl -fsSL https://raw.githubusercontent.com/meilisearch/meilisearch/latest/config.toml -o /etc/meilisearch.toml
 MASTER_KEY=$(openssl rand -base64 12)
-LOCAL_IP="$(hostname -I | awk '{print $1}')"
 sed -i \
     -e 's|^env =.*|env = "production"|' \
     -e "s|^# master_key =.*|master_key = \"$MASTER_KEY\"|" \
@@ -95,10 +94,11 @@ curl -fsSL "https://github.com/karlomikus/vue-salt-rim/archive/refs/tags/v${RELE
 unzip -q saltrim.zip
 mv /opt/vue-salt-rim-${RELEASE_SALTRIM}/ /opt/vue-salt-rim
 cd /opt/vue-salt-rim
+LOCAL_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/opt/vue-salt-rim/public/config.js
 window.srConfig = {}
-window.srConfig.API_URL = "http://my-bar.com"
-window.srConfig.MEILISEARCH_URL = "http://my-milisearch.com"
+window.srConfig.API_URL = "http://${LOCAL_IP}"
+window.srConfig.MEILISEARCH_URL = "http://127.0.0.1:7700"
 EOF
 npm run build
 echo "${RELEASE_SALTRIM}" >/opt/vue-salt-rim_version.txt
