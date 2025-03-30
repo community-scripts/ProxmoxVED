@@ -121,7 +121,7 @@ server {
     charset utf-8;
 
     location / {
-        try_files $uri $uri/ /index.php?$query_string;
+        try_files \$uri \$uri/ /index.php?\$query_string;
     }
 
     location = /favicon.ico { access_log off; log_not_found off; }
@@ -131,7 +131,7 @@ server {
 
     location ~ ^/index\.php(/|$) {
         fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
         include fastcgi_params;
         fastcgi_hide_header X-Powered-By;
     }
@@ -150,7 +150,7 @@ server {
     root /opt/vue-salt-rim/dist;
 
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files \$uri \$uri/ /index.html;
     }
 }
 EOF
