@@ -70,17 +70,21 @@ cd /opt/bar-assistant
 cp /opt/bar-assistant/.env.dist /opt/bar-assistant/.env
 MeiliSearch_API_KEY=$(curl -s -X GET 'http://127.0.0.1:7700/keys' -H "Authorization: Bearer $MASTER_KEY" | grep -o '"key":"[^"]*"' | head -n 1 | sed 's/"key":"//;s/"//')
 MeiliSearch_API_KEY_UID=$(curl -s -X GET 'http://127.0.0.1:7700/keys' -H "Authorization: Bearer $MASTER_KEY" | grep -o '"uid":"[^"]*"' | head -n 1 | sed 's/"uid":"//;s/"//')
-
-composer install
-php artisan key:generate
+sed -i -e "s|^MEILISEARCH_HOST=|MEILISEARCH_HOST=127.0.0.1|" \
+    -e "s|^MEILISEARCH_KEY=|MEILISEARCH_KEY=${MASTER_KEY}|" \
+    -e "s|^MEILISEARCH_API_KEY=|MEILISEARCH_API_KEY=${MeiliSearch_API_KEY}|" \
+    -e "s|^MEILISEARCH_API_KEY_UID=|MEILISEARCH_API_KEY_UID=${MeiliSearch_API_KEY_UID}|" \
+    /opt/bar-assistant/.env
+$STD composer install --no-interaction
+$STD php artisan key:generate
 touch storage/bar-assistant/database.ba3.sqlite
-php artisan migrate --force
-php artisan storage:link
-php artisan bar:setup-meilisearch
-php artisan scout:sync-index-settings
-php artisan config:cache
-php artisan route:cache
-php artisan event:cache
+$STD php artisan migrate --force
+$STD php artisan storage:link
+$STD php artisan bar:setup-meilisearch
+$STD php artisan scout:sync-index-settings
+$STD php artisan config:cache
+$STD php artisan route:cache
+$STD php artisan event:cache
 echo "${RELEASE_BARASSISTANT}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Bar Assistant"
 
