@@ -65,7 +65,7 @@ RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/karlomikus/bar-assis
 cd /opt
 curl -fsSL "https://github.com/karlomikus/bar-assistant/archive/refs/tags/v${RELEASE_BARASSISTANT}.zip" -o barassistant.zip
 unzip -q barassistant.zip
-mv /opt/barassistant-${RELEASE_BARASSISTANT}/ /opt/bar-assistant
+mv /opt/bar-assistant-${RELEASE_BARASSISTANT}/ /opt/bar-assistant
 cd /opt/bar-assistant
 cp /opt/bar-assistant/.env.dist /opt/bar-assistant/.env
 MeiliSearch_API_KEY=$(curl -s -X GET 'http://127.0.0.1:7700/keys' -H "Authorization: Bearer $MASTER_KEY" | grep -o '"key":"[^"]*"' | head -n 1 | sed 's/"key":"//;s/"//')

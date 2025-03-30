@@ -43,7 +43,7 @@ function update_script() {
         mv /opt/bar-assistant /opt/bar-assistant-backup
         curl -fsSL "https://github.com/karlomikus/bar-assistant/archive/refs/tags/v${RELEASE_BARASSISTANT}.zip" -o barassistant.zip
         unzip -q barassistant.zip
-        mv /opt/barassistant-${RELEASE_BARASSISTANT}/ /opt/bar-assistant
+        mv /opt/bar-assistant-${RELEASE_BARASSISTANT}/ /opt/bar-assistant
         cp /opt/bar-assistant-backup/.env /opt/bar-assistant/.env
         cp /opt/bar-assistant-backup/storage/bar-assistant /opt/bar-assistant/storage/bar-assistant
         cd /opt/bar-assistant
