@@ -69,7 +69,8 @@ cd /opt/bar-assistant
 cp /opt/bar-assistant/.env.dist /opt/bar-assistant/.env
 MeiliSearch_API_KEY=$(curl -s -X GET 'http://127.0.0.1:7700/keys' -H "Authorization: Bearer $MASTER_KEY" | grep -o '"key":"[^"]*"' | head -n 1 | sed 's/"key":"//;s/"//')
 MeiliSearch_API_KEY_UID=$(curl -s -X GET 'http://127.0.0.1:7700/keys' -H "Authorization: Bearer $MASTER_KEY" | grep -o '"uid":"[^"]*"' | head -n 1 | sed 's/"uid":"//;s/"//')
-sed -i -e "s|^MEILISEARCH_HOST=|MEILISEARCH_HOST=http://127.0.0.1:7700|" \
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+sed -i -e "s|^MEILISEARCH_HOST=|MEILISEARCH_HOST=http://${LOCAL_IP}:7700|" \
     -e "s|^MEILISEARCH_KEY=|MEILISEARCH_KEY=${MASTER_KEY}|" \
     -e "s|^MEILISEARCH_API_KEY=|MEILISEARCH_API_KEY=${MeiliSearch_API_KEY}|" \
     -e "s|^MEILISEARCH_API_KEY_UID=|MEILISEARCH_API_KEY_UID=${MeiliSearch_API_KEY_UID}|" \
@@ -94,11 +95,10 @@ curl -fsSL "https://github.com/karlomikus/vue-salt-rim/archive/refs/tags/v${RELE
 unzip -q saltrim.zip
 mv /opt/vue-salt-rim-${RELEASE_SALTRIM}/ /opt/vue-salt-rim
 cd /opt/vue-salt-rim
-LOCAL_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/opt/vue-salt-rim/public/config.js
 window.srConfig = {}
 window.srConfig.API_URL = "http://${LOCAL_IP}"
-window.srConfig.MEILISEARCH_URL = "http://127.0.0.1:7700"
+window.srConfig.MEILISEARCH_URL = "http://${LOCAL_IP}:7700"
 EOF
 $STD npm install
 $STD npm run build
