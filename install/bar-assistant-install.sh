@@ -100,7 +100,8 @@ window.srConfig = {}
 window.srConfig.API_URL = "http://${LOCAL_IP}"
 window.srConfig.MEILISEARCH_URL = "http://127.0.0.1:7700"
 EOF
-npm run build
+$STD npm install
+$STD npm run build
 echo "${RELEASE_SALTRIM}" >/opt/vue-salt-rim_version.txt
 msg_ok "Installed Salt Rim"
 
