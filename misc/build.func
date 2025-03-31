@@ -1095,20 +1095,25 @@ select_distribution() {
 
     while [[ -z "$var_os" ]]; do
         if [[ "$default" == "debian" ]]; then
+            exec 3>&1
             result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
                 --title "DISTRIBUTION" \
                 --radiolist "Choose Distribution:" 10 58 2 \
                 "debian" "" on \
                 "ubuntu" "" off \
-                --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+                --ok-label "Next" --cancel-label "Exit" \
+                --extra-button --extra-label "Back" \
+                2>&1 1>&3)
+            exitcode=$?
+            exec 3>&-
         else
             exec 3>&1
             result=$(dialog \
                 --backtitle "[dev] Proxmox VE Helper Scripts" \
                 --title "DISTRIBUTION" \
                 --radiolist "Choose Distribution:" 10 58 2 \
-                "debian" "" on \
-                "ubuntu" "" off \
+                "debian" "" off \
+                "ubuntu" "" on \
                 --ok-label "Next" \
                 --cancel-label "Exit" \
                 --extra-button --extra-label "Back" \
