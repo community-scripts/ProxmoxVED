@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -31,9 +30,9 @@ msg_ok "Installed Node.js"
 
 msg_info "Installing Fumadocs"
 temp_file=$(mktemp)
-RELEASE=$(curl -s https://api.github.com/repos/fuma-nama/fumadocs/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+RELEASE=$(curl -fsSL https://api.github.com/repos/fuma-nama/fumadocs/releases/latest | grep '"tag_name"' | awk -F '"' '{print $4}')
 export NODE_OPTIONS="--max-old-space-size=4096"
-wget -q https://github.com/fuma-nama/fumadocs/archive/refs/tags/${RELEASE}.tar.gz -O $temp_file
+curl -fsSL "https://github.com/fuma-nama/fumadocs/archive/refs/tags/${RELEASE}.tar.gz" -o "$temp_file"
 tar -xzf $temp_file
 mv fumadocs-* "/opt/fumadocs"
 cd /opt/fumadocs
