@@ -103,7 +103,9 @@ EOF
 function main() {
     header_info
     prompt_features
+    msg info "Features selected: ${SELECTED_FEATURES[*]}"
     select_lxc_cts
+    msg info "Containers selected: ${SELECTED_CTIDS}"
 
     local updated_cts=()
 
