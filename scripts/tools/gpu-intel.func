@@ -55,7 +55,7 @@ function passthrough_intel_to_lxc() {
 
 function install_intel_tools_in_ct() {
     local ctid="$1"
-    local install_nonfree="$2"
+    local install_nonfree="yes"
 
     if is_alpine_ct "$ctid"; then
         msg warn "Skipping Intel tool install for Alpine CT $ctid"
