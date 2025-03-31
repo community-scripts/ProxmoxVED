@@ -127,7 +127,7 @@ server {
     }
 
     location /search/ {
-        proxy_pass http://meilisearch:7700/;
+        proxy_pass http://127.0.0.1:7700/;
     }
 
     location / {
