@@ -15,10 +15,10 @@ function msg() {
     local type="$1"
     shift
     case "$type" in
-        info) printf " \033[36m➤\033[0m %s\n" "$@" ;;
-        ok)   printf " \033[32m✔\033[0m %s\n" "$@" ;;
-        warn) printf " \033[33m⚠\033[0m %s\n" "$@" >&2 ;;
-        err)  printf " \033[31m✘\033[0m %s\n" "$@" >&2 ;;
+    info) printf " \033[36m➤\033[0m %s\n" "$@" ;;
+    ok) printf " \033[32m✔\033[0m %s\n" "$@" ;;
+    warn) printf " \033[33m⚠\033[0m %s\n" "$@" >&2 ;;
+    err) printf " \033[31m✘\033[0m %s\n" "$@" >&2 ;;
     esac
 }
 
@@ -89,7 +89,7 @@ function nvidia_select_gpu_minor() {
         model=$(awk -F': ' '/Model:/ {print $2}' "$info")
         minor=$(awk '/Device Minor/ {print $NF}' "$info")
         menu+=("$minor" "$model" "OFF")
-        (( ${#model} > max )) && max=${#model}
+        ((${#model} > max)) && max=${#model}
     done < <(find /proc/driver/nvidia/gpus -mindepth 1 -type d)
 
     [[ ${#menu[@]} -eq 0 ]] && msg err "No NVIDIA GPU found" && return 1
@@ -124,5 +124,5 @@ function nvidia_lxc_passthrough() {
     for n in "${devnums[@]}"; do
         echo "lxc.cgroup2.devices.allow: c ${n}:* rwm" >>"$conf"
     done
-
-    msg ok "NVIDIA passt
+    msg ok "Installed NVIDIA GPU tools in $ctid"
+}
