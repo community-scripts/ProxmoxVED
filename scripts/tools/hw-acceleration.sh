@@ -10,6 +10,8 @@ TEMP_DIR=$(mktemp -d)
 trap 'rm -rf $TEMP_DIR' EXIT
 declare -a SELECTED_FEATURES
 declare -a updated_cts
+read -rp "Enter container ID(s) separated by space: " SELECTED_CTIDS
+declare SELECTED_CTIDS=""
 
 source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/scripts/tools/gpu-intel.func)
 source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/scripts/tools/gpu-nvidia.func)
