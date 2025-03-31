@@ -103,6 +103,14 @@ function main() {
 
     local updated_cts=()
 
+    local intel_nonfree="no"
+    if [[ " ${SELECTED_FEATURES[*]} " =~ " intel " ]]; then
+        read -rp "Install non-free intel-media-va-driver (Debian only)? [y/N]: " confirm
+        if [[ "${confirm,,}" =~ ^(y|yes)$ ]]; then
+            intel_nonfree="yes"
+        fi
+    fi
+
     for ctid in $SELECTED_CTIDS; do
         local conf="/etc/pve/lxc/${ctid}.conf"
         local updated=0
@@ -115,7 +123,7 @@ function main() {
                 ;;
             intel)
                 msg info "Intel passthrough setup for CT $ctid"
-                passthrough_intel_to_lxc "$ctid" && install_intel_tools_in_ct "$ctid" && updated=1
+                passthrough_intel_to_lxc "$ctid" && install_intel_tools_in_ct "$ctid" "$intel_nonfree" && updated=1
                 ;;
             nvidia)
                 msg info "Validating NVIDIA setup..."
