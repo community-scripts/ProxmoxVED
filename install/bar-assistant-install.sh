@@ -38,7 +38,7 @@ sed -i \
     -e 's|^dump_dir =.*|dump_dir = "/var/lib/meilisearch/dumps"|' \
     -e 's|^snapshot_dir =.*|snapshot_dir = "/var/lib/meilisearch/snapshots"|' \
     -e 's|^# no_analytics = true|no_analytics = true|' \
-    -e 's|^http_addr =.*|http_addr = "0.0.0.0:7700"|' \
+    -e 's|^http_addr =.*|http_addr = "127.0.0.1:7700"|' \
     /etc/meilisearch.toml
 echo "${RELEASE_MEILISEARCH}" >/opt/meilisearch_version.txt
 msg_ok "Installed MeiliSearch"
@@ -70,7 +70,8 @@ cp /opt/bar-assistant/.env.dist /opt/bar-assistant/.env
 MeiliSearch_API_KEY=$(curl -s -X GET 'http://127.0.0.1:7700/keys' -H "Authorization: Bearer $MASTER_KEY" | grep -o '"key":"[^"]*"' | head -n 1 | sed 's/"key":"//;s/"//')
 MeiliSearch_API_KEY_UID=$(curl -s -X GET 'http://127.0.0.1:7700/keys' -H "Authorization: Bearer $MASTER_KEY" | grep -o '"uid":"[^"]*"' | head -n 1 | sed 's/"uid":"//;s/"//')
 LOCAL_IP=$(hostname -I | awk '{print $1}')
-sed -i -e "s|^MEILISEARCH_HOST=|MEILISEARCH_HOST=http://${LOCAL_IP}:7700|" \
+sed -i -e "s|^APP_URL=|APP_URL=http://${LOCAL_IP}/bar/|" \
+    -e "s|^MEILISEARCH_HOST=|MEILISEARCH_HOST=http://${LOCAL_IP}/search/|" \
     -e "s|^MEILISEARCH_KEY=|MEILISEARCH_KEY=${MASTER_KEY}|" \
     -e "s|^MEILISEARCH_API_KEY=|MEILISEARCH_API_KEY=${MeiliSearch_API_KEY}|" \
     -e "s|^MEILISEARCH_API_KEY_UID=|MEILISEARCH_API_KEY_UID=${MeiliSearch_API_KEY_UID}|" \
@@ -97,8 +98,8 @@ mv /opt/vue-salt-rim-${RELEASE_SALTRIM}/ /opt/vue-salt-rim
 cd /opt/vue-salt-rim
 cat <<EOF >/opt/vue-salt-rim/public/config.js
 window.srConfig = {}
-window.srConfig.API_URL = "http://${LOCAL_IP}"
-window.srConfig.MEILISEARCH_URL = "http://${LOCAL_IP}:7700"
+window.srConfig.API_URL = "http://${LOCAL_IP}/bar/"
+window.srConfig.MEILISEARCH_URL = "http://${LOCAL_IP}/search/"
 EOF
 $STD npm install
 $STD npm run build
@@ -108,8 +109,38 @@ msg_ok "Installed Salt Rim"
 msg_info "Creating Service"
 cat <<EOF >/etc/nginx/sites-available/barassistant.conf
 server {
-    listen 80;
-    listen [::]:80;
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    client_max_body_size 100M;
+
+    location /bar/ {
+        proxy_pass http://127.0.0.1:8080/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location /search/ {
+        proxy_pass http://meilisearch:7700/;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8081/;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+
+server {
+    listen 127.0.0.1:8080;
     server_name example.com;
     root /opt/bar-assistant/public;
 
@@ -117,7 +148,6 @@ server {
     add_header X-Content-Type-Options "nosniff";
 
     index index.php;
-
     charset utf-8;
 
     location / {
@@ -140,12 +170,9 @@ server {
         deny all;
     }
 }
-EOF
 
-cat <<EOF >/etc/nginx/sites-available/saltrim.conf
 server {
-    listen 8080 default_server;
-    listen [::]:8080 default_server;
+    listen 127.0.0.1:8081;
     server_name _;
     root /opt/vue-salt-rim/dist;
 
@@ -155,7 +182,7 @@ server {
 }
 EOF
 
-ln -s /etc/nginx/sites-available/barassistant.conf /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/bar.conf /etc/nginx/sites-enabled/
 ln -s /etc/nginx/sites-available/saltrim.conf /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
