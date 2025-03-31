@@ -1090,8 +1090,14 @@ select_distribution() {
     [[ "$var_os" == "alpine" ]] && return 0
 
     local default result exitcode
-    default="${var_os}"
+    default="${var_os:-debian}"
     var_os=""
+
+    local debian_flag ubuntu_flag
+    [[ "$default" == "debian" ]] && debian_flag="on" || debian_flag="off"
+    [[ "$default" == "ubuntu" ]] && ubuntu_flag="on" || ubuntu_flag="off"
+
+    printf "DEBUG: default=%s | debian_flag=%s | ubuntu_flag=%s\n" "$default" "$debian_flag" "$ubuntu_flag"
 
     while [[ -z "$var_os" ]]; do
         exec 3>&1
@@ -1099,8 +1105,8 @@ select_distribution() {
             --backtitle "[dev] Proxmox VE Helper Scripts" \
             --title "DISTRIBUTION" \
             --radiolist "Choose Distribution:" 15 60 4 \
-            "debian" "" $([[ "$default" == "debian" ]] && printf "on" || printf "off") \
-            "ubuntu" "" $([[ "$default" == "ubuntu" ]] && printf "on" || printf "off") \
+            "debian" "" "$debian_flag" \
+            "ubuntu" "" "$ubuntu_flag" \
             --ok-label "Next" \
             --cancel-label "Exit" \
             --extra-button \
@@ -1109,18 +1115,28 @@ select_distribution() {
         exitcode=$?
         exec 3>&-
 
+        printf "DEBUG: exitcode=%s | result=%s\n" "$exitcode" "$result"
+
         case "$exitcode" in
         0)
             if [[ "$result" =~ ^(debian|ubuntu)$ ]]; then
                 var_os="$result"
                 printf "%bOperating System: %b%s%b\n" "$OS$BOLD$DGN" "$BGN" "$var_os" "$CL"
                 return 0
+            else
+                printf "DEBUG: Invalid result on OK: '%s'\n" "$result"
             fi
             ;;
         3)
+            printf "DEBUG: User pressed Back (exitcode 3)\n"
             return 2
             ;;
         1 | 255)
+            printf "DEBUG: User pressed Cancel or ESC (exitcode: %s)\n" "$exitcode"
+            return 1
+            ;;
+        *)
+            printf "DEBUG: Unknown exitcode: %s\n" "$exitcode"
             return 1
             ;;
         esac
