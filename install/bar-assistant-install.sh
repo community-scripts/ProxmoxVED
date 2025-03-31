@@ -21,7 +21,8 @@ $STD apt-get install -y \
   composer \
   redis-server \
   npm \
-  nginx
+  nginx \
+  lsb-release
 msg_ok "Installed Dependencies"
 
 msg_info "Adding PHP8.3 Repository"
