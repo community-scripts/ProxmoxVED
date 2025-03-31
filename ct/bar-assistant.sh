@@ -104,7 +104,7 @@ function update_script() {
         systemctl stop meilisearch
         msg_ok "Stopped Service"
 
-        msg_info "Updating Meilisearch to v${RELEASE_MEILISEARCH}"
+        msg_info "Updating Meilisearch to ${RELEASE_MEILISEARCH}"
         cd /opt
         RELEASE=$(curl -s https://api.github.com/repos/meilisearch/meilisearch/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
         curl -fsSL https://github.com/meilisearch/meilisearch/releases/latest/download/meilisearch.deb -o meilisearch.deb
@@ -121,7 +121,7 @@ function update_script() {
         msg_ok "Cleaned"
         msg_ok "Updated Meilisearch"
     else
-        msg_ok "No update required. Meilisearch is already at v${RELEASE_MEILISEARCH}"
+        msg_ok "No update required. Meilisearch is already at ${RELEASE_MEILISEARCH}"
     fi
     exit
 }
