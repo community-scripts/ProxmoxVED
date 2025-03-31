@@ -86,6 +86,7 @@ $STD php artisan scout:sync-index-settings
 $STD php artisan config:cache
 $STD php artisan route:cache
 $STD php artisan event:cache
+chown -R www-data:www-data /opt/bar-assistant
 echo "${RELEASE_BARASSISTANT}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Bar Assistant"
 
