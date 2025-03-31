@@ -330,14 +330,24 @@ header_info() {
 
 # This function checks if the script is running through SSH and prompts the user to confirm if they want to proceed or exit.
 ssh_check() {
-    if [ -n "${SSH_CLIENT:+x}" ]; then
-        if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's advisable to utilize the Proxmox shell rather than SSH, as there may be potential complications with variable retrieval. Proceed using SSH?" 10 72; then
-            whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Proceed using SSH" "You've chosen to proceed using SSH. If any issues arise, please run the script in the Proxmox shell before creating a repository issue." 10 72
-        else
+    if [[ -n "${SSH_CLIENT:+x}" ]]; then
+        dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+            --title "SSH DETECTED" \
+            --yesno "It's advisable to utilize the Proxmox shell rather than SSH,\nas there may be potential complications with variable retrieval.\n\nProceed using SSH?" 12 72 \
+            --ok-label "Yes" --cancel-label "No"
+
+        case $? in
+        0)
+            dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+                --title "Proceed using SSH" \
+                --msgbox "You've chosen to proceed using SSH.\n\nIf any issues arise, please run the script in the Proxmox shell before creating a repository issue." 10 72
+            ;;
+        1 | 255)
             clear
-            echo "Exiting due to SSH usage. Please consider using the Proxmox shell."
+            printf "%s\n" "Exiting due to SSH usage. Please consider using the Proxmox shell."
             exit
-        fi
+            ;;
+        esac
     fi
 }
 
