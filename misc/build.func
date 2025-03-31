@@ -1089,49 +1089,54 @@ show_intro_messages() {
 select_distribution() {
     [[ "$var_os" == "alpine" ]] && return 0
 
-    local default="${var_os}"
+    local default result exitcode
+    default="${var_os}"
     var_os=""
-    local result exitcode
 
     while [[ -z "$var_os" ]]; do
+        exec 3>&1
+
         if [[ "$default" == "debian" ]]; then
-            exec 3>&1
             result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
                 --title "DISTRIBUTION" \
                 --radiolist "Choose Distribution:" 10 58 2 \
                 "debian" "" on \
                 "ubuntu" "" off \
-                --ok-label "Next" --cancel-label "Exit" \
-                --extra-button --extra-label "Back" \
+                --ok-label "Next" \
+                --cancel-label "Exit" \
+                --extra-button \
+                --extra-label "Back" \
                 2>&1 1>&3)
-            exitcode=$?
-            exec 3>&-
         else
-            exec 3>&1
-            result=$(dialog \
-                --backtitle "[dev] Proxmox VE Helper Scripts" \
+            result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
                 --title "DISTRIBUTION" \
                 --radiolist "Choose Distribution:" 10 58 2 \
                 "debian" "" off \
                 "ubuntu" "" on \
                 --ok-label "Next" \
                 --cancel-label "Exit" \
-                --extra-button --extra-label "Back" \
+                --extra-button \
+                --extra-label "Back" \
                 2>&1 1>&3)
-            exitcode=$?
-            exec 3>&-
         fi
 
         exitcode=$?
+        exec 3>&-
 
-        case $exitcode in
+        case "$exitcode" in
         0)
-            var_os="$result"
-            printf "%bOperating System: %b%s%b\n" "$OS$BOLD$DGN" "$BGN" "$var_os" "$CL"
-            return 0
+            if [[ -n "$result" && "$result" =~ ^(debian|ubuntu)$ ]]; then
+                var_os="$result"
+                printf "%bOperating System: %b%s%b\n" "$OS$BOLD$DGN" "$BGN" "$var_os" "$CL"
+                return 0
+            fi
             ;;
-        3) return 2 ;;
-        *) return 1 ;;
+        3)
+            return 2
+            ;;
+        1 | 255)
+            return 1
+            ;;
         esac
     done
 }
