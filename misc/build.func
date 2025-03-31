@@ -1100,14 +1100,14 @@ select_distribution() {
                 --radiolist "Choose Distribution:" 10 58 2 \
                 "debian" "" on \
                 "ubuntu" "" off \
-                --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+                --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
         else
             result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
                 --title "DISTRIBUTION" \
                 --radiolist "Choose Distribution:" 10 58 2 \
                 "debian" "" off \
                 "ubuntu" "" on \
-                --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+                --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
         fi
 
         exitcode=$?
@@ -1148,7 +1148,7 @@ select_version() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "VERSION" \
         --radiolist "Choose Version:" 15 58 5 "${list[@]}" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
 
     exitcode=$?
 
@@ -1173,7 +1173,7 @@ select_container_type() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "CONTAINER TYPE" \
         --radiolist "Choose Type:" 10 58 2 "${list[@]}" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
 
     exitcode=$?
 
@@ -1195,7 +1195,7 @@ set_root_password() {
         pw1=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
             --title "PASSWORD (leave blank for automatic login)" \
             --insecure --passwordbox "\nSet Root Password (needed for root ssh access)" 10 58 \
-            --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+            --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
         exitcode=$?
 
         case $exitcode in
@@ -1217,7 +1217,7 @@ set_root_password() {
             pw2=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
                 --title "PASSWORD VERIFICATION" \
                 --insecure --passwordbox "\nVerify Root Password" 10 58 \
-                --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+                --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
             exitcode=$?
             case $exitcode in
             0)
@@ -1245,7 +1245,7 @@ set_container_id() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "CONTAINER ID" \
         --inputbox "Set Container ID" 8 58 "$NEXTID" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1264,7 +1264,7 @@ set_hostname() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "HOSTNAME" \
         --inputbox "Set Hostname" 8 58 "$NSAPP" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1287,7 +1287,7 @@ set_disk_size() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "DISK SIZE" \
         --inputbox "Set Disk Size in GB" 8 58 "$var_disk" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1313,7 +1313,7 @@ set_cpu_cores() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "CORE COUNT" \
         --inputbox "Allocate CPU Cores" 8 58 "$var_cpu" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1332,7 +1332,7 @@ set_ram_size() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "RAM" \
         --inputbox "Allocate RAM in MiB" 8 58 "$var_ram" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1351,7 +1351,7 @@ set_bridge() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "BRIDGE" \
         --inputbox "Set a Bridge" 8 58 "vmbr0" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1371,7 +1371,7 @@ set_ip_address() {
         result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
             --title "IP ADDRESS" \
             --inputbox "Set a Static IPv4 CIDR Address (/24)" 8 58 "dhcp" \
-            --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+            --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
         exitcode=$?
 
         case $exitcode in
@@ -1407,7 +1407,7 @@ set_gateway() {
         result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
             --title "Gateway IP" \
             --inputbox "Enter gateway IP address" 8 58 \
-            --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+            --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
         exitcode=$?
 
         case $exitcode in
@@ -1440,7 +1440,7 @@ set_apt_cacher() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "APT-Cacher IP" \
         --inputbox "Set APT-Cacher IP (leave blank for none)" 8 58 \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1474,7 +1474,7 @@ set_mtu() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "MTU SIZE" \
         --inputbox "Set Interface MTU Size (leave blank for default [1500])" 8 58 "" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1499,7 +1499,7 @@ set_dns_search_domain() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "DNS Search Domain" \
         --inputbox "Set a DNS Search Domain (leave blank for HOST)" 8 58 "" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1524,7 +1524,7 @@ set_dns_server() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "DNS SERVER IP" \
         --inputbox "Set a DNS Server IP (leave blank for HOST)" 8 58 "" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1549,7 +1549,7 @@ set_mac_address() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "MAC ADDRESS" \
         --inputbox "Set a MAC Address (leave blank for generated MAC)" 8 58 "" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1574,7 +1574,7 @@ set_vlan() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "VLAN" \
         --inputbox "Set a VLAN (leave blank for no VLAN)" 8 58 "" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1599,7 +1599,7 @@ set_tags() {
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "Advanced Tags" \
         --inputbox "Set Custom Tags? [If you remove all, there will be no tags!]" 8 58 "$TAGS" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
     exitcode=$?
 
     case $exitcode in
@@ -1643,7 +1643,7 @@ set_ssh_access() {
         result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
             --title "SSH Key" \
             --inputbox "SSH Authorized key for root (leave empty for none)" 8 58 "" \
-            --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 2>&1 >/dev/tty)
+            --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
         exitcode=$?
         case $exitcode in
         0)
