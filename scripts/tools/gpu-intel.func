@@ -64,7 +64,7 @@ function install_intel_tools_in_ct() {
     read -rp "Install non-free intel-media-va-driver (Debian only)? [y/N]: " confirm
     if [[ "${confirm,,}" =~ ^(y|yes)$ ]]; then
         msg info "Enabling non-free sources in $ctid..."
-        pct exec "$ctid" -- tee /etc/apt/sources.list.d/non-free.list >/dev/null <<EOF
+        pct exec "$ctid" -- bash -c "tee /etc/apt/sources.list.d/non-free.list >/dev/null" <<'EOF'
 deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
