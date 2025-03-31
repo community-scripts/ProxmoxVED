@@ -30,7 +30,7 @@ function update_script() {
         exit
     fi
     RELEASE_MEILISEARCH=$(curl -s https://api.github.com/repos/meilisearch/meilisearch/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-    RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/benjaminjonard/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+    RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
     RELEASE_SALTRIM=$(curl -s https://api.github.com/repos/karlomikus/vue-salt-rim/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 
     if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE_BARASSISTANT}" != "$(cat /opt/${APP}_version.txt)" ]]; then
