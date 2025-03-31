@@ -182,8 +182,7 @@ server {
 }
 EOF
 
-ln -s /etc/nginx/sites-available/bar.conf /etc/nginx/sites-enabled/
-ln -s /etc/nginx/sites-available/saltrim.conf /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/barassistant.conf /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
 msg_ok "Created Service"
