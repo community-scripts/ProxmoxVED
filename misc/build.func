@@ -1105,9 +1105,13 @@ select_distribution() {
             result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
                 --title "DISTRIBUTION" \
                 --radiolist "Choose Distribution:" 10 58 2 \
-                "debian" "" off \
-                "ubuntu" "" on \
-                --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+                "debian" "" on \
+                "ubuntu" "" off \
+                --ok-label "Next" \
+                --cancel-label "Exit" \
+                --extra-button --extra-label "Back" \
+                3>&1 1>&2 2>&3)
+
         fi
 
         exitcode=$?
@@ -1147,8 +1151,12 @@ select_version() {
 
     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "VERSION" \
-        --radiolist "Choose Version:" 15 58 5 "${list[@]}" \
-        --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+        --radiolist "Choose Version:" 15 58 5 \
+        "${list[@]}" \
+        --ok-label "Next" \
+        --cancel-label "Exit" \
+        --extra-button --extra-label "Back" \
+        3>&1 1>&2 2>&3)
 
     exitcode=$?
 
