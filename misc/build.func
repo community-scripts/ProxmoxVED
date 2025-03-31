@@ -862,67 +862,142 @@ exit_script() {
 # }
 
 advanced_settings() {
-    show_intro_messages
-    select_distribution || return
-    select_version || return
-    select_container_type || return
-    set_root_password || return
-    set_container_id || return
-    set_hostname || return
-    set_disk_size || return
-    set_cpu_cores || return
-    set_ram_size || return
-    set_bridge || return
-    set_ip_address || return
-    set_gateway || return
-    set_apt_cacher || return
-    toggle_ipv6 || return
-    set_mtu || return
-    set_dns_search_domain || return
-    set_dns_server || return
-    set_mac_address || return
-    set_vlan || return
-    set_tags || return
-    set_ssh_access || return
-    set_fuse || return
-    set_verbose || return
-    confirm_creation || return
+    local step=1
+
+    while true; do
+        case $step in
+        1)
+            show_intro_messages || return
+            ((step++))
+            ;;
+        2)
+            select_distribution && ((step++)) || ((step--))
+            ;;
+        3)
+            select_version && ((step++)) || ((step--))
+            ;;
+        4)
+            select_container_type && ((step++)) || ((step--))
+            ;;
+        5)
+            set_root_password && ((step++)) || ((step--))
+            ;;
+        6)
+            set_container_id && ((step++)) || ((step--))
+            ;;
+        7)
+            set_hostname && ((step++)) || ((step--))
+            ;;
+        8)
+            set_disk_size && ((step++)) || ((step--))
+            ;;
+        9)
+            set_cpu_cores && ((step++)) || ((step--))
+            ;;
+        10)
+            set_ram_size && ((step++)) || ((step--))
+            ;;
+        11)
+            set_bridge && ((step++)) || ((step--))
+            ;;
+        12)
+            set_ip_address && ((step++)) || ((step--))
+            ;;
+        13)
+            set_gateway && ((step++)) || ((step--))
+            ;;
+        14)
+            set_apt_cacher && ((step++)) || ((step--))
+            ;;
+        15)
+            toggle_ipv6 && ((step++)) || ((step--))
+            ;;
+        16)
+            set_mtu && ((step++)) || ((step--))
+            ;;
+        17)
+            set_dns_search_domain && ((step++)) || ((step--))
+            ;;
+        18)
+            set_dns_server && ((step++)) || ((step--))
+            ;;
+        19)
+            set_mac_address && ((step++)) || ((step--))
+            ;;
+        20)
+            set_vlan && ((step++)) || ((step--))
+            ;;
+        21)
+            set_tags && ((step++)) || ((step--))
+            ;;
+        22)
+            set_ssh_access && ((step++)) || ((step--))
+            ;;
+        23)
+            set_fuse && ((step++)) || ((step--))
+            ;;
+        24)
+            set_verbose && ((step++)) || ((step--))
+            ;;
+        25)
+            confirm_creation && break || ((step--))
+            ;;
+        *)
+            break
+            ;;
+        esac
+    done
 }
 
 show_intro_messages() {
-    whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar." 8 58
-    whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Default distribution for $APP" "Default is: ${var_os} ${var_version} \n\nIf the default Linux distribution is not adhered to, script support will be discontinued." 10 58
+    whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --msgbox --title "Here is an instructional tip:" \
+        "To make a selection, use the Spacebar." 8 58 || return 1
+
+    whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --msgbox --title "Default distribution for $APP" \
+        "Default is: ${var_os} ${var_version} \n\nIf the default Linux distribution is not adhered to, script support will be discontinued." 10 58 || return 1
 }
 
 select_distribution() {
     if [[ "$var_os" == "alpine" ]]; then
-        return
+        return 0
     fi
     local default="${var_os}"
     var_os=""
+    local selection
+
     while [[ -z "$var_os" ]]; do
-        case "$default" in
-        debian)
-            var_os=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DISTRIBUTION" --radiolist "Choose Distribution" 10 58 2 \
-                "debian" "" ON "ubuntu" "" OFF 3>&1 1>&2 2>&3) || return 1
-            ;;
-        ubuntu)
-            var_os=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DISTRIBUTION" --radiolist "Choose Distribution" 10 58 2 \
-                "debian" "" OFF "ubuntu" "" ON 3>&1 1>&2 2>&3) || return 1
-            ;;
-        esac
+        if [[ "$default" == "debian" ]]; then
+            selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+                --title "DISTRIBUTION" --radiolist "Choose Distribution" 10 58 2 \
+                "debian" "" ON \
+                "ubuntu" "" OFF 3>&1 1>&2 2>&3) || return 1
+        else
+            selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+                --title "DISTRIBUTION" --radiolist "Choose Distribution" 10 58 2 \
+                "debian" "" OFF \
+                "ubuntu" "" ON 3>&1 1>&2 2>&3) || return 1
+        fi
+
+        if [[ -n "$selection" ]]; then
+            var_os="$selection"
+            printf "%bOperating System: %b%s%b\n" "$OS$BOLD$DGN" "$BGN" "$var_os" "$CL"
+        fi
     done
-    printf "%bOperating System: %b%s%b\n" "$OS$BOLD$DGN" "$BGN" "$var_os" "$CL"
 }
 
 select_version() {
     local default="${var_version}"
     var_version=""
     local list=""
+    local selection
+
     if [[ "$var_os" == "debian" ]]; then
         case "$default" in
         11) list="11 Bullseye ON 12 Bookworm OFF" ;;
         12) list="11 Bullseye OFF 12 Bookworm ON" ;;
+        *) list="11 Bullseye OFF 12 Bookworm OFF" ;;
         esac
     elif [[ "$var_os" == "ubuntu" ]]; then
         case "$default" in
@@ -930,97 +1005,155 @@ select_version() {
         22.04) list="20.04 Focal OFF 22.04 Jammy ON 24.04 Noble OFF 24.10 Oracular OFF" ;;
         24.04) list="20.04 Focal OFF 22.04 Jammy OFF 24.04 Noble ON 24.10 Oracular OFF" ;;
         24.10) list="20.04 Focal OFF 22.04 Jammy OFF 24.04 Noble OFF 24.10 Oracular ON" ;;
+        *) list="20.04 Focal OFF 22.04 Jammy OFF 24.04 Noble OFF 24.10 Oracular OFF" ;;
         esac
     fi
+
     while [[ -z "$var_version" ]]; do
-        var_version=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "VERSION" --radiolist "Choose Version" 12 58 4 $list 3>&1 1>&2 2>&3) || return 1
+        selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+            --title "VERSION" --radiolist "Choose Version" 12 58 4 $list 3>&1 1>&2 2>&3) || return 1
+        if [[ -n "$selection" ]]; then
+            var_version="$selection"
+            printf "%bVersion: %b%s%b\n" "$OSVERSION$BOLD$DGN" "$BGN" "$var_version" "$CL"
+        fi
     done
-    printf "%bVersion: %b%s%b\n" "$OSVERSION$BOLD$DGN" "$BGN" "$var_version" "$CL"
 }
 
 select_container_type() {
     local default="${CT_TYPE}"
     CT_TYPE=""
     local list=""
+    local selection
+
     [[ "$default" == "1" ]] && list="1 Unprivileged ON 0 Privileged OFF" || list="1 Unprivileged OFF 0 Privileged ON"
+
     while [[ -z "$CT_TYPE" ]]; do
-        CT_TYPE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "CONTAINER TYPE" --radiolist "Choose Type" 10 58 2 $list 3>&1 1>&2 2>&3) || return 1
+        selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+            --title "CONTAINER TYPE" --radiolist "Choose Type" 10 58 2 $list 3>&1 1>&2 2>&3) || return 1
+        if [[ -n "$selection" ]]; then
+            CT_TYPE="$selection"
+            local desc="Unprivileged"
+            [[ "$CT_TYPE" == "0" ]] && desc="Privileged"
+            printf "%bContainer Type: %b%s%b\n" "$CONTAINERTYPE$BOLD$DGN" "$BGN" "$desc" "$CL"
+        fi
     done
-    local desc="Unprivileged"
-    [[ "$CT_TYPE" == "0" ]] && desc="Privileged"
-    printf "%bContainer Type: %b%s%b\n" "$CONTAINERTYPE$BOLD$DGN" "$BGN" "$desc" "$CL"
 }
 
 set_root_password() {
     local pw1
     local pw2
+
     while true; do
-        pw1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --passwordbox "\nSet Root Password (needed for root ssh access)" 9 58 --title "PASSWORD (leave blank for automatic login)" 3>&1 1>&2 2>&3) || return 1
+        pw1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+            --passwordbox "\nSet Root Password (needed for root ssh access)" 9 58 \
+            --title "PASSWORD (leave blank for automatic login)" 3>&1 1>&2 2>&3) || return 1
+
         if [[ -z "$pw1" ]]; then
             PW1="Automatic Login"
             PW=""
-            break
-        elif [[ "$pw1" =~ \  ]]; then
+            printf "%bRoot Password: %b%s%b\n" "$VERIFYPW$BOLD$DGN" "$BGN" "$PW1" "$CL"
+            return 0
+        fi
+
+        if [[ "$pw1" == *" "* ]]; then
             whiptail --msgbox "Password cannot contain spaces. Please try again." 8 58
-        elif [[ ${#pw1} -lt 5 ]]; then
+            continue
+        fi
+
+        if [[ ${#pw1} -lt 5 ]]; then
             whiptail --msgbox "Password must be at least 5 characters long. Please try again." 8 58
+            continue
+        fi
+
+        pw2=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+            --passwordbox "\nVerify Root Password" 9 58 \
+            --title "PASSWORD VERIFICATION" 3>&1 1>&2 2>&3) || return 1
+
+        if [[ "$pw1" == "$pw2" ]]; then
+            PW="-password $pw1"
+            printf "%bRoot Password: %b********%b\n" "$VERIFYPW$BOLD$DGN" "$BGN" "$CL"
+            return 0
         else
-            pw2=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --passwordbox "\nVerify Root Password" 9 58 --title "PASSWORD VERIFICATION" 3>&1 1>&2 2>&3) || return 1
-            [[ "$pw1" == "$pw2" ]] && {
-                PW="-password $pw1"
-                break
-            } || whiptail --msgbox "Passwords do not match. Please try again." 8 58
+            whiptail --msgbox "Passwords do not match. Please try again." 8 58
         fi
     done
-    printf "%bRoot Password: %b********%b\n" "$VERIFYPW$BOLD$DGN" "$BGN" "$CL"
 }
-
 set_container_id() {
-    CT_ID=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Container ID" 8 58 "$NEXTID" --title "CONTAINER ID" 3>&1 1>&2 2>&3) || return 1
+    CT_ID=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set Container ID" 8 58 "$NEXTID" --title "CONTAINER ID" 3>&1 1>&2 2>&3) || return 1
+
     [[ -z "$CT_ID" ]] && CT_ID="$NEXTID"
     printf "%bContainer ID: %b%s%b\n" "$CONTAINERID$BOLD$DGN" "$BGN" "$CT_ID" "$CL"
 }
 
 set_hostname() {
-    local ct_name
-    ct_name=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 "$NSAPP" --title "HOSTNAME" 3>&1 1>&2 2>&3) || return 1
-    [[ -z "$ct_name" ]] && HN="$NSAPP" || HN=$(tr -d ' ' <<<"${ct_name,,}")
+    local input
+    input=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set Hostname" 8 58 "$NSAPP" --title "HOSTNAME" 3>&1 1>&2 2>&3) || return 1
+
+    if [[ -z "$input" ]]; then
+        HN="$NSAPP"
+    else
+        HN=$(tr -d ' ' <<<"${input,,}")
+    fi
+
     printf "%bHostname: %b%s%b\n" "$HOSTNAME$BOLD$DGN" "$BGN" "$HN" "$CL"
 }
 
 set_disk_size() {
-    DISK_SIZE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GB" 8 58 "$var_disk" --title "DISK SIZE" 3>&1 1>&2 2>&3) || return 1
-    [[ -z "$DISK_SIZE" ]] && DISK_SIZE="$var_disk"
-    [[ ! "$DISK_SIZE" =~ ^[0-9]+$ ]] && printf "%b DISK SIZE MUST BE AN INTEGER NUMBER!%b\n" "$INFO$HOLD$RD" "$CL" && return 1
+    local input
+    input=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set Disk Size in GB" 8 58 "$var_disk" --title "DISK SIZE" 3>&1 1>&2 2>&3) || return 1
+
+    if [[ -z "$input" ]]; then
+        DISK_SIZE="$var_disk"
+    elif [[ "$input" =~ ^[0-9]+$ ]]; then
+        DISK_SIZE="$input"
+    else
+        whiptail --msgbox "Disk size must be an integer!" 8 58
+        return 1
+    fi
+
     printf "%bDisk Size: %b%s GB%b\n" "$DISKSIZE$BOLD$DGN" "$BGN" "$DISK_SIZE" "$CL"
 }
 
 set_cpu_cores() {
-    CORE_COUNT=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 "$var_cpu" --title "CORE COUNT" 3>&1 1>&2 2>&3) || return 1
-    [[ -z "$CORE_COUNT" ]] && CORE_COUNT="$var_cpu"
+    local input
+    input=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Allocate CPU Cores" 8 58 "$var_cpu" --title "CORE COUNT" 3>&1 1>&2 2>&3) || return 1
+
+    [[ -z "$input" ]] && CORE_COUNT="$var_cpu" || CORE_COUNT="$input"
     printf "%bCPU Cores: %b%s%b\n" "$CPUCORE$BOLD$DGN" "$BGN" "$CORE_COUNT" "$CL"
 }
 
 set_ram_size() {
-    RAM_SIZE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 "$var_ram" --title "RAM" 3>&1 1>&2 2>&3) || return 1
-    [[ -z "$RAM_SIZE" ]] && RAM_SIZE="$var_ram"
+    local input
+    input=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Allocate RAM in MiB" 8 58 "$var_ram" --title "RAM" 3>&1 1>&2 2>&3) || return 1
+
+    [[ -z "$input" ]] && RAM_SIZE="$var_ram" || RAM_SIZE="$input"
     printf "%bRAM Size: %b%s MiB%b\n" "$RAMSIZE$BOLD$DGN" "$BGN" "$RAM_SIZE" "$CL"
 }
 
 set_bridge() {
-    BRG=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 "vmbr0" --title "BRIDGE" 3>&1 1>&2 2>&3) || return 1
+    BRG=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set a Bridge" 8 58 "vmbr0" --title "BRIDGE" 3>&1 1>&2 2>&3) || return 1
+
     [[ -z "$BRG" ]] && BRG="vmbr0"
     printf "%bBridge: %b%s%b\n" "$BRIDGE$BOLD$DGN" "$BGN" "$BRG" "$CL"
 }
+
 set_ip_address() {
     while true; do
-        NET=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set a Static IPv4 CIDR Address (/24)" 8 58 dhcp --title "IP ADDRESS" 3>&1 1>&2 2>&3) || return 1
+        NET=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+            --inputbox "Set a Static IPv4 CIDR Address (/24)" 8 58 "dhcp" --title "IP ADDRESS" 3>&1 1>&2 2>&3) || return 1
+
         if [[ "$NET" == "dhcp" ]]; then
             printf "%bIP Address: %b%s%b\n" "$NETWORK$BOLD$DGN" "$BGN" "$NET" "$CL"
-            return
+            return 0
         elif [[ "$NET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[1-2][0-9]|3[0-2])$ ]]; then
             printf "%bIP Address: %b%s%b\n" "$NETWORK$BOLD$DGN" "$BGN" "$NET" "$CL"
-            return
+            return 0
         else
             whiptail --msgbox "$NET is an invalid IPv4 CIDR address. Please enter a valid IPv4 CIDR address or 'dhcp'" 8 58
         fi
@@ -1031,35 +1164,41 @@ set_gateway() {
     if [[ "$NET" == "dhcp" ]]; then
         GATE=""
         printf "%bGateway IP Address: %bDefault%b\n" "$GATEWAY$BOLD$DGN" "$BGN" "$CL"
-        return
+        return 0
     fi
+
     while true; do
-        GATE1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Enter gateway IP address" 8 58 --title "Gateway IP" 3>&1 1>&2 2>&3)
+        GATE1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+            --inputbox "Enter gateway IP address" 8 58 --title "Gateway IP" 3>&1 1>&2 2>&3) || return 1
+
         if [[ -z "$GATE1" ]]; then
             whiptail --msgbox "Gateway IP address cannot be empty" 8 58
         elif [[ "$GATE1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
             GATE=",gw=$GATE1"
             printf "%bGateway IP Address: %b%s%b\n" "$GATEWAY$BOLD$DGN" "$BGN" "$GATE1" "$CL"
-            return
+            return 0
         else
             whiptail --msgbox "Invalid IP address format" 8 58
         fi
     done
 }
-
 set_apt_cacher() {
     if [[ "$var_os" == "alpine" ]]; then
         APT_CACHER=""
         APT_CACHER_IP=""
-        return
+        return 0
     fi
-    APT_CACHER_IP=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set APT-Cacher IP (leave blank for none)" 8 58 --title "APT-Cacher IP" 3>&1 1>&2 2>&3) || return 1
+
+    APT_CACHER_IP=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set APT-Cacher IP (leave blank for none)" 8 58 --title "APT-Cacher IP" 3>&1 1>&2 2>&3) || return 1
+
     APT_CACHER="${APT_CACHER_IP:+yes}"
     printf "%bAPT-Cacher IP Address: %b%s%b\n" "$NETWORK$BOLD$DGN" "$BGN" "${APT_CACHER_IP:-Default}" "$CL"
 }
 
 toggle_ipv6() {
-    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "IPv6" --yesno "Disable IPv6?" 10 58; then
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --defaultno --title "IPv6" --yesno "Disable IPv6?" 10 58; then
         DISABLEIP6="yes"
     else
         DISABLEIP6="no"
@@ -1068,7 +1207,9 @@ toggle_ipv6() {
 }
 
 set_mtu() {
-    MTU1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default [1500])" 8 58 --title "MTU SIZE" 3>&1 1>&2 2>&3) || return 1
+    MTU1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set Interface MTU Size (leave blank for default [1500])" 8 58 --title "MTU SIZE" 3>&1 1>&2 2>&3) || return 1
+
     if [[ -z "$MTU1" ]]; then
         MTU1="Default"
         MTU=""
@@ -1079,7 +1220,9 @@ set_mtu() {
 }
 
 set_dns_search_domain() {
-    SD=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set a DNS Search Domain (leave blank for HOST)" 8 58 --title "DNS Search Domain" 3>&1 1>&2 2>&3) || return 1
+    SD=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set a DNS Search Domain (leave blank for HOST)" 8 58 --title "DNS Search Domain" 3>&1 1>&2 2>&3) || return 1
+
     if [[ -z "$SD" ]]; then
         SX="Host"
         SD=""
@@ -1091,7 +1234,9 @@ set_dns_search_domain() {
 }
 
 set_dns_server() {
-    NX=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set a DNS Server IP (leave blank for HOST)" 8 58 --title "DNS SERVER IP" 3>&1 1>&2 2>&3) || return 1
+    NX=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set a DNS Server IP (leave blank for HOST)" 8 58 --title "DNS SERVER IP" 3>&1 1>&2 2>&3) || return 1
+
     if [[ -z "$NX" ]]; then
         NX="Host"
         NS=""
@@ -1102,7 +1247,9 @@ set_dns_server() {
 }
 
 set_mac_address() {
-    MAC1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set a MAC Address(leave blank for generated MAC)" 8 58 --title "MAC ADDRESS" 3>&1 1>&2 2>&3) || return 1
+    MAC1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set a MAC Address (leave blank for generated MAC)" 8 58 --title "MAC ADDRESS" 3>&1 1>&2 2>&3) || return 1
+
     if [[ -z "$MAC1" ]]; then
         MAC1="Default"
         MAC=""
@@ -1113,7 +1260,9 @@ set_mac_address() {
 }
 
 set_vlan() {
-    VLAN1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for no VLAN)" 8 58 --title "VLAN" 3>&1 1>&2 2>&3) || return 1
+    VLAN1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set a Vlan (leave blank for no VLAN)" 8 58 --title "VLAN" 3>&1 1>&2 2>&3) || return 1
+
     if [[ -z "$VLAN1" ]]; then
         VLAN1="Default"
         VLAN=""
@@ -1124,7 +1273,9 @@ set_vlan() {
 }
 
 set_tags() {
-    ADV_TAGS=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Custom Tags?[If you remove all, there will be no tags!]" 8 58 "${TAGS}" --title "Advanced Tags" 3>&1 1>&2 2>&3) || return 1
+    ADV_TAGS=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --inputbox "Set Custom Tags? [If you remove all, there will be no tags!]" 8 58 "${TAGS}" --title "Advanced Tags" 3>&1 1>&2 2>&3) || return 1
+
     if [[ -n "$ADV_TAGS" ]]; then
         ADV_TAGS=$(tr -d '[:space:]' <<<"$ADV_TAGS")
         TAGS="$ADV_TAGS"
@@ -1136,7 +1287,8 @@ set_tags() {
 
 set_ssh_access() {
     if [[ "$PW" == -password* ]]; then
-        if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable Root SSH Access?" 10 58; then
+        if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+            --defaultno --title "SSH ACCESS" --yesno "Enable Root SSH Access?" 10 58; then
             SSH="yes"
         else
             SSH="no"
@@ -1144,10 +1296,12 @@ set_ssh_access() {
     else
         SSH="no"
     fi
+
     printf "%bRoot SSH Access: %b%s%b\n" "$ROOTSSH$BOLD$DGN" "$BGN" "$SSH" "$CL"
 
     if [[ "$SSH" == "yes" ]]; then
-        SSH_AUTHORIZED_KEY=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "SSH Authorized key for root (leave empty for none)" 8 58 --title "SSH Key" 3>&1 1>&2 2>&3)
+        SSH_AUTHORIZED_KEY=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+            --inputbox "SSH Authorized key for root (leave empty for none)" 8 58 --title "SSH Key" 3>&1 1>&2 2>&3)
         [[ -z "$SSH_AUTHORIZED_KEY" ]] && printf "Warning: No SSH key provided.\n"
     else
         SSH_AUTHORIZED_KEY=""
@@ -1155,7 +1309,8 @@ set_ssh_access() {
 }
 
 set_fuse() {
-    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58; then
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --defaultno --title "FUSE Support" --yesno "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58; then
         ENABLE_FUSE="yes"
     else
         ENABLE_FUSE="no"
@@ -1164,7 +1319,8 @@ set_fuse() {
 }
 
 set_verbose() {
-    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58; then
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58; then
         VERB="yes"
     else
         VERB="no"
@@ -1173,14 +1329,15 @@ set_verbose() {
 }
 
 confirm_creation() {
-    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create ${APP} LXC?" 10 58; then
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create ${APP} LXC?" 10 58; then
         printf "%bCreating a %s LXC using the above advanced settings%b\n" "$CREATING$BOLD$RD" "$APP" "$CL"
         return 0
     else
         clear
         header_info
         printf "%bUsing Advanced Settings on node %s%b\n" "$ADVANCED$BOLD$RD" "$PVEHOST_NAME" "$CL"
-        advanced_settings
+        return 1
     fi
 }
 
