@@ -17,7 +17,6 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  php-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm} \
   composer \
   redis-server \
   npm \
