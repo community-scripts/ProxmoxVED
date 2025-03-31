@@ -125,10 +125,10 @@ function main() {
                 minor=$(nvidia_select_gpu_minor)
                 nvidia_lxc_passthrough "$ctid" "$minor" && updated=1
                 ;;
-            # amd)
-            #     msg info "Applying AMD passthrough to CT $ctid..."
-            #     passthrough_amd_to_lxc "$ctid" && install_amd_tools_in_ct "$ctid" && updated=1
-            #     ;;
+            amd)
+                msg info "Applying AMD passthrough to CT $ctid..."
+                passthrough_amd_to_lxc "$ctid" && install_amd_tools_in_ct "$ctid" && updated=1
+                ;;
             esac
         done
 
