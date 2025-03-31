@@ -8,6 +8,8 @@ set -euo pipefail
 
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf $TEMP_DIR' EXIT
+declare -a SELECTED_FEATURES
+declare -a updated_cts
 
 source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/scripts/tools/gpu-intel.func)
 source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/scripts/tools/gpu-nvidia.func)
