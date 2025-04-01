@@ -13,93 +13,28 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apk add \
-    newt \
-    curl \
-    openssh \
-    sudo \
-    nano \
-    mc \
-    gpg
-
-msg_ok "Installed Dependencies"
-
-msg_info "Installing PostgreSQL and Dependencies"
-$STD apk add --no-cache postgresql17 postgresql17-contrib
+msg_info "Installing PostgreSQL"
+$STD apk add --no-cache postgresql16 postgresql16-contrib postgresql16-openrc
 msg_ok "Installed PostgreSQL"
 
-msg_info "Initializing PostgreSQL Database"
-mkdir -p /var/lib/postgresql/17
-chown postgres:postgres /var/lib/postgresql/17
-sudo -u postgres initdb -D /var/lib/postgresql/17 --auth-local=md5 --auth-host=md5 --pwfile=<(printf "postgres")
-msg_ok "Initialized PostgreSQL Database"
-
-msg_info "Creating PostgreSQL Service"
-service_path="/etc/init.d/postgresql"
-
-echo '#!/sbin/openrc-run
-description="PostgreSQL Database Server"
-
-command="/usr/bin/postgres"
-command_args="-D /var/lib/postgresql/17"
-command_user="postgres"
-pidfile="/var/run/postgresql.pid"
-
-depend() {
-    use net
-}' >$service_path
-
-chmod +x $service_path
+msg_info "Enabling PostgreSQL Service"
 rc-update add postgresql default
-msg_ok "Created PostgreSQL Service"
-
-msg_info "Configuring PostgreSQL"
-mkdir -p /var/lib/postgresql/17/conf.d
-
-cat <<EOF >/var/lib/postgresql/17/pg_hba.conf
-local   all             postgres                                peer
-local   all             all                                     md5
-host    all             all             127.0.0.1/32            scram-sha-256
-host    all             all             0.0.0.0/24              md5
-host    all             all             ::1/128                 scram-sha-256
-host    all             all             0.0.0.0/0               md5
-local   replication     all                                     peer
-host    replication     all             127.0.0.1/32            scram-sha-256
-host    replication     all             ::1/128                 scram-sha-256
-EOF
-
-cat <<EOF >/var/lib/postgresql/17/postgresql.conf
-data_directory = '/var/lib/postgresql/17'
-hba_file = '/var/lib/postgresql/17/pg_hba.conf'
-ident_file = '/var/lib/postgresql/17/pg_ident.conf'
-external_pid_file = '/var/run/postgresql.pid'
-listen_addresses = '*'
-port = 5432
-max_connections = 100
-unix_socket_directories = '/var/run/postgresql'
-ssl = off
-shared_buffers = 128MB
-dynamic_shared_memory_type = posix
-max_wal_size = 1GB
-min_wal_size = 80MB
-log_line_prefix = '%m [%p] %q%u@%d '
-log_timezone = 'Etc/UTC'
-cluster_name = 'alpine_pg'
-datestyle = 'iso, mdy'
-timezone = 'Etc/UTC'
-lc_messages = 'C'
-lc_monetary = 'C'
-lc_numeric = 'C'
-lc_time = 'C'
-default_text_search_config = 'pg_catalog.english'
-include_dir = 'conf.d'
-EOF
-msg_ok "Configured PostgreSQL"
+msg_ok "Enabled PostgreSQL Service"
 
 msg_info "Starting PostgreSQL"
-service postgresql start
+rc-service postgresql start
 msg_ok "Started PostgreSQL"
+
+msg_info "Configuring PostgreSQL for External Access"
+conf_file="/etc/postgresql16/postgresql.conf"
+hba_file="/etc/postgresql16/pg_hba.conf"
+
+sed -i 's/^#listen_addresses =.*/listen_addresses = '\''*'\''/' "$conf_file"
+
+sed -i '/^host\s\+all\s\+all\s\+127.0.0.1\/32\s\+md5/ s/.*/host all all 0.0.0.0\/0 md5/' "$hba_file"
+
+rc-service postgresql restart
+msg_ok "Configured and Restarted PostgreSQL"
 
 read -p "Do you want to install Adminer with Lighttpd? (y/N): " install_adminer
 if [[ "$install_adminer" =~ ^[Yy]$ ]]; then
@@ -121,7 +56,7 @@ if [[ "$install_adminer" =~ ^[Yy]$ ]]; then
 )
 
 server.document-root = "/var/www/adminer"
-server.port = 8080
+server.port = 9000
 server.bind = "0.0.0.0"
 index-file.names = ("index.php")
 
