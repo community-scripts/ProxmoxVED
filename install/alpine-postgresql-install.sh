@@ -119,7 +119,7 @@ if [[ "$install_adminer" =~ ^[Yy]$ ]]; then
 )
 
 server.document-root = "/var/www/adminer"
-server.port = 8080
+server.port = 9000
 server.bind = "0.0.0.0"
 index-file.names = ("index.php")
 
