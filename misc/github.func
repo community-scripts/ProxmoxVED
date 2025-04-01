@@ -1,4 +1,5 @@
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+
 get_gh_release() {
   set -Eeuo pipefail
   trap 'echo -e "\n❌ [get_gh_release] Error on line $LINENO: $BASH_COMMAND"' ERR
@@ -10,6 +11,8 @@ get_gh_release() {
   local attempt=0
   local max_attempts=3
   local api_response tag
+
+  echo "🔍 Checking latest release for: $repo"
 
   [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
@@ -45,7 +48,10 @@ get_gh_release() {
     msg_ok "Found release: $tag for $repo"
 
     local version_file="/opt/${app}_version.txt"
-    [[ ! -f "$version_file" ]] && echo "$tag" >"$version_file"
+    if [[ ! -f "$version_file" ]]; then
+      echo "$tag" >"$version_file"
+      echo "📝 Saved version info to $version_file"
+    fi
 
     echo "$tag"
     return 0
@@ -67,13 +73,14 @@ fetch_and_extract_gh_release() {
   temp_file=$(mktemp)
   local tarball_url="https://github.com/$repo/archive/refs/tags/v$tag.tar.gz"
 
-  msg_info "Downloading tarball for $app..."
+  msg_info "Downloading tarball for $app from $tarball_url..."
   if ! curl -fsSL "$tarball_url" -o "$temp_file"; then
     msg_error "Failed to download tarball: $tarball_url"
     return 1
   fi
 
   mkdir -p "/opt/$app"
+  echo "📦 Extracting tarball to /opt/$app..."
   tar -xzf "$temp_file" -C /opt
   mv "/opt/${app}-${tag}"/* "/opt/$app/" 2>/dev/null || msg_warn "Could not move extracted files."
   rm -rf "/opt/${app}-${tag}"
