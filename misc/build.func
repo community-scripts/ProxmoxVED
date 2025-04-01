@@ -291,22 +291,61 @@ update_motd_ip() {
     fi
 }
 
+get_gh_release() {
+    local repo="$1"
+    local api_url="https://api.github.com/repos/$repo/releases/latest"
+    local header=()
+
+    # Ensure jq is installed
+    if ! command -v jq &>/dev/null; then
+        msg_info "Installing jq (required for GitHub API parsing)"
+        apt-get update &>/dev/null
+        apt-get install -y jq &>/dev/null && msg_ok "jq installed" || {
+            msg_error "Failed to install jq"
+            return 1
+        }
+    fi
+
+    # Optional: GitHub Token for higher rate limit
+    [[ -n "$GITHUB_TOKEN" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
+
+    # Info output
+    msg_info "Fetching GitHub release for $repo"
+    local api_response
+    if ! api_response=$(curl -fsSL "${header[@]}" "$api_url"); then
+        msg_error "Request failed for $repo"
+        return 1
+    fi
+
+    # Extract release tag
+    local tag
+    tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
+    [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
+
+    if [[ -z "$tag" ]]; then
+        msg_error "No release tag found for $repo"
+        return 1
+    fi
+
+    msg_ok "Found release: $tag for $repo"
+    echo "$tag"
+}
+
 # Function to download & save header files
 get_header() {
-    local app_name=$(echo ${APP,,} | tr -d ' ')
-    local header_url="https://github.com/community-scripts/ProxmoxVED/raw/main/ct/headers/${app_name}"
+    local app_name=$(echo "${APP,,}" | tr -d ' ')
+    local header_url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/headers/${app_name}"
     local local_header_path="/usr/local/community-scripts/headers/${app_name}"
 
-    mkdir -p "/usr/local/community-scripts/headers"
+    mkdir -p "$(dirname "$local_header_path")"
 
-    # Check if local file already present
     if [ ! -s "$local_header_path" ]; then
-        curl -fsSL "$header_url" -o "$local_header_path"
-        if [ $? -ne 0 ]; then
-            echo -e "${WARN}${BOLD}${YLW}Failed to download header for ${app_name}. No header will be displayed.${CL}"
+        if ! curl -fsSL "$header_url" -o "$local_header_path"; then
+            echo -e "${WARN:-}[WARN]${BOLD:-}${YLW:-} Failed to download header for ${app_name}. No header will be displayed.${CL:-}"
             return 1
         fi
     fi
+
     cat "$local_header_path"
 }
 
