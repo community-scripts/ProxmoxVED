@@ -221,6 +221,9 @@ EOF
 }
 
 get_gh_release() {
+  set -Eeuo pipefail
+  trap 'echo -e "\n❌ [get_gh_release] Error on line $LINENO: $BASH_COMMAND"' ERR
+
   local repo="$1"
   local app="${repo##*/}"
   local api_url="https://api.github.com/repos/$repo/releases/latest"
@@ -229,7 +232,7 @@ get_gh_release() {
   local max_attempts=3
   local api_response tag
 
-  [[ -n "$GITHUB_TOKEN" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
+  [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
   until [[ $attempt -ge $max_attempts ]]; do
     ((attempt++))
