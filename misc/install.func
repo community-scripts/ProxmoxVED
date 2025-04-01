@@ -216,93 +216,73 @@ EOF
 
 get_gh_release() {
   local repo="$1"
-  local application="$2"
+  local app="$2"
   local api_url="https://api.github.com/repos/$repo/releases/latest"
   local header=()
-  local retries=3
-  local release=""
-
-  # Ensure jq is installed
-  if ! command -v jq &>/dev/null; then
-    msg_info "Installing jq (required for GitHub API parsing)"
-    apt-get update &>/dev/null
-    apt-get install -y jq &>/dev/null && msg_ok "jq installed" || {
-      msg_error "Failed to install jq"
-      exit 1
-    }
-  fi
+  local attempt=0
+  local max_attempts=3
+  local api_response tag
 
   [[ -n "$GITHUB_TOKEN" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
-  for attempt in $(seq 1 $retries); do
-    msg_info "Fetching GitHub release for $repo (attempt $attempt)"
-    api_response=$(curl -fsSL "${header[@]}" "$api_url") || {
-      msg_warn "Request failed for $repo (attempt $attempt)"
+  # Retry loop
+  until [[ $attempt -ge $max_attempts ]]; do
+    ((attempt++))
+    msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo"
+    if ! api_response=$(curl -fsSL "${header[@]}" "$api_url"); then
+      msg_warn "Request failed for $repo, retrying..."
       sleep 2
       continue
-    }
-
-    # Handle API errors
-    if echo "$api_response" | jq -e '.message' &>/dev/null; then
-      message=$(echo "$api_response" | jq -r '.message')
-      if [[ "$message" == "Not Found" ]]; then
-        msg_error "Repository not found: $repo"
-        return 1
-      elif [[ "$message" == *"API rate limit exceeded"* ]]; then
-        msg_error "GitHub API rate limit exceeded. Set GITHUB_TOKEN to avoid this."
-        return 1
-      fi
     fi
 
-    release=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
-    [[ "$release" =~ ^v[0-9] ]] && release="${release:1}"
-
-    if [[ -n "$release" ]]; then
-      msg_ok "Found release: $release for $repo"
-      break
+    # Check for rate limit
+    if echo "$api_response" | grep -q "API rate limit exceeded"; then
+      msg_error "GitHub API rate limit exceeded. Set GITHUB_TOKEN to increase limit."
+      return 1
     fi
 
-    msg_warn "No release tag found (attempt $attempt)"
-    sleep 2
+    # Check if repo not found
+    if echo "$api_response" | jq -e '.message == "Not Found"' &>/dev/null; then
+      msg_error "Repository not found: $repo"
+      return 1
+    fi
+
+    tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
+    [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
+
+    if [[ -z "$tag" ]]; then
+      msg_warn "Empty tag received, retrying..."
+      sleep 2
+      continue
+    fi
+
+    msg_ok "Found release: $tag for $repo"
+
+    # Save version file if not exists
+    local version_file="/opt/${app}_version.txt"
+    [[ ! -f "$version_file" ]] && echo "$tag" >"$version_file"
+
+    # Download tarball
+    local temp_file
+    temp_file=$(mktemp)
+    local tarball_url="https://github.com/$repo/archive/refs/tags/v$tag.tar.gz"
+    msg_info "Downloading tarball for $repo..."
+    if ! curl -fsSL "$tarball_url" -o "$temp_file"; then
+      msg_error "Failed to download tarball: $tarball_url"
+      return 1
+    fi
+
+    mkdir -p "/opt/$app"
+    tar -xzf "$temp_file" -C /opt
+    mv /opt/"$(basename "$repo")-$tag"/* "/opt/$app/" 2>/dev/null
+    rm -rf "/opt/$(basename "$repo")-$tag"
+
+    echo "$tag"
+    return 0
   done
 
-  [[ -z "$release" ]] && {
-    msg_error "Unable to retrieve release after $retries attempts"
-    return 1
-  }
-
-  # Write version to version file if not exists
-  local version_file="/opt/${application}_version.txt"
-  if [[ ! -f "$version_file" ]]; then
-    echo "$release" >"$version_file"
-    msg_ok "Saved version $release to $version_file"
-  else
-    msg_info "Version file already exists: $version_file"
-  fi
-
-  # Download and extract tarball
-  local temp_file=$(mktemp)
-  local tarball_url="https://github.com/${repo}/archive/refs/tags/v${release}.tar.gz"
-
-  msg_info "Downloading $repo v$release"
-  curl -fsSL "$tarball_url" -o "$temp_file" || {
-    msg_error "Failed to download tarball from $tarball_url"
-    return 1
-  }
-
-  mkdir -p "/opt/$application"
-  tar -xzf "$temp_file" -C /opt || {
-    msg_error "Failed to extract archive"
-    return 1
-  }
-
-  extracted_folder=$(tar -tzf "$temp_file" | head -1 | cut -f1 -d"/")
-  mv "/opt/$extracted_folder" "/opt/$application" &>/dev/null || true
-
-  rm -f "$temp_file"
-
-  msg_ok "$application v$release installed at /opt/$application"
-  echo "$release"
+  msg_error "Failed to fetch release for $repo after $max_attempts attempts."
+  return 1
 }
 
 # This function modifies the message of the day (motd) and SSH settings
