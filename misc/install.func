@@ -218,6 +218,46 @@ EOF
   msg_ok "Core dependencies installed"
 }
 
+get_gh_release() {
+  local repo="$1"
+  local api_url="https://api.github.com/repos/$repo/releases/latest"
+  local header=()
+
+  # Ensure jq is installed
+  if ! command -v jq &>/dev/null; then
+    msg_info "Installing jq (required for GitHub API parsing)"
+    apt-get update &>/dev/null
+    apt-get install -y jq &>/dev/null && msg_ok "jq installed" || {
+      msg_error "Failed to install jq"
+      return 1
+    }
+  fi
+
+  # Optional: GitHub Token for higher rate limit
+  [[ -n "$GITHUB_TOKEN" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
+
+  # Info output
+  msg_info "Fetching GitHub release for $repo"
+  local api_response
+  if ! api_response=$(curl -fsSL "${header[@]}" "$api_url"); then
+    msg_error "Request failed for $repo"
+    return 1
+  fi
+
+  # Extract release tag
+  local tag
+  tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
+  [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
+
+  if [[ -z "$tag" ]]; then
+    msg_error "No release tag found for $repo"
+    return 1
+  fi
+
+  msg_ok "Found release: $tag for $repo"
+  echo "$tag"
+}
+
 # This function modifies the message of the day (motd) and SSH settings
 motd_ssh() {
   grep -qxF "export TERM='xterm-256color'" /root/.bashrc || echo "export TERM='xterm-256color'" >>/root/.bashrc
