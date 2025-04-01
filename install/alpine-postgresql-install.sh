@@ -32,7 +32,7 @@ msg_ok "Installed PostgreSQL"
 msg_info "Initializing PostgreSQL Database"
 mkdir -p /var/lib/postgresql
 chown postgres:postgres /var/lib/postgresql
-sudo -u postgres initdb -D /var/lib/postgresql/data
+sudo -u postgres initdb -D /var/lib/postgresql/data --auth-local=md5 --auth-host=md5
 msg_ok "Initialized PostgreSQL Database"
 
 msg_info "Creating PostgreSQL Service"
@@ -55,6 +55,8 @@ rc-update add postgresql default
 msg_ok "Created PostgreSQL Service"
 
 msg_info "Configuring PostgreSQL"
+mkdir -p /var/lib/postgresql/data/conf.d
+
 cat <<EOF >/var/lib/postgresql/data/pg_hba.conf
 # PostgreSQL Client Authentication Configuration File
 local   all             postgres                                peer
@@ -103,6 +105,7 @@ msg_ok "Started PostgreSQL"
 read -p "Do you want to install Adminer with Lighttpd? (y/N): " install_adminer
 if [[ "$install_adminer" =~ ^[Yy]$ ]]; then
     msg_info "Installing Adminer with Lighttpd"
+    apk add --no-cache php php-pdo_pgsql php-session php-json php-mbstring lighttpd
     msg_ok "Installed Lighttpd and PHP"
 
     msg_info "Downloading Adminer"
