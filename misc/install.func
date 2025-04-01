@@ -222,6 +222,10 @@ get_gh_release() {
   local repo="$1"
   local api_url="https://api.github.com/repos/$repo/releases/latest"
   local header=()
+  local attempts=0
+  local max_attempts=3
+  local delay=2
+  local api_response tag message
 
   # Ensure jq is installed
   if ! command -v jq &>/dev/null; then
@@ -229,33 +233,46 @@ get_gh_release() {
     apt-get update &>/dev/null
     apt-get install -y jq &>/dev/null && msg_ok "jq installed" || {
       msg_error "Failed to install jq"
-      return 1
+      exit_script
     }
   fi
 
-  # Optional: GitHub Token for higher rate limit
   [[ -n "$GITHUB_TOKEN" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
-  # Info output
-  msg_info "Fetching GitHub release for $repo"
-  local api_response
-  if ! api_response=$(curl -fsSL "${header[@]}" "$api_url"); then
-    msg_error "Request failed for $repo"
-    return 1
-  fi
+  while ((attempts < max_attempts)); do
+    ((attempts++))
+    msg_info "Fetching GitHub release for $repo (Attempt $attempts/$max_attempts)"
 
-  # Extract release tag
-  local tag
-  tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
-  [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
+    if ! api_response=$(curl -fsSL "${header[@]}" "$api_url"); then
+      msg_error "HTTP request failed for $repo"
+    else
+      # Check for errors in the API response
+      message=$(echo "$api_response" | jq -r '.message // empty')
+      if [[ "$message" == "Not Found" ]]; then
+        msg_error "Repository '$repo' does not exist or has no releases"
+        exit_script
+      elif [[ "$message" == "API rate limit exceeded" ]]; then
+        msg_error "GitHub API rate limit exceeded. Set GITHUB_TOKEN to increase limits."
+        exit_script
+      fi
 
-  if [[ -z "$tag" ]]; then
-    msg_error "No release tag found for $repo"
-    return 1
-  fi
+      tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
+      [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
 
-  msg_ok "Found release: $tag for $repo"
-  echo "$tag"
+      if [[ -n "$tag" ]]; then
+        msg_ok "Found release: $tag for $repo"
+        echo "$tag"
+        return 0
+      else
+        msg_error "No release tag found in response for $repo"
+      fi
+    fi
+
+    ((attempts < max_attempts)) && sleep "$delay"
+  done
+
+  msg_error "Giving up after $max_attempts attempts for $repo"
+  exit_script
 }
 
 # This function modifies the message of the day (motd) and SSH settings
