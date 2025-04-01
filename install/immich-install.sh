@@ -258,7 +258,7 @@ ML_DIR="${APP_DIR}/machine-learning"
 GEO_DIR="${INSTALL_DIR}/geodata"
 mkdir -p ${INSTALL_DIR}
 mv ${APPLICATION}-${RELEASE}/ ${SRC_DIR}
-mkdir -p {${APP_DIR},${UPLOAD_DIR},${GEO_DIR},${ML_DIR},${INSTALL_DIR}/cache}
+mkdir -p {${APP_DIR},${UPLOAD_DIR},${GEO_DIR},${ML_DIR},${INSTALL_DIR}/.cache}
 
 cd ${SRC_DIR}/server
 $STD npm ci
@@ -284,12 +284,13 @@ $STD python3 -m venv ${ML_DIR}/ml-venv
   $STD uv sync --extra cpu --active
 )
 cd ${SRC_DIR}
-cp -a machine-learning/{ann,start.sh,app} ${ML_DIR}
+cp -a machine-learning/{ann,immich_ml} ${ML_DIR}
 ln -sf ${APP_DIR}/resources ${INSTALL_DIR}
 
 cd ${APP_DIR}
-grep -Rl /usr/src | xargs -n1 sed -i "s|\/usr/src|$INSTALL_DIR|g"
-sed -i "s|\"/cache\"|\"$INSTALL_DIR/cache\"|g" $ML_DIR/app/config.py
+grep -RlI /usr/src . --exclude="*.py*" --exclude="*.json" |
+  xargs -n1 sed -i "s|\/usr/src|$INSTALL_DIR|g"
+# sed -i "s|\"/cache\"|\"$INSTALL_DIR/cache\"|g" $ML_DIR/immich_ml/config.py
 grep -RlE "'/build'" | xargs -n1 sed -i "s|'/build'|'$APP_DIR'|g"
 ln -s ${UPLOAD_DIR} ${APP_DIR}/upload
 ln -s ${UPLOAD_DIR} ${ML_DIR}/upload
@@ -334,27 +335,17 @@ DB_VECTOR_EXTENSION=pgvector
 
 REDIS_HOSTNAME=localhost
 
-MACHINE_LEARNING_CACHE_FOLDER=${INSTALL_DIR}/cache
+MACHINE_LEARNING_CACHE_FOLDER=${INSTALL_DIR}/.cache
 EOF
-cat <<EOF >${ML_DIR}/start.sh
+cat <<EOF >${ML_DIR}/ml_start.sh
 #!/usr/bin/env bash
 
 cd ${ML_DIR}
 . ml-venv/bin/activate
 
-: "\${MACHINE_LEARNING_HOST:=127.0.0.1}"
-: "\${MACHINE_LEARNING_PORT:=3003}"
-: "\${MACHINE_LEARNING_WORKERS:=1}"
-: "\${MACHINE_LEARNING_WORKER_TIMEOUT:=120}"
-
-exec gunicorn app.main:app \
-  -k app.config.CustomUvicornWorker \
-  -w "\$MACHINE_LEARNING_WORKERS" \
-  -b "\$MACHINE_LEARNING_HOST":"\$MACHINE_LEARNING_PORT" \
-  -t "\$MACHINE_LEARNING_WORKER_TIMEOUT" \
-  --log-config-json log_conf.json \
-  --graceful-timeout 0
+python -m immich_ml
 EOF
+chmod +x ${ML_DIR}/ml_start.sh
 cat <<EOF >/etc/systemd/system/${APPLICATION}-web.service
 [Unit]
 Description=${APPLICATION} Web Service
@@ -387,7 +378,7 @@ Type=simple
 User=root
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${INSTALL_DIR}/.env
-ExecStart=${ML_DIR}/start.sh
+ExecStart=${ML_DIR}/ml_start.sh
 Restart=on-failure
 SyslogIdentifier=immich-machine-learning
 StandardOutput=append:/var/log/immich/ml.log
