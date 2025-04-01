@@ -1,0 +1,39 @@
+{
+    "name": "AllStarLink",
+    "slug": "allstarlink",
+    "categories": [
+        24
+    ],
+    "date_created": "2025-3-30",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://allstarlink.github.io/",
+    "website": "https://www.allstarlink.org/",
+    "logo": "https://raw.githubusercontent.com/AllStarLink/ASL3-Manual/blob/main/docs/assets/allstar-logo-small.png",
+    "description": "AllStarLink is a network of Amateur Radio repeaters, remote base stations and hot spots accessible to each other via Voice over Internet Protocol.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/allstarlink.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 8,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+      {
+        "text": "Options to Install Allmon3",
+        "type": "info"
+      }
+    ]
+}
