@@ -268,27 +268,38 @@ get_gh_release() {
     local version_file="/opt/${app}_version.txt"
     [[ ! -f "$version_file" ]] && echo "$tag" >"$version_file"
 
-    local temp_file
-    temp_file=$(mktemp)
-    local tarball_url="https://github.com/$repo/archive/refs/tags/v$tag.tar.gz"
-    msg_info "Downloading tarball..."
-
-    if ! curl -fsSL "$tarball_url" -o "$temp_file"; then
-      msg_error "Failed to download tarball: $tarball_url"
-      return 1
-    fi
-
-    mkdir -p "/opt/$app"
-    tar -xzf "$temp_file" -C /opt
-    mv "/opt/${app}-${tag}"/* "/opt/$app/" 2>/dev/null || msg_warn "Could not move extracted files."
-    rm -rf "/opt/${app}-${tag}"
-
     echo "$tag"
     return 0
   done
 
   msg_error "Failed to fetch release for $repo after $max_attempts attempts."
   return 1
+}
+
+fetch_and_extract_gh_release() {
+  set -Eeuo pipefail
+  trap 'echo -e "\n❌ [fetch_and_extract_gh_release] Error on line $LINENO: $BASH_COMMAND"' ERR
+
+  local repo="$1"
+  local tag="$2"
+  local app="${repo##*/}"
+
+  local temp_file
+  temp_file=$(mktemp)
+  local tarball_url="https://github.com/$repo/archive/refs/tags/v$tag.tar.gz"
+
+  msg_info "Downloading tarball for $app..."
+  if ! curl -fsSL "$tarball_url" -o "$temp_file"; then
+    msg_error "Failed to download tarball: $tarball_url"
+    return 1
+  fi
+
+  mkdir -p "/opt/$app"
+  tar -xzf "$temp_file" -C /opt
+  mv "/opt/${app}-${tag}"/* "/opt/$app/" 2>/dev/null || msg_warn "Could not move extracted files."
+  rm -rf "/opt/${app}-${tag}"
+
+  msg_ok "Extracted $app to /opt/$app"
 }
 
 # This function modifies the message of the day (motd) and SSH settings
