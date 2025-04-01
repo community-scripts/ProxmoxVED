@@ -26,13 +26,13 @@ $STD apk add \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing PostgreSQL and Dependencies"
-$STD apk add --no-cache postgresql postgresql-contrib
+$STD apk add --no-cache postgresql17 postgresql17-contrib
 msg_ok "Installed PostgreSQL"
 
 msg_info "Initializing PostgreSQL Database"
-mkdir -p /var/lib/postgresql
-chown postgres:postgres /var/lib/postgresql
-sudo -u postgres initdb -D /var/lib/postgresql/data --auth-local=md5 --auth-host=md5
+mkdir -p /var/lib/postgresql/17
+chown postgres:postgres /var/lib/postgresql/17
+sudo -u postgres initdb -D /var/lib/postgresql/17 --auth-local=md5 --auth-host=md5 --pwfile=<(printf "postgres")
 msg_ok "Initialized PostgreSQL Database"
 
 msg_info "Creating PostgreSQL Service"
@@ -42,7 +42,7 @@ echo '#!/sbin/openrc-run
 description="PostgreSQL Database Server"
 
 command="/usr/bin/postgres"
-command_args="-D /var/lib/postgresql/data"
+command_args="-D /var/lib/postgresql/17"
 command_user="postgres"
 pidfile="/var/run/postgresql.pid"
 
@@ -55,10 +55,9 @@ rc-update add postgresql default
 msg_ok "Created PostgreSQL Service"
 
 msg_info "Configuring PostgreSQL"
-mkdir -p /var/lib/postgresql/data/conf.d
+mkdir -p /var/lib/postgresql/17/conf.d
 
-cat <<EOF >/var/lib/postgresql/data/pg_hba.conf
-# PostgreSQL Client Authentication Configuration File
+cat <<EOF >/var/lib/postgresql/17/pg_hba.conf
 local   all             postgres                                peer
 local   all             all                                     md5
 host    all             all             127.0.0.1/32            scram-sha-256
@@ -70,10 +69,10 @@ host    replication     all             127.0.0.1/32            scram-sha-256
 host    replication     all             ::1/128                 scram-sha-256
 EOF
 
-cat <<EOF >/var/lib/postgresql/data/postgresql.conf
-data_directory = '/var/lib/postgresql/data'
-hba_file = '/var/lib/postgresql/data/pg_hba.conf'
-ident_file = '/var/lib/postgresql/data/pg_ident.conf'
+cat <<EOF >/var/lib/postgresql/17/postgresql.conf
+data_directory = '/var/lib/postgresql/17'
+hba_file = '/var/lib/postgresql/17/pg_hba.conf'
+ident_file = '/var/lib/postgresql/17/pg_ident.conf'
 external_pid_file = '/var/run/postgresql.pid'
 listen_addresses = '*'
 port = 5432
@@ -122,7 +121,7 @@ if [[ "$install_adminer" =~ ^[Yy]$ ]]; then
 )
 
 server.document-root = "/var/www/adminer"
-server.port = 9000
+server.port = 8080
 server.bind = "0.0.0.0"
 index-file.names = ("index.php")
 
