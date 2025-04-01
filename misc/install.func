@@ -29,11 +29,7 @@ color() {
   CROSS="${TAB}✖️${TAB}${CL}"
   INFO="${TAB}💡${TAB}${CL}"
   NETWORK="${TAB}📡${TAB}${CL}"
-  OS="${TAB}🖥️${TAB}${CL}"
-  OSVERSION="${TAB}🌟${TAB}${CL}"
   HOSTNAME="${TAB}🏠${TAB}${CL}"
-  GATEWAY="${TAB}🌐${TAB}${CL}"
-  DEFAULT="${TAB}⚙️${TAB}${CL}"
 }
 
 # Function to set STD mode based on verbosity
@@ -220,12 +216,11 @@ EOF
 
 get_gh_release() {
   local repo="$1"
+  local application="$2"
   local api_url="https://api.github.com/repos/$repo/releases/latest"
   local header=()
-  local attempts=0
-  local max_attempts=3
-  local delay=2
-  local api_response tag message
+  local retries=3
+  local release=""
 
   # Ensure jq is installed
   if ! command -v jq &>/dev/null; then
@@ -233,46 +228,81 @@ get_gh_release() {
     apt-get update &>/dev/null
     apt-get install -y jq &>/dev/null && msg_ok "jq installed" || {
       msg_error "Failed to install jq"
-      exit_script
+      exit 1
     }
   fi
 
   [[ -n "$GITHUB_TOKEN" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
-  while ((attempts < max_attempts)); do
-    ((attempts++))
-    msg_info "Fetching GitHub release for $repo (Attempt $attempts/$max_attempts)"
+  for attempt in $(seq 1 $retries); do
+    msg_info "Fetching GitHub release for $repo (attempt $attempt)"
+    api_response=$(curl -fsSL "${header[@]}" "$api_url") || {
+      msg_warn "Request failed for $repo (attempt $attempt)"
+      sleep 2
+      continue
+    }
 
-    if ! api_response=$(curl -fsSL "${header[@]}" "$api_url"); then
-      msg_error "HTTP request failed for $repo"
-    else
-      # Check for errors in the API response
-      message=$(echo "$api_response" | jq -r '.message // empty')
+    # Handle API errors
+    if echo "$api_response" | jq -e '.message' &>/dev/null; then
+      message=$(echo "$api_response" | jq -r '.message')
       if [[ "$message" == "Not Found" ]]; then
-        msg_error "Repository '$repo' does not exist or has no releases"
-        exit_script
-      elif [[ "$message" == "API rate limit exceeded" ]]; then
-        msg_error "GitHub API rate limit exceeded. Set GITHUB_TOKEN to increase limits."
-        exit_script
-      fi
-
-      tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
-      [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
-
-      if [[ -n "$tag" ]]; then
-        msg_ok "Found release: $tag for $repo"
-        echo "$tag"
-        return 0
-      else
-        msg_error "No release tag found in response for $repo"
+        msg_error "Repository not found: $repo"
+        return 1
+      elif [[ "$message" == *"API rate limit exceeded"* ]]; then
+        msg_error "GitHub API rate limit exceeded. Set GITHUB_TOKEN to avoid this."
+        return 1
       fi
     fi
 
-    ((attempts < max_attempts)) && sleep "$delay"
+    release=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
+    [[ "$release" =~ ^v[0-9] ]] && release="${release:1}"
+
+    if [[ -n "$release" ]]; then
+      msg_ok "Found release: $release for $repo"
+      break
+    fi
+
+    msg_warn "No release tag found (attempt $attempt)"
+    sleep 2
   done
 
-  msg_error "Giving up after $max_attempts attempts for $repo"
-  exit_script
+  [[ -z "$release" ]] && {
+    msg_error "Unable to retrieve release after $retries attempts"
+    return 1
+  }
+
+  # Write version to version file if not exists
+  local version_file="/opt/${application}_version.txt"
+  if [[ ! -f "$version_file" ]]; then
+    echo "$release" >"$version_file"
+    msg_ok "Saved version $release to $version_file"
+  else
+    msg_info "Version file already exists: $version_file"
+  fi
+
+  # Download and extract tarball
+  local temp_file=$(mktemp)
+  local tarball_url="https://github.com/${repo}/archive/refs/tags/v${release}.tar.gz"
+
+  msg_info "Downloading $repo v$release"
+  curl -fsSL "$tarball_url" -o "$temp_file" || {
+    msg_error "Failed to download tarball from $tarball_url"
+    return 1
+  }
+
+  mkdir -p "/opt/$application"
+  tar -xzf "$temp_file" -C /opt || {
+    msg_error "Failed to extract archive"
+    return 1
+  }
+
+  extracted_folder=$(tar -tzf "$temp_file" | head -1 | cut -f1 -d"/")
+  mv "/opt/$extracted_folder" "/opt/$application" &>/dev/null || true
+
+  rm -f "$temp_file"
+
+  msg_ok "$application v$release installed at /opt/$application"
+  echo "$release"
 }
 
 # This function modifies the message of the day (motd) and SSH settings
