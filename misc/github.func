@@ -1,4 +1,4 @@
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+#source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
 get_gh_release() {
   local repo="$1"
@@ -15,10 +15,10 @@ get_gh_release() {
 
   until [[ $attempt -ge $max_attempts ]]; do
     ((attempt++))
-    msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo...\n"
+    $STD msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo...\n"
 
     if ! api_response=$(curl -fsSL "${header[@]}" "$api_url"); then
-      msg_info "Request failed, retrying...\n"
+      $STD msg_info "Request failed, retrying...\n"
       sleep 2
       continue
     fi
@@ -37,12 +37,12 @@ get_gh_release() {
     [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
 
     if [[ -z "$tag" ]]; then
-      msg_info "Empty tag received, retrying...\n"
+      $STD msg_info "Empty tag received, retrying...\n"
       sleep 2
       continue
     fi
 
-    msg_ok "Found release: $tag for $repo"
+    $STD msg_ok "Found release: $tag for $repo"
     echo "$tag"
     return 0
   done
