@@ -20,14 +20,24 @@ color
 catch_errors
 
 function update_script() {
-    msg_info "Updating Alpine Packages"
-    $STD apk update
-    $STD apk upgrade
-    msg_ok "Updated Alpine Packages"
+  msg_info "Updating Alpine Packages"
+  $STD apk update
+  $STD apk upgrade
+  msg_ok "Updated Alpine Packages"
 
-    msg_info "Updating WireGuard"
-    $STD apk upgrade wireguard-tools
-    msg_ok "Updated WireGuard"
+  msg_info "update wireguard-tools"
+  $STD apk add --no-cache --upgrade wireguard-tools
+  msg_ok "wireguard-tools updated"
+
+  if [[ -d /etc/wgdashboard/src ]]; then
+    msg_info "update WGDashboard"
+    cd /etc/wgdashboard/src || exit
+    $STD ./wgd.sh update
+    $STD ./wgd.sh start
+    msg_ok "WGDashboard updated"
+  fi
+
+  exit 0
 }
 
 start
