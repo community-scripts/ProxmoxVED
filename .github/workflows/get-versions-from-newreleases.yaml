@@ -61,7 +61,11 @@ jobs:
             echo "$projects" > "$projects_file"
 
             jq -r '.projects[] | "\(.id) \(.name)"' "$projects_file" | while read -r id name; do
-              version=$(curl -s -H "X-Key: $token" "https://api.newreleases.io/v1/projects/$id/latest-release?stable=true")
+              echo "Ensuring $name has exclude_prereleases=true"
+              curl -s -X POST -H "X-Key: $token" -H "Content-Type: application/json" \
+                   -d '{"exclude_prereleases": true}' \
+                   "https://api.newreleases.io/v1/projects/$id" > /dev/null
+              version=$(curl -s -H "X-Key: $token" "https://api.newreleases.io/v1/projects/$id/latest-release")
               version_data=$(echo "$version" | jq -r '.version // empty')
               date=$(echo "$version" | jq -r '.date // empty')
               if [ -n "$version_data" ]; then
