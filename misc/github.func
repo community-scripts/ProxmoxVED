@@ -1,9 +1,6 @@
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
 get_gh_release() {
-  set -Eeuo pipefail
-  trap 'echo -e "\n❌ [get_gh_release] Error on line $LINENO: $BASH_COMMAND"' ERR
-
   local repo="$1"
   local app="${repo##*/}"
   local api_url="https://api.github.com/repos/$repo/releases/latest"
@@ -18,10 +15,10 @@ get_gh_release() {
 
   until [[ $attempt -ge $max_attempts ]]; do
     ((attempt++))
-    msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo"
+    msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo...\n"
 
     if ! api_response=$(curl -fsSL "${header[@]}" "$api_url"); then
-      msg_warn "Request failed for $repo, retrying..."
+      msg_info "Request failed, retrying...\n"
       sleep 2
       continue
     fi
@@ -40,19 +37,12 @@ get_gh_release() {
     [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
 
     if [[ -z "$tag" ]]; then
-      msg_error "Empty tag received, retrying..."
+      msg_info "Empty tag received, retrying...\n"
       sleep 2
       continue
     fi
 
     msg_ok "Found release: $tag for $repo"
-
-    local version_file="/opt/${app}_version.txt"
-    if [[ ! -f "$version_file" ]]; then
-      echo "$tag" >"$version_file"
-      echo "📝 Saved version info to $version_file"
-    fi
-
     echo "$tag"
     return 0
   done
