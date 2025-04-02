@@ -142,8 +142,7 @@ tar zxf freepbx-17.0-latest-EDGE.tgz
 cd /usr/local/src/freepbx/
 $STD ./start_asterisk start
 # Even though the php code completes successfully, it is returning non-zero exit code, so in the next line we return true, needed for successful installation
-# For some reason the next line is outputting even when verbosity not enabled?
-$STD ./install -n || true
+./install -n &>/dev/null || true
 $STD fwconsole ma installall
 $STD fwconsole reload
 $STD fwconsole restart
