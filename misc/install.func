@@ -32,6 +32,8 @@ color() {
   HOSTNAME="${TAB}🏠${TAB}${CL}"
 }
 
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/github.func)
+
 # Function to set STD mode based on verbosity
 set_std_mode() {
   if [ "$VERBOSE" = "yes" ]; then
