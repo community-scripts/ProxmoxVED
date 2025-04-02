@@ -16,7 +16,7 @@
     "install_methods": [
         {
             "type": "default",
-            "script": "misc/add-iptag.sh",
+            "script": "scripts/tools/add-iptag.sh",
             "resources": {
                 "cpu": null,
                 "ram": null,
