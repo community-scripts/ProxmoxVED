@@ -70,6 +70,7 @@ MINIO_USER=minio_usr
 MINIO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 JWT_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
 ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
+LOCAL_IP=$(hostname -I | awk '{print $1}')
 msg_ok "Set up Variables"
 
 msg_info "Setup Database"
@@ -139,7 +140,7 @@ DB_PASSWORD=${DB_PASS}
 DB_HOST=localhost
 DB_PORT=5432
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
-MINIO_ENDPOINT=minio
+MINIO_ENDPOINT=localhost
 MINIO_PORT=9000
 MINIO_CONSOLE_PORT=9001
 MINIO_ACCESS_KEY=${MINIO_USER}
@@ -149,18 +150,29 @@ REDIS_PORT=6379
 
 BACKEND_PORT=8080
 FRONTEND_PORT=5173
-BACKEND_URL=http://localhost:8080
-PUBLIC_URL=http://localhost:5173
-VITE_BACKEND_URL=http://localhost:8080
-VITE_PUBLIC_URL=http://localhost:5173
+BACKEND_URL=http://${LOCAL_IP}:8080
+PUBLIC_URL=http://${LOCAL_IP}:5173
+VITE_BACKEND_URL=http://${LOCAL_IP}:8080
+VITE_PUBLIC_URL=http://${LOCAL_IP}:5173
 
 MAXUN_TELEMETRY=false
 EOF
 
+cat <<EOF >/usr/local/bin/update-env-ip.sh
+env_file="/opt/maxun/.env"
+ip=$(hostname -I | awk '{print $1}')
+
+sed -i "s|^BACKEND_URL=.*|BACKEND_URL=http://${ip}:8080|" "$env_file"
+sed -i "s|^PUBLIC_URL=.*|PUBLIC_URL=http://${ip}:5173|" "$env_file"
+sed -i "s|^VITE_BACKEND_URL=.*|VITE_BACKEND_URL=http://${ip}:8080|" "$env_file"
+sed -i "s|^VITE_PUBLIC_URL=.*|VITE_PUBLIC_URL=http://${ip}:5173|" "$env_file"
+EOF
+chmod +x /usr/local/bin/update-env-ip.sh
 cd /opt/maxun
 $STD npm install --legacy-peer-deps
 cd /opt/maxun/maxun-core
 $STD npm install --legacy-peer-deps
+$STD npm run build
 cd /opt/maxun
 $STD npx playwright install --with-deps chromium
 $STD npx playwright install-deps
@@ -173,9 +185,6 @@ msg_ok "Installed Maxun"
 #msg_ok "DB Migrations completed"
 
 msg_info "Setting up nginx with CORS Proxy"
-
-$STD apt-get install -y nginx
-
 cat <<'EOF' >/etc/nginx/sites-available/maxun
 server {
     listen 80;
@@ -215,15 +224,28 @@ ln -sf /etc/nginx/sites-available/maxun /etc/nginx/sites-enabled/maxun
 rm -f /etc/nginx/sites-enabled/default
 msg_ok "nginx with CORS Proxy set up"
 
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/maxun.service
+msg_info "Creating Services"
+cat <<EOF >/etc/systemd/system/maxun-update-env.service
+[Unit]
+Description=Update .env with dynamic LXC IP
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/update-env-ip.sh
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat <<EOF >/etc/systemd/system/maxun-server.service
 [Unit]
 Description=Maxun Service
-After=network.target postgresql.service redis.service minio.service
+After=network.target postgresql.service redis.service minio.service maxun-update-env.service
 
 [Service]
 WorkingDirectory=/opt/maxun
-ExecStart=/usr/bin/npm run start:server -- --host 0.0.0.0
+ExecStart=/usr/bin/npm run start:server
 Restart=always
 EnvironmentFile=/opt/maxun/.env
 
@@ -232,6 +254,7 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now maxun
 systemctl enable -q --now nginx
+systemctl enable -q --now maxun-update-env
 msg_ok "Created Service"
 
 motd_ssh
