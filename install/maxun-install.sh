@@ -250,9 +250,9 @@ EnvironmentFile=/opt/maxun/.env
 [Install]
 WantedBy=multi-user.target
 EOF
+systemctl enable -q --now maxun-update-env
 systemctl enable -q --now maxun
 systemctl enable -q --now nginx
-systemctl enable -q --now maxun-update-env
 msg_ok "Created Service"
 
 motd_ssh
