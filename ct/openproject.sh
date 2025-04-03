@@ -2,7 +2,7 @@
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: michelroegl-brunner
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/opf/openproject
 
 APP="OpenProject"
@@ -29,9 +29,8 @@ function update_script() {
   fi
   msg_info "Updating ${APP}"
   $STD apt-get update
-  $STD apt-get apt-get install --only-upgrade -y openproject
+  $STD apt-get install --only-upgrade -y openproject
   msg_ok "Updated ${APP}"
-  exit
 }
 
 start
