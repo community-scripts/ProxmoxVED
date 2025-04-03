@@ -2232,7 +2232,7 @@ check_container_storage() {
 }
 
 start() {
-  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/github.func)
+  #source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/github.func)
   LOGDIR="/usr/local/community-scripts/logs"
   mkdir -p "$LOGDIR"
 
@@ -2258,18 +2258,18 @@ start() {
     1)
       VERB="no"
       set_std_mode
-      log_message "INFO" "Update started (Silent Mode)"
+      #log_message "INFO" "Update started (Silent Mode)"
       ;;
     2)
       VERB="yes"
       set_std_mode
-      log_message "INFO" "Update started (Verbose Mode)"
+      #log_message "INFO" "Update started (Verbose Mode)"
       ;;
     3)
       clear
-      log_message "INFO" "Update aborted."
+      #log_message "INFO" "Update aborted."
       exit_script
-      exit
+      exit 0
       ;;
     esac
 
