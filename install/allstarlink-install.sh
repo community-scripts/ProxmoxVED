@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Adding ASL Package Repository"
-wget -q -P /tmp https://repo.allstarlink.org/public/asl-apt-repos.deb12_all.deb
+curl -fsSL "https://repo.allstarlink.org/public/asl-apt-repos.deb12_all.deb" -o /tmp/asl-apt-repos.deb12_all.deb
 $STD dpkg -i /tmp/asl-apt-repos.deb12_all.deb
 $STD apt-get update
 msg_ok "Added ASL Package Repository"
