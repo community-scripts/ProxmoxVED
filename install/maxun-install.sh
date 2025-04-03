@@ -236,15 +236,14 @@ ExecStart=/usr/local/bin/update-env-ip.sh
 [Install]
 WantedBy=multi-user.target
 EOF
-
-cat <<EOF >/etc/systemd/system/maxun-server.service
+cat <<EOF >/etc/systemd/system/maxun.service
 [Unit]
 Description=Maxun Service
 After=network.target postgresql.service redis.service minio.service maxun-update-env.service
 
 [Service]
 WorkingDirectory=/opt/maxun
-ExecStart=/usr/bin/npm run start:server
+ExecStart=/usr/bin/npm run start
 Restart=always
 EnvironmentFile=/opt/maxun/.env
 
