@@ -158,7 +158,7 @@ VITE_PUBLIC_URL=http://${LOCAL_IP}:5173
 MAXUN_TELEMETRY=false
 EOF
 
-cat <<EOF >/usr/local/bin/update-env-ip.sh
+cat <<'EOF' >/usr/local/bin/update-env-ip.sh
 env_file="/opt/maxun/.env"
 
 sed -i "s|^BACKEND_URL=.*|BACKEND_URL=http://${LOCAL_IP}:8080|" "$env_file"
