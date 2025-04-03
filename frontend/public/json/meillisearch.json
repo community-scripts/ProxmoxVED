@@ -4,7 +4,7 @@
     "categories": [
         8
     ],
-    "date_created": "2025-03-21",
+    "date_created": "2025-04-03",
     "type": "ct",
     "updateable": true,
     "privileged": false,
@@ -20,8 +20,8 @@
             "resources": {
                 "cpu": 2,
                 "ram": 4096,
-                "hdd": 5,
-                "os": "debian",
+                "hdd": 7,
+                "os": "Debian",
                 "version": "12"
             }
         }
@@ -34,6 +34,10 @@
         {
             "text": "Meilisearch-UI can optionally be installed for a web-based search interface",
             "type": "info"
+        },
+        {
+            "text": "Meilisearch-UI has early development status and can caused performance issues",
+            "type": "warn"
         }
     ]
 }
