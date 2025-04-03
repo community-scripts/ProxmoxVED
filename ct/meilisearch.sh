@@ -9,7 +9,7 @@ APP="Meilisearch"
 var_tags="${var_tags:-full-text-search}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-5}"
+var_disk="${var_disk:-7}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -24,7 +24,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/meilisearch_version.txt ]]; then
+  if [[ ! -f /opt/Meilisearch_version.txt ]]; then
     msg_error "No Meilisearch Installation Found!"
     exit
   fi
@@ -53,7 +53,7 @@ function update_script() {
   fi
 
   if [ "$UPD" == "2" ]; then
-    if [[ ! -f /opt/meilisearch-ui_version.txt ]]; then
+    if [[ ! -f /opt/Meilisearch-ui_version.txt ]]; then
       msg_error "No Meilisearch-UI Installation Found!"
       exit
     fi
