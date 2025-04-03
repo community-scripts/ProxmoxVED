@@ -2193,41 +2193,68 @@ install_script() {
 }
 
 check_container_resources() {
-  # Check actual RAM & Cores
-  current_ram=$(free -m | awk 'NR==2{print $2}')
-  current_cpu=$(nproc)
+  # Determine current RAM in MB (Debian uses free, Alpine reads from /proc/meminfo)
+  if command -v free >/dev/null 2>&1; then
+    current_ram=$(free -m | awk '/^Mem:/{print $2}')
+  elif [ -f /proc/meminfo ]; then
+    current_ram=$(awk '/MemTotal/{printf "%.0f", $2 / 1024}' /proc/meminfo)
+  else
+    echo "${CROSS}${HOLD} Unable to determine RAM on this system.${CL}"
+    exit 1
+  fi
 
-  # Check whether the current RAM is less than the required RAM or the CPU cores are less than required
-  if [[ "$current_ram" -lt "$var_ram" ]] || [[ "$current_cpu" -lt "$var_cpu" ]]; then
+  # Determine number of CPU cores (POSIX-safe)
+  if command -v nproc >/dev/null 2>&1; then
+    current_cpu=$(nproc)
+  else
+    current_cpu=$(grep -c ^processor /proc/cpuinfo)
+  fi
+  # Check if RAM or CPU is below requirement
+  if [ "$current_ram" -lt "$var_ram" ] || [ "$current_cpu" -lt "$var_cpu" ]; then
     echo -e "\n${INFO}${HOLD} ${GN}Required: ${var_cpu} CPU, ${var_ram}MB RAM ${CL}| ${RD}Current: ${current_cpu} CPU, ${current_ram}MB RAM${CL}"
     echo -e "${YWB}Please ensure that the ${APP} LXC is configured with at least ${var_cpu} vCPU and ${var_ram} MB RAM for the build process.${CL}\n"
     echo -ne "${INFO}${HOLD} May cause data loss! ${INFO} Continue update with under-provisioned LXC? <yes/No>  "
     read -r prompt
-    # Check if the input is 'yes', otherwise exit with status 1
-    if [[ ! ${prompt,,} =~ ^(yes)$ ]]; then
+
+    case "$(printf "%s" "$prompt" | tr '[:upper:]' '[:lower:]')" in
+    yes) ;;
+    *)
       echo -e "${CROSS}${HOLD} ${YWB}Exiting based on user input.${CL}"
       exit 1
-    fi
+      ;;
+    esac
   else
     echo -e ""
   fi
 }
 
 check_container_storage() {
-  # Check if the /boot partition is more than 80% full
-  total_size=$(df /boot --output=size | tail -n 1)
-  local used_size=$(df /boot --output=used | tail -n 1)
+  # Check if /boot is mounted and retrieve total and used blocks
+  if df /boot >/dev/null 2>&1; then
+    total_size=$(df /boot | awk 'NR==2 {print $2}')
+    used_size=$(df /boot | awk 'NR==2 {print $3}')
+  else
+    echo -e "${CROSS}${HOLD} ${RD}/boot partition not found or cannot be checked.${CL}"
+    exit 1
+  fi
+  # Fallback in case of invalid data
+  if [ -z "$total_size" ] || [ -z "$used_size" ]; then
+    echo -e "${CROSS}${HOLD} ${RD}Unable to determine storage usage.${CL}"
+    exit 1
+  fi
+  # Calculate disk usage percentage (integer)
   usage=$((100 * used_size / total_size))
-  if ((usage > 80)); then
-    # Prompt the user for confirmation to continue
-    echo -e "${INFO}${HOLD} ${YWB}Warning: Storage is dangerously low (${usage}%).${CL}"
+  if [ "$usage" -gt 80 ]; then
+    echo -e "${INFO}${HOLD} ${YWB}Warning: /boot storage is critically low (${usage}%).${CL}"
     echo -ne "Continue anyway? <y/N>  "
     read -r prompt
-    # Check if the input is 'y' or 'yes', otherwise exit with status 1
-    if [[ ! ${prompt,,} =~ ^(y|yes)$ ]]; then
+    case "$(printf "%s" "$prompt" | tr '[:upper:]' '[:lower:]')" in
+    y | yes) ;;
+    *)
       echo -e "${CROSS}${HOLD}${YWB}Exiting based on user input.${CL}"
       exit 1
-    fi
+      ;;
+    esac
   fi
 }
 
