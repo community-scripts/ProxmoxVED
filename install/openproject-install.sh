@@ -45,10 +45,10 @@ $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PAS
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
 {
   echo "OpenProject-Credentials"
-  echo -e "OpenProject Database User: \e[32m$DB_USER\e[0m"
-  echo -e "OpenProject Database Password: \e[32m$DB_PASS\e[0m"
-  echo -e "OpenProject Database Name: \e[32m$DB_NAME\e[0m"
-  echo -e "OpenProject API Key: \e[32m$API_KEY\e[0m"
+  echo -e "OpenProject Database User: $DB_USER"
+  echo -e "OpenProject Database Password: $DB_PASS"
+  echo -e "OpenProject Database Name: $DB_NAME"
+  echo -e "OpenProject API Key: $API_KEY"
 } >>~/openproject.creds
 msg_ok "Set up PostgreSQL"
 
