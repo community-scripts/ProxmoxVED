@@ -167,10 +167,10 @@ $STD npx playwright install-deps
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Maxun"
 
-msg_info "Running DB Migrations"
-cd /opt/maxun
-node -e "require('./server/src/db/migrate')().then(() => { console.log('Migrations completed'); })"
-msg_ok "DB Migrations completed"
+#msg_info "Running DB Migrations"
+#cd /opt/maxun
+#node -e "require('./server/src/db/migrate')().then(() => { console.log('Migrations completed'); })"
+#msg_ok "DB Migrations completed"
 
 msg_info "Setting up nginx with CORS Proxy"
 
