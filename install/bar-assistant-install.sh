@@ -34,8 +34,8 @@ msg_ok "Added PHP8.3 Repository"
 msg_info "Installing PHP"
 $STD apt-get remove -y php8.2*
 $STD apt-get install -y \
-  php8.3 \
-  php8.3-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm}
+  php8.4 \
+  php8.4-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm}
 msg_info "Installed PHP"
 
 msg_info "Installing MeiliSearch"
@@ -175,7 +175,7 @@ server {
     error_page 404 /index.php;
 
     location ~ ^/index\.php(/|$) {
-        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
         fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
         include fastcgi_params;
         fastcgi_hide_header X-Powered-By;
