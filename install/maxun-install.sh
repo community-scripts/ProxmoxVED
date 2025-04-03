@@ -160,12 +160,11 @@ EOF
 
 cat <<EOF >/usr/local/bin/update-env-ip.sh
 env_file="/opt/maxun/.env"
-ip=$(hostname -I | awk '{print $1}')
 
-sed -i "s|^BACKEND_URL=.*|BACKEND_URL=http://${ip}:8080|" "$env_file"
-sed -i "s|^PUBLIC_URL=.*|PUBLIC_URL=http://${ip}:5173|" "$env_file"
-sed -i "s|^VITE_BACKEND_URL=.*|VITE_BACKEND_URL=http://${ip}:8080|" "$env_file"
-sed -i "s|^VITE_PUBLIC_URL=.*|VITE_PUBLIC_URL=http://${ip}:5173|" "$env_file"
+sed -i "s|^BACKEND_URL=.*|BACKEND_URL=http://${LOCAL_IP}:8080|" "$env_file"
+sed -i "s|^PUBLIC_URL=.*|PUBLIC_URL=http://${LOCAL_IP}:5173|" "$env_file"
+sed -i "s|^VITE_BACKEND_URL=.*|VITE_BACKEND_URL=http://${LOCAL_IP}:8080|" "$env_file"
+sed -i "s|^VITE_PUBLIC_URL=.*|VITE_PUBLIC_URL=http://${LOCAL_IP}:5173|" "$env_file"
 EOF
 chmod +x /usr/local/bin/update-env-ip.sh
 cd /opt/maxun
