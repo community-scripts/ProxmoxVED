@@ -15,26 +15,32 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    gpg \
-    openssl \
-    redis \
-    libgbm1 \
-    libnss3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libdrm2 \
-    libxkbcommon0 \
-    libglib2.0-0 \
-    libdbus-1-3 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxi6 \
-    libxtst6 \
-    netcat
+  gpg \
+  openssl \
+  redis \
+  libgbm1 \
+  libnss3 \
+  libatk1.0-0 \
+  libatk-bridge2.0-0 \
+  libdrm2 \
+  libxkbcommon0 \
+  libglib2.0-0 \
+  libdbus-1-3 \
+  libx11-xcb1 \
+  libxcb1 \
+  libxcomposite1 \
+  libxcursor1 \
+  libxdamage1 \
+  libxext6 \
+  libxi6 \
+  libxtst6 \
+  netcat \
+  ca-certificates \
+  libxrandr2 \
+  libasound2 \
+  libxss1 \
+  libxinerama1 \
+  nginx
 msg_ok "Installed Dependencies"
 
 #configure_lxc "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it?" 100 "memory" "16000"
@@ -74,12 +80,12 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-    echo "Maxun-Credentials"
-    echo "Maxun Database User: $DB_USER"
-    echo "Maxun Database Password: $DB_PASS"
-    echo "Maxun Database Name: $DB_NAME"
-    echo "Maxun JWT Secret: $JWT_SECRET"
-    echo "Maxun Encryption Key: $ENCRYPTION_KEY"
+  echo "Maxun-Credentials"
+  echo "Maxun Database User: $DB_USER"
+  echo "Maxun Database Password: $DB_PASS"
+  echo "Maxun Database Name: $DB_NAME"
+  echo "Maxun JWT Secret: $JWT_SECRET"
+  echo "Maxun Encryption Key: $ENCRYPTION_KEY"
 } >>~/maxun.creds
 msg_ok "Set up Database"
 
@@ -108,9 +114,9 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 {
-    echo "__________________"
-    echo "MinIO Admin User: $MINIO_USER"
-    echo "MinIO Admin Password: $MINIO_PASS"
+  echo "__________________"
+  echo "MinIO Admin User: $MINIO_USER"
+  echo "MinIO Admin Password: $MINIO_PASS"
 } >>~/maxun.creds
 cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=${MINIO_USER}
@@ -167,6 +173,49 @@ cd /opt/maxun
 node -e "require('./server/src/db/migrate')().then(() => { console.log('Migrations completed'); })"
 msg_ok "DB Migrations completed"
 
+msg_info "Setting up nginx with CORS Proxy"
+
+$STD apt-get install -y nginx
+
+cat <<'EOF' >/etc/nginx/sites-available/maxun
+server {
+    listen 80;
+
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~ ^/(api|record|workflow|storage|auth|integration|proxy|api-docs) {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_http_version 1.1;
+
+        add_header Access-Control-Allow-Origin "$http_origin" always;
+        add_header Access-Control-Allow-Credentials true always;
+        add_header Access-Control-Allow-Methods GET,POST,PUT,DELETE,OPTIONS always;
+        add_header Access-Control-Allow-Headers Authorization,Content-Type,X-Requested-With always;
+
+        if ($request_method = OPTIONS) {
+            return 204;
+        }
+
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+
+        proxy_intercept_errors on;
+        error_page 502 503 504 /50x.html;
+    }
+}
+EOF
+
+ln -sf /etc/nginx/sites-available/maxun /etc/nginx/sites-enabled/maxun
+rm -f /etc/nginx/sites-enabled/default
+msg_ok "nginx with CORS Proxy set up"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/maxun.service
 [Unit]
@@ -175,7 +224,7 @@ After=network.target postgresql.service redis.service minio.service
 
 [Service]
 WorkingDirectory=/opt/maxun
-ExecStart=/usr/bin/npm run server
+ExecStart=/usr/bin/npm run start:server -- --host 0.0.0.0
 Restart=always
 EnvironmentFile=/opt/maxun/.env
 
@@ -183,6 +232,7 @@ EnvironmentFile=/opt/maxun/.env
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now maxun
+systemctl enable -q --now nginx
 msg_ok "Created Service"
 
 motd_ssh
