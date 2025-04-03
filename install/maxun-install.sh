@@ -34,7 +34,6 @@ $STD apt-get install -y \
   libxext6 \
   libxi6 \
   libxtst6 \
-  netcat \
   ca-certificates \
   libxrandr2 \
   libasound2 \
