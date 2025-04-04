@@ -37,15 +37,14 @@ function update_script() {
 
     msg_info "Updating $APP to v${RELEASE}"
     cp /opt/${APP}/.env /opt/rxresume.env
-    cd /tmp
-    wget -q "https://github.com/AmruthPillai/Reactive-Resume/archive/refs/tags/v${RELEASE}.zip"
-    unzip -q v${RELEASE}.zip
-    cp -r ${APP}-${RELEASE}/* /opt/${APP}
+    res_tmp=$(mktemp)
+    rm -rf /opt/${APP}
+    wget -q "https://github.com/AmruthPillai/Reactive-Resume/archive/refs/tags/v${RELEASE}.zip" -O $res_tmp
+    unzip -q $res_tmp
+    mv ${APP}-${RELEASE}/ /opt/${APP}
     cd /opt/${APP}
-    corepack enable
     export PUPPETEER_SKIP_DOWNLOAD="true"
     export NEXT_TELEMETRY_DISABLED=1
-    export CI="true"
     $STD pnpm install --frozen-lockfile
     $STD pnpm run build
     $STD pnpm run prisma:generate
@@ -59,35 +58,33 @@ function update_script() {
     $STD dpkg -i minio.deb
     msg_ok "Updated Minio"
 
-    msg_info "Updating Playwright"
-    $STD python3 -m pip install playwright --upgrade
-    msg_ok "Updated Playwright"
-
     msg_info "Updating Browserless (Patience)"
     systemctl stop browserless
+    cp /opt/browserless/.env /opt/browserless.env
+    rm -rf browserless
+    brwsr_tmp=$(mktemp)
     TAG=$(curl -s https://api.github.com/repos/browserless/browserless/tags?per_page=1 | grep "name" | awk '{print substr($2, 3, length($2)-4) }')
-    wget -q https://github.com/browserless/browserless/archive/refs/tags/v${TAG}.zip
-    unzip -q v${TAG}.zip
-    cp -r browserless-${TAG}/* /opt/browserless
+    wget -q https://github.com/browserless/browserless/archive/refs/tags/v${TAG}.zip -O $brwsr_tmp
+    unzip -q $brwsr_tmp
+    mv browserless-${TAG}/ /opt/browserless
     cd /opt/browserless
-    $STD npm update
-    $STD node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit
-    $STD node_modules/playwright-core/cli.js install --force chrome msedge
+    $STD npm install
+    rm -rf src/routes/{chrome,edge,firefox,webkit}
+    $STD node_modules/playwright-core/cli.js install --with-deps chromium
     $STD npm run build
     $STD npm run build:function
     $STD npm prune production
+    mv /opt/browserless.env /opt/browserless/.env
     msg_ok "Updated Browserless"
 
-    msg_info "Starting services"
+    msg_info "Restarting services"
     systemctl start minio Reactive-Resume browserless
-    msg_ok "Started services"
+    msg_ok "Restarted services"
 
     msg_info "Cleaning Up"
     rm -f /tmp/minio.deb
-    rm -f /tmp/v${RELEASE}.zip
-    rm -f /tmp/v${TAG}.zip
-    rm -rf /tmp/${APP}-${RELEASE}
-    rm -rf /tmp/browserless-${TAG}
+    rm -f $brwsr_tmp
+    rm -f $res_tmp
     msg_ok "Cleanup Completed"
 
     echo "${RELEASE}" >/opt/${APP}_version.txt
