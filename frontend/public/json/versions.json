@@ -2,12 +2,47 @@
   {
     "name": "fhem/fhem-mirror",
     "version": "6.2",
-    "date": "2025-04-03T10:34:03Z"
+    "date": "2025-04-04T10:34:30Z"
   },
   {
     "name": "dgtlmoon/changedetection.io",
-    "version": "0.49.10",
-    "date": "2025-04-03T09:17:54Z"
+    "version": "0.49.12",
+    "date": "2025-04-04T07:31:08Z"
+  },
+  {
+    "name": "morpheus65535/bazarr",
+    "version": "v1.5.1",
+    "date": "2025-01-01T16:15:52Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.1726",
+    "date": "2025-04-04T05:59:26Z"
+  },
+  {
+    "name": "keycloak/keycloak",
+    "version": "26.1.4",
+    "date": "2025-03-13T15:41:42Z"
+  },
+  {
+    "name": "minio/minio",
+    "version": "RELEASE.2025-04-03T14-56-28Z",
+    "date": "2025-04-03T19:08:18Z"
+  },
+  {
+    "name": "fallenbagel/jellyseerr",
+    "version": "v2.5.2",
+    "date": "2025-04-03T17:40:17Z"
+  },
+  {
+    "name": "wazuh/wazuh",
+    "version": "v4.11.2",
+    "date": "2025-04-02T13:40:18Z"
+  },
+  {
+    "name": "OctoPrint/OctoPrint",
+    "version": "1.10.3",
+    "date": "2024-11-05T09:20:50Z"
   },
   {
     "name": "syncthing/syncthing",
@@ -30,11 +65,6 @@
     "date": "2025-04-03T06:49:38Z"
   },
   {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.1722",
-    "date": "2025-04-03T05:51:10Z"
-  },
-  {
     "name": "mattermost/mattermost",
     "version": "server/public/v0.1.11",
     "date": "2025-03-28T14:04:31Z"
@@ -46,18 +76,13 @@
   },
   {
     "name": "ollama/ollama",
-    "version": "v0.6.3-rc1",
-    "date": "2025-03-26T20:39:01Z"
+    "version": "v0.6.4",
+    "date": "2025-04-02T22:14:24Z"
   },
   {
     "name": "HabitRPG/habitica",
     "version": "v5.35.1",
     "date": "2025-04-02T21:49:00Z"
-  },
-  {
-    "name": "keycloak/keycloak",
-    "version": "26.1.4",
-    "date": "2025-03-13T15:41:42Z"
   },
   {
     "name": "redis/redis",
@@ -100,11 +125,6 @@
     "date": "2025-04-02T14:07:12Z"
   },
   {
-    "name": "wazuh/wazuh",
-    "version": "v4.11.2",
-    "date": "2025-04-02T13:40:18Z"
-  },
-  {
     "name": "zwave-js/zwave-js-ui",
     "version": "v10.1.4",
     "date": "2025-04-02T09:38:52Z"
@@ -123,11 +143,6 @@
     "name": "icereed/paperless-gpt",
     "version": "v0.14.3",
     "date": "2025-04-01T19:53:18Z"
-  },
-  {
-    "name": "fallenbagel/jellyseerr",
-    "version": "preview-music-support",
-    "date": "2025-04-01T19:04:25Z"
   },
   {
     "name": "Koenkk/zigbee2mqtt",
@@ -168,11 +183,6 @@
     "name": "theonedev/onedev",
     "version": "v11.8.6",
     "date": "2025-04-01T13:52:03Z"
-  },
-  {
-    "name": "OctoPrint/OctoPrint",
-    "version": "1.10.3",
-    "date": "2024-11-05T09:20:50Z"
   },
   {
     "name": "semaphoreui/semaphore",
@@ -430,11 +440,6 @@
     "date": "2025-03-27T08:24:55Z"
   },
   {
-    "name": "morpheus65535/bazarr",
-    "version": "v1.5.1",
-    "date": "2025-01-01T16:15:52Z"
-  },
-  {
     "name": "openobserve/openobserve",
     "version": "v0.14.5-rc6",
     "date": "2025-03-27T05:15:49Z"
@@ -463,10 +468,5 @@
     "name": "grafana/grafana",
     "version": "v11.6.0",
     "date": "2025-03-25T22:10:15Z"
-  },
-  {
-    "name": "Stirling-Tools/Stirling-PDF",
-    "version": "v0.45.0",
-    "date": "2025-03-25T18:48:17Z"
   }
 ]
