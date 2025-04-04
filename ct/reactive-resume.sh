@@ -43,10 +43,8 @@ function update_script() {
     unzip -q $res_tmp
     mv ${APP}-${RELEASE}/ /opt/${APP}
     cd /opt/${APP}
-    corepack enable
     export PUPPETEER_SKIP_DOWNLOAD="true"
     export NEXT_TELEMETRY_DISABLED=1
-    export CI="true"
     $STD pnpm install --frozen-lockfile
     $STD pnpm run build
     $STD pnpm run prisma:generate
