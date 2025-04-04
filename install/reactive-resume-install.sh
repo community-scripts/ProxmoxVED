@@ -20,9 +20,7 @@ $STD apt-get install -y \
   mc \
   gnupg \
   unzip \
-  postgresql-common \
-  python3-pip
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
+  postgresql-common
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Additional Dependencies"
@@ -58,24 +56,25 @@ unzip -q v${RELEASE}.zip
 mv ${APPLICATION}-${RELEASE}/ /opt/${APPLICATION}
 cd /opt/${APPLICATION}
 corepack enable
-export PUPPETEER_SKIP_DOWNLOAD="true"
-export NEXT_TELEMETRY_DISABLED=1
 export CI="true"
+export PUPPETEER_SKIP_DOWNLOAD="true"
+export NODE_ENV="production"
+export NEXT_TELEMETRY_DISABLED=1
 $STD pnpm install --frozen-lockfile
 $STD pnpm run build
+$STD pnpm install --prod --frozen-lockfile
 $STD pnpm run prisma:generate
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Installing Browserless (Patience)"
 cd /tmp
-$STD python3 -m pip install playwright
 wget -q https://github.com/browserless/browserless/archive/refs/tags/v${TAG}.zip
 unzip -q v${TAG}.zip
 mv browserless-${TAG} /opt/browserless
 cd /opt/browserless
 $STD npm install
-$STD node_modules/playwright-core/cli.js install --with-deps chromium firefox webkit
-$STD node_modules/playwright-core/cli.js install --force chrome msedge
+rm -rf src/routes/{chrome,edge,firefox,webkit}
+$STD node_modules/playwright-core/cli.js install --with-deps chromium
 $STD npm run build
 $STD npm run build:function
 $STD npm prune production
@@ -187,6 +186,7 @@ customize
 
 msg_info "Cleaning up"
 rm -f /tmp/v${RELEASE}.zip
+rm -f /tmp/v${TAG}.zip
 rm -f /tmp/minio.deb
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
