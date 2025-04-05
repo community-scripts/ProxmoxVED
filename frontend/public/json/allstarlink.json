@@ -1,14 +1,14 @@
 {
     "name": "AllStarLink",
-    "slug": "allstarlink",
+    "slug": "allstarlink-vm",
     "categories": [
         24
     ],
     "date_created": "2025-3-30",
-    "type": "ct",
+    "type": "vm",
     "updateable": true,
     "privileged": false,
-    "interface_port": 80,
+    "interface_port": null,
     "documentation": "https://allstarlink.github.io/",
     "website": "https://www.allstarlink.org/",
     "logo": "https://raw.githubusercontent.com/AllStarLink/ASL3-Manual/blob/main/docs/assets/allstar-logo-small.png",
@@ -16,10 +16,10 @@
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/allstarlink.sh",
+            "script": "vm/allstarlink-vm.sh",
             "resources": {
-                "cpu": 1,
-                "ram": 512,
+                "cpu": 2,
+                "ram": 2048,
                 "hdd": 8,
                 "os": "debian",
                 "version": "12"
@@ -31,9 +31,9 @@
         "password": null
     },
     "notes": [
-      {
-        "text": "Options to Install Allmon3",
-        "type": "info"
-      }
+        {
+            "text": "Options to Install Allmon3",
+            "type": "info"
+        }
     ]
 }
