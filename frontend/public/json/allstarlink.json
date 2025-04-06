@@ -6,7 +6,7 @@
     ],
     "date_created": "2025-3-30",
     "type": "vm",
-    "updateable": true,
+    "updateable": false,
     "privileged": false,
     "interface_port": null,
     "documentation": "https://allstarlink.github.io/",

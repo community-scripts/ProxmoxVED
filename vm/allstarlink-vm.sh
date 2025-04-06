@@ -442,13 +442,6 @@ if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno 
     msg_ok "Installed Allmon3"
 fi
 
-msg_info "Installing Update Script"
-virt-customize -q -a "${FILE}" \
-    --touch /usr/bin/update \
-    --write /usr/bin/update:"bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/vm/update/allstarlink.sh)\"" \
-    --chmod 755:/usr/bin/update  >/dev/null
-msg_ok "Installed  Update Script"
-
 msg_info "Creating a AllStarLink VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
     -name $HN -tags community-script,debian12,allstarlink -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
