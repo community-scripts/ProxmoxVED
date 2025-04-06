@@ -119,6 +119,11 @@ update_installation() {
   msg_info "Updating IP-Tag Scripts"
   systemctl stop iptag.service &>/dev/null
   
+  # Create directory if it doesn't exist
+  if [[ ! -d "/opt/iptag" ]]; then
+    mkdir -p /opt/iptag
+  fi
+  
   # Migrate config if needed
   migrate_config
   
@@ -287,6 +292,22 @@ check_status_changed() {
   return 0
 }
 
+# Update tags for all containers/VMs of specified type
+update_all_tags() {
+  local type="$1"
+  local vmid_list=""
+  
+  if [[ "$type" == "lxc" ]]; then
+    vmid_list=$(pct list 2>/dev/null | grep -v VMID | awk '{print $1}')
+  else
+    vmid_list=$(qm list 2>/dev/null | grep -v VMID | awk '{print $1}')
+  fi
+  
+  for vmid in $vmid_list; do
+    update_tags "$type" "$vmid"
+  done
+}
+
 check() {
   current_time=$(date +%s)
   
@@ -297,7 +318,7 @@ check() {
     echo "Checking lxc status..."
     last_lxc_status_check_time=${current_time}
     if check_status_changed "lxc"; then
-      update_tags "lxc" "${vmid}"
+      update_all_tags "lxc"
       last_update_lxc_time=${current_time}
     fi
   fi
@@ -309,7 +330,7 @@ check() {
     echo "Checking vm status..."
     last_vm_status_check_time=${current_time}
     if check_status_changed "vm"; then
-      update_tags "vm" "${vmid}"
+      update_all_tags "vm"
       last_update_vm_time=${current_time}
     fi
   fi
@@ -321,8 +342,8 @@ check() {
     echo "Checking fw net interface..."
     last_fw_net_interface_check_time=${current_time}
     if check_status_changed "fw"; then
-      update_tags "lxc" "${vmid}"
-      update_tags "vm" "${vmid}"
+      update_all_tags "lxc"
+      update_all_tags "vm"
       last_update_lxc_time=${current_time}
       last_update_vm_time=${current_time}
     fi
@@ -334,10 +355,7 @@ check() {
     local time_since_last_update=$((current_time - ${!last_update_var}))
     if [ ${time_since_last_update} -ge ${FORCE_UPDATE_INTERVAL} ]; then
       echo "Force updating ${type} iptags..."
-      case "$type" in
-        "lxc") update_tags "lxc" "${vmid}" ;;
-        "vm") update_tags "vm" "${vmid}" ;;
-      esac
+      update_all_tags "$type"
       eval "${last_update_var}=${current_time}"
     fi
   done
@@ -614,7 +632,7 @@ check() {
     echo "Checking lxc status..."
     last_lxc_status_check_time=${current_time}
     if check_status_changed "lxc"; then
-      update_tags "lxc" "${vmid}"
+      update_all_tags "lxc"
       last_update_lxc_time=${current_time}
     fi
   fi
@@ -626,7 +644,7 @@ check() {
     echo "Checking vm status..."
     last_vm_status_check_time=${current_time}
     if check_status_changed "vm"; then
-      update_tags "vm" "${vmid}"
+      update_all_tags "vm"
       last_update_vm_time=${current_time}
     fi
   fi
@@ -638,8 +656,8 @@ check() {
     echo "Checking fw net interface..."
     last_fw_net_interface_check_time=${current_time}
     if check_status_changed "fw"; then
-      update_tags "lxc" "${vmid}"
-      update_tags "vm" "${vmid}"
+      update_all_tags "lxc"
+      update_all_tags "vm"
       last_update_lxc_time=${current_time}
       last_update_vm_time=${current_time}
     fi
@@ -651,10 +669,7 @@ check() {
     local time_since_last_update=$((current_time - ${!last_update_var}))
     if [ ${time_since_last_update} -ge ${FORCE_UPDATE_INTERVAL} ]; then
       echo "Force updating ${type} iptags..."
-      case "$type" in
-        "lxc") update_tags "lxc" "${vmid}" ;;
-        "vm") update_tags "vm" "${vmid}" ;;
-      esac
+      update_all_tags "$type"
       eval "${last_update_var}=${current_time}"
     fi
   done
