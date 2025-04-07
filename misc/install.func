@@ -288,6 +288,7 @@ fetch_and_deploy_gh_release() {
 
   # ensure that jq is installed
   if ! command -v jq &>/dev/null; then
+    $STD msg_info "Installing jq..."
     apt-get update -qq &>/dev/null
     apt-get install -y jq &>/dev/null || {
       msg_error "Failed to install jq"
@@ -350,34 +351,40 @@ fetch_and_deploy_gh_release() {
   local tmpdir
   tmpdir=$(mktemp -d) || return 1
 
-  #  determine platform for OS/Arch or use tarball
-  local os="Linux"
-  local arch="$(uname -m)"
-  case "$arch" in
-  x86_64 | amd64) arch="x86_64" ;;
-  aarch64 | arm64) arch="arm64" ;;
-  armv7l) arch="armv7" ;;
-  armv6l) arch="armv6" ;;
-  *)
-    msg_error "Unsupported architecture: $arch"
+  # Liste der Assets aus der Release-API extrahieren
+  local assets urls
+  assets=$(echo "$api_response" | jq -r '.assets[].browser_download_url') || true
+
+  local url=""
+  for u in $assets; do
+    if [[ "$u" =~ (x86_64|amd64|arm64|armv7|armv6).*\.tar\.gz$ ]]; then
+      url="$u"
+      break
+    fi
+  done
+
+  if [[ -z "$url" ]]; then
+    for u in $assets; do
+      if [[ "$u" =~ \.tar\.gz$ ]]; then
+        url="$u"
+        break
+      fi
+    done
+  fi
+
+  if [[ -z "$url" ]]; then
+    msg_error "No suitable .tar.gz release asset found for $repo"
+    rm -rf "$tmpdir"
     return 1
-    ;;
-  esac
+  fi
 
-  local filename="${app}_v${version}_${os}_${arch}.tar.gz"
-  local url="$base_url/$filename"
-
-  $STD msg_info "Trying download: $url"
+  local filename="${url##*/}"
+  $STD msg_info "Downloading $url"
 
   if ! curl -fsSL -o "$tmpdir/$filename" "$url"; then
-    $STD msg_info "Falling back to generic tarball..."
-    filename="${app}.tar.gz"
-    url="$base_url/$filename"
-    if ! curl -fsSL -o "$tmpdir/$filename" "$url"; then
-      msg_error "Failed to download .tar.gz from both $url and platform-specific fallback."
-      rm -rf "$tmpdir"
-      return 1
-    fi
+    msg_error "Failed to download $filename from $url"
+    rm -rf "$tmpdir"
+    return 1
   fi
 
   mkdir -p "/opt/$app"
