@@ -346,8 +346,11 @@ fetch_and_deploy_gh_release() {
   fi
 
   local version="$tag"
+  local base_url="https://github.com/$repo/releases/download/v$tag"
+  local tmpdir
+  tmpdir=$(mktemp -d) || return 1
 
-  # determine platform
+  #  determine platform for OS/Arch or use tarball
   local os="Linux"
   local arch="$(uname -m)"
   case "$arch" in
@@ -362,17 +365,19 @@ fetch_and_deploy_gh_release() {
   esac
 
   local filename="${app}_v${version}_${os}_${arch}.tar.gz"
-  local url="https://github.com/$repo/releases/download/v${version}/$filename"
+  local url="$base_url/$filename"
 
-  $STD msg_info "Downloading $url"
-
-  local tmpdir
-  tmpdir=$(mktemp -d) || return 1
+  $STD msg_info "Trying download: $url"
 
   if ! curl -fsSL -o "$tmpdir/$filename" "$url"; then
-    msg_error "Failed to download .tar.gz from $url"
-    rm -rf "$tmpdir"
-    return 1
+    $STD msg_info "Falling back to generic tarball..."
+    filename="${app}.tar.gz"
+    url="$base_url/$filename"
+    if ! curl -fsSL -o "$tmpdir/$filename" "$url"; then
+      msg_error "Failed to download .tar.gz from both $url and platform-specific fallback."
+      rm -rf "$tmpdir"
+      return 1
+    fi
   fi
 
   mkdir -p "/opt/$app"
@@ -392,8 +397,6 @@ fetch_and_deploy_gh_release() {
   fi
 
   echo "$version" >"/opt/${app}_version.txt"
-
   $STD msg_ok "Deployed $app v$version to /opt/$app"
-
   rm -rf "$tmpdir"
 }
