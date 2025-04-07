@@ -434,19 +434,14 @@ fetch_and_deploy_gh_release() {
   fi
 
   mkdir -p "/opt/$app"
-  local extracted=false
-  if tar -tzf "$tmpdir/$filename" | grep -q '/'; then
-    if tar -xzf "$tmpdir/$filename" -C "/opt/$app" --strip-components=1; then
-      extracted=true
-    fi
-  fi
 
-  if [[ $extracted != true ]]; then
-    if ! tar -xzf "$tmpdir/$filename" -C "/opt/$app"; then
-      msg_error "Failed to extract archive for $app"
-      rm -rf "$tmpdir"
-      return 1
-    fi
+  tar -xzf "$tmpdir/$filename" -C "$tmpdir"
+  local content_root
+  content_root=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d)
+  if [[ $(echo "$content_root" | wc -l) -eq 1 ]]; then
+    cp -r "$content_root"/* "/opt/$app/"
+  else
+    cp -r "$tmpdir"/* "/opt/$app/"
   fi
 
   echo "$version" >"/opt/${app}_version.txt"
