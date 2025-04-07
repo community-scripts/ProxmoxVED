@@ -420,7 +420,7 @@ fetch_and_deploy_gh_release() {
 
   # Final fallback to GitHub source tarball
   if [[ -z "$url" ]]; then
-    url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
+    url="https://github.com/$repo/archive/refs/tags/$version.tar.gz"
     $STD msg_info "Trying GitHub source tarball fallback: $url"
   fi
 
