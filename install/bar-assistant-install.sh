@@ -113,8 +113,8 @@ mv /opt/vue-salt-rim-${RELEASE_SALTRIM}/ /opt/vue-salt-rim
 cd /opt/vue-salt-rim
 cat <<EOF >/opt/vue-salt-rim/public/config.js
 window.srConfig = {}
-window.srConfig.API_URL = "http://${LOCAL_IP}/bar/"
-window.srConfig.MEILISEARCH_URL = "http://${LOCAL_IP}/search/"
+window.srConfig.API_URL = "http://${LOCAL_IP}/bar"
+window.srConfig.MEILISEARCH_URL = "http://${LOCAL_IP}/search"
 EOF
 $STD npm install
 $STD npm run build

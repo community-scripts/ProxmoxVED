@@ -15,13 +15,10 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
   gnupg \
   unzip \
-  postgresql-common \
-  msg_ok "Installed Dependencies"
+  postgresql-common
+msg_ok "Installed Dependencies"
 
 msg_info "Installing Additional Dependencies"
 mkdir -p /etc/apt/keyrings
@@ -186,6 +183,7 @@ customize
 
 msg_info "Cleaning up"
 rm -f /tmp/v${RELEASE}.zip
+rm -f /tmp/v${TAG}.zip
 rm -f /tmp/minio.deb
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean

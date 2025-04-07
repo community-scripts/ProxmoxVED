@@ -45,6 +45,8 @@ function update_script() {
     cd /opt/${APP}
     export PUPPETEER_SKIP_DOWNLOAD="true"
     export NEXT_TELEMETRY_DISABLED=1
+    export CI="true"
+    export NODE_ENV="production"
     $STD pnpm install --frozen-lockfile
     $STD pnpm run build
     $STD pnpm run prisma:generate
