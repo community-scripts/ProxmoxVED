@@ -282,21 +282,32 @@ get_gh_release() {
   local header=()
   local attempt=0
   local max_attempts=3
-  local api_response tag
+  local api_response tag http_code
 
   echo "🔍 Checking latest release for: $repo"
 
   [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
   until [[ $attempt -ge $max_attempts ]]; do
-    ((attempt++))
+    ((attempt++)) || true
     $STD msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo...\n"
 
-    if ! api_response=$(curl -fsSL "${header[@]}" "$api_url"); then
-      $STD msg_info "Request failed, retrying...\n"
+    # Hole HTTP-Status explizit
+    api_response=$(curl -fsSL -w "%{http_code}" -o /tmp/gh_resp.json "${header[@]}" "$api_url")
+    http_code="${api_response:(-3)}"
+
+    if [[ "$http_code" == "404" ]]; then
+      msg_error "Repository $repo hat kein Release (404)"
+      return 1
+    fi
+
+    if [[ "$http_code" != "200" ]]; then
+      $STD msg_info "Request failed with HTTP $http_code, retrying...\n"
       sleep 2
       continue
     fi
+
+    api_response=$(</tmp/gh_resp.json)
 
     if echo "$api_response" | grep -q "API rate limit exceeded"; then
       msg_error "GitHub API rate limit exceeded."
