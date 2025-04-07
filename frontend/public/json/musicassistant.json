@@ -1,0 +1,34 @@
+{
+  "name": "MusicAssistant",
+  "slug": "musicassistant",
+  "categories": [
+    13
+  ],
+  "date_created": "2025-04-07",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": 8095,
+  "documentation": "https://www.music-assistant.io/",
+  "website": "https://github.com/music-assistant/server",
+  "logo": "https://raw.githubusercontent.com/selfhst/icons/refs/heads/main/svg/music-assistant.svg",
+  "description": "Music Assistant is a free, opensource Media library manager that connects to your streaming services and a wide range of connected speakers. The server is the beating heart, the core of Music Assistant and must run on an always-on device like a Raspberry Pi, a NAS or an Intel NUC or alike.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/musicassistant.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 5,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
