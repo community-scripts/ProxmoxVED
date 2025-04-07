@@ -34,10 +34,11 @@ msg_ok "Setup Python3"
 
 msg_info "Setup Music Assistant"
 fetch_and_deploy_gh_release music-assistant/server
-python3 -m venv /opt/musicassistant/venv
-source /opt/musicassistant/venv/bin/activate
-pip install --upgrade pip setuptools wheel
-pip install .
+cd /opt/musicassistant
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip uv
+uv pip install .
 msg_ok "Setup Music Assistant"
 
 msg_info "Creating systemd service"
