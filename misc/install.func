@@ -280,24 +280,22 @@ fetch_and_deploy_gh_release() {
   local app="${repo##*/}"
   local api_url="https://api.github.com/repos/$repo/releases/latest"
   local header=()
-  local tmpdir tmpfile tag asset_url http_code
-  local max_attempts=3
   local attempt=0
+  local max_attempts=3
+  local api_response tag http_code
 
   echo "🔍 Checking latest release for: $repo"
-  [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
-  tmpfile=$(mktemp)
-  tmpdir=$(mktemp -d)
+  [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
   until [[ $attempt -ge $max_attempts ]]; do
     ((attempt++)) || true
     $STD msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo...\n"
 
-    http_code=$(curl -sSL -w "%{http_code}" -o "$tmpfile" "${header[@]}" "$api_url")
+    api_response=$(curl -fsSL -w "%{http_code}" -o /tmp/gh_resp.json "${header[@]}" "$api_url")
+    http_code="${api_response:(-3)}"
 
     if [[ "$http_code" == "404" ]]; then
-      rm -f "$tmpfile"
       msg_error "Repository $repo has no Release candidate (404)"
       return 1
     fi
@@ -308,61 +306,76 @@ fetch_and_deploy_gh_release() {
       continue
     fi
 
-    if grep -q "API rate limit exceeded" "$tmpfile"; then
-      rm -f "$tmpfile"
+    api_response=$(</tmp/gh_resp.json)
+
+    if echo "$api_response" | grep -q "API rate limit exceeded"; then
       msg_error "GitHub API rate limit exceeded."
       return 1
     fi
 
-    if jq -e '.message == "Not Found"' "$tmpfile" &>/dev/null; then
-      rm -f "$tmpfile"
+    if echo "$api_response" | jq -e '.message == "Not Found"' &>/dev/null; then
       msg_error "Repository not found: $repo"
       return 1
     fi
 
-    tag=$(jq -r '.tag_name // .name // empty' "$tmpfile")
+    tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
     [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
-    asset_url=$(jq -r '.assets[] | select(.browser_download_url | endswith(".tar.gz")) | .browser_download_url' "$tmpfile")
 
-    if [[ -z "$tag" || -z "$asset_url" ]]; then
-      $STD msg_info "Empty tag or missing .tar.gz asset, retrying...\n"
+    if [[ -z "$tag" ]]; then
+      $STD msg_info "Empty tag received, retrying...\n"
       sleep 2
       continue
     fi
 
-    rm -f "$tmpfile"
     $STD msg_ok "Found release: $tag for $repo"
     break
   done
 
-  if [[ $attempt -ge $max_attempts ]]; then
-    rm -f "$tmpfile"
-    msg_error "Failed to fetch release info for $repo after $max_attempts attempts."
+  if [[ -z "$tag" ]]; then
+    msg_error "Failed to fetch release for $repo after $max_attempts attempts."
+    exit 1
+  fi
+
+  local version="$tag"
+
+  # Bestimme Plattform
+  local os="Linux"
+  local arch="$(uname -m)"
+  case "$arch" in
+  x86_64 | amd64) arch="x86_64" ;;
+  aarch64 | arm64) arch="arm64" ;;
+  armv7l) arch="armv7" ;;
+  armv6l) arch="armv6" ;;
+  *)
+    msg_error "Unsupported architecture: $arch"
+    return 1
+    ;;
+  esac
+
+  local filename="${app}_v${version}_${os}_${arch}.tar.gz"
+  local url="https://github.com/$repo/releases/download/v${version}/$filename"
+
+  $STD msg_info "Downloading $url"
+
+  local tmpdir
+  tmpdir=$(mktemp -d) || return 1
+
+  if ! curl -fsSL -o "$tmpdir/$filename" "$url"; then
+    msg_error "Failed to download .tar.gz from $url"
+    rm -rf "$tmpdir"
     return 1
   fi
 
-  # Download .tar.gz
-  $STD msg_info "Downloading $asset_url..."
-  curl -fsSL -o "$tmpdir/${app}.tar.gz" "$asset_url" || {
-    rm -rf "$tmpdir"
-    msg_error "Failed to download .tar.gz from $asset_url"
-    return 1
-  }
-
-  # Cleanup target dir
-  rm -rf "/opt/$app"
   mkdir -p "/opt/$app"
-
-  # Extract
-  tar -xzf "$tmpdir/${app}.tar.gz" -C "/opt/$app" --strip-components=1 || {
+  if ! tar -xzf "$tmpdir/$filename" -C "/opt/$app" --strip-components=1; then
+    msg_error "Failed to extract archive for $app"
     rm -rf "$tmpdir"
-    msg_error "Failed to extract archive"
     return 1
-  }
+  fi
 
-  # Write version
-  echo "$tag" >"/opt/${app}_version.txt"
+  echo "$version" >"/opt/${app}_version.txt"
+
+  $STD msg_ok "Deployed $app v$version to /opt/$app"
 
   rm -rf "$tmpdir"
-  $STD msg_ok "Deployed $app to /opt/$app and wrote version $tag"
 }
