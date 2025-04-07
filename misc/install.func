@@ -286,8 +286,6 @@ fetch_and_deploy_gh_release() {
   local current_version=""
   local curl_timeout="--connect-timeout 10 --max-time 30"
 
-  echo "🔍 Checking latest release for: $repo"
-
   # Check if the app directory exists and if there's a version file
   if [[ -f "/opt/${app}_version.txt" ]]; then
     current_version=$(cat "/opt/${app}_version.txt")

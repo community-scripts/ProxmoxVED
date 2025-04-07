@@ -58,8 +58,6 @@ RestartForceExitStatus=100
 [Install]
 WantedBy=multi-user.target
 EOF
-
-systemctl daemon-reexec
 systemctl enable -q --now musicassistant
 msg_ok "Started Music Assistant"
 
