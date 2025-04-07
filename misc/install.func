@@ -275,7 +275,7 @@ EOF
   fi
 }
 
-get_gh_release() {
+fetch_and_deploy_gh_release() {
   local repo="$1"
   local app="${repo##*/}"
   local api_url="https://api.github.com/repos/$repo/releases/latest"
