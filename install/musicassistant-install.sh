@@ -33,12 +33,12 @@ rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
 msg_ok "Setup Python3"
 
 msg_info "Setup Music Assistant"
-fetch_and_deploy_gh_release music-assistant/server
+$STD fetch_and_deploy_gh_release music-assistant/server
 cd /opt/musicassistant
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip uv
-uv pip install .
+$STD python3 -m venv .venv
+$STD source .venv/bin/activate
+$STD pip install --upgrade pip uv
+$STD uv pip install .
 msg_ok "Setup Music Assistant"
 
 msg_info "Creating systemd service"
@@ -50,8 +50,8 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/musicassistant
-Environment="PATH=/opt/musicassistant/venv/bin"
-ExecStart=/opt/musicassistant/venv/bin/mass
+Environment="PATH=/opt/musicassistant/.venv/bin"
+ExecStart=/opt/musicassistant/.venv/bin/mass
 Restart=always
 RestartForceExitStatus=100
 
