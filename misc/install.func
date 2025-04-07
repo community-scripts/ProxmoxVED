@@ -372,25 +372,18 @@ fetch_and_deploy_gh_release() {
     done
   fi
 
-  local filename=""
-
-  if [[ -n "$url" ]]; then
-    filename="${url##*/}"
-    $STD msg_info "Downloading $url"
-    if ! curl -f#SL -o "$tmpdir/$filename" "$url"; then
-      msg_error "Failed to download $filename from $url"
-      rm -rf "$tmpdir"
-      return 1
-    fi
-  else
+  if [[ -z "$url" ]]; then
     url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
-    filename="source.tar.gz"
     $STD msg_info "Trying GitHub source tarball fallback: $url"
-    if ! curl -f#SL -o "$tmpdir/$filename" "$url"; then
-      msg_error "No suitable .tar.gz release asset or fallback source tarball found for $repo"
-      rm -rf "$tmpdir"
-      return 1
-    fi
+  fi
+
+  local filename="${url##*/}"
+  $STD msg_info "Downloading $url"
+
+  if ! curl -fsSL -o "$tmpdir/$filename" "$url"; then
+    msg_error "No suitable .tar.gz release asset or fallback source tarball found for $repo"
+    rm -rf "$tmpdir"
+    return 1
   fi
 
   mkdir -p "/opt/$app"
