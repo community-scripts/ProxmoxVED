@@ -34,8 +34,8 @@ msg_ok "Setup Python3"
 
 msg_info "Setup Music Assistant"
 fetch_and_deploy_gh_release music-assistant/server
-python3 -m venv /opt/server/venv
-source /opt/server/venv/bin/activate
+python3 -m venv /opt/musicassistant/venv
+source /opt/musicassistant/venv/bin/activate
 pip install --upgrade pip setuptools wheel
 pip install .
 msg_ok "Setup Music Assistant"
@@ -48,9 +48,9 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/server
-Environment="PATH=/opt/server/venv/bin"
-ExecStart=/opt/server/venv/bin/mass
+WorkingDirectory=/opt/musicassistant
+Environment="PATH=/opt/musicassistant/venv/bin"
+ExecStart=/opt/musicassistant/venv/bin/mass
 Restart=always
 RestartForceExitStatus=100
 
