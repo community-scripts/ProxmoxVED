@@ -280,15 +280,15 @@ get_gh_release() {
   local app="${repo##*/}"
   local api_url="https://api.github.com/repos/$repo/releases/latest"
   local header=()
-  local attempt=0
+  local tmpdir tmpfile tag asset_url http_code
   local max_attempts=3
-  local tag
-  local tmpfile http_code
+  local attempt=0
 
   echo "🔍 Checking latest release for: $repo"
   [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
   tmpfile=$(mktemp)
+  tmpdir=$(mktemp -d)
 
   until [[ $attempt -ge $max_attempts ]]; do
     ((attempt++)) || true
@@ -299,7 +299,7 @@ get_gh_release() {
     if [[ "$http_code" == "404" ]]; then
       rm -f "$tmpfile"
       msg_error "Repository $repo has no Release candidate (404)"
-      exit 1
+      return 1
     fi
 
     if [[ "$http_code" != "200" ]]; then
@@ -311,31 +311,58 @@ get_gh_release() {
     if grep -q "API rate limit exceeded" "$tmpfile"; then
       rm -f "$tmpfile"
       msg_error "GitHub API rate limit exceeded."
-      exit 1
+      return 1
     fi
 
     if jq -e '.message == "Not Found"' "$tmpfile" &>/dev/null; then
       rm -f "$tmpfile"
       msg_error "Repository not found: $repo"
-      exit 1
+      return 1
     fi
 
     tag=$(jq -r '.tag_name // .name // empty' "$tmpfile")
     [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
+    asset_url=$(jq -r '.assets[] | select(.browser_download_url | endswith(".tar.gz")) | .browser_download_url' "$tmpfile")
 
-    if [[ -z "$tag" ]]; then
-      $STD msg_info "Empty tag received, retrying...\n"
+    if [[ -z "$tag" || -z "$asset_url" ]]; then
+      $STD msg_info "Empty tag or missing .tar.gz asset, retrying...\n"
       sleep 2
       continue
     fi
 
     rm -f "$tmpfile"
     $STD msg_ok "Found release: $tag for $repo"
-    echo "$tag"
-    return 0
+    break
   done
 
-  rm -f "$tmpfile"
-  msg_error "Failed to fetch release for $repo after $max_attempts attempts."
-  exit 1
+  if [[ $attempt -ge $max_attempts ]]; then
+    rm -f "$tmpfile"
+    msg_error "Failed to fetch release info for $repo after $max_attempts attempts."
+    return 1
+  fi
+
+  # Download .tar.gz
+  $STD msg_info "Downloading $asset_url..."
+  curl -fsSL -o "$tmpdir/${app}.tar.gz" "$asset_url" || {
+    rm -rf "$tmpdir"
+    msg_error "Failed to download .tar.gz from $asset_url"
+    return 1
+  }
+
+  # Cleanup target dir
+  rm -rf "/opt/$app"
+  mkdir -p "/opt/$app"
+
+  # Extract
+  tar -xzf "$tmpdir/${app}.tar.gz" -C "/opt/$app" --strip-components=1 || {
+    rm -rf "$tmpdir"
+    msg_error "Failed to extract archive"
+    return 1
+  }
+
+  # Write version
+  echo "$tag" >"/opt/${app}_version.txt"
+
+  rm -rf "$tmpdir"
+  $STD msg_ok "Deployed $app to /opt/$app and wrote version $tag"
 }
