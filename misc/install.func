@@ -286,6 +286,15 @@ fetch_and_deploy_gh_release() {
 
   echo "🔍 Checking latest release for: $repo"
 
+  # ensure that jq is installed
+  if ! command -v jq &>/dev/null; then
+    apt-get update -qq &>/dev/null
+    apt-get install -y jq &>/dev/null || {
+      msg_error "Failed to install jq"
+      return 1
+    }
+  fi
+
   [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
   until [[ $attempt -ge $max_attempts ]]; do
@@ -338,7 +347,7 @@ fetch_and_deploy_gh_release() {
 
   local version="$tag"
 
-  # Bestimme Plattform
+  # determine platform
   local os="Linux"
   local arch="$(uname -m)"
   case "$arch" in
