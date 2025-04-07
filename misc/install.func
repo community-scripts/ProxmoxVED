@@ -297,7 +297,7 @@ get_gh_release() {
     http_code="${api_response:(-3)}"
 
     if [[ "$http_code" == "404" ]]; then
-      msg_error "Repository $repo hat kein Release (404)"
+      msg_error "Repository $repo has no Release candidate (404)"
       return 1
     fi
 
@@ -329,10 +329,9 @@ get_gh_release() {
     fi
 
     $STD msg_ok "Found release: $tag for $repo"
-    echo "$tag"
     return 0
   done
 
   msg_error "Failed to fetch release for $repo after $max_attempts attempts."
-  return 1
+  exit 1
 }
