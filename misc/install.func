@@ -283,8 +283,16 @@ fetch_and_deploy_gh_release() {
   local attempt=0
   local max_attempts=3
   local api_response tag http_code
+  local current_version=""
+  local curl_timeout="--connect-timeout 10 --max-time 30"
 
   echo "🔍 Checking latest release for: $repo"
+
+  # Check if the app directory exists and if there's a version file
+  if [[ -f "/opt/${app}_version.txt" ]]; then
+    current_version=$(cat "/opt/${app}_version.txt")
+    $STD msg_info "Current version: $current_version"
+  fi
 
   # ensure that jq is installed
   if ! command -v jq &>/dev/null; then
@@ -302,7 +310,7 @@ fetch_and_deploy_gh_release() {
     ((attempt++)) || true
     $STD msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo...\n"
 
-    api_response=$(curl -fsSL -w "%{http_code}" -o /tmp/gh_resp.json "${header[@]}" "$api_url")
+    api_response=$(curl $curl_timeout -fsSL -w "%{http_code}" -o /tmp/gh_resp.json "${header[@]}" "$api_url")
     http_code="${api_response:(-3)}"
 
     if [[ "$http_code" == "404" ]]; then
@@ -312,7 +320,7 @@ fetch_and_deploy_gh_release() {
 
     if [[ "$http_code" != "200" ]]; then
       $STD msg_info "Request failed with HTTP $http_code, retrying...\n"
-      sleep 2
+      sleep $((attempt * 2))
       continue
     fi
 
@@ -333,7 +341,7 @@ fetch_and_deploy_gh_release() {
 
     if [[ -z "$tag" ]]; then
       $STD msg_info "Empty tag received, retrying...\n"
-      sleep 2
+      sleep $((attempt * 2))
       continue
     fi
 
@@ -346,6 +354,12 @@ fetch_and_deploy_gh_release() {
     exit 1
   fi
 
+  # Version comparison (if we already have this version, skip)
+  if [[ "$current_version" == "$tag" ]]; then
+    $STD msg_info "Already running the latest version ($tag). Skipping update."
+    return 0
+  fi
+
   local version="$tag"
   local base_url="https://github.com/$repo/releases/download/v$tag"
   local tmpdir
@@ -355,23 +369,56 @@ fetch_and_deploy_gh_release() {
   local assets urls
   assets=$(echo "$api_response" | jq -r '.assets[].browser_download_url') || true
 
+  # Detect current architecture
+  local arch
+  if command -v dpkg &>/dev/null; then
+    arch=$(dpkg --print-architecture)
+  elif command -v uname &>/dev/null; then
+    case "$(uname -m)" in
+    x86_64) arch="amd64" ;;
+    aarch64) arch="arm64" ;;
+    armv7l) arch="armv7" ;;
+    armv6l) arch="armv6" ;;
+    *) arch="unknown" ;;
+    esac
+  else
+    arch="unknown"
+  fi
+  $STD msg_info "Detected system architecture: $arch"
+
+  # Try to find a matching asset for our architecture
   local url=""
   for u in $assets; do
-    if [[ "$u" =~ (x86_64|amd64|arm64|armv7|armv6).*\.tar\.gz$ ]]; then
+    if [[ "$u" =~ $arch.*\.tar\.gz$ ]]; then
       url="$u"
+      $STD msg_info "Found matching architecture asset: $url"
       break
     fi
   done
 
+  # Fallback to other architectures if our specific one isn't found
   if [[ -z "$url" ]]; then
     for u in $assets; do
-      if [[ "$u" =~ \.tar\.gz$ ]]; then
+      if [[ "$u" =~ (x86_64|amd64|arm64|armv7|armv6).*\.tar\.gz$ ]]; then
         url="$u"
+        $STD msg_info "Architecture-specific asset not found, using: $url"
         break
       fi
     done
   fi
 
+  # Fallback to any tar.gz
+  if [[ -z "$url" ]]; then
+    for u in $assets; do
+      if [[ "$u" =~ \.tar\.gz$ ]]; then
+        url="$u"
+        $STD msg_info "Using generic tarball: $url"
+        break
+      fi
+    done
+  fi
+
+  # Final fallback to GitHub source tarball
   if [[ -z "$url" ]]; then
     url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
     $STD msg_info "Trying GitHub source tarball fallback: $url"
@@ -380,8 +427,8 @@ fetch_and_deploy_gh_release() {
   local filename="${url##*/}"
   $STD msg_info "Downloading $url"
 
-  if ! curl -fsSL -o "$tmpdir/$filename" "$url"; then
-    msg_error "No suitable .tar.gz release asset or fallback source tarball found for $repo"
+  if ! curl $curl_timeout -fsSL -o "$tmpdir/$filename" "$url"; then
+    msg_error "Failed to download release asset from $url"
     rm -rf "$tmpdir"
     return 1
   fi
