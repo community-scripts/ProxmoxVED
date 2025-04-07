@@ -351,7 +351,7 @@ fetch_and_deploy_gh_release() {
   local tmpdir
   tmpdir=$(mktemp -d) || return 1
 
-  # Liste der Assets aus der Release-API extrahieren
+  # Extract list of assets from the Release API
   local assets urls
   assets=$(echo "$api_response" | jq -r '.assets[].browser_download_url') || true
 
@@ -372,19 +372,25 @@ fetch_and_deploy_gh_release() {
     done
   fi
 
-  if [[ -z "$url" ]]; then
-    msg_error "No suitable .tar.gz release asset found for $repo"
-    rm -rf "$tmpdir"
-    return 1
-  fi
+  local filename=""
 
-  local filename="${url##*/}"
-  $STD msg_info "Downloading $url"
-
-  if ! curl -fsSL -o "$tmpdir/$filename" "$url"; then
-    msg_error "Failed to download $filename from $url"
-    rm -rf "$tmpdir"
-    return 1
+  if [[ -n "$url" ]]; then
+    filename="${url##*/}"
+    $STD msg_info "Downloading $url"
+    if ! curl -f#SL -o "$tmpdir/$filename" "$url"; then
+      msg_error "Failed to download $filename from $url"
+      rm -rf "$tmpdir"
+      return 1
+    fi
+  else
+    url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
+    filename="source.tar.gz"
+    $STD msg_info "Trying GitHub source tarball fallback: $url"
+    if ! curl -f#SL -o "$tmpdir/$filename" "$url"; then
+      msg_error "No suitable .tar.gz release asset or fallback source tarball found for $repo"
+      rm -rf "$tmpdir"
+      return 1
+    fi
   fi
 
   mkdir -p "/opt/$app"
