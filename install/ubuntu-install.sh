@@ -18,9 +18,7 @@ $STD apt-get install -y jq
 msg_ok "Installed Dependencies"
 
 msg_info "Check GH Releases"
-echo "Getting 0xERR0R/blocky..."
 fetch_and_deploy_gh_release 0xERR0R/blocky
-echo "Got Version: $RELEASE"
 
 # echo "Getting aceberg/WatchYourLAN..."
 # fetch_and_deploy_gh_release aceberg/WatchYourLAN
