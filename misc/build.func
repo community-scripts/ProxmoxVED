@@ -591,17 +591,18 @@ advanced_settings() {
 
     CT_TYPE=$(<"$TMP_OUTPUT_FILE")
 
-    if [ -n "$CT_TYPE" ]; then
-      if [ "$CT_TYPE" -eq 0 ]; then
-        CT_TYPE_DESC="Privileged"
-      else
-        CT_TYPE_DESC="Unprivileged"
-      fi
-
-      echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
-      echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+    if [ "$CT_TYPE" == "0" ]; then
+      CT_TYPE_DESC="Privileged"
+    elif [ "$CT_TYPE" == "1" ]; then
+      CT_TYPE_DESC="Unprivileged"
+    else
+      CT_TYPE=""
+      continue
     fi
+
+    echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
+    echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
   done
 
   while true; do
