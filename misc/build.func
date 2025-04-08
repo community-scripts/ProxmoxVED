@@ -432,8 +432,7 @@ exit_script() {
 
 # This function allows the user to configure advanced settings for the script.
 advanced_settings() {
-  whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar." 8 58
-  whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Default distribution for $APP" "Default is: ${var_os} ${var_version} \n" 10 58
+  whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar. \n The default distribution for $APP is: ${var_os} ${var_version} \n" 8 58
   # if [ "$var_os" != "alpine" ]; then
   #   var_default_os="${var_os}"
   #   var_os=""
@@ -570,6 +569,8 @@ advanced_settings() {
           if [ "$CT_TYPE" -eq 0 ]; then
             CT_TYPE_DESC="Privileged"
           fi
+          echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
+          echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
           echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
         fi
       else
