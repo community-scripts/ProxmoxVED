@@ -559,6 +559,9 @@ advanced_settings() {
   CT_DEFAULT_TYPE="${CT_TYPE}"
   CT_TYPE=""
 
+  TMP_OUTPUT_FILE=$(mktemp)
+  trap 'rm -f "$TMP_OUTPUT_FILE"' EXIT
+
   while [ -z "$CT_TYPE" ]; do
     TITLE="CONTAINER TYPE"
     BACKTITLE="[dev] Proxmox VE Helper Scripts"
@@ -573,15 +576,20 @@ advanced_settings() {
       DEFAULT_ON="OFF"
       DEFAULT_OFF="ON"
     fi
-    CT_TYPE=$(whiptail --backtitle "$BACKTITLE" --title "$TITLE" \
+
+    whiptail --backtitle "$BACKTITLE" --title "$TITLE" \
       --radiolist "Choose Type" $HEIGHT $WIDTH $MENU_HEIGHT \
       "1" "Unprivileged" $DEFAULT_ON \
       "0" "Privileged" $DEFAULT_OFF \
-      3>&1 1>&2 2>&3)
+      3>&1 1>"$TMP_OUTPUT_FILE" 2>&3
+
     RET=$?
+
     if [ $RET -ne 0 ]; then
       exit_script
     fi
+
+    CT_TYPE=$(<"$TMP_OUTPUT_FILE")
 
     if [ -n "$CT_TYPE" ]; then
       if [ "$CT_TYPE" -eq 0 ]; then
@@ -589,6 +597,7 @@ advanced_settings() {
       else
         CT_TYPE_DESC="Unprivileged"
       fi
+
       echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
       echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
       echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
