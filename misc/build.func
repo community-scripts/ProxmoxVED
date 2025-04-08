@@ -1397,7 +1397,7 @@ build_container() {
     FEATURES="nesting=1"
   fi
   # 26.03.2025 disabled
-  if [ "$ENABLE_FUSE" == "yes" ]; then
+  if [ "$ENABLE_FUSE" == "1" ]; then
     FEATURES+=",fuse=1"
   fi
 
