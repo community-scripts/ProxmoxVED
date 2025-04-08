@@ -388,7 +388,8 @@ base_settings() {
   RAM_SIZE=${var_ram:-$RAM_SIZE}
   VERB=${var_verbose:-$VERBOSE}
   TAGS="${TAGS}${var_tags:-}"
-  ENABLE_FUSE=${var_fuse:-$ENABLE_FUSE}
+  # 26.03.2025 disabled
+  #ENABLE_FUSE=${var_fuse:-$ENABLE_FUSE}
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
@@ -729,11 +730,11 @@ advanced_settings() {
   fi
 
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58); then
-    ENABLE_FUSE="1"
+    ENABLE_FUSE="yes"
   else
-    ENABLE_FUSE="0"
+    ENABLE_FUSE="no"
   fi
-  echo -e "${FUSE}${BOLD}${DGN}FUSE (filesystem in userspace) Support: ${BGN}$ENABLE_FUSE${CL}"
+  echo -e "${FUSE}${BOLD}${DGN}FUSE (Filesystem in Userspace) Support: ${BGN}$ENABLE_FUSE${CL}"
 
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
     VERB="yes"
@@ -1397,9 +1398,9 @@ build_container() {
     FEATURES="nesting=1"
   fi
   # 26.03.2025 disabled
-  if [ "$ENABLE_FUSE" == "1" ]; then
-    FEATURES+=",fuse=1"
-  fi
+  #if [ "$ENABLE_FUSE" == "yes" ]; then
+  #    FEATURES+=",fuse=1"
+  #fi
 
   if [[ $DIAGNOSTICS == "yes" ]]; then
     post_to_api
