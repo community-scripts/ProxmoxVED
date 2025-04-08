@@ -21,8 +21,8 @@ echo "deb http://deb.debian.org/debian testing main contrib" >/etc/apt/sources.l
   echo "Pin-Priority: -10"
 
 } >/etc/apt/preferences.d/immich
-"$STD" apt-get update
-"$STD" apt-get install --no-install-recommends -y \
+$STD apt-get update
+$STD apt-get install --no-install-recommends -y \
   git \
   redis \
   python3-venv \
@@ -68,7 +68,7 @@ echo "deb http://deb.debian.org/debian testing main contrib" >/etc/apt/sources.l
   zlib1g \
   ocl-icd-libopencl1 \
   intel-media-va-driver
-"$STD" apt-get install -y \
+$STD apt-get install -y \
   libgdk-pixbuf-2.0-dev librsvg2-dev libtool
 curl -fsSL https://repo.jellyfin.org/jellyfin_team.gpg.key | gpg --dearmor -o /etc/apt/keyrings/jellyfin.gpg
 DPKG_ARCHITECTURE="$(dpkg --print-architecture)"
@@ -81,8 +81,8 @@ Components: main
 Architectures: ${DPKG_ARCHITECTURE}
 Signed-By: /etc/apt/keyrings/jellyfin.gpg
 EOF
-"$STD" apt-get update
-"$STD" apt-get install -y jellyfin-ffmpeg7
+$STD apt-get update
+$STD apt-get install -y jellyfin-ffmpeg7
 ln -s /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/bin/ffmpeg
 ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/bin/ffprobe
 tmp_dir=$(mktemp -d)
@@ -91,20 +91,20 @@ curl -fsSL https://github.com/intel/intel-graphics-compiler/releases/download/ig
 curl -fsSL https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17193.4/intel-igc-opencl_1.0.17193.4_amd64.deb -O
 curl -fsSL https://github.com/intel/compute-runtime/releases/download/24.26.30049.6/intel-opencl-icd_24.26.30049.6_amd64.deb -O
 curl -fsSL https://github.com/intel/compute-runtime/releases/download/24.26.30049.6/libigdgmm12_22.3.20_amd64.deb -O
-"$STD" dpkg -i ./*.deb
+$STD dpkg -i ./*.deb
 msg_ok "Base Dependencies Installed"
 
 msg_info "Setting up Postgresql Database"
-"$STD" apt-get install -y postgresql-common
+$STD apt-get install -y postgresql-common
 echo "YES" | /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh &>/dev/null
-"$STD" apt-get install -y postgresql-17 postgresql-17-pgvector
+$STD apt-get install -y postgresql-17 postgresql-17-pgvector
 DB_NAME="immich"
 DB_USER="immich"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c18)
-"$STD" sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASS';"
-"$STD" sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
-"$STD" sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME to $DB_USER;"
-"$STD" sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
+$STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASS';"
+$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
+$STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME to $DB_USER;"
+$STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
 {
   echo "${APPLICATION} DB Credentials"
   echo "Database User: $DB_USER"
@@ -116,14 +116,14 @@ msg_ok "Set up Postgresql Database"
 msg_info "Installing NodeJS"
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
 echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
-"$STD" apt-get update
-"$STD" apt-get install -y nodejs
+$STD apt-get update
+$STD apt-get install -y nodejs
 msg_ok "Installed NodeJS"
 
 msg_info "Installing Packages from Testing Repo"
 export APT_LISTCHANGES_FRONTEND=none
 export DEBIAN_FRONTEND=noninteractive
-"$STD" apt-get install -t testing --no-install-recommends -y \
+$STD apt-get install -t testing --no-install-recommends -y \
   libio-compress-brotli-perl \
   libwebp7 \
   libwebpdemux2 \
@@ -135,15 +135,15 @@ export DEBIAN_FRONTEND=noninteractive
 msg_ok "Packages from Testing Repo Installed"
 
 # Fix default DB collation issue
-"$STD" sudo -u postgres psql -c "ALTER DATABASE postgres REFRESH COLLATION VERSION;"
-"$STD" sudo -u postgres psql -c "ALTER DATABASE $DB_NAME REFRESH COLLATION VERSION;"
+$STD sudo -u postgres psql -c "ALTER DATABASE postgres REFRESH COLLATION VERSION;"
+$STD sudo -u postgres psql -c "ALTER DATABASE $DB_NAME REFRESH COLLATION VERSION;"
 
 msg_info "Compiling Custom Photo-processing Library (extreme patience)"
 STAGING_DIR=/opt/staging
 BASE_REPO="https://github.com/immich-app/base-images"
 BASE_DIR=${STAGING_DIR}/base-images
 SOURCE_DIR=${STAGING_DIR}/image-source
-"$STD" git clone -b main "$BASE_REPO" "$BASE_DIR" # TODO: convert this git clone into a TAG download
+$STD git clone -b main "$BASE_REPO" "$BASE_DIR" # TODO: convert this git clone into a TAG download
 mkdir -p "$SOURCE_DIR"
 
 cd "$STAGING_DIR" || exit
@@ -151,15 +151,15 @@ SOURCE=${SOURCE_DIR}/libjxl
 JPEGLI_LIBJPEG_LIBRARY_SOVERSION="62"
 JPEGLI_LIBJPEG_LIBRARY_VERSION="62.3.0"
 : "${LIBJXL_REVISION:=$(jq -cr '.sources[] | select(.name == "libjxl").revision' $BASE_DIR/server/bin/build-lock.json)}"
-"$STD" git clone https://github.com/libjxl/libjxl.git "$SOURCE"
+$STD git clone https://github.com/libjxl/libjxl.git "$SOURCE"
 cd "$SOURCE" || exit
-"$STD" git reset --hard "$LIBJXL_REVISION"
-"$STD" git submodule update --init --recursive --depth 1 --recommend-shallow
-"$STD" git apply "$BASE_DIR"/server/bin/patches/jpegli-empty-dht-marker.patch
-"$STD" git apply "$BASE_DIR"/server/bin/patches/jpegli-icc-warning.patch
+$STD git reset --hard "$LIBJXL_REVISION"
+$STD git submodule update --init --recursive --depth 1 --recommend-shallow
+$STD git apply "$BASE_DIR"/server/bin/patches/jpegli-empty-dht-marker.patch
+$STD git apply "$BASE_DIR"/server/bin/patches/jpegli-icc-warning.patch
 mkdir build
 cd build || exit
-"$STD" cmake \
+$STD cmake \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_TESTING=OFF \
   -DJPEGXL_ENABLE_DOXYGEN=OFF \
@@ -177,21 +177,21 @@ cd build || exit
   -DJPEGLI_LIBJPEG_LIBRARY_VERSION="$JPEGLI_LIBJPEG_LIBRARY_VERSION" \
   -DLIBJPEG_TURBO_VERSION_NUMBER=2001005 \
   ..
-"$STD" cmake --build . -- -j"$(nproc)"
-"$STD" cmake --install .
-"$STD" ldconfig /usr/local/lib
-"$STD" make clean
+$STD cmake --build . -- -j"$(nproc)"
+$STD cmake --install .
+$STD ldconfig /usr/local/lib
+$STD make clean
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/{build,third_party}
 
 SOURCE=${SOURCE_DIR}/libheif
 : "${LIBHEIF_REVISION:=$(jq -cr '.sources[] | select(.name == "libheif").revision' $BASE_DIR/server/bin/build-lock.json)}"
-"$STD" git clone https://github.com/strukturag/libheif.git "$SOURCE"
+$STD git clone https://github.com/strukturag/libheif.git "$SOURCE"
 cd "$SOURCE" || exit
-"$STD" git reset --hard "$LIBHEIF_REVISION"
+$STD git reset --hard "$LIBHEIF_REVISION"
 mkdir build
 cd build || exit
-"$STD" cmake --preset=release-noplugins \
+$STD cmake --preset=release-noplugins \
   -DWITH_DAV1D=ON \
   -DENABLE_PARALLEL_TILE_DECODING=ON \
   -DWITH_LIBSHARPYUV=ON \
@@ -201,46 +201,46 @@ cd build || exit
   -DWITH_X265=OFF \
   -DWITH_EXAMPLES=OFF \
   ..
-"$STD" make install
+$STD make install
 ldconfig /usr/local/lib
-"$STD" make clean
+$STD make clean
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/build
 
 SOURCE=${SOURCE_DIR}/libraw
 : "${LIBRAW_REVISION:=$(jq -cr '.sources[] | select(.name == "libraw").revision' $BASE_DIR/server/bin/build-lock.json)}"
-"$STD" git clone https://github.com/libraw/libraw.git "$SOURCE"
+$STD git clone https://github.com/libraw/libraw.git "$SOURCE"
 cd "$SOURCE" || exit
-"$STD" git reset --hard "$LIBRAW_REVISION"
-"$STD" autoreconf --install
-"$STD" ./configure
-"$STD" make -j"$(nproc)"
-"$STD" make install
+$STD git reset --hard "$LIBRAW_REVISION"
+$STD autoreconf --install
+$STD ./configure
+$STD make -j"$(nproc)"
+$STD make install
 ldconfig /usr/local/lib
-"$STD" make clean
+$STD make clean
 cd "$STAGING_DIR" || exit
 
 SOURCE=$SOURCE_DIR/imagemagick
 : "${IMAGEMAGICK_REVISION:=$(jq -cr '.sources[] | select(.name == "imagemagick").revision' $BASE_DIR/server/bin/build-lock.json)}"
-"$STD" git clone https://github.com/ImageMagick/ImageMagick.git "$SOURCE"
+$STD git clone https://github.com/ImageMagick/ImageMagick.git "$SOURCE"
 cd "$SOURCE" || exit
-"$STD" git reset --hard "$IMAGEMAGICK_REVISION"
-"$STD" ./configure --with-modules
-"$STD" make -j"$(nproc)"
-"$STD" make install
+$STD git reset --hard "$IMAGEMAGICK_REVISION"
+$STD ./configure --with-modules
+$STD make -j"$(nproc)"
+$STD make install
 ldconfig /usr/local/lib
-"$STD" make clean
+$STD make clean
 cd "$STAGING_DIR" || exit
 
 SOURCE=$SOURCE_DIR/libvips
 : "${LIBVIPS_REVISION:=$(jq -cr '.sources[] | select(.name == "libvips").revision' $BASE_DIR/server/bin/build-lock.json)}"
-"$STD" git clone https://github.com/libvips/libvips.git "$SOURCE"
+$STD git clone https://github.com/libvips/libvips.git "$SOURCE"
 cd "$SOURCE" || exit
-"$STD" git reset --hard "$LIBVIPS_REVISION"
-"$STD" meson setup build --buildtype=release --libdir=lib -Dintrospection=disabled -Dtiff=disabled
+$STD git reset --hard "$LIBVIPS_REVISION"
+$STD meson setup build --buildtype=release --libdir=lib -Dintrospection=disabled -Dtiff=disabled
 cd build || exit
-"$STD" ninja install
-"$STD" ldconfig /usr/local/lib
+$STD ninja install
+$STD ldconfig /usr/local/lib
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/build
 msg_ok "Custom Photo-processing Library Compiled"
@@ -261,15 +261,15 @@ mv "$APPLICATION-$RELEASE"/ "$SRC_DIR"
 mkdir -p "{$APP_DIR,$UPLOAD_DIR,$GEO_DIR,$ML_DIR,$INSTALL_DIR/.cache}"
 
 cd "$SRC_DIR"/server || exit
-"$STD" npm ci
-"$STD" npm run build
-"$STD" npm prune --omit=dev --omit=optional
+$STD npm ci
+$STD npm run build
+$STD npm prune --omit=dev --omit=optional
 cd "$SRC_DIR"/open-api/typescript-sdk || exit
-"$STD" npm ci
-"$STD" npm run build
+$STD npm ci
+$STD npm run build
 cd "$SRC_DIR"/web || exit
-"$STD" npm ci
-"$STD" npm run build
+$STD npm ci
+$STD npm run build
 cd "$SRC_DIR" || exit
 cp -a server/{node_modules,dist,bin,resources,package.json,package-lock.json,start*.sh} "$APP_DIR"/
 cp -a web/build "$APP_DIR"/www
@@ -277,11 +277,11 @@ cp LICENSE "$APP_DIR"
 cp "$BASE_DIR"/server/bin/build-lock.json "$APP_DIR"
 
 cd "$SRC_DIR"/machine-learning || exit
-"$STD" python3 -m venv "$ML_DIR"/ml-venv
+$STD python3 -m venv "$ML_DIR"/ml-venv
 (
   . "$ML_DIR"/ml-venv/bin/activate
-  "$STD" pip3 install uv
-  "$STD" uv sync --extra cpu --active
+  $STD pip3 install uv
+  $STD uv sync --extra cpu --active
 )
 cd "$SRC_DIR" || exit
 cp -a machine-learning/{ann,immich_ml} "$ML_DIR"
@@ -296,9 +296,9 @@ ln -s "$UPLOAD_DIR" "$APP_DIR"/upload
 ln -s "$UPLOAD_DIR" "$ML_DIR"/upload
 
 msg_info "Installing Immich CLI"
-"$STD" npm install --build-from-source sharp
+$STD npm install --build-from-source sharp
 rm -rf "$APP_DIR"/node_modules/@img/sharp-{libvips*,linuxmusl-x64}
-"$STD" npm i -g @immich/cli
+$STD npm i -g @immich/cli
 msg_ok "Installed Immich CLI"
 
 msg_info "Installing GeoNames data"
@@ -397,6 +397,6 @@ customize
 msg_info "Cleaning up"
 rm -f "$tmp_file"
 rm -rf "$tmp_dir"
-"$STD" apt-get -y autoremove
-"$STD" apt-get -y autoclean
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
 msg_ok "Cleaned"
