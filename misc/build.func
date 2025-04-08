@@ -729,9 +729,9 @@ advanced_settings() {
   fi
 
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58); then
-    ENABLE_FUSE="yes"
+    ENABLE_FUSE="1"
   else
-    ENABLE_FUSE="no"
+    ENABLE_FUSE="0"
   fi
   echo -e "${FUSE}${BOLD}${DGN}FUSE (Filesystem in Userspace) Support: ${BGN}$ENABLE_FUSE${CL}"
 
