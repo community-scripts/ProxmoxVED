@@ -13,23 +13,23 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Configuring apt and installing base dependencies"
+msg_info "Configuring apt and installing dependencies"
 echo "deb http://deb.debian.org/debian testing main contrib" >/etc/apt/sources.list.d/immich.list
-{
-  echo "Package: *"
-  echo "Pin: release a=testing"
-  echo "Pin-Priority: -10"
+cat <<EOF >/etc/apt/preferences.d/immich
+Package: *
+Pin: release a=testing
+Pin-Priority: -10
+EOF
 
-} >/etc/apt/preferences.d/immich
 $STD apt-get update
 $STD apt-get install --no-install-recommends -y \
   git \
   redis \
-  python3-venv \
-  python3-dev \
   gnupg \
   autoconf \
   build-essential \
+  python3-venv \
+  python3-dev \
   cmake \
   jq \
   libbrotli-dev \
@@ -65,9 +65,7 @@ $STD apt-get install --no-install-recommends -y \
   mesa-va-drivers \
   mesa-vulkan-drivers \
   tini \
-  zlib1g \
-  ocl-icd-libopencl1 \
-  intel-media-va-driver
+  zlib1g
 $STD apt-get install -y \
   libgdk-pixbuf-2.0-dev librsvg2-dev libtool
 curl -fsSL https://repo.jellyfin.org/jellyfin_team.gpg.key | gpg --dearmor -o /etc/apt/keyrings/jellyfin.gpg
@@ -85,19 +83,40 @@ $STD apt-get update
 $STD apt-get install -y jellyfin-ffmpeg7
 ln -s /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/bin/ffmpeg
 ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/bin/ffprobe
-tmp_dir=$(mktemp -d)
-cd "$tmp_dir" || exit
-curl -fsSL https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17193.4/intel-igc-core_1.0.17193.4_amd64.deb -O
-curl -fsSL https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17193.4/intel-igc-opencl_1.0.17193.4_amd64.deb -O
-curl -fsSL https://github.com/intel/compute-runtime/releases/download/24.26.30049.6/intel-opencl-icd_24.26.30049.6_amd64.deb -O
-curl -fsSL https://github.com/intel/compute-runtime/releases/download/24.26.30049.6/libigdgmm12_22.3.20_amd64.deb -O
-$STD dpkg -i ./*.deb
-msg_ok "Base Dependencies Installed"
+msg_ok "Dependencies Installed"
+
+read -r -p "Install OpenVINO dependencies for Intel HW-accelerated machine-learning? " prompt
+if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
+  msg_info "Installing OpenVINO dependencies"
+  export intel_hw=1
+  $STD apt-get -y install --no-install-recommends ocl-icd-libopencl1
+  tmp_dir=$(mktemp -d)
+  $STD pushd "$tmp_dir"
+  curl -fsSL https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17384.11/intel-igc-core_1.0.17384.11_amd64.deb -O
+  curl -fsSL https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.17384.11/intel-igc-opencl_1.0.17384.11_amd64.deb -O
+  curl -fsSL https://github.com/intel/compute-runtime/releases/download/24.31.30508.7/intel-opencl-icd_24.31.30508.7_amd64.deb -O
+  curl -fsSL https://github.com/intel/compute-runtime/releases/download/24.31.30508.7/libigdgmm12_22.4.1_amd64.deb -O
+  $STD dpkg -i ./*.deb
+  $STD popd
+  rm -rf "$tmp_dir"
+  if [[ "$CTTYPE" == "0" ]]; then
+    chgrp video /dev/dri
+    chmod 755 /dev/dri
+    chmod 660 /dev/dri/*
+    $STD adduser "$(id -u -n)" video
+    $STD adduser "$(id -u -n)" render
+  fi
+  msg_ok "Installed OpenVINO dependencies"
+fi
 
 msg_info "Setting up Postgresql Database"
-$STD apt-get install -y postgresql-common
-echo "YES" | /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh &>/dev/null
-$STD apt-get install -y postgresql-17 postgresql-17-pgvector
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt/sources.list.d/pgdg.list
+$STD apt-get update
+$STD apt-get install -y postgresql-17
+curl -fsSLO https://github.com/tensorchord/pgvecto.rs/releases/download/v0.4.0/vectors-pg17_0.4.0_amd64.deb
+$STD dpkg -i vectors-pg17_0.4.0_amd64.deb
+rm vectors-pg17_0.4.0.amd64.deb
 DB_NAME="immich"
 DB_USER="immich"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c18)
@@ -105,6 +124,11 @@ $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME to $DB_USER;"
 $STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
+$STD sudo -u postgres psql -c "ALTER SYSTEM SET shared_preload_libraries = 'vectors.so';"
+$STD sudo -u postgres psql -c "ALTER SYSTEM SET search_path TO "$user", public, vectors;"
+systemctl restart postgresql.service
+$STD sudo -u postgres psql -c "DROP EXTENSION IF EXISTS vectors;"
+$STD sudo -u postgres psql -c "CREATE EXTENSION vectors;"
 {
   echo "${APPLICATION} DB Credentials"
   echo "Database User: $DB_USER"
@@ -132,13 +156,18 @@ $STD apt-get install -t testing --no-install-recommends -y \
   libdav1d-dev \
   libhwy-dev \
   libwebp-dev
+if [[ "$intel_hw" = 1 ]]; then
+  apt-get install -t testing -y patchelf
+fi
 msg_ok "Packages from Testing Repo Installed"
 
-# Fix default DB collation issue
+# Fix default DB collation issue after libc update
 $STD sudo -u postgres psql -c "ALTER DATABASE postgres REFRESH COLLATION VERSION;"
 $STD sudo -u postgres psql -c "ALTER DATABASE $DB_NAME REFRESH COLLATION VERSION;"
 
 msg_info "Compiling Custom Photo-processing Library (extreme patience)"
+LD_LIBRARY_PATH=/usr/local/lib
+export LD_RUN_PATH=/usr/local/lib
 STAGING_DIR=/opt/staging
 BASE_REPO="https://github.com/immich-app/base-images"
 BASE_DIR=${STAGING_DIR}/base-images
@@ -179,7 +208,7 @@ $STD cmake \
   ..
 $STD cmake --build . -- -j"$(nproc)"
 $STD cmake --install .
-$STD ldconfig /usr/local/lib
+ldconfig /usr/local/lib
 $STD make clean
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/{build,third_party}
@@ -201,7 +230,7 @@ $STD cmake --preset=release-noplugins \
   -DWITH_X265=OFF \
   -DWITH_EXAMPLES=OFF \
   ..
-$STD make install
+$STD make install -j "$(nproc)"
 ldconfig /usr/local/lib
 $STD make clean
 cd "$STAGING_DIR" || exit
@@ -240,7 +269,7 @@ $STD git reset --hard "$LIBVIPS_REVISION"
 $STD meson setup build --buildtype=release --libdir=lib -Dintrospection=disabled -Dtiff=disabled
 cd build || exit
 $STD ninja install
-$STD ldconfig /usr/local/lib
+ldconfig /usr/local/lib
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/build
 msg_ok "Custom Photo-processing Library Compiled"
@@ -258,9 +287,10 @@ ML_DIR="${APP_DIR}/machine-learning"
 GEO_DIR="${INSTALL_DIR}/geodata"
 mkdir -p "$INSTALL_DIR"
 mv "$APPLICATION-$RELEASE"/ "$SRC_DIR"
-mkdir -p $APP_DIR $UPLOAD_DIR $GEO_DIR $ML_DIR $INSTALL_DIR/.cache
+mkdir -p {"${APP_DIR}","${UPLOAD_DIR}","${GEO_DIR}","${ML_DIR}","${INSTALL_DIR}"/cache}
 
 cd "$SRC_DIR"/server || exit
+$STD npm install -g node-gyp node-pre-gyp
 $STD npm ci
 $STD npm run build
 $STD npm prune --omit=dev --omit=optional
@@ -275,23 +305,37 @@ cp -a server/{node_modules,dist,bin,resources,package.json,package-lock.json,sta
 cp -a web/build "$APP_DIR"/www
 cp LICENSE "$APP_DIR"
 cp "$BASE_DIR"/server/bin/build-lock.json "$APP_DIR"
+msg_ok "Installed Immich Web Components"
 
 cd "$SRC_DIR"/machine-learning || exit
-$STD python3 -m venv "$ML_DIR"/ml-venv
-(
-  . "$ML_DIR"/ml-venv/bin/activate
-  $STD pip3 install uv
-  $STD uv sync --extra cpu --active
-)
+$STD python3 -m venv "$ML_DIR/ml-venv"
+if [[ "$intel_hw" = 1 ]]; then
+  msg_info "Installing Immich HW-accelerated machine-learning"
+  (
+    source "$ML_DIR"/ml-venv/bin/activate
+    # $STD uv sync --extra openvino --active
+    $STD pip3 install uv
+    uv -q sync --extra openvino --no-cache --active
+  )
+  patchelf --clear-execstack "$ML_DIR"/ml-venv/lib/python3.11/site-packages/onnxruntime/capi/onnxruntime_pybind11_state.cpython-311-x86_64-linux-gnu.so
+  msg_ok "Installed HW-accelerated machine-learning"
+else
+  msg_info "Installing Immich machine-learning"
+  (
+    source "$ML_DIR"/ml-venv/bin/activate
+    $STD pip3 install uv
+    uv -q sync --extra cpu --no-cache --active
+  )
+  msg_ok "Installed Immich machine-learning"
+fi
 cd "$SRC_DIR" || exit
 cp -a machine-learning/{ann,immich_ml} "$ML_DIR"
 ln -sf "$APP_DIR"/resources "$INSTALL_DIR"
 
 cd "$APP_DIR" || exit
-grep -RlI /usr/src . --exclude="*.py*" --exclude="*.json" |
-  xargs -n1 sed -i "s|\/usr/src|$INSTALL_DIR|g"
-# sed -i "s|\"/cache\"|\"$INSTALL_DIR/cache\"|g" $ML_DIR/immich_ml/config.py
+grep -Rl /usr/src | xargs -n1 sed -i "s|\/usr/src|$INSTALL_DIR|g"
 grep -RlE "'/build'" | xargs -n1 sed -i "s|'/build'|'$APP_DIR'|g"
+sed -i "s@\"/cache\"@\"$INSTALL_DIR/cache\"@g" "$ML_DIR"/immich_ml/config.py
 ln -s "$UPLOAD_DIR" "$APP_DIR"/upload
 ln -s "$UPLOAD_DIR" "$ML_DIR"/upload
 
@@ -312,6 +356,7 @@ URL_LIST=(
 echo "${URL_LIST[@]}" | xargs -n1 -P 8 wget -q
 unzip -q cities500.zip
 date --iso-8601=seconds | tr -d "\n" >geodata-date.txt
+rm cities500.zip
 cd "$INSTALL_DIR" || exit
 ln -s "$GEO_DIR" "$APP_DIR"
 msg_ok "Installed GeoNames data"
@@ -321,27 +366,35 @@ touch /var/log/immich/{web.log,ml.log}
 echo "$RELEASE" >/opt/"${APPLICATION}"_version.txt
 msg_ok "Installed ${APPLICATION}"
 
-msg_info "Creating env file, scripts & services"
+msg_info "Creating user, env file, scripts & services"
+$STD useradd -U -s /usr/sbin/nologin -r -M -d "$INSTALL_DIR" immich
+if [[ "$intel_hw" = 1 ]]; then
+  usermod -aG video,render immich
+fi
 cat <<EOF >"${INSTALL_DIR}"/.env
 TZ=$(cat /etc/timezone)
 IMMICH_VERSION=release
-IMMICH_ENV=production
+NODE_ENV=production
 
-DB_HOSTNAME=localhost
+DB_HOSTNAME=127.0.0.1
 DB_USERNAME=${DB_USER}
 DB_PASSWORD=${DB_PASS}
 DB_DATABASE_NAME=${DB_NAME}
 DB_VECTOR_EXTENSION=pgvector
 
-REDIS_HOSTNAME=localhost
-
-MACHINE_LEARNING_CACHE_FOLDER=${INSTALL_DIR}/.cache
+REDIS_HOSTNAME=127.0.0.1
+IMMICH_MACHINE_LEARNING_URL=http://127.0.0.1:3003
+MACHINE_LEARNING_CACHE_FOLDER=${INSTALL_DIR}/cache
 EOF
 cat <<EOF >"${ML_DIR}"/ml_start.sh
 #!/usr/bin/env bash
 
 cd ${ML_DIR}
 . ml-venv/bin/activate
+
+set -a
+. ${INSTALL_DIR}/.env
+set +a
 
 python -m immich_ml
 EOF
@@ -356,10 +409,12 @@ Requires=immich-ml.service
 
 [Service]
 Type=simple
-User=root
+User=immich
+Group=immich
+UMask=0077
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${INSTALL_DIR}/.env
-ExecStart=/usr/bin/node dist/main "\$@"
+ExecStart=/usr/bin/node ${APP_DIR}/dist/main
 Restart=on-failure
 SyslogIdentifier=immich-web
 StandardOutput=append:/var/log/immich/web.log
@@ -375,7 +430,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+UMask=0077
+User=immich
+Group=immich
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=${INSTALL_DIR}/.env
 ExecStart=${ML_DIR}/ml_start.sh
@@ -387,8 +444,9 @@ StandardError=append:/var/log/immich/ml.log
 [Install]
 WantedBy=multi-user.target
 EOF
+chown -R immich:immich "$INSTALL_DIR" /var/log/immich
 systemctl enable -q --now "$APPLICATION"-ml.service "$APPLICATION"-web.service
-msg_ok "Created env file, scripts and services"
+msg_ok "Created user, env file, scripts and services"
 
 sed -i "$ a VERSION_ID=12" /etc/os-release # otherwise the motd_ssh function will fail
 motd_ssh
@@ -396,7 +454,6 @@ customize
 
 msg_info "Cleaning up"
 rm -f "$tmp_file"
-rm -rf "$tmp_dir"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
