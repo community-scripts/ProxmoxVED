@@ -45,8 +45,8 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
     php83-curl \
     php83-gd \
     php83-mbstring \
-    php83-mysqli \
-    php83-mysqlnd \
+    php83-pdo \
+    php83-pgsql \
     php83-openssl \
     php83-zip \
     php83-session \
