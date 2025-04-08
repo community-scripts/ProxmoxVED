@@ -28,6 +28,7 @@ $STD apt-get install -y \
   python3 \
   python3-dev \
   python3-pip \
+  python3-setuptools \
   python3-venv
 rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
 msg_ok "Setup Python3"
@@ -49,8 +50,8 @@ After=network-online.target
 
 [Service]
 Type=simple
+User=root
 WorkingDirectory=/opt/musicassistant
-Environment="PATH=/opt/musicassistant/.venv/bin"
 ExecStart=/opt/musicassistant/.venv/bin/mass
 Restart=always
 RestartForceExitStatus=100
