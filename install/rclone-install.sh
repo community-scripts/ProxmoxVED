@@ -14,13 +14,11 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  gnupg2 \
-  fuse
+$STD apt-get install -y gnupg2
 msg_ok "Installed Dependencies"
 
 msg_info "Installing rclone"
-wget https://downloads.rclone.org/v1.69.1/rclone-v1.69.1-linux-amd64.deb
+$STD fetch_and_deploy_gh_release rclone/rclone
 dpkg -i rclone-v1.69.1-linux-amd64.deb
 msg_ok "Installed rclone"
 
