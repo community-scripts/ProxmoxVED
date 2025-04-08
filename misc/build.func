@@ -558,40 +558,40 @@ advanced_settings() {
   TAGS="community-script-dev;${var_tags:-}"
   CT_DEFAULT_TYPE="${CT_TYPE}"
   CT_TYPE=""
+
   while [ -z "$CT_TYPE" ]; do
+    TITLE="CONTAINER TYPE"
+    BACKTITLE="[dev] Proxmox VE Helper Scripts"
+    HEIGHT=10
+    WIDTH=58
+    MENU_HEIGHT=2
+
     if [ "$CT_DEFAULT_TYPE" == "1" ]; then
-      if CT_TYPE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "CONTAINER TYPE" --radiolist "Choose Type" 10 58 2 \
-        "1" "Unprivileged" ON \
-        "0" "Privileged" OFF \
-        3>&1 1>&2 2>&3); then
-        if [ -n "$CT_TYPE" ]; then
-          CT_TYPE_DESC="Unprivileged"
-          if [ "$CT_TYPE" -eq 0 ]; then
-            CT_TYPE_DESC="Privileged"
-          fi
-          echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
-          echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-          echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
-        fi
-      else
-        exit_script
-      fi
+      DEFAULT_ON="ON"
+      DEFAULT_OFF="OFF"
+    else
+      DEFAULT_ON="OFF"
+      DEFAULT_OFF="ON"
     fi
-    if [ "$CT_DEFAULT_TYPE" == "0" ]; then
-      if CT_TYPE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "CONTAINER TYPE" --radiolist "Choose Type" 10 58 2 \
-        "1" "Unprivileged" OFF \
-        "0" "Privileged" ON \
-        3>&1 1>&2 2>&3); then
-        if [ -n "$CT_TYPE" ]; then
-          CT_TYPE_DESC="Unprivileged"
-          if [ "$CT_TYPE" -eq 0 ]; then
-            CT_TYPE_DESC="Privileged"
-          fi
-          echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
-        fi
+    CT_TYPE=$(whiptail --backtitle "$BACKTITLE" --title "$TITLE" \
+      --radiolist "Choose Type" $HEIGHT $WIDTH $MENU_HEIGHT \
+      "1" "Unprivileged" $DEFAULT_ON \
+      "0" "Privileged" $DEFAULT_OFF \
+      3>&1 1>&2 2>&3)
+    RET=$?
+    if [ $RET -ne 0 ]; then
+      exit_script
+    fi
+
+    if [ -n "$CT_TYPE" ]; then
+      if [ "$CT_TYPE" -eq 0 ]; then
+        CT_TYPE_DESC="Privileged"
       else
-        exit_script
+        CT_TYPE_DESC="Unprivileged"
       fi
+      echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
+      echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
     fi
   done
 
