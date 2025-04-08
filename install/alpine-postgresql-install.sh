@@ -14,26 +14,23 @@ network_check
 update_os
 
 msg_info "Installing PostgreSQL"
-$STD apk add --no-cache postgresql16 postgresql16-contrib postgresql16-openrc
+$STD apk add --no-cache postgresql16 postgresql16-contrib postgresql16-openrc sudo
 msg_ok "Installed PostgreSQL"
 
 msg_info "Enabling PostgreSQL Service"
-rc-update add postgresql default
+$STD rc-update add postgresql default
 msg_ok "Enabled PostgreSQL Service"
 
 msg_info "Starting PostgreSQL"
-rc-service postgresql start
+$STD rc-service postgresql start
 msg_ok "Started PostgreSQL"
 
 msg_info "Configuring PostgreSQL for External Access"
 conf_file="/etc/postgresql16/postgresql.conf"
 hba_file="/etc/postgresql16/pg_hba.conf"
-
 sed -i 's/^#listen_addresses =.*/listen_addresses = '\''*'\''/' "$conf_file"
-
 sed -i '/^host\s\+all\s\+all\s\+127.0.0.1\/32\s\+md5/ s/.*/host all all 0.0.0.0\/0 md5/' "$hba_file"
-
-rc-service postgresql restart
+$STD rc-service postgresql restart
 msg_ok "Configured and Restarted PostgreSQL"
 
 read -r -p "Would you like to install Adminer with lighttpd? <y/N>: " prompt
