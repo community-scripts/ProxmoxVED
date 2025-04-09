@@ -46,17 +46,17 @@ export default function ScriptAccordion({
       );
       if (category) {
         setExpandedItem(category.name);
+        handleSelected(selectedScript);
       }
     }
-  }, [selectedScript, items]);
-
+  }, [selectedScript, items, handleSelected]);
   return (
     <Accordion
       type="single"
       value={expandedItem}
       onValueChange={handleAccordionChange}
       collapsible
-      className="overflow-y-scroll max-h-[calc(100vh-220px)] overflow-x-hidden mt-3 p-2"
+      className="overflow-y-scroll max-h-[calc(100vh-225px)] overflow-x-hidden mt-3 p-2"
     >
       {items.map((category) => (
         <AccordionItem

@@ -21,8 +21,6 @@ const Sidebar = ({
 		return acc;
 	}, [] as Script[]);
 
-	const filteredItems = items.filter(category => category.scripts.length > 0);
-
 	return (
 		<div className="flex min-w-72 flex-col sm:max-w-72">
 			<div className="flex items-end justify-between pb-4">
@@ -33,7 +31,7 @@ const Sidebar = ({
 			</div>
 			<div className="rounded-lg">
 				<ScriptAccordion
-					items={filteredItems}
+					items={items}
 					selectedScript={selectedScript}
 					setSelectedScript={setSelectedScript}
 				/>
