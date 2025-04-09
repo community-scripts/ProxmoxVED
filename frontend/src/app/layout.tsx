@@ -82,9 +82,9 @@ export default function RootLayout({
             <div className="flex min-h-screen flex-col justify-center">
               <div className="flex w-full justify-center">
                 <div className="w-full max-w-7xl ">
-                  <QueryProvider> {/* HINZUGEFÜGT */}
+                  <QueryProvider>
                     <NuqsAdapter>{children}</NuqsAdapter>
-                  </QueryProvider> {/* HINZUGEFÜGT */}
+                  </QueryProvider>
                   <Toaster richColors />
                 </div>
               </div>
