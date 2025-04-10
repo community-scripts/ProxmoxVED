@@ -35,7 +35,7 @@ jobs:
             ls
 
             chmod +x .github/workflows/scripts/get-gh-release.sh
-            scripts/get-gh-release.sh
+            .github/workflows/scripts/get-gh-release.sh
 
       - name: Commit JSON
         env:
