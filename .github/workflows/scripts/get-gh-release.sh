@@ -1,7 +1,7 @@
 #!/bin/bash
 
-INPUT_FILE="repos.txt"
-OUTPUT_FILE="../../public/frontend/versions.json"
+INPUT_FILE=".github/workflows/scripts/repos.txt"
+OUTPUT_FILE="frontend/public/json/versions.json"
 TMP_FILE="releases_tmp.json"
 
 if [ -f "$OUTPUT_FILE" ]; then
@@ -36,4 +36,4 @@ while IFS= read -r repo; do
 
 done < "$INPUT_FILE"
 
-mv "$TMP_FILE" "$OUTPUT_FILE"
+#mv "$TMP_FILE" "$OUTPUT_FILE"

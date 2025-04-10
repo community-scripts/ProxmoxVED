@@ -32,8 +32,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            chmod +x scripts/get-gh-release.sh
-            scripts/get-gh-release.sh
+            ls
+
+            chmod +x .github/workflows/scripts/get-gh-release.sh
+            .github/workflows/scripts/get-gh-release.sh
 
       - name: Commit JSON
         env:
