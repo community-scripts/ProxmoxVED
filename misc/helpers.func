@@ -259,3 +259,77 @@ function install_postgresql() {
     msg_ok "Installed PostgreSQL ${PG_VERSION}"
   fi
 }
+
+function install_mariadb() {
+  local MARIADB_VERSION="${MARIADB_VERSION:-10.11}"
+  local CURRENT_VERSION=""
+  local NEED_INSTALL=false
+
+  if command -v mariadb >/dev/null; then
+    CURRENT_VERSION="$(mariadb --version | grep -oP 'Ver\s+\K[0-9]+\.[0-9]+')"
+    if [[ "$CURRENT_VERSION" != "$MARIADB_VERSION" ]]; then
+      msg_info "MariaDB $CURRENT_VERSION found, replacing with $MARIADB_VERSION"
+      NEED_INSTALL=true
+    else
+      msg_ok "MariaDB $MARIADB_VERSION already installed"
+    fi
+  else
+    msg_info "MariaDB not found, installing version $MARIADB_VERSION"
+    NEED_INSTALL=true
+  fi
+
+  if [[ "$NEED_INSTALL" == true ]]; then
+    msg_info "Removing conflicting MariaDB packages"
+    $STD systemctl stop mariadb >/dev/null 2>&1 || true
+    $STD apt-get purge -y 'mariadb*'
+    rm -f /etc/apt/sources.list.d/mariadb.list /etc/apt/trusted.gpg.d/mariadb.gpg
+
+    msg_info "Setting up MariaDB Repository"
+    curl -fsSL "https://mariadb.org/mariadb_release_signing_key.asc" | gpg --dearmor -o /etc/apt/trusted.gpg.d/mariadb.gpg
+    DISTRO_CODENAME="$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)"
+    echo "deb [signed-by=/etc/apt/trusted.gpg.d/mariadb.gpg] http://mirror.mariadb.org/repo/${MARIADB_VERSION}/debian ${DISTRO_CODENAME} main" \
+      > /etc/apt/sources.list.d/mariadb.list
+
+    $STD apt-get update
+    $STD apt-get install -y mariadb-server mariadb-client
+
+    msg_ok "Installed MariaDB $MARIADB_VERSION"
+  fi
+}
+
+function install_mysql() {
+  local MYSQL_VERSION="${MYSQL_VERSION:-8.0}"
+  local CURRENT_VERSION=""
+  local NEED_INSTALL=false
+
+  if command -v mysql >/dev/null; then
+    CURRENT_VERSION="$(mysql --version | grep -oP 'Distrib\s+\K[0-9]+\.[0-9]+')"
+    if [[ "$CURRENT_VERSION" != "$MYSQL_VERSION" ]]; then
+      msg_info "MySQL $CURRENT_VERSION found, replacing with $MYSQL_VERSION"
+      NEED_INSTALL=true
+    else
+      msg_ok "MySQL $MYSQL_VERSION already installed"
+    fi
+  else
+    msg_info "MySQL not found, installing version $MYSQL_VERSION"
+    NEED_INSTALL=true
+  fi
+
+  if [[ "$NEED_INSTALL" == true ]]; then
+    msg_info "Removing conflicting MySQL packages"
+    $STD systemctl stop mysql >/dev/null 2>&1 || true
+    $STD apt-get purge -y 'mysql*'
+    rm -f /etc/apt/sources.list.d/mysql.list /etc/apt/trusted.gpg.d/mysql.gpg
+
+    msg_info "Setting up MySQL APT Repository"
+    DISTRO_CODENAME="$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)"
+    curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 | gpg --dearmor -o /etc/apt/trusted.gpg.d/mysql.gpg
+    echo "deb [signed-by=/etc/apt/trusted.gpg.d/mysql.gpg] https://repo.mysql.com/apt/debian/ ${DISTRO_CODENAME} mysql-${MYSQL_VERSION}" \
+      > /etc/apt/sources.list.d/mysql.list
+
+    $STD apt-get update
+    $STD apt-get install -y mysql-server
+
+    msg_ok "Installed MySQL $MYSQL_VERSION"
+  fi
+}
