@@ -8,12 +8,12 @@
 function header_info {
   clear
   cat <<"EOF"
- ___ ____     _____              
-|_ _|  _ \ _ |_   _|_ _  __ _    
- | || |_) (_)  | |/ _` |/ _` |   
- | ||  __/ _   | | (_| | (_| |   
-|___|_|   (_)  |_|\__,_|\__, |   
-                        |___/   
+ ___ ____     _____
+|_ _|  _ \ _ |_   _|_ _  __ _
+ | || |_) (_)  | |/ _` |/ _` |
+ | ||  __/ _   | | (_| | (_| |
+|___|_|   (_)  |_|\__,_|\__, |
+                        |___/
 EOF
 }
 
@@ -40,7 +40,7 @@ catch_errors() {
 
 # This function is called when an error occurs. It receives the exit code, line number, and command that caused the error, and displays an error message.
 error_handler() {
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then 
+  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then
     kill $SPINNER_PID >/dev/null
   fi
   printf "\e[?25h"
@@ -77,7 +77,7 @@ msg_info() {
 
 # This function displays a success message with a green color.
 msg_ok() {
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then 
+  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then
     kill $SPINNER_PID >/dev/null
   fi
   printf "\e[?25h"
@@ -87,7 +87,7 @@ msg_ok() {
 
 # This function displays a error message with a red color.
 msg_error() {
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then 
+  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then
     kill $SPINNER_PID >/dev/null
   fi
   printf "\e[?25h"
@@ -108,7 +108,7 @@ check_service_exists() {
 migrate_config() {
   local old_config="/opt/lxc-iptag"
   local new_config="/opt/iptag/iptag.conf"
-  
+
   if [[ -f "$old_config" ]]; then
     msg_info "Migrating configuration from old path"
     if cp "$old_config" "$new_config" &>/dev/null; then
@@ -124,15 +124,15 @@ migrate_config() {
 update_installation() {
   msg_info "Updating IP-Tag Scripts"
   systemctl stop iptag.service &>/dev/null
-  
+
   # Create directory if it doesn't exist
   if [[ ! -d "/opt/iptag" ]]; then
     mkdir -p /opt/iptag
   fi
-  
+
   # Migrate config if needed
   migrate_config
-  
+
   # Update main script
   cat <<'EOF' >/opt/iptag/iptag
 #!/bin/bash
@@ -157,19 +157,19 @@ ip_to_int() {
 ip_in_cidr() {
   local ip="$1"
   local cidr="$2"
-  
+
   # Use ipcalc with the -c option (check), which returns 0 if the IP is in the network
   if ipcalc -c "$ip" "$cidr" >/dev/null 2>&1; then
     # Get network address and mask from CIDR
     local network prefix
     network=$(echo "$cidr" | cut -d/ -f1)
     prefix=$(echo "$cidr" | cut -d/ -f2)
-    
+
     # Check if IP is in the network
     local ip_a ip_b ip_c ip_d net_a net_b net_c net_d
     IFS=. read -r ip_a ip_b ip_c ip_d <<< "$ip"
     IFS=. read -r net_a net_b net_c net_d <<< "$network"
-    
+
     # Check octets match based on prefix length
     local result=0
     if (( prefix >= 8 )); then
@@ -181,10 +181,10 @@ ip_in_cidr() {
     if (( prefix >= 24 )); then
       [[ "$ip_c" != "$net_c" ]] && result=1
     fi
-    
+
     return $result
   fi
-  
+
   return 1
 }
 
@@ -192,7 +192,7 @@ ip_in_cidr() {
 format_ip_tag() {
   local ip="$1"
   local format="${TAG_FORMAT:-full}"
-  
+
   case "$format" in
     "last_octet")
       echo "${ip##*.}"
@@ -210,10 +210,10 @@ format_ip_tag() {
 ip_in_cidrs() {
   local ip="$1"
   local cidrs="$2"
-  
+
   # Check that cidrs is not empty
   [[ -z "$cidrs" ]] && return 1
-  
+
   local IFS=' '
   for cidr in $cidrs; do
     ip_in_cidr "$ip" "$cidr" && return 0
@@ -267,14 +267,14 @@ fw_net_interface_changed() {
 get_vm_ips() {
   local vmid=$1
   local ips=""
-  
+
   # Check if VM is running
   qm status "$vmid" 2>/dev/null | grep -q "status: running" || return
-  
+
   # Get MAC addresses from VM configuration
   local macs
   macs=$(qm config "$vmid" 2>/dev/null | grep -E 'net[0-9]+' | grep -o -E '[a-fA-F0-9]{2}(:[a-fA-F0-9]{2}){5}')
-  
+
   # Look up IPs from ARP table using MAC addresses
   for mac in $macs; do
     local ip
@@ -283,7 +283,7 @@ get_vm_ips() {
       ips+="$ip "
     fi
   done
-  
+
   echo "$ips"
 }
 
@@ -293,7 +293,7 @@ update_tags() {
   local vmid="$2"
   local config_cmd="pct"
   [[ "$type" == "vm" ]] && config_cmd="qm"
-  
+
   # Get current IPs
   local current_ips_full
   if [[ "$type" == "lxc" ]]; then
@@ -302,23 +302,23 @@ update_tags() {
   else
     current_ips_full=$(get_vm_ips "${vmid}")
   fi
-  
+
   # Parse current tags and get valid IPs
   local current_tags=()
   local next_tags=()
   mapfile -t current_tags < <($config_cmd config "${vmid}" 2>/dev/null | grep tags | awk '{print $2}' | sed 's/;/\n/g')
-  
+
   for tag in "${current_tags[@]}"; do
     # Skip tag if it looks like an IP (full or partial)
     if ! is_valid_ipv4 "${tag}" && ! [[ "$tag" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
       next_tags+=("${tag}")
     fi
   done
-  
+
   # Add valid IPs to tags
   local added_ips=()
   local skipped_ips=()
-  
+
   for ip in ${current_ips_full}; do
     if is_valid_ipv4 "${ip}"; then
       if ip_in_cidrs "${ip}" "${CIDR_LIST[*]}"; then
@@ -330,12 +330,12 @@ update_tags() {
       fi
     fi
   done
-  
+
   # Log only if there are changes
   if [ ${#added_ips[@]} -gt 0 ]; then
     echo "${type^} ${vmid}: added IP tags: ${added_ips[*]}"
   fi
-  
+
   # Update if changed
   if [[ "$(IFS=';'; echo "${current_tags[*]}")" != "$(IFS=';'; echo "${next_tags[*]}")" ]]; then
     $config_cmd set "${vmid}" -tags "$(IFS=';'; echo "${next_tags[*]}")" &>/dev/null
@@ -346,7 +346,7 @@ update_tags() {
 check_status_changed() {
   local type="$1"
   local current_status
-  
+
   case "$type" in
     "lxc")
       current_status=$(pct list 2>/dev/null | grep -v VMID)
@@ -371,7 +371,7 @@ check_status_changed() {
 update_all_tags() {
   local type="$1"
   local vmid_list=""
-  
+
   if [[ "$type" == "lxc" ]]; then
     # Redirect stderr to /dev/null to suppress AppArmor messages
     vmid_list=$(pct list 2>/dev/null | grep -v VMID | awk '{print $1}')
@@ -380,7 +380,7 @@ update_all_tags() {
     vmid_list=$(qm list 2>/dev/null | grep -v VMID | awk '{print $1}')
     echo "Found $(echo "$vmid_list" | wc -w) virtual machines"
   fi
-  
+
   for vmid in $vmid_list; do
     update_tags "$type" "$vmid"
   done
@@ -388,7 +388,7 @@ update_all_tags() {
 
 check() {
   current_time=$(date +%s)
-  
+
   # Check LXC status
   time_since_last_lxc_status_check=$((current_time - last_lxc_status_check_time))
   if [[ "${LXC_STATUS_CHECK_INTERVAL}" -gt 0 ]] \
@@ -400,7 +400,7 @@ check() {
       last_update_lxc_time=${current_time}
     fi
   fi
-  
+
   # Check VM status
   time_since_last_vm_status_check=$((current_time - last_vm_status_check_time))
   if [[ "${VM_STATUS_CHECK_INTERVAL}" -gt 0 ]] \
@@ -412,7 +412,7 @@ check() {
       last_update_vm_time=${current_time}
     fi
   fi
-  
+
   # Check network interface changes
   time_since_last_fw_net_interface_check=$((current_time - last_fw_net_interface_check_time))
   if [[ "${FW_NET_INTERFACE_CHECK_INTERVAL}" -gt 0 ]] \
@@ -426,7 +426,7 @@ check() {
       last_update_vm_time=${current_time}
     fi
   fi
-  
+
   # Force update if needed
   for type in "lxc" "vm"; do
     local last_update_var="last_update_${type}_time"
@@ -457,7 +457,7 @@ main() {
 main
 EOF
   chmod +x /opt/iptag/iptag
-  
+
   # Update service file
   cat <<EOF >/lib/systemd/system/iptag.service
 [Unit]
@@ -472,7 +472,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-  
+
   systemctl daemon-reload &>/dev/null
   systemctl enable -q --now iptag.service &>/dev/null
   msg_ok "Updated IP-Tag Scripts"
@@ -483,17 +483,17 @@ if check_service_exists; then
   while true; do
     read -p "IP-Tag service is already installed. Do you want to update it? (y/n): " yn
     case $yn in
-      [Yy]*)
-        update_installation
-        exit 0
-        ;;
-      [Nn]*)
-        msg_error "Installation cancelled."
-        exit 0
-        ;;
-      *) 
-        msg_error "Please answer yes or no."
-        ;;
+    [Yy]*)
+      update_installation
+      exit 0
+      ;;
+    [Nn]*)
+      msg_error "Installation cancelled."
+      exit 0
+      ;;
+    *)
+      msg_error "Please answer yes or no."
+      ;;
     esac
   done
 fi
@@ -501,20 +501,20 @@ fi
 while true; do
   read -p "This will install ${APP} on ${hostname}. Proceed? (y/n): " yn
   case $yn in
-    [Yy]*)
-      break
-      ;;
-    [Nn]*)
-      msg_error "Installation cancelled."
-      exit
-      ;;
-    *)
-      msg_error "Please answer yes or no."
-      ;;
+  [Yy]*)
+    break
+    ;;
+  [Nn]*)
+    msg_error "Installation cancelled."
+    exit
+    ;;
+  *)
+    msg_error "Please answer yes or no."
+    ;;
   esac
 done
 
-if ! pveversion | grep -Eq "pve-manager/8\.[0-3](\.[0-9]+)*"; then
+if ! pveversion | grep -Eq "pve-manager/8\.[0-4](\.[0-9]+)*"; then
   msg_error "This version of Proxmox Virtual Environment is not supported"
   msg_error "⚠️ Requires Proxmox Virtual Environment Version 8.0 or later."
   msg_error "Exiting..."
@@ -596,19 +596,19 @@ ip_to_int() {
 ip_in_cidr() {
   local ip="$1"
   local cidr="$2"
-  
+
   # Use ipcalc with the -c option (check), which returns 0 if the IP is in the network
   if ipcalc -c "$ip" "$cidr" >/dev/null 2>&1; then
     # Get network address and mask from CIDR
     local network prefix
     network=$(echo "$cidr" | cut -d/ -f1)
     prefix=$(echo "$cidr" | cut -d/ -f2)
-    
+
     # Check if IP is in the network
     local ip_a ip_b ip_c ip_d net_a net_b net_c net_d
     IFS=. read -r ip_a ip_b ip_c ip_d <<< "$ip"
     IFS=. read -r net_a net_b net_c net_d <<< "$network"
-    
+
     # Check octets match based on prefix length
     local result=0
     if (( prefix >= 8 )); then
@@ -620,10 +620,10 @@ ip_in_cidr() {
     if (( prefix >= 24 )); then
       [[ "$ip_c" != "$net_c" ]] && result=1
     fi
-    
+
     return $result
   fi
-  
+
   return 1
 }
 
@@ -631,7 +631,7 @@ ip_in_cidr() {
 format_ip_tag() {
   local ip="$1"
   local format="${TAG_FORMAT:-full}"
-  
+
   case "$format" in
     "last_octet")
       echo "${ip##*.}"
@@ -649,10 +649,10 @@ format_ip_tag() {
 ip_in_cidrs() {
   local ip="$1"
   local cidrs="$2"
-  
+
   # Check that cidrs is not empty
   [[ -z "$cidrs" ]] && return 1
-  
+
   local IFS=' '
   for cidr in $cidrs; do
     ip_in_cidr "$ip" "$cidr" && return 0
@@ -706,14 +706,14 @@ fw_net_interface_changed() {
 get_vm_ips() {
   local vmid=$1
   local ips=""
-  
+
   # Check if VM is running
   qm status "$vmid" 2>/dev/null | grep -q "status: running" || return
-  
+
   # Get MAC addresses from VM configuration
   local macs
   macs=$(qm config "$vmid" 2>/dev/null | grep -E 'net[0-9]+' | grep -o -E '[a-fA-F0-9]{2}(:[a-fA-F0-9]{2}){5}')
-  
+
   # Look up IPs from ARP table using MAC addresses
   for mac in $macs; do
     local ip
@@ -722,7 +722,7 @@ get_vm_ips() {
       ips+="$ip "
     fi
   done
-  
+
   echo "$ips"
 }
 
@@ -732,7 +732,7 @@ update_tags() {
   local vmid="$2"
   local config_cmd="pct"
   [[ "$type" == "vm" ]] && config_cmd="qm"
-  
+
   # Get current IPs
   local current_ips_full
   if [[ "$type" == "lxc" ]]; then
@@ -741,23 +741,23 @@ update_tags() {
   else
     current_ips_full=$(get_vm_ips "${vmid}")
   fi
-  
+
   # Parse current tags and get valid IPs
   local current_tags=()
   local next_tags=()
   mapfile -t current_tags < <($config_cmd config "${vmid}" 2>/dev/null | grep tags | awk '{print $2}' | sed 's/;/\n/g')
-  
+
   for tag in "${current_tags[@]}"; do
     # Skip tag if it looks like an IP (full or partial)
     if ! is_valid_ipv4 "${tag}" && ! [[ "$tag" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
       next_tags+=("${tag}")
     fi
   done
-  
+
   # Add valid IPs to tags
   local added_ips=()
   local skipped_ips=()
-  
+
   for ip in ${current_ips_full}; do
     if is_valid_ipv4 "${ip}"; then
       if ip_in_cidrs "${ip}" "${CIDR_LIST[*]}"; then
@@ -769,12 +769,12 @@ update_tags() {
       fi
     fi
   done
-  
+
   # Log only if there are changes
   if [ ${#added_ips[@]} -gt 0 ]; then
     echo "${type^} ${vmid}: added IP tags: ${added_ips[*]}"
   fi
-  
+
   # Update if changed
   if [[ "$(IFS=';'; echo "${current_tags[*]}")" != "$(IFS=';'; echo "${next_tags[*]}")" ]]; then
     $config_cmd set "${vmid}" -tags "$(IFS=';'; echo "${next_tags[*]}")" &>/dev/null
@@ -785,7 +785,7 @@ update_tags() {
 check_status_changed() {
   local type="$1"
   local current_status
-  
+
   case "$type" in
     "lxc")
       current_status=$(pct list 2>/dev/null | grep -v VMID)
@@ -808,7 +808,7 @@ check_status_changed() {
 
 check() {
   current_time=$(date +%s)
-  
+
   # Check LXC status
   time_since_last_lxc_status_check=$((current_time - last_lxc_status_check_time))
   if [[ "${LXC_STATUS_CHECK_INTERVAL}" -gt 0 ]] \
@@ -820,7 +820,7 @@ check() {
       last_update_lxc_time=${current_time}
     fi
   fi
-  
+
   # Check VM status
   time_since_last_vm_status_check=$((current_time - last_vm_status_check_time))
   if [[ "${VM_STATUS_CHECK_INTERVAL}" -gt 0 ]] \
@@ -832,7 +832,7 @@ check() {
       last_update_vm_time=${current_time}
     fi
   fi
-  
+
   # Check network interface changes
   time_since_last_fw_net_interface_check=$((current_time - last_fw_net_interface_check_time))
   if [[ "${FW_NET_INTERFACE_CHECK_INTERVAL}" -gt 0 ]] \
@@ -846,7 +846,7 @@ check() {
       last_update_vm_time=${current_time}
     fi
   fi
-  
+
   # Force update if needed
   for type in "lxc" "vm"; do
     local last_update_var="last_update_${type}_time"
