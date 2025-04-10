@@ -446,5 +446,3 @@ fetch_and_deploy_gh_release() {
   $STD msg_ok "Deployed $app v$version to /opt/$app"
   rm -rf "$tmpdir"
 }
-
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helpers.func)
