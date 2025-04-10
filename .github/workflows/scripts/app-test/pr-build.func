@@ -147,9 +147,9 @@ build_container() {
   TEMP_DIR=$(mktemp -d)
   pushd $TEMP_DIR >/dev/null
   if [ "$var_os" == "alpine" ]; then
-    export FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/.github/workflows/scripts/app-test/pr-alpine-install.func)"
+    export FUNCTIONS_FILE_PATH="$(wget -qLO https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/.github/workflows/scripts/app-test/pr-alpine-install.func)"
   else
-    export FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/.github/workflows/scripts/app-test/pr-install.func)"
+    export FUNCTIONS_FILE_PATH="$(wget -qLO https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/.github/workflows/scripts/app-test/pr-install.func)"
   fi
 
   export CACHER="$APT_CACHER"
