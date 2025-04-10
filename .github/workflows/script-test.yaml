@@ -120,6 +120,7 @@ jobs:
               sed -i 's|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)|source .github/workflows/scripts/app-test/pr-build.func|g' "$RUNNING_FILE"
               echo "Executing $RUNNING_FILE"
               export TERM=xterm-256color
+              
               ERROR_MSG=$(./$RUNNING_FILE 2>&1 > /dev/null)
               echo "Finished running $FILE"
               if [ -n "$ERROR_MSG" ]; then
