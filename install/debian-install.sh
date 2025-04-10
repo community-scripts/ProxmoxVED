@@ -17,18 +17,31 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y gnupg2
 msg_ok "Installed Dependencies"
 
-msg_info "Setup DISTRO env"
-DISTRO="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
-msg_ok "Setup DISTRO"
+# Example Setting for Test
+NODE_VERSION="20"
+NODE_MODULE="pnpm@9.8.1,yarn"
 
-echo -e $DISTRO
+PG_VERSION="15"
+MARIADB_VERSION="10.11"
+MYSQL_VERSION="8.0"
 
-msg_info "Setting up PostgreSQL Repository"
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-echo "deb https://apt.postgresql.org/pub/repos/apt ${DISTRO}-pgdg main" >/etc/apt/sources.list.d/pgdg.list
-apt-get update
-$STD apt-get install -y postgresql
-msg_ok "Set up PostgreSQL Repository"
+install_node_and_modules
+install_postgresql
+install_mariadb
+install_mysql
+
+# msg_info "Setup DISTRO env"
+# DISTRO="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
+# msg_ok "Setup DISTRO"
+
+# echo -e $DISTRO
+
+# msg_info "Setting up PostgreSQL Repository"
+# curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+# echo "deb https://apt.postgresql.org/pub/repos/apt ${DISTRO}-pgdg main" >/etc/apt/sources.list.d/pgdg.list
+# apt-get update
+# $STD apt-get install -y postgresql
+# msg_ok "Set up PostgreSQL Repository"
 
 # msg_info "Setting up Matrix Server"
 # curl -fsSL https://packages.matrix.org/debian/matrix-org-archive-keyring.gpg -o /usr/share/keyrings/matrix-org-archive-keyring.gpg
