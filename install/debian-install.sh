@@ -19,7 +19,7 @@ msg_ok "Installed Dependencies"
 
 # Example Setting for Test
 NODE_VERSION="20"
-NODE_MODULE="pnpm@9.8.1,yarn"
+NODE_MODULE="pnpm@10.1,yarn"
 
 PG_VERSION="15"
 MARIADB_VERSION="10.11"
