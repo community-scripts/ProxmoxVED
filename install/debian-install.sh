@@ -23,12 +23,12 @@ NODE_MODULE="pnpm@10.1,yarn"
 
 PG_VERSION="15"
 MARIADB_VERSION="10.11"
-MYSQL_VERSION="8.0"
+#MYSQL_VERSION="8.0"
 
 install_node_and_modules
 install_postgresql
 install_mariadb
-install_mysql
+#install_mysql
 
 # msg_info "Setup DISTRO env"
 # DISTRO="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
