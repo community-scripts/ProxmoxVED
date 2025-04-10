@@ -219,3 +219,43 @@ install_node_and_modules() {
     msg_ok "Node Modules processed"
   fi
 }
+
+function install_postgresql() {
+  local PG_VERSION="${PG_VERSION:-15}"
+  local CURRENT_PG_VERSION=""
+  local DISTRO
+  local NEED_PG_INSTALL=false
+  DISTRO="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
+
+  if command -v psql >/dev/null; then
+    CURRENT_PG_VERSION="$(psql -V | grep -oP '\s\K[0-9]+(?=\.)')"
+    if [[ "$CURRENT_PG_VERSION" != "$PG_VERSION" ]]; then
+      msg_info "PostgreSQL Version $CURRENT_PG_VERSION found, replacing with $PG_VERSION"
+      NEED_PG_INSTALL=true
+    fi
+  else
+    msg_info "PostgreSQL not found, installing version $PG_VERSION"
+    NEED_PG_INSTALL=true
+  fi
+
+  if [[ "$NEED_PG_INSTALL" == true ]]; then
+    msg_info "Stopping PostgreSQL if running"
+    systemctl stop postgresql >/dev/null 2>&1 || true
+
+    msg_info "Removing conflicting PostgreSQL packages"
+    $STD apt-get purge -y "postgresql*"
+    rm -f /etc/apt/sources.list.d/pgdg.list /etc/apt/trusted.gpg.d/postgresql.gpg
+
+    msg_info "Setting up PostgreSQL Repository"
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+      gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+
+    echo "deb https://apt.postgresql.org/pub/repos/apt ${DISTRO}-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list
+
+    $STD apt-get update
+    $STD apt-get install -y "postgresql-${PG_VERSION}"
+
+    msg_ok "Installed PostgreSQL ${PG_VERSION}"
+  fi
+}
