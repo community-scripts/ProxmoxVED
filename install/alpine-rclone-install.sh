@@ -43,7 +43,7 @@ cat <<EOF >/etc/init.d/rclone
 description="rclone Service"
 command="/opt/rclone/rclone"
 command_args="rcd --rc-web-gui --rc-web-gui-no-open-browser --rc-addr :3000 --rc-htpasswd /opt/rclone/login.pwd"
-command_background="yes"
+command_background="true"
 command_user="root"
 pidfile="/var/run/rclone.pid"
 
