@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INPUT_FILE="repos.txt"
-OUTPUT_FILE="../../public/frontend/versions.json"
+OUTPUT_FILE="public/frontend/versions.json"
 TMP_FILE="releases_tmp.json"
 
 if [ -f "$OUTPUT_FILE" ]; then
