@@ -28,10 +28,11 @@ jobs:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Crawl from newreleases.io
+      - name: Crawl from Github API
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+            chmod +x scripts/get-gh-release.sh
             scripts/get-gh-release.sh
 
       - name: Commit JSON
