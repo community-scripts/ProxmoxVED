@@ -45,6 +45,10 @@
     {
       "type": "info",
       "text": "`cat ~/rclone.creds` to view login credentials"
+    },
+    {
+      "type": "info",
+      "text": "`htpasswd -b -B /opt/rclone/login.pwd newuser newuserpassword` to add more users."
     }
   ]
 }
