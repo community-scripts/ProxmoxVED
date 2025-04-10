@@ -218,6 +218,7 @@ EOF
   $STD apt-get update
   $STD apt-get install -y sudo curl mc
   msg_ok "Core dependencies installed"
+  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helper.func)
 }
 
 # This function modifies the message of the day (motd) and SSH settings
