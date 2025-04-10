@@ -33,6 +33,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
             ls
+
             chmod +x scripts/get-gh-release.sh
             scripts/get-gh-release.sh
 
