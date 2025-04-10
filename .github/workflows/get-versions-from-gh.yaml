@@ -1,4 +1,4 @@
-name: Crawl Versions from newreleases.io
+name: Crawl Versions from github
 
 on:
   workflow_dispatch:
