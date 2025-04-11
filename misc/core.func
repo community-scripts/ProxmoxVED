@@ -92,6 +92,21 @@ spinner_guard() {
   fi
 }
 
+log_message() {
+  local level="$1"
+  local message="$2"
+  local timestamp
+  local logdate
+  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+  logdate=$(date '+%Y-%m-%d')
+
+  LOGDIR="/usr/local/community-scripts/logs"
+  mkdir -p "$LOGDIR"
+
+  LOGFILE="${LOGDIR}/${logdate}_${NSAPP}.log"
+  echo "$timestamp - $level: $message" >>"$LOGFILE"
+}
+
 msg_info() {
   local msg="$1"
   if [ "${SPINNER_ACTIVE:-0}" -eq 1 ]; then
@@ -128,6 +143,7 @@ msg_error() {
   SPINNER_ACTIVE=0
   log_message "ERROR" "$msg"
 }
+
 shell_check() {
   if [[ "$(basename "$SHELL")" != "bash" ]]; then
     clear
@@ -137,6 +153,7 @@ shell_check() {
     exit
   fi
 }
+
 root_check() {
   if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
     clear
@@ -178,21 +195,6 @@ ssh_check() {
       fi
     fi
   fi
-}
-
-log_message() {
-  local level="$1"
-  local message="$2"
-  local timestamp
-  local logdate
-  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-  logdate=$(date '+%Y-%m-%d')
-
-  LOGDIR="/usr/local/community-scripts/logs"
-  mkdir -p "$LOGDIR"
-
-  LOGFILE="${LOGDIR}/${logdate}_${NSAPP}.log"
-  echo "$timestamp - $level: $message" >>"$LOGFILE"
 }
 
 exit-script() {
