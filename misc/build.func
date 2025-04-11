@@ -1342,7 +1342,7 @@ get_gh_release() {
 }
 
 start() {
-  #source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/github.func)
+  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helper.func)
   LOGDIR="/usr/local/community-scripts/logs"
   mkdir -p "$LOGDIR"
 
@@ -1614,6 +1614,4 @@ trap 'exit_script' EXIT
 trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
-
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helper.func)
 
