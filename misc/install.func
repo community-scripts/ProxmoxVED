@@ -7,6 +7,9 @@
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
 # This function enables IPv6 if it's not disabled and sets verbose mode
+
+wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func | source /dev/stdin
+
 verb_ip6() {
   set_std_mode # Set STD mode based on VERBOSE
 
