@@ -104,7 +104,7 @@ root_check() {
 }
 
 pve_check() {
-    if ! pveversion | grep -Eq "pve-manager/8\.[1-3](\.[0-9]+)*"; then
+    if ! pveversion | grep -Eq "pve-manager/8\.[1-9](\.[0-9]+)*"; then
         msg_error "${CROSS}${RD}This version of Proxmox Virtual Environment is not supported"
         echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
         echo -e "Exiting..."
@@ -136,17 +136,6 @@ ssh_check() {
     fi
 }
 
-start_script() {
-    if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button Advanced 10 58); then
-        header_info
-        echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings${CL}"
-        default_settings
-    else
-        header_info
-        echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
-        advanced_settings
-    fi
-}
 
 exit-script() {
     clear
