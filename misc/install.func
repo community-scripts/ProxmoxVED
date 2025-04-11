@@ -215,7 +215,7 @@ EOF
     $STD apt-get update
     $STD apt-get install -y sudo curl mc
     msg_ok "Core dependencies installed"
-    source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helper.func)
+    source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 
 }
 
@@ -272,5 +272,4 @@ EOF
         chmod 700 /root/.ssh
         chmod 600 /root/.ssh/authorized_keys
     fi
-    #source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 }
