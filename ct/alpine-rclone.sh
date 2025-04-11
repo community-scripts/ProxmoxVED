@@ -25,10 +25,10 @@ function update_script() {
   if [ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ] || [ ! -f /opt/${APP}_version.txt ]; then
     msg_info "Updating ${APP} LXC"
     temp_file=$(mktemp)
-    curl -fsSL "https://github.com/rclone/rclone/releases/download/v${RELEASE}/rclone-v${RELEASE}-linux-amd64.zip" -o $temp_file
-    $STD unzip -j -o $temp_file '*/**' -d /opt/rclone
-    rm -f $temp_file
-    echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
+    curl -fsSL "https://github.com/rclone/rclone/releases/download/v${RELEASE}/rclone-v${RELEASE}-linux-amd64.zip" -o "$temp_file"
+    $STD unzip -j -o "$temp_file" '*/**' -d /opt/rclone
+    rm -f "$temp_file"
+    echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
     msg_ok "Updated Successfully"
   else
     msg_ok "No update required. ${APP} is already at ${RELEASE}"

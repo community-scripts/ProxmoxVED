@@ -23,18 +23,18 @@ msg_info "Installing rclone"
 temp_file=$(mktemp)
 mkdir -p /opt/rclone
 RELEASE=$(curl -s https://api.github.com/repos/rclone/rclone/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/rclone/rclone/releases/download/v${RELEASE}/rclone-v${RELEASE}-linux-amd64.zip" -o $temp_file
-$STD unzip -j $temp_file '*/**' -d /opt/rclone
+curl -fsSL "https://github.com/rclone/rclone/releases/download/v${RELEASE}/rclone-v${RELEASE}-linux-amd64.zip" -o "$temp_file"
+$STD unzip -j "$temp_file" '*/**' -d /opt/rclone
 cd /opt/rclone
 PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
-$STD htpasswd -cb -B login.pwd admin $PASSWORD
+$STD htpasswd -cb -B login.pwd admin "$PASSWORD"
 {
   echo "rclone-Credentials"
   echo "rclone User Name: admin"
   echo "rclone Password: $PASSWORD"
 } >>~/rclone.creds
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-rm -f $temp_file
+echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
+rm -f "$temp_file"
 msg_ok "Installed rclone"
 
 msg_info "Enabling rclone Service"
