@@ -1210,6 +1210,7 @@ build_container() {
     curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/core_updates/misc/install.func >>"$TEMP_FUNC_FILE"
 
     export FUNCTIONS_FILE_PATH="$TEMP_FUNC_FILE"
+    rm "$TEMP_FUNC_FILE"
   fi
   export RANDOM_UUID="$RANDOM_UUID"
   export CACHER="$APT_CACHER"
