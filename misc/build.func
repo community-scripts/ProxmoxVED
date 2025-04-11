@@ -13,61 +13,13 @@ variables() {
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
 }
-
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
-
-# This function sets various color variables using ANSI escape codes for formatting text in the terminal.
-color() {
-  # Colors
-  YW=$(echo "\033[33m")
-  YWB=$(echo "\033[93m")
-  BL=$(echo "\033[36m")
-  RD=$(echo "\033[01;31m")
-  BGN=$(echo "\033[4;92m")
-  GN=$(echo "\033[1;92m")
-  DGN=$(echo "\033[32m")
-
-  # Formatting
-  CL=$(echo "\033[m")
-  BOLD=$(echo "\033[1m")
-  HOLD=" "
-  TAB="  "
-
-  # Icons
-  CM="${TAB}✔️${TAB}"
-  CROSS="${TAB}✖️${TAB}${CL}"
-  INFO="${TAB}💡${TAB}${CL}"
-  OS="${TAB}🖥️${TAB}${CL}"
-  OSVERSION="${TAB}🌟${TAB}${CL}"
-  CONTAINERTYPE="${TAB}📦${TAB}${CL}"
-  DISKSIZE="${TAB}💾${TAB}${CL}"
-  CPUCORE="${TAB}🧠${TAB}${CL}"
-  RAMSIZE="${TAB}🛠️${TAB}${CL}"
-  SEARCH="${TAB}🔍${TAB}${CL}"
-  VERBOSE_CROPPED="🔍${TAB}"
-  VERIFYPW="${TAB}🔐${TAB}${CL}"
-  CONTAINERID="${TAB}🆔${TAB}${CL}"
-  HOSTNAME="${TAB}🏠${TAB}${CL}"
-  BRIDGE="${TAB}🌉${TAB}${CL}"
-  NETWORK="${TAB}📡${TAB}${CL}"
-  GATEWAY="${TAB}🌐${TAB}${CL}"
-  DISABLEIPV6="${TAB}🚫${TAB}${CL}"
-  DEFAULT="${TAB}⚙️${TAB}${CL}"
-  MACADDRESS="${TAB}🔗${TAB}${CL}"
-  VLANTAG="${TAB}🏷️${TAB}${CL}"
-  ROOTSSH="${TAB}🔑${TAB}${CL}"
-  CREATING="${TAB}🚀${TAB}${CL}"
-  ADVANCED="${TAB}🧩${TAB}${CL}"
-  FUSE="${TAB}🔧${TAB}${CL}"
-}
-
-# This function enables error handling in the script by setting options and defining a trap for the ERR signal.
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helpers.func)
 catch_errors() {
   set -Eeuo pipefail
   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
 
-# This function is called when an error occurs. It receives the exit code, line number, and command that caused the error, and displays an error message.
 error_handler() {
   source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
   if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
@@ -84,126 +36,7 @@ error_handler() {
   echo -e "\n$error_message\n"
 }
 
-# This function displays an informational message with logging support.
-declare -A MSG_INFO_SHOWN
-SPINNER_ACTIVE=0
-SPINNER_PID=""
-SPINNER_MSG=""
-
 trap 'stop_spinner' EXIT INT TERM HUP
-
-start_spinner() {
-  local msg="$1"
-  local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
-  local spin_i=0
-  local interval=0.1
-
-  SPINNER_MSG="$msg"
-  printf "\r\e[2K" >&2
-
-  {
-    while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
-      printf "\r\e[2K%s %b" "${frames[spin_i]}" "${YW}${SPINNER_MSG}${CL}" >&2
-      spin_i=$(((spin_i + 1) % ${#frames[@]}))
-      sleep "$interval"
-    done
-  } &
-
-  SPINNER_PID=$!
-  disown "$SPINNER_PID"
-}
-
-stop_spinner() {
-  if [[ ${SPINNER_PID+v} && -n "$SPINNER_PID" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
-    kill "$SPINNER_PID" 2>/dev/null
-    sleep 0.1
-    kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
-    wait "$SPINNER_PID" 2>/dev/null || true
-  fi
-  SPINNER_ACTIVE=0
-  unset SPINNER_PID
-}
-
-spinner_guard() {
-  if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "$SPINNER_PID" ]]; then
-    kill "$SPINNER_PID" 2>/dev/null
-    wait "$SPINNER_PID" 2>/dev/null || true
-    SPINNER_ACTIVE=0
-    unset SPINNER_PID
-  fi
-}
-
-msg_info() {
-  local msg="$1"
-  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$msg"]=1
-
-  spinner_guard
-  SPINNER_ACTIVE=1
-  start_spinner "$msg"
-}
-
-msg_ok() {
-  local msg="$1"
-  stop_spinner
-  printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
-  unset MSG_INFO_SHOWN["$msg"]
-}
-
-msg_error() {
-  stop_spinner
-  local msg="$1"
-  printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
-  log_message "ERROR" "$msg"
-}
-
-log_message() {
-  local level="$1"
-  local message="$2"
-  local timestamp
-  local logdate
-  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-  logdate=$(date '+%Y-%m-%d')
-
-  LOGDIR="/usr/local/community-scripts/logs"
-  mkdir -p "$LOGDIR"
-
-  LOGFILE="${LOGDIR}/${logdate}_${NSAPP}.log"
-  echo "$timestamp - $level: $message" >>"$LOGFILE"
-}
-
-# Check if the shell is using bash
-shell_check() {
-  if [[ "$(basename "$SHELL")" != "bash" ]]; then
-    clear
-    msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
-    echo -e "\nExiting..."
-    sleep 2
-    exit
-  fi
-}
-
-# Run as root only
-root_check() {
-  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
-    clear
-    msg_error "Please run this script as root."
-    echo -e "\nExiting..."
-    sleep 2
-    exit
-  fi
-}
-
-# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-pve_check() {
-  if ! pveversion | grep -Eq "pve-manager/8\.[1-9](\.[0-9]+)*"; then
-    msg_error "${CROSS}${RD}This version of Proxmox Virtual Environment is not supported"
-    echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
 
 # When a node is running tens of containers, it's possible to exceed the kernel's cryptographic key storage allocations.
 # These are tuneable, so verify if the currently deployment is approaching the limits, advise the user on how to tune the limits, and exit the script.
@@ -249,17 +82,6 @@ maxkeys_check() {
   fi
 
   echo -e "${CM}${GN} All kernel key limits are within safe thresholds.${CL}"
-}
-
-# This function checks the system architecture and exits if it's not "amd64".
-arch_check() {
-  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
-    echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
-    echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
 }
 
 # Function to get the current IP address based on the distribution
@@ -326,29 +148,6 @@ header_info() {
   term_width=$(tput cols 2>/dev/null || echo 120)
   clear
   echo "$header_content"
-}
-
-# This function checks if the script is running through SSH and prompts the user to confirm if they want to proceed or exit.
-ssh_check() {
-  if [[ -n "${SSH_CLIENT:+x}" ]]; then
-    dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "SSH DETECTED" \
-      --yesno "It's advisable to utilize the Proxmox shell rather than SSH,\nas there may be potential complications with variable retrieval.\n\nProceed using SSH?" 12 72 \
-      --ok-label "Yes" --cancel-label "No"
-
-    case $? in
-    0)
-      dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
-        --title "Proceed using SSH" \
-        --msgbox "You've chosen to proceed using SSH.\n\nIf any issues arise, please run the script in the Proxmox shell before creating a repository issue." 10 72
-      ;;
-    1 | 255)
-      clear
-      printf "%s\n" "Exiting due to SSH usage. Please consider using the Proxmox shell."
-      exit
-      ;;
-    esac
-  fi
 }
 
 base_settings() {
@@ -421,13 +220,6 @@ echo_default() {
   fi
   echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
   echo -e "  "
-}
-
-# This function is called when the user decides to exit the script. It clears the screen and displays an exit message.
-exit_script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
 }
 
 # This function allows the user to configure advanced settings for the script.
@@ -1558,22 +1350,7 @@ EOF
   post_update_to_api "done" "none"
 }
 
-set_std_mode() {
-  if [ "$VERB" = "yes" ]; then
-    STD=""
-  else
-    STD="silent"
-  fi
-}
-
 # Silent execution function
-silent() {
-  if [ "$VERB" = "no" ]; then
-    "$@" >>"$LOGFILE" 2>&1
-  else
-    "$@" 2>&1 | tee -a "$LOGFILE"
-  fi
-}
 
 # 26.03.2025 disabled
 #exit_script() {
@@ -1614,4 +1391,3 @@ trap 'exit_script' EXIT
 trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
-
