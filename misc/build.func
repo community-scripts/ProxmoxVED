@@ -14,7 +14,7 @@ variables() {
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
 }
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helpers.func)
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 catch_errors() {
   set -Eeuo pipefail
   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
@@ -1204,7 +1204,7 @@ build_container() {
   if [ "$var_os" == "alpine" ]; then
     export FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/alpine-install.func)"
   else
-    FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helpers.func)"
+    FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)"
     FUNCTIONS_FILE_PATH+="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)"
     echo -e ${FUNCTIONS_FILE_PATH}
     exit 0
