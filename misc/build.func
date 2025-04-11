@@ -1342,7 +1342,7 @@ get_gh_release() {
 }
 
 start() {
-  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helper.func)
+  #source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/helper.func)
   LOGDIR="/usr/local/community-scripts/logs"
   mkdir -p "$LOGDIR"
 
