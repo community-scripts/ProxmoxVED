@@ -21,7 +21,6 @@ catch_errors
 
 function update_script() {
   header_info
-
   RELEASE=$(curl -s https://api.github.com/repos/rclone/rclone/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ] || [ ! -f /opt/${APP}_version.txt ]; then
     msg_info "Updating ${APP} LXC"
@@ -34,6 +33,8 @@ function update_script() {
   else
     msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
+
+  exit 0
 }
 
 start
