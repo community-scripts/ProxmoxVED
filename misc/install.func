@@ -49,6 +49,14 @@ color() {
   FUSE="${TAB}🔧${TAB}${CL}"
 }
 
+set_std_mode() {
+  if [ "$VERB" = "yes" ]; then
+    STD=""
+  else
+    STD="silent"
+  fi
+}
+
 declare -A MSG_INFO_SHOWN
 SPINNER_ACTIVE=0
 SPINNER_PID=""
