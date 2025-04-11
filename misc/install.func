@@ -188,6 +188,9 @@ error_handler() {
   fi
 }
 
+RETRY_NUM=10
+RETRY_EVERY=3
+
 # This function sets up the Container OS by generating the locale, setting the timezone, and checking the network connection
 setting_up_container() {
   msg_info "Setting up Container OS"
