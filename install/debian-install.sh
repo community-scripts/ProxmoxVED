@@ -5,7 +5,9 @@
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
+source /dev/stdin <<<"$CORE_FILE_PATJ"
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+
 color
 verb_ip6
 catch_errors

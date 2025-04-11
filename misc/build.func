@@ -1204,9 +1204,8 @@ build_container() {
   if [ "$var_os" == "alpine" ]; then
     export FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/core_updates/misc/alpine-install.func)"
   else
-    FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/core_updates/misc/core.func)"
-    FUNCTIONS_FILE_PATH+="\n$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/core_updates/misc/install.func)"
-    export FUNCTIONS_FILE_PATH
+    export CORE_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/core_updates/misc/core.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/core_updates/misc/install.func)"
   fi
   export RANDOM_UUID="$RANDOM_UUID"
   export CACHER="$APT_CACHER"
