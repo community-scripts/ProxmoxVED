@@ -128,7 +128,15 @@ msg_error() {
   SPINNER_ACTIVE=0
   log_message "ERROR" "$msg"
 }
-
+shell_check() {
+  if [[ "$(basename "$SHELL")" != "bash" ]]; then
+    clear
+    msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
+    echo -e "\nExiting..."
+    sleep 2
+    exit
+  fi
+}
 root_check() {
   if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
     clear
