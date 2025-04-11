@@ -4,8 +4,6 @@
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
-
-
 verb_ip6() {
   set_std_mode # Set STD mode based on VERBOSE
 

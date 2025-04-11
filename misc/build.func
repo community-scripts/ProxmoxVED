@@ -1206,8 +1206,6 @@ build_container() {
   else
     FUNCTIONS_FILE_PATH="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)"
     FUNCTIONS_FILE_PATH+="$(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)"
-    echo -e ${FUNCTIONS_FILE_PATH}
-    exit 0
     export FUNCTIONS_FILE_PATH
   fi
   export RANDOM_UUID="$RANDOM_UUID"
