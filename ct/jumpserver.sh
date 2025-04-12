@@ -39,7 +39,7 @@ function update_script() {
     rm -rf /opt/jumpserver
     cd /opt
     curl -fsSL "https://github.com/jumpserver/installer/releases/download/${RELEASE}/jumpserver-installer-${RELEASE}.tar.gz" -o jumpserver-installer-${RELEASE}.tar.gz
-    $STD mkdir -p /opt/jumpserver
+    mkdir -p /opt/jumpserver
     $STD tar -xzvf jumpserver-installer-${RELEASE}.tar.gz -C /opt/jumpserver --strip-components=1
     if [[ -d /opt/jumpserver_config_backup ]]; then
       msg_info "Restoring config backup"
