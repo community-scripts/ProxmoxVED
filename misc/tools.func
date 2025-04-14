@@ -133,40 +133,54 @@ install_postgresql() {
 }
 
 install_mariadb() {
-    local MARIADB_VERSION="${MARIADB_VERSION:-10.11}"
-    local CURRENT_VERSION=""
-    local NEED_INSTALL=false
+    local MARIADB_VERSION="${MARIADB_VERSION:-latest}"
+    local DISTRO_CODENAME
+    DISTRO_CODENAME="$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)"
 
+    # grab dynamic latest LTS version
+    if [[ "$MARIADB_VERSION" == "latest" ]]; then
+        msg_info "Resolving latest MariaDB version"
+        MARIADB_VERSION=$(curl -fsSL https://mariadb.org | grep -oP 'MariaDB \K10\.[0-9]+' | head -n1)
+        if [[ -z "$MARIADB_VERSION" ]]; then
+            msg_error "Could not determine latest MariaDB version"
+            return 1
+        fi
+        msg_ok "Latest MariaDB version is $MARIADB_VERSION"
+    fi
+
+    local CURRENT_VERSION=""
     if command -v mariadb >/dev/null; then
         CURRENT_VERSION="$(mariadb --version | grep -oP 'Ver\s+\K[0-9]+\.[0-9]+')"
-        if [[ "$CURRENT_VERSION" != "$MARIADB_VERSION" ]]; then
-            msg_info "MariaDB $CURRENT_VERSION found, replacing with $MARIADB_VERSION"
-            NEED_INSTALL=true
-        else
-            msg_ok "MariaDB $MARIADB_VERSION already installed"
-        fi
-    else
-        msg_info "MariaDB not found, installing version $MARIADB_VERSION"
-        NEED_INSTALL=true
     fi
 
-    if [[ "$NEED_INSTALL" == true ]]; then
-        msg_info "Removing conflicting MariaDB packages"
-        $STD systemctl stop mariadb >/dev/null 2>&1 || true
-        $STD apt-get purge -y 'mariadb*'
-        rm -f /etc/apt/sources.list.d/mariadb.list /etc/apt/trusted.gpg.d/mariadb.gpg
-
-        msg_info "Setting up MariaDB Repository"
-        curl -fsSL "https://mariadb.org/mariadb_release_signing_key.asc" | gpg --dearmor -o /etc/apt/trusted.gpg.d/mariadb.gpg
-        DISTRO_CODENAME="$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)"
-        echo "deb [signed-by=/etc/apt/trusted.gpg.d/mariadb.gpg] http://mirror.mariadb.org/repo/${MARIADB_VERSION}/debian ${DISTRO_CODENAME} main" \
-            >/etc/apt/sources.list.d/mariadb.list
-
+    if [[ "$CURRENT_VERSION" == "$MARIADB_VERSION" ]]; then
+        msg_info "MariaDB $MARIADB_VERSION already installed, checking for upgrade"
         $STD apt-get update
-        $STD apt-get install -y mariadb-server mariadb-client
-
-        msg_ok "Installed MariaDB $MARIADB_VERSION"
+        $STD apt-get install --only-upgrade -y mariadb-server mariadb-client
+        msg_ok "MariaDB $MARIADB_VERSION upgraded if applicable"
+        return 0
     fi
+
+    if [[ -n "$CURRENT_VERSION" ]]; then
+        msg_info "Replacing MariaDB $CURRENT_VERSION with $MARIADB_VERSION (data will be preserved)"
+        $STD systemctl stop mariadb >/dev/null 2>&1 || true
+        $STD apt-get purge -y 'mariadb*' || true
+        rm -f /etc/apt/sources.list.d/mariadb.list /etc/apt/trusted.gpg.d/mariadb.gpg
+    else
+        msg_info "Installing MariaDB $MARIADB_VERSION"
+    fi
+
+    msg_info "Setting up MariaDB Repository"
+    curl -fsSL "https://mariadb.org/mariadb_release_signing_key.asc" |
+        gpg --dearmor -o /etc/apt/trusted.gpg.d/mariadb.gpg
+
+    echo "deb [signed-by=/etc/apt/trusted.gpg.d/mariadb.gpg] http://mirror.mariadb.org/repo/${MARIADB_VERSION}/debian ${DISTRO_CODENAME} main" \
+        >/etc/apt/sources.list.d/mariadb.list
+
+    $STD apt-get update
+    $STD apt-get install -y mariadb-server mariadb-client
+
+    msg_ok "Installed MariaDB $MARIADB_VERSION"
 }
 
 install_mysql() {
