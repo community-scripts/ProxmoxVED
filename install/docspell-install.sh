@@ -12,6 +12,11 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Setup Functions"
+setup_local_ip_helper
+import_local_ip
+msg_ok "Setup Functions"
+
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
     htop \
@@ -68,28 +73,48 @@ mv dsc /usr/bin
 ln -s /etc/docspell-joex /opt/docspell/docspell-joex && ln -s /etc/docspell-restserver /opt/docspell/docspell-restserver && ln -s /usr/bin/dsc /opt/docspell/dsc
 curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/bin/yq
 chmod +x /usr/bin/yq
-JOEX_CONF="/usr/share/docspell-joex/conf/docspell-joex.conf"
-SERVER_CONF="/usr/share/docspell-restserver/conf/docspell-server.conf"
-sed -i 's|address = "localhost"|address = "0.0.0.0"|' "$JOEX_CONF" "$SERVER_CONF"
-sed -i -E '/backend\s*\{/,/\}/ {
-    /jdbc\s*\{/,/\}/ {
-        s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
-        s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
-        s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
-    }
-}' "$SERVER_CONF"
-sed -i -E '/postgresql\s*\{/,/\}/ {
-    /jdbc\s*\{/,/\}/ {
-        s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
-        s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
-        s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
-    }
-}' "$SERVER_CONF"
-sed -i -E '/jdbc\s*\{/,/\}/ {
-    s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
-    s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
-    s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
-}' "$JOEX_CONF"
+#JOEX_CONF="/usr/share/docspell-joex/conf/docspell-joex.conf"
+#SERVER_CONF="/usr/share/docspell-restserver/conf/docspell-server.conf"
+sed -i \
+    -e '11s|localhost|'"$LOCAL_IP"'|' \
+    -e '17s|localhost|'"$LOCAL_IP"'|' \
+    -e '49s|url = .*|url = "jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|' \
+    -e '52s|user = .*|user = "'"$DB_USER"'"|' \
+    -e '55s|password = .*|password = "'"$DB_PASS"'"|' \
+    -e '827s|url = .*|url = "jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|' \
+    -e '828s|user = .*|user = "'"$DB_USER"'"|' \
+    -e '829s|password = .*|password = "'"$DB_PASS"'"|' \
+    /usr/share/docspell-joex/conf/docspell-joex.conf
+
+sed -i \
+    -e '16s|http://localhost:7880|http://'"$LOCAL_IP"':7880|' \
+    -e '22s|http://localhost:7880|http://'"$LOCAL_IP"':7880|' \
+    -e '356s|url = .*|url = "jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|' \
+    -e '357s|user = .*|user = "'"$DB_USER"'"|' \
+    -e '358s|password = .*|password = "'"$DB_PASS"'"|' \
+    -e '401s|url = .*|url = "jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|' \
+    /opt/docspell/docspell-server.conf
+
+# sed -i 's|address = "localhost"|address = "0.0.0.0"|' "$JOEX_CONF" "$SERVER_CONF"
+# sed -i -E '/backend\s*\{/,/\}/ {
+#     /jdbc\s*\{/,/\}/ {
+#         s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
+#         s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
+#         s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
+#     }
+# }' "$SERVER_CONF"
+# sed -i -E '/postgresql\s*\{/,/\}/ {
+#     /jdbc\s*\{/,/\}/ {
+#         s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
+#         s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
+#         s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
+#     }
+# }' "$SERVER_CONF"
+# sed -i -E '/jdbc\s*\{/,/\}/ {
+#     s|(url\s*=\s*).*|\1"jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|;
+#     s|(user\s*=\s*).*|\1"'"$DB_USER"'"|;
+#     s|(password\s*=\s*).*|\1"'"$DB_PASS"'"|;
+# }' "$JOEX_CONF"
 msg_ok "Setup Docspell"
 
 msg_info "Setup Apache Solr"
