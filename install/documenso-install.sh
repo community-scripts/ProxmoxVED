@@ -5,7 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/documenso/documenso
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -15,17 +15,17 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  gpg \
-  libc6 \
-  curl \
-  sudo \
-  make \
-  cmake \
-  mc \
-  jq \
-  postgresql \
-  python3 \
-  python3-bcrypt
+    gpg \
+    libc6 \
+    curl \
+    sudo \
+    make \
+    cmake \
+    mc \
+    jq \
+    postgresql \
+    python3 \
+    python3-bcrypt
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Node.js Repository"
@@ -54,7 +54,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
     echo "Database Name: $DB_NAME"
     echo "Database User: $DB_USER"
     echo "Database Password: $DB_PASS"
-} >> ~/documenso.creds
+} >>~/documenso.creds
 msg_ok "Set up PostgreSQL"
 
 msg_info "Installing Documenso (Patience)"
@@ -98,7 +98,7 @@ After=network.target postgresql.service
 
 [Service]
 WorkingDirectory=/opt/documenso/apps/web
-ExecStart=/usr/bin/next start -p 3500
+ExecStart=/usr/bin/npm start
 Restart=always
 EnvironmentFile=/opt/documenso/.env
 
