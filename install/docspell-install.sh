@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2024 tteck
+# Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (Canbiz)
-# License: MIT
-# https://github.com/tteck/Proxmox/raw/main/LICENSE
+# License: MIT |
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
