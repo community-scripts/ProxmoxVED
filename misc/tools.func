@@ -647,3 +647,92 @@ fetch_and_deploy_gh_release() {
     $STD msg_ok "Deployed $app v$version to /opt/$app"
     rm -rf "$tmpdir"
 }
+
+setup_local_ip_helper() {
+    local BASE_DIR="/usr/local/community-scripts/ip-management"
+    local SCRIPT_PATH="$BASE_DIR/update_local_ip.sh"
+    local SERVICE_PATH="/etc/systemd/system/update-local-ip.service"
+    local TIMER_PATH="/etc/systemd/system/update-local-ip.timer"
+
+    mkdir -p "$BASE_DIR"
+
+    # Create update script
+    cat <<'EOF' >"$SCRIPT_PATH"
+#!/bin/bash
+set -e
+
+IP_FILE="/run/local-ip.env"
+mkdir -p "$(dirname "$IP_FILE")"
+
+get_current_ip() {
+    ip route get 1 | awk '{print $7; exit}' 2>/dev/null
+}
+
+current_ip="$(get_current_ip)"
+
+if [[ -z "$current_ip" ]]; then
+    echo "[ERROR] Could not detect local IP" >&2
+    exit 1
+fi
+
+if [[ -f "$IP_FILE" ]]; then
+    source "$IP_FILE"
+    if [[ "$LOCAL_IP" == "$current_ip" ]]; then
+        exit 0
+    fi
+fi
+
+echo "LOCAL_IP=$current_ip" > "$IP_FILE"
+echo "[INFO] LOCAL_IP updated to $current_ip"
+EOF
+
+    chmod +x "$SCRIPT_PATH"
+
+    # Create systemd service
+    cat <<EOF >"$SERVICE_PATH"
+[Unit]
+Description=Update LOCAL_IP file
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=$SCRIPT_PATH
+EOF
+
+    # Create systemd timer
+    cat <<EOF >"$TIMER_PATH"
+[Unit]
+Description=Periodic LOCAL_IP update
+
+[Timer]
+OnBootSec=15
+OnUnitActiveSec=60
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+    systemctl daemon-reexec
+    systemctl daemon-reload
+    systemctl enable --now update-local-ip.timer
+
+    msg_ok "Setup LOCAL_IP helper in $BASE_DIR with systemd integration"
+}
+
+import_local_ip() {
+    local IP_FILE="/run/local-ip.env"
+    if [[ -f "$IP_FILE" ]]; then
+        source "$IP_FILE"
+    fi
+
+    if [[ -z "$LOCAL_IP" ]]; then
+        LOCAL_IP="$(ip route get 1 | awk '{print $7; exit}' 2>/dev/null)"
+        if [[ -z "$LOCAL_IP" ]]; then
+            msg_error "Could not determine LOCAL_IP"
+            return 1
+        fi
+    fi
+
+    export LOCAL_IP
+}
