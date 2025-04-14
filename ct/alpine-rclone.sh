@@ -20,21 +20,21 @@ color
 catch_errors
 
 function update_script() {
-  header_info
-  RELEASE=$(curl -s https://api.github.com/repos/rclone/rclone/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-  if [ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ] || [ ! -f /opt/${APP}_version.txt ]; then
-    msg_info "Updating ${APP} LXC"
-    temp_file=$(mktemp)
-    curl -fsSL "https://github.com/rclone/rclone/releases/download/v${RELEASE}/rclone-v${RELEASE}-linux-amd64.zip" -o "$temp_file"
-    $STD unzip -j -o "$temp_file" '*/**' -d /opt/rclone
-    rm -f "$temp_file"
-    echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
-    msg_ok "Updated Successfully"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
-  fi
+	header_info
+    msg_info "Updating Alpine Packages"
+    $STD apk update
+    $STD apk upgrade
+    msg_ok "Updated Alpine Packages"
 
-  exit 0
+    msg_info "Updating Rclone"
+    $STD apk upgrade rclone
+    msg_ok "Updated Rclone"
+
+    msg_info "Restarting Rclone"
+    $STD rc-service rclone restart || true
+    msg_ok "Restarted Rclone"
+
+    exit 0
 }
 
 start
