@@ -25,7 +25,6 @@ $STD apt-get install -y \
   aspnetcore-runtime-8.0
   msg_ok "Installed Dependencies"
   
-# Building & Installing UA
 msg_info "Building & Installing Umlautadaptarr"
 $STD git clone https://github.com/PCJones/UmlautAdaptarr.git /opt/
 cd /opt/UmlautAdaptarr
