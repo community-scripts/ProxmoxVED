@@ -715,19 +715,19 @@ EOF
 
     systemctl daemon-reexec
     systemctl daemon-reload
-    systemctl enable --now update-local-ip.timer
+    systemctl enable -q --now update-local-ip.timer
 
     msg_ok "Setup LOCAL_IP helper in $BASE_DIR with systemd integration"
 }
 
 import_local_ip() {
-    setup_local_ip_helper
     local IP_FILE="/run/local-ip.env"
     if [[ -f "$IP_FILE" ]]; then
+        # shellcheck disable=SC1090
         source "$IP_FILE"
     fi
 
-    if [[ -z "$LOCAL_IP" ]]; then
+    if [[ -z "${LOCAL_IP:-}" ]]; then
         LOCAL_IP="$(ip route get 1 | awk '{print $7; exit}' 2>/dev/null)"
         if [[ -z "$LOCAL_IP" ]]; then
             msg_error "Could not determine LOCAL_IP"
