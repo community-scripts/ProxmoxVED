@@ -30,7 +30,7 @@ $STD apt-get install -y \
 # Building & Installing UA
 msg_info "Building & Installing Umlautadaptarr"
 $STD git clone https://github.com/PCJones/UmlautAdaptarr.git /opt/
-$STD cd /opt/UmlautAdaptarr
+cd /opt/UmlautAdaptarr
 $STD dotnet restore
 $STD dotnet build --configuration Release
 msg_ok "Installation completed"
