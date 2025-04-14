@@ -15,9 +15,9 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  gnupg \
-  unzip \
-  postgresql-common
+    gnupg \
+    unzip \
+    postgresql-common
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Additional Dependencies"
@@ -27,7 +27,7 @@ echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.co
 echo "YES" | /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh &>/dev/null
 $STD apt-get install -y postgresql-16 nodejs
 cd /tmp
-wget -q https://dl.min.io/server/minio/release/linux-amd64/minio.deb
+curl -fsSL https://dl.min.io/server/minio/release/linux-amd64/minio.deb -o minio.deb
 $STD dpkg -i minio.deb
 
 msg_info "Setting up Database"
@@ -46,9 +46,9 @@ ACCESS_TOKEN=$(openssl rand -base64 48)
 REFRESH_TOKEN=$(openssl rand -base64 48)
 CHROME_TOKEN=$(openssl rand -hex 32)
 LOCAL_IP=$(hostname -I | awk '{print $1}')
-TAG=$(curl -s https://api.github.com/repos/browserless/browserless/tags?per_page=1 | grep "name" | awk '{print substr($2, 3, length($2)-4) }')
-RELEASE=$(curl -s https://api.github.com/repos/AmruthPillai/Reactive-Resume/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-wget -q "https://github.com/AmruthPillai/Reactive-Resume/archive/refs/tags/v${RELEASE}.zip"
+TAG=$(curl -fsSL https://api.github.com/repos/browserless/browserless/tags?per_page=1 | grep "name" | awk '{print substr($2, 3, length($2)-4) }')
+RELEASE=$(curl -fsSL https://api.github.com/repos/AmruthPillai/Reactive-Resume/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+curl -fsSL "https://github.com/AmruthPillai/Reactive-Resume/archive/refs/tags/v${RELEASE}.zip" -o v${RELEASE}.zip
 unzip -q v${RELEASE}.zip
 mv ${APPLICATION}-${RELEASE}/ /opt/${APPLICATION}
 cd /opt/${APPLICATION}
@@ -65,7 +65,7 @@ msg_ok "Installed ${APPLICATION}"
 
 msg_info "Installing Browserless (Patience)"
 cd /tmp
-wget -q https://github.com/browserless/browserless/archive/refs/tags/v${TAG}.zip
+curl -fsSL https://github.com/browserless/browserless/archive/refs/tags/v${TAG}.zip -o v${TAG}.zip
 unzip -q v${TAG}.zip
 mv browserless-${TAG} /opt/browserless
 cd /opt/browserless
@@ -98,7 +98,7 @@ CHROME_TOKEN=${CHROME_TOKEN}
 CHROME_URL=ws://localhost:8080
 CHROME_IGNORE_HTTPS_ERRORS=true
 MAIL_FROM=noreply@locahost
-# SMTP_URL=smtp://username:password@smtp.server.mail:587 # 
+# SMTP_URL=smtp://username:password@smtp.server.mail:587 #
 STORAGE_ENDPOINT=localhost
 STORAGE_PORT=9000
 STORAGE_REGION=us-east-1
@@ -126,11 +126,11 @@ TOKEN=${CHROME_TOKEN}
 EOF
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 {
-  echo "${APPLICATION} Credentials"
-  echo "Database User: $DB_USER"
-  echo "Database Password: $DB_PASS"
-  echo "Database Name: $DB_NAME"
-  echo "Minio Root Password: ${MINIO_PASS}"
+    echo "${APPLICATION} Credentials"
+    echo "Database User: $DB_USER"
+    echo "Database Password: $DB_PASS"
+    echo "Database Name: $DB_NAME"
+    echo "Minio Root Password: ${MINIO_PASS}"
 } >>~/${APPLICATION}.creds
 msg_ok "Configured applications"
 
