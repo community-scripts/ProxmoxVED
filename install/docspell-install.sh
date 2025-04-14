@@ -15,25 +15,19 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  unzip \
-  htop \
-  gnupg2 \
-  ca-certificates \
-  default-jdk \
-  apt-transport-https \
-  ghostscript \
-  tesseract-ocr \
-  tesseract-ocr-deu \
-  tesseract-ocr-eng \
-  unpaper \
-  unoconv \
-  wkhtmltopdf \
-  ocrmypdf \
-  zip \
-  curl \
-  sudo \
-  make \
-  mc
+    htop \
+    gnupg2 \
+    ca-certificates \
+    default-jdk \
+    apt-transport-https \
+    ghostscript \
+    tesseract-ocr \
+    tesseract-ocr-deu \
+    tesseract-ocr-eng \
+    unpaper \
+    unoconv \
+    wkhtmltopdf \
+    ocrmypdf
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up PostgreSQL Repository"
@@ -53,10 +47,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 {
-  echo "Docspell-Credentials"
-  echo "Docspell Database Name: $DB_NAME"
-  echo "Docspell Database User: $DB_USER"
-  echo "Docspell Database Password: $DB_PASS"
+    echo "Docspell-Credentials"
+    echo "Docspell Database Name: $DB_NAME"
+    echo "Docspell Database User: $DB_USER"
+    echo "Docspell Database Password: $DB_PASS"
 } >>~/docspell.creds
 msg_ok "Set up PostgreSQL Database"
 
@@ -65,10 +59,10 @@ mkdir -p /opt/docspell
 Docspell=$(curl -fsSL https://github.com/eikek/docspell/releases/latest -o - | grep "title>Release" | cut -d " " -f 5)
 DocspellDSC=$(curl -fsSL https://github.com/docspell/dsc/releases/latest -o - | grep "title>Release" | cut -d " " -f 4 | sed 's/^v//')
 cd /opt
-curl -fsSL https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-joex_${Docspell}_all.deb
-curl -fsSL https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-restserver_${Docspell}_all.deb
+curl -fsSL https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-joex_${Docspell}_all.deb -o docspell-joex_${Docspell}_all.deb
+curl -fsSL https://github.com/eikek/docspell/releases/download/v${Docspell}/docspell-restserver_${Docspell}_all.deb -o docspell-restserver_${Docspell}_all.deb
 $STD dpkg -i docspell-*.deb
-curl -fsSL https://github.com/docspell/dsc/releases/download/v${DocspellDSC}/dsc_amd64-musl-${DocspellDSC}
+curl -fsSL https://github.com/docspell/dsc/releases/download/v${DocspellDSC}/dsc_amd64-musl-${DocspellDSC} -o dsc_amd64-musl-${DocspellDSC}
 mv dsc_amd* dsc
 chmod +x dsc
 mv dsc /usr/bin
@@ -102,9 +96,9 @@ msg_ok "Setup Docspell"
 msg_info "Setup Apache Solr"
 cd /opt/docspell
 SOLR_DOWNLOAD_URL="https://downloads.apache.org/lucene/solr/"
-latest_version=$(curl -s "$SOLR_DOWNLOAD_URL" | grep -oP '(?<=<a href=")[^"]+(?=/">[0-9])' | head -n 1)
+latest_version=$(curl -fsSL "$SOLR_DOWNLOAD_URL" | grep -oP '(?<=<a href=")[^"]+(?=/">[0-9])' | head -n 1)
 download_url="${SOLR_DOWNLOAD_URL}${latest_version}/solr-${latest_version}.tgz"
-curl -fsSL "$download_url"
+curl -fsSL "$download_url" -o "solr-$latest_version.tgz"
 tar xzf "solr-$latest_version.tgz"
 $STD bash "/opt/docspell/solr-$latest_version/bin/install_solr_service.sh" "solr-$latest_version.tgz"
 mv /opt/solr /opt/docspell/solr
