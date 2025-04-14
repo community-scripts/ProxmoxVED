@@ -21,11 +21,8 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y \
     gpg \
     libc6 \
-    curl \
-    sudo \
     make \
     cmake \
-    mc \
     jq \
     postgresql \
     python3 \
