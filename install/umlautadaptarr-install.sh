@@ -5,7 +5,6 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/PCJones/UmlautAdaptarr
 
-# Import Functions und Setup
 source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -14,7 +13,6 @@ setting_up_container
 network_check
 update_os
 
-# Installing Dependencies
 msg_info "Installing Dependencies"
 $STD wget https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 $STD dpkg -i packages-microsoft-prod.deb
