@@ -61,24 +61,25 @@ msg_ok "Set up PostgreSQL"
 
 msg_info "Installing Documenso (Patience)"
 cd /opt
-mkdir -p /opt/documenso_data
 RELEASE=$(curl -fsSL https://api.github.com/repos/documenso/documenso/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 wget -q "https://github.com/documenso/documenso/archive/refs/tags/v${RELEASE}.zip"
 unzip -q v${RELEASE}.zip
 mv documenso-${RELEASE} /opt/documenso
 cd /opt/documenso
-mv .env.example /opt/documenso_data/.env
+mv .env.example /opt/documenso/.env
 sed -i \
     -e "s|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET='$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)'|" \
     -e "s|^NEXT_PRIVATE_ENCRYPTION_KEY=.*|NEXT_PRIVATE_ENCRYPTION_KEY='$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)'|" \
     -e "s|^NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY=.*|NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY='$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)'|" \
+    -e "s|^DOCUMENSO_ENCRYPTION_KEY=.*|DOCUMENSO_ENCRYPTION_KEY='$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)'|" \
+    -e "s|^DOCUMENSO_ENCRYPTION_SECONDARY_KEY=.*|DOCUMENSO_ENCRYPTION_SECONDARY_KEY='$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)'|" \
     -e "s|^NEXTAUTH_URL=.*|NEXTAUTH_URL=\"http://${LOCAL_IP}:3000\"|" \
     -e "s|^NEXT_PUBLIC_WEBAPP_URL=.*|NEXT_PUBLIC_WEBAPP_URL='http://${LOCAL_IP}:9000'|" \
     -e "s|^NEXT_PUBLIC_MARKETING_URL=.*|NEXT_PUBLIC_MARKETING_URL=\"http://${LOCAL_IP}:3001\"|" \
     -e "s|^NEXT_PRIVATE_INTERNAL_WEBAPP_URL=.*|NEXT_PRIVATE_INTERNAL_WEBAPP_URL=\"http://${LOCAL_IP}:3000\"|" \
     -e "s|^NEXT_PRIVATE_DATABASE_URL=.*|NEXT_PRIVATE_DATABASE_URL=\"postgres://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME\"|" \
     -e "s|^NEXT_PRIVATE_DIRECT_DATABASE_URL=.*|NEXT_PRIVATE_DIRECT_DATABASE_URL=\"postgres://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME\"|" \
-    /opt/documenso_data/.env
+    /opt/documenso/.env
 export TURBO_CACHE=1
 export NEXT_TELEMETRY_DISABLED=1
 export CYPRESS_INSTALL_BINARY=0
@@ -108,7 +109,7 @@ After=network.target postgresql.service
 WorkingDirectory=/opt/documenso/apps/web
 ExecStart=/usr/bin/npm start
 Restart=always
-EnvironmentFile=/opt/documenso_data/.env
+EnvironmentFile=/opt/documenso/.env
 
 [Install]
 WantedBy=multi-user.target
