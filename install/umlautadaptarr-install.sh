@@ -31,7 +31,7 @@ cd /opt/UmlautAdaptarr
 $STD dotnet restore
 $STD dotnet build --configuration Release
 msg_ok "Installation completed"
-# Configure appsettings.json
+
 msg_info "Creating appsettings.json"
 cat <<EOF >/opt/UmlautAdaptarr/appsettings.json
 {
@@ -94,7 +94,6 @@ cat <<EOF >/opt/UmlautAdaptarr/appsettings.json
 EOF
 msg_ok "appsettings.json created"
 
-# Set up systemd service for UmlautAdaptarr
 msg_info "Creating systemd Service"   
 cat <<EOF >/etc/systemd/system/umlautadaptarr.service
 [Unit]
@@ -120,7 +119,6 @@ msg_ok "Created systemd Service"
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
