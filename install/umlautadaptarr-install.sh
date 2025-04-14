@@ -114,8 +114,7 @@ Environment=ASPNETCORE_ENVIRONMENT=Production
 WantedBy=multi-user.target
 EOF
 $STD systemctl daemon-reload
-$STD systemctl enable umlautadaptarr.service
-$STD systemctl start umlautadaptarr
+systemctl -q --now umlautadaptarr
 msg_ok "Created systemd Service"
 
 motd_ssh
