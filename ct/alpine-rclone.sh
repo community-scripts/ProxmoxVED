@@ -9,7 +9,7 @@ APP="Alpine-rclone"
 var_tags="${var_tags:-alpine;backup}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-256}"
-var_disk="${var_disk:-0.2}"
+var_disk="${var_disk:-1}"
 var_os="${var_os:-alpine}"
 var_version="${var_version:-3.21}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -20,7 +20,7 @@ color
 catch_errors
 
 function update_script() {
-	header_info
+    header_info
     msg_info "Updating Alpine Packages"
     $STD apk update
     $STD apk upgrade
