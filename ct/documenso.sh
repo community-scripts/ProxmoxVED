@@ -37,7 +37,7 @@ function update_script() {
         msg_info "Updating ${APP} to ${RELEASE}"
         cp /opt/documenso/.env /opt/
         rm -R /opt/documenso
-        curl -fsSL "https://github.com/documenso/documenso/archive/refs/tags/v${RELEASE}.zip"
+        curl -fsSL "https://github.com/documenso/documenso/archive/refs/tags/v${RELEASE}.zip" -o v${RELEASE}.zip
         unzip -q v${RELEASE}.zip
         mv documenso-${RELEASE} /opt/documenso
         cd /opt/documenso
