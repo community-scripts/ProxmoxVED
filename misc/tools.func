@@ -282,6 +282,61 @@ install_composer() {
     msg_ok "Installed Composer $($COMPOSER_BIN --version | awk '{print $3}')"
 }
 
+install_go() {
+    local ARCH
+    case "$(uname -m)" in
+    x86_64) ARCH="amd64" ;;
+    aarch64) ARCH="arm64" ;;
+    *)
+        msg_error "Unsupported architecture: $(uname -m)"
+        return 1
+        ;;
+    esac
+
+    # Determine version
+    if [[ -z "$GO_VERSION" || "$GO_VERSION" == "latest" ]]; then
+        GO_VERSION=$(curl -fsSL https://go.dev/VERSION?m=text | head -n1 | sed 's/^go//')
+        if [[ -z "$GO_VERSION" ]]; then
+            msg_error "Could not determine latest Go version"
+            return 1
+        fi
+        msg_info "Detected latest Go version: $GO_VERSION"
+    fi
+
+    local GO_BIN="/usr/local/bin/go"
+    local GO_INSTALL_DIR="/usr/local/go"
+
+    if [[ -x "$GO_BIN" ]]; then
+        local CURRENT_VERSION
+        CURRENT_VERSION=$("$GO_BIN" version | awk '{print $3}' | sed 's/go//')
+        if [[ "$CURRENT_VERSION" == "$GO_VERSION" ]]; then
+            msg_ok "Go $GO_VERSION already installed"
+            return 0
+        else
+            msg_info "Go $CURRENT_VERSION found, upgrading to $GO_VERSION"
+            rm -rf "$GO_INSTALL_DIR"
+        fi
+    else
+        msg_info "Installing Go $GO_VERSION"
+    fi
+
+    local TARBALL="go${GO_VERSION}.linux-${ARCH}.tar.gz"
+    local URL="https://go.dev/dl/${TARBALL}"
+    local TMP_TAR=$(mktemp)
+
+    curl -fsSL "$URL" -o "$TMP_TAR" || {
+        msg_error "Failed to download $TARBALL"
+        return 1
+    }
+
+    tar -C /usr/local -xzf "$TMP_TAR"
+    ln -sf /usr/local/go/bin/go /usr/local/bin/go
+    ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt
+    rm -f "$TMP_TAR"
+
+    msg_ok "Installed Go $GO_VERSION"
+}
+
 function install_mysql() {
     local MYSQL_VERSION="${MYSQL_VERSION:-8.0}"
     local CURRENT_VERSION=""
