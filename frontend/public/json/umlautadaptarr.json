@@ -11,7 +11,7 @@
     "interface_port": 5005,
     "documentation": null,
     "website": "https://github.com/PCJones/UmlautAdaptarr",
-    "logo": "LINK TO LOGO",
+    "logo": null,
     "description": "A tool to work around Sonarr, Radarr, Lidarr and Readarrs problems with foreign languages",
     "install_methods": [
         {
