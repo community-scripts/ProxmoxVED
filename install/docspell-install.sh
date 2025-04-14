@@ -93,7 +93,7 @@ sed -i \
     -e '357s|user = .*|user = "'"$DB_USER"'"|' \
     -e '358s|password = .*|password = "'"$DB_PASS"'"|' \
     -e '401s|url = .*|url = "jdbc:postgresql://localhost:5432/'"$DB_NAME"'"|' \
-    /opt/docspell/docspell-server.conf
+    /usr/share/docspell-restserver/conf/docspell-server.conf
 
 # sed -i 's|address = "localhost"|address = "0.0.0.0"|' "$JOEX_CONF" "$SERVER_CONF"
 # sed -i -E '/backend\s*\{/,/\}/ {
