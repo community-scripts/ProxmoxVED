@@ -717,7 +717,7 @@ EOF
     systemctl daemon-reload
     systemctl enable -q --now update-local-ip.timer
 
-    msg_ok "Setup LOCAL_IP helper in $BASE_DIR with systemd integration"
+    $STD msg_ok "Setup LOCAL_IP helper in $BASE_DIR with systemd integration"
 }
 
 import_local_ip() {
