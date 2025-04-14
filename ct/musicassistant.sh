@@ -20,14 +20,33 @@ color
 catch_errors
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
+    header_info
+    check_container_storage
+    check_container_resources
 
-  if [[ ! -d /opt/musicassistant ]]; then
-    msg_error "No Installation Found!"
-    exit
-  fi
+    if [[ ! -d /opt/musicassistant ]]; then
+        msg_error "No existing installation found!"
+        exit 1
+    fi
+
+    msg_info "Stopping Music Assistant service"
+    systemctl stop musicassistant
+    msg_ok "Service stopped"
+
+    msg_info "Updating Music Assistant files"
+    cd /opt/musicassistant || exit 1
+    $STD fetch_and_deploy_gh_release music-assistant/server
+    msg_ok "Music Assistant files updated"
+
+    msg_info "Updating Python virtual environment"
+    source .venv/bin/activate || exit 1
+    pip install --upgrade pip uv
+    uv pip install .
+    msg_ok "Python environment updated"
+
+    msg_info "Restarting Music Assistant service"
+    systemctl restart musicassistant
+    msg_ok "Service restarted"
 }
 
 start
