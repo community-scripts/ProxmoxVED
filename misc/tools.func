@@ -256,6 +256,32 @@ install_php() {
     done
 }
 
+install_composer() {
+    local COMPOSER_BIN="/usr/local/bin/composer"
+    export COMPOSER_ALLOW_SUPERUSER=1
+
+    # Check if composer is already installed
+    if [[ -x "$COMPOSER_BIN" ]]; then
+        local CURRENT_VERSION
+        CURRENT_VERSION=$("$COMPOSER_BIN" --version | awk '{print $3}')
+        msg_info "Composer $CURRENT_VERSION found, updating to latest"
+    else
+        msg_info "Composer not found, installing latest version"
+    fi
+
+    # Download and install latest composer
+    curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php
+    php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1
+
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to install Composer"
+        return 1
+    fi
+
+    chmod +x "$COMPOSER_BIN"
+    msg_ok "Installed Composer $($COMPOSER_BIN --version | awk '{print $3}')"
+}
+
 function install_mysql() {
     local MYSQL_VERSION="${MYSQL_VERSION:-8.0}"
     local CURRENT_VERSION=""
