@@ -92,7 +92,7 @@ install_node_and_modules() {
     fi
 }
 
-function install_postgresql() {
+install_postgresql() {
     local PG_VERSION="${PG_VERSION:-16}"
     local CURRENT_PG_VERSION=""
     local DISTRO
@@ -132,7 +132,7 @@ function install_postgresql() {
     fi
 }
 
-function install_mariadb() {
+install_mariadb() {
     local MARIADB_VERSION="${MARIADB_VERSION:-10.11}"
     local CURRENT_VERSION=""
     local NEED_INSTALL=false
@@ -166,6 +166,43 @@ function install_mariadb() {
         $STD apt-get install -y mariadb-server mariadb-client
 
         msg_ok "Installed MariaDB $MARIADB_VERSION"
+    fi
+}
+
+install_mysql() {
+    local MYSQL_VERSION="${MYSQL_VERSION:-8.0}"
+    local CURRENT_VERSION=""
+    local NEED_INSTALL=false
+
+    if command -v mysql >/dev/null; then
+        CURRENT_VERSION="$(mysql --version | grep -oP 'Distrib\s+\K[0-9]+\.[0-9]+')"
+        if [[ "$CURRENT_VERSION" != "$MYSQL_VERSION" ]]; then
+            msg_info "MySQL $CURRENT_VERSION found, replacing with $MYSQL_VERSION"
+            NEED_INSTALL=true
+        else
+            msg_ok "MySQL $MYSQL_VERSION already installed"
+        fi
+    else
+        msg_info "MySQL not found, installing version $MYSQL_VERSION"
+        NEED_INSTALL=true
+    fi
+
+    if [[ "$NEED_INSTALL" == true ]]; then
+        msg_info "Removing conflicting MySQL packages"
+        $STD systemctl stop mysql >/dev/null 2>&1 || true
+        $STD apt-get purge -y 'mysql*'
+        rm -f /etc/apt/sources.list.d/mysql.list /etc/apt/trusted.gpg.d/mysql.gpg
+
+        msg_info "Setting up MySQL APT Repository"
+        DISTRO_CODENAME="$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)"
+        curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 | gpg --dearmor -o /etc/apt/trusted.gpg.d/mysql.gpg
+        echo "deb [signed-by=/etc/apt/trusted.gpg.d/mysql.gpg] https://repo.mysql.com/apt/debian/ ${DISTRO_CODENAME} mysql-${MYSQL_VERSION}" \
+            >/etc/apt/sources.list.d/mysql.list
+
+        $STD apt-get update
+        $STD apt-get install -y mysql-server
+
+        msg_ok "Installed MySQL $MYSQL_VERSION"
     fi
 }
 
@@ -337,41 +374,92 @@ install_go() {
     msg_ok "Installed Go $GO_VERSION"
 }
 
-function install_mysql() {
-    local MYSQL_VERSION="${MYSQL_VERSION:-8.0}"
-    local CURRENT_VERSION=""
-    local NEED_INSTALL=false
+install_java() {
+    local JAVA_VERSION="${JAVA_VERSION:-17}"
+    local DISTRO_CODENAME
+    DISTRO_CODENAME=$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)
+    local DESIRED_PACKAGE="temurin-${JAVA_VERSION}-jdk"
 
-    if command -v mysql >/dev/null; then
-        CURRENT_VERSION="$(mysql --version | grep -oP 'Distrib\s+\K[0-9]+\.[0-9]+')"
-        if [[ "$CURRENT_VERSION" != "$MYSQL_VERSION" ]]; then
-            msg_info "MySQL $CURRENT_VERSION found, replacing with $MYSQL_VERSION"
-            NEED_INSTALL=true
-        else
-            msg_ok "MySQL $MYSQL_VERSION already installed"
-        fi
-    else
-        msg_info "MySQL not found, installing version $MYSQL_VERSION"
-        NEED_INSTALL=true
-    fi
-
-    if [[ "$NEED_INSTALL" == true ]]; then
-        msg_info "Removing conflicting MySQL packages"
-        $STD systemctl stop mysql >/dev/null 2>&1 || true
-        $STD apt-get purge -y 'mysql*'
-        rm -f /etc/apt/sources.list.d/mysql.list /etc/apt/trusted.gpg.d/mysql.gpg
-
-        msg_info "Setting up MySQL APT Repository"
-        DISTRO_CODENAME="$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)"
-        curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 | gpg --dearmor -o /etc/apt/trusted.gpg.d/mysql.gpg
-        echo "deb [signed-by=/etc/apt/trusted.gpg.d/mysql.gpg] https://repo.mysql.com/apt/debian/ ${DISTRO_CODENAME} mysql-${MYSQL_VERSION}" \
-            >/etc/apt/sources.list.d/mysql.list
-
+    # Add Adoptium repo if missing
+    if [[ ! -f /etc/apt/sources.list.d/adoptium.list ]]; then
+        msg_info "Setting up Adoptium Repository"
+        mkdir -p /etc/apt/keyrings
+        curl -fsSL "https://packages.adoptium.net/artifactory/api/gpg/key/public" | gpg --dearmor -o /etc/apt/trusted.gpg.d/adoptium.gpg
+        echo "deb [signed-by=/etc/apt/trusted.gpg.d/adoptium.gpg] https://packages.adoptium.net/artifactory/deb ${DISTRO_CODENAME} main" \
+            >/etc/apt/sources.list.d/adoptium.list
         $STD apt-get update
-        $STD apt-get install -y mysql-server
-
-        msg_ok "Installed MySQL $MYSQL_VERSION"
+        msg_ok "Set up Adoptium Repository"
     fi
+
+    # Detect currently installed temurin version
+    local INSTALLED_VERSION=""
+    if dpkg -l | grep -q "temurin-.*-jdk"; then
+        INSTALLED_VERSION=$(dpkg -l | awk '/temurin-.*-jdk/{print $2}' | grep -oP 'temurin-\K[0-9]+')
+    fi
+
+    if [[ "$INSTALLED_VERSION" == "$JAVA_VERSION" ]]; then
+        msg_info "Temurin JDK $JAVA_VERSION already installed, updating if needed"
+        $STD apt-get update
+        $STD apt-get install --only-upgrade -y "$DESIRED_PACKAGE"
+        msg_ok "Updated Temurin JDK $JAVA_VERSION (if applicable)"
+    else
+        if [[ -n "$INSTALLED_VERSION" ]]; then
+            msg_info "Removing Temurin JDK $INSTALLED_VERSION"
+            $STD apt-get purge -y "temurin-${INSTALLED_VERSION}-jdk"
+        fi
+
+        msg_info "Installing Temurin JDK $JAVA_VERSION"
+        $STD apt-get install -y "$DESIRED_PACKAGE"
+        msg_ok "Installed Temurin JDK $JAVA_VERSION"
+    fi
+}
+
+install_mongodb() {
+    local MONGO_VERSION="${MONGO_VERSION:-8.0}"
+    local DISTRO_CODENAME
+    DISTRO_CODENAME=$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)
+    local REPO_LIST="/etc/apt/sources.list.d/mongodb-org-${MONGO_VERSION}.list"
+
+    # Aktuell installierte Major-Version ermitteln
+    local INSTALLED_VERSION=""
+    if command -v mongod >/dev/null; then
+        INSTALLED_VERSION=$(mongod --version | awk '/db version/{print $3}' | cut -d. -f1,2)
+    fi
+
+    if [[ "$INSTALLED_VERSION" == "$MONGO_VERSION" ]]; then
+        msg_info "MongoDB $MONGO_VERSION already installed, checking for upgrade"
+        $STD apt-get update
+        $STD apt-get install --only-upgrade -y mongodb-org
+        msg_ok "MongoDB $MONGO_VERSION upgraded if needed"
+        return 0
+    fi
+
+    # Ältere Version entfernen (nur Packages, nicht Daten!)
+    if [[ -n "$INSTALLED_VERSION" ]]; then
+        msg_info "Replacing MongoDB $INSTALLED_VERSION with $MONGO_VERSION (data will be preserved)"
+        $STD systemctl stop mongod || true
+        $STD apt-get purge -y mongodb-org || true
+        rm -f /etc/apt/sources.list.d/mongodb-org-*.list
+        rm -f /etc/apt/trusted.gpg.d/mongodb-*.gpg
+    else
+        msg_info "Installing MongoDB $MONGO_VERSION"
+    fi
+
+    # MongoDB Repo hinzufügen
+    curl -fsSL "https://pgp.mongodb.com/server-${MONGO_VERSION}.asc" | gpg --dearmor -o "/etc/apt/trusted.gpg.d/mongodb-${MONGO_VERSION}.gpg"
+    echo "deb [signed-by=/etc/apt/trusted.gpg.d/mongodb-${MONGO_VERSION}.gpg] https://repo.mongodb.org/apt/debian ${DISTRO_CODENAME}/mongodb-org/${MONGO_VERSION} main" \
+        >"$REPO_LIST"
+
+    $STD apt-get update
+    $STD apt-get install -y mongodb-org
+
+    # Sicherstellen, dass Datenverzeichnis intakt bleibt
+    mkdir -p /var/lib/mongodb
+    chown -R mongodb:mongodb /var/lib/mongodb
+
+    $STD systemctl enable mongod
+    $STD systemctl start mongod
+    msg_ok "MongoDB $MONGO_VERSION installed and started"
 }
 
 fetch_and_deploy_gh_release() {
