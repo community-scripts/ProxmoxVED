@@ -721,6 +721,7 @@ EOF
 }
 
 import_local_ip() {
+    setup_local_ip_helper
     local IP_FILE="/run/local-ip.env"
     if [[ -f "$IP_FILE" ]]; then
         source "$IP_FILE"

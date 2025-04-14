@@ -13,6 +13,10 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Setup Functions"
+import_local_ip
+msg_ok "Setup Functions"
+
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
     gpg \
