@@ -17,9 +17,11 @@ $STD apt-get install -y \
     ffmpeg \
     build-essential \
     libffi-dev \
+    git \
     libssl-dev \
     libjpeg-dev \
     zlib1g-dev \
+    snapserver \
     pkg-config
 msg_ok "Installed Dependencies"
 
@@ -38,10 +40,19 @@ $STD fetch_and_deploy_gh_release music-assistant/server
 cd /opt/musicassistant
 $STD python3 -m venv .venv
 $STD source .venv/bin/activate
-$STD pip install uv
+$STD pip3 install uv
 $STD pip install --upgrade pip uv
 $STD uv pip install .
 msg_ok "Setup Music Assistant"
+
+msg_info "Adding AirPlay Support"
+cd /usr/local/src
+git clone https://github.com/music-assistant/libraop.git
+cd libraop
+#mkdir build && cd build
+#cmake ..
+#make -j$(nproc)
+msg_ok "Added AirPlay Support"
 
 msg_info "Creating systemd service"
 cat <<EOF >/etc/systemd/system/musicassistant.service
