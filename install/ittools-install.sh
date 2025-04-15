@@ -36,7 +36,6 @@ msg_ok "Installed Docker"
 msg_info "Installing IT Tools"
 mkdir -p /opt/ittools
 cat <<EOF >/opt/ittools/compose.yaml
-version: "3"
 services:
   ittools:
     image: corentinth/it-tools:latest
