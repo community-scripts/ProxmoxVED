@@ -20,7 +20,6 @@ $STD apt-get update
 $STD apt-get install -y \
   curl \
   unzip \
-  git \
   dotnet-sdk-8.0 \
   aspnetcore-runtime-8.0
   msg_ok "Installed Dependencies"
