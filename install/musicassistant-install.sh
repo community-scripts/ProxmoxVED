@@ -39,10 +39,10 @@ msg_ok "Setup Python3"
 msg_info "Setup Music Assistant"
 $STD fetch_and_deploy_gh_release music-assistant/server
 cd /opt/musicassistant
-$STD python3 -m venv .venv
-$STD source .venv/bin/activate
 $STD pip3 install uv
 $STD pip install --upgrade pip uv
+$STD python3 -m venv .venv
+$STD source .venv/bin/activate
 $STD uv pip install .
 msg_ok "Setup Music Assistant"
 
