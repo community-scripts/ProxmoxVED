@@ -14,22 +14,22 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  ffmpeg \
-  build-essential \
-  libffi-dev \
-  libssl-dev \
-  libjpeg-dev \
-  zlib1g-dev \
-  pkg-config
+    ffmpeg \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    pkg-config
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Python3"
 $STD apt-get install -y \
-  python3 \
-  python3-dev \
-  python3-pip \
-  python3-setuptools \
-  python3-venv
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-setuptools \
+    python3-venv
 rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
 msg_ok "Setup Python3"
 
@@ -38,6 +38,7 @@ $STD fetch_and_deploy_gh_release music-assistant/server
 cd /opt/musicassistant
 $STD python3 -m venv .venv
 $STD source .venv/bin/activate
+$STD pip install uv
 $STD pip install --upgrade pip uv
 $STD uv pip install .
 msg_ok "Setup Music Assistant"
