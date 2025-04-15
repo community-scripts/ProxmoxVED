@@ -17,6 +17,7 @@ $STD apt-get install -y \
     ffmpeg \
     build-essential \
     libffi-dev \
+    cmake \
     git \
     libssl-dev \
     libjpeg-dev \
@@ -49,9 +50,8 @@ msg_info "Adding AirPlay Support"
 cd /usr/local/src
 git clone https://github.com/music-assistant/libraop.git
 cd libraop
-#mkdir build && cd build
-#cmake ..
-#make -j$(nproc)
+git submodule update --init
+./build.sh
 msg_ok "Added AirPlay Support"
 
 msg_info "Creating systemd service"
