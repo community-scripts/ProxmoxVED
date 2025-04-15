@@ -651,21 +651,42 @@ fetch_and_deploy_gh_release() {
 setup_local_ip_helper() {
     local BASE_DIR="/usr/local/community-scripts/ip-management"
     local SCRIPT_PATH="$BASE_DIR/update_local_ip.sh"
-    local SERVICE_PATH="/etc/systemd/system/update-local-ip.service"
-    local TIMER_PATH="/etc/systemd/system/update-local-ip.timer"
+    local IP_FILE="/run/local-ip.env"
+    local DISPATCHER_SCRIPT="/etc/networkd-dispatcher/routable.d/10-update-local-ip.sh"
 
     mkdir -p "$BASE_DIR"
 
-    # Create update script
+    # Install networkd-dispatcher if not present
+    if ! dpkg -s networkd-dispatcher >/dev/null 2>&1; then
+        apt-get update -qq
+        apt-get install -yq networkd-dispatcher
+    fi
+
+    # Write update_local_ip.sh
     cat <<'EOF' >"$SCRIPT_PATH"
 #!/bin/bash
-set -e
+set -euo pipefail
 
 IP_FILE="/run/local-ip.env"
 mkdir -p "$(dirname "$IP_FILE")"
 
 get_current_ip() {
-    ip route get 1 | awk '{print $7; exit}' 2>/dev/null
+    local targets=("8.8.8.8" "1.1.1.1" "192.168.1.1" "10.0.0.1" "172.16.0.1" "default")
+    local ip
+
+    for target in "${targets[@]}"; do
+        if [[ "$target" == "default" ]]; then
+            ip=$(ip route get 1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+        else
+            ip=$(ip route get "$target" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+        fi
+        if [[ -n "$ip" ]]; then
+            echo "$ip"
+            return 0
+        fi
+    done
+
+    return 1
 }
 
 current_ip="$(get_current_ip)"
@@ -677,9 +698,7 @@ fi
 
 if [[ -f "$IP_FILE" ]]; then
     source "$IP_FILE"
-    if [[ "$LOCAL_IP" == "$current_ip" ]]; then
-        exit 0
-    fi
+    [[ "$LOCAL_IP" == "$current_ip" ]] && exit 0
 fi
 
 echo "LOCAL_IP=$current_ip" > "$IP_FILE"
@@ -688,36 +707,17 @@ EOF
 
     chmod +x "$SCRIPT_PATH"
 
-    # Create systemd service
-    cat <<EOF >"$SERVICE_PATH"
-[Unit]
-Description=Update LOCAL_IP file
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=$SCRIPT_PATH
+    # Install dispatcher hook
+    mkdir -p "$(dirname "$DISPATCHER_SCRIPT")"
+    cat <<EOF >"$DISPATCHER_SCRIPT"
+#!/bin/bash
+$SCRIPT_PATH
 EOF
 
-    # Create systemd timer
-    cat <<EOF >"$TIMER_PATH"
-[Unit]
-Description=Periodic LOCAL_IP update
+    chmod +x "$DISPATCHER_SCRIPT"
+    systemctl enable --now networkd-dispatcher.service
 
-[Timer]
-OnBootSec=15
-OnUnitActiveSec=60
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-EOF
-
-    systemctl daemon-reexec
-    systemctl daemon-reload
-    systemctl enable -q --now update-local-ip.timer
-
-    $STD msg_ok "Setup LOCAL_IP helper in $BASE_DIR with systemd integration"
+    $STD msg_ok "LOCAL_IP helper installed using networkd-dispatcher"
 }
 
 import_local_ip() {
@@ -728,7 +728,26 @@ import_local_ip() {
     fi
 
     if [[ -z "${LOCAL_IP:-}" ]]; then
-        LOCAL_IP="$(ip route get 1 | awk '{print $7; exit}' 2>/dev/null)"
+        get_current_ip() {
+            local targets=("8.8.8.8" "1.1.1.1" "192.168.1.1" "10.0.0.1" "172.16.0.1" "default")
+            local ip
+
+            for target in "${targets[@]}"; do
+                if [[ "$target" == "default" ]]; then
+                    ip=$(ip route get 1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+                else
+                    ip=$(ip route get "$target" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+                fi
+                if [[ -n "$ip" ]]; then
+                    echo "$ip"
+                    return 0
+                fi
+            done
+
+            return 1
+        }
+
+        LOCAL_IP="$(get_current_ip || true)"
         if [[ -z "$LOCAL_IP" ]]; then
             msg_error "Could not determine LOCAL_IP"
             return 1
