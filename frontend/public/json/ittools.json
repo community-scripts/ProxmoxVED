@@ -1,0 +1,34 @@
+{
+  "name": "IT Tools",
+  "slug": "ittools",
+  "categories": [
+    20
+  ],
+  "date_created": "2025-04-15",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://github.com/CorentinTh/it-tools/blob/main/README.md",
+  "website": "https://github.com/CorentinTh/it-tools/",
+  "logo": "https://github.com/CorentinTh/it-tools/raw/main/.github/logo-white.png",
+  "description": "Useful tools for developer and people working in IT.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/ittools.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 2048,
+        "hdd": 2,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
