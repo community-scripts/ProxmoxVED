@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/PCJones/UmlautAdaptarr
 
-APP="Umlautadaptarr"
+APP="UmlautAdaptarr"
 var_tags="arr"
 var_cpu="1"
 var_ram="512"
@@ -28,17 +28,20 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
+    RELEASE=$(curl -fsSL https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+    if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Updating $APP..."
     systemctl stop umlautadaptarr
     temp_file=$(mktemp)
-    RELEASE=$(curl -fsSL https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
     curl -fsSL "https://github.com/PCJones/Umlautadaptarr/releases/download/${RELEASE}/linux-x64.zip" -o $temp_file
     $STD unzip -u $temp_file '*/**' -d /opt/UmlautAdaptarr
     systemctl start umlautadaptarr
     msg_ok "$APP has been updated."
-    exit
+    else
+    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+  fi
+  exit
 }
-
 start
 build_container
 description
