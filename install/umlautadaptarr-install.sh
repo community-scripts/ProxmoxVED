@@ -14,13 +14,10 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get update
-$STD apt-get install -y curl
 $STD curl -fsSL https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb -o packages-microsoft-prod.deb
 $STD dpkg -i packages-microsoft-prod.deb
 $STD apt-get update
 $STD apt-get install -y \
-  unzip \
   dotnet-sdk-8.0 \
   aspnetcore-runtime-8.0
   msg_ok "Installed Dependencies"
@@ -30,7 +27,7 @@ temp_file=$(mktemp)
 trap 'rm -f "$temp_file"' EXIT
 RELEASE=$(curl -s https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
 curl -fsSL "https://github.com/PCJones/Umlautadaptarr/releases/download/${RELEASE}/linux-x64.zip" -o $temp_file
-$STD unzip -j $temp_file '*/**' -d /opt/UmlautAdaptarr
+unzip -qj $temp_file '*/**' -d /opt/UmlautAdaptarr
 msg_ok "Installation completed"
 
 msg_info "Creating appsettings.json"
@@ -112,7 +109,6 @@ Environment=ASPNETCORE_ENVIRONMENT=Production
 [Install]
 WantedBy=multi-user.target
 EOF
-$STD systemctl daemon-reload
 systemctl -q --now enable umlautadaptarr
 msg_ok "Created systemd Service"
 
