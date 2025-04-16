@@ -27,6 +27,7 @@ temp_file=$(mktemp)
 RELEASE=$(curl -s https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
 curl -fsSL "https://github.com/PCJones/Umlautadaptarr/releases/download/${RELEASE}/linux-x64.zip" -o $temp_file
 unzip -qj $temp_file '*/**' -d /opt/UmlautAdaptarr
+echo "${RELEASE}" >"/opt/UmlautAdaptarr_version.txt"
 msg_ok "Installation completed"
 
 msg_info "Creating appsettings.json"
