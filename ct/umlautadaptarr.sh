@@ -35,7 +35,7 @@ function update_script() {
     RELEASE=$(curl -s https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
     curl -fsSL "https://github.com/PCJones/Umlautadaptarr/releases/download/${RELEASE}/linux-x64.zip" -o $temp_file
     $STD unzip -u $temp_file '*/**' -d /opt/UmlautAdaptarr
-    $STD systemctl start umlautadaptarr
+    systemctl start umlautadaptarr
     msg_ok "$APP has been updated."
     exit
 }
