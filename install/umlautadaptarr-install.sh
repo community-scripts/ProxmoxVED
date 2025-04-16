@@ -101,7 +101,6 @@ Description=UmlautAdaptarr Service
 After=network.target
 
 [Service]
-Type=Core
 WorkingDirectory=/opt/UmlautAdaptarr
 ExecStart=/usr/bin/dotnet /opt/UmlautAdaptarr/bin/Release/net8.0/UmlautAdaptarr.dll --urls=http://0.0.0.0:5005
 Restart=always
