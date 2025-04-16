@@ -25,11 +25,12 @@ $STD apt-get install -y \
   aspnetcore-runtime-8.0
   msg_ok "Installed Dependencies"
   
-msg_info "Building & Installing Umlautadaptarr"
-$STD git clone https://github.com/PCJones/UmlautAdaptarr.git /opt/
-cd /opt/UmlautAdaptarr
-$STD dotnet restore
-$STD dotnet build --configuration Release
+msg_info "Installing Umlautadaptarr"
+temp_file=$(mktemp)
+trap 'rm -f "$temp_file"' EXIT
+RELEASE=$(curl -s https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+curl -fsSL "https://github.com/PCJones/Umlautadaptarr/releases/download/${RELEASE}/linux-x64.zip" -o $temp_file
+$STD unzip -j $temp_file '*/**' -d /opt/UmlautAdaptarr
 msg_ok "Installation completed"
 
 msg_info "Creating appsettings.json"
@@ -112,7 +113,7 @@ Environment=ASPNETCORE_ENVIRONMENT=Production
 WantedBy=multi-user.target
 EOF
 $STD systemctl daemon-reload
-systemctl -q --now umlautadaptarr
+systemctl -q --now enable umlautadaptarr
 msg_ok "Created systemd Service"
 
 motd_ssh
