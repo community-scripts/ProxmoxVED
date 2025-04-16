@@ -29,11 +29,13 @@ function update_script() {
         exit
     fi
     msg_info "Updating $APP..."
-    cd /opt/UmlautAdaptarr || exit
-    $STD git pull origin master
-    $STD dotnet restore
-    $STD dotnet build --configuration Release
-    $STD systemctl restart umlautadaptarr
+    $STD systemctl stop umlautadaptarr
+    temp_file=$(mktemp)
+    trap 'rm -f "$temp_file"' EXIT
+    RELEASE=$(curl -s https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+    curl -fsSL "https://github.com/PCJones/Umlautadaptarr/releases/download/${RELEASE}/linux-x64.zip" -o $temp_file
+    $STD unzip -u $temp_file '*/**' -d /opt/UmlautAdaptarr
+    $STD systemctl start umlautadaptarr
     msg_ok "$APP has been updated."
     exit
 }
