@@ -29,7 +29,7 @@ function update_script() {
         exit
     fi
     msg_info "Updating $APP..."
-    $STD systemctl stop umlautadaptarr
+    systemctl stop umlautadaptarr
     temp_file=$(mktemp)
     trap 'rm -f "$temp_file"' EXIT
     RELEASE=$(curl -s https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
