@@ -32,7 +32,6 @@ function update_script() {
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Updating ${APP} to ${RELEASE}"
     if [[ -d /opt/jumpserver/config ]]; then
-      msg_info "Backing up /opt/jumpserver/config"
       cp -r /opt/jumpserver/config /opt/jumpserver_config_backup
     fi
     echo "${RELEASE}" >/opt/${APP}_version.txt
@@ -42,7 +41,6 @@ function update_script() {
     mkdir -p /opt/jumpserver
     $STD tar -xzvf jumpserver-installer-${RELEASE}.tar.gz -C /opt/jumpserver --strip-components=1
     if [[ -d /opt/jumpserver_config_backup ]]; then
-      msg_info "Restoring config backup"
       cp -r /opt/jumpserver_config_backup /opt/jumpserver/config
       rm -rf /opt/jumpserver_config_backup
     fi
