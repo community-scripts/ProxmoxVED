@@ -35,6 +35,7 @@ function update_script() {
     temp_file=$(mktemp)
     curl -fsSL "https://github.com/rclone/rclone/releases/download/v${RELEASE}/rclone-v${RELEASE}-linux-amd64.zip" -o "$temp_file"
     $STD unzip -o "$temp_file" '*/**' -d /opt/rclone
+    rm -f "$temp_file"
     msg_ok "Updated Successfully"
   else
     msg_ok "No update required. ${APP} is already at ${RELEASE}"
