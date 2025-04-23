@@ -32,6 +32,7 @@ const initialScript: Script = {
   privileged: false,
   interface_port: null,
   documentation: null,
+  config_path: "",
   website: null,
   logo: null,
   description: "",
@@ -182,6 +183,14 @@ export default function JSONGenerator() {
               placeholder="Example"
               value={script.description}
               onChange={(e) => updateScript("description", e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>Config Path</Label>
+            <Input
+              placeholder="Path to config file"
+              value={script.config_path || ""}
+              onChange={(e) => updateScript("config_path", e.target.value || null)}
             />
           </div>
           <Categories script={script} setScript={setScript} categories={categories} />

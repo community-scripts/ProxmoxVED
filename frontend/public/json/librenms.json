@@ -9,6 +9,7 @@
   "updateable": false,
   "privileged": false,
   "interface_port": 80,
+  "config_path": "/opt/librenms/config.php",
   "documentation": "https://docs.librenms.org/",
   "website": "https://librenms.org/",
   "logo": "https://raw.githubusercontent.com/selfhst/icons/refs/heads/main/svg/librenms.svg",

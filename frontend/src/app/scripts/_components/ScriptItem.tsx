@@ -18,8 +18,10 @@ import Buttons from "./ScriptItems/Buttons";
 import DefaultPassword from "./ScriptItems/DefaultPassword";
 import Description from "./ScriptItems/Description";
 import InstallCommand from "./ScriptItems/InstallCommand";
+import ConfigFile from "./ScriptItems/ConfigFile";
 import InterFaces from "./ScriptItems/InterFaces";
 import Tooltips from "./ScriptItems/Tooltips";
+
 
 interface ScriptItemProps {
   item: Script;
@@ -141,6 +143,7 @@ export function ScriptItem({ item, setSelectedScript }: ScriptItemProps) {
             <Alerts item={item} />
 
             <div className="mt-4 rounded-lg border shadow-sm">
+
               <div className="flex gap-3 px-4 py-2 bg-accent/25">
                 <h2 className="text-lg font-semibold">
                   How to {item.type === "pve" ? "use" : item.type === "addon" ? "apply" : "install"}
@@ -151,6 +154,17 @@ export function ScriptItem({ item, setSelectedScript }: ScriptItemProps) {
               <div className="">
                 <InstallCommand item={item} />
               </div>
+              <Separator />
+              <div className="flex gap-3 px-4 py-2 bg-accent/25">
+                <h2 className="text-lg font-semibold">
+                  Location of config file
+                </h2>
+              </div>
+              <Separator />
+              <div className="">
+                <ConfigFile item={item} />
+              </div>
+
             </div>
 
             <DefaultPassword item={item} />

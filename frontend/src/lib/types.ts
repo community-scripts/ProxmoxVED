@@ -13,6 +13,7 @@ export type Script = {
   website: string | null;
   logo: string | null;
   description: string;
+  config_path: string | null;
   install_methods: {
     type: "default" | "alpine";
     script: string;
