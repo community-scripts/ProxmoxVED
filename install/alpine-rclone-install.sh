@@ -15,8 +15,8 @@ update_os
 
 msg_info "Installing dependencies"
 $STD apk add --no-cache \
-    unzip \
-    apache2-utils
+  unzip \
+  apache2-utils
 msg_ok "Installed dependencies"
 
 msg_info "Installing rclone"
@@ -29,9 +29,9 @@ cd /opt/rclone
 PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
 $STD htpasswd -cb -B login.pwd admin $PASSWORD
 {
-    echo "rclone-Credentials"
-    echo "rclone User Name: admin"
-    echo "rclone Password: $PASSWORD"
+  echo "rclone-Credentials"
+  echo "rclone User Name: admin"
+  echo "rclone Password: $PASSWORD"
 } >>~/rclone.creds
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 rm -f $temp_file
@@ -61,3 +61,8 @@ msg_ok "Started rclone"
 
 motd_ssh
 customize
+
+msg_info "Cleaning up"
+rm -rf "$temp_file"
+$STD apk cache clean
+msg_ok "Cleaned"

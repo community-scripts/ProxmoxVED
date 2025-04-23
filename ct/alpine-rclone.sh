@@ -20,21 +20,27 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    msg_info "Updating Alpine Packages"
-    $STD apk update
-    $STD apk upgrade
-    msg_ok "Updated Alpine Packages"
+  header_info
+  check_container_storage
+  check_container_resources
 
-    msg_info "Updating Rclone"
-    $STD apk upgrade rclone
-    msg_ok "Updated Rclone"
+  if [ ! -d /opt/rclone ]; then
+    msg_error "No ${APP} Installation Found!"
+    exit 1
+  fi
 
-    msg_info "Restarting Rclone"
-    $STD rc-service rclone restart || true
-    msg_ok "Restarted Rclone"
+  RELEASE=$(curl -s https://api.github.com/repos/rclone/rclone/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  if [ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ] || [ ! -f /opt/${APP}_version.txt ]; then
+    msg_info "Updating ${APP} LXC"
+    temp_file=$(mktemp)
+    curl -fsSL "https://github.com/rclone/rclone/releases/download/v${RELEASE}/rclone-v${RELEASE}-linux-amd64.zip" -o $temp_file
+    $STD unzip -o $temp_file '*/**' -d /opt/rclone
+    msg_ok "Updated Successfully"
+  else
+    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+  fi
 
-    exit 0
+  exit 0
 }
 
 start
