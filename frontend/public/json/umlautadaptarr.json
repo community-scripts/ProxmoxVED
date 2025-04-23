@@ -12,6 +12,7 @@
     "documentation": null,
     "website": "https://github.com/PCJones/UmlautAdaptarr",
     "logo": null,
+    "config_path": "",
     "description": "A tool to work around Sonarr, Radarr, Lidarr and Readarrs problems with foreign languages",
     "install_methods": [
         {
