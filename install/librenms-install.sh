@@ -15,12 +15,8 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  sudo \
-  curl \
-  mc \
   lsb-release \
   ca-certificates \
-  wget \
   acl \
   fping \
   graphviz \
@@ -28,21 +24,43 @@ $STD apt-get install -y \
   mariadb-client \
   mariadb-server \
   mtr-tiny \
-  nginx-full \
+  nginx \
   nmap \
-  php8.2-{cli,fpm,gd,gmp,mbstring,mysql,snmp,xml,zip,curl} \
-  python3-{dotenv,pymysql,redis,setuptools,systemd,pip} \
   rrdtool \
   snmp \
   snmpd \
-  unzip \
   git \
   whois
 msg_ok "Installed Dependencies"
 
+msg_info "Installing PHP"
+$STD apt-get install -y \
+  php8.2-{cli,fpm,gd,gmp,mbstring,mysql,snmp,xml,zip,curl}
+msg_ok "Installed PHP"
+
+msg_info "Installing Python"
+$STD apt-get install -y \
+  python3-{dotenv,pymysql,redis,setuptools,systemd,pip}
+msg_ok "Installed Python"
+
 msg_info "Add User"
 $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
 msg_ok "Add User"
+
+msg_info "Configuring Database"
+DB_NAME=librenms
+DB_USER=librenms
+DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
+{
+  echo "LibreNMS-Credentials"
+  echo "LibreNMS Database User: $DB_USER"
+  echo "LibreNMS Database Password: $DB_PASS"
+  echo "LibreNMS Database Name: $DB_NAME"
+} >>~/librenms.creds
+msg_ok "Configured Database"
 
 msg_info "Setup Librenms"
 tmp_file=$(mktemp)
@@ -76,22 +94,6 @@ msg_info "Setup MariaDB"
 sed -i '/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0' /etc/mysql/mariadb.conf.d/50-server.cnf
 systemctl enable -q --now mariadb
 msg_ok "Setup MariaDB"
-
-msg_info "Configuring Database"
-DB_NAME=librenms
-DB_USER=librenms
-DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
-
-{
-  echo "LibreNMS-Credentials"
-  echo "LibreNMS Database User: $DB_USER"
-  echo "LibreNMS Database Password: $DB_PASS"
-  echo "LibreNMS Database Name: $DB_NAME"
-} >>~/librenms.creds
-msg_ok "Configured Database"
 
 msg_info "Configure PHP-FPM"
 cp /etc/php/8.2/fpm/pool.d/www.conf /etc/php/8.2/fpm/pool.d/librenms.conf
