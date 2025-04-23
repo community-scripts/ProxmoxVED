@@ -27,7 +27,11 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_error "Update not supported!"
+  msg_info "Updating ${APP} Installation"
+  su librenms
+  cd /opt/librenms
+  ./daily.sh
+  msg_ok "Updated ${APP} Installation"
 
   exit
 }
