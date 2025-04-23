@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   close-discussion:
-    runs-on: runner-cluster-htl-set
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
