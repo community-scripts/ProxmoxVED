@@ -62,7 +62,7 @@ pidfile="/var/run/tinyauth.pid"
 
 start_pre() {
     if [ -f "/opt/tinyauth/.env" ]; then
-        export $(grep -v '^#' /opt/tinyauth/.env | xargs)
+        export \$(grep -v '^#' /opt/tinyauth/.env | xargs)
     fi
 }
 
