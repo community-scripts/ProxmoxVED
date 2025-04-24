@@ -39,7 +39,7 @@ CGO_ENABLED=0 go build -ldflags "-s -w"
   echo "Username: admin@example.com"
   echo "Password: admin"
 } >>~/tinyauth.creds
-echo "${RELEASE}" >"/opt/${APP}_version.txt"
+echo "${RELEASE}" >/opt/tinyauth_version.txt
 msg_ok "Installed tinyauth"
 
 msg_info "Enabling tinyauth Service"

@@ -9,7 +9,7 @@ APP="Alpine-tinyauth"
 var_tags="${var_tags:-alpine;auth}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
-var_disk="${var_disk:-4}"
+var_disk="${var_disk:-3}"
 var_os="${var_os:-alpine}"
 var_version="${var_version:-3.21}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -41,7 +41,7 @@ function update_script() {
   rm -rf /opt/tinyauth
   mkdir -p /opt/tinyauth
   RELEASE=$(curl -s https://api.github.com/repos/steveiliop56/tinyauth/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-  if [ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ] || [ ! -f /opt/${APP}_version.txt ]; then
+  if [ "${RELEASE}" != "$(cat /opt/tinyauth_version.txt)" ] || [ ! -f /opt/tinyauth_version.txt ]; then
     curl -fsSL "https://github.com/steveiliop56/tinyauth/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
     tar -xzf "$temp_file" -C /opt/tinyauth --strip-components=1
     cd /opt/tinyauth/frontend
