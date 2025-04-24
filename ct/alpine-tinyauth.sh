@@ -50,6 +50,7 @@ function update_script() {
     $STD go mod download
     CGO_ENABLED=0 go build -ldflags "-s -w"
     cp /opt/.env /opt/tinyauth
+    echo "${RELEASE}" >/opt/tinyauth_version.txt
     rm -f "$temp_file"
     msg_ok "Updated tinyauth"
   else
