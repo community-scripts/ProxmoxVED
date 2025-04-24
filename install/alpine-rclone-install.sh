@@ -26,12 +26,12 @@ RELEASE=$(curl -s https://api.github.com/repos/rclone/rclone/releases/latest | g
 curl -fsSL "https://github.com/rclone/rclone/releases/download/v${RELEASE}/rclone-v${RELEASE}-linux-amd64.zip" -o "$temp_file"
 $STD unzip -j "$temp_file" '*/**' -d /opt/rclone
 cd /opt/rclone
-PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
-$STD htpasswd -cb -B login.pwd admin "$PASSWORD"
+RCLONE_PASSWORD=$(head -c 16 /dev/urandom | xxd -p -c 16)
+$STD htpasswd -cb -B login.pwd admin "$RCLONE_PASSWORD"
 {
   echo "rclone-Credentials"
   echo "rclone User Name: admin"
-  echo "rclone Password: $PASSWORD"
+  echo "rclone Password: $RCLONE_PASSWORD"
 } >>~/rclone.creds
 echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
 rm -f "$temp_file"
