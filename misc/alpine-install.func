@@ -187,8 +187,6 @@ validate_tz() {
 
 # This function customizes the container and enables passwordless login for the root user
 customize() {
-  msg_ok "Started Customizing Container"
-  echo "PASSWORD=${PASSWORD}"
   if [[ "$PASSWORD" == "" ]]; then
     msg_info "Customizing Container"
     bash -c "passwd -d root" >/dev/null 2>&1

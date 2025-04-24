@@ -1214,7 +1214,6 @@ build_container() {
   export APPLICATION="$APP"
   export app="$NSAPP"
   export PASSWORD="$PW"
-  echo "in build.func PW=$PW, PASSWORD=$PASSWORD"
   export VERBOSE="$VERB"
   export SSH_ROOT="${SSH}"
   export SSH_AUTHORIZED_KEY
