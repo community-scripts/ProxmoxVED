@@ -26,7 +26,7 @@ $STD npm install -g bun
 mkdir -p /opt/tinyauth
 RELEASE=$(curl -s https://api.github.com/repos/steveiliop56/tinyauth/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL https://github.com/steveiliop56/tinyauth/archive/refs/tags/v3.1.0.tar.gz -o $temp_file
-tar -xzf $temp_file -C /opt/tinyauth --strip-components=1
+tar -xzf "$temp_file" -C /opt/tinyauth --strip-components=1
 cd /opt/tinyauth/site
 $STD bun install
 $STD bun run build
@@ -40,17 +40,17 @@ msg_ok "Installed tinyauth"
 msg_info "Enabling tinyauth Service"
 service_path="/etc/init.d/tinyauth"
 
-echo '#!/sbin/openrc-run
+echo "#!/sbin/openrc-run
 description="tinyauth Service"
 
 command="/opt/tinyauth/tinyauth"
-command_args="--secret=$SECRET --users=admin@example.com:$apr1$n61ztxfk$0f/uGQFxnB.FBa5cxgqNg."
+command_args="--secret=$SECRET --users=admin@example.com:\$apr1\$n61ztxfk\$0f/uGQFxnB.FBa5cxgqNg."
 command_user="root"
 pidfile="/var/run/tinyauth.pid"
 
 depend() {
     use net
-}' >$service_path
+}" >$service_path
 
 chmod +x $service_path
 $STD rc-update add tinyauth default
