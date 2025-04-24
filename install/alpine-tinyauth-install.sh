@@ -70,6 +70,7 @@ depend() {
     use net
 }
 EOF
+
 chmod +x /etc/init.d/tinyauth
 $STD rc-update add tinyauth default
 msg_ok "Enabled tinyauth Service"
