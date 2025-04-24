@@ -31,7 +31,16 @@ function update_script() {
   msg_ok "Updated Alpine Packages"
 
   msg_info "Updating tinyauth"
-  $STD apk upgrade tinyauth
+  RELEASE=$(curl -s https://api.github.com/repos/steveiliop56/tinyauth/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  curl -fsSL https://github.com/steveiliop56/tinyauth/archive/refs/tags/v${RELEASE}.tar.gz -o $temp_file
+  tar -xzf "$temp_file" -C /opt/tinyauth --strip-components=1
+  cd /opt/tinyauth/frontend
+  $STD bun install
+  $STD bun run build
+  mv dist /opt/tinyauth/internal/assets/
+  cd /opt/tinyauth
+  $STD go mod download
+  CGO_ENABLED=0 go build -ldflags "-s -w"
   msg_ok "Updated tinyauth"
 
   msg_info "Restarting tinyauth"
@@ -48,4 +57,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:xxxx${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"

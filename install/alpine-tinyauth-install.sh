@@ -34,13 +34,19 @@ mv dist /opt/tinyauth/internal/assets/
 cd /opt/tinyauth
 $STD go mod download
 CGO_ENABLED=0 go build -ldflags "-s -w"
+{
+  echo "tinyauth Credentials"
+  echo "Username: admin@example.com"
+  echo "Password: admin"
+} >>~/tinyauth.creds
+echo "${RELEASE}" >"/opt/${APP}_version.txt"
 msg_ok "Installed tinyauth"
 
 msg_info "Enabling tinyauth Service"
 SECRET=$(head -c 16 /dev/urandom | xxd -p -c 16 | tr -d '\n')
 {
   echo "SECRET=${SECRET}"
-  echo "USERS=admin@example.com:\$apr1\$n61ztxfk\$0f/uGQFxnB.FBa5cxgqNg."
+  echo "USERS=admin@example.com:\$2a\$10\$CrTK.W7WXSClo3ZY1yJUFupg5UdV8WNcynEhZhJFNjhGQB.Ga0ZDm"
   echo "APP_URL=http://localhost:3000"
 } >>/opt/tinyauth/.env
 
