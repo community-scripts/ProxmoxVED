@@ -12,7 +12,7 @@
     "documentation": null,
     "website": "https://openobserve.ai/",
     "logo": "https://avatars.githubusercontent.com/u/95867656",
-    "config_path": ""
+    "config_path": "",
     "description": "OpenObserve is a simple yet sophisticated log search, infrastructure monitoring, and APM solution.",
     "install_methods": [
         {
