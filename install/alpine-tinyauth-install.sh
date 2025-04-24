@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apk add \
+$STD apk add --no-cache \
   npm \
   curl \
   go
@@ -24,8 +24,8 @@ msg_info "Installing tinyauth"
 temp_file=$(mktemp)
 $STD npm install -g bun
 mkdir -p /opt/tinyauth
-RELEASE=$(curl -s https://api.github.com/repos/steveiliop56/tinyauth/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL https://github.com/steveiliop56/tinyauth/archive/refs/tags/v3.1.0.tar.gz -o $temp_file
+RELEASE=$(curl -s https://api.github.com/repos/steveiliop56/tinyauth/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+curl -fsSL https://github.com/steveiliop56/tinyauth/archive/refs/tags/v${RELEASE}.tar.gz -o $temp_file
 tar -xzf "$temp_file" -C /opt/tinyauth --strip-components=1
 cd /opt/tinyauth/site
 $STD bun install
@@ -37,7 +37,6 @@ CGO_ENABLED=0 go build -ldflags "-s -w"
 msg_ok "Installed tinyauth"
 
 msg_info "Enabling tinyauth Service"
-
 SECRET=$(head -c 16 /dev/urandom | xxd -p -c 16 | tr -d '\n')
 {
   echo "SECRET=${SECRET}"
