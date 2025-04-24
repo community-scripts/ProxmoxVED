@@ -27,7 +27,7 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-    msg_error "We don't provide an update function because the service ${APP} use every time the latest version."
+    msg_error "There is no update function for ${APP}."
     exit
 }
 
@@ -35,11 +35,3 @@ start
 build_container
 description
 msg_ok "Completed Successfully!\n"
-echo -e "${APP} setup has been successfully initialized!\n"
-echo -e "If you want to update the service go to the container and run the command:\n"
-echo -e "sudo nano /etc/systemd/system/cloudflare-ddns.service\n"
-echo -e "Update the token or the other environment variables and save the file.\n"
-echo -e "Then run the command:\n"
-echo -e "sudo systemctl daemon-reload\n"
-echo -e "And finally restart the service with:\n"
-echo -e "sudo systemctl restart cloudflare-ddns.service"
