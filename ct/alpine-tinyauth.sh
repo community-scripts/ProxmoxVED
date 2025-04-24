@@ -21,10 +21,14 @@ catch_errors
 
 function update_script() {
   header_info
+  check_container_storage
+  check_container_resources
+
   if [ ! -d /opt/tinyauth ]; then
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
+
   msg_info "Updating Alpine Packages"
   $STD apk update
   $STD apk upgrade
@@ -37,18 +41,22 @@ function update_script() {
   rm -rf /opt/tinyauth
   mkdir -p /opt/tinyauth
   RELEASE=$(curl -s https://api.github.com/repos/steveiliop56/tinyauth/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-  curl -fsSL "https://github.com/steveiliop56/tinyauth/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
-  tar -xzf "$temp_file" -C /opt/tinyauth --strip-components=1
-  cd /opt/tinyauth/frontend
-  $STD bun install
-  $STD bun run build
-  mv dist /opt/tinyauth/internal/assets/
-  cd /opt/tinyauth
-  $STD go mod download
-  CGO_ENABLED=0 go build -ldflags "-s -w"
-  cp /opt/.env /opt/tinyauth
-  rm -f "$temp_file"
-  msg_ok "Updated tinyauth"
+  if [ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ] || [ ! -f /opt/${APP}_version.txt ]; then
+    curl -fsSL "https://github.com/steveiliop56/tinyauth/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
+    tar -xzf "$temp_file" -C /opt/tinyauth --strip-components=1
+    cd /opt/tinyauth/frontend
+    $STD bun install
+    $STD bun run build
+    mv dist /opt/tinyauth/internal/assets/
+    cd /opt/tinyauth
+    $STD go mod download
+    CGO_ENABLED=0 go build -ldflags "-s -w"
+    cp /opt/.env /opt/tinyauth
+    rm -f "$temp_file"
+    msg_ok "Updated tinyauth"
+  else
+    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+  fi
 
   msg_info "Restarting tinyauth"
   $STD service tinyauth start
