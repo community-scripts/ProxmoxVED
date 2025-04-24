@@ -20,7 +20,7 @@ color
 catch_errors
 
 function update_script() {
-  if [ ! -d /opt/tinyauth ]; then
+  if [[ ! -d /opt/tinyauth ]]; then
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
