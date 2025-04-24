@@ -34,25 +34,38 @@ mv dist /opt/tinyauth/internal/assets/
 cd /opt/tinyauth
 $STD go mod download
 CGO_ENABLED=0 go build -ldflags "-s -w"
-SECRET=$(head -c 32 /dev/urandom | xxd -p -c 32)
 msg_ok "Installed tinyauth"
 
 msg_info "Enabling tinyauth Service"
-service_path="/etc/init.d/tinyauth"
 
-echo "#!/sbin/openrc-run
+SECRET=$(head -c 16 /dev/urandom | xxd -p -c 16 | tr -d '\n')
+{
+  echo "SECRET=${SECRET}"
+  echo "USERS=admin@example.com:\$apr1\$n61ztxfk\$0f/uGQFxnB.FBa5cxgqNg."
+  echo "APP_URL=http://localhost:3000"
+} >>/opt/tinyauth/.env
+
+cat <<EOF >/etc/init.d/tinyauth
+#!/sbin/openrc-run
 description="tinyauth Service"
 
 command="/opt/tinyauth/tinyauth"
-command_args="--secret=$SECRET --users=admin@example.com:\$apr1\$n61ztxfk\$0f/uGQFxnB.FBa5cxgqNg."
+directory="/opt/tinyauth"
 command_user="root"
+command_background="true"
 pidfile="/var/run/tinyauth.pid"
+
+start_pre() {
+    if [ -f "/opt/tinyauth/.env" ]; then
+        export $(grep -v '^#' /opt/tinyauth/.env | xargs)
+    fi
+}
 
 depend() {
     use net
-}" >$service_path
-
-chmod +x $service_path
+}
+EOF
+chmod +x /etc/init.d/tinyauth
 $STD rc-update add tinyauth default
 msg_ok "Enabled tinyauth Service"
 
