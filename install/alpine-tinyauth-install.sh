@@ -25,7 +25,7 @@ temp_file=$(mktemp)
 $STD npm install -g bun
 mkdir -p /opt/tinyauth
 RELEASE=$(curl -s https://api.github.com/repos/steveiliop56/tinyauth/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL https://github.com/steveiliop56/tinyauth/archive/refs/tags/v${RELEASE}.tar.gz -o $temp_file
+curl -fsSL "https://github.com/steveiliop56/tinyauth/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
 tar -xzf "$temp_file" -C /opt/tinyauth --strip-components=1
 cd /opt/tinyauth/frontend
 $STD bun install
