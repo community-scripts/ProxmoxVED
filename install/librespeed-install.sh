@@ -5,7 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/librespeed/speedtest
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -30,10 +30,7 @@ unzip -q $temp_file -d /temp
 cd /temp/speedtest-${RELEASE}
 cp -u favicon.ico index.html speedtest.js speedtest_worker.js /opt/librespeed/
 cp -ru backend results /opt/librespeed/
-echo "${RELEASE}" >"/opt/librespeed/librespeed_version.txt"
-msg_ok "Installation completed"
 
-msg_info "Creating Caddyfile"
 cat <<EOF >/etc/caddy/Caddyfile
 :80 {
         root * /opt/librespeed
@@ -41,8 +38,10 @@ cat <<EOF >/etc/caddy/Caddyfile
         php_fastcgi unix//run/php/php-fpm.sock
 }
 EOF
+
 systemctl restart caddy
-msg_ok "Caddyfile created"
+echo "${RELEASE}" >"/opt/librespeed/librespeed_version.txt"
+msg_ok "Installation completed"
 
 motd_ssh
 customize
@@ -53,4 +52,3 @@ rm -f $temp_file
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
-
