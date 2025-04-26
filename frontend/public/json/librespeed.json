@@ -1,1 +1,40 @@
-
+{
+    "name": "Librespeed",
+    "slug": "librespeed",
+    "categories": [
+        4
+    ],
+    "date_created": "2025-04-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": null,
+    "config_path": "",
+    "website": null,
+    "logo": "https://github.com/librespeed/speedtest/blob/master/.logo/icon_huge.png",
+    "description": "No Flash, No Java, No Websocket, No Bullshit. This is a very lightweight speed test implemented in Javascript, using XMLHttpRequest and Web Workers.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/librespeed.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "root",
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "",
+            "type": ""
+        }
+    ]
+}
