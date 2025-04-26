@@ -32,13 +32,13 @@ function update_script() {
   if [[ ! -f /opt/librespeed/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt//librespeed/${APP}_version.txt)" ]]; then
     msg_info "Updating $APP..."
     temp_file=$(mktemp)
-    curl -fsSL "https://github.com/librespeed/speedtest/archive/refs/tags/${RELEASE}.zip" -o $temp_file
+    curl -fsSL "https://github.com/librespeed/speedtest/archive/refs/tags/${RELEASE}.zip" -o "$temp_file"
     mkdir -p /temp
-    unzip -qu $temp_file -d /temp
-    cd /temp/speedtest-${RELEASE}
+    unzip -qu "$temp_file" -d /temp
+    cd /temp/speedtest-"${RELEASE}"
     cp -u favicon.ico index.html speedtest.js speedtest_worker.js /opt/librespeed/
     cp -ru backend /opt/librespeed/
-    echo "${RELEASE}" >"/opt/librespeed/librespeed_version.txt"
+    echo "${RELEASE}" >/opt/librespeed/"${APP}_version.txt"
     systemctl restart caddy
     msg_ok "$APP has been updated."
   else
@@ -54,4 +54,3 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
-

@@ -23,11 +23,11 @@ msg_ok "Installed Dependencies"
 msg_info "Installing librespeed"
 temp_file=$(mktemp)
 RELEASE=$(curl -fsSL https://api.github.com/repos/librespeed/speedtest/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-curl -fsSL "https://github.com/librespeed/speedtest/archive/refs/tags/${RELEASE}.zip" -o $temp_file
+curl -fsSL "https://github.com/librespeed/speedtest/archive/refs/tags/${RELEASE}.zip" -o "$temp_file"
 mkdir -p /opt/librespeed
 mkdir -p /temp
-unzip -q $temp_file -d /temp
-cd /temp/speedtest-${RELEASE}
+unzip -q "$temp_file" -d /temp
+cd /temp/speedtest-"${RELEASE}"
 cp -u favicon.ico index.html speedtest.js speedtest_worker.js /opt/librespeed/
 cp -ru backend results /opt/librespeed/
 
@@ -40,7 +40,7 @@ cat <<EOF >/etc/caddy/Caddyfile
 EOF
 
 systemctl restart caddy
-echo "${RELEASE}" >"/opt/librespeed/librespeed_version.txt"
+echo "${RELEASE}" >/opt/"${APP}_version.txt"
 msg_ok "Installation completed"
 
 motd_ssh
@@ -48,7 +48,7 @@ customize
 
 msg_info "Cleaning up"
 rm -rf /temp
-rm -f $temp_file
+rm -f "$temp_file"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
