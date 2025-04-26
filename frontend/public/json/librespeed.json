@@ -11,7 +11,7 @@
     "interface_port": 80,
     "documentation": "https://github.com/librespeed/speedtest/blob/master/doc.md",
     "config_path": "",
-    "website": null,
+    "website": "https://librespeed.org",
     "logo": "https://github.com/librespeed/speedtest/blob/master/.logo/icon_huge.png",
     "description": "No Flash, No Java, No Websocket, No Bullshit. This is a very lightweight speed test implemented in Javascript, using XMLHttpRequest and Web Workers.",
     "install_methods": [
