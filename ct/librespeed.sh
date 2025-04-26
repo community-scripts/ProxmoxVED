@@ -38,7 +38,7 @@ function update_script() {
     cd /temp/speedtest-"${RELEASE}"
     cp -u favicon.ico index.html speedtest.js speedtest_worker.js /opt/librespeed/
     cp -ru backend /opt/librespeed/
-    echo "${RELEASE}" >/opt/librespeed/"${APP}_version.txt"
+    echo "${RELEASE}" >/opt/"${APP}"_version.txt
     systemctl restart caddy
     msg_ok "$APP has been updated."
   else
