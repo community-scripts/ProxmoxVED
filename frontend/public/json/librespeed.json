@@ -31,10 +31,5 @@
         "username": "root",
         "password": null
     },
-    "notes": [
-        {
-            "text": "",
-            "type": ""
-        }
-    ]
+    "notes": []
 }
