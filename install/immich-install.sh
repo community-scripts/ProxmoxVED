@@ -258,7 +258,7 @@ ML_DIR="${APP_DIR}/machine-learning"
 GEO_DIR="${INSTALL_DIR}/geodata"
 mkdir -p "$INSTALL_DIR"
 mv "$APPLICATION-$RELEASE"/ "$SRC_DIR"
-mkdir -p "{$APP_DIR,$UPLOAD_DIR,$GEO_DIR,$ML_DIR,$INSTALL_DIR/.cache}"
+mkdir -p $APP_DIR $UPLOAD_DIR $GEO_DIR $ML_DIR $INSTALL_DIR/.cache
 
 cd "$SRC_DIR"/server || exit
 $STD npm ci
