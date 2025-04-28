@@ -5,7 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/PCJones/UmlautAdaptarr
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -18,10 +18,10 @@ $STD curl -fsSL https://packages.microsoft.com/config/debian/12/packages-microso
 $STD dpkg -i packages-microsoft-prod.deb
 $STD apt-get update
 $STD apt-get install -y \
-  dotnet-sdk-8.0 \
-  aspnetcore-runtime-8.0
-  msg_ok "Installed Dependencies"
-  
+    dotnet-sdk-8.0 \
+    aspnetcore-runtime-8.0
+msg_ok "Installed Dependencies"
+
 msg_info "Installing Umlautadaptarr"
 temp_file=$(mktemp)
 RELEASE=$(curl -s https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
@@ -92,7 +92,7 @@ cat <<EOF >/opt/UmlautAdaptarr/appsettings.json
 EOF
 msg_ok "appsettings.json created"
 
-msg_info "Creating systemd Service"   
+msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/umlautadaptarr.service
 [Unit]
 Description=UmlautAdaptarr Service
@@ -110,7 +110,7 @@ Environment=ASPNETCORE_ENVIRONMENT=Production
 WantedBy=multi-user.target
 EOF
 systemctl -q --now enable umlautadaptarr
-msg_ok "Created systemd Service"
+msg_ok "Created Service"
 
 motd_ssh
 customize

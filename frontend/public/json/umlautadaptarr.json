@@ -4,7 +4,7 @@
     "categories": [
         14
     ],
-    "date_created": "2025-04-08",
+    "date_created": "2025-04-28",
     "type": "ct",
     "updateable": true,
     "privileged": false,
@@ -12,8 +12,8 @@
     "documentation": null,
     "website": "https://github.com/PCJones/UmlautAdaptarr",
     "logo": null,
-    "config_path": "",
-    "description": "A tool to work around Sonarr, Radarr, Lidarr and Readarrs problems with foreign languages",
+    "config_path": "/opt/UmlautAdaptarr/appsettings.json",
+    "description": "UmlautAdaptarr is a tool that fixes issues with how Sonarr, Radarr, Lidarr, and Readarr handle foreign languages. It sits between these apps and the indexers, changing searches and results, and renaming releases so the apps recognize them correctly.",
     "install_methods": [
         {
             "type": "default",
@@ -28,9 +28,8 @@
         }
     ],
     "default_credentials": {
-        "username": "root",
+        "username": null,
         "password": null
     },
     "notes": []
 }
-

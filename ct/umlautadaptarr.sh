@@ -23,24 +23,30 @@ function update_script() {
     header_info
     check_container_storage
     check_container_resources
-
-    if [[ ! -f /opt/UmlautAdaptarr/appsettings.json ]]; then
+    if [[ ! -d /opt/UmlautAdaptarr ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi
     RELEASE=$(curl -fsSL https://api.github.com/repos/PCJones/Umlautadaptarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-    if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-    msg_info "Updating $APP..."
-    systemctl stop umlautadaptarr
-    temp_file=$(mktemp)
-    curl -fsSL "https://github.com/PCJones/Umlautadaptarr/releases/download/${RELEASE}/linux-x64.zip" -o $temp_file
-    $STD unzip -u $temp_file '*/**' -d /opt/UmlautAdaptarr
-    systemctl start umlautadaptarr
-    msg_ok "$APP has been updated."
+    if [[ ! -f /opt/UmlautAdaptarr_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/UmlautAdaptarr_version.txt)" ]]; then
+        msg_info "Stopping Service"
+        systemctl stop umlautadaptarr
+        msg_ok "Stopped Service"
+
+        msg_info "Updating ${APP}"
+        temp_file=$(mktemp)
+        curl -fsSL "https://github.com/PCJones/Umlautadaptarr/releases/download/${RELEASE}/linux-x64.zip" -o $temp_file
+        $STD unzip -u $temp_file '*/**' -d /opt/UmlautAdaptarr
+        msg_ok "Updated ${APP}"
+
+        msg_info "Starting Service"
+        systemctl start umlautadaptarr
+        msg_ok "Started Service"
+        msg_ok "$APP has been updated to ${RELEASE}."
     else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
-  fi
-  exit
+        msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    fi
+    exit
 }
 start
 build_container
