@@ -30,7 +30,7 @@ function update_script() {
     RELEASE=$(curl -s https://api.github.com/repos/hudikhq/hoodik/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
     if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
         msg_info "Stopping Services"
-        systemctl stop hoodik
+        systemctl stop
         msg_ok "Services Stopped"
 
         msg_info "Updating ${APP} to ${RELEASE}"
