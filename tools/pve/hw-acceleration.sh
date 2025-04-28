@@ -32,9 +32,9 @@ set -euo pipefail
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf $TEMP_DIR' EXIT
 
-source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/scripts/tools/gpu-nvidia.func)
-source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/scripts/tools/gpu-intel.func)
-source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/scripts/tools/gpu-amd.func)
+source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/gpu-nvidia.func)
+source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/gpu-intel.func)
+source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/gpu-amd.func)
 
 function header_info() {
     clear
