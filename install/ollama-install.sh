@@ -53,7 +53,7 @@ fi
 msg_ok "Set Up Hardware Acceleration"
 
 msg_info "Installing Intel® oneAPI Base Toolkit (Patience)"
-$STD apt-get install -y intel-basekit-2024*
+$STD apt-get install -y --no-install-recommends intel-basekit-2024.1
 msg_ok "Installed Intel® oneAPI Base Toolkit"
 
 msg_info "Installing Ollama (Patience)"
