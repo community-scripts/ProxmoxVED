@@ -27,33 +27,25 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-    RELEASE=$(curl -s https://api.github.com/repos/hudikhq/hoodik/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+    RELEASE=$(curl -fsSL https://api.github.com/repos/navidrome/navidrome/releases/latest | grep "tag_name" | awk -F '"' '{print $4}')
     if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
         msg_info "Stopping Services"
-        systemctl stop
+        systemctl stop navidrome
         msg_ok "Services Stopped"
 
         msg_info "Updating ${APP} to ${RELEASE}"
-        cd /opt
-        if [ -d hoodik_bak ]; then
-            rm -rf hoodik_bak
-        fi
-        mv hoodik hoodik_bak
-        curl -fsSL "https://github.com/hudikhq/hoodik/archive/refs/tags/${RELEASE}.zip"
-        unzip -q ${RELEASE}.zip
-        mv hoodik-${RELEASE} /opt/hoodik
-        cd /opt/hoodik
-        cargo update -q
-        cargo build -q --release
-        msg_ok "Updated Hoodik"
+        TMP_DEB=$(mktemp --suffix=.deb)
+        curl -fsSL -o "${TMP_DEB}" "https://github.com/navidrome/navidrome/releases/download/${RELEASE}/navidrome_${RELEASE#v}_linux_amd64.deb"
+        $STD apt-get install -y "${TMP_DEB}"
+        echo "${RELEASE}" >/opt/"${APP}_version.txt"
+        msg_ok "Updated Navidrome"
 
         msg_info "Starting Services"
-        systemctl start hoodik
+        systemctl start navidrome
         msg_ok "Started Services"
 
         msg_info "Cleaning Up"
-        rm -R /opt/${RELEASE}.zip
-        rm -R /opt/hoodik_bak
+        rm -f "${TMP_DEB}"
         msg_ok "Cleaned"
         msg_ok "Updated Successfully"
     else
@@ -69,4 +61,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8088${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:4533${CL}"

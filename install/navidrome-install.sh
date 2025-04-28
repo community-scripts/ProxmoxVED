@@ -24,6 +24,7 @@ TMP_DEB=$(mktemp --suffix=.deb)
 curl -fsSL -o "${TMP_DEB}" "https://github.com/navidrome/navidrome/releases/download/${RELEASE}/navidrome_${RELEASE#v}_linux_amd64.deb"
 $STD apt-get install -y "${TMP_DEB}"
 systemctl enable -q --now navidrome.service
+echo "${RELEASE}" >/opt/"${APP}_version.txt"
 msg_ok "Installed Navidrome"
 
 motd_ssh
