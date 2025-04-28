@@ -33,7 +33,7 @@ $STD htpasswd -cb -B login.pwd admin "$RCLONE_PASSWORD"
   echo "rclone User Name: admin"
   echo "rclone Password: $RCLONE_PASSWORD"
 } >>~/rclone.creds
-echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
+echo "${RELEASE}" >/opt/rclone_version.txt
 rm -f "$temp_file"
 msg_ok "Installed rclone"
 
