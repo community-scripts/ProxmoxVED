@@ -15,7 +15,7 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-    ffmpeg
+  ffmpeg
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Navidrome"
@@ -23,7 +23,7 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/navidrome/navidrome/releases/l
 TMP_DEB=$(mktemp --suffix=.deb)
 curl -fsSL -o "${TMP_DEB}" "https://github.com/navidrome/navidrome/releases/download/${RELEASE}/navidrome_${RELEASE#v}_linux_amd64.deb"
 $STD apt-get install -y "${TMP_DEB}"
-systemctl enable -q --now navidrome.service
+systemctl enable -q --now navidrome
 echo "${RELEASE}" >/opt/Navidrome_version.txt
 msg_ok "Installed Navidrome"
 
