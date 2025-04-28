@@ -8,7 +8,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="Navidrome"
 var_tags="${var_tags:-music}"
 var_disk="${var_disk:-7}"
-var_cpu="${var_cpu:-4}"
+var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"

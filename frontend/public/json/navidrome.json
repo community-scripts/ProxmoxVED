@@ -1,0 +1,40 @@
+{
+    "name": "Navidrome",
+    "slug": "Navidrome",
+    "categories": [
+        13
+    ],
+    "date_created": "2025-04-28",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 4533,
+    "documentation": "https://www.navidrome.org/docs/",
+    "website": "https://www.navidrome.org/",
+    "logo": "https://raw.githubusercontent.com/selfhst/icons/refs/heads/main/svg/navidrome.svg",
+    "config_path": "/var/lib/navidrome",
+    "description": "Navidrome is a web-based music server that allows you to stream your personal music collection from anywhere. It organizes your audio files and provides a clean interface for browsing and playback across various client apps. Navidrome can transcode your music for compatibility and supports many audio formats. You can create playlists and easily browse your library by artist, album, or genre. It's great for managing and accessing your own music on different devices without relying on external streaming services.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/navidrome.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 7,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Music-Upload: ´/opt/navidrome/music´",
+            "type": ""
+        }
+    ]
+}
