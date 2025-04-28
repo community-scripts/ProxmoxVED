@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-24}"
 var_os="${var_os:-ubuntu}"
-var_version="${var_version:-22.04}"
+var_version="${var_version:-24.04}"
 
 header_info "$APP"
 variables
@@ -40,4 +40,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:14434${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:11434${CL}"

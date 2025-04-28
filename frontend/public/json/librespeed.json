@@ -12,7 +12,7 @@
     "documentation": "https://github.com/librespeed/speedtest/blob/master/doc.md",
     "config_path": "",
     "website": "https://librespeed.org",
-    "logo": "https://github.com/librespeed/speedtest/blob/master/.logo/icon_huge.png",
+    "logo": "https://raw.githubusercontent.com/selfhst/icons/refs/heads/main/svg/librespeed.svg",
     "description": "No Flash, No Java, No Websocket, No Bullshit. This is a very lightweight speed test implemented in Javascript, using XMLHttpRequest and Web Workers.",
     "install_methods": [
         {
