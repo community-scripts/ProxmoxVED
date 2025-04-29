@@ -95,7 +95,9 @@ function install_php_and_modules() {
             msg_ok "All required PHP modules are already installed"
         fi
     else
-        $PKG_MANAGER_INSTALL lighttpd php-fpm php-session php-json php-mysqli curl tar openssl &>/dev/null
+        msg_info "Installing Lighttpd and PHP for Alpine"
+        $PKG_MANAGER_INSTALL lighttpd php php-fpm php-session php-json php-mysqli curl tar openssl &>/dev/null
+        msg_ok "Installed Lighttpd and PHP"
     fi
 }
 
@@ -161,20 +163,22 @@ server.errorlog = "/var/log/lighttpd/error.log"
 EOF
 
         msg_info "Starting php-fpm and Lighttpd"
-        PHP_FPM_SERVICE=$(rc-status | grep -oE 'php[0-9]+-fpm' | head -n 1)
+        PHP_FPM_SERVICE=$(rc-service -l | grep -E '^php[0-9]*-fpm$' | head -n 1)
 
-        if [[ -n "$PHP_FPM_SERVICE" ]]; then
-            rc-service "$PHP_FPM_SERVICE" start
-            rc-update add "$PHP_FPM_SERVICE" default
+        if [[ -z "$PHP_FPM_SERVICE" ]]; then
+            PHP_FPM_SERVICE="php-fpm" # Standard bei neuer Installation
+        fi
+
+        if rc-service "$PHP_FPM_SERVICE" start && rc-update add "$PHP_FPM_SERVICE" default; then
+            msg_ok "Started PHP-FPM service: $PHP_FPM_SERVICE"
         else
-            msg_error "Could not detect PHP-FPM service on Alpine. Please install php-fpm manually."
+            msg_error "Failed to start PHP-FPM service: $PHP_FPM_SERVICE"
             exit 1
         fi
 
         rc-service lighttpd start
         rc-update add lighttpd default
         msg_ok "Configured and started Lighttpd successfully"
-
     fi
 }
 
