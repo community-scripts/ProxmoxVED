@@ -67,6 +67,14 @@ function check_internet() {
     fi
 }
 
+function is_phpmyadmin_installed() {
+    if [[ "$OS" == "Debian" ]]; then
+        [[ -f "$INSTALL_DIR/config.inc.php" ]]
+    else
+        [[ -d "$INSTALL_DIR" ]] && rc-service lighttpd status &>/dev/null
+    fi
+}
+
 function install_php_and_modules() {
     msg_info "Checking existing PHP installation"
     if command -v php >/dev/null 2>&1; then
@@ -245,9 +253,10 @@ function update_phpmyadmin() {
     configure_phpmyadmin
 }
 
-if [[ -f "$INSTALL_DIR/config.inc.php" ]]; then
+if is_phpmyadmin_installed; then
     echo -e "${YW}⚠️ ${APP} is already installed at ${INSTALL_DIR}.${CL}"
     read -r -p "Would you like to Update (1), Uninstall (2) or Cancel (3)? [1/2/3]: " action
+    action="${action//[[:space:]]/}" # Eingabe bereinigen
     case "$action" in
     1)
         check_internet
@@ -256,19 +265,28 @@ if [[ -f "$INSTALL_DIR/config.inc.php" ]]; then
     2)
         uninstall_phpmyadmin
         ;;
-    *)
+    3)
         echo -e "${YW}⚠️ Action cancelled. Exiting.${CL}"
         exit 0
+        ;;
+    *)
+        echo -e "${YW}⚠️ Invalid input. Exiting.${CL}"
+        exit 1
         ;;
     esac
 else
     read -r -p "Would you like to install ${APP}? (y/n): " install_prompt
+    install_prompt="${install_prompt//[[:space:]]/}" # Eingabe bereinigen
     if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
         check_internet
         install_php_and_modules
         install_phpmyadmin
         configure_phpmyadmin
-        echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://${IP}/phpMyAdmin${CL}"
+        if [[ "$OS" == "Debian" ]]; then
+            echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://${IP}/phpMyAdmin${CL}"
+        else
+            echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://${IP}/${CL}"
+        fi
     else
         echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
         exit 0
