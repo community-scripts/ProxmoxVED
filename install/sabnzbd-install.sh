@@ -41,10 +41,10 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/sabnzbd/sabnzbd/releases/lates
 $STD tar zxvf <(curl -fsSL https://github.com/sabnzbd/sabnzbd/releases/download/$RELEASE/SABnzbd-${RELEASE}-src.tar.gz)
 mv SABnzbd-${RELEASE} /opt/sabnzbd
 
-python3 -m venv /opt/sabnzbd/venv
+$STD python3 -m venv /opt/sabnzbd/venv
 source /opt/sabnzbd/venv/bin/activate
-pip install --upgrade pip
-pip install -r /opt/sabnzbd/requirements.txt
+$STD pip install --upgrade pip
+$STD pip install -r /opt/sabnzbd/requirements.txt
 deactivate
 
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
