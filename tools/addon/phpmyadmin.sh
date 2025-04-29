@@ -155,7 +155,7 @@ EOF
 
         msg_info "Testing Nginx configuration"
         if nginx -t; then
-            if ! pgrep -x "nginx" > /dev/null; then
+            if ! pgrep -x "nginx" >/dev/null; then
                 msg_info "Starting Nginx"
                 rc-service nginx start
             else
@@ -168,8 +168,6 @@ EOF
             exit 1
         fi
     fi
-}
-
 }
 
 function uninstall_phpmyadmin() {
