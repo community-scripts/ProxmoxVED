@@ -162,12 +162,10 @@ accesslog.filename = "/var/log/lighttpd/access.log"
 server.errorlog = "/var/log/lighttpd/error.log"
 EOF
 
-        msg_info "Starting php-fpm and Lighttpd"
-        PHP_FPM_SERVICE=$(rc-service -l | grep -E '^php[0-9]*-fpm$' | head -n 1)
+        msg_info "Starting PHP-FPM and Lighttpd"
 
-        if [[ -z "$PHP_FPM_SERVICE" ]]; then
-            PHP_FPM_SERVICE="php-fpm" # Standard bei neuer Installation
-        fi
+        PHP_VERSION=$(php -r 'echo PHP_MAJOR_VERSION . PHP_MINOR_VERSION;')
+        PHP_FPM_SERVICE="php-fpm${PHP_VERSION}"
 
         if rc-service "$PHP_FPM_SERVICE" start && rc-update add "$PHP_FPM_SERVICE" default; then
             msg_ok "Started PHP-FPM service: $PHP_FPM_SERVICE"
@@ -179,6 +177,7 @@ EOF
         rc-service lighttpd start
         rc-update add lighttpd default
         msg_ok "Configured and started Lighttpd successfully"
+
     fi
 }
 
