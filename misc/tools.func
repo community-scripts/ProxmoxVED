@@ -786,7 +786,6 @@ function download_with_progress() {
 }
 
 function setup_uv() {
-    ensure_usr_local_bin_persist
     $STD msg_info "Checking uv installation..."
     UV_BIN="/usr/local/bin/uv"
     TMP_DIR=$(mktemp -d)
@@ -835,10 +834,7 @@ function setup_uv() {
     rm -rf "$TMP_DIR"
 
     # set path
-    if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
-        export PATH="/usr/local/bin:$PATH"
-    fi
-
+    ensure_usr_local_bin_persist
     msg_ok "uv installed/updated to $LATEST_VERSION"
 }
 
