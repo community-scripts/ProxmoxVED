@@ -756,3 +756,32 @@ import_local_ip() {
 
     export LOCAL_IP
 }
+
+function download_with_progress() {
+    local url="$1"
+    local output="$2"
+
+    if ! command -v pv &>/dev/null; then
+        $STD apt-get update
+        $STD apt-get install -y pv
+    fi
+
+    set -o pipefail
+
+    # Content-Length aus HTTP-Header holen
+    local content_length
+    content_length=$(curl -fsSLI "$url" | awk '/Content-Length/ {print $2}' | tr -d '\r' || true)
+
+    if [[ -z "$content_length" ]]; then
+        #msg_warn "Content-Length not available, falling back to plain download"
+        if ! curl -fL# -o "$output" "$url"; then
+            msg_error "Download failed"
+            return 1
+        fi
+    else
+        if ! curl -fsSL "$url" | pv -s "$content_length" >"$output"; then
+            msg_error "Download failed"
+            return 1
+        fi
+    fi
+}

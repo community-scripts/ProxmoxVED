@@ -15,7 +15,7 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  ffmpeg
+    ffmpeg
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Navidrome"
@@ -25,6 +25,11 @@ curl -fsSL -o "${TMP_DEB}" "https://github.com/navidrome/navidrome/releases/down
 $STD apt-get install -y "${TMP_DEB}"
 systemctl enable -q --now navidrome
 echo "${RELEASE}" >/opt/Navidrome_version.txt
+
+echo "Test...."
+TMP_TAR=$(mktemp --suffix=.tgz)
+download_with_progress "https://github.com/ollama/ollama/releases/download/v0.6.6/ollama-linux-amd64.tgz" "$TMP_TAR"
+echo "Test...."
 msg_ok "Installed Navidrome"
 
 motd_ssh
