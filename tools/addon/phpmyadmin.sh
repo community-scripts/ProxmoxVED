@@ -130,7 +130,7 @@ function configure_phpmyadmin() {
         systemctl restart apache2
         msg_ok "Configured phpMyAdmin with Apache"
     else
-        msg_info "Configuring Nginx for phpMyAdmin"
+        msg_info "Configuring Nginx for phpMyAdmin (Alpine detected)"
 
         mkdir -p /etc/nginx/http.d
         cat <<EOF >/etc/nginx/http.d/phpmyadmin.conf
@@ -153,15 +153,23 @@ server {
 }
 EOF
 
-        if ! pgrep -x "nginx" >/dev/null; then
-            msg_info "Starting Nginx"
-            rc-service nginx start
+        msg_info "Testing Nginx configuration"
+        if nginx -t; then
+            if ! pgrep -x "nginx" > /dev/null; then
+                msg_info "Starting Nginx"
+                rc-service nginx start
+            else
+                msg_info "Reloading Nginx"
+                rc-service nginx reload
+            fi
+            msg_ok "Configured and started Nginx successfully"
         else
-            msg_info "Reloading Nginx"
-            rc-service nginx reload
+            msg_error "Nginx configuration test failed. Please fix before starting nginx."
+            exit 1
         fi
-        msg_ok "Configured phpMyAdmin with Nginx"
     fi
+}
+
 }
 
 function uninstall_phpmyadmin() {
