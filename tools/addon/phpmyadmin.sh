@@ -102,7 +102,8 @@ function install_php_and_modules() {
 
 function install_phpmyadmin() {
     msg_info "Fetching latest phpMyAdmin release from GitHub"
-    LATEST_VERSION=$(curl -s https://api.github.com/repos/phpmyadmin/phpmyadmin/releases/latest | grep tag_name | cut -d '"' -f4)
+    LATEST_VERSION_RAW=$(curl -s https://api.github.com/repos/phpmyadmin/phpmyadmin/releases/latest | grep tag_name | cut -d '"' -f4)
+    LATEST_VERSION=$(echo "$LATEST_VERSION_RAW" | sed -e 's/^RELEASE_//' -e 's/_/./g')
     if [[ -z "$LATEST_VERSION" ]]; then
         msg_error "Could not determine latest phpMyAdmin version from GitHub – falling back to 5.2.2"
         LATEST_VERSION="RELEASE_5_2_2"
@@ -156,17 +157,13 @@ EOF
     fi
 }
 
-echo -e "${YW}⚠️ ${APP} will now be installed.${CL}"
-read -r -p "Enter port number (Default: ${DEFAULT_PORT}): " PORT
-PORT=${PORT:-$DEFAULT_PORT}
-
 read -r -p "Would you like to install ${APP}? (y/n): " install_prompt
 if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
     check_internet
     install_php_and_modules
     install_phpmyadmin
     configure_phpmyadmin
-    echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://${IP}:${PORT}${CL}"
+    echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://${IP}/phpMyAdmin${CL}"
 else
     echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
     exit 0
