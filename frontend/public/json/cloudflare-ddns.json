@@ -9,7 +9,7 @@
   "updateable": false,
   "privileged": false,
   "interface_port": null,
-  "documentation": "https://github.com/favonia/cloudflare-ddns",
+  "documentation": "https://github.com/favonia/cloudflare-ddns/blob/main/README.markdown",
   "config_path": "/etc/systemd/system/cloudflare-ddns.service",
   "website": "https://github.com/favonia/cloudflare-ddns",
   "logo": null,
