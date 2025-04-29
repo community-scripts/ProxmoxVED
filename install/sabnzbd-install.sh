@@ -37,8 +37,7 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/sabnzbd/sabnzbd/releases/lates
 mkdir -p /opt/sabnzbd
 uv venv /opt/sabnzbd/venv
 $STD tar zxvf <(curl -fsSL https://github.com/sabnzbd/sabnzbd/releases/download/${RELEASE}/SABnzbd-${RELEASE}-src.tar.gz) -C /opt/sabnzbd --strip-components=1
-/opt/sabnzbd/venv/bin/pip install --upgrade pip
-/opt/sabnzbd/venv/bin/pip install -r /opt/sabnzbd/requirements.txt
+uv pip install -r /opt/sabnzbd/requirements.txt --python=/opt/sabnzbd/venv/bin/python
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed SABnzbd"
 
