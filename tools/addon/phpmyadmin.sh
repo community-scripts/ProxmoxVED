@@ -95,7 +95,7 @@ function install_php_and_modules() {
             msg_ok "All required PHP modules are already installed"
         fi
     else
-        $PKG_MANAGER_INSTALL nginx php-fpm php-mysqli php-json php-session curl tar openssl &>/dev/null
+        $PKG_MANAGER_INSTALL lighttpd php-fpm php-session php-json php-mysqli curl tar openssl &>/dev/null
     fi
 }
 
@@ -130,43 +130,42 @@ function configure_phpmyadmin() {
         systemctl restart apache2
         msg_ok "Configured phpMyAdmin with Apache"
     else
-        msg_info "Configuring Nginx for phpMyAdmin (Alpine detected)"
+        msg_info "Configuring Lighttpd for phpMyAdmin (Alpine detected)"
 
-        mkdir -p /etc/nginx/http.d
-        cat <<EOF >/etc/nginx/http.d/phpmyadmin.conf
-server {
-    listen 80;
-    server_name _;
+        mkdir -p /etc/lighttpd
+        cat <<EOF >/etc/lighttpd/lighttpd.conf
+server.modules = (
+    "mod_access",
+    "mod_alias",
+    "mod_accesslog",
+    "mod_fastcgi"
+)
 
-    root ${INSTALL_DIR};
-    index index.php index.html index.htm;
+server.document-root = "${INSTALL_DIR}"
+server.port = 80
 
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
+index-file.names = ( "index.php", "index.html" )
 
-    location ~ \.php\$ {
-        include fastcgi.conf;
-        fastcgi_pass 127.0.0.1:9000;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-    }
-}
+fastcgi.server = ( ".php" =>
+  ((
+    "host" => "127.0.0.1",
+    "port" => 9000,
+    "check-local" => "disable"
+  ))
+)
+
+alias.url = ( "/phpMyAdmin/" => "${INSTALL_DIR}/" )
+
+accesslog.filename = "/var/log/lighttpd/access.log"
+server.errorlog = "/var/log/lighttpd/error.log"
 EOF
 
-        msg_info "Testing Nginx configuration"
-        if nginx -t; then
-            if ! pgrep -x "nginx" >/dev/null; then
-                msg_info "Starting Nginx"
-                rc-service nginx start
-            else
-                msg_info "Reloading Nginx"
-                rc-service nginx reload
-            fi
-            msg_ok "Configured and started Nginx successfully"
-        else
-            msg_error "Nginx configuration test failed. Please fix before starting nginx."
-            exit 1
-        fi
+        msg_info "Starting php-fpm and Lighttpd"
+        rc-service php-fpm start
+        rc-service lighttpd start
+        rc-update add php-fpm default
+        rc-update add lighttpd default
+        msg_ok "Configured and started Lighttpd successfully"
     fi
 }
 
@@ -175,16 +174,18 @@ function uninstall_phpmyadmin() {
     if [[ "$OS" == "Debian" ]]; then
         systemctl stop apache2
     else
-        rc-service nginx stop
+        rc-service lighttpd stop
+        rc-service php-fpm stop
     fi
 
     msg_info "Removing phpMyAdmin directory"
     rm -rf "$INSTALL_DIR"
 
     if [[ "$OS" == "Alpine" ]]; then
-        msg_info "Removing Nginx config"
-        rm -f /etc/nginx/conf.d/phpmyadmin.conf
-        rc-service nginx restart
+        msg_info "Removing Lighttpd config"
+        rm -f /etc/lighttpd/lighttpd.conf
+        rc-service php-fpm restart
+        rc-service lighttpd restart
     else
         systemctl restart apache2
     fi
