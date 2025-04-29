@@ -19,14 +19,6 @@ $STD apt-get install -y \
     p7zip-full
 msg_ok "Installed Dependencies"
 
-msg_info "Setup Python3"
-$STD apt-get install -y \
-    python3-dev \
-    python3-pip \
-    python3-venv \
-    python3-setuptools
-msg_ok "Setup Python3"
-
 msg_info "Setup uv"
 setup_uv
 msg_ok "Setup uv"
@@ -44,14 +36,8 @@ msg_info "Installing SABnzbd"
 RELEASE=$(curl -fsSL https://api.github.com/repos/sabnzbd/sabnzbd/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 $STD tar zxvf <(curl -fsSL https://github.com/sabnzbd/sabnzbd/releases/download/$RELEASE/SABnzbd-${RELEASE}-src.tar.gz)
 mv SABnzbd-${RELEASE} /opt/sabnzbd
-uv venv /opt/sabnzbd
+uv venv /opt/sabnzbd/venv
 uv pip install -r /opt/sabnzbd/requirements.txt
-# $STD python3 -m venv /opt/sabnzbd/venv
-# source /opt/sabnzbd/venv/bin/activate
-# $STD pip install --upgrade pip
-# $STD pip install -r /opt/sabnzbd/requirements.txt
-# deactivate
-
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed SABnzbd"
 
