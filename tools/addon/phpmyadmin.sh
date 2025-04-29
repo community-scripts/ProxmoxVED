@@ -118,7 +118,6 @@ function install_phpmyadmin() {
 
     mkdir -p "$INSTALL_DIR"
     tar -xf /tmp/phpmyadmin.tar.gz -C /tmp
-    # Pfad ermitteln und Dateien verschieben
     EXTRACTED_DIR=$(find /tmp -maxdepth 1 -type d -name "phpmyadmin-*")
     if [[ -z "$EXTRACTED_DIR" ]]; then
         msg_error "Extraction failed – phpMyAdmin directory not found"
