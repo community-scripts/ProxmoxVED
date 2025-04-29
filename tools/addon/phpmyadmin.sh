@@ -26,9 +26,8 @@ CROSS="${RD}✖️${CL}"
 INFO="${BL}ℹ️${CL}"
 
 APP="phpMyAdmin"
-INSTALL_DIR="/usr/share/phpmyadmin"
-SERVICE_PATH_DEBIAN="/etc/systemd/system/phpmyadmin.service"
-SERVICE_PATH_ALPINE="/etc/init.d/phpmyadmin"
+INSTALL_DIR_DEBIAN="/var/www/html/phpMyAdmin"
+INSTALL_DIR_ALPINE="/usr/share/phpmyadmin"
 DEFAULT_PORT=8081
 
 IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
@@ -39,12 +38,14 @@ IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n
 # Detect OS
 if [[ -f "/etc/alpine-release" ]]; then
     OS="Alpine"
-    PKG_MANAGER="apk add --no-cache"
-    SERVICE_PATH="$SERVICE_PATH_ALPINE"
+    PKG_MANAGER_INSTALL="apk add --no-cache"
+    PKG_QUERY="apk info -e"
+    INSTALL_DIR="$INSTALL_DIR_ALPINE"
 elif [[ -f "/etc/debian_version" ]]; then
     OS="Debian"
-    PKG_MANAGER="apt-get install -y"
-    SERVICE_PATH="$SERVICE_PATH_DEBIAN"
+    PKG_MANAGER_INSTALL="apt-get install -y"
+    PKG_QUERY="dpkg -l"
+    INSTALL_DIR="$INSTALL_DIR_DEBIAN"
 else
     echo -e "${CROSS} Unsupported OS detected. Exiting."
     exit 1
@@ -56,102 +57,73 @@ function msg_info() { echo -e "${INFO} ${YW}${1}...${CL}"; }
 function msg_ok() { echo -e "${CM} ${GN}${1}${CL}"; }
 function msg_error() { echo -e "${CROSS} ${RD}${1}${CL}"; }
 
-# Check for existing installation
-if [[ -d "$INSTALL_DIR" ]]; then
-    echo -e "${YW}⚠️ ${APP} is already installed.${CL}"
-    read -r -p "Would you like to uninstall ${APP}? (y/N): " uninstall_prompt
-    if [[ "${uninstall_prompt,,}" =~ ^(y|yes)$ ]]; then
-        msg_info "Uninstalling ${APP}"
-        if [[ "$OS" == "Debian" ]]; then
-            systemctl disable --now phpmyadmin.service &>/dev/null
-            rm -f "$SERVICE_PATH"
-        else
-            rc-service phpmyadmin stop &>/dev/null
-            rc-update del phpmyadmin &>/dev/null
-            rm -f "$SERVICE_PATH"
-        fi
-        rm -rf "$INSTALL_DIR"
-        msg_ok "${APP} has been uninstalled."
-        exit 0
-    fi
-
-    read -r -p "Would you like to update ${APP}? (y/N): " update_prompt
-    if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
-        msg_info "Checking Internet connectivity"
-        if ! curl -s --head https://www.phpmyadmin.net | grep "200 OK" >/dev/null; then
-            msg_error "Internet connectivity or phpMyAdmin server unreachable. Exiting."
-            exit 1
-        fi
-        msg_ok "Internet connectivity OK"
-
-        msg_info "Updating ${APP}"
-        LATEST_VERSION=$(curl -fsSL https://www.phpmyadmin.net/home_page/version.txt | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
-        if [[ -z "$LATEST_VERSION" ]]; then
-            msg_error "Could not fetch the latest phpMyAdmin version. Exiting."
-            exit 1
-        fi
-        curl -fsSL "https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz" | tar -xz --strip-components=1 -C "$INSTALL_DIR"
-        if [[ $? -ne 0 ]]; then
-            msg_error "Failed to download or extract phpMyAdmin. Exiting."
-            exit 1
-        fi
-        msg_ok "Updated ${APP}"
-        exit 0
-    else
-        echo -e "${YW}⚠️ Update skipped. Exiting.${CL}"
-        exit 0
-    fi
-fi
-
-echo -e "${YW}⚠️ ${APP} is not installed.${CL}"
-read -r -p "Enter port number (Default: ${DEFAULT_PORT}): " PORT
-PORT=${PORT:-$DEFAULT_PORT}
-
-read -r -p "Would you like to install ${APP}? (y/n): " install_prompt
-if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
+function check_internet() {
     msg_info "Checking Internet connectivity"
-    if ! curl -s --head https://www.phpmyadmin.net | grep "200 OK" >/dev/null; then
+    if ! curl -s --head https://phpmyadmin.net | grep "200 OK" >/dev/null; then
         msg_error "Internet connectivity or phpMyAdmin server unreachable. Exiting."
         exit 1
     fi
     msg_ok "Internet connectivity OK"
+}
 
-    msg_info "Installing required packages"
-    if ! $PKG_MANAGER nginx php-fpm php-mysqli php-json php-session curl tar &>/dev/null; then
-        msg_error "Failed to install required packages. Check network and package sources."
-        exit 1
+function install_php_and_modules() {
+    msg_info "Checking existing PHP installation"
+    if command -v php >/dev/null 2>&1; then
+        PHP_VERSION=$(php -r 'echo PHP_VERSION;')
+        msg_ok "Found PHP version $PHP_VERSION"
+    else
+        msg_info "PHP not found, will install PHP core"
     fi
-    msg_ok "Packages installed"
 
-    # Validate nginx and php-fpm
-    if ! command -v nginx >/dev/null 2>&1; then
-        msg_error "nginx is not installed or not in PATH. Exiting."
-        exit 1
+    if [[ "$OS" == "Debian" ]]; then
+        PHP_MODULES=("php" "php-mysqli" "php-mbstring" "php-zip" "php-gd" "php-json" "php-curl")
+        MISSING_PACKAGES=()
+        for pkg in "${PHP_MODULES[@]}"; do
+            if ! dpkg -l | grep -qw "$pkg"; then
+                MISSING_PACKAGES+=("$pkg")
+            fi
+        done
+        if [[ ${#MISSING_PACKAGES[@]} -gt 0 ]]; then
+            msg_info "Installing missing PHP packages: ${MISSING_PACKAGES[*]}"
+            if ! apt-get update &>/dev/null || ! apt-get install -y "${MISSING_PACKAGES[@]}" &>/dev/null; then
+                msg_error "Failed to install required PHP modules. Exiting."
+                exit 1
+            fi
+            msg_ok "Installed missing PHP packages"
+        else
+            msg_ok "All required PHP modules are already installed"
+        fi
+    else
+        $PKG_MANAGER_INSTALL nginx php-fpm php-mysqli php-json php-session curl tar openssl &>/dev/null
     fi
-    if ! command -v php-fpm >/dev/null 2>&1; then
-        msg_error "php-fpm is not installed or not in PATH. Exiting."
-        exit 1
-    fi
-    msg_ok "Web server binaries found"
+}
 
+function install_phpmyadmin() {
     msg_info "Downloading phpMyAdmin"
-    mkdir -p "$INSTALL_DIR"
     LATEST_VERSION=$(curl -fsSL https://www.phpmyadmin.net/home_page/version.txt | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
     if [[ -z "$LATEST_VERSION" ]]; then
-        msg_error "Could not fetch the latest phpMyAdmin version. Exiting."
+        msg_error "Could not fetch latest phpMyAdmin version. Exiting."
         exit 1
     fi
-    curl -fsSL "https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz" | tar -xz --strip-components=1 -C "$INSTALL_DIR"
-    if [[ $? -ne 0 ]]; then
-        msg_error "Failed to download or extract phpMyAdmin. Exiting."
-        exit 1
-    fi
-    chown -R root:root "$INSTALL_DIR"
-    msg_ok "Installed ${APP}"
+    mkdir -p "$INSTALL_DIR"
+    curl -fsSL "https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz" -o /tmp/phpmyadmin.tar.gz
+    tar xf /tmp/phpmyadmin.tar.gz --strip-components=1 -C "$INSTALL_DIR"
+    msg_ok "Extracted phpMyAdmin"
+}
 
-    msg_info "Configuring Nginx"
-    mkdir -p /etc/nginx/conf.d
-    cat <<EOF >/etc/nginx/conf.d/phpmyadmin.conf
+function configure_phpmyadmin() {
+    if [[ "$OS" == "Debian" ]]; then
+        cp "$INSTALL_DIR/config.sample.inc.php" "$INSTALL_DIR/config.inc.php"
+        SECRET=$(openssl rand -base64 24)
+        sed -i "s#\$cfg\['blowfish_secret'\] = '';#\$cfg['blowfish_secret'] = '${SECRET}';#" "$INSTALL_DIR/config.inc.php"
+        chmod 660 "$INSTALL_DIR/config.inc.php"
+        chown -R www-data:www-data "$INSTALL_DIR"
+        systemctl restart apache2
+        msg_ok "Configured phpMyAdmin with Apache"
+    else
+        msg_info "Configuring Nginx for phpMyAdmin"
+        mkdir -p /etc/nginx/conf.d
+        cat <<EOF >/etc/nginx/conf.d/phpmyadmin.conf
 server {
     listen ${PORT};
     server_name _;
@@ -170,43 +142,21 @@ server {
     }
 }
 EOF
-    nginx -s reload || systemctl reload nginx || rc-service nginx reload
-    msg_ok "Nginx configured"
-
-    msg_info "Creating phpMyAdmin service"
-    if [[ "$OS" == "Debian" ]]; then
-        cat <<EOF >"$SERVICE_PATH"
-[Unit]
-Description=phpMyAdmin Service
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=/usr/sbin/nginx -g "daemon off;"
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-        systemctl enable --now phpmyadmin
-    else
-        cat <<EOF >"$SERVICE_PATH"
-#!/sbin/openrc-run
-
-command="/usr/sbin/nginx"
-command_args="-g 'daemon off;'"
-command_background=true
-
-depend() {
-    need net
-}
-EOF
-        chmod +x "$SERVICE_PATH"
-        rc-update add phpmyadmin default
-        rc-service phpmyadmin start
+        nginx -s reload || systemctl reload nginx || rc-service nginx reload
+        msg_ok "Configured phpMyAdmin with Nginx"
     fi
-    msg_ok "Service created successfully"
+}
 
+echo -e "${YW}⚠️ ${APP} will now be installed.${CL}"
+read -r -p "Enter port number (Default: ${DEFAULT_PORT}): " PORT
+PORT=${PORT:-$DEFAULT_PORT}
+
+read -r -p "Would you like to install ${APP}? (y/n): " install_prompt
+if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
+    check_internet
+    install_php_and_modules
+    install_phpmyadmin
+    configure_phpmyadmin
     echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://${IP}:${PORT}${CL}"
 else
     echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
