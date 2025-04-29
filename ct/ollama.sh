@@ -33,13 +33,14 @@ function update_script() {
         msg_ok "Services Stopped"
 
         msg_info "Updating Ollama to ${RELEASE}"
+        msg_ok ""
         TMP_TAR=$(mktemp --suffix=.tgz)
-        echo -e "\n"
         curl -fL# -o "${TMP_TAR}" "https://github.com/ollama/ollama/releases/download/${RELEASE}/ollama-linux-amd64.tgz"
         tar -xzf "${TMP_TAR}" -C /usr/local/lib/ollama
         ln -sf /usr/local/lib/ollama/bin/ollama /usr/local/bin/ollama
         echo "${RELEASE}" >/opt/Ollama_version.txt
-        msg_ok "Updated Ollama"
+        msg_info ""
+        msg_ok "Updated Ollama to ${RELEASE}"
 
         msg_info "Starting Services"
         systemctl start ollama
