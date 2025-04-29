@@ -26,10 +26,8 @@ $STD apt-get install -y "${TMP_DEB}"
 systemctl enable -q --now navidrome
 echo "${RELEASE}" >/opt/Navidrome_version.txt
 
-echo "Test...."
 TMP_TAR=$(mktemp --suffix=.tgz)
 download_with_progress "https://github.com/ollama/ollama/releases/download/v0.6.6/ollama-linux-amd64.tgz" "$TMP_TAR"
-echo "Test...."
 msg_ok "Installed Navidrome"
 
 motd_ssh
