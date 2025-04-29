@@ -11,7 +11,7 @@
   "interface_port": null,
   "documentation": "https://github.com/favonia/cloudflare-ddns",
   "config_path": "/etc/systemd/system/cloudflare-ddns.service",
-  "website": null,
+  "website": "https://github.com/favonia/cloudflare-ddns",
   "logo": null,
   "description": "A feature-rich and robust Cloudflare DDNS updater with a small footprint. The program will detect your machine’s public IP addresses and update DNS records using the Cloudflare API",
   "install_methods": [
