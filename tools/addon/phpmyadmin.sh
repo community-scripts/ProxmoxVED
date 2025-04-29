@@ -109,7 +109,7 @@ function install_phpmyadmin() {
     fi
     msg_ok "Latest version: $LATEST_VERSION"
 
-    TARBALL_URL="https://github.com/phpmyadmin/phpmyadmin/archive/refs/tags/${LATEST_VERSION}.tar.gz"
+    TARBALL_URL="https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz"
     msg_info "Downloading ${TARBALL_URL}"
     if ! curl -fsSL "$TARBALL_URL" -o /tmp/phpmyadmin.tar.gz; then
         msg_error "Download failed: $TARBALL_URL"
@@ -117,14 +117,7 @@ function install_phpmyadmin() {
     fi
 
     mkdir -p "$INSTALL_DIR"
-    tar -xf /tmp/phpmyadmin.tar.gz -C /tmp
-    EXTRACTED_DIR=$(find /tmp -maxdepth 1 -type d -name "phpmyadmin-*")
-    if [[ -z "$EXTRACTED_DIR" ]]; then
-        msg_error "Extraction failed – phpMyAdmin directory not found"
-        exit 1
-    fi
-    mv "$EXTRACTED_DIR"/* "$INSTALL_DIR"
-    msg_ok "Extracted phpMyAdmin $LATEST_VERSION"
+    tar xf /tmp/phpmyadmin.tar.gz --strip-components=1 -C "$INSTALL_DIR"
 }
 
 function configure_phpmyadmin() {
