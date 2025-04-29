@@ -23,46 +23,50 @@ function update_script() {
     header_info
     check_container_storage
     check_container_resources
+
     if [[ ! -d /opt/sabnzbd ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi
     RELEASE=$(curl -fsSL https://api.github.com/repos/sabnzbd/sabnzbd/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
     if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-        if [[ ! -d /opt/sabnzbd/venv ]]; then
-            msg_info "Migrating SABnzbd to venv installation"
-            python3 -m venv /opt/sabnzbd/venv
-            source /opt/sabnzbd/venv/bin/activate
-            pip install --upgrade pip
-            if [[ -f /opt/sabnzbd/requirements.txt ]]; then
-                pip install -r /opt/sabnzbd/requirements.txt
-            fi
-            deactivate
-            if grep -q "ExecStart=python3 SABnzbd.py" /etc/systemd/system/sabnzbd.service; then
-                sed -i "s|ExecStart=python3 SABnzbd.py|ExecStart=/opt/sabnzbd/venv/bin/python SABnzbd.py|" /etc/systemd/system/sabnzbd.service
-                systemctl daemon-reload
-                systemctl restart sabnzbd.service
-                msg_ok "Migrated SABnzbd to venv installation and updated Service"
-            fi
-        fi
+        msg_ok "No update required. ${APP} is already at ${RELEASE}"
+        exit
+    fi
+    msg_info "Updating $APP to ${RELEASE}"
+    systemctl stop sabnzbd
+    cp -r /opt/sabnzbd /opt/sabnzbd_backup_$(date +%s)
 
-        msg_info "Updating $APP to ${RELEASE}"
-        systemctl stop sabnzbd.service
-        tar zxvf <(curl -fsSL https://github.com/sabnzbd/sabnzbd/releases/download/$RELEASE/SABnzbd-${RELEASE}-src.tar.gz)
-        cp -rf SABnzbd-${RELEASE}/* /opt/sabnzbd
-        rm -rf SABnzbd-${RELEASE}
+    tmpdir=$(mktemp -d)
+    curl -fsSL "https://github.com/sabnzbd/sabnzbd/releases/download/${RELEASE}/SABnzbd-${RELEASE}-src.tar.gz" | tar -xz -C "$tmpdir"
+    cp -rf "${tmpdir}/SABnzbd-${RELEASE}/"* /opt/sabnzbd/
+    rm -rf "$tmpdir"
 
+    if [[ ! -d /opt/sabnzbd/venv ]]; then
+        msg_info "Migrating SABnzbd to venv installation"
+        $STD python3 -m venv /opt/sabnzbd/venv
         source /opt/sabnzbd/venv/bin/activate
-        pip install --upgrade pip
-        pip install -r /opt/sabnzbd/requirements.txt
+        $STD pip install --upgrade pip
+        if [[ -f /opt/sabnzbd/requirements.txt ]]; then
+            $STD pip install -r /opt/sabnzbd/requirements.txt
+        fi
         deactivate
 
-        echo "${RELEASE}" >/opt/${APP}_version.txt
-        systemctl start sabnzbd
-        msg_ok "Updated ${APP} to ${RELEASE}"
+        if grep -q "ExecStart=python3 SABnzbd.py" /etc/systemd/system/sabnzbd.service; then
+            sed -i "s|ExecStart=python3 SABnzbd.py|ExecStart=/opt/sabnzbd/venv/bin/python SABnzbd.py|" /etc/systemd/system/sabnzbd.service
+            systemctl daemon-reload
+            msg_ok "Migrated SABnzbd to venv installation and updated Service"
+        fi
     else
-        msg_ok "No update required. ${APP} is already at ${RELEASE}"
+        source /opt/sabnzbd/venv/bin/activate
+        $STD pip install --upgrade pip
+        $STD pip install -r /opt/sabnzbd/requirements.txt
+        deactivate
     fi
+
+    echo "${RELEASE}" >/opt/${APP}_version.txt
+    systemctl start sabnzbd
+    msg_ok "Updated ${APP} to ${RELEASE}"
     exit
 }
 
