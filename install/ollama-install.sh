@@ -50,10 +50,10 @@ BINDIR="/usr/local/bin"
 mkdir -p $OLLAMA_INSTALL_DIR
 OLLAMA_URL="https://github.com/ollama/ollama/releases/download/${RELEASE}/ollama-linux-amd64.tgz"
 TMP_TAR="/tmp/ollama.tgz"
+echo -e "\n"
 if curl -fL# -o "$TMP_TAR" "$OLLAMA_URL"; then
-    echo -e "\nExtracting...\n"
     if tar -xzf "$TMP_TAR" -C "$OLLAMA_INSTALL_DIR"; then
-        ln -sf "$OLLAMA_INSTALL_DIR/ollama" "$BINDIR/ollama"
+        ln -sf "$OLLAMA_INSTALL_DIR/bin/ollama" "$BINDIR/ollama"
         echo "${RELEASE}" >/opt/Ollama_version.txt
         msg_ok "Installed Ollama ${RELEASE}"
     else
