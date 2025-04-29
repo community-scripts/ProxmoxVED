@@ -28,7 +28,6 @@ INFO="${BL}ℹ️${CL}"
 APP="phpMyAdmin"
 INSTALL_DIR_DEBIAN="/var/www/html/phpMyAdmin"
 INSTALL_DIR_ALPINE="/usr/share/phpmyadmin"
-DEFAULT_PORT=8081
 
 IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
 IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
@@ -157,14 +156,75 @@ EOF
     fi
 }
 
-read -r -p "Would you like to install ${APP}? (y/n): " install_prompt
-if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
-    check_internet
-    install_php_and_modules
-    install_phpmyadmin
+function uninstall_phpmyadmin() {
+    msg_info "Stopping Webserver"
+    if [[ "$OS" == "Debian" ]]; then
+        systemctl stop apache2
+    else
+        rc-service nginx stop
+    fi
+
+    msg_info "Removing phpMyAdmin directory"
+    rm -rf "$INSTALL_DIR"
+
+    if [[ "$OS" == "Alpine" ]]; then
+        msg_info "Removing Nginx config"
+        rm -f /etc/nginx/conf.d/phpmyadmin.conf
+        rc-service nginx restart
+    else
+        systemctl restart apache2
+    fi
+    msg_ok "Uninstalled phpMyAdmin"
+}
+
+function update_phpmyadmin() {
+    msg_info "Fetching latest phpMyAdmin version from GitHub"
+    LATEST_VERSION_RAW=$(curl -s https://api.github.com/repos/phpmyadmin/phpmyadmin/releases/latest | grep tag_name | cut -d '"' -f4)
+    LATEST_VERSION=$(echo "$LATEST_VERSION_RAW" | sed -e 's/^RELEASE_//' -e 's/_/./g')
+    if [[ -z "$LATEST_VERSION" ]]; then
+        msg_error "Could not determine latest phpMyAdmin version from GitHub – falling back to 5.2.2"
+        LATEST_VERSION="5.2.2"
+    fi
+    msg_ok "Latest version: $LATEST_VERSION"
+
+    TARBALL_URL="https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz"
+    msg_info "Downloading ${TARBALL_URL}"
+    if ! curl -fsSL "$TARBALL_URL" -o /tmp/phpmyadmin.tar.gz; then
+        msg_error "Download failed: $TARBALL_URL"
+        exit 1
+    fi
+
+    tar xf /tmp/phpmyadmin.tar.gz --strip-components=1 -C "$INSTALL_DIR"
+    msg_ok "Updated phpMyAdmin to $LATEST_VERSION"
     configure_phpmyadmin
-    echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://${IP}/phpMyAdmin${CL}"
+}
+
+if [[ -f "$INSTALL_DIR/config.inc.php" ]]; then
+    echo -e "${YW}⚠️ ${APP} is already installed at ${INSTALL_DIR}.${CL}"
+    read -r -p "Would you like to Update (1), Uninstall (2) or Cancel (3)? [1/2/3]: " action
+    case "$action" in
+    1)
+        check_internet
+        update_phpmyadmin
+        ;;
+    2)
+        uninstall_phpmyadmin
+        ;;
+    *)
+        echo -e "${YW}⚠️ Action cancelled. Exiting.${CL}"
+        exit 0
+        ;;
+    esac
 else
-    echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
-    exit 0
+    read -r -p "Would you like to install ${APP}? (y/n): " install_prompt
+    if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
+        check_internet
+        install_php_and_modules
+        install_phpmyadmin
+        configure_phpmyadmin
+        echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://${IP}/phpMyAdmin${CL}"
+    else
+        echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
+        exit 0
+    fi
 fi
