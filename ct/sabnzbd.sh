@@ -29,6 +29,23 @@ function update_script() {
     fi
     RELEASE=$(curl -fsSL https://api.github.com/repos/sabnzbd/sabnzbd/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
     if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+        if [[ ! -d /opt/sabnzbd/venv ]]; then
+            msg_info "Migrating SABnzbd to venv installation"
+            python3 -m venv /opt/sabnzbd/venv
+            source /opt/sabnzbd/venv/bin/activate
+            pip install --upgrade pip
+            if [[ -f /opt/sabnzbd/requirements.txt ]]; then
+                pip install -r /opt/sabnzbd/requirements.txt
+            fi
+            deactivate
+            if grep -q "ExecStart=python3 SABnzbd.py" /etc/systemd/system/sabnzbd.service; then
+                sed -i "s|ExecStart=python3 SABnzbd.py|ExecStart=/opt/sabnzbd/venv/bin/python SABnzbd.py|" /etc/systemd/system/sabnzbd.service
+                systemctl daemon-reload
+                systemctl restart sabnzbd.service
+                msg_ok "Migrated SABnzbd to venv installation and updated Service"
+            fi
+        fi
+
         msg_info "Updating $APP to ${RELEASE}"
         systemctl stop sabnzbd.service
         tar zxvf <(curl -fsSL https://github.com/sabnzbd/sabnzbd/releases/download/$RELEASE/SABnzbd-${RELEASE}-src.tar.gz)
