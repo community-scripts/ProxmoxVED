@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 tteck
-# Author: tteck | Co-Author: havardthom
+# Author: havardthom | Co-Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://ollama.com/
 
@@ -22,14 +22,35 @@ function update_script() {
     header_info
     check_container_storage
     check_container_resources
-    if [[ ! -d /opt/ollama ]]; then
-        msg_error "No ${APP} Installation Found!"
+    if [[ ! -d /usr/local/lib/ollama ]]; then
+        msg_error "No Ollama Installation Found!"
         exit
     fi
-    msg_info "Updating ${APP}"
-    $STD apt-get update
-    $STD apt-get -y upgrade
-    msg_ok "Updated Successfully"
+    RELEASE=$(curl -fsSL https://api.github.com/repos/ollama/ollama/releases/latest | grep "tag_name" | awk -F '"' '{print $4}')
+    if [[ ! -f /opt/Ollama_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/Ollama_version.txt)" ]]; then
+        msg_info "Stopping Services"
+        systemctl stop ollama
+        msg_ok "Services Stopped"
+
+        msg_info "Updating Ollama to ${RELEASE}"
+        TMP_TAR=$(mktemp --suffix=.tgz)
+        curl -fL# -o "${TMP_TAR}" "https://github.com/ollama/ollama/releases/download/${RELEASE}/ollama-linux-amd64.tgz"
+        tar -xzf "${TMP_TAR}" -C /usr/local/lib/ollama
+        ln -sf /usr/local/lib/ollama/ollama /usr/local/bin/ollama
+        echo "${RELEASE}" >/opt/Ollama_version.txt
+        msg_ok "Updated Ollama"
+
+        msg_info "Starting Services"
+        systemctl start ollama
+        msg_ok "Started Services"
+
+        msg_info "Cleaning Up"
+        rm -f "${TMP_TAR}"
+        msg_ok "Cleaned"
+        msg_ok "Updated Successfully"
+    else
+        msg_ok "No update required. Ollama is already at ${RELEASE}"
+    fi
     exit
 }
 
