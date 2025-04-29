@@ -25,9 +25,6 @@ curl -fsSL -o "${TMP_DEB}" "https://github.com/navidrome/navidrome/releases/down
 $STD apt-get install -y "${TMP_DEB}"
 systemctl enable -q --now navidrome
 echo "${RELEASE}" >/opt/Navidrome_version.txt
-
-TMP_TAR=$(mktemp --suffix=.tgz)
-download_with_progress "https://github.com/ollama/ollama/releases/download/v0.6.6/ollama-linux-amd64.tgz" "$TMP_TAR"
 msg_ok "Installed Navidrome"
 
 read -p "Do you want to install filebrowser addon? (y/n) " -n 1 -r
