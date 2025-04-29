@@ -760,11 +760,11 @@ import_local_ip() {
 function download_with_progress() {
     local url="$1"
     local output="$2"
+    if [ -n "$SPINNER_PID" ] && ps -p "$SPINNER_PID" >/dev/null; then kill "$SPINNER_PID" >/dev/null; fi
 
     if ! command -v pv &>/dev/null; then
         $STD apt-get install -y pv
     fi
-    stop_spinner
     set -o pipefail
 
     # Content-Length aus HTTP-Header holen
