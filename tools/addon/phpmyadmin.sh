@@ -77,10 +77,24 @@ if [[ -d "$INSTALL_DIR" ]]; then
 
     read -r -p "Would you like to update ${APP}? (y/N): " update_prompt
     if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
+        msg_info "Checking Internet connectivity"
+        if ! curl -s --head https://www.phpmyadmin.net | grep "200 OK" >/dev/null; then
+            msg_error "Internet connectivity or phpMyAdmin server unreachable. Exiting."
+            exit 1
+        fi
+        msg_ok "Internet connectivity OK"
+
         msg_info "Updating ${APP}"
-        curl -fsSL "https://www.phpmyadmin.net/home_page/version.txt" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 | while read -r LATEST_VERSION; do
-            curl -fsSL "https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz" | tar -xz --strip-components=1 -C "$INSTALL_DIR"
-        done
+        LATEST_VERSION=$(curl -fsSL https://www.phpmyadmin.net/home_page/version.txt | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+        if [[ -z "$LATEST_VERSION" ]]; then
+            msg_error "Could not fetch the latest phpMyAdmin version. Exiting."
+            exit 1
+        fi
+        curl -fsSL "https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz" | tar -xz --strip-components=1 -C "$INSTALL_DIR"
+        if [[ $? -ne 0 ]]; then
+            msg_error "Failed to download or extract phpMyAdmin. Exiting."
+            exit 1
+        fi
         msg_ok "Updated ${APP}"
         exit 0
     else
@@ -95,13 +109,43 @@ PORT=${PORT:-$DEFAULT_PORT}
 
 read -r -p "Would you like to install ${APP}? (y/n): " install_prompt
 if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
-    msg_info "Installing ${APP} on ${OS}"
-    $PKG_MANAGER nginx php-fpm php-mysqli php-json php-session curl tar &>/dev/null
+    msg_info "Checking Internet connectivity"
+    if ! curl -s --head https://www.phpmyadmin.net | grep "200 OK" >/dev/null; then
+        msg_error "Internet connectivity or phpMyAdmin server unreachable. Exiting."
+        exit 1
+    fi
+    msg_ok "Internet connectivity OK"
 
+    msg_info "Installing required packages"
+    if ! $PKG_MANAGER nginx php-fpm php-mysqli php-json php-session curl tar &>/dev/null; then
+        msg_error "Failed to install required packages. Check network and package sources."
+        exit 1
+    fi
+    msg_ok "Packages installed"
+
+    # Validate nginx and php-fpm
+    if ! command -v nginx >/dev/null 2>&1; then
+        msg_error "nginx is not installed or not in PATH. Exiting."
+        exit 1
+    fi
+    if ! command -v php-fpm >/dev/null 2>&1; then
+        msg_error "php-fpm is not installed or not in PATH. Exiting."
+        exit 1
+    fi
+    msg_ok "Web server binaries found"
+
+    msg_info "Downloading phpMyAdmin"
     mkdir -p "$INSTALL_DIR"
-    curl -fsSL "https://www.phpmyadmin.net/home_page/version.txt" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1 | while read -r LATEST_VERSION; do
-        curl -fsSL "https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz" | tar -xz --strip-components=1 -C "$INSTALL_DIR"
-    done
+    LATEST_VERSION=$(curl -fsSL https://www.phpmyadmin.net/home_page/version.txt | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+    if [[ -z "$LATEST_VERSION" ]]; then
+        msg_error "Could not fetch the latest phpMyAdmin version. Exiting."
+        exit 1
+    fi
+    curl -fsSL "https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz" | tar -xz --strip-components=1 -C "$INSTALL_DIR"
+    if [[ $? -ne 0 ]]; then
+        msg_error "Failed to download or extract phpMyAdmin. Exiting."
+        exit 1
+    fi
     chown -R root:root "$INSTALL_DIR"
     msg_ok "Installed ${APP}"
 
