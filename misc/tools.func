@@ -786,8 +786,8 @@ function download_with_progress() {
 }
 
 function setup_uv() {
-    msg_info "Checking uv installation..."
-
+    ensure_usr_local_bin_persist
+    $STD msg_info "Checking uv installation..."
     UV_BIN="/usr/local/bin/uv"
     TMP_DIR=$(mktemp -d)
     ARCH=$(uname -m)
@@ -814,7 +814,7 @@ function setup_uv() {
     if [[ -x "$UV_BIN" ]]; then
         INSTALLED_VERSION=$($UV_BIN -V | awk '{print $2}')
         if [[ "$INSTALLED_VERSION" == "$LATEST_VERSION" ]]; then
-            msg_ok "uv is already at the latest version ($INSTALLED_VERSION)"
+            $STD msg_ok "uv is already at the latest version ($INSTALLED_VERSION)"
             rm -rf "$TMP_DIR"
             # set path
             if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
@@ -822,10 +822,10 @@ function setup_uv() {
             fi
             return 0
         else
-            msg_info "Updating uv from $INSTALLED_VERSION to $LATEST_VERSION"
+            $STD msg_info "Updating uv from $INSTALLED_VERSION to $LATEST_VERSION"
         fi
     else
-        msg_info "uv not found. Installing version $LATEST_VERSION"
+        $STD msg_info "uv not found. Installing version $LATEST_VERSION"
     fi
 
     # install or update uv
@@ -840,4 +840,15 @@ function setup_uv() {
     fi
 
     msg_ok "uv installed/updated to $LATEST_VERSION"
+}
+
+function ensure_usr_local_bin_persist() {
+    local PROFILE_FILE="/etc/profile.d/custom_path.sh"
+
+    [[ ! -f "$PROFILE_FILE" ]] && {
+        echo 'export PATH="/usr/local/bin:$PATH"' >"$PROFILE_FILE"
+        chmod +x "$PROFILE_FILE"
+    }
+
+    [[ ":$PATH:" != *":/usr/local/bin:"* ]] && export PATH="/usr/local/bin:$PATH"
 }
