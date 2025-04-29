@@ -131,10 +131,11 @@ function configure_phpmyadmin() {
         msg_ok "Configured phpMyAdmin with Apache"
     else
         msg_info "Configuring Nginx for phpMyAdmin"
-        mkdir -p /etc/nginx/conf.d
-        cat <<EOF >/etc/nginx/conf.d/phpmyadmin.conf
+
+        mkdir -p /etc/nginx/http.d
+        cat <<EOF >/etc/nginx/http.d/phpmyadmin.conf
 server {
-    listen ${PORT};
+    listen 80;
     server_name _;
 
     root ${INSTALL_DIR};
@@ -145,13 +146,20 @@ server {
     }
 
     location ~ \.php\$ {
-        include fastcgi_params;
+        include fastcgi.conf;
         fastcgi_pass 127.0.0.1:9000;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
     }
 }
 EOF
-        nginx -s reload || systemctl reload nginx || rc-service nginx reload
+
+        if ! pgrep -x "nginx" >/dev/null; then
+            msg_info "Starting Nginx"
+            rc-service nginx start
+        else
+            msg_info "Reloading Nginx"
+            rc-service nginx reload
+        fi
         msg_ok "Configured phpMyAdmin with Nginx"
     fi
 }
