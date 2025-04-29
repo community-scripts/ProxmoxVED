@@ -816,6 +816,10 @@ function setup_uv() {
         if [[ "$INSTALLED_VERSION" == "$LATEST_VERSION" ]]; then
             msg_ok "uv is already at the latest version ($INSTALLED_VERSION)"
             rm -rf "$TMP_DIR"
+            # set path
+            if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+                export PATH="/usr/local/bin:$PATH"
+            fi
             return 0
         else
             msg_info "Updating uv from $INSTALLED_VERSION to $LATEST_VERSION"
@@ -829,6 +833,11 @@ function setup_uv() {
     tar -xzf "$TMP_DIR/uv.tar.gz" -C "$TMP_DIR"
     install -m 755 "$TMP_DIR"/*/uv "$UV_BIN"
     rm -rf "$TMP_DIR"
+
+    # set path
+    if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+        export PATH="/usr/local/bin:$PATH"
+    fi
 
     msg_ok "uv installed/updated to $LATEST_VERSION"
 }
