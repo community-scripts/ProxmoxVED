@@ -764,11 +764,7 @@ function download_with_progress() {
     if ! command -v pv &>/dev/null; then
         $STD apt-get install -y pv
     fi
-    if [[ -n "${SPINNER_PID:-}" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
-        kill "$SPINNER_PID" 2>/dev/null
-        wait "$SPINNER_PID" 2>/dev/null
-        unset SPINNER_PID
-    fi
+    stop_spinner
     set -o pipefail
 
     # Content-Length aus HTTP-Header holen
