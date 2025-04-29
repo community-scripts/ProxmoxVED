@@ -167,15 +167,15 @@ EOF
         PHP_VERSION=$(php -r 'echo PHP_MAJOR_VERSION . PHP_MINOR_VERSION;')
         PHP_FPM_SERVICE="php-fpm${PHP_VERSION}"
 
-        if rc-service "$PHP_FPM_SERVICE" start && rc-update add "$PHP_FPM_SERVICE" default; then
+        if $STD rc-service "$PHP_FPM_SERVICE" start && $STD rc-update add "$PHP_FPM_SERVICE" default; then
             msg_ok "Started PHP-FPM service: $PHP_FPM_SERVICE"
         else
             msg_error "Failed to start PHP-FPM service: $PHP_FPM_SERVICE"
             exit 1
         fi
 
-        rc-service lighttpd start
-        rc-update add lighttpd default
+        $STD rc-service lighttpd start
+        $STD rc-update add lighttpd default
         msg_ok "Configured and started Lighttpd successfully"
 
     fi
@@ -186,8 +186,8 @@ function uninstall_phpmyadmin() {
     if [[ "$OS" == "Debian" ]]; then
         systemctl stop apache2
     else
-        rc-service lighttpd stop
-        rc-service php-fpm stop
+        $STD rc-service lighttpd stop
+        $STD rc-service php-fpm stop
     fi
 
     msg_info "Removing phpMyAdmin directory"
@@ -196,10 +196,10 @@ function uninstall_phpmyadmin() {
     if [[ "$OS" == "Alpine" ]]; then
         msg_info "Removing Lighttpd config"
         rm -f /etc/lighttpd/lighttpd.conf
-        rc-service php-fpm restart
-        rc-service lighttpd restart
+        $STD rc-service php-fpm restart
+        $STD rc-service lighttpd restart
     else
-        systemctl restart apache2
+        $STD systemctl restart apache2
     fi
     msg_ok "Uninstalled phpMyAdmin"
 }
