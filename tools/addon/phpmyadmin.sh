@@ -71,7 +71,7 @@ function is_phpmyadmin_installed() {
     if [[ "$OS" == "Debian" ]]; then
         [[ -f "$INSTALL_DIR/config.inc.php" ]]
     else
-        [[ -d "$INSTALL_DIR" ]] && rc-service lighttpd status &>/dev/null
+        [[ -d "$INSTALL_DIR_ALPINE" ]] && rc-service lighttpd status &>/dev/null
     fi
 }
 
