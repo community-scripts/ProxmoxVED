@@ -161,11 +161,20 @@ server.errorlog = "/var/log/lighttpd/error.log"
 EOF
 
         msg_info "Starting php-fpm and Lighttpd"
-        rc-service php-fpm start
+        PHP_FPM_SERVICE=$(rc-status | grep -oE 'php[0-9]+-fpm' | head -n 1)
+
+        if [[ -n "$PHP_FPM_SERVICE" ]]; then
+            rc-service "$PHP_FPM_SERVICE" start
+            rc-update add "$PHP_FPM_SERVICE" default
+        else
+            msg_error "Could not detect PHP-FPM service on Alpine. Please install php-fpm manually."
+            exit 1
+        fi
+
         rc-service lighttpd start
-        rc-update add php-fpm default
         rc-update add lighttpd default
         msg_ok "Configured and started Lighttpd successfully"
+
     fi
 }
 
