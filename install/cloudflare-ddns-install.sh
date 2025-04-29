@@ -14,20 +14,20 @@ network_check
 update_os
 
 msg_info "Installing dependencies"
-$STD apt-get install -y curl systemd
+install_go
 msg_ok "Installed dependencies"
 
-msg_info "Installing Go"
-GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | grep -m1 '^go')
-GO_TARBALL="${GO_VERSION}.linux-amd64.tar.gz"
-GO_URL="https://go.dev/dl/${GO_TARBALL}"
-INSTALL_DIR="/usr/bin"
-rm -rf "${INSTALL_DIR}/go"
-curl -LO "$GO_URL"
-tar -C "$INSTALL_DIR" -xzf "$GO_TARBALL"
-echo 'export PATH=$PATH:/usr/bin/go/bin' >> ~/.bashrc
-source ~/.bashrc
-msg_ok "Installed Go"
+# msg_info "Installing Go"
+# GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | grep -m1 '^go')
+# GO_TARBALL="${GO_VERSION}.linux-amd64.tar.gz"
+# GO_URL="https://go.dev/dl/${GO_TARBALL}"
+# INSTALL_DIR="/usr/bin"
+# rm -rf "${INSTALL_DIR}/go"
+# curl -LO "$GO_URL"
+# tar -C "$INSTALL_DIR" -xzf "$GO_TARBALL"
+# echo 'export PATH=$PATH:/usr/bin/go/bin' >>~/.bashrc
+# source ~/.bashrc
+# msg_ok "Installed Go"
 
 msg_info "Configure Application"
 var_cf_api_token="default"
@@ -40,18 +40,30 @@ var_cf_proxied="false"
 while true; do
     read -rp "Proxied? (y/n): " answer
     case "$answer" in
-        [Yy]* ) var_cf_proxied="true"; break;;
-        [Nn]* ) var_cf_proxied="false"; break;;
-        * ) echo "Please answer y or n.";;
+    [Yy]*)
+        var_cf_proxied="true"
+        break
+        ;;
+    [Nn]*)
+        var_cf_proxied="false"
+        break
+        ;;
+    *) echo "Please answer y or n." ;;
     esac
 done
 var_cf_ip6_provider="none"
 while true; do
     read -rp "Enable IPv6 support? (y/n): " answer
     case "$answer" in
-        [Yy]* ) var_cf_ip6_provider="auto"; break;;
-        [Nn]* ) var_cf_ip6_provider="none"; break;;
-        * ) echo "Please answer y or n.";;
+    [Yy]*)
+        var_cf_ip6_provider="auto"
+        break
+        ;;
+    [Nn]*)
+        var_cf_ip6_provider="none"
+        break
+        ;;
+    *) echo "Please answer y or n." ;;
     esac
 done
 msg_ok "Configured Application"
@@ -77,11 +89,8 @@ RestartSec=300
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Systemd service configured"
-
-msg_info "Enabling and starting service"
-systemctl enable -q --now cloudflare-ddns.service
-msg_ok "Cloudflare DDNS service started"
+systemctl enable -q --now cloudflare-ddns
+msg_ok "Setup Service"
 
 motd_ssh
 customize
@@ -89,5 +98,5 @@ customize
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
-rm -f "$GO_TARBALL"
+#rm -f "$GO_TARBALL"
 msg_ok "Cleaned"
