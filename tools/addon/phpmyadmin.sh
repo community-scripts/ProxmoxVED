@@ -58,15 +58,14 @@ function msg_ok() { echo -e "${CM} ${GN}${1}${CL}"; }
 function msg_error() { echo -e "${CROSS} ${RD}${1}${CL}"; }
 
 function check_internet() {
-    msg_info "Checking Internet connectivity"
-    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://phpmyadmin.net)
+    msg_info "Checking Internet connectivity to GitHub"
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://github.com)
     if [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 400 ]]; then
         msg_ok "Internet connectivity OK"
     else
-        msg_error "Internet connectivity or phpMyAdmin server unreachable (Status $HTTP_CODE). Exiting."
+        msg_error "Internet connectivity or GitHub unreachable (Status $HTTP_CODE). Exiting."
         exit 1
     fi
-
 }
 
 function install_php_and_modules() {
@@ -102,16 +101,31 @@ function install_php_and_modules() {
 }
 
 function install_phpmyadmin() {
-    msg_info "Downloading phpMyAdmin"
-    LATEST_VERSION=$(curl -fsSL https://www.phpmyadmin.net/home_page/version.txt | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+    msg_info "Fetching latest phpMyAdmin release from GitHub"
+    LATEST_VERSION=$(curl -s https://api.github.com/repos/phpmyadmin/phpmyadmin/releases/latest | grep tag_name | cut -d '"' -f4)
     if [[ -z "$LATEST_VERSION" ]]; then
-        msg_error "Could not fetch latest phpMyAdmin version. Exiting."
+        msg_error "Could not determine latest phpMyAdmin version from GitHub – falling back to 5.2.2"
+        LATEST_VERSION="RELEASE_5_2_2"
+    fi
+    msg_ok "Latest version: $LATEST_VERSION"
+
+    TARBALL_URL="https://github.com/phpmyadmin/phpmyadmin/archive/refs/tags/${LATEST_VERSION}.tar.gz"
+    msg_info "Downloading ${TARBALL_URL}"
+    if ! curl -fsSL "$TARBALL_URL" -o /tmp/phpmyadmin.tar.gz; then
+        msg_error "Download failed: $TARBALL_URL"
         exit 1
     fi
+
     mkdir -p "$INSTALL_DIR"
-    curl -fsSL "https://files.phpmyadmin.net/phpMyAdmin/${LATEST_VERSION}/phpMyAdmin-${LATEST_VERSION}-all-languages.tar.gz" -o /tmp/phpmyadmin.tar.gz
-    tar xf /tmp/phpmyadmin.tar.gz --strip-components=1 -C "$INSTALL_DIR"
-    msg_ok "Extracted phpMyAdmin"
+    tar -xf /tmp/phpmyadmin.tar.gz -C /tmp
+    # Pfad ermitteln und Dateien verschieben
+    EXTRACTED_DIR=$(find /tmp -maxdepth 1 -type d -name "phpmyadmin-*")
+    if [[ -z "$EXTRACTED_DIR" ]]; then
+        msg_error "Extraction failed – phpMyAdmin directory not found"
+        exit 1
+    fi
+    mv "$EXTRACTED_DIR"/* "$INSTALL_DIR"
+    msg_ok "Extracted phpMyAdmin $LATEST_VERSION"
 }
 
 function configure_phpmyadmin() {
