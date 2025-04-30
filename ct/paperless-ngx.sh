@@ -47,7 +47,7 @@ function update_script() {
 
     BACKUP_DIR="/opt/paperless-backup-$(date +%F_%T | tr ':' '-')"
 
-    setup_ghostscript
+    setup_gs
     setup_uv
 
     msg_info "Backing up Paperless folders"

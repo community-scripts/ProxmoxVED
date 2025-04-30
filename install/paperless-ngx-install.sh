@@ -54,7 +54,7 @@ $STD apt-get install -y \
   tesseract-ocr-eng
 msg_ok "Installed OCR Dependencies"
 
-setup_ghostscript
+setup_gs
 
 msg_info "Installing JBIG2"
 $STD git clone https://github.com/ie13/jbig2enc /opt/jbig2enc
