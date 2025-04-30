@@ -82,7 +82,7 @@ cd /opt/paperless
 uv venv /opt/paperless/.venv
 source /opt/paperless/.venv/bin/activate
 uv sync --all-extras
-mv paperless.conf.example paperless.conf
+mv /opt/paperless/paperless.conf.example /opt/paperless/paperless.conf
 mkdir -p consume data media static
 sed -i -e 's|#PAPERLESS_REDIS=.*|PAPERLESS_REDIS=redis://localhost:6379|' \
     -e "s|#PAPERLESS_CONSUMPTION_DIR=.*|PAPERLESS_CONSUMPTION_DIR=/opt/paperless/consume|" \
