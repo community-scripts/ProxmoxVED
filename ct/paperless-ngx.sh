@@ -20,64 +20,98 @@ color
 catch_errors
 
 function update_script() {
+  header_info
+  check_container_storage
+  check_container_resources
   if [[ ! -d /opt/paperless ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/paperless-ngx/paperless-ngx/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  header_info
-  check_container_storage
-  check_container_resources
-    if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
-      if [[ "$(gs --version 2>/dev/null)" != "10.04.0" ]]; then
-        msg_info "Updating Ghostscript (Patience)"
-        cd /tmp
-        curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz" -o $(basename "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10040/ghostscript-10.04.0.tar.gz")
-        tar -xzf ghostscript-10.04.0.tar.gz
-        cd ghostscript-10.04.0
-        $STD ./configure
-        $STD make
-        $STD sudo make install
-        rm -rf /tmp/ghostscript*
-        msg_ok "Ghostscript updated to 10.04.0"
-      fi
-      msg_info "Stopping all Paperless-ngx Services"
-      systemctl stop paperless-consumer paperless-webserver paperless-scheduler paperless-task-queue.service
-      msg_ok "Stopped all Paperless-ngx Services"
+  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
+    msg_info "Stopping Paperless services"
+    systemctl stop paperless-{webserver,scheduler,task-queue,consumer}.service &>/dev/null || true
+    msg_ok "Stopped Paperless services"
 
-      msg_info "Updating to ${RELEASE}"
-      cd ~
-      curl -fsSL "https://github.com/paperless-ngx/paperless-ngx/releases/download/$RELEASE/paperless-ngx-$RELEASE.tar.xz" -o $(basename "https://github.com/paperless-ngx/paperless-ngx/releases/download/$RELEASE/paperless-ngx-$RELEASE.tar.xz")
-      tar -xf paperless-ngx-$RELEASE.tar.xz
-      cp -r /opt/paperless/paperless.conf paperless-ngx/
-      cp -r paperless-ngx/* /opt/paperless/
-      cd /opt/paperless
-      $STD pip install -r requirements.txt
-      cd /opt/paperless/src
-      $STD /usr/bin/python3 manage.py migrate
-      echo "${RELEASE}" >/opt/${APP}_version.txt
-      msg_ok "Updated to ${RELEASE}"
+    BACKUP_DIR="/opt/paperless-backup-$(date +%F_%T | tr ':' '-')"
 
-      msg_info "Cleaning up"
-      cd ~
-      rm paperless-ngx-$RELEASE.tar.xz
-      rm -rf paperless-ngx
-      msg_ok "Cleaned"
-
-      msg_info "Starting all Paperless-ngx Services"
-      systemctl start paperless-consumer paperless-webserver paperless-scheduler paperless-task-queue.service
-      sleep 1
-      msg_ok "Started all Paperless-ngx Services"
-      msg_ok "Updated Successfully!\n"
-    else
-      msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    MIGRATION_NEEDED=0
+    if ! command -v uv &>/dev/null || [[ ! -d "$VENV_DIR" ]]; then
+      MIGRATION_NEEDED=1
+      msg_info "uv not found or missing venv, migrating..."
+      setup_uv
+      $STD uv venv /opt/paperless/.venv
+      source /opt/paperless/.venv/bin/activate
+      $STD uv sync --all-extras
     fi
-    exit
+
+    BACKUP_DIR="/opt/paperless-backup-$(date +%F_%T | tr ':' '-')"
+
+    setup_gs
+    setup_uv
+
+    msg_info "Backing up Paperless folders"
+    mkdir -p "$BACKUP_DIR"
+    for d in consume data media static; do
+      [[ -d "/opt/paperless/$d" ]] && mv "/opt/paperless/$d" "$BACKUP_DIR/"
+    done
+    [[ -f "/opt/paperless/paperless.conf" ]] && cp "/opt/paperless/paperless.conf" "$BACKUP_DIR/"
+    msg_ok "Backup completed to $BACKUP_DIR"
+
+    RELEASE=$(curl -fsSL "https://api.github.com/repos/paperless-ngx/paperless-ngx/releases/latest" | grep 'tag_name' | cut -d '"' -f4)
+    cd /tmp
+    curl -fsSL "https://github.com/paperless-ngx/paperless-ngx/releases/download/$RELEASE/paperless-ngx-$RELEASE.tar.xz" -o paperless.tar.xz
+    tar -xf paperless.tar.xz
+    cp -r paperless-ngx/* /opt/paperless/
+    rm -rf paperless.tar.xz paperless-ngx
+    echo "$RELEASE" >/opt/paperless/Paperless-ngx_version.txt
+
+    for d in consume data media static; do
+      [[ -d "$BACKUP_DIR/$d" ]] && mv "$BACKUP_DIR/$d" "/opt/paperless/"
+    done
+    [[ ! -f "/opt/paperless/paperless.conf" && -f "$BACKUP_DIR/paperless.conf" ]] && cp "$BACKUP_DIR/paperless.conf" "/opt/paperless/paperless.conf"
+    source /opt/paperless/.venv/bin/activate
+    $STD uv sync --all-extras
+    $STD python3 /opt/paperless/src/manage.py migrate
+    deactivate
+
+    if [[ "$MIGRATION_NEEDED" == 1 ]]; then
+      cat <<EOF >/etc/default/paperless
+PYTHONDONTWRITEBYTECODE=1
+PYTHONUNBUFFERED=1
+PNGX_CONTAINERIZED=0
+UV_LINK_MODE=copy
+EOF
+
+      for svc in /etc/systemd/system/paperless-*.service; do
+        sed -i \
+          -e "s|^ExecStart=.*manage.py|ExecStart=/opt/paperless/.venv/bin/python3 manage.py|" \
+          -e "s|^ExecStart=.*celery|ExecStart=/opt/paperless/.venv/bin/celery|" \
+          -e "s|^ExecStart=.*granian|ExecStart=/opt/paperless/.venv/bin/granian|" \
+          -e "/^WorkingDirectory=/a EnvironmentFile=/etc/default/paperless" "$svc"
+      done
+    fi
+
+    systemctl daemon-reexec
+    systemctl daemon-reload
+
+    msg_info "Starting Paperless services"
+    systemctl start paperless-{webserver,scheduler,task-queue,consumer}.service
+    sleep 1
+    msg_ok "All services restarted"
+    msg_ok "Updated Successfully!\n"
+    read -r -p "Remove backup directory at $BACKUP_DIR? [y/N]: " CLEANUP
+    if [[ "$CLEANUP" =~ ^[Yy]$ ]]; then
+      rm -rf "$BACKUP_DIR"
+      msg_ok "Backup directory removed"
+    else
+      msg_info "Backup directory retained at $BACKUP_DIR"
+    fi
+  else
+    msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
-  if [ "$UPD" == "2" ]; then
-    cat paperless.creds
-    exit
-  fi
+  exit
+
 }
 
 start
