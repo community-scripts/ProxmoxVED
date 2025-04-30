@@ -130,6 +130,20 @@ sed -i -e "s|#PAPERLESS_DBHOST=.*|PAPERLESS_DBHOST=localhost|" \
 $STD /opt/paperless/.venv/bin/python3 /opt/paperless/src/manage.py migrate
 msg_ok "Set up PostgreSQL database"
 
+msg_info "Setting up admin Paperless-ngx User & Password"
+cat <<EOF | /opt/paperless/.venv/bin/python3 /opt/paperless/src/manage.py shell
+from django.contrib.auth import get_user_model
+UserModel = get_user_model()
+user = UserModel.objects.create_user('admin', password='$DB_PASS')
+user.is_superuser = True
+user.is_staff = True
+user.save()
+EOF
+echo "" >>~/paperless.creds
+echo -e "Paperless-ngx WebUI User: \e[32madmin\e[0m" >>~/paperless.creds
+echo -e "Paperless-ngx WebUI Password: \e[32m$DB_PASS\e[0m" >>~/paperless.creds
+msg_ok "Set up admin Paperless-ngx User & Password"
+
 read -r -p "Would you like to add Adminer? <y/N> " prompt
 if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
     msg_info "Installing Adminer"
@@ -146,20 +160,6 @@ if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
     echo -e "Adminer Database: \e[32m$DB_NAME\e[0m" >>~/paperless.creds
     msg_ok "Installed Adminer"
 fi
-
-msg_info "Setting up admin Paperless-ngx User & Password"
-cat <<EOF | /opt/paperless/.venv/bin/python3 manage.py shell
-from django.contrib.auth import get_user_model
-UserModel = get_user_model()
-user = UserModel.objects.create_user('admin', password='$DB_PASS')
-user.is_superuser = True
-user.is_staff = True
-user.save()
-EOF
-echo "" >>~/paperless.creds
-echo -e "Paperless-ngx WebUI User: \e[32madmin\e[0m" >>~/paperless.creds
-echo -e "Paperless-ngx WebUI Password: \e[32m$DB_PASS\e[0m" >>~/paperless.creds
-msg_ok "Set up admin Paperless-ngx User & Password"
 
 msg_info "Creating Services"
 cat <<EOF >/etc/default/paperless
