@@ -41,26 +41,25 @@ $STD apt-get install -y \
 setup_uv
 msg_ok "Installed Dependencies"
 
-# msg_info "Installing OCR Dependencies (Patience)"
-# $STD apt-get install -y \
-#     unpaper \
-#     icc-profiles-free \
-#     qpdf \
-#     liblept5 \
-#     libxml2 \
-#     pngquant \
-#     zlib1g \
-#     tesseract-ocr \
-#     tesseract-ocr-eng
-
-# cd /tmp
-# curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10051/ghostpdl-10.05.1.tar.gz" -o "ghostscript.tar.gz"
-# tar -xzf ghostscript.tar.gz
-# cd ghostpdl-10.05.1
-# $STD ./configure
-# $STD make
-# $STD make install
-# msg_ok "Installed OCR Dependencies"
+msg_info "Installing OCR Dependencies (Patience)"
+$STD apt-get install -y \
+  unpaper \
+  icc-profiles-free \
+  qpdf \
+  liblept5 \
+  libxml2 \
+  pngquant \
+  zlib1g \
+  tesseract-ocr \
+  tesseract-ocr-eng
+cd /tmp
+curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10051/ghostpdl-10.05.1.tar.gz" -o "ghostscript.tar.gz"
+tar -xzf ghostscript.tar.gz
+cd ghostpdl-10.05.1
+$STD ./configure
+$STD make
+$STD make install
+msg_ok "Installed OCR Dependencies"
 
 msg_info "Installing JBIG2"
 $STD git clone https://github.com/ie13/jbig2enc /opt/jbig2enc
