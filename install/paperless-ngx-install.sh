@@ -79,10 +79,9 @@ mv paperless-ngx paperless
 rm paperless.tar.xz
 cd /opt/paperless
 
-uv venv /opt/paperless/.venv
+$STD uv venv /opt/paperless/.venv
 source /opt/paperless/.venv/bin/activate
 $STD uv sync --all-extras
-mv /opt/paperless/paperless.conf.example /opt/paperless/paperless.conf
 mkdir -p consume data media static
 sed -i -e 's|#PAPERLESS_REDIS=.*|PAPERLESS_REDIS=redis://localhost:6379|' \
     -e "s|#PAPERLESS_CONSUMPTION_DIR=.*|PAPERLESS_CONSUMPTION_DIR=/opt/paperless/consume|" \
