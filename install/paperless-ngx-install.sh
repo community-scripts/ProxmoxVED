@@ -15,29 +15,29 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-    redis \
-    postgresql \
-    python3-dev \
-    python3-setuptools \
-    python3-wheel \
-    build-essential \
-    imagemagick \
-    fonts-liberation \
-    optipng \
-    gnupg \
-    libpq-dev \
-    libmagic-dev \
-    mime-support \
-    libzbar0 \
-    poppler-utils \
-    default-libmysqlclient-dev \
-    automake \
-    libtool \
-    pkg-config \
-    git \
-    libtiff-dev \
-    libpng-dev \
-    libleptonica-dev
+  redis \
+  postgresql \
+  python3-dev \
+  python3-setuptools \
+  python3-wheel \
+  build-essential \
+  imagemagick \
+  fonts-liberation \
+  optipng \
+  gnupg \
+  libpq-dev \
+  libmagic-dev \
+  mime-support \
+  libzbar0 \
+  poppler-utils \
+  default-libmysqlclient-dev \
+  automake \
+  libtool \
+  pkg-config \
+  git \
+  libtiff-dev \
+  libpng-dev \
+  libleptonica-dev
 setup_uv
 msg_ok "Installed Dependencies"
 
@@ -86,22 +86,22 @@ source /opt/paperless/.venv/bin/activate
 $STD uv sync --all-extras
 mkdir -p /opt/paperless/{consume,data,media,static}
 sed -i -e 's|#PAPERLESS_REDIS=.*|PAPERLESS_REDIS=redis://localhost:6379|' \
-    -e "s|#PAPERLESS_CONSUMPTION_DIR=.*|PAPERLESS_CONSUMPTION_DIR=/opt/paperless/consume|" \
-    -e "s|#PAPERLESS_DATA_DIR=.*|PAPERLESS_DATA_DIR=/opt/paperless/data|" \
-    -e "s|#PAPERLESS_MEDIA_ROOT=.*|PAPERLESS_MEDIA_ROOT=/opt/paperless/media|" \
-    -e "s|#PAPERLESS_STATICDIR=.*|PAPERLESS_STATICDIR=/opt/paperless/static|" \
-    paperless.conf
+  -e "s|#PAPERLESS_CONSUMPTION_DIR=.*|PAPERLESS_CONSUMPTION_DIR=/opt/paperless/consume|" \
+  -e "s|#PAPERLESS_DATA_DIR=.*|PAPERLESS_DATA_DIR=/opt/paperless/data|" \
+  -e "s|#PAPERLESS_MEDIA_ROOT=.*|PAPERLESS_MEDIA_ROOT=/opt/paperless/media|" \
+  -e "s|#PAPERLESS_STATICDIR=.*|PAPERLESS_STATICDIR=/opt/paperless/static|" \
+  paperless.conf
 echo "$LATEST" >/opt/"${APPLICATION}"_version.txt
 msg_ok "Installed Paperless-ngx"
 
 if /opt/paperless/.venv/bin/python3 -c "import nltk" &>/dev/null; then
-    msg_info "Installing Natural Language Toolkit (Patience)"
-    for d in snowball_data stopwords punkt_tab; do
-        $STD /opt/paperless/.venv/bin/python3 -m nltk.downloader -d /usr/share/nltk_data "$d"
-    done
-    msg_ok "Installed NLTK components"
+  msg_info "Installing Natural Language Toolkit (Patience)"
+  for d in snowball_data stopwords punkt_tab; do
+    $STD /opt/paperless/.venv/bin/python3 -m nltk.downloader -d /usr/share/nltk_data "$d"
+  done
+  msg_ok "Installed NLTK components"
 else
-    msg_info "Skipping NLTK setup (nltk not installed)"
+  msg_info "Skipping NLTK setup (nltk not installed)"
 fi
 
 msg_info "Setting up PostgreSQL database"
@@ -120,12 +120,12 @@ echo -e "Paperless-ngx Database Password: \e[32m$DB_PASS\e[0m" >>~/paperless.cre
 echo -e "Paperless-ngx Database Name: \e[32m$DB_NAME\e[0m" >>~/paperless.creds
 
 sed -i -e "s|#PAPERLESS_DBHOST=.*|PAPERLESS_DBHOST=localhost|" \
-    -e "s|#PAPERLESS_DBPORT=.*|PAPERLESS_DBPORT=5432|" \
-    -e "s|#PAPERLESS_DBNAME=.*|PAPERLESS_DBNAME=$DB_NAME|" \
-    -e "s|#PAPERLESS_DBUSER=.*|PAPERLESS_DBUSER=$DB_USER|" \
-    -e "s|#PAPERLESS_DBPASS=.*|PAPERLESS_DBPASS=$DB_PASS|" \
-    -e "s|#PAPERLESS_SECRET_KEY=.*|PAPERLESS_SECRET_KEY=$SECRET_KEY|" \
-    /opt/paperless/paperless.conf
+  -e "s|#PAPERLESS_DBPORT=.*|PAPERLESS_DBPORT=5432|" \
+  -e "s|#PAPERLESS_DBNAME=.*|PAPERLESS_DBNAME=$DB_NAME|" \
+  -e "s|#PAPERLESS_DBUSER=.*|PAPERLESS_DBUSER=$DB_USER|" \
+  -e "s|#PAPERLESS_DBPASS=.*|PAPERLESS_DBPASS=$DB_PASS|" \
+  -e "s|#PAPERLESS_SECRET_KEY=.*|PAPERLESS_SECRET_KEY=$SECRET_KEY|" \
+  /opt/paperless/paperless.conf
 
 $STD /opt/paperless/.venv/bin/python3 /opt/paperless/src/manage.py migrate
 msg_ok "Set up PostgreSQL database"
@@ -146,19 +146,19 @@ msg_ok "Set up admin Paperless-ngx User & Password"
 
 read -r -p "Would you like to add Adminer? <y/N> " prompt
 if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-    msg_info "Installing Adminer"
-    $STD apt install -y adminer
-    $STD a2enconf adminer
-    systemctl reload apache2
-    IP=$(hostname -I | awk '{print $1}')
-    echo "" >>~/paperless.creds
-    echo -e "Adminer Interface: \e[32m$IP/adminer/\e[0m" >>~/paperless.creds
-    echo -e "Adminer System: \e[32mPostgreSQL\e[0m" >>~/paperless.creds
-    echo -e "Adminer Server: \e[32mlocalhost:5432\e[0m" >>~/paperless.creds
-    echo -e "Adminer Username: \e[32m$DB_USER\e[0m" >>~/paperless.creds
-    echo -e "Adminer Password: \e[32m$DB_PASS\e[0m" >>~/paperless.creds
-    echo -e "Adminer Database: \e[32m$DB_NAME\e[0m" >>~/paperless.creds
-    msg_ok "Installed Adminer"
+  msg_info "Installing Adminer"
+  $STD apt install -y adminer
+  $STD a2enconf adminer
+  systemctl reload apache2
+  IP=$(hostname -I | awk '{print $1}')
+  echo "" >>~/paperless.creds
+  echo -e "Adminer Interface: \e[32m$IP/adminer/\e[0m" >>~/paperless.creds
+  echo -e "Adminer System: \e[32mPostgreSQL\e[0m" >>~/paperless.creds
+  echo -e "Adminer Server: \e[32mlocalhost:5432\e[0m" >>~/paperless.creds
+  echo -e "Adminer Username: \e[32m$DB_USER\e[0m" >>~/paperless.creds
+  echo -e "Adminer Password: \e[32m$DB_PASS\e[0m" >>~/paperless.creds
+  echo -e "Adminer Database: \e[32m$DB_NAME\e[0m" >>~/paperless.creds
+  msg_ok "Installed Adminer"
 fi
 
 msg_info "Creating Services"
