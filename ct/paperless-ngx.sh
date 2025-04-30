@@ -75,7 +75,8 @@ function update_script() {
     $STD uv venv /opt/paperless/.venv
     source /opt/paperless/.venv/bin/activate
     $STD uv sync --all-extras
-    $STD python3 /opt/paperless/src/manage.py migrate
+    source /opt/paperless/paperless.conf
+    $STD /opt/paperless/.venv/bin/python3 /opt/paperless/src/manage.py migrate
     deactivate
 
     if [[ "$MIGRATION_NEEDED" == 1 ]]; then
