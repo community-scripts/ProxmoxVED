@@ -886,7 +886,7 @@ function setup_gs() {
     return
   }
   $STD apt-get install -y build-essential libpng-dev zlib1g-dev
-  ./configure >/dev/null && make -s && make install >/dev/null
+  ./configure >/dev/null && make && sudo make install >/dev/null
   local EXIT_CODE=$?
 
   rm -rf "$TMP_DIR"
