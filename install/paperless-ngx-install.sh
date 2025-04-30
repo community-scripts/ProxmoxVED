@@ -160,12 +160,20 @@ echo -e "Paperless-ngx WebUI Password: \e[32m$DB_PASS\e[0m" >>~/paperless.creds
 msg_ok "Set up admin Paperless-ngx User & Password"
 
 msg_info "Creating Services"
+cat <<EOF >/etc/default/paperless
+PYTHONDONTWRITEBYTECODE=1
+PYTHONUNBUFFERED=1
+PNGX_CONTAINERIZED=0
+UV_LINK_MODE=copy
+EOF
+
 cat <<EOF >/etc/systemd/system/paperless-scheduler.service
 [Unit]
 Description=Paperless Celery beat
 Requires=redis.service
 
 [Service]
+EnvironmentFile=/etc/default/paperless
 WorkingDirectory=/opt/paperless/src
 ExecStart=/opt/paperless/venv/bin/celery --app paperless beat --loglevel INFO
 
@@ -180,6 +188,7 @@ Requires=redis.service
 After=postgresql.service
 
 [Service]
+EnvironmentFile=/etc/default/paperless
 WorkingDirectory=/opt/paperless/src
 ExecStart=/opt/paperless/venv/bin/celery --app paperless worker --loglevel INFO
 
@@ -193,6 +202,7 @@ Description=Paperless consumer
 Requires=redis.service
 
 [Service]
+EnvironmentFile=/etc/default/paperless
 WorkingDirectory=/opt/paperless/src
 ExecStartPre=/bin/sleep 2
 ExecStart=/opt/paperless/venv/bin/python3 manage.py document_consumer
@@ -209,6 +219,7 @@ Wants=network.target
 Requires=redis.service
 
 [Service]
+EnvironmentFile=/etc/default/paperless
 WorkingDirectory=/opt/paperless/src
 ExecStart=/opt/paperless/venv/bin/granian --interface asginl --ws "paperless.asgi:application"
 Environment=GRANIAN_HOST=::
@@ -220,9 +231,7 @@ WantedBy=multi-user.target
 EOF
 
 sed -i -e 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
-
-systemctl daemon-reload
-$STD systemctl enable -q --now paperless-webserver paperless-scheduler paperless-task-queue paperless-consumer
+systemctl enable -q --now paperless-webserver paperless-scheduler paperless-task-queue paperless-consumer
 msg_ok "Created Services"
 
 motd_ssh
