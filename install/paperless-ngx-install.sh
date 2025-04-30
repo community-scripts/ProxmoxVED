@@ -52,13 +52,6 @@ $STD apt-get install -y \
   zlib1g \
   tesseract-ocr \
   tesseract-ocr-eng
-# cd /tmp
-# curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10051/ghostpdl-10.05.1.tar.gz" -o "ghostscript.tar.gz"
-# tar -xzf ghostscript.tar.gz
-# cd ghostpdl-10.05.1
-# $STD ./configure
-# $STD make
-# $STD make install
 msg_ok "Installed OCR Dependencies"
 
 setup_ghostscript
