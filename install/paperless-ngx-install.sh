@@ -41,26 +41,26 @@ $STD apt-get install -y \
 setup_uv
 msg_ok "Installed Dependencies"
 
-msg_info "Installing OCR Dependencies (Patience)"
-$STD apt-get install -y \
-    unpaper \
-    icc-profiles-free \
-    qpdf \
-    liblept5 \
-    libxml2 \
-    pngquant \
-    zlib1g \
-    tesseract-ocr \
-    tesseract-ocr-eng
+# msg_info "Installing OCR Dependencies (Patience)"
+# $STD apt-get install -y \
+#     unpaper \
+#     icc-profiles-free \
+#     qpdf \
+#     liblept5 \
+#     libxml2 \
+#     pngquant \
+#     zlib1g \
+#     tesseract-ocr \
+#     tesseract-ocr-eng
 
-cd /tmp
-curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10051/ghostpdl-10.05.1.tar.gz" -o "ghostscript.tar.gz"
-tar -xzf ghostscript.tar.gz
-cd ghostpdl-10.05.1
-$STD ./configure
-$STD make
-$STD make install
-msg_ok "Installed OCR Dependencies"
+# cd /tmp
+# curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs10051/ghostpdl-10.05.1.tar.gz" -o "ghostscript.tar.gz"
+# tar -xzf ghostscript.tar.gz
+# cd ghostpdl-10.05.1
+# $STD ./configure
+# $STD make
+# $STD make install
+# msg_ok "Installed OCR Dependencies"
 
 msg_info "Installing JBIG2"
 $STD git clone https://github.com/ie13/jbig2enc /opt/jbig2enc
@@ -84,7 +84,7 @@ cd /opt/paperless
 $STD uv venv /opt/paperless/.venv
 source /opt/paperless/.venv/bin/activate
 $STD uv sync --all-extras
-mkdir -p consume data media static
+mkdir -p /opt/paperless/{consume,data,media,static}
 sed -i -e 's|#PAPERLESS_REDIS=.*|PAPERLESS_REDIS=redis://localhost:6379|' \
     -e "s|#PAPERLESS_CONSUMPTION_DIR=.*|PAPERLESS_CONSUMPTION_DIR=/opt/paperless/consume|" \
     -e "s|#PAPERLESS_DATA_DIR=.*|PAPERLESS_DATA_DIR=/opt/paperless/data|" \
