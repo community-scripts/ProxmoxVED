@@ -52,7 +52,7 @@ function update_script() {
 
     msg_info "Backing up Paperless folders"
     mkdir -p "$BACKUP_DIR"
-    for d in consume data media static; do
+    for d in consume data media; do
       [[ -d "/opt/paperless/$d" ]] && mv "/opt/paperless/$d" "$BACKUP_DIR/"
     done
     [[ -f "/opt/paperless/paperless.conf" ]] && cp "/opt/paperless/paperless.conf" "$BACKUP_DIR/"
@@ -66,7 +66,7 @@ function update_script() {
     rm -rf paperless.tar.xz paperless-ngx
     echo "$RELEASE" >/opt/paperless/Paperless-ngx_version.txt
 
-    for d in consume data media static; do
+    for d in consume data media; do
       [[ -d "$BACKUP_DIR/$d" ]] && mv "$BACKUP_DIR/$d" "/opt/paperless/"
     done
     [[ ! -f "/opt/paperless/paperless.conf" && -f "$BACKUP_DIR/paperless.conf" ]] && cp "$BACKUP_DIR/paperless.conf" "/opt/paperless/paperless.conf"
