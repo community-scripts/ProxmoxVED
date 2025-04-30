@@ -126,9 +126,12 @@ sed -i -e "s|#PAPERLESS_DBHOST=.*|PAPERLESS_DBHOST=localhost|" \
   -e "s|#PAPERLESS_DBPASS=.*|PAPERLESS_DBPASS=$DB_PASS|" \
   -e "s|#PAPERLESS_SECRET_KEY=.*|PAPERLESS_SECRET_KEY=$SECRET_KEY|" \
   /opt/paperless/paperless.conf
-
-$STD /opt/paperless/.venv/bin/python3 /opt/paperless/src/manage.py migrate
 msg_ok "Set up PostgreSQL database"
+
+msg_info "Running Paperless DB migrations (with config)"
+source /opt/paperless/paperless.conf
+$STD /opt/paperless/.venv/bin/python3 /opt/paperless/src/manage.py migrate
+msg_ok "Migrations applied"
 
 msg_info "Setting up admin Paperless-ngx User & Password"
 cat <<EOF | /opt/paperless/.venv/bin/python3 /opt/paperless/src/manage.py shell
