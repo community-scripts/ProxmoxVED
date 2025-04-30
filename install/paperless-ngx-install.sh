@@ -81,7 +81,7 @@ cd /opt/paperless
 
 uv venv /opt/paperless/.venv
 source /opt/paperless/.venv/bin/activate
-uv sync --all-extras
+$STD uv sync --all-extras
 mv /opt/paperless/paperless.conf.example /opt/paperless/paperless.conf
 mkdir -p consume data media static
 sed -i -e 's|#PAPERLESS_REDIS=.*|PAPERLESS_REDIS=redis://localhost:6379|' \
@@ -96,7 +96,7 @@ msg_ok "Installed Paperless-ngx"
 if /opt/paperless/venv/bin/python3 -c "import nltk" &>/dev/null; then
     msg_info "Installing Natural Language Toolkit (Patience)"
     for d in snowball_data stopwords punkt_tab; do
-        /opt/paperless/venv/bin/python3 -m nltk.downloader -d /usr/share/nltk_data "$d"
+        $STD /opt/paperless/venv/bin/python3 -m nltk.downloader -d /usr/share/nltk_data "$d"
     done
     msg_ok "Installed NLTK components"
 else
@@ -126,7 +126,7 @@ sed -i -e "s|#PAPERLESS_DBHOST=.*|PAPERLESS_DBHOST=localhost|" \
     -e "s|#PAPERLESS_SECRET_KEY=.*|PAPERLESS_SECRET_KEY=$SECRET_KEY|" \
     /opt/paperless/paperless.conf
 
-/opt/paperless/venv/bin/python3 /opt/paperless/src/manage.py migrate
+$STD /opt/paperless/venv/bin/python3 /opt/paperless/src/manage.py migrate
 msg_ok "Set up PostgreSQL database"
 
 read -r -p "Would you like to add Adminer? <y/N> " prompt
