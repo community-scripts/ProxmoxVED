@@ -855,8 +855,9 @@ function setup_gs() {
   CURRENT_VERSION=$(gs --version 2>/dev/null || echo "0")
 
   local LATEST_VERSION
-  LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/ArtifexSoftware/ghostpdl-downloads/releases/latest |
-    grep '"tag_name":' | cut -d '"' -f4 | sed 's/^gs//')
+  RELEASE_JSON=$(curl -fsSL https://api.github.com/repos/ArtifexSoftware/ghostpdl-downloads/releases/latest)
+  LATEST_VERSION=$(echo "$RELEASE_JSON" | grep '"tag_name":' | head -n1 | cut -d '"' -f4 | sed 's/^gs//')
+  LATEST_VERSION_DOTTED=$(echo "$RELEASE_JSON" | grep '"name":' | head -n1 | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 
   if [[ -z "$LATEST_VERSION" ]]; then
     msg_error "Could not determine latest Ghostscript version from GitHub."
@@ -871,8 +872,7 @@ function setup_gs() {
   fi
 
   msg_info "Installing/Updating Ghostscript to $LATEST_VERSION"
-  curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${LATEST_VERSION}/ghostpdl-${LATEST_VERSION}.tar.gz" \
-    -o "$TMP_DIR/ghostscript.tar.gz"
+  curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${LATEST_VERSION}/ghostscript-${LATEST_VERSION_DOTTED}.tar.gz" -o "$TMP_DIR/ghostscript.tar.gz"
 
   if ! tar -xzf "$TMP_DIR/ghostscript.tar.gz" -C "$TMP_DIR"; then
     msg_error "Failed to extract Ghostscript archive."
