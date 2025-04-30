@@ -36,7 +36,7 @@ function update_script() {
     BACKUP_DIR="/opt/paperless-backup-$(date +%F_%T | tr ':' '-')"
 
     MIGRATION_NEEDED=0
-    if ! command -v uv &>/dev/null || [[ ! -d "$VENV_DIR" ]]; then
+    if ! command -v uv &>/dev/null || [[ ! -d /opt/paperless/.venv ]]; then
       MIGRATION_NEEDED=1
       msg_info "uv not found or missing venv, migrating..."
       setup_uv
