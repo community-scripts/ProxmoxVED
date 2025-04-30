@@ -58,6 +58,7 @@ function update_script() {
     [[ -f "/opt/paperless/paperless.conf" ]] && cp "/opt/paperless/paperless.conf" "$BACKUP_DIR/"
     msg_ok "Backup completed to $BACKUP_DIR"
 
+    msg_info "Updating PaperlessNGX"
     RELEASE=$(curl -fsSL "https://api.github.com/repos/paperless-ngx/paperless-ngx/releases/latest" | grep 'tag_name' | cut -d '"' -f4)
     cd /tmp
     curl -fsSL "https://github.com/paperless-ngx/paperless-ngx/releases/download/$RELEASE/paperless-ngx-$RELEASE.tar.xz" -o paperless.tar.xz
@@ -65,11 +66,13 @@ function update_script() {
     cp -r paperless-ngx/* /opt/paperless/
     rm -rf paperless.tar.xz paperless-ngx
     echo "$RELEASE" >/opt/paperless/Paperless-ngx_version.txt
+    msg_ok "Updated Paperless-ngx to $RELEASE"
 
     for d in consume data media; do
       [[ -d "$BACKUP_DIR/$d" ]] && mv "$BACKUP_DIR/$d" "/opt/paperless/"
     done
     [[ ! -f "/opt/paperless/paperless.conf" && -f "$BACKUP_DIR/paperless.conf" ]] && cp "$BACKUP_DIR/paperless.conf" "/opt/paperless/paperless.conf"
+    $STD uv venv /opt/paperless/.venv
     source /opt/paperless/.venv/bin/activate
     $STD uv sync --all-extras
     $STD python3 /opt/paperless/src/manage.py migrate
