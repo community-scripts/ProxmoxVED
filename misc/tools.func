@@ -888,6 +888,12 @@ function setup_gs() {
   $STD apt-get install -y build-essential libpng-dev zlib1g-dev
   ./configure >/dev/null && make && sudo make install >/dev/null
   local EXIT_CODE=$?
+  hash -r
+  if [[ ! -x "$(command -v gs)" ]]; then
+    if [[ -x /usr/local/bin/gs ]]; then
+      ln -sf /usr/local/bin/gs /usr/bin/gs
+    fi
+  fi
 
   rm -rf "$TMP_DIR"
 
