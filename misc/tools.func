@@ -849,12 +849,9 @@ function ensure_usr_local_bin_persist() {
 
 function setup_gs() {
   msg_info "Setup Ghostscript"
-  local TMP_DIR
   TMP_DIR=$(mktemp -d)
-  local CURRENT_VERSION
   CURRENT_VERSION=$(gs --version 2>/dev/null || echo "0")
 
-  local LATEST_VERSION
   RELEASE_JSON=$(curl -fsSL https://api.github.com/repos/ArtifexSoftware/ghostpdl-downloads/releases/latest)
   LATEST_VERSION=$(echo "$RELEASE_JSON" | grep '"tag_name":' | head -n1 | cut -d '"' -f4 | sed 's/^gs//')
   LATEST_VERSION_DOTTED=$(echo "$RELEASE_JSON" | grep '"name":' | head -n1 | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
