@@ -871,7 +871,7 @@ function setup_gs() {
     return
   fi
 
-  msg_info "Installing/Updating Ghostscript to $LATEST_VERSION"
+  msg_info "Installing/Updating Ghostscript to $LATEST_VERSION_DOTTED"
   curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${LATEST_VERSION}/ghostscript-${LATEST_VERSION_DOTTED}.tar.gz" -o "$TMP_DIR/ghostscript.tar.gz"
 
   if ! tar -xzf "$TMP_DIR/ghostscript.tar.gz" -C "$TMP_DIR"; then
@@ -880,19 +880,19 @@ function setup_gs() {
     return
   fi
 
-  cd "$TMP_DIR/ghostpdl-${LATEST_VERSION}" || {
+  cd "$TMP_DIR/ghostscript-${LATEST_VERSION_DOTTED}" || {
     msg_error "Failed to enter Ghostscript source directory."
     rm -rf "$TMP_DIR"
     return
   }
-
+  $STD apt-get install -y build-essential libpng-dev zlib1g-dev
   ./configure >/dev/null && make -s && make install >/dev/null
   local EXIT_CODE=$?
 
   rm -rf "$TMP_DIR"
 
   if [[ $EXIT_CODE -eq 0 ]]; then
-    msg_ok "Ghostscript installed/updated to version $LATEST_VERSION"
+    msg_ok "Ghostscript installed/updated to version $LATEST_VERSION_DOTTED"
   else
     msg_error "Ghostscript installation failed"
   fi
