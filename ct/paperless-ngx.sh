@@ -74,10 +74,11 @@ function update_script() {
     [[ ! -f "/opt/paperless/paperless.conf" && -f "$BACKUP_DIR/paperless.conf" ]] && cp "$BACKUP_DIR/paperless.conf" "/opt/paperless/paperless.conf"
     $STD uv venv /opt/paperless/.venv
     source /opt/paperless/.venv/bin/activate
+    echo -e "source done"
     $STD uv sync --all-extras
+    echo -e "uv sync done"
     source /opt/paperless/paperless.conf
     $STD /opt/paperless/.venv/bin/python3 /opt/paperless/src/manage.py migrate
-    deactivate
 
     if [[ "$MIGRATION_NEEDED" == 1 ]]; then
       cat <<EOF >/etc/default/paperless
