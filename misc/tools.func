@@ -847,7 +847,7 @@ function ensure_usr_local_bin_persist() {
   fi
 }
 
-function setup_gs() {
+function setup_ghostscript() {
   msg_info "Setup Ghostscript"
   local TMP_DIR
   TMP_DIR=$(mktemp -d)

@@ -30,7 +30,7 @@ function update_script() {
   RELEASE=$(curl -fsSL https://api.github.com/repos/paperless-ngx/paperless-ngx/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
     msg_info "Stopping Paperless services"
-    systemctl stop paperless-{webserver,scheduler,task-queue,consumer}.service &>/dev/null || true
+    systemctl stop paperless-{webserver,scheduler,task-queue,consumer}
     msg_ok "Stopped Paperless services"
 
     BACKUP_DIR="/opt/paperless-backup-$(date +%F_%T | tr ':' '-')"
@@ -47,7 +47,7 @@ function update_script() {
 
     BACKUP_DIR="/opt/paperless-backup-$(date +%F_%T | tr ':' '-')"
 
-    setup_gs
+    setup_ghostscript
     setup_uv
 
     msg_info "Backing up Paperless folders"

@@ -61,7 +61,7 @@ $STD apt-get install -y \
 # $STD make install
 msg_ok "Installed OCR Dependencies"
 
-setup_gs
+setup_ghostscript
 
 msg_info "Installing JBIG2"
 $STD git clone https://github.com/ie13/jbig2enc /opt/jbig2enc
