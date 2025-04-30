@@ -849,6 +849,7 @@ function ensure_usr_local_bin_persist() {
 
 function setup_gs() {
   msg_info "Setup Ghostscript"
+  mkdir -p /tmp
   TMP_DIR=$(mktemp -d)
   CURRENT_VERSION=$(gs --version 2>/dev/null || echo "0")
 
@@ -859,11 +860,13 @@ function setup_gs() {
   if [[ -z "$LATEST_VERSION" ]]; then
     msg_error "Could not determine latest Ghostscript version from GitHub."
     rm -rf "$TMP_DIR"
+    return
   fi
 
   if dpkg --compare-versions "$CURRENT_VERSION" ge "$LATEST_VERSION_DOTTED"; then
     msg_ok "Ghostscript is already at version $CURRENT_VERSION"
     rm -rf "$TMP_DIR"
+    return
   fi
 
   msg_info "Installing/Updating Ghostscript to $LATEST_VERSION_DOTTED"
@@ -872,6 +875,7 @@ function setup_gs() {
   if ! tar -xzf "$TMP_DIR/ghostscript.tar.gz" -C "$TMP_DIR"; then
     msg_error "Failed to extract Ghostscript archive."
     rm -rf "$TMP_DIR"
+    return
   fi
 
   cd "$TMP_DIR/ghostscript-${LATEST_VERSION_DOTTED}" || {
