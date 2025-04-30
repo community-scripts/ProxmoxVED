@@ -94,10 +94,10 @@ sed -i -e 's|#PAPERLESS_REDIS=.*|PAPERLESS_REDIS=redis://localhost:6379|' \
 echo "$LATEST" >/opt/"${APPLICATION}"_version.txt
 msg_ok "Installed Paperless-ngx"
 
-if /opt/paperless/venv/bin/python3 -c "import nltk" &>/dev/null; then
+if /opt/paperless/.venv/bin/python3 -c "import nltk" &>/dev/null; then
     msg_info "Installing Natural Language Toolkit (Patience)"
     for d in snowball_data stopwords punkt_tab; do
-        $STD /opt/paperless/venv/bin/python3 -m nltk.downloader -d /usr/share/nltk_data "$d"
+        $STD /opt/paperless/.venv/bin/python3 -m nltk.downloader -d /usr/share/nltk_data "$d"
     done
     msg_ok "Installed NLTK components"
 else
@@ -127,7 +127,7 @@ sed -i -e "s|#PAPERLESS_DBHOST=.*|PAPERLESS_DBHOST=localhost|" \
     -e "s|#PAPERLESS_SECRET_KEY=.*|PAPERLESS_SECRET_KEY=$SECRET_KEY|" \
     /opt/paperless/paperless.conf
 
-$STD /opt/paperless/venv/bin/python3 /opt/paperless/src/manage.py migrate
+$STD /opt/paperless/.venv/bin/python3 /opt/paperless/src/manage.py migrate
 msg_ok "Set up PostgreSQL database"
 
 read -r -p "Would you like to add Adminer? <y/N> " prompt
@@ -148,7 +148,7 @@ if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
 fi
 
 msg_info "Setting up admin Paperless-ngx User & Password"
-cat <<EOF | /opt/paperless/venv/bin/python3 manage.py shell
+cat <<EOF | /opt/paperless/.venv/bin/python3 manage.py shell
 from django.contrib.auth import get_user_model
 UserModel = get_user_model()
 user = UserModel.objects.create_user('admin', password='$DB_PASS')
@@ -177,7 +177,7 @@ Requires=redis.service
 [Service]
 EnvironmentFile=/etc/default/paperless
 WorkingDirectory=/opt/paperless/src
-ExecStart=/opt/paperless/venv/bin/celery --app paperless beat --loglevel INFO
+ExecStart=/opt/paperless/.venv/bin/celery --app paperless beat --loglevel INFO
 
 [Install]
 WantedBy=multi-user.target
@@ -192,7 +192,7 @@ After=postgresql.service
 [Service]
 EnvironmentFile=/etc/default/paperless
 WorkingDirectory=/opt/paperless/src
-ExecStart=/opt/paperless/venv/bin/celery --app paperless worker --loglevel INFO
+ExecStart=/opt/paperless/.venv/bin/celery --app paperless worker --loglevel INFO
 
 [Install]
 WantedBy=multi-user.target
@@ -207,7 +207,7 @@ Requires=redis.service
 EnvironmentFile=/etc/default/paperless
 WorkingDirectory=/opt/paperless/src
 ExecStartPre=/bin/sleep 2
-ExecStart=/opt/paperless/venv/bin/python3 manage.py document_consumer
+ExecStart=/opt/paperless/.venv/bin/python3 manage.py document_consumer
 
 [Install]
 WantedBy=multi-user.target
@@ -223,7 +223,7 @@ Requires=redis.service
 [Service]
 EnvironmentFile=/etc/default/paperless
 WorkingDirectory=/opt/paperless/src
-ExecStart=/opt/paperless/venv/bin/granian --interface asginl --ws "paperless.asgi:application"
+ExecStart=/opt/paperless/.venv/bin/granian --interface asginl --ws "paperless.asgi:application"
 Environment=GRANIAN_HOST=::
 Environment=GRANIAN_PORT=8000
 Environment=GRANIAN_WORKERS=1
