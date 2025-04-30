@@ -17,6 +17,7 @@ msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
     redis \
     postgresql \
+    python3-dev \
     build-essential \
     imagemagick \
     fonts-liberation \
@@ -78,11 +79,10 @@ mv paperless-ngx paperless
 rm paperless.tar.xz
 cd /opt/paperless
 
-uv venv /opt/paperless/venv
-source /opt/paperless/venv/bin/activate
-uv pip install --all-extras -r requirements.txt
-
-curl -fsSL "https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/paperless.conf.example" -o /opt/paperless/paperless.conf
+uv venv /opt/paperless/.venv
+source /opt/paperless/.venv/bin/activate
+uv sync --all-extras
+mv paperless.conf.example paperless.conf
 mkdir -p consume data media static
 sed -i -e 's|#PAPERLESS_REDIS=.*|PAPERLESS_REDIS=redis://localhost:6379|' \
     -e "s|#PAPERLESS_CONSUMPTION_DIR=.*|PAPERLESS_CONSUMPTION_DIR=/opt/paperless/consume|" \
@@ -90,13 +90,18 @@ sed -i -e 's|#PAPERLESS_REDIS=.*|PAPERLESS_REDIS=redis://localhost:6379|' \
     -e "s|#PAPERLESS_MEDIA_ROOT=.*|PAPERLESS_MEDIA_ROOT=/opt/paperless/media|" \
     -e "s|#PAPERLESS_STATICDIR=.*|PAPERLESS_STATICDIR=/opt/paperless/static|" \
     paperless.conf
-
 echo "$LATEST" >/opt/"${APPLICATION}"_version.txt
 msg_ok "Installed Paperless-ngx"
 
-msg_info "Installing Natural Language Toolkit (Patience)"
-/opt/paperless/venv/bin/python3 -m nltk.downloader -d /usr/share/nltk_data all
-msg_ok "Installed Natural Language Toolkit"
+if /opt/paperless/venv/bin/python3 -c "import nltk" &>/dev/null; then
+    msg_info "Installing Natural Language Toolkit (Patience)"
+    for d in snowball_data stopwords punkt_tab; do
+        /opt/paperless/venv/bin/python3 -m nltk.downloader -d /usr/share/nltk_data "$d"
+    done
+    msg_ok "Installed NLTK components"
+else
+    msg_info "Skipping NLTK setup (nltk not installed)"
+fi
 
 msg_info "Setting up PostgreSQL database"
 DB_NAME=paperlessdb
@@ -121,9 +126,7 @@ sed -i -e "s|#PAPERLESS_DBHOST=.*|PAPERLESS_DBHOST=localhost|" \
     -e "s|#PAPERLESS_SECRET_KEY=.*|PAPERLESS_SECRET_KEY=$SECRET_KEY|" \
     /opt/paperless/paperless.conf
 
-cd /opt/paperless/src
-source /opt/paperless/venv/bin/activate
-python3 manage.py migrate
+/opt/paperless/venv/bin/python3 /opt/paperless/src/manage.py migrate
 msg_ok "Set up PostgreSQL database"
 
 read -r -p "Would you like to add Adminer? <y/N> " prompt
