@@ -116,7 +116,7 @@ $STD apt-get update
 $STD apt-get install -y postgresql-17
 curl -fsSLO https://github.com/tensorchord/pgvecto.rs/releases/download/v0.4.0/vectors-pg17_0.4.0_amd64.deb
 $STD dpkg -i vectors-pg17_0.4.0_amd64.deb
-rm vectors-pg17_0.4.0.amd64.deb
+rm vectors-pg17_0.4.0_amd64.deb
 DB_NAME="immich"
 DB_USER="immich"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c18)
