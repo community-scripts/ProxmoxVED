@@ -24,23 +24,19 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /opt/pulse-proxmox/.git ]]; then
-    msg_error "No ${APP} Installation Found! Cannot check/update via git."
-    exit 1
-  fi
-
   if ! command -v jq &>/dev/null; then
-    msg_error "jq is required for version checking but not installed. Please install it (apt-get install jq)."
-    exit 1
+    msg_info "jq is not installed. Installing..."
+    $STD apt-get update >/dev/null
+    $STD apt-get install -y jq >/dev/null
+    if ! command -v jq &>/dev/null; then
+      msg_error "Failed to install jq. Cannot proceed with update check."
+      exit 1
+    fi
+    msg_ok "jq installed."
   fi
 
   msg_info "Checking for ${APP} updates..."
   LATEST_RELEASE=$(curl -s https://api.github.com/repos/rcourtman/Pulse/releases/latest | jq -r '.tag_name')
-  if ! LATEST_RELEASE=$(curl -s https://api.github.com/repos/rcourtman/Pulse/releases/latest | jq -r '.tag_name') ||
-    [[ -z "$LATEST_RELEASE" ]] || [[ "$LATEST_RELEASE" == "null" ]]; then
-    msg_error "Failed to fetch latest release information from GitHub API."
-    exit 1
-  fi
   msg_ok "Latest available version: ${LATEST_RELEASE}"
 
   CURRENT_VERSION=""
