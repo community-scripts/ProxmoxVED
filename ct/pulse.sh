@@ -94,11 +94,17 @@ function update_script() {
         msg_ok "Fetched and checked out ${LATEST_RELEASE}."
 
         msg_info "Installing Node.js dependencies..."
-        # Install root deps (includes dev for build)
-        silent npm install --unsafe-perm || { msg_error "Failed to install root npm dependencies."; exit 1; }
+        # Run installs as pulse user
+        if ! sudo -u pulse npm install --unsafe-perm > /dev/null 2>&1; then
+            msg_error "Failed to install root npm dependencies."
+            exit 1
+        fi
         # Install server deps
         cd server || { msg_error "Failed to cd into server directory."; exit 1; }
-        silent npm install --unsafe-perm || { msg_error "Failed to install server npm dependencies."; cd ..; exit 1; }
+        if ! sudo -u pulse npm install --unsafe-perm > /dev/null 2>&1; then
+            msg_error "Failed to install server npm dependencies."
+            cd ..; exit 1
+        fi
         cd ..
         msg_ok "Node.js dependencies installed."
 
@@ -112,6 +118,8 @@ function update_script() {
         fi
 
         msg_info "Setting permissions..."
+        # Permissions might not be strictly needed now if installs run as pulse,
+        # but doesn't hurt to ensure consistency.
         chown -R pulse:pulse /opt/pulse-proxmox
         # Ensure correct execute permissions after chown
         chmod -R u+rwX,go+rX,go-w /opt/pulse-proxmox
