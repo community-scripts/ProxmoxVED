@@ -103,10 +103,9 @@ function update_script() {
         # Run installs as pulse user with simulated login shell, ensuring correct directory
         silent sudo -iu pulse sh -c 'cd /opt/pulse-proxmox && npm install --unsafe-perm' || { msg_error "Failed to install root npm dependencies."; exit 1; }
         # Install server deps
-        cd server || { msg_error "Failed to cd into server directory."; exit 1; }
-        # This one should be okay as we already cd'd into ./server
-        silent sudo -iu pulse npm install --unsafe-perm || { msg_error "Failed to install server npm dependencies."; cd ..; exit 1; }
-        cd ..
+        # Explicitly set directory for server deps install as well
+        silent sudo -iu pulse sh -c 'cd /opt/pulse-proxmox/server && npm install --unsafe-perm' || { msg_error "Failed to install server npm dependencies."; exit 1; }
+        # No need for cd .. here as sh -c runs in a subshell
         msg_ok "Node.js dependencies installed."
 
         msg_info "Building CSS assets..."
