@@ -6,19 +6,12 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # Source: https://github.com/rcourtman/Pulse
 
 APP="Pulse"
-# shellcheck disable=SC2034
 var_tags="monitoring;nodejs"
-# shellcheck disable=SC2034
 var_cpu="1"
-# shellcheck disable=SC2034
 var_ram="1024"
-# shellcheck disable=SC2034
 var_disk="4"
-# shellcheck disable=SC2034
 var_os="debian"
-# shellcheck disable=SC2034
 var_version="12"
-# shellcheck disable=SC2034
 var_unprivileged="1"
 
 header_info "$APP"
