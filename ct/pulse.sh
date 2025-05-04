@@ -110,9 +110,10 @@ function update_script() {
 
         msg_info "Building CSS assets..."
         # Run build as pulse user with simulated login shell, ensuring correct directory
-        if ! sudo -iu pulse sh -c 'cd /opt/pulse-proxmox && npm run build:css' > /dev/null 2>&1; then
+        echo "DEBUG: Running build:css as pulse user..." # DEBUG
+        if ! sudo -iu pulse sh -c 'cd /opt/pulse-proxmox && npm run build:css'; then
             # Use echo directly, remove BFR
-            echo -e "${TAB}${YW}⚠️ Failed to build CSS assets. Proceeding anyway.${CL}"
+            echo -e "${TAB}${YW}⚠️ Failed to build CSS assets (See errors above). Proceeding anyway.${CL}"
         else
             msg_ok "CSS assets built."
         fi
