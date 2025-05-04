@@ -109,9 +109,12 @@ function update_script() {
         msg_ok "Node.js dependencies installed."
 
         msg_info "Building CSS assets..."
-        # Run build as pulse user with simulated login shell, ensuring correct directory
-        echo "DEBUG: Running build:css as pulse user..." # DEBUG
-        if ! sudo -iu pulse sh -c 'cd /opt/pulse-proxmox && npm run build:css'; then
+        # Try running tailwindcss directly as pulse user, specifying full path
+        echo "DEBUG: Running tailwindcss directly as pulse user..." # DEBUG
+        TAILWIND_PATH="/opt/pulse-proxmox/node_modules/.bin/tailwindcss"
+        TAILWIND_ARGS="-c ./src/tailwind.config.js -i ./src/index.css -o ./src/public/output.css"
+        # Use sh -c to ensure correct directory context for paths in TAILWIND_ARGS
+        if ! sudo -iu pulse sh -c "cd /opt/pulse-proxmox && $TAILWIND_PATH $TAILWIND_ARGS"; then
             # Use echo directly, remove BFR
             echo -e "${TAB}${YW}⚠️ Failed to build CSS assets (See errors above). Proceeding anyway.${CL}"
         else
