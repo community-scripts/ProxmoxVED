@@ -94,14 +94,16 @@ function update_script() {
         msg_ok "Fetched and checked out ${LATEST_RELEASE}."
 
         msg_info "Installing Node.js dependencies..."
-        # Run installs as pulse user
-        if ! sudo -u pulse npm install --unsafe-perm > /dev/null 2>&1; then
+        # Run installs as pulse user with verbose output
+        echo "DEBUG: Running root npm install as pulse user..." # DEBUG
+        if ! sudo -u pulse npm install --unsafe-perm -ddd; then
             msg_error "Failed to install root npm dependencies."
             exit 1
         fi
         # Install server deps
         cd server || { msg_error "Failed to cd into server directory."; exit 1; }
-        if ! sudo -u pulse npm install --unsafe-perm > /dev/null 2>&1; then
+        echo "DEBUG: Running server npm install as pulse user..." # DEBUG
+        if ! sudo -u pulse npm install --unsafe-perm -ddd; then
             msg_error "Failed to install server npm dependencies."
             cd ..; exit 1
         fi
