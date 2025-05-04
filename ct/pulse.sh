@@ -93,22 +93,24 @@ function update_script() {
         silent git clean -fd || { msg_warning "Failed to clean untracked files."; } # Non-fatal warning
         msg_ok "Fetched and checked out ${LATEST_RELEASE}."
 
-        msg_info "Setting ownership before npm install..."
+        msg_info "Setting ownership and permissions before npm install..."
         chown -R pulse:pulse /opt/pulse-proxmox || { msg_error "Failed to chown /opt/pulse-proxmox"; exit 1; }
-        msg_ok "Ownership set."
+        # Ensure correct execute permissions before npm install/build
+        chmod -R u+rwX,go+rX,go-w /opt/pulse-proxmox || { msg_error "Failed to chmod /opt/pulse-proxmox"; exit 1; }
+        msg_ok "Ownership and permissions set."
 
         msg_info "Installing Node.js dependencies..."
-        # Run installs as pulse user
-        silent sudo -u pulse npm install --unsafe-perm || { msg_error "Failed to install root npm dependencies."; exit 1; }
+        # Run installs as pulse user with simulated login shell
+        silent sudo -iu pulse npm install --unsafe-perm || { msg_error "Failed to install root npm dependencies."; exit 1; }
         # Install server deps
         cd server || { msg_error "Failed to cd into server directory."; exit 1; }
-        silent sudo -u pulse npm install --unsafe-perm || { msg_error "Failed to install server npm dependencies."; cd ..; exit 1; }
+        silent sudo -iu pulse npm install --unsafe-perm || { msg_error "Failed to install server npm dependencies."; cd ..; exit 1; }
         cd ..
         msg_ok "Node.js dependencies installed."
 
         msg_info "Building CSS assets..."
-        # Run build as pulse user
-        if ! sudo -u pulse npm run build:css > /dev/null 2>&1; then
+        # Run build as pulse user with simulated login shell
+        if ! sudo -iu pulse npm run build:css > /dev/null 2>&1; then
             # Use echo directly, remove BFR
             echo -e "${TAB}${YW}⚠️ Failed to build CSS assets. Proceeding anyway.${CL}"
         else
@@ -120,8 +122,7 @@ function update_script() {
         # but doesn't hurt to ensure consistency.
         # Run chown again to be safe, though maybe less critical now.
         chown -R pulse:pulse /opt/pulse-proxmox || msg_warning "Final chown failed."
-        # Ensure correct execute permissions after chown
-        chmod -R u+rwX,go+rX,go-w /opt/pulse-proxmox
+        # Final chmod removed as it's done earlier
         msg_ok "Permissions set."
 
         # Starting Service
