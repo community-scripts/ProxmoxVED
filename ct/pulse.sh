@@ -93,20 +93,16 @@ function update_script() {
         silent git clean -fd || { msg_warning "Failed to clean untracked files."; } # Non-fatal warning
         msg_ok "Fetched and checked out ${LATEST_RELEASE}."
 
+        msg_info "Setting ownership before npm install..."
+        chown -R pulse:pulse /opt/pulse-proxmox || { msg_error "Failed to chown /opt/pulse-proxmox"; exit 1; }
+        msg_ok "Ownership set."
+
         msg_info "Installing Node.js dependencies..."
-        # Run installs as pulse user with verbose output
-        echo "DEBUG: Running root npm install as pulse user..." # DEBUG
-        if ! sudo -u pulse npm install --unsafe-perm -ddd; then
-            msg_error "Failed to install root npm dependencies."
-            exit 1
-        fi
+        # Run installs as pulse user
+        silent sudo -u pulse npm install --unsafe-perm || { msg_error "Failed to install root npm dependencies."; exit 1; }
         # Install server deps
         cd server || { msg_error "Failed to cd into server directory."; exit 1; }
-        echo "DEBUG: Running server npm install as pulse user..." # DEBUG
-        if ! sudo -u pulse npm install --unsafe-perm -ddd; then
-            msg_error "Failed to install server npm dependencies."
-            cd ..; exit 1
-        fi
+        silent sudo -u pulse npm install --unsafe-perm || { msg_error "Failed to install server npm dependencies."; cd ..; exit 1; }
         cd ..
         msg_ok "Node.js dependencies installed."
 
@@ -122,7 +118,8 @@ function update_script() {
         msg_info "Setting permissions..."
         # Permissions might not be strictly needed now if installs run as pulse,
         # but doesn't hurt to ensure consistency.
-        chown -R pulse:pulse /opt/pulse-proxmox
+        # Run chown again to be safe, though maybe less critical now.
+        chown -R pulse:pulse /opt/pulse-proxmox || msg_warning "Final chown failed."
         # Ensure correct execute permissions after chown
         chmod -R u+rwX,go+rX,go-w /opt/pulse-proxmox
         msg_ok "Permissions set."
