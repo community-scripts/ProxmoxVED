@@ -1291,11 +1291,6 @@ build_container() {
 
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
-  if [ "$var_os" == "alpine" ]; then
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/rcourtman/ProxmoxVED/a8af574/misc/alpine-install.func)"
-  else
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/rcourtman/ProxmoxVED/a8af574/misc/install.func)"
-  fi
   export RANDOM_UUID="$RANDOM_UUID"
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
@@ -1388,7 +1383,13 @@ http://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 EOF'
     pct exec "$CTID" -- ash -c "apk add bash >/dev/null"
   fi
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/rcourtman/ProxmoxVED/main/install/"$var_install".sh)" $?
+  # Fetch install.func content ONCE on the host
+  INSTALL_FUNC_CONTENT=$(curl -fsSL https://raw.githubusercontent.com/rcourtman/ProxmoxVED/856d264/misc/install.func) || { msg_error "Failed to fetch install.func content"; exit 1; }
+  # Fetch pulse-install.sh content ONCE on the host
+  APP_INSTALL_CONTENT=$(curl -fsSL https://raw.githubusercontent.com/rcourtman/ProxmoxVED/856d264/install/"$var_install".sh) || { msg_error "Failed to fetch $var_install.sh content"; exit 1; }
+  
+  # Inject install.func content directly before the app install content
+  lxc-attach -n "$CTID" -- bash -c "$INSTALL_FUNC_CONTENT; $APP_INSTALL_CONTENT" $?
 
 }
 
