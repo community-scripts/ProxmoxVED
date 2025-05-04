@@ -97,6 +97,10 @@ function update_script() {
         chown -R pulse:pulse /opt/pulse-proxmox || { msg_error "Failed to chown /opt/pulse-proxmox"; exit 1; }
         # Ensure correct execute permissions before npm install/build
         chmod -R u+rwX,go+rX,go-w /opt/pulse-proxmox || { msg_error "Failed to chmod /opt/pulse-proxmox"; exit 1; }
+        # Explicitly add execute permission for node_modules binaries
+        if [ -d "/opt/pulse-proxmox/node_modules/.bin" ]; then
+            chmod +x /opt/pulse-proxmox/node_modules/.bin/* || msg_warning "Failed to chmod +x on node_modules/.bin"
+        fi
         msg_ok "Ownership and permissions set."
 
         msg_info "Installing Node.js dependencies..."
@@ -112,6 +116,8 @@ function update_script() {
         # Try running tailwindcss directly as pulse user, specifying full path
         echo "DEBUG: Running tailwindcss directly as pulse user..." # DEBUG
         TAILWIND_PATH="/opt/pulse-proxmox/node_modules/.bin/tailwindcss"
+        echo "DEBUG: Checking permissions on tailwindcss binary:" # DEBUG
+        ls -l "$TAILWIND_PATH" # DEBUG
         TAILWIND_ARGS="-c ./src/tailwind.config.js -i ./src/index.css -o ./src/public/output.css"
         # Use sh -c to ensure correct directory context for paths in TAILWIND_ARGS
         if ! sudo -iu pulse sh -c "cd /opt/pulse-proxmox && $TAILWIND_PATH $TAILWIND_ARGS"; then
