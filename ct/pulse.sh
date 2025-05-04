@@ -86,8 +86,6 @@ function update_script() {
         # Reset local changes, fetch, checkout, clean
         # Use silent function wrapper for non-interactive update
         silent git fetch origin --tags --force || { msg_error "Failed to fetch from git remote."; exit 1; }
-        echo "DEBUG: Listing local tags after fetch:" # DEBUG
-        git tag -l # DEBUG
         echo "DEBUG: Attempting checkout command: git checkout ${LATEST_RELEASE}" # DEBUG
         # Try checkout without -f and without silent wrapper
         git checkout "${LATEST_RELEASE}" || { msg_error "Failed to checkout tag ${LATEST_RELEASE}."; exit 1; }
