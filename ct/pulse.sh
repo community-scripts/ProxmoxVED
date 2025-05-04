@@ -42,8 +42,6 @@ function update_script() {
   CURRENT_VERSION=""
   if [[ -f /opt/${APP}_version.txt ]]; then
     CURRENT_VERSION=$(cat /opt/${APP}_version.txt)
-  else
-    msg_warning "Version file /opt/${APP}_version.txt not found. Cannot determine current version. Will attempt update."
   fi
 
   if [[ "${LATEST_RELEASE}" != "$CURRENT_VERSION" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
