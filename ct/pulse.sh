@@ -66,8 +66,14 @@ function update_script() {
         msg_info "Fetching and checking out ${LATEST_RELEASE}..."
         cd /opt/pulse-proxmox || { msg_error "Failed to cd into /opt/pulse-proxmox"; exit 1; }
 
+        msg_info "Configuring git safe directory..."
+        # Allow root user to operate on the pulse user's git repo
+        git config --global --add safe.directory /opt/pulse-proxmox || msg_warning "Failed to set git safe directory, fetch might fail."
+        msg_ok "Configured git safe directory."
+
         # Reset local changes, fetch, checkout, clean (run as pulse user for safety if possible, but root often needed for npm install)
         # Let's use root for now, matching install script's likely execution context
+        # SC2086: Double quote variables
         git fetch origin --tags --force "$STD" || { msg_error "Failed to fetch from git remote."; exit 1; }
         git checkout -f "${LATEST_RELEASE}" "$STD" || { msg_error "Failed to checkout tag ${LATEST_RELEASE}."; exit 1; }
         # Consider resetting after checkout in case checkout failed partially?
