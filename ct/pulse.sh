@@ -64,11 +64,23 @@ function update_script() {
 
         # Execute Update using git and npm (run as root, chown later)
         msg_info "Fetching and checking out ${LATEST_RELEASE}..."
+        echo "DEBUG: About to cd into /opt/pulse-proxmox" # DEBUG LINE
         cd /opt/pulse-proxmox || { msg_error "Failed to cd into /opt/pulse-proxmox"; exit 1; }
 
+        echo "DEBUG: Checking ownership before git config" # DEBUG LINE
+        ls -ld /opt/pulse-proxmox # DEBUG LINE
+
+        echo "DEBUG: About to run git config safe.directory" # DEBUG LINE
         msg_info "Configuring git safe directory..."
-        # Allow root user to operate on the pulse user's git repo
-        git config --global --add safe.directory /opt/pulse-proxmox || msg_warning "Failed to set git safe directory, fetch might fail."
+        set -x # Enable command tracing
+        # Allow root user to operate on the pulse user's git repo - exit if it fails
+        git config --global --add safe.directory /opt/pulse-proxmox
+        local git_config_exit_code=$? # Capture exit code
+        set +x # Disable command tracing
+        if [ $git_config_exit_code -ne 0 ]; then
+            msg_error "git config safe.directory failed with exit code $git_config_exit_code"
+            exit 1
+        fi
         msg_ok "Configured git safe directory."
 
         # Reset local changes, fetch, checkout, clean (run as pulse user for safety if possible, but root often needed for npm install)
