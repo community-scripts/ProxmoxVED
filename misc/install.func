@@ -123,6 +123,15 @@ msg_error() {
     local msg="$1"
     echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
 }
+
+# This function displays a warning message with a yellow color.
+msg_warning() {
+    if [ -n "$SPINNER_PID" ] && ps -p "$SPINNER_PID" >/dev/null; then kill "$SPINNER_PID" >/dev/null; fi
+    printf "\e[?25h"
+    local msg="$1"
+    echo -e "${BFR}${TAB}${YW}⚠️ ${msg}${CL}" # Using YW for yellow and adding a warning symbol
+}
+
 # This function sets up the Container OS by generating the locale, setting the timezone, and checking the network connection
 setting_up_container() {
     msg_info "Setting up Container OS"
