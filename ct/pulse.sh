@@ -83,27 +83,25 @@ function update_script() {
         fi
         msg_ok "Configured git safe directory."
 
-        # Reset local changes, fetch, checkout, clean (run as pulse user for safety if possible, but root often needed for npm install)
-        # Let's use root for now, matching install script's likely execution context
-        # SC2086: Double quote variables
-        git fetch origin --tags --force "$STD" || { msg_error "Failed to fetch from git remote."; exit 1; }
-        git checkout -f "${LATEST_RELEASE}" "$STD" || { msg_error "Failed to checkout tag ${LATEST_RELEASE}."; exit 1; }
-        # Consider resetting after checkout in case checkout failed partially?
-        git reset --hard "${LATEST_RELEASE}" "$STD" || { msg_error "Failed to reset to tag ${LATEST_RELEASE}."; exit 1; }
-        git clean -fd "$STD" || { msg_warning "Failed to clean untracked files."; } # Non-fatal warning
+        # Reset local changes, fetch, checkout, clean
+        # Use silent function wrapper for non-interactive update
+        silent git fetch origin --tags --force || { msg_error "Failed to fetch from git remote."; exit 1; }
+        silent git checkout -f "${LATEST_RELEASE}" || { msg_error "Failed to checkout tag ${LATEST_RELEASE}."; exit 1; }
+        silent git reset --hard "${LATEST_RELEASE}" || { msg_error "Failed to reset to tag ${LATEST_RELEASE}."; exit 1; }
+        silent git clean -fd || { msg_warning "Failed to clean untracked files."; } # Non-fatal warning
         msg_ok "Fetched and checked out ${LATEST_RELEASE}."
 
         msg_info "Installing Node.js dependencies..."
         # Install root deps (includes dev for build)
-        npm install --unsafe-perm "$STD" || { msg_error "Failed to install root npm dependencies."; exit 1; }
+        silent npm install --unsafe-perm || { msg_error "Failed to install root npm dependencies."; exit 1; }
         # Install server deps
         cd server || { msg_error "Failed to cd into server directory."; exit 1; }
-        npm install --unsafe-perm "$STD" || { msg_error "Failed to install server npm dependencies."; cd ..; exit 1; }
+        silent npm install --unsafe-perm || { msg_error "Failed to install server npm dependencies."; cd ..; exit 1; }
         cd ..
         msg_ok "Node.js dependencies installed."
 
         msg_info "Building CSS assets..."
-        npm run build:css "$STD" || { msg_warning "Failed to build CSS assets. Proceeding anyway."; } # Non-fatal warning
+        silent npm run build:css || { msg_warning "Failed to build CSS assets. Proceeding anyway."; } # Non-fatal warning
         msg_ok "CSS assets built."
 
         msg_info "Setting permissions..."
