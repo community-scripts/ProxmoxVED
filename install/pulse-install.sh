@@ -6,8 +6,7 @@
 # Source: https://github.com/rcourtman/Pulse
 
 # Import Functions and Setup
-# Source necessary functions directly from the repository
-source <(curl -sL https://raw.githubusercontent.com/rcourtman/ProxmoxVED/main/misc/install.func)
+source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
 
 color
 verb_ip6
