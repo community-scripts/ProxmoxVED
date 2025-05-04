@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/rcourtman/ProxmoxVED/main/misc/build.func)
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: rcourtman
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -64,13 +64,8 @@ function update_script() {
 
         # Execute Update using git and npm (run as root, chown later)
         msg_info "Fetching and checking out ${LATEST_RELEASE}..."
-        echo "DEBUG: About to cd into /opt/pulse-proxmox" # DEBUG LINE
         cd /opt/pulse-proxmox || { msg_error "Failed to cd into /opt/pulse-proxmox"; exit 1; }
 
-        echo "DEBUG: Checking ownership before git config" # DEBUG LINE
-        ls -ld /opt/pulse-proxmox # DEBUG LINE
-
-        echo "DEBUG: About to run git config safe.directory" # DEBUG LINE
         msg_info "Configuring git safe directory..."
         set -x # Enable command tracing
         # Allow root user to operate on the pulse user's git repo - exit if it fails
@@ -114,10 +109,7 @@ function update_script() {
 
         msg_info "Building CSS assets..."
         # Try running tailwindcss directly as pulse user, specifying full path
-        echo "DEBUG: Running tailwindcss directly as pulse user..." # DEBUG
         TAILWIND_PATH="/opt/pulse-proxmox/node_modules/.bin/tailwindcss"
-        echo "DEBUG: Checking permissions on tailwindcss binary:" # DEBUG
-        ls -l "$TAILWIND_PATH" # DEBUG
         TAILWIND_ARGS="-c ./src/tailwind.config.js -i ./src/index.css -o ./src/public/output.css"
         # Use sh -c to ensure correct directory context for paths in TAILWIND_ARGS
         if ! sudo -iu pulse sh -c "cd /opt/pulse-proxmox && $TAILWIND_PATH $TAILWIND_ARGS"; then
