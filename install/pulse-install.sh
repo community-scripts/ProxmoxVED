@@ -29,7 +29,7 @@ if id "$PULSE_USER" &>/dev/null; then
     msg_warning "User '${PULSE_USER}' already exists. Skipping creation."
 else
     useradd -r -m -d /opt/pulse-home -s /bin/bash "$PULSE_USER" # Give a shell for potential debugging/manual commands
-    if [ $? -eq 0 ]; then
+    if useradd -r -m -d /opt/pulse-home -s /bin/bash "$PULSE_USER"; then
         msg_ok "User '${PULSE_USER}' created successfully."
     else
         msg_error "Failed to create user '${PULSE_USER}'."
@@ -54,7 +54,9 @@ KEYRING_DIR="/usr/share/keyrings"
 KEYRING_FILE="$KEYRING_DIR/nodesource.gpg"
 mkdir -p "$KEYRING_DIR"
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --yes --dearmor -o "$KEYRING_FILE"
-if [ $? -ne 0 ]; then msg_error "Failed to download NodeSource GPG key."; exit 1; fi
+pipestatus=("${PIPESTATUS[@]}") # Capture pipestatus array
+if [ "${pipestatus[1]}" -ne 0 ]; then msg_error "Failed to download NodeSource GPG key (gpg exited non-zero)."; exit 1; fi
+if [ "${pipestatus[0]}" -ne 0 ]; then msg_warning "Curl failed to download GPG key (curl exited non-zero), but gpg seemed okay? Proceeding cautiously."; fi
 echo "deb [signed-by=$KEYRING_FILE] https://deb.nodesource.com/node_$NODE_MAJOR_VERSION.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list > /dev/null
 msg_info "Updating package list after adding NodeSource..."
 $STD apt-get update
@@ -73,7 +75,9 @@ msg_ok "Cloned ${APP} repository."
 
 msg_info "Fetching latest release tag..."
 LATEST_RELEASE=$(curl -s https://api.github.com/repos/rcourtman/Pulse/releases/latest | jq -r '.tag_name')
-if [[ $? -ne 0 ]] || [[ -z "$LATEST_RELEASE" ]] || [[ "$LATEST_RELEASE" == "null" ]]; then
+pipestatus=("${PIPESTATUS[@]}")
+if [ "${pipestatus[0]}" -ne 0 ] || [ "${pipestatus[1]}" -ne 0 ] || \
+   [[ -z "$LATEST_RELEASE" ]] || [[ "$LATEST_RELEASE" == "null" ]]; then
     msg_warning "Failed to fetch latest release tag. Proceeding with default branch."
     # Optionally, you could fetch tags via git and parse locally:
     # LATEST_RELEASE=$(git tag -l 'v*' --sort='-version:refname' | head -n 1)
