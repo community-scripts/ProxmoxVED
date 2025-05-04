@@ -103,11 +103,18 @@ function update_script() {
         msg_ok "Node.js dependencies installed."
 
         msg_info "Building CSS assets..."
-        silent npm run build:css || { msg_warning "Failed to build CSS assets. Proceeding anyway."; } # Non-fatal warning
-        msg_ok "CSS assets built."
+        # SC2181 change: Check exit code directly for npm run build:css
+        if ! silent npm run build:css; then
+            # Use echo directly instead of msg_warning due to potential scope issues
+            echo -e "${BFR}${TAB}${YW}⚠️ Failed to build CSS assets. Proceeding anyway.${CL}"
+        else
+            msg_ok "CSS assets built."
+        fi
 
         msg_info "Setting permissions..."
         chown -R pulse:pulse /opt/pulse-proxmox
+        # Ensure correct execute permissions after chown
+        chmod -R u+rwX,go+rX,go-w /opt/pulse-proxmox
         msg_ok "Permissions set."
 
         # Starting Service
