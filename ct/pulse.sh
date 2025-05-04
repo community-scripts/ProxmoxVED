@@ -103,10 +103,10 @@ function update_script() {
         msg_ok "Node.js dependencies installed."
 
         msg_info "Building CSS assets..."
-        # SC2181 change: Check exit code directly for npm run build:css
-        if ! silent npm run build:css; then
-            # Use echo directly instead of msg_warning due to potential scope issues
-            echo -e "${BFR}${TAB}${YW}⚠️ Failed to build CSS assets. Proceeding anyway.${CL}"
+        # Run build as pulse user
+        if ! sudo -u pulse npm run build:css > /dev/null 2>&1; then
+            # Use echo directly, remove BFR
+            echo -e "${TAB}${YW}⚠️ Failed to build CSS assets. Proceeding anyway.${CL}"
         else
             msg_ok "CSS assets built."
         fi
