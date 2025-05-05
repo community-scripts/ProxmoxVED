@@ -41,6 +41,7 @@ function update_script() {
     msg_ok "Backup Created"
 
     msg_info "Updating $APP to v${RELEASE}"
+    rm -rf /opt/${APP}
     fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
     cd /opt/"${APPLICATION}"/backend/src
     pip install -r requirements.txt
