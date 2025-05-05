@@ -120,13 +120,13 @@ rm vectors-pg17_0.4.0_amd64.deb
 DB_NAME="immich"
 DB_USER="immich"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c18)
+sed -i -e "/^#shared_preload/s/^#//;/^shared_preload/s/''/'vectors.so'/" \
+  -e "/^#search_path/s/^#//;/^search_path/s/public'/public, vectors'/" /etc/postgresql/17/main/postgresql.conf
+systemctl restart postgresql.service
 $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME to $DB_USER;"
 $STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
-$STD sudo -u postgres psql -c "ALTER SYSTEM SET shared_preload_libraries = 'vectors.so';"
-$STD sudo -u postgres psql -c "ALTER SYSTEM SET search_path TO "$user", public, vectors;"
-systemctl restart postgresql.service
 $STD sudo -u postgres psql -c "DROP EXTENSION IF EXISTS vectors;"
 $STD sudo -u postgres psql -c "CREATE EXTENSION vectors;"
 {
