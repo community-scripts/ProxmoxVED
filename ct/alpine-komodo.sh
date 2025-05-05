@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://komo.do
 
-APP="Komodo"
+APP="Alpine-Komodo"
 var_tags="${var_tags:-docker,alpine}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-1024}"
