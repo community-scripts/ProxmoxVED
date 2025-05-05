@@ -37,7 +37,6 @@ function update_script() {
 
     msg_info "Updating ${APP} to ${RELEASE}"
     NODE_VERSION="22"
-    NODE_MODULE="--location=global @actual-app/sync-server"
     install_node_and_modules
     npm update -g @actual-app/sync-server
     msg_ok "Updated ${APP} to ${RELEASE}"
