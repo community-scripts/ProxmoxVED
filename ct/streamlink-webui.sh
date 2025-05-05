@@ -49,6 +49,7 @@ function update_script() {
     cd /opt/"${APPLICATION}"/frontend/src
     $STD yarn install
     $STD yarn build
+    chmod +x /opt/"${APPLICATION}"/start.sh
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"

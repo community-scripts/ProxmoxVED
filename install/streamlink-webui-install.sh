@@ -27,6 +27,7 @@ $STD uv pip install -r /opt/streamlink-webui/backend/src/requirements.txt --pyth
 cd /opt/"${APPLICATION}"/frontend/src
 $STD yarn install
 $STD yarn build
+chmod +x /opt/"${APPLICATION}"/start.sh
 msg_ok "Setup ${APPLICATION}"
 
 msg_info "Creating Service"
@@ -46,7 +47,7 @@ After=network.target
 [Service]
 EnvironmentFile=/opt/${APPLICATION}.env
 WorkingDirectory=/opt/${APPLICATION}
-ExecStart=start.sh
+ExecStart=/opt/${APPLICATION}start.sh
 Restart=always
 
 [Install]
@@ -58,9 +59,7 @@ msg_ok "Created Service"
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
-rm -f "${RELEASE}".zip
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
