@@ -45,8 +45,8 @@ After=network.target
 
 [Service]
 EnvironmentFile=/opt/${APPLICATION}.env
-WorkingDirectory=/opt/${APPLICATION}/backend/src
-ExecStart=fastapi run main.py
+WorkingDirectory=/opt/${APPLICATION}
+ExecStart=start.sh
 Restart=always
 
 [Install]
