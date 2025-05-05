@@ -48,6 +48,24 @@ function update_script() {
     fi
   else
     msg_info "Performing full migration to npm-based version (${RELEASE})"
+    mv /opt/actualbudget /opt/actualbudget_bak
+    for dir in server-files .migrate user-files migrations; do
+      if [[ -d /opt/actualbudget_bak/$dir ]]; then
+        mv /opt/actualbudget_bak/$dir/* /opt/actualbudget-data/$dir/ || true
+      fi
+    done
+    if [[ -f /opt/actualbudget-data/migrate/.migrations ]]; then
+      sed -i 's/null/1732656575219/g' /opt/actualbudget-data/migrate/.migrations
+      sed -i 's/null/1732656575220/g' /opt/actualbudget-data/migrate/.migrations
+    fi
+    if [[ -f /opt/actualbudget/server-files/account.sqlite ]] && [[ ! -f /opt/actualbudget-data/server-files/account.sqlite ]]; then
+      mv /opt/actualbudget/server-files/account.sqlite /opt/actualbudget-data/server-files/account.sqlite
+    fi
+
+    if [[ -f /opt/actualbudget_bak/selfhost.key ]]; then
+      mv /opt/actualbudget_bak/selfhost.key /opt/actualbudget/selfhost.key
+      mv /opt/actualbudget_bak/selfhost.crt /opt/actualbudget/selfhost.crt
+    fi
     systemctl stop actualbudget
     rm -rf /opt/actualbudget
     rm -rf /opt/actualbudget_bak
