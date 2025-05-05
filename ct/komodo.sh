@@ -49,6 +49,7 @@ function update_script() {
   fi
   $STD docker compose -p komodo -f "$COMPOSE_FILE" --env-file /opt/komodo/compose.env up -d
   msg_ok "Updated ${APP}"
+  exit
 }
 
 start
