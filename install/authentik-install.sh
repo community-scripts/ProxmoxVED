@@ -15,7 +15,6 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  gpg \
   pkg-config \
   libffi-dev \
   build-essential \
@@ -33,8 +32,14 @@ $STD apt-get install -y \
   libxmlsec1-openssl \
   libmaxminddb0 \
   python3-pip \
+  redis-server \
   git
 msg_ok "Installed Dependencies"
+
+NODE_VERSION="22"
+setup_uv
+install_node_and_modules
+install_go
 
 msg_info "Installing yq"
 cd /tmp
@@ -56,44 +61,6 @@ cat <<EOF >/etc/GeoIP.conf
 EOF
 msg_ok "Installed GeoIP"
 
-msg_info "Setting up Python 3"
-cd /tmp
-curl -fsSL "https://www.python.org/ftp/python/3.12.1/Python-3.12.1.tgz" -o "Python.tgz"
-tar -zxf Python.tgz
-cd Python-3.12.1
-$STD ./configure --enable-optimizations
-$STD make altinstall
-cd ~
-$STD update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.12 1
-msg_ok "Setup Python 3"
-
-msg_info "Setting up Node.js Repository"
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
-msg_ok "Set up Node.js Repository"
-
-msg_info "Installing Node.js"
-$STD apt-get update
-$STD apt-get install -y nodejs
-msg_ok "Installed Node.js"
-
-msg_info "Installing Golang"
-set +o pipefail
-temp_file=$(mktemp)
-golang_tarball=$(curl -fsSL https://go.dev/dl/ | grep -oP 'go[\d\.]+\.linux-amd64\.tar\.gz' | head -n 1)
-curl -fsSL "https://golang.org/dl/${golang_tarball}" -o "$temp_file"
-tar -C /usr/local -xzf "$temp_file"
-ln -sf /usr/local/go/bin/go /usr/local/bin/go
-rm -f "$temp_file"
-set -o pipefail
-msg_ok "Installed Golang"
-
-msg_info "Installing Redis"
-$STD apt-get install -y redis-server
-systemctl enable -q --now redis-server
-msg_ok "Installed Redis"
-
 msg_info "Installing PostgreSQL"
 $STD apt-get install -y postgresql postgresql-contrib
 DB_NAME="authentik"
@@ -111,23 +78,29 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/goauthentik/authentik/releases
 mkdir -p /opt/authentik
 curl -fsSL "${RELEASE}" -o "authentik.tar.gz"
 tar -xzf authentik.tar.gz -C /opt/authentik --strip-components 1 --overwrite
+
 cd /opt/authentik/website
-$STD npm install
+$STD npm ci --include=dev
 $STD npm run build-bundled
+
 cd /opt/authentik/web
-$STD npm install
+$STD npm ci --include=dev
 $STD npm run build
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
+
 cd /opt/authentik
 $STD go mod download
 $STD go build -o /go/authentik ./cmd/server
 $STD go build -o /opt/authentik/authentik-server /opt/authentik/cmd/server/
+
 cd /opt/authentik
-$STD pip3 install --upgrade pip
-$STD pip3 install poetry poetry-plugin-export
-ln -s /usr/local/bin/poetry /usr/bin/poetry
-$STD poetry install --only=main --no-ansi --no-interaction --no-root
-$STD poetry export --without-hashes --without-urls -f requirements.txt --output requirements.txt
+$STD uv sync --frozen --no-install-project --no-dev
+$STD pip3 install --no-cache-dir --upgrade pip
+#$STD pip3 install --upgrade pip
+#$STD pip3 install poetry poetry-plugin-export
+
+#ln -s /usr/local/bin/poetry /usr/bin/poetry
+#$STD poetry install --only=main --no-ansi --no-interaction --no-root
+#$STD poetry export --without-hashes --without-urls -f requirements.txt --output requirements.txt
 $STD pip install --no-cache-dir -r requirements.txt
 $STD pip install .
 mkdir -p /etc/authentik
@@ -141,7 +114,7 @@ ln -s /usr/bin/python3 /usr/bin/python
 ln -s /usr/local/bin/gunicorn /usr/bin/gunicorn
 ln -s /usr/local/bin/celery /usr/bin/celery
 $STD bash /opt/authentik/lifecycle/ak migrate
-cd ~
+echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed authentik"
 
 msg_info "Creating Services"
