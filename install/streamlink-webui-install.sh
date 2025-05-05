@@ -14,26 +14,23 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Setup Python3"
-$STD apt-get install -y \
-  python3 \
-  python3-pip
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-msg_ok "Setup Python3"
-
 msg_info "Setup NodeJS"
-export NODE_MODULE="npm@latest"
+NODE_VERSION="22"
+NODE_MODULE="npm@latest,yarn@latest"
 install_node_and_modules
 msg_ok "Setup NodeJS"
 
-# Setup App
+msg_info "Setup Python"
+setup_uv
+msg_ok "Setup Python"
+
 msg_info "Setup ${APPLICATION}"
 fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
-cd /opt/"${APPLICATION}"/backend/src
+$STD uv venv /opt/**/backend/src/.venv
+source /opt/**/.venv/bin/activate
+$STD uv sync --all-extras
 $STD pip install -r requirements.txt
 cd ../../frontend/src
-$STD npm install
-$STD npm install -g yarn
 $STD yarn build
 msg_ok "Setup ${APPLICATION}"
 
