@@ -45,12 +45,6 @@ function update_script() {
       msg_info "Starting ${APP}"
       systemctl start actualbudget
       msg_ok "Restarted ${APP}"
-    else
-      msg_ok "No update required. ${APP} is already at ${RELEASE}"
-      msg_info "Ensuring latest npm version of @actual-app/sync-server"
-      $STD npm update -g @actual-app/sync-server
-      systemctl restart actualbudget
-      msg_ok "Restarted ${APP}"
     fi
   else
     msg_info "Performing full migration to npm-based version (${RELEASE})"
