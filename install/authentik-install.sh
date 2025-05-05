@@ -37,7 +37,9 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22"
+PG_VERSION="16"
 setup_uv
+install_postgresql
 install_node_and_modules
 install_go
 
