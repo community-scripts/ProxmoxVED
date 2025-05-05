@@ -1,6 +1,6 @@
 {
   "name": "Transmission",
-  "slug": "transmission",
+  "slug": "alpine-transmission",
   "categories": [
     11
   ],
@@ -17,7 +17,7 @@
   "install_methods": [
     {
       "type": "default",
-      "script": "ct/transmission.sh",
+      "script": "ct/alpine-transmission.sh",
       "resources": {
         "cpu": 1,
         "ram": 256,
