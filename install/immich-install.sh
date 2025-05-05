@@ -114,11 +114,9 @@ curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o
 echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt/sources.list.d/pgdg.list
 $STD apt-get update
 $STD apt-get install -y postgresql-16
-# PSQL_RELEASE=$(curl -fsSL https://api.github.com/repos/tensorchord/pgvecto.rs/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 curl -fsSLO https://github.com/tensorchord/pgvecto.rs/releases/download/v0.3.0/vectors-pg16_0.3.0_amd64.deb
 $STD dpkg -i vectors-pg16_0.3.0_amd64.deb
 rm vectors-pg16_0.3.0_amd64.deb
-# echo "$PSQL_RELEASE" >~/.pgvectors_version.txt
 DB_NAME="immich"
 DB_USER="immich"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c18)
@@ -159,7 +157,7 @@ $STD apt-get install -t testing --no-install-recommends -y \
   libhwy-dev \
   libwebp-dev
 if [[ "$intel_hw" = 1 ]]; then
-  apt-get install -t testing -y patchelf
+  $STD apt-get install -t testing -y patchelf
 fi
 msg_ok "Packages from Testing Repo Installed"
 
@@ -312,7 +310,7 @@ msg_ok "Installed Immich Web Components"
 cd "$SRC_DIR"/machine-learning || exit
 $STD python3 -m venv "$ML_DIR/ml-venv"
 if [[ "$intel_hw" = 1 ]]; then
-  msg_info "Installing Immich HW-accelerated machine-learning"
+  msg_info "Installing HW-accelerated machine-learning"
   (
     source "$ML_DIR"/ml-venv/bin/activate
     # $STD uv sync --extra openvino --active
@@ -322,13 +320,13 @@ if [[ "$intel_hw" = 1 ]]; then
   patchelf --clear-execstack "$ML_DIR"/ml-venv/lib/python3.11/site-packages/onnxruntime/capi/onnxruntime_pybind11_state.cpython-311-x86_64-linux-gnu.so
   msg_ok "Installed HW-accelerated machine-learning"
 else
-  msg_info "Installing Immich machine-learning"
+  msg_info "Installing machine-learning"
   (
     source "$ML_DIR"/ml-venv/bin/activate
     $STD pip3 install uv
     uv -q sync --extra cpu --no-cache --active
   )
-  msg_ok "Installed Immich machine-learning"
+  msg_ok "Installed machine-learning"
 fi
 cd "$SRC_DIR" || exit
 cp -a machine-learning/{ann,immich_ml} "$ML_DIR"
