@@ -14,20 +14,15 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Setup NodeJS"
 NODE_VERSION="22"
 NODE_MODULE="npm@latest,yarn@latest"
 install_node_and_modules
-msg_ok "Setup NodeJS"
-
-msg_info "Setup Python"
 setup_uv
-msg_ok "Setup Python"
 
 msg_info "Setup ${APPLICATION}"
 fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
 $STD uv venv /opt/**/backend/src/.venv
-source /opt/**/.venv/bin/activate
+source /opt/**//backend/src/.venv/bin/activate
 $STD uv sync --all-extras
 $STD pip install -r requirements.txt
 cd ../../frontend/src

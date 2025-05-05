@@ -38,12 +38,16 @@ function update_script() {
 
     msg_info "Updating $APP to v${RELEASE}"
     rm -rf /opt/${APP}
+    NODE_VERSION="22"
+    NODE_MODULE="npm@latest,yarn@latest"
+    install_node_and_modules
+    setup_uv
     fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
-    cd /opt/"${APPLICATION}"/backend/src
+    $STD uv venv /opt/**/backend/src/.venv
+    source /opt/**//backend/src/.venv/bin/activate
+    $STD uv sync --all-extras
     $STD pip install -r requirements.txt
     cd ../../frontend/src
-    $STD npm install
-    $STD npm install -g yarn
     $STD yarn build
     msg_ok "Updated $APP to v${RELEASE}"
 
