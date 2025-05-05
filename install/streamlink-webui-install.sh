@@ -15,7 +15,7 @@ network_check
 update_os
 
 NODE_VERSION="22"
-NODE_MODULE="npm@latest,yarn@latest,@vue/cli@latest"
+NODE_MODULE="npm@latest,yarn@latest,@vue/cli-service@latest"
 install_node_and_modules
 setup_uv
 
