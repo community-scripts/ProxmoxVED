@@ -30,10 +30,11 @@ msg_ok "Setup NodeJS"
 msg_info "Setup ${APPLICATION}"
 fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
 cd /opt/"${APPLICATION}"/backend/src
-pip install -r requirements.txt
+$STD pip install -r requirements.txt
 cd ../../frontend/src
-npm install
-yarn build
+$STD npm install
+$STD npm install -g yarn
+$STD yarn build
 msg_ok "Setup ${APPLICATION}"
 
 # Creating Service (if needed)

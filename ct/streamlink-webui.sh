@@ -41,10 +41,11 @@ function update_script() {
     rm -rf /opt/${APP}
     fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
     cd /opt/"${APPLICATION}"/backend/src
-    pip install -r requirements.txt
+    $STD pip install -r requirements.txt
     cd ../../frontend/src
-    npm install
-    yarn build
+    $STD npm install
+    $STD npm install -g yarn
+    $STD yarn build
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"
