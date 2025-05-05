@@ -111,7 +111,7 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-    echo "${RELEASE}" >"$CURRENT_VERSION_FILE"
+    echo "${RELEASE}" >/opt/actualbudget_version.txt
     $STD systemctl daemon-reload
     systemctl enable actualbudget
     systemctl start actualbudget
