@@ -81,11 +81,19 @@ error_handler() {
 
 # This function displays an informational message with logging support.
 declare -A MSG_INFO_SHOWN
+declare -A SPINNER_PIDS
+declare -A SPINNER_MSGS
+declare -A MSG_INFO_SHOWN
 SPINNER_ACTIVE=0
 SPINNER_PID=""
 SPINNER_MSG=""
 
 trap 'stop_spinner' EXIT INT TERM HUP
+
+msg_hash() {
+  local input="$1"
+  echo -n "$input" | sha1sum | awk '{print $1}'
+}
 
 start_spinner() {
   local msg="$1"
@@ -130,26 +138,59 @@ spinner_guard() {
 
 msg_info() {
   local msg="$1"
-  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$msg"]=1
+  local id
+  id=$(msg_hash "$msg")
 
-  spinner_guard
-  SPINNER_ACTIVE=1
-  start_spinner "$msg"
+  [[ -n "${MSG_INFO_SHOWN["$id"]+x}" ]] && return
+  MSG_INFO_SHOWN["$id"]=1
+  SPINNER_MSGS["$id"]="$msg"
+
+  local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+  local interval=0.1
+  local spin_i=0
+
+  {
+    while true; do
+      printf "\r\e[2K%s %b" "${frames[spin_i]}" "${YW}${msg}${CL}" >&2
+      spin_i=$(((spin_i + 1) % ${#frames[@]}))
+      sleep "$interval"
+    done
+  } &
+
+  SPINNER_PIDS["$id"]=$!
+  disown "${SPINNER_PIDS["$id"]}"
 }
 
 msg_ok() {
   local msg="$1"
-  stop_spinner
+  local id
+  id=$(msg_hash "$msg")
+
+  if [[ -n "${SPINNER_PIDS["$id"]}" ]] && ps -p "${SPINNER_PIDS["$id"]}" >/dev/null 2>&1; then
+    kill "${SPINNER_PIDS["$id"]}" 2>/dev/null
+    wait "${SPINNER_PIDS["$id"]}" 2>/dev/null || true
+  fi
+
   printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
-  unset MSG_INFO_SHOWN["$msg"]
+  unset SPINNER_PIDS["$id"]
+  unset SPINNER_MSGS["$id"]
+  unset MSG_INFO_SHOWN["$id"]
 }
 
 msg_error() {
-  stop_spinner
   local msg="$1"
+  local id
+  id=$(msg_hash "$msg")
+
+  if [[ -n "${SPINNER_PIDS["$id"]}" ]] && ps -p "${SPINNER_PIDS["$id"]}" >/dev/null 2>&1; then
+    kill "${SPINNER_PIDS["$id"]}" 2>/dev/null
+    wait "${SPINNER_PIDS["$id"]}" 2>/dev/null || true
+  fi
+
   printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
-  #log_message "ERROR" "$msg"
+  unset SPINNER_PIDS["$id"]
+  unset SPINNER_MSGS["$id"]
+  unset MSG_INFO_SHOWN["$id"]
 }
 
 # log_message() {
@@ -1344,9 +1385,9 @@ lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=
 EOF
   fi
 
-    if [ "$CT_TYPE" == "0" ]; then
-        if [[ "$APP" == "immich" || "$APP" == "Channels" || "$APP" == "Emby" || "$APP" == "ErsatzTV" || "$APP" == "Frigate" || "$APP" == "Jellyfin" || "$APP" == "Plex" || "$APP" == "Scrypted" || "$APP" == "Tdarr" || "$APP" == "Unmanic" || "$APP" == "Ollama" || "$APP" == "FileFlows" ]]; then
-            cat <<EOF >>$LXC_CONFIG
+  if [ "$CT_TYPE" == "0" ]; then
+    if [[ "$APP" == "immich" || "$APP" == "Channels" || "$APP" == "Emby" || "$APP" == "ErsatzTV" || "$APP" == "Frigate" || "$APP" == "Jellyfin" || "$APP" == "Plex" || "$APP" == "Scrypted" || "$APP" == "Tdarr" || "$APP" == "Unmanic" || "$APP" == "Ollama" || "$APP" == "FileFlows" ]]; then
+      cat <<EOF >>$LXC_CONFIG
 # VAAPI hardware transcoding
 lxc.cgroup2.devices.allow: c 226:0 rwm
 lxc.cgroup2.devices.allow: c 226:128 rwm
@@ -1355,12 +1396,12 @@ lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file
 lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
 lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
 EOF
-        fi
-    else
-        if [[ "$APP" == "immich" || "$APP" == "Channels" || "$APP" == "Emby" || "$APP" == "ErsatzTV" || "$APP" == "Frigate" || "$APP" == "Jellyfin" || "$APP" == "Plex" || "$APP" == "Scrypted" || "$APP" == "Tdarr" || "$APP" == "Unmanic" || "$APP" == "Ollama" || "$APP" == "FileFlows" ]]; then
-            if [[ -e "/dev/dri/renderD128" ]]; then
-                if [[ -e "/dev/dri/card0" ]]; then
-                    cat <<EOF >>$LXC_CONFIG
+    fi
+  else
+    if [[ "$APP" == "immich" || "$APP" == "Channels" || "$APP" == "Emby" || "$APP" == "ErsatzTV" || "$APP" == "Frigate" || "$APP" == "Jellyfin" || "$APP" == "Plex" || "$APP" == "Scrypted" || "$APP" == "Tdarr" || "$APP" == "Unmanic" || "$APP" == "Ollama" || "$APP" == "FileFlows" ]]; then
+      if [[ -e "/dev/dri/renderD128" ]]; then
+        if [[ -e "/dev/dri/card0" ]]; then
+          cat <<EOF >>$LXC_CONFIG
 # VAAPI hardware transcoding
 dev0: /dev/dri/card0,gid=44
 dev1: /dev/dri/renderD128,gid=104
