@@ -1,3 +1,4 @@
+#!/bin/bash
 install_node_and_modules() {
   local NODE_VERSION="${NODE_VERSION:-22}"
   local NODE_MODULE="${NODE_MODULE:-}"
