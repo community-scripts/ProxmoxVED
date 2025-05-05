@@ -26,7 +26,7 @@ METHOD=""
 NSAPP="debian12vm"
 var_os="debian"
 var_version="12"
-DISK_SIZE="8G"
+DISK_SIZE="4G"
 
 YW=$(echo "\033[33m")
 BL=$(echo "\033[36m")
@@ -146,6 +146,7 @@ function default_settings() {
   FORMAT=",efitype=4m"
   MACHINE=""
   DISK_CACHE=""
+  DISK_SIZE="4G"
   HN="docker"
   CPU_TYPE=""
   CORE_COUNT="2"
@@ -159,6 +160,7 @@ function default_settings() {
   echo -e "${DGN}Using Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${DGN}Using Machine Type: ${BGN}i440fx${CL}"
   echo -e "${DGN}Using Disk Cache: ${BGN}None${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
   echo -e "${DGN}Using Hostname: ${BGN}${HN}${CL}"
   echo -e "${DGN}Using CPU Model: ${BGN}KVM64${CL}"
   echo -e "${DGN}Allocated Cores: ${BGN}${CORE_COUNT}${CL}"
