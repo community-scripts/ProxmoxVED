@@ -80,7 +80,7 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/goauthentik/authentik/releases
 mkdir -p /opt/authentik
 curl -fsSL "${RELEASE}" -o "authentik.tar.gz"
 tar -xzf authentik.tar.gz -C /opt/authentik --strip-components 1 --overwrite
-
+export NODE_OPTIONS="--max-old-space-size=4096"
 cd /opt/authentik/website
 $STD npm install
 $STD npm run build-bundled
