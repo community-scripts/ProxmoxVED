@@ -21,13 +21,13 @@ msg_info "Setup Docker Repository"
 DOCKER_CHANNEL=edge
 ARCH=$(apk --print-arch)
 echo "https://download.docker.com/linux/alpine" >>/etc/apk/repositories
-apk update
+$STD apk update
 $STD apk add --no-cache docker docker-cli docker-compose
 msg_ok "Setup Docker Repository"
 
 msg_info "Enabling Docker Service"
-rc-update add docker boot
-service docker start
+$STD rc-update add docker boot
+$STD service docker start
 msg_ok "Enabled Docker Service"
 
 echo "Choose the database for Komodo installation:"
