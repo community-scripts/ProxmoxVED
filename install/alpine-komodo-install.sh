@@ -18,11 +18,7 @@ $STD apk add --no-cache ca-certificates
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Docker Repository"
-DOCKER_CHANNEL=edge
-ARCH=$(apk --print-arch)
-echo "https://download.docker.com/linux/alpine" >>/etc/apk/repositories
-$STD apk update
-$STD apk add --no-cache docker docker-cli docker-compose
+$STD apk add --no-cache docker docker-cli docker-compose openrc
 msg_ok "Setup Docker Repository"
 
 msg_info "Enabling Docker Service"
