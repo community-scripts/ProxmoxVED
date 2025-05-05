@@ -332,6 +332,9 @@ else
 fi
 cd "$SRC_DIR" || exit
 cp -a machine-learning/{ann,immich_ml} "$ML_DIR"
+if [[ "$intel_hw" = 1 ]]; then
+  sed -i "/intra_op/s/int = 0/int = os.cpu_count() or 0/" "$ML_DIR"/immich_ml/config.py
+fi
 ln -sf "$APP_DIR"/resources "$INSTALL_DIR"
 
 cd "$APP_DIR" || exit
