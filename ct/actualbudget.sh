@@ -113,8 +113,7 @@ EOF
     msg_ok "Migrated and started ${APP} ${RELEASE}"
   fi
 
-  msg_info "Cleaning Up"
-  msg_ok "Cleaned"
+  msg_ok "Update done"
   exit
 }
 
