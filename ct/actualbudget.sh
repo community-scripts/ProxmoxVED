@@ -52,6 +52,7 @@ function update_script() {
     rm -rf /opt/actualbudget
     rm -rf /opt/actualbudget_bak
     mkdir -p /opt/actualbudget
+    cd /opt/actualbudget
     $STD npm install --location=global @actual-app/sync-server
 
     mkdir -p /opt/actualbudget-data/{server-files,user-files}
