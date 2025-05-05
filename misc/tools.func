@@ -345,7 +345,7 @@ install_go() {
   esac
 
   # Determine version
-  if [[ -z "$GO_VERSION" || "$GO_VERSION" == "latest" ]]; then
+  if [[ -z "${GO_VERSION:-}" || "${GO_VERSION}" == "latest" ]]; then
     GO_VERSION=$(curl -fsSL https://go.dev/VERSION?m=text | head -n1 | sed 's/^go//')
     if [[ -z "$GO_VERSION" ]]; then
       msg_error "Could not determine latest Go version"
