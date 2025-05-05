@@ -81,19 +81,11 @@ error_handler() {
 
 # This function displays an informational message with logging support.
 declare -A MSG_INFO_SHOWN
-declare -A SPINNER_PIDS
-declare -A SPINNER_MSGS
-declare -A MSG_INFO_SHOWN
 SPINNER_ACTIVE=0
 SPINNER_PID=""
 SPINNER_MSG=""
 
 trap 'stop_spinner' EXIT INT TERM HUP
-
-msg_hash() {
-  local input="$1"
-  echo -n "$input" | sha1sum | awk '{print $1}'
-}
 
 start_spinner() {
   local msg="$1"
@@ -138,59 +130,26 @@ spinner_guard() {
 
 msg_info() {
   local msg="$1"
-  local id
-  id=$(msg_hash "$msg")
+  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
+  MSG_INFO_SHOWN["$msg"]=1
 
-  [[ -n "${MSG_INFO_SHOWN["$id"]+x}" ]] && return
-  MSG_INFO_SHOWN["$id"]=1
-  SPINNER_MSGS["$id"]="$msg"
-
-  local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
-  local interval=0.1
-  local spin_i=0
-
-  {
-    while true; do
-      printf "\r\e[2K%s %b" "${frames[spin_i]}" "${YW}${msg}${CL}" >&2
-      spin_i=$(((spin_i + 1) % ${#frames[@]}))
-      sleep "$interval"
-    done
-  } &
-
-  SPINNER_PIDS["$id"]=$!
-  disown "${SPINNER_PIDS["$id"]}"
+  spinner_guard
+  SPINNER_ACTIVE=1
+  start_spinner "$msg"
 }
 
 msg_ok() {
   local msg="$1"
-  local id
-  id=$(msg_hash "$msg")
-
-  if [[ -n "${SPINNER_PIDS["$id"]}" ]] && ps -p "${SPINNER_PIDS["$id"]}" >/dev/null 2>&1; then
-    kill "${SPINNER_PIDS["$id"]}" 2>/dev/null
-    wait "${SPINNER_PIDS["$id"]}" 2>/dev/null || true
-  fi
-
+  stop_spinner
   printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
-  unset SPINNER_PIDS["$id"]
-  unset SPINNER_MSGS["$id"]
-  unset MSG_INFO_SHOWN["$id"]
+  unset MSG_INFO_SHOWN["$msg"]
 }
 
 msg_error() {
+  stop_spinner
   local msg="$1"
-  local id
-  id=$(msg_hash "$msg")
-
-  if [[ -n "${SPINNER_PIDS["$id"]}" ]] && ps -p "${SPINNER_PIDS["$id"]}" >/dev/null 2>&1; then
-    kill "${SPINNER_PIDS["$id"]}" 2>/dev/null
-    wait "${SPINNER_PIDS["$id"]}" 2>/dev/null || true
-  fi
-
   printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
-  unset SPINNER_PIDS["$id"]
-  unset SPINNER_MSGS["$id"]
-  unset MSG_INFO_SHOWN["$id"]
+  #log_message "ERROR" "$msg"
 }
 
 # log_message() {
