@@ -47,6 +47,7 @@ function update_script() {
     source /opt/"${APPLICATION}"/backend/src/.venv/bin/activate
     $STD uv pip install -r /opt/streamlink-webui/backend/src/requirements.txt --python=/opt/"${APPLICATION}"/backend/src/.venv
     cd /opt/"${APPLICATION}"/frontend/src
+    $STD yarn install
     $STD yarn build
     msg_ok "Updated $APP to v${RELEASE}"
 
