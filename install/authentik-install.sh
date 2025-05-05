@@ -82,11 +82,11 @@ curl -fsSL "${RELEASE}" -o "authentik.tar.gz"
 tar -xzf authentik.tar.gz -C /opt/authentik --strip-components 1 --overwrite
 
 cd /opt/authentik/website
-$STD npm ci --include=dev
+$STD npm install
 $STD npm run build-bundled
 
 cd /opt/authentik/web
-$STD npm ci --include=dev
+$STD npm install
 $STD npm run build
 
 cd /opt/authentik
