@@ -18,7 +18,44 @@ cd /opt
 RELEASE=$(curl -fsSL https://api.github.com/repos/actualbudget/actual/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 NODE_VERSION="22"
 install_node_and_modules
+mkdir -p /opt/actualbudget-data/{server-files,upload,migrate,user-files,migrations,config}
+chown -R root:root /opt/actualbudget-data
+chmod -R 755 /opt/actualbudget-data
+
+cat <<EOF >/opt/actualbudget-data/config.json
+{
+  "port": 5006,
+  "hostname": "::",
+  "serverFiles": "/opt/actualbudget-data/server-files",
+  "userFiles": "/opt/actualbudget-data/user-files",
+  "ACTUAL_UPLOAD_FILE_SIZE_LIMIT_MB": 20,
+  "ACTUAL_UPLOAD_SYNC_ENCRYPTED_FILE_SYNC_SIZE_LIMIT_MB": 50,
+  "ACTUAL_UPLOAD_FILE_SYNC_SIZE_LIMIT_MB": 20,
+  "trustedProxies": [
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    "127.0.0.1/32",
+    "::1/128",
+    "fc00::/7"
+  ],
+  "https": {
+    "key": "/opt/actualbudget/selfhost.key",
+    "cert": "/opt/actualbudget/selfhost.crt"
+  }
+}
+EOF
+cd /opt/actualbudget
 npm install --location=global @actual-app/sync-server
+$STD openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout selfhost.key -out selfhost.crt <<EOF
+US
+California
+San Francisco
+My Organization
+My Unit
+localhost
+myemail@example.com
+EOF
 echo "${RELEASE}" >"/opt/actualbudget_version.txt"
 msg_ok "Installed Actual Budget"
 
@@ -33,8 +70,7 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/opt/actualbudget
-EnvironmentFile=/opt/actualbudget-data/.env
-ExecStart=/usr/bin/yarn start:server
+ExecStart=/usr/bin/actual-server --config /opt/actualbudget/config.json
 Restart=always
 RestartSec=10
 
@@ -48,7 +84,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -rf /opt/v${RELEASE}.tar.gz
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
