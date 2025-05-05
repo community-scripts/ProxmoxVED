@@ -56,7 +56,7 @@ function update_script() {
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
   exit
-}  RELEASE=$(curl -fsSL https://api.github.com/repos/CrazyWolf13/streamlink-webui/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+}
 
 start
 build_container
