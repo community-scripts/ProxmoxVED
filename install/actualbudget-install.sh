@@ -45,6 +45,7 @@ cat <<EOF >/opt/actualbudget-data/config.json
   }
 }
 EOF
+mkdir -p /opt/actualbudget
 cd /opt/actualbudget
 npm install --location=global @actual-app/sync-server
 $STD openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout selfhost.key -out selfhost.crt <<EOF
@@ -67,8 +68,6 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
-Group=root
 WorkingDirectory=/opt/actualbudget
 ExecStart=/usr/bin/actual-server --config /opt/actualbudget/config.json
 Restart=always
