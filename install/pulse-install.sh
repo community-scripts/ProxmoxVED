@@ -18,11 +18,9 @@ APP="Pulse"
 APP_DIR="/opt/pulse-proxmox"
 PULSE_USER="pulse"
 SERVICE_NAME="pulse-monitor.service"
-NODE_MAJOR_VERSION=20
-REPO_URL="https://github.com/rcourtman/Pulse.git"
 
-msg_info "Creating dedicated user '${PULSE_USER}'..."
-if id "$PULSE_USER" &>/dev/null; then
+msg_info "Creating dedicated user pulse..."
+if id pulse &>/dev/null; then
   msg_warning "User '${PULSE_USER}' already exists. Skipping creation."
 else
   useradd -r -m -d /opt/pulse-home -s /bin/bash "$PULSE_USER"
@@ -34,73 +32,25 @@ else
   fi
 fi
 
-msg_info "Installing Dependencies (git, curl, sudo, gpg, jq, diffutils)..."
+msg_info "Installing Dependencies"
 $STD apt-get install -y \
   git \
-  curl \
-  sudo \
-  gpg \
   jq \
   diffutils
 msg_ok "Installed Core Dependencies"
 
-msg_info "Setting up Node.js ${NODE_MAJOR_VERSION}.x repository..."
-KEYRING_DIR="/usr/share/keyrings"
-KEYRING_FILE="$KEYRING_DIR/nodesource.gpg"
-mkdir -p "$KEYRING_DIR"
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --yes --dearmor -o "$KEYRING_FILE"
-pipestatus=("${PIPESTATUS[@]}")
-if [ "${pipestatus[1]}" -ne 0 ]; then
-  msg_error "Failed to download NodeSource GPG key (gpg exited non-zero)."
-  exit 1
-fi
-if [ "${pipestatus[0]}" -ne 0 ]; then msg_warning "Curl failed to download GPG key (curl exited non-zero), but gpg seemed okay? Proceeding cautiously."; fi
-echo "deb [signed-by=$KEYRING_FILE] https://deb.nodesource.com/node_$NODE_MAJOR_VERSION.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list >/dev/null
-msg_info "Updating package list after adding NodeSource..."
-$STD apt-get update
-msg_info "Installing Node.js ${NODE_MAJOR_VERSION}.x..."
-$STD apt-get install -y nodejs
-msg_ok "Installed Node.js"
-msg_info "Node version: $(node -v)"
-msg_info "npm version: $(npm -v)"
+NODE_VERSION="20" NODE_MODULE="yarn@latest" install_node_and_modules
 
-msg_info "Cloning ${APP} repository..."
-$STD git clone "$REPO_URL" "$APP_DIR"
-cd "$APP_DIR" || {
-  msg_error "Failed to cd into $APP_DIR"
-  exit 1
-}
-msg_ok "Cloned ${APP} repository."
-
-msg_info "Fetching latest release tag..."
-LATEST_RELEASE=$(curl -s https://api.github.com/repos/rcourtman/Pulse/releases/latest | jq -r '.tag_name')
-pipestatus=("${PIPESTATUS[@]}")
-if [ "${pipestatus[0]}" -ne 0 ] || [ "${pipestatus[1]}" -ne 0 ] ||
-  [[ -z "$LATEST_RELEASE" ]] || [[ "$LATEST_RELEASE" == "null" ]]; then
-  msg_warning "Failed to fetch latest release tag. Proceeding with default branch."
-else
-  msg_info "Checking out latest release tag: ${LATEST_RELEASE}"
-  $STD git checkout "${LATEST_RELEASE}"
-  msg_ok "Checked out ${LATEST_RELEASE}."
-fi
-
-msg_info "Installing Node.js dependencies for ${APP}..."
+msg_info "Setup ${APP}"
+$STD git clone https://github.com/rcourtman/Pulse.git /opt/pulse-proxmox
+cd /opt/pulse-proxmox
 $STD npm install --unsafe-perm
-cd server || {
-  msg_error "Failed to cd into server directory."
-  exit 1
-}
+cd /opt/pulse-proxmox/server
 $STD npm install --unsafe-perm
-cd ..
-msg_ok "Installed Node.js dependencies."
-
-msg_info "Building CSS assets..."
+cd /opt/pulse-proxmox
 $STD npm run build:css
-msg_ok "Built CSS assets."
-
-msg_info "Configuring environment file..."
-ENV_EXAMPLE="${APP_DIR}/.env.example"
-ENV_FILE="${APP_DIR}/.env"
+ENV_EXAMPLE="/opt/pulse-proxmox/.env.example"
+ENV_FILE="${/opt/pulse-proxmox}/.env"
 if [ -f "$ENV_EXAMPLE" ]; then
   if [ ! -s "$ENV_FILE" ]; then
     cp "$ENV_EXAMPLE" "$ENV_FILE"
@@ -119,10 +69,10 @@ else
   msg_warning "${ENV_EXAMPLE} not found. Skipping environment configuration."
 fi
 
-msg_info "Setting permissions for ${APP_DIR}..."
-chown -R ${PULSE_USER}:${PULSE_USER} "${APP_DIR}"
-find "${APP_DIR}" -type d -exec chmod 755 {} \;
-find "${APP_DIR}" -type f -exec chmod 644 {} \;
+msg_info "Setting permissions for /opt/pulse-proxmox..."
+chown -R ${PULSE_USER}:${PULSE_USER} "/opt/pulse-proxmox"
+find "/opt/pulse-proxmox" -type d -exec chmod 755 {} \;
+find "/opt/pulse-proxmox" -type f -exec chmod 644 {} \;
 chmod 600 "$ENV_FILE"
 msg_ok "Set permissions."
 
@@ -131,21 +81,19 @@ VERSION_TO_SAVE="${LATEST_RELEASE:-$(git rev-parse --short HEAD)}"
 echo "${VERSION_TO_SAVE}" >/opt/${APP}_version.txt
 msg_ok "Saved version info (${VERSION_TO_SAVE})."
 
-msg_info "Creating systemd service for ${APP}..."
-NODE_PATH=$(command -v node)
-NPM_PATH=$(command -v npm)
-cat <<EOF >/etc/systemd/system/${SERVICE_NAME}
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/pulse-monitor.service
 [Unit]
-Description=${APP} Monitoring Application
+Description=Pulse Monitoring Application
 After=network.target
 
 [Service]
 Type=simple
-User=${PULSE_USER}
-Group=${PULSE_USER}
-WorkingDirectory=${APP_DIR}
-EnvironmentFile=${APP_DIR}/.env
-ExecStart=${NODE_PATH} ${NPM_PATH} run start
+User=pulse
+Group=pulse
+WorkingDirectory=/opt/pulse-proxmox
+EnvironmentFile=/opt/pulse-proxmox/.env
+ExecStart=/usr/bin/npm run start
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
@@ -154,8 +102,8 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now ${SERVICE_NAME}
-msg_ok "Created and enabled systemd service."
+systemctl enable -q --now pulse-monitor.service
+msg_ok "Created Service"
 
 motd_ssh
 customize
@@ -164,5 +112,3 @@ msg_info "Cleaning up apt cache..."
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned up."
-
-touch /opt/pulse_install_complete
