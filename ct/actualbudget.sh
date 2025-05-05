@@ -28,6 +28,8 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+  NODE_VERSION="22"
+  install_node_and_modules
   RELEASE=$(curl -fsSL https://api.github.com/repos/actualbudget/actual/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ -f /opt/actualbudget-data/config.json ]]; then
     if [[ ! -f /opt/actualbudget_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/actualbudget_version.txt)" ]]; then
@@ -36,8 +38,6 @@ function update_script() {
       msg_ok "${APP} Stopped"
 
       msg_info "Updating ${APP} to ${RELEASE}"
-      NODE_VERSION="22"
-      install_node_and_modules
       $STD npm update -g @actual-app/sync-server
       echo "${RELEASE}" >/opt/actualbudget_version.txt
       msg_ok "Updated ${APP} to ${RELEASE}"
@@ -49,8 +49,6 @@ function update_script() {
   else
     msg_info "Performing full migration to npm-based version (${RELEASE})"
     systemctl stop actualbudget
-    NODE_VERSION="22"
-    install_node_and_modules
     rm -rf /opt/actualbudget
     rm -rf /opt/actualbudget_bak
     mkdir -p /opt/actualbudget
