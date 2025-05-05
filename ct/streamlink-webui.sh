@@ -37,9 +37,6 @@ function update_script() {
     systemctl stop ${APP}
     msg_ok "Stopped $APP"
 
-    msg_info "Creating Backup"
-    msg_ok "Backup Created"
-
     msg_info "Updating $APP to v${RELEASE}"
     rm -rf /opt/${APP}
     fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
