@@ -28,9 +28,6 @@ cat <<EOF >/opt/actualbudget-data/config.json
   "hostname": "::",
   "serverFiles": "/opt/actualbudget-data/server-files",
   "userFiles": "/opt/actualbudget-data/user-files",
-  "ACTUAL_UPLOAD_FILE_SIZE_LIMIT_MB": 20,
-  "ACTUAL_UPLOAD_SYNC_ENCRYPTED_FILE_SYNC_SIZE_LIMIT_MB": 50,
-  "ACTUAL_UPLOAD_FILE_SYNC_SIZE_LIMIT_MB": 20,
   "trustedProxies": [
     "10.0.0.0/8",
     "172.16.0.0/12",
@@ -45,6 +42,7 @@ cat <<EOF >/opt/actualbudget-data/config.json
   }
 }
 EOF
+
 mkdir -p /opt/actualbudget
 cd /opt/actualbudget
 npm install --location=global @actual-app/sync-server
@@ -68,8 +66,13 @@ After=network.target
 
 [Service]
 Type=simple
+User=root
+Group=root
 WorkingDirectory=/opt/actualbudget
-ExecStart=/usr/bin/actual-server --config /opt/actualbudget/config.json
+Environment=ACTUAL_UPLOAD_FILE_SIZE_LIMIT_MB=20
+Environment=ACTUAL_UPLOAD_SYNC_ENCRYPTED_FILE_SYNC_SIZE_LIMIT_MB=50
+Environment=ACTUAL_UPLOAD_FILE_SYNC_SIZE_LIMIT_MB=20
+ExecStart=/usr/local/bin/actual-server --config /opt/actualbudget-data/config.json
 Restart=always
 RestartSec=10
 
