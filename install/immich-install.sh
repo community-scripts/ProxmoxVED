@@ -113,15 +113,17 @@ msg_info "Setting up Postgresql Database"
 curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
 echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt/sources.list.d/pgdg.list
 $STD apt-get update
-$STD apt-get install -y postgresql-17
-curl -fsSLO https://github.com/tensorchord/pgvecto.rs/releases/download/v0.4.0/vectors-pg17_0.4.0_amd64.deb
-$STD dpkg -i vectors-pg17_0.4.0_amd64.deb
-rm vectors-pg17_0.4.0_amd64.deb
+$STD apt-get install -y postgresql-16
+# PSQL_RELEASE=$(curl -fsSL https://api.github.com/repos/tensorchord/pgvecto.rs/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+curl -fsSLO https://github.com/tensorchord/pgvecto.rs/releases/download/v0.3.0/vectors-pg16_0.3.0_amd64.deb
+$STD dpkg -i vectors-pg16_0.3.0_amd64.deb
+rm vectors-pg16_0.3.0_amd64.deb
+# echo "$PSQL_RELEASE" >~/.pgvectors_version.txt
 DB_NAME="immich"
 DB_USER="immich"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c18)
 sed -i -e "/^#shared_preload/s/^#//;/^shared_preload/s/''/'vectors.so'/" \
-  -e "/^#search_path/s/^#//;/^search_path/s/public'/public, vectors'/" /etc/postgresql/17/main/postgresql.conf
+  -e "/^#search_path/s/^#//;/^search_path/s/public'/public, vectors'/" /etc/postgresql/16/main/postgresql.conf
 systemctl restart postgresql.service
 $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
