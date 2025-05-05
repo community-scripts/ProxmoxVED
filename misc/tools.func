@@ -389,7 +389,7 @@ install_go() {
 }
 
 install_java() {
-  local JAVA_VERSION="${JAVA_VERSION:-17}"
+  local JAVA_VERSION="${JAVA_VERSION:-21}"
   local DISTRO_CODENAME
   DISTRO_CODENAME=$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)
   local DESIRED_PACKAGE="temurin-${JAVA_VERSION}-jdk"
