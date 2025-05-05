@@ -55,6 +55,8 @@ function update_script() {
   else
     msg_info "Performing full migration to npm-based version (${RELEASE})"
     systemctl stop actualbudget
+    NODE_VERSION="22"
+    install_node_and_modules
     rm -rf /opt/actualbudget
     rm -rf /opt/actualbudget_bak
     mkdir -p /opt/actualbudget
