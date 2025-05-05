@@ -23,7 +23,7 @@ msg_info "Setup ${APPLICATION}"
 fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
 $STD uv venv /opt/"${APPLICATION}"/backend/src/.venv
 source /opt/"${APPLICATION}"/backend/src/.venv/bin/activate
-$STD uv sync --all-extras
+$STD uv pip install -r /opt/streamlink-webui/backend/src/requirements.txt --python=/opt/"${APPLICATION}"/backend/src/.venv
 $STD pip install -r requirements.txt
 cd ../../frontend/src
 $STD yarn build
