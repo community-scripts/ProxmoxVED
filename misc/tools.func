@@ -55,10 +55,16 @@ install_node_and_modules() {
     IFS=',' read -ra MODULES <<<"$NODE_MODULE"
     for mod in "${MODULES[@]}"; do
       local MODULE_NAME MODULE_REQ_VERSION MODULE_INSTALLED_VERSION
-      if [[ "$mod" == *"@"* ]]; then
+      if [[ "$mod" == @*/*@* ]]; then
+        # Scoped package with version, e.g. @vue/cli-service@latest
         MODULE_NAME="${mod%@*}"
-        MODULE_REQ_VERSION="${mod#*@}"
+        MODULE_REQ_VERSION="${mod##*@}"
+      elif [[ "$mod" == *"@"* ]]; then
+        # Unscoped package with version, e.g. yarn@latest
+        MODULE_NAME="${mod%@*}"
+        MODULE_REQ_VERSION="${mod##*@}"
       else
+        # No version specified
         MODULE_NAME="$mod"
         MODULE_REQ_VERSION="latest"
       fi
