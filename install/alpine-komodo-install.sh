@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apk add --no-cache ca-certificates
+$STD apk add --no-cache ca-certificates openssl
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Docker Repository"
