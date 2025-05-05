@@ -61,11 +61,6 @@ function update_script() {
     if [[ -f /opt/actualbudget/server-files/account.sqlite ]] && [[ ! -f /opt/actualbudget-data/server-files/account.sqlite ]]; then
       mv /opt/actualbudget/server-files/account.sqlite /opt/actualbudget-data/server-files/account.sqlite
     fi
-
-    if [[ -f /opt/actualbudget_bak/selfhost.key ]]; then
-      mv /opt/actualbudget_bak/selfhost.key /opt/actualbudget/selfhost.key
-      mv /opt/actualbudget_bak/selfhost.crt /opt/actualbudget/selfhost.crt
-    fi
     systemctl stop actualbudget
     rm -rf /opt/actualbudget
     rm -rf /opt/actualbudget_bak
