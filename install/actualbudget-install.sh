@@ -17,8 +17,8 @@ msg_info "Installing Actual Budget"
 cd /opt
 RELEASE=$(curl -fsSL https://api.github.com/repos/actualbudget/actual/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 NODE_VERSION="22"
-NODE_MODULE="--location=global @actual-app/sync-server"
 install_node_and_modules
+npm install --location=global @actual-app/sync-server
 echo "${RELEASE}" >"/opt/actualbudget_version.txt"
 msg_ok "Installed Actual Budget"
 
