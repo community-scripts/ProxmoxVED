@@ -15,7 +15,7 @@ network_check
 update_os
 
 NODE_VERSION="22"
-NODE_MODULE="npm@latest,yarn@latest,@vue/cli-service@latest"
+NODE_MODULE="npm@latest,yarn@latest,@vue/cli-service@latest,@vue/cli-plugin-babel@latest"
 install_node_and_modules
 setup_uv
 
