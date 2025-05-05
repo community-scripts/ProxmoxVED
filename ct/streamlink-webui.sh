@@ -43,8 +43,8 @@ function update_script() {
     install_node_and_modules
     setup_uv
     fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
-    $STD uv venv /opt/**/backend/src/.venv
-    source /opt/**//backend/src/.venv/bin/activate
+    $STD uv venv /opt/"${APPLICATION}"/backend/src/.venv
+    source /opt/"${APPLICATION}"/backend/src/.venv/bin/activate
     $STD uv sync --all-extras
     $STD pip install -r requirements.txt
     cd ../../frontend/src
