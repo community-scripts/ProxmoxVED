@@ -130,7 +130,7 @@ jobs:
 
           cp ../ct/$script_name.sh ct/.
           cp ../install/$script_name-install.sh install/.
-          cp ../frontend/public/json/$script_name.json frontend/public/json/.
+          cp ../frontend/public/json/$script_name.json frontend/public/json/. || true
 
           sed -i 's|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)|' ct/$script_name.sh
           sed -i 's|# License: MIT \| https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE|# License: MIT \| https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE|' ct/$script_name.sh
