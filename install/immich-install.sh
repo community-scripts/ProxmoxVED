@@ -89,6 +89,7 @@ read -r -p "Install OpenVINO dependencies for Intel HW-accelerated machine-learn
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   msg_info "Installing OpenVINO dependencies"
   export intel_hw=1
+  touch ~/.openvino
   $STD apt-get -y install --no-install-recommends ocl-icd-libopencl1
   tmp_dir=$(mktemp -d)
   $STD pushd "$tmp_dir"
@@ -99,6 +100,7 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   $STD dpkg -i ./*.deb
   $STD popd
   rm -rf "$tmp_dir"
+  dpkg -l | grep "intel-opencl-icd" | awk '{print $3}' >~/.intel_version
   if [[ "$CTTYPE" == "0" ]]; then
     chgrp video /dev/dri
     chmod 755 /dev/dri
@@ -210,6 +212,7 @@ $STD cmake --build . -- -j"$(nproc)"
 $STD cmake --install .
 ldconfig /usr/local/lib
 $STD make clean
+echo "libjxl: $LIBJXL_REVISION" >~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/{build,third_party}
 
@@ -233,6 +236,7 @@ $STD cmake --preset=release-noplugins \
 $STD make install -j "$(nproc)"
 ldconfig /usr/local/lib
 $STD make clean
+echo "libheif: $LIBHEIF_REVISION" >>~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/build
 
@@ -247,6 +251,7 @@ $STD make -j"$(nproc)"
 $STD make install
 ldconfig /usr/local/lib
 $STD make clean
+echo "libraw: $LIBRAW_REVISION" >>~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 
 SOURCE=$SOURCE_DIR/imagemagick
@@ -259,6 +264,7 @@ $STD make -j"$(nproc)"
 $STD make install
 ldconfig /usr/local/lib
 $STD make clean
+echo "imagemagick: $IMAGEMAGICK_REVISION" >>~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 
 SOURCE=$SOURCE_DIR/libvips
@@ -270,6 +276,7 @@ $STD meson setup build --buildtype=release --libdir=lib -Dintrospection=disabled
 cd build || exit
 $STD ninja install
 ldconfig /usr/local/lib
+echo "libvips: $LIBVIPS_REVISION" >>~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/build
 msg_ok "Custom Photo-processing Library Compiled"
