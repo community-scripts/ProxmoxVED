@@ -33,6 +33,7 @@ function update_script() {
   sed -i '/@edge/d' /etc/apk/repositories
   $STD apk update
   msg_ok "Disabled edge repository"
+  exit
 }
 
 start
