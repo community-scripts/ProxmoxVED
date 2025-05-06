@@ -4,9 +4,9 @@
   "categories": [
     10
   ],
-  "date_created": "2025-03-25",
+  "date_created": "2025-05-06",
   "type": "ct",
-  "updateable": false,
+  "updateable": true,
   "privileged": false,
   "interface_port": 3000,
   "documentation": "https://fumadocs.vercel.app/docs/ui",
@@ -19,9 +19,9 @@
       "type": "default",
       "script": "ct/fumadocs.sh",
       "resources": {
-        "cpu": 3,
+        "cpu": 2,
         "ram": 2048,
-        "hdd": 7,
+        "hdd": 5,
         "os": "Debian",
         "version": "12"
       }
