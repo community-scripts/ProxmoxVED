@@ -34,7 +34,7 @@ msg_info "Creating Service"
 cat <<'EOF' >/opt/"${APPLICATION}".env
 CLIENT_ID='your_client_id'
 CLIENT_SECRET='your_client_secret'
-DOWNLOAD_PATH=/opt/streamlink-webui-download'
+DOWNLOAD_PATH='/opt/streamlink-webui-download'
 # BASE_URL='https://sub.domain.com' \
 # REVERSE_PROXY=True \
 EOF
@@ -46,8 +46,8 @@ After=network.target
 
 [Service]
 EnvironmentFile=/opt/${APPLICATION}.env
-WorkingDirectory=/opt/${APPLICATION}
-ExecStart=source /opt/"${APPLICATION}"/backend/src/.venv/bin/activate && /opt/${APPLICATION}/start.sh
+WorkingDirectory=/opt/${APPLICATION}/backend/src
+ExecStart=/bin/bash -c 'source /opt/${APPLICATION}/backend/src/.venv/bin/activate && exec /opt/${APPLICATION}/start.sh'
 Restart=always
 
 [Install]
