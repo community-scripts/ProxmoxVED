@@ -32,10 +32,10 @@ unzip -q v${RELEASE}.zip
 mv babybuddy-${RELEASE} /opt/babybuddy
 rm "v${RELEASE}.zip"
 cd /opt/babybuddy
-python3 -m venv .venv
-source .venv/bin/activate
 pip install -U pip wheel pipenv
 export PIPENV_VENV_IN_PROJECT=1
+export PIPENV_IGNORE_VIRTUALENVS=1
+export PIPENV_VERBOSITY=-1
 pipenv install
 pipenv shell
 cp babybuddy/settings/production.example.py babybuddy/settings/production.py
