@@ -70,6 +70,8 @@ tar -xzf $tmp_file -C /opt
 mv /opt/librenms-${RELEASE} /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
+
+$STD pip3 install -r /opt/librenms/requirements.txt
 msg_ok "Setup Librenms"
 
 msg_info "Setup Composer"
@@ -138,7 +140,7 @@ mkdir -p /etc/bash_completion.d/
 cp /opt/librenms/misc/lnms-completion.bash /etc/bash_completion.d/
 cp /opt/librenms/snmpd.conf.example /etc/snmp/snmpd.conf
 
-RANDOM_STRING=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16)
+RANDOM_STRING=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9')
 sed -i "s/RANDOMSTRINGHERE/$RANDOM_STRING/g" /etc/snmp/snmpd.conf
 echo "SNMP Community String: $RANDOM_STRING" >>~/librenms.creds
 curl -qo /usr/bin/distro https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro
