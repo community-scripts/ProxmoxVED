@@ -74,7 +74,7 @@ jobs:
              echo "files_found=false" >> $GITHUB_OUTPUT
              echo "missing=$install_file" >> $GITHUB_OUTPUT
           fi
-          if [[ ! -f "$json_file" ]]; then
+          if [[ ! -f "$json_file" && "$json_file" != *alpine* ]]; then
              echo "json file not found."
              echo "files_found=false" >> $GITHUB_OUTPUT
              echo "missing=$json_file" >> $GITHUB_OUTPUT
