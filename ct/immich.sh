@@ -37,7 +37,7 @@ function update_script() {
     if [[ "$INTEL_RELEASE" != "$(cat ~/.intel_version)" ]]; then
       msg_info "Updating Intel iGPU dependencies"
       for url in "${INTEL_URLS[@]}"; do
-        curl -fsSLO "$url"
+        curl -fsSLO $url
       done
       $STD dpkg -i ./*.deb
       rm ./*.deb
