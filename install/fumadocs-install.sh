@@ -23,7 +23,7 @@ msg_info "Installing Fumadocs"
 export NODE_OPTIONS="--max-old-space-size=4096"
 mkdir -p /opt/fumadocs
 cd /opt/fumadocs
-$STD pnpm create fumadocs-app
+pnpm create fumadocs-app
 PROJECT_NAME=$(find . -maxdepth 1 -type d ! -name '.' ! -name '..' | sed 's|^\./||')
 echo "$PROJECT_NAME" >/opt/fumadocs/.projectname
 msg_ok "Installed Fumadocs"
