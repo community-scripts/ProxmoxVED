@@ -25,9 +25,39 @@ function update_script() {
   check_container_resources
 
   if [[ ! -d /opt/fumadocs ]]; then
-    msg_error "No Installation Found!"
-    exit
+    msg_error "No installation found in /opt/fumadocs!"
+    exit 1
   fi
+
+  if [[ ! -f /opt/fumadocs/.projectname ]]; then
+    msg_error "Project name file not found: /opt/fumadocs/.projectname!"
+    exit 1
+  fi
+
+  PROJECT_NAME=$(</opt/fumadocs/.projectname)
+  PROJECT_DIR="/opt/fumadocs/${PROJECT_NAME}"
+  SERVICE_NAME="fumadocs_${PROJECT_NAME}.service"
+
+  if [[ ! -d "$PROJECT_DIR" ]]; then
+    msg_error "Project directory does not exist: $PROJECT_DIR"
+    exit 1
+  fi
+
+  msg_info "Stopping service $SERVICE_NAME"
+  systemctl stop "$SERVICE_NAME"
+  msg_ok "Stopped service $SERVICE_NAME"
+
+  msg_info "Updating dependencies using pnpm"
+  cd "$PROJECT_DIR"
+  $STD pnpm up --latest
+  $STD pnpm build
+  msg_ok "Updated dependencies using pnpm"
+
+  msg_info "Starting service $SERVICE_NAME"
+  systemctl start "$SERVICE_NAME"
+  msg_ok "Started service $SERVICE_NAME"
+
+  msg_ok "Fumadocs successfully updated"
 }
 
 start

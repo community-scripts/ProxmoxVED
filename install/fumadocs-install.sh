@@ -24,10 +24,11 @@ export NODE_OPTIONS="--max-old-space-size=4096"
 mkdir -p /opt/fumadocs
 cd /opt/fumadocs
 $STD pnpm create fumadocs-app
+PROJECT_NAME=$(find . -maxdepth 1 -type d ! -name '.' ! -name '..' | sed 's|^\./||')
+echo "$PROJECT_NAME" >/opt/fumadocs/.projectname
 msg_ok "Installed Fumadocs"
 
 msg_info "Creating Service"
-PROJECT_NAME=$(find . -maxdepth 1 -type d ! -name '.' ! -name '..' | sed 's|^\./||')
 cat <<EOF >/etc/systemd/system/fumadocs_$PROJECT_NAME.service
 [Unit]
 Description=Fumadocs Documentation Server
