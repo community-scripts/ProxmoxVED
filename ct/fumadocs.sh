@@ -20,14 +20,14 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
+  header_info
+  check_container_storage
+  check_container_resources
 
-    if [[ ! -d /opt/fumadocs ]]; then
-        msg_error "No Installation Found!"
-        exit
-    fi
+  if [[ ! -d /opt/fumadocs ]]; then
+    msg_error "No Installation Found!"
+    exit
+  fi
 }
 
 start
@@ -37,4 +37,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}meilisearch: http://${IP}:5050${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"
