@@ -21,7 +21,8 @@ $STD apt-get install -y \
   libopenjp2-7-dev \
   libpq-dev \
   nginx \
-  python3-venv
+  python3-venv \
+  python3-pip
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Babybuddy"
