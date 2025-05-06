@@ -86,11 +86,6 @@ setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/li
 chmod -R ug=rwX /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 msg_ok "Setup Composer"
 
-msg_info "Setup PHP"
-sed -i 's/;date.timezone =/date.timezone = UTC/' /etc/php/8.2/cli/php.ini
-sed -i 's/;date.timezone =/date.timezone = UTC/' /etc/php/8.2/fpm/php.ini
-msg_ok "Setup PHP"
-
 msg_info "Setup MariaDB"
 sed -i '/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0' /etc/mysql/mariadb.conf.d/50-server.cnf
 systemctl enable -q --now mariadb
