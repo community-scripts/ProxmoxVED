@@ -27,7 +27,237 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_error "Currently we don't provide an update function for ${APP}."
+  STAGING_DIR=/opt/staging
+  BASE_DIR=${STAGING_DIR}/base-images
+  SOURCE_DIR=${STAGING_DIR}/image-source
+  if [[ -f ~/.intel_version ]]; then
+    curl -fsSLO https://raw.githubusercontent.com/immich-app/immich/refs/heads/main/machine-learning/Dockerfile
+    readarray INTEL_URLS <<<"$(sed -n "/intel/p" ./Dockerfile | awk '{print $3}')"
+    INTEL_RELEASE="$(grep "intel-opencl-icd" ./Dockerfile | awk -F '_' '{print $2}')"
+    if [[ "$INTEL_RELEASE" != "$(cat ~/.intel_version)" ]]; then
+      msg_info "Updating Intel iGPU dependencies"
+      for url in "${INTEL_URLS[@]}"; do
+        curl -fsSLO "$url"
+      done
+      $STD dpkg -i ./*.deb
+      rm ./*.deb
+      msg_ok "Intel iGPU dependencies updated"
+    fi
+  fi
+  if [[ -f ~/.immich_library_revisions ]]; then
+    curl -fsSLO https://raw.githubusercontent.com/immich-app/base-images/refs/heads/main/server/bin/build-lock.json
+    jq -cr '.sources[].revision' ./build-lock.json >~/.new_revisions
+    readarray UPDATED_REVISIONS <<<"$(diff --unchanged-line-format= --old-line-format= --new-line-format='%L' ~/.immich_library_revisions ~/.new_revisions)"
+    if [[ "$(echo "$UPDATED_REVISIONS" | wc -w)" -gt 0 ]]; then
+      readarray NAMES <<<"$(for revision in "${UPDATED_REVISIONS[@]}"; do
+        jq -cr --arg jq_revision $revision '.sources[] | select(.revision == $jq_revision).name' ./build-lock.json
+      done)"
+      msg_info "Recompiling image-processing libraries (patience)"
+      rm -rf "$SOURCE_DIR"
+      mkdir -p "$SOURCE_DIR"
+      cd "$BASE_DIR"
+      $STD git pull
+      cd "$STAGING_DIR"
+      for name in "${NAMES[@]}"; do
+        if [[ "$name" == "libjxl" ]]; then
+          SOURCE=${SOURCE_DIR}/libjxl
+          JPEGLI_LIBJPEG_LIBRARY_SOVERSION="62"
+          JPEGLI_LIBJPEG_LIBRARY_VERSION="62.3.0"
+          : "${LIBJXL_REVISION:=$(jq -cr '.sources[] | select(.name == "libjxl").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          $STD git clone https://github.com/libjxl/libjxl.git "$SOURCE"
+          cd "$SOURCE" || exit
+          $STD git reset --hard "$LIBJXL_REVISION"
+          $STD git submodule update --init --recursive --depth 1 --recommend-shallow
+          $STD git apply "$BASE_DIR"/server/bin/patches/jpegli-empty-dht-marker.patch
+          $STD git apply "$BASE_DIR"/server/bin/patches/jpegli-icc-warning.patch
+          mkdir build
+          cd build || exit
+          $STD cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF \
+            -DJPEGXL_ENABLE_DOXYGEN=OFF \
+            -DJPEGXL_ENABLE_MANPAGES=OFF \
+            -DJPEGXL_ENABLE_PLUGIN_GIMP210=OFF \
+            -DJPEGXL_ENABLE_BENCHMARK=OFF \
+            -DJPEGXL_ENABLE_EXAMPLES=OFF \
+            -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
+            -DJPEGXL_FORCE_SYSTEM_HWY=ON \
+            -DJPEGXL_ENABLE_JPEGLI=ON \
+            -DJPEGXL_ENABLE_JPEGLI_LIBJPEG=ON \
+            -DJPEGXL_INSTALL_JPEGLI_LIBJPEG=ON \
+            -DJPEGXL_ENABLE_PLUGINS=ON \
+            -DJPEGLI_LIBJPEG_LIBRARY_SOVERSION="$JPEGLI_LIBJPEG_LIBRARY_SOVERSION" \
+            -DJPEGLI_LIBJPEG_LIBRARY_VERSION="$JPEGLI_LIBJPEG_LIBRARY_VERSION" \
+            -DLIBJPEG_TURBO_VERSION_NUMBER=2001005 \
+            ..
+          $STD cmake --build . -- -j"$(nproc)"
+          $STD cmake --install .
+          ldconfig /usr/local/lib
+          $STD make clean
+          cd "$STAGING_DIR" || exit
+          rm -rf "$SOURCE"/{build,third_party}
+        fi
+        if [[ "$name" == "libheif" ]]; then
+          SOURCE=${SOURCE_DIR}/libheif
+          : "${LIBHEIF_REVISION:=$(jq -cr '.sources[] | select(.name == "libheif").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          $STD git clone https://github.com/strukturag/libheif.git "$SOURCE"
+          cd "$SOURCE" || exit
+          $STD git reset --hard "$LIBHEIF_REVISION"
+          mkdir build
+          cd build || exit
+          $STD cmake --preset=release-noplugins \
+            -DWITH_DAV1D=ON \
+            -DENABLE_PARALLEL_TILE_DECODING=ON \
+            -DWITH_LIBSHARPYUV=ON \
+            -DWITH_LIBDE265=ON \
+            -DWITH_AOM_DECODER=OFF \
+            -DWITH_AOM_ENCODER=OFF \
+            -DWITH_X265=OFF \
+            -DWITH_EXAMPLES=OFF \
+            ..
+          $STD make install -j "$(nproc)"
+          ldconfig /usr/local/lib
+          $STD make clean
+          cd "$STAGING_DIR" || exit
+          rm -rf "$SOURCE"/build
+        fi
+        if [[ "$name" == "libraw" ]]; then
+          SOURCE=${SOURCE_DIR}/libraw
+          : "${LIBRAW_REVISION:=$(jq -cr '.sources[] | select(.name == "libraw").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          $STD git clone https://github.com/libraw/libraw.git "$SOURCE"
+          cd "$SOURCE" || exit
+          $STD git reset --hard "$LIBRAW_REVISION"
+          $STD autoreconf --install
+          $STD ./configure
+          $STD make -j"$(nproc)"
+          $STD make install
+          ldconfig /usr/local/lib
+          $STD make clean
+          cd "$STAGING_DIR" || exit
+        fi
+        if [[ "$name" == "imagemagick" ]]; then
+          SOURCE=$SOURCE_DIR/imagemagick
+          : "${IMAGEMAGICK_REVISION:=$(jq -cr '.sources[] | select(.name == "imagemagick").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          $STD git clone https://github.com/ImageMagick/ImageMagick.git "$SOURCE"
+          cd "$SOURCE" || exit
+          $STD git reset --hard "$IMAGEMAGICK_REVISION"
+          $STD ./configure --with-modules
+          $STD make -j"$(nproc)"
+          $STD make install
+          ldconfig /usr/local/lib
+          $STD make clean
+          cd "$STAGING_DIR" || exit
+        fi
+        if [[ "$name" == "libvips" ]]; then
+          SOURCE=$SOURCE_DIR/libvips
+          : "${LIBVIPS_REVISION:=$(jq -cr '.sources[] | select(.name == "libvips").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          $STD git clone https://github.com/libvips/libvips.git "$SOURCE"
+          cd "$SOURCE" || exit
+          $STD git reset --hard "$LIBVIPS_REVISION"
+          $STD meson setup build --buildtype=release --libdir=lib -Dintrospection=disabled -Dtiff=disabled
+          cd build || exit
+          $STD ninja install
+          ldconfig /usr/local/lib
+          cd "$STAGING_DIR" || exit
+          rm -rf "$SOURCE"/build
+        fi
+      done
+      mv ~/.new_revisions ~/.immich_library_revisions
+      msg_done "Image-processing libraries compiled"
+    fi
+  fi
+  RELEASE=$(curl -s https://api.github.com/repos/immich-app/immich/releases?per_page=1 | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
+    msg_info "Stopping ${APP} services"
+    systemctl stop immich-web
+    systemctl stop immich-ml
+    msg_ok "Stopped {$APP}"
+    INSTALL_DIR="/opt/${APP}"
+    UPLOAD_DIR="${INSTALL_DIR}/upload"
+    SRC_DIR="${INSTALL_DIR}/source"
+    APP_DIR="${INSTALL_DIR}/app"
+    ML_DIR="${APP_DIR}/machine-learning"
+    GEO_DIR="${INSTALL_DIR}/geodata"
+    rm -rf "${APP_DIR:?}"/*
+    rm -rf "$SRC_DIR"
+    immich_zip=$(mktemp)
+    curl -fsSL "https://github.com/immich-app/immich/archive/refs/tags/v${RELEASE}.zip" -o "$immich_zip"
+    msg_info "Updating ${APP} web and microservices"
+    unzip -q "$immich_zip"
+    mv "$APP-$RELEASE"/ "$SRC_DIR"
+    mkdir -p "$ML_DIR"
+    cd "$SRC_DIR"/server || exit
+    $STD npm install -g node-gyp node-pre-gyp
+    $STD npm ci
+    $STD npm run build
+    $STD npm prune --omit=dev --omit=optional
+    cd "$SRC_DIR"/open-api/typescript-sdk || exit
+    $STD npm ci
+    $STD npm run build
+    cd "$SRC_DIR"/web || exit
+    $STD npm ci
+    $STD npm run build
+    cd "$SRC_DIR" || exit
+    cp -a server/{node_modules,dist,bin,resources,package.json,package-lock.json,start*.sh} "$APP_DIR"/
+    cp -a web/build "$APP_DIR"/www
+    cp LICENSE "$APP_DIR"
+    cp "$BASE_DIR"/server/bin/build-lock.json "$APP_DIR"
+    msg_ok "Updated ${APP} web and microservices"
+
+    cd "$SRC_DIR"/machine-learning || exit
+    if [[ -f ~/.openvino ]]; then
+      msg_info "Updating HW-accelerated machine-learning"
+      (
+        source "$ML_DIR"/ml-venv/bin/activate
+        $STD pip3 install -U uv
+        uv -q sync --extra openvino --no-cache --active
+      )
+      patchelf --clear-execstack "$ML_DIR"/ml-venv/lib/python3.11/site-packages/onnxruntime/capi/onnxruntime_pybind11_state.cpython-311-x86_64-linux-gnu.so
+      msg_ok "Updated HW-accelerated machine-learning"
+    else
+      msg_info "Updating machine-learning"
+      (
+        source "$ML_DIR"/ml-venv/bin/activate
+        $STD pip3 install -U uv
+        uv -q sync --extra cpu --no-cache --active
+      )
+      msg_ok "Updated machine-learning"
+    fi
+    cd "$SRC_DIR" || exit
+    cp -a machine-learning/{ann,immich_ml} "$ML_DIR"
+    if [[ -f ~/.openvino ]]; then
+      sed -i "/intra_op/s/int = 0/int = os.cpu_count() or 0/" "$ML_DIR"/immich_ml/config.py
+    fi
+    ln -sf "$APP_DIR"/resources "$INSTALL_DIR"
+    cd "$APP_DIR" || exit
+    grep -Rl /usr/src | xargs -n1 sed -i "s|\/usr/src|$INSTALL_DIR|g"
+    grep -RlE "'/build'" | xargs -n1 sed -i "s|'/build'|'$APP_DIR'|g"
+    sed -i "s@\"/cache\"@\"$INSTALL_DIR/cache\"@g" "$ML_DIR"/immich_ml/config.py
+    ln -s "$UPLOAD_DIR" "$APP_DIR"/upload
+    ln -s "$UPLOAD_DIR" "$ML_DIR"/upload
+
+    msg_info "Updating Immich CLI"
+    $STD npm install --build-from-source sharp
+    rm -rf "$APP_DIR"/node_modules/@img/sharp-{libvips*,linuxmusl-x64}
+    $STD npm i -g @immich/cli
+    msg_ok "Updated Immich CLI"
+
+    echo "$RELEASE" >/opt/"${APP}"_version.txt
+    msg_ok "Updated ${APP} to v${RELEASE}"
+
+    msg_info "Starting ${APP}" services
+    systemctl start immich-ml
+    systemctl start immich-web
+    msg_ok "Started ${APP}"
+
+    msg_info "Cleaning up"
+    rm -f "$immich_zip"
+    $STD apt-get -y autoremove
+    $STD apt-get -y autoclean
+    msg_ok "Cleaned"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+  fi
   exit
 }
 

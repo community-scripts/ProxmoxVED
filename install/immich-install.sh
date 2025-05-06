@@ -88,7 +88,6 @@ msg_ok "Dependencies Installed"
 read -r -p "Install OpenVINO dependencies for Intel HW-accelerated machine-learning? " prompt
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   msg_info "Installing OpenVINO dependencies"
-  export intel_hw=1
   touch ~/.openvino
   $STD apt-get -y install --no-install-recommends ocl-icd-libopencl1
   tmp_dir=$(mktemp -d)
@@ -174,7 +173,7 @@ STAGING_DIR=/opt/staging
 BASE_REPO="https://github.com/immich-app/base-images"
 BASE_DIR=${STAGING_DIR}/base-images
 SOURCE_DIR=${STAGING_DIR}/image-source
-$STD git clone -b main "$BASE_REPO" "$BASE_DIR" # TODO: convert this git clone into a TAG download
+$STD git clone -b main "$BASE_REPO" "$BASE_DIR"
 mkdir -p "$SOURCE_DIR"
 
 cd "$STAGING_DIR" || exit
@@ -212,7 +211,6 @@ $STD cmake --build . -- -j"$(nproc)"
 $STD cmake --install .
 ldconfig /usr/local/lib
 $STD make clean
-echo "libjxl: $LIBJXL_REVISION" >~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/{build,third_party}
 
@@ -236,7 +234,6 @@ $STD cmake --preset=release-noplugins \
 $STD make install -j "$(nproc)"
 ldconfig /usr/local/lib
 $STD make clean
-echo "libheif: $LIBHEIF_REVISION" >>~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/build
 
@@ -251,7 +248,6 @@ $STD make -j"$(nproc)"
 $STD make install
 ldconfig /usr/local/lib
 $STD make clean
-echo "libraw: $LIBRAW_REVISION" >>~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 
 SOURCE=$SOURCE_DIR/imagemagick
@@ -264,7 +260,6 @@ $STD make -j"$(nproc)"
 $STD make install
 ldconfig /usr/local/lib
 $STD make clean
-echo "imagemagick: $IMAGEMAGICK_REVISION" >>~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 
 SOURCE=$SOURCE_DIR/libvips
@@ -276,9 +271,15 @@ $STD meson setup build --buildtype=release --libdir=lib -Dintrospection=disabled
 cd build || exit
 $STD ninja install
 ldconfig /usr/local/lib
-echo "libvips: $LIBVIPS_REVISION" >>~/.immich_library_revisions
 cd "$STAGING_DIR" || exit
 rm -rf "$SOURCE"/build
+{
+  echo "$IMAGEMAGICK_REVISION"
+  echo "$LIBHEIF_REVISION"
+  echo "$LIBJXL_REVISION"
+  echo "$LIBRAW_REVISION"
+  echo "$LIBVIPS_REVISION"
+} >~/.immich_library_revisions
 msg_ok "Custom Photo-processing Library Compiled"
 
 msg_info "Installing ${APPLICATION} (more patience please)"
@@ -316,11 +317,10 @@ msg_ok "Installed Immich Web Components"
 
 cd "$SRC_DIR"/machine-learning || exit
 $STD python3 -m venv "$ML_DIR/ml-venv"
-if [[ "$intel_hw" = 1 ]]; then
+if [[ -f ~/.openvino ]]; then
   msg_info "Installing HW-accelerated machine-learning"
   (
     source "$ML_DIR"/ml-venv/bin/activate
-    # $STD uv sync --extra openvino --active
     $STD pip3 install uv
     uv -q sync --extra openvino --no-cache --active
   )
