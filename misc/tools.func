@@ -108,10 +108,11 @@ install_postgresql() {
 
   if command -v psql >/dev/null; then
     CURRENT_PG_VERSION="$(psql -V | grep -oP '\s\K[0-9]+(?=\.)')"
-    if [[ "$CURRENT_PG_VERSION" != "$PG_VERSION" ]]; then
-      msg_info "PostgreSQL Version $CURRENT_PG_VERSION found, replacing with $PG_VERSION"
-      NEED_PG_INSTALL=true
+    if [[ "$CURRENT_PG_VERSION" == "$PG_VERSION" ]]; then
+      msg_ok "PostgreSQL $PG_VERSION is already installed"
     fi
+    msg_info "Found PostgreSQL version $CURRENT_PG_VERSION, upgrading to $PG_VERSION"
+    NEED_PG_INSTALL=true
   else
     msg_info "PostgreSQL not found, installing version $PG_VERSION"
     NEED_PG_INSTALL=true
@@ -121,11 +122,10 @@ install_postgresql() {
     msg_info "Stopping PostgreSQL if running"
     systemctl stop postgresql >/dev/null 2>&1 || true
 
-    msg_info "Removing conflicting PostgreSQL packages"
-    $STD apt-get purge -y "postgresql*"
+    msg_info "Removing pgdg repo and old GPG keys"
     rm -f /etc/apt/sources.list.d/pgdg.list /etc/apt/trusted.gpg.d/postgresql.gpg
 
-    msg_info "Setting up PostgreSQL Repository"
+    msg_info "Setting up PostgreSQL repository"
     curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc |
       gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
 
@@ -133,7 +133,7 @@ install_postgresql() {
       >/etc/apt/sources.list.d/pgdg.list
 
     $STD apt-get update
-    $STD apt-get install -y "postgresql-${PG_VERSION}"
+    $STD apt-get install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}"
 
     msg_ok "Installed PostgreSQL ${PG_VERSION}"
   fi
