@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -34,6 +34,7 @@ function update_script() {
     exit 1
   fi
 
+  NODE_VERSION="22" NODE_MODULE="pnpm@latest" install_node_and_modules
   PROJECT_NAME=$(</opt/fumadocs/.projectname)
   PROJECT_DIR="/opt/fumadocs/${PROJECT_NAME}"
   SERVICE_NAME="fumadocs_${PROJECT_NAME}.service"
