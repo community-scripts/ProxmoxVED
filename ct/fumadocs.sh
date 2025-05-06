@@ -59,6 +59,7 @@ function update_script() {
   msg_ok "Started service $SERVICE_NAME"
 
   msg_ok "Fumadocs successfully updated"
+  exit
 }
 
 start
