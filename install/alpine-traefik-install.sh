@@ -13,11 +13,8 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apk add newt
-$STD apk add curl
-$STD apk add openssh
-$STD apk add nano
-$STD apk add mc
+$STD apk add ca-certificates
+$STD update-ca-certificates
 msg_ok "Installed Dependencies"
 
 msg_info "Enabling edge repository for traefik"
@@ -29,8 +26,41 @@ msg_info "Installing Traefik"
 $STD apk add traefik@edge
 msg_ok "Installed Traefik"
 
+msg_info "Disabling edge repository"
 sed -i '/@edge/d' /etc/apk/repositories
 $STD apk update
+msg_ok "Disabled edge repository"
+
+read -p "Enable Traefik WebUI (Port 8080)? [y/N]: " enable_webui
+if [[ "$enable_webui" =~ ^[Yy]$ ]]; then
+  msg_info "Configuring Traefik WebUI"
+  mkdir -p /etc/traefik/config
+  cat <<EOF >/etc/traefik/traefik.yml
+entryPoints:
+  web:
+    address: ":80"
+  traefik:
+    address: ":8080"
+
+api:
+  dashboard: true
+  insecure: true
+
+log:
+  level: INFO
+
+providers:
+  file:
+    directory: /etc/traefik/config
+    watch: true
+EOF
+  msg_ok "Configured Traefik WebUI"
+fi
+
+msg_info "Enabling and starting Traefik service"
+rc-update add traefik default
+rc-service traefik start
+msg_ok "Traefik service started"
 
 motd_ssh
 customize
