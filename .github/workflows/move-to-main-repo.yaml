@@ -77,7 +77,7 @@ jobs:
           if [[ ! -f "$json_file" ]]; then
             if [[ "$json_file" = *alpine* ]]; then
               stripped_name="${json_file#alpine-}"
-              if [[ -f "$stripped_name" ]]; then
+              if [[ -f "frontend/public/json/$stripped_name" ]]; then
                 echo "files_found=true" >> $GITHUB_OUTPUT
               else
                 echo "json file not found."
