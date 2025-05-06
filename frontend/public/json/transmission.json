@@ -46,6 +46,10 @@
     {
       "type": "info",
       "text": "Script disables whitelisting by default. Change config to suit your needs."
+    },
+    {
+      "type": "info",
+      "text": "Alpine script sets initial disk size to 1GB. Please adjust for your needs after installation ends."
     }
   ]
 }
