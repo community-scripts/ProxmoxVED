@@ -29,6 +29,7 @@ function update_script() {
   msg_info "Enabling edge repository"
   echo "@edge https://dl-cdn.alpinelinux.org/alpine/edge/community" >>/etc/apk/repositories
   $STD apk update
+  msg_ok "Enabled edge repository"
 
   msg_info "Upgrading traefik from edge"
   $STD apk add --upgrade traefik@edge
