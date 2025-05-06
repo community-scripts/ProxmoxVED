@@ -297,30 +297,28 @@ get_header() {
 
   if [ ! -s "$local_header_path" ]; then
     if ! curl -fsSL "$header_url" -o "$local_header_path"; then
-      echo -e "Failed to download header for ${app_name}. No header will be displayed."
       return 1
     fi
   fi
 
-  cat "$local_header_path"
+  cat "$local_header_path" 2>/dev/null || true
 }
-
 # This function sets the APP-Name into an ASCII Header in Slant, figlet needed on proxmox main node.
 header_info() {
   local app_name=$(echo "${APP,,}" | tr -d ' ')
   local header_content
 
   # Download & save Header-File locally
-  header_content=$(get_header "$app_name")
-  if [ $? -ne 0 ]; then
-    # Fallback: Doesn't show Header
-    return 0
-  fi
+  header_content=$(get_header "$app_name") || header_content=""
 
   # Show ASCII-Header
-  term_width=$(tput cols 2>/dev/null || echo 120)
   clear
-  echo "$header_content"
+  local term_width
+  term_width=$(tput cols 2>/dev/null || echo 120)
+
+  if [ -n "$header_content" ]; then
+    echo "$header_content"
+  fi
 }
 
 # This function checks if the script is running through SSH and prompts the user to confirm if they want to proceed or exit.
