@@ -74,7 +74,17 @@ jobs:
              echo "files_found=false" >> $GITHUB_OUTPUT
              echo "missing=$install_file" >> $GITHUB_OUTPUT
           fi
-          if [[ ! -f "$json_file" && "$json_file" != *alpine* ]]; then
+          if [[ ! -f "$json_file" ]]; then
+            if [[ "$json_file" = *alpine* ]]; then
+              stripped_name="${json_file#alpine-}"
+              if [[ -f "$stripped_name" ]]; then
+                echo "files_found=true" >> $GITHUB_OUTPUT
+              else
+                echo "json file not found."
+                echo "files_found=false" >> $GITHUB_OUTPUT
+                echo "missing=$json_file" >> $GITHUB_OUTPUT
+              fi
+            else
              echo "json file not found."
              echo "files_found=false" >> $GITHUB_OUTPUT
              echo "missing=$json_file" >> $GITHUB_OUTPUT
@@ -130,7 +140,18 @@ jobs:
 
           cp ../ct/$script_name.sh ct/.
           cp ../install/$script_name-install.sh install/.
-          cp ../frontend/public/json/$script_name.json frontend/public/json/. || true
+
+          json_file="${script_name}.json"
+
+          if [[ ! -f "../frontend/public/json/$json_file" ]]; then
+            if [[ "$json_file" = *alpine* ]]; then
+              stripped_name="${json_file#alpine-}"
+              if [[ -f "../frontend/public/json/$stripped_name" ]]; then
+                cp ../frontend/public/json/$stripped_name frontend/public/json/. || true
+              fi
+          else
+            cp ../frontend/public/json/$json_name frontend/public/json/. || true
+          fi
 
           sed -i 's|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)|' ct/$script_name.sh
           sed -i 's|# License: MIT \| https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE|# License: MIT \| https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE|' ct/$script_name.sh
