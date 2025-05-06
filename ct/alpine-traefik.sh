@@ -21,13 +21,18 @@ catch_errors
 
 function update_script() {
   header_info
+  msg_info "Updating Alpine Packages"
+  $STD apk update
+  $STD apk upgrade
+  msg_ok "Updated Alpine Packages"
+
   msg_info "Enabling edge repository"
   echo "@edge https://dl-cdn.alpinelinux.org/alpine/edge/community" >>/etc/apk/repositories
   $STD apk update
 
-  msg_info "Running full system upgrade"
-  $STD apk upgrade
-  msg_ok "System upgraded"
+  msg_info "Upgrading traefik from edge"
+  $STD apk add --upgrade traefik@edge
+  msg_ok "Upgraded traefik"
 
   msg_info "Disabling edge repository"
   sed -i '/@edge/d' /etc/apk/repositories
