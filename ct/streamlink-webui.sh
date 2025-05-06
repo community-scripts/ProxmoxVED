@@ -35,13 +35,14 @@ function update_script() {
     systemctl stop ${APP}
     msg_ok "Stopped $APP"
 
-    msg_info "Updating $APP to v${RELEASE}"
     rm -rf /opt/${APP}
     NODE_VERSION="22"
     NODE_MODULE="npm@latest,yarn@latest"
     install_node_and_modules
     setup_uv
     fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
+
+    msg_info "Updating $APP to v${RELEASE}"
     $STD uv venv /opt/"${APPLICATION}"/backend/src/.venv
     source /opt/"${APPLICATION}"/backend/src/.venv/bin/activate
     $STD uv pip install -r /opt/streamlink-webui/backend/src/requirements.txt --python=/opt/"${APPLICATION}"/backend/src/.venv
