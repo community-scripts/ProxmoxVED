@@ -151,6 +151,7 @@ jobs:
               if [[ -f "../frontend/public/json/$stripped_name" ]]; then
                 cp ../frontend/public/json/$stripped_name frontend/public/json/. || true
               fi
+            fi
           else
             cp ../frontend/public/json/$json_name frontend/public/json/. || true
           fi
