@@ -21,17 +21,18 @@ catch_errors
 
 function update_script() {
   header_info
-  check_container_storage
-  check_container_resources
-  UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUPPORT" --radiolist --cancel-button Exit-Script "Spacebar = Select" 11 58 1 \
-    "1" "Check for Alpine Updates" ON \
-    3>&1 1>&2 2>&3)
+  msg_info "Enabling edge repository"
+  echo "@edge https://dl-cdn.alpinelinux.org/alpine/edge/community" >>/etc/apk/repositories
+  $STD apk update
 
-  header_info
-  if [ "$UPD" == "1" ]; then
-    apk update && apk upgrade
-    exit
-  fi
+  msg_info "Running full system upgrade"
+  $STD apk upgrade
+  msg_ok "System upgraded"
+
+  msg_info "Disabling edge repository"
+  sed -i '/@edge/d' /etc/apk/repositories
+  $STD apk update
+  msg_ok "Disabled edge repository"
 }
 
 start
