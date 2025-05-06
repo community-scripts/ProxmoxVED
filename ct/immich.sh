@@ -32,7 +32,7 @@ function update_script() {
   SOURCE_DIR=${STAGING_DIR}/image-source
   if [[ -f ~/.intel_version ]]; then
     curl -fsSLO https://raw.githubusercontent.com/immich-app/immich/refs/heads/main/machine-learning/Dockerfile
-    readarray INTEL_URLS <<<"$(sed -n "/intel/p" ./Dockerfile | awk '{print $3}')"
+    readarray -t INTEL_URLS <<<"$(sed -n "/intel/p" ./Dockerfile | awk '{print $3}')"
     INTEL_RELEASE="$(grep "intel-opencl-icd" ./Dockerfile | awk -F '_' '{print $2}')"
     if [[ "$INTEL_RELEASE" != "$(cat ~/.intel_version)" ]]; then
       msg_info "Updating Intel iGPU dependencies"
@@ -43,13 +43,14 @@ function update_script() {
       rm ./*.deb
       msg_ok "Intel iGPU dependencies updated"
     fi
+    rm ~/Dockerfile
   fi
   if [[ -f ~/.immich_library_revisions ]]; then
     curl -fsSLO https://raw.githubusercontent.com/immich-app/base-images/refs/heads/main/server/bin/build-lock.json
     jq -cr '.sources[].revision' ./build-lock.json >~/.new_revisions
-    readarray UPDATED_REVISIONS <<<"$(diff --unchanged-line-format= --old-line-format= --new-line-format='%L' ~/.immich_library_revisions ~/.new_revisions)"
+    readarray -t UPDATED_REVISIONS <<<"$(diff --unchanged-line-format= --old-line-format= --new-line-format='%L' ~/.immich_library_revisions ~/.new_revisions)"
     if [[ "$(echo "$UPDATED_REVISIONS" | wc -w)" -gt 0 ]]; then
-      readarray NAMES <<<"$(for revision in "${UPDATED_REVISIONS[@]}"; do
+      readarray -t NAMES <<<"$(for revision in "${UPDATED_REVISIONS[@]}"; do
         jq -cr --arg jq_revision $revision '.sources[] | select(.revision == $jq_revision).name' ./build-lock.json
       done)"
       msg_info "Recompiling image-processing libraries (patience)"
@@ -65,13 +66,13 @@ function update_script() {
           JPEGLI_LIBJPEG_LIBRARY_VERSION="62.3.0"
           : "${LIBJXL_REVISION:=$(jq -cr '.sources[] | select(.name == "libjxl").revision' $BASE_DIR/server/bin/build-lock.json)}"
           $STD git clone https://github.com/libjxl/libjxl.git "$SOURCE"
-          cd "$SOURCE" || exit
+          cd "$SOURCE"
           $STD git reset --hard "$LIBJXL_REVISION"
           $STD git submodule update --init --recursive --depth 1 --recommend-shallow
           $STD git apply "$BASE_DIR"/server/bin/patches/jpegli-empty-dht-marker.patch
           $STD git apply "$BASE_DIR"/server/bin/patches/jpegli-icc-warning.patch
           mkdir build
-          cd build || exit
+          cd build
           $STD cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=OFF \
@@ -94,17 +95,17 @@ function update_script() {
           $STD cmake --install .
           ldconfig /usr/local/lib
           $STD make clean
-          cd "$STAGING_DIR" || exit
+          cd "$STAGING_DIR"
           rm -rf "$SOURCE"/{build,third_party}
         fi
         if [[ "$name" == "libheif" ]]; then
           SOURCE=${SOURCE_DIR}/libheif
           : "${LIBHEIF_REVISION:=$(jq -cr '.sources[] | select(.name == "libheif").revision' $BASE_DIR/server/bin/build-lock.json)}"
           $STD git clone https://github.com/strukturag/libheif.git "$SOURCE"
-          cd "$SOURCE" || exit
+          cd "$SOURCE"
           $STD git reset --hard "$LIBHEIF_REVISION"
           mkdir build
-          cd build || exit
+          cd build
           $STD cmake --preset=release-noplugins \
             -DWITH_DAV1D=ON \
             -DENABLE_PARALLEL_TILE_DECODING=ON \
@@ -118,14 +119,14 @@ function update_script() {
           $STD make install -j "$(nproc)"
           ldconfig /usr/local/lib
           $STD make clean
-          cd "$STAGING_DIR" || exit
+          cd "$STAGING_DIR"
           rm -rf "$SOURCE"/build
         fi
         if [[ "$name" == "libraw" ]]; then
           SOURCE=${SOURCE_DIR}/libraw
           : "${LIBRAW_REVISION:=$(jq -cr '.sources[] | select(.name == "libraw").revision' $BASE_DIR/server/bin/build-lock.json)}"
           $STD git clone https://github.com/libraw/libraw.git "$SOURCE"
-          cd "$SOURCE" || exit
+          cd "$SOURCE"
           $STD git reset --hard "$LIBRAW_REVISION"
           $STD autoreconf --install
           $STD ./configure
@@ -133,37 +134,38 @@ function update_script() {
           $STD make install
           ldconfig /usr/local/lib
           $STD make clean
-          cd "$STAGING_DIR" || exit
+          cd "$STAGING_DIR"
         fi
         if [[ "$name" == "imagemagick" ]]; then
           SOURCE=$SOURCE_DIR/imagemagick
           : "${IMAGEMAGICK_REVISION:=$(jq -cr '.sources[] | select(.name == "imagemagick").revision' $BASE_DIR/server/bin/build-lock.json)}"
           $STD git clone https://github.com/ImageMagick/ImageMagick.git "$SOURCE"
-          cd "$SOURCE" || exit
+          cd "$SOURCE"
           $STD git reset --hard "$IMAGEMAGICK_REVISION"
           $STD ./configure --with-modules
           $STD make -j"$(nproc)"
           $STD make install
           ldconfig /usr/local/lib
           $STD make clean
-          cd "$STAGING_DIR" || exit
+          cd "$STAGING_DIR"
         fi
         if [[ "$name" == "libvips" ]]; then
           SOURCE=$SOURCE_DIR/libvips
           : "${LIBVIPS_REVISION:=$(jq -cr '.sources[] | select(.name == "libvips").revision' $BASE_DIR/server/bin/build-lock.json)}"
           $STD git clone https://github.com/libvips/libvips.git "$SOURCE"
-          cd "$SOURCE" || exit
+          cd "$SOURCE"
           $STD git reset --hard "$LIBVIPS_REVISION"
           $STD meson setup build --buildtype=release --libdir=lib -Dintrospection=disabled -Dtiff=disabled
-          cd build || exit
+          cd build
           $STD ninja install
           ldconfig /usr/local/lib
-          cd "$STAGING_DIR" || exit
+          cd "$STAGING_DIR"
           rm -rf "$SOURCE"/build
         fi
       done
       mv ~/.new_revisions ~/.immich_library_revisions
-      msg_done "Image-processing libraries compiled"
+      rm ~/build-lock.json
+      msg_ok "Image-processing libraries compiled"
     fi
   fi
   RELEASE=$(curl -s https://api.github.com/repos/immich-app/immich/releases?per_page=1 | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
@@ -177,7 +179,6 @@ function update_script() {
     SRC_DIR="${INSTALL_DIR}/source"
     APP_DIR="${INSTALL_DIR}/app"
     ML_DIR="${APP_DIR}/machine-learning"
-    GEO_DIR="${INSTALL_DIR}/geodata"
     rm -rf "${APP_DIR:?}"/*
     rm -rf "$SRC_DIR"
     immich_zip=$(mktemp)
@@ -186,25 +187,25 @@ function update_script() {
     unzip -q "$immich_zip"
     mv "$APP-$RELEASE"/ "$SRC_DIR"
     mkdir -p "$ML_DIR"
-    cd "$SRC_DIR"/server || exit
+    cd "$SRC_DIR"/server
     $STD npm install -g node-gyp node-pre-gyp
     $STD npm ci
     $STD npm run build
     $STD npm prune --omit=dev --omit=optional
-    cd "$SRC_DIR"/open-api/typescript-sdk || exit
+    cd "$SRC_DIR"/open-api/typescript-sdk
     $STD npm ci
     $STD npm run build
-    cd "$SRC_DIR"/web || exit
+    cd "$SRC_DIR"/web
     $STD npm ci
     $STD npm run build
-    cd "$SRC_DIR" || exit
+    cd "$SRC_DIR"
     cp -a server/{node_modules,dist,bin,resources,package.json,package-lock.json,start*.sh} "$APP_DIR"/
     cp -a web/build "$APP_DIR"/www
     cp LICENSE "$APP_DIR"
     cp "$BASE_DIR"/server/bin/build-lock.json "$APP_DIR"
     msg_ok "Updated ${APP} web and microservices"
 
-    cd "$SRC_DIR"/machine-learning || exit
+    cd "$SRC_DIR"/machine-learning
     if [[ -f ~/.openvino ]]; then
       msg_info "Updating HW-accelerated machine-learning"
       (
@@ -223,13 +224,13 @@ function update_script() {
       )
       msg_ok "Updated machine-learning"
     fi
-    cd "$SRC_DIR" || exit
+    cd "$SRC_DIR"
     cp -a machine-learning/{ann,immich_ml} "$ML_DIR"
     if [[ -f ~/.openvino ]]; then
       sed -i "/intra_op/s/int = 0/int = os.cpu_count() or 0/" "$ML_DIR"/immich_ml/config.py
     fi
     ln -sf "$APP_DIR"/resources "$INSTALL_DIR"
-    cd "$APP_DIR" || exit
+    cd "$APP_DIR"
     grep -Rl /usr/src | xargs -n1 sed -i "s|\/usr/src|$INSTALL_DIR|g"
     grep -RlE "'/build'" | xargs -n1 sed -i "s|'/build'|'$APP_DIR'|g"
     sed -i "s@\"/cache\"@\"$INSTALL_DIR/cache\"@g" "$ML_DIR"/immich_ml/config.py
