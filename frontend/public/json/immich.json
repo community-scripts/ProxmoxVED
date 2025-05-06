@@ -6,7 +6,7 @@
   ],
   "date_created": "2025-03-30",
   "type": "ct",
-  "updateable": false,
+  "updateable": true,
   "privileged": false,
   "interface_port": 2283,
   "documentation": "https://immich.app/docs/overview/introduction",
