@@ -402,11 +402,11 @@ echo_default() {
 }
 
 # This function is called when the user decides to exit the script. It clears the screen and displays an exit message.
-exit_script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
-}
+#exit_script() {
+#  clear
+#  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+#  exit
+#}
 
 # This function allows the user to configure advanced settings for the script.
 advanced_settings() {
@@ -1459,6 +1459,8 @@ exit_script() {
   exit_code=$? # Capture the exit status of the last executed command
   #200 exit codes indicate error in create_lxc.sh
   #100 exit codes indicate error in install.func
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
 
   if [ $exit_code -ne 0 ]; then
     case $exit_code in
@@ -1477,6 +1479,7 @@ exit_script() {
     *) post_update_to_api "failed" "Unknown error, exit code: $exit_code in create_lxc.sh" ;;
     esac
   fi
+  exit
 }
 
 trap 'exit_script' EXIT
