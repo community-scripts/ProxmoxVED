@@ -1477,7 +1477,6 @@ api_exit_script() {
     *) post_update_to_api "failed" "Unknown error, exit code: $exit_code in create_lxc.sh" ;;
     esac
   fi
-  exit
 }
 
 trap 'api_exit_script' EXIT
