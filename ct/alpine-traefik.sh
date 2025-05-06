@@ -5,7 +5,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://alpinelinux.org/
 
-APP="Alpine Traefik"
+APP="Alpine-Traefik"
 var_tags="${var_tags:-os;alpine}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
