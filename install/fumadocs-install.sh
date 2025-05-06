@@ -26,7 +26,6 @@ export NODE_OPTIONS="--max-old-space-size=4096"
 cd /opt/fumadocs
 $STD pnpm install
 pnpm create fumadocs-app
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Fumadocs"
 
 msg_info "Creating Service"
