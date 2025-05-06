@@ -47,7 +47,7 @@ After=network.target
 [Service]
 EnvironmentFile=/opt/${APPLICATION}.env
 WorkingDirectory=/opt/${APPLICATION}
-ExecStart=/opt/${APPLICATION}/start.sh
+ExecStart=source /opt/"${APPLICATION}"/backend/src/.venv/bin/activate && /opt/${APPLICATION}/start.sh
 Restart=always
 
 [Install]
