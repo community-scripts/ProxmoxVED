@@ -1,6 +1,6 @@
 {
   "name": "Transmission",
-  "slug": "alpine-transmission",
+  "slug": "transmission",
   "categories": [
     11
   ],
@@ -17,11 +17,11 @@
   "install_methods": [
     {
       "type": "default",
-      "script": "ct/alpine-transmission.sh",
+      "script": "ct/transmission.sh",
       "resources": {
-        "cpu": 1,
-        "ram": 256,
-        "hdd": 1,
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
         "os": "debian",
         "version": "12"
       }
