@@ -141,6 +141,7 @@ jobs:
           git checkout -b "$branch_name"
 
           cp ../ct/$script_name.sh ct/.
+          cp ../ct/headers/$script_name ct/headers/.
           cp ../install/$script_name-install.sh install/.
 
           json_file="${script_name}.json"
