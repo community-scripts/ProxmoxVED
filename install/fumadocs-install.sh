@@ -18,7 +18,7 @@ $STD apt-get install -y \
   expect
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" install_node_and_modules
+NODE_VERSION="22" NODE_MODULE="pnpm@latest" install_node_and_modules
 
 msg_info "Installing Fumadocs"
 fetch_and_deploy_gh_release fuma-nama/fumadocs
