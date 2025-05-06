@@ -34,7 +34,7 @@ rm "v${RELEASE}.zip"
 cd /opt/babybuddy
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -U pip wheel
+pip install -U pip wheel pipenv
 export PIPENV_VENV_IN_PROJECT=1
 pipenv install
 pipenv shell
