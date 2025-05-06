@@ -14,34 +14,34 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  ca-certificates \
-  expect
+  ca-certificates
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" NODE_MODULE="pnpm@latest" install_node_and_modules
 
 msg_info "Installing Fumadocs"
-fetch_and_deploy_gh_release fuma-nama/fumadocs
 export NODE_OPTIONS="--max-old-space-size=4096"
+mkdir -p /opt/fumadocs
 cd /opt/fumadocs
-$STD pnpm install
-pnpm create fumadocs-app
+$STD pnpm create fumadocs-app
 msg_ok "Installed Fumadocs"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/fumadocs.service
+PROJECT_NAME=$(find . -maxdepth 1 -type d ! -name '.' ! -name '..' | sed 's|^\./||')
+cat <<EOF >/etc/systemd/system/fumadocs_$PROJECT_NAME.service
 [Unit]
 Description=Fumadocs Documentation Server
 After=network.target
 
 [Service]
-WorkingDirectory=/opt/fumadocs
+WorkingDirectory=/opt/fumadocs/$PROJECT_NAME
 ExecStart=/usr/bin/pnpm run dev
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF
+systemctl enable -q --now fumadocs_$PROJECT_NAME
 msg_ok "Created Service"
 
 motd_ssh
