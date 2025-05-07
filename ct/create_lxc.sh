@@ -283,6 +283,14 @@ if [ "$UDHCPC_FIX" == "yes" ]; then
   CT_ROOT="/var/lib/lxc/${CTID}/rootfs"
   CONFIG_FILE="$CT_ROOT/etc/udhcpc/udhcpc.conf"
 
+  # wait  max. 5 seconds for rootfs
+  for i in {1..10}; do
+    if [ -f "$CONFIG_FILE" ]; then
+      break
+    fi
+    sleep 0.5
+  done
+
   if [ -f "$CONFIG_FILE" ]; then
     msg_info "Patching udhcpc.conf for Alpine DNS override"
     sed -i '/^#*RESOLV_CONF="/d' "$CONFIG_FILE"
@@ -296,7 +304,7 @@ if [ "$UDHCPC_FIX" == "yes" ]; then
     ' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
     msg_ok "Patched udhcpc.conf (RESOLV_CONF=\"no\")"
   else
-    msg_error "udhcpc.conf not found in $CONFIG_FILE"
+    msg_error "udhcpc.conf not found in $CONFIG_FILE after waiting"
   fi
 fi
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
