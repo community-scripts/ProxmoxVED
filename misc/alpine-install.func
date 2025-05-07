@@ -95,6 +95,14 @@ msg_error() {
   echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
 }
 
+stop_spinner() {
+  if [ -n "${SPINNER_PID:-}" ]; then
+    kill "$SPINNER_PID" >/dev/null 2>&1
+    wait "$SPINNER_PID" 2>/dev/null
+    unset SPINNER_PID
+  fi
+}
+
 # This function sets up the Container OS by generating the locale, setting the timezone, and checking the network connection
 setting_up_container() {
   msg_info "Setting up Container OS"

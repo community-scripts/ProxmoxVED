@@ -283,6 +283,9 @@ if [ "$UDHCPC_FIX" == "yes" ]; then
   # Ensure container is mounted
   if ! mount | grep -q "/var/lib/lxc/${CTID}/rootfs"; then
     pct mount "$CTID" >/dev/null 2>&1
+    MOUNTED_HERE=true
+  else
+    MOUNTED_HERE=false
   fi
 
   CONFIG_FILE="/var/lib/lxc/${CTID}/rootfs/etc/udhcpc/udhcpc.conf"
@@ -306,6 +309,11 @@ if [ "$UDHCPC_FIX" == "yes" ]; then
     msg_ok "Patched udhcpc.conf (RESOLV_CONF=\"no\")"
   else
     msg_error "udhcpc.conf not found in $CONFIG_FILE after waiting"
+  fi
+
+  # Clean up: only unmount if we mounted it here
+  if [ "${MOUNTED_HERE}" = true ]; then
+    pct unmount "$CTID" >/dev/null 2>&1
   fi
 fi
 
