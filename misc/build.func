@@ -358,6 +358,7 @@ base_settings() {
   SSH="no"
   SSH_AUTHORIZED_KEY=""
   TAGS="community-script;"
+  UDHCPC_FIX=""
 
   # Override default settings with variables from ct script
   CT_TYPE=${var_unprivileged:-$CT_TYPE}

@@ -279,6 +279,7 @@ if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[
     exit 209
   fi
 fi
+: "${UDHCPC_FIX:=}"
 if [ "$UDHCPC_FIX" == "yes" ]; then
   # Ensure container is mounted
   if ! mount | grep -q "/var/lib/lxc/${CTID}/rootfs"; then
