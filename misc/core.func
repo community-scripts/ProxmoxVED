@@ -8,12 +8,14 @@ load_functions() {
   [[ -n "${__FUNCTIONS_LOADED:-}" ]] && return
   __FUNCTIONS_LOADED=1
   color
+  formatting
+  icons
+  default_vars
   # add more
 }
 
 # This function sets various color variables using ANSI escape codes for formatting text in the terminal.
 color() {
-  # Colors
   YW=$(echo "\033[33m")
   YWB=$(echo "\033[93m")
   BL=$(echo "\033[36m")
@@ -21,14 +23,16 @@ color() {
   BGN=$(echo "\033[4;92m")
   GN=$(echo "\033[1;92m")
   DGN=$(echo "\033[32m")
+}
 
-  # Formatting
-  CL=$(echo "\033[m")
+formatting() {
+  BFR="\\r\\033[K"
   BOLD=$(echo "\033[1m")
   HOLD=" "
   TAB="  "
+}
 
-  # Icons
+icons() {
   CM="${TAB}✔️${TAB}"
   CROSS="${TAB}✖️${TAB}"
   INFO="${TAB}💡${TAB}${CL}"
@@ -53,6 +57,13 @@ color() {
   ROOTSSH="${TAB}🔑${TAB}${CL}"
   CREATING="${TAB}🚀${TAB}${CL}"
   ADVANCED="${TAB}🧩${TAB}${CL}"
+}
+
+default_vars() {
+  # System
+  RETRY_NUM=10
+  RETRY_EVERY=3
+  i=$RETRY_NUM
 }
 
 # This function displays an informational message with logging support.
