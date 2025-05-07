@@ -29,10 +29,10 @@ fi
 #   BOLD=$(echo "\033[1m")
 #   TAB="  "
 
-# System
-RETRY_NUM=10
-RETRY_EVERY=3
-i=$RETRY_NUM
+#   # System
+#   RETRY_NUM=10
+#   RETRY_EVERY=3
+#   i=$RETRY_NUM
 
 #   # Icons
 #   CM="${TAB}✔️${TAB}${CL}"
