@@ -929,15 +929,10 @@ function setup_gs() {
   fi
 }
 
-enable_curl_strict_error_handling() {
-  set -eE -o pipefail
-  trap '__curl_err_handler $?' ERR
-}
-
 __curl_err_handler() {
   local exit_code="$1"
   local cmd="${BASH_COMMAND:-unknown}"
-  if [[ "$cmd" != curl* ]]; then
+  if ! grep -q 'curl' <<<"$cmd"; then
     return
   fi
 
