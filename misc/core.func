@@ -1,12 +1,14 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
+[[ -n "${_CORE_FUNC_LOADED:-}" ]] && return
+_CORE_FUNC_LOADED=1
+
 load_functions() {
   [[ -n "${__FUNCTIONS_LOADED:-}" ]] && return
   __FUNCTIONS_LOADED=1
   color
   # add more
-
 }
 
 # This function sets various color variables using ANSI escape codes for formatting text in the terminal.
