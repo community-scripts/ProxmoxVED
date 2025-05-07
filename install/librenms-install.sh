@@ -73,6 +73,7 @@ setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstra
 
 $STD pip3 install -r /opt/librenms/requirements.txt
 
+cp /opt/librenms/.env.example /opt/librenms/.env
 
 sed -i "s/^#DB_DATABASE=.*/DB_DATABASE=${DB_NAME}/" /opt/librenms/.env
 sed -i "s/^#DB_USERNAME=.*/DB_USERNAME=${DB_USER}/" /opt/librenms/.env
