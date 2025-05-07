@@ -30,9 +30,9 @@ fi
 #   HOLD=" "
 #   TAB="  "
 
-#   # System
-#   RETRY_NUM=10
-#   RETRY_EVERY=3
+# System
+RETRY_NUM=10
+RETRY_EVERY=3
 
 #   # Icons
 #   CM="${TAB}✔️${TAB}${CL}"
