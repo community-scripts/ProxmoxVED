@@ -1,6 +1,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
+set -euo pipefail
 SPINNER_PID=""
 SPINNER_ACTIVE=0
 SPINNER_MSG=""
@@ -87,16 +88,19 @@ community_curl() {
     exit_code=$?
 
     if [[ $exit_code -eq 0 ]]; then
+      stop_spinner
+      msg_ok "Fetched: $url"
       printf '%s' "$result"
       return 0
     fi
 
     if ((attempt >= max_retries)); then
+      stop_spinner
       __curl_err_handler "$exit_code"
       return 1
     fi
 
-    # inline retry message (overwrite line)
+    # Print retry inline
     printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
     sleep "$delay"
     ((attempt++))
