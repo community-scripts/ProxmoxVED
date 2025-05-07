@@ -25,7 +25,6 @@ trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 
 # This function handles errors
 function error_handler() {
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
   printf "\e[?25h"
   local exit_code="$?"
   local line_number="$1"

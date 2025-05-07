@@ -46,14 +46,12 @@ catch_errors() {
 # This function handles errors
 error_handler() {
   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
-  if [ -n "$SPINNER_PID" ] && ps -p "$SPINNER_PID" >/dev/null; then kill "$SPINNER_PID" >/dev/null; fi
   printf "\e[?25h"
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
   local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
   echo -e "\n$error_message"
-  [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" &>/dev/null || true
 
   if [[ "$line_number" -eq 50 ]]; then
     echo -e "The silent function has suppressed the error, run the script with verbose mode enabled, which will provide more detailed output.\n"
