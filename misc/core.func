@@ -2,6 +2,9 @@
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
 : "${SPINNER_PID:=}"
+: "${SPINNER_ACTIVE:=0}"
+: "${SPINNER_MSG:=}"
+declare -A MSG_INFO_SHOWN
 [[ -n "${_CORE_FUNC_LOADED:-}" ]] && return
 _CORE_FUNC_LOADED=1
 
@@ -104,11 +107,6 @@ __curl_err_handler() {
 }
 
 # This function displays an informational message with logging support.
-declare -A MSG_INFO_SHOWN
-SPINNER_ACTIVE=0
-SPINNER_PID=""
-SPINNER_MSG=""
-
 trap 'stop_spinner' EXIT INT TERM HUP
 
 start_spinner() {
@@ -174,3 +172,27 @@ msg_error() {
   local msg="$1"
   printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
 }
+
+if [[ -n "$BASH_VERSION" ]] && [[ "$OSTYPE" != "alpine"* ]]; then
+  __last_command=""
+  __last_result=0
+
+  # Enable extended tracing
+  set -o errtrace
+  set -o functrace
+
+  # Track the last command and its exit code
+  trap '__last_result=$?; __last_command=$BASH_COMMAND' DEBUG
+
+  # Global error handler
+  trap '__global_err_handler "$__last_result" "$__last_command"' ERR
+
+  __global_err_handler() {
+    local exit_code="$1"
+    local cmd="$2"
+    [[ $cmd == curl* ]] && __curl_err_handler "$exit_code"
+  }
+else
+  # Alpine oder nicht-Bash: Hinweis bei Curl-Fehlern nicht verfügbar
+  export BASH_FALLBACK_CURL_HANDLER=1
+fi
