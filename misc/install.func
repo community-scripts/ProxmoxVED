@@ -10,9 +10,10 @@ if command -v curl >/dev/null 2>&1; then
   load_functions
   echo "(install.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
-  source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-  sleep 2
-  echo "sleep 2"
+  TMPFILE=$(mktemp)
+  wget -qO "$TMPFILE" https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func
+  source "$TMPFILE"
+  rm -f "$TMPFILE"
   load_functions
   echo "(install.func) Loaded core.func via wget"
 fi
