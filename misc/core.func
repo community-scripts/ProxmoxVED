@@ -160,7 +160,7 @@ start_spinner() {
 }
 
 stop_spinner() {
-  if [[ ${SPINNER_PID+v} && -n "$SPINNER_PID" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
+  if [[ -n "${SPINNER_PID:-}" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
     kill "$SPINNER_PID" 2>/dev/null
     sleep 0.1
     kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
@@ -171,7 +171,7 @@ stop_spinner() {
 }
 
 spinner_guard() {
-  if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "$SPINNER_PID" ]]; then
+  if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "${SPINNER_PID:-}" ]]; then
     kill "$SPINNER_PID" 2>/dev/null
     wait "$SPINNER_PID" 2>/dev/null || true
     SPINNER_ACTIVE=0
