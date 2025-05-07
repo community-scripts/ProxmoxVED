@@ -37,6 +37,7 @@ function update_script() {
 
   msg_info "Disabling edge repository"
   sed -i '/@edge/d' /etc/apk/repositories
+  sed -i 's/traefik@edge/traefik/' /etc/apk/world
   $STD apk update
   msg_ok "Disabled edge repository"
   exit
