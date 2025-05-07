@@ -223,6 +223,7 @@ customize() {
 sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
 kill -HUP 1
 EOF
+    touch /root/.hushlogin
 
     chmod +x /etc/local.d/autologin.start
     rc-update add local >/dev/null 2>&1
