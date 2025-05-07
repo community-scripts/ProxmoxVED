@@ -13,21 +13,20 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y gnupg2
-msg_ok "Installed Dependencies"
+# msg_info "Installing Dependencies"
+# $STD apt-get install -y gnupg2
+# msg_ok "Installed Dependencies"
 
 # Example Setting for Test
-NODE_VERSION="20"
-NODE_MODULE="pnpm@10.1,yarn"
+#NODE_MODULE="pnpm@10.1,yarn"
+NODE_VERSION="22" NODE_MODULE="yarn" install_node_and_modules
 
-PG_VERSION="15"
-MARIADB_VERSION="10.11"
+#PG_VERSION="15"
+#MARIADB_VERSION="10.11"
 #MYSQL_VERSION="8.0"
 
-install_node_and_modules
-install_postgresql
-install_mariadb
+#install_postgresql
+#install_mariadb
 #install_mysql
 
 # msg_info "Setup DISTRO env"
