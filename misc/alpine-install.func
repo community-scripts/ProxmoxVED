@@ -98,23 +98,11 @@ msg_error() {
 setting_up_container() {
   msg_info "Setting up Container OS"
 
-  NS_VALUE=$(echo "$PCT_OPTIONS" | sed -n 's/.*-nameserver=\([^ ]*\).*/\1/p')
-
   if [ "$UDHCPC_FIX" == "yes" ]; then
     CONFIG_FILE="/etc/udhcpc/udhcpc.conf"
     if grep -q '^#RESOLV_CONF=' "$CONFIG_FILE"; then
       sed -i 's/^#RESOLV_CONF=.*/RESOLV_CONF="no"/' "$CONFIG_FILE"
     elif ! grep -q '^RESOLV_CONF=' "$CONFIG_FILE"; then
-      echo 'RESOLV_CONF="no"' >>"$CONFIG_FILE"
-    fi
-  fi
-
-  if [ "$NS_VALUE" != "" ] && [ "$NS_VALUE" != "Host" ]; then
-
-    CONFIG_FILE="/etc/udhcpc/udhcpc.conf"
-    if grep -q '^#RESOLV_CONF=' "$CONFIG_FILE"; then
-      sed -i 's/^#RESOLV_CONF=.*/RESOLV_CONF="no"/' "$CONFIG_FILE"
-    else
       echo 'RESOLV_CONF="no"' >>"$CONFIG_FILE"
     fi
   fi
