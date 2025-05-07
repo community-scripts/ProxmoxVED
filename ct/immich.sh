@@ -53,7 +53,6 @@ function update_script() {
       readarray -t NAMES <<<"$(for revision in "${UPDATED_REVISIONS[@]}"; do
         jq -cr --arg jq_revision $revision '.sources[] | select(.revision == $jq_revision).name' ./build-lock.json
       done)"
-      msg_info "Recompiling image-processing libraries (patience)"
       rm -rf "$SOURCE_DIR"
       mkdir -p "$SOURCE_DIR"
       cd "$BASE_DIR"
@@ -61,6 +60,7 @@ function update_script() {
       cd "$STAGING_DIR"
       for name in "${NAMES[@]}"; do
         if [[ "$name" == "libjxl" ]]; then
+          msg_info "Recompiling libjxl"
           SOURCE=${SOURCE_DIR}/libjxl
           JPEGLI_LIBJPEG_LIBRARY_SOVERSION="62"
           JPEGLI_LIBJPEG_LIBRARY_VERSION="62.3.0"
@@ -97,8 +97,10 @@ function update_script() {
           $STD make clean
           cd "$STAGING_DIR"
           rm -rf "$SOURCE"/{build,third_party}
+          msg_ok "Recompiled libjxl"
         fi
         if [[ "$name" == "libheif" ]]; then
+          msg_info "Recompiling libheif"
           SOURCE=${SOURCE_DIR}/libheif
           : "${LIBHEIF_REVISION:=$(jq -cr '.sources[] | select(.name == "libheif").revision' $BASE_DIR/server/bin/build-lock.json)}"
           $STD git clone https://github.com/strukturag/libheif.git "$SOURCE"
@@ -121,8 +123,10 @@ function update_script() {
           $STD make clean
           cd "$STAGING_DIR"
           rm -rf "$SOURCE"/build
+          msg_ok "Recompiled libheif"
         fi
         if [[ "$name" == "libraw" ]]; then
+          msg_info "Recompiling libraw"
           SOURCE=${SOURCE_DIR}/libraw
           : "${LIBRAW_REVISION:=$(jq -cr '.sources[] | select(.name == "libraw").revision' $BASE_DIR/server/bin/build-lock.json)}"
           $STD git clone https://github.com/libraw/libraw.git "$SOURCE"
@@ -135,8 +139,10 @@ function update_script() {
           ldconfig /usr/local/lib
           $STD make clean
           cd "$STAGING_DIR"
+          msg_ok "Recompiled libraw"
         fi
         if [[ "$name" == "imagemagick" ]]; then
+          msg_info "Recompiling ImageMagick"
           SOURCE=$SOURCE_DIR/imagemagick
           : "${IMAGEMAGICK_REVISION:=$(jq -cr '.sources[] | select(.name == "imagemagick").revision' $BASE_DIR/server/bin/build-lock.json)}"
           $STD git clone https://github.com/ImageMagick/ImageMagick.git "$SOURCE"
@@ -148,8 +154,10 @@ function update_script() {
           ldconfig /usr/local/lib
           $STD make clean
           cd "$STAGING_DIR"
+          msg_ok "Recompiled ImageMagick"
         fi
         if [[ "$name" == "libvips" ]]; then
+          msg_info "Recompiling libvips"
           SOURCE=$SOURCE_DIR/libvips
           : "${LIBVIPS_REVISION:=$(jq -cr '.sources[] | select(.name == "libvips").revision' $BASE_DIR/server/bin/build-lock.json)}"
           $STD git clone https://github.com/libvips/libvips.git "$SOURCE"
@@ -161,6 +169,7 @@ function update_script() {
           ldconfig /usr/local/lib
           cd "$STAGING_DIR"
           rm -rf "$SOURCE"/build
+          msg_ok "Recompiled libvips"
         fi
       done
       mv ~/.new_revisions ~/.immich_library_revisions
