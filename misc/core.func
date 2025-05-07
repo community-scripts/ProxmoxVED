@@ -1,10 +1,11 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
-: "${SPINNER_PID:=}"
-: "${SPINNER_ACTIVE:=0}"
-: "${SPINNER_MSG:=}"
+SPINNER_PID=""
+SPINNER_ACTIVE=0
+SPINNER_MSG=""
 declare -A MSG_INFO_SHOWN
+
 [[ -n "${_CORE_FUNC_LOADED:-}" ]] && return
 _CORE_FUNC_LOADED=1
 
@@ -84,6 +85,7 @@ community_curl() {
   while :; do
     result=$(curl -fsSL --retry 0 "$url" "$@" 2>/dev/null)
     exit_code=$?
+
     if [[ $exit_code -eq 0 ]]; then
       printf '%s' "$result"
       return 0
@@ -94,15 +96,18 @@ community_curl() {
       return 1
     fi
 
-    msg_info "Curl failed (attempt $attempt of $max_retries). Retrying in ${delay}s..."
+    stop_spinner
+    echo -e "${INFO}${YW}Curl failed (attempt $attempt of $max_retries). Retrying in ${delay}s...${CL}" >&2
     sleep "$delay"
     ((attempt++))
+    msg_info "Retrying: $url"
   done
 }
 
 __curl_err_handler() {
   local exit_code="$1"
   local cmd="${BASH_COMMAND:-unknown}"
+
   if ! grep -q 'curl' <<<"$cmd"; then
     return
   fi
@@ -116,7 +121,7 @@ __curl_err_handler() {
   7) msg_error "Failed to connect to host in: $cmd" ;;
   9) msg_error "Access denied to remote resource in: $cmd" ;;
   18) msg_error "Partial file transfer detected in: $cmd" ;;
-  22) msg_error "HTTP error response in: $cmd" ;;
+  22) msg_error "HTTP error response (e.g. 400/404) in: $cmd" ;;
   23) msg_error "Write error during transfer in: $cmd" ;;
   26) msg_error "Read error from local file in: $cmd" ;;
   28) msg_error "Operation timed out in: $cmd" ;;
@@ -129,7 +134,7 @@ __curl_err_handler() {
   60) msg_error "SSL CA certificate not trusted in: $cmd" ;;
   67) msg_error "Login denied by server in: $cmd" ;;
   78) msg_error "Remote file not found (404) in: $cmd" ;;
-  *) msg_error "Unhandled curl error (exit $exit_code) in: $cmd" ;;
+  *) msg_error "Curl failed with code $exit_code (in: $cmd)" ;;
   esac
 
   exit
