@@ -16,8 +16,13 @@ variables() {
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-color
+if command -v curl >/dev/null 2>&1; then
+  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  load_functions
+elif command -v wget >/dev/null 2>&1; then
+  source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  load_functions
+fi
 
 # # This function sets various color variables using ANSI escape codes for formatting text in the terminal.
 # color() {

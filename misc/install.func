@@ -5,8 +5,13 @@
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-load_functions
+if command -v curl >/dev/null 2>&1; then
+  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  load_functions
+elif command -v wget >/dev/null 2>&1; then
+  source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  load_functions
+fi
 
 # color() {
 #   # Colors

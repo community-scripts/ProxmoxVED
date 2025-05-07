@@ -9,8 +9,13 @@
 # This sets verbose mode if the global variable is set to "yes"
 # if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-load_functions
+if command -v curl >/dev/null 2>&1; then
+  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  load_functions
+elif command -v wget >/dev/null 2>&1; then
+  source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  load_functions
+fi
 
 # This function sets color variables for formatting output in the terminal
 # Colors
