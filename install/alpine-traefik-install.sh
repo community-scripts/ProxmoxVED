@@ -58,8 +58,8 @@ EOF
 fi
 
 msg_info "Enabling and starting Traefik service"
-rc-update add traefik default
-rc-service traefik start
+$STD rc-update add traefik default
+$STD rc-service traefik start
 msg_ok "Traefik service started"
 
 motd_ssh
