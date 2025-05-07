@@ -19,27 +19,6 @@ elif command -v wget >/dev/null 2>&1; then
   echo "(create-lxc.sh) Loaded core.func via wget"
 fi
 
-# This function sets color variables for formatting output in the terminal
-# Colors
-# YW=$(echo "\033[33m")
-# YWB=$(echo "\033[93m")
-# BL=$(echo "\033[36m")
-# RD=$(echo "\033[01;31m")
-# GN=$(echo "\033[1;92m")
-
-# # Formatting
-# CL=$(echo "\033[m")
-# UL=$(echo "\033[4m")
-# BOLD=$(echo "\033[1m")
-# BFR="\\r\\033[K"
-# HOLD=" "
-# TAB="  "
-
-# # Icons
-# CM="${TAB}✔️${TAB}${CL}"
-# CROSS="${TAB}✖️${TAB}${CL}"
-# INFO="${TAB}💡${TAB}${CL}"
-
 # This sets error handling options and defines the error_handler function to handle errors
 set -Eeuo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
@@ -55,53 +34,6 @@ function error_handler() {
   echo -e "\n$error_message\n"
   exit 200
 }
-
-# # This function displays a spinner.
-# function spinner() {
-#   local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-#   local spin_i=0
-#   local interval=0.1
-#   printf "\e[?25l"
-
-#   local color="${YWB}"
-
-#   while true; do
-#     printf "\r ${color}%s${CL}" "${frames[spin_i]}"
-#     spin_i=$(((spin_i + 1) % ${#frames[@]}))
-#     sleep "$interval"
-#   done
-# }
-
-# # This function displays an informational message with a yellow color.
-# function msg_info() {
-#   local msg="$1"
-#   echo -ne "${TAB}${YW}${HOLD}${msg}${HOLD}"
-#   spinner &
-#   SPINNER_PID=$!
-# }
-
-# function msg_warn() {
-#   if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
-#   printf "\e[?25h"
-#   local msg="$1"
-#   echo -e "${BFR}${INFO}${YWB}${msg}${CL}"
-# }
-
-# # This function displays a success message with a green color.
-# function msg_ok() {
-#   if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
-#   printf "\e[?25h"
-#   local msg="$1"
-#   echo -e "${BFR}${CM}${GN}${msg}${CL}"
-# }
-
-# # This function displays a error message with a red color.
-# function msg_error() {
-#   if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
-#   printf "\e[?25h"
-#   local msg="$1"
-#   echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
-# }
 
 # This checks for the presence of valid Container Storage and Template Storage locations
 msg_info "Validating Storage"
