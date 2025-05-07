@@ -135,7 +135,9 @@ __curl_err_handler() {
   exit
 }
 
+# ----------------------------------------------------------------------------------
 # This function displays an informational message with logging support.
+# ----------------------------------------------------------------------------------
 trap 'stop_spinner' EXIT INT TERM HUP
 
 start_spinner() {
