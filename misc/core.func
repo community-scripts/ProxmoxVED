@@ -96,11 +96,10 @@ community_curl() {
       return 1
     fi
 
-    stop_spinner
-    echo -e "${INFO}${YW}Curl failed (attempt $attempt of $max_retries). Retrying in ${delay}s...${CL}" >&2
+    # inline retry message (overwrite line)
+    printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
     sleep "$delay"
     ((attempt++))
-    msg_info "Retrying: $url"
   done
 }
 
