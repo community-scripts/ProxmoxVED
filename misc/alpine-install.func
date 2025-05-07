@@ -212,10 +212,16 @@ validate_tz() {
 customize() {
   if [[ "$PASSWORD" == "" ]]; then
     msg_info "Customizing Container"
-    bash -c "passwd -d root" >/dev/null 2>&1
+    passwd -d root >/dev/null 2>&1
+
+    # Enable autologin on tty1
+    sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/getty -a root -n -l /bin/sh 38400 tty1|' /etc/inittab
+    touch /run/openrc/softlevel
+    rc-service agetty restart 2>/dev/null || kill -HUP 1
+
     msg_ok "Customized Container"
   fi
+
   echo "bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${app}.sh)\"" >/usr/bin/update
   chmod +x /usr/bin/update
-
 }
