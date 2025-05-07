@@ -7,9 +7,11 @@
 if command -v curl >/dev/null 2>&1; then
   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
   load_functions
+  echo "(alpine-install.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
   source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
   load_functions
+  echo "(alpine-install.func) Loaded core.func via wget"
 fi
 
 # This function sets color variables for formatting output in the terminal
