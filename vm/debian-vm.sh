@@ -214,7 +214,7 @@ function advanced_settings() {
   while true; do
     if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
       if [ -z "$VMID" ]; then
-        VMID="$$VMID"
+        VMID=$(get_valid_nextid)
       fi
       if pct status "$VMID" &>/dev/null || qm status "$VMID" &>/dev/null; then
         echo -e "${CROSS}${RD} ID $VMID is already in use${CL}"
