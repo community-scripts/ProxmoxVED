@@ -100,11 +100,19 @@ setting_up_container() {
 
   if [ "$UDHCPC_FIX" == "yes" ]; then
     CONFIG_FILE="/etc/udhcpc/udhcpc.conf"
+    echo -e "${INFO}${YW}[DEBUG] UDHCPC_FIX is set. Patching $CONFIG_FILE${CL}"
+
     if grep -q '^#RESOLV_CONF=' "$CONFIG_FILE"; then
       sed -i 's/^#RESOLV_CONF=.*/RESOLV_CONF="no"/' "$CONFIG_FILE"
+      echo -e "${INFO}${YW}[DEBUG] Uncommented existing RESOLV_CONF line${CL}"
     elif ! grep -q '^RESOLV_CONF=' "$CONFIG_FILE"; then
       echo 'RESOLV_CONF="no"' >>"$CONFIG_FILE"
+      echo -e "${INFO}${YW}[DEBUG] Added new RESOLV_CONF line${CL}"
+    else
+      echo -e "${INFO}${YW}[DEBUG] RESOLV_CONF already set. No action taken.${CL}"
     fi
+  else
+    echo -e "${INFO}${YW}[DEBUG] UDHCPC_FIX not required. Skipping patch.${CL}"
   fi
 
   while [ $i -gt 0 ]; do
