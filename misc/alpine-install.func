@@ -75,6 +75,7 @@ error_handler() {
   local command="$2"
   local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
   echo -e "\n$error_message\n"
+  [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" &>/dev/null || true
 }
 
 # This function displays an informational message with logging support.

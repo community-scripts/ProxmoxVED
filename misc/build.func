@@ -402,6 +402,7 @@ echo_default() {
 
 # This function is called when the user decides to exit the script. It clears the screen and displays an exit message.
 exit_script() {
+  [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" &>/dev/null || true
   clear
   echo -e "\n${CROSS}${RD}User exited script${CL}\n"
   exit
