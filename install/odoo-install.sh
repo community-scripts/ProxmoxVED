@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2024 community-scripts ORG
-# Author: MickLesk (Canbiz)
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
 # License: MIT
 # https://github.com/tteck/Proxmox/raw/main/LICENSE
 # Source: https://github.com/odoo/odoo
