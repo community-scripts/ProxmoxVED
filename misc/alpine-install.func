@@ -99,15 +99,18 @@ setting_up_container() {
   msg_info "Setting up Container OS"
 
   if grep -qi 'alpine' /etc/os-release; then
-    if [ -f /etc/network/interfaces ]; then
-      NS_LINE=$(grep -E 'dns-nameservers' /etc/network/interfaces || true)
-      if echo "$NS_LINE" | grep -vq 'host'; then
-        if grep -q '^#RESOLV_CONF=' /etc/udhcpc/udhcpc.conf; then
-          msg_info "Patching udhcpc.conf to prevent DNS override"
-          sed -i 's/^#RESOLV_CONF=.*/RESOLV_CONF="no"/' /etc/udhcpc/udhcpc.conf
-          msg_ok "Patched udhcpc.conf"
-        fi
-      fi
+    CONFIG_FILE="/etc/udhcpc/udhcpc.conf"
+    if grep -q '^RESOLV_CONF="no"' "$CONFIG_FILE"; then
+      echo -e "${INFO}${YW}[DEBUG] RESOLV_CONF already set correctly. No changes.${CL}"
+    elif grep -q '^#RESOLV_CONF=' "$CONFIG_FILE"; then
+      sed -i 's/^#RESOLV_CONF=.*/RESOLV_CONF="no"/' "$CONFIG_FILE"
+      echo -e "${INFO}${YW}[DEBUG] Uncommented and set RESOLV_CONF=\"no\"${CL}"
+    elif grep -q '^RESOLV_CONF=' "$CONFIG_FILE"; then
+      sed -i 's/^RESOLV_CONF=.*/RESOLV_CONF="no"/' "$CONFIG_FILE"
+      echo -e "${INFO}${YW}[DEBUG] Overwrote existing RESOLV_CONF=... line${CL}"
+    else
+      echo 'RESOLV_CONF="no"' >>"$CONFIG_FILE"
+      echo -e "${INFO}${YW}[DEBUG] Added RESOLV_CONF=\"no\" at EOF${CL}"
     fi
   fi
 
