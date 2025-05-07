@@ -72,6 +72,12 @@ setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstra
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 
 $STD pip3 install -r /opt/librenms/requirements.txt
+
+
+sed -i "s/^#DB_DATABASE=.*/DB_DATABASE=${DB_NAME}/" .env
+sed -i "s/^#DB_USERNAME=.*/DB_USERNAME=${DB_USER}/" .env
+sed -i "s/^#DB_PASSWORD=.*/DB_PASSWORD=${DB_PASS}/" .env
+
 msg_ok "Setup Librenms"
 
 msg_info "Setup Composer"
@@ -85,6 +91,7 @@ chmod 771 /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 chmod -R ug=rwX /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 msg_ok "Setup Composer"
+
 
 msg_info "Setup MariaDB"
 sed -i '/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0' /etc/mysql/mariadb.conf.d/50-server.cnf
