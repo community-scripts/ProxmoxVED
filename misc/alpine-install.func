@@ -101,18 +101,24 @@ setting_up_container() {
   # Apply udhcpc.conf DNS override patch if Alpine
   CONFIG_FILE="/etc/udhcpc/udhcpc.conf"
 
-  # Remove all RESOLV_CONF= lines (active or commented)
-  sed -i '/^#*RESOLV_CONF="/d' "$CONFIG_FILE"
+  # Extract any configured DNS server from /etc/network/interfaces
+  DNS_LINE=$(grep -E '^ *dns-nameservers' /etc/network/interfaces 2>/dev/null | awk '{print $2}')
 
-  # Rebuild file with single correct entry after header
-  awk '
-  /^# Do not overwrite \/etc\/resolv\.conf/ {
-    print
-    print "RESOLV_CONF=\"no\""
-    next
-  }
-  { print }
-' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+  # Only patch if DNS is set and not 'host'
+  if [ -n "$DNS_LINE" ] && [ "$DNS_LINE" != "host" ]; then
+    # Remove all RESOLV_CONF= lines (active or commented)
+    sed -i '/^#*RESOLV_CONF="/d' "$CONFIG_FILE"
+
+    # Rebuild file with single correct entry after header
+    awk '
+    /^# Do not overwrite \/etc\/resolv\.conf/ {
+      print
+      print "RESOLV_CONF=\"no\""
+      next
+    }
+    { print }
+  ' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+  fi
 
   while [ $i -gt 0 ]; do
     if [ "$(ip addr show | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | cut -d'/' -f1)" != "" ]; then
