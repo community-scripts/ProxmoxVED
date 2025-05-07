@@ -12,11 +12,11 @@
 if command -v curl >/dev/null 2>&1; then
   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
   load_functions
-  echo "(create-lxc.sh) Loaded core.func via curl"
+  #echo "(create-lxc.sh) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
   source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
   load_functions
-  echo "(create-lxc.sh) Loaded core.func via wget"
+  #echo "(create-lxc.sh) Loaded core.func via wget"
 fi
 
 # This sets error handling options and defines the error_handler function to handle errors
