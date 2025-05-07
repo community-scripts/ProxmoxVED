@@ -102,10 +102,10 @@ setting_up_container() {
   CONFIG_FILE="/etc/udhcpc/udhcpc.conf"
 
   # Extract any configured DNS server from /etc/network/interfaces
-  DNS_LINE=$(grep -E '^ *dns-nameservers' /etc/network/interfaces 2>/dev/null | awk '{print $2}')
+  CUSTOM_DNS=$(grep -E '^ *dns-nameservers' /etc/network/interfaces 2>/dev/null | awk '{print $2}')
 
   # Only patch if DNS is set and not 'host'
-  if [ -n "$DNS_LINE" ] && [ "$DNS_LINE" != "host" ]; then
+  if [ -n "$CUSTOM_DNS" ] && [ "$CUSTOM_DNS" != "host" ]; then
     # Remove all RESOLV_CONF= lines (active or commented)
     sed -i '/^#*RESOLV_CONF="/d' "$CONFIG_FILE"
 
