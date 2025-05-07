@@ -573,12 +573,6 @@ advanced_settings() {
     fi
   done
 
-  if [ "$var_os" == "alpine" ] && [ "$NET" == "dhcp" ] && [ "$NX" != "Host" ]; then
-    UDHCPC_FIX="yes"
-  else
-    UDHCPC_FIX="no"
-  fi
-
   if [ "$NET" != "dhcp" ]; then
     while true; do
       GATE1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Enter gateway IP address" 8 58 --title "Gateway IP" 3>&1 1>&2 2>&3)
@@ -651,6 +645,12 @@ advanced_settings() {
     echo -e "${NETWORK}${BOLD}${DGN}DNS Server IP Address: ${BGN}$NX${CL}"
   else
     exit_script
+  fi
+
+  if [ "$var_os" == "alpine" ] && [ "$NET" == "dhcp" ] && [ "$NX" != "Host" ]; then
+    UDHCPC_FIX="yes"
+  else
+    UDHCPC_FIX="no"
   fi
 
   if MAC1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set a MAC Address(leave blank for generated MAC)" 8 58 --title "MAC ADDRESS" 3>&1 1>&2 2>&3); then
