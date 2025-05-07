@@ -7,6 +7,10 @@ SPINNER_ACTIVE=0
 SPINNER_MSG=""
 declare -A MSG_INFO_SHOWN
 
+# ------------------------------------------------------------------------------
+# Loads core utility groups once (colors, formatting, icons, defaults).
+# ------------------------------------------------------------------------------
+
 [[ -n "${_CORE_FUNC_LOADED:-}" ]] && return
 _CORE_FUNC_LOADED=1
 
@@ -20,7 +24,9 @@ load_functions() {
   # add more
 }
 
-# This function sets various color variables using ANSI escape codes for formatting text in the terminal.
+# ------------------------------------------------------------------------------
+# Sets ANSI color codes used for styled terminal output.
+# ------------------------------------------------------------------------------
 color() {
   YW=$(echo "\033[33m")
   YWB=$(echo "\033[93m")
@@ -32,6 +38,9 @@ color() {
   CL=$(echo "\033[m")
 }
 
+# ------------------------------------------------------------------------------
+# Defines formatting helpers like tab, bold, and line reset sequences.
+# ------------------------------------------------------------------------------
 formatting() {
   BFR="\\r\\033[K"
   BOLD=$(echo "\033[1m")
@@ -39,6 +48,9 @@ formatting() {
   TAB="  "
 }
 
+# ------------------------------------------------------------------------------
+# Sets symbolic icons used throughout user feedback and prompts.
+# ------------------------------------------------------------------------------
 icons() {
   CM="${TAB}✔️${TAB}"
   CROSS="${TAB}✖️${TAB}"
@@ -66,13 +78,18 @@ icons() {
   ADVANCED="${TAB}🧩${TAB}${CL}"
 }
 
+# ------------------------------------------------------------------------------
+# Sets default retry and wait variables used for system actions.
+# ------------------------------------------------------------------------------
 default_vars() {
-  # System
   RETRY_NUM=10
   RETRY_EVERY=3
   i=$RETRY_NUM
 }
 
+# ------------------------------------------------------------------------------
+# Performs a curl request with retry logic and inline feedback.
+# ------------------------------------------------------------------------------
 community_curl() {
   local url="$1"
   shift
@@ -100,13 +117,15 @@ community_curl() {
       return 1
     fi
 
-    # Print retry inline
     printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
     sleep "$delay"
     ((attempt++))
   done
 }
 
+# ------------------------------------------------------------------------------
+# Handles specific curl error codes and displays descriptive messages.
+# ------------------------------------------------------------------------------
 __curl_err_handler() {
   local exit_code="$1"
   local cmd="${BASH_COMMAND:-unknown}"
@@ -143,11 +162,14 @@ __curl_err_handler() {
   exit
 }
 
-# ----------------------------------------------------------------------------------
-# This function displays an informational message with logging support.
-# ----------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Spinner trap: ensures spinner is stopped on termination signals.
+# ------------------------------------------------------------------------------
 trap 'stop_spinner' EXIT INT TERM HUP
 
+# ------------------------------------------------------------------------------
+# Starts a spinner animation for ongoing async operations.
+# ------------------------------------------------------------------------------
 start_spinner() {
   local msg="$1"
   local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
@@ -169,6 +191,9 @@ start_spinner() {
   disown "$SPINNER_PID"
 }
 
+# ------------------------------------------------------------------------------
+# Stops the spinner animation and resets its state.
+# ------------------------------------------------------------------------------
 stop_spinner() {
   if [[ -n "${SPINNER_PID:-}" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
     kill "$SPINNER_PID" 2>/dev/null
@@ -180,6 +205,9 @@ stop_spinner() {
   unset SPINNER_PID
 }
 
+# ------------------------------------------------------------------------------
+# Stops the spinner if active, used to avoid multiple spinners.
+# ------------------------------------------------------------------------------
 spinner_guard() {
   if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "${SPINNER_PID:-}" ]]; then
     kill "$SPINNER_PID" 2>/dev/null
@@ -189,6 +217,9 @@ spinner_guard() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# Displays an informational spinner once per message.
+# ------------------------------------------------------------------------------
 msg_info() {
   local msg="$1"
   [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
@@ -199,6 +230,9 @@ msg_info() {
   start_spinner "$msg"
 }
 
+# ------------------------------------------------------------------------------
+# Displays a success message and stops spinner.
+# ------------------------------------------------------------------------------
 msg_ok() {
   local msg="$1"
   stop_spinner
@@ -206,6 +240,9 @@ msg_ok() {
   unset MSG_INFO_SHOWN["$msg"]
 }
 
+# ------------------------------------------------------------------------------
+# Displays an error message and stops spinner.
+# ------------------------------------------------------------------------------
 msg_error() {
   stop_spinner
   local msg="$1"
