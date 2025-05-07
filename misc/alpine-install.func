@@ -77,30 +77,77 @@ error_handler() {
   echo -e "\n$error_message\n"
 }
 
-# This function displays an informational message with a yellow color.
-msg_info() {
-  local msg="$1"
-  echo -ne " ${TAB}${YW}${msg}"
-}
+# This function displays an informational message with logging support.
+declare -A MSG_INFO_SHOWN
+SPINNER_ACTIVE=0
+SPINNER_PID=""
+SPINNER_MSG=""
 
-# This function displays a success message with a green color.
-msg_ok() {
-  local msg="$1"
-  echo -e "${BFR}${CM}${GN}${msg}${CL}"
-}
+trap 'stop_spinner' EXIT INT TERM HUP
 
-# This function displays a error message with a red color.
-msg_error() {
+start_spinner() {
   local msg="$1"
-  echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
+  local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+  local spin_i=0
+  local interval=0.1
+
+  SPINNER_MSG="$msg"
+  printf "\r\e[2K" >&2
+
+  {
+    while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
+      printf "\r\e[2K%s %b" "${frames[spin_i]}" "${YW}${SPINNER_MSG}${CL}" >&2
+      spin_i=$(((spin_i + 1) % ${#frames[@]}))
+      sleep "$interval"
+    done
+  } &
+
+  SPINNER_PID=$!
+  disown "$SPINNER_PID"
 }
 
 stop_spinner() {
-  if [ -n "${SPINNER_PID:-}" ]; then
-    kill "$SPINNER_PID" >/dev/null 2>&1
-    wait "$SPINNER_PID" 2>/dev/null
+  if [[ ${SPINNER_PID+v} && -n "$SPINNER_PID" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
+    kill "$SPINNER_PID" 2>/dev/null
+    sleep 0.1
+    kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
+    wait "$SPINNER_PID" 2>/dev/null || true
+  fi
+  SPINNER_ACTIVE=0
+  unset SPINNER_PID
+}
+
+spinner_guard() {
+  if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "$SPINNER_PID" ]]; then
+    kill "$SPINNER_PID" 2>/dev/null
+    wait "$SPINNER_PID" 2>/dev/null || true
+    SPINNER_ACTIVE=0
     unset SPINNER_PID
   fi
+}
+
+msg_info() {
+  local msg="$1"
+  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
+  MSG_INFO_SHOWN["$msg"]=1
+
+  spinner_guard
+  SPINNER_ACTIVE=1
+  start_spinner "$msg"
+}
+
+msg_ok() {
+  local msg="$1"
+  stop_spinner
+  printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
+  unset MSG_INFO_SHOWN["$msg"]
+}
+
+msg_error() {
+  stop_spinner
+  local msg="$1"
+  printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
+  #log_message "ERROR" "$msg"
 }
 
 # This function sets up the Container OS by generating the locale, setting the timezone, and checking the network connection
