@@ -1,6 +1,14 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
+load_functions() {
+  [[ -n "${__FUNCTIONS_LOADED:-}" ]] && return
+  __FUNCTIONS_LOADED=1
+  color
+  # add more
+
+}
+
 # This function sets various color variables using ANSI escape codes for formatting text in the terminal.
 color() {
   # Colors
@@ -117,77 +125,77 @@ msg_error() {
   printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
 }
 
-shell_check() {
-  if [[ "$(basename "$SHELL")" != "bash" ]]; then
-    clear
-    msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
-    echo -e "\nExiting..."
-    sleep 2
-    exit
-  fi
-}
+# shell_check() {
+#   if [[ "$(basename "$SHELL")" != "bash" ]]; then
+#     clear
+#     msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
+#     echo -e "\nExiting..."
+#     sleep 2
+#     exit
+#   fi
+# }
 
-root_check() {
-  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
-    clear
-    msg_error "Please run this script as root."
-    echo -e "\nExiting..."
-    sleep 2
-    exit
-  fi
-}
+# root_check() {
+#   if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
+#     clear
+#     msg_error "Please run this script as root."
+#     echo -e "\nExiting..."
+#     sleep 2
+#     exit
+#   fi
+# }
 
-pve_check() {
-  if ! pveversion | grep -Eq "pve-manager/8\.[1-9](\.[0-9]+)*"; then
-    msg_error "${CROSS}${RD}This version of Proxmox Virtual Environment is not supported"
-    echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
+# pve_check() {
+#   if ! pveversion | grep -Eq "pve-manager/8\.[1-9](\.[0-9]+)*"; then
+#     msg_error "${CROSS}${RD}This version of Proxmox Virtual Environment is not supported"
+#     echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
+#     echo -e "Exiting..."
+#     sleep 2
+#     exit
+#   fi
+# }
 
-arch_check() {
-  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
-    echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
-    echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
+# arch_check() {
+#   if [ "$(dpkg --print-architecture)" != "amd64" ]; then
+#     echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
+#     echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
+#     echo -e "Exiting..."
+#     sleep 2
+#     exit
+#   fi
+# }
 
-ssh_check() {
-  if command -v pveversion >/dev/null 2>&1; then
-    if [ -n "${SSH_CLIENT:+x}" ]; then
-      if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
-        echo "you've been warned"
-      else
-        clear
-        exit
-      fi
-    fi
-  fi
-}
+# ssh_check() {
+#   if command -v pveversion >/dev/null 2>&1; then
+#     if [ -n "${SSH_CLIENT:+x}" ]; then
+#       if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
+#         echo "you've been warned"
+#       else
+#         clear
+#         exit
+#       fi
+#     fi
+#   fi
+# }
 
-exit-script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
-}
+# exit-script() {
+#   clear
+#   echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+#   exit
+# }
 
-set_std_mode() {
-  if [ "$VERB" = "yes" ]; then
-    STD=""
-  else
-    STD="silent"
-  fi
-}
+# set_std_mode() {
+#   if [ "$VERB" = "yes" ]; then
+#     STD=""
+#   else
+#     STD="silent"
+#   fi
+# }
 
-silent() {
-  if [ "$VERB" = "no" ]; then
-    "$@" >>"$LOGFILE" 2>&1
-  else
-    "$@" 2>&1 | tee -a "$LOGFILE"
-  fi
-}
+# silent() {
+#   if [ "$VERB" = "no" ]; then
+#     "$@" >>"$LOGFILE" 2>&1
+#   else
+#     "$@" 2>&1 | tee -a "$LOGFILE"
+#   fi
+# }

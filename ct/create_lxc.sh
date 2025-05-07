@@ -10,6 +10,7 @@
 # if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+load_functions
 
 # This function sets color variables for formatting output in the terminal
 # Colors
