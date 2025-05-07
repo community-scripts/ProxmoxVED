@@ -280,14 +280,15 @@ if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[
   fi
 fi
 if [ "$UDHCPC_FIX" == "yes" ]; then
-  CT_ROOT="/var/lib/lxc/${CTID}/rootfs"
-  CONFIG_FILE="$CT_ROOT/etc/udhcpc/udhcpc.conf"
+  # Ensure container is mounted
+  if ! mount | grep -q "/var/lib/lxc/${CTID}/rootfs"; then
+    pct mount "$CTID" >/dev/null 2>&1
+  fi
 
-  # wait  max. 5 seconds for rootfs
+  CONFIG_FILE="/var/lib/lxc/${CTID}/rootfs/etc/udhcpc/udhcpc.conf"
+
   for i in {1..10}; do
-    if [ -f "$CONFIG_FILE" ]; then
-      break
-    fi
+    [ -f "$CONFIG_FILE" ] && break
     sleep 0.5
   done
 
@@ -307,4 +308,5 @@ if [ "$UDHCPC_FIX" == "yes" ]; then
     msg_error "udhcpc.conf not found in $CONFIG_FILE after waiting"
   fi
 fi
+
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
