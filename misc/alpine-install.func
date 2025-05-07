@@ -212,10 +212,13 @@ customize() {
     msg_info "Customizing Container"
     passwd -d root >/dev/null 2>&1
 
+    # Ensure agetty is available
+    apk add --no-cache util-linux-getty >/dev/null 2>&1
+
     # Enable autologin on tty1
-    sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/getty -a root -n -l /bin/sh 38400 tty1|' /etc/inittab
+    sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
     touch /run/openrc/softlevel
-    rc-service agetty restart 2>/dev/null || kill -HUP 1
+    kill -HUP 1
 
     msg_ok "Customized Container"
   fi
