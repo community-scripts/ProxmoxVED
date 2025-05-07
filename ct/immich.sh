@@ -182,7 +182,7 @@ function update_script() {
     msg_info "Stopping ${APP} services"
     systemctl stop immich-web
     systemctl stop immich-ml
-    msg_ok "Stopped {$APP}"
+    msg_ok "Stopped ${APP}"
     INSTALL_DIR="/opt/${APP}"
     UPLOAD_DIR="${INSTALL_DIR}/upload"
     SRC_DIR="${INSTALL_DIR}/source"
@@ -215,6 +215,7 @@ function update_script() {
     msg_ok "Updated ${APP} web and microservices"
 
     cd "$SRC_DIR"/machine-learning
+    $STD python3 -m venv "$ML_DIR"/ml-venv
     if [[ -f ~/.openvino ]]; then
       msg_info "Updating HW-accelerated machine-learning"
       (
