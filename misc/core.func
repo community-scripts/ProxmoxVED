@@ -23,6 +23,7 @@ color() {
   BGN=$(echo "\033[4;92m")
   GN=$(echo "\033[1;92m")
   DGN=$(echo "\033[32m")
+  CL=$(echo "\033[m")
 }
 
 formatting() {
