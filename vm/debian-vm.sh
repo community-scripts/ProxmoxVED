@@ -211,6 +211,7 @@ function default_settings() {
 
 function advanced_settings() {
   METHOD="advanced"
+  [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
   while true; do
     if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
       if [ -z "$VMID" ]; then
