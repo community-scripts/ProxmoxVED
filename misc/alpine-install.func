@@ -63,6 +63,7 @@ verb_ip6() {
 
 # This function catches errors and handles them with the error handler function
 catch_errors() {
+  unset SPINNER_PID
   set -Eeuo pipefail
   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
