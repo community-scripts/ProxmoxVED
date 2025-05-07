@@ -4,15 +4,11 @@
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
-if command -v curl >/dev/null 2>&1; then
-  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-  load_functions
-  echo "(alpine-install.func) Loaded core.func via curl"
-elif command -v wget >/dev/null 2>&1; then
-  source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-  load_functions
-  echo "(alpine-install.func) Loaded core.func via wget"
+if ! command -v curl >/dev/null 2>&1; then
+  apk update && apk add curl >/dev/null 2>&1
 fi
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+load_functions
 
 # Function to set STD mode based on verbosity
 set_std_mode() {
