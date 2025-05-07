@@ -98,27 +98,6 @@ msg_error() {
 # This function sets up the Container OS by generating the locale, setting the timezone, and checking the network connection
 setting_up_container() {
   msg_info "Setting up Container OS"
-
-  # Check if a non-default DNS is configured in /etc/resolv.conf
-  DNS=$(grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | head -n1)
-  CONFIG_FILE="/etc/udhcpc/udhcpc.conf"
-
-  # Patch only if DNS is set and not 127.0.0.1
-  if [ -n "$DNS" ] && [ "$DNS" != "127.0.0.1" ]; then
-    # Remove all RESOLV_CONF= lines (active or commented)
-    sed -i '/^#*RESOLV_CONF="/d' "$CONFIG_FILE"
-
-    # Rebuild file with single correct entry after header
-    awk '
-      /^# Do not overwrite \/etc\/resolv\.conf/ {
-        print
-        print "RESOLV_CONF=\"no\""
-        next
-      }
-      { print }
-    ' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
-  fi
-
   while [ $i -gt 0 ]; do
     if [ "$(ip addr show | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | cut -d'/' -f1)" != "" ]; then
       break

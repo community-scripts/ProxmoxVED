@@ -652,6 +652,7 @@ advanced_settings() {
   else
     UDHCPC_FIX="no"
   fi
+  export UDHCPC_FIX
 
   if MAC1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set a MAC Address(leave blank for generated MAC)" 8 58 --title "MAC ADDRESS" 3>&1 1>&2 2>&3); then
     if [ -z "$MAC1" ]; then
