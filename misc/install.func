@@ -5,18 +5,14 @@
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
-if command -v curl >/dev/null 2>&1; then
-  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-  load_functions
-  echo "(install.func) Loaded core.func via curl"
-elif command -v wget >/dev/null 2>&1; then
-  TMPFILE=$(mktemp)
-  wget -qO "$TMPFILE" https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func
-  source "$TMPFILE"
-  rm -f "$TMPFILE"
-  load_functions
-  echo "(install.func) Loaded core.func via wget"
+if ! command -v curl >/dev/null 2>&1; then
+  echo "[INFO] curl not found, setup."
+  apt-get update && apt-get install -y curl >/dev/null 2>&1
 fi
+
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+load_functions
+echo "(install.func) Loaded core.func via curl"
 
 # Function to set STD mode based on verbosity
 set_std_mode() {
