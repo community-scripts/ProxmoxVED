@@ -35,9 +35,7 @@ function update_script() {
 
     msg_info "Updating ${APP} to v${RELEASE}"
     mv /opt/bookstack /opt/bookstack-backup
-    curl -fsSL "https://github.com/BookStackApp/BookStack/archive/refs/tags/v${RELEASE}.zip" -o "/opt/BookStack-${RELEASE}.zip"
-    unzip -q "/opt/BookStack-${RELEASE}.zip" -d /opt
-    mv "/opt/BookStack-${RELEASE}" /opt/bookstack
+    fetch_and_deploy_gh_release BookstackApp/BookStack
     cp /opt/bookstack-backup/.env /opt/bookstack/.env
     cp -r /opt/bookstack-backup/public/uploads/* /opt/bookstack/public/uploads/ || true
     cp -r /opt/bookstack-backup/storage/uploads/* /opt/bookstack/storage/uploads/ || true
