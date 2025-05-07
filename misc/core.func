@@ -132,7 +132,7 @@ __curl_err_handler() {
   *) msg_error "Unhandled curl error (exit $exit_code) in: $cmd" ;;
   esac
 
-  exit_script
+  exit
 }
 
 # This function displays an informational message with logging support.
