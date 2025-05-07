@@ -11,6 +11,8 @@ if command -v curl >/dev/null 2>&1; then
   echo "(install.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
   source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  sleep 2
+  echo "sleep 2"
   load_functions
   echo "(install.func) Loaded core.func via wget"
 fi
