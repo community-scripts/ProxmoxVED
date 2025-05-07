@@ -1,7 +1,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
+# Author: michelroegl-brunner
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
-# This function sets various color variables using ANSI escape codes for formatting text in the terminal.
 color() {
   # Colors
   YW=$(echo "\033[33m")
@@ -20,7 +20,7 @@ color() {
 
   # Icons
   CM="${TAB}✔️${TAB}"
-  CROSS="${TAB}✖️${TAB}"
+  CROSS="${TAB}✖️${TAB}${CL}"
   INFO="${TAB}💡${TAB}${CL}"
   OS="${TAB}🖥️${TAB}${CL}"
   OSVERSION="${TAB}🌟${TAB}${CL}"
@@ -43,15 +43,13 @@ color() {
   ROOTSSH="${TAB}🔑${TAB}${CL}"
   CREATING="${TAB}🚀${TAB}${CL}"
   ADVANCED="${TAB}🧩${TAB}${CL}"
+  FUSE="${TAB}🔧${TAB}${CL}"
 }
 
-# This function displays an informational message with logging support.
 declare -A MSG_INFO_SHOWN
 SPINNER_ACTIVE=0
 SPINNER_PID=""
 SPINNER_MSG=""
-
-trap 'stop_spinner' EXIT INT TERM HUP
 
 start_spinner() {
   local msg="$1"
@@ -94,27 +92,56 @@ spinner_guard() {
   fi
 }
 
+log_message() {
+  local level="$1"
+  local message="$2"
+  local timestamp
+  local logdate
+  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+  logdate=$(date '+%Y-%m-%d')
+
+  LOGDIR="/usr/local/community-scripts/logs"
+  mkdir -p "$LOGDIR"
+
+  LOGFILE="${LOGDIR}/${logdate}_${NSAPP}.log"
+  echo "$timestamp - $level: $message" >>"$LOGFILE"
+}
+
 msg_info() {
   local msg="$1"
-  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$msg"]=1
+  if [ "${SPINNER_ACTIVE:-0}" -eq 1 ]; then
+    return
+  fi
 
-  spinner_guard
   SPINNER_ACTIVE=1
   start_spinner "$msg"
 }
 
 msg_ok() {
+  if [ -n "${SPINNER_PID:-}" ] && ps -p "$SPINNER_PID" >/dev/null 2>&1; then
+    kill "$SPINNER_PID" >/dev/null 2>&1
+    wait "$SPINNER_PID" 2>/dev/null || true
+  fi
+
   local msg="$1"
-  stop_spinner
-  printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
-  unset MSG_INFO_SHOWN["$msg"]
+  printf "\r\e[2K${CM}${GN}%b${CL}\n" "$msg" >&2
+  unset SPINNER_PID
+  SPINNER_ACTIVE=0
+
+  log_message "OK" "$msg"
 }
 
 msg_error() {
-  stop_spinner
+  if [ -n "${SPINNER_PID:-}" ] && ps -p "$SPINNER_PID" >/dev/null 2>&1; then
+    kill "$SPINNER_PID" >/dev/null 2>&1
+    wait "$SPINNER_PID" 2>/dev/null || true
+  fi
+
   local msg="$1"
-  printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
+  printf "\r\e[2K${CROSS}${RD}%b${CL}\n" "$msg" >&2
+  unset SPINNER_PID
+  SPINNER_ACTIVE=0
+  log_message "ERROR" "$msg"
 }
 
 shell_check() {
