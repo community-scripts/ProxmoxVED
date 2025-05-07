@@ -98,20 +98,24 @@ msg_error() {
 setting_up_container() {
   msg_info "Setting up Container OS"
 
+  # Apply udhcpc.conf DNS override patch if Alpine
   if grep -qi 'alpine' /etc/os-release; then
     CONFIG_FILE="/etc/udhcpc/udhcpc.conf"
-    if grep -q '^RESOLV_CONF="no"' "$CONFIG_FILE"; then
-      echo -e "${INFO}${YW}[DEBUG] RESOLV_CONF already set correctly. No changes.${CL}"
-    elif grep -q '^#RESOLV_CONF=' "$CONFIG_FILE"; then
-      sed -i 's/^#RESOLV_CONF=.*/RESOLV_CONF="no"/' "$CONFIG_FILE"
-      echo -e "${INFO}${YW}[DEBUG] Uncommented and set RESOLV_CONF=\"no\"${CL}"
-    elif grep -q '^RESOLV_CONF=' "$CONFIG_FILE"; then
-      sed -i 's/^RESOLV_CONF=.*/RESOLV_CONF="no"/' "$CONFIG_FILE"
-      echo -e "${INFO}${YW}[DEBUG] Overwrote existing RESOLV_CONF=... line${CL}"
-    else
-      echo 'RESOLV_CONF="no"' >>"$CONFIG_FILE"
-      echo -e "${INFO}${YW}[DEBUG] Added RESOLV_CONF=\"no\" at EOF${CL}"
-    fi
+
+    # Remove all active RESOLV_CONF= lines to avoid duplicates
+    sed -i '/^RESOLV_CONF=/d' "$CONFIG_FILE"
+
+    # Rebuild file with clean insertion after comment header
+    awk '
+      /^# Do not overwrite \/etc\/resolv\.conf/ {
+        print
+        print "RESOLV_CONF=\"no\""
+        next
+      }
+      { print }
+    ' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+
+    echo -e "${INFO}${YW}[DEBUG] Cleaned and set RESOLV_CONF=\"no\" in $CONFIG_FILE${CL}"
   fi
 
   while [ $i -gt 0 ]; do
