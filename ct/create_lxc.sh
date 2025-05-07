@@ -255,27 +255,6 @@ grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgi
 PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 [[ " ${PCT_OPTIONS[@]} " =~ " -rootfs " ]] || PCT_OPTIONS+=(-rootfs "$CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}")
 
-if [ "$UDHCPC_FIX" == "yes" ]; then
-  CT_ROOT="/var/lib/lxc/${CTID}/rootfs"
-  CONFIG_FILE="$CT_ROOT/etc/udhcpc/udhcpc.conf"
-
-  if [ -f "$CONFIG_FILE" ]; then
-    msg_info "Patching udhcpc.conf for Alpine DNS override"
-    sed -i '/^#*RESOLV_CONF="/d' "$CONFIG_FILE"
-    awk '
-      /^# Do not overwrite \/etc\/resolv\.conf/ {
-        print
-        print "RESOLV_CONF=\"no\""
-        next
-      }
-      { print }
-    ' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
-    msg_ok "Patched udhcpc.conf (RESOLV_CONF=\"no\")"
-  else
-    msg_error "udhcpc.conf not found in $CONFIG_FILE"
-  fi
-fi
-
 msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
   msg_error "Container creation failed. Checking if template is corrupted."
@@ -298,6 +277,26 @@ if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[
   else
     msg_error "Container creation failed, but template is not corrupted."
     exit 209
+  fi
+fi
+if [ "$UDHCPC_FIX" == "yes" ]; then
+  CT_ROOT="/var/lib/lxc/${CTID}/rootfs"
+  CONFIG_FILE="$CT_ROOT/etc/udhcpc/udhcpc.conf"
+
+  if [ -f "$CONFIG_FILE" ]; then
+    msg_info "Patching udhcpc.conf for Alpine DNS override"
+    sed -i '/^#*RESOLV_CONF="/d' "$CONFIG_FILE"
+    awk '
+      /^# Do not overwrite \/etc\/resolv\.conf/ {
+        print
+        print "RESOLV_CONF=\"no\""
+        next
+      }
+      { print }
+    ' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+    msg_ok "Patched udhcpc.conf (RESOLV_CONF=\"no\")"
+  else
+    msg_error "udhcpc.conf not found in $CONFIG_FILE"
   fi
 fi
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
