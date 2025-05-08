@@ -90,30 +90,27 @@ default_vars() {
 # ------------------------------------------------------------------------------
 # Performs a curl request with retry logic and inline feedback.
 # ------------------------------------------------------------------------------
-community_curl() {
+curl_handler() {
   local url="$1"
   shift
-  local max_retries=3
-  local delay=2
-  local attempt=1
-  local result exit_code
+  local max_retries=3 delay=2 attempt=1 result exit_code
 
   msg_info "Fetching: $url"
-
   while :; do
-    result=$(curl -fsSL --retry 0 "$url" "$@" 2>/dev/null)
+    result=$(curl -fsSL --retry 0 "$url" "$@" 2>&1)
     exit_code=$?
 
     if [[ $exit_code -eq 0 ]]; then
       stop_spinner
       msg_ok "Fetched: $url"
-      printf '%s' "$result"
+      # Wenn -o verwendet wurde, gibt es keinen stdout-Output
+      [[ "$*" != *"-o "* ]] && printf '%s' "$result"
       return 0
     fi
 
     if ((attempt >= max_retries)); then
       stop_spinner
-      __curl_err_handler "$exit_code"
+      __curl_err_handler "$exit_code" "$url"
       return 1
     fi
 
@@ -128,38 +125,31 @@ community_curl() {
 # ------------------------------------------------------------------------------
 __curl_err_handler() {
   local exit_code="$1"
-  local cmd="${BASH_COMMAND:-unknown}"
-
-  if ! grep -q 'curl' <<<"$cmd"; then
-    return
-  fi
-
+  local target="$2"
   case $exit_code in
-  1) msg_error "Unsupported protocol in: $cmd" ;;
-  2) msg_error "Failed curl initialization in: $cmd" ;;
-  3) msg_error "Malformed URL in: $cmd" ;;
-  5) msg_error "Could not resolve proxy in: $cmd" ;;
-  6) msg_error "Could not resolve host in: $cmd" ;;
-  7) msg_error "Failed to connect to host in: $cmd" ;;
-  9) msg_error "Access denied to remote resource in: $cmd" ;;
-  18) msg_error "Partial file transfer detected in: $cmd" ;;
-  22) msg_error "HTTP error response (e.g. 400/404) in: $cmd" ;;
-  23) msg_error "Write error during transfer in: $cmd" ;;
-  26) msg_error "Read error from local file in: $cmd" ;;
-  28) msg_error "Operation timed out in: $cmd" ;;
-  35) msg_error "SSL connect error in: $cmd" ;;
-  47) msg_error "Too many redirects in: $cmd" ;;
-  51) msg_error "SSL certificate verification failed in: $cmd" ;;
-  52) msg_error "Empty response from server in: $cmd" ;;
-  55) msg_error "Send error during transfer in: $cmd" ;;
-  56) msg_error "Receive error during transfer in: $cmd" ;;
-  60) msg_error "SSL CA certificate not trusted in: $cmd" ;;
-  67) msg_error "Login denied by server in: $cmd" ;;
-  78) msg_error "Remote file not found (404) in: $cmd" ;;
-  *) msg_error "Curl failed with code $exit_code (in: $cmd)" ;;
+  1) msg_error "Unsupported protocol: $target" ;;
+  2) msg_error "Curl init failed: $target" ;;
+  3) msg_error "Malformed URL: $target" ;;
+  5) msg_error "Proxy resolution failed: $target" ;;
+  6) msg_error "Host resolution failed: $target" ;;
+  7) msg_error "Connection failed: $target" ;;
+  9) msg_error "Access denied: $target" ;;
+  18) msg_error "Partial file transfer: $target" ;;
+  22) msg_error "HTTP error (e.g. 404): $target" ;;
+  23) msg_error "Write error on local system: $target" ;;
+  26) msg_error "Read error from local file: $target" ;;
+  28) msg_error "Timeout: $target" ;;
+  35) msg_error "SSL connect error: $target" ;;
+  47) msg_error "Too many redirects: $target" ;;
+  51) msg_error "SSL cert verify failed: $target" ;;
+  52) msg_error "Empty server response: $target" ;;
+  55) msg_error "Send error: $target" ;;
+  56) msg_error "Receive error: $target" ;;
+  60) msg_error "SSL CA not trusted: $target" ;;
+  67) msg_error "Login denied by server: $target" ;;
+  78) msg_error "Remote file not found (404): $target" ;;
+  *) msg_error "Curl failed with code $exit_code: $target" ;;
   esac
-
-  exit
 }
 
 # ------------------------------------------------------------------------------
