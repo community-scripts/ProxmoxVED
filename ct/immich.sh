@@ -49,7 +49,7 @@ function update_script() {
     curl -fsSLO https://raw.githubusercontent.com/immich-app/base-images/refs/heads/main/server/bin/build-lock.json
     jq -cr '.sources[].revision' ./build-lock.json >~/.new_revisions
     readarray -t UPDATED_REVISIONS < <(comm -13 <(sort ~/.immich_library_revisions) <(sort ~/.new_revisions))
-    if [[ "$(echo "$UPDATED_REVISIONS" | wc -w)" -gt 0 ]]; then
+    if [[ "${#UPDATED_REVISIONS[@]}" -gt 0 ]]; then
       readarray -t NAMES < <(for revision in "${UPDATED_REVISIONS[@]}"; do
         jq -cr --arg jq_revision "$revision" '.sources[] | select(.revision == $jq_revision).name' ./build-lock.json
       done)
@@ -257,19 +257,15 @@ function update_script() {
     echo "$RELEASE" >/opt/"${APP}"_version.txt
     msg_ok "Updated ${APP} to v${RELEASE}"
 
-    msg_info "Starting ${APP}" services
-    systemctl start immich-ml
-    systemctl start immich-web
-    msg_ok "Started ${APP}"
-
     msg_info "Cleaning up"
     rm -f "$immich_zip"
     $STD apt-get -y autoremove
     $STD apt-get -y autoclean
     msg_ok "Cleaned"
   else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+    msg_ok "${APP} is already at v${RELEASE}"
   fi
+  systemctl restart immich-ml immich-web
   exit
 }
 
