@@ -136,7 +136,7 @@ function ssh_check() {
     fi
 }
 
-function exit-script() {
+function exit_script() {
     clear
     echo -e "⚠  User exited script \n"
     exit
@@ -187,7 +187,7 @@ function advanced_settings() {
             echo -e "${DGN}Virtual Machine ID: ${BGN}$VMID${CL}"
             break
         else
-            exit-script
+            exit_script
         fi
     done
 
@@ -205,7 +205,7 @@ function advanced_settings() {
             MACHINE=""
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
@@ -220,7 +220,7 @@ function advanced_settings() {
             DISK_CACHE=""
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 allstarlink --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -232,7 +232,7 @@ function advanced_settings() {
             echo -e "${DGN}Using Hostname: ${BGN}$HN${CL}"
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
@@ -247,7 +247,7 @@ function advanced_settings() {
             CPU_TYPE=""
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -258,7 +258,7 @@ function advanced_settings() {
             echo -e "${DGN}Allocated Cores: ${BGN}$CORE_COUNT${CL}"
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 2048 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -269,7 +269,7 @@ function advanced_settings() {
             echo -e "${DGN}Allocated RAM: ${BGN}$RAM_SIZE${CL}"
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -280,7 +280,7 @@ function advanced_settings() {
             echo -e "${DGN}Using Bridge: ${BGN}$BRG${CL}"
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -292,7 +292,7 @@ function advanced_settings() {
             echo -e "${DGN}Using MAC Address: ${BGN}$MAC1${CL}"
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for default)" 8 58 --title "VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -305,7 +305,7 @@ function advanced_settings() {
             echo -e "${DGN}Using Vlan: ${BGN}$VLAN1${CL}"
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -318,7 +318,7 @@ function advanced_settings() {
             echo -e "${DGN}Using Interface MTU Size: ${BGN}$MTU1${CL}"
         fi
     else
-        exit-script
+        exit_script
     fi
 
     if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
