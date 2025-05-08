@@ -29,7 +29,7 @@ function update_script() {
   RELEASE=$(curl -s https://api.github.com/repos/TwiN/gatus/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [ "${RELEASE}" != "$(cat /opt/gatus_version.txt)" ] || [ ! -f /opt/gatus_version.txt ]; then
     msg_info "Updating ${APP} LXC"
-    service gatus stop
+    $STD service gatus stop
     mv /opt/gatus/config/config.yaml /opt
     rm -rf /opt/gatus/*
     temp_file=$(mktemp)
@@ -42,7 +42,7 @@ function update_script() {
     mv /opt/config.yaml config
     rm -f "$temp_file"
     echo "${RELEASE}" >/opt/gatus_version.txt
-    service gatus start
+    $STD service gatus start
     msg_ok "Updated Successfully"
   else
     msg_ok "No update required. ${APP} is already at ${RELEASE}"
