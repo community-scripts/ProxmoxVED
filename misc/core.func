@@ -154,7 +154,7 @@ __curl_err_handler() {
   7) msg_error "Connection failed: $target" ;;
   9) msg_error "Access denied: $target" ;;
   18) msg_error "Partial file transfer: $target" ;;
-  22) msg_error "HTTP error (e.g. 404): $target" ;;
+  22) msg_error "HTTP error (e.g. 404) - try again later: $target" ;;
   23) msg_error "Write error on local system: $target" ;;
   26) msg_error "Read error from local file: $target" ;;
   28) msg_error "Timeout: $target" ;;
