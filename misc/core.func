@@ -124,7 +124,7 @@ run_curl() {
 curl_handler() {
   local args=()
   local url=""
-  local max_retries=3 delay=2 attempt=1
+  local max_retries=0 delay=2 attempt=1
   local exit_code has_output_file=false
 
   for arg in "$@"; do
@@ -209,7 +209,7 @@ __curl_err_handler() {
   esac
 
   [[ -n "$curl_msg" ]] && printf "%s\n" "$curl_msg" >&2
-  return 1
+  exit 1
 }
 
 ### dev spinner ###
