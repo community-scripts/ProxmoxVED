@@ -32,12 +32,12 @@ function update_script() {
   SOURCE_DIR=${STAGING_DIR}/image-source
   if [[ -f ~/.intel_version ]]; then
     curl -fsSLO https://raw.githubusercontent.com/immich-app/immich/refs/heads/main/machine-learning/Dockerfile
-    readarray -t INTEL_URLS <<<"$(sed -n "/intel/p" ./Dockerfile | awk '{print $3}')"
+    readarray -t INTEL_URLS < <(sed -n "/intel/p" ./Dockerfile | awk '{print $3}')
     INTEL_RELEASE="$(grep "intel-opencl-icd" ./Dockerfile | awk -F '_' '{print $2}')"
     if [[ "$INTEL_RELEASE" != "$(cat ~/.intel_version)" ]]; then
       msg_info "Updating Intel iGPU dependencies"
       for url in "${INTEL_URLS[@]}"; do
-        curl -fsSLO $url
+        curl -fsSLO "$url"
       done
       $STD dpkg -i ./*.deb
       rm ./*.deb
@@ -48,11 +48,11 @@ function update_script() {
   if [[ -f ~/.immich_library_revisions ]]; then
     curl -fsSLO https://raw.githubusercontent.com/immich-app/base-images/refs/heads/main/server/bin/build-lock.json
     jq -cr '.sources[].revision' ./build-lock.json >~/.new_revisions
-    readarray -t UPDATED_REVISIONS <<<"$(diff --unchanged-line-format= --old-line-format= --new-line-format='%L' ~/.immich_library_revisions ~/.new_revisions)"
+    readarray -t UPDATED_REVISIONS < <(comm -13 <(sort ~/.immich_library_revisions) <(sort ~/.new_revisions))
     if [[ "$(echo "$UPDATED_REVISIONS" | wc -w)" -gt 0 ]]; then
-      readarray -t NAMES <<<"$(for revision in "${UPDATED_REVISIONS[@]}"; do
-        jq -cr --arg jq_revision $revision '.sources[] | select(.revision == $jq_revision).name' ./build-lock.json
-      done)"
+      readarray -t NAMES < <(for revision in "${UPDATED_REVISIONS[@]}"; do
+        jq -cr --arg jq_revision "$revision" '.sources[] | select(.revision == $jq_revision).name' ./build-lock.json
+      done)
       rm -rf "$SOURCE_DIR"
       mkdir -p "$SOURCE_DIR"
       cd "$BASE_DIR"
@@ -173,9 +173,9 @@ function update_script() {
         fi
       done
       mv ~/.new_revisions ~/.immich_library_revisions
-      rm ~/build-lock.json
       msg_ok "Image-processing libraries compiled"
     fi
+    rm ~/build-lock.json
   fi
   RELEASE=$(curl -s https://api.github.com/repos/immich-app/immich/releases?per_page=1 | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
