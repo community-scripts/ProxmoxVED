@@ -124,9 +124,14 @@ run_curl() {
 curl_handler() {
   local args=()
   local url=""
-  local max_retries=0 delay=2 attempt=1
-  local exit_code has_output_file=false
+  local max_retries=3 # Setting a default value
+  local delay=2
+  local attempt=1
+  local exit_code
+  local has_output_file=false
+  local result=""
 
+  # Parse arguments
   for arg in "$@"; do
     if [[ "$arg" != -* && -z "$url" ]]; then
       url="$arg"
@@ -136,40 +141,39 @@ curl_handler() {
   done
 
   if [[ -z "$url" ]]; then
-    msg_error "no valid url or option entered for curl_handler"
-    exit 1
+    msg_error "No valid URL or option entered for curl_handler"
+    return 1
   fi
 
-  $STD msg_info "Fetching: $url"
+  msg_info "Fetching: $url"
 
-  while :; do
+  while [[ $attempt -le $max_retries ]]; do
     if $has_output_file; then
-      $STD run_curl "${args[@]}"
+      run_curl "${args[@]}"
       exit_code=$?
     else
-      $STD result=$(run_curl "${args[@]}")
+      result=$(run_curl "${args[@]}")
       exit_code=$?
     fi
 
     if [[ $exit_code -eq 0 ]]; then
-      stop_spinner
       msg_ok "Fetched: $url"
       $has_output_file || printf '%s' "$result"
       return 0
     fi
 
     if ((attempt >= max_retries)); then
-      stop_spinner
+      # Read error log if it exists
       if [ -s /tmp/curl_error.log ]; then
         local curl_stderr
         curl_stderr=$(</tmp/curl_error.log)
         rm -f /tmp/curl_error.log
       fi
-      __curl_err_handler "$exit_code" "$url" "$curl_stderr"
-      exit 1 # hard exit if exit_code is not 0
+      __curl_err_handler "$exit_code" "$url" "${curl_stderr:-}"
+      return 1 # Return error instead of exit to allow script to continue
     fi
 
-    $STD printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
+    printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
     sleep "$delay"
     ((attempt++))
   done
