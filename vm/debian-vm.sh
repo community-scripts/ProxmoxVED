@@ -24,7 +24,7 @@ echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-NSAPP="debian12vm"
+NSAPP="Debian 12 VM"
 var_os="debian"
 var_version="12"
 
@@ -367,7 +367,7 @@ DESCRIPTION=$(
     <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
   </a>
 
-  <h2 style='font-size: 24px; margin: 20px 0;'>${APP} VM</h2>
+  <h2 style='font-size: 24px; margin: 20px 0;'>${NSAPP} VM</h2>
 
   <p style='margin: 16px 0;'>
     <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
