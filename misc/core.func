@@ -113,9 +113,9 @@ silent() {
 
 run_curl() {
   if [ "$VERB" = "no" ]; then
-    curl --retry 0 -fsSL "$@" >/dev/null 2>&1
+    curl "$@" 2>/tmp/curl_error.log >/dev/null
   else
-    curl --retry 0 -fsSL "$@"
+    curl "$@"
   fi
 }
 
@@ -145,7 +145,7 @@ curl_handler() {
       run_curl "${args[@]}"
       exit_code=$?
     else
-      result=$(run_curl "${args[@]}" 2>/dev/null)
+      result=$(run_curl "${args[@]}")
       exit_code=$?
     fi
 
@@ -158,11 +158,16 @@ curl_handler() {
 
     if ((attempt >= max_retries)); then
       stop_spinner
-      __curl_err_handler "$exit_code" "$url"
+      if [ -s /tmp/curl_error.log ]; then
+        local curl_stderr
+        curl_stderr=$(</tmp/curl_error.log)
+        rm -f /tmp/curl_error.log
+      fi
+      __curl_err_handler "$exit_code" "$url" "$curl_stderr"
       return 1
     fi
 
-    printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
+    $STD printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
     sleep "$delay"
     ((attempt++))
   done
@@ -174,6 +179,8 @@ curl_handler() {
 __curl_err_handler() {
   local exit_code="$1"
   local target="$2"
+  local curl_msg="$3"
+
   case $exit_code in
   1) msg_error "Unsupported protocol: $target" ;;
   2) msg_error "Curl init failed: $target" ;;
@@ -183,7 +190,7 @@ __curl_err_handler() {
   7) msg_error "Connection failed: $target" ;;
   9) msg_error "Access denied: $target" ;;
   18) msg_error "Partial file transfer: $target" ;;
-  22) msg_error "HTTP error (e.g. 404) - try again later: $target" ;;
+  22) msg_error "HTTP error (e.g. 400/404): $target" ;;
   23) msg_error "Write error on local system: $target" ;;
   26) msg_error "Read error from local file: $target" ;;
   28) msg_error "Timeout: $target" ;;
@@ -198,6 +205,8 @@ __curl_err_handler() {
   78) msg_error "Remote file not found (404): $target" ;;
   *) msg_error "Curl failed with code $exit_code: $target" ;;
   esac
+
+  [[ -n "$curl_msg" ]] && printf "%s\n" "$curl_msg" >&2
   return 1
 }
 
