@@ -90,11 +90,20 @@ default_vars() {
 # ------------------------------------------------------------------------------
 # Performs a curl request with retry logic and inline feedback.
 # ------------------------------------------------------------------------------
+
+run_curl() {
+  if [ "$VERB" = "no" ]; then
+    curl --retry 0 -fsSL "$@" >/dev/null 2>&1
+  else
+    curl --retry 0 -fsSL "$@"
+  fi
+}
+
 curl_handler() {
   local args=()
   local url=""
-  local max_retries=3 delay=2 attempt=1 result exit_code
-  local has_output_file=false
+  local max_retries=3 delay=2 attempt=1
+  local exit_code has_output_file=false
 
   for arg in "$@"; do
     if [[ "$arg" != -* && -z "$url" ]]; then
@@ -113,10 +122,10 @@ curl_handler() {
 
   while :; do
     if $has_output_file; then
-      $STD curl --retry 0 -fsSL "${args[@]}"
+      run_curl "${args[@]}"
       exit_code=$?
     else
-      result=$($STD curl --retry 0 -fsSL "${args[@]}")
+      result=$(run_curl "${args[@]}" 2>/dev/null)
       exit_code=$?
     fi
 
