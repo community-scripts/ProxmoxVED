@@ -20,7 +20,6 @@ load_functions() {
   color
   formatting
   icons
-  default_vars
   # add more
 }
 
