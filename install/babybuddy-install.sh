@@ -27,7 +27,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Installing Babybuddy"
 cd /opt
-RELEASE=$(community_curl https://api.github.com/repos/babybuddy/babybuddy/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+RELEASE=$(curl_handler https://api.github.com/repos/babybuddy/babybuddy/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 wget -q "https://github.com/babybuddy/babybuddy/archive/refs/tags/v${RELEASE}.zip"
 unzip -q v${RELEASE}.zip
 mv babybuddy-${RELEASE} /opt/babybuddy
