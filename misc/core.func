@@ -96,7 +96,6 @@ curl_handler() {
   local max_retries=3 delay=2 attempt=1 result exit_code
   local has_output_file=false
 
-  # Argumente parsen
   for arg in "$@"; do
     if [[ "$arg" != -* && -z "$url" ]]; then
       url="$arg"
