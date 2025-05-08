@@ -198,7 +198,7 @@ __curl_err_handler() {
   78) msg_error "Remote file not found (404): $target" ;;
   *) msg_error "Curl failed with code $exit_code: $target" ;;
   esac
-  exit
+  return 1
 }
 
 # ------------------------------------------------------------------------------
