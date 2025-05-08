@@ -13,7 +13,7 @@
   "interface_port": 8888,
   "documentation": "https://docs.atuin.sh/self-hosting/server-setup/",
   "website": "https://atuin.sh/",
-  "logo": "https://private-user-images.githubusercontent.com/50552672/377920591-21973691-6209-4b2b-b3f5-16de36d4f648.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDY2ODc4OTEsIm5iZiI6MTc0NjY4NzU5MSwicGF0aCI6Ii81MDU1MjY3Mi8zNzc5MjA1OTEtMjE5NzM2OTEtNjIwOS00YjJiLWIzZjUtMTZkZTM2ZDRmNjQ4LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTA1MDglMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUwNTA4VDA2NTk1MVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTVhMzQxNDQ4ZjBkYWFhYjEzM2Q3ZmI2NjliZmE5ZjVlYjc0MjVhMWE2OWI1OTU2NGU3ODE4Zjc2YzRjNGNjZDAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.5kvkkZmM-9g0UM_yuAFeeLFeZ-GVSjvtQCBxZEVQxcM",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/atuin.svg",
   "config_path": "/root/.config/atuin/server.toml",
   "description": "Atuin replaces your existing shell history with a SQLite database, and records additional context for your commands. Additionally, it provides optional and fully encrypted shell history sync across machines.",
   "install_methods": [
@@ -39,11 +39,11 @@
       "type": "info"
     },
     {
-      "text": "PostgreSQL credentials are saved to /root/atuin.creds",
+      "text": "Database credentials are saved to /root/atuin.creds",
       "type": "info"
     },
     {
-      "text": "For client setup, export ATUIN_HOST='http://<server-ip>:8888' in your shell config.",
+      "text": "For client setup, add 'export ATUIN_HOST=\"http://<server-ip>:8888\"' to your shell config.",
       "type": "info"
     }
   ]
