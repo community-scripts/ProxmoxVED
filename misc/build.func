@@ -1265,7 +1265,9 @@ EOF
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/main
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 EOF'
-    pct exec "$CTID" -- ash -c "apk add bash >/dev/null"
+    pct exec "$CTID" -- ash -c "apk add bash curl >/dev/null"
+  else
+    pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y curl >/dev/null"
   fi
   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/"$var_install".sh)" $?
 
