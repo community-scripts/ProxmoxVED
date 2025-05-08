@@ -109,7 +109,7 @@ curl_handler() {
     return 1
   fi
 
-  msg_info "Fetching: $url"
+  $STD msg_info "Fetching: $url"
 
   while :; do
     result=$(curl --retry 0 "${args[@]}" 2>&1)
@@ -117,7 +117,7 @@ curl_handler() {
 
     if [[ $exit_code -eq 0 ]]; then
       stop_spinner
-      msg_ok "Fetched: $url"
+      $STD msg_ok "Fetched: $url"
       $has_output_file || printf '%s' "$result"
       return 0
     fi
