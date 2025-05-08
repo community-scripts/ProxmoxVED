@@ -88,6 +88,26 @@ default_vars() {
 }
 
 # ------------------------------------------------------------------------------
+# Sets default verbose mode for script execution.
+# ------------------------------------------------------------------------------
+set_std_mode() {
+  if [ "$VERB" = "yes" ]; then
+    STD=""
+  else
+    STD="silent"
+  fi
+}
+
+# Silent execution function
+silent() {
+  if [ "$VERB" = "no" ]; then
+    "$@" >/dev/null 2>&1 || return 1
+  else
+    "$@" || return 1
+  fi
+}
+
+# ------------------------------------------------------------------------------
 # Performs a curl request with retry logic and inline feedback.
 # ------------------------------------------------------------------------------
 
