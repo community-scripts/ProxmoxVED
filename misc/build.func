@@ -1267,6 +1267,16 @@ http://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 EOF'
     pct exec "$CTID" -- ash -c "apk add bash curl >/dev/null"
   else
+    # Set locale and timezone before update
+    pct exec "$CTID" -- bash -c "sed -i '/$LANG/ s/^# //' /etc/locale.gen"
+    pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
+    echo LANG=\$locale_line >/etc/default/locale && \
+    locale-gen >/dev/null && \
+    export LANG=\$locale_line"
+
+    pct exec "$CTID" -- bash -c "echo $tz >/etc/timezone && ln -sf /usr/share/zoneinfo/$tz /etc/localtime"
+
+    # Install curl
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y curl >/dev/null"
   fi
   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/"$var_install".sh)" $?
