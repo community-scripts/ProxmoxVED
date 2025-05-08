@@ -144,10 +144,10 @@ curl_handler() {
 
   while :; do
     if $has_output_file; then
-      run_curl "${args[@]}"
+      $STD run_curl "${args[@]}"
       exit_code=$?
     else
-      result=$(run_curl "${args[@]}")
+      $STD result=$(run_curl "${args[@]}")
       exit_code=$?
     fi
 
