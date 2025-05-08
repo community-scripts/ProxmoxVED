@@ -112,12 +112,17 @@ curl_handler() {
   $STD msg_info "Fetching: $url"
 
   while :; do
-    result=$(curl --retry 0 "${args[@]}" 2>&1)
-    exit_code=$?
+    if $has_output_file; then
+      $STD curl --retry 0 -fsSL "${args[@]}"
+      exit_code=$?
+    else
+      result=$($STD curl --retry 0 -fsSL "${args[@]}")
+      exit_code=$?
+    fi
 
     if [[ $exit_code -eq 0 ]]; then
       stop_spinner
-      $STD msg_ok "Fetched: $url"
+      msg_ok "Fetched: $url"
       $has_output_file || printf '%s' "$result"
       return 0
     fi
