@@ -29,6 +29,7 @@ function update_script() {
   RELEASE=$(curl -s https://api.github.com/repos/TwiN/gatus/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [ "${RELEASE}" != "$(cat /opt/gatus_version.txt)" ] || [ ! -f /opt/gatus_version.txt ]; then
     msg_info "Updating ${APP} LXC"
+    $STD apk -U upgrade
     $STD service gatus stop
     mv /opt/gatus/config/config.yaml /opt
     rm -rf /opt/gatus/*
