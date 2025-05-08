@@ -149,7 +149,7 @@ curl_handler() {
 
   while [[ $attempt -le $max_retries ]]; do
     if $has_output_file; then
-      run_curl "${args[@]}"
+      $STD run_curl "${args[@]}"
       exit_code=$?
     else
       result=$(run_curl "${args[@]}")
@@ -157,7 +157,7 @@ curl_handler() {
     fi
 
     if [[ $exit_code -eq 0 ]]; then
-      msg_ok "Fetched: $url"
+      $STD msg_ok "Fetched: $url"
       $has_output_file || printf '%s' "$result"
       return 0
     fi
@@ -173,7 +173,7 @@ curl_handler() {
       return 1 # Return error instead of exit to allow script to continue
     fi
 
-    printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
+    $STD printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
     sleep "$delay"
     ((attempt++))
   done
