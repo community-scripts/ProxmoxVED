@@ -91,20 +91,35 @@ default_vars() {
 # Performs a curl request with retry logic and inline feedback.
 # ------------------------------------------------------------------------------
 curl_handler() {
-  local url="$1"
-  shift
+  local args=()
+  local url=""
   local max_retries=3 delay=2 attempt=1 result exit_code
+  local has_output_file=false
+
+  # Argumente parsen
+  for arg in "$@"; do
+    if [[ "$arg" != -* && -z "$url" ]]; then
+      url="$arg"
+    fi
+    [[ "$arg" == "-o" || "$arg" == --output ]] && has_output_file=true
+    args+=("$arg")
+  done
+
+  if [[ -z "$url" ]]; then
+    msg_error "no valid url or option entered for curl_handler"
+    return 1
+  fi
 
   msg_info "Fetching: $url"
+
   while :; do
-    result=$(curl -fsSL --retry 0 "$url" "$@" 2>&1)
+    result=$(curl --retry 0 "${args[@]}" 2>&1)
     exit_code=$?
 
     if [[ $exit_code -eq 0 ]]; then
       stop_spinner
       msg_ok "Fetched: $url"
-      # Wenn -o verwendet wurde, gibt es keinen stdout-Output
-      [[ "$*" != *"-o "* ]] && printf '%s' "$result"
+      $has_output_file || printf '%s' "$result"
       return 0
     fi
 
