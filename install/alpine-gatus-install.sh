@@ -38,6 +38,7 @@ msg_info "Enabling gatus Service"
 cat <<EOF >/etc/init.d/gatus
 #!/sbin/openrc-run
 description="gatus Service"
+directory="/opt/gatus"
 command="/opt/gatus/gatus"
 command_args=""
 command_background="true"

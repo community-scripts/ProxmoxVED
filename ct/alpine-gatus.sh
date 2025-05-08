@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://github.com/TwiN/gatus
 
 APP="Alpine-gatus"
-var_tags="${var_tags:-alpine;backup}"
+var_tags="${var_tags:-alpine;monitoring}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-256}"
 var_disk="${var_disk:-3}"
@@ -21,10 +21,8 @@ catch_errors
 
 function update_script() {
   header_info
-  check_container_storage
-  check_container_resources
 
-  if [ ! -d /opt/gatus ]; then
+  if [[ ! -d /opt/gatus ]]; then
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
