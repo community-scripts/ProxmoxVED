@@ -419,17 +419,22 @@ advanced_settings() {
     exit_script
   fi
 
-   BRIDGES=$( ip link show | grep -oP '(?<=: )vmbr\d+' | sort)
+  BRIDGES=$( ip link show | grep -oP '(?<=: )vmbr\d+' | sort)
 
-  if BRG=$(whiptail --title "$TITLE" --menu "Select network bridge:" 15 60 6 $(echo "$BRIDGES" | awk '{print $0, "Bridge"}') 3>&1 1>&2 2>&3); then
-    if [ -z "$BRG" ]; then
-      BRG="vmbr0"
-      echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
-    else
-      echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
-    fi
+  if [[ -z "$BRIDGES" ]]; then
+    BRG="vmbr0"
+    echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
   else
-    exit_script
+    if BRG=$(whiptail --title "$TITLE" --menu "Select network bridge:" 15 60 6 $(echo "$BRIDGES" | awk '{print $0, "Bridge"}') 3>&1 1>&2 2>&3); then
+      if [ -z "$BRG" ]; then
+        BRG="vmbr0"
+        echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
+      else
+        echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
+      fi
+    else
+      exit_script
+    fi
   fi
 
   while true; do
