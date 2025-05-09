@@ -17,9 +17,10 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y python3-distutils
 msg_ok "Installed Dependencies"
 
-install_mysql
+install_mariadb
 
 msg_info "Setting up Bluecherry"
+export DEBIAN_FRONTEND=noninteractive
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
 MYSQL_ROOT_PASS="$(openssl rand -base64 18 | cut -c1-13)"
 curl -fsSL https://dl.bluecherrydvr.com/key/bluecherry.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/bluecherry.gpg
