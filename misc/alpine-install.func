@@ -10,19 +10,19 @@ fi
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 load_functions
 
-# Function to set STD mode based on verbosity
-set_std_mode() {
-  if [ "$VERBOSE" = "yes" ]; then
-    STD=""
-  else
-    STD="silent"
-  fi
-}
+# # Function to set STD mode based on verbosity
+# set_std_mode() {
+#   if [ "$VERBOSE" = "yes" ]; then
+#     STD=""
+#   else
+#     STD="silent"
+#   fi
+# }
 
-# Silent execution function
-silent() {
-  "$@" >/dev/null 2>&1
-}
+# # Silent execution function
+# silent() {
+#   "$@" >/dev/null 2>&1
+# }
 
 # This function enables IPv6 if it's not disabled and sets verbose mode
 verb_ip6() {
