@@ -100,7 +100,7 @@ jobs:
       - name: Approve pull request
         if: env.changed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_MICHEL }}
         run: |
           PR_NUMBER=$(gh pr list --head "update_versions" --json number --jq '.[].number')
           if [ -n "$PR_NUMBER" ]; then
@@ -111,7 +111,7 @@ jobs:
       - name: Re-approve pull request after update
         if: env.changed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_MICHEL }}
         run: |
           PR_NUMBER=$(gh pr list --head "update_versions" --json number --jq '.[].number')
           if [ -n "$PR_NUMBER" ]; then
