@@ -188,6 +188,8 @@ function update_script() {
     SRC_DIR="${INSTALL_DIR}/source"
     APP_DIR="${INSTALL_DIR}/app"
     ML_DIR="${APP_DIR}/machine-learning"
+    GEO_DIR="${INSTALL_DIR}/geodata"
+    cp "$ML_DIR"/ml_start.sh "$INSTALL_DIR"
     rm -rf "${APP_DIR:?}"/*
     rm -rf "$SRC_DIR"
     immich_zip=$(mktemp)
@@ -236,6 +238,7 @@ function update_script() {
     fi
     cd "$SRC_DIR"
     cp -a machine-learning/{ann,immich_ml} "$ML_DIR"
+    cp "$INSTALL_DIR"/ml_start.sh "$ML_DIR"
     if [[ -f ~/.openvino ]]; then
       sed -i "/intra_op/s/int = 0/int = os.cpu_count() or 0/" "$ML_DIR"/immich_ml/config.py
     fi
@@ -246,6 +249,7 @@ function update_script() {
     sed -i "s@\"/cache\"@\"$INSTALL_DIR/cache\"@g" "$ML_DIR"/immich_ml/config.py
     ln -s "$UPLOAD_DIR" "$APP_DIR"/upload
     ln -s "$UPLOAD_DIR" "$ML_DIR"/upload
+    ln -s "$GEO_DIR" "$APP_DIR"
 
     msg_info "Updating Immich CLI"
     $STD npm install --build-from-source sharp
