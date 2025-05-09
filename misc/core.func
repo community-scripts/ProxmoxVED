@@ -102,7 +102,11 @@ set_std_mode() {
 
 # Silent execution function
 silent() {
-  "$@" >/dev/null 2>&1
+  if [ "$VERBOSE" = "no" ]; then
+    "$@" >/dev/null 2>&1 || return 1
+  else
+    "$@" || return 1
+  fi
 }
 
 # ------------------------------------------------------------------------------
