@@ -63,23 +63,23 @@ function update_script() {
 
     if [[ -d /srv/homeassistant/bin ]]; then
       msg_info "Migrating to .venv-based structure"
-      source /srv/homeassistant/bin/activate
-      PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-      deactivate
+      $STD source /srv/homeassistant/bin/activate
+      $STD PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+      $STD deactivate
       mv /srv/homeassistant "/srv/homeassistant_backup_$PY_VER"
       mkdir -p /srv/homeassistant
       cd /srv/homeassistant
 
-      uv python install 3.13
+      $STD uv python install 3.13
       UV_PYTHON=$(uv python list | awk '/3\.13\.[0-9]+.*\/root\/.local/ {print $2; exit}')
       if [[ -z "$UV_PYTHON" ]]; then
         msg_error "No local Python 3.13 found via uv"
         exit 1
       fi
 
-      uv venv .venv --python "$UV_PYTHON"
-      source .venv/bin/activate
-      uv pip install homeassistant mysqlclient psycopg2-binary isal webrtcvad wheel
+      $STD uv venv .venv --python "$UV_PYTHON"
+      $STD source .venv/bin/activate
+      $STD uv pip install homeassistant mysqlclient psycopg2-binary isal webrtcvad wheel
       mkdir -p /root/.homeassistant
       msg_ok "Migration complete"
     else
@@ -91,8 +91,14 @@ function update_script() {
     msg_ok "Updated Home Assistant"
 
     msg_info "Starting Home Assistant"
+    if [[ -f /etc/systemd/system/homeassistant.service ]] && grep -q "/srv/homeassistant/bin/python3" /etc/systemd/system/homeassistant.service; then
+      sed -i 's|ExecStart=/srv/homeassistant/bin/python3|ExecStart=/srv/homeassistant/.venv/bin/python3|' /etc/systemd/system/homeassistant.service
+      sed -i 's|PATH=/srv/homeassistant/bin|PATH=/srv/homeassistant/.venv/bin|' /etc/systemd/system/homeassistant.service
+      $STD systemctl daemon-reload
+    fi
+
     systemctl start homeassistant
-    sleep 2
+    sleep 5
     msg_ok "Started Home Assistant"
     msg_ok "Update Successful"
     echo -e "\n  Go to http://${IP}:8123 \n"
