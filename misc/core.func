@@ -96,7 +96,7 @@ if [ -z "${VERBOSE+x}" ]; then
 else
   echo "DEBUG: VERBOSE (pre): '$VERBOSE'"
 fi
-
+VERBOSE="${1:-no}"
 set_std_mode() {
   if [ "$VERBOSE" = "yes" ]; then
     STD=""
