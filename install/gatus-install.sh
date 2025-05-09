@@ -19,16 +19,7 @@ $STD apt-get install -y \
   libcap2-bin
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Golang"
-set +o pipefail
-temp_file=$(mktemp)
-golang_tarball=$(curl -fsSL https://go.dev/dl/ | grep -oP 'go[\d\.]+\.linux-amd64\.tar\.gz' | head -n 1)
-curl -fsSL "https://golang.org/dl/${golang_tarball}" -o "$temp_file"
-tar -C /usr/local -xzf "$temp_file"
-ln -sf /usr/local/go/bin/go /usr/local/bin/go
-set -o pipefail
-rm -f "$temp_file"
-msg_ok "Installed Golang"
+install_go
 
 RELEASE=$(curl -s https://api.github.com/repos/TwiN/gatus/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 msg_info "Setting up gatus v${RELEASE}"
