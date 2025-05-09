@@ -46,29 +46,24 @@ $STD apt-get install -y \
   pkg-config
 msg_ok "Installed Dependencies"
 
+setup_uv
 msg_info "Setup Python3"
-$STD apt-get update
-$STD rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-$STD apt-get remove --purge -y python3.12 python3.12-dev python3.12-venv
-
 $STD apt-get install -y \
   python3.13 \
   python3-pip \
   python3.13-dev \
   python3.13-venv
-
-ln -sf /usr/bin/python3.13 /usr/bin/python3
 msg_ok "Setup Python3"
 
 msg_info "Setting up Home Assistant-Core environment"
-mkdir /srv/homeassistant
+mkdir -p /srv/homeassistant
 cd /srv/homeassistant
-python3 -m venv .
+uv venv .
 source bin/activate
 msg_ok "Created virtual environment"
 
 msg_info "Installing Home Assistant-Core"
-$STD python3 -m pip install webrtcvad wheel homeassistant mysqlclient psycopg2-binary isal
+$STD uv pip install --all-extras homeassistant mysqlclient psycopg2-binary isal webrtcvad wheel
 mkdir -p /root/.homeassistant
 msg_ok "Installed Home Assistant-Core"
 
