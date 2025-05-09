@@ -241,7 +241,7 @@ base_settings() {
   DISK_SIZE=${var_disk:-$DISK_SIZE}
   CORE_COUNT=${var_cpu:-$CORE_COUNT}
   RAM_SIZE=${var_ram:-$RAM_SIZE}
-  VERB=${var_verbose:-$VERBOSE}
+  VERBOSE=${var_verbose:-$VERBOSE}
   TAGS="${TAGS}${var_tags:-}"
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
@@ -269,7 +269,7 @@ echo_default() {
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
   echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
   echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
-  if [ "$VERB" == "yes" ]; then
+  if [ "$VERBOSE" == "yes" ]; then
     echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
   fi
   echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
@@ -419,18 +419,18 @@ advanced_settings() {
     exit_script
   fi
 
-  BRIDGES=$( ip link show | grep -oP '(?<=: )vmbr\d+' | sort)
+  BRIDGES=$(ip link show | grep -oP '(?<=: )vmbr\d+' | sort)
 
   if [[ -z "$BRIDGES" ]]; then
     BRG="vmbr0"
     echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
   else
     BRG=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 40 6 $(echo "$BRIDGES" | awk '{print $0, "Bridge"}') 3>&1 1>&2 2>&3)
-      if [ -z "$BRG" ]; then
-        exit_script
-      else
-        echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
-      fi
+    if [ -z "$BRG" ]; then
+      exit_script
+    else
+      echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
+    fi
   fi
 
   while true; do
@@ -592,11 +592,11 @@ advanced_settings() {
     SSH_AUTHORIZED_KEY=""
   fi
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
-    VERB="yes"
+    VERBOSE="yes"
   else
-    VERB="no"
+    VERBOSE="no"
   fi
-  echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERB${CL}"
+  echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERBOSE${CL}"
 
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create ${APP} LXC?" 10 58); then
     echo -e "${CREATING}${BOLD}${RD}Creating a ${APP} LXC using the above advanced settings${CL}"
@@ -967,12 +967,12 @@ config_file() {
     exit
   fi
 
-  if [[ "$VERB" == "yes" ]]; then
-    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERB${CL}"
-  elif [[ "$VERB" == "no" ]]; then
+  if [[ "$VERBOSE" == "yes" ]]; then
+    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERBOSE${CL}"
+  elif [[ "$VERBOSE" == "no" ]]; then
     echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}No${CL}"
   else
-    msg_error "Verbose Mode needs to be 'yes' or 'no', was ${VERB}"
+    msg_error "Verbose Mode needs to be 'yes' or 'no', was ${VERBOSE}"
     exit
   fi
 
@@ -1022,18 +1022,18 @@ install_script() {
     1)
       header_info
       echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME${CL}"
-      VERB="no"
+      VERBOSE="no"
       METHOD="default"
-      base_settings "$VERB"
+      base_settings "$VERBOSE"
       echo_default
       break
       ;;
     2)
       header_info
       echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME (${VERBOSE_CROPPED}Verbose)${CL}"
-      VERB="yes"
+      VERBOSE="yes"
       METHOD="default"
-      base_settings "$VERB"
+      base_settings "$VERBOSE"
       echo_default
       break
       ;;
@@ -1140,11 +1140,11 @@ start() {
 
     case "$CHOICE" in
     1)
-      VERB="no"
+      VERBOSE="no"
       set_std_mode
       ;;
     2)
-      VERB="yes"
+      VERBOSE="yes"
       set_std_mode
       ;;
     3)
@@ -1159,7 +1159,7 @@ start() {
 
 # This function collects user settings and integrates all the collected information.
 build_container() {
-  #  if [ "$VERB" == "yes" ]; then set -x; fi
+  #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
   if [ "$CT_TYPE" == "1" ]; then
     FEATURES="keyctl=1,nesting=1"
@@ -1186,7 +1186,7 @@ build_container() {
   export APPLICATION="$APP"
   export app="$NSAPP"
   export PASSWORD="$PW"
-  export VERBOSE="$VERB"
+  export VERBOSE="$VERBOSE"
   export SSH_ROOT="${SSH}"
   export SSH_AUTHORIZED_KEY
   export CTID="$CT_ID"
@@ -1335,7 +1335,7 @@ EOF
 }
 
 set_std_mode() {
-  if [ "$VERB" = "yes" ]; then
+  if [ "$VERBOSE" = "yes" ]; then
     STD=""
   else
     STD="silent"
@@ -1344,7 +1344,7 @@ set_std_mode() {
 
 # Silent execution function
 silent() {
-  if [ "$VERB" = "no" ]; then
+  if [ "$VERBOSE" = "no" ]; then
     "$@" >/dev/null 2>&1 || return 1
   else
     "$@" || return 1
