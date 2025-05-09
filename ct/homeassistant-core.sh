@@ -64,7 +64,7 @@ function update_script() {
     if [[ -d /srv/homeassistant/bin ]]; then
       msg_info "Migrating to .venv-based structure"
       $STD source /srv/homeassistant/bin/activate
-      $STD PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+      PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
       $STD deactivate
       mv /srv/homeassistant "/srv/homeassistant_backup_$PY_VER"
       mkdir -p /srv/homeassistant
