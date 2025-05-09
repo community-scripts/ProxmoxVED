@@ -17,20 +17,9 @@ $STD apk add ca-certificates
 $STD update-ca-certificates
 msg_ok "Installed Dependencies"
 
-msg_info "Enabling edge repository for traefik"
-echo "@edge https://dl-cdn.alpinelinux.org/alpine/edge/community" >>/etc/apk/repositories
-$STD apk update
-msg_ok "Enabled edge repository"
-
 msg_info "Installing Traefik"
-$STD apk add traefik@edge
+$STD apk add traefik --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
 msg_ok "Installed Traefik"
-
-msg_info "Disabling edge repository"
-sed -i '/@edge/d' /etc/apk/repositories
-sed -i 's/traefik@edge/traefik/' /etc/apk/world
-$STD apk update
-msg_ok "Disabled edge repository"
 
 read -p "Enable Traefik WebUI (Port 8080)? [y/N]: " enable_webui
 if [[ "$enable_webui" =~ ^[Yy]$ ]]; then
