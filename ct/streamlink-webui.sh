@@ -24,7 +24,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/streamlink-webui ]]; then
+  if [[ ! -d /opt/streamlink-webui ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
@@ -43,13 +43,13 @@ function update_script() {
     fetch_and_deploy_gh_release "CrazyWolf13/streamlink-webui"
 
     msg_info "Updating $APP to v${RELEASE}"
-    $STD uv venv /opt/"${APPLICATION}"/backend/src/.venv
-    source /opt/"${APPLICATION}"/backend/src/.venv/bin/activate
-    $STD uv pip install -r /opt/streamlink-webui/backend/src/requirements.txt --python=/opt/"${APPLICATION}"/backend/src/.venv
-    cd /opt/"${APPLICATION}"/frontend/src
+    $STD uv venv /opt/"${APP}"/backend/src/.venv
+    source /opt/"${APP}"/backend/src/.venv/bin/activate
+    $STD uv pip install -r /opt/streamlink-webui/backend/src/requirements.txt --python=/opt/"${APP}"/backend/src/.venv
+    cd /opt/"${APP}"/frontend/src
     $STD yarn install
     $STD yarn build
-    chmod +x /opt/"${APPLICATION}"/start.sh
+    chmod +x /opt/"${APP}"/start.sh
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"
