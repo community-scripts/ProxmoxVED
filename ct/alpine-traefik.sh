@@ -26,20 +26,9 @@ function update_script() {
   $STD apk upgrade
   msg_ok "Updated Alpine Packages"
 
-  msg_info "Enabling edge repository"
-  echo "@edge https://dl-cdn.alpinelinux.org/alpine/edge/community" >>/etc/apk/repositories
-  $STD apk update
-  msg_ok "Enabled edge repository"
-
   msg_info "Upgrading traefik from edge"
-  $STD apk add --upgrade traefik@edge
+  $STD apk add traefik --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
   msg_ok "Upgraded traefik"
-
-  msg_info "Disabling edge repository"
-  sed -i '/@edge/d' /etc/apk/repositories
-  sed -i 's/traefik@edge/traefik/' /etc/apk/world
-  $STD apk update
-  msg_ok "Disabled edge repository"
   exit
 }
 
