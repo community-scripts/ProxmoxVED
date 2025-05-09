@@ -17,13 +17,13 @@
   "install_methods": [
     {
       "type": "default",
-      "script": "ct/alpine-gatus.sh",
+      "script": "ct/gatus.sh",
       "resources": {
         "cpu": 1,
-        "ram": 256,
-        "hdd": 3,
-        "os": "alpine",
-        "version": "3.21"
+        "ram": 512,
+        "hdd": 4,
+        "os": "debian",
+        "version": "12"
       }
     },
     {
