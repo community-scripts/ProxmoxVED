@@ -101,7 +101,7 @@ function update_script() {
     sleep 5
     msg_ok "Started Home Assistant"
     msg_ok "Update Successful"
-    echo -e "\n  Go to http://${IP}:8123 \n"
+    echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8123${CL}"
     exit
   fi
 
