@@ -105,7 +105,7 @@ jobs:
           PR_NUMBER=$(gh pr list --head "update_versions" --json number --jq '.[].number')
           if [ -n "$PR_NUMBER" ]; then
             gh pr review $PR_NUMBER --approve
-            gh pr merge $PR_NUMBER --squash
+            gh pr merge $PR_NUMBER --squash --delete-branch --admin
           fi
 
       - name: Re-approve pull request after update
@@ -116,5 +116,5 @@ jobs:
           PR_NUMBER=$(gh pr list --head "update_versions" --json number --jq '.[].number')
           if [ -n "$PR_NUMBER" ]; then
             gh pr review $PR_NUMBER --approve
-            gh pr merge $PR_NUMBER --squash
+            gh pr merge $PR_NUMBER --squash --delete-branch --admin
           fi
