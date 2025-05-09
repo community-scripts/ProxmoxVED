@@ -55,7 +55,7 @@ $STD apt-get install -y \
 msg_ok "Setup Python3"
 
 msg_info "Preparing Python 3.13 for uv"
-uv python install 3.13
+$STD uv python install 3.13
 UV_PYTHON=$(uv python list | awk '/3\.13\.[0-9]+.*\/root\/.local/ {print $2; exit}')
 if [[ -z "$UV_PYTHON" ]]; then
   msg_error "No local Python 3.13 found via uv"
@@ -67,7 +67,7 @@ msg_info "Setting up Home Assistant-Core environment"
 rm -rf /srv/homeassistant
 mkdir -p /srv/homeassistant
 cd /srv/homeassistant
-uv venv .venv --python "$UV_PYTHON"
+$STD uv venv .venv --python "$UV_PYTHON"
 source .venv/bin/activate
 msg_ok "Created virtual environment"
 
