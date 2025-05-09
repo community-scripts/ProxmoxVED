@@ -25,23 +25,19 @@ function update_script() {
     check_container_storage
     check_container_resources
 
-    # Check if installation is present | -f for file, -d for folder
     if [[ ! -d /opt/garmin-grafana/ ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi
 
-    # Crawling the new version and checking whether an update is required
     RELEASE=$(curl -fsSL https://api.github.com/repos/arpanghosh8453/garmin-grafana/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
     if [[ ! -d /opt/garmin-grafana/ ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
-        # Stopping Services
         msg_info "Stopping $APP"
         systemctl stop garmin-grafana
         systemctl stop grafana-server
         systemctl stop influxdb
         msg_ok "Stopped $APP"
 
-        # Get required environment variables from the .env file
         if [[ ! -f /opt/garmin-grafana/.env ]]; then
             msg_error "No .env file found in /opt/garmin-grafana/.env"
             exit
@@ -52,21 +48,17 @@ function update_script() {
             exit
         fi
 
-        # Creating Backup
         msg_info "Creating Backup"
         tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/garmin-grafana/.garminconnect /opt/garmin-grafana/.env
         mv /opt/garmin-grafana/ /opt/garmin-grafana-backup/
         msg_ok "Backup Created"
 
-        # Execute Update
         msg_info "Updating $APP to v${RELEASE}"
         curl -fsSL -o "${RELEASE}.zip" "https://github.com/arpanghosh8453/garmin-grafana/archive/refs/tags/${RELEASE}.zip"
         unzip -q "${RELEASE}.zip"
         mv "garmin-grafana-${RELEASE}/" "/opt/garmin-grafana"
         rm -f "${RELEASE}.zip"
-        # Install python dependencies with uv
         $STD uv sync --locked --project /opt/garmin-grafana/
-        # Setup grafana provisioning configs
         # shellcheck disable=SC2016
         sed -i 's/\${DS_GARMIN_STATS}/garmin_influxdb/g' /opt/garmin-grafana/Grafana_Dashboard/Garmin-Grafana-Dashboard.json
         sed -i 's/influxdb:8086/localhost:8086/' /opt/garmin-grafana/Grafana_Datasource/influxdb.yaml
@@ -81,19 +73,16 @@ function update_script() {
         cp -r /opt/garmin-grafana-backup/.garminconnect /opt/garmin-grafana/.garminconnect
         msg_ok "Updated $APP to v${RELEASE}"
 
-        # Starting Services
         msg_info "Starting $APP"
         systemctl start garmin-grafana
         systemctl start grafana-server
         systemctl start influxdb
         msg_ok "Started $APP"
 
-        # Cleaning up
         msg_info "Cleaning Up"
         rm -rf /opt/garmin-grafana-backup
         msg_ok "Cleanup Completed"
 
-        # Last Action
         echo "${RELEASE}" >/opt/${APP}_version.txt
         msg_ok "Update Successful"
     else

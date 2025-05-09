@@ -16,18 +16,16 @@ update_os
 
 # Installing Dependencies
 msg_info "Installing Dependencies"
-# Grafana dependencies
-$STD apt-get install -y gnupg
-$STD apt-get install -y apt-transport-https
-$STD apt-get install -y software-properties-common
-# Influx dependencies
-$STD apt-get install -y lsb-base
-$STD apt-get install -y lsb-release
-$STD apt-get install -y gnupg2
-# garmin-grafana dependencies
-$STD apt-get install -y python3
-$STD apt-get install -y python3-requests
-$STD apt-get install -y python3-dotenv
+$STD apt-get install -y \
+    gnupg \
+    apt-transport-https \
+    software-properties-common \
+    lsb-base \
+    lsb-release \
+    gnupg2 \
+    python3 \
+    python3-requests \
+    python3-dotenv
 setup_uv
 msg_ok "Installed Dependencies"
 
@@ -46,10 +44,8 @@ $STD dpkg -i chronograf_1.10.7_amd64.deb
 msg_ok "Installed InfluxDB"
 
 msg_info "Setting up InfluxDB"
-# Patch the config file to use the tsi1 index
 $STD sed -i 's/# index-version = "inmem"/index-version = "tsi1"/' /etc/influxdb/influxdb.conf
 
-# Create InfluxDB user and database
 INFLUXDB_USER="garmin_grafana_user"
 INFLUXDB_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 INFLUXDB_NAME="GarminStats"
@@ -78,9 +74,7 @@ msg_ok "Installed Grafana"
 msg_info "Setting up Grafana"
 GRAFANA_USER="admin"
 GRAFANA_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
-# Create Grafana user
 $STD grafana-cli admin reset-admin-password "${GRAFANA_PASS}"
-# # Install plugins
 $STD grafana-cli plugins install marcusolsson-hourly-heatmap-panel
 $STD systemctl restart grafana-server
 # Output credentials to file
@@ -101,9 +95,7 @@ if [[ "${RELEASE}" == v* ]]; then
   RELEASE="${RELEASE:1}"
 fi
 mv "garmin-grafana-${RELEASE}/" "/opt/garmin-grafana"
-# Create dir for garmin tokens
 mkdir -p /opt/garmin-grafana/.garminconnect
-# Install python dependencies with uv
 $STD uv sync --locked --project /opt/garmin-grafana/
 # Setup grafana provisioning configs
 # shellcheck disable=SC2016
@@ -127,7 +119,6 @@ else
   GARMIN_CN="False"
 fi
 
-# Setup environment variables
 cat <<EOF >/opt/garmin-grafana/.env
 INFLUXDB_HOST=localhost
 INFLUXDB_PORT=8086
@@ -142,7 +133,6 @@ EOF
 # garmin-grafana usually prompts the user for email and password (and MFA) on first run,
 # then stores a refreshable token. We try to avoid storing user credentials in the env vars
 if [ -z "$(ls -A /opt/garmin-grafana/.garminconnect)" ]; then
-  # Get the email and password from the user
   read -r -p "Please enter your Garmin Connect Email: " GARMIN_EMAIL
   read -r -p "Please enter your Garmin Connect Password (this is used to generate a token and NOT stored): " GARMIN_PASSWORD
   read -r -p "Please enter your MFA Code (if applicable, leave blank if not): " GARMIN_MFA
@@ -153,7 +143,6 @@ ${GARMIN_EMAIL}
 ${GARMIN_PASSWORD}
 ${GARMIN_MFA}
 EOF
-  # Clear the credentials from the terminal
   unset GARMIN_EMAIL
   unset GARMIN_PASSWORD
   unset GARMIN_MFA
@@ -164,7 +153,6 @@ EOF
   fi
 fi
 
-# Restart Grafana to pick up the provisioned data sources and dashboards
 $STD systemctl restart grafana-server
 
 # Add a script to make the manual bulk data import easier
@@ -197,7 +185,6 @@ EOF
 chmod +x ~/bulk-import.sh
 msg_ok "Set up garmin-grafana"
 
-# Creating Service (if needed)
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/garmin-grafana.service
 [Unit]
