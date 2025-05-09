@@ -1334,22 +1334,22 @@ EOF
   post_update_to_api "done" "none"
 }
 
-set_std_mode() {
-  if [ "$VERBOSE" = "yes" ]; then
-    STD=""
-  else
-    STD="silent"
-  fi
-}
+# set_std_mode() {
+#   if [ "$VERBOSE" = "yes" ]; then
+#     STD=""
+#   else
+#     STD="silent"
+#   fi
+# }
 
-# Silent execution function
-silent() {
-  if [ "$VERBOSE" = "no" ]; then
-    "$@" >/dev/null 2>&1 || return 1
-  else
-    "$@" || return 1
-  fi
-}
+# # Silent execution function
+# silent() {
+#   if [ "$VERBOSE" = "no" ]; then
+#     "$@" >/dev/null 2>&1 || return 1
+#   else
+#     "$@" || return 1
+#   fi
+# }
 
 api_exit_script() {
   exit_code=$? # Capture the exit status of the last executed command
