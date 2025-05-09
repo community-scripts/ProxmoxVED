@@ -21,7 +21,7 @@ load_functions() {
   formatting
   icons
   default_vars
-  silent
+  set_std_mode
   # add more
 }
 
@@ -96,14 +96,19 @@ if [ -v VERBOSE ]; then
 else
   echo "DEBUG: VERBOSE was not defined, applying default"
 fi
+VERBOSE="${1:-no}"
 
-silent() {
-  echo "DEBUG: VERBOSE: '$VERBOSE'"
-  if [ "$VERBOSE" = "no" ]; then
-    "$@" >/dev/null 2>&1 || return 1
+set_std_mode() {
+  if [ "$VERBOSE" = "yes" ]; then
+    STD=""
   else
-    "$@" || return 1
+    STD="silent"
   fi
+}
+
+# Silent execution function
+silent() {
+  "$@" >/dev/null 2>&1
 }
 
 # ------------------------------------------------------------------------------
