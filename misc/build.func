@@ -706,12 +706,9 @@ config_file() {
         msg_error "Invalid Container ID range. The first number must be smaller than the second number, was ${CT_ID}"
         exit
       fi
-      LIST_OF_IDS=""
-      OUTPUT=$(pvesh get /cluster/resources --type vm --output-format json 2>/dev/null) || true
-      if [[ -n "$OUTPUT" ]]; then
-        LIST_OF_IDS=$(echo "$OUTPUT" | grep -oP '"vmid":\s*\K\d+')
-      fi
-      if [[ ! -z "$LIST_OF_IDS" ]]; then
+
+      LIST_OF_IDS=$(pvesh get /cluster/resources --type vm --output-format json 2>/dev/null | grep -oP '"vmid":\s*\K\d+') || true
+      if [[ -n "$LIST_OF_IDS" ]]; then
         for ((ID = MIN_ID; ID <= MAX_ID; ID++)); do
           if ! grep -q "^$ID$" <<<"$LIST_OF_IDS"; then
             CT_ID=$ID
@@ -723,11 +720,7 @@ config_file() {
 
     elif [[ "$CT_ID" =~ ^[0-9]+$ ]]; then
       echo "Befor LIST_OF_IDS"
-      LIST_OF_IDS=""
-      OUTPUT=$(pvesh get /cluster/resources --type vm --output-format json 2>/dev/null) || true
-      if [[ -n "$OUTPUT" ]]; then
-        LIST_OF_IDS=$(echo "$OUTPUT" | grep -oP '"vmid":\s*\K\d+')
-      fi
+      LIST_OF_IDS=$(pvesh get /cluster/resources --type vm --output-format json 2>/dev/null | grep -oP '"vmid":\s*\K\d+') || true
       if [[ -n "$LIST_OF_IDS" ]]; then
 
         if ! grep -q "^$CT_ID$" <<<"$LIST_OF_IDS"; then
