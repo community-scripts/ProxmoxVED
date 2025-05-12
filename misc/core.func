@@ -96,7 +96,7 @@ if [ -z "${VERBOSE+x}" ]; then
 else
   echo "DEBUG: VERBOSE (pre): '$VERBOSE'"
 fi
-VERBOSE="${1:-no}"
+
 set_std_mode() {
   if [ "$VERBOSE" = "yes" ]; then
     STD=""
@@ -125,7 +125,7 @@ run_curl() {
 curl_handler() {
   local args=()
   local url=""
-  local max_retries=3 # Setting a default value
+  local max_retries=3
   local delay=2
   local attempt=1
   local exit_code
