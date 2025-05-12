@@ -440,8 +440,7 @@ advanced_settings() {
     # 1. Find all lines starting with 'iface' and store their line numbers
     # 2. Get the total number of lines in the file
     # 3. Use awk to create line ranges for each iface section (start:end)
-    ( grep -Pn '^\s*iface' "${iface_filepath}" | cut -d':' -f1 && wc -l "${iface_filepath}" | cut -d' ' -f1 ) | \
-    awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' > "${iface_indexes_tmpfile}"
+    ( grep -Pn '^\s*iface' "${iface_filepath}" | cut -d':' -f1 && wc -l "${iface_filepath}" | cut -d' ' -f1 ) | awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' > "${iface_indexes_tmpfile}"
 
     # Check if the indexes file exists, hence has been created
     if [ -f "${iface_indexes_tmpfile}" ]; then
