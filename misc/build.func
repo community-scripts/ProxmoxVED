@@ -678,7 +678,6 @@ EOF
 
 config_file() {
 
-  whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Default distribution for $APP" "${var_os} ${var_version} \n \nIf the default Linux distribution is not adhered to, script support will be discontinued. \n" 10 58
 
   CONFIG_FILE="/opt/community-scripts/.settings"
 
@@ -695,35 +694,6 @@ config_file() {
       base_settings
       source "$CONFIG_FILE"
     fi
-  fi
-
-  if [[ "$var_os" == "debian" ]]; then
-    echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
-    if [[ "$var_version" == "11" ]]; then
-      echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-    elif [[ "$var_version" == "12" ]]; then
-      echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-    else
-      msg_error "Unknown setting for var_version, should be 11 or 12, was ${var_version}"
-      exit
-    fi
-  elif [[ "$var_os" == "ubuntu" ]]; then
-    echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
-    if [[ "$var_version" == "20.04" ]]; then
-      echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-    elif [[ "$var_version" == "22.04" ]]; then
-      echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-    elif [[ "$var_version" == "24.04" ]]; then
-      echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-    elif [[ "$var_version" == "24.10" ]]; then
-      echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-    else
-      msg_error "Unknown setting for var_version, should be 20.04, 22.04, 24.04 or 24.10, was ${var_version}"
-      exit
-    fi
-  else
-    msg_error "Unknown setting for var_os! should be debian or ubuntu, was ${var_os}"
-    exit
   fi
 
   if [[ -n "$CT_ID" ]]; then
