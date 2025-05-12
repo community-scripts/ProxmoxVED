@@ -98,12 +98,18 @@ else
 fi
 
 set_std_mode() {
-  if [ "$VERBOSE" = "yes" ]; then
+  if [ "${VERBOSE:-no}" = "yes" ]; then
     STD=""
   else
     STD="silent"
   fi
 }
+
+if [ -z "${VERBOSE+x}" ]; then
+  echo "DEBUG: VERBOSE is unset"
+else
+  echo "DEBUG: VERBOSE (pre): '$VERBOSE'"
+fi
 
 # Silent execution function
 silent() {
