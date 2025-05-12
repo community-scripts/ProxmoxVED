@@ -419,14 +419,14 @@ advanced_settings() {
     exit_script
   fi
 
-  BRIDGES=$(ip link show | grep -oP '(?<=: )vmbr\d+' | sort)
+  BRIDGES=$(awk -F: '/^[0-9]+: (vmbr[0-9]+(\.[0-9]+)?)@?/{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}' <(ip -o link show) | cut -d@ -f1 | sort -u)
 
   if [[ -z "$BRIDGES" ]]; then
     BRG="vmbr0"
     echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
   else
-    BRG=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 40 6 $(echo "$BRIDGES" | awk '{print $0, "Bridge"}') 3>&1 1>&2 2>&3)
-    if [ -z "$BRG" ]; then
+    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 40 6 $(echo "$BRIDGES" | awk '{print $0, "Bridge"}') 3>&1 1>&2 2>&3)
+    if [[ -z "$BRG" ]]; then
       exit_script
     else
       echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
