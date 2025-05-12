@@ -110,9 +110,9 @@ silent() {
 
 run_curl() {
   if [ "$VERBOSE" = "no" ]; then
-    curl "$@" >/dev/null 2>>/tmp/curl_error.log
+    $STD curl "$@"
   else
-    curl "$@" 2>>/tmp/curl_error.log
+    curl "$@"
   fi
 }
 
