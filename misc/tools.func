@@ -383,7 +383,7 @@ install_go() {
       msg_error "Could not determine latest Go version"
       return 1
     fi
-    msg_info "Detected latest Go version: $GO_VERSION"
+    $STD msg_info "Detected latest Go version: $GO_VERSION"
   fi
 
   local GO_BIN="/usr/local/bin/go"
@@ -393,10 +393,10 @@ install_go() {
     local CURRENT_VERSION
     CURRENT_VERSION=$("$GO_BIN" version | awk '{print $3}' | sed 's/go//')
     if [[ "$CURRENT_VERSION" == "$GO_VERSION" ]]; then
-      msg_ok "Go $GO_VERSION already installed"
+      $STD msg_ok "Go $GO_VERSION already installed"
       return 0
     else
-      msg_info "Go $CURRENT_VERSION found, upgrading to $GO_VERSION"
+      $STD msg_info "Go $CURRENT_VERSION found, upgrading to $GO_VERSION"
       rm -rf "$GO_INSTALL_DIR"
     fi
   else
