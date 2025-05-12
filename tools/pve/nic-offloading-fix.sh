@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Script name: disable-nic-offloading.sh
-# Description: Creates a systemd service to disable NIC offloading features
+# Description: Creates a systemd service to disable NIC offloading features for Intel e1000e interfaces
 
 # Color variables
 YW="\033[33m"
@@ -27,8 +27,9 @@ function header_info {
                                      
 EOF
 
-  echo -e "${BL}NIC Offloading Disabler${CL}"
-  echo -e "${YW}This script creates a systemd service to disable NIC offloading features${CL}\n"
+  echo -e "${BL}Intel e1000e NIC Offloading Disabler${CL}"
+  echo -e "${YW}This script creates a systemd service to disable NIC offloading features${CL}"
+  echo -e "${YW}for Intel e1000e network interfaces${CL}\n"
 }
 
 # Check for root privileges
@@ -52,25 +53,39 @@ fi
 
 header_info
 
-# Get list of network interfaces
+# Get list of network interfaces using Intel e1000e driver
 INTERFACES=()
+COUNT=0
+
+echo -e "${YW}Searching for Intel e1000e interfaces...${CL}"
+
 while read -r interface; do
-    # Skip loopback interface
-    if [[ "$interface" != "lo" ]]; then
-        INTERFACES+=("$interface" "Network Interface")
+    # Skip loopback interface and virtual interfaces
+    if [[ "$interface" != "lo" ]] && [[ ! "$interface" =~ ^(tap|fwbr|veth|vmbr|bonding_masters) ]]; then
+        # Check if the interface uses the e1000e driver
+        driver=$(basename $(readlink -f /sys/class/net/$interface/device/driver 2>/dev/null) 2>/dev/null)
+        
+        if [[ "$driver" == "e1000e" ]]; then
+            # Get MAC address for additional identification
+            mac=$(cat /sys/class/net/$interface/address 2>/dev/null)
+            INTERFACES+=("$interface" "Intel e1000e NIC ($mac)")
+            ((COUNT++))
+        fi
     fi
 done < <(ls /sys/class/net/)
 
-# Check if any non-loopback interfaces were found
+# Check if any Intel e1000e interfaces were found
 if [ ${#INTERFACES[@]} -eq 0 ]; then
-    whiptail --title "Error" --msgbox "No network interfaces found!" 10 50
-    echo -e "${RD}No network interfaces found! Exiting.${CL}"
+    whiptail --title "Error" --msgbox "No Intel e1000e network interfaces found!" 10 60
+    echo -e "${RD}No Intel e1000e network interfaces found! Exiting.${CL}"
     exit 1
 fi
 
+echo -e "${GN}Found $COUNT Intel e1000e interfaces${CL}"
+
 # Show interface selection menu
-SELECTED_INTERFACE=$(whiptail --backtitle "NIC Offloading Disabler" --title "Network Interfaces" \
-                    --menu "Select a network interface:" 15 60 6 \
+SELECTED_INTERFACE=$(whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --title "Network Interfaces" \
+                    --menu "Select an Intel e1000e network interface:" 15 70 6 \
                     "${INTERFACES[@]}" 3>&1 1>&2 2>&3)
 
 exitstatus=$?
@@ -85,24 +100,33 @@ echo -e "${YW}Selected interface: ${BL}$SELECTED_INTERFACE${CL}"
 SERVICE_NAME="disable-nic-offload-$SELECTED_INTERFACE.service"
 SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
 
-# Show confirmation dialog
-if ! whiptail --backtitle "NIC Offloading Disabler" --title "Confirmation" \
-    --yesno "This will create a systemd service to disable offloading features for $SELECTED_INTERFACE.\n\nProceed?" 12 60; then
+# Get interface details for confirmation
+SPEED=$(cat /sys/class/net/$SELECTED_INTERFACE/speed 2>/dev/null)
+MAC=$(cat /sys/class/net/$SELECTED_INTERFACE/address 2>/dev/null)
+IP=$(ip -o -4 addr show $SELECTED_INTERFACE 2>/dev/null | awk '{print $4}')
+
+# Show confirmation dialog with interface details
+if ! whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --title "Confirmation" \
+    --yesno "Interface: $SELECTED_INTERFACE\nDriver: e1000e\nMAC: $MAC\nIP: $IP\nSpeed: ${SPEED}Mbps\n\nThis will create a systemd service to disable offloading features.\n\nProceed?" 15 70; then
     echo -e "${RD}User canceled. Exiting.${CL}"
     exit 0
 fi
 
-# Create the service file
+# Create the service file with e1000e specific optimizations
 echo -e "${YW}Creating systemd service...${CL}"
 
 cat > "$SERVICE_PATH" << EOF
 [Unit]
-Description=Disable NIC offloading for $SELECTED_INTERFACE
+Description=Disable NIC offloading for Intel e1000e interface $SELECTED_INTERFACE
 After=network.target
 
 [Service]
 Type=oneshot
+# Disable all offloading features for Intel e1000e
 ExecStart=/sbin/ethtool -K $SELECTED_INTERFACE gso off gro off tso off tx off rx off rxvlan off txvlan off sg off
+# Intel e1000e specific: Set interrupt moderation and ring parameters
+ExecStart=/sbin/ethtool -C $SELECTED_INTERFACE rx-usecs 3 tx-usecs 3
+ExecStart=/sbin/ethtool -G $SELECTED_INTERFACE rx 256 tx 256
 RemainAfterExit=true
 
 [Install]
@@ -132,7 +156,7 @@ fi
     # Enable the service to start on boot
     systemctl enable "$SERVICE_NAME"
     echo "100"; sleep 0.2
-} | whiptail --backtitle "NIC Offloading Disabler" --gauge "Configuring service..." 10 60 0
+} | whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --gauge "Configuring service..." 10 60 0
 
 # Final status check
 if systemctl is-active --quiet "$SERVICE_NAME"; then
@@ -148,21 +172,30 @@ else
 fi
 
 # Show results
-whiptail --backtitle "NIC Offloading Disabler" --title "Success" --msgbox \
-"Service created successfully!\n\nService: $SERVICE_NAME\nStatus: $SERVICE_STATUS\nStart on boot: $BOOT_STATUS\n\nInterface: $SELECTED_INTERFACE" 15 60
+whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --title "Success" --msgbox \
+"Service created successfully!\n\nService: $SERVICE_NAME\nStatus: $SERVICE_STATUS\nStart on boot: $BOOT_STATUS\n\nInterface: $SELECTED_INTERFACE (Intel e1000e)" 15 70
 
 echo -e "${GN}Service created and enabled successfully!${CL}"
 echo -e "${YW}Service: ${BL}$SERVICE_NAME${CL}"
 echo -e "${YW}Status: ${BL}$SERVICE_STATUS${CL}"
 echo -e "${YW}Start on boot: ${BL}$BOOT_STATUS${CL}"
 echo -e "${YW}Interface: ${BL}$SELECTED_INTERFACE${CL}"
+echo -e "${YW}Driver: ${BL}e1000e${CL}"
 
 # Optional: Test the service
-if whiptail --backtitle "NIC Offloading Disabler" --title "Test Service" \
-   --yesno "Would you like to check the current offloading status of $SELECTED_INTERFACE?" 10 60; then
+if whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --title "Test Service" \
+   --yesno "Would you like to check the current offloading status of $SELECTED_INTERFACE?" 10 70; then
     
     echo -e "\n${YW}Current offloading features for ${BL}$SELECTED_INTERFACE${YW}:${CL}"
     ethtool -k "$SELECTED_INTERFACE" | grep -E 'tcp-segmentation-offload|generic-segmentation-offload|generic-receive-offload|tx-offload|rx-offload|rx-vlan-offload|tx-vlan-offload|scatter-gather'
+    
+    echo -e "\n${YW}Current interrupt moderation settings:${CL}"
+    ethtool -c "$SELECTED_INTERFACE"
+    
+    echo -e "\n${YW}Current ring parameters:${CL}"
+    ethtool -g "$SELECTED_INTERFACE"
 fi
+
+echo -e "\n${GN}Intel e1000e optimization complete!${CL}"
 
 exit 0
