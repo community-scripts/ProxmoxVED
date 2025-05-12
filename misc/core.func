@@ -318,6 +318,15 @@ msg_error() {
   printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
 }
 
+msg_warn() {
+  local msg="${1:-Warning}"
+  stop_spinner
+  printf "\r\e[2K%s %b\n" "${INFO}" "${YWB}${msg}${CL}" >&2
+
+  # Remove from shown messages to allow it to be shown again
+  unset MSG_INFO_SHOWN["$msg"]
+}
+
 # Helper function to display a message with custom symbol and color
 msg_custom() {
   local symbol="${1:-*}"
