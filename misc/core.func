@@ -115,7 +115,7 @@ silent() {
 # ------------------------------------------------------------------------------
 
 run_curl() {
-  if [ "$VERB" = "no" ]; then
+  if [ "$VERBOSE" = "no" ]; then
     curl "$@" >/dev/null 2>>/tmp/curl_error.log
   else
     curl "$@" 2>>/tmp/curl_error.log
