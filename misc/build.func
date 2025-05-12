@@ -709,12 +709,16 @@ config_file() {
 
       LIST_OF_IDS=$(pvesh get /cluster/resources --type vm --output-format json | grep -oP '"vmid":\s*\K\d+')
 
-      for ((ID = MIN_ID; ID <= MAX_ID; ID++)); do
-        if ! grep -q "^$ID$" <<<"$LIST_OF_IDS"; then
-          CT_ID=$ID
-          break
-        fi
-      done
+      if [[ ! -z "$LIST_OF_IDS" ]]; then
+        for ((ID = MIN_ID; ID <= MAX_ID; ID++)); do
+          if ! grep -q "^$ID$" <<<"$LIST_OF_IDS"; then
+            CT_ID=$ID
+            break
+          fi
+        done
+      else
+        CT_ID=$MIN_ID
+      fi
 
       echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}$CT_ID${CL}"
 
