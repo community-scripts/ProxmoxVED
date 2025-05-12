@@ -321,7 +321,7 @@ msg_error() {
 msg_warn() {
   local msg="${1:-Warning}"
   stop_spinner
-  printf "\r\e[2K%s %b\n" "${INFO}" "${YWB}${msg}${CL}" >&2
+  printf "\r\e[2K%s %b\n" "${INFO}" "${YWB}${msg}" >&2
 
   # Remove from shown messages to allow it to be shown again
   unset MSG_INFO_SHOWN["$msg"]
