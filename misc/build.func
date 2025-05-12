@@ -691,11 +691,13 @@ config_file() {
       exit
     else
       echo -e "${INFO}${BOLD}${DGN}Using config File: ${BGN}$CONFIG_FILE${CL}"
+      echo "Befor base"
       base_settings
+      echo "After base"
       source "$CONFIG_FILE"
     fi
   fi
-
+  echo "ID: ${CT_ID}"
   if [[ -n "$CT_ID" ]]; then
     if [[ "$CT_ID" =~ ^([0-9]{3,4})-([0-9]{3,4})$ ]]; then
       MIN_ID=${BASH_REMATCH[1]}
