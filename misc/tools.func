@@ -272,7 +272,11 @@ install_php() {
   COMBINED_MODULES=$(echo "$COMBINED_MODULES" | tr ',' '\n' | awk '!seen[$0]++' | paste -sd, -)
 
   local CURRENT_PHP
-  CURRENT_PHP=$(php -v 2>/dev/null | awk '/^PHP/{print $2}' | cut -d. -f1,2)
+  if command -v php >/dev/null 2>&1; then
+    CURRENT_PHP=$(php -v 2>/dev/null | awk '/^PHP/{print $2}' | cut -d. -f1,2)
+  else
+    CURRENT_PHP=""
+  fi
 
   if [[ "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
     $STD echo "PHP $CURRENT_PHP detected, migrating to PHP $PHP_VERSION"
@@ -675,7 +679,6 @@ fetch_and_deploy_gh_release() {
   $STD msg_ok "Deployed $app v$version to /opt/$app"
   rm -rf "$tmpdir"
 }
-
 
 setup_local_ip_helper() {
   local BASE_DIR="/usr/local/community-scripts/ip-management"
