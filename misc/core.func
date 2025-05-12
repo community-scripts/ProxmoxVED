@@ -146,7 +146,7 @@ curl_handler() {
     return 1
   fi
 
-  msg_info "Fetching: $url"
+  $STD msg_info "Fetching: $url"
 
   while [[ $attempt -le $max_retries ]]; do
     if $has_output_file; then
