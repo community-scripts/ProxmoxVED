@@ -718,7 +718,8 @@ config_file() {
       echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}$CT_ID${CL}"
 
     elif [[ "$CT_ID" =~ ^[0-9]+$ ]]; then
-
+      echo "Befor LIST_OF_IDS"
+      pvesh get /cluster/resources --type vm --output-format json | grep -oP '"vmid":\s*\K\d+'
       LIST_OF_IDS=$(pvesh get /cluster/resources --type vm --output-format json | grep -oP '"vmid":\s*\K\d+')
       if [[ -n "$LIST_OF_IDS" ]]; then
 
