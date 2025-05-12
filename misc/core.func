@@ -171,7 +171,7 @@ curl_handler() {
         rm -f /tmp/curl_error.log
       fi
       __curl_err_handler "$exit_code" "$url" "${curl_stderr:-}"
-      return 1 # Return error instead of exit to allow script to continue
+      exit
     fi
 
     $STD printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
