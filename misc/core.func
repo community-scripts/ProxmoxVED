@@ -117,6 +117,8 @@ run_curl() {
 }
 
 curl_handler() {
+  set +e
+  trap 'set -e' RETURN
   local args=()
   local url=""
   local max_retries=3
@@ -172,6 +174,7 @@ curl_handler() {
     sleep "$delay"
     ((attempt++))
   done
+  set -e
 }
 
 # ------------------------------------------------------------------------------
