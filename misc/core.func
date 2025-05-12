@@ -91,12 +91,6 @@ default_vars() {
 # ------------------------------------------------------------------------------
 # Sets default verbose mode for script and os execution.
 # ------------------------------------------------------------------------------
-if [ -z "${VERBOSE+x}" ]; then
-  echo "DEBUG: VERBOSE is unset"
-else
-  echo "DEBUG: VERBOSE (pre): '$VERBOSE'"
-fi
-
 set_std_mode() {
   if [ "${VERBOSE:-no}" = "yes" ]; then
     STD=""
@@ -104,12 +98,6 @@ set_std_mode() {
     STD="silent"
   fi
 }
-
-if [ -z "${VERBOSE+x}" ]; then
-  echo "DEBUG: VERBOSE is unset"
-else
-  echo "DEBUG: VERBOSE (pre): '$VERBOSE'"
-fi
 
 # Silent execution function
 silent() {
