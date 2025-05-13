@@ -53,7 +53,7 @@ function update_script() {
     mv /tmp/backup.sql /opt/
     msg_ok "Database backed up"
 
-    msg_info "Updating ${APP} to ${RELEASE}"
+    msg_info "Updating ${APP} from $(cat /opt/bitmagnet_version.txt) to ${RELEASE}"
     $STD apk -U upgrade
     $STD service bitmagnet stop
     [ -f /opt/bitmagnet/.env ] && cp /opt/bitmagnet/.env /opt/
