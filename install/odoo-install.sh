@@ -37,10 +37,7 @@ $STD apt-get install -y --no-install-recommends \
   libffi-dev \
   xfonts-75dpi \
   xfonts-base \
-  curl \
-  sudo \
-  make \
-  mc
+  make
 msg_ok "Installed Dependencies"
 
 msg_info "Creating odoo user and directories"
@@ -54,10 +51,19 @@ git clone --depth 1 --branch 17.0 https://github.com/odoo/odoo.git /opt/odoo/odo
 chown -R odoo:odoo /opt/odoo/odoo
 msg_ok "Cloned Odoo Repository"
 
+setup_uv
+
+setup_uv
+$STD uv venv /opt/paperless/.venv
+source /opt/paperless/.venv/bin/activate
+$STD
+
 msg_info "Creating Python Virtual Environment"
-python3 -m venv /opt/odoo/venv
-/opt/odoo/venv/bin/pip install --upgrade pip wheel
-/opt/odoo/venv/bin/pip install -r /opt/odoo/odoo/requirements.txt
+uv venv /opt/odoo/.venv
+source /opt/odoo/.venv/bin/activate
+uv sync --all-extras
+uv pip install --upgrade pip wheel
+uv pip install -r /opt/odoo/odoo/requirements.txt
 msg_ok "Created and populated Python venv"
 
 msg_info "Creating Configuration File"
@@ -86,15 +92,14 @@ After=network.target postgresql.service
 Type=simple
 User=odoo
 Group=odoo
-ExecStart=/opt/odoo/venv/bin/python3 /opt/odoo/odoo/odoo-bin -c /opt/odoo/odoo.conf
+Environment="PATH=/opt/odoo/.venv/bin:/usr/local/bin:/usr/bin"
+ExecStart=/opt/odoo/.venv/bin/python3 /opt/odoo/odoo/odoo-bin -config /opt/odoo/odoo.conf
 Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reexec
-systemctl daemon-reload
-systemctl enable --now odoo.service
+systemctl enable -q --now odoo
 msg_ok "Enabled and Started Odoo Service"
 
 motd_ssh
