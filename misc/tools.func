@@ -568,7 +568,7 @@ fetch_and_deploy_gh_release() {
     fi
 
     tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
-    [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
+    version="${tag#v}"
 
     if [[ -z "$tag" ]]; then
       $STD msg_info "Empty tag received, retrying...\n"
