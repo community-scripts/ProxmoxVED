@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://github.com/bitmagnet-io/bitmagnet
 
 APP="Alpine-bitmagnet"
-var_tags="${var_tags:-alpine;monitoring}"
+var_tags="${var_tags:-alpine;torrent}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-256}"
 var_disk="${var_disk:-3}"
@@ -26,21 +26,16 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
-  RELEASE=$(curl -s https://api.github.com/repos/TwiN/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  RELEASE=$(curl -s https://api.github.com/repos/bitmagnet-io/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [ "${RELEASE}" != "$(cat /opt/bitmagnet_version.txt)" ] || [ ! -f /opt/bitmagnet_version.txt ]; then
     msg_info "Updating ${APP} LXC"
     $STD apk -U upgrade
     $STD service bitmagnet stop
-    mv /opt/bitmagnet/config/config.yaml /opt
-    rm -rf /opt/bitmagnet/*
     temp_file=$(mktemp)
-    curl -fsSL "https://github.com/TwiN/bitmagnet/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
+    curl -fsSL "https://github.com/bitmagnet-io/bitmagnet/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
     tar zxf "$temp_file" --strip-components=1 -C /opt/bitmagnet
     cd /opt/bitmagnet
-    $STD go mod tidy
-    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bitmagnet .
-    setcap CAP_NET_RAW+ep bitmagnet
-    mv /opt/config.yaml config
+    $STD go build -ldflags "-s -w -X github.com/bitmagnet-io/bitmagnet/internal/version.GitTag=$(git describe --tags --always --dirty)"
     rm -f "$temp_file"
     echo "${RELEASE}" >/opt/bitmagnet_version.txt
     $STD service bitmagnet start

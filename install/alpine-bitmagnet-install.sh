@@ -32,7 +32,9 @@ msg_ok "Installed PostreSQL"
 RELEASE=$(curl -s https://api.github.com/repos/bitmagnet-io/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 
 msg_info "Installing bitmagnet v${RELEASE}"
-fetch_and_deploy_gh_release "bitmagnet-io/bitmagnet"
+temp_file=$(mktemp)
+curl -fsSL "https://github.com/bitmagnet-io/bitmagnet/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
+tar zxf "$temp_file" --strip-components=1 -C /opt/bitmagnet
 cd /opt/bitmagnet
 $STD go build -ldflags "-s -w -X github.com/bitmagnet-io/bitmagnet/internal/version.GitTag=$(git describe --tags --always --dirty)"
 echo "${RELEASE}" >/opt/bitmagnet_version.txt
