@@ -11,7 +11,7 @@ permissions:
 jobs:
   post_to_discord:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'Ready For Testing')
+    if: contains(github.event.issue.labels.*.name, 'Ready For Testing') && github.repository == 'community-scripts/ProxmoxVED'
     steps:
       - name: Extract Issue Title (Lowercase & Underscores)
         id: extract_title

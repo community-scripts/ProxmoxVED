@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   crawl-versions:
+    if: github.repository == 'community-scripts/ProxmoxVED'
     runs-on: ubuntu-latest
 
     steps:
@@ -32,10 +33,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            ls
+          ls
 
-            chmod +x .github/workflows/scripts/get-gh-release.sh
-            .github/workflows/scripts/get-gh-release.sh
+          chmod +x .github/workflows/scripts/get-gh-release.sh
+          .github/workflows/scripts/get-gh-release.sh
 
       - name: Commit JSON
         env:

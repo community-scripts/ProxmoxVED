@@ -7,7 +7,7 @@ on:
 jobs:
   delete-files:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'Started Migration To ProxmoxVE')
+    if: contains(github.event.issue.labels.*.name, 'Started Migration To ProxmoxVE') && github.repository == 'community-scripts/ProxmoxVED'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

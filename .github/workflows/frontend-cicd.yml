@@ -25,10 +25,11 @@ concurrency:
 
 jobs:
   build:
+    if: github.repository == 'community-scripts/ProxmoxVED'
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend  # Set default working directory for all run steps
+        working-directory: frontend # Set default working directory for all run steps
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,7 +64,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.repository == 'community-scripts/ProxmoxVED'
     permissions:
       pages: write
       id-token: write
