@@ -35,7 +35,7 @@ After=network.target
 Type=simple
 User=$(whoami)
 ExecStart=/opt/backrest/bin/backrest
-Environment="BACKREST_PORT=0.0.0.0:9898"
+Environment="BACKREST_PORT=9898"
 Environment="BACKREST_CONFIG=/opt/backrest/config/config.json"
 Environment="BACKREST_DATA=/opt/backrest/data"
 Environment="XDG_CACHE_HOME=/opt/backrest/cache"
