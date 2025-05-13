@@ -72,6 +72,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -f $temp_file
+rm -f "$temp_file"
 $STD apk cache clean
 msg_ok "Cleaned"
