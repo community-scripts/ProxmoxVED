@@ -1,4 +1,4 @@
-name: " ⏳  Gitea Mirror Setup"
+name: "Gitea Mirror Setup"
 
 on:
   workflow_dispatch:
