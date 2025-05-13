@@ -3,7 +3,7 @@ name: Sync to Gitea
 on:
   push:
     branches:
-      - main # or whatever branch you want to sync
+      - main
 
 jobs:
   sync:
