@@ -15,11 +15,10 @@ network_check
 update_os
 
 msg_info "Installing Dependencies (Patience)"
-$STD apt-get install -y --no-install-recommends \
+$STD apt-get install -y \
   git \
   python3 \
   python3-pip \
-  python3-venv \
   python3-dev \
   build-essential \
   libxslt-dev \
@@ -56,13 +55,12 @@ setup_uv
 msg_info "Creating Python Virtual Environment"
 uv venv /opt/odoo/.venv
 source /opt/odoo/.venv/bin/activate
-uv sync --all-extras
+#uv sync --all-extras
 uv pip install --upgrade pip wheel
 uv pip install -r /opt/odoo/odoo/requirements.txt
 msg_ok "Created and populated Python venv"
 
 msg_info "Creating Configuration File"
-/usr/bin/touch /opt/odoo/odoo.conf
 cat <<EOF >/opt/odoo/odoo.conf
 [options]
 addons_path = /opt/odoo/odoo/addons
