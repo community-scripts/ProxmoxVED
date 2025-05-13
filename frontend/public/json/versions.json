@@ -1,5 +1,45 @@
 [
   {
+    "name": "theonedev/onedev",
+    "version": "v11.9.6",
+    "date": "2025-05-13T12:16:17Z"
+  },
+  {
+    "name": "zabbix/zabbix",
+    "version": "7.2.7rc1",
+    "date": "2025-05-13T11:55:32Z"
+  },
+  {
+    "name": "Graylog2/graylog2-server",
+    "version": "6.3.0-alpha.4",
+    "date": "2025-05-13T11:18:29Z"
+  },
+  {
+    "name": "firefly-iii/firefly-iii",
+    "version": "v6.2.12",
+    "date": "2025-04-20T19:22:17Z"
+  },
+  {
+    "name": "cross-seed/cross-seed",
+    "version": "v6.12.4",
+    "date": "2025-05-11T11:41:32Z"
+  },
+  {
+    "name": "element-hq/synapse",
+    "version": "v1.129.0",
+    "date": "2025-05-06T12:28:54Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.1893",
+    "date": "2025-05-13T05:57:50Z"
+  },
+  {
+    "name": "zitadel/zitadel",
+    "version": "v2.65.9",
+    "date": "2025-05-13T05:14:39Z"
+  },
+  {
     "name": "ollama/ollama",
     "version": "v0.6.9-rc0",
     "date": "2025-05-10T18:57:30Z"
@@ -13,6 +53,11 @@
     "name": "MediaBrowser/Emby.Releases",
     "version": "4.8.11.0",
     "date": "2025-03-10T06:39:11Z"
+  },
+  {
+    "name": "keycloak/keycloak",
+    "version": "26.2.4",
+    "date": "2025-05-08T09:10:10Z"
   },
   {
     "name": "leiweibau/Pi.Alert",
@@ -90,19 +135,9 @@
     "date": "2025-05-12T07:39:23Z"
   },
   {
-    "name": "firefly-iii/firefly-iii",
-    "version": "v6.2.12",
-    "date": "2025-04-20T19:22:17Z"
-  },
-  {
     "name": "umami-software/umami",
     "version": "v2.18.1",
     "date": "2025-05-12T07:16:12Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.1891",
-    "date": "2025-05-12T05:53:07Z"
   },
   {
     "name": "esphome/esphome",
@@ -130,19 +165,9 @@
     "date": "2025-04-30T11:02:36Z"
   },
   {
-    "name": "cross-seed/cross-seed",
-    "version": "v6.12.4",
-    "date": "2025-05-11T11:41:32Z"
-  },
-  {
     "name": "authelia/authelia",
     "version": "v4.39.3",
     "date": "2025-05-11T11:12:15Z"
-  },
-  {
-    "name": "theonedev/onedev",
-    "version": "v11.9.5",
-    "date": "2025-05-11T10:50:37Z"
   },
   {
     "name": "Radarr/Radarr",
@@ -195,19 +220,9 @@
     "date": "2025-05-09T15:05:54Z"
   },
   {
-    "name": "keycloak/keycloak",
-    "version": "26.2.4",
-    "date": "2025-05-08T09:10:10Z"
-  },
-  {
     "name": "crowdsecurity/crowdsec",
     "version": "v1.6.8",
     "date": "2025-03-25T13:33:10Z"
-  },
-  {
-    "name": "zitadel/zitadel",
-    "version": "v3.0.4",
-    "date": "2025-05-09T11:38:33Z"
   },
   {
     "name": "pocket-id/pocket-id",
@@ -275,11 +290,6 @@
     "date": "2025-05-07T14:01:45Z"
   },
   {
-    "name": "Graylog2/graylog2-server",
-    "version": "6.3.0-alpha.3",
-    "date": "2025-05-07T13:58:36Z"
-  },
-  {
     "name": "glpi-project/glpi",
     "version": "10.0.18",
     "date": "2025-02-12T11:07:02Z"
@@ -313,11 +323,6 @@
     "name": "cockpit-project/cockpit",
     "version": "338",
     "date": "2025-05-07T10:43:29Z"
-  },
-  {
-    "name": "zabbix/zabbix",
-    "version": "7.4.0beta2",
-    "date": "2025-05-07T10:39:21Z"
   },
   {
     "name": "jupyter/notebook",
@@ -363,11 +368,6 @@
     "name": "AdguardTeam/AdGuardHome",
     "version": "v0.107.61",
     "date": "2025-04-22T12:42:26Z"
-  },
-  {
-    "name": "element-hq/synapse",
-    "version": "v1.129.0",
-    "date": "2025-05-06T12:28:54Z"
   },
   {
     "name": "Luligu/matterbridge",
@@ -468,5 +468,30 @@
     "name": "rogerfar/rdt-client",
     "version": "v2.0.111",
     "date": "2025-05-03T16:25:30Z"
+  },
+  {
+    "name": "blakeblackshear/frigate",
+    "version": "v0.14.1",
+    "date": "2024-08-29T22:32:51Z"
+  },
+  {
+    "name": "kimai/kimai",
+    "version": "2.33.0",
+    "date": "2025-05-03T10:33:49Z"
+  },
+  {
+    "name": "documenso/documenso",
+    "version": "v1.10.3",
+    "date": "2025-05-02T23:23:25Z"
+  },
+  {
+    "name": "prometheus/prometheus",
+    "version": "v0.304.0-rc.0",
+    "date": "2025-05-02T17:29:18Z"
+  },
+  {
+    "name": "jhuckaby/Cronicle",
+    "version": "v0.9.80",
+    "date": "2025-05-02T16:48:15Z"
   }
 ]
