@@ -27,17 +27,21 @@ $STD apk add --no-cache \
   postgresql15 \
   postgresql15-contrib \
   postgresql15-openrc
+$STD rc-update add postgresql
+$STD rc-service postgresql start
 msg_ok "Installed PostreSQL"
 
 RELEASE=$(curl -s https://api.github.com/repos/bitmagnet-io/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 
 msg_info "Installing bitmagnet v${RELEASE}"
-mkdir /opt/bitmagnet
+mkdir -p /opt/bitmagnet
 temp_file=$(mktemp)
 curl -fsSL "https://github.com/bitmagnet-io/bitmagnet/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
 tar zxf "$temp_file" --strip-components=1 -C /opt/bitmagnet
 cd /opt/bitmagnet
-$STD go build -ldflags "-s -w -X github.com/bitmagnet-io/bitmagnet/internal/version.GitTag=$(git describe --tags --always --dirty)"
+$STD go build
+chmod +x bitmagnet
+$STD su - postgres -c "psql -c 'CREATE DATABASE bitmagnet;'"
 echo "${RELEASE}" >/opt/bitmagnet_version.txt
 msg_ok "Installed bitmagnet v${RELEASE}"
 
@@ -68,5 +72,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -f $temp_file
 $STD apk cache clean
 msg_ok "Cleaned"
