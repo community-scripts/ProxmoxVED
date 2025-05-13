@@ -772,7 +772,6 @@ config_file() {
       exit
     else
       echo -e "${INFO}${BOLD}${DGN}Using config File: ${BGN}$CONFIG_FILE${CL}"
-      base_settings
       source "$CONFIG_FILE"
     fi
   fi
@@ -813,20 +812,26 @@ config_file() {
       msg_error "Invalid Container ID format. Needs to be 0000-9999 or 0-9999, was ${CT_ID}"
       exit
     fi
-  fi
-
-  if [[ "$CT_TYPE" -eq 0 ]]; then
-    CT_TYPE_DESC="Privileged"
-  elif [[ "$CT_TYPE" -eq 1 ]]; then
-    CT_TYPE_DESC="Unprivileged"
   else
-    msg_error "Unknown setting for CT_TYPE, should be 1 or 0, was ${CT_TYPE}"
+    msg_error "Container ID cannot be empty"
     exit
   fi
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+  if [[ -n "$CT_TYPE" ]]; then
+    if [[ "$CT_TYPE" -eq 0 ]]; then
+      CT_TYPE_DESC="Privileged"
+    elif [[ "$CT_TYPE" -eq 1 ]]; then
+      CT_TYPE_DESC="Unprivileged"
+    else
+      msg_error "Unknown setting for CT_TYPE, should be 1 or 0, was ${CT_TYPE}"
+      exit
+    fi
+    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+  else
+    msg_error "Container Type cannot be empty"
+    exit
+  fi
 
-  if [[ ! -z "$PW" ]]; then
-
+  if [[ -n "$PW" ]]; then
     if [[ "$PW" == *" "* ]]; then
       msg_error "Password cannot be empty"
       exit
@@ -841,9 +846,8 @@ config_file() {
     PW=""
     echo -e "${VERIFYPW}${BOLD}${DGN}Root Password: ${BGN}Automatic Login${CL}"
   fi
-  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}$CT_ID${CL}"
 
-  if [[ ! -z "$HN" ]]; then
+  if [[ -n "$HN" ]]; then
     echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
   else
     msg_error "Hostname cannot be empty"
@@ -862,7 +866,7 @@ config_file() {
     exit
   fi
 
-  if [[ ! -z "$CORE_COUNT" ]]; then
+  if [[ -n "$CORE_COUNT" ]]; then
     if [[ "$CORE_COUNT" =~ ^-?[0-9]+$ ]]; then
       echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
     else
@@ -874,7 +878,7 @@ config_file() {
     exit
   fi
 
-  if [[ ! -z "$RAM_SIZE" ]]; then
+  if [[ -n "$RAM_SIZE" ]]; then
     if [[ "$RAM_SIZE" =~ ^-?[0-9]+$ ]]; then
       echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
     else
@@ -886,7 +890,7 @@ config_file() {
     exit
   fi
 
-    IFACE_FILEPATH_LIST="/etc/network/interfaces"$'\n'$(find "/etc/network/interfaces.d/" -type f)
+  IFACE_FILEPATH_LIST="/etc/network/interfaces"$'\n'$(find "/etc/network/interfaces.d/" -type f)
   BRIDGES=""
   OLD_IFS=$IFS
   IFS=$'\n'
@@ -914,7 +918,7 @@ config_file() {
   IFS=$OLD_IFS
   BRIDGES=$(echo "$BRIDGES" | grep -v '^\s*$' | sort | uniq)
 
-  if [[ ! -z "$BRG" ]]; then
+  if [[ -n "$BRG" ]]; then
     if echo "$BRIDGES" | grep -q "${BRG}"; then
       echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
     else
@@ -929,7 +933,7 @@ config_file() {
   local ip_cidr_regex='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/([0-9]{1,2})$'
   local ip_regex='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$'
 
-  if [[ ! -z $NET ]]; then
+  if [[ -n $NET ]]; then
     if [ "$NET" == "dhcp" ]; then
       echo -e "${NETWORK}${BOLD}${DGN}IP Address: ${BGN}DHCP${CL}"
       echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}Default${CL}"
@@ -954,7 +958,7 @@ config_file() {
   fi
 
 
-  if [[ ! -z "$APT_CACHER_IP" ]]; then
+  if [[ -n "$APT_CACHER_IP" ]]; then
     if [[ "$APT_CACHER_IP" =~ $ip_regex ]]; then
       APT_CACHER="yes"
       echo -e "${NETWORK}${BOLD}${DGN}APT-CACHER IP Address: ${BGN}$APT_CACHER_IP${CL}"
@@ -973,7 +977,7 @@ config_file() {
     exit
   fi
 
-  if [[ ! -z "$MTU" ]]; then
+  if [[ -n "$MTU" ]]; then
     if [[ "$MTU" =~ ^-?[0-9]+$ ]]; then
       echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}$MTU${CL}"
       MTU=",mtu=$MTU"
@@ -987,7 +991,7 @@ config_file() {
 
   fi
 
-  if [[ ! -z "$SD" ]]; then
+  if [[ -n "$SD" ]]; then
     echo -e "${SEARCH}${BOLD}${DGN}DNS Search Domain: ${BGN}$SD${CL}"
     SD="-searchdomain=$SD"
   else
@@ -995,7 +999,7 @@ config_file() {
     echo -e "${SEARCH}${BOLD}${DGN}DNS Search Domain: ${BGN}HOST${CL}"
   fi
 
-  if [[ ! -z "$NS" ]]; then
+  if [[ -n "$NS" ]]; then
     if [[ "$NS" =~ $ip_regex ]]; then
       echo -e "${NETWORK}${BOLD}${DGN}DNS Server IP Address: ${BGN}$NS${CL}"
       NS="-nameserver=$NS"
@@ -1008,7 +1012,7 @@ config_file() {
     echo -e "${NETWORK}${BOLD}${DGN}DNS Server IP Address: ${BGN}HOST${CL}"
   fi
 
-  if [[ ! -z "$MAC" ]]; then
+  if [[ -n "$MAC" ]]; then
     if [[ "$MAC" =~ ^([A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2}$ ]]; then
       echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}$MAC${CL}"
       MAC=",hwaddr=$MAC"
@@ -1016,9 +1020,11 @@ config_file() {
       msg_error "MAC Address must be in the format xx:xx:xx:xx:xx:xx, was ${MAC}"
       exit
     fi
+  else
+    msg_error "MAC Address cannot be empty"
   fi
 
-  if [[ ! -z "$VLAN" ]]; then
+  if [[ -n "$VLAN" ]]; then
     if [[ "$VLAN" =~ ^-?[0-9]+$ ]]; then
       echo -e "${VLANTAG}${BOLD}${DGN}Vlan: ${BGN}$VLAN${CL}"
       VLAN=",tag=$VLAN"
@@ -1028,31 +1034,41 @@ config_file() {
     fi
   fi
 
-  if [[ ! -z "$TAGS" ]]; then
+  if [[ -n "$TAGS" ]]; then
     echo -e "${NETWORK}${BOLD}${DGN}Tags: ${BGN}$TAGS${CL}"
   fi
 
-  if [[ "$SSH" == "yes" ]]; then
-    echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
-    if [[ ! -z "$SSH_AUTHORIZED_KEY" ]]; then
-      echo -e "${ROOTSSH}${BOLD}${DGN}SSH Authorized Key: ${BGN}********************${CL}"
+  if [[ -n "$SSH" ]]; then
+    if [[ "$SSH" == "yes" ]]; then
+      echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
+      if [[ ! -z "$SSH_AUTHORIZED_KEY" ]]; then
+        echo -e "${ROOTSSH}${BOLD}${DGN}SSH Authorized Key: ${BGN}********************${CL}"
+      else
+        echo -e "${ROOTSSH}${BOLD}${DGN}SSH Authorized Key: ${BGN}None${CL}"
+      fi
+    elif [[ "$SSH" == "no" ]]; then
+      echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
     else
-      echo -e "${ROOTSSH}${BOLD}${DGN}SSH Authorized Key: ${BGN}None${CL}"
+      msg_error "SSH needs to be 'yes' or 'no', was ${SSH}"
+      exit
     fi
-  elif [[ "$SSH" == "no" ]]; then
-    echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
   else
-    msg_error "SSH needs to be 'yes' or 'no', was ${SSH}"
-    exit
+    SSH="no"
+    echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
   fi
 
-  if [[ "$VERBOSE" == "yes" ]]; then
-    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERBOSE${CL}"
-  elif [[ "$VERBOSE" == "no" ]]; then
-    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}No${CL}"
+  if [[ -n "$VERBOSE" ]]; then
+    if [[ "$VERBOSE" == "yes" ]]; then
+      echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERBOSE${CL}"
+    elif [[ "$VERBOSE" == "no" ]]; then
+      echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}No${CL}"
+    else
+      msg_error "Verbose Mode needs to be 'yes' or 'no', was ${VERBOSE}"
+      exit
+    fi
   else
-    msg_error "Verbose Mode needs to be 'yes' or 'no', was ${VERBOSE}"
-    exit
+    VERBOSE="no"
+    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}No${CL}"
   fi
 
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS WITH CONFIG FILE COMPLETE" --yesno "Ready to create ${APP} LXC?" 10 58); then

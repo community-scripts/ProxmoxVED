@@ -30,7 +30,7 @@ curl -fsSL "https://downloads.asterisk.org/pub/telephony/asterisk/${RELEASE}" -o
 mkdir -p /opt/asterisk
 tar zxf "$temp_file" --strip-components=1 -C /opt/asterisk
 cd /opt/asterisk
-msg_ok "Done downloading Asterisk"
+msg_ok "Downloaded Asterisk"
 
 msg_info "Installing Asterisk"
 $STD ./contrib/scripts/install_prereq install
