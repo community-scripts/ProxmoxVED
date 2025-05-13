@@ -53,11 +53,10 @@ msg_ok "Cloned Odoo Repository"
 setup_uv
 
 msg_info "Creating Python Virtual Environment"
-uv venv /opt/odoo/.venv
-source /opt/odoo/.venv/bin/activate
-#uv sync --all-extras
-uv pip install --upgrade pip wheel
-uv pip install -r /opt/odoo/odoo/requirements.txt
+$STD uv venv /opt/odoo/.venv
+$STD source /opt/odoo/.venv/bin/activate
+$STD uv pip install --upgrade pip wheel
+$STD uv pip install -r /opt/odoo/odoo/requirements.txt
 msg_ok "Created and populated Python venv"
 
 msg_info "Creating Configuration File"
@@ -86,7 +85,7 @@ Type=simple
 User=odoo
 Group=odoo
 Environment="PATH=/opt/odoo/.venv/bin:/usr/local/bin:/usr/bin"
-ExecStart=/opt/odoo/.venv/bin/python3 /opt/odoo/odoo/odoo-bin -config /opt/odoo/odoo.conf
+ExecStart=/opt/odoo/.venv/bin/python3 /opt/odoo/odoo/odoo-bin -c /opt/odoo/odoo.conf
 Restart=on-failure
 
 [Install]
