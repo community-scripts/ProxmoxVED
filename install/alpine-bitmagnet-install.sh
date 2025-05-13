@@ -18,7 +18,8 @@ $STD apk add --no-cache \
   gcc \
   musl-dev \
   git \
-  iproute2-ss
+  iproute2-ss \
+  sudo
 $STD apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community go
 msg_ok "Installed dependencies"
 

@@ -31,7 +31,7 @@ function update_script() {
     msg_info "Updating ${APP} LXC"
     $STD apk -U upgrade
     $STD service bitmagnet stop
-    $STD su - postgres -c "pg_dump \
+    $STD sudo -u postgres pg_dump \
       --column-inserts \
       --data-only \
       --on-conflict-do-nothing \
@@ -50,7 +50,7 @@ function update_script() {
       --table=torrents_torrent_sources \
       --table=key_values \
       bitmagnet \
-      >/tmp/backup.sql"
+      >/tmp/backup.sql
     mv /tmp/backup.sql /opt/
     [ -f /opt/bitmagnet/.env ] && cp /opt/bitmagnet/.env /opt/
     [ -f /opt/bitmagnet/config.yml ] && cp /opt/bitmagnet/config.yml /opt/
