@@ -17,10 +17,8 @@ msg_info "Installing Backrest"
 RELEASE=$(curl -fsSL https://api.github.com/repos/garethgeorge/backrest/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 mkdir -p /opt/backrest/{bin,config,data}
 cd /opt/backrest/bin
-curl -fsSL "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz" -o $(basename "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz")
+curl -fsSL "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz" -o "backrest_Linux_x86_64.tar.gz"
 tar -xzf backrest_Linux_x86_64.tar.gz
-rm -rf backrest_Linux_x86_64.tar.gz
-rm -f install.sh uninstall.sh
 chmod +x backrest
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Backrest"
@@ -33,7 +31,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=$(whoami)
+User=root
 ExecStart=/opt/backrest/bin/backrest
 Environment="BACKREST_PORT=9898"
 Environment="BACKREST_CONFIG=/opt/backrest/config/config.json"
@@ -52,4 +50,6 @@ customize
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
+rm -rf backrest_Linux_x86_64.tar.gz
+rm -f install.sh uninstall.sh
 msg_ok "Cleaned"
