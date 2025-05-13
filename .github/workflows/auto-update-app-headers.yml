@@ -5,11 +5,12 @@ on:
     branches:
       - main
     paths:
-      - 'ct/**.sh'
-  workflow_dispatch: 
+      - "ct/**.sh"
+  workflow_dispatch:
 
 jobs:
   update-app-files:
+    if: github.repository == 'community-scripts/ProxmoxVED'
     runs-on: ubuntu-latest
 
     permissions:
@@ -79,7 +80,7 @@ jobs:
                        --label "automated pr"
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-      
+
       - name: Approve pull request
         if: env.changed == 'true'
         env:
@@ -89,7 +90,7 @@ jobs:
           if [ -n "$PR_NUMBER" ]; then
             gh pr review $PR_NUMBER --approve
           fi
-          
+
       - name: Re-approve pull request after update
         if: env.changed == 'true'
         env:

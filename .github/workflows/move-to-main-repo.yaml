@@ -14,7 +14,7 @@ permissions:
 jobs:
   move-to-main-repo:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'Migration To ProxmoxVE'
+    if: github.event.label.name == 'Migration To ProxmoxVE' && github.repository == 'community-scripts/ProxmoxVED'
     steps:
       - name: Generate a token
         id: app-token
@@ -154,7 +154,7 @@ jobs:
               fi
             fi
           else
-            cp ../frontend/public/json/$json_name frontend/public/json/. || true
+            cp ../frontend/public/json/$json_file frontend/public/json/. || true
           fi
 
           sed -i 's|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)|' ct/$script_name.sh
