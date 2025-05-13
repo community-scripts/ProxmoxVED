@@ -12,7 +12,7 @@ This repository contains a collection of scripts for managing and automating Pro
 
 ---
 
-## 🚀 Development Statu
+## 🚀 Development Status
 
 - **⚠️ Unstable**: Features may be incomplete or subject to change.
 - **📢 Community-driven**: Contributions and feedback are welcome.
