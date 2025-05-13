@@ -24,9 +24,9 @@ msg_ok "Installed dependencies"
 
 msg_info "Installing PostgreSQL"
 $STD apk add --no-cache \
-  postgresql15 \
-  postgresql15-contrib \
-  postgresql15-openrc
+  postgresql16 \
+  postgresql16-contrib \
+  postgresql16-openrc
 $STD rc-update add postgresql
 $STD rc-service postgresql start
 msg_ok "Installed PostreSQL"
