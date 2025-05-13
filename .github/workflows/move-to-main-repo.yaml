@@ -154,7 +154,7 @@ jobs:
               fi
             fi
           else
-            cp ../frontend/public/json/$json_name frontend/public/json/. || true
+            cp ../frontend/public/json/$json_file frontend/public/json/. || true
           fi
 
           sed -i 's|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)|' ct/$script_name.sh
