@@ -1,27 +1,24 @@
-name: "Gitea Mirror Setup"
+name: Sync to Gitea
 
 on:
-  workflow_dispatch:
-
-  schedule:
-    - cron: 0 0 * * *
-
   push:
     branches:
-      - main
+      - main # or whatever branch you want to sync
 
 jobs:
-  build:
+  sync:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: varunsridharan/action-gitea-mirror@main
-        name: " ⏳ Setting Up Mirror"
-        with:
-          gh_username: ${{ secrets.GH_USERNAME }}
-          gh_accesstoken: ${{ secrets.PAT_AUTOMERGE }}
-          gitea_host: ${{ secrets.GITEA_HOST }}
-          gitea_username: ${{ secrets.GITEA_USERNAME }}
-          gitea_accesstoken: ${{ secrets.GITEA_TOKEN }}
-          repositoryStared: true
-          repositorySource: true
-          repositoryForked: true
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Push to Gitea
+        run: |
+          git config --global user.name "Push From Github"
+          git config --global user.email "actions@github.com"
+          git remote add gitea http://$GITEA_USER:$GITEA_TOKEN@git.community-scripts.org/community-scripts/ProxmoxVED.git
+          git push gitea HEAD:main --force
+        env:
+          GITEA_USER: ${{ secrets.GITEA_USERNAME }}
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
