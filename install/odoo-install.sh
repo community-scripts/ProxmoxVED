@@ -52,8 +52,6 @@ chown -R odoo:odoo /opt/odoo/odoo
 msg_ok "Cloned Odoo Repository"
 
 setup_uv
-
-setup_uv
 $STD uv venv /opt/paperless/.venv
 source /opt/paperless/.venv/bin/activate
 $STD
