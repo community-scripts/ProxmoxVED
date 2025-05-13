@@ -518,13 +518,11 @@ fetch_and_deploy_gh_release() {
   local api_response tag http_code
   local current_version=""
   local curl_timeout="--connect-timeout 10 --max-time 30"
-
   # Check if the app directory exists and if there's a version file
   if [[ -f "/opt/${app}_version.txt" ]]; then
     current_version=$(cat "/opt/${app}_version.txt")
     $STD msg_info "Current version: $current_version"
   fi
-
   # ensure that jq is installed
   if ! command -v jq &>/dev/null; then
     $STD msg_info "Installing jq..."
@@ -534,71 +532,57 @@ fetch_and_deploy_gh_release() {
       return 1
     }
   fi
-
   [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
-
   until [[ $attempt -ge $max_attempts ]]; do
     ((attempt++)) || true
     $STD msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo...\n"
-
     api_response=$(curl $curl_timeout -fsSL -w "%{http_code}" -o /tmp/gh_resp.json "${header[@]}" "$api_url")
     http_code="${api_response:(-3)}"
-
     if [[ "$http_code" == "404" ]]; then
       msg_error "Repository $repo has no Release candidate (404)"
       return 1
     fi
-
     if [[ "$http_code" != "200" ]]; then
       $STD msg_info "Request failed with HTTP $http_code, retrying...\n"
       sleep $((attempt * 2))
       continue
     fi
-
     api_response=$(</tmp/gh_resp.json)
-
     if echo "$api_response" | grep -q "API rate limit exceeded"; then
       msg_error "GitHub API rate limit exceeded."
       return 1
     fi
-
     if echo "$api_response" | jq -e '.message == "Not Found"' &>/dev/null; then
       msg_error "Repository not found: $repo"
       return 1
     fi
-
     tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
+    [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
     version="${tag#v}"
-
     if [[ -z "$tag" ]]; then
       $STD msg_info "Empty tag received, retrying...\n"
       sleep $((attempt * 2))
       continue
     fi
-
     $STD msg_ok "Found release: $tag for $repo"
     break
   done
-
   if [[ -z "$tag" ]]; then
     msg_error "Failed to fetch release for $repo after $max_attempts attempts."
     exit 1
   fi
-
   # Version comparison (if we already have this version, skip)
-  if [[ "$current_version" == "$version" ]]; then
-    $STD msg_info "Already running the latest version ($version). Skipping update."
+  if [[ "$current_version" == "$tag" ]]; then
+    $STD msg_info "Already running the latest version ($tag). Skipping update."
     return 0
   fi
-
+  
   local base_url="https://github.com/$repo/releases/download/v$tag"
   local tmpdir
   tmpdir=$(mktemp -d) || return 1
-
   # Extract list of assets from the Release API
   local assets urls
   assets=$(echo "$api_response" | jq -r '.assets[].browser_download_url') || true
-
   # Detect current architecture
   local arch
   if command -v dpkg &>/dev/null; then
@@ -615,7 +599,6 @@ fetch_and_deploy_gh_release() {
     arch="unknown"
   fi
   $STD msg_info "Detected system architecture: $arch"
-
   # Try to find a matching asset for our architecture
   local url=""
   for u in $assets; do
@@ -625,7 +608,6 @@ fetch_and_deploy_gh_release() {
       break
     fi
   done
-
   # Fallback to other architectures if our specific one isn't found
   if [[ -z "$url" ]]; then
     for u in $assets; do
@@ -636,7 +618,6 @@ fetch_and_deploy_gh_release() {
       fi
     done
   fi
-
   # Fallback to any tar.gz
   if [[ -z "$url" ]]; then
     for u in $assets; do
@@ -647,24 +628,26 @@ fetch_and_deploy_gh_release() {
       fi
     done
   fi
-
   # Final fallback to GitHub source tarball
   if [[ -z "$url" ]]; then
-    url="https://github.com/$repo/archive/refs/tags/$version.tar.gz"
-    $STD msg_info "Trying GitHub source tarball fallback: $url"
+    # Use tarball_url directly from API response instead of constructing our own URL
+    url=$(echo "$api_response" | jq -r '.tarball_url // empty')
+    
+    # If tarball_url is empty for some reason, fall back to a constructed URL as before
+    if [[ -z "$url" ]]; then
+      url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
+    fi
+    
+    $STD msg_info "Using GitHub source tarball: $url"
   fi
-
   local filename="${url##*/}"
   $STD msg_info "Downloading $url"
-
   if ! curl $curl_timeout -fsSL -o "$tmpdir/$filename" "$url"; then
     msg_error "Failed to download release asset from $url"
     rm -rf "$tmpdir"
     return 1
   fi
-
   mkdir -p "/opt/$app"
-
   tar -xzf "$tmpdir/$filename" -C "$tmpdir"
   local content_root
   content_root=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d)
@@ -673,7 +656,6 @@ fetch_and_deploy_gh_release() {
   else
     cp -r "$tmpdir"/* "/opt/$app/"
   fi
-
   echo "$version" >"/opt/${app}_version.txt"
   $STD msg_ok "Deployed $app v$version to /opt/$app"
   rm -rf "$tmpdir"
