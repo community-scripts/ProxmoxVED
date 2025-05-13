@@ -13,13 +13,13 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y /
-  libsrtp2-dev /
-  build-essential /
-  libedit-dev /
-  uuid-dev /
-  libjansson-dev /
-  libxml2-dev /
+$STD apt-get install -y \
+  libsrtp2-dev \
+  build-essential \
+  libedit-dev \
+  uuid-dev \
+  libjansson-dev \
+  libxml2-dev \
   libsqlite3-dev
 msg_ok "Installed Dependencies"
 
