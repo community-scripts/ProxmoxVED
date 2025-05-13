@@ -35,7 +35,7 @@ function update_script() {
 
     msg_info "Updating ${APP} to ${RELEASE}"
     cd /opt/backrest/bin
-    curl -fsSL "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz" -o $(basename "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz")
+    curl -fsSL "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz" -o "backrest_Linux_x86_64.tar.gz"
     tar -xzf backrest_Linux_x86_64.tar.gz
     rm -rf backrest_Linux_x86_64.tar.gz
     rm -f install.sh uninstall.sh
