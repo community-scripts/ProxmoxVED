@@ -29,6 +29,7 @@ function update_script() {
   RELEASE=$(curl -s https://api.github.com/repos/bitmagnet-io/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [ "${RELEASE}" != "$(cat /opt/bitmagnet_version.txt)" ] || [ ! -f /opt/bitmagnet_version.txt ]; then
     msg_info "Backing up database"
+    rm -f /tmp/backup.sql
     $STD sudo -u postgres pg_dump \
       --column-inserts \
       --data-only \
@@ -52,7 +53,7 @@ function update_script() {
     mv /tmp/backup.sql /opt/
     msg_ok "Database backed up"
 
-    msg_info "Updating ${APP} LXC"
+    msg_info "Updating ${APP} to ${RELEASE}"
     $STD apk -U upgrade
     $STD service bitmagnet stop
     [ -f /opt/bitmagnet/.env ] && cp /opt/bitmagnet/.env /opt/
