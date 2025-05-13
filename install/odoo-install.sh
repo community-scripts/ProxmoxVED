@@ -47,14 +47,11 @@ chown -R odoo:odoo /opt/odoo
 msg_ok "Created user and directory"
 
 msg_info "Cloning Odoo Repository"
-git clone --depth 1 --branch 17.0 https://github.com/odoo/odoo.git /opt/odoo/odoo
+git clone --depth 1 --branch 18.0 https://github.com/odoo/odoo.git /opt/odoo/odoo
 chown -R odoo:odoo /opt/odoo/odoo
 msg_ok "Cloned Odoo Repository"
 
 setup_uv
-$STD uv venv /opt/paperless/.venv
-source /opt/paperless/.venv/bin/activate
-$STD
 
 msg_info "Creating Python Virtual Environment"
 uv venv /opt/odoo/.venv
