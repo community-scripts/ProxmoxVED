@@ -60,7 +60,8 @@ wget -q https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE
 unzip -q koel-${RELEASE}.zip
 cd /opt/koel
 apt-get install composer -y
-$STD composer update --no-interaction
+mv .env.example .env
+$STD composer install --no-interaction
 sed -i -e "s/DB_CONNECTION=.*/DB_CONNECTION=pgsql/" \
   -e "s/DB_HOST=.*/DB_HOST=localhost/" \
   -e "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" \
