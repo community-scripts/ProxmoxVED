@@ -34,7 +34,7 @@
     - GoMFT: Fix build dependencies [@tremor021](https://github.com/tremor021) ([#3313](https://github.com/community-scripts/ProxmoxVE/pull/3313))
     - GoMFT: Don't rely on binaries from github [@tremor021](https://github.com/tremor021) ([#3303](https://github.com/community-scripts/ProxmoxVE/pull/3303))
     - Wikijs: Remove Dev Message & Performance-Boost [@bvdberg01](https://github.com/bvdberg01) ([#3232](https://github.com/community-scripts/ProxmoxVE/pull/3232))
-    - Update omada download url [@bvdberg01](https://github.com/bvdberg01) ([#3245](https://github.com/community-scripts/ProxmoxVE/pull/3245))
+    - Update omada download url [@bvdberg01](https://github.com/bvdberg01) ([#3245](https://github.cooxVE/pull/3245))
     - TriliumNotes: Fix release handling [@tremor021](https://github.com/tremor021) ([#3160](https://github.com/community-scripts/ProxmoxVE/pull/3160))
 
   - #### ✨ New Features
