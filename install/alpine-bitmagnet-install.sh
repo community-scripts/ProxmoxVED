@@ -60,10 +60,12 @@ command_background="true"
 command_user="root"
 pidfile="/var/run/bitmagnet.pid"
 
-export TMDB_API_KEY=$tmdbapikey
-
 depend() {
     use net
+}
+
+start_pre() {
+    export TMDB_API_KEY="$tmdbapikey"
 }
 EOF
 chmod +x /etc/init.d/bitmagnet
