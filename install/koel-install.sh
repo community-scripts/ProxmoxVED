@@ -31,7 +31,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" install_postgresql
-PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" PHP_APACHE=YES install_php
+PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" install_php
 NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_node_and_modules
 
 msg_info "Setting up PSql Database"
@@ -53,7 +53,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 msg_ok "Set up PostgreSQL database"
 
 msg_info "Installing Koel(Patience)"
-RELEASE=$(curl -fsSL https://github.com/koel/koel/releases/latest -O - | grep "title>Release" | cut -d " " -f 4)
+RELEASE=$(curl -fsSL https://github.com/koel/koel/releases/latest | grep "title>Release" | cut -d " " -f 4)
 mkdir -p /opt/koel_{media,sync}
 curl -fsSL https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip -o /opt/koel-${RELEASE}.zip
 unzip -q /opt/koel-${RELEASE}.zip
