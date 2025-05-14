@@ -71,7 +71,6 @@ function update_script() {
     chmod +x bitmagnet
     [ -f "/opt/.env" ] && cp "/opt/.env" /opt/bitmagnet/
     [ -f "/opt/config.yml" ] && cp "/opt/config.yml" /opt/bitmagnet/
-    rm -f "$temp_file"
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated $APP to v${RELEASE}"
 
