@@ -14,14 +14,14 @@ variables() {
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
 }
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
-  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
   load_functions
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
-  source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
   load_functions
   #echo "(build.func) Loaded core.func via wget"
 fi
@@ -34,7 +34,7 @@ catch_errors() {
 
 # This function is called when an error occurs. It receives the exit code, line number, and command that caused the error, and displays an error message.
 error_handler() {
-  source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
+  source /dev/stdin <<<$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
   printf "\e[?25h"
   local exit_code="$?"
   local line_number="$1"
@@ -166,7 +166,7 @@ update_motd_ip() {
 # Function to download & save header files
 get_header() {
   local app_name=$(echo "${APP,,}" | tr -d ' ')
-  local header_url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/headers/${app_name}"
+  local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_name}"
 
   mkdir -p "$(dirname "$local_header_path")"
@@ -1217,7 +1217,7 @@ check_container_storage() {
 }
 
 start() {
-  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
   if command -v pveversion >/dev/null 2>&1; then
     if ! (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC" --yesno "This will create a New ${APP} LXC. Proceed?" 10 58); then
       clear
@@ -1269,9 +1269,9 @@ build_container() {
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
   if [ "$var_os" == "alpine" ]; then
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/alpine-install.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)"
   else
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
   fi
   export RANDOM_UUID="$RANDOM_UUID"
   export CACHER="$APT_CACHER"
@@ -1303,7 +1303,7 @@ build_container() {
     $PW
   "
   # This executes create_lxc.sh and creates the container and .conf file
-  bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/create_lxc.sh)" $?
+  bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/create_lxc.sh)" $?
 
   LXC_CONFIG=/etc/pve/lxc/${CTID}.conf
   if [ "$CT_TYPE" == "0" ]; then
@@ -1379,7 +1379,7 @@ EOF'
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 >/dev/null"
   fi
   msg_ok "Customized LXC Container"
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/$var_install.sh)" $?
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/$var_install.sh)" $?
 
 }
 
@@ -1392,7 +1392,7 @@ description() {
     cat <<EOF
 <div align='center'>
   <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
+    <img src='https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
   </a>
 
   <h2 style='font-size: 24px; margin: 20px 0;'>${APP} LXC</h2>
