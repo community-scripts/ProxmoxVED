@@ -9,13 +9,13 @@ install_node_and_modules() {
   if command -v node >/dev/null; then
     CURRENT_NODE_VERSION="$(node -v | grep -oP '^v\K[0-9]+')"
     if [[ "$CURRENT_NODE_VERSION" != "$NODE_VERSION" ]]; then
-      msg_info "Node.js version $CURRENT_NODE_VERSION found, replacing with $NODE_VERSION"
+      $STD msg_info "Node.js version $CURRENT_NODE_VERSION found, replacing with $NODE_VERSION"
       NEED_NODE_INSTALL=true
     else
-      msg_ok "Node.js $NODE_VERSION already installed"
+      $STD msg_ok "Node.js $NODE_VERSION already installed"
     fi
   else
-    msg_info "Node.js not found, installing version $NODE_VERSION"
+    msg_info "Setup Node.js $NODE_VERSION"
     NEED_NODE_INSTALL=true
   fi
 
@@ -45,7 +45,7 @@ install_node_and_modules() {
       exit 1
     fi
 
-    msg_ok "Installed Node.js ${NODE_VERSION}"
+    msg_ok "Setup Node.js ${NODE_VERSION}"
   fi
 
   export NODE_OPTIONS="--max-old-space-size=4096"
