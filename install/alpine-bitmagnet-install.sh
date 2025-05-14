@@ -47,7 +47,7 @@ $STD su - postgres -c "psql -c 'CREATE DATABASE bitmagnet;'"
 echo "${RELEASE}" >/opt/bitmagnet_version.txt
 msg_ok "Installed bitmagnet v${RELEASE}"
 
-read -rp "${TAB}${TAB}Enter your TMDB API key if you have one: " tmdbapikey
+read -rp "${TAB}${TAB}${TAB}Enter your TMDB API key if you have one: " tmdbapikey
 
 msg_info "Enabling bitmagnet Service"
 cat <<EOF >/etc/init.d/bitmagnet
