@@ -11,34 +11,42 @@
 
 ### 🆕 New Scripts
 
-  - gatus ([#4443](https://github.com/community-scripts/ProxmoxVE/pull/4443))
+  - alpine-transmission ([#4277](https://github.com/community-scripts/ProxmoxVE/pull/4277))
+- alpine-tinyauth ([#4264](https://github.com/community-scripts/ProxmoxVE/pull/4264))
+- alpine-rclone ([#4265](https://github.com/community-scripts/ProxmoxVE/pull/4265))
+- streamlink-webui ([#4262](https://github.com/community-scripts/ProxmoxVE/pull/4262))
+- Fumadocs ([#4263](https://github.com/community-scripts/ProxmoxVE/pull/4263))
+- asterisk ([#4468](https://github.com/community-scripts/ProxmoxVE/pull/4468))
+- gatus ([#4443](https://github.com/community-scripts/ProxmoxVE/pull/4443))
 - alpine-gatus ([#4442](https://github.com/community-scripts/ProxmoxVE/pull/4442))
 - Alpine-Traefik [@MickLesk](https://github.com/MickLesk) ([#4412](https://github.com/community-scripts/ProxmoxVE/pull/4412))
 
 ### 🚀 Updated Scripts
 
   - Website: re-add documenso & some little bugfixes [@MickLesk](https://github.com/MickLesk) ([#4456](https://github.com/community-scripts/ProxmoxVE/pull/4456))
-- Alpine: Use onliner for updates [@tremor021](https://github.com/tremor021) ([#4414](https://github.com/community-scripts/ProxmoxVE/pull/4414))
 - update some improvements from dev (tools.func) [@MickLesk](https://github.com/MickLesk) ([#4430](https://github.com/community-scripts/ProxmoxVE/pull/4430))
+- Alpine: Use onliner for updates [@tremor021](https://github.com/tremor021) ([#4414](https://github.com/community-scripts/ProxmoxVE/pull/4414))
 
   - #### 🐞 Bug Fixes
 
-    - Alpine-Rclone: Fix location of passwords file [@tremor021](https://github.com/tremor021) ([#4465](https://github.com/community-scripts/ProxmoxVE/pull/4465))
+    - Bugfix: Mikrotik & Pimox HAOS VM (NEXTID) [@MickLesk](https://github.com/MickLesk) ([#4313](https://github.com/community-scripts/ProxmoxVE/pull/4313))
     - Bookstack: fix copy of themes/uploads/storage [@MickLesk](https://github.com/MickLesk) ([#4457](https://github.com/community-scripts/ProxmoxVE/pull/4457))
+    - homarr: fetch versions dynamically from source repo [@CrazyWolf13](https://github.com/CrazyWolf13) ([#4409](https://github.com/community-scripts/ProxmoxVE/pull/4409))
+    - Authentik: change install to UV & increase resources to 10GB RAM [@MickLesk](https://github.com/MickLesk) ([#4364](https://github.com/community-scripts/ProxmoxVE/pull/4364))
+    - Jellyseerr: better handling of node and pnpm [@MickLesk](https://github.com/MickLesk) ([#4365](https://github.com/community-scripts/ProxmoxVE/pull/4365))
+    - Alpine-Rclone: Fix location of passwords file [@tremor021](https://github.com/tremor021) ([#4465](https://github.com/community-scripts/ProxmoxVE/pull/4465))
     - Zammad: Enable ElasticSearch service [@tremor021](https://github.com/tremor021) ([#4391](https://github.com/community-scripts/ProxmoxVE/pull/4391))
     - openhab: use zulu17-jdk [@moodyblue](https://github.com/moodyblue) ([#4438](https://github.com/community-scripts/ProxmoxVE/pull/4438))
-    - homarr: fetch versions dynamically from source repo [@CrazyWolf13](https://github.com/CrazyWolf13) ([#4409](https://github.com/community-scripts/ProxmoxVE/pull/4409))
     - (fix) Documenso: fix build failures [@vhsdream](https://github.com/vhsdream) ([#4382](https://github.com/community-scripts/ProxmoxVE/pull/4382))
-    - Jellyseerr: better handling of node and pnpm [@MickLesk](https://github.com/MickLesk) ([#4365](https://github.com/community-scripts/ProxmoxVE/pull/4365))
-    - Authentik: change install to UV & increase resources to 10GB RAM [@MickLesk](https://github.com/MickLesk) ([#4364](https://github.com/community-scripts/ProxmoxVE/pull/4364))
 
   - #### ✨ New Features
 
-    - monitor-all: improvements - tag based filtering [@grizmin](https://github.com/grizmin) ([#4437](https://github.com/community-scripts/ProxmoxVE/pull/4437))
-    - Make apt-cacher-ng a client of its own server [@pgcudahy](https://github.com/pgcudahy) ([#4092](https://github.com/community-scripts/ProxmoxVE/pull/4092))
     - Feature: LXC-Delete (pve helper): add "all items" [@MickLesk](https://github.com/MickLesk) ([#4296](https://github.com/community-scripts/ProxmoxVE/pull/4296))
+    - Feature: get correct next VMID [@MickLesk](https://github.com/MickLesk) ([#4292](https://github.com/community-scripts/ProxmoxVE/pull/4292))
     - HomeAssistant-Core: update script for 2025.5+ [@MickLesk](https://github.com/MickLesk) ([#4363](https://github.com/community-scripts/ProxmoxVE/pull/4363))
     - Feature: autologin for Alpine [@MickLesk](https://github.com/MickLesk) ([#4344](https://github.com/community-scripts/ProxmoxVE/pull/4344))
+    - monitor-all: improvements - tag based filtering [@grizmin](https://github.com/grizmin) ([#4437](https://github.com/community-scripts/ProxmoxVE/pull/4437))
+    - Make apt-cacher-ng a client of its own server [@pgcudahy](https://github.com/pgcudahy) ([#4092](https://github.com/community-scripts/ProxmoxVE/pull/4092))
 
   - #### 🔧 Refactor
 
@@ -51,13 +59,10 @@
     - fix: improve bridge detection in all network interface configuration files [@filippolauria](https://github.com/filippolauria) ([#4413](https://github.com/community-scripts/ProxmoxVE/pull/4413))
     - Config file Function in build.func [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4411](https://github.com/community-scripts/ProxmoxVE/pull/4411))
     - fix: detect all bridge types, not just vmbr prefix [@filippolauria](https://github.com/filippolauria) ([#4351](https://github.com/community-scripts/ProxmoxVE/pull/4351))
-    - build.func Change the menu for Bridge Selection [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4326](https://github.com/community-scripts/ProxmoxVE/pull/4326))
 
   - #### 📂 Github
 
     - Add Github app for auto PR merge [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4461](https://github.com/community-scripts/ProxmoxVE/pull/4461))
-    - Add a Repo check to all Workflows [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4339](https://github.com/community-scripts/ProxmoxVE/pull/4339))
-    - Auto-Merge Automatic PR [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4343](https://github.com/community-scripts/ProxmoxVE/pull/4343))
 
 ### 🌐 Website
 
