@@ -15,7 +15,7 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  apache2 \
+  nginx \
   apt-transport-https \
   lsb-release \
   ffmpeg \
