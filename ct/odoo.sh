@@ -25,25 +25,26 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /opt/odoo ]]; then
+  if [[ ! -f /etc/odoo/odoo.conf ]]; then
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
+  RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
+  LATEST_VERSION=$(curl -fsSL "https://nightly.odoo.com/${RELEASE}/nightly/deb/" |
+    grep -oP "odoo_${RELEASE}\.\d+_all\.deb" |
+    sed -E "s/odoo_(${RELEASE}\.[0-9]+)_all\.deb/\1/" |
+    sort -V |
+    tail -n1)
 
-  RELEASE="17.0"
-  if [[ ! -f /opt/odoo_version.txt ]] || [[ "$RELEASE" != "$(cat /opt/odoo_version.txt)" ]]; then
+  if [[ "${LATEST_VERSION}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
     msg_info "Stopping ${APP} service"
     systemctl stop odoo
     msg_ok "Stopped ${APP}"
 
-    msg_info "Updating ${APP} to ${RELEASE}"
-    cd /opt
-    rm -rf odoo_bak
-    mv odoo odoo_bak
-    git clone --depth 1 --branch "$RELEASE" https://github.com/odoo/odoo.git /opt/odoo/odoo
-    cd /opt/odoo
-    /opt/odoo/venv/bin/pip install -r /opt/odoo/odoo/requirements.txt
-    echo "$RELEASE" >/opt/odoo_version.txt
+    msg_info "Updating ${APP} to ${LATEST_VERSION}"
+    curl -fsSL https://nightly.odoo.com/${RELEASE}/nightly/deb/odoo_${RELEASE}.latest_all.deb -o /opt/odoo.deb
+    $STD apt install -y /opt/odoo.deb
+    echo "$RELEASE" >/opt/${APP}_version.txt
     msg_ok "Updated ${APP} to ${RELEASE}"
 
     msg_info "Starting ${APP} service"
@@ -51,12 +52,12 @@ function update_script() {
     msg_ok "Started ${APP}"
 
     msg_info "Cleaning Up"
-    rm -rf /opt/odoo_bak
+    rm -f /opt/odoo.deb
     msg_ok "Cleaned"
 
     msg_ok "Updated Successfully"
   else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    msg_ok "No update required. ${APP} is already at ${LATEST_VERSION}"
   fi
   exit
 }
