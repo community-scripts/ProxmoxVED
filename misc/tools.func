@@ -279,7 +279,7 @@ install_php() {
   fi
 
   if [[ "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
-    $STD echo "PHP $CURRENT_PHP detected, migrating to PHP $PHP_VERSION"
+    $STD msg_info "PHP $CURRENT_PHP detected, migrating to PHP $PHP_VERSION"
     if [[ ! -f /etc/apt/sources.list.d/php.list ]]; then
       $STD curl -fsSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
       $STD dpkg -i /tmp/debsuryorg-archive-keyring.deb
@@ -329,12 +329,12 @@ install_php() {
 
   for ini in "${PHP_INI_PATHS[@]}"; do
     if [[ -f "$ini" ]]; then
-      msg_info "Patching $ini"
+      $STD msg_info "Patching $ini"
       sed -i "s|^memory_limit = .*|memory_limit = ${PHP_MEMORY_LIMIT}|" "$ini"
       sed -i "s|^upload_max_filesize = .*|upload_max_filesize = ${PHP_UPLOAD_MAX_FILESIZE}|" "$ini"
       sed -i "s|^post_max_size = .*|post_max_size = ${PHP_POST_MAX_SIZE}|" "$ini"
       sed -i "s|^max_execution_time = .*|max_execution_time = ${PHP_MAX_EXECUTION_TIME}|" "$ini"
-      msg_ok "Patched $ini"
+      $STD msg_ok "Patched $ini"
     fi
   done
 }
@@ -349,7 +349,7 @@ install_composer() {
     CURRENT_VERSION=$("$COMPOSER_BIN" --version | awk '{print $3}')
     msg_info "Composer $CURRENT_VERSION found, updating to latest"
   else
-    msg_info "Composer not found, installing latest version"
+    msg_info "Setup Composer"
   fi
 
   # Download and install latest composer
