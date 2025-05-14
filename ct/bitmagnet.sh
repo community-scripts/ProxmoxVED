@@ -27,17 +27,51 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -s https://api.github.com/repos/bitmagnet/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  RELEASE=$(curl -s https://api.github.com/repos/bitmagnet-io/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Stopping Service"
     systemctl stop bitmagnet-web
     msg_ok "Stopped Service"
 
+    msg_info "Backing up database"
+    rm -f /tmp/backup.sql
+    $STD sudo -u postgres pg_dump \
+      --column-inserts \
+      --data-only \
+      --on-conflict-do-nothing \
+      --rows-per-insert=1000 \
+      --table=metadata_sources \
+      --table=content \
+      --table=content_attributes \
+      --table=content_collections \
+      --table=content_collections_content \
+      --table=torrent_sources \
+      --table=torrents \
+      --table=torrent_files \
+      --table=torrent_hints \
+      --table=torrent_contents \
+      --table=torrent_tags \
+      --table=torrents_torrent_sources \
+      --table=key_values \
+      bitmagnet \
+      >/tmp/backup.sql
+    mv /tmp/backup.sql /opt/
+    msg_ok "Database backed up"
+
     msg_info "Updating ${APP} to v${RELEASE}"
-    temp_file=$(mktemp)
+    [ -f /opt/bitmagnet/.env ] && cp /opt/bitmagnet/.env /opt/
+    [ -f /opt/bitmagnet/config.yml ] && cp /opt/bitmagnet/config.yml /opt/
     rm -rf /opt/bitmagnet/*
-    curl -fsSL "https://github.com/bitmagnet/bitmagnet/releases/download/v${RELEASE}/bitmagnet-v${RELEASE}-linux-amd64.zip" -o "$temp_file"
-    $STD unzip -j "$temp_file" '*/**' -d /opt/bitmagnet
+    temp_file=$(mktemp)
+    curl -fsSL "https://github.com/bitmagnet-io/bitmagnet/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
+    tar zxf "$temp_file" --strip-components=1 -C /opt/bitmagnet
+    cd /opt/bitmagnet
+    VREL=v$RELEASE
+    $STD go build -ldflags "-s -w -X github.com/bitmagnet-io/bitmagnet/internal/version.GitTag=$VREL"
+    chmod +x bitmagnet
+    [ -f "/opt/.env" ] && cp "/opt/.env" /opt/bitmagnet/
+    [ -f "/opt/config.yml" ] && cp "/opt/config.yml" /opt/bitmagnet/
+    rm -f "$temp_file"
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated $APP to v${RELEASE}"
 

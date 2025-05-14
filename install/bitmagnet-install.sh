@@ -44,6 +44,8 @@ $STD sudo -u postgres psql -c "CREATE DATABASE bitmagnet;"
 echo "${RELEASE}" >/opt/bitmagnet_version.txt
 msg_ok "Installed bitmagnet v${RELEASE}"
 
+read -r -p "${TAB3}Enter your TMDB API key if you have one: " tmdbapikey
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/bitmagnet-web.service
 [Unit]
@@ -54,9 +56,10 @@ After=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/bitmagnet
-ExecStart=/opt/bitmagnet/bitmagnet run worker -all
+ExecStart=/opt/bitmagnet/bitmagnet worker run --all
 Environment=POSTGRES_HOST=localhost
 Environment=POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+Environment=TMDB_API_KEY=$tmdbapikey
 Restart=on-failure
 
 [Install]
