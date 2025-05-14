@@ -33,10 +33,7 @@ $STD apt-get install -y \
     whois
 msg_ok "Installed Dependencies"
 
-msg_info "Installing PHP"
-$STD apt-get install -y \
-    php8.2-{cli,fpm,gd,gmp,mbstring,mysql,snmp,xml,zip,curl}
-msg_ok "Installed PHP"
+install_php
 
 msg_info "Installing Python"
 $STD apt-get install -y \
@@ -71,7 +68,7 @@ mv /opt/librenms-${RELEASE} /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 
-$STD pip3 install -r /opt/librenms/requirements.txt
+$STD su librenms -s /bin/bash -c "pip3 install -r /opt/librenms/requirements.txt"
 
 cp /opt/librenms/.env.example /opt/librenms/.env
 
@@ -95,7 +92,7 @@ msg_ok "Setup Composer"
 
 
 msg_info "Setup MariaDB"
-sed -i '/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0' /etc/mysql/mariadb.conf.d/50-server.cnf
+sed -i "/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0" /etc/mysql/mariadb.conf.d/50-server.cnf
 systemctl enable -q --now mariadb
 msg_ok "Setup MariaDB"
 
