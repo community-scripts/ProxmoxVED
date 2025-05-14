@@ -1,24 +1,20 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (Canbiz)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 ## App Default Values
 APP="Koel"
-var_tags="${var_tags:-music;player;homelab}"
+var_tags="${var_tags:-music}"
 var_disk="${var_disk:-9}"
 var_cpu="${var_cpu:-3}"
 var_ram="${var_ram:-3072}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
-var_verbose="${var_verbose:-yes}"
+var_unprivileged="${var_unprivileged:-1}"
 
-# App Output & Base Settings
 header_info "$APP"
-base_settings
-
-# Core
 variables
 color
 catch_errors

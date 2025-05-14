@@ -4,7 +4,7 @@
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
 load_functions
 
 # This function sets color variables for formatting output in the terminal

@@ -21,6 +21,7 @@ $STD apt-get install -y \
   libopenjp2-7-dev \
   libpq-dev \
   nginx \
+  python3 \
   python3-venv \
   python3-pip
 msg_ok "Installed Dependencies"
@@ -33,12 +34,12 @@ unzip -q v${RELEASE}.zip
 mv babybuddy-${RELEASE} /opt/babybuddy
 rm "v${RELEASE}.zip"
 cd /opt/babybuddy
-pip install -U pip wheel pipenv
+$STD pip install -U pip wheel pipenv
 export PIPENV_VENV_IN_PROJECT=1
 export PIPENV_IGNORE_VIRTUALENVS=1
 export PIPENV_VERBOSITY=-1
-pipenv install
-pipenv shell
+$STD pipenv install
+#$STD pipenv shell
 cp babybuddy/settings/production.example.py babybuddy/settings/production.py
 touch /opt/babybuddy/data/db.sqlite3
 chown -R www-data:www-data /opt/babybuddy/data

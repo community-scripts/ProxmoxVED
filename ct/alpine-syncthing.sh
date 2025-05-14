@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -21,18 +21,17 @@ catch_errors
 
 function update_script() {
   msg_info "Updating Alpine Packages"
-  $STD apk update
-  $STD apk upgrade
+  $STD apk -U upgrade
   msg_ok "Updated Alpine Packages"
 
   msg_info "Updating Syncthing"
-  $STD $STD apk upgrade syncthing
+  $STD apk upgrade syncthing
   msg_ok "Updated Syncthing"
 
   msg_info "Restarting Syncthing"
   $STD rc-service syncthing restart
   msg_ok "Restarted Syncthing"
-  
+
   exit 1
 }
 

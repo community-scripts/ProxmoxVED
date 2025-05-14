@@ -3,24 +3,92 @@
     <img src="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/images/logo.png" height="100px" />
  </a>
 </div>
-<h1 align="center">Changelog - Develop</h1>
+<h1 align="center"></h1>
 
 <h3 align="center">All notable changes to this project will be documented in this file.</h3>
 
+## 2025-05-14
+
+### 🆕 New Scripts
+
+  - odoo ([#4477](https://github.com/community-scripts/ProxmoxVE/pull/4477))
+- alpine-transmission ([#4277](https://github.com/community-scripts/ProxmoxVE/pull/4277))
+- alpine-tinyauth ([#4264](https://github.com/community-scripts/ProxmoxVE/pull/4264))
+- alpine-rclone ([#4265](https://github.com/community-scripts/ProxmoxVE/pull/4265))
+- streamlink-webui ([#4262](https://github.com/community-scripts/ProxmoxVE/pull/4262))
+- Fumadocs ([#4263](https://github.com/community-scripts/ProxmoxVE/pull/4263))
+- asterisk ([#4468](https://github.com/community-scripts/ProxmoxVE/pull/4468))
+- gatus ([#4443](https://github.com/community-scripts/ProxmoxVE/pull/4443))
+- alpine-gatus ([#4442](https://github.com/community-scripts/ProxmoxVE/pull/4442))
+- Alpine-Traefik [@MickLesk](https://github.com/MickLesk) ([#4412](https://github.com/community-scripts/ProxmoxVE/pull/4412))
+
+### 🚀 Updated Scripts
+
+  - fix: fetch_release_and_deploy function [@CrazyWolf13](https://github.com/CrazyWolf13) ([#4478](https://github.com/community-scripts/ProxmoxVE/pull/4478))
+- Website: re-add documenso & some little bugfixes [@MickLesk](https://github.com/MickLesk) ([#4456](https://github.com/community-scripts/ProxmoxVE/pull/4456))
+- update some improvements from dev (tools.func) [@MickLesk](https://github.com/MickLesk) ([#4430](https://github.com/community-scripts/ProxmoxVE/pull/4430))
+- Alpine: Use onliner for updates [@tremor021](https://github.com/tremor021) ([#4414](https://github.com/community-scripts/ProxmoxVE/pull/4414))
+
+  - #### 🐞 Bug Fixes
+
+    - Bugfix: Mikrotik & Pimox HAOS VM (NEXTID) [@MickLesk](https://github.com/MickLesk) ([#4313](https://github.com/community-scripts/ProxmoxVE/pull/4313))
+    - Bookstack: fix copy of themes/uploads/storage [@MickLesk](https://github.com/MickLesk) ([#4457](https://github.com/community-scripts/ProxmoxVE/pull/4457))
+    - homarr: fetch versions dynamically from source repo [@CrazyWolf13](https://github.com/CrazyWolf13) ([#4409](https://github.com/community-scripts/ProxmoxVE/pull/4409))
+    - Authentik: change install to UV & increase resources to 10GB RAM [@MickLesk](https://github.com/MickLesk) ([#4364](https://github.com/community-scripts/ProxmoxVE/pull/4364))
+    - Jellyseerr: better handling of node and pnpm [@MickLesk](https://github.com/MickLesk) ([#4365](https://github.com/community-scripts/ProxmoxVE/pull/4365))
+    - Alpine-Rclone: Fix location of passwords file [@tremor021](https://github.com/tremor021) ([#4465](https://github.com/community-scripts/ProxmoxVE/pull/4465))
+    - Zammad: Enable ElasticSearch service [@tremor021](https://github.com/tremor021) ([#4391](https://github.com/community-scripts/ProxmoxVE/pull/4391))
+    - openhab: use zulu17-jdk [@moodyblue](https://github.com/moodyblue) ([#4438](https://github.com/community-scripts/ProxmoxVE/pull/4438))
+    - (fix) Documenso: fix build failures [@vhsdream](https://github.com/vhsdream) ([#4382](https://github.com/community-scripts/ProxmoxVE/pull/4382))
+
+  - #### ✨ New Features
+
+    - Feature: LXC-Delete (pve helper): add "all items" [@MickLesk](https://github.com/MickLesk) ([#4296](https://github.com/community-scripts/ProxmoxVE/pull/4296))
+    - Feature: get correct next VMID [@MickLesk](https://github.com/MickLesk) ([#4292](https://github.com/community-scripts/ProxmoxVE/pull/4292))
+    - HomeAssistant-Core: update script for 2025.5+ [@MickLesk](https://github.com/MickLesk) ([#4363](https://github.com/community-scripts/ProxmoxVE/pull/4363))
+    - Feature: autologin for Alpine [@MickLesk](https://github.com/MickLesk) ([#4344](https://github.com/community-scripts/ProxmoxVE/pull/4344))
+    - monitor-all: improvements - tag based filtering [@grizmin](https://github.com/grizmin) ([#4437](https://github.com/community-scripts/ProxmoxVE/pull/4437))
+    - Make apt-cacher-ng a client of its own server [@pgcudahy](https://github.com/pgcudahy) ([#4092](https://github.com/community-scripts/ProxmoxVE/pull/4092))
+
+  - #### 🔧 Refactor
+
+    - openhab. correct some typos [@moodyblue](https://github.com/moodyblue) ([#4448](https://github.com/community-scripts/ProxmoxVE/pull/4448))
+
+### 🧰 Maintenance
+
+  - #### 💾 Core
+
+    - fix: improve bridge detection in all network interface configuration files [@filippolauria](https://github.com/filippolauria) ([#4413](https://github.com/community-scripts/ProxmoxVE/pull/4413))
+    - Config file Function in build.func [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4411](https://github.com/community-scripts/ProxmoxVE/pull/4411))
+    - fix: detect all bridge types, not just vmbr prefix [@filippolauria](https://github.com/filippolauria) ([#4351](https://github.com/community-scripts/ProxmoxVE/pull/4351))
+
+  - #### 📂 Github
+
+    - Add Github app for auto PR merge [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4461](https://github.com/community-scripts/ProxmoxVE/pull/4461))
+
+### 🌐 Website
+
+  - FAQ: Explanation "updatable" [@tremor021](https://github.com/tremor021) ([#4300](https://github.com/community-scripts/ProxmoxVE/pull/4300))
+
+  - #### 📝 Script Information
+
+    - Jellyfin Media Server: Update configuration path [@tremor021](https://github.com/tremor021) ([#4434](https://github.com/community-scripts/ProxmoxVE/pull/4434))
+    - Pingvin Share: Added explanation on how to add/edit environment variables [@tremor021](https://github.com/tremor021) ([#4432](https://github.com/community-scripts/ProxmoxVE/pull/4432))
+    - pingvin.json: fix typo [@warmbo](https://github.com/warmbo) ([#4426](https://github.com/community-scripts/ProxmoxVE/pull/4426))
+    - Navidrome - Fix config path (use /etc/ instead of /var/lib) [@quake1508](https://github.com/quake1508) ([#4406](https://github.com/community-scripts/ProxmoxVE/pull/4406))
 
 ## 2025-03-24
 
 ### 🆕 New Scripts
 
-  - fileflows [@kkroboth](https://github.com/kkroboth) ([#3392](https://github.com/community-scripts/ProxmoxVE/pull/3392))
+- fileflows [@kkroboth](https://github.com/kkroboth) ([#3392](https://github.com/community-scripts/ProxmoxVE/pull/3392))
 - wazuh [@omiinaya](https://github.com/omiinaya) ([#3381](https://github.com/community-scripts/ProxmoxVE/pull/3381))
 - yt-dlp-webui [@CrazyWolf13](https://github.com/CrazyWolf13) ([#3364](https://github.com/community-scripts/ProxmoxVE/pull/3364))
 - Extension/New Script: Redis Alpine Installation [@MickLesk](https://github.com/MickLesk) ([#3367](https://github.com/community-scripts/ProxmoxVE/pull/3367))
-- Fluid Calendar [@vhsdream](https://github.com/vhsdream) ([#2869](https://github.com/community-scripts/ProxmoxVE/pull/2869))
-
+- Fluid Calendar [@vhsdream](https://github.com/vhsdream) ([#2869](ht
 ### 🚀 Updated Scripts
 
-  - License url VED to VE [@bvdberg01](https://github.com/bvdberg01) ([#3258](https://github.com/community-scripts/ProxmoxVE/pull/3258))
+- License url VED to VE [@bvdberg01](https://github.com/bvdberg01) ([#3258](https://github.com/community-scripts/ProxmoxVE/pull/3258))
 - Omada jdk to jre [@bvdberg01](https://github.com/bvdberg01) ([#3319](https://github.com/community-scripts/ProxmoxVE/pull/3319))
 
   - #### 🐞 Bug Fixes
@@ -36,7 +104,7 @@
     - GoMFT: Fix build dependencies [@tremor021](https://github.com/tremor021) ([#3313](https://github.com/community-scripts/ProxmoxVE/pull/3313))
     - GoMFT: Don't rely on binaries from github [@tremor021](https://github.com/tremor021) ([#3303](https://github.com/community-scripts/ProxmoxVE/pull/3303))
     - Wikijs: Remove Dev Message & Performance-Boost [@bvdberg01](https://github.com/bvdberg01) ([#3232](https://github.com/community-scripts/ProxmoxVE/pull/3232))
-    - Update omada download url [@bvdberg01](https://github.com/bvdberg01) ([#3245](https://github.com/community-scripts/ProxmoxVE/pull/3245))
+    - Update omada download url [@bvdberg01](https://github.com/bvdberg01) ([#3245](https://github.cooxVE/pull/3245))
     - TriliumNotes: Fix release handling [@tremor021](https://github.com/tremor021) ([#3160](https://github.com/community-scripts/ProxmoxVE/pull/3160))
 
   - #### ✨ New Features
@@ -55,29 +123,29 @@
 
 ### 🧰 Maintenance
 
-  - #### ✨ New Features
+- #### ✨ New Features
 
-    - [core] add gitignore to prevent big pulls [@MickLesk](https://github.com/MickLesk) ([#3278](https://github.com/community-scripts/ProxmoxVE/pull/3278))
-    - [core] install core deps (debian / ubuntu) [@MickLesk](https://github.com/MickLesk) ([#3366](https://github.com/community-scripts/ProxmoxVE/pull/3366))
+  
+  - [core] install core deps (debian / ubuntu) [@MickLesk](https://github.com/MickLesk) ([#3366](https://github.com/community-scripts/ProxmoxVE/pull/3366))
 
-  - #### 💾 Core
+- #### 💾 Core
 
-    - [core] extend hardware transcoding for fileflows #3392 [@MickLesk](https://github.com/MickLesk) ([#3396](https://github.com/community-scripts/ProxmoxVE/pull/3396))
-    - Clarify MTU in advanced Settings. [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3296](https://github.com/community-scripts/ProxmoxVE/pull/3296))
+  - [core] extend hardware transcoding for fileflows #3392 [@MickLesk](https://github.com/MickLesk) ([#3396](https://github.com/community-scripts/ProxmoxVE/pull/3396))
+  - Clarify MTU in advanced Settings. [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3296](https://github.com/community-scripts/ProxmoxVE/pull/3296))
 
-  - #### 📂 Github
+- #### 📂 Github
 
-    - [core] cleanup - remove old backups of workflow files [@MickLesk](https://github.com/MickLesk) ([#3247](https://github.com/community-scripts/ProxmoxVE/pull/3247))
-    - Refactor Changelog Workflow [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3371](https://github.com/community-scripts/ProxmoxVE/pull/3371))
+  - [core] cleanup - remove old backups of workflow files [@MickLesk](https://github.com/MickLesk) ([#3247](https://github.com/community-scripts/ProxmoxVE/pull/3247))
+  - Refactor Changelog Workflow [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3371](https://github.com/community-scripts/ProxmoxVE/pull/3371))
 
 ### 🌐 Website
 
-  - Update siteConfig.tsx to use new analytics code [@BramSuurdje](https://github.com/BramSuurdje) ([#3389](https://github.com/community-scripts/ProxmoxVE/pull/3389))
-- Bump next from 15.1.3 to 15.2.3 in /frontend [@dependabot[bot]](https://github.com/dependabot[bot]) ([#3316](https://github.com/community-scripts/ProxmoxVE/pull/3316))
+- Update siteConfig.tsx to use new analytics code [@BramSuurdje](https://github.com/BramSuurdje) ([#3389](https://github.com/community-scripts/ProxmoxVE/pull/3389))
+- Bump next from 15.1.3 to 15.2.16](https://github.com/community-scripE/pull/3316))
 
   - #### 🐞 Bug Fixes
 
-    - Better Text for Version Date [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3388](https://github.com/community-scripts/ProxmoxVE/pull/3388))
+    - Better Text for Version Date [@michelroegl-brunner](https:er) ([#3388](https://github.com/community-scripts/ProxmoxVE/pull/3388))
     - JSON editor note fix [@bvdberg01](https://github.com/bvdberg01) ([#3260](https://github.com/community-scripts/ProxmoxVE/pull/3260))
     - Move cryptpad files to right folders [@bvdberg01](https://github.com/bvdberg01) ([#3242](https://github.com/community-scripts/ProxmoxVE/pull/3242))
 

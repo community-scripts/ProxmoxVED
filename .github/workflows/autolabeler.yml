@@ -7,6 +7,7 @@ on:
 
 jobs:
   autolabeler:
+    if: github.repository == 'community-scripts/ProxmoxVED'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -42,9 +43,9 @@ jobs:
               pull_number: prNumber,
             });
             const prFiles = prListFilesResponse.data;
-           
 
-          
+
+
             // Apply labels based on file changes
             for (const [label, rules] of Object.entries(autolabelerConfig)) {
               const shouldAddLabel = prFiles.some((prFile) => {
@@ -66,17 +67,17 @@ jobs:
               "✨ **New feature**": "feature",
               "💥 **Breaking change**": "breaking change",
             };
-            
+
             for (const [checkbox, label] of Object.entries(templateLabelMappings)) {
               const escapedCheckbox = checkbox.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
               const regex = new RegExp(`- \\[(x|X)\\]\\s*.*${escapedCheckbox}`, "i");
-              const match = prBody.match(regex);              
+              const match = prBody.match(regex);
               if (match) {
                 console.log(`Match: ${match}`);
                 labelsToAdd.add(label);
               }
             }
-            
+
             console.log(`Labels to add: ${Array.from(labelsToAdd).join(", ")}`);
 
             if (labelsToAdd.size > 0) {

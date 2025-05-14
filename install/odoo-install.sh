@@ -2,8 +2,7 @@
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT
-# https://github.com/tteck/Proxmox/raw/main/LICENSE
+# License: MIT |  https://github.com/tteck/Proxmox/raw/main/LICENSE
 # Source: https://github.com/odoo/odoo
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -14,93 +13,62 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies (Patience)"
-$STD apt-get install -y --no-install-recommends \
-  git \
-  python3 \
-  python3-pip \
-  python3-venv \
-  python3-dev \
+msg_info "Installing Dependencies"
+$STD apt-get install -y \
   build-essential \
-  libxslt-dev \
-  libzip-dev \
-  libldap2-dev \
-  libsasl2-dev \
-  libjpeg-dev \
-  libpq-dev \
-  libxml2-dev \
-  libjpeg-dev \
-  liblcms2-dev \
-  libblas-dev \
-  libatlas-base-dev \
-  libssl-dev \
-  libffi-dev \
-  xfonts-75dpi \
-  xfonts-base \
-  curl \
-  sudo \
-  make \
-  mc
+  make
 msg_ok "Installed Dependencies"
 
-msg_info "Creating odoo user and directories"
-useradd -r -m -U -d /opt/odoo -s /bin/bash odoo
-mkdir -p /opt/odoo/odoo /opt/odoo/venv
-chown -R odoo:odoo /opt/odoo
-msg_ok "Created user and directory"
+RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
+LATEST_VERSION=$(curl -fsSL "https://nightly.odoo.com/${RELEASE}/nightly/deb/" |
+  grep -oP "odoo_${RELEASE}\.\d+_all\.deb" |
+  sed -E "s/odoo_(${RELEASE}\.[0-9]+)_all\.deb/\1/" |
+  sort -V |
+  tail -n1)
 
-msg_info "Cloning Odoo Repository"
-git clone --depth 1 --branch 17.0 https://github.com/odoo/odoo.git /opt/odoo/odoo
-chown -R odoo:odoo /opt/odoo/odoo
-msg_ok "Cloned Odoo Repository"
+msg_info "Setup Odoo $RELEASE"
+curl -fsSL https://nightly.odoo.com/${RELEASE}/nightly/deb/odoo_${RELEASE}.latest_all.deb -o /opt/odoo.deb
+$STD apt install -y /opt/odoo.deb
+msg_ok "Setup Odoo $RELEASE"
 
-msg_info "Creating Python Virtual Environment"
-python3 -m venv /opt/odoo/venv
-/opt/odoo/venv/bin/pip install --upgrade pip wheel
-/opt/odoo/venv/bin/pip install -r /opt/odoo/odoo/requirements.txt
-msg_ok "Created and populated Python venv"
+msg_info "Setup PostgreSQL Database"
+DB_NAME="odoo"
+DB_USER="odoo_usr"
+DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
+$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;"
+$STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';"
+$STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+$STD sudo -u postgres psql -c "ALTER DATABASE $DB_NAME OWNER TO $DB_USER;"
+$STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
+{
+  echo "Odoo-Credentials"
+  echo -e "Odoo Database User: $DB_USER"
+  echo -e "Odoo Database Password: $DB_PASS"
+  echo -e "Odoo Database Name: $DB_NAME"
+} >>~/odoo.creds
+msg_ok "Setup PostgreSQL"
 
-msg_info "Creating Configuration File"
-/usr/bin/touch /opt/odoo/odoo.conf
-cat <<EOF >/opt/odoo/odoo.conf
-[options]
-addons_path = /opt/odoo/odoo/addons
-admin_passwd = admin
-db_host = localhost
-db_port = 5432
-db_user = odoo
-db_password = odoo
-logfile = /var/log/odoo.log
-EOF
-chown odoo:odoo /opt/odoo/odoo.conf
-chmod 640 /opt/odoo/odoo.conf
-msg_ok "Created Configuration File"
+msg_info "Configuring Odoo"
+sed -i \
+  -e "s|^;*db_host *=.*|db_host = localhost|" \
+  -e "s|^;*db_port *=.*|db_port = 5432|" \
+  -e "s|^;*db_user *=.*|db_user = $DB_USER|" \
+  -e "s|^;*db_password *=.*|db_password = $DB_PASS|" \
+  /etc/odoo/odoo.conf
+$STD sudo -u odoo odoo -c /etc/odoo/odoo.conf -d odoo -i base --stop-after-init
+systemctl restart odoo
+echo "${LATEST_VERSION}" >/opt/${APPLICATION}_version.txt
+msg_ok "Configured Odoo"
 
-msg_info "Creating Systemd Service"
-cat <<EOF >/etc/systemd/system/odoo.service
-[Unit]
-Description=Odoo ERP
-After=network.target postgresql.service
+msg_info "Restarting Odoo"
 
-[Service]
-Type=simple
-User=odoo
-Group=odoo
-ExecStart=/opt/odoo/venv/bin/python3 /opt/odoo/odoo/odoo-bin -c /opt/odoo/odoo.conf
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl daemon-reexec
-systemctl daemon-reload
-systemctl enable --now odoo.service
-msg_ok "Enabled and Started Odoo Service"
+msg_ok "Restarted Odoo"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -f /opt/odoo.deb
 $STD apt-get autoremove
 $STD apt-get autoclean
 msg_ok "Cleaned"

@@ -21,31 +21,22 @@ $STD apt-get install -y \
     fping \
     graphviz \
     imagemagick \
-    mariadb-client \
-    mariadb-server \
     mtr-tiny \
     nginx \
     nmap \
     rrdtool \
     snmp \
-    snmpd \
-    git \
-    whois
+    snmpd
 msg_ok "Installed Dependencies"
 
-msg_info "Installing PHP"
-$STD apt-get install -y \
-    php8.2-{cli,fpm,gd,gmp,mbstring,mysql,snmp,xml,zip,curl}
-msg_ok "Installed PHP"
+install_php
+MARIADB_VERSION="11.4.5" install_mariadb
+install_composer
 
 msg_info "Installing Python"
 $STD apt-get install -y \
     python3-{dotenv,pymysql,redis,setuptools,systemd,pip}
 msg_ok "Installed Python"
-
-msg_info "Add User"
-$STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
-msg_ok "Add User"
 
 msg_info "Configuring Database"
 DB_NAME=librenms
@@ -63,6 +54,7 @@ $STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUS
 msg_ok "Configured Database"
 
 msg_info "Setup Librenms"
+$STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
 tmp_file=$(mktemp)
 RELEASE=$(curl -fsSL https://api.github.com/repos/librenms/librenms/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL https://github.com/librenms/librenms/archive/refs/tags/${RELEASE}.tar.gz -o $tmp_file
@@ -71,7 +63,7 @@ mv /opt/librenms-${RELEASE} /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 
-$STD pip3 install -r /opt/librenms/requirements.txt
+$STD su librenms -s /bin/bash -c "pip3 install -r /opt/librenms/requirements.txt"
 
 cp /opt/librenms/.env.example /opt/librenms/.env
 
@@ -79,25 +71,18 @@ sed -i "s/^#DB_DATABASE=.*/DB_DATABASE=${DB_NAME}/" /opt/librenms/.env
 sed -i "s/^#DB_USERNAME=.*/DB_USERNAME=${DB_USER}/" /opt/librenms/.env
 sed -i "s/^#DB_PASSWORD=.*/DB_PASSWORD=${DB_PASS}/" /opt/librenms/.env
 
-msg_ok "Setup Librenms"
 
-msg_info "Setup Composer"
-cd /opt
-curl -fsSL https://getcomposer.org/composer-stable.phar -o /usr/bin/composer
-chmod +x /usr/bin/composer
-cd /opt/librenms
-$STD composer install --no-dev -o --no-interaction
 chown -R librenms:librenms /opt/librenms
 chmod 771 /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 chmod -R ug=rwX /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
-msg_ok "Setup Composer"
+msg_ok "Setup LibreNMS"
 
 
-msg_info "Setup MariaDB"
-sed -i '/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0' /etc/mysql/mariadb.conf.d/50-server.cnf
+msg_info "Configure MariaDB"
+sed -i "/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0" /etc/mysql/mariadb.conf.d/50-server.cnf
 systemctl enable -q --now mariadb
-msg_ok "Setup MariaDB"
+msg_ok "Configured MariaDB"
 
 msg_info "Configure PHP-FPM"
 cp /etc/php/8.2/fpm/pool.d/www.conf /etc/php/8.2/fpm/pool.d/librenms.conf

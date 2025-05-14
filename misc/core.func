@@ -30,7 +30,7 @@ load_functions() {
 # ------------------------------------------------------------------------------
 color() {
   YW=$(echo "\033[33m")
-  YWB=$(echo "\033[93m")
+  YWB=$'\e[93m'
   BL=$(echo "\033[36m")
   RD=$(echo "\033[01;31m")
   BGN=$(echo "\033[4;92m")
@@ -91,14 +91,8 @@ default_vars() {
 # ------------------------------------------------------------------------------
 # Sets default verbose mode for script and os execution.
 # ------------------------------------------------------------------------------
-if [ -z "${VERBOSE+x}" ]; then
-  echo "DEBUG: VERBOSE is unset"
-else
-  echo "DEBUG: VERBOSE (pre): '$VERBOSE'"
-fi
-VERBOSE="${1:-no}"
 set_std_mode() {
-  if [ "$VERBOSE" = "yes" ]; then
+  if [ "${VERBOSE:-no}" = "yes" ]; then
     STD=""
   else
     STD="silent"
@@ -115,17 +109,19 @@ silent() {
 # ------------------------------------------------------------------------------
 
 run_curl() {
-  if [ "$VERB" = "no" ]; then
-    curl "$@" >/dev/null 2>>/tmp/curl_error.log
+  if [ "$VERBOSE" = "no" ]; then
+    $STD curl "$@"
   else
-    curl "$@" 2>>/tmp/curl_error.log
+    curl "$@"
   fi
 }
 
 curl_handler() {
+  set +e
+  trap 'set -e' RETURN
   local args=()
   local url=""
-  local max_retries=3 # Setting a default value
+  local max_retries=3
   local delay=2
   local attempt=1
   local exit_code
@@ -146,7 +142,7 @@ curl_handler() {
     return 1
   fi
 
-  msg_info "Fetching: $url"
+  $STD msg_info "Fetching: $url"
 
   while [[ $attempt -le $max_retries ]]; do
     if $has_output_file; then
@@ -171,13 +167,14 @@ curl_handler() {
         rm -f /tmp/curl_error.log
       fi
       __curl_err_handler "$exit_code" "$url" "${curl_stderr:-}"
-      return 1 # Return error instead of exit to allow script to continue
+      exit
     fi
 
     $STD printf "\r\033[K${INFO}${YW}Retry $attempt/$max_retries in ${delay}s...${CL}" >&2
     sleep "$delay"
     ((attempt++))
   done
+  set -e
 }
 
 # ------------------------------------------------------------------------------
@@ -319,6 +316,15 @@ msg_error() {
   local msg="${1:-An error occurred}"
   stop_spinner
   printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
+}
+
+msg_warn() {
+  local msg="${1:-Warning}"
+  stop_spinner
+  printf "\r\e[2K%s %b\n" "${INFO}" "${YWB}${msg}" >&2
+
+  # Remove from shown messages to allow it to be shown again
+  unset MSG_INFO_SHOWN["$msg"]
 }
 
 # Helper function to display a message with custom symbol and color

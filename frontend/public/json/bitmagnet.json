@@ -1,0 +1,46 @@
+{
+  "name": "Bitmagnet",
+  "slug": "bitmagnet",
+  "categories": [
+    11
+  ],
+  "date_created": "2025-05-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://bitmagnet.io/setup.html",
+  "website": "https://bitmagnet.io/",
+  "logo": "https://github.com/bitmagnet-io/bitmagnet/blob/main/webui/public/magnet.svg",
+  "config_path": "`/opt/bitmagnet/config.yml` or `/opt/bitmagnet/.env`",
+  "description": "A self-hosted BitTorrent indexer, DHT crawler, content classifier and torrent search engine with web UI, GraphQL API and Servarr stack integration.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/alpine-bitmagnet.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 256,
+        "hdd": 3,
+        "os": "alpine",
+        "version": "3.21"
+      }
+    },
+    {
+      "type": "alpine",
+      "script": "ct/alpine-bitmagnet.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 256,
+        "hdd": 3,
+        "os": "alpine",
+        "version": "3.21"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}

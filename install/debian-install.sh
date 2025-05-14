@@ -19,16 +19,16 @@ update_os
 
 # Example Setting for Test
 #NODE_MODULE="pnpm@10.1,yarn"
-RELEASE=$(curl_handler -fsSL https://api.github.com/repos/babybuddys/babybuddy/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-msg_ok "Get Release $RELEASE"
+#RELEASE=$(curl_handler -fsSL https://api.github.com/repos/babybuddy/babybuddy/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+#msg_ok "Get Release $RELEASE"
 #NODE_VERSION="22" NODE_MODULE="yarn" install_node_and_modules
 
 #PG_VERSION="15"
-#MARIADB_VERSION="10.11"
+MARIADB_VERSION="10.11"
 #MYSQL_VERSION="8.0"
 
 #install_postgresql
-#install_mariadb
+install_mariadb
 #install_mysql
 
 # msg_info "Setup DISTRO env"
