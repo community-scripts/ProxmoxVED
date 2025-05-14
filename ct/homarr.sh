@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://homarr.dev/
 
-APP="Homarr"
+APP="homarr"
 var_tags="${var_tags:-arr;dashboard}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-4096}"
@@ -124,7 +124,7 @@ EOF
     fetch_and_deploy_gh_release "homarr-labs/homarr"
     mv /opt/homarr-data-backup/.env /opt/homarr/.env
     cd /opt/homarr
-    $STD pnpm install
+    $STD pnpm install --config.allowBuildScripts=true
     $STD pnpm build
     cp /opt/homarr/apps/nextjs/next.config.ts .
     cp /opt/homarr/apps/nextjs/package.json .
