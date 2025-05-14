@@ -40,7 +40,7 @@ $STD make install
 $STD make config
 $STD make install-logrotate
 $STD make samples
-$STD systemctl enable -q --now asterisk
+$STD systemctl start asterisk
 msg_ok "Installed Asterisk"
 
 motd_ssh
