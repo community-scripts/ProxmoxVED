@@ -13,7 +13,6 @@ var_ram="${var_ram:-3072}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
-var_verbose="${var_verbose:-yes}"
 
 header_info "$APP"
 variables

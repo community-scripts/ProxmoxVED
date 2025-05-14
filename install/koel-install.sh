@@ -58,7 +58,6 @@ mkdir -p /opt/koel_{media,sync}
 curl -fsSL https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip -o /opt/koel.zip
 unzip -q /opt/koel.zip
 cd /opt/koel
-#$STD apt-get install composer -y
 mv .env.example .env
 $STD composer install --no-interaction
 sed -i -e "s/DB_CONNECTION=.*/DB_CONNECTION=pgsql/" \
