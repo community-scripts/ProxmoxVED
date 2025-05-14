@@ -15,7 +15,7 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  nginx \
+  apache2 \
   apt-transport-https \
   lsb-release \
   ffmpeg \
@@ -31,7 +31,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" install_postgresql
-PHP_VERSION=8.4 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,xml,xmlrpc,zip" PHP_APACHE=YES install_php
+PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,xml,xmlrpc,zip" PHP_APACHE=YES install_php
 NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_node_and_modules
 
 msg_info "Setting up PSql Database"
