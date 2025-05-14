@@ -112,10 +112,10 @@ install_postgresql() {
       msg_ok "PostgreSQL $PG_VERSION is already installed"
       return
     fi
-    msg_info "Detected PostgreSQL $CURRENT_PG_VERSION, preparing upgrade to $PG_VERSION"
+    echo -e "Detected PostgreSQL $CURRENT_PG_VERSION, preparing upgrade to $PG_VERSION"
     NEED_PG_INSTALL=true
   else
-    msg_info "PostgreSQL not installed, proceeding with fresh install of $PG_VERSION"
+    echo -e "PostgreSQL not installed, proceeding with fresh install of $PG_VERSION"
     NEED_PG_INSTALL=true
   fi
 
@@ -576,7 +576,7 @@ fetch_and_deploy_gh_release() {
     $STD msg_info "Already running the latest version ($tag). Skipping update."
     return 0
   fi
-  
+
   local base_url="https://github.com/$repo/releases/download/v$tag"
   local tmpdir
   tmpdir=$(mktemp -d) || return 1
@@ -632,12 +632,12 @@ fetch_and_deploy_gh_release() {
   if [[ -z "$url" ]]; then
     # Use tarball_url directly from API response instead of constructing our own URL
     url=$(echo "$api_response" | jq -r '.tarball_url // empty')
-    
+
     # If tarball_url is empty for some reason, fall back to a constructed URL as before
     if [[ -z "$url" ]]; then
       url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
     fi
-    
+
     $STD msg_info "Using GitHub source tarball: $url"
   fi
   local filename="${url##*/}"
