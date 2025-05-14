@@ -157,7 +157,7 @@ jobs:
             cp ../frontend/public/json/$json_file frontend/public/json/. || true
           fi
 
-          sed -i 's|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)|' ct/$script_name.sh
+          sed 's|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|' ct/$script_name.sh
           sed -i 's|# License: MIT \| https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE|# License: MIT \| https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE|' ct/$script_name.sh
           sed -i 's|# License: MIT \| https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE|# License: MIT \| https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE|' install/$script_name-install.sh
           git add .
