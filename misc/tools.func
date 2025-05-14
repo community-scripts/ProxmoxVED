@@ -123,10 +123,10 @@ install_postgresql() {
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
       msg_info "Dumping all PostgreSQL data from version $CURRENT_PG_VERSION"
       su - postgres -c "pg_dumpall > /var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql"
-    fi
 
-    msg_info "Stopping PostgreSQL service"
-    systemctl stop postgresql || true
+      msg_info "Stopping PostgreSQL service"
+      systemctl stop postgresql
+    fi
 
     msg_info "Removing pgdg repo and old GPG key"
     rm -f /etc/apt/sources.list.d/pgdg.list /etc/apt/trusted.gpg.d/postgresql.gpg
