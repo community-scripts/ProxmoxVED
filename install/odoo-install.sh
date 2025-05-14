@@ -43,7 +43,7 @@ msg_info "Setup Odoo $RELEASE"
 RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
 curl -fsSL https://nightly.odoo.com/$RELEASE/nightly/deb/odoo_$RELEASE.latest_all.deb -o /opt/odoo.deb
 cd /opt
-apt install ./odoo.deb
+apt install -y ./odoo.deb
 msg_ok "Setup Odoo $RELEASE"
 
 msg_info "Configuring Odoo"
