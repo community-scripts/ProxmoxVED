@@ -20,9 +20,13 @@ $STD apt-get install -y \
   make
 msg_ok "Installed Dependencies"
 
-#PG_VERSION="16" install_postgresql
-
 RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
+LATEST_VERSION=$(curl -fsSL "https://nightly.odoo.com/${RELEASE}/nightly/deb/" |
+  grep -oP "odoo_${RELEASE}\.\d+_all\.deb" |
+  sed -E "s/odoo_(${RELEASE}\.[0-9]+)_all\.deb/\1/" |
+  sort -V |
+  tail -n1)
+
 msg_info "Setup Odoo $RELEASE"
 curl -fsSL https://nightly.odoo.com/${RELEASE}/nightly/deb/odoo_${RELEASE}.latest_all.deb -o /opt/odoo.deb
 $STD apt install -y /opt/odoo.deb
@@ -53,10 +57,12 @@ sed -i \
   -e "s|^;*db_password *=.*|db_password = $DB_PASS|" \
   /etc/odoo/odoo.conf
 $STD sudo -u odoo odoo -c /etc/odoo/odoo.conf -d odoo -i base --stop-after-init
+systemctl restart odoo
+echo "${LATEST_VERSION}" >/opt/${APPLICATION}_version.txt
 msg_ok "Configured Odoo"
 
 msg_info "Restarting Odoo"
-systemctl restart odoo
+
 msg_ok "Restarted Odoo"
 
 motd_ssh
