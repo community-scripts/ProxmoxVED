@@ -20,10 +20,11 @@ $STD apt-get install -y \
   musl-dev
 msg_ok "Installed Dependencies"
 
-PG_VERSION=16 install_postgresql
+PG_VERSION="16" install_postgresql
 install_go
+RELEASE=$(curl -s https://api.github.com/repos/bitmagnet-io/bitmagnet/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 
-msg_info "Installing bitmagnet"
+msg_info "Installing bitmagnet v${RELEASE}"
 mkdir -p /opt/bitmagnet
 temp_file=$(mktemp)
 curl -fsSL "https://github.com/bitmagnet-io/bitmagnet/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
