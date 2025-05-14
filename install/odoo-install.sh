@@ -16,41 +16,48 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  git \
-  python3 \
-  python3-pip \
-  python3-dev \
   build-essential \
-  libxslt-dev \
-  libzip-dev \
-  libldap2-dev \
-  libsasl2-dev \
-  libjpeg-dev \
-  libpq-dev \
-  libxml2-dev \
-  libjpeg-dev \
-  liblcms2-dev \
-  libblas-dev \
-  libatlas-base-dev \
-  libssl-dev \
-  libffi-dev \
-  xfonts-75dpi \
-  xfonts-base \
   make
 msg_ok "Installed Dependencies"
 
-msg_info "Creating odoo user and directories"
-useradd -r -m -U -d /opt/odoo -s /bin/bash odoo
-mkdir -p /opt/odoo/odoo /opt/odoo/venv
-chown -R odoo:odoo /opt/odoo
-msg_ok "Created user and directory"
+PG_VERSION="16" install_postgresql
+
+msg_info "Setup PostgreSQL Database"
+DB_NAME="odoo"
+DB_USER="odoo_usr"
+DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
+$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;"
+$STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';"
+$STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+$STD sudo -u postgres psql -c "ALTER DATABASE $DB_NAME OWNER TO $DB_USER;"
+$STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
+{
+  echo "Odoo-Credentials"
+  echo -e "Odoo Database User: $DB_USER"
+  echo -e "Odoo Database Password: $DB_PASS"
+  echo -e "Odoo Database Name: $DB_NAME"
+} >>~/odoo.creds
+msg_ok "Setup PostgreSQL"
 
 msg_info "Get latest Odoo Release"
 RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
-curl -fsSL https://nightly.odoo.com/$RELEASE/nightly/deb/odoo_$RELEASE.latest_all.deb -o /opt/odoo/odoo.deb
-dpkg -i /opt/odoo/odoo.deb
-msg_ok "Cloned Odoo Repository"
+curl -fsSL https://nightly.odoo.com/$RELEASE/nightly/deb/odoo_$RELEASE.latest_all.deb -o /opt/odoo.deb
+cd /opt
+apt install ./odoo.deb
+msg_ok "Installed Odoo $RELEASE"
 
+msg_info "Configuring Odoo"
+sed -i \
+  -e "s|^;*db_host *=.*|db_host = localhost|" \
+  -e "s|^;*db_port *=.*|db_port = 5432|" \
+  -e "s|^;*db_user *=.*|db_user = $DB_USER|" \
+  -e "s|^;*db_password *=.*|db_password = $DB_PASS|" \
+  /etc/odoo/odoo.conf
+msg_ok "Configured Odoo"
+
+msg_info "Restarting Odoo"
+systemctl restart odoo
+msg_ok "Restarted Odoo"
 # setup_uv
 
 # msg_info "Creating Python Virtual Environment"
