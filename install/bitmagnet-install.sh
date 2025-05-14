@@ -14,11 +14,14 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y
-
+$STD apt-get install -y \
+  iproute2 \
+  gcc \
+  musl-dev
 msg_ok "Installed Dependencies"
 
 PG_VERSION=16 install_postgresql
+install_go
 
 msg_info "Installing bitmagnet"
 mkdir -p /opt/bitmagnet
