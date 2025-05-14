@@ -11,7 +11,8 @@
 
 ### 🆕 New Scripts
 
-  - alpine-transmission ([#4277](https://github.com/community-scripts/ProxmoxVE/pull/4277))
+  - odoo ([#4477](https://github.com/community-scripts/ProxmoxVE/pull/4477))
+- alpine-transmission ([#4277](https://github.com/community-scripts/ProxmoxVE/pull/4277))
 - alpine-tinyauth ([#4264](https://github.com/community-scripts/ProxmoxVE/pull/4264))
 - alpine-rclone ([#4265](https://github.com/community-scripts/ProxmoxVE/pull/4265))
 - streamlink-webui ([#4262](https://github.com/community-scripts/ProxmoxVE/pull/4262))
@@ -23,7 +24,8 @@
 
 ### 🚀 Updated Scripts
 
-  - Website: re-add documenso & some little bugfixes [@MickLesk](https://github.com/MickLesk) ([#4456](https://github.com/community-scripts/ProxmoxVE/pull/4456))
+  - fix: fetch_release_and_deploy function [@CrazyWolf13](https://github.com/CrazyWolf13) ([#4478](https://github.com/community-scripts/ProxmoxVE/pull/4478))
+- Website: re-add documenso & some little bugfixes [@MickLesk](https://github.com/MickLesk) ([#4456](https://github.com/community-scripts/ProxmoxVE/pull/4456))
 - update some improvements from dev (tools.func) [@MickLesk](https://github.com/MickLesk) ([#4430](https://github.com/community-scripts/ProxmoxVE/pull/4430))
 - Alpine: Use onliner for updates [@tremor021](https://github.com/tremor021) ([#4414](https://github.com/community-scripts/ProxmoxVE/pull/4414))
 
