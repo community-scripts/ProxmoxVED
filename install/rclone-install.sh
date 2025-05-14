@@ -27,7 +27,7 @@ curl -fsSL "https://github.com/rclone/rclone/releases/download/v${RELEASE}/rclon
 $STD unzip -j "$temp_file" '*/**' -d /opt/rclone
 cd /opt/rclone
 RCLONE_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-$STD htpasswd -cb -B login.pwd admin "$RCLONE_PASSWORD"
+$STD htpasswd -cb -B /opt/login.pwd admin "$RCLONE_PASSWORD"
 {
   echo "rclone-Credentials"
   echo "rclone User Name: admin"
@@ -46,7 +46,7 @@ After=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/rclone
-ExecStart=/opt/rclone/rclone rcd --rc-web-gui --rc-web-gui-no-open-browser --rc-addr :3000 --rc-htpasswd /opt/rclone/login.pwd
+ExecStart=/opt/rclone/rclone rcd --rc-web-gui --rc-web-gui-no-open-browser --rc-addr :3000 --rc-htpasswd /opt/login.pwd
 Restart=on-failure
 
 [Install]
