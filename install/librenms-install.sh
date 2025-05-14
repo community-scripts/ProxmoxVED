@@ -26,9 +26,7 @@ $STD apt-get install -y \
     nmap \
     rrdtool \
     snmp \
-    snmpd \
-    git \
-    whois
+    snmpd
 msg_ok "Installed Dependencies"
 
 install_php
