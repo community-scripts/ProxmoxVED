@@ -39,12 +39,12 @@ $STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
 } >>~/odoo.creds
 msg_ok "Setup PostgreSQL"
 
-msg_info "Get latest Odoo Release"
+msg_info "Setup Odoo $RELEASE"
 RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
 curl -fsSL https://nightly.odoo.com/$RELEASE/nightly/deb/odoo_$RELEASE.latest_all.deb -o /opt/odoo.deb
 cd /opt
 apt install ./odoo.deb
-msg_ok "Installed Odoo $RELEASE"
+msg_ok "Setup Odoo $RELEASE"
 
 msg_info "Configuring Odoo"
 sed -i \
