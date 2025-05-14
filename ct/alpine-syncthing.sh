@@ -21,12 +21,11 @@ catch_errors
 
 function update_script() {
   msg_info "Updating Alpine Packages"
-  $STD apk update
-  $STD apk upgrade
+  $STD apk -U upgrade
   msg_ok "Updated Alpine Packages"
 
   msg_info "Updating Syncthing"
-  $STD $STD apk upgrade syncthing
+  $STD apk upgrade syncthing
   msg_ok "Updated Syncthing"
 
   msg_info "Restarting Syncthing"
