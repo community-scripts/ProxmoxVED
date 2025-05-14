@@ -32,7 +32,7 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="16" install_postgresql
 PHP_VERSION=8.4 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,xml,xmlrpc,zip" PHP_APACHE=YES install_php
-NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_nodejs
+NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_node_and_modules
 
 msg_info "Setting up PSql Database"
 DB_NAME=koel_db
