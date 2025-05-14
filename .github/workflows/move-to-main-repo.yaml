@@ -133,10 +133,6 @@ jobs:
             echo "install file already exists in ProxmoxVE"
             exit 1
           fi
-          if [[ -f "frontend/public/json/${script_name}.json" ]]; then
-            echo "json file already exists in ProxmoxVE"
-            exit 1
-          fi
 
           git checkout -b "$branch_name"
 
