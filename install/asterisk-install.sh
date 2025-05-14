@@ -40,6 +40,8 @@ $STD make install
 $STD make config
 $STD make install-logrotate
 $STD make samples
+mkdir -p /etc/radiusclient-ng/
+ln /etc/radcli/radiusclient.conf /etc/radiusclient-ng/radiusclient.conf
 $STD systemctl start asterisk
 msg_ok "Installed Asterisk"
 
