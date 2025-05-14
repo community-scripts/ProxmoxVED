@@ -76,7 +76,7 @@
 
   - #### 🐞 Bug Fixes
 
-    - Better Text for Version Date [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3388](https://github.com/community-scripts/ProxmoxVE/pull/3388))
+    - Better Text for Version Date [@michelroegl-brunner](https:er) ([#3388](https://github.com/community-scripts/ProxmoxVE/pull/3388))
     - JSON editor note fix [@bvdberg01](https://github.com/bvdberg01) ([#3260](https://github.com/community-scripts/ProxmoxVE/pull/3260))
     - Move cryptpad files to right folders [@bvdberg01](https://github.com/bvdberg01) ([#3242](https://github.com/community-scripts/ProxmoxVE/pull/3242))
 
