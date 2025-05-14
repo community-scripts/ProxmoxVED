@@ -17,14 +17,14 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Generate a token
+      - name: Generate a token for PR creation
         id: generate-token
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Generate a token
+      - name: Generate a token for PR approval and merge
         id: generate-token-merge
         uses: actions/create-github-app-token@v1
         with:
