@@ -25,8 +25,7 @@ msg_ok "Installed Dependencies"
 RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
 msg_info "Setup Odoo $RELEASE"
 curl -fsSL https://nightly.odoo.com/${RELEASE}/nightly/deb/odoo_${RELEASE}.latest_all.deb -o /opt/odoo.deb
-cd /opt
-apt install -y ./odoo.deb
+$STD apt install -y /opt/odoo.deb
 msg_ok "Setup Odoo $RELEASE"
 
 msg_info "Setup PostgreSQL Database"
@@ -53,59 +52,18 @@ sed -i \
   -e "s|^;*db_user *=.*|db_user = $DB_USER|" \
   -e "s|^;*db_password *=.*|db_password = $DB_PASS|" \
   /etc/odoo/odoo.conf
+$STD sudo -u odoo odoo -c /etc/odoo/odoo.conf -d odoo -i base --stop-after-init
 msg_ok "Configured Odoo"
 
 msg_info "Restarting Odoo"
 systemctl restart odoo
 msg_ok "Restarted Odoo"
-# setup_uv
-
-# msg_info "Creating Python Virtual Environment"
-# $STD uv venv /opt/odoo/.venv
-# $STD source /opt/odoo/.venv/bin/activate
-# $STD uv pip install --upgrade pip wheel
-# $STD uv pip install -r /opt/odoo/odoo/requirements.txt
-# msg_ok "Created and populated Python venv"
-
-# msg_info "Creating Configuration File"
-# cat <<EOF >/opt/odoo/odoo.conf
-# [options]
-# addons_path = /opt/odoo/odoo/addons
-# admin_passwd = admin
-# db_host = localhost
-# db_port = 5432
-# db_user = odoo
-# db_password = odoo
-# logfile = /var/log/odoo.log
-# EOF
-# chown odoo:odoo /opt/odoo/odoo.conf
-# chmod 640 /opt/odoo/odoo.conf
-# msg_ok "Created Configuration File"
-
-# msg_info "Creating Systemd Service"
-# cat <<EOF >/etc/systemd/system/odoo.service
-# [Unit]
-# Description=Odoo ERP
-# After=network.target postgresql.service
-
-# [Service]
-# Type=simple
-# User=odoo
-# Group=odoo
-# Environment="PATH=/opt/odoo/.venv/bin:/usr/local/bin:/usr/bin"
-# ExecStart=/opt/odoo/.venv/bin/python3 /opt/odoo/odoo/odoo-bin -c /opt/odoo/odoo.conf
-# Restart=on-failure
-
-# [Install]
-# WantedBy=multi-user.target
-# EOF
-# systemctl enable -q --now odoo
-# msg_ok "Enabled and Started Odoo Service"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -f /opt/odoo.deb
 $STD apt-get autoremove
 $STD apt-get autoclean
 msg_ok "Cleaned"
