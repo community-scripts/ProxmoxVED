@@ -44,8 +44,8 @@ function update_script() {
     msg_info "Updating ${APP} to ${LATEST_VERSION}"
     curl -fsSL https://nightly.odoo.com/${RELEASE}/nightly/deb/odoo_${RELEASE}.latest_all.deb -o /opt/odoo.deb
     $STD apt install -y /opt/odoo.deb
-    echo "$RELEASE" >/opt/${APP}_version.txt
-    msg_ok "Updated ${APP} to ${RELEASE}"
+    echo "$LATEST_VERSION" >/opt/${APP}_version.txt
+    msg_ok "Updated ${APP} to ${LATEST_VERSION}"
 
     msg_info "Starting ${APP} service"
     systemctl start odoo
