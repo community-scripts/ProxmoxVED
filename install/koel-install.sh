@@ -13,6 +13,11 @@ setting_up_container
 network_check
 update_os
 
+PG_VERSION="16" install_postgresql
+PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" install_php
+NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_node_and_modules
+install_composer
+
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
   nginx \
@@ -29,10 +34,10 @@ $STD apt-get install -y \
   libwebp-dev
 msg_ok "Installed Dependencies"
 
-PG_VERSION="16" install_postgresql
-PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" install_php
-NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_node_and_modules
-install_composer
+# PG_VERSION="16" install_postgresql
+# PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" install_php
+# NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_node_and_modules
+# install_composer
 
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=koel_db
