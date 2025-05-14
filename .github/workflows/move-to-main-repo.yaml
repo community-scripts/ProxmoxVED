@@ -169,8 +169,8 @@ jobs:
 
       - name: Push to ProxmoxVE
         run: |
-          cd ProxmoxVE
-          git push --no-thin origin "$branch_name"
+          # cd ProxmoxVE
+          # git push --no-thin origin "$branch_name"
 
       - name: Create Pull Request in ProxmoxVE
         id: create_pull_request
@@ -178,20 +178,20 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
-          gh pr create \
+          # gh pr create \
             --repo community-scripts/ProxmoxVE \
             --head "$branch_name" \
             --base main \
             --title "$script_name" \
             --body "Automated migration of $script_name from ProxmoxVED to ProxmoxVE."
-          PR_NUMBER=$(gh pr list --repo community-scripts/ProxmoxVE --head "$branch_name" --json number --jq '.[].number')
-          echo "PR_NUMBER=$PR_NUMBER"
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          # PR_NUMBER=$(gh pr list --repo community-scripts/ProxmoxVE --head "$branch_name" --json number --jq '.[].number')
+          # echo "PR_NUMBER=$PR_NUMBER"
+          # echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Comment on Issue
         if: steps.create_pull_request.outputs.pr_number
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "A PR has been created for ${{ steps.list_issues.outputs.script_name }}: community-scripts/ProxmoxVE#${{ steps.create_pull_request.outputs.pr_number }}"
-          gh issue edit ${{ steps.list_issues.outputs.issue_nr }} --remove-label "Migration To ProxmoxVE" --add-label "Started Migration To ProxmoxVE"
+          # gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "A PR has been created for ${{ steps.list_issues.outputs.script_name }}: community-scripts/ProxmoxVE#${{ steps.create_pull_request.outputs.pr_number }}"
+          # gh issue edit ${{ steps.list_issues.outputs.issue_nr }} --remove-label "Migration To ProxmoxVE" --add-label "Started Migration To ProxmoxVE"
