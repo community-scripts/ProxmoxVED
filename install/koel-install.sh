@@ -61,7 +61,8 @@ msg_info "Installing Koel(Patience)"
 RELEASE=$(curl -fsSL https://github.com/koel/koel/releases/latest | grep "title>Release" | cut -d " " -f 4)
 mkdir -p /opt/koel_{media,sync}
 curl -fsSL https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip -o /opt/koel.zip
-unzip -q /opt/koel.zip
+cd /opt
+unzip koel.zip
 cd /opt/koel
 mv .env.example .env
 $STD composer install --no-interaction
