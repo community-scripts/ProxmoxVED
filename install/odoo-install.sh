@@ -45,54 +45,55 @@ mkdir -p /opt/odoo/odoo /opt/odoo/venv
 chown -R odoo:odoo /opt/odoo
 msg_ok "Created user and directory"
 
-msg_info "Cloning Odoo Repository"
-git clone --depth 1 --branch 18.0 https://github.com/odoo/odoo.git /opt/odoo/odoo
-chown -R odoo:odoo /opt/odoo/odoo
+msg_info "Get latest Odoo Release"
+RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
+curl -fsSL https://nightly.odoo.com/$RELEASE/nightly/deb/odoo_$RELEASE.latest_all.deb -o /opt/odoo/odoo.deb
+dpkg -i /opt/odoo/odoo.deb
 msg_ok "Cloned Odoo Repository"
 
-setup_uv
+# setup_uv
 
-msg_info "Creating Python Virtual Environment"
-$STD uv venv /opt/odoo/.venv
-$STD source /opt/odoo/.venv/bin/activate
-$STD uv pip install --upgrade pip wheel
-$STD uv pip install -r /opt/odoo/odoo/requirements.txt
-msg_ok "Created and populated Python venv"
+# msg_info "Creating Python Virtual Environment"
+# $STD uv venv /opt/odoo/.venv
+# $STD source /opt/odoo/.venv/bin/activate
+# $STD uv pip install --upgrade pip wheel
+# $STD uv pip install -r /opt/odoo/odoo/requirements.txt
+# msg_ok "Created and populated Python venv"
 
-msg_info "Creating Configuration File"
-cat <<EOF >/opt/odoo/odoo.conf
-[options]
-addons_path = /opt/odoo/odoo/addons
-admin_passwd = admin
-db_host = localhost
-db_port = 5432
-db_user = odoo
-db_password = odoo
-logfile = /var/log/odoo.log
-EOF
-chown odoo:odoo /opt/odoo/odoo.conf
-chmod 640 /opt/odoo/odoo.conf
-msg_ok "Created Configuration File"
+# msg_info "Creating Configuration File"
+# cat <<EOF >/opt/odoo/odoo.conf
+# [options]
+# addons_path = /opt/odoo/odoo/addons
+# admin_passwd = admin
+# db_host = localhost
+# db_port = 5432
+# db_user = odoo
+# db_password = odoo
+# logfile = /var/log/odoo.log
+# EOF
+# chown odoo:odoo /opt/odoo/odoo.conf
+# chmod 640 /opt/odoo/odoo.conf
+# msg_ok "Created Configuration File"
 
-msg_info "Creating Systemd Service"
-cat <<EOF >/etc/systemd/system/odoo.service
-[Unit]
-Description=Odoo ERP
-After=network.target postgresql.service
+# msg_info "Creating Systemd Service"
+# cat <<EOF >/etc/systemd/system/odoo.service
+# [Unit]
+# Description=Odoo ERP
+# After=network.target postgresql.service
 
-[Service]
-Type=simple
-User=odoo
-Group=odoo
-Environment="PATH=/opt/odoo/.venv/bin:/usr/local/bin:/usr/bin"
-ExecStart=/opt/odoo/.venv/bin/python3 /opt/odoo/odoo/odoo-bin -c /opt/odoo/odoo.conf
-Restart=on-failure
+# [Service]
+# Type=simple
+# User=odoo
+# Group=odoo
+# Environment="PATH=/opt/odoo/.venv/bin:/usr/local/bin:/usr/bin"
+# ExecStart=/opt/odoo/.venv/bin/python3 /opt/odoo/odoo/odoo-bin -c /opt/odoo/odoo.conf
+# Restart=on-failure
 
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable -q --now odoo
-msg_ok "Enabled and Started Odoo Service"
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+# systemctl enable -q --now odoo
+# msg_ok "Enabled and Started Odoo Service"
 
 motd_ssh
 customize
