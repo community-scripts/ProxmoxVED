@@ -55,8 +55,8 @@ msg_ok "Set up PostgreSQL Database"
 msg_info "Installing Koel(Patience)"
 RELEASE=$(curl -fsSL https://github.com/koel/koel/releases/latest | grep "title>Release" | cut -d " " -f 4)
 mkdir -p /opt/koel_{media,sync}
-curl -fsSL https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip -o /opt/koel-${RELEASE}.zip
-unzip -q /opt/koel-${RELEASE}.zip
+curl -fsSL https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip -o /opt/koel.zip
+unzip -q /opt/koel.zip
 cd /opt/koel
 #$STD apt-get install composer -y
 mv .env.example .env
@@ -136,7 +136,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -rf /opt/koel-${RELEASE}.zip
+rm -rf /opt/koel.zip
 $STD apt-get autoremove
 $STD apt-get autoclean
 msg_ok "Cleaned"
