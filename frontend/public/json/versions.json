@@ -1,8 +1,58 @@
 [
   {
+    "name": "firefly-iii/firefly-iii",
+    "version": "v6.2.12",
+    "date": "2025-04-20T19:22:17Z"
+  },
+  {
+    "name": "netbox-community/netbox",
+    "version": "v4.3.1",
+    "date": "2025-05-13T19:45:00Z"
+  },
+  {
+    "name": "glanceapp/glance",
+    "version": "v0.8.1",
+    "date": "2025-05-13T19:42:42Z"
+  },
+  {
+    "name": "pocketbase/pocketbase",
+    "version": "v0.28.1",
+    "date": "2025-05-13T18:45:47Z"
+  },
+  {
+    "name": "jenkinsci/jenkins",
+    "version": "jenkins-2.510",
+    "date": "2025-05-13T18:33:42Z"
+  },
+  {
+    "name": "mongodb/mongo",
+    "version": "r6.0.23",
+    "date": "2025-05-13T18:28:23Z"
+  },
+  {
+    "name": "keycloak/keycloak",
+    "version": "26.2.4",
+    "date": "2025-05-08T09:10:10Z"
+  },
+  {
+    "name": "OctoPrint/OctoPrint",
+    "version": "1.11.1",
+    "date": "2025-05-13T13:32:07Z"
+  },
+  {
+    "name": "redis/redis",
+    "version": "8.0.1",
+    "date": "2025-05-13T13:31:53Z"
+  },
+  {
     "name": "theonedev/onedev",
     "version": "v11.9.6",
     "date": "2025-05-13T12:16:17Z"
+  },
+  {
+    "name": "element-hq/synapse",
+    "version": "v1.129.0",
+    "date": "2025-05-06T12:28:54Z"
   },
   {
     "name": "zabbix/zabbix",
@@ -15,19 +65,9 @@
     "date": "2025-05-13T11:18:29Z"
   },
   {
-    "name": "firefly-iii/firefly-iii",
-    "version": "v6.2.12",
-    "date": "2025-04-20T19:22:17Z"
-  },
-  {
     "name": "cross-seed/cross-seed",
     "version": "v6.12.4",
     "date": "2025-05-11T11:41:32Z"
-  },
-  {
-    "name": "element-hq/synapse",
-    "version": "v1.129.0",
-    "date": "2025-05-06T12:28:54Z"
   },
   {
     "name": "Jackett/Jackett",
@@ -55,11 +95,6 @@
     "date": "2025-03-10T06:39:11Z"
   },
   {
-    "name": "keycloak/keycloak",
-    "version": "26.2.4",
-    "date": "2025-05-08T09:10:10Z"
-  },
-  {
     "name": "leiweibau/Pi.Alert",
     "version": "v2025-05-11",
     "date": "2025-05-12T19:14:57Z"
@@ -71,8 +106,8 @@
   },
   {
     "name": "runtipi/runtipi",
-    "version": "v4.1.0",
-    "date": "2025-05-12T07:13:15Z"
+    "version": "nightly",
+    "date": "2025-05-12T18:39:33Z"
   },
   {
     "name": "coder/code-server",
@@ -173,11 +208,6 @@
     "name": "Radarr/Radarr",
     "version": "v5.22.4.9896",
     "date": "2025-04-23T18:51:12Z"
-  },
-  {
-    "name": "pocketbase/pocketbase",
-    "version": "v0.28.0",
-    "date": "2025-05-11T06:25:22Z"
   },
   {
     "name": "owncast/owncast",
@@ -335,11 +365,6 @@
     "date": "2025-05-06T20:56:30Z"
   },
   {
-    "name": "redis/redis",
-    "version": "8.0.1-int",
-    "date": "2025-05-06T18:40:34Z"
-  },
-  {
     "name": "Athou/commafeed",
     "version": "5.8.0",
     "date": "2025-05-06T18:33:07Z"
@@ -348,11 +373,6 @@
     "name": "sysadminsmedia/homebox",
     "version": "v0.19.0",
     "date": "2025-05-06T18:05:42Z"
-  },
-  {
-    "name": "jenkinsci/jenkins",
-    "version": "jenkins-2.509",
-    "date": "2025-05-06T15:37:10Z"
   },
   {
     "name": "MariaDB/server",
@@ -448,50 +468,5 @@
     "name": "Readarr/Readarr",
     "version": "v2.0.0.4645",
     "date": "2017-03-07T18:56:06Z"
-  },
-  {
-    "name": "bastienwirtz/homer",
-    "version": "v25.05.1",
-    "date": "2025-05-04T12:17:00Z"
-  },
-  {
-    "name": "FreshRSS/FreshRSS",
-    "version": "1.26.2",
-    "date": "2025-05-03T20:23:27Z"
-  },
-  {
-    "name": "actualbudget/actual",
-    "version": "v25.5.0",
-    "date": "2025-05-03T19:03:17Z"
-  },
-  {
-    "name": "rogerfar/rdt-client",
-    "version": "v2.0.111",
-    "date": "2025-05-03T16:25:30Z"
-  },
-  {
-    "name": "blakeblackshear/frigate",
-    "version": "v0.14.1",
-    "date": "2024-08-29T22:32:51Z"
-  },
-  {
-    "name": "kimai/kimai",
-    "version": "2.33.0",
-    "date": "2025-05-03T10:33:49Z"
-  },
-  {
-    "name": "documenso/documenso",
-    "version": "v1.10.3",
-    "date": "2025-05-02T23:23:25Z"
-  },
-  {
-    "name": "prometheus/prometheus",
-    "version": "v0.304.0-rc.0",
-    "date": "2025-05-02T17:29:18Z"
-  },
-  {
-    "name": "jhuckaby/Cronicle",
-    "version": "v0.9.80",
-    "date": "2025-05-02T16:48:15Z"
   }
 ]
