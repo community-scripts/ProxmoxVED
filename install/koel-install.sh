@@ -53,13 +53,12 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 msg_ok "Set up PostgreSQL database"
 
 msg_info "Installing Koel(Patience)"
-RELEASE=$(wget -q https://github.com/koel/koel/releases/latest -O - | grep "title>Release" | cut -d " " -f 4)
-cd /opt
+RELEASE=$(curl -fsSL https://github.com/koel/koel/releases/latest -O - | grep "title>Release" | cut -d " " -f 4)
 mkdir -p /opt/koel_{media,sync}
-wget -q https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip
-unzip -q koel-${RELEASE}.zip
+curl -fsSL https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip -o /opt/koel-${RELEASE}.zip
+unzip -q /opt/koel-${RELEASE}.zip
 cd /opt/koel
-apt-get install composer -y
+$STD apt-get install composer -y
 mv .env.example .env
 $STD composer install --no-interaction
 sed -i -e "s/DB_CONNECTION=.*/DB_CONNECTION=pgsql/" \
@@ -71,6 +70,7 @@ sed -i -e "s/DB_CONNECTION=.*/DB_CONNECTION=pgsql/" \
   -e "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" \
   -e "s|MEDIA_PATH=.*|MEDIA_PATH=/opt/koel_media|" \
   -e "s|FFMPEG_PATH=/usr/local/bin/ffmpeg|FFMPEG_PATH=/usr/bin/ffmpeg|" /opt/koel/.env
+php artisan koel:init --no-assets
 chown -R :www-data /opt/*
 chmod -R g+r /opt/*
 chmod -R g+rw /opt/*
@@ -81,7 +81,7 @@ msg_ok "Installed Koel"
 msg_info "Set up web services"
 cat <<EOF >/etc/nginx/sites-available/koel
 server {
-    listen          6767;
+    listen          *:80;
     server_name     koel.local;
     root            /opt/koel/public;
     index           index.php;
@@ -98,18 +98,24 @@ server {
     }
 
     location /media/ {
-        internal;
         alias /opt/koel_media;
+        autoindex on;
+        access_log /var/log/nginx/koel.access.log;
+        error_log  /var/log/nginx/koel.error.log;
     }
 
     location ~ \.php$ {
-        try_files \$uri =404;
+        try_files \$uri \$uri/ /index.php?\$args;
+
+        fastcgi_param PATH_INFO \$fastcgi_path_info;
+        fastcgi_param PATH_TRANSLATED \$document_root\$fastcgi_path_info;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
         fastcgi_index index.php;
         include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        fastcgi_param PATH_INFO \$fastcgi_path_info;
+
     }
 }
 EOF
