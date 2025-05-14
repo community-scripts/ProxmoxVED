@@ -20,7 +20,14 @@ $STD apt-get install -y \
   make
 msg_ok "Installed Dependencies"
 
-PG_VERSION="16" install_postgresql
+#PG_VERSION="16" install_postgresql
+
+msg_info "Setup Odoo $RELEASE"
+RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
+curl -fsSL https://nightly.odoo.com/$RELEASE/nightly/deb/odoo_$RELEASE.latest_all.deb -o /opt/odoo.deb
+cd /opt
+apt install -y ./odoo.deb
+msg_ok "Setup Odoo $RELEASE"
 
 msg_info "Setup PostgreSQL Database"
 DB_NAME="odoo"
@@ -38,13 +45,6 @@ $STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
   echo -e "Odoo Database Name: $DB_NAME"
 } >>~/odoo.creds
 msg_ok "Setup PostgreSQL"
-
-msg_info "Setup Odoo $RELEASE"
-RELEASE=$(curl -fsSL https://nightly.odoo.com/ | grep -oE 'href="[0-9]+\.[0-9]+/nightly"' | head -n1 | cut -d'"' -f2 | cut -d/ -f1)
-curl -fsSL https://nightly.odoo.com/$RELEASE/nightly/deb/odoo_$RELEASE.latest_all.deb -o /opt/odoo.deb
-cd /opt
-apt install -y ./odoo.deb
-msg_ok "Setup Odoo $RELEASE"
 
 msg_info "Configuring Odoo"
 sed -i \
