@@ -34,7 +34,7 @@ VREL=v$RELEASE
 $STD go build -ldflags "-s -w -X github.com/bitmagnet-io/bitmagnet/internal/version.GitTag=$VREL"
 chmod +x bitmagnet
 POSTGRES_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-$STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD $POSTGRES_PASSWORD;"
+$STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';"
 $STD sudo -u postgres psql -c "CREATE DATABASE bitmagnet;"
 {
   echo "PostgreSQL Credentials"
@@ -42,7 +42,7 @@ $STD sudo -u postgres psql -c "CREATE DATABASE bitmagnet;"
   echo "postgres user password: $POSTGRES_PASSWORD"
 } >>~/postgres.creds
 echo "${RELEASE}" >/opt/bitmagnet_version.txt
-msg_ok "Installed bitmagnet"
+msg_ok "Installed bitmagnet v${RELEASE}"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/bitmagnet-web.service
