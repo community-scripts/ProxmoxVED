@@ -32,6 +32,11 @@ chmod +x bitmagnet
 POSTGRES_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 $STD sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD $POSTGRES_PASSWORD;"
 $STD sudo -u postgres psql -c "CREATE DATABASE bitmagnet;"
+{
+  echo "PostgreSQL Credentials"
+  echo ""
+  echo "postgres user password: $POSTGRES_PASSWORD"
+} >>~/postgres.creds
 echo "${RELEASE}" >/opt/bitmagnet_version.txt
 msg_ok "Installed bitmagnet"
 
@@ -45,7 +50,7 @@ After=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/bitmagnet
-ExecStart=/opt/bitmagnet/bitmagnet rcd --rc-web-gui --rc-web-gui-no-open-browser --rc-addr :3000 --rc-htpasswd /opt/login.pwd
+ExecStart=/opt/bitmagnet/bitmagnet run worker -all
 Environment=POSTGRES_HOST=localhost
 Environment=POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 Restart=on-failure
