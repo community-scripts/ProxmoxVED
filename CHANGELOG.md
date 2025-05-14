@@ -72,11 +72,11 @@
 ### 🌐 Website
 
 - Update siteConfig.tsx to use new analytics code [@BramSuurdje](https://github.com/BramSuurdje) ([#3389](https://github.com/community-scripts/ProxmoxVE/pull/3389))
-- Bump next from 15.1.3 to 15.2.16](https://github.com/community-scripts/ProxmoxVE/pull/3316))
+- Bump next from 15.1.3 to 15.2.16](https://github.com/community-scripE/pull/3316))
 
   - #### 🐞 Bug Fixes
 
-    - Better Text for Version Date [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3388](https://github.com/community-scripts/ProxmoxVE/pull/3388))
+    - Better Text for Version Date [@michelroegl-brunner](https:er) ([#3388](https://github.com/community-scripts/ProxmoxVE/pull/3388))
     - JSON editor note fix [@bvdberg01](https://github.com/bvdberg01) ([#3260](https://github.com/community-scripts/ProxmoxVE/pull/3260))
     - Move cryptpad files to right folders [@bvdberg01](https://github.com/bvdberg01) ([#3242](https://github.com/community-scripts/ProxmoxVE/pull/3242))
 
