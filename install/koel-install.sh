@@ -31,13 +31,14 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" install_postgresql
-PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,xml,xmlrpc,zip" PHP_APACHE=YES install_php
+PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" PHP_APACHE=YES install_php
 NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_node_and_modules
 
 msg_info "Setting up PSql Database"
 DB_NAME=koel_db
 DB_USER=koel
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
+APP_SECRET=$(openssl rand -base64 32)
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
@@ -57,27 +58,23 @@ cd /opt
 mkdir -p /opt/koel_{media,sync}
 wget -q https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip
 unzip -q koel-${RELEASE}.zip
+cd /opt/koel
+apt-get install composer -y
+$STD composer update --no-interaction
+sed -i -e "s/DB_CONNECTION=.*/DB_CONNECTION=pgsql/" \
+  -e "s/DB_HOST=.*/DB_HOST=localhost/" \
+  -e "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" \
+  -e "s/DB_PORT=.*/DB_PORT=5432/" \
+  -e "s|APP_KEY=.*|APP_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)|" \
+  -e "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" \
+  -e "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" \
+  -e "s|MEDIA_PATH=.*|MEDIA_PATH=/opt/koel_media|" \
+  -e "s|FFMPEG_PATH=/usr/local/bin/ffmpeg|FFMPEG_PATH=/usr/bin/ffmpeg|" /opt/koel/.env
 chown -R :www-data /opt/*
 chmod -R g+r /opt/*
 chmod -R g+rw /opt/*
 chown -R www-data:www-data /opt/*
 chmod -R 755 /opt/*
-cd /opt/koel
-echo "export COMPOSER_ALLOW_SUPERUSER=1" >>~/.bashrc
-source ~/.bashrc
-$STD composer update --no-interaction
-$STD composer install --no-interaction
-sudo sed -i -e "s/DB_CONNECTION=.*/DB_CONNECTION=pgsql/" \
-  -e "s/DB_HOST=.*/DB_HOST=localhost/" \
-  -e "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" \
-  -e "s/DB_PORT=.*/DB_PORT=5432/" \
-  -e "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" \
-  -e "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" \
-  -e "s|MEDIA_PATH=.*|MEDIA_PATH=/opt/koel_media|" \
-  -e "s|FFMPEG_PATH=/usr/local/bin/ffmpeg|FFMPEG_PATH=/usr/bin/ffmpeg|" /opt/koel/.env
-# sed -i -e "s/^upload_max_filesize = .*/upload_max_filesize = 200M/" \
-#   -e "s/^post_max_size = .*/post_max_size = 200M/" \
-#   -e "s/^memory_limit = .*/memory_limit = 200M/" /etc/php/8.3/fpm/php.ini
 msg_ok "Installed Koel"
 
 msg_info "Set up web services"
@@ -107,7 +104,7 @@ server {
     location ~ \.php$ {
         try_files \$uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
         fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
@@ -116,7 +113,7 @@ server {
 }
 EOF
 ln -s /etc/nginx/sites-available/koel /etc/nginx/sites-enabled/koel
-systemctl restart php8.4-fpm
+systemctl restart php8.3-fpm
 systemctl reload nginx
 msg_ok "Created Services"
 
