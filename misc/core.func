@@ -253,6 +253,7 @@ trap 'cleanup_spinner' EXIT INT TERM HUP
 
 spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
+# === Spinner Start ===
 start_spinner() {
   local msg="$1"
   local spin_i=0
@@ -275,15 +276,34 @@ start_spinner() {
     done
   } &
 
-  SPINNER_PID=$!
+  local pid=$!
+  if ps -p "$pid" >/dev/null 2>&1; then
+    SPINNER_PID="$pid"
+  else
+    SPINNER_ACTIVE=0
+    SPINNER_PID=""
+  fi
 }
 
+# === Spinner Stop ===
 stop_spinner() {
   if [[ "$SPINNER_ACTIVE" -eq 1 && -n "$SPINNER_PID" ]]; then
     SPINNER_ACTIVE=0
-    kill "$SPINNER_PID" 2>/dev/null || true
-    SPINNER_PID=""
+
+    if kill -0 "$SPINNER_PID" 2>/dev/null; then
+      kill "$SPINNER_PID" 2>/dev/null || true
+      for _ in $(seq 1 10); do
+        sleep 0.05
+        kill -0 "$SPINNER_PID" 2>/dev/null || break
+      done
+    fi
+
+    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]]; then
+      ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1 && wait "$SPINNER_PID" 2>/dev/null || true
+    fi
+
     printf "\r\e[2K" >&2
+    SPINNER_PID=""
   fi
 }
 
