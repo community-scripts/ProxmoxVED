@@ -126,10 +126,18 @@ if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
   exit 206
 fi
 
+# # Get template storage
+# TEMPLATE_STORAGE=$(select_storage template)
+# CONTAINER_STORAGE=$(select_storage container) || exit
+# msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}Container Storage: ${BL}$CONTAINER_STORAGE${CL}."
+
 # Get template storage
 TEMPLATE_STORAGE=$(select_storage template)
-CONTAINER_STORAGE=$(select_storage container) || exit
-msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}Container Storage: ${BL}$CONTAINER_STORAGE${CL}."
+msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
+
+# Get container storage
+CONTAINER_STORAGE=$(select_storage container)
+msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
 
 # Update LXC template list
 $STD msg_info "Updating LXC Template List"
