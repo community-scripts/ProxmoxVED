@@ -123,8 +123,18 @@ network_check() {
     fi
   fi
 
-  RESOLVEDIP=$(getent hosts github.com | awk '{ print $1 }')
-  if [[ -z "$RESOLVEDIP" ]]; then msg_error "DNS Lookup Failure"; else msg_ok "DNS Resolved github.com to ${BL}$RESOLVEDIP${CL}"; fi
+  GITHUB_HOSTS=("github.com" "raw.githubusercontent.com" "api.github.com")
+
+  for HOST in "${GITHUB_HOSTS[@]}"; do
+    RESOLVEDIP=$(getent hosts "$HOST" | awk '{ print $1 }')
+    if [[ -z "$RESOLVEDIP" || (! "$RESOLVEDIP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ && ! "$RESOLVEDIP" =~ ^([a-fA-F0-9:]+)$) ]]; then
+      msg_error "DNS resolution failed or invalid IP for $HOST"
+      exit 1
+    else
+      msg_ok "Resolved $HOST → ${BL}$RESOLVEDIP${CL}"
+    fi
+  done
+
   set -e
   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
