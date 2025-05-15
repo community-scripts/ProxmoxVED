@@ -490,7 +490,8 @@ advanced_settings() {
         while read -r pair; do
             start=$(echo "${pair}" | cut -d':' -f1)
             end=$(echo "${pair}" | cut -d':' -f2)
-            if awk "NR >= ${start} && NR <= ${end}" "${iface_filepath}" | grep -qP '^\s*bridge[-_](ports|stp|fd|vlan-aware|vids)\s+'; then
+            echo "${start}:${end} --- $(sed "${start}q;d" "${iface_filepath}" | awk '{print $2}')"
+            if awk "NR >= ${start} && NR <= ${end}" "${iface_filepath}" | grep -qP '^\s*(bridge[-_](ports|stp|fd|vlan-aware|vids)|OVSBridge)\s+'; then
                 iface_name=$(sed "${start}q;d" "${iface_filepath}" | awk '{print $2}')
                 BRIDGES="${iface_name}"$'\n'"${BRIDGES}"
             fi
