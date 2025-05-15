@@ -168,10 +168,10 @@ install_mariadb() {
   # grab dynamic latest LTS version
   if [[ "$MARIADB_VERSION" == "latest" ]]; then
     $STD msg_info "Resolving latest GA MariaDB version"
-    MARIADB_VERSION=$(curl -fsSL "https://mariadb.com/kb/en/mariadb-community-server-release-notes/" |
-      grep -Eo 'MariaDB ([0-9]+\.[0-9]+)\.[0-9]+ Release Notes' |
-      grep -v 'Alpha\|Beta\|RC' |
-      grep -Eo '[0-9]+\.[0-9]+' |
+    MARIADB_VERSION=$(curl -fsSL http://mirror.mariadb.org/repo/ |
+      grep -Eo '[0-9]+\.[0-9]+\.[0-9]+/' |
+      grep -vE 'rc/|rolling/' |
+      sed 's|/||' |
       sort -Vr |
       head -n1)
     if [[ -z "$MARIADB_VERSION" ]]; then
