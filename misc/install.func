@@ -86,7 +86,7 @@ setting_up_container() {
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
   systemctl disable -q --now systemd-networkd-wait-online.service
   msg_ok "Set up Container OS"
-  #msg_custom "${CM}" "${GN}" "Network Connected: ${BL}$(hostname -I)"
+  msg_custom "${CM}" "${GN}" "Network Connected: ${BL}$(hostname -I)"
 }
 
 # This function checks the network connection by pinging a known IP address and prompts the user to continue if the internet is not connected
@@ -149,7 +149,9 @@ EOF
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
   msg_ok "Updated Container OS"
 
+  msg_info "DEBUG: about to source tools.func"
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
+  msg_ok "DEBUG: sourced tools.func"
 
 }
 
