@@ -30,7 +30,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 install_php
-MARIADB_VERSION="11.4.5" install_mariadb
+install_mariadb
 install_composer
 
 msg_info "Installing Python"
