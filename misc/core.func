@@ -269,15 +269,13 @@ stop_spinner() {
 
     if kill -0 "$SPINNER_PID" 2>/dev/null; then
       kill "$SPINNER_PID" 2>/dev/null || true
-
       for _ in $(seq 1 10); do
         sleep 0.05
         kill -0 "$SPINNER_PID" 2>/dev/null || break
       done
     fi
 
-    # Final safety net: wait only if still exists and is ours
-    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]] && ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1; then
+    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]]; then
       wait "$SPINNER_PID" 2>/dev/null || true
     fi
 
