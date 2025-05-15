@@ -224,12 +224,6 @@ SPINNER_MSG=""
 # Trap cleanup on various signals
 trap 'cleanup_spinner' EXIT INT TERM HUP
 
-# Cleans up spinner process on exit
-cleanup_spinner() {
-  stop_spinner
-  # Additional cleanup if needed
-}
-
 # Ensure POSIX compatibility across Alpine and Debian/Ubuntu
 start_spinner() {
   local msg="$1"
