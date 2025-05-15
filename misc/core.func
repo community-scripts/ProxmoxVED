@@ -242,6 +242,7 @@ spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 # Ensure POSIX compatibility across Alpine and Debian/Ubuntu
 # === Spinner Start ===
 start_spinner() {
+  detect_os
   local msg="$1"
   local spin_i=0
   local interval=0.1
@@ -250,7 +251,7 @@ start_spinner() {
   SPINNER_MSG="$msg"
   SPINNER_ACTIVE=1
 
-  if [[ "$CORE_OS" == "alpine" ]]; then
+  if [[ "${CORE_OS:-}" == "alpine" ]]; then
     {
       while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
         printf "\r\e[2K⠋ %b" "$SPINNER_MSG" >&2
