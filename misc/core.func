@@ -256,7 +256,7 @@ start_spinner() {
   SPINNER_MSG="$msg"
   SPINNER_ACTIVE=1
 
-  if [[ "$VAR_OS" == "alpine" ]]; then
+  if [[ "$var_os" == "alpine" ]]; then
     {
       while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
         printf "\r\e[2K⠋ %b" "$SPINNER_MSG" >&2
