@@ -167,11 +167,7 @@ EOF
   $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
   msg_ok "Updated Container OS"
-
-  msg_info "DEBUG: about to source tools.func"
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
-  msg_ok "DEBUG: sourced tools.func"
-
 }
 
 # This function modifies the message of the day (motd) and SSH settings
