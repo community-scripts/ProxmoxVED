@@ -250,14 +250,18 @@ start_spinner() {
 stop_spinner() {
   if [ "$SPINNER_ACTIVE" -eq 1 ] && [ -n "$SPINNER_PID" ]; then
     SPINNER_ACTIVE=0
+
     if kill -0 "$SPINNER_PID" 2>/dev/null; then
       kill "$SPINNER_PID" 2>/dev/null
       sleep 0.1
       kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
       if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
-        wait "$SPINNER_PID" 2>/dev/null || true
+        if grep -qE "\<$SPINNER_PID\>" "/proc/$$/task/$$/children" 2>/dev/null; then
+          wait "$SPINNER_PID" 2>/dev/null || true
+        fi
       fi
     fi
+
     printf "\r\e[2K" >&2
     SPINNER_PID=""
   fi
@@ -284,7 +288,12 @@ msg_ok() {
   local msg="$1"
   [ -z "$msg" ] && return
 
-  stop_spinner
+  if [ "$SPINNER_ACTIVE" -eq 1 ]; then
+    stop_spinner
+  else
+    printf "\r\e[2K" >&2
+  fi
+
   printf "\r\e[2K%s %b\n" "$CM" "${GN}${msg}${CL}" >&2
   unset MSG_INFO_SHOWN["$msg"]
 }
