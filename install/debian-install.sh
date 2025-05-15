@@ -6,7 +6,7 @@
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
-colo
+color
 verb_ip6
 catch_errors
 setting_up_container
@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-# $STD apt-get install -y gnupg2
+$STD apt-get install -y gnup
 msg_ok "Installed Dependencies"
 
 PHP_VERSION=8.2 PHP_FPM=YES install_php
