@@ -254,7 +254,9 @@ stop_spinner() {
       kill "$SPINNER_PID" 2>/dev/null
       sleep 0.1
       kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
-      wait "$SPINNER_PID" 2>/dev/null || true
+      if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
+        wait "$SPINNER_PID" 2>/dev/null || true
+      fi
     fi
     printf "\r\e[2K" >&2
     SPINNER_PID=""
