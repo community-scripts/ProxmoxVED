@@ -315,7 +315,7 @@ install_mysql() {
 #   PHP_VERSION                - PHP version to install (default: 8.4)
 #   PHP_MODULE                 - Additional comma-separated modules
 #   PHP_APACHE                 - Set YES to enable PHP with Apache
-#   PHP_FPM                    - Set YES to enable PHP-FPM
+#   PHP_FPM                    - Set YES to enable PHP-FpPM
 #   PHP_MEMORY_LIMIT           - (default: 512M)
 #   PHP_UPLOAD_MAX_FILESIZE    - (default: 128M)
 #   PHP_POST_MAX_SIZE          - (default: 128M)
