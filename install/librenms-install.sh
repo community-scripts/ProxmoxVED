@@ -58,7 +58,7 @@ $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
 fetch_and_deploy_gh_release "librenms/librenms"
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
-pip3 install --no-user -r /opt/librenms/requirements.txt
+$STD pip3 install --no-user -r /opt/librenms/requirements.txt
 cat <<EOF >/opt/librenms/.env
 DB_DATABASE=${DB_NAME}
 DB_USERNAME=${DB_USER}
