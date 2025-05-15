@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 # $STD apt-get install -y gnupg2
 msg_ok "Installed Dependencies"
 
-install_php
+PHP_VERSION=8.2 PHP_FPM=YES install_php
 install_composer
 
 # Example Setting for Test
