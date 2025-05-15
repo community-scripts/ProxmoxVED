@@ -251,15 +251,17 @@ stop_spinner() {
   if [ "$SPINNER_ACTIVE" -eq 1 ] && [ -n "$SPINNER_PID" ]; then
     SPINNER_ACTIVE=0
 
+    # soft: closing spinner
     if kill -0 "$SPINNER_PID" 2>/dev/null; then
       kill "$SPINNER_PID" 2>/dev/null
       sleep 0.1
       kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
-      if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
-        if grep -qE "\<$SPINNER_PID\>" "/proc/$$/task/$$/children" 2>/dev/null; then
-          wait "$SPINNER_PID" 2>/dev/null || true
-        fi
-      fi
+
+      # hard: poll instead of wait
+      for _ in $(seq 1 10); do
+        kill -0 "$SPINNER_PID" 2>/dev/null || break
+        sleep 0.1
+      done
     fi
 
     printf "\r\e[2K" >&2
