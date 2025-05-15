@@ -30,6 +30,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 PHP_VERSION=8.2
+PHP_FPM=yes
 install_php
 install_mariadb
 install_composer
