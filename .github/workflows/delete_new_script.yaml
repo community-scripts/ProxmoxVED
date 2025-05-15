@@ -59,7 +59,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          branch=$(echo "delete-files_${{ github.event.issue.number }}_${TITLE}" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
+          $branch="delete_files"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b $branch
