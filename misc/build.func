@@ -43,7 +43,7 @@ error_handler() {
   post_update_to_api "failed" "${command}"
   echo -e "\n$error_message\n"
 
-  if [[ -n "$CTD_ID" ]]; then
+  if [[ -n "$CT_ID" ]]; then
     read -p "Remove this Container? <y/N> " prompt
     if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
       pct stop "$CTID"
