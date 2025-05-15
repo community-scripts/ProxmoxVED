@@ -42,6 +42,15 @@ error_handler() {
   local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
   post_update_to_api "failed" "${command}"
   echo -e "\n$error_message\n"
+
+  read -p "Remove this Container? <y/N> " prompt
+  if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
+    pct stop "$CTID"
+    pct destroy "$CTID"
+    msg_ok "Removed this script"
+  else
+    msg_warn "Did not remove this script"
+  fi
 }
 # Check if the shell is using bash
 shell_check() {
