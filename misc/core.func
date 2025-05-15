@@ -233,6 +233,11 @@ detect_os() {
   esac
 }
 
+fatal() {
+  msg_error "$1"
+  kill -INT $$
+}
+
 ### dev spinner ###
 # Trap cleanup on various signals
 trap 'cleanup_spinner' EXIT INT TERM HUP

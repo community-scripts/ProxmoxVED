@@ -140,8 +140,7 @@ network_check() {
   done
 
   if [[ "$DNS_FAILED" == true ]]; then
-    msg_error "$GITHUB_STATUS"
-    exit 1
+    fatal "$GITHUB_STATUS"
   else
     msg_ok "$GITHUB_STATUS"
   fi
