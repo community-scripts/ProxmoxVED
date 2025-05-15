@@ -19,9 +19,9 @@
             "type": "default",
             "script": "ct/freepbx.sh",
             "resources": {
-                "cpu": 1,
-                "ram": 1024,
-                "hdd": 20,
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 10,
                 "os": "debian",
                 "version": "12"
             }
@@ -31,6 +31,11 @@
         "username": null,
         "password": null
     },
-    "notes": []
+    "notes": [
+    {
+      "text": "This script uses the official FreePBX install script. Check it here: https://github.com/FreePBX/sng_freepbx_debian_install",
+      "type": "info"
+    }
+  ]
 }
 
