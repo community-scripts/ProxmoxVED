@@ -9,6 +9,12 @@
 #   }
 # fi
 
+if ! declare -f wait_for >/dev/null; then
+  wait_for() {
+    true
+  }
+fi
+
 declare -A MSG_INFO_SHOWN=()
 SPINNER_PID=""
 SPINNER_ACTIVE=0
