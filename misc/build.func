@@ -773,6 +773,7 @@ config_file() {
       exit
     else
       echo -e "${INFO}${BOLD}${DGN}Using config File: ${BGN}$CONFIG_FILE${CL}"
+      base_settings
       source "$CONFIG_FILE"
     fi
   fi
