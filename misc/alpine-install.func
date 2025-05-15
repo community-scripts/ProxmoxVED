@@ -99,6 +99,7 @@ update_os() {
   $STD apk update
   $STD apk upgrade
   msg_ok "Updated Container OS"
+  detect_os
 }
 
 # This function modifies the message of the day (motd) and SSH settings

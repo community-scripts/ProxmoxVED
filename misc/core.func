@@ -249,7 +249,6 @@ spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 # Ensure POSIX compatibility across Alpine and Debian/Ubuntu
 # === Spinner Start ===
 start_spinner() {
-  detect_os
   local msg="$1"
   local spin_i=0
   local interval=0.1
