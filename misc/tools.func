@@ -373,6 +373,9 @@ install_php() {
   for mod in "${MODULES[@]}"; do
     MODULE_LIST+=" php${PHP_VERSION}-${mod}"
   done
+  if [[ "$PHP_FPM" == "YES" ]]; then
+    MODULE_LIST+=" php${PHP_VERSION}-fpm"
+  fi
 
   if [[ "$PHP_APACHE" == "YES" ]]; then
     # Optionally disable old Apache PHP module
