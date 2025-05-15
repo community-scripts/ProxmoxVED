@@ -55,11 +55,7 @@ msg_ok "Configured Database"
 
 msg_info "Setup Librenms"
 $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
-tmp_file=$(mktemp)
-RELEASE=$(curl -fsSL https://api.github.com/repos/librenms/librenms/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL https://github.com/librenms/librenms/archive/refs/tags/${RELEASE}.tar.gz -o $tmp_file
-tar -xzf $tmp_file -C /opt
-mv /opt/librenms-${RELEASE} /opt/librenms
+fetch_and_deploy_gh_release "librenms/librenms"
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 
