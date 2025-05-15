@@ -62,12 +62,11 @@ setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstra
 
 pip3 install --no-user -r /opt/librenms/requirements.txt
 
-cp /opt/librenms/.env.example /opt/librenms/.env
-
-sed -i "s/^#DB_DATABASE=.*/DB_DATABASE=${DB_NAME}/" /opt/librenms/.env
-sed -i "s/^#DB_USERNAME=.*/DB_USERNAME=${DB_USER}/" /opt/librenms/.env
-sed -i "s/^#DB_PASSWORD=.*/DB_PASSWORD=${DB_PASS}/" /opt/librenms/.env
-
+cat <<EOF >/opt/librenms/.env
+DB_DATABASE=${DB_NAME}
+DB_USERNAME=${DB_USER}
+DB_PASSWORD=${DB_PASS}
+EOF
 
 chown -R librenms:librenms /opt/librenms
 chmod 771 /opt/librenms
