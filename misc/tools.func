@@ -99,7 +99,6 @@ install_node_and_modules() {
   fi
 }
 
-
 install_postgresql() {
   local PG_VERSION="${PG_VERSION:-16}"
   local CURRENT_PG_VERSION=""
@@ -916,4 +915,81 @@ function setup_gs() {
   else
     msg_error "Ghostscript installation failed"
   fi
+}
+
+setup_rbenv_stack() {
+  local RUBY_VERSION="${RUBY_VERSION:-3.4.4}"
+  local RUBY_INSTALL_RAILS="${RUBY_INSTALL_RAILS:-true}"
+
+  local RBENV_DIR="$HOME/.rbenv"
+  local RBENV_BIN="$RBENV_DIR/bin/rbenv"
+  local PROFILE_FILE="$HOME/.profile"
+  local TMP_DIR
+  TMP_DIR=$(mktemp -d)
+
+  $STD msg_info "Installing rbenv + ruby-build + Ruby $RUBY_VERSION"
+
+  # Fetch latest rbenv release tag from GitHub (e.g. v1.3.2 → 1.3.2)
+  local RBENV_RELEASE
+  RBENV_RELEASE=$(curl -fsSL https://api.github.com/repos/rbenv/rbenv/releases/latest | grep '"tag_name":' | cut -d '"' -f4 | sed 's/^v//')
+  if [[ -z "$RBENV_RELEASE" ]]; then
+    msg_error "Failed to fetch latest rbenv version"
+    rm -rf "$TMP_DIR"
+    return 1
+  fi
+
+  # Download and extract rbenv release
+  curl -fsSL "https://github.com/rbenv/rbenv/archive/refs/tags/v${RBENV_RELEASE}.tar.gz" -o "$TMP_DIR/rbenv.tar.gz"
+  tar -xzf "$TMP_DIR/rbenv.tar.gz" -C "$TMP_DIR"
+  mkdir -p "$RBENV_DIR"
+  cp -r "$TMP_DIR/rbenv-${RBENV_RELEASE}/." "$RBENV_DIR/"
+  cd "$RBENV_DIR" && src/configure && make -C src
+
+  # Fetch latest ruby-build plugin release tag (e.g. v20250507 → 20250507)
+  local RUBY_BUILD_RELEASE
+  RUBY_BUILD_RELEASE=$(curl -fsSL https://api.github.com/repos/rbenv/ruby-build/releases/latest | grep '"tag_name":' | cut -d '"' -f4 | sed 's/^v//')
+  if [[ -z "$RUBY_BUILD_RELEASE" ]]; then
+    msg_error "Failed to fetch latest ruby-build version"
+    rm -rf "$TMP_DIR"
+    return 1
+  fi
+
+  # Download and install ruby-build plugin
+  curl -fsSL "https://github.com/rbenv/ruby-build/archive/refs/tags/v${RUBY_BUILD_RELEASE}.tar.gz" -o "$TMP_DIR/ruby-build.tar.gz"
+  tar -xzf "$TMP_DIR/ruby-build.tar.gz" -C "$TMP_DIR"
+  mkdir -p "$RBENV_DIR/plugins/ruby-build"
+  cp -r "$TMP_DIR/ruby-build-${RUBY_BUILD_RELEASE}/." "$RBENV_DIR/plugins/ruby-build/"
+  echo "$RUBY_BUILD_RELEASE" >"$RBENV_DIR/plugins/ruby-build/RUBY_BUILD_version.txt"
+
+  # Persist rbenv init to user's profile
+  if ! grep -q 'rbenv init' "$PROFILE_FILE"; then
+    echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >>"$PROFILE_FILE"
+    echo 'eval "$(rbenv init -)"' >>"$PROFILE_FILE"
+  fi
+
+  # Activate rbenv in current shell
+  export PATH="$RBENV_DIR/bin:$PATH"
+  eval "$("$RBENV_BIN" init - bash)"
+
+  # Install Ruby version if not already present
+  if "$RBENV_BIN" versions --bare | grep -qx "$RUBY_VERSION"; then
+    msg_ok "Ruby $RUBY_VERSION already installed"
+  else
+    $STD msg_info "Installing Ruby $RUBY_VERSION"
+    $STD "$RBENV_BIN" install "$RUBY_VERSION"
+  fi
+
+  # Set Ruby version globally
+  "$RBENV_BIN" global "$RUBY_VERSION"
+  hash -r
+
+  # Optionally install Rails via gem
+  if [[ "$RUBY_INSTALL_RAILS" == "true" ]]; then
+    $STD msg_info "Installing latest Rails via gem"
+    gem install rails
+    msg_ok "Rails $(rails -v) installed"
+  fi
+
+  rm -rf "$TMP_DIR"
+  msg_ok "rbenv stack ready (Ruby $RUBY_VERSION)"
 }
