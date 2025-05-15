@@ -59,6 +59,7 @@ fetch_and_deploy_gh_release "librenms/librenms"
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 
+chown -R librenms:librenms /opt/librenms/.local
 $STD su librenms -s /bin/bash -c "pip3 install -r /opt/librenms/requirements.txt"
 
 cp /opt/librenms/.env.example /opt/librenms/.env
