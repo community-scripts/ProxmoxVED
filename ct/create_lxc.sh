@@ -128,11 +128,12 @@ fi
 
 # Get template storage
 TEMPLATE_STORAGE=$(select_storage template) || exit
-msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
+#msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
 
 # Get container storage
 CONTAINER_STORAGE=$(select_storage container) || exit
-msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+#msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}Container Storage: ${BL}$CONTAINER_STORAGE${CL}."
 
 # Update LXC template list
 msg_info "Updating LXC Template List"
