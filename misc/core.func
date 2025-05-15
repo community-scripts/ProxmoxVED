@@ -94,6 +94,7 @@ default_vars() {
   RETRY_NUM=10
   RETRY_EVERY=3
   i=$RETRY_NUM
+  VAR_OS="unknown"
 }
 
 # ------------------------------------------------------------------------------
