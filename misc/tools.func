@@ -185,7 +185,7 @@ install_mariadb() {
     msg_info "MariaDB $MARIADB_VERSION already installed, checking for upgrade"
     $STD apt-get update
     $STD apt-get install --only-upgrade -y mariadb-server mariadb-client
-    msg_ok "MariaDB $MARIADB_VERSION upgraded if applicable"
+    msg_ok "MariaDB upgraded to $MARIADB_VERSION"
     return 0
   fi
 
@@ -195,7 +195,7 @@ install_mariadb() {
     $STD apt-get purge -y 'mariadb*' || true
     rm -f /etc/apt/sources.list.d/mariadb.list /etc/apt/trusted.gpg.d/mariadb.gpg
   else
-    msg_info "Installing MariaDB $MARIADB_VERSION"
+    msg_info "Setup MariaDB $MARIADB_VERSION"
   fi
 
   msg_info "Setting up MariaDB Repository"
