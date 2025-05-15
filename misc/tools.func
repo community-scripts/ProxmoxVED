@@ -112,10 +112,10 @@ install_postgresql() {
       msg_ok "PostgreSQL $PG_VERSION is already installed"
       return
     fi
-    echo -e "Detected PostgreSQL $CURRENT_PG_VERSION, preparing upgrade to $PG_VERSION"
+    msg_info "Detected PostgreSQL $CURRENT_PG_VERSION, preparing upgrade to $PG_VERSION"
     NEED_PG_INSTALL=true
   else
-    echo -e "PostgreSQL not installed, proceeding with fresh install of $PG_VERSION"
+    msg_info "Setup PostgreSQL $PG_VERSION"
     NEED_PG_INSTALL=true
   fi
 
