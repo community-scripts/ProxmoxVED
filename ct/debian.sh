@@ -40,3 +40,12 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+
+read -p "Remove this Container? <y/N> " prompt
+  if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
+    pct stop "$CTID"
+    pct destroy "$CTID"
+    msg_ok "Removed this script"
+  else
+    msg_warn "Did not remove this script"
+  fi

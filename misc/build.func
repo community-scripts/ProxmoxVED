@@ -1428,14 +1428,7 @@ EOF
     systemctl start ping-instances.service
   fi
 
-  read -p "Remove this Container? <y/N> " prompt
-  if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-    pct stop "$CTID"
-    pct destroy "$CTID"
-    msg_ok "Removed this script"
-  else
-    msg_warn "Did not remove this script"
-  fi
+
 
   post_update_to_api "done" "none"
 }
