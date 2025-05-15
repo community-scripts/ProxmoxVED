@@ -1,4 +1,17 @@
 #!/bin/bash
+
+# ------------------------------------------------------------------------------
+# Installs Node.js and optional global modules.
+#
+# Description:
+#   - Installs specified Node.js version using NodeSource APT repo
+#   - Optionally installs or updates global npm modules
+#
+# Variables:
+#   NODE_VERSION   - Node.js version to install (default: 22)
+#   NODE_MODULE    - Comma-separated list of global modules (e.g. "yarn,@vue/cli@5.0.0")
+# ------------------------------------------------------------------------------
+
 install_node_and_modules() {
   local NODE_VERSION="${NODE_VERSION:-22}"
   local NODE_MODULE="${NODE_MODULE:-}"
@@ -99,6 +112,19 @@ install_node_and_modules() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# Installs or upgrades PostgreSQL and performs data migration.
+#
+# Description:
+#   - Detects existing PostgreSQL version
+#   - Dumps all databases before upgrade
+#   - Adds PGDG repo and installs specified version
+#   - Restores dumped data post-upgrade
+#
+# Variables:
+#   PG_VERSION     - Major PostgreSQL version (e.g. 15, 16) (default: 16)
+# ------------------------------------------------------------------------------
+
 install_postgresql() {
   local PG_VERSION="${PG_VERSION:-16}"
   local CURRENT_PG_VERSION=""
@@ -160,6 +186,18 @@ install_postgresql() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# Installs or updates MariaDB from official repo.
+#
+# Description:
+#   - Detects current MariaDB version and replaces it if necessary
+#   - Preserves existing database data
+#   - Dynamically determines latest GA version if "latest" is given
+#
+# Variables:
+#   MARIADB_VERSION - MariaDB version to install (e.g. 10.11, latest) (default: latest)
+# ------------------------------------------------------------------------------
+
 install_mariadb() {
   local MARIADB_VERSION="${MARIADB_VERSION:-latest}"
   local DISTRO_CODENAME
@@ -216,6 +254,18 @@ install_mariadb() {
   msg_ok "Setup MariaDB $MARIADB_VERSION"
 }
 
+# ------------------------------------------------------------------------------
+# Installs or upgrades MySQL and configures APT repo.
+#
+# Description:
+#   - Detects existing MySQL installation
+#   - Purges conflicting packages before installation
+#   - Supports clean upgrade
+#
+# Variables:
+#   MYSQL_VERSION  - MySQL version to install (e.g. 5.7, 8.0) (default: 8.0)
+# ------------------------------------------------------------------------------
+
 install_mysql() {
   local MYSQL_VERSION="${MYSQL_VERSION:-8.0}"
   local CURRENT_VERSION=""
@@ -252,6 +302,25 @@ install_mysql() {
     msg_ok "Installed MySQL $MYSQL_VERSION"
   fi
 }
+
+# ------------------------------------------------------------------------------
+# Installs PHP with selected modules and configures Apache/FPM support.
+#
+# Description:
+#   - Adds Sury PHP repo if needed
+#   - Installs default and user-defined modules
+#   - Patches php.ini for CLI, Apache, and FPM as needed
+#
+# Variables:
+#   PHP_VERSION                - PHP version to install (default: 8.4)
+#   PHP_MODULE                 - Additional comma-separated modules
+#   PHP_APACHE                 - Set YES to enable PHP with Apache
+#   PHP_FPM                    - Set YES to enable PHP-FPM
+#   PHP_MEMORY_LIMIT           - (default: 512M)
+#   PHP_UPLOAD_MAX_FILESIZE    - (default: 128M)
+#   PHP_POST_MAX_SIZE          - (default: 128M)
+#   PHP_MAX_EXECUTION_TIME     - (default: 300)
+# ------------------------------------------------------------------------------
 
 install_php() {
   local PHP_VERSION="${PHP_VERSION:-8.4}"
@@ -347,6 +416,14 @@ install_php() {
   done
 }
 
+# ------------------------------------------------------------------------------
+# Installs or updates Composer globally.
+#
+# Description:
+#   - Downloads latest version from getcomposer.org
+#   - Installs to /usr/local/bin/composer
+# ------------------------------------------------------------------------------
+
 install_composer() {
   local COMPOSER_BIN="/usr/local/bin/composer"
   export COMPOSER_ALLOW_SUPERUSER=1
@@ -372,6 +449,17 @@ install_composer() {
   chmod +x "$COMPOSER_BIN"
   msg_ok "Installed Composer $($COMPOSER_BIN --version | awk '{print $3}')"
 }
+
+# ------------------------------------------------------------------------------
+# Installs Go (Golang) from official tarball.
+#
+# Description:
+#   - Determines system architecture
+#   - Downloads latest version if GO_VERSION not set
+#
+# Variables:
+#   GO_VERSION     - Version to install (e.g. 1.22.2 or latest)
+# ------------------------------------------------------------------------------
 
 install_go() {
   local ARCH
@@ -428,6 +516,17 @@ install_go() {
   msg_ok "Installed Go $GO_VERSION"
 }
 
+# ------------------------------------------------------------------------------
+# Installs Temurin JDK via Adoptium APT repository.
+#
+# Description:
+#   - Removes previous JDK if version mismatch
+#   - Installs or upgrades to specified JAVA_VERSION
+#
+# Variables:
+#   JAVA_VERSION   - Temurin JDK version to install (e.g. 17, 21)
+# ------------------------------------------------------------------------------
+
 install_java() {
   local JAVA_VERSION="${JAVA_VERSION:-21}"
   local DISTRO_CODENAME
@@ -467,6 +566,17 @@ install_java() {
     msg_ok "Installed Temurin JDK $JAVA_VERSION"
   fi
 }
+
+# ------------------------------------------------------------------------------
+# Installs or updates MongoDB to specified major version.
+#
+# Description:
+#   - Preserves data across installations
+#   - Adds official MongoDB repo
+#
+# Variables:
+#   MONGO_VERSION  - MongoDB major version to install (e.g. 7.0, 8.0)
+# ------------------------------------------------------------------------------
 
 install_mongodb() {
   local MONGO_VERSION="${MONGO_VERSION:-8.0}"
@@ -515,6 +625,19 @@ install_mongodb() {
   $STD systemctl start mongod
   msg_ok "MongoDB $MONGO_VERSION installed and started"
 }
+
+# ------------------------------------------------------------------------------
+# Downloads and deploys latest GitHub release tarball.
+#
+# Description:
+#   - Fetches latest release from GitHub API
+#   - Detects matching asset by architecture
+#   - Extracts to /opt/<app> and saves version
+#
+# Variables:
+#   APP            - Override default application name (optional)
+#   GITHUB_TOKEN   - (optional) GitHub token for private rate limits
+# ------------------------------------------------------------------------------
 
 fetch_and_deploy_gh_release() {
   local repo="$1"
@@ -669,6 +792,14 @@ fetch_and_deploy_gh_release() {
   rm -rf "$tmpdir"
 }
 
+# ------------------------------------------------------------------------------
+# Installs a local IP updater script using networkd-dispatcher.
+#
+# Description:
+#   - Stores current IP in /run/local-ip.env
+#   - Automatically runs on network changes
+# ------------------------------------------------------------------------------
+
 setup_local_ip_helper() {
   local BASE_DIR="/usr/local/community-scripts/ip-management"
   local SCRIPT_PATH="$BASE_DIR/update_local_ip.sh"
@@ -741,6 +872,13 @@ EOF
   $STD msg_ok "LOCAL_IP helper installed using networkd-dispatcher"
 }
 
+# ------------------------------------------------------------------------------
+# Loads LOCAL_IP from persistent store or detects if missing.
+#
+# Description:
+#   - Loads from /run/local-ip.env or performs runtime lookup
+# ------------------------------------------------------------------------------
+
 import_local_ip() {
   local IP_FILE="/run/local-ip.env"
   if [[ -f "$IP_FILE" ]]; then
@@ -778,6 +916,14 @@ import_local_ip() {
   export LOCAL_IP
 }
 
+# ------------------------------------------------------------------------------
+# Downloads file with optional progress indicator using pv.
+#
+# Arguments:
+#   $1 - URL
+#   $2 - Destination path
+# ------------------------------------------------------------------------------
+
 function download_with_progress() {
   local url="$1"
   local output="$2"
@@ -805,6 +951,14 @@ function download_with_progress() {
     fi
   fi
 }
+
+# ------------------------------------------------------------------------------
+# Installs or upgrades uv (Python package manager) from GitHub releases.
+#
+# Description:
+#   - Downloads architecture-specific tarball
+#   - Places binary in /usr/local/bin
+# ------------------------------------------------------------------------------
 
 function setup_uv() {
   $STD msg_info "Checking uv installation..."
@@ -859,6 +1013,13 @@ function setup_uv() {
   msg_ok "uv installed/updated to $LATEST_VERSION"
 }
 
+# ------------------------------------------------------------------------------
+# Ensures /usr/local/bin is permanently in system PATH.
+#
+# Description:
+#   - Adds to /etc/profile.d if not present
+# ------------------------------------------------------------------------------
+
 function ensure_usr_local_bin_persist() {
   local PROFILE_FILE="/etc/profile.d/custom_path.sh"
 
@@ -867,6 +1028,14 @@ function ensure_usr_local_bin_persist() {
     chmod +x "$PROFILE_FILE"
   fi
 }
+
+# ------------------------------------------------------------------------------
+# Installs or updates Ghostscript (gs) from source.
+#
+# Description:
+#   - Fetches latest release
+#   - Builds and installs system-wide
+# ------------------------------------------------------------------------------
 
 function setup_gs() {
   msg_info "Setup Ghostscript"
@@ -921,6 +1090,19 @@ function setup_gs() {
     msg_error "Ghostscript installation failed"
   fi
 }
+
+# ------------------------------------------------------------------------------
+# Installs rbenv and ruby-build, installs Ruby and optionally Rails.
+#
+# Description:
+#   - Downloads rbenv and ruby-build from GitHub
+#   - Compiles and installs target Ruby version
+#   - Optionally installs Rails via gem
+#
+# Variables:
+#   RUBY_VERSION         - Ruby version to install (default: 3.4.4)
+#   RUBY_INSTALL_RAILS   - true/false to install Rails (default: true)
+# ------------------------------------------------------------------------------
 
 setup_rbenv_stack() {
   local RUBY_VERSION="${RUBY_VERSION:-3.4.4}"
