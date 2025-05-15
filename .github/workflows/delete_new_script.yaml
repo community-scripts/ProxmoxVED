@@ -72,7 +72,7 @@ jobs:
             exit 0
           fi
           git commit -m "Deleted files for issue: ${{ github.event.issue.title }}"
-          git push origin $branch
+          git push origin $branch --force
           gh pr create --title "Delete Files for ${{ github.event.issue.title }} after Merge to Main" --body "Delete files after merge in main repo." --base main --head $branch
 
           pr_number=$(gh pr list | grep -m 1 $branch | awk '{print $1}')
