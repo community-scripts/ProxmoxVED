@@ -262,15 +262,28 @@ start_spinner() {
 
 # === Spinner Stop (No wait!) ===
 stop_spinner() {
+  if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
+    echo "Waiting for PID $SPINNER_PID"
+    wait "$SPINNER_PID"
+  else
+    echo "PID $SPINNER_PID no longer exists"
+  fi
   if [ "$SPINNER_ACTIVE" -eq 1 ] && [ -n "$SPINNER_PID" ]; then
     SPINNER_ACTIVE=0
+
     if kill -0 "$SPINNER_PID" 2>/dev/null; then
       kill "$SPINNER_PID" 2>/dev/null || true
+
       for _ in $(seq 1 10); do
         kill -0 "$SPINNER_PID" 2>/dev/null || break
         sleep 0.05
       done
+
+      if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
+        wait "$SPINNER_PID" 2>/dev/null || true
+      fi
     fi
+
     printf "\r\e[2K" >&2
     SPINNER_PID=""
   fi
