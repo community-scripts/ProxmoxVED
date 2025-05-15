@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y gnup
+#$STD apt-get install -y gnup
 msg_ok "Installed Dependencies"
 
 PHP_VERSION=8.2 PHP_FPM=YES install_php
