@@ -240,14 +240,13 @@ fatal() {
   kill -INT $$
 }
 
-### dev spinner ###
+# Ensure POSIX compatibility across Alpine and Debian/Ubuntu
+# === Spinner Start ===
 # Trap cleanup on various signals
 trap 'cleanup_spinner' EXIT INT TERM HUP
 
 spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
-# Ensure POSIX compatibility across Alpine and Debian/Ubuntu
-# === Spinner Start ===
 start_spinner() {
   local msg="$1"
   local spin_i=0
@@ -270,33 +269,15 @@ start_spinner() {
     done
   } &
 
-  local pid=$!
-  if kill -0 "$pid" 2>/dev/null; then
-    SPINNER_PID="$pid"
-  else
-    SPINNER_ACTIVE=0
-    SPINNER_PID=""
-  fi
+  SPINNER_PID=$!
 }
 
 stop_spinner() {
   if [[ "$SPINNER_ACTIVE" -eq 1 && -n "$SPINNER_PID" ]]; then
     SPINNER_ACTIVE=0
-
-    if kill -0 "$SPINNER_PID" 2>/dev/null; then
-      kill "$SPINNER_PID" 2>/dev/null || true
-      for _ in $(seq 1 10); do
-        sleep 0.05
-        kill -0 "$SPINNER_PID" 2>/dev/null || break
-      done
-    fi
-
-    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
-      wait "$SPINNER_PID" 2>/dev/null || true
-    fi
-
-    printf "\r\e[2K" >&2
+    kill "$SPINNER_PID" 2>/dev/null || true
     SPINNER_PID=""
+    printf "\r\e[2K" >&2
   fi
 }
 
