@@ -226,7 +226,6 @@ __curl_err_handler() {
 detect_os_type() {
   if [[ -n "${var_os:-}" ]]; then
     CORE_OS="$var_os"
-    echo $CORE_OS
   else
     CORE_OS="debian"
   fi
