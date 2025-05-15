@@ -167,13 +167,18 @@ install_mariadb() {
 
   # grab dynamic latest LTS version
   if [[ "$MARIADB_VERSION" == "latest" ]]; then
-    msg_info "Resolving latest MariaDB version"
-    MARIADB_VERSION=$(curl -fsSL https://mariadb.org | grep -oP 'MariaDB \K10\.[0-9]+' | head -n1)
+    $STD msg_info "Resolving latest GA MariaDB version"
+    MARIADB_VERSION=$(curl -fsSL "https://mariadb.com/kb/en/mariadb-community-server-release-notes/" |
+      grep -Eo 'MariaDB ([0-9]+\.[0-9]+)\.[0-9]+ Release Notes' |
+      grep -v 'Alpha\|Beta\|RC' |
+      grep -Eo '[0-9]+\.[0-9]+' |
+      sort -Vr |
+      head -n1)
     if [[ -z "$MARIADB_VERSION" ]]; then
-      msg_error "Could not determine latest MariaDB version"
+      msg_error "Could not determine latest GA MariaDB version"
       return 1
     fi
-    msg_ok "Latest MariaDB version is $MARIADB_VERSION"
+    $STD msg_ok "Latest GA MariaDB version is $MARIADB_VERSION"
   fi
 
   local CURRENT_VERSION=""
@@ -182,15 +187,15 @@ install_mariadb() {
   fi
 
   if [[ "$CURRENT_VERSION" == "$MARIADB_VERSION" ]]; then
-    msg_info "MariaDB $MARIADB_VERSION already installed, checking for upgrade"
+    $STD msg_info "MariaDB $MARIADB_VERSION, upgrading"
     $STD apt-get update
     $STD apt-get install --only-upgrade -y mariadb-server mariadb-client
-    msg_ok "MariaDB upgraded to $MARIADB_VERSION"
+    $STD msg_ok "MariaDB upgraded to $MARIADB_VERSION"
     return 0
   fi
 
   if [[ -n "$CURRENT_VERSION" ]]; then
-    msg_info "Replacing MariaDB $CURRENT_VERSION with $MARIADB_VERSION (data will be preserved)"
+    $STD msg_info "Replacing MariaDB $CURRENT_VERSION with $MARIADB_VERSION (data will be preserved)"
     $STD systemctl stop mariadb >/dev/null 2>&1 || true
     $STD apt-get purge -y 'mariadb*' || true
     rm -f /etc/apt/sources.list.d/mariadb.list /etc/apt/trusted.gpg.d/mariadb.gpg
@@ -198,7 +203,7 @@ install_mariadb() {
     msg_info "Setup MariaDB $MARIADB_VERSION"
   fi
 
-  msg_info "Setting up MariaDB Repository"
+  $STD msg_info "Setting up MariaDB Repository"
   curl -fsSL "https://mariadb.org/mariadb_release_signing_key.asc" |
     gpg --dearmor -o /etc/apt/trusted.gpg.d/mariadb.gpg
 
@@ -208,7 +213,7 @@ install_mariadb() {
   $STD apt-get update
   $STD apt-get install -y mariadb-server mariadb-client
 
-  msg_ok "Installed MariaDB $MARIADB_VERSION"
+  msg_ok "Setup MariaDB $MARIADB_VERSION"
 }
 
 install_mysql() {
