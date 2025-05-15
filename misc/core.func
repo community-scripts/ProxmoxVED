@@ -291,7 +291,7 @@ stop_spinner() {
       done
     fi
 
-    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]] && ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1; then
+    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
       wait "$SPINNER_PID" 2>/dev/null || true
     fi
 
