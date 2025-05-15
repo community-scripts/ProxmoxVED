@@ -136,10 +136,10 @@ CONTAINER_STORAGE=$(select_storage container) || exit
 msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}Container Storage: ${BL}$CONTAINER_STORAGE${CL}."
 
 # Update LXC template list
-msg_info "Updating LXC Template List"
+$STD msg_info "Updating LXC Template List"
 #check_network
 pveam update >/dev/null
-msg_ok "Updated LXC Template List"
+$STD msg_ok "Updated LXC Template List"
 
 # Get LXC template string
 TEMPLATE_SEARCH=${PCT_OSTYPE}-${PCT_OSVERSION:-}
