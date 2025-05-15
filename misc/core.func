@@ -224,100 +224,76 @@ __curl_err_handler() {
 
 ### dev spinner ###
 # Trap cleanup on various signals
-trap 'cleanup_spinner' EXIT INT TERM HUP
+# This function displays an informational message with logging support.
+declare -A MSG_INFO_SHOWN
+SPINNER_ACTIVE=0
+SPINNER_PID=""
+SPINNER_MSG=""
 
-spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+trap 'stop_spinner' EXIT INT TERM HUP
 
-# Ensure POSIX compatibility across Alpine and Debian/Ubuntu
-# === Spinner Start ===
 start_spinner() {
   local msg="$1"
+  local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
   local spin_i=0
   local interval=0.1
 
-  stop_spinner
   SPINNER_MSG="$msg"
-  SPINNER_ACTIVE=1
+  printf "\r\e[2K" >&2
 
   {
-    while [ "$SPINNER_ACTIVE" -eq 1 ]; do
-      if [ -t 2 ]; then
-        printf "\r\e[2K%s %b" "${TAB}${spinner_frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
-      else
-        printf "%s...\n" "$SPINNER_MSG" >&2
-        break
-      fi
-      spin_i=$(((spin_i + 1) % ${#spinner_frames[@]}))
+    while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
+      printf "\r\e[2K%s %b" "${frames[spin_i]}" "${YW}${SPINNER_MSG}${CL}" >&2
+      spin_i=$(((spin_i + 1) % ${#frames[@]}))
       sleep "$interval"
     done
   } &
 
-  local pid=$!
-  if kill -0 "$pid" 2>/dev/null; then
-    SPINNER_PID="$pid"
-    disown "$SPINNER_PID" 2>/dev/null || true
-  else
-    SPINNER_ACTIVE=0
-    SPINNER_PID=""
-  fi
+  SPINNER_PID=$!
+  disown "$SPINNER_PID"
 }
 
-# === Spinner Stop (No wait!) ===
 stop_spinner() {
-  if [[ "$SPINNER_ACTIVE" -eq 1 && -n "$SPINNER_PID" ]]; then
+  if [[ ${SPINNER_PID+v} && -n "$SPINNER_PID" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
+    kill "$SPINNER_PID" 2>/dev/null
+    sleep 0.1
+    kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
+    wait "$SPINNER_PID" 2>/dev/null || true
+  fi
+  SPINNER_ACTIVE=0
+  unset SPINNER_PID
+}
+
+spinner_guard() {
+  if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "$SPINNER_PID" ]]; then
+    kill "$SPINNER_PID" 2>/dev/null
+    wait "$SPINNER_PID" 2>/dev/null || true
     SPINNER_ACTIVE=0
-
-    if kill -0 "$SPINNER_PID" 2>/dev/null; then
-      kill "$SPINNER_PID" 2>/dev/null || true
-      for _ in $(seq 1 10); do
-        sleep 0.05
-        kill -0 "$SPINNER_PID" 2>/dev/null || break
-      done
-    fi
-
-    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]]; then
-      wait "$SPINNER_PID" 2>/dev/null || true
-    fi
-
-    printf "\r\e[2K" >&2
-    SPINNER_PID=""
+    unset SPINNER_PID
   fi
 }
 
-# === Cleanup Spinner on signals ===
-cleanup_spinner() {
-  stop_spinner
-}
-
-# === msg_info ===
 msg_info() {
   local msg="$1"
-  [ -z "$msg" ] && return
-  if [ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]; then return; fi
+  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
   MSG_INFO_SHOWN["$msg"]=1
-  stop_spinner
+
+  spinner_guard
+  SPINNER_ACTIVE=1
   start_spinner "$msg"
 }
 
-# === msg_ok ===
 msg_ok() {
   local msg="$1"
-  [ -z "$msg" ] && return
-  if [ "$SPINNER_ACTIVE" -eq 1 ]; then
-    stop_spinner
-  else
-    printf "\r\e[2K" >&2
-  fi
-  printf "\r\e[2K%s %b\n" "$CM" "${GN}${msg}${CL}" >&2
+  stop_spinner
+  printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
   unset MSG_INFO_SHOWN["$msg"]
 }
 
-# === msg_error ===
 msg_error() {
-  local msg="$1"
-  [ -z "$msg" ] && return
   stop_spinner
-  printf "\r\e[2K%s %b\n" "$CROSS" "${RD}${msg}${CL}" >&2
+  local msg="$1"
+  printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
 }
 
 # === msg_warn ===
