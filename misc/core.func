@@ -320,8 +320,6 @@ msg_custom() {
   local color="$2"
   local msg="$3"
   [ -z "$msg" ] && return
-
-  stop_spinner
   printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL}" >&2
 }
 
