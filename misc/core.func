@@ -264,20 +264,21 @@ start_spinner() {
 
 # === Spinner Stop (No wait!) ===
 stop_spinner() {
-  if [ "$SPINNER_ACTIVE" -eq 1 ] && [ -n "$SPINNER_PID" ]; then
+  if [[ "$SPINNER_ACTIVE" -eq 1 && -n "$SPINNER_PID" ]]; then
     SPINNER_ACTIVE=0
 
     if kill -0 "$SPINNER_PID" 2>/dev/null; then
       kill "$SPINNER_PID" 2>/dev/null || true
 
       for _ in $(seq 1 10); do
-        kill -0 "$SPINNER_PID" 2>/dev/null || break
         sleep 0.05
+        kill -0 "$SPINNER_PID" 2>/dev/null || break
       done
+    fi
 
-      if ps -p "$SPINNER_PID" >/dev/null 2>&1; then
-        wait "$SPINNER_PID" 2>/dev/null || true
-      fi
+    # Final safety net: wait only if still exists and is ours
+    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]] && ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1; then
+      wait "$SPINNER_PID" 2>/dev/null || true
     fi
 
     printf "\r\e[2K" >&2
