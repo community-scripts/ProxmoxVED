@@ -5,7 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.freepbx.org/
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -15,9 +15,6 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
   build-essential \
   git \
   libnewt-dev \
@@ -83,7 +80,7 @@ tar xf asterisk-21-current.tar.gz
 cd asterisk-21.*
 $STD contrib/scripts/get_mp3_source.sh
 $STD contrib/scripts/install_prereq install
-$STD ./configure  --libdir=/usr/lib64 --with-pjproject-bundled --with-jansson-bundled
+$STD ./configure --libdir=/usr/lib64 --with-pjproject-bundled --with-jansson-bundled
 $STD make
 $STD make install
 $STD make samples
@@ -102,7 +99,7 @@ sed -i 's|#AST_USER|AST_USER|' /etc/default/asterisk
 sed -i 's|#AST_GROUP|AST_GROUP|' /etc/default/asterisk
 sed -i 's|;runuser|runuser|' /etc/asterisk/asterisk.conf
 sed -i 's|;rungroup|rungroup|' /etc/asterisk/asterisk.conf
-echo "/usr/lib64" >> /etc/ld.so.conf.d/x86_64-linux-gnu.conf
+echo "/usr/lib64" >>/etc/ld.so.conf.d/x86_64-linux-gnu.conf
 ldconfig
 msg_ok "Done Setup Asterisk"
 
@@ -117,14 +114,14 @@ rm /var/www/html/index.html
 msg_ok "Done Setup Apache"
 
 # Configure ODBC
-cat <<EOF > /etc/odbcinst.ini
+cat <<EOF >/etc/odbcinst.ini
 [MySQL]
 Description = ODBC for MySQL (MariaDB)
 Driver = /usr/lib/x86_64-linux-gnu/odbc/libmaodbc.so
 FileUsage = 1
 EOF
 
-cat <<EOF > /etc/odbc.ini
+cat <<EOF >/etc/odbc.ini
 [MySQL-asteriskcdrdb]
 Description = MySQL connection to 'asteriskcdrdb' database
 Driver = MySQL
@@ -137,7 +134,7 @@ EOF
 
 msg_info "Installing FreePBX"
 cd /usr/local/src
-curl -fsSL http://mirror.freepbx.org/modules/packages/freepbx/freepbx-17.0-latest-EDGE.tgz
+curl -fsSL http://mirror.freepbx.org/modules/packages/freepbx/freepbx-17.0-latest-EDGE.tgz -o freepbx-17.0-latest-EDGE.tgz
 tar zxf freepbx-17.0-latest-EDGE.tgz
 cd /usr/local/src/freepbx/
 $STD ./start_asterisk start
@@ -149,7 +146,7 @@ $STD fwconsole restart
 msg_ok "Installed FreePBX"
 
 msg_info "Setup FreePBX Service"
-cat <<EOF > /etc/systemd/system/freepbx.service
+cat <<EOF >/etc/systemd/system/freepbx.service
 [Unit]
 Description=FreePBX VoIP Server
 After=mariadb.service
@@ -168,7 +165,6 @@ msg_ok "Done Setup FreePBX Service"
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
