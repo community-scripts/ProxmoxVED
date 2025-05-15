@@ -182,54 +182,29 @@ grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgi
 PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 [[ " ${PCT_OPTIONS[@]} " =~ " -rootfs " ]] || PCT_OPTIONS+=(-rootfs "$CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}")
 
-# Secure creation of the LXC container with lock and template check
-lockfile="/tmp/template.${TEMPLATE}.lock"
-exec 9>"$lockfile"
-flock -w 60 9 || {
-  msg_error "Timeout while waiting for template lock"
-  exit 211
-}
-
 msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-  msg_error "Container creation failed. Checking if template is corrupted or incomplete."
+  msg_error "Container creation failed. Checking if template is corrupted."
 
-  if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
-    msg_error "Template file too small or missing – re-downloading."
+  if ! zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1; then
+    msg_error "Template appears to be corrupted. Removing and re-downloading."
     rm -f "$TEMPLATE_PATH"
-  elif ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
-    msg_error "Template appears to be corrupted – re-downloading."
-    rm -f "$TEMPLATE_PATH"
-  else
-    msg_error "Template is valid, but container creation still failed."
-    exit 209
-  fi
 
-  # Retry download
-  for attempt in {1..3}; do
-    msg_info "Attempt $attempt: Re-downloading template..."
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
-      msg_ok "Template re-download successful."
-      break
-    fi
-    if [ "$attempt" -eq 3 ]; then
-      msg_error "Three failed attempts. Aborting."
+    if ! timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
+      msg_error "Failed to re-download template."
       exit 208
     fi
-    sleep $((attempt * 5))
-  done
 
-  sleep 1 # I/O-Sync-Delay
+    msg_ok "Re-downloaded LXC Template"
 
-  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-    msg_error "Container creation failed after re-downloading template."
-    exit 200
+    if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
+      msg_error "Container creation failed after re-downloading template."
+      exit 200
+    fi
+  else
+    msg_error "Container creation failed, but template is not corrupted."
+    exit 209
   fi
-fi
-
-if ! pct status "$CTID" &>/dev/null; then
-  msg_error "Container not found after pct create – assuming failure."
-  exit 210
 fi
 : "${UDHCPC_FIX:=}"
 if [ "$UDHCPC_FIX" == "yes" ]; then
