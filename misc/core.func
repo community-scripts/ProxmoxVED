@@ -29,6 +29,7 @@ load_functions() {
   icons
   default_vars
   set_std_mode
+  detect_os_type
   # add more
 }
 
@@ -94,7 +95,8 @@ default_vars() {
   RETRY_NUM=10
   RETRY_EVERY=3
   i=$RETRY_NUM
-  VAR_OS="unknown"
+  #[[ "${VAR_OS:-}" == "unknown" ]]
+
 }
 
 # ------------------------------------------------------------------------------
@@ -228,12 +230,12 @@ detect_os_type() {
     local os_id
     os_id=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
     case "$os_id" in
-    alpine) VAR_OS="alpine" ;;
-    debian | ubuntu) VAR_OS="debian" ;;
-    *) VAR_OS="other" ;;
+    alpine) var_os="alpine" ;;
+    debian | ubuntu) var_os="debian" ;;
+    *) var_os="other" ;;
     esac
   else
-    VAR_OS="unknown"
+    var_os="unknown"
   fi
 }
 
