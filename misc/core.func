@@ -64,6 +64,8 @@ formatting() {
 icons() {
   CM="${TAB}✔️${TAB}"
   CROSS="${TAB}✖️${TAB}"
+  DNSOK="✔️"
+  DNSFAIL="${TAB}✖️${TAB}"
   INFO="${TAB}💡${TAB}${CL}"
   OS="${TAB}🖥️${TAB}${CL}"
   OSVERSION="${TAB}🌟${TAB}${CL}"

@@ -132,10 +132,10 @@ network_check() {
   for HOST in "${GITHUB_HOSTS[@]}"; do
     RESOLVEDIP=$(getent hosts "$HOST" | awk '{ print $1 }' | grep -E '(^([0-9]{1,3}\.){3}[0-9]{1,3}$)|(^[a-fA-F0-9:]+$)' | head -n1)
     if [[ -z "$RESOLVEDIP" ]]; then
-      GITHUB_STATUS+="{$CROSS} $HOST"
+      GITHUB_STATUS+="{$DNSFAIL} $HOST"
       DNS_FAILED=true
     else
-      GITHUB_STATUS+="{$CM} $HOST"
+      GITHUB_STATUS+="{$DNSOK} $HOST"
     fi
   done
 
