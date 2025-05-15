@@ -453,7 +453,7 @@ install_composer() {
 
   chmod +x "$COMPOSER_BIN"
   composer diagnose >/dev/null 2>&1
-  msg_ok "Installed Composer $($COMPOSER_BIN --version | awk '{print $3}')"
+  msg_ok "Setup Composer"
 }
 
 # ------------------------------------------------------------------------------
