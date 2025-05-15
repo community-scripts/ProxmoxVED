@@ -353,6 +353,7 @@ install_php() {
     CURRENT_PHP=$(php -v 2>/dev/null | awk '/^PHP/{print $2}' | cut -d. -f1,2)
   else
     CURRENT_PHP=""
+    msg_info "Setup PHP: $PHP_VERSION"
   fi
 
   if [[ "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
@@ -442,7 +443,7 @@ install_composer() {
 
   # Download and install latest composer
   curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php
-  script -q -c "php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer" /dev/null
+  script -q -c "php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer" >/dev/null
 
   if [[ $? -ne 0 ]]; then
     msg_error "Failed to install Composer"

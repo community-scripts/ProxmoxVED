@@ -104,11 +104,11 @@ $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
 
-read -p "Remove this script? <y/N> " prompt
-if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-  pct stop "$CTID"
-  pct remove "$CTID"
-  msg_ok "Removed this script"
-else
-  msg_warn "Did not remove this script"
-fi
+# read -p "Remove this script? <y/N> " prompt
+# if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
+#   pct stop "$CTID"
+#   pct remove "$CTID"
+#   msg_ok "Removed this script"
+# else
+#   msg_warn "Did not remove this script"
+# fi
