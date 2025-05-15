@@ -257,27 +257,18 @@ start_spinner() {
   SPINNER_MSG="$msg"
   SPINNER_ACTIVE=1
 
-  if [[ "${CORE_OS:-}" == "alpine" ]]; then
-    {
-      while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
-        printf "\r\e[2K⠋ %b" "$SPINNER_MSG" >&2
-        sleep "$interval"
-      done
-    } &
-  else
-    {
-      while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
-        if [[ -t 2 ]]; then
-          printf "\r\e[2K%s %b" "${TAB}${spinner_frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
-        else
-          printf "%s...\n" "$SPINNER_MSG" >&2
-          break
-        fi
-        spin_i=$(((spin_i + 1) % ${#spinner_frames[@]}))
-        sleep "$interval"
-      done
-    } &
-  fi
+  {
+    while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
+      if [[ -t 2 ]]; then
+        printf "\r\e[2K%s %b" "${TAB}${spinner_frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
+      else
+        printf "%s...\n" "$SPINNER_MSG" >&2
+        break
+      fi
+      spin_i=$(((spin_i + 1) % ${#spinner_frames[@]}))
+      sleep "$interval"
+    done
+  } &
 
   local pid=$!
   if kill -0 "$pid" 2>/dev/null; then
