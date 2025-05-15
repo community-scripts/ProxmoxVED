@@ -6,7 +6,6 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 # Source: https://github.com/odoo/odoo
 
 APP="Odoo"
-# shellcheck disable=SC2034
 var_tags="${var_tags:-erp}"
 var_disk="${var_disk:-6}"
 var_cpu="${var_cpu:-2}"
