@@ -226,7 +226,7 @@ __curl_err_handler() {
 }
 
 detect_os() {
-  case "$var_os" in
+  case "$PCT_OSTYPE" in
   alpine) CORE_OS="alpine" ;;
   debian | ubuntu) CORE_OS="debian" ;;
   *) CORE_OS="unknown" ;;
