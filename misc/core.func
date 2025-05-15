@@ -239,7 +239,7 @@ start_spinner() {
   SPINNER_MSG="$msg"
   SPINNER_ACTIVE=1
 
-  _spinner_loop() {
+  {
     while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
       if [[ -t 2 ]]; then
         printf "\r\e[2K%s %b" "${TAB}${spinner_frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
@@ -250,10 +250,15 @@ start_spinner() {
       spin_i=$(((spin_i + 1) % ${#spinner_frames[@]}))
       sleep "$interval"
     done
-  }
+  } &
 
-  _spinner_loop &
-  SPINNER_PID=$!
+  local pid=$!
+  if ps -p "$pid" >/dev/null 2>&1; then
+    SPINNER_PID="$pid"
+  else
+    SPINNER_ACTIVE=0
+    SPINNER_PID=""
+  fi
 }
 
 # === Spinner Stop ===
@@ -269,8 +274,8 @@ stop_spinner() {
       done
     fi
 
-    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]] && ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1; then
-      wait "$SPINNER_PID" 2>/dev/null || true
+    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]]; then
+      ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1 && wait "$SPINNER_PID" 2>/dev/null || true
     fi
 
     printf "\r\e[2K" >&2
