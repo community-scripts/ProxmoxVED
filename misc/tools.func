@@ -355,14 +355,14 @@ install_composer() {
   if [[ -x "$COMPOSER_BIN" ]]; then
     local CURRENT_VERSION
     CURRENT_VERSION=$("$COMPOSER_BIN" --version | awk '{print $3}')
-    msg_info "Composer $CURRENT_VERSION found, updating to latest"
+    $STD msg_info "Composer $CURRENT_VERSION found, updating to latest"
   else
     msg_info "Setup Composer"
   fi
 
   # Download and install latest composer
   curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php
-  php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1
+  php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer &>/dev/null
 
   if [[ $? -ne 0 ]]; then
     msg_error "Failed to install Composer"
