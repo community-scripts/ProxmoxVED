@@ -17,6 +17,9 @@ msg_info "Installing Dependencies"
 # $STD apt-get install -y gnupg2
 msg_ok "Installed Dependencies"
 
+install_php
+install_composer
+
 # Example Setting for Test
 #NODE_MODULE="pnpm@10.1,yarn"
 #RELEASE=$(curl_handler -fsSL https://api.github.com/repos/babybuddy/babybuddy/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
