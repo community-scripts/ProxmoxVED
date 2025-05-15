@@ -13,9 +13,9 @@ setting_up_container
 network_check
 update_os
 
-# msg_info "Installing Dependencies"
+msg_info "Installing Dependencies"
 # $STD apt-get install -y gnupg2
-# msg_ok "Installed Dependencies"
+msg_ok "Installed Dependencies"
 
 # Example Setting for Test
 #NODE_MODULE="pnpm@10.1,yarn"
@@ -28,7 +28,7 @@ update_os
 #MYSQL_VERSION="8.0"
 
 #install_postgresql
-install_mariadb
+#install_mariadb
 #install_mysql
 
 # msg_info "Setup DISTRO env"
