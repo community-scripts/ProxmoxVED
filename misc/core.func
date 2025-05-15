@@ -232,6 +232,7 @@ start_spinner() {
   local interval=0.1
 
   stop_spinner
+
   SPINNER_MSG="$msg"
   SPINNER_ACTIVE=1
 
@@ -241,10 +242,17 @@ start_spinner() {
       spin_i=$(((spin_i + 1) % ${#frames[@]}))
       sleep "$interval"
     done
+    exit 0
   ) &
 
-  SPINNER_PID=$!
-  disown "$SPINNER_PID" 2>/dev/null || true
+  local pid=$!
+  if kill -0 "$pid" 2>/dev/null; then
+    SPINNER_PID="$pid"
+    disown "$SPINNER_PID" 2>/dev/null || true
+  else
+    SPINNER_PID=""
+    SPINNER_ACTIVE=0
+  fi
 }
 
 stop_spinner() {
