@@ -137,7 +137,7 @@ network_check() {
     done < <(getent hosts "$HOST" | awk '{ print $1 }')
 
     if [[ -z "$RESOLVEDIP" ]]; then
-      msg_error "DNS resolution failed or no valid IPv4/IPv6 address for $HOST"
+      msg_error "DNS resolution failed or no valid IPv4/IPv6 address for $HOST - Check your DNS or Adblocker settings"
       exit 1
     else
       msg_ok "Resolved $HOST → ${BL}$RESOLVEDIP${CL}"
