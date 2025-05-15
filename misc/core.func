@@ -326,6 +326,40 @@ msg_custom() {
   printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL}" >&2
 }
 
+msg_progress() {
+  local current="$1"
+  local total="$2"
+  local label="$3"
+  local width=40
+  local filled
+  local percent
+  local bar
+  local empty
+  local fill_char="#"
+  local empty_char="-"
+
+  # Sanitize and validate input
+  if ! [[ "$current" =~ ^[0-9]+$ ]] || ! [[ "$total" =~ ^[0-9]+$ ]] || [ "$total" -eq 0 ]; then
+    printf "\r\e[2K%s %b\n" "$CROSS" "${RD}Invalid progress input${CL}" >&2
+    return
+  fi
+
+  percent=$(((current * 100) / total))
+  filled=$(((current * width) / total))
+  empty=$((width - filled))
+
+  bar=$(printf "%${filled}s" | tr ' ' "$fill_char")
+  bar+=$(printf "%${empty}s" | tr ' ' "$empty_char")
+
+  # Print the progress line
+  printf "\r\e[2K%s [%s] %3d%% %s" "${TAB}" "$bar" "$percent" "$label" >&2
+
+  # Final newline when complete
+  if [ "$current" -eq "$total" ]; then
+    printf "\n" >&2
+  fi
+}
+
 # # ------------------------------------------------------------------------------
 # # Spinner trap: ensures spinner is stopped on termination signals.
 # # ------------------------------------------------------------------------------
