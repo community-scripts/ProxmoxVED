@@ -149,7 +149,7 @@ install_postgresql() {
     fi
 
     $STD msg_info "Starting PostgreSQL $PG_VERSION"
-    systemctl enable --now postgresql
+    systemctl enable -q --now postgresql
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
       $STD msg_info "Restoring dumped data"
