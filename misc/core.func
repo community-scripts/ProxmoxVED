@@ -223,18 +223,12 @@ __curl_err_handler() {
   [[ -n "$curl_msg" ]] && printf "%s\n" "$curl_msg" >&2
   exit 1
 }
-
 detect_os_type() {
-  if [[ -f /etc/os-release ]]; then
-    local os_id
-    os_id=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
-    case "$os_id" in
-    alpine) var_os="alpine" ;;
-    debian | ubuntu) var_os="debian" ;;
-    *) var_os="other" ;;
-    esac
+  if [[ -n "${var_os:-}" ]]; then
+    CORE_OS="$var_os"
+    echo $CORE_OS
   else
-    var_os="unknown"
+    CORE_OS="debian"
   fi
 }
 
@@ -256,7 +250,7 @@ start_spinner() {
   SPINNER_MSG="$msg"
   SPINNER_ACTIVE=1
 
-  if [[ "$var_os" == "alpine" ]]; then
+  if [[ "$CORE_OS" == "alpine" ]]; then
     {
       while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
         printf "\r\e[2K⠋ %b" "$SPINNER_MSG" >&2
