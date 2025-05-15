@@ -6,7 +6,7 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 # Source: https://www.freepbx.org/
 
 APP="FreePBX"
-var_tags=""
+var_tags="pbx;voip;telephony"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-1024}"
 var_disk="${var_disk:-20}"
