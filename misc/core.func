@@ -29,7 +29,6 @@ load_functions() {
   icons
   default_vars
   set_std_mode
-  detect_os_type
   # add more
 }
 
@@ -248,6 +247,7 @@ spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 # Ensure POSIX compatibility across Alpine and Debian/Ubuntu
 # === Spinner Start ===
 start_spinner() {
+  detect_os_type
   local msg="$1"
   local spin_i=0
   local interval=0.1
@@ -379,90 +379,3 @@ msg_progress() {
     printf "\n" >&2
   fi
 }
-
-# # ------------------------------------------------------------------------------
-# # Spinner trap: ensures spinner is stopped on termination signals.
-# # ------------------------------------------------------------------------------
-# trap 'stop_spinner' EXIT INT TERM HUP
-
-# # ------------------------------------------------------------------------------
-# # Starts a spinner animation for ongoing async operations.
-# # ------------------------------------------------------------------------------
-# start_spinner() {
-#   local msg="$1"
-#   local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
-#   local spin_i=0
-#   local interval=0.1
-
-#   SPINNER_MSG="$msg"
-#   printf "\r\e[2K" >&2
-
-#   {
-#     while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
-#       printf "\r\e[2K%s %b" "${TAB}${frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
-#       spin_i=$(((spin_i + 1) % ${#frames[@]}))
-#       sleep "$interval"
-#     done
-#   } &
-
-#   SPINNER_PID=$!
-#   disown "$SPINNER_PID"
-# }
-
-# # ------------------------------------------------------------------------------
-# # Stops the spinner animation and resets its state.
-# # ------------------------------------------------------------------------------
-# stop_spinner() {
-#   if [[ -n "${SPINNER_PID:-}" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
-#     kill "$SPINNER_PID" 2>/dev/null
-#     sleep 0.1
-#     kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
-#     wait "$SPINNER_PID" 2>/dev/null || true
-#   fi
-#   SPINNER_ACTIVE=0
-#   unset SPINNER_PID
-# }
-
-# # ------------------------------------------------------------------------------
-# # Stops the spinner if active, used to avoid multiple spinners.
-# # ------------------------------------------------------------------------------
-# spinner_guard() {
-#   if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "${SPINNER_PID:-}" ]]; then
-#     kill "$SPINNER_PID" 2>/dev/null
-#     wait "$SPINNER_PID" 2>/dev/null || true
-#     SPINNER_ACTIVE=0
-#     unset SPINNER_PID
-#   fi
-# }
-
-# # ------------------------------------------------------------------------------
-# # Displays an informational spinner once per message.
-# # ------------------------------------------------------------------------------
-# msg_info() {
-#   local msg="$1"
-#   [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-#   MSG_INFO_SHOWN["$msg"]=1
-
-#   spinner_guard
-#   SPINNER_ACTIVE=1
-#   start_spinner "$msg"
-# }
-
-# # ------------------------------------------------------------------------------
-# # Displays a success message and stops spinner.
-# # ------------------------------------------------------------------------------
-# msg_ok() {
-#   local msg="$1"
-#   stop_spinner
-#   printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
-#   unset MSG_INFO_SHOWN["$msg"]
-# }
-
-# # ------------------------------------------------------------------------------
-# # Displays an error message and stops spinner.
-# # ------------------------------------------------------------------------------
-# msg_error() {
-#   stop_spinner
-#   local msg="$1"
-#   printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
-# }
