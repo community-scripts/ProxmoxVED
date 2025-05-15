@@ -43,13 +43,15 @@ error_handler() {
   post_update_to_api "failed" "${command}"
   echo -e "\n$error_message\n"
 
-  read -p "Remove this Container? <y/N> " prompt
-  if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-    pct stop "$CTID"
-    pct destroy "$CTID"
-    msg_ok "Removed this script"
-  else
-    msg_warn "Did not remove this script"
+  if [[ -n "$CTD_ID" ]]; then
+    read -p "Remove this Container? <y/N> " prompt
+    if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
+      pct stop "$CTID"
+      pct destroy "$CTID"
+      msg_ok "Removed this script"
+    else
+      msg_warn "Did not remove this script"
+    fi
   fi
 }
 # Check if the shell is using bash
