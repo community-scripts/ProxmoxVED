@@ -121,7 +121,9 @@ EOF
 ln -sf /etc/nginx/sites-available/babybuddy /etc/nginx/sites-enabled/babybuddy
 service nginx restart
 
-# Bereinigung
+motd_ssh
+customize
+
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
