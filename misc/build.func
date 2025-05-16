@@ -46,8 +46,8 @@ error_handler() {
   if [[ -n "$CT_ID" ]]; then
     read -p "Remove this Container? <y/N> " prompt
     if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-      pct stop "$CTID" &> /dev/null
-      pct destroy "$CTID" &> /dev/null
+      pct stop "$CT_ID" &> /dev/null
+      pct destroy "$CT_ID" &> /dev/null
       msg_ok "Removed this Container"
     else
       msg_warn "Did not remove this Container"
