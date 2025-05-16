@@ -766,7 +766,6 @@ EOF
 }
 
 config_file() {
-
   CONFIG_FILE="/opt/community-scripts/.settings"
 
   if [[ -f "/opt/community-scripts/${NSAPP}.conf" ]]; then
@@ -1151,7 +1150,6 @@ install_script() {
       header_info
       echo -e "${INFO}${HOLD} ${GN}Using Config File on node $PVEHOST_NAME${CL}"
       METHOD="advanced"
-      base_settings
       config_file
       break
       ;;
