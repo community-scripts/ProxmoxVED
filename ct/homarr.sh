@@ -124,7 +124,9 @@ EOF
     fetch_and_deploy_gh_release "homarr-labs/homarr"
     mv /opt/homarr-data-backup/.env /opt/homarr/.env
     cd /opt/homarr
+    echo $NODE_ENV
     unset NODE_ENV
+    echo $NODE_ENV
     $STD pnpm install
     $STD pnpm build
     cp /opt/homarr/apps/nextjs/next.config.ts .
