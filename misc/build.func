@@ -307,15 +307,15 @@ CORE_COUNT="${DISK_SIZE}"
 RAM_SIZE="${RAM_SIZE}"
 HN="${HN}"
 BRG="${BRG}"
-APT_CACHER_IP="${APT_CACHER_IP}"
+APT_CACHER_IP="${APT_CACHER_IP:-none}"
 DISABLEIP6="${DISABLEIP6}"
 PW="${PW:-none}"
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
 VERBOSE="${VERBOSE}"
 TAGS="${TAGS:-none}"
-VLAN="${VLAN}"
-MTU="${MTU}"
+VLAN="${VLAN:-none}"
+MTU="${MTU:-1500}"
 GATE="${GATE:-none}"
 SD="${SD:-none}"
 MAC="${MAC:-none}"
@@ -338,15 +338,15 @@ CORE_COUNT="${DISK_SIZE}"
 RAM_SIZE="${RAM_SIZE}"
 HN="${HN}"
 BRG="${BRG}"
-APT_CACHER_IP="${APT_CACHER_IP}"
+APT_CACHER_IP="${APT_CACHER_IP:-none}"
 DISABLEIP6="${DISABLEIP6}"
 PW="${PW:-none}"
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
 VERBOSE="${VERBOSE}"
 TAGS="${TAGS:-none}"
-VLAN="${VLAN}"
-MTU="${MTU}"
+VLAN="${VLAN:-none}"
+MTU="${MTU:-1500}"
 GATE="${GATE:-none}"
 SD="${SD:-none}"
 MAC="${MAC:-none}"
@@ -1166,8 +1166,13 @@ config_file() {
   fi
 
   if [[ -n "${SD-}" ]]; then
-    echo -e "${SEARCH}${BOLD}${DGN}DNS Search Domain: ${BGN}$SD${CL}"
-    SD="-searchdomain=$SD"
+    if [[ "$SD" == "none" ]]; then
+      SD=""
+      echo -e "${SEARCH}${BOLD}${DGN}DNS Search Domain: ${BGN}Host${CL}"
+    else
+      echo -e "${SEARCH}${BOLD}${DGN}DNS Search Domain: ${BGN}$SD${CL}"
+      SD="-searchdomain=$SD"
+    fi
   else
     if SD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a DNS Search Domain (leave blank for HOST)" 8 58 --title "DNS Search Domain" 3>&1 1>&2 2>&3); then
       if [ -z "$SD" ]; then
@@ -1184,12 +1189,17 @@ config_file() {
   fi
 
   if [[ -n "${NS-}" ]]; then
-    if [[ "$NS" =~ $ip_regex ]]; then
-      echo -e "${NETWORK}${BOLD}${DGN}DNS Server IP Address: ${BGN}$NS${CL}"
-      NS="-nameserver=$NS"
+    if [[ $NS == "none" ]]; then
+      NS=""
+      echo -e "${NETWORK}${BOLD}${DGN}DNS Server IP Address: ${BGN}Host${CL}"
     else
-      msg_error "Invalid IP Address format for DNS Server. Needs to be 0.0.0.0, was ${NS}"
-      exit
+      if [[ "$NS" =~ $ip_regex ]]; then
+        echo -e "${NETWORK}${BOLD}${DGN}DNS Server IP Address: ${BGN}$NS${CL}"
+        NS="-nameserver=$NS"
+      else
+        msg_error "Invalid IP Address format for DNS Server. Needs to be 0.0.0.0, was ${NS}"
+        exit
+      fi
     fi
   else
     if NX=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a DNS Server IP (leave blank for HOST)" 8 58 --title "DNS SERVER IP" 3>&1 1>&2 2>&3); then
@@ -1206,12 +1216,17 @@ config_file() {
   fi
 
   if [[ -n "${MAC-}" ]]; then
-    if [[ "$MAC" =~ ^([A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2}$ ]]; then
-      echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}$MAC${CL}"
-      MAC=",hwaddr=$MAC"
+    if [[ "$MAC" == "none" ]]; then
+      MAC=""
+      echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}Host${CL}"
     else
-      msg_error "MAC Address must be in the format xx:xx:xx:xx:xx:xx, was ${MAC}"
-      exit
+      if [[ "$MAC" =~ ^([A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2}$ ]]; then
+        echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}$MAC${CL}"
+        MAC=",hwaddr=$MAC"
+      else
+        msg_error "MAC Address must be in the format xx:xx:xx:xx:xx:xx, was ${MAC}"
+        exit
+      fi
     fi
   else
     if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address(leave blank for generated MAC)" 8 58 --title "MAC ADDRESS" 3>&1 1>&2 2>&3); then
@@ -1228,12 +1243,17 @@ config_file() {
   fi
 
   if [[ -n "${VLAN-}" ]]; then
-    if [[ "$VLAN" =~ ^-?[0-9]+$ ]]; then
-      echo -e "${VLANTAG}${BOLD}${DGN}Vlan: ${BGN}$VLAN${CL}"
-      VLAN=",tag=$VLAN"
+    if [[ "$VLAN" == "none" ]]; then
+      VLAN=""
+      echo -e "${VLANTAG}${BOLD}${DGN}Vlan: ${BGN}Host${CL}"
     else
-      msg_error "VLAN must be an integer, was ${VLAN}"
-      exit
+      if [[ "$VLAN" =~ ^-?[0-9]+$ ]]; then
+        echo -e "${VLANTAG}${BOLD}${DGN}Vlan: ${BGN}$VLAN${CL}"
+        VLAN=",tag=$VLAN"
+      else
+        msg_error "VLAN must be an integer, was ${VLAN}"
+        exit
+      fi
     fi
   else
     if VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for no VLAN)" 8 58 --title "VLAN" 3>&1 1>&2 2>&3); then
