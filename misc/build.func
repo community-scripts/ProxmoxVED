@@ -1028,7 +1028,7 @@ config_file() {
   local ip_cidr_regex='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/([0-9]{1,2})$'
   local ip_regex='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$'
 
-  if [[ -n $NET ]]; then
+  if [[ -n ${NET-} ]]; then
     if [ "$NET" == "dhcp" ]; then
       echo -e "${NETWORK}${BOLD}${DGN}IP Address: ${BGN}DHCP${CL}"
       echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}Default${CL}"
@@ -1042,13 +1042,50 @@ config_file() {
           msg_error "Invalid IP Address format for Gateway. Needs to be 0.0.0.0, was ${GATE}"
           exit
       fi
-  else
-    msg_error "Gateway IP Address cannot be empty"
-    exit
-  fi
+    else
+      msg_error "Gateway IP Address cannot be empty"
+      exit
+    fi
     else
       msg_error "Invalid IP Address format. Needs to be 0.0.0.0/0, was ${NET}"
       exit
+    fi
+  else
+    while true; do
+    NET=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Static IPv4 CIDR Address (/24)" 8 58 dhcp --title "IP ADDRESS" 3>&1 1>&2 2>&3)
+    exit_status=$?
+    if [ $exit_status -eq 0 ]; then
+      if [ "$NET" = "dhcp" ]; then
+        echo -e "${NETWORK}${BOLD}${DGN}IP Address: ${BGN}$NET${CL}"
+        break
+      else
+        if [[ "$NET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[1-2][0-9]|3[0-2])$ ]]; then
+          echo -e "${NETWORK}${BOLD}${DGN}IP Address: ${BGN}$NET${CL}"
+          break
+        else
+          whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox "$NET is an invalid IPv4 CIDR address. Please enter a valid IPv4 CIDR address or 'dhcp'" 8 58
+        fi
+      fi
+    else
+      exit_script
+    fi
+    done
+    if [ "$NET" != "dhcp" ]; then
+    while true; do
+      GATE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Enter gateway IP address" 8 58 --title "Gateway IP" 3>&1 1>&2 2>&3)
+      if [ -z "$GATE1" ]; then
+        whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox "Gateway IP address cannot be empty" 8 58
+      elif [[ ! "$GATE1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox "Invalid IP address format" 8 58
+      else
+        GATE=",gw=$GATE1"
+        echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}$GATE1${CL}"
+        break
+      fi
+    done
+    else
+      GATE=""
+      echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}Default${CL}"
     fi
   fi
 
