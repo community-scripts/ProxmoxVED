@@ -313,7 +313,7 @@ TAGS="${TAGS}"
 PW="${PW1}"
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
-VERBOSE="${VERB}"
+VERBOSE="${VERBOSE}"
 
 EOF
       echo -e "${INFO}${BOLD}${GN}Writing configuration to ${FILEPATH}${CL}"
@@ -337,7 +337,7 @@ TAGS="${TAGS}"
 PW="${PW1}"
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
-VERBOSE="${VERB}"
+VERBOSE="${VERBOSE}"
 
 EOF
         echo -e "${INFO}${BOLD}${GN}Writing configuration to ${FILEPATH}${CL}"
@@ -1290,11 +1290,11 @@ config_file() {
     fi
   else
    if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
-      VERB="yes"
+      VERBOSE="yes"
     else
-      VERB="no"
+      VERBOSE="no"
     fi
-    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERB${CL}"
+    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERBOSE${CL}"
   fi
 
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS WITH CONFIG FILE COMPLETE" --yesno "Ready to create ${APP} LXC?" 10 58); then
