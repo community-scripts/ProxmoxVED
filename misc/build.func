@@ -1113,17 +1113,25 @@ config_file() {
     APT_CACHER_IP=""
   else
     if [[ -n "${APT_CACHER_IP-}" ]]; then
-      if [[ "$APT_CACHER_IP" =~ $ip_regex ]]; then
-        APT_CACHER="yes"
-        echo -e "${NETWORK}${BOLD}${DGN}APT-CACHER IP Address: ${BGN}$APT_CACHER_IP${CL}"
+      if [[ ! $APT_CACHER_IP == "none" ]]; then
+        if [[ "$APT_CACHER_IP" =~ $ip_regex ]]; then
+          APT_CACHER="yes"
+          echo -e "${NETWORK}${BOLD}${DGN}APT-CACHER IP Address: ${BGN}$APT_CACHER_IP${CL}"
+        else
+          msg_error "Invalid IP Address format for APT-Cacher. Needs to be 0.0.0.0, was ${APT_CACHER_IP}"
+          exit
+        fi
       else
-        msg_error "Invalid IP Address format for APT-Cacher. Needs to be 0.0.0.0, was ${APT_CACHER_IP}"
-        exit
+        APT_CACHER=""
+        echo -e "${NETWORK}${BOLD}${DGN}APT-Cacher IP Address: ${BGN}No${CL}"
       fi
     else
       if APT_CACHER_IP=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set APT-Cacher IP (leave blank for none)" 8 58 --title "APT-Cacher IP" 3>&1 1>&2 2>&3); then
         APT_CACHER="${APT_CACHER_IP:+yes}"
         echo -e "${NETWORK}${BOLD}${DGN}APT-Cacher IP Address: ${BGN}${APT_CACHER_IP:-Default}${CL}"
+        if  [[ -n $APT_CACHER_IP ]]; then
+          APT_CACHER_IP="none"
+        fi
       else
         exit_script
       fi
