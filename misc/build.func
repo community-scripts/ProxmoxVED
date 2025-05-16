@@ -1227,6 +1227,7 @@ config_file() {
       echo -e "${VLANTAG}${BOLD}${DGN}Vlan: ${BGN}$VLAN1${CL}"
     else
       #exit_script
+      echo "test"
     fi
   fi
 
