@@ -37,8 +37,8 @@ function update_script() {
         mkdir -p /opt/backup/
         mv /opt/configarr/{config.yml,secrets.yml,.env} "/opt/backup/"
         rm -rf /opt/configarr
-       fetch_and_deploy_gh_release "raydak-labs/configarr"
-       mv /opt/backup/* /opt/configarr/
+        fetch_and_deploy_gh_release "raydak-labs/configarr"
+        mv /opt/backup/* /opt/configarr/
         cd /opt/configarr
         pnpm install
         pnpm run build
