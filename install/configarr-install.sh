@@ -40,7 +40,6 @@ sed 's|#localConfigTemplatesPath: /app/templates|#localConfigTemplatesPath: /opt
 cd /opt/configarr
 pnpm install
 pnpm run build
-echo "${RELEASE}" >/opt/configarr_version.txt
 msg_ok "Setup ${APPLICATION}"
 
 # Creating Service (if needed)
