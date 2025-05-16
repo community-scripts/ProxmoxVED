@@ -59,7 +59,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          branch=$(echo "delete-files_${{ github.event.issue.number }}_${TITLE}" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
+          $branch="delete_files"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b $branch
@@ -72,7 +72,7 @@ jobs:
             exit 0
           fi
           git commit -m "Deleted files for issue: ${{ github.event.issue.title }}"
-          git push origin $branch
+          git push origin $branch --force
           gh pr create --title "Delete Files for ${{ github.event.issue.title }} after Merge to Main" --body "Delete files after merge in main repo." --base main --head $branch
 
           pr_number=$(gh pr list | grep -m 1 $branch | awk '{print $1}')

@@ -1,11 +1,24 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
-set -euo pipefail
+# if ! declare -f wait_for >/dev/null; then
+#   echo "[DEBUG] Undefined function 'wait_for' used from: ${BASH_SOURCE[*]}" >&2
+#   wait_for() {
+#     echo "[DEBUG] Fallback: wait_for called with: $*" >&2
+#     true
+#   }
+# fi
+
+if ! declare -f wait_for >/dev/null; then
+  wait_for() {
+    true
+  }
+fi
+
+declare -A MSG_INFO_SHOWN=()
 SPINNER_PID=""
 SPINNER_ACTIVE=0
 SPINNER_MSG=""
-declare -A MSG_INFO_SHOWN
 
 # ------------------------------------------------------------------------------
 # Loads core utility groups once (colors, formatting, icons, defaults).
@@ -22,6 +35,7 @@ load_functions() {
   icons
   default_vars
   set_std_mode
+  detect_os
   # add more
 }
 
@@ -47,6 +61,7 @@ formatting() {
   BOLD=$(echo "\033[1m")
   HOLD=" "
   TAB="  "
+  TAB3="      "
 }
 
 # ------------------------------------------------------------------------------
@@ -55,6 +70,8 @@ formatting() {
 icons() {
   CM="${TAB}✔️${TAB}"
   CROSS="${TAB}✖️${TAB}"
+  DNSOK="✔️ "
+  DNSFAIL="${TAB}✖️${TAB}"
   INFO="${TAB}💡${TAB}${CL}"
   OS="${TAB}🖥️${TAB}${CL}"
   OSVERSION="${TAB}🌟${TAB}${CL}"
@@ -86,6 +103,8 @@ default_vars() {
   RETRY_NUM=10
   RETRY_EVERY=3
   i=$RETRY_NUM
+  #[[ "${VAR_OS:-}" == "unknown" ]]
+
 }
 
 # ------------------------------------------------------------------------------
@@ -214,211 +233,148 @@ __curl_err_handler() {
   exit 1
 }
 
-### dev spinner ###
-SPINNER_ACTIVE=0
-SPINNER_PID=""
-SPINNER_MSG=""
-declare -A MSG_INFO_SHOWN=()
+detect_os() {
+  case "$PCT_OSTYPE" in
+  alpine) CORE_OS="alpine" ;;
+  debian | ubuntu) CORE_OS="debian" ;;
+  *) CORE_OS="unknown" ;;
+  esac
+}
 
+fatal() {
+  msg_error "$1"
+  kill -INT $$
+}
+
+# Ensure POSIX compatibility across Alpine and Debian/Ubuntu
+# === Spinner Start ===
 # Trap cleanup on various signals
 trap 'cleanup_spinner' EXIT INT TERM HUP
 
-# Cleans up spinner process on exit
-cleanup_spinner() {
-  stop_spinner
-  # Additional cleanup if needed
-}
+spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
+# === Spinner Start ===
 start_spinner() {
-  local msg="${1:-Processing...}"
-  local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+  local msg="$1"
   local spin_i=0
   local interval=0.1
 
-  # Set message and clear current line
-  SPINNER_MSG="$msg"
-  printf "\r\e[2K" >&2
-
-  # Stop any existing spinner
   stop_spinner
-
-  # Set active flag
+  SPINNER_MSG="$msg"
   SPINNER_ACTIVE=1
 
-  # Start spinner in background
   {
     while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
-      printf "\r\e[2K%s %b" "${TAB}${frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
-      spin_i=$(((spin_i + 1) % ${#frames[@]}))
+      if [[ -t 2 ]]; then
+        printf "\r\e[2K%s %b" "${TAB}${spinner_frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
+      else
+        printf "%s...\n" "$SPINNER_MSG" >&2
+        break
+      fi
+      spin_i=$(((spin_i + 1) % ${#spinner_frames[@]}))
       sleep "$interval"
     done
   } &
 
-  SPINNER_PID=$!
-
-  # Disown to prevent getting "Terminated" messages
-  disown "$SPINNER_PID" 2>/dev/null || true
+  local pid=$!
+  if ps -p "$pid" >/dev/null 2>&1; then
+    SPINNER_PID="$pid"
+  else
+    SPINNER_ACTIVE=0
+    SPINNER_PID=""
+  fi
 }
 
+# === Spinner Stop ===
 stop_spinner() {
-  # Check if spinner is active and PID exists
-  if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "${SPINNER_PID}" ]]; then
+  if [[ "$SPINNER_ACTIVE" -eq 1 && -n "$SPINNER_PID" ]]; then
     SPINNER_ACTIVE=0
 
     if kill -0 "$SPINNER_PID" 2>/dev/null; then
-      kill "$SPINNER_PID" 2>/dev/null
-      # Give it a moment to terminate
-      sleep 0.1
-      # Force kill if still running
-      if kill -0 "$SPINNER_PID" 2>/dev/null; then
-        kill -9 "$SPINNER_PID" 2>/dev/null
-      fi
-      # Wait for process but ignore errors
-      wait "$SPINNER_PID" 2>/dev/null || true
+      kill "$SPINNER_PID" 2>/dev/null || true
+      for _ in $(seq 1 10); do
+        sleep 0.05
+        kill -0 "$SPINNER_PID" 2>/dev/null || break
+      done
     fi
 
-    # Clear spinner line
+    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]]; then
+      ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1 && wait "$SPINNER_PID" 2>/dev/null || true
+    fi
+
     printf "\r\e[2K" >&2
     SPINNER_PID=""
   fi
 }
 
-spinner_guard() {
-  # Safely stop spinner if it's running
-  if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "${SPINNER_PID}" ]]; then
-    stop_spinner
-  fi
+cleanup_spinner() {
+  stop_spinner
 }
 
 msg_info() {
-  local msg="${1:-Information message}"
-
-  # Only show each message once unless reset
-  if [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]]; then
-    return
-  fi
+  local msg="$1"
+  [[ -z "$msg" || -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
   MSG_INFO_SHOWN["$msg"]=1
-
-  spinner_guard
+  stop_spinner
   start_spinner "$msg"
 }
 
 msg_ok() {
-  local msg="${1:-Operation completed successfully}"
+  local msg="$1"
+  [[ -z "$msg" ]] && return
   stop_spinner
-  printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
-
-  # Remove from shown messages to allow it to be shown again
+  printf "\r\e[2K%s %b\n" "$CM" "${GN}${msg}${CL}" >&2
   unset MSG_INFO_SHOWN["$msg"]
 }
 
 msg_error() {
-  local msg="${1:-An error occurred}"
+  local msg="$1"
+  [[ -z "$msg" ]] && return
   stop_spinner
-  printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
+  printf "\r\e[2K%s %b\n" "$CROSS" "${RD}${msg}${CL}" >&2
 }
 
 msg_warn() {
-  local msg="${1:-Warning}"
+  local msg="$1"
+  [[ -z "$msg" ]] && return
   stop_spinner
-  printf "\r\e[2K%s %b\n" "${INFO}" "${YWB}${msg}" >&2
-
-  # Remove from shown messages to allow it to be shown again
+  printf "\r\e[2K%s %b\n" "$INFO" "${YWB}${msg}${CL}" >&2
   unset MSG_INFO_SHOWN["$msg"]
 }
 
-# Helper function to display a message with custom symbol and color
 msg_custom() {
-  local symbol="${1:-*}"
-  local color="${2:-$CL}"
-  local msg="${3:-Custom message}"
+  local symbol="$1"
+  local color="$2"
+  local msg="$3"
+  [[ -z "$msg" ]] && return
   stop_spinner
   printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL}" >&2
 }
 
-# # ------------------------------------------------------------------------------
-# # Spinner trap: ensures spinner is stopped on termination signals.
-# # ------------------------------------------------------------------------------
-# trap 'stop_spinner' EXIT INT TERM HUP
+msg_progress() {
+  local current="$1"
+  local total="$2"
+  local label="$3"
+  local width=40
+  local filled percent bar empty
+  local fill_char="#"
+  local empty_char="-"
 
-# # ------------------------------------------------------------------------------
-# # Starts a spinner animation for ongoing async operations.
-# # ------------------------------------------------------------------------------
-# start_spinner() {
-#   local msg="$1"
-#   local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
-#   local spin_i=0
-#   local interval=0.1
+  if ! [[ "$current" =~ ^[0-9]+$ ]] || ! [[ "$total" =~ ^[0-9]+$ ]] || [[ "$total" -eq 0 ]]; then
+    printf "\r\e[2K%s %b\n" "$CROSS" "${RD}Invalid progress input${CL}" >&2
+    return
+  fi
 
-#   SPINNER_MSG="$msg"
-#   printf "\r\e[2K" >&2
+  percent=$(((current * 100) / total))
+  filled=$(((current * width) / total))
+  empty=$((width - filled))
 
-#   {
-#     while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
-#       printf "\r\e[2K%s %b" "${TAB}${frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
-#       spin_i=$(((spin_i + 1) % ${#frames[@]}))
-#       sleep "$interval"
-#     done
-#   } &
+  bar=$(printf "%${filled}s" | tr ' ' "$fill_char")
+  bar+=$(printf "%${empty}s" | tr ' ' "$empty_char")
 
-#   SPINNER_PID=$!
-#   disown "$SPINNER_PID"
-# }
+  printf "\r\e[2K%s [%s] %3d%% %s" "${TAB}" "$bar" "$percent" "$label" >&2
 
-# # ------------------------------------------------------------------------------
-# # Stops the spinner animation and resets its state.
-# # ------------------------------------------------------------------------------
-# stop_spinner() {
-#   if [[ -n "${SPINNER_PID:-}" ]] && kill -0 "$SPINNER_PID" 2>/dev/null; then
-#     kill "$SPINNER_PID" 2>/dev/null
-#     sleep 0.1
-#     kill -0 "$SPINNER_PID" 2>/dev/null && kill -9 "$SPINNER_PID" 2>/dev/null
-#     wait "$SPINNER_PID" 2>/dev/null || true
-#   fi
-#   SPINNER_ACTIVE=0
-#   unset SPINNER_PID
-# }
-
-# # ------------------------------------------------------------------------------
-# # Stops the spinner if active, used to avoid multiple spinners.
-# # ------------------------------------------------------------------------------
-# spinner_guard() {
-#   if [[ "$SPINNER_ACTIVE" -eq 1 ]] && [[ -n "${SPINNER_PID:-}" ]]; then
-#     kill "$SPINNER_PID" 2>/dev/null
-#     wait "$SPINNER_PID" 2>/dev/null || true
-#     SPINNER_ACTIVE=0
-#     unset SPINNER_PID
-#   fi
-# }
-
-# # ------------------------------------------------------------------------------
-# # Displays an informational spinner once per message.
-# # ------------------------------------------------------------------------------
-# msg_info() {
-#   local msg="$1"
-#   [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-#   MSG_INFO_SHOWN["$msg"]=1
-
-#   spinner_guard
-#   SPINNER_ACTIVE=1
-#   start_spinner "$msg"
-# }
-
-# # ------------------------------------------------------------------------------
-# # Displays a success message and stops spinner.
-# # ------------------------------------------------------------------------------
-# msg_ok() {
-#   local msg="$1"
-#   stop_spinner
-#   printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
-#   unset MSG_INFO_SHOWN["$msg"]
-# }
-
-# # ------------------------------------------------------------------------------
-# # Displays an error message and stops spinner.
-# # ------------------------------------------------------------------------------
-# msg_error() {
-#   stop_spinner
-#   local msg="$1"
-#   printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
-# }
+  if [[ "$current" -eq "$total" ]]; then
+    printf "\n" >&2
+  fi
+}

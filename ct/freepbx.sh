@@ -6,10 +6,10 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 # Source: https://www.freepbx.org/
 
 APP="FreePBX"
-var_tags=""
-var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-1024}"
-var_disk="${var_disk:-20}"
+var_tags="pbx;voip;telephony"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -24,7 +24,6 @@ function update_script() {
     check_container_storage
     check_container_resources
 
-    # Check if installation is present | -f for file, -d for folder
     if [[ ! -f /lib/systemd/system/freepbx.service ]]; then
         msg_error "No ${APP} Installation Found!"
         exit

@@ -29,9 +29,10 @@ $STD apt-get install -y \
     snmpd
 msg_ok "Installed Dependencies"
 
-install_php
-MARIADB_VERSION="11.4.5" install_mariadb
+PHP_VERSION=8.2 PHP_FPM=YES PHP_APACHE=NO PHP_MODULE="gmp,mysql,snmp" install_php
+install_mariadb
 install_composer
+setup_uv
 
 msg_info "Installing Python"
 $STD apt-get install -y \
@@ -55,23 +56,18 @@ msg_ok "Configured Database"
 
 msg_info "Setup Librenms"
 $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
-tmp_file=$(mktemp)
-RELEASE=$(curl -fsSL https://api.github.com/repos/librenms/librenms/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL https://github.com/librenms/librenms/archive/refs/tags/${RELEASE}.tar.gz -o $tmp_file
-tar -xzf $tmp_file -C /opt
-mv /opt/librenms-${RELEASE} /opt/librenms
+fetch_and_deploy_gh_release "librenms/librenms"
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
-
-$STD su librenms -s /bin/bash -c "pip3 install -r /opt/librenms/requirements.txt"
-
-cp /opt/librenms/.env.example /opt/librenms/.env
-
-sed -i "s/^#DB_DATABASE=.*/DB_DATABASE=${DB_NAME}/" /opt/librenms/.env
-sed -i "s/^#DB_USERNAME=.*/DB_USERNAME=${DB_USER}/" /opt/librenms/.env
-sed -i "s/^#DB_PASSWORD=.*/DB_PASSWORD=${DB_PASS}/" /opt/librenms/.env
-
-
+cd /opt/librenms
+$STD uv venv .venv
+$STD source .venv/bin/activate
+$STD uv pip install -r requirements.txt
+cat <<EOF >/opt/librenms/.env
+DB_DATABASE=${DB_NAME}
+DB_USERNAME=${DB_USER}
+DB_PASSWORD=${DB_PASS}
+EOF
 chown -R librenms:librenms /opt/librenms
 chmod 771 /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
@@ -123,9 +119,10 @@ systemctl restart php8.2-fpm
 msg_ok "Configured Nginx"
 
 msg_info "Configure Services"
-
-$STD php artisan migrate --force
-$STD php artisan key:generate --force
+COMPOSER_ALLOW_SUPERUSER=1
+$STD composer install --no-dev
+$STD php8.2 artisan migrate --force
+$STD php8.2 artisan key:generate --force
 $STD su librenms -s /bin/bash -c "lnms db:seed --force"
 $STD su librenms -s /bin/bash -c "lnms user:add -p admin -r admin admin"
 ln -s /opt/librenms/lnms /usr/bin/lnms

@@ -86,7 +86,7 @@ setting_up_container() {
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
   systemctl disable -q --now systemd-networkd-wait-online.service
   msg_ok "Set up Container OS"
-  msg_ok "Network Connected: ${BL}$(hostname -I)"
+  msg_custom "${CM}" "${GN}" "Network Connected: ${BL}$(hostname -I)"
 }
 
 # This function checks the network connection by pinging a known IP address and prompts the user to continue if the internet is not connected
@@ -96,6 +96,7 @@ network_check() {
   ipv4_connected=false
   ipv6_connected=false
   sleep 1
+
   # Check IPv4 connectivity to Google, Cloudflare & Quad9 DNS servers.
   if ping -c 1 -W 1 1.1.1.1 &>/dev/null || ping -c 1 -W 1 8.8.8.8 &>/dev/null || ping -c 1 -W 1 9.9.9.9 &>/dev/null; then
     msg_ok "IPv4 Internet Connected"
@@ -114,7 +115,7 @@ network_check() {
 
   # If both IPv4 and IPv6 checks fail, prompt the user
   if [[ $ipv4_connected == false && $ipv6_connected == false ]]; then
-    read -r -p "No Internet detected,would you like to continue anyway? <y/N> " prompt
+    read -r -p "No Internet detected, would you like to continue anyway? <y/N> " prompt
     if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
       echo -e "${INFO}${RD}Expect Issues Without Internet${CL}"
     else
@@ -123,8 +124,27 @@ network_check() {
     fi
   fi
 
-  RESOLVEDIP=$(getent hosts github.com | awk '{ print $1 }')
-  if [[ -z "$RESOLVEDIP" ]]; then msg_error "DNS Lookup Failure"; else msg_ok "DNS Resolved github.com to ${BL}$RESOLVEDIP${CL}"; fi
+  # DNS resolution checks for GitHub-related domains (IPv4 and/or IPv6)
+  GITHUB_HOSTS=("github.com" "raw.githubusercontent.com" "api.github.com" "git.community-scripts.org")
+  GITHUB_STATUS="GitHub DNS:"
+  DNS_FAILED=false
+
+  for HOST in "${GITHUB_HOSTS[@]}"; do
+    RESOLVEDIP=$(getent hosts "$HOST" | awk '{ print $1 }' | grep -E '(^([0-9]{1,3}\.){3}[0-9]{1,3}$)|(^[a-fA-F0-9:]+$)' | head -n1)
+    if [[ -z "$RESOLVEDIP" ]]; then
+      GITHUB_STATUS+="$HOST:($DNSFAIL)"
+      DNS_FAILED=true
+    else
+      GITHUB_STATUS+=" $HOST:($DNSOK)"
+    fi
+  done
+
+  if [[ "$DNS_FAILED" == true ]]; then
+    fatal "$GITHUB_STATUS"
+  else
+    msg_ok "$GITHUB_STATUS"
+  fi
+
   set -e
   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
@@ -148,9 +168,8 @@ EOF
   $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
   msg_ok "Updated Container OS"
-
+  detect_os
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
-
 }
 
 # This function modifies the message of the day (motd) and SSH settings

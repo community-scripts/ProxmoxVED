@@ -4,7 +4,7 @@
 # Author: bvdberg01
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -17,8 +17,7 @@ $STD apt-get install -y \
   curl \
   sudo \
   mc \
-  gnupg2\
-  postgresql \
+  gnupg2 postgresql \
   lsb-release \
   rbenv \
   libpq-dev \
@@ -38,50 +37,43 @@ DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
 {
-echo "Manyfold Credentials"
-echo "Manyfold Database User: $DB_USER"
-echo "Manyfold Database Password: $DB_PASS"
-echo "Manyfold Database Name: $DB_NAME"
-} >> ~/manyfold.creds
+  echo "Manyfold Credentials"
+  echo "Manyfold Database User: $DB_USER"
+  echo "Manyfold Database Password: $DB_PASS"
+  echo "Manyfold Database Name: $DB_NAME"
+} >>~/manyfold.creds
 msg_ok "Set up PostgreSQL"
 
 msg_info "Downloading Manyfold"
-RELEASE=$(curl -s https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 cd /opt
 curl -fsSL "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip" -o manyfold.zip
 unzip -q manyfold.zip
 mv /opt/manyfold-${RELEASE}/ /opt/manyfold
-RUBY_VERSION=$(cat /opt/manyfold/.ruby-version)
+RUBY_INSTALL_VERSION=$(cat /opt/manyfold/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
+
 msg_ok "Downloaded Manyfold"
 
-msg_info "Setting up Node.js/Yarn"
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
-$STD apt-get update
-$STD apt-get install -y nodejs
-$STD npm install -g npm@latest
-$STD npm install -g yarn
-msg_ok "Installed Node.js/Yarn"
+NODE_VERSION="22" NODE_MODULE="npm@latest,${YARN_VERSION}" install_node_and_modules
+RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" setup_rbenv_stack
 
-msg_info "Add ruby-build"
-mkdir -p ~/.rbenv/plugins
-cd ~/.rbenv/plugins
-RUBY_BUILD_RELEASE=$(curl -s https://api.github.com/repos/rbenv/ruby-build/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/rbenv/ruby-build/archive/refs/tags/v${RUBY_BUILD_RELEASE}.zip" -o ruby-build.zip
-unzip -q ruby-build.zip
-mv ruby-build-* ~/.rbenv/plugins/ruby-build
-echo "${RUBY_BUILD_RELEASE}" >~/.rbenv/plugins/RUBY_BUILD_version.txt
-msg_ok "Added ruby-build"
+# msg_info "Add ruby-build"
+# mkdir -p ~/.rbenv/plugins
+# cd ~/.rbenv/plugins
+# RUBY_BUILD_RELEASE=$(curl -s https://api.github.com/repos/rbenv/ruby-build/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+# curl -fsSL "https://github.com/rbenv/ruby-build/archive/refs/tags/v${RUBY_BUILD_RELEASE}.zip" -o ruby-build.zip
+# unzip -q ruby-build.zip
+# mv ruby-build-* ~/.rbenv/plugins/ruby-build
+# echo "${RUBY_BUILD_RELEASE}" >~/.rbenv/plugins/RUBY_BUILD_version.txt
+# msg_ok "Added ruby-build"
 
-msg_info "Installing ruby ${RUBY_VERSION}"
-$STD rbenv install $RUBY_VERSION
-echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
-echo 'eval "$(rbenv init -)"' >> ~/.bashrc
-source ~/.bashrc
-msg_ok "Installed ruby ${RUBY_VERSION}"
+# msg_info "Installing ruby ${RUBY_VERSION}"
+# $STD rbenv install $RUBY_VERSION
+# echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >>~/.bashrc
+# echo 'eval "$(rbenv init -)"' >>~/.bashrc
+# source ~/.bashrc
+# msg_ok "Installed ruby ${RUBY_VERSION}"
 
 msg_info "Adding manyfold user"
 useradd -m -s /usr/bin/bash manyfold
@@ -112,7 +104,7 @@ source /opt/.env
 cd /opt/manyfold
 chown -R manyfold:manyfold /opt/manyfold
 $STD gem install bundler
-$STD rbenv global $RUBY_VERSION
+$STD rbenv global $RUBY_INSTALL_VERSION
 $STD bundle install
 $STD gem install sidekiq
 $STD npm install --global corepack
@@ -124,6 +116,7 @@ rm /opt/manyfold/config/credentials.yml.enc
 $STD bin/rails credentials:edit
 $STD bin/rails db:migrate
 $STD bin/rails assets:precompile
+echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed manyfold"
 
 msg_info "Creating Service"
