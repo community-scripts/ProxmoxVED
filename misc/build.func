@@ -941,7 +941,7 @@ config_file() {
   fi
   fi
 
-  if [[ -n "$CORE_COUNT" ]]; then
+  if [[ -n "${CORE_COUNT-}" ]]; then
     if [[ "$CORE_COUNT" =~ ^-?[0-9]+$ ]]; then
       echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
     else
@@ -949,11 +949,19 @@ config_file() {
       exit
     fi
   else
-    msg_error "CORE_COUNT cannot be empty"
-    exit
+    if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 "$var_cpu" --title "CORE COUNT" 3>&1 1>&2 2>&3); then
+    if [ -z "$CORE_COUNT" ]; then
+      CORE_COUNT="$var_cpu"
+      echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}$CORE_COUNT${CL}"
+    else
+      echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}$CORE_COUNT${CL}"
+    fi
+  else
+    exit_script
+  fi
   fi
 
-  if [[ -n "$RAM_SIZE" ]]; then
+  if [[ -n "${RAM_SIZE-}" ]]; then
     if [[ "$RAM_SIZE" =~ ^-?[0-9]+$ ]]; then
       echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
     else
@@ -961,8 +969,16 @@ config_file() {
       exit
     fi
   else
-    msg_error "RAM_SIZE cannot be empty"
-    exit
+    if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 "$var_ram" --title "RAM" 3>&1 1>&2 2>&3); then
+    if [ -z "$RAM_SIZE" ]; then
+      RAM_SIZE="$var_ram"
+      echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
+    else
+      echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
+    fi
+  else
+    exit_script
+  fi
   fi
 
   IFACE_FILEPATH_LIST="/etc/network/interfaces"$'\n'$(find "/etc/network/interfaces.d/" -type f)
@@ -993,7 +1009,7 @@ config_file() {
   IFS=$OLD_IFS
   BRIDGES=$(echo "$BRIDGES" | grep -v '^\s*$' | sort | uniq)
 
-  if [[ -n "$BRG" ]]; then
+  if [[ -n "${BRG-}" ]]; then
     if echo "$BRIDGES" | grep -q "${BRG}"; then
       echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
     else
@@ -1001,8 +1017,12 @@ config_file() {
       exit
     fi
   else
-    msg_error "Bridge cannot be empty"
-    exit
+    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 40 6 $(echo "$BRIDGES" | awk '{print $0, "Bridge"}') 3>&1 1>&2 2>&3)
+    if [ -z "$BRG" ]; then
+      exit_script
+    else
+      echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
+    fi
   fi
 
   local ip_cidr_regex='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/([0-9]{1,2})$'
