@@ -47,7 +47,6 @@ ExecStart=/usr/bin/node /opt/configarr/bundle.cjs
 
 EOF
 cat <<EOF >/etc/systemd/system/configarr-task.timer
-
 [Unit]
 Description=Run Configarr every 5 minutes
 
