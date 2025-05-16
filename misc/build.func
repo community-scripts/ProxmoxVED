@@ -49,8 +49,6 @@ error_handler() {
       pct stop "$CT_ID" &> /dev/null
       pct destroy "$CT_ID" &> /dev/null
       msg_ok "Removed this Container"
-    else
-      msg_warn "Did not remove this Container"
     fi
   fi
 }
@@ -322,6 +320,7 @@ EOF
     else
       echo -e "${INFO}${BOLD}${RD}Configuration file already exists at ${FILEPATH}${CL}"
       if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "Overwrite configfile" --yesno "Do you want to overwrite the existing config file?" 10 60; then
+              rm -f "$FILEPATH"
               cat <<EOF >"$FILEPATH"
 # ${NSAPP} Configuration File
 # Generated on $(date)
@@ -490,10 +489,8 @@ advanced_settings() {
   BRIDGES=""
   OLD_IFS=$IFS
   IFS=$'\n'
-  echo $IFACE_FILEPATH_LIST
   for iface_filepath in ${IFACE_FILEPATH_LIST}; do
 
-    echo -e "${INFO}${BOLD}${GN}Searching for bridges in ${iface_filepath}${CL}"
     iface_indexes_tmpfile=$(mktemp -q -u '.iface-XXXX')
     ( grep -Pn '^\s*iface' "${iface_filepath}" | cut -d':' -f1 && wc -l "${iface_filepath}" | cut -d' ' -f1 ) | awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' > "${iface_indexes_tmpfile}" || true
 
@@ -912,7 +909,7 @@ config_file() {
   for iface_filepath in ${IFACE_FILEPATH_LIST}; do
 
     iface_indexes_tmpfile=$(mktemp -q -u '.iface-XXXX')
-    ( grep -Pn '^\s*iface' "${iface_filepath}" | cut -d':' -f1 && wc -l "${iface_filepath}" | cut -d' ' -f1 ) | awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' > "${iface_indexes_tmpfile}"
+    ( grep -Pn '^\s*iface' "${iface_filepath}" | cut -d':' -f1 && wc -l "${iface_filepath}" | cut -d' ' -f1 ) | awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' > "${iface_indexes_tmpfile}" || true
 
     if [ -f "${iface_indexes_tmpfile}" ]; then
 
