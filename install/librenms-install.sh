@@ -58,7 +58,9 @@ $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
 fetch_and_deploy_gh_release "librenms/librenms"
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
-$STD pip3 install --no-user -r /opt/librenms/requirements.txt
+$STD uv venv .venv
+$STD source .venv/bin/activate
+$STD uv pip install -r requirements.txt
 cat <<EOF >/opt/librenms/.env
 DB_DATABASE=${DB_NAME}
 DB_USERNAME=${DB_USER}
@@ -116,8 +118,8 @@ msg_ok "Configured Nginx"
 
 msg_info "Configure Services"
 
-$STD php artisan migrate --force
-$STD php artisan key:generate --force
+$STD php"$PHP_VERSION" artisan migrate --force
+$STD php"$PHP_VERSION" artisan key:generate --force
 $STD su librenms -s /bin/bash -c "lnms db:seed --force"
 $STD su librenms -s /bin/bash -c "lnms user:add -p admin -r admin admin"
 ln -s /opt/librenms/lnms /usr/bin/lnms
