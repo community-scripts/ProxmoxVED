@@ -119,7 +119,8 @@ systemctl restart php8.2-fpm
 msg_ok "Configured Nginx"
 
 msg_info "Configure Services"
-$STD COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev
+COMPOSER_ALLOW_SUPERUSER=1
+$STD composer install --no-dev
 $STD php8.2 artisan migrate --force
 $STD php8.2 artisan key:generate --force
 $STD su librenms -s /bin/bash -c "lnms db:seed --force"
