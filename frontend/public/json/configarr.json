@@ -33,10 +33,6 @@
     },
     "notes": [
         {
-            "text": "change config file /opt/configarr/config.yml",
-            "type": "info"
-        },
-        {
             "text": "change secrets file /opt/configarr/secrets.yml",
             "type": "info"
         }
