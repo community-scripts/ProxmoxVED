@@ -48,7 +48,7 @@ function update_script() {
         systemctl start configarr-task.timer
         msg_ok "Started configarr"
 
-   rm -rf /opt/backup
+        rm -rf /opt/backup
         msg_ok "Update Successful"
     else
         msg_ok "No update required. ${APP} is already at v${RELEASE}"
