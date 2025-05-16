@@ -38,12 +38,11 @@ function update_script() {
         msg_ok "Stopped $APP"
 
         msg_info "Updating $APP to v${RELEASE}"
-        temp_dir=$(mktemp -d)
-        curl -fsSL "https://github.com/raydak-labs/configarr/archive/refs/tags/v${RELEASE}.zip" -o "${temp_dir}/v${RELEASE}.zip"
-        unzip -q "${temp_dir}/v${RELEASE}.zip" -d $temp_dir
-        mv /opt/configarr/{config.yml,secrets.yml,.env} "${temp_dir}/configarr-${RELEASE}/"
+        mkdir -p /opt/backup/
+        mv /opt/configarr/{config.yml,secrets.yml,.env} "/opt/backup/"
         rm -rf /opt/configarr
-        mv "${temp_dir}/configarr-${RELEASE}" "/opt/configarr"
+       fetch_and_deploy_gh_release "raydak-labs/configarr"
+       mv /opt/backup/* /opt/configarr/
         cd /opt/configarr
         pnpm install
         pnpm run build
