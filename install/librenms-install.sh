@@ -32,6 +32,7 @@ msg_ok "Installed Dependencies"
 PHP_VERSION=8.2 PHP_FPM=YES PHP_APACHE=NO install_php
 install_mariadb
 install_composer
+setup_uv
 
 msg_info "Installing Python"
 $STD apt-get install -y \
