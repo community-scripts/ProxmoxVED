@@ -44,31 +44,11 @@ sed -i \
   babybuddy/settings/production.py
 
 export DJANGO_SETTINGS_MODULE=babybuddy.settings.production
-python manage.py migrate
+$STD python manage.py migrate
 chown -R www-data:www-data /opt/data
 chmod 640 /opt/data/db.sqlite3
 chmod 750 /opt/data
-
-DJANGO_ADMIN_USER=admin
-DJANGO_ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
-python manage.py shell <<EOF
-from django.contrib.auth import get_user_model
-User = get_user_model()
-if not User.objects.filter(username='$DJANGO_ADMIN_USER').exists():
-    u = User.objects.create_user('$DJANGO_ADMIN_USER', password='$DJANGO_ADMIN_PASS')
-    u.is_superuser = True
-    u.is_staff = True
-    u.save()
-EOF
-
-{
-  echo ""
-  echo "Django-Credentials"
-  echo "Django Admin User: $DJANGO_ADMIN_USER"
-  echo "Django Admin Password: $DJANGO_ADMIN_PASS"
-} >>~/babybuddy.creds
-echo "${RELEASE}" >/opt/babybuddy_version.txt
-msg_ok "Setup Django Admin"
+msg_ok "Installed Babybuddy"
 
 msg_info "Configuring uWSGI"
 cat <<EOF >/etc/uwsgi/apps-available/babybuddy.ini
@@ -115,12 +95,14 @@ EOF
 ln -sf /etc/nginx/sites-available/babybuddy /etc/nginx/sites-enabled/babybuddy
 rm /etc/nginx/sites-enabled/default
 systemctl enable -q --now nginx
+service nginx reload
 msg_ok "Configured NGINX"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -f "$temp_file"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
