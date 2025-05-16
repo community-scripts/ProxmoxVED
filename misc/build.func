@@ -902,14 +902,22 @@ config_file() {
   done
   fi
 
-  if [[ -n "$HN" ]]; then
+  if [[ -n "${HN-}" ]]; then
     echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
   else
-    msg_error "Hostname cannot be empty"
-    exit
+    if CT_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 "$NSAPP" --title "HOSTNAME" 3>&1 1>&2 2>&3); then
+    if [ -z "$CT_NAME" ]; then
+      HN="$NSAPP"
+    else
+      HN=$(echo "${CT_NAME,,}" | tr -d ' ')
+    fi
+    echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
+  else
+    exit_script
+  fi
   fi
 
-  if [[ ! -z "$DISK_SIZE" ]]; then
+  if [[ -n "${DISK_SIZE-}" ]]; then
     if [[ "$DISK_SIZE" =~ ^-?[0-9]+$ ]]; then
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
     else
@@ -917,8 +925,20 @@ config_file() {
       exit
     fi
   else
-    msg_error "DISK_SIZE cannot be empty"
-    exit
+    if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GB" 8 58 "$var_disk" --title "DISK SIZE" 3>&1 1>&2 2>&3); then
+    if [ -z "$DISK_SIZE" ]; then
+      DISK_SIZE="$var_disk"
+      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
+    else
+      if ! [[ $DISK_SIZE =~ $INTEGER ]]; then
+        echo -e "{INFO}${HOLD}${RD} DISK SIZE MUST BE AN INTEGER NUMBER!${CL}"
+        advanced_settings
+      fi
+      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
+    fi
+  else
+    exit_script
+  fi
   fi
 
   if [[ -n "$CORE_COUNT" ]]; then
