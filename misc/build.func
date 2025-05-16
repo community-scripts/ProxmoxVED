@@ -831,7 +831,7 @@ config_file() {
   fi
 
   fi
-  if [[ -n "$CT_TYPE" ]]; then
+  if [[ -n "${CT_TYPE-}" ]]; then
     if [[ "$CT_TYPE" -eq 0 ]]; then
       CT_TYPE_DESC="Privileged"
     elif [[ "$CT_TYPE" -eq 1 ]]; then
@@ -842,8 +842,20 @@ config_file() {
     fi
     echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
   else
-    msg_error "Container Type cannot be empty"
-    exit
+   if CT_TYPE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CONTAINER TYPE" --radiolist "Choose Type" 10 58 2 \
+        "1" "Unprivileged" ON \
+        "0" "Privileged" OFF \
+        3>&1 1>&2 2>&3); then
+        if [ -n "$CT_TYPE" ]; then
+          CT_TYPE_DESC="Unprivileged"
+          if [ "$CT_TYPE" -eq 0 ]; then
+            CT_TYPE_DESC="Privileged"
+          fi
+          echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+        fi
+      else
+        exit_script
+      fi
   fi
 
   if [[ -n "${PW-}" ]]; then
