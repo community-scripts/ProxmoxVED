@@ -27,7 +27,6 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-
     RELEASE=$(curl -fsSL https://api.github.com/repos/raydak-labs/configarr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 
     if [[ "${RELEASE}" != "$(cat /opt/configarr_version.txt)" ]] || [[ ! -f /opt/configarr_version.txt ]]; then
