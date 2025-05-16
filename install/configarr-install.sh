@@ -30,10 +30,6 @@ ROOT_PATH=/opt/configarr
 CUSTOM_REPO_ROOT=/opt/configarr/repos
 CONFIG_LOCATION=/opt/configarr/config.yml
 SECRETS_LOCATION=/opt/configarr/secrets.yml
-#DRY_RUN=true # not fully supported yet
-#LOAD_LOCAL_SAMPLES=false
-#DEBUG_CREATE_FILES=false
-#LOG_LEVEL=info
 EOF
 mv /opt/configarr/secrets.yml.template /opt/configarr/secrets.yml
 sed 's|#localConfigTemplatesPath: /app/templates|#localConfigTemplatesPath: /opt/configarr/templates|' /opt/configarr/config.yml.template >/opt/configarr/config.yml
