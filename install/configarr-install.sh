@@ -74,7 +74,6 @@ msg_ok "Created Service"
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 rm -f $temp_file
 $STD apt-get -y autoremove
