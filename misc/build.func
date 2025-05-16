@@ -874,7 +874,7 @@ config_file() {
 
 
   if [[ -n "${PW-}" ]]; then
-    if [[ "$PW" == "no" ]]; then
+    if [[ "$PW" == "none" ]]; then
       PW=""
     else
       if [[ "$PW" == *" "* ]]; then
@@ -912,7 +912,6 @@ config_file() {
       else
         PW1="Automatic Login"
         PW=""
-        PW_CONFIG="no"
         echo -e "${VERIFYPW}${BOLD}${DGN}Root Password: ${BGN}$PW1${CL}"
         break
       fi
