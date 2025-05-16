@@ -67,6 +67,7 @@ EOF
   echo "Django Admin User: $DJANGO_ADMIN_USER"
   echo "Django Admin Password: $DJANGO_ADMIN_PASS"
 } >>~/babybuddy.creds
+echo "${RELEASE}" >/opt/babybuddy_version.txt
 msg_ok "Setup Django Admin"
 
 msg_info "Configuring uWSGI"
