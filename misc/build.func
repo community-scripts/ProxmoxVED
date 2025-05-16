@@ -313,7 +313,7 @@ TAGS="${TAGS}"
 PW="${PW1}"
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
-VERBOSE="${VERBOSE}"
+VERBOSE="${VERB}"
 
 EOF
       echo -e "${INFO}${BOLD}${GN}Writing configuration to ${FILEPATH}${CL}"
@@ -337,7 +337,7 @@ TAGS="${TAGS}"
 PW="${PW1}"
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
-VERBOSE="${VERBOSE}"
+VERBOSE="${VERB}"
 
 EOF
         echo -e "${INFO}${BOLD}${GN}Writing configuration to ${FILEPATH}${CL}"
