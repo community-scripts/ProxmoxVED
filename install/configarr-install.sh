@@ -42,7 +42,6 @@ pnpm install
 pnpm run build
 msg_ok "Setup ${APPLICATION}"
 
-# Creating Service (if needed)
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/configarr-task.service
 
