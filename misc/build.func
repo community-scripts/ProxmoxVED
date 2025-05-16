@@ -1226,8 +1226,7 @@ config_file() {
       fi
       echo -e "${VLANTAG}${BOLD}${DGN}Vlan: ${BGN}$VLAN1${CL}"
     else
-      #exit_script
-      echo "test"
+      exit_script
     fi
   fi
 
@@ -1248,7 +1247,7 @@ config_file() {
     fi
   fi
 
-  if [[ -n "${SSH}" ]]; then
+  if [[ -n "${SSH-}" ]]; then
     if [[ "$SSH" == "yes" ]]; then
       echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
       if [[ ! -z "$SSH_AUTHORIZED_KEY" ]]; then
@@ -1280,7 +1279,7 @@ config_file() {
     fi
   fi
 
-  if [[ -n "$VERBOSE" ]]; then
+  if [[ -n "${VERBOSE-}" ]]; then
     if [[ "$VERBOSE" == "yes" ]]; then
       echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERBOSE${CL}"
     elif [[ "$VERBOSE" == "no" ]]; then
