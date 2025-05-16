@@ -120,8 +120,8 @@ msg_ok "Configured Nginx"
 
 msg_info "Configure Services"
 
-$STD php"$PHP_VERSION" artisan migrate --force
-$STD php"$PHP_VERSION" artisan key:generate --force
+$STD php8.2 artisan migrate --force
+$STD php8.2 artisan key:generate --force
 $STD su librenms -s /bin/bash -c "lnms db:seed --force"
 $STD su librenms -s /bin/bash -c "lnms user:add -p admin -r admin admin"
 ln -s /opt/librenms/lnms /usr/bin/lnms
