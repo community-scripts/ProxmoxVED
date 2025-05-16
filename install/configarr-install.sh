@@ -22,11 +22,7 @@ NODE_MODULE="pnpm@latest" install_node_and_modules
 
 msg_info "Installing Configarr"
 
-temp_file=$(mktemp)
-RELEASE=$(curl -fsSL https://api.github.com/repos/raydak-labs/configarr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/raydak-labs/configarr/archive/refs/tags/v${RELEASE}.zip" -o $temp_file
-$STD unzip -q $temp_file -d /opt
-$STD mv /opt/configarr-${RELEASE} /opt/configarr
+fetch_and_deploy_gh_release "raydak-labs/configarr"
 
 msg_info "Setup ${APPLICATION}"
 cat <<EOF >/opt/configarr/.env
