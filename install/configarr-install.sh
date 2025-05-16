@@ -37,7 +37,6 @@ msg_ok "Setup ${APPLICATION}"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/configarr-task.service
-
 [Unit]
 Description=Run Configarr Task
 
