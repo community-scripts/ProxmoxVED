@@ -310,7 +310,7 @@ BRG="${BRG}"
 APT_CACHER_IP="${APT_CACHER_IP}"
 DISABLEIP6="${DISABLEIP6}"
 TAGS="${TAGS}"
-PW="${PW1}"
+PW="${PW_CONFIG}"
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
 VERBOSE="${VERBOSE}"
@@ -334,7 +334,7 @@ BRG="${BRG}"
 APT_CACHER_IP="${APT_CACHER_IP}"
 DISABLEIP6="${DISABLEIP6}"
 TAGS="${TAGS}"
-PW="${PW1}"
+PW="${PW_CONFIG}"
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
 VERBOSE="${VERBOSE}"
@@ -858,17 +858,22 @@ config_file() {
       fi
   fi
 
+
   if [[ -n "${PW-}" ]]; then
-    if [[ "$PW" == *" "* ]]; then
-      msg_error "Password cannot be empty"
-      exit
-    elif [[ ${#PW} -lt 5 ]]; then
-      msg_error "Password must be at least 5 characters long"
-      exit
+    if [[ "$PW" == "no" ]]; then
+      PW=""
     else
-      echo -e "${VERIFYPW}${BOLD}${DGN}Root Password: ${BGN}********${CL}"
+      if [[ "$PW" == *" "* ]]; then
+        msg_error "Password cannot be empty"
+        exit
+      elif [[ ${#PW} -lt 5 ]]; then
+        msg_error "Password must be at least 5 characters long"
+        exit
+      else
+        echo -e "${VERIFYPW}${BOLD}${DGN}Root Password: ${BGN}********${CL}"
+      fi
+      PW="-password $PW"
     fi
-    PW="-password $PW"
   else
     while true; do
     if PW1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --passwordbox "\nSet Root Password (needed for root ssh access)" 9 58 --title "PASSWORD (leave blank for automatic login)" 3>&1 1>&2 2>&3); then
@@ -893,6 +898,7 @@ config_file() {
       else
         PW1="Automatic Login"
         PW=""
+        PW_CONFIG="no"
         echo -e "${VERIFYPW}${BOLD}${DGN}Root Password: ${BGN}$PW1${CL}"
         break
       fi
