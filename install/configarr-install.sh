@@ -19,9 +19,6 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 NODE_MODULE="pnpm@latest" install_node_and_modules
-
-msg_info "Installing Configarr"
-
 fetch_and_deploy_gh_release "raydak-labs/configarr"
 
 msg_info "Setup ${APPLICATION}"
