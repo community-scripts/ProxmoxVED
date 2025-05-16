@@ -87,7 +87,7 @@ server {
     }
 
     location /media {
-        alias /opt/babybuddy/media;
+        alias /opt/data/media;
     }
 }
 EOF
