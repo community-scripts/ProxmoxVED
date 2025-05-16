@@ -22,9 +22,11 @@ $STD apt-get install -y \
   libpq-dev \
   nginx \
   python3 \
-  python3-venv \
-  python3-pip
+  python3-pip \
+  pipx
 msg_ok "Installed Dependencies"
+
+setup_uv
 
 msg_info "Installing Babybuddy"
 cd /opt
@@ -34,18 +36,17 @@ unzip -q v${RELEASE}.zip
 mv babybuddy-${RELEASE} /opt/babybuddy
 rm "v${RELEASE}.zip"
 cd /opt/babybuddy
-$STD pip install -U pip wheel pipenv
-export PIPENV_VENV_IN_PROJECT=1
-export PIPENV_IGNORE_VIRTUALENVS=1
-export PIPENV_VERBOSITY=-1
-$STD pipenv install
-#$STD pipenv shell
+mkdir -p /opt/data
+uv venv .venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
 cp babybuddy/settings/production.example.py babybuddy/settings/production.py
-touch /opt/babybuddy/data/db.sqlite3
-chown -R www-data:www-data /opt/babybuddy/data
-chmod 640 /opt/babybuddy/data/db.sqlite3
-chmod 750 /opt/babybuddy/data
+touch /opt/data/db.sqlite3
+chown -R www-data:www-data /opt/data
+chmod 640 /opt/data/db.sqlite3
+chmod 750 /opt/data
 
+cp babybuddy/settings/production.example.py babybuddy/settings/production.py
 SECRET_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
 ALLOWED_HOSTS=$(hostname -I | tr ' ' ',' | sed 's/,$//')",127.0.0.1,localhost"
 sed -i \
@@ -55,12 +56,6 @@ sed -i \
 
 export DJANGO_SETTINGS_MODULE=babybuddy.settings.production
 python manage.py migrate
-
-# Berechtigungen setzen
-chown -R www-data:www-data /opt/babybuddy/data
-chmod 640 /opt/babybuddy/data/db.sqlite3
-chmod 750 /opt/babybuddy/data
-msg_ok "Installed BabyBuddy WebApp"
 
 # Django Admin Setup
 DJANGO_ADMIN_USER=admin
