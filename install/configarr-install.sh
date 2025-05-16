@@ -57,7 +57,6 @@ Persistent=true
 
 [Install]
 WantedBy=timers.target
-
 EOF
 systemctl enable -q --now configarr-task.timer
 msg_ok "Created Service"
