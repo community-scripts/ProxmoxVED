@@ -1186,7 +1186,7 @@ config_file() {
     fi
   fi
 
-  if [[ -n "${MAC}" ]]; then
+  if [[ -n "${MAC-}" ]]; then
     if [[ "$MAC" =~ ^([A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2}$ ]]; then
       echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}$MAC${CL}"
       MAC=",hwaddr=$MAC"
