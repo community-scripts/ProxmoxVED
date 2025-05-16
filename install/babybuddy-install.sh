@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2024 community-scripts ORG
+# Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | htt
-# Source: https://github.com/AnalogJ/scrutiny
+# License: MIT | http
+# Source: https://github.com/babybuddy/babybuddy
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -13,7 +13,6 @@ setting_up_container
 network_check
 update_os
 
-# Installiere benötigte Pakete
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   uwsgi \
@@ -21,31 +20,21 @@ $STD apt-get install -y \
   libopenjp2-7-dev \
   libpq-dev \
   nginx \
-  python3 \
-  python3-pip \
-  pipx
+  python3
 msg_ok "Installed Dependencies"
 
 setup_uv
 
 msg_info "Installing Babybuddy"
-cd /opt
 RELEASE=$(curl -fsSL https://api.github.com/repos/babybuddy/babybuddy/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-wget -q "https://github.com/babybuddy/babybuddy/archive/refs/tags/v${RELEASE}.zip"
-unzip -q v${RELEASE}.zip
-mv babybuddy-${RELEASE} /opt/babybuddy
-rm "v${RELEASE}.zip"
+temp_file=$(mktemp)
+mkdir -p /opt/{babybuddy,data}
+curl -fsSL "https://github.com/babybuddy/babybuddy/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
+tar zxf "$temp_file" --strip-components=1 -C /opt/babybuddy
 cd /opt/babybuddy
-mkdir -p /opt/data
-uv venv .venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-cp babybuddy/settings/production.example.py babybuddy/settings/production.py
-touch /opt/data/db.sqlite3
-chown -R www-data:www-data /opt/data
-chmod 640 /opt/data/db.sqlite3
-chmod 750 /opt/data
-
+$STD uv venv .venv
+$STD source .venv/bin/activate
+$STD uv pip install -r requirements.txt
 cp babybuddy/settings/production.example.py babybuddy/settings/production.py
 SECRET_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
 ALLOWED_HOSTS=$(hostname -I | tr ' ' ',' | sed 's/,$//')",127.0.0.1,localhost"
@@ -56,8 +45,10 @@ sed -i \
 
 export DJANGO_SETTINGS_MODULE=babybuddy.settings.production
 python manage.py migrate
+chown -R www-data:www-data /opt/data
+chmod 640 /opt/data/db.sqlite3
+chmod 750 /opt/data
 
-# Django Admin Setup
 DJANGO_ADMIN_USER=admin
 DJANGO_ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 python manage.py shell <<EOF
@@ -78,9 +69,8 @@ EOF
 } >>~/babybuddy.creds
 msg_ok "Setup Django Admin"
 
-# uWSGI konfigurieren
 msg_info "Configuring uWSGI"
-sudo bash -c "cat > /etc/uwsgi/apps-available/babybuddy.ini" <<EOF
+cat <<EOF >/etc/uwsgi/apps-available/babybuddy.ini
 [uwsgi]
 plugins = python3
 project = babybuddy
@@ -91,12 +81,15 @@ module = %(project).wsgi:application
 env = DJANGO_SETTINGS_MODULE=%(project).settings.production
 master = True
 vacuum = True
+socket = /var/run/uwsgi/app/babybuddy/socket
+chmod-socket = 660
+uid = www-data
+gid = www-data
 EOF
+ln -sf /etc/uwsgi/apps-available/babybuddy.ini /etc/uwsgi/apps-enabled/babybuddy.ini
+service uwsgi restart
+msg_ok "Configured uWSGI"
 
-sudo ln -sf /etc/uwsgi/apps-available/babybuddy.ini /etc/uwsgi/apps-enabled/babybuddy.ini
-sudo service uwsgi restart
-
-# NGINX konfigurieren
 msg_info "Configuring NGINX"
 cat <<EOF >/etc/nginx/sites-available/babybuddy
 upstream babybuddy {
@@ -119,7 +112,9 @@ server {
 EOF
 
 ln -sf /etc/nginx/sites-available/babybuddy /etc/nginx/sites-enabled/babybuddy
-service nginx restart
+rm /etc/nginx/sites-enabled/default
+systemctl enable -q --now nginx
+msg_ok "Configured NGINX"
 
 motd_ssh
 customize
