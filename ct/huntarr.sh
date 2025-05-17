@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/plexguide/Huntarr.io
 
-APP="Huntarr"
+APP="huntarr"
 var_tags="${var_tags:-arr}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-1024}"
@@ -36,30 +36,30 @@ function update_script() {
     msg_ok "Stopped $APP"
 
     msg_info "Creating Backup"
-    if ls /opt/${APP}_backup_*.tar.gz &>/dev/null; then
-      rm -f /opt/${APP}_backup_*.tar.gz
+    if ls /opt/"${APP}"_backup_*.tar.gz &>/dev/null; then
+      rm -f /opt/"${APP}"_backup_*.tar.gz
       msg_info "Removed previous backup"
     fi
-    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/huntarr
+    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/"${APP}"
     msg_ok "Backup Created"
 
     msg_info "Updating $APP to v${RELEASE}"
-    curl -fsSL -o "/opt/huntarr/${RELEASE}.zip" "https://github.com/plexguide/Huntarr.io/archive/refs/tags/${RELEASE}.zip"
-    unzip -q -o "/opt/huntarr/${RELEASE}.zip" -d /tmp
-    cp -rf "/tmp/Huntarr.io-${RELEASE}"/* /opt/huntarr/
+    curl -fsSL -o "/opt/${APP}/${RELEASE}.zip" "https://github.com/plexguide/Huntarr.io/archive/refs/tags/${RELEASE}.zip"
+    unzip -q -o "/opt/${APP}/${RELEASE}.zip" -d /tmp
+    cp -rf "/tmp/Huntarr.io-${RELEASE}"/* /opt/"${APP}"/
 
     msg_info "Updating Python dependencies"
-    cd /opt/huntarr || exit
-    if [[ -f "/opt/huntarr/.requirements_checksum" ]]; then
+    cd /opt/"${APP}" || exit
+    if [[ -f "/opt/${APP}/.requirements_checksum" ]]; then
       CURRENT_CHECKSUM=$(md5sum requirements.txt | awk '{print $1}')
       STORED_CHECKSUM=$(cat .requirements_checksum)
 
       if [[ "$CURRENT_CHECKSUM" != "$STORED_CHECKSUM" ]]; then
         msg_info "Requirements have changed. Performing full upgrade."
-        uv pip install -r requirements.txt --python /opt/huntarr/venv/bin/python
+        uv pip install -r requirements.txt --python /opt/"${APP}"/venv/bin/python
       else
         msg_info "Requirements unchanged. Verifying installation."
-        uv pip install -r requirements.txt --python /opt/huntarr/venv/bin/python
+        uv pip install -r requirements.txt --python /opt/"${APP}"/venv/bin/python
       fi
     else
       if ! command -v uv &>/dev/null; then
@@ -67,7 +67,7 @@ function update_script() {
         curl -LsSf https://astral.sh/uv/install.sh | sh
         msg_ok "UV package manager installed"
       fi
-      uv pip install -r requirements.txt --python /opt/huntarr/venv/bin/python
+      uv pip install -r requirements.txt --python /opt/"${APP}"/venv/bin/python
     fi
     md5sum requirements.txt | awk '{print $1}' >.requirements_checksum
     msg_ok "Updated Python dependencies"
@@ -78,11 +78,11 @@ function update_script() {
     msg_ok "Started $APP"
 
     msg_info "Cleaning Up"
-    rm -f "/opt/huntarr/${RELEASE}.zip"
+    rm -f "/opt/${APP}/${RELEASE}.zip"
     rm -rf "/tmp/Huntarr.io-${RELEASE}"
     msg_ok "Cleanup Completed"
 
-    echo "${RELEASE}" >/opt/huntarr_version.txt
+    echo "${RELEASE}" >/opt/"${APP}"_version.txt
     msg_ok "Update Successful"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
