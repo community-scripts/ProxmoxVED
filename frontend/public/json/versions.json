@@ -1,5 +1,35 @@
 [
   {
+    "name": "BookStackApp/BookStack",
+    "version": "v25.02.5",
+    "date": "2025-05-17T11:24:01Z"
+  },
+  {
+    "name": "Paymenter/Paymenter",
+    "version": "v1.1.1",
+    "date": "2025-05-17T10:10:36Z"
+  },
+  {
+    "name": "evcc-io/evcc",
+    "version": "0.203.6",
+    "date": "2025-05-17T07:30:49Z"
+  },
+  {
+    "name": "prometheus/prometheus",
+    "version": "v0.304.0",
+    "date": "2025-05-17T07:29:09Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.1913",
+    "date": "2025-05-17T05:56:27Z"
+  },
+  {
+    "name": "cross-seed/cross-seed",
+    "version": "v6.12.5",
+    "date": "2025-05-17T02:52:33Z"
+  },
+  {
     "name": "syncthing/syncthing",
     "version": "v1.29.6",
     "date": "2025-05-06T07:57:02Z"
@@ -60,11 +90,6 @@
     "date": "2025-05-14T12:06:20Z"
   },
   {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.1908",
-    "date": "2025-05-16T05:54:21Z"
-  },
-  {
     "name": "gotson/komga",
     "version": "1.21.3",
     "date": "2025-05-16T04:31:05Z"
@@ -73,11 +98,6 @@
     "name": "mattermost/mattermost",
     "version": "server/public/v0.1.13",
     "date": "2025-05-16T03:44:25Z"
-  },
-  {
-    "name": "cross-seed/cross-seed",
-    "version": "v6.12.4",
-    "date": "2025-05-11T11:41:32Z"
   },
   {
     "name": "ipfs/kubo",
@@ -132,7 +152,7 @@
   {
     "name": "theonedev/onedev",
     "version": "v11.9.7",
-    "date": "2025-05-15T08:41:54Z"
+    "date": "2025-05-15T07:03:28Z"
   },
   {
     "name": "morpheus65535/bazarr",
@@ -146,8 +166,8 @@
   },
   {
     "name": "ollama/ollama",
-    "version": "v0.7.0",
-    "date": "2025-05-14T23:42:30Z"
+    "version": "v0.7.0-rc1",
+    "date": "2025-05-14T03:58:02Z"
   },
   {
     "name": "glanceapp/glance",
@@ -290,11 +310,6 @@
     "date": "2025-05-08T12:25:10Z"
   },
   {
-    "name": "Paymenter/Paymenter",
-    "version": "v1.1.0",
-    "date": "2025-05-12T14:40:27Z"
-  },
-  {
     "name": "apache/tika",
     "version": "3.2.0-rc1",
     "date": "2025-05-12T13:06:47Z"
@@ -373,11 +388,6 @@
     "name": "pocket-id/pocket-id",
     "version": "v0.53.0",
     "date": "2025-05-08T19:56:55Z"
-  },
-  {
-    "name": "BookStackApp/BookStack",
-    "version": "v25.02.4",
-    "date": "2025-05-08T15:03:17Z"
   },
   {
     "name": "apache/tomcat",
