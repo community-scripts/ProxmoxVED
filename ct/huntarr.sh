@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: BiluliB
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -30,22 +30,10 @@ function update_script() {
   fi
 
   RELEASE=$(curl -fsSL https://api.github.com/repos/plexguide/Huntarr.io/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-  if [[ "${RELEASE}" != "$(cat /opt/huntarr_version.txt 2>/dev/null)" ]] || [[ ! -f /opt/huntarr_version.txt ]]; then
+  if [[ "${RELEASE}" != "$(cat /opt/"${APP}"_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
     msg_info "Stopping $APP"
     systemctl stop huntarr
     msg_ok "Stopped $APP"
-
-    msg_info "Checking system dependencies"
-    $STD apt-get update
-    $STD apt-get install -y \
-      curl \
-      tar \
-      unzip \
-      jq \
-      python3 \
-      python3-pip \
-      python3-venv
-    msg_ok "System dependencies updated"
 
     msg_info "Creating Backup"
     if ls /opt/${APP}_backup_*.tar.gz &>/dev/null; then
@@ -68,15 +56,19 @@ function update_script() {
 
       if [[ "$CURRENT_CHECKSUM" != "$STORED_CHECKSUM" ]]; then
         msg_info "Requirements have changed. Performing full upgrade."
-        /opt/huntarr/venv/bin/pip install --upgrade -r requirements.txt
+        uv pip install -r requirements.txt --python /opt/huntarr/venv/bin/python
       else
         msg_info "Requirements unchanged. Verifying installation."
-        /opt/huntarr/venv/bin/pip install -r requirements.txt
+        uv pip install -r requirements.txt --python /opt/huntarr/venv/bin/python
       fi
     else
-      /opt/huntarr/venv/bin/pip install --upgrade -r requirements.txt
+      if ! command -v uv &>/dev/null; then
+        msg_info "Installing UV package manager"
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        msg_ok "UV package manager installed"
+      fi
+      uv pip install -r requirements.txt --python /opt/huntarr/venv/bin/python
     fi
-
     md5sum requirements.txt | awk '{print $1}' >.requirements_checksum
     msg_ok "Updated Python dependencies"
     msg_ok "Updated $APP to v${RELEASE}"
@@ -92,6 +84,8 @@ function update_script() {
 
     echo "${RELEASE}" >/opt/huntarr_version.txt
     msg_ok "Update Successful"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
   exit
 }

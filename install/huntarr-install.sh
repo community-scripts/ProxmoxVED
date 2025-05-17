@@ -17,33 +17,27 @@ APPLICATION="huntarr"
 REPO_NAME="Huntarr.io"
 
 msg_info "Installing Dependencies"
+$STD apt-get install -y jq
+msg_ok "Installed Dependencies"
+
+msg_info "Installing Python"
 $STD apt-get install -y \
-  curl \
-  tar \
-  unzip \
-  jq \
   python3 \
-  python3-pip \
   python3-venv
-msg_ok "Installed System Dependencies"
+$STD bash -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
+export PATH="/root/.local/bin:$HOME/.cargo/bin:$PATH"
+command -v uv &>/dev/null
+msg_ok "Installed Python"
 
-msg_info "Setup ${APPLICATION}"
+msg_info "Setting Up ${APPLICATION}"
 RELEASE=$(curl -fsSL https://api.github.com/repos/plexguide/Huntarr.io/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL -o "${RELEASE}.zip" "https://github.com/plexguide/Huntarr.io/archive/refs/tags/${RELEASE}.zip"
-unzip -q "${RELEASE}.zip"
-mv "${REPO_NAME}-${RELEASE}/" "/opt/${APPLICATION}"
-
+$STD curl -fsSL -o "${RELEASE}.zip" "https://github.com/plexguide/Huntarr.io/archive/refs/tags/${RELEASE}.zip"
+$STD unzip -q "${RELEASE}.zip"
+$STD mv "${REPO_NAME}-${RELEASE}/" "/opt/${APPLICATION}"
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-msg_ok "Setup ${APPLICATION}"
-
-msg_info "Setting up Python Environment"
-$STD python3 -m venv /opt/${APPLICATION}/venv
-msg_ok "Created Python Virtual Environment"
-
-msg_info "Installing Python Dependencies"
-$STD /opt/${APPLICATION}/venv/bin/pip install --upgrade pip
-$STD /opt/${APPLICATION}/venv/bin/pip install -r /opt/${APPLICATION}/requirements.txt
-msg_ok "Installed Python Dependencies"
+$STD uv venv /opt/${APPLICATION}/venv
+$STD uv pip install --python /opt/${APPLICATION}/venv/bin/python -r /opt/${APPLICATION}/requirements.txt
+msg_ok "Setup ${APPLICATION} Complete"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/${APPLICATION}.service
