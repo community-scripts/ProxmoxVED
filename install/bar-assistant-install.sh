@@ -21,7 +21,8 @@ $STD apt-get install -y \
   redis-server \
   npm \
   nginx \
-  lsb-release
+  lsb-release \
+  libvips
 msg_ok "Installed Dependencies"
 
 msg_info "Adding PHP8.4 Repository"
