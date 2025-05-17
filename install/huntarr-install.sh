@@ -24,20 +24,22 @@ msg_info "Installing Python"
 $STD apt-get install -y \
   python3 \
   python3-venv
-$STD bash -c "curl -LsSf https://astral.sh/uv/install.sh | sh"
-export PATH="/root/.local/bin:$HOME/.cargo/bin:$PATH"
-command -v uv &>/dev/null
 msg_ok "Installed Python"
 
-msg_info "Setting Up ${APPLICATION}"
+msg_info "Setup uv"
+setup_uv
+msg_ok "Setup uv"
+
+msg_info "Setting Up Huntarr"
 RELEASE=$(curl -fsSL https://api.github.com/repos/plexguide/Huntarr.io/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-$STD curl -fsSL -o "${RELEASE}.zip" "https://github.com/plexguide/Huntarr.io/archive/refs/tags/${RELEASE}.zip"
-$STD unzip -q "${RELEASE}.zip"
+temp_file=$(mktemp)
+$STD curl -fsSL -o "$temp_file" "https://github.com/plexguide/Huntarr.io/archive/refs/tags/${RELEASE}.zip"
+$STD unzip -q "$temp_file"
 $STD mv "${REPO_NAME}-${RELEASE}/" "/opt/${APPLICATION}"
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 $STD uv venv /opt/${APPLICATION}/venv
 $STD uv pip install --python /opt/${APPLICATION}/venv/bin/python -r /opt/${APPLICATION}/requirements.txt
-msg_ok "Setup ${APPLICATION} Complete"
+msg_ok "Setup Huntrarr Complete"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/${APPLICATION}.service
@@ -58,7 +60,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -f "${RELEASE}.zip"
+rm -f "$temp_file"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
