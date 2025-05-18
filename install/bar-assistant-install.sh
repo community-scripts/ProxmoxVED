@@ -32,12 +32,15 @@ $STD sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https
 $STD apt-get update
 msg_ok "Added PHP8.4 Repository"
 
-msg_info "Installing PHP"
+msg_info "Installing / configuring PHP"
 $STD apt-get remove -y php8.2*
 $STD apt-get install -y \
   php8.4 \
   php8.4-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm}
-msg_info "Installed PHP"
+
+PHPConfigPath=$(php --ini | grep "Loaded Configuration File" | awk -F': ' '{print $2}' | xargs)
+sed -i.bak -E 's/^\s*;?\s*ffi\.enable\s*=.*/ffi.enable=true/' "$PHPConfigPath"
+msg_info "Installed  / configured PHP"
 
 msg_info "Installing MeiliSearch"
 cd /opt
