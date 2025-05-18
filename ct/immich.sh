@@ -172,7 +172,7 @@ function update_script() {
           msg_ok "Recompiled libvips"
         fi
       done
-      mv ~/.new_revisions ~/.immich_library_revisions
+      echo -n "${NEW_REVISIONS[@]}" >~/.immich_library_revisions
       msg_ok "Image-processing libraries compiled"
     fi
   fi
