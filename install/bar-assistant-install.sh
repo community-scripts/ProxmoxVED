@@ -37,9 +37,8 @@ $STD apt-get remove -y php8.2*
 $STD apt-get install -y \
   php8.4 \
   php8.4-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm}
-
-PHPConfigPath=$(php --ini | grep "Loaded Configuration File" | awk -F': ' '{print $2}' | xargs)
-sed -i.bak -E 's/^\s*;?\s*ffi\.enable\s*=.*/ffi.enable=true/' "$PHPConfigPath"
+PHPVER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "\n";')
+sed -i.bak -E 's/^\s*;?\s*ffi\.enable\s*=.*/ffi.enable=true/' /etc/php/${PHPVER}/fpm/php.ini
 msg_info "Installed  / configured PHP"
 
 msg_info "Installing MeiliSearch"
@@ -105,6 +104,7 @@ $STD php artisan scout:sync-index-settings
 $STD php artisan config:cache
 $STD php artisan route:cache
 $STD php artisan event:cache
+mkdir /opt/bar-assistant/storage/bar-assistant/uploads/temp
 chown -R www-data:www-data /opt/bar-assistant
 echo "${RELEASE_BARASSISTANT}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Bar Assistant"
