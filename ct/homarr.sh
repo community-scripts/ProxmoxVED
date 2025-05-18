@@ -126,7 +126,7 @@ EOF
     cd /opt/homarr
     echo "test"
     export NODE_ENV=""
-    $STD pnpm install --recursive --frozen-lockfile
+    $STD pnpm install --recursive --frozen-lockfile --shamefully-hoist
     $STD pnpm build
     cp /opt/homarr/apps/nextjs/next.config.ts .
     cp /opt/homarr/apps/nextjs/package.json .
