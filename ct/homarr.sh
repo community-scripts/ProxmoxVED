@@ -125,7 +125,7 @@ EOF
     mv /opt/homarr-data-backup/.env /opt/homarr/.env
     cd /opt/homarr
     
-    $STD pnpm install --recursive --frozen-lockfile --production=false
+    $STD pnpm install --recursive --frozen-lockfile --production=true
     $STD pnpm build
     cp /opt/homarr/apps/nextjs/next.config.ts .
     cp /opt/homarr/apps/nextjs/package.json .
