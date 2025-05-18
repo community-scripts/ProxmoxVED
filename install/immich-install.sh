@@ -180,7 +180,7 @@ cd "$STAGING_DIR"
 SOURCE=${SOURCE_DIR}/libjxl
 JPEGLI_LIBJPEG_LIBRARY_SOVERSION="62"
 JPEGLI_LIBJPEG_LIBRARY_VERSION="62.3.0"
-: "${LIBJXL_REVISION:=$(jq -cr '.sources[] | select(.name == "libjxl").revision' $BASE_DIR/server/bin/build-lock.json)}"
+: "${LIBJXL_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/libjxl.json)}"
 $STD git clone https://github.com/libjxl/libjxl.git "$SOURCE"
 cd "$SOURCE"
 $STD git reset --hard "$LIBJXL_REVISION"
@@ -215,7 +215,7 @@ cd "$STAGING_DIR"
 rm -rf "$SOURCE"/{build,third_party}
 
 SOURCE=${SOURCE_DIR}/libheif
-: "${LIBHEIF_REVISION:=$(jq -cr '.sources[] | select(.name == "libheif").revision' $BASE_DIR/server/bin/build-lock.json)}"
+: "${LIBHEIF_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/libheif.json)}"
 $STD git clone https://github.com/strukturag/libheif.git "$SOURCE"
 cd "$SOURCE"
 $STD git reset --hard "$LIBHEIF_REVISION"
@@ -238,7 +238,7 @@ cd "$STAGING_DIR"
 rm -rf "$SOURCE"/build
 
 SOURCE=${SOURCE_DIR}/libraw
-: "${LIBRAW_REVISION:=$(jq -cr '.sources[] | select(.name == "libraw").revision' $BASE_DIR/server/bin/build-lock.json)}"
+: "${LIBRAW_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/libraw.json)}"
 $STD git clone https://github.com/libraw/libraw.git "$SOURCE"
 cd "$SOURCE"
 $STD git reset --hard "$LIBRAW_REVISION"
@@ -251,7 +251,7 @@ $STD make clean
 cd "$STAGING_DIR"
 
 SOURCE=$SOURCE_DIR/imagemagick
-: "${IMAGEMAGICK_REVISION:=$(jq -cr '.sources[] | select(.name == "imagemagick").revision' $BASE_DIR/server/bin/build-lock.json)}"
+: "${IMAGEMAGICK_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/imagemagick.json)}"
 $STD git clone https://github.com/ImageMagick/ImageMagick.git "$SOURCE"
 cd "$SOURCE"
 $STD git reset --hard "$IMAGEMAGICK_REVISION"
@@ -263,7 +263,7 @@ $STD make clean
 cd "$STAGING_DIR"
 
 SOURCE=$SOURCE_DIR/libvips
-: "${LIBVIPS_REVISION:=$(jq -cr '.sources[] | select(.name == "libvips").revision' $BASE_DIR/server/bin/build-lock.json)}"
+: "${LIBVIPS_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/libvips.json)}"
 $STD git clone https://github.com/libvips/libvips.git "$SOURCE"
 cd "$SOURCE"
 $STD git reset --hard "$LIBVIPS_REVISION"
@@ -312,7 +312,7 @@ cd "$SRC_DIR"
 cp -a server/{node_modules,dist,bin,resources,package.json,package-lock.json,start*.sh} "$APP_DIR"/
 cp -a web/build "$APP_DIR"/www
 cp LICENSE "$APP_DIR"
-cp "$BASE_DIR"/server/bin/build-lock.json "$APP_DIR"
+# cp "$BASE_DIR"/server/bin/build-lock.json "$APP_DIR"
 msg_ok "Installed Immich Web Components"
 
 cd "$SRC_DIR"/machine-learning
