@@ -124,7 +124,7 @@ EOF
     fetch_and_deploy_gh_release "homarr-labs/homarr"
     mv /opt/homarr-data-backup/.env /opt/homarr/.env
     cd /opt/homarr
-    echo "test"
+    echo "test2"
     export NODE_ENV=""
     $STD pnpm install --recursive --frozen-lockfile --shamefully-hoist
     $STD pnpm build
