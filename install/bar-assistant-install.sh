@@ -39,6 +39,7 @@ $STD apt-get install -y \
   php8.4-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm}
 PHPVER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "\n";')
 sed -i.bak -E 's/^\s*;?\s*ffi\.enable\s*=.*/ffi.enable=true/' /etc/php/${PHPVER}/fpm/php.ini
+$STD systemctl reload php${PHPVER}-fpm
 msg_info "Installed  / configured PHP"
 
 msg_info "Installing MeiliSearch"
