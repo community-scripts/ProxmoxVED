@@ -274,11 +274,11 @@ ldconfig /usr/local/lib
 cd "$STAGING_DIR"
 rm -rf "$SOURCE"/build
 {
-  echo "$IMAGEMAGICK_REVISION"
-  echo "$LIBHEIF_REVISION"
-  echo "$LIBJXL_REVISION"
-  echo "$LIBRAW_REVISION"
-  echo "$LIBVIPS_REVISION"
+  echo "imagemagick: $IMAGEMAGICK_REVISION"
+  echo "libheif: $LIBHEIF_REVISION"
+  echo "libjxl: $LIBJXL_REVISION"
+  echo "libraw: $LIBRAW_REVISION"
+  echo "libvips: $LIBVIPS_REVISION"
 } >~/.immich_library_revisions
 msg_ok "Custom Photo-processing Library Compiled"
 
