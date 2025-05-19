@@ -34,8 +34,20 @@ cd /opt/openwebui/backend
 $STD pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 $STD pip3 install -r requirements.txt -U
 cd /opt/openwebui
-cp .env.example .env
 cat <<EOF >/opt/openwebui/.env
+# Ollama URL for the backend to connect
+# The path '/ollama' will be redirected to the specified backend URL
+OLLAMA_BASE_URL='http://localhost:11434'
+
+OPENAI_API_BASE_URL=''
+OPENAI_API_KEY=''
+
+# AUTOMATIC1111_BASE_URL="http://localhost:7860"
+
+# DO NOT TRACK
+SCARF_NO_ANALYTICS=true
+DO_NOT_TRACK=true
+ANONYMIZED_TELEMETRY=false
 ENV=prod
 ENABLE_OLLAMA_API=false
 OLLAMA_BASE_URL=http://0.0.0.0:11434
