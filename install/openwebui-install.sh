@@ -30,12 +30,12 @@ install_node_and_modules
 
 msg_info "Installing Open WebUI (Patience)"
 fetch_and_deploy_gh_release "open-webui/open-webui"
-cd /opt/open-webui/backend
+cd /opt/openwebui/backend
 $STD pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 $STD pip3 install -r requirements.txt -U
-cd /opt/open-webui
+cd /opt/openwebui
 cp .env.example .env
-cat <<EOF >/opt/open-webui/.env
+cat <<EOF >/opt/openwebui/.env
 ENV=prod
 ENABLE_OLLAMA_API=false
 OLLAMA_BASE_URL=http://0.0.0.0:11434
@@ -68,7 +68,7 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF
   systemctl enable -q --now ollama
-  sed -i 's/ENABLE_OLLAMA_API=false/ENABLE_OLLAMA_API=true/g' /opt/open-webui/.env
+  sed -i 's/ENABLE_OLLAMA_API=false/ENABLE_OLLAMA_API=true/g' /opt/openwebui/.env
   msg_ok "Installed Ollama"
 fi
 
@@ -80,9 +80,9 @@ After=network.target
 
 [Service]
 Type=exec
-WorkingDirectory=/opt/open-webui
-EnvironmentFile=/opt/open-webui/.env
-ExecStart=/opt/open-webui/backend/start.sh
+WorkingDirectory=/opt/openwebui
+EnvironmentFile=/opt/openwebui/.env
+ExecStart=/opt/openwebui/backend/start.sh
 
 [Install]
 WantedBy=multi-user.target

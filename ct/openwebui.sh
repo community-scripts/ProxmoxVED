@@ -44,18 +44,19 @@ function update_script() {
 
   msg_info "Updating ${APP} (Patience)"
   systemctl stop open-webui.service
-  mkdir -p /opt/open-webui-backup
-  cp -rf /opt/open-webui/backend/data /opt/open-webui-backup
-  cp /opt/open-webui/.env /opt
-  rm -rf /opt/open-webui
+  mkdir -p /opt/openwebui-backup
+  cp -rf /opt/openwebui/backend/data /opt/openwebui-backup
+  cp /opt/openwebui/.env /opt
+  rm -rf /opt/openwebui
   fetch_and_deploy_gh_release "open-webui/open-webui"
-  cd /opt/open-webui
+  cd /opt/openwebui
   $STD npm install
   export NODE_OPTIONS="--max-old-space-size=3584"
   $STD npm run build
   cd ./backend
   $STD pip install -r requirements.txt -U
-  cp -rf /opt/open-webui-backup/* /opt/open-webui/backend
+  cp -rf /opt/openwebui-backup/* /opt/openwebui/backend
+  mv /opt/.env /opt/openwebui/
   systemctl start open-webui.service
   msg_ok "Updated Successfully"
   exit
