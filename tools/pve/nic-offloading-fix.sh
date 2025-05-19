@@ -251,7 +251,6 @@ done
 # Show summary results
 whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --title "Success" --msgbox "$SUMMARY_MSG" 20 80
 
-
 # msg_info "RX/TX Optimization: ${BL}$RXTX_STATUS${YW}"
 # for iface in "${INTERFACE_ARRAY[@]}"; do
 #     echo -e "\n${YW}Interface: ${BL}$iface${CL}"
