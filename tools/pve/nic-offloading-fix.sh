@@ -187,16 +187,16 @@ EOF
 
     # Configure this service
     {
-        echo "25"; sleep 0.1
+        echo "25"; sleep 0.2
         # Reload systemd to recognize the new service
         systemctl daemon-reload
-        echo "50"; sleep 0.1
+        echo "50"; sleep 0.2
         # Start the service
         systemctl start "$SERVICE_NAME"
-        echo "75"; sleep 0.1
+        echo "75"; sleep 0.2
         # Enable the service to start on boot
         systemctl enable "$SERVICE_NAME"
-        echo "100"; sleep 0.1
+        echo "100"; sleep 0.2
     } | whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --gauge "Configuring service for $SELECTED_INTERFACE..." 10 80 0
 
     # Individual service status
