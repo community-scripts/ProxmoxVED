@@ -133,12 +133,12 @@ if ! whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --title "Confir
 fi
 
 # Ask if rx/tx optimization should be performed
-if whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --title "RX/TX Optimization" \
-    --yesno "Would you like to apply RX/TX interrupt moderation and ring buffer optimizations?\n\nThese settings can improve network performance for Intel e1000e NICs by adjusting:\n- Interrupt moderation (rx-usecs, tx-usecs)\n- Ring buffer sizes (rx, tx)" 15 80; then
-    APPLY_RXTX_OPTIMIZATION=true
-else
-    APPLY_RXTX_OPTIMIZATION=false
-fi
+# if whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --title "RX/TX Optimization" \
+#     --yesno "Would you like to apply RX/TX interrupt moderation and ring buffer optimizations?\n\nThese settings can improve network performance for Intel e1000e NICs by adjusting:\n- Interrupt moderation (rx-usecs, tx-usecs)\n- Ring buffer sizes (rx, tx)" 15 80; then
+#     APPLY_RXTX_OPTIMIZATION=true
+# else
+#     APPLY_RXTX_OPTIMIZATION=false
+# fi
 
 # Loop through all selected interfaces and create services for each
 for SELECTED_INTERFACE in "${INTERFACE_ARRAY[@]}"; do
@@ -162,13 +162,13 @@ ExecStart=/sbin/ethtool -K $SELECTED_INTERFACE gso off gro off tso off tx off rx
 EOF
 
     # Add RX/TX optimization if selected
-    if [ "$APPLY_RXTX_OPTIMIZATION" = true ]; then
-        cat >> "$SERVICE_PATH" << EOF
-# Intel e1000e specific: Set interrupt moderation and ring parameters
-ExecStart=/sbin/ethtool -C $SELECTED_INTERFACE rx-usecs 3 tx-usecs 3
-ExecStart=/sbin/ethtool -G $SELECTED_INTERFACE rx 256 tx 256
-EOF
-    fi
+#     if [ "$APPLY_RXTX_OPTIMIZATION" = true ]; then
+#         cat >> "$SERVICE_PATH" << EOF
+# # Intel e1000e specific: Set interrupt moderation and ring parameters
+# ExecStart=/sbin/ethtool -C $SELECTED_INTERFACE rx-usecs 3 tx-usecs 3
+# ExecStart=/sbin/ethtool -G $SELECTED_INTERFACE rx 256 tx 256
+# EOF
+#     fi
 
     # Complete the service file
     cat >> "$SERVICE_PATH" << EOF
@@ -220,15 +220,15 @@ EOF
 done
 
 # Prepare RX/TX optimization status for display
-if [ "$APPLY_RXTX_OPTIMIZATION" = true ]; then
-    RXTX_STATUS="Applied"
-else
-    RXTX_STATUS="Not Applied"
-fi
+# if [ "$APPLY_RXTX_OPTIMIZATION" = true ]; then
+#     RXTX_STATUS="Applied"
+# else
+#     RXTX_STATUS="Not Applied"
+# fi
 
 # Prepare summary of all interfaces
 SUMMARY_MSG="Services created successfully!\n\n"
-SUMMARY_MSG+="RX/TX Optimization: $RXTX_STATUS\n\n"
+# SUMMARY_MSG+="RX/TX Optimization: $RXTX_STATUS\n\n"
 SUMMARY_MSG+="Configured Interfaces:\n"
 
 for iface in "${INTERFACE_ARRAY[@]}"; do
@@ -252,7 +252,7 @@ done
 whiptail --backtitle "Intel e1000e NIC Offloading Disabler" --title "Success" --msgbox "$SUMMARY_MSG" 20 80
 
 
-msg_info "RX/TX Optimization: ${BL}$RXTX_STATUS${YW}"
+# msg_info "RX/TX Optimization: ${BL}$RXTX_STATUS${YW}"
 # for iface in "${INTERFACE_ARRAY[@]}"; do
 #     echo -e "\n${YW}Interface: ${BL}$iface${CL}"
 #     echo -e "${YW}Driver: ${BL}e1000e${CL}"
