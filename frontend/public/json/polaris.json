@@ -1,0 +1,35 @@
+{
+  "name": "Polaris",
+  "slug": "polaris",
+  "categories": [
+    13
+  ],
+  "date_created": "2025-03-25",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://github.com/agersant/polaris/blob/master/docs/SETUP.md",
+  "website": "https://github.com/agersant/polaris",
+  "logo": "https://raw.githubusercontent.com/agersant/polaris/refs/heads/master/res/branding/logo/sticker_print.svg",
+  "config_path": "",
+  "description": "Polaris is a self-hosted music streaming server that allows you to enjoy your personal music collection from any computer or mobile device. It is a free and open-source application with no premium version. Polaris is highly performant and responsive, supporting large music libraries with over 100,000 tracks. It features an intuitive user interface and supports various audio formats, including FLAC, MP3, MP4, OGG, and WAV. There is an Android client available through the Google Play Store, F-Droid, or GitHub Releases.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/polaris.sh",
+      "resources": {
+        "cpu": 3,
+        "ram": 2048,
+        "hdd": 7,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}

@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   crawl-versions:
+    if: github.repository == 'community-scripts/ProxmoxVED'
     runs-on: ubuntu-latest
 
     steps:
@@ -27,6 +28,13 @@ jobs:
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Generate a token for PR approval and merge
+        id: generate-token-merge
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID_APPROVE_AND_MERGE }}
+          private-key: ${{ secrets.APP_KEY_APPROVE_AND_MERGE }}
 
       - name: Crawl from newreleases.io
         env:
@@ -61,6 +69,10 @@ jobs:
             echo "$projects" > "$projects_file"
 
             jq -r '.projects[] | "\(.id) \(.name)"' "$projects_file" | while read -r id name; do
+              echo "Ensuring $name has exclude_prereleases=true"
+              curl -s -X POST -H "X-Key: $token" -H "Content-Type: application/json" \
+                   -d '{"exclude_prereleases": true}' \
+                   "https://api.newreleases.io/v1/projects/$id" > /dev/null
               version=$(curl -s -H "X-Key: $token" "https://api.newreleases.io/v1/projects/$id/latest-release")
               version_data=$(echo "$version" | jq -r '.version // empty')
               date=$(echo "$version" | jq -r '.date // empty')
@@ -92,7 +104,6 @@ jobs:
           git commit -m "Update versions.json"
           git push origin update_versions --force
           gh pr create --title "[AUTOMATIC PR]Update versions.json" --body "Update versions.json, crawled from newreleases.io" --base main --head update_versions
-
       - name: Approve pull request
         if: env.changed == 'true'
         env:
@@ -103,12 +114,15 @@ jobs:
             gh pr review $PR_NUMBER --approve
           fi
 
-      - name: Re-approve pull request after update
+      - name: Approve pull request and merge
         if: env.changed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate-token-merge.outputs.token }}
         run: |
-          PR_NUMBER=$(gh pr list --head "update_versions" --json number --jq '.[].number')
+          git config --global user.name "github-actions-automege[bot]"
+          git config --global user.email "github-actions-automege[bot]@users.noreply.github.com"
+          PR_NUMBER=$(gh pr list --head "${BRANCH_NAME}" --json number --jq '.[0].number')
           if [ -n "$PR_NUMBER" ]; then
-            gh pr review $PR_NUMBER --approve
+            gh pr review "$PR_NUMBER" --approve
+            gh pr merge "$PR_NUMBER" --squash --admin
           fi

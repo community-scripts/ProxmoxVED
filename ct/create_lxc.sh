@@ -9,26 +9,15 @@
 # This sets verbose mode if the global variable is set to "yes"
 # if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
-# This function sets color variables for formatting output in the terminal
-# Colors
-YW=$(echo "\033[33m")
-YWB=$(echo "\033[93m")
-BL=$(echo "\033[36m")
-RD=$(echo "\033[01;31m")
-GN=$(echo "\033[1;92m")
-
-# Formatting
-CL=$(echo "\033[m")
-UL=$(echo "\033[4m")
-BOLD=$(echo "\033[1m")
-BFR="\\r\\033[K"
-HOLD=" "
-TAB="  "
-
-# Icons
-CM="${TAB}✔️${TAB}${CL}"
-CROSS="${TAB}✖️${TAB}${CL}"
-INFO="${TAB}💡${TAB}${CL}"
+if command -v curl >/dev/null 2>&1; then
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  load_functions
+  #echo "(create-lxc.sh) Loaded core.func via curl"
+elif command -v wget >/dev/null 2>&1; then
+  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  load_functions
+  #echo "(create-lxc.sh) Loaded core.func via wget"
+fi
 
 # This sets error handling options and defines the error_handler function to handle errors
 set -Eeuo pipefail
@@ -36,7 +25,6 @@ trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 
 # This function handles errors
 function error_handler() {
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
   printf "\e[?25h"
   local exit_code="$?"
   local line_number="$1"
@@ -44,53 +32,6 @@ function error_handler() {
   local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
   echo -e "\n$error_message\n"
   exit 200
-}
-
-# This function displays a spinner.
-function spinner() {
-  local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-  local spin_i=0
-  local interval=0.1
-  printf "\e[?25l"
-
-  local color="${YWB}"
-
-  while true; do
-    printf "\r ${color}%s${CL}" "${frames[spin_i]}"
-    spin_i=$(((spin_i + 1) % ${#frames[@]}))
-    sleep "$interval"
-  done
-}
-
-# This function displays an informational message with a yellow color.
-function msg_info() {
-  local msg="$1"
-  echo -ne "${TAB}${YW}${HOLD}${msg}${HOLD}"
-  spinner &
-  SPINNER_PID=$!
-}
-
-function msg_warn() {
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
-  printf "\e[?25h"
-  local msg="$1"
-  echo -e "${BFR}${INFO}${YWB}${msg}${CL}"
-}
-
-# This function displays a success message with a green color.
-function msg_ok() {
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
-  printf "\e[?25h"
-  local msg="$1"
-  echo -e "${BFR}${CM}${GN}${msg}${CL}"
-}
-
-# This function displays a error message with a red color.
-function msg_error() {
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
-  printf "\e[?25h"
-  local msg="$1"
-  echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
 }
 
 # This checks for the presence of valid Container Storage and Template Storage locations
@@ -177,20 +118,6 @@ function select_storage() {
   exit 205
 }
 
-# Check for network connectivity (IPv4 & IPv6)
-#function check_network() {
-#  local CHECK_URLS=("8.8.8.8" "1.1.1.1" "9.9.9.9" "2606:4700:4700::1111" "2001:4860:4860::8888" "2620:fe::fe")
-#
-#  for url in "${CHECK_URLS[@]}"; do
-#    if ping -c 1 -W 2 "$url" &>/dev/null; then
-#      return 0 # Success: At least one connection works
-#    fi
-#  done
-#
-#  msg_error "No network connection detected. Check your internet connection."
-#  exit 101
-#}
-
 # Test if ID is in use
 if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
   echo -e "ID '$CTID' is already in use."
@@ -199,19 +126,24 @@ if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
   exit 206
 fi
 
+# # Get template storage
+# TEMPLATE_STORAGE=$(select_storage template)
+# CONTAINER_STORAGE=$(select_storage container) || exit
+# msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}Container Storage: ${BL}$CONTAINER_STORAGE${CL}."
+
 # Get template storage
-TEMPLATE_STORAGE=$(select_storage template) || exit
+TEMPLATE_STORAGE=$(select_storage template)
 msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
 
 # Get container storage
-CONTAINER_STORAGE=$(select_storage container) || exit
+CONTAINER_STORAGE=$(select_storage container)
 msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
 
 # Update LXC template list
-msg_info "Updating LXC Template List"
+$STD msg_info "Updating LXC Template List"
 #check_network
 pveam update >/dev/null
-msg_ok "Updated LXC Template List"
+$STD msg_ok "Updated LXC Template List"
 
 # Get LXC template string
 TEMPLATE_SEARCH=${PCT_OSTYPE}-${PCT_OSVERSION:-}
@@ -255,28 +187,92 @@ grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgi
 PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 [[ " ${PCT_OPTIONS[@]} " =~ " -rootfs " ]] || PCT_OPTIONS+=(-rootfs "$CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}")
 
+# Secure creation of the LXC container with lock and template check
+lockfile="/tmp/template.${TEMPLATE}.lock"
+exec 9>"$lockfile"
+flock -w 60 9 || {
+  msg_error "Timeout while waiting for template lock"
+  exit 211
+}
+
 msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-  msg_error "Container creation failed. Checking if template is corrupted."
+  msg_error "Container creation failed. Checking if template is corrupted or incomplete."
 
-  if ! zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1; then
-    msg_error "Template appears to be corrupted. Removing and re-downloading."
+  if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
+    msg_error "Template file too small or missing – re-downloading."
     rm -f "$TEMPLATE_PATH"
-
-    if ! timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
-      msg_error "Failed to re-download template."
-      exit 208
-    fi
-
-    msg_ok "Re-downloaded LXC Template"
-
-    if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-      msg_error "Container creation failed after re-downloading template."
-      exit 200
-    fi
+  elif ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
+    msg_error "Template appears to be corrupted – re-downloading."
+    rm -f "$TEMPLATE_PATH"
   else
-    msg_error "Container creation failed, but template is not corrupted."
+    msg_error "Template is valid, but container creation still failed."
     exit 209
   fi
+
+  # Retry download
+  for attempt in {1..3}; do
+    msg_info "Attempt $attempt: Re-downloading template..."
+    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
+      msg_ok "Template re-download successful."
+      break
+    fi
+    if [ "$attempt" -eq 3 ]; then
+      msg_error "Three failed attempts. Aborting."
+      exit 208
+    fi
+    sleep $((attempt * 5))
+  done
+
+  sleep 1 # I/O-Sync-Delay
+
+  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
+    msg_error "Container creation failed after re-downloading template."
+    exit 200
+  fi
 fi
+
+if ! pct status "$CTID" &>/dev/null; then
+  msg_error "Container not found after pct create – assuming failure."
+  exit 210
+fi
+: "${UDHCPC_FIX:=}"
+if [ "$UDHCPC_FIX" == "yes" ]; then
+  # Ensure container is mounted
+  if ! mount | grep -q "/var/lib/lxc/${CTID}/rootfs"; then
+    pct mount "$CTID" >/dev/null 2>&1
+    MOUNTED_HERE=true
+  else
+    MOUNTED_HERE=false
+  fi
+
+  CONFIG_FILE="/var/lib/lxc/${CTID}/rootfs/etc/udhcpc/udhcpc.conf"
+
+  for i in {1..10}; do
+    [ -f "$CONFIG_FILE" ] && break
+    sleep 0.5
+  done
+
+  if [ -f "$CONFIG_FILE" ]; then
+    msg_info "Patching udhcpc.conf for Alpine DNS override"
+    sed -i '/^#*RESOLV_CONF="/d' "$CONFIG_FILE"
+    awk '
+      /^# Do not overwrite \/etc\/resolv\.conf/ {
+        print
+        print "RESOLV_CONF=\"no\""
+        next
+      }
+      { print }
+    ' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+    msg_ok "Patched udhcpc.conf (RESOLV_CONF=\"no\")"
+  else
+    msg_error "udhcpc.conf not found in $CONFIG_FILE after waiting"
+  fi
+
+  # Clean up: only unmount if we mounted it here
+  if [ "${MOUNTED_HERE}" = true ]; then
+    pct unmount "$CTID" >/dev/null 2>&1
+  fi
+fi
+
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."

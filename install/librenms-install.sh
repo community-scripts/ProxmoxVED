@@ -15,83 +15,70 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  sudo \
-  curl \
-  mc \
-  lsb-release \
-  ca-certificates \
-  wget \
-  acl \
-  fping \
-  graphviz \
-  imagemagick \
-  mariadb-client \
-  mariadb-server \
-  mtr-tiny \
-  nginx-full \
-  nmap \
-  php8.2-{cli,fpm,gd,gmp,mbstring,mysql,snmp,xml,zip,curl} \
-  python3-{dotenv,pymysql,redis,setuptools,systemd,pip} \
-  rrdtool \
-  snmp \
-  snmpd \
-  unzip \
-  git \
-  whois
+    lsb-release \
+    ca-certificates \
+    acl \
+    fping \
+    graphviz \
+    imagemagick \
+    mtr-tiny \
+    nginx \
+    nmap \
+    rrdtool \
+    snmp \
+    snmpd
 msg_ok "Installed Dependencies"
 
-msg_info "Add User"
-$STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
-msg_ok "Add User"
+PHP_VERSION=8.2 PHP_FPM=YES PHP_APACHE=NO PHP_MODULE="gmp,mysql,snmp" install_php
+install_mariadb
+install_composer
+setup_uv
 
-msg_info "Setup Librenms"
-tmp_file=$(mktemp)
-RELEASE=$(curl -s https://api.github.com/repos/librenms/librenms/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-wget -q https://github.com/librenms/librenms/archive/refs/tags/${RELEASE}.tar.gz -O $tmp_file
-tar -xzf $tmp_file -C /opt
-mv /opt/librenms-${RELEASE} /opt/librenms
-setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
-setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
-msg_ok "Setup Librenms"
-
-msg_info "Setup Composer"
-cd /opt
-wget https://getcomposer.org/composer-stable.phar
-mv composer-stable.phar /usr/bin/composer
-chmod +x /usr/bin/composer
-cd /opt/librenms
-composer install --no-dev -o --no-interaction
-chown -R librenms:librenms /opt/librenms
-chmod 771 /opt/librenms
-setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
-chmod -R ug=rwX /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
-msg_ok "Setup Composer"
-
-msg_info "Setup PHP"
-sed -i 's/;date.timezone =/date.timezone = UTC/' /etc/php/8.2/cli/php.ini
-sed -i 's/;date.timezone =/date.timezone = UTC/' /etc/php/8.2/fpm/php.ini
-msg_ok "Setup PHP"
-
-msg_info "Setup MariaDB"
-sed -i '/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0' /etc/mysql/mariadb.conf.d/50-server.cnf
-systemctl enable -q --now mariadb
-msg_ok "Setup MariaDB"
+msg_info "Installing Python"
+$STD apt-get install -y \
+    python3-{dotenv,pymysql,redis,setuptools,systemd,pip}
+msg_ok "Installed Python"
 
 msg_info "Configuring Database"
 DB_NAME=librenms
 DB_USER=librenms
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
-
+$STD mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+$STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+$STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-  echo "LibreNMS-Credentials"
-  echo "LibreNMS Database User: $DB_USER"
-  echo "LibreNMS Database Password: $DB_PASS"
-  echo "LibreNMS Database Name: $DB_NAME"
+    echo "LibreNMS-Credentials"
+    echo "LibreNMS Database User: $DB_USER"
+    echo "LibreNMS Database Password: $DB_PASS"
+    echo "LibreNMS Database Name: $DB_NAME"
 } >>~/librenms.creds
 msg_ok "Configured Database"
+
+msg_info "Setup Librenms"
+$STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
+fetch_and_deploy_gh_release "librenms/librenms"
+setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
+setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
+cd /opt/librenms
+$STD uv venv .venv
+$STD source .venv/bin/activate
+$STD uv pip install -r requirements.txt
+cat <<EOF >/opt/librenms/.env
+DB_DATABASE=${DB_NAME}
+DB_USERNAME=${DB_USER}
+DB_PASSWORD=${DB_PASS}
+EOF
+chown -R librenms:librenms /opt/librenms
+chmod 771 /opt/librenms
+setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
+chmod -R ug=rwX /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
+msg_ok "Setup LibreNMS"
+
+
+msg_info "Configure MariaDB"
+sed -i "/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0" /etc/mysql/mariadb.conf.d/50-server.cnf
+systemctl enable -q --now mariadb
+msg_ok "Configured MariaDB"
 
 msg_info "Configure PHP-FPM"
 cp /etc/php/8.2/fpm/pool.d/www.conf /etc/php/8.2/fpm/pool.d/librenms.conf
@@ -99,7 +86,6 @@ sed -i "s/\[www\]/\[librenms\]/g" /etc/php/8.2/fpm/pool.d/librenms.conf
 sed -i "s/user = www-data/user = librenms/g" /etc/php/8.2/fpm/pool.d/librenms.conf
 sed -i "s/group = www-data/group = librenms/g" /etc/php/8.2/fpm/pool.d/librenms.conf
 sed -i "s/listen = \/run\/php\/php8.2-fpm.sock/listen = \/run\/php-fpm-librenms.sock/g" /etc/php/8.2/fpm/pool.d/librenms.conf
-
 msg_ok "Configured PHP-FPM"
 
 msg_info "Configure Nginx"
@@ -128,18 +114,23 @@ server {
 }
 EOF
 rm /etc/nginx/sites-enabled/default
-systemctl reload nginx
+$STD systemctl reload nginx
 systemctl restart php8.2-fpm
 msg_ok "Configured Nginx"
 
 msg_info "Configure Services"
+COMPOSER_ALLOW_SUPERUSER=1
+$STD composer install --no-dev
+$STD php8.2 artisan migrate --force
+$STD php8.2 artisan key:generate --force
+$STD su librenms -s /bin/bash -c "lnms db:seed --force"
+$STD su librenms -s /bin/bash -c "lnms user:add -p admin -r admin admin"
 ln -s /opt/librenms/lnms /usr/bin/lnms
 mkdir -p /etc/bash_completion.d/
 cp /opt/librenms/misc/lnms-completion.bash /etc/bash_completion.d/
-
 cp /opt/librenms/snmpd.conf.example /etc/snmp/snmpd.conf
 
-RANDOM_STRING=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+RANDOM_STRING=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9')
 sed -i "s/RANDOMSTRINGHERE/$RANDOM_STRING/g" /etc/snmp/snmpd.conf
 echo "SNMP Community String: $RANDOM_STRING" >>~/librenms.creds
 curl -qo /usr/bin/distro https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro
@@ -149,8 +140,7 @@ systemctl enable -q --now snmpd
 cp /opt/librenms/dist/librenms.cron /etc/cron.d/librenms
 cp /opt/librenms/dist/librenms-scheduler.service /opt/librenms/dist/librenms-scheduler.timer /etc/systemd/system/
 
-systemctl enable librenms-scheduler.timer
-systemctl start librenms-scheduler.timer
+systemctl enable -q --now librenms-scheduler.timer
 cp /opt/librenms/misc/librenms.logrotate /etc/logrotate.d/librenms
 msg_ok "Configured Services"
 
@@ -158,7 +148,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -f $tmp_file
 $STD apt-get -y autoremove
-rm -f /temp_file
 $STD apt-get -y autoclean
 msg_ok "Cleaned"

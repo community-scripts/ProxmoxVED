@@ -1,0 +1,35 @@
+{
+  "name": "jitsi-meet",
+  "slug": "jitsi-meet",
+  "categories": [
+    18
+  ],
+  "date_created": "2025-05-06",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 443,
+  "documentation": "https://jitsi.github.io/handbook/docs/intro",
+  "website": "https://jitsi.org/jitsi-meet/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/jitsi-meet.webp",
+  "config_path": "/etc/jitsi/meet/[your-hostname]-config.js",
+  "description": "Go ahead, video chat with the whole team. In fact, invite everyone you know. Jitsi Meet is a fully encrypted, 100% open source video conferencing solution that you can use all day, every day, for free — with no account needed.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/jitsi-meet.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}

@@ -1,49 +1,6 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: michelroegl-brunner
-# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
-
-post_to_api() {
-
-    echo -e "Posting to API..."
-    if ! command -v curl &>/dev/null; then
-        return
-    fi
-
-    if [ "$DIAGNOSTICS" = "no" ]; then
-        return
-    fi
-
-    if [ -z "$RANDOM_UUID" ]; then
-        return
-    fi
-
-    local API_URL="http://api.community-scripts.org/dev/upload"
-    local pve_version="not found"
-    pve_version=$(pveversion | awk -F'[/ ]' '{print $2}')
-
-    JSON_PAYLOAD=$(
-        cat <<EOF
-{
-    "ct_type": $CT_TYPE,
-    "type":"lxc",
-    "disk_size": $DISK_SIZE,
-    "core_count": $CORE_COUNT,
-    "ram_size": $RAM_SIZE,
-    "os_type": "$var_os",
-    "os_version": "$var_version",
-    "disableip6": "$DISABLEIP6",
-    "nsapp": "$NSAPP",
-    "method": "$METHOD",
-    "pve_version": "$pve_version",
-    "status": "installing",
-    "random_id": "$RANDOM_UUID"
-}
-EOF
-    )
-    RESPONSE=$(curl -s -w "%{http_code}" -L -X POST "$API_URL" --post301 --post302 \
-        -H "Content-Type: application/json" \
-        -d "$JSON_PAYLOAD") || true
-}
+# License: MIT | https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
 
 get_error_description() {
     local exit_code="$1"
@@ -96,6 +53,48 @@ get_error_description() {
     esac
 }
 
+post_to_api() {
+
+    if ! command -v curl &>/dev/null; then
+        return
+    fi
+
+    if [ "$DIAGNOSTICS" = "no" ]; then
+        return
+    fi
+
+    if [ -z "$RANDOM_UUID" ]; then
+        return
+    fi
+
+    local API_URL="http://api.community-scripts.org/dev/upload"
+    local pve_version="not found"
+    pve_version=$(pveversion | awk -F'[/ ]' '{print $2}')
+
+    JSON_PAYLOAD=$(
+        cat <<EOF
+{
+    "ct_type": $CT_TYPE,
+    "type":"lxc",
+    "disk_size": $DISK_SIZE,
+    "core_count": $CORE_COUNT,
+    "ram_size": $RAM_SIZE,
+    "os_type": "$var_os",
+    "os_version": "$var_version",
+    "disableip6": "$DISABLEIP6",
+    "nsapp": "$NSAPP",
+    "method": "$METHOD",
+    "pve_version": "$pve_version",
+    "status": "installing",
+    "random_id": "$RANDOM_UUID"
+}
+EOF
+    )
+    RESPONSE=$(curl -s -w "%{http_code}" -L -X POST "$API_URL" --post301 --post302 \
+        -H "Content-Type: application/json" \
+        -d "$JSON_PAYLOAD") || true
+}
+
 post_to_api_vm() {
 
     if [[ ! -f /usr/local/community-scripts/diagnostics ]]; then
@@ -145,8 +144,8 @@ EOF
 }
 
 POST_UPDATE_DONE=false
-
 post_update_to_api() {
+
     if ! command -v curl &>/dev/null; then
         return
     fi
@@ -154,7 +153,8 @@ post_update_to_api() {
     if [ "$POST_UPDATE_DONE" = true ]; then
         return 0
     fi
-
+    exit_code=${2:-1}
+    local API_URL="http://api.community-scripts.org/dev/upload/updatestatus"
     local status="${1:-failed}"
     if [[ "$status" == "failed" ]]; then
         local exit_code="${2:-1}"
@@ -162,7 +162,10 @@ post_update_to_api() {
         local exit_code="${2:-0}"
     fi
 
-    local API_URL="http://api.community-scripts.org/dev/upload/updatestatus"
+    if [[ -z "$exit_code" ]]; then
+        exit_code=1
+    fi
+
     error=$(get_error_description "$exit_code")
 
     if [ -z "$error" ]; then

@@ -11,11 +11,11 @@ permissions:
 jobs:
   post_to_discord:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'Ready For Testing')
+    if: contains(github.event.issue.labels.*.name, 'Ready For Testing') && github.repository == 'community-scripts/ProxmoxVED'
     steps:
       - name: Extract Issue Title (Lowercase & Underscores)
         id: extract_title
-        run: echo "TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')" >> $GITHUB_ENV
+        run: echo "TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')" >> $GITHUB_ENV
 
       - name: Check if Files Exist in community-scripts/ProxmoxVE
         id: check_files
@@ -80,7 +80,25 @@ jobs:
           VAR+="${{ github.event.issue.html_url }}"
           echo "message=$VAR" >> $GITHUB_ENV
 
+      - name: Check if Discord thread exists
+        id: check_thread
+        run: |
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+
+          THREAD_ID=$(curl -s -X GET "https://discord.com/api/v10/guilds/${{ secrets.DISCORD_GUILD_ID }}/threads/active" \
+          -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+          -H "Content-Type: application/json" | \
+          jq -r --arg TITLE "$ISSUE_TITLE" --arg PARENT_ID "${{ secrets.DISCORD_CHANNEL_ID }}" \
+          '.threads[] | select(.parent_id == $PARENT_ID and .name == ("Wanted Tester for " + $TITLE)) | .id')
+
+          if [ -n "$THREAD_ID" ]; then
+            echo "thread_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "thread_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create a forumpost in Discord
+        if: steps.check_thread.outputs.thread_exists != 'true'
         id: post_to_discord
         env:
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
@@ -106,6 +124,7 @@ jobs:
           fi
 
       - name: Comment on Issue
+        if: steps.check_thread.outputs.thread_exists != 'true'
         id: comment_on_issue
         env:
           MESSAGE: ${{ env.message }}

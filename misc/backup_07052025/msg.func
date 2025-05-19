@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+# Spinner state
+declare -A SPINNER_PIDS
+declare -A SPINNER_MSGS
+declare -A MSG_SHOWN
+
+# Color definitions (adjust as needed)
+RD='\033[0;31m'
+GN='\033[0;32m'
+YW='\033[0;33m'
+CL='\033[0m'
+CM='✔'
+CROSS='✘'
+
+# Trap cleanup
+trap cleanup_spinners EXIT INT TERM HUP
+
+# Hash function for message ID
+msg_hash() {
+  local input="$1"
+  echo -n "$input" | sha1sum | awk '{print $1}'
+}
+
+# Start a spinner for a specific message
+start_spinner_for_msg() {
+  local msg="$1"
+  local id
+  id=$(msg_hash "$msg")
+
+  [[ -n "${MSG_SHOWN["$id"]+x}" ]] && return
+  MSG_SHOWN["$id"]=1
+  SPINNER_MSGS["$id"]="$msg"
+
+  local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+  local interval=0.1
+  local spin_i=0
+
+  {
+    while true; do
+      printf "\r\e[2K%s %b" "${frames[spin_i]}" "${YW}${msg}${CL}" >&2
+      spin_i=$(((spin_i + 1) % ${#frames[@]}))
+      sleep "$interval"
+    done
+  } &
+
+  SPINNER_PIDS["$id"]=$!
+  disown "${SPINNER_PIDS["$id"]}"
+}
+
+# Stop the spinner for a specific message
+stop_spinner_for_msg() {
+  local msg="$1"
+  local id
+  id=$(msg_hash "$msg")
+
+  if [[ -n "${SPINNER_PIDS["$id"]+x}" ]] && ps -p "${SPINNER_PIDS["$id"]}" >/dev/null 2>&1; then
+    kill "${SPINNER_PIDS["$id"]}" 2>/dev/null
+    wait "${SPINNER_PIDS["$id"]}" 2>/dev/null || true
+  fi
+
+  unset SPINNER_PIDS["$id"]
+  unset SPINNER_MSGS["$id"]
+  unset MSG_SHOWN["$id"]
+}
+
+# Cleanup all active spinners
+cleanup_spinners() {
+  for id in "${!SPINNER_PIDS[@]}"; do
+    if ps -p "${SPINNER_PIDS[$id]}" >/dev/null 2>&1; then
+      kill "${SPINNER_PIDS[$id]}" 2>/dev/null
+      wait "${SPINNER_PIDS[$id]}" 2>/dev/null || true
+    fi
+    unset SPINNER_PIDS["$id"]
+    unset SPINNER_MSGS["$id"]
+    unset MSG_SHOWN["$id"]
+  done
+}
+
+# Show info message with spinner
+msg_info() {
+  local msg="$1"
+  start_spinner_for_msg "$msg"
+}
+
+# End spinner and show success message
+msg_ok() {
+  local msg="$1"
+  stop_spinner_for_msg "$msg"
+  printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
+}
+
+# End spinner and show error message
+msg_error() {
+  local msg="$1"
+  stop_spinner_for_msg "$msg"
+  printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
+}

@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Arian Nasr (arian-nasr)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.freepbx.org/
 
 APP="FreePBX"
-var_tags=""
-var_cpu="1"
-var_ram="1024"
-var_disk="20"
-var_os="debian"
-var_version="12"
-var_unprivileged="1"
+var_tags="pbx;voip;telephony"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-10}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-12}"
+var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
 variables
@@ -24,7 +24,6 @@ function update_script() {
     check_container_storage
     check_container_resources
 
-    # Check if installation is present | -f for file, -d for folder
     if [[ ! -f /lib/systemd/system/freepbx.service ]]; then
         msg_error "No ${APP} Installation Found!"
         exit

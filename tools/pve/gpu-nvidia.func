@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+
+# NVIDIA GPU Integration for Proxmox LXC
+# Author: CanbiZ
+# License: MIT
+
+set -euo pipefail
+
+function nvidia_exit() {
+    printf "⚠️  User exited script\n"
+    exit 0
+}
+
+function msg() {
+    local type="$1"
+    shift
+    case "$type" in
+    info) printf " \033[36m➤\033[0m %s\n" "$@" ;;
+    ok) printf " \033[32m✔\033[0m %s\n" "$@" ;;
+    warn) printf " \033[33m⚠\033[0m %s\n" "$@" >&2 ;;
+    err) printf " \033[31m✘\033[0m %s\n" "$@" >&2 ;;
+    esac
+}
+
+function nvidia_check_driver_installed() {
+    command -v nvidia-smi &>/dev/null
+}
+
+function nvidia_get_driver_version() {
+    nvidia-smi --query-gpu=driver_version --format=csv,noheader,nounits 2>/dev/null | head -n1
+}
+
+function nvidia_get_cuda_version() {
+    nvidia-smi --query-gpu=cuda_version --format=csv,noheader,nounits 2>/dev/null | head -n1
+}
+
+function nvidia_validate_driver_version() {
+    if ! nvidia_check_driver_installed; then
+        msg err "NVIDIA drivers not found"
+        nvidia_exit
+    fi
+    local ver major
+    ver=$(nvidia_get_driver_version)
+    major=${ver%%.*}
+    if ((major < 500)); then
+        msg warn "Detected old NVIDIA driver version: $ver"
+        read -rp "Continue anyway? [y/N]: " confirm
+        [[ "${confirm,,}" =~ ^(y|yes)$ ]] || nvidia_exit
+    fi
+}
+
+function nvidia_validate_cuda_version() {
+    if ! nvidia_check_driver_installed; then
+        msg err "NVIDIA drivers not found"
+        nvidia_exit
+    fi
+    local ver major
+    ver=$(nvidia_get_cuda_version)
+    major=${ver%%.*}
+    if ((major < 11)); then
+        msg warn "Detected old CUDA version: $ver"
+        read -rp "Continue anyway? [y/N]: " confirm
+        [[ "${confirm,,}" =~ ^(y|yes)$ ]] || nvidia_exit
+    fi
+}
+
+function nvidia_setup_kernel_modules() {
+    local modfile="/etc/modules-load.d/nvidia.conf"
+    local udevfile="/etc/udev/rules.d/70-nvidia.rules"
+
+    printf "nvidia\nnvidia_uvm\nnvidia_drm\n" >"$modfile"
+
+    cat <<EOF >"$udevfile"
+KERNEL=="nvidia", RUN+="/bin/bash -c '/usr/bin/nvidia-smi -L && chmod 666 /dev/nvidia*'"
+KERNEL=="nvidia_uvm", RUN+="/bin/bash -c '/usr/bin/nvidia-modprobe -c0 -u && chmod 0666 /dev/nvidia-uvm*'"
+EOF
+
+    msg ok "NVIDIA modules configured"
+    msg warn "Reboot the host to apply kernel changes"
+}
+
+function nvidia_select_gpu_minor() {
+    local menu=() max=0
+    while IFS= read -r path; do
+        local dev="${path##*/}"
+        local info="/proc/driver/nvidia/gpus/${dev}/information"
+        [[ -f "$info" ]] || continue
+        local model minor
+        model=$(awk -F': ' '/Model:/ {print $2}' "$info")
+        minor=$(awk '/Device Minor/ {print $NF}' "$info")
+        menu+=("$minor" "$model" "OFF")
+        ((${#model} > max)) && max=${#model}
+    done < <(find /proc/driver/nvidia/gpus -mindepth 1 -type d)
+
+    [[ ${#menu[@]} -eq 0 ]] && msg err "No NVIDIA GPU found" && return 1
+    [[ ${#menu[@]} -eq 3 ]] && printf "%s" "${menu[0]}" && return
+
+    whiptail --title "NVIDIA GPU Selection" --radiolist \
+        "Select GPU for passthrough:" 15 $((max + 40)) 6 \
+        "${menu[@]}" 3>&1 1>&2 2>&3
+}
+
+function nvidia_lxc_passthrough() {
+    local ctid="$1" minor="$2"
+    local conf="/etc/pve/lxc/${ctid}.conf"
+    local devices=(
+        "/dev/nvidia${minor}"
+        "/dev/nvidiactl"
+        "/dev/nvidia-uvm"
+        "/dev/nvidia-uvm-tools"
+    )
+
+    local devnums=()
+    for dev in "${devices[@]}"; do
+        [[ -e "$dev" ]] || continue
+        local major_hex
+        major_hex=$(stat -c '%t' "$dev")
+        devnums+=($((16#$major_hex)))
+        echo "lxc.mount.entry: $dev ${dev##*/} none bind,optional,create=file" >>"$conf"
+    done
+
+    echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$conf"
+
+    for n in "${devnums[@]}"; do
+        echo "lxc.cgroup2.devices.allow: c ${n}:* rwm" >>"$conf"
+    done
+    msg ok "Installed NVIDIA GPU tools in $ctid"
+}

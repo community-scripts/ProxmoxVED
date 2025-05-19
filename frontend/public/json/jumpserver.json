@@ -1,0 +1,35 @@
+{
+  "name": "JumpServer",
+  "slug": "jumpserver",
+  "categories": [
+    6
+  ],
+  "date_created": "2025-05-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://www.jumpserver.com/docs",
+  "website": "https://www.jumpserver.com/",
+  "logo": "https://raw.githubusercontent.com/jumpserver/jumpserver/refs/heads/dev/apps/static/img/logo.png",
+  "config_path": "",
+  "description": "JumpServer is an open-source Privileged Access Management (PAM) tool that provides DevOps and IT teams with on-demand and secure access to SSH, RDP, Kubernetes, Database and RemoteApp endpoints through a web browser.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/jumpserver.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 8192,
+        "hdd": 60,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "ChangeMe"
+  },
+  "notes": []
+}

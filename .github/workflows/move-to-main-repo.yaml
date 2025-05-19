@@ -14,7 +14,7 @@ permissions:
 jobs:
   move-to-main-repo:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'Migration To ProxmoxVE'
+    if: github.event.label.name == 'Migration To ProxmoxVE' && github.repository == 'community-scripts/ProxmoxVED'
     steps:
       - name: Generate a token
         id: app-token
@@ -75,9 +75,21 @@ jobs:
              echo "missing=$install_file" >> $GITHUB_OUTPUT
           fi
           if [[ ! -f "$json_file" ]]; then
+            if [[ "$json_file" = *alpine* ]]; then
+              stripped_name="${json_file/frontend\/public\/json\/alpine-/frontend/public/json/}"
+              echo $stripped_name
+              if [[ -f "$stripped_name" ]]; then
+                echo "files_found=true" >> $GITHUB_OUTPUT
+              else
+                echo "json file striped not found."
+                echo "files_found=false" >> $GITHUB_OUTPUT
+                echo "missing=$json_file" >> $GITHUB_OUTPUT
+              fi
+            else
              echo "json file not found."
              echo "files_found=false" >> $GITHUB_OUTPUT
              echo "missing=$json_file" >> $GITHUB_OUTPUT
+            fi
           fi
 
       - name: Comment if not all Files found
@@ -121,20 +133,33 @@ jobs:
             echo "install file already exists in ProxmoxVE"
             exit 1
           fi
-          if [[ -f "frontend/public/json/${script_name}.json" ]]; then
-            echo "json file already exists in ProxmoxVE"
-            exit 1
-          fi
 
           git checkout -b "$branch_name"
 
           cp ../ct/$script_name.sh ct/.
+          cp ../ct/headers/$script_name ct/headers/. || true
           cp ../install/$script_name-install.sh install/.
-          cp ../frontend/public/json/$script_name.json frontend/public/json/.
 
-          sed -i 's|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)|source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)|' ct/$script_name.sh
+          json_file="${script_name}.json"
 
-          git add .
+          if [[ ! -f "../frontend/public/json/$json_file" ]]; then
+            if [[ "$json_file" = *alpine* ]]; then
+              stripped_name="${json_file#alpine-}"
+              if [[ -f "../frontend/public/json/$stripped_name" ]]; then
+                cp ../frontend/public/json/$stripped_name frontend/public/json/. || true
+              fi
+            fi
+          else
+            cp ../frontend/public/json/$json_file frontend/public/json/. || true
+          fi
+
+          echo $script_name
+          sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/$script_name.sh
+          sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/$script_name.sh
+          sed -i "s|# License: MIT \| https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE|# License: MIT \| https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE|" ct/$script_name.sh
+          sed -i "s|# License: MIT \| https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE|# License: MIT \| https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE|" install/$script_name-install.sh
+
+          git add . > /dev/null 2>&1
           if git diff --cached --exit-code; then
             echo "No changes detected, skipping commit."
             exit 0

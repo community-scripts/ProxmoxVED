@@ -1,5 +1,6 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import QueryProvider from "@/components/query-provider"; // HINZUGEFÜGT
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { analytics, basePath } from "@/config/siteConfig";
@@ -81,7 +82,9 @@ export default function RootLayout({
             <div className="flex min-h-screen flex-col justify-center">
               <div className="flex w-full justify-center">
                 <div className="w-full max-w-7xl ">
-                  <NuqsAdapter>{children}</NuqsAdapter>
+                  <QueryProvider>
+                    <NuqsAdapter>{children}</NuqsAdapter>
+                  </QueryProvider>
                   <Toaster richColors />
                 </div>
               </div>

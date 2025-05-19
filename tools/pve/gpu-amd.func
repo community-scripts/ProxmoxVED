@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+
+# AMD GPU Helper Functions for Proxmox LXC / ROCm passthrough
+# Author: CanbiZ
+# License: MIT
+
+set -euo pipefail
+
+function exit_script() {
+    printf "⚠️  User exited script\n"
+    exit 0
+}
+
+function msg() {
+    local type="$1"
+    shift
+    case "$type" in
+    info) printf " \033[36m➤\033[0m %s\n" "$@" ;;
+    ok) printf " \033[32m✔\033[0m %s\n" "$@" ;;
+    warn) printf " \033[33m⚠\033[0m %s\n" "$@" >&2 ;;
+    err) printf " \033[31m✘\033[0m %s\n" "$@" >&2 ;;
+    esac
+}
+
+function amd_gpu_available() {
+    lspci | grep -qi 'VGA.*AMD' && [[ -e /dev/kfd ]]
+}
+
+function passthrough_amd_to_lxc() {
+    local ctid="$1"
+    local conf="/etc/pve/lxc/${ctid}.conf"
+
+    if ! amd_gpu_available; then
+        msg warn "No AMD GPU with ROCm support detected"
+        return 1
+    fi
+
+    grep -q "/dev/kfd" "$conf" 2>/dev/null && return 0
+
+    {
+        echo "# AMD ROCm GPU"
+        echo "lxc.cgroup2.devices.allow: c 226:* rwm"
+        echo "lxc.cgroup2.devices.allow: c 238:* rwm"
+        echo "lxc.mount.entry: /dev/kfd dev/kfd none bind,optional,create=file"
+        echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir"
+    } >>"$conf"
+
+    msg ok "AMD ROCm passthrough applied to CT $ctid"
+    return 0
+}
+
+function install_amd_tools_in_ct() {
+    local ctid="$1"
+
+    if pct exec "$ctid" -- grep -qi alpine /etc/os-release; then
+        msg warn "Skipping tool installation: Alpine container detected"
+        return 0
+    fi
+
+    msg info "Installing AMD GPU tools in CT $ctid..."
+    pct exec "$ctid" -- bash -c "
+        apt-get update &&
+        DEBIAN_FRONTEND=noninteractive apt-get install -y rocm-smi rocm-utils &&
+        adduser \$(id -un 0) video &&
+        adduser \$(id -un 0) render" >/dev/null 2>&1 || true
+
+    msg ok "Installed ROCm tools inside CT $ctid"
+}

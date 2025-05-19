@@ -1,0 +1,139 @@
+# backup.func – Snapshot/Backup-Logik mit Rollback via trap + Rotation + flexible Pfaderkennung
+
+# Globale Variable (automatisch gesetzt)
+SNAPSHOT_DIR=""
+
+create_snapshot() {
+  local app_name=$1
+  local base_dir
+
+  # Autodetect base_dir, bevorzugt /opt/<app>, sonst Arbeitsverzeichnis oder APP_DIR gesetzt vom Script
+  base_dir="${APP_DIR:-/opt/$app_name}"
+  if [[ ! -d "$base_dir" ]]; then
+    msg_error "Cannot determine base directory for $app_name"
+    return 1
+  fi
+
+  local snapshot_base="${base_dir}-snapshot"
+  SNAPSHOT_DIR="${snapshot_base}-$(date +%F_%T | tr ':' '-')"
+
+  msg_info "Creating snapshot for $app_name"
+
+  mkdir -p "$SNAPSHOT_DIR"
+  cp -a "$base_dir" "$SNAPSHOT_DIR/base" || {
+    msg_error "Failed to backup base directory"
+    return 1
+  }
+
+  mkdir -p "$SNAPSHOT_DIR/systemd"
+  cp -a /etc/systemd/system/${app_name}-*.service "$SNAPSHOT_DIR/systemd/" 2>/dev/null || true
+
+  [[ -f "/etc/default/$app_name" ]] && cp "/etc/default/$app_name" "$SNAPSHOT_DIR/"
+  [[ -f "$base_dir/${app_name}_version.txt" ]] && cp "$base_dir/${app_name}_version.txt" "$SNAPSHOT_DIR/"
+
+  rotate_snapshots "$snapshot_base"
+
+  msg_ok "Snapshot created at $SNAPSHOT_DIR"
+  return 0
+}
+
+rotate_snapshots() {
+  local snapshot_base=$1
+  local snapshots
+
+  # Sortiert nach Datum absteigend, behalte nur die 3 neuesten
+  mapfile -t snapshots < <(ls -dt ${snapshot_base}-* 2>/dev/null)
+  if ((${#snapshots[@]} > 3)); then
+    for ((i = 3; i < ${#snapshots[@]}; i++)); do
+      rm -rf "${snapshots[$i]}"
+      msg_info "Old snapshot removed: ${snapshots[$i]}"
+    done
+  fi
+}
+
+rollback_snapshot() {
+  local app_name=$1
+  local base_dir
+
+  base_dir="${APP_DIR:-/opt/$app_name}"
+  if [[ -z "$SNAPSHOT_DIR" || ! -d "$SNAPSHOT_DIR" ]]; then
+    msg_error "No snapshot found. Cannot rollback."
+    return 1
+  fi
+
+  msg_info "Rolling back $app_name from snapshot"
+
+  systemctl stop ${app_name}-* 2>/dev/null || true
+
+  rm -rf "$base_dir"
+  cp -a "$SNAPSHOT_DIR/base" "$base_dir" || {
+    msg_error "Failed to restore base directory"
+    return 1
+  }
+
+  if [[ -d "$SNAPSHOT_DIR/systemd" ]]; then
+    cp "$SNAPSHOT_DIR/systemd/"*.service /etc/systemd/system/ 2>/dev/null || true
+    systemctl daemon-reload
+  fi
+
+  [[ -f "$SNAPSHOT_DIR/$app_name" ]] && cp "$SNAPSHOT_DIR/$app_name" "/etc/default/$app_name"
+  [[ -f "$SNAPSHOT_DIR/${app_name}_version.txt" ]] && cp "$SNAPSHOT_DIR/${app_name}_version.txt" "$base_dir/"
+
+  systemctl start ${app_name}-* 2>/dev/null || true
+
+  msg_ok "Rollback for $app_name completed"
+  return 0
+}
+
+cleanup_snapshot() {
+  if [[ -n "$SNAPSHOT_DIR" && -d "$SNAPSHOT_DIR" ]]; then
+    rm -rf "$SNAPSHOT_DIR"
+    msg_ok "Cleaned up snapshot at $SNAPSHOT_DIR"
+  fi
+}
+
+handle_failure() {
+  local app_name=$1
+  local line=$2
+  msg_error "Update failed at line $line. Rolling back..."
+  rollback_snapshot "$app_name"
+  exit 1
+}
+
+safe_run_update_script() {
+  local app_name="${APP:-paperless}"
+
+  if ! create_snapshot "$app_name"; then
+    msg_error "Snapshot creation failed. Aborting update."
+    exit 1
+  fi
+
+  trap 'handle_failure "$app_name" $LINENO' ERR
+  set -eE
+
+  update_script
+
+  cleanup_snapshot
+}
+
+wrap_update_script_with_snapshot() {
+  local original_func
+  original_func=$(declare -f update_script) || return 1
+
+  eval "
+  original_update_script() {
+    ${original_func#*\{}
+  }
+  update_script() {
+    local app_name=\"\${APP:-paperless}\"
+    if ! create_snapshot \"\$app_name\"; then
+      msg_error \"Snapshot creation failed. Aborting update.\"
+      exit 1
+    fi
+    trap 'handle_failure \"\$app_name\" \$LINENO' ERR
+    set -eE
+    original_update_script
+    cleanup_snapshot
+  }
+  "
+}

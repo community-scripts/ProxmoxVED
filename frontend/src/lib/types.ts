@@ -5,7 +5,7 @@ export type Script = {
   slug: string;
   categories: number[];
   date_created: string;
-  type: "vm" | "ct" | "misc";
+  type: "vm" | "ct" | "pve" | "addon";
   updateable: boolean;
   privileged: boolean;
   interface_port: number | null;
@@ -13,7 +13,7 @@ export type Script = {
   website: string | null;
   logo: string | null;
   description: string;
-  version: string;
+  config_path: string | null;
   install_methods: {
     type: "default" | "alpine";
     script: string;
@@ -48,12 +48,6 @@ export type Metadata = {
   categories: Category[];
 };
 
-export interface AppVersion {
-    name: string;
-    version: string;
-    date: Date;
-}
-
 export interface Version {
   name: string;
   slug: string;
@@ -62,4 +56,10 @@ export interface Version {
 export interface OperatingSystem {
   name: string;
   versions: Version[];
+}
+
+export interface AppVersion {
+  name: string;
+  version: string;
+  date: Date;
 }

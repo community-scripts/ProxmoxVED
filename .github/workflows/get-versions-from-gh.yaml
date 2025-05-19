@@ -1,0 +1,80 @@
+name: Crawl Versions from github
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Runs at 12:00 AM and 12:00 PM UTC
+    - cron: "0 0,12 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  crawl-versions:
+    if: github.repository == 'community-scripts/ProxmoxVED'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          repository: community-scripts/ProxmoxVED
+          ref: main
+
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Crawl from Github API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ls
+
+          chmod +x .github/workflows/scripts/get-gh-release.sh
+          .github/workflows/scripts/get-gh-release.sh
+
+      - name: Commit JSON
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions[bot]"
+          git checkout -b update_versions || git checkout update_versions
+          git add frontend/public/json/versions.json
+          if git diff --cached --quiet; then
+            echo "No changes detected."
+            echo "changed=false" >> "$GITHUB_ENV"
+            exit 0
+          else
+            echo "Changes detected:"
+            git diff --stat --cached
+            echo "changed=true" >> "$GITHUB_ENV"
+          fi
+          git commit -m "Update versions.json"
+          git push origin update_versions --force
+          gh pr create --title "[AUTOMATIC PR]Update versions.json" --body "Update versions.json, crawled from newreleases.io" --base main --head update_versions
+
+      - name: Approve pull request
+        if: env.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "update_versions" --json number --jq '.[].number')
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr review $PR_NUMBER --approve
+          fi
+
+      - name: Re-approve pull request after update
+        if: env.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "update_versions" --json number --jq '.[].number')
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr review $PR_NUMBER --approve
+          fi

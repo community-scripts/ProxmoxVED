@@ -1,0 +1,850 @@
+
+# dialog_input() {
+#     local title="$1"
+#     local prompt="$2"
+#     local default="$3"
+#     local result
+#     apt-get install -y dialog
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "$title" \
+#         --extra-button --extra-label "Back" \
+#         --ok-label "Next" --cancel-label "Exit" \
+#         --inputbox "$prompt" 10 58 "$default" 2>&1 >/dev/tty)
+
+#     local exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         REPLY_RESULT="$result"
+#         return 0
+#         ;;         # OK
+#     3) return 2 ;; # Back
+#     *) return 1 ;; # Cancel/Exit
+#     esac
+# }
+
+# advanced_settings() {
+#     local step=1
+
+#     while true; do
+#         case $step in
+#         1)
+#             show_intro_messages && ((step++))
+#             ;;
+#         2)
+#             select_distribution
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         3)
+#             select_version
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         4)
+#             select_container_type
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         5)
+#             set_root_password
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         6)
+#             set_container_id
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         7)
+#             set_hostname
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         8)
+#             set_disk_size
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         9)
+#             set_cpu_cores
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         10)
+#             set_ram_size
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         11)
+#             set_bridge
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         12)
+#             set_ip_address
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         13)
+#             set_gateway
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         14)
+#             set_apt_cacher
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         15)
+#             toggle_ipv6
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         16)
+#             set_mtu
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         17)
+#             set_dns_search_domain
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         18)
+#             set_dns_server
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         19)
+#             set_mac_address
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         20)
+#             set_vlan
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         21)
+#             set_tags
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         22)
+#             set_ssh_access
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         23)
+#             set_fuse
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         24)
+#             set_verbose
+#             result=$?
+#             [[ $result -eq 0 ]] && ((step++))
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         25)
+#             confirm_creation
+#             result=$?
+#             [[ $result -eq 0 ]] && break
+#             [[ $result -eq 2 && $step -gt 1 ]] && ((step--))
+#             [[ $result -eq 1 ]] && return
+#             ;;
+#         esac
+#     done
+# }
+
+# show_intro_messages() {
+#     dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "Instructional Tip" \
+#         --msgbox "To make a selection, use the Spacebar." 8 58 || return 1
+
+#     dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "Default distribution for $APP" \
+#         --msgbox "Default is: ${var_os} ${var_version}\n\nIf the default Linux distribution is not adhered to, script support will be discontinued." 10 58 || return 1
+#     return 0
+# }
+
+# select_distribution() {
+#     [[ "$var_os" == "alpine" ]] && return 0
+
+#     local default result exitcode
+#     default="${var_os:-debian}"
+#     var_os=""
+
+#     local debian_flag ubuntu_flag
+#     [[ "$default" == "debian" ]] && debian_flag="on" || debian_flag="off"
+#     [[ "$default" == "ubuntu" ]] && ubuntu_flag="on" || ubuntu_flag="off"
+
+#     while [[ -z "$var_os" ]]; do
+#         exec 3>&1
+#         result=$(dialog --clear \
+#             --backtitle "[dev] Proxmox VE Helper Scripts" \
+#             --title "DISTRIBUTION" \
+#             --radiolist "Choose Distribution:" 15 60 4 \
+#             "debian" "" "$debian_flag" \
+#             "ubuntu" "" "$ubuntu_flag" \
+#             --ok-label "Next" \
+#             --cancel-label "Exit" \
+#             --extra-button \
+#             --extra-label "Back" \
+#             2>&1 1>&3)
+#         exitcode=$?
+#         exec 3>&-
+
+#         case "$exitcode" in
+#         0)
+#             if [[ "$result" =~ ^(debian|ubuntu)$ ]]; then
+#                 var_os="$result"
+#                 printf "%bOperating System: %b%s%b\n" "$OS$BOLD$DGN" "$BGN" "$var_os" "$CL"
+#                 return 0
+#             else
+#                 printf "[DEBUG] No valid selection made (result='%s'), repeating...\n" "$result"
+#             fi
+#             ;;
+#         3)
+#             return 2
+#             ;;
+#         1 | 255)
+#             return 1
+#             ;;
+#         *)
+#             printf "[DEBUG] Unexpected exit code: %s\n" "$exitcode" >&2
+#             return 1
+#             ;;
+#         esac
+#     done
+# }
+
+# select_version() {
+#     local default="${var_version}"
+#     var_version=""
+#     local list result exitcode
+
+#     if [[ "$var_os" == "debian" ]]; then
+#         case "$default" in
+#         11) list=("11" "Bullseye" on "12" "Bookworm" off) ;;
+#         12) list=("11" "Bullseye" off "12" "Bookworm" on) ;;
+#         *) list=("11" "Bullseye" off "12" "Bookworm" off) ;;
+#         esac
+#     elif [[ "$var_os" == "ubuntu" ]]; then
+#         case "$default" in
+#         20.04) list=("20.04" "Focal" on "22.04" "Jammy" off "24.04" "Noble" off "24.10" "Oracular" off) ;;
+#         22.04) list=("20.04" "Focal" off "22.04" "Jammy" on "24.04" "Noble" off "24.10" "Oracular" off) ;;
+#         24.04) list=("20.04" "Focal" off "22.04" "Jammy" off "24.04" "Noble" on "24.10" "Oracular" off) ;;
+#         24.10) list=("20.04" "Focal" off "22.04" "Jammy" off "24.04" "Noble" off "24.10" "Oracular" on) ;;
+#         *) list=("20.04" "Focal" off "22.04" "Jammy" off "24.04" "Noble" off "24.10" "Oracular" off) ;;
+#         esac
+#     fi
+
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "VERSION" \
+#         --radiolist "Choose Version:" 15 58 5 \
+#         "${list[@]}" \
+#         --ok-label "Next" \
+#         --cancel-label "Exit" \
+#         --extra-button --extra-label "Back" \
+#         3>&1 1>&2 2>&3)
+
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         var_version="$result"
+#         printf "%bVersion: %b%s%b\n" "$OSVERSION$BOLD$DGN" "$BGN" "$var_version" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# select_container_type() {
+#     local default="${CT_TYPE}"
+#     CT_TYPE=""
+#     local list result exitcode
+
+#     [[ "$default" == "1" ]] && list=("1" "Unprivileged" on "0" "Privileged" off) || list=("1" "Unprivileged" off "0" "Privileged" on)
+
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "CONTAINER TYPE" \
+#         --radiolist "Choose Type:" 10 58 2 "${list[@]}" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         CT_TYPE="$result"
+#         [[ "$CT_TYPE" == "0" ]] && desc="Privileged" || desc="Unprivileged"
+#         printf "%bContainer Type: %b%s%b\n" "$CONTAINERTYPE$BOLD$DGN" "$BGN" "$desc" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+# set_root_password() {
+#     local pw1 pw2 exitcode
+
+#     while true; do
+#         pw1=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#             --title "PASSWORD (leave blank for automatic login)" \
+#             --insecure --passwordbox "\nSet Root Password (needed for root ssh access)" 10 58 \
+#             --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#         exitcode=$?
+
+#         case $exitcode in
+#         0)
+#             if [[ -z "$pw1" ]]; then
+#                 PW1="Automatic Login"
+#                 PW=""
+#                 printf "%bRoot Password: %b%s%b\n" "$VERIFYPW$BOLD$DGN" "$BGN" "$PW1" "$CL"
+#                 return 0
+#             fi
+#             if [[ "$pw1" == *" "* ]]; then
+#                 dialog --msgbox "Password cannot contain spaces. Please try again." 8 58
+#                 continue
+#             fi
+#             if [[ ${#pw1} -lt 5 ]]; then
+#                 dialog --msgbox "Password must be at least 5 characters long. Please try again." 8 58
+#                 continue
+#             fi
+#             pw2=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#                 --title "PASSWORD VERIFICATION" \
+#                 --insecure --passwordbox "\nVerify Root Password" 10 58 \
+#                 --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#             exitcode=$?
+#             case $exitcode in
+#             0)
+#                 if [[ "$pw1" == "$pw2" ]]; then
+#                     PW="-password $pw1"
+#                     printf "%bRoot Password: %b********%b\n" "$VERIFYPW$BOLD$DGN" "$BGN" "$CL"
+#                     return 0
+#                 else
+#                     dialog --msgbox "Passwords do not match. Please try again." 8 58
+#                     continue
+#                 fi
+#                 ;;
+#             3) return 2 ;;
+#             *) return 1 ;;
+#             esac
+#             ;;
+#         3) return 2 ;;
+#         *) return 1 ;;
+#         esac
+#     done
+# }
+
+# set_container_id() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "CONTAINER ID" \
+#         --inputbox "Set Container ID" 8 58 "$NEXTID" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         CT_ID="${result:-$NEXTID}"
+#         printf "%bContainer ID: %b%s%b\n" "$CONTAINERID$BOLD$DGN" "$BGN" "$CT_ID" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_hostname() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "HOSTNAME" \
+#         --inputbox "Set Hostname" 8 58 "$NSAPP" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         if [[ -z "$result" ]]; then
+#             HN="$NSAPP"
+#         else
+#             HN=$(tr -d ' ' <<<"${result,,}")
+#         fi
+#         printf "%bHostname: %b%s%b\n" "$HOSTNAME$BOLD$DGN" "$BGN" "$HN" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_disk_size() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "DISK SIZE" \
+#         --inputbox "Set Disk Size in GB" 8 58 "$var_disk" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         if [[ -z "$result" ]]; then
+#             DISK_SIZE="$var_disk"
+#         elif [[ "$result" =~ ^[0-9]+$ ]]; then
+#             DISK_SIZE="$result"
+#         else
+#             dialog --msgbox "Disk size must be an integer!" 8 58
+#             return 2
+#         fi
+#         printf "%bDisk Size: %b%s GB%b\n" "$DISKSIZE$BOLD$DGN" "$BGN" "$DISK_SIZE" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_cpu_cores() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "CORE COUNT" \
+#         --inputbox "Allocate CPU Cores" 8 58 "$var_cpu" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         CORE_COUNT="${result:-$var_cpu}"
+#         printf "%bCPU Cores: %b%s%b\n" "$CPUCORE$BOLD$DGN" "$BGN" "$CORE_COUNT" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_ram_size() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "RAM" \
+#         --inputbox "Allocate RAM in MiB" 8 58 "$var_ram" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         RAM_SIZE="${result:-$var_ram}"
+#         printf "%bRAM Size: %b%s MiB%b\n" "$RAMSIZE$BOLD$DGN" "$BGN" "$RAM_SIZE" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_bridge() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "BRIDGE" \
+#         --inputbox "Set a Bridge" 8 58 "vmbr0" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         BRG="${result:-vmbr0}"
+#         printf "%bBridge: %b%s%b\n" "$BRIDGE$BOLD$DGN" "$BGN" "$BRG" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_ip_address() {
+#     local result exitcode
+#     while true; do
+#         result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#             --title "IP ADDRESS" \
+#             --inputbox "Set a Static IPv4 CIDR Address (/24)" 8 58 "dhcp" \
+#             --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#         exitcode=$?
+
+#         case $exitcode in
+#         0)
+#             if [[ "$result" == "dhcp" ]]; then
+#                 NET="dhcp"
+#                 printf "%bIP Address: %b%s%b\n" "$NETWORK$BOLD$DGN" "$BGN" "$NET" "$CL"
+#                 return 0
+#             elif [[ "$result" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[1-2][0-9]|3[0-2])$ ]]; then
+#                 NET="$result"
+#                 printf "%bIP Address: %b%s%b\n" "$NETWORK$BOLD$DGN" "$BGN" "$NET" "$CL"
+#                 return 0
+#             else
+#                 dialog --msgbox "$result is an invalid IPv4 CIDR address. Please enter a valid address or 'dhcp'." 8 58
+#                 continue
+#             fi
+#             ;;
+#         3) return 2 ;;
+#         *) return 1 ;;
+#         esac
+#     done
+# }
+
+# set_gateway() {
+#     local result exitcode
+#     if [[ "$NET" == "dhcp" ]]; then
+#         GATE=""
+#         printf "%bGateway IP Address: %bDefault%b\n" "$GATEWAY$BOLD$DGN" "$BGN" "$CL"
+#         return 0
+#     fi
+
+#     while true; do
+#         result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#             --title "Gateway IP" \
+#             --inputbox "Enter gateway IP address" 8 58 \
+#             --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#         exitcode=$?
+
+#         case $exitcode in
+#         0)
+#             if [[ -z "$result" ]]; then
+#                 dialog --msgbox "Gateway IP address cannot be empty" 8 58
+#                 continue
+#             elif [[ "$result" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+#                 GATE=",gw=$result"
+#                 printf "%bGateway IP Address: %b%s%b\n" "$GATEWAY$BOLD$DGN" "$BGN" "$result" "$CL"
+#                 return 0
+#             else
+#                 dialog --msgbox "Invalid IP address format" 8 58
+#             fi
+#             ;;
+#         3) return 2 ;;
+#         *) return 1 ;;
+#         esac
+#     done
+# }
+
+# set_apt_cacher() {
+#     local result exitcode
+#     if [[ "$var_os" == "alpine" ]]; then
+#         APT_CACHER=""
+#         APT_CACHER_IP=""
+#         return 0
+#     fi
+
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "APT-Cacher IP" \
+#         --inputbox "Set APT-Cacher IP (leave blank for none)" 8 58 \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         APT_CACHER_IP="$result"
+#         APT_CACHER="${APT_CACHER_IP:+yes}"
+#         printf "%bAPT-Cacher IP Address: %b%s%b\n" "$NETWORK$BOLD$DGN" "$BGN" "${APT_CACHER_IP:-Default}" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# toggle_ipv6() {
+#     dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "IPv6" \
+#         --yesno "Disable IPv6?" 10 58 \
+#         --extra-button --extra-label "Back" --ok-label "Yes" --cancel-label "No"
+#     case $? in
+#     0) DISABLEIP6="yes" ;;
+#     1) DISABLEIP6="no" ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+#     printf "%bDisable IPv6: %b%s%b\n" "$DISABLEIPV6$BOLD$DGN" "$BGN" "$DISABLEIP6" "$CL"
+#     return 0
+# }
+# set_mtu() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "MTU SIZE" \
+#         --inputbox "Set Interface MTU Size (leave blank for default [1500])" 8 58 "" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         if [[ -z "$result" ]]; then
+#             MTU1="Default"
+#             MTU=""
+#         else
+#             MTU1="$result"
+#             MTU=",mtu=$MTU1"
+#         fi
+#         printf "%bInterface MTU Size: %b%s%b\n" "$DEFAULT$BOLD$DGN" "$BGN" "$MTU1" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_dns_search_domain() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "DNS Search Domain" \
+#         --inputbox "Set a DNS Search Domain (leave blank for HOST)" 8 58 "" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         if [[ -z "$result" ]]; then
+#             SX="Host"
+#             SD=""
+#         else
+#             SX="$result"
+#             SD="-searchdomain=$result"
+#         fi
+#         printf "%bDNS Search Domain: %b%s%b\n" "$SEARCH$BOLD$DGN" "$BGN" "$SX" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_dns_server() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "DNS SERVER IP" \
+#         --inputbox "Set a DNS Server IP (leave blank for HOST)" 8 58 "" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         if [[ -z "$result" ]]; then
+#             NX="Host"
+#             NS=""
+#         else
+#             NX="$result"
+#             NS="-nameserver=$result"
+#         fi
+#         printf "%bDNS Server IP Address: %b%s%b\n" "$NETWORK$BOLD$DGN" "$BGN" "$NX" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_mac_address() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "MAC ADDRESS" \
+#         --inputbox "Set a MAC Address (leave blank for generated MAC)" 8 58 "" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         if [[ -z "$result" ]]; then
+#             MAC1="Default"
+#             MAC=""
+#         else
+#             MAC1="$result"
+#             MAC=",hwaddr=$MAC1"
+#         fi
+#         printf "%bMAC Address: %b%s%b\n" "$MACADDRESS$BOLD$DGN" "$BGN" "$MAC1" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_vlan() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "VLAN" \
+#         --inputbox "Set a VLAN (leave blank for no VLAN)" 8 58 "" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         if [[ -z "$result" ]]; then
+#             VLAN1="Default"
+#             VLAN=""
+#         else
+#             VLAN1="$result"
+#             VLAN=",tag=$VLAN1"
+#         fi
+#         printf "%bVlan: %b%s%b\n" "$VLANTAG$BOLD$DGN" "$BGN" "$VLAN1" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_tags() {
+#     local result exitcode
+#     result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "Advanced Tags" \
+#         --inputbox "Set Custom Tags? [If you remove all, there will be no tags!]" 8 58 "$TAGS" \
+#         --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#     exitcode=$?
+
+#     case $exitcode in
+#     0)
+#         if [[ -n "$result" ]]; then
+#             ADV_TAGS=$(tr -d '[:space:]' <<<"$result")
+#             TAGS="$ADV_TAGS"
+#         else
+#             TAGS=";"
+#         fi
+#         printf "%bTags: %b%s%b\n" "$NETWORK$BOLD$DGN" "$BGN" "$TAGS" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
+
+# set_ssh_access() {
+#     local result exitcode
+
+#     if [[ "$PW" == -password* ]]; then
+#         dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#             --title "SSH ACCESS" \
+#             --yesno "Enable Root SSH Access?" 10 58 \
+#             --extra-button --extra-label "Back" --ok-label "Yes" --cancel-label "No"
+#         exitcode=$?
+#         case $exitcode in
+#         0) SSH="yes" ;;
+#         1) SSH="no" ;;
+#         3) return 2 ;;
+#         *) return 1 ;;
+#         esac
+#     else
+#         SSH="no"
+#     fi
+
+#     printf "%bRoot SSH Access: %b%s%b\n" "$ROOTSSH$BOLD$DGN" "$BGN" "$SSH" "$CL"
+
+#     if [[ "$SSH" == "yes" ]]; then
+#         result=$(dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#             --title "SSH Key" \
+#             --inputbox "SSH Authorized key for root (leave empty for none)" 8 58 "" \
+#             --extra-button --extra-label "Back" --ok-label "Next" --cancel-label "Exit" 3>&1 1>&2 2>&3)
+#         exitcode=$?
+#         case $exitcode in
+#         0)
+#             SSH_AUTHORIZED_KEY="$result"
+#             return 0
+#             ;;
+#         3) return 2 ;;
+#         *) return 1 ;;
+#         esac
+#     else
+#         SSH_AUTHORIZED_KEY=""
+#         return 0
+#     fi
+# }
+
+# set_fuse() {
+#     dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "FUSE Support" \
+#         --yesno "Enable FUSE (Filesystem in Userspace) support in the container?" 10 58 \
+#         --extra-button --extra-label "Back" --ok-label "Yes" --cancel-label "No"
+#     case $? in
+#     0) ENABLE_FUSE="yes" ;;
+#     1) ENABLE_FUSE="no" ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+#     printf "%bFUSE (Filesystem in Userspace) Support: %b%s%b\n" "$FUSE$BOLD$DGN" "$BGN" "$ENABLE_FUSE" "$CL"
+#     return 0
+# }
+
+# set_verbose() {
+#     dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "VERBOSE MODE" \
+#         --yesno "Enable Verbose Mode?" 10 58 \
+#         --extra-button --extra-label "Back" --ok-label "Yes" --cancel-label "No"
+#     case $? in
+#     0) VERB="yes" ;;
+#     1) VERB="no" ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+#     printf "%bVerbose Mode: %b%s%b\n" "$SEARCH$BOLD$DGN" "$BGN" "$VERB" "$CL"
+#     return 0
+# }
+
+# confirm_creation() {
+#     dialog --backtitle "[dev] Proxmox VE Helper Scripts" \
+#         --title "ADVANCED SETTINGS COMPLETE" \
+#         --yesno "Ready to create ${APP} LXC?" 10 58 \
+#         --extra-button --extra-label "Back" --ok-label "Yes" --cancel-label "No"
+#     case $? in
+#     0)
+#         printf "%bCreating a %s LXC using the above advanced settings%b\n" "$CREATING$BOLD$RD" "$APP" "$CL"
+#         return 0
+#         ;;
+#     3) return 2 ;;
+#     *) return 1 ;;
+#     esac
+# }
