@@ -21,7 +21,8 @@ $STD apt-get install -y \
   redis-server \
   npm \
   nginx \
-  lsb-release
+  lsb-release \
+  libvips
 msg_ok "Installed Dependencies"
 
 msg_info "Adding PHP8.4 Repository"
@@ -31,12 +32,15 @@ $STD sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https
 $STD apt-get update
 msg_ok "Added PHP8.4 Repository"
 
-msg_info "Installing PHP"
+msg_info "Installing / configuring PHP"
 $STD apt-get remove -y php8.2*
 $STD apt-get install -y \
   php8.4 \
   php8.4-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm}
-msg_info "Installed PHP"
+PHPVER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "\n";')
+sed -i.bak -E 's/^\s*;?\s*ffi\.enable\s*=.*/ffi.enable=true/' /etc/php/${PHPVER}/fpm/php.ini
+$STD systemctl reload php${PHPVER}-fpm
+msg_info "Installed  / configured PHP"
 
 msg_info "Installing MeiliSearch"
 cd /opt
@@ -74,7 +78,8 @@ systemctl enable -q --now meilisearch
 msg_ok "Created Service MeiliSearch"
 
 msg_info "Installing Bar Assistant"
-RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+# RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+RELEASE_BARASSISTANT="5.3.0"
 cd /opt
 curl -fsSL "https://github.com/karlomikus/bar-assistant/archive/refs/tags/v${RELEASE_BARASSISTANT}.zip" -o barassistant.zip
 unzip -q barassistant.zip
@@ -100,6 +105,7 @@ $STD php artisan scout:sync-index-settings
 $STD php artisan config:cache
 $STD php artisan route:cache
 $STD php artisan event:cache
+mkdir /opt/bar-assistant/storage/bar-assistant/uploads/temp
 chown -R www-data:www-data /opt/bar-assistant
 echo "${RELEASE_BARASSISTANT}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Bar Assistant"

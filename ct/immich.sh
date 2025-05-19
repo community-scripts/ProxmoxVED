@@ -46,13 +46,13 @@ function update_script() {
     rm ~/Dockerfile
   fi
   if [[ -f ~/.immich_library_revisions ]]; then
-    curl -fsSLO https://raw.githubusercontent.com/immich-app/base-images/refs/heads/main/server/bin/build-lock.json
-    jq -cr '.sources[].revision' ./build-lock.json >~/.new_revisions
-    readarray -t UPDATED_REVISIONS < <(comm -13 <(sort ~/.immich_library_revisions) <(sort ~/.new_revisions))
-    if [[ "${#UPDATED_REVISIONS[@]}" -gt 0 ]]; then
-      readarray -t NAMES < <(for revision in "${UPDATED_REVISIONS[@]}"; do
-        jq -cr --arg jq_revision "$revision" '.sources[] | select(.revision == $jq_revision).name' ./build-lock.json
-      done)
+    libraries=("libjxl" "libheif" "libraw" "imagemagick" "libvips")
+    readarray -d '' NEW_REVISIONS < <(for library in "${libraries[@]}"; do
+      echo "$library: $(curl -fsSL https://raw.githubusercontent.com/immich-app/base-images/refs/heads/main/server/sources/"$library".json | jq -cr '.revision' -)"
+    done)
+    UPDATED_REVISIONS="$(comm -13 <(sort ~/.immich_library_revisions) <(echo -n "${NEW_REVISIONS[@]}" | sort))"
+    if [[ "$UPDATED_REVISIONS" ]]; then
+      readarray -t NAMES < <(echo "$UPDATED_REVISIONS" | awk -F ':' '{print $1}')
       rm -rf "$SOURCE_DIR"
       mkdir -p "$SOURCE_DIR"
       cd "$BASE_DIR"
@@ -64,13 +64,13 @@ function update_script() {
           SOURCE=${SOURCE_DIR}/libjxl
           JPEGLI_LIBJPEG_LIBRARY_SOVERSION="62"
           JPEGLI_LIBJPEG_LIBRARY_VERSION="62.3.0"
-          : "${LIBJXL_REVISION:=$(jq -cr '.sources[] | select(.name == "libjxl").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          : "${LIBJXL_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/libjxl.json)}"
           $STD git clone https://github.com/libjxl/libjxl.git "$SOURCE"
           cd "$SOURCE"
           $STD git reset --hard "$LIBJXL_REVISION"
           $STD git submodule update --init --recursive --depth 1 --recommend-shallow
-          $STD git apply "$BASE_DIR"/server/bin/patches/jpegli-empty-dht-marker.patch
-          $STD git apply "$BASE_DIR"/server/bin/patches/jpegli-icc-warning.patch
+          $STD git apply "$BASE_DIR"/server/sources/libjxl-patches/jpegli-empty-dht-marker.patch
+          $STD git apply "$BASE_DIR"/server/sources/libjxl-patches/jpegli-icc-warning.patch
           mkdir build
           cd build
           $STD cmake \
@@ -102,7 +102,7 @@ function update_script() {
         if [[ "$name" == "libheif" ]]; then
           msg_info "Recompiling libheif"
           SOURCE=${SOURCE_DIR}/libheif
-          : "${LIBHEIF_REVISION:=$(jq -cr '.sources[] | select(.name == "libheif").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          : "${LIBHEIF_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/libheif.json)}"
           $STD git clone https://github.com/strukturag/libheif.git "$SOURCE"
           cd "$SOURCE"
           $STD git reset --hard "$LIBHEIF_REVISION"
@@ -128,7 +128,7 @@ function update_script() {
         if [[ "$name" == "libraw" ]]; then
           msg_info "Recompiling libraw"
           SOURCE=${SOURCE_DIR}/libraw
-          : "${LIBRAW_REVISION:=$(jq -cr '.sources[] | select(.name == "libraw").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          : "${LIBRAW_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/libraw.json)}"
           $STD git clone https://github.com/libraw/libraw.git "$SOURCE"
           cd "$SOURCE"
           $STD git reset --hard "$LIBRAW_REVISION"
@@ -144,7 +144,7 @@ function update_script() {
         if [[ "$name" == "imagemagick" ]]; then
           msg_info "Recompiling ImageMagick"
           SOURCE=$SOURCE_DIR/imagemagick
-          : "${IMAGEMAGICK_REVISION:=$(jq -cr '.sources[] | select(.name == "imagemagick").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          : "${IMAGEMAGICK_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/imagemagick.json)}"
           $STD git clone https://github.com/ImageMagick/ImageMagick.git "$SOURCE"
           cd "$SOURCE"
           $STD git reset --hard "$IMAGEMAGICK_REVISION"
@@ -159,7 +159,7 @@ function update_script() {
         if [[ "$name" == "libvips" ]]; then
           msg_info "Recompiling libvips"
           SOURCE=$SOURCE_DIR/libvips
-          : "${LIBVIPS_REVISION:=$(jq -cr '.sources[] | select(.name == "libvips").revision' $BASE_DIR/server/bin/build-lock.json)}"
+          : "${LIBVIPS_REVISION:=$(jq -cr '.revision' $BASE_DIR/server/sources/libvips.json)}"
           $STD git clone https://github.com/libvips/libvips.git "$SOURCE"
           cd "$SOURCE"
           $STD git reset --hard "$LIBVIPS_REVISION"
@@ -172,10 +172,9 @@ function update_script() {
           msg_ok "Recompiled libvips"
         fi
       done
-      mv ~/.new_revisions ~/.immich_library_revisions
+      echo -n "${NEW_REVISIONS[@]}" >~/.immich_library_revisions
       msg_ok "Image-processing libraries compiled"
     fi
-    rm ~/build-lock.json
   fi
   RELEASE=$(curl -s https://api.github.com/repos/immich-app/immich/releases?per_page=1 | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then

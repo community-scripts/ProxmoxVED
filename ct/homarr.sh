@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 tteck
 # Author: tteck (tteckster) | Co-Author: MickLesk (Canbiz) | Co-Author: CrazyWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -124,7 +124,9 @@ EOF
     fetch_and_deploy_gh_release "homarr-labs/homarr"
     mv /opt/homarr-data-backup/.env /opt/homarr/.env
     cd /opt/homarr
-    $STD pnpm install --config.allowBuildScripts=true
+    echo "test2"
+    export NODE_ENV=""
+    $STD pnpm install --recursive --frozen-lockfile --shamefully-hoist
     $STD pnpm build
     cp /opt/homarr/apps/nextjs/next.config.ts .
     cp /opt/homarr/apps/nextjs/package.json .

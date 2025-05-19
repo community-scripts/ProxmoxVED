@@ -48,13 +48,13 @@ function update_script() {
         cp /opt/bar-assistant-backup/storage/bar-assistant /opt/bar-assistant/storage/bar-assistant
         cd /opt/bar-assistant
         composer install
-        php artisan migrate --force
-        php artisan storage:link
-        php artisan bar:setup-meilisearch
-        php artisan scout:sync-index-settings
-        php artisan config:cache
-        php artisan route:cache
-        php artisan event:cache
+        $STD php artisan migrate --force
+        $STD php artisan storage:link
+        $STD php artisan bar:setup-meilisearch
+        $STD php artisan scout:sync-index-settings
+        $STD php artisan config:cache
+        $STD php artisan route:cache
+        $STD php artisan event:cache
         echo "${RELEASE_BARASSISTANT}" >/opt/${APP}_version.txt
         msg_ok "Updated $APP to v${RELEASE_BARASSISTANT}"
 
