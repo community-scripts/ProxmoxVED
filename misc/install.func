@@ -13,6 +13,18 @@ fi
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
 load_functions
 
+__handle_general_error() {
+  local location="$1"
+  local code="$?"
+  msg_error "Error at ${location} (exit code ${code})"
+  exit "$code"
+}
+
+__handle_signal_exit() {
+  msg_error "Script aborted by signal (SIGINT or SIGTERM)"
+  exit 130
+}
+
 # # Function to set STD mode based on verbosity
 # set_std_mode() {
 #   if [ "$VERBOSE" = "yes" ]; then

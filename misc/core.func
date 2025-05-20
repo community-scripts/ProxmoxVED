@@ -439,3 +439,14 @@ msg_progress() {
     printf "\n" >&2
   fi
 }
+
+run_container_safe() {
+  local ct="$1"
+  shift
+  local cmd="$*"
+
+  lxc-attach -n "$ct" -- bash -euo pipefail -c "
+    trap 'echo Aborted in container; exit 130' SIGINT SIGTERM
+    $cmd
+  " || __handle_general_error "lxc-attach to CT $ct"
+}
