@@ -13,37 +13,21 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-    curl \
-    sudo \
-    wget
-msg_ok "Installed Dependencies"
-
 msg_info "Installing Kasm Workspaces"
 KASM_VERSION=$(curl -s 'https://www.kasmweb.com/downloads' | grep -o 'https://kasm-static-content.s3.amazonaws.com/kasm_release_[^"]*\.tar\.gz' | head -n 1 | sed -E 's/.*release_(.*)\.tar\.gz/\1/')
-msg_ok "Latest Kasm Version: $KASM_VERSION"
-
-msg_ok "Downloading installer..."
 curl -fsSL -o "/opt/kasm_release_${KASM_VERSION}.tar.gz" "https://kasm-static-content.s3.amazonaws.com/kasm_release_${KASM_VERSION}.tar.gz"
-
-msg_ok "Extracting installer..."
 cd /opt
 tar -xf "kasm_release_${KASM_VERSION}.tar.gz"
 chmod +x /opt/kasm_release/install.sh
-
-msg_ok "Installing Kasm..."
 printf 'y\ny\ny\n4\n' | bash /opt/kasm_release/install.sh | tee ~/kasm-install.output
-
-msg_ok "Storing credentials..."
 sed -n '/Kasm UI Login Credentials/,$p' ~/kasm-install.output > ~/kasm.creds
-
 msg_ok "Installed Kasm Workspaces"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
+$STD rm -f /opt/kasm_release_${KASM_VERSION}.tar.gz
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
