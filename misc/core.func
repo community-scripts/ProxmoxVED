@@ -30,7 +30,6 @@ _CORE_FUNC_LOADED=1
 load_functions() {
   [[ -n "${__FUNCTIONS_LOADED:-}" ]] && return
   __FUNCTIONS_LOADED=1
-  setup_trap_abort_handling
   color
   formatting
   icons
