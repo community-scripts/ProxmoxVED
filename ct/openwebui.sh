@@ -52,6 +52,7 @@ function update_script() {
   cd /opt/openwebui
   $STD npm install
   export NODE_OPTIONS="--max-old-space-size=3584"
+  sed -i "s/git rev-parse HEAD/openssl rand -hex 20/g" /opt/openwebui/svelte.config.js
   $STD npm run build
   cd ./backend
   $STD pip install -r requirements.txt -U

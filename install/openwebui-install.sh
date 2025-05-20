@@ -49,6 +49,7 @@ ENABLE_OLLAMA_API=false
 EOF
 $STD npm install
 export NODE_OPTIONS="--max-old-space-size=3584"
+sed -i "s/git rev-parse HEAD/openssl rand -hex 20/g" /opt/openwebui/svelte.config.js
 $STD npm run build
 msg_ok "Installed Open WebUI"
 
