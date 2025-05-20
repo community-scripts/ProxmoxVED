@@ -966,13 +966,6 @@ build_container() {
     FEATURES="$FEATURES,fuse=1"
   fi
 
-  if [ "$ENABLE_TUN" == "1" ]; then
-    cat <<EOF >>"$LXC_CONFIG"
-lxc.cgroup2.devices.allow: c 10:200 rwm
-lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
-EOF
-  fi
-
   if [[ $DIAGNOSTICS == "yes" ]]; then
     post_to_api
   fi
@@ -1064,6 +1057,13 @@ EOF
         fi
       fi
     fi
+  fi
+
+  if [ "$ENABLE_TUN" == "1" ]; then
+    cat <<EOF >>"$LXC_CONFIG"
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+EOF
   fi
 
   # This starts the container and executes <app>-install.sh
