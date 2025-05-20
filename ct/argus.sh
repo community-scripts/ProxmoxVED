@@ -13,8 +13,6 @@ var_disk="${var_disk:-3}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
-var_fuse="${var_fuse:-1}"
-var_tun="${var_tun:-1}"
 
 header_info "$APP"
 variables
