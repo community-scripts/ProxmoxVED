@@ -1097,7 +1097,6 @@ EOF'
     msg_error "Install script failed in container (exit code $exit_code)"
     exit "$exit_code"
   fi
-
 }
 
 # This function sets the description of the container.
