@@ -289,23 +289,20 @@ config_file() {
       IFS="-" read -r ip_start ip_end <<< "$NET"
 
       if [[ ! "$ip_start" =~ $ip_cidr_regex ]] || [[ ! "$ip_end" =~ $ip_cidr_regex ]]; then
-        echo "Invalid IP range format: $NET"
+        msg_error "Invalid IP range format, was $NET should be 0.0.0.0/0-0.0.0.0/0"
         exit 1
       fi
 
-      # Extract IPs and ignore CIDR for scanning
       ip1="${ip_start%%/*}"
       ip2="${ip_end%%/*}"
       cidr="${ip_start##*/}"
 
-      # Convert IP to integer
       ip_to_int() {
         local IFS=.
         read -r i1 i2 i3 i4 <<< "$1"
         echo $(( (i1 << 24) + (i2 << 16) + (i3 << 8) + i4 ))
       }
 
-      # Convert integer back to IP
       int_to_ip() {
         local ip=$1
         echo "$(( (ip >> 24) & 0xFF )).$(( (ip >> 16) & 0xFF )).$(( (ip >> 8) & 0xFF )).$(( ip & 0xFF ))"
@@ -316,18 +313,17 @@ config_file() {
 
       for ((ip_int=start_int; ip_int<=end_int; ip_int++)); do
         ip=$(int_to_ip $ip_int)
-        if ! ping -c 1 -W 1 "$ip" >/dev/null 2>&1; then
+          msg_info "Checking IP: $ip"
+        if ! ping -c 4 -W 1 "$ip" >/dev/null 2>&1; then
           NET="$ip/$cidr"
-          echo "Selected unused IP: $NET"
+          echo -e "${NETWORK}${BOLD}${DGN}IP Address: ${BGN}$NET${CL}"
           break
         fi
       done
-
       if [[ "$NET" == *-* ]]; then
-        echo "No free IP found in range"
+        msg_error "No free IP found in range"
         exit 1
       fi
-
       if [ -n "$GATE" ]; then
         if [[ "$GATE" =~ $ip_regex ]]; then
           echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}$GATE${CL}"
@@ -337,8 +333,18 @@ config_file() {
           exit
         fi
       else
-        msg_error "Gateway IP Address cannot be empty"
-        exit
+        while true; do
+          GATE1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Enter gateway IP address" 8 58 --title "Gateway IP" 3>&1 1>&2 2>&3)
+          if [ -z "$GATE1" ]; then
+            whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Gateway IP address cannot be empty" 8 58
+          elif [[ ! "$GATE1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Invalid IP address format" 8 58
+          else
+            GATE=",gw=$GATE1"
+            echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}$GATE1${CL}"
+            break
+          fi
+        done
       fi
     else
       msg_error "Invalid IP Address format. Needs to be 0.0.0.0/0 or a range like 10.0.0.1/24-10.0.0.10/24, was ${NET}"
