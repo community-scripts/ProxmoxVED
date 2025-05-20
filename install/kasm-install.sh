@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Omar Minaya
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://www.kasmweb.com/docs/1.10.0/install/single_server_install.html
+# Source: https://www.kasmweb.com/docs/latest/index.html
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
