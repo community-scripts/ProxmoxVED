@@ -46,8 +46,8 @@ error_handler() {
   if [[ -n "$CT_ID" ]]; then
     read -p "Remove this Container? <y/N> " prompt
     if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-      pct stop "$CT_ID" &> /dev/null
-      pct destroy "$CT_ID" &> /dev/null
+      pct stop "$CT_ID" &>/dev/null
+      pct destroy "$CT_ID" &>/dev/null
       msg_ok "Removed this Container"
     fi
   fi
@@ -244,6 +244,8 @@ base_settings() {
   SSH_AUTHORIZED_KEY=""
   TAGS="community-script;"
   UDHCPC_FIX=""
+  ENABLE_FUSE=="0"
+  ENABLE_TUN="0"
 
   # Override default settings with variables from ct script
   CT_TYPE=${var_unprivileged:-$CT_TYPE}
@@ -252,6 +254,8 @@ base_settings() {
   RAM_SIZE=${var_ram:-$RAM_SIZE}
   VERBOSE=${var_verbose:-$VERBOSE}
   TAGS="${TAGS}${var_tags:-}"
+  ENABLE_FUSE="${var_fuse:-$ENABLE_FUSE}"
+  ENABLE_TUN="${var_tun:-$ENABLE_TUN}"
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
@@ -316,7 +320,7 @@ VERBOSE="${VERBOSE}"
 TAGS="${TAGS:-none}"
 VLAN="${VLAN:-none}"
 MTU="${MTU:-1500}"
-GATE="${GATE:-none}"
+GATE="${GATE:-}"
 SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
@@ -327,8 +331,8 @@ EOF
     else
       echo -e "${INFO}${BOLD}${RD}Configuration file already exists at ${FILEPATH}${CL}"
       if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "Overwrite configfile" --yesno "Do you want to overwrite the existing config file?" 10 60; then
-              rm -f "$FILEPATH"
-              cat <<EOF >"$FILEPATH"
+        rm -f "$FILEPATH"
+        cat <<EOF >"$FILEPATH"
 # ${NSAPP} Configuration File
 # Generated on $(date)
 
@@ -347,7 +351,7 @@ VERBOSE="${VERBOSE}"
 TAGS="${TAGS:-none}"
 VLAN="${VLAN:-none}"
 MTU="${MTU:-1500}"
-GATE="${GATE:-none}"
+GATE="${GATE:-}"
 SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
@@ -498,7 +502,6 @@ advanced_settings() {
     exit_script
   fi
 
-
   IFACE_FILEPATH_LIST="/etc/network/interfaces"$'\n'$(find "/etc/network/interfaces.d/" -type f)
   BRIDGES=""
   OLD_IFS=$IFS
@@ -506,21 +509,21 @@ advanced_settings() {
   for iface_filepath in ${IFACE_FILEPATH_LIST}; do
 
     iface_indexes_tmpfile=$(mktemp -q -u '.iface-XXXX')
-    ( grep -Pn '^\s*iface' "${iface_filepath}" | cut -d':' -f1 && wc -l "${iface_filepath}" | cut -d' ' -f1 ) | awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' > "${iface_indexes_tmpfile}" || true
+    (grep -Pn '^\s*iface' "${iface_filepath}" | cut -d':' -f1 && wc -l "${iface_filepath}" | cut -d' ' -f1) | awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' >"${iface_indexes_tmpfile}" || true
 
     if [ -f "${iface_indexes_tmpfile}" ]; then
 
-        while read -r pair; do
-            start=$(echo "${pair}" | cut -d':' -f1)
-            end=$(echo "${pair}" | cut -d':' -f2)
+      while read -r pair; do
+        start=$(echo "${pair}" | cut -d':' -f1)
+        end=$(echo "${pair}" | cut -d':' -f2)
 
-            if awk "NR >= ${start} && NR <= ${end}" "${iface_filepath}" | grep -qP '^\s*(bridge[-_](ports|stp|fd|vlan-aware|vids)|ovs_type\s+OVSBridge)\b'; then
-                iface_name=$(sed "${start}q;d" "${iface_filepath}" | awk '{print $2}')
-                BRIDGES="${iface_name}"$'\n'"${BRIDGES}"
-            fi
+        if awk "NR >= ${start} && NR <= ${end}" "${iface_filepath}" | grep -qP '^\s*(bridge[-_](ports|stp|fd|vlan-aware|vids)|ovs_type\s+OVSBridge)\b'; then
+          iface_name=$(sed "${start}q;d" "${iface_filepath}" | awk '{print $2}')
+          BRIDGES="${iface_name}"$'\n'"${BRIDGES}"
+        fi
 
-        done < "${iface_indexes_tmpfile}"
-        rm -f "${iface_indexes_tmpfile}"
+      done <"${iface_indexes_tmpfile}"
+      rm -f "${iface_indexes_tmpfile}"
     fi
 
   done
@@ -779,7 +782,6 @@ EOF
 
 }
 
-
 install_script() {
   pve_check
   shell_check
@@ -960,6 +962,10 @@ build_container() {
     FEATURES="nesting=1"
   fi
 
+  if [ "$ENABLE_FUSE" == "1" ]; then
+    FEATURES="$FEATURES,fuse=1"
+  fi
+
   if [[ $DIAGNOSTICS == "yes" ]]; then
     post_to_api
   fi
@@ -984,6 +990,8 @@ build_container() {
   export SSH_AUTHORIZED_KEY
   export CTID="$CT_ID"
   export CTTYPE="$CT_TYPE"
+  export ENABLE_FUSE="$ENABLE_FUSE"
+  export ENABLE_TUN="$ENABLE_TUN"
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
@@ -1049,6 +1057,13 @@ EOF
         fi
       fi
     fi
+  fi
+
+  if [ "$ENABLE_TUN" == "1" ]; then
+    cat <<EOF >>"$LXC_CONFIG"
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+EOF
   fi
 
   # This starts the container and executes <app>-install.sh
@@ -1123,8 +1138,6 @@ EOF
   if [[ -f /etc/systemd/system/ping-instances.service ]]; then
     systemctl start ping-instances.service
   fi
-
-
 
   post_update_to_api "done" "none"
 }

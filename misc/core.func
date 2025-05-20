@@ -35,8 +35,68 @@ load_functions() {
   icons
   default_vars
   set_std_mode
-  detect_os
   # add more
+}
+
+setup_trap_abort_handling() {
+  trap '__handle_signal_abort SIGINT' SIGINT
+  trap '__handle_signal_abort SIGTERM' SIGTERM
+  trap '__handle_unexpected_error $?' ERR
+}
+
+__handle_signal_abort() {
+  local signal="$1"
+  echo
+  [ -n "${SPINNER_PID:-}" ] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null
+
+  case "$signal" in
+  SIGINT)
+    msg_error "Script aborted by user (CTRL+C)"
+    exit 130
+    ;;
+  SIGTERM)
+    msg_error "Script terminated (SIGTERM)"
+    exit 143
+    ;;
+  *)
+    msg_error "Script interrupted (unknown signal: $signal)"
+    exit 1
+    ;;
+  esac
+}
+
+__handle_unexpected_error() {
+  local exit_code="$1"
+  echo
+  [ -n "${SPINNER_PID:-}" ] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null
+
+  case "$exit_code" in
+  1)
+    msg_error "Generic error occurred (exit code 1)"
+    ;;
+  2)
+    msg_error "Misuse of shell builtins (exit code 2)"
+    ;;
+  126)
+    msg_error "Command invoked cannot execute (exit code 126)"
+    ;;
+  127)
+    msg_error "Command not found (exit code 127)"
+    ;;
+  128)
+    msg_error "Invalid exit argument (exit code 128)"
+    ;;
+  130)
+    msg_error "Script aborted by user (CTRL+C)"
+    ;;
+  143)
+    msg_error "Script terminated by SIGTERM"
+    ;;
+  *)
+    msg_error "Unexpected error occurred (exit code $exit_code)"
+    ;;
+  esac
+  exit "$exit_code"
 }
 
 # ------------------------------------------------------------------------------
@@ -233,14 +293,6 @@ __curl_err_handler() {
   exit 1
 }
 
-detect_os() {
-  case "$PCT_OSTYPE" in
-  alpine) CORE_OS="alpine" ;;
-  debian | ubuntu) CORE_OS="debian" ;;
-  *) CORE_OS="unknown" ;;
-  esac
-}
-
 fatal() {
   msg_error "$1"
   kill -INT $$
@@ -377,4 +429,15 @@ msg_progress() {
   if [[ "$current" -eq "$total" ]]; then
     printf "\n" >&2
   fi
+}
+
+run_container_safe() {
+  local ct="$1"
+  shift
+  local cmd="$*"
+
+  lxc-attach -n "$ct" -- bash -euo pipefail -c "
+    trap 'echo Aborted in container; exit 130' SIGINT SIGTERM
+    $cmd
+  " || __handle_general_error "lxc-attach to CT $ct"
 }
