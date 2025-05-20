@@ -285,18 +285,25 @@ config_file() {
         msg_error "Gateway IP Address cannot be empty"
         exit
       fi
-    elif [[ "$NET" =~ $ip_range_regex ]]; then
+    elif [[ "$NET" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\.([0-9]+)/([0-9]+)-([0-9]+)/([0-9]+)$ ]]; then
       base="${BASH_REMATCH[1]}"
       start="${BASH_REMATCH[2]}"
       end="${BASH_REMATCH[4]}"
-      cidr="${BASH_REMATCH[3]}"
+      cidr_start="${BASH_REMATCH[3]}"
+      cidr_end="${BASH_REMATCH[5]}"
 
-      msg_info "Checking IPs from $base.$start/$cidr to $base.$end/$cidr"
+      # Optional check: CIDR must match (can be customized)
+      if [[ "$cidr_start" != "$cidr_end" ]]; then
+        msg_error "Mismatched CIDR: /$cidr_start and /$cidr_end"
+        exit 1
+      fi
+
+      msg_info "Checking IPs from $base.$start/$cidr_start to $base.$end/$cidr_start"
 
       for ((i=start; i<=end; i++)); do
         ip="$base.$i"
         if ! ping -c 1 -W 1 "$ip" > /dev/null 2>&1; then
-          NET="$ip/$cidr"
+          NET="$ip/$cidr_start"
           msg_ok "Selected unused IP: $NET"
           break
         fi
