@@ -494,6 +494,7 @@ config_file() {
   if [[ -n "${TAGS-}" ]]; then
     if [[ "$TAGS" == *"DEFAULT"* ]]; then
       TAGS="${TAGS//DEFAULT/}"
+      TAGS="${TAGS#;}"
       TAGS="$TAGS;${var_tags:-}"
       echo -e "${NETWORK}${BOLD}${DGN}Tags: ${BGN}$TAGS${CL}"
     fi
