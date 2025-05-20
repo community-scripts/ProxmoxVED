@@ -16,7 +16,6 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  git \
   ffmpeg
 msg_ok "Installed Dependencies"
 
@@ -37,20 +36,16 @@ cd /opt/openwebui
 cat <<EOF >/opt/openwebui/.env
 # Ollama URL for the backend to connect
 # The path '/ollama' will be redirected to the specified backend URL
-OLLAMA_BASE_URL='http://localhost:11434'
-
+OLLAMA_BASE_URL=http://0.0.0.0:11434
 OPENAI_API_BASE_URL=''
 OPENAI_API_KEY=''
-
 # AUTOMATIC1111_BASE_URL="http://localhost:7860"
-
 # DO NOT TRACK
 SCARF_NO_ANALYTICS=true
 DO_NOT_TRACK=true
 ANONYMIZED_TELEMETRY=false
 ENV=prod
 ENABLE_OLLAMA_API=false
-OLLAMA_BASE_URL=http://0.0.0.0:11434
 EOF
 $STD npm install
 export NODE_OPTIONS="--max-old-space-size=3584"
