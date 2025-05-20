@@ -280,9 +280,20 @@ config_file() {
           msg_error "Invalid IP Address format for Gateway. Needs to be 0.0.0.0, was ${GATE}"
           exit
         fi
+
       else
-        msg_error "Gateway IP Address cannot be empty"
-        exit
+        while true; do
+          GATE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Enter gateway IP address" 8 58 --title "Gateway IP" 3>&1 1>&2 2>&3)
+          if [ -z "$GATE1" ]; then
+            whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox "Gateway IP address cannot be empty" 8 58
+          elif [[ ! "$GATE1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox "Invalid IP address format" 8 58
+          else
+            GATE=",gw=$GATE1"
+            echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}$GATE1${CL}"
+            break
+          fi
+        done
       fi
     elif [[ "$NET" == *-* ]]; then
       IFS="-" read -r ip_start ip_end <<< "$NET"
