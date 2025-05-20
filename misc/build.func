@@ -244,6 +244,8 @@ base_settings() {
   SSH_AUTHORIZED_KEY=""
   TAGS="community-script;"
   UDHCPC_FIX=""
+  ENABLE_FUSE=="0"
+  ENABLE_TUN="0"
 
   # Override default settings with variables from ct script
   CT_TYPE=${var_unprivileged:-$CT_TYPE}
@@ -252,6 +254,8 @@ base_settings() {
   RAM_SIZE=${var_ram:-$RAM_SIZE}
   VERBOSE=${var_verbose:-$VERBOSE}
   TAGS="${TAGS}${var_tags:-}"
+  ENABLE_FUSE="${var_fuse:-$ENABLE_FUSE}"
+  ENABLE_TUN="${var_tun:-$ENABLE_TUN}"
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
@@ -958,6 +962,17 @@ build_container() {
     FEATURES="nesting=1"
   fi
 
+  if [ "$ENABLE_FUSE" == "1" ]; then
+    FEATURES="$FEATURES,fuse=1"
+  fi
+
+  if [ "$ENABLE_TUN" == "1" ]; then
+    cat <<EOF >>"$LXC_CONFIG"
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+EOF
+  fi
+
   if [[ $DIAGNOSTICS == "yes" ]]; then
     post_to_api
   fi
@@ -982,6 +997,8 @@ build_container() {
   export SSH_AUTHORIZED_KEY
   export CTID="$CT_ID"
   export CTTYPE="$CT_TYPE"
+  export ENABLE_FUSE="$ENABLE_FUSE"
+  export ENABLE_TUN="$ENABLE_TUN"
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
