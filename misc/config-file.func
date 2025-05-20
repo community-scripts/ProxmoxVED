@@ -325,9 +325,11 @@ config_file() {
         ip=$(int_to_ip $ip_int)
           msg_info "Checking IP: $ip"
         if ! ping -c 1 -W 1 "$ip" >/dev/null 2>&1; then
-          msg_ok " "
+          [ -n "${SPINNER_PID:-}" ] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null
+
           NET="$ip/$cidr"
           echo -e "${NETWORK}${BOLD}${DGN}Using free IP Address: ${BGN}$NET${CL}"
+          sleep 3
           break
         fi
       done
