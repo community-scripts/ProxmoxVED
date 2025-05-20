@@ -46,8 +46,8 @@ error_handler() {
   if [[ -n "$CT_ID" ]]; then
     read -p "Remove this Container? <y/N> " prompt
     if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-      pct stop "$CT_ID" &> /dev/null
-      pct destroy "$CT_ID" &> /dev/null
+      pct stop "$CT_ID" &>/dev/null
+      pct destroy "$CT_ID" &>/dev/null
       msg_ok "Removed this Container"
     fi
   fi
@@ -327,8 +327,8 @@ EOF
     else
       echo -e "${INFO}${BOLD}${RD}Configuration file already exists at ${FILEPATH}${CL}"
       if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "Overwrite configfile" --yesno "Do you want to overwrite the existing config file?" 10 60; then
-              rm -f "$FILEPATH"
-              cat <<EOF >"$FILEPATH"
+        rm -f "$FILEPATH"
+        cat <<EOF >"$FILEPATH"
 # ${NSAPP} Configuration File
 # Generated on $(date)
 
@@ -498,7 +498,6 @@ advanced_settings() {
     exit_script
   fi
 
-
   IFACE_FILEPATH_LIST="/etc/network/interfaces"$'\n'$(find "/etc/network/interfaces.d/" -type f)
   BRIDGES=""
   OLD_IFS=$IFS
@@ -506,21 +505,21 @@ advanced_settings() {
   for iface_filepath in ${IFACE_FILEPATH_LIST}; do
 
     iface_indexes_tmpfile=$(mktemp -q -u '.iface-XXXX')
-    ( grep -Pn '^\s*iface' "${iface_filepath}" | cut -d':' -f1 && wc -l "${iface_filepath}" | cut -d' ' -f1 ) | awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' > "${iface_indexes_tmpfile}" || true
+    (grep -Pn '^\s*iface' "${iface_filepath}" | cut -d':' -f1 && wc -l "${iface_filepath}" | cut -d' ' -f1) | awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' >"${iface_indexes_tmpfile}" || true
 
     if [ -f "${iface_indexes_tmpfile}" ]; then
 
-        while read -r pair; do
-            start=$(echo "${pair}" | cut -d':' -f1)
-            end=$(echo "${pair}" | cut -d':' -f2)
+      while read -r pair; do
+        start=$(echo "${pair}" | cut -d':' -f1)
+        end=$(echo "${pair}" | cut -d':' -f2)
 
-            if awk "NR >= ${start} && NR <= ${end}" "${iface_filepath}" | grep -qP '^\s*(bridge[-_](ports|stp|fd|vlan-aware|vids)|ovs_type\s+OVSBridge)\b'; then
-                iface_name=$(sed "${start}q;d" "${iface_filepath}" | awk '{print $2}')
-                BRIDGES="${iface_name}"$'\n'"${BRIDGES}"
-            fi
+        if awk "NR >= ${start} && NR <= ${end}" "${iface_filepath}" | grep -qP '^\s*(bridge[-_](ports|stp|fd|vlan-aware|vids)|ovs_type\s+OVSBridge)\b'; then
+          iface_name=$(sed "${start}q;d" "${iface_filepath}" | awk '{print $2}')
+          BRIDGES="${iface_name}"$'\n'"${BRIDGES}"
+        fi
 
-        done < "${iface_indexes_tmpfile}"
-        rm -f "${iface_indexes_tmpfile}"
+      done <"${iface_indexes_tmpfile}"
+      rm -f "${iface_indexes_tmpfile}"
     fi
 
   done
@@ -778,7 +777,6 @@ EOF
   fi
 
 }
-
 
 install_script() {
   pve_check
@@ -1077,7 +1075,27 @@ EOF'
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 >/dev/null"
   fi
   msg_ok "Customized LXC Container"
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/$var_install.sh)" $?
+
+  # Remote-Skript innerhalb des Containers mit Trap sauber ausführen
+  lxc-attach -n "$CTID" -- bash -c '
+  set -e
+  trap "echo Aborted in container; exit 130" SIGINT SIGTERM
+
+  tmp_script="/tmp/install_remote.sh"
+  curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/'"$var_install"'.sh -o "$tmp_script"
+  chmod +x "$tmp_script"
+  bash "$tmp_script"
+'
+  exit_code=$?
+  if [[ "$exit_code" -eq 130 || "$exit_code" -eq 143 ]]; then
+    echo
+    msg_error "Script aborted by user inside container"
+    exit "$exit_code"
+  elif [[ "$exit_code" -ne 0 ]]; then
+    echo
+    msg_error "Install script failed in container (exit code $exit_code)"
+    exit "$exit_code"
+  fi
 
 }
 
@@ -1123,8 +1141,6 @@ EOF
   if [[ -f /etc/systemd/system/ping-instances.service ]]; then
     systemctl start ping-instances.service
   fi
-
-
 
   post_update_to_api "done" "none"
 }
