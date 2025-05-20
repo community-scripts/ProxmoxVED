@@ -35,7 +35,6 @@ load_functions() {
   icons
   default_vars
   set_std_mode
-  detect_os
   # add more
 }
 
