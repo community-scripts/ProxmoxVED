@@ -1077,15 +1077,16 @@ EOF'
   msg_ok "Customized LXC Container"
 
   # Remote-Skript innerhalb des Containers mit Trap sauber ausführen
-  lxc-attach -n "$CTID" -- bash -c '
+  lxc-attach -n "$CTID" -- env var_install="$var_install" bash -c '
   set -e
   trap "echo Aborted in container; exit 130" SIGINT SIGTERM
 
   tmp_script="/tmp/install_remote.sh"
-  curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/'"$var_install"'.sh -o "$tmp_script"
+  curl -fsSL "https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/${var_install}.sh" -o "$tmp_script"
   chmod +x "$tmp_script"
   bash "$tmp_script"
 '
+
   exit_code=$?
   if [[ "$exit_code" -eq 130 || "$exit_code" -eq 143 ]]; then
     echo
