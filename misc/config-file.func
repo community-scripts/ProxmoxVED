@@ -324,7 +324,7 @@ config_file() {
       for ((ip_int=start_int; ip_int<=end_int; ip_int++)); do
         ip=$(int_to_ip $ip_int)
           msg_info "Checking IP: $ip"
-        if ! ping -c 4 -W 1 "$ip" >/dev/null 2>&1; then
+        if ! ping -c 1 -W 1 "$ip" >/dev/null 2>&1; then
           msg_ok " "
           NET="$ip/$cidr"
           echo -e "${NETWORK}${BOLD}${DGN}Using free IP Address: ${BGN}$NET${CL}"
