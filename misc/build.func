@@ -19,12 +19,10 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 if command -v curl >/dev/null 2>&1; then
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
   load_functions
-  setup_trap_abort_handling
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
   load_functions
-  setup_trap_abort_handling
   #echo "(build.func) Loaded core.func via wget"
 fi
 
@@ -1077,28 +1075,8 @@ EOF'
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 >/dev/null"
   fi
   msg_ok "Customized LXC Container"
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/$var_install.sh)" $?
 
-  # Remote-Skript innerhalb des Containers mit Trap sauber ausführen
-  lxc-attach -n "$CTID" -- env var_install="$var_install" bash -c '
-  set -e
-  trap "echo Aborted in container; exit 130" SIGINT SIGTERM
-
-  tmp_script="/tmp/install_remote.sh"
-  curl -fsSL "https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/${var_install}.sh" -o "$tmp_script"
-  chmod +x "$tmp_script"
-  bash "$tmp_script"
-'
-
-  exit_code=$?
-  if [[ "$exit_code" -eq 130 || "$exit_code" -eq 143 ]]; then
-    echo
-    msg_error "Script aborted by user inside container"
-    exit "$exit_code"
-  elif [[ "$exit_code" -ne 0 ]]; then
-    echo
-    msg_error "Install script failed in container (exit code $exit_code)"
-    exit "$exit_code"
-  fi
 }
 
 # This function sets the description of the container.

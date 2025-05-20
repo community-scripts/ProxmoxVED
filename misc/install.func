@@ -12,7 +12,6 @@ if ! command -v curl >/dev/null 2>&1; then
 fi
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
 load_functions
-setup_trap_abort_handling
 
 # # Function to set STD mode based on verbosity
 # set_std_mode() {
