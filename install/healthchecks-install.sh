@@ -89,16 +89,16 @@ SITE_NAME=Mychecks
 SITE_ROOT=http://localhost:8000
 EOF
 
-python3 manage.py migrate
-cat <<EOF | python3 /opt/healthchecks/manage.py shell
-from django.contrib.auth import get_user_model
-UserModel = get_user_model()
-user = UserModel.objects.create_user('admin', password='$DB_PASS')
-user.is_superuser = True
-user.is_staff = True
-user.save()
-EOF
-./manage.py createsuperuser
+# python3 manage.py migrate
+# cat <<EOF | python3 /opt/healthchecks/manage.py shell
+# from django.contrib.auth import get_user_model
+# UserModel = get_user_model()
+# user = UserModel.objects.create_user('admin', password='$DB_PASS')
+# user.is_superuser = True
+# user.is_staff = True
+# user.save()
+# EOF
+# ./manage.py createsuperuser
 
 msg_ok "Installed healthchecks"
 
