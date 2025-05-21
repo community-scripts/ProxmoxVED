@@ -15,7 +15,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    git
+  git
 msg_ok "Installed Dependencies"
 
 NODE_MODULE="pnpm@latest" install_node_and_modules
@@ -31,8 +31,8 @@ EOF
 mv /opt/configarr/secrets.yml.template /opt/configarr/secrets.yml
 sed 's|#localConfigTemplatesPath: /app/templates|#localConfigTemplatesPath: /opt/configarr/templates|' /opt/configarr/config.yml.template >/opt/configarr/config.yml
 cd /opt/configarr
-pnpm install
-pnpm run build
+$STD pnpm install
+$STD pnpm run build
 msg_ok "Setup ${APPLICATION}"
 
 msg_info "Creating Service"
@@ -44,8 +44,8 @@ Description=Run Configarr Task
 Type=oneshot
 WorkingDirectory=/opt/configarr
 ExecStart=/usr/bin/node /opt/configarr/bundle.cjs
-
 EOF
+
 cat <<EOF >/etc/systemd/system/configarr-task.timer
 [Unit]
 Description=Run Configarr every 5 minutes
@@ -58,7 +58,7 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
-systemctl enable -q --now configarr-task.timer
+systemctl enable -q --now configarr-task.timer configarr-task.service
 msg_ok "Created Service"
 
 motd_ssh
