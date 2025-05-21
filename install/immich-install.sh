@@ -25,7 +25,6 @@ $STD apt-get update
 $STD apt-get install --no-install-recommends -y \
   git \
   redis \
-  gnupg \
   autoconf \
   build-essential \
   python3-venv \
@@ -85,6 +84,9 @@ ln -s /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/bin/ffmpeg
 ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/bin/ffprobe
 msg_ok "Dependencies Installed"
 
+NODE_VERSION="22" install_node_and_modules
+PG_VERSION="16" install_postgresql
+
 read -r -p "Install OpenVINO dependencies for Intel HW-accelerated machine-learning? " prompt
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   msg_info "Installing OpenVINO dependencies"
@@ -111,10 +113,6 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
 fi
 
 msg_info "Setting up Postgresql Database"
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt/sources.list.d/pgdg.list
-$STD apt-get update
-$STD apt-get install -y postgresql-16
 curl -fsSLO https://github.com/tensorchord/pgvecto.rs/releases/download/v0.3.0/vectors-pg16_0.3.0_amd64.deb
 $STD dpkg -i vectors-pg16_0.3.0_amd64.deb
 rm vectors-pg16_0.3.0_amd64.deb
@@ -137,13 +135,6 @@ $STD sudo -u postgres psql -c "CREATE EXTENSION vectors;"
   echo "Database Name: $DB_NAME"
 } >>~/"$APPLICATION".creds
 msg_ok "Set up Postgresql Database"
-
-msg_info "Installing NodeJS"
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
-$STD apt-get update
-$STD apt-get install -y nodejs
-msg_ok "Installed NodeJS"
 
 msg_info "Installing Packages from Testing Repo"
 export APT_LISTCHANGES_FRONTEND=none
