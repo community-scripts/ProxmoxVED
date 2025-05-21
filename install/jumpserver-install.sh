@@ -15,8 +15,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    tar \
-    iptables
+  iptables
 msg_ok "Installed Dependencies"
 
 msg_info "Installing JumpServer"
@@ -24,7 +23,7 @@ cd /opt
 RELEASE=$(curl -fsSL https://api.github.com/repos/jumpserver/installer/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
 curl -fsSL "https://github.com/jumpserver/installer/releases/download/${RELEASE}/jumpserver-installer-${RELEASE}.tar.gz" -o jumpserver-installer-${RELEASE}.tar.gz
 mkdir -p /opt/jumpserver
-$STD tar -xzvf jumpserver-installer-${RELEASE}.tar.gz -C /opt/jumpserver --strip-components=1
+tar -xzvf jumpserver-installer-${RELEASE}.tar.gz -C /opt/jumpserver --strip-components=1
 cd /opt/jumpserver
 $STD ./jmsctl.sh install <<EOF
 n

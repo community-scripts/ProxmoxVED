@@ -17,12 +17,10 @@ update_os
 # Installing Dependencies
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    gnupg \
     apt-transport-https \
     software-properties-common \
     lsb-base \
     lsb-release \
-    gnupg2 \
     python3 \
     python3-requests \
     python3-dotenv
