@@ -1,44 +1,44 @@
 {
-    "name": "garmin-grafana",
-    "slug": "garmin-grafana",
-    "categories": [
-        24
-    ],
-    "date_created": "2025-05-08",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 3000,
-    "documentation": "https://github.com/arpanghosh8453/garmin-grafana",
-    "config_path": "",
-    "website": "https://github.com/arpanghosh8453/garmin-grafana",
-    "logo": "https://github.com/arpanghosh8453/garmin-grafana/raw/refs/heads/main/Extra/Garmin-Grafana-Logo.svg",
-    "description": "A docker container to fetch data from Garmin servers and store the data in a local influxdb database for appealing visualization with Grafana.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/garmin-grafana.sh",
-            "resources": {
-                "cpu": 2,
-                "ram": 2,
-                "hdd": 8,
-                "os": "Debian",
-                "version": "12"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
+  "name": "garmin-grafana",
+  "slug": "garmin-grafana",
+  "categories": [
+    24
+  ],
+  "date_created": "2025-05-08",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://github.com/arpanghosh8453/garmin-grafana",
+  "config_path": "",
+  "website": "https://github.com/arpanghosh8453/garmin-grafana",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/garmin-grafana.webp",
+  "description": "A docker container to fetch data from Garmin servers and store the data in a local influxdb database for appealing visualization with Grafana.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/garmin-grafana.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Show login and database credentials:  `cat ~/.garmin-grafana.creds`",
+      "type": "info"
     },
-    "notes": [
-        {
-            "text": "Show login and database credentials:  `cat ~/.garmin-grafana.creds`",
-            "type": "info"
-        },
-        {
-            "text": "`garmin-grafana` only imports the past 7 days by default. To import historical data, use the `~/bulk-import.sh` script after installation.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "`garmin-grafana` only imports the past 7 days by default. To import historical data, use the `~/bulk-import.sh` script after installation.",
+      "type": "info"
+    }
+  ]
 }
