@@ -10,20 +10,6 @@ fi
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
 load_functions
 
-# # Function to set STD mode based on verbosity
-# set_std_mode() {
-#   if [ "$VERBOSE" = "yes" ]; then
-#     STD=""
-#   else
-#     STD="silent"
-#   fi
-# }
-
-# # Silent execution function
-# silent() {
-#   "$@" >/dev/null 2>&1
-# }
-
 # This function enables IPv6 if it's not disabled and sets verbose mode
 verb_ip6() {
   set_std_mode # Set STD mode based on VERBOSE
@@ -99,7 +85,6 @@ update_os() {
   $STD apk update
   $STD apk upgrade
   msg_ok "Updated Container OS"
-  detect_os
 }
 
 # This function modifies the message of the day (motd) and SSH settings
