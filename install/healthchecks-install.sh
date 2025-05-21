@@ -89,7 +89,6 @@ SITE_NAME=Mychecks
 SITE_ROOT=http://localhost:8000
 EOF
 
-source /opt/healthchecks/venv/bin/activate
 python3 manage.py migrate
 cat <<EOF | python3 /opt/healthchecks/manage.py shell
 from django.contrib.auth import get_user_model
