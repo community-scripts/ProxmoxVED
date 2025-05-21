@@ -13,20 +13,6 @@ fi
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
 load_functions
 
-# # Function to set STD mode based on verbosity
-# set_std_mode() {
-#   if [ "$VERBOSE" = "yes" ]; then
-#     STD=""
-#   else
-#     STD="silent"
-#   fi
-# }
-
-# # Silent execution function
-# silent() {
-#   "$@" >/dev/null 2>&1
-# }
-
 # This function enables IPv6 if it's not disabled and sets verbose mode
 verb_ip6() {
   set_std_mode # Set STD mode based on VERBOSE
@@ -64,13 +50,6 @@ error_handler() {
 # This function sets up the Container OS by generating the locale, setting the timezone, and checking the network connection
 setting_up_container() {
   msg_info "Setting up Container OS"
-  #sed -i "/$LANG/ s/\(^# \)//" /etc/locale.gen
-  #locale_line=$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print $1}' | head -n 1)
-  #echo "LANG=${locale_line}" >/etc/default/locale
-  #locale-gen >/dev/null
-  #export LANG=${locale_line}
-  #echo $tz >/etc/timezone
-  #ln -sf /usr/share/zoneinfo/$tz /etc/localtime
   for ((i = RETRY_NUM; i > 0; i--)); do
     if [ "$(hostname -I)" != "" ]; then
       break
