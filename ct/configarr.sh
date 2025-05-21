@@ -40,8 +40,8 @@ function update_script() {
     fetch_and_deploy_gh_release "raydak-labs/configarr"
     mv /opt/backup/* /opt/configarr/
     cd /opt/configarr
-    pnpm install
-    pnpm run build
+    $STD pnpm install
+    $STD pnpm run build
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"
@@ -63,4 +63,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:[PORT]${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8989${CL}"
