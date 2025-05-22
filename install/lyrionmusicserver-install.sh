@@ -19,6 +19,7 @@ RELEASE=$(echo "$DEB_URL" | grep -oP 'lyrionmusicserver_\K[0-9.]+(?=_amd64\.deb)
 DEB_FILE="/tmp/lyrionmusicserver_${RELEASE}_amd64.deb"
 curl -fsSL -o "$DEB_FILE" "$DEB_URL"
 $STD apt install "$DEB_FILE" -y
+echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
 msg_ok "Setup Lyrion Music Server v${RELEASE}"
 
 motd_ssh

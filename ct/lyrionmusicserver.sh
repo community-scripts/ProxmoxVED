@@ -8,8 +8,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="Lyrion Music Server"
 var_tags="${var_tags:-media}"
 var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-8192}"
-var_disk="${var_disk:-60}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-5}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -20,31 +20,34 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -d /var ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-    msg_info "Updating $APP LXC"
-    $STD apt-get update
-    $STD apt-get -y upgrade
+  header_info
+  check_container_storage
+  check_container_resources
 
-    DEB_URL=$(curl -s 'https://lyrion.org/getting-started/' | grep -oP '<a\s[^>]*href="\K[^"]*amd64\.deb(?="[^>]*>)' | head -n 1)
-    LYRION_VERSION=$(echo "$DEB_URL" | grep -oP 'lyrionmusicserver_\K[0-9.]+(?=_amd64\.deb)')
-    DEB_FILE="/tmp/lyrionmusicserver_${LYRION_VERSION}_amd64.deb"
+  if [[ ! -d /opt/argus ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit
+  fi
+
+  DEB_URL=$(curl -s 'https://lyrion.org/getting-started/' | grep -oP '<a\s[^>]*href="\K[^"]*amd64\.deb(?="[^>]*>)' | head -n 1)
+  RELEASE=$(echo "$DEB_URL" | grep -oP 'lyrionmusicserver_\K[0-9.]+(?=_amd64\.deb)')
+  DEB_FILE="/tmp/lyrionmusicserver_${RELEASE}_amd64.deb"
+  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+    msg_info "Updating $APP to ${RELEASE}"
     curl -fsSL -o "$DEB_FILE" "$DEB_URL"
     $STD apt install "$DEB_FILE" -y
-
-    msg_ok "Updated $APP LXC"
+    systemctl restart lyrion
+    echo "${RELEASE}" >/opt/${APP}_version.txt
+    msg_ok "Updated $APP to ${RELEASE}"
 
     msg_info "Cleaning up"
     $STD rm -f "$DEB_FILE"
     $STD apt-get -y autoremove
     $STD apt-get -y autoclean
     msg_ok "Cleaned"
-    exit
+  else
+    msg_ok "$APP is already up to date (${RELEASE})"
+  fi
 }
 
 start
