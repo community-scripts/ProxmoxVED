@@ -29,13 +29,12 @@ check_root() {
 
 select_container() {
   echo -e "\nChoose a Container to convert:\n"
-  IFS=$'\n'
-  lxc_list=$(pct list | awk '{if(NR>1)print $1 " " $3}')
+  mapfile -t lxc_list < <(pct list | awk 'NR > 1 {print $1, $3}')
   PS3="Enter number of container to convert: "
-  select opt in $lxc_list; do
-    if [ -n "$opt" ]; then
-      CONTAINER_ID=$(echo "$opt" | awk '{print $1}')
-      CONTAINER_NAME=$(echo "$opt" | awk '{print $2}')
+
+  select opt in "${lxc_list[@]}"; do
+    if [[ -n "$opt" ]]; then
+      read -r CONTAINER_ID CONTAINER_NAME <<<"$opt"
       break
     else
       echo "Invalid selection. Try again."
@@ -45,10 +44,12 @@ select_container() {
 
 select_backup_storage() {
   echo -e "Select backup storage (temporary vzdump location):"
-  backup_storages=$(pvesm status --content backup | awk '{if(NR>1)print $1}')
-  select opt in $backup_storages; do
-    if [ -n "$opt" ]; then
-      BACKUP_STORAGE=$opt
+  mapfile -t backup_storages < <(pvesm status --content backup | awk 'NR > 1 {print $1}')
+  local PS3="Enter number of backup storage: "
+
+  select opt in "${backup_storages[@]}"; do
+    if [[ -n "$opt" ]]; then
+      BACKUP_STORAGE="$opt"
       break
     else
       echo "Invalid selection. Try again."

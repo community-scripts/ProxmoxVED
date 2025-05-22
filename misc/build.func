@@ -244,8 +244,8 @@ base_settings() {
   SSH_AUTHORIZED_KEY=""
   TAGS="community-script;"
   UDHCPC_FIX=""
-  ENABLE_FUSE=="0"
-  ENABLE_TUN="0"
+  ENABLE_FUSE="no"
+  ENABLE_TUN="no"
 
   # Override default settings with variables from ct script
   CT_TYPE=${var_unprivileged:-$CT_TYPE}
@@ -696,6 +696,13 @@ advanced_settings() {
     echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
   fi
 
+  if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
+    ENABLE_FUSE="yes"
+  else
+    ENABLE_FUSE="no"
+  fi
+  echo -e "${FUSE}${BOLD}${DGN}Enable FUSE Support: ${BGN}$ENABLE_FUSE${CL}"
+
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
     VERBOSE="yes"
   else
@@ -962,7 +969,7 @@ build_container() {
     FEATURES="nesting=1"
   fi
 
-  if [ "$ENABLE_FUSE" == "1" ]; then
+  if [ "$ENABLE_FUSE" == "yes" ]; then
     FEATURES="$FEATURES,fuse=1"
   fi
 
@@ -1059,7 +1066,7 @@ EOF
     fi
   fi
 
-  if [ "$ENABLE_TUN" == "1" ]; then
+  if [ "$ENABLE_TUN" == "yes" ]; then
     cat <<EOF >>"$LXC_CONFIG"
 lxc.cgroup2.devices.allow: c 10:200 rwm
 lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
