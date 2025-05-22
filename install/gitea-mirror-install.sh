@@ -39,6 +39,7 @@ bun run manage-db init
 msg_ok "Installed Gitea-Mirror"
 
 msg_info "Creating Services"
+JWT_SECRET=$(openssl rand -hex 32)
 cat <<EOF >/etc/systemd/system/homarr.service
 [Unit]
 Description=Gitea Mirror
