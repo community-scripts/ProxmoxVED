@@ -76,11 +76,11 @@ select_target_storage() {
   PS3="Enter number of target storage: "
 
   select opt in $target_storages; do
-    if [[ -z "$opt" || ! "$opt" =~ ^[0-9]+$ ]]; then
-      echo "Invalid selection. Please choose a valid number."
-    else
-      TARGET_STORAGE=$opt
+    if [[ -n "$opt" ]]; then
+      TARGET_STORAGE="$opt"
       break
+    else
+      echo "Invalid selection. Try again."
     fi
   done
 }
