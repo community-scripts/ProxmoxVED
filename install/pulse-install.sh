@@ -37,7 +37,7 @@ $STD apt-get install -y \
   diffutils
 msg_ok "Installed Core Dependencies"
 
-NODE_VERSION="20" NODE_MODULE="yarn@latest" install_node_and_modules
+NODE_VERSION="20" install_node_and_modules
 
 msg_info "Setup Pulse"
 RELEASE=$(curl -fsSL https://api.github.com/repos/rcourtman/Pulse/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
