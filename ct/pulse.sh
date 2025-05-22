@@ -6,7 +6,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # Source: https://github.com/rcourtman/Pulse
 
 APP="Pulse"
-var_tags="monitoring;nodejs"
+var_tags="monitoring;proxmox"
 var_cpu="1"
 var_ram="1024"
 var_disk="4"
