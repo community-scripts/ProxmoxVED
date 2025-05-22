@@ -8,8 +8,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="gitea-mirror"
 var_tags="${var_tags:-arr;dashboard}"
 var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-8}"
+var_ram="${var_ram:-1024}"
+var_disk="${var_disk:-5}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -24,15 +24,15 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /opt/homarr ]]; then
+  if [[ ! -d /opt/gite-mirror ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -fsSL https://api.github.com/repos/homarr-labs/homarr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  RELEASE=$(curl -fsSL https://api.github.com/repos/arunavo4/gitea-mirror/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
 
     msg_info "Stopping Services (Patience)"
-    systemctl stop homarr
+    systemctl stop gitea-mirror
     msg_ok "Services Stopped"
 
     msg_info "Backup Data"
@@ -40,25 +40,21 @@ function update_script() {
     cp /opt/homarr/.env /opt/homarr-data-backup/.env
     msg_ok "Backup Data"
 
-    msg_info "Updating and rebuilding ${APP} to v${RELEASE} (Patience)"
+    msg_info "Installing Bun"
     export BUN_INSTALL=/opt/bun
     curl -fsSL https://bun.sh/install | bash
     ln -sf /opt/bun/bin/bun /usr/local/bin/bun
     ln -sf /opt/bun/bin/bun /usr/local/bin/bunx
-    bun --version
+    msg_ok "Installed Bun"
     
+    msg_info "Updating and rebuilding ${APP} to v${RELEASE} (Patience)"  
     apt install -y git
-    git clone https://github.com/arunavo4/gitea-mirror.git
+    rm -rf /opt/homarr
+    fetch_and_deploy_gh_release "arunavo4/gitea-mirror"
     cd /opt/gitea-mirror
     bun install
     bun run build
     bun run manage-db init
-
-    
-    install_node_and_modules
-    rm -rf /opt/homarr
-    fetch_and_deploy_gh_release "homarr-labs/homarr"
-
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
