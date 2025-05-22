@@ -215,6 +215,7 @@ EOF
       ALTER TABLE smart_search ALTER COLUMN embedding SET DATA TYPE vector($NUMBER);
       ALTER TABLE face_search ALTER COLUMN embedding SET DATA TYPE vector(512);
 EOF
+      $STD apt purge vectors-pg16 -y
       msg_ok "Database upgrade complete"
     fi
     INSTALL_DIR="/opt/${APP}"
