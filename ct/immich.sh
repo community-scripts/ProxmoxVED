@@ -190,7 +190,7 @@ function update_script() {
       $STD dpkg -i vchord.deb
       rm vchord.deb
       sed -i -e "s/'vectors.so'/'vchord.so, vectors.so'/" \
-        -e "/^search_path/s/, vectors'//" /etc/postgresql/16/main/postgresql.conf
+        -e "/^search_path/s/, vectors//" /etc/postgresql/16/main/postgresql.conf
       systemctl restart postgresql.service
       msg_ok "Upgrade in progress. When Immich restarts, watch the logs for 're-indexing' to complete"
     fi
@@ -224,7 +224,6 @@ function update_script() {
     cp -a server/{node_modules,dist,bin,resources,package.json,package-lock.json,start*.sh} "$APP_DIR"/
     cp -a web/build "$APP_DIR"/www
     cp LICENSE "$APP_DIR"
-    cp "$BASE_DIR"/server/bin/build-lock.json "$APP_DIR"
     msg_ok "Updated ${APP} web and microservices"
 
     cd "$SRC_DIR"/machine-learning
