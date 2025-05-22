@@ -57,7 +57,7 @@ select_backup_storage() {
 }
 
 backup_container() {
-  msg_info "Backing up container $CONTAINER_ID"
+  msg_custom "Backing up container $CONTAINER_ID"
   vzdump_output=$(mktemp)
   vzdump "$CONTAINER_ID" --compress zstd --storage "$BACKUP_STORAGE" --mode snapshot | tee "$vzdump_output"
   BACKUP_PATH=$(awk '/tar.zst/ {print $NF}' "$vzdump_output" | tr -d "'")
@@ -72,10 +72,10 @@ backup_container() {
 
 select_target_storage() {
   echo -e "\nSelect target storage for new container:\n"
-  target_storages=$(pvesm status --content images | awk '{if(NR>1)print $1}')
+  mapfile -t target_storages < <(pvesm status --content images | awk 'NR > 1 {print $1}')
   PS3="Enter number of target storage: "
 
-  select opt in $target_storages; do
+  select opt in "${target_storages[@]}"; do
     if [[ -n "$opt" ]]; then
       TARGET_STORAGE="$opt"
       break
@@ -106,7 +106,7 @@ perform_conversion() {
     UNPRIVILEGED=false
   fi
 
-  msg_info "Restoring as $(if $UNPRIVILEGED; then echo privileged; else echo unprivileged; fi) container"
+  msg_custom "Restoring as $(if $UNPRIVILEGED; then echo privileged; else echo unprivileged; fi) container"
   restore_opts=("$NEW_CONTAINER_ID" "$BACKUP_PATH" --storage "$TARGET_STORAGE")
   if $UNPRIVILEGED; then
     restore_opts+=(--unprivileged false)
@@ -140,7 +140,7 @@ manage_states() {
     pct start "$NEW_CONTAINER_ID"
     msg_ok "New container started"
   else
-    msg_info "Skipped container state change"
+    msg_custom "Skipped container state change"
   fi
 }
 
@@ -149,7 +149,7 @@ cleanup_files() {
   if [[ ${cleanup:-Y} =~ ^[Yy] ]]; then
     rm -f "$BACKUP_PATH" && msg_ok "Removed backup archive"
   else
-    msg_info "Retained backup archive"
+    msg_custom "Retained backup archive"
   fi
 }
 
