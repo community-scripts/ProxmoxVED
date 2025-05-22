@@ -244,8 +244,8 @@ base_settings() {
   SSH_AUTHORIZED_KEY=""
   UDHCPC_FIX=""
   TAGS="community-script;"
-  ENABLE_FUSE="no"
-  ENABLE_TUN="no"
+  ENABLE_FUSE="${1:-no}"
+  ENABLE_TUN="${1:-no}"
 
   # Override default settings with variables from ct script
   CT_TYPE=${var_unprivileged:-$CT_TYPE}
