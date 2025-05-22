@@ -925,6 +925,7 @@ check_container_storage() {
 
 start() {
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
+
   if command -v pveversion >/dev/null 2>&1; then
     if ! (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC" --yesno "This will create a New ${APP} LXC. Proceed?" 10 58); then
       clear
@@ -932,6 +933,8 @@ start() {
       exit
     fi
     install_script
+    build_container
+    description
   else
     CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC Update/Setting" --menu \
       "Support/Update functions for ${APP} LXC. Choose an option:" \
@@ -944,29 +947,28 @@ start() {
     1)
       VERBOSE="no"
       set_std_mode
+      update_script
       ;;
+
     2)
       VERBOSE="yes"
       set_std_mode
+      update_script
       ;;
+
     3)
       clear
       exit_script
       exit
       ;;
     esac
-    update_script
+    return
   fi
 }
 
 # This function collects user settings and integrates all the collected information.
 build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
-
-  if ! command -v pveversion >/dev/null 2>&1; then
-    echo -e "${INFO}${YW} build_container() skipped – not running on Proxmox${CL}"
-    return 0
-  fi
 
   if [ "$CT_TYPE" == "1" ]; then
     FEATURES="keyctl=1,nesting=1"
@@ -1110,9 +1112,6 @@ EOF'
 
 # This function sets the description of the container.
 description() {
-  if ! command -v pveversion >/dev/null 2>&1; then
-    return 0
-  fi
   IP=$(pct exec "$CTID" ip a s dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
 
   # Generate LXC Description
