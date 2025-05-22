@@ -961,9 +961,6 @@ start() {
 
 # This function collects user settings and integrates all the collected information.
 build_container() {
-  CT_TYPE="${CT_TYPE:-1}"
-  ENABLE_FUSE="${ENABLE_FUSE:-no}"
-  DIAGNOSTICS="${DIAGNOSTICS:-no}"
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
   if [ "$CT_TYPE" == "1" ]; then
@@ -1171,19 +1168,6 @@ EOF
 
 api_exit_script() {
   exit_code=$?
-
-  # Fallback
-  CT_TYPE="${CT_TYPE:-1}"
-  DISK_SIZE="${DISK_SIZE:-0}"
-  CORE_COUNT="${CORE_COUNT:-1}"
-  RAM_SIZE="${RAM_SIZE:-512}"
-  NSAPP="${NSAPP:-unknown}"
-  var_os="${var_os:-debian}"
-  var_version="${var_version:-12}"
-  METHOD="${METHOD:-unknown}"
-  DISABLEIP6="${DISABLEIP6:-no}"
-  RANDOM_UUID="${RANDOM_UUID:-$(cat /proc/sys/kernel/random/uuid)}"
-
   if [ $exit_code -ne 0 ]; then
     case $exit_code in
     100) post_update_to_api "failed" "100: Unexpected error in create_lxc.sh" ;;
