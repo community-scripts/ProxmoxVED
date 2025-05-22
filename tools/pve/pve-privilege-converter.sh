@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk
+# Adapted from onethree7 (https://github.com/onethree7/proxmox-lxc-privilege-converter)
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+
+if ! command -v curl >/dev/null 2>&1; then
+  printf "\r\e[2K%b" '\033[93m Setup Source \033[m' >&2
+  apt-get update >/dev/null 2>&1
+  apt-get install -y curl >/dev/null 2>&1
+fi
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+load_functions
+
+set -euo pipefail
+shopt -s inherit_errexit nullglob
+
+APP="PVE-Privilege-Converter"
+header_info "$APP"
+
+check_root() {
+  if [[ $EUID -ne 0 ]]; then
+    msg_error "Script must be run as root"
+    exit 1
+  fi
+}
+
+select_container() {
+  echo -e "\nChoose a Container to convert:\n"
+  IFS=$'\n'
+  lxc_list=$(pct list | awk '{if(NR>1)print $1 " " $3}')
+  select opt in $lxc_list; do
+    if [ -n "$opt" ]; then
+      CONTAINER_ID=$(echo "$opt" | awk '{print $1}')
+      CONTAINER_NAME=$(echo "$opt" | awk '{print $2}')
+      break
+    else
+      echo "Invalid selection. Try again."
+    fi
+  done
+}
+
+select_backup_storage() {
+  echo -e "Select backup storage (temporary vzdump location):"
+  backup_storages=$(pvesm status --content backup | awk '{if(NR>1)print $1}')
+  select opt in $backup_storages; do
+    if [ -n "$opt" ]; then
+      BACKUP_STORAGE=$opt
+      break
+    else
+      echo "Invalid selection. Try again."
+    fi
+  done
+}
+
+backup_container() {
+  msg_info "Backing up container $CONTAINER_ID"
+  vzdump_output=$(mktemp)
+  vzdump "$CONTAINER_ID" --compress zstd --storage "$BACKUP_STORAGE" --mode snapshot | tee "$vzdump_output"
+  BACKUP_PATH=$(awk '/tar.zst/ {print $NF}' "$vzdump_output" | tr -d "'")
+  if [ -z "$BACKUP_PATH" ] || ! grep -q "Backup job finished successfully" "$vzdump_output"; then
+    rm "$vzdump_output"
+    msg_error "Backup failed"
+    exit 1
+  fi
+  rm "$vzdump_output"
+  msg_ok "Backup complete: $BACKUP_PATH"
+}
+
+select_target_storage() {
+  echo -e "\nSelect target storage for new container:\n"
+  target_storages=$(pvesm status --content images | awk '{if(NR>1)print $1}')
+  select opt in $target_storages; do
+    if [ -n "$opt" ]; then
+      TARGET_STORAGE=$opt
+      break
+    else
+      echo "Invalid selection. Try again."
+    fi
+  done
+}
+
+select_container_id() {
+  USED_IDS=($(pvesh get /cluster/resources --type vm | jq -r '.[].vmid'))
+  next_free_id=$(pvesh get /cluster/nextid)
+  while true; do
+    read -rp "Enter new container ID (default: $next_free_id): " NEW_CONTAINER_ID
+    NEW_CONTAINER_ID=${NEW_CONTAINER_ID:-$next_free_id}
+    if [[ "$NEW_CONTAINER_ID" =~ ^[0-9]+$ ]] && [[ ! " ${USED_IDS[*]} " =~ " ${NEW_CONTAINER_ID} " ]]; then
+      break
+    else
+      echo "ID invalid or in use. Try again."
+    fi
+  done
+}
+
+perform_conversion() {
+  if pct config "$CONTAINER_ID" | grep -q 'unprivileged: 1'; then
+    UNPRIVILEGED=true
+  else
+    UNPRIVILEGED=false
+  fi
+
+  msg_info "Restoring as $(if $UNPRIVILEGED; then echo privileged; else echo unprivileged; fi) container"
+  restore_opts=("$NEW_CONTAINER_ID" "$BACKUP_PATH" --storage "$TARGET_STORAGE")
+  if $UNPRIVILEGED; then
+    restore_opts+=(--unprivileged false)
+  else
+    restore_opts+=(--unprivileged)
+  fi
+
+  if pct restore "${restore_opts[@]}" -ignore-unpack-errors 1; then
+    msg_ok "Conversion successful"
+  else
+    msg_error "Conversion failed"
+    exit 1
+  fi
+}
+
+manage_states() {
+  read -rp "Shutdown source and start new container? [Y/n]: " answer
+  answer=${answer:-Y}
+  if [[ $answer =~ ^[Yy] ]]; then
+    pct shutdown "$CONTAINER_ID"
+    for i in {1..36}; do
+      sleep 5
+      ! pct status "$CONTAINER_ID" | grep -q running && break
+    done
+    if pct status "$CONTAINER_ID" | grep -q running; then
+      read -rp "Timeout reached. Force shutdown? [Y/n]: " force
+      if [[ ${force:-Y} =~ ^[Yy] ]]; then
+        pkill -9 -f "lxc-start -F -n $CONTAINER_ID"
+      fi
+    fi
+    pct start "$NEW_CONTAINER_ID"
+    msg_ok "New container started"
+  else
+    msg_info "Skipped container state change"
+  fi
+}
+
+cleanup_files() {
+  read -rp "Delete backup archive? [$BACKUP_PATH] [Y/n]: " cleanup
+  if [[ ${cleanup:-Y} =~ ^[Yy] ]]; then
+    rm -f "$BACKUP_PATH" && msg_ok "Removed backup archive"
+  else
+    msg_info "Retained backup archive"
+  fi
+}
+
+summary() {
+  echo -e "\n======== Summary ========"
+  echo "Original Container: $CONTAINER_ID ($CONTAINER_NAME)"
+  echo "Backup Storage: $BACKUP_STORAGE"
+  echo "Target Storage: $TARGET_STORAGE"
+  echo "Backup Path: $BACKUP_PATH"
+  echo "New Container ID: $NEW_CONTAINER_ID"
+  echo "Privilege Conversion: $(if $UNPRIVILEGED; then echo Unprivileged - >Privileged; else echo Privileged - >Unprivileged; fi)"
+  echo "==========================\n"
+}
+
+main() {
+  header_info
+  check_root
+  select_container
+  select_backup_storage
+  backup_container
+  select_target_storage
+  select_container_id
+  perform_conversion
+  manage_states
+  cleanup_files
+  summary
+}
+
+main
