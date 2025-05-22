@@ -267,6 +267,8 @@ function update_script() {
     $STD npm i -g @immich/cli
     msg_ok "Updated Immich CLI"
 
+    sed -i "s|pgvecto.rs|vectorchord|" /opt/"${APP}"/.env
+
     chown -R immich:immich "$INSTALL_DIR"
     echo "$RELEASE" >/opt/"${APP}"_version.txt
     msg_ok "Updated ${APP} to v${RELEASE}"
