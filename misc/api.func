@@ -3,76 +3,76 @@
 # License: MIT | https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
 
 get_error_description() {
-    local exit_code="$1"
-    case "$exit_code" in
-    0) echo " " ;;
-    1) echo "General error: An unspecified error occurred." ;;
-    2) echo "Incorrect shell usage or invalid command arguments." ;;
-    3) echo "Unexecuted function or invalid shell condition." ;;
-    4) echo "Error opening a file or invalid path." ;;
-    5) echo "I/O error: An input/output failure occurred." ;;
-    6) echo "No such device or address." ;;
-    7) echo "Insufficient memory or resource exhaustion." ;;
-    8) echo "Non-executable file or invalid file format." ;;
-    9) echo "Failed child process execution." ;;
-    18) echo "Connection to a remote server failed." ;;
-    22) echo "Invalid argument or faulty network connection." ;;
-    28) echo "No space left on device." ;;
-    35) echo "Timeout while establishing a connection." ;;
-    56) echo "Faulty TLS connection." ;;
-    60) echo "SSL certificate error." ;;
-    100) echo "LXC install error: Unexpected error in create_lxc.sh." ;;
-    101) echo "LXC install error: No network connection detected." ;;
-    200) echo "LXC creation failed." ;;
-    201) echo "LXC error: Invalid Storage class." ;;
-    202) echo "User aborted menu in create_lxc.sh." ;;
-    203) echo "CTID not set in create_lxc.sh." ;;
-    204) echo "PCT_OSTYPE not set in create_lxc.sh." ;;
-    205) echo "CTID cannot be less than 100 in create_lxc.sh." ;;
-    206) echo "CTID already in use in create_lxc.sh." ;;
-    207) echo "Template not found in create_lxc.sh." ;;
-    208) echo "Error downloading template in create_lxc.sh." ;;
-    209) echo "Container creation failed, but template is intact in create_lxc.sh." ;;
-    125) echo "Docker error: Container could not start." ;;
-    126) echo "Command not executable: Incorrect permissions or missing dependencies." ;;
-    127) echo "Command not found: Incorrect path or missing dependency." ;;
-    128) echo "Invalid exit signal, e.g., incorrect Git command." ;;
-    129) echo "Signal 1 (SIGHUP): Process terminated due to hangup." ;;
-    130) echo "Signal 2 (SIGINT): Manual termination via Ctrl+C." ;;
-    132) echo "Signal 4 (SIGILL): Illegal machine instruction." ;;
-    133) echo "Signal 5 (SIGTRAP): Debugging error or invalid breakpoint signal." ;;
-    134) echo "Signal 6 (SIGABRT): Program aborted itself." ;;
-    135) echo "Signal 7 (SIGBUS): Memory error, invalid memory address." ;;
-    137) echo "Signal 9 (SIGKILL): Process forcibly terminated (OOM-killer or 'kill -9')." ;;
-    139) echo "Signal 11 (SIGSEGV): Segmentation fault, possibly due to invalid pointer access." ;;
-    141) echo "Signal 13 (SIGPIPE): Pipe closed unexpectedly." ;;
-    143) echo "Signal 15 (SIGTERM): Process terminated normally." ;;
-    152) echo "Signal 24 (SIGXCPU): CPU time limit exceeded." ;;
-    255) echo "Unknown critical error, often due to missing permissions or broken scripts." ;;
-    *) echo "Unknown error code ($exit_code)." ;;
-    esac
+  local exit_code="$1"
+  case "$exit_code" in
+  0) echo " " ;;
+  1) echo "General error: An unspecified error occurred." ;;
+  2) echo "Incorrect shell usage or invalid command arguments." ;;
+  3) echo "Unexecuted function or invalid shell condition." ;;
+  4) echo "Error opening a file or invalid path." ;;
+  5) echo "I/O error: An input/output failure occurred." ;;
+  6) echo "No such device or address." ;;
+  7) echo "Insufficient memory or resource exhaustion." ;;
+  8) echo "Non-executable file or invalid file format." ;;
+  9) echo "Failed child process execution." ;;
+  18) echo "Connection to a remote server failed." ;;
+  22) echo "Invalid argument or faulty network connection." ;;
+  28) echo "No space left on device." ;;
+  35) echo "Timeout while establishing a connection." ;;
+  56) echo "Faulty TLS connection." ;;
+  60) echo "SSL certificate error." ;;
+  100) echo "LXC install error: Unexpected error in create_lxc.sh." ;;
+  101) echo "LXC install error: No network connection detected." ;;
+  200) echo "LXC creation failed." ;;
+  201) echo "LXC error: Invalid Storage class." ;;
+  202) echo "User aborted menu in create_lxc.sh." ;;
+  203) echo "CTID not set in create_lxc.sh." ;;
+  204) echo "PCT_OSTYPE not set in create_lxc.sh." ;;
+  205) echo "CTID cannot be less than 100 in create_lxc.sh." ;;
+  206) echo "CTID already in use in create_lxc.sh." ;;
+  207) echo "Template not found in create_lxc.sh." ;;
+  208) echo "Error downloading template in create_lxc.sh." ;;
+  209) echo "Container creation failed, but template is intact in create_lxc.sh." ;;
+  125) echo "Docker error: Container could not start." ;;
+  126) echo "Command not executable: Incorrect permissions or missing dependencies." ;;
+  127) echo "Command not found: Incorrect path or missing dependency." ;;
+  128) echo "Invalid exit signal, e.g., incorrect Git command." ;;
+  129) echo "Signal 1 (SIGHUP): Process terminated due to hangup." ;;
+  130) echo "Signal 2 (SIGINT): Manual termination via Ctrl+C." ;;
+  132) echo "Signal 4 (SIGILL): Illegal machine instruction." ;;
+  133) echo "Signal 5 (SIGTRAP): Debugging error or invalid breakpoint signal." ;;
+  134) echo "Signal 6 (SIGABRT): Program aborted itself." ;;
+  135) echo "Signal 7 (SIGBUS): Memory error, invalid memory address." ;;
+  137) echo "Signal 9 (SIGKILL): Process forcibly terminated (OOM-killer or 'kill -9')." ;;
+  139) echo "Signal 11 (SIGSEGV): Segmentation fault, possibly due to invalid pointer access." ;;
+  141) echo "Signal 13 (SIGPIPE): Pipe closed unexpectedly." ;;
+  143) echo "Signal 15 (SIGTERM): Process terminated normally." ;;
+  152) echo "Signal 24 (SIGXCPU): CPU time limit exceeded." ;;
+  255) echo "Unknown critical error, often due to missing permissions or broken scripts." ;;
+  *) echo "Unknown error code ($exit_code)." ;;
+  esac
 }
 
 post_to_api() {
 
-    if ! command -v curl &>/dev/null; then
-        return
-    fi
+  if ! command -v curl &>/dev/null; then
+    return
+  fi
 
-    if [ "$DIAGNOSTICS" = "no" ]; then
-        return
-    fi
+  if [ "$DIAGNOSTICS" = "no" ]; then
+    return
+  fi
 
-    if [ -z "$RANDOM_UUID" ]; then
-        return
-    fi
+  if [ -z "$RANDOM_UUID" ]; then
+    return
+  fi
 
-    local API_URL="http://api.community-scripts.org/dev/upload"
-    local pve_version="not found"
-    pve_version=$(pveversion | awk -F'[/ ]' '{print $2}')
+  local API_URL="http://api.community-scripts.org/dev/upload"
+  local pve_version="not found"
+  pve_version=$(pveversion | awk -F'[/ ]' '{print $2}')
 
-    JSON_PAYLOAD=$(
-        cat <<EOF
+  JSON_PAYLOAD=$(
+    cat <<EOF
 {
     "ct_type": $CT_TYPE,
     "type":"lxc",
@@ -89,38 +89,38 @@ post_to_api() {
     "random_id": "$RANDOM_UUID"
 }
 EOF
-    )
-    RESPONSE=$(curl -s -w "%{http_code}" -L -X POST "$API_URL" --post301 --post302 \
-        -H "Content-Type: application/json" \
-        -d "$JSON_PAYLOAD") || true
+  )
+  RESPONSE=$(curl -s -w "%{http_code}" -L -X POST "$API_URL" --post301 --post302 \
+    -H "Content-Type: application/json" \
+    -d "$JSON_PAYLOAD") || true
 }
 
 post_to_api_vm() {
 
-    if [[ ! -f /usr/local/community-scripts/diagnostics ]]; then
-        return
-    fi
-    DIAGNOSTICS=$(grep -i "^DIAGNOSTICS=" /usr/local/community-scripts/diagnostics | awk -F'=' '{print $2}')
-    if ! command -v curl &>/dev/null; then
-        return
-    fi
+  if [[ ! -f /usr/local/community-scripts/diagnostics ]]; then
+    return
+  fi
+  DIAGNOSTICS=$(grep -i "^DIAGNOSTICS=" /usr/local/community-scripts/diagnostics | awk -F'=' '{print $2}')
+  if ! command -v curl &>/dev/null; then
+    return
+  fi
 
-    if [ "$DIAGNOSTICS" = "no" ]; then
-        return
-    fi
+  if [ "$DIAGNOSTICS" = "no" ]; then
+    return
+  fi
 
-    if [ -z "$RANDOM_UUID" ]; then
-        return
-    fi
+  if [ -z "$RANDOM_UUID" ]; then
+    return
+  fi
 
-    local API_URL="http://api.community-scripts.org/dev/upload"
-    local pve_version="not found"
-    pve_version=$(pveversion | awk -F'[/ ]' '{print $2}')
+  local API_URL="http://api.community-scripts.org/dev/upload"
+  local pve_version="not found"
+  pve_version=$(pveversion | awk -F'[/ ]' '{print $2}')
 
-    DISK_SIZE_API=${DISK_SIZE%G}
+  DISK_SIZE_API=${DISK_SIZE%G}
 
-    JSON_PAYLOAD=$(
-        cat <<EOF
+  JSON_PAYLOAD=$(
+    cat <<EOF
 {
     "ct_type": 2,
     "type":"vm",
@@ -137,53 +137,53 @@ post_to_api_vm() {
     "random_id": "$RANDOM_UUID"
 }
 EOF
-    )
-    RESPONSE=$(curl -s -w "%{http_code}" -L -X POST "$API_URL" --post301 --post302 \
-        -H "Content-Type: application/json" \
-        -d "$JSON_PAYLOAD") || true
+  )
+  RESPONSE=$(curl -s -w "%{http_code}" -L -X POST "$API_URL" --post301 --post302 \
+    -H "Content-Type: application/json" \
+    -d "$JSON_PAYLOAD") || true
 }
 
 POST_UPDATE_DONE=false
 post_update_to_api() {
 
-    if ! command -v curl &>/dev/null; then
-        return
-    fi
+  if ! command -v curl &>/dev/null; then
+    return
+  fi
 
-    if [ "$POST_UPDATE_DONE" = true ]; then
-        return 0
-    fi
-    exit_code=${2:-1}
-    local API_URL="http://api.community-scripts.org/dev/upload/updatestatus"
-    local status="${1:-failed}"
-    if [[ "$status" == "failed" ]]; then
-        local exit_code="${2:-1}"
-    elif [[ "$status" == "success" ]]; then
-        local exit_code="${2:-0}"
-    fi
+  if [ "$POST_UPDATE_DONE" = true ]; then
+    return 0
+  fi
+  exit_code=${2:-1}
+  local API_URL="http://api.community-scripts.org/dev/upload/updatestatus"
+  local status="${1:-failed}"
+  if [[ "$status" == "failed" ]]; then
+    local exit_code="${2:-1}"
+  elif [[ "$status" == "success" ]]; then
+    local exit_code="${2:-0}"
+  fi
 
-    if [[ -z "$exit_code" ]]; then
-        exit_code=1
-    fi
+  if [[ -z "$exit_code" ]]; then
+    exit_code=1
+  fi
 
-    error=$(get_error_description "$exit_code")
+  error=$(get_error_description "$exit_code")
 
-    if [ -z "$error" ]; then
-        error="Unknown error"
-    fi
+  if [ -z "$error" ]; then
+    error="Unknown error"
+  fi
 
-    JSON_PAYLOAD=$(
-        cat <<EOF
+  JSON_PAYLOAD=$(
+    cat <<EOF
 {
     "status": "$status",
     "error": "$error",
     "random_id": "$RANDOM_UUID"
 }
 EOF
-    )
-    RESPONSE=$(curl -s -w "%{http_code}" -L -X POST "$API_URL" --post301 --post302 \
-        -H "Content-Type: application/json" \
-        -d "$JSON_PAYLOAD") || true
+  )
+  RESPONSE=$(curl -s -w "%{http_code}" -L -X POST "$API_URL" --post301 --post302 \
+    -H "Content-Type: application/json" \
+    -d "$JSON_PAYLOAD") || true
 
-    POST_UPDATE_DONE=true
+  POST_UPDATE_DONE=true
 }
