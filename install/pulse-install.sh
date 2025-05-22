@@ -14,28 +14,18 @@ setting_up_container
 network_check
 update_os
 
-PULSE_USER="pulse"
-SERVICE_NAME="pulse-monitor.service"
-
-msg_info "Creating dedicated user pulse..."
-if id pulse &>/dev/null; then
-  msg_warn "User '${PULSE_USER}' already exists. Skipping creation."
-else
-  useradd -r -m -d /opt/pulse-home -s /bin/bash "$PULSE_USER"
-  if useradd -r -m -d /opt/pulse-home -s /bin/bash "$PULSE_USER"; then
-    msg_ok "User '${PULSE_USER}' created successfully."
-  else
-    msg_error "Failed to create user '${PULSE_USER}'."
-    exit 1
-  fi
-fi
-
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  git \
-  jq \
   diffutils
 msg_ok "Installed Core Dependencies"
+
+msg_info "Creating dedicated user pulse..."
+if useradd -r -m -d /opt/pulse-home -s /bin/bash pulse; then
+  msg_ok "User created."
+else
+  msg_error "User creation failed."
+  exit 1
+fi
 
 NODE_VERSION="20" install_node_and_modules
 
