@@ -53,7 +53,7 @@ function update_script() {
     $STD npm install --unsafe-perm
     cd /opt/pulse-proxmox
     $STD npm run build:css
-    echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
+    echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated Pulse to ${RELEASE}"
 
     msg_info "Setting permissions for /opt/pulse-proxmox..."
