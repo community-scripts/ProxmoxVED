@@ -41,20 +41,23 @@ cd /opt/pulse-proxmox/server
 $STD npm install --unsafe-perm
 cd /opt/pulse-proxmox
 $STD npm run build:css
+echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
+msg_ok "Installed Pulse"
+
 read -p "Proxmox Host (z. B. https://proxmox.example.com:8006): " PROXMOX_HOST
 read -p "Proxmox Token ID (z. B. user@pam!mytoken): " PROXMOX_TOKEN_ID
 read -p "Proxmox Token Secret: " PROXMOX_TOKEN_SECRET
 read -p "Port (default: 7655): " PORT
 PORT="${PORT:-7655}"
 
+msg_info "Creating .env file"
 cat <<EOF >/opt/pulse-proxmox/.env
 PROXMOX_HOST=${PROXMOX_HOST}
 PROXMOX_TOKEN_ID=${PROXMOX_TOKEN_ID}
 PROXMOX_TOKEN_SECRET=${PROXMOX_TOKEN_SECRET}
 PORT=${PORT}
 EOF
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-msg_ok "Set up Pulse"
+msg_ok "Created .env file"
 
 msg_info "Setting permissions for /opt/pulse-proxmox..."
 chown -R ${PULSE_USER}:${PULSE_USER} "/opt/pulse-proxmox"
