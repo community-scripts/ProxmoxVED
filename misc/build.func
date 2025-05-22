@@ -1197,7 +1197,9 @@ api_exit_script() {
   fi
 }
 
-trap 'api_exit_script' EXIT
+if command -v pveversion >/dev/null 2>&1; then
+  trap 'api_exit_script' EXIT
+fi
 trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
