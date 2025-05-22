@@ -24,7 +24,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /pulse-proxmox ]]; then
+  if [[ ! -d /opt/pulse-proxmox ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
