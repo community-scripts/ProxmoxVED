@@ -44,10 +44,10 @@ $STD npm run build:css
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Pulse"
 
-read -p "Proxmox Host (z. B. https://proxmox.example.com:8006): " PROXMOX_HOST
-read -p "Proxmox Token ID (z. B. user@pam!mytoken): " PROXMOX_TOKEN_ID
-read -p "Proxmox Token Secret: " PROXMOX_TOKEN_SECRET
-read -p "Port (default: 7655): " PORT
+read -rp "${TAB3}Proxmox Host (z. B. https://proxmox.example.com:8006): " PROXMOX_HOST
+read -rp "${TAB3}Proxmox Token ID (z. B. user@pam!mytoken): " PROXMOX_TOKEN_ID
+read -rp "${TAB3}Proxmox Token Secret: " PROXMOX_TOKEN_SECRET
+read -rp "${TAB3}Port (default: 7655): " PORT
 PORT="${PORT:-7655}"
 
 msg_info "Creating .env file"
