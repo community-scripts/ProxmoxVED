@@ -31,6 +31,7 @@ select_container() {
   echo -e "\nChoose a Container to convert:\n"
   IFS=$'\n'
   lxc_list=$(pct list | awk '{if(NR>1)print $1 " " $3}')
+  PS3="Enter number of container to convert: "
   select opt in $lxc_list; do
     if [ -n "$opt" ]; then
       CONTAINER_ID=$(echo "$opt" | awk '{print $1}')
@@ -72,12 +73,14 @@ backup_container() {
 select_target_storage() {
   echo -e "\nSelect target storage for new container:\n"
   target_storages=$(pvesm status --content images | awk '{if(NR>1)print $1}')
+  PS3="Enter number of target storage: "
+
   select opt in $target_storages; do
-    if [ -n "$opt" ]; then
+    if [[ -z "$opt" || ! "$opt" =~ ^[0-9]+$ ]]; then
+      echo "Invalid selection. Please choose a valid number."
+    else
       TARGET_STORAGE=$opt
       break
-    else
-      echo "Invalid selection. Try again."
     fi
   done
 }
