@@ -224,7 +224,6 @@ function update_script() {
     cp -a server/{node_modules,dist,bin,resources,package.json,package-lock.json,start*.sh} "$APP_DIR"/
     cp -a web/build "$APP_DIR"/www
     cp LICENSE "$APP_DIR"
-    cp "$BASE_DIR"/server/bin/build-lock.json "$APP_DIR"
     msg_ok "Updated ${APP} web and microservices"
 
     cd "$SRC_DIR"/machine-learning
