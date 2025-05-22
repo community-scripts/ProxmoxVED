@@ -71,7 +71,7 @@ service:
       icon_link_to: https://helper-scripts.com/
       web_url: https://github.com/community-scripts/ProxmoxVE/releases
 EOF
-echo "${RELEASE}" >/opt/argus_version.txt
+echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup Config"
 
 msg_info "Creating Service"
