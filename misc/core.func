@@ -183,6 +183,39 @@ silent() {
   "$@" >/dev/null 2>&1
 }
 
+# Function to download & save header files
+get_header() {
+  local app_name=$(echo "${APP,,}" | tr -d ' ')
+  local app_type=${APP_TYPE:-ct} # Default zu 'ct' falls nicht gesetzt
+  local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
+  local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
+
+  mkdir -p "$(dirname "$local_header_path")"
+
+  if [ ! -s "$local_header_path" ]; then
+    if ! curl -fsSL "$header_url" -o "$local_header_path"; then
+      return 1
+    fi
+  fi
+
+  cat "$local_header_path" 2>/dev/null || true
+}
+
+header_info() {
+  local app_name=$(echo "${APP,,}" | tr -d ' ')
+  local header_content
+
+  header_content=$(get_header "$app_name") || header_content=""
+
+  clear
+  local term_width
+  term_width=$(tput cols 2>/dev/null || echo 120)
+
+  if [ -n "$header_content" ]; then
+    echo "$header_content"
+  fi
+}
+
 # ------------------------------------------------------------------------------
 # Performs a curl request with retry logic and inline feedback.
 # ------------------------------------------------------------------------------

@@ -17,6 +17,7 @@ set -euo pipefail
 shopt -s inherit_errexit nullglob
 
 APP="PVE-Privilege-Converter"
+APP_TYPE="pve"
 header_info "$APP"
 
 check_root() {
