@@ -23,12 +23,10 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-
   if [[ ! -d /opt/pulse-proxmox ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-
   RELEASE=$(curl -fsSL https://api.github.com/repos/rcourtman/Pulse/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Stopping ${APP}"
@@ -78,4 +76,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:${PORT}${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}(:your_port)${CL}"
