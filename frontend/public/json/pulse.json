@@ -31,5 +31,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Create Proxmox-API-Token first: `https: //github.com/rcourtman/Pulse?tab=readme-ov-file#creating-a-proxmox-api-token`",
+      "type": "Info"
+    }
+  ]
 }
