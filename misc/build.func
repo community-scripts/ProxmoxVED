@@ -219,7 +219,6 @@ ssh_check() {
     fi
   fi
 }
-
 base_settings() {
   # Default Settings
   CT_TYPE="1"
@@ -243,8 +242,8 @@ base_settings() {
   VLAN=""
   SSH="no"
   SSH_AUTHORIZED_KEY=""
-  TAGS="community-script;"
   UDHCPC_FIX=""
+  TAGS="community-script;"
   ENABLE_FUSE="no"
   ENABLE_TUN="no"
 
@@ -253,7 +252,7 @@ base_settings() {
   DISK_SIZE=${var_disk:-$DISK_SIZE}
   CORE_COUNT=${var_cpu:-$CORE_COUNT}
   RAM_SIZE=${var_ram:-$RAM_SIZE}
-  VERBOSE=${var_verbose:-$VERBOSE}
+  VERB=${var_verbose:-$VERBOSE}
   TAGS="${TAGS}${var_tags:-}"
   ENABLE_FUSE="${var_fuse:-$ENABLE_FUSE}"
   ENABLE_TUN="${var_tun:-$ENABLE_TUN}"
@@ -266,38 +265,8 @@ base_settings() {
     var_version="12"
   fi
 }
-
-# This function displays the default values for various settings.
-echo_default() {
-  # Convert CT_TYPE to description
-  CT_TYPE_DESC="Unprivileged"
-  if [ "$CT_TYPE" -eq 0 ]; then
-    CT_TYPE_DESC="Privileged"
-  fi
-
-  # Output the selected values with icons
-  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
-  echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
-  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
-  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
-  if [ "$VERBOSE" == "yes" ]; then
-    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
-  fi
-  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
-  echo -e "  "
-}
-
-# This function is called when the user decides to exit the script. It clears the screen and displays an exit message.
-exit_script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
-}
-
 write_config() {
+  mkdir -p /opt/community-scripts
   # This function writes the configuration to a file.
   if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "Write configfile" --yesno "Do you want to write the selections to a config file?" 10 60; then
     FILEPATH="/opt/community-scripts/${NSAPP}.conf"
@@ -321,7 +290,7 @@ VERBOSE="${VERBOSE}"
 TAGS="${TAGS:-none}"
 VLAN="${VLAN:-none}"
 MTU="${MTU:-1500}"
-GATE="${GATE:-}"
+GATE="${GATE:-none}"
 SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
@@ -352,7 +321,7 @@ VERBOSE="${VERBOSE}"
 TAGS="${TAGS:-none}"
 VLAN="${VLAN:-none}"
 MTU="${MTU:-1500}"
-GATE="${GATE:-}"
+GATE="${GATE:-none}"
 SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
@@ -365,6 +334,36 @@ EOF
       fi
     fi
   fi
+}
+
+# This function displays the default values for various settings.
+echo_default() {
+  # Convert CT_TYPE to description
+  CT_TYPE_DESC="Unprivileged"
+  if [ "$CT_TYPE" -eq 0 ]; then
+    CT_TYPE_DESC="Privileged"
+  fi
+
+  # Output the selected values with icons
+  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
+  echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
+  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
+  if [ "$VERB" == "yes" ]; then
+    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
+  fi
+  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
+  echo -e "  "
+}
+
+# This function is called when the user decides to exit the script. It clears the screen and displays an exit message.
+exit_script() {
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  exit
 }
 
 # This function allows the user to configure advanced settings for the script.
