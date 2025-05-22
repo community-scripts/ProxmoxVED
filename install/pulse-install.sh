@@ -54,7 +54,6 @@ $STD npm run build:css
 read -p "Proxmox Host (z. B. https://proxmox.example.com:8006): " PROXMOX_HOST
 read -p "Proxmox Token ID (z. B. user@pam!mytoken): " PROXMOX_TOKEN_ID
 read -p "Proxmox Token Secret: " PROXMOX_TOKEN_SECRET
-read -p "Allow self-signed certs? (true/false): " PROXMOX_ALLOW_SELF_SIGNED_CERTS
 read -p "Port (default: 7655): " PORT
 PORT="${PORT:-7655}"
 
@@ -62,7 +61,6 @@ cat <<EOF >/opt/pulse-proxmox/.env
 PROXMOX_HOST=${PROXMOX_HOST}
 PROXMOX_TOKEN_ID=${PROXMOX_TOKEN_ID}
 PROXMOX_TOKEN_SECRET=${PROXMOX_TOKEN_SECRET}
-PROXMOX_ALLOW_SELF_SIGNED_CERTS=${PROXMOX_ALLOW_SELF_SIGNED_CERTS}
 PORT=${PORT}
 EOF
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
