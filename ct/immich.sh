@@ -190,7 +190,7 @@ function update_script() {
       $STD dpkg -i vchord.deb
       rm vchord.deb
       sed -i -e "s/'vectors.so'/'vchord.so, vectors.so'/" \
-        -e "/^search_path/s/, vectors'//" /etc/postgresql/16/main/postgresql.conf
+        -e "/^search_path/s/, vectors//" /etc/postgresql/16/main/postgresql.conf
       systemctl restart postgresql.service
       msg_ok "Upgrade in progress. When Immich restarts, watch the logs for 're-indexing' to complete"
     fi
