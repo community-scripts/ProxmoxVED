@@ -113,14 +113,14 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
 fi
 
 msg_info "Setting up Postgresql Database"
-curl -fsSLO https://github.com/tensorchord/pgvecto.rs/releases/download/v0.3.0/vectors-pg16_0.3.0_amd64.deb
-$STD dpkg -i vectors-pg16_0.3.0_amd64.deb
-rm vectors-pg16_0.3.0_amd64.deb
+$STD apt-get install postgresql-16-pgvector
+curl -fsSL https://github.com/tensorchord/VectorChord/releases/download/0.3.0/postgresql-16-vchord_0.3.0-1_amd64.deb -o vchord.deb
+$STD dpkg -i vchord.deb
+rm vchord.deb
 DB_NAME="immich"
 DB_USER="immich"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c18)
-sed -i -e "/^#shared_preload/s/^#//;/^shared_preload/s/''/'vectors.so'/" \
-  -e "/^#search_path/s/^#//;/^search_path/s/public'/public, vectors'/" /etc/postgresql/16/main/postgresql.conf
+sed -i -e "/^#shared_preload/s/^#//;/^shared_preload/s/''/'vectors.so'/" /etc/postgresql/16/main/postgresql.conf
 systemctl restart postgresql.service
 $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
