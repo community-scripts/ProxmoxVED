@@ -60,7 +60,7 @@ EOF
 msg_ok "Created .env file"
 
 msg_info "Setting permissions for /opt/pulse-proxmox..."
-chown -R ${PULSE_USER}:${PULSE_USER} "/opt/pulse-proxmox"
+chown -R pulse:pulse "/opt/pulse-proxmox"
 find "/opt/pulse-proxmox" -type d -exec chmod 755 {} \;
 find "/opt/pulse-proxmox" -type f -exec chmod 644 {} \;
 chmod 600 /opt/pulse-proxmox/.env
