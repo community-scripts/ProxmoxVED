@@ -962,6 +962,9 @@ start() {
 
 # This function collects user settings and integrates all the collected information.
 build_container() {
+  CT_TYPE="${CT_TYPE:-1}"
+  ENABLE_FUSE="${ENABLE_FUSE:-no}"
+  DIAGNOSTICS="${DIAGNOSTICS:-no}"
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
   if [ "$CT_TYPE" == "1" ]; then
