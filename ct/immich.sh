@@ -192,7 +192,7 @@ function update_script() {
       sed -i -e "s/'vectors.so'/'vchord.so, vectors.so'/" \
         -e "/^search_path/s/, vectors'//" /etc/postgresql/16/main/postgresql.conf
       systemctl restart postgresql.service
-      msg_done "Upgrade in progress. When Immich restarts, watch the logs for 're-indexing' to complete"
+      msg_ok "Upgrade in progress. When Immich restarts, watch the logs for 're-indexing' to complete"
     fi
     INSTALL_DIR="/opt/${APP}"
     UPLOAD_DIR="${INSTALL_DIR}/upload"
