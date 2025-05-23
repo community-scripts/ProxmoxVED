@@ -30,9 +30,9 @@ function update_script() {
     msg_info "Updating $APP LXC"
     cd /opt/convertx
     git pull origin main
-    $STD systemctl restart convertx.service
     $STD apt-get update
     $STD apt-get -y upgrade
+    $STD systemctl restart convertx.service
     msg_ok "Updated $APP LXC"
     exit
 }
