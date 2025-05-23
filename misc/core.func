@@ -9,6 +9,11 @@
 #   }
 # fi
 
+trap 'on_error $? $LINENO' ERR
+trap 'on_exit' EXIT
+trap 'on_interrupt' INT
+trap 'on_terminate' TERM
+
 if ! declare -f wait_for >/dev/null; then
   wait_for() {
     true
@@ -36,6 +41,30 @@ load_functions() {
   default_vars
   set_std_mode
   # add more
+}
+
+on_error() {
+  local exit_code="$1"
+  local lineno="$2"
+  msg_error "Script failed at line $lineno with exit code $exit_code"
+  # Optionally log to your API or file here
+  exit "$exit_code"
+}
+
+on_exit() {
+  # Always called on script exit, success or failure
+  cleanup_temp_files || true
+  msg_info "Script exited"
+}
+
+on_interrupt() {
+  msg_error "Interrupted by user (CTRL+C)"
+  exit 130
+}
+
+on_terminate() {
+  msg_error "Terminated by signal (TERM)"
+  exit 143
 }
 
 setup_trap_abort_handling() {
@@ -165,7 +194,6 @@ default_vars() {
   RETRY_EVERY=3
   i=$RETRY_NUM
   #[[ "${VAR_OS:-}" == "unknown" ]]
-
 }
 
 # ------------------------------------------------------------------------------
