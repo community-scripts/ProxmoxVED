@@ -33,11 +33,7 @@
     },
     "notes": [
         {
-            "text": "WARNING: Installation clones a repository from github.com/C4illin/ConvertX. Please verify the source before installing.",
-            "type": "warning"
-        },
-        {
-            "text": "Complete setup via the web interface at http://<container-ip>:3000. Create and secure the admin account immediately. Check installation logs: `cat ~/convertx-install.log`",
+            "text": "Complete setup via the web interface at http://<container-ip>:3000. Create and secure the admin account immediately.",
             "type": "info"
         }
     ]

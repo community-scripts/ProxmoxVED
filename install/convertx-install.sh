@@ -14,14 +14,23 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y git curl ffmpeg
+$STD apt-get install -y \
+    curl \
+    ffmpeg \
+    jq
 msg_ok "Installed Dependencies"
 
 msg_info "Installing ConvertX"
-$STD curl -fsSL "https://bun.sh/install" | bash
-$STD ln -sf /root/.bun/bin/bun /usr/local/bin/bun
-$STD git clone "https://github.com/C4illin/ConvertX.git" /opt/convertx
-$STD cd /opt/convertx && bun install
+curl -fsSL "https://bun.sh/install" | bash
+ln -sf /root/.bun/bin/bun /usr/local/bin/bun
+mkdir -p /opt/convertx
+
+RELEASE=$(curl -fsSL https://api.github.com/repos/C4illin/ConvertX/releases/latest | jq -r .tag_name | sed 's/^v//')
+curl -fsSL -o "/opt/convertx/ConvertX-${RELEASE}.tar.gz" "https://github.com/C4illin/ConvertX/archive/refs/tags/v${RELEASE}.tar.gz"
+tar --strip-components=1 -xf "/opt/convertx/ConvertX-${RELEASE}.tar.gz" -C /opt/convertx
+cd /opt/convertx
+mkdir -p data
+bun install
 
 JWT_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)
 cat <<EOF >/opt/convertx/.env
@@ -47,27 +56,23 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
+systemctl enable -q --now convertx
 msg_ok "Service Created"
 
-msg_info "Waiting for SQLite database to be created"
-TIMEOUT=60
-COUNT=0
-while [[ ! -f "/opt/convertx/data/mydb.sqlite" && $COUNT -lt $TIMEOUT ]]; do
-    sleep 0.5
-    COUNT=$((COUNT + 1))
+msg_info "Waiting for SQLite database"
+for ((COUNT=0; COUNT<60; COUNT++)); do
+  [ -f "/opt/convertx/data/mydb.sqlite" ] && { systemctl restart convertx; exit 0; }
+  sleep 0.5
 done
-if [[ -f "/opt/convertx/data/mydb.sqlite" ]]; then
-    systemctl enable -q --now convertx
-else
-    msg_error "Timed out waiting for /opt/convertx/data/mydb.sqlite to be created!"
-    exit 1
-fi
-msg_ok "Database Created"
+msg_error "Timed out waiting for database!"
+exit 1
+msg_ok "Database created"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
+$STD rm -f /opt/ConvertX-${RELEASE}.tar.gz
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"

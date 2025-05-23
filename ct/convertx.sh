@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -s https://raw.githubusercontent.com/omiinaya/ProxmoxVED/refs/heads/testing/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Omar Minaya
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -28,11 +28,15 @@ function update_script() {
         exit
     fi
     msg_info "Updating $APP LXC"
+    RELEASE=$(curl -fsSL https://api.github.com/repos/C4illin/ConvertX/releases/latest | jq -r .tag_name | sed 's/^v//')
+    curl -fsSL -o "/opt/convertx/ConvertX-${RELEASE}.tar.gz" "https://github.com/C4illin/ConvertX/archive/refs/tags/v${RELEASE}.tar.gz"
+    tar --strip-components=1 -xf "/opt/convertx/ConvertX-${RELEASE}.tar.gz" -C /opt/convertx
     cd /opt/convertx
-    git pull origin main
+    bun update
+
+    $STD systemctl restart convertx
     $STD apt-get update
     $STD apt-get -y upgrade
-    $STD systemctl restart convertx.service
     msg_ok "Updated $APP LXC"
     exit
 }
