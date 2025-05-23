@@ -49,58 +49,64 @@ fi
 
 # This function is used to select the storage class and determine the corresponding storage content type and label.
 function select_storage() {
-  local CLASS=$1
+  local CLASS="$1"
   local CONTENT
   local CONTENT_LABEL
-  case $CLASS in
+
+  case "$CLASS" in
   container)
     CONTENT='rootdir'
     CONTENT_LABEL='Container'
     ;;
   template)
     CONTENT='vztmpl'
-    CONTENT_LABEL='Container template'
+    CONTENT_LABEL='Container Template'
     ;;
-  *) false || {
-    msg_error "Invalid storage class."
+  *)
+    msg_error "Invalid storage class: $CLASS"
     exit 201
-  } ;;
+    ;;
   esac
 
-  # This Queries all storage locations
+  # Collect storage options
   local -a MENU
+  local MSG_MAX_LENGTH=0
+
   while read -r TAG TYPE _ _ _ FREE _; do
-    local TYPE_PADDED=$(printf "%-10s" "$TYPE")
-    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")
-    local ITEM="Type: $TYPE_PADDED Free: ${FREE_FMT}B"
-    local OFFSET=2
-    if [[ -z "${MSG_MAX_LENGTH:-}" || $((${#ITEM} + OFFSET)) -gt MSG_MAX_LENGTH ]]; then
-      MSG_MAX_LENGTH=$((${#ITEM} + OFFSET))
-    fi
+    local TYPE_PADDED
+    local FREE_FMT
+
+    TYPE_PADDED=$(printf "%-10s" "$TYPE")
+    FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")B
+    local ITEM="Type: $TYPE_PADDED Free: $FREE_FMT"
+
+    ((${#ITEM} + 2 > MSG_MAX_LENGTH)) && MSG_MAX_LENGTH=$((${#ITEM} + 2))
     MENU+=("$TAG" "$ITEM" "OFF")
   done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
-  # Select storage location
-  if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
-    printf ${MENU[0]}
-  else
-    local STORAGE
-    while [ -z "${STORAGE:+x}" ]; do
-      STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-        "Which storage pool you would like to use for the ${CONTENT_LABEL,,}?\nTo make a selection, use the Spacebar.\n" \
-        16 $(($MSG_MAX_LENGTH + 23)) 6 \
-        "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-        msg_error "Menu aborted."
-        exit 202
-      }
-      if [ $? -ne 0 ]; then
-        echo -e "${CROSS}${RD} Menu aborted by user.${CL}"
-        exit 0
-      fi
-    done
-    printf "%s" "$STORAGE"
+  local OPTION_COUNT=$((${#MENU[@]} / 3))
+
+  # Auto-select if only one option available
+  if [[ "$OPTION_COUNT" -eq 1 ]]; then
+    echo "${MENU[0]}"
+    return 0
   fi
+
+  # Display selection menu
+  local STORAGE
+  while [[ -z "${STORAGE:+x}" ]]; do
+    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+      "Select the storage pool to use for the ${CONTENT_LABEL,,}.\nUse the spacebar to make a selection.\n" \
+      16 $((MSG_MAX_LENGTH + 23)) 6 \
+      "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+      msg_error "Storage selection cancelled."
+      exit 202
+    }
+  done
+
+  echo "$STORAGE"
 }
+
 # Test if required variables are set
 [[ "${CTID:-}" ]] || {
   msg_error "You need to set 'CTID' variable."
