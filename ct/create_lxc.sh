@@ -49,59 +49,64 @@ fi
 
 # This function is used to select the storage class and determine the corresponding storage content type and label.
 function select_storage() {
-  local CLASS=$1
+  local CLASS="$1"
   local CONTENT
   local CONTENT_LABEL
-  case $CLASS in
+
+  case "$CLASS" in
   container)
     CONTENT='rootdir'
     CONTENT_LABEL='Container'
     ;;
   template)
     CONTENT='vztmpl'
-    CONTENT_LABEL='Container template'
+    CONTENT_LABEL='Container Template'
     ;;
-  *) false || {
-    msg_error "Invalid storage class."
+  *)
+    msg_error "Invalid storage class: $CLASS"
     exit 201
-  } ;;
+    ;;
   esac
 
-  # This Queries all storage locations
+  # Collect storage options
   local -a MENU
-  while read -r line; do
-    local TAG=$(echo $line | awk '{print $1}')
-    local TYPE=$(echo $line | awk '{printf "%-10s", $2}')
-    local FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
-    local ITEM="Type: $TYPE Free: $FREE "
-    local OFFSET=2
-    if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
-      local MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
-    fi
-    MENU+=("$TAG" "$ITEM" "OFF")
-  done < <(pvesm status -content $CONTENT | awk 'NR>1')
+  local MSG_MAX_LENGTH=0
 
-  # Select storage location
-  if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
-    printf ${MENU[0]}
-  else
-    local STORAGE
-    while [ -z "${STORAGE:+x}" ]; do
-      STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-        "Which storage pool you would like to use for the ${CONTENT_LABEL,,}?\nTo make a selection, use the Spacebar.\n" \
-        16 $(($MSG_MAX_LENGTH + 23)) 6 \
-        "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-        msg_error "Menu aborted."
-        exit 202
-      }
-      if [ $? -ne 0 ]; then
-        echo -e "${CROSS}${RD} Menu aborted by user.${CL}"
-        exit 0
-      fi
-    done
-    printf "%s" "$STORAGE"
+  while read -r TAG TYPE _ _ _ FREE _; do
+    local TYPE_PADDED
+    local FREE_FMT
+
+    TYPE_PADDED=$(printf "%-10s" "$TYPE")
+    FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")B
+    local ITEM="Type: $TYPE_PADDED Free: $FREE_FMT"
+
+    ((${#ITEM} + 2 > MSG_MAX_LENGTH)) && MSG_MAX_LENGTH=$((${#ITEM} + 2))
+    MENU+=("$TAG" "$ITEM" "OFF")
+  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
+
+  local OPTION_COUNT=$((${#MENU[@]} / 3))
+
+  # Auto-select if only one option available
+  if [[ "$OPTION_COUNT" -eq 1 ]]; then
+    echo "${MENU[0]}"
+    return 0
   fi
+
+  # Display selection menu
+  local STORAGE
+  while [[ -z "${STORAGE:+x}" ]]; do
+    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+      "Select the storage pool to use for the ${CONTENT_LABEL,,}.\nUse the spacebar to make a selection.\n" \
+      16 $((MSG_MAX_LENGTH + 23)) 6 \
+      "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+      msg_error "Storage selection cancelled."
+      exit 202
+    }
+  done
+
+  echo "$STORAGE"
 }
+
 # Test if required variables are set
 [[ "${CTID:-}" ]] || {
   msg_error "You need to set 'CTID' variable."
@@ -141,43 +146,48 @@ msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
 
 # Update LXC template list
 $STD msg_info "Updating LXC Template List"
-#check_network
-pveam update >/dev/null
-$STD msg_ok "Updated LXC Template List"
+if ! timeout 10 pveam update >/dev/null 2>&1; then
+  msg_error "Failed to update LXC template list. Please check your Proxmox host's internet connection and DNS resolution."
+  exit 201
+fi
+$STD msg_ok "LXC Template List Updated"
 
 # Get LXC template string
-TEMPLATE_SEARCH=${PCT_OSTYPE}-${PCT_OSVERSION:-}
+TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 mapfile -t TEMPLATES < <(pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V)
-[ ${#TEMPLATES[@]} -gt 0 ] || {
-  msg_error "Unable to find a template when searching for '$TEMPLATE_SEARCH'."
+
+if [ ${#TEMPLATES[@]} -eq 0 ]; then
+  msg_error "No matching LXC template found for '${TEMPLATE_SEARCH}'. Make sure your host can reach the Proxmox template repository."
   exit 207
-}
+fi
+
 TEMPLATE="${TEMPLATES[-1]}"
-TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE)"
-# Without NAS/Mount: TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
-# Check if template exists, if corrupt remove and redownload
+TEMPLATE_PATH="$(pvesm path "$TEMPLATE_STORAGE":vztmpl/$TEMPLATE)"
+
+# Check if template exists and is valid
 if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1; then
-  msg_warn "Template $TEMPLATE not found in storage or seems to be corrupted. Redownloading."
+  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
+
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
 
-  # Download with 3 attempts
   for attempt in {1..3}; do
     msg_info "Attempt $attempt: Downloading LXC template..."
 
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
+    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
       msg_ok "Template download successful."
       break
     fi
 
     if [ $attempt -eq 3 ]; then
-      msg_error "Three failed attempts. Aborting."
+      msg_error "Failed after 3 attempts. Please check your Proxmox host’s internet access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
       exit 208
     fi
 
     sleep $((attempt * 5))
   done
 fi
-msg_ok "LXC Template is ready to use."
+
+msg_ok "LXC Template '$TEMPLATE' is ready to use."
 
 # Check and fix subuid/subgid
 grep -q "root:100000:65536" /etc/subuid || echo "root:100000:65536" >>/etc/subuid

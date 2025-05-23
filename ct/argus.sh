@@ -32,13 +32,14 @@ function update_script() {
   RELEASE=$(curl -fsSL https://api.github.com/repos/release-argus/Argus/releases/latest | jq -r .tag_name | sed 's/^v//')
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Updating $APP to ${RELEASE}"
+    rm -f /opt/argus/Argus
     curl -fsSL "https://github.com/release-argus/Argus/releases/download/${RELEASE}/Argus-${RELEASE}.linux-amd64" -o /opt/argus/Argus
     chmod +x /opt/argus/Argus
     systemctl restart argus
     echo "${RELEASE}" >/opt/${APP}_version.txt
-    msg_ok "Updated $APP to ${RELEASE}"
+    msg_ok "Updated ${APP} to ${RELEASE}"
   else
-    msg_ok "$APP is already up to date (${RELEASE})"
+    msg_ok "${APP} is already up to date (${RELEASE})"
   fi
 }
 

@@ -9,6 +9,11 @@
 #   }
 # fi
 
+trap 'on_error $? $LINENO' ERR
+trap 'on_exit' EXIT
+trap 'on_interrupt' INT
+trap 'on_terminate' TERM
+
 if ! declare -f wait_for >/dev/null; then
   wait_for() {
     true
@@ -36,6 +41,30 @@ load_functions() {
   default_vars
   set_std_mode
   # add more
+}
+
+on_error() {
+  local exit_code="$1"
+  local lineno="$2"
+  msg_error "Script failed at line $lineno with exit code $exit_code"
+  # Optionally log to your API or file here
+  exit "$exit_code"
+}
+
+on_exit() {
+  # Always called on script exit, success or failure
+  cleanup_temp_files || true
+  msg_info "Script exited"
+}
+
+on_interrupt() {
+  msg_error "Interrupted by user (CTRL+C)"
+  exit 130
+}
+
+on_terminate() {
+  msg_error "Terminated by signal (TERM)"
+  exit 143
 }
 
 setup_trap_abort_handling() {
@@ -154,6 +183,7 @@ icons() {
   ROOTSSH="${TAB}🔑${TAB}${CL}"
   CREATING="${TAB}🚀${TAB}${CL}"
   ADVANCED="${TAB}🧩${TAB}${CL}"
+  FUSE="${TAB}🗂️${TAB}${CL}"
 }
 
 # ------------------------------------------------------------------------------
@@ -164,7 +194,6 @@ default_vars() {
   RETRY_EVERY=3
   i=$RETRY_NUM
   #[[ "${VAR_OS:-}" == "unknown" ]]
-
 }
 
 # ------------------------------------------------------------------------------
@@ -181,6 +210,39 @@ set_std_mode() {
 # Silent execution function
 silent() {
   "$@" >/dev/null 2>&1
+}
+
+# Function to download & save header files
+get_header() {
+  local app_name=$(echo "${APP,,}" | tr -d ' ')
+  local app_type=${APP_TYPE:-ct} # Default zu 'ct' falls nicht gesetzt
+  local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
+  local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
+
+  mkdir -p "$(dirname "$local_header_path")"
+
+  if [ ! -s "$local_header_path" ]; then
+    if ! curl -fsSL "$header_url" -o "$local_header_path"; then
+      return 1
+    fi
+  fi
+
+  cat "$local_header_path" 2>/dev/null || true
+}
+
+header_info() {
+  local app_name=$(echo "${APP,,}" | tr -d ' ')
+  local header_content
+
+  header_content=$(get_header "$app_name") || header_content=""
+
+  clear
+  local term_width
+  term_width=$(tput cols 2>/dev/null || echo 120)
+
+  if [ -n "$header_content" ]; then
+    echo "$header_content"
+  fi
 }
 
 # ------------------------------------------------------------------------------

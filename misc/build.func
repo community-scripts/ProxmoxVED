@@ -12,6 +12,7 @@ variables() {
   DIAGNOSTICS="yes"                                 # sets the DIAGNOSTICS variable to "yes", used for the API call.
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
+  CT_TYPE=${var_unprivileged:-$CT_TYPE}
 }
 
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
@@ -28,7 +29,7 @@ fi
 
 # This function enables error handling in the script by setting options and defining a trap for the ERR signal.
 catch_errors() {
-  set -Eeuo pipefail
+  set -Eeo pipefail
   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
 
@@ -172,39 +173,39 @@ update_motd_ip() {
   fi
 }
 
-# Function to download & save header files
-get_header() {
-  local app_name=$(echo "${APP,,}" | tr -d ' ')
-  local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/headers/${app_name}"
-  local local_header_path="/usr/local/community-scripts/headers/${app_name}"
+# # Function to download & save header files
+# get_header() {
+#   local app_name=$(echo "${APP,,}" | tr -d ' ')
+#   local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/headers/${app_name}"
+#   local local_header_path="/usr/local/community-scripts/headers/${app_name}"
 
-  mkdir -p "$(dirname "$local_header_path")"
+#   mkdir -p "$(dirname "$local_header_path")"
 
-  if [ ! -s "$local_header_path" ]; then
-    if ! curl -fsSL "$header_url" -o "$local_header_path"; then
-      return 1
-    fi
-  fi
+#   if [ ! -s "$local_header_path" ]; then
+#     if ! curl -fsSL "$header_url" -o "$local_header_path"; then
+#       return 1
+#     fi
+#   fi
 
-  cat "$local_header_path" 2>/dev/null || true
-}
-# This function sets the APP-Name into an ASCII Header in Slant, figlet needed on proxmox main node.
-header_info() {
-  local app_name=$(echo "${APP,,}" | tr -d ' ')
-  local header_content
+#   cat "$local_header_path" 2>/dev/null || true
+# }
+# # This function sets the APP-Name into an ASCII Header in Slant, figlet needed on proxmox main node.
+# header_info() {
+#   local app_name=$(echo "${APP,,}" | tr -d ' ')
+#   local header_content
 
-  # Download & save Header-File locally
-  header_content=$(get_header "$app_name") || header_content=""
+#   # Download & save Header-File locally
+#   header_content=$(get_header "$app_name") || header_content=""
 
-  # Show ASCII-Header
-  clear
-  local term_width
-  term_width=$(tput cols 2>/dev/null || echo 120)
+#   # Show ASCII-Header
+#   clear
+#   local term_width
+#   term_width=$(tput cols 2>/dev/null || echo 120)
 
-  if [ -n "$header_content" ]; then
-    echo "$header_content"
-  fi
-}
+#   if [ -n "$header_content" ]; then
+#     echo "$header_content"
+#   fi
+# }
 
 # This function checks if the script is running through SSH and prompts the user to confirm if they want to proceed or exit.
 ssh_check() {
@@ -218,7 +219,6 @@ ssh_check() {
     fi
   fi
 }
-
 base_settings() {
   # Default Settings
   CT_TYPE="1"
@@ -242,17 +242,17 @@ base_settings() {
   VLAN=""
   SSH="no"
   SSH_AUTHORIZED_KEY=""
-  TAGS="community-script;"
   UDHCPC_FIX=""
-  ENABLE_FUSE=="0"
-  ENABLE_TUN="0"
+  TAGS="community-script;"
+  ENABLE_FUSE="${1:-no}"
+  ENABLE_TUN="${1:-no}"
 
   # Override default settings with variables from ct script
   CT_TYPE=${var_unprivileged:-$CT_TYPE}
   DISK_SIZE=${var_disk:-$DISK_SIZE}
   CORE_COUNT=${var_cpu:-$CORE_COUNT}
   RAM_SIZE=${var_ram:-$RAM_SIZE}
-  VERBOSE=${var_verbose:-$VERBOSE}
+  VERB=${var_verbose:-$VERBOSE}
   TAGS="${TAGS}${var_tags:-}"
   ENABLE_FUSE="${var_fuse:-$ENABLE_FUSE}"
   ENABLE_TUN="${var_tun:-$ENABLE_TUN}"
@@ -265,38 +265,8 @@ base_settings() {
     var_version="12"
   fi
 }
-
-# This function displays the default values for various settings.
-echo_default() {
-  # Convert CT_TYPE to description
-  CT_TYPE_DESC="Unprivileged"
-  if [ "$CT_TYPE" -eq 0 ]; then
-    CT_TYPE_DESC="Privileged"
-  fi
-
-  # Output the selected values with icons
-  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
-  echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
-  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
-  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
-  if [ "$VERBOSE" == "yes" ]; then
-    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
-  fi
-  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
-  echo -e "  "
-}
-
-# This function is called when the user decides to exit the script. It clears the screen and displays an exit message.
-exit_script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
-}
-
 write_config() {
+  mkdir -p /opt/community-scripts
   # This function writes the configuration to a file.
   if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "Write configfile" --yesno "Do you want to write the selections to a config file?" 10 60; then
     FILEPATH="/opt/community-scripts/${NSAPP}.conf"
@@ -320,7 +290,7 @@ VERBOSE="${VERBOSE}"
 TAGS="${TAGS:-none}"
 VLAN="${VLAN:-none}"
 MTU="${MTU:-1500}"
-GATE="${GATE:-}"
+GATE="${GATE:-none}"
 SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
@@ -351,7 +321,7 @@ VERBOSE="${VERBOSE}"
 TAGS="${TAGS:-none}"
 VLAN="${VLAN:-none}"
 MTU="${MTU:-1500}"
-GATE="${GATE:-}"
+GATE="${GATE:-none}"
 SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
@@ -364,6 +334,36 @@ EOF
       fi
     fi
   fi
+}
+
+# This function displays the default values for various settings.
+echo_default() {
+  # Convert CT_TYPE to description
+  CT_TYPE_DESC="Unprivileged"
+  if [ "$CT_TYPE" -eq 0 ]; then
+    CT_TYPE_DESC="Privileged"
+  fi
+
+  # Output the selected values with icons
+  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
+  echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
+  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
+  if [ "$VERB" == "yes" ]; then
+    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
+  fi
+  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
+  echo -e "  "
+}
+
+# This function is called when the user decides to exit the script. It clears the screen and displays an exit message.
+exit_script() {
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  exit
 }
 
 # This function allows the user to configure advanced settings for the script.
@@ -696,6 +696,13 @@ advanced_settings() {
     echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
   fi
 
+  # if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
+  #   ENABLE_FUSE="yes"
+  # else
+  #   ENABLE_FUSE="no"
+  # fi
+  # echo -e "${FUSE}${BOLD}${DGN}Enable FUSE Support: ${BGN}$ENABLE_FUSE${CL}"
+
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
     VERBOSE="yes"
   else
@@ -962,7 +969,7 @@ build_container() {
     FEATURES="nesting=1"
   fi
 
-  if [ "$ENABLE_FUSE" == "1" ]; then
+  if [ "$ENABLE_FUSE" == "yes" ]; then
     FEATURES="$FEATURES,fuse=1"
   fi
 
@@ -1059,7 +1066,7 @@ EOF
     fi
   fi
 
-  if [ "$ENABLE_TUN" == "1" ]; then
+  if [ "$ENABLE_TUN" == "yes" ]; then
     cat <<EOF >>"$LXC_CONFIG"
 lxc.cgroup2.devices.allow: c 10:200 rwm
 lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
@@ -1159,31 +1166,30 @@ EOF
 #   fi
 # }
 
-api_exit_script() {
-  exit_code=$? # Capture the exit status of the last executed command
-  #200 exit codes indicate error in create_lxc.sh
-  #100 exit codes indicate error in install.func
+# api_exit_script() {
+#   exit_code=$?
+#   if [ $exit_code -ne 0 ]; then
+#     case $exit_code in
+#     100) post_update_to_api "failed" "100: Unexpected error in create_lxc.sh" ;;
+#     101) post_update_to_api "failed" "101: No network connection detected in create_lxc.sh" ;;
+#     200) post_update_to_api "failed" "200: LXC creation failed in create_lxc.sh" ;;
+#     201) post_update_to_api "failed" "201: Invalid Storage class in create_lxc.sh" ;;
+#     202) post_update_to_api "failed" "202: User aborted menu in create_lxc.sh" ;;
+#     203) post_update_to_api "failed" "203: CTID not set in create_lxc.sh" ;;
+#     204) post_update_to_api "failed" "204: PCT_OSTYPE not set in create_lxc.sh" ;;
+#     205) post_update_to_api "failed" "205: CTID cannot be less than 100 in create_lxc.sh" ;;
+#     206) post_update_to_api "failed" "206: CTID already in use in create_lxc.sh" ;;
+#     207) post_update_to_api "failed" "207: Template not found in create_lxc.sh" ;;
+#     208) post_update_to_api "failed" "208: Error downloading template in create_lxc.sh" ;;
+#     209) post_update_to_api "failed" "209: Container creation failed, but template is intact in create_lxc.sh" ;;
+#     *) post_update_to_api "failed" "Unknown error, exit code: $exit_code in create_lxc.sh" ;;
+#     esac
+#   fi
+# }
 
-  if [ $exit_code -ne 0 ]; then
-    case $exit_code in
-    100) post_update_to_api "failed" "100: Unexpected error in create_lxc.sh" ;;
-    101) post_update_to_api "failed" "101: No network connection detected in create_lxc.sh" ;;
-    200) post_update_to_api "failed" "200: LXC creation failed in create_lxc.sh" ;;
-    201) post_update_to_api "failed" "201: Invalid Storage class in create_lxc.sh" ;;
-    202) post_update_to_api "failed" "202: User aborted menu in create_lxc.sh" ;;
-    203) post_update_to_api "failed" "203: CTID not set in create_lxc.sh" ;;
-    204) post_update_to_api "failed" "204: PCT_OSTYPE not set in create_lxc.sh" ;;
-    205) post_update_to_api "failed" "205: CTID cannot be less than 100 in create_lxc.sh" ;;
-    206) post_update_to_api "failed" "206: CTID already in use in create_lxc.sh" ;;
-    207) post_update_to_api "failed" "207: Template not found in create_lxc.sh" ;;
-    208) post_update_to_api "failed" "208: Error downloading template in create_lxc.sh" ;;
-    209) post_update_to_api "failed" "209: Container creation failed, but template is intact in create_lxc.sh" ;;
-    *) post_update_to_api "failed" "Unknown error, exit code: $exit_code in create_lxc.sh" ;;
-    esac
-  fi
-}
-
-trap 'api_exit_script' EXIT
-trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
-trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
-trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
+# if command -v pveversion >/dev/null 2>&1; then
+#   trap 'api_exit_script' EXIT
+# fi
+# trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
+# trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
+# trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM

@@ -182,6 +182,42 @@ function update_script() {
     systemctl stop immich-web
     systemctl stop immich-ml
     msg_ok "Stopped ${APP}"
+    if [[ "$(cat /opt/${APP}_version.txt)" < "1.133.0" ]]; then
+      msg_info "Upgrading to the VectorChord PostgreSQL extension"
+      NUMBER="$(
+        sed -n '2p' <(
+          sudo -u postgres psql -A -d immich <<EOF
+        SELECT atttypmod as dimsize
+          FROM pg_attribute f
+          JOIN pg_class c ON c.oid = f.attrelid
+          WHERE c.relkind = 'r'::char
+          AND f.attnum > 0
+          AND c.relname = 'smart_search'::text
+          AND f.attname = 'embedding'::text;
+EOF
+        )
+      )"
+      $STD sudo -u postgres psql -d immich <<EOF
+      DROP INDEX IF EXISTS clip_index;
+      DROP INDEX IF EXISTS face_index;
+      ALTER TABLE smart_search ALTER COLUMN embedding SET DATA TYPE real[];
+      ALTER TABLE face_search ALTER COLUMN embedding SET DATA TYPE real[];
+EOF
+      $STD apt-get update
+      $STD apt-get install postgresql-16-pgvector -y
+      curl -fsSL https://github.com/tensorchord/VectorChord/releases/download/0.3.0/postgresql-16-vchord_0.3.0-1_amd64.deb -o vchord.deb
+      $STD dpkg -i vchord.deb
+      rm vchord.deb
+      sed -i "s|vectors.so|vchord.so|" /etc/postgresql/16/main/postgresql.conf
+      systemctl restart postgresql.service
+      $STD sudo -u postgres psql -d immich <<EOF
+      CREATE EXTENSION IF NOT EXISTS vchord CASCADE;
+      ALTER TABLE smart_search ALTER COLUMN embedding SET DATA TYPE vector($NUMBER);
+      ALTER TABLE face_search ALTER COLUMN embedding SET DATA TYPE vector(512);
+EOF
+      $STD apt purge vectors-pg16 -y
+      msg_ok "Database upgrade complete"
+    fi
     INSTALL_DIR="/opt/${APP}"
     UPLOAD_DIR="${INSTALL_DIR}/upload"
     SRC_DIR="${INSTALL_DIR}/source"
@@ -212,7 +248,6 @@ function update_script() {
     cp -a server/{node_modules,dist,bin,resources,package.json,package-lock.json,start*.sh} "$APP_DIR"/
     cp -a web/build "$APP_DIR"/www
     cp LICENSE "$APP_DIR"
-    cp "$BASE_DIR"/server/bin/build-lock.json "$APP_DIR"
     msg_ok "Updated ${APP} web and microservices"
 
     cd "$SRC_DIR"/machine-learning
@@ -255,6 +290,8 @@ function update_script() {
     rm -rf "$APP_DIR"/node_modules/@img/sharp-{libvips*,linuxmusl-x64}
     $STD npm i -g @immich/cli
     msg_ok "Updated Immich CLI"
+
+    sed -i "s|pgvecto.rs|vectorchord|" /opt/"${APP}"/.env
 
     chown -R immich:immich "$INSTALL_DIR"
     echo "$RELEASE" >/opt/"${APP}"_version.txt
