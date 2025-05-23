@@ -7,7 +7,7 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 
 APP="immich"
 var_tags="${var_tags:-photos}"
-var_disk="${var_disk:-12}"
+var_disk="${var_disk:-16}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
 var_os="${var_os:-debian}"
