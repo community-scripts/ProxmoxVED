@@ -69,17 +69,16 @@ function select_storage() {
 
   # This Queries all storage locations
   local -a MENU
-  while read -r line; do
-    local TAG=$(echo $line | awk '{print $1}')
-    local TYPE=$(echo $line | awk '{printf "%-10s", $2}')
-    local FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
-    local ITEM="Type: $TYPE Free: $FREE "
+  while read -r TAG TYPE _ _ _ FREE _; do
+    local TYPE_PADDED=$(printf "%-10s" "$TYPE")
+    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")
+    local ITEM="Type: $TYPE_PADDED Free: ${FREE_FMT}B"
     local OFFSET=2
-    if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
-      local MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
+    if [[ -z "${MSG_MAX_LENGTH:-}" || $((${#ITEM} + OFFSET)) -gt MSG_MAX_LENGTH ]]; then
+      MSG_MAX_LENGTH=$((${#ITEM} + OFFSET))
     fi
     MENU+=("$TAG" "$ITEM" "OFF")
-  done < <(pvesm status -content $CONTENT | awk 'NR>1')
+  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
   # Select storage location
   if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
