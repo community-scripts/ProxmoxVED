@@ -141,43 +141,48 @@ msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
 
 # Update LXC template list
 $STD msg_info "Updating LXC Template List"
-#check_network
-pveam update >/dev/null
-$STD msg_ok "Updated LXC Template List"
+if ! timeout 10 pveam update >/dev/null 2>&1; then
+  msg_error "Failed to update LXC template list. Please check your Proxmox host's internet connection and DNS resolution."
+  exit 201
+fi
+$STD msg_ok "LXC Template List Updated"
 
 # Get LXC template string
-TEMPLATE_SEARCH=${PCT_OSTYPE}-${PCT_OSVERSION:-}
+TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 mapfile -t TEMPLATES < <(pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V)
-[ ${#TEMPLATES[@]} -gt 0 ] || {
-  msg_error "Unable to find a template when searching for '$TEMPLATE_SEARCH'."
+
+if [ ${#TEMPLATES[@]} -eq 0 ]; then
+  msg_error "No matching LXC template found for '${TEMPLATE_SEARCH}'. Make sure your host can reach the Proxmox template repository."
   exit 207
-}
+fi
+
 TEMPLATE="${TEMPLATES[-1]}"
-TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE)"
-# Without NAS/Mount: TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
-# Check if template exists, if corrupt remove and redownload
+TEMPLATE_PATH="$(pvesm path "$TEMPLATE_STORAGE":vztmpl/$TEMPLATE)"
+
+# Check if template exists and is valid
 if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1; then
-  msg_warn "Template $TEMPLATE not found in storage or seems to be corrupted. Redownloading."
+  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
+
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
 
-  # Download with 3 attempts
   for attempt in {1..3}; do
     msg_info "Attempt $attempt: Downloading LXC template..."
 
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
+    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
       msg_ok "Template download successful."
       break
     fi
 
     if [ $attempt -eq 3 ]; then
-      msg_error "Three failed attempts. Aborting."
+      msg_error "Failed after 3 attempts. Please check your Proxmox host’s internet access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
       exit 208
     fi
 
     sleep $((attempt * 5))
   done
 fi
-msg_ok "LXC Template is ready to use."
+
+msg_ok "LXC Template '$TEMPLATE' is ready to use."
 
 # Check and fix subuid/subgid
 grep -q "root:100000:65536" /etc/subuid || echo "root:100000:65536" >>/etc/subuid
