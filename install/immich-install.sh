@@ -126,8 +126,6 @@ $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME to $DB_USER;"
 $STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
-# $STD sudo -u postgres psql -c "DROP EXTENSION IF EXISTS vectors;"
-# $STD sudo -u postgres psql -c "CREATE EXTENSION vectors;"
 {
   echo "${APPLICATION} DB Credentials"
   echo "Database User: $DB_USER"
