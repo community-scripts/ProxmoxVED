@@ -7,7 +7,7 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 
 APP="immich"
 var_tags="${var_tags:-photos}"
-var_disk="${var_disk:-16}"
+var_disk="${var_disk:-20}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
 var_os="${var_os:-debian}"
@@ -219,7 +219,7 @@ EOF
       msg_ok "Database upgrade complete"
     fi
     INSTALL_DIR="/opt/${APP}"
-    UPLOAD_DIR="${INSTALL_DIR}/upload"
+    UPLOAD_DIR="$(sed -n '/IMMICH_MEDIA_LOCATION/s/[^=]*=//p' /opt/immich/.env)"
     SRC_DIR="${INSTALL_DIR}/source"
     APP_DIR="${INSTALL_DIR}/app"
     ML_DIR="${APP_DIR}/machine-learning"
