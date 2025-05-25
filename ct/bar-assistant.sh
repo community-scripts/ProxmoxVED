@@ -84,7 +84,8 @@ function update_script() {
         mv /opt/vue-salt-rim-${RELEASE_SALTRIM}/ /opt/vue-salt-rim
         cp /opt/vue-salt-rim-backup/public/config.js /opt/vue-salt-rim/public/config.js
         cd /opt/vue-salt-rim
-        npm run build
+        $STD npm install
+        $STD npm run build
         echo "${RELEASE_SALTRIM}" >/opt/vue-salt-rim_version.txt
         msg_ok "Updated $APP to v${RELEASE_SALTRIM}"
 
