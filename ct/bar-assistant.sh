@@ -72,7 +72,6 @@ function update_script() {
     fi
 
     if [[ ! -f /opt/vue-salt-rim_version.txt ]] || [[ "${RELEASE_SALTRIM}" != "$(cat /opt/vue-salt-rim_version.txt)" ]]; then
-        msg_info "Updating Salt Rim
         msg_info "Stopping nginx"
         systemctl stop nginx
         msg_ok "Stopped nginx"
