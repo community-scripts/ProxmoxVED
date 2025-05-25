@@ -126,8 +126,6 @@ $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME to $DB_USER;"
 $STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
-# $STD sudo -u postgres psql -c "DROP EXTENSION IF EXISTS vectors;"
-# $STD sudo -u postgres psql -c "CREATE EXTENSION vectors;"
 {
   echo "${APPLICATION} DB Credentials"
   echo "Database User: $DB_USER"
@@ -385,6 +383,8 @@ DB_VECTOR_EXTENSION=vectorchord
 REDIS_HOSTNAME=127.0.0.1
 IMMICH_MACHINE_LEARNING_URL=http://127.0.0.1:3003
 MACHINE_LEARNING_CACHE_FOLDER=${INSTALL_DIR}/cache
+
+IMMICH_MEDIA_LOCATION=${UPLOAD_DIR}
 EOF
 cat <<EOF >"${ML_DIR}"/ml_start.sh
 #!/usr/bin/env bash

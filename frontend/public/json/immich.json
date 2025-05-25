@@ -21,7 +21,7 @@
       "resources": {
         "cpu": 4,
         "ram": 4096,
-        "hdd": 12,
+        "hdd": 20,
         "os": "Debian",
         "version": "12"
       }
@@ -33,7 +33,15 @@
   },
   "notes": [
     {
-      "text": "During installation, HW-accelerated machine-learning is an available option. This also allows for HW-accelerated transcoding, but it must be enabled in Video Transcoding Settings",
+      "text": "During installation, HW-accelerated machine-learning (with OpenVINO) is an available option. This also allows for HW-accelerated transcoding, but it must be enabled in Video Transcoding Settings",
+      "type": "info"
+    },
+    {
+      "text": "If using OpenVINO HW machine-learning, increase RAM because OpenVINO is memory-intensive",
+      "type": "info"
+    },
+    {
+      "text": "To change upload location, edit 'IMMICH_MEDIA_LOCATION' in `/opt/immich/.env`",
       "type": "info"
     }
   ]
