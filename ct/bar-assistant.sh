@@ -89,7 +89,7 @@ function update_script() {
         msg_ok "Updated $APP to v${RELEASE_SALTRIM}"
 
         msg_info "Starting Service"
-        systemctl start service nginx
+        systemctl start nginx
         msg_ok "Started Service"
 
         msg_info "Cleaning up"
