@@ -44,10 +44,10 @@ function update_script() {
         curl -fsSL "https://github.com/karlomikus/bar-assistant/archive/refs/tags/v${RELEASE_BARASSISTANT}.zip" -o barassistant.zip
         unzip -q barassistant.zip
         mv /opt/bar-assistant-${RELEASE_BARASSISTANT}/ /opt/bar-assistant
-        cp /opt/bar-assistant-backup/.env /opt/bar-assistant/.env
-        cp /opt/bar-assistant-backup/storage/bar-assistant /opt/bar-assistant/storage/bar-assistant
+        cp -r /opt/bar-assistant-backup/.env /opt/bar-assistant/.env
+        cp -r /opt/bar-assistant-backup/storage/bar-assistant /opt/bar-assistant/storage/bar-assistant
         cd /opt/bar-assistant
-        composer install
+        $STD composer install --no-interaction
         $STD php artisan migrate --force
         $STD php artisan storage:link
         $STD php artisan bar:setup-meilisearch
@@ -55,11 +55,12 @@ function update_script() {
         $STD php artisan config:cache
         $STD php artisan route:cache
         $STD php artisan event:cache
+        chown -R www-data:www-data /opt/bar-assistant
         echo "${RELEASE_BARASSISTANT}" >/opt/${APP}_version.txt
         msg_ok "Updated $APP to v${RELEASE_BARASSISTANT}"
 
         msg_info "Starting Service"
-        systemctl start service nginx
+        systemctl start nginx
         msg_ok "Started Service"
 
         msg_info "Cleaning up"
