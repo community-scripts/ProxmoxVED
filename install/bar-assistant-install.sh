@@ -34,8 +34,7 @@ msg_info "configured PHP"
 
 msg_info "Installing MeiliSearch"
 cd /opt
-# RELEASE_MEILISEARCH=$(curl -s https://api.github.com/repos/meilisearch/meilisearch/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-RELEASE_MEILISEARCH=v1.13.3
+RELEASE_MEILISEARCH=$(curl -s https://api.github.com/repos/meilisearch/meilisearch/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL https://github.com/meilisearch/meilisearch/releases/latest/download/meilisearch.deb -o meilisearch.deb
 $STD dpkg -i meilisearch.deb
 curl -fsSL https://raw.githubusercontent.com/meilisearch/meilisearch/latest/config.toml -o /etc/meilisearch.toml
@@ -69,8 +68,7 @@ systemctl enable -q --now meilisearch
 msg_ok "Created Service MeiliSearch"
 
 msg_info "Installing Bar Assistant"
-# RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-RELEASE_BARASSISTANT=5.4.1
+RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 cd /opt
 curl -fsSL "https://github.com/karlomikus/bar-assistant/archive/refs/tags/v${RELEASE_BARASSISTANT}.zip" -o barassistant.zip
 unzip -q barassistant.zip
@@ -102,8 +100,7 @@ echo "${RELEASE_BARASSISTANT}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Bar Assistant"
 
 msg_info "Installing Salt Rim"
-# RELEASE_SALTRIM=$(curl -s https://api.github.com/repos/karlomikus/vue-salt-rim/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-RELEASE_SALTRIM=4.2.0
+RELEASE_SALTRIM=$(curl -s https://api.github.com/repos/karlomikus/vue-salt-rim/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 cd /opt
 curl -fsSL "https://github.com/karlomikus/vue-salt-rim/archive/refs/tags/v${RELEASE_SALTRIM}.zip" -o saltrim.zip
 unzip -q saltrim.zip
