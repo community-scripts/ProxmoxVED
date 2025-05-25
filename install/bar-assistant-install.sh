@@ -78,8 +78,7 @@ systemctl enable -q --now meilisearch
 msg_ok "Created Service MeiliSearch"
 
 msg_info "Installing Bar Assistant"
-# RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-RELEASE_BARASSISTANT="5.3.0"
+RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 cd /opt
 curl -fsSL "https://github.com/karlomikus/bar-assistant/archive/refs/tags/v${RELEASE_BARASSISTANT}.zip" -o barassistant.zip
 unzip -q barassistant.zip
