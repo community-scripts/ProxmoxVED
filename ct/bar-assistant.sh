@@ -34,9 +34,9 @@ function update_script() {
     RELEASE_SALTRIM=$(curl -s https://api.github.com/repos/karlomikus/vue-salt-rim/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 
     if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE_BARASSISTANT}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-        msg_info "Stopping Service"
+        msg_info "Stopping nginx"
         systemctl stop nginx
-        msg_ok "Stopped Service"
+        msg_ok "Stopped nginx"
 
         msg_info "Updating ${APP} to v${RELEASE_BARASSISTANT}"
         cd /opt
@@ -59,9 +59,9 @@ function update_script() {
         echo "${RELEASE_BARASSISTANT}" >/opt/${APP}_version.txt
         msg_ok "Updated $APP to v${RELEASE_BARASSISTANT}"
 
-        msg_info "Starting Service"
+        msg_info "Starting nginx"
         systemctl start nginx
-        msg_ok "Started Service"
+        msg_ok "Started nginx"
 
         msg_info "Cleaning up"
         rm -rf /opt/barassistant.zip
@@ -72,9 +72,9 @@ function update_script() {
     fi
 
     if [[ ! -f /opt/vue-salt-rim_version.txt ]] || [[ "${RELEASE_SALTRIM}" != "$(cat /opt/vue-salt-rim_version.txt)" ]]; then
-        msg_info "Stopping Service"
+        msg_info "Stopping nginx"
         systemctl stop nginx
-        msg_ok "Stopped Service"
+        msg_ok "Stopped nginx"
 
         msg_info "Updating Salt Rim to v${RELEASE_SALTRIM}"
         cd /opt
@@ -89,9 +89,9 @@ function update_script() {
         echo "${RELEASE_SALTRIM}" >/opt/vue-salt-rim_version.txt
         msg_ok "Updated $APP to v${RELEASE_SALTRIM}"
 
-        msg_info "Starting Service"
+        msg_info "Starting nginx"
         systemctl start nginx
-        msg_ok "Started Service"
+        msg_ok "Started nginx"
 
         msg_info "Cleaning up"
         rm -rf /opt/saltrim.zip
@@ -102,9 +102,9 @@ function update_script() {
     fi
 
     if [[ ! -f /opt/meilisearch_version.txt ]] || [[ "${RELEASE_MEILISEARCH}" != "$(cat /opt/meilisearch_version.txt)" ]]; then
-        msg_info "Stopping Service"
+        msg_info "Stopping Meilisearch"
         systemctl stop meilisearch
-        msg_ok "Stopped Service"
+        msg_ok "Stopped Meilisearch"
 
         msg_info "Updating Meilisearch to ${RELEASE_MEILISEARCH}"
         cd /opt
@@ -112,11 +112,11 @@ function update_script() {
         curl -fsSL https://github.com/meilisearch/meilisearch/releases/latest/download/meilisearch.deb -o meilisearch.deb
         $STD dpkg -i meilisearch.deb
         echo "${RELEASE_MEILISEARCH}" >/opt/meilisearch_version.txt
-        msg_ok "Updated Meilisearch to v${RELEASE_MEILISEARCH}"
+        msg_ok "Updated Meilisearch to ${RELEASE_MEILISEARCH}"
 
-        msg_info "Starting Service"
+        msg_info "Starting Meilisearch"
         systemctl start meilisearch
-        msg_ok "Started Service"
+        msg_ok "Started Meilisearch"
 
         msg_info "Cleaning up"
         rm -rf "/opt/meilisearch.deb"
