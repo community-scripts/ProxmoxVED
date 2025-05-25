@@ -32,7 +32,7 @@ function update_script() {
   systemctl stop notesnook
   msg_ok "Stopped Service"
 
-  msg_info "Updating ${APP}"
+  msg_info "Updating ${APP} (Patience)"
   fetch_and_deploy_gh_release "streetwriters/notesnook"
   cd /opt/notesnook
   export NODE_OPTIONS="--max-old-space-size=2560"
