@@ -97,6 +97,7 @@ function update_script() {
         rm -rf /opt/saltrim.zip
         rm -rf /opt/vue-salt-rim-backup
         msg_ok "Cleaned"
+        msg_ok "Updated"
     else
         msg_ok "No update required. Salt Rim is already at v${RELEASE_SALTRIM}"
     fi

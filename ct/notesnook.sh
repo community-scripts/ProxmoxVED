@@ -8,7 +8,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 APP="notesnook"
 var_tags="${var_tags:-os}"
 var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-2048}"
+var_ram="${var_ram:-3048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
@@ -32,10 +32,11 @@ function update_script() {
   systemctl stop notesnook
   msg_ok "Stopped Service"
 
-  msg_info "Updating ${APP}"
+  msg_info "Updating ${APP} (Patience)"
+  rm -rf /opt/notesnook
   fetch_and_deploy_gh_release "streetwriters/notesnook"
   cd /opt/notesnook
-  export NODE_OPTIONS="--max-old-space-size=1536"
+  export NODE_OPTIONS="--max-old-space-size=2560"
   $STD npm install
   $STD npm run build:web
   msg_ok "Updated $APP"
@@ -55,4 +56,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://<your_domain>${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:3000${CL}"
