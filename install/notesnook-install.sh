@@ -22,7 +22,7 @@ NODE_MODULE="yarn" install_node_and_modules
 msg_info "Installing Notesnook"
 fetch_and_deploy_gh_release "streetwriters/notesnook"
 cd /opt/notesnook
-#export NODE_OPTIONS="--max-old-space-size=2048"
+export NODE_OPTIONS="--max-old-space-size=2560"
 $STD npm install
 $STD npm run build:web
 msg_ok "Installed Notesnook"
@@ -50,7 +50,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -f "$temp_file"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
