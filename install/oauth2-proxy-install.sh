@@ -24,7 +24,7 @@ mkdir -p /opt/oauth2-proxy
 curl -fsSL "https://github.com/oauth2-proxy/oauth2-proxy/releases/download/v${RELEASE}/oauth2-proxy-v${RELEASE}.linux-amd64.tar.gz" -o /opt/oauth2-proxy.tar.gz
 tar -xzf /opt/oauth2-proxy.tar.gz -C /opt
 mv /opt/oauth2-proxy-v${RELEASE}.linux-amd64/oauth2-proxy /opt/oauth2-proxy
-touch /opt/oauth2-proxy/config.cfg
+touch /opt/oauth2-proxy/config.toml
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setup OAuth2-Proxy"
 
@@ -37,7 +37,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/oauth2-proxy
-ExecStart=/opt/oauth2-proxy/oauth2-proxy --config config.cfg
+ExecStart=/opt/oauth2-proxy/oauth2-proxy --config config.toml
 Restart=on-failure
 RestartSec=5
 

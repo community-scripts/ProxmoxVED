@@ -40,7 +40,7 @@ function update_script() {
     curl -fsSL "https://github.com/oauth2-proxy/oauth2-proxy/releases/download/v${RELEASE}/oauth2-proxy-v${RELEASE}.linux-amd64.tar.gz" -o /opt/oauth2-proxy.tar.gz
     tar -xzf /opt/oauth2-proxy.tar.gz
     mv /opt/oauth2-proxy-v${RELEASE}.linux-amd64/oauth2-proxy /opt/oauth2-proxy
-    systemctl restart oauth2-proxy
+    systemctl start oauth2-proxy
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated ${APP} to ${RELEASE}"
 
@@ -61,5 +61,4 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:4180${CL}"
+echo -e "${INFO}${YW} Now you can modify /opt/oauth2-proxy/config.toml with your needed config.${CL}"
