@@ -24,25 +24,9 @@ mkdir -p /opt/oauth2-proxy
 curl -fsSL "https://github.com/oauth2-proxy/oauth2-proxy/releases/download/v${RELEASE}/oauth2-proxy-v${RELEASE}.linux-amd64.tar.gz" -o /opt/oauth2-proxy.tar.gz
 tar -xzf /opt/oauth2-proxy.tar.gz
 mv /opt/oauth2-proxy-v${RELEASE}.linux-amd64/oauth2-proxy /opt/oauth2-proxy
-msg_ok "Setup OAuth2-Proxy"
-
-msg_info "Setup OAuth2-Proxy Config"
-cat <<EOF >/opt/oauth2-proxy/config.cfg
-#keycloak
-http_address = "0.0.0.0:4180"
-provider = "keycloak-oidc"
-client_id = "oauth2-proxy"
-client_secret = "PLACESECRETHERE"
-email_domains = "*"
-oidc_issuer_url = "https://example.domain.com/realms/master"
-redirect_url = "https://example.domain.com/oauth2/callback"
-code_challenge_method = "S256"
-cookie_secret = "PLACESECRETHERE"
-cookie_domains = ".domain.com"
-whitelist_domains = ".domain.com"
-EOF
+touch /opt/oauth2-proxy/config.cfg
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-msg_ok "Setup OAuth2-Proxy Config"
+msg_ok "Setup OAuth2-Proxy"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/oauth2-proxy.service
