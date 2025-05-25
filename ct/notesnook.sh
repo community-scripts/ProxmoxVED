@@ -33,6 +33,7 @@ function update_script() {
   msg_ok "Stopped Service"
 
   msg_info "Updating ${APP} (Patience)"
+  rm -rf /opt/notesnook
   fetch_and_deploy_gh_release "streetwriters/notesnook"
   cd /opt/notesnook
   export NODE_OPTIONS="--max-old-space-size=2560"
@@ -55,4 +56,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://<your_domain>${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:3000${CL}"
