@@ -22,25 +22,15 @@ $STD apt-get install -y \
   npm \
   nginx \
   lsb-release \
-  libvips
+  libvips \
+  php-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm}
 msg_ok "Installed Dependencies"
 
-msg_info "Adding PHP8.4 Repository"
-$STD curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
-$STD dpkg -i /tmp/debsuryorg-archive-keyring.deb
-$STD sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
-$STD apt-get update
-msg_ok "Added PHP8.4 Repository"
-
-msg_info "Installing / configuring PHP"
-$STD apt-get remove -y php8.2*
-$STD apt-get install -y \
-  php8.4 \
-  php8.4-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm}
+msg_info "Configuring PHP"
 PHPVER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION . "\n";')
 sed -i.bak -E 's/^\s*;?\s*ffi\.enable\s*=.*/ffi.enable=true/' /etc/php/${PHPVER}/fpm/php.ini
 $STD systemctl reload php${PHPVER}-fpm
-msg_info "Installed  / configured PHP"
+msg_info "configured PHP"
 
 msg_info "Installing MeiliSearch"
 cd /opt
