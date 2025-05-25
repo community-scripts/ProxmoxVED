@@ -1,5 +1,30 @@
 [
   {
+    "name": "pocket-id/pocket-id",
+    "version": "v1.0.0",
+    "date": "2025-05-24T22:06:55Z"
+  },
+  {
+    "name": "minio/minio",
+    "version": "RELEASE.2025-05-24T17-08-30Z",
+    "date": "2025-05-24T21:42:19Z"
+  },
+  {
+    "name": "paperless-ngx/paperless-ngx",
+    "version": "v2.16.2",
+    "date": "2025-05-24T18:52:35Z"
+  },
+  {
+    "name": "ioBroker/ioBroker",
+    "version": "2025-05-24",
+    "date": "2025-05-24T13:56:54Z"
+  },
+  {
+    "name": "cross-seed/cross-seed",
+    "version": "v6.12.5",
+    "date": "2025-05-17T02:52:33Z"
+  },
+  {
     "name": "pocketbase/pocketbase",
     "version": "v0.28.2",
     "date": "2025-05-24T07:59:15Z"
@@ -111,8 +136,8 @@
   },
   {
     "name": "runtipi/runtipi",
-    "version": "v4.1.1",
-    "date": "2025-05-16T17:37:30Z"
+    "version": "nightly",
+    "date": "2025-05-22T06:34:13Z"
   },
   {
     "name": "0xERR0R/blocky",
@@ -153,11 +178,6 @@
     "name": "msgbyte/tianji",
     "version": "v1.20.10",
     "date": "2025-05-21T17:22:32Z"
-  },
-  {
-    "name": "cross-seed/cross-seed",
-    "version": "v6.12.5",
-    "date": "2025-05-17T02:52:33Z"
   },
   {
     "name": "cockpit-project/cockpit",
@@ -253,11 +273,6 @@
     "name": "HabitRPG/habitica",
     "version": "v5.36.4",
     "date": "2025-05-19T22:28:11Z"
-  },
-  {
-    "name": "paperless-ngx/paperless-ngx",
-    "version": "v2.16.1",
-    "date": "2025-05-19T21:26:44Z"
   },
   {
     "name": "glanceapp/glance",
@@ -435,33 +450,8 @@
     "date": "2025-05-14T15:12:14Z"
   },
   {
-    "name": "motioneye-project/motioneye",
-    "version": "0.42.1",
-    "date": "2020-06-07T07:27:04Z"
-  },
-  {
-    "name": "blakeblackshear/frigate",
-    "version": "v0.14.1",
-    "date": "2024-08-29T22:32:51Z"
-  },
-  {
-    "name": "TandoorRecipes/recipes",
-    "version": "2.0.0-alpha-4",
-    "date": "2025-05-14T05:01:45Z"
-  },
-  {
-    "name": "netbox-community/netbox",
-    "version": "v4.3.1",
-    "date": "2025-05-13T19:45:00Z"
-  },
-  {
-    "name": "OctoPrint/OctoPrint",
-    "version": "1.11.1",
-    "date": "2025-05-13T13:32:07Z"
-  },
-  {
-    "name": "redis/redis",
-    "version": "8.0.1",
-    "date": "2025-05-13T13:31:53Z"
+    "name": "duplicati/duplicati",
+    "version": "v2.1.0.118-2.1.0.118_canary_2025-05-12",
+    "date": "2025-05-12T18:50:44Z"
   }
 ]
