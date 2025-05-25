@@ -19,7 +19,7 @@ msg_ok "Installed Dependencies"
 
 NODE_MODULE="yarn" install_node_and_modules
 
-msg_info "Installing Notesnook"
+msg_info "Installing Notesnook (Patience)"
 fetch_and_deploy_gh_release "streetwriters/notesnook"
 cd /opt/notesnook
 export NODE_OPTIONS="--max-old-space-size=2560"
