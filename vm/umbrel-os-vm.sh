@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: thost96 (thost96) | Co-Author: michelroegl-brunner
+# Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
+source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
 
 function header_info() {
   clear
@@ -437,13 +437,27 @@ fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the $NAME Disk Image"
-URL=https://download.umbrel.com/release/latest/umbrelos-amd64-usb-installer.iso
+URL="https://download.umbrel.com/release/latest/umbrelos-amd64.img.xz"
+FILE="$(basename "$URL")"
+CHECKSUM_URL="${URL}.sha256"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
+curl -f#SL -o "$FILE" "$URL"
+curl -fsSL "$CHECKSUM_URL" -o checksum.sha256
+CHECKSUM="$(cut -d ' ' -f1 checksum.sha256)"
+echo "${CHECKSUM}  ${FILE}" >checksum.sha256
+if sha256sum -c checksum.sha256 2>&1 | grep -q "OK"; then
+  msg_ok "Checksum successfully validated for $FILE"
+else
+  msg_error "Checksum validation failed for $FILE"
+  exit 1
+fi
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+
+msg_info "Decompressing $FILE"
+unxz -kf "$FILE"
+FILE_IMG="${FILE%.xz}"
+msg_ok "Decompressed to ${CL}${BL}${FILE_IMG}${CL}"
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
