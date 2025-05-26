@@ -41,8 +41,6 @@ else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
 fi
 
-check_hostname_conflict "$HN"
-
 function default_settings() {
   VMID=$(get_valid_nextid)
   FORMAT=",efitype=4m"
@@ -78,6 +76,8 @@ function default_settings() {
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
   echo -e "${CREATING}${BOLD}${DGN}Creating a Umbrel OS VM using the above default settings${CL}"
 }
+
+check_hostname_conflict "$HN"
 
 function advanced_settings() {
   METHOD="advanced"
