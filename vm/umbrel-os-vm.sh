@@ -77,7 +77,7 @@ function default_settings() {
   echo -e "${CREATING}${BOLD}${DGN}Creating a Umbrel OS VM using the above default settings${CL}"
 }
 
-check_hostname_conflict "$HN"
+#check_hostname_conflict "$HN"
 
 function advanced_settings() {
   METHOD="advanced"
