@@ -35,16 +35,6 @@ function error_handler() {
   cleanup_vmid
 }
 
-get_valid_nextid
-cleanup_vmid
-cleanup
-post_update_to_api "done" "none"
-[[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]] && rm -rf "$TEMP_DIR"
-check_root
-pve_check
-arch_check
-ssh_check
-
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Umbrel OS VM" --yesno "This will create a New Umbrel OS VM. Proceed?" 10 58; then
