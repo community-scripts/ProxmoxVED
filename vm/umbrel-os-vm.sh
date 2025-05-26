@@ -11,9 +11,8 @@ load_functions
 APP="Umbrel OS VM"
 APP_TYPE="VM"
 header_info
-echo -e "\n Loading..."
-GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
-RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
+$STD GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
+$STD RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 NSAPP="umbrel-os-vm"
 var_os="umbrel-os"
@@ -308,12 +307,13 @@ curl -f#SL -o "$FILE" "$URL"
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
 if ! command -v pv &>/dev/null; then
-  apt-get update &>/dev/null && apt-get install -y pv &>/dev/null
+  $STD apt-get update
+  $STD apt-get install -y pv
 fi
 
 msg_info "Decompressing $FILE with progress${CL}"
 FILE_IMG="${FILE%.xz}"
-SIZE=$(xz --robot -l "$FILE" | awk -F '\t' '/^totals/ { print $5 }') &>/dev/null
+SIZE=$(xz --robot -l "$FILE" | awk -F '\t' '/^totals/ { print $5 }')
 echo -e "(\n)"
 xz -dc "$FILE" | pv -s "$SIZE" -N "Extracting" >"$FILE_IMG"
 msg_ok "Decompressed to ${CL}${BL}${FILE%.xz}${CL}"
@@ -341,31 +341,31 @@ for i in {0,1,2}; do
 done
 
 msg_info "Creating a Umbrel OS VM"
-qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
+$STD qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 4M
-qm importdisk $VMID ${FILE_IMG} $STORAGE ${DISK_IMPORT:-} >/dev/null
-qm set $VMID \
+$STD pvesm alloc $STORAGE $VMID $DISK0 4M
+$STD qm importdisk $VMID ${FILE_IMG} $STORAGE ${DISK_IMPORT:-}
+$STD qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
   -boot order=scsi0 \
-  -serial0 socket >/dev/null
-qm set $VMID --agent enabled=1 >/dev/null
+  -serial0 socket
+$STD qm set $VMID --agent enabled=1
 
 set_description
 
 if [ -n "$DISK_SIZE" ]; then
   msg_info "Resizing disk to $DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
+  $STD qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
 else
   msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
+  $STD qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
 fi
 
 msg_ok "Created a Umbrel OS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Umbrel OS VM"
-  qm start $VMID
+  $STD qm start $VMID
   msg_ok "Started Umbrel OS VM"
 fi
 post_update_to_api "done" "none"
