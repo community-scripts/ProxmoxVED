@@ -25,7 +25,7 @@ load_functions() {
 
 # Function to download & save header files
 get_header() {
-  local app_name=$(echo "${APP,,}" | tr -d ' ')
+  local app_name=$(echo "${APP,,}" | tr ' ' '-')
   local app_type=${APP_TYPE:-ct} # Default zu 'ct' falls nicht gesetzt
   local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
@@ -42,7 +42,7 @@ get_header() {
 }
 
 header_info() {
-  local app_name=$(echo "${APP,,}" | tr -d ' ')
+  local app_name=$(echo "${APP,,}" | tr ' ' '-')
   local header_content
 
   header_content=$(get_header "$app_name") || header_content=""
