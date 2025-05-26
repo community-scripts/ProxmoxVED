@@ -9,7 +9,7 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 load_functions
 
 APP="Umbrel OS VM"
-APP_TYPE="VM"
+APP_TYPE="vm"
 header_info
 $STD GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 $STD RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
