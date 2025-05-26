@@ -486,7 +486,6 @@ qm set $VMID \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
   -boot order=scsi0 \
   -serial0 socket >/dev/null
-qm resize $VMID scsi0 8G >/dev/null
 qm set $VMID --agent enabled=1 >/dev/null
 
 DESCRIPTION=$(
@@ -523,11 +522,10 @@ qm set "$VMID" -description "$DESCRIPTION" >/dev/null
 
 if [ -n "$DISK_SIZE" ]; then
   msg_info "Resizing disk to $DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DISK_SIZE}
+  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
 else
   msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE}
-fi
+  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
 
 msg_ok "Created a Umbrel OS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
