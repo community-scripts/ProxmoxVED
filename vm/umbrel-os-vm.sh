@@ -9,8 +9,8 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 load_functions
 
 APP="Umbrel OS VM"
-APP_TYPE="vm"
 header_info
+echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
@@ -18,7 +18,40 @@ NSAPP="umbrel-os-vm"
 var_os="umbrel-os"
 var_version="n.d."
 
+YW=$(echo "\033[33m")
+BL=$(echo "\033[36m")
+HA=$(echo "\033[1;34m")
+RD=$(echo "\033[01;31m")
+BGN=$(echo "\033[4;92m")
+GN=$(echo "\033[1;92m")
+DGN=$(echo "\033[32m")
+CL=$(echo "\033[m")
+
+CL=$(echo "\033[m")
+BOLD=$(echo "\033[1m")
+BFR="\\r\\033[K"
+HOLD=" "
+TAB="  "
+
+CM="${TAB}✔️${TAB}${CL}"
+CROSS="${TAB}✖️${TAB}${CL}"
+INFO="${TAB}💡${TAB}${CL}"
+OS="${TAB}🖥️${TAB}${CL}"
+CONTAINERTYPE="${TAB}📦${TAB}${CL}"
+DISKSIZE="${TAB}💾${TAB}${CL}"
+CPUCORE="${TAB}🧠${TAB}${CL}"
+RAMSIZE="${TAB}🛠️${TAB}${CL}"
+CONTAINERID="${TAB}🆔${TAB}${CL}"
+HOSTNAME="${TAB}🏠${TAB}${CL}"
+BRIDGE="${TAB}🌉${TAB}${CL}"
+GATEWAY="${TAB}🌐${TAB}${CL}"
+DEFAULT="${TAB}⚙️${TAB}${CL}"
+MACADDRESS="${TAB}🔗${TAB}${CL}"
+VLANTAG="${TAB}🏷️${TAB}${CL}"
+CREATING="${TAB}🚀${TAB}${CL}"
+ADVANCED="${TAB}🧩${TAB}${CL}"
 THIN="discard=on,ssd=1,"
+set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
@@ -33,6 +66,36 @@ function error_handler() {
   cleanup_vmid
 }
 
+function get_valid_nextid() {
+  local try_id
+  try_id=$(pvesh get /cluster/nextid)
+  while true; do
+    if [ -f "/etc/pve/qemu-server/${try_id}.conf" ] || [ -f "/etc/pve/lxc/${try_id}.conf" ]; then
+      try_id=$((try_id + 1))
+      continue
+    fi
+    if lvs --noheadings -o lv_name | grep -qE "(^|[-_])${try_id}($|[-_])"; then
+      try_id=$((try_id + 1))
+      continue
+    fi
+    break
+  done
+  echo "$try_id"
+}
+
+function cleanup_vmid() {
+  if qm status $VMID &>/dev/null; then
+    qm stop $VMID &>/dev/null
+    qm destroy $VMID &>/dev/null
+  fi
+}
+
+function cleanup() {
+  popd >/dev/null
+  post_update_to_api "done" "none"
+  rm -rf $TEMP_DIR
+}
+
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Umbrel OS VM" --yesno "This will create a New Umbrel OS VM. Proceed?" 10 58; then
@@ -40,6 +103,70 @@ if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Umbrel OS VM" --yes
 else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
 fi
+
+function msg_info() {
+  local msg="$1"
+  echo -ne "${TAB}${YW}${HOLD}${msg}${HOLD}"
+}
+
+function msg_ok() {
+  local msg="$1"
+  echo -e "${BFR}${CM}${GN}${msg}${CL}"
+}
+
+function msg_error() {
+  local msg="$1"
+  echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
+}
+
+function check_root() {
+  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
+    clear
+    msg_error "Please run this script as root."
+    echo -e "\nExiting..."
+    sleep 2
+    exit
+  fi
+}
+
+function pve_check() {
+  if ! pveversion | grep -Eq "pve-manager/8\.[1-4](\.[0-9]+)*"; then
+    msg_error "${CROSS}${RD}This version of Proxmox Virtual Environment is not supported"
+    echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
+    echo -e "Exiting..."
+    sleep 2
+    exit
+  fi
+}
+
+function arch_check() {
+  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
+    echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
+    echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
+    echo -e "Exiting..."
+    sleep 2
+    exit
+  fi
+}
+
+function ssh_check() {
+  if command -v pveversion >/dev/null 2>&1; then
+    if [ -n "${SSH_CLIENT:+x}" ]; then
+      if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Would you like to proceed with using SSH?" 10 62; then
+        echo "you've been warned"
+      else
+        clear
+        exit
+      fi
+    fi
+  fi
+}
+
+function exit_script() {
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  exit
+}
 
 function default_settings() {
   VMID=$(get_valid_nextid)
@@ -54,13 +181,9 @@ function default_settings() {
   BRG="vmbr0"
   MAC="$GEN_MAC"
   VLAN=""
-  VERBOSE="${1:-no}"
   MTU=""
   START_VM="yes"
   METHOD="default"
-
-  VERB=${var_verbose:-$VERBOSE}
-
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
@@ -76,8 +199,6 @@ function default_settings() {
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
   echo -e "${CREATING}${BOLD}${DGN}Creating a Umbrel OS VM using the above default settings${CL}"
 }
-
-#check_hostname_conflict "$HN"
 
 function advanced_settings() {
   METHOD="advanced"
@@ -252,13 +373,6 @@ function advanced_settings() {
     START_VM="no"
   fi
 
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
-    VERBOSE="yes"
-  else
-    VERBOSE="no"
-  fi
-  echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERBOSE${CL}"
-
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Umbrel OS VM?" --no-button Do-Over 10 58); then
     echo -e "${CREATING}${BOLD}${DGN}Creating a Umbrel OS VM using the above advanced settings${CL}"
   else
@@ -279,6 +393,12 @@ function start_script() {
     advanced_settings
   fi
 }
+check_root
+arch_check
+pve_check
+ssh_check
+start_script
+post_to_api_vm
 
 msg_info "Validating Storage"
 while read -r line; do
@@ -308,7 +428,7 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the $APP Disk Image"
+msg_info "Retrieving the URL for the $NAME Disk Image"
 URL="https://download.umbrel.com/release/latest/umbrelos-amd64.img.xz"
 FILE="$(basename "$URL")"
 sleep 2
@@ -317,13 +437,12 @@ curl -f#SL -o "$FILE" "$URL"
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
 if ! command -v pv &>/dev/null; then
-  $STD apt-get update
-  $STD apt-get install -y pv
+  apt-get update &>/dev/null && apt-get install -y pv &>/dev/null
 fi
 
 msg_info "Decompressing $FILE with progress${CL}"
 FILE_IMG="${FILE%.xz}"
-SIZE=$(xz --robot -l "$FILE" | awk -F '\t' '/^totals/ { print $5 }')
+SIZE=$(xz --robot -l "$FILE" | awk -F '\t' '/^totals/ { print $5 }') &>/dev/null
 echo -e "(\n)"
 xz -dc "$FILE" | pv -s "$SIZE" -N "Extracting" >"$FILE_IMG"
 msg_ok "Decompressed to ${CL}${BL}${FILE%.xz}${CL}"
@@ -351,31 +470,61 @@ for i in {0,1,2}; do
 done
 
 msg_info "Creating a Umbrel OS VM"
-$STD qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
+qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-$STD pvesm alloc $STORAGE $VMID $DISK0 4M
-$STD qm importdisk $VMID ${FILE_IMG} $STORAGE ${DISK_IMPORT:-}
-$STD qm set $VMID \
+pvesm alloc $STORAGE $VMID $DISK0 4M
+qm importdisk $VMID ${FILE_IMG} $STORAGE ${DISK_IMPORT:-} >/dev/null
+qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
   -boot order=scsi0 \
-  -serial0 socket
-$STD qm set $VMID --agent enabled=1
+  -serial0 socket >/dev/null
+qm set $VMID --agent enabled=1 >/dev/null
 
-set_description
+DESCRIPTION=$(
+  cat <<EOF
+<div align='center'>
+  <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
+    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
+  </a>
+
+  <h2 style='font-size: 24px; margin: 20px 0;'>Docker VM</h2>
+
+  <p style='margin: 16px 0;'>
+    <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
+      <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
+    </a>
+  </p>
+
+  <span style='margin: 0 10px;'>
+    <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
+    <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
+  </span>
+  <span style='margin: 0 10px;'>
+    <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
+    <a href='https://github.com/community-scripts/ProxmoxVE/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
+  </span>
+  <span style='margin: 0 10px;'>
+    <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
+    <a href='https://github.com/community-scripts/ProxmoxVE/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
+  </span>
+</div>
+EOF
+)
+qm set "$VMID" -description "$DESCRIPTION" >/dev/null
 
 if [ -n "$DISK_SIZE" ]; then
   msg_info "Resizing disk to $DISK_SIZE GB"
-  $STD qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
+  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
 else
   msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
-  $STD qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
+  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
 fi
 
 msg_ok "Created a Umbrel OS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Umbrel OS VM"
-  $STD qm start $VMID
+  qm start $VMID
   msg_ok "Started Umbrel OS VM"
 fi
 post_update_to_api "done" "none"

@@ -436,12 +436,7 @@ exit_script() {
 }
 
 check_hostname_conflict() {
-  local hostname="${HN:-}"
-  if [[ -z "$hostname" ]]; then
-    msg_error "HN is not set – cannot check hostname conflict."
-    exit 1
-  fi
-
+  local hostname="$1"
   if qm list | awk '{print $2}' | grep -qx "$hostname"; then
     msg_error "Hostname $hostname already in use by another VM."
     exit 1
