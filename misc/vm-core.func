@@ -38,9 +38,6 @@ get_header() {
   local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
 
-  echo -e "Fetching header for $app_name from $header_url"
-  echo -e "Saving to $local_header_path"
-
   mkdir -p "$(dirname "$local_header_path")"
 
   if [ ! -s "$local_header_path" ]; then
