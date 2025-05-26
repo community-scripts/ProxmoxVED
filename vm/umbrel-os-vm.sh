@@ -445,10 +445,13 @@ msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$FILE" "$URL"
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-msg_info "Decompressing $FILE"
-unxz -kf "$FILE"
-FILE_IMG="${FILE%.xz}"
-msg_ok "Decompressed to ${CL}${BL}${FILE_IMG}${CL}"
+if ! command -v pv &>/dev/null; then
+  apt-get update &>/dev/null && apt-get install -y pv &>/dev/null
+fi
+
+msg_info "Decompressing $FILE with progress"
+xz -dc "$FILE" | pv -bartpes -N "Extracting" >"${FILE%.xz}"
+msg_ok "Decompressed to ${CL}${BL}${FILE%.xz}${CL}"
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
