@@ -439,7 +439,6 @@ msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the $NAME Disk Image"
 URL="https://download.umbrel.com/release/latest/umbrelos-amd64.img.xz"
 FILE="$(basename "$URL")"
-CHECKSUM_URL="${URL}.sha256"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$FILE" "$URL"
