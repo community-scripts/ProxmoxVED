@@ -20,6 +20,7 @@ load_functions() {
   color
   formatting
   icons
+  set_std_mode
   get_valid_nextid
   cleanup_vmid
   cleanup
@@ -27,7 +28,6 @@ load_functions() {
   pve_check
   arch_check
   ssh_check
-  set_std_mode
   # add more
 }
 
