@@ -420,8 +420,8 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
-URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-$(dpkg --print-architecture).qcow2"
+msg_info "Retrieving the URL for the $NAME Disk Image"
+URL=https://download.umbrel.com/release/latest/umbrelos-amd64-usb-installer.iso
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
@@ -429,12 +429,12 @@ echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')
+STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
 nfs | dir)
-  DISK_EXT=".qcow2"
+  DISK_EXT=".raw"
   DISK_REF="$VMID/"
-  DISK_IMPORT="-format qcow2"
+  DISK_IMPORT="-format raw"
   THIN=""
   ;;
 btrfs)
@@ -445,26 +445,13 @@ btrfs)
   THIN=""
   ;;
 esac
-for i in {0,1}; do
+for i in {0,1,2}; do
   disk="DISK$i"
   eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Installing Pre-Requisite libguestfs-tools onto Host"
-apt-get -qq update && apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
-msg_ok "Installed libguestfs-tools successfully"
-
-msg_info "Adding Docker and Docker Compose Plugin to Debian 12 Qcow2 Disk Image"
-virt-customize -q -a "${FILE}" --install qemu-guest-agent,apt-transport-https,ca-certificates,curl,gnupg,software-properties-common,lsb-release >/dev/null &&
-  virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/apt/keyrings && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg" >/dev/null &&
-  virt-customize -q -a "${FILE}" --run-command "echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable' > /etc/apt/sources.list.d/docker.list" >/dev/null &&
-  virt-customize -q -a "${FILE}" --run-command "apt-get update -qq && apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin" >/dev/null &&
-  virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" >/dev/null &&
-  virt-customize -q -a "${FILE}" --run-command "echo -n > /etc/machine-id" >/dev/null
-msg_ok "Added Docker and Docker Compose Plugin to Debian 12 Qcow2 Disk Image successfully"
-
-msg_info "Creating a Docker VM"
+msg_info "Creating a Umbrel OS VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M
@@ -517,11 +504,11 @@ else
   qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE}
 fi
 
-msg_ok "Created a Docker VM ${CL}${BL}(${HN})"
+msg_ok "Created a Umbrel OS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting Docker VM"
+  msg_info "Starting Umbrel OS VM"
   qm start $VMID
-  msg_ok "Started Docker VM"
+  msg_ok "Started Umbrel OS VM"
 fi
 post_update_to_api "done" "none"
 msg_ok "Completed Successfully!\n"
