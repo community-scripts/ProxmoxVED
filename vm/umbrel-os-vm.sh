@@ -268,8 +268,6 @@ function start_script() {
     advanced_settings
   fi
 }
-start_script
-post_to_api_vm
 
 msg_info "Validating Storage"
 while read -r line; do
