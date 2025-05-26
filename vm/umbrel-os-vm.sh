@@ -19,7 +19,6 @@ var_os="umbrel-os"
 var_version="n.d."
 
 THIN="discard=on,ssd=1,"
-set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
