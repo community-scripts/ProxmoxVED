@@ -27,6 +27,8 @@ load_functions() {
   pve_check
   arch_check
   ssh_check
+  check_hostname_conflict
+  set_std_mode
   # add more
 }
 
@@ -438,6 +440,13 @@ exit_script() {
   clear
   echo -e "\n${CROSS}${RD}User exited script${CL}\n"
   exit
+}
+
+check_hostname_conflict() {
+  if qm list | awk '{print $2}' | grep -qx "$HN"; then
+    msg_error "Hostname $HN already in use by another VM."
+    exit 1
+  fi
 }
 
 set_description() {
