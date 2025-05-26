@@ -122,12 +122,10 @@ icons() {
 }
 
 # ------------------------------------------------------------------------------
-# Sets default verbose mode for script execution.
+# Sets default verbose mode for script and os execution.
 # ------------------------------------------------------------------------------
-VERBOSE="${1:-no}"
-VERB=${var_verbose:-$VERBOSE}
 set_std_mode() {
-  if [ "$VERB" = "yes" ]; then
+  if [ "${VERBOSE:-no}" = "yes" ]; then
     STD=""
   else
     STD="silent"
@@ -136,11 +134,7 @@ set_std_mode() {
 
 # Silent execution function
 silent() {
-  if [ "$VERB" = "no" ]; then
-    "$@" >/dev/null 2>&1 || return 1
-  else
-    "$@" || return 1
-  fi
+  "$@" >/dev/null 2>&1
 }
 
 # ------------------------------------------------------------------------------

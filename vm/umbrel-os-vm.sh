@@ -56,9 +56,13 @@ function default_settings() {
   BRG="vmbr0"
   MAC="$GEN_MAC"
   VLAN=""
+  VERBOSE="${1:-no}"
   MTU=""
   START_VM="yes"
   METHOD="default"
+
+  VERB=${var_verbose:-$VERBOSE}
+
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
@@ -247,6 +251,13 @@ function advanced_settings() {
     echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}no${CL}"
     START_VM="no"
   fi
+
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
+    VERBOSE="yes"
+  else
+    VERBOSE="no"
+  fi
+  echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERBOSE${CL}"
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Umbrel OS VM?" --no-button Do-Over 10 58); then
     echo -e "${CREATING}${BOLD}${DGN}Creating a Umbrel OS VM using the above advanced settings${CL}"
