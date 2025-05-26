@@ -527,6 +527,7 @@ if [ -n "$DISK_SIZE" ]; then
 else
   msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
   qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
+fi
 
 msg_ok "Created a Umbrel OS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
