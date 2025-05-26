@@ -11,8 +11,8 @@ load_functions
 APP="Umbrel OS VM"
 APP_TYPE="vm"
 header_info
-$STD GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
-$STD RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
+GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
+RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 NSAPP="umbrel-os-vm"
 var_os="umbrel-os"
