@@ -503,3 +503,41 @@ run_container_safe() {
     $cmd
   " || __handle_general_error "lxc-attach to CT $ct"
 }
+
+check_or_create_swap() {
+  msg_info "Checking for active swap"
+
+  if swapon --noheadings --show | grep -q 'swap'; then
+    msg_ok "Swap is active"
+    return 0
+  fi
+
+  msg_error "No active swap detected"
+
+  read -p "Do you want to create a swap file? [y/N]: " create_swap
+  create_swap="${create_swap,,}" # to lowercase
+
+  if [[ "$create_swap" != "y" && "$create_swap" != "yes" ]]; then
+    msg_info "Skipping swap file creation"
+    return 1
+  fi
+
+  read -p "Enter swap size in MB (e.g., 2048 for 2GB): " swap_size_mb
+  if ! [[ "$swap_size_mb" =~ ^[0-9]+$ ]]; then
+    msg_error "Invalid size input. Aborting."
+    return 1
+  fi
+
+  local swap_file="/swapfile"
+
+  msg_info "Creating ${swap_size_mb}MB swap file at $swap_file"
+  if dd if=/dev/zero of="$swap_file" bs=1M count="$swap_size_mb" status=progress &&
+    chmod 600 "$swap_file" &&
+    mkswap "$swap_file" &&
+    swapon "$swap_file"; then
+    msg_ok "Swap file created and activated successfully"
+  else
+    msg_error "Failed to create or activate swap"
+    return 1
+  fi
+}

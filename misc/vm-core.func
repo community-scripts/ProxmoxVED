@@ -27,7 +27,6 @@ load_functions() {
   pve_check
   arch_check
   ssh_check
-  check_hostname_conflict
   set_std_mode
   # add more
 }
@@ -443,8 +442,14 @@ exit_script() {
 }
 
 check_hostname_conflict() {
-  if qm list | awk '{print $2}' | grep -qx "$HN"; then
-    msg_error "Hostname $HN already in use by another VM."
+  local hostname="${HN:-}"
+  if [[ -z "$hostname" ]]; then
+    msg_error "HN is not set – cannot check hostname conflict."
+    exit 1
+  fi
+
+  if qm list | awk '{print $2}' | grep -qx "$hostname"; then
+    msg_error "Hostname $hostname already in use by another VM."
     exit 1
   fi
 }

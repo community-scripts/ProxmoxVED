@@ -42,6 +42,8 @@ else
   header_info && echo -e "${CROSS}${RD}User exited script${CL}\n" && exit
 fi
 
+check_hostname_conflict "$HN"
+
 function default_settings() {
   VMID=$(get_valid_nextid)
   FORMAT=",efitype=4m"
