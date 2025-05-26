@@ -20,6 +20,13 @@ load_functions() {
   color
   formatting
   icons
+  get_valid_nextid
+  cleanup_vmid
+  cleanup
+  check_root
+  pve_check
+  arch_check
+  ssh_check
   # add more
 }
 
