@@ -448,7 +448,7 @@ if ! command -v pv &>/dev/null; then
   apt-get update &>/dev/null && apt-get install -y pv &>/dev/null
 fi
 
-msg_info "Decompressing $FILE with progress"
+msg_info "Decompressing $FILE with progress${CL}"
 FILE_IMG="${FILE%.xz}"
 SIZE=$(xz --robot -l "$FILE" | awk -F '\t' '/^totals/ { print $5 }')
 xz -dc "$FILE" | pv -s "$SIZE" -N "Extracting" >"$FILE_IMG"
