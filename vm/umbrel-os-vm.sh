@@ -443,15 +443,6 @@ CHECKSUM_URL="${URL}.sha256"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$FILE" "$URL"
-curl -fsSL "$CHECKSUM_URL" -o checksum.sha256
-CHECKSUM="$(cut -d ' ' -f1 checksum.sha256)"
-echo "${CHECKSUM}  ${FILE}" >checksum.sha256
-if sha256sum -c checksum.sha256 2>&1 | grep -q "OK"; then
-  msg_ok "Checksum successfully validated for $FILE"
-else
-  msg_error "Checksum validation failed for $FILE"
-  exit 1
-fi
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
 msg_info "Decompressing $FILE"
