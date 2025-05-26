@@ -219,7 +219,7 @@ EOF
       msg_ok "Database upgrade complete"
     fi
     INSTALL_DIR="/opt/${APP}"
-    UPLOAD_DIR="$(sed -n '/IMMICH_MEDIA_LOCATION/s/[^=]*=//p' /opt/immich/.env)"
+    UPLOAD_DIR="$(sed -n '/^IMMICH_MEDIA_LOCATION/s/[^=]*=//p' /opt/immich/.env)"
     SRC_DIR="${INSTALL_DIR}/source"
     APP_DIR="${INSTALL_DIR}/app"
     ML_DIR="${APP_DIR}/machine-learning"
@@ -281,8 +281,8 @@ EOF
     grep -Rl /usr/src | xargs -n1 sed -i "s|\/usr/src|$INSTALL_DIR|g"
     grep -RlE "'/build'" | xargs -n1 sed -i "s|'/build'|'$APP_DIR'|g"
     sed -i "s@\"/cache\"@\"$INSTALL_DIR/cache\"@g" "$ML_DIR"/immich_ml/config.py
-    ln -s "$UPLOAD_DIR" "$APP_DIR"/upload
-    ln -s "$UPLOAD_DIR" "$ML_DIR"/upload
+    ln -s "${UPLOAD_DIR:-/opt/immich/upload}" "$APP_DIR"/upload
+    ln -s "${UPLOAD_DIR:-/opt/immich/upload}" "$ML_DIR"/upload
     ln -s "$GEO_DIR" "$APP_DIR"
 
     msg_info "Updating Immich CLI"
