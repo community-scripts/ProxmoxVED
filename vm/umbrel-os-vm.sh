@@ -449,7 +449,9 @@ if ! command -v pv &>/dev/null; then
 fi
 
 msg_info "Decompressing $FILE with progress"
-xz -dc "$FILE" | pv -bartpes -N "Extracting" >"${FILE%.xz}"
+FILE_IMG="${FILE%.xz}"
+SIZE=$(xz --robot -l "$FILE" | awk -F '\t' '/^totals/ { print $5 }')
+xz -dc "$FILE" | pv -s "$SIZE" -N "Extracting" >"$FILE_IMG"
 msg_ok "Decompressed to ${CL}${BL}${FILE%.xz}${CL}"
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
