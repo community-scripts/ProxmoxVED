@@ -309,7 +309,7 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the $NAME Disk Image"
+msg_info "Retrieving the URL for the $APP Disk Image"
 URL="https://download.umbrel.com/release/latest/umbrelos-amd64.img.xz"
 FILE="$(basename "$URL")"
 sleep 2
