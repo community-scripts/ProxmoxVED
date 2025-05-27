@@ -17,7 +17,6 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   make \
-  git \
   build-essential
 msg_ok "Installed Dependencies"
 
@@ -50,26 +49,20 @@ if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
 fi
 
 msg_info "Installing Linkwarden (Patience)"
-cd /opt
-RELEASE=$(curl -fsSL https://api.github.com/repos/linkwarden/linkwarden/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL "https://github.com/linkwarden/linkwarden/archive/refs/tags/${RELEASE}.zip" -o ${RELEASE}.zip
-unzip -q ${RELEASE}.zip
-mv linkwarden-${RELEASE:1} /opt/linkwarden
+fetch_and_deploy_gh_release "linkwarden/linkwarden"
 cd /opt/linkwarden
 $STD yarn
 $STD npx playwright install-deps
 $STD yarn playwright install
 IP=$(hostname -I | awk '{print $1}')
-env_path="/opt/linkwarden/.env"
-echo "
+CAT <<EOF >/opt/linkwarden/.env
 NEXTAUTH_SECRET=${SECRET_KEY}
 NEXTAUTH_URL=http://${IP}:3000
 DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}
-" >$env_path
+EOF
 $STD yarn prisma:generate
 $STD yarn web:build
 $STD yarn prisma:deploy
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Linkwarden"
 
 msg_info "Creating Service"
@@ -95,6 +88,9 @@ customize
 
 msg_info "Cleaning up"
 rm -rf /opt/${RELEASE}.zip
+rm -rf ~/.cargo/registry ~/.cargo/git ~/.cargo/.package-cache ~/.rustup
+rm -rf /root/.cache/yarn
+rm -rf /opt/linkwarden/.next/cache
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
