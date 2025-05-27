@@ -315,7 +315,7 @@ install_mysql() {
 #   PHP_VERSION                - PHP version to install (default: 8.4)
 #   PHP_MODULE                 - Additional comma-separated modules
 #   PHP_APACHE                 - Set YES to enable PHP with Apache
-#   PHP_FPM                    - Set YES to enable PHP-FpPM
+#   PHP_FPM                    - Set YES to enable PHP-FPM
 #   PHP_MEMORY_LIMIT           - (default: 512M)
 #   PHP_UPLOAD_MAX_FILESIZE    - (default: 128M)
 #   PHP_POST_MAX_SIZE          - (default: 128M)
@@ -821,8 +821,8 @@ setup_local_ip_helper() {
 
   # Install networkd-dispatcher if not present
   if ! dpkg -s networkd-dispatcher >/dev/null 2>&1; then
-    apt-get update -qq
-    apt-get install -yq networkd-dispatcher
+    $STD apt-get update -qq
+    $STD apt-get install -yq networkd-dispatcher
   fi
 
   # Write update_local_ip.sh
@@ -878,7 +878,7 @@ $SCRIPT_PATH
 EOF
 
   chmod +x "$DISPATCHER_SCRIPT"
-  systemctl enable --now networkd-dispatcher.service
+  systemctl enable -q --now networkd-dispatcher.service
 
   $STD msg_ok "LOCAL_IP helper installed using networkd-dispatcher"
 }
@@ -1193,6 +1193,25 @@ setup_rbenv_stack() {
 }
 
 # ------------------------------------------------------------------------------
+# Creates and installs self-signed certificates.
+#
+# Description:
+#   - Create a self-signed certificate with option to override application name
+#
+# Variables:
+#   APP   - Application name (default: $APPLICATION variable)
+# ------------------------------------------------------------------------------
+create_selfsigned_certs() {
+  local app=${APP:-$(echo "${APPLICATION,,}" | tr -d ' ')}
+  $STD msg_info "Creating Self-Signed Certificate"
+  $STD openssl req -x509 -nodes -days 365 -newkey rsa:4096 \
+    -keyout /etc/ssl/private/"$app"-selfsigned.key \
+    -out /etc/ssl/certs/"$app"-selfsigned.crt \
+    -subj "/C=US/O=$app/OU=Domain Control Validated/CN=localhost"
+  $STD msg_ok "Created Self-Signed Certificate"
+}
+
+# ------------------------------------------------------------------------------
 # Installs Rust toolchain and optional global crates via cargo.
 #
 # Description:
@@ -1217,7 +1236,7 @@ install_rust_and_crates() {
   # rustup & toolchain
   if ! command -v rustup &>/dev/null; then
     msg_info "Installing rustup"
-    curl -fsSL https://sh.rustup.rs | sh -s -- -y --default-toolchain "$RUST_TOOLCHAIN"
+    curl -fsSL https://sh.rustup.rs | $STD sh -s -- -y --default-toolchain "$RUST_TOOLCHAIN"
     export PATH="$CARGO_BIN:$PATH"
     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>"$HOME/.profile"
     msg_ok "Installed rustup with $RUST_TOOLCHAIN"
