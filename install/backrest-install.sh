@@ -19,11 +19,11 @@ temp_file=$(mktemp)
 mkdir -p /opt/backrest/{bin,config,data}
 curl -fsSL "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz" -o "$temp_file"
 tar zxf "$temp_file" --strip-components=1 -C /opt/backrest/bin
-chmod +x /opt/backrest/bin/backrest
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Backrest"
 
 msg_info "Creating Service"
+chmod +x /opt/backrest/bin/backrest
 cat <<EOF >/etc/systemd/system/backrest.service
 [Unit]
 Description=Backrest
