@@ -22,12 +22,12 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /opt/Linkwarden ]]; then
+  if [[ ! -d /opt/linkwarden ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/linkwarden/linkwarden/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  if [[ "${RELEASE}" != "$(cat /opt/linkwarden_version.txt)" ]] || [[ ! -f /opt/linkwarden_version.txt ]]; then
+  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
     NODE_VERSION="22" NODE_MODULE="yarn@latest" install_node_and_modules
     msg_info "Stopping ${APP}"
     systemctl stop linkwarden
