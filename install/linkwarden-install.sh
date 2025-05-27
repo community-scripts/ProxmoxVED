@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
-# Co-Author: MickLesk (Canbiz)
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (Canbiz)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://linkwarden.app/
 
