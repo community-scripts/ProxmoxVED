@@ -37,6 +37,7 @@ function update_script() {
     curl -fsSL "https://kasm-static-content.s3.amazonaws.com/kasm_release_${RELEASE}.tar.gz" -o "$temp_file"
     tar zxf "$temp_file"
     chmod 777 /opt/kasm/backups/
+    mv /opt/kasm/1.*/certs/kasm_nginx.crt /opt/kasm/kasm_nginx.crt_bak
     printf 'y\n' | $STD sudo bash /tmp/kasm_release/upgrade.sh
     $STD sudo bash /tmp/kasm_release/upgrade.sh
     echo "${RELEASE}" >/opt/${APP}_version.txt
