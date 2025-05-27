@@ -1205,9 +1205,9 @@ install_rust_and_crates() {
     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>"$HOME/.profile"
     msg_ok "Installed rustup with $RUST_TOOLCHAIN"
   else
-    rustup install "$RUST_TOOLCHAIN" >/dev/null
-    rustup default "$RUST_TOOLCHAIN" >/dev/null
-    rustup update "$RUST_TOOLCHAIN" >/dev/null
+    $STD rustup install "$RUST_TOOLCHAIN"
+    $STD rustup default "$RUST_TOOLCHAIN"
+    $STD rustup update "$RUST_TOOLCHAIN"
     msg_ok "Rust toolchain set to $RUST_TOOLCHAIN"
   fi
 
@@ -1229,16 +1229,16 @@ install_rust_and_crates() {
       if [[ -n "$INSTALLED_VER" ]]; then
         if [[ -n "$VER" && "$VER" != "$INSTALLED_VER" ]]; then
           msg_info "Updating $NAME from $INSTALLED_VER to $VER"
-          cargo install "$NAME" --version "$VER" --force
+          $STD cargo install "$NAME" --version "$VER" --force
         elif [[ -z "$VER" ]]; then
           msg_info "Updating $NAME to latest"
-          cargo install "$NAME" --force
+          $STD cargo install "$NAME" --force
         else
           msg_ok "$NAME@$INSTALLED_VER already up to date"
         fi
       else
         msg_info "Installing $NAME ${VER:+($VER)}"
-        cargo install "$NAME" ${VER:+--version "$VER"}
+        $STD cargo install "$NAME" ${VER:+--version "$VER"}
       fi
     done
     msg_ok "All requested Rust crates processed"
