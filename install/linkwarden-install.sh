@@ -87,7 +87,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -rf /opt/${RELEASE}.zip
 rm -rf ~/.cargo/registry ~/.cargo/git ~/.cargo/.package-cache ~/.rustup
 rm -rf /root/.cache/yarn
 rm -rf /opt/linkwarden/.next/cache

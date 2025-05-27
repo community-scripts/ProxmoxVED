@@ -43,29 +43,27 @@ function update_script() {
     msg_ok "Updated Rust"
 
     msg_info "Updating ${APP} to ${RELEASE}"
-    cd /opt
     mv /opt/linkwarden/.env /opt/.env
     rm -rf /opt/linkwarden
-    RELEASE=$(curl -fsSL https://api.github.com/repos/linkwarden/linkwarden/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-    curl -fsSL "https://github.com/linkwarden/linkwarden/archive/refs/tags/${RELEASE}.zip" -o ${RELEASE}.zip
-    unzip -q ${RELEASE}.zip
-    mv linkwarden-${RELEASE:1} /opt/linkwarden
+    fetch_and_deploy_gh_release "linkwarden/linkwarden"
     cd /opt/linkwarden
     $STD yarn
     $STD npx playwright install-deps
     $STD yarn playwright install
-    cp /opt/.env /opt/linkwarden/.env
+    mv /opt/.env /opt/linkwarden/.env
     $STD yarn prisma:generate
     $STD yarn web:build
     $STD yarn prisma:deploy
-    echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated ${APP} to ${RELEASE}"
 
     msg_info "Starting ${APP}"
     systemctl start linkwarden
     msg_ok "Started ${APP}"
+
     msg_info "Cleaning up"
-    rm -rf /opt/${RELEASE}.zip
+    rm -rf ~/.cargo/registry ~/.cargo/git ~/.cargo/.package-cache ~/.rustup
+    rm -rf /root/.cache/yarn
+    rm -rf /opt/linkwarden/.next/cache
     msg_ok "Cleaned"
     msg_ok "Updated Successfully"
   else
