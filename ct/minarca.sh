@@ -5,8 +5,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://minarca.org/en_CA
 
-APP="AppName"
-var_tags="finance"
+APP="Minarca"
+var_tags="backup"
 var_cpu="2"
 var_ram="4096"
 var_disk="10"
