@@ -1,0 +1,35 @@
+{
+  "name": "Notesnook",
+  "slug": "notesnook",
+  "categories": [
+    12
+  ],
+  "date_created": "2025-05-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": null,
+  "config_path": "/",
+  "website": "https://notesnook.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/notesnook.webp",
+  "description": "Notesnook is a free (as in speech) & open-source note-taking app focused on user privacy & ease of use. To ensure zero knowledge principles, Notesnook encrypts everything on your device using XChaCha20-Poly1305 & Argon2.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/notesnook.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 3072,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
