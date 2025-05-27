@@ -1191,3 +1191,47 @@ setup_rbenv_stack() {
   rm -rf "$TMP_DIR"
   msg_ok "rbenv stack ready (Ruby $RUBY_VERSION)"
 }
+
+install_rust_and_crates() {
+  local RUST_TOOLCHAIN="${RUST_TOOLCHAIN:-stable}"
+  local RUST_CRATES="${RUST_CRATES:-}"
+
+  # Install rustup if not available
+  if ! command -v rustup &>/dev/null; then
+    msg_info "Installing rustup"
+    curl -fsSL https://sh.rustup.rs | sh -s -- -y --default-toolchain "$RUST_TOOLCHAIN"
+    export PATH="$HOME/.cargo/bin:$PATH"
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>"$HOME/.profile"
+    msg_ok "Installed rustup with $RUST_TOOLCHAIN"
+  else
+    msg_ok "rustup already installed"
+    rustup install "$RUST_TOOLCHAIN"
+  fi
+
+  rustup default "$RUST_TOOLCHAIN"
+  rustup update
+
+  # install crates
+  if [[ -n "$RUST_CRATES" ]]; then
+    IFS=',' read -ra CRATES <<<"$RUST_CRATES"
+    for crate in "${CRATES[@]}"; do
+      local NAME VER
+      if [[ "$crate" == *"@"* ]]; then
+        NAME="${crate%@*}"
+        VER="${crate##*@}"
+      else
+        NAME="$crate"
+        VER=""
+      fi
+
+      if cargo install --list | grep -q "^$NAME "; then
+        msg_info "Crate $NAME already installed, updating"
+        cargo install "$NAME" ${VER:+--version "$VER"} --force
+      else
+        msg_info "Installing crate $NAME ${VER:+($VER)}"
+        cargo install "$NAME" ${VER:+--version "$VER"}
+      fi
+    done
+    msg_ok "All requested Rust crates processed"
+  fi
+}
