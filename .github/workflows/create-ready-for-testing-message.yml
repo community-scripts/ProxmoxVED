@@ -48,7 +48,11 @@ jobs:
         id: create_message
         run: |
           VAR="The ${{ env.TITLE }} script is ready for testing:\n"
+          if [[ "${{ env.TITLE }}" != *"vm"* ]]; then
           VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${{ env.TITLE }}.sh)\"\`\`\`\n"
+          else
+          VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/vm/${{ env.TITLE }}.sh)\"\`\`\`\n"
+          fi
           if [[ " ${EXISTING_FILES[@]} " =~ " frontend/public/json/${TITLE}.json " ]]; then
              JSON=$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/frontend/public/json/${{ env.TITLE }}.json)
              username=$(echo "$JSON" | jq -r '.default_credentials.username')
