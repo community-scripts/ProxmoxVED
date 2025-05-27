@@ -55,7 +55,7 @@ $STD yarn
 $STD npx playwright install-deps
 $STD yarn playwright install
 IP=$(hostname -I | awk '{print $1}')
-CAT <<EOF >/opt/linkwarden/.env
+cat <<EOF >/opt/linkwarden/.env
 NEXTAUTH_SECRET=${SECRET_KEY}
 NEXTAUTH_URL=http://${IP}:3000
 DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}
