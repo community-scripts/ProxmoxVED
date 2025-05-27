@@ -30,7 +30,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD rm -f /opt/kasm_release_${KASM_VERSION}.tar.gz
+$STD rm -f /opt/kasm_release_${RELEASE}.tar.gz
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
