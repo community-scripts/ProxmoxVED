@@ -1235,3 +1235,30 @@ install_rust_and_crates() {
     msg_ok "All requested Rust crates processed"
   fi
 }
+
+# ------------------------------------------------------------------------------
+# Installs Adminer (Debian/Ubuntu via APT, Alpine via direct download).
+#
+# Description:
+#   - Adds Adminer to Apache or web root
+#   - Supports Alpine and Debian-based systems
+# ------------------------------------------------------------------------------
+
+install_adminer() {
+  if grep -qi alpine /etc/os-release; then
+    msg_info "Installing Adminer (Alpine)"
+    mkdir -p /var/www/localhost/htdocs/adminer
+    if ! curl -fsSL https://github.com/vrana/adminer/releases/latest/download/adminer.php \
+      -o /var/www/localhost/htdocs/adminer/index.php; then
+      msg_error "Failed to download Adminer"
+      return 1
+    fi
+    msg_ok "Adminer available at /adminer (Alpine)"
+  else
+    msg_info "Installing Adminer (Debian/Ubuntu)"
+    $STD apt-get install -y adminer
+    $STD a2enconf adminer
+    $STD systemctl reload apache2
+    msg_ok "Adminer available at /adminer (Debian/Ubuntu)"
+  fi
+}
