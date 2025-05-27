@@ -34,18 +34,23 @@ function update_script() {
     msg_ok "Stopped ${APP}"
 
     msg_info "Updating ${APP} to ${RELEASE}"
-    cd /opt/backrest/bin
-    curl -fsSL "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz" -o "backrest_Linux_x86_64.tar.gz"
-    tar -xzf backrest_Linux_x86_64.tar.gz
-    rm -rf backrest_Linux_x86_64.tar.gz
-    rm -f install.sh uninstall.sh
-    chmod +x backrest
+    temp_file=$(mktemp)
+    rm -f /opt/backrest/bin/backrest
+    curl -fsSL "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz" -o "$temp_file"
+    tar zxf "$temp_file" --strip-components=1 -C /opt/backrest/bin
+    chmod +x /opt/backrest/bin/backrest
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated ${APP} to ${RELEASE}"
 
     msg_info "Starting ${APP}"
     systemctl start backrest
     msg_ok "Started ${APP}"
+
+    msg_info "Cleaning up"
+    rm -f "$temp_file"
+    apt-get -y autoremove
+    apt-get -y autoclean
+    msg_ok "Cleaned up"
     msg_ok "Updated Successfully"
   else
     msg_ok "No update required. ${APP} is already at ${RELEASE}"

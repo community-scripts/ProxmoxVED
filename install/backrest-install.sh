@@ -15,11 +15,11 @@ update_os
 
 msg_info "Installing Backrest"
 RELEASE=$(curl -fsSL https://api.github.com/repos/garethgeorge/backrest/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+temp_file=$(mktemp)
 mkdir -p /opt/backrest/{bin,config,data}
-cd /opt/backrest/bin
-curl -fsSL "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz" -o "backrest_Linux_x86_64.tar.gz"
-tar -xzf backrest_Linux_x86_64.tar.gz
-chmod +x backrest
+curl -fsSL "https://github.com/garethgeorge/backrest/releases/download/v${RELEASE}/backrest_Linux_x86_64.tar.gz" -o "$temp_file"
+tar zxf "$temp_file" --strip-components=1 -C /opt/backrest/bin
+chmod +x /opt/backrest/bin/backrest
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Backrest"
 
@@ -48,8 +48,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -f "$temp_file"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
-rm -rf backrest_Linux_x86_64.tar.gz
-rm -f install.sh uninstall.sh
 msg_ok "Cleaned"
