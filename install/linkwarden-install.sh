@@ -21,7 +21,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" NODE_MODULE="yarn@latest" install_node_and_modules
-PG_VERSION="15" install_postgresql
+PG_VERSION="16" install_postgresql
 RUST_CRATES="monolith" install_rust_and_crates
 
 msg_info "Setting up PostgreSQL DB"
