@@ -1195,27 +1195,27 @@ setup_rbenv_stack() {
 install_rust_and_crates() {
   local RUST_TOOLCHAIN="${RUST_TOOLCHAIN:-stable}"
   local RUST_CRATES="${RUST_CRATES:-}"
+  local CARGO_BIN="${HOME}/.cargo/bin"
 
-  # Install rustup if not available
+  # rustup & toolchain
   if ! command -v rustup &>/dev/null; then
     msg_info "Installing rustup"
     curl -fsSL https://sh.rustup.rs | sh -s -- -y --default-toolchain "$RUST_TOOLCHAIN"
-    export PATH="$HOME/.cargo/bin:$PATH"
+    export PATH="$CARGO_BIN:$PATH"
     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>"$HOME/.profile"
     msg_ok "Installed rustup with $RUST_TOOLCHAIN"
   else
-    msg_ok "rustup already installed"
-    rustup install "$RUST_TOOLCHAIN"
+    rustup install "$RUST_TOOLCHAIN" >/dev/null
+    rustup default "$RUST_TOOLCHAIN" >/dev/null
+    rustup update "$RUST_TOOLCHAIN" >/dev/null
+    msg_ok "Rust toolchain set to $RUST_TOOLCHAIN"
   fi
 
-  rustup default "$RUST_TOOLCHAIN"
-  rustup update
-
-  # install crates
+  # install/update crates
   if [[ -n "$RUST_CRATES" ]]; then
     IFS=',' read -ra CRATES <<<"$RUST_CRATES"
     for crate in "${CRATES[@]}"; do
-      local NAME VER
+      local NAME VER INSTALLED_VER
       if [[ "$crate" == *"@"* ]]; then
         NAME="${crate%@*}"
         VER="${crate##*@}"
@@ -1224,11 +1224,20 @@ install_rust_and_crates() {
         VER=""
       fi
 
-      if cargo install --list | grep -q "^$NAME "; then
-        msg_info "Crate $NAME already installed, updating"
-        cargo install "$NAME" ${VER:+--version "$VER"} --force
+      INSTALLED_VER=$(cargo install --list 2>/dev/null | awk "/^$NAME v[0-9]/ {print \$2}" | tr -d 'v')
+
+      if [[ -n "$INSTALLED_VER" ]]; then
+        if [[ -n "$VER" && "$VER" != "$INSTALLED_VER" ]]; then
+          msg_info "Updating $NAME from $INSTALLED_VER to $VER"
+          cargo install "$NAME" --version "$VER" --force
+        elif [[ -z "$VER" ]]; then
+          msg_info "Updating $NAME to latest"
+          cargo install "$NAME" --force
+        else
+          msg_ok "$NAME@$INSTALLED_VER already up to date"
+        fi
       else
-        msg_info "Installing crate $NAME ${VER:+($VER)}"
+        msg_info "Installing $NAME ${VER:+($VER)}"
         cargo install "$NAME" ${VER:+--version "$VER"}
       fi
     done
