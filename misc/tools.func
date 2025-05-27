@@ -1192,6 +1192,23 @@ setup_rbenv_stack() {
   msg_ok "rbenv stack ready (Ruby $RUBY_VERSION)"
 }
 
+# ------------------------------------------------------------------------------
+# Installs Rust toolchain and optional global crates via cargo.
+#
+# Description:
+#   - Installs rustup (if missing)
+#   - Installs or updates desired Rust toolchain (stable, nightly, or versioned)
+#   - Installs or updates specified global crates using `cargo install`
+#
+# Notes:
+#   - Skips crate install if exact version is already present
+#   - Updates crate if newer version or different version is requested
+#
+# Variables:
+#   RUST_TOOLCHAIN  - Rust toolchain to install (default: stable)
+#   RUST_CRATES     - Comma-separated list of crates (e.g. "cargo-edit,wasm-pack@0.12.1")
+# ------------------------------------------------------------------------------
+
 install_rust_and_crates() {
   local RUST_TOOLCHAIN="${RUST_TOOLCHAIN:-stable}"
   local RUST_CRATES="${RUST_CRATES:-}"
