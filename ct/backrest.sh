@@ -48,8 +48,6 @@ function update_script() {
 
     msg_info "Cleaning up"
     rm -f "$temp_file"
-    apt-get -y autoremove
-    apt-get -y autoclean
     msg_ok "Cleaned up"
     msg_ok "Updated Successfully"
   else
