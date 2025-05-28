@@ -32,8 +32,8 @@ git clone https://github.com/owncloud/ocis
 cd /opt/ocis
 make generate
 make -C ocis build
-./ocis/bin/ocis init
-IDM_CREATE_DEMO_USERS=true ./ocis/bin/ocis server
+#./ocis/bin/ocis init
+#IDM_CREATE_DEMO_USERS=true ./ocis/bin/ocis server
 msg_ok "Setup ocis"
 
 motd_ssh
