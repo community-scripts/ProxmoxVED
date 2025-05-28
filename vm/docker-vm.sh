@@ -483,9 +483,9 @@ virt-customize -q -a "${FILE}" --install qemu-guest-agent,apt-transport-https,ca
 msg_ok "Added Docker and Docker Compose Plugin to Debian 12 Qcow2 Disk Image successfully"
 
 msg_info "Expanding root partition to use full disk space"
-qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE}
+qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
 virt-resize --expand /dev/sda1 ${FILE} expanded.qcow2 >/dev/null 2>&1
-mv expanded.qcow2 ${FILE}
+mv expanded.qcow2 ${FILE} >/dev/null 2>&1
 msg_ok "Expanded image to full size"
 
 msg_info "Creating a Docker VM"
