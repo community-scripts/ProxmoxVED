@@ -38,7 +38,6 @@ $STD apt-get install --no-install-recommends -y \
   libglib2.0-dev \
   libgsf-1-dev \
   libjpeg62-turbo-dev \
-  liblcms2-2 \
   librsvg2-dev \
   libspng-dev \
   meson \
@@ -52,11 +51,12 @@ $STD apt-get install --no-install-recommends -y \
   libglib2.0-0 \
   libgomp1 \
   libgsf-1-114 \
-  liblcms2-2 \
+  liblcms2-dev \
   liblqr-1-0 \
   libltdl7 \
   libmimalloc2.0 \
-  libopenexr-3-1-30 \
+  libopenexr-dev \
+  libgif-dev \
   libopenjp2-7 \
   librsvg2-2 \
   libspng0 \
