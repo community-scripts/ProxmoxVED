@@ -468,10 +468,12 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Installing Pre-Requisite libguestfs-tools onto Host"
-apt-get -qq update >/dev/null
-apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
-msg_ok "Installed libguestfs-tools successfully"
+if ! command -v virt-customize &>/dev/null; then
+  msg_info "Installing Pre-Requisite libguestfs-tools onto Host"
+  apt-get -qq update >/dev/null
+  apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
+  msg_ok "Installed libguestfs-tools successfully"
+fi
 
 msg_info "Adding Docker and Docker Compose Plugin to Debian 12 Qcow2 Disk Image"
 virt-customize -q -a "${FILE}" --install qemu-guest-agent,apt-transport-https,ca-certificates,curl,gnupg,software-properties-common,lsb-release >/dev/null &&
