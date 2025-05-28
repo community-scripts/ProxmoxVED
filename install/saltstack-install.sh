@@ -23,7 +23,7 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest
 curl -fsSL "https://github.com/saltstack/salt/releases/download/v${RELEASE}/salt-master_${RELEASE}_amd64.deb" -o salt-master.deb
 $STD dpkg -i salt-master.deb
 systemctl enable -q --now salt-master
-echo "${RELEASE_BARASSISTANT}" >/opt/${APPLICATION}_version.txt
+echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Salt Master"
 
 motd_ssh
