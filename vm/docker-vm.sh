@@ -533,14 +533,6 @@ EOF
 )
 qm set "$VMID" -description "$DESCRIPTION" >/dev/null
 
-if [ -n "$DISK_SIZE" ]; then
-  msg_info "Resizing disk to $DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
-else
-  msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
-fi
-
 msg_ok "Created a Docker VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Docker VM"
