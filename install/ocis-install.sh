@@ -27,7 +27,7 @@ install_go
 
 msg_info "Setup ocis"
 cd /opt
-git clone git@github.com:owncloud/ocis.git
+git clone https://github.com/owncloud/ocis
 cd /opt/ocis
 make generate
 make -C ocis build
