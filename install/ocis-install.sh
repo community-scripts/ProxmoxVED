@@ -24,6 +24,7 @@ msg_ok "Installed Dependencies"
 ## WIP - only protoype with git call
 
 install_go
+NODE_VERSION="22" NODE_MODULE="pnpm" install_node_and_modules
 
 msg_info "Setup ocis"
 cd /opt
