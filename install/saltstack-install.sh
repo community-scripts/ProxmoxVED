@@ -32,7 +32,7 @@ Package: salt-*
 Pin: version ${RELEASE}
 Pin-Priority: 1001
 EOF
-sudo apt-get install salt-master
+$STD apt-get install salt-master -y
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Salt Master"
 
