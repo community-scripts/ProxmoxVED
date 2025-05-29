@@ -25,8 +25,19 @@ function update_script() {
   check_container_resources
 
   if [[ ! -d /etc/salt ]]; then
-    msg_error "No ${APP} Installation Found!"
-    exit
+    while true; do
+      read -p "This will install ${APP} on $hostname. Proceed (y/n)? " yn
+      case $yn in
+        [Yy]*) break ;;
+        [Nn]*)
+          echo "No ${APP} installation found!"
+          exit 1
+          ;;
+        *)
+          echo "Please answer yes or no."
+          ;;
+      esac
+    done
   fi
 
   RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
