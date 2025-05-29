@@ -28,9 +28,9 @@ msg_ok "Setup Salt repo"
 msg_info "Installing Salt Master"
 RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
 cat <<EOF >/etc/apt/preferences.d/salt-pin-1001
-'Package: salt-*
+Package: salt-*
 Pin: version ${RELEASE}
-Pin-Priority: 1001'
+Pin-Priority: 1001
 EOF
 sudo apt-get install salt-master
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
