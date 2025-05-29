@@ -23,13 +23,24 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-
+  RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
   if [[ ! -d /etc/salt ]]; then
-    msg_error "No ${APP} Installation Found!"
+    read -p "This will Install ${APP} on $hostname. Proceed(y/n)?" yn
+    case $yn in
+    [Yy]*) break ;;
+    [Nn]*) msg_error "No ${APP} Installation Found!" exit ;;
+    *) echo "Please answer yes or no." ;;
+    esac
+    cat <<EOF >/etc/apt/preferences.d/salt-pin-1001
+    Package: salt-*
+    Pin: version ${RELEASE}
+    Pin-Priority: 1001
+    EOF
+    $STD apt-get install -y salt-master
+    echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Updating $APP to ${RELEASE}"
     sed -i "s/^\(Pin: version \).*/\1${RELEASE}/" /etc/apt/preferences.d/salt-pin-1001
