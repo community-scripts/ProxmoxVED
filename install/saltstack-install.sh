@@ -25,12 +25,6 @@ $STD curl -fsSL https://github.com/saltstack/salt-install-guide/releases/latest/
 $STD apt-get update
 msg_ok "Setup Salt repo"
 
-msg_info "Installing Salt Master"
-RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
-$STD apt-get install -y salt-master 
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-msg_ok "Installed Salt Master"
-
 motd_ssh
 customize
 
