@@ -26,7 +26,7 @@ $STD apt-get update
 msg_ok "Setup Salt repo"
 
 msg_info "Installing Salt Master"
-RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
+RELEASE="3007.2"
 cat <<EOF >/etc/apt/preferences.d/salt-pin-1001
 Package: salt-*
 Pin: version ${RELEASE}
