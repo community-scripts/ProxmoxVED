@@ -82,7 +82,7 @@ function install_saltminion() {
     
     msg_info "Installing Salt Minion"
     RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
-    cat <<EOF >/etc/apt/preferences.d/salt-pin-1001
+        cat <<EOF >/etc/apt/preferences.d/salt-pin-1001
     Package: salt-*
     Pin: version ${RELEASE}
     Pin-Priority: 1001
