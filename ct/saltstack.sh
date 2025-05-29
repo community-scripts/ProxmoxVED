@@ -32,9 +32,9 @@ function update_script() {
   RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Updating $APP to ${RELEASE}"
-    curl -fsSL "https://github.com/saltstack/salt/releases/download/v${RELEASE}/salt-master_${RELEASE}_amd64.deb" -o salt-master.deb
-    $STD dpkg -i emby-server-deb_${LATEST}_amd64.deb
-    systemctl restart salt-master
+    sudo sed -i 's/^\(Pin: version \).*/\1${RELEASE}/' /etc/apt/preferences.d/salt-pin-1001
+    $STD apt-get update
+    $STD apt-get upgrade -y
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated ${APP} to ${RELEASE}"
   else
