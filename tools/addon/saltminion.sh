@@ -7,12 +7,13 @@
 function header_info {
     clear
     cat <<"EOF"
-    ____  __          __  ___      ___       __          _
-   / __ \/ /_  ____  /  |/  /_  __/   | ____/ /___ ___  (_)___
-  / /_/ / __ \/ __ \/ /|_/ / / / / /| |/ __  / __ `__ \/ / __ \
- / ____/ / / / /_/ / /  / / /_/ / ___ / /_/ / / / / / / / / / /
-/_/   /_/ /_/ .___/_/  /_/\__, /_/  |_\__,_/_/ /_/ /_/_/_/ /_/
-           /_/           /____/
+
+   _____       ____                  _       _           
+  / ___/____ _/ / /_      ____ ___  (_)___  (_)___  ____ 
+  \__ \/ __ `/ / __/_____/ __ `__ \/ / __ \/ / __ \/ __ \
+ ___/ / /_/ / / /_/_____/ / / / / / / / / / / /_/ / / / /
+/____/\__,_/_/\__/     /_/ /_/ /_/_/_/ /_/_/\____/_/ /_/ 
+
 EOF
 }
 
@@ -26,11 +27,6 @@ CROSS="${RD}✖️${CL}"
 INFO="${BL}ℹ️${CL}"
 
 APP="saltminion"
-
-IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
-IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
-[[ -z "$IP" ]] && IP=$(hostname -I | awk '{print $1}')
-[[ -z "$IP" ]] && IP="127.0.0.1"
 
 # Detect OS
 if [[ -f "/etc/alpine-release" ]]; then
@@ -84,7 +80,7 @@ function install_saltminion() {
     $STD apt-get update
     msg_ok "Setup Salt repo"
     
-    msg_info "Installing Salt Master"
+    msg_info "Installing Salt Minion"
     RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
     cat <<EOF >/etc/apt/preferences.d/salt-pin-1001
     Package: salt-*
@@ -93,13 +89,14 @@ function install_saltminion() {
     EOF
     $STD apt-get install -y salt-master
     echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-    msg_ok "Installed Salt Master"
+    msg_ok "Installed Salt Minion"
 }
 
 function uninstall_saltminion() {
     msg_info "Stopping service"
     if [[ "$OS" == "Debian" ]]; then
         apt-get purge salt-minion
+        rm -rf /etc/apt/preferences.d/salt-pin-1001
     fi
     msg_ok "Uninstalled Salt Minion"
 }
