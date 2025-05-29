@@ -18,11 +18,21 @@ $STD apt-get install -y \
   jq
 msg_ok "Installed Dependencies"
 
+msg_info "Setup Salt repo"
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://packages.broadcom.com/artifactory/api/security/keypair/SaltProjectKey/public | sudo tee /etc/apt/keyrings/salt-archive-keyring.pgp
+curl -fsSL https://github.com/saltstack/salt-install-guide/releases/latest/download/salt.sources | sudo tee /etc/apt/sources.list.d/salt.sources
+$STD apt-get update
+msg_ok "Setup Salt repo"
+
 msg_info "Installing Salt Master"
 RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
-curl -fsSL "https://github.com/saltstack/salt/releases/download/v${RELEASE}/salt-master_${RELEASE}_amd64.deb" -o salt-master.deb
-$STD dpkg -i salt-master.deb || $STD apt-get install -f -y
-systemctl enable -q --now salt-master
+cat <<EOF >/etc/apt/preferences.d/salt-pin-1001
+'Package: salt-*
+Pin: version ${RELEASE}
+Pin-Priority: 1001'
+EOF
+sudo apt-get install salt-master
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Salt Master"
 
