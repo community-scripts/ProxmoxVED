@@ -118,8 +118,16 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD")
 
+          HTTP_BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          THREAD_ID=$(echo "$HTTP_BODY" | jq -r '.id')
+
           STATUS_CODE=$(echo "$RESPONSE" | tail -n 1)
-          if [ "$STATUS_CODE" -eq 201 ]; then
+          if [[ "$HTTP_CODE" == "201" && -n "$THREAD_ID" ]]; then
+            LOCK_RESPONSE=$(curl -s -X PATCH "https://discord.com/api/v10/channels/$THREAD_ID" \
+              -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"locked": true}')
             echo "Discord post created successfully!"
           else
             echo "Response: $RESPONSE"
