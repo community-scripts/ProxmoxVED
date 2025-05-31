@@ -38,7 +38,7 @@ msg_ok "Installed Tinyauth"
 
 i=1
 while [ $i -le 3 ]; do
-  read -rp "${TAB3}Enter your Tinyauth subdomain (e.g. https://tinyauth.example.com): " app_url
+  read -r -p "${TAB3}Enter your Tinyauth subdomain (e.g. https://tinyauth.example.com): " app_url
   echo "$app_url" | grep -qE '^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' && break
   [ $i -eq 3 ] && {
     echo "Max attempts reached"
