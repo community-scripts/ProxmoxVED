@@ -36,14 +36,16 @@ EOF
 echo "${RELEASE}" >/opt/tinyauth_version.txt
 msg_ok "Installed Tinyauth"
 
-for i in {1..3}; do
+i=1
+while [ $i -le 3 ]; do
   read -p "${TAB3}Enter your Tinyauth subdomain (e.g. https://tinyauth.example.com): " app_url
-  [[ $app_url =~ ^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,} ]] && break
+  echo "$app_url" | grep -qE '^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' && break
   [ $i -eq 3 ] && {
     echo "Max attempts reached"
     exit 1
   }
   echo "Invalid URL format ($((3 - i)) attempts left)"
+  i=$((i + 1))
 done
 
 msg_info "Creating Tinyauth Service"
