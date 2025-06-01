@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y make
+$STD apt-get install -y make git
 msg_ok "Installed Dependencies"
 
 NODE_MODULE="yarn" install_node_and_modules
@@ -23,6 +23,8 @@ msg_info "Installing Notesnook (Patience)"
 fetch_and_deploy_gh_release "streetwriters/notesnook"
 cd /opt/notesnook
 export NODE_OPTIONS="--max-old-space-size=2560"
+mkdir -p certs
+$STD openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
 $STD npm install
 $STD npm run build:web
 msg_ok "Installed Notesnook"
@@ -37,7 +39,9 @@ After=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/notesnook
-ExecStart=/usr/bin/npx serve apps/web/build
+ExecStart=/usr/bin/npx serve -l tcp://0.0.0.0:3000 apps/web/build \\
+  --ssl-cert certs/cert.pem \\
+  --ssl-key certs/key.pem
 Restart=on-failure
 
 [Install]
@@ -45,6 +49,7 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now notesnook
 msg_ok "Created Service"
+
 
 motd_ssh
 customize
