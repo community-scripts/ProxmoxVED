@@ -43,7 +43,7 @@ function update_script() {
     curl -fsSLO "https://github.com/intri-in/manage-my-damn-life-nextjs/archive/refs/tags/${RELEASE}.zip"
     rm -r /opt/mmdl
     unzip -q "$RELEASE".zip
-    mv "$APPLICATION"-nodejs-"$RELEASE"/ /opt/mmdl
+    mv manage-my-damn-life-nextjs-"$RELEASE"/ /opt/mmdl
     mv /opt/mmdl.env /opt/mmdl/.env
     cd /opt/mmdl
     $STD npm install
