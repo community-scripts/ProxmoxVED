@@ -295,6 +295,8 @@ install_mysql() {
   local MYSQL_VERSION="${MYSQL_VERSION:-8.0}"
   local CURRENT_VERSION=""
   local NEED_INSTALL=false
+  local MYSQL_ROOT_PASSWORD=""
+  local CREDS_FILE="~/mysql.creds"
 
   if command -v mysql >/dev/null; then
     CURRENT_VERSION="$(mysql --version | grep -oP 'Distrib\s+\K[0-9]+\.[0-9]+')"
@@ -310,21 +312,30 @@ install_mysql() {
   fi
 
   if [[ "$NEED_INSTALL" == true ]]; then
-    msg_info "Removing conflicting MySQL packages"
     $STD systemctl stop mysql >/dev/null 2>&1 || true
     $STD apt-get purge -y "^mysql-server.*" "^mysql-client.*" "^mysql-common" || true
     rm -f /etc/apt/sources.list.d/mysql.list /etc/apt/trusted.gpg.d/mysql.gpg
-
-    msg_info "Setting up MySQL APT Repository"
     DISTRO_CODENAME="$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)"
     curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 | gpg --dearmor -o /etc/apt/trusted.gpg.d/mysql.gpg
     echo "deb [signed-by=/etc/apt/trusted.gpg.d/mysql.gpg] https://repo.mysql.com/apt/debian/ ${DISTRO_CODENAME} mysql-${MYSQL_VERSION}" \
       >/etc/apt/sources.list.d/mysql.list
 
+    MYSQL_ROOT_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 16)"
+    export DEBIAN_FRONTEND=noninteractive
+    debconf-set-selections <<<"mysql-community-server mysql-community-server/root-pass password $MYSQL_ROOT_PASSWORD"
+    debconf-set-selections <<<"mysql-community-server mysql-community-server/re-root-pass password $MYSQL_ROOT_PASSWORD"
+    debconf-set-selections <<<"mysql-community-server mysql-server/root_password password $MYSQL_ROOT_PASSWORD"
+    debconf-set-selections <<<"mysql-community-server mysql-server/root_password_again password $MYSQL_ROOT_PASSWORD"
+    debconf-set-selections <<<"mysql-community-server mysql-community-server/default-auth-override select Use Legacy Authentication Method (Retain MySQL 5.x Compatibility)"
+
+    msg_info "Installing MySQL $MYSQL_VERSION"
     $STD apt-get update
     $STD apt-get install -y mysql-server
 
-    msg_ok "Installed MySQL $MYSQL_VERSION"
+    echo "root:$MYSQL_ROOT_PASSWORD" >"$CREDS_FILE"
+    chmod 600 "$CREDS_FILE"
+
+    msg_ok "Installed MySQL $MYSQL_VERSION (credentials stored in $CREDS_FILE)"
   fi
 }
 
