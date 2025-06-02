@@ -112,7 +112,7 @@ perform_conversion() {
     UNPRIVILEGED=false
   fi
 
-  msg_info "Restoring as $(if $UNPRIVILEGED; then echo privileged; else echo unprivileged; fi) container"
+  msg_custom "🛠️" "\e[36m" "Restoring as $(if $UNPRIVILEGED; then echo privileged; else echo unprivileged; fi) container"
   restore_opts=("$NEW_CONTAINER_ID" "$BACKUP_PATH" --storage "$TARGET_STORAGE")
   if $UNPRIVILEGED; then
     restore_opts+=(--unprivileged false)
@@ -171,12 +171,12 @@ summary() {
 
   echo
   msg_custom "📄" "\e[36m" "Summary:"
-  msg_custom "🔹" "\e[36m" "Original Container: $CONTAINER_ID ($CONTAINER_NAME)"
-  msg_custom "💾" "\e[36m" "Backup Storage:     $BACKUP_STORAGE"
-  msg_custom "🗄️ " "\e[36m" "Target Storage:     $TARGET_STORAGE"
-  msg_custom "📦" "\e[36m" "Backup Path:        $BACKUP_PATH"
-  msg_custom "🆔" "\e[36m" "New Container ID:   $NEW_CONTAINER_ID"
-  msg_custom "🔁" "\e[36m" "Privilege Conversion: $conversion"
+  msg_custom "   " "\e[36m" "$(printf "%-22s %s" "Original Container:" "$CONTAINER_ID ($CONTAINER_NAME)")"
+  msg_custom "   " "\e[36m" "$(printf "%-22s %s" "Backup Storage:" "$BACKUP_STORAGE")"
+  msg_custom "   " "\e[36m" "$(printf "%-22s %s" "Target Storage:" "$TARGET_STORAGE")"
+  msg_custom "   " "\e[36m" "$(printf "%-22s %s" "Backup Path:" "$BACKUP_PATH")"
+  msg_custom "   " "\e[36m" "$(printf "%-22s %s" "New Container ID:" "$NEW_CONTAINER_ID")"
+  msg_custom "   " "\e[36m" "$(printf "%-22s %s" "Privilege Conversion:" "$conversion")"
   echo
 }
 
