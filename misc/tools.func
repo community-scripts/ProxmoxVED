@@ -312,12 +312,12 @@ install_mysql() {
   if [[ "$NEED_INSTALL" == true ]]; then
     msg_info "Removing conflicting MySQL packages"
     $STD systemctl stop mysql >/dev/null 2>&1 || true
-    $STD apt-get purge -y 'mysql*'
+    $STD apt-get purge -y "^mysql-server.*" "^mysql-client.*" "^mysql-common" || true
     rm -f /etc/apt/sources.list.d/mysql.list /etc/apt/trusted.gpg.d/mysql.gpg
 
     msg_info "Setting up MySQL APT Repository"
     DISTRO_CODENAME="$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)"
-    curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2022 | gpg --dearmor -o /etc/apt/trusted.gpg.d/mysql.gpg
+    curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 | gpg --dearmor -o /etc/apt/trusted.gpg.d/mysql.gpg
     echo "deb [signed-by=/etc/apt/trusted.gpg.d/mysql.gpg] https://repo.mysql.com/apt/debian/ ${DISTRO_CODENAME} mysql-${MYSQL_VERSION}" \
       >/etc/apt/sources.list.d/mysql.list
 
