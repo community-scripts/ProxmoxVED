@@ -295,8 +295,6 @@ install_mysql() {
   local MYSQL_VERSION="${MYSQL_VERSION:-8.0}"
   local CURRENT_VERSION=""
   local NEED_INSTALL=false
-  local MYSQL_ROOT_PASSWORD=""
-  local CREDS_FILE="$HOME/mysql.creds"
 
   if command -v mysql >/dev/null; then
     CURRENT_VERSION="$(mysql --version | grep -oP 'Distrib\s+\K[0-9]+\.[0-9]+')"
@@ -320,20 +318,9 @@ install_mysql() {
     echo "deb [signed-by=/etc/apt/trusted.gpg.d/mysql.gpg] https://repo.mysql.com/apt/debian/ ${DISTRO_CODENAME} mysql-${MYSQL_VERSION}" \
       >/etc/apt/sources.list.d/mysql.list
 
-    MYSQL_ROOT_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom 2>/dev/null | head -c 16)"
-    [[ -z "$MYSQL_ROOT_PASSWORD" ]] && MYSQL_ROOT_PASSWORD="Fallback123!"
     export DEBIAN_FRONTEND=noninteractive
-    debconf-set-selections <<<"mysql-community-server mysql-community-server/root-pass password $MYSQL_ROOT_PASSWORD"
-    debconf-set-selections <<<"mysql-community-server mysql-community-server/re-root-pass password $MYSQL_ROOT_PASSWORD"
-    debconf-set-selections <<<"mysql-community-server mysql-server/root_password password $MYSQL_ROOT_PASSWORD"
-    debconf-set-selections <<<"mysql-community-server mysql-server/root_password_again password $MYSQL_ROOT_PASSWORD"
-    debconf-set-selections <<<"mysql-community-server mysql-community-server/default-auth-override select Use Legacy Authentication Method (Retain MySQL 5.x Compatibility)"
-
     $STD apt-get update
     $STD apt-get install -y mysql-server
-
-    echo "root:$MYSQL_ROOT_PASSWORD" >"$CREDS_FILE"
-    chmod 600 "$CREDS_FILE"
   fi
 }
 
