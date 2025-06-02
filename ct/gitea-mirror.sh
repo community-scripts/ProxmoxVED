@@ -54,7 +54,6 @@ function update_script() {
     cd /opt/gitea-mirror
     bun install
     bun run build
-    bun run manage-db init
 
     msg_info "Restoring Data"
     cp /opt/gitea-mirror-backup/data/* /opt/gitea-mirror/data
