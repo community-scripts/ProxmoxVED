@@ -696,10 +696,8 @@ fetch_and_deploy_gh_release() {
   local target="${5:-/opt/$app}" # optional target dir
 
   local app_lc=$(echo "${app,,}" | tr -d ' ')
-  local version_file="$HOME/.${app_lc}/${app_lc}_version.txt"
+  local version_file="$HOME/.${app_lc}"
   local curl_timeout="--connect-timeout 10 --max-time 30"
-
-  mkdir -p "$(dirname "$version_file")"
 
   local current_version=""
   if [[ -f "$version_file" ]]; then
