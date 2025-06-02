@@ -91,8 +91,8 @@ EOF
 
 ADMIN_EMAIL="admin@helper-scripts.local"
 ADMIN_PASSWORD="$DB_PASS"
-
-cat <<EOF | $STD /opt/healthchecks/.venv/bin/python3 manage.py shell
+cd /opt/healthchecks
+cat <<EOF | $STD .venv/bin/python3 manage.py shell
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
@@ -108,7 +108,7 @@ if not User.objects.filter(email="${ADMIN_EMAIL}").exists():
     u.save()
 EOF
 
-$STD /opt/healthchecks/.venv/bin/python3 manage.py migrate
+$STD .venv/bin/python3 manage.py migrate
 msg_ok "Installed healthchecks"
 
 msg_info "Creating Service"
