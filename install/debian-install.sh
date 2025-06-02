@@ -18,10 +18,10 @@ msg_info "Installing Dependencies"
 msg_ok "Installed Dependencies"
 
 echo -e "fetching healthchecks"
-install_from_gh_release "healthchecks" "healthchecks/healthchecks" "tarball" "latest" "/opt/healthchecks"
+fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball" "latest" "/opt/healthchecks"
 echo -e "healthchecks done"
 echo -e "fetching defguard"
-install_from_gh_release "defguard" "DefGuard/defguard" "binary" "latest" "/opt/defguard"
+fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary" "latest" "/opt/defguard"
 echo -e "defguard done"
 
 #PHP_VERSION=8.2 PHP_FPM=YES install_php
