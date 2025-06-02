@@ -299,11 +299,20 @@ install_mysql() {
   if command -v mysql >/dev/null; then
     CURRENT_VERSION="$(mysql --version | grep -oP 'Distrib\s+\K[0-9]+\.[0-9]+')"
     if [[ "$CURRENT_VERSION" != "$MYSQL_VERSION" ]]; then
-      msg_info "MySQL $CURRENT_VERSION found, upgrading to $MYSQL_VERSION"
+      msg_info "MySQL $CURRENT_VERSION found, replacing with $MYSQL_VERSION"
       NEED_INSTALL=true
+    else
+      # Check for patch-level updates
+      if apt list --upgradable 2>/dev/null | grep -q '^mysql-server/'; then
+        msg_info "MySQL $CURRENT_VERSION available for upgrade"
+        $STD apt-get update
+        $STD apt-get install --only-upgrade -y mysql-server
+        msg_ok "MySQL upgraded"
+      fi
+      return
     fi
   else
-    msg_info "Setup MySQL $MYSQL_VERSION"
+    msg_info "Installing MySQL $MYSQL_VERSION"
     NEED_INSTALL=true
   fi
 
