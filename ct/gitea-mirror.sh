@@ -46,10 +46,11 @@ function update_script() {
     ln -sf /opt/bun/bin/bun /usr/local/bin/bun
     ln -sf /opt/bun/bin/bun /usr/local/bin/bunx
     msg_ok "Installed Bun"
-    
-    msg_info "Updating and rebuilding ${APP} to v${RELEASE} (Patience)"  
+
     rm -rf /opt/gitea-mirror
     fetch_and_deploy_gh_release "arunavo4/gitea-mirror"
+    
+    msg_info "Updating and rebuilding ${APP} to v${RELEASE} (Patience)"  
     cd /opt/gitea-mirror
     bun install
     bun run build
