@@ -686,20 +686,11 @@ install_from_gh_release() {
   INSTALL_DIR="/opt/$app"
   VERSION="$version"
   SOURCE_PACKAGE="$deb_name"
-
-  # auto .deb Detection, wenn nicht gesetzt und binary mode
-  if [[ "$mode" == "binary" && -z "$SOURCE_PACKAGE" ]]; then
-    local arch
-    arch=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
-    SOURCE_PACKAGE_SUFFIX="${arch}.deb"
-  else
-    SOURCE_PACKAGE_SUFFIX=""
-  fi
-
   BUILD_SOURCE=$([[ "$mode" == "binary" ]] && echo 0 || echo 1)
 
   fetch_and_deploy_gh_release "$repo"
 }
+
 # ------------------------------------------------------------------------------
 # Downloads and deploys latest GitHub release tarball.
 #
@@ -717,19 +708,19 @@ fetch_and_deploy_gh_release() {
   local repo="$1"
   local raw_app="${APP:-$APPLICATION}"
   local app=$(echo "${raw_app,,}" | tr -d ' ')
-  local arch
-  arch=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
-  local curl_timeout="--connect-timeout 10 --max-time 30"
-
-  VERSION="${VERSION:-}"
-  BUILD_SOURCE="${BUILD_SOURCE:-1}"
-  SOURCE_PACKAGE="${SOURCE_PACKAGE:-}"
-  INSTALL_DIR="${INSTALL_DIR:-/opt/$app}"
-  mkdir -p "$INSTALL_DIR"
-
+  local api_url="https://api.github.com/repos/$repo/releases/latest"
+  local header=()
+  local attempt=0
+  local max_attempts=3
+  local api_response tag http_code
   local current_version=""
-  [[ -f "$INSTALL_DIR/${app}_version.txt" ]] && current_version=$(<"$INSTALL_DIR/${app}_version.txt")
-
+  local curl_timeout="--connect-timeout 10 --max-time 30"
+  # Check if the app directory exists and if there's a version file
+  if [[ -f "/opt/${app}_version.txt" ]]; then
+    current_version=$(cat "/opt/${app}_version.txt")
+    $STD msg_info "Current version: $current_version"
+  fi
+  # ensure that jq is installed
   if ! command -v jq &>/dev/null; then
     $STD msg_info "Installing jq..."
     $STD apt-get update -qq &>/dev/null
@@ -738,114 +729,139 @@ fetch_and_deploy_gh_release() {
       return 1
     }
   fi
-
-  local api_url
-  if [[ -n "$VERSION" ]]; then
-    api_url="https://api.github.com/repos/$repo/releases/tags/v$VERSION"
-  else
-    api_url="https://api.github.com/repos/$repo/releases/latest"
-  fi
-
-  local header=()
   [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
-
-  local attempt=0 max_attempts=3 api_response http_code tag version
   until [[ $attempt -ge $max_attempts ]]; do
     ((attempt++)) || true
-    $STD msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo..."
+    $STD msg_info "[$attempt/$max_attempts] Fetching GitHub release for $repo...\n"
     api_response=$(curl $curl_timeout -fsSL -w "%{http_code}" -o /tmp/gh_resp.json "${header[@]}" "$api_url")
     http_code="${api_response:(-3)}"
+    if [[ "$http_code" == "404" ]]; then
+      msg_error "Repository $repo has no Release candidate (404)"
+      return 1
+    fi
     if [[ "$http_code" != "200" ]]; then
-      $STD msg_info "Request failed with HTTP $http_code, retrying..."
+      $STD msg_info "Request failed with HTTP $http_code, retrying...\n"
       sleep $((attempt * 2))
       continue
     fi
     api_response=$(</tmp/gh_resp.json)
+    if echo "$api_response" | grep -q "API rate limit exceeded"; then
+      msg_error "GitHub API rate limit exceeded."
+      return 1
+    fi
+    if echo "$api_response" | jq -e '.message == "Not Found"' &>/dev/null; then
+      msg_error "Repository not found: $repo"
+      return 1
+    fi
     tag=$(echo "$api_response" | jq -r '.tag_name // .name // empty')
     [[ "$tag" =~ ^v[0-9] ]] && tag="${tag:1}"
     version="${tag#v}"
-    [[ -n "$tag" ]] && break
-    sleep $((attempt * 2))
+    if [[ -z "$tag" ]]; then
+      $STD msg_info "Empty tag received, retrying...\n"
+      sleep $((attempt * 2))
+      continue
+    fi
+    $STD msg_ok "Found release: $tag for $repo"
+    break
   done
-
-  [[ -z "$tag" ]] && msg_error "Failed to fetch release tag" && return 1
-  [[ "$current_version" == "$tag" ]] && $STD msg_info "Already at latest version ($tag)" && return 0
-
-  local assets url filename tmpdir
-  assets=$(echo "$api_response" | jq -r '.assets[].browser_download_url')
-
-  if [[ "$BUILD_SOURCE" == "0" ]]; then
-    if [[ -n "$SOURCE_PACKAGE" ]]; then
-      for u in $assets; do
-        if [[ "$u" == *"$SOURCE_PACKAGE" ]]; then
-          url="$u"
-          filename="${url##*/}"
-          break
-        fi
-      done
-    else
-      for u in $assets; do
-        if [[ "$u" =~ _${arch}\.deb$ ]]; then
-          url="$u"
-          filename="${url##*/}"
-          $STD msg_info "Auto-selected .deb for arch '$arch': $filename"
-          break
-        fi
-      done
-    fi
-
-    if [[ -z "$url" ]]; then
-      msg_error "No suitable .deb package found for arch '$arch'."
-      return 1
-    fi
-
-    $STD msg_info "Downloading $filename"
-    curl $curl_timeout -fsSL -o "/tmp/$filename" "$url" || {
-      msg_error "Download failed: $url"
-      return 1
-    }
-
-    $STD msg_info "Installing .deb package via apt"
-    apt install -y "/tmp/$filename" || {
-      msg_error "apt install failed."
-      return 1
-    }
-
-    echo "$tag" >"$INSTALL_DIR/${app}_version.txt"
-    $STD msg_ok "Installed $app v$tag via .deb"
+  if [[ -z "$tag" ]]; then
+    msg_error "Failed to fetch release for $repo after $max_attempts attempts."
+    exit 1
+  fi
+  # Version comparison (if we already have this version, skip)
+  if [[ "$current_version" == "$tag" ]]; then
+    $STD msg_info "Already running the latest version ($tag). Skipping update."
     return 0
   fi
 
-  # fallback: tar.gz download (source)
+  local base_url="https://github.com/$repo/releases/download/v$tag"
+  local tmpdir
+  tmpdir=$(mktemp -d) || return 1
+  # Extract list of assets from the Release API
+  local assets urls
+  assets=$(echo "$api_response" | jq -r '.assets[].browser_download_url') || true
+  # Detect current architecture
+  local arch
+  if command -v dpkg &>/dev/null; then
+    arch=$(dpkg --print-architecture)
+  elif command -v uname &>/dev/null; then
+    case "$(uname -m)" in
+    x86_64) arch="amd64" ;;
+    aarch64) arch="arm64" ;;
+    armv7l) arch="armv7" ;;
+    armv6l) arch="armv6" ;;
+    *) arch="unknown" ;;
+    esac
+  else
+    arch="unknown"
+  fi
   $STD msg_info "Detected system architecture: $arch"
+  # Try to find a matching asset for our architecture
+  local url=""
   for u in $assets; do
-    if [[ "$u" =~ $arch.*\.tar\.gz$ ]]; then url="$u" && break; fi
+    if [[ "$u" =~ $arch.*\.tar\.gz$ ]]; then
+      url="$u"
+      $STD msg_info "Found matching architecture asset: $url"
+      break
+    fi
   done
-  [[ -z "$url" ]] && for u in $assets; do [[ "$u" =~ (x86_64|amd64|arm64|armv7|armv6).*\.tar\.gz$ ]] && url="$u" && break; done
-  [[ -z "$url" ]] && for u in $assets; do [[ "$u" =~ \.tar\.gz$ ]] && url="$u" && break; done
-  [[ -z "$url" ]] && url=$(echo "$api_response" | jq -r '.tarball_url // empty')
-  [[ -z "$url" ]] && url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
+  # Fallback to other architectures if our specific one isn't found
+  if [[ -z "$url" ]]; then
+    for u in $assets; do
+      if [[ "$u" =~ (x86_64|amd64|arm64|armv7|armv6).*\.tar\.gz$ ]]; then
+        url="$u"
+        $STD msg_info "Architecture-specific asset not found, using: $url"
+        break
+      fi
+    done
+  fi
+  # Fallback to any tar.gz
+  if [[ -z "$url" ]]; then
+    for u in $assets; do
+      if [[ "$u" =~ \.tar\.gz$ ]]; then
+        url="$u"
+        $STD msg_info "Using generic tarball: $url"
+        break
+      fi
+    done
+  fi
+  # Final fallback to GitHub source tarball
+  if [[ -z "$url" ]]; then
+    # Use tarball_url directly from API response instead of constructing our own URL
+    url=$(echo "$api_response" | jq -r '.tarball_url // empty')
 
-  filename="${url##*/}"
-  tmpdir=$(mktemp -d)
-  $STD msg_info "Downloading source archive: $filename"
-  curl $curl_timeout -fsSL -o "$tmpdir/$filename" "$url" || {
-    msg_error "Failed to download source archive."
+    # If tarball_url is empty for some reason, fall back to a constructed URL as before
+    if [[ -z "$url" ]]; then
+      url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
+    fi
+
+    $STD msg_info "Using GitHub source tarball: $url"
+  fi
+  local filename="${url##*/}"
+  $STD msg_info "Downloading $url"
+  if ! curl $curl_timeout -fsSL -o "$tmpdir/$filename" "$url"; then
+    msg_error "Failed to download release asset from $url"
     rm -rf "$tmpdir"
     return 1
-  }
-
+  fi
+  mkdir -p "/opt/$app"
   tar -xzf "$tmpdir/$filename" -C "$tmpdir"
   local content_root
-  content_root=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -n1)
-  shopt -s dotglob nullglob
-  cp -r "$content_root"/* "$INSTALL_DIR/"
-  shopt -u dotglob nullglob
-
-  echo "$version" >"$INSTALL_DIR/${app}_version.txt"
-  $STD msg_ok "Deployed $app v$version to $INSTALL_DIR"
+  content_root=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d)
+  if [[ $(echo "$content_root" | wc -l) -eq 1 ]]; then
+    shopt -s dotglob nullglob
+    cp -r "$content_root"/* "/opt/$app/"
+    shopt -u dotglob nullglob
+  else
+    shopt -s dotglob nullglob
+    cp -r "$tmpdir"/* "/opt/$app/"
+    shopt -u dotglob nullglob
+  fi
+  echo "$version" >"/opt/${app}_version.txt"
+  $STD msg_ok "Deployed $app v$version to /opt/$app"
   rm -rf "$tmpdir"
 }
+
 # ------------------------------------------------------------------------------
 # Installs a local IP updater script using networkd-dispatcher.
 #
