@@ -50,11 +50,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 msg_ok "Set up Database"
 
 msg_info "Setup healthchecks"
-cd /opt
-RELEASE=$(curl -s https://api.github.com/repos/healthchecks/healthchecks/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/healthchecks/healthchecks/archive/refs/tags/v${RELEASE}.zip" -o v${RELEASE}.zip
-unzip -q v${RELEASE}.zip
-mv healthchecks-${RELEASE} /opt/healthchecks
+fetch_and_deploy_gh_release "healthchecks/healthchecks"
 cd /opt/healthchecks
 $STD uv venv .venv
 $STD source .venv/bin/activate
