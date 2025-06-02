@@ -808,11 +808,16 @@ fetch_and_deploy_gh_release() {
     }
 
     $STD msg_info "Installing $filename via apt"
-    apt-get install -y "$tmpdir/$filename" || {
-      msg_error "Failed to install $filename"
-      rm -rf "$tmpdir"
-      return 1
+    chmod 644 "$tmpdir/$filename"
+    $STD apt-get install -y "$tmpdir/$filename" || {
+      $STD msg_info "Falling back to dpkg -i"
+      dpkg -i "$tmpdir/$filename" || {
+        msg_error "Both apt and dpkg install failed"
+        rm -rf "$tmpdir"
+        return 1
+      }
     }
+
   else
     msg_error "Unknown mode: $mode"
     rm -rf "$tmpdir"
