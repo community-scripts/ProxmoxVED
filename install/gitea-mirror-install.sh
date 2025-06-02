@@ -34,7 +34,6 @@ msg_info "Installing gitea-mirror"
 cd /opt/gitea-mirror
 bun install
 bun run build
-mkdir -p /opt/gitea-mirror-data/
 bun run manage-db init
 msg_ok "Installed gitea-mirror"
 
@@ -58,7 +57,7 @@ Environment=JWT_SECRET=${JWT_SECRET}
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now gite-mirror
+systemctl enable -q --now gitea-mirror
 msg_ok "Created Service"
 
 motd_ssh
