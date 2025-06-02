@@ -769,22 +769,36 @@ fetch_and_deploy_gh_release() {
   elif [[ "$mode" == "binary" ]]; then
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-    [[ "$arch" == "x86_64" ]] && arch="amd64"
+    [[ "$arch" == "x86_64" ]] && arch="x86_64"
     [[ "$arch" == "aarch64" ]] && arch="arm64"
 
-    local assets url_match
+    local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
+
+    # 1. Versuche, nach genauer Architektur zu matchen (z. B. x86_64, amd64, arm64)
     for u in $assets; do
-      if [[ "$u" =~ $arch.*\.deb$ ]]; then
+      if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
         url_match="$u"
         break
       fi
     done
+
+    # 2. Wenn keine Arch-Zuordnung, nimm erstes .deb im Asset-Listing
     if [[ -z "$url_match" ]]; then
-      msg_error "No matching .deb asset for arch '$arch'"
+      for u in $assets; do
+        if [[ "$u" =~ \.deb$ ]]; then
+          url_match="$u"
+          break
+        fi
+      done
+    fi
+
+    if [[ -z "$url_match" ]]; then
+      msg_error "No suitable .deb asset found for $app"
       rm -rf "$tmpdir"
       return 1
     fi
+
     filename="${url_match##*/}"
     $STD msg_info "Downloading binary .deb: $url_match"
     curl $curl_timeout -fsSL -o "$tmpdir/$filename" "$url_match" || {
@@ -792,6 +806,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpdir"
       return 1
     }
+
     $STD msg_info "Installing $filename via apt"
     apt-get install -y "$tmpdir/$filename" || {
       msg_error "Failed to install $filename"
