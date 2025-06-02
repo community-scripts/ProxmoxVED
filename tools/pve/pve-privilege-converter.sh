@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk
+# Adapted from onethree7 (https://github.com/onethree7/proxmox-lxc-privilege-converter)
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+
 if ! command -v curl >/dev/null 2>&1; then
   printf "\r\e[2K%b" '\033[93m Setup Source \033[m' >&2
   apt-get update >/dev/null 2>&1
@@ -17,7 +22,7 @@ header_info "$APP"
 
 check_root() {
   if [[ $EUID -ne 0 ]]; then
-    echo "[ERROR] Script must be run as root"
+    msg_error "Script must be run as root"
     exit 1
   fi
 }
@@ -31,7 +36,7 @@ select_container() {
   done
 
   if [[ ${#lxc_list[@]} -eq 0 ]]; then
-    echo "[ERROR] No containers found"
+    msg_error "No containers found"
     exit 1
   fi
 
@@ -40,7 +45,6 @@ select_container() {
     if [[ -n "$opt" ]]; then
       read -r CONTAINER_ID CONTAINER_NAME <<<"$opt"
       CONTAINER_NAME="${CONTAINER_NAME:-}"
-      echo "[DEBUG] Selected container: ID=$CONTAINER_ID NAME=$CONTAINER_NAME"
       break
     else
       echo "Invalid selection. Try again."
@@ -51,13 +55,11 @@ select_container() {
 select_backup_storage() {
   echo -e "Select backup storage (temporary vzdump location):"
   mapfile -t backup_storages < <(pvesm status --content backup | awk 'NR > 1 {print $1}')
-  echo "[DEBUG] Found backup storages: ${backup_storages[*]}"
   local PS3="Enter number of backup storage: "
 
   select opt in "${backup_storages[@]}"; do
     if [[ -n "$opt" ]]; then
       BACKUP_STORAGE="$opt"
-      echo "[DEBUG] Selected backup storage: $BACKUP_STORAGE"
       break
     else
       echo "Invalid selection. Try again."
@@ -66,36 +68,27 @@ select_backup_storage() {
 }
 
 backup_container() {
-  echo "[INFO] Backing up container $CONTAINER_ID to $BACKUP_STORAGE"
+  msg_info "Backing up container $CONTAINER_ID"
   vzdump_output=$(mktemp)
-  echo "[DEBUG] Using temp file for vzdump output: $vzdump_output"
-
   vzdump "$CONTAINER_ID" --compress zstd --storage "$BACKUP_STORAGE" --mode snapshot | tee "$vzdump_output"
-  echo "[DEBUG] vzdump completed. Parsing backup path …"
-
   BACKUP_PATH=$(awk '/tar.zst/ {print $NF}' "$vzdump_output" | tr -d "'")
-  echo "[DEBUG] Parsed backup path: $BACKUP_PATH"
-
   if [ -z "$BACKUP_PATH" ] || ! grep -q "Backup job finished successfully" "$vzdump_output"; then
     rm "$vzdump_output"
-    echo "[ERROR] Backup failed"
+    msg_error "Backup failed"
     exit 1
   fi
-
   rm "$vzdump_output"
-  echo "[OK] Backup complete: $BACKUP_PATH"
+  msg_ok "Backup complete: $BACKUP_PATH"
 }
 
 select_target_storage() {
   echo -e "\nSelect target storage for new container:\n"
   mapfile -t target_storages < <(pvesm status --content images | awk 'NR > 1 {print $1}')
-  echo "[DEBUG] Found target storages: ${target_storages[*]}"
   PS3="Enter number of target storage: "
 
   select opt in "${target_storages[@]}"; do
     if [[ -n "$opt" ]]; then
       TARGET_STORAGE="$opt"
-      echo "[DEBUG] Selected target storage: $TARGET_STORAGE"
       break
     else
       echo "Invalid selection. Try again."
@@ -104,8 +97,19 @@ select_target_storage() {
 }
 
 select_container_id() {
-  USED_IDS=($(pvesh get /cluster/resources --type vm | jq -r '.[].vmid'))
-  next_free_id=$(pvesh get /cluster/nextid)
+  echo "[DEBUG] Retrieving used container IDs"
+  USED_IDS=()
+  if vmids_json=$(pvesh get /cluster/resources --type vm 2>/dev/null); then
+    USED_IDS=($(jq -r '.[].vmid' <<<"$vmids_json" 2>/dev/null))
+    echo "[DEBUG] Used VMIDs: ${USED_IDS[*]}"
+  else
+    echo "[WARN] Failed to get VM ID list from pvesh"
+  fi
+
+  next_free_id=$(pvesh get /cluster/nextid 2>/dev/null || echo 999)
+  [[ "$next_free_id" =~ ^[0-9]+$ ]] || next_free_id=999
+  echo "[DEBUG] Suggested next free ID: $next_free_id"
+
   while true; do
     read -rp "Enter new container ID (default: $next_free_id): " NEW_CONTAINER_ID
     NEW_CONTAINER_ID=${NEW_CONTAINER_ID:-$next_free_id}
@@ -125,22 +129,18 @@ perform_conversion() {
     UNPRIVILEGED=false
   fi
 
-  echo "[INFO] Restoring as $(if $UNPRIVILEGED; then echo privileged; else echo unprivileged; fi) container"
-  echo "[DEBUG] Backup path: $BACKUP_PATH"
-  echo "[DEBUG] Target storage: $TARGET_STORAGE"
+  msg_info "Restoring as $(if $UNPRIVILEGED; then echo privileged; else echo unprivileged; fi) container"
   restore_opts=("$NEW_CONTAINER_ID" "$BACKUP_PATH" --storage "$TARGET_STORAGE")
-
   if $UNPRIVILEGED; then
     restore_opts+=(--unprivileged false)
   else
     restore_opts+=(--unprivileged)
   fi
 
-  echo "[DEBUG] Running: pct restore ${restore_opts[*]} -ignore-unpack-errors 1"
   if pct restore "${restore_opts[@]}" -ignore-unpack-errors 1; then
-    echo "[OK] Conversion successful"
+    msg_ok "Conversion successful"
   else
-    echo "[ERROR] Conversion failed"
+    msg_error "Conversion failed"
     exit 1
   fi
 }
@@ -161,18 +161,18 @@ manage_states() {
       fi
     fi
     pct start "$NEW_CONTAINER_ID"
-    echo "[OK] New container started"
+    msg_ok "New container started"
   else
-    echo "[INFO] Skipped container state change"
+    msg_custom "ℹ️" "\e[36m" "Skipped container state change"
   fi
 }
 
 cleanup_files() {
   read -rp "Delete backup archive? [$BACKUP_PATH] [Y/n]: " cleanup
   if [[ ${cleanup:-Y} =~ ^[Yy] ]]; then
-    rm -f "$BACKUP_PATH" && echo "[OK] Removed backup archive"
+    rm -f "$BACKUP_PATH" && msg_ok "Removed backup archive"
   else
-    echo "[INFO] Retained backup archive"
+    msg_custom "💾" "\e[36m" "Retained backup archive"
   fi
 }
 
@@ -183,13 +183,8 @@ summary() {
   echo "Target Storage: $TARGET_STORAGE"
   echo "Backup Path: $BACKUP_PATH"
   echo "New Container ID: $NEW_CONTAINER_ID"
-  echo -n "Privilege Conversion: "
-  if $UNPRIVILEGED; then
-    echo "Unprivileged -> Privileged"
-  else
-    echo "Privileged -> Unprivileged"
-  fi
-  echo "=========================="
+  echo "Privilege Conversion: $(if $UNPRIVILEGED; then echo Unprivileged - >Privileged; else echo Privileged - >Unprivileged; fi)"
+  echo "==========================\n"
 }
 
 main() {

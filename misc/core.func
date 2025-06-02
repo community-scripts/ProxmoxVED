@@ -457,12 +457,13 @@ msg_warn() {
 }
 
 msg_custom() {
-  local symbol="$1"
-  local color="$2"
-  local msg="$3"
+  local symbol="${1:-"[*]"}"
+  local color="${2:-"\e[36m"}" # Default: Cyan
+  local msg="${3:-}"
+
   [[ -z "$msg" ]] && return
-  stop_spinner
-  printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL}" >&2
+  stop_spinner 2>/dev/null || true
+  printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL:-\e[0m}" >&2
 }
 
 msg_progress() {
