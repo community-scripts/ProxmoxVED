@@ -775,7 +775,7 @@ fetch_and_deploy_gh_release() {
     local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
-    # 1. Versuche, nach genauer Architektur zu matchen (z. B. x86_64, amd64, arm64)
+    # 1. Try to match by exact architecture (e.g. x86_64, amd64, arm64)
     for u in $assets; do
       if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
         url_match="$u"
@@ -783,7 +783,7 @@ fetch_and_deploy_gh_release() {
       fi
     done
 
-    # 2. Wenn keine Arch-Zuordnung, nimm erstes .deb im Asset-Listing
+    # 2. If no Arch mapping, use the first .deb in the asset listing
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
         if [[ "$u" =~ \.deb$ ]]; then
