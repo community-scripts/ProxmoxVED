@@ -87,6 +87,54 @@ elif [[ -n "${PCT_VLAN_TAG:-}" ]]; then
   unset PCT_VLAN_TAG
 fi
 
+function select_storage() {
+  local CLASS="$1"
+  local CONTENT CONTENT_LABEL
+  case "$CLASS" in
+  container)
+    CONTENT='rootdir'
+    CONTENT_LABEL='Container'
+    ;;
+  template)
+    CONTENT='vztmpl'
+    CONTENT_LABEL='Container Template'
+    ;;
+  *)
+    msg_error "Invalid storage class: $CLASS"
+    exit 201
+    ;;
+  esac
+
+  local -a MENU
+  local MSG_MAX_LENGTH=0
+  while read -r TAG TYPE _ _ _ FREE _; do
+    local TYPE_PADDED FREE_FMT
+    TYPE_PADDED=$(printf "%-10s" "$TYPE")
+    FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")B
+    local ITEM="Type: $TYPE_PADDED Free: $FREE_FMT"
+    ((${#ITEM} + 2 > MSG_MAX_LENGTH)) && MSG_MAX_LENGTH=${#ITEM} + 2
+    MENU+=("$TAG" "$ITEM" "OFF")
+  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
+
+  local OPTION_COUNT=$((${#MENU[@]} / 3))
+  if [[ "$OPTION_COUNT" -eq 1 ]]; then
+    echo "${MENU[0]}"
+    return 0
+  fi
+
+  local STORAGE
+  while [[ -z "${STORAGE:+x}" ]]; do
+    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+      "Select the storage pool to use for the ${CONTENT_LABEL,,}.\nUse the spacebar to make a selection.\n" \
+      16 $((MSG_MAX_LENGTH + 23)) 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+      msg_error "Storage selection cancelled."
+      exit 202
+    }
+  done
+
+  echo "$STORAGE"
+}
+
 # Storage Checks
 msg_info "Validating Storage"
 VALIDCT=$(pvesm status -content rootdir | awk 'NR>1')
