@@ -17,6 +17,13 @@ msg_info "Installing Dependencies"
 #$STD apt-get install -y gnup
 msg_ok "Installed Dependencies"
 
+echo -e "fetching healthchecks"
+install_from_gh_release "healthchecks" "healthchecks/healthchecks" "tarball" "latest" "/opt/healthchecks"
+echo -e "healthchecks done"
+echo -e "fetching defguard"
+install_from_gh_release "defguard" "DefGuard/defguard" "binary" "latest" "/opt/defguard"
+echo -e "defguard done"
+
 #PHP_VERSION=8.2 PHP_FPM=YES install_php
 #install_composer
 
@@ -33,7 +40,7 @@ msg_ok "Installed Dependencies"
 #install_mongodb
 #install_postgresql
 #install_mariadb
-install_mysql
+#install_mysql
 
 # msg_info "Setup DISTRO env"
 # DISTRO="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
