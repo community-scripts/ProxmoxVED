@@ -42,7 +42,7 @@ function update_script() {
 
     msg_info "Installing Bun"
     export BUN_INSTALL=/opt/bun
-    curl -fsSL https://bun.sh/install | bash
+    $STD curl -fsSL https://bun.sh/install | bash
     ln -sf /opt/bun/bin/bun /usr/local/bin/bun
     ln -sf /opt/bun/bin/bun /usr/local/bin/bunx
     msg_ok "Installed Bun"
@@ -50,18 +50,19 @@ function update_script() {
     rm -rf /opt/gitea-mirror
     fetch_and_deploy_gh_release "arunavo4/gitea-mirror"
     
-    msg_info "Updating and rebuilding ${APP} to v${RELEASE} (Patience)"  
+    msg_info "Updating and rebuilding ${APP} to v${RELEASE}"  
     cd /opt/gitea-mirror
-    bun install
-    bun run build
+    $STD bun install
+    $STD bun run build
+    msg_ok "Updated and rebuilt ${APP} to v${RELEASE}"  
 
     msg_info "Restoring Data"
     cp /opt/gitea-mirror-backup/data/* /opt/gitea-mirror/data
     msg_ok "Restored Data"
 
-    msg_info "Starting Services"
+    msg_info "Starting Service"
     systemctl start gitea-mirror
-    msg_ok "Services Started"
+    msg_ok "Service Started"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
