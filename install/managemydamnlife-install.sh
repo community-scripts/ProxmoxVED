@@ -51,7 +51,7 @@ sed -i -e 's|db|localhost|' \
   /opt/mmdl/.env
 
 cd /opt/mmdl
-export NEXT_TELEMETRY_DISABLE="true"
+export NEXT_TELEMETRY_DISABLE=1
 export CI="true"
 $STD npm install
 $STD npm run migrate
