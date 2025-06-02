@@ -89,9 +89,11 @@ SITE_NAME=Mychecks
 SITE_ROOT=http://0.0.0.0:8000
 EOF
 
+$STD .venv/bin/python3 manage.py makemigrations
+$STD .venv/bin/python3 manage.py migrate
+
 ADMIN_EMAIL="admin@helper-scripts.local"
 ADMIN_PASSWORD="$DB_PASS"
-cd /opt/healthchecks
 cat <<EOF | $STD .venv/bin/python3 manage.py shell
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -107,8 +109,6 @@ if not User.objects.filter(email="${ADMIN_EMAIL}").exists():
     u.is_superuser = True
     u.save()
 EOF
-
-$STD .venv/bin/python3 manage.py migrate
 msg_ok "Installed healthchecks"
 
 msg_info "Creating Service"
