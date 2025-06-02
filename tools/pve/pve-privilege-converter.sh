@@ -28,7 +28,6 @@ check_root() {
 }
 
 select_container() {
-  echo -e "\nChoose a Container to convert:\n"
   mapfile -t lxc_list_raw < <(pct list | awk 'NR > 1 {print $1, $3}')
   lxc_list=()
   for entry in "${lxc_list_raw[@]}"; do
@@ -68,7 +67,7 @@ select_backup_storage() {
 }
 
 backup_container() {
-  msg_info "Backing up container $CONTAINER_ID"
+  msg_custom "📦" "\e[36m" "Backing up container $CONTAINER_ID"
   vzdump_output=$(mktemp)
   vzdump "$CONTAINER_ID" --compress zstd --storage "$BACKUP_STORAGE" --mode snapshot | tee "$vzdump_output"
   BACKUP_PATH=$(awk '/tar.zst/ {print $NF}' "$vzdump_output" | tr -d "'")
@@ -100,8 +99,12 @@ select_container_id() {
   echo "[DEBUG] Retrieving used container IDs"
   USED_IDS=()
   if vmids_json=$(pvesh get /cluster/resources --type vm 2>/dev/null); then
-    USED_IDS=($(jq -r '.[].vmid' <<<"$vmids_json" 2>/dev/null))
-    echo "[DEBUG] Used VMIDs: ${USED_IDS[*]}"
+    if jq -e . <<<"$vmids_json" >/dev/null 2>&1; then
+      USED_IDS=($(jq -r '.[].vmid' <<<"$vmids_json"))
+      echo "[DEBUG] Used VMIDs: ${USED_IDS[*]}"
+    else
+      echo "[WARN] Invalid JSON from pvesh, skipping VMID check"
+    fi
   else
     echo "[WARN] Failed to get VM ID list from pvesh"
   fi
