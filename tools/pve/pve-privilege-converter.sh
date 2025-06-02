@@ -29,12 +29,22 @@ check_root() {
 
 select_container() {
   echo -e "\nChoose a Container to convert:\n"
-  mapfile -t lxc_list < <(pct list | awk 'NR > 1 {print $1, $3}')
-  PS3="Enter number of container to convert: "
+  mapfile -t lxc_list_raw < <(pct list | awk 'NR > 1 {print $1, $3}')
+  lxc_list=()
+  for entry in "${lxc_list_raw[@]}"; do
+    [[ -n "$entry" ]] && lxc_list+=("$entry")
+  done
 
+  if [[ ${#lxc_list[@]} -eq 0 ]]; then
+    msg_error "No containers found"
+    exit 1
+  fi
+
+  PS3="Enter number of container to convert: "
   select opt in "${lxc_list[@]}"; do
     if [[ -n "$opt" ]]; then
       read -r CONTAINER_ID CONTAINER_NAME <<<"$opt"
+      CONTAINER_NAME="${CONTAINER_NAME:-}"
       break
     else
       echo "Invalid selection. Try again."
