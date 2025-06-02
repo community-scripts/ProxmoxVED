@@ -30,10 +30,10 @@ msg_ok "Installed Dependencies"
 #MARIADB_VERSION="11.8"
 #MYSQL_VERSION="8.0"
 
-install_mongodb
+#install_mongodb
 #install_postgresql
 #install_mariadb
-#install_mysql
+install_mysql
 
 # msg_info "Setup DISTRO env"
 # DISTRO="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
