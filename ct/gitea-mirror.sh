@@ -24,7 +24,7 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /opt/gite-mirror ]]; then
+  if [[ ! -d /opt/gitea-mirror ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
