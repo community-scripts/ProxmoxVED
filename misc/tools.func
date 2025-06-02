@@ -678,14 +678,14 @@ install_mongodb() {
 install_from_gh_release() {
   local app="$1"
   local repo="$2"
-  local mode="$3"     # source|binary
-  local version="$4"  # optional
-  local deb_name="$5" # optional
+  local mode="${3:-source}" # Default: source
+  local version="${4:-}"    # Default: latest
+  local deb_name="${5:-}"   # Default: empty
 
   APP="$app"
   INSTALL_DIR="/opt/$app"
-  VERSION="${version:-}"
-  SOURCE_PACKAGE="${deb_name:-}"
+  VERSION="$version"
+  SOURCE_PACKAGE="$deb_name"
   BUILD_SOURCE=$([[ "$mode" == "binary" ]] && echo 0 || echo 1)
 
   fetch_and_deploy_gh_release "$repo"
