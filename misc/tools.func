@@ -303,7 +303,7 @@ install_mysql() {
       NEED_INSTALL=true
     fi
   else
-    msg_info "MySQL not found, installing $MYSQL_VERSION"
+    msg_info "Setup MySQL $MYSQL_VERSION"
     NEED_INSTALL=true
   fi
 
@@ -321,6 +321,7 @@ install_mysql() {
     export DEBIAN_FRONTEND=noninteractive
     $STD apt-get update
     $STD apt-get install -y mysql-server
+    msg_ok "Installed MySQL $MYSQL_VERSION"
   fi
 }
 
