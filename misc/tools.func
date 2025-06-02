@@ -320,7 +320,8 @@ install_mysql() {
     echo "deb [signed-by=/etc/apt/trusted.gpg.d/mysql.gpg] https://repo.mysql.com/apt/debian/ ${DISTRO_CODENAME} mysql-${MYSQL_VERSION}" \
       >/etc/apt/sources.list.d/mysql.list
 
-    MYSQL_ROOT_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom 2>/dev/null | head -c 16 || echo 'Fallback123!')"
+    MYSQL_ROOT_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom 2>/dev/null | head -c 16)"
+    [[ -z "$MYSQL_ROOT_PASSWORD" ]] && MYSQL_ROOT_PASSWORD="Fallback123!"
     export DEBIAN_FRONTEND=noninteractive
     debconf-set-selections <<<"mysql-community-server mysql-community-server/root-pass password $MYSQL_ROOT_PASSWORD"
     debconf-set-selections <<<"mysql-community-server mysql-community-server/re-root-pass password $MYSQL_ROOT_PASSWORD"
