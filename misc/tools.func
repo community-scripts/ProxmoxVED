@@ -719,6 +719,7 @@ fetch_and_deploy_gh_release() {
   local app=$(echo "${raw_app,,}" | tr -d ' ')
   local arch
   arch=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
+  local curl_timeout="--connect-timeout 10 --max-time 30"
 
   VERSION="${VERSION:-}"
   BUILD_SOURCE="${BUILD_SOURCE:-1}"
