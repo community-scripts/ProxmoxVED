@@ -50,7 +50,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 msg_ok "Set up Database"
 
 msg_info "Setup healthchecks"
-fetch_and_deploy_gh_release "healthchecks/healthchecks"
+install_from_gh_release "healthchecks" "healthchecks/healthchecks" "source"
 cd /opt/healthchecks
 $STD uv venv .venv
 $STD source .venv/bin/activate
