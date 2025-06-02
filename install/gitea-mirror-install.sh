@@ -30,17 +30,17 @@ msg_ok "Installed Bun"
 
 fetch_and_deploy_gh_release "arunavo4/gitea-mirror"
 
-msg_info "Installing Gite-Mirror"
+msg_info "Installing gitea-mirror"
 cd /opt/gitea-mirror
 bun install
 bun run build
 mkdir -p /opt/gitea-mirror-data/
 bun run manage-db init
-msg_ok "Installed Gitea-Mirror"
+msg_ok "Installed gitea-mirror"
 
 msg_info "Creating Services"
 JWT_SECRET=$(openssl rand -hex 32)
-cat <<EOF >/etc/systemd/system/homarr.service
+cat <<EOF >/etc/systemd/system/gitea-mirror.service
 [Unit]
 Description=Gitea Mirror
 After=network.target
@@ -53,7 +53,7 @@ RestartSec=10
 Environment=NODE_ENV=production
 Environment=HOST=0.0.0.0
 Environment=PORT=4321
-Environment=DATABASE_URL=file:/opt/gitea-mirror-data/gitea-mirror.db
+Environment=DATABASE_URL=file:/opt/gitea-mirror/data/gitea-mirror.db
 Environment=JWT_SECRET=${JWT_SECRET}
 [Install]
 WantedBy=multi-user.target
