@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://github.com/arunavo4/gitea-mirror
 
 APP="gitea-mirror"
-var_tags="${var_tags:-arr;dashboard}"
+var_tags="${var_tags:-mirror;gitea}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-1024}"
 var_disk="${var_disk:-5}"
@@ -31,13 +31,13 @@ function update_script() {
   RELEASE=$(curl -fsSL https://api.github.com/repos/arunavo4/gitea-mirror/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
 
-    msg_info "Stopping Services (Patience)"
+    msg_info "Stopping Services"
     systemctl stop gitea-mirror
     msg_ok "Services Stopped"
 
     msg_info "Backup Data"
-    mkdir -p /opt/homarr-data-backup
-    cp /opt/homarr/.env /opt/homarr-data-backup/.env
+    mkdir -p /opt/gitea-mirror-backup/data
+    cp /opt/gitea-mirror/data/* /opt/gitea-mirror-backup/data/
     msg_ok "Backup Data"
 
     msg_info "Installing Bun"
@@ -48,13 +48,20 @@ function update_script() {
     msg_ok "Installed Bun"
     
     msg_info "Updating and rebuilding ${APP} to v${RELEASE} (Patience)"  
-    apt install -y git
-    rm -rf /opt/homarr
+    rm -rf /opt/gitea-mirror
     fetch_and_deploy_gh_release "arunavo4/gitea-mirror"
     cd /opt/gitea-mirror
     bun install
     bun run build
     bun run manage-db init
+
+    msg_info "Restoring Data"
+    cp /opt/gitea-mirror-backup/data/* /opt/gitea-mirror/data
+    msg_ok "Restored Data"
+
+    msg_info "Starting Services"
+    systemctl start gitea-mirror
+    msg_ok "Services Started"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
