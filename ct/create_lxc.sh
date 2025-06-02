@@ -3,27 +3,26 @@
 # Copyright (c) 2021-2025 tteck
 # Author: tteck (tteckster)
 # Co-Author: MickLesk
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-# This sets verbose mode if the global variable is set to "yes"
-# if [ "$VERBOSE" == "yes" ]; then set -x; fi
-
-if command -v curl >/dev/null 2>&1; then
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  load_functions
-  #echo "(create-lxc.sh) Loaded core.func via curl"
-elif command -v wget >/dev/null 2>&1; then
-  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  load_functions
-  #echo "(create-lxc.sh) Loaded core.func via wget"
-fi
-
-# This sets error handling options and defines the error_handler function to handle errors
 set -Eeuo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 
-# This function handles errors
+# Constants
+URL_CORE_FUNC="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func"
+EXIT_INVALID_PASSWORD=301
+EXIT_INVALID_VLAN=302
+EXIT_COREFUNC_LOAD=303
+EXIT_NO_DOWNLOADER=304
+EXIT_NO_CT_STORAGE=305
+EXIT_NO_TMPL_STORAGE=306
+EXIT_TEMPLATE_CORRUPT=308
+EXIT_TEMPLATE_DL_FAIL=309
+EXIT_CONTAINER_CREATE_FAIL=310
+EXIT_CONTAINER_NOT_FOUND=311
+EXIT_TEMPLATE_LOCK_TIMEOUT=312
+
+# Spinner cleanup
 function error_handler() {
   printf "\e[?25h"
   local exit_code="$?"
@@ -34,230 +33,176 @@ function error_handler() {
   exit 200
 }
 
-# This checks for the presence of valid Container Storage and Template Storage locations
-msg_info "Validating Storage"
-VALIDCT=$(pvesm status -content rootdir | awk 'NR>1')
-if [ -z "$VALIDCT" ]; then
-  msg_error "Unable to detect a valid Container Storage location."
-  exit 1
-fi
-VALIDTMP=$(pvesm status -content vztmpl | awk 'NR>1')
-if [ -z "$VALIDTMP" ]; then
-  msg_error "Unable to detect a valid Template Storage location."
-  exit 1
-fi
-
-# This function is used to select the storage class and determine the corresponding storage content type and label.
-function select_storage() {
-  local CLASS="$1"
-  local CONTENT
-  local CONTENT_LABEL
-
-  case "$CLASS" in
-  container)
-    CONTENT='rootdir'
-    CONTENT_LABEL='Container'
-    ;;
-  template)
-    CONTENT='vztmpl'
-    CONTENT_LABEL='Container Template'
-    ;;
-  *)
-    msg_error "Invalid storage class: $CLASS"
-    exit 201
-    ;;
-  esac
-
-  # Collect storage options
-  local -a MENU
-  local MSG_MAX_LENGTH=0
-
-  while read -r TAG TYPE _ _ _ FREE _; do
-    local TYPE_PADDED
-    local FREE_FMT
-
-    TYPE_PADDED=$(printf "%-10s" "$TYPE")
-    FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")B
-    local ITEM="Type: $TYPE_PADDED Free: $FREE_FMT"
-
-    ((${#ITEM} + 2 > MSG_MAX_LENGTH)) && MSG_MAX_LENGTH=$((${#ITEM} + 2))
-    MENU+=("$TAG" "$ITEM" "OFF")
-  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
-
-  local OPTION_COUNT=$((${#MENU[@]} / 3))
-
-  # Auto-select if only one option available
-  if [[ "$OPTION_COUNT" -eq 1 ]]; then
-    echo "${MENU[0]}"
-    return 0
+# Load core.func
+if command -v curl >/dev/null 2>&1; then
+  if ! CORE_FUNC=$(curl -fsSL "$URL_CORE_FUNC"); then
+    echo "Failed to fetch core.func via curl. Check DNS or proxy." >&2
+    exit $EXIT_COREFUNC_LOAD
   fi
+  source <(echo "$CORE_FUNC")
+elif command -v wget >/dev/null 2>&1; then
+  if ! CORE_FUNC=$(wget -qO- "$URL_CORE_FUNC"); then
+    echo "Failed to fetch core.func via wget. Check DNS or proxy." >&2
+    exit $EXIT_COREFUNC_LOAD
+  fi
+  source <(echo "$CORE_FUNC")
+else
+  echo "curl or wget not found. Cannot proceed." >&2
+  exit $EXIT_NO_DOWNLOADER
+fi
+load_functions
 
-  # Display selection menu
-  local STORAGE
-  while [[ -z "${STORAGE:+x}" ]]; do
-    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-      "Select the storage pool to use for the ${CONTENT_LABEL,,}.\nUse the spacebar to make a selection.\n" \
-      16 $((MSG_MAX_LENGTH + 23)) 6 \
-      "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-      msg_error "Storage selection cancelled."
-      exit 202
-    }
-  done
-
-  echo "$STORAGE"
-}
-
-# Test if required variables are set
+# Validate required inputs
 [[ "${CTID:-}" ]] || {
-  msg_error "You need to set 'CTID' variable."
+  msg_error "CTID not set."
   exit 203
 }
 [[ "${PCT_OSTYPE:-}" ]] || {
-  msg_error "You need to set 'PCT_OSTYPE' variable."
+  msg_error "PCT_OSTYPE not set."
   exit 204
 }
-
-# Test if ID is valid
-[ "$CTID" -ge "100" ] || {
-  msg_error "ID cannot be less than 100."
+[[ "$CTID" -ge 100 ]] || {
+  msg_error "CTID must be >= 100."
   exit 205
 }
-
-# Test if ID is in use
 if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
-  echo -e "ID '$CTID' is already in use."
-  unset CTID
-  msg_error "Cannot use ID that is already in use."
+  msg_error "CTID $CTID already in use."
   exit 206
 fi
 
-# # Get template storage
-# TEMPLATE_STORAGE=$(select_storage template)
-# CONTAINER_STORAGE=$(select_storage container) || exit
-# msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}Container Storage: ${BL}$CONTAINER_STORAGE${CL}."
+# Password validation
+[[ "${PCT_PASSWORD:-}" =~ ^- ]] && {
+  msg_error "Root password must not begin with '-' (interpreted as argument)."
+  exit $EXIT_INVALID_PASSWORD
+}
 
-# Get template storage
+# VLAN validation
+if [[ "${PCT_VLAN_TAG:-}" =~ ^[0-9]+$ ]]; then
+  if [ "$PCT_VLAN_TAG" -lt 1 ] || [ "$PCT_VLAN_TAG" -gt 4094 ]; then
+    msg_error "VLAN tag '${PCT_VLAN_TAG}' out of range (1-4094)."
+    exit $EXIT_INVALID_VLAN
+  fi
+elif [[ -n "${PCT_VLAN_TAG:-}" ]]; then
+  msg_warn "Invalid VLAN tag format. Skipping VLAN config."
+  unset PCT_VLAN_TAG
+fi
+
+# Storage Checks
+msg_info "Validating Storage"
+VALIDCT=$(pvesm status -content rootdir | awk 'NR>1')
+[[ -z "$VALIDCT" ]] && {
+  msg_error "No valid Container Storage."
+  exit $EXIT_NO_CT_STORAGE
+}
+VALIDTMP=$(pvesm status -content vztmpl | awk 'NR>1')
+[[ -z "$VALIDTMP" ]] && {
+  msg_error "No valid Template Storage."
+  exit $EXIT_NO_TMPL_STORAGE
+}
+
 TEMPLATE_STORAGE=$(select_storage template)
 msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
 
-# Get container storage
 CONTAINER_STORAGE=$(select_storage container)
 msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
 
-# Update LXC template list
 $STD msg_info "Updating LXC Template List"
-if ! timeout 10 pveam update >/dev/null 2>&1; then
-  msg_error "Failed to update LXC template list. Please check your Proxmox host's internet connection and DNS resolution."
+timeout 10 pveam update >/dev/null || {
+  msg_error "LXC template list update failed. Check Internet or DNS."
   exit 201
-fi
+}
 $STD msg_ok "LXC Template List Updated"
 
-# Get LXC template string
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 mapfile -t TEMPLATES < <(pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V)
-
-if [ ${#TEMPLATES[@]} -eq 0 ]; then
-  msg_error "No matching LXC template found for '${TEMPLATE_SEARCH}'. Make sure your host can reach the Proxmox template repository."
+[[ ${#TEMPLATES[@]} -eq 0 ]] && {
+  msg_error "No template found for '${TEMPLATE_SEARCH}'."
   exit 207
-fi
+}
 
 TEMPLATE="${TEMPLATES[-1]}"
 TEMPLATE_PATH="$(pvesm path "$TEMPLATE_STORAGE":vztmpl/$TEMPLATE)"
 
-# Check if template exists and is valid
-if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1; then
-  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
-
-  [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
-
+# Ensure template exists and is valid
+if ! pvesm list "$TEMPLATE_STORAGE" | awk '{print $2}' | grep -Fxq "$TEMPLATE" ||
+  ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
+  msg_warn "Template missing or corrupted. Downloading new copy."
+  rm -f "$TEMPLATE_PATH"
   for attempt in {1..3}; do
-    msg_info "Attempt $attempt: Downloading LXC template..."
-
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
-      msg_ok "Template download successful."
+    msg_info "Attempt $attempt: Downloading template..."
+    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
+      msg_ok "Download successful."
       break
     fi
-
-    if [ $attempt -eq 3 ]; then
-      msg_error "Failed after 3 attempts. Please check your Proxmox host’s internet access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
-      exit 208
-    fi
-
+    ((attempt == 3)) && {
+      msg_error "Template download failed after 3 attempts."
+      exit $EXIT_TEMPLATE_DL_FAIL
+    }
     sleep $((attempt * 5))
   done
 fi
+msg_ok "LXC Template '$TEMPLATE' is ready."
 
-msg_ok "LXC Template '$TEMPLATE' is ready to use."
-
-# Check and fix subuid/subgid
+# subuid/subgid fix
 grep -q "root:100000:65536" /etc/subuid || echo "root:100000:65536" >>/etc/subuid
 grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgid
 
-# Combine all options
+# PCT Options
 PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 [[ " ${PCT_OPTIONS[@]} " =~ " -rootfs " ]] || PCT_OPTIONS+=(-rootfs "$CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}")
 
-# Secure creation of the LXC container with lock and template check
+# Lock file to prevent race
 lockfile="/tmp/template.${TEMPLATE}.lock"
 exec 9>"$lockfile"
 flock -w 60 9 || {
-  msg_error "Timeout while waiting for template lock"
-  exit 211
+  msg_error "Timeout while waiting for template lock."
+  exit $EXIT_TEMPLATE_LOCK_TIMEOUT
 }
 
 msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-  msg_error "Container creation failed. Checking if template is corrupted or incomplete."
+  msg_warn "Initial container creation failed. Checking template..."
 
-  if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
-    msg_error "Template file too small or missing – re-downloading."
+  if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]] ||
+    ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
+    msg_error "Template appears broken. Re-downloading..."
     rm -f "$TEMPLATE_PATH"
-  elif ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
-    msg_error "Template appears to be corrupted – re-downloading."
-    rm -f "$TEMPLATE_PATH"
-  else
-    msg_error "Template is valid, but container creation still failed."
-    exit 209
+    for attempt in {1..3}; do
+      msg_info "Attempt $attempt: Re-downloading template..."
+      if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
+        msg_ok "Re-download successful."
+        break
+      fi
+      ((attempt == 3)) && {
+        msg_error "Template could not be recovered after 3 attempts."
+        exit $EXIT_TEMPLATE_DL_FAIL
+      }
+      sleep $((attempt * 5))
+    done
   fi
-
-  # Retry download
-  for attempt in {1..3}; do
-    msg_info "Attempt $attempt: Re-downloading template..."
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
-      msg_ok "Template re-download successful."
-      break
-    fi
-    if [ "$attempt" -eq 3 ]; then
-      msg_error "Three failed attempts. Aborting."
-      exit 208
-    fi
-    sleep $((attempt * 5))
-  done
-
-  sleep 1 # I/O-Sync-Delay
 
   if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-    msg_error "Container creation failed after re-downloading template."
-    exit 200
+    msg_error "Container creation failed even after re-downloading template."
+    exit $EXIT_CONTAINER_CREATE_FAIL
   fi
 fi
 
-if ! pct status "$CTID" &>/dev/null; then
+pct status "$CTID" &>/dev/null || {
   msg_error "Container not found after pct create – assuming failure."
-  exit 210
-fi
+  exit $EXIT_CONTAINER_NOT_FOUND
+}
+
+# Optionaler DNS-Fix für Alpine-Container
 : "${UDHCPC_FIX:=}"
 if [ "$UDHCPC_FIX" == "yes" ]; then
-  # Ensure container is mounted
+  CONFIG_FILE="/var/lib/lxc/${CTID}/rootfs/etc/udhcpc/udhcpc.conf"
+  MOUNTED_HERE=false
+
   if ! mount | grep -q "/var/lib/lxc/${CTID}/rootfs"; then
-    pct mount "$CTID" >/dev/null 2>&1
-    MOUNTED_HERE=true
-  else
-    MOUNTED_HERE=false
+    pct mount "$CTID" >/dev/null 2>&1 && MOUNTED_HERE=true
   fi
 
-  CONFIG_FILE="/var/lib/lxc/${CTID}/rootfs/etc/udhcpc/udhcpc.conf"
-
+  # Warten auf Datei (max. 5 Sek.)
   for i in {1..10}; do
     [ -f "$CONFIG_FILE" ] && break
     sleep 0.5
@@ -279,10 +224,7 @@ if [ "$UDHCPC_FIX" == "yes" ]; then
     msg_error "udhcpc.conf not found in $CONFIG_FILE after waiting"
   fi
 
-  # Clean up: only unmount if we mounted it here
-  if [ "${MOUNTED_HERE}" = true ]; then
-    pct unmount "$CTID" >/dev/null 2>&1
-  fi
+  $MOUNTED_HERE && pct unmount "$CTID" >/dev/null 2>&1
 fi
 
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
