@@ -27,6 +27,31 @@ check_root() {
   fi
 }
 
+select_target_storage_and_container_id() {
+  echo -e "\nSelect target storage for restored container:\n"
+  mapfile -t target_storages < <(pvesm status --content images | awk 'NR > 1 {print $1}')
+  for i in "${!target_storages[@]}"; do
+    printf "%s) %s\n" "$((i + 1))" "${target_storages[$i]}"
+  done
+
+  while true; do
+    read -rp "Enter number of target storage: " choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && ((choice >= 1 && choice <= ${#target_storages[@]})); then
+      TARGET_STORAGE="${target_storages[$((choice - 1))]}"
+      break
+    else
+      echo "Invalid selection. Try again."
+    fi
+  done
+
+  next_free_id=$(pvesh get /cluster/nextid 2>/dev/null || echo 999)
+  [[ "$next_free_id" =~ ^[0-9]+$ ]] || next_free_id=999
+
+  echo ""
+  read -rp "Suggested next free container ID: $next_free_id. Enter new container ID [default: $next_free_id]: " NEW_CONTAINER_ID
+  NEW_CONTAINER_ID="${NEW_CONTAINER_ID:-$next_free_id}"
+}
+
 select_container() {
   mapfile -t lxc_list_raw < <(pct list | awk 'NR > 1 {print $1, $3}')
   lxc_list=()
@@ -78,51 +103,6 @@ backup_container() {
   fi
   rm "$vzdump_output"
   msg_ok "Backup complete: $BACKUP_PATH"
-}
-
-select_target_storage() {
-  echo -e "\nSelect target storage for new container:\n"
-  mapfile -t target_storages < <(pvesm status --content images | awk 'NR > 1 {print $1}')
-  PS3="Enter number of target storage: "
-
-  select opt in "${target_storages[@]}"; do
-    if [[ -n "$opt" ]]; then
-      TARGET_STORAGE="$opt"
-      break
-    else
-      echo "Invalid selection. Try again."
-    fi
-  done
-}
-
-select_container_id() {
-  echo "[DEBUG] Retrieving used container IDs"
-  USED_IDS=()
-  if vmids_json=$(pvesh get /cluster/resources --type vm 2>/dev/null); then
-    if jq -e . <<<"$vmids_json" >/dev/null 2>&1; then
-      USED_IDS=($(jq -r '.[].vmid' <<<"$vmids_json"))
-      echo "[DEBUG] Used VMIDs: ${USED_IDS[*]}"
-    else
-      echo "[WARN] Invalid JSON from pvesh, skipping VMID check"
-    fi
-  else
-    echo "[WARN] Failed to get VM ID list from pvesh"
-  fi
-
-  next_free_id=$(pvesh get /cluster/nextid 2>/dev/null || echo 999)
-  [[ "$next_free_id" =~ ^[0-9]+$ ]] || next_free_id=999
-  echo "[DEBUG] Suggested next free ID: $next_free_id"
-
-  while true; do
-    read -rp "Enter new container ID (default: $next_free_id): " NEW_CONTAINER_ID
-    NEW_CONTAINER_ID=${NEW_CONTAINER_ID:-$next_free_id}
-    if [[ "$NEW_CONTAINER_ID" =~ ^[0-9]+$ ]] && [[ ! " ${USED_IDS[*]} " =~ " ${NEW_CONTAINER_ID} " ]]; then
-      echo "[DEBUG] Selected new container ID: $NEW_CONTAINER_ID"
-      break
-    else
-      echo "ID invalid or in use. Try again."
-    fi
-  done
 }
 
 perform_conversion() {
@@ -180,14 +160,24 @@ cleanup_files() {
 }
 
 summary() {
-  echo -e "\n======== Summary ========"
-  echo "Original Container: $CONTAINER_ID ($CONTAINER_NAME)"
-  echo "Backup Storage: $BACKUP_STORAGE"
-  echo "Target Storage: $TARGET_STORAGE"
-  echo "Backup Path: $BACKUP_PATH"
-  echo "New Container ID: $NEW_CONTAINER_ID"
-  echo "Privilege Conversion: $(if $UNPRIVILEGED; then echo Unprivileged - >Privileged; else echo Privileged - >Unprivileged; fi)"
-  echo "==========================\n"
+  local conversion="Unknown"
+  if [[ -n "${UNPRIVILEGED:-}" ]]; then
+    if $UNPRIVILEGED; then
+      conversion="Unprivileged → Privileged"
+    else
+      conversion="Privileged → Unprivileged"
+    fi
+  fi
+
+  echo
+  msg_custom "📄" "\e[36m" "Summary:"
+  msg_custom "🔹" "\e[36m" "Original Container: $CONTAINER_ID ($CONTAINER_NAME)"
+  msg_custom "💾" "\e[36m" "Backup Storage:     $BACKUP_STORAGE"
+  msg_custom "🗄️ " "\e[36m" "Target Storage:     $TARGET_STORAGE"
+  msg_custom "📦" "\e[36m" "Backup Path:        $BACKUP_PATH"
+  msg_custom "🆔" "\e[36m" "New Container ID:   $NEW_CONTAINER_ID"
+  msg_custom "🔁" "\e[36m" "Privilege Conversion: $conversion"
+  echo
 }
 
 main() {
@@ -196,8 +186,7 @@ main() {
   select_container
   select_backup_storage
   backup_container
-  select_target_storage
-  select_container_id
+  select_target_storage_and_container_id
   perform_conversion
   manage_states
   cleanup_files
