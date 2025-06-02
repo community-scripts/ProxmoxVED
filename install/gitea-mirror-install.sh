@@ -23,7 +23,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Installing Bun"
 export BUN_INSTALL=/opt/bun
-curl -fsSL https://bun.sh/install | bash
+$STD curl -fsSL https://bun.sh/install | bash
 ln -sf /opt/bun/bin/bun /usr/local/bin/bun
 ln -sf /opt/bun/bin/bun /usr/local/bin/bunx
 msg_ok "Installed Bun"
@@ -32,9 +32,9 @@ fetch_and_deploy_gh_release "arunavo4/gitea-mirror"
 
 msg_info "Installing gitea-mirror"
 cd /opt/gitea-mirror
-bun install
-bun run build
-bun run manage-db init
+$STD bun install
+$STD bun run build
+$STD bun run manage-db init
 msg_ok "Installed gitea-mirror"
 
 msg_info "Creating Services"
