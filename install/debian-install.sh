@@ -19,9 +19,12 @@ msg_ok "Installed Dependencies"
 
 echo -e "fetching healthchecks"
 fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball" "latest" "/opt/healthchecks"
+# minimal call: fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball"
 echo -e "healthchecks done"
+
 echo -e "fetching defguard"
 fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary" "latest" "/opt/defguard"
+# minimal call: fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary"
 echo -e "defguard done"
 
 #PHP_VERSION=8.2 PHP_FPM=YES install_php
