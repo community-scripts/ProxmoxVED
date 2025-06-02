@@ -55,9 +55,10 @@ cd /opt/healthchecks
 $STD uv venv .venv
 $STD source .venv/bin/activate
 $STD uv pip install wheel
+$STD uv pip install gunicorn
 $STD uv pip install -r requirements.txt
 cat <<EOF >/opt/healthchecks/.env
-ALLOWED_HOSTS=localhost
+ALLOWED_HOSTS=0.0.0.0
 DB=postgres
 DB_HOST=localhost
 DB_PORT=5432
@@ -69,7 +70,7 @@ DB_SSLMODE=prefer
 DB_TARGET_SESSION_ATTRS=read-write
 
 DEFAULT_FROM_EMAIL=healthchecks@example.org
-EMAIL_HOST=
+EMAIL_HOST=localhost
 EMAIL_HOST_PASSWORD=
 EMAIL_HOST_USER=
 EMAIL_PORT=587
@@ -115,9 +116,9 @@ After=network.target postgresql.service
 
 [Service]
 WorkingDirectory=/opt/healthchecks/
-ExecStart=/opt/healthchecks/.venv/bin/python3 manage.py runserver 0.0.0.0:8000
-Restart=always
 EnvironmentFile=/opt/healthchecks/.env
+ExecStart=/opt/healthchecks/.venv/bin/gunicorn hc.wsgi:application --bind 0.0.0.0
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
