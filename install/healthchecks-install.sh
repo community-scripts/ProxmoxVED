@@ -84,9 +84,9 @@ EMAIL_USE_VERIFICATION=True
 SECRET_KEY=${SECRET_KEY}
 DEBUG=False
 
-SITE_ROOT=http://localhost:8000
+SITE_ROOT=http://0.0.0.0:8000
 SITE_NAME=Mychecks
-SITE_ROOT=http://localhost:8000
+SITE_ROOT=http://0.0.0.0:8000
 EOF
 
 # python3 manage.py migrate
