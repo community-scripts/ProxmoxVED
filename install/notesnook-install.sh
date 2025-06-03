@@ -43,7 +43,7 @@ ExecStart=/usr/bin/npx serve -l tcp://0.0.0.0:3000 apps/web/build --ssl-cert cer
 Restart=on-failure
 
 [Install]
-WantedBy=multi-user.targetnp
+WantedBy=multi-user.target
 EOF
 systemctl enable -q --now notesnook
 msg_ok "Created Service"
