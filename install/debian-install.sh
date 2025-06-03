@@ -17,15 +17,53 @@ msg_info "Installing Dependencies"
 #$STD apt-get install -y gnup
 msg_ok "Installed Dependencies"
 
-echo -e "fetching healthchecks"
-fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball" "latest" "/opt/healthchecks"
-# minimal call: fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball"
-echo -e "healthchecks done"
+msg_info "Setup K3s"
+cat <<EOF >/etc/rc.local
+#!/bin/sh -e
+if [ ! -e /dev/kmsg ]; then
+    ln -s /dev/console /dev/kmsg
+fi
+mount --make-rshared /
+EOF
 
-echo -e "fetching defguard"
-fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary" "latest" "/opt/defguard"
+chmod +x /etc/rc.local
+/etc/rc.local
+
+curl -sfL https://get.k3s.io | sh -s - --disable=traefik --disable=servicelb --node-name control.k8s
+
+# Setup kubectl for non-root user access
+echo 'export KUBECONFIG=~/.kube/config' >>~/.bashrc
+echo 'source <(kubectl completion bash)' >>~/.bashrc
+echo 'alias k=kubectl' >>~/.bashrc
+echo 'complete -o default -F __start_kubectl k' >>~/.bashrc
+source ~/.bashrc
+mkdir ~/.kube 2>/dev/null
+sudo k3s kubectl config view --raw >"$KUBECONFIG"
+chmod 600 "$KUBECONFIG"
+# Test to make sure non-root kubectl is working
+kubectl get nodes
+
+msg_ok "Setup K3s"
+
+msg_info "Setup Helm"
+# Install Helm
+curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg >/dev/null
+sudo apt-get install apt-transport-https --yes
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update
+sudo apt-get install helm
+helm version
+msg_ok "Setup Helm"
+
+#echo -e "fetching healthchecks"
+#fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball" "latest" "/opt/healthchecks"
+# minimal call: fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball"
+#echo -e "healthchecks done"
+
+#echo -e "fetching defguard"
+#fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary" "latest" "/opt/defguard"
 # minimal call: fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary"
-echo -e "defguard done"
+#echo -e "defguard done"
 
 #PHP_VERSION=8.2 PHP_FPM=YES install_php
 #install_composer
