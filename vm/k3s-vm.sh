@@ -370,7 +370,10 @@ virt-customize -q -a "${FILE}" \
   --install curl,wget,tar,ca-certificates,gnupg,iptables \
   --run-command 'curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644' \
   --run-command 'ln -sf /usr/local/bin/k3s /usr/local/bin/kubectl' \
-  --run-command 'curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash' \
+  --run-command 'wget -q https://get.helm.sh/helm-v3.18.1-linux-amd64.tar.gz -O /tmp/helm.tar.gz' \
+  --run-command 'tar -xzf /tmp/helm.tar.gz -C /tmp' \
+  --run-command 'mv /tmp/linux-amd64/helm /usr/local/bin/helm' \
+  --run-command 'chmod +x /usr/local/bin/helm' \
   --run-command 'sh -c "wget -qO- $(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | grep Linux_amd64.tar.gz | cut -d \" -f 4) | tar xz -C /usr/local/bin k9s"' \
   --run-command 'echo "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> /root/.bashrc'
 
