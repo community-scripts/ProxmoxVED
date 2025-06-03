@@ -375,7 +375,7 @@ virt-customize -q -a "${FILE}" \
   --run-command 'mv /tmp/linux-amd64/helm /usr/local/bin/helm' \
   --run-command 'chmod +x /usr/local/bin/helm' \
   --run-command 'sh -c "wget -qO- $(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | grep Linux_amd64.tar.gz | cut -d \" -f 4) | tar xz -C /usr/local/bin k9s"' \
-  --run-command 'echo "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> /root/.bashrc'
+  --run-command 'echo "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> /root/.bashrc' >/dev/null
 
 msg_ok "Added in Image K3s, Helm & k9s"
 
