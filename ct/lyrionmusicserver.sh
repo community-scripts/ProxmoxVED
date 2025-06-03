@@ -32,7 +32,7 @@ function update_script() {
   DEB_URL=$(curl -s 'https://lyrion.org/getting-started/' | grep -oP '<a\s[^>]*href="\K[^"]*amd64\.deb(?="[^>]*>)' | head -n 1)
   RELEASE=$(echo "$DEB_URL" | grep -oP 'lyrionmusicserver_\K[0-9.]+(?=_amd64\.deb)')
   DEB_FILE="/tmp/lyrionmusicserver_${RELEASE}_amd64.deb"
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+  if [[ ! -f /opt/lyrion_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/lyrion_version.txt)" ]]; then
     msg_info "Updating $APP to ${RELEASE}"
     curl -fsSL -o "$DEB_FILE" "$DEB_URL"
     $STD apt install "$DEB_FILE" -y
@@ -58,4 +58,3 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access the web interface at:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:9000${CL}"
-echo -e "${INFO}${YW} Check logs for setup details: ~/lyrion-install.log${CL}"
