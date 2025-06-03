@@ -20,7 +20,7 @@ msg_ok "Installed Dependencies"
 NODE_MODULE="yarn" install_node_and_modules
 
 msg_info "Installing Notesnook (Patience)"
-fetch_and_deploy_gh_release "streetwriters/notesnook"
+fetch_and_deploy_gh_release "notesnook" "streetwriters/notesnook" "tarball"
 cd /opt/notesnook
 export NODE_OPTIONS="--max-old-space-size=2560"
 mkdir -p certs
@@ -39,17 +39,14 @@ After=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/notesnook
-ExecStart=/usr/bin/npx serve -l tcp://0.0.0.0:3000 apps/web/build \\
-  --ssl-cert certs/cert.pem \\
-  --ssl-key certs/key.pem
+ExecStart=/usr/bin/npx serve -l tcp://0.0.0.0:3000 apps/web/build --ssl-cert certs/cert.pem --ssl-key certs/key.pem
 Restart=on-failure
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.targetnp
 EOF
 systemctl enable -q --now notesnook
 msg_ok "Created Service"
-
 
 motd_ssh
 customize
