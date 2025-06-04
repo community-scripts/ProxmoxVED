@@ -42,7 +42,7 @@ function update_script() {
     msg_info "Updating $APP to v${RELEASE}"
     curl -fsSLO "https://github.com/intri-in/manage-my-damn-life-nextjs/archive/refs/tags/v${RELEASE}.zip"
     rm -r /opt/mmdl
-    unzip -q "$RELEASE".zip
+    unzip -q v"$RELEASE".zip
     mv manage-my-damn-life-nextjs-"$RELEASE"/ /opt/mmdl
     mv /opt/mmdl.env /opt/mmdl/.env
     cd /opt/mmdl
@@ -56,7 +56,7 @@ function update_script() {
     msg_ok "Started $APP"
 
     msg_info "Cleaning Up"
-    rm -f ~/"$RELEASE".zip
+    rm -f ~/v"$RELEASE".zip
     msg_ok "Cleanup Completed"
 
     # Last Action
