@@ -38,6 +38,7 @@ msg_ok "Installed gitea-mirror"
 
 msg_info "Creating Services"
 JWT_SECRET=$(openssl rand -hex 32)
+APP_VERSION=$(grep -o '"version": *"[^"]*"' package.json | cut -d'"' -f4)
 cat <<EOF >/etc/systemd/system/gitea-mirror.service
 [Unit]
 Description=Gitea Mirror
