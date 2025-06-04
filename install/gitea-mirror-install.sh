@@ -32,9 +32,8 @@ fetch_and_deploy_gh_release "arunavo4/gitea-mirror"
 
 msg_info "Installing gitea-mirror"
 cd /opt/gitea-mirror
-$STD bun install
+$STD bun run setup
 $STD bun run build
-$STD bun run manage-db init
 msg_ok "Installed gitea-mirror"
 
 msg_info "Creating Services"
@@ -54,6 +53,7 @@ Environment=HOST=0.0.0.0
 Environment=PORT=4321
 Environment=DATABASE_URL=file:/opt/gitea-mirror/data/gitea-mirror.db
 Environment=JWT_SECRET=${JWT_SECRET}
+Environment=npm_package_version=${APP_VERSION}
 [Install]
 WantedBy=multi-user.target
 EOF
