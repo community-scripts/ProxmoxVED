@@ -34,7 +34,7 @@ $STD mysql -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH 
 } >>~/mmdl.creds
 msg_ok "Set up Database"
 
-msg_info "Setup ${APPLICATION}"
+msg_info "Installing ${APPLICATION}"
 RELEASE=$(curl -s https://api.github.com/repos/intri-in/manage-my-damn-life-nextjs/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 curl -fsSLO "https://github.com/intri-in/manage-my-damn-life-nextjs/archive/refs/tags/v${RELEASE}.zip"
 unzip -q v"$RELEASE".zip
@@ -57,7 +57,7 @@ $STD npm install
 $STD npm run migrate
 $STD npm run build
 echo "${RELEASE}" >/opt/mmdl_version.txt
-msg_ok "Setup ${APPLICATION}"
+msg_ok "Installed ${APPLICATION}"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/mmdl.service

@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -s https://api.github.com/repos/intri-in/manage-my-damn-life-nextjs/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+  RELEASE=$(curl -s https://api.github.com/repos/intri-in/manage-my-damn-life-nextjs/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ "${RELEASE}" != "$(cat /opt/mmdl_version.txt)" ]] || [[ ! -f /opt/mmdl_version.txt ]]; then
     msg_info "Stopping $APP"
     systemctl stop mmdl
