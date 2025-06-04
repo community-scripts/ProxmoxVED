@@ -80,7 +80,6 @@ msg_ok "Created Service"
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 rm -f ~/${RELEASE}.zip
 $STD apt-get -y autoremove

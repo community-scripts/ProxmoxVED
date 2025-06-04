@@ -56,7 +56,7 @@ function update_script() {
     msg_ok "Started $APP"
 
     msg_info "Cleaning Up"
-    rm -rf ~/"$RELEASE".zip
+    rm -f ~/"$RELEASE".zip
     msg_ok "Cleanup Completed"
 
     # Last Action
