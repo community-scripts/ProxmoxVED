@@ -52,8 +52,10 @@ function update_script() {
     
     msg_info "Updating and rebuilding ${APP} to v${RELEASE}"  
     cd /opt/gitea-mirror
-    $STD bun install
+    $STD bun run setup
     $STD bun run build
+    APP_VERSION=$(grep -o '"version": *"[^"]*"' package.json | cut -d'"' -f4)
+    sudo sed -i.bak "s|^Environment=npm_package_version=.*|Environment=npm_package_version=${APP_VERSION}|" /etc/systemd/system/gitea-mirror.service
     msg_ok "Updated and rebuilt ${APP} to v${RELEASE}"  
 
     msg_info "Restoring Data"
@@ -61,6 +63,7 @@ function update_script() {
     msg_ok "Restored Data"
 
     msg_info "Starting Service"
+    systemctl daemon-reload
     systemctl start gitea-mirror
     msg_ok "Service Started"
   else
