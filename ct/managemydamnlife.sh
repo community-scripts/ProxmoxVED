@@ -40,7 +40,7 @@ function update_script() {
     msg_ok "Backup Created"
 
     msg_info "Updating $APP to v${RELEASE}"
-    curl -fsSLO "https://github.com/intri-in/manage-my-damn-life-nextjs/archive/refs/tags/${RELEASE}.zip"
+    curl -fsSLO "https://github.com/intri-in/manage-my-damn-life-nextjs/archive/refs/tags/v${RELEASE}.zip"
     rm -r /opt/mmdl
     unzip -q "$RELEASE".zip
     mv manage-my-damn-life-nextjs-"$RELEASE"/ /opt/mmdl
