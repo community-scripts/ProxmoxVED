@@ -60,6 +60,7 @@ function update_script() {
 
     msg_info "Restoring Data"
     cp /opt/gitea-mirror-backup/data/* /opt/gitea-mirror/data
+    echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Restored Data"
 
     msg_info "Starting Service"
