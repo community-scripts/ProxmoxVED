@@ -51,8 +51,8 @@ function update_script() {
     $STD uv -q run pybabel compile -d app/translations
     $STD npm --prefix app/static install
     mkdir -p ./.cache
-    uv -q run flask db upgrade
     $STD tar -xf "$BACKUP_PATH" --directory=/
+    $STD uv -q run flask db upgrade
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"
