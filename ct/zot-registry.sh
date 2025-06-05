@@ -5,7 +5,7 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://zotregistry.dev/
 
-APP="Zot Registry"
+APP="Zot-Registry"
 var_tags="${var_tags:-registry;oci}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-2048}"
