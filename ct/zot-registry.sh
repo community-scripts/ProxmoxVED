@@ -23,14 +23,29 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /var ]]; then
-    msg_error "No ${APP} Installation Found!"
+
+  if [[ ! -f /usr/bin/zot ]]; then
+    msg_error "No ${APP} installation found!"
     exit
   fi
-  msg_info "Updating $APP LXC"
-  $STD apt-get update
-  $STD apt-get -y upgrade
-  msg_ok "Updated $APP LXC"
+
+  RELEASE=$(curl -fsSL https://api.github.com/repos/project-zot/zot/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+  if [[ ! -f ~/.${APP} ]] || [[ "${RELEASE}" != "$(cat ~/.${APP})" ]]; then
+    msg_info "Stopping Zot service"
+    systemctl stop zot
+    msg_ok "Stopped Zot service"
+
+    msg_info "Updating Zot to ${RELEASE}"
+    curl -fsSL "https://github.com/project-zot/zot/releases/download/${RELEASE}/zot-linux-amd64" -o /usr/bin/zot
+    chmod +x /usr/bin/zot
+    chown root:root /usr/bin/zot
+    echo "${RELEASE}" >~/.${APP}
+    systemctl restart zot
+    msg_ok "Updated Zot to ${RELEASE}"
+  else
+    msg_ok "Zot is already up to date (${RELEASE})"
+  fi
+
   exit
 }
 
