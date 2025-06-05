@@ -47,7 +47,7 @@ function update_script() {
     mv wizarr-${RELEASE}/ /opt/wizarr
     cd /opt/wizarr
     uv -q sync --locked
-    uv -q run pylabel compile -d app/translations
+    uv -q run pybabel compile -d app/translations
     $STD npm --prefix app/static install
     mkdir -p ./.cache
     uv -q run flask db upgrade
