@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y apache2-utils
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Zot"
+msg_info "Installing Zot Registry"
 RELEASE=$(curl -fsSL https://api.github.com/repos/project-zot/zot/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL "https://github.com/project-zot/zot/releases/download/${RELEASE}/zot-linux-amd64" -o /usr/bin/zot
 chmod +x /usr/bin/zot
@@ -26,7 +26,7 @@ mkdir -p /etc/zot
 curl -fsSL https://raw.githubusercontent.com/project-zot/zot/refs/heads/main/examples/config-ui.json -o /etc/zot/config.json
 PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 $STD htpasswd -bnB admin "$PASSWORD" /etc/zot/htpasswd
-msg_ok "Installed Zot"
+msg_ok "Installed Zot Registry"
 
 msg_info "Setup Service"
 cat <<EOF >/etc/systemd/system/zot.service
