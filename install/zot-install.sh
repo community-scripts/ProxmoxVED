@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -25,7 +24,7 @@ chown root:root /usr/bin/zot
 mkdir -p /etc/zot
 curl -fsSL https://raw.githubusercontent.com/project-zot/zot/refs/heads/main/examples/config-ui.json -o /etc/zot/config.json
 PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-$STD htpasswd -cb -B /etc/zot/htpasswd admin "$PASSWORD"
+$STD htpasswd -bnB admin "$PASSWORD" /etc/zot/htpasswd
 msg_ok "Installed Zot"
 
 msg_info "Setup Service"
