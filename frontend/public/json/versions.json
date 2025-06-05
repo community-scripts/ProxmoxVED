@@ -1,8 +1,78 @@
 [
   {
+    "name": "actualbudget/actual",
+    "version": "v25.6.1",
+    "date": "2025-06-04T22:24:31Z"
+  },
+  {
+    "name": "msgbyte/tianji",
+    "version": "v1.21.9",
+    "date": "2025-06-04T19:17:58Z"
+  },
+  {
+    "name": "rabbitmq/rabbitmq-server",
+    "version": "v4.1.1",
+    "date": "2025-06-04T19:10:05Z"
+  },
+  {
+    "name": "FlareSolverr/FlareSolverr",
+    "version": "v3.3.24",
+    "date": "2025-06-04T18:02:30Z"
+  },
+  {
+    "name": "firefly-iii/firefly-iii",
+    "version": "v6.2.16",
+    "date": "2025-05-27T16:27:42Z"
+  },
+  {
+    "name": "cockpit-project/cockpit",
+    "version": "340",
+    "date": "2025-06-04T16:41:44Z"
+  },
+  {
+    "name": "donaldzou/WGDashboard",
+    "version": "v4.2.3",
+    "date": "2025-05-07T15:35:04Z"
+  },
+  {
+    "name": "openobserve/openobserve",
+    "version": "v0.15.0-rc1",
+    "date": "2025-06-04T15:12:56Z"
+  },
+  {
+    "name": "theonedev/onedev",
+    "version": "v11.10.0",
+    "date": "2025-06-04T14:29:05Z"
+  },
+  {
+    "name": "goauthentik/authentik",
+    "version": "version/2025.6.0",
+    "date": "2025-06-04T14:26:01Z"
+  },
+  {
+    "name": "crowdsecurity/crowdsec",
+    "version": "v1.6.8",
+    "date": "2025-03-25T13:33:10Z"
+  },
+  {
+    "name": "MariaDB/server",
+    "version": "mariadb-11.8.2",
+    "date": "2025-06-04T13:35:16Z"
+  },
+  {
+    "name": "n8n-io/n8n",
+    "version": "n8n@1.95.3",
+    "date": "2025-06-03T11:09:42Z"
+  },
+  {
     "name": "Graylog2/graylog2-server",
-    "version": "6.2.3",
-    "date": "2025-06-04T11:23:39Z"
+    "version": "6.1.12",
+    "date": "2025-06-04T12:48:55Z"
+  },
+  {
+    "name": "Checkmk/checkmk",
+    "version": "v2.4.0p3-rc1",
+    "date": "2025-06-04T11:32:09Z"
   },
   {
     "name": "Prowlarr/Prowlarr",
@@ -30,16 +100,6 @@
     "date": "2025-02-12T11:07:02Z"
   },
   {
-    "name": "Checkmk/checkmk",
-    "version": "v2.2.0p43-rc5",
-    "date": "2025-06-04T08:14:03Z"
-  },
-  {
-    "name": "openobserve/openobserve",
-    "version": "v0.14.6-rc7-pb10",
-    "date": "2025-06-04T06:55:01Z"
-  },
-  {
     "name": "Jackett/Jackett",
     "version": "v0.22.1987",
     "date": "2025-06-04T06:23:49Z"
@@ -48,11 +108,6 @@
     "name": "mattermost/mattermost",
     "version": "server/public/v0.1.14",
     "date": "2025-05-29T15:35:16Z"
-  },
-  {
-    "name": "actualbudget/actual",
-    "version": "v25.6.0",
-    "date": "2025-06-04T05:09:24Z"
   },
   {
     "name": "louislam/uptime-kuma",
@@ -80,11 +135,6 @@
     "date": "2025-06-03T20:04:28Z"
   },
   {
-    "name": "goauthentik/authentik",
-    "version": "version/2025.6.0",
-    "date": "2025-06-03T20:04:09Z"
-  },
-  {
     "name": "jenkinsci/jenkins",
     "version": "jenkins-2.513",
     "date": "2025-06-03T17:53:03Z"
@@ -93,11 +143,6 @@
     "name": "keycloak/keycloak",
     "version": "26.2.5",
     "date": "2025-05-28T06:49:43Z"
-  },
-  {
-    "name": "firefly-iii/firefly-iii",
-    "version": "v6.2.16",
-    "date": "2025-05-27T16:27:42Z"
   },
   {
     "name": "dgtlmoon/changedetection.io",
@@ -125,19 +170,9 @@
     "date": "2025-06-03T11:49:40Z"
   },
   {
-    "name": "n8n-io/n8n",
-    "version": "n8n@1.95.3",
-    "date": "2025-06-03T11:09:42Z"
-  },
-  {
     "name": "esphome/esphome",
     "version": "2025.5.2",
     "date": "2025-06-03T08:45:14Z"
-  },
-  {
-    "name": "FlareSolverr/FlareSolverr",
-    "version": "v3.3.22",
-    "date": "2025-06-03T04:54:48Z"
   },
   {
     "name": "FreshRSS/FreshRSS",
@@ -168,11 +203,6 @@
     "name": "grokability/snipe-it",
     "version": "v8.1.15",
     "date": "2025-06-02T17:38:24Z"
-  },
-  {
-    "name": "msgbyte/tianji",
-    "version": "v1.21.6",
-    "date": "2025-06-02T17:12:58Z"
   },
   {
     "name": "NodeBB/NodeBB",
@@ -453,30 +483,5 @@
     "name": "ioBroker/ioBroker",
     "version": "2025-05-24",
     "date": "2025-05-24T13:56:54Z"
-  },
-  {
-    "name": "pocketbase/pocketbase",
-    "version": "v0.28.2",
-    "date": "2025-05-24T07:59:15Z"
-  },
-  {
-    "name": "docker/compose",
-    "version": "v2.36.2",
-    "date": "2025-05-23T14:21:20Z"
-  },
-  {
-    "name": "rogerfar/rdt-client",
-    "version": "v2.0.113",
-    "date": "2025-05-23T01:47:35Z"
-  },
-  {
-    "name": "grafana/grafana",
-    "version": "v11.2.10",
-    "date": "2025-05-22T23:50:45Z"
-  },
-  {
-    "name": "MariaDB/server",
-    "version": "mariadb-11.4.7",
-    "date": "2025-05-22T14:22:22Z"
   }
 ]
