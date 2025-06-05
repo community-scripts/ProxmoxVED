@@ -31,7 +31,7 @@ unzip -q /tmp/"$RELEASE".zip
 mv wizarr-${RELEASE}/ /opt/wizarr
 cd /opt/wizarr
 uv -q sync --locked
-uv -q run pybabel compile -d app/translations
+$STD uv -q run pybabel compile -d app/translations
 $STD npm --prefix app/static install
 mkdir -p ./.cache
 uv -q run flask db upgrade

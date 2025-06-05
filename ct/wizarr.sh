@@ -37,7 +37,7 @@ function update_script() {
 
     msg_info "Creating Backup"
     BACKUP_FILE="/opt/wizarr_backup_$(date +%F).tar.gz"
-    $STD tar -czf "$BACKUP_FILE" /opt/wizarr/{.env,start.sh} /opt/wizarr/database/*
+    $STD tar -czf "$BACKUP_FILE" /opt/wizarr/{.env,start.sh} /opt/wizarr/database/ &>/dev/null
     msg_ok "Backup Created"
 
     msg_info "Updating $APP to v${RELEASE}"
@@ -46,8 +46,9 @@ function update_script() {
     unzip -q /tmp/"$RELEASE".zip
     mv wizarr-${RELEASE}/ /opt/wizarr
     cd /opt/wizarr
+    setup_uv
     uv -q sync --locked
-    uv -q run pybabel compile -d app/translations
+    $STD uv -q run pybabel compile -d app/translations
     $STD npm --prefix app/static install
     mkdir -p ./.cache
     uv -q run flask db upgrade
