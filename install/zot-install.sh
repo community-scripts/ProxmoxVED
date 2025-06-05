@@ -13,12 +13,6 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-#$STD apt-get install -y gnup
-msg_ok "Installed Dependencies"
-
-PYTHON_VERSION="3.12" setup_uv
-
 msg_info "Installing Zot"
 RELEASE=$(curl -fsSL https://api.github.com/repos/project-zot/zot/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL "https://github.com/project-zot/zot/releases/download/${RELEASE}/zot-linux-amd64" -o /usr/bin/zot
