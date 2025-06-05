@@ -34,7 +34,7 @@ uv -q sync --locked
 $STD uv -q run pybabel compile -d app/translations
 $STD npm --prefix app/static install
 mkdir -p ./.cache
-uv -q run flask db upgrade
+$STD uv -q run flask db upgrade
 echo "${RELEASE}" >/opt/wizarr_version.txt
 msg_ok "Installed ${APPLICATION}"
 

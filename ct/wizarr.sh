@@ -51,7 +51,7 @@ function update_script() {
     $STD uv -q run pybabel compile -d app/translations
     $STD npm --prefix app/static install
     mkdir -p ./.cache
-    $STD tar -xf "$BACKUP_PATH" --directory=/
+    $STD tar -xf "$BACKUP_FILE" --directory=/
     $STD uv -q run flask db upgrade
     msg_ok "Updated $APP to v${RELEASE}"
 
@@ -60,7 +60,7 @@ function update_script() {
     msg_ok "Started $APP"
 
     msg_info "Cleaning Up"
-    rm -rf "$BACKUP_PATH"
+    rm -rf "$BACKUP_FILE"
     rm /tmp/"$RELEASE".zip
     msg_ok "Cleanup Completed"
 
