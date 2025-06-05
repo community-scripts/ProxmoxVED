@@ -44,8 +44,8 @@ function update_script() {
     rm -rf /opt/wizarr
     curl -fsSL "https://github.com/wizarrrr/wizarr/archive/refs/tags/${RELEASE}.zip" -o /tmp/"$RELEASE".zip
     unzip -q /tmp/"$RELEASE".zip
-    mv ${APPLICATION}-${RELEASE}/ /opt/${APPLICATION}
-    cd /opt/"$APPLICATION"
+    mv wizarr-${RELEASE}/ /opt/wizarr
+    cd /opt/wizarr
     uv -q sync --locked
     ln -s ./app/translations ./translations
     $STD tar -xf "$BACKUP_PATH" --directory=/

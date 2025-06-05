@@ -27,23 +27,23 @@ msg_info "Installing ${APPLICATION}"
 RELEASE=$(curl -s https://api.github.com/repos/wizarrrr/wizarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL "https://github.com/wizarrrr/wizarr/archive/refs/tags/${RELEASE}.zip" -o /tmp/"$RELEASE".zip
 unzip -q /tmp/"$RELEASE".zip
-mv ${APPLICATION}-${RELEASE}/ /opt/${APPLICATION}
-cd /opt/"$APPLICATION"
+mv wizarr-${RELEASE}/ /opt/wizarr
+cd /opt/wizarr
 uv -q sync --locked
 ln -s ./app/translations ./translations
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
+echo "${RELEASE}" >/opt/wizarr_version.txt
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Creating env, start script and service"
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
-cat <<EOF >/opt/"$APPLICATION"/.env
+cat <<EOF >/opt/wizarr/.env
 APP_URL=http://${LOCAL_IP}
 DISABLE_BUILTIN_AUTH=false
 LOG_LEVEL=INFO
 SECRET_KEY="$(openssl rand -base64 30)"
 EOF
 
-cat <<EOF >/opt/"$APPLICATION/start.sh"
+cat <<EOF >/opt/wizarr/start.sh
 #!/usr/bin/env bash
 
 uv run flask db upgrade && uv run gunicorn \
@@ -54,24 +54,24 @@ uv run flask db upgrade && uv run gunicorn \
     --umask 007 \
     run:app
 EOF
-chmod u+x /opt/"$APPLICATION"/start.sh
+chmod u+x /opt/wizarr/start.sh
 
-cat <<EOF >/etc/systemd/system/${APPLICATION}.service
+cat <<EOF >/etc/systemd/system/wizarr.service
 [Unit]
 Description=${APPLICATION} Service
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/${APPLICATION}
-EnvironmentFile=/opt/${APPLICATION}/.env
-ExecStart=/opt/${APPLICATION}/start.sh
+WorkingDirectory=/opt/wizarr
+EnvironmentFile=/opt/wizarr/.env
+ExecStart=/opt/wizarr/start.sh
 Restart=on-abnormal
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now ${APPLICATION}.service
+systemctl enable -q --now wizarr.service
 msg_ok "Created env, start script and service"
 
 motd_ssh
