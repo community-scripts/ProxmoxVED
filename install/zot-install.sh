@@ -18,6 +18,7 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/project-zot/zot/releases/lates
 curl -fsSL "https://github.com/project-zot/zot/releases/download/${RELEASE}/zot-linux-amd64" -o /usr/bin/zot
 chmod +x /usr/bin/zot
 chown root:root /usr/bin/zot
+mkdir -p /etc/zot
 curl -fsSL https://raw.githubusercontent.com/project-zot/zot/refs/heads/main/examples/config-ui.json -o /etc/zot/config.json
 PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 $STD htpasswd -cb -B /etc/zot/htpasswd admin "$PASSWORD"
