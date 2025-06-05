@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://www.debian.org/
+# Source: https://zotregistry.dev/
 
-APP="Zot"
-var_tags="${var_tags:-os}"
+APP="Zot Registry"
+var_tags="${var_tags:-registry;oci}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-5}"
