@@ -36,8 +36,8 @@ function update_script() {
     msg_ok "Stopped $APP"
 
     msg_info "Creating Backup"
-    BACKUP_PATH="/opt/wizarr_backup_$(date +%F).tar.gz"
-    $STD tar -czf "$BACKUP_PATH" /opt/"$APP"/{.env,start.sh}
+    BACKUP_FILE="/opt/wizarr_backup_$(date +%F).tar.gz"
+    $STD tar -czf "$BACKUP_FILE" /opt/wizarr/{.env,start.sh} /opt/wizarr/database/*
     msg_ok "Backup Created"
 
     msg_info "Updating $APP to v${RELEASE}"
@@ -47,7 +47,10 @@ function update_script() {
     mv wizarr-${RELEASE}/ /opt/wizarr
     cd /opt/wizarr
     uv -q sync --locked
-    ln -s ./app/translations ./translations
+    uv -q run pylabel compile -d app/translations
+    $STD npm --prefix app/static install
+    mkdir -p ./.cache
+    uv -q run flask db upgrade
     $STD tar -xf "$BACKUP_PATH" --directory=/
     msg_ok "Updated $APP to v${RELEASE}"
 

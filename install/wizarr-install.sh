@@ -22,6 +22,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 setup_uv
+NODE_VERSION="22" install_node_and_modules
 
 msg_info "Installing ${APPLICATION}"
 RELEASE=$(curl -s https://api.github.com/repos/wizarrrr/wizarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
@@ -30,7 +31,10 @@ unzip -q /tmp/"$RELEASE".zip
 mv wizarr-${RELEASE}/ /opt/wizarr
 cd /opt/wizarr
 uv -q sync --locked
-ln -s ./app/translations ./translations
+uv -q run pylabel compile -d app/translations
+$STD npm --prefix app/static install
+mkdir -p ./.cache
+uv -q run flask db upgrade
 echo "${RELEASE}" >/opt/wizarr_version.txt
 msg_ok "Installed ${APPLICATION}"
 
@@ -40,13 +44,12 @@ cat <<EOF >/opt/wizarr/.env
 APP_URL=http://${LOCAL_IP}
 DISABLE_BUILTIN_AUTH=false
 LOG_LEVEL=INFO
-SECRET_KEY="$(openssl rand -base64 30)"
 EOF
 
 cat <<EOF >/opt/wizarr/start.sh
 #!/usr/bin/env bash
 
-uv run flask db upgrade && uv run gunicorn \
+uv run gunicorn \
     --config gunicorn.conf.py \
     --preload \
     --workers 4 \
