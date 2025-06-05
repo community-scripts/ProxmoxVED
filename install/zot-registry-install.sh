@@ -24,8 +24,8 @@ chmod +x /usr/bin/zot
 chown root:root /usr/bin/zot
 mkdir -p /etc/zot
 curl -fsSL https://raw.githubusercontent.com/project-zot/zot/refs/heads/main/examples/config-ui.json -o /etc/zot/config.json
-PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-#$STD htpasswd -b -B -c /etc/zot/htpasswd admin "$PASSWORD"
+ZOTPASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+$STD htpasswd -b -B -c /etc/zot/htpasswd admin "$ZOTPASSWORD"
 msg_ok "Installed Zot Registry"
 
 msg_info "Setup Service"
