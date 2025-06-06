@@ -1,25 +1,24 @@
-name: "🛠️ New Script"
-description: "New Script proposal."
-labels: ["task"]
+---
+name: 🛠️ New Script
+description: New Script proposal.
+labels: [task]
 body:
   - type: markdown
     attributes:
       value: |
         # 🛠️ **New Script**
-        Create a Issue when you want to merge a new Script. The name of the Issue must be the same as your APP.sh file. (Example: SnipeIT, snipeit.sh; Alpine-Docker, alpine-docker.sh)
-
+        Create an Issue when you want to merge a new Script. The name of the Issue must be the same as your APP.sh file. (Example: SnipeIT, snipeit.sh; Alpine-Docker, alpine-docker.sh)
   - type: input
     id: task_summary
     attributes:
-      label: "Name of the Script"
-      placeholder: "e.g., SnipeIT"
+      label: Name of the Script
+      placeholder: e.g., SnipeIT
     validations:
       required: true
-
   - type: textarea
     id: task_details
     attributes:
-      label: "📋 Scritpt Details"
-      placeholder: "Explain what is needed or special about this script"
+      label: 📋 Script Details
+      placeholder: Explain what is needed or special about this script
     validations:
       required: true
