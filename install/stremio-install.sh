@@ -30,20 +30,19 @@ apt-get upgrade -y
 msg_ok "OS Updated"
 
 msg_info "Installing dependencies"
-apt-get install -y curl tar
+apt-get install -y curl jq ca-certificates
 msg_ok "Dependencies Installed"
 
-msg_info "Installing Node.js (LTS)"
-curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
-apt-get install -y nodejs
-msg_ok "Node.js Installed"
-
-msg_info "Downloading latest Stremio release"
-LATEST_URL=$(curl -s https://api.github.com/repos/Stremio/stremio-service/releases/latest | grep "browser_download_url.*linux_amd64.tar.gz" | cut -d '"' -f 4)
+msg_info "Downloading latest Stremio Service .deb release"
+LATEST_URL=$(curl -s https://api.github.com/repos/Stremio/stremio-service/releases/latest |
+  jq -r '.assets[] | select(.name == "stremio-service_amd64.deb") | .browser_download_url')
 mkdir -p /opt/stremio
-curl -L "$LATEST_URL" | tar xz -C /opt/stremio
-chmod +x /opt/stremio/stremio
-msg_ok "Stremio Downloaded"
+curl -L "$LATEST_URL" -o /opt/stremio/stremio-service_amd64.deb
+msg_ok "Stremio Service .deb Downloaded"
+
+msg_info "Installing Stremio Service"
+apt-get install -y /opt/stremio/stremio-service_amd64.deb
+msg_ok "Stremio Service Installed"
 
 msg_info "Creating systemd service"
 cat <<EOL >/etc/systemd/system/stremio.service
