@@ -12,7 +12,7 @@
     "documentation": "https://doc.jeedom.com",
     "website": "https://jeedom.com/",
     "logo": "https://jeedom.com/_next/image?url=%2Fassets%2Fimg%2Flogo.png&w=256&q=75",
-    "description": "De la maison individuelle aux infrastructures IOT\n\nJeedom: la solution sur mesure en open source",
+    "description": "From individual homes to IoT infrastructures\n\nJeedom: the tailor-made open source solution",
     "install_methods": [
         {
             "type": "default",
