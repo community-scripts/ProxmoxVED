@@ -1,0 +1,54 @@
+{
+    "name": "Jeedom",
+    "slug": "jeedom",
+    "categories": [
+        16
+    ],
+    "date_created": "2025-03-06",
+    "type": "ct",
+    "updateable": false,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://doc.jeedom.com",
+    "website": "https://jeedom.com/",
+    "logo": "https://jeedom.com/_next/image?url=%2Fassets%2Fimg%2Flogo.png&w=256&q=75",
+    "description": "De la maison individuelle aux infrastructures IOT\n\nJeedom: la solution sur mesure en open source",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/jeedom.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 16,
+                "os": "Debian",
+                "version": "11"
+            }
+        },
+        {
+            "type": "default",
+            "script": "ct/jeedom.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 16,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": "admin"
+    },
+    "notes": [
+        {
+            "text": "Use Debian 11 or 12 only",
+            "type": "warning"
+        },
+        {
+            "text": "If the LXC is created Privileged, the script will automatically set up USB passthrough.",
+            "type": "warning"
+        }
+    ]
+}
