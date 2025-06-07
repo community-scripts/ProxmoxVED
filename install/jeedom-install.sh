@@ -36,7 +36,6 @@ if ! lsb_release -d | grep -q "Debian GNU/Linux"; then
 fi
 msg_ok "OS check done"
 
-# Setup App
 DEFAULT_BRANCH="master"
 echo
 while true; do
@@ -102,7 +101,6 @@ msg_ok "Installation checked, everything is successfuly installed. A reboot is r
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
