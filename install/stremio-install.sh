@@ -5,72 +5,87 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/Stremio/stremio-service
 
-color() {
-  YW=$(echo "\033[33m")
-  GN=$(echo "\033[32m")
-  RD=$(echo "\033[01;31m")
-  CL=$(echo "\033[m")
-  BGN=$(echo "\033[1;92m")
-  CREATING="${GN} [\xE2\x9C\x94]${CL}"
-  INFO="${YW} [i]${CL}"
-  TAB="    "
-}
+# Import Functions und Setup
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
 
-msg_info() {
-  echo -e "${INFO} $1"
-}
+# Installing Dependencies
+msg_info "Installing Dependencies"
+$STD apt-get install -y \
+  curl \
+  jq \
+  ca-certificates \
+  wget \
+  build-essential
+msg_ok "Installed Dependencies"
 
-msg_ok() {
-  echo -e "${CREATING} $1"
-}
+# Install Node.js 14
+msg_info "Installing Node.js 14"
+curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
+$STD apt-get install -y nodejs
+msg_ok "Installed Node.js 14"
 
-msg_info "Updating OS"
-apt-get update
-apt-get upgrade -y
-msg_ok "OS Updated"
+# Install Jellyfin FFmpeg 4.4.1-4
+msg_info "Installing Jellyfin FFmpeg 4.4.1-4"
+ARCH=$(dpkg --print-architecture)
+wget -q https://repo.jellyfin.org/archive/ffmpeg/debian/4.4.1-4/jellyfin-ffmpeg_4.4.1-4-buster_${ARCH}.deb -O /tmp/jellyfin-ffmpeg.deb
+$STD apt-get install -y /tmp/jellyfin-ffmpeg.deb
+rm /tmp/jellyfin-ffmpeg.deb
+msg_ok "Installed Jellyfin FFmpeg"
 
-msg_info "Installing dependencies"
-apt-get install -y curl jq ca-certificates
-msg_ok "Dependencies Installed"
+# Setup Stremio Server
+msg_info "Setup stremio-server"
+mkdir -p /opt/stremio-server
+cd /opt/stremio-server || exit
 
-msg_info "Downloading latest Stremio Service .deb release"
-LATEST_URL=$(curl -s https://api.github.com/repos/Stremio/stremio-service/releases/latest |
-  jq -r '.assets[] | select(.name == "stremio-service_amd64.deb") | .browser_download_url')
-mkdir -p /opt/stremio
-curl -L "$LATEST_URL" -o /opt/stremio/stremio-service_amd64.deb
-msg_ok "Stremio Service .deb Downloaded"
+# Download the latest server.js file
+BUILD="desktop"
+VERSION="master"
+SERVER_URL="https://dl.strem.io/server/${VERSION}/${BUILD}/server.js"
 
-msg_info "Installing Stremio Service"
-apt-get install -y /opt/stremio/stremio-service_amd64.deb
-msg_ok "Stremio Service Installed"
+if command -v curl >/dev/null 2>&1; then
+  curl --fail -O "$SERVER_URL"
+elif command -v wget >/dev/null 2>&1; then
+  wget "$SERVER_URL"
+else
+  msg_info "No curl or wget found, installing curl"
+  $STD apt-get install -y curl
+  curl --fail -O "$SERVER_URL"
+fi
 
-msg_info "Creating systemd service"
-cat <<EOL >/etc/systemd/system/stremio.service
+echo "${RELEASE}" >/opt/"stremio-server"_version.txt
+msg_ok "Setup stremio-server"
+
+# Creating Service
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/"stremio-server".service
 [Unit]
-Description=Stremio (Official Backend)
+Description=stremio-server Service
 After=network.target
 
 [Service]
-Type=simple
-WorkingDirectory=/opt/stremio
-ExecStart=/opt/stremio/stremio
-Restart=on-failure
+WorkingDirectory=/opt/stremio-server
+ExecStart=/usr/bin/node /opt/stremio-server/server.js
+Restart=always
 User=root
+Environment=CASTING_DISABLED=1
 
 [Install]
 WantedBy=multi-user.target
-EOL
+EOF
+systemctl enable -q --now "stremio-server"
+msg_ok "Created Service"
 
-systemctl daemon-reload
-systemctl enable --now stremio
-msg_ok "Service Created and Started"
+motd_ssh
+customize
 
+# Cleanup
 msg_info "Cleaning up"
-apt-get -y autoremove
-apt-get -y autoclean
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
 msg_ok "Cleaned"
-
-IP=$(hostname -I | awk '{print $1}')
-echo -e "\n${CREATING}${GN}Stremio setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${BGN}http://${IP}:11470${CL}"
