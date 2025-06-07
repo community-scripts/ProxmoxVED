@@ -1,0 +1,35 @@
+{
+  "name": "Stremio",
+  "slug": "stremio",
+  "categories": [
+    4
+  ],
+  "date_created": "2025-06-07",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": 11470,
+  "documentation": "https://github.com/stremio/stremio-service/README.md",
+  "config_path": "",
+  "website": "https://stremio.com",
+  "logo": "stremio.com/website/stremio-logo-small.png",
+  "description": " Stremio offers a secure, modern and seamless entertainment experience. With its easy-to-use interface and diverse content library, including 4K HDR support, users can enjoy their favorite movies and TV shows across all their devices. And with its commitment to security, Stremio is the ultimate choice for a worry-free, high-quality streaming experience.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/stremio.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "root",
+    "password": null
+  },
+  "notes": []
+}
