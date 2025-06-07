@@ -5,7 +5,6 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://jeedom.com/
 
-# Import Functions und Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -21,11 +20,7 @@ msg_ok "OS upgraded"
 
 msg_info "Installing dependencies"
 $STD apt-get install -y \
-    curl \
-    sudo \
-    mc \
     lsb-release \
-    grep \
     git
 msg_ok "Dependencies installed"
 
