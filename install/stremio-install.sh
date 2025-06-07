@@ -26,14 +26,13 @@ msg_ok "Installed Dependencies"
 
 # Install Node.js 14
 msg_info "Installing Node.js 14"
-curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
+NODEJS_FORCE_YES=1 curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
 $STD apt-get install -y nodejs
 msg_ok "Installed Node.js 14"
 
-# Install Jellyfin FFmpeg 4.4.1-4
-msg_info "Installing Jellyfin FFmpeg 4.4.1-4"
-ARCH=$(dpkg --print-architecture)
-wget -q https://repo.jellyfin.org/archive/ffmpeg/debian/4.4.1-4/jellyfin-ffmpeg_4.4.1-4-buster_${ARCH}.deb -O /tmp/jellyfin-ffmpeg.deb
+# Install Jellyfin FFmpeg
+msg_info "Installing Jellyfin FFmpeg"
+wget -q https://repo.jellyfin.org/archive/ffmpeg/debian/4.4.1-4/jellyfin-ffmpeg_4.4.1-4-buster_amd64.deb -O /tmp/jellyfin-ffmpeg.deb
 $STD apt-get install -y /tmp/jellyfin-ffmpeg.deb
 rm /tmp/jellyfin-ffmpeg.deb
 msg_ok "Installed Jellyfin FFmpeg"
