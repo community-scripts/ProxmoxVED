@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/Stremio/stremio-service
 
-APP="Stremio-Service"
+APP="Stremio"
 var_tags="${var_tags:-media;stremio}"
 var_disk="${var_disk:-6}"
 var_cpu="${var_cpu:-1}"
@@ -23,7 +23,7 @@ function update_script() {
     header_info
     check_container_storage
     check_container_resources
-    if [[ ! -d /opt/stremio-service ]]; then
+    if [[ ! -d /opt/stremio ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi

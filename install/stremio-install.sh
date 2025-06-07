@@ -38,23 +38,23 @@ curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
 apt-get install -y nodejs
 msg_ok "Node.js Installed"
 
-msg_info "Downloading latest Stremio Service release"
+msg_info "Downloading latest Stremio release"
 LATEST_URL=$(curl -s https://api.github.com/repos/Stremio/stremio-service/releases/latest | grep "browser_download_url.*linux_amd64.tar.gz" | cut -d '"' -f 4)
-mkdir -p /opt/stremio-service
-curl -L "$LATEST_URL" | tar xz -C /opt/stremio-service
-chmod +x /opt/stremio-service/stremio-service
-msg_ok "Stremio Service Downloaded"
+mkdir -p /opt/stremio
+curl -L "$LATEST_URL" | tar xz -C /opt/stremio
+chmod +x /opt/stremio/stremio
+msg_ok "Stremio Downloaded"
 
 msg_info "Creating systemd service"
-cat <<EOL >/etc/systemd/system/stremio-service.service
+cat <<EOL >/etc/systemd/system/stremio.service
 [Unit]
-Description=Stremio Service (Official Backend)
+Description=Stremio (Official Backend)
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/stremio-service
-ExecStart=/opt/stremio-service/stremio-service
+WorkingDirectory=/opt/stremio
+ExecStart=/opt/stremio/stremio
 Restart=on-failure
 User=root
 
@@ -63,7 +63,7 @@ WantedBy=multi-user.target
 EOL
 
 systemctl daemon-reload
-systemctl enable --now stremio-service
+systemctl enable --now stremio
 msg_ok "Service Created and Started"
 
 msg_info "Cleaning up"
@@ -72,6 +72,6 @@ apt-get -y autoclean
 msg_ok "Cleaned"
 
 IP=$(hostname -I | awk '{print $1}')
-echo -e "\n${CREATING}${GN}Stremio Service setup has been successfully initialized!${CL}"
+echo -e "\n${CREATING}${GN}Stremio setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${BGN}http://${IP}:11470${CL}"
