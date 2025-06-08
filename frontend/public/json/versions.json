@@ -1,5 +1,35 @@
 [
   {
+    "name": "firefly-iii/firefly-iii",
+    "version": "v6.2.16",
+    "date": "2025-05-27T16:27:42Z"
+  },
+  {
+    "name": "karakeep-app/karakeep",
+    "version": "mcp/v0.25.0",
+    "date": "2025-06-08T09:59:49Z"
+  },
+  {
+    "name": "Lidarr/Lidarr",
+    "version": "v2.11.2.4629",
+    "date": "2025-04-28T11:59:37Z"
+  },
+  {
+    "name": "Readarr/Readarr",
+    "version": "v2.0.0.4645",
+    "date": "2017-03-07T18:56:06Z"
+  },
+  {
+    "name": "Radarr/Radarr",
+    "version": "v5.25.0.10024",
+    "date": "2025-05-26T21:58:37Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.1999",
+    "date": "2025-06-08T05:53:33Z"
+  },
+  {
     "name": "matze/wastebin",
     "version": "3.2.0",
     "date": "2025-06-07T21:33:22Z"
@@ -53,11 +83,6 @@
     "name": "morpheus65535/bazarr",
     "version": "v1.5.2",
     "date": "2025-05-11T16:40:55Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.1997",
-    "date": "2025-06-07T05:54:23Z"
   },
   {
     "name": "OliveTin/OliveTin",
@@ -188,11 +213,6 @@
     "name": "FlareSolverr/FlareSolverr",
     "version": "v3.3.24",
     "date": "2025-06-04T18:02:30Z"
-  },
-  {
-    "name": "firefly-iii/firefly-iii",
-    "version": "v6.2.16",
-    "date": "2025-05-27T16:27:42Z"
   },
   {
     "name": "cockpit-project/cockpit",
@@ -365,11 +385,6 @@
     "date": "2025-06-01T18:08:44Z"
   },
   {
-    "name": "Radarr/Radarr",
-    "version": "v5.25.0.10024",
-    "date": "2025-05-26T21:58:37Z"
-  },
-  {
     "name": "kimai/kimai",
     "version": "2.35.1",
     "date": "2025-05-31T15:05:27Z"
@@ -468,30 +483,5 @@
     "name": "Threadfin/Threadfin",
     "version": "1.2.34",
     "date": "2025-05-27T18:18:00Z"
-  },
-  {
-    "name": "immich-app/immich",
-    "version": "v1.134.0",
-    "date": "2025-05-27T17:28:27Z"
-  },
-  {
-    "name": "neo4j/neo4j",
-    "version": "5.26.7",
-    "date": "2025-05-27T14:59:35Z"
-  },
-  {
-    "name": "redis/redis",
-    "version": "7.2.9",
-    "date": "2025-05-27T14:08:53Z"
-  },
-  {
-    "name": "traefik/traefik",
-    "version": "v3.4.1",
-    "date": "2025-05-27T12:53:58Z"
-  },
-  {
-    "name": "AdguardTeam/AdGuardHome",
-    "version": "v0.107.62",
-    "date": "2025-05-27T12:10:19Z"
   }
 ]
