@@ -1,27 +1,26 @@
 {
-    "name": "Wizarr",
-    "slug": "wizarr",
+    "name": "Maybe Finance",
+    "slug": "maybefinance",
     "categories": [
-        14,
-        13
+        23,
     ],
-    "date_created": "2025-06-05",
+    "date_created": "2025-06-08",
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "interface_port": 5690,
-    "documentation": "https://docs.wizarr.dev/",
-    "website": "https://docs.wizarr.dev/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/wizarr.webp",
-    "config_path": "/opt/wizarr/.env",
-    "description": "Wizarr is an automatic user invitation system for Plex, Jellyfin and Emby. Create a unique link and share it to a user and they will automatically be invited to your media Server",
+    "interface_port": 3000,
+    "documentation": "https://github.com/maybe-finance/maybe/",
+    "website": "https://maybefinance.com/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/maybe.webp",
+    "config_path": "/opt/maybe/.env",
+    "description": "Maybe is an all-in-one personal finance platform. Track, optimize, grow, and manage your money through every stage of life.",
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/wizarr.sh",
+            "script": "ct/maybe.sh",
             "resources": {
-                "cpu": 1,
-                "ram": 1024,
+                "cpu": 2,
+                "ram": 2048,
                 "hdd": 4,
                 "os": "debian",
                 "version": "12"
