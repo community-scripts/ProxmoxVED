@@ -40,6 +40,7 @@ function update_script() {
 
     msg_info "Updating $APP to ${RELEASE}"
     fetch_and_deploy_gh_release "kapowarr" "Casvt/Kapowarr"
+    mv /opt/db /opt/kapowarr
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"
