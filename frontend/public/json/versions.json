@@ -1,13 +1,38 @@
 [
   {
+    "name": "karakeep-app/karakeep",
+    "version": "ios/v1.7.0-1",
+    "date": "2025-06-08T22:02:33Z"
+  },
+  {
+    "name": "ellite/Wallos",
+    "version": "v3.2.0",
+    "date": "2025-06-08T16:54:37Z"
+  },
+  {
+    "name": "msgbyte/tianji",
+    "version": "v1.21.11",
+    "date": "2025-06-08T16:49:06Z"
+  },
+  {
+    "name": "Luligu/matterbridge",
+    "version": "3.0.5",
+    "date": "2025-06-08T15:53:53Z"
+  },
+  {
+    "name": "Forceu/Gokapi",
+    "version": "v2.0.1",
+    "date": "2025-06-08T14:40:24Z"
+  },
+  {
+    "name": "redis/redis",
+    "version": "8.2-m01-int",
+    "date": "2025-06-08T13:48:51Z"
+  },
+  {
     "name": "firefly-iii/firefly-iii",
     "version": "v6.2.16",
     "date": "2025-05-27T16:27:42Z"
-  },
-  {
-    "name": "karakeep-app/karakeep",
-    "version": "mcp/v0.25.0",
-    "date": "2025-06-08T09:59:49Z"
   },
   {
     "name": "Lidarr/Lidarr",
@@ -153,11 +178,6 @@
     "name": "netbox-community/netbox",
     "version": "v4.3.2",
     "date": "2025-06-05T19:57:01Z"
-  },
-  {
-    "name": "msgbyte/tianji",
-    "version": "v1.21.10",
-    "date": "2025-06-05T18:18:52Z"
   },
   {
     "name": "benjaminjonard/koillection",
@@ -400,11 +420,6 @@
     "date": "2025-05-31T13:36:23Z"
   },
   {
-    "name": "Forceu/Gokapi",
-    "version": "v2.0.0",
-    "date": "2025-05-31T12:32:40Z"
-  },
-  {
     "name": "blakeblackshear/frigate",
     "version": "v0.14.1",
     "date": "2024-08-29T22:32:51Z"
@@ -468,20 +483,5 @@
     "name": "mongodb/mongo",
     "version": "r6.0.24",
     "date": "2025-05-28T21:25:03Z"
-  },
-  {
-    "name": "Athou/commafeed",
-    "version": "5.10.0",
-    "date": "2025-05-28T05:48:20Z"
-  },
-  {
-    "name": "bluenviron/mediamtx",
-    "version": "v1.12.3",
-    "date": "2025-05-27T20:43:10Z"
-  },
-  {
-    "name": "Threadfin/Threadfin",
-    "version": "1.2.34",
-    "date": "2025-05-27T18:18:00Z"
   }
 ]
