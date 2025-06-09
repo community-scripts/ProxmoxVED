@@ -18,7 +18,7 @@ $STD apt-get install -y python3-pip
 msg_ok "Setup Python3"
 
 setup_uv
-fetch_and_deploy_gh_release "Casvt/Kapowarr"
+fetch_and_deploy_gh_release "Kapowarr" "Casvt/Kapowarr"
 
 msg_info "Setup Kapowarr"
 cd /opt/kapowarr
