@@ -108,7 +108,7 @@ After=redis.service
 Type=simple
 WorkingDirectory=/opt/maybe
 ExecStart=/root/.rbenv/shims/dotenv -f /opt/maybe/.env /opt/maybe/bin/bundle exec sidekiq
-Restart=unless-stopped
+Restart=on-abnormal
 
 [Install]
 WantedBy=multi-user.target
