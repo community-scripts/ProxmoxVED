@@ -1210,7 +1210,7 @@ setup_rbenv_stack() {
   tar -xzf "$TMP_DIR/rbenv.tar.gz" -C "$TMP_DIR"
   mkdir -p "$RBENV_DIR"
   cp -r "$TMP_DIR/rbenv-${RBENV_RELEASE}/." "$RBENV_DIR/"
-  cd "$RBENV_DIR" && src/configure && make -C src
+  cd "$RBENV_DIR" && src/configure && $STD make -C src
 
   # Fetch latest ruby-build plugin release tag (e.g. v20250507 → 20250507)
   local RUBY_BUILD_RELEASE
