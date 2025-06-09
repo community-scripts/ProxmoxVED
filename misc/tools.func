@@ -1194,7 +1194,7 @@ setup_rbenv_stack() {
   local TMP_DIR
   TMP_DIR=$(mktemp -d)
 
-  $STD msg_info "Installing rbenv + ruby-build + Ruby $RUBY_VERSION"
+  msg_info "Installing rbenv + ruby-build + Ruby $RUBY_VERSION"
 
   # Fetch latest rbenv release tag from GitHub (e.g. v1.3.2 → 1.3.2)
   local RBENV_RELEASE
@@ -1242,7 +1242,7 @@ setup_rbenv_stack() {
   if "$RBENV_BIN" versions --bare | grep -qx "$RUBY_VERSION"; then
     msg_ok "Ruby $RUBY_VERSION already installed"
   else
-    $STD msg_info "Installing Ruby $RUBY_VERSION"
+    msg_info "Installing Ruby $RUBY_VERSION"
     $STD "$RBENV_BIN" install "$RUBY_VERSION"
   fi
 
@@ -1252,7 +1252,7 @@ setup_rbenv_stack() {
 
   # Optionally install Rails via gem
   if [[ "$RUBY_INSTALL_RAILS" == "true" ]]; then
-    $STD msg_info "Installing latest Rails via gem"
+    msg_info "Installing latest Rails via gem"
     gem install rails
     msg_ok "Rails $(rails -v) installed"
   fi
