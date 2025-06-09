@@ -12,12 +12,7 @@ verb_ip6
 catch_errors
 setting_up_container
 network_check
-
-# update_os # don't call this one because it is a bad idea to remove /usr/lib/python3.*/EXTERNALLY-MANAGED in this context
-msg_info "Upgrade OS"
-$STD apt-get update
-$STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
-msg_ok "OS upgraded"
+update_os
 
 msg_info "Installing dependencies"
 $STD apt-get install -y \
