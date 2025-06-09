@@ -1242,7 +1242,7 @@ setup_rbenv_stack() {
   if "$RBENV_BIN" versions --bare | grep -qx "$RUBY_VERSION"; then
     msg_ok "Ruby $RUBY_VERSION already installed"
   else
-    msg_info "Installing Ruby $RUBY_VERSION"
+    msg_info "Installing Ruby ${RUBY_VERSION} (patience)"
     $STD "$RBENV_BIN" install "$RUBY_VERSION"
   fi
 
