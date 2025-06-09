@@ -49,7 +49,8 @@ function update_script() {
     $STD ./bin/bundle install
     $STD ./bin/bundle exec bootsnap precompile --gemfile -j 0
     $STD ./bin/bundle exec bootsnap precompile -j 0 app/ lib/
-    SECRET_KEY_BASE_DUMMY=1 $STD ./bin/rails assets:precompile
+    export SECRET_KEY_BASE_DUMMY=1
+    $STD ./bin/rails assets:precompile
     $STD dotenv -f ./.env ./bin/rails db:prepare
     msg_ok "Updated $APP to v${RELEASE}"
 
