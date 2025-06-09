@@ -36,7 +36,8 @@ function update_script() {
     msg_ok "Stopped $APP"
 
     msg_info "Creating Backup"
-    cp /opt/maybe/.env /opt/maybe.env
+    BACKUP_FILE="/opt/maybe_backup_$(date +%F).tar.gz"
+    $STD tar -czf "$BACKUP_FILE" /opt/maybe/{.env,storage/} &>/dev/null
     msg_ok "Backup Created"
 
     msg_info "Updating $APP to v${RELEASE}"
@@ -45,8 +46,9 @@ function update_script() {
     unzip -q /tmp/v"$RELEASE".zip
     mv maybe-"$RELEASE" /opt/maybe
     cd /opt/maybe
-    r, ./config/credentials.yml.enc
+    rm ./config/credentials.yml.enc
     source ~/.profile
+    $STD tar -xf "$BACKUP_FILE" --directory=/
     $STD ./bin/bundle install
     $STD ./bin/bundle exec bootsnap precompile --gemfile -j 0
     $STD ./bin/bundle exec bootsnap precompile -j 0 app/ lib/
@@ -61,6 +63,7 @@ function update_script() {
 
     msg_info "Cleaning Up"
     rm /tmp/v"$RELEASE".zip
+    rm -f "$BACKUP_FILE"
     msg_ok "Cleanup Completed"
 
     echo "${RELEASE}" >/opt/maybe_version.txt

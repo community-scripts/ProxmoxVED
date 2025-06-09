@@ -57,7 +57,8 @@ unzip -q /tmp/v"$RELEASE".zip
 mv maybe-"$RELEASE" /opt/maybe
 cd /opt/maybe
 cp ./.env.example ./.env
-sed -i -e "s/secret-value/\"$(openssl rand -hex 64)\"/" \
+sed -i -e '/SELF_/a RAILS_ENV=production' \
+  -e "s/secret-value/\"$(openssl rand -hex 64)\"/" \
   -e "/^SECRET_KEY/a RAILS_MASTER_KEY=\"$(openssl rand -hex 16)\"" \
   -e "s/_USER=postgres/_USER=${DB_USER}/" \
   -e "s/_PASSWORD=postgres/_PASSWORD=${DB_PASS}/" \
@@ -66,7 +67,7 @@ sed -i -e "s/secret-value/\"$(openssl rand -hex 64)\"/" \
   ./.env
 sed -i -e '/_DB=/a\
 \
-REDIS_URL=http://127.0.0.1:6379' \
+REDIS_URL=redis://localhost:6379/1' \
   -e '/_SSL/a\
 RAILS_FORCE_SSL=false\
 RAILS_ASSUME_SSL=false' \
@@ -92,7 +93,7 @@ After=network.target redis.service postgresql.service
 Type=simple
 WorkingDirectory=/opt/maybe
 ExecStart=/root/.rbenv/shims/dotenv -f /opt/maybe/.env /opt/maybe/bin/rails s
-Restart=unless-stopped
+Restart=on-abnormal
 
 [Install]
 WantedBy=multi-user.target
@@ -106,8 +107,7 @@ After=redis.service
 [Service]
 Type=simple
 WorkingDirectory=/opt/maybe
-EnvironmentFile=/opt/maybe/.env
-ExecStart=bundle exec sidekiq
+ExecStart=/root/.rbenv/shims/dotenv -f /opt/maybe/.env /opt/maybe/bundle exec sidekiq
 Restart=unless-stopped
 
 [Install]
