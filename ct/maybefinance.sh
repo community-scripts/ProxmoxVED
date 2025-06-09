@@ -45,6 +45,7 @@ function update_script() {
     unzip -q /tmp/v"$RELEASE".zip
     mv maybe-"$RELEASE" /opt/maybe
     cd /opt/maybe
+    r, ./config/credentials.yml.enc
     source ~/.profile
     $STD ./bin/bundle install
     $STD ./bin/bundle exec bootsnap precompile --gemfile -j 0

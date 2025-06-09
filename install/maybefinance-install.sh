@@ -71,6 +71,7 @@ REDIS_URL=http://127.0.0.1:6379' \
 RAILS_FORCE_SSL=false\
 RAILS_ASSUME_SSL=false' \
   ./.env
+rm -f ./config/credentials.yml.enc
 $STD ./bin/bundle install
 $STD ./bin/bundle exec bootsnap precompile --gemfile -j 0
 $STD ./bin/bundle exec bootsnap precompile -j 0 app/ lib/
