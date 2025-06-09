@@ -17,7 +17,7 @@
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/maybe.sh",
+            "script": "ct/maybefinance.sh",
             "resources": {
                 "cpu": 2,
                 "ram": 2048,
