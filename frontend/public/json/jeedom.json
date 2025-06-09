@@ -41,14 +41,5 @@
         "username": "admin",
         "password": "admin"
     },
-    "notes": [
-        {
-            "text": "Use Debian 11 or 12 only",
-            "type": "warning"
-        },
-        {
-            "text": "If the LXC is created Privileged, the script will automatically set up USB passthrough.",
-            "type": "warning"
-        }
-    ]
+    "notes": []
 }
