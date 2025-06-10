@@ -34,7 +34,6 @@ $STD apt-get install -y --no-install-recommends \
 msg_ok "Installed Dependencies"
 
 PG_VERSION=16 install_postgresql
-RUBY_VERSION=3.4.1 RUBY_INSTALL_RAILS=false setup_rbenv_stack
 
 msg_info "Setting up Postgresql"
 DB_NAME="maybe"
@@ -56,6 +55,7 @@ curl -fsSL "https://github.com/maybe-finance/maybe/archive/refs/tags/v${RELEASE}
 unzip -q /tmp/v"$RELEASE".zip
 mv maybe-"$RELEASE" /opt/maybe
 cd /opt/maybe
+RUBY_VERSION="$(cat /opt/maybe/.ruby-version)" RUBY_INSTALL_RAILS=false setup_rbenv_stack
 cp ./.env.example ./.env
 sed -i -e '/SELF_/a RAILS_ENV=production' \
   -e "s/secret-value/\"$(openssl rand -hex 64)\"/" \
@@ -77,7 +77,7 @@ $STD ./bin/bundle install
 $STD ./bin/bundle exec bootsnap precompile --gemfile -j 0
 $STD ./bin/bundle exec bootsnap precompile -j 0 app/ lib/
 export SECRET_KEY_BASE_DUMMY=1
-$STD ./bin/rails assets:precompile
+$STD dotenv -f ./.env ./bin/rails assets:precompile
 $STD dotenv -f ./.env ./bin/rails db:prepare
 echo "${RELEASE}" >/opt/maybe_version.txt
 msg_ok "Installed ${APPLICATION}"

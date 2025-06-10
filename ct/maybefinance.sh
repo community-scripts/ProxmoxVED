@@ -49,11 +49,12 @@ function update_script() {
     rm ./config/credentials.yml.enc
     source ~/.profile
     $STD tar -xf "$BACKUP_FILE" --directory=/
+    RUBY_VERSION="$(cat /opt/maybe/.ruby-version)" RUBY_INSTALL_RAILS=false setup_rbenv_stack
     $STD ./bin/bundle install
     $STD ./bin/bundle exec bootsnap precompile --gemfile -j 0
     $STD ./bin/bundle exec bootsnap precompile -j 0 app/ lib/
     export SECRET_KEY_BASE_DUMMY=1
-    $STD ./bin/rails assets:precompile
+    $STD dotenv -f ./.env ./bin/rails assets:precompile
     $STD dotenv -f ./.env ./bin/rails db:prepare
     msg_ok "Updated $APP to v${RELEASE}"
 
