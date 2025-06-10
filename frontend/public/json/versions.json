@@ -1,13 +1,78 @@
 [
   {
-    "name": "nzbgetcom/nzbget",
-    "version": "v25.0",
-    "date": "2025-05-12T09:12:04Z"
+    "name": "Sonarr/Sonarr",
+    "version": "v4.0.14.2939",
+    "date": "2025-03-17T19:12:37Z"
+  },
+  {
+    "name": "cross-seed/cross-seed",
+    "version": "v6.12.6",
+    "date": "2025-05-28T00:13:19Z"
+  },
+  {
+    "name": "tailscale/tailscale",
+    "version": "v1.84.2",
+    "date": "2025-06-09T23:43:27Z"
+  },
+  {
+    "name": "fallenbagel/jellyseerr",
+    "version": "v2.6.0",
+    "date": "2025-06-09T23:28:38Z"
+  },
+  {
+    "name": "pocket-id/pocket-id",
+    "version": "v1.3.1",
+    "date": "2025-06-09T21:07:27Z"
+  },
+  {
+    "name": "pocketbase/pocketbase",
+    "version": "v0.28.3",
+    "date": "2025-06-09T18:11:46Z"
+  },
+  {
+    "name": "Lidarr/Lidarr",
+    "version": "v2.12.4.4658",
+    "date": "2025-06-09T17:27:45Z"
+  },
+  {
+    "name": "ollama/ollama",
+    "version": "v0.9.1-ci3",
+    "date": "2025-06-07T16:12:57Z"
+  },
+  {
+    "name": "Brandawg93/PeaNUT",
+    "version": "v5.8.0",
+    "date": "2025-06-09T16:08:33Z"
+  },
+  {
+    "name": "ellite/Wallos",
+    "version": "v3.3.0",
+    "date": "2025-06-09T15:58:04Z"
+  },
+  {
+    "name": "NodeBB/NodeBB",
+    "version": "v2.8.19",
+    "date": "2025-06-09T15:32:25Z"
+  },
+  {
+    "name": "seanmorley15/AdventureLog",
+    "version": "v0.10.0",
+    "date": "2025-06-09T13:37:07Z"
+  },
+  {
+    "name": "crowdsecurity/crowdsec",
+    "version": "v1.6.8",
+    "date": "2025-03-25T13:33:10Z"
   },
   {
     "name": "VictoriaMetrics/VictoriaMetrics",
-    "version": "v1.110.10",
-    "date": "2025-06-09T11:10:10Z"
+    "version": "pmm-6401-v1.119.0",
+    "date": "2025-06-09T12:26:37Z"
+  },
+  {
+    "name": "nzbgetcom/nzbget",
+    "version": "v25.0",
+    "date": "2025-05-12T09:12:04Z"
   },
   {
     "name": "Checkmk/checkmk",
@@ -35,14 +100,14 @@
     "date": "2025-06-09T03:59:04Z"
   },
   {
+    "name": "neo4j/neo4j",
+    "version": "5.26.8",
+    "date": "2025-06-08T22:50:58Z"
+  },
+  {
     "name": "karakeep-app/karakeep",
     "version": "ios/v1.7.0-1",
     "date": "2025-06-08T22:02:33Z"
-  },
-  {
-    "name": "ellite/Wallos",
-    "version": "v3.2.0",
-    "date": "2025-06-08T16:54:37Z"
   },
   {
     "name": "msgbyte/tianji",
@@ -65,11 +130,6 @@
     "date": "2025-06-08T13:48:51Z"
   },
   {
-    "name": "Lidarr/Lidarr",
-    "version": "v2.11.2.4629",
-    "date": "2025-04-28T11:59:37Z"
-  },
-  {
     "name": "Readarr/Readarr",
     "version": "v2.0.0.4645",
     "date": "2017-03-07T18:56:06Z"
@@ -85,19 +145,9 @@
     "date": "2025-06-07T21:33:22Z"
   },
   {
-    "name": "cross-seed/cross-seed",
-    "version": "v6.12.6",
-    "date": "2025-05-28T00:13:19Z"
-  },
-  {
     "name": "jellyfin/jellyfin",
     "version": "v10.10.7",
     "date": "2025-04-05T19:14:59Z"
-  },
-  {
-    "name": "ollama/ollama",
-    "version": "v0.9.1-ci3",
-    "date": "2025-06-07T16:12:57Z"
   },
   {
     "name": "jordan-dalby/ByteStash",
@@ -255,11 +305,6 @@
     "date": "2025-06-04T15:12:56Z"
   },
   {
-    "name": "crowdsecurity/crowdsec",
-    "version": "v1.6.8",
-    "date": "2025-03-25T13:33:10Z"
-  },
-  {
     "name": "n8n-io/n8n",
     "version": "n8n@1.95.3",
     "date": "2025-06-03T11:09:42Z"
@@ -303,11 +348,6 @@
     "name": "coder/code-server",
     "version": "v4.100.3",
     "date": "2025-06-03T21:06:41Z"
-  },
-  {
-    "name": "pocket-id/pocket-id",
-    "version": "v1.2.0",
-    "date": "2025-06-03T20:42:28Z"
   },
   {
     "name": "runtipi/runtipi",
@@ -360,19 +400,9 @@
     "date": "2025-05-14T05:01:45Z"
   },
   {
-    "name": "tailscale/tailscale",
-    "version": "v1.84.1",
-    "date": "2025-06-02T18:35:35Z"
-  },
-  {
     "name": "grokability/snipe-it",
     "version": "v8.1.15",
     "date": "2025-06-02T17:38:24Z"
-  },
-  {
-    "name": "NodeBB/NodeBB",
-    "version": "v4.4.2",
-    "date": "2025-06-02T15:06:31Z"
   },
   {
     "name": "wazuh/wazuh",
@@ -453,45 +483,5 @@
     "name": "navidrome/navidrome",
     "version": "v0.56.1",
     "date": "2025-05-29T19:09:16Z"
-  },
-  {
-    "name": "HabitRPG/habitica",
-    "version": "v5.36.5",
-    "date": "2025-05-29T17:06:01Z"
-  },
-  {
-    "name": "FlowiseAI/Flowise",
-    "version": "flowise@3.0.1",
-    "date": "2025-05-29T17:00:06Z"
-  },
-  {
-    "name": "readeck/readeck",
-    "version": "0.19.2",
-    "date": "2025-05-29T14:39:17Z"
-  },
-  {
-    "name": "zwave-js/zwave-js-ui",
-    "version": "v10.6.1",
-    "date": "2025-05-29T13:36:09Z"
-  },
-  {
-    "name": "duplicati/duplicati",
-    "version": "v2.1.0.119-2.1.0.119_canary_2025-05-29",
-    "date": "2025-05-29T06:14:27Z"
-  },
-  {
-    "name": "apache/cassandra",
-    "version": "cassandra-4.0.18",
-    "date": "2025-05-28T21:45:55Z"
-  },
-  {
-    "name": "mongodb/mongo",
-    "version": "r6.0.24",
-    "date": "2025-05-28T21:25:03Z"
-  },
-  {
-    "name": "semaphoreui/semaphore",
-    "version": "v2.14.12",
-    "date": "2025-05-27T03:58:59Z"
   }
 ]
