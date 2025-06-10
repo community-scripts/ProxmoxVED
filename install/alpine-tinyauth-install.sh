@@ -62,7 +62,7 @@ pidfile="/var/run/tinyauth.pid"
 start_pre() {
     if [ -f "/opt/tinyauth/.env" ]; then
         line=""
-        while IFS= read -r line || [ -n "$line" ]; do
+        while IFS= read -r line || [ -n "${line-}" ]; do
             [ -z "$line" ] && continue
             case "$line" in
                 '#'*)
