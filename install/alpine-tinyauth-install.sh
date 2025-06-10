@@ -49,7 +49,7 @@ EOF
 
 sed -i -e 's/\$/\$\$/g' /opt/tinyauth/.env
 
-cat <<EOF >/etc/init.d/tinyauth
+cat <<'EOF' >/etc/init.d/tinyauth
 #!/sbin/openrc-run
 description="Tinyauth Service"
 
@@ -60,17 +60,17 @@ command_background="true"
 pidfile="/var/run/tinyauth.pid"
 
 start_pre() {
-  if [ -f "/opt/tinyauth/.env" ]; then
-    while IFS= read -r line || [ -n "${line:-}" ]; do
-      [ -z "${line:-}" ] && continue
-      case "${line:-}" in
-        '#'*)
-          continue
-          ;;
-      esac
-      export "$line"
-    done < "/opt/tinyauth/.env"
-  fi
+    if [ -f "/opt/tinyauth/.env" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            [ -z "$line" ] && continue
+            case "$line" in
+                '#'*)
+                    continue
+                    ;;
+            esac
+            export "$line"
+        done < "/opt/tinyauth/.env"
+    fi
 }
 
 depend() {
