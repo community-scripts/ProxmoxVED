@@ -56,7 +56,7 @@ unzip -q /tmp/v"$RELEASE".zip
 mv maybe-"$RELEASE" /opt/maybe
 RUBY_VERSION="$(cat /opt/maybe/.ruby-version)" RUBY_INSTALL_RAILS=false setup_rbenv_stack
 cd /opt/maybe
-cp /.env.example ./.env
+cp ./.env.example ./.env
 sed -i -e '/SELF_/a RAILS_ENV=production' \
   -e "s/secret-value/\"$(openssl rand -hex 64)\"/" \
   -e "/^SECRET_KEY/a RAILS_MASTER_KEY=\"$(openssl rand -hex 16)\"" \
