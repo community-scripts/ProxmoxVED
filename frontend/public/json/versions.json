@@ -1,5 +1,50 @@
 [
   {
+    "name": "element-hq/synapse",
+    "version": "v1.131.0",
+    "date": "2025-06-03T14:13:00Z"
+  },
+  {
+    "name": "Graylog2/graylog2-server",
+    "version": "6.3.0-beta.5",
+    "date": "2025-06-10T11:19:42Z"
+  },
+  {
+    "name": "OctoPrint/OctoPrint",
+    "version": "1.11.2",
+    "date": "2025-06-10T11:07:14Z"
+  },
+  {
+    "name": "VictoriaMetrics/VictoriaMetrics",
+    "version": "v1.110.11",
+    "date": "2025-06-10T10:00:25Z"
+  },
+  {
+    "name": "emqx/emqx",
+    "version": "e5.10.0-rc.2",
+    "date": "2025-06-10T09:46:15Z"
+  },
+  {
+    "name": "glanceapp/glance",
+    "version": "v0.8.4",
+    "date": "2025-06-10T07:57:14Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2004",
+    "date": "2025-06-10T05:57:54Z"
+  },
+  {
+    "name": "documenso/documenso",
+    "version": "v1.12.0-rc.3",
+    "date": "2025-06-10T02:49:37Z"
+  },
+  {
+    "name": "go-gitea/gitea",
+    "version": "v1.24.0",
+    "date": "2025-06-10T02:00:38Z"
+  },
+  {
     "name": "Sonarr/Sonarr",
     "version": "v4.0.14.2939",
     "date": "2025-03-17T19:12:37Z"
@@ -28,6 +73,11 @@
     "name": "pocketbase/pocketbase",
     "version": "v0.28.3",
     "date": "2025-06-09T18:11:46Z"
+  },
+  {
+    "name": "keycloak/keycloak",
+    "version": "26.2.5",
+    "date": "2025-05-28T06:49:43Z"
   },
   {
     "name": "Lidarr/Lidarr",
@@ -65,11 +115,6 @@
     "date": "2025-03-25T13:33:10Z"
   },
   {
-    "name": "VictoriaMetrics/VictoriaMetrics",
-    "version": "pmm-6401-v1.119.0",
-    "date": "2025-06-09T12:26:37Z"
-  },
-  {
     "name": "nzbgetcom/nzbget",
     "version": "v25.0",
     "date": "2025-05-12T09:12:04Z"
@@ -88,11 +133,6 @@
     "name": "morpheus65535/bazarr",
     "version": "v1.5.2",
     "date": "2025-05-11T16:40:55Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2002",
-    "date": "2025-06-09T05:54:35Z"
   },
   {
     "name": "firefly-iii/firefly-iii",
@@ -195,16 +235,6 @@
     "date": "2025-06-06T17:44:58Z"
   },
   {
-    "name": "keycloak/keycloak",
-    "version": "26.2.5",
-    "date": "2025-05-28T06:49:43Z"
-  },
-  {
-    "name": "documenso/documenso",
-    "version": "v1.12.0-rc.2",
-    "date": "2025-06-06T16:25:14Z"
-  },
-  {
     "name": "goauthentik/authentik",
     "version": "version/2025.6.1",
     "date": "2025-06-06T15:28:21Z"
@@ -243,11 +273,6 @@
     "name": "benjaminjonard/koillection",
     "version": "1.6.14",
     "date": "2025-06-05T16:40:52Z"
-  },
-  {
-    "name": "emqx/emqx",
-    "version": "e5.10.0-rc.1",
-    "date": "2025-06-05T16:11:30Z"
   },
   {
     "name": "docker/compose",
@@ -310,11 +335,6 @@
     "date": "2025-06-03T11:09:42Z"
   },
   {
-    "name": "Graylog2/graylog2-server",
-    "version": "6.1.12",
-    "date": "2025-06-04T12:48:55Z"
-  },
-  {
     "name": "Prowlarr/Prowlarr",
     "version": "v1.37.0.5076",
     "date": "2025-06-04T11:04:53Z"
@@ -363,11 +383,6 @@
     "name": "dgtlmoon/changedetection.io",
     "version": "0.50.2",
     "date": "2025-06-03T14:29:07Z"
-  },
-  {
-    "name": "element-hq/synapse",
-    "version": "v1.131.0",
-    "date": "2025-06-03T14:13:00Z"
   },
   {
     "name": "zitadel/zitadel",
@@ -468,20 +483,5 @@
     "name": "binwiederhier/ntfy",
     "version": "v2.12.0",
     "date": "2025-05-30T00:26:27Z"
-  },
-  {
-    "name": "open-webui/open-webui",
-    "version": "v0.6.13",
-    "date": "2025-05-29T21:37:38Z"
-  },
-  {
-    "name": "gristlabs/grist-core",
-    "version": "v1.6.0",
-    "date": "2025-05-29T19:11:21Z"
-  },
-  {
-    "name": "navidrome/navidrome",
-    "version": "v0.56.1",
-    "date": "2025-05-29T19:09:16Z"
   }
 ]
