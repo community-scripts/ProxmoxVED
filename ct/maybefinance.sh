@@ -45,11 +45,11 @@ function update_script() {
     curl -fsSL "https://github.com/maybe-finance/maybe/archive/refs/tags/v${RELEASE}.zip" -o /tmp/v"$RELEASE".zip
     unzip -q /tmp/v"$RELEASE".zip
     mv maybe-"$RELEASE" /opt/maybe
+    RUBY_VERSION="$(cat /opt/maybe/.ruby-version)" RUBY_INSTALL_RAILS=false setup_rbenv_stack
     cd /opt/maybe
     rm ./config/credentials.yml.enc
     source ~/.profile
     $STD tar -xf "$BACKUP_FILE" --directory=/
-    RUBY_VERSION="$(cat /opt/maybe/.ruby-version)" RUBY_INSTALL_RAILS=false setup_rbenv_stack
     $STD ./bin/bundle install
     $STD ./bin/bundle exec bootsnap precompile --gemfile -j 0
     $STD ./bin/bundle exec bootsnap precompile -j 0 app/ lib/
