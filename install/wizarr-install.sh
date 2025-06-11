@@ -33,7 +33,7 @@ cd /opt/wizarr
 uv -q sync --locked
 $STD uv -q run pybabel compile -d app/translations
 $STD npm --prefix app/static install
-$STD npm --prefix app/static build:css
+$STD npm --prefix app/static run build:css
 mkdir -p ./.cache
 $STD uv -q run flask db upgrade
 echo "${RELEASE}" >/opt/wizarr_version.txt
