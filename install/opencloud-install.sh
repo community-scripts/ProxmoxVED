@@ -20,17 +20,17 @@ update_os
 
 msg_info "Installing ${APPLICATION}"
 RELEASE=$(curl -s https://api.github.com/repos/opencloud-eu/opencloud/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/opencloud-eu/opencloud/releases/download/v${RELEASE}/opencloud-${RELEASE}-linux-amd64" -o /usr/bin/opencloud
-chmod +x /usr/bin/opencloud
-echo "${RELEASE}" >/etc/opencloud/version
-msg_ok "Installed ${APPLICATION}"
-
-msg_info "Configuring ${APPLICATION}"
 DATA_DIR="/var/lib/opencloud/"
 CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
 IP="$(hostname -I | awk '{print $1}')"
+curl -fsSL "https://github.com/opencloud-eu/opencloud/releases/download/v${RELEASE}/opencloud-${RELEASE}-linux-amd64" -o /usr/bin/opencloud
+chmod +x /usr/bin/opencloud
+mkdir -p "$DATA_DIR" "$CONFIG_DIR"
+echo "${RELEASE}" >/etc/opencloud/version
+msg_ok "Installed ${APPLICATION}"
 
+msg_info "Configuring ${APPLICATION}"
 cat <<EOF >"$ENV_FILE"
 OC_URL=https://${IP}:9200
 OC_INSECURE=true
