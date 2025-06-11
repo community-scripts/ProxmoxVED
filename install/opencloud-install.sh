@@ -14,20 +14,31 @@ network_check
 update_os
 
 # msg_info "Installing Dependencies"
-# $STD apt-get install -y \
-#   build-essential
 # msg_ok "Installed Dependencies"
 
+msg_info "Installing Collabora Online"
+curl -fsSL https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg -o /etc/apt/keyrings/collaboraonline-release-keyring.gpg
+
+cat <<EOF >/etc/apt/sources.list.d/collaboraonline.sources
+Types: deb
+URIs: https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb
+Suites: ./
+Signed-By: /etc/apt/keyrings/collaboraonline-release-keyring.gpg
+EOF
+
+$STD apt-get update
+$STD apt-get install -y coolwsd code-brand
+
 msg_info "Installing ${APPLICATION}"
-RELEASE=$(curl -s https://api.github.com/repos/opencloud-eu/opencloud/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+OPENCLOUD=$(curl -s https://api.github.com/repos/opencloud-eu/opencloud/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 DATA_DIR="/var/lib/opencloud/"
 CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
 IP="$(hostname -I | awk '{print $1}')"
-curl -fsSL "https://github.com/opencloud-eu/opencloud/releases/download/v${RELEASE}/opencloud-${RELEASE}-linux-amd64" -o /usr/bin/opencloud
+curl -fsSL "https://github.com/opencloud-eu/opencloud/releases/download/v${OPENCLOUD}/opencloud-${OPENCLOUD}-linux-amd64" -o /usr/bin/opencloud
 chmod +x /usr/bin/opencloud
 mkdir -p "$DATA_DIR" "$CONFIG_DIR"
-echo "${RELEASE}" >/etc/opencloud/version
+echo "${OPENCLOUD}" >/etc/opencloud/version
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Configuring ${APPLICATION}"
