@@ -1,23 +1,68 @@
 [
   {
-    "name": "Checkmk/checkmk",
-    "version": "v2.3.0p34-rc1",
-    "date": "2025-06-10T20:08:37Z"
+    "name": "kimai/kimai",
+    "version": "2.36.0",
+    "date": "2025-06-11T12:31:07Z"
+  },
+  {
+    "name": "firefly-iii/firefly-iii",
+    "version": "develop-20250609.1",
+    "date": "2025-06-09T03:59:04Z"
+  },
+  {
+    "name": "cloudflare/cloudflared",
+    "version": "2025.6.0",
+    "date": "2025-06-11T11:13:21Z"
   },
   {
     "name": "autobrr/autobrr",
-    "version": "v1.63.0",
-    "date": "2025-06-10T20:02:15Z"
-  },
-  {
-    "name": "keycloak/keycloak",
-    "version": "26.2.5",
-    "date": "2025-05-28T06:49:43Z"
+    "version": "v1.63.1",
+    "date": "2025-06-11T11:05:42Z"
   },
   {
     "name": "home-assistant/core",
     "version": "2025.5.3",
     "date": "2025-05-23T15:10:33Z"
+  },
+  {
+    "name": "n8n-io/n8n",
+    "version": "n8n@1.95.3",
+    "date": "2025-06-03T11:09:42Z"
+  },
+  {
+    "name": "wazuh/wazuh",
+    "version": "coverity-w24-4.13.0",
+    "date": "2025-06-11T04:04:55Z"
+  },
+  {
+    "name": "zabbix/zabbix",
+    "version": "7.2.8rc1",
+    "date": "2025-06-11T06:50:19Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2008",
+    "date": "2025-06-11T05:58:00Z"
+  },
+  {
+    "name": "openobserve/openobserve",
+    "version": "v0.15.0-rc2",
+    "date": "2025-06-11T04:29:22Z"
+  },
+  {
+    "name": "mattermost/mattermost",
+    "version": "server/public/v0.1.15",
+    "date": "2025-06-11T03:56:25Z"
+  },
+  {
+    "name": "Checkmk/checkmk",
+    "version": "v2.3.0p34-rc1",
+    "date": "2025-06-10T20:08:37Z"
+  },
+  {
+    "name": "keycloak/keycloak",
+    "version": "26.2.5",
+    "date": "2025-05-28T06:49:43Z"
   },
   {
     "name": "emqx/emqx",
@@ -68,11 +113,6 @@
     "name": "glanceapp/glance",
     "version": "v0.8.4",
     "date": "2025-06-10T07:57:14Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2004",
-    "date": "2025-06-10T05:57:54Z"
   },
   {
     "name": "documenso/documenso",
@@ -163,11 +203,6 @@
     "name": "morpheus65535/bazarr",
     "version": "v1.5.2",
     "date": "2025-05-11T16:40:55Z"
-  },
-  {
-    "name": "firefly-iii/firefly-iii",
-    "version": "develop-20250609.1",
-    "date": "2025-06-09T03:59:04Z"
   },
   {
     "name": "neo4j/neo4j",
@@ -320,11 +355,6 @@
     "date": "2025-06-05T11:32:45Z"
   },
   {
-    "name": "mattermost/mattermost",
-    "version": "server/public/v0.1.14",
-    "date": "2025-05-29T15:35:16Z"
-  },
-  {
     "name": "MariaDB/server",
     "version": "mariadb-11.8.2",
     "date": "2025-06-04T13:35:16Z"
@@ -355,24 +385,9 @@
     "date": "2025-06-04T16:41:44Z"
   },
   {
-    "name": "openobserve/openobserve",
-    "version": "v0.15.0-rc1",
-    "date": "2025-06-04T15:12:56Z"
-  },
-  {
-    "name": "n8n-io/n8n",
-    "version": "n8n@1.95.3",
-    "date": "2025-06-03T11:09:42Z"
-  },
-  {
     "name": "Prowlarr/Prowlarr",
     "version": "v1.37.0.5076",
     "date": "2025-06-04T11:04:53Z"
-  },
-  {
-    "name": "zabbix/zabbix",
-    "version": "7.4.0rc1",
-    "date": "2025-06-04T09:06:57Z"
   },
   {
     "name": "glpi-project/glpi",
@@ -440,11 +455,6 @@
     "date": "2025-06-02T17:38:24Z"
   },
   {
-    "name": "wazuh/wazuh",
-    "version": "coverity-w23-4.13.0",
-    "date": "2025-05-30T15:39:11Z"
-  },
-  {
     "name": "inventree/InvenTree",
     "version": "0.17.13",
     "date": "2025-06-02T12:44:20Z"
@@ -458,10 +468,5 @@
     "name": "advplyr/audiobookshelf",
     "version": "v2.24.0",
     "date": "2025-06-01T21:38:08Z"
-  },
-  {
-    "name": "traccar/traccar",
-    "version": "v6.7.2",
-    "date": "2025-06-01T20:40:00Z"
   }
 ]
