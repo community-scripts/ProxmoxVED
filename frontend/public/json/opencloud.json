@@ -1,0 +1,35 @@
+{
+  "name": "OpenCloud",
+  "slug": "opencloud",
+  "categories": [
+    2
+  ],
+  "date_created": "2025-06-11",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 9200,
+  "documentation": "https://docs.opencloud.eu",
+  "config_path": "/etc/opencloud/.env",
+  "website": "https://opencloud.eu",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/opencloud.webp",
+  "description": "OpenCloud is the file sharing and collaboration solution of the Heinlein Group. Through intelligent file management and a strong open source community, files become valuable resources, effectively structured and usable in the long term. With flexible data rooms and intelligent access rights, teams can access and work together on data anytime, anywhere without barriers, but with a lot of productivity.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/opencloud.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 4,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "randomly generated during install"
+  },
+  "notes": []
+}
