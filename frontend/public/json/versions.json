@@ -1,5 +1,50 @@
 [
   {
+    "name": "Checkmk/checkmk",
+    "version": "v2.3.0p34-rc1",
+    "date": "2025-06-10T20:08:37Z"
+  },
+  {
+    "name": "autobrr/autobrr",
+    "version": "v1.63.0",
+    "date": "2025-06-10T20:02:15Z"
+  },
+  {
+    "name": "keycloak/keycloak",
+    "version": "26.2.5",
+    "date": "2025-05-28T06:49:43Z"
+  },
+  {
+    "name": "home-assistant/core",
+    "version": "2025.5.3",
+    "date": "2025-05-23T15:10:33Z"
+  },
+  {
+    "name": "emqx/emqx",
+    "version": "e5.10.0",
+    "date": "2025-06-10T16:03:18Z"
+  },
+  {
+    "name": "node-red/node-red",
+    "version": "4.1.0-beta.1",
+    "date": "2025-06-10T15:47:59Z"
+  },
+  {
+    "name": "AdguardTeam/AdGuardHome",
+    "version": "v0.107.62",
+    "date": "2025-05-27T12:10:19Z"
+  },
+  {
+    "name": "jenkinsci/jenkins",
+    "version": "jenkins-2.514",
+    "date": "2025-06-10T14:27:57Z"
+  },
+  {
+    "name": "open-webui/open-webui",
+    "version": "v0.6.14",
+    "date": "2025-06-10T14:18:04Z"
+  },
+  {
     "name": "element-hq/synapse",
     "version": "v1.131.0",
     "date": "2025-06-03T14:13:00Z"
@@ -18,11 +63,6 @@
     "name": "VictoriaMetrics/VictoriaMetrics",
     "version": "v1.110.11",
     "date": "2025-06-10T10:00:25Z"
-  },
-  {
-    "name": "emqx/emqx",
-    "version": "e5.10.0-rc.2",
-    "date": "2025-06-10T09:46:15Z"
   },
   {
     "name": "glanceapp/glance",
@@ -75,11 +115,6 @@
     "date": "2025-06-09T18:11:46Z"
   },
   {
-    "name": "keycloak/keycloak",
-    "version": "26.2.5",
-    "date": "2025-05-28T06:49:43Z"
-  },
-  {
     "name": "Lidarr/Lidarr",
     "version": "v2.12.4.4658",
     "date": "2025-06-09T17:27:45Z"
@@ -118,11 +153,6 @@
     "name": "nzbgetcom/nzbget",
     "version": "v25.0",
     "date": "2025-05-12T09:12:04Z"
-  },
-  {
-    "name": "Checkmk/checkmk",
-    "version": "v2.4.0p4-rc1",
-    "date": "2025-06-09T09:27:36Z"
   },
   {
     "name": "silverbulletmd/silverbullet",
@@ -345,11 +375,6 @@
     "date": "2025-06-04T09:06:57Z"
   },
   {
-    "name": "home-assistant/core",
-    "version": "2025.5.3",
-    "date": "2025-05-23T15:10:33Z"
-  },
-  {
     "name": "glpi-project/glpi",
     "version": "10.0.18",
     "date": "2025-02-12T11:07:02Z"
@@ -373,11 +398,6 @@
     "name": "runtipi/runtipi",
     "version": "v4.2.1",
     "date": "2025-06-03T20:04:28Z"
-  },
-  {
-    "name": "jenkinsci/jenkins",
-    "version": "jenkins-2.513",
-    "date": "2025-06-03T17:53:03Z"
   },
   {
     "name": "dgtlmoon/changedetection.io",
@@ -443,45 +463,5 @@
     "name": "traccar/traccar",
     "version": "v6.7.2",
     "date": "2025-06-01T20:40:00Z"
-  },
-  {
-    "name": "gethomepage/homepage",
-    "version": "v1.3.2",
-    "date": "2025-06-01T19:02:46Z"
-  },
-  {
-    "name": "Koenkk/zigbee2mqtt",
-    "version": "2.4.0",
-    "date": "2025-06-01T18:08:44Z"
-  },
-  {
-    "name": "kimai/kimai",
-    "version": "2.35.1",
-    "date": "2025-05-31T15:05:27Z"
-  },
-  {
-    "name": "prometheus/prometheus",
-    "version": "v3.4.1",
-    "date": "2025-05-31T13:45:40Z"
-  },
-  {
-    "name": "BookStackApp/BookStack",
-    "version": "v25.05",
-    "date": "2025-05-31T13:36:23Z"
-  },
-  {
-    "name": "blakeblackshear/frigate",
-    "version": "v0.14.1",
-    "date": "2024-08-29T22:32:51Z"
-  },
-  {
-    "name": "icereed/paperless-gpt",
-    "version": "v0.20.0",
-    "date": "2025-05-30T14:39:51Z"
-  },
-  {
-    "name": "binwiederhier/ntfy",
-    "version": "v2.12.0",
-    "date": "2025-05-30T00:26:27Z"
   }
 ]
