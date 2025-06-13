@@ -32,7 +32,7 @@ cd /opt/libretranslate
 $STD uv venv .venv
 $STD source .venv/bin/activate
 $STD uv pip install --upgrade pip
-$STD uv pip install Babel==2.12.1 && ./venv/bin/python scripts/compile_locales.py
+$STD uv pip install Babel==2.12.1 && .venv/bin/python scripts/compile_locales.py
 $STD uv pip install torch==2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
 $STD uv pip install "numpy<2"
 $STD uv pip install .
