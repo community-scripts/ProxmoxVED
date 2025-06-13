@@ -28,7 +28,7 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -s https://api.github.com/repos/LibreTranslate/LibreTranslate/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+  RELEASE=$(curl -s https://api.github.com/repos/LibreTranslate/LibreTranslate/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ "${RELEASE}" != "$(cat $HOME/.libretranslate)" ]] || [[ ! -f $HOME/.libretranslate ]]; then
     msg_info "Stopping $APP"
     systemctl stop libretranslate
@@ -58,4 +58,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5656${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5000${CL}"
