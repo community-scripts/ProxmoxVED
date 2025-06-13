@@ -28,6 +28,7 @@ EOF
 
 $STD apt-get update
 $STD apt-get install -y coolwsd code-brand
+systemctl stop coolwsd
 
 msg_info "Installing ${APPLICATION}"
 OPENCLOUD=$(curl -s https://api.github.com/repos/opencloud-eu/opencloud/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
@@ -45,16 +46,31 @@ msg_info "Configuring ${APPLICATION}"
 cat <<EOF >"$ENV_FILE"
 OC_URL=https://${IP}:9200
 OC_INSECURE=true
-PROXY_ENABLE_BASIC_AUTH=true
 IDM_CREATE_DEMO_USERS=false
 OC_LOG_LEVEL=warning
 OC_CONFIG_DIR=${CONFIG_DIR}
 OC_BASE_DATA_PATH=${DATA_DIR}
+
+# Proxy
+PROXY_ENABLE_BASIC_AUTH=true
+PROXY_CSP_CONFIG_FILE_LOCATION=${CONFIG_DIR}/csp.yaml
+
+# Collaboration - requires VALID TLS
+COLLABORA_DOMAIN=
+COLLABORATION_APP_NAME="CollaboraOnline"
+COLLABORATION_APP_PRODUCT="Collabora"
+COLLABORATION_APP_ADDR=
+COLLABORATION_APP_INSECURE=false
+COLLABORATION_HTTP_ADDR=0.0.0.0:9300
+COLLABORATION_WOPI_SRC=https://${IP}:9300
+COLLABORATION_JWT_SECRET=
+
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
 [Unit]
 Description=OpenCloud server
+After=network.target
 
 [Service]
 Type=simple
@@ -68,10 +84,30 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
+cat <<EOF >/etc/systemd/system/opencloud-wopi.service
+[Unit]
+Description=OpenCloud WOPI Server
+After=network.target opencloud.service coolwsd.service
+
+[Service]
+Type=simple
+User=opencloud
+Group=opencloud
+EnvironmentFile=${ENV_FILE}
+ExecStart=/usr/bin/opencloud collaboration server
+Restart=on-abnormal
+KillSignal=SIGKILL
+KillMode=mixed
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target
+EOF
 useradd -r -M -s /usr/sbin/nologin opencloud
 chown -R opencloud:opencloud "$CONFIG_DIR" "$DATA_DIR"
 sudo -u opencloud opencloud init --config-path "$CONFIG_DIR" --insecure yes
-systemctl enable -q --now opencloud.service
+systemctl enable -q --now coolwsd opencloud
+sleep 2 && systemctl enable -q --now opencloud-wopi
 msg_ok "Configured ${APPLICATION}"
 
 motd_ssh
