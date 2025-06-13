@@ -17,11 +17,15 @@ msg_info "Installing dependencies"
 $STD apt-get install -y --no-install-recommends \
   pkg-config \
   gcc \
-  g++
-msg_ok "Setup Python3"
+  g++ \
+  libicu-dev
+msg_ok "Installed dependencies"
 
 msg_info "Setup Python3"
-$STD apt-get install -y python3-pip
+$STD apt-get install -y \
+  python3-pip \
+  python3-dev \
+  python3-icu
 msg_ok "Setup Python3"
 
 setup_uv
@@ -31,8 +35,9 @@ msg_info "Setup LibreTranslate (Patience)"
 cd /opt/libretranslate
 $STD uv venv .venv
 $STD source .venv/bin/activate
-$STD uv pip install --upgrade pip
-$STD uv pip install Babel==2.12.1 && .venv/bin/python scripts/compile_locales.py
+$STD uv pip install --upgrade pip setuptools
+$STD uv pip install Babel==2.12.1
+$STD .venv/bin/python scripts/compile_locales.py
 $STD uv pip install torch==2.2.0 --extra-index-url https://download.pytorch.org/whl/cpu
 $STD uv pip install "numpy<2"
 $STD uv pip install .
@@ -51,7 +56,7 @@ User=root
 Type=idle
 Restart=always
 Environment="PATH=/usr/local/lib/python3.11/dist-packages/libretranslate"
-ExecStart=/opt/libretranslate/.venv/bin/python3 /opt/libretranslate/.venv/bin/libretranslate --host *
+ExecStart=/opt/libretranslate/.venv/bin/python3 /opt/libretranslate/.venv/bin/libretranslate --host * --update-models
 ExecReload=/bin/kill -s HUP
 KillMode=mixed
 TimeoutStopSec=1

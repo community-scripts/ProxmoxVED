@@ -28,23 +28,20 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -s https://api.github.com/repos/Casvt/Kapowarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  if [[ "${RELEASE}" != "$(cat $HOME/.kapowarr)" ]] || [[ ! -f $HOME/.kapowarr ]]; then
+  RELEASE=$(curl -s https://api.github.com/repos/LibreTranslate/LibreTranslate/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+  if [[ "${RELEASE}" != "$(cat $HOME/.libretranslate)" ]] || [[ ! -f $HOME/.libretranslate ]]; then
     msg_info "Stopping $APP"
-    systemctl stop kapowarr
+    systemctl stop libretranslate
     msg_ok "Stopped $APP"
 
-    msg_info "Creating Backup"
-    mv /opt/kapowarr/db /opt/
-    msg_ok "Backup Created"
-
     msg_info "Updating $APP to ${RELEASE}"
-    fetch_and_deploy_gh_release "kapowarr" "Casvt/Kapowarr"
-    mv /opt/db /opt/kapowarr
+    cd /opt/libretranslate
+    source .venv/bin/activate
+    $STD pip install -U libretranslate
     msg_ok "Updated $APP to ${RELEASE}"
 
     msg_info "Starting $APP"
-    systemctl start kapowarr
+    systemctl start libretranslate
     msg_ok "Started $APP"
 
     msg_ok "Update Successful"
