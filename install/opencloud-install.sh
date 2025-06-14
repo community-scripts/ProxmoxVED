@@ -29,6 +29,9 @@ EOF
 $STD apt-get update
 $STD apt-get install -y coolwsd code-brand
 systemctl stop coolwsd
+COOLPASS="$(openssl rand -base64 36)"
+$STD sudo -u cool coolconfig set-admin-password --user=admin --password="$COOLPASS"
+msg_ok "Installed Collabora Online"
 
 msg_info "Installing ${APPLICATION}"
 OPENCLOUD=$(curl -s https://api.github.com/repos/opencloud-eu/opencloud/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
@@ -36,6 +39,7 @@ DATA_DIR="/var/lib/opencloud/"
 CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
 IP="$(hostname -I | awk '{print $1}')"
+COLLABORA_HOST="<your-collobora.domain.tld>"
 curl -fsSL "https://github.com/opencloud-eu/opencloud/releases/download/v${OPENCLOUD}/opencloud-${OPENCLOUD}-linux-amd64" -o /usr/bin/opencloud
 chmod +x /usr/bin/opencloud
 mkdir -p "$DATA_DIR" "$CONFIG_DIR"
@@ -43,6 +47,8 @@ echo "${OPENCLOUD}" >/etc/opencloud/version
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Configuring ${APPLICATION}"
+curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
+
 cat <<EOF >"$ENV_FILE"
 OC_URL=https://${IP}:9200
 OC_INSECURE=true
@@ -56,15 +62,14 @@ PROXY_ENABLE_BASIC_AUTH=true
 PROXY_CSP_CONFIG_FILE_LOCATION=${CONFIG_DIR}/csp.yaml
 
 # Collaboration - requires VALID TLS
-COLLABORA_DOMAIN=
+COLLABORA_DOMAIN=${COLLABORA_HOST}
 COLLABORATION_APP_NAME="CollaboraOnline"
 COLLABORATION_APP_PRODUCT="Collabora"
-COLLABORATION_APP_ADDR=
+COLLABORATION_APP_ADDR=https://${COLLABORA_HOST}
 COLLABORATION_APP_INSECURE=false
 COLLABORATION_HTTP_ADDR=0.0.0.0:9300
 COLLABORATION_WOPI_SRC=https://${IP}:9300
 COLLABORATION_JWT_SECRET=
-
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
@@ -103,11 +108,19 @@ TimeoutStopSec=120
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# $STD sudo -u cool coolconfig set server_name "$COLLABORA_HOST":443
+$STD sudo -u cool coolconfig set ssl.enable false
+$STD sudo -u cool coolconfig set ssl.termination true
+$STD sudo -u cool coolconfig set ssl.ssl_verification true
+sed -i -e "s|CSP2\"/>|CSP2\">frame-ancestors https://${IP}:9200</content_security_policy>|" /etc/coolwsd/coolwsd.xml
+
 useradd -r -M -s /usr/sbin/nologin opencloud
 chown -R opencloud:opencloud "$CONFIG_DIR" "$DATA_DIR"
 sudo -u opencloud opencloud init --config-path "$CONFIG_DIR" --insecure yes
-systemctl enable -q --now coolwsd opencloud
-sleep 2 && systemctl enable -q --now opencloud-wopi
+OPENCLOUD_SECRET="$(sed -n '/jwt/p' "$CONFIG_DIR"/opencloud.yaml | awk '{print $2}')"
+sed -i "/JWT/a ${OPENCLOUD_SECRET}/" "$ENV_FILE"
+systemctl enable -q --now coolwsd opencloud opencloud-wopi
 msg_ok "Configured ${APPLICATION}"
 
 motd_ssh
