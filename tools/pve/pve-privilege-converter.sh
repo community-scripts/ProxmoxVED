@@ -95,13 +95,28 @@ backup_container() {
   msg_custom "📦" "\e[36m" "Backing up container $CONTAINER_ID"
   vzdump_output=$(mktemp)
   vzdump "$CONTAINER_ID" --compress zstd --storage "$BACKUP_STORAGE" --mode snapshot | tee "$vzdump_output"
-  BACKUP_PATH=$(awk '/tar.zst/ {print $NF}' "$vzdump_output" | tr -d "'")
-  if [ -z "$BACKUP_PATH" ] || ! grep -q "Backup job finished successfully" "$vzdump_output"; then
+
+  if ! grep -q "Backup job finished successfully" "$vzdump_output"; then
     rm "$vzdump_output"
     msg_error "Backup failed"
     exit 1
   fi
+
+  if grep -q "creating Proxmox Backup Server archive" "$vzdump_output"; then
+    BACKUP_PATH=$(awk -F"'" '/creating Proxmox Backup Server archive/ {print $2}' "$vzdump_output")
+    BACKUP_TYPE="pbs"
+  else
+    BACKUP_PATH=$(awk '/tar\.zst/ {print $NF}' "$vzdump_output" | tr -d "'")
+    BACKUP_TYPE="file"
+  fi
+
   rm "$vzdump_output"
+
+  if [[ -z "$BACKUP_PATH" ]]; then
+    msg_error "Could not determine backup path"
+    exit 1
+  fi
+
   msg_ok "Backup complete: $BACKUP_PATH"
 }
 
@@ -153,7 +168,13 @@ manage_states() {
 cleanup_files() {
   read -rp "Delete backup archive? [$BACKUP_PATH] [Y/n]: " cleanup
   if [[ ${cleanup:-Y} =~ ^[Yy] ]]; then
-    rm -f "$BACKUP_PATH" && msg_ok "Removed backup archive"
+    if [[ "$BACKUP_TYPE" == "file" && -f "$BACKUP_PATH" ]]; then
+      rm -f "$BACKUP_PATH" && msg_ok "Removed backup archive"
+    elif [[ "$BACKUP_TYPE" == "pbs" ]]; then
+      msg_info "Cannot delete PBS backups via script – use GUI or `proxmox-backup-client prune`"
+    else
+      msg_warn "Unrecognized backup type – skipping deletion"
+    fi
   else
     msg_custom "💾" "\e[36m" "Retained backup archive"
   fi
