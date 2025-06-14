@@ -129,9 +129,9 @@ $STD sudo -u cool coolconfig set ssl.ssl_verification true
 sed -i "s|CSP2\"/>|CSP2\">frame-ancestors https://${OC_HOST}</content_security_policy>|" /etc/coolwsd/coolwsd.xml
 useradd -r -M -s /usr/sbin/nologin opencloud
 chown -R opencloud:opencloud "$CONFIG_DIR" "$DATA_DIR"
-sudo -u opencloud opencloud init --config-path "$CONFIG_DIR"
+sudo -u opencloud opencloud init --config-path "$CONFIG_DIR" --insecure no
 OPENCLOUD_SECRET="$(sed -n '/jwt/p' "$CONFIG_DIR"/opencloud.yaml | awk '{print $2}')"
-sed -i "/JWT/i ${OPENCLOUD_SECRET}" "$ENV_FILE"
+sed -i "s/JWT_SECRET=/&\"${OPENCLOUD_SECRET}\"/" "$ENV_FILE"
 systemctl enable -q --now coolwsd opencloud opencloud-wopi
 msg_ok "Configured ${APPLICATION}"
 
