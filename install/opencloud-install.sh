@@ -16,6 +16,19 @@ update_os
 # msg_info "Installing Dependencies"
 # msg_ok "Installed Dependencies"
 
+read -r -p "Enter the hostname of your OpenCloud server: " oc_host
+if [[ "$oc_host" ]]; then
+  OC_HOST="$oc_host"
+fi
+read -r -p "Enter the hostname of your Collabora server: " collabora_host
+if [[ "$collabora_host" ]]; then
+  COLLABORA_HOST="$collabora_host"
+fi
+read -r -p "Enter the hostname of your WOPI server: " wopi_host
+if [[ "$wopi_host" ]]; then
+  WOPI_HOST="$wopi_host"
+fi
+
 msg_info "Installing Collabora Online"
 curl -fsSL https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg -o /etc/apt/keyrings/collaboraonline-release-keyring.gpg
 
@@ -39,7 +52,6 @@ DATA_DIR="/var/lib/opencloud/"
 CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
 IP="$(hostname -I | awk '{print $1}')"
-COLLABORA_HOST="<your-collobora.domain.tld>"
 curl -fsSL "https://github.com/opencloud-eu/opencloud/releases/download/v${OPENCLOUD}/opencloud-${OPENCLOUD}-linux-amd64" -o /usr/bin/opencloud
 chmod +x /usr/bin/opencloud
 mkdir -p "$DATA_DIR" "$CONFIG_DIR"
@@ -50,8 +62,8 @@ msg_info "Configuring ${APPLICATION}"
 curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
 
 cat <<EOF >"$ENV_FILE"
-OC_URL=https://${IP}:9200
-OC_INSECURE=true
+OC_URL=https://${OC_HOST}
+OC_INSECURE=false
 IDM_CREATE_DEMO_USERS=false
 OC_LOG_LEVEL=warning
 OC_CONFIG_DIR=${CONFIG_DIR}
@@ -59,6 +71,7 @@ OC_BASE_DATA_PATH=${DATA_DIR}
 
 # Proxy
 PROXY_ENABLE_BASIC_AUTH=true
+PROXY_TLS=false
 PROXY_CSP_CONFIG_FILE_LOCATION=${CONFIG_DIR}/csp.yaml
 
 # Collaboration - requires VALID TLS
@@ -68,7 +81,7 @@ COLLABORATION_APP_PRODUCT="Collabora"
 COLLABORATION_APP_ADDR=https://${COLLABORA_HOST}
 COLLABORATION_APP_INSECURE=false
 COLLABORATION_HTTP_ADDR=0.0.0.0:9300
-COLLABORATION_WOPI_SRC=https://${IP}:9300
+COLLABORATION_WOPI_SRC=https://${WOPI_HOST}
 COLLABORATION_JWT_SECRET=
 EOF
 
@@ -117,7 +130,7 @@ sed -i -e "s|CSP2\"/>|CSP2\">frame-ancestors https://${IP}:9200</content_securit
 
 useradd -r -M -s /usr/sbin/nologin opencloud
 chown -R opencloud:opencloud "$CONFIG_DIR" "$DATA_DIR"
-sudo -u opencloud opencloud init --config-path "$CONFIG_DIR" --insecure yes
+sudo -u opencloud opencloud init --config-path "$CONFIG_DIR"
 OPENCLOUD_SECRET="$(sed -n '/jwt/p' "$CONFIG_DIR"/opencloud.yaml | awk '{print $2}')"
 sed -i "/JWT/a ${OPENCLOUD_SECRET}/" "$ENV_FILE"
 systemctl enable -q --now coolwsd opencloud opencloud-wopi
