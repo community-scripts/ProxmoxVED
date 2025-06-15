@@ -10,6 +10,7 @@
     "privileged": false,
     "interface_port": 80,
     "documentation": "https://doc.jeedom.com",
+    "config_path": "",
     "website": "https://jeedom.com/",
     "logo": "https://jeedom.com/_next/image?url=%2Fassets%2Fimg%2Flogo.png&w=256&q=75",
     "description": "From individual homes to IoT infrastructures\n\nJeedom: the tailor-made open source solution",
