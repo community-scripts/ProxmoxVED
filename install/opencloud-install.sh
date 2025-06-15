@@ -51,10 +51,9 @@ OPENCLOUD=$(curl -s https://api.github.com/repos/opencloud-eu/opencloud/releases
 DATA_DIR="/var/lib/opencloud/"
 CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
-IP="$(hostname -I | awk '{print $1}')"
 curl -fsSL "https://github.com/opencloud-eu/opencloud/releases/download/v${OPENCLOUD}/opencloud-${OPENCLOUD}-linux-amd64" -o /usr/bin/opencloud
 chmod +x /usr/bin/opencloud
-mkdir -p "$DATA_DIR" "$CONFIG_DIR"
+mkdir -p "$DATA_DIR"/assets/apps "$CONFIG_DIR"
 echo "${OPENCLOUD}" >/etc/opencloud/version
 msg_ok "Installed ${APPLICATION}"
 
@@ -83,6 +82,9 @@ COLLABORATION_APP_INSECURE=false
 COLLABORATION_HTTP_ADDR=0.0.0.0:9300
 COLLABORATION_WOPI_SRC=https://${WOPI_HOST}
 COLLABORATION_JWT_SECRET=
+
+# Applications
+WEB_ASSET_APPS_PATH=${DATA_DIR}/assets/apps
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
