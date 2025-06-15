@@ -13,9 +13,6 @@ setting_up_container
 network_check
 update_os
 
-# msg_info "Installing Dependencies"
-# msg_ok "Installed Dependencies"
-
 read -r -p "Enter the hostname of your OpenCloud server: " oc_host
 if [[ "$oc_host" ]]; then
   OC_HOST="$oc_host"
@@ -53,7 +50,7 @@ CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
 curl -fsSL "https://github.com/opencloud-eu/opencloud/releases/download/v${OPENCLOUD}/opencloud-${OPENCLOUD}-linux-amd64" -o /usr/bin/opencloud
 chmod +x /usr/bin/opencloud
-mkdir -p "$DATA_DIR"/assets/apps "$CONFIG_DIR"
+mkdir -p "$DATA_DIR" "$CONFIG_DIR"/assets/apps
 echo "${OPENCLOUD}" >/etc/opencloud/version
 msg_ok "Installed ${APPLICATION}"
 
@@ -84,7 +81,7 @@ COLLABORATION_WOPI_SRC=https://${WOPI_HOST}
 COLLABORATION_JWT_SECRET=
 
 # Applications
-WEB_ASSET_APPS_PATH=${DATA_DIR}/assets/apps
+WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service

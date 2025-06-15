@@ -32,7 +32,7 @@ function update_script() {
   RELEASE=$(curl -s https://api.github.com/repos/opencloud-eu/opencloud/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ "${RELEASE}" != "$(cat /etc/opencloud/version)" ]] || [[ ! -f /etc/opencloud/version ]]; then
     msg_info "Stopping $APP"
-    systemctl stop opencloud
+    systemctl stop opencloud opencloud-wopi
     msg_ok "Stopped $APP"
 
     msg_info "Updating $APP to v${RELEASE}"
@@ -41,7 +41,7 @@ function update_script() {
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"
-    systemctl start opencloud
+    systemctl start opencloud opencloud-wopi
     msg_ok "Started $APP"
 
     echo "${RELEASE}" >/etc/opencloud/version
@@ -59,4 +59,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:9200${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}https://<your-OpenCloud-domain>${CL}"
