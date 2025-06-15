@@ -88,7 +88,7 @@ EOF
 cat <<EOF >/etc/systemd/system/opencloud.service
 [Unit]
 Description=OpenCloud server
-After=network.target
+After=network-online.target
 
 [Service]
 Type=simple
@@ -105,6 +105,7 @@ EOF
 cat <<EOF >/etc/systemd/system/opencloud-wopi.service
 [Unit]
 Description=OpenCloud WOPI Server
+Requires=coolwsd.service
 After=network.target opencloud.service coolwsd.service
 
 [Service]
@@ -113,7 +114,7 @@ User=opencloud
 Group=opencloud
 EnvironmentFile=${ENV_FILE}
 ExecStart=/usr/bin/opencloud collaboration server
-Restart=on-abnormal
+Restart=always
 KillSignal=SIGKILL
 KillMode=mixed
 TimeoutStopSec=120
@@ -122,7 +123,6 @@ TimeoutStopSec=120
 WantedBy=multi-user.target
 EOF
 
-# $STD sudo -u cool coolconfig set server_name "$COLLABORA_HOST":443
 $STD sudo -u cool coolconfig set ssl.enable false
 $STD sudo -u cool coolconfig set ssl.termination true
 $STD sudo -u cool coolconfig set ssl.ssl_verification true
