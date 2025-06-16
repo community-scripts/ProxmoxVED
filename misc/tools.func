@@ -676,16 +676,33 @@ install_mongodb() {
 }
 
 # ------------------------------------------------------------------------------
-# Downloads and deploys latest GitHub release tarball.
+# Downloads and deploys latest GitHub release (source, binary or asset tarball).
 #
 # Description:
-#   - Fetches latest release from GitHub API
-#   - Detects matching asset by architecture
-#   - Extracts to /opt/<app> and saves version
+#   - Fetches latest release metadata from GitHub API
+#   - Supports source tarball, .deb binary or prebuilt .tar.gz asset
+#   - Extracts or installs the release and writes version to ~/.<app>
 #
-# Variables:
-#   APP            - Override default application name (optional)
-#   GITHUB_TOKEN   - (optional) GitHub token for private rate limits
+# Parameters:
+#   $1   APP               - Application name (used for target path and version file)
+#   $2   REPO              - GitHub repository (e.g. user/repo)
+#   $3   MODE              - Release type: tarball | source | binary | prebuild
+#   $4   VERSION           - Optional version tag (default: latest)
+#   $5   TARGET_DIR        - Optional install path (default: /opt/<app>)
+#   $6   ASSET_FILENAME    - Required for mode=prebuild (e.g. hanko_Linux_x86_64.tar.gz)
+#
+# Optional:
+#   - Set GITHUB_TOKEN env var to increase API rate limit (esp. in CI).
+#
+# Examples:
+#   # 1. Minimal: Source tarball (default mode = tarball)
+#   fetch_and_deploy_gh_release "myapp" "myuser/myapp"
+#
+#   # 2. Binary install via .deb (auto-detected by architecture)
+#   fetch_and_deploy_gh_release "myapp" "myuser/myapp" "binary"
+#
+#   # 3. Prebuilt asset tar.gz (exact filename match)
+#   fetch_and_deploy_gh_release "hanko" "teamhanko/hanko" "prebuild" "latest" "/opt/hanko" "hanko_Linux_x86_64.tar.gz"
 # ------------------------------------------------------------------------------
 
 fetch_and_deploy_gh_release() {
@@ -815,6 +832,40 @@ fetch_and_deploy_gh_release() {
         return 1
       }
     }
+
+  elif [[ "$mode" == "prebuild" ]]; then
+    local pattern="$6"
+    if [[ -z "$pattern" ]]; then
+      msg_error "Mode 'prebuild' requires 6th parameter (asset filename pattern)"
+      rm -rf "$tmpdir"
+      return 1
+    fi
+
+    local assets asset_url=""
+    assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
+    for u in $assets; do
+      if [[ "$u" =~ $pattern || "$u" == *"$pattern" ]]; then
+        asset_url="$u"
+        break
+      fi
+    done
+
+    if [[ -z "$asset_url" ]]; then
+      msg_error "No asset matching pattern '$pattern' found"
+      rm -rf "$tmpdir"
+      return 1
+    fi
+
+    filename="${asset_url##*/}"
+    $STD msg_info "Downloading prebuilt asset: $asset_url"
+    curl $curl_timeout -fsSL -o "$tmpdir/$filename" "$asset_url" || {
+      msg_error "Download failed: $asset_url"
+      rm -rf "$tmpdir"
+      return 1
+    }
+
+    mkdir -p "$target"
+    tar -xzf "$tmpdir/$filename" -C "$target"
 
   else
     msg_error "Unknown mode: $mode"
