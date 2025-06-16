@@ -15,6 +15,7 @@ update_os
 
 setup_yq
 PG_VERSION="16" setup_postgresql
+NODE_VERSION=22 NODE_MODULE="yarn@latest,npm@latest" setup_nodejs
 
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=hanko
@@ -45,6 +46,8 @@ yq eval '
   .database.dialect = "postgres" |
   .app.secret = strenv(APP_SECRET)
 ' -i /opt/hanko/config.yaml
+$STD /opt/hanko/hanko --config /opt/hanko/config.yaml migrate up
+yarn add @teamhanko/hanko-elements
 msg_ok "Setup Hanko"
 
 msg_info "Setup Service"
