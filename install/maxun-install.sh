@@ -44,23 +44,8 @@ msg_ok "Installed Dependencies"
 
 #configure_lxc "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it?" 100 "memory" "16000"
 
-msg_info "Setting up Node.js Repository"
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
-msg_ok "Set up Node.js Repository"
-
-msg_info "Setting up PostgreSQL Repository"
-curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-echo "deb https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" >/etc/apt/sources.list.d/pgdg.list
-$STD apt-get update
-$STD apt-get install -y postgresql-17
-msg_ok "Set up PostgreSQL Repository"
-
-msg_info "Installing Node.js"
-$STD apt-get update
-$STD apt-get install -y nodejs
-msg_ok "Installed Node.js"
+PG_VERSION=17 install_postgresql
+NODE_VERSION="22" install_node_and_modules
 
 msg_info "Setup Variables"
 DB_NAME=maxun_db
@@ -126,11 +111,7 @@ systemctl enable -q --now minio
 msg_ok "Setup MinIO"
 
 msg_info "Installing Maxun (Patience)"
-cd /opt
-RELEASE=$(curl -s https://api.github.com/repos/getmaxun/maxun/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-wget -q "https://github.com/getmaxun/maxun/archive/refs/tags/v${RELEASE}.zip"
-unzip -q v${RELEASE}.zip
-mv maxun-${RELEASE} /opt/maxun
+fetch_and_deploy_gh_release "maxun" "getmaxun/maxun" "source"
 cat <<EOF >/opt/maxun/.env
 NODE_ENV=development
 JWT_SECRET=${JWT_SECRET}
@@ -168,20 +149,14 @@ sed -i "s|^VITE_PUBLIC_URL=.*|VITE_PUBLIC_URL=http://${LOCAL_IP}:5173|" "$env_fi
 EOF
 chmod +x /usr/local/bin/update-env-ip.sh
 cd /opt/maxun
-$STD npm install --legacy-peer-deps
+$STD npm install
 cd /opt/maxun/maxun-core
-$STD npm install --legacy-peer-deps
-$STD npm run build
+$STD npm install
 cd /opt/maxun
 $STD npx playwright install --with-deps chromium
 $STD npx playwright install-deps
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Maxun"
-
-#msg_info "Running DB Migrations"
-#cd /opt/maxun
-#node -e "require('./server/src/db/migrate')().then(() => { console.log('Migrations completed'); })"
-#msg_ok "DB Migrations completed"
 
 msg_info "Setting up nginx with CORS Proxy"
 cat <<'EOF' >/etc/nginx/sites-available/maxun
