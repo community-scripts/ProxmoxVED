@@ -13,10 +13,14 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Installing Dependencies"
+$STD apt-get install -y yq
+msg_ok "Installed Dependencies"
+
 PG_VERSION="16" install_postgresql
 
 msg_info "Setting up PostgreSQL Database"
-DB_NAME=hanko_db
+DB_NAME=hanko
 DB_USER=hanko
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
 APP_SECRET=$(openssl rand -base64 32)
@@ -36,14 +40,14 @@ msg_ok "Set up PostgreSQL Database"
 msg_info "Setup Hanko"
 fetch_and_deploy_gh_release "hanko" "teamhanko/hanko" "prebuild" "latest" "/opt/hanko" "hanko_Linux_x86_64.tar.gz"
 curl -fsSL https://raw.githubusercontent.com/teamhanko/hanko/refs/heads/main/backend/config/config.yaml -o /opt/hanko/config.yaml
-sed -i "
-  s|^\(\s*user:\s*\).*|\1${DB_USER}|;
-  s|^\(\s*password:\s*\).*|\1${DB_PASS}|;
-  s|^\(\s*host:\s*\).*|\1localhost|;
-  s|^\(\s*port:\s*\).*|\1\"5432\"|;
-  s|^\(\s*dialect:\s*\).*|\1postgres|;
-  s|^\(\s*-\s*\).*abcdefghijklmnopqrstuvwxyz.*|\1${APP_SECRET}|;
-" /opt/hanko/config.yaml
+yq e "
+  .database.user = strenv(DB_USER) |
+  .database.password = strenv(DB_PASS) |
+  .database.host = \"localhost\" |
+  .database.port = \"5432\" |
+  .database.dialect = \"postgres\" |
+  .app.secret = strenv(APP_SECRET)
+" -i /opt/hanko/config.yaml
 msg_ok "Setup Hanko"
 
 msg_info "Setup Service"
@@ -54,7 +58,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/opt/hanko/hanko serve --config /opt/hanko/config.yaml
+ExecStart=/opt/hanko/hanko serve all --config /opt/hanko/config.yaml
 Restart=on-failure
 RestartSec=5
 
