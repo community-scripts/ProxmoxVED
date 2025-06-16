@@ -82,6 +82,23 @@ COLLABORATION_JWT_SECRET=
 
 # Applications
 WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
+
+# Notifications - Email settings
+# NOTIFICATIONS_SMTP_HOST=
+# NOTIFICATIONS_SMTP_PORT=
+# NOTIFICATIONS_SMTP_SENDER=
+# NOTIFICATIONS_SMTP_USERNAME=
+# NOTIFICATIONS_SMTP_PASSWORD=
+# NOTIFICATIONS_SMTP_AUTHENTICATION=login
+# Encryption method. Possible values are 'starttls', 'ssltls' and 'none'
+# NOTIFICATIONS_SMTP_ENCRYPTION=starttls
+# Allow insecure connections. Defaults to false.
+# NOTIFICATIONS_SMTP_INSECURE=false
+
+# Start additional services at runtime
+# Examples: notifications, antivirus etc.
+# Do not uncomment unless configured above.
+# OC_ADD_RUN_SERVICES="notifications"
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
