@@ -176,19 +176,42 @@ function exit-script() {
   exit
 }
 
-var_bridge="${var_bridge:-vmbr0}"
-var_cpu="${var_cpu:-2}"
-var_cpu_type="${var_cpu_type:-0}"     # 0 = KVM64, 1 = host
-var_disk="${var_disk:-8G}"            # z. B. 32G
-var_disk_cache="${var_disk_cache:-0}" # 0 = None, 1 = WriteThrough
-var_hostname="${var_hostname:-ubuntu}"
-var_mac="${var_mac:-$GEN_MAC}"
-var_machine="${var_machine:-i440fx}" # i440fx oder q35
-var_mtu="${var_mtu:-}"
-var_ram="${var_ram:-2048}"
-var_start_vm="${var_start_vm:-yes}" # yes oder no
-var_vlan="${var_vlan:-}"
-var_vmid="${var_vmid:-$(get_valid_nextid)}"
+function init_settings() {
+  VMID="$(get_valid_nextid)"
+  HN="ubuntu"
+  DISK_SIZE="8G"
+  DISK_CACHE=""
+  DISK_EXT=".qcow2"
+  DISK_REF="$VMID/"
+  CPU_TYPE=""
+  CORE_COUNT="2"
+  RAM_SIZE="2048"
+  MACHINE_TYPE="i440fx"
+  MACHINE=""
+  FORMAT=",efitype=4m"
+  BRG="vmbr0"
+  MAC="$GEN_MAC"
+  VLAN=""
+  MTU=""
+  START_VM="yes"
+}
+
+function default_settings() {
+  METHOD="default"
+  echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
+  echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}${DISK_CACHE:-None}${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}${MACHINE_TYPE}${CL}"
+  echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
+  echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
+  echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}${var_vlan:-Default}${CL}"
+  echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}${var_mtu:-Default}${CL}"
+  echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
+  echo -e "${CREATING}${BOLD}${DGN}Creating a $APP using default settings${CL}"
+}
 
 function apply_env_overrides() {
   METHOD="env"
@@ -246,6 +269,56 @@ function apply_env_overrides() {
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}${var_mtu:-Default}${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
   echo -e "${CREATING}${BOLD}${DGN}Creating a $APP using environment settings${CL}"
+}
+
+function validate_env_settings() {
+  [[ -n "$var_hostname" ]] && {
+    HN_CLEANED=$(echo "$var_hostname" | tr -cd '[:alnum:]-')
+    if [[ ! "$HN_CLEANED" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]]; then
+      msg_error "Invalid hostname: $var_hostname"
+      exit 1
+    fi
+  }
+
+  [[ -n "$var_vmid" && ! "$var_vmid" =~ ^[1-9][0-9]{2,}$ ]] && {
+    msg_error "Invalid VMID: must be a number >= 100"
+    exit 1
+  }
+
+  [[ -n "$var_cpu" && ! "$var_cpu" =~ ^[1-9][0-9]*$ ]] && {
+    msg_error "Invalid CPU core count: must be > 0"
+    exit 1
+  }
+
+  [[ -n "$var_ram" && ! "$var_ram" =~ ^[1-9][0-9]*$ ]] && {
+    msg_error "Invalid RAM size: must be > 0"
+    exit 1
+  }
+
+  [[ -n "$var_disk" && ! "$var_disk" =~ ^[1-9][0-9]*G$ ]] && {
+    msg_error "Invalid disk size: must be like 10G"
+    exit 1
+  }
+
+  [[ -n "$var_mac" && ! "$var_mac" =~ ^([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$ ]] && {
+    msg_error "Invalid MAC address: $var_mac"
+    exit 1
+  }
+
+  [[ -n "$var_mtu" && ! "$var_mtu" =~ ^[1-9][0-9]{2,4}$ ]] && {
+    msg_error "Invalid MTU value: $var_mtu"
+    exit 1
+  }
+
+  [[ -n "$var_vlan" && ! "$var_vlan" =~ ^[0-9]{1,4}$ ]] && {
+    msg_error "Invalid VLAN tag: must be numeric"
+    exit 1
+  }
+
+  [[ -n "$var_start_vm" && ! "$var_start_vm" =~ ^(yes|no)$ ]] && {
+    msg_error "var_start_vm must be 'yes' or 'no'"
+    exit 1
+  }
 }
 
 function advanced_settings() {
@@ -434,16 +507,17 @@ function advanced_settings() {
 }
 
 function start_script() {
-  if [[ "$METHOD" == "env" || -n "${var_hostname}${var_cpu}${var_ram}${var_disk}${var_vmid}" ]]; then
-    header_info
+  header_info
+  init_settings
+  if [[ -n "${var_bridge}${var_cpu}${var_cpu_type}${var_disk}${var_disk_cache}${var_hostname}${var_mac}${var_mtu}${var_ram}${var_start_vm}${var_vlan}${var_vmid}" ]]; then
     echo -e "${ADVANCED}${BOLD}${BL}Using Environment Variable Overrides${CL}"
+    METHOD="env"
+    validate_env_settings
     apply_env_overrides
   elif (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button Advanced 10 58); then
-    header_info
     echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings${CL}"
     default_settings
   else
-    header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
     advanced_settings
   fi
