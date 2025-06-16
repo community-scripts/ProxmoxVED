@@ -725,7 +725,7 @@ setup_mongodb() {
 fetch_and_deploy_gh_release() {
   local app="$1"
   local repo="$2"
-  local mode="${3:-tarball}"     # tarball | source | binary
+  local mode="${3:-tarball}"     # tarball | binary | prebuild
   local version="${4:-latest}"   # optional, default "latest"
   local target="${5:-/opt/$app}" # optional target dir
 
@@ -740,12 +740,7 @@ fetch_and_deploy_gh_release() {
   fi
 
   if ! command -v jq &>/dev/null; then
-    $STD msg_info "Installing jq..."
-    $STD apt-get update -qq &>/dev/null
-    $STD apt-get install -y jq &>/dev/null || {
-      msg_error "Failed to install jq"
-      return 1
-    }
+    $STD apt-get install -y jq &>/dev/null
   fi
 
   local api_url="https://api.github.com/repos/$repo/releases"
