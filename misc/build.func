@@ -479,6 +479,7 @@ advanced_settings() {
     fi
 
     if ! [[ "$DISK_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+      clear
       echo -e "${HOLD}${RD}DISK SIZE MUST BE A POSITIVE INTEGER!${CL}"
       sleep 2
       advanced_settings
@@ -495,6 +496,7 @@ advanced_settings() {
     fi
 
     if ! [[ "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+      clear
       echo -e "${HOLD}${RD}CORE COUNT MUST BE A POSITIVE INTEGER!${CL}"
       sleep 2
       advanced_settings
@@ -511,6 +513,7 @@ advanced_settings() {
     fi
 
     if ! [[ "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+      clear
       echo -e "${HOLD}${RD}RAM SIZE MUST BE A POSITIVE INTEGER!${CL}"
       sleep 2
       advanced_settings
