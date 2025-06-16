@@ -41,14 +41,14 @@ msg_ok "Set up PostgreSQL Database"
 msg_info "Setup Hanko"
 fetch_and_deploy_gh_release "hanko" "teamhanko/hanko" "prebuild" "latest" "/opt/hanko" "hanko_Linux_x86_64.tar.gz"
 curl -fsSL https://raw.githubusercontent.com/teamhanko/hanko/refs/heads/main/backend/config/config.yaml -o /opt/hanko/config.yaml
-yq e "
+yq eval '
   .database.user = strenv(DB_USER) |
   .database.password = strenv(DB_PASS) |
-  .database.host = \"localhost\" |
-  .database.port = \"5432\" |
-  .database.dialect = \"postgres\" |
+  .database.host = "localhost" |
+  .database.port = "5432" |
+  .database.dialect = "postgres" |
   .app.secret = strenv(APP_SECRET)
-" -i /opt/hanko/config.yaml
+' -i /opt/hanko/config.yaml
 msg_ok "Setup Hanko"
 
 msg_info "Setup Service"
