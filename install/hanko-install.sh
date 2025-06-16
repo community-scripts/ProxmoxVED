@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y yq
+$STD apt install -y yq
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" install_postgresql
