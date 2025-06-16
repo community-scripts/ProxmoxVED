@@ -1034,7 +1034,7 @@ build_container() {
     $PW
   "
   # This executes create_lxc.sh and creates the container and .conf file
-  CREATE_CMD="bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/create_lxc.sh)\""
+  CREATE_CMD="bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)\""
   eval "$CREATE_CMD"
   RET=$?
   if [[ $RET -ne 0 ]]; then

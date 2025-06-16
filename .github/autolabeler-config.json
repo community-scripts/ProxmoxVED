@@ -1,90 +1,125 @@
 {
-  "new script": [
-    {
-      "fileStatus": "added",
-      "includeGlobs": ["ct/**", "install/**", "misc/**", "turnkey/**", "vm/**"],
-      "excludeGlobs": []
-    }
-  ],
-  "update script": [
-    {
-      "fileStatus": "modified",
-      "includeGlobs": ["ct/**", "install/**", "misc/**", "turnkey/**", "vm/**"],
-      "excludeGlobs": ["misc/build.func", "misc/install.func", "misc/api.func"]
-    }
-  ],
-  "delete script": [
-    {
-      "fileStatus": "removed",
-      "includeGlobs": ["ct/**", "install/**", "misc/**", "turnkey/**", "vm/**"],
-      "excludeGlobs": []
-    }
-  ],
-  "maintenance": [
-    {
-      "fileStatus": null,
-      "includeGlobs": [
-        "*.md",
-        ".github/**",
-        "misc/*.func",
-        "ct/create_lxc.sh",
-        "api/**"
-      ],
-      "excludeGlobs": []
-    }
-  ],
-  "core": [
-    {
-      "fileStatus": null,
-      "includeGlobs": ["misc/*.func", "ct/create_lxc.sh"],
-      "excludeGlobs": []
-    }
-  ],
-  "website": [
-    {
-      "fileStatus": null,
-      "includeGlobs": ["frontend/**"],
-      "excludeGlobs": []
-    }
-  ],
-  "api": [
-    {
-      "fileStatus": null,
-      "includeGlobs": ["api/**", "misc/api.func"],
-      "excludeGlobs": []
-    }
-  ],
-  "github": [
-    {
-      "fileStatus": null,
-      "includeGlobs": [".github/**"],
-      "excludeGlobs": []
-    }
-  ],
-  "json": [
-    {
-      "fileStatus": "modified",
-      "includeGlobs": ["frontend/public/json/**"],
-      "excludeGlobs": []
-    }
-  ],
-
-  "high risk": [
-    {
-      "fileStatus": null,
-      "includeGlobs": [
-        "misc/build.func",
-        "misc/install.func",
-        "ct/create_lxc.sh"
-      ],
-      "excludeGlobs": []
-    }
-  ],
-  "documentation": [
-    {
-      "fileStatus": null,
-      "includeGlobs": ["*.md"],
-      "excludeGlobs": []
-    }
-  ]
+    "new script": [
+        {
+            "fileStatus": "added",
+            "includeGlobs": [
+                "ct/**",
+                "install/**",
+                "misc/**",
+                "turnkey/**",
+                "vm/**"
+            ],
+            "excludeGlobs": []
+        }
+    ],
+    "update script": [
+        {
+            "fileStatus": "modified",
+            "includeGlobs": [
+                "ct/**",
+                "install/**",
+                "misc/**",
+                "turnkey/**",
+                "vm/**"
+            ],
+            "excludeGlobs": [
+                "misc/build.func",
+                "misc/install.func",
+                "misc/api.func"
+            ]
+        }
+    ],
+    "delete script": [
+        {
+            "fileStatus": "removed",
+            "includeGlobs": [
+                "ct/**",
+                "install/**",
+                "misc/**",
+                "turnkey/**",
+                "vm/**"
+            ],
+            "excludeGlobs": []
+        }
+    ],
+    "maintenance": [
+        {
+            "fileStatus": null,
+            "includeGlobs": [
+                "*.md",
+                ".github/**",
+                "misc/*.func",
+                "misc/create_lxc.sh",
+                "api/**"
+            ],
+            "excludeGlobs": []
+        }
+    ],
+    "core": [
+        {
+            "fileStatus": null,
+            "includeGlobs": [
+                "misc/*.func",
+                "misc/create_lxc.sh"
+            ],
+            "excludeGlobs": []
+        }
+    ],
+    "website": [
+        {
+            "fileStatus": null,
+            "includeGlobs": [
+                "frontend/**"
+            ],
+            "excludeGlobs": []
+        }
+    ],
+    "api": [
+        {
+            "fileStatus": null,
+            "includeGlobs": [
+                "api/**",
+                "misc/api.func"
+            ],
+            "excludeGlobs": []
+        }
+    ],
+    "github": [
+        {
+            "fileStatus": null,
+            "includeGlobs": [
+                ".github/**"
+            ],
+            "excludeGlobs": []
+        }
+    ],
+    "json": [
+        {
+            "fileStatus": "modified",
+            "includeGlobs": [
+                "frontend/public/json/**"
+            ],
+            "excludeGlobs": []
+        }
+    ],
+    "high risk": [
+        {
+            "fileStatus": null,
+            "includeGlobs": [
+                "misc/build.func",
+                "misc/install.func",
+                "misc/create_lxc.sh"
+            ],
+            "excludeGlobs": []
+        }
+    ],
+    "documentation": [
+        {
+            "fileStatus": null,
+            "includeGlobs": [
+                "*.md"
+            ],
+            "excludeGlobs": []
+        }
+    ]
 }
