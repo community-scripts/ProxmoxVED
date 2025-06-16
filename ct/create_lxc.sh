@@ -37,12 +37,12 @@ function error_handler() {
 msg_info "Validating Storage"
 VALIDCT=$(pvesm status -content rootdir | awk 'NR>1')
 if [ -z "$VALIDCT" ]; then
-  msg_error "Unable to detect a valid Container Storage location."
+  echo -e "\n\n${CROSS}${RD}Unable to detect a valid Container Storage location."
   exit 1
 fi
 VALIDTMP=$(pvesm status -content vztmpl | awk 'NR>1')
 if [ -z "$VALIDTMP" ]; then
-  msg_error "Unable to detect a valid Template Storage location."
+  echo -e "\n\n${CROSS}${RD}Unable to detect a valid Template Storage location."
   exit 1
 fi
 
@@ -62,7 +62,7 @@ function select_storage() {
     CONTENT_LABEL='Container Template'
     ;;
   *)
-    msg_error "Invalid storage class: $CLASS"
+    echo -e "\n\n${CROSS}${RD}Invalid storage class: $CLASS"
     exit 201
     ;;
   esac
@@ -98,7 +98,7 @@ function select_storage() {
       "Select the storage pool to use for the ${CONTENT_LABEL,,}.\nUse the spacebar to make a selection.\n" \
       16 $((MSG_MAX_LENGTH + 23)) 6 \
       "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-      msg_error "Storage selection cancelled."
+      echo -e "\n\n${CROSS}${RD}Storage selection cancelled."
       exit 202
     }
   done
@@ -108,17 +108,17 @@ function select_storage() {
 
 # Test if required variables are set
 [[ "${CTID:-}" ]] || {
-  msg_error "You need to set 'CTID' variable."
+  echo -e "\n\n${CROSS}${RD}You need to set 'CTID' variable."
   exit 203
 }
 [[ "${PCT_OSTYPE:-}" ]] || {
-  msg_error "You need to set 'PCT_OSTYPE' variable."
+  echo -e "\n\n${CROSS}${RD}You need to set 'PCT_OSTYPE' variable."
   exit 204
 }
 
 # Test if ID is valid
 [ "$CTID" -ge "100" ] || {
-  msg_error "ID cannot be less than 100."
+  echo -e "\n\n${CROSS}${RD}ID cannot be less than 100."
   exit 205
 }
 
@@ -139,22 +139,21 @@ msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
 STORAGE_FREE=$(pvesm status | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
 REQUIRED_KB=$((${PCT_DISK_SIZE:-8} * 1024 * 1024))
 if [ "$STORAGE_FREE" -lt "$REQUIRED_KB" ]; then
-  msg_error "Not enough space on '$CONTAINER_STORAGE'. Needed: ${PCT_DISK_SIZE:-8}G."
+  echo -e "\n\n${CROSS}${RD}Not enough space on '$CONTAINER_STORAGE'. Needed: ${PCT_DISK_SIZE:-8}G."
   exit 214
 fi
 
 # Check Cluster Quorum if in Cluster
-if [ -f /etc/pve/corosync.conf ]; then
-  if ! pvecm status | grep -q "Quorate: Yes"; then
-    msg_error "Cluster is not quorate. Start all nodes or configure quorum device (QDevice)."
-    exit 210
-  fi
+if ! pvecm status | grep -q "Quorate: Yes"; then
+  printf "\e[?25h" # Cursor sichtbar machen
+  echo -e "\n\n${CROSS}${RD}Cluster is not quorate. Start all nodes or configure quorum device (QDevice).${CL}\n"
+  exit 210
 fi
 
 # Update LXC template list
 $STD msg_info "Updating LXC Template List"
 if ! timeout 10 pveam update >/dev/null 2>&1; then
-  msg_error "Failed to update LXC template list. Please check your Proxmox host's internet connection and DNS resolution."
+  echo -e "\n\n${CROSS}${RD}Failed to update LXC template list. Please check your Proxmox host's internet connection and DNS resolution."
   exit 201
 fi
 $STD msg_ok "LXC Template List Updated"
@@ -164,7 +163,7 @@ TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 mapfile -t TEMPLATES < <(pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V)
 
 if [ ${#TEMPLATES[@]} -eq 0 ]; then
-  msg_error "No matching LXC template found for '${TEMPLATE_SEARCH}'. Make sure your host can reach the Proxmox template repository."
+  echo -e "\n\n${CROSS}${RD}No matching LXC template found for '${TEMPLATE_SEARCH}'. Make sure your host can reach the Proxmox template repository."
   exit 207
 fi
 
@@ -186,7 +185,7 @@ if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLAT
     fi
 
     if [ $attempt -eq 3 ]; then
-      msg_error "Failed after 3 attempts. Please check your Proxmox host’s internet access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
+      echo -e "\n\n${CROSS}${RD}Failed after 3 attempts. Please check your Proxmox host’s internet access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
       exit 208
     fi
 
@@ -208,22 +207,22 @@ PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 lockfile="/tmp/template.${TEMPLATE}.lock"
 exec 9>"$lockfile"
 flock -w 60 9 || {
-  msg_error "Timeout while waiting for template lock"
+  echo -e "\n\n${CROSS}${RD}Timeout while waiting for template lock"
   exit 211
 }
 
 msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-  msg_error "Container creation failed. Checking if template is corrupted or incomplete."
+  echo -e "\n\n${CROSS}${RD}Container creation failed. Checking if template is corrupted or incomplete."
 
   if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
-    msg_error "Template file too small or missing – re-downloading."
+    echo -e "\n\n${CROSS}${RD}Template file too small or missing – re-downloading."
     rm -f "$TEMPLATE_PATH"
   elif ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
-    msg_error "Template appears to be corrupted – re-downloading."
+    echo -e "\n\n${CROSS}${RD}Template appears to be corrupted – re-downloading."
     rm -f "$TEMPLATE_PATH"
   else
-    msg_error "Template is valid, but container creation still failed."
+    echo -e "\n\n${CROSS}${RD}Template is valid, but container creation still failed."
     exit 209
   fi
 
@@ -235,7 +234,7 @@ if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[
       break
     fi
     if [ "$attempt" -eq 3 ]; then
-      msg_error "Three failed attempts. Aborting."
+      echo -e "\n\n${CROSS}${RD}Three failed attempts. Aborting."
       exit 208
     fi
     sleep $((attempt * 5))
@@ -244,13 +243,13 @@ if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[
   sleep 1 # I/O-Sync-Delay
 
   if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-    msg_error "Container creation failed after re-downloading template."
+    echo -e "\n\n${CROSS}${RD}Container creation failed after re-downloading template."
     exit 200
   fi
 fi
 
 if ! pct status "$CTID" &>/dev/null; then
-  msg_error "Container not found after pct create – assuming failure."
+  echo -e "\n\n${CROSS}${RD}Container not found after pct create – assuming failure."
   exit 210
 fi
 : "${UDHCPC_FIX:=}"
@@ -283,7 +282,7 @@ if [ "$UDHCPC_FIX" == "yes" ]; then
     ' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
     msg_ok "Patched udhcpc.conf (RESOLV_CONF=\"no\")"
   else
-    msg_error "udhcpc.conf not found in $CONFIG_FILE after waiting"
+    echo -e "\n\n${CROSS}${RD}udhcpc.conf not found in $CONFIG_FILE after waiting"
   fi
 
   # Clean up: only unmount if we mounted it here
