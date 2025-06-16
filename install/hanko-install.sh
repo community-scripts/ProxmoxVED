@@ -38,7 +38,8 @@ msg_ok "Set up PostgreSQL Database"
 msg_info "Setup Hanko"
 fetch_and_deploy_gh_release "hanko" "teamhanko/hanko" "prebuild" "latest" "/opt/hanko" "hanko_Linux_x86_64.tar.gz"
 curl -fsSL https://raw.githubusercontent.com/teamhanko/hanko/refs/heads/main/backend/config/config.yaml -o /opt/hanko/config.yaml
-yq eval '
+env DB_USER="$DB_USER" DB_PASS="$DB_PASS" APP_SECRET="$APP_SECRET" \
+  yq eval '
   .database.user = strenv(DB_USER) |
   .database.password = strenv(DB_PASS) |
   .database.host = "localhost" |
