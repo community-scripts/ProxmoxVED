@@ -176,78 +176,76 @@ function exit-script() {
   exit
 }
 
-function default_settings() {
-  var_bridge="${var_bridge:-vmbr0}"
-  var_cpu="${var_cpu:-2}"
-  var_cpu_type="${var_cpu_type:-0}"     # 0 = KVM64, 1 = host
-  var_disk="${var_disk:-8G}"            # z. B. 32G
-  var_disk_cache="${var_disk_cache:-0}" # 0 = None, 1 = WriteThrough
-  var_hostname="${var_hostname:-ubuntu}"
-  var_mac="${var_mac:-$GEN_MAC}"
-  var_machine="${var_machine:-i440fx}" # i440fx oder q35
-  var_mtu="${var_mtu:-}"
-  var_ram="${var_ram:-2048}"
-  var_start_vm="${var_start_vm:-yes}" # yes oder no
-  var_vlan="${var_vlan:-}"
-  var_vmid="${var_vmid:-$(get_valid_nextid)}"
+var_bridge="${var_bridge:-vmbr0}"
+var_cpu="${var_cpu:-2}"
+var_cpu_type="${var_cpu_type:-0}"     # 0 = KVM64, 1 = host
+var_disk="${var_disk:-8G}"            # z. B. 32G
+var_disk_cache="${var_disk_cache:-0}" # 0 = None, 1 = WriteThrough
+var_hostname="${var_hostname:-ubuntu}"
+var_mac="${var_mac:-$GEN_MAC}"
+var_machine="${var_machine:-i440fx}" # i440fx oder q35
+var_mtu="${var_mtu:-}"
+var_ram="${var_ram:-2048}"
+var_start_vm="${var_start_vm:-yes}" # yes oder no
+var_vlan="${var_vlan:-}"
+var_vmid="${var_vmid:-$(get_valid_nextid)}"
 
-  function apply_env_overrides() {
-    METHOD="env"
-    VMID="$var_vmid"
-    HN=$(echo "${var_hostname,,}" | tr -cd '[:alnum:]-')
-    [[ -z "$HN" ]] && HN="ubuntu"
-    [[ ! "$HN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]] && {
-      msg_error "Invalid hostname: $HN"
-      exit 1
-    }
-
-    case "$var_machine" in
-    q35)
-      MACHINE_TYPE="q35"
-      FORMAT=""
-      MACHINE=" -machine q35"
-      ;;
-    *)
-      MACHINE_TYPE="i440fx"
-      FORMAT=",efitype=4m"
-      MACHINE=""
-      ;;
-    esac
-
-    case "$var_cpu_type" in
-    1) CPU_TYPE=" -cpu host" ;;
-    *) CPU_TYPE="" ;;
-    esac
-
-    case "$var_disk_cache" in
-    1) DISK_CACHE="cache=writethrough," ;;
-    *) DISK_CACHE="" ;;
-    esac
-
-    [[ "$var_cpu" =~ ^[1-9][0-9]*$ ]] && CORE_COUNT="$var_cpu" || CORE_COUNT="2"
-    [[ "$var_ram" =~ ^[1-9][0-9]*$ ]] && RAM_SIZE="$var_ram" || RAM_SIZE="2048"
-    [[ -n "$var_disk" ]] && DISK_SIZE="$var_disk" || DISK_SIZE="8G"
-    BRG="$var_bridge"
-    MAC="$var_mac"
-    VLAN=${var_vlan:+",tag=$var_vlan"}
-    MTU=${var_mtu:+",mtu=$var_mtu"}
-    START_VM="$var_start_vm"
-
-    echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}${MACHINE_TYPE}${CL}"
-    echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-    echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}${DISK_CACHE:-None}${CL}"
-    echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
-    echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}${CPU_TYPE:+Host}${CPU_TYPE:-KVM64}${CL}"
-    echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-    echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
-    echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
-    echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
-    echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}${var_vlan:-Default}${CL}"
-    echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}${var_mtu:-Default}${CL}"
-    echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
-    echo -e "${CREATING}${BOLD}${DGN}Creating a $APP using environment settings${CL}"
+function apply_env_overrides() {
+  METHOD="env"
+  VMID="$var_vmid"
+  HN=$(echo "${var_hostname,,}" | tr -cd '[:alnum:]-')
+  [[ -z "$HN" ]] && HN="ubuntu"
+  [[ ! "$HN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]] && {
+    msg_error "Invalid hostname: $HN"
+    exit 1
   }
+
+  case "$var_machine" in
+  q35)
+    MACHINE_TYPE="q35"
+    FORMAT=""
+    MACHINE=" -machine q35"
+    ;;
+  *)
+    MACHINE_TYPE="i440fx"
+    FORMAT=",efitype=4m"
+    MACHINE=""
+    ;;
+  esac
+
+  case "$var_cpu_type" in
+  1) CPU_TYPE=" -cpu host" ;;
+  *) CPU_TYPE="" ;;
+  esac
+
+  case "$var_disk_cache" in
+  1) DISK_CACHE="cache=writethrough," ;;
+  *) DISK_CACHE="" ;;
+  esac
+
+  [[ "$var_cpu" =~ ^[1-9][0-9]*$ ]] && CORE_COUNT="$var_cpu" || CORE_COUNT="2"
+  [[ "$var_ram" =~ ^[1-9][0-9]*$ ]] && RAM_SIZE="$var_ram" || RAM_SIZE="2048"
+  [[ -n "$var_disk" ]] && DISK_SIZE="$var_disk" || DISK_SIZE="8G"
+  BRG="$var_bridge"
+  MAC="$var_mac"
+  VLAN=${var_vlan:+",tag=$var_vlan"}
+  MTU=${var_mtu:+",mtu=$var_mtu"}
+  START_VM="$var_start_vm"
+
+  echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}${MACHINE_TYPE}${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}${DISK_CACHE:-None}${CL}"
+  echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
+  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}${CPU_TYPE:+Host}${CPU_TYPE:-KVM64}${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
+  echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
+  echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
+  echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}${var_vlan:-Default}${CL}"
+  echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}${var_mtu:-Default}${CL}"
+  echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}${START_VM}${CL}"
+  echo -e "${CREATING}${BOLD}${DGN}Creating a $APP using environment settings${CL}"
 }
 
 function advanced_settings() {
