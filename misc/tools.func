@@ -854,7 +854,7 @@ function fetch_and_deploy_gh_release() {
     local assets asset_url=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
     for u in $assets; do
-      if [[ "$u" =~ $pattern || "$u" == *"$pattern" ]]; then
+      if [[ "$u" == *"$pattern"* ]]; then
         asset_url="$u"
         break
       fi

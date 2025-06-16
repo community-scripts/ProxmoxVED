@@ -17,7 +17,9 @@ msg_info "Installing Dependencies"
 #$STD apt-get install -y gnup
 msg_ok "Installed Dependencies"
 
-PYTHON_VERSION="3.12" setup_uv
+fetch_and_deploy_gh_release "argus" "release-argus/Argus" "prebuild" "latest" "/opt/argus" "Argus-.*\.linux-amd64"
+
+#PYTHON_VERSION="3.12" setup_uv
 
 #echo -e "fetching healthchecks"
 #fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball" "latest" "/opt/healthchecks"
