@@ -1453,23 +1453,27 @@ function setup_yq() {
   msg_info "Setup yq"
   local TMP_DIR
   TMP_DIR=$(mktemp -d)
-  local CURRENT_VERSION
+  local CURRENT_VERSION=""
   local BINARY_PATH="/usr/local/bin/yq"
   local GITHUB_REPO="mikefarah/yq"
 
   if ! command -v jq &>/dev/null; then
-    $STD apt-get install -y jq
+    $STD apt-get update -qq
+    $STD apt-get install -y jq || {
+      msg_error "Failed to install jq"
+      rm -rf "$TMP_DIR"
+      return 1
+    }
   fi
 
   if command -v yq &>/dev/null; then
     if ! yq --version 2>&1 | grep -q 'mikefarah'; then
       rm -f "$(command -v yq)"
     else
-      CURRENT_VERSION=$(yq --version | awk '{print $NF}' | sed 's/v//')
+      CURRENT_VERSION=$(yq --version | awk '{print $NF}' | sed 's/^v//')
     fi
   fi
 
-  # Fetch latest version from GitHub
   local RELEASE_JSON
   RELEASE_JSON=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest")
   local LATEST_VERSION
@@ -1478,16 +1482,15 @@ function setup_yq() {
   if [[ -z "$LATEST_VERSION" ]]; then
     msg_error "Could not determine latest yq version from GitHub."
     rm -rf "$TMP_DIR"
-    return
+    return 1
   fi
 
-  if [[ "$CURRENT_VERSION" == "$LATEST_VERSION" ]]; then
-    msg_ok "yq is already installed ($CURRENT_VERSION)"
+  if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" == "$LATEST_VERSION" ]]; then
+    msg_ok "Setup yq ($CURRENT_VERSION)"
     rm -rf "$TMP_DIR"
     return
   fi
 
-  msg_info "Setup yq ($LATEST_VERSION)"
   curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/v${LATEST_VERSION}/yq_linux_amd64" -o "$TMP_DIR/yq"
   chmod +x "$TMP_DIR/yq"
   mv "$TMP_DIR/yq" "$BINARY_PATH"
@@ -1495,7 +1498,7 @@ function setup_yq() {
   if [[ ! -x "$BINARY_PATH" ]]; then
     msg_error "Failed to install yq to $BINARY_PATH"
     rm -rf "$TMP_DIR"
-    return
+    return 1
   fi
 
   rm -rf "$TMP_DIR"
