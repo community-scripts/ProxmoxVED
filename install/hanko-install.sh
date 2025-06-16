@@ -13,7 +13,57 @@ setting_up_container
 network_check
 update_os
 
+PG_VERSION="16" install_postgresql
+
+msg_info "Setting up PostgreSQL Database"
+DB_NAME=hanko_db
+DB_USER=hanko
+DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
+APP_SECRET=$(openssl rand -base64 32)
+$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
+$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
+{
+  echo "Hanko-Credentials"
+  echo "Hanko Database User: $DB_USER"
+  echo "Hanko Database Password: $DB_PASS"
+  echo "Hanko Database Name: $DB_NAME"
+} >>~/hanko.creds
+msg_ok "Set up PostgreSQL Database"
+
+msg_info "Setup Hanko"
 fetch_and_deploy_gh_release "hanko" "teamhanko/hanko" "prebuild" "latest" "/opt/hanko" "hanko_Linux_x86_64.tar.gz"
+curl -fsSL https://raw.githubusercontent.com/teamhanko/hanko/refs/heads/main/backend/config/config.yaml -o /opt/hanko/config.yaml
+sed -i "
+  s|^\(\s*user:\s*\).*|\1${DB_USER}|;
+  s|^\(\s*password:\s*\).*|\1${DB_PASS}|;
+  s|^\(\s*host:\s*\).*|\1localhost|;
+  s|^\(\s*port:\s*\).*|\1\"5432\"|;
+  s|^\(\s*dialect:\s*\).*|\1postgres|;
+  s|^\(\s*-\s*\).*abcdefghijklmnopqrstuvwxyz.*|\1${APP_SECRET}|;
+" /opt/hanko/config.yaml
+msg_ok "Setup Hanko"
+
+msg_info "Setup Service"
+cat <<EOF >/etc/systemd/system/hanko.service
+[Unit]
+Description=Hanko Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/hanko/hanko serve --config /opt/hanko/config.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable -q --now hanko
+msg_ok "Service Setup"
 
 motd_ssh
 customize
