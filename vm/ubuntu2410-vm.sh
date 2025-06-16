@@ -506,13 +506,16 @@ function advanced_settings() {
   fi
 }
 
+function has_env_overrides() {
+  env | grep -qE "^var_(bridge|cpu|cpu_type|disk|disk_cache|hostname|mac|machine|mtu|ram|start_vm|vlan|vmid)="
+}
+
 function start_script() {
   header_info
   init_settings
-  if [[ -n "${var_bridge}${var_cpu}${var_cpu_type}${var_disk}${var_disk_cache}${var_hostname}${var_mac}${var_mtu}${var_ram}${var_start_vm}${var_vlan}${var_vmid}" ]]; then
+  if has_env_overrides; then
     echo -e "${ADVANCED}${BOLD}${BL}Using Environment Variable Overrides${CL}"
     METHOD="env"
-    validate_env_settings
     apply_env_overrides
   elif (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button Advanced 10 58); then
     echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings${CL}"
@@ -592,7 +595,9 @@ done
 msg_info "Creating a $APP"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags "community-script;ubuntu" -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
+if [[ "$STORAGE_TYPE" != "lvmthin" ]]; then
+  pvesm alloc $STORAGE $VMID $DISK0 4M >/dev/null
+fi
 qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
