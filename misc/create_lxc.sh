@@ -144,9 +144,9 @@ if [ "$STORAGE_FREE" -lt "$REQUIRED_KB" ]; then
 fi
 
 # Check Cluster Quorum if in Cluster
-if ! pvecm status | grep -q "Quorate: Yes"; then
-  printf "\e[?25h" # Cursor sichtbar machen
-  echo -e "\n\n${CROSS}${RD}Cluster is not quorate. Start all nodes or configure quorum device (QDevice). 111${CL}\n"
+if ! pvecm status | awk '/^Quorate:/ {exit $2 != "Yes"}'; then
+  printf "\e[?25h"
+  echo -e "\n${CROSS}${RD}Cluster is not quorate. Start all nodes or configure quorum device (QDevice).${CL}\n"
   exit 210
 fi
 
