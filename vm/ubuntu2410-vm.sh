@@ -609,7 +609,6 @@ qm set $VMID \
   -boot order=scsi0 \
   -serial0 socket \
   -smbios1 type=1 \
-  -args "-smbios type=1,manufacturer=CommunityScripts,product=UbuntuCloudVM" \
   --ciuser "ubuntu" -cipassword "ubuntu" >/dev/null
 DESCRIPTION=$(
   cat <<EOF
