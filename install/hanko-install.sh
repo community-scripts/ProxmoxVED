@@ -14,7 +14,7 @@ network_check
 update_os
 
 setup_yq
-PG_VERSION="16" install_postgresql
+PG_VERSION="16" setup_postgresql
 
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=hanko

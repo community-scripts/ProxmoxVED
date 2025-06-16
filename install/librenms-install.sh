@@ -29,9 +29,9 @@ $STD apt-get install -y \
     snmpd
 msg_ok "Installed Dependencies"
 
-PHP_VERSION=8.2 PHP_FPM=YES PHP_APACHE=NO PHP_MODULE="gmp,mysql,snmp" install_php
-install_mariadb
-install_composer
+PHP_VERSION=8.2 PHP_FPM=YES PHP_APACHE=NO PHP_MODULE="gmp,mysql,snmp" setup_php
+setup_mariadb
+setup_composer
 setup_uv
 
 msg_info "Installing Python"
@@ -73,7 +73,6 @@ chmod 771 /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 chmod -R ug=rwX /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 msg_ok "Setup LibreNMS"
-
 
 msg_info "Configure MariaDB"
 sed -i "/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0" /etc/mysql/mariadb.conf.d/50-server.cnf

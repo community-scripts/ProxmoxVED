@@ -15,20 +15,20 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  gcc \
-  libpq-dev \
-  libcurl4-openssl-dev \
-  libssl-dev
+    gcc \
+    libpq-dev \
+    libcurl4-openssl-dev \
+    libssl-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Python3"
 $STD apt-get install -y \
-  python3 python3-dev python3-pip
+    python3 python3-dev python3-pip
 $STD pip install --upgrade pip
 msg_ok "Setup Python3"
 
 setup_uv
-PG_VERSION=16 install_postgresql
+PG_VERSION=16 setup_postgresql
 
 msg_info "Setup Database"
 DB_NAME=healthchecks_db
@@ -42,10 +42,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-  echo "healthchecks-Credentials"
-  echo "healthchecks Database User: $DB_USER"
-  echo "healthchecks Database Password: $DB_PASS"
-  echo "healthchecks Database Name: $DB_NAME"
+    echo "healthchecks-Credentials"
+    echo "healthchecks Database User: $DB_USER"
+    echo "healthchecks Database Password: $DB_PASS"
+    echo "healthchecks Database Name: $DB_NAME"
 } >>~/healthchecks.creds
 msg_ok "Set up Database"
 

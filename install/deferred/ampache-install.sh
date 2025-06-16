@@ -15,32 +15,32 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 apt-get install -y \
-  apache2 \
-  cron \
-  flac \
-  vorbis-tools \
-  lame \
-  ffmpeg \
-  lsb-release \
-  gosu \
-  wget \
-  curl \
-  git \
-  make \
-  inotify-tools \
-  libavcodec-extra \
-  libev-libevent-dev \
-  libmp3lame-dev \
-  libtheora-dev \
-  libvorbis-dev \
-  libvpx-dev
+    apache2 \
+    cron \
+    flac \
+    vorbis-tools \
+    lame \
+    ffmpeg \
+    lsb-release \
+    gosu \
+    wget \
+    curl \
+    git \
+    make \
+    inotify-tools \
+    libavcodec-extra \
+    libev-libevent-dev \
+    libmp3lame-dev \
+    libtheora-dev \
+    libvorbis-dev \
+    libvpx-dev
 msg_ok "Installed Dependencies"
 
 PHP_VERSION=8.4
 PHP_MODULE=bcmath,bz2,cli,common,curl,fpm,gd,imagick,intl,mbstring,mysql,sqlite3,xml,xmlrpc,zip
 PHP_APACHE=YES
-install_php
-install_mariadb
+setup_php
+setup_mariadb
 
 msg_info "Setting up Database"
 DB_NAME=ampache2
@@ -68,10 +68,10 @@ sudo mv /opt/ampache/channel/.htaccess.dist /opt/ampache/channel/.htaccess
 sudo cp /opt/ampache/config/ampache.cfg.php.dist /opt/ampache/config/ampache.cfg.php
 sudo chmod 664 /opt/ampache/rest/.htaccess /opt/ampache/play/.htaccess
 sudo sed -i 's/upload_max_filesize = .*/upload_max_filesize = 50M/' /etc/php/8.4/apache2/php.ini &&
-  sudo sed -i 's/post_max_size = .*/post_max_size = 50M/' /etc/php/8.4/apache2/php.ini &&
-  sudo sed -i 's/max_execution_time = .*/max_execution_time = 300/' /etc/php/8.4/apache2/php.ini &&
-  sudo sed -i 's/memory_limit = .*/memory_limit = 256M/' /etc/php/8.4/apache2/php.ini &&
-  sudo systemctl restart apache2
+    sudo sed -i 's/post_max_size = .*/post_max_size = 50M/' /etc/php/8.4/apache2/php.ini &&
+    sudo sed -i 's/max_execution_time = .*/max_execution_time = 300/' /etc/php/8.4/apache2/php.ini &&
+    sudo sed -i 's/memory_limit = .*/memory_limit = 256M/' /etc/php/8.4/apache2/php.ini &&
+    sudo systemctl restart apache2
 msg_ok "Installed Ampache"
 
 motd_ssh

@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y make git
 msg_ok "Installed Dependencies"
 
-NODE_MODULE="yarn" install_node_and_modules
+NODE_MODULE="yarn" setup_nodejs
 
 msg_info "Installing Notesnook (Patience)"
 fetch_and_deploy_gh_release "notesnook" "streetwriters/notesnook" "tarball"

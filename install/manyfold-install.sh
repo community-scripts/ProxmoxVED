@@ -14,20 +14,20 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
-  gnupg2 postgresql \
-  lsb-release \
-  rbenv \
-  libpq-dev \
-  libarchive-dev \
-  git \
-  libmariadb-dev \
-  redis-server \
-  nginx \
-  libffi-dev \
-  libyaml-dev
+    curl \
+    sudo \
+    mc \
+    gnupg2 postgresql \
+    lsb-release \
+    rbenv \
+    libpq-dev \
+    libarchive-dev \
+    git \
+    libmariadb-dev \
+    redis-server \
+    nginx \
+    libffi-dev \
+    libyaml-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up PostgreSQL"
@@ -37,10 +37,10 @@ DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
 {
-  echo "Manyfold Credentials"
-  echo "Manyfold Database User: $DB_USER"
-  echo "Manyfold Database Password: $DB_PASS"
-  echo "Manyfold Database Name: $DB_NAME"
+    echo "Manyfold Credentials"
+    echo "Manyfold Database User: $DB_USER"
+    echo "Manyfold Database Password: $DB_PASS"
+    echo "Manyfold Database Name: $DB_NAME"
 } >>~/manyfold.creds
 msg_ok "Set up PostgreSQL"
 
@@ -55,7 +55,7 @@ YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.
 
 msg_ok "Downloaded Manyfold"
 
-NODE_VERSION="22" NODE_MODULE="npm@latest,${YARN_VERSION}" install_node_and_modules
+NODE_VERSION="22" NODE_MODULE="npm@latest,${YARN_VERSION}" setup_nodejs
 RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" setup_rbenv_stack
 
 # msg_info "Add ruby-build"

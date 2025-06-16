@@ -13,7 +13,6 @@ setting_up_container
 network_check
 update_os
 
-
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
     build-essential \
@@ -23,8 +22,8 @@ msg_ok "Installed Dependencies"
 
 ## WIP - only protoype with git call
 
-install_go
-NODE_VERSION="22" NODE_MODULE="pnpm" install_node_and_modules
+setup_go
+NODE_VERSION="22" NODE_MODULE="pnpm" setup_nodejs
 
 msg_info "Setup ocis"
 cd /opt

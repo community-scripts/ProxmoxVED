@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y python3-distutils
 msg_ok "Installed Dependencies"
 
-install_mariadb
+setup_mariadb
 
 msg_info "Setting up Bluecherry"
 export DEBIAN_FRONTEND=noninteractive

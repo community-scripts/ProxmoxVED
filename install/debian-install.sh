@@ -29,22 +29,22 @@ PYTHON_VERSION="3.12" setup_uv
 # minimal call: fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary"
 #echo -e "defguard done"
 
-#PHP_VERSION=8.2 PHP_FPM=YES install_php
-#install_composer
+#PHP_VERSION=8.2 PHP_FPM=YES setup_php
+#setup_composer
 
 # Example Setting for Test
 #NODE_MODULE="pnpm@10.1,yarn"
 #RELEASE=$(curl_handler -fsSL https://api.github.com/repos/babybuddy/babybuddy/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 #msg_ok "Get Release $RELEASE"
-#NODE_VERSION="22" NODE_MODULE="yarn" install_node_and_modules
+#NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 
-#PG_VERSION="16" install_postgresql
+#PG_VERSION="16" setup_postgresql
 #MARIADB_VERSION="11.8"
 #MYSQL_VERSION="8.0"
 
 #install_mongodb
-#install_postgresql
-#install_mariadb
+#setup_postgresql
+#setup_mariadb
 #install_mysql
 
 # msg_info "Setup DISTRO env"

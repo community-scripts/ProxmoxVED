@@ -16,16 +16,16 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  ffmpeg
+    ffmpeg
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Python3"
 $STD apt-get install -y --no-install-recommends \
-  python3 \
-  python3-pip
+    python3 \
+    python3-pip
 msg_ok "Setup Python3"
 
-install_node_and_modules
+setup_nodejs
 
 msg_info "Installing Open WebUI (Patience)"
 fetch_and_deploy_gh_release "open-webui/open-webui"
@@ -55,11 +55,11 @@ msg_ok "Installed Open WebUI"
 
 read -r -p "${TAB3}Would you like to add Ollama? <y/N> " prompt
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
-  msg_info "Installing Ollama"
-  curl -fsSLO https://ollama.com/download/ollama-linux-amd64.tgz
-  tar -C /usr -xzf ollama-linux-amd64.tgz
-  rm -rf ollama-linux-amd64.tgz
-  cat <<EOF >/etc/systemd/system/ollama.service
+    msg_info "Installing Ollama"
+    curl -fsSLO https://ollama.com/download/ollama-linux-amd64.tgz
+    tar -C /usr -xzf ollama-linux-amd64.tgz
+    rm -rf ollama-linux-amd64.tgz
+    cat <<EOF >/etc/systemd/system/ollama.service
 [Unit]
 Description=Ollama Service
 After=network-online.target
@@ -75,9 +75,9 @@ RestartSec=3
 [Install]
 WantedBy=multi-user.target
 EOF
-  systemctl enable -q --now ollama
-  sed -i 's/ENABLE_OLLAMA_API=false/ENABLE_OLLAMA_API=true/g' /opt/openwebui/.env
-  msg_ok "Installed Ollama"
+    systemctl enable -q --now ollama
+    sed -i 's/ENABLE_OLLAMA_API=false/ENABLE_OLLAMA_API=true/g' /opt/openwebui/.env
+    msg_ok "Installed Ollama"
 fi
 
 msg_info "Creating Service"

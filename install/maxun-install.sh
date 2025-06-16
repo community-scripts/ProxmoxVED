@@ -15,37 +15,37 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  gpg \
-  openssl \
-  redis \
-  libgbm1 \
-  libnss3 \
-  libatk1.0-0 \
-  libatk-bridge2.0-0 \
-  libdrm2 \
-  libxkbcommon0 \
-  libglib2.0-0 \
-  libdbus-1-3 \
-  libx11-xcb1 \
-  libxcb1 \
-  libxcomposite1 \
-  libxcursor1 \
-  libxdamage1 \
-  libxext6 \
-  libxi6 \
-  libxtst6 \
-  ca-certificates \
-  libxrandr2 \
-  libasound2 \
-  libxss1 \
-  libxinerama1 \
-  nginx
+    gpg \
+    openssl \
+    redis \
+    libgbm1 \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxkbcommon0 \
+    libglib2.0-0 \
+    libdbus-1-3 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxi6 \
+    libxtst6 \
+    ca-certificates \
+    libxrandr2 \
+    libasound2 \
+    libxss1 \
+    libxinerama1 \
+    nginx
 msg_ok "Installed Dependencies"
 
 #configure_lxc "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it?" 100 "memory" "16000"
 
-PG_VERSION=17 install_postgresql
-NODE_VERSION="22" install_node_and_modules
+PG_VERSION=17 setup_postgresql
+NODE_VERSION="22" setup_nodejs
 
 msg_info "Setup Variables"
 DB_NAME=maxun_db
@@ -65,12 +65,12 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-  echo "Maxun-Credentials"
-  echo "Maxun Database User: $DB_USER"
-  echo "Maxun Database Password: $DB_PASS"
-  echo "Maxun Database Name: $DB_NAME"
-  echo "Maxun JWT Secret: $JWT_SECRET"
-  echo "Maxun Encryption Key: $ENCRYPTION_KEY"
+    echo "Maxun-Credentials"
+    echo "Maxun Database User: $DB_USER"
+    echo "Maxun Database Password: $DB_PASS"
+    echo "Maxun Database Name: $DB_NAME"
+    echo "Maxun JWT Secret: $JWT_SECRET"
+    echo "Maxun Encryption Key: $ENCRYPTION_KEY"
 } >>~/maxun.creds
 msg_ok "Set up Database"
 
@@ -99,9 +99,9 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 {
-  echo "__________________"
-  echo "MinIO Admin User: $MINIO_USER"
-  echo "MinIO Admin Password: $MINIO_PASS"
+    echo "__________________"
+    echo "MinIO Admin User: $MINIO_USER"
+    echo "MinIO Admin Password: $MINIO_PASS"
 } >>~/maxun.creds
 cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=${MINIO_USER}

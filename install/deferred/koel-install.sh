@@ -13,31 +13,31 @@ setting_up_container
 network_check
 update_os
 
-PG_VERSION="16" install_postgresql
-PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" install_php
-NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_node_and_modules
-install_composer
+PG_VERSION="16" setup_postgresql
+PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" setup_php
+NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" setup_nodejs
+setup_composer
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  nginx \
-  apt-transport-https \
-  lsb-release \
-  ffmpeg \
-  cron \
-  libapache2-mod-xsendfile \
-  libzip-dev \
-  locales \
-  libpng-dev \
-  libjpeg62-turbo-dev \
-  libpq-dev \
-  libwebp-dev
+    nginx \
+    apt-transport-https \
+    lsb-release \
+    ffmpeg \
+    cron \
+    libapache2-mod-xsendfile \
+    libzip-dev \
+    locales \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libpq-dev \
+    libwebp-dev
 msg_ok "Installed Dependencies"
 
-# PG_VERSION="16" install_postgresql
-# PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" install_php
-# NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" install_node_and_modules
-# install_composer
+# PG_VERSION="16" setup_postgresql
+# PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" setup_php
+# NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" setup_nodejs
+# setup_composer
 
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=koel_db
@@ -50,10 +50,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-  echo "Koel-Credentials"
-  echo "Koel Database User: $DB_USER"
-  echo "Koel Database Password: $DB_PASS"
-  echo "Koel Database Name: $DB_NAME"
+    echo "Koel-Credentials"
+    echo "Koel Database User: $DB_USER"
+    echo "Koel Database Password: $DB_PASS"
+    echo "Koel Database Name: $DB_NAME"
 } >>~/koel.creds
 msg_ok "Set up PostgreSQL Database"
 
@@ -67,14 +67,14 @@ cd /opt/koel
 mv .env.example .env
 $STD composer install --no-interaction
 sed -i -e "s/DB_CONNECTION=.*/DB_CONNECTION=pgsql/" \
-  -e "s/DB_HOST=.*/DB_HOST=localhost/" \
-  -e "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" \
-  -e "s/DB_PORT=.*/DB_PORT=5432/" \
-  -e "s|APP_KEY=.*|APP_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)|" \
-  -e "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" \
-  -e "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" \
-  -e "s|MEDIA_PATH=.*|MEDIA_PATH=/opt/koel_media|" \
-  -e "s|FFMPEG_PATH=/usr/local/bin/ffmpeg|FFMPEG_PATH=/usr/bin/ffmpeg|" /opt/koel/.env
+    -e "s/DB_HOST=.*/DB_HOST=localhost/" \
+    -e "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" \
+    -e "s/DB_PORT=.*/DB_PORT=5432/" \
+    -e "s|APP_KEY=.*|APP_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)|" \
+    -e "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" \
+    -e "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" \
+    -e "s|MEDIA_PATH=.*|MEDIA_PATH=/opt/koel_media|" \
+    -e "s|FFMPEG_PATH=/usr/local/bin/ffmpeg|FFMPEG_PATH=/usr/bin/ffmpeg|" /opt/koel/.env
 php artisan koel:init --no-assets
 chown -R :www-data /opt/*
 chmod -R g+r /opt/*
