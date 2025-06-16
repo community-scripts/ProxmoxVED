@@ -1455,17 +1455,19 @@ install_adminer() {
 # ------------------------------------------------------------------------------
 
 function setup_yq() {
-  msg_info "Setup yq (mikefarah/yq)"
-
+  msg_info "Setup yq"
   local TMP_DIR
   TMP_DIR=$(mktemp -d)
   local CURRENT_VERSION
   local BINARY_PATH="/usr/local/bin/yq"
   local GITHUB_REPO="mikefarah/yq"
 
+  if ! command -v jq &>/dev/null; then
+    $STD apt-get install -y jq
+  fi
+
   if command -v yq &>/dev/null; then
     if ! yq --version 2>&1 | grep -q 'mikefarah'; then
-      msg_info "Found incompatible yq implementation, replacing..."
       rm -f "$(command -v yq)"
     else
       CURRENT_VERSION=$(yq --version | awk '{print $NF}' | sed 's/v//')
@@ -1485,12 +1487,12 @@ function setup_yq() {
   fi
 
   if [[ "$CURRENT_VERSION" == "$LATEST_VERSION" ]]; then
-    msg_ok "yq is already at version $CURRENT_VERSION"
+    msg_ok "yq is already installed ($CURRENT_VERSION)"
     rm -rf "$TMP_DIR"
     return
   fi
 
-  msg_info "Installing/Updating yq to $LATEST_VERSION"
+  msg_info "Setup yq ($LATEST_VERSION)"
   curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/v${LATEST_VERSION}/yq_linux_amd64" -o "$TMP_DIR/yq"
   chmod +x "$TMP_DIR/yq"
   mv "$TMP_DIR/yq" "$BINARY_PATH"
@@ -1507,7 +1509,7 @@ function setup_yq() {
   local FINAL_VERSION
   FINAL_VERSION=$("$BINARY_PATH" --version 2>/dev/null | awk '{print $NF}')
   if [[ "$FINAL_VERSION" == "v$LATEST_VERSION" ]]; then
-    msg_ok "yq installed/updated to version $LATEST_VERSION"
+    msg_ok "Setup yq ($LATEST_VERSION)"
   else
     msg_error "yq installation incomplete or version mismatch"
   fi
