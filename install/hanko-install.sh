@@ -13,11 +13,7 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-curl -sSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
-  -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
-msg_ok "Installed Dependencies"
-
+setup_yq
 PG_VERSION="16" install_postgresql
 
 msg_info "Setting up PostgreSQL Database"
