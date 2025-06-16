@@ -102,6 +102,18 @@ WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 # Examples: notifications, antivirus etc.
 # Do not uncomment unless configured above.
 # OC_ADD_RUN_SERVICES="notifications"
+
+# OpenID
+# Authelia - for Web
+# OC_EXCLUDE_RUN_SERVICES=idp
+# OC_OIDC_ISSUER=
+# PROXY_OIDC_ACCESS_TOKEN_VERIFY_METHOD=none
+# PROXY_OIDC_REWRITE_WELLKNOWN=true
+# PROXY_USER_OIDC_CLAIM=preferred_username
+# PROXY_USER_CS3_CLAIM=username
+# automatically create accounts
+# PROXY_AUTOPROVISION_ACCOUNTS=true
+# WEB_OIDC_SCOPE=openid profile email groups
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
