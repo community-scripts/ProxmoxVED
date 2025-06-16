@@ -56,6 +56,7 @@ msg_ok "Installed ${APPLICATION}"
 
 msg_info "Configuring ${APPLICATION}"
 curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
+curl -fsSL https://github.com/opencloud-eu/opencloud/raw/refs/heads/main/deployments/examples/opencloud_full/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
 
 cat <<EOF >"$ENV_FILE"
 OC_URL=https://${OC_HOST}
@@ -64,9 +65,11 @@ IDM_CREATE_DEMO_USERS=false
 OC_LOG_LEVEL=warning
 OC_CONFIG_DIR=${CONFIG_DIR}
 OC_BASE_DATA_PATH=${DATA_DIR}
+# Uncomment below when configuring external auth solution (LDAP/OAUTH etc)
+# OC_EXCLUDE_RUN_SERVICES=ldm,ldp
 
 # Proxy
-PROXY_ENABLE_BASIC_AUTH=true
+# PROXY_ENABLE_BASIC_AUTH=true
 PROXY_TLS=false
 PROXY_CSP_CONFIG_FILE_LOCATION=${CONFIG_DIR}/csp.yaml
 
