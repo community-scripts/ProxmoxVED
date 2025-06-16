@@ -122,14 +122,6 @@ function select_storage() {
   exit 205
 }
 
-# Test if ID is in use
-if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
-  echo -e "ID '$CTID' is already in use."
-  unset CTID
-  msg_error "Cannot use ID that is already in use."
-  exit 206
-fi
-
 # # Get template storage
 # TEMPLATE_STORAGE=$(select_storage template)
 # CONTAINER_STORAGE=$(select_storage container) || exit
@@ -142,6 +134,22 @@ msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
 # Get container storage
 CONTAINER_STORAGE=$(select_storage container)
 msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+
+# Check free space on selected container storage
+STORAGE_FREE=$(pvesm status | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
+REQUIRED_KB=$((${PCT_DISK_SIZE:-8} * 1024 * 1024))
+if [ "$STORAGE_FREE" -lt "$REQUIRED_KB" ]; then
+  msg_error "Not enough space on '$CONTAINER_STORAGE'. Needed: ${PCT_DISK_SIZE:-8}G."
+  exit 214
+fi
+
+# Check Cluster Quorum if in Cluster
+if [ -f /etc/pve/corosync.conf ]; then
+  if ! pvecm status | grep -q "Quorate: Yes"; then
+    msg_error "Cluster is not quorate. Start all nodes or configure quorum device (QDevice)."
+    exit 210
+  fi
+fi
 
 # Update LXC template list
 $STD msg_info "Updating LXC Template List"
@@ -161,7 +169,7 @@ if [ ${#TEMPLATES[@]} -eq 0 ]; then
 fi
 
 TEMPLATE="${TEMPLATES[-1]}"
-TEMPLATE_PATH="$(pvesm path "$TEMPLATE_STORAGE":vztmpl/$TEMPLATE)"
+TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
 
 # Check if template exists and is valid
 if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1; then
