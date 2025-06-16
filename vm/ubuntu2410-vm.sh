@@ -215,7 +215,7 @@ function default_settings() {
 
 function apply_env_overrides() {
   METHOD="env"
-  VMID="$var_vmid"
+  [ -n "$var_vmid" ] && VMID="$var_vmid"
   HN=$(echo "${var_hostname,,}" | tr -cd '[:alnum:]-')
   [[ -z "$HN" ]] && HN="ubuntu"
   [[ ! "$HN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]] && {
@@ -249,8 +249,11 @@ function apply_env_overrides() {
   [[ "$var_cpu" =~ ^[1-9][0-9]*$ ]] && CORE_COUNT="$var_cpu" || CORE_COUNT="2"
   [[ "$var_ram" =~ ^[1-9][0-9]*$ ]] && RAM_SIZE="$var_ram" || RAM_SIZE="2048"
   [[ -n "$var_disk" ]] && DISK_SIZE="$var_disk" || DISK_SIZE="8G"
-  BRG="$var_bridge"
-  MAC="$var_mac"
+  [ -n "$var_bridge" ] && BRG="$var_bridge"
+  [ -z "$BRG" ] && BRG="vmbr0"
+
+  [ -n "$var_mac" ] && MAC="$var_mac"
+  [ -z "$MAC" ] && MAC="$GEN_MAC"
   VLAN=${var_vlan:+",tag=$var_vlan"}
   MTU=${var_mtu:+",mtu=$var_mtu"}
   START_VM="$var_start_vm"
