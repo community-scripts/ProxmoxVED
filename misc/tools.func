@@ -691,33 +691,47 @@ function setup_mongodb() {
 }
 
 # ------------------------------------------------------------------------------
-# Downloads and deploys latest GitHub release (source, binary or asset tarball).
+# Downloads and deploys latest GitHub release (source, binary, tarball, asset).
 #
 # Description:
 #   - Fetches latest release metadata from GitHub API
-#   - Supports source tarball, .deb binary or prebuilt .tar.gz asset
-#   - Extracts or installs the release and writes version to ~/.<app>
+#   - Supports the following modes:
+#       - tarball: Source code tarball (default if omitted)
+#       - source: Alias for tarball (same behavior)
+#       - binary: .deb package install (arch-dependent)
+#       - prebuild: Prebuilt .tar.gz archive (e.g. Go binaries)
+#       - singlefile: Standalone binary (no archive, direct chmod +x install)
+#   - Handles download, extraction/installation and version tracking in ~/.<app>
 #
 # Parameters:
-#   $1   APP               - Application name (used for target path and version file)
-#   $2   REPO              - GitHub repository (e.g. user/repo)
-#   $3   MODE              - Release type: tarball | source | binary | prebuild
-#   $4   VERSION           - Optional version tag (default: latest)
+#   $1   APP               - Application name (used for install path and version file)
+#   $2   REPO              - GitHub repository in form user/repo
+#   $3   MODE              - Release type:
+#                              tarball   → source tarball (.tar.gz)
+#                              binary    → .deb file (auto-arch matched)
+#                              prebuild  → prebuilt archive (e.g. tar.gz)
+#                              singlefile→ standalone binary (chmod +x)
+#   $4   VERSION           - Optional release tag (default: latest)
 #   $5   TARGET_DIR        - Optional install path (default: /opt/<app>)
-#   $6   ASSET_FILENAME    - Required for mode=prebuild (e.g. hanko_Linux_x86_64.tar.gz)
+#   $6   ASSET_FILENAME    - Required for:
+#                              - prebuild  → archive filename or pattern
+#                              - singlefile→ binary filename or pattern
 #
 # Optional:
-#   - Set GITHUB_TOKEN env var to increase API rate limit (esp. in CI).
+#   - Set GITHUB_TOKEN env var to increase API rate limit (recommended for CI/CD).
 #
 # Examples:
-#   # 1. Minimal: Source tarball (default mode = tarball)
+#   # 1. Minimal: Fetch and deploy source tarball
 #   fetch_and_deploy_gh_release "myapp" "myuser/myapp"
 #
-#   # 2. Binary install via .deb (auto-detected by architecture)
+#   # 2. Binary install via .deb asset (architecture auto-detected)
 #   fetch_and_deploy_gh_release "myapp" "myuser/myapp" "binary"
 #
-#   # 3. Prebuilt asset tar.gz (exact filename match)
+#   # 3. Prebuilt archive (.tar.gz) with asset filename match
 #   fetch_and_deploy_gh_release "hanko" "teamhanko/hanko" "prebuild" "latest" "/opt/hanko" "hanko_Linux_x86_64.tar.gz"
+#
+#   # 4. Single binary (chmod +x) like Argus, Promtail etc.
+#   fetch_and_deploy_gh_release "argus" "release-argus/Argus" "singlefile" "0.26.3" "/opt/argus" "Argus-.*linux-amd64"
 # ------------------------------------------------------------------------------
 
 function fetch_and_deploy_gh_release() {
@@ -854,7 +868,7 @@ function fetch_and_deploy_gh_release() {
     local assets asset_url=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
     for u in $assets; do
-      if [[ "$u" == *"$pattern"* ]]; then
+      if [[ "$u" =~ $pattern || "$u" == *"$pattern" ]]; then
         asset_url="$u"
         break
       fi
@@ -876,6 +890,40 @@ function fetch_and_deploy_gh_release() {
 
     mkdir -p "$target"
     tar -xzf "$tmpdir/$filename" -C "$target"
+
+  elif [[ "$mode" == "singlefile" ]]; then
+    local pattern="$6"
+    if [[ -z "$pattern" ]]; then
+      msg_error "Mode 'singlefile' requires 6th parameter (asset filename pattern)"
+      rm -rf "$tmpdir"
+      return 1
+    fi
+
+    local assets asset_url=""
+    assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
+    for u in $assets; do
+      if [[ "$u" =~ $pattern || "$u" == *"$pattern" ]]; then
+        asset_url="$u"
+        break
+      fi
+    done
+
+    if [[ -z "$asset_url" ]]; then
+      msg_error "No asset matching pattern '$pattern' found"
+      rm -rf "$tmpdir"
+      return 1
+    fi
+
+    filename="${asset_url##*/}"
+    mkdir -p "$target"
+    $STD msg_info "Downloading single binary: $asset_url"
+    curl $curl_timeout -fsSL -o "$target/$app" "$asset_url" || {
+      msg_error "Download failed: $asset_url"
+      rm -rf "$tmpdir"
+      return 1
+    }
+
+    chmod +x "$target/$app"
 
   else
     msg_error "Unknown mode: $mode"
