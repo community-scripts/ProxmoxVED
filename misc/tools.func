@@ -889,7 +889,7 @@ function fetch_and_deploy_gh_release() {
     }
 
     mkdir -p "$target"
-    tar -xzf "$tmpdir/$filename" -C "$target"
+    [[ $filename == *.zip ]] && unzip "$tmpdir/$filename" -d "$target" || [[ $filename == *.tar.gz ]] && tar -xzf "$tmpdir/$filename" -C "$target"
 
   elif [[ "$mode" == "singlefile" ]]; then
     local pattern="$6"
