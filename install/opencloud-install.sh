@@ -117,8 +117,8 @@ WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 # GRAPH_ASSIGN_DEFAULT_USER_ROLE=false
 #
 # uncomment below if using PocketID
-# WEB_OIDC_CLIENT_ID=
-# WEB_OIDC_METADATA_URL=
+# WEB_OIDC_CLIENT_ID=<generated in PocketID>
+# WEB_OIDC_METADATA_URL=<your auth URL>/.well-known/openid-configuration
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
