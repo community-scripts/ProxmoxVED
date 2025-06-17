@@ -35,12 +35,25 @@ function update_script() {
     msg_ok "Stopped $APP"
 
     msg_info "Updating $APP to ${RELEASE}"
-    cp /opt/planka/planka/.env /opt
+    mkdir -p /opt/planka-backup
+    mkdir -p /opt/planka-backup/favicons
+    mkdir -p /opt/planka-backup/user-avatars
+    mkdir -p /opt/planka-backup/background-images
+    mkdir -p /opt/planka-backup/attachments
+    mv /opt/planka/planka/.env /opt/planka-backup
+    mv /opt/planka/planka/public/favicons/* /opt/planka-backup/favicons/
+    mv /opt/planka/planka/public/user-avatars/* /opt/planka-backup/user-avatars/
+    mv /opt/planka/planka/public/background-images/* /opt/planka-backup/background-images/
+    mv /opt/planka/planka/private/attachments/* /opt/planka-backup/attachments/
     rm -rf /opt/planka
     fetch_and_deploy_gh_release "planka" "plankanban/planka" "prebuild" "latest" "/opt/planka" "planka-prebuild.zip"
     cd /opt/planka/planka
     $STD npm install
-    mv /opt/.env /opt/planka/planka
+    mv /opt/planka-backup/.env /opt/planka/planka/
+    mv /opt/planka-backup/favicons/* /opt/planka/planka/public/favicons/
+    mv /opt/planka-backup/user-avatars/* /opt/planka/planka/public/user-avatars/
+    mv /opt/planka-backup/background-images/* /opt/planka/planka/public/background-images/
+    mv /opt/planka-backup/attachments/* /opt/planka/planka/private/attachments/
     msg_ok "Updated $APP to ${RELEASE}"
 
     msg_info "Starting $APP"
