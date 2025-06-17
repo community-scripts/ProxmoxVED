@@ -16,7 +16,8 @@ update_os
 msg_info "Installing dependencies"
 $STD apt-get install -y \
   unzip \
-  build-essential
+  build-essential \
+  python3-venv
 msg_ok "Installed dependencies"
 
 NODE_VERSION="22" setup_nodejs
@@ -47,7 +48,7 @@ cd /opt/planka/planka
 $STD npm install
 cp .env.sample .env
 SECRET_KEY=$(openssl rand -hex 64)
-sed -i "s#http://localhost:1337#http://${LOCAL_IP}:8080#g" /opt/planka/planka/.env
+sed -i "s#http://localhost:1337#http://$LOCAL_IP:8080#g" /opt/planka/planka/.env
 sed -i "s#postgres@localhost#planka:$DB_PASS@localhost#g" /opt/planka/planka/.env
 sed -i "s#notsecretkey#${SECRET_KEY}#g" /opt/planka/planka/.env
 $STD npm run db:init
