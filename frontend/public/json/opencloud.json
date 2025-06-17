@@ -37,6 +37,10 @@
       "type": "warning"
     },
     {
+      "text": "Forgot your admin password? Check `admin_password` in the 'idm' section in `/etc/opencloud/opencloud.yaml`",
+      "type": "info"
+    },
+    {
       "text": "**Optional External Apps**: extract zip archives from App Store to `/etc/opencloud/assets/apps`",
       "type": "info"
     },
@@ -46,6 +50,10 @@
     },
     {
       "text": "**Optional OpenID**: Authelia and PocketID supported. Uncomment relevant lines in `/opt/opencloud/opencloud.env` and consult OpenCloud GitHub discussions for configuration tips",
+      "type": "info"
+    },
+    {
+      "text": "**Optional Full-text Search with Apache Tika**: requires your own Tika LXC. See `https://community-scripts.github.io/ProxmoxVE/scripts?id=apache-tika`",
       "type": "info"
     },
     {
