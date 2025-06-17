@@ -61,8 +61,8 @@ Description=planka Service
 After=network.target
 
 [Service]
-WorkingDirectory=/opt/planka/
-ExecStart=/opt/planka/.venv/bin/python3 planka.py
+WorkingDirectory=/opt/planka/planka
+ExecStart=/usr/bin/npm start --prod
 Restart=always
 
 [Install]
