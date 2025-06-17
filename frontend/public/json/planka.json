@@ -2,7 +2,7 @@
   "name": "Planka",
   "slug": "planka",
   "categories": [
-    14
+    12
   ],
   "date_created": "2025-06-09",
   "type": "ct",
@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "After installation finishes, type `cd /opt/planka/planka && npm run db:create-admin-user` and follow prompts to create admin user.",
+      "text": "After installation finishes, type `cd /opt/planka/planka && npm run db:create-admin-user` inside LXC and follow prompts to create admin user.",
       "type": "info"
     }
   ]
