@@ -4,7 +4,7 @@
 # Author: Author: MickLesk
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-function header_info {
+function header_info() {
   clear
   cat <<"EOF"
     _______ __     ____                                       ____                    __
@@ -191,6 +191,7 @@ command="/usr/local/bin/filebrowser"
 command_args="-c $CONFIG_PATH"
 command_background=true
 directory="/usr/local/community-scripts"
+pidfile="/usr/local/community-scripts/pidfile"
 
 depend() {
     need net
