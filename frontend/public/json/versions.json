@@ -1,5 +1,40 @@
 [
   {
+    "name": "crowdsecurity/crowdsec",
+    "version": "v1.6.8",
+    "date": "2025-03-25T13:33:10Z"
+  },
+  {
+    "name": "glpi-project/glpi",
+    "version": "10.0.18",
+    "date": "2025-02-12T11:07:02Z"
+  },
+  {
+    "name": "mattermost/mattermost",
+    "version": "v10.9.1",
+    "date": "2025-06-17T07:06:51Z"
+  },
+  {
+    "name": "morpheus65535/bazarr",
+    "version": "v1.5.2",
+    "date": "2025-05-11T16:40:55Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2024",
+    "date": "2025-06-17T05:51:55Z"
+  },
+  {
+    "name": "donaldzou/WGDashboard",
+    "version": "v4.2.4",
+    "date": "2025-06-17T05:37:06Z"
+  },
+  {
+    "name": "webmin/webmin",
+    "version": "2.402",
+    "date": "2025-06-17T05:20:42Z"
+  },
+  {
     "name": "keycloak/keycloak",
     "version": "26.2.5",
     "date": "2025-05-28T06:49:43Z"
@@ -26,8 +61,8 @@
   },
   {
     "name": "runtipi/runtipi",
-    "version": "nightly",
-    "date": "2025-06-16T17:35:17Z"
+    "version": "v4.2.1",
+    "date": "2025-06-03T20:04:28Z"
   },
   {
     "name": "NodeBB/NodeBB",
@@ -73,11 +108,6 @@
     "name": "moghtech/komodo",
     "version": "v1.18.3",
     "date": "2025-06-16T07:03:46Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2020",
-    "date": "2025-06-16T05:56:11Z"
   },
   {
     "name": "esphome/esphome",
@@ -195,14 +225,14 @@
     "date": "2025-06-13T15:02:37Z"
   },
   {
+    "name": "grafana/grafana",
+    "version": "v11.4.6",
+    "date": "2025-06-13T14:11:41Z"
+  },
+  {
     "name": "jenkinsci/jenkins",
     "version": "jenkins-2.514",
     "date": "2025-06-10T14:27:57Z"
-  },
-  {
-    "name": "grafana/grafana",
-    "version": "v12.0.1+security-01",
-    "date": "2025-06-13T04:15:18Z"
   },
   {
     "name": "FlowiseAI/Flowise",
@@ -235,11 +265,6 @@
     "date": "2025-06-12T06:54:48Z"
   },
   {
-    "name": "morpheus65535/bazarr",
-    "version": "v1.5.2",
-    "date": "2025-05-11T16:40:55Z"
-  },
-  {
     "name": "documenso/documenso",
     "version": "v1.12.0-rc.4",
     "date": "2025-06-12T00:27:41Z"
@@ -253,11 +278,6 @@
     "name": "MediaBrowser/Emby.Releases",
     "version": "4.8.11.0",
     "date": "2025-03-10T06:39:11Z"
-  },
-  {
-    "name": "crowdsecurity/crowdsec",
-    "version": "v1.6.8",
-    "date": "2025-03-25T13:33:10Z"
   },
   {
     "name": "dgtlmoon/changedetection.io",
@@ -293,11 +313,6 @@
     "name": "openobserve/openobserve",
     "version": "v0.15.0-rc2",
     "date": "2025-06-11T04:29:22Z"
-  },
-  {
-    "name": "mattermost/mattermost",
-    "version": "server/public/v0.1.15",
-    "date": "2025-06-11T03:56:25Z"
   },
   {
     "name": "node-red/node-red",
@@ -448,20 +463,5 @@
     "name": "benjaminjonard/koillection",
     "version": "1.6.14",
     "date": "2025-06-05T16:40:52Z"
-  },
-  {
-    "name": "pi-hole/pi-hole",
-    "version": "v6.1.2",
-    "date": "2025-06-05T11:32:45Z"
-  },
-  {
-    "name": "MariaDB/server",
-    "version": "mariadb-11.8.2",
-    "date": "2025-06-04T13:35:16Z"
-  },
-  {
-    "name": "donaldzou/WGDashboard",
-    "version": "v4.2.3",
-    "date": "2025-05-07T15:35:04Z"
   }
 ]
