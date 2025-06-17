@@ -144,10 +144,12 @@ if [ "$STORAGE_FREE" -lt "$REQUIRED_KB" ]; then
 fi
 
 # Check Cluster Quorum if in Cluster
-if ! pvecm status | awk '/^Quorate:/ {exit $2 != "Yes"}'; then
-  printf "\e[?25h"
-  echo -e "\n${CROSS}${RD}Cluster is not quorate. Start all nodes or configure quorum device (QDevice).${CL}\n"
-  exit 210
+if [ -f /etc/pve/corosync.conf ]; then
+  if ! pvecm status | grep -q "Quorate: Yes"; then
+    printf "\e[?25h"
+    echo -e "\n${CROSS}${RD}Cluster is not quorate. Start all nodes or configure quorum device (QDevice).${CL}\n"
+    exit 210
+  fi
 fi
 
 # Update LXC template list

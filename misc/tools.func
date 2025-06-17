@@ -737,9 +737,9 @@ function setup_mongodb() {
 function fetch_and_deploy_gh_release() {
   local app="$1"
   local repo="$2"
-  local mode="${3:-tarball}"     # tarball | binary | prebuild
-  local version="${4:-latest}"   # optional, default "latest"
-  local target="${5:-/opt/$app}" # optional target dir
+  local mode="${3:-tarball}" # tarball | binary | prebuild | singlefile
+  local version="${4:-latest}"
+  local target="${5:-/opt/$app}"
 
   local app_lc=$(echo "${app,,}" | tr -d ' ')
   local version_file="$HOME/.${app_lc}"
@@ -748,10 +748,11 @@ function fetch_and_deploy_gh_release() {
   local current_version=""
   if [[ -f "$version_file" ]]; then
     current_version=$(<"$version_file")
-    $STD msg_info "Current version: $current_version"
+    $STD msg_info "Current installed version of $app: $current_version"
   fi
 
   if ! command -v jq &>/dev/null; then
+    $STD msg_info "Installing jq..."
     $STD apt-get install -y jq &>/dev/null
   fi
 
@@ -768,21 +769,22 @@ function fetch_and_deploy_gh_release() {
     msg_error "Failed to fetch release: HTTP $http_code"
     return 1
   }
-  local json
+
+  local json tag_name
   json=$(</tmp/gh_rel.json)
-  local tag_name
   tag_name=$(echo "$json" | jq -r '.tag_name // .name // empty')
   [[ "$tag_name" =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
 
   if [[ "$current_version" == "$version" ]]; then
-    $STD msg_info "Already on latest version ($version)"
+    $STD msg_info "$app is already up-to-date (v$version)"
     return 0
   fi
 
+  $STD msg_info "Preparing to deploy $app v$version (mode: $mode)..."
+
   local tmpdir
   tmpdir=$(mktemp -d) || return 1
-  local filename=""
-  local url=""
+  local filename="" url=""
 
   if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
     url=$(echo "$json" | jq -r '.tarball_url // empty')
@@ -805,6 +807,8 @@ function fetch_and_deploy_gh_release() {
     cp -r "$unpack_dir"/* "$target/"
     shopt -u dotglob nullglob
 
+    $STD msg_ok "$app (tarball) deployed to $target"
+
   elif [[ "$mode" == "binary" ]]; then
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
@@ -814,7 +818,6 @@ function fetch_and_deploy_gh_release() {
     local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
-    # 1. Try to match by exact architecture (e.g. x86_64, amd64, arm64)
     for u in $assets; do
       if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
         url_match="$u"
@@ -822,13 +825,9 @@ function fetch_and_deploy_gh_release() {
       fi
     done
 
-    # 2. If no Arch mapping, use the first .deb in the asset listing
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
-        if [[ "$u" =~ \.deb$ ]]; then
-          url_match="$u"
-          break
-        fi
+        [[ "$u" =~ \.deb$ ]] && url_match="$u" && break
       done
     fi
 
@@ -839,49 +838,47 @@ function fetch_and_deploy_gh_release() {
     fi
 
     filename="${url_match##*/}"
-    $STD msg_info "Downloading binary .deb: $url_match"
+    $STD msg_info "Downloading binary package: $filename"
     curl $curl_timeout -fsSL -o "$tmpdir/$filename" "$url_match" || {
       msg_error "Download failed: $url_match"
       rm -rf "$tmpdir"
       return 1
     }
 
-    $STD msg_info "Installing $filename via apt"
     chmod 644 "$tmpdir/$filename"
+    $STD msg_info "Installing $filename via apt..."
     $STD apt-get install -y "$tmpdir/$filename" || {
-      $STD msg_info "Falling back to dpkg -i"
+      $STD msg_info "apt failed, falling back to dpkg -i..."
       dpkg -i "$tmpdir/$filename" || {
-        msg_error "Both apt and dpkg install failed"
+        msg_error "Both apt and dpkg installation failed"
         rm -rf "$tmpdir"
         return 1
       }
     }
 
+    $STD msg_ok "$app (.deb binary) installed successfully"
+
   elif [[ "$mode" == "prebuild" ]]; then
     local pattern="$6"
-    if [[ -z "$pattern" ]]; then
+    [[ -z "$pattern" ]] && {
       msg_error "Mode 'prebuild' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
       return 1
-    fi
+    }
 
-    local assets asset_url=""
-    assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
-    for u in $assets; do
-      if [[ "$u" =~ $pattern || "$u" == *"$pattern" ]]; then
-        asset_url="$u"
-        break
-      fi
+    local asset_url=""
+    for u in $(echo "$json" | jq -r '.assets[].browser_download_url'); do
+      [[ "$u" =~ $pattern || "$u" == *"$pattern" ]] && asset_url="$u" && break
     done
 
-    if [[ -z "$asset_url" ]]; then
-      msg_error "No asset matching pattern '$pattern' found"
+    [[ -z "$asset_url" ]] && {
+      msg_error "No asset matching '$pattern' found"
       rm -rf "$tmpdir"
       return 1
-    fi
+    }
 
     filename="${asset_url##*/}"
-    $STD msg_info "Downloading prebuilt asset: $asset_url"
+    $STD msg_info "Downloading prebuilt asset: $filename"
     curl $curl_timeout -fsSL -o "$tmpdir/$filename" "$asset_url" || {
       msg_error "Download failed: $asset_url"
       rm -rf "$tmpdir"
@@ -891,6 +888,7 @@ function fetch_and_deploy_gh_release() {
     mkdir -p "$target"
     if [[ "$filename" == *.zip ]]; then
       if ! command -v unzip &>/dev/null; then
+        $STD msg_info "Installing unzip..."
         $STD apt-get install -y unzip
       fi
       unzip "$tmpdir/$filename" -d "$target"
@@ -902,32 +900,30 @@ function fetch_and_deploy_gh_release() {
       return 1
     fi
 
+    $STD msg_ok "$app (prebuilt) extracted to $target"
+
   elif [[ "$mode" == "singlefile" ]]; then
     local pattern="$6"
-    if [[ -z "$pattern" ]]; then
+    [[ -z "$pattern" ]] && {
       msg_error "Mode 'singlefile' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
       return 1
-    fi
+    }
 
-    local assets asset_url=""
-    assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
-    for u in $assets; do
-      if [[ "$u" =~ $pattern || "$u" == *"$pattern" ]]; then
-        asset_url="$u"
-        break
-      fi
+    local asset_url=""
+    for u in $(echo "$json" | jq -r '.assets[].browser_download_url'); do
+      [[ "$u" =~ $pattern || "$u" == *"$pattern" ]] && asset_url="$u" && break
     done
 
-    if [[ -z "$asset_url" ]]; then
-      msg_error "No asset matching pattern '$pattern' found"
+    [[ -z "$asset_url" ]] && {
+      msg_error "No asset matching '$pattern' found"
       rm -rf "$tmpdir"
       return 1
-    fi
+    }
 
     filename="${asset_url##*/}"
     mkdir -p "$target"
-    $STD msg_info "Downloading single binary: $asset_url"
+    $STD msg_info "Downloading single binary: $filename"
     curl $curl_timeout -fsSL -o "$target/$app" "$asset_url" || {
       msg_error "Download failed: $asset_url"
       rm -rf "$tmpdir"
@@ -935,6 +931,7 @@ function fetch_and_deploy_gh_release() {
     }
 
     chmod +x "$target/$app"
+    $STD msg_ok "$app (single binary) installed to $target"
 
   else
     msg_error "Unknown mode: $mode"
@@ -943,7 +940,7 @@ function fetch_and_deploy_gh_release() {
   fi
 
   echo "$version" >"$version_file"
-  $STD msg_ok "$app deployed (version: $version)"
+  $STD msg_ok "$app v$version deployed successfully"
   rm -rf "$tmpdir"
 }
 
