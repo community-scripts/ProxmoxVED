@@ -29,7 +29,7 @@ APP="FileBrowser Quantum"
 INSTALL_PATH="/usr/local/bin/filebrowser"
 CONFIG_PATH="/usr/local/community-scripts/config.yaml"
 DEFAULT_PORT=8080
-SRC_DIR="/srv"
+SRC_DIR="/"
 
 # Get primary IP
 IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
