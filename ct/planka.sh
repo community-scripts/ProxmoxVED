@@ -9,7 +9,7 @@ APP="planka"
 var_tags="${var_tags:-Arr}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-1024}"
-var_disk="${var_disk:-8}"
+var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -35,6 +35,12 @@ function update_script() {
     msg_ok "Stopped $APP"
 
     msg_info "Updating $APP to ${RELEASE}"
+    cp /opt/planka/planka/.env /opt
+    rm -rf /opt/planka
+    fetch_and_deploy_gh_release "planka" "plankanban/planka" "prebuild" "latest" "/opt/planka" "planka-prebuild.zip"
+    cd /opt/planka/planka
+    $STD npm install
+    mv /opt/.env /opt/planka/planka
     msg_ok "Updated $APP to ${RELEASE}"
 
     msg_info "Starting $APP"
