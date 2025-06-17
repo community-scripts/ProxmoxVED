@@ -41,11 +41,11 @@ msg_ok "Set up Database"
 
 msg_info "Adding ONLYOFFICE Repository and GPG Key"
 mkdir -p -m 700 ~/.gnupg
-curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE | gpg --no-default-keyring --keyring gnupg-ring:/tmp/onlyoffice.gpg --import
+curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE | gpg --no-default-keyring --keyring gnupg-ring:/tmp/onlyoffice.gpg --import >/dev/null
 chmod 644 /tmp/onlyoffice.gpg
 chown root:root /tmp/onlyoffice.gpg
 mv /tmp/onlyoffice.gpg /usr/share/keyrings/onlyoffice.gpg
-echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
+echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list >/dev/null
 $STD apt-get update
 msg_ok "Repository Added"
 
