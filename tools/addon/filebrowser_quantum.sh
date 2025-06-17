@@ -107,7 +107,7 @@ read -r -p "Would you like to install ${APP}? (y/n): " install_prompt
 if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   msg_info "Installing ${APP} on ${OS}"
   $PKG_MANAGER wget tar curl &>/dev/null
-  curl -fsSL https://github.com/filebrowser/filebrowser/releases/latest/download/linux-amd64-filebrowser.tar.gz | tar -xzv -C /usr/local/bin &>/dev/null
+  curl -fsSL https://github.com/gtsteffaniak/filebrowser/releases/latest/download/linux-amd64-filebrowser -o /usr/local/bin/filebrowser
   chmod +x "$INSTALL_PATH"
   msg_ok "Installed ${APP}"
 
