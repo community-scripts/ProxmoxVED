@@ -119,6 +119,12 @@ WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 # uncomment below if using PocketID
 # WEB_OIDC_CLIENT_ID=<generated in PocketID>
 # WEB_OIDC_METADATA_URL=<your auth URL>/.well-known/openid-configuration
+
+# Full Text Search - Apache Tika
+# Requires a separate install of Tika - see https://community-scripts.github.io/ProxmoxVE/scripts?id=apache-tika
+# SEARCH_EXTRACTOR_TYPE=tika
+# FRONTEND_FULL_TEXT_SEARCH_ENABLED=true
+# SEARCH_EXTRACTOR_TIKA_TIKA_URL=<your-tika-url>
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
