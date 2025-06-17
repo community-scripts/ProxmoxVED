@@ -23,14 +23,22 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /var ]]; then
-    msg_error "No ${APP} Installation Found!"
-    exit
+
+  if [[ ! -d /var/www/onlyoffice ]]; then
+    msg_error "No valid ${APP} installation found!"
+    exit 1
   fi
-  msg_info "Updating $APP LXC"
+
+  msg_info "Updating $APP"
   $STD apt-get update
-  $STD apt-get -y upgrade
-  msg_ok "Updated $APP LXC"
+  $STD apt-get -y --only-upgrade install onlyoffice-documentserver
+  msg_ok "Updated $APP"
+
+  if systemctl is-enabled --quiet onlyoffice-documentserver; then
+    msg_info "Restarting $APP"
+    $STD systemctl restart onlyoffice-documentserver
+    msg_ok "$APP restarted"
+  fi
   exit
 }
 
@@ -40,3 +48,5 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
