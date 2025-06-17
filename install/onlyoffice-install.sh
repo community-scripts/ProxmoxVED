@@ -15,7 +15,9 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   nginx \
-  rabbitmq-server
+  rabbitmq-server \
+  ca-certificates \
+  software-properties-common
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
@@ -36,6 +38,38 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
   echo "OnlyOffice Database Name: $DB_NAME"
 } >>~/onlyoffice.creds
 msg_ok "Set up Database"
+
+msg_info "Adding ONLYOFFICE Repository and GPG Key"
+mkdir -p -m 700 ~/.gnupg
+curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE | gpg --no-default-keyring --keyring gnupg-ring:/tmp/onlyoffice.gpg --import
+chmod 644 /tmp/onlyoffice.gpg
+chown root:root /tmp/onlyoffice.gpg
+mv /tmp/onlyoffice.gpg /usr/share/keyrings/onlyoffice.gpg
+echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list
+$STD apt-get update
+msg_ok "Repository Added"
+
+msg_info "Preconfiguring ONLYOFFICE Debconf Settings"
+echo onlyoffice-documentserver onlyoffice/db-host string localhost | debconf-set-selections
+echo onlyoffice-documentserver onlyoffice/db-user string $DB_USER | debconf-set-selections
+echo onlyoffice-documentserver onlyoffice/db-pwd password $DB_PASS | debconf-set-selections
+echo onlyoffice-documentserver onlyoffice/db-name string $DB_NAME | debconf-set-selections
+echo onlyoffice-documentserver onlyoffice/rabbitmq-host string localhost | debconf-set-selections
+echo onlyoffice-documentserver onlyoffice/rabbitmq-user string guest | debconf-set-selections
+echo onlyoffice-documentserver onlyoffice/rabbitmq-pwd password guest | debconf-set-selections
+echo onlyoffice-documentserver onlyoffice/jwt-enabled boolean true | debconf-set-selections
+JWT_SECRET=$(openssl rand -hex 16)
+echo onlyoffice-documentserver onlyoffice/jwt-secret password $JWT_SECRET | debconf-set-selections
+msg_ok "Debconf Preconfiguration Done"
+
+msg_info "Installing ttf-mscorefonts-installer"
+echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+$STD apt-get install -y ttf-mscorefonts-installer
+msg_ok "Installed Microsoft Core Fonts"
+
+msg_info "Installing ONLYOFFICE Docs"
+$STD apt-get install -y onlyoffice-documentserver
+msg_ok "ONLYOFFICE Docs Installed"
 
 motd_ssh
 customize
