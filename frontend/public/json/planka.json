@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "Type `cat ~/planka.creds` to see admin user and database credentials.",
+      "text": "Type `cat ~/planka.creds` inside LXC to see admin user and database credentials.",
       "type": "info"
     }
   ]

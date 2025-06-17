@@ -33,7 +33,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-  echo "PLANKA-Credentials"
+  echo "PLANKA DB Credentials"
   echo "PLANKA Database User: $DB_USER"
   echo "PLANKA Database Password: $DB_PASS"
   echo "PLANKA Database Name: $DB_NAME"
@@ -42,7 +42,7 @@ msg_ok "Set up PostgreSQL Database"
 
 fetch_and_deploy_gh_release "planka" "plankanban/planka" "prebuild" "latest" "/opt/planka" "planka-prebuild.zip"
 
-msg_info "Setup planka"
+msg_info "Setup PLANKA"
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 SECRET_KEY=$(openssl rand -hex 64)
 cd /opt/planka/planka
@@ -52,7 +52,7 @@ sed -i "s#http://localhost:1337#http://$LOCAL_IP:1337#g" /opt/planka/planka/.env
 sed -i "s#postgres@localhost#planka:$DB_PASS@localhost#g" /opt/planka/planka/.env
 sed -i "s#notsecretkey#$SECRET_KEY#g" /opt/planka/planka/.env
 $STD npm run db:init
-msg_ok "Installed planka"
+msg_ok "Installed PLANKA"
 
 msg_info "Creating Admin User"
 ADMIN_EMAIL="admin@planka.local"
