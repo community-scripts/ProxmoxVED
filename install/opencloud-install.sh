@@ -69,7 +69,6 @@ OC_BASE_DATA_PATH=${DATA_DIR}
 # OC_EXCLUDE_RUN_SERVICES=ldm,ldp
 
 # Proxy
-# PROXY_ENABLE_BASIC_AUTH=true
 PROXY_TLS=false
 PROXY_CSP_CONFIG_FILE_LOCATION=${CONFIG_DIR}/csp.yaml
 
@@ -103,10 +102,11 @@ WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 # Do not uncomment unless configured above.
 # OC_ADD_RUN_SERVICES="notifications"
 
-# OpenID
-# Authelia - for Web
+# OpenID - via web browser
+#
+# uncomment for OpenID in general - works for Authelia
 # OC_EXCLUDE_RUN_SERVICES=idp
-# OC_OIDC_ISSUER=
+# OC_OIDC_ISSUER=<your auth URL>
 # PROXY_OIDC_ACCESS_TOKEN_VERIFY_METHOD=none
 # PROXY_OIDC_REWRITE_WELLKNOWN=true
 # PROXY_USER_OIDC_CLAIM=preferred_username
@@ -114,6 +114,11 @@ WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 # automatically create accounts
 # PROXY_AUTOPROVISION_ACCOUNTS=true
 # WEB_OIDC_SCOPE=openid profile email groups
+# GRAPH_ASSIGN_DEFAULT_USER_ROLE=false
+#
+# uncomment below if using PocketID
+# WEB_OIDC_CLIENT_ID=
+# WEB_OIDC_METADATA_URL=
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
