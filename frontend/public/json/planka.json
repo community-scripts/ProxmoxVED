@@ -33,11 +33,7 @@
   },
   "notes": [
     {
-      "text": "After installation finishes, type `cd /opt/planka/planka && npm run db:create-admin-user` inside LXC and follow prompts to create admin user.",
-      "type": "info"
-    },
-    {
-      "text": "Type `cat ~/planka.creds` to see database credentials.",
+      "text": "Type `cat ~/planka.creds` to see admin user and database credentials.",
       "type": "info"
     }
   ]
