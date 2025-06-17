@@ -7,12 +7,12 @@
 function header_info {
   clear
   cat <<"EOF"
-    _______ __     ____                                       ____                    __                
-   / ____(_) /__  / __ )_________ _      __________  _____   / __ \__  ______ _____  / /___  ______ ___ 
+    _______ __     ____                                       ____                    __
+   / ____(_) /__  / __ )_________ _      __________  _____   / __ \__  ______ _____  / /___  ______ ___
   / /_  / / / _ \/ __  / ___/ __ \ | /| / / ___/ _ \/ ___/  / / / / / / / __ `/ __ \/ __/ / / / __ `__ \
  / __/ / / /  __/ /_/ / /  / /_/ / |/ |/ (__  )  __/ /     / /_/ / /_/ / /_/ / / / / /_/ /_/ / / / / / /
-/_/   /_/_/\___/_____/_/   \____/|__/|__/____/\___/_/      \___\_\__,_/\__,_/_/ /_/\__/\__,_/_/ /_/ /_/ 
-                                                                                                        
+/_/   /_/_/\___/_____/_/   \____/|__/|__/____/\___/_/      \___\_\__,_/\__,_/_/ /_/\__/\__,_/_/ /_/ /_/
+
 EOF
 }
 
@@ -27,7 +27,7 @@ INFO="${BL}ℹ️${CL}"
 
 APP="FileBrowser Quantum"
 INSTALL_PATH="/usr/local/bin/filebrowser"
-CONFIG_PATH="/usr/local/community-scripts/config.yaml"
+CONFIG_PATH="/usr/local/community-scripts/fq-config.yaml"
 DEFAULT_PORT=8080
 SRC_DIR="/"
 
@@ -125,6 +125,17 @@ server:
   port: $PORT
   sources:
     - path: "$SRC_DIR"
+      config:
+        disableIndexing: false
+        indexingIntervalMinutes: 240
+        exclude:
+          folders:
+            - "/proc"
+            - "/sys"
+            - "/dev"
+            - "/run"
+            - "/tmp"
+            - "/lost+found"
 auth:
   methods:
     noauth: true
@@ -136,6 +147,17 @@ server:
   port: $PORT
   sources:
     - path: "$SRC_DIR"
+      config:
+        disableIndexing: false
+        indexingIntervalMinutes: 240
+        exclude:
+          folders:
+            - "/proc"
+            - "/sys"
+            - "/dev"
+            - "/run"
+            - "/tmp"
+            - "/lost+found"
 auth:
   adminUsername: admin
   adminPassword: helper-scripts.com
