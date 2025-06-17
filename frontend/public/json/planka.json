@@ -13,7 +13,7 @@
   "website": "https://planka.app/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/planka.webp",
   "config_path": "/opt/planka/planka/.env",
-  "description": "Planka is an open‑source, self‑hosted project‑management tool that mimics Trello’s kanban-style interface. It lets teams create projects with multiple boards, drag and drop cards into lists, attach files, write markdown descriptions, set due dates, assign members, leave comments and labels, all with real-time updates and notifications.",
+  "description": "Planka is a powerful, project management platform that transforms how teams collaborate. Create projects with multiple boards, organize tasks with intuitive drag-and-drop cards, attach files, write rich markdown descriptions, set due dates, assign team members, and keep conversations flowing with comments and labels—all with seamless real-time updates and smart notifications.",
   "install_methods": [
     {
       "type": "default",

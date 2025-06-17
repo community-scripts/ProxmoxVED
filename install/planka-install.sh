@@ -54,6 +54,29 @@ sed -i "s#notsecretkey#$SECRET_KEY#g" /opt/planka/planka/.env
 $STD npm run db:init
 msg_ok "Installed planka"
 
+msg_info "Creating Admin User"
+ADMIN_EMAIL="admin@planka.local"
+ADMIN_PASSWORD="$(openssl rand -base64 12)"
+ADMIN_NAME="Administrator"
+ADMIN_USERNAME="admin"
+echo "" >>.env
+echo "# Temporary admin user creation settings" >>.env
+echo "DEFAULT_ADMIN_EMAIL=$ADMIN_EMAIL" >>.env
+echo "DEFAULT_ADMIN_PASSWORD=$ADMIN_PASSWORD" >>.env
+echo "DEFAULT_ADMIN_NAME=$ADMIN_NAME" >>.env
+echo "DEFAULT_ADMIN_USERNAME=$ADMIN_USERNAME" >>.env
+$STD npm run db:seed
+sed -i '/# Temporary admin user creation settings/,$d' .env
+{
+  echo ""
+  echo "PLANKA Admin Credentials"
+  echo "Admin Email: $ADMIN_EMAIL"
+  echo "Admin Password: $ADMIN_PASSWORD"
+  echo "Admin Name: $ADMIN_NAME"
+  echo "Admin Username: $ADMIN_USERNAME"
+} >>~/planka.creds
+msg_ok "Created Admin User"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/planka.service
 [Unit]
