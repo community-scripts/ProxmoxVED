@@ -67,10 +67,12 @@ function msg_error() {
   local msg="$1"
   echo -e "${CROSS} ${RD}${msg}${CL}"
 }
+
 # Check existing installation
 if [[ -f "$INSTALL_PATH" ]]; then
   echo -e "${YW}⚠️ ${APP} is already installed.${CL}"
-  read -r -p "Uninstall ${APP}? (y/N): " uninstall_prompt
+  echo -n "Uninstall ${APP}? (y/N): "
+  read -r uninstall_prompt
   if [[ "${uninstall_prompt,,}" =~ ^(y|yes)$ ]]; then
     msg_info "Uninstalling ${APP}"
     if [[ "$OS" == "Debian" ]]; then
@@ -86,7 +88,8 @@ if [[ -f "$INSTALL_PATH" ]]; then
     exit 0
   fi
 
-  read -r -p "Update ${APP}? (y/N): " update_prompt
+  echo -n "Update ${APP}? (y/N): "
+  read -r update_prompt
   if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
     msg_info "Updating ${APP}"
     curl -fsSL https://github.com/gtsteffaniak/filebrowser/releases/latest/download/linux-amd64-filebrowser -o "$INSTALL_PATH"
@@ -100,10 +103,12 @@ if [[ -f "$INSTALL_PATH" ]]; then
 fi
 
 echo -e "${YW}⚠️ ${APP} is not installed.${CL}"
-read -r -p "Enter port number (Default: ${DEFAULT_PORT}): " PORT
+echo -n "Enter port number (Default: ${DEFAULT_PORT}): "
+read -r PORT
 PORT=${PORT:-$DEFAULT_PORT}
 
-read -r -p "Install ${APP}? (y/n): " install_prompt
+echo -n "Install ${APP}? (y/n): "
+read -r install_prompt
 if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   msg_info "Installing ${APP} on ${OS}"
   $PKG_MANAGER curl ffmpeg &>/dev/null
@@ -117,7 +122,8 @@ if [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   chmod 755 /usr/local/community-scripts
   msg_ok "Directory prepared"
 
-  read -r -p "Use No Authentication? (y/N): " noauth_prompt
+  echo -n "Use No Authentication? (y/N): "
+  read -r noauth_prompt
 
   if [[ "${noauth_prompt,,}" =~ ^(y|yes)$ ]]; then
     cat <<EOF >"$CONFIG_PATH"
