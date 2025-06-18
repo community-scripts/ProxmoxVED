@@ -26,7 +26,6 @@ VERSIONS=(stable beta dev)
 METHOD=""
 NSAPP="homeassistant-os"
 var_os="homeassistant"
-var_version=$(curl -fsSL https://raw.githubusercontent.com/home-assistant/version/master/stable.json | grep '"ova"' | cut -d '"' -f 4)
 DISK_SIZE="32G"
 
 for version in "${VERSIONS[@]}"; do
@@ -213,7 +212,7 @@ function default_settings() {
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
   echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}no${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
-  echo -e "${CREATING}${BOLD}${DGN}Creating a HAOS VM using the above default settings${CL}"
+  echo -e "${CREATING}${BOLD}${DGN}Creating a Homeassistant OS VM using the above default settings${CL}"
 }
 
 function advanced_settings() {
@@ -459,6 +458,8 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
+
+var_version="${BRANCH}"
 msg_info "Retrieving the URL for Home Assistant ${BRANCH} Disk Image"
 if [ "$BRANCH" == "$dev" ]; then
   URL=https://os-artifacts.home-assistant.io/${BRANCH}/haos_ova-${BRANCH}.qcow2.xz
@@ -497,7 +498,7 @@ for i in {0,1}; do
 done
 msg_ok "Extracted KVM Disk Image"
 
-msg_info "Creating HAOS VM"
+msg_info "Creating Homeassistant OS VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
@@ -537,6 +538,7 @@ DESCRIPTION=$(
 </div>
 EOF
 )
+
 qm set "$VMID" -description "$DESCRIPTION" >/dev/null
 if [ -n "$DISK_SIZE" ]; then
   msg_info "Resizing disk to $DISK_SIZE GB"
@@ -546,7 +548,7 @@ else
   qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
 fi
 
-msg_ok "Created HAOS VM ${CL}${BL}(${HN})"
+msg_ok "Created Homeassistant OS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Home Assistant OS VM"
   qm start $VMID
