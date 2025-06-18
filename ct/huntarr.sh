@@ -39,16 +39,8 @@ function update_script() {
   systemctl stop huntarr
   msg_ok "Stopped huntarr service"
 
-  msg_info "Creating Backup"
-  if ls /opt/"${APP}"_backup_*.tar.gz &>/dev/null; then
-    rm -f /opt/"${APP}"_backup_*.tar.gz
-    msg_info "Removed previous backup"
-  fi
-  tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/"${APP}"
-  msg_ok "Backup Created"
-
-  msg_info "Updating $APP to v${RELEASE}"
   fetch_and_deploy_gh_release "huntarr" "plexguide/Huntarr.io"
+  msg_info "Updating $APP to v${RELEASE}"
   cd /opt/huntarr
   $STD uv pip install -r requirements.txt --python /opt/huntarr/.venv/bin/python
   msg_ok "Updated $APP to v${RELEASE}"
