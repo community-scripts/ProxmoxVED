@@ -874,7 +874,7 @@ function fetch_and_deploy_gh_release() {
       if ! command -v unzip &>/dev/null; then
         $STD apt-get install -y unzip
       fi
-      unzip "$tmpdir/$filename" -d "$target"
+      $STD unzip "$tmpdir/$filename" -d "$target"
     elif [[ "$filename" == *.tar.gz ]]; then
       tar -xzf "$tmpdir/$filename" -C "$target"
     else
