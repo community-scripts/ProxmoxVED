@@ -13,54 +13,37 @@ setting_up_container
 network_check
 update_os
 
-APPLICATION="huntarr"
-REPO_NAME="Huntarr.io"
-
 msg_info "Installing Dependencies"
 $STD apt-get install -y jq
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Python"
-$STD apt-get install -y \
-  python3 \
-  python3-venv
-msg_ok "Installed Python"
-
-msg_info "Setup uv"
 setup_uv
-msg_ok "Setup uv"
 
 msg_info "Setting Up Huntarr"
-RELEASE=$(curl -fsSL https://api.github.com/repos/plexguide/Huntarr.io/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-temp_file=$(mktemp)
-$STD curl -fsSL -o "$temp_file" "https://github.com/plexguide/Huntarr.io/archive/refs/tags/${RELEASE}.zip"
-$STD unzip -q "$temp_file"
-$STD mv "${REPO_NAME}-${RELEASE}/" "/opt/${APPLICATION}"
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-$STD uv venv /opt/${APPLICATION}/venv
-$STD uv pip install --python /opt/${APPLICATION}/venv/bin/python -r /opt/${APPLICATION}/requirements.txt
-msg_ok "Setup Huntrarr Complete"
+fetch_and_deploy_gh_release "huntarr" "plexguide/Huntarr.io"
+$STD uv venv /opt/huntarr/.venv
+$STD uv pip install --python /opt/huntarr/.venv/bin/python -r /opt/huntarr/requirements.txt
+msg_ok "Setup Huntrarr"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/${APPLICATION}.service
+cat <<EOF >/etc/systemd/system/huntarr.service
 [Unit]
 Description=Huntarr Service
 After=network.target
 [Service]
-WorkingDirectory=/opt/${APPLICATION}
-ExecStart=/opt/${APPLICATION}/venv/bin/python /opt/${APPLICATION}/main.py
+WorkingDirectory=/opt/huntarr
+ExecStart=/opt/huntarr/.venv/bin/python /opt/huntarr/main.py
 Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now ${APPLICATION}
+systemctl enable -q --now huntarr
 msg_ok "Created Service"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -f "$temp_file"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"

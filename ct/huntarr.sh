@@ -24,19 +24,20 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/${APP}/main.py ]]; then
+  if [[ ! -f /opt/huntarr/main.py ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+
   setup_uv
   RELEASE=$(curl -fsSL https://api.github.com/repos/plexguide/Huntarr.io/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-  if [[ -f /opt/${APP}_version.txt ]] && [[ "${RELEASE}" == "$(cat /opt/${APP}_version.txt)" ]]; then
+  if [[ ! -f ~/.${APP} || "${RELEASE}" != "$(cat ~/.${APP})" ]]; then
     msg_ok "No update required. ${APP} is already at ${RELEASE}"
     exit
   fi
-  msg_info "Stopping $APP"
-  systemctl stop ${APP}
-  msg_ok "Stopped $APP"
+  msg_info "Stopping huntarr service"
+  systemctl stop huntarr
+  msg_ok "Stopped huntarr service"
 
   msg_info "Creating Backup"
   if ls /opt/"${APP}"_backup_*.tar.gz &>/dev/null; then
@@ -47,39 +48,15 @@ function update_script() {
   msg_ok "Backup Created"
 
   msg_info "Updating $APP to v${RELEASE}"
-  temp_file=$(mktemp)
-  curl -fsSL -o "$temp_file" "https://github.com/plexguide/Huntarr.io/archive/refs/tags/${RELEASE}.zip"
-  unzip -q -o "$temp_file" -d /tmp
-  cp -rf "/tmp/Huntarr.io-${RELEASE}"/* /opt/"${APP}"/
-
-  msg_info "Updating Python dependencies"
-  cd /opt/"${APP}" || exit
-  if [[ -f "/opt/${APP}/.requirements_checksum" ]]; then
-    CURRENT_CHECKSUM=$(md5sum requirements.txt | awk '{print $1}')
-    STORED_CHECKSUM=$(cat .requirements_checksum)
-    if [[ "$CURRENT_CHECKSUM" != "$STORED_CHECKSUM" ]]; then
-      msg_info "Requirements have changed. Performing full upgrade."
-      $STD uv pip install -r requirements.txt --python /opt/"${APP}"/venv/bin/python
-    else
-      msg_info "Requirements unchanged. Verifying installation."
-      $STD uv pip install -r requirements.txt --python /opt/"${APP}"/venv/bin/python
-    fi
-  else
-    $STD uv pip install -r requirements.txt --python /opt/"${APP}"/venv/bin/python
-  fi
-  md5sum requirements.txt | awk '{print $1}' >.requirements_checksum
-  msg_ok "Updated Python dependencies"
+  fetch_and_deploy_gh_release "huntarr" "plexguide/Huntarr.io"
+  cd /opt/huntarr
+  $STD uv pip install -r requirements.txt --python /opt/huntarr/.venv/bin/python
+  msg_ok "Updated $APP to v${RELEASE}"
 
   msg_info "Starting $APP"
-  systemctl start ${APP}
+  systemctl start hunarr
   msg_ok "Started $APP"
 
-  msg_info "Cleaning Up"
-  rm -f "$temp_file"
-  rm -rf "/tmp/Huntarr.io-${RELEASE}"
-  msg_ok "Cleanup Completed"
-
-  echo "${RELEASE}" >/opt/"${APP}"_version.txt
   msg_ok "Updated $APP to v${RELEASE}"
   exit
 }
