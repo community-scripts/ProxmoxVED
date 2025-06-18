@@ -128,7 +128,11 @@ perform_conversion() {
   fi
 
   msg_custom "🛠️" "\e[36m" "Restoring as $(if $UNPRIVILEGED; then echo privileged; else echo unprivileged; fi) container"
-  restore_opts=("$NEW_CONTAINER_ID" "$BACKUP_PATH" --storage "$TARGET_STORAGE")
+  if [[ "$BACKUP_TYPE" == "pbs" ]]; then
+    restore_opts=("$NEW_CONTAINER_ID" "$BACKUP_PATH" --repository "$BACKUP_STORAGE")
+  else
+    restore_opts=("$NEW_CONTAINER_ID" "$BACKUP_PATH" --storage "$TARGET_STORAGE")
+  fi
   if $UNPRIVILEGED; then
     restore_opts+=(--unprivileged false)
   else
@@ -171,7 +175,7 @@ cleanup_files() {
     if [[ "$BACKUP_TYPE" == "file" && -f "$BACKUP_PATH" ]]; then
       rm -f "$BACKUP_PATH" && msg_ok "Removed backup archive"
     elif [[ "$BACKUP_TYPE" == "pbs" ]]; then
-      msg_info "Cannot delete PBS backups via script – use GUI or `proxmox-backup-client prune`"
+      msg_info "Cannot delete PBS backups via script – use GUI or $(proxmox-backup-client prune)"
     else
       msg_warn "Unrecognized backup type – skipping deletion"
     fi
