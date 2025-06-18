@@ -18,12 +18,12 @@ $STD apt-get install -y jq
 msg_ok "Installed Dependencies"
 
 setup_uv
-
-msg_info "Setting Up Huntarr"
 fetch_and_deploy_gh_release "huntarr" "plexguide/Huntarr.io"
+
+msg_info "Configure Huntarr"
 $STD uv venv /opt/huntarr/.venv
 $STD uv pip install --python /opt/huntarr/.venv/bin/python -r /opt/huntarr/requirements.txt
-msg_ok "Setup Huntrarr"
+msg_ok "Configured Huntrarr"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/huntarr.service
