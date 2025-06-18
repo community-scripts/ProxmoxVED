@@ -31,7 +31,7 @@ function update_script() {
 
   setup_uv
   RELEASE=$(curl -fsSL https://api.github.com/repos/plexguide/Huntarr.io/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-  if [[ ! -f ~/.huntarr || "${RELEASE}" != "$(cat ~/.huntarr)" ]]; then
+  if [[ -f ~/.huntarr && "${RELEASE}" == "$(cat ~/.huntarr)" ]]; then
     msg_ok "No update required. ${APP} is already at ${RELEASE}"
     exit
   fi
