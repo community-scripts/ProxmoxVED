@@ -46,7 +46,7 @@ function update_script() {
   msg_ok "Updated $APP to v${RELEASE}"
 
   msg_info "Starting $APP"
-  systemctl start hunarr
+  systemctl start huntarr
   msg_ok "Started $APP"
 
   msg_ok "Updated $APP to v${RELEASE}"
