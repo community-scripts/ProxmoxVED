@@ -68,6 +68,34 @@ function msg_error() {
   echo -e "${CROSS} ${RD}${msg}${CL}"
 }
 
+# Detect legacy FileBrowser installation
+LEGACY_DB="/usr/local/community-scripts/filebrowser.db"
+LEGACY_BIN="/usr/local/bin/filebrowser"
+LEGACY_SERVICE_DEB="/etc/systemd/system/filebrowser.service"
+LEGACY_SERVICE_ALP="/etc/init.d/filebrowser"
+
+if [[ -f "$LEGACY_DB" || -f "$LEGACY_BIN" && ! -f "$CONFIG_PATH" ]]; then
+  echo -e "${YW}⚠️ Detected legacy FileBrowser installation.${CL}"
+  echo -n "Uninstall legacy FileBrowser and continue with Quantum install? (y/n): "
+  read -r remove_legacy
+  if [[ "${remove_legacy,,}" =~ ^(y|yes)$ ]]; then
+    msg_info "Uninstalling legacy FileBrowser"
+    if [[ -f "$LEGACY_SERVICE_DEB" ]]; then
+      systemctl disable --now filebrowser.service &>/dev/null
+      rm -f "$LEGACY_SERVICE_DEB"
+    elif [[ -f "$LEGACY_SERVICE_ALP" ]]; then
+      rc-service filebrowser stop &>/dev/null
+      rc-update del filebrowser &>/dev/null
+      rm -f "$LEGACY_SERVICE_ALP"
+    fi
+    rm -f "$LEGACY_BIN" "$LEGACY_DB"
+    msg_ok "Legacy FileBrowser removed"
+  else
+    echo -e "${YW}❌ Installation aborted by user.${CL}"
+    exit 0
+  fi
+fi
+
 # Check existing installation
 if [[ -f "$INSTALL_PATH" ]]; then
   echo -e "${YW}⚠️ ${APP} is already installed.${CL}"
