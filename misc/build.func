@@ -462,24 +462,25 @@ advanced_settings() {
     exit_script
   fi
 
-  if CT_NAME=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 "$NSAPP" --title "HOSTNAME" 3>&1 1>&2 2>&3); then
-    if [ -z "$CT_NAME" ]; then
-      HN="$NSAPP"
+  while true; do
+    if CT_NAME=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 "$NSAPP" --title "HOSTNAME" 3>&1 1>&2 2>&3); then
+      if [ -z "$CT_NAME" ]; then
+        HN="$NSAPP"
+      else
+        HN=$(echo "${CT_NAME,,}" | tr -d ' ')
+      fi
+      # Hostname validate (RFC 1123)
+      if [[ "$HN" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
+        echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
+        break
+      else
+        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+          --msgbox "❌ Invalid hostname: '$HN'\n\nOnly lowercase letters, digits and hyphens (-) are allowed.\nUnderscores (_) or other characters are not permitted!" 10 70
+      fi
     else
-      HN=$(echo "${CT_NAME,,}" | tr -d ' ')
+      exit_script
     fi
-
-    # Hostname validate (RFC 1123)
-    if ! [[ "$HN" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
-      whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-        --msgbox "❌ Invalid hostname: '$HN'\n\nOnly lowercase letters, digits and hyphens (-) are allowed.\nUnderscores (_) or other characters are not permitted!" 10 70
-      advanced_settings
-    fi
-
-    echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
-  else
-    exit_script
-  fi
+  done
 
   if DISK_SIZE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GB" 8 58 "$var_disk" --title "DISK SIZE" 3>&1 1>&2 2>&3); then
     if [ -z "$DISK_SIZE" ]; then
