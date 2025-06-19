@@ -40,10 +40,22 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 msg_ok "Set up Database"
 
 msg_info "Adding ONLYOFFICE GPG Key"
-mkdir -p -m 700 ~/.gnupg
-$STD curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE |
-  gpg --no-default-keyring --keyring gnupg-ring:/tmp/onlyoffice.gpg --import
-msg_ok "GPG Key Added"
+GPG_TMP="/tmp/onlyoffice.gpg"
+KEY_URL="https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE"
+
+TMP_KEY_CONTENT=$(mktemp)
+if curl -fsSL "$KEY_URL" -o "$TMP_KEY_CONTENT" && grep -q "BEGIN PGP PUBLIC KEY BLOCK" "$TMP_KEY_CONTENT"; then
+  gpg --no-default-keyring --keyring "gnupg-ring:$GPG_TMP" --import "$TMP_KEY_CONTENT" >/dev/null
+  chmod 644 "$GPG_TMP"
+  chown root:root "$GPG_TMP"
+  mv "$GPG_TMP" /usr/share/keyrings/onlyoffice.gpg
+  msg_ok "GPG Key Added"
+else
+  msg_error "Failed to download or verify GPG key from $KEY_URL"
+  [[ -f "$TMP_KEY_CONTENT" ]] && rm -f "$TMP_KEY_CONTENT"
+  exit 1
+fi
+rm -f "$TMP_KEY_CONTENT"
 
 msg_info "Configuring ONLYOFFICE Repository"
 chmod 644 /tmp/onlyoffice.gpg
