@@ -14,21 +14,14 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-    curl \
-    sudo \
-    mc \
-    sqlite3
+$STD apt-get install -y sqlite3
 msg_ok "Installed Dependencies"
 
 setup_uv
 NODE_VERSION="22" setup_nodejs
 
 msg_info "Installing ${APPLICATION}"
-RELEASE=$(curl -s https://api.github.com/repos/wizarrrr/wizarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL "https://github.com/wizarrrr/wizarr/archive/refs/tags/${RELEASE}.zip" -o /tmp/"$RELEASE".zip
-unzip -q /tmp/"$RELEASE".zip
-mv wizarr-${RELEASE}/ /opt/wizarr
+fetch_and_deploy_gh_release "wizarr" "wizarrrr/wizarr"
 cd /opt/wizarr
 uv -q sync --locked
 $STD uv -q run pybabel compile -d app/translations
@@ -75,14 +68,13 @@ Restart=on-abnormal
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now wizarr.service
+systemctl enable -q --now wizarr
 msg_ok "Created env, start script and service"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -f /tmp/"$RELEASE".zip
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
