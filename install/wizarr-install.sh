@@ -19,9 +19,9 @@ msg_ok "Installed Dependencies"
 
 setup_uv
 NODE_VERSION="22" setup_nodejs
+fetch_and_deploy_gh_release "wizarr" "wizarrrr/wizarr"
 
 msg_info "Installing ${APPLICATION}"
-fetch_and_deploy_gh_release "wizarr" "wizarrrr/wizarr"
 cd /opt/wizarr
 uv -q sync --locked
 $STD uv -q run pybabel compile -d app/translations
@@ -29,7 +29,6 @@ $STD npm --prefix app/static install
 $STD npm --prefix app/static run build:css
 mkdir -p ./.cache
 $STD uv -q run flask db upgrade
-echo "${RELEASE}" >/opt/wizarr_version.txt
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Creating env, start script and service"
