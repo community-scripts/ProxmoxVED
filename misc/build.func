@@ -468,6 +468,14 @@ advanced_settings() {
     else
       HN=$(echo "${CT_NAME,,}" | tr -d ' ')
     fi
+
+    # Hostname validate (RFC 1123)
+    if ! [[ "$HN" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
+      whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --msgbox "❌ Invalid hostname: '$HN'\n\nOnly lowercase letters, digits and hyphens (-) are allowed.\nUnderscores (_) or other characters are not permitted!" 10 70
+      advanced_settings
+    fi
+
     echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
   else
     exit_script
