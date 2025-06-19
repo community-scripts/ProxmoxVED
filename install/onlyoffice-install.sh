@@ -39,13 +39,17 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 } >>~/onlyoffice.creds
 msg_ok "Set up Database"
 
-msg_info "Adding ONLYOFFICE Repository and GPG Key"
+msg_info "Adding ONLYOFFICE GPG Key"
 mkdir -p -m 700 ~/.gnupg
-curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE | gpg --no-default-keyring --keyring gnupg-ring:/tmp/onlyoffice.gpg --import >/dev/null
+$STD curl -fsSL https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE |
+  gpg --no-default-keyring --keyring gnupg-ring:/tmp/onlyoffice.gpg --import
+msg_ok "GPG Key Added"
+
+msg_info "Configuring ONLYOFFICE Repository"
 chmod 644 /tmp/onlyoffice.gpg
 chown root:root /tmp/onlyoffice.gpg
 mv /tmp/onlyoffice.gpg /usr/share/keyrings/onlyoffice.gpg
-echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main" | tee /etc/apt/sources.list.d/onlyoffice.list >/dev/null
+echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main" >/etc/apt/sources.list.d/onlyoffice.list
 $STD apt-get update
 msg_ok "Repository Added"
 
