@@ -145,11 +145,13 @@ fi
 
 # Check Cluster Quorum if in Cluster
 if [ -f /etc/pve/corosync.conf ]; then
-  if ! pvecm status | grep -q "Quorate: Yes"; then
+  msg_info "Checking Proxmox cluster quorum status"
+  if ! pvecm status | awk -F':' '/^Quorate/ { exit ($2 ~ /Yes/) ? 0 : 1 }'; then
     printf "\e[?25h"
-    echo -e "\n${CROSS}${RD}Cluster is not quorate. Start all nodes or configure quorum device (QDevice).${CL}\n"
+    msg_error "Cluster is not quorate. Start all nodes or configure quorum device (QDevice)."
     exit 210
   fi
+  msg_ok "Cluster is quorate"
 fi
 
 # Update LXC template list
