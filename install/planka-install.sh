@@ -42,7 +42,7 @@ msg_ok "Set up PostgreSQL Database"
 
 fetch_and_deploy_gh_release "planka" "plankanban/planka" "prebuild" "latest" "/opt/planka" "planka-prebuild.zip"
 
-msg_info "Setup PLANKA"
+msg_info "Configuring PLANKA"
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 SECRET_KEY=$(openssl rand -hex 64)
 cd /opt/planka/planka
@@ -52,7 +52,7 @@ sed -i "s#http://localhost:1337#http://$LOCAL_IP:1337#g" /opt/planka/planka/.env
 sed -i "s#postgres@localhost#planka:$DB_PASS@localhost#g" /opt/planka/planka/.env
 sed -i "s#notsecretkey#$SECRET_KEY#g" /opt/planka/planka/.env
 $STD npm run db:init
-msg_ok "Installed PLANKA"
+msg_ok "Configured PLANKA"
 
 msg_info "Creating Admin User"
 ADMIN_EMAIL="admin@planka.local"
