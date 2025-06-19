@@ -446,7 +446,7 @@ msg_info() {
   if [[ "${VERBOSE:-no}" == "no" && -t 2 ]]; then
     start_spinner "$msg"
   else
-    printf "\r\e[2K%s %b\n" "⏳" "${YW}${msg}${CL}" >&2
+    printf "\r\e[2K%s %b" "⏳" "${YW}${msg}${CL}" >&2
   fi
 }
 
