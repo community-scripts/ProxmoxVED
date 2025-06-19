@@ -482,56 +482,52 @@ advanced_settings() {
     fi
   done
 
-  if DISK_SIZE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GB" 8 58 "$var_disk" --title "DISK SIZE" 3>&1 1>&2 2>&3); then
+  while true; do
+    DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GB" 8 58 "$var_disk" --title "DISK SIZE" 3>&1 1>&2 2>&3) || exit_script
+
     if [ -z "$DISK_SIZE" ]; then
       DISK_SIZE="$var_disk"
     fi
 
-    if ! [[ "$DISK_SIZE" =~ ^[1-9][0-9]*$ ]]; then
-      clear
-      echo -e "${HOLD}${RD}DISK SIZE MUST BE A POSITIVE INTEGER!${CL}"
-      sleep 2
-      advanced_settings
+    if [[ "$DISK_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+      echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
+      break
+    else
+      whiptail --msgbox "Disk size must be a positive integer!" 8 58
     fi
+  done
 
-    echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
-  else
-    exit_script
-  fi
+  while true; do
+    CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --inputbox "Allocate CPU Cores" 8 58 "$var_cpu" --title "CORE COUNT" 3>&1 1>&2 2>&3) || exit_script
 
-  if CORE_COUNT=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 "$var_cpu" --title "CORE COUNT" 3>&1 1>&2 2>&3); then
     if [ -z "$CORE_COUNT" ]; then
       CORE_COUNT="$var_cpu"
     fi
 
-    if ! [[ "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
-      clear
-      echo -e "${HOLD}${RD}CORE COUNT MUST BE A POSITIVE INTEGER!${CL}"
-      sleep 2
-      advanced_settings
+    if [[ "$CORE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+      echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}$CORE_COUNT${CL}"
+      break
+    else
+      whiptail --msgbox "CPU core count must be a positive integer!" 8 58
     fi
+  done
 
-    echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}$CORE_COUNT${CL}"
-  else
-    exit_script
-  fi
+  while true; do
+    RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --inputbox "Allocate RAM in MiB" 8 58 "$var_ram" --title "RAM" 3>&1 1>&2 2>&3) || exit_script
 
-  if RAM_SIZE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 "$var_ram" --title "RAM" 3>&1 1>&2 2>&3); then
     if [ -z "$RAM_SIZE" ]; then
       RAM_SIZE="$var_ram"
     fi
 
-    if ! [[ "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]]; then
-      clear
-      echo -e "${HOLD}${RD}RAM SIZE MUST BE A POSITIVE INTEGER!${CL}"
-      sleep 2
-      advanced_settings
+    if [[ "$RAM_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+      echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
+      break
+    else
+      whiptail --msgbox "RAM size must be a positive integer!" 8 58
     fi
-
-    echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
-  else
-    exit_script
-  fi
+  done
 
   IFACE_FILEPATH_LIST="/etc/network/interfaces"$'\n'$(find "/etc/network/interfaces.d/" -type f)
   BRIDGES=""
