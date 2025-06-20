@@ -11,7 +11,7 @@
     "interface_port": 80,
     "documentation": "https://wiki.itsm-ng.org/en/home",
     "website": "https://itsm-ng.com",
-    "logo": "https://itsm-ng.com/web/image/website/1/logo/ITSM-NG",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/itsm-ng.svg",
     "config_path": "/etc/itsm-ng",
     "description": "ITSM-NG is a Free Asset and IT Management Software package, Data center management, ITIL Service Desk, licenses tracking and software auditing.",
     "install_methods": [
