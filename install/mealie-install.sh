@@ -81,6 +81,7 @@ POSTGRES_PASSWORD=${DB_PASS}
 POSTGRES_DB=${DB_NAME}
 NLTK_DATA=/nltk_data
 PRODUCTION=true
+STATIC_FILES=/opt/mealie/frontend/dist
 EOF
 msg_ok "Wrote Environment File"
 
