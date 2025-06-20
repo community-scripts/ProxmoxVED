@@ -45,15 +45,19 @@ msg_ok "Set up Database"
 
 msg_info "Get Mealie Repository"
 cd /opt
-git clone https://github.com/mealie-recipes/mealie
+$STD git clone https://github.com/mealie-recipes/mealie
 msg_ok "Get Mealie Repository"
 
 msg_info "Building Frontend"
 export NUXT_TELEMETRY_DISABLED=1
 cd /opt/mealie/frontend
-yarn install --prefer-offline --frozen-lockfile --non-interactive --production=false --network-timeout 1000000
-yarn generate
+$STD yarn install --prefer-offline --frozen-lockfile --non-interactive --production=false --network-timeout 1000000
+$STD yarn generate
 msg_ok "Built Frontend"
+
+msg_info "Copying Built Frontend into Backend Package"
+cp -r /opt/mealie/frontend/dist /opt/mealie/mealie/frontend
+msg_ok "Copied Frontend"
 
 msg_info "Preparing Backend (Poetry)"
 $STD uv venv /opt/mealie/.venv
@@ -61,8 +65,8 @@ $STD /opt/mealie/.venv/bin/python -m ensurepip --upgrade
 $STD /opt/mealie/.venv/bin/python -m pip install --upgrade pip
 $STD /opt/mealie/.venv/bin/pip install uv
 cd /opt/mealie
-/opt/mealie/.venv/bin/uv pip install poetry==2.0.1
-/opt/mealie/.venv/bin/poetry self add "poetry-plugin-export>=1.9"
+$STD /opt/mealie/.venv/bin/uv pip install poetry==2.0.1
+$STD /opt/mealie/.venv/bin/poetry self add "poetry-plugin-export>=1.9"
 msg_ok "Prepared Poetry"
 
 msg_info "Writing Environment File"
@@ -76,29 +80,41 @@ POSTGRES_USER=${DB_USER}
 POSTGRES_PASSWORD=${DB_PASS}
 POSTGRES_DB=${DB_NAME}
 NLTK_DATA=/nltk_data
+PRODUCTION=true
 EOF
 msg_ok "Wrote Environment File"
 
+msg_info "Creating Start Script"
+cat <<'EOF' >/opt/mealie/start.sh
+#!/bin/bash
+set -a
+source /opt/mealie/mealie.env
+set +a
+exec /opt/mealie/.venv/bin/mealie
+EOF
+chmod +x /opt/mealie/start.sh
+msg_ok "Created Start Script"
+
 msg_info "Building Mealie Backend Wheel"
 cd /opt/mealie
-/opt/mealie/.venv/bin/poetry build --output dist
+$STD /opt/mealie/.venv/bin/poetry build --output dist
 
 MEALIE_VERSION=$(/opt/mealie/.venv/bin/poetry version --short)
-/opt/mealie/.venv/bin/poetry export --only=main --extras=pgsql --output=dist/requirements.txt
+$STD /opt/mealie/.venv/bin/poetry export --only=main --extras=pgsql --output=dist/requirements.txt
 echo "mealie[pgsql]==$MEALIE_VERSION \\" >>dist/requirements.txt
-/opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.whl | tail -n1 | tr -d '\n' >>dist/requirements.txt
+$STD /opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.whl | tail -n1 | tr -d '\n' >>dist/requirements.txt
 echo " \\" >>dist/requirements.txt
-/opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.tar.gz | tail -n1 >>dist/requirements.txt
+$STD /opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.tar.gz | tail -n1 >>dist/requirements.txt
 msg_ok "Built Wheel + Requirements"
 
 msg_info "Installing Mealie via uv"
 cd /opt/mealie
-/opt/mealie/.venv/bin/uv pip install --require-hashes -r dist/requirements.txt --find-links dist
+$STD /opt/mealie/.venv/bin/uv pip install --require-hashes -r dist/requirements.txt --find-links dist
 msg_ok "Installed Mealie"
 
 msg_info "Downloading NLTK Data"
 mkdir -p /nltk_data/
-/opt/mealie/.venv/bin/python -m nltk.downloader -d /nltk_data averaged_perceptron_tagger_eng
+$STD /opt/mealie/.venv/bin/python -m nltk.downloader -d /nltk_data averaged_perceptron_tagger_eng
 msg_ok "Downloaded NLTK Data"
 
 msg_info "Set Symbolic Links for Mealie"
@@ -106,17 +122,16 @@ ln -sf /opt/mealie/.venv/bin/mealie /usr/local/bin/mealie
 ln -sf /opt/mealie/.venv/bin/poetry /usr/local/bin/poetry
 msg_ok "Set Symbolic Links"
 
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/mealie.service
+msg_info "Creating Systemd Service"
+cat <<EOF >/etc/systemd/system/mealie-backend.service
 [Unit]
-Description=Mealie Server
+Description=Mealie Backend Server
 After=network.target postgresql.service
 
 [Service]
 User=root
 WorkingDirectory=/opt/mealie
-EnvironmentFile=/opt/mealie/mealie.env
-ExecStart=/opt/mealie/.venv/bin/python -m mealie
+ExecStart=/opt/mealie/start.sh
 Restart=always
 
 [Install]
