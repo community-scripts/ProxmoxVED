@@ -57,7 +57,6 @@ msg_ok "Built Frontend"
 
 msg_info "Copying Built Frontend into Backend Package"
 cp -r /opt/mealie/frontend/dist /opt/mealie/mealie/frontend
-cp -r /opt/mealie/frontend/dist /opt/mealie/.venv/lib/python3.12/site-packages/mealie/frontend
 msg_ok "Copied Frontend"
 
 msg_info "Preparing Backend (Poetry)"
