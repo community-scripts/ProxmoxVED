@@ -98,6 +98,11 @@ mkdir -p /nltk_data/
 /opt/mealie/.venv/bin/python -m nltk.downloader -d /nltk_data averaged_perceptron_tagger_eng
 msg_ok "Downloaded NLTK Data"
 
+msg_info "Set Symbolic Links for Mealie"
+ln -sf /opt/mealie/.venv/bin/mealie /usr/local/bin/mealie
+ln -sf /opt/mealie/.venv/bin/poetry /usr/local/bin/poetry
+msg_ok "Set Symbolic Links"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/mealie.service
 [Unit]
