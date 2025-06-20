@@ -195,7 +195,7 @@ icons() {
   CREATING="${TAB}🚀${TAB}${CL}"
   ADVANCED="${TAB}🧩${TAB}${CL}"
   FUSE="${TAB}🗂️${TAB}${CL}"
-  HOURGLASS="${TAB}⏳${TAB}${CL}"
+  HOURGLASS="${TAB}⏳${TAB}"
 
 }
 
