@@ -123,7 +123,7 @@ ln -sf /opt/mealie/.venv/bin/poetry /usr/local/bin/poetry
 msg_ok "Set Symbolic Links"
 
 msg_info "Creating Systemd Service"
-cat <<EOF >/etc/systemd/system/mealie-backend.service
+cat <<EOF >/etc/systemd/system/mealie.service
 [Unit]
 Description=Mealie Backend Server
 After=network.target postgresql.service
