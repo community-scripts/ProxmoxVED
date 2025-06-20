@@ -57,9 +57,11 @@ msg_ok "Built Frontend"
 
 msg_info "Preparing Backend (Poetry)"
 $STD uv venv /opt/mealie/.venv
-$STD /opt/mealie/.venv/bin/python -m pip install uv
-$STD /opt/mealie/.venv/bin/python -m uv pip install -r requirements.txt
+$STD /opt/mealie/.venv/bin/python -m ensurepip --upgrade
+$STD /opt/mealie/.venv/bin/python -m pip install --upgrade pip
+$STD /opt/mealie/.venv/bin/pip install uv
 cd /opt/mealie
+$STD /opt/mealie/.venv/bin/python -m uv pip install -r requirements.txt
 /opt/mealie/.venv/bin/uv pip install poetry==2.0.1
 /opt/mealie/.venv/bin/poetry self add "poetry-plugin-export>=1.9"
 msg_ok "Prepared Poetry"
