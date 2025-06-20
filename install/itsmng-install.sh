@@ -13,11 +13,7 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt install -y \
-  curl \
-  gnupg
-msg_ok "Installed Dependencies"
+setup_mariadb
 
 msg_info "Installing Repository"
 curl -fsSL http://deb.itsm-ng.org/pubkey.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/itsm-ng-keyring.gpg
