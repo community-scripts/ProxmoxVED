@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y git
+$STD apt-get install -y build-essential libpq-dev libwebp-dev libsasl2-dev libldap2-dev libssl-dev git
 msg_ok "Installed Dependencies"
 
 #fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "latest" "/opt/mealie" - deactivated for now
