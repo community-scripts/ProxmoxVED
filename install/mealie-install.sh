@@ -49,6 +49,7 @@ git clone https://github.com/mealie-recipes/mealie
 msg_ok "Get Mealie Repository"
 
 msg_info "Building Frontend"
+export NUXT_TELEMETRY_DISABLED=1
 cd /opt/mealie/frontend
 yarn install --prefer-offline --frozen-lockfile --non-interactive --production=false --network-timeout 1000000
 yarn generate
@@ -56,6 +57,7 @@ msg_ok "Built Frontend"
 
 msg_info "Preparing Backend (Poetry)"
 $STD uv venv /opt/mealie/.venv
+$STD /opt/mealie/.venv/bin/python -m pip install uv
 $STD /opt/mealie/.venv/bin/python -m uv pip install -r requirements.txt
 cd /opt/mealie
 /opt/mealie/.venv/bin/uv pip install poetry==2.0.1
