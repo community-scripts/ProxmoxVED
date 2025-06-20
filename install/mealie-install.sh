@@ -23,6 +23,26 @@ PYTHON_VERSION="3.12" setup_uv
 POSTGRES_VERSION="16" setup_postgresql
 NODE_MODULE="yarn" NODE_VERSION="20" setup_nodejs
 
+msg_info "Setup Variables"
+DB_NAME=mealie_db
+DB_USER=mealie__user
+DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
+msg_ok "Set up Variables"
+
+msg_info "Setup Database"
+$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
+$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
+{
+  echo "Mealie-Credentials"
+  echo "Mealie Database User: $DB_USER"
+  echo "Mealie Database Password: $DB_PASS"
+  echo "Mealie Database Name: $DB_NAME"
+} >>~/mealie.creds
+msg_ok "Set up Database"
+
 msg_info "Get Mealie Repository"
 cd /opt
 git clone https://github.com/mealie-recipes/mealie
@@ -41,6 +61,20 @@ cd /opt/mealie
 /opt/mealie/.venv/bin/uv pip install poetry==2.0.1
 /opt/mealie/.venv/bin/poetry self add "poetry-plugin-export>=1.9"
 msg_ok "Prepared Poetry"
+
+msg_info "Writing Environment File"
+cat <<EOF >/opt/mealie/mealie.env
+HOST=0.0.0.0
+PORT=9000
+DB_ENGINE=postgres
+POSTGRES_SERVER=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=${DB_USER}
+POSTGRES_PASSWORD=${DB_PASS}
+POSTGRES_DB=${DB_NAME}
+NLTK_DATA=/nltk_data
+EOF
+msg_ok "Wrote Environment File"
 
 msg_info "Building Mealie Backend Wheel"
 cd /opt/mealie
@@ -73,17 +107,9 @@ After=network.target postgresql.service
 [Service]
 User=root
 WorkingDirectory=/opt/mealie
+EnvironmentFile=/opt/mealie/mealie.env
 ExecStart=/opt/mealie/.venv/bin/python -m mealie
 Restart=always
-Environment=HOST=0.0.0.0
-Environment=PORT=9000
-Environment=DB_ENGINE=postgres
-Environment=POSTGRES_SERVER=localhost
-Environment=POSTGRES_PORT=5432
-Environment=POSTGRES_USER=mealie
-Environment=POSTGRES_PASSWORD=mealie
-Environment=POSTGRES_DB=mealie
-Environment=NLTK_DATA=/nltk_data
 
 [Install]
 WantedBy=multi-user.target
