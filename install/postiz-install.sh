@@ -51,7 +51,7 @@ $STD apt-get update
 $STD apt-get install caddy
 msg_ok "Set up Caddy"
 
-fetch_and_deploy_gh_release "gitroomhq/postiz-app"
+fetch_and_deploy_gh_release "postiz" "gitroomhq/postiz-app"
 
 msg_info "Configuring Postiz"
 LOCAL_IP=$(hostname -I | awk '{print $1}')
