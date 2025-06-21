@@ -103,14 +103,14 @@ $STD /opt/mealie/.venv/bin/poetry build --output dist
 MEALIE_VERSION=$(/opt/mealie/.venv/bin/poetry version --short)
 $STD /opt/mealie/.venv/bin/poetry export --only=main --extras=pgsql --output=dist/requirements.txt
 echo "mealie[pgsql]==$MEALIE_VERSION \\" >>dist/requirements.txt
-$STD /opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.whl | tail -n1 | tr -d '\n' >>dist/requirements.txt
+/opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.whl | tail -n1 | tr -d '\n' >>dist/requirements.txt
 echo " \\" >>dist/requirements.txt
-$STD /opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.tar.gz | tail -n1 >>dist/requirements.txt
+/opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.tar.gz | tail -n1 >>dist/requirements.txt
 msg_ok "Built Wheel + Requirements"
 
 msg_info "Installing Mealie via uv"
 cd /opt/mealie
-$STD /opt/mealie/.venv/bin/uv pip install --require-hashes -r dist/requirements.txt --find-links dist
+/opt/mealie/.venv/bin/uv pip install --require-hashes -r dist/requirements.txt --find-links dist
 msg_ok "Installed Mealie"
 
 msg_info "Downloading NLTK Data"
