@@ -1,5 +1,40 @@
 [
   {
+    "name": "rogerfar/rdt-client",
+    "version": "v2.0.114",
+    "date": "2025-06-21T11:20:21Z"
+  },
+  {
+    "name": "Luligu/matterbridge",
+    "version": "3.0.7",
+    "date": "2025-06-21T09:24:21Z"
+  },
+  {
+    "name": "theonedev/onedev",
+    "version": "v11.11.1",
+    "date": "2025-06-21T09:23:39Z"
+  },
+  {
+    "name": "pocketbase/pocketbase",
+    "version": "v0.28.4",
+    "date": "2025-06-21T08:29:04Z"
+  },
+  {
+    "name": "dgtlmoon/changedetection.io",
+    "version": "0.50.4",
+    "date": "2025-06-21T07:47:02Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2035",
+    "date": "2025-06-21T05:52:31Z"
+  },
+  {
+    "name": "coder/code-server",
+    "version": "v4.101.1",
+    "date": "2025-06-21T02:47:08Z"
+  },
+  {
     "name": "fallenbagel/jellyseerr",
     "version": "preview-dns-cache-manager",
     "date": "2025-06-20T23:03:23Z"
@@ -8,11 +43,6 @@
     "name": "go-gitea/gitea",
     "version": "v1.24.2",
     "date": "2025-06-20T20:37:55Z"
-  },
-  {
-    "name": "coder/code-server",
-    "version": "v4.101.0",
-    "date": "2025-06-20T20:21:50Z"
   },
   {
     "name": "immich-app/immich",
@@ -88,11 +118,6 @@
     "name": "benzino77/tasmocompiler",
     "version": "v12.7.0",
     "date": "2025-06-20T08:31:16Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2032",
-    "date": "2025-06-20T05:57:27Z"
   },
   {
     "name": "arunavo4/gitea-mirror",
@@ -301,8 +326,8 @@
   },
   {
     "name": "runtipi/runtipi",
-    "version": "nightly",
-    "date": "2025-06-16T17:35:17Z"
+    "version": "v4.2.1",
+    "date": "2025-06-03T20:04:28Z"
   },
   {
     "name": "emqx/emqx",
@@ -400,11 +425,6 @@
     "date": "2025-06-14T23:32:15Z"
   },
   {
-    "name": "theonedev/onedev",
-    "version": "v11.11.0",
-    "date": "2025-06-14T13:23:36Z"
-  },
-  {
     "name": "semaphoreui/semaphore",
     "version": "v2.15.0",
     "date": "2025-06-14T10:48:57Z"
@@ -418,11 +438,6 @@
     "name": "home-assistant/core",
     "version": "2025.6.1",
     "date": "2025-06-13T20:16:18Z"
-  },
-  {
-    "name": "Luligu/matterbridge",
-    "version": "3.0.6",
-    "date": "2025-06-13T15:02:37Z"
   },
   {
     "name": "wazuh/wazuh",
@@ -453,20 +468,5 @@
     "name": "zitadel/zitadel",
     "version": "v3.3.0",
     "date": "2025-06-12T06:54:48Z"
-  },
-  {
-    "name": "documenso/documenso",
-    "version": "v1.12.0-rc.4",
-    "date": "2025-06-12T00:27:41Z"
-  },
-  {
-    "name": "TandoorRecipes/recipes",
-    "version": "2.0.0-alpha-4",
-    "date": "2025-05-14T05:01:45Z"
-  },
-  {
-    "name": "MediaBrowser/Emby.Releases",
-    "version": "4.8.11.0",
-    "date": "2025-03-10T06:39:11Z"
   }
 ]
