@@ -1,5 +1,20 @@
 [
   {
+    "name": "msgbyte/tianji",
+    "version": "v1.22.2",
+    "date": "2025-06-22T10:21:41Z"
+  },
+  {
+    "name": "TandoorRecipes/recipes",
+    "version": "1.5.35",
+    "date": "2025-06-22T08:30:10Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2037",
+    "date": "2025-06-22T05:55:32Z"
+  },
+  {
     "name": "inventree/InvenTree",
     "version": "0.17.14",
     "date": "2025-06-21T23:43:04Z"
@@ -55,11 +70,6 @@
     "date": "2025-06-21T07:47:02Z"
   },
   {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2035",
-    "date": "2025-06-21T05:52:31Z"
-  },
-  {
     "name": "coder/code-server",
     "version": "v4.101.1",
     "date": "2025-06-21T02:47:08Z"
@@ -88,11 +98,6 @@
     "name": "homarr-labs/homarr",
     "version": "v1.25.0",
     "date": "2025-06-20T19:15:43Z"
-  },
-  {
-    "name": "msgbyte/tianji",
-    "version": "v1.22.1",
-    "date": "2025-06-20T18:12:20Z"
   },
   {
     "name": "mongodb/mongo",
@@ -458,40 +463,5 @@
     "name": "leiweibau/Pi.Alert",
     "version": "v2025-06-12",
     "date": "2025-06-12T20:59:47Z"
-  },
-  {
-    "name": "meilisearch/meilisearch",
-    "version": "latest",
-    "date": "2025-06-12T19:09:18Z"
-  },
-  {
-    "name": "Checkmk/checkmk",
-    "version": "v2.3.0p34",
-    "date": "2025-06-12T12:15:44Z"
-  },
-  {
-    "name": "zitadel/zitadel",
-    "version": "v3.3.0",
-    "date": "2025-06-12T06:54:48Z"
-  },
-  {
-    "name": "documenso/documenso",
-    "version": "v1.12.0-rc.4",
-    "date": "2025-06-12T00:27:41Z"
-  },
-  {
-    "name": "TandoorRecipes/recipes",
-    "version": "2.0.0-alpha-4",
-    "date": "2025-05-14T05:01:45Z"
-  },
-  {
-    "name": "MediaBrowser/Emby.Releases",
-    "version": "4.8.11.0",
-    "date": "2025-03-10T06:39:11Z"
-  },
-  {
-    "name": "autobrr/autobrr",
-    "version": "v1.63.1",
-    "date": "2025-06-11T11:05:42Z"
   }
 ]
