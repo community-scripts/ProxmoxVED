@@ -1,5 +1,30 @@
 [
   {
+    "name": "inventree/InvenTree",
+    "version": "0.17.14",
+    "date": "2025-06-21T23:43:04Z"
+  },
+  {
+    "name": "plexguide/Huntarr.io",
+    "version": "8.1.7",
+    "date": "2025-06-21T23:25:45Z"
+  },
+  {
+    "name": "HabitRPG/habitica",
+    "version": "v5.37.0",
+    "date": "2025-06-21T14:05:12Z"
+  },
+  {
+    "name": "fallenbagel/jellyseerr",
+    "version": "preview-fix-proxy-auth",
+    "date": "2025-06-21T13:43:58Z"
+  },
+  {
+    "name": "rcourtman/Pulse",
+    "version": "v3.30.0",
+    "date": "2025-06-17T16:00:01Z"
+  },
+  {
     "name": "rogerfar/rdt-client",
     "version": "v2.0.114",
     "date": "2025-06-21T11:20:21Z"
@@ -13,6 +38,11 @@
     "name": "theonedev/onedev",
     "version": "v11.11.1",
     "date": "2025-06-21T09:23:39Z"
+  },
+  {
+    "name": "runtipi/runtipi",
+    "version": "v4.2.1",
+    "date": "2025-06-03T20:04:28Z"
   },
   {
     "name": "pocketbase/pocketbase",
@@ -33,11 +63,6 @@
     "name": "coder/code-server",
     "version": "v4.101.1",
     "date": "2025-06-21T02:47:08Z"
-  },
-  {
-    "name": "fallenbagel/jellyseerr",
-    "version": "preview-dns-cache-manager",
-    "date": "2025-06-20T23:03:23Z"
   },
   {
     "name": "go-gitea/gitea",
@@ -93,11 +118,6 @@
     "name": "bunkerity/bunkerweb",
     "version": "testing",
     "date": "2025-06-16T18:10:42Z"
-  },
-  {
-    "name": "plexguide/Huntarr.io",
-    "version": "8.1.6",
-    "date": "2025-06-20T14:50:59Z"
   },
   {
     "name": "docker/compose",
@@ -245,11 +265,6 @@
     "date": "2025-06-18T03:44:24Z"
   },
   {
-    "name": "rcourtman/Pulse",
-    "version": "v3.30.0",
-    "date": "2025-06-17T16:00:01Z"
-  },
-  {
     "name": "grafana/grafana",
     "version": "v11.5.6",
     "date": "2025-06-17T22:00:40Z"
@@ -258,11 +273,6 @@
     "name": "jenkinsci/jenkins",
     "version": "jenkins-2.515",
     "date": "2025-06-17T19:17:56Z"
-  },
-  {
-    "name": "HabitRPG/habitica",
-    "version": "v5.36.6",
-    "date": "2025-06-17T18:12:31Z"
   },
   {
     "name": "project-zot/zot",
@@ -323,11 +333,6 @@
     "name": "goauthentik/authentik",
     "version": "version/2025.6.2",
     "date": "2025-06-16T17:54:39Z"
-  },
-  {
-    "name": "runtipi/runtipi",
-    "version": "v4.2.1",
-    "date": "2025-06-03T20:04:28Z"
   },
   {
     "name": "emqx/emqx",
@@ -468,5 +473,25 @@
     "name": "zitadel/zitadel",
     "version": "v3.3.0",
     "date": "2025-06-12T06:54:48Z"
+  },
+  {
+    "name": "documenso/documenso",
+    "version": "v1.12.0-rc.4",
+    "date": "2025-06-12T00:27:41Z"
+  },
+  {
+    "name": "TandoorRecipes/recipes",
+    "version": "2.0.0-alpha-4",
+    "date": "2025-05-14T05:01:45Z"
+  },
+  {
+    "name": "MediaBrowser/Emby.Releases",
+    "version": "4.8.11.0",
+    "date": "2025-03-10T06:39:11Z"
+  },
+  {
+    "name": "autobrr/autobrr",
+    "version": "v1.63.1",
+    "date": "2025-06-11T11:05:42Z"
   }
 ]
