@@ -65,8 +65,6 @@ IDM_CREATE_DEMO_USERS=false
 OC_LOG_LEVEL=warning
 OC_CONFIG_DIR=${CONFIG_DIR}
 OC_BASE_DATA_PATH=${DATA_DIR}
-# Uncomment below when configuring external auth solution (LDAP/OAUTH etc)
-# OC_EXCLUDE_RUN_SERVICES=ldm,ldp
 
 # Proxy
 PROXY_TLS=false
@@ -125,6 +123,11 @@ WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 # SEARCH_EXTRACTOR_TYPE=tika
 # FRONTEND_FULL_TEXT_SEARCH_ENABLED=true
 # SEARCH_EXTRACTOR_TIKA_TIKA_URL=<your-tika-url>
+
+# External storage test - currently not working
+# STORAGE_USERS_POSIX_ROOT=
+# STORAGE_USERS_DECOMPOSED_ROOT=
+# STORAGE_SYSTEM_OC_ROOT= # this definitely breaks shit, wouldn't ever change it
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
