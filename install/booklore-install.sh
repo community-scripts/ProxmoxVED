@@ -13,7 +13,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y nginx
+$STD apt-get install -y nginx yq
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "booklore" "adityachandelgit/BookLore"
