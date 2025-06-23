@@ -43,100 +43,107 @@ load_functions() {
   # add more
 }
 
-on_error() {
-  local exit_code="$1"
-  local lineno="$2"
+# ============================================================================
+# Error & Signal Handling – robust, universal, subshell-safe
+# ============================================================================
 
-  stop_spinner
+_stop_spinner_on_error() {
+  [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null || true
+}
+
+_tool_error_hint() {
+  local cmd="$1"
+  local code="$2"
+  case "$cmd" in
+  curl)
+    case "$code" in
+    6) echo "Curl: Could not resolve host (DNS problem)" ;;
+    7) echo "Curl: Failed to connect to host (connection refused)" ;;
+    22) echo "Curl: HTTP error (404/403 etc)" ;;
+    28) echo "Curl: Operation timeout" ;;
+    *) echo "Curl: Unknown error ($code)" ;;
+    esac
+    ;;
+  wget)
+    echo "Wget failed – URL unreachable or permission denied"
+    ;;
+  systemctl)
+    echo "Systemd unit failure – check service name and permissions"
+    ;;
+  jq)
+    echo "jq parse error – malformed JSON or missing key"
+    ;;
+  mariadb | mysql)
+    echo "MySQL/MariaDB command failed – check credentials or DB"
+    ;;
+  unzip)
+    echo "unzip failed – corrupt file or missing permission"
+    ;;
+  tar)
+    echo "tar failed – invalid format or missing binary"
+    ;;
+  node | npm | pnpm | yarn)
+    echo "Node tool failed – check version compatibility or package.json"
+    ;;
+  *) echo "" ;;
+  esac
+}
+
+on_error() {
+  local exit_code="$?"
+  local lineno="${BASH_LINENO[0]:-unknown}"
+  local cmd="${BASH_COMMAND:-unknown}"
+
+  _stop_spinner_on_error
+  echo >&2
 
   case "$exit_code" in
-  1) msg_error "Generic error occurred (line $lineno)" ;;
-  2) msg_error "Shell misuse (line $lineno)" ;;
-  126) msg_error "Command cannot execute (line $lineno)" ;;
-  127) msg_error "Command not found (line $lineno)" ;;
-  128) msg_error "Invalid exit argument (line $lineno)" ;;
-  130) msg_error "Script aborted by user (CTRL+C)" ;;
-  143) msg_error "Script terminated by SIGTERM" ;;
-  *) msg_error "Script failed at line $lineno with exit code $exit_code" ;;
+  1) msg_error "General error at line $lineno: $cmd" ;;
+  2) msg_error "Shell misuse at line $lineno: $cmd" ;;
+  126) msg_error "Command not executable at line $lineno: $cmd" ;;
+  127) msg_error "Command not found at line $lineno: $cmd" ;;
+  128) msg_error "Invalid exit argument at line $lineno: $cmd" ;;
+  130) msg_error "Aborted by user (SIGINT)" ;;
+  143) msg_error "Terminated by SIGTERM" ;;
+  *) msg_error "Script failed at line $lineno with exit code $exit_code: $cmd" ;;
   esac
+
+  local tool="${cmd%% *}"
+  local hint
+  hint=$(_tool_error_hint "$tool" "$exit_code")
+  [[ -n "$hint" ]] && msg_error "$hint"
+
+  # Optional API oder Logging
+  # post_update_to_api "failed" "Error at line $lineno: $cmd (code $exit_code)"
+  # echo "$(date -Iseconds) [ERR] $cmd (code $exit_code)" >> /var/log/proxmoxved_error.log
 
   exit "$exit_code"
 }
 
 on_exit() {
-  cleanup_spinner || true
-  [[ "${VERBOSE:-no}" == "yes" ]] && msg_info "Script exited"
+  _stop_spinner_on_error
+  [[ "${VERBOSE:-no}" == "yes" ]] && msg_info "Script exited cleanly"
 }
 
 on_interrupt() {
+  _stop_spinner_on_error
   msg_error "Interrupted by user (CTRL+C)"
   exit 130
 }
 
 on_terminate() {
-  msg_error "Terminated by signal (TERM)"
+  _stop_spinner_on_error
+  msg_error "Terminated by signal (SIGTERM)"
   exit 143
 }
 
-setup_trap_abort_handling() {
-  trap '__handle_signal_abort SIGINT' SIGINT
-  trap '__handle_signal_abort SIGTERM' SIGTERM
-  trap '__handle_unexpected_error $?' ERR
-}
-
-__handle_signal_abort() {
-  local signal="$1"
-  echo
-  [ -n "${SPINNER_PID:-}" ] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null
-
-  case "$signal" in
-  SIGINT)
-    msg_error "Script aborted by user (CTRL+C)"
-    exit 130
-    ;;
-  SIGTERM)
-    msg_error "Script terminated (SIGTERM)"
-    exit 143
-    ;;
-  *)
-    msg_error "Script interrupted (unknown signal: $signal)"
-    exit 1
-    ;;
-  esac
-}
-
-__handle_unexpected_error() {
-  local exit_code="$1"
-  echo
-  [ -n "${SPINNER_PID:-}" ] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null
-
-  case "$exit_code" in
-  1)
-    msg_error "Generic error occurred (exit code 1)"
-    ;;
-  2)
-    msg_error "Misuse of shell builtins (exit code 2)"
-    ;;
-  126)
-    msg_error "Command invoked cannot execute (exit code 126)"
-    ;;
-  127)
-    msg_error "Command not found (exit code 127)"
-    ;;
-  128)
-    msg_error "Invalid exit argument (exit code 128)"
-    ;;
-  130)
-    msg_error "Script aborted by user (CTRL+C)"
-    ;;
-  143)
-    msg_error "Script terminated by SIGTERM"
-    ;;
-  *)
-    msg_error "Unexpected error occurred (exit code $exit_code)"
-    ;;
-  esac
-  exit "$exit_code"
+catch_errors() {
+  trap 'on_error' ERR
+  trap 'on_exit' EXIT
+  trap 'on_interrupt' INT
+  trap 'on_terminate' TERM
+  set -Eeuo pipefail
+  shopt -s inherit_errexit
 }
 
 # ------------------------------------------------------------------------------
