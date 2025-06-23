@@ -4,7 +4,13 @@
 # Author: MickLesk
 # License: MIT
 
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+if command -v curl >/dev/null 2>&1; then
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  load_functions
+elif command -v wget >/dev/null 2>&1; then
+  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  load_functions
+fi
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
 
 variables
