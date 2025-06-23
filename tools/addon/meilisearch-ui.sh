@@ -49,7 +49,7 @@ function is_installed() {
 
 function install_ui() {
   NODE_VERSION="22" NODE_MODULE="pnpm@latest" setup_nodejs
-  fetch_and_deploy_gh_release "$APP" "$REPO"
+  fetch_and_deploy_gh_release "meilisearch-ui" "$REPO"
 
   msg_info "Setup ${APP}"
   cd "$APP_DIR" || exit 1
@@ -102,7 +102,7 @@ function update_ui() {
   cp /opt/meilisearch-ui/.env.local /tmp/.env.local.bak
 
   NODE_VERSION="22" NODE_MODULE="pnpm@latest" setup_nodejs
-  fetch_and_deploy_gh_release "$APP" "$REPO"
+  fetch_and_deploy_gh_release "meilisearch-ui" "$REPO"
   msg_info "Updating ${APP} to $release"
   cd /opt/meilisearch-ui
   sed -i 's|const hash = execSync("git rev-parse HEAD").toString().trim();|const hash = "unknown";|' /opt/meilisearch-ui/vite.config.ts
