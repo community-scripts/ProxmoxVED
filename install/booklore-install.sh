@@ -29,7 +29,7 @@ msg_ok "Built Frontend"
 
 msg_info "Building Backend"
 cd /opt/booklore/booklore-api
-APP_VERSION="0.0.1-Test"
+APP_VERSION=$(curl -fsSL https://api.github.com/repos/adityachandelgit/BookLore/releases/latest | yq '.tag_name' | sed 's/^v//')
 yq eval ".app.version = \"${APP_VERSION}\"" -i src/main/resources/application.yaml
 $STD ./gradlew clean build --no-daemon
 msg_ok "Built Backend"
