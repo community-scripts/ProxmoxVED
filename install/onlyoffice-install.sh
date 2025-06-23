@@ -26,11 +26,11 @@ msg_info "Setup Database"
 DB_NAME=onlyoffice
 DB_USER=onlyoffice_user
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
-$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
-$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
+$STD psql -U postgres -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
+$STD psql -U postgres -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
+$STD psql -U postgres -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
+$STD psql -U postgres -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
+$STD psql -U postgres -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
   echo "OnlyOffice-Credentials"
   echo "OnlyOffice Database User: $DB_USER"
