@@ -68,7 +68,13 @@ APP_VERSION=$(curl -fsSL https://api.github.com/repos/adityachandelgit/BookLore/
 yq eval ".app.version = \"${APP_VERSION}\"" -i src/main/resources/application.yaml
 $STD ./gradlew clean build --no-daemon
 mkdir -p /opt/booklore/dist
-cp /opt/booklore/booklore-api/build/libs/booklore-api-*.jar /opt/booklore/dist/app.jar
+JAR_PATH=$(find /opt/booklore/booklore-api/build/libs -maxdepth 1 -type f -name "booklore-api-*.jar" ! -name "*plain*" | head -n1)
+if [[ -z "$JAR_PATH" ]]; then
+  msg_error "Backend JAR not found"
+  exit 1
+fi
+cp "$JAR_PATH" /opt/booklore/dist/app.jar
+
 msg_ok "Built Backend"
 
 msg_info "Creating Systemd Service"
