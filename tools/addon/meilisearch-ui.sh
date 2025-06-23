@@ -22,6 +22,8 @@ APP_DIR="/opt/meilisearch-ui"
 SERVICE="meilisearch-ui"
 REPO="riccox/meilisearch-ui"
 
+header_info "$APP"
+
 if ! command -v meilisearch >/dev/null || ! systemctl is-active --quiet meilisearch; then
   msg_error "Meilisearch is not installed or not running. Please install and start Meilisearch before using this addon."
   exit 1
