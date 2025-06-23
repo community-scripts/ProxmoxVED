@@ -47,19 +47,13 @@ msg_ok "Built Frontend"
 msg_info "Creating Environment"
 mkdir -p /opt/booklore_storage{/data,/books}
 cat <<EOF >/opt/booklore_storage/.env
-TZ=Etc/UTC
+DATABASE_URL=jdbc:mariadb://localhost:3306/$DB_NAME
+DATABASE_USERNAME=$DB_USER
+DATABASE_PASSWORD=$DB_PASS
 
-MYSQL_ROOT_PASSWORD=unused
-MYSQL_DATABASE=$DB_NAME
-MYSQL_USER=$DB_USER
-MYSQL_PASSWORD=$DB_PASS
-
-BOOKLORE_IMAGE_TAG=native
 BOOKLORE_DATA_PATH=/opt/booklore_storage/data
 BOOKLORE_BOOKS_PATH=/opt/booklore_storage/books
-MARIADB_CONFIG_PATH=/etc/mysql/conf.d
 EOF
-chmod 600 /opt/booklore_storage/.env
 msg_ok "Created Environment"
 
 msg_info "Building Backend"
@@ -74,8 +68,14 @@ if [[ -z "$JAR_PATH" ]]; then
   exit 1
 fi
 cp "$JAR_PATH" /opt/booklore/dist/app.jar
-
 msg_ok "Built Backend"
+
+msg_info "Configure Nginx"
+rm -rf /usr/share/nginx/html
+ln -s /opt/booklore/booklore-ui/dist/booklore/browser /usr/share/nginx/html
+cp /opt/booklore/nginx.conf /etc/nginx/nginx.conf
+systemctl restart nginx
+msg_ok "Configured Nginx"
 
 msg_info "Creating Systemd Service"
 cat <<EOF >/etc/systemd/system/booklore.service
@@ -98,13 +98,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now booklore
 msg_ok "Created BookLore Service"
-
-msg_info "Configure Nginx"
-rm -rf /usr/share/nginx/html
-ln -s /opt/booklore/booklore-ui/dist/booklore/browser /usr/share/nginx/html
-cp /opt/booklore/nginx.conf /etc/nginx/nginx.conf
-systemctl restart nginx
-msg_ok "Configured Nginx"
 
 motd_ssh
 customize
