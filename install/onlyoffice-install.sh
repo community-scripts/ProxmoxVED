@@ -49,6 +49,8 @@ if curl -fsSL "$KEY_URL" -o "$TMP_KEY_CONTENT" && grep -q "BEGIN PGP PUBLIC KEY 
   chmod 644 "$GPG_TMP"
   chown root:root "$GPG_TMP"
   mv "$GPG_TMP" /usr/share/keyrings/onlyoffice.gpg
+  echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main" >/etc/apt/sources.list.d/onlyoffice.list
+  $STD apt-get update
   msg_ok "GPG Key Added"
 else
   msg_error "Failed to download or verify GPG key from $KEY_URL"
@@ -56,14 +58,6 @@ else
   exit 1
 fi
 rm -f "$TMP_KEY_CONTENT"
-
-msg_info "Configuring ONLYOFFICE Repository"
-chmod 644 /tmp/onlyoffice.gpg
-chown root:root /tmp/onlyoffice.gpg
-mv /tmp/onlyoffice.gpg /usr/share/keyrings/onlyoffice.gpg
-echo "deb [signed-by=/usr/share/keyrings/onlyoffice.gpg] https://download.onlyoffice.com/repo/debian squeeze main" >/etc/apt/sources.list.d/onlyoffice.list
-$STD apt-get update
-msg_ok "Repository Added"
 
 msg_info "Preconfiguring ONLYOFFICE Debconf Settings"
 echo onlyoffice-documentserver onlyoffice/db-host string localhost | debconf-set-selections
