@@ -17,7 +17,7 @@ color
 catch_errors
 
 APP="Meilisearch UI"
-APP_TYPE="addon"
+APP_TYPE="tools"
 APP_DIR="/opt/meilisearch-ui"
 SERVICE="meilisearch-ui"
 REPO="riccox/meilisearch-ui"
