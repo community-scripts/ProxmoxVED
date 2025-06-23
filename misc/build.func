@@ -961,9 +961,9 @@ build_container() {
     FEATURES="$FEATURES,fuse=1"
   fi
 
-  if [[ $DIAGNOSTICS == "yes" ]]; then
-    post_to_api
-  fi
+  #if [[ $DIAGNOSTICS == "yes" ]]; then
+  #  post_to_api
+  #fi
 
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
