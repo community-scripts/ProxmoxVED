@@ -447,7 +447,9 @@ msg_ok() {
   [[ -z "$msg" ]] && return
   stop_spinner
   printf "\r\e[2K%s %b\n" "$CM" "${GN}${msg}${CL}" >&2
-  unset MSG_INFO_SHOWN["$msg"]
+  if declare -p MSG_INFO_SHOWN &>/dev/null && [[ "$(declare -p MSG_INFO_SHOWN 2>/dev/null)" =~ "declare -A" ]]; then
+    unset MSG_INFO_SHOWN["$msg"]
+  fi
 }
 
 msg_error() {
@@ -462,7 +464,9 @@ msg_warn() {
   [[ -z "$msg" ]] && return
   stop_spinner
   printf "\r\e[2K%s %b\n" "$INFO" "${YWB}${msg}${CL}" >&2
-  unset MSG_INFO_SHOWN["$msg"]
+  if declare -p MSG_INFO_SHOWN &>/dev/null && [[ "$(declare -p MSG_INFO_SHOWN 2>/dev/null)" =~ "declare -A" ]]; then
+    unset MSG_INFO_SHOWN["$msg"]
+  fi
 }
 
 msg_custom() {

@@ -81,7 +81,7 @@ WantedBy=multi-user.target
 EOF
 
   systemctl enable -q --now "$SERVICE"
-  msg_ok "${APP} installed at http://${IP}"
+  msg_ok "${APP} installed at http://${IP}:24900"
 }
 
 function uninstall_ui() {
@@ -101,7 +101,7 @@ function update_ui() {
 
   NODE_VERSION="22" NODE_MODULE="pnpm@latest" setup_nodejs
   fetch_and_deploy_gh_release "meilisearch-ui" "$REPO"
-  msg_info "Updating ${APP} to $release"
+  msg_info "Updating ${APP}"
   cd /opt/meilisearch-ui
   sed -i 's|const hash = execSync("git rev-parse HEAD").toString().trim();|const hash = "unknown";|' /opt/meilisearch-ui/vite.config.ts
   mv /tmp/.env.local.bak /opt/meilisearch-ui/.env.local
