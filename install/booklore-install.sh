@@ -13,12 +13,13 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y nginx yq
+$STD apt-get install -y nginx
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "booklore" "adityachandelgit/BookLore"
 JAVA_VERSION="21" setup_java
 NODE_VERSION="22" setup_nodejs
+setup_yq
 
 msg_info "Building Frontend"
 cd /opt/booklore/booklore-ui
