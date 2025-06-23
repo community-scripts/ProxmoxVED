@@ -19,7 +19,24 @@ msg_ok "Installed Dependencies"
 fetch_and_deploy_gh_release "booklore" "adityachandelgit/BookLore"
 JAVA_VERSION="21" setup_java
 NODE_VERSION="22" setup_nodejs
+setup_mariadb
 setup_yq
+
+msg_info "Setting up database"
+DB_NAME=booklore_db
+DB_USER=booklore_user
+DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+$STD mariadb -u root -e "CREATE DATABASE $DB_NAME;"
+$STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+$STD mariadb -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
+$STD mariadb -u root -e "GRANT SELECT ON \`mysql\`.\`time_zone_name\` TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
+{
+  echo "BookLore Database Credentials"
+  echo "Database: $DB_NAME"
+  echo "Username: $DB_USER"
+  echo "Password: $DB_PASS"
+} >>~/booklore.creds
+msg_ok "Set up database"
 
 msg_info "Building Frontend"
 cd /opt/booklore/booklore-ui
@@ -27,11 +44,31 @@ $STD npm install --force
 $STD npm run build --configuration=production
 msg_ok "Built Frontend"
 
+msg_info "Creating Environment"
+mkdir -p /opt/booklore_storage{/data,/books}
+cat <<EOF >/opt/booklore_storage/.env
+TZ=Etc/UTC
+
+MYSQL_ROOT_PASSWORD=unused
+MYSQL_DATABASE=$DB_NAME
+MYSQL_USER=$DB_USER
+MYSQL_PASSWORD=$DB_PASS
+
+BOOKLORE_IMAGE_TAG=native
+BOOKLORE_DATA_PATH=/opt/booklore_storage/data
+BOOKLORE_BOOKS_PATH=/opt/booklore_storage/books
+MARIADB_CONFIG_PATH=/etc/mysql/conf.d
+EOF
+chmod 600 /opt/booklore_storage/.env
+msg_ok "Created Environment"
+
 msg_info "Building Backend"
 cd /opt/booklore/booklore-api
 APP_VERSION=$(curl -fsSL https://api.github.com/repos/adityachandelgit/BookLore/releases/latest | yq '.tag_name' | sed 's/^v//')
 yq eval ".app.version = \"${APP_VERSION}\"" -i src/main/resources/application.yaml
 $STD ./gradlew clean build --no-daemon
+mkdir -p /opt/booklore/dist
+cp /opt/booklore/booklore-api/build/libs/booklore-api-*.jar /opt/booklore/dist/app.jar
 msg_ok "Built Backend"
 
 msg_info "Creating Systemd Service"
@@ -42,8 +79,9 @@ After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/opt/booklore/booklore-api
-ExecStart=/usr/bin/java -jar build/libs/booklore-api-${APP_VERSION}.jar
+WorkingDirectory=/opt/booklore/dist
+ExecStart=/usr/bin/java -jar /opt/booklore/dist/app.jar
+EnvironmentFile=/opt/booklore_storage/.env
 SuccessExitStatus=143
 TimeoutStopSec=10
 Restart=on-failure
@@ -55,27 +93,11 @@ EOF
 systemctl enable -q --now booklore
 msg_ok "Created BookLore Service"
 
-msg_info "Configuring Nginx"
-cat <<'EOF' >/etc/nginx/sites-available/booklore
-server {
-    listen 80 default_server;
-    root /usr/share/nginx/html;
-    index index.html;
-    location /api/ {
-        proxy_pass http://localhost:8080/;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-}
-EOF
-
-ln -sf /etc/nginx/sites-available/booklore /etc/nginx/sites-enabled/default
-$STD systemctl restart nginx
+msg_info "Configure Nginx"
+rm -rf /usr/share/nginx/html
+ln -s /opt/booklore/booklore-ui/dist/booklore/browser /usr/share/nginx/html
+cp /opt/booklore/nginx.conf /etc/nginx/nginx.conf
+systemctl restart nginx
 msg_ok "Configured Nginx"
 
 motd_ssh
