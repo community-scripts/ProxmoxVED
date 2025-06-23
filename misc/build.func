@@ -173,40 +173,6 @@ update_motd_ip() {
   fi
 }
 
-# # Function to download & save header files
-# get_header() {
-#   local app_name=$(echo "${APP,,}" | tr -d ' ')
-#   local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/headers/${app_name}"
-#   local local_header_path="/usr/local/community-scripts/headers/${app_name}"
-
-#   mkdir -p "$(dirname "$local_header_path")"
-
-#   if [ ! -s "$local_header_path" ]; then
-#     if ! curl -fsSL "$header_url" -o "$local_header_path"; then
-#       return 1
-#     fi
-#   fi
-
-#   cat "$local_header_path" 2>/dev/null || true
-# }
-# # This function sets the APP-Name into an ASCII Header in Slant, figlet needed on proxmox main node.
-# header_info() {
-#   local app_name=$(echo "${APP,,}" | tr -d ' ')
-#   local header_content
-
-#   # Download & save Header-File locally
-#   header_content=$(get_header "$app_name") || header_content=""
-
-#   # Show ASCII-Header
-#   clear
-#   local term_width
-#   term_width=$(tput cols 2>/dev/null || echo 120)
-
-#   if [ -n "$header_content" ]; then
-#     echo "$header_content"
-#   fi
-# }
-
 # This function checks if the script is running through SSH and prompts the user to confirm if they want to proceed or exit.
 ssh_check() {
   if [ -n "${SSH_CLIENT:+x}" ]; then
@@ -995,9 +961,9 @@ build_container() {
     FEATURES="$FEATURES,fuse=1"
   fi
 
-  #if [[ $DIAGNOSTICS == "yes" ]]; then
-  #  post_to_api
-  #fi
+  if [[ $DIAGNOSTICS == "yes" ]]; then
+    post_to_api
+  fi
 
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
@@ -1179,47 +1145,30 @@ EOF
   post_update_to_api "done" "none"
 }
 
-# set_std_mode() {
-#   if [ "$VERBOSE" = "yes" ]; then
-#     STD=""
-#   else
-#     STD="silent"
-#   fi
-# }
+api_exit_script() {
+  exit_code=$?
+  if [ $exit_code -ne 0 ]; then
+    case $exit_code in
+    100) post_update_to_api "failed" "100: Unexpected error in create_lxc.sh" ;;
+    101) post_update_to_api "failed" "101: No network connection detected in create_lxc.sh" ;;
+    200) post_update_to_api "failed" "200: LXC creation failed in create_lxc.sh" ;;
+    201) post_update_to_api "failed" "201: Invalid Storage class in create_lxc.sh" ;;
+    202) post_update_to_api "failed" "202: User aborted menu in create_lxc.sh" ;;
+    203) post_update_to_api "failed" "203: CTID not set in create_lxc.sh" ;;
+    204) post_update_to_api "failed" "204: PCT_OSTYPE not set in create_lxc.sh" ;;
+    205) post_update_to_api "failed" "205: CTID cannot be less than 100 in create_lxc.sh" ;;
+    206) post_update_to_api "failed" "206: CTID already in use in create_lxc.sh" ;;
+    207) post_update_to_api "failed" "207: Template not found in create_lxc.sh" ;;
+    208) post_update_to_api "failed" "208: Error downloading template in create_lxc.sh" ;;
+    209) post_update_to_api "failed" "209: Container creation failed, but template is intact in create_lxc.sh" ;;
+    *) post_update_to_api "failed" "Unknown error, exit code: $exit_code in create_lxc.sh" ;;
+    esac
+  fi
+}
 
-# # Silent execution function
-# silent() {
-#   if [ "$VERBOSE" = "no" ]; then
-#     "$@" >/dev/null 2>&1 || return 1
-#   else
-#     "$@" || return 1
-#   fi
-# }
-
-# api_exit_script() {
-#   exit_code=$?
-#   if [ $exit_code -ne 0 ]; then
-#     case $exit_code in
-#     100) post_update_to_api "failed" "100: Unexpected error in create_lxc.sh" ;;
-#     101) post_update_to_api "failed" "101: No network connection detected in create_lxc.sh" ;;
-#     200) post_update_to_api "failed" "200: LXC creation failed in create_lxc.sh" ;;
-#     201) post_update_to_api "failed" "201: Invalid Storage class in create_lxc.sh" ;;
-#     202) post_update_to_api "failed" "202: User aborted menu in create_lxc.sh" ;;
-#     203) post_update_to_api "failed" "203: CTID not set in create_lxc.sh" ;;
-#     204) post_update_to_api "failed" "204: PCT_OSTYPE not set in create_lxc.sh" ;;
-#     205) post_update_to_api "failed" "205: CTID cannot be less than 100 in create_lxc.sh" ;;
-#     206) post_update_to_api "failed" "206: CTID already in use in create_lxc.sh" ;;
-#     207) post_update_to_api "failed" "207: Template not found in create_lxc.sh" ;;
-#     208) post_update_to_api "failed" "208: Error downloading template in create_lxc.sh" ;;
-#     209) post_update_to_api "failed" "209: Container creation failed, but template is intact in create_lxc.sh" ;;
-#     *) post_update_to_api "failed" "Unknown error, exit code: $exit_code in create_lxc.sh" ;;
-#     esac
-#   fi
-# }
-
-# if command -v pveversion >/dev/null 2>&1; then
-#   trap 'api_exit_script' EXIT
-# fi
-# trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
-# trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
-# trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
+if command -v pveversion >/dev/null 2>&1; then
+  trap 'api_exit_script' EXIT
+fi
+trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
+trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
+trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
