@@ -13,7 +13,6 @@ elif command -v wget >/dev/null 2>&1; then
 fi
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
 
-variables
 color
 catch_errors
 
