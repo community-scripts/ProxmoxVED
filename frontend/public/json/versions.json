@@ -1,5 +1,35 @@
 [
   {
+    "name": "Graylog2/graylog2-server",
+    "version": "6.3.0-rc.2",
+    "date": "2025-06-23T11:31:38Z"
+  },
+  {
+    "name": "mattermost/mattermost",
+    "version": "v9.11.17",
+    "date": "2025-06-18T08:12:05Z"
+  },
+  {
+    "name": "Checkmk/checkmk",
+    "version": "v2.4.0p5-rc1",
+    "date": "2025-06-23T06:14:42Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2042",
+    "date": "2025-06-23T05:54:00Z"
+  },
+  {
+    "name": "firefly-iii/firefly-iii",
+    "version": "v6.2.18",
+    "date": "2025-06-20T04:45:37Z"
+  },
+  {
+    "name": "gotson/komga",
+    "version": "1.22.0",
+    "date": "2025-06-23T03:11:37Z"
+  },
+  {
     "name": "plexguide/Huntarr.io",
     "version": "8.1.8",
     "date": "2025-06-23T00:21:30Z"
@@ -40,11 +70,6 @@
     "date": "2025-06-22T08:30:10Z"
   },
   {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2037",
-    "date": "2025-06-22T05:55:32Z"
-  },
-  {
     "name": "inventree/InvenTree",
     "version": "0.17.14",
     "date": "2025-06-21T23:43:04Z"
@@ -81,8 +106,8 @@
   },
   {
     "name": "runtipi/runtipi",
-    "version": "nightly",
-    "date": "2025-06-21T09:03:46Z"
+    "version": "v4.2.1",
+    "date": "2025-06-03T20:04:28Z"
   },
   {
     "name": "pocketbase/pocketbase",
@@ -175,11 +200,6 @@
     "date": "2025-06-20T05:49:06Z"
   },
   {
-    "name": "firefly-iii/firefly-iii",
-    "version": "v6.2.18",
-    "date": "2025-06-20T04:45:37Z"
-  },
-  {
     "name": "paperless-ngx/paperless-ngx",
     "version": "v2.17.1",
     "date": "2025-06-19T19:35:01Z"
@@ -198,11 +218,6 @@
     "name": "neo4j/neo4j",
     "version": "2025.05.1",
     "date": "2025-06-19T11:28:36Z"
-  },
-  {
-    "name": "mattermost/mattermost",
-    "version": "v9.11.17",
-    "date": "2025-06-18T08:12:05Z"
   },
   {
     "name": "n8n-io/n8n",
@@ -370,11 +385,6 @@
     "date": "2025-06-16T13:49:37Z"
   },
   {
-    "name": "Graylog2/graylog2-server",
-    "version": "6.3.0-rc.1",
-    "date": "2025-06-16T11:28:08Z"
-  },
-  {
     "name": "home-assistant/operating-system",
     "version": "15.2",
     "date": "2025-04-14T15:37:12Z"
@@ -478,5 +488,10 @@
     "name": "meilisearch/meilisearch",
     "version": "latest",
     "date": "2025-06-12T19:09:18Z"
+  },
+  {
+    "name": "AdguardTeam/AdGuardHome",
+    "version": "v0.107.62",
+    "date": "2025-05-27T12:10:19Z"
   }
 ]
