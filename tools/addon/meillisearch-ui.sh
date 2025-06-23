@@ -22,6 +22,17 @@ if ! command -v meilisearch >/dev/null || ! systemctl is-active --quiet meilisea
   exit 1
 fi
 
+if ! grep -q -Ei 'debian|ubuntu' /etc/os-release; then
+  msg_error "Unsupported OS. This addon supports only Debian or Ubuntu."
+  exit 1
+fi
+
+MEM_MB=$(awk '/MemTotal/ {printf "%.0f", $2/1024}' /proc/meminfo)
+if ((MEM_MB < 4096)); then
+  msg_error "Insufficient memory: ${MEM_MB} MB detected. At least 4096 MB RAM is required."
+  exit 1
+fi
+
 IP=$(hostname -I | awk '{print $1}')
 MASTER_KEY=$(grep -E '^master_key\s*=' /etc/meilisearch.toml | cut -d'"' -f2)
 
