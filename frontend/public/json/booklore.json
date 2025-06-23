@@ -20,7 +20,7 @@
       "script": "ct/booklore.sh",
       "resources": {
         "cpu": 1,
-        "ram": 1024,
+        "ram": 2048,
         "hdd": 7,
         "os": "debian",
         "version": "12"
