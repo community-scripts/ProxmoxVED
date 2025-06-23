@@ -60,16 +60,30 @@ fi
 rm -f "$TMP_KEY_CONTENT"
 
 msg_info "Preconfiguring ONLYOFFICE Debconf Settings"
+RMQ_USER=onlyoffice_rmq
+RMQ_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
+JWT_SECRET=$(openssl rand -hex 16)
+
 echo onlyoffice-documentserver onlyoffice/db-host string localhost | debconf-set-selections
 echo onlyoffice-documentserver onlyoffice/db-user string $DB_USER | debconf-set-selections
 echo onlyoffice-documentserver onlyoffice/db-pwd password $DB_PASS | debconf-set-selections
 echo onlyoffice-documentserver onlyoffice/db-name string $DB_NAME | debconf-set-selections
 echo onlyoffice-documentserver onlyoffice/rabbitmq-host string localhost | debconf-set-selections
-echo onlyoffice-documentserver onlyoffice/rabbitmq-user string guest | debconf-set-selections
-echo onlyoffice-documentserver onlyoffice/rabbitmq-pwd password guest | debconf-set-selections
+echo onlyoffice-documentserver onlyoffice/rabbitmq-user string $RMQ_USER | debconf-set-selections
+echo onlyoffice-documentserver onlyoffice/rabbitmq-pwd password $RMQ_PASS | debconf-set-selections
 echo onlyoffice-documentserver onlyoffice/jwt-enabled boolean true | debconf-set-selections
-JWT_SECRET=$(openssl rand -hex 16)
 echo onlyoffice-documentserver onlyoffice/jwt-secret password $JWT_SECRET | debconf-set-selections
+
+echo "RabbitMQ User: $RMQ_USER" >>~/onlyoffice.creds
+echo "RabbitMQ Password: $RMQ_PASS" >>~/onlyoffice.creds
+echo "JWT Secret: $JWT_SECRET" >>~/onlyoffice.creds
+{
+  echo ""
+  echo "OnlyOffice RabbitMQ Credentials"
+  echo "User: $RMQ_USER"
+  echo "Password: $RMQ_PASS"
+  echo "Secret: $JWT_SECRET"
+} >>~/booklore.creds
 msg_ok "Debconf Preconfiguration Done"
 
 msg_info "Installing ttf-mscorefonts-installer"
