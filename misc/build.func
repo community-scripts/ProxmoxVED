@@ -1017,7 +1017,7 @@ build_container() {
 
   NET_STRING="-net0 name=eth0,bridge=$BRG$MAC,ip=$NET$GATE$VLAN$MTU"
   case "$IPV6_METHOD" in
-  slaac) NET_STRING="$NET_STRING,ip6=auto" ;;
+  auto) NET_STRING="$NET_STRING,ip6=auto" ;;
   dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
   static)
     NET_STRING="$NET_STRING,ip6=$IPV6_ADDR"
