@@ -14,7 +14,9 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y make git
+$STD apt-get install -y \
+  make \
+  git
 msg_ok "Installed Dependencies"
 
 NODE_MODULE="yarn" setup_nodejs
@@ -24,7 +26,6 @@ msg_info "Configuring Notesnook (Patience)"
 cd /opt/notesnook
 export NODE_OPTIONS="--max-old-space-size=2560"
 mkdir -p certs
-$STD openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
 $STD npm install
 $STD npm run build:web
 msg_ok "Configured Notesnook"
@@ -39,7 +40,7 @@ After=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/notesnook
-ExecStart=/usr/bin/npx serve -l tcp://0.0.0.0:3000 apps/web/build --ssl-cert certs/cert.pem --ssl-key certs/key.pem
+ExecStart=/usr/bin/npx serve -l tcp://0.0.0.0:3000 apps/web/build
 Restart=on-failure
 
 [Install]
