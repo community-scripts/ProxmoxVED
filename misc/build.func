@@ -1015,7 +1015,7 @@ start() {
 build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
-  # NET_STRING="-net0 name=eth0,bridge=$BRG$MAC,ip=$NET$GATE$VLAN$MTU"
+  NET_STRING="-net0 name=eth0,bridge=$BRG$MAC,ip=$NET$GATE$VLAN$MTU"
   # case "$IPV6_METHOD" in
   # slaac) NET_STRING="$NET_STRING,ip6=slaac" ;;
   # dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
