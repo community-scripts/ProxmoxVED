@@ -52,7 +52,7 @@ EOF
 cat <<EOF >/etc/systemd/system/caddy.service
 [Unit]
 Description=Caddy Service
-After=network-online.target
+After=network-online.target notesnook.service
 Requires=notesnook.service
 
 [Service]
