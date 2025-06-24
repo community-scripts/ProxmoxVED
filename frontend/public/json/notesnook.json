@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "Before doing update of the app, please make a backup in the application Web UI",
+      "text": "Before doing update of the app, please make a backup in the application Web UI. You will need to restore this backup after update finishes!",
       "type": "warning"
     }
   ]
