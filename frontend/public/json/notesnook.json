@@ -31,5 +31,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Before doing update of the app, please make a backup in the application Web UI",
+      "type": "warning"
+    }
+  ]
 }

@@ -52,7 +52,7 @@ EOF
 cat <<EOF >/etc/systemd/system/caddy.service
 [Unit]
 Description=Caddy Service
-After=network-online.target
+After=network-online.target notesnook.service
 Requires=notesnook.service
 
 [Service]
@@ -66,6 +66,7 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now notesnook
+systemctl enable -q --now caddy
 msg_ok "Created Service"
 
 motd_ssh
