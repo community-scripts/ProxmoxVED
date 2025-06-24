@@ -314,7 +314,7 @@ echo_default() {
 
   # Output the selected values with icons
   echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
-  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os I ${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+  echo -e "${OS}${BOLD}${DGN}Operating System: $var_os | Version: $var_version${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB | ${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT} | ${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
   if [ "$VERB" == "yes" ]; then
@@ -1023,7 +1023,7 @@ build_container() {
     NET_STRING="$NET_STRING,ip6=$IPV6_ADDR"
     [ -n "$IPV6_GATE" ] && NET_STRING="$NET_STRING,gw6=$IPV6_GATE"
     ;;
-  none) NET_STRING="$NET_STRING,ip6=none" ;;
+  none) ;;
   esac
 
   if [ "$CT_TYPE" == "1" ]; then
