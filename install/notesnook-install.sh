@@ -27,7 +27,6 @@ fetch_and_deploy_gh_release "notesnook" "streetwriters/notesnook" "tarball"
 msg_info "Configuring Notesnook (Patience)"
 cd /opt/notesnook
 export NODE_OPTIONS="--max-old-space-size=2560"
-mkdir -p certs
 $STD npm install
 $STD npm run build:web
 msg_ok "Configured Notesnook"

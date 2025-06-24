@@ -34,7 +34,7 @@ function update_script() {
 
   msg_info "Updating ${APP} (Patience)"
   rm -rf /opt/notesnook
-  fetch_and_deploy_gh_release "streetwriters/notesnook"
+  fetch_and_deploy_gh_release "notesnook" "streetwriters/notesnook" "tarball"
   cd /opt/notesnook
   export NODE_OPTIONS="--max-old-space-size=2560"
   $STD npm install
