@@ -197,7 +197,7 @@ base_settings() {
   HN=$NSAPP
   BRG="vmbr0"
   NET="dhcp"
-  IPV6_METHOD="none"
+  IPV6_METHOD="auto"
   IPV6_STATIC=""
   GATE=""
   APT_CACHER=""
@@ -1052,7 +1052,7 @@ build_container() {
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"
-  export DISABLEIPV6="$DISABLEIP6"
+  #export DISABLEIPV6="$DISABLEIP6"
   export APPLICATION="$APP"
   export app="$NSAPP"
   export PASSWORD="$PW"
