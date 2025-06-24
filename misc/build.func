@@ -648,12 +648,12 @@ advanced_settings() {
     fi
   fi
 
-  if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "IPv6" --yesno "Disable IPv6?" 10 58); then
-    DISABLEIP6="yes"
-  else
-    DISABLEIP6="no"
-  fi
-  echo -e "${DISABLEIPV6}${BOLD}${DGN}Disable IPv6: ${BGN}$DISABLEIP6${CL}"
+  # if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "IPv6" --yesno "Disable IPv6?" 10 58); then
+  #   DISABLEIP6="yes"
+  # else
+  #   DISABLEIP6="no"
+  # fi
+  # echo -e "${DISABLEIPV6}${BOLD}${DGN}Disable IPv6: ${BGN}$DISABLEIP6${CL}"
 
   if MTU1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default [The MTU of your selected vmbr, default is 1500])" 8 58 --title "MTU SIZE" 3>&1 1>&2 2>&3); then
     if [ -z "$MTU1" ]; then
@@ -1015,16 +1015,16 @@ start() {
 build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
-  NET_STRING="-net0 name=eth0,bridge=$BRG$MAC,ip=$NET$GATE$VLAN$MTU"
-  case "$IPV6_METHOD" in
-  slaac) NET_STRING="$NET_STRING,ip6=slaac" ;;
-  dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
-  static)
-    NET_STRING="$NET_STRING,ip6=$IPV6_ADDR"
-    [ -n "$IPV6_GATE" ] && NET_STRING="$NET_STRING,gw6=$IPV6_GATE"
-    ;;
-  none) NET_STRING="$NET_STRING,ip6=none" ;;
-  esac
+  # NET_STRING="-net0 name=eth0,bridge=$BRG$MAC,ip=$NET$GATE$VLAN$MTU"
+  # case "$IPV6_METHOD" in
+  # slaac) NET_STRING="$NET_STRING,ip6=slaac" ;;
+  # dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
+  # static)
+  #   NET_STRING="$NET_STRING,ip6=$IPV6_ADDR"
+  #   [ -n "$IPV6_GATE" ] && NET_STRING="$NET_STRING,gw6=$IPV6_GATE"
+  #   ;;
+  # none) NET_STRING="$NET_STRING,ip6=none" ;;
+  # esac
 
   if [ "$CT_TYPE" == "1" ]; then
     FEATURES="keyctl=1,nesting=1"
