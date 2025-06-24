@@ -536,10 +536,9 @@ advanced_settings() {
   while true; do
     IPV4_METHOD=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
       --title "IPv4 Address Management" \
-      --menu "Select IPv4 Address Assignment Method:" 12 60 3 \
+      --menu "Select IPv4 Address Assignment Method:" 12 60 2 \
       "dhcp" "Automatic (DHCP, recommended)" \
       "static" "Static (manual entry)" \
-      "none" "Disabled (no IPv4 address)" \
       3>&1 1>&2 2>&3)
 
     exit_status=$?
@@ -552,12 +551,6 @@ advanced_settings() {
       NET="dhcp"
       GATE=""
       echo -e "${NETWORK}${BOLD}${DGN}IPv4: DHCP${CL}"
-      break
-      ;;
-    none)
-      NET="none"
-      GATE=""
-      echo -e "${NETWORK}${BOLD}${DGN}IPv4: Disabled${CL}"
       break
       ;;
     static)
