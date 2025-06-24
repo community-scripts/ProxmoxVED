@@ -18,16 +18,16 @@ $STD apt-get install -y make git
 msg_ok "Installed Dependencies"
 
 NODE_MODULE="yarn" setup_nodejs
-
-msg_info "Installing Notesnook (Patience)"
 fetch_and_deploy_gh_release "notesnook" "streetwriters/notesnook" "tarball"
+
+msg_info "Configuring Notesnook (Patience)"
 cd /opt/notesnook
 export NODE_OPTIONS="--max-old-space-size=2560"
 mkdir -p certs
 $STD openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
 $STD npm install
 $STD npm run build:web
-msg_ok "Installed Notesnook"
+msg_ok "Configured Notesnook"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/notesnook.service
