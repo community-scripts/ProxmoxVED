@@ -48,25 +48,10 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOF
-
-cat <<EOF >/etc/systemd/system/caddy.service
-[Unit]
-Description=Caddy Service
-After=network-online.target notesnook.service
-Requires=notesnook.service
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/notesnook
-ExecStart=/usr/bin/caddy reverse-proxy --from https://$LOCAL_IP --to localhost:3000
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-EOF
+sed -i "s|^ExecStart=.*|ExecStart=/usr/bin/caddy reverse-proxy --from https://$LOCAL_IP --to localhost:3000|" /lib/systemd/system/caddy.service
+systemctl daemon-reload
+systemctl restart caddy
 systemctl enable -q --now notesnook
-systemctl enable -q --now caddy
 msg_ok "Created Service"
 
 motd_ssh
