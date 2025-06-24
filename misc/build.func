@@ -532,43 +532,70 @@ advanced_settings() {
     fi
   fi
 
+  # IPv4 methods: dhcp, static, none
   while true; do
-    NET=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Set a Static IPv4 CIDR Address (/24)" 8 58 dhcp --title "IP ADDRESS" 3>&1 1>&2 2>&3)
+    IPV4_METHOD=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "IPv4 Address Management" \
+      --menu "Select IPv4 Address Assignment Method:" 12 60 3 \
+      "dhcp" "Automatic (DHCP, recommended)" \
+      "static" "Static (manual entry)" \
+      "none" "Disabled (no IPv4 address)" \
+      3>&1 1>&2 2>&3)
+
     exit_status=$?
-    if [ $exit_status -eq 0 ]; then
-      if [ "$NET" = "dhcp" ]; then
-        echo -e "${NETWORK}${BOLD}${DGN}IP Address: ${BGN}$NET${CL}"
-        break
-      else
-        if [[ "$NET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[1-2][0-9]|3[0-2])$ ]]; then
-          echo -e "${NETWORK}${BOLD}${DGN}IP Address: ${BGN}$NET${CL}"
-          break
-        else
-          whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "$NET is an invalid IPv4 CIDR address. Please enter a valid IPv4 CIDR address or 'dhcp'" 8 58
-        fi
-      fi
-    else
+    if [ $exit_status -ne 0 ]; then
       exit_script
     fi
-  done
 
-  if [ "$NET" != "dhcp" ]; then
-    while true; do
-      GATE1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "Enter gateway IP address" 8 58 --title "Gateway IP" 3>&1 1>&2 2>&3)
-      if [ -z "$GATE1" ]; then
-        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Gateway IP address cannot be empty" 8 58
-      elif [[ ! "$GATE1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Invalid IP address format" 8 58
-      else
-        GATE=",gw=$GATE1"
-        echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}$GATE1${CL}"
-        break
-      fi
-    done
-  else
-    GATE=""
-    echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}Default${CL}"
-  fi
+    case "$IPV4_METHOD" in
+    dhcp)
+      NET="dhcp"
+      GATE=""
+      echo -e "${NETWORK}${BOLD}${DGN}IPv4: DHCP${CL}"
+      break
+      ;;
+    none)
+      NET="none"
+      GATE=""
+      echo -e "${NETWORK}${BOLD}${DGN}IPv4: Disabled${CL}"
+      break
+      ;;
+    static)
+      # Static: call and validate CIDR address
+      while true; do
+        NET=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+          --inputbox "Enter Static IPv4 CIDR Address (e.g. 192.168.100.50/24)" 8 58 "" \
+          --title "IPv4 ADDRESS" 3>&1 1>&2 2>&3)
+        if [ -z "$NET" ]; then
+          whiptail --msgbox "IPv4 address must not be empty." 8 58
+          continue
+        elif [[ "$NET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[1-2][0-9]|3[0-2])$ ]]; then
+          echo -e "${NETWORK}${BOLD}${DGN}IPv4 Address: ${BGN}$NET${CL}"
+          break
+        else
+          whiptail --msgbox "$NET is not a valid IPv4 CIDR address. Please enter a correct value!" 8 58
+        fi
+      done
+
+      # call and validate Gateway
+      while true; do
+        GATE1=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+          --inputbox "Enter Gateway IP address for static IPv4" 8 58 "" \
+          --title "Gateway IP" 3>&1 1>&2 2>&3)
+        if [ -z "$GATE1" ]; then
+          whiptail --msgbox "Gateway IP address cannot be empty." 8 58
+        elif [[ ! "$GATE1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+          whiptail --msgbox "Invalid Gateway IP address format." 8 58
+        else
+          GATE=",gw=$GATE1"
+          echo -e "${GATEWAY}${BOLD}${DGN}Gateway IP Address: ${BGN}$GATE1${CL}"
+          break
+        fi
+      done
+      break
+      ;;
+    esac
+  done
 
   # IPv6 Address Management selection
   while true; do
