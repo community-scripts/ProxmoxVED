@@ -45,7 +45,7 @@ KEY_URL="https://download.onlyoffice.com/GPG-KEY-ONLYOFFICE"
 
 TMP_KEY_CONTENT=$(mktemp)
 if curl -fsSL "$KEY_URL" -o "$TMP_KEY_CONTENT" && grep -q "BEGIN PGP PUBLIC KEY BLOCK" "$TMP_KEY_CONTENT"; then
-  gpg --no-default-keyring --keyring "gnupg-ring:$GPG_TMP" --import "$TMP_KEY_CONTENT" >/dev/null
+  gpg --quiet --batch --yes --no-default-keyring --keyring "gnupg-ring:$GPG_TMP" --import "$TMP_KEY_CONTENT" >/dev/null 2>&1
   chmod 644 "$GPG_TMP"
   chown root:root "$GPG_TMP"
   mv "$GPG_TMP" /usr/share/keyrings/onlyoffice.gpg
