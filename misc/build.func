@@ -202,7 +202,7 @@ base_settings() {
   GATE=""
   APT_CACHER=""
   APT_CACHER_IP=""
-  DISABLEIP6="no"
+  #DISABLEIP6="no"
   MTU=""
   SD=""
   NS=""
