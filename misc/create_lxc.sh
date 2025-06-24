@@ -48,62 +48,73 @@ fi
 
 # This function is used to select the storage class and determine the corresponding storage content type and label.
 function select_storage() {
-  local CLASS="$1"
-  local CONTENT
-  local CONTENT_LABEL
-
-  case "$CLASS" in
+  local CLASS=$1 CONTENT CONTENT_LABEL
+  case $CLASS in
   container)
     CONTENT='rootdir'
     CONTENT_LABEL='Container'
     ;;
   template)
     CONTENT='vztmpl'
-    CONTENT_LABEL='Container Template'
+    CONTENT_LABEL='Container template'
+    ;;
+  iso)
+    CONTENT='iso'
+    CONTENT_LABEL='ISO image'
+    ;;
+  images)
+    CONTENT='images'
+    CONTENT_LABEL='VM Disk image'
+    ;;
+  backup)
+    CONTENT='backup'
+    CONTENT_LABEL='Backup'
+    ;;
+  snippets)
+    CONTENT='snippets'
+    CONTENT_LABEL='Snippets'
     ;;
   *)
-    echo -e "\n\n${CROSS}${RD}Invalid storage class: $CLASS"
+    msg_error "Invalid storage class '$CLASS'."
     exit 201
     ;;
   esac
 
-  # Collect storage options
+  command -v whiptail >/dev/null || {
+    msg_error "whiptail missing."
+    exit 220
+  }
+  command -v numfmt >/dev/null || {
+    msg_error "numfmt missing."
+    exit 221
+  }
+
   local -a MENU
-  local MSG_MAX_LENGTH=0
+  while read -r line; do
+    local TAG=$(echo $line | awk '{print $1}')
+    local TYPE=$(echo $line | awk '{printf "%-10s", $2}')
+    local FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
+    MENU+=("$TAG" "Type: $TYPE Free: $FREE " "OFF")
+  done < <(pvesm status -content $CONTENT | awk 'NR>1')
 
-  while read -r TAG TYPE _ _ _ FREE _; do
-    local TYPE_PADDED
-    local FREE_FMT
-
-    TYPE_PADDED=$(printf "%-10s" "$TYPE")
-    FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")B
-    local ITEM="Type: $TYPE_PADDED Free: $FREE_FMT"
-
-    ((${#ITEM} + 2 > MSG_MAX_LENGTH)) && MSG_MAX_LENGTH=$((${#ITEM} + 2))
-    MENU+=("$TAG" "$ITEM" "OFF")
-  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
-
-  local OPTION_COUNT=$((${#MENU[@]} / 3))
-
-  # Auto-select if only one option available
-  if [[ "$OPTION_COUNT" -eq 1 ]]; then
-    echo "${MENU[0]}"
-    return 0
+  if [ ${#MENU[@]} -eq 0 ]; then
+    msg_error "No storage found for content type '$CONTENT'."
+    exit 203
   fi
 
-  # Display selection menu
-  local STORAGE
-  while [[ -z "${STORAGE:+x}" ]]; do
-    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-      "Select the storage pool to use for the ${CONTENT_LABEL,,}.\nUse the spacebar to make a selection.\n" \
-      16 $((MSG_MAX_LENGTH + 23)) 6 \
-      "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-      echo -e "\n\n${CROSS}${RD}Storage selection cancelled."
-      exit 202
-    }
-  done
+  if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
+    printf "%s" "${MENU[0]}"
+    return
+  fi
 
-  echo "$STORAGE"
+  local STORAGE
+  STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+    "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
+    16 70 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+    msg_error "Storage selection cancelled by user."
+    exit 202
+  }
+  printf "%s" "$STORAGE"
 }
 
 # Test if required variables are set
