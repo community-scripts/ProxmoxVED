@@ -49,6 +49,7 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 sed -i "s|^ExecStart=.*|ExecStart=/usr/bin/caddy reverse-proxy --from https://$LOCAL_IP --to localhost:3000|" /lib/systemd/system/caddy.service
+sed -i '/^ExecReload=/d' /lib/systemd/system/caddy.service
 systemctl daemon-reload
 systemctl restart caddy
 systemctl enable -q --now notesnook

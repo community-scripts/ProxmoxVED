@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "interface_port": 3000,
+  "interface_port": 443,
   "documentation": null,
   "config_path": "/",
   "website": "https://notesnook.com/",
@@ -21,7 +21,7 @@
       "resources": {
         "cpu": 2,
         "ram": 3072,
-        "hdd": 8,
+        "hdd": 10,
         "os": "Debian",
         "version": "12"
       }
