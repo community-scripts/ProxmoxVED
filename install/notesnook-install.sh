@@ -66,6 +66,7 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now notesnook
+systemctl enable -q --now caddy
 msg_ok "Created Service"
 
 motd_ssh
