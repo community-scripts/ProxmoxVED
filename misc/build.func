@@ -197,7 +197,7 @@ base_settings() {
   HN=$NSAPP
   BRG="vmbr0"
   NET="dhcp"
-  IPV6_METHOD="slaac"
+  IPV6_METHOD="none"
   IPV6_STATIC=""
   GATE=""
   APT_CACHER=""
@@ -574,16 +574,16 @@ advanced_settings() {
   while true; do
     IPV6_METHOD=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --menu \
       "Select IPv6 Address Management Type:" 15 58 4 \
-      "slaac" "SLAAC (recommended, default)" \
+      "auto" "SLAAC/AUTO (recommended, default)" \
       "dhcp" "DHCPv6" \
       "static" "Static (manual entry)" \
       "none" "Disabled" \
-      --default-item "slaac" 3>&1 1>&2 2>&3)
+      --default-item "auto" 3>&1 1>&2 2>&3)
     [ $? -ne 0 ] && exit_script
 
     case "$IPV6_METHOD" in
-    slaac)
-      echo -e "${NETWORK}${BOLD}${DGN}IPv6: ${BGN}SLAAC (automatic)${CL}"
+    auto)
+      echo -e "${NETWORK}${BOLD}${DGN}IPv6: ${BGN}SLAAC/AUTO${CL}"
       IPV6_ADDR=""
       IPV6_GATE=""
       break
@@ -1016,15 +1016,15 @@ build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
   NET_STRING="-net0 name=eth0,bridge=$BRG$MAC,ip=$NET$GATE$VLAN$MTU"
-  # case "$IPV6_METHOD" in
-  # slaac) NET_STRING="$NET_STRING,ip6=slaac" ;;
-  # dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
-  # static)
-  #   NET_STRING="$NET_STRING,ip6=$IPV6_ADDR"
-  #   [ -n "$IPV6_GATE" ] && NET_STRING="$NET_STRING,gw6=$IPV6_GATE"
-  #   ;;
-  # none) NET_STRING="$NET_STRING,ip6=none" ;;
-  # esac
+  case "$IPV6_METHOD" in
+  slaac) NET_STRING="$NET_STRING,ip6=auto" ;;
+  dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
+  static)
+    NET_STRING="$NET_STRING,ip6=$IPV6_ADDR"
+    [ -n "$IPV6_GATE" ] && NET_STRING="$NET_STRING,gw6=$IPV6_GATE"
+    ;;
+  none) NET_STRING="$NET_STRING,ip6=none" ;;
+  esac
 
   if [ "$CT_TYPE" == "1" ]; then
     FEATURES="keyctl=1,nesting=1"
