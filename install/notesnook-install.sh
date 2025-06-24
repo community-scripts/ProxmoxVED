@@ -16,9 +16,11 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   make \
-  git
+  git \
+  caddy
 msg_ok "Installed Dependencies"
 
+LOCAL_IP=$(hostname -I | awk '{print $1}')
 NODE_MODULE="yarn" setup_nodejs
 fetch_and_deploy_gh_release "notesnook" "streetwriters/notesnook" "tarball"
 
@@ -41,6 +43,23 @@ Type=simple
 User=root
 WorkingDirectory=/opt/notesnook
 ExecStart=/usr/bin/npx serve -l tcp://0.0.0.0:3000 apps/web/build
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat <<EOF >/etc/systemd/system/caddy.service
+[Unit]
+Description=Caddy Service
+After=network-online.target
+Requires=notesnook.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/notesnook
+ExecStart=/usr/bin/caddy reverse-proxy --from https://$LOCAL_IP --to localhost:3000
 Restart=on-failure
 
 [Install]
