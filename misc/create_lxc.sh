@@ -27,7 +27,7 @@ trap on_terminate TERM
 
 function on_exit() {
   local exit_code="$?"
-  [[ -n "${lockfile:-}" ]] && exec "$LOCKFD" >&- # Lockfile schließen
+  [[ -n "${lockfile:-}" ]]
   exit "$exit_code"
 }
 
