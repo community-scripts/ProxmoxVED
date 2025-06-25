@@ -33,7 +33,6 @@ $STD apt-get install -y \
   poppler-utils \
   potrace \
   python3-numpy \
-  resvg \
   texlive \
   texlive-fonts-recommended \
   texlive-latex-extra \
