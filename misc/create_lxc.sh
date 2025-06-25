@@ -25,10 +25,13 @@ trap on_exit EXIT
 trap on_interrupt INT
 trap on_terminate TERM
 LOCKFD=9
+lockfile="/tmp/template.${TEMPLATE}.lock"
+export lockfile
+exec $LOCKFD >"$lockfile"
 
 function on_exit() {
   local exit_code="$?"
-  [[ -n "${lockfile:-}" ]] && exec "$LOCKFD" >&- # close Lockfile
+  [[ -n "${lockfile:-}" && -e "$lockfile" ]] && flock -u $LOCKFD || true
   exit "$exit_code"
 }
 
@@ -334,3 +337,4 @@ DEBUG_LOG="/tmp/lxc_debug_${CTID}.log"
 } >"$DEBUG_LOG"
 
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
+[[ -f "$DEBUG_LOG" ]] && rm -f "$DEBUG_LOG"
