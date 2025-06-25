@@ -24,10 +24,11 @@ trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap on_exit EXIT
 trap on_interrupt INT
 trap on_terminate TERM
+LOCKFD=9
 
 function on_exit() {
   local exit_code="$?"
-  [[ -n "${lockfile:-}" ]] && exec "$LOCKFD" >&- # Lockfile schließen
+  [[ -n "${lockfile:-}" ]] && exec "$LOCKFD" >&- # close Lockfile
   exit "$exit_code"
 }
 
@@ -245,8 +246,8 @@ PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 
 # Secure creation of the LXC container with lock and template check
 lockfile="/tmp/template.${TEMPLATE}.lock"
-exec 9>"$lockfile"
-flock -w 60 9 || {
+exec $LOCKFD >"$lockfile"
+flock -w 60 $LOCKFD || {
   msg_error "Timeout while waiting for template lock"
   exit 211
 }
