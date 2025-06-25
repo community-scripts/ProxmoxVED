@@ -162,10 +162,10 @@ DEFAULT_FILE="/usr/local/community-scripts/default_storage"
 if [[ -f "$DEFAULT_FILE" ]]; then
   source "$DEFAULT_FILE"
   if [[ -n "$TEMPLATE_STORAGE" && -n "$CONTAINER_STORAGE" ]]; then
-    msg_info "Using default storage configuration"
+    msg_info "Using default storage configuration from: $DEFAULT_FILE"
     msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}|${CL} Container Storage: ${BL}$CONTAINER_STORAGE${CL}"
   else
-    msg_warn "Default storage file found but incomplete – falling back to manual selection"
+    msg_warn "Default storage file exists but is incomplete – falling back to manual selection"
     TEMPLATE_STORAGE=$(select_storage template)
     msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
     CONTAINER_STORAGE=$(select_storage container)

@@ -206,6 +206,7 @@ TEMPLATE_STORAGE=$tmpl
 CONTAINER_STORAGE=$cont
 EOF
 
+  msg_ok "Default Storage set: Template=${BL}$tmpl${CL} ${GN}|${CL} Container=${BL}$cont${CL}"
   whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
     --msgbox "Default Storage set:\n\nTemplate: $tmpl\nContainer: $cont" 10 58
 }
