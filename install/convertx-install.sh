@@ -13,29 +13,29 @@ setting_up_container
 network_check
 update_os
 
-setup_imagemagick
+# setup_imagemagick
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  assimp-utils \
-  calibre \
-  dcraw \
-  dvisvgm \
-  ffmpeg \
-  inkscape \
-  libva2 \
-  libvips-tools \
-  lmodern \
-  mupdf-tools \
-  pandoc \
-  poppler-utils \
-  potrace \
-  python3-numpy \
-  texlive \
-  texlive-fonts-recommended \
-  texlive-latex-extra \
-  texlive-latex-recommended \
-  texlive-xetex
+# msg_info "Installing Dependencies"
+# $STD apt-get install -y \
+#   assimp-utils \
+#   calibre \
+#   dcraw \
+#   dvisvgm \
+#   ffmpeg \
+#   inkscape \
+#   libva2 \
+#   libvips-tools \
+#   lmodern \
+#   mupdf-tools \
+#   pandoc \
+#   poppler-utils \
+#   potrace \
+#   python3-numpy \
+#   texlive \
+#   texlive-fonts-recommended \
+#   texlive-latex-extra \
+#   texlive-latex-recommended \
+#   texlive-xetex
 msg_ok "Installed Dependencies"
 
 NODE_VERSION=22 NODE_MODULE="bun" setup_nodejs
