@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/build.func)
+# source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Ben Whybrow
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE

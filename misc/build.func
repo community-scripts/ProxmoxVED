@@ -16,16 +16,16 @@ variables() {
 }
 
 # source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
-source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/api.func)
+source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
 #   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/core.func)
+  source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/core.func)
   load_functions
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
 #   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  source <(wget -qO- https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/core.func)
+  source <(wget -qO- https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/core.func)
   load_functions
   #echo "(build.func) Loaded core.func via wget"
 fi
@@ -39,7 +39,7 @@ catch_errors() {
 # This function is called when an error occurs. It receives the exit code, line number, and command that caused the error, and displays an error message.
 error_handler() {
 #   source /dev/stdin <<<$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
-  source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/api.func)
+  source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/api.func)
   printf "\e[?25h"
   local exit_code="$?"
   local line_number="$1"
@@ -933,7 +933,7 @@ install_script() {
       echo -e "${INFO}${HOLD} ${GN}Using Config File on node $PVEHOST_NAME${CL}"
       METHOD="advanced"
     #   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/config-file.func)
-      source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/config-file.func)
+      source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/config-file.func)
       config_file
       break
       ;;
@@ -1007,7 +1007,7 @@ check_container_storage() {
 
 start() {
 #   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
-  source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/tools.func)
+  source <(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/tools.func)
   if command -v pveversion >/dev/null 2>&1; then
     install_script
   else
@@ -1070,10 +1070,10 @@ build_container() {
   pushd "$TEMP_DIR" >/dev/null
   if [ "$var_os" == "alpine" ]; then
     # export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)"
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/alpine-install.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/alpine-install.func)"
   else
     # export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/install.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/install.func)"
   fi
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
@@ -1109,7 +1109,7 @@ build_container() {
 "
   # This executes create_lxc.sh and creates the container and .conf file
 #   CREATE_CMD="bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)\""
-  CREATE_CMD="bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/main/misc/create_lxc.sh)\""
+  CREATE_CMD="bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/misc/create_lxc.sh)\""
   eval "$CREATE_CMD"
   RET=$?
   if [[ $RET -ne 0 ]]; then
@@ -1199,7 +1199,8 @@ EOF'
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 >/dev/null"
   fi
   msg_ok "Customized LXC Container"
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/install/$var_install.sh)" $?
+#   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/$var_install.sh)" $?
+#   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/install/$var_install.sh)" $?
 
 }
 
