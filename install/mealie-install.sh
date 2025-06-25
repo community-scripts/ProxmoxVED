@@ -35,6 +35,7 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCO
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
+$STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
 {
   echo "Mealie-Credentials"
   echo "Mealie Database User: $DB_USER"
