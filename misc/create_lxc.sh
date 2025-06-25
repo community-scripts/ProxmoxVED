@@ -249,6 +249,7 @@ flock -w 60 9 || {
   msg_error "Timeout while waiting for template lock"
   exit 211
 }
+
 msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
   msg_error "Container creation failed. Checking if template is corrupted or incomplete."
