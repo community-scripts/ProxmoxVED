@@ -24,14 +24,10 @@ trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap on_exit EXIT
 trap on_interrupt INT
 trap on_terminate TERM
-LOCKFD=9
-lockfile="/tmp/template.${TEMPLATE}.lock"
-export lockfile
-exec $LOCKFD >"$lockfile"
 
 function on_exit() {
   local exit_code="$?"
-  [[ -n "${lockfile:-}" && -e "$lockfile" ]] && flock -u $LOCKFD || true
+  [[ -n "${lockfile:-}" ]] && exec "$LOCKFD" >&- # Lockfile schließen
   exit "$exit_code"
 }
 
@@ -177,7 +173,6 @@ if [ "$STORAGE_FREE" -lt "$REQUIRED_KB" ]; then
   msg_error "Not enough space on '$CONTAINER_STORAGE'. Needed: ${PCT_DISK_SIZE:-8}G."
   exit 214
 fi
-
 # Check Cluster Quorum if in Cluster
 if [ -f /etc/pve/corosync.conf ]; then
   msg_info "Checking Proxmox cluster quorum status"
@@ -249,12 +244,11 @@ PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 
 # Secure creation of the LXC container with lock and template check
 lockfile="/tmp/template.${TEMPLATE}.lock"
-exec $LOCKFD >"$lockfile"
-flock -w 60 $LOCKFD || {
+exec 9>"$lockfile"
+flock -w 60 9 || {
   msg_error "Timeout while waiting for template lock"
   exit 211
 }
-
 msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
   msg_error "Container creation failed. Checking if template is corrupted or incomplete."
@@ -337,4 +331,3 @@ DEBUG_LOG="/tmp/lxc_debug_${CTID}.log"
 } >"$DEBUG_LOG"
 
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
-[[ -f "$DEBUG_LOG" ]] && rm -f "$DEBUG_LOG"
