@@ -54,24 +54,24 @@ PORT=3000
 EOF
 msg_ok "Installed ConvertX"
 
-msg_info "Creating Services"
-cat <<EOF >/etc/systemd/system/convertx.service
-[Unit]
-Description=ConvertX File Converter
-After=network.target
+# msg_info "Creating Services"
+# cat <<EOF >/etc/systemd/system/convertx.service
+# [Unit]
+# Description=ConvertX File Converter
+# After=network.target
 
-[Service]
-Type=exec
-WorkingDirectory=/opt/convertx
-EnvironmentFile=/opt/convertx/.env
-ExecStart=/root/.bun/bin/bun dev
-Restart=always
+# [Service]
+# Type=exec
+# WorkingDirectory=/opt/convertx
+# EnvironmentFile=/opt/convertx/.env
+# ExecStart=/root/.bun/bin/bun dev
+# Restart=always
 
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable -q --now convertx
-msg_ok "Service Created"
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+# systemctl enable -q --now convertx
+# msg_ok "Service Created"
 
 msg_info "Waiting for SQLite database"
 for ((COUNT = 0; COUNT < 60; COUNT++)); do
