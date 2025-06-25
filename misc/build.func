@@ -193,7 +193,6 @@ manage_default_storage() {
   local tmpl=$(select_storage template)
   local cont=$(select_storage container)
 
-  # Raw Werte schreiben – keine Farben!
   cat <<EOF >"$file"
 TEMPLATE_STORAGE=$tmpl
 CONTAINER_STORAGE=$cont
