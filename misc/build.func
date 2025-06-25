@@ -187,20 +187,13 @@ ssh_check() {
 }
 
 manage_default_storage() {
-  local current_template="None"
-  local current_container="None"
   local file="/usr/local/community-scripts/default_storage"
-
-  if [[ -f "$file" ]]; then
-    source "$file"
-    current_template="$TEMPLATE_STORAGE"
-    current_container="$CONTAINER_STORAGE"
-  fi
+  mkdir -p /usr/local/community-scripts
 
   local tmpl=$(select_storage template)
   local cont=$(select_storage container)
 
-  mkdir -p /usr/local/community-scripts
+  # Raw Werte schreiben – keine Farben!
   cat <<EOF >"$file"
 TEMPLATE_STORAGE=$tmpl
 CONTAINER_STORAGE=$cont
