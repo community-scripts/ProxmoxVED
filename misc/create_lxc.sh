@@ -280,8 +280,8 @@ if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[
   done
 
   sleep 1 # I/O-Sync-Delay
+  msg_ok "Re-downloaded LXC Template"
 fi
-msg_ok "Re-downloaded LXC Template"
 
 if ! pct list | awk '{print $1}' | grep -qx "$CTID"; then
   msg_error "Container ID $CTID not listed in 'pct list' – unexpected failure."
