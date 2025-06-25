@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: Omar Minaya
+# Author: Omar Minaya | MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/C4illin/ConvertX
 
@@ -13,29 +13,29 @@ setting_up_container
 network_check
 update_os
 
-# setup_imagemagick
+setup_imagemagick
 
-# msg_info "Installing Dependencies"
-# $STD apt-get install -y \
-#   assimp-utils \
-#   calibre \
-#   dcraw \
-#   dvisvgm \
-#   ffmpeg \
-#   inkscape \
-#   libva2 \
-#   libvips-tools \
-#   lmodern \
-#   mupdf-tools \
-#   pandoc \
-#   poppler-utils \
-#   potrace \
-#   python3-numpy \
-#   texlive \
-#   texlive-fonts-recommended \
-#   texlive-latex-extra \
-#   texlive-latex-recommended \
-#   texlive-xetex
+msg_info "Installing Dependencies"
+$STD apt-get install -y \
+  assimp-utils \
+  calibre \
+  dcraw \
+  dvisvgm \
+  ffmpeg \
+  inkscape \
+  libva2 \
+  libvips-tools \
+  lmodern \
+  mupdf-tools \
+  pandoc \
+  poppler-utils \
+  potrace \
+  python3-numpy \
+  texlive \
+  texlive-fonts-recommended \
+  texlive-latex-extra \
+  texlive-latex-recommended \
+  texlive-xetex
 msg_ok "Installed Dependencies"
 
 NODE_VERSION=22 NODE_MODULE="bun" setup_nodejs
@@ -54,36 +54,24 @@ PORT=3000
 EOF
 msg_ok "Installed ConvertX"
 
-# msg_info "Creating Services"
-# cat <<EOF >/etc/systemd/system/convertx.service
-# [Unit]
-# Description=ConvertX File Converter
-# After=network.target
+msg_info "Creating Services"
+cat <<EOF >/etc/systemd/system/convertx.service
+[Unit]
+Description=ConvertX File Converter
+After=network.target
 
-# [Service]
-# Type=exec
-# WorkingDirectory=/opt/convertx
-# EnvironmentFile=/opt/convertx/.env
-# ExecStart=/root/.bun/bin/bun dev
-# Restart=always
+[Service]
+Type=exec
+WorkingDirectory=/opt/convertx
+EnvironmentFile=/opt/convertx/.env
+ExecStart=/bin/bun dev
+Restart=always
 
-# [Install]
-# WantedBy=multi-user.target
-# EOF
-# systemctl enable -q --now convertx
-# msg_ok "Service Created"
-
-msg_info "Waiting for SQLite database"
-for ((COUNT = 0; COUNT < 60; COUNT++)); do
-  [ -f "/opt/convertx/data/mydb.sqlite" ] && {
-    systemctl restart convertx
-    exit 0
-  }
-  sleep 0.5
-done
-msg_error "Timed out waiting for database!"
-exit 1
-msg_ok "Database created"
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now convertx
+msg_ok "Service Created"
 
 motd_ssh
 customize
