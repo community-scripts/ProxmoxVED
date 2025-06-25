@@ -69,6 +69,15 @@ function setup_nodejs() {
 
   export NODE_OPTIONS="--max-old-space-size=4096"
 
+  # Ensure valid working directory for npm (avoids uv_cwd error)
+  if [[ ! -d /opt ]]; then
+    mkdir -p /opt
+  fi
+  cd /opt || {
+    msg_error "Failed to set safe working directory before npm install"
+    exit 1
+  }
+
   # Install global Node modules
   if [[ -n "$NODE_MODULE" ]]; then
     IFS=',' read -ra MODULES <<<"$NODE_MODULE"
