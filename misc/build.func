@@ -1292,7 +1292,7 @@ EOF'
   fi
   msg_ok "Customized LXC Container"
 #   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/$var_install.sh)" $?
-#   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/install/$var_install.sh)" $?
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/bwhybrow23/ProxmoxVED/refs/heads/opencut/install/$var_install.sh)" $?
 
 }
 
