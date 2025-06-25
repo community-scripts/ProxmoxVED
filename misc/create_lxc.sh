@@ -21,16 +21,33 @@ fi
 # This sets error handling options and defines the error_handler function to handle errors
 set -Eeuo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
+trap on_exit EXIT
+trap on_interrupt INT
+trap on_terminate TERM
 
-# This function handles errors
+function on_exit() {
+  local exit_code="$?"
+  [[ -n "${lockfile:-}" ]] && exec "$LOCKFD" >&- # Lockfile schließen
+  exit "$exit_code"
+}
+
 function error_handler() {
-  printf "\e[?25h"
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
-  echo -e "\n$error_message\n"
-  exit 200
+  printf "\e[?25h"
+  echo -e "\n${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}\n"
+  exit "$exit_code"
+}
+
+function on_interrupt() {
+  echo -e "\n${RD}Interrupted by user (SIGINT)${CL}"
+  exit 130
+}
+
+function on_terminate() {
+  echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}"
+  exit 143
 }
 
 # This checks for the presence of valid Container Storage and Template Storage locations
@@ -181,7 +198,7 @@ if ! timeout 15 pveam update >/dev/null 2>&1; then
   msg_info "Skipping template update – using local fallback: $TEMPLATE_FALLBACK"
 else
   msg_ok "LXC Template List Updated"
-fi					
+fi
 
 # Get LXC template string
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
@@ -200,7 +217,6 @@ if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLAT
   msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
 
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
-
   for attempt in {1..3}; do
     msg_info "Attempt $attempt: Downloading LXC template..."
 
@@ -219,7 +235,6 @@ if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLAT
 fi
 
 msg_ok "LXC Template '$TEMPLATE' is ready to use."
-
 # Check and fix subuid/subgid
 grep -q "root:100000:65536" /etc/subuid || echo "root:100000:65536" >>/etc/subuid
 grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgid
@@ -266,55 +281,55 @@ if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[
   done
 
   sleep 1 # I/O-Sync-Delay
+fi
+msg_ok "Re-downloaded LXC Template"
 
-  msg_ok "Re-downloaded LXC Template"									 
-  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-    msg_error "Container creation failed after re-downloading template."
-    exit 200
+if ! pct list | awk '{print $1}' | grep -qx "$CTID"; then
+  msg_error "Container ID $CTID not listed in 'pct list' – unexpected failure."
+  exit 215
+fi
+
+if ! grep -q '^rootfs:' "/etc/pve/lxc/$CTID.conf"; then
+  msg_error "RootFS entry missing in container config – storage not correctly assigned."
+  exit 216
+fi
+
+if grep -q '^hostname:' "/etc/pve/lxc/$CTID.conf"; then
+  CT_HOSTNAME=$(grep '^hostname:' "/etc/pve/lxc/$CTID.conf" | awk '{print $2}')
+  if [[ ! "$CT_HOSTNAME" =~ ^[a-z0-9-]+$ ]]; then
+    msg_warn "Hostname '$CT_HOSTNAME' contains invalid characters – may cause issues with networking or DNS."
   fi
 fi
 
-if ! pct status "$CTID" &>/dev/null; then
-  msg_error "Container not found after pct create – assuming failure."
-  exit 210
+if [[ "${PCT_RAM_SIZE:-2048}" -lt 1024 ]]; then
+  msg_warn "Configured RAM (${PCT_RAM_SIZE}MB) is below 1024MB – some apps may not work properly."
 fi
-: "${UDHCPC_FIX:=}"
-if [ "$UDHCPC_FIX" == "yes" ]; then
-  # Ensure container is mounted
-  if ! mount | grep -q "/var/lib/lxc/${CTID}/rootfs"; then
-    pct mount "$CTID" >/dev/null 2>&1
-    MOUNTED_HERE=true
-  else
-    MOUNTED_HERE=false
-  fi
 
-  CONFIG_FILE="/var/lib/lxc/${CTID}/rootfs/etc/udhcpc/udhcpc.conf"
-
-  for i in {1..10}; do
-    [ -f "$CONFIG_FILE" ] && break
-    sleep 0.5
-  done
-
-  if [ -f "$CONFIG_FILE" ]; then
-    msg_info "Patching udhcpc.conf for Alpine DNS override"
-    sed -i '/^#*RESOLV_CONF="/d' "$CONFIG_FILE"
-    awk '
-      /^# Do not overwrite \/etc\/resolv\.conf/ {
-        print
-        print "RESOLV_CONF=\"no\""
-        next
-      }
-      { print }
-    ' "$CONFIG_FILE" >"${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
-    msg_ok "Patched udhcpc.conf (RESOLV_CONF=\"no\")"
-  else
-    echo -e "\n\n${CROSS}${RD}udhcpc.conf not found in $CONFIG_FILE after waiting"
-  fi
-
-  # Clean up: only unmount if we mounted it here
-  if [ "${MOUNTED_HERE}" = true ]; then
-    pct unmount "$CTID" >/dev/null 2>&1
-  fi
+if [[ "${PCT_UNPRIVILEGED:-1}" == "1" && " ${PCT_OPTIONS[*]} " == *"fuse=1"* ]]; then
+  msg_warn "Unprivileged container with FUSE may fail unless extra device mappings are configured."
 fi
+
+# Extra: Debug-Ausgabe (wenn DEBUG=yes gesetzt)
+DEBUG_LOG="/tmp/lxc_debug_${CTID}.log"
+{
+  echo "--- DEBUG DUMP for CTID $CTID ---"
+  echo "Hostname: ${CT_HOSTNAME:-unknown}"
+  echo "Template: ${TEMPLATE}"
+  echo "Template Storage: ${TEMPLATE_STORAGE}"
+  echo "Container Storage: ${CONTAINER_STORAGE}"
+  echo "Template Path: ${TEMPLATE_PATH}"
+  echo "Disk Size: ${PCT_DISK_SIZE:-8} GB"
+  echo "RAM Size: ${PCT_RAM_SIZE:-2048} MB"
+  echo "CPU Cores: ${PCT_CPU_CORES:-2}"
+  echo "Unprivileged: ${PCT_UNPRIVILEGED:-1}"
+  echo "PCT_OPTIONS:"
+  printf '  %s\n' "${PCT_OPTIONS[@]}"
+  echo "--- Container Config Dump ---"
+  [[ -f "/etc/pve/lxc/$CTID.conf" ]] && cat "/etc/pve/lxc/$CTID.conf"
+  echo "--- LVM Volumes ---"
+  lvs | grep "vm-${CTID}-disk-0" || echo "No LVM volume found."
+  echo "--- pct list ---"
+  pct list
+} >"$DEBUG_LOG"
 
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
