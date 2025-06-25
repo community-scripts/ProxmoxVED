@@ -1,0 +1,40 @@
+{
+    "name": "OpenCut",
+    "slug": "opencut",
+    "categories": [
+        13
+    ],
+    "date_created": "2025-06-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://github.com/OpenCut-app/OpenCut?tab=readme-ov-file",
+    "config_path": "/opt/OpenCut/docker-compose.yml, /opt/OpenCut/apps/web/.env",
+    "website": "https://opencut.app/",
+    "logo": "https://raw.githubusercontent.com/OpenCut-app/OpenCut/c18b173bc918c7f1688a30586b75792938e57690/apps/web/public/logo.png",
+    "description": "OpenCut (previously AppCut) is a free, open-source video editor for web, desktop, and mobile.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/opencut.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 10,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "The configuration for OpenCut has not been modified for public use. Please make sure to amend all variables in both the Docker configuration and the environmental variables before making the container public.",
+            "type": "warning"
+        }
+    ]
+}
