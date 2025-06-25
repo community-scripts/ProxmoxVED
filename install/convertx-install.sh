@@ -13,8 +13,6 @@ setting_up_container
 network_check
 update_os
 
-setup_nodejs NODE_VERSION=22 NODE_MODULE="bun"
-fetch_and_deploy_gh_release "ConvertX" "C4illin/ConvertX" "tarball" "latest" "/opt/convertx"
 setup_imagemagick
 
 msg_info "Installing Dependencies"
@@ -39,6 +37,9 @@ $STD apt-get install -y \
   texlive-latex-recommended \
   texlive-xetex
 msg_ok "Installed Dependencies"
+
+NODE_VERSION=22 NODE_MODULE="bun" setup_nodejs
+fetch_and_deploy_gh_release "ConvertX" "C4illin/ConvertX" "tarball" "latest" "/opt/convertx"
 
 msg_info "Installing ConvertX"
 cd /opt/convertx
