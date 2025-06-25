@@ -1,5 +1,40 @@
 [
   {
+    "name": "bunkerity/bunkerweb",
+    "version": "testing",
+    "date": "2025-06-16T18:10:42Z"
+  },
+  {
+    "name": "cockpit-project/cockpit",
+    "version": "341",
+    "date": "2025-06-25T11:49:28Z"
+  },
+  {
+    "name": "nzbgetcom/nzbget",
+    "version": "v25.0",
+    "date": "2025-05-12T09:12:04Z"
+  },
+  {
+    "name": "mattermost/mattermost",
+    "version": "v9.11.17",
+    "date": "2025-06-18T08:12:05Z"
+  },
+  {
+    "name": "n8n-io/n8n",
+    "version": "n8n@1.100.0",
+    "date": "2025-06-23T12:48:35Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2054",
+    "date": "2025-06-25T05:54:03Z"
+  },
+  {
+    "name": "ollama/ollama",
+    "version": "v0.9.3-rc3",
+    "date": "2025-06-25T03:27:43Z"
+  },
+  {
     "name": "moghtech/komodo",
     "version": "v1.18.4",
     "date": "2025-06-25T00:06:56Z"
@@ -18,11 +53,6 @@
     "name": "jenkinsci/jenkins",
     "version": "jenkins-2.516",
     "date": "2025-06-24T21:06:15Z"
-  },
-  {
-    "name": "ollama/ollama",
-    "version": "v0.9.3-rc1",
-    "date": "2025-06-24T20:26:55Z"
   },
   {
     "name": "evcc-io/evcc",
@@ -75,11 +105,6 @@
     "date": "2025-06-24T08:50:22Z"
   },
   {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2052",
-    "date": "2025-06-24T05:59:30Z"
-  },
-  {
     "name": "wazuh/wazuh",
     "version": "coverity-w26-4.13.0",
     "date": "2025-06-24T02:02:34Z"
@@ -110,19 +135,9 @@
     "date": "2025-06-23T15:12:12Z"
   },
   {
-    "name": "n8n-io/n8n",
-    "version": "n8n@1.98.2",
-    "date": "2025-06-18T18:20:16Z"
-  },
-  {
     "name": "Graylog2/graylog2-server",
     "version": "6.3.0-rc.2",
     "date": "2025-06-23T11:31:38Z"
-  },
-  {
-    "name": "mattermost/mattermost",
-    "version": "v9.11.17",
-    "date": "2025-06-18T08:12:05Z"
   },
   {
     "name": "firefly-iii/firefly-iii",
@@ -240,19 +255,9 @@
     "date": "2025-06-20T17:35:38Z"
   },
   {
-    "name": "nzbgetcom/nzbget",
-    "version": "v25.0",
-    "date": "2025-05-12T09:12:04Z"
-  },
-  {
     "name": "Sonarr/Sonarr",
     "version": "v4.0.15.2941",
     "date": "2025-06-20T17:20:54Z"
-  },
-  {
-    "name": "bunkerity/bunkerweb",
-    "version": "testing",
-    "date": "2025-06-16T18:10:42Z"
   },
   {
     "name": "zabbix/zabbix",
@@ -468,5 +473,15 @@
     "name": "Lidarr/Lidarr",
     "version": "v2.12.4.4658",
     "date": "2025-06-09T17:27:45Z"
+  },
+  {
+    "name": "Radarr/Radarr",
+    "version": "v5.26.2.10099",
+    "date": "2025-06-11T20:10:39Z"
+  },
+  {
+    "name": "traccar/traccar",
+    "version": "v6.7.3",
+    "date": "2025-06-15T05:46:17Z"
   }
 ]

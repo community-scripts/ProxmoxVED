@@ -158,13 +158,25 @@ if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
   exit 206
 fi
 
-# Get template storage
-TEMPLATE_STORAGE=$(select_storage template)
-msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
-
-# Get container storage
-CONTAINER_STORAGE=$(select_storage container)
-msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+DEFAULT_FILE="/usr/local/community-scripts/default_storage"
+if [[ -f "$DEFAULT_FILE" ]]; then
+  source "$DEFAULT_FILE"
+  if [[ -n "$TEMPLATE_STORAGE" && -n "$CONTAINER_STORAGE" ]]; then
+    msg_info "Using default storage configuration from: $DEFAULT_FILE"
+    msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}|${CL} Container Storage: ${BL}$CONTAINER_STORAGE${CL}"
+  else
+    msg_warn "Default storage file exists but is incomplete – falling back to manual selection"
+    TEMPLATE_STORAGE=$(select_storage template)
+    msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
+    CONTAINER_STORAGE=$(select_storage container)
+    msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+  fi
+else
+  TEMPLATE_STORAGE=$(select_storage template)
+  msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
+  CONTAINER_STORAGE=$(select_storage container)
+  msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+fi
 
 # Check free space on selected container storage
 STORAGE_FREE=$(pvesm status | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')

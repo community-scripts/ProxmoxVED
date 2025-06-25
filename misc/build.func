@@ -189,6 +189,94 @@ ssh_check() {
     fi
   fi
 }
+
+select_storage() {
+  local CLASS=$1 CONTENT CONTENT_LABEL
+  case $CLASS in
+  container)
+    CONTENT='rootdir'
+    CONTENT_LABEL='Container'
+    ;;
+  template)
+    CONTENT='vztmpl'
+    CONTENT_LABEL='Template'
+    ;;
+  iso)
+    CONTENT='iso'
+    CONTENT_LABEL='ISO image'
+    ;;
+  images)
+    CONTENT='images'
+    CONTENT_LABEL='VM Disk image'
+    ;;
+  backup)
+    CONTENT='backup'
+    CONTENT_LABEL='Backup'
+    ;;
+  snippets)
+    CONTENT='snippets'
+    CONTENT_LABEL='Snippets'
+    ;;
+  *)
+    msg_error "Invalid storage class '$CLASS'."
+    exit 201
+    ;;
+  esac
+
+  command -v whiptail >/dev/null || {
+    msg_error "whiptail missing."
+    exit 220
+  }
+  command -v numfmt >/dev/null || {
+    msg_error "numfmt missing."
+    exit 221
+  }
+
+  local -a MENU
+  while read -r line; do
+    local TAG=$(echo "$line" | awk '{print $1}')
+    local TYPE=$(echo "$line" | awk '{printf "%-10s", $2}')
+    local FREE=$(echo "$line" | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf "%9sB", $6}')
+    MENU+=("$TAG" "Type: $TYPE Free: $FREE" "OFF")
+  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
+
+  if [ ${#MENU[@]} -eq 0 ]; then
+    msg_error "No storage found for content type '$CONTENT'."
+    exit 203
+  fi
+
+  if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
+    echo "${MENU[0]}"
+    return
+  fi
+
+  local STORAGE
+  STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+    "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
+    16 70 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+    msg_error "Storage selection cancelled by user."
+    exit 202
+  }
+  echo "$STORAGE"
+}
+
+manage_default_storage() {
+  local file="/usr/local/community-scripts/default_storage"
+  mkdir -p /usr/local/community-scripts
+
+  local tmpl=$(select_storage template)
+  local cont=$(select_storage container)
+
+  cat <<EOF >"$file"
+TEMPLATE_STORAGE=$tmpl
+CONTAINER_STORAGE=$cont
+EOF
+
+  msg_ok "Default Storage set: Template=${BL}$tmpl${CL} ${GN}|${CL} Container=${BL}$cont${CL}"
+  whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+    --msgbox "Default Storage set:\n\nTemplate: $tmpl\nContainer: $cont" 10 58
+}
+
 base_settings() {
   # Default Settings
   CT_TYPE="1"
@@ -888,13 +976,14 @@ install_script() {
   while true; do
 
     CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SETTINGS" --menu "Choose an option:" \
-      18 60 6 \
+      20 60 7 \
       "1" "Default Settings" \
       "2" "Default Settings (with verbose)" \
       "3" "Advanced Settings" \
       "4" "Use Config File" \
-      "5" "Diagnostic Settings" \
-      "6" "Exit" --nocancel --default-item "1" 3>&1 1>&2 2>&3)
+      "5" "Manage Default Storage" \
+      "6" "Diagnostic Settings" \
+      "7" "Exit" --nocancel --default-item "1" 3>&1 1>&2 2>&3)
 
     if [ $? -ne 0 ]; then
       echo -e "${CROSS}${RD} Menu canceled. Exiting.${CL}"
@@ -937,7 +1026,11 @@ install_script() {
       config_file
       break
       ;;
+
     5)
+      manage_default_storage
+      ;;
+    6)
       if [[ $DIAGNOSTICS == "yes" ]]; then
         if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTICS SETTINGS" --yesno "Send Diagnostics of LXC Installation?\n\nCurrent setting: ${DIAGNOSTICS}" 10 58 \
           --yes-button "No" --no-button "Back"; then
@@ -953,9 +1046,8 @@ install_script() {
           whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTICS SETTINGS" --msgbox "Diagnostics settings changed to ${DIAGNOSTICS}." 8 58
         fi
       fi
-
       ;;
-    6)
+    7)
       echo -e "${CROSS}${RD}Exiting.${CL}"
       exit 0
       ;;
