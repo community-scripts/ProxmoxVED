@@ -25,13 +25,16 @@ function update_script() {
   check_container_storage
   check_container_resources
 
+  # Check if installation is present
   if [[ ! -f /etc/systemd/system/opencut.service ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
+  # Working Directory
   cd /opt/OpenCut
 
+  # Check for updates
   msg_info "Checking for updates to ${APP}..."
 
   LOCAL_COMMIT=$(git rev-parse HEAD)
@@ -68,6 +71,7 @@ function update_script() {
   fi
 
 }
+
 start
 build_container
 description
@@ -75,4 +79,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:[PORT]${CL}"

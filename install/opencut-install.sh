@@ -5,6 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/OpenCut-app/OpenCut
 
+# Import Functions und Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -20,6 +21,7 @@ msg_info "Installing Dependencies"
 $STD apt-get update
 $STD apt-get install -y \
     curl \
+    sudo \
     unzip \
     git \
     ca-certificates
@@ -101,3 +103,9 @@ msg_ok "Installation completed"
 
 motd_ssh
 customize
+
+# Cleanup
+msg_info "Cleaning up"
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
+msg_ok "Cleaned"
