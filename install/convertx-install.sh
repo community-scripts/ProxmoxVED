@@ -14,22 +14,41 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-    ffmpeg \
-    jq
+$STD apt-get install -y --no-install-recommends \
+  assimp-utils \
+  calibre \
+  dcraw \
+  dvisvgm \
+  ffmpeg \
+  ghostscript \
+  graphicsmagick \
+  imagemagick-7.q16 \
+  inkscape \
+  libheif-examples \
+  libjxl-tools \
+  libva2 \
+  libvips-tools \
+  lmodern \
+  mupdf-tools \
+  pandoc \
+  poppler-utils \
+  potrace \
+  python3-numpy \
+  resvg \
+  texlive \
+  texlive-fonts-recommended \
+  texlive-latex-extra \
+  texlive-latex-recommended \
+  texlive-xetex
 msg_ok "Installed Dependencies"
 
-msg_info "Installing ConvertX"
-curl -fsSL "https://bun.sh/install" | bash
-ln -sf /root/.bun/bin/bun /usr/local/bin/bun
-mkdir -p /opt/convertx
+setup_nodejs NODE_VERSION=22 NODE_MODULE="bun"
+fetch_and_deploy_gh_release "ConvertX" "C4illin/ConvertX" "tarball" "latest" "/opt/convertx"
 
-RELEASE=$(curl -fsSL https://api.github.com/repos/C4illin/ConvertX/releases/latest | jq -r .tag_name | sed 's/^v//')
-curl -fsSL -o "/opt/convertx/ConvertX-${RELEASE}.tar.gz" "https://github.com/C4illin/ConvertX/archive/refs/tags/v${RELEASE}.tar.gz"
-tar --strip-components=1 -xf "/opt/convertx/ConvertX-${RELEASE}.tar.gz" -C /opt/convertx
+msg_info "Installing ConvertX"
 cd /opt/convertx
 mkdir -p data
-bun install
+$STD bun install
 
 JWT_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)
 cat <<EOF >/opt/convertx/.env
@@ -59,8 +78,11 @@ systemctl enable -q --now convertx
 msg_ok "Service Created"
 
 msg_info "Waiting for SQLite database"
-for ((COUNT=0; COUNT<60; COUNT++)); do
-  [ -f "/opt/convertx/data/mydb.sqlite" ] && { systemctl restart convertx; exit 0; }
+for ((COUNT = 0; COUNT < 60; COUNT++)); do
+  [ -f "/opt/convertx/data/mydb.sqlite" ] && {
+    systemctl restart convertx
+    exit 0
+  }
   sleep 0.5
 done
 msg_error "Timed out waiting for database!"
@@ -71,7 +93,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD rm -f /opt/convertx/ConvertX-${RELEASE}.tar.gz
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
