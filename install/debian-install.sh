@@ -14,11 +14,11 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-#$STD apt-get install -y gnup
+$STD apt-get install -y gnup
 msg_ok "Installed Dependencies"
 
 #fetch_and_deploy_gh_release "argus" "release-argus/Argus" "singlefile" "latest" "/opt/argus" "Argus-.*linux-amd64"
-fetch_and_deploy_gh_release "planka" "plankanban/planka" "prebuild" "latest" "/opt/planka" "planka-prebuild.zip"
+#fetch_and_deploy_gh_release "planka" "plankanban/planka" "prebuild" "latest" "/opt/planka" "planka-prebuild.zip"
 
 #PYTHON_VERSION="3.12" setup_uv
 
