@@ -1,5 +1,65 @@
 [
   {
+    "name": "mongodb/mongo",
+    "version": "r8.1.2-rc1",
+    "date": "2025-06-25T22:42:04Z"
+  },
+  {
+    "name": "rcourtman/Pulse",
+    "version": "v3.32.0",
+    "date": "2025-06-25T22:27:01Z"
+  },
+  {
+    "name": "gristlabs/grist-core",
+    "version": "v1.6.1",
+    "date": "2025-06-25T21:19:25Z"
+  },
+  {
+    "name": "coder/code-server",
+    "version": "v4.101.2",
+    "date": "2025-06-25T21:18:52Z"
+  },
+  {
+    "name": "msgbyte/tianji",
+    "version": "v1.22.4",
+    "date": "2025-06-25T20:46:20Z"
+  },
+  {
+    "name": "meilisearch/meilisearch",
+    "version": "prototype-tmp-failing-upgrade-0",
+    "date": "2025-06-25T19:51:55Z"
+  },
+  {
+    "name": "home-assistant/core",
+    "version": "2025.6.3",
+    "date": "2025-06-24T13:00:12Z"
+  },
+  {
+    "name": "firefly-iii/firefly-iii",
+    "version": "v6.2.18",
+    "date": "2025-06-20T04:45:37Z"
+  },
+  {
+    "name": "ollama/ollama",
+    "version": "v0.9.4-citest0",
+    "date": "2025-06-25T17:44:00Z"
+  },
+  {
+    "name": "influxdata/influxdb",
+    "version": "v3.2.0",
+    "date": "2025-06-25T17:31:48Z"
+  },
+  {
+    "name": "wavelog/wavelog",
+    "version": "2.0.5",
+    "date": "2025-06-25T14:53:31Z"
+  },
+  {
+    "name": "jenkinsci/jenkins",
+    "version": "jenkins-2.504.3",
+    "date": "2025-06-25T14:43:01Z"
+  },
+  {
     "name": "bunkerity/bunkerweb",
     "version": "testing",
     "date": "2025-06-16T18:10:42Z"
@@ -30,11 +90,6 @@
     "date": "2025-06-25T05:54:03Z"
   },
   {
-    "name": "ollama/ollama",
-    "version": "v0.9.3-rc3",
-    "date": "2025-06-25T03:27:43Z"
-  },
-  {
     "name": "moghtech/komodo",
     "version": "v1.18.4",
     "date": "2025-06-25T00:06:56Z"
@@ -48,11 +103,6 @@
     "name": "keycloak/keycloak",
     "version": "26.2.5",
     "date": "2025-05-28T06:49:43Z"
-  },
-  {
-    "name": "jenkinsci/jenkins",
-    "version": "jenkins-2.516",
-    "date": "2025-06-24T21:06:15Z"
   },
   {
     "name": "evcc-io/evcc",
@@ -80,24 +130,9 @@
     "date": "2025-06-24T14:05:33Z"
   },
   {
-    "name": "influxdata/influxdb",
-    "version": "v3.2.0",
-    "date": "2025-06-24T13:20:53Z"
-  },
-  {
     "name": "Checkmk/checkmk",
     "version": "v2.4.0p5",
     "date": "2025-06-24T13:06:53Z"
-  },
-  {
-    "name": "home-assistant/core",
-    "version": "2025.6.3",
-    "date": "2025-06-24T13:00:12Z"
-  },
-  {
-    "name": "rcourtman/Pulse",
-    "version": "v3.31.2",
-    "date": "2025-06-24T09:45:34Z"
   },
   {
     "name": "fallenbagel/jellyseerr",
@@ -108,11 +143,6 @@
     "name": "wazuh/wazuh",
     "version": "coverity-w26-4.13.0",
     "date": "2025-06-24T02:02:34Z"
-  },
-  {
-    "name": "meilisearch/meilisearch",
-    "version": "prototype-incremental-vector-store-1",
-    "date": "2025-06-23T21:37:47Z"
   },
   {
     "name": "minio/minio",
@@ -126,8 +156,8 @@
   },
   {
     "name": "runtipi/runtipi",
-    "version": "v4.2.1",
-    "date": "2025-06-03T20:04:28Z"
+    "version": "nightly",
+    "date": "2025-06-23T19:10:33Z"
   },
   {
     "name": "VictoriaMetrics/VictoriaMetrics",
@@ -138,11 +168,6 @@
     "name": "Graylog2/graylog2-server",
     "version": "6.3.0-rc.2",
     "date": "2025-06-23T11:31:38Z"
-  },
-  {
-    "name": "firefly-iii/firefly-iii",
-    "version": "v6.2.18",
-    "date": "2025-06-20T04:45:37Z"
   },
   {
     "name": "gotson/komga",
@@ -168,11 +193,6 @@
     "name": "pocket-id/pocket-id",
     "version": "v1.4.1",
     "date": "2025-06-22T19:38:08Z"
-  },
-  {
-    "name": "msgbyte/tianji",
-    "version": "v1.22.3",
-    "date": "2025-06-22T18:29:00Z"
   },
   {
     "name": "clusterzx/paperless-ai",
@@ -225,11 +245,6 @@
     "date": "2025-06-21T07:47:02Z"
   },
   {
-    "name": "coder/code-server",
-    "version": "v4.101.1",
-    "date": "2025-06-21T02:47:08Z"
-  },
-  {
     "name": "go-gitea/gitea",
     "version": "v1.24.2",
     "date": "2025-06-20T20:37:55Z"
@@ -248,11 +263,6 @@
     "name": "homarr-labs/homarr",
     "version": "v1.25.0",
     "date": "2025-06-20T19:15:43Z"
-  },
-  {
-    "name": "mongodb/mongo",
-    "version": "r8.1.2-rc0",
-    "date": "2025-06-20T17:35:38Z"
   },
   {
     "name": "Sonarr/Sonarr",
@@ -458,30 +468,5 @@
     "name": "tobychui/zoraxy",
     "version": "v3.1.9",
     "date": "2025-03-01T02:24:33Z"
-  },
-  {
-    "name": "Prowlarr/Prowlarr",
-    "version": "v1.37.0.5076",
-    "date": "2025-06-04T11:04:53Z"
-  },
-  {
-    "name": "Readarr/Readarr",
-    "version": "v2.0.0.4645",
-    "date": "2017-03-07T18:56:06Z"
-  },
-  {
-    "name": "Lidarr/Lidarr",
-    "version": "v2.12.4.4658",
-    "date": "2025-06-09T17:27:45Z"
-  },
-  {
-    "name": "Radarr/Radarr",
-    "version": "v5.26.2.10099",
-    "date": "2025-06-11T20:10:39Z"
-  },
-  {
-    "name": "traccar/traccar",
-    "version": "v6.7.3",
-    "date": "2025-06-15T05:46:17Z"
   }
 ]
