@@ -435,13 +435,6 @@ msg_info() {
 
   stop_spinner
 
-msg_info() {
-  local msg="$1"
-  [[ -z "$msg" || -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$msg"]=1
-
-  stop_spinner
-
   if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
     printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
   else
