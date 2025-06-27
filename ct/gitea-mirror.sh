@@ -30,7 +30,7 @@ function update_script() {
     exit
   fi
 
-  APP_VERSION=$(grep -o '"version": *"[^"]*"' package.json | cut -d'"' -f4)
+  APP_VERSION=$(grep -o '"version": *"[^"]*"' /opt/gitea-miror/package.json | cut -d'"' -f4)
   if [[ $APP_VERSION =~ ^2\. ]]; then
     if ! whiptail --backtitle "Gitea Mirror Update" --title "⚠️  VERSION 2.x DETECTED" --yesno \
       "WARNING: Version $APP_VERSION detected!\n\nUpdating from version 2.x will CLEAR ALL CONFIGURATION.\n\nThis includes:\n• API tokens\n• User settings\n• Repository configurations\n• All custom settings\n\nDo you want to continue with the update process?" 15 70 --defaultno
