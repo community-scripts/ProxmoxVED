@@ -5,7 +5,6 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://leantime.io
 
-# Import Functions und Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -35,7 +34,6 @@ setup_mariadb
 
 msg_ok "Installed Dependencies"
 
-# Template: MySQL Database
 msg_info "Setting up Database"
 systemctl enable -q --now mariadb
 DB_NAME=leantime
@@ -55,11 +53,7 @@ msg_ok "Set up Database"
 # Setup App
 msg_info "Setup ${APPLICATION}"
 APACHE_LOG_DIR=/var/log/apache2
-RELEASE=$(curl -fsSL https://api.github.com/repos/Leantime/leantime/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL -o "${RELEASE}.tar.gz" "https://github.com/Leantime/leantime/releases/download/${RELEASE}/Leantime-${RELEASE}.tar.gz"
-mkdir -p "/opt/${APPLICATION}"
-mkdir -p /etc/apache2/sites-enabled
-tar xf "${RELEASE}.tar.gz" --strip-components=1 -C "/opt/${APPLICATION}"
+fetch_and_deploy_gh_release "$APPLICATION" "Leantime/leantime" "prebuild" "latest" "/opt/${APPLICATION}" Leantime-v[0-9].[0-9].[0-9].tar.gz
 chown -R www-data:www-data "/opt/${APPLICATION}"
 chmod -R 750 "/opt/${APPLICATION}"
 
@@ -99,7 +93,6 @@ sed -i -e "s/^;extension.\(curl\|fileinfo\|gd\|intl\|ldap\|mbstring\|exif\|mysql
 
 systemctl restart apache2
 
-echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
 msg_ok "Setup ${APPLICATION}"
 
 motd_ssh
@@ -107,7 +100,6 @@ customize
 
 # Cleanup
 msg_info "Cleaning up"
-rm -f "${RELEASE}".tar.gz
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
