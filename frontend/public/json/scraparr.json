@@ -8,7 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "interface_port": 8989,
+    "interface_port": 7100,
     "documentation": "https://github.com/thecfu/scraparr/blob/main/README.md",
     "website": "https://github.com/thecfu/scraparr",
     "logo": "https://github.com/thecfu/scraparr/raw/main/.github/assets/logos/scraparr_logo.svg",
