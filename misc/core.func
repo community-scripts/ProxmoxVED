@@ -442,10 +442,10 @@ msg_info() {
 
   stop_spinner
 
-  if [[ "${VERBOSE:-no}" == "no" && "${var_os:-}" != "alpine" && -t 2 ]]; then
-    start_spinner "$msg"
+  if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
+    printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
   else
-    printf "\r\e[2K%s %b" "$HOURGLASS" "${YW}${msg}${CL}" >&2
+    start_spinner "$msg"
   fi
 }
 
