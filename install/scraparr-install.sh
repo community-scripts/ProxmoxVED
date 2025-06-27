@@ -21,12 +21,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Scraparr"
-temp_file=$(mktemp)
-RELEASE=$(curl -fsSL https://api.github.com/repos/thecfu/scraparr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-echo "${RELEASE}" >"/opt/Scraparr_version.txt"
-curl -fsSL "https://github.com/thecfu/scraparr/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
-tar -zxf "$temp_file"
-mv "scraparr-${RELEASE}" /opt/scraparr
+fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr"
 pip -q install -r /opt/scraparr/src/scraparr/requirements.txt --root-user-action=ignore
 chmod -R 755 /opt/scraparr
 mkdir /scraparr && mkdir /scraparr/config
