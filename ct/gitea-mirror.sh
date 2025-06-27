@@ -71,7 +71,7 @@ function update_script() {
     msg_ok "Installed Bun"
 
     rm -rf /opt/gitea-mirror
-    fetch_and_deploy_gh_release "gitea-mirror" "arunavo4/gitea-mirror"
+    fetch_and_deploy_gh_release "gitea-mirror" "arunavo4/gitea-mirror" "tarball" "3.0.2"
 
     msg_info "Updating and rebuilding ${APP} to v${RELEASE}"
     cd /opt/gitea-mirror
