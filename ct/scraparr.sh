@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/JasonGreenC/ProxmoxVED/refs/head/scraparr/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/JasonGreenC/ProxmoxVED/refs/head/scraparr-uv-migration/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: JasonGreenC
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
