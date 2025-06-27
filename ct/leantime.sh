@@ -25,7 +25,6 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  # Check if installation is present | -f for file, -d for folder
   if [[ ! -d /opt/${APP} ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
