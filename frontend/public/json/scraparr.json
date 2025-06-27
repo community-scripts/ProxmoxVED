@@ -9,7 +9,7 @@
     "updateable": true,
     "privileged": false,
     "interface_port": 8989,
-    "documentation": null,
+    "documentation": "https://github.com/thecfu/scraparr/blob/main/README.md",
     "website": "https://github.com/thecfu/scraparr",
     "logo": "https://github.com/thecfu/scraparr/raw/main/.github/assets/logos/scraparr_logo.svg",
     "config_path": "/scraparr/config/config.yaml",
