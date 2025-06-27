@@ -31,9 +31,11 @@ function update_script() {
   fi
 
   APP_VERSION=$(grep -o '"version": *"[^"]*"' package.json | cut -d'"' -f4)
+  
+  # Check if version 2.x and show warnings
   if [[ $APP_VERSION =~ ^2\. ]]; then
     if ! whiptail --backtitle "Gitea Mirror Update" --title "⚠️  VERSION 2.x DETECTED" --yesno \
-      "WARNING: Version $APP_VERSION detected!\n\nUpdating from version 2.x will CLEAR ALL CONFIGURATION.\n\nThis includes:\n• API tokens\n• User settings\n• Repository configurations\n• All custom settings\n\nDo you want to continue with the update process?"  15 70 --defaultno
+      "WARNING: Version $APP_VERSION detected!\n\nUpdating from version 2.x will CLEAR ALL CONFIGURATION.\n\nThis includes:\n• API tokens\n• User settings\n• Repository configurations\n• All custom settings\n\nDo you want to continue with the update process?" 15 70 --defaultno
     then
       exit 0
     fi
@@ -44,52 +46,54 @@ function update_script() {
         whiptail --backtitle "Gitea Mirror Update" --title "Update Cancelled" --msgbox "Update process cancelled. Please backup your configuration before proceeding." 8 60
         exit 0
     fi
-  
     whiptail --backtitle "Gitea Mirror Update" --title "Proceeding with Update" --msgbox \
         "Proceeding with version $APP_VERSION update.\n\nAll configuration will be cleared as warned." 8 50
-  else
-    RELEASE=$(curl -fsSL https://api.github.com/repos/arunavo4/gitea-mirror/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-    if [[ "${RELEASE}" != "$(cat ~/.${APP} 2>/dev/null || cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
-  
-      msg_info "Stopping Services"
-      systemctl stop gitea-mirror
-      msg_ok "Services Stopped"
-  
-      msg_info "Backup Data"
+    rm -rf /opt/gitea-mirror
+  fi
+
+  RELEASE=$(curl -fsSL https://api.github.com/repos/arunavo4/gitea-mirror/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  if [[ "${RELEASE}" != "$(cat ~/.${APP} 2>/dev/null || cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
+
+    msg_info "Stopping Services"
+    systemctl stop gitea-mirror
+    msg_ok "Services Stopped"
+
+    if [[ -d /opt/gitea-mirror/data]]; then
+      msg_info "Backing up Data"
       mkdir -p /opt/gitea-mirror-backup/data
       cp /opt/gitea-mirror/data/* /opt/gitea-mirror-backup/data/
-      msg_ok "Backup Data"
-  
-      msg_info "Installing Bun"
-      export BUN_INSTALL=/opt/bun
-      curl -fsSL https://bun.sh/install | $STD bash
-      ln -sf /opt/bun/bin/bun /usr/local/bin/bun
-      ln -sf /opt/bun/bin/bun /usr/local/bin/bunx
-      msg_ok "Installed Bun"
-  
-      rm -rf /opt/gitea-mirror
-      fetch_and_deploy_gh_release "gitea-mirror" "arunavo4/gitea-mirror"
-  
-      msg_info "Updating and rebuilding ${APP} to v${RELEASE}"
-      cd /opt/gitea-mirror
-      $STD bun run setup
-      $STD bun run build
-      APP_VERSION=$(grep -o '"version": *"[^"]*"' package.json | cut -d'"' -f4)
-      sudo sed -i.bak "s|^Environment=npm_package_version=.*|Environment=npm_package_version=${APP_VERSION}|" /etc/systemd/system/gitea-mirror.service
-      msg_ok "Updated and rebuilt ${APP} to v${RELEASE}"
-  
-      msg_info "Restoring Data"
-      cp /opt/gitea-mirror-backup/data/* /opt/gitea-mirror/data
-      echo "${RELEASE}" >/opt/${APP}_version.txt
-      msg_ok "Restored Data"
-  
-      msg_info "Starting Service"
-      systemctl daemon-reload
-      systemctl start gitea-mirror
-      msg_ok "Service Started"
-    else
-      msg_ok "No update required. ${APP} is already at v${RELEASE}"
+      msg_ok "Backed up Data"
     fi
+
+    msg_info "Installing Bun"
+    export BUN_INSTALL=/opt/bun
+    curl -fsSL https://bun.sh/install | $STD bash
+    ln -sf /opt/bun/bin/bun /usr/local/bin/bun
+    ln -sf /opt/bun/bin/bun /usr/local/bin/bunx
+    msg_ok "Installed Bun"
+
+    rm -rf /opt/gitea-mirror
+    fetch_and_deploy_gh_release "gitea-mirror" "arunavo4/gitea-mirror"
+
+    msg_info "Updating and rebuilding ${APP} to v${RELEASE}"
+    cd /opt/gitea-mirror
+    $STD bun run setup
+    $STD bun run build
+    APP_VERSION=$(grep -o '"version": *"[^"]*"' package.json | cut -d'"' -f4)
+    sudo sed -i.bak "s|^Environment=npm_package_version=.*|Environment=npm_package_version=${APP_VERSION}|" /etc/systemd/system/gitea-mirror.service
+    msg_ok "Updated and rebuilt ${APP} to v${RELEASE}"
+
+    msg_info "Restoring Data"
+    cp /opt/gitea-mirror-backup/data/* /opt/gitea-mirror/data || true
+    echo "${RELEASE}" >~/.${APP}_version.txt
+    msg_ok "Restored Data"
+
+    msg_info "Starting Service"
+    systemctl daemon-reload
+    systemctl start gitea-mirror
+    msg_ok "Service Started"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
   exit
 }
