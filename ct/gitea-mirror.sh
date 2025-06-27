@@ -31,8 +31,6 @@ function update_script() {
   fi
 
   APP_VERSION=$(grep -o '"version": *"[^"]*"' package.json | cut -d'"' -f4)
-  
-  # Check if version 2.x and show warnings
   if [[ $APP_VERSION =~ ^2\. ]]; then
     if ! whiptail --backtitle "Gitea Mirror Update" --title "⚠️  VERSION 2.x DETECTED" --yesno \
       "WARNING: Version $APP_VERSION detected!\n\nUpdating from version 2.x will CLEAR ALL CONFIGURATION.\n\nThis includes:\n• API tokens\n• User settings\n• Repository configurations\n• All custom settings\n\nDo you want to continue with the update process?" 15 70 --defaultno
@@ -85,7 +83,6 @@ function update_script() {
 
     msg_info "Restoring Data"
     cp /opt/gitea-mirror-backup/data/* /opt/gitea-mirror/data || true
-    echo "${RELEASE}" >~/.${APP}_version.txt
     msg_ok "Restored Data"
 
     msg_info "Starting Service"
