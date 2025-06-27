@@ -35,10 +35,7 @@ function update_script() {
     msg_ok "Services Stopped"
 
     msg_info "Updating ${APP} to v${RELEASE}"
-    temp_file=$(mktemp)
-    curl -fsSL "https://github.com/thecfu/scraparr/archive/refs/tags/v2.2.2.tar.gz" -o "$temp_file"
-    tar -zxf "$temp_file"
-    mv "scrappar-${RELEASE}" /opt/scrappar
+    fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr"
     pip -q install -r /opt/scrappar/src/scrappar/requirements.txt --root-user-action=ignore
     msg_ok "Updated ${APP}"
 
