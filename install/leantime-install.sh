@@ -50,7 +50,6 @@ $STD mysql -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH 
 } >>~/"$APPLICATION".creds
 msg_ok "Set up Database"
 
-# Setup App
 msg_info "Setup ${APPLICATION}"
 APACHE_LOG_DIR=/var/log/apache2
 fetch_and_deploy_gh_release "$APPLICATION" "Leantime/leantime" "prebuild" "latest" "/opt/${APPLICATION}" Leantime-v[0-9].[0-9].[0-9].tar.gz
@@ -98,7 +97,6 @@ msg_ok "Setup ${APPLICATION}"
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
