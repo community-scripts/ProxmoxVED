@@ -56,7 +56,7 @@ function update_script() {
     systemctl stop gitea-mirror
     msg_ok "Services Stopped"
 
-    if [[ -d /opt/gitea-mirror/data]]; then
+    if [[ -d /opt/gitea-mirror/data ]]; then
       msg_info "Backing up Data"
       mkdir -p /opt/gitea-mirror-backup/data
       cp /opt/gitea-mirror/data/* /opt/gitea-mirror-backup/data/
