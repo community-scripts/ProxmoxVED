@@ -13,11 +13,10 @@ setting_up_container
 network_check
 update_os
 
-PYTHON_VERSION="3.12" setup_uv
-
 msg_info "Installing Scraparr"
-fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr"
-cd /opt/scraparr
+PYTHON_VERSION="3.12" setup_uv
+fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr" "tarball" "latest" "/opt/scraparr"
+cd /opt/scraparr || exit
 $STD uv venv /opt/scraparr/.venv
 $STD /opt/scraparr/.venv/bin/python -m ensurepip --upgrade
 $STD /opt/scraparr/.venv/bin/python -m pip install --upgrade pip
@@ -34,14 +33,15 @@ cat <<EOF >/etc/systemd/system/scraparr.service
 Description=Scraparr
 Wants=network-online.target
 After=network.target
+
 [Service]
 Type=simple
-ExecStart=/opt/scraparr/.venv/bin/python -m /opt/scraparr/src/scraparr/scraparr
-User=root
+WorkingDirectory=/opt/scraparr/src
+ExecStart=/opt/scraparr/.venv/bin/python -m scraparr.scraparr
 Restart=always
+
 [Install]
 WantedBy=multi-user.target
-
 EOF
 systemctl daemon-reload
 systemctl enable -q --now scraparr
