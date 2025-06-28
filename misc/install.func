@@ -10,7 +10,7 @@ if ! command -v curl >/dev/null 2>&1; then
     apt-get update >/dev/null 2>&1
     apt-get install -y curl >/dev/null 2>&1
 fi
-source <(curl -fsSL https://raw.githubusercontent.com/JasonGreenC/ProxmoxVED/refs/heads/scraparr-uv-migration/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 load_functions
 
 # This function enables IPv6 if it's not disabled and sets verbose mode
@@ -31,7 +31,7 @@ catch_errors() {
 
 # This function handles errors
 error_handler() {
-    source <(curl -fsSL https://raw.githubusercontent.com/JasonGreenC/ProxmoxVED/refs/head/scraparr-uv-migration/misc/api.func)
+    source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
     printf "\e[?25h"
     local exit_code="$?"
     local line_number="$1"
