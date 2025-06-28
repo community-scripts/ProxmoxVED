@@ -13,18 +13,16 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  python3 \
-  python3-pip
-
-msg_ok "Installed Dependencies"
-
 msg_info "Installing Scraparr"
-fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr"
-pip -q install -r /opt/scraparr/src/scraparr/requirements.txt --root-user-action=ignore
+PYTHON_VERSION="3.12" setup_uv
+fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr" "tarball" "latest" "/opt/scraparr"
+cd /opt/scraparr || exit
+$STD uv venv /opt/scraparr/.venv
+$STD /opt/scraparr/.venv/bin/python -m ensurepip --upgrade
+$STD /opt/scraparr/.venv/bin/python -m pip install --upgrade pip
+$STD /opt/scraparr/.venv/bin/python -m pip install -r /opt/scraparr/src/scraparr/requirements.txt
 chmod -R 755 /opt/scraparr
-mkdir /scraparr && mkdir /scraparr/config
+mkdir -p /scraparr/config
 mv /opt/scraparr/config.yaml /scraparr/config/config.yaml
 chmod -R 755 /scraparr
 msg_ok "Installed Scraparr"
@@ -38,26 +36,21 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 -m scraparr.scraparr
 WorkingDirectory=/opt/scraparr/src
-User=root
+ExecStart=/opt/scraparr/.venv/bin/python -m scraparr.scraparr
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
-
 EOF
-
 systemctl daemon-reload
 systemctl enable -q --now scraparr
-
 msg_ok "Configured Service"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -f "$temp_file"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
