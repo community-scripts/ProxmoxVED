@@ -403,13 +403,12 @@ echo_default() {
   fi
 
   # Output the selected values with icons
-  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
-  echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
+  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os$ ($var_version$){CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
   echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
-  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
   if [ "$VERB" == "yes" ]; then
     echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
   fi
