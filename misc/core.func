@@ -479,7 +479,6 @@ msg_ok() {
   stop_spinner
   local msg="$1"
   echo -e "${BFR:-} ${CM:-✔️} ${GN}${msg}${CL}"
-  printf "\e[?25h"
 }
 
 msg_error() {
