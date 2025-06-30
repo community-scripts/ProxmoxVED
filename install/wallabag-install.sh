@@ -14,52 +14,46 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-    curl \
-    git \
-    unzip \
-    sudo \
-    make \
-    php8.2 \
-    php8.2-{cli,common,bcmath,intl,fpm,tidy,xml,mysql,mbstring,zip,gd,curl} \
-    composer \
-    apache2 \
-    libapache2-mod-php \
-    redis \
-    mariadb-server
+  make \
+  apache2 \
+  libapache2-mod-php \
+  redis
 msg_ok "Installed Dependencies"
+
+setup_mariadb
+PHP_VERSION="8.3" PHP_APACHE="YES" PHP_FPM="YES" PHP_MODULE="bcmath,bz2,cli,exif,common,curl,tidy,fpm,gd,intl,mbstring,xml,mysql,zip" setup_php
+setup_composer
 
 msg_info "Setting up Database"
 DB_NAME=wallabag_db
 DB_USER=wallabag
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 SECRET_KEY="$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)"
-$STD mysql -u root -e "CREATE DATABASE $DB_NAME;"
-$STD mysql -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-$STD mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
+$STD mariadb -u root -e "CREATE DATABASE $DB_NAME;"
+$STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+$STD mariadb -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-    echo "Wallabag Credentials"
-    echo "Database User: $DB_USER"
-    echo "Database Password: $DB_PASS"
-    echo "Database Name: $DB_NAME"
-} >> ~/wallabag.creds
+  echo "Wallabag Credentials"
+  echo "Database User: $DB_USER"
+  echo "Database Password: $DB_PASS"
+  echo "Database Name: $DB_NAME"
+} >>~/wallabag.creds
 msg_ok "Set up Database"
 
+fetch_and_deploy_gh_release "wallabag" "wallabag/wallabag" "prebuild" "latest" "/opt/wallabag" "wallabag-*.tar.gz"
+
 msg_info "Installing Wallabag (Patience)"
-RELEASE=$(curl -s https://api.github.com/repos/wallabag/wallabag/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-wget -q "https://github.com/wallabag/wallabag/archive/refs/tags/${RELEASE}.zip"
-unzip -q ${RELEASE}.zip
-mv wallabag-${RELEASE} /opt/wallabag
 cd /opt/wallabag
 useradd -d /opt/wallabag -s /bin/bash -M wallabag
 chown -R wallabag:wallabag /opt/wallabag
 mv /opt/wallabag/app/config/parameters.yml.dist /opt/wallabag/app/config/parameters.yml
 sed -i \
-    -e 's|database_name: wallabag|database_name: wallabag_db|' \
-    -e 's|database_port: ~|database_port: 3306|' \
-    -e 's|database_user: root|database_user: wallabag|' \
-    -e 's|database_password: ~|database_password: '"$DB_PASS"'|' \
-    -e 's|secret: .*|secret: '"$SECRET_KEY"'|' \
-    /opt/wallabag/app/config/parameters.yml
+  -e 's|database_name: wallabag|database_name: wallabag_db|' \
+  -e 's|database_port: ~|database_port: 3306|' \
+  -e 's|database_user: root|database_user: wallabag|' \
+  -e 's|database_password: ~|database_password: '"$DB_PASS"'|' \
+  -e 's|secret: .*|secret: '"$SECRET_KEY"'|' \
+  /opt/wallabag/app/config/parameters.yml
 
 export COMPOSER_ALLOW_SUPERUSER=1
 sudo -u wallabag make install --no-interaction
@@ -72,7 +66,7 @@ msg_info "Setting up Virtual Host"
 cat <<EOF >/etc/nginx/conf.d/wallabag.conf
 server {
     root /opt/wallabag/web;
-    server_name $IPADDRESS; 
+    server_name $IPADDRESS;
 
     location / {
         # try to serve file directly, fallback to app.php
