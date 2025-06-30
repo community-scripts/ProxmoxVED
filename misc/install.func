@@ -31,7 +31,7 @@ catch_errors() {
 
 # This function handles errors
 error_handler() {
-  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
+  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
   printf "\e[?25h"
   local exit_code="$?"
   local line_number="$1"
