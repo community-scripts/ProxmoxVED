@@ -65,7 +65,7 @@ while read -r container; do
   [[ "$protected" == "1" ]] && is_protected="Yes"
   formatted_line=$(printf "$FORMAT" "$container_name" "$container_status" "$container_os" "$is_protected")
   menu_items+=("$container_id" "$formatted_line" "OFF")
-done <<<"$containers"
+done < <(printf '%s\n' "$containers")
 
 CHOICES=$(whiptail --title "LXC Container Delete" \
   --checklist "Select LXC containers to delete:\n\nNAME       STATUS     OS         PROTECTED" 25 70 15 \
