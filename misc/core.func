@@ -444,11 +444,17 @@ fatal() {
 
 spinner() {
   local chars="/-\|" i=0
-  printf "\e[?25l" # Hide cursor
+  printf "\e[?25l"
   while true; do
     printf "\r \e[36m%s\e[0m" "${chars:i++%${#chars}:1}"
     sleep 0.1
   done
+}
+
+stop_spinner() {
+  [[ -n "$SPINNER_PID" ]] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null || true
+  printf "\e[?25h"
+  SPINNER_PID=""
 }
 
 msg_info() {
@@ -459,22 +465,19 @@ msg_info() {
 }
 
 msg_ok() {
-  [[ -n "$SPINNER_PID" ]] && kill "$SPINNER_PID" 2>/dev/null
-  printf "\e[?25h" # Show cursor again
+  stop_spinner
   local msg="$1"
   echo -e "${BFR:-} ${CM:-✔️} ${GN}${msg}${CL}"
 }
 
 msg_error() {
-  [[ -n "$SPINNER_PID" ]] && kill "$SPINNER_PID" 2>/dev/null
-  printf "\e[?25h"
+  stop_spinner
   local msg="$1"
   echo -e "${BFR:-} ${CROSS:-✖️} ${RD}${msg}${CL}"
 }
 
 msg_warn() {
-  [[ -n "$SPINNER_PID" ]] && kill "$SPINNER_PID" 2>/dev/null
-  printf "\e[?25h"
+  stop_spinner
   local msg="$1"
   echo -e "${BFR:-} ${INFO:-ℹ️} ${YWB}${msg}${CL}"
 }
@@ -484,7 +487,7 @@ msg_custom() {
   local color="${2:-"\e[36m"}"
   local msg="${3:-}"
   [[ -z "$msg" ]] && return
-  [[ -n "$SPINNER_PID" ]] && kill "$SPINNER_PID" 2>/dev/null
+  stop_spinner
   printf "\e[?25h"
   echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
 }
