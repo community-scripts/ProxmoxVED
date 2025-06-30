@@ -439,23 +439,28 @@ fatal() {
 
 spinner() {
   local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏" i=0
-  printf "\e[?25l"
-  while true; do
+  printf "\e[?25l" # hide cursor
+  while :; do
     printf "\r \e[36m%s\e[0m" "${chars:i++%${#chars}:1}"
     sleep 0.1
   done
 }
 
 stop_spinner() {
-  local pid="${SPINNER_PID:-}"
+  local pid
+
+  # Get PID from variable or temp file
+  pid="${SPINNER_PID:-}"
   [[ -z "$pid" && -f /tmp/spinner.pid ]] && pid=$(</tmp/spinner.pid)
 
   if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-    kill "$pid" 2>/dev/null
-    wait "$pid" 2>/dev/null || true
+    if kill "$pid" 2>/dev/null; then
+      wait "$pid" 2>/dev/null || true
+    fi
     rm -f /tmp/spinner.pid
-    SPINNER_PID=""
+    unset SPINNER_PID
   fi
+
   printf "\r\033[K\e[?25h" # clear line + show cursor
 }
 
