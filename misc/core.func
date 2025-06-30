@@ -453,6 +453,7 @@ msg_info() {
   spinner &
   SPINNER_PID=$!
   echo "$SPINNER_PID" >/tmp/.spinner.pid
+  disown "$SPINNER_PID" 2>/dev/null || true
 }
 
 stop_spinner() {
@@ -460,14 +461,18 @@ stop_spinner() {
   [[ -z "$pid" && -f /tmp/.spinner.pid ]] && pid=$(</tmp/.spinner.pid)
 
   if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-    kill "$pid" 2>/dev/null || true
-    sleep 0.05
-    kill -9 "$pid" 2>/dev/null || true
-    wait "$pid" 2>/dev/null || true
+    if kill "$pid" 2>/dev/null; then
+      sleep 0.05
+      kill -9 "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+    fi
     rm -f /tmp/.spinner.pid
     unset SPINNER_PID
   fi
-  printf "\r\033[K"
+
+  # Aufräumen, egal was oben passiert ist
+  stty sane 2>/dev/null
+  printf "\r\033[K\e[?25h\n"
 }
 
 msg_ok() {
