@@ -447,9 +447,13 @@ spinner() {
 }
 
 stop_spinner() {
-  if [[ -n "$SPINNER_PID" ]]; then
-    kill "$SPINNER_PID" 2>/dev/null
-    wait "$SPINNER_PID" 2>/dev/null || true
+  local pid="${SPINNER_PID:-}"
+  [[ -z "$pid" && -f /tmp/spinner.pid ]] && pid=$(</tmp/spinner.pid)
+
+  if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+    kill "$pid" 2>/dev/null
+    wait "$pid" 2>/dev/null || true
+    rm -f /tmp/spinner.pid
     SPINNER_PID=""
   fi
   printf "\r\033[K\e[?25h" # clear line + show cursor
@@ -460,6 +464,7 @@ msg_info() {
   echo -ne " ${HOLD:-} ${YW}${msg}   "
   spinner &
   SPINNER_PID=$!
+  echo "$SPINNER_PID" >/tmp/spinner.pid
 }
 
 msg_ok() {
@@ -603,3 +608,5 @@ check_or_create_swap() {
     return 1
   fi
 }
+
+trap 'stop_spinner' EXIT INT TERM
