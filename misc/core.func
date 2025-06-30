@@ -438,22 +438,12 @@ fatal() {
 # }
 
 spinner() {
-  local msg="$1"
   local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
   local i=0
   while true; do
-    printf "\r\e[2K\e[36m%s\e[0m ${YW}%s${CL}" "${chars:i++%${#chars}:1}" "$msg"
+    printf "\r\e[2K%s %b" "${YWB}${chars:i++%${#chars}:1}${CL}" "${YWB}${SPINNER_MSG:-}${CL}"
     sleep 0.1
   done
-}
-
-msg_info() {
-  local msg="$1"
-  printf "\e[?25l" # hide cursor
-  spinner "$msg" &
-  SPINNER_PID=$!
-  echo "$SPINNER_PID" >/tmp/.spinner.pid
-  disown "$SPINNER_PID" 2>/dev/null || true
 }
 
 stop_spinner() {
@@ -472,6 +462,15 @@ stop_spinner() {
 
   stty sane 2>/dev/null
   #printf "\r\033[K\e[?25h\n"
+}
+
+msg_info() {
+  local msg="$1"
+  SPINNER_MSG="$msg"
+  spinner &
+  SPINNER_PID=$!
+  echo "$SPINNER_PID" >/tmp/.spinner.pid
+  disown "$SPINNER_PID" 2>/dev/null || true
 }
 
 msg_ok() {
