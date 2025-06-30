@@ -98,11 +98,11 @@ function select_storage() {
   esac
 
   command -v whiptail >/dev/null || {
-    msg_error "whiptail missing. Please install whiptail."
+    msg_error "whiptail missing."
     exit 220
   }
   command -v numfmt >/dev/null || {
-    msg_error "numfmt missing. Please install numfmt (coreutils package)."
+    msg_error "numfmt missing."
     exit 221
   }
 
@@ -113,19 +113,16 @@ function select_storage() {
   while read -r TAG TYPE _ USED FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
     local KEY="${TAG}:${TYPE}"
-    if echo "$KEYS_SEEN" | grep -qx "$KEY"; then
-      continue
-    fi
+    if echo "$KEYS_SEEN" | grep -qx "$KEY"; then continue; fi
     KEYS_SEEN="${KEYS_SEEN}"$'\n'"$KEY"
 
-    local NAME_TYPE="${TAG} (${TYPE})"
     local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
     local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
-    local INFO="Used: ${USED_FMT}B  Free: ${FREE_FMT}B"
+    local DISPLAY_NAME="${TAG} (${TYPE})"
+    local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
 
-    ((${#NAME_TYPE} > COL_WIDTH)) && COL_WIDTH=${#NAME_TYPE}
-
-    MENU+=("$KEY" "$NAME_TYPE | $INFO" "OFF")
+    ((${#DISPLAY_NAME} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY_NAME}
+    MENU+=("$KEY" "${DISPLAY_NAME} | ${INFO}" "OFF")
   done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
   if [ ${#MENU[@]} -eq 0 ]; then
