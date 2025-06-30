@@ -438,19 +438,19 @@ fatal() {
 # }
 
 spinner() {
+  local msg="$1"
   local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
   local i=0
-  printf "\e[?25l" # hide cursor
   while true; do
-    printf "\r \e[36m%s\e[0m" "${chars:i++%${#chars}:1}"
+    printf "\r\e[2K\e[36m%s\e[0m ${YW}%s${CL}" "${chars:i++%${#chars}:1}" "$msg"
     sleep 0.1
   done
 }
 
 msg_info() {
   local msg="$1"
-  echo -ne " ${HOLD:-} ${YW}${msg}   "
-  spinner &
+  printf "\e[?25l" # hide cursor
+  spinner "$msg" &
   SPINNER_PID=$!
   echo "$SPINNER_PID" >/tmp/.spinner.pid
   disown "$SPINNER_PID" 2>/dev/null || true
