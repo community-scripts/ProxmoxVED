@@ -442,7 +442,7 @@ spinner() {
   local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
   local i=0
   while true; do
-    printf "\r\e[2K\e[36m%s\e[0m ${YW}%s${CL}" "${chars:i++%${#chars}:1}" "$msg"
+    printf "\r\e[2K\e[36m%s\e[0m ${YW}%s${CL}" "${YW}${chars:i++%${#chars}:1}" "$msg"
     sleep 0.1
   done
 }
@@ -470,9 +470,8 @@ stop_spinner() {
     unset SPINNER_PID
   fi
 
-  # Aufräumen, egal was oben passiert ist
   stty sane 2>/dev/null
-  printf "\r\033[K\e[?25h\n"
+  #printf "\r\033[K\e[?25h\n"
 }
 
 msg_ok() {
