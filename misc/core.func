@@ -138,6 +138,13 @@ color() {
   CL=$(echo "\033[m")
 }
 
+# Special for spinner and colorized output via printf
+color_spinner() {
+  CS_YW=$'\033[33m'
+  CS_YWB=$'\033[93m'
+  CS_CL=$'\033[m'
+}
+
 # ------------------------------------------------------------------------------
 # Defines formatting helpers like tab, bold, and line reset sequences.
 # ------------------------------------------------------------------------------
@@ -438,10 +445,11 @@ fatal() {
 # }
 
 spinner() {
-  local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+  local chars=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
   local i=0
   while true; do
-    printf "\r\e[2K%s %b" "${YWB}${chars:i++%${#chars}:1}${CL}" "${YWB}${SPINNER_MSG:-}${CL}"
+    local index=$((i++ % ${#chars[@]}))
+    printf "\r\033[2K%s %b" "${CS_YWB}${chars[$index]}${CS_CL}" "${CS_YWB}${SPINNER_MSG:-}${CS_CL}"
     sleep 0.1
   done
 }
@@ -467,6 +475,7 @@ stop_spinner() {
 msg_info() {
   local msg="$1"
   SPINNER_MSG="$msg"
+  color_spinner
   spinner &
   SPINNER_PID=$!
   echo "$SPINNER_PID" >/tmp/.spinner.pid
@@ -498,7 +507,7 @@ msg_custom() {
   [[ -z "$msg" ]] && return
   stop_spinner
   echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
-  printf "\r\033[K\e[?25h\n" # Zeile räumen, Cursor wiederherstellen und Zeilenumbruch!
+  printf "\r\033[K\e[?25h\n"
 }
 
 # msg_ok() {
