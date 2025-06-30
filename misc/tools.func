@@ -1719,7 +1719,7 @@ function setup_ffmpeg() {
   fi
 
   if [[ "$TYPE" == "full" ]]; then
-    args+=(--enable-libx265 --enable-libdav1d --enable-libsvtav1 --enable-zlib)
+    args+=(--enable-libx265 --enable-libdav1d --enable-zlib)
   fi
 
   if [[ ${#args[@]} -eq 0 ]]; then
