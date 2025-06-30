@@ -108,9 +108,9 @@ function select_storage() {
 
   local -a MENU
   local KEYS_SEEN=""
-  local MSG_MAX_LENGTH=0
+  local COL_WIDTH=0
 
-  while read -r TAG TYPE _ _ _ FREE _; do
+  while read -r TAG TYPE _ USED FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
     local KEY="${TAG}:${TYPE}"
     if echo "$KEYS_SEEN" | grep -qx "$KEY"; then
@@ -118,12 +118,14 @@ function select_storage() {
     fi
     KEYS_SEEN="${KEYS_SEEN}"$'\n'"$KEY"
 
-    local TYPE_PADDED=$(printf "%-10s" "$TYPE")
-    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")B
-    local ITEM="Type: $TYPE_PADDED Free: $FREE_FMT"
-    ((${#ITEM} + 2 > MSG_MAX_LENGTH)) && MSG_MAX_LENGTH=$((${#ITEM} + 2))
+    local NAME_TYPE="${TAG} (${TYPE})"
+    local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
+    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
+    local INFO="Used: $USED_FMTB  Free: $FREE_FMTB"
 
-    MENU+=("$KEY" "$ITEM" "OFF")
+    ((${#NAME_TYPE} > COL_WIDTH)) && COL_WIDTH=${#NAME_TYPE}
+
+    MENU+=("$KEY" "$NAME_TYPE | $INFO" "OFF")
   done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
   if [ ${#MENU[@]} -eq 0 ]; then
@@ -136,10 +138,11 @@ function select_storage() {
     return
   fi
 
+  local WIDTH=$((COL_WIDTH + 42))
   local STORAGE
   STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
     "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-    16 $((MSG_MAX_LENGTH + 23)) 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+    16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
     msg_error "Storage selection cancelled by user."
     exit 202
   }
