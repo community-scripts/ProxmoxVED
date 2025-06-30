@@ -121,7 +121,7 @@ function select_storage() {
     local NAME_TYPE="${TAG} (${TYPE})"
     local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
     local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
-    local INFO="Used: $USED_FMTB  Free: $FREE_FMTB"
+    local INFO="Used: ${USED_FMT}B  Free: ${FREE_FMT}B"
 
     ((${#NAME_TYPE} > COL_WIDTH)) && COL_WIDTH=${#NAME_TYPE}
 
