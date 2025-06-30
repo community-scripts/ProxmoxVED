@@ -107,14 +107,16 @@ function select_storage() {
   }
 
   local -a MENU
-  local -A SEEN=()
+  local KEYS_SEEN=""
   local MSG_MAX_LENGTH=0
 
   while read -r TAG TYPE _ _ _ FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
     local KEY="${TAG}:${TYPE}"
-    [[ -z "${SEEN[$KEY]}" ]] || continue
-    SEEN["$KEY"]=1
+    if echo "$KEYS_SEEN" | grep -qx "$KEY"; then
+      continue
+    fi
+    KEYS_SEEN="${KEYS_SEEN}"$'\n'"$KEY"
 
     local TYPE_PADDED=$(printf "%-10s" "$TYPE")
     local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")B
