@@ -495,8 +495,8 @@ msg_custom() {
   local msg="${3:-}"
   [[ -z "$msg" ]] && return
   stop_spinner
-  printf "\e[?25h"
   echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
+  printf "\r\033[K\e[?25h\n" # Zeile räumen, Cursor wiederherstellen und Zeilenumbruch!
 }
 
 # msg_ok() {
