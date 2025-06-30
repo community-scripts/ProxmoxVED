@@ -1704,10 +1704,24 @@ function setup_ffmpeg() {
     return 1
   }
 
-  ./configure --enable-gpl --enable-nonfree --disable-static \
-    --enable-libx264 --enable-libvpx --enable-libmp3lame \
-    $([[ "$TYPE" != "minimal" ]] && echo "--enable-libfreetype --enable-libass --enable-libopus --enable-libvorbis") \
-    $([[ "$TYPE" == "full" ]] && echo "--enable-libx265 --enable-libdav1d --enable-libsvtav1 --enable-zlib --enable-libnuma") >/dev/null
+  local args=(
+    --enable-gpl
+    --enable-nonfree
+    --disable-static
+    --enable-libx264
+    --enable-libvpx
+    --enable-libmp3lame
+  )
+
+  if [[ "$TYPE" != "minimal" ]]; then
+    args+=(--enable-libfreetype --enable-libass --enable-libopus --enable-libvorbis)
+  fi
+
+  if [[ "$TYPE" == "full" ]]; then
+    args+=(--enable-libx265 --enable-libdav1d --enable-libsvtav1 --enable-zlib --enable-libnuma)
+  fi
+
+  ./configure "${args[@]}" >/dev/null
 
   $STD make -j"$(nproc)"
   $STD make install
