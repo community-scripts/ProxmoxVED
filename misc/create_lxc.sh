@@ -107,22 +107,18 @@ function select_storage() {
   }
 
   local -a MENU
-  local KEYS_SEEN=""
+  local -A STORAGE_MAP=()
   local COL_WIDTH=0
 
   while read -r TAG TYPE _ TOTAL USED FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
-    local KEY="${TAG}:${TYPE}"
-    if echo "$KEYS_SEEN" | grep -qx "$KEY"; then continue; fi
-    KEYS_SEEN="${KEYS_SEEN}"$'\n'"$KEY"
-
+    local DISPLAY="${TAG} (${TYPE})"
     local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
     local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
-    local DISPLAY_NAME="${TAG} (${TYPE})"
     local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
-
-    ((${#DISPLAY_NAME} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY_NAME}
-    MENU+=("$KEY" "${DISPLAY_NAME} | ${INFO}" "OFF")
+    STORAGE_MAP["$DISPLAY"]="$TAG" # Map DISPLAY to actual TAG
+    MENU+=("$DISPLAY" "$INFO" "OFF")
+    ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
   done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
   if [ ${#MENU[@]} -eq 0 ]; then
@@ -131,20 +127,20 @@ function select_storage() {
   fi
 
   if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
-    echo "${MENU[0]%%:*}"
+    echo "${STORAGE_MAP[${MENU[0]}]}"
     return
   fi
 
   local WIDTH=$((COL_WIDTH + 42))
-  local STORAGE
-  STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+  local DISPLAY_SELECTED
+  DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
     "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
     16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
     msg_error "Storage selection cancelled by user."
     exit 202
   }
 
-  echo "${STORAGE%%:*}"
+  echo "${STORAGE_MAP["$DISPLAY_SELECTED"]}"
 }
 
 # Test if required variables are set
