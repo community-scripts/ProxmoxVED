@@ -333,13 +333,13 @@ write_config() {
 
 CT_TYPE="${CT_TYPE}"
 DISK_SIZE="${DISK_SIZE}"
-CORE_COUNT="${DISK_SIZE}"
+CORE_COUNT="${CORE_COUNT}"
 RAM_SIZE="${RAM_SIZE}"
 HN="${HN}"
 BRG="${BRG}"
 APT_CACHER_IP="${APT_CACHER_IP:-none}"
 DISABLEIP6="${DISABLEIP6}"
-PW="${PW:-none}"
+PW='${PW:-none}'
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
 VERBOSE="${VERBOSE}"
@@ -351,6 +351,7 @@ SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
 NET="${NET}"
+FUSE="${ENABLE_FUSE}"
 
 EOF
       echo -e "${INFO}${BOLD}${GN}Writing configuration to ${FILEPATH}${CL}"
@@ -364,7 +365,7 @@ EOF
 
 CT_TYPE="${CT_TYPE}"
 DISK_SIZE="${DISK_SIZE}"
-CORE_COUNT="${DISK_SIZE}"
+CORE_COUNT="${CORE_COUNT}"
 RAM_SIZE="${RAM_SIZE}"
 HN="${HN}"
 BRG="${BRG}"
@@ -382,6 +383,7 @@ SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
 NET="${NET}"
+FUSE="${ENABLE_FUSE}"
 
 EOF
         echo -e "${INFO}${BOLD}${GN}Writing configuration to ${FILEPATH}${CL}"
@@ -861,12 +863,12 @@ advanced_settings() {
     echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
   fi
 
-  # if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
-  #   ENABLE_FUSE="yes"
-  # else
-  #   ENABLE_FUSE="no"
-  # fi
-  # echo -e "${FUSE}${BOLD}${DGN}Enable FUSE Support: ${BGN}$ENABLE_FUSE${CL}"
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
+    ENABLE_FUSE="yes"
+  else
+    ENABLE_FUSE="no"
+  fi
+  echo -e "${FUSE}${BOLD}${DGN}Enable FUSE Support: ${BGN}$ENABLE_FUSE${CL}"
 
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
     VERBOSE="yes"
@@ -1269,22 +1271,28 @@ EOF'
     pct exec "$CTID" -- ash -c "apk add bash newt curl openssh nano mc ncurses >/dev/null"
   else
     sleep 3
-    # Set locale and timezone before update
+		   
     pct exec "$CTID" -- bash -c "sed -i '/$LANG/ s/^# //' /etc/locale.gen"
     pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
     echo LANG=\$locale_line >/etc/default/locale && \
     locale-gen >/dev/null && \
     export LANG=\$locale_line"
 
-    pct exec "$CTID" -- bash -c "echo $tz >/etc/timezone && ln -sf /usr/share/zoneinfo/$tz /etc/localtime"
+    if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
+      pct exec "$CTID" -- bash -c "echo $tz >/etc/timezone && ln -sf /usr/share/zoneinfo/$tz /etc/localtime"
+    else
+      msg_info "Skipping timezone setup – zone '$tz' not found in container"
+    fi
 
-    # Install curl
+
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 >/dev/null"
   fi
   msg_ok "Customized LXC Container"
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/$var_install.sh)" $?
+								   
 
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/"$var_install".sh)" $?
 }
+
 
 # This function sets the description of the container.
 description() {
