@@ -1721,7 +1721,18 @@ function setup_ffmpeg() {
     args+=(--enable-libx265 --enable-libdav1d --enable-libsvtav1 --enable-zlib --enable-libnuma)
   fi
 
-  ./configure "${args[@]}" >/dev/null
+  if [[ ${#args[@]} -eq 0 ]]; then
+    msg_error "FFmpeg configure args array is empty – aborting."
+    rm -rf "$TMP_DIR"
+    return 1
+  fi
+
+  ./configure "${args[@]}" >"$TMP_DIR/configure.log" 2>&1 || {
+    msg_error "FFmpeg ./configure failed (see $TMP_DIR/configure.log)"
+    cat "$TMP_DIR/configure.log" | tail -n 20
+    rm -rf "$TMP_DIR"
+    return 1
+  }
 
   $STD make -j"$(nproc)"
   $STD make install
