@@ -447,9 +447,12 @@ spinner() {
 }
 
 stop_spinner() {
-  [[ -n "$SPINNER_PID" ]] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null || true
-  printf "\e[?25h"
-  SPINNER_PID=""
+  if [[ -n "$SPINNER_PID" ]]; then
+    kill "$SPINNER_PID" 2>/dev/null
+    wait "$SPINNER_PID" 2>/dev/null || true
+    SPINNER_PID=""
+  fi
+  printf "\r\033[K\e[?25h" # clear line + show cursor
 }
 
 msg_info() {
