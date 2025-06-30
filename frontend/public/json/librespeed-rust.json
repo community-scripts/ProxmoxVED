@@ -17,7 +17,7 @@
   "install_methods": [
     {
       "type": "default",
-      "script": "ct/librespeed.sh",
+      "script": "ct/librespeed-rust.sh",
       "resources": {
         "cpu": 1,
         "ram": 512,
