@@ -1706,6 +1706,7 @@ function setup_ffmpeg() {
 
   local args=(
     --enable-gpl
+    --enable-shared
     --enable-nonfree
     --disable-static
     --enable-libx264
