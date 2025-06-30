@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y gpg
 msg_ok "Installed Dependencies"
 
-FFMPEG_VERSION="n7.1.1" FFMPEG_TYPE="full" setup_ffmpeg
+#FFMPEG_VERSION="n7.1.1" FFMPEG_TYPE="full" setup_ffmpeg
 
 #fetch_and_deploy_gh_release "argus" "release-argus/Argus" "singlefile" "latest" "/opt/argus" "Argus-.*linux-amd64"
 #fetch_and_deploy_gh_release "planka" "plankanban/planka" "prebuild" "latest" "/opt/planka" "planka-prebuild.zip"
