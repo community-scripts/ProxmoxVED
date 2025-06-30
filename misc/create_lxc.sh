@@ -265,15 +265,11 @@ PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 
 # Secure creation of the LXC container with lock and template check
 lockfile="/tmp/template.${TEMPLATE}.lock"
-exec 9>"$lockfile" >/dev/null 2>&1 || {
-  msg_error "Failed to create lock file '$lockfile'."
-  exit 200
-}
+exec 9>"$lockfile"
 flock -w 60 9 || {
   msg_error "Timeout while waiting for template lock"
   exit 211
 }
-
 msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
   msg_error "Container creation failed. Checking if template is corrupted or incomplete."
