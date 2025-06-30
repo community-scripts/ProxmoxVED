@@ -467,14 +467,14 @@ stop_spinner() {
     rm -f /tmp/.spinner.pid
     unset SPINNER_PID
   fi
-
-  printf "\r\033[K\e[?25h" # clear line + restore cursor
+  printf "\r\033[K"
 }
 
 msg_ok() {
   stop_spinner
   local msg="$1"
   echo -e "${BFR:-} ${CM:-✔️} ${GN}${msg}${CL}"
+  printf "\e[?25h"
 }
 
 msg_error() {
