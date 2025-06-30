@@ -450,7 +450,7 @@ spinner() {
 msg_info() {
   local msg="$1"
   echo -ne " ${HOLD:-} ${YW}${msg}   "
-  spinner
+  spinner &
   SPINNER_PID=$!
   echo "$SPINNER_PID" >/tmp/.spinner.pid
 }
