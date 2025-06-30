@@ -438,38 +438,37 @@ fatal() {
 # }
 
 spinner() {
-  local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏" i=0
+  local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+  local i=0
   printf "\e[?25l" # hide cursor
-  while :; do
+  while true; do
     printf "\r \e[36m%s\e[0m" "${chars:i++%${#chars}:1}"
     sleep 0.1
   done
 }
 
-stop_spinner() {
-  local pid
-
-  # Get PID from variable or temp file
-  pid="${SPINNER_PID:-}"
-  [[ -z "$pid" && -f /tmp/spinner.pid ]] && pid=$(</tmp/spinner.pid)
-
-  if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-    if kill "$pid" 2>/dev/null; then
-      wait "$pid" 2>/dev/null || true
-    fi
-    rm -f /tmp/spinner.pid
-    unset SPINNER_PID
-  fi
-
-  printf "\r\033[K\e[?25h" # clear line + show cursor
-}
-
 msg_info() {
   local msg="$1"
   echo -ne " ${HOLD:-} ${YW}${msg}   "
-  spinner &
+  spinner >/dev/null &
   SPINNER_PID=$!
-  echo "$SPINNER_PID" >/tmp/spinner.pid
+  echo "$SPINNER_PID" >/tmp/.spinner.pid
+}
+
+stop_spinner() {
+  local pid="${SPINNER_PID:-}"
+  [[ -z "$pid" && -f /tmp/.spinner.pid ]] && pid=$(</tmp/.spinner.pid)
+
+  if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+    kill "$pid" 2>/dev/null || true
+    sleep 0.05
+    kill -9 "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+    rm -f /tmp/.spinner.pid
+    unset SPINNER_PID
+  fi
+
+  printf "\r\033[K\e[?25h" # clear line + restore cursor
 }
 
 msg_ok() {
