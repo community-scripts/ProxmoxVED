@@ -107,12 +107,22 @@ function select_storage() {
   }
 
   local -a MENU
-  while read -r line; do
-    local TAG=$(echo $line | awk '{print $1}')
-    local TYPE=$(echo $line | awk '{printf "%-10s", $2}')
-    local FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
-    MENU+=("$TAG" "Type: $TYPE Free: $FREE " "OFF")
-  done < <(pvesm status -content $CONTENT | awk 'NR>1')
+  local -A SEEN=()
+  local MSG_MAX_LENGTH=0
+
+  while read -r TAG TYPE _ _ _ FREE _; do
+    [[ -n "$TAG" && -n "$TYPE" ]] || continue
+    local KEY="${TAG}:${TYPE}"
+    [[ -z "${SEEN[$KEY]}" ]] || continue
+    SEEN["$KEY"]=1
+
+    local TYPE_PADDED=$(printf "%-10s" "$TYPE")
+    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.2f <<<"$FREE")B
+    local ITEM="Type: $TYPE_PADDED Free: $FREE_FMT"
+    ((${#ITEM} + 2 > MSG_MAX_LENGTH)) && MSG_MAX_LENGTH=$((${#ITEM} + 2))
+
+    MENU+=("$KEY" "$ITEM" "OFF")
+  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
   if [ ${#MENU[@]} -eq 0 ]; then
     msg_error "No storage found for content type '$CONTENT'."
@@ -120,18 +130,19 @@ function select_storage() {
   fi
 
   if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
-    printf "%s" "${MENU[0]}"
+    echo "${MENU[0]%%:*}"
     return
   fi
 
   local STORAGE
   STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
     "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-    16 70 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+    16 $((MSG_MAX_LENGTH + 23)) 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
     msg_error "Storage selection cancelled by user."
     exit 202
   }
-  printf "%s" "$STORAGE"
+
+  echo "${STORAGE%%:*}"
 }
 
 # Test if required variables are set
