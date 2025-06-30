@@ -438,7 +438,7 @@ fatal() {
 # }
 
 spinner() {
-  local chars="|/-\\·∙•°•∙·" i=0
+  local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏" i=0
   printf "\e[?25l"
   while true; do
     printf "\r \e[36m%s\e[0m" "${chars:i++%${#chars}:1}"
