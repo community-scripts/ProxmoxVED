@@ -38,8 +38,8 @@ function update_script() {
     mv /opt/kapowarr/db /opt/
     msg_ok "Backup Created"
 
-    msg_info "Updating $APP to ${RELEASE}"
     fetch_and_deploy_gh_release "kapowarr" "Casvt/Kapowarr"
+    msg_info "Updating $APP to ${RELEASE}"
     mv /opt/db /opt/kapowarr
     msg_ok "Updated $APP to ${RELEASE}"
 
