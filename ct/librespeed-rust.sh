@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Joseph Stubberfield (stubbers)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/librespeed/speedtest-rust
 
-APP="Librespeed Rust"
+APP="Librespeed-Rust"
 var_tags="${var_tags:-network}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
@@ -28,22 +28,12 @@ function update_script() {
     exit
   fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/librespeed/speedtest-rust/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "v([^"]+).*/\1/')
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+  if [[ "${RELEASE}" != "$(cat ~/.librespeed 2>/dev/null)" ]] || [[ ! -f ~/.librespeed ]]; then
     msg_info "Stopping Services"
     systemctl stop librespeed-rs
     msg_ok "Services Stopped"
 
-    msg_info "Updating ${APP} to v${RELEASE}"
-    $STD apt-get update
-    $STD apt-get -y upgrade
-    mv /var/lib/librespeed /var/lib/librespeed-backup
-    temp_file=$(mktemp)
-    curl -fsSL "https://github.com/librespeed/speedtest-rust/releases/download/v${RELEASE}/librespeed-rs-x86_64-unknown-linux-gnu.deb" -o "$temp_file"
-    $STD dpkg -u "$temp_file"
-    rm -rf "$temp_file"
-    rm -rf /var/lib/librespeed-backup
-    echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
-    msg_ok "Updated ${APP}"
+    fetch_and_deploy_gh_release "librespeed-rust" "librespeed/speedtest-rust" "deb" "latest" "/opt/librespeed-rust" "librespeed-rs-x86_64-unknown-linux-gnu.deb"
 
     msg_info "Starting Service"
     systemctl start librespeed-rs
