@@ -442,7 +442,7 @@ spinner() {
   local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
   local i=0
   while true; do
-    printf "\r\e[2K\e[36m%s\e[0m ${YW}%s${CL}" "${YW}${chars:i++%${#chars}:1}" "$msg"
+    printf "\r\e[2K\e[36m%s\e[0m ${YW}%s${CL}" "${chars:i++%${#chars}:1}" "$msg"
     sleep 0.1
   done
 }
