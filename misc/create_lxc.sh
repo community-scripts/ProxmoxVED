@@ -98,11 +98,11 @@ function select_storage() {
   esac
 
   command -v whiptail >/dev/null || {
-    msg_error "whiptail missing."
+    msg_error "whiptail missing. Please install whiptail."
     exit 220
   }
   command -v numfmt >/dev/null || {
-    msg_error "numfmt missing."
+    msg_error "numfmt missing. Please install numfmt (coreutils package)."
     exit 221
   }
 
