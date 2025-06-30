@@ -20,10 +20,10 @@ if ! declare -f wait_for >/dev/null; then
   }
 fi
 
-declare -A MSG_INFO_SHOWN=()
-SPINNER_PID=""
-SPINNER_ACTIVE=0
-SPINNER_MSG=""
+# declare -A MSG_INFO_SHOWN=()
+# SPINNER_PID=""
+# SPINNER_ACTIVE=0
+# SPINNER_MSG=""
 
 # ------------------------------------------------------------------------------
 # Loads core utility groups once (colors, formatting, icons, defaults).
@@ -47,9 +47,9 @@ load_functions() {
 # Error & Signal Handling – robust, universal, subshell-safe
 # ============================================================================
 
-_stop_spinner_on_error() {
-  [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null || true
-}
+# _stop_spinner_on_error() {
+#   [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null || true
+# }
 
 _tool_error_hint() {
   local cmd="$1"
@@ -89,35 +89,35 @@ _tool_error_hint() {
   esac
 }
 
-on_error() {
-  local code="$?"
-  local line="${BASH_LINENO[0]:-unknown}"
-  local cmd="${BASH_COMMAND:-unknown}"
+# on_error() {
+#   local code="$?"
+#   local line="${BASH_LINENO[0]:-unknown}"
+#   local cmd="${BASH_COMMAND:-unknown}"
 
-  # Signalcode unterdrücken, falls INT/TERM kommt
-  [[ "$code" == "130" || "$code" == "143" ]] && return
+#   # Signalcode unterdrücken, falls INT/TERM kommt
+#   [[ "$code" == "130" || "$code" == "143" ]] && return
 
-  _stop_spinner_on_error
-  msg_error "Script failed at line $line with exit code $code: $cmd"
-  exit "$code"
-}
+#   _stop_spinner_on_error
+#   msg_error "Script failed at line $line with exit code $code: $cmd"
+#   exit "$code"
+# }
 
-on_exit() {
-  _stop_spinner_on_error
-  [[ "${VERBOSE:-no}" == "yes" ]] && msg_info "Script exited cleanly"
-}
+# on_exit() {
+#   _stop_spinner_on_error
+#   [[ "${VERBOSE:-no}" == "yes" ]] && msg_info "Script exited cleanly"
+# }
 
-on_interrupt() {
-  _stop_spinner_on_error
-  msg_error "Interrupted by user (CTRL+C)"
-  exit 130
-}
+# on_interrupt() {
+#   _stop_spinner_on_error
+#   msg_error "Interrupted by user (CTRL+C)"
+#   exit 130
+# }
 
-on_terminate() {
-  _stop_spinner_on_error
-  msg_error "Terminated by signal (SIGTERM)"
-  exit 143
-}
+# on_terminate() {
+#   _stop_spinner_on_error
+#   msg_error "Terminated by signal (SIGTERM)"
+#   exit 143
+# }
 
 catch_errors() {
   trap 'on_error' ERR
@@ -428,19 +428,19 @@ fatal() {
 #   stop_spinner
 # }
 
-msg_info() {
-  local msg="$1"
-  [[ -z "$msg" || -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$msg"]=1
+# msg_info() {
+#   local msg="$1"
+#   [[ -z "$msg" || -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
+#   MSG_INFO_SHOWN["$msg"]=1
 
-  stop_spinner
-  echo -e "OS: ${var_os:-}"
-  if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
-    printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
-  else
-    start_spinner "$msg"
-  fi
-}
+#   stop_spinner
+#   echo -e "OS: ${var_os:-}"
+#   if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
+#     printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
+#   else
+#     start_spinner "$msg"
+#   fi
+# }
 
 spinner() {
   local chars="/-\|" i=0
