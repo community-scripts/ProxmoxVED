@@ -9,16 +9,16 @@
 #   }
 # fi
 
-trap 'on_error $? $LINENO' ERR
-trap 'on_exit' EXIT
-trap 'on_interrupt' INT
-trap 'on_terminate' TERM
+# trap 'on_error $? $LINENO' ERR
+# trap 'on_exit' EXIT
+# trap 'on_interrupt' INT
+# trap 'on_terminate' TERM
 
-if ! declare -f wait_for >/dev/null; then
-  wait_for() {
-    true
-  }
-fi
+# if ! declare -f wait_for >/dev/null; then
+#   wait_for() {
+#     true
+#   }
+# fi
 
 # declare -A MSG_INFO_SHOWN=()
 # SPINNER_PID=""
@@ -120,13 +120,8 @@ _tool_error_hint() {
 # }
 
 catch_errors() {
-  trap 'on_error' ERR
-  trap 'on_exit' EXIT
-  trap 'on_interrupt' INT
-  trap 'on_terminate' TERM
-
   set -Eeuo pipefail
-  shopt -s inherit_errexit
+  trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
 
 # ------------------------------------------------------------------------------
