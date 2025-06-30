@@ -110,7 +110,7 @@ function select_storage() {
   local KEYS_SEEN=""
   local COL_WIDTH=0
 
-  while read -r TAG TYPE _ USED FREE _; do
+  while read -r TAG TYPE _ TOTAL USED FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
     local KEY="${TAG}:${TYPE}"
     if echo "$KEYS_SEEN" | grep -qx "$KEY"; then continue; fi
