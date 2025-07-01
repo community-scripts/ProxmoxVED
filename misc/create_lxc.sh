@@ -144,16 +144,25 @@ function select_storage() {
   fi
 
   local WIDTH=$((COL_WIDTH + 42))
-  local DISPLAY_SELECTED
-  DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-    "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-    16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-    printf "\e[?25h"
-    msg_error "Storage selection cancelled by user. Aborting script."
-    exit 202
-  }
+  local DISPLAY_SELECTED=""
+  while true; do
+    DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+      "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
+      16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+      msg_error "Storage selection cancelled by user."
+      exit 202
+    }
+
+    if [[ -z "$DISPLAY_SELECTED" ]]; then
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "Invalid Selection" \
+        --msgbox "No storage selected. Please choose a storage pool to continue." 9 60
+    else
+      break
+    fi
+  done
 
   echo "${STORAGE_MAP["$DISPLAY_SELECTED"]}"
+
 }
 
 # Test if required variables are set
