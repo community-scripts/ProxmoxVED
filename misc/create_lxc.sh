@@ -53,11 +53,9 @@ function on_terminate() {
 function check_storage_support() {
   local CONTENT="$1"
   local -a VALID_STORAGES=()
-  local TYPE="" NAME="" CONTENTS=()
-  local CURRENT_NAME="" CURRENT_TYPE="" CURRENT_CONTENTS=()
+  local CURRENT_NAME="" CURRENT_CONTENTS=()
 
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Match Speicher-Typ und Name
     if [[ "$line" =~ ^(dir|lvm|lvmthin|zfspool):[[:space:]]*([a-zA-Z0-9._-]+) ]]; then
       [[ -n "$CURRENT_NAME" ]] && {
         if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
@@ -65,12 +63,10 @@ function check_storage_support() {
         fi
         CURRENT_CONTENTS=()
       }
-      CURRENT_TYPE="${BASH_REMATCH[1]}"
       CURRENT_NAME="${BASH_REMATCH[2]}"
       continue
     fi
 
-    # Match content-Zeile
     if [[ "$line" =~ ^[[:space:]]*content[[:space:]]*=?[[:space:]]*(.+)$ ]]; then
       IFS=',' read -ra PARTS <<<"${BASH_REMATCH[1]}"
       for c in "${PARTS[@]}"; do
