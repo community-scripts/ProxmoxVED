@@ -15,21 +15,11 @@ update_os
 
 setup_mariadb
 
-msg_info "Installing Repository"
-curl -fsSL http://deb.itsm-ng.org/pubkey.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/itsm-ng-keyring.gpg
-echo "deb http://deb.itsm-ng.org/$(. /etc/os-release && echo "$ID")/ $(. /etc/os-release && echo "$VERSION_CODENAME") main" > /etc/apt/sources.list.d/itsm-ng.list
-$STD apt update
-msg_ok "Installed Repository"
-
-msg_info "Installing ITSM-NG"
-$STD apt install -y itsm-ng
-msg_ok "Installed ITSM-NG"
-
 msg_info "Setting up database"
 DB_NAME=itsmng_db
 DB_USER=itsmng
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-mariadb-tzinfo-to-sql /usr/share/zoneinfo | mysql mysql
+mariadb-tzinfo-to-sql /usr/share/zoneinfo | mariadb mysql
 mariadb -u root -e "CREATE DATABASE $DB_NAME;"
 mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 mariadb -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
@@ -42,20 +32,21 @@ mariadb -u root -e "GRANT SELECT ON \`mysql\`.\`time_zone_name\` TO '$DB_USER'@'
 } >>~/itsmng_db.creds
 msg_ok "Set up database"
 
+msg_info "Setup ITSM-NG Repository"
+curl -fsSL http://deb.itsm-ng.org/pubkey.gpg | gpg --dearmor -o /etc/apt/trusted.gpg.d/itsm-ng-keyring.gpg
+echo "deb http://deb.itsm-ng.org/$(. /etc/os-release && echo "$ID")/ $(. /etc/os-release && echo "$VERSION_CODENAME") main" >/etc/apt/sources.list.d/itsm-ng.list
+$STD apt-get update
+msg_ok "Setup ITSM-NG Repository"
+
 msg_info "Installing ITSM-NG"
+$STD apt install -y itsm-ng
 cd /usr/share/itsm-ng
 $STD php bin/console db:install --db-name=$DB_NAME --db-user=$DB_USER --db-password=$DB_PASS --no-interaction
+$STD a2dissite 000-default.conf
+echo "* * * * * php /usr/share/itsm-ng/front/cron.php" | crontab -
 msg_ok "Installed ITSM-NG"
 
-msg_info "Configuring webserver"
-$STD a2dissite 000-default.conf
-msg_ok "Setup Service"
-
-msg_info "Setup Cronjob"
-echo "* * * * * php /usr/share/itsm-ng/front/cron.php" | crontab -
-msg_ok "Setup Cronjob"
-
-msg_info "Update PHP Params"
+msg_info "Increase PHP Params"
 PHP_VERSION=$(ls /etc/php/ | grep -E '^[0-9]+\.[0-9]+$' | head -n 1)
 PHP_INI="/etc/php/$PHP_VERSION/apache2/php.ini"
 sed -i 's/^upload_max_filesize = .*/upload_max_filesize = 20M/' $PHP_INI
