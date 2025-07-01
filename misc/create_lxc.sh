@@ -240,12 +240,18 @@ if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLAT
   for attempt in {1..3}; do
     msg_info "Attempt $attempt: Downloading LXC template..."
 
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
+    if command -v timeout >/dev/null; then
+      timeout --foreground 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
+    else
+      pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
+    fi
+
+    if [[ $? -eq 0 ]]; then
       msg_ok "Template download successful."
       break
     fi
 
-    if [ $attempt -eq 3 ]; then
+    if [[ $attempt -eq 3 ]]; then
       msg_error "Failed after 3 attempts. Please check your Proxmox host’s internet access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
       exit 208
     fi
