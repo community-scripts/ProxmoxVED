@@ -53,33 +53,12 @@ function on_terminate() {
 function check_storage_support() {
   local CONTENT="$1"
   local -a VALID_STORAGES=()
-  local CURRENT_NAME="" CURRENT_CONTENTS=()
 
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    # Prüfen auf neue Storage-Definition (nur bei erfolgreichem Match BASH_REMATCH verwenden!)
-    if [[ "$line" =~ ^[[:space:]]*(dir|lvm|lvmthin|zfspool):[[:space:]]*([a-zA-Z0-9._-]+) ]]; then
-      # vorherigen Block prüfen
-      if [[ -n "$CURRENT_NAME" && "${#CURRENT_CONTENTS[@]}" -gt 0 ]]; then
-        if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
-          VALID_STORAGES+=("$CURRENT_NAME")
-        fi
-      fi
-      CURRENT_NAME="${BASH_REMATCH[2]}"
-      CURRENT_CONTENTS=()
-    elif [[ "$line" =~ ^[[:space:]]*content[[:space:]]*=?[[:space:]]*(.+)$ ]]; then
-      IFS=',' read -ra PARTS <<<"${BASH_REMATCH[1]}"
-      for c in "${PARTS[@]}"; do
-        CURRENT_CONTENTS+=("$(echo "$c" | xargs)")
-      done
-    fi
-  done </etc/pve/storage.cfg
-
-  # Letzten Block prüfen
-  if [[ -n "$CURRENT_NAME" && "${#CURRENT_CONTENTS[@]}" -gt 0 ]]; then
-    if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
-      VALID_STORAGES+=("$CURRENT_NAME")
-    fi
-  fi
+  while IFS= read -r line; do
+    local STORAGE=$(awk '{print $1}' <<<"$line")
+    [[ "$STORAGE" == "storage" || -z "$STORAGE" ]] && continue
+    VALID_STORAGES+=("$STORAGE")
+  done < <(pvesm status -content "$CONTENT" 2>/dev/null | awk 'NR>1')
 
   [[ ${#VALID_STORAGES[@]} -gt 0 ]]
 }
