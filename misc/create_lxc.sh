@@ -153,12 +153,14 @@ function select_storage() {
       exit 202
     }
 
-    if [[ -z "$DISPLAY_SELECTED" ]]; then
+    # Validierung gegen STORAGE_MAP
+    if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "Invalid Selection" \
-        --msgbox "No storage selected. Please choose a storage pool to continue." 9 60
-    else
-      break
+        --msgbox "No valid storage selected. Please choose a storage pool to continue." 9 60
+      continue
     fi
+
+    break
   done
 
   echo "${STORAGE_MAP["$DISPLAY_SELECTED"]}"
