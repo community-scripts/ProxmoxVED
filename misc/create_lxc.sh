@@ -194,10 +194,28 @@ if [[ -f "$DEFAULT_FILE" ]]; then
     msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
   fi
 else
-  TEMPLATE_STORAGE=$(select_storage template)
+  # TEMPLATE STORAGE SELECTION
+  if ! TEMPLATE_STORAGE=$(select_storage template); then
+    [[ $? -eq 202 ]] && {
+      msg_error "Template Storage selection cancelled by user. Exiting cleanly."
+      exit 202
+    }
+    msg_error "Unexpected error during template storage selection."
+    exit 1
+  fi
   msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
-  CONTAINER_STORAGE=$(select_storage container)
+
+  # CONTAINER STORAGE SELECTION
+  if ! CONTAINER_STORAGE=$(select_storage container); then
+    [[ $? -eq 202 ]] && {
+      msg_error "Container Storage selection cancelled by user. Exiting cleanly."
+      exit 202
+    }
+    msg_error "Unexpected error during container storage selection."
+    exit 1
+  fi
   msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+
 fi
 
 # Check free space on selected container storage
