@@ -148,7 +148,8 @@ function select_storage() {
   DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
     "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
     16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-    msg_error "Storage selection cancelled by user."
+    printf "\e[?25h"
+    msg_error "Storage selection cancelled by user. Aborting script."
     exit 202
   }
 
