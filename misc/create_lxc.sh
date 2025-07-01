@@ -50,18 +50,54 @@ function on_terminate() {
   exit 143
 }
 
+function check_storage_support() {
+  local CONTENT="$1"
+  local -a VALID_STORAGES=()
+  local TYPE="" NAME="" CONTENTS=()
+  local CURRENT_NAME="" CURRENT_TYPE="" CURRENT_CONTENTS=()
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ ^([a-z0-9]+):[[:space:]]*([a-zA-Z0-9_-]+) ]]; then
+      [[ -n "$CURRENT_NAME" ]] && {
+        if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
+          VALID_STORAGES+=("$CURRENT_NAME")
+        fi
+        CURRENT_CONTENTS=()
+      }
+      CURRENT_TYPE="${BASH_REMATCH[1]}"
+      CURRENT_NAME="${BASH_REMATCH[2]}"
+    elif [[ "$line" =~ ^[[:space:]]*content[[:space:]]*[=]?[[:space:]]*(.+)$ ]]; then
+      IFS=',' read -ra PARTS <<<"${BASH_REMATCH[1]}"
+      for c in "${PARTS[@]}"; do
+        CURRENT_CONTENTS+=("$(echo "$c" | xargs)")
+      done
+    fi
+  done </etc/pve/storage.cfg
+
+  if [[ -n "$CURRENT_NAME" ]]; then
+    if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
+      VALID_STORAGES+=("$CURRENT_NAME")
+    fi
+  fi
+
+  if [[ ${#VALID_STORAGES[@]} -eq 0 ]]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
 # This checks for the presence of valid Container Storage and Template Storage locations
 msg_info "Validating Storage"
-VALIDCT=$(pvesm status -content rootdir | awk 'NR>1')
-if [ -z "$VALIDCT" ]; then
-  msg_error "Unable to detect a valid Container Storage location."
+if ! check_storage_support "rootdir"; then
+  msg_error "No valid storage found for 'rootdir' (Container)."
   exit 1
 fi
-VALIDTMP=$(pvesm status -content vztmpl | awk 'NR>1')
-if [ -z "$VALIDTMP" ]; then
-  msg_error "Unable to detect a valid Template Storage location."
+if ! check_storage_support "vztmpl"; then
+  msg_error "No valid storage found for 'vztmpl' (Template)."
   exit 1
 fi
+msg_ok "Storage types rootdir and vztmpl are supported."
 
 # This function is used to select the storage class and determine the corresponding storage content type and label.
 function select_storage() {
