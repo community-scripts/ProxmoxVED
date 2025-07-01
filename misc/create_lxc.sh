@@ -56,17 +56,20 @@ function check_storage_support() {
   local CURRENT_NAME="" CURRENT_CONTENTS=()
 
   while IFS= read -r line || [[ -n "$line" ]]; do
+    # Neuer Block
     if [[ "$line" =~ ^(dir|lvm|lvmthin|zfspool):[[:space:]]*([a-zA-Z0-9._-]+) ]]; then
-      [[ -n "$CURRENT_NAME" ]] && {
+      # Wenn vorheriger Block gültig war, prüfen
+      if [[ -n "$CURRENT_NAME" && "${#CURRENT_CONTENTS[@]}" -gt 0 ]]; then
         if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
           VALID_STORAGES+=("$CURRENT_NAME")
         fi
-        CURRENT_CONTENTS=()
-      }
+      fi
       CURRENT_NAME="${BASH_REMATCH[2]}"
+      CURRENT_CONTENTS=()
       continue
     fi
 
+    # Content-Zeile
     if [[ "$line" =~ ^[[:space:]]*content[[:space:]]*=?[[:space:]]*(.+)$ ]]; then
       IFS=',' read -ra PARTS <<<"${BASH_REMATCH[1]}"
       for c in "${PARTS[@]}"; do
@@ -76,7 +79,7 @@ function check_storage_support() {
   done </etc/pve/storage.cfg
 
   # Letzten Block prüfen
-  if [[ -n "$CURRENT_NAME" ]]; then
+  if [[ -n "$CURRENT_NAME" && "${#CURRENT_CONTENTS[@]}" -gt 0 ]]; then
     if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
       VALID_STORAGES+=("$CURRENT_NAME")
     fi
