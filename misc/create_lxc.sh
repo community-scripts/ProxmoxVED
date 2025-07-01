@@ -113,7 +113,8 @@ function select_storage() {
     if [[ "$LINE" =~ ^(dir|lvm|lvmthin|zfspool|.*):[[:space:]]*(.+)$ ]]; then
       CURRENT_STORAGE="${BASH_REMATCH[2]}"
     elif [[ "$LINE" =~ ^[[:space:]]*content[[:space:]]*=[[:space:]]*(.+)$ ]]; then
-      [[ ",${BASH_REMATCH[1]}," =~ ,$CONTENT, ]] && VALID_STORAGES+=("$CURRENT_STORAGE")
+      local CONTENTS="${BASH_REMATCH[1]}"
+      [[ ",${CONTENTS}," =~ ,$CONTENT, ]] && VALID_STORAGES+=("$CURRENT_STORAGE")
     fi
   done </etc/pve/storage.cfg
 
