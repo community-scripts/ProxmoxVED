@@ -106,23 +106,41 @@ function select_storage() {
     exit 221
   }
 
+  # Gather valid storages from /etc/pve/storage.cfg
+  local -a VALID_STORAGES=()
+  local CURRENT_STORAGE=""
+  while read -r LINE; do
+    if [[ "$LINE" =~ ^(dir|lvm|lvmthin|zfspool|.*):[[:space:]]*(.+)$ ]]; then
+      CURRENT_STORAGE="${BASH_REMATCH[2]}"
+    elif [[ "$LINE" =~ ^[[:space:]]*content[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+      [[ ",${BASH_REMATCH[1]}," =~ ,$CONTENT, ]] && VALID_STORAGES+=("$CURRENT_STORAGE")
+    fi
+  done </etc/pve/storage.cfg
+
+  if [[ "$CONTENT" == "vztmpl" && ${#VALID_STORAGES[@]} -eq 0 ]]; then
+    msg_error "No storage found that supports Container Templates (vztmpl). Please enable 'vztmpl' in Storage Settings."
+    exit 250
+  fi
+
   local -a MENU
   local -A STORAGE_MAP=()
   local COL_WIDTH=0
 
   while read -r TAG TYPE _ TOTAL USED FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
+    [[ ! " ${VALID_STORAGES[*]} " =~ " $TAG " ]] && continue
+
     local DISPLAY="${TAG} (${TYPE})"
     local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
     local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
     local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
-    STORAGE_MAP["$DISPLAY"]="$TAG" # Map DISPLAY to actual TAG
+    STORAGE_MAP["$DISPLAY"]="$TAG"
     MENU+=("$DISPLAY" "$INFO" "OFF")
     ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
   done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
   if [ ${#MENU[@]} -eq 0 ]; then
-    msg_error "No storage found for content type '$CONTENT'."
+    msg_error "No storage found that supports '${CONTENT}'."
     exit 203
   fi
 
