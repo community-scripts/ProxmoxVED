@@ -56,8 +56,9 @@ function check_storage_support() {
   local CURRENT_NAME="" CURRENT_CONTENTS=()
 
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Neue Storage-Definition erkannt
+    # Prüfen auf neue Storage-Definition (nur bei erfolgreichem Match BASH_REMATCH verwenden!)
     if [[ "$line" =~ ^[[:space:]]*(dir|lvm|lvmthin|zfspool):[[:space:]]*([a-zA-Z0-9._-]+) ]]; then
+      # vorherigen Block prüfen
       if [[ -n "$CURRENT_NAME" && "${#CURRENT_CONTENTS[@]}" -gt 0 ]]; then
         if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
           VALID_STORAGES+=("$CURRENT_NAME")
@@ -65,11 +66,7 @@ function check_storage_support() {
       fi
       CURRENT_NAME="${BASH_REMATCH[2]}"
       CURRENT_CONTENTS=()
-      continue
-    fi
-
-    # Content-Zeile erkannt
-    if [[ "$line" =~ ^[[:space:]]*content[[:space:]]*=?[[:space:]]*(.+)$ ]]; then
+    elif [[ "$line" =~ ^[[:space:]]*content[[:space:]]*=?[[:space:]]*(.+)$ ]]; then
       IFS=',' read -ra PARTS <<<"${BASH_REMATCH[1]}"
       for c in "${PARTS[@]}"; do
         CURRENT_CONTENTS+=("$(echo "$c" | xargs)")
