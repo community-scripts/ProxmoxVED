@@ -57,7 +57,8 @@ function check_storage_support() {
   local CURRENT_NAME="" CURRENT_TYPE="" CURRENT_CONTENTS=()
 
   while IFS= read -r line || [[ -n "$line" ]]; do
-    if [[ "$line" =~ ^([a-z0-9]+):[[:space:]]*([a-zA-Z0-9_-]+) ]]; then
+    # Match Speicher-Typ und Name
+    if [[ "$line" =~ ^(dir|lvm|lvmthin|zfspool):[[:space:]]*([a-zA-Z0-9._-]+) ]]; then
       [[ -n "$CURRENT_NAME" ]] && {
         if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
           VALID_STORAGES+=("$CURRENT_NAME")
@@ -66,7 +67,11 @@ function check_storage_support() {
       }
       CURRENT_TYPE="${BASH_REMATCH[1]}"
       CURRENT_NAME="${BASH_REMATCH[2]}"
-    elif [[ "$line" =~ ^[[:space:]]*content[[:space:]]*[=]?[[:space:]]*(.+)$ ]]; then
+      continue
+    fi
+
+    # Match content-Zeile
+    if [[ "$line" =~ ^[[:space:]]*content[[:space:]]*=?[[:space:]]*(.+)$ ]]; then
       IFS=',' read -ra PARTS <<<"${BASH_REMATCH[1]}"
       for c in "${PARTS[@]}"; do
         CURRENT_CONTENTS+=("$(echo "$c" | xargs)")
@@ -74,17 +79,14 @@ function check_storage_support() {
     fi
   done </etc/pve/storage.cfg
 
+  # Letzten Block prüfen
   if [[ -n "$CURRENT_NAME" ]]; then
     if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
       VALID_STORAGES+=("$CURRENT_NAME")
     fi
   fi
 
-  if [[ ${#VALID_STORAGES[@]} -eq 0 ]]; then
-    return 1
-  else
-    return 0
-  fi
+  [[ ${#VALID_STORAGES[@]} -gt 0 ]]
 }
 
 # This checks for the presence of valid Container Storage and Template Storage locations
