@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://itsm-ng.com/
 
-APP="itsmng"
+APP="ITSM-NG"
 var_tags="${var_tags:-asset-management;foss}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
@@ -30,9 +30,9 @@ function update_script() {
   fi
 
   msg_info "Updating ${APP} LXC"
-    $STD apt-get update
-    $STD apt-get -y upgrade
-    msg_ok "Updated Successfully"
+  $STD apt-get update
+  $STD apt-get -y upgrade
+  msg_ok "Updated Successfully"
 
   exit
 }
