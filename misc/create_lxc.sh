@@ -27,7 +27,7 @@ trap on_terminate TERM
 
 function on_exit() {
   local exit_code="$?"
-  [[ -n "${lockfile:-}" ]]
+  [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
   exit "$exit_code"
 }
 
@@ -56,16 +56,20 @@ function check_storage_support() {
   local CURRENT_NAME="" CURRENT_CONTENTS=()
 
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Neuer Block
+    # Prüfen auf Storage-Typ-Zeile (dir:, lvm:, lvmthin:, zfspool:)
     if [[ "$line" =~ ^(dir|lvm|lvmthin|zfspool):[[:space:]]*([a-zA-Z0-9._-]+) ]]; then
-      # Wenn vorheriger Block gültig war, prüfen
       if [[ -n "$CURRENT_NAME" && "${#CURRENT_CONTENTS[@]}" -gt 0 ]]; then
         if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
           VALID_STORAGES+=("$CURRENT_NAME")
         fi
       fi
-      CURRENT_NAME="${BASH_REMATCH[2]}"
-      CURRENT_CONTENTS=()
+
+      # Nur wenn der Regex gematcht hat, darf man auf BASH_REMATCH zugreifen
+      CURRENT_NAME=""
+      if [[ ${#BASH_REMATCH[@]} -ge 3 ]]; then
+        CURRENT_NAME="${BASH_REMATCH[2]}"
+        CURRENT_CONTENTS=()
+      fi
       continue
     fi
 
