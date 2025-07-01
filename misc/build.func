@@ -1195,12 +1195,10 @@ build_container() {
   -unprivileged $CT_TYPE
   $PW
 "
-  # This executes create_lxc.sh and creates the container and .conf file
-  CREATE_CMD="bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)\""
-  eval "$CREATE_CMD"
+  bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)"
   RET=$?
   if [[ $RET -ne 0 ]]; then
-    msg_error "in line $LINENO: exit code $RET: while executing command $CREATE_CMD"
+    msg_error "in line $LINENO: exit code $RET: while executing create_lxc.sh"
     exit $RET
   fi
 
