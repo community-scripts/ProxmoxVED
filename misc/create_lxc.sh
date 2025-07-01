@@ -56,24 +56,19 @@ function check_storage_support() {
   local CURRENT_NAME="" CURRENT_CONTENTS=()
 
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Prüfen auf Storage-Typ-Zeile (dir:, lvm:, lvmthin:, zfspool:)
-    if [[ "$line" =~ ^(dir|lvm|lvmthin|zfspool):[[:space:]]*([a-zA-Z0-9._-]+) ]]; then
+    # Neue Storage-Definition erkannt
+    if [[ "$line" =~ ^[[:space:]]*(dir|lvm|lvmthin|zfspool):[[:space:]]*([a-zA-Z0-9._-]+) ]]; then
       if [[ -n "$CURRENT_NAME" && "${#CURRENT_CONTENTS[@]}" -gt 0 ]]; then
         if [[ " ${CURRENT_CONTENTS[*]} " =~ " $CONTENT " ]]; then
           VALID_STORAGES+=("$CURRENT_NAME")
         fi
       fi
-
-      # Nur wenn der Regex gematcht hat, darf man auf BASH_REMATCH zugreifen
-      CURRENT_NAME=""
-      if [[ ${#BASH_REMATCH[@]} -ge 3 ]]; then
-        CURRENT_NAME="${BASH_REMATCH[2]}"
-        CURRENT_CONTENTS=()
-      fi
+      CURRENT_NAME="${BASH_REMATCH[2]}"
+      CURRENT_CONTENTS=()
       continue
     fi
 
-    # Content-Zeile
+    # Content-Zeile erkannt
     if [[ "$line" =~ ^[[:space:]]*content[[:space:]]*=?[[:space:]]*(.+)$ ]]; then
       IFS=',' read -ra PARTS <<<"${BASH_REMATCH[1]}"
       for c in "${PARTS[@]}"; do
