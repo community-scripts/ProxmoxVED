@@ -1198,7 +1198,7 @@ build_container() {
   bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)"
   RET=$?
   if [[ $RET -ne 0 ]]; then
-    msg_error "in line $LINENO: exit code $RET: while executing create_lxc.sh"
+    msg_error "rny: in line $LINENO: exit code $RET: while executing create_lxc.sh"
     exit $RET
   fi
 
