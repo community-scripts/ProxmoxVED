@@ -1,0 +1,35 @@
+{
+  "name": "Hanko",
+  "slug": "hanko",
+  "categories": [
+    21
+  ],
+  "date_created": "2025-07-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "config_path": "/opt/hanko/.env",
+  "interface_port": 3000,
+  "documentation": "https://docs.hanko.io/",
+  "website": "https://hanko.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/hanko.svg",
+  "description": "Hanko is an open-source authentication solution providing passkey-first login with support for WebAuthn/FIDO2, biometrics and modern identity flows. Easy to self-host and integrate via API or widget.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/hanko.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
