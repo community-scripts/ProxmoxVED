@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: BvdBerg01
+# Author: BvdBerg01 | Co-Author: remz1337
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
 
 function header_info {
   clear
@@ -15,8 +17,6 @@ function header_info {
                         /_/
 EOF
 }
-
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
 
 header_info
 echo "Loading..."
@@ -45,8 +45,8 @@ while read -r container; do
 done <<< "$containers"
 
 CHOICE=$(whiptail --title "LXC Container Update" \
-                   --radiolist "Select LXC container to update:" 25 60 13 \
-                   "${menu_items[@]}" 3>&2 2>&1 1>&3)
+                   --checklist "Select LXC containers to update:" 25 60 13 \
+                   "${menu_items[@]}" 3>&2 2>&1 1>&3 | tr -d '"')
 
 if [ -z "$CHOICE" ]; then
     whiptail --title "LXC Container Update" \
@@ -55,12 +55,21 @@ if [ -z "$CHOICE" ]; then
 fi
 
 header_info
-if(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Do you want to create a backup from your container?" 10 58); then
+BACKUP_CHOICE="no"
+if(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Do you want to backup your containers before update?" 10 58); then
+  BACKUP_CHOICE="yes"
+fi
 
+UNATTENDED_UPDATE="no"
+if(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Run updates unattended?" 10 58); then
+  UNATTENDED_UPDATE="yes"
+fi
+
+if [ "$BACKUP_CHOICE" == "yes" ]; then
   STORAGES=$(awk '/^(\S+):/ {storage=$2} /content.*backup/ {print storage}' /etc/pve/storage.cfg)
 
   if [ -z "$STORAGES" ]; then
-    whiptail --msgbox "Geen opslag met 'backup' gevonden!" 8 40
+    whiptail --msgbox "No storage with 'backup' found!" 8 40
     exit 1
   fi
 
@@ -75,37 +84,56 @@ if(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Updat
       msg_error "No storage selected!"
       exit 1
   fi
+fi
 
-  msg_info "Creating backup"
-  vzdump $CHOICE --compress zstd --storage $STORAGE_CHOICE -notes-template "community-scripts backup updater" > /dev/null 2>&1
+function backup_container(){
+  msg_info "Creating backup for container $1"
+  vzdump $1 --compress zstd --storage $STORAGE_CHOICE -notes-template "community-scripts backup updater" > /dev/null 2>&1
   status=$?
 
   if [ $status -eq 0 ]; then
-  msg_ok "Backup created"
-  pct exec $CHOICE -- update --from-pve
-  exit_code=$?
+    msg_ok "Backup created"
   else
-  msg_error "Backup failed"
+    msg_error "Backup failed for container $1"
+    exit 1
   fi
+}
 
-else
-  pct exec $CHOICE -- update --from-pve
-  exit_code=$?
+UPDATE_CMD="update;"
+if [ "$UNATTENDED_UPDATE" == "yes" ];then
+  UPDATE_CMD="export PHS_SILENT=1;update;"
 fi
 
-if [ $exit_code -eq 0 ]; then
-  msg_ok "Update completed"
-else
-  msg_info "Restoring LXC from backup"
-  pct stop $CHOICE
-  LXC_STORAGE=$(pct config $CHOICE | awk -F '[:,]' '/rootfs/ {print $2}')
-  pct restore $CHOICE /var/lib/vz/dump/vzdump-lxc-$CHOICE-*.tar.zst --storage $LXC_STORAGE --force > /dev/null 2>&1
-  pct start $CHOICE
-  restorestatus=$?
-  if [ $restorestatus -eq 0 ]; then
-  msg_ok "Restored LXC from backup"
-  else
-  msg_error "Restored LXC from backup failed"
+for container in $CHOICE; do
+  echo "Updating container:$container"
+
+  if [ "BACKUP_CHOICE" == "yes" ];then
+    backup_container $container
   fi
 
-fi
+  #CHECK FOR RESOURCES
+
+  #pct exec $container -- update
+  pct exec "$container" -- "$UPDATE_CMD"
+  exit_code=$?
+
+  if [ $exit_code -eq 0 ]; then
+    msg_ok "Update completed"
+  elif [ "BACKUP_CHOICE" == "yes" ];then
+    msg_info "Restoring LXC from backup"
+    pct stop $container
+    LXC_STORAGE=$(pct config $container | awk -F '[:,]' '/rootfs/ {print $2}')
+    pct restore $container /var/lib/vz/dump/vzdump-lxc-${container}-*.tar.zst --storage $LXC_STORAGE --force > /dev/null 2>&1
+    pct start $container
+    restorestatus=$?
+    if [ $restorestatus -eq 0 ]; then
+      msg_ok "Restored LXC from backup"
+    else
+      msg_error "Restored LXC from backup failed"
+      exit 1
+    fi
+  else
+    msg_error "Update failed for container $container. Exiting"
+    exit 1
+  fi
+done
