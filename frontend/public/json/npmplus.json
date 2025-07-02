@@ -1,0 +1,35 @@
+{
+  "name": "Npmplus",
+  "slug": "npmplus",
+  "categories": [
+    20
+  ],
+  "date_created": "2025-07-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "config_path": "/opt/npmplus/.env",
+  "interface_port": 3000,
+  "documentation": "https://npmplus.io/",
+  "website": "https://npmplus.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/npmplus.svg",
+  "description": "Npmplus is an open-source self-hosted application.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/npmplus.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}

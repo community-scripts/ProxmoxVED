@@ -1,0 +1,35 @@
+{
+  "name": "Saltmaster",
+  "slug": "saltmaster",
+  "categories": [
+    1
+  ],
+  "date_created": "2025-07-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "config_path": "/opt/saltmaster/.env",
+  "interface_port": 3000,
+  "documentation": "https://saltmaster.io/",
+  "website": "https://saltmaster.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/saltmaster.svg",
+  "description": "Saltmaster is an open-source self-hosted application.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/saltmaster.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
