@@ -39,6 +39,10 @@ function update_script() {
 
   RELEASE=$(curl -fsSL https://api.github.com/repos/Koenkk/zigbee2mqtt/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
   if [[ "$RELEASE" != "$CURRENT" ]]; then
+    if ! command -v jq &>/dev/null; then
+      $STD apt-get update
+      $STD apt-get install -y jq
+    fi
     NODE_VERSION=24 NODE_MODULE="pnpm@$(curl -fsSL https://raw.githubusercontent.com/Koenkk/zigbee2mqtt/master/package.json | jq -r '.packageManager | split("@")[1]')" setup_nodejs
 
     msg_info "Stopping Service"
