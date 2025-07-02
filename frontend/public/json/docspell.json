@@ -1,0 +1,35 @@
+{
+  "name": "Docspell",
+  "slug": "docspell",
+  "categories": [
+    12
+  ],
+  "date_created": "2025-07-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "config_path": "/opt/docspell/.env",
+  "interface_port": 3000,
+  "documentation": "https://docspell.io/",
+  "website": "https://docspell.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/docspell.svg",
+  "description": "Docspell is an open-source self-hosted application.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/docspell.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}

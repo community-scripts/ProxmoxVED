@@ -27,7 +27,7 @@ trap on_terminate TERM
 
 function on_exit() {
   local exit_code="$?"
-  [[ -n "${lockfile:-}" ]]
+  [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
   exit "$exit_code"
 }
 
@@ -50,18 +50,30 @@ function on_terminate() {
   exit 143
 }
 
+function check_storage_support() {
+  local CONTENT="$1"
+  local -a VALID_STORAGES=()
+
+  while IFS= read -r line; do
+    local STORAGE=$(awk '{print $1}' <<<"$line")
+    [[ "$STORAGE" == "storage" || -z "$STORAGE" ]] && continue
+    VALID_STORAGES+=("$STORAGE")
+  done < <(pvesm status -content "$CONTENT" 2>/dev/null | awk 'NR>1')
+
+  [[ ${#VALID_STORAGES[@]} -gt 0 ]]
+}
+
 # This checks for the presence of valid Container Storage and Template Storage locations
 msg_info "Validating Storage"
-VALIDCT=$(pvesm status -content rootdir | awk 'NR>1')
-if [ -z "$VALIDCT" ]; then
-  msg_error "Unable to detect a valid Container Storage location."
+if ! check_storage_support "rootdir"; then
+  msg_error "No valid storage found for 'rootdir' (Container)."
   exit 1
 fi
-VALIDTMP=$(pvesm status -content vztmpl | awk 'NR>1')
-if [ -z "$VALIDTMP" ]; then
-  msg_error "Unable to detect a valid Template Storage location."
+if ! check_storage_support "vztmpl"; then
+  msg_error "No valid storage found for 'vztmpl' (Template)."
   exit 1
 fi
+msg_ok "Storage types rootdir and vztmpl are supported."
 
 # This function is used to select the storage class and determine the corresponding storage content type and label.
 function select_storage() {
@@ -107,12 +119,19 @@ function select_storage() {
   }
 
   local -a MENU
-  while read -r line; do
-    local TAG=$(echo $line | awk '{print $1}')
-    local TYPE=$(echo $line | awk '{printf "%-10s", $2}')
-    local FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
-    MENU+=("$TAG" "Type: $TYPE Free: $FREE " "OFF")
-  done < <(pvesm status -content $CONTENT | awk 'NR>1')
+  local -A STORAGE_MAP=()
+  local COL_WIDTH=0
+
+  while read -r TAG TYPE _ TOTAL USED FREE _; do
+    [[ -n "$TAG" && -n "$TYPE" ]] || continue
+    local DISPLAY="${TAG} (${TYPE})"
+    local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
+    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
+    local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
+    STORAGE_MAP["$DISPLAY"]="$TAG" # Map DISPLAY to actual TAG
+    MENU+=("$DISPLAY" "$INFO" "OFF")
+    ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
+  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
   if [ ${#MENU[@]} -eq 0 ]; then
     msg_error "No storage found for content type '$CONTENT'."
@@ -120,18 +139,32 @@ function select_storage() {
   fi
 
   if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
-    printf "%s" "${MENU[0]}"
+    echo "${STORAGE_MAP[${MENU[0]}]}"
     return
   fi
 
-  local STORAGE
-  STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-    "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-    16 70 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-    msg_error "Storage selection cancelled by user."
-    exit 202
-  }
-  printf "%s" "$STORAGE"
+  local WIDTH=$((COL_WIDTH + 42))
+  local DISPLAY_SELECTED=""
+  while true; do
+    DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+      "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
+      16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+      msg_error "Storage selection cancelled by user."
+      exit 202
+    }
+
+    # Validierung gegen STORAGE_MAP
+    if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "Invalid Selection" \
+        --msgbox "No valid storage selected. Please choose a storage pool to continue." 9 60
+      continue
+    fi
+
+    break
+  done
+
+  echo "${STORAGE_MAP["$DISPLAY_SELECTED"]}"
+
 }
 
 # Test if required variables are set
@@ -172,10 +205,29 @@ if [[ -f "$DEFAULT_FILE" ]]; then
     msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
   fi
 else
-  TEMPLATE_STORAGE=$(select_storage template)
+  # TEMPLATE STORAGE SELECTION
+  # Template Storage
+  if ! TEMPLATE_STORAGE=$(select_storage template); then
+    [[ $? -eq 202 ]] && {
+      msg_error "Template Storage selection cancelled by user. Exiting."
+      kill -INT $$
+    }
+    msg_error "Unexpected error during template storage selection."
+    exit 1
+  fi
   msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
-  CONTAINER_STORAGE=$(select_storage container)
+
+  # Container Storage
+  if ! CONTAINER_STORAGE=$(select_storage container); then
+    [[ $? -eq 202 ]] && {
+      msg_error "Container Storage selection cancelled by user. Exiting."
+      kill -INT $$
+    }
+    msg_error "Unexpected error during container storage selection."
+    exit 1
+  fi
   msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+
 fi
 
 # Check free space on selected container storage

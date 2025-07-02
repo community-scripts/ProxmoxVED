@@ -186,92 +186,92 @@ ssh_check() {
   fi
 }
 
-select_storage() {
-  local CLASS=$1 CONTENT CONTENT_LABEL
-  case $CLASS in
-  container)
-    CONTENT='rootdir'
-    CONTENT_LABEL='Container'
-    ;;
-  template)
-    CONTENT='vztmpl'
-    CONTENT_LABEL='Template'
-    ;;
-  iso)
-    CONTENT='iso'
-    CONTENT_LABEL='ISO image'
-    ;;
-  images)
-    CONTENT='images'
-    CONTENT_LABEL='VM Disk image'
-    ;;
-  backup)
-    CONTENT='backup'
-    CONTENT_LABEL='Backup'
-    ;;
-  snippets)
-    CONTENT='snippets'
-    CONTENT_LABEL='Snippets'
-    ;;
-  *)
-    msg_error "Invalid storage class '$CLASS'."
-    exit 201
-    ;;
-  esac
+# select_storage() {
+#   local CLASS=$1 CONTENT CONTENT_LABEL
+#   case $CLASS in
+#   container)
+#     CONTENT='rootdir'
+#     CONTENT_LABEL='Container'
+#     ;;
+#   template)
+#     CONTENT='vztmpl'
+#     CONTENT_LABEL='Template'
+#     ;;
+#   iso)
+#     CONTENT='iso'
+#     CONTENT_LABEL='ISO image'
+#     ;;
+#   images)
+#     CONTENT='images'
+#     CONTENT_LABEL='VM Disk image'
+#     ;;
+#   backup)
+#     CONTENT='backup'
+#     CONTENT_LABEL='Backup'
+#     ;;
+#   snippets)
+#     CONTENT='snippets'
+#     CONTENT_LABEL='Snippets'
+#     ;;
+#   *)
+#     msg_error "Invalid storage class '$CLASS'."
+#     exit 201
+#     ;;
+#   esac
 
-  command -v whiptail >/dev/null || {
-    msg_error "whiptail missing."
-    exit 220
-  }
-  command -v numfmt >/dev/null || {
-    msg_error "numfmt missing."
-    exit 221
-  }
+#   command -v whiptail >/dev/null || {
+#     msg_error "whiptail missing."
+#     exit 220
+#   }
+#   command -v numfmt >/dev/null || {
+#     msg_error "numfmt missing."
+#     exit 221
+#   }
 
-  local -a MENU
-  while read -r line; do
-    local TAG=$(echo "$line" | awk '{print $1}')
-    local TYPE=$(echo "$line" | awk '{printf "%-10s", $2}')
-    local FREE=$(echo "$line" | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf "%9sB", $6}')
-    MENU+=("$TAG" "Type: $TYPE Free: $FREE" "OFF")
-  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
+#   local -a MENU
+#   while read -r line; do
+#     local TAG=$(echo "$line" | awk '{print $1}')
+#     local TYPE=$(echo "$line" | awk '{printf "%-10s", $2}')
+#     local FREE=$(echo "$line" | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf "%9sB", $6}')
+#     MENU+=("$TAG" "Type: $TYPE Free: $FREE" "OFF")
+#   done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
-  if [ ${#MENU[@]} -eq 0 ]; then
-    msg_error "No storage found for content type '$CONTENT'."
-    exit 203
-  fi
+#   if [ ${#MENU[@]} -eq 0 ]; then
+#     msg_error "No storage found for content type '$CONTENT'."
+#     exit 203
+#   fi
 
-  if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
-    echo "${MENU[0]}"
-    return
-  fi
+#   if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
+#     echo "${MENU[0]}"
+#     return
+#   fi
 
-  local STORAGE
-  STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-    "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-    16 70 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-    msg_error "Storage selection cancelled by user."
-    exit 202
-  }
-  echo "$STORAGE"
-}
+#   local STORAGE
+#   STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+#     "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
+#     16 70 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+#     msg_error "Storage selection cancelled by user."
+#     exit 202
+#   }
+#   echo "$STORAGE"
+# }
 
-manage_default_storage() {
-  local file="/usr/local/community-scripts/default_storage"
-  mkdir -p /usr/local/community-scripts
+# manage_default_storage() {
+#   local file="/usr/local/community-scripts/default_storage"
+#   mkdir -p /usr/local/community-scripts
 
-  local tmpl=$(select_storage template)
-  local cont=$(select_storage container)
+#   local tmpl=$(select_storage template)
+#   local cont=$(select_storage container)
 
-  cat <<EOF >"$file"
-TEMPLATE_STORAGE=$tmpl
-CONTAINER_STORAGE=$cont
-EOF
+#   cat <<EOF >"$file"
+# TEMPLATE_STORAGE=$tmpl
+# CONTAINER_STORAGE=$cont
+# EOF
 
-  msg_ok "Default Storage set: Template=${BL}$tmpl${CL} ${GN}|${CL} Container=${BL}$cont${CL}"
-  whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-    --msgbox "Default Storage set:\n\nTemplate: $tmpl\nContainer: $cont" 10 58
-}
+#   msg_ok "Default Storage set: Template=${BL}$tmpl${CL} ${GN}|${CL} Container=${BL}$cont${CL}"
+#   whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+#     --msgbox "Default Storage set:\n\nTemplate: $tmpl\nContainer: $cont" 10 58
+# }
 
 base_settings() {
   # Default Settings
@@ -333,13 +333,13 @@ write_config() {
 
 CT_TYPE="${CT_TYPE}"
 DISK_SIZE="${DISK_SIZE}"
-CORE_COUNT="${DISK_SIZE}"
+CORE_COUNT="${CORE_COUNT}"
 RAM_SIZE="${RAM_SIZE}"
 HN="${HN}"
 BRG="${BRG}"
 APT_CACHER_IP="${APT_CACHER_IP:-none}"
 DISABLEIP6="${DISABLEIP6}"
-PW="${PW:-none}"
+PW='${PW:-none}'
 SSH="${SSH}"
 SSH_AUTHORIZED_KEY="${SSH_AUTHORIZED_KEY}"
 VERBOSE="${VERBOSE}"
@@ -351,6 +351,7 @@ SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
 NET="${NET}"
+FUSE="${ENABLE_FUSE}"
 
 EOF
       echo -e "${INFO}${BOLD}${GN}Writing configuration to ${FILEPATH}${CL}"
@@ -364,7 +365,7 @@ EOF
 
 CT_TYPE="${CT_TYPE}"
 DISK_SIZE="${DISK_SIZE}"
-CORE_COUNT="${DISK_SIZE}"
+CORE_COUNT="${CORE_COUNT}"
 RAM_SIZE="${RAM_SIZE}"
 HN="${HN}"
 BRG="${BRG}"
@@ -382,6 +383,7 @@ SD="${SD:-none}"
 MAC="${MAC:-none}"
 NS="${NS:-none}"
 NET="${NET}"
+FUSE="${ENABLE_FUSE}"
 
 EOF
         echo -e "${INFO}${BOLD}${GN}Writing configuration to ${FILEPATH}${CL}"
@@ -402,9 +404,11 @@ echo_default() {
 
   # Output the selected values with icons
   echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
-  echo -e "${OS}${BOLD}${DGN}Operating System: $var_os | Version: $var_version${CL}"
+  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os ($var_version)${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB | ${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT} | ${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
   if [ "$VERB" == "yes" ]; then
     echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
   fi
@@ -861,12 +865,12 @@ advanced_settings() {
     echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
   fi
 
-  # if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
-  #   ENABLE_FUSE="yes"
-  # else
-  #   ENABLE_FUSE="no"
-  # fi
-  # echo -e "${FUSE}${BOLD}${DGN}Enable FUSE Support: ${BGN}$ENABLE_FUSE${CL}"
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
+    ENABLE_FUSE="yes"
+  else
+    ENABLE_FUSE="no"
+  fi
+  echo -e "${FUSE}${BOLD}${DGN}Enable FUSE Support: ${BGN}$ENABLE_FUSE${CL}"
 
   if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "VERBOSE MODE" --yesno "Enable Verbose Mode?" 10 58); then
     VERBOSE="yes"
@@ -1195,12 +1199,10 @@ build_container() {
   -unprivileged $CT_TYPE
   $PW
 "
-  # This executes create_lxc.sh and creates the container and .conf file
-  CREATE_CMD="bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)\""
-  eval "$CREATE_CMD"
+  bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)"
   RET=$?
   if [[ $RET -ne 0 ]]; then
-    msg_error "in line $LINENO: exit code $RET: while executing command $CREATE_CMD"
+    msg_error "rny: in line $LINENO: exit code $RET: while executing create_lxc.sh"
     exit $RET
   fi
 
@@ -1273,21 +1275,24 @@ EOF'
     pct exec "$CTID" -- ash -c "apk add bash newt curl openssh nano mc ncurses >/dev/null"
   else
     sleep 3
-    # Set locale and timezone before update
+
     pct exec "$CTID" -- bash -c "sed -i '/$LANG/ s/^# //' /etc/locale.gen"
     pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
     echo LANG=\$locale_line >/etc/default/locale && \
     locale-gen >/dev/null && \
     export LANG=\$locale_line"
 
-    pct exec "$CTID" -- bash -c "echo $tz >/etc/timezone && ln -sf /usr/share/zoneinfo/$tz /etc/localtime"
+    if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
+      pct exec "$CTID" -- bash -c "echo $tz >/etc/timezone && ln -sf /usr/share/zoneinfo/$tz /etc/localtime"
+    else
+      msg_info "Skipping timezone setup – zone '$tz' not found in container"
+    fi
 
-    # Install curl
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 >/dev/null"
   fi
   msg_ok "Customized LXC Container"
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/$var_install.sh)" $?
 
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/"$var_install".sh)" $?
 }
 
 # This function sets the description of the container.

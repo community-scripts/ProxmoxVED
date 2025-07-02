@@ -40,53 +40,72 @@ CM="${TAB}✔️${TAB}${CL}"
 
 header_info
 echo "Loading..."
-whiptail --backtitle "Proxmox VE Helper Scripts" --title "Proxmox VE LXC Deletion" --yesno "This will delete LXC containers. Proceed?" 10 58
+if ! whiptail --backtitle "Proxmox VE Helper Scripts" --title "Proxmox VE LXC Deletion" --yesno "This will delete LXC containers. Proceed?" 10 58; then
+  echo -e "${RD}Aborted by user.${CL}"
+  exit 0
+fi
 
-NODE=$(hostname)
-containers=$(pct list | tail -n +2 | awk '{print $0 " " $4}')
+mapfile -t containers < <(pct list | tail -n +2)
 
-if [ -z "$containers" ]; then
+if [ ${#containers[@]} -eq 0 ]; then
   whiptail --title "LXC Container Delete" --msgbox "No LXC containers available!" 10 60
   exit 1
 fi
 
-menu_items=("ALL" "Delete ALL containers" "OFF") # Add as first option
-FORMAT="%-10s %-15s %-10s"
+menu_items=("ALL" "Delete ALL containers" "OFF")
+FORMAT="%-10s %-10s %-10s %-10s"
 
-while read -r container; do
-  container_id=$(echo $container | awk '{print $1}')
-  container_name=$(echo $container | awk '{print $2}')
-  container_status=$(echo $container | awk '{print $3}')
-  formatted_line=$(printf "$FORMAT" "$container_name" "$container_status")
+for line in "${containers[@]}"; do
+  container_id=$(echo "$line" | awk '{print $1}')
+  container_name=$(echo "$line" | awk '{print $2}')
+  container_status=$(echo "$line" | awk '{print $3}')
+  container_os=$(echo "$line" | awk '{print $4}')
+  protected=$(pct config "$container_id" | awk '/^protection:/ {print $2}')
+  is_protected="No"
+  [[ "$protected" == "1" ]] && is_protected="Yes"
+  formatted_line=$(printf "$FORMAT" "$container_name" "$container_status" "$container_os" "$is_protected")
   menu_items+=("$container_id" "$formatted_line" "OFF")
-done <<<"$containers"
+done
 
 CHOICES=$(whiptail --title "LXC Container Delete" \
-  --checklist "Select LXC containers to delete:" 25 60 13 \
+  --checklist "Select LXC containers to delete:\n\nNAME       STATUS     OS         PROTECTED" 25 70 15 \
   "${menu_items[@]}" 3>&2 2>&1 1>&3)
 
 if [ -z "$CHOICES" ]; then
-  whiptail --title "LXC Container Delete" \
-    --msgbox "No containers selected!" 10 60
+  whiptail --title "LXC Container Delete" --msgbox "No containers selected!" 10 60
   exit 1
 fi
 
 read -p "Delete containers manually or automatically? (Default: manual) m/a: " DELETE_MODE
 DELETE_MODE=${DELETE_MODE:-m}
-
 selected_ids=$(echo "$CHOICES" | tr -d '"' | tr -s ' ' '\n')
 
-# If "ALL" is selected, override with all container IDs
+# ALL ausgewählt
 if echo "$selected_ids" | grep -q "^ALL$"; then
-  selected_ids=$(echo "$containers" | awk '{print $1}')
+  selected_ids=$(printf '%s\n' "${containers[@]}" | awk '{print $1}')
 fi
 
 for container_id in $selected_ids; do
-  status=$(pct status $container_id)
+  status=$(pct status "$container_id")
+  protected=$(pct config "$container_id" | awk '/^protection:/ {print $2}')
+  is_protected="No"
+  [[ "$protected" == "1" ]] && is_protected="Yes"
 
-  if [ "$status" == "status: running" ]; then
+  if [[ "$is_protected" == "Yes" && "$DELETE_MODE" == "a" ]]; then
+    echo -e "${BL}[Info]${RD} Skipping protected container $container_id (auto mode).${CL}"
+    continue
+  fi
+
+  if [[ "$status" == "status: running" ]]; then
+    if [[ "$is_protected" == "Yes" && "$DELETE_MODE" == "m" ]]; then
+      read -p "⚠️  Container $container_id is PROTECTED. Delete anyway? (y/N): " CONFIRM_PROTECTED
+      [[ ! "$CONFIRM_PROTECTED" =~ ^[Yy]$ ]] && {
+        echo -e "${BL}[Info]${RD} Skipping protected container $container_id...${CL}"
+        continue
+      }
+    fi
     echo -e "${BL}[Info]${GN} Stopping container $container_id...${CL}"
-    pct stop $container_id &
+    pct stop "$container_id" &
     sleep 5
     echo -e "${BL}[Info]${GN} Container $container_id stopped.${CL}"
   fi
@@ -96,15 +115,30 @@ for container_id in $selected_ids; do
     pct destroy "$container_id" -f &
     pid=$!
     spinner $pid
-    [ $? -eq 0 ] && echo "Container $container_id deleted." || whiptail --title "Error" --msgbox "Failed to delete container $container_id." 10 60
+    if [ $? -eq 0 ]; then
+      echo "Container $container_id deleted."
+    else
+      whiptail --title "Error" --msgbox "Failed to delete container $container_id." 10 60
+    fi
   else
     read -p "Delete container $container_id? (y/N): " CONFIRM
     if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
+      if [[ "$is_protected" == "Yes" ]]; then
+        read -p "⚠️  Container $container_id is PROTECTED. Delete anyway? (y/N): " CONFIRM_PROTECTED
+        [[ ! "$CONFIRM_PROTECTED" =~ ^[Yy]$ ]] && {
+          echo -e "${BL}[Info]${RD} Skipping protected container $container_id...${CL}"
+          continue
+        }
+      fi
       echo -e "${BL}[Info]${GN} Deleting container $container_id...${CL}"
       pct destroy "$container_id" -f &
       pid=$!
       spinner $pid
-      [ $? -eq 0 ] && echo "Container $container_id deleted." || whiptail --title "Error" --msgbox "Failed to delete container $container_id." 10 60
+      if [ $? -eq 0 ]; then
+        echo "Container $container_id deleted."
+      else
+        whiptail --title "Error" --msgbox "Failed to delete container $container_id." 10 60
+      fi
     else
       echo -e "${BL}[Info]${RD} Skipping container $container_id...${CL}"
     fi

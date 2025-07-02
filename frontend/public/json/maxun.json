@@ -1,0 +1,35 @@
+{
+  "name": "Maxun",
+  "slug": "maxun",
+  "categories": [
+    0
+  ],
+  "date_created": "2025-07-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "config_path": "/opt/maxun/.env",
+  "interface_port": 3000,
+  "documentation": "https://maxun.io/",
+  "website": "https://maxun.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/maxun.svg",
+  "description": "Maxun is an open-source self-hosted application.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/maxun.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}

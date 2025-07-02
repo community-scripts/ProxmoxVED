@@ -9,21 +9,21 @@
 #   }
 # fi
 
-trap 'on_error $? $LINENO' ERR
-trap 'on_exit' EXIT
-trap 'on_interrupt' INT
-trap 'on_terminate' TERM
+# trap 'on_error $? $LINENO' ERR
+# trap 'on_exit' EXIT
+# trap 'on_interrupt' INT
+# trap 'on_terminate' TERM
 
-if ! declare -f wait_for >/dev/null; then
-  wait_for() {
-    true
-  }
-fi
+# if ! declare -f wait_for >/dev/null; then
+#   wait_for() {
+#     true
+#   }
+# fi
 
-declare -A MSG_INFO_SHOWN=()
-SPINNER_PID=""
-SPINNER_ACTIVE=0
-SPINNER_MSG=""
+# declare -A MSG_INFO_SHOWN=()
+# SPINNER_PID=""
+# SPINNER_ACTIVE=0
+# SPINNER_MSG=""
 
 # ------------------------------------------------------------------------------
 # Loads core utility groups once (colors, formatting, icons, defaults).
@@ -47,9 +47,9 @@ load_functions() {
 # Error & Signal Handling – robust, universal, subshell-safe
 # ============================================================================
 
-_stop_spinner_on_error() {
-  [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null || true
-}
+# _stop_spinner_on_error() {
+#   [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null || true
+# }
 
 _tool_error_hint() {
   local cmd="$1"
@@ -89,44 +89,39 @@ _tool_error_hint() {
   esac
 }
 
-on_error() {
-  local code="$?"
-  local line="${BASH_LINENO[0]:-unknown}"
-  local cmd="${BASH_COMMAND:-unknown}"
+# on_error() {
+#   local code="$?"
+#   local line="${BASH_LINENO[0]:-unknown}"
+#   local cmd="${BASH_COMMAND:-unknown}"
 
-  # Signalcode unterdrücken, falls INT/TERM kommt
-  [[ "$code" == "130" || "$code" == "143" ]] && return
+#   # Signalcode unterdrücken, falls INT/TERM kommt
+#   [[ "$code" == "130" || "$code" == "143" ]] && return
 
-  _stop_spinner_on_error
-  msg_error "Script failed at line $line with exit code $code: $cmd"
-  exit "$code"
-}
+#   _stop_spinner_on_error
+#   msg_error "Script failed at line $line with exit code $code: $cmd"
+#   exit "$code"
+# }
 
-on_exit() {
-  _stop_spinner_on_error
-  [[ "${VERBOSE:-no}" == "yes" ]] && msg_info "Script exited cleanly"
-}
+# on_exit() {
+#   _stop_spinner_on_error
+#   [[ "${VERBOSE:-no}" == "yes" ]] && msg_info "Script exited cleanly"
+# }
 
-on_interrupt() {
-  _stop_spinner_on_error
-  msg_error "Interrupted by user (CTRL+C)"
-  exit 130
-}
+# on_interrupt() {
+#   _stop_spinner_on_error
+#   msg_error "Interrupted by user (CTRL+C)"
+#   exit 130
+# }
 
-on_terminate() {
-  _stop_spinner_on_error
-  msg_error "Terminated by signal (SIGTERM)"
-  exit 143
-}
+# on_terminate() {
+#   _stop_spinner_on_error
+#   msg_error "Terminated by signal (SIGTERM)"
+#   exit 143
+# }
 
 catch_errors() {
-  trap 'on_error' ERR
-  trap 'on_exit' EXIT
-  trap 'on_interrupt' INT
-  trap 'on_terminate' TERM
-
   set -Eeuo pipefail
-  shopt -s inherit_errexit
+  trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
 
 # ------------------------------------------------------------------------------
@@ -141,6 +136,13 @@ color() {
   GN=$(echo "\033[1;92m")
   DGN=$(echo "\033[32m")
   CL=$(echo "\033[m")
+}
+
+# Special for spinner and colorized output via printf
+color_spinner() {
+  CS_YW=$'\033[33m'
+  CS_YWB=$'\033[93m'
+  CS_CL=$'\033[m'
 }
 
 # ------------------------------------------------------------------------------
@@ -363,149 +365,215 @@ fatal() {
   kill -INT $$
 }
 
-# Ensure POSIX compatibility across Alpine and Debian/Ubuntu
-# === Spinner Start ===
-# Trap cleanup on various signals
-trap 'cleanup_spinner' EXIT INT TERM HUP
+# # Ensure POSIX compatibility across Alpine and Debian/Ubuntu
+# # === Spinner Start ===
+# # Trap cleanup on various signals
+# trap 'cleanup_spinner' EXIT INT TERM HUP
 
-spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+# spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
 
-# === Spinner Start ===
-start_spinner() {
-  local msg="$1"
-  local spin_i=0
-  local interval=0.1
+# # === Spinner Start ===
+# start_spinner() {
+#   local msg="$1"
+#   local spin_i=0
+#   local interval=0.1
 
-  stop_spinner
-  SPINNER_MSG="$msg"
-  SPINNER_ACTIVE=1
+#   stop_spinner
+#   SPINNER_MSG="$msg"
+#   SPINNER_ACTIVE=1
 
-  {
-    while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
-      if [[ -t 2 ]]; then
-        printf "\r\e[2K%s %b" "${TAB}${spinner_frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
-      else
-        printf "%s...\n" "$SPINNER_MSG" >&2
-        break
-      fi
-      spin_i=$(((spin_i + 1) % ${#spinner_frames[@]}))
-      sleep "$interval"
-    done
-  } &
+#   {
+#     while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
+#       if [[ -t 2 ]]; then
+#         printf "\r\e[2K%s %b" "${TAB}${spinner_frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
+#       else
+#         printf "%s...\n" "$SPINNER_MSG" >&2
+#         break
+#       fi
+#       spin_i=$(((spin_i + 1) % ${#spinner_frames[@]}))
+#       sleep "$interval"
+#     done
+#   } &
 
-  local pid=$!
-  if ps -p "$pid" >/dev/null 2>&1; then
-    SPINNER_PID="$pid"
-  else
-    SPINNER_ACTIVE=0
-    SPINNER_PID=""
-  fi
+#   local pid=$!
+#   if ps -p "$pid" >/dev/null 2>&1; then
+#     SPINNER_PID="$pid"
+#   else
+#     SPINNER_ACTIVE=0
+#     SPINNER_PID=""
+#   fi
+# }
+
+# # === Spinner Stop ===
+# stop_spinner() {
+#   if [[ "$SPINNER_ACTIVE" -eq 1 && -n "$SPINNER_PID" ]]; then
+#     SPINNER_ACTIVE=0
+
+#     if kill -0 "$SPINNER_PID" 2>/dev/null; then
+#       kill "$SPINNER_PID" 2>/dev/null || true
+#       for _ in $(seq 1 10); do
+#         sleep 0.05
+#         kill -0 "$SPINNER_PID" 2>/dev/null || break
+#       done
+#     fi
+
+#     if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]]; then
+#       ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1 && wait "$SPINNER_PID" 2>/dev/null || true
+#     fi
+
+#     printf "\r\e[2K" >&2
+#     SPINNER_PID=""
+#   fi
+# }
+
+# cleanup_spinner() {
+#   stop_spinner
+# }
+
+# msg_info() {
+#   local msg="$1"
+#   [[ -z "$msg" || -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
+#   MSG_INFO_SHOWN["$msg"]=1
+
+#   stop_spinner
+#   echo -e "OS: ${var_os:-}"
+#   if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
+#     printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
+#   else
+#     start_spinner "$msg"
+#   fi
+# }
+
+spinner() {
+  local chars=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+  local i=0
+  while true; do
+    local index=$((i++ % ${#chars[@]}))
+    printf "\r\033[2K%s %b" "${CS_YWB}${chars[$index]}${CS_CL}" "${CS_YWB}${SPINNER_MSG:-}${CS_CL}"
+    sleep 0.1
+  done
 }
 
-# === Spinner Stop ===
 stop_spinner() {
-  if [[ "$SPINNER_ACTIVE" -eq 1 && -n "$SPINNER_PID" ]]; then
-    SPINNER_ACTIVE=0
+  local pid="${SPINNER_PID:-}"
+  [[ -z "$pid" && -f /tmp/.spinner.pid ]] && pid=$(</tmp/.spinner.pid)
 
-    if kill -0 "$SPINNER_PID" 2>/dev/null; then
-      kill "$SPINNER_PID" 2>/dev/null || true
-      for _ in $(seq 1 10); do
-        sleep 0.05
-        kill -0 "$SPINNER_PID" 2>/dev/null || break
-      done
+  if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+    if kill "$pid" 2>/dev/null; then
+      sleep 0.05
+      kill -9 "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
     fi
-
-    if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]]; then
-      ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1 && wait "$SPINNER_PID" 2>/dev/null || true
-    fi
-
-    printf "\r\e[2K" >&2
-    SPINNER_PID=""
+    rm -f /tmp/.spinner.pid
+    unset SPINNER_PID
   fi
-}
 
-cleanup_spinner() {
-  stop_spinner
+  stty sane 2>/dev/null
+  #printf "\r\033[K\e[?25h\n"
 }
 
 msg_info() {
   local msg="$1"
-  [[ -z "$msg" || -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$msg"]=1
-
-  stop_spinner
-
-  if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
-    printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
-  else
-    start_spinner "$msg"
-  fi
+  SPINNER_MSG="$msg"
+  color_spinner
+  spinner &
+  SPINNER_PID=$!
+  echo "$SPINNER_PID" >/tmp/.spinner.pid
+  disown "$SPINNER_PID" 2>/dev/null || true
 }
 
 msg_ok() {
-  local msg="$1"
-  [[ -z "$msg" ]] && return
   stop_spinner
-  printf "\r\e[2K%s %b\n" "$CM" "${GN}${msg}${CL}" >&2
-  if declare -p MSG_INFO_SHOWN &>/dev/null && [[ "$(declare -p MSG_INFO_SHOWN 2>/dev/null)" =~ "declare -A" ]]; then
-    unset MSG_INFO_SHOWN["$msg"]
-  fi
+  local msg="$1"
+  echo -e "${BFR:-} ${CM:-✔️} ${GN}${msg}${CL}"
 }
 
 msg_error() {
-  local msg="$1"
-  [[ -z "$msg" ]] && return
   stop_spinner
-  printf "\r\e[2K%s %b\n" "$CROSS" "${RD}${msg}${CL}" >&2
+  local msg="$1"
+  echo -e "${BFR:-} ${CROSS:-✖️} ${RD}${msg}${CL}"
 }
 
 msg_warn() {
-  local msg="$1"
-  [[ -z "$msg" ]] && return
   stop_spinner
-  printf "\r\e[2K%s %b\n" "$INFO" "${YWB}${msg}${CL}" >&2
-  if declare -p MSG_INFO_SHOWN &>/dev/null && [[ "$(declare -p MSG_INFO_SHOWN 2>/dev/null)" =~ "declare -A" ]]; then
-    unset MSG_INFO_SHOWN["$msg"]
-  fi
+  local msg="$1"
+  echo -e "${BFR:-} ${INFO:-ℹ️} ${YWB}${msg}${CL}"
 }
 
 msg_custom() {
   local symbol="${1:-"[*]"}"
-  local color="${2:-"\e[36m"}" # Default: Cyan
+  local color="${2:-"\e[36m"}"
   local msg="${3:-}"
-
   [[ -z "$msg" ]] && return
-  stop_spinner 2>/dev/null || true
-  printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL:-\e[0m}" >&2
+  stop_spinner
+  echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
+  printf "\r\033[K\e[?25h\n"
 }
 
-msg_progress() {
-  local current="$1"
-  local total="$2"
-  local label="$3"
-  local width=40
-  local filled percent bar empty
-  local fill_char="#"
-  local empty_char="-"
+# msg_ok() {
+#   local msg="$1"
+#   [[ -z "$msg" ]] && return
+#   stop_spinner
+#   printf "\r\e[2K%s %b\n" "$CM" "${GN}${msg}${CL}" >&2
+#   if declare -p MSG_INFO_SHOWN &>/dev/null && [[ "$(declare -p MSG_INFO_SHOWN 2>/dev/null)" =~ "declare -A" ]]; then
+#     unset MSG_INFO_SHOWN["$msg"]
+#   fi
+# }
 
-  if ! [[ "$current" =~ ^[0-9]+$ ]] || ! [[ "$total" =~ ^[0-9]+$ ]] || [[ "$total" -eq 0 ]]; then
-    printf "\r\e[2K%s %b\n" "$CROSS" "${RD}Invalid progress input${CL}" >&2
-    return
-  fi
+# msg_error() {
+#   local msg="$1"
+#   [[ -z "$msg" ]] && return
+#   stop_spinner
+#   printf "\r\e[2K%s %b\n" "$CROSS" "${RD}${msg}${CL}" >&2
+# }
 
-  percent=$(((current * 100) / total))
-  filled=$(((current * width) / total))
-  empty=$((width - filled))
+# msg_warn() {
+#   local msg="$1"
+#   [[ -z "$msg" ]] && return
+#   stop_spinner
+#   printf "\r\e[2K%s %b\n" "$INFO" "${YWB}${msg}${CL}" >&2
+#   if declare -p MSG_INFO_SHOWN &>/dev/null && [[ "$(declare -p MSG_INFO_SHOWN 2>/dev/null)" =~ "declare -A" ]]; then
+#     unset MSG_INFO_SHOWN["$msg"]
+#   fi
+# }
 
-  bar=$(printf "%${filled}s" | tr ' ' "$fill_char")
-  bar+=$(printf "%${empty}s" | tr ' ' "$empty_char")
+# msg_custom() {
+#   local symbol="${1:-"[*]"}"
+#   local color="${2:-"\e[36m"}" # Default: Cyan
+#   local msg="${3:-}"
 
-  printf "\r\e[2K%s [%s] %3d%% %s" "${TAB}" "$bar" "$percent" "$label" >&2
+#   [[ -z "$msg" ]] && return
+#   stop_spinner 2>/dev/null || true
+#   printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL:-\e[0m}" >&2
+# }
 
-  if [[ "$current" -eq "$total" ]]; then
-    printf "\n" >&2
-  fi
-}
+# msg_progress() {
+#   local current="$1"
+#   local total="$2"
+#   local label="$3"
+#   local width=40
+#   local filled percent bar empty
+#   local fill_char="#"
+#   local empty_char="-"
+
+#   if ! [[ "$current" =~ ^[0-9]+$ ]] || ! [[ "$total" =~ ^[0-9]+$ ]] || [[ "$total" -eq 0 ]]; then
+#     printf "\r\e[2K%s %b\n" "$CROSS" "${RD}Invalid progress input${CL}" >&2
+#     return
+#   fi
+
+#   percent=$(((current * 100) / total))
+#   filled=$(((current * width) / total))
+#   empty=$((width - filled))
+
+#   bar=$(printf "%${filled}s" | tr ' ' "$fill_char")
+#   bar+=$(printf "%${empty}s" | tr ' ' "$empty_char")
+
+#   printf "\r\e[2K%s [%s] %3d%% %s" "${TAB}" "$bar" "$percent" "$label" >&2
+
+#   if [[ "$current" -eq "$total" ]]; then
+#     printf "\n" >&2
+#   fi
+# }
 
 run_container_safe() {
   local ct="$1"
@@ -555,3 +623,5 @@ check_or_create_swap() {
     return 1
   fi
 }
+
+trap 'stop_spinner' EXIT INT TERM
