@@ -27,12 +27,19 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -fsSL https://api.github.com/repos/Koenkk/zigbee2mqtt/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-    NODE_VERSION=24
-    NODE_MODULE="pnpm@$(curl -fsSL https://raw.githubusercontent.com/Koenkk/zigbee2mqtt/master/package.json | jq -r '.packageManager | split("@")[1]')"
-    setup_nodejs
+  if [[ -f ~/.zigbee2mqtt ]]; then
+    CURRENT="$(cat ~/.zigbee2mqtt)"
+  elif [[ -f /opt/${APP}_version.txt ]]; then
+    CURRENT="$(cat /opt/${APP}_version.txt)"
+    rm -f /opt/${APP}_version.txt
+  else
+    CURRENT=""
+  fi
+
+  RELEASE=$(curl -fsSL https://api.github.com/repos/Koenkk/zigbee2mqtt/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+  if [[ "$RELEASE" != "$CURRENT" ]]; then
+    NODE_VERSION=24 NODE_MODULE="pnpm@$(curl -fsSL https://raw.githubusercontent.com/Koenkk/zigbee2mqtt/master/package.json | jq -r '.packageManager | split("@")[1]')" setup_nodejs
 
     msg_info "Stopping Service"
     systemctl stop zigbee2mqtt
@@ -62,6 +69,7 @@ function update_script() {
     msg_info "Cleaning up"
     rm -rf /opt/z2m_backup
     msg_ok "Cleaned up"
+    echo "${RELEASE}" >/opt/${APP}_version.txt
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}."
   fi
