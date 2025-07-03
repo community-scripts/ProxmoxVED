@@ -878,6 +878,8 @@ function fetch_and_deploy_gh_release() {
     ### Prebuild Mode ###
   elif [[ "$mode" == "prebuild" ]]; then
     local pattern="$6"
+    pattern="${pattern%\"}"
+    pattern="${pattern#\"}"
     [[ -z "$pattern" ]] && {
       msg_error "Mode 'prebuild' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
@@ -927,6 +929,8 @@ function fetch_and_deploy_gh_release() {
     ### Singlefile Mode ###
   elif [[ "$mode" == "singlefile" ]]; then
     local pattern="$6"
+    pattern="${pattern%\"}"
+    pattern="${pattern#\"}"
     [[ -z "$pattern" ]] && {
       msg_error "Mode 'singlefile' requires 6th parameter (asset filename pattern)"
       rm -rf "$tmpdir"
