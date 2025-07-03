@@ -1,5 +1,25 @@
 [
   {
+    "name": "Dolibarr/dolibarr",
+    "version": "18.0.7",
+    "date": "2025-07-03T08:57:21Z"
+  },
+  {
+    "name": "fuma-nama/fumadocs",
+    "version": "fumadocs-openapi@9.0.17",
+    "date": "2025-07-03T06:57:48Z"
+  },
+  {
+    "name": "mattermost/mattermost",
+    "version": "preview-v0.1",
+    "date": "2025-06-27T14:35:47Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2111",
+    "date": "2025-07-03T05:50:31Z"
+  },
+  {
     "name": "esphome/esphome",
     "version": "2025.6.3",
     "date": "2025-07-03T01:07:26Z"
@@ -46,8 +66,8 @@
   },
   {
     "name": "keycloak/keycloak",
-    "version": "26.2.5",
-    "date": "2025-05-28T06:49:43Z"
+    "version": "26.3.0",
+    "date": "2025-07-02T12:26:44Z"
   },
   {
     "name": "ollama/ollama",
@@ -63,11 +83,6 @@
     "name": "home-assistant/core",
     "version": "2025.7.0",
     "date": "2025-07-02T16:23:42Z"
-  },
-  {
-    "name": "fuma-nama/fumadocs",
-    "version": "fumadocs-core@15.6.1",
-    "date": "2025-07-02T15:29:41Z"
   },
   {
     "name": "nzbgetcom/nzbget",
@@ -98,11 +113,6 @@
     "name": "qbittorrent/qBittorrent",
     "version": "release-5.1.2",
     "date": "2025-07-02T06:13:16Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2107",
-    "date": "2025-07-02T05:53:02Z"
   },
   {
     "name": "diced/zipline",
@@ -225,11 +235,6 @@
     "date": "2025-06-30T09:00:54Z"
   },
   {
-    "name": "mattermost/mattermost",
-    "version": "preview-v0.1",
-    "date": "2025-06-27T14:35:47Z"
-  },
-  {
     "name": "typesense/typesense",
     "version": "v29.0",
     "date": "2025-06-30T03:52:33Z"
@@ -350,11 +355,6 @@
     "date": "2025-06-26T14:23:26Z"
   },
   {
-    "name": "Dolibarr/dolibarr",
-    "version": "18.0.7",
-    "date": "2025-06-26T09:16:33Z"
-  },
-  {
     "name": "gristlabs/grist-core",
     "version": "v1.6.1",
     "date": "2025-06-25T21:19:25Z"
@@ -416,8 +416,8 @@
   },
   {
     "name": "runtipi/runtipi",
-    "version": "nightly",
-    "date": "2025-06-23T19:10:33Z"
+    "version": "v4.2.1",
+    "date": "2025-06-03T20:04:28Z"
   },
   {
     "name": "VictoriaMetrics/VictoriaMetrics",
@@ -463,5 +463,25 @@
     "name": "go-gitea/gitea",
     "version": "v1.24.2",
     "date": "2025-06-20T20:37:55Z"
+  },
+  {
+    "name": "immich-app/immich",
+    "version": "v1.135.3",
+    "date": "2025-06-20T20:19:20Z"
+  },
+  {
+    "name": "Sonarr/Sonarr",
+    "version": "v4.0.15.2941",
+    "date": "2025-06-20T17:20:54Z"
+  },
+  {
+    "name": "benzino77/tasmocompiler",
+    "version": "v12.7.0",
+    "date": "2025-06-20T08:31:16Z"
+  },
+  {
+    "name": "paperless-ngx/paperless-ngx",
+    "version": "v2.17.1",
+    "date": "2025-06-19T19:35:01Z"
   }
 ]
