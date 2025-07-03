@@ -893,6 +893,9 @@ function fetch_and_deploy_gh_release() {
         ;;
       esac
     done
+    echo "DEBUG: Matching assets for pattern: '$pattern'" >&2
+    echo "DEBUG: All available assets:" >&2
+    echo "$json" | jq -r '.assets[].browser_download_url' >&2
 
     [[ -z "$asset_url" ]] && {
       msg_error "No asset matching '$pattern' found"
