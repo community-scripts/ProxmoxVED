@@ -1245,7 +1245,8 @@ EOF
     fi
   done
 
-  if [ "$CT_TYPE" == "0" ] || [ "$is_vaapi_app" == "true" ]; then
+  if ([ "$CT_TYPE" == "0" ] || [ "$is_vaapi_app" == "true" ]) &&
+    ([[ -e /dev/dri/renderD128 ]] || [[ -e /dev/dri/card0 ]] || [[ -e /dev/fb0 ]]); then
     echo -e "\n⚙️  VAAPI passthrough configuration for LXC container:"
 
     if [ "$CT_TYPE" != "0" ]; then
