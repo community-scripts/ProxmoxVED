@@ -28,14 +28,15 @@ function update_script() {
     exit
   fi
 
-  msg_info "Selecting version"
   if whiptail --backtitle "Vikunja Update" --title "🔄 VERSION SELECTION" --yesno \
     "Choose the version type to update to:\n\n• STABLE: Recommended for production use\n• UNSTABLE: Latest development version\n\n⚠️  WARNING: Unstable versions may contain bugs,\nbe incomplete, or cause system instability.\nOnly use for testing purposes.\n\nDo you want to use the UNSTABLE version?\n(No = Stable, Yes = Unstable)" 16 70 --defaultno
   then
+    msg_info "Selecting version"
     RELEASE="unstable"
     FILENAME="vikunja-${RELEASE}-x86_64.deb"
     msg_ok "Selected UNSTABLE version"
   else
+    msg_info "Selecting version"
     RELEASE=$(curl -fsSL https://dl.vikunja.io/vikunja/ | grep -oP 'href="/vikunja/\K[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -n 1)
     FILENAME="vikunja-${RELEASE}-amd64.deb"
     msg_ok "Selected STABLE version: ${RELEASE}"
