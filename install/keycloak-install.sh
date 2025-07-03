@@ -41,7 +41,7 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCO
 $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 msg_ok "Installed PostgreSQL"
 
-fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "latest" "/opt/keycloak"
+fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "latest" "/opt/keycloak" "keycloak-*.tar.gz"
 
 #msg_info "Installing Keycloak"
 #temp_file=$(mktemp)
