@@ -24,16 +24,6 @@ msg_ok "Installed Dependencies"
 
 #PYTHON_VERSION="3.12" setup_uv
 
-#echo -e "fetching healthchecks"
-#fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball" "latest" "/opt/healthchecks"
-# minimal call: fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "tarball"
-#echo -e "healthchecks done"
-
-#echo -e "fetching defguard"
-#fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary" "latest" "/opt/defguard"
-# minimal call: fetch_and_deploy_gh_release "defguard" "DefGuard/defguard" "binary"
-#echo -e "defguard done"
-
 #PHP_VERSION=8.2 PHP_FPM=YES setup_php
 #setup_composer
 
@@ -44,17 +34,6 @@ msg_ok "Installed Dependencies"
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 
 #PG_VERSION="16" setup_postgresql
-#MARIADB_VERSION="11.8"
-#MYSQL_VERSION="8.0"
-
-#install_mongodb
-#setup_postgresql
-#setup_mariadb
-#install_mysql
-
-# msg_info "Setup DISTRO env"
-# DISTRO="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
-# msg_ok "Setup DISTRO"
 
 motd_ssh
 customize
