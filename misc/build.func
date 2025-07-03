@@ -1220,7 +1220,7 @@ lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=
 EOF
   fi
 
-  # VAAPI passthrough for known apps on privileged LXC
+  # VAAPI passthrough for privileged containers or known apps
   VAAPI_APPS=(
     "immich"
     "Channels"
@@ -1247,11 +1247,13 @@ EOF
 
   if ([ "$CT_TYPE" == "0" ] || [ "$is_vaapi_app" == "true" ]) &&
     ([[ -e /dev/dri/renderD128 ]] || [[ -e /dev/dri/card0 ]] || [[ -e /dev/fb0 ]]); then
-    echo -e "\n⚙️  VAAPI passthrough configuration for LXC container:"
+
+    msg_custom "⚙️" "\e[36m" "VAAPI passthrough configuration for LXC container"
 
     if [ "$CT_TYPE" != "0" ]; then
-      echo "⚠️  Container is unprivileged – VAAPI passthrough may not work depending on host configuration."
+      msg_custom "⚠️" "\e[33m" "Container is unprivileged – VAAPI passthrough may not work depending on host configuration."
     fi
+
     if [[ -e /dev/dri/renderD128 ]]; then
       read -rp "  ➤ /dev/dri/renderD128 found – mount into container? [y/N]: " MOUNT_D128
       if [[ "$MOUNT_D128" =~ ^[Yy]$ ]]; then
@@ -1259,6 +1261,7 @@ EOF
         echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
     fi
+
     if [[ -e /dev/dri/card0 ]]; then
       read -rp "  ➤ /dev/dri/card0 found – mount into container? [y/N]: " MOUNT_CARD0
       if [[ "$MOUNT_CARD0" =~ ^[Yy]$ ]]; then
@@ -1266,6 +1269,7 @@ EOF
         echo "lxc.mount.entry: /dev/dri/card0 dev/dri/card0 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
     fi
+
     if [[ -e /dev/fb0 ]]; then
       read -rp "  ➤ /dev/fb0 (framebuffer) found – mount as well? [y/N]: " MOUNT_FB0
       if [[ "$MOUNT_FB0" =~ ^[Yy]$ ]]; then
@@ -1273,11 +1277,13 @@ EOF
         echo "lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
     fi
+
     if [[ -d /dev/dri ]]; then
       echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
     fi
   fi
 
+  # TUN device passthrough
   if [ "$ENABLE_TUN" == "yes" ]; then
     cat <<EOF >>"$LXC_CONFIG"
 lxc.cgroup2.devices.allow: c 10:200 rwm
