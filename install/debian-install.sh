@@ -41,7 +41,7 @@ msg_ok "Installed Dependencies"
 #NODE_MODULE="pnpm@10.1,yarn"
 #RELEASE=$(curl_handler -fsSL https://api.github.com/repos/babybuddy/babybuddy/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 #msg_ok "Get Release $RELEASE"
-#NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 
 #PG_VERSION="16" setup_postgresql
 #MARIADB_VERSION="11.8"
