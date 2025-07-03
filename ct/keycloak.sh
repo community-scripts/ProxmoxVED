@@ -43,7 +43,7 @@ function update_script() {
   tar -czf keycloak_conf_backup.tar.gz keycloak.old/conf
   msg_ok "Backup done"
 
-  fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "tarball" "latest" "/opt/keycloak"
+  fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "latest" "/opt/keycloak" "keycloak-*.tar.gz"
 
   msg_info "Updating ${APP}"
   cd /opt

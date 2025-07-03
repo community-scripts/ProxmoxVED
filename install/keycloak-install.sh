@@ -13,43 +13,19 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies (Patience)"
-#$STD apt-get install -y ca-certificates-java
-msg_ok "Installed Dependencies"
-
-#msg_info "Installing OpenJDK"
-#$STD apt install wget lsb-release -y
-#$STD wget https://packages.microsoft.com/config/debian/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-#$STD dpkg -i packages-microsoft-prod.deb
-#$STD apt update
-#$STD apt install -y msopenjdk-21
-#sudo update-java-alternatives --set msopenjdk-21-amd64
-#rm packages-microsoft-prod.deb
-#msg_ok "Installed OpenJDK"
-
 JAVA_VERSION=21 setup_java
-
-
-msg_info "Installing PostgreSQL"
-#$STD apt-get install -y postgresql
 PG_VERSION=16 setup_postgresql
+
+msg_info "Configuring PostgreSQL user"
 DB_NAME="keycloak"
 DB_USER="keycloak"
 DB_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)"
 $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8';"
 $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
-msg_ok "Installed PostgreSQL"
+msg_ok "Configured PostgreSQL user"
 
 fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "latest" "/opt/keycloak" "keycloak-*.tar.gz"
-
-#msg_info "Installing Keycloak"
-#temp_file=$(mktemp)
-#RELEASE=$(curl -fsSL https://api.github.com/repos/keycloak/keycloak/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-#curl -fsSL "https://github.com/keycloak/keycloak/releases/download/$RELEASE/keycloak-$RELEASE.tar.gz" -o "$temp_file"
-#tar xzf $temp_file
-#mv keycloak-$RELEASE /opt/keycloak
-#msg_ok "Installed Keycloak"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/keycloak.service
@@ -87,7 +63,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-#rm -f $temp_file
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
