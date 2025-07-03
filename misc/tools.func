@@ -877,8 +877,7 @@ function fetch_and_deploy_gh_release() {
 
     ### Prebuild Mode ###
   elif [[ "$mode" == "prebuild" ]]; then
-    local pattern="$6"
-    pattern="${pattern%\"}"
+    local pattern="${6%\"}"
     pattern="${pattern#\"}"
     [[ -z "$pattern" ]] && {
       msg_error "Mode 'prebuild' requires 6th parameter (asset filename pattern)"
@@ -888,12 +887,14 @@ function fetch_and_deploy_gh_release() {
 
     local asset_url=""
     for u in $(echo "$json" | jq -r '.assets[].browser_download_url'); do
-      case "$u" in
+      filename_candidate="${u##*/}"
+      case "$filename_candidate" in
       $pattern)
         asset_url="$u"
         break
         ;;
       esac
+
     done
     echo "DEBUG: Matching assets for pattern: '$pattern'" >&2
     echo "DEBUG: All available assets:" >&2
@@ -928,8 +929,7 @@ function fetch_and_deploy_gh_release() {
 
     ### Singlefile Mode ###
   elif [[ "$mode" == "singlefile" ]]; then
-    local pattern="$6"
-    pattern="${pattern%\"}"
+    local pattern="${6%\"}"
     pattern="${pattern#\"}"
     [[ -z "$pattern" ]] && {
       msg_error "Mode 'singlefile' requires 6th parameter (asset filename pattern)"
@@ -939,7 +939,8 @@ function fetch_and_deploy_gh_release() {
 
     local asset_url=""
     for u in $(echo "$json" | jq -r '.assets[].browser_download_url'); do
-      case "$u" in
+      filename_candidate="${u##*/}"
+      case "$filename_candidate" in
       $pattern)
         asset_url="$u"
         break
