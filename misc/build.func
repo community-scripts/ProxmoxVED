@@ -1202,7 +1202,9 @@ build_container() {
     exit $RET
   fi
 
-  LXC_CONFIG=/etc/pve/lxc/${CTID}.conf
+  LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
+
+  # USB passthrough for privileged LXC (CT_TYPE=0)
   if [ "$CT_TYPE" == "0" ]; then
     cat <<EOF >>"$LXC_CONFIG"
 # USB passthrough
@@ -1218,35 +1220,34 @@ lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=
 EOF
   fi
 
-  if [ "$CT_TYPE" == "0" ]; then
-    if [[ "$APP" == "immich" || "$APP" == "Channels" || "$APP" == "Emby" || "$APP" == "ErsatzTV" || "$APP" == "Frigate" || "$APP" == "Jellyfin" || "$APP" == "Plex" || "$APP" == "Scrypted" || "$APP" == "Tdarr" || "$APP" == "Unmanic" || "$APP" == "Ollama" || "$APP" == "FileFlows" ]]; then
-      cat <<EOF >>$LXC_CONFIG
-# VAAPI hardware transcoding
-lxc.cgroup2.devices.allow: c 226:0 rwm
-lxc.cgroup2.devices.allow: c 226:128 rwm
-lxc.cgroup2.devices.allow: c 29:0 rwm
-lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file
-lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
-lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
-EOF
-    fi
-  else
-    if [[ "$APP" == "immich" || "$APP" == "Channels" || "$APP" == "Emby" || "$APP" == "ErsatzTV" || "$APP" == "Frigate" || "$APP" == "Jellyfin" || "$APP" == "Plex" || "$APP" == "Scrypted" || "$APP" == "Tdarr" || "$APP" == "Unmanic" || "$APP" == "Ollama" || "$APP" == "FileFlows" ]]; then
-      if [[ -e "/dev/dri/renderD128" ]]; then
-        if [[ -e "/dev/dri/card0" ]]; then
-          cat <<EOF >>$LXC_CONFIG
-# VAAPI hardware transcoding
-dev0: /dev/dri/card0,gid=44
-dev1: /dev/dri/renderD128,gid=104
-EOF
-        else
-          cat <<EOF >>"$LXC_CONFIG"
-# VAAPI hardware transcoding
-dev0: /dev/dri/card1,gid=44
-dev1: /dev/dri/renderD128,gid=104
-EOF
-        fi
+  # VAAPI passthrough for known apps on privileged LXC
+  VAAPI_APPS="immich Channels Emby ErsatzTV Frigate Jellyfin Plex Scrypted Tdarr Unmanic Ollama FileFlows"
+
+  if [ "$CT_TYPE" == "0" ] && [[ " $VAAPI_APPS " =~ " $APP " ]]; then
+    echo -e "\n⚙️  VAAPI passthrough configuration for LXC container:"
+    if [[ -e /dev/dri/renderD128 ]]; then
+      read -rp "  ➤ /dev/dri/renderD128 found – mount into container? [y/N]: " MOUNT_D128
+      if [[ "$MOUNT_D128" =~ ^[Yy]$ ]]; then
+        echo "lxc.cgroup2.devices.allow: c 226:128 rwm" >>"$LXC_CONFIG"
+        echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
+    fi
+    if [[ -e /dev/dri/card0 ]]; then
+      read -rp "  ➤ /dev/dri/card0 found – mount into container? [y/N]: " MOUNT_CARD0
+      if [[ "$MOUNT_CARD0" =~ ^[Yy]$ ]]; then
+        echo "lxc.cgroup2.devices.allow: c 226:0 rwm" >>"$LXC_CONFIG"
+        echo "lxc.mount.entry: /dev/dri/card0 dev/dri/card0 none bind,optional,create=file" >>"$LXC_CONFIG"
+      fi
+    fi
+    if [[ -e /dev/fb0 ]]; then
+      read -rp "  ➤ /dev/fb0 (framebuffer) found – mount as well? [y/N]: " MOUNT_FB0
+      if [[ "$MOUNT_FB0" =~ ^[Yy]$ ]]; then
+        echo "lxc.cgroup2.devices.allow: c 29:0 rwm" >>"$LXC_CONFIG"
+        echo "lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file" >>"$LXC_CONFIG"
+      fi
+    fi
+    if [[ -d /dev/dri ]]; then
+      echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
     fi
   fi
 
