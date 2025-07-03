@@ -1221,9 +1221,31 @@ EOF
   fi
 
   # VAAPI passthrough for known apps on privileged LXC
-  VAAPI_APPS="immich Channels Emby ErsatzTV Frigate Jellyfin Plex Scrypted Tdarr Unmanic Ollama FileFlows"
+  VAAPI_APPS=(
+    "immich"
+    "Channels"
+    "Emby"
+    "ErsatzTV"
+    "Frigate"
+    "Jellyfin"
+    "Plex"
+    "Scrypted"
+    "Tdarr"
+    "Unmanic"
+    "Ollama"
+    "FileFlows"
+    "Open WebUI"
+  )
 
-  if [ "$CT_TYPE" == "0" ] && [[ " $VAAPI_APPS " =~ " $APP " ]]; then
+  is_vaapi_app=false
+  for vaapi_app in "${VAAPI_APPS[@]}"; do
+    if [[ "$APP" == "$vaapi_app" ]]; then
+      is_vaapi_app=true
+      break
+    fi
+  done
+
+  if [ "$CT_TYPE" == "0" ] && [ "$is_vaapi_app" == "true" ]; then
     echo -e "\n⚙️  VAAPI passthrough configuration for LXC container:"
     if [[ -e /dev/dri/renderD128 ]]; then
       read -rp "  ➤ /dev/dri/renderD128 found – mount into container? [y/N]: " MOUNT_D128
