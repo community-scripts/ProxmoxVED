@@ -112,7 +112,60 @@ for container in $CHOICE; do
     backup_container $container
   fi
 
-  #CHECK FOR RESOURCES
+  #1) Detect service using the service name in the update command
+  pushd $(mktemp -d) >/dev/null
+  pct pull "$container" /usr/bin/update update 2>/dev/null
+  service=$(cat update | sed 's|.*/ct/||g' | sed 's|\.sh).*||g')
+  popd >/dev/null
+
+  #1.1) If update script not detected, return
+  if [ -z "${service}" ]; then
+    echo -e "${YW}[WARN]${CL} Update script not found. Skipping to next container\n"
+    continue
+  else
+    echo "${BL}[INFO]${CL} Detected service: ${GN}${service}${CL}\n"
+  fi
+
+  #2) Extract service build/update resource requirements from config/installation file
+  script=$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/${service}.sh)
+  config=$(pct config "$container")
+  build_cpu=$(echo "$script" | { grep -m 1 "var_cpu" || test $? = 1; } | sed 's|.*=||g' | sed 's|"||g' | sed 's|.*var_cpu:-||g' | sed 's|}||g')
+  build_ram=$(echo "$script" | { grep -m 1 "var_ram" || test $? = 1; } | sed 's|.*=||g' | sed 's|"||g' | sed 's|.*var_ram:-||g' | sed 's|}||g')
+  run_cpu=$(echo "$script" | { grep -m 1 "pct set \$CTID -cores" || test $? = 1; } | sed 's|.*cores ||g')
+  run_ram=$(echo "$script" | { grep -m 1 "pct set \$CTID -memory" || test $? = 1; } | sed 's|.*memory ||g')
+  current_cpu=$(echo "$config" | grep -m 1 "cores:" | sed 's|cores: ||g')
+  current_ram=$(echo "$config" | grep -m 1 "memory:" | sed 's|memory: ||g')
+
+  #Test if all values are valid (>0)
+  if [ -z "${run_cpu}" ] || [ "$run_cpu" -le 0 ]; then
+    #echo "No valid value found for run_cpu. Assuming same as current configuration."
+    run_cpu=$current_cpu
+  fi
+
+  if [ -z "${run_ram}" ] || [ "$run_ram" -le 0 ]; then
+    #echo "No valid value found for run_ram. Assuming same as current configuration."
+    run_ram=$current_ram
+  fi
+
+  if [ -z "${build_cpu}" ] || [ "$build_cpu" -le 0 ]; then
+    #echo "No valid value found for build_cpu. Assuming same as current configuration."
+    build_cpu=$current_cpu
+  fi
+
+  if [ -z "${build_ram}" ] || [ "$build_ram" -le 0 ]; then
+    #echo "No valid value found for build_ram. Assuming same as current configuration."
+    build_ram=$current_ram
+  fi
+
+  UPDATE_BUILD_RESOURCES=0
+  if [ "$build_cpu" -gt "$run_cpu" ] || [ "$build_ram" -gt "$run_ram" ]; then
+    UPDATE_BUILD_RESOURCES=1
+  fi
+
+  #3) if build resources are different than run resources, then:
+  if [ "$UPDATE_BUILD_RESOURCES" -eq "1" ]; then
+    pct set "$container" --cores "$build_cpu" --memory "$build_ram"
+  fi
 
   os=$(pct config "$container" | awk '/^ostype/ {print $2}')
 
@@ -125,6 +178,11 @@ for container in $CHOICE; do
   opensuse) pct exec "$container" -- bash -c "$UPDATE_CMD" ;;
   esac
   exit_code=$?
+
+  #5) if build resources are different than run resources, then:
+  if [ "$UPDATE_BUILD_RESOURCES" -eq "1" ]; then
+    pct set "$container" --cores "$run_cpu" --memory "$run_ram"
+  fi
 
   if pct exec "$container" -- [ -e "/var/run/reboot-required" ]; then
     # Get the container's hostname and add it to the list
