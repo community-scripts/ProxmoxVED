@@ -104,6 +104,7 @@ if [ "$UNATTENDED_UPDATE" == "yes" ];then
   UPDATE_CMD="export PHS_SILENT=1;update;"
 fi
 
+containers_needing_reboot=()
 for container in $CHOICE; do
   echo "Updating container:$container"
 
@@ -113,9 +114,23 @@ for container in $CHOICE; do
 
   #CHECK FOR RESOURCES
 
-  #pct exec $container -- update
-  pct exec "$container" -- "$UPDATE_CMD"
+  os=$(pct config "$container" | awk '/^ostype/ {print $2}')
+
+  #4) Update service, using the update command
+  case "$os" in
+  alpine) pct exec "$container" -- ash -c "$UPDATE_CMD" ;;
+  archlinux) pct exec "$container" -- bash -c "$UPDATE_CMD" ;;
+  fedora | rocky | centos | alma) pct exec "$container" -- bash -c "$UPDATE_CMD" ;;
+  ubuntu | debian | devuan) pct exec "$container" -- bash -c "$UPDATE_CMD" ;;
+  opensuse) pct exec "$container" -- bash -c "$UPDATE_CMD" ;;
+  esac
   exit_code=$?
+
+  if pct exec "$container" -- [ -e "/var/run/reboot-required" ]; then
+    # Get the container's hostname and add it to the list
+    container_hostname=$(pct exec "$container" hostname)
+    containers_needing_reboot+=("$container ($container_hostname)")
+  fi
 
   if [ $exit_code -eq 0 ]; then
     msg_ok "Update completed"
@@ -137,3 +152,22 @@ for container in $CHOICE; do
     exit 1
   fi
 done
+
+wait
+header_info
+echo -e "${GN}The process is complete, and the containers have been successfully updated.${CL}\n"
+if [ "${#containers_needing_reboot[@]}" -gt 0 ]; then
+  echo -e "${RD}The following containers require a reboot:${CL}"
+  for container_name in "${containers_needing_reboot[@]}"; do
+    echo "$container_name"
+  done
+  echo -ne "${INFO} Do you wish to reboot these containers? <yes/No>  "
+  read -r prompt
+  if [[ ${prompt,,} =~ ^(yes)$ ]]; then
+    echo -e "${CROSS}${HOLD} ${YWB}Rebooting containers.${CL}"
+    for container_name in "${containers_needing_reboot[@]}"; do
+      container=$(echo $container_name | cut -d " " -f 1)
+      pct reboot ${container}
+    done
+  fi
+fi
