@@ -13,7 +13,6 @@ var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
-var_postfix_sat="${var_postfix_sat:-yes}"
 
 header_info "$APP"
 variables
@@ -21,42 +20,43 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -f /etc/systemd/system/keycloak.service ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-    
-	msg_info "Stopping ${APP}"
-    systemctl stop keycloak
-	msg_ok "Stopped ${APP}"
-
-    msg_info "Updating packages"
-    apt-get update &>/dev/null
-    apt-get -y upgrade &>/dev/null
-	msg_ok "Updated packages"
-
-    RELEASE=$(curl -fsSL https://api.github.com/repos/keycloak/keycloak/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-    msg_info "Updating ${APP} to v$RELEASE"
-    cd /opt
-    wget -q https://github.com/keycloak/keycloak/releases/download/$RELEASE/keycloak-$RELEASE.tar.gz
-    mv keycloak keycloak.old
-    tar -xzf keycloak-$RELEASE.tar.gz
-    tar -czf keycloak_conf_backup.tar.gz keycloak.old/conf
-    mv keycloak_conf_backup.tar.gz keycloak-$RELEASE/conf
-    cp -r keycloak.old/providers keycloak-$RELEASE
-    cp -r keycloak.old/themes keycloak-$RELEASE
-    mv keycloak-$RELEASE keycloak
-    rm keycloak-$RELEASE.tar.gz
-    rm -rf keycloak.old
-	msg_ok "Updated ${APP} LXC"
-
-    msg_info "Restating Keycloak"
-    systemctl restart keycloak
-    msg_ok "Restated Keycloak"
+  header_info
+  check_container_storage
+  check_container_resources
+  if [[ ! -f /etc/systemd/system/keycloak.service ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  msg_info "Stopping ${APP}"
+  systemctl stop keycloak
+  msg_ok "Stopped ${APP}"
+
+  msg_info "Updating packages"
+  apt-get update &>/dev/null
+  apt-get -y upgrade &>/dev/null
+  msg_ok "Updated packages"
+
+  msg_info "Backup old Keycloak"
+  cd /opt
+  mv keycloak keycloak.old
+  tar -czf keycloak_conf_backup.tar.gz keycloak.old/conf
+  msg_ok "Backup done"
+
+  fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "tarball" "latest" "/opt/keycloak"
+
+  msg_info "Updating ${APP}"
+  cd /opt
+  mv keycloak_conf_backup.tar.gz keycloak/conf
+  cp -r keycloak.old/providers keycloak
+  cp -r keycloak.old/themes keycloak
+  rm -rf keycloak.old
+  msg_ok "Updated ${APP} LXC"
+
+  msg_info "Restating Keycloak"
+  systemctl restart keycloak
+  msg_ok "Restated Keycloak"
+  exit
 }
 
 start
