@@ -1245,8 +1245,12 @@ EOF
     fi
   done
 
-  if [ "$CT_TYPE" == "0" ] && [ "$is_vaapi_app" == "true" ]; then
+  if [ "$CT_TYPE" == "0" ] || [ "$is_vaapi_app" == "true" ]; then
     echo -e "\n⚙️  VAAPI passthrough configuration for LXC container:"
+
+    if [ "$CT_TYPE" != "0" ]; then
+      echo "⚠️  Container is unprivileged – VAAPI passthrough may not work depending on host configuration."
+    fi
     if [[ -e /dev/dri/renderD128 ]]; then
       read -rp "  ➤ /dev/dri/renderD128 found – mount into container? [y/N]: " MOUNT_D128
       if [[ "$MOUNT_D128" =~ ^[Yy]$ ]]; then
