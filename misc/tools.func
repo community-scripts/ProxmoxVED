@@ -798,6 +798,7 @@ function fetch_and_deploy_gh_release() {
 
   msg_info "Setup $app ($version)"
 
+  ### Tarball Mode ###
   if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
     url=$(echo "$json" | jq -r '.tarball_url // empty')
     [[ -z "$url" ]] && url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
@@ -818,6 +819,7 @@ function fetch_and_deploy_gh_release() {
     cp -r "$unpack_dir"/* "$target/"
     shopt -u dotglob nullglob
 
+    ### Binary Mode ###
   elif [[ "$mode" == "binary" ]]; then
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
@@ -873,6 +875,7 @@ function fetch_and_deploy_gh_release() {
       }
     }
 
+    ### Prebuild Mode ###
   elif [[ "$mode" == "prebuild" ]]; then
     local pattern="$6"
     [[ -z "$pattern" ]] && {
@@ -883,10 +886,12 @@ function fetch_and_deploy_gh_release() {
 
     local asset_url=""
     for u in $(echo "$json" | jq -r '.assets[].browser_download_url'); do
-      if [[ "$u" == $pattern ]]; then
+      case "$u" in
+      $pattern)
         asset_url="$u"
         break
-      fi
+        ;;
+      esac
     done
 
     [[ -z "$asset_url" ]] && {
@@ -916,6 +921,7 @@ function fetch_and_deploy_gh_release() {
       return 1
     fi
 
+    ### Singlefile Mode ###
   elif [[ "$mode" == "singlefile" ]]; then
     local pattern="$6"
     [[ -z "$pattern" ]] && {
@@ -926,7 +932,12 @@ function fetch_and_deploy_gh_release() {
 
     local asset_url=""
     for u in $(echo "$json" | jq -r '.assets[].browser_download_url'); do
-      [[ "$u" =~ $pattern || "$u" == *"$pattern" ]] && asset_url="$u" && break
+      case "$u" in
+      $pattern)
+        asset_url="$u"
+        break
+        ;;
+      esac
     done
 
     [[ -z "$asset_url" ]] && {
