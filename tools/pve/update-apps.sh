@@ -106,7 +106,7 @@ fi
 
 containers_needing_reboot=()
 for container in $CHOICE; do
-  echo "Updating container:$container"
+  msg_info "Updating container $container"
 
   if [ "BACKUP_CHOICE" == "yes" ];then
     backup_container $container
@@ -120,10 +120,10 @@ for container in $CHOICE; do
 
   #1.1) If update script not detected, return
   if [ -z "${service}" ]; then
-    echo -e "${YW}[WARN]${CL} Update script not found. Skipping to next container\n"
+    echo -e "${YW}[WARN]${CL} Update script not found. Skipping to next container"
     continue
   else
-    echo "${BL}[INFO]${CL} Detected service: ${GN}${service}${CL}\n"
+    echo -e "${BL}[INFO]${CL} Detected service: ${GN}${service}${CL}"
   fi
 
   #2) Extract service build/update resource requirements from config/installation file
@@ -191,7 +191,7 @@ for container in $CHOICE; do
   fi
 
   if [ $exit_code -eq 0 ]; then
-    msg_ok "Update completed"
+    msg_ok "Updated container $container"
   elif [ "BACKUP_CHOICE" == "yes" ];then
     msg_info "Restoring LXC from backup"
     pct stop $container
