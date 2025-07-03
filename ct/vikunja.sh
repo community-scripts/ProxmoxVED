@@ -32,9 +32,11 @@ function update_script() {
     "Choose the version type to update to:\n\n• STABLE: Recommended for production use\n• UNSTABLE: Latest development version\n\n⚠️  WARNING: Unstable versions may contain bugs,\nbe incomplete, or cause system instability.\nOnly use for testing purposes.\n\nDo you want to use the UNSTABLE version?\n(No = Stable, Yes = Unstable)" 16 70 --defaultno
   then
     RELEASE="unstable"
+    FILENAME="vikunja-${RELEASE}-x86_64.deb"
     msg_info "Selected UNSTABLE version"
   else
     RELEASE=$(curl -fsSL https://dl.vikunja.io/vikunja/ | grep -oP 'href="/vikunja/\K[0-9]+\.[0-9]+\.[0-9]+' | sort -V | tail -n 1)
+    FILENAME="vikunja-${RELEASE}-amd64.deb"
     msg_info "Selected STABLE version: ${RELEASE}"
   fi
   
@@ -45,16 +47,16 @@ function update_script() {
     msg_info "Updating ${APP} to ${RELEASE}"
     cd /opt
     rm -rf /opt/vikunja/vikunja
-    curl -fsSL "https://dl.vikunja.io/vikunja/$RELEASE/vikunja-$RELEASE-amd64.deb" -o $(basename "https://dl.vikunja.io/vikunja/$RELEASE/vikunja-$RELEASE-amd64.deb")
+    curl -fsSL "https://dl.vikunja.io/vikunja/$RELEASE/$FILENAME" -o $(basename "https://dl.vikunja.io/vikunja/$RELEASE/$FILENAME")
     export DEBIAN_FRONTEND=noninteractive
-    $STD dpkg -i vikunja-$RELEASE-amd64.deb
+    $STD dpkg -i $FILENAME
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated ${APP}"
     msg_info "Starting ${APP}"
     systemctl start vikunja
     msg_ok "Started ${APP}"
     msg_info "Cleaning Up"
-    rm -rf /opt/vikunja-$RELEASE-amd64.deb
+    rm -rf /opt/$FILENAME
     msg_ok "Cleaned"
     msg_ok "Updated Successfully"
   else
