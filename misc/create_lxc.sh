@@ -148,10 +148,12 @@ function select_storage() {
   while true; do
     DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
       "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-      16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
+      16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3)
+
+    if [[ $? -ne 0 ]]; then
       msg_error "Storage selection cancelled by user."
       exit 202
-    }
+    fi
 
     if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "Invalid Selection" \
