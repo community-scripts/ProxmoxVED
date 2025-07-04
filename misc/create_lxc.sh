@@ -73,7 +73,7 @@ if ! check_storage_support "vztmpl"; then
   msg_error "No valid storage found for 'vztmpl' (Template)."
   exit 1
 fi
-msg_ok "Storage types rootdir and vztmpl are supported."
+msg_ok "Validated Storage (rootdir / vztmpl)."
 
 # This function is used to select the storage class and determine the corresponding storage content type and label.
 function select_storage() {
@@ -153,7 +153,6 @@ function select_storage() {
       exit 202
     }
 
-    # Validierung gegen STORAGE_MAP
     if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
       whiptail --backtitle "Proxmox VE Helper Scripts" --title "Invalid Selection" \
         --msgbox "No valid storage selected. Please choose a storage pool to continue." 9 60
@@ -298,6 +297,8 @@ if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLAT
 fi
 
 msg_ok "LXC Template '$TEMPLATE' is ready to use."
+
+msg_info "Creating LXC Container"
 # Check and fix subuid/subgid
 grep -q "root:100000:65536" /etc/subuid || echo "root:100000:65536" >>/etc/subuid
 grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgid
@@ -317,7 +318,6 @@ flock -w 60 9 || {
   exit 211
 }
 
-msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
   msg_error "Container creation failed. Checking if template is corrupted or incomplete."
 

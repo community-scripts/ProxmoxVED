@@ -250,6 +250,17 @@ header_info() {
   fi
 }
 
+ensure_tput() {
+  if ! command -v tput >/dev/null 2>&1; then
+    if grep -qi 'alpine' /etc/os-release; then
+      apk add --no-cache ncurses >/dev/null 2>&1
+    elif command -v apt-get >/dev/null 2>&1; then
+      apt-get update -qq >/dev/null
+      apt-get install -y -qq ncurses-bin >/dev/null 2>&1
+    fi
+  fi
+}
+
 # ------------------------------------------------------------------------------
 # Handles specific curl error codes and displays descriptive messages.
 # ------------------------------------------------------------------------------
@@ -302,6 +313,11 @@ spinner() {
   done
 }
 
+clear_line() {
+  tput cr 2>/dev/null || echo -en "\r"
+  tput el 2>/dev/null || echo -en "\033[K"
+}
+
 stop_spinner() {
   local pid="${SPINNER_PID:-}"
   [[ -z "$pid" && -f /tmp/.spinner.pid ]] && pid=$(</tmp/.spinner.pid)
@@ -346,14 +362,12 @@ msg_info() {
 }
 
 msg_ok() {
-  stop_spinner
   local msg="$1"
-  if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
-    local CHECK="${TAB}✔️${TAB}"
-    printf "\r\e[2K%s %b\n" "$CHECK" "${GN}${msg}${CL}" >&2
-  else
-    echo -e "${BFR:-} ${CM:-✔️} ${GN}${msg}${CL}"
-  fi
+  [[ -z "$msg" ]] && return
+  stop_spinner
+  clear_line
+  printf "%s %b\n" "$CM" "${GN}${msg}${CL}" >&2
+  unset MSG_INFO_SHOWN["$msg"]
 }
 
 msg_error() {
