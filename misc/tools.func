@@ -235,14 +235,13 @@ setup_mariadb() {
   DISTRO_CODENAME="$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)"
   CURRENT_OS="$(awk -F= '/^ID=/{print $2}' /etc/os-release)"
 
-  msg_info "Preparing MariaDB $MARIADB_VERSION"
-
   if ! curl -fsI http://mirror.mariadb.org/repo/ >/dev/null; then
     msg_error "MariaDB mirror not reachable"
     return 1
   fi
-  msg_ok "MariaDB mirror reachable"
 
+  msg_info "Setting up MariaDB $MARIADB_VERSION"
+  # grab dynamic latest LTS version
   if [[ "$MARIADB_VERSION" == "latest" ]]; then
     MARIADB_VERSION=$(curl -fsSL http://mirror.mariadb.org/repo/ |
       grep -Eo '[0-9]+\.[0-9]+\.[0-9]+/' |
@@ -251,10 +250,9 @@ setup_mariadb() {
       sort -Vr |
       head -n1)
     if [[ -z "$MARIADB_VERSION" ]]; then
-      msg_error "Failed to detect latest MariaDB version"
+      msg_error "Could not determine latest GA MariaDB version"
       return 1
     fi
-    msg_ok "Latest version is $MARIADB_VERSION"
   fi
 
   local CURRENT_VERSION=""
@@ -263,45 +261,32 @@ setup_mariadb() {
   fi
 
   if [[ "$CURRENT_VERSION" == "$MARIADB_VERSION" ]]; then
-    msg_info "MariaDB $MARIADB_VERSION already present, updating if needed"
+    $STD msg_info "MariaDB $MARIADB_VERSION, upgrading"
     $STD apt-get update
     $STD apt-get install --only-upgrade -y mariadb-server mariadb-client
-    msg_ok "MariaDB already up to date"
+    $STD msg_ok "MariaDB upgraded to $MARIADB_VERSION"
     return 0
   fi
 
   if [[ -n "$CURRENT_VERSION" ]]; then
-    msg_info "Removing MariaDB $CURRENT_VERSION"
-    systemctl stop mariadb >/dev/null 2>&1 || true
+    $STD msg_info "Upgrading MariaDB $CURRENT_VERSION to $MARIADB_VERSION"
+    $STD systemctl stop mariadb >/dev/null 2>&1 || true
     $STD apt-get purge -y 'mariadb*' || true
     rm -f /etc/apt/sources.list.d/mariadb.list /etc/apt/trusted.gpg.d/mariadb.gpg
+  else
+    $STD msg_info "Setup MariaDB $MARIADB_VERSION"
   fi
 
-  if curl -fsSL "https://mariadb.org/mariadb_release_signing_key.asc" |
-    gpg --dearmor -o /etc/apt/trusted.gpg.d/mariadb.gpg; then
-    msg_ok "GPG key imported"
-  else
-    msg_error "Failed to import GPG key"
-    return 1
-  fi
+  curl -fsSL "https://mariadb.org/mariadb_release_signing_key.asc" |
+    gpg --dearmor -o /etc/apt/trusted.gpg.d/mariadb.gpg
 
   echo "deb [signed-by=/etc/apt/trusted.gpg.d/mariadb.gpg] http://mirror.mariadb.org/repo/${MARIADB_VERSION}/${CURRENT_OS} ${DISTRO_CODENAME} main" \
     >/etc/apt/sources.list.d/mariadb.list
-  msg_ok "Repository configured"
 
-  if $STD apt-get update; then
-    msg_ok "APT index updated"
-  else
-    msg_error "APT update failed"
-    return 1
-  fi
+  $STD apt-get update
+  $STD apt-get install -y mariadb-server mariadb-client
 
-  if $STD apt-get install -y mariadb-server mariadb-client; then
-    msg_ok "MariaDB $MARIADB_VERSION installed"
-  else
-    msg_error "MariaDB installation failed"
-    return 1
-  fi
+  msg_ok "Setup MariaDB $MARIADB_VERSION"
 }
 
 # ------------------------------------------------------------------------------
