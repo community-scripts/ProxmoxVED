@@ -330,7 +330,6 @@ msg_info() {
   MSG_INFO_SHOWN["$msg"]=1
 
   stop_spinner
-
   SPINNER_MSG="$msg"
 
   if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
