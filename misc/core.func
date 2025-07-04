@@ -365,85 +365,6 @@ fatal() {
   kill -INT $$
 }
 
-# # Ensure POSIX compatibility across Alpine and Debian/Ubuntu
-# # === Spinner Start ===
-# # Trap cleanup on various signals
-# trap 'cleanup_spinner' EXIT INT TERM HUP
-
-# spinner_frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-
-# # === Spinner Start ===
-# start_spinner() {
-#   local msg="$1"
-#   local spin_i=0
-#   local interval=0.1
-
-#   stop_spinner
-#   SPINNER_MSG="$msg"
-#   SPINNER_ACTIVE=1
-
-#   {
-#     while [[ "$SPINNER_ACTIVE" -eq 1 ]]; do
-#       if [[ -t 2 ]]; then
-#         printf "\r\e[2K%s %b" "${TAB}${spinner_frames[spin_i]}${TAB}" "${YW}${SPINNER_MSG}${CL}" >&2
-#       else
-#         printf "%s...\n" "$SPINNER_MSG" >&2
-#         break
-#       fi
-#       spin_i=$(((spin_i + 1) % ${#spinner_frames[@]}))
-#       sleep "$interval"
-#     done
-#   } &
-
-#   local pid=$!
-#   if ps -p "$pid" >/dev/null 2>&1; then
-#     SPINNER_PID="$pid"
-#   else
-#     SPINNER_ACTIVE=0
-#     SPINNER_PID=""
-#   fi
-# }
-
-# # === Spinner Stop ===
-# stop_spinner() {
-#   if [[ "$SPINNER_ACTIVE" -eq 1 && -n "$SPINNER_PID" ]]; then
-#     SPINNER_ACTIVE=0
-
-#     if kill -0 "$SPINNER_PID" 2>/dev/null; then
-#       kill "$SPINNER_PID" 2>/dev/null || true
-#       for _ in $(seq 1 10); do
-#         sleep 0.05
-#         kill -0 "$SPINNER_PID" 2>/dev/null || break
-#       done
-#     fi
-
-#     if [[ "$SPINNER_PID" =~ ^[0-9]+$ ]]; then
-#       ps -p "$SPINNER_PID" -o pid= >/dev/null 2>&1 && wait "$SPINNER_PID" 2>/dev/null || true
-#     fi
-
-#     printf "\r\e[2K" >&2
-#     SPINNER_PID=""
-#   fi
-# }
-
-# cleanup_spinner() {
-#   stop_spinner
-# }
-
-# msg_info() {
-#   local msg="$1"
-#   [[ -z "$msg" || -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-#   MSG_INFO_SHOWN["$msg"]=1
-
-#   stop_spinner
-#   echo -e "OS: ${var_os:-}"
-#   if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
-#     printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
-#   else
-#     start_spinner "$msg"
-#   fi
-# }
-
 spinner() {
   local chars=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
   local i=0
@@ -474,12 +395,23 @@ stop_spinner() {
 
 msg_info() {
   local msg="$1"
-  SPINNER_MSG="$msg"
-  color_spinner
-  spinner &
-  SPINNER_PID=$!
-  echo "$SPINNER_PID" >/tmp/.spinner.pid
-  disown "$SPINNER_PID" 2>/dev/null || true
+  [[ -z "$msg" || -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
+  MSG_INFO_SHOWN["$msg"]=1
+
+  stop_spinner
+
+  local HOURGLASS="${TAB}⏳${TAB}"
+
+  if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
+    printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
+  else
+    SPINNER_MSG="$msg"
+    color_spinner
+    spinner &
+    SPINNER_PID=$!
+    echo "$SPINNER_PID" >/tmp/.spinner.pid
+    disown "$SPINNER_PID" 2>/dev/null || true
+  fi
 }
 
 msg_ok() {
