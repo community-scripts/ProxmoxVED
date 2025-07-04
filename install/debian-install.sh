@@ -17,6 +17,8 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y gpg
 msg_ok "Installed Dependencies"
 
+setup_mariadb
+
 #FFMPEG_VERSION="n7.1.1" FFMPEG_TYPE="full" setup_ffmpeg
 
 #fetch_and_deploy_gh_release "argus" "release-argus/Argus" "singlefile" "latest" "/opt/argus" "Argus-.*linux-amd64"
@@ -31,7 +33,7 @@ msg_ok "Installed Dependencies"
 #NODE_MODULE="pnpm@10.1,yarn"
 #RELEASE=$(curl_handler -fsSL https://api.github.com/repos/babybuddy/babybuddy/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 #msg_ok "Get Release $RELEASE"
-NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
+#NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 
 #PG_VERSION="16" setup_postgresql
 
