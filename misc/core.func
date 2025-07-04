@@ -262,19 +262,16 @@ ensure_tput() {
 }
 
 is_alpine() {
-  local os_id="${var_os:-}"
+  local os_id="${var_os:-${PCT_OSTYPE:-}}"
 
-  if [[ -z "$os_id" ]]; then
-    if [[ -f /etc/os-release ]]; then
-      os_id="$(
-        . /etc/os-release 2>/dev/null
-        echo "${ID:-}"
-      )"
-    fi
+  if [[ -z "$os_id" && -f /etc/os-release ]]; then
+    os_id="$(
+      . /etc/os-release 2>/dev/null
+      echo "${ID:-}"
+    )"
   fi
 
-  echo "[DEBUG] is_alpine(): os_id='${os_id}'" >&2
-
+  [[ "${DEBUG:-}" == "true" ]] && echo "[DEBUG] is_alpine(): os_id='${os_id}'" >&2
   [[ "$os_id" == "alpine" ]]
 }
 
