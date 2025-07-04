@@ -261,6 +261,27 @@ ensure_tput() {
   fi
 }
 
+is_alpine() {
+  local os="${var_os:-$(
+    . /etc/os-release 2>/dev/null
+    echo "${ID:-}"
+  )}"
+  echo "[DEBUG] is_alpine(): OS='$os'" >&2
+  [[ "$os" == "alpine" ]]
+}
+
+is_verbose_mode() {
+  local verbose="${VERBOSE:-${var_verbose:-no}}"
+  local tty_status
+  if [[ -t 2 ]]; then
+    tty_status="interactive"
+  else
+    tty_status="not-a-tty"
+  fi
+  echo "[DEBUG] is_verbose_mode(): VERBOSE='$verbose', TTY=$tty_status" >&2
+  [[ "$verbose" != "no" || ! -t 2 ]]
+}
+
 # ------------------------------------------------------------------------------
 # Handles specific curl error codes and displays descriptive messages.
 # ------------------------------------------------------------------------------
@@ -348,7 +369,7 @@ msg_info() {
   stop_spinner
   SPINNER_MSG="$msg"
 
-  if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
+  if is_verbose_mode || is_alpine; then
     local HOURGLASS="${TAB}⏳${TAB}"
     printf "\r\e[2K%s %b" "$HOURGLASS" "${YW}${msg}${CL}" >&2
     return
