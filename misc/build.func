@@ -1248,31 +1248,38 @@ EOF
   if ([ "$CT_TYPE" == "0" ] || [ "$is_vaapi_app" == "true" ]) &&
     ([[ -e /dev/dri/renderD128 ]] || [[ -e /dev/dri/card0 ]] || [[ -e /dev/fb0 ]]); then
 
-    msg_custom "⚙️" "\e[36m" "VAAPI passthrough configuration for LXC container"
+    msg_custom "⚙️" "\e[36m" "Configuring VAAPI passthrough for LXC container"
 
     if [ "$CT_TYPE" != "0" ]; then
-      msg_custom "⚠️" "\e[33m" "Container is unprivileged – VAAPI passthrough may not work depending on host configuration."
+      msg_custom "⚠️" "\e[33m" "Container is unprivileged – VAAPI passthrough may not work without additional host configuration (e.g., idmap)."
+    fi
+
+    msg_custom "ℹ️" "\e[36m" "VAAPI enables GPU hardware acceleration (e.g., for video transcoding in Jellyfin or Plex)."
+    msg_custom "📦" "\e[36m" "The following GPU-related devices were detected on the host and can be mounted into the container."
+
+    VAAPI_ALL=no
+    read -rp "  ➤ Automatically mount all VAAPI devices? [Y/n]: " VAAPI_ALL
+
+    if [[ ! "$VAAPI_ALL" =~ ^[Nn]$ ]]; then
+      VAAPI_ALL=yes
     fi
 
     if [[ -e /dev/dri/renderD128 ]]; then
-      read -rp "  ➤ /dev/dri/renderD128 found – mount into container? [y/N]: " MOUNT_D128
-      if [[ "$MOUNT_D128" =~ ^[Yy]$ ]]; then
+      if [[ "$VAAPI_ALL" == "yes" ]] || read -rp "  ➤ /dev/dri/renderD128 (GPU rendering) – mount? [Y/n]: " yn && [[ "$yn" =~ ^[Yy]$|^$ ]]; then
         echo "lxc.cgroup2.devices.allow: c 226:128 rwm" >>"$LXC_CONFIG"
         echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
     fi
 
     if [[ -e /dev/dri/card0 ]]; then
-      read -rp "  ➤ /dev/dri/card0 found – mount into container? [y/N]: " MOUNT_CARD0
-      if [[ "$MOUNT_CARD0" =~ ^[Yy]$ ]]; then
+      if [[ "$VAAPI_ALL" == "yes" ]] || read -rp "  ➤ /dev/dri/card0 (GPU interface) – mount? [Y/n]: " yn && [[ "$yn" =~ ^[Yy]$|^$ ]]; then
         echo "lxc.cgroup2.devices.allow: c 226:0 rwm" >>"$LXC_CONFIG"
         echo "lxc.mount.entry: /dev/dri/card0 dev/dri/card0 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
     fi
 
     if [[ -e /dev/fb0 ]]; then
-      read -rp "  ➤ /dev/fb0 (framebuffer) found – mount as well? [y/N]: " MOUNT_FB0
-      if [[ "$MOUNT_FB0" =~ ^[Yy]$ ]]; then
+      if [[ "$VAAPI_ALL" == "yes" ]] || read -rp "  ➤ /dev/fb0 (framebuffer) – mount as well? [Y/n]: " yn && [[ "$yn" =~ ^[Yy]$|^$ ]]; then
         echo "lxc.cgroup2.devices.allow: c 29:0 rwm" >>"$LXC_CONFIG"
         echo "lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
@@ -1295,6 +1302,7 @@ EOF
   msg_info "Starting LXC Container"
   pct start "$CTID"
   msg_ok "Started LXC Container"
+
   msg_info "Customizing LXC Container"
   if [ "$var_os" == "alpine" ]; then
     sleep 3
@@ -1312,10 +1320,14 @@ EOF'
     locale-gen >/dev/null && \
     export LANG=\$locale_line"
 
+    if [[ -z "${tz:-}" ]]; then
+      tz=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "Etc/UTC")
+    fi
+
     if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
-      pct exec "$CTID" -- bash -c "echo $tz >/etc/timezone && ln -sf /usr/share/zoneinfo/$tz /etc/localtime"
+      pct exec "$CTID" -- bash -c "tz='$tz'; echo \"\$tz\" >/etc/timezone && ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime"
     else
-      msg_info "Skipping timezone setup – zone '$tz' not found in container"
+      msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
 
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 >/dev/null"
