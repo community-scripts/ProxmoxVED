@@ -1248,45 +1248,64 @@ EOF
   if ([ "$CT_TYPE" == "0" ] || [ "$is_vaapi_app" == "true" ]) &&
     ([[ -e /dev/dri/renderD128 ]] || [[ -e /dev/dri/card0 ]] || [[ -e /dev/fb0 ]]); then
 
-    msg_custom "⚙️" "\e[36m" "Configuring VAAPI passthrough for LXC container"
+    echo ""
+    msg_custom "⚙️ " "\e[96m" "Configuring VAAPI passthrough for LXC container"
 
     if [ "$CT_TYPE" != "0" ]; then
-      msg_custom "⚠️" "\e[33m" "Container is unprivileged – VAAPI passthrough may not work without additional host configuration (e.g., idmap)."
+      msg_custom "⚠️ " "\e[33m" "Container is unprivileged – VAAPI passthrough may not work without additional host configuration (e.g., idmap)."
     fi
 
-    msg_custom "ℹ️" "\e[36m" "VAAPI enables GPU hardware acceleration (e.g., for video transcoding in Jellyfin or Plex)."
-    msg_custom "📦" "\e[36m" "The following GPU-related devices were detected on the host and can be mounted into the container."
+    msg_custom "ℹ️ " "\e[96m" "VAAPI enables GPU hardware acceleration (e.g., for video transcoding in Jellyfin or Plex)."
 
-    VAAPI_ALL=no
-    read -rp "  ➤ Automatically mount all VAAPI devices? [Y/n]: " VAAPI_ALL
+    echo ""
+    read -rp "➤ Automatically mount all available VAAPI devices? [Y/n]: " VAAPI_ALL
 
-    if [[ ! "$VAAPI_ALL" =~ ^[Nn]$ ]]; then
-      VAAPI_ALL=yes
-    fi
-
-    if [[ -e /dev/dri/renderD128 ]]; then
-      if [[ "$VAAPI_ALL" == "yes" ]] || read -rp "  ➤ /dev/dri/renderD128 (GPU rendering) – mount? [Y/n]: " yn && [[ "$yn" =~ ^[Yy]$|^$ ]]; then
+    if [[ "$VAAPI_ALL" =~ ^[Yy]$|^$ ]]; then
+      # Mount all devices automatically
+      if [[ -e /dev/dri/renderD128 ]]; then
         echo "lxc.cgroup2.devices.allow: c 226:128 rwm" >>"$LXC_CONFIG"
         echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
-    fi
-
-    if [[ -e /dev/dri/card0 ]]; then
-      if [[ "$VAAPI_ALL" == "yes" ]] || read -rp "  ➤ /dev/dri/card0 (GPU interface) – mount? [Y/n]: " yn && [[ "$yn" =~ ^[Yy]$|^$ ]]; then
+      if [[ -e /dev/dri/card0 ]]; then
         echo "lxc.cgroup2.devices.allow: c 226:0 rwm" >>"$LXC_CONFIG"
         echo "lxc.mount.entry: /dev/dri/card0 dev/dri/card0 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
-    fi
-
-    if [[ -e /dev/fb0 ]]; then
-      if [[ "$VAAPI_ALL" == "yes" ]] || read -rp "  ➤ /dev/fb0 (framebuffer) – mount as well? [Y/n]: " yn && [[ "$yn" =~ ^[Yy]$|^$ ]]; then
+      if [[ -e /dev/fb0 ]]; then
         echo "lxc.cgroup2.devices.allow: c 29:0 rwm" >>"$LXC_CONFIG"
         echo "lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
-    fi
+      if [[ -d /dev/dri ]]; then
+        echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+      fi
+    else
+      # Manual selection per device
+      if [[ -e /dev/dri/renderD128 ]]; then
+        read -rp "➤ Mount /dev/dri/renderD128 (GPU rendering)? [y/N]: " MOUNT_D128
+        if [[ "$MOUNT_D128" =~ ^[Yy]$ ]]; then
+          echo "lxc.cgroup2.devices.allow: c 226:128 rwm" >>"$LXC_CONFIG"
+          echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
+        fi
+      fi
 
-    if [[ -d /dev/dri ]]; then
-      echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+      if [[ -e /dev/dri/card0 ]]; then
+        read -rp "➤ Mount /dev/dri/card0 (GPU hardware interface)? [y/N]: " MOUNT_CARD0
+        if [[ "$MOUNT_CARD0" =~ ^[Yy]$ ]]; then
+          echo "lxc.cgroup2.devices.allow: c 226:0 rwm" >>"$LXC_CONFIG"
+          echo "lxc.mount.entry: /dev/dri/card0 dev/dri/card0 none bind,optional,create=file" >>"$LXC_CONFIG"
+        fi
+      fi
+
+      if [[ -e /dev/fb0 ]]; then
+        read -rp "➤ Mount /dev/fb0 (Framebuffer, GUI)? [y/N]: " MOUNT_FB0
+        if [[ "$MOUNT_FB0" =~ ^[Yy]$ ]]; then
+          echo "lxc.cgroup2.devices.allow: c 29:0 rwm" >>"$LXC_CONFIG"
+          echo "lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file" >>"$LXC_CONFIG"
+        fi
+      fi
+
+      if [[ -d /dev/dri ]]; then
+        echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+      fi
     fi
   fi
 
