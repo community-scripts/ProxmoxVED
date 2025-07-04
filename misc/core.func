@@ -262,8 +262,20 @@ ensure_tput() {
 }
 
 is_alpine() {
-  echo "[DEBUG] is_alpine(): var_os='${var_os:-}'" >&2
-  [[ "${var_os:-}" == "alpine" ]]
+  local os_id="${var_os:-}"
+
+  if [[ -z "$os_id" ]]; then
+    if [[ -f /etc/os-release ]]; then
+      os_id="$(
+        . /etc/os-release 2>/dev/null
+        echo "${ID:-}"
+      )"
+    fi
+  fi
+
+  echo "[DEBUG] is_alpine(): os_id='${os_id}'" >&2
+
+  [[ "$os_id" == "alpine" ]]
 }
 
 is_verbose_mode() {
