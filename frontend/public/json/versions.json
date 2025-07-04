@@ -1,5 +1,60 @@
 [
   {
+    "name": "hyperion-project/hyperion.ng",
+    "version": "2.1.1",
+    "date": "2025-06-14T17:45:06Z"
+  },
+  {
+    "name": "steveiliop56/tinyauth",
+    "version": "v3.4.1",
+    "date": "2025-06-11T07:53:44Z"
+  },
+  {
+    "name": "outline/outline",
+    "version": "v0.85.0",
+    "date": "2025-07-04T00:06:47Z"
+  },
+  {
+    "name": "home-assistant/operating-system",
+    "version": "15.2",
+    "date": "2025-04-14T15:37:12Z"
+  },
+  {
+    "name": "cloudflare/cloudflared",
+    "version": "2025.7.0",
+    "date": "2025-07-03T17:08:15Z"
+  },
+  {
+    "name": "rabbitmq/rabbitmq-server",
+    "version": "v4.1.2",
+    "date": "2025-07-03T16:59:29Z"
+  },
+  {
+    "name": "bunkerity/bunkerweb",
+    "version": "testing",
+    "date": "2025-07-03T16:52:55Z"
+  },
+  {
+    "name": "Checkmk/checkmk",
+    "version": "v2.4.0p6",
+    "date": "2025-07-03T16:40:42Z"
+  },
+  {
+    "name": "influxdata/influxdb",
+    "version": "v3.2.1",
+    "date": "2025-07-03T16:09:19Z"
+  },
+  {
+    "name": "cockpit-project/cockpit",
+    "version": "310.5",
+    "date": "2025-07-03T14:05:25Z"
+  },
+  {
+    "name": "n8n-io/n8n",
+    "version": "n8n@1.100.0",
+    "date": "2025-06-23T12:48:35Z"
+  },
+  {
     "name": "Dolibarr/dolibarr",
     "version": "18.0.7",
     "date": "2025-07-03T08:57:21Z"
@@ -125,11 +180,6 @@
     "date": "2025-07-02T00:37:07Z"
   },
   {
-    "name": "hyperion-project/hyperion.ng",
-    "version": "2.1.1",
-    "date": "2025-06-14T17:45:06Z"
-  },
-  {
     "name": "Threadfin/Threadfin",
     "version": "1.2.35",
     "date": "2025-07-01T21:37:20Z"
@@ -170,11 +220,6 @@
     "date": "2025-07-01T11:29:11Z"
   },
   {
-    "name": "Checkmk/checkmk",
-    "version": "v2.2.0p44-rc1",
-    "date": "2025-07-01T11:10:25Z"
-  },
-  {
     "name": "rcourtman/Pulse",
     "version": "v99.99.99",
     "date": "2025-07-01T08:26:41Z"
@@ -213,11 +258,6 @@
     "name": "prometheus/prometheus",
     "version": "v2.53.5",
     "date": "2025-06-30T11:01:12Z"
-  },
-  {
-    "name": "n8n-io/n8n",
-    "version": "n8n@1.100.0",
-    "date": "2025-06-23T12:48:35Z"
   },
   {
     "name": "jupyter/notebook",
@@ -305,19 +345,14 @@
     "date": "2025-06-27T09:53:57Z"
   },
   {
-    "name": "cockpit-project/cockpit",
-    "version": "341.1",
-    "date": "2025-06-27T08:50:16Z"
+    "name": "fallenbagel/jellyseerr",
+    "version": "preview-seerr",
+    "date": "2025-06-27T06:10:03Z"
   },
   {
     "name": "MediaBrowser/Emby.Releases",
     "version": "4.9.1.2",
     "date": "2025-06-26T22:08:00Z"
-  },
-  {
-    "name": "home-assistant/operating-system",
-    "version": "15.2",
-    "date": "2025-04-14T15:37:12Z"
   },
   {
     "name": "netbox-community/netbox",
@@ -365,19 +400,9 @@
     "date": "2025-06-25T21:18:52Z"
   },
   {
-    "name": "influxdata/influxdb",
-    "version": "v3.2.0",
-    "date": "2025-06-25T17:31:48Z"
-  },
-  {
     "name": "wavelog/wavelog",
     "version": "2.0.5",
     "date": "2025-06-25T14:53:31Z"
-  },
-  {
-    "name": "bunkerity/bunkerweb",
-    "version": "testing",
-    "date": "2025-06-16T18:10:42Z"
   },
   {
     "name": "moghtech/komodo",
@@ -403,11 +428,6 @@
     "name": "arunavo4/gitea-mirror",
     "version": "v2.18.0",
     "date": "2025-06-24T08:29:55Z"
-  },
-  {
-    "name": "fallenbagel/jellyseerr",
-    "version": "preview-fix-proxy-axios",
-    "date": "2025-06-24T08:50:22Z"
   },
   {
     "name": "minio/minio",
@@ -463,25 +483,5 @@
     "name": "go-gitea/gitea",
     "version": "v1.24.2",
     "date": "2025-06-20T20:37:55Z"
-  },
-  {
-    "name": "immich-app/immich",
-    "version": "v1.135.3",
-    "date": "2025-06-20T20:19:20Z"
-  },
-  {
-    "name": "Sonarr/Sonarr",
-    "version": "v4.0.15.2941",
-    "date": "2025-06-20T17:20:54Z"
-  },
-  {
-    "name": "benzino77/tasmocompiler",
-    "version": "v12.7.0",
-    "date": "2025-06-20T08:31:16Z"
-  },
-  {
-    "name": "paperless-ngx/paperless-ngx",
-    "version": "v2.17.1",
-    "date": "2025-06-19T19:35:01Z"
   }
 ]
