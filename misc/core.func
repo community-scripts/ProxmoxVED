@@ -271,7 +271,6 @@ is_alpine() {
     )"
   fi
 
-  echo "[DEBUG] is_alpine(): os_id='${os_id}'" >&2
   [[ "$os_id" == "alpine" ]]
 }
 
@@ -283,7 +282,6 @@ is_verbose_mode() {
   else
     tty_status="not-a-tty"
   fi
-  echo "[DEBUG] is_verbose_mode(): VERBOSE='$verbose', TTY=$tty_status" >&2
   [[ "$verbose" != "no" || ! -t 2 ]]
 }
 
