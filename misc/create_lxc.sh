@@ -211,26 +211,23 @@ if [[ -f "$DEFAULT_FILE" ]]; then
 else
   # TEMPLATE STORAGE SELECTION
   # Template Storage
-  if ! TEMPLATE_STORAGE=$(select_storage template); then
-    [[ $? -eq 202 ]] && {
-      msg_error "Template Storage selection cancelled by user. Exiting."
-      kill -INT $$
-    }
-    msg_error "Unexpected error during template storage selection."
-    exit 1
-  fi
-  msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
+  while true; do
+    TEMPLATE_STORAGE=$(select_storage template)
+    if [[ -n "$TEMPLATE_STORAGE" ]]; then
+      msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
+      break
+    fi
+    msg_warn "No valid template storage selected. Please try again."
+  done
 
-  # Container Storage
-  if ! CONTAINER_STORAGE=$(select_storage container); then
-    [[ $? -eq 202 ]] && {
-      msg_error "Container Storage selection cancelled by user. Exiting."
-      kill -INT $$
-    }
-    msg_error "Unexpected error during container storage selection."
-    exit 1
-  fi
-  msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+  while true; do
+    CONTAINER_STORAGE=$(select_storage container)
+    if [[ -n "$CONTAINER_STORAGE" ]]; then
+      msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+      break
+    fi
+    msg_warn "No valid container storage selected. Please try again."
+  done
 
 fi
 
