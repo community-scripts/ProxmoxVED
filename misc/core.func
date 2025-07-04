@@ -400,8 +400,6 @@ msg_info() {
 
   stop_spinner
 
-  local HOURGLASS="${TAB}⏳${TAB}"
-
   if [[ "${VERBOSE:-no}" != "no" || "${var_os:-}" == "alpine" || ! -t 2 ]]; then
     printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
   else
