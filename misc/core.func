@@ -271,7 +271,7 @@ is_alpine() {
     )"
   fi
 
-  [[ "${DEBUG:-}" == "true" ]] && echo "[DEBUG] is_alpine(): os_id='${os_id}'" >&2
+  echo "[DEBUG] is_alpine(): os_id='${os_id}'" >&2
   [[ "$os_id" == "alpine" ]]
 }
 
