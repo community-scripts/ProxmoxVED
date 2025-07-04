@@ -128,7 +128,7 @@ function select_storage() {
     local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
     local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
     local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
-    STORAGE_MAP["$DISPLAY"]="$TAG" # Map DISPLAY to actual TAG
+    STORAGE_MAP["$DISPLAY"]="$TAG"
     MENU+=("$DISPLAY" "$INFO" "OFF")
     ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
   done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
@@ -150,7 +150,8 @@ function select_storage() {
       "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
       16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3)
 
-    if [[ $? -ne 0 ]]; then
+    local ret=$?
+    if [[ $ret -ne 0 ]]; then
       msg_error "Storage selection cancelled by user."
       exit 202
     fi
@@ -161,11 +162,9 @@ function select_storage() {
       continue
     fi
 
-    break
+    echo "${STORAGE_MAP[$DISPLAY_SELECTED]}"
+    return
   done
-
-  echo "${STORAGE_MAP["$DISPLAY_SELECTED"]}"
-
 }
 
 # Test if required variables are set
