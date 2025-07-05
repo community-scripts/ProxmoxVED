@@ -1,5 +1,45 @@
 [
   {
+    "name": "steveiliop56/tinyauth",
+    "version": "v3.4.1",
+    "date": "2025-06-11T07:53:44Z"
+  },
+  {
+    "name": "cross-seed/cross-seed",
+    "version": "v6.12.7",
+    "date": "2025-06-18T03:44:24Z"
+  },
+  {
+    "name": "home-assistant/core",
+    "version": "2025.7.1",
+    "date": "2025-07-04T20:02:52Z"
+  },
+  {
+    "name": "Luligu/matterbridge",
+    "version": "3.1.1",
+    "date": "2025-07-04T19:50:37Z"
+  },
+  {
+    "name": "homarr-labs/homarr",
+    "version": "v1.27.0",
+    "date": "2025-07-04T19:16:16Z"
+  },
+  {
+    "name": "zitadel/zitadel",
+    "version": "v3.3.0",
+    "date": "2025-06-12T06:54:48Z"
+  },
+  {
+    "name": "bunkerity/bunkerweb",
+    "version": "v1.6.2",
+    "date": "2025-07-04T15:21:18Z"
+  },
+  {
+    "name": "kimai/kimai",
+    "version": "2.37.0",
+    "date": "2025-07-04T14:49:43Z"
+  },
+  {
     "name": "Graylog2/graylog2-server",
     "version": "6.3.1",
     "date": "2025-07-04T11:20:48Z"
@@ -20,11 +60,6 @@
     "date": "2025-07-04T08:21:42Z"
   },
   {
-    "name": "bunkerity/bunkerweb",
-    "version": "v1.6.2",
-    "date": "2025-07-04T08:43:44Z"
-  },
-  {
     "name": "Checkmk/checkmk",
     "version": "v2.2.0p44",
     "date": "2025-07-04T06:44:06Z"
@@ -43,11 +78,6 @@
     "name": "hyperion-project/hyperion.ng",
     "version": "2.1.1",
     "date": "2025-06-14T17:45:06Z"
-  },
-  {
-    "name": "steveiliop56/tinyauth",
-    "version": "v3.4.1",
-    "date": "2025-06-11T07:53:44Z"
   },
   {
     "name": "outline/outline",
@@ -120,11 +150,6 @@
     "date": "2025-07-03T00:31:22Z"
   },
   {
-    "name": "cross-seed/cross-seed",
-    "version": "v6.12.7",
-    "date": "2025-06-18T03:44:24Z"
-  },
-  {
     "name": "emqx/emqx",
     "version": "v5.8.7",
     "date": "2025-07-02T21:54:54Z"
@@ -148,11 +173,6 @@
     "name": "firefly-iii/firefly-iii",
     "version": "v6.2.20",
     "date": "2025-07-02T04:03:37Z"
-  },
-  {
-    "name": "home-assistant/core",
-    "version": "2025.7.0",
-    "date": "2025-07-02T16:23:42Z"
   },
   {
     "name": "wazuh/wazuh",
@@ -300,11 +320,6 @@
     "date": "2025-06-28T16:06:19Z"
   },
   {
-    "name": "Luligu/matterbridge",
-    "version": "3.1.0",
-    "date": "2025-06-28T09:02:38Z"
-  },
-  {
     "name": "plexguide/Huntarr.io",
     "version": "8.1.11",
     "date": "2025-06-28T03:42:46Z"
@@ -318,11 +333,6 @@
     "name": "pocket-id/pocket-id",
     "version": "v1.5.0",
     "date": "2025-06-27T22:04:32Z"
-  },
-  {
-    "name": "homarr-labs/homarr",
-    "version": "v1.26.0",
-    "date": "2025-06-27T19:15:24Z"
   },
   {
     "name": "goauthentik/authentik",
@@ -453,35 +463,5 @@
     "name": "OliveTin/OliveTin",
     "version": "2025.6.22",
     "date": "2025-06-22T22:41:11Z"
-  },
-  {
-    "name": "clusterzx/paperless-ai",
-    "version": "v3.0.7",
-    "date": "2025-06-22T17:49:29Z"
-  },
-  {
-    "name": "TandoorRecipes/recipes",
-    "version": "1.5.35",
-    "date": "2025-06-22T08:30:10Z"
-  },
-  {
-    "name": "inventree/InvenTree",
-    "version": "0.17.14",
-    "date": "2025-06-21T23:43:04Z"
-  },
-  {
-    "name": "rogerfar/rdt-client",
-    "version": "v2.0.114",
-    "date": "2025-06-21T11:20:21Z"
-  },
-  {
-    "name": "pocketbase/pocketbase",
-    "version": "v0.28.4",
-    "date": "2025-06-21T08:29:04Z"
-  },
-  {
-    "name": "go-gitea/gitea",
-    "version": "v1.24.2",
-    "date": "2025-06-20T20:37:55Z"
   }
 ]
