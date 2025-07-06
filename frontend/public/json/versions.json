@@ -1,8 +1,48 @@
 [
   {
+    "name": "hyperion-project/hyperion.ng",
+    "version": "2.1.1",
+    "date": "2025-06-14T17:45:06Z"
+  },
+  {
+    "name": "steveiliop56/tinyauth",
+    "version": "v3.4.1",
+    "date": "2025-06-11T07:53:44Z"
+  },
+  {
+    "name": "slskd/slskd",
+    "version": "0.23.0",
+    "date": "2025-07-06T00:02:35Z"
+  },
+  {
+    "name": "Kareadita/Kavita",
+    "version": "v0.8.7",
+    "date": "2025-07-05T20:08:58Z"
+  },
+  {
+    "name": "msgbyte/tianji",
+    "version": "v1.22.6",
+    "date": "2025-07-05T18:38:31Z"
+  },
+  {
+    "name": "cross-seed/cross-seed",
+    "version": "v6.12.7",
+    "date": "2025-06-18T03:44:24Z"
+  },
+  {
+    "name": "fallenbagel/jellyseerr",
+    "version": "preview-seerr",
+    "date": "2025-07-05T16:51:13Z"
+  },
+  {
+    "name": "nicolargo/glances",
+    "version": "v4.3.2",
+    "date": "2025-07-05T16:00:15Z"
+  },
+  {
     "name": "runtipi/runtipi",
-    "version": "nightly",
-    "date": "2025-06-23T19:10:33Z"
+    "version": "v4.3.0",
+    "date": "2025-07-05T12:14:52Z"
   },
   {
     "name": "fuma-nama/fumadocs",
@@ -28,16 +68,6 @@
     "name": "linkwarden/linkwarden",
     "version": "v2.11.3",
     "date": "2025-07-05T04:34:46Z"
-  },
-  {
-    "name": "steveiliop56/tinyauth",
-    "version": "v3.4.1",
-    "date": "2025-06-11T07:53:44Z"
-  },
-  {
-    "name": "cross-seed/cross-seed",
-    "version": "v6.12.7",
-    "date": "2025-06-18T03:44:24Z"
   },
   {
     "name": "home-assistant/core",
@@ -98,11 +128,6 @@
     "name": "redis/redis",
     "version": "8.2-rc1-int",
     "date": "2025-07-02T19:27:08Z"
-  },
-  {
-    "name": "hyperion-project/hyperion.ng",
-    "version": "2.1.1",
-    "date": "2025-06-14T17:45:06Z"
   },
   {
     "name": "outline/outline",
@@ -325,11 +350,6 @@
     "date": "2025-06-29T08:54:47Z"
   },
   {
-    "name": "msgbyte/tianji",
-    "version": "v1.22.5",
-    "date": "2025-06-28T16:06:19Z"
-  },
-  {
     "name": "plexguide/Huntarr.io",
     "version": "8.1.11",
     "date": "2025-06-28T03:42:46Z"
@@ -363,11 +383,6 @@
     "name": "FlowiseAI/Flowise",
     "version": "flowise@3.0.3",
     "date": "2025-06-27T09:53:57Z"
-  },
-  {
-    "name": "fallenbagel/jellyseerr",
-    "version": "preview-seerr",
-    "date": "2025-06-27T06:10:03Z"
   },
   {
     "name": "MediaBrowser/Emby.Releases",
@@ -453,20 +468,5 @@
     "name": "minio/minio",
     "version": "RELEASE.2025-06-13T11-33-47Z",
     "date": "2025-06-23T20:58:42Z"
-  },
-  {
-    "name": "VictoriaMetrics/VictoriaMetrics",
-    "version": "pmm-6401-v1.120.0",
-    "date": "2025-06-23T15:12:12Z"
-  },
-  {
-    "name": "gotson/komga",
-    "version": "1.22.0",
-    "date": "2025-06-23T03:11:37Z"
-  },
-  {
-    "name": "OliveTin/OliveTin",
-    "version": "2025.6.22",
-    "date": "2025-06-22T22:41:11Z"
   }
 ]
