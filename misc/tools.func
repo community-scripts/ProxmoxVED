@@ -749,11 +749,12 @@ function fetch_and_deploy_gh_release() {
   local mode="${3:-tarball}" # tarball | binary | prebuild | singlefile
   local version="${4:-latest}"
   local target="${5:-/opt/$app}"
+  local asset_pattern="${6:-}"
 
   local app_lc=$(echo "${app,,}" | tr -d ' ')
   local version_file="$HOME/.${app_lc}"
 
-  local api_timeout="--connect-timeout 5 --max-time 10"
+  local api_timeout="--connect-timeout 10 --max-time 60"
   local download_timeout="--connect-timeout 15 --max-time 900"
 
   local current_version=""
@@ -768,6 +769,14 @@ function fetch_and_deploy_gh_release() {
   local header=()
   [[ -n "${GITHUB_TOKEN:-}" ]] && header=(-H "Authorization: token $GITHUB_TOKEN")
 
+  # dns pre check
+  local gh_host
+  gh_host=$(awk -F/ '{print $3}' <<<"$api_url")
+  if ! getent hosts "$gh_host" &>/dev/null; then
+    msg_error "DNS resolution failed for $gh_host – check /etc/resolv.conf or networking"
+    return 1
+  fi
+
   local max_retries=3 retry_delay=2 attempt=1 success=false resp http_code
 
   while ((attempt <= max_retries)); do
@@ -777,7 +786,7 @@ function fetch_and_deploy_gh_release() {
   done
 
   if ! $success; then
-    msg_error "Failed to fetch release metadata after $max_retries attempts"
+    msg_error "Failed to fetch release metadata from $api_url after $max_retries attempts"
     return 1
   fi
 
@@ -801,7 +810,7 @@ function fetch_and_deploy_gh_release() {
   tmpdir=$(mktemp -d) || return 1
   local filename="" url=""
 
-  msg_info "Setup $app ($version)"
+  msg_info "Fetching GitHub release: $app ($version)"
 
   ### Tarball Mode ###
   if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
@@ -835,9 +844,9 @@ function fetch_and_deploy_gh_release() {
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
     # If explicit filename pattern is provided (param $6), match that first
-    if [[ -n "$6" ]]; then
+    if [[ -n "$asset_pattern" ]]; then
       for u in $assets; do
-        [[ "$u" =~ $6 || "$u" == *"$6" ]] && url_match="$u" && break
+        [[ "$u" =~ $asset_pattern || "$u" == *"$asset_pattern" ]] && url_match="$u" && break
       done
     fi
 
@@ -973,7 +982,7 @@ function fetch_and_deploy_gh_release() {
   fi
 
   echo "$version" >"$version_file"
-  msg_ok "Setup $app ($version)"
+  msg_ok "Deployed: $app ($version)"
   rm -rf "$tmpdir"
 }
 
