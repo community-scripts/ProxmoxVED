@@ -1679,7 +1679,7 @@ function setup_ffmpeg() {
   local TMP_DIR
   TMP_DIR=$(mktemp -d)
   local GITHUB_REPO="FFmpeg/FFmpeg"
-  local VERSION="${FFMPEG_VERSION:-}"
+  local VERSION="${FFMPEG_VERSION:-latest}"
   local TYPE="${FFMPEG_TYPE:-full}"
   local BIN_PATH="/usr/local/bin/ffmpeg"
 
@@ -1698,12 +1698,17 @@ function setup_ffmpeg() {
     return
   fi
 
+  if ! command -v jq &>/dev/null; then
+    $STD apt-get update
+    $STD apt-get install -y jq
+  fi
+
   # Auto-detect latest stable version if none specified
-  if [[ -z "$VERSION" ]]; then
-    msg_info "Fetching latest stable FFmpeg tag"
+  if [[ "$VERSION" == "latest" || -z "$VERSION" ]]; then
+    msg_info "Resolving latest FFmpeg tag"
     VERSION=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/tags" |
       jq -r '.[].name' |
-      grep -E '^n[0-9]+\.[0-9]+\.[0-9]+$' | # stable only
+      grep -E '^n[0-9]+\.[0-9]+\.[0-9]+$' |
       sort -V | tail -n1)
   fi
 
