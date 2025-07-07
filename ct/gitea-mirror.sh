@@ -49,7 +49,7 @@ function update_script() {
     rm -rf /opt/gitea-mirror
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/arunavo4/gitea-mirror/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  RELEASE=$(curl -fsSL https://api.github.com/repos/RayLabsHQ/gitea-mirror/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
   if [[ "${RELEASE}" != "$(cat ~/.${APP} 2>/dev/null || cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
 
     msg_info "Stopping Services"
@@ -71,7 +71,7 @@ function update_script() {
     msg_ok "Installed Bun"
 
     rm -rf /opt/gitea-mirror
-    fetch_and_deploy_gh_release "gitea-mirror" "arunavo4/gitea-mirror" "tarball" "v3.0.2"
+    fetch_and_deploy_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror" "tarball" "v3.0.2"
 
     msg_info "Updating and rebuilding ${APP} to v${RELEASE}"
     cd /opt/gitea-mirror
