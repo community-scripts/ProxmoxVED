@@ -1,5 +1,60 @@
 [
   {
+    "name": "VictoriaMetrics/VictoriaMetrics",
+    "version": "v1.121.0",
+    "date": "2025-07-07T11:32:39Z"
+  },
+  {
+    "name": "meilisearch/meilisearch",
+    "version": "prototype-incremental-vector-store-3",
+    "date": "2025-07-07T10:27:19Z"
+  },
+  {
+    "name": "Paymenter/Paymenter",
+    "version": "v1.2.1",
+    "date": "2025-07-07T10:11:26Z"
+  },
+  {
+    "name": "Checkmk/checkmk",
+    "version": "v2.4.0p7-rc1",
+    "date": "2025-07-07T09:25:01Z"
+  },
+  {
+    "name": "nzbgetcom/nzbget",
+    "version": "v25.2",
+    "date": "2025-07-04T08:21:42Z"
+  },
+  {
+    "name": "zwave-js/zwave-js-ui",
+    "version": "v10.8.0",
+    "date": "2025-07-07T08:37:45Z"
+  },
+  {
+    "name": "morpheus65535/bazarr",
+    "version": "v1.5.2",
+    "date": "2025-05-11T16:40:55Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2125",
+    "date": "2025-07-07T05:56:33Z"
+  },
+  {
+    "name": "mattermost/mattermost",
+    "version": "preview-v0.1",
+    "date": "2025-06-27T14:35:47Z"
+  },
+  {
+    "name": "MediaBrowser/Emby.Releases",
+    "version": "4.9.1.2",
+    "date": "2025-06-26T22:08:00Z"
+  },
+  {
+    "name": "firefly-iii/firefly-iii",
+    "version": "v6.2.20",
+    "date": "2025-07-02T04:03:37Z"
+  },
+  {
     "name": "steveiliop56/tinyauth",
     "version": "v3.4.1",
     "date": "2025-06-11T07:53:44Z"
@@ -45,11 +100,6 @@
     "date": "2025-07-06T18:19:05Z"
   },
   {
-    "name": "firefly-iii/firefly-iii",
-    "version": "v6.2.20",
-    "date": "2025-07-02T04:03:37Z"
-  },
-  {
     "name": "msgbyte/tianji",
     "version": "v1.23.0",
     "date": "2025-07-06T16:01:58Z"
@@ -68,11 +118,6 @@
     "name": "redis/redis",
     "version": "8.0.3",
     "date": "2025-07-06T12:19:24Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2123",
-    "date": "2025-07-06T06:01:32Z"
   },
   {
     "name": "fallenbagel/jellyseerr",
@@ -115,11 +160,6 @@
     "date": "2025-07-05T09:23:25Z"
   },
   {
-    "name": "Paymenter/Paymenter",
-    "version": "v1.2.0",
-    "date": "2025-07-05T08:58:05Z"
-  },
-  {
     "name": "linkwarden/linkwarden",
     "version": "v2.11.3",
     "date": "2025-07-05T04:34:46Z"
@@ -145,6 +185,11 @@
     "date": "2025-07-04T15:21:18Z"
   },
   {
+    "name": "emqx/emqx",
+    "version": "e6.0.0-M1.202507-alpha.1",
+    "date": "2025-07-04T14:58:23Z"
+  },
+  {
     "name": "kimai/kimai",
     "version": "2.37.0",
     "date": "2025-07-04T14:49:43Z"
@@ -158,21 +203,6 @@
     "name": "Graylog2/graylog2-server",
     "version": "6.3.1",
     "date": "2025-07-04T11:20:48Z"
-  },
-  {
-    "name": "mattermost/mattermost",
-    "version": "preview-v0.1",
-    "date": "2025-06-27T14:35:47Z"
-  },
-  {
-    "name": "nzbgetcom/nzbget",
-    "version": "v25.2",
-    "date": "2025-07-04T08:21:42Z"
-  },
-  {
-    "name": "Checkmk/checkmk",
-    "version": "v2.2.0p44",
-    "date": "2025-07-04T06:44:06Z"
   },
   {
     "name": "outline/outline",
@@ -233,11 +263,6 @@
     "name": "documenso/documenso",
     "version": "v1.12.2-rc.0",
     "date": "2025-07-03T00:31:22Z"
-  },
-  {
-    "name": "emqx/emqx",
-    "version": "v5.8.7",
-    "date": "2025-07-02T21:54:54Z"
   },
   {
     "name": "hargata/lubelog",
@@ -415,11 +440,6 @@
     "date": "2025-06-27T09:53:57Z"
   },
   {
-    "name": "MediaBrowser/Emby.Releases",
-    "version": "4.9.1.2",
-    "date": "2025-06-26T22:08:00Z"
-  },
-  {
     "name": "netbox-community/netbox",
     "version": "v4.3.3",
     "date": "2025-06-26T18:42:56Z"
@@ -440,11 +460,6 @@
     "date": "2025-06-26T15:08:43Z"
   },
   {
-    "name": "meilisearch/meilisearch",
-    "version": "prototype-no-simd-x86-arroy-0",
-    "date": "2025-06-26T14:54:18Z"
-  },
-  {
     "name": "AdguardTeam/AdGuardHome",
     "version": "v0.107.63",
     "date": "2025-06-26T14:34:19Z"
@@ -453,45 +468,5 @@
     "name": "node-red/node-red",
     "version": "4.1.0-beta.2",
     "date": "2025-06-26T14:23:26Z"
-  },
-  {
-    "name": "gristlabs/grist-core",
-    "version": "v1.6.1",
-    "date": "2025-06-25T21:19:25Z"
-  },
-  {
-    "name": "coder/code-server",
-    "version": "v4.101.2",
-    "date": "2025-06-25T21:18:52Z"
-  },
-  {
-    "name": "wavelog/wavelog",
-    "version": "2.0.5",
-    "date": "2025-06-25T14:53:31Z"
-  },
-  {
-    "name": "moghtech/komodo",
-    "version": "v1.18.4",
-    "date": "2025-06-25T00:06:56Z"
-  },
-  {
-    "name": "duplicati/duplicati",
-    "version": "v2.1.0.120-2.1.0.120_canary_2025-06-24",
-    "date": "2025-06-24T22:39:50Z"
-  },
-  {
-    "name": "evcc-io/evcc",
-    "version": "0.204.5",
-    "date": "2025-06-24T19:17:16Z"
-  },
-  {
-    "name": "ErsatzTV/ErsatzTV",
-    "version": "v25.2.0",
-    "date": "2025-06-24T17:06:31Z"
-  },
-  {
-    "name": "minio/minio",
-    "version": "RELEASE.2025-06-13T11-33-47Z",
-    "date": "2025-06-23T20:58:42Z"
   }
 ]
