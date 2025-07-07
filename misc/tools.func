@@ -1782,6 +1782,13 @@ function setup_ffmpeg() {
 
   $STD make -j"$(nproc)"
   $STD make install
+  echo "/usr/local/lib" >/etc/ld.so.conf.d/ffmpeg.conf
+  ldconfig
+
+  ldconfig -p | grep libavdevice >/dev/null || {
+    msg_error "libavdevice not registered with dynamic linker"
+    return 1
+  }
 
   if ! command -v ffmpeg &>/dev/null; then
     msg_error "FFmpeg installation failed"
