@@ -925,7 +925,7 @@ function fetch_and_deploy_gh_release() {
     }
 
     mkdir -p "$target"
-    if [[ "$filename" == *.zip ]]; then
+        if [[ "$filename" == *.zip ]]; then
       if ! command -v unzip &>/dev/null; then
         $STD apt-get install -y unzip
       fi
@@ -950,6 +950,7 @@ function fetch_and_deploy_gh_release() {
         tar --strip-components=1 -xf "$tmpdir/$filename" -C "$target"
       else
         tar -xf "$tmpdir/$filename" -C "$target"
+      fi
     else
       msg_error "Unsupported archive format: $filename"
       rm -rf "$tmpdir"
