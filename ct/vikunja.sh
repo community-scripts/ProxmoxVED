@@ -49,6 +49,7 @@ function update_script() {
     msg_info "Updating ${APP} to ${RELEASE}"
     cd /opt
     rm -rf /opt/vikunja/vikunja
+    rm -rf "/opt/$FILENAME"
     curl -fsSL "https://dl.vikunja.io/vikunja/$RELEASE/$FILENAME" -o $(basename "https://dl.vikunja.io/vikunja/$RELEASE/$FILENAME")
     export DEBIAN_FRONTEND=noninteractive
     $STD dpkg -i $FILENAME
