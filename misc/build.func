@@ -1254,13 +1254,10 @@ EOF
 
     echo ""
     msg_custom "⚙️ " "\e[96m" "Configuring VAAPI passthrough for LXC container"
-
     if [ "$CT_TYPE" != "0" ]; then
       msg_custom "⚠️ " "\e[33m" "Container is unprivileged – VAAPI passthrough may not work without additional host configuration (e.g., idmap)."
     fi
-
     msg_custom "ℹ️ " "\e[96m" "VAAPI enables GPU hardware acceleration (e.g., for video transcoding in Jellyfin or Plex)."
-
     echo ""
     read -rp "➤ Automatically mount all available VAAPI devices? [Y/n]: " VAAPI_ALL
 
