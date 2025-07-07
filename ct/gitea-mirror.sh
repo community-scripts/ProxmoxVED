@@ -3,7 +3,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: CrazyWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/arunavo4/gitea-mirror
+# Source: https://github.com/RayLabsHQ/gitea-mirror
 
 APP="gitea-mirror"
 var_tags="${var_tags:-mirror;gitea}"
