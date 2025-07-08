@@ -84,10 +84,9 @@ $STD apt-get install -y 'tesseract-ocr-*'
 msg_ok "Installed Language Packs"
 
 msg_info "Installing Stirling-PDF (Additional Patience)"
-mkdir -p /usr/share/fonts/opentype/noto/
+#mkdir -p /usr/share/fonts/opentype/noto/
 
-ln -s /opt/Stirling-PDF/Stirling-PDF-$RELEASE.jar /opt/Stirling-PDF/Stirling-PDF.jar
-ln -s /usr/share/tesseract-ocr/5/tessdata/ /usr/share/tessdata
+#ln -s /usr/share/tesseract-ocr/5/tessdata/ /usr/share/tessdata
 msg_ok "Installed Stirling-PDF"
 
 msg_info "Creating Environment Variables"
