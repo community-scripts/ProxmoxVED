@@ -997,8 +997,8 @@ function fetch_and_deploy_gh_release() {
       return 1
     }
 
-    if [[ "$chmod_target" != *.jar && -f "$target/$chmod_target" ]]; then
-      chmod +x "$target/$chmod_target"
+    if [[ "$target_file" != *.jar && -f "$target/$target_file" ]]; then
+      chmod +x "$target/$target_file"
     fi
 
   else
