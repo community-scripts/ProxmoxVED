@@ -34,10 +34,12 @@ JAVA_VERSION="21" setup_java
 
 read -r -p "${TAB3}Do you want to Stirling-PDF with Login (Default = without Login)? [Y/n] " response
 response=${response,,} # Convert to lowercase
+login_mode="false"
 if [[ "$response" == "y" || "$response" == "yes" || -z "$response" ]]; then
   USE_ORIGINAL_FILENAME=true fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF-with-login.jar"
   mv /opt/Stirling-PDF/Stirling-PDF-with-login.jar /opt/Stirling-PDF/Stirling-PDF.jar
   touch ~/.Stirling-PDF-login
+  login_mode="true"
 else
   USE_ORIGINAL_FILENAME=true fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF.jar"
 fi
@@ -96,6 +98,7 @@ JAVA_BASE_OPTS="-XX:+UnlockExperimentalVMOptions -XX:MaxRAMPercentage=75 -XX:Ini
 JAVA_CUSTOM_OPTS=""
 
 # LibreOffice
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/libreoffice/program
 UNO_PATH=/usr/lib/libreoffice/program
 URE_BOOTSTRAP=file:///usr/lib/libreoffice/program/fundamentalrc
 PYTHONPATH=/usr/lib/libreoffice/program:/opt/.venv/lib/python3.12/site-packages
@@ -109,6 +112,20 @@ TMP=/tmp/stirling-pdf
 # Paths
 PATH=/opt/.venv/bin:/usr/lib/libreoffice/program:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 EOF
+
+if [[ "$login_mode" == "true" ]]; then
+  cat <<EOF >>/opt/Stirling-PDF/.env
+
+# activate Login
+DISABLE_ADDITIONAL_FEATURES=false
+SECURITY_ENABLELOGIN=true
+
+# login credentials
+SECURITY_INITIALLOGIN_USERNAME=admin
+SECURITY_INITIALLOGIN_PASSWORD=stirling
+EOF
+fi
+msg_ok "Created Environment Variables"
 msg_ok "Created Environment Variables"
 
 msg_info "Refreshing Font Cache"
@@ -130,14 +147,6 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
-EOF
-
-# Set up environment variables
-cat <<EOF >/opt/Stirling-PDF/.env
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/libreoffice/program
-UNO_PATH=/usr/lib/libreoffice/program
-PYTHONPATH=/usr/lib/python3/dist-packages:/usr/lib/libreoffice/program
-LD_LIBRARY_PATH=/usr/lib/libreoffice/program
 EOF
 
 cat <<EOF >/etc/systemd/system/stirlingpdf.service
