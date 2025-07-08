@@ -123,7 +123,6 @@ EOF
 
 if [[ "$login_mode" == "true" ]]; then
   cat <<EOF >>/opt/Stirling-PDF/.env
-
 # activate Login
 DISABLE_ADDITIONAL_FEATURES=false
 SECURITY_ENABLELOGIN=true
@@ -133,7 +132,6 @@ SECURITY_INITIALLOGIN_USERNAME=admin
 SECURITY_INITIALLOGIN_PASSWORD=stirling
 EOF
 fi
-msg_ok "Created Environment Variables"
 msg_ok "Created Environment Variables"
 
 msg_info "Refreshing Font Cache"
