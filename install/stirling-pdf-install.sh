@@ -36,7 +36,7 @@ read -r -p "Do you want to Stirling-PDF with Login (Default = without Login)? [Y
 response=${response,,} # Convert to lowercase
 if [[ "$response" == "y" || "$response" == "yes" || -z "$response" ]]; then
   USE_ORIGINAL_FILENAME=true fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF-with-login.jar"
-  mv Stirling-PDF-with-login.jar /opt/Stirling-PDF/Stirling-PDF.jar
+  mv /opt/Stirling-PDF/Stirling-PDF-with-login.jar /opt/Stirling-PDF/Stirling-PDF.jar
   touch ~/.Stirling-PDF-login
 else
   USE_ORIGINAL_FILENAME=true fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF.jar"
