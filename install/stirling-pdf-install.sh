@@ -68,10 +68,11 @@ $STD uv pip install \
   opencv-python-headless \
   ocrmypdf \
   pillow \
-  pdf2image
-$STD pip3 install unoserver
+  pdf2image \
+  unoserver
 ln -sf /opt/.venv/bin/python3 /usr/local/bin/python3
 ln -sf /opt/.venv/bin/pip /usr/local/bin/pip
+ln -sf /opt/.venv/bin/unoserver /usr/local/bin/unoserver
 ln -sf /opt/.venv/bin/unoconvert /usr/local/bin/unoconvert
 msg_ok "Installed Python Dependencies"
 
