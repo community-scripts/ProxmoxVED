@@ -57,6 +57,7 @@ $STD apt-get install -y \
 msg_ok "Installed LibreOffice Components"
 
 $STD uv venv /opt/.venv
+export PATH="/opt/.venv/bin:$PATH"
 $STD uv pip install --upgrade pip
 $STD uv pip install \
   opencv-python-headless \
@@ -83,19 +84,33 @@ $STD apt-get install -y 'tesseract-ocr-*'
 msg_ok "Installed Language Packs"
 
 msg_info "Installing Stirling-PDF (Additional Patience)"
-cd /opt/Stirling-PDF
-chmod +x ./gradlew
-$STD ./gradlew build -x spotlessApply -x spotlessCheck -x test -x sonarqube
-touch /opt/Stirling-PDF/.env
-mv ./stirling-pdf/build/libs/*.jar /opt/Stirling-PDF/Stirling-PDF-$RELEASE.jar
-mv scripts /opt/Stirling-PDF/
-mv pipeline /opt/Stirling-PDF/
 mkdir -p /usr/share/fonts/opentype/noto/
-mv stirling-pdf/src/main/resources/static/fonts/*.ttf /usr/share/fonts/opentype/noto/
 
 ln -s /opt/Stirling-PDF/Stirling-PDF-$RELEASE.jar /opt/Stirling-PDF/Stirling-PDF.jar
 ln -s /usr/share/tesseract-ocr/5/tessdata/ /usr/share/tessdata
 msg_ok "Installed Stirling-PDF"
+
+msg_info "Creating Environment Variables"
+cat <<EOF >/opt/Stirling-PDF/.env
+# Java tuning
+JAVA_BASE_OPTS="-XX:+UnlockExperimentalVMOptions -XX:MaxRAMPercentage=75 -XX:InitiatingHeapOccupancyPercent=20 -XX:+G1PeriodicGCInvokesConcurrent -XX:G1PeriodicGCInterval=10000 -XX:+UseStringDeduplication -XX:G1PeriodicGCSystemLoadThreshold=70"
+JAVA_CUSTOM_OPTS=""
+
+# LibreOffice
+UNO_PATH=/usr/lib/libreoffice/program
+URE_BOOTSTRAP=file:///usr/lib/libreoffice/program/fundamentalrc
+PYTHONPATH=/usr/lib/libreoffice/program:/opt/.venv/lib/python3.12/site-packages
+LD_LIBRARY_PATH=/usr/lib/libreoffice/program
+
+STIRLING_TEMPFILES_DIRECTORY=/tmp/stirling-pdf
+TMPDIR=/tmp/stirling-pdf
+TEMP=/tmp/stirling-pdf
+TMP=/tmp/stirling-pdf
+
+# Paths
+PATH=/opt/.venv/bin:/usr/lib/libreoffice/program:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EOF
+msg_ok "Created Environment Variables"
 
 msg_info "Refreshing Font Cache"
 $STD fc-cache -fv
