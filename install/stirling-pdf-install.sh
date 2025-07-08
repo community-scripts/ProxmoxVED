@@ -58,6 +58,7 @@ $STD apt-get install -y \
 msg_ok "Installed LibreOffice Components"
 
 msg_info "Installing Python Dependencies"
+mkdir -p /tmp/stirling-pdf
 $STD apt-get install -y python3-pip python3-uno
 $STD uv venv /opt/.venv
 export PATH="/opt/.venv/bin:$PATH"
@@ -173,9 +174,25 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# Enable and start services
+cat <<EOF >/etc/systemd/system/unoserver.service
+[Unit]
+Description=UnoServer RPC Interface
+After=libreoffice-listener.service
+Requires=libreoffice-listener.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/unoserver --port 2003 --interface 127.0.0.1
+Restart=always
+EnvironmentFile=/opt/Stirling-PDF/.env
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 systemctl enable -q --now libreoffice-listener
 systemctl enable -q --now stirlingpdf
+systemctl enable -q --now unoserver
 msg_ok "Created Service"
 
 motd_ssh
