@@ -431,6 +431,12 @@ function setup_php() {
   fi
 
   local MODULE_LIST="php${PHP_VERSION}"
+  for pkg in $MODULE_LIST; do
+    if ! apt-cache show "$pkg" >/dev/null 2>&1; then
+      msg_error "Package not found: $pkg"
+      exit 1
+    fi
+  done
   IFS=',' read -ra MODULES <<<"$COMBINED_MODULES"
   for mod in "${MODULES[@]}"; do
     MODULE_LIST+=" php${PHP_VERSION}-${mod}"
@@ -439,7 +445,11 @@ function setup_php() {
   if [[ "$PHP_FPM" == "YES" ]]; then
     MODULE_LIST+=" php${PHP_VERSION}-fpm"
   fi
-
+  if [[ "$PHP_APACHE" == "YES" ]]; then
+    $STD apt-get install -y apache2
+    $STD systemctl restart apache2 || true
+  fi
+  
   if [[ "$PHP_APACHE" == "YES" ]] && [[ -n "$CURRENT_PHP" ]]; then
     if [[ -f /etc/apache2/mods-enabled/php${CURRENT_PHP}.load ]]; then
       $STD a2dismod php${CURRENT_PHP} || true
@@ -647,9 +657,24 @@ function setup_mongodb() {
   DISTRO_ID=$(awk -F= '/^ID=/{ gsub(/"/,"",$2); print $2 }' /etc/os-release)
   DISTRO_CODENAME=$(awk -F= '/^VERSION_CODENAME=/{ print $2 }' /etc/os-release)
 
+  # Check AVX support
+  if ! grep -qm1 'avx[^ ]*' /proc/cpuinfo; then
+    local major="${MONGO_VERSION%%.*}"
+    if ((major > 5)); then
+      msg_error "MongoDB ${MONGO_VERSION} requires AVX support, which is not available on this system."
+      return 1
+    fi
+  fi
+
   case "$DISTRO_ID" in
-  ubuntu) MONGO_BASE_URL="https://repo.mongodb.org/apt/ubuntu" ;;
-  debian) MONGO_BASE_URL="https://repo.mongodb.org/apt/debian" ;;
+  ubuntu)
+    MONGO_BASE_URL="https://repo.mongodb.org/apt/ubuntu"
+    REPO_COMPONENT="multiverse"
+    ;;
+  debian)
+    MONGO_BASE_URL="https://repo.mongodb.org/apt/debian"
+    REPO_COMPONENT="main"
+    ;;
   *)
     msg_error "Unsupported distribution: $DISTRO_ID"
     return 1
