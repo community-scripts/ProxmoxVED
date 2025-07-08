@@ -52,6 +52,7 @@ $STD apt-get install -y \
   libreoffice-core \
   libreoffice-common \
   libreoffice-base-core \
+  libreoffice-java-common \
   unoconv \
   pngquant \
   weasyprint
