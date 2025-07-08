@@ -24,6 +24,7 @@ $STD apt-get install -y \
   make \
   g++ \
   unpaper \
+  fonts-urw-base35 \
   qpdf \
   poppler-utils
 msg_ok "Installed Dependencies"
@@ -58,7 +59,9 @@ msg_ok "Installed LibreOffice Components"
 $STD uv venv /opt/.venv
 $STD uv pip install --upgrade pip
 $STD uv pip install \
-  opencv-python-headless
+  opencv-python-headless \
+  ocrmypdf \ pillow \
+  pdf2image
 ln -sf /opt/.venv/bin/python3 /usr/local/bin/python3
 ln -sf /opt/.venv/bin/pip /usr/local/bin/pip
 
