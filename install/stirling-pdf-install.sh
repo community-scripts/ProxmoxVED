@@ -63,6 +63,7 @@ mkdir -p /tmp/stirling-pdf
 $STD apt-get install -y python3-pip python3-uno
 $STD uv venv /opt/.venv
 export PATH="/opt/.venv/bin:$PATH"
+source /opt/.venv/bin/activate
 $STD uv pip install --upgrade pip
 $STD uv pip install \
   opencv-python-headless \
@@ -70,6 +71,7 @@ $STD uv pip install \
   pillow \
   pdf2image \
   unoserver
+deactivate
 ln -sf /opt/.venv/bin/python3 /usr/local/bin/python3
 ln -sf /opt/.venv/bin/pip /usr/local/bin/pip
 ln -sf /opt/.venv/bin/unoserver /usr/local/bin/unoserver
