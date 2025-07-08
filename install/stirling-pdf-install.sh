@@ -15,7 +15,6 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  git \
   automake \
   autoconf \
   libtool \
@@ -29,6 +28,19 @@ $STD apt-get install -y \
   poppler-utils
 msg_ok "Installed Dependencies"
 
+PYTHON_VERSION="3.12" setup_uv
+JAVA_VERSION="21" setup_java
+
+read -r -p "Do you want to Stirling-PDF with Login (Default = without Login)? [Y/n] " response
+response=${response,,} # Convert to lowercase
+if [[ "$response" == "y" || "$response" == "yes" || -z "$response" ]]; then
+  fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF-with-login.jar"
+  mv Stirling-PDF-with-login.jar /opt/Stirling-PDF/Stirling-PDF.jar
+  touch ~/.Stirling-PDF-login
+else
+  fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF.jar"
+fi
+
 msg_info "Installing LibreOffice Components"
 $STD apt-get install -y \
   libreoffice-writer \
@@ -37,32 +49,23 @@ $STD apt-get install -y \
   libreoffice-core \
   libreoffice-common \
   libreoffice-base-core \
+  unoconv \
+  pngquant \
+  weasyprint \
   python3-uno
 msg_ok "Installed LibreOffice Components"
 
-msg_info "Installing Python Dependencies"
-$STD apt-get install -y \
-  python3 \
-  python3-pip
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-$STD pip3 install \
-  uno \
-  opencv-python-headless \
-  unoconv \
-  pngquant \
-  WeasyPrint
-msg_ok "Installed Python Dependencies"
-
-msg_info "Installing Azul Zulu"
-curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xB1998361219BD9C9" -o "/etc/apt/trusted.gpg.d/zulu-repo.asc"
-curl -fsSL "https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-3_all.deb" -o "/zulu-repo_1.0.0-3_all.deb"
-$STD dpkg -i zulu-repo_1.0.0-3_all.deb
-$STD apt-get update
-$STD apt-get -y install zulu17-jdk
-msg_ok "Installed Azul Zulu"
+$STD uv venv /opt/.venv
+$STD uv pip install --upgrade pip
+$STD uv pip install \
+  opencv-python-headless
+ln -sf /opt/.venv/bin/python3 /usr/local/bin/python3
+ln -sf /opt/.venv/bin/pip /usr/local/bin/pip
 
 msg_info "Installing JBIG2"
-$STD git clone https://github.com/agl/jbig2enc /opt/jbig2enc
+$STD curl -fsSL -o /tmp/jbig2enc.tar.gz https://github.com/agl/jbig2enc/archive/refs/tags/0.30.tar.gz
+mkdir -p /opt/jbig2enc
+tar -xzf /tmp/jbig2enc.tar.gz -C /opt/jbig2enc --strip-components=1
 cd /opt/jbig2enc
 $STD bash ./autogen.sh
 $STD bash ./configure
@@ -75,13 +78,9 @@ $STD apt-get install -y 'tesseract-ocr-*'
 msg_ok "Installed Language Packs"
 
 msg_info "Installing Stirling-PDF (Additional Patience)"
-RELEASE=$(curl -fsSL https://api.github.com/repos/Stirling-Tools/Stirling-PDF/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/Stirling-Tools/Stirling-PDF/archive/refs/tags/v${RELEASE}.tar.gz" -o "v${RELEASE}.tar.gz"
-tar -xzf v${RELEASE}.tar.gz
-cd Stirling-PDF-$RELEASE
+cd /opt/Stirling-PDF
 chmod +x ./gradlew
 $STD ./gradlew build -x spotlessApply -x spotlessCheck -x test -x sonarqube
-mkdir -p /opt/Stirling-PDF
 touch /opt/Stirling-PDF/.env
 mv ./stirling-pdf/build/libs/*.jar /opt/Stirling-PDF/Stirling-PDF-$RELEASE.jar
 mv scripts /opt/Stirling-PDF/
@@ -92,7 +91,6 @@ ln -s /usr/share/tesseract-ocr/5/tessdata/ /usr/share/tessdata
 msg_ok "Installed Stirling-PDF"
 
 msg_info "Creating Service"
-# Create LibreOffice listener service
 cat <<EOF >/etc/systemd/system/libreoffice-listener.service
 [Unit]
 Description=LibreOffice Headless Listener Service
@@ -148,7 +146,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -rf v${RELEASE}.tar.gz /zulu-repo_1.0.0-3_all.deb
+rm -f /tmp/jbig2enc.tar.gz
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
