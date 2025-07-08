@@ -60,8 +60,10 @@ $STD uv venv /opt/.venv
 $STD uv pip install --upgrade pip
 $STD uv pip install \
   opencv-python-headless \
-  ocrmypdf \ pillow \
-  pdf2image
+  ocrmypdf \
+  pillow \
+  pdf2image \
+  unoserver
 ln -sf /opt/.venv/bin/python3 /usr/local/bin/python3
 ln -sf /opt/.venv/bin/pip /usr/local/bin/pip
 
@@ -88,10 +90,16 @@ touch /opt/Stirling-PDF/.env
 mv ./stirling-pdf/build/libs/*.jar /opt/Stirling-PDF/Stirling-PDF-$RELEASE.jar
 mv scripts /opt/Stirling-PDF/
 mv pipeline /opt/Stirling-PDF/
+mkdir -p /usr/share/fonts/opentype/noto/
 mv stirling-pdf/src/main/resources/static/fonts/*.ttf /usr/share/fonts/opentype/noto/
+
 ln -s /opt/Stirling-PDF/Stirling-PDF-$RELEASE.jar /opt/Stirling-PDF/Stirling-PDF.jar
 ln -s /usr/share/tesseract-ocr/5/tessdata/ /usr/share/tessdata
 msg_ok "Installed Stirling-PDF"
+
+msg_info "Refreshing Font Cache"
+$STD fc-cache -fv
+msg_ok "Font Cache Updated"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/libreoffice-listener.service
