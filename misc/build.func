@@ -312,6 +312,8 @@ base_settings() {
   TAGS="${TAGS}${var_tags:-}"
   ENABLE_FUSE="${var_fuse:-$ENABLE_FUSE}"
   ENABLE_TUN="${var_tun:-$ENABLE_TUN}"
+  APT_CACHER="${var_apt_cacher:-$APT_CACHER}"
+  APT_CACHER_IP="${var_apt_cacher_ip:-$APT_CACHER_IP}"
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
