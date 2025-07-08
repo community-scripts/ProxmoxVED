@@ -997,7 +997,9 @@ function fetch_and_deploy_gh_release() {
       return 1
     }
 
-    chmod +x "$target/$app"
+    if [[ "$chmod_target" != *.jar && -f "$target/$chmod_target" ]]; then
+      chmod +x "$target/$chmod_target"
+    fi
 
   else
     msg_error "Unknown mode: $mode"
