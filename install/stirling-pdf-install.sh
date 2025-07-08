@@ -54,10 +54,11 @@ $STD apt-get install -y \
   libreoffice-base-core \
   unoconv \
   pngquant \
-  weasyprint \
-  python3-uno
+  weasyprint
 msg_ok "Installed LibreOffice Components"
 
+msg_info "Installing Python Dependencies"
+$STD apt-get install -y python3-pip python3-uno
 $STD uv venv /opt/.venv
 export PATH="/opt/.venv/bin:$PATH"
 $STD uv pip install --upgrade pip
@@ -65,10 +66,11 @@ $STD uv pip install \
   opencv-python-headless \
   ocrmypdf \
   pillow \
-  pdf2image \
-  unoserver
+  pdf2image
+$STD pip3 install unoserver
 ln -sf /opt/.venv/bin/python3 /usr/local/bin/python3
 ln -sf /opt/.venv/bin/pip /usr/local/bin/pip
+msg_ok "Installed Python Dependencies"
 
 msg_info "Installing JBIG2"
 $STD curl -fsSL -o /tmp/jbig2enc.tar.gz https://github.com/agl/jbig2enc/archive/refs/tags/0.30.tar.gz
