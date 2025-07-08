@@ -925,7 +925,7 @@ function fetch_and_deploy_gh_release() {
     }
 
     mkdir -p "$target"
-        if [[ "$filename" == *.zip ]]; then
+    if [[ "$filename" == *.zip ]]; then
       if ! command -v unzip &>/dev/null; then
         $STD apt-get install -y unzip
       fi
@@ -986,7 +986,12 @@ function fetch_and_deploy_gh_release() {
 
     filename="${asset_url##*/}"
     mkdir -p "$target"
-    curl $download_timeout -fsSL -o "$target/$app" "$asset_url" || {
+
+    local use_filename="${USE_ORIGINAL_FILENAME:-false}"
+    local target_file="$app"
+    [[ "$use_filename" == "true" ]] && target_file="$filename"
+
+    curl $download_timeout -fsSL -o "$target/$target_file" "$asset_url" || {
       msg_error "Download failed: $asset_url"
       rm -rf "$tmpdir"
       return 1

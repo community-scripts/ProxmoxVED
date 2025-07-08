@@ -35,11 +35,11 @@ JAVA_VERSION="21" setup_java
 read -r -p "Do you want to Stirling-PDF with Login (Default = without Login)? [Y/n] " response
 response=${response,,} # Convert to lowercase
 if [[ "$response" == "y" || "$response" == "yes" || -z "$response" ]]; then
-  fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF-with-login.jar"
+  USE_ORIGINAL_FILENAME=true fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF-with-login.jar"
   mv Stirling-PDF-with-login.jar /opt/Stirling-PDF/Stirling-PDF.jar
   touch ~/.Stirling-PDF-login
 else
-  fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF.jar"
+  USE_ORIGINAL_FILENAME=true fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF.jar"
 fi
 
 msg_info "Installing LibreOffice Components"
