@@ -1,5 +1,30 @@
 [
   {
+    "name": "bunkerity/bunkerweb",
+    "version": "testing",
+    "date": "2025-07-08T11:44:35Z"
+  },
+  {
+    "name": "mattermost/mattermost",
+    "version": "preview-v0.1",
+    "date": "2025-06-27T14:35:47Z"
+  },
+  {
+    "name": "docker/compose",
+    "version": "v2.38.2",
+    "date": "2025-07-08T09:35:14Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2132",
+    "date": "2025-07-08T05:52:22Z"
+  },
+  {
+    "name": "Checkmk/checkmk",
+    "version": "v2.4.0p7",
+    "date": "2025-07-08T05:51:08Z"
+  },
+  {
     "name": "ollama/ollama",
     "version": "v0.9.5",
     "date": "2025-07-02T18:39:28Z"
@@ -18,6 +43,11 @@
     "name": "Stirling-Tools/Stirling-PDF",
     "version": "v1.0.1",
     "date": "2025-07-07T23:01:28Z"
+  },
+  {
+    "name": "keycloak/keycloak",
+    "version": "26.3.0",
+    "date": "2025-07-02T12:26:44Z"
   },
   {
     "name": "duplicati/duplicati",
@@ -48,11 +78,6 @@
     "name": "photoprism/photoprism",
     "version": "250707-d28b3101e",
     "date": "2025-07-07T15:15:21Z"
-  },
-  {
-    "name": "Checkmk/checkmk",
-    "version": "v2.4.0p7-rc2",
-    "date": "2025-07-07T15:07:57Z"
   },
   {
     "name": "traccar/traccar",
@@ -88,16 +113,6 @@
     "name": "morpheus65535/bazarr",
     "version": "v1.5.2",
     "date": "2025-05-11T16:40:55Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2125",
-    "date": "2025-07-07T05:56:33Z"
-  },
-  {
-    "name": "mattermost/mattermost",
-    "version": "preview-v0.1",
-    "date": "2025-06-27T14:35:47Z"
   },
   {
     "name": "MediaBrowser/Emby.Releases",
@@ -215,11 +230,6 @@
     "date": "2025-06-12T06:54:48Z"
   },
   {
-    "name": "bunkerity/bunkerweb",
-    "version": "v1.6.2",
-    "date": "2025-07-04T15:21:18Z"
-  },
-  {
     "name": "emqx/emqx",
     "version": "e6.0.0-M1.202507-alpha.1",
     "date": "2025-07-04T14:58:23Z"
@@ -228,11 +238,6 @@
     "name": "kimai/kimai",
     "version": "2.37.0",
     "date": "2025-07-04T14:49:43Z"
-  },
-  {
-    "name": "keycloak/keycloak",
-    "version": "26.3.0",
-    "date": "2025-07-02T12:26:44Z"
   },
   {
     "name": "Graylog2/graylog2-server",
@@ -390,11 +395,6 @@
     "date": "2025-06-30T22:12:48Z"
   },
   {
-    "name": "docker/compose",
-    "version": "v2.38.1",
-    "date": "2025-06-30T20:07:35Z"
-  },
-  {
     "name": "jhuckaby/Cronicle",
     "version": "v0.9.81",
     "date": "2025-06-30T16:40:33Z"
@@ -483,15 +483,5 @@
     "name": "AdguardTeam/AdGuardHome",
     "version": "v0.107.63",
     "date": "2025-06-26T14:34:19Z"
-  },
-  {
-    "name": "node-red/node-red",
-    "version": "4.1.0-beta.2",
-    "date": "2025-06-26T14:23:26Z"
-  },
-  {
-    "name": "gristlabs/grist-core",
-    "version": "v1.6.1",
-    "date": "2025-06-25T21:19:25Z"
   }
 ]
