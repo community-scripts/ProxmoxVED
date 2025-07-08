@@ -1,8 +1,68 @@
 [
   {
+    "name": "ollama/ollama",
+    "version": "v0.9.5",
+    "date": "2025-07-02T18:39:28Z"
+  },
+  {
+    "name": "steveiliop56/tinyauth",
+    "version": "v3.4.1",
+    "date": "2025-06-11T07:53:44Z"
+  },
+  {
+    "name": "mongodb/mongo",
+    "version": "r8.0.12-rc0",
+    "date": "2025-07-07T23:35:35Z"
+  },
+  {
+    "name": "Stirling-Tools/Stirling-PDF",
+    "version": "v1.0.1",
+    "date": "2025-07-07T23:01:28Z"
+  },
+  {
+    "name": "duplicati/duplicati",
+    "version": "v2.1.0.122-2.1.0.122_canary_2025-07-07",
+    "date": "2025-07-07T17:54:52Z"
+  },
+  {
+    "name": "msgbyte/tianji",
+    "version": "v1.23.2",
+    "date": "2025-07-07T16:51:43Z"
+  },
+  {
+    "name": "TandoorRecipes/recipes",
+    "version": "1.5.35",
+    "date": "2025-06-22T08:30:10Z"
+  },
+  {
     "name": "VictoriaMetrics/VictoriaMetrics",
-    "version": "v1.121.0",
-    "date": "2025-07-07T11:32:39Z"
+    "version": "pmm-6401-v1.121.0",
+    "date": "2025-07-07T16:16:13Z"
+  },
+  {
+    "name": "n8n-io/n8n",
+    "version": "n8n@1.100.0",
+    "date": "2025-06-23T12:48:35Z"
+  },
+  {
+    "name": "photoprism/photoprism",
+    "version": "250707-d28b3101e",
+    "date": "2025-07-07T15:15:21Z"
+  },
+  {
+    "name": "Checkmk/checkmk",
+    "version": "v2.4.0p7-rc2",
+    "date": "2025-07-07T15:07:57Z"
+  },
+  {
+    "name": "traccar/traccar",
+    "version": "v6.8.1",
+    "date": "2025-07-07T14:40:11Z"
+  },
+  {
+    "name": "BookStackApp/BookStack",
+    "version": "v25.05.2",
+    "date": "2025-07-07T14:08:25Z"
   },
   {
     "name": "meilisearch/meilisearch",
@@ -13,11 +73,6 @@
     "name": "Paymenter/Paymenter",
     "version": "v1.2.1",
     "date": "2025-07-07T10:11:26Z"
-  },
-  {
-    "name": "Checkmk/checkmk",
-    "version": "v2.4.0p7-rc1",
-    "date": "2025-07-07T09:25:01Z"
   },
   {
     "name": "nzbgetcom/nzbget",
@@ -55,11 +110,6 @@
     "date": "2025-07-02T04:03:37Z"
   },
   {
-    "name": "steveiliop56/tinyauth",
-    "version": "v3.4.1",
-    "date": "2025-06-11T07:53:44Z"
-  },
-  {
     "name": "slskd/slskd",
     "version": "0.23.1",
     "date": "2025-07-06T23:57:52Z"
@@ -93,21 +143,6 @@
     "name": "syncthing/syncthing",
     "version": "v1.30.0",
     "date": "2025-07-01T11:29:11Z"
-  },
-  {
-    "name": "traccar/traccar",
-    "version": "v6.8.0",
-    "date": "2025-07-06T18:19:05Z"
-  },
-  {
-    "name": "msgbyte/tianji",
-    "version": "v1.23.0",
-    "date": "2025-07-06T16:01:58Z"
-  },
-  {
-    "name": "TandoorRecipes/recipes",
-    "version": "1.5.35",
-    "date": "2025-06-22T08:30:10Z"
   },
   {
     "name": "Part-DB/Part-DB-server",
@@ -235,11 +270,6 @@
     "date": "2025-07-03T14:05:25Z"
   },
   {
-    "name": "n8n-io/n8n",
-    "version": "n8n@1.100.0",
-    "date": "2025-06-23T12:48:35Z"
-  },
-  {
     "name": "Dolibarr/dolibarr",
     "version": "18.0.7",
     "date": "2025-07-03T08:57:21Z"
@@ -255,11 +285,6 @@
     "date": "2025-07-03T01:03:18Z"
   },
   {
-    "name": "mongodb/mongo",
-    "version": "r6.0.25-rc0",
-    "date": "2025-07-03T00:44:52Z"
-  },
-  {
     "name": "documenso/documenso",
     "version": "v1.12.2-rc.0",
     "date": "2025-07-03T00:31:22Z"
@@ -273,11 +298,6 @@
     "name": "Koenkk/zigbee2mqtt",
     "version": "2.5.1",
     "date": "2025-07-02T19:38:06Z"
-  },
-  {
-    "name": "ollama/ollama",
-    "version": "v0.9.5",
-    "date": "2025-07-02T18:39:28Z"
   },
   {
     "name": "wazuh/wazuh",
@@ -468,5 +488,10 @@
     "name": "node-red/node-red",
     "version": "4.1.0-beta.2",
     "date": "2025-06-26T14:23:26Z"
+  },
+  {
+    "name": "gristlabs/grist-core",
+    "version": "v1.6.1",
+    "date": "2025-06-25T21:19:25Z"
   }
 ]
