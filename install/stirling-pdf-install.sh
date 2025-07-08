@@ -72,6 +72,7 @@ $STD uv pip install \
 $STD pip3 install unoserver
 ln -sf /opt/.venv/bin/python3 /usr/local/bin/python3
 ln -sf /opt/.venv/bin/pip /usr/local/bin/pip
+ln -sf /opt/.venv/bin/unoconvert /usr/local/bin/unoconvert
 msg_ok "Installed Python Dependencies"
 
 msg_info "Installing JBIG2"
@@ -102,7 +103,7 @@ JAVA_BASE_OPTS="-XX:+UnlockExperimentalVMOptions -XX:MaxRAMPercentage=75 -XX:Ini
 JAVA_CUSTOM_OPTS=""
 
 # LibreOffice
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/libreoffice/program
+PATH=/opt/.venv/bin:/usr/lib/libreoffice/program:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 UNO_PATH=/usr/lib/libreoffice/program
 URE_BOOTSTRAP=file:///usr/lib/libreoffice/program/fundamentalrc
 PYTHONPATH=/usr/lib/libreoffice/program:/opt/.venv/lib/python3.12/site-packages
