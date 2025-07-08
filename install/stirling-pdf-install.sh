@@ -32,7 +32,7 @@ msg_ok "Installed Dependencies"
 PYTHON_VERSION="3.12" setup_uv
 JAVA_VERSION="21" setup_java
 
-read -r -p "Do you want to Stirling-PDF with Login (Default = without Login)? [Y/n] " response
+read -r -p "${TAB3}Do you want to Stirling-PDF with Login (Default = without Login)? [Y/n] " response
 response=${response,,} # Convert to lowercase
 if [[ "$response" == "y" || "$response" == "yes" || -z "$response" ]]; then
   USE_ORIGINAL_FILENAME=true fetch_and_deploy_gh_release "stirling-pdf" "Stirling-Tools/Stirling-PDF" "singlefile" "latest" "/opt/Stirling-PDF" "Stirling-PDF-with-login.jar"
