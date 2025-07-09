@@ -52,6 +52,7 @@ $STD apt-get install -y \
   libreoffice-core \
   libreoffice-common \
   libreoffice-base-core \
+  libreoffice-script-provider-python \
   libreoffice-java-common \
   unoconv \
   pngquant \
@@ -60,7 +61,6 @@ msg_ok "Installed LibreOffice Components"
 
 msg_info "Installing Python Dependencies"
 mkdir -p /tmp/stirling-pdf
-$STD apt-get install -y python3-pip python3-uno
 $STD uv venv /opt/.venv
 export PATH="/opt/.venv/bin:$PATH"
 source /opt/.venv/bin/activate
@@ -69,13 +69,12 @@ $STD uv pip install \
   opencv-python-headless \
   ocrmypdf \
   pillow \
-  pdf2image \
-  unoserver
-deactivate
+  pdf2image
+
+$STD apt install -y python3-uno
+$STD pip3 install --break-system-packages unoserver
 ln -sf /opt/.venv/bin/python3 /usr/local/bin/python3
 ln -sf /opt/.venv/bin/pip /usr/local/bin/pip
-ln -sf /opt/.venv/bin/unoserver /usr/local/bin/unoserver
-ln -sf /opt/.venv/bin/unoconvert /usr/local/bin/unoconvert
 msg_ok "Installed Python Dependencies"
 
 msg_info "Installing JBIG2"
@@ -92,12 +91,6 @@ msg_ok "Installed JBIG2"
 msg_info "Installing Language Packs (Patience)"
 $STD apt-get install -y 'tesseract-ocr-*'
 msg_ok "Installed Language Packs"
-
-msg_info "Installing Stirling-PDF (Additional Patience)"
-#mkdir -p /usr/share/fonts/opentype/noto/
-
-#ln -s /usr/share/tesseract-ocr/5/tessdata/ /usr/share/tessdata
-msg_ok "Installed Stirling-PDF"
 
 msg_info "Creating Environment Variables"
 cat <<EOF >/opt/Stirling-PDF/.env
@@ -185,7 +178,7 @@ Requires=libreoffice-listener.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/unoserver --port 2003 --interface 127.0.0.1
+ExecStart=/usr/bin/python3 -m unoserver --port 2003 --interface 127.0.0.1
 Restart=always
 EnvironmentFile=/opt/Stirling-PDF/.env
 

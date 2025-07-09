@@ -32,6 +32,7 @@ function update_script() {
     systemctl stop ersatzTV
     msg_ok "Stopped ErsatzTV"
 
+    FFMPEG_VERSION="latest" FFMPEG_TYPE="medium" setup_ffmpeg
     fetch_and_deploy_gh_release "ersatztv" "ErsatzTV/ErsatzTV" "prebuild" "latest" "/opt/ErsatzTV" "*linux-x64.tar.gz"
 
     msg_info "Starting ErsatzTV"
