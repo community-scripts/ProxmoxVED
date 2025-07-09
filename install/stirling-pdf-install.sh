@@ -71,7 +71,7 @@ $STD uv pip install \
   pillow \
   pdf2image
 
-$STD apt install -y python3-uno
+$STD apt-get install -y python3-uno python3-pip
 $STD pip3 install --break-system-packages unoserver
 ln -sf /opt/.venv/bin/python3 /usr/local/bin/python3
 ln -sf /opt/.venv/bin/pip /usr/local/bin/pip
@@ -178,7 +178,7 @@ Requires=libreoffice-listener.service
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 -m unoserver --port 2003 --interface 127.0.0.1
+ExecStart=/usr/local/bin/unoserver --port 2003 --interface 127.0.0.1
 Restart=always
 EnvironmentFile=/opt/Stirling-PDF/.env
 
