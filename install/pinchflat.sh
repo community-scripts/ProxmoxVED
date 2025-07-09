@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
-# Copyright (c) 2021-2025 tteck
-# Author: MickLesk (Canbiz)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+# Copyright (c) 2021-2025 ProxmoxVED
+# Author: AkuchiS
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/kieraneglin/pinchflat
 
 APP="pinchflat"
@@ -33,26 +33,25 @@ function update_script() {
   systemctl stop pinchflat
   msg_ok "Stopped ${APP} Service"
 
-  msg_info "Backing up Old Installation"
+  msg_info "Backing up old Installation"
   if [[ -d /opt/pinchflat_bak ]]; then
     rm -rf /opt/pinchflat_bak
   fi
   mv /opt/pinchflat /opt/pinchflat_bak
   msg_ok "Backup created"
 
-  msg_info "Cloning Latest ${APP} Release"
-  $STD git clone https://github.com/kieraneglin/pinchflat /opt/pinchflat
-  msg_ok "Cloned ${APP}"
+  msg_info "Fetching and deploying latest ${APP} release"
+  fetch_and_deploy https://github.com/kieraneglin/pinchflat
+  msg_ok "Deployed ${APP}"
 
   msg_info "Building Frontend"
-  cd /opt/pinchflat/ui
+  cd /opt/pinchflat/ui || exit
   $STD npm install
   $STD node_modules/.bin/ng build
   msg_ok "Built Frontend"
 
-  PYTHON_VERSION="3.13" setup_uv
-
   msg_info "Setting up Python Environment (uv)"
+  PYTHON_VERSION="3.13" setup_uv
   $STD uv venv /opt/pinchflat/.venv
   $STD /opt/pinchflat/.venv/bin/python -m ensurepip --upgrade
   $STD /opt/pinchflat/.venv/bin/python -m pip install --upgrade pip
@@ -60,7 +59,7 @@ function update_script() {
   msg_ok "Python Environment Ready"
 
   msg_info "Installing Backend Requirements"
-  cd /opt/pinchflat
+  cd /opt/pinchflat || exit
   $STD /opt/pinchflat/.venv/bin/pipenv install
   msg_ok "Installed Backend"
 
@@ -70,18 +69,8 @@ function update_script() {
   fi
   msg_ok "Restored .env"
 
-  if [[ ! -d /opt/pinchflat/.venv ]]; then
-    msg_info "Migrating to uv-based environment"
-    PYTHON_VERSION="3.13" setup_uv
-    $STD uv venv /opt/pinchflat/.venv
-    $STD /opt/pinchflat/.venv/bin/python -m ensurepip --upgrade
-    $STD /opt/pinchflat/.venv/bin/python -m pip install --upgrade pip
-    $STD /opt/pinchflat/.venv/bin/python -m pip install pipenv
-    $STD /opt/pinchflat/.venv/bin/pipenv install
-    $STD /opt/pinchflat/.venv/bin/pipenv update yt-dlp
-
-    msg_info "Patching systemd Service"
-    cat <<EOF >/etc/systemd/system/pinchflat.service
+  msg_info "Patching systemd Service"
+  cat <<EOF >/etc/systemd/system/pinchflat.service
 [Unit]
 Description=pinchflat - YouTube Downloader
 After=network.target
@@ -97,8 +86,8 @@ User=root
 [Install]
 WantedBy=multi-user.target
 EOF
-    msg_ok "Patched systemd Service"
-  fi
+  msg_ok "Patched systemd Service"
+
   $STD systemctl daemon-reload
   msg_ok "Service Updated"
 
@@ -123,4 +112,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8081${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8945${CL}"
