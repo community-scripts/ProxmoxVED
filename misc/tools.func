@@ -1891,35 +1891,39 @@ function setup_clickhouse() {
   local ARCH
   ARCH=$(dpkg --print-architecture)
 
-  msg_info "Adding ClickHouse repository"
-  if ! getent ahosts packages.clickhouse.com >/dev/null; then
-    msg_error "DNS resolution failed – possibly blocked (AdGuard, Pi-hole)"
-    return 1
+  if ! command -v clickhouse >/dev/null; then
+    msg_info "Setup ClickHouse"
+    if ! getent ahosts packages.clickhouse.com >/dev/null; then
+      msg_error "DNS resolution failed – possibly blocked (AdGuard, Pi-hole)"
+      return 1
+    fi
+
+    if ! curl -fsSL --connect-timeout 10 --retry 3 "$GPG_URL" | gpg --dearmor -o "$GPG_KEY_PATH"; then
+      msg_error "Failed to fetch ClickHouse GPG key"
+      return 1
+    fi
+
+    echo "deb [signed-by=$GPG_KEY_PATH arch=$ARCH] https://packages.clickhouse.com/deb stable main" >/etc/apt/sources.list.d/clickhouse.list
+    $STD apt-get update
+
+    $STD apt-get install -y clickhouse-server clickhouse-client
+    $STD systemctl enable --now clickhouse-server
+    sleep 3
+
+    clickhouse client --query "CREATE DATABASE IF NOT EXISTS $CLICKHOUSE_DB"
+    clickhouse client --query "CREATE USER IF NOT EXISTS $CLICKHOUSE_USER IDENTIFIED WITH plaintext_password BY '$CLICKHOUSE_PASS'"
+    clickhouse client --query "GRANT ALL ON $CLICKHOUSE_DB.* TO $CLICKHOUSE_USER"
+    msg_ok "Setup ClickHouse"
+
+    {
+      echo "ClickHouse DB:     $CLICKHOUSE_DB"
+      echo "ClickHouse User:   $CLICKHOUSE_USER"
+      echo "ClickHouse Pass:   $CLICKHOUSE_PASS"
+    } >>~/clickhouse.creds
+  else
+    msg_info "Updating ClickHouse packages"
+    $STD apt-get update
+    $STD apt-get install -y --only-upgrade clickhouse-server clickhouse-client
+    msg_ok "ClickHouse updated"
   fi
-
-  if ! curl -fsSL --connect-timeout 10 --retry 3 "$GPG_URL" | gpg --dearmor -o "$GPG_KEY_PATH"; then
-    msg_error "Failed to fetch ClickHouse GPG key"
-    return 1
-  fi
-
-  echo "deb [signed-by=$GPG_KEY_PATH arch=$ARCH] https://packages.clickhouse.com/deb stable main" >/etc/apt/sources.list.d/clickhouse.list
-  $STD apt-get update
-
-  msg_info "Installing ClickHouse"
-  $STD apt-get install -y clickhouse-server clickhouse-client
-  $STD systemctl enable --now clickhouse-server
-  sleep 3
-  msg_ok "Installed ClickHouse"
-
-  msg_info "Creating ClickHouse DB '$CLICKHOUSE_DB' and user '$CLICKHOUSE_USER'"
-  clickhouse client --query "CREATE DATABASE IF NOT EXISTS $CLICKHOUSE_DB"
-  clickhouse client --query "CREATE USER IF NOT EXISTS $CLICKHOUSE_USER IDENTIFIED WITH plaintext_password BY '$CLICKHOUSE_PASS'"
-  clickhouse client --query "GRANT ALL ON $CLICKHOUSE_DB.* TO $CLICKHOUSE_USER"
-  msg_ok "Created DB and user"
-
-  {
-    echo "ClickHouse DB:     $CLICKHOUSE_DB"
-    echo "ClickHouse User:   $CLICKHOUSE_USER"
-    echo "ClickHouse Pass:   $CLICKHOUSE_PASS"
-  } >>~/clickhouse.creds
 }
