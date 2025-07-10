@@ -379,7 +379,7 @@ msg_info() {
   fi
 
   # Spinner nur starten, wenn ein echtes TTY und keine SIGTTOU-Gefahr
-  if [[ -t 1 && ! "$(ps -o stat= -p $$)" =~ T && -z "${NO_SPINNER:-}" ]]
+  if [[ -t 1 && ! "$(ps -o stat= -p $$)" =~ T && -z "${NO_SPINNER:-}" ]]; then
     color_spinner
     spinner &
     SPINNER_PID=$!
