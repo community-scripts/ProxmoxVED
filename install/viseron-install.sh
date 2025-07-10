@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 community-scripts ORG
-# Authors: MickLesk (CanbiZ)
+# Author: jetonr
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/roflcoopter/viseron
 
@@ -156,3 +156,4 @@ echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8888${CL}"
 echo -e "${INFO}${YW} Configuration file: /config/viseron.yaml${CL}"
 echo -e "${INFO}${YW} Logs: /config/logs/viseron.log${CL}"
 echo -e "${INFO}${YW} Recordings: /config/recordings${CL}"
+echo -e "${INFO}${YW} Contributor: jetonr${CL}"

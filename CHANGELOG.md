@@ -21,6 +21,7 @@
 - gatus ([#4443](https://github.com/community-scripts/ProxmoxVE/pull/4443))
 - alpine-gatus ([#4442](https://github.com/community-scripts/ProxmoxVE/pull/4442))
 - Alpine-Traefik [@MickLesk](https://github.com/MickLesk) ([#4412](https://github.com/community-scripts/ProxmoxVE/pull/4412))
+- Viseron [@jetonr](https://github.com/jetonr) ([#NEW](https://github.com/community-scripts/ProxmoxVED/pull/NEW))
 
 ### 🚀 Updated Scripts
 
@@ -125,7 +126,7 @@
 
 - #### ✨ New Features
 
-  
+
   - [core] install core deps (debian / ubuntu) [@MickLesk](https://github.com/MickLesk) ([#3366](https://github.com/community-scripts/ProxmoxVE/pull/3366))
 
 - #### 💾 Core
