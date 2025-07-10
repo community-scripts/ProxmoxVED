@@ -262,6 +262,7 @@ else
 fi
 
 # Get LXC template string
+# TEMPLATE_SEARCH und TEMPLATES
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 mapfile -t TEMPLATES < <(pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V)
 
@@ -269,7 +270,8 @@ if [ ${#TEMPLATES[@]} -eq 0 ]; then
   msg_error "No matching LXC template found for '${TEMPLATE_SEARCH}'. Make sure your host can reach the Proxmox template repository."
   exit 207
 fi
-ensure_template_ready
+
+TEMPLATE="${TEMPLATES[-1]}"
 
 function ensure_template_ready() {
   local template_path
@@ -295,7 +297,6 @@ function ensure_template_ready() {
       msg_info "Attempt $attempt: Downloading LXC template..."
       if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
         msg_ok "Template download successful."
-        # 🔁 Nach erfolgreichem Download rekursiv erneut prüfen
         ensure_template_ready
         return
       fi
@@ -308,6 +309,8 @@ function ensure_template_ready() {
 
   msg_ok "LXC Template '$TEMPLATE' is ready to use."
 }
+
+ensure_template_ready
 
 msg_info "Creating LXC Container"
 # Check and fix subuid/subgid
