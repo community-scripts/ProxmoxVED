@@ -271,7 +271,7 @@ if [ ${#TEMPLATES[@]} -eq 0 ]; then
 fi
 ensure_template_ready
 
-ensure_template_ready() {
+function ensure_template_ready() {
   local template_path
   template_path="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
 
