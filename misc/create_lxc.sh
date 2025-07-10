@@ -293,18 +293,13 @@ function ensure_template_ready() {
   if [ "$template_invalid" -eq 1 ]; then
     [[ -f "$template_path" ]] && rm -f "$template_path"
 
-    for attempt in {1..3}; do
-      msg_info "Attempt $attempt: Downloading LXC template..."
-      if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
-        msg_ok "Template download successful."
-        ensure_template_ready
-        return
-      fi
-      sleep $((attempt * 5))
-    done
-
-    msg_error "Template download failed after 3 attempts. Check internet or run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
-    exit 208
+    msg_info "Downloading LXC template..."
+    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
+      msg_ok "Template download successful."
+    else
+      msg_error "Template download failed. Check internet or run manually:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
+      exit 208
+    fi
   fi
 
   msg_ok "LXC Template '$TEMPLATE' is ready to use."
