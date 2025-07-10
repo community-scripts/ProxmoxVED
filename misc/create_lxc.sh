@@ -262,7 +262,6 @@ else
 fi
 
 # Get LXC template string
-# TEMPLATE_SEARCH und TEMPLATES
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 mapfile -t TEMPLATES < <(pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V)
 
@@ -272,52 +271,35 @@ if [ ${#TEMPLATES[@]} -eq 0 ]; then
 fi
 
 TEMPLATE="${TEMPLATES[-1]}"
+TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
 
-function ensure_template_ready() {
-  echo "[DEBUG] ensure_template_ready() gestartet"
+TEMPLATE_VALID=1
+if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE"; then
+  TEMPLATE_VALID=0
+elif [ ! -s "$TEMPLATE_PATH" ]; then
+  TEMPLATE_VALID=0
+elif ! tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; then
+  TEMPLATE_VALID=0
+fi
 
-  local template_path
-  template_path="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
-  echo "[DEBUG] template_path=$template_path"
-
-  if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE"; then
-    msg_warn "Template $TEMPLATE not listed in storage '$TEMPLATE_STORAGE'."
-    template_invalid=1
-  elif [ ! -s "$template_path" ]; then
-    msg_warn "Template file $template_path is empty or missing."
-    template_invalid=1
-  else
-    template_invalid=0
-  fi
-
-  echo "[DEBUG] template_invalid=$template_invalid"
-
-  if [ "$template_invalid" -eq 1 ]; then
-    [[ -f "$template_path" ]] && {
-      echo "[DEBUG] removing template_path $template_path"
-      rm -f "$template_path"
-    }
-
-    msg_info "Downloading LXC template..."
-    echo "[DEBUG] calling pveam download"
-    sleep 0.2
-    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
-    dl_result=$?
-    echo "[DEBUG] pveam download exit=$dl_result"
-
-    if [ $dl_result -eq 0 ]; then
-      echo "[DEBUG] msg_ok skipped (would say: Template download successful)"
-    else
-      msg_error "Template download failed. Check internet or run manually:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
+if [ "$TEMPLATE_VALID" -eq 0 ]; then
+  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
+  [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
+  for attempt in {1..3}; do
+    msg_info "Attempt $attempt: Downloading LXC template..."
+    if pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
+      msg_ok "Template download successful."
+      break
+    fi
+    if [ $attempt -eq 3 ]; then
+      msg_error "Failed after 3 attempts. Please check network access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
       exit 208
     fi
-  fi
+    sleep $((attempt * 5))
+  done
+fi
 
-  echo "[DEBUG] ensure_template_ready() abgeschlossen"
-  #msg_ok "LXC Template '$TEMPLATE' is ready to use."
-}
-
-ensure_template_ready
+msg_ok "LXC Template '$TEMPLATE' is ready to use."
 
 msg_info "Creating LXC Container"
 # Check and fix subuid/subgid
