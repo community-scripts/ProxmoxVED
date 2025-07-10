@@ -20,32 +20,12 @@ $STD apt-get install -y \
   ca-certificates
 msg_ok "Installed Dependencies"
 
+CLICKHOUSE_DB="rybbit_db" CLICKHOUSE_USER="rybbit" setup_clickhouse
 PG_VERSION=17 setup_postgresql
 NODE_VERSION="20" NODE_MODULE="next" setup_nodejs
 
-msg_info "Setup Clickhouse Repository"
-curl -fsSL 'https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key' | sudo gpg --dearmor -o /usr/share/keyrings/clickhouse-keyring.gpg
-ARCH=$(dpkg --print-architecture)
-echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg arch=${ARCH}] https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
-$STD apt-get update
-$STD apt-get install -y clickhouse-server clickhouse-client
-$STD systemctl enable --now clickhouse-server
-sleep 3
-msg_ok "Set up Clickhouse Repository"
-
-msg_info "Setting up Clickhouse Database"
-CLICKHOUSE_DB="${CLICKHOUSE_DB:-rybbit_db}"
-CLICKHOUSE_USER="${CLICKHOUSE_USER:-rybbit}"
-CLICKHOUSE_PASS="${CLICKHOUSE_PASS:-$(openssl rand -base64 18 | cut -c1-13)}"
-CLICKHOUSE_HOST="localhost"
-
-clickhouse client --query "CREATE DATABASE IF NOT EXISTS $CLICKHOUSE_DB"
-clickhouse client --query="CREATE USER IF NOT EXISTS $CLICKHOUSE_USER IDENTIFIED WITH plaintext_password BY '$CLICKHOUSE_PASS'"
-clickhouse client --query="GRANT ALL ON $CLICKHOUSE_DB.* TO $CLICKHOUSE_USER"
 #sed -i 's|<default_profile>default</default_profile>|<default_profile>read_only</default_profile>|' /etc/clickhouse-server/users.xml
 #sed -i 's|<default_password></default_password>|<default_password>DISABLED</default_password>|' /etc/clickhouse-server/users.xml
-$STD systemctl restart clickhouse-server
-msg_ok "Set up Clickhouse Database"
 
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=rybbit_db
