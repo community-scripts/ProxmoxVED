@@ -301,7 +301,7 @@ function ensure_template_ready() {
     msg_info "Downloading LXC template..."
     echo "[DEBUG] calling pveam download"
     sleep 0.2
-    timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
+    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
     dl_result=$?
     echo "[DEBUG] pveam download exit=$dl_result"
 
