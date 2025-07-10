@@ -283,7 +283,7 @@ elif ! tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; 
 fi
 
 if [ "$TEMPLATE_VALID" -eq 0 ]; then
-  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
+  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading. 11"
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
   for attempt in {1..3}; do
     msg_info "Attempt $attempt: Downloading LXC template..."
