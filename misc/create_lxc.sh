@@ -271,31 +271,42 @@ if [ ${#TEMPLATES[@]} -eq 0 ]; then
 fi
 
 TEMPLATE="${TEMPLATES[-1]}"
-TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE)"
-# Without NAS/Mount: TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
-# Check if template exists, if corrupt remove and redownload
-if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1; then
-  msg_warn "Template $TEMPLATE not found in storage or seems to be corrupted. Redownloading."
+TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
+
+TEMPLATE_VALID=1
+if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE"; then
+  TEMPLATE_VALID=0
+elif [ ! -s "$TEMPLATE_PATH" ]; then
+  TEMPLATE_VALID=0
+elif ! tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; then
+  TEMPLATE_VALID=0
+fi
+
+if [ "$TEMPLATE_VALID" -eq 0 ]; then
+  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
 
-  # Download with 3 attempts
   for attempt in {1..3}; do
     msg_info "Attempt $attempt: Downloading LXC template..."
-
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
+    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
       msg_ok "Template download successful."
-      break
+
+      # 🔁 Prüfe Template sofort nochmal nach Download (Workaround für zstdcat/tar Stop)
+      if tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; then
+        msg_ok "Template verified successfully after download."
+        break
+      else
+        msg_warn "Template check failed after download. Retrying..."
+      fi
     fi
 
     if [ $attempt -eq 3 ]; then
-      msg_error "Three failed attempts. Aborting."
+      msg_error "Failed after 3 attempts. Please check network access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
       exit 208
     fi
-
     sleep $((attempt * 5))
   done
 fi
-msg_ok "LXC Template is ready to use."
 
 msg_ok "LXC Template '$TEMPLATE' is ready to use."
 
