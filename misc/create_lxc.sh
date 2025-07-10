@@ -314,7 +314,7 @@ function ensure_template_ready() {
   fi
 
   echo "[DEBUG] ensure_template_ready() abgeschlossen"
-  msg_ok "LXC Template '$TEMPLATE' is ready to use."
+  #msg_ok "LXC Template '$TEMPLATE' is ready to use."
 }
 
 ensure_template_ready
