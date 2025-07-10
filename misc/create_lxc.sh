@@ -274,7 +274,7 @@ TEMPLATE="${TEMPLATES[-1]}"
 TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
 
 # Check if template exists and is valid
-if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1; then
+if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! (zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1); then
   msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
 
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
