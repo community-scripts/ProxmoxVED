@@ -283,9 +283,6 @@ function ensure_template_ready() {
   elif [ ! -s "$template_path" ]; then
     msg_warn "Template file $template_path is empty or missing."
     template_invalid=1
-  elif ! tar --use-compress-program=zstdcat -tf "$template_path" >/dev/null 2>&1; then
-    msg_warn "Template $template_path failed archive integrity check."
-    template_invalid=1
   else
     template_invalid=0
   fi
