@@ -60,7 +60,7 @@ $STD uv pip install gunicorn
 $STD uv pip install -r requirements.txt
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/opt/healthchecks/.env
-ALLOWED_HOSTS=${LOCAL_IP},localhost,127.0.0.1
+ALLOWED_HOSTS=localhost,127.0.0.1,${LOCAL_IP},healthchecks
 DB=postgres
 DB_HOST=localhost
 DB_PORT=5432
@@ -81,11 +81,10 @@ EMAIL_USE_VERIFICATION=True
 
 # Django & Healthchecks Konfiguration
 SECRET_KEY=${SECRET_KEY}
-DEBUG=False
+DEBUG=True
 
-SITE_ROOT=http://0.0.0.0:8000
+SITE_ROOT=http://${LOCAL_IP}:8000
 SITE_NAME=Mychecks
-SITE_ROOT=http://0.0.0.0:8000
 EOF
 
 $STD .venv/bin/python3 manage.py makemigrations
@@ -97,17 +96,8 @@ ADMIN_PASSWORD="$DB_PASS"
 cat <<EOF | $STD .venv/bin/python3 manage.py shell
 from django.contrib.auth import get_user_model
 User = get_user_model()
-
 if not User.objects.filter(email="${ADMIN_EMAIL}").exists():
-    u = User.objects.create_superuser(
-        username="${ADMIN_EMAIL}",
-        email="${ADMIN_EMAIL}",
-        password="${ADMIN_PASSWORD}"
-    )
-    u.is_active = True
-    u.is_staff = True
-    u.is_superuser = True
-    u.save()
+    User.objects.create_superuser("${ADMIN_EMAIL}", "${ADMIN_EMAIL}", "${ADMIN_PASSWORD}")
 EOF
 msg_ok "Installed healthchecks"
 
