@@ -327,6 +327,10 @@ fatal() {
   kill -INT $$
 }
 
+# ------------------------------------------------------------------------------
+# Spinner- und Messaging-Framework (TTY-sicher, CI-kompatibel)
+# ------------------------------------------------------------------------------
+
 spinner() {
   local chars=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
   local i=0
@@ -335,11 +339,6 @@ spinner() {
     printf "\r\033[2K%s %b" "${CS_YWB}${chars[$index]}${CS_CL}" "${CS_YWB}${SPINNER_MSG:-}${CS_CL}"
     sleep 0.1
   done
-}
-
-clear_line() {
-  tput cr 2>/dev/null || echo -en "\r"
-  tput el 2>/dev/null || echo -en "\033[K"
 }
 
 stop_spinner() {
@@ -372,17 +371,24 @@ msg_info() {
   stop_spinner
   SPINNER_MSG="$msg"
 
+  # Sonderfall: Alpine oder verbose → kein Spinner
   if is_verbose_mode || is_alpine; then
     local HOURGLASS="${TAB}⏳${TAB}"
-    printf "\r\e[2K%s %b" "$HOURGLASS" "${YW}${msg}${CL}" >&2
+    printf "\r\e[2K%s %b\n" "$HOURGLASS" "${YW}${msg}${CL}" >&2
     return
   fi
 
-  color_spinner
-  spinner &
-  SPINNER_PID=$!
-  echo "$SPINNER_PID" >/tmp/.spinner.pid
-  disown "$SPINNER_PID" 2>/dev/null || true
+  # Spinner nur starten, wenn ein echtes TTY und keine SIGTTOU-Gefahr
+  if [[ -t 1 && ! "$(ps -o stat= -p $$)" =~ T && -z "$NO_SPINNER" ]]; then
+    color_spinner
+    spinner &
+    SPINNER_PID=$!
+    echo "$SPINNER_PID" >/tmp/.spinner.pid
+    disown "$SPINNER_PID" 2>/dev/null || true
+  else
+    # Fallback: reiner Text
+    printf "\r\e[2K⏳  %b\n" "${YW}${msg}${CL}" >&2
+  fi
 }
 
 msg_ok() {
@@ -413,6 +419,11 @@ msg_custom() {
   [[ -z "$msg" ]] && return
   stop_spinner
   echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
+}
+
+clear_line() {
+  tput cr 2>/dev/null || echo -en "\r"
+  tput el 2>/dev/null || echo -en "\033[K"
 }
 
 # msg_ok() {
