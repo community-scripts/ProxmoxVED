@@ -70,6 +70,7 @@ DB_PASSWORD=${DB_PASS}
 DB_CONN_MAX_AGE=0
 DB_SSLMODE=prefer
 DB_TARGET_SESSION_ATTRS=read-write
+DATABASE_URL=postgres://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}?sslmode=prefer
 
 DEFAULT_FROM_EMAIL=healthchecks@example.org
 EMAIL_HOST=localhost
@@ -84,7 +85,9 @@ SECRET_KEY=${SECRET_KEY}
 DEBUG=True
 
 SITE_ROOT=http://${LOCAL_IP}:8000
-SITE_NAME=Mychecks
+SITE_NAME=MyChecks
+STATIC_ROOT=/opt/healthchecks/static-collected
+
 EOF
 
 $STD .venv/bin/python3 manage.py makemigrations
@@ -110,7 +113,8 @@ After=network.target postgresql.service
 [Service]
 WorkingDirectory=/opt/healthchecks/
 EnvironmentFile=/opt/healthchecks/.env
-ExecStart=/opt/healthchecks/.venv/bin/gunicorn hc.wsgi:application --bind 0.0.0.0
+ExecStart=/opt/healthchecks/.venv/bin/gunicorn hc.wsgi:application --bind 127.0.0.1:8000
+
 Restart=always
 
 [Install]
