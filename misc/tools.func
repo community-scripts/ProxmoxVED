@@ -1893,8 +1893,9 @@ function setup_clickhouse() {
 
   if ! command -v clickhouse >/dev/null; then
     msg_info "Setup ClickHouse"
-    if ! getent ahosts packages.clickhouse.com >/dev/null; then
-      msg_error "DNS resolution failed – possibly blocked (AdGuard, Pi-hole)"
+    if ! dig +short packages.clickhouse.com | grep -qE '^[0-9a-f:.]+$'; then
+      msg_error "DNS blocked: packages.clickhouse.com"
+      echo "💡 Likely blocked by AdGuard, Pi-hole or similar"
       return 1
     fi
 
