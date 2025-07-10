@@ -306,7 +306,7 @@ function ensure_template_ready() {
     echo "[DEBUG] pveam download exit=$dl_result"
 
     if [ $dl_result -eq 0 ]; then
-      msg_ok "Template download successful."
+      echo "[DEBUG] msg_ok skipped (would say: Template download successful)"
     else
       msg_error "Template download failed. Check internet or run manually:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
       exit 208
