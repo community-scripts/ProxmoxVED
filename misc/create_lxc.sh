@@ -274,8 +274,11 @@ fi
 TEMPLATE="${TEMPLATES[-1]}"
 
 function ensure_template_ready() {
+  echo "[DEBUG] ensure_template_ready() gestartet"
+
   local template_path
   template_path="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
+  echo "[DEBUG] template_path=$template_path"
 
   if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE"; then
     msg_warn "Template $TEMPLATE not listed in storage '$TEMPLATE_STORAGE'."
@@ -287,11 +290,22 @@ function ensure_template_ready() {
     template_invalid=0
   fi
 
+  echo "[DEBUG] template_invalid=$template_invalid"
+
   if [ "$template_invalid" -eq 1 ]; then
-    [[ -f "$template_path" ]] && rm -f "$template_path"
+    [[ -f "$template_path" ]] && {
+      echo "[DEBUG] removing template_path $template_path"
+      rm -f "$template_path"
+    }
 
     msg_info "Downloading LXC template..."
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
+    echo "[DEBUG] calling pveam download"
+    sleep 0.2
+    timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
+    dl_result=$?
+    echo "[DEBUG] pveam download exit=$dl_result"
+
+    if [ $dl_result -eq 0 ]; then
       msg_ok "Template download successful."
     else
       msg_error "Template download failed. Check internet or run manually:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
@@ -299,6 +313,7 @@ function ensure_template_ready() {
     fi
   fi
 
+  echo "[DEBUG] ensure_template_ready() abgeschlossen"
   msg_ok "LXC Template '$TEMPLATE' is ready to use."
 }
 
