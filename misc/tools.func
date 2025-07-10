@@ -18,7 +18,6 @@ function setup_nodejs() {
   local CURRENT_NODE_VERSION=""
   local NEED_NODE_INSTALL=false
 
-  # Check if Node.js is already installed
   if command -v node >/dev/null; then
     CURRENT_NODE_VERSION="$(node -v | grep -oP '^v\K[0-9]+')"
     if [[ "$CURRENT_NODE_VERSION" != "$NODE_VERSION" ]]; then
@@ -38,87 +37,99 @@ function setup_nodejs() {
     }
   fi
 
-  # Install Node.js if required
   if [[ "$NEED_NODE_INSTALL" == true ]]; then
     $STD apt-get purge -y nodejs
-    rm -f /etc/apt/sources.list.d/nodesource.list /etc/apt/keyrings/nodesource.gpg
+    rm -f /etc/apt/sources.list.d/nodesource.list /usr/share/keyrings/nodesource.gpg
 
-    mkdir -p /etc/apt/keyrings
+    mkdir -p /usr/share/keyrings
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key |
+      gpg --dearmor -o /usr/share/keyrings/nodesource.gpg || {
+      msg_error "Failed to import NodeSource GPG key"
+      exit 1
+    }
+    chmod 644 /usr/share/keyrings/nodesource.gpg
 
-    if ! curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key |
-      gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg; then
-      msg_error "Failed to download or import NodeSource GPG key"
+    local ARCH
+    ARCH=$(dpkg --print-architecture)
+    if ! [[ "$ARCH" =~ ^(amd64|arm64|armhf)$ ]]; then
+      msg_error "Unsupported architecture: $ARCH"
       exit 1
     fi
 
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_VERSION}.x nodistro main" \
-      >/etc/apt/sources.list.d/nodesource.list
+    echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_VERSION}.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
 
+    cat <<EOF >/etc/apt/preferences.d/nodejs
+Package: nodejs
+Pin: origin deb.nodesource.com
+Pin-Priority: 700
+EOF
+
+    sleep 2
     if ! apt-get update >/dev/null 2>&1; then
-      msg_error "Failed to update APT repositories after adding NodeSource"
-      exit 1
+      msg_warn "APT update failed – retrying in 5s"
+      sleep 5
+      if ! apt-get update >/dev/null 2>&1; then
+        msg_error "Failed to update APT repositories after adding NodeSource"
+        exit 1
+      fi
     fi
 
-    if ! apt-get install -y nodejs >/dev/null 2>&1; then
+    if ! apt-get install -y -t nodistro nodejs >/dev/null 2>&1; then
       msg_error "Failed to install Node.js ${NODE_VERSION} from NodeSource"
+      apt-cache policy nodejs | tee "$STD"
       exit 1
     fi
 
+    $STD npm install -g npm@latest || {
+      msg_error "Failed to update npm to latest version"
+    }
     msg_ok "Setup Node.js ${NODE_VERSION}"
   fi
 
   export NODE_OPTIONS="--max-old-space-size=4096"
 
-  # Ensure valid working directory for npm (avoids uv_cwd error)
-  if [[ ! -d /opt ]]; then
-    mkdir -p /opt
-  fi
+  [[ -d /opt ]] || mkdir -p /opt
   cd /opt || {
     msg_error "Failed to set safe working directory before npm install"
     exit 1
   }
 
-  # Install global Node modules
   if [[ -n "$NODE_MODULE" ]]; then
     IFS=',' read -ra MODULES <<<"$NODE_MODULE"
     for mod in "${MODULES[@]}"; do
       local MODULE_NAME MODULE_REQ_VERSION MODULE_INSTALLED_VERSION
       if [[ "$mod" == @*/*@* ]]; then
-        # Scoped package with version, e.g. @vue/cli-service@latest
         MODULE_NAME="${mod%@*}"
         MODULE_REQ_VERSION="${mod##*@}"
       elif [[ "$mod" == *"@"* ]]; then
-        # Unscoped package with version, e.g. yarn@latest
         MODULE_NAME="${mod%@*}"
         MODULE_REQ_VERSION="${mod##*@}"
       else
-        # No version specified
         MODULE_NAME="$mod"
         MODULE_REQ_VERSION="latest"
       fi
 
-      # Check if the module is already installed
       if npm list -g --depth=0 "$MODULE_NAME" >/dev/null 2>&1; then
         MODULE_INSTALLED_VERSION="$(npm list -g --depth=0 "$MODULE_NAME" | grep "$MODULE_NAME@" | awk -F@ '{print $2}' | tr -d '[:space:]')"
         if [[ "$MODULE_REQ_VERSION" != "latest" && "$MODULE_REQ_VERSION" != "$MODULE_INSTALLED_VERSION" ]]; then
           msg_info "Updating $MODULE_NAME from v$MODULE_INSTALLED_VERSION to v$MODULE_REQ_VERSION"
-          if ! $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}"; then
+          $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}" || {
             msg_error "Failed to update $MODULE_NAME to version $MODULE_REQ_VERSION"
             exit 1
-          fi
+          }
         elif [[ "$MODULE_REQ_VERSION" == "latest" ]]; then
           msg_info "Updating $MODULE_NAME to latest version"
-          if ! $STD npm install -g "${MODULE_NAME}@latest"; then
+          $STD npm install -g "${MODULE_NAME}@latest" || {
             msg_error "Failed to update $MODULE_NAME to latest version"
             exit 1
-          fi
+          }
         fi
       else
         msg_info "Installing $MODULE_NAME@$MODULE_REQ_VERSION"
-        if ! $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}"; then
+        $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}" || {
           msg_error "Failed to install $MODULE_NAME@$MODULE_REQ_VERSION"
           exit 1
-        fi
+        }
       fi
     done
     msg_ok "Installed Node.js modules: $NODE_MODULE"
