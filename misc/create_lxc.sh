@@ -269,46 +269,45 @@ if [ ${#TEMPLATES[@]} -eq 0 ]; then
   msg_error "No matching LXC template found for '${TEMPLATE_SEARCH}'. Make sure your host can reach the Proxmox template repository."
   exit 207
 fi
+ensure_template_ready
 
-TEMPLATE="${TEMPLATES[-1]}"
-TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
+ensure_template_ready() {
+  local template_path
+  template_path="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
 
-TEMPLATE_VALID=1
-if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE"; then
-  TEMPLATE_VALID=0
-elif [ ! -s "$TEMPLATE_PATH" ]; then
-  TEMPLATE_VALID=0
-elif ! tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; then
-  TEMPLATE_VALID=0
-fi
+  if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE"; then
+    msg_warn "Template $TEMPLATE not listed in storage '$TEMPLATE_STORAGE'."
+    template_invalid=1
+  elif [ ! -s "$template_path" ]; then
+    msg_warn "Template file $template_path is empty or missing."
+    template_invalid=1
+  elif ! tar --use-compress-program=zstdcat -tf "$template_path" >/dev/null 2>&1; then
+    msg_warn "Template $template_path failed archive integrity check."
+    template_invalid=1
+  else
+    template_invalid=0
+  fi
 
-if [ "$TEMPLATE_VALID" -eq 0 ]; then
-  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
-  [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
+  if [ "$template_invalid" -eq 1 ]; then
+    [[ -f "$template_path" ]] && rm -f "$template_path"
 
-  for attempt in {1..3}; do
-    msg_info "Attempt $attempt: Downloading LXC template..."
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
-      msg_ok "Template download successful."
-
-      # 🔁 Prüfe Template sofort nochmal nach Download (Workaround für zstdcat/tar Stop)
-      if tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; then
-        msg_ok "Template verified successfully after download."
-        break
-      else
-        msg_warn "Template check failed after download. Retrying..."
+    for attempt in {1..3}; do
+      msg_info "Attempt $attempt: Downloading LXC template..."
+      if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
+        msg_ok "Template download successful."
+        # 🔁 Nach erfolgreichem Download rekursiv erneut prüfen
+        ensure_template_ready
+        return
       fi
-    fi
+      sleep $((attempt * 5))
+    done
 
-    if [ $attempt -eq 3 ]; then
-      msg_error "Failed after 3 attempts. Please check network access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
-      exit 208
-    fi
-    sleep $((attempt * 5))
-  done
-fi
+    msg_error "Template download failed after 3 attempts. Check internet or run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
+    exit 208
+  fi
 
-msg_ok "LXC Template '$TEMPLATE' is ready to use."
+  msg_ok "LXC Template '$TEMPLATE' is ready to use."
+}
 
 msg_info "Creating LXC Container"
 # Check and fix subuid/subgid
