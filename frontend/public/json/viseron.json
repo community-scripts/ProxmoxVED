@@ -1,11 +1,8 @@
 {
   "name": "Viseron",
   "slug": "viseron",
-  "categories": [
-    15
-  ],
+  "categories": [15],
   "date_created": "2025-01-15",
-  "contributor": "jetonr",
   "type": "ct",
   "updateable": true,
   "privileged": false,
@@ -32,5 +29,18 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Configuration file: /config/viseron.yaml",
+      "type": "info"
+    },
+    {
+      "text": "Logs: /config/logs/viseron.log",
+      "type": "info"
+    },
+    {
+      "text": "Recordings: /config/recordings",
+      "type": "info"
+    }
+  ]
 }
