@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
-# Author: jetonr
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/roflcoopter/viseron
 
-# App Default Values
 APP="Viseron"
 var_tags="${var_tags:-nvr}"
 var_cpu="${var_cpu:-2}"
@@ -15,10 +10,8 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-0}"
 
-# App Output
 header_info "$APP"
 
-# Core
 variables
 color
 catch_errors
