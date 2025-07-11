@@ -125,7 +125,6 @@ rabbitmq/signing-keys
 Requarks/wiki
 revenz/Fenrus
 rogerfar/rdt-client
-roflcoopter/viseron
 rustdesk/rustdesk-server
 sabnzbd/sabnzbd
 sabre-io/baikal
