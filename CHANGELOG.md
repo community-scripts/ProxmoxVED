@@ -11,7 +11,7 @@
 
 ### 🆕 New Scripts
 
-  - odoo ([#4477](https://github.com/community-scripts/ProxmoxVE/pull/4477))
+- odoo ([#4477](https://github.com/community-scripts/ProxmoxVE/pull/4477))
 - alpine-transmission ([#4277](https://github.com/community-scripts/ProxmoxVE/pull/4277))
 - alpine-tinyauth ([#4264](https://github.com/community-scripts/ProxmoxVE/pull/4264))
 - alpine-rclone ([#4265](https://github.com/community-scripts/ProxmoxVE/pull/4265))
@@ -21,11 +21,10 @@
 - gatus ([#4443](https://github.com/community-scripts/ProxmoxVE/pull/4443))
 - alpine-gatus ([#4442](https://github.com/community-scripts/ProxmoxVE/pull/4442))
 - Alpine-Traefik [@MickLesk](https://github.com/MickLesk) ([#4412](https://github.com/community-scripts/ProxmoxVE/pull/4412))
-- Viseron [@jetonr](https://github.com/jetonr) ([#NEW](https://github.com/community-scripts/ProxmoxVED/pull/NEW))
 
 ### 🚀 Updated Scripts
 
-  - fix: fetch_release_and_deploy function [@CrazyWolf13](https://github.com/CrazyWolf13) ([#4478](https://github.com/community-scripts/ProxmoxVE/pull/4478))
+- fix: fetch_release_and_deploy function [@CrazyWolf13](https://github.com/CrazyWolf13) ([#4478](https://github.com/community-scripts/ProxmoxVE/pull/4478))
 - Website: re-add documenso & some little bugfixes [@MickLesk](https://github.com/MickLesk) ([#4456](https://github.com/community-scripts/ProxmoxVE/pull/4456))
 - update some improvements from dev (tools.func) [@MickLesk](https://github.com/MickLesk) ([#4430](https://github.com/community-scripts/ProxmoxVE/pull/4430))
 - Alpine: Use onliner for updates [@tremor021](https://github.com/tremor021) ([#4414](https://github.com/community-scripts/ProxmoxVE/pull/4414))
@@ -57,26 +56,26 @@
 
 ### 🧰 Maintenance
 
-  - #### 💾 Core
+- #### 💾 Core
 
-    - fix: improve bridge detection in all network interface configuration files [@filippolauria](https://github.com/filippolauria) ([#4413](https://github.com/community-scripts/ProxmoxVE/pull/4413))
-    - Config file Function in build.func [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4411](https://github.com/community-scripts/ProxmoxVE/pull/4411))
-    - fix: detect all bridge types, not just vmbr prefix [@filippolauria](https://github.com/filippolauria) ([#4351](https://github.com/community-scripts/ProxmoxVE/pull/4351))
+  - fix: improve bridge detection in all network interface configuration files [@filippolauria](https://github.com/filippolauria) ([#4413](https://github.com/community-scripts/ProxmoxVE/pull/4413))
+  - Config file Function in build.func [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4411](https://github.com/community-scripts/ProxmoxVE/pull/4411))
+  - fix: detect all bridge types, not just vmbr prefix [@filippolauria](https://github.com/filippolauria) ([#4351](https://github.com/community-scripts/ProxmoxVE/pull/4351))
 
-  - #### 📂 Github
+- #### 📂 Github
 
-    - Add Github app for auto PR merge [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4461](https://github.com/community-scripts/ProxmoxVE/pull/4461))
+  - Add Github app for auto PR merge [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#4461](https://github.com/community-scripts/ProxmoxVE/pull/4461))
 
 ### 🌐 Website
 
-  - FAQ: Explanation "updatable" [@tremor021](https://github.com/tremor021) ([#4300](https://github.com/community-scripts/ProxmoxVE/pull/4300))
+- FAQ: Explanation "updatable" [@tremor021](https://github.com/tremor021) ([#4300](https://github.com/community-scripts/ProxmoxVE/pull/4300))
 
-  - #### 📝 Script Information
+- #### 📝 Script Information
 
-    - Jellyfin Media Server: Update configuration path [@tremor021](https://github.com/tremor021) ([#4434](https://github.com/community-scripts/ProxmoxVE/pull/4434))
-    - Pingvin Share: Added explanation on how to add/edit environment variables [@tremor021](https://github.com/tremor021) ([#4432](https://github.com/community-scripts/ProxmoxVE/pull/4432))
-    - pingvin.json: fix typo [@warmbo](https://github.com/warmbo) ([#4426](https://github.com/community-scripts/ProxmoxVE/pull/4426))
-    - Navidrome - Fix config path (use /etc/ instead of /var/lib) [@quake1508](https://github.com/quake1508) ([#4406](https://github.com/community-scripts/ProxmoxVE/pull/4406))
+  - Jellyfin Media Server: Update configuration path [@tremor021](https://github.com/tremor021) ([#4434](https://github.com/community-scripts/ProxmoxVE/pull/4434))
+  - Pingvin Share: Added explanation on how to add/edit environment variables [@tremor021](https://github.com/tremor021) ([#4432](https://github.com/community-scripts/ProxmoxVE/pull/4432))
+  - pingvin.json: fix typo [@warmbo](https://github.com/warmbo) ([#4426](https://github.com/community-scripts/ProxmoxVE/pull/4426))
+  - Navidrome - Fix config path (use /etc/ instead of /var/lib) [@quake1508](https://github.com/quake1508) ([#4406](https://github.com/community-scripts/ProxmoxVE/pull/4406))
 
 ## 2025-03-24
 
@@ -87,6 +86,7 @@
 - yt-dlp-webui [@CrazyWolf13](https://github.com/CrazyWolf13) ([#3364](https://github.com/community-scripts/ProxmoxVE/pull/3364))
 - Extension/New Script: Redis Alpine Installation [@MickLesk](https://github.com/MickLesk) ([#3367](https://github.com/community-scripts/ProxmoxVE/pull/3367))
 - Fluid Calendar [@vhsdream](https://github.com/vhsdream) ([#2869](ht
+
 ### 🚀 Updated Scripts
 
 - License url VED to VE [@bvdberg01](https://github.com/bvdberg01) ([#3258](https://github.com/community-scripts/ProxmoxVE/pull/3258))
@@ -126,7 +126,6 @@
 
 - #### ✨ New Features
 
-
   - [core] install core deps (debian / ubuntu) [@MickLesk](https://github.com/MickLesk) ([#3366](https://github.com/community-scripts/ProxmoxVE/pull/3366))
 
 - #### 💾 Core
@@ -146,7 +145,7 @@
 
   - #### 🐞 Bug Fixes
 
-    - Better Text for Version Date [@michelroegl-brunner](https:er) ([#3388](https://github.com/community-scripts/ProxmoxVE/pull/3388))
+    - Better Text for Version Date [@michelroegl-brunner](https://github.com/michelroegl-brunner) ([#3388](https://github.com/community-scripts/ProxmoxVE/pull/3388))
     - JSON editor note fix [@bvdberg01](https://github.com/bvdberg01) ([#3260](https://github.com/community-scripts/ProxmoxVE/pull/3260))
     - Move cryptpad files to right folders [@bvdberg01](https://github.com/bvdberg01) ([#3242](https://github.com/community-scripts/ProxmoxVE/pull/3242))
 
