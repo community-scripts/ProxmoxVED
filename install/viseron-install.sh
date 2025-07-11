@@ -130,7 +130,7 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable viseron
+systemctl enable -q --now viseron
 msg_ok "Created Systemd Service"
 
 msg_info "Setting up Hardware Acceleration"
