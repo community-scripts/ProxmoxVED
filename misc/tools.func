@@ -1893,38 +1893,56 @@ function setup_clickhouse() {
 
   if ! command -v clickhouse >/dev/null; then
     msg_info "Setup ClickHouse"
-    if ! dig +short packages.clickhouse.com | grep -qE '^[0-9a-f:.]+$'; then
-      msg_error "DNS blocked: packages.clickhouse.com"
-      echo "💡 Likely blocked by AdGuard, Pi-hole or similar"
+
+    # → Teste Erreichbarkeit
+    if ! curl -fsSL --connect-timeout 5 https://packages.clickhouse.com/ping >/dev/null 2>&1; then
+      msg_error "Connection to packages.clickhouse.com:443 failed – possibly blocked"
+      echo "💡 Check AdGuard/Pi-hole or firewall rules"
       return 1
     fi
 
-    if ! curl -fsSL --connect-timeout 10 --retry 3 "$GPG_URL" | gpg --dearmor -o "$GPG_KEY_PATH"; then
+    # → Hole GPG-Key
+    if ! curl -fsSL --retry 3 --connect-timeout 10 "$GPG_URL" |
+      gpg --dearmor -o "$GPG_KEY_PATH"; then
       msg_error "Failed to fetch ClickHouse GPG key"
       return 1
     fi
 
-    echo "deb [signed-by=$GPG_KEY_PATH arch=$ARCH] https://packages.clickhouse.com/deb stable main" >/etc/apt/sources.list.d/clickhouse.list
-    $STD apt-get update
+    echo "deb [signed-by=$GPG_KEY_PATH arch=$ARCH] https://packages.clickhouse.com/deb stable main" \
+      >/etc/apt/sources.list.d/clickhouse.list
 
-    $STD apt-get install -y clickhouse-server clickhouse-client
+    # ──────────────────────────────────────────────────────
+    # hier unterdrückst du CLICKHOUSE_USER im Env, damit
+    # die Paket-Skripte nicht den Systemuser 'rybbit' anlegen:
+    env -u CLICKHOUSE_USER $STD apt-get update
+    env -u CLICKHOUSE_USER $STD apt-get install -y \
+      clickhouse-server clickhouse-client
+    # ──────────────────────────────────────────────────────
+
+    # jetzt läuft das Paket mit dem Standard-User 'clickhouse'
     $STD systemctl enable --now clickhouse-server
     sleep 3
 
+    # → Erst­­installation der Tabelle und des DB-Users
     clickhouse client --query "CREATE DATABASE IF NOT EXISTS $CLICKHOUSE_DB"
-    clickhouse client --query "CREATE USER IF NOT EXISTS $CLICKHOUSE_USER IDENTIFIED WITH plaintext_password BY '$CLICKHOUSE_PASS'"
-    clickhouse client --query "GRANT ALL ON $CLICKHOUSE_DB.* TO $CLICKHOUSE_USER"
-    msg_ok "Setup ClickHouse"
+    clickhouse client --query \
+      "CREATE USER IF NOT EXISTS $CLICKHOUSE_USER IDENTIFIED WITH plaintext_password BY '$CLICKHOUSE_PASS'"
+    clickhouse client --query \
+      "GRANT ALL ON $CLICKHOUSE_DB.* TO $CLICKHOUSE_USER"
 
+    msg_ok "Setup ClickHouse (DB: $CLICKHOUSE_DB, User: $CLICKHOUSE_USER)"
+
+    # → sichere Credentials zur Kontrolle
     {
-      echo "ClickHouse DB:     $CLICKHOUSE_DB"
-      echo "ClickHouse User:   $CLICKHOUSE_USER"
-      echo "ClickHouse Pass:   $CLICKHOUSE_PASS"
+      echo "ClickHouse DB:   $CLICKHOUSE_DB"
+      echo "ClickHouse User: $CLICKHOUSE_USER"
+      echo "ClickHouse Pass: $CLICKHOUSE_PASS"
     } >>~/clickhouse.creds
   else
     msg_info "Updating ClickHouse packages"
-    $STD apt-get update
-    $STD apt-get install -y --only-upgrade clickhouse-server clickhouse-client
+    env -u CLICKHOUSE_USER $STD apt-get update
+    env -u CLICKHOUSE_USER $STD apt-get install -y --only-upgrade \
+      clickhouse-server clickhouse-client
     msg_ok "ClickHouse updated"
   fi
 }
