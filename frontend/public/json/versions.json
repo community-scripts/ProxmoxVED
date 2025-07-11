@@ -1,5 +1,45 @@
 [
   {
+    "name": "FlowiseAI/Flowise",
+    "version": "flowise@3.0.4",
+    "date": "2025-07-11T11:26:10Z"
+  },
+  {
+    "name": "prometheus/prometheus",
+    "version": "v2.53.5",
+    "date": "2025-06-30T11:01:12Z"
+  },
+  {
+    "name": "Paymenter/Paymenter",
+    "version": "v1.2.2",
+    "date": "2025-07-11T10:09:47Z"
+  },
+  {
+    "name": "traefik/traefik",
+    "version": "v3.4.4",
+    "date": "2025-07-11T08:41:34Z"
+  },
+  {
+    "name": "mattermost/mattermost",
+    "version": "preview-v0.1",
+    "date": "2025-06-27T14:35:47Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2145",
+    "date": "2025-07-11T05:49:32Z"
+  },
+  {
+    "name": "documenso/documenso",
+    "version": "v1.12.2-rc.1",
+    "date": "2025-07-11T02:55:56Z"
+  },
+  {
+    "name": "outline/outline",
+    "version": "v0.85.1",
+    "date": "2025-07-11T01:17:53Z"
+  },
+  {
     "name": "steveiliop56/tinyauth",
     "version": "v3.6.0",
     "date": "2025-07-09T23:15:25Z"
@@ -30,6 +70,11 @@
     "date": "2025-07-08T01:26:29Z"
   },
   {
+    "name": "keycloak/keycloak",
+    "version": "26.3.1",
+    "date": "2025-07-09T15:41:43Z"
+  },
+  {
     "name": "msgbyte/tianji",
     "version": "v1.23.4",
     "date": "2025-07-10T18:13:38Z"
@@ -58,16 +103,6 @@
     "name": "meilisearch/meilisearch",
     "version": "prototype-incremental-vector-store-3",
     "date": "2025-07-07T10:27:19Z"
-  },
-  {
-    "name": "mattermost/mattermost",
-    "version": "preview-v0.1",
-    "date": "2025-06-27T14:35:47Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2140",
-    "date": "2025-07-10T05:54:59Z"
   },
   {
     "name": "firefly-iii/firefly-iii",
@@ -108,11 +143,6 @@
     "name": "duplicati/duplicati",
     "version": "v2.1.0.123-2.1.0.123_canary_2025-07-09",
     "date": "2025-07-09T16:08:36Z"
-  },
-  {
-    "name": "keycloak/keycloak",
-    "version": "26.3.1",
-    "date": "2025-07-09T15:41:43Z"
   },
   {
     "name": "nicolargo/glances",
@@ -245,11 +275,6 @@
     "date": "2025-07-07T14:08:25Z"
   },
   {
-    "name": "Paymenter/Paymenter",
-    "version": "v1.2.1",
-    "date": "2025-07-07T10:11:26Z"
-  },
-  {
     "name": "nzbgetcom/nzbget",
     "version": "v25.2",
     "date": "2025-07-04T08:21:42Z"
@@ -370,11 +395,6 @@
     "date": "2025-07-04T11:20:48Z"
   },
   {
-    "name": "outline/outline",
-    "version": "v0.85.0",
-    "date": "2025-07-04T00:06:47Z"
-  },
-  {
     "name": "cloudflare/cloudflared",
     "version": "2025.7.0",
     "date": "2025-07-03T17:08:15Z"
@@ -398,11 +418,6 @@
     "name": "actualbudget/actual",
     "version": "v25.7.1",
     "date": "2025-07-03T01:03:18Z"
-  },
-  {
-    "name": "documenso/documenso",
-    "version": "v1.12.2-rc.0",
-    "date": "2025-07-03T00:31:22Z"
   },
   {
     "name": "Koenkk/zigbee2mqtt",
@@ -468,30 +483,5 @@
     "name": "MagicMirrorOrg/MagicMirror",
     "version": "v2.32.0",
     "date": "2025-06-30T22:12:48Z"
-  },
-  {
-    "name": "jhuckaby/Cronicle",
-    "version": "v0.9.81",
-    "date": "2025-06-30T16:40:33Z"
-  },
-  {
-    "name": "prometheus/prometheus",
-    "version": "v2.53.5",
-    "date": "2025-06-30T11:01:12Z"
-  },
-  {
-    "name": "jupyter/notebook",
-    "version": "v7.4.4",
-    "date": "2025-06-30T13:04:22Z"
-  },
-  {
-    "name": "PrivateBin/PrivateBin",
-    "version": "1.7.8",
-    "date": "2025-06-30T09:00:54Z"
-  },
-  {
-    "name": "typesense/typesense",
-    "version": "v29.0",
-    "date": "2025-06-30T03:52:33Z"
   }
 ]
