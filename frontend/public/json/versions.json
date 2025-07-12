@@ -1,8 +1,73 @@
 [
   {
+    "name": "blakeblackshear/frigate",
+    "version": "v0.14.1",
+    "date": "2024-08-29T22:32:51Z"
+  },
+  {
+    "name": "steveiliop56/tinyauth",
+    "version": "v3.6.0",
+    "date": "2025-07-09T23:15:25Z"
+  },
+  {
+    "name": "Ombi-app/Ombi",
+    "version": "v4.47.1",
+    "date": "2025-01-05T21:14:23Z"
+  },
+  {
+    "name": "eclipse-mosquitto/mosquitto",
+    "version": "v2.0.22",
+    "date": "2025-07-11T21:34:20Z"
+  },
+  {
+    "name": "mongodb/mongo",
+    "version": "r8.2.0-alpha0",
+    "date": "2025-07-11T21:06:26Z"
+  },
+  {
+    "name": "duplicati/duplicati",
+    "version": "v2.1.0.124-2.1.0.124_canary_2025-07-11",
+    "date": "2025-07-11T20:09:08Z"
+  },
+  {
+    "name": "TandoorRecipes/recipes",
+    "version": "1.5.35",
+    "date": "2025-06-22T08:30:10Z"
+  },
+  {
+    "name": "MediaBrowser/Emby.Releases",
+    "version": "4.9.1.2",
+    "date": "2025-06-26T22:08:00Z"
+  },
+  {
+    "name": "homarr-labs/homarr",
+    "version": "v1.28.0",
+    "date": "2025-07-11T19:16:26Z"
+  },
+  {
+    "name": "keycloak/keycloak",
+    "version": "26.3.1",
+    "date": "2025-07-09T15:41:43Z"
+  },
+  {
+    "name": "n8n-io/n8n",
+    "version": "n8n@1.101.2",
+    "date": "2025-07-11T12:03:41Z"
+  },
+  {
     "name": "FlowiseAI/Flowise",
     "version": "flowise@3.0.4",
-    "date": "2025-07-11T11:26:10Z"
+    "date": "2025-07-11T13:26:54Z"
+  },
+  {
+    "name": "zwave-js/zwave-js-ui",
+    "version": "v10.9.0",
+    "date": "2025-07-11T12:57:54Z"
+  },
+  {
+    "name": "zitadel/zitadel",
+    "version": "v3.3.1",
+    "date": "2025-07-11T11:51:48Z"
   },
   {
     "name": "prometheus/prometheus",
@@ -40,11 +105,6 @@
     "date": "2025-07-11T01:17:53Z"
   },
   {
-    "name": "steveiliop56/tinyauth",
-    "version": "v3.6.0",
-    "date": "2025-07-09T23:15:25Z"
-  },
-  {
     "name": "jenkinsci/jenkins",
     "version": "jenkins-2.518",
     "date": "2025-07-08T13:52:55Z"
@@ -70,19 +130,9 @@
     "date": "2025-07-08T01:26:29Z"
   },
   {
-    "name": "keycloak/keycloak",
-    "version": "26.3.1",
-    "date": "2025-07-09T15:41:43Z"
-  },
-  {
     "name": "msgbyte/tianji",
     "version": "v1.23.4",
     "date": "2025-07-10T18:13:38Z"
-  },
-  {
-    "name": "mongodb/mongo",
-    "version": "r6.0.25",
-    "date": "2025-07-10T16:59:44Z"
   },
   {
     "name": "forgejo/forgejo",
@@ -140,11 +190,6 @@
     "date": "2025-07-09T16:27:46Z"
   },
   {
-    "name": "duplicati/duplicati",
-    "version": "v2.1.0.123-2.1.0.123_canary_2025-07-09",
-    "date": "2025-07-09T16:08:36Z"
-  },
-  {
     "name": "nicolargo/glances",
     "version": "v4.3.3",
     "date": "2025-07-09T15:35:44Z"
@@ -170,11 +215,6 @@
     "date": "2025-06-26T14:34:19Z"
   },
   {
-    "name": "n8n-io/n8n",
-    "version": "n8n@1.102.0",
-    "date": "2025-07-07T15:32:29Z"
-  },
-  {
     "name": "fuma-nama/fumadocs",
     "version": "fumadocs-ui@15.6.3",
     "date": "2025-07-09T09:28:42Z"
@@ -188,11 +228,6 @@
     "name": "esphome/esphome",
     "version": "2025.6.3",
     "date": "2025-07-03T01:07:26Z"
-  },
-  {
-    "name": "MediaBrowser/Emby.Releases",
-    "version": "4.9.1.2",
-    "date": "2025-06-26T22:08:00Z"
   },
   {
     "name": "henrygd/beszel",
@@ -250,11 +285,6 @@
     "date": "2025-07-08T05:51:08Z"
   },
   {
-    "name": "TandoorRecipes/recipes",
-    "version": "1.5.35",
-    "date": "2025-06-22T08:30:10Z"
-  },
-  {
     "name": "VictoriaMetrics/VictoriaMetrics",
     "version": "pmm-6401-v1.121.0",
     "date": "2025-07-07T16:16:13Z"
@@ -278,11 +308,6 @@
     "name": "nzbgetcom/nzbget",
     "version": "v25.2",
     "date": "2025-07-04T08:21:42Z"
-  },
-  {
-    "name": "zwave-js/zwave-js-ui",
-    "version": "v10.8.0",
-    "date": "2025-07-07T08:37:45Z"
   },
   {
     "name": "morpheus65535/bazarr",
@@ -368,16 +393,6 @@
     "name": "home-assistant/core",
     "version": "2025.7.1",
     "date": "2025-07-04T20:02:52Z"
-  },
-  {
-    "name": "homarr-labs/homarr",
-    "version": "v1.27.0",
-    "date": "2025-07-04T19:16:16Z"
-  },
-  {
-    "name": "zitadel/zitadel",
-    "version": "v3.3.0",
-    "date": "2025-06-12T06:54:48Z"
   },
   {
     "name": "emqx/emqx",
