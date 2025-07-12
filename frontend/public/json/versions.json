@@ -1,5 +1,10 @@
 [
   {
+    "name": "rcourtman/Pulse",
+    "version": "v3.41.1",
+    "date": "2025-07-10T17:10:46Z"
+  },
+  {
     "name": "blakeblackshear/frigate",
     "version": "v0.14.1",
     "date": "2024-08-29T22:32:51Z"
@@ -8,6 +13,36 @@
     "name": "steveiliop56/tinyauth",
     "version": "v3.6.0",
     "date": "2025-07-09T23:15:25Z"
+  },
+  {
+    "name": "homarr-labs/homarr",
+    "version": "v1.28.1",
+    "date": "2025-07-12T08:50:59Z"
+  },
+  {
+    "name": "fallenbagel/jellyseerr",
+    "version": "preview-seerr",
+    "date": "2025-07-12T08:15:55Z"
+  },
+  {
+    "name": "leiweibau/Pi.Alert",
+    "version": "v2025-07-12",
+    "date": "2025-07-12T07:53:52Z"
+  },
+  {
+    "name": "firefly-iii/firefly-iii",
+    "version": "v6.2.20",
+    "date": "2025-07-02T04:03:37Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2151",
+    "date": "2025-07-12T05:53:09Z"
+  },
+  {
+    "name": "fuma-nama/fumadocs",
+    "version": "fumadocs-openapi@9.1.2",
+    "date": "2025-07-12T03:58:47Z"
   },
   {
     "name": "Ombi-app/Ombi",
@@ -38,11 +73,6 @@
     "name": "MediaBrowser/Emby.Releases",
     "version": "4.9.1.2",
     "date": "2025-06-26T22:08:00Z"
-  },
-  {
-    "name": "homarr-labs/homarr",
-    "version": "v1.28.0",
-    "date": "2025-07-11T19:16:26Z"
   },
   {
     "name": "keycloak/keycloak",
@@ -90,11 +120,6 @@
     "date": "2025-06-27T14:35:47Z"
   },
   {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2145",
-    "date": "2025-07-11T05:49:32Z"
-  },
-  {
     "name": "documenso/documenso",
     "version": "v1.12.2-rc.1",
     "date": "2025-07-11T02:55:56Z"
@@ -108,11 +133,6 @@
     "name": "jenkinsci/jenkins",
     "version": "jenkins-2.518",
     "date": "2025-07-08T13:52:55Z"
-  },
-  {
-    "name": "rcourtman/Pulse",
-    "version": "v3.41.1",
-    "date": "2025-07-10T17:10:46Z"
   },
   {
     "name": "LibreTranslate/LibreTranslate",
@@ -153,11 +173,6 @@
     "name": "meilisearch/meilisearch",
     "version": "prototype-incremental-vector-store-3",
     "date": "2025-07-07T10:27:19Z"
-  },
-  {
-    "name": "firefly-iii/firefly-iii",
-    "version": "v6.2.20",
-    "date": "2025-07-02T04:03:37Z"
   },
   {
     "name": "pocket-id/pocket-id",
@@ -213,11 +228,6 @@
     "name": "AdguardTeam/AdGuardHome",
     "version": "v0.107.63",
     "date": "2025-06-26T14:34:19Z"
-  },
-  {
-    "name": "fuma-nama/fumadocs",
-    "version": "fumadocs-ui@15.6.3",
-    "date": "2025-07-09T09:28:42Z"
   },
   {
     "name": "cockpit-project/cockpit",
@@ -355,11 +365,6 @@
     "date": "2025-07-06T12:19:24Z"
   },
   {
-    "name": "fallenbagel/jellyseerr",
-    "version": "preview-OIDC",
-    "date": "2025-07-06T00:51:06Z"
-  },
-  {
     "name": "hyperion-project/hyperion.ng",
     "version": "2.1.1",
     "date": "2025-06-14T17:45:06Z"
@@ -478,25 +483,5 @@
     "name": "HabitRPG/habitica",
     "version": "v5.37.1",
     "date": "2025-07-01T16:57:43Z"
-  },
-  {
-    "name": "navidrome/navidrome",
-    "version": "v0.57.0",
-    "date": "2025-07-01T16:47:46Z"
-  },
-  {
-    "name": "zabbix/zabbix",
-    "version": "7.4.0",
-    "date": "2025-07-01T04:36:51Z"
-  },
-  {
-    "name": "openobserve/openobserve",
-    "version": "v0.15.0-rc3",
-    "date": "2025-07-01T04:09:37Z"
-  },
-  {
-    "name": "MagicMirrorOrg/MagicMirror",
-    "version": "v2.32.0",
-    "date": "2025-06-30T22:12:48Z"
   }
 ]
