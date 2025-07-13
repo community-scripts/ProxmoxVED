@@ -1,5 +1,25 @@
 [
   {
+    "name": "rcourtman/Pulse",
+    "version": "v3.41.1",
+    "date": "2025-07-10T17:10:46Z"
+  },
+  {
+    "name": "authelia/authelia",
+    "version": "v4.39.5",
+    "date": "2025-07-13T06:12:47Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2153",
+    "date": "2025-07-13T05:55:37Z"
+  },
+  {
+    "name": "henrygd/beszel",
+    "version": "v0.11.1",
+    "date": "2025-04-29T01:14:35Z"
+  },
+  {
     "name": "esphome/esphome",
     "version": "2025.6.3",
     "date": "2025-07-03T01:07:26Z"
@@ -40,11 +60,6 @@
     "date": "2025-07-12T15:52:03Z"
   },
   {
-    "name": "rcourtman/Pulse",
-    "version": "v3.41.1",
-    "date": "2025-07-10T17:10:46Z"
-  },
-  {
     "name": "blakeblackshear/frigate",
     "version": "v0.14.1",
     "date": "2024-08-29T22:32:51Z"
@@ -65,14 +80,14 @@
     "date": "2025-07-12T07:53:52Z"
   },
   {
+    "name": "keycloak/keycloak",
+    "version": "26.3.1",
+    "date": "2025-07-09T15:41:43Z"
+  },
+  {
     "name": "firefly-iii/firefly-iii",
     "version": "v6.2.20",
     "date": "2025-07-02T04:03:37Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2151",
-    "date": "2025-07-12T05:53:09Z"
   },
   {
     "name": "fuma-nama/fumadocs",
@@ -103,11 +118,6 @@
     "name": "MediaBrowser/Emby.Releases",
     "version": "4.9.1.2",
     "date": "2025-06-26T22:08:00Z"
-  },
-  {
-    "name": "keycloak/keycloak",
-    "version": "26.3.1",
-    "date": "2025-07-09T15:41:43Z"
   },
   {
     "name": "n8n-io/n8n",
@@ -263,11 +273,6 @@
     "name": "cockpit-project/cockpit",
     "version": "342",
     "date": "2025-07-09T08:48:21Z"
-  },
-  {
-    "name": "henrygd/beszel",
-    "version": "v0.11.1",
-    "date": "2025-04-29T01:14:35Z"
   },
   {
     "name": "Prowlarr/Prowlarr",
@@ -463,5 +468,20 @@
     "name": "Koenkk/zigbee2mqtt",
     "version": "2.5.1",
     "date": "2025-07-02T19:38:06Z"
+  },
+  {
+    "name": "glpi-project/glpi",
+    "version": "10.0.18",
+    "date": "2025-02-12T11:07:02Z"
+  },
+  {
+    "name": "apache/tomcat",
+    "version": "9.0.107",
+    "date": "2025-07-02T07:12:09Z"
+  },
+  {
+    "name": "qbittorrent/qBittorrent",
+    "version": "release-5.1.2",
+    "date": "2025-07-02T06:13:16Z"
   }
 ]
