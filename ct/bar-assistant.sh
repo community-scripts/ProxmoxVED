@@ -8,7 +8,7 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 # Source: https://www.meilisearch.com/
 
 APP="Bar-Assistant"
-var_tags="${var_tags:-inventory;drinks}"
+var_tags="${var_tags:-cocktails;drinks}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-4}"
