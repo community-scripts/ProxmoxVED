@@ -29,8 +29,8 @@ function update_script() {
     exit
   fi
 
-  VERSION=$(curl -fsSL https://api.github.com/repos/mealie-recipes/mealie/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
-  if [[ "${VERSION}" != "$(cat ~/.mealie 2>/dev/null)" ]] || [[ ! -f ~/.mealie ]]; then
+  RELEASE=$(curl -fsSL https://api.github.com/repos/mealie-recipes/mealie/releases/latest | jq -r '.tag_name | sub("^v"; "")')
+  if [[ "${RELEASE}" != "$(cat ~/.mealie 2>/dev/null)" ]] || [[ ! -f ~/.mealie ]]; then
 
     PYTHON_VERSION="3.12" setup_uv
     NODE_MODULE="yarn" NODE_VERSION="20" setup_nodejs
@@ -44,7 +44,7 @@ function update_script() {
     cp -f /opt/mealie/start.sh /opt/mealie/start.sh.bak
     msg_ok "Backup completed"
 
-    fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "$RELEASE" "/opt/mealie"
+    fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "latest" "/opt/mealie"
 
     msg_info "Rebuilding Frontend"
     export NUXT_TELEMETRY_DISABLED=1
@@ -82,7 +82,7 @@ function update_script() {
 
     msg_ok "Update to $RELEASE Successful"
   else
-    msg_ok "No update required. ${APP} is already at v${VERSION}"
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
   exit
 }
