@@ -17,19 +17,16 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y build-essential libpq-dev libwebp-dev libsasl2-dev libldap2-dev libssl-dev git
 msg_ok "Installed Dependencies"
 
-#fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "latest" "/opt/mealie" - deactivated for now
-
 PYTHON_VERSION="3.12" setup_uv
 POSTGRES_VERSION="16" setup_postgresql
 NODE_MODULE="yarn" NODE_VERSION="20" setup_nodejs
 
-msg_info "Setup Variables"
+fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "latest" "/opt/mealie"
+
+msg_info "Setup Database"
 DB_NAME=mealie_db
 DB_USER=mealie__user
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
-msg_ok "Set up Variables"
-
-msg_info "Setup Database"
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
@@ -43,11 +40,6 @@ $STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
   echo "Mealie Database Name: $DB_NAME"
 } >>~/mealie.creds
 msg_ok "Set up Database"
-
-msg_info "Get Mealie Repository"
-cd /opt
-$STD git clone https://github.com/mealie-recipes/mealie
-msg_ok "Get Mealie Repository"
 
 msg_info "Building Frontend"
 export NUXT_TELEMETRY_DISABLED=1
