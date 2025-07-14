@@ -1,5 +1,45 @@
 [
   {
+    "name": "steveiliop56/tinyauth",
+    "version": "v3.6.1",
+    "date": "2025-07-12T13:41:57Z"
+  },
+  {
+    "name": "homebridge/homebridge",
+    "version": "v1.11.0",
+    "date": "2025-07-13T19:22:47Z"
+  },
+  {
+    "name": "wavelog/wavelog",
+    "version": "2.0.6",
+    "date": "2025-07-13T19:10:15Z"
+  },
+  {
+    "name": "MediaBrowser/Emby.Releases",
+    "version": "4.9.1.2",
+    "date": "2025-06-26T22:08:00Z"
+  },
+  {
+    "name": "openhab/openhab-core",
+    "version": "5.0.0.M4",
+    "date": "2025-07-13T16:04:39Z"
+  },
+  {
+    "name": "msgbyte/tianji",
+    "version": "v1.23.5",
+    "date": "2025-07-13T15:23:02Z"
+  },
+  {
+    "name": "mayswind/AriaNg",
+    "version": "1.3.11",
+    "date": "2025-07-13T13:33:48Z"
+  },
+  {
+    "name": "evcc-io/evcc",
+    "version": "0.205.0",
+    "date": "2025-07-13T12:27:31Z"
+  },
+  {
     "name": "rcourtman/Pulse",
     "version": "v3.41.1",
     "date": "2025-07-10T17:10:46Z"
@@ -23,11 +63,6 @@
     "name": "esphome/esphome",
     "version": "2025.6.3",
     "date": "2025-07-03T01:07:26Z"
-  },
-  {
-    "name": "steveiliop56/tinyauth",
-    "version": "v3.6.1",
-    "date": "2025-07-12T13:41:57Z"
   },
   {
     "name": "OliveTin/OliveTin",
@@ -115,11 +150,6 @@
     "date": "2025-06-22T08:30:10Z"
   },
   {
-    "name": "MediaBrowser/Emby.Releases",
-    "version": "4.9.1.2",
-    "date": "2025-06-26T22:08:00Z"
-  },
-  {
     "name": "n8n-io/n8n",
     "version": "n8n@1.101.2",
     "date": "2025-07-11T12:03:41Z"
@@ -188,11 +218,6 @@
     "name": "ollama/ollama",
     "version": "v0.9.6",
     "date": "2025-07-08T01:26:29Z"
-  },
-  {
-    "name": "msgbyte/tianji",
-    "version": "v1.23.4",
-    "date": "2025-07-10T18:13:38Z"
   },
   {
     "name": "forgejo/forgejo",
@@ -458,30 +483,5 @@
     "name": "Dolibarr/dolibarr",
     "version": "18.0.7",
     "date": "2025-07-03T08:57:21Z"
-  },
-  {
-    "name": "actualbudget/actual",
-    "version": "v25.7.1",
-    "date": "2025-07-03T01:03:18Z"
-  },
-  {
-    "name": "Koenkk/zigbee2mqtt",
-    "version": "2.5.1",
-    "date": "2025-07-02T19:38:06Z"
-  },
-  {
-    "name": "glpi-project/glpi",
-    "version": "10.0.18",
-    "date": "2025-02-12T11:07:02Z"
-  },
-  {
-    "name": "apache/tomcat",
-    "version": "9.0.107",
-    "date": "2025-07-02T07:12:09Z"
-  },
-  {
-    "name": "qbittorrent/qBittorrent",
-    "version": "release-5.1.2",
-    "date": "2025-07-02T06:13:16Z"
   }
 ]
