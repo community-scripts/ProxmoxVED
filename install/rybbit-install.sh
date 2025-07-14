@@ -20,7 +20,7 @@ $STD apt-get install -y \
   ca-certificates
 msg_ok "Installed Dependencies"
 
-CLICKHOUSE_DB="rybbit_db" CLICKHOUSE_USER="rybbit" setup_clickhouse
+setup_clickhouse
 PG_VERSION=17 setup_postgresql
 NODE_VERSION="20" NODE_MODULE="next" setup_nodejs
 
