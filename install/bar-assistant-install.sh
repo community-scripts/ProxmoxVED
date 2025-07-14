@@ -24,7 +24,7 @@ $STD apt-get install -y \
 #php-{ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm}
 msg_ok "Installed Dependencies"
 
-PHP_VERSION=8.3 PHP_MODULE="ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm" setup_php
+PHP_VERSION="8.3" PHP_FPM=YES PHP_MODULE="ffi,opcache,redis,zip,pdo-sqlite,bcmath,pdo,curl,dom,fpm" setup_php
 setup_composer
 
 fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary"
