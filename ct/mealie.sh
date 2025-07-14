@@ -66,9 +66,9 @@ function update_script() {
     /opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.tar.gz | tail -n1 >>dist/requirements.txt
     msg_ok "Backend prepared"
 
-    msg_info "Installing Mealie $MEALIE_VERSION"
+    msg_info "Finalize Installation"
     $STD /opt/mealie/.venv/bin/uv pip install --require-hashes -r /opt/mealie/dist/requirements.txt --find-links dist
-    msg_ok "Installed Mealie $MEALIE_VERSION"
+    msg_ok "Mealie installed"
 
     msg_info "Restoring Configuration"
     mv -f /opt/mealie/mealie.env.bak /opt/mealie/mealie.env
