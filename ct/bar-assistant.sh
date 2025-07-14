@@ -100,7 +100,7 @@ function update_script() {
     msg_ok "No update required. Salt Rim is already at ${RELEASE_SALTRIM}"
   fi
 
-  if [[ "${RELEASE_MEILISEARCH}" != "$(cat ~/.meilisearch 2>/dev/null)" ]] || [[ ! -f ~/.meilisearch ]]; then
+  if [[ "v${RELEASE_MEILISEARCH}" != "$(cat ~/.meilisearch 2>/dev/null)" ]] || [[ ! -f ~/.meilisearch ]]; then
     msg_info "Stopping Meilisearch"
     systemctl stop meilisearch
     msg_ok "Stopped Meilisearch"
