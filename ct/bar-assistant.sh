@@ -33,7 +33,7 @@ function update_script() {
   RELEASE_BARASSISTANT=$(curl -fsSL https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | jq -r '.tag_name')
   RELEASE_SALTRIM=$(curl -fsSL https://api.github.com/repos/karlomikus/vue-salt-rim/releases/latest | jq -r '.tag_name')
 
-  if [[ "${RELEASE_BARASSISTANT}" != "$(cat ~/.bar-assistant 2>/dev/null)" ]] || [[ ! -f ~/.bar-assistant ]]; then
+  if [[ "v${RELEASE_BARASSISTANT}" != "$(cat ~/.bar-assistant 2>/dev/null)" ]] || [[ ! -f ~/.bar-assistant ]]; then
     msg_info "Stopping nginx"
     systemctl stop nginx
     msg_ok "Stopped nginx"
@@ -70,7 +70,7 @@ function update_script() {
     msg_ok "No update required. ${APP} is already at ${RELEASE_BARASSISTANT}"
   fi
 
-  if [[ "${RELEASE_SALTRIM}" != "$(cat ~/.vue-salt-rim 2>/dev/null)" ]] || [[ ! -f ~/.vue-salt-rim ]]; then
+  if [[ "v${RELEASE_SALTRIM}" != "$(cat ~/.vue-salt-rim 2>/dev/null)" ]] || [[ ! -f ~/.vue-salt-rim ]]; then
     msg_info "Backing up Vue Salt Rim"
     mv /opt/vue-salt-rim /opt/vue-salt-rim-backup
     msg_ok "Backed up Vue Salt Rim"
