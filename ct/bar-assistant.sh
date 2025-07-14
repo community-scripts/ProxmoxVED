@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: bvdberg01
+# Author: bvdberg01 | CanbiZ
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/karlomikus/bar-assistant
 # Source: https://github.com/karlomikus/vue-salt-rim
@@ -29,11 +29,11 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE_MEILISEARCH=$(curl -fsSL https://api.github.com/repos/meilisearch/meilisearch/releases/latest | jq -r '.tag_name')
-  RELEASE_BARASSISTANT=$(curl -fsSL https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | jq -r '.tag_name')
-  RELEASE_SALTRIM=$(curl -fsSL https://api.github.com/repos/karlomikus/vue-salt-rim/releases/latest | jq -r '.tag_name')
+  RELEASE_MEILISEARCH=$(curl -fsSL https://api.github.com/repos/meilisearch/meilisearch/releases/latest | jq -r '.tag_name | sub("^v"; "")')
+  RELEASE_BARASSISTANT=$(curl -fsSL https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | jq -r '.tag_name | sub("^v"; "")')
+  RELEASE_SALTRIM=$(curl -fsSL https://api.github.com/repos/karlomikus/vue-salt-rim/releases/latest | jq -r '.tag_name | sub("^v"; "")')
 
-  if [[ "v${RELEASE_BARASSISTANT}" != "$(cat ~/.bar-assistant 2>/dev/null)" ]] || [[ ! -f ~/.bar-assistant ]]; then
+  if [[ "${RELEASE_BARASSISTANT}" != "$(cat ~/.bar-assistant 2>/dev/null)" ]] || [[ ! -f ~/.bar-assistant ]]; then
     msg_info "Stopping nginx"
     systemctl stop nginx
     msg_ok "Stopped nginx"
@@ -70,7 +70,7 @@ function update_script() {
     msg_ok "No update required. ${APP} is already at ${RELEASE_BARASSISTANT}"
   fi
 
-  if [[ "v${RELEASE_SALTRIM}" != "$(cat ~/.vue-salt-rim 2>/dev/null)" ]] || [[ ! -f ~/.vue-salt-rim ]]; then
+  if [[ "${RELEASE_SALTRIM}" != "$(cat ~/.vue-salt-rim 2>/dev/null)" ]] || [[ ! -f ~/.vue-salt-rim ]]; then
     msg_info "Backing up Vue Salt Rim"
     mv /opt/vue-salt-rim /opt/vue-salt-rim-backup
     msg_ok "Backed up Vue Salt Rim"
@@ -100,7 +100,7 @@ function update_script() {
     msg_ok "No update required. Salt Rim is already at ${RELEASE_SALTRIM}"
   fi
 
-  if [[ "v${RELEASE_MEILISEARCH}" != "$(cat ~/.meilisearch 2>/dev/null)" ]] || [[ ! -f ~/.meilisearch ]]; then
+  if [[ "${RELEASE_MEILISEARCH}" != "$(cat ~/.meilisearch 2>/dev/null)" ]] || [[ ! -f ~/.meilisearch ]]; then
     msg_info "Stopping Meilisearch"
     systemctl stop meilisearch
     msg_ok "Stopped Meilisearch"
