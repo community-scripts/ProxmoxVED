@@ -1911,22 +1911,18 @@ function setup_clickhouse() {
     env -u CLICKHOUSE_USER $STD apt-get update
     env -u CLICKHOUSE_USER $STD apt-get install -y \
       clickhouse-server clickhouse-client
-    # ──────────────────────────────────────────────────────
 
-    # jetzt läuft das Paket mit dem Standard-User 'clickhouse'
     $STD systemctl enable --now clickhouse-server
     sleep 3
 
-    # → Erst­­installation der Tabelle und des DB-Users
     clickhouse client --query "CREATE DATABASE IF NOT EXISTS $CLICKHOUSE_DB"
     clickhouse client --query \
       "CREATE USER IF NOT EXISTS $CLICKHOUSE_USER IDENTIFIED WITH plaintext_password BY '$CLICKHOUSE_PASS'"
     clickhouse client --query \
       "GRANT ALL ON $CLICKHOUSE_DB.* TO $CLICKHOUSE_USER"
-
+    0
     msg_ok "Setup ClickHouse (DB: $CLICKHOUSE_DB, User: $CLICKHOUSE_USER)"
 
-    # → sichere Credentials zur Kontrolle
     {
       echo "ClickHouse DB:   $CLICKHOUSE_DB"
       echo "ClickHouse User: $CLICKHOUSE_USER"
