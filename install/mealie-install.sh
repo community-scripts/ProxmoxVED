@@ -103,7 +103,7 @@ msg_ok "Built Wheel + Requirements"
 
 msg_info "Installing Mealie via uv"
 cd /opt/mealie
-/opt/mealie/.venv/bin/uv pip install --require-hashes -r dist/requirements.txt --find-links dist
+$STD /opt/mealie/.venv/bin/uv pip install --require-hashes -r /opt/mealie/dist/requirements.txt --find-links dist
 msg_ok "Installed Mealie"
 
 msg_info "Downloading NLTK Data"
