@@ -1,5 +1,35 @@
 [
   {
+    "name": "theonedev/onedev",
+    "version": "v12.0.0",
+    "date": "2025-07-14T06:19:59Z"
+  },
+  {
+    "name": "wazuh/wazuh",
+    "version": "coverity-w28-4.13.0",
+    "date": "2025-07-08T11:25:24Z"
+  },
+  {
+    "name": "Luligu/matterbridge",
+    "version": "3.1.3",
+    "date": "2025-07-14T07:14:31Z"
+  },
+  {
+    "name": "morpheus65535/bazarr",
+    "version": "v1.5.3-beta.9",
+    "date": "2025-07-14T06:07:20Z"
+  },
+  {
+    "name": "Jackett/Jackett",
+    "version": "v0.22.2154",
+    "date": "2025-07-14T06:00:33Z"
+  },
+  {
+    "name": "firefly-iii/firefly-iii",
+    "version": "v6.2.20",
+    "date": "2025-07-02T04:03:37Z"
+  },
+  {
     "name": "steveiliop56/tinyauth",
     "version": "v3.6.1",
     "date": "2025-07-12T13:41:57Z"
@@ -48,11 +78,6 @@
     "name": "authelia/authelia",
     "version": "v4.39.5",
     "date": "2025-07-13T06:12:47Z"
-  },
-  {
-    "name": "Jackett/Jackett",
-    "version": "v0.22.2153",
-    "date": "2025-07-13T05:55:37Z"
   },
   {
     "name": "henrygd/beszel",
@@ -120,11 +145,6 @@
     "date": "2025-07-09T15:41:43Z"
   },
   {
-    "name": "firefly-iii/firefly-iii",
-    "version": "v6.2.20",
-    "date": "2025-07-02T04:03:37Z"
-  },
-  {
     "name": "fuma-nama/fumadocs",
     "version": "fumadocs-openapi@9.1.2",
     "date": "2025-07-12T03:58:47Z"
@@ -148,6 +168,11 @@
     "name": "TandoorRecipes/recipes",
     "version": "1.5.35",
     "date": "2025-06-22T08:30:10Z"
+  },
+  {
+    "name": "neo4j/neo4j",
+    "version": "2025.06.2",
+    "date": "2025-07-11T18:03:51Z"
   },
   {
     "name": "n8n-io/n8n",
@@ -228,11 +253,6 @@
     "name": "crowdsecurity/crowdsec",
     "version": "v1.6.10",
     "date": "2025-07-10T12:04:30Z"
-  },
-  {
-    "name": "neo4j/neo4j",
-    "version": "5.26.9",
-    "date": "2025-07-10T10:04:29Z"
   },
   {
     "name": "meilisearch/meilisearch",
@@ -335,11 +355,6 @@
     "date": "2025-07-08T13:52:33Z"
   },
   {
-    "name": "wazuh/wazuh",
-    "version": "coverity-w28-4.13.0",
-    "date": "2025-07-08T11:25:24Z"
-  },
-  {
     "name": "docker/compose",
     "version": "v2.38.2",
     "date": "2025-07-08T09:35:14Z"
@@ -375,11 +390,6 @@
     "date": "2025-07-04T08:21:42Z"
   },
   {
-    "name": "morpheus65535/bazarr",
-    "version": "v1.5.2",
-    "date": "2025-05-11T16:40:55Z"
-  },
-  {
     "name": "slskd/slskd",
     "version": "0.23.1",
     "date": "2025-07-06T23:57:52Z"
@@ -393,11 +403,6 @@
     "name": "pelican-dev/wings",
     "version": "v1.0.0-beta14",
     "date": "2025-07-06T21:07:07Z"
-  },
-  {
-    "name": "Luligu/matterbridge",
-    "version": "3.1.2",
-    "date": "2025-07-06T20:55:23Z"
   },
   {
     "name": "bluenviron/mediamtx",
@@ -433,11 +438,6 @@
     "name": "runtipi/runtipi",
     "version": "v4.3.0",
     "date": "2025-07-05T12:14:52Z"
-  },
-  {
-    "name": "theonedev/onedev",
-    "version": "v11.11.4",
-    "date": "2025-07-05T09:23:25Z"
   },
   {
     "name": "linkwarden/linkwarden",
