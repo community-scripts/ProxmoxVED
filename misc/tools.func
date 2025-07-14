@@ -1894,14 +1894,11 @@ function setup_clickhouse() {
   if ! command -v clickhouse >/dev/null; then
     msg_info "Setup ClickHouse"
 
-    # → Teste Erreichbarkeit
-    if ! curl -fsSL --connect-timeout 5 https://packages.clickhouse.com/ping >/dev/null 2>&1; then
+    if ! curl -fsSL --connect-timeout 5 https://packages.clickhouse.com >/dev/null 2>&1; then
       msg_error "Connection to packages.clickhouse.com:443 failed – possibly blocked"
       echo "💡 Check AdGuard/Pi-hole or firewall rules"
       return 1
     fi
-
-    # → Hole GPG-Key
     if ! curl -fsSL --retry 3 --connect-timeout 10 "$GPG_URL" |
       gpg --dearmor -o "$GPG_KEY_PATH"; then
       msg_error "Failed to fetch ClickHouse GPG key"
@@ -1911,9 +1908,6 @@ function setup_clickhouse() {
     echo "deb [signed-by=$GPG_KEY_PATH arch=$ARCH] https://packages.clickhouse.com/deb stable main" \
       >/etc/apt/sources.list.d/clickhouse.list
 
-    # ──────────────────────────────────────────────────────
-    # hier unterdrückst du CLICKHOUSE_USER im Env, damit
-    # die Paket-Skripte nicht den Systemuser 'rybbit' anlegen:
     env -u CLICKHOUSE_USER $STD apt-get update
     env -u CLICKHOUSE_USER $STD apt-get install -y \
       clickhouse-server clickhouse-client
