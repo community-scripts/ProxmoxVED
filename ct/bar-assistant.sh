@@ -29,9 +29,9 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE_MEILISEARCH=$(curl -s https://api.github.com/repos/meilisearch/meilisearch/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  RELEASE_BARASSISTANT=$(curl -s https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-  RELEASE_SALTRIM=$(curl -s https://api.github.com/repos/karlomikus/vue-salt-rim/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  RELEASE_MEILISEARCH=$(curl -fsSL https://api.github.com/repos/meilisearch/meilisearch/releases/latest | jq -r '.tag_name')
+  RELEASE_BARASSISTANT=$(curl -fsSL https://api.github.com/repos/karlomikus/bar-assistant/releases/latest | jq -r '.tag_name')
+  RELEASE_SALTRIM=$(curl -fsSL https://api.github.com/repos/karlomikus/vue-salt-rim/releases/latest | jq -r '.tag_name')
 
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE_BARASSISTANT}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Stopping nginx"
