@@ -29,8 +29,7 @@ function update_script() {
     exit
   fi
 
-  msg_info "Fetching Latest Release Version"
-  RELEASE=$(curl -fsSL https://api.github.com/repos/mealie-recipes/mealie/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+')
+  RELEASE=$(curl -fsSL https://api.github.com/repos/mealie-recipes/mealie/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
   if [[ "${RELEASE}" != "$(cat ~/.mealie 2>/dev/null)" ]] || [[ ! -f ~/.mealie ]]; then
 
     PYTHON_VERSION="3.12" setup_uv
