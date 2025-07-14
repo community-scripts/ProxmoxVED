@@ -7,8 +7,8 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 
 APP="Mealie"
 var_tags="${var_tags:-recipes}"
-var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-4096}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
@@ -23,14 +23,68 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /var ]]; then
+
+  if [[ ! -d /opt/mealie ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP LXC"
-  $STD apt-get update
-  $STD apt-get -y upgrade
-  msg_ok "Updated $APP LXC"
+
+  msg_info "Fetching Latest Release Version"
+  RELEASE=$(curl -fsSL https://api.github.com/repos/mealie-recipes/mealie/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+')
+  if [[ "${RELEASE}" != "$(cat ~/.mealie 2>/dev/null)" ]] || [[ ! -f ~/.mealie ]]; then
+
+    PYTHON_VERSION="3.12" setup_uv
+    NODE_MODULE="yarn" NODE_VERSION="20" setup_nodejs
+
+    msg_info "Stopping $APP"
+    systemctl stop mealie
+    msg_ok "Stopped $APP"
+
+    msg_info "Backing up .env and start.sh"
+    cp -f /opt/mealie/mealie.env /opt/mealie/mealie.env.bak
+    cp -f /opt/mealie/start.sh /opt/mealie/start.sh.bak
+    msg_ok "Backup completed"
+
+    fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "$RELEASE" "/opt/mealie"
+
+    msg_info "Rebuilding Frontend"
+    export NUXT_TELEMETRY_DISABLED=1
+    cd /opt/mealie/frontend
+    $STD yarn install --prefer-offline --frozen-lockfile --non-interactive --production=false --network-timeout 1000000
+    $STD yarn generate
+    cp -r /opt/mealie/frontend/dist /opt/mealie/mealie/frontend
+    msg_ok "Frontend rebuilt"
+
+    msg_info "Rebuilding Backend Environment"
+    cd /opt/mealie
+    $STD /opt/mealie/.venv/bin/poetry self add "poetry-plugin-export>=1.9"
+    MEALIE_VERSION=$(/opt/mealie/.venv/bin/poetry version --short)
+    $STD /opt/mealie/.venv/bin/poetry build --output dist
+    $STD /opt/mealie/.venv/bin/poetry export --only=main --extras=pgsql --output=dist/requirements.txt
+    echo "mealie[pgsql]==$MEALIE_VERSION \\" >>dist/requirements.txt
+    /opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.whl | tail -n1 | tr -d '\n' >>dist/requirements.txt
+    echo " \\" >>dist/requirements.txt
+    /opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.tar.gz | tail -n1 >>dist/requirements.txt
+    msg_ok "Backend prepared"
+
+    msg_info "Installing Mealie $MEALIE_VERSION"
+    $STD /opt/mealie/.venv/bin/uv pip install --require-hashes -r /opt/mealie/dist/requirements.txt --find-links dist
+    msg_ok "Installed Mealie $MEALIE_VERSION"
+
+    msg_info "Restoring Configuration"
+    mv -f /opt/mealie/mealie.env.bak /opt/mealie/mealie.env
+    mv -f /opt/mealie/start.sh.bak /opt/mealie/start.sh
+    chmod +x /opt/mealie/start.sh
+    msg_ok "Configuration restored"
+
+    msg_info "Starting $APP"
+    systemctl start mealie
+    msg_ok "Started $APP"
+
+    msg_ok "Update to $RELEASE Successful"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+  fi
   exit
 }
 
