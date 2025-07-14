@@ -65,6 +65,7 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now meilisearch
+sleep 5
 msg_ok "Created Service MeiliSearch"
 
 msg_info "Installing Bar Assistant"
