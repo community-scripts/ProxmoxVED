@@ -1899,6 +1899,7 @@ function setup_clickhouse() {
       echo "💡 Check AdGuard/Pi-hole or firewall rules"
       return 1
     fi
+
     if ! curl -fsSL --retry 3 --connect-timeout 10 "$GPG_URL" |
       gpg --dearmor -o "$GPG_KEY_PATH"; then
       msg_error "Failed to fetch ClickHouse GPG key"
@@ -1909,18 +1910,31 @@ function setup_clickhouse() {
       >/etc/apt/sources.list.d/clickhouse.list
 
     env -u CLICKHOUSE_USER $STD apt-get update
-    env -u CLICKHOUSE_USER $STD apt-get install -y \
-      clickhouse-server clickhouse-client
+    env -u CLICKHOUSE_USER DEBIAN_FRONTEND=noninteractive $STD apt-get install -y clickhouse-server clickhouse-client
 
     $STD systemctl enable --now clickhouse-server
-    sleep 3
 
+    msg_info "Waiting for ClickHouse to be ready"
+    for i in {1..10}; do
+      if clickhouse client --query "SELECT 1" &>/dev/null; then break; fi
+      sleep 1
+    done
+
+    # User anlegen
     clickhouse client --query "CREATE DATABASE IF NOT EXISTS $CLICKHOUSE_DB"
-    clickhouse client --query \
-      "CREATE USER IF NOT EXISTS $CLICKHOUSE_USER IDENTIFIED WITH plaintext_password BY '$CLICKHOUSE_PASS'"
-    clickhouse client --query \
-      "GRANT ALL ON $CLICKHOUSE_DB.* TO $CLICKHOUSE_USER"
-    0
+    clickhouse client --query "CREATE USER IF NOT EXISTS $CLICKHOUSE_USER IDENTIFIED WITH plaintext_password BY '$CLICKHOUSE_PASS'"
+    clickhouse client --query "GRANT ALL ON $CLICKHOUSE_DB.* TO $CLICKHOUSE_USER"
+
+    # Default-User ggf. deaktivieren
+    cat <<EOF >/etc/clickhouse-server/users.d/disable-default.xml
+<yandex>
+  <users>
+    <default remove="1"/>
+  </users>
+</yandex>
+EOF
+    systemctl restart clickhouse-server
+
     msg_ok "Setup ClickHouse (DB: $CLICKHOUSE_DB, User: $CLICKHOUSE_USER)"
 
     {
@@ -1931,8 +1945,7 @@ function setup_clickhouse() {
   else
     msg_info "Updating ClickHouse packages"
     env -u CLICKHOUSE_USER $STD apt-get update
-    env -u CLICKHOUSE_USER $STD apt-get install -y --only-upgrade \
-      clickhouse-server clickhouse-client
+    env -u CLICKHOUSE_USER $STD apt-get install -y --only-upgrade clickhouse-server clickhouse-client
     msg_ok "ClickHouse updated"
   fi
 }
