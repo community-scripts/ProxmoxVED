@@ -37,7 +37,7 @@ msg_ok "Installed Python Dependencies"
 
 msg_info "Setting up Certbot Environment"
 $STD uv venv /opt/certbot
-/opt/certbot/bin/uv pip install --python \
+$STD uv pip install --python \
   certbot \
   certbot-dns-cloudflare \
   certbot-dns-multi
