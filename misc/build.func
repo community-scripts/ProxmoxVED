@@ -985,10 +985,11 @@ install_script() {
       "4" "Use Config File" \
       "5" "Manage Default Storage" \
       "6" "Diagnostic Settings" \
-      "7" "Exit" --nocancel --default-item "1" 3>&1 1>&2 2>&3)
+      "7" "Exit" \
+      --default-item "1" 3>&1 1>&2 2>&3)
 
     if [ $? -ne 0 ]; then
-      echo -e "${CROSS}${RD} Menu canceled. Exiting.${CL}"
+      echo -e "${CROSS}${RD}Menu canceled. Exiting.${CL}"
       exit 0
     fi
 
@@ -1049,7 +1050,7 @@ install_script() {
       fi
       ;;
     7)
-      echo -e "${CROSS}${RD}Exiting.${CL}"
+      echo -e "${CROSS}${RD}Script Exiting.${CL}"
       exit 0
       ;;
     *)
