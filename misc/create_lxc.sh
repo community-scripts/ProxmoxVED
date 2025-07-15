@@ -6,7 +6,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 # This sets verbose mode if the global variable is set to "yes"
-if [ "$VERBOSE" == "yes" ]; then set -x; fi
+# if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
 if command -v curl >/dev/null 2>&1; then
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
