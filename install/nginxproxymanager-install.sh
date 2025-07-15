@@ -56,7 +56,7 @@ ln -sf /usr/bin/python3 /usr/bin/python
 ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
 ln -sf /usr/local/openresty/nginx/sbin/nginx /usr/sbin/nginx
 ln -sf /usr/local/openresty/nginx/ /etc/nginx
-sed -i 's+^daemon+#daemon+g' docker/rootfs/etc/nginx/nginx.conf
+sed -i 's+^daemon+#daemon+g' /tmp/nginxproxymanager/docker/rootfs/etc/nginx/nginx.conf
 NGINX_CONFS=$(find "$(pwd)" -type f -name "*.conf")
 for NGINX_CONF in $NGINX_CONFS; do
   sed -i 's+include conf.d+include /etc/nginx/conf.d+g' "$NGINX_CONF"
