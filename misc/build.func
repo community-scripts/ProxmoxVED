@@ -1050,7 +1050,7 @@ install_script() {
       fi
       ;;
     7)
-      echo -e "${CROSS}${RD}Script Exiting.${CL}"
+      echo -e "\n${CROSS}${RD}Script terminated. Have a great day!${CL}\n"
       exit 0
       ;;
     *)
