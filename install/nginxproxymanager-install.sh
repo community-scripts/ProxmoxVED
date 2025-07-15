@@ -24,7 +24,7 @@ $STD apt-get -y install \
   git
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="16" NODE_MODULE="yarn" NODE_OPTIONS="--openssl-legacy-provider" setup_nodejs
+NODE_VERSION="16" NODE_MODULE="yarn" setup_nodejs
 PYTHON_VERSION="3.12" setup_uv
 fetch_and_deploy_gh_release "nginxproxymanager" "NginxProxyManager/nginx-proxy-manager" "tarball" "latest" "/tmp/nginxproxymanager"
 
