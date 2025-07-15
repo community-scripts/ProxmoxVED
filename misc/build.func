@@ -1245,7 +1245,6 @@ EOF
     "Ollama"
     "FileFlows"
     "Open WebUI"
-    "Debian"
   )
 
   is_vaapi_app=false
@@ -1319,6 +1318,26 @@ EOF
   pct start "$CTID"
   msg_ok "Started LXC Container"
 
+  msg_info "Waiting for network in LXC container"
+  for i in {1..10}; do
+    if pct exec "$CTID" -- ping -c1 -W1 deb.debian.org >/dev/null 2>&1; then
+      msg_ok "Network in LXC is reachable"
+      break
+    else
+      msg_warn "No network yet in LXC (try $i/10) – waiting..."
+      sleep 3
+    fi
+    if [ $i -eq 10 ]; then
+      msg_error "No network in LXC after waiting. Setting fallback DNS..."
+      pct set "$CTID" --nameserver 1.1.1.1
+      pct set "$CTID" --nameserver 8.8.8.8
+      if ! pct exec "$CTID" -- ping -c1 -W1 deb.debian.org >/dev/null 2>&1; then
+        msg_error "Still no network/DNS in LXC! Aborting customization."
+        exit 1
+      fi
+    fi
+  done
+
   msg_info "Customizing LXC Container"
   if [ "$var_os" == "alpine" ]; then
     sleep 3
@@ -1346,7 +1365,10 @@ EOF'
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
 
-    pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 >/dev/null"
+    pct exec "$CTID" -- bash -c "apt-get update && apt-get install -y sudo curl mc gnupg2" || {
+      msg_error "apt-get base packages installation failed"
+      exit 1
+    }
   fi
   msg_ok "Customized LXC Container"
 
