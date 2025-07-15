@@ -36,8 +36,8 @@ $STD apt-get install -y \
 msg_ok "Installed Python Dependencies"
 
 msg_info "Setting up Certbot Environment"
-$STD uv venv /opt/certbot --python "$PYTHON_VERSION"
-/opt/certbot/bin/uv pip install \
+$STD uv venv /opt/certbot
+/opt/certbot/bin/uv pip install --python \
   certbot \
   certbot-dns-cloudflare \
   certbot-dns-multi
