@@ -45,6 +45,7 @@ function update_script() {
     $STD npm run frontend:build
     cp -r ./dist ./backend/dist
     cp -r ./public/locales ./backend/dist/locales
+    cp ./public/favicon.* ./backend/dist
     mv /opt/"$APP".env /opt/"$APP"/.env
     msg_ok "Updated $APP"
 

@@ -27,6 +27,7 @@ export NODE_ENV=production
 $STD npm run frontend:build
 cp -r ./dist ./backend/dist
 cp -r ./public/locales ./backend/dist/locales
+cp ./public/favicon.* ./backend/dist
 msg_ok "Installed Tududi"
 
 msg_info "Creating config and database"
