@@ -10,7 +10,7 @@
   "privileged": false,
   "interface_port": 3002,
   "documentation": null,
-  "config_path": "/",
+  "config_path": "/opt/tududi/backend/.env",
   "website": "https://tududi.com/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/tududi.webp",
   "description": "Self-hosted task management with functional programming architecture, hierarchical organization, and multi-language support.",
