@@ -5,7 +5,7 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/saltstack/salt
 
-APP="saltmaster"
+APP="Salt"
 var_tags="${var_tags:-automations}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-1024}"

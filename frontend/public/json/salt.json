@@ -1,6 +1,6 @@
 {
-  "name": "Saltmaster",
-  "slug": "saltmaster",
+  "name": "Salt",
+  "slug": "salt",
   "categories": [
     1
   ],
@@ -8,16 +8,16 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "config_path": "/opt/saltmaster/.env",
+  "config_path": "/opt/salt/.env",
   "interface_port": 3000,
-  "documentation": "https://saltmaster.io/",
-  "website": "https://saltmaster.io/",
+  "documentation": "https://docs.saltproject.io/salt/install-guide/en/latest/",
+  "website": "https://saltproject.io/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/saltmaster.svg",
   "description": "Saltmaster is an open-source self-hosted application.",
   "install_methods": [
     {
       "type": "default",
-      "script": "ct/saltmaster.sh",
+      "script": "ct/salt.sh",
       "resources": {
         "cpu": 1,
         "ram": 1024,
