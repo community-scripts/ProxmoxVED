@@ -21,7 +21,7 @@ NODE_VERSION="20" setup_nodejs
 
 msg_info "Installing Tududi"
 fetch_and_deploy_gh_release "tududi" "chrisvel/tududi"
-cd /opt/"$APPLICATION"
+cd /opt/tududi
 $STD npm install
 export NODE_ENV=production
 $STD npm run frontend:build
