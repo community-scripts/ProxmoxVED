@@ -12,7 +12,7 @@
   "documentation": null,
   "config_path": "/",
   "website": "https://tududi.com/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/notesnook.webp",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/tududi.webp",
   "description": "Notesnook is a free (as in speech) & open-source note-taking app focused on user privacy & ease of use. To ensure zero knowledge principles, Notesnook encrypts everything on your device using XChaCha20-Poly1305 & Argon2.",
   "install_methods": [
     {
