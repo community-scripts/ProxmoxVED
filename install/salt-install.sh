@@ -18,7 +18,7 @@ $STD apt-get install -y \
   jq
 msg_ok "Installed Dependencies"
 
-fetch_and_deploy_gh_release "salt" "saltstack/salt" "binary" "latest" "/opt/salt" "salt-master*amd64.deb"
+fetch_and_deploy_gh_release "salt" "saltstack/salt" "binary" "latest" "/opt/salt" "salt-master*_amd64.deb"
 
 # msg_info "Setup Salt repo"
 # mkdir -p /etc/apt/keyrings
