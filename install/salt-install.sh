@@ -14,8 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  jq
+$STD apt-get install -y jq
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "salt" "saltstack/salt" "binary" "latest" "/opt/salt" "salt-master*_amd64.deb"

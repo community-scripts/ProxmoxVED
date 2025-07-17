@@ -17,7 +17,7 @@
   "install_methods": [
     {
       "type": "default",
-      "script": "ct/librenms.sh",
+      "script": "ct/cloudreve.sh",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -28,8 +28,8 @@
     }
   ],
   "default_credentials": {
-    "username": "admin",
-    "password": "admin"
+    "username": null,
+    "password": null
   },
   "notes": []
 }
