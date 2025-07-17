@@ -23,14 +23,28 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /var ]]; then
+
+  if [[ ! -d /opt/cloudreve ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP LXC"
-  $STD apt-get update
-  $STD apt-get -y upgrade
-  msg_ok "Updated $APP LXC"
+
+  RELEASE=$(curl -fsSL https://api.github.com/repos/cloudreve/cloudreve/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+  if [[ "${RELEASE}" != "$(cat ~/.cloudreve 2>/dev/null)" ]] || [[ ! -f ~/.cloudreve ]]; then
+    msg_info "Stopping $APP"
+    systemctl stop cloudreve
+    msg_ok "Stopped $APP"
+
+    fetch_and_deploy_gh_release "cloudreve" "cloudreve/cloudreve" "prebuild" "latest" "/opt/cloudreve" "*linux_amd64.tar.gz"
+
+    msg_info "Starting $APP"
+    systemctl start cloudreve
+    msg_ok "Started $APP"
+
+    msg_ok "Update Successful"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+  fi
   exit
 }
 
