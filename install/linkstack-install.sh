@@ -18,9 +18,7 @@ $STD apt-get install -y \
     software-properties-common \
     ca-certificates \
     lsb-release \
-    apt-transport-https \
-    apache2
-    unzip
+    apt-transport-https
 msg_ok "Installed dependencies"
 
 PHP_VERSION="8.2" PHP_MODULE="sqlite3, mysql, fileinfo" PHP_APACHE="YES" install_php
