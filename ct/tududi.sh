@@ -34,7 +34,7 @@ function update_script() {
     systemctl stop tududi
     msg_ok "Stopped Service"
 
-    msg_info "Upadting ${APP}"
+    msg_info "Updating ${APP}"
     cp /opt/"$APP"/backend/.env /opt/"$APP".env
     rm -rf /opt/"$APP"
     fetch_and_deploy_gh_release "tududi" "chrisvel/tududi"
