@@ -44,6 +44,7 @@ RestartSecs=5
 [Install]
 WantedBy=multi-user.target
 EOF
+systemctl enable -q --now ots
 msg_ok "Created Services"
 
 motd_ssh
