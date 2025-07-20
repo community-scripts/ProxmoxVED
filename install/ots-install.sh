@@ -22,7 +22,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Installing OTS"
 fetch_and_deploy_gh_release "ots" "Luzifer/ots" "tarball" "latest" "/opt/ots" "ots_linux_amd64.tgz"
-cat <<EOF >/opt/ots/env"
+cat <<EOF >/opt/ots/env
 LISTEN=0.0.0.0:3000
 REDIS_URL=redis://127.0.0.1:6379
 SECRET_EXPIRY=604800
