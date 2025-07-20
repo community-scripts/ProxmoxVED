@@ -968,7 +968,7 @@ function fetch_and_deploy_gh_release() {
         $STD apt-get install -y unzip
       fi
       unzip -q "$tmpdir/$filename" -d "$unpack_tmp"
-    elif [[ "$filename" == *.tar.* ]]; then
+    elif [[ "$filename" == *.tar.* || "$filename" == *.tgz ]]; then
       tar -xf "$tmpdir/$filename" -C "$unpack_tmp"
     else
       msg_error "Unsupported archive format: $filename"
