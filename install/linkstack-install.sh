@@ -21,15 +21,14 @@ $STD apt-get install -y \
     apt-transport-https
 msg_ok "Installed dependencies"
 
-PHP_VERSION="8.2" PHP_MODULE="sqlite3, mysql, fileinfo" PHP_APACHE="YES" install_php
+PHP_VERSION="8.3" PHP_MODULE="sqlite3, mysql, fileinfo" PHP_APACHE="YES" setup_php
 
 msg_info "Installing LinkStack"
 $STD a2enmod rewrite
 
-ZIP_URL="https://github.com/linkstackorg/linkstack/releases/latest/download/linkstack.zip"
-ZIP_FILE="/tmp/linkstack.zip"
-curl -fsSL -o "$ZIP_FILE" "$ZIP_URL"
-unzip -q "$ZIP_FILE" -d /var/www/html/linkstack
+fetch_and_deploy_gh_release "linkstack" "linkstackorg/linkstack" "prebuild" "latest" "/var/www/html/linkstack"
+
+msg_info "Configuring LinkStack"
 chown -R www-data:www-data /var/www/html/linkstack
 chmod -R 755 /var/www/html/linkstack
 
@@ -55,7 +54,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD rm -f "$ZIP_FILE"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
