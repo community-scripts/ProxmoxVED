@@ -21,7 +21,7 @@ $STD apt-get install -y \
     apt-transport-https
 msg_ok "Installed dependencies"
 
-PHP_VERSION="8.3" PHP_MODULE="sqlite3, mysql, fileinfo" PHP_APACHE="YES" setup_php
+PHP_VERSION="8.3" PHP_MODULE="sqlite3" PHP_APACHE="YES" setup_php
 
 msg_info "Installing LinkStack"
 $STD a2enmod rewrite
