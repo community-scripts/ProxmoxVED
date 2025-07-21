@@ -203,6 +203,12 @@ ENABLE_IPV6_TAGS=false
 # - "last_two_octets": last two octets (e.g., 0.100)
 TAG_FORMAT="full"
 
+# IPv6 Tag format options:
+# - "full": full IPv6 address
+# - "short": compressed form (default)
+# - "last_block": only last block
+IPV6_TAG_FORMAT="short"
+
 # Interval settings (in seconds) - optimized for lower CPU usage
 LOOP_INTERVAL=300
 VM_STATUS_CHECK_INTERVAL=600
@@ -359,6 +365,33 @@ format_ip_tag() {
         *)               echo "$ip" ;;
     esac
 }
+
+format_ipv6_tag() {
+    local ip="$1"
+    [[ -z "$ip" ]] && return
+    local format="${IPV6_TAG_FORMAT:-short}"
+
+    case "$format" in
+        "last_block")
+            # take last hex block
+            echo "${ip##*:}"
+            ;;
+        "full")
+            # return full as-is
+            echo "$ip"
+            ;;
+        "short"|"compressed")
+            # compress repeated zeros (::) automatically
+            # Linux ip command already returns compressed by default
+            echo "$ip"
+            ;;
+        *)
+            # fallback
+            echo "$ip"
+            ;;
+    esac
+}
+
 
 # Check if IP is in any CIDRs
 ip_in_cidrs() {
@@ -626,21 +659,40 @@ update_tags() {
     for ip in $current_ips_full; do
         [[ -z "$ip" ]] && continue
         debug_log "$type $vmid processing IP: '$ip'"
+
         if is_valid_ipv4 "$ip"; then
-            debug_log "$type $vmid IP '$ip' is valid"
+            debug_log "$type $vmid IP '$ip' is valid IPv4"
+            # Only check IPv4 against CIDR list
             if ip_in_cidrs "$ip" "${CIDR_LIST[*]}"; then
-                debug_log "$type $vmid IP '$ip' passed CIDR check"
-                local formatted_ip=$(format_ip_tag "$ip")
-                debug_log "$type $vmid formatted '$ip' -> '$formatted_ip'"
-                [[ -n "$formatted_ip" ]] && formatted_ips+=("$formatted_ip")
+                debug_log "$type $vmid IPv4 '$ip' passed CIDR check"
+                local formatted_ip4
+                formatted_ip4=$(format_ip_tag "$ip")
+                debug_log "$type $vmid formatted IPv4 '$ip' -> '$formatted_ip4'"
+                [[ -n "$formatted_ip4" ]] && formatted_ips+=("$formatted_ip4")
             else
-                debug_log "$type $vmid IP '$ip' failed CIDR check"
+                debug_log "$type $vmid IPv4 '$ip' failed CIDR check, skipping"
             fi
+
+        elif [[ "${ENABLE_IPV6_TAGS,,}" == "true" ]]; then
+            # IPv6 handling only if enabled
+            debug_log "$type $vmid IP '$ip' not IPv4, treating as IPv6"
+            # basic IPv6 validation
+            if [[ "$ip" =~ ^[0-9a-fA-F:]+$ ]]; then
+                debug_log "$type $vmid IPv6 '$ip' accepted"
+                local formatted_ip6
+                formatted_ip6=$(format_ipv6_tag "$ip")
+                debug_log "$type $vmid formatted IPv6 '$ip' -> '$formatted_ip6'"
+                [[ -n "$formatted_ip6" ]] && formatted_ips+=("$formatted_ip6")
+            else
+                debug_log "$type $vmid value '$ip' not recognized as valid IPv6, skipping"
+            fi
+
         else
-            debug_log "$type $vmid IP '$ip' is invalid"
+            debug_log "$type $vmid IP '$ip' is invalid or IPv6 not enabled"
         fi
     done
     debug_log "$type $vmid final formatted_ips: ${formatted_ips[*]}"
+
 
     # If LXC and no IPs detected, do not touch tags at all
     if [[ "$type" == "lxc" && ${#formatted_ips[@]} -eq 0 ]]; then
