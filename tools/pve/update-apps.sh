@@ -143,7 +143,7 @@ containers_needing_reboot=()
 for container in $CHOICE; do
   echo -e "${BL}[INFO]${CL} Updating container $container"
 
-  if [ "BACKUP_CHOICE" == "yes" ];then
+  if [ "$BACKUP_CHOICE" == "yes" ];then
     backup_container $container
   fi
 
