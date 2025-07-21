@@ -26,7 +26,7 @@ PHP_VERSION="8.3" PHP_MODULE="sqlite3" PHP_APACHE="YES" setup_php
 msg_info "Installing LinkStack"
 $STD a2enmod rewrite
 
-fetch_and_deploy_gh_release "linkstack" "linkstackorg/linkstack" "prebuild" "latest" "/var/www/html/linkstack"
+fetch_and_deploy_gh_release "linkstack" "linkstackorg/linkstack" "prebuild" "latest" "/var/www/html/linkstack" "linkstack.zip"
 
 msg_info "Configuring LinkStack"
 chown -R www-data:www-data /var/www/html/linkstack
