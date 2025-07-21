@@ -38,6 +38,31 @@ function backup_container(){
   fi
 }
 
+function get_backup_storages(){
+STORAGES=$(awk '
+/^[a-z]+:/ {
+    if (name != "") {
+        if (has_backup || (!has_content && type == "dir")) print name
+    }
+    split($0, a, ":")
+    type = a[1]
+    name = a[2]
+    sub(/^ +/, "", name)
+    has_content = 0
+    has_backup = 0
+}
+/^ +content/ {
+    has_content = 1
+    if ($0 ~ /backup/) has_backup = 1
+}
+END {
+    if (name != "") {
+        if (has_backup || (!has_content && type == "dir")) print name
+    }
+}
+' /etc/pve/storage.cfg)
+}
+
 header_info
 echo "Loading..."
 whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "This will update LXC container. Proceed?" 10 58 || exit
@@ -88,7 +113,8 @@ if(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Updat
 fi
 
 if [ "$BACKUP_CHOICE" == "yes" ]; then
-  STORAGES=$(awk '/^(\S+):/ {storage=$2} /content.*backup/ {print storage}' /etc/pve/storage.cfg)
+  #STORAGES=$(awk '/^(\S+):/ {storage=$2} /content.*backup/ {print storage}' /etc/pve/storage.cfg)
+  get_backup_storages
 
   if [ -z "$STORAGES" ]; then
     whiptail --msgbox "No storage with 'backup' found!" 8 40
