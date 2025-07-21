@@ -145,6 +145,16 @@ for container in $CHOICE; do
     backup_container $container
   fi
 
+  os=$(pct config "$container" | awk '/^ostype/ {print $2}')
+  status=$(pct status $container)
+  template=$(pct config $container | grep -q "template:" && echo "true" || echo "false")
+  if [ "$template" == "false" ] && [ "$status" == "status: stopped" ]; then
+    echo -e "${BL}[Info]${GN} Starting${BL} $container ${CL} \n"
+    pct start $container
+    echo -e "${BL}[Info]${GN} Waiting For${BL} $container${CL}${GN} To Start ${CL} \n"
+    sleep 5
+  fi
+
   #1) Detect service using the service name in the update command
   detect_service $container
 
@@ -202,16 +212,6 @@ for container in $CHOICE; do
   #3) if build resources are different than run resources, then:
   if [ "$UPDATE_BUILD_RESOURCES" -eq "1" ]; then
     pct set "$container" --cores "$build_cpu" --memory "$build_ram"
-  fi
-
-  os=$(pct config "$container" | awk '/^ostype/ {print $2}')
-  status=$(pct status $container)
-  template=$(pct config $container | grep -q "template:" && echo "true" || echo "false")
-  if [ "$template" == "false" ] && [ "$status" == "status: stopped" ]; then
-    echo -e "${BL}[Info]${GN} Starting${BL} $container ${CL} \n"
-    pct start $container
-    echo -e "${BL}[Info]${GN} Waiting For${BL} $container${CL}${GN} To Start ${CL} \n"
-    sleep 5
   fi
 
   #4) Update service, using the update command
