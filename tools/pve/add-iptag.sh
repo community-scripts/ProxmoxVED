@@ -195,7 +195,7 @@ CIDR_LIST=(
   100.64.0.0/10
 )
 # Enable or Disable IPv6 tagging
-ENABLE_IPV6_TAGS=false
+ENABLE_IPV6_TAGS=true
 
 # Tag format options:
 # - "full": full IP address (e.g., 192.168.0.100)
@@ -228,8 +228,8 @@ MAX_PARALLEL_LXC_CHECKS=2
 LXC_BATCH_SIZE=3
 LXC_STATUS_CACHE_TTL=300
 LXC_AGGRESSIVE_CACHING=true
-LXC_SKIP_SLOW_METHODS=true
-LXC_ALLOW_FORCED_COMMANDS=false
+LXC_SKIP_SLOW_METHODS=false
+LXC_ALLOW_FORCED_COMMANDS=true
 
 # Debug settings (set to true to enable debugging)
 DEBUG=false
@@ -1246,15 +1246,34 @@ get_lxc_ips() {
     fi
 
     # ----- OPTIONAL IPv6 detection -----
-    if [[ -z "$ips" && "${ENABLE_IPV6_TAGS,,}" == "true" ]]; then
-        debug_log "lxc $vmid: trying IPv6 neighbor lookup"
-        local mac_addr=$(grep -Eo 'hwaddr=([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}' "$pve_lxc_config" | head -1 | cut -d'=' -f2 | tr 'A-F' 'a-f')
-        if [[ -n "$mac_addr" ]]; then
-            local ipv6=$(ip -6 neighbor show | grep -i "$mac_addr" | grep -oE '([0-9a-fA-F:]+:+)+' | head -1)
-            if [[ -n "$ipv6" ]]; then
-                ips="$ipv6"
-                method_used="ipv6_neighbor"
-                debug_log "lxc $vmid: found IPv6: $ips"
+    if [[ "${ENABLE_IPV6_TAGS,,}" == "true" ]]; then
+        debug_log "lxc $vmid: IPv6 detection enabled"
+
+        # 1. Try to get IPv6 from inside the container
+        local pct_ipv6=$(timeout 3 pct exec "$vmid" -- ip -6 addr show scope global 2>/dev/null \
+                         | grep -oE '([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}' \
+                         | grep -v '^fe80' | head -1)
+        if [[ -n "$pct_ipv6" ]]; then
+            debug_log "lxc $vmid: found IPv6 via pct exec: $pct_ipv6"
+            [[ -n "$ips" ]] && ips="$ips $pct_ipv6" || ips="$pct_ipv6"
+            method_used="${method_used:+$method_used,}ipv6_exec"
+        else
+            debug_log "lxc $vmid: no IPv6 from pct exec, fallback to neighbor table"
+
+            # 2. Fallback: neighbor table
+            local mac_addr=$(grep -Eo 'hwaddr=([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}' "$pve_lxc_config" \
+                              | head -1 | cut -d'=' -f2 | tr 'A-F' 'a-f')
+            if [[ -n "$mac_addr" ]]; then
+                local ipv6_nb=$(ip -6 neighbor show | grep -i "$mac_addr" \
+                                 | grep -oE '([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}' \
+                                 | grep -v '^fe80' | head -1)
+                if [[ -n "$ipv6_nb" ]]; then
+                    debug_log "lxc $vmid: found IPv6 via neighbor: $ipv6_nb"
+                    [[ -n "$ips" ]] && ips="$ips $ipv6_nb" || ips="$ipv6_nb"
+                    method_used="${method_used:+$method_used,}ipv6_neighbor"
+                else
+                    debug_log "lxc $vmid: no IPv6 found in neighbor table"
+                fi
             fi
         fi
     fi
