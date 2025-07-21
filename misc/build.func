@@ -31,9 +31,9 @@ fi
 # This function enables error handling in the script by setting options and defining a trap for the ERR signal.
 catch_errors() {
   set -Eeo pipefail
-  if [ -n "$BASH_VERSION" ] && command -v shopt >/dev/null 2>&1; then
-    shopt -s errtrace
-  fi
+  # if [ -n "$BASH_VERSION" ] && command -v shopt >/dev/null 2>&1; then
+  #   shopt -s errtrace
+  # fi
   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
 
