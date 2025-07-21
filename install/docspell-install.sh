@@ -59,7 +59,7 @@ msg_ok "Set up PostgreSQL Database"
 fetch_and_deploy_gh_release "docspell-joex" "eikek/docspell" "binary" "latest" "/opt/docspell-joex" "docspell-joex_*all.deb"
 fetch_and_deploy_gh_release "docspell-restserver" "eikek/docspell" "binary" "latest" "/opt/docspell-restserver" "docspell-restserver_*all.deb"
 fetch_and_deploy_gh_release "docspell-dsc" "docspell/dsc" "singlefile" "latest" "/usr/bin" "dsc"
-
+fetch_and_deploy_gh_release "apache-solr" "apache/solr" "tarball" "latest" "/opt/docspell"
 
 
 msg_info "Setup Docspell"

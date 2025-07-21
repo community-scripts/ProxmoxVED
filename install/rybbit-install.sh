@@ -48,6 +48,32 @@ msg_ok "Set up PostgreSQL Database"
 
 fetch_and_deploy_gh_release "rybbit" "rybbit-io/rybbit" "tarball" "latest" "/opt/rybbit"
 
+cd /opt/rybbit/shared
+npm install
+npm run build
+
+cd /opt/rybbit/server
+RUN npm ci
+npm run build
+
+cd /opt/rybbit/client
+npm ci --legacy-peer-deps
+npm run build
+
+mv /opt/rybbit/.env.example /opt/rybbit/.env
+sed -i "s|^POSTGRES_DB=.*|POSTGRES_DB=$DB_NAME|g" /opt/rybbit/.env
+sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=$DB_USER|g" /opt/rybbit/.env
+sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$DB_PASS|g" /opt/rybbit/.env
+sed -i "s|^DOMAIN_NAME=.*|DOMAIN_NAME=localhost|g" /opt/rybbit/.env
+sed -i "s|^BASE_URL=.*|BASE_URL=\"http://localhost\"|g" /opt/rybbit/.env
+msg_ok "Rybbit Installed"
+
+msg_info "Setting up Caddy"
+mkdir -p /etc/caddy
+cp /opt/rybbit/Caddyfile /etc/caddy/Caddyfile
+systemctl enable -q --now caddy
+msg_ok "Caddy Setup"
+
 motd_ssh
 customize
 
