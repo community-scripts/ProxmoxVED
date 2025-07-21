@@ -53,7 +53,7 @@ npm install
 npm run build
 
 cd /opt/rybbit/server
-RUN npm ci
+npm ci
 npm run build
 
 cd /opt/rybbit/client
