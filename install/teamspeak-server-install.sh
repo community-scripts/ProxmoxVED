@@ -30,7 +30,7 @@ Wants=network-online.target
 After=network.target
 
 [Service]
-WorkingDirectory=/opt/teamspeak
+WorkingDirectory=/opt/teamspeak-server
 User=root
 Type=forking
 ExecStart=/opt/teamspeak-server/ts3server_startscript.sh start
