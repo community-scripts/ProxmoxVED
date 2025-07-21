@@ -15,7 +15,6 @@ update_os
 
 PYTHON_VERSION="3.12" setup_uv
 
-
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   python3 python3-pip python3-venv \
