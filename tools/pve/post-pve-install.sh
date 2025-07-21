@@ -44,6 +44,12 @@ msg_error() {
   echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
 }
 
+msg_custom() {
+  local msg="$1"
+  echo -e "${BFR} ${YW}⚠ ${msg}${CL}"
+}
+
+
 start_routines() {
   header_info
 
