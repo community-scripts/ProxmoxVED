@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: Slaviša Arežina (tremor021)
+# Author: tremor021 (Slaviša Arežina)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/TwiN/gatus
+# Source: https://teamspeak.com/en/
 
 APP="Alpine-TeamSpeak-Server"
 var_tags="${var_tags:-alpine;communication}"

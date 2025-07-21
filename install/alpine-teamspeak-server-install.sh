@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: Slaviša Arežina (tremor021)
+# Author: tremor021 (Slaviša Arežina)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/TwiN/gatus
+# Source: https://teamspeak.com/en/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -57,7 +57,7 @@ $STD rc-update add teamspeak default
 msg_ok "Enabled TeamSpeak Server Service"
 
 msg_info "Starting TeamSpeak Server"
-$STD service gatus start
+$STD service teamspeak start
 msg_ok "Started TeamSpeak Server"
 
 motd_ssh
