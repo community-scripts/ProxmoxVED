@@ -30,12 +30,12 @@ function update_script() {
   fi
 
   RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+  if [[ ! -f /~.salt ]] || [[ "${RELEASE}" != "$(cat /~.salt)" ]]; then
     msg_info "Updating $APP to ${RELEASE}"
     sed -i "s/^\(Pin: version \).*/\1${RELEASE}/" /etc/apt/preferences.d/salt-pin-1001
     $STD apt-get update
     $STD apt-get upgrade -y
-    echo "${RELEASE}" >/opt/${APP}_version.txt
+    echo "${RELEASE}" >/~.salt
     msg_ok "Updated ${APP} to ${RELEASE}"
   else
     msg_ok "${APP} is already up to date (${RELEASE})"
