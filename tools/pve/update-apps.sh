@@ -141,7 +141,7 @@ fi
 
 containers_needing_reboot=()
 for container in $CHOICE; do
-  msg_info "Updating container $container"
+  echo -e "${BL}[INFO]${CL} Updating container $container"
 
   if [ "BACKUP_CHOICE" == "yes" ];then
     backup_container $container
@@ -164,7 +164,7 @@ for container in $CHOICE; do
   #2.1) Check if the script downloaded successfully
   if [ $? -ne 0 ]; then
     echo -e "${RD}[ERROR]${CL} Issue while downloading install script."
-	echo -e "${YW}[WARN]${CL} Unable to assess build resource requirements. Proceeding with current resources."
+    echo -e "${YW}[WARN]${CL} Unable to assess build resource requirements. Proceeding with current resources."
   fi
 
   config=$(pct config "$container")
