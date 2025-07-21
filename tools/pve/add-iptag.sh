@@ -194,12 +194,14 @@ CIDR_LIST=(
   10.0.0.0/8
   100.64.0.0/10
 )
+# Enable or Disable IPv6 tagging
+ENABLE_IPV6_TAGS=false
 
 # Tag format options:
 # - "full": full IP address (e.g., 192.168.0.100)
 # - "last_octet": only the last octet (e.g., 100)
 # - "last_two_octets": last two octets (e.g., 0.100)
-TAG_FORMAT="last_two_octets"
+TAG_FORMAT="full"
 
 # Interval settings (in seconds) - optimized for lower CPU usage
 LOOP_INTERVAL=300
@@ -1088,14 +1090,23 @@ process_lxc_parallel() {
 }
 
 # Optimized LXC IP detection with caching and alternative methods
+# -------------------------------------------
+# Combined optimized LXC IP detection
+# Keeps advanced debug logs & methods
+# Adds IPv6 detection controlled by ENABLE_IPV6_TAGS
+# -------------------------------------------
 get_lxc_ips() {
     local vmid=$1
+    local ips=""
+    local method_used=""
+
+    # status cache for container state
     local status_cache_file="/tmp/iptag_lxc_status_${vmid}_cache"
     local status_cache_ttl=${LXC_STATUS_CACHE_TTL:-30}
 
-    debug_log "lxc $vmid: starting extreme optimized IP detection"
+    debug_log "lxc $vmid: starting combined IP detection"
 
-    # Check status cache first (avoid expensive pct status calls)
+    # ----- STATUS CHECK -----
     local lxc_status=""
     if [[ -f "$status_cache_file" ]] && [[ $(($(date +%s) - $(stat -c %Y "$status_cache_file" 2>/dev/null || echo 0))) -lt $status_cache_ttl ]]; then
         lxc_status=$(cat "$status_cache_file" 2>/dev/null)
@@ -1111,74 +1122,48 @@ get_lxc_ips() {
         return
     fi
 
-    local ips=""
-    local method_used=""
-
-    # EXTREME Method 1: Direct Proxmox config inspection (super fast)
-    debug_log "lxc $vmid: trying direct Proxmox config inspection"
+    # ----- TRY CONFIG FOR STATIC IP -----
     local pve_lxc_config="/etc/pve/lxc/${vmid}.conf"
     if [[ -f "$pve_lxc_config" ]]; then
         local static_ip=$(grep -E "^net[0-9]+:" "$pve_lxc_config" 2>/dev/null | grep -oE 'ip=([0-9]{1,3}\.){3}[0-9]{1,3}' | cut -d'=' -f2 | head -1)
-        debug_log "lxc $vmid: [CONFIG] static_ip='$static_ip' (from $pve_lxc_config)"
+        debug_log "lxc $vmid: [CONFIG] static_ip='$static_ip'"
         if [[ -n "$static_ip" && "$static_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-            debug_log "lxc $vmid: found static IP $static_ip in Proxmox config"
             ips="$static_ip"
             method_used="proxmox_config"
         fi
-    else
-        debug_log "lxc $vmid: [CONFIG] config file not found: $pve_lxc_config"
     fi
 
-    # EXTREME Method 2: Direct network namespace inspection (fastest dynamic)
+    # ----- NAMESPACE FAST PARSE -----
     if [[ -z "$ips" ]]; then
-        debug_log "lxc $vmid: trying optimized namespace inspection"
         local ns_file="/var/lib/lxc/${vmid}/rootfs/proc/net/fib_trie"
+        debug_log "lxc $vmid: trying namespace fib_trie"
         if [[ -f "$ns_file" ]]; then
             local ns_ip=$(timeout 1 grep -m1 -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' "$ns_file" 2>/dev/null | grep -v '127.0.0.1' | head -1)
-            debug_log "lxc $vmid: [NAMESPACE] ns_ip='$ns_ip'"
             if [[ -n "$ns_ip" ]] && is_valid_ipv4 "$ns_ip"; then
-                debug_log "lxc $vmid: found IP $ns_ip via namespace inspection"
                 ips="$ns_ip"
-                method_used="namespace"
+                method_used="namespace_fib"
+                debug_log "lxc $vmid: found IP via namespace: $ips"
             fi
-        else
-            debug_log "lxc $vmid: [NAMESPACE] ns_file not found: $ns_file"
         fi
     fi
 
-    # EXTREME Method 3: Batch ARP table lookup (if namespace failed)
+    # ----- ARP TABLE -----
     if [[ -z "$ips" ]]; then
-        debug_log "lxc $vmid: trying batch ARP lookup"
-        local bridge_name=""; local mac_addr=""
-        if [[ -f "$pve_lxc_config" ]]; then
-            bridge_name=$(grep -Eo 'bridge=[^,]+' "$pve_lxc_config" | head -1 | cut -d'=' -f2)
-            mac_addr=$(grep -Eo 'hwaddr=([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}' "$pve_lxc_config" | head -1 | cut -d'=' -f2)
-            debug_log "lxc $vmid: [ARP] bridge_name='$bridge_name' mac_addr='$mac_addr' (from $pve_lxc_config)"
-        fi
-        if [[ -z "$bridge_name" || -z "$mac_addr" ]]; then
-            local lxc_config="/var/lib/lxc/${vmid}/config"
-            if [[ -f "$lxc_config" ]]; then
-                [[ -z "$bridge_name" ]] && bridge_name=$(grep "lxc.net.0.link" "$lxc_config" 2>/dev/null | cut -d'=' -f2 | tr -d ' ')
-                [[ -z "$mac_addr" ]] && mac_addr=$(grep "lxc.net.0.hwaddr" "$lxc_config" 2>/dev/null | cut -d'=' -f2 | tr -d ' ')
-                debug_log "lxc $vmid: [ARP] bridge_name='$bridge_name' mac_addr='$mac_addr' (from $lxc_config)"
-            else
-                debug_log "lxc $vmid: [ARP] lxc config not found: $lxc_config"
-            fi
-        fi
-        if [[ -n "$bridge_name" && -n "$mac_addr" ]]; then
-            local bridge_ip=$(ip neighbor show dev "$bridge_name" 2>/dev/null | grep "$mac_addr" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
-            debug_log "lxc $vmid: [ARP] bridge_ip='$bridge_ip'"
+        debug_log "lxc $vmid: trying ARP lookup"
+        local mac_addr=$(grep -Eo 'hwaddr=([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}' "$pve_lxc_config" | head -1 | cut -d'=' -f2 | tr 'A-F' 'a-f')
+        if [[ -n "$mac_addr" ]]; then
+            local bridge_ip=$(ip neighbor show | grep "$mac_addr" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
             if [[ -n "$bridge_ip" && "$bridge_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-                debug_log "lxc $vmid: found IP $bridge_ip via ARP table"
                 ips="$bridge_ip"
                 method_used="arp_table"
+                debug_log "lxc $vmid: found IP via ARP: $ips"
             fi
         fi
     fi
 
-    # EXTREME Method 4: Fast process namespace (if ARP failed)
-    if [[ -z "$ips" ]] && [[ "${LXC_SKIP_SLOW_METHODS:-true}" != "true" ]]; then
-        debug_log "lxc $vmid: trying fast process namespace"
+    # ----- PROCESS NAMESPACE (fast) -----
+    if [[ -z "$ips" && "${LXC_SKIP_SLOW_METHODS:-true}" != "true" ]]; then
+        debug_log "lxc $vmid: trying process namespace"
         local pid_cache_file="/tmp/iptag_lxc_pid_${vmid}_cache"
         local container_pid=""
         if [[ -f "$pid_cache_file" ]] && [[ $(($(date +%s) - $(stat -c %Y "$pid_cache_file" 2>/dev/null || echo 0))) -lt 60 ]]; then
@@ -1187,53 +1172,46 @@ get_lxc_ips() {
             container_pid=$(pct list 2>/dev/null | grep "^$vmid" | awk '{print $3}')
             [[ -n "$container_pid" && "$container_pid" != "-" ]] && echo "$container_pid" > "$pid_cache_file"
         fi
-        debug_log "lxc $vmid: [PROCESS_NS] container_pid='$container_pid'"
         if [[ -n "$container_pid" && "$container_pid" != "-" ]]; then
             local ns_ip=$(timeout 1 nsenter -t "$container_pid" -n ip -4 addr show 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -v '127.0.0.1' | head -1)
-            debug_log "lxc $vmid: [PROCESS_NS] ns_ip='$ns_ip'"
             if [[ -n "$ns_ip" ]] && is_valid_ipv4 "$ns_ip"; then
-                debug_log "lxc $vmid: found IP $ns_ip via process namespace"
                 ips="$ns_ip"
                 method_used="process_ns"
+                debug_log "lxc $vmid: found IP via process namespace: $ips"
             fi
         fi
     fi
 
-    # Fallback: always do lxc-attach/pct exec with timeout if nothing found
-    if [[ -z "$ips" && "${LXC_ALLOW_FORCED_COMMANDS:-true}" == "true" ]]; then
-        debug_log "lxc $vmid: trying fallback lxc-attach (forced)"
-        local attach_ip=""
-        attach_ip=$(timeout 7s lxc-attach -n "$vmid" -- ip -4 addr show 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -v '127.0.0.1' | head -1)
-        local attach_status=$?
-        debug_log "lxc $vmid: [LXC_ATTACH] attach_ip='$attach_ip' status=$attach_status"
-        if [[ $attach_status -eq 124 ]]; then
-            debug_log "lxc $vmid: lxc-attach timed out after 7s"
-        fi
-        if [[ -n "$attach_ip" ]] && is_valid_ipv4 "$attach_ip"; then
-            debug_log "lxc $vmid: found IP $attach_ip via lxc-attach (forced)"
-            ips="$attach_ip"
-            method_used="lxc_attach_forced"
-        fi
-    fi
-    if [[ -z "$ips" && "${LXC_ALLOW_FORCED_COMMANDS:-true}" == "true" ]]; then
-        debug_log "lxc $vmid: trying fallback pct exec (forced)"
-        local pct_ip=""
-        pct_ip=$(timeout 7s pct exec "$vmid" -- ip -4 addr show 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -v '127.0.0.1' | head -1)
-        local pct_status=$?
-        debug_log "lxc $vmid: [PCT_EXEC] pct_ip='$pct_ip' status=$pct_status"
-        if [[ $pct_status -eq 124 ]]; then
-            debug_log "lxc $vmid: pct exec timed out after 7s"
-        fi
+    # ----- FORCED METHODS (attach/exec) -----
+    if [[ -z "$ips" && "${LXC_ALLOW_FORCED_COMMANDS:-false}" == "true" ]]; then
+        debug_log "lxc $vmid: trying forced pct exec"
+        local pct_ip=$(timeout 7s pct exec "$vmid" -- ip -4 addr show 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | grep -v '127.0.0.1' | head -1)
         if [[ -n "$pct_ip" ]] && is_valid_ipv4 "$pct_ip"; then
-            debug_log "lxc $vmid: found IP $pct_ip via pct exec (forced)"
             ips="$pct_ip"
             method_used="pct_exec_forced"
+            debug_log "lxc $vmid: found IP via pct exec: $ips"
         fi
     fi
 
+    # ----- OPTIONAL IPv6 detection -----
+    if [[ -z "$ips" && "${ENABLE_IPV6_TAGS,,}" == "true" ]]; then
+        debug_log "lxc $vmid: trying IPv6 neighbor lookup"
+        local mac_addr=$(grep -Eo 'hwaddr=([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}' "$pve_lxc_config" | head -1 | cut -d'=' -f2 | tr 'A-F' 'a-f')
+        if [[ -n "$mac_addr" ]]; then
+            local ipv6=$(ip -6 neighbor show | grep -i "$mac_addr" | grep -oE '([0-9a-fA-F:]+:+)+' | head -1)
+            if [[ -n "$ipv6" ]]; then
+                ips="$ipv6"
+                method_used="ipv6_neighbor"
+                debug_log "lxc $vmid: found IPv6: $ips"
+            fi
+        fi
+    fi
+
+    # ----- FINAL RESULT -----
     debug_log "lxc $vmid: [RESULT] ips='$ips' method='$method_used'"
     echo "$ips"
 }
+
 
 main
 EOF
