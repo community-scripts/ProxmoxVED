@@ -33,7 +33,7 @@ msg_ok "Python Environment Setup (uv)"
 
 msg_info "Installing Viseron"
 RELEASE=$(curl -s https://api.github.com/repos/roflcoopter/viseron/releases/latest | jq -r '.tag_name')
-uv pip install viseron==${RELEASE#v}
+uv pip install https://github.com/roflcoopter/viseron/archive/refs/tags/${RELEASE}.tar.gz
 ln -s /opt/viseron/bin/viseron /usr/local/bin/viseron
 msg_ok "Installed Viseron $RELEASE"
 
