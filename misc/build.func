@@ -35,14 +35,18 @@ catch_errors() {
 
 # This function is called when an error occurs. It receives the exit code, line number, and command that caused the error, and displays an error message.
 error_handler() {
-  source /dev/stdin <<<$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
-  printf "\e[?25h"
+
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
+  printf "\e[?25h"
+
+
+  source /dev/stdin <<<$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
+  local error_message="[ERROR] in line $line_number: exit code $exit_code: while executing command $command"
   post_update_to_api "failed" "${command}"
   echo -e "\n$error_message\n"
+  exit "$exit_code"
 
   if [[ -n "$CT_ID" ]]; then
     read -p "Remove this Container? <y/N> " prompt
@@ -53,6 +57,7 @@ error_handler() {
     fi
   fi
 }
+
 # Check if the shell is using bash
 shell_check() {
   if [[ "$(basename "$SHELL")" != "bash" ]]; then
@@ -1228,10 +1233,8 @@ build_container() {
   $PW
 "
   bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)"
-  RET=$?
-  if [[ $RET -ne 0 ]]; then
-    msg_error "rny: in line $LINENO: exit code $RET: while executing create_lxc.sh"
-    exit $RET
+  if [ $? -ne 0 ]; then
+      exit 200
   fi
 
   LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
@@ -1394,7 +1397,10 @@ EOF'
   fi
   msg_ok "Customized LXC Container"
 
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/"$var_install".sh)" $?
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/"$var_install".sh)"
+  if [ $? -ne 0 ]; then
+    exit 100
+  fi
 }
 
 # This function sets the description of the container.
