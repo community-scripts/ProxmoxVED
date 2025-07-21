@@ -22,19 +22,19 @@ $STD apt-get install -y \
     htop \
     ca-certificates \
     apt-transport-https \
-    tesseract-ocr \
-    tesseract-ocr-deu \
-    tesseract-ocr-eng \
-    unpaper \
-    unoconv \
-    wkhtmltopdf \
-    ocrmypdf
+    tesseract-ocr
+    #tesseract-ocr-deu \
+    #tesseract-ocr-eng \
+    #unpaper \
+    #unoconv \
+    #wkhtmltopdf \
+    #ocrmypdf
 msg_ok "Installed Dependencies"
 
 
 setup_gs
 JAVA_VERSION="21" setup_java
-POSTGRES_VERSION="16" setup_postgres
+POSTGRES_VERSION="16" setup_postgresql
 setup_yq
 
 msg_info "Set up PostgreSQL Database"
