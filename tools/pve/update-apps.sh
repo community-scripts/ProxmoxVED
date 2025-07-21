@@ -18,6 +18,26 @@ function header_info {
 EOF
 }
 
+function detect_service(){
+  pushd $(mktemp -d) >/dev/null
+  pct pull "$1" /usr/bin/update update 2>/dev/null
+  service=$(cat update | sed 's|.*/ct/||g' | sed 's|\.sh).*||g')
+  popd >/dev/null
+}
+
+function backup_container(){
+  msg_info "Creating backup for container $1"
+  vzdump $1 --compress zstd --storage $STORAGE_CHOICE -notes-template "community-scripts backup updater" > /dev/null 2>&1
+  status=$?
+
+  if [ $status -eq 0 ]; then
+    msg_ok "Backup created"
+  else
+    msg_error "Backup failed for container $1"
+    exit 1
+  fi
+}
+
 header_info
 echo "Loading..."
 whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "This will update LXC container. Proceed?" 10 58 || exit
@@ -87,26 +107,6 @@ if [ "$BACKUP_CHOICE" == "yes" ]; then
       exit 1
   fi
 fi
-
-function backup_container(){
-  msg_info "Creating backup for container $1"
-  vzdump $1 --compress zstd --storage $STORAGE_CHOICE -notes-template "community-scripts backup updater" > /dev/null 2>&1
-  status=$?
-
-  if [ $status -eq 0 ]; then
-    msg_ok "Backup created"
-  else
-    msg_error "Backup failed for container $1"
-    exit 1
-  fi
-}
-
-function detect_service(){
-  pushd $(mktemp -d) >/dev/null
-  pct pull "$1" /usr/bin/update update 2>/dev/null
-  service=$(cat update | sed 's|.*/ct/||g' | sed 's|\.sh).*||g')
-  popd >/dev/null
-}
 
 UPDATE_CMD="update;"
 if [ "$UNATTENDED_UPDATE" == "yes" ];then
