@@ -246,12 +246,38 @@ while true; do
   esac
 done
 
-if ! pveversion | grep -Eq "pve-manager/8\.[0-4](\.[0-9]+)*"; then
+# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
+pve_check() {
+  local PVE_VER
+  PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
+
+  # 8 Version Check
+  if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
+    local MINOR="${BASH_REMATCH[1]}"
+    if (( MINOR < 1 || MINOR > 4 )); then
+      msg_error "This version of Proxmox Virtual Environment is not supported"
+      echo -e "Requires Proxmox Virtual Environment Version 8.1 – 8.4"
+      echo -e "Exiting..."
+      sleep 2
+      exit 1
+    fi
+    return 0
+  fi
+
+  # 9 Beta Version Check
+  if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
+    msg_custom "Detected Proxmox Virtual Environment $PVE_VER – Beta state, use with caution!"
+    return 0
+  fi
+
+  # All others (unsupported versions)
   msg_error "This version of Proxmox Virtual Environment is not supported"
-  echo -e "Requires Proxmox Virtual Environment Version 8.0 or later."
+  echo -e "Requires Proxmox Virtual Environment Version 8.1 – 8.4 or 9.x (Beta)"
   echo -e "Exiting..."
   sleep 2
-  exit
-fi
+  exit 1
+}
 
+
+pve_check
 start_routines
