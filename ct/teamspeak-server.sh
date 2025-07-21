@@ -5,7 +5,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://teamspeak.com/en/
 
-APP="Teamspeak Server"
+APP="teamspeak-server"
 var_tags="${var_tags:-voice;communication}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-2048}"
