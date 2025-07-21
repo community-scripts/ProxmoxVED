@@ -1390,16 +1390,17 @@ EOF'
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
 
-    pct exec "$CTID" -- bash -c "apt-get update && apt-get install -y sudo curl mc gnupg2" || {
+    pct exec "$CTID" -- bash -c "$STD apt-get update && $STD apt-get install -y sudo curl mc gnupg2" || {
       msg_error "apt-get base packages installation failed"
       exit 1
     }
   fi
   msg_ok "Customized LXC Container"
 
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/"$var_install".sh)"; then
-      return
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)"; then
+      exit $?
   fi
+
 }
 
 # This function sets the description of the container.
