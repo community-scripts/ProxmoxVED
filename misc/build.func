@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Copyright (c) 2021-2025 tteck
 # Author: tteck (tteckster)
 # Co-Author: MickLesk
@@ -30,7 +31,9 @@ fi
 # This function enables error handling in the script by setting options and defining a trap for the ERR signal.
 catch_errors() {
   set -Eeo pipefail
-  shopt -s errtrace
+  if [ -n "$BASH_VERSION" ]; then
+    shopt -s errtrace
+  fi
   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
 
