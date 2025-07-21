@@ -77,18 +77,16 @@ fi
 
 menu_items=()
 FORMAT="%-10s %-15s %-10s"
+TAGS="community-script|proxmox-helper-scripts"
 
 while read -r container; do
-    container_id=$(echo $container | awk '{print $1}')
-    container_name=$(echo $container | awk '{print $2}')
-    container_status=$(echo $container | awk '{print $3}')
-    formatted_line=$(printf "$FORMAT" "$container_name" "$container_status")
-    #IS_HELPERSCRIPT_LXC=$(pct exec $container_id -- [ -e /usr/bin/update ] && echo true || echo false)
-	#if [ "$IS_HELPERSCRIPT_LXC" = true ]; then
-	detect_service $container
-    if [ -n "${service}" ]; then
-      menu_items+=("$container_id" "$formatted_line" "OFF")
-    fi
+  container_id=$(echo $container | awk '{print $1}')
+  container_name=$(echo $container | awk '{print $2}')
+  container_status=$(echo $container | awk '{print $3}')
+  formatted_line=$(printf "$FORMAT" "$container_name" "$container_status")
+  if pct config $container | grep -E "^tags:.*(${TAGS}).*"; then
+    menu_items+=("$container_id" "$formatted_line" "OFF")
+  fi
 done <<< "$containers"
 
 CHOICE=$(whiptail --title "LXC Container Update" \
