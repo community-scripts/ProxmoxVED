@@ -17,25 +17,23 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y jq
 msg_ok "Installed Dependencies"
 
-fetch_and_deploy_gh_release "salt" "saltstack/salt" "binary" "latest" "/opt/salt" "salt-master*_amd64.deb"
+msg_info "Setup Salt Repo"
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://packages.broadcom.com/artifactory/api/security/keypair/SaltProjectKey/public -o /etc/apt/keyrings/salt-archive-keyring.pgp
+curl -fsSL https://github.com/saltstack/salt-install-guide/releases/latest/download/salt.sources -o /etc/apt/sources.list.d/salt.sources
+$STD apt-get update
+msg_ok "Setup Salt Repo"
 
-# msg_info "Setup Salt repo"
-# mkdir -p /etc/apt/keyrings
-# curl -fsSL https://packages.broadcom.com/artifactory/api/security/keypair/SaltProjectKey/public -o /etc/apt/keyrings/salt-archive-keyring.pgp
-# curl -fsSL https://github.com/saltstack/salt-install-guide/releases/latest/download/salt.sources -o /etc/apt/sources.list.d/salt.sources
-# $STD apt-get update
-# msg_ok "Setup Salt repo"
-
-# msg_info "Installing Salt Master"
-# RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
-# cat <<EOF >/etc/apt/preferences.d/salt-pin-1001
-# Package: salt-*
-# Pin: version ${RELEASE}
-# Pin-Priority: 1001
-# EOF
-# $STD apt-get install -y salt-master
-# echo "${RELEASE}" >/~.salt
-# msg_ok "Installed Salt Master"
+msg_info "Installing Salt"
+RELEASE=$(curl -fsSL https://api.github.com/repos/saltstack/salt/releases/latest | jq -r .tag_name | sed 's/^v//')
+cat <<EOF >/etc/apt/preferences.d/salt-pin-1001
+Package: salt-*
+Pin: version ${RELEASE}
+Pin-Priority: 1001
+EOF
+$STD apt-get install -y salt-master
+echo "${RELEASE}" >/~.salt
+msg_ok "Installed Salt"
 
 motd_ssh
 customize
