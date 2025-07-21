@@ -38,8 +38,10 @@ while read -r container; do
     container_name=$(echo $container | awk '{print $2}')
     container_status=$(echo $container | awk '{print $3}')
     formatted_line=$(printf "$FORMAT" "$container_name" "$container_status")
-    IS_HELPERSCRIPT_LXC=$(pct exec $container_id -- [ -e /usr/bin/update ] && echo true || echo false)
-    if [ "$IS_HELPERSCRIPT_LXC" = true ]; then
+    #IS_HELPERSCRIPT_LXC=$(pct exec $container_id -- [ -e /usr/bin/update ] && echo true || echo false)
+	#if [ "$IS_HELPERSCRIPT_LXC" = true ]; then
+	detect_service $container
+    if [ -n "${service}" ]; then
       menu_items+=("$container_id" "$formatted_line" "OFF")
     fi
 done <<< "$containers"
@@ -99,6 +101,13 @@ function backup_container(){
   fi
 }
 
+function detect_service(){
+  pushd $(mktemp -d) >/dev/null
+  pct pull "$1" /usr/bin/update update 2>/dev/null
+  service=$(cat update | sed 's|.*/ct/||g' | sed 's|\.sh).*||g')
+  popd >/dev/null
+}
+
 UPDATE_CMD="update;"
 if [ "$UNATTENDED_UPDATE" == "yes" ];then
   UPDATE_CMD="export PHS_SILENT=1;update;"
@@ -113,10 +122,7 @@ for container in $CHOICE; do
   fi
 
   #1) Detect service using the service name in the update command
-  pushd $(mktemp -d) >/dev/null
-  pct pull "$container" /usr/bin/update update 2>/dev/null
-  service=$(cat update | sed 's|.*/ct/||g' | sed 's|\.sh).*||g')
-  popd >/dev/null
+  detect_service $container
 
   #1.1) If update script not detected, return
   if [ -z "${service}" ]; then
@@ -127,7 +133,14 @@ for container in $CHOICE; do
   fi
 
   #2) Extract service build/update resource requirements from config/installation file
-  script=$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/${service}.sh)
+  script=$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/${service}.sh)
+
+  #2.1) Check if the script downloaded successfully
+  if [ $? -ne 0 ]; then
+    echo -e "${RD}[ERROR]${CL} Issue while downloading install script."
+	echo -e "${YW}[WARN]${CL} Unable to assess build resource requirements. Proceeding with current resources."
+  fi
+
   config=$(pct config "$container")
   build_cpu=$(echo "$script" | { grep -m 1 "var_cpu" || test $? = 1; } | sed 's|.*=||g' | sed 's|"||g' | sed 's|.*var_cpu:-||g' | sed 's|}||g')
   build_ram=$(echo "$script" | { grep -m 1 "var_ram" || test $? = 1; } | sed 's|.*=||g' | sed 's|"||g' | sed 's|.*var_ram:-||g' | sed 's|}||g')
@@ -168,6 +181,14 @@ for container in $CHOICE; do
   fi
 
   os=$(pct config "$container" | awk '/^ostype/ {print $2}')
+  status=$(pct status $container)
+  template=$(pct config $container | grep -q "template:" && echo "true" || echo "false")
+  if [ "$template" == "false" ] && [ "$status" == "status: stopped" ]; then
+    echo -e "${BL}[Info]${GN} Starting${BL} $container ${CL} \n"
+    pct start $container
+    echo -e "${BL}[Info]${GN} Waiting For${BL} $container${CL}${GN} To Start ${CL} \n"
+    sleep 5
+  fi
 
   #4) Update service, using the update command
   case "$os" in
@@ -178,6 +199,11 @@ for container in $CHOICE; do
   opensuse) pct exec "$container" -- bash -c "$UPDATE_CMD" ;;
   esac
   exit_code=$?
+
+  if [ "$template" == "false" ] && [ "$status" == "status: stopped" ]; then
+    echo -e "${BL}[Info]${GN} Shutting down${BL} $container ${CL} \n"
+    pct shutdown $container &
+  fi
 
   #5) if build resources are different than run resources, then:
   if [ "$UPDATE_BUILD_RESOURCES" -eq "1" ]; then
