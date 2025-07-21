@@ -3,7 +3,7 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (Canbiz)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source:
+# Source: https://github.com/community-scripts/ProxmoxVE
 
 APP="Docspell"
 var_tags="${var_tags:-document}"
