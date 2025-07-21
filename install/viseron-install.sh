@@ -18,7 +18,7 @@ PYTHON_VERSION="3.12" setup_uv
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   python3 python3-pip python3-venv \
-  python3-opencv \
+  python3-opencv \ jq \
   libgl1-mesa-glx libglib2.0-0 \
   libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
   gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
