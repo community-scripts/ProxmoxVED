@@ -19,10 +19,12 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 
 if command -v curl >/dev/null 2>&1; then
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source /dev/stdin <<<$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
   load_functions
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source /dev/stdin <<<$(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
   load_functions
   #echo "(build.func) Loaded core.func via wget"
 fi
@@ -30,21 +32,18 @@ fi
 # This function enables error handling in the script by setting options and defining a trap for the ERR signal.
 catch_errors() {
   set -Eeo pipefail
+  shopt -s errtrace
   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
 
 # This function is called when an error occurs. It receives the exit code, line number, and command that caused the error, and displays an error message.
 error_handler() {
-
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
   printf "\e[?25h"
-
-
-  source /dev/stdin <<<$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
   local error_message="[ERROR] in line $line_number: exit code $exit_code: while executing command $command"
-  post_update_to_api "failed" "${command}"
+  post_update_to_api "failed" "$command"
   echo -e "\n$error_message\n"
   exit "$exit_code"
 
