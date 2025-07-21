@@ -22,6 +22,8 @@ jobs:
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: community-scripts
+          repositories: ProxmoxVED
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -109,7 +111,7 @@ jobs:
               );
 
               if (updateScriptsCategory) {
-                
+
                 const subCategory = updateScriptsCategory.subCategories.find(sub =>
                   sub.labels.some(label => prLabels.includes(label))
                 );
@@ -121,7 +123,7 @@ jobs:
                 }
               }
             });
-            
+
             console.log(JSON.stringify(categorizedPRs, null, 2));
 
             return categorizedPRs;
@@ -147,30 +149,30 @@ jobs:
               const hasSubcategories = subCategories && subCategories.length > 0;
               const hasMainNotes = notes.length > 0;
               const hasSubNotes = hasSubcategories && subCategories.some(sub => sub.notes && sub.notes.length > 0);
-        
-    
+
+
               if (hasMainNotes || hasSubNotes) {
                 newReleaseNotes += `### ${title}\n\n`;
               }
-            
+
               if (hasMainNotes) {
                 newReleaseNotes += `  ${notes.join("\n")}\n\n`;
               }
               if (hasSubcategories) {
                 for (const { title: subTitle, notes: subNotes } of subCategories) {
                   if (subNotes && subNotes.length > 0) {
-                    newReleaseNotes += `  - #### ${subTitle}\n\n`; 
-                    newReleaseNotes += `    ${subNotes.join("\n    ")}\n\n`; 
+                    newReleaseNotes += `  - #### ${subTitle}\n\n`;
+                    newReleaseNotes += `    ${subNotes.join("\n    ")}\n\n`;
                   }
                 }
               }
-            }        
-        
+            }
+
             const changelogContent = await fs.readFile(changelogPath, 'utf-8');
             const changelogIncludesTodaysReleaseNotes = changelogContent.includes(`\n## ${today}`);
 
-            const regex = changelogIncludesTodaysReleaseNotes 
-              ? new RegExp(`## ${today}.*(?=## ${latestDateInChangelog})`, "gs") 
+            const regex = changelogIncludesTodaysReleaseNotes
+              ? new RegExp(`## ${today}.*(?=## ${latestDateInChangelog})`, "gs")
               : new RegExp(`(?=## ${latestDateInChangelog})`, "gs");
 
             const newChangelogContent = changelogContent.replace(regex, newReleaseNotes);

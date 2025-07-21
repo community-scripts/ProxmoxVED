@@ -28,6 +28,8 @@ jobs:
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: community-scripts
+          repositories: ProxmoxVED
 
       - name: Generate a token for PR approval and merge
         id: generate-token-merge
@@ -35,6 +37,8 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID_APPROVE_AND_MERGE }}
           private-key: ${{ secrets.APP_KEY_APPROVE_AND_MERGE }}
+          owner: community-scripts
+          repositories: ProxmoxVED
 
       - name: Crawl from newreleases.io
         env:

@@ -20,6 +20,8 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID_APPROVE_AND_MERGE }}
           private-key: ${{ secrets.APP_KEY_APPROVE_AND_MERGE }}
+          owner: community-scripts
+          repositories: ProxmoxVED
 
       - name: Extract Issue Title (Lowercase & Underscores)
         id: extract_title
