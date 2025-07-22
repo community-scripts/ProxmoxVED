@@ -1354,42 +1354,38 @@ EOF
     fi
   done
 
-  if [ "$var_os" == "alpine" ]; then
-    PING_TARGET="1.1.1.1"
-  else
-    PING_TARGET="deb.debian.org"
-  fi
-
-  msg_info "Waiting for network in LXC container"
-  for i in {1..10}; do
-    if pct exec "$CTID" -- ping -c1 -W1 "$PING_TARGET" >/dev/null 2>&1; then
-      msg_ok "Network in LXC is reachable"
-      break
-    fi
-    if [ "$i" -lt 10 ]; then
-      msg_warn "No network yet in LXC (try $i/10) – waiting..."
-      sleep 3
-    else
-      msg_error "No network in LXC after waiting."
-      read -r -p "Set fallback DNS (1.1.1.1/8.8.8.8)? [y/N]: " choice
-      case "$choice" in
-      [yY]*)
-        pct set "$CTID" --nameserver 1.1.1.1
-        pct set "$CTID" --nameserver 8.8.8.8
-        if pct exec "$CTID" -- ping -c1 -W1 "$PING_TARGET" >/dev/null 2>&1; then
-          msg_ok "Network reachable after DNS fallback"
-        else
-          msg_error "Still no network/DNS in LXC! Aborting customization."
+  if [ "$var_os" != "alpine" ]; then
+    msg_info "Waiting for network in LXC container"
+    for i in {1..10}; do
+      if pct exec "$CTID" -- ping -c1 -W1 deb.debian.org >/dev/null 2>&1; then
+        msg_ok "Network in LXC is reachable"
+        break
+      fi
+      if [ "$i" -lt 10 ]; then
+        msg_warn "No network yet in LXC (try $i/10) – waiting..."
+        sleep 3
+      else
+        msg_error "No network in LXC after waiting."
+        read -r -p "Set fallback DNS (1.1.1.1/8.8.8.8)? [y/N]: " choice
+        case "$choice" in
+        [yY]*)
+          pct set "$CTID" --nameserver 1.1.1.1
+          pct set "$CTID" --nameserver 8.8.8.8
+          if pct exec "$CTID" -- ping -c1 -W1 deb.debian.org >/dev/null 2>&1; then
+            msg_ok "Network reachable after DNS fallback"
+          else
+            msg_error "Still no network/DNS in LXC! Aborting customization."
+            exit 1
+          fi
+          ;;
+        *)
+          msg_error "Aborted by user – no DNS fallback set."
           exit 1
-        fi
-        ;;
-      *)
-        msg_error "Aborted by user – no DNS fallback set."
-        exit 1
-        ;;
-      esac
-    fi
-  done
+          ;;
+        esac
+      fi
+    done
+  fi
 
   msg_info "Customizing LXC Container"
   if [ "$var_os" == "alpine" ]; then
