@@ -1438,7 +1438,7 @@ EOF'
   msg_ok "Customized LXC Container"
 
   if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/"$var_install".sh)"; then
-    return
+    exit $?
   fi
 }
 

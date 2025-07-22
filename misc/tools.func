@@ -419,7 +419,7 @@ function setup_php() {
   # Deduplicate
   COMBINED_MODULES=$(echo "$COMBINED_MODULES" | tr ',' '\n' | awk '!seen[$0]++' | paste -sd, -)
 
-  # Aktuelle PHP-CLI-Version ermitteln
+  # Get current PHP-CLI version
   local CURRENT_PHP=""
   if command -v php >/dev/null 2>&1; then
     CURRENT_PHP=$(php -v 2>/dev/null | awk '/^PHP/{print $2}' | cut -d. -f1,2)
@@ -441,7 +441,7 @@ function setup_php() {
     $STD apt-get update
   fi
 
-  # Modul-Liste bauen
+  # Build module list
   local MODULE_LIST="php${PHP_VERSION}"
   IFS=',' read -ra MODULES <<<"$COMBINED_MODULES"
   for mod in "${MODULES[@]}"; do
@@ -455,7 +455,7 @@ function setup_php() {
     MODULE_LIST+=" php${PHP_VERSION}-fpm"
   fi
 
-  # Apache + PHP-Modul nur installieren, wenn noch nicht vorhanden
+  # install apache2 with PHP support if requested
   if [[ "$PHP_APACHE" == "YES" ]]; then
     if ! dpkg -l | grep -q "libapache2-mod-php${PHP_VERSION}"; then
       msg_info "Installing Apache with PHP${PHP_VERSION} support"
@@ -502,7 +502,7 @@ function setup_php() {
     $STD systemctl restart apache2 || true
   fi
 
-  # FPM aktivieren, falls gewünscht
+  # enable and restart PHP-FPM if requested
   if [[ "$PHP_FPM" == "YES" ]]; then
     if systemctl list-unit-files | grep -q "php${PHP_VERSION}-fpm.service"; then
       $STD systemctl enable php${PHP_VERSION}-fpm
