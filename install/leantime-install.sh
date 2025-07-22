@@ -13,29 +13,10 @@ setting_up_container
 network_check
 update_os
 
-PHP_VERSION=8.4
-PHP_MODULE=mysql
-PHP_APACHE=YES
-PHP_FPM=YES
-
-msg_info "Installing Apache2"
-$STD apt-get install -y \
-  apache2
-msg_ok "Installed Apache2"
-
-setup_php
-
-msg_info "Installing Apache2 mod for PHP"
-$STD apt-get install -y \
-  "libapache2-mod-php${PHP_VERSION}"
-msg_ok "Installed Apache2 mod"
-
+PHP_VERSION=8.4 PHP_MODULE="mysql" PHP_APACHE="YES" PHP_FPM="YES" setup_php
 setup_mariadb
 
-msg_ok "Installed Dependencies"
-
 msg_info "Setting up Database"
-systemctl enable -q --now mariadb
 DB_NAME=leantime
 DB_USER=leantime
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
@@ -50,9 +31,10 @@ $STD mysql -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH 
 } >>~/"$APPLICATION".creds
 msg_ok "Set up Database"
 
+fetch_and_deploy_gh_release "leantime" "Leantime/leantime" "prebuild" "latest" "/opt/leantime" Leantime*.tar.gz
+
 msg_info "Setup ${APPLICATION}"
 APACHE_LOG_DIR=/var/log/apache2
-fetch_and_deploy_gh_release "$APPLICATION" "Leantime/leantime" "prebuild" "latest" "/opt/${APPLICATION}" Leantime-v[0-9].[0-9].[0-9].tar.gz
 chown -R www-data:www-data "/opt/${APPLICATION}"
 chmod -R 750 "/opt/${APPLICATION}"
 
