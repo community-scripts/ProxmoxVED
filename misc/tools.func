@@ -472,10 +472,12 @@ function setup_php() {
     $STD systemctl disable php${CURRENT_PHP}-fpm || true
   fi
 
-  $STD apt-get install -y $MODULE_LIST
-  msg_ok "Setup PHP $PHP_VERSION"
-
   if [[ "$PHP_APACHE" == "YES" ]]; then
+    if [[ -f /etc/apache2/mods-enabled/php${PHP_VERSION}.load ]]; then
+      $STD a2enmod php${PHP_VERSION}
+    else
+      $STD a2enmod php${PHP_VERSION}
+    fi
     $STD systemctl restart apache2 || true
   fi
 
@@ -499,6 +501,17 @@ function setup_php() {
       $STD msg_ok "Patched $ini"
     fi
   done
+
+  # patch Apache configuration if needed
+  for mod in $(ls /etc/apache2/mods-enabled/ | grep -E '^php[0-9]\.[0-9]\.conf$' | sed 's/\.conf//'); do
+    if [[ "$mod" != "php${PHP_VERSION}" ]]; then
+      $STD a2dismod "$mod" || true
+    fi
+  done
+  $STD a2enmod "php${PHP_VERSION}"
+  if [[ "$PHP_APACHE" == "YES" ]]; then
+    $STD systemctl restart apache2 || true
+  fi
 }
 
 # ------------------------------------------------------------------------------
