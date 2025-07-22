@@ -42,7 +42,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION=17 setup_postgresql
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="18" setup_nodejs
 
 msg_info "Setup Variables"
 DB_NAME=maxun_db
