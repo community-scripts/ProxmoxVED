@@ -15,34 +15,31 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    gpg \
-    openssl \
-    redis \
-    libgbm1 \
-    libnss3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libdrm2 \
-    libxkbcommon0 \
-    libglib2.0-0 \
-    libdbus-1-3 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxi6 \
-    libxtst6 \
-    ca-certificates \
-    libxrandr2 \
-    libasound2 \
-    libxss1 \
-    libxinerama1 \
-    nginx
+  openssl \
+  redis \
+  libgbm1 \
+  libnss3 \
+  libatk1.0-0 \
+  libatk-bridge2.0-0 \
+  libdrm2 \
+  libxkbcommon0 \
+  libglib2.0-0 \
+  libdbus-1-3 \
+  libx11-xcb1 \
+  libxcb1 \
+  libxcomposite1 \
+  libxcursor1 \
+  libxdamage1 \
+  libxext6 \
+  libxi6 \
+  libxtst6 \
+  ca-certificates \
+  libxrandr2 \
+  libasound2 \
+  libxss1 \
+  libxinerama1 \
+  nginx
 msg_ok "Installed Dependencies"
-
-#configure_lxc "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it?" 100 "memory" "16000"
 
 PG_VERSION=17 setup_postgresql
 NODE_VERSION="22" setup_nodejs
@@ -56,6 +53,7 @@ MINIO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 JWT_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
 ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
 LOCAL_IP=$(hostname -I | awk '{print $1}')
+SESSION_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
 msg_ok "Set up Variables"
 
 msg_info "Setup Database"
@@ -65,12 +63,13 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-    echo "Maxun-Credentials"
-    echo "Maxun Database User: $DB_USER"
-    echo "Maxun Database Password: $DB_PASS"
-    echo "Maxun Database Name: $DB_NAME"
-    echo "Maxun JWT Secret: $JWT_SECRET"
-    echo "Maxun Encryption Key: $ENCRYPTION_KEY"
+  echo "Maxun-Credentials"
+  echo "Maxun Database User: $DB_USER"
+  echo "Maxun Database Password: $DB_PASS"
+  echo "Maxun Database Name: $DB_NAME"
+  echo "Maxun JWT Secret: $JWT_SECRET"
+  echo "Maxun Encryption Key: $ENCRYPTION_KEY"
+  echo "Maxun Session Secret: $SESSION_SECRET"
 } >>~/maxun.creds
 msg_ok "Set up Database"
 
@@ -99,9 +98,9 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 {
-    echo "__________________"
-    echo "MinIO Admin User: $MINIO_USER"
-    echo "MinIO Admin Password: $MINIO_PASS"
+  echo "__________________"
+  echo "MinIO Admin User: $MINIO_USER"
+  echo "MinIO Admin Password: $MINIO_PASS"
 } >>~/maxun.creds
 cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=${MINIO_USER}
@@ -110,8 +109,9 @@ EOF
 systemctl enable -q --now minio
 msg_ok "Setup MinIO"
 
-msg_info "Installing Maxun (Patience)"
 fetch_and_deploy_gh_release "maxun" "getmaxun/maxun" "source"
+
+msg_info "Installing Maxun (Patience)"
 cat <<EOF >/opt/maxun/.env
 NODE_ENV=development
 JWT_SECRET=${JWT_SECRET}
@@ -137,6 +137,7 @@ VITE_BACKEND_URL=http://${LOCAL_IP}:8080
 VITE_PUBLIC_URL=http://${LOCAL_IP}:5173
 
 MAXUN_TELEMETRY=false
+SESSION_SECRET=${SESSION_SECRET}
 EOF
 
 cat <<'EOF' >/usr/local/bin/update-env-ip.sh
@@ -162,19 +163,27 @@ msg_info "Setting up nginx with CORS Proxy"
 cat <<'EOF' >/etc/nginx/sites-available/maxun
 server {
     listen 80;
+    server_name _;
 
+    # Frontend ausliefern
+    root /usr/share/nginx/html;
+    index index.html;
     location / {
-        root /usr/share/nginx/html;
         try_files $uri $uri/ /index.html;
     }
 
-    location ~ ^/(api|record|workflow|storage|auth|integration|proxy|api-docs) {
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
+    # Backend Proxy
+    location ~ ^/(auth|storage|record|workflow|robot|proxy|api-docs|api|webhook)(/|$) {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
 
+        # CORS
         add_header Access-Control-Allow-Origin "$http_origin" always;
         add_header Access-Control-Allow-Credentials true always;
         add_header Access-Control-Allow-Methods GET,POST,PUT,DELETE,OPTIONS always;
@@ -193,7 +202,6 @@ server {
     }
 }
 EOF
-
 ln -sf /etc/nginx/sites-available/maxun /etc/nginx/sites-enabled/maxun
 rm -f /etc/nginx/sites-enabled/default
 msg_ok "nginx with CORS Proxy set up"
