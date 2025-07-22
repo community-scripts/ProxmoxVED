@@ -465,8 +465,10 @@ function setup_php() {
   fi
 
   if [[ "$PHP_APACHE" == "YES" ]] && [[ -n "$CURRENT_PHP" ]]; then
-    if [[ -f /etc/apache2/mods-enabled/php${CURRENT_PHP}.load ]]; then
-      $STD a2dismod php"${CURRENT_PHP}" || true
+    if [[ "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
+      if [[ -f /etc/apache2/mods-enabled/php${CURRENT_PHP}.load ]]; then
+        $STD a2dismod php"${CURRENT_PHP}" || true
+      fi
     fi
   fi
 
