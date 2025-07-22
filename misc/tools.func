@@ -416,9 +416,10 @@ function setup_php() {
     COMBINED_MODULES="${DEFAULT_MODULES}"
   fi
 
-  # Deduplicate modules
+  # Deduplicate
   COMBINED_MODULES=$(echo "$COMBINED_MODULES" | tr ',' '\n' | awk '!seen[$0]++' | paste -sd, -)
 
+  # Aktuelle PHP-CLI-Version ermitteln
   local CURRENT_PHP=""
   if command -v php >/dev/null 2>&1; then
     CURRENT_PHP=$(php -v 2>/dev/null | awk '/^PHP/{print $2}' | cut -d. -f1,2)
@@ -440,13 +441,8 @@ function setup_php() {
     $STD apt-get update
   fi
 
+  # Modul-Liste bauen
   local MODULE_LIST="php${PHP_VERSION}"
-  for pkg in $MODULE_LIST; do
-    if ! apt-cache show "$pkg" >/dev/null 2>&1; then
-      msg_error "Package not found: $pkg"
-      exit 1
-    fi
-  done
   IFS=',' read -ra MODULES <<<"$COMBINED_MODULES"
   for mod in "${MODULES[@]}"; do
     if apt-cache show "php${PHP_VERSION}-${mod}" >/dev/null 2>&1; then
@@ -455,51 +451,34 @@ function setup_php() {
       msg_warn "PHP-Module ${mod} for PHP ${PHP_VERSION} not found – skipping"
     fi
   done
-
   if [[ "$PHP_FPM" == "YES" ]]; then
     MODULE_LIST+=" php${PHP_VERSION}-fpm"
   fi
-  if [[ "$PHP_APACHE" == "YES" ]]; then
-    $STD apt-get install -y apache2 libapache2-mod-php${PHP_VERSION}
-    $STD systemctl restart apache2 || true
-  fi
 
-  if [[ "$PHP_APACHE" == "YES" ]] && [[ -n "$CURRENT_PHP" ]]; then
-    if [[ "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
-      if [[ -f /etc/apache2/mods-enabled/php${CURRENT_PHP}.load ]]; then
-        $STD a2dismod php"${CURRENT_PHP}" || true
-      fi
+  # Apache + PHP-Modul nur installieren, wenn noch nicht vorhanden
+  if [[ "$PHP_APACHE" == "YES" ]]; then
+    if ! dpkg -l | grep -q "libapache2-mod-php${PHP_VERSION}"; then
+      msg_info "Installing Apache with PHP${PHP_VERSION} support"
+      $STD apt-get install -y apache2 libapache2-mod-php${PHP_VERSION}
+    else
+      msg_info "Apache with PHP${PHP_VERSION} already installed – skipping install"
     fi
   fi
 
-  if [[ "$PHP_FPM" == "YES" ]] && [[ -n "$CURRENT_PHP" ]]; then
+  # setup / update PHP modules
+  $STD apt-get install -y $MODULE_LIST
+  msg_ok "Setup PHP $PHP_VERSION"
+
+  # optional stop old PHP-FPM service
+  if [[ "$PHP_FPM" == "YES" && -n "$CURRENT_PHP" && "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
     $STD systemctl stop php"${CURRENT_PHP}"-fpm || true
     $STD systemctl disable php"${CURRENT_PHP}"-fpm || true
-  fi
-
-  if [[ "$PHP_APACHE" == "YES" ]]; then
-    if [[ -f /etc/apache2/mods-enabled/php${PHP_VERSION}.load ]]; then
-      $STD a2enmod php"${PHP_VERSION}"
-    else
-      $STD a2enmod php"${PHP_VERSION}"
-    fi
-    $STD systemctl restart apache2 || true
-  fi
-
-  if [[ "$PHP_FPM" == "YES" ]]; then
-    if systemctl list-unit-files | grep -q "php${PHP_VERSION}-fpm.service"; then
-      $STD systemctl enable php${PHP_VERSION}-fpm
-      $STD systemctl restart php${PHP_VERSION}-fpm
-    else
-      msg_warn "FPM requested but service php${PHP_VERSION}-fpm not found"
-    fi
   fi
 
   # Patch all relevant php.ini files
   local PHP_INI_PATHS=("/etc/php/${PHP_VERSION}/cli/php.ini")
   [[ "$PHP_FPM" == "YES" ]] && PHP_INI_PATHS+=("/etc/php/${PHP_VERSION}/fpm/php.ini")
   [[ "$PHP_APACHE" == "YES" ]] && PHP_INI_PATHS+=("/etc/php/${PHP_VERSION}/apache2/php.ini")
-
   for ini in "${PHP_INI_PATHS[@]}"; do
     if [[ -f "$ini" ]]; then
       $STD msg_info "Patching $ini"
@@ -518,8 +497,19 @@ function setup_php() {
         $STD a2dismod "$mod" || true
       fi
     done
+    $STD a2enmod mpm_prefork
     $STD a2enmod "php${PHP_VERSION}"
     $STD systemctl restart apache2 || true
+  fi
+
+  # FPM aktivieren, falls gewünscht
+  if [[ "$PHP_FPM" == "YES" ]]; then
+    if systemctl list-unit-files | grep -q "php${PHP_VERSION}-fpm.service"; then
+      $STD systemctl enable php${PHP_VERSION}-fpm
+      $STD systemctl restart php${PHP_VERSION}-fpm
+    else
+      msg_warn "FPM requested but service php${PHP_VERSION}-fpm not found"
+    fi
   fi
 }
 
