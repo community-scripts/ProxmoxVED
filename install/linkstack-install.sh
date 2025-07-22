@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: Omar Minaya
+# Author: Omar Minaya | MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://linkstack.org/
 
@@ -13,22 +13,12 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing dependencies"
-$STD apt-get install -y \
-    software-properties-common \
-    ca-certificates \
-    lsb-release \
-    apt-transport-https
-msg_ok "Installed dependencies"
 
 PHP_VERSION="8.3" PHP_MODULE="sqlite3" PHP_APACHE="YES" setup_php
-
-msg_info "Installing LinkStack"
-$STD a2enmod rewrite
-
 fetch_and_deploy_gh_release "linkstack" "linkstackorg/linkstack" "prebuild" "latest" "/var/www/html/linkstack" "linkstack.zip"
 
 msg_info "Configuring LinkStack"
+$STD a2enmod rewrite
 chown -R www-data:www-data /var/www/html/linkstack
 chmod -R 755 /var/www/html/linkstack
 
