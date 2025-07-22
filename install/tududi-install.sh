@@ -41,7 +41,7 @@ sed -e 's/^GOOGLE/# &/' \
   -e "s/your_session_secret_here/$SECRET/" \
   -e 's/development/production/' \
   -e "\$a\DB_FILE=$DB_LOCATION/production.sqlite3" \
-  -e "\$a\UPLOAD_LOCATION=$UPLOAD_DIR" \
+  -e "\$a\TUDUDI_UPLOAD_PATH=$UPLOAD_DIR" \
   /opt/tududi/backend/.env.example >/opt/tududi/backend/.env
 export DB_FILE="$DB_LOCATION/production.sqlite3"
 $STD npm run db:init

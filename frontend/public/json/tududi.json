@@ -4,7 +4,7 @@
   "categories": [
     12
   ],
-  "date_created": "2025-07-07",
+  "date_created": "2025-07-22",
   "type": "ct",
   "updateable": true,
   "privileged": false,
@@ -34,6 +34,10 @@
   "notes": [
     {
       "text": "Create users like this: `cd /opt/tududi` => `npm run user:create <email> <password>`",
+      "type": "info"
+    },
+    {
+      "text": "Database location: `/opt/tududi-db`. Uploads: `/opt/tududi-uploads`",
       "type": "info"
     }
   ]
