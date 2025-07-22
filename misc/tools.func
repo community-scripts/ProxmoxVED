@@ -393,7 +393,6 @@ function setup_mysql() {
 #   PHP_POST_MAX_SIZE          - (default: 128M)
 #   PHP_MAX_EXECUTION_TIME     - (default: 300)
 # ------------------------------------------------------------------------------
-
 function setup_php() {
   local PHP_VERSION="${PHP_VERSION:-8.4}"
   local PHP_MODULE="${PHP_MODULE:-}"
@@ -450,7 +449,11 @@ function setup_php() {
   done
   IFS=',' read -ra MODULES <<<"$COMBINED_MODULES"
   for mod in "${MODULES[@]}"; do
-    MODULE_LIST+=" php${PHP_VERSION}-${mod}"
+    if apt-cache show "php${PHP_VERSION}-${mod}" >/dev/null 2>&1; then
+      MODULE_LIST+=" php${PHP_VERSION}-${mod}"
+    else
+      msg_warn "PHP-Module ${mod} for PHP ${PHP_VERSION} not found – skipping"
+    fi
   done
 
   if [[ "$PHP_FPM" == "YES" ]]; then
@@ -463,27 +466,31 @@ function setup_php() {
 
   if [[ "$PHP_APACHE" == "YES" ]] && [[ -n "$CURRENT_PHP" ]]; then
     if [[ -f /etc/apache2/mods-enabled/php${CURRENT_PHP}.load ]]; then
-      $STD a2dismod php${CURRENT_PHP} || true
+      $STD a2dismod php"${CURRENT_PHP}" || true
     fi
   fi
 
   if [[ "$PHP_FPM" == "YES" ]] && [[ -n "$CURRENT_PHP" ]]; then
-    $STD systemctl stop php${CURRENT_PHP}-fpm || true
-    $STD systemctl disable php${CURRENT_PHP}-fpm || true
+    $STD systemctl stop php"${CURRENT_PHP}"-fpm || true
+    $STD systemctl disable php"${CURRENT_PHP}"-fpm || true
   fi
 
   if [[ "$PHP_APACHE" == "YES" ]]; then
     if [[ -f /etc/apache2/mods-enabled/php${PHP_VERSION}.load ]]; then
-      $STD a2enmod php${PHP_VERSION}
+      $STD a2enmod php"${PHP_VERSION}"
     else
-      $STD a2enmod php${PHP_VERSION}
+      $STD a2enmod php"${PHP_VERSION}"
     fi
     $STD systemctl restart apache2 || true
   fi
 
   if [[ "$PHP_FPM" == "YES" ]]; then
-    $STD systemctl enable php${PHP_VERSION}-fpm
-    $STD systemctl restart php${PHP_VERSION}-fpm
+    if systemctl list-unit-files | grep -q "php${PHP_VERSION}-fpm.service"; then
+      $STD systemctl enable php${PHP_VERSION}-fpm
+      $STD systemctl restart php${PHP_VERSION}-fpm
+    else
+      msg_warn "FPM requested but service php${PHP_VERSION}-fpm not found"
+    fi
   fi
 
   # Patch all relevant php.ini files
@@ -503,13 +510,13 @@ function setup_php() {
   done
 
   # patch Apache configuration if needed
-  for mod in $(ls /etc/apache2/mods-enabled/ | grep -E '^php[0-9]\.[0-9]\.conf$' | sed 's/\.conf//'); do
-    if [[ "$mod" != "php${PHP_VERSION}" ]]; then
-      $STD a2dismod "$mod" || true
-    fi
-  done
-  $STD a2enmod "php${PHP_VERSION}"
   if [[ "$PHP_APACHE" == "YES" ]]; then
+    for mod in $(ls /etc/apache2/mods-enabled/ 2>/dev/null | grep -E '^php[0-9]\.[0-9]\.conf$' | sed 's/\.conf//'); do
+      if [[ "$mod" != "php${PHP_VERSION}" ]]; then
+        $STD a2dismod "$mod" || true
+      fi
+    done
+    $STD a2enmod "php${PHP_VERSION}"
     $STD systemctl restart apache2 || true
   fi
 }
