@@ -48,7 +48,7 @@ EOF
 $STD a2dissite 000-default.conf
 $STD a2ensite linkstack.conf
 $STD systemctl restart apache2
-msg_ok "Installed LinkStack"
+msg_ok "Configured LinkStack"
 
 motd_ssh
 customize
