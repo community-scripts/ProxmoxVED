@@ -44,6 +44,12 @@ msg_error() {
   echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
 }
 
+msg_custom() {
+  local msg="$1"
+  echo -e "${BFR} ${YW}⚠ ${msg}${CL}"
+}
+
+
 start_routines() {
   header_info
 
@@ -141,7 +147,7 @@ EOF
     yes)
       whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox --title "Support Subscriptions" "Supporting the software's development team is essential. Check their official website's Support Subscriptions for pricing. Without their dedicated work, we wouldn't have this exceptional software." 10 58
       msg_info "Disabling subscription nag"
-      echo "DPkg::Post-Invoke { \"dpkg -V proxmox-widget-toolkit | grep -q '/proxmoxlib\.js$'; if [ \$? -eq 1 ]; then { echo 'Removing subscription nag from UI...'; sed -i '/.*data\.status.*{/{s/\!//;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; }; fi\"; };" >/etc/apt/apt.conf.d/no-nag-script
+      echo "DPkg::Post-Invoke { \"dpkg -V proxmox-widget-toolkit 2>/dev/null && [ -f /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js ] && echo 'Removing subscription nag from UI...' && sed -i '/data\.status/{s/\!/=/;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js\"; };" >/etc/apt/apt.conf.d/no-nag-script
       apt --reinstall install proxmox-widget-toolkit &>/dev/null
       msg_ok "Disabled subscription nag (Delete browser cache)"
       ;;
@@ -246,12 +252,38 @@ while true; do
   esac
 done
 
-if ! pveversion | grep -Eq "pve-manager/8\.[0-4](\.[0-9]+)*"; then
+# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
+pve_check() {
+  local PVE_VER
+  PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
+
+  # 8 Version Check
+  if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
+    local MINOR="${BASH_REMATCH[1]}"
+    if (( MINOR < 1 || MINOR > 4 )); then
+      msg_error "This version of Proxmox Virtual Environment is not supported"
+      echo -e "Requires Proxmox Virtual Environment Version 8.1 – 8.4"
+      echo -e "Exiting..."
+      sleep 2
+      exit 1
+    fi
+    return 0
+  fi
+
+  # 9 Beta Version Check
+  if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
+    msg_custom "Detected Proxmox Virtual Environment $PVE_VER – Beta state, use with caution!"
+    return 0
+  fi
+
+  # All others (unsupported versions)
   msg_error "This version of Proxmox Virtual Environment is not supported"
-  echo -e "Requires Proxmox Virtual Environment Version 8.0 or later."
+  echo -e "Requires Proxmox Virtual Environment Version 8.1 – 8.4 or 9.x (Beta)"
   echo -e "Exiting..."
   sleep 2
-  exit
-fi
+  exit 1
+}
 
+
+pve_check
 start_routines

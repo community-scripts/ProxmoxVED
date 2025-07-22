@@ -27,7 +27,7 @@ trap on_terminate TERM
 
 function on_exit() {
   local exit_code="$?"
-  [[ -n "${lockfile:-}" ]]
+  [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
   exit "$exit_code"
 }
 
@@ -50,22 +50,35 @@ function on_terminate() {
   exit 143
 }
 
+function check_storage_support() {
+  local CONTENT="$1"
+  local -a VALID_STORAGES=()
+
+  while IFS= read -r line; do
+    local STORAGE=$(awk '{print $1}' <<<"$line")
+    [[ "$STORAGE" == "storage" || -z "$STORAGE" ]] && continue
+    VALID_STORAGES+=("$STORAGE")
+  done < <(pvesm status -content "$CONTENT" 2>/dev/null | awk 'NR>1')
+
+  [[ ${#VALID_STORAGES[@]} -gt 0 ]]
+}
+
 # This checks for the presence of valid Container Storage and Template Storage locations
 msg_info "Validating Storage"
-VALIDCT=$(pvesm status -content rootdir | awk 'NR>1')
-if [ -z "$VALIDCT" ]; then
-  msg_error "Unable to detect a valid Container Storage location."
+if ! check_storage_support "rootdir"; then
+  msg_error "No valid storage found for 'rootdir' (Container)."
   exit 1
 fi
-VALIDTMP=$(pvesm status -content vztmpl | awk 'NR>1')
-if [ -z "$VALIDTMP" ]; then
-  msg_error "Unable to detect a valid Template Storage location."
+if ! check_storage_support "vztmpl"; then
+  msg_error "No valid storage found for 'vztmpl' (Template)."
   exit 1
 fi
+msg_ok "Validated Storage (rootdir / vztmpl)."
 
 # This function is used to select the storage class and determine the corresponding storage content type and label.
 function select_storage() {
   local CLASS=$1 CONTENT CONTENT_LABEL
+
   case $CLASS in
   container)
     CONTENT='rootdir'
@@ -92,46 +105,64 @@ function select_storage() {
     CONTENT_LABEL='Snippets'
     ;;
   *)
-    msg_error "Invalid storage class '$CLASS'."
-    exit 201
+    msg_error "Invalid storage class '$CLASS'"
+    return 1
     ;;
   esac
 
-  command -v whiptail >/dev/null || {
-    msg_error "whiptail missing."
-    exit 220
-  }
-  command -v numfmt >/dev/null || {
-    msg_error "numfmt missing."
-    exit 221
-  }
-
+  # >>> NEW: support STORAGE preset <<<
+  if [ "$CONTENT" = "rootdir" ] && [ -n "${STORAGE:-}" ]; then
+    if pvesm status -content "$CONTENT" | awk 'NR>1 {print $1}' | grep -qx "$STORAGE"; then
+      STORAGE_RESULT="$STORAGE"
+      msg_info "Using preset storage: $STORAGE_RESULT for $CONTENT_LABEL"
+      return 0
+    else
+      msg_error "Preset storage '$STORAGE' is not valid for content type '$CONTENT'."
+      return 2
+    fi
+  fi
   local -a MENU
-  while read -r line; do
-    local TAG=$(echo $line | awk '{print $1}')
-    local TYPE=$(echo $line | awk '{printf "%-10s", $2}')
-    local FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
-    MENU+=("$TAG" "Type: $TYPE Free: $FREE " "OFF")
-  done < <(pvesm status -content $CONTENT | awk 'NR>1')
+  local -A STORAGE_MAP
+  local COL_WIDTH=0
+
+  while read -r TAG TYPE _ TOTAL USED FREE _; do
+    [[ -n "$TAG" && -n "$TYPE" ]] || continue
+    local DISPLAY="${TAG} (${TYPE})"
+    local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
+    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
+    local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
+    STORAGE_MAP["$DISPLAY"]="$TAG"
+    MENU+=("$DISPLAY" "$INFO" "OFF")
+    ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
+  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
 
   if [ ${#MENU[@]} -eq 0 ]; then
     msg_error "No storage found for content type '$CONTENT'."
-    exit 203
+    return 2
   fi
 
   if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
-    printf "%s" "${MENU[0]}"
-    return
+    STORAGE_RESULT="${STORAGE_MAP[${MENU[0]}]}"
+    return 0
   fi
 
-  local STORAGE
-  STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-    "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-    16 70 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-    msg_error "Storage selection cancelled by user."
-    exit 202
-  }
-  printf "%s" "$STORAGE"
+  local WIDTH=$((COL_WIDTH + 42))
+  while true; do
+    local DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "Storage Pools" \
+      --radiolist "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
+      16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3)
+
+    [[ $? -ne 0 ]] && return 3
+
+    if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
+      whiptail --msgbox "No valid storage selected. Please try again." 8 58
+      continue
+    fi
+
+    STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"
+    return 0
+  done
 }
 
 # Test if required variables are set
@@ -158,25 +189,55 @@ if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
   exit 206
 fi
 
-DEFAULT_FILE="/usr/local/community-scripts/default_storage"
-if [[ -f "$DEFAULT_FILE" ]]; then
-  source "$DEFAULT_FILE"
-  if [[ -n "$TEMPLATE_STORAGE" && -n "$CONTAINER_STORAGE" ]]; then
-    msg_info "Using default storage configuration from: $DEFAULT_FILE"
-    msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}|${CL} Container Storage: ${BL}$CONTAINER_STORAGE${CL}"
-  else
-    msg_warn "Default storage file exists but is incomplete – falling back to manual selection"
-    TEMPLATE_STORAGE=$(select_storage template)
-    msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
-    CONTAINER_STORAGE=$(select_storage container)
-    msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+# DEFAULT_FILE="/usr/local/community-scripts/default_storage"
+# if [[ -f "$DEFAULT_FILE" ]]; then
+#   source "$DEFAULT_FILE"
+#   if [[ -n "$TEMPLATE_STORAGE" && -n "$CONTAINER_STORAGE" ]]; then
+#     msg_info "Using default storage configuration from: $DEFAULT_FILE"
+#     msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}|${CL} Container Storage: ${BL}$CONTAINER_STORAGE${CL}"
+#   else
+#     msg_warn "Default storage file exists but is incomplete – falling back to manual selection"
+#     TEMPLATE_STORAGE=$(select_storage template)
+#     msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
+#     CONTAINER_STORAGE=$(select_storage container)
+#     msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+#   fi
+# else
+#   # TEMPLATE STORAGE SELECTION
+#   # Template Storage
+#   while true; do
+#     TEMPLATE_STORAGE=$(select_storage template)
+#     if [[ -n "$TEMPLATE_STORAGE" ]]; then
+#       msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
+#       break
+#     fi
+#     msg_warn "No valid template storage selected. Please try again."
+#   done
+
+#   while true; do
+#     CONTAINER_STORAGE=$(select_storage container)
+#     if [[ -n "$CONTAINER_STORAGE" ]]; then
+#       msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
+#       break
+#     fi
+#     msg_warn "No valid container storage selected. Please try again."
+#   done
+
+# fi
+
+while true; do
+  if select_storage template; then
+    TEMPLATE_STORAGE="$STORAGE_RESULT"
+    break
   fi
-else
-  TEMPLATE_STORAGE=$(select_storage template)
-  msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
-  CONTAINER_STORAGE=$(select_storage container)
-  msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
-fi
+done
+
+while true; do
+  if select_storage container; then
+    CONTAINER_STORAGE="$STORAGE_RESULT"
+    break
+  fi
+done
 
 # Check free space on selected container storage
 STORAGE_FREE=$(pvesm status | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
@@ -223,29 +284,35 @@ fi
 TEMPLATE="${TEMPLATES[-1]}"
 TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
 
-# Check if template exists and is valid
-if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE" || ! zstdcat "$TEMPLATE_PATH" | tar -tf - >/dev/null 2>&1; then
-  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
+TEMPLATE_VALID=1
+if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE"; then
+  TEMPLATE_VALID=0
+elif [ ! -s "$TEMPLATE_PATH" ]; then
+  TEMPLATE_VALID=0
+elif ! tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; then
+  TEMPLATE_VALID=0
+fi
 
+if [ "$TEMPLATE_VALID" -eq 0 ]; then
+  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
   for attempt in {1..3}; do
     msg_info "Attempt $attempt: Downloading LXC template..."
-
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
+    if pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
       msg_ok "Template download successful."
       break
     fi
-
     if [ $attempt -eq 3 ]; then
-      msg_error "Failed after 3 attempts. Please check your Proxmox host’s internet access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
+      msg_error "Failed after 3 attempts. Please check network access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
       exit 208
     fi
-
     sleep $((attempt * 5))
   done
 fi
 
 msg_ok "LXC Template '$TEMPLATE' is ready to use."
+
+msg_info "Creating LXC Container"
 # Check and fix subuid/subgid
 grep -q "root:100000:65536" /etc/subuid || echo "root:100000:65536" >>/etc/subuid
 grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgid
@@ -265,7 +332,6 @@ flock -w 60 9 || {
   exit 211
 }
 
-msg_info "Creating LXC Container"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
   msg_error "Container creation failed. Checking if template is corrupted or incomplete."
 

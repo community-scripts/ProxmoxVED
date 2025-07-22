@@ -15,15 +15,15 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    gcc \
-    libpq-dev \
-    libcurl4-openssl-dev \
-    libssl-dev
+  gcc \
+  libpq-dev \
+  libcurl4-openssl-dev \
+  libssl-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Python3"
 $STD apt-get install -y \
-    python3 python3-dev python3-pip
+  python3 python3-dev python3-pip
 $STD pip install --upgrade pip
 msg_ok "Setup Python3"
 
@@ -42,23 +42,25 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-    echo "healthchecks-Credentials"
-    echo "healthchecks Database User: $DB_USER"
-    echo "healthchecks Database Password: $DB_PASS"
-    echo "healthchecks Database Name: $DB_NAME"
+  echo "healthchecks-Credentials"
+  echo "healthchecks Database User: $DB_USER"
+  echo "healthchecks Database Password: $DB_PASS"
+  echo "healthchecks Database Name: $DB_NAME"
 } >>~/healthchecks.creds
 msg_ok "Set up Database"
 
 msg_info "Setup healthchecks"
 fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "source"
 cd /opt/healthchecks
+mkdir -p /opt/healthchecks/static-collected/
 $STD uv venv .venv
 $STD source .venv/bin/activate
 $STD uv pip install wheel
 $STD uv pip install gunicorn
 $STD uv pip install -r requirements.txt
+LOCAL_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/opt/healthchecks/.env
-ALLOWED_HOSTS=0.0.0.0
+ALLOWED_HOSTS=localhost,127.0.0.1,${LOCAL_IP},healthchecks
 DB=postgres
 DB_HOST=localhost
 DB_PORT=5432
@@ -68,6 +70,7 @@ DB_PASSWORD=${DB_PASS}
 DB_CONN_MAX_AGE=0
 DB_SSLMODE=prefer
 DB_TARGET_SESSION_ATTRS=read-write
+DATABASE_URL=postgres://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}?sslmode=prefer
 
 DEFAULT_FROM_EMAIL=healthchecks@example.org
 EMAIL_HOST=localhost
@@ -79,32 +82,25 @@ EMAIL_USE_VERIFICATION=True
 
 # Django & Healthchecks Konfiguration
 SECRET_KEY=${SECRET_KEY}
-DEBUG=False
+DEBUG=True
 
-SITE_ROOT=http://0.0.0.0:8000
-SITE_NAME=Mychecks
-SITE_ROOT=http://0.0.0.0:8000
+SITE_ROOT=http://${LOCAL_IP}:8000
+SITE_NAME=MyChecks
+STATIC_ROOT=/opt/healthchecks/static-collected
+
 EOF
 
 $STD .venv/bin/python3 manage.py makemigrations
-$STD .venv/bin/python3 manage.py migrate
+$STD .venv/bin/python3 manage.py migrate --noinput
+$STD .venv/bin/python3 manage.py collectstatic --noinput
 
 ADMIN_EMAIL="admin@helper-scripts.local"
 ADMIN_PASSWORD="$DB_PASS"
 cat <<EOF | $STD .venv/bin/python3 manage.py shell
 from django.contrib.auth import get_user_model
 User = get_user_model()
-
 if not User.objects.filter(email="${ADMIN_EMAIL}").exists():
-    u = User.objects.create_superuser(
-        username="${ADMIN_EMAIL}",
-        email="${ADMIN_EMAIL}",
-        password="${ADMIN_PASSWORD}"
-    )
-    u.is_active = True
-    u.is_staff = True
-    u.is_superuser = True
-    u.save()
+    User.objects.create_superuser("${ADMIN_EMAIL}", "${ADMIN_EMAIL}", "${ADMIN_PASSWORD}")
 EOF
 msg_ok "Installed healthchecks"
 
@@ -117,7 +113,8 @@ After=network.target postgresql.service
 [Service]
 WorkingDirectory=/opt/healthchecks/
 EnvironmentFile=/opt/healthchecks/.env
-ExecStart=/opt/healthchecks/.venv/bin/gunicorn hc.wsgi:application --bind 0.0.0.0
+ExecStart=/opt/healthchecks/.venv/bin/gunicorn hc.wsgi:application --bind 127.0.0.1:8000
+
 Restart=always
 
 [Install]

@@ -1,0 +1,46 @@
+{
+  "name": "Viseron",
+  "slug": "viseron",
+  "categories": [15],
+  "date_created": "2025-01-15",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "config_path": "/config/viseron.yaml",
+  "interface_port": 8888,
+  "documentation": "https://github.com/roflcoopter/viseron",
+  "website": "https://github.com/roflcoopter/viseron",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/viseron.svg",
+  "description": "Viseron is an open-source NVR (Network Video Recorder) with object detection capabilities. It can detect objects in video streams and record events when motion is detected.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/viseron.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Configuration file: /config/viseron.yaml",
+      "type": "info"
+    },
+    {
+      "text": "Logs: /config/logs/viseron.log",
+      "type": "info"
+    },
+    {
+      "text": "Recordings: /config/recordings",
+      "type": "info"
+    }
+  ]
+}

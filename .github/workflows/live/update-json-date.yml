@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'json/**.json'
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   update-app-files:
@@ -19,15 +19,17 @@ jobs:
     steps:
       - name: Generate a token
         id: generate-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: community-scripts
+          repositories: ProxmoxVED
 
       - name: Generate dynamic branch name
         id: timestamp
         run: echo "BRANCH_NAME=pr-update-json-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
-      
+
       - name: Set up GH_TOKEN
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,8 +104,8 @@ jobs:
       - name: Commit and create PR if changes exist
         if: env.changed == 'true'
         run: |
-         
-          
+
+
           git commit -m "Update date in json"
           git checkout -b ${{ env.BRANCH_NAME }}
           git push origin ${{ env.BRANCH_NAME }}
