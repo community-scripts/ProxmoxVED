@@ -25,10 +25,10 @@ chmod -R 755 /var/www/html/linkstack
 cat <<EOF > /etc/apache2/sites-available/linkstack.conf
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
-    DocumentRoot /var/www/html/linkstack/linkstack
+    DocumentRoot /var/www/html/linkstack
     ErrorLog /var/log/apache2/linkstack-error.log
     CustomLog /var/log/apache2/linkstack-access.log combined
-    <Directory /var/www/html/linkstack/linkstack>
+    <Directory /var/www/html/linkstack/>
         Options Indexes FollowSymLinks
         AllowOverride All
         Require all granted
