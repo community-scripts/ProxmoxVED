@@ -13,7 +13,6 @@ setting_up_container
 network_check
 update_os
 
-
 PHP_VERSION="8.3" PHP_MODULE="sqlite3" PHP_APACHE="YES" setup_php
 fetch_and_deploy_gh_release "linkstack" "linkstackorg/linkstack" "prebuild" "latest" "/var/www/html/linkstack" "linkstack.zip"
 
@@ -22,7 +21,7 @@ $STD a2enmod rewrite
 chown -R www-data:www-data /var/www/html/linkstack
 chmod -R 755 /var/www/html/linkstack
 
-cat <<EOF > /etc/apache2/sites-available/linkstack.conf
+cat <<EOF >/etc/apache2/sites-available/linkstack.conf
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
     DocumentRoot /var/www/html/linkstack

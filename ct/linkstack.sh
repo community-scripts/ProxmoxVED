@@ -49,7 +49,7 @@ function update_script() {
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"
-    systemctl start linkstack
+    systemctl start apache2
     msg_ok "Started $APP"
 
     msg_info "Cleaning Up"
