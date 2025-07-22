@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-RELEASE=$(curl -fsSL https://teamspeak.com/en/downloads/#server | grep -oP 'teamspeak3-server_linux_amd64-\K[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+RELEASE=$(curl -fsSL https://teamspeak.com/en/downloads/#server | grep -Eo 'teamspeak3-server_linux_amd64-[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | sed 's/teamspeak3-server_linux_amd64-//')
 
 msg_info "Setting up Teamspeak Server"
 curl -fsSL "https://files.teamspeak-services.com/releases/server/${RELEASE}/teamspeak3-server_linux_amd64-${RELEASE}.tar.bz2" -o ts3server.tar.bz2
