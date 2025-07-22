@@ -111,8 +111,7 @@ function select_storage() {
   esac
 
   # >>> NEW: support STORAGE preset <<<
-  if [ -n "${STORAGE:-}" ]; then
-    # validate the given storage
+  if [ "$CONTENT" = "rootdir" ] && [ -n "${STORAGE:-}" ]; then
     if pvesm status -content "$CONTENT" | awk 'NR>1 {print $1}' | grep -qx "$STORAGE"; then
       STORAGE_RESULT="$STORAGE"
       msg_info "Using preset storage: $STORAGE_RESULT for $CONTENT_LABEL"
@@ -122,7 +121,6 @@ function select_storage() {
       return 2
     fi
   fi
-
   local -a MENU
   local -A STORAGE_MAP
   local COL_WIDTH=0
