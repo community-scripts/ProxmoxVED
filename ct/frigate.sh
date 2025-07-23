@@ -5,20 +5,16 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://frigate.video/
 
-# App Default Values
 APP="Frigate"
 var_tags="${var_tags:-nvr}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-11}"
+var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-0}"
 
-# App Output
 header_info "$APP"
-
-# Core
 variables
 color
 catch_errors

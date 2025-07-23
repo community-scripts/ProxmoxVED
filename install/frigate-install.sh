@@ -113,29 +113,29 @@ else
   msg_ok "Skipped Semantic Search Setup"
 fi
 msg_info "Building and Installing libUSB without udev"
-wget -qO /tmp/libusb.zip https://github.com/libusb/libusb/archive/v1.0.26.zip
+wget -qO /tmp/libusb.zip https://github.com/libusb/libusb/archive/v1.0.29.zip
 unzip -q /tmp/libusb.zip -d /tmp/
-cd /tmp/libusb-1.0.26
+cd /tmp/libusb-1.0.29
 ./bootstrap.sh
 ./configure --disable-udev --enable-shared
 make -j$(nproc --all)
 make install
 ldconfig
-rm -rf /tmp/libusb.zip /tmp/libusb-1.0.26
+rm -rf /tmp/libusb.zip /tmp/libusb-1.0.29
 msg_ok "Installed libUSB without udev"
 
 msg_info "Installing Coral Object Detection Model (Patience)"
 cd /opt/frigate
 export CCACHE_DIR=/root/.ccache
 export CCACHE_MAXSIZE=2G
-curl -L -o v1.0.26.zip https://github.com/libusb/libusb/archive/v1.0.26.zip
-unzip -q v1.0.26.zip
-rm v1.0.26.zip
-cd libusb-1.0.26
+curl -L -o v1.0.29.zip https://github.com/libusb/libusb/archive/v1.0.29.zip
+unzip -q v1.0.29.zip
+rm v1.0.29.zip
+cd libusb-1.0.29
 $STD ./bootstrap.sh
 $STD ./configure --disable-udev --enable-shared
 $STD make -j $(nproc --all)
-cd /opt/frigate/libusb-1.0.26/libusb
+cd /opt/frigate/libusb-1.0.29/libusb
 mkdir -p /usr/local/lib
 $STD /bin/bash ../libtool --mode=install /usr/bin/install -c libusb-1.0.la '/usr/local/lib'
 mkdir -p /usr/local/include/libusb-1.0
