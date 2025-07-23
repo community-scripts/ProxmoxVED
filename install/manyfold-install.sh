@@ -59,7 +59,7 @@ msg_ok "Added manyfold user"
 
 msg_info "Setting .env file"
 cat <<EOF >/opt/.env
-export APP_VERSION=${RELEASE}
+export APP_VERSION=12345
 export GUID=1002
 export PUID=1001
 export PUBLIC_HOSTNAME=subdomain.somehost.org
@@ -86,15 +86,14 @@ $STD rbenv global $RUBY_INSTALL_VERSION
 $STD bundle install
 $STD gem install sidekiq
 $STD npm install --global corepack
-corepack enable
-$STD corepack prepare $YARN_VERSION --activate
-$STD corepack use $YARN_VERSION
+corepack enable yarn
+# $STD corepack prepare $YARN_VERSION --activate
+# $STD corepack use $YARN_VERSION
 chown manyfold:manyfold /opt/.env
 rm /opt/manyfold/config/credentials.yml.enc
 $STD bin/rails credentials:edit
 $STD bin/rails db:migrate
 $STD bin/rails assets:precompile
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed manyfold"
 
 msg_info "Creating Service"
