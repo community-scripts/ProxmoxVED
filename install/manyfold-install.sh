@@ -45,36 +45,13 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/manyfold.creds
 msg_ok "Set up PostgreSQL"
 
-msg_info "Downloading Manyfold"
-RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-cd /opt
-curl -fsSL "https://github.com/manyfold3d/manyfold/archive/refs/tags/v${RELEASE}.zip" -o manyfold.zip
-unzip -q manyfold.zip
-mv /opt/manyfold-${RELEASE}/ /opt/manyfold
+fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold"
+
 RUBY_INSTALL_VERSION=$(cat /opt/manyfold/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 
-msg_ok "Downloaded Manyfold"
-
-NODE_VERSION="22" NODE_MODULE="npm@latest,${YARN_VERSION}" setup_nodejs
+NODE_VERSION="22" NODE_MODULE="${YARN_VERSION}" setup_nodejs
 RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" setup_rbenv_stack
-
-# msg_info "Add ruby-build"
-# mkdir -p ~/.rbenv/plugins
-# cd ~/.rbenv/plugins
-# RUBY_BUILD_RELEASE=$(curl -s https://api.github.com/repos/rbenv/ruby-build/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-# curl -fsSL "https://github.com/rbenv/ruby-build/archive/refs/tags/v${RUBY_BUILD_RELEASE}.zip" -o ruby-build.zip
-# unzip -q ruby-build.zip
-# mv ruby-build-* ~/.rbenv/plugins/ruby-build
-# echo "${RUBY_BUILD_RELEASE}" >~/.rbenv/plugins/RUBY_BUILD_version.txt
-# msg_ok "Added ruby-build"
-
-# msg_info "Installing ruby ${RUBY_VERSION}"
-# $STD rbenv install $RUBY_VERSION
-# echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >>~/.bashrc
-# echo 'eval "$(rbenv init -)"' >>~/.bashrc
-# source ~/.bashrc
-# msg_ok "Installed ruby ${RUBY_VERSION}"
 
 msg_info "Adding manyfold user"
 useradd -m -s /usr/bin/bash manyfold
@@ -169,8 +146,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -rf "/opt/manyfold.zip"
-rm -rf "~/.rbenv/plugins/ruby-build.zip"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
