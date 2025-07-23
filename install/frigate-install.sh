@@ -13,9 +13,11 @@ setting_up_container
 network_check
 update_os
 
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  git gpg ca-certificates automake build-essential xz-utils libtool ccache pkg-config \
+  git automake build-essential xz-utils libtool ccache pkg-config \
   libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev \
   libjpeg-dev libpng-dev libtiff-dev gfortran openexr libatlas-base-dev libssl-dev libtbb-dev \
   libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev gcc gfortran \
@@ -27,14 +29,6 @@ $STD apt-get install -y \
   python3 python3-dev python3-setuptools python3-distutils python3-pip
 $STD pip install --upgrade pip
 msg_ok "Setup Python3"
-
-msg_info "Installing Node.js"
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
-$STD apt-get update
-$STD apt-get install -y nodejs
-msg_ok "Installed Node.js"
 
 msg_info "Installing go2rtc"
 mkdir -p /usr/local/go2rtc/bin
@@ -54,9 +48,9 @@ fi
 msg_ok "Set Up Hardware Acceleration"
 
 msg_info "Setup Frigate"
-RELEASE=$(curl -s https://api.github.com/repos/blakeblackshear/frigate/releases/latest | jq -r '.tag_name')
+RELEASE="0.16.0 Beta 4"
 mkdir -p /opt/frigate/models
-curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/${RELEASE}.tar.gz -o frigate.tar.gz
+curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/v0.16.0-beta4.tar.gz -o frigate.tar.gz
 tar -xzf frigate.tar.gz -C /opt/frigate --strip-components 1
 rm -rf frigate.tar.gz
 cd /opt/frigate
