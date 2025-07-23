@@ -51,7 +51,7 @@ RUBY_INSTALL_VERSION=$(cat /opt/manyfold/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
-RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" setup_rbenv_stack
+RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" setup_ruby
 
 msg_info "Adding manyfold user"
 useradd -m -s /usr/bin/bash manyfold
