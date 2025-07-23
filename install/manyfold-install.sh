@@ -50,7 +50,7 @@ fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" 
 RUBY_INSTALL_VERSION=$(cat /opt/manyfold/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 
-NODE_VERSION="22" NODE_MODULE="${YARN_VERSION}" setup_nodejs
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" setup_rbenv_stack
 
 msg_info "Adding manyfold user"
