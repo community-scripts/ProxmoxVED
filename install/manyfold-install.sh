@@ -14,21 +14,19 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    curl \
-    sudo \
-    mc \
-    gnupg2 postgresql \
-    lsb-release \
-    rbenv \
-    libpq-dev \
-    libarchive-dev \
-    git \
-    libmariadb-dev \
-    redis-server \
-    nginx \
-    libffi-dev \
-    libyaml-dev
+  lsb-release \
+  rbenv \
+  libpq-dev \
+  libarchive-dev \
+  git \
+  libmariadb-dev \
+  redis-server \
+  nginx \
+  libffi-dev \
+  libyaml-dev
 msg_ok "Installed Dependencies"
+
+PG_VERSION="16" setup_postgresql
 
 msg_info "Setting up PostgreSQL"
 DB_NAME=manyfold
@@ -36,11 +34,14 @@ DB_USER=manyfold
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 {
-    echo "Manyfold Credentials"
-    echo "Manyfold Database User: $DB_USER"
-    echo "Manyfold Database Password: $DB_PASS"
-    echo "Manyfold Database Name: $DB_NAME"
+  echo "Manyfold Credentials"
+  echo "Manyfold Database User: $DB_USER"
+  echo "Manyfold Database Password: $DB_PASS"
+  echo "Manyfold Database Name: $DB_NAME"
 } >>~/manyfold.creds
 msg_ok "Set up PostgreSQL"
 
