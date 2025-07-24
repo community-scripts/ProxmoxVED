@@ -155,6 +155,16 @@ wget -qO /media/frigate/person-bicycle-car-detection.mp4 https://github.com/inte
 msg_ok "Installed Coral Object Detection Model"
 
 msg_info "Building Nginx with Custom Modules"
+cat >/etc/apt/sources.list.d/debian.sources <<'EOF'
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: bookworm bookworm-updates bookworm-backports
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+sed -i -e '/^deb-src /d' -e 's/^deb /#deb /' /etc/apt/sources.list
+$STD apt-get update
+
 $STD /opt/frigate/docker/main/build_nginx.sh
 sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
 ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
@@ -162,6 +172,7 @@ msg_ok "Built Nginx"
 
 msg_info "Installing Tempio"
 sed -i 's|/rootfs/usr/local|/usr/local|g' /opt/frigate/docker/main/install_tempio.sh
+TARGETARCH="amd64"
 $STD /opt/frigate/docker/main/install_tempio.sh
 chmod +x /usr/local/tempio/bin/tempio
 ln -sf /usr/local/tempio/bin/tempio /usr/local/bin/tempio
