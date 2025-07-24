@@ -882,15 +882,11 @@ function fetch_and_deploy_gh_release() {
     shopt -u dotglob nullglob
 
     ### Binary Mode ###
-  ### Binary Mode (with DEBUG) ###
   elif [[ "$mode" == "binary" ]]; then
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
     [[ "$arch" == "x86_64" ]] && arch="amd64"
     [[ "$arch" == "aarch64" ]] && arch="arm64"
-
-    echo "[DEBUG] Detected system architecture: $arch"
-    echo "[DEBUG] Provided asset_pattern: ${asset_pattern:-<none>}"
 
     local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
@@ -902,12 +898,9 @@ function fetch_and_deploy_gh_release() {
 
     # 1. Pattern match
     if [[ -n "$asset_pattern" ]]; then
-      echo "[DEBUG] Trying to match provided pattern: $asset_pattern"
       for u in $assets; do
         filename_candidate="${u##*/}"
-        echo "  [DEBUG] Checking asset: $filename_candidate"
         if [[ "$filename_candidate" == *"$asset_pattern"* ]]; then
-          echo "  [DEBUG] ✅ Pattern matched: $filename_candidate"
           url_match="$u"
           break
         fi
@@ -916,12 +909,10 @@ function fetch_and_deploy_gh_release() {
 
     # 2. Arch match (only if no pattern match)
     if [[ -z "$url_match" ]]; then
-      echo "[DEBUG] No pattern match, trying architecture match: $arch"
       for u in $assets; do
         filename_candidate="${u##*/}"
         echo "  [DEBUG] Checking asset: $filename_candidate"
         if [[ "$filename_candidate" == *"$arch"* && "$filename_candidate" == *.deb ]]; then
-          echo "  [DEBUG] ✅ Architecture match: $filename_candidate"
           url_match="$u"
           break
         fi
@@ -930,12 +921,9 @@ function fetch_and_deploy_gh_release() {
 
     # 3. Fallback
     if [[ -z "$url_match" ]]; then
-      echo "[DEBUG] No architecture match, falling back to first .deb"
       for u in $assets; do
         filename_candidate="${u##*/}"
-        echo "  [DEBUG] Checking asset: $filename_candidate"
         if [[ "$filename_candidate" == *.deb ]]; then
-          echo "  [DEBUG] ✅ Fallback match: $filename_candidate"
           url_match="$u"
           break
         fi
