@@ -60,7 +60,9 @@ $STD pip3 wheel --wheel-dir=/wheels -r /opt/frigate/docker/main/requirements-whe
 pip3 install -U /wheels/*.whl
 cp -a /opt/frigate/docker/main/rootfs/. /
 export TARGETARCH="amd64"
-echo 'libc6 libraries/restart-without-asking boolean true' | debconf-set-selections
+export DEBIAN_FRONTEND=noninteractive
+echo "libedgetpu1-max libedgetpu/accepted-eula select true" | debconf-set-selections
+echo "libedgetpu1-max libedgetpu/install-confirm-max select true" | debconf-set-selections
 $STD /opt/frigate/docker/main/install_deps.sh
 $STD apt update
 $STD ln -svf /usr/lib/btbn-ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
@@ -103,15 +105,15 @@ fi
 echo "tmpfs   /tmp/cache      tmpfs   defaults        0       0" >>/etc/fstab
 msg_ok "Installed Frigate $RELEASE"
 
-read -p "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it? (y/n): " semantic_choice
-if [[ "$semantic_choice" == "y" ]]; then
-  msg_info "Configuring Semantic Search & AI Models"
-  mkdir -p /opt/frigate/models/semantic_search
-  curl -fsSL -o /opt/frigate/models/semantic_search/clip_model.pt https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin
-  msg_ok "Semantic Search Models Installed"
-else
-  msg_ok "Skipped Semantic Search Setup"
-fi
+# read -p "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it? (y/n): " semantic_choice
+# if [[ "$semantic_choice" == "y" ]]; then
+#   msg_info "Configuring Semantic Search & AI Models"
+#   mkdir -p /opt/frigate/models/semantic_search
+#   curl -fsSL -o /opt/frigate/models/semantic_search/clip_model.pt https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin
+#   msg_ok "Semantic Search Models Installed"
+# else
+#   msg_ok "Skipped Semantic Search Setup"
+# fi
 
 msg_info "Building and Installing libUSB without udev"
 wget -qO /tmp/libusb.zip https://github.com/libusb/libusb/archive/v1.0.29.zip
@@ -160,22 +162,18 @@ cat >/etc/apt/sources.list.d/nginx-debsrc.list <<'EOF'
 deb-src http://deb.debian.org/debian bookworm main
 EOF
 $STD apt-get update
-msg_ok "Enabled deb-src for Nginx"
+msg_ok "deb-src enabled"
 
-msg_info "Installing Nginx build-dependencies"
-$STD apt-get -yqq build-dep nginx
-msg_ok "Installed Nginx build-dependencies"
+msg_info "Building Nginx with Custom Modules"
+$STD bash /opt/frigate/docker/main/build_nginx.sh
+sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
+ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
+msg_ok "Built Nginx"
 
 msg_info "Cleanup temporary deb-src"
 rm -f /etc/apt/sources.list.d/nginx-debsrc.list
 $STD apt-get update
-msg_ok "Removed temporary deb-src"
-
-msg_info "Building Nginx with Custom Modules"
-$STD /opt/frigate/docker/main/build_nginx.sh
-sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
-ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
-msg_ok "Built Nginx"
+msg_ok "Temporary deb-src removed"
 
 msg_info "Installing Tempio"
 sed -i 's|/rootfs/usr/local|/usr/local|g' /opt/frigate/docker/main/install_tempio.sh
