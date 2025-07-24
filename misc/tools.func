@@ -881,7 +881,7 @@ function fetch_and_deploy_gh_release() {
     cp -r "$unpack_dir"/* "$target/"
     shopt -u dotglob nullglob
 
-  ### Binary Mode ###
+    ### Binary Mode ###
   elif [[ "$mode" == "binary" ]]; then
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
@@ -891,17 +891,17 @@ function fetch_and_deploy_gh_release() {
     local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
-    # 1. Expliziten Pattern-Parameter bevorzugen
+    # 1. wenn Pattern übergeben -> NUR dieses matchen
     if [[ -n "$asset_pattern" ]]; then
       for u in $assets; do
-        if [[ "$u" =~ $asset_pattern || "$u" == *"$asset_pattern" ]]; then
+        if [[ "$u" == *"$asset_pattern"* ]]; then
           url_match="$u"
           break
         fi
       done
     fi
 
-    # 2. Wenn kein Pattern-Match, gezielt nach Architektur suchen
+    # 2. sonst nach Host-Architektur suchen
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
         if [[ "$u" == *"${arch}"* && "$u" == *.deb ]]; then
@@ -911,7 +911,7 @@ function fetch_and_deploy_gh_release() {
       done
     fi
 
-    # 3. Fallback: irgendein .deb
+    # 3. sonst generischer Fallback
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
         if [[ "$u" == *.deb ]]; then
