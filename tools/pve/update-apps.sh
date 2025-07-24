@@ -18,6 +18,51 @@ function header_info {
 EOF
 }
 
+function detect_service(){
+  pushd $(mktemp -d) >/dev/null
+  pct pull "$1" /usr/bin/update update 2>/dev/null
+  service=$(cat update | sed 's|.*/ct/||g' | sed 's|\.sh).*||g')
+  popd >/dev/null
+}
+
+function backup_container(){
+  msg_info "Creating backup for container $1"
+  vzdump $1 --compress zstd --storage $STORAGE_CHOICE -notes-template "community-scripts backup updater" > /dev/null 2>&1
+  status=$?
+
+  if [ $status -eq 0 ]; then
+    msg_ok "Backup created"
+  else
+    msg_error "Backup failed for container $1"
+    exit 1
+  fi
+}
+
+function get_backup_storages(){
+STORAGES=$(awk '
+/^[a-z]+:/ {
+    if (name != "") {
+        if (has_backup || (!has_content && type == "dir")) print name
+    }
+    split($0, a, ":")
+    type = a[1]
+    name = a[2]
+    sub(/^ +/, "", name)
+    has_content = 0
+    has_backup = 0
+}
+/^ +content/ {
+    has_content = 1
+    if ($0 ~ /backup/) has_backup = 1
+}
+END {
+    if (name != "") {
+        if (has_backup || (!has_content && type == "dir")) print name
+    }
+}
+' /etc/pve/storage.cfg)
+}
+
 header_info
 echo "Loading..."
 whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "This will update LXC container. Proceed?" 10 58 || exit
@@ -32,16 +77,16 @@ fi
 
 menu_items=()
 FORMAT="%-10s %-15s %-10s"
+TAGS="community-script|proxmox-helper-scripts"
 
 while read -r container; do
-    container_id=$(echo $container | awk '{print $1}')
-    container_name=$(echo $container | awk '{print $2}')
-    container_status=$(echo $container | awk '{print $3}')
-    formatted_line=$(printf "$FORMAT" "$container_name" "$container_status")
-    IS_HELPERSCRIPT_LXC=$(pct exec $container_id -- [ -e /usr/bin/update ] && echo true || echo false)
-    if [ "$IS_HELPERSCRIPT_LXC" = true ]; then
-      menu_items+=("$container_id" "$formatted_line" "OFF")
-    fi
+  container_id=$(echo $container | awk '{print $1}')
+  container_name=$(echo $container | awk '{print $2}')
+  container_status=$(echo $container | awk '{print $3}')
+  formatted_line=$(printf "$FORMAT" "$container_name" "$container_status")
+  if pct config "$container_id" | grep -qE "^tags:.*(${TAGS}).*"; then
+    menu_items+=("$container_id" "$formatted_line" "OFF")
+  fi
 done <<< "$containers"
 
 CHOICE=$(whiptail --title "LXC Container Update" \
@@ -66,7 +111,8 @@ if(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Updat
 fi
 
 if [ "$BACKUP_CHOICE" == "yes" ]; then
-  STORAGES=$(awk '/^(\S+):/ {storage=$2} /content.*backup/ {print storage}' /etc/pve/storage.cfg)
+  #STORAGES=$(awk '/^(\S+):/ {storage=$2} /content.*backup/ {print storage}' /etc/pve/storage.cfg)
+  get_backup_storages
 
   if [ -z "$STORAGES" ]; then
     whiptail --msgbox "No storage with 'backup' found!" 8 40
@@ -86,19 +132,6 @@ if [ "$BACKUP_CHOICE" == "yes" ]; then
   fi
 fi
 
-function backup_container(){
-  msg_info "Creating backup for container $1"
-  vzdump $1 --compress zstd --storage $STORAGE_CHOICE -notes-template "community-scripts backup updater" > /dev/null 2>&1
-  status=$?
-
-  if [ $status -eq 0 ]; then
-    msg_ok "Backup created"
-  else
-    msg_error "Backup failed for container $1"
-    exit 1
-  fi
-}
-
 UPDATE_CMD="update;"
 if [ "$UNATTENDED_UPDATE" == "yes" ];then
   UPDATE_CMD="export PHS_SILENT=1;update;"
@@ -106,17 +139,24 @@ fi
 
 containers_needing_reboot=()
 for container in $CHOICE; do
-  msg_info "Updating container $container"
+  echo -e "${BL}[INFO]${CL} Updating container $container"
 
-  if [ "BACKUP_CHOICE" == "yes" ];then
+  if [ "$BACKUP_CHOICE" == "yes" ];then
     backup_container $container
   fi
 
+  os=$(pct config "$container" | awk '/^ostype/ {print $2}')
+  status=$(pct status $container)
+  template=$(pct config $container | grep -q "template:" && echo "true" || echo "false")
+  if [ "$template" == "false" ] && [ "$status" == "status: stopped" ]; then
+    echo -e "${BL}[Info]${GN} Starting${BL} $container ${CL} \n"
+    pct start $container
+    echo -e "${BL}[Info]${GN} Waiting For${BL} $container${CL}${GN} To Start ${CL} \n"
+    sleep 5
+  fi
+
   #1) Detect service using the service name in the update command
-  pushd $(mktemp -d) >/dev/null
-  pct pull "$container" /usr/bin/update update 2>/dev/null
-  service=$(cat update | sed 's|.*/ct/||g' | sed 's|\.sh).*||g')
-  popd >/dev/null
+  detect_service $container
 
   #1.1) If update script not detected, return
   if [ -z "${service}" ]; then
@@ -127,7 +167,14 @@ for container in $CHOICE; do
   fi
 
   #2) Extract service build/update resource requirements from config/installation file
-  script=$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/${service}.sh)
+  script=$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/${service}.sh)
+
+  #2.1) Check if the script downloaded successfully
+  if [ $? -ne 0 ]; then
+    echo -e "${RD}[ERROR]${CL} Issue while downloading install script."
+    echo -e "${YW}[WARN]${CL} Unable to assess build resource requirements. Proceeding with current resources."
+  fi
+
   config=$(pct config "$container")
   build_cpu=$(echo "$script" | { grep -m 1 "var_cpu" || test $? = 1; } | sed 's|.*=||g' | sed 's|"||g' | sed 's|.*var_cpu:-||g' | sed 's|}||g')
   build_ram=$(echo "$script" | { grep -m 1 "var_ram" || test $? = 1; } | sed 's|.*=||g' | sed 's|"||g' | sed 's|.*var_ram:-||g' | sed 's|}||g')
@@ -166,8 +213,7 @@ for container in $CHOICE; do
   if [ "$UPDATE_BUILD_RESOURCES" -eq "1" ]; then
     pct set "$container" --cores "$build_cpu" --memory "$build_ram"
   fi
-
-  os=$(pct config "$container" | awk '/^ostype/ {print $2}')
+}
 
   #4) Update service, using the update command
   case "$os" in
@@ -178,6 +224,11 @@ for container in $CHOICE; do
   opensuse) pct exec "$container" -- bash -c "$UPDATE_CMD" ;;
   esac
   exit_code=$?
+
+  if [ "$template" == "false" ] && [ "$status" == "status: stopped" ]; then
+    echo -e "${BL}[Info]${GN} Shutting down${BL} $container ${CL} \n"
+    pct shutdown $container &
+  fi
 
   #5) if build resources are different than run resources, then:
   if [ "$UPDATE_BUILD_RESOURCES" -eq "1" ]; then
