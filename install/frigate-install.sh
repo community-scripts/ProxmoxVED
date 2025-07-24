@@ -13,6 +13,17 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Configure Debian Sources"
+cat >/etc/apt/sources.list.d/debian.sources <<'EOF'
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: bookworm bookworm-updates bookworm-backports
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+sed -i -e '/^deb-src /d' -e 's/^deb /#deb /' /etc/apt/sources.list
+msg_ok "Configured Debian Sources"
+
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 
 msg_info "Installing Dependencies (Patience)"
@@ -50,6 +61,8 @@ msg_ok "Set Up Hardware Acceleration"
 msg_info "Setup Frigate"
 RELEASE="0.16.0 Beta 4"
 export DEBIAN_FRONTEND=noninteractive
+echo "libedgetpu1-max libedgetpu/accepted-eula select true" | debconf-set-selections
+
 mkdir -p /opt/frigate/models
 curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/v0.16.0-beta4.tar.gz -o frigate.tar.gz
 tar -xzf frigate.tar.gz -C /opt/frigate --strip-components 1
@@ -157,14 +170,7 @@ wget -qO /media/frigate/person-bicycle-car-detection.mp4 https://github.com/inte
 msg_ok "Installed Coral Object Detection Model"
 
 msg_info "Building Nginx with Custom Modules"
-cat >/etc/apt/sources.list.d/debian.sources <<'EOF'
-Types: deb deb-src
-URIs: http://deb.debian.org/debian
-Suites: bookworm bookworm-updates bookworm-backports
-Components: main contrib non-free non-free-firmware
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-EOF
-sed -i -e '/^deb-src /d' -e 's/^deb /#deb /' /etc/apt/sources.list
+
 $STD apt-get update
 $STD apt-get -f install -y || true
 $STD dpkg --configure -a || true
