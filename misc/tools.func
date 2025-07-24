@@ -882,7 +882,9 @@ function fetch_and_deploy_gh_release() {
     shopt -u dotglob nullglob
 
     ### Binary Mode ###
+  ### Binary Mode ###
   elif [[ "$mode" == "binary" ]]; then
+    # Architektur ermitteln
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
     [[ "$arch" == "x86_64" ]] && arch="amd64"
@@ -891,42 +893,48 @@ function fetch_and_deploy_gh_release() {
     local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
-    # 1. wenn Pattern übergeben -> NUR dieses matchen
+    # --- 1. Wenn ein Pattern übergeben wurde, matcht nur das ---
     if [[ -n "$asset_pattern" ]]; then
       for u in $assets; do
-        if [[ "$u" == *"$asset_pattern"* ]]; then
+        filename_candidate="${u##*/}"
+        # einfaches String-Match
+        if [[ "$filename_candidate" == *"$asset_pattern"* ]]; then
           url_match="$u"
           break
         fi
       done
     fi
 
-    # 2. sonst nach Host-Architektur suchen
+    # --- 2. Wenn kein Pattern-Treffer, dann nach Host-Architektur suchen ---
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
-        if [[ "$u" == *"${arch}"* && "$u" == *.deb ]]; then
+        filename_candidate="${u##*/}"
+        if [[ "$filename_candidate" == *"$arch"* && "$filename_candidate" == *.deb ]]; then
           url_match="$u"
           break
         fi
       done
     fi
 
-    # 3. sonst generischer Fallback
+    # --- 3. Wenn immer noch kein Treffer, nimm das erste .deb ---
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
-        if [[ "$u" == *.deb ]]; then
+        filename_candidate="${u##*/}"
+        if [[ "$filename_candidate" == *.deb ]]; then
           url_match="$u"
           break
         fi
       done
     fi
 
+    # --- Wenn kein Asset gefunden, Fehler ---
     if [[ -z "$url_match" ]]; then
       msg_error "No suitable .deb asset found for $app"
       rm -rf "$tmpdir"
       return 1
     fi
 
+    # Download und Install
     filename="${url_match##*/}"
     curl $download_timeout -fsSL -o "$tmpdir/$filename" "$url_match" || {
       msg_error "Download failed: $url_match"
@@ -935,13 +943,13 @@ function fetch_and_deploy_gh_release() {
     }
 
     chmod 644 "$tmpdir/$filename"
-    $STD apt-get install -y "$tmpdir/$filename" || {
-      $STD dpkg -i "$tmpdir/$filename" || {
+    if ! $STD apt-get install -y "$tmpdir/$filename"; then
+      if ! $STD dpkg -i "$tmpdir/$filename"; then
         msg_error "Both apt and dpkg installation failed"
         rm -rf "$tmpdir"
         return 1
-      }
-    }
+      fi
+    fi
 
   ### Prebuild Mode ###
   elif [[ "$mode" == "prebuild" ]]; then
