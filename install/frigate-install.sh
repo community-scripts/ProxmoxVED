@@ -49,6 +49,7 @@ msg_ok "Set Up Hardware Acceleration"
 
 msg_info "Setup Frigate"
 RELEASE="0.16.0 Beta 4"
+export DEBIAN_FRONTEND=noninteractive
 mkdir -p /opt/frigate/models
 curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/v0.16.0-beta4.tar.gz -o frigate.tar.gz
 tar -xzf frigate.tar.gz -C /opt/frigate --strip-components 1
@@ -112,6 +113,7 @@ if [[ "$semantic_choice" == "y" ]]; then
 else
   msg_ok "Skipped Semantic Search Setup"
 fi
+
 msg_info "Building and Installing libUSB without udev"
 wget -qO /tmp/libusb.zip https://github.com/libusb/libusb/archive/v1.0.29.zip
 unzip -q /tmp/libusb.zip -d /tmp/
@@ -164,6 +166,13 @@ Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
 sed -i -e '/^deb-src /d' -e 's/^deb /#deb /' /etc/apt/sources.list
 $STD apt-get update
+$STD apt-get -f install -y || true
+$STD dpkg --configure -a || true
+
+for pkg in $(apt-mark showhold); do
+  echo "Unholding $pkg"
+  apt-mark unhold "$pkg"
+done
 
 $STD /opt/frigate/docker/main/build_nginx.sh
 sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
