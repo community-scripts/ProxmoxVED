@@ -27,7 +27,8 @@ function update_script() {
     exit 1
   fi
 
-  RELEASE=$(curl -fsSL https://teamspeak.com/en/downloads/#server | sed -n 's/.*teamspeak3-server_linux_amd64-\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p' | head -1)
+  RELEASE=$(curl -fsSL https://teamspeak.com/en/downloads/#server | sed -n '/teamspeak3-server_linux_amd64-/ { s/.*teamspeak3-server_linux_amd64-\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p; q }')
+
   if [ "${RELEASE}" != "$(cat ~/.teamspeak-server)" ] || [ ! -f ~/.teamspeak-server ]; then
     msg_info "Updating ${APP} LXC"
     $STD apk -U upgrade
