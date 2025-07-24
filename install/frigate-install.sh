@@ -63,6 +63,33 @@ export TARGETARCH="amd64"
 export DEBIAN_FRONTEND=noninteractive
 echo "libedgetpu1-max libedgetpu/accepted-eula select true" | debconf-set-selections
 echo "libedgetpu1-max libedgetpu/install-confirm-max select true" | debconf-set-selections
+
+msg_info "Ensure /etc/apt/sources.list.d/debian.sources exists with deb-src"
+mkdir -p /etc/apt/sources.list.d
+cat >/etc/apt/sources.list.d/debian.sources <<'EOF'
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: bookworm
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+msg_ok "Stub /etc/apt/sources.list.d/debian.sources created"
+
+msg_info "Updating APT cache"
+$STD apt-get update
+msg_ok "APT cache updated"
+
+msg_info "Building Nginx with Custom Modules"
+$STD bash /opt/frigate/docker/main/build_nginx.sh
+sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
+ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
+msg_ok "Built Nginx"
+
+msg_info "Cleanup stub debian.sources"
+rm -f /etc/apt/sources.list.d/debian.sources
+$STD apt-get update
+msg_ok "Removed stub and updated APT cache"
+
 $STD /opt/frigate/docker/main/install_deps.sh
 $STD apt update
 $STD ln -svf /usr/lib/btbn-ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
@@ -158,32 +185,6 @@ cp /opt/frigate/audio-labelmap.txt /audio-labelmap.txt
 mkdir -p /media/frigate
 wget -qO /media/frigate/person-bicycle-car-detection.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/person-bicycle-car-detection.mp4
 msg_ok "Installed Coral Object Detection Model"
-
-msg_info "Ensure /etc/apt/sources.list.d/debian.sources exists with deb-src"
-mkdir -p /etc/apt/sources.list.d
-cat >/etc/apt/sources.list.d/debian.sources <<'EOF'
-Types: deb deb-src
-URIs: http://deb.debian.org/debian
-Suites: bookworm
-Components: main
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-EOF
-msg_ok "Stub /etc/apt/sources.list.d/debian.sources created"
-
-msg_info "Updating APT cache"
-$STD apt-get update
-msg_ok "APT cache updated"
-
-msg_info "Building Nginx with Custom Modules"
-$STD bash /opt/frigate/docker/main/build_nginx.sh
-sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
-ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
-msg_ok "Built Nginx"
-
-msg_info "Cleanup stub debian.sources"
-rm -f /etc/apt/sources.list.d/debian.sources
-$STD apt-get update
-msg_ok "Removed stub and updated APT cache"
 
 msg_info "Installing Tempio"
 sed -i 's|/rootfs/usr/local|/usr/local|g' /opt/frigate/docker/main/install_tempio.sh
