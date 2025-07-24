@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: community-scripts ORG
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -29,13 +29,11 @@ function update_script() {
     fi
 
     RELEASE=$(curl -fsSL https://api.github.com/repos/Cleanuparr/Cleanuparr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-
     if [[ "${RELEASE}" != "$(cat ~/.Cleanuparr 2>/dev/null)" ]] || [[ ! -f ~/.Cleanuparr ]]; then
         msg_info "Stopping ${APP}"
         systemctl stop cleanuparr
         msg_ok "Stopped ${APP}"
 
-        msg_info "Updating ${APP} to v${RELEASE}"
         fetch_and_deploy_gh_release "Cleanuparr" "Cleanuparr/Cleanuparr" "prebuild" "$RELEASE" "/opt/cleanuparr" "*linux-amd64.zip"
         msg_ok "Updated ${APP}"
 
