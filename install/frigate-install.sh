@@ -13,8 +13,6 @@ setting_up_container
 network_check
 update_os
 
-NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
-
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
   git automake build-essential xz-utils libtool ccache pkg-config \
@@ -30,13 +28,10 @@ $STD apt-get install -y \
 $STD pip install --upgrade pip
 msg_ok "Setup Python3"
 
-msg_info "Installing go2rtc"
-mkdir -p /usr/local/go2rtc/bin
-cd /usr/local/go2rtc/bin
-curl -fsSL "https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_linux_amd64" -o go2rtc
-chmod +x go2rtc
-ln -sf /usr/local/go2rtc/bin/go2rtc /usr/local/bin/go2rtc
-msg_ok "Installed go2rtc"
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+fetch_and_deploy_gh_release "go2rtc" "AlexxIT/go2rtc" "singlefile" "latest" "/usr/local/go2rtc/bin" "go2rtc_linux_amd64"
+fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "v0.16.0-beta4" "/opt/frigate"
+fetch_and_deploy_gh_release "libusb" "libusb/libusb" "tarball" "v1.0.29" "/opt/frigate/libusb"
 
 msg_info "Setting Up Hardware Acceleration"
 $STD apt-get -y install {va-driver-all,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools}
@@ -48,11 +43,7 @@ fi
 msg_ok "Set Up Hardware Acceleration"
 
 msg_info "Setup Frigate"
-RELEASE="0.16.0 Beta 4"
-mkdir -p /opt/frigate/models
-curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/v0.16.0-beta4.tar.gz -o frigate.tar.gz
-tar -xzf frigate.tar.gz -C /opt/frigate --strip-components 1
-rm -rf frigate.tar.gz
+ln -sf /usr/local/go2rtc/bin/go2rtc /usr/local/bin/go2rtc
 cd /opt/frigate
 $STD pip install -r /opt/frigate/docker/main/requirements.txt --break-system-packages
 $STD pip install -r /opt/frigate/docker/main/requirements-ov.txt --break-system-packages
@@ -130,7 +121,7 @@ else
   sed -i -e 's/^kvm:x:104:$/render:x:104:frigate/' -e 's/^render:x:105:$/kvm:x:105:/' /etc/group
 fi
 echo "tmpfs   /tmp/cache      tmpfs   defaults        0       0" >>/etc/fstab
-msg_ok "Installed Frigate $RELEASE"
+msg_ok "Installed Frigate"
 
 # read -p "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it? (y/n): " semantic_choice
 # if [[ "$semantic_choice" == "y" ]]; then
@@ -158,14 +149,11 @@ msg_info "Installing Coral Object Detection Model (Patience)"
 cd /opt/frigate
 export CCACHE_DIR=/root/.ccache
 export CCACHE_MAXSIZE=2G
-curl -L -o v1.0.29.zip https://github.com/libusb/libusb/archive/v1.0.29.zip
-unzip -q v1.0.29.zip
-rm v1.0.29.zip
-cd libusb-1.0.29
+cd libusb
 $STD ./bootstrap.sh
 $STD ./configure --disable-udev --enable-shared
 $STD make -j $(nproc --all)
-cd /opt/frigate/libusb-1.0.29/libusb
+cd /opt/frigate/libusb/libusb
 mkdir -p /usr/local/lib
 $STD /bin/bash ../libtool --mode=install /usr/bin/install -c libusb-1.0.la '/usr/local/lib'
 mkdir -p /usr/local/include/libusb-1.0
