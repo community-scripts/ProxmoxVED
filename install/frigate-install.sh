@@ -115,6 +115,8 @@ msg_ok "Installed Frigate $RELEASE"
 #   msg_ok "Skipped Semantic Search Setup"
 # fi
 
+fetch_and_
+
 msg_info "Building and Installing libUSB without udev"
 wget -qO /tmp/libusb.zip https://github.com/libusb/libusb/archive/v1.0.29.zip
 unzip -q /tmp/libusb.zip -d /tmp/
@@ -157,12 +159,20 @@ mkdir -p /media/frigate
 wget -qO /media/frigate/person-bicycle-car-detection.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/person-bicycle-car-detection.mp4
 msg_ok "Installed Coral Object Detection Model"
 
-msg_info "Temporarily enable deb-src for Nginx build"
-cat >/etc/apt/sources.list.d/nginx-debsrc.list <<'EOF'
-deb-src http://deb.debian.org/debian bookworm main
+msg_info "Ensure /etc/apt/sources.list.d/debian.sources exists with deb-src"
+mkdir -p /etc/apt/sources.list.d
+cat >/etc/apt/sources.list.d/debian.sources <<'EOF'
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: bookworm
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
+msg_ok "Stub /etc/apt/sources.list.d/debian.sources created"
+
+msg_info "Updating APT cache"
 $STD apt-get update
-msg_ok "deb-src enabled"
+msg_ok "APT cache updated"
 
 msg_info "Building Nginx with Custom Modules"
 $STD bash /opt/frigate/docker/main/build_nginx.sh
@@ -170,10 +180,10 @@ sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-o
 ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
 msg_ok "Built Nginx"
 
-msg_info "Cleanup temporary deb-src"
-rm -f /etc/apt/sources.list.d/nginx-debsrc.list
+msg_info "Cleanup stub debian.sources"
+rm -f /etc/apt/sources.list.d/debian.sources
 $STD apt-get update
-msg_ok "Temporary deb-src removed"
+msg_ok "Removed stub and updated APT cache"
 
 msg_info "Installing Tempio"
 sed -i 's|/rootfs/usr/local|/usr/local|g' /opt/frigate/docker/main/install_tempio.sh
