@@ -882,62 +882,77 @@ function fetch_and_deploy_gh_release() {
     shopt -u dotglob nullglob
 
     ### Binary Mode ###
-  ### Binary Mode ###
+  ### Binary Mode (with DEBUG) ###
   elif [[ "$mode" == "binary" ]]; then
-    # Architektur ermitteln
     local arch
     arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
     [[ "$arch" == "x86_64" ]] && arch="amd64"
     [[ "$arch" == "aarch64" ]] && arch="arm64"
 
+    echo "[DEBUG] Detected system architecture: $arch"
+    echo "[DEBUG] Provided asset_pattern: ${asset_pattern:-<none>}"
+
     local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
-    # --- 1. Wenn ein Pattern übergeben wurde, matcht nur das ---
+    echo "[DEBUG] Listing all available assets from release:"
+    for u in $assets; do
+      echo "  -> $u"
+    done
+
+    # 1. Pattern match
     if [[ -n "$asset_pattern" ]]; then
+      echo "[DEBUG] Trying to match provided pattern: $asset_pattern"
       for u in $assets; do
         filename_candidate="${u##*/}"
-        # einfaches String-Match
+        echo "  [DEBUG] Checking asset: $filename_candidate"
         if [[ "$filename_candidate" == *"$asset_pattern"* ]]; then
+          echo "  [DEBUG] ✅ Pattern matched: $filename_candidate"
           url_match="$u"
           break
         fi
       done
     fi
 
-    # --- 2. Wenn kein Pattern-Treffer, dann nach Host-Architektur suchen ---
+    # 2. Arch match (only if no pattern match)
     if [[ -z "$url_match" ]]; then
+      echo "[DEBUG] No pattern match, trying architecture match: $arch"
       for u in $assets; do
         filename_candidate="${u##*/}"
+        echo "  [DEBUG] Checking asset: $filename_candidate"
         if [[ "$filename_candidate" == *"$arch"* && "$filename_candidate" == *.deb ]]; then
+          echo "  [DEBUG] ✅ Architecture match: $filename_candidate"
           url_match="$u"
           break
         fi
       done
     fi
 
-    # --- 3. Wenn immer noch kein Treffer, nimm das erste .deb ---
+    # 3. Fallback
     if [[ -z "$url_match" ]]; then
+      echo "[DEBUG] No architecture match, falling back to first .deb"
       for u in $assets; do
         filename_candidate="${u##*/}"
+        echo "  [DEBUG] Checking asset: $filename_candidate"
         if [[ "$filename_candidate" == *.deb ]]; then
+          echo "  [DEBUG] ✅ Fallback match: $filename_candidate"
           url_match="$u"
           break
         fi
       done
     fi
 
-    # --- Wenn kein Asset gefunden, Fehler ---
     if [[ -z "$url_match" ]]; then
-      msg_error "No suitable .deb asset found for $app"
+      echo "[DEBUG] ❌ No suitable .deb asset found!"
       rm -rf "$tmpdir"
       return 1
     fi
 
-    # Download und Install
+    echo "[DEBUG] Final selected asset: $url_match"
     filename="${url_match##*/}"
+
     curl $download_timeout -fsSL -o "$tmpdir/$filename" "$url_match" || {
-      msg_error "Download failed: $url_match"
+      echo "[DEBUG] ❌ Download failed: $url_match"
       rm -rf "$tmpdir"
       return 1
     }
@@ -945,7 +960,7 @@ function fetch_and_deploy_gh_release() {
     chmod 644 "$tmpdir/$filename"
     if ! $STD apt-get install -y "$tmpdir/$filename"; then
       if ! $STD dpkg -i "$tmpdir/$filename"; then
-        msg_error "Both apt and dpkg installation failed"
+        echo "[DEBUG] ❌ Both apt and dpkg installation failed"
         rm -rf "$tmpdir"
         return 1
       fi
