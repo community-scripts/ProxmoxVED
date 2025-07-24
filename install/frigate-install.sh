@@ -13,7 +13,8 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Configure Debian Sources"
+msg_info "Configure Debian Sources & Pinning (Stable > Backports)"
+# APT sources im deb822-Format
 cat >/etc/apt/sources.list.d/debian.sources <<'EOF'
 Types: deb deb-src
 URIs: http://deb.debian.org/debian
@@ -21,10 +22,26 @@ Suites: bookworm bookworm-updates bookworm-backports
 Components: main contrib non-free non-free-firmware
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
+# klassische sources.list auskommentieren
 sed -i -e '/^deb-src /d' -e 's/^deb /#deb /' /etc/apt/sources.list
-msg_ok "Configured Debian Sources"
 
-NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+# Pinning: Stable (bookworm) bevorzugt, Backports nur fallweise
+cat >/etc/apt/preferences.d/stable-backports.pref <<'EOF'
+Package: *
+Pin: release a=bookworm
+Pin-Priority: 700
+
+Package: *
+Pin: release a=bookworm-backports
+Pin-Priority: 300
+EOF
+msg_ok "Configured Debian Sources & APT pinning"
+
+msg_info "Prepare APT (repair & update)"
+apt-get update
+apt-get -f install -y || true
+dpkg --configure -a || true
+msg_ok "APT ready"
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
@@ -62,6 +79,7 @@ msg_info "Setup Frigate"
 RELEASE="0.16.0 Beta 4"
 export DEBIAN_FRONTEND=noninteractive
 echo "libedgetpu1-max libedgetpu/accepted-eula select true" | debconf-set-selections
+echo "libedgetpu1-max libedgetpu/install-confirm-max select true" | debconf-set-selections
 
 mkdir -p /opt/frigate/models
 curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/v0.16.0-beta4.tar.gz -o frigate.tar.gz
