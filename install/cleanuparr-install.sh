@@ -13,22 +13,8 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
-  unzip
-msg_ok "Installed Dependencies"
-
 msg_info "Installing Cleanuparr"
-RELEASE=$(curl -fsSL https://api.github.com/repos/Cleanuparr/Cleanuparr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4)}')
-mkdir -p /opt/cleanuparr
-cd /opt/cleanuparr
-curl -fsSLO "https://github.com/Cleanuparr/Cleanuparr/releases/download/v${RELEASE}/Cleanuparr-${RELEASE}-linux-amd64.zip"
-unzip -q "Cleanuparr-${RELEASE}-linux-amd64.zip"
-rm -f "Cleanuparr-${RELEASE}-linux-amd64.zip"
-chmod +x /opt/cleanuparr/Cleanuparr
+fetch_and_deploy_gh_release "Cleanuparr" "Cleanuparr/Cleanuparr" "prebuild" "latest" "/opt/cleanuparr" "*linux-amd64.zip"
 msg_ok "Installed Cleanuparr"
 
 msg_info "Creating Service"

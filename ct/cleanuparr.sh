@@ -27,23 +27,25 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-    msg_info "Stopping ${APP}"
-    systemctl stop cleanuparr
-    msg_ok "Stopped ${APP}"
 
-    msg_info "Updating ${APP}"
-    cd /opt/cleanuparr
-    RELEASE=$(curl -fsSL https://api.github.com/repos/Cleanuparr/Cleanuparr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4)}')
-    curl -fsSLO "https://github.com/Cleanuparr/Cleanuparr/releases/download/v${RELEASE}/Cleanuparr-${RELEASE}-linux-amd64.zip"
-    unzip -oq "Cleanuparr-${RELEASE}-linux-amd64.zip"
-    rm -f "Cleanuparr-${RELEASE}-linux-amd64.zip"
-    chmod +x /opt/cleanuparr/Cleanuparr
-    msg_ok "Updated ${APP}"
+    RELEASE=$(curl -fsSL https://api.github.com/repos/Cleanuparr/Cleanuparr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 
-    msg_info "Starting ${APP}"
-    systemctl start cleanuparr
-    msg_ok "Started ${APP}"
-    msg_ok "Updated Successfully"
+    if [[ "${RELEASE}" != "$(cat ~/.Cleanuparr 2>/dev/null)" ]] || [[ ! -f ~/.Cleanuparr ]]; then
+        msg_info "Stopping ${APP}"
+        systemctl stop cleanuparr
+        msg_ok "Stopped ${APP}"
+
+        msg_info "Updating ${APP} to v${RELEASE}"
+        fetch_and_deploy_gh_release "Cleanuparr" "Cleanuparr/Cleanuparr" "prebuild" "$RELEASE" "/opt/cleanuparr" "*linux-amd64.zip"
+        msg_ok "Updated ${APP}"
+
+        msg_info "Starting ${APP}"
+        systemctl start cleanuparr
+        msg_ok "Started ${APP}"
+        msg_ok "Updated Successfully"
+    else
+        msg_ok "No update required. ${APP} is already at v${RELEASE}"
+    fi
     exit
 }
 
