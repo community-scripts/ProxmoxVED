@@ -253,11 +253,6 @@ function edit_site() {
 edit_site
 EOF
 msg_ok "Helper Scripts Created"
-msg_info "Commands available are as below:"
-msg_info "addsite - creating a config"
-msg_info "ensite - enables a config"
-msg_info "dissite - disables a config"
-msg_info "editsite - edits a config"
 
 motd_ssh
 customize
