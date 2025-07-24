@@ -117,15 +117,15 @@ fi
 echo "tmpfs   /tmp/cache      tmpfs   defaults        0       0" >>/etc/fstab
 msg_ok "Installed Frigate $RELEASE"
 
-read -p "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it? (y/n): " semantic_choice
-if [[ "$semantic_choice" == "y" ]]; then
-  msg_info "Configuring Semantic Search & AI Models"
-  mkdir -p /opt/frigate/models/semantic_search
-  curl -fsSL -o /opt/frigate/models/semantic_search/clip_model.pt https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin
-  msg_ok "Semantic Search Models Installed"
-else
-  msg_ok "Skipped Semantic Search Setup"
-fi
+# read -p "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it? (y/n): " semantic_choice
+# if [[ "$semantic_choice" == "y" ]]; then
+#   msg_info "Configuring Semantic Search & AI Models"
+#   mkdir -p /opt/frigate/models/semantic_search
+#   curl -fsSL -o /opt/frigate/models/semantic_search/clip_model.pt https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin
+#   msg_ok "Semantic Search Models Installed"
+# else
+#   msg_ok "Skipped Semantic Search Setup"
+# fi
 
 msg_info "Building and Installing libUSB without udev"
 wget -qO /tmp/libusb.zip https://github.com/libusb/libusb/archive/v1.0.29.zip
