@@ -142,8 +142,6 @@ msg_ok "Installed Frigate $RELEASE"
 #   msg_ok "Skipped Semantic Search Setup"
 # fi
 
-fetch_and_
-
 msg_info "Building and Installing libUSB without udev"
 wget -qO /tmp/libusb.zip https://github.com/libusb/libusb/archive/v1.0.29.zip
 unzip -q /tmp/libusb.zip -d /tmp/
