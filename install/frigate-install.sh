@@ -13,35 +13,7 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Configure Debian Sources & Pinning (Stable > Backports)"
-# APT sources im deb822-Format
-cat >/etc/apt/sources.list.d/debian.sources <<'EOF'
-Types: deb deb-src
-URIs: http://deb.debian.org/debian
-Suites: bookworm bookworm-updates bookworm-backports
-Components: main contrib non-free non-free-firmware
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-EOF
-# klassische sources.list auskommentieren
-sed -i -e '/^deb-src /d' -e 's/^deb /#deb /' /etc/apt/sources.list
-
-# Pinning: Stable (bookworm) bevorzugt, Backports nur fallweise
-cat >/etc/apt/preferences.d/stable-backports.pref <<'EOF'
-Package: *
-Pin: release a=bookworm
-Pin-Priority: 700
-
-Package: *
-Pin: release a=bookworm-backports
-Pin-Priority: 300
-EOF
-msg_ok "Configured Debian Sources & APT pinning"
-
-msg_info "Prepare APT (repair & update)"
-apt-get update
-apt-get -f install -y || true
-dpkg --configure -a || true
-msg_ok "APT ready"
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
@@ -77,10 +49,6 @@ msg_ok "Set Up Hardware Acceleration"
 
 msg_info "Setup Frigate"
 RELEASE="0.16.0 Beta 4"
-export DEBIAN_FRONTEND=noninteractive
-echo "libedgetpu1-max libedgetpu/accepted-eula select true" | debconf-set-selections
-echo "libedgetpu1-max libedgetpu/install-confirm-max select true" | debconf-set-selections
-
 mkdir -p /opt/frigate/models
 curl -fsSL https://github.com/blakeblackshear/frigate/archive/refs/tags/v0.16.0-beta4.tar.gz -o frigate.tar.gz
 tar -xzf frigate.tar.gz -C /opt/frigate --strip-components 1
@@ -135,15 +103,15 @@ fi
 echo "tmpfs   /tmp/cache      tmpfs   defaults        0       0" >>/etc/fstab
 msg_ok "Installed Frigate $RELEASE"
 
-# read -p "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it? (y/n): " semantic_choice
-# if [[ "$semantic_choice" == "y" ]]; then
-#   msg_info "Configuring Semantic Search & AI Models"
-#   mkdir -p /opt/frigate/models/semantic_search
-#   curl -fsSL -o /opt/frigate/models/semantic_search/clip_model.pt https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin
-#   msg_ok "Semantic Search Models Installed"
-# else
-#   msg_ok "Skipped Semantic Search Setup"
-# fi
+read -p "Semantic Search requires a dedicated GPU and at least 16GB RAM. Would you like to install it? (y/n): " semantic_choice
+if [[ "$semantic_choice" == "y" ]]; then
+  msg_info "Configuring Semantic Search & AI Models"
+  mkdir -p /opt/frigate/models/semantic_search
+  curl -fsSL -o /opt/frigate/models/semantic_search/clip_model.pt https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/pytorch_model.bin
+  msg_ok "Semantic Search Models Installed"
+else
+  msg_ok "Skipped Semantic Search Setup"
+fi
 
 msg_info "Building and Installing libUSB without udev"
 wget -qO /tmp/libusb.zip https://github.com/libusb/libusb/archive/v1.0.29.zip
@@ -187,17 +155,23 @@ mkdir -p /media/frigate
 wget -qO /media/frigate/person-bicycle-car-detection.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/person-bicycle-car-detection.mp4
 msg_ok "Installed Coral Object Detection Model"
 
-msg_info "Building Nginx with Custom Modules"
-
+msg_info "Temporarily enable deb-src for Nginx build"
+cat >/etc/apt/sources.list.d/nginx-debsrc.list <<'EOF'
+deb-src http://deb.debian.org/debian bookworm main
+EOF
 $STD apt-get update
-$STD apt-get -f install -y || true
-$STD dpkg --configure -a || true
+msg_ok "Enabled deb-src for Nginx"
 
-for pkg in $(apt-mark showhold); do
-  echo "Unholding $pkg"
-  apt-mark unhold "$pkg"
-done
+msg_info "Installing Nginx build-dependencies"
+$STD apt-get -yqq build-dep nginx
+msg_ok "Installed Nginx build-dependencies"
 
+msg_info "Cleanup temporary deb-src"
+rm -f /etc/apt/sources.list.d/nginx-debsrc.list
+$STD apt-get update
+msg_ok "Removed temporary deb-src"
+
+msg_info "Building Nginx with Custom Modules"
 $STD /opt/frigate/docker/main/build_nginx.sh
 sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
 ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
