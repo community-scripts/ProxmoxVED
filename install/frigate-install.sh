@@ -24,7 +24,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Setup Python3"
 $STD apt-get install -y \
-  python3 python3-dev python3-setuptools python3-distutils python3-pip
+  python3 python3-dev python3-setuptools python3-distutils python3-pip python3-venv
 $STD pip install --upgrade pip
 msg_ok "Setup Python3"
 
