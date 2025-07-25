@@ -19,7 +19,7 @@ $STD apt-get install -y \
   libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev \
   libjpeg-dev libpng-dev libtiff-dev gfortran openexr libatlas-base-dev libssl-dev libtbb-dev \
   libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev gcc gfortran \
-  libopenblas-dev liblapack-dev libusb-1.0-0-dev jq moreutils tclsh libhdf5-dev libopenexr-dev
+  libopenblas-dev liblapack-dev libusb-1.0-0-dev jq moreutils tclsh libhdf5-dev libopenexr-dev nginx
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Python3"
@@ -27,6 +27,75 @@ $STD apt-get install -y \
   python3 python3-dev python3-setuptools python3-distutils python3-pip python3-venv
 $STD pip install --upgrade pip --break-system-packages
 msg_ok "Setup Python3"
+
+msg_info "Setup NGINX"
+apt-get update
+apt-get -y build-dep nginx
+apt-get -y install wget build-essential ccache patch ca-certificates
+update-ca-certificates -f
+export PATH="/usr/lib/ccache:$PATH"
+
+cd /tmp
+wget -nv https://nginx.org/download/nginx-1.29.0.tar.gz
+tar -xf nginx-1.29.0.tar.gz
+cd nginx-1.29.0
+
+mkdir /tmp/nginx-vod
+wget -nv https://github.com/kaltura/nginx-vod-module/archive/refs/tags/1.31.tar.gz
+tar -xf 1.31.tar.gz -C /tmp/nginx-vod --strip-components=1
+sed -i 's/MAX_CLIPS (128)/MAX_CLIPS (1080)/g' /tmp/nginx-vod/vod/media_set.h
+patch -d /tmp/nginx-vod -p1 <<'EOF'
+--- a/vod/avc_hevc_parser.c
++++ b/vod/avc_hevc_parser.c
+@@ -3,6 +3,9 @@
+ bool_t
+ avc_hevc_parser_rbsp_trailing_bits(bit_reader_state_t* reader)
+ {
++    // https://github.com/blakeblackshear/frigate/issues/4572
++    return TRUE;
++
+     uint32_t one_bit;
+
+     if (reader->stream.eof_reached)
+EOF
+# secure-token module
+mkdir /tmp/nginx-secure-token
+wget -nv https://github.com/kaltura/nginx-secure-token-module/archive/refs/tags/1.5.tar.gz
+tar -xf 1.5.tar.gz -C /tmp/nginx-secure-token --strip-components=1
+
+# ngx-devel-kit
+mkdir /tmp/ngx-devel-kit
+wget -nv https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v0.3.3.tar.gz
+tar -xf v0.3.3.tar.gz -C /tmp/ngx-devel-kit --strip-components=1
+
+# set-misc module
+mkdir /tmp/nginx-set-misc
+wget -nv https://github.com/openresty/set-misc-nginx-module/archive/refs/tags/v0.33.tar.gz
+tar -xf v0.33.tar.gz -C /tmp/nginx-set-misc --strip-components=1
+
+# configure & build
+cd /tmp/nginx-1.29.0
+./configure --prefix=/usr/local/nginx \
+  --with-file-aio \
+  --with-http_sub_module \
+  --with-http_ssl_module \
+  --with-http_auth_request_module \
+  --with-http_realip_module \
+  --with-threads \
+  --add-module=/tmp/ngx-devel-kit \
+  --add-module=/tmp/nginx-set-misc \
+  --add-module=/tmp/nginx-vod \
+  --add-module=/tmp/nginx-secure-token \
+  --with-cc-opt="-O3 -Wno-error=implicit-fallthrough"
+
+make CC="ccache gcc" -j"$(nproc)"
+make install
+ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
+
+# cleanup
+rm -rf /tmp/nginx-1.29.0* /tmp/nginx-vod /tmp/nginx-secure-token /tmp/ngx-devel-kit /tmp/nginx-set-misc
+
+msg_ok "NGINX with Custom Modules Built"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 fetch_and_deploy_gh_release "go2rtc" "AlexxIT/go2rtc" "singlefile" "latest" "/usr/local/go2rtc/bin" "go2rtc_linux_amd64"
@@ -77,7 +146,8 @@ cameras:
       width: 1920
       fps: 5
 EOF
-#ln -sf /opt/frigate/config/config.yml /config/config.yml
+mkdir -p /config
+ln -sf /opt/frigate/config/config.yml /config/config.yml
 mkdir -p /media/frigate
 wget -qO /media/frigate/person-bicycle-car-detection.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/person-bicycle-car-detection.mp4
 msg_ok "Config ready"
