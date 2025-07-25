@@ -1980,48 +1980,55 @@ EOF
 }
 
 check_for_update() {
-  local app="$1"    # e.g. "wizarr"
-  local source="$2" # e.g. "org/repo" or custom command
+  local app="$1"
+  local source="$2"
   local current_file="$HOME/.${app,,}"
 
-  msg_info "Check for update: $app"
+  msg_info "Check for update: ${app}"
 
-  # DNS check if GitHub
-  if [[ "$source" != *" "* ]] && [[ "$source" != http* ]]; then
-    if ! getent hosts api.github.com >/dev/null 2>&1; then
-      msg_error "Network error: cannot resolve api.github.com"
-      return 1
-    fi
-    if ! command -v jq &>/dev/null; then
-      apt-get update -qq &>/dev/null && apt-get install -y jq &>/dev/null || {
-        msg_error "Failed to install jq"
-        return 1
-      }
-    fi
-  fi
-
-  # get release
-  local release=""
-  if [[ "$source" == *" "* ]] || [[ "$source" == http* ]]; then
-    release=$(eval "$source")
-  else
-    release=$(curl -fsSL "https://api.github.com/repos/$source/releases/latest" |
-      jq -r '.tag_name' | sed 's/^v//')
-  fi
-
-  if [[ -z "$release" ]]; then
-    msg_error "Unable to determine latest release for $app"
+  # DNS check for GitHub
+  if ! getent hosts api.github.com >/dev/null 2>&1; then
+    msg_error "Network error: cannot resolve api.github.com"
     return 1
   fi
 
-  # compare with local version
+  # jq check
+  if ! command -v jq &>/dev/null; then
+    apt-get update -qq &>/dev/null && apt-get install -y jq &>/dev/null || {
+      msg_error "Failed to install jq"
+      return 1
+    }
+  fi
+
+  # get latest release
+  local release
+  release=$(curl -fsSL "https://api.github.com/repos/${source}/releases/latest" |
+    jq -r '.tag_name' | sed 's/^v//')
+
+  # DEBUG
+  echo "[DEBUG] Latest release fetched: '${release}'"
+
+  if [[ -z "$release" ]]; then
+    msg_error "Unable to determine latest release for ${app}"
+    return 1
+  fi
+
   local current=""
-  [[ -f "$current_file" ]] && current=$(<"$current_file")
+  if [[ -f "$current_file" ]]; then
+    current=$(<"$current_file")
+  fi
+
+  # DEBUG
+  echo "[DEBUG] Current file: '${current_file}'"
+  echo "[DEBUG] Current version read: '${current}'"
 
   if [[ "$release" != "$current" ]] || [[ ! -f "$current_file" ]]; then
-    return 0 # update needed
+    echo "[DEBUG] Decision: Update required (release='${release}' current='${current}')"
+    CHECK_UPDATE_RELEASE="$release"
+    return 0
   else
-    msg_ok "$app is up to date (v$release)"
-    return 1 # no update
+    echo "[DEBUG] Decision: No update (release='${release}' current='${current}')"
+    msg_ok "${app} is up to date (v${release})"
+    return 1
   fi
 }
