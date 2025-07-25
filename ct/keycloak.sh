@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/remz1337/ProxmoxVED/pr-keycloak/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 tteck
 # Author: tteck (tteckster) | Co-Author: remz1337
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -20,43 +20,49 @@ color
 catch_errors
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
-  if [[ ! -f /etc/systemd/system/keycloak.service ]]; then
-    msg_error "No ${APP} Installation Found!"
+    header_info
+    check_container_storage
+    check_container_resources
+    if [[ ! -d /opt/keycloak ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+
+    RELEASE=$(curl -fsSL https://api.github.com/repos/keycloak/keycloak/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+    if [[ "${RELEASE}" != "$(cat ~/.keycloak 2>/dev/null)" ]] || [[ ! -f ~/.keycloak ]]; then
+        msg_info "Stopping ${APP}"
+        systemctl stop keycloak
+        msg_ok "Stopped ${APP}"
+
+        msg_info "Updating packages"
+        apt-get update &>/dev/null
+        apt-get -y upgrade &>/dev/null
+        msg_ok "Updated packages"
+
+        msg_info "Backup old Keycloak"
+        cd /opt
+        mv keycloak keycloak.old
+        tar -czf keycloak_conf_backup.tar.gz keycloak.old/conf
+        msg_ok "Backup done"
+
+        fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "latest" "/opt/keycloak" "keycloak-*.tar.gz"
+
+        msg_info "Updating ${APP}"
+        cd /opt
+        mv keycloak_conf_backup.tar.gz keycloak/conf
+        cp -r keycloak.old/providers keycloak
+        cp -r keycloak.old/themes keycloak
+        rm -rf keycloak.old
+        msg_ok "Updated ${APP} LXC"
+
+        msg_info "Restating Keycloak"
+        systemctl restart keycloak
+        msg_ok "Restated Keycloak"
+        msg_ok "Update Successful"
+    else
+        msg_ok "No update required. ${APP} is already at v${RELEASE}"
+    fi
     exit
-  fi
-
-  msg_info "Stopping ${APP}"
-  systemctl stop keycloak
-  msg_ok "Stopped ${APP}"
-
-  msg_info "Updating packages"
-  apt-get update &>/dev/null
-  apt-get -y upgrade &>/dev/null
-  msg_ok "Updated packages"
-
-  msg_info "Backup old Keycloak"
-  cd /opt
-  mv keycloak keycloak.old
-  tar -czf keycloak_conf_backup.tar.gz keycloak.old/conf
-  msg_ok "Backup done"
-
-  fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "latest" "/opt/keycloak" "keycloak-*.tar.gz"
-
-  msg_info "Updating ${APP}"
-  cd /opt
-  mv keycloak_conf_backup.tar.gz keycloak/conf
-  cp -r keycloak.old/providers keycloak
-  cp -r keycloak.old/themes keycloak
-  rm -rf keycloak.old
-  msg_ok "Updated ${APP} LXC"
-
-  msg_info "Restating Keycloak"
-  systemctl restart keycloak
-  msg_ok "Restated Keycloak"
-  exit
 }
 
 start
@@ -67,6 +73,6 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080/admin${CL}"
-echo -e "${TAB}${GN}Temporary admin user:${BL}tmpadm${CL}"
-echo -e "${TAB}${GN}Temporary admin password:${BL}admin123${CL}"
-echo -e "${INFO}${YW} If you modified ${BL}cache-ispn.xml${YW}: Re-apply your changes to the new file, otherwise leave it unchanged.${CL}"
+#echo -e "${TAB}${GN}Temporary admin user:${BL}tmpadm${CL}"
+#echo -e "${TAB}${GN}Temporary admin password:${BL}admin123${CL}"
+#echo -e "${INFO}${YW} If you modified ${BL}cache-ispn.xml${YW}: Re-apply your changes to the new file, otherwise leave it unchanged.${CL}"
