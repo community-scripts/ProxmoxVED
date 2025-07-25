@@ -19,8 +19,8 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION="20" setup_nodejs
 
-msg_info "Installing Tududi"
 fetch_and_deploy_gh_release "tududi" "chrisvel/tududi"
+msg_info "Configuring Tududi"
 cd /opt/tududi
 $STD npm install
 export NODE_ENV=production
@@ -28,9 +28,9 @@ $STD npm run frontend:build
 mv ./dist ./backend
 mv ./public/locales ./backend/dist
 mv ./public/favicon.* ./backend/dist
-msg_ok "Installed Tududi"
+msg_ok "Configured Tududi"
 
-msg_info "Creating config and database"
+msg_info "Creating env and database"
 DB_LOCATION="/opt/tududi-db"
 UPLOAD_DIR="/opt/tududi-uploads"
 mkdir -p {"$DB_LOCATION","$UPLOAD_DIR"}
@@ -45,7 +45,7 @@ sed -e 's/^GOOGLE/# &/' \
   /opt/tududi/backend/.env.example >/opt/tududi/backend/.env
 export DB_FILE="$DB_LOCATION/production.sqlite3"
 $STD npm run db:init
-msg_ok "Created config and database"
+msg_ok "Created env and database"
 
 msg_info "Creating service"
 cat <<EOF >/etc/systemd/system/tududi.service
