@@ -25,7 +25,7 @@ msg_ok "Installed Dependencies"
 msg_info "Setup Python3"
 $STD apt-get install -y \
   python3 python3-dev python3-setuptools python3-distutils python3-pip python3-venv
-$STD pip install --upgrade pip
+$STD pip install --upgrade pip --break-system-packages
 msg_ok "Setup Python3"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
@@ -46,9 +46,9 @@ msg_info "Setting up Python venv"
 cd /opt/frigate
 python3 -m venv venv
 source venv/bin/activate
-$STD pip install --upgrade pip wheel
-$STD pip install -r docker/main/requirements.txt
-$STD pip install -r docker/main/requirements-ov.txt
+$STD pip install --upgrade pip wheel --break-system-packages
+$STD pip install -r docker/main/requirements.txt --break-system-packages
+$STD pip install -r docker/main/requirements-ov.txt --break-system-packages
 msg_ok "Python venv ready"
 
 msg_info "Building Web UI"
