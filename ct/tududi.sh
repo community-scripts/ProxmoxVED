@@ -36,6 +36,7 @@ function update_script() {
 
     msg_info "Updating ${APP}"
     cp /opt/tududi/backend/.env /opt/tududi.env
+    rm -rf /opt/tududi/backend/dist
     fetch_and_deploy_gh_release "tududi" "chrisvel/tududi"
 
     cd /opt/tududi

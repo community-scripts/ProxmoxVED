@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y sqlite3
+$STD apt-get install -y sqlite3 yq
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="20" setup_nodejs
