@@ -20,49 +20,52 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -d /opt/keycloak ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
+  header_info
+  check_container_storage
+  check_container_resources
 
-    RELEASE=$(curl -fsSL https://api.github.com/repos/keycloak/keycloak/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-    if [[ "${RELEASE}" != "$(cat ~/.keycloak 2>/dev/null)" ]] || [[ ! -f ~/.keycloak ]]; then
-        msg_info "Stopping ${APP}"
-        systemctl stop keycloak
-        msg_ok "Stopped ${APP}"
+  if [[ ! -d /opt/keycloak ]]; then
+    msg_error "No ${APP} installation found!"
+    exit 1
+  fi
 
-        msg_info "Updating packages"
-        apt-get update &>/dev/null
-        apt-get -y upgrade &>/dev/null
-        msg_ok "Updated packages"
+  if check_for_update "${APP}" "keycloak/keycloak"; then
+    local release="$CHECK_UPDATE_RELEASE"
 
-        msg_info "Backup old Keycloak"
-        cd /opt
-        mv keycloak keycloak.old
-        tar -czf keycloak_conf_backup.tar.gz keycloak.old/conf
-        msg_ok "Backup done"
+    msg_info "Stopping ${APP}"
+    systemctl stop keycloak
+    msg_ok "Stopped ${APP}"
 
-        fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "latest" "/opt/keycloak" "keycloak-*.tar.gz"
+    msg_info "Updating packages"
+    apt-get update &>/dev/null
+    apt-get -y upgrade &>/dev/null
+    msg_ok "Updated packages"
 
-        msg_info "Updating ${APP}"
-        cd /opt
-        mv keycloak_conf_backup.tar.gz keycloak/conf
-        cp -r keycloak.old/providers keycloak
-        cp -r keycloak.old/themes keycloak
-        rm -rf keycloak.old
-        msg_ok "Updated ${APP} LXC"
+    msg_info "Backup old Keycloak"
+    cd /opt
+    mv keycloak keycloak.old
+    tar -czf keycloak_conf_backup.tar.gz keycloak.old/conf
+    msg_ok "Backup done"
 
-        msg_info "Restating Keycloak"
-        systemctl restart keycloak
-        msg_ok "Restated Keycloak"
-        msg_ok "Update Successful"
-    else
-        msg_ok "No update required. ${APP} is already at v${RELEASE}"
-    fi
-    exit
+    fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "$release" "/opt/keycloak" "keycloak-*.tar.gz"
+
+    msg_info "Updating ${APP}"
+    cd /opt
+    mv keycloak_conf_backup.tar.gz keycloak/conf
+    cp -r keycloak.old/providers keycloak
+    cp -r keycloak.old/themes keycloak
+    rm -rf keycloak.old
+    msg_ok "Updated ${APP} LXC"
+
+    echo "${release}" >~/.keycloak
+
+    msg_info "Restarting Keycloak"
+    systemctl restart keycloak
+    msg_ok "Restarted Keycloak"
+    msg_ok "Update to v${release} successful"
+  fi
+
+  exit 0
 }
 
 start
