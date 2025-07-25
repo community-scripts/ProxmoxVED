@@ -76,7 +76,7 @@ cameras:
       width: 1920
       fps: 5
 EOF
-ln -sf /opt/frigate/config/config.yml /config/config.yml
+#ln -sf /opt/frigate/config/config.yml /config/config.yml
 mkdir -p /media/frigate
 wget -qO /media/frigate/person-bicycle-car-detection.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/person-bicycle-car-detection.mp4
 msg_ok "Config ready"
