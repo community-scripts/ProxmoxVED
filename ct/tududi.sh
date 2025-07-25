@@ -36,16 +36,15 @@ function update_script() {
 
     msg_info "Updating ${APP}"
     cp /opt/"$APP"/backend/.env /opt/"$APP".env
-    rm -rf /opt/"$APP"
     fetch_and_deploy_gh_release "tududi" "chrisvel/tududi"
 
     cd /opt/"$APP"
     $STD npm install
     export NODE_ENV=production
     $STD npm run frontend:build
-    cp -r ./dist ./backend/dist
-    cp -r ./public/locales ./backend/dist/locales
-    cp ./public/favicon.* ./backend/dist
+    mv ./dist ./backend
+    mv ./public/locales ./backend/dist
+    mv ./public/favicon.* ./backend/dist
     mv /opt/"$APP".env /opt/"$APP"/.env
     msg_ok "Updated $APP"
 
