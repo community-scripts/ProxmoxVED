@@ -48,6 +48,7 @@ python3 -m venv venv
 source venv/bin/activate
 $STD pip install --upgrade pip wheel --break-system-packages
 $STD pip install -r docker/main/requirements.txt --break-system-packages
+$STD pip install -r docker/main/requirements-wheels.txt --break-system-packages
 $STD pip install -r docker/main/requirements-ov.txt --break-system-packages
 msg_ok "Python venv ready"
 
