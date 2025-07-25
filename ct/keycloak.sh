@@ -23,14 +23,13 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-
   if [[ ! -d /opt/keycloak ]]; then
-    msg_error "No ${APP} installation found!"
-    exit 1
+    msg_error "No ${APP} Installation Found!"
+    exit
   fi
 
-  if check_for_update "${APP}" "keycloak/keycloak"; then
-
+  RELEASE=$(curl -fsSL https://api.github.com/repos/keycloak/keycloak/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+  if [[ "${RELEASE}" != "$(cat ~/.keycloak 2>/dev/null)" ]] || [[ ! -f ~/.keycloak ]]; then
     msg_info "Stopping ${APP}"
     systemctl stop keycloak
     msg_ok "Stopped ${APP}"
@@ -56,13 +55,14 @@ function update_script() {
     rm -rf keycloak.old
     msg_ok "Updated ${APP} LXC"
 
-    msg_info "Restarting Keycloak"
+    msg_info "Restating Keycloak"
     systemctl restart keycloak
-    msg_ok "Restarted Keycloak"
-    msg_ok "Update successful"
+    msg_ok "Restated Keycloak"
+    msg_ok "Update Successful"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
-
-  exit 0
+  exit
 }
 
 start
