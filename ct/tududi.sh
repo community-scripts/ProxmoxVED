@@ -35,17 +35,17 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Updating ${APP}"
-    cp /opt/"$APP"/backend/.env /opt/"$APP".env
+    cp /opt/tududi/backend/.env /opt/tududi.env
     fetch_and_deploy_gh_release "tududi" "chrisvel/tududi"
 
-    cd /opt/"$APP"
+    cd /opt/tududi
     $STD npm install
     export NODE_ENV=production
     $STD npm run frontend:build
     mv ./dist ./backend
     mv ./public/locales ./backend/dist
     mv ./public/favicon.* ./backend/dist
-    mv /opt/"$APP".env /opt/"$APP"/.env
+    mv /opt/tududi.env /opt/tududi/.env
     msg_ok "Updated $APP"
 
     msg_info "Starting Service"
