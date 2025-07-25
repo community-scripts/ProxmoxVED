@@ -116,7 +116,10 @@ msg_ok "Installed Coral Object Detection Models"
 # Tempio installieren
 msg_info "Installing Tempio"
 sed -i 's|/rootfs/usr/local|/usr/local|g' /opt/frigate/docker/main/install_tempio.sh
-TARGETARCH="amd64"
+export TARGETARCH="amd64"
+export DEBIAN_FRONTEND=noninteractive
+echo "libedgetpu1-max libedgetpu/accepted-eula select true" | debconf-set-selections
+echo "libedgetpu1-max libedgetpu/install-confirm-max select true" | debconf-set-selections
 /opt/frigate/docker/main/install_tempio.sh
 chmod +x /usr/local/tempio/bin/tempio
 ln -sf /usr/local/tempio/bin/tempio /usr/local/bin/tempio
