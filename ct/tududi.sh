@@ -65,6 +65,6 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${ADVANCED}${BL}Create your initial user in${CL} ${BGN}/opt/${APP}${CL}${BL} in the LXC:${CL} ${RD}npm run user:create <user> <password>${CL}"
+echo -e "${ADVANCED}${BL}Create your initial user in${CL} ${BGN}/opt/tududi${CL}${BL} in the LXC:${CL} ${RD}npm run user:create <email> <password>${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3002${CL}"
