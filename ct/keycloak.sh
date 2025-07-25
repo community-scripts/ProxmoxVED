@@ -30,7 +30,6 @@ function update_script() {
   fi
 
   if check_for_update "${APP}" "keycloak/keycloak"; then
-    local release="$CHECK_UPDATE_RELEASE"
 
     msg_info "Stopping ${APP}"
     systemctl stop keycloak
@@ -47,7 +46,7 @@ function update_script() {
     tar -czf keycloak_conf_backup.tar.gz keycloak.old/conf
     msg_ok "Backup done"
 
-    fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "$release" "/opt/keycloak" "keycloak-*.tar.gz"
+    fetch_and_deploy_gh_release "keycloak" "keycloak/keycloak" "prebuild" "latest" "/opt/keycloak" "keycloak-*.tar.gz"
 
     msg_info "Updating ${APP}"
     cd /opt
@@ -57,12 +56,10 @@ function update_script() {
     rm -rf keycloak.old
     msg_ok "Updated ${APP} LXC"
 
-    echo "${release}" >~/.keycloak
-
     msg_info "Restarting Keycloak"
     systemctl restart keycloak
     msg_ok "Restarted Keycloak"
-    msg_ok "Update to v${release} successful"
+    msg_ok "Update successful"
   fi
 
   exit 0

@@ -2006,7 +2006,7 @@ check_for_update() {
     jq -r '.tag_name' | sed 's/^v//')
 
   # DEBUG
-  echo "[DEBUG] Latest release fetched: '${release}'"
+  #echo "[DEBUG] Latest release fetched: '${release}'"
 
   if [[ -z "$release" ]]; then
     msg_error "Unable to determine latest release for ${app}"
@@ -2019,15 +2019,15 @@ check_for_update() {
   fi
 
   # DEBUG
-  echo "[DEBUG] Current file: '${current_file}'"
-  echo "[DEBUG] Current version read: '${current}'"
+  #echo "[DEBUG] Current file: '${current_file}'"
+  #echo "[DEBUG] Current version read: '${current}'"
 
   if [[ "$release" != "$current" ]] || [[ ! -f "$current_file" ]]; then
-    echo "[DEBUG] Decision: Update required (release='${release}' current='${current}')"
+    #echo "[DEBUG] Decision: Update required (release='${release}' current='${current}')"
     CHECK_UPDATE_RELEASE="$release"
     return 0
   else
-    echo "[DEBUG] Decision: No update (release='${release}' current='${current}')"
+    #echo "[DEBUG] Decision: No update (release='${release}' current='${current}')"
     msg_ok "${app} is up to date (v${release})"
     return 1
   fi
