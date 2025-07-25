@@ -1978,3 +1978,50 @@ EOF
     msg_ok "ClickHouse updated"
   fi
 }
+
+check_for_update() {
+  local app="$1"    # e.g. "wizarr"
+  local source="$2" # e.g. "org/repo" or custom command
+  local current_file="$HOME/.${app,,}"
+
+  msg_info "Check for update: $app"
+
+  # DNS check if GitHub
+  if [[ "$source" != *" "* ]] && [[ "$source" != http* ]]; then
+    if ! getent hosts api.github.com >/dev/null 2>&1; then
+      msg_error "Network error: cannot resolve api.github.com"
+      return 1
+    fi
+    if ! command -v jq &>/dev/null; then
+      apt-get update -qq &>/dev/null && apt-get install -y jq &>/dev/null || {
+        msg_error "Failed to install jq"
+        return 1
+      }
+    fi
+  fi
+
+  # get release
+  local release=""
+  if [[ "$source" == *" "* ]] || [[ "$source" == http* ]]; then
+    release=$(eval "$source")
+  else
+    release=$(curl -fsSL "https://api.github.com/repos/$source/releases/latest" |
+      jq -r '.tag_name' | sed 's/^v//')
+  fi
+
+  if [[ -z "$release" ]]; then
+    msg_error "Unable to determine latest release for $app"
+    return 1
+  fi
+
+  # compare with local version
+  local current=""
+  [[ -f "$current_file" ]] && current=$(<"$current_file")
+
+  if [[ "$release" != "$current" ]] || [[ ! -f "$current_file" ]]; then
+    return 0 # update needed
+  else
+    msg_ok "$app is up to date (v$release)"
+    return 1 # no update
+  fi
+}

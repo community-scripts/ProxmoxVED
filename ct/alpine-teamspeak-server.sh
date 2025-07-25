@@ -23,26 +23,32 @@ function update_script() {
   header_info
 
   if [[ ! -d /opt/teamspeak-server ]]; then
-    msg_error "No ${APP} Installation Found!"
+    msg_error "No ${APP} installation found!"
     exit 1
   fi
 
-  RELEASE=$(curl -fsSL https://teamspeak.com/en/downloads/#server | sed -n '/teamspeak3-server_linux_amd64-/ { s/.*teamspeak3-server_linux_amd64-\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p; q }')
+  # define custom command to scrape version
+  local CUSTOM_CMD="curl -fsSL https://teamspeak.com/en/downloads/#server \
+    | sed -n '/teamspeak3-server_linux_amd64-/ { s/.*teamspeak3-server_linux_amd64-\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p; q }'"
 
-  if [ "${RELEASE}" != "$(cat ~/.teamspeak-server)" ] || [ ! -f ~/.teamspeak-server ]; then
-    msg_info "Updating ${APP} LXC"
+  if check_for_update "${APP}" "${CUSTOM_CMD}"; then
+    local release="$CHECK_UPDATE_RELEASE"
+
+    msg_info "Updating ${APP} LXC to v${release}"
     $STD apk -U upgrade
     $STD service teamspeak stop
-    curl -fsSL "https://files.teamspeak-services.com/releases/server/${RELEASE}/teamspeak3-server_linux_amd64-${RELEASE}.tar.bz2" -o ts3server.tar.bz2
-    tar -xf ./ts3server.tar.bz2
+
+    curl -fsSL "https://files.teamspeak-services.com/releases/server/${release}/teamspeak3-server_linux_amd64-${release}.tar.bz2" -o ts3server.tar.bz2
+    tar -xf ts3server.tar.bz2
     cp -ru teamspeak3-server_linux_amd64/* /opt/teamspeak-server/
-    rm -f ~/ts3server.tar.bz*
+
+    rm -f ts3server.tar.bz2
     rm -rf teamspeak3-server_linux_amd64
-    echo "${RELEASE}" >~/.teamspeak-server
+
+    echo "${release}" >~/.teamspeak-server
+
     $STD service teamspeak start
-    msg_ok "Updated Successfully"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    msg_ok "Updated ${APP} successfully to v${release}"
   fi
 
   exit 0
