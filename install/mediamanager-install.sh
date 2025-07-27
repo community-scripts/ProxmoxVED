@@ -67,6 +67,10 @@ fi
 msg_info "Creating config and start script"
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
 SECRET="$(openssl rand -hex 32)"
+config_file="config.example.toml"
+if [[ ! -f /opt/mediamanager/"$config_file" ]]; then
+  config_file="config.toml"
+fi
 sed -e "s/localhost:8/$LOCAL_IP:8/g" \
   -e "s|/data/|$CONFIG_DIR|g" \
   -e 's/"db"/"localhost"/' \
@@ -76,7 +80,7 @@ sed -e "s/localhost:8/$LOCAL_IP:8/g" \
   -e "/^token_secret/s/=.*/= \"$SECRET\"/" \
   -e "s/admin@example.com/$EMAIL/" \
   -e '/^admin_emails/s/, .*/]/' \
-  /opt/mediamanager/config.example.toml >/opt/mm_data/config.toml
+  /opt/mediamanager/"$config_file" >/opt/mm_data/config.toml
 
 mkdir -p "$CONFIG_DIR"/{images,tv,movies,torrents}
 
