@@ -16,14 +16,14 @@ variables() {
   CT_TYPE=${var_unprivileged:-$CT_TYPE}
 }
 
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
+source <(curl -fsSL https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source <(curl -fsSL https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/misc/core.func)
   load_functions
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
-  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source <(wget -qO- https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/misc/core.func)
   load_functions
   #echo "(build.func) Loaded core.func via wget"
 fi
@@ -986,7 +986,7 @@ install_script() {
     header_info
     echo -e "${INFO}${HOLD} ${GN}Using Config File on node $PVEHOST_NAME${CL}"
     METHOD="advanced"
-    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/config-file.func)
+    source <(curl -fsSL https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/misc/config-file.func)
     config_file
     ;;
   5)
@@ -1059,7 +1059,7 @@ check_container_storage() {
 }
 
 start() {
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
+  source <(curl -fsSL https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/misc/tools.func)
   if command -v pveversion >/dev/null 2>&1; then
     install_script
   elif [ ! -z ${PHS_SILENT+x} ] && [[ "${PHS_SILENT}" == "1" ]]; then
@@ -1125,9 +1125,9 @@ build_container() {
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
   if [ "$var_os" == "alpine" ]; then
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/misc/alpine-install.func)"
   else
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/misc/install.func)"
   fi
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
@@ -1161,7 +1161,7 @@ build_container() {
   -unprivileged $CT_TYPE
   $PW
 "
-  bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)"
+  bash -c "$(curl -fsSL https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/misc/create_lxc.sh)"
   if [ $? -ne 0 ]; then
     exit 200
   fi
@@ -1351,7 +1351,7 @@ EOF'
   fi
   msg_ok "Customized LXC Container"
 
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/"$var_install".sh)"; then
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/install/"$var_install".sh)"; then
     exit $?
   fi
 }
@@ -1365,7 +1365,7 @@ description() {
     cat <<EOF
 <div align='center'>
   <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
+    <img src='https://raw.githubusercontent.com/vsc55/community-scripts-ProxmoxVED/refs/heads/freepbx/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
   </a>
 
   <h2 style='font-size: 24px; margin: 20px 0;'>${APP} LXC</h2>
