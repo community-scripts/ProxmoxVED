@@ -1,6 +1,6 @@
 {
   "name": "Teamspeak-Server",
-  "slug": "teamspeak-server",
+  "slug": "alpine-teamspeak-server",
   "categories": [
     24
   ],
