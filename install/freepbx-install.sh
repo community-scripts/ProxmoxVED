@@ -28,7 +28,7 @@ else
 fi
 
 ONLY_OPENSOURCE="${ONLY_OPENSOURCE:-no}"
-REMOVE_FIREWALL="${REMOVE_FIREWALL:-yes}"
+REMOVE_FIREWALL="${REMOVE_FIREWALL:-no}"
 msg_ok "Remove Commercial modules is set to: $ONLY_OPENSOURCE"
 msg_ok "Remove Firewall module is set to: $REMOVE_FIREWALL"
 
