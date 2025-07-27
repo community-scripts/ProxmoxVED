@@ -47,7 +47,11 @@ if [[ $ONLY_OPENSOURCE == "yes" ]]; then
     while read -r module; do
       msg_info "Removing module: $module"
 
-      # TODO: Test return code error
+      if [[ "$INSTALL_FIREWALL" == "yes" ]] && [[ "$module" == "sysadmin" ]]; then
+        msg_warn "Skipping sysadmin module removal, it is required for Firewall!"
+        continue
+      fi
+
       code=0
       $STD fwconsole ma -f remove $module || code=$?
       if [[ $code -ne 0 ]]; then
