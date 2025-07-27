@@ -66,7 +66,7 @@ if [[ $ONLY_OPENSOURCE == "yes" ]]; then
     fi
   done
 
-  if ! fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}'; then
+  if fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}'; then
     msg_warn "Some commercial modules could not be removed, please check the web interface for removal manually!"
   else
     msg_ok "Removed all commercial modules successfully"
