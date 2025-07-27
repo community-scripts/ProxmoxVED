@@ -28,7 +28,9 @@ else
 fi
 
 ONLY_OPENSOURCE="${ONLY_OPENSOURCE:-no}"
+REMOVE_FIREWALL="${REMOVE_FIREWALL:-yes}"
 msg_ok "Remove Commercial modules is set to: $ONLY_OPENSOURCE"
+msg_ok "Remove Firewall module is set to: $REMOVE_FIREWALL"
 
 if [[ "$VERBOSE" == "yes" ]]; then
   msg_info "Installing FreePBX (Verbose)\n"
@@ -47,7 +49,7 @@ if [[ $ONLY_OPENSOURCE == "yes" ]]; then
     while read -r module; do
       msg_info "Removing module: $module"
 
-      if [[ "$INSTALL_FIREWALL" == "yes" ]] && [[ "$module" == "sysadmin" ]]; then
+      if [[ "$REMOVE_FIREWALL" == "no" ]] && [[ "$module" == "sysadmin" ]]; then
         msg_warn "Skipping sysadmin module removal, it is required for Firewall!"
         continue
       fi

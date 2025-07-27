@@ -52,13 +52,13 @@ else
 fi
 
 if [[ "$ONLY_OPENSOURCE" == "yes" ]]; then
-  if whiptail --title "Comercial Modules?" --yesno "Install Firewall? Sysadmin module is required for Firewall." 10 50; then
-    export INSTALL_FIREWALL="yes"
+  if whiptail --title "Comercial Modules?" --yesno "Remove module Firewall? Sysadmin module is required for Firewall." --defaultno 10 50; then
+    export REMOVE_FIREWALL="no"
   else
-    export INSTALL_FIREWALL="no"
+    export REMOVE_FIREWALL="yes"
   fi
 else
-  export INSTALL_FIREWALL="yes"
+  export REMOVE_FIREWALL="no"
 fi
 
 build_container
