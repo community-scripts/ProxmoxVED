@@ -49,12 +49,12 @@ $STD npm ci
 $STD npm run build
 mkdir -p "$CONFIG_DIR"/web
 cp -r build "$FRONTEND_FILES_DIR"
-cp -r media_manager "$CONFIG_DIR"
-cp -r alembic* "$CONFIG_DIR"
 
 export BASE_PATH=""
 export VIRTUAL_ENV="/opt/mm_data/venv"
 cd /opt/mediamanager
+cp -r media_manager "$CONFIG_DIR"
+cp -r alembic* "$CONFIG_DIR"
 $STD /usr/local/bin/uv venv "$VIRTUAL_ENV"
 $STD /usr/local/bin/uv sync --locked --active
 msg_ok "Configured MediaManager"
