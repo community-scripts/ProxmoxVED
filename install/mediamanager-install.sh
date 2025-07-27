@@ -89,8 +89,10 @@ cat <<EOF >/opt/mm_data/start.sh
 
 export CONFIG_DIR="$CONFIG_DIR"
 export FRONTEND_FILES_DIR="$FRONTEND_FILES_DIR"
+export BASE_PATH=""
 
-cd /opt/mediamanager
+cd /opt/mm_data
+source ./venv/bin/activate
 /usr/local/bin/uv run alembic upgrade head
 /usr/local/bin/uv run fastapi run ./media_manager/main.py --port 8000
 EOF
