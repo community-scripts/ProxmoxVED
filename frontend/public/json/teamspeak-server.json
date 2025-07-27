@@ -1,6 +1,6 @@
 {
   "name": "Teamspeak-Server",
-  "slug": "alpine-teamspeak-server",
+  "slug": "teamspeak-server",
   "categories": [
     24
   ],
@@ -15,17 +15,6 @@
   "config_path": "",
   "description": "TeamSpeak is a voice over IP (VoIP) application, primarily used by gamers and teams to chat in real time on dedicated servers. It delivers crystal‑clear, low‑latency voice communication.",
   "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/teamspeak-server.sh",
-      "resources": {
-        "cpu": 1,
-        "ram": 512,
-        "hdd": 2,
-        "os": "debian",
-        "version": "12"
-      }
-    },
     {
       "type": "alpine",
       "script": "ct/alpine-teamspeak-server.sh",
