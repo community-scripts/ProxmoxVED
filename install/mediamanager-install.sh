@@ -18,12 +18,12 @@ $STD apt-get install -y yq
 msg_ok "Installed dependencies"
 
 NODE_VERSION="24" setup_nodejs
-PYTHON_VERSION="3.13" setup_uv
+setup_uv
 PG_VERSION="17" setup_postgresql
 
 msg_info "Setting up PostgreSQL"
-DB_NAME="MediaManager"
-DB_USER="MediaManager"
+DB_NAME="mm_db"
+DB_USER="mm_user"
 DB_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)"
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
@@ -49,6 +49,8 @@ $STD npm ci
 $STD npm run build
 mkdir -p "$CONFIG_DIR"/web
 cp -r build "$FRONTEND_FILES_DIR"
+cp -r media_manager "$CONFIG_DIR"
+cp -r alembic* "$CONFIG_DIR"
 
 export BASE_PATH=""
 export VIRTUAL_ENV="/opt/mm_data/venv"
@@ -68,9 +70,12 @@ SECRET="$(openssl rand -hex 32)"
 sed -e "s/localhost:8/$LOCAL_IP:8/g" \
   -e "s|/data/|$CONFIG_DIR|g" \
   -e 's/"db"/"localhost"/' \
+  -e "s/user = \"MediaManager\"/user = \"$DB_USER\"/" \
   -e "s/password = \"MediaManager\"/password = \"$DB_PASS\"/" \
+  -e "s/dbname = \"MediaManager\"/dbname = \"$DB_NAME\"/" \
   -e "/^token_secret/s/=.*/= \"$SECRET\"/" \
   -e "s/admin@example.com/$EMAIL/" \
+  -e '/^admin_emails/s/, .*/]/' \
   /opt/mediamanager/config.example.toml >/opt/mm_data/config.toml
 
 mkdir -p "$CONFIG_DIR"/{images,tv,movies,torrents}
@@ -85,6 +90,7 @@ cd /opt/mediamanager
 /usr/local/bin/uv run alembic upgrade head
 /usr/local/bin/uv run fastapi run ./media_manager/main.py --port 8000
 EOF
+chmod +x /opt/mm_data/start.sh
 msg_ok "Created config and start script"
 
 msg_info "Creating service"
