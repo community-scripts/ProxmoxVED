@@ -29,14 +29,32 @@ function update_script() {
   fi
 
   RELEASE=$(curl -fsSL https://api.github.com/repos/maxdorninger/MediaManager/releases/latest | yq '.tag_name' | sed 's/^v//')
-  if [[ "${RELEASE}" != "$(cat ~/.mediamanager 2>/dev/null)" ]] || [[ ! -f ~/.tududi ]]; then
+  if [[ "${RELEASE}" != "$(cat ~/.mediamanager 2>/dev/null)" ]] || [[ ! -f ~/.mediamanager ]]; then
     msg_info "Stopping Service"
     systemctl stop mediamanager
     msg_ok "Stopped Service"
 
     msg_info "Updating ${APP}"
-    fetch_and_deploy_gh_release "MediaManager" "maxdorninger/MediaManager" "latest" "tarball" "/opt/mediamanager"
+    fetch_and_deploy_gh_release "MediaManager" "maxdorninger/MediaManager" "tarball" "latest" "/opt/mediamanager"
+    MM_DIR="/opt/mm"
+    export CONFIG_DIR="${MM_DIR}/config"
+    export FRONTEND_FILES_DIR="${MM_DIR}/web/build"
+    export BASE_PATH=""
+    export PUBLIC_VERSION=""
+    export PUBLIC_API_URL="${BASE_PATH}/api/v1"
+    export BASE_PATH="${BASE_PATH}/web"
+    cd /opt/mediamanager/web
+    $STD npm ci
+    $STD npm run build
+    rm -rf "$FRONTEND_FILES_DIR"/build
+    cp -r build "$FRONTEND_FILES_DIR"
 
+    export BASE_PATH=""
+    export VIRTUAL_ENV="/opt/${MM_DIR}/venv"
+    cd /opt/mediamanager
+    rm -rf "$MM_DIR"/{media_manager,alembic*}
+    cp -r {media_manager,alembic*} "$MM_DIR"
+    $STD /usr/local/bin/uv sync --locked --active
     msg_ok "Updated $APP"
 
     msg_info "Starting Service"
