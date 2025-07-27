@@ -17,135 +17,72 @@ setting_up_container
 network_check
 update_os
 
-# Run commands with optional verbose output
-# This function runs commands and handles both normal and verbose modes.
-# Usage: run_bin <command> [<args>...]
-# If VERBOSE is set to "yes", it will print the command being run and its output.
-# If VERBOSE is set to "no", it will run the command silently.
-# Returns the exit code of the command.
-# Example: run_bin ls -l /path/to/directory
-run_bin() {
-  local code=0
-
-  if [[ "$VERBOSE" == "yes" ]]; then
-    print_msg ok "Running command [$*]...\n"
-    "$@"
-    code=$?
-    if [[ $code -ne 0 ]]; then
-      print_msg error "Command failed [$*] with exit code $code\n"
-    fi
-  else
-    $STD "$@"
-    code=$?
-  fi
-  return $code
-}
-
-# Print messages with different types
-# This function handles both normal and verbose modes.
-# Usage: print_msg <type> <normal_text> [<verbose_text>]
-# type: info, ok, warn, error
-# txt_normal: text to print in normal mode
-# txt_verbose: text to print in verbose mode (optional)
-# Example: print_msg info "This is an info message" "This is a verbose info message"
-print_msg() {
-  local type="$1"
-  local txt_normal="${2:-}"
-  local txt_verbose="${3:-}"
-
-  local func="msg_$type"
-
-  if [[ "$VERBOSE" == "yes" ]]; then
-    if [[ -n "$txt_verbose" ]]; then
-      $func "$txt_verbose"
-    else
-      $func "$txt_normal\n"
-    fi
-  else
-    $func "$txt_normal"
-  fi
-}
-
-# Check if there are any commercial modules installed
-has_commercial_modules() {
-  fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}'
-}
-
-# Uninstall commercial modules
-uninstall_modules_commercial() {
-  
-  print_msg info "Removing Commercial modules..."
-  
-  local max=5
-  local count=0
-
-  while has_commercial_modules; do
-    ! has_commercial_modules && break
-
-    count=$((count + 1))
-    print_msg info "Attempt $count to remove commercial modules..."
-
-    while read -r module; do
-      local code=0
-
-      print_msg info "Removing module: $module"
-
-      run_bin fwconsole ma -f remove $module || code=$?
-      
-      if [[ $code -ne 0 ]]; then
-        print_msg error "Module $module could not be removed - error code $code"
-      else
-        print_msg ok "Module $module removed successfully"
-      fi
-
-    done < <(fwconsole ma list | awk '/Commercial/ {print $2}')
-
-    # Check if there are still commercial modules left
-    ! has_commercial_modules && break
-
-    # Timeout to avoid infinite loop
-    if [[ $count -ge $max ]]; then
-      print_msg warn "Failed to remove all commercial modules after $max attempts, remove them manually in the web interface."
-      break
-    else
-      print_msg ok "Removed commercial modules, retrying (attempt $count/$max)..."
-    fi
-  done
-
-  print_msg ok "Removed all commercial modules successfully"
-}
-
-print_msg info "Downloading FreePBX installation script..."
+msg_info "Downloading FreePBX installation script..."
 if curl -fsSL "$INSTALL_URL" -o "$INSTALL_PATH"; then
-  print_msg ok "Download completed successfully"
+  msg_ok "Download completed successfully"
 else
   curl_exit_code=$?
-  print_msg error "Error downloading FreePBX installation script (curl exit code: $curl_exit_code)"
-  print_msg error "Aborting!"
+  msg_error "Error downloading FreePBX installation script (curl exit code: $curl_exit_code)"
+  msg_error "Aborting!"
   exit 1
 fi
 
-install_args=""
 ONLY_OPENSOURCE="${ONLY_OPENSOURCE:-no}"
-print_msg ok "Remove Commercial modules is set to: $ONLY_OPENSOURCE"
+msg_ok "Remove Commercial modules is set to: $ONLY_OPENSOURCE"
 
-print_msg info "Installing FreePBX, be patient, this takes time..." "Installing FreePBX (Verbose)\n"
-run_bin bash "$INSTALL_PATH" $install_args
+if [[ "$VERBOSE" == "yes" ]]; then
+  msg_info "Installing FreePBX (Verbose)\n"
+else
+  msg_info "Installing FreePBX, be patient, this takes time..."
+fi
+$STD bash "$INSTALL_PATH"
 
 if [[ $ONLY_OPENSOURCE == "yes" ]]; then
-  uninstall_modules_commercial
+  msg_info "Removing Commercial modules..."
 
-  print_msg info "Reloading FreePBX..."
-  run_bin fwconsole reload
-  print_msg ok "FreePBX reloaded completely"
+  max=5
+  count=0
+  while fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}'; do
+    count=$((count + 1))
+    while read -r module; do
+      msg_info "Removing module: $module"
+
+      # TODO: Test return code error
+      code=0
+      $STD fwconsole ma -f remove $module || code=$?
+      if [[ $code -ne 0 ]]; then
+        msg_error "Module $module could not be removed - error code $code"
+      else
+        msg_ok "Module $module removed successfully"
+      fi
+    done < <(fwconsole ma list | awk '/Commercial/ {print $2}')
+
+    fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}' || break
+
+    if [[ $count -ge $max ]]; then
+      break
+    else
+      msg_warn "Not all commercial modules could be removed, retrying (attempt $count of $max)..."
+    fi
+  done
+
+  if ! fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}'; then
+    msg_warn "Some commercial modules could not be removed, please check the web interface for removal manually!"
+  else
+    msg_ok "Removed all commercial modules successfully"
+  fi
+
+  msg_info "Reloading FreePBX..."
+  $STD fwconsole reload
+  msg_ok "FreePBX reloaded completely"
 fi
-print_msg ok "Installed FreePBX finished"
+msg_ok "Installed FreePBX finished"
 
 motd_ssh
 customize
 
-print_msg info "Cleaning up installation files..."
+msg_info "Cleaning up"
 rm -f "$INSTALL_PATH"
-run_bin apt-get -y autoremove
-run_bin apt-get -y autoclean
-print_msg ok "Cleanup completed"
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
+msg_ok "Cleaned"
