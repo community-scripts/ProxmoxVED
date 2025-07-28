@@ -1241,24 +1241,30 @@ EOF
 
     if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
       msg_warn "No VAAPI-compatible devices found."
-    elif [[ "${#VAAPI_DEVICES[@]}" -eq 3 && "$CT_TYPE" == "0" ]]; then
-      # Auto passthrough for single device
+    elif [[ "${#VAAPI_DEVICES[@]}" -eq 3 ]]; then
       msg_info "Only one VAAPI-compatible device found – enabling passthrough."
 
       IFS=":" read -ra devices <<<"${VAAPI_DEVICES[0]//\"/}"
+      IDX=0
       DID_MOUNT_DRI=0
 
       for d in "${devices[@]}"; do
-        if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
-          echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-          DID_MOUNT_DRI=1
+        if [[ "$CT_TYPE" == "0" ]]; then
+          if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
+            echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+            DID_MOUNT_DRI=1
+          fi
+          if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
+            msg_warn "Could not stat $d – skipping."
+            continue
+          fi
+          echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
+          echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
+        else
+          GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
+          echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
+          IDX=$((IDX + 1))
         fi
-        if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
-          msg_warn "Could not stat $d – skipping."
-          continue
-        fi
-        echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
-        echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
       done
     else
       if [[ "$CT_TYPE" == "0" ]]; then
@@ -1311,6 +1317,7 @@ such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
               echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
             else
               GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
+
               echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
               IDX=$((IDX + 1))
             fi
