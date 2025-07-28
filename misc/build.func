@@ -1218,16 +1218,24 @@ EOF
     done
     [[ -e /dev/fb0 ]] && VAAPI_DEVICES+=("/dev/fb0")
 
+    # Dynamically resolve group IDs
+    GID_VIDEO=$(getent group video | cut -d: -f3)
+    GID_RENDER=$(getent group render | cut -d: -f3)
+    [[ -z "$GID_VIDEO" ]] && GID_VIDEO=44 && msg_warn "'video' group not found, falling back to GID 44"
+    [[ -z "$GID_RENDER" ]] && GID_RENDER=104 && msg_warn "'render' group not found, falling back to GID 104"
+
     if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
       :
     elif [[ "${#VAAPI_DEVICES[@]}" -eq 1 && "$CT_TYPE" == "0" ]]; then
       # Privileged + 1 device → silent passthrough
       device="${VAAPI_DEVICES[0]}"
-      major_minor=$(stat -c '%t:%T' "$device" | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }')
-      echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
-      echo "lxc.mount.entry: $device $device none bind,optional,create=file" >>"$LXC_CONFIG"
+      if ! major_minor=$(stat -c '%t:%T' "$device" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
+        msg_warn "Could not stat $device – skipping passthrough."
+      else
+        echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
+        echo "lxc.mount.entry: $device $device none bind,optional,create=file" >>"$LXC_CONFIG"
+      fi
     else
-      # Display info message
       whiptail --title "VAAPI passthrough" --msgbox "\
 VAAPI passthrough has been enabled for this container.
 
@@ -1250,12 +1258,14 @@ You will now be prompted to select which VAAPI devices should be passed through.
         for dev in $SELECTED_DEVICES; do
           dev=$(sed 's/"//g' <<<"$dev")
           if [[ "$CT_TYPE" == "0" ]]; then
-            major_minor=$(stat -c '%t:%T' "$dev" | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }')
+            if ! major_minor=$(stat -c '%t:%T' "$dev" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
+              msg_warn "Could not stat $dev – skipping."
+              continue
+            fi
             echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
             echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
           else
-            # Unprivileged: use devX: with proper GID
-            GID=$([[ "$dev" =~ render ]] && echo "104" || echo "44")
+            GID=$([[ "$dev" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
             echo "dev${IDX}: $dev,gid=${GID}" >>"$LXC_CONFIG"
             IDX=$((IDX + 1))
           fi
