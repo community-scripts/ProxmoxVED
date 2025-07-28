@@ -1219,6 +1219,7 @@ EOF
       if [[ "${#combo_devices[@]}" -eq 1 && -e /dev/dri/card0 ]]; then
         combo_devices+=("/dev/dri/card0")
       fi
+      echo "combo_devices=${combo_devices[*]}"
 
       pci_addr=$(basename "$bypath" | cut -d- -f1 --complement | sed 's/-render//' || true)
       pci_info=$(lspci -nn | grep "${pci_addr#0000:}" || true)
@@ -1228,6 +1229,7 @@ EOF
       label="$(basename "$dev_render")"
       [[ -e "$card" ]] && label+=" + $(basename "$card")"
       label+=" – $name"
+      echo "[VAAPI DEBUG] Adding VAAPI combo: ${combo_devices[*]} ($label)"
 
       VAAPI_DEVICES+=("$(
         IFS=:
@@ -1307,6 +1309,7 @@ such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
           dev="${dev%\"}"
           dev="${dev#\"}" # strip quotes
           IFS=":" read -ra devices <<<"$dev"
+          echo "[VAAPI DEBUG] Autopassthrough for devices: ${devices[*]}"
           for d in "${devices[@]}"; do
             if [[ "$CT_TYPE" == "0" ]]; then
               if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
