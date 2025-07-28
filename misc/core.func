@@ -415,70 +415,11 @@ msg_custom() {
   echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
 }
 
-# msg_ok() {
-#   local msg="$1"
-#   [[ -z "$msg" ]] && return
-#   stop_spinner
-#   printf "\r\e[2K%s %b\n" "$CM" "${GN}${msg}${CL}" >&2
-#   if declare -p MSG_INFO_SHOWN &>/dev/null && [[ "$(declare -p MSG_INFO_SHOWN 2>/dev/null)" =~ "declare -A" ]]; then
-#     unset MSG_INFO_SHOWN["$msg"]
-#   fi
-# }
-
-# msg_error() {
-#   local msg="$1"
-#   [[ -z "$msg" ]] && return
-#   stop_spinner
-#   printf "\r\e[2K%s %b\n" "$CROSS" "${RD}${msg}${CL}" >&2
-# }
-
-# msg_warn() {
-#   local msg="$1"
-#   [[ -z "$msg" ]] && return
-#   stop_spinner
-#   printf "\r\e[2K%s %b\n" "$INFO" "${YWB}${msg}${CL}" >&2
-#   if declare -p MSG_INFO_SHOWN &>/dev/null && [[ "$(declare -p MSG_INFO_SHOWN 2>/dev/null)" =~ "declare -A" ]]; then
-#     unset MSG_INFO_SHOWN["$msg"]
-#   fi
-# }
-
-# msg_custom() {
-#   local symbol="${1:-"[*]"}"
-#   local color="${2:-"\e[36m"}" # Default: Cyan
-#   local msg="${3:-}"
-
-#   [[ -z "$msg" ]] && return
-#   stop_spinner 2>/dev/null || true
-#   printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL:-\e[0m}" >&2
-# }
-
-# msg_progress() {
-#   local current="$1"
-#   local total="$2"
-#   local label="$3"
-#   local width=40
-#   local filled percent bar empty
-#   local fill_char="#"
-#   local empty_char="-"
-
-#   if ! [[ "$current" =~ ^[0-9]+$ ]] || ! [[ "$total" =~ ^[0-9]+$ ]] || [[ "$total" -eq 0 ]]; then
-#     printf "\r\e[2K%s %b\n" "$CROSS" "${RD}Invalid progress input${CL}" >&2
-#     return
-#   fi
-
-#   percent=$(((current * 100) / total))
-#   filled=$(((current * width) / total))
-#   empty=$((width - filled))
-
-#   bar=$(printf "%${filled}s" | tr ' ' "$fill_char")
-#   bar+=$(printf "%${empty}s" | tr ' ' "$empty_char")
-
-#   printf "\r\e[2K%s [%s] %3d%% %s" "${TAB}" "$bar" "$percent" "$label" >&2
-
-#   if [[ "$current" -eq "$total" ]]; then
-#     printf "\n" >&2
-#   fi
-# }
+exit_script() {
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  exit
+}
 
 run_container_safe() {
   local ct="$1"

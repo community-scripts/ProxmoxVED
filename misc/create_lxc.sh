@@ -75,7 +75,7 @@ if ! check_storage_support "vztmpl"; then
 fi
 msg_ok "Validated Storage (rootdir / vztmpl)."
 
-# This function is used to select the storage class and determine the corresponding storage content type and label.
+# This function selects a storage pool for a given content type (e.g., rootdir, vztmpl).
 function select_storage() {
   local CLASS=$1 CONTENT CONTENT_LABEL
 
@@ -110,7 +110,7 @@ function select_storage() {
     ;;
   esac
 
-  # >>> NEW: support STORAGE preset <<<
+  # Check for preset STORAGE variable
   if [ "$CONTENT" = "rootdir" ] && [ -n "${STORAGE:-}" ]; then
     if pvesm status -content "$CONTENT" | awk 'NR>1 {print $1}' | grep -qx "$STORAGE"; then
       STORAGE_RESULT="$STORAGE"
@@ -121,8 +121,9 @@ function select_storage() {
       return 2
     fi
   fi
-  local -a MENU
+
   local -A STORAGE_MAP
+  local -a MENU
   local COL_WIDTH=0
 
   while read -r TAG TYPE _ TOTAL USED FREE _; do
@@ -148,12 +149,17 @@ function select_storage() {
 
   local WIDTH=$((COL_WIDTH + 42))
   while true; do
-    local DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+    local DISPLAY_SELECTED
+    DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
       --title "Storage Pools" \
       --radiolist "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
       16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3)
 
-    [[ $? -ne 0 ]] && return 3
+    # Cancel or ESC
+    [[ $? -ne 0 ]] && exit_script
+
+    # Strip trailing whitespace or newline (important for storages like "storage (dir)")
+    DISPLAY_SELECTED=$(sed 's/[[:space:]]*$//' <<<"$DISPLAY_SELECTED")
 
     if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
       whiptail --msgbox "No valid storage selected. Please try again." 8 58
