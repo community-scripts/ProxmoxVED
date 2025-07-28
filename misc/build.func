@@ -1263,6 +1263,9 @@ You will now be prompted to select which VAAPI devices should be passed through.
         for dev in $SELECTED_DEVICES; do
           dev=$(sed 's/"//g' <<<"$dev")
           if [[ "$CT_TYPE" == "0" ]]; then
+            if [[ -d /dev/dri ]]; then
+              echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+            fi
             if ! major_minor=$(stat -c '%t:%T' "$dev" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
               msg_warn "Could not stat $dev – skipping."
               continue
