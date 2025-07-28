@@ -15,7 +15,8 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  redis-server
+  redis-server \
+  nginx
 msg_ok "Installed Dependencies"
 
 msg_info "Installing OTS"
