@@ -20,8 +20,6 @@ fi
 
 # This sets error handling options and defines the error_handler function to handle errors
 set -Eeuo pipefail
-TOP_PID=$$
-USER_EXITED=false
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap on_exit EXIT
 trap on_interrupt INT
@@ -33,15 +31,10 @@ function on_exit() {
   exit "$exit_code"
 }
 
-error_handler() {
+function error_handler() {
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
-
-  if [[ "${USER_EXITED:-false}" == "true" ]]; then
-    exit "$exit_code"
-  fi
-
   printf "\e[?25h"
   echo -e "\n${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}\n"
   exit "$exit_code"
@@ -52,18 +45,16 @@ function on_interrupt() {
   exit 130
 }
 
-on_terminate() {
-  [[ "${USER_EXITED:-false}" == "true" ]] && exit 0
+function on_terminate() {
   echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}"
   exit 143
 }
 
 exit_script() {
-  USER_EXITED=true
   clear
   printf "\e[?25h"
   echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  kill -TERM "$TOP_PID" 2>/dev/null || exit 1
+  kill 0
   exit 1
 }
 
