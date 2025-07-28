@@ -50,7 +50,7 @@ function on_terminate() {
   exit 143
 }
 
-exit_script() {
+function exit_script() {
   clear
   printf "\e[?25h"
   echo -e "\n${CROSS}${RD}User exited script${CL}\n"
