@@ -81,7 +81,7 @@ if ! check_storage_support "vztmpl"; then
   msg_error "No valid storage found for 'vztmpl' (Template)."
   exit 1
 fi
-msg_ok "Validated Storage (rootdir / vztmpl)."
+msg_ok "Validated Storage | Container: $STORAGE_CT ($STORAGE_CT_INFO), Template: $STORAGE_TMPL ($STORAGE_TMPL_INFO)"
 
 # This function selects a storage pool for a given content type (e.g., rootdir, vztmpl).
 function select_storage() {
@@ -152,6 +152,7 @@ function select_storage() {
 
   if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
     STORAGE_RESULT="${STORAGE_MAP[${MENU[0]}]}"
+    STORAGE_INFO="${MENU[1]}"
     return 0
   fi
 
@@ -174,7 +175,13 @@ function select_storage() {
       continue
     fi
 
-    STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"
+    STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"
+    for ((i = 0; i < ${#MENU[@]}; i += 3)); do
+      if [[ "${MENU[$i]}" == "$DISPLAY_SELECTED" ]]; then
+        STORAGE_INFO="${MENU[$i + 1]}"
+        break
+      fi
+    done
     return 0
   done
 }
