@@ -47,17 +47,14 @@ start
 
 if whiptail --title "Comercial Modules?" --yesno "Remove Commercial modules?" --defaultno 10 50; then
   export ONLY_OPENSOURCE="yes"
-else
-  export ONLY_OPENSOURCE="no"
-fi
 
-if [[ "$ONLY_OPENSOURCE" == "yes" ]]; then
-  if whiptail --title "Comercial Modules?" --yesno "Remove module Firewall? Sysadmin module is required for Firewall." --defaultno 10 50; then
+  if whiptail --title "Comercial Modules?" --yesno "Remove module Firewall? Not the removed sysadmin module, which is required for Firewall!" --defaultno 10 50; then
     export REMOVE_FIREWALL="no"
   else
     export REMOVE_FIREWALL="yes"
   fi
 else
+  export ONLY_OPENSOURCE="no"
   export REMOVE_FIREWALL="no"
 fi
 

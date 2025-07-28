@@ -17,6 +17,11 @@ setting_up_container
 network_check
 update_os
 
+ONLY_OPENSOURCE="${ONLY_OPENSOURCE:-no}"
+REMOVE_FIREWALL="${REMOVE_FIREWALL:-no}"
+msg_ok "Remove Commercial modules is set to: $ONLY_OPENSOURCE"
+msg_ok "Remove Firewall module is set to: $REMOVE_FIREWALL"
+
 msg_info "Downloading FreePBX installation script..."
 if curl -fsSL "$INSTALL_URL" -o "$INSTALL_PATH"; then
   msg_ok "Download completed successfully"
@@ -26,11 +31,6 @@ else
   msg_error "Aborting!"
   exit 1
 fi
-
-ONLY_OPENSOURCE="${ONLY_OPENSOURCE:-no}"
-REMOVE_FIREWALL="${REMOVE_FIREWALL:-no}"
-msg_ok "Remove Commercial modules is set to: $ONLY_OPENSOURCE"
-msg_ok "Remove Firewall module is set to: $REMOVE_FIREWALL"
 
 if [[ "$VERBOSE" == "yes" ]]; then
   msg_info "Installing FreePBX (Verbose)\n"
@@ -42,6 +42,7 @@ $STD bash "$INSTALL_PATH"
 if [[ $ONLY_OPENSOURCE == "yes" ]]; then
   msg_info "Removing Commercial modules..."
 
+  end_count=0
   max=5
   count=0
   while fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}'; do
@@ -63,19 +64,31 @@ if [[ $ONLY_OPENSOURCE == "yes" ]]; then
       fi
     done < <(fwconsole ma list | awk '/Commercial/ {print $2}')
 
-    fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}' || break
+    [[ $count -ge $max ]] && break
 
-    if [[ $count -ge $max ]]; then
+    com_list=$(fwconsole ma list)
+    end_count=$(awk '/Commercial/ {count++} END {print count + 0}' <<< "$com_list")
+    awk '/Commercial/ {found=1} END {exit !found}' <<< "$com_list" || break
+    if [[ "$REMOVE_FIREWALL" == "no" ]] && \
+       [[ $end_count -eq 1 ]] && \
+       [[ $(awk '/Commercial/ {print $2}' <<< "$com_list") == "sysadmin" ]]; then
       break
-    else
-      msg_warn "Not all commercial modules could be removed, retrying (attempt $count of $max)..."
     fi
+    # fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}' || break
+    # if [[ "$REMOVE_FIREWALL" == "no" && $(fwconsole ma list | awk '/Commercial/ {count++} END {print count + 0}') -eq 1 && $(fwconsole ma list | awk '/Commercial/ {print $2}') == "sysadmin" ]]; then
+    #   break
+    # fi
+
+    msg_warn "Not all commercial modules could be removed, retrying (attempt $count of $max)..."
   done
 
-  if fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}'; then
-    msg_warn "Some commercial modules could not be removed, please check the web interface for removal manually!"
+  # if [[ $sysadmin == 0 ]] && fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}'; then
+  if [[ $end_count -eq 0 ]]; then
+    msg_ok "All commercial modules removed successfully"
+  elif [[ $end_count -eq 1 ]] && [[ $REMOVE_FIREWALL == "no" ]]  && [[ $(fwconsole ma list | awk '/Commercial/ {print $2}') == "sysadmin" ]]; then
+    msg_ok "Only sysadmin module left, which is required for Firewall, skipping removal"
   else
-    msg_ok "Removed all commercial modules successfully"
+    msg_warn "Some commercial modules could not be removed, please check the web interface for removal manually!"
   fi
 
   msg_info "Reloading FreePBX..."
