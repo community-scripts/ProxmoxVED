@@ -98,14 +98,14 @@ pve_check() {
 
   # Check for Proxmox VE 9.x (Beta) — require confirmation
   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
-    if whiptail --title "Proxmox 9.x Detected (Beta)" \
-      --yesno "You are using Proxmox VE $PVE_VER, which is currently in Beta state.\n\nThis version is experimentally supported.\n\nDo you want to proceed anyway?" 12 70; then
-      msg_ok "Confirmed: Continuing with Proxmox VE $PVE_VER"
-      return 0
-    else
-      msg_error "Aborted by user: Proxmox VE 9.x was not confirmed."
-      exit 1
-    fi
+    #if whiptail --title "Proxmox 9.x Detected (Beta)" \
+    #--yesno "You are using Proxmox VE $PVE_VER, which is currently in Beta state.\n\nThis version is experimentally supported.\n\nDo you want to proceed anyway?" 12 70; then
+    #msg_ok "Confirmed: Continuing with Proxmox VE $PVE_VER"
+    return 0
+    #else
+    #msg_error "Aborted by user: Proxmox VE 9.x was not confirmed."
+    #exit 1
+    #fi
   fi
 
   # All other unsupported versions
