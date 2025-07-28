@@ -225,7 +225,7 @@ while true; do
     break
   fi
 done
-msg_ok "Validated Storage | Container: ${BL}$CONTAINER_STORAGE${CL} ($CONTAINER_STORAGE_INFO), Template: ${BL}$TEMPLATE_STORAGE${CL} ($TEMPLATE_STORAGE_INFO)"
+msg_ok "Validated Storage | Container: ${BL}$CONTAINER_STORAGE${CL} ($CONTAINER_STORAGE_INFO)"
 
 # Check free space on selected container storage
 STORAGE_FREE=$(pvesm status | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
