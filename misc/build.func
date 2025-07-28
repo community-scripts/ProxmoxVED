@@ -1202,10 +1202,8 @@ EOF
   done
 
   if [[ "$CT_TYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
-    declare -A seen_devices
     VAAPI_DEVICES=()
-
-    VAAPI_DEVICES=()
+    SINGLE_VAAPI_DEVICE=""
     seen_ids=()
 
     for bypath in /dev/dri/by-path/*-render /dev/dri/renderD*; do
@@ -1228,7 +1226,6 @@ EOF
       [[ -e "$card" ]] && label+=" + $(basename "$card")"
       label+=" – $name"
 
-      # Encode both devices with ":" separated, e.g.: /dev/dri/renderD128:/dev/dri/card0
       VAAPI_DEVICES+=("$(
         IFS=:
         echo "${combo_devices[*]}"
@@ -1245,10 +1242,12 @@ EOF
     if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
       msg_warn "No VAAPI-compatible devices found."
     elif [[ "${#VAAPI_DEVICES[@]}" -eq 3 && "$CT_TYPE" == "0" ]]; then
-      # Silent passthrough mit ggf. mehreren Subdevices
-      IDX=0
+      # Auto passthrough for single device
+      msg_info "Only one VAAPI-compatible device found – enabling passthrough."
+
+      IFS=":" read -ra devices <<<"${VAAPI_DEVICES[0]//\"/}"
       DID_MOUNT_DRI=0
-      IFS=":" read -ra devices <<<"$(sed 's/"//g' <<<"${VAAPI_DEVICES[0]}")"
+
       for d in "${devices[@]}"; do
         if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
           echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
@@ -1286,8 +1285,7 @@ such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
         --checklist "Select VAAPI device(s) / GPU(s) to passthrough:" 20 100 6 \
         "${VAAPI_DEVICES[@]}" 3>&1 1>&2 2>&3)
 
-      WHIPTAIL_EXIT=$?
-      if [[ "$WHIPTAIL_EXIT" -ne 0 ]]; then
+      if [[ $? -ne 0 ]]; then
         exit_script
         msg_error "VAAPI passthrough selection cancelled by user."
       fi
@@ -1296,29 +1294,26 @@ such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
         IDX=0
         DID_MOUNT_DRI=0
         for dev in $SELECTED_DEVICES; do
-          dev="${dev%\"}" # remove trailing "
-          dev="${dev#\"}" # remove leading "
+          dev="${dev%\"}"
+          dev="${dev#\"}" # strip quotes
           IFS=":" read -ra devices <<<"$dev"
           for d in "${devices[@]}"; do
-
-            for d in "${devices[@]}"; do
-              if [[ "$CT_TYPE" == "0" ]]; then
-                if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
-                  echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-                  DID_MOUNT_DRI=1
-                fi
-                if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
-                  msg_warn "Could not stat $d – skipping."
-                  continue
-                fi
-                echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
-                echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
-              else
-                GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
-                echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
-                IDX=$((IDX + 1))
+            if [[ "$CT_TYPE" == "0" ]]; then
+              if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
+                echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+                DID_MOUNT_DRI=1
               fi
-            done
+              if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
+                msg_warn "Could not stat $d – skipping."
+                continue
+              fi
+              echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
+              echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
+            else
+              GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
+              echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
+              IDX=$((IDX + 1))
+            fi
           done
         done
       else
