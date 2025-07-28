@@ -31,10 +31,15 @@ function on_exit() {
   exit "$exit_code"
 }
 
-function error_handler() {
+error_handler() {
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
+
+  if [[ "${USER_EXITED:-false}" == "true" ]]; then
+    exit "$exit_code"
+  fi
+
   printf "\e[?25h"
   echo -e "\n${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}\n"
   exit "$exit_code"
@@ -45,12 +50,14 @@ function on_interrupt() {
   exit 130
 }
 
-function on_terminate() {
+on_terminate() {
+  [[ "${USER_EXITED:-false}" == "true" ]] && exit 0
   echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}"
   exit 143
 }
 
 exit_script() {
+  USER_EXITED=true
   clear
   printf "\e[?25h"
   echo -e "\n${CROSS}${RD}User exited script${CL}\n"
