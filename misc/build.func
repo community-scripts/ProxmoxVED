@@ -1247,12 +1247,23 @@ EOF
         echo "lxc.mount.entry: $device $device none bind,optional,create=file" >>"$LXC_CONFIG"
       fi
     else
-      whiptail --title "VAAPI passthrough" --msgbox "\
-VAAPI passthrough has been enabled for this container.
+      if [[ "$CT_TYPE" == "0" ]]; then
+        whiptail --title "VAAPI passthrough" --msgbox "\
+⚙️  VAAPI passthrough enabled
 
-This allows GPU hardware acceleration (e.g., video transcoding for Jellyfin, Plex, Frigate, etc.).
+GPU hardware acceleration will be available inside the container
+(e.g., for Jellyfin, Plex, Frigate, etc.).
 
-You will now be prompted to select which VAAPI devices should be passed through." 12 72
+You can now select which VAAPI devices to passthrough." 13 72
+      else
+        whiptail --title "VAAPI passthrough (limited)" --msgbox "\
+⚠️  Limited VAAPI support in unprivileged container
+
+Some drivers (e.g., iHD) may not work due to LXC restrictions.
+If VAAPI fails, consider using a privileged container.
+
+You can now select which VAAPI devices to passthrough." 13 72
+      fi
 
       SELECTED_DEVICES=$(whiptail --title "VAAPI Device Selection" \
         --checklist "Select VAAPI device(s) / GPU(s) to passthrough:" 20 70 10 \
@@ -1260,11 +1271,13 @@ You will now be prompted to select which VAAPI devices should be passed through.
 
       if [[ -n "$SELECTED_DEVICES" ]]; then
         IDX=0
+        DID_MOUNT_DRI=0
         for dev in $SELECTED_DEVICES; do
           dev=$(sed 's/"//g' <<<"$dev")
           if [[ "$CT_TYPE" == "0" ]]; then
-            if [[ -d /dev/dri ]]; then
+            if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
               echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+              DID_MOUNT_DRI=1
             fi
             if ! major_minor=$(stat -c '%t:%T' "$dev" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
               msg_warn "Could not stat $dev – skipping."
