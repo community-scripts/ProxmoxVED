@@ -20,6 +20,8 @@ fi
 
 # This sets error handling options and defines the error_handler function to handle errors
 set -Eeuo pipefail
+TOP_PID=$$
+USER_EXITED=false
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap on_exit EXIT
 trap on_interrupt INT
