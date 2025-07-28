@@ -81,7 +81,7 @@ if ! check_storage_support "vztmpl"; then
   msg_error "No valid storage found for 'vztmpl' (Template)."
   exit 1
 fi
-msg_ok "Validated Storage | Container: $STORAGE_CT ($STORAGE_CT_INFO), Template: $STORAGE_TMPL ($STORAGE_TMPL_INFO)"
+msg_ok "Validated Storage | Container: $CONTAINER_STORAGE ($CONTAINER_STORAGE_INFO), Template: $TEMPLATE_STORAGE ($TEMPLATE_STORAGE_INFO)"
 
 # This function selects a storage pool for a given content type (e.g., rootdir, vztmpl).
 function select_storage() {
@@ -249,6 +249,7 @@ fi
 while true; do
   if select_storage template; then
     TEMPLATE_STORAGE="$STORAGE_RESULT"
+    TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
     break
   fi
 done
@@ -256,6 +257,7 @@ done
 while true; do
   if select_storage container; then
     CONTAINER_STORAGE="$STORAGE_RESULT"
+    CONTAINER_STORAGE_INFO="$STORAGE_INFO"
     break
   fi
 done
