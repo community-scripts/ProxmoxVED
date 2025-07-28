@@ -28,6 +28,44 @@ STORAGE_TYPE=redis
 EOF
 msg_ok "Installed OTS"
 
+msg_info "Generating Universal SSL Certificate"
+mkdir -p /etc/ssl/ots
+$STD openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+  -keyout /etc/ssl/ots/key.pem \
+  -out /etc/ssl/ots/cert.pem \
+  -subj "/CN=ots"
+msg_ok "Certificate Generated"
+
+msg_info "Setting up nginx"
+cat <<EOF >/etc/nginx/sites-available/ots.conf
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  server_name ots;
+
+  ssl_certificate /etc/ssl/ots/cert.pem;
+  ssl_certificate_key /etc/ssl/ots/key.pem;
+
+  location / {
+    add_header X-Robots-Tag noindex;
+
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    proxy_pass http://127.0.0.1:3000/;
+  }
+}
+EOF
+
+ln -s /etc/nginx/sites-available/ots.conf /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+$STD systemctl reload nginx
+msg_ok "Configured nginx"
+
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/ots.service
 [Unit]
