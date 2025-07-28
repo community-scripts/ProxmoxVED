@@ -29,10 +29,11 @@ function update_script() {
   fi
   
   RELEASE=$(curl -fsSL https://api.github.com/repos/Luzifer/ots/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+  if [[ "${RELEASE}" != "$(cat ~/.ots 2>/dev/null)" ]] || [[ ! -f ~/.ots ]]; then
 
     msg_info "Stopping ${APP} Service"
     systemctl stop ots
+    systemctl stop nginx
     msg_ok "Stopped ${APP} Service"
   
     msg_info "Updating ${APP} to v${RELEASE}"
@@ -41,6 +42,7 @@ function update_script() {
 
     msg_info "Stopping ${APP} Service"
     systemctl start ots
+    systemctl start nginx
     msg_ok "Stopped ${APP} Service"
   
   else
