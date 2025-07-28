@@ -17,6 +17,8 @@ setting_up_container
 network_check
 update_os
 
+echo " REMOVE_FIREWALL >---  $REMOVE_FIREWALL --- "
+
 ONLY_OPENSOURCE="${ONLY_OPENSOURCE:-no}"
 REMOVE_FIREWALL="${REMOVE_FIREWALL:-no}"
 msg_ok "Remove Commercial modules is set to: $ONLY_OPENSOURCE"
