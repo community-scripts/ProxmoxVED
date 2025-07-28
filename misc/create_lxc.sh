@@ -61,7 +61,7 @@ exit_script() {
   clear
   printf "\e[?25h"
   echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  kill 0
+  kill -TERM "$TOP_PID" 2>/dev/null || exit 1
   exit 1
 }
 
