@@ -1209,53 +1209,60 @@ EOF
     fi
   done
 
-  if ([ "$CT_TYPE" == "0" ] || [ "$is_vaapi_app" == "true" ]) &&
-    ([[ -e /dev/dri/renderD128 ]] || [[ -e /dev/dri/card0 ]] || [[ -e /dev/fb0 ]]); then
+  if [[ "$CT_TYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
+    VAAPI_DEVICES=()
+    for bypath in /dev/dri/by-path/*; do
+      [[ "$bypath" =~ -card$ || "$bypath" =~ -render$ ]] || continue
+      target=$(readlink -f "$bypath")
+      [[ -e "$target" ]] && VAAPI_DEVICES+=("$target")
+    done
+    [[ -e /dev/fb0 ]] && VAAPI_DEVICES+=("/dev/fb0")
 
-    echo ""
-    msg_custom "⚙️ " "\e[96m" "Configuring VAAPI passthrough for LXC container"
-    if [ "$CT_TYPE" != "0" ]; then
-      msg_custom "⚠️ " "\e[33m" "Container is unprivileged – VAAPI passthrough may not work without additional host configuration (e.g., idmap)."
-    fi
-    msg_custom "ℹ️ " "\e[96m" "VAAPI enables GPU hardware acceleration (e.g., for video transcoding in Jellyfin or Plex)."
-    echo ""
-    read -rp "➤ Automatically mount all available VAAPI devices? [Y/n]: " VAAPI_ALL
+    if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
+      :
+    elif [[ "${#VAAPI_DEVICES[@]}" -eq 1 && "$CT_TYPE" == "0" ]]; then
+      # Privileged + 1 device → silent passthrough
+      device="${VAAPI_DEVICES[0]}"
+      major_minor=$(stat -c '%t:%T' "$device" | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }')
+      echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
+      echo "lxc.mount.entry: $device $device none bind,optional,create=file" >>"$LXC_CONFIG"
+    else
+      # Display info message
+      whiptail --title "VAAPI passthrough" --msgbox "\
+VAAPI passthrough has been enabled for this container.
 
-    if [[ "$VAAPI_ALL" =~ ^[Yy]$|^$ ]]; then
-      if [ "$CT_TYPE" == "0" ]; then
-        # PRV Container → alles zulässig
-        [[ -e /dev/dri/renderD128 ]] && {
-          echo "lxc.cgroup2.devices.allow: c 226:128 rwm" >>"$LXC_CONFIG"
-          echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
-        }
-        [[ -e /dev/dri/card0 ]] && {
-          echo "lxc.cgroup2.devices.allow: c 226:0 rwm" >>"$LXC_CONFIG"
-          echo "lxc.mount.entry: /dev/dri/card0 dev/dri/card0 none bind,optional,create=file" >>"$LXC_CONFIG"
-        }
-        [[ -e /dev/fb0 ]] && {
-          echo "lxc.cgroup2.devices.allow: c 29:0 rwm" >>"$LXC_CONFIG"
-          echo "lxc.mount.entry: /dev/fb0 dev/fb0 none bind,optional,create=file" >>"$LXC_CONFIG"
-        }
-        [[ -d /dev/dri ]] && {
-          echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-        }
+This allows GPU hardware acceleration (e.g., video transcoding for Jellyfin, Plex, Frigate, etc.).
+
+You will now be prompted to select which VAAPI devices should be passed through." 12 72
+
+      CHOICES=()
+      for dev in "${VAAPI_DEVICES[@]}"; do
+        desc="$(basename "$dev")"
+        CHOICES+=("$dev" "$desc" "OFF")
+      done
+
+      SELECTED_DEVICES=$(whiptail --title "VAAPI Device Selection" \
+        --checklist "Select VAAPI device(s) to passthrough:" 20 70 10 \
+        "${CHOICES[@]}" 3>&1 1>&2 2>&3)
+
+      if [[ -n "$SELECTED_DEVICES" ]]; then
+        IDX=0
+        for dev in $SELECTED_DEVICES; do
+          dev=$(sed 's/"//g' <<<"$dev")
+          if [[ "$CT_TYPE" == "0" ]]; then
+            major_minor=$(stat -c '%t:%T' "$dev" | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }')
+            echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
+            echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
+          else
+            # Unprivileged: use devX: with proper GID
+            GID=$([[ "$dev" =~ render ]] && echo "104" || echo "44")
+            echo "dev${IDX}: $dev,gid=${GID}" >>"$LXC_CONFIG"
+            IDX=$((IDX + 1))
+          fi
+        done
       else
-        # UNPRV Container → nur devX für UI
-        [[ -e /dev/dri/card0 ]] && echo "dev0: /dev/dri/card0,gid=44" >>"$LXC_CONFIG"
-        [[ -e /dev/dri/card1 ]] && echo "dev0: /dev/dri/card1,gid=44" >>"$LXC_CONFIG"
-        [[ -e /dev/dri/renderD128 ]] && echo "dev1: /dev/dri/renderD128,gid=104" >>"$LXC_CONFIG"
+        msg_warn "No VAAPI devices selected – passthrough skipped."
       fi
-    fi
-
-  fi
-  if [ "$CT_TYPE" == "1" ] && [ "$is_vaapi_app" == "true" ]; then
-    if [[ -e /dev/dri/card0 ]]; then
-      echo "dev0: /dev/dri/card0,gid=44" >>"$LXC_CONFIG"
-    elif [[ -e /dev/dri/card1 ]]; then
-      echo "dev0: /dev/dri/card1,gid=44" >>"$LXC_CONFIG"
-    fi
-    if [[ -e /dev/dri/renderD128 ]]; then
-      echo "dev1: /dev/dri/renderD128,gid=104" >>"$LXC_CONFIG"
     fi
   fi
 
