@@ -163,7 +163,7 @@ function select_storage() {
       continue
     fi
 
-    STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"
+    STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"
     for ((i = 0; i < ${#MENU[@]}; i += 3)); do
       if [[ "${MENU[$i]}" == "$DISPLAY_SELECTED" ]]; then
         STORAGE_INFO="${MENU[$i + 1]}"
