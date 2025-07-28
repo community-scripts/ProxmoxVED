@@ -184,6 +184,10 @@ function select_storage() {
   exit 204
 }
 
+msg_debug "CTID=$CTID"
+msg_debug "PCT_OSTYPE=$PCT_OSTYPE"
+msg_debug "PCT_OSVERSION=${PCT_OSVERSION:-default}"
+
 # Test if ID is valid
 [ "$CTID" -ge "100" ] || {
   msg_error "ID cannot be less than 100."
@@ -202,10 +206,12 @@ fi
 msg_info "Validating Storage"
 if ! check_storage_support "rootdir"; then
   msg_error "No valid storage found for 'rootdir' (Container)."
+  msg_debug "check_storage_support('rootdir') → success"
   exit 1
 fi
 if ! check_storage_support "vztmpl"; then
   msg_error "No valid storage found for 'vztmpl' (Template)."
+  msg_debug "check_storage_support('vztmpl') → success"
   exit 1
 fi
 msg_ok "Valid Storage Found"
@@ -214,6 +220,8 @@ while true; do
   if select_storage template; then
     TEMPLATE_STORAGE="$STORAGE_RESULT"
     TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
+    msg_debug "TEMPLATE_STORAGE=$TEMPLATE_STORAGE"
+    msg_debug "TEMPLATE_STORAGE_INFO=$TEMPLATE_STORAGE_INFO"
     break
   fi
 done
@@ -222,6 +230,8 @@ while true; do
   if select_storage container; then
     CONTAINER_STORAGE="$STORAGE_RESULT"
     CONTAINER_STORAGE_INFO="$STORAGE_INFO"
+    msg_debug "CONTAINER_STORAGE=$CONTAINER_STORAGE"
+    msg_debug "CONTAINER_STORAGE_INFO=$CONTAINER_STORAGE_INFO"
     break
   fi
 done
@@ -249,7 +259,11 @@ fi
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 
 msg_info "Updating LXC Template List"
-if ! timeout 15 pveam update >/dev/null 2>&1; then
+msg_debug "TEMPLATE_SEARCH=$TEMPLATE_SEARCH"
+msg_debug "TEMPLATES=(${TEMPLATES[*]})"
+msg_debug "Selected TEMPLATE=$TEMPLATE"
+msg_debug "TEMPLATE_PATH=$TEMPLATE_PATH"
+if ! pveam update >/dev/null 2>&1; then
   TEMPLATE_FALLBACK=$(pveam list "$TEMPLATE_STORAGE" | awk "/$TEMPLATE_SEARCH/ {print \$2}" | sort -t - -k 2 -V | tail -n1)
   if [[ -z "$TEMPLATE_FALLBACK" ]]; then
     msg_error "Failed to update LXC template list and no local template matching '$TEMPLATE_SEARCH' found."
@@ -311,6 +325,7 @@ PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 
 # Secure creation of the LXC container with lock and template check
 lockfile="/tmp/template.${TEMPLATE}.lock"
+msg_debug "Creating lockfile: $lockfile"
 exec 9>"$lockfile" || {
   msg_error "Failed to create lock file '$lockfile'."
   exit 200
@@ -320,6 +335,7 @@ flock -w 60 9 || {
   exit 211
 }
 
+msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
   msg_error "Container creation failed. Checking if template is corrupted or incomplete."
 
