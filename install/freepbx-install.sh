@@ -17,8 +17,6 @@ setting_up_container
 network_check
 update_os
 
-echo " REMOVE_FIREWALL >---  $REMOVE_FIREWALL --- "
-
 ONLY_OPENSOURCE="${ONLY_OPENSOURCE:-no}"
 REMOVE_FIREWALL="${REMOVE_FIREWALL:-no}"
 msg_ok "Remove Commercial modules is set to: $ONLY_OPENSOURCE"
@@ -76,15 +74,10 @@ if [[ $ONLY_OPENSOURCE == "yes" ]]; then
        [[ $(awk '/Commercial/ {print $2}' <<< "$com_list") == "sysadmin" ]]; then
       break
     fi
-    # fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}' || break
-    # if [[ "$REMOVE_FIREWALL" == "no" && $(fwconsole ma list | awk '/Commercial/ {count++} END {print count + 0}') -eq 1 && $(fwconsole ma list | awk '/Commercial/ {print $2}') == "sysadmin" ]]; then
-    #   break
-    # fi
 
     msg_warn "Not all commercial modules could be removed, retrying (attempt $count of $max)..."
   done
 
-  # if [[ $sysadmin == 0 ]] && fwconsole ma list | awk '/Commercial/ {found=1} END {exit !found}'; then
   if [[ $end_count -eq 0 ]]; then
     msg_ok "All commercial modules removed successfully"
   elif [[ $end_count -eq 1 ]] && [[ $REMOVE_FIREWALL == "no" ]]  && [[ $(fwconsole ma list | awk '/Commercial/ {print $2}') == "sysadmin" ]]; then
