@@ -1163,7 +1163,7 @@ build_container() {
   -unprivileged $CT_TYPE
   $PW
 "
-  bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)"
+  bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/create_lxc.sh)" || exit
   if [ $? -ne 0 ]; then
     exit 200
   fi
