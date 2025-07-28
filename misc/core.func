@@ -392,6 +392,12 @@ msg_custom() {
   echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
 }
 
+function msg_debug() {
+  if [[ "${var_full_verbose:-0}" == "1" ]]; then
+    echo -e "${DGY}[$(date '+%F %T')] [DEBUG]${CL} $*"
+  fi
+}
+
 run_container_safe() {
   local ct="$1"
   shift

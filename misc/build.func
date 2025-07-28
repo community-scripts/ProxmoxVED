@@ -1229,7 +1229,7 @@ EOF
       label="$(basename "$dev_render")"
       [[ -e "$card" ]] && label+=" + $(basename "$card")"
       label+=" – $name"
-      echo "[VAAPI DEBUG] Adding VAAPI combo: ${combo_devices[*]} ($label)"
+      msg_debug "[VAAPI DEBUG] Adding VAAPI combo: ${combo_devices[*]} ($label)"
 
       VAAPI_DEVICES+=("$(
         IFS=:
@@ -1247,7 +1247,7 @@ EOF
     if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
       msg_warn "No VAAPI-compatible devices found."
     elif [[ "${#VAAPI_DEVICES[@]}" -eq 3 ]]; then
-      msg_info "Only one VAAPI-compatible device found – enabling passthrough."
+      #msg_info "Only one VAAPI-compatible device found – enabling passthrough."
 
       IFS=":" read -ra devices <<<"${VAAPI_DEVICES[0]//\"/}"
       IDX=0
@@ -1309,7 +1309,7 @@ such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
           dev="${dev%\"}"
           dev="${dev#\"}" # strip quotes
           IFS=":" read -ra devices <<<"$dev"
-          echo "[VAAPI DEBUG] Autopassthrough for devices: ${devices[*]}"
+          msg_debug "[VAAPI DEBUG] Autopassthrough for devices: ${devices[*]}"
           for d in "${devices[@]}"; do
             if [[ "$CT_TYPE" == "0" ]]; then
               if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
