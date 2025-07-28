@@ -1212,7 +1212,7 @@ EOF
       seen_devices["$dev_target"]=1
 
       pci_addr=$(basename "$bypath" | cut -d- -f1 --complement | sed 's/-render//' || true)
-      pci_info=$(lspci -nn | grep "$pci_addr" || true)
+      pci_info=$(lspci -nn | grep "${pci_addr#0000:}" || true)
       name="${pci_info#*: }"
       [[ -z "$name" ]] && name="Unknown GPU ($pci_addr)"
 
