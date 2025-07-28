@@ -311,7 +311,7 @@ PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 
 # Secure creation of the LXC container with lock and template check
 lockfile="/tmp/template.${TEMPLATE}.lock"
-exec 9>"$lockfile" >/dev/null 2>&1 || {
+exec 9>"$lockfile" || {
   msg_error "Failed to create lock file '$lockfile'."
   exit 200
 }
@@ -376,28 +376,5 @@ fi
 if [[ "${PCT_UNPRIVILEGED:-1}" == "1" && " ${PCT_OPTIONS[*]} " == *"fuse=1"* ]]; then
   msg_warn "Unprivileged container with FUSE may fail unless extra device mappings are configured."
 fi
-
-# Extra: Debug-Ausgabe (wenn DEBUG=yes gesetzt)
-DEBUG_LOG="/tmp/lxc_debug_${CTID}.log"
-{
-  echo "--- DEBUG DUMP for CTID $CTID ---"
-  echo "Hostname: ${CT_HOSTNAME:-unknown}"
-  echo "Template: ${TEMPLATE}"
-  echo "Template Storage: ${TEMPLATE_STORAGE}"
-  echo "Container Storage: ${CONTAINER_STORAGE}"
-  echo "Template Path: ${TEMPLATE_PATH}"
-  echo "Disk Size: ${PCT_DISK_SIZE:-8} GB"
-  echo "RAM Size: ${PCT_RAM_SIZE:-2048} MB"
-  echo "CPU Cores: ${PCT_CPU_CORES:-2}"
-  echo "Unprivileged: ${PCT_UNPRIVILEGED:-1}"
-  echo "PCT_OPTIONS:"
-  printf '  %s\n' "${PCT_OPTIONS[@]}"
-  echo "--- Container Config Dump ---"
-  [[ -f "/etc/pve/lxc/$CTID.conf" ]] && cat "/etc/pve/lxc/$CTID.conf"
-  echo "--- LVM Volumes ---"
-  lvs | grep "vm-${CTID}-disk-0" || echo "No LVM volume found."
-  echo "--- pct list ---"
-  pct list
-} >"$DEBUG_LOG"
 
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
