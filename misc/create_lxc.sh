@@ -208,6 +208,7 @@ if ! check_storage_support "vztmpl"; then
   msg_error "No valid storage found for 'vztmpl' (Template)."
   exit 1
 fi
+msg_ok "Valid Storage Found"
 
 while true; do
   if select_storage template; then
