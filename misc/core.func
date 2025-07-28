@@ -394,6 +394,7 @@ msg_custom() {
 
 function msg_debug() {
   if [[ "${var_full_verbose:-0}" == "1" ]]; then
+    [[ "${var_verbose:-0}" != "1" ]] && var_verbose=1
     echo -e "${YWB}[$(date '+%F %T')] [DEBUG]${CL} $*"
   fi
 }
