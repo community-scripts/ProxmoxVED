@@ -1245,14 +1245,22 @@ EOF
     if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
       msg_warn "No VAAPI-compatible devices found."
     elif [[ "${#VAAPI_DEVICES[@]}" -eq 3 && "$CT_TYPE" == "0" ]]; then
-      # Only one device and privileged → silent passthrough
-      device="${VAAPI_DEVICES[0]}"
-      if ! major_minor=$(stat -c '%t:%T' "$device" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
-        msg_warn "Could not stat $device – skipping passthrough."
-      else
+      # Silent passthrough mit ggf. mehreren Subdevices
+      IDX=0
+      DID_MOUNT_DRI=0
+      IFS=":" read -ra devices <<<"$(sed 's/"//g' <<<"${VAAPI_DEVICES[0]}")"
+      for d in "${devices[@]}"; do
+        if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
+          echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+          DID_MOUNT_DRI=1
+        fi
+        if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
+          msg_warn "Could not stat $d – skipping."
+          continue
+        fi
         echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
-        echo "lxc.mount.entry: $device $device none bind,optional,create=file" >>"$LXC_CONFIG"
-      fi
+        echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
+      done
     else
       if [[ "$CT_TYPE" == "0" ]]; then
         whiptail --title "VAAPI passthrough" --msgbox "\
