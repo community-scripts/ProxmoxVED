@@ -1214,7 +1214,8 @@ EOF
 
   if [[ "$CT_TYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
     VAAPI_DEVICES=()
-    for bypath in /dev/dri/by-path/*-render; do
+    for bypath in /dev/dri/by-path/*-render /dev/dri/renderD*; do
+      [[ -e "$bypath" ]] || continue
       dev_target=$(readlink -f "$bypath") || continue
       pci_addr=$(basename "$bypath" | cut -d- -f1 --complement | sed 's/-render//')
       pci_info=$(lspci -nn | grep "$pci_addr" || true)
