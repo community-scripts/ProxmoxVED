@@ -1188,20 +1188,9 @@ EOF
 
   # VAAPI passthrough for privileged containers or known apps
   VAAPI_APPS=(
-    "immich"
-    "Channels"
-    "Emby"
-    "ErsatzTV"
-    "Frigate"
-    "Jellyfin"
-    "Plex"
-    "Scrypted"
-    "Tdarr"
-    "Unmanic"
-    "Ollama"
-    "FileFlows"
-    "Open WebUI"
-    "Debian"
+    "immich" "Channels" "Emby" "ErsatzTV" "Frigate" "Jellyfin"
+    "Plex" "Scrypted" "Tdarr" "Unmanic" "Ollama" "FileFlows"
+    "Open WebUI" "Debian"
   )
 
   is_vaapi_app=false
@@ -1216,9 +1205,9 @@ EOF
     declare -A seen_devices
     VAAPI_DEVICES=()
 
-    for bypath in /dev/dri/by-path/*-render /dev/dri/renderD*; do
+    for bypath in /dev/dri/by-path/*-render /dev/dri/renderD* /dev/dri/card*; do
       [[ -e "$bypath" ]] || continue
-      dev_target=$(readlink -f "$bypath") || continue
+      dev_target=$(readlink -f "$bypath" 2>/dev/null || echo "$bypath")
       [[ -n "${seen_devices[$dev_target]}" ]] && continue
       seen_devices["$dev_target"]=1
 
@@ -1230,18 +1219,17 @@ EOF
       label="$(basename "$dev_target") - $name"
       VAAPI_DEVICES+=("$dev_target" "$label" "OFF")
     done
-    [[ -e /dev/fb0 ]] && VAAPI_DEVICES+=("/dev/fb0")
+    [[ -e /dev/fb0 ]] && VAAPI_DEVICES+=("/dev/fb0" "fb0 - Framebuffer" "OFF")
 
-    # Dynamically resolve group IDs
     GID_VIDEO=$(getent group video | cut -d: -f3)
     GID_RENDER=$(getent group render | cut -d: -f3)
     [[ -z "$GID_VIDEO" ]] && GID_VIDEO=44 && msg_warn "'video' group not found, falling back to GID 44"
     [[ -z "$GID_RENDER" ]] && GID_RENDER=104 && msg_warn "'render' group not found, falling back to GID 104"
 
     if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
-      :
-    elif [[ "${#VAAPI_DEVICES[@]}" -eq 1 && "$CT_TYPE" == "0" ]]; then
-      # Privileged + 1 device → silent passthrough
+      msg_warn "No VAAPI-compatible devices found."
+    elif [[ "${#VAAPI_DEVICES[@]}" -eq 3 && "$CT_TYPE" == "0" ]]; then
+      # Only one device and privileged → silent passthrough
       device="${VAAPI_DEVICES[0]}"
       if ! major_minor=$(stat -c '%t:%T' "$device" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
         msg_warn "Could not stat $device – skipping passthrough."
@@ -1252,30 +1240,26 @@ EOF
     else
       if [[ "$CT_TYPE" == "0" ]]; then
         whiptail --title "VAAPI passthrough" --msgbox "\
-⚙️  VAAPI passthrough enabled
+✅ VAAPI passthrough has been enabled
 
 GPU hardware acceleration will be available inside the container
-(e.g., for Jellyfin, Plex, Frigate, etc.).
+(e.g., for Jellyfin, Plex, Frigate, etc.)
 
-⚠️  Note: You may need to install drivers manually inside the container,
-such as 'intel-media-driver', 'libva2', or 'vainfo'.
-
-You can now select which VAAPI devices to passthrough." 15 74
+ℹ️  Note: You may need to install drivers manually inside the container,
+such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
       else
         whiptail --title "VAAPI passthrough (limited)" --msgbox "\
-⚠️  Limited VAAPI support in unprivileged container
+⚠️  VAAPI passthrough in unprivileged containers may be limited
 
-Some drivers (e.g., iHD) may not work due to LXC restrictions.
-If VAAPI fails, consider using a privileged container.
+Some drivers (e.g., iHD) require privileged access to DRM subsystems.
+If VAAPI fails, consider switching to a privileged container.
 
-⚠️  Note: You may need to install drivers manually inside the container,
-such as 'intel-media-driver', 'libva2', or 'vainfo'.
-
-You can now select which VAAPI devices to passthrough." 15 74
+ℹ️  Note: You may need to install drivers manually inside the container,
+such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
       fi
 
       SELECTED_DEVICES=$(whiptail --title "VAAPI Device Selection" \
-        --checklist "Select VAAPI device(s) / GPU(s) to passthrough:" 20 70 10 \
+        --checklist "Select VAAPI device(s) / GPU(s) to passthrough:" 20 72 10 \
         "${VAAPI_DEVICES[@]}" 3>&1 1>&2 2>&3)
 
       if [[ -n "$SELECTED_DEVICES" ]]; then
