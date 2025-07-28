@@ -24,10 +24,6 @@ trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap on_exit EXIT
 trap on_interrupt INT
 trap on_terminate TERM
-TEMPLATE_STORAGE=""
-TEMPLATE_STORAGE_INFO=""
-CONTAINER_STORAGE=""
-CONTAINER_STORAGE_INFO=""
 
 function on_exit() {
   local exit_code="$?"
@@ -74,18 +70,6 @@ function check_storage_support() {
 
   [[ ${#VALID_STORAGES[@]} -gt 0 ]]
 }
-
-# This checks for the presence of valid Container Storage and Template Storage locations
-msg_info "Validating Storage"
-if ! check_storage_support "rootdir"; then
-  msg_error "No valid storage found for 'rootdir' (Container)."
-  exit 1
-fi
-if ! check_storage_support "vztmpl"; then
-  msg_error "No valid storage found for 'vztmpl' (Template)."
-  exit 1
-fi
-msg_ok "Validated Storage | Container: $CONTAINER_STORAGE ($CONTAINER_STORAGE_INFO), Template: $TEMPLATE_STORAGE ($TEMPLATE_STORAGE_INFO)"
 
 # This function selects a storage pool for a given content type (e.g., rootdir, vztmpl).
 function select_storage() {
@@ -214,41 +198,16 @@ if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
   exit 206
 fi
 
-# DEFAULT_FILE="/usr/local/community-scripts/default_storage"
-# if [[ -f "$DEFAULT_FILE" ]]; then
-#   source "$DEFAULT_FILE"
-#   if [[ -n "$TEMPLATE_STORAGE" && -n "$CONTAINER_STORAGE" ]]; then
-#     msg_info "Using default storage configuration from: $DEFAULT_FILE"
-#     msg_ok "Template Storage: ${BL}$TEMPLATE_STORAGE${CL} ${GN}|${CL} Container Storage: ${BL}$CONTAINER_STORAGE${CL}"
-#   else
-#     msg_warn "Default storage file exists but is incomplete – falling back to manual selection"
-#     TEMPLATE_STORAGE=$(select_storage template)
-#     msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
-#     CONTAINER_STORAGE=$(select_storage container)
-#     msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
-#   fi
-# else
-#   # TEMPLATE STORAGE SELECTION
-#   # Template Storage
-#   while true; do
-#     TEMPLATE_STORAGE=$(select_storage template)
-#     if [[ -n "$TEMPLATE_STORAGE" ]]; then
-#       msg_ok "Using ${BL}$TEMPLATE_STORAGE${CL} ${GN}for Template Storage."
-#       break
-#     fi
-#     msg_warn "No valid template storage selected. Please try again."
-#   done
-
-#   while true; do
-#     CONTAINER_STORAGE=$(select_storage container)
-#     if [[ -n "$CONTAINER_STORAGE" ]]; then
-#       msg_ok "Using ${BL}$CONTAINER_STORAGE${CL} ${GN}for Container Storage."
-#       break
-#     fi
-#     msg_warn "No valid container storage selected. Please try again."
-#   done
-
-# fi
+# This checks for the presence of valid Container Storage and Template Storage locations
+msg_info "Validating Storage"
+if ! check_storage_support "rootdir"; then
+  msg_error "No valid storage found for 'rootdir' (Container)."
+  exit 1
+fi
+if ! check_storage_support "vztmpl"; then
+  msg_error "No valid storage found for 'vztmpl' (Template)."
+  exit 1
+fi
 
 while true; do
   if select_storage template; then
@@ -265,6 +224,7 @@ while true; do
     break
   fi
 done
+msg_ok "Validated Storage | Container: ${BL}$CONTAINER_STORAGE${CL} ($CONTAINER_STORAGE_INFO), Template: ${BL}$TEMPLATE_STORAGE${CL} ($TEMPLATE_STORAGE_INFO)"
 
 # Check free space on selected container storage
 STORAGE_FREE=$(pvesm status | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
