@@ -394,7 +394,7 @@ msg_custom() {
 
 function msg_debug() {
   if [[ "${var_full_verbose:-0}" == "1" ]]; then
-    echo -e "${DGY}[$(date '+%F %T')] [DEBUG]${CL} $*"
+    echo -e "${YWB}[$(date '+%F %T')] [DEBUG]${CL} $*"
   fi
 }
 
