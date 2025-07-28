@@ -415,12 +415,6 @@ msg_custom() {
   echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
 }
 
-exit_script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
-}
-
 run_container_safe() {
   local ct="$1"
   shift

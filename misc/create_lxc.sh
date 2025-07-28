@@ -50,6 +50,14 @@ function on_terminate() {
   exit 143
 }
 
+exit_script() {
+  clear
+  printf "\e[?25h"
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  kill 0
+  exit 1
+}
+
 function check_storage_support() {
   local CONTENT="$1"
   local -a VALID_STORAGES=()
