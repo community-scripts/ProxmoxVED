@@ -1254,7 +1254,10 @@ EOF
 GPU hardware acceleration will be available inside the container
 (e.g., for Jellyfin, Plex, Frigate, etc.).
 
-You can now select which VAAPI devices to passthrough." 13 72
+⚠️  Note: You may need to install drivers manually inside the container,
+such as 'intel-media-driver', 'libva2', or 'vainfo'.
+
+You can now select which VAAPI devices to passthrough." 15 74
       else
         whiptail --title "VAAPI passthrough (limited)" --msgbox "\
 ⚠️  Limited VAAPI support in unprivileged container
@@ -1262,7 +1265,10 @@ You can now select which VAAPI devices to passthrough." 13 72
 Some drivers (e.g., iHD) may not work due to LXC restrictions.
 If VAAPI fails, consider using a privileged container.
 
-You can now select which VAAPI devices to passthrough." 13 72
+⚠️  Note: You may need to install drivers manually inside the container,
+such as 'intel-media-driver', 'libva2', or 'vainfo'.
+
+You can now select which VAAPI devices to passthrough." 15 74
       fi
 
       SELECTED_DEVICES=$(whiptail --title "VAAPI Device Selection" \
