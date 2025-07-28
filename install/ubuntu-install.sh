@@ -17,9 +17,6 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y jq
 msg_ok "Installed Dependencies"
 
-msg_info "Check GH Releases"
-fetch_and_deploy_gh_release 0xERR0R/blocky
-
 # echo "Getting aceberg/WatchYourLAN..."
 # fetch_and_deploy_gh_release aceberg/WatchYourLAN
 # echo "Got Version: $RELEASE"
@@ -115,8 +112,6 @@ fetch_and_deploy_gh_release 0xERR0R/blocky
 # echo "Getting dani-garcia/bw_web_builds..."
 # RELEASE=$(get_gh_release dani-garcia/bw_web_builds)
 # echo "Got Version: $RELEASE"
-
-msg_ok "Done"
 
 motd_ssh
 customize
