@@ -24,6 +24,10 @@ trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap on_exit EXIT
 trap on_interrupt INT
 trap on_terminate TERM
+TEMPLATE_STORAGE=""
+TEMPLATE_STORAGE_INFO=""
+CONTAINER_STORAGE=""
+CONTAINER_STORAGE_INFO=""
 
 function on_exit() {
   local exit_code="$?"
