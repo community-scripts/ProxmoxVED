@@ -1213,9 +1213,12 @@ EOF
       [[ " ${seen_ids[*]} " == *" $id "* ]] && continue
       seen_ids+=("$id")
 
-      card="/dev/dri/card${id#renderD}"
+      card_index="${id#renderD}"
+      card="/dev/dri/card${card_index}"
       combo_devices=("$dev_render")
-      [[ -e "$card" ]] && combo_devices+=("$card")
+      if [[ "${#combo_devices[@]}" -eq 1 && -e /dev/dri/card0 ]]; then
+        combo_devices+=("/dev/dri/card0")
+      fi
 
       pci_addr=$(basename "$bypath" | cut -d- -f1 --complement | sed 's/-render//' || true)
       pci_info=$(lspci -nn | grep "${pci_addr#0000:}" || true)
@@ -1266,6 +1269,7 @@ EOF
           IDX=$((IDX + 1))
         fi
       done
+
     else
       if [[ "$CT_TYPE" == "0" ]]; then
         whiptail --title "VAAPI passthrough" --msgbox "\
