@@ -259,10 +259,6 @@ fi
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 
 msg_info "Updating LXC Template List"
-msg_debug "TEMPLATE_SEARCH=$TEMPLATE_SEARCH"
-msg_debug "TEMPLATES=(${TEMPLATES[*]})"
-msg_debug "Selected TEMPLATE=$TEMPLATE"
-msg_debug "TEMPLATE_PATH=$TEMPLATE_PATH"
 if ! pveam update >/dev/null 2>&1; then
   TEMPLATE_FALLBACK=$(pveam list "$TEMPLATE_STORAGE" | awk "/$TEMPLATE_SEARCH/ {print \$2}" | sort -t - -k 2 -V | tail -n1)
   if [[ -z "$TEMPLATE_FALLBACK" ]]; then
@@ -285,6 +281,10 @@ fi
 
 TEMPLATE="${TEMPLATES[-1]}"
 TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
+msg_debug "TEMPLATE_SEARCH=$TEMPLATE_SEARCH"
+msg_debug "TEMPLATES=(${TEMPLATES[*]})"
+msg_debug "Selected TEMPLATE=$TEMPLATE"
+msg_debug "TEMPLATE_PATH=$TEMPLATE_PATH"
 
 TEMPLATE_VALID=1
 if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE"; then
