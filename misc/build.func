@@ -1293,7 +1293,7 @@ EOF
   # wait for status 'running'
   for i in {1..10}; do
     if pct status "$CTID" | grep -q "status: running"; then
-      msg_ok "Startted LXC Container"
+      msg_ok "Started LXC Container"
       break
     fi
     sleep 1
