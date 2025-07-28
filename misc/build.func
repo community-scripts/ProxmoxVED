@@ -1199,6 +1199,7 @@ EOF
     "Ollama"
     "FileFlows"
     "Open WebUI"
+    "Debian"
   )
 
   is_vaapi_app=false
