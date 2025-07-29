@@ -18,16 +18,16 @@ function header_info {
 EOF
 }
 
-function detect_service(){
+function detect_service() {
   pushd $(mktemp -d) >/dev/null
   pct pull "$1" /usr/bin/update update 2>/dev/null
   service=$(cat update | sed 's|.*/ct/||g' | sed 's|\.sh).*||g')
   popd >/dev/null
 }
 
-function backup_container(){
+function backup_container() {
   msg_info "Creating backup for container $1"
-  vzdump $1 --compress zstd --storage $STORAGE_CHOICE -notes-template "community-scripts backup updater" > /dev/null 2>&1
+  vzdump $1 --compress zstd --storage $STORAGE_CHOICE -notes-template "community-scripts backup updater" >/dev/null 2>&1
   status=$?
 
   if [ $status -eq 0 ]; then
@@ -38,8 +38,8 @@ function backup_container(){
   fi
 }
 
-function get_backup_storages(){
-STORAGES=$(awk '
+function get_backup_storages() {
+  STORAGES=$(awk '
 /^[a-z]+:/ {
     if (name != "") {
         if (has_backup || (!has_content && type == "dir")) print name
@@ -71,8 +71,8 @@ NODE=$(hostname)
 containers=$(pct list | tail -n +2 | awk '{print $0 " " $4}')
 
 if [ -z "$containers" ]; then
-    whiptail --title "LXC Container Update" --msgbox "No LXC containers available!" 10 60
-    exit 1
+  whiptail --title "LXC Container Update" --msgbox "No LXC containers available!" 10 60
+  exit 1
 fi
 
 menu_items=()
@@ -87,26 +87,26 @@ while read -r container; do
   if pct config "$container_id" | grep -qE "^tags:.*(${TAGS}).*"; then
     menu_items+=("$container_id" "$formatted_line" "OFF")
   fi
-done <<< "$containers"
+done <<<"$containers"
 
 CHOICE=$(whiptail --title "LXC Container Update" \
-                   --checklist "Select LXC containers to update:" 25 60 13 \
-                   "${menu_items[@]}" 3>&2 2>&1 1>&3 | tr -d '"')
+  --checklist "Select LXC containers to update:" 25 60 13 \
+  "${menu_items[@]}" 3>&2 2>&1 1>&3 | tr -d '"')
 
 if [ -z "$CHOICE" ]; then
-    whiptail --title "LXC Container Update" \
-             --msgbox "No containers selected!" 10 60
-    exit 1
+  whiptail --title "LXC Container Update" \
+    --msgbox "No containers selected!" 10 60
+  exit 1
 fi
 
 header_info
 BACKUP_CHOICE="no"
-if(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Do you want to backup your containers before update?" 10 58); then
+if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Do you want to backup your containers before update?" 10 58); then
   BACKUP_CHOICE="yes"
 fi
 
 UNATTENDED_UPDATE="no"
-if(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Run updates unattended?" 10 58); then
+if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Run updates unattended?" 10 58); then
   UNATTENDED_UPDATE="yes"
 fi
 
@@ -121,19 +121,19 @@ if [ "$BACKUP_CHOICE" == "yes" ]; then
 
   MENU_ITEMS=()
   for STORAGE in $STORAGES; do
-      MENU_ITEMS+=("$STORAGE" "")
+    MENU_ITEMS+=("$STORAGE" "")
   done
 
   STORAGE_CHOICE=$(whiptail --title "Select storage device" --menu "Select a storage device (Only storage devices with 'backup' support are listed):" 15 50 5 "${MENU_ITEMS[@]}" 3>&1 1>&2 2>&3)
 
   if [ -z "$STORAGE_CHOICE" ]; then
-      msg_error "No storage selected!"
-      exit 1
+    msg_error "No storage selected!"
+    exit 1
   fi
 fi
 
 UPDATE_CMD="update;"
-if [ "$UNATTENDED_UPDATE" == "yes" ];then
+if [ "$UNATTENDED_UPDATE" == "yes" ]; then
   UPDATE_CMD="export PHS_SILENT=1;update;"
 fi
 
@@ -141,7 +141,7 @@ containers_needing_reboot=()
 for container in $CHOICE; do
   echo -e "${BL}[INFO]${CL} Updating container $container"
 
-  if [ "$BACKUP_CHOICE" == "yes" ];then
+  if [ "$BACKUP_CHOICE" == "yes" ]; then
     backup_container $container
   fi
 
@@ -213,7 +213,6 @@ for container in $CHOICE; do
   if [ "$UPDATE_BUILD_RESOURCES" -eq "1" ]; then
     pct set "$container" --cores "$build_cpu" --memory "$build_ram"
   fi
-}
 
   #4) Update service, using the update command
   case "$os" in
@@ -243,11 +242,11 @@ for container in $CHOICE; do
 
   if [ $exit_code -eq 0 ]; then
     msg_ok "Updated container $container"
-  elif [ "BACKUP_CHOICE" == "yes" ];then
+  elif [ "$BACKUP_CHOICE" == "yes" ]; then
     msg_info "Restoring LXC from backup"
     pct stop $container
     LXC_STORAGE=$(pct config $container | awk -F '[:,]' '/rootfs/ {print $2}')
-    pct restore $container /var/lib/vz/dump/vzdump-lxc-${container}-*.tar.zst --storage $LXC_STORAGE --force > /dev/null 2>&1
+    pct restore $container /var/lib/vz/dump/vzdump-lxc-${container}-*.tar.zst --storage $LXC_STORAGE --force >/dev/null 2>&1
     pct start $container
     restorestatus=$?
     if [ $restorestatus -eq 0 ]; then
