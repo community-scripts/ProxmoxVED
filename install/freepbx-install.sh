@@ -78,6 +78,15 @@ if [[ $ONLY_OPENSOURCE == "yes" ]]; then
     msg_warn "Not all commercial modules could be removed, retrying (attempt $count of $max)..."
   done
 
+  if [[ $REMOVE_FIREWALL == "yes" ]] && [[ $end_count -gt 0 ]]; then
+    msg_info "Removing Firewall module..."
+    if $STD fwconsole ma -f remove firewall; then
+      msg_ok "Firewall module removed successfully"
+    else
+      msg_error "Firewall module could not be removed, please check manually!"
+    fi
+  fi
+
   if [[ $end_count -eq 0 ]]; then
     msg_ok "All commercial modules removed successfully"
   elif [[ $end_count -eq 1 ]] && [[ $REMOVE_FIREWALL == "no" ]]  && [[ $(fwconsole ma list | awk '/Commercial/ {print $2}') == "sysadmin" ]]; then
