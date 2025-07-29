@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-16}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-11}"
+var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -20,20 +20,20 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
+  header_info
+  check_container_storage
+  check_container_resources
 
-    if [[ ! -f /var/www/html/core/config/version ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-
-    msg_info "Updating OS"
-    $STD apt-get update
-    $STD apt-get -y upgrade
-    msg_ok "OS updated, you can now update Jeedom from the Web UI."
+  if [[ ! -f /var/www/html/core/config/version ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  msg_info "Updating OS"
+  $STD apt-get update
+  $STD apt-get -y upgrade
+  msg_ok "OS updated, you can now update Jeedom from the Web UI."
+  exit
 }
 
 start
