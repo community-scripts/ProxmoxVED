@@ -15,6 +15,7 @@ update_os
 
 NODE_VERSION="22" setup_nodejs
 fetch_and_deploy_gh_release "kanba" "Kanba-co/kanba" "tarball" "latest" "/opt/kanba"
+fetch_and_deploy_gh_release "supabase" "supabase/cli" "binary" "latest" "/opt/supabase" "supabase-linux-x64"
 POSTGRES_VERSION="16" setup_postgresql
 
 msg_info "Set up PostgreSQL Database"
@@ -40,12 +41,16 @@ cd /opt/kanba
 cp .env.example .env.local
 sed -i "s|^DATABASE_PROVIDER=.*|DATABASE_PROVIDER=postgresql|" .env.local
 sed -i "s|^DATABASE_URL=.*|DATABASE_URL=${DB_URL}|" .env.local
+sed -i "s|^DIRECT_URL=.*|DIRECT_URL=${DB_URL}|" .env.local
 sed -i "s|^NEXT_PUBLIC_SITE_URL=.*|NEXT_PUBLIC_SITE_URL=http://localhost:3000|" .env.local
 sed -i "s|^NEXTAUTH_URL=.*|NEXTAUTH_URL=http://localhost:3000|" .env.local
 sed -i "s|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET=$(openssl rand -hex 32)|" .env.local
+sed -i "s|^NEXT_PUBLIC_SUPABASE_URL=.*|NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321|" .env.local
+sed -i "s|^NEXT_PUBLIC_SUPABASE_ANON_KEY=.*|NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy-key|" .env.local
 msg_ok "Prepared .env.local"
 
 msg_info "Installing Kanba"
+export $(grep -v '^#' .env.local | xargs)
 $STD npm install
 $STD npx prisma generate
 $STD npx prisma migrate deploy

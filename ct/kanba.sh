@@ -7,7 +7,7 @@ source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/
 
 APP="Kanba"
 var_tags="${var_tags:-kanban}"
-var_cpu="${var_cpu:-1}"
+var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-5}"
 var_os="${var_os:-debian}"
