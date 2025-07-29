@@ -13,10 +13,11 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Scraparr"
 PYTHON_VERSION="3.12" setup_uv
 fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr" "tarball" "latest" "/opt/scraparr"
-cd /opt/scraparr || exit
+
+msg_info "Installing Scraparr"
+cd /opt/scraparr
 $STD uv venv /opt/scraparr/.venv
 $STD /opt/scraparr/.venv/bin/python -m ensurepip --upgrade
 $STD /opt/scraparr/.venv/bin/python -m pip install --upgrade pip
@@ -43,7 +44,6 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reload
 systemctl enable -q --now scraparr
 msg_ok "Configured Service"
 
