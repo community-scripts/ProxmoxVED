@@ -15,24 +15,27 @@ update_os
 
 msg_info "Installing dependencies"
 $STD apt-get install -y \
-    lsb-release \
-    git
+  lsb-release \
+  git
 msg_ok "Dependencies installed"
 
 DEFAULT_BRANCH="master"
+REPO_URL="https://github.com/jeedom/core.git"
+
 echo
 while true; do
-    read -r -p "Enter branch to use (master, beta, alpha...) (Default: ${DEFAULT_BRANCH}): " BRANCH
-    BRANCH=${BRANCH:-$DEFAULT_BRANCH}
+  read -rp "${TAB3}Enter branch to use (master, beta, alpha...) (Default: ${DEFAULT_BRANCH}): " BRANCH
+  BRANCH="${BRANCH:-$DEFAULT_BRANCH}"
 
-    if git ls-remote --heads https://github.com/jeedom/core.git "$BRANCH" | grep -q "$BRANCH"; then
-        break
-    else
-        echo "Branch '$BRANCH' does not exist. Please enter a valid branch."
-    fi
+  if git ls-remote --heads "$REPO_URL" "refs/heads/$BRANCH" | grep -q .; then
+    break
+  else
+    msg_error "Branch '$BRANCH' does not exist on remote. Please try again."
+  fi
 done
 
 msg_info "Downloading Jeedom installation script"
+cd /tmp
 wget -q https://raw.githubusercontent.com/jeedom/core/"${BRANCH}"/install/install.sh
 chmod +x install.sh
 msg_ok "Installation script downloaded"
@@ -85,6 +88,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -rf /tmp/install.sh
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
