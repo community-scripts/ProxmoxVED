@@ -64,7 +64,8 @@ END {
 }
 
 header_info
-echo "Loading..."
+echo "Loading all possible LXC containers from Proxmox VE"
+echo "This may take a few seconds..."
 whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "This will update LXC container. Proceed?" 10 58 || exit
 
 NODE=$(hostname)
