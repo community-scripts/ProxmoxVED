@@ -1,0 +1,14 @@
+{
+  "name": "Pinchflat",
+  "description": "CLI tool for managing disk images (.img, .qcow2, .vmdk, etc)",
+  "url": "http://{ip}:8945",
+  "developer": "kieraneglin",
+  "maintainer": "AkuchiS",
+  "repo": "https://github.com/kieraneglin/pinchflat",
+  "icon": "mdi-harddisk",
+  "tags": ["disk", "cli", "image", "utility"],
+  "type": "ct",
+  "network": "bridge",
+  "port": 8945
+}
+
