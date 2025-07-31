@@ -41,6 +41,12 @@ msg_ok "Certificate Generated"
 msg_info "Setting up nginx"
 cat <<EOF >/etc/nginx/sites-available/ots.conf
 server {
+    listen 80;
+    listen [::]:80;
+    server_name ots;
+    return 301 https://$host$request_uri;
+}
+server {
   listen 443 ssl;
   listen [::]:443 ssl;
   server_name ots;
