@@ -401,14 +401,6 @@ function advanced_settings() {
     exit-script
   fi
 
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" --yesno "Configure the VM with Cloud-init?" --defaultno 10 58); then
-    echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}yes${CL}"
-    CLOUD_INIT="yes"
-  else
-    echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}no${CL}"
-    CLOUD_INIT="no"
-  fi
-
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
     echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
     START_VM="yes"
