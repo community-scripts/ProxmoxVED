@@ -475,7 +475,7 @@ fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the Debian 12 Cloud-Init Image"
-URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
+URL=https://cloud-images.ubuntu.com/oracular/current/oracular-server-cloudimg-amd64.img
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
@@ -492,11 +492,19 @@ USERDATA_SNIPPET="/var/lib/vz/snippets/unifios-server-${VMID}-user-data.yaml"
 cat >"$USERDATA_SNIPPET" <<EOF
 #cloud-config
 runcmd:
+  - mkdir -p /etc/systemd/system/getty@tty1.service.d
+  - bash -c 'cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
+EOF'
+  - systemctl daemon-reload
+  - systemctl restart getty@tty1
   - apt-get update
   - apt-get install -y ca-certificates curl podman lsb-release
-  - curl -fsSL "${UOS_URL}" -o /root/${UOS_INSTALLER}
-  - chmod +x /root/${UOS_INSTALLER}
-  - /root/${UOS_INSTALLER} --install
+  - curl -fsSL "https://fw-download.ubnt.com/data/unifi-os-server/8b93-linux-x64-4.2.23-158fa00b-6b2c-4cd8-94ea-e92bc4a81369.23-x64" -o /root/unifi-os-server-4.2.23.bin
+  - chmod +x /root/unifi-os-server-4.2.23.bin
+  - yes | /root/unifi-os-server-4.2.23.bin --install
 EOF
 
 msg_ok "Cloud-Init user-data snippet for UniFi OS Server created at ${USERDATA_SNIPPET}"
