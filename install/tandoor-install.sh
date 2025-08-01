@@ -90,6 +90,7 @@ TANDOOR_VERSION = "$TANDOOR_VERSION"
 TANDOOR_REF = "bare-metal"
 VERSION_INFO = []
 EOF
+cd /opt/tandoor
 export $(cat /opt/tandoor/.env | grep "^[^#]" | xargs)
 /opt/tandoor/.venv/bin/python manage.py migrate
 /opt/tandoor/.venv/bin/python manage.py collectstatic --no-input
