@@ -207,7 +207,7 @@ function default_settings() {
   VMID=$(get_valid_nextid)
   FORMAT=",efitype=4m"
   MACHINE=""
-  DISK_SIZE="8G"
+  DISK_SIZE="32G"
   DISK_CACHE=""
   HN="debian"
   CPU_TYPE=""
@@ -446,7 +446,6 @@ ssh_check
 start_script
 
 post_to_api_vm
-
 msg_info "Validating Storage"
 while read -r line; do
   TAG=$(echo $line | awk '{print $1}')
@@ -475,12 +474,8 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
-if [ "$CLOUD_INIT" == "yes" ]; then
-  URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
-else
-  URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2
-fi
+msg_info "Retrieving the URL for the Debian 12 Cloud-Init Image"
+URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
@@ -488,36 +483,23 @@ echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-### UNI-FI OS BLOCK BEGIN
-
+# Create Cloud-Init User-Data Snippet for UniFi OS Server
 UOS_VERSION="4.2.23"
 UOS_URL="https://fw-download.ubnt.com/data/unifi-os-server/8b93-linux-x64-4.2.23-158fa00b-6b2c-4cd8-94ea-e92bc4a81369.23-x64"
 UOS_INSTALLER="unifi-os-server-${UOS_VERSION}.bin"
 
-if ! command -v virt-customize &>/dev/null; then
-  msg_info "Installing required package: libguestfs-tools on Proxmox host"
-  apt-get -qq update >/dev/null
-  apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
-  msg_ok "libguestfs-tools installed successfully"
-fi
+USERDATA_SNIPPET="/var/lib/vz/snippets/unifios-server-${VMID}-user-data.yaml"
+cat >"$USERDATA_SNIPPET" <<EOF
+#cloud-config
+runcmd:
+  - apt-get update
+  - apt-get install -y ca-certificates curl podman lsb-release
+  - curl -fsSL "${UOS_URL}" -o /root/${UOS_INSTALLER}
+  - chmod +x /root/${UOS_INSTALLER}
+  - /root/${UOS_INSTALLER} --install
+EOF
 
-msg_info "Patching DNS resolver for apt inside the image"
-virt-customize -q -a "${FILE}" --run-command 'echo "nameserver 1.1.1.1" > /etc/resolv.conf' >/dev/null
-
-msg_info "Injecting UniFi OS Server dependencies and installer into Debian 12 image"
-virt-customize -q -a "${FILE}" \
-  --install qemu-guest-agent,ca-certificates,curl,lsb-release,podman \
-  --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER}" >/dev/null
-
-msg_info "Cleaning up temporary DNS resolver in image"
-virt-customize -q -a "${FILE}" --run-command 'rm -f /etc/resolv.conf' >/dev/null
-
-msg_ok "UniFi OS Server installer and dependencies successfully added to Debian 12 image"
-msg_ok "After first VM boot, SSH to the VM as root and run:"
-msg_ok "/root/${UOS_INSTALLER} --install"
-msg_ok "Official UniFi OS Server Guide: https://help.ui.com/hc/en-us/articles/26951761949147-UniFi-OS-Server"
-
-### UNI-FI OS BLOCK END
+msg_ok "Cloud-Init user-data snippet for UniFi OS Server created at ${USERDATA_SNIPPET}"
 
 STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
@@ -541,7 +523,7 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Creating a Debian 12 VM"
+msg_info "Creating a Debian 12 Cloud VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
@@ -560,7 +542,13 @@ else
   qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
 fi
 
-msg_ok "Created a Debian 12 VM ${CL}${BL}(${HN})"
+# Attach Cloud-Init Drive & user-data to VM
+msg_info "Attaching Cloud-Init Drive and custom user-data to VM"
+qm set $VMID --ide2 $STORAGE:cloudinit
+qm set $VMID --cicustom "user=local:snippets/unifios-server-${VMID}-user-data.yaml"
+
+msg_ok "Created a Debian 12 Cloud-Init VM with UniFi OS Server auto-install"
+
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Debian 12 VM"
   qm start $VMID
@@ -568,4 +556,6 @@ if [ "$START_VM" == "yes" ]; then
 fi
 
 msg_ok "Completed Successfully!\n"
+msg_ok "After VM startup, UniFi OS Server will be installed automatically!"
+msg_ok "Webinterface will be reachable after a few minutes: https://<VM-IP>:443"
 msg_ok "More Info at https://github.com/community-scripts/ProxmoxVED/discussions/836"

@@ -27,27 +27,43 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  #if ! [[ $(dpkg -s python3-xmlsec 2>/dev/null) ]]; then
-  #$STD apt-get update
-  #$STD apt-get install -y python3-xmlsec
-  #fi
-  #if cd /opt/tandoor && git pull | grep -q 'Already up to date'; then
-  msg_ok "There is currently no update available."
-  #else
-  #msg_info "Updating ${APP} (Patience)"
-  #export $(cat /opt/tandoor/.env | grep "^[^#]" | xargs)
-  #cd /opt/tandoor/
-  #$STD pip3 install -r requirements.txt
-  #$STD /usr/bin/python3 /opt/tandoor/manage.py migrate
-  #$STD /usr/bin/python3 /opt/tandoor/manage.py collectstatic --no-input
-  #$STD /usr/bin/python3 /opt/tandoor/manage.py collectstatic_js_reverse
-  #cd /opt/tandoor/vue
-  #$STD yarn install
-  #$STD yarn build
-  #cd /opt/tandoor
-  #$STD python3 version.py
-  #systemctl restart gunicorn_tandoor
-  #msg_ok "Updated ${APP}"
+
+  RELEASE=$(curl -fsSL https://api.github.com/repos/wizarrrr/wizarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+  if [[ "${RELEASE}" != "$(cat ~/.tandoor 2>/dev/null)" ]] || [[ ! -f ~/.tandoor ]]; then
+    msg_info "Stopping $APP"
+    systemctl stop tandoor
+    msg_ok "Stopped $APP"
+
+    msg_info "Creating Backup"
+    BACKUP_FILE="/opt/tandoor_backup_$(date +%F).tar.gz"
+    $STD tar -czf "$BACKUP_FILE" /opt/tandoor/{.env,start.sh} /opt/tandoor/database/ &>/dev/null
+    msg_ok "Backup Created"
+
+    setup_uv
+    fetch_and_deploy_gh_release "tandoor" "TandoorRecipes/recipes" "tarball" "latest" "/opt/tandoor"
+
+    msg_info "Updating $APP to v${RELEASE}"
+    cd /opt/wizarr
+    /usr/local/bin/uv -q sync --locked
+    $STD /usr/local/bin/uv -q run pybabel compile -d app/translations
+    $STD npm --prefix app/static install
+    $STD npm --prefix app/static run build:css
+    mkdir -p ./.cache
+    $STD tar -xf "$BACKUP_FILE" --directory=/
+    $STD /usr/local/bin/uv -q run flask db upgrade
+    msg_ok "Updated $APP to v${RELEASE}"
+
+    msg_info "Starting $APP"
+    systemctl start wizarr
+    msg_ok "Started $APP"
+
+    msg_info "Cleaning Up"
+    rm -rf "$BACKUP_FILE"
+    msg_ok "Cleanup Completed"
+    msg_ok "Update Successful"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+  fi
   exit
 }
 
