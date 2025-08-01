@@ -102,7 +102,7 @@ Restart=always
 RestartSec=3
 WorkingDirectory=/opt/tandoor
 EnvironmentFile=/opt/tandoor/.env
-ExecStart=/usr/local/bin/gunicorn --error-logfile /tmp/gunicorn_err.log --log-level debug --capture-output --bind unix:/opt/tandoor/tandoor.sock recipes.wsgi:application
+ExecStart=/opt/tandoor/.venv/bin/gunicorn --error-logfile /tmp/gunicorn_err.log --log-level debug --capture-output --bind unix:/opt/tandoor/tandoor.sock recipes.wsgi:application
 
 [Install]
 WantedBy=multi-user.target
