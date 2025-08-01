@@ -140,7 +140,7 @@ server {
 }
 EOF
 systemctl reload nginx
-systemctl enable -q --now gunicorn_tandoor
+systemctl enable -q --now tandoor
 msg_ok "Created Services"
 
 motd_ssh
