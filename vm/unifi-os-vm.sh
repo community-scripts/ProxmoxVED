@@ -6,14 +6,14 @@
 
 source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
 
-function header_info {
+function header_info() {
   clear
   cat <<"EOF"
-    ____       __    _                ______
-   / __ \___  / /_  (_)___ _____     <  /__ \
-  / / / / _ \/ __ \/ / __ `/ __ \    / /__/ /
- / /_/ /  __/ /_/ / / /_/ / / / /   / // __/
-/_____/\___/_.___/_/\__,_/_/ /_/   /_//____/
+    ____             __                _    ____  ___
+   / __ \____  _____/ /_____  _____   | |  / /  |/  /
+  / / / / __ \/ ___/ //_/ _ \/ ___/   | | / / /|_/ /
+ / /_/ / /_/ / /__/ ,< /  __/ /       | |/ / /  / /
+/_____/\____/\___/_/|_|\___/_/        |___/_/  /_/
 
 EOF
 }
@@ -31,6 +31,7 @@ UOS_INSTALLER="unifi-os-server-${UOS_VERSION}.bin"
 
 YW=$(echo "\033[33m")
 BL=$(echo "\033[36m")
+HA=$(echo "\033[1;34m")
 RD=$(echo "\033[01;31m")
 BGN=$(echo "\033[4;92m")
 GN=$(echo "\033[1;92m")
@@ -60,8 +61,6 @@ MACADDRESS="${TAB}🔗${TAB}${CL}"
 VLANTAG="${TAB}🏷️${TAB}${CL}"
 CREATING="${TAB}🚀${TAB}${CL}"
 ADVANCED="${TAB}🧩${TAB}${CL}"
-CLOUD="${TAB}☁️${TAB}${CL}"
-
 THIN="discard=on,ssd=1,"
 set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
@@ -72,8 +71,8 @@ function error_handler() {
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
   post_update_to_api "failed" "${command}"
+  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
   echo -e "\n$error_message\n"
   cleanup_vmid
 }
@@ -207,17 +206,17 @@ function default_settings() {
   VMID=$(get_valid_nextid)
   FORMAT=",efitype=4m"
   MACHINE=""
-  DISK_SIZE="32G"
   DISK_CACHE=""
-  HN="debian"
+  DISK_SIZE="30G"
+  HN="unifi-server-os"
   CPU_TYPE=""
   CORE_COUNT="2"
-  RAM_SIZE="2048"
+  RAM_SIZE="4096"
   BRG="vmbr0"
   MAC="$GEN_MAC"
   VLAN=""
   MTU=""
-  START_VM="no"
+  START_VM="yes"
   METHOD="default"
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
@@ -231,7 +230,6 @@ function default_settings() {
   echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
   echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}no${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
   echo -e "${CREATING}${BOLD}${DGN}Creating a Unifi OS VM using the above default settings${CL}"
 }
@@ -303,9 +301,9 @@ function advanced_settings() {
     exit-script
   fi
 
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 debian --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 docker --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="debian"
+      HN="docker"
       echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo ${VM_NAME,,} | tr -d ' ')
@@ -429,13 +427,11 @@ function start_script() {
     advanced_settings
   fi
 }
-
 check_root
 arch_check
 pve_check
 ssh_check
 start_script
-
 post_to_api_vm
 
 msg_info "Validating Storage"
@@ -466,8 +462,8 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the Ubuntu 24.04 Disk Image"
-URL=https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
+URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-$(dpkg --print-architecture).qcow2"
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL -o "$(basename "$URL")" "$URL"
@@ -475,33 +471,7 @@ echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-# Create Cloud-Init User-Data Snippet for UniFi OS Server
-UOS_VERSION="4.2.23"
-UOS_URL="https://fw-download.ubnt.com/data/unifi-os-server/8b93-linux-x64-4.2.23-158fa00b-6b2c-4cd8-94ea-e92bc4a81369.23-x64"
-UOS_INSTALLER="unifi-os-server-${UOS_VERSION}.bin"
-
-USERDATA_SNIPPET="/var/lib/vz/snippets/unifios-server-${VMID}-user-data.yaml"
-cat >"$USERDATA_SNIPPET" <<EOF
-#cloud-config
-runcmd:
-  - mkdir -p /etc/systemd/system/getty@tty1.service.d
-  - bash -c 'cat > /etc/systemd/system/getty@tty1.service.d/override.conf <<EOF
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
-EOF'
-  - systemctl daemon-reload
-  - systemctl restart getty@tty1
-  - apt-get update
-  - apt-get install -y ca-certificates curl podman lsb-release
-  - curl -fsSL "https://fw-download.ubnt.com/data/unifi-os-server/8b93-linux-x64-4.2.23-158fa00b-6b2c-4cd8-94ea-e92bc4a81369.23-x64" -o /root/unifi-os-server-4.2.23.bin
-  - chmod +x /root/unifi-os-server-4.2.23.bin
-  - yes | /root/unifi-os-server-4.2.23.bin --install
-EOF
-
-msg_ok "Cloud-Init user-data snippet for UniFi OS Server created at ${USERDATA_SNIPPET}"
-
-STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
+STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')
 case $STORAGE_TYPE in
 nfs | dir | cifs)
   DISK_EXT=".qcow2"
@@ -523,7 +493,33 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Creating a Ubuntu 24.04 VM"
+if ! command -v virt-customize &>/dev/null; then
+  msg_info "Installing Pre-Requisite libguestfs-tools onto Host"
+  apt-get -qq update >/dev/null
+  apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
+  msg_ok "Installed libguestfs-tools successfully"
+fi
+
+msg_info "Adding UniFi OS Server Installer & root Autologin zu Debian 12 Qcow2 Disk Image"
+UOS_VERSION="4.2.23"
+UOS_URL="https://fw-download.ubnt.com/data/unifi-os-server/8b93-linux-x64-4.2.23-158fa00b-6b2c-4cd8-94ea-e92bc4a81369.23-x64"
+UOS_INSTALLER="unifi-os-server-${UOS_VERSION}.bin"
+virt-customize -q -a "${FILE}" \
+  --install qemu-guest-agent,ca-certificates,curl,lsb-release,podman \
+  --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER}" \
+  --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
+  --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" \
+  --run-command 'systemctl daemon-reload' \
+  --run-command 'systemctl restart getty@tty1' >/dev/null
+msg_ok "Installer & root Autologin integrated in image"
+
+msg_info "Expanding root partition to use full disk space"
+qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
+virt-resize --expand /dev/sda1 ${FILE} expanded.qcow2 >/dev/null 2>&1
+mv expanded.qcow2 ${FILE} >/dev/null 2>&1
+msg_ok "Expanded image to full size"
+
+msg_info "Creating a Unifi OS VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
@@ -531,9 +527,11 @@ qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-  -ide2 ${STORAGE}:cloudinit \
   -boot order=scsi0 \
   -serial0 socket >/dev/null
+qm resize $VMID scsi0 8G >/dev/null
+qm set $VMID --agent enabled=1 >/dev/null
+
 DESCRIPTION=$(
   cat <<EOF
 <div align='center'>
@@ -541,7 +539,7 @@ DESCRIPTION=$(
     <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
   </a>
 
-  <h2 style='font-size: 24px; margin: 20px 0;'>ubuntu VM</h2>
+  <h2 style='font-size: 24px; margin: 20px 0;'>Unifi OS VM</h2>
 
   <p style='margin: 16px 0;'>
     <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>
@@ -565,26 +563,12 @@ DESCRIPTION=$(
 EOF
 )
 qm set "$VMID" -description "$DESCRIPTION" >/dev/null
-if [ -n "$DISK_SIZE" ]; then
-  msg_info "Resizing disk to $DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
-else
-  msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
-fi
 
-# Attach Cloud-Init Drive & user-data to VM
-msg_info "Attaching Cloud-Init Drive and custom user-data to VM"
-qm set $VMID --cicustom "user=local:snippets/unifios-server-${VMID}-user-data.yaml"
-msg_ok "Created a Debian 12 Cloud-Init VM with UniFi OS Server auto-install"
-
+msg_ok "Created a Unifi OS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Unifi OS VM"
   qm start $VMID
   msg_ok "Started Unifi OS VM"
 fi
-
+post_update_to_api "done" "none"
 msg_ok "Completed Successfully!\n"
-msg_ok "After VM startup, UniFi OS Server will be installed automatically!"
-msg_ok "Webinterface will be reachable after a few minutes: https://<VM-IP>:443"
-msg_ok "More Info at https://github.com/community-scripts/ProxmoxVED/discussions/836"
