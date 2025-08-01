@@ -513,9 +513,9 @@ msg_info "Cleaning up temporary DNS resolver in image"
 virt-customize -q -a "${FILE}" --run-command 'rm -f /etc/resolv.conf' >/dev/null
 
 msg_ok "UniFi OS Server installer and dependencies successfully added to Debian 12 image"
-msg_custom "After first VM boot, SSH to the VM as root and run:"
-msg_custom "/root/${UOS_INSTALLER} --install"
-msg_custom "Official UniFi OS Server Guide: https://help.ui.com/hc/en-us/articles/26951761949147-UniFi-OS-Server"
+msg_ok "After first VM boot, SSH to the VM as root and run:"
+msg_ok "/root/${UOS_INSTALLER} --install"
+msg_ok "Official UniFi OS Server Guide: https://help.ui.com/hc/en-us/articles/26951761949147-UniFi-OS-Server"
 
 ### UNI-FI OS BLOCK END
 
@@ -568,4 +568,4 @@ if [ "$START_VM" == "yes" ]; then
 fi
 
 msg_ok "Completed Successfully!\n"
-msg_custom "More Info at https://github.com/community-scripts/ProxmoxVED/discussions/836"
+msg_ok "More Info at https://github.com/community-scripts/ProxmoxVED/discussions/836"
