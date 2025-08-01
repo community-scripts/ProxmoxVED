@@ -45,6 +45,7 @@ msg_ok "Setup Python3"
 NODE_VERSION="20" NODE_MODULE="yarn@latest" setup_nodejs
 fetch_and_deploy_gh_release "tandoor" "TandoorRecipes/recipes" "tarball" "latest" "/opt/tandoor"
 PG_VERSION="16" setup_postgresql
+PYTHON_VERSION="3.13" setup_uv
 
 msg_info "Set up PostgreSQL Database"
 DB_NAME=db_recipes
