@@ -118,11 +118,11 @@ ExecStart=/opt/tandoor/.venv/bin/gunicorn --error-logfile /tmp/gunicorn_err.log 
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF >/etc/nginx/conf.d/tandoor.conf
+cat <<'EOF' >/etc/nginx/conf.d/tandoor.conf
 server {
-    listen 80;
-    #access_log /var/log/nginx/access.log;
-    #error_log /var/log/nginx/error.log;
+    listen 8002;
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
     client_max_body_size 128M;
     # serve media files
     location /static/ {
