@@ -28,7 +28,12 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/wizarrrr/wizarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+  if [[ ! -f ~/.tandoor ]]; then
+    msg_error "v1 Installation found, please create an new LXC!"
+    exit
+  fi
+
+  RELEASE=$(curl -fsSL https://api.github.com/repos/TandoorRecipes/recipes/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
   if [[ "${RELEASE}" != "$(cat ~/.tandoor 2>/dev/null)" ]] || [[ ! -f ~/.tandoor ]]; then
     msg_info "Stopping $APP"
     systemctl stop tandoor
@@ -37,24 +42,36 @@ function update_script() {
     msg_info "Creating Backup"
     BACKUP_FILE="/opt/tandoor_backup_$(date +%F).tar.gz"
     $STD tar -czf "$BACKUP_FILE" /opt/tandoor/{.env,start.sh} /opt/tandoor/database/ &>/dev/null
+    mv /opt/tandoor/.env /opt/.env
     msg_ok "Backup Created"
 
-    setup_uv
+    NODE_VERSION="20" NODE_MODULE="yarn@latest" setup_nodejs
     fetch_and_deploy_gh_release "tandoor" "TandoorRecipes/recipes" "tarball" "latest" "/opt/tandoor"
+    PYTHON_VERSION="3.13" setup_uv
 
-    msg_info "Updating $APP to v${RELEASE}"
-    cd /opt/wizarr
-    /usr/local/bin/uv -q sync --locked
-    $STD /usr/local/bin/uv -q run pybabel compile -d app/translations
-    $STD npm --prefix app/static install
-    $STD npm --prefix app/static run build:css
-    mkdir -p ./.cache
-    $STD tar -xf "$BACKUP_FILE" --directory=/
-    $STD /usr/local/bin/uv -q run flask db upgrade
-    msg_ok "Updated $APP to v${RELEASE}"
+    msg_info "Updating $APP to ${RELEASE}"
+    mkdir -p /opt/tandoor/{config,api,mediafiles,staticfiles}
+    mv /opt/.env /opt/tandoor/.env
+    cd /opt/tandoor
+    $STD uv venv .venv --python=python3
+    $STD uv pip install -r requirements.txt --python .venv/bin/python
+    cd /opt/tandoor/vue3
+    $STD yarn install
+    $STD yarn build
+    TANDOOR_VERSION="$(curl -s https://api.github.com/repos/TandoorRecipes/recipes/releases/latest | jq -r .tag_name)"
+    cat <<EOF >/opt/tandoor/cookbook/version_info.py
+TANDOOR_VERSION = "$TANDOOR_VERSION"
+TANDOOR_REF = "bare-metal"
+VERSION_INFO = []
+EOF
+    cd /opt/tandoor
+    $STD /opt/tandoor/.venv/bin/python manage.py migrate
+    $STD /opt/tandoor/.venv/bin/python manage.py collectstatic --no-input
+    msg_ok "Updated $APP to ${RELEASE}"
 
     msg_info "Starting $APP"
-    systemctl start wizarr
+    systemctl start tandoor
+    systemctl reload nginx
     msg_ok "Started $APP"
 
     msg_info "Cleaning Up"
