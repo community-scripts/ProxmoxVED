@@ -584,9 +584,7 @@ fi
 
 # Attach Cloud-Init Drive & user-data to VM
 msg_info "Attaching Cloud-Init Drive and custom user-data to VM"
-qm set $VMID --ide2 $STORAGE:cloudinit
 qm set $VMID --cicustom "user=local:snippets/unifios-server-${VMID}-user-data.yaml"
-
 msg_ok "Created a Debian 12 Cloud-Init VM with UniFi OS Server auto-install"
 
 if [ "$START_VM" == "yes" ]; then
