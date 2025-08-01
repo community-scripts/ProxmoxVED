@@ -53,7 +53,6 @@ cleanup
 post_update_to_api "done" "none"
 [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]] && rm -rf "$TEMP_DIR"
 check_root
-pve_check
 arch_check
 ssh_check
 
