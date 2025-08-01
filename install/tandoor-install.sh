@@ -17,6 +17,7 @@ update_os
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y --no-install-recommends \
   build-essential \
+  python3 \
   libpq-dev \
   libmagic-dev \
   libzbar0 \
@@ -24,23 +25,11 @@ $STD apt-get install -y --no-install-recommends \
   libsasl2-dev \
   libldap2-dev \
   libssl-dev \
-  git \
-  make \
   pkg-config \
   libxmlsec1-dev \
   libxml2-dev \
   libxmlsec1-openssl
 msg_ok "Installed Dependencies"
-
-msg_info "Setup Python3"
-$STD apt-get install -y \
-  python3 \
-  python3-dev \
-  python3-setuptools \
-  python3-pip \
-  python3-xmlsec
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-msg_ok "Setup Python3"
 
 NODE_VERSION="20" NODE_MODULE="yarn@latest" setup_nodejs
 fetch_and_deploy_gh_release "tandoor" "TandoorRecipes/recipes" "tarball" "latest" "/opt/tandoor"
@@ -68,8 +57,8 @@ msg_ok "Set up PostgreSQL Database"
 msg_info "Setup Tandoor"
 mkdir -p /opt/tandoor/{config,api,mediafiles,staticfiles}
 cd /opt/tandoor
-uv venv .venv --python=python3
-uv pip install -r requirements.txt --python .venv/bin/python
+$STD uv venv .venv --python=python3
+$STD uv pip install -r requirements.txt --python .venv/bin/python
 cd /opt/tandoor/vue3
 $STD yarn install
 $STD yarn build
@@ -96,8 +85,8 @@ VERSION_INFO = []
 EOF
 
 cd /opt/tandoor
-/opt/tandoor/.venv/bin/python manage.py migrate
-/opt/tandoor/.venv/bin/python manage.py collectstatic --no-input
+$STD /opt/tandoor/.venv/bin/python manage.py migrate
+$STD /opt/tandoor/.venv/bin/python manage.py collectstatic --no-input
 msg_ok "Installed Tandoor"
 
 msg_info "Creating Services"
