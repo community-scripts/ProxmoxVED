@@ -84,11 +84,16 @@ POSTGRES_PORT=5432
 POSTGRES_USER=$DB_USER
 POSTGRES_PASSWORD=$DB_PASS
 EOF
-.venv/bin/python version.py
+TANDOOR_VERSION="$(curl -s https://api.github.com/repos/TandoorRecipes/recipes/releases/latest | jq -r .tag_name)"
+cat <<EOF >/opt/tandoor/cookbook/version_info.py
+TANDOOR_VERSION = "$TANDOOR_VERSION"
+TANDOOR_REF = "bare-metal"
+VERSION_INFO = []
+EOF
 export $(cat /opt/tandoor/.env | grep "^[^#]" | xargs)
-.venv/bin/python manage.py migrate
-.venv/bin/python manage.py collectstatic --no-input
-.venv/bin/python manage.py collectstatic_js_reverse
+/opt/tandoor/.venv/bin/python manage.py migrate
+/opt/tandoor/.venv/bin/python manage.py collectstatic --no-input
+/opt/tandoor/.venv/bin/python manage.py collectstatic_js_reverse
 msg_ok "Installed Tandoor"
 
 msg_info "Creating Services"
