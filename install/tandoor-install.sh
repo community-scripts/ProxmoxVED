@@ -83,21 +83,25 @@ POSTGRES_DB=$DB_NAME
 POSTGRES_PORT=5432
 POSTGRES_USER=$DB_USER
 POSTGRES_PASSWORD=$DB_PASS
+
+STATIC_URL=/staticfiles/
+MEDIA_URL=/mediafiles/
 EOF
+
 TANDOOR_VERSION="$(curl -s https://api.github.com/repos/TandoorRecipes/recipes/releases/latest | jq -r .tag_name)"
 cat <<EOF >/opt/tandoor/cookbook/version_info.py
 TANDOOR_VERSION = "$TANDOOR_VERSION"
 TANDOOR_REF = "bare-metal"
 VERSION_INFO = []
 EOF
+
 cd /opt/tandoor
-export $(cat /opt/tandoor/.env | grep "^[^#]" | xargs)
 /opt/tandoor/.venv/bin/python manage.py migrate
 /opt/tandoor/.venv/bin/python manage.py collectstatic --no-input
 msg_ok "Installed Tandoor"
 
 msg_info "Creating Services"
-cat <<EOF >/etc/systemd/system/gunicorn_tandoor.service
+cat <<'EOF' >/etc/systemd/system/tandoor.service
 [Unit]
 Description=gunicorn daemon for tandoor
 After=network.target
@@ -116,7 +120,7 @@ EOF
 
 cat <<'EOF' >/etc/nginx/conf.d/tandoor.conf
 server {
-    listen 8002;
+    listen 80;
     #access_log /var/log/nginx/access.log;
     #error_log /var/log/nginx/error.log;
     client_max_body_size 128M;
