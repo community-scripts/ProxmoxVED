@@ -69,7 +69,7 @@ msg_info "Setup Tandoor"
 mkdir -p /opt/tandoor/{config,api,mediafiles,staticfiles}
 cd /opt/tandoor
 uv venv .venv --python=python3
-.venv/bin/uv pip install -r requirements.txt
+uv pip install -r requirements.txt --venv .venv
 cd /opt/tandoor/vue3
 $STD yarn install
 $STD yarn build
