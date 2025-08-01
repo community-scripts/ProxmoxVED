@@ -93,7 +93,6 @@ EOF
 export $(cat /opt/tandoor/.env | grep "^[^#]" | xargs)
 /opt/tandoor/.venv/bin/python manage.py migrate
 /opt/tandoor/.venv/bin/python manage.py collectstatic --no-input
-/opt/tandoor/.venv/bin/python manage.py collectstatic_js_reverse
 msg_ok "Installed Tandoor"
 
 msg_info "Creating Services"
