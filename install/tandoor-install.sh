@@ -101,7 +101,7 @@ cd /opt/tandoor
 msg_ok "Installed Tandoor"
 
 msg_info "Creating Services"
-cat <<'EOF' >/etc/systemd/system/tandoor.service
+cat <<EOF >/etc/systemd/system/tandoor.service
 [Unit]
 Description=gunicorn daemon for tandoor
 After=network.target
@@ -118,7 +118,7 @@ ExecStart=/opt/tandoor/.venv/bin/gunicorn --error-logfile /tmp/gunicorn_err.log 
 WantedBy=multi-user.target
 EOF
 
-cat <<'EOF' >/etc/nginx/conf.d/tandoor.conf
+cat <<EOF >/etc/nginx/conf.d/tandoor.conf
 server {
     listen 80;
     #access_log /var/log/nginx/access.log;
