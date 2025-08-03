@@ -125,9 +125,8 @@ WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 # SEARCH_EXTRACTOR_TIKA_TIKA_URL=<your-tika-url>
 
 # External storage test - currently not working
-# STORAGE_USERS_POSIX_ROOT=
-# STORAGE_USERS_DECOMPOSED_ROOT=
-# STORAGE_SYSTEM_OC_ROOT= # this definitely breaks shit, wouldn't ever change it
+# STORAGE_USERS_POSIX_ROOT=<path-to-your-bind_mount>
+# STORAGE_USERS_ID_CACHE_STORE=nats-js-kv
 EOF
 
 cat <<EOF >/etc/systemd/system/opencloud.service
