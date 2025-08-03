@@ -15,27 +15,28 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  redis-server \
-  nginx \
-  openssl
+    redis-server \
+    nginx \
+    openssl
 msg_ok "Installed Dependencies"
 
-msg_info "Installing OTS"
 fetch_and_deploy_gh_release "ots" "Luzifer/ots" "prebuild" "latest" "/opt/ots" "ots_linux_amd64.tgz"
-cat <<EOF >/opt/ots/env
+
+msg_info "Setup OTS"
+cat <<EOF >/opt/ots/.env
 LISTEN=127.0.0.1:3000
 REDIS_URL=redis://127.0.0.1:6379
 SECRET_EXPIRY=604800
 STORAGE_TYPE=redis
 EOF
-msg_ok "Installed OTS"
+msg_ok "Setup OTS"
 
 msg_info "Generating Universal SSL Certificate"
 mkdir -p /etc/ssl/ots
 $STD openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-  -keyout /etc/ssl/ots/key.pem \
-  -out /etc/ssl/ots/cert.pem \
-  -subj "/CN=ots"
+    -keyout /etc/ssl/ots/key.pem \
+    -out /etc/ssl/ots/cert.pem \
+    -subj "/CN=ots"
 msg_ok "Certificate Generated"
 
 msg_info "Setting up nginx"
@@ -82,7 +83,7 @@ After=network-online.target
 Requires=network-online.target
 
 [Service]
-EnvironmentFile=/opt/ots/env
+EnvironmentFile=/opt/ots/.env
 ExecStart=/opt/ots/ots
 Restart=Always
 RestartSecs=5
