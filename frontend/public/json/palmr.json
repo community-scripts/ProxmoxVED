@@ -28,8 +28,8 @@
     }
   ],
   "default_credentials": {
-    "username": ,
-    "password": ,
+    "username": null,
+    "password": null,
   "notes": [
     {
       "text": "Info here",
