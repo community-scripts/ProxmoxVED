@@ -14,12 +14,14 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y sqlite3 yq
+$STD apt-get install -y \
+  sqlite3 \
+  yq
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="20" setup_nodejs
-
 fetch_and_deploy_gh_release "tududi" "chrisvel/tududi"
+
 msg_info "Configuring Tududi"
 cd /opt/tududi
 $STD npm install

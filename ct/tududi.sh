@@ -34,11 +34,14 @@ function update_script() {
     systemctl stop tududi
     msg_ok "Stopped Service"
 
-    msg_info "Updating ${APP}"
+    msg_info "Remove and backup Files"
     cp /opt/tududi/backend/.env /opt/tududi.env
     rm -rf /opt/tududi/backend/dist
+    msg_ok "Backup and removed Files"
+
     fetch_and_deploy_gh_release "tududi" "chrisvel/tududi"
 
+    msg_info "Updating ${APP}"
     cd /opt/tududi
     $STD npm install
     export NODE_ENV=production
@@ -52,7 +55,6 @@ function update_script() {
     msg_info "Starting Service"
     systemctl start tududi
     msg_ok "Started Service"
-
     msg_ok "Updated Successfully"
   else
     msg_ok "Already up to date"
@@ -66,6 +68,5 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${ADVANCED}${BL}Create your initial user in${CL} ${BGN}/opt/tududi${CL}${BL} in the LXC:${CL} ${RD}npm run user:create <email> <password>${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3002${CL}"
