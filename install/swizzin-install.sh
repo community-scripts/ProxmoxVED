@@ -13,10 +13,10 @@ setting_up_container
 network_check
 update_os
 
-msg_custom "!" "$YW" "WARNING: This script will run an external installer from a third-party source (swizzin.io)."
-msg_custom "!" "$YW" "You are about to execute code that is NOT maintained by our repository."
+msg_warn "WARNING: This script will run an external installer from a third-party source (swizzin.io)."
+msg_warn "You are about to execute code that is NOT maintained by our repository."
 echo
-read -r -p "Do you want to continue? [y/N]: " CONFIRM
+read -r -p "${TAB3}Do you want to continue? [y/N]: " CONFIRM
 if [[ ! "$CONFIRM" =~ ^([yY][eE][sS]|[yY])$ ]]; then
   msg_error "Aborted by user. No changes have been made."
   exit 1
