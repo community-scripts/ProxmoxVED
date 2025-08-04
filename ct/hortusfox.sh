@@ -6,7 +6,7 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 # Source: https://github.com/danielbrendel/hortusfox-web
 
 APP="HortusFox"
-var_tags="${var_tags:-network}"
+var_tags="${var_tags:-plants}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-15}"
@@ -27,25 +27,33 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -fsSL https://api.github.com/repos/danielbrendel/hortusfox-web/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+  RELEASE=$(curl -fsSL https://api.github.com/repos/danielbrendel/hortusfox-web/releases/latest | jq -r .tag_name | sed 's/^v//')
+  if [[ ! -f ~/.hortusfox ]] || [[ "${RELEASE}" != "$(cat ~/.hortusfox)" ]]; then
     msg_info "Stopping Service"
     systemctl stop apache2
     msg_ok "Stopped Service"
 
-    msg_info "Updating ${APP} to v${RELEASE}"
+    msg_info "Backing up current HortusFox installation"
     cd /opt
     mv /opt/hortusfox/ /opt/hortusfox-backup
+    msg_ok "Backed up current HortusFox installation"
 
-    echo "${RELEASE}" >/opt/${APP}_version.txt
-    msg_ok "Updated $APP to v${RELEASE}"
+    fetch_and_deploy_gh_release "hortusfox" "danielbrendel/hortusfox-web"
+
+    msg_info "Updating HortusFox"
+    cd /opt/hortusfox
+    mv /opt/hortusfox-backup/.env /opt/hortusfox/.env
+    $STD composer install --no-dev --optimize-autoloader
+    php asatru migrate --no-interaction
+    php asatru plants:attributes
+    php asatru calendar:classes
+    msg_ok "Updated HortusFox"
 
     msg_info "Starting Service"
-    systemctl start service
+    systemctl start apache2
     msg_ok "Started Service"
 
     msg_info "Cleaning up"
-    rm -r "/opt/${RELEASE}.zip"
     rm -r /opt/hortusfox-backup
     msg_ok "Cleaned"
     msg_ok "Updated Successfully"
