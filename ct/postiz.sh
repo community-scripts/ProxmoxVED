@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Slaviša Arežina (tremor021)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -20,38 +20,38 @@ color
 catch_errors
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
+    header_info
+    check_container_storage
+    check_container_resources
 
-  if [[ ! -f /etc/systemd/system/postiz.service ]]; then
-    msg_error "No ${APP} Installation Found!"
+    if [[ ! -f /etc/systemd/system/postiz.service ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+    RELEASE=$(curl -fsSL https://api.github.com/repos/Casvt/Kapowarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+    if [[ "${RELEASE}" != "$(cat $HOME/.kapowarr)" ]] || [[ ! -f $HOME/.kapowarr ]]; then
+        msg_info "Stopping $APP"
+        systemctl stop kapowarr
+        msg_ok "Stopped $APP"
+
+        msg_info "Creating Backup"
+        mv /opt/kapowarr/db /opt/
+        msg_ok "Backup Created"
+
+        msg_info "Updating $APP to ${RELEASE}"
+        fetch_and_deploy_gh_release "kapowarr" "Casvt/Kapowarr"
+        mv /opt/db /opt/kapowarr
+        msg_ok "Updated $APP to ${RELEASE}"
+
+        msg_info "Starting $APP"
+        systemctl start kapowarr
+        msg_ok "Started $APP"
+
+        msg_ok "Update Successful"
+    else
+        msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    fi
     exit
-  fi
-  RELEASE=$(curl -s https://api.github.com/repos/Casvt/Kapowarr/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  if [[ "${RELEASE}" != "$(cat $HOME/.kapowarr)" ]] || [[ ! -f $HOME/.kapowarr ]]; then
-    msg_info "Stopping $APP"
-    systemctl stop kapowarr
-    msg_ok "Stopped $APP"
-
-    msg_info "Creating Backup"
-    mv /opt/kapowarr/db /opt/
-    msg_ok "Backup Created"
-
-    msg_info "Updating $APP to ${RELEASE}"
-    fetch_and_deploy_gh_release "kapowarr" "Casvt/Kapowarr"
-    mv /opt/db /opt/kapowarr
-    msg_ok "Updated $APP to ${RELEASE}"
-
-    msg_info "Starting $APP"
-    systemctl start kapowarr
-    msg_ok "Started $APP"
-
-    msg_ok "Update Successful"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
-  fi
-  exit
 }
 
 start

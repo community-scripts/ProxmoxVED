@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Authors: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -20,15 +20,15 @@ color
 catch_errors
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
-  if [[ ! -f /etc/systemd/system/frigate.service ]]; then
-    msg_error "No ${APP} Installation Found!"
+    header_info
+    check_container_storage
+    check_container_resources
+    if [[ ! -f /etc/systemd/system/frigate.service ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+    msg_error "To update Frigate, create a new container and transfer your configuration."
     exit
-  fi
-  msg_error "To update Frigate, create a new container and transfer your configuration."
-  exit
 }
 
 start

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 tteck
 # Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -20,18 +20,18 @@ color
 catch_errors
 
 function update_script() {
-  header_info
-  #check_container_storage
-  #check_container_resources
-  UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUPPORT" --radiolist --cancel-button Exit-Script "Spacebar = Select" 11 58 1 \
-    "1" "Check for Alpine Updates" ON \
-    3>&1 1>&2 2>&3)
+    header_info
+    #check_container_storage
+    #check_container_resources
+    UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUPPORT" --radiolist --cancel-button Exit-Script "Spacebar = Select" 11 58 1 \
+        "1" "Check for Alpine Updates" ON \
+        3>&1 1>&2 2>&3)
 
-  header_info
-  if [ "$UPD" == "1" ]; then
-    apk update && apk upgrade
-    exit
-  fi
+    header_info
+    if [ "$UPD" == "1" ]; then
+        apk update && apk upgrade
+        exit
+    fi
 }
 
 start

@@ -21,22 +21,22 @@ color
 catch_errors
 
 function update_script() {
-  header_info
-  RELEASE=$(curl -fsSL https://api.github.com/repos/homarr-labs/homarr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+    header_info
+    RELEASE=$(curl -fsSL https://api.github.com/repos/homarr-labs/homarr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+    if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
 
-    msg_info "Stopping Services (Patience)"
-    systemctl stop homarr
-    msg_ok "Services Stopped"
+        msg_info "Stopping Services (Patience)"
+        systemctl stop homarr
+        msg_ok "Services Stopped"
 
-    msg_info "Backup Data"
-    mkdir -p /opt/homarr-data-backup
-    cp /opt/homarr/.env /opt/homarr-data-backup/.env
-    msg_ok "Backup Data"
+        msg_info "Backup Data"
+        mkdir -p /opt/homarr-data-backup
+        cp /opt/homarr/.env /opt/homarr-data-backup/.env
+        msg_ok "Backup Data"
 
-    msg_info "Updating and rebuilding ${APP} to v${RELEASE} (Patience)"
-    rm /opt/run_homarr.sh
-    cat <<'EOF' >/opt/run_homarr.sh
+        msg_info "Updating and rebuilding ${APP} to v${RELEASE} (Patience)"
+        rm /opt/run_homarr.sh
+        cat <<'EOF' >/opt/run_homarr.sh
 #!/bin/bash
 set -a
 source /opt/homarr/.env
@@ -58,50 +58,50 @@ node apps/websocket/wssServer.cjs &
 node apps/nextjs/server.js & PID=$!
 wait $PID
 EOF
-    chmod +x /opt/run_homarr.sh
-    NODE_VERSION=$(curl -s https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
-    NODE_MODULE="pnpm@$(curl -s https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.packageManager | split("@")[1]')"
-    install_node_and_modules
-    rm -rf /opt/homarr
-    fetch_and_deploy_gh_release "homarr-labs/homarr"
-    mv /opt/homarr-data-backup/.env /opt/homarr/.env
-    cd /opt/homarr
-    echo "test2"
-    export NODE_ENV=""
-    $STD pnpm install --recursive --frozen-lockfile --shamefully-hoist
-    $STD pnpm build
-    cp /opt/homarr/apps/nextjs/next.config.ts .
-    cp /opt/homarr/apps/nextjs/package.json .
-    cp -r /opt/homarr/packages/db/migrations /opt/homarr_db/migrations
-    cp -r /opt/homarr/apps/nextjs/.next/standalone/* /opt/homarr
-    mkdir -p /appdata/redis
-    cp /opt/homarr/packages/redis/redis.conf /opt/homarr/redis.conf
-    rm /etc/nginx/nginx.conf
-    mkdir -p /etc/nginx/templates
-    cp /opt/homarr/nginx.conf /etc/nginx/templates/nginx.conf
+        chmod +x /opt/run_homarr.sh
+        NODE_VERSION=$(curl -fsSL https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
+        NODE_MODULE="pnpm@$(curl -fsSL https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.packageManager | split("@")[1]')"
+        install_node_and_modules
+        rm -rf /opt/homarr
+        fetch_and_deploy_gh_release "homarr-labs/homarr"
+        mv /opt/homarr-data-backup/.env /opt/homarr/.env
+        cd /opt/homarr
+        echo "test2"
+        export NODE_ENV=""
+        $STD pnpm install --recursive --frozen-lockfile --shamefully-hoist
+        $STD pnpm build
+        cp /opt/homarr/apps/nextjs/next.config.ts .
+        cp /opt/homarr/apps/nextjs/package.json .
+        cp -r /opt/homarr/packages/db/migrations /opt/homarr_db/migrations
+        cp -r /opt/homarr/apps/nextjs/.next/standalone/* /opt/homarr
+        mkdir -p /appdata/redis
+        cp /opt/homarr/packages/redis/redis.conf /opt/homarr/redis.conf
+        rm /etc/nginx/nginx.conf
+        mkdir -p /etc/nginx/templates
+        cp /opt/homarr/nginx.conf /etc/nginx/templates/nginx.conf
 
-    mkdir -p /opt/homarr/apps/cli
-    cp /opt/homarr/packages/cli/cli.cjs /opt/homarr/apps/cli/cli.cjs
-    echo $'#!/bin/bash\ncd /opt/homarr/apps/cli && node ./cli.cjs "$@"' >/usr/bin/homarr
-    chmod +x /usr/bin/homarr
+        mkdir -p /opt/homarr/apps/cli
+        cp /opt/homarr/packages/cli/cli.cjs /opt/homarr/apps/cli/cli.cjs
+        echo $'#!/bin/bash\ncd /opt/homarr/apps/cli && node ./cli.cjs "$@"' >/usr/bin/homarr
+        chmod +x /usr/bin/homarr
 
-    mkdir /opt/homarr/build
-    cp ./node_modules/better-sqlite3/build/Release/better_sqlite3.node ./build/better_sqlite3.node
-    echo "${RELEASE}" >/opt/${APP}_version.txt
-    msg_ok "Updated ${APP}"
+        mkdir /opt/homarr/build
+        cp ./node_modules/better-sqlite3/build/Release/better_sqlite3.node ./build/better_sqlite3.node
+        echo "${RELEASE}" >/opt/${APP}_version.txt
+        msg_ok "Updated ${APP}"
 
-    msg_info "Starting Services"
-    systemctl start homarr
-    msg_ok "Started Services"
-    msg_ok "Updated Successfully"
-    read -p "It's recommended to reboot the LXC after an update, would you like to reboot the LXC now ? (y/n): " choice
-    if [[ "$choice" =~ ^[Yy]$ ]]; then
-      reboot
+        msg_info "Starting Services"
+        systemctl start homarr
+        msg_ok "Started Services"
+        msg_ok "Updated Successfully"
+        read -p "It's recommended to reboot the LXC after an update, would you like to reboot the LXC now ? (y/n): " choice
+        if [[ "$choice" =~ ^[Yy]$ ]]; then
+            reboot
+        fi
+    else
+        msg_ok "No update required. ${APP} is already at v${RELEASE}"
     fi
-  else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}"
-  fi
-  exit
+    exit
 }
 
 start
