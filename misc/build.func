@@ -1428,8 +1428,12 @@ EOF'
   fi
   msg_ok "Customized LXC Container"
 
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/"$var_install".sh)"; then
-    exit $?
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/$var_install.sh)"; then
+    EXITCODE=$?
+    if [[ $EXITCODE -eq 10 ]]; then
+      destroy_lxc
+    fi
+    exit $EXITCODE
   fi
 }
 
