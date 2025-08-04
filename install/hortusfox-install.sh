@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y apache2
 msg_ok "Installed Dependencies"
 
-PHP_MODULE="exif,pcntl,mysql" PHP_APACHE="YES" PHP_FPM="NO" PHP_VERSION="8.3" setup_php
+PHP_MODULE="exif,mysql" PHP_APACHE="YES" PHP_FPM="NO" PHP_VERSION="8.3" setup_php
 setup_mariadb
 setup_composer
 
@@ -48,10 +48,24 @@ sed -i "s|^DB_ENABLE=.*|DB_ENABLE=true|" /opt/hortusfox-web/.env
 sed -i "s|^APP_TIMEZONE=.*|APP_TIMEZONE=Europe/Berlin|" /opt/hortusfox-web/.env
 msg_ok ".env configured"
 
-msg_info "Installing PHP dependencies (composer)"
+msg_info "Setting up HortusFox"
 cd /opt/hortusfox-web
 $STD composer install --no-dev --optimize-autoloader
-msg_ok "PHP dependencies installed"
+mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO AppModel (workspace, language, created_at) VALUES ('Default Workspace', 'en', NOW());"
+php asatru plants:attributes
+php asatru calendar:classes
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)"
+ADMIN_HASH=$(php -r "echo password_hash('$ADMIN_PASS', PASSWORD_BCRYPT);")
+mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO UserModel (name, email, password, admin) VALUES ('Admin', '$ADMIN_EMAIL', '$ADMIN_HASH', 1);"
+{
+  echo ""
+  echo "HortusFox-Admin-Creds:"
+  echo "E-Mail: $ADMIN_EMAIL"
+  echo "Passwort: $ADMIN_PASS"
+} >>~/hortusfox.creds
+mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO LocationsModel (name, active, created_at) VALUES ('Home', 1, NOW());"
+msg_ok "Set up HortusFox"
 
 msg_info "Running DB migration"
 php asatru migrate:fresh
