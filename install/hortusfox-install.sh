@@ -58,20 +58,20 @@ php asatru migrate:fresh
 msg_ok "Migration finished"
 
 msg_info "Setting up HortusFox"
-mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO AppModel (workspace, language, created_at) VALUES ('Default Workspace', 'en', NOW());"
+$STD mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO AppModel (workspace, language, created_at) VALUES ('Default Workspace', 'en', NOW());"
 php asatru plants:attributes
 php asatru calendar:classes
 ADMIN_EMAIL="admin@example.com"
 ADMIN_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)"
 ADMIN_HASH=$(php -r "echo password_hash('$ADMIN_PASS', PASSWORD_BCRYPT);")
-mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO UserModel (name, email, password, admin) VALUES ('Admin', '$ADMIN_EMAIL', '$ADMIN_HASH', 1);"
+$STD mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO UserModel (name, email, password, admin) VALUES ('Admin', '$ADMIN_EMAIL', '$ADMIN_HASH', 1);"
 {
   echo ""
   echo "HortusFox-Admin-Creds:"
   echo "E-Mail: $ADMIN_EMAIL"
   echo "Passwort: $ADMIN_PASS"
 } >>~/hortusfox.creds
-mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO LocationsModel (name, active, created_at) VALUES ('Home', 1, NOW());"
+$STD mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO LocationsModel (name, active, created_at) VALUES ('Home', 1, NOW());"
 msg_ok "Set up HortusFox"
 
 msg_info "Configuring Apache vHost"
