@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Swizzin Seedbox – Proxmox Helper‑Script (CT)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: EEJoshua
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -15,23 +14,23 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
 
-header_info   "$APP"
+header_info "$APP"
 variables
 color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if ! command -v sudo box >/dev/null 2>&1; then
-        msg_error "No ${APP} installation found!\n"
-        exit
-    fi
-    msg_info "Running 'sudo box update' inside the container\n"
-    sudo box update
-    msg_ok "Update finished\n"
+  header_info
+  check_container_storage
+  check_container_resources
+  if ! command -v sudo box >/dev/null 2>&1; then
+    msg_error "No ${APP} installation found!\n"
     exit
+  fi
+  msg_info "Running 'sudo box update' inside the container\n"
+  sudo box update
+  msg_ok "Update finished\n"
+  exit
 }
 
 start
@@ -43,4 +42,3 @@ echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${CREATING}${GN}${APP} Access it by running 'sudo box' inside the new container${CL}"
 echo -e "${INFO}${YW}If installed panel, access through the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
-
