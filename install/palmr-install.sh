@@ -37,7 +37,7 @@ sed -e 's/_ENCRYPTION=true/_ENCRYPTION=false/' \
 $STD pnpm install
 $STD pnpm dlx prisma generate
 $STD pnpm dlx prisma migrate deploy
-$STD pnpm dlx prisma db push # This was missing from the docs
+$STD pnpm dlx prisma db push
 $STD pnpm db:seed
 $STD pnpm build
 msg_ok "Configured palmr backend"
