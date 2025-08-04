@@ -31,6 +31,8 @@ sed -e 's/_ENCRYPTION=true/_ENCRYPTION=false/' \
   -e '/^# ENC/s/# //' \
   -e "s/ENCRYPTION_KEY=.*$/ENCRYPTION_KEY=$PALMR_KEY/" \
   -e "s|file:.*$|file:$PALMR_DB\"|" \
+  -e '/db"$/a\# Uncomment below when using reverse proxy\
+  # SECURE_SITE=true' \
   .env.example >./.env
 $STD pnpm install
 $STD pnpm dlx prisma generate
