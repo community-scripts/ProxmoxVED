@@ -36,7 +36,10 @@ function update_script() {
 
     msg_info "Updating ${APP}"
     cp /opt/palmr/apps/server/.env /opt/palmr.env
+    rm -rf /opt/palmr
     fetch_and_deploy_gh_release "Palmr" "kyantech/Palmr" "tarball" "latest" "/opt/palmr"
+    PNPM="$(jq -r '.packageManager' /opt/palmr/package.json)"
+    NODE_VERSION="20" NODE_MODULE="$PNPM" setup_nodejs
     cd /opt/palmr/apps/server
     PALMR_DIR="/opt/palmr_data"
     # export PALMR_DB="${PALMR_DIR}/palmr.db"
@@ -50,6 +53,7 @@ function update_script() {
     cd /opt/palmr/apps/web
     export NODE_ENV=production
     export NEXT_TELEMETRY_DISABLED=1
+    mv ./.env.example ./.env
     $STD pnpm install
     $STD pnpm build
     msg_ok "Updated $APP"
