@@ -42,11 +42,11 @@ function update_script() {
     NODE_VERSION="20" NODE_MODULE="$PNPM" setup_nodejs
     cd /opt/palmr/apps/server
     PALMR_DIR="/opt/palmr_data"
-    # export PALMR_DB="${PALMR_DIR}/palmr.db"
     $STD pnpm install
     mv /opt/palmr.env ./.env
     $STD pnpm dlx prisma generate
     $STD pnpm dlx prisma migrate deploy
+    $STD pnpm dlx prisma db push
     $STD pnpm build
 
     cd /opt/palmr/apps/web
