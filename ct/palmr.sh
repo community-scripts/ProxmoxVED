@@ -43,7 +43,6 @@ function update_script() {
     cd /opt/palmr/apps/server
     PALMR_DIR="/opt/palmr_data"
     # export PALMR_DB="${PALMR_DIR}/palmr.db"
-    sed -i "s|/app/server|$PALMR_DIR|" ./src/config/directories.config.ts
     $STD pnpm install
     mv /opt/palmr.env ./.env
     $STD pnpm dlx prisma generate

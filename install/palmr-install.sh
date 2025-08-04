@@ -32,7 +32,6 @@ sed -e 's/_ENCRYPTION=true/_ENCRYPTION=false/' \
   -e "s/ENCRYPTION_KEY=.*$/ENCRYPTION_KEY=$PALMR_KEY/" \
   -e "s|file:.*$|file:$PALMR_DB\"|" \
   .env.example >./.env
-sed -i "s|/app/server|$PALMR_DIR|" ./src/config/directories.config.ts
 $STD pnpm install
 $STD pnpm dlx prisma generate
 $STD pnpm dlx prisma migrate deploy
@@ -58,8 +57,8 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/palmr/apps/server
-ExecStart=/usr/bin/pnpm start
+WorkingDirectory=/opt/palmr_data
+ExecStart=/usr/bin/node /opt/palmr/apps/server/dist/server.js
 
 [Install]
 WantedBy=multi-user.target
