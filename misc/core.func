@@ -449,18 +449,3 @@ check_or_create_swap() {
 }
 
 trap 'stop_spinner' EXIT INT TERM
-
-destroy_lxc() {
-  if [[ -n "$CT_ID" ]]; then
-    read -p "Remove this Container? <y/N> " prompt
-    if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-      pct stop "$CT_ID" &>/dev/null
-      pct destroy "$CT_ID" &>/dev/null
-      msg_ok "Removed this Container"
-    else
-      msg_info "Container was not removed."
-    fi
-  else
-    msg_error "No CT_ID found. Nothing to remove."
-  fi
-}

@@ -1438,13 +1438,17 @@ EOF'
 }
 
 destroy_lxc() {
-  if [[ -n "$CTID" ]]; then
-    echo "Würde Container $CTID entfernen!"
-    # pct stop "$CTID"
-    # pct destroy "$CTID"
-    # msg_ok "Removed this Container"
+  if [[ -n "$CT_ID" ]]; then
+    read -p "Remove this Container? <y/N> " prompt
+    if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
+      pct stop "$CT_ID" &>/dev/null
+      pct destroy "$CT_ID" &>/dev/null
+      msg_ok "Removed this Container"
+    else
+      msg_info "Container was not removed."
+    fi
   else
-    echo "Keine CTID – nichts zu entfernen."
+    msg_error "No CT_ID found. Nothing to remove."
   fi
 }
 
