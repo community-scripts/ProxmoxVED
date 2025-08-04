@@ -39,17 +39,17 @@ msg_ok "Set up database"
 fetch_and_deploy_gh_release "hortusfox" "danielbrendel/hortusfox-web"
 
 msg_info "Configuring .env"
-cp /opt/hortusfox-web/.env.example /opt/hortusfox-web/.env
-sed -i "s|^DB_HOST=.*|DB_HOST=localhost|" /opt/hortusfox-web/.env
-sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" /opt/hortusfox-web/.env
-sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" /opt/hortusfox-web/.env
-sed -i "s|^DB_DATABASE=.*|DB_DATABASE=$DB_NAME|" /opt/hortusfox-web/.env
-sed -i "s|^DB_ENABLE=.*|DB_ENABLE=true|" /opt/hortusfox-web/.env
-sed -i "s|^APP_TIMEZONE=.*|APP_TIMEZONE=Europe/Berlin|" /opt/hortusfox-web/.env
+cp /opt/hortusfox/.env.example /opt/hortusfox/.env
+sed -i "s|^DB_HOST=.*|DB_HOST=localhost|" /opt/hortusfox/.env
+sed -i "s|^DB_USER=.*|DB_USER=$DB_USER|" /opt/hortusfox/.env
+sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" /opt/hortusfox/.env
+sed -i "s|^DB_DATABASE=.*|DB_DATABASE=$DB_NAME|" /opt/hortusfox/.env
+sed -i "s|^DB_ENABLE=.*|DB_ENABLE=true|" /opt/hortusfox/.env
+sed -i "s|^APP_TIMEZONE=.*|APP_TIMEZONE=Europe/Berlin|" /opt/hortusfox/.env
 msg_ok ".env configured"
 
 msg_info "Installing Composer dependencies"
-cd /opt/hortusfox-web
+cd /opt/hortusfox
 $STD composer install --no-dev --optimize-autoloader
 msg_ok "Composer dependencies installed"
 
@@ -78,8 +78,8 @@ msg_info "Configuring Apache vHost"
 cat <<EOF >/etc/apache2/sites-available/hortusfox.conf
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
-    DocumentRoot /opt/hortusfox-web/public
-    <Directory /opt/hortusfox-web/public>
+    DocumentRoot /opt/hortusfox/public
+    <Directory /opt/hortusfox/public>
         Options Indexes FollowSymLinks
         AllowOverride All
         Require all granted
