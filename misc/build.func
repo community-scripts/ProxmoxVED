@@ -1430,6 +1430,7 @@ EOF'
 
   if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/$var_install.sh)"; then
     EXITCODE=$?
+    echo "DEBUG: lxc-attach exit code was $EXITCODE"
     if [[ $EXITCODE -eq 10 ]]; then
       destroy_lxc
     fi
