@@ -33,7 +33,13 @@
     "password": null
   },
   "notes": [
-    "Initial password is generated and saved in ~/hortusfox.creds after install.",
-    "After installation, access the web UI on http://<CT-IP>/ and log in as admin@example.com with the generated password."
+    {
+      "text": "Initial password is generated and saved in ~/hortusfox.creds after install.",
+      "type": "info"
+    },
+    {
+      "text": "After installation, access the web UI on http://<CT-IP>/ and log in as admin@example.com with the generated password.",
+      "type": "info"
+    }
   ]
 }
