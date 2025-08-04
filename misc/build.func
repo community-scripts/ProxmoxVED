@@ -1428,7 +1428,7 @@ EOF'
   fi
   msg_ok "Customized LXC Container"
 
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/$var_install.sh)"; then
+  if ! lxc-attach -n "$CTID" -- bash -s < <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/$var_install.sh); then
     EXITCODE=$?
     echo "DEBUG: lxc-attach exit code was $EXITCODE"
     if [[ $EXITCODE -eq 10 ]]; then
