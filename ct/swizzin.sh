@@ -28,7 +28,7 @@ function update_script() {
     exit
   fi
   msg_info "Running 'sudo box update' inside the container\n"
-  sudo box update
+  $STD sudo box update
   msg_ok "Update finished\n"
   exit
 }
@@ -39,6 +39,5 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${CREATING}${GN}${APP} Access it by running 'sudo box' inside the new container${CL}"
 echo -e "${INFO}${YW}If installed panel, access through the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"

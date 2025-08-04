@@ -14,7 +14,9 @@ network_check
 update_os
 
 msg_warn "WARNING: This script will run an external installer from a third-party source (swizzin.io)."
-msg_warn "You are about to execute code that is NOT maintained by our repository."
+msg_warn "The following code is NOT maintained or audited by our repository."
+msg_warn "If you have any doubts or concerns, please review the installer code before proceeding:"
+msg_warn "    → https://s5n.sh"
 echo
 read -r -p "${TAB3}Do you want to continue? [y/N]: " CONFIRM
 if [[ ! "$CONFIRM" =~ ^([yY][eE][sS]|[yY])$ ]]; then
