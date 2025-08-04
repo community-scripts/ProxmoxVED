@@ -21,6 +21,7 @@ echo
 read -r -p "${TAB3}Do you want to continue? [y/N]: " CONFIRM
 if [[ ! "$CONFIRM" =~ ^([yY][eE][sS]|[yY])$ ]]; then
   msg_error "Aborted by user. No changes have been made."
+  destroy_lxc
   exit 1
 fi
 bash <(curl -sL s5n.sh)
