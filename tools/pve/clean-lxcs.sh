@@ -51,7 +51,7 @@ function clean_container() {
   if [ "$os" = "alpine" ]; then
     pct exec "$container" -- ash -c "apk update && apk cache clean && rm -rf /var/cache/apk/*"
   else
-    pct exec "$container" -- bash -c "apt-get -y --purge autoremove && apt-get -y autoclean && bash <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/tools/pve/clean.sh) && rm -rf /var/lib/apt/lists/* && apt-get update"
+    pct exec "$container" -- bash -c "apt-get -y --purge autoremove && apt-get -y autoclean && bash <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/pve/clean.sh) && rm -rf /var/lib/apt/lists/* && apt-get update"
   fi
 }
 
