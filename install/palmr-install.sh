@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-fetch_and_deploy_gh_release "Palmr" "kyantech/Palmr" "tarball" "v3.14-beta" "/opt/palmr"
+fetch_and_deploy_gh_release "Palmr" "kyantech/Palmr" "tarball" "v3.1.4-beta" "/opt/palmr"
 PNPM="$(jq -r '.packageManager' /opt/palmr/package.json)"
 NODE_VERSION="20" NODE_MODULE="$PNPM" setup_nodejs
 
