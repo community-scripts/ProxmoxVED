@@ -49,10 +49,11 @@ function clean_container() {
   os=$(pct config "$container" | awk '/^ostype/ {print $2}')
   echo -e "${BL}[Info]${GN} Cleaning ${name} (${os}) ${CL} \n"
   if [ "$os" = "alpine" ]; then
-    pct exec "$container" -- ash -c "apk update && apk cache clean && rm -rf /var/cache/apk/*"
+    pct exec "$container" -- ash -c "wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/pve/clean.sh | ash"
   else
     pct exec "$container" -- bash -c "apt-get -y --purge autoremove && apt-get -y autoclean && bash <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/pve/clean.sh) && rm -rf /var/lib/apt/lists/* && apt-get update"
   fi
+
 }
 
 for container in $(pct list | awk 'NR>1 {print $1}'); do
