@@ -48,9 +48,16 @@ sed -i "s|^DB_ENABLE=.*|DB_ENABLE=true|" /opt/hortusfox-web/.env
 sed -i "s|^APP_TIMEZONE=.*|APP_TIMEZONE=Europe/Berlin|" /opt/hortusfox-web/.env
 msg_ok ".env configured"
 
-msg_info "Setting up HortusFox"
+msg_info "Installing Composer dependencies"
 cd /opt/hortusfox-web
 $STD composer install --no-dev --optimize-autoloader
+msg_ok "Composer dependencies installed"
+
+msg_info "Running DB migration"
+php asatru migrate:fresh
+msg_ok "Migration finished"
+
+msg_info "Setting up HortusFox"
 mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO AppModel (workspace, language, created_at) VALUES ('Default Workspace', 'en', NOW());"
 php asatru plants:attributes
 php asatru calendar:classes
@@ -66,10 +73,6 @@ mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO UserModel (name, email, passw
 } >>~/hortusfox.creds
 mariadb -u root -D $DB_NAME -e "INSERT IGNORE INTO LocationsModel (name, active, created_at) VALUES ('Home', 1, NOW());"
 msg_ok "Set up HortusFox"
-
-msg_info "Running DB migration"
-php asatru migrate:fresh
-msg_ok "Migration finished"
 
 msg_info "Configuring Apache vHost"
 cat <<EOF >/etc/apache2/sites-available/hortusfox.conf
