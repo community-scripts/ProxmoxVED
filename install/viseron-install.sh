@@ -21,7 +21,10 @@ $STD apt-get install -y \
   python3-opencv jq \
   libgl1-mesa-glx libglib2.0-0 \
   libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
-  gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
+  gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
+  build-essential python3-dev python3-gi pkg-config libcairo2-dev gir1.2-glib-2.0 \
+  cmake gfortran libopenblas-dev liblapack-dev libgirepository1.0-dev
+
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Hardware Acceleration"
@@ -32,18 +35,15 @@ if [[ "$CTTYPE" == "0" ]]; then
 fi
 msg_ok "Hardware Acceleration Configured"
 
-msg_info "Setting up Python Environment with uv"
-cd /opt
-uv venv viseron
-source viseron/bin/activate
-uv pip install --upgrade pip setuptools wheel
-msg_ok "Python Environment Setup (uv)"
+fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
 
-msg_info "Installing Viseron"
-RELEASE=$(curl -s https://api.github.com/repos/roflcoopter/viseron/releases/latest | jq -r '.tag_name')
-uv pip install https://github.com/roflcoopter/viseron/archive/refs/tags/${RELEASE}.tar.gz
-ln -s /opt/viseron/bin/viseron /usr/local/bin/viseron
-msg_ok "Installed Viseron $RELEASE"
+msg_info "Setting up Viseron (Patience)"
+cd /opt/viseron
+uv venv .venv
+$STD uv pip install --upgrade pip setuptools wheel
+$STD uv pip install -r requirements.txt --python /opt/viseron/.venv/bin/python
+ln -s /opt/viseron/.venv/bin/viseron /usr/local/bin/viseron
+msg_ok "Setup Viseron"
 
 msg_info "Creating Configuration Directory"
 mkdir -p /config
@@ -117,7 +117,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/viseron
 Environment=PATH=/opt/viseron/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/opt/viseron/bin/viseron --config /config/viseron.yaml
+ExecStart=/opt/viseron/.venv/bin/viseron --config /config/viseron.yaml
 Restart=always
 RestartSec=10
 

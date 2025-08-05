@@ -8,7 +8,7 @@ var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
-var_unprivileged="${var_unprivileged:-1}"
+var_unprivileged="${var_unprivileged:-0}"
 
 header_info "$APP"
 
@@ -17,15 +17,15 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -f /etc/systemd/system/viseron.service ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-    msg_error "To update Viseron, create a new container and transfer your configuration."
+  header_info
+  check_container_storage
+  check_container_resources
+  if [[ ! -f /etc/systemd/system/viseron.service ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+  msg_error "To update Viseron, create a new container and transfer your configuration."
+  exit
 }
 
 start
