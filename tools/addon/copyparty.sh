@@ -164,32 +164,25 @@ fi
 
 # --- Generate /etc/copyparty.conf ---
 msg_info "Writing config to $CONF_PATH"
-cat <<EOF >"$CONF_PATH"
-# CopyParty main config
-# More options: https://github.com/9001/copyparty/blob/hovudstraum/contrib/systemd/copyparty.conf
-#
-# storage
-root = $USER_DATA_PATH
+cat <<EOF >/etc/copyparty.conf
+[global]
+  p: $PORT
+  ansi
+  e2dsa
+  e2ts
+  theme: 2
+  grid
 
-# HTTP port
-port = $PORT
+[accounts]
+  $ADMIN_USER: $ADMIN_PASS
 
-# logs
-logs = $LOG_PATH
-
-# authentication
-$AUTH_LINE
-
-# allow upload
-ul = *
-
-# Example: allow delete
-#dl = *
-
-# basic web-ui
-w = *
-
+[/]
+  $USER_DATA_PATH
+  accs:
+    rw: *
+    rwmda: $ADMIN_USER
 EOF
+
 chmod 640 "$CONF_PATH"
 chown "$SVC_USER:$SVC_GROUP" "$CONF_PATH"
 msg_ok "Config written"
