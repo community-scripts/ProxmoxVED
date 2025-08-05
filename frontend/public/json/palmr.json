@@ -10,7 +10,7 @@
   "privileged": false,
   "interface_port": 3000,
   "documentation": "https://palmr.kyantech.com.br/docs/3.1-beta",
-  "config_path": "/opt/palmr/backend.env, /opt/palmr/frontend.env",
+  "config_path": "/opt/palmr/apps/server/.env, /opt/palmr/apps/web/.env",
   "website": "https://palmr.kyantech.com.br/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/palmr.webp",
   "description": "Palmr is a fast and secure platform for sharing files, built with performance and privacy in mind.",
@@ -19,7 +19,7 @@
       "type": "default",
       "script": "ct/palmr.sh",
       "resources": {
-        "cpu": 2,
+        "cpu": 4,
         "ram": 4096,
         "hdd": 6,
         "os": "Debian",
@@ -33,7 +33,11 @@
   },
   "notes": [
     {
-      "text": "Info here",
+      "text": "To use a bind mount for storage, create symlinks to your mount for both `uploads` and `temp-uploads` in `/opt/palmr_data`",
+      "type": "info"
+    },
+    {
+      "text": "To use Palmr with a reverse proxy, uncomment `SECURE_SITE` in `/opt/palmr/apps/server/.env`",
       "type": "info"
     }
   ]

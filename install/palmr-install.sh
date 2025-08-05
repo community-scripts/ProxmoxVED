@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing dependencies"
-$STD apt-get install -y yq
+$STD apt-get install yq -y
 msg_ok "Installed dependencies"
 
 fetch_and_deploy_gh_release "Palmr" "kyantech/Palmr" "tarball" "latest" "/opt/palmr"
@@ -32,7 +32,7 @@ sed -e 's/_ENCRYPTION=true/_ENCRYPTION=false/' \
   -e "s/ENCRYPTION_KEY=.*$/ENCRYPTION_KEY=$PALMR_KEY/" \
   -e "s|file:.*$|file:$PALMR_DB\"|" \
   -e '/db"$/a\# Uncomment below when using reverse proxy\
-  # SECURE_SITE=true' \
+# SECURE_SITE=true' \
   .env.example >./.env
 $STD pnpm install
 $STD pnpm dlx prisma generate
@@ -51,7 +51,9 @@ $STD pnpm install
 $STD pnpm build
 msg_ok "Configured palmr frontend"
 
-msg_info "Creating service files"
+msg_info "Creating user & services"
+useradd -d "$PALMR_DIR" -M -s /usr/sbin/nologin -U palmr
+chown -R palmr:palmr "$PALMR_DIR" /opt/palmr
 cat <<EOF >/etc/systemd/system/palmr-backend.service
 [Unit]
 Description=palmr Backend Service
@@ -59,6 +61,8 @@ After=network.target
 
 [Service]
 Type=simple
+User=palmr
+Group=palmr
 WorkingDirectory=/opt/palmr_data
 ExecStart=/usr/bin/node /opt/palmr/apps/server/dist/server.js
 
@@ -73,6 +77,8 @@ After=network.target palmr-backend.service
 
 [Service]
 Type=simple
+User=palmr
+Group=palmr
 WorkingDirectory=/opt/palmr/apps/web
 ExecStart=/usr/bin/pnpm start
 
@@ -80,7 +86,7 @@ ExecStart=/usr/bin/pnpm start
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now palmr-backend palmr-frontend
-msg_ok "Created services"
+msg_ok "Created user & services"
 
 motd_ssh
 customize
