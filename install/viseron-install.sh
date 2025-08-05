@@ -27,13 +27,13 @@ $STD apt-get install -y \
 
 msg_ok "Installed Dependencies"
 
-msg_info "Setting up Hardware Acceleration"
-if [[ "$CTTYPE" == "0" ]]; then
-  chgrp video /dev/dri
-  chmod 755 /dev/dri
-  chmod 660 /dev/dri/*
-fi
-msg_ok "Hardware Acceleration Configured"
+# msg_info "Setting up Hardware Acceleration"
+# if [[ "$CTTYPE" == "0" ]]; then
+#   chgrp video /dev/dri
+#   chmod 755 /dev/dri
+#   chmod 660 /dev/dri/*
+# fi
+# msg_ok "Hardware Acceleration Configured"
 
 fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
 
