@@ -1438,19 +1438,7 @@ EOF'
   fi
   msg_ok "Customized LXC Container"
 
-  pct push "$CTID" <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/$var_install.sh) /tmp/app-install.sh
-  pct exec "$CTID" -- bash -c 'chmod +x /tmp/app-install.sh'
-  lxc-attach -n "$CTID" -- bash -c '
-  /tmp/app-install.sh
-  echo __EXITCODE__$?
-' | tee /tmp/app_install.log
-
-  EXITCODE=$(awk -F__EXITCODE__ '/__EXITCODE__/{print $2}' /tmp/app_install.log | tail -n1)
-  echo "DEBUG: Parsed container exit code: $EXITCODE"
-  if [[ "$EXITCODE" == "10" ]]; then
-    destroy_lxc
-  fi
-  exit "$EXITCODE"
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/install/${var_install}.sh)"
 }
 
 destroy_lxc() {
