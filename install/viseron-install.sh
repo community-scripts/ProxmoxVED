@@ -24,6 +24,14 @@ $STD apt-get install -y \
   gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
 msg_ok "Installed Dependencies"
 
+msg_info "Setting up Hardware Acceleration"
+if [[ "$CTTYPE" == "0" ]]; then
+  chgrp video /dev/dri
+  chmod 755 /dev/dri
+  chmod 660 /dev/dri/*
+fi
+msg_ok "Hardware Acceleration Configured"
+
 msg_info "Setting up Python Environment with uv"
 cd /opt
 uv venv viseron
@@ -118,14 +126,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now viseron
 msg_ok "Created Systemd Service"
-
-msg_info "Setting up Hardware Acceleration"
-if [[ "$CTTYPE" == "0" ]]; then
-    chgrp video /dev/dri
-    chmod 755 /dev/dri
-    chmod 660 /dev/dri/*
-fi
-msg_ok "Hardware Acceleration Configured"
 
 motd_ssh
 customize
