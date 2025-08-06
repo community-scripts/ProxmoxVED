@@ -13,7 +13,13 @@ setting_up_container
 network_check
 update_os
 
-fetch_and_deploy_gh_release "victoriametrics" "VictoriaMetrics/VictoriaMetrics" "prebuild" "latest" "/opt/victoriametrics" "victoria-metrics-linux-amd64-*.tar.gz"
+msg_info "Getting latest version of VictoriaMetrics"
+asset_filename=$(curl -fsSL "https://api.github.com/repos/VictoriaMetrics/VictoriaMetrics/releases/latest" |
+  jq -r '.assets[].name' |
+  grep -E '^victoria-metrics-linux-amd64-v[0-9.]+\.tar\.gz$')
+msg_ok "Got latest version of VictoriaMetrics"
+
+fetch_and_deploy_gh_release "victoriametrics" "VictoriaMetrics/VictoriaMetrics" "prebuild" "latest" "/opt/victoriametrics" "$asset_filename"
 fetch_and_deploy_gh_release "vmutils" "VictoriaMetrics/VictoriaMetrics" "prebuild" "latest" "/opt/victoriametrics" "vmutils-linux-amd64-v+([0-9.]).tar.gz"
 
 read -r -p "${TAB3}Would you like to add VictoriaLogs? <y/N> " prompt
