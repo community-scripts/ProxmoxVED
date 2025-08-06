@@ -15,6 +15,10 @@ update_os
 
 install -d -m 0700 /etc/twingate
 
+access_token=""
+refresh_token=""
+network=""
+
 while [[ -z "$access_token" ]]; do
   read -rp "${TAB3}Please enter your access token: " access_token
 done
