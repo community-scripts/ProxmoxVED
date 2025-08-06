@@ -270,10 +270,13 @@ EOF
     esac
   fi
 
-  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-ENTERPRISE" --menu \
-    "The 'pve-enterprise' repository is only available to users who have purchased a Proxmox VE subscription.\n \nAdd 'pve-enterprise' repository (deb822)?" 14 58 2 \
+  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+    --title "PVE-ENTERPRISE" \
+    --menu "The 'pve-enterprise' repository is only available to users who have purchased a Proxmox VE subscription.\n\nAdd 'pve-enterprise' repository (deb822)?" 14 58 2 \
+    "no" " " \
     "yes" " " \
-    "no" " " 3>&2 2>&1 1>&3)
+    --default-item "no" \
+    3>&2 2>&1 1>&3)
   case $CHOICE in
   yes)
     msg_info "Adding 'pve-enterprise' repository (deb822)"
