@@ -277,7 +277,37 @@ EOF
 
   # ---- PVE-ENTERPRISE ----
   if component_exists_in_sources "pve-enterprise"; then
-    msg_ok "'pve-enterprise' repository already exists (skipped)"
+    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "PVE-ENTERPRISE" \
+      --menu "'pve-enterprise' repository already exists.\n\nWhat do you want to do?" 14 58 2 \
+      "keep" "Keep as is" \
+      "disable" "Comment out (disable) this repo" \
+      "delete" "Delete this repo file" \
+      3>&2 2>&1 1>&3)
+    case $CHOICE in
+    keep)
+      msg_ok "Kept 'pve-enterprise' repository"
+      ;;
+    disable)
+      msg_info "Disabling (commenting) 'pve-enterprise' repository"
+      # Comment out every non-comment line in the file that has 'pve-enterprise' in Components
+      for file in /etc/apt/sources.list.d/*.sources; do
+        if grep -q "Components:.*pve-enterprise" "$file"; then
+          sed -i '/^\s*Types:/,/^$/s/^\([^#].*\)$/# \1/' "$file"
+        fi
+      done
+      msg_ok "Disabled 'pve-enterprise' repository"
+      ;;
+    delete)
+      msg_info "Deleting 'pve-enterprise' repository file"
+      for file in /etc/apt/sources.list.d/*.sources; do
+        if grep -q "Components:.*pve-enterprise" "$file"; then
+          rm -f "$file"
+        fi
+      done
+      msg_ok "Deleted 'pve-enterprise' repository file"
+      ;;
+    esac
   else
     CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
       --title "PVE-ENTERPRISE" \
