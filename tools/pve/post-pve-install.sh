@@ -57,6 +57,11 @@ get_pve_major_minor() {
   echo "$major $minor"
 }
 
+component_exists_in_sources() {
+  local component="$1"
+  grep -h -E "^[^#]*Components:[^#]*\b${component}\b" /etc/apt/sources.list.d/*.sources 2>/dev/null | grep -q .
+}
+
 main() {
   header_info
   echo -e "\nThis script will Perform Post Install Routines.\n"
@@ -270,81 +275,104 @@ EOF
     esac
   fi
 
-  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-    --title "PVE-ENTERPRISE" \
-    --menu "The 'pve-enterprise' repository is only available to users who have purchased a Proxmox VE subscription.\n\nAdd 'pve-enterprise' repository (deb822)?" 14 58 2 \
-    "no" " " \
-    "yes" " " \
-    --default-item "no" \
-    3>&2 2>&1 1>&3)
-  case $CHOICE in
-  yes)
-    msg_info "Adding 'pve-enterprise' repository (deb822)"
-    cat >/etc/apt/sources.list.d/pve-enterprise.sources <<EOF
+  # ---- PVE-ENTERPRISE ----
+  if component_exists_in_sources "pve-enterprise"; then
+    msg_ok "'pve-enterprise' repository already exists (skipped)"
+  else
+    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "PVE-ENTERPRISE" \
+      --menu "The 'pve-enterprise' repository is only available to users who have purchased a Proxmox VE subscription.\n\nAdd 'pve-enterprise' repository (deb822)?" 14 58 2 \
+      "no" " " \
+      "yes" " " \
+      --default-item "no" \
+      3>&2 2>&1 1>&3)
+    case $CHOICE in
+    yes)
+      msg_info "Adding 'pve-enterprise' repository (deb822)"
+      cat >/etc/apt/sources.list.d/pve-enterprise.sources <<EOF
 Types: deb
 URIs: https://enterprise.proxmox.com/debian/pve
 Suites: trixie
 Components: pve-enterprise
 Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
 EOF
-    msg_ok "Added 'pve-enterprise' repository"
-    ;;
-  no) msg_error "Selected no to Adding 'pve-enterprise' repository" ;;
-  esac
+      msg_ok "Added 'pve-enterprise' repository"
+      ;;
+    no) msg_error "Selected no to Adding 'pve-enterprise' repository" ;;
+    esac
+  fi
 
-  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-NO-SUBSCRIPTION" --menu "The 'pve-no-subscription' repository provides access to all of the open-source components of Proxmox VE.\n \nAdd 'pve-no-subscription' repository (deb822)?" 14 58 2 \
-    "yes" " " \
-    "no" " " 3>&2 2>&1 1>&3)
-  case $CHOICE in
-  yes)
-    msg_info "Adding 'pve-no-subscription' repository (deb822)"
-    cat >/etc/apt/sources.list.d/proxmox.sources <<EOF
+  # ---- PVE-NO-SUBSCRIPTION ----
+  if component_exists_in_sources "pve-no-subscription"; then
+    msg_ok "'pve-no-subscription' repository already exists (skipped)"
+  else
+    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-NO-SUBSCRIPTION" \
+      --menu "The 'pve-no-subscription' repository provides access to all of the open-source components of Proxmox VE.\n\nAdd 'pve-no-subscription' repository (deb822)?" 14 58 2 \
+      "yes" " " \
+      "no" " " 3>&2 2>&1 1>&3)
+    case $CHOICE in
+    yes)
+      msg_info "Adding 'pve-no-subscription' repository (deb822)"
+      cat >/etc/apt/sources.list.d/proxmox.sources <<EOF
 Types: deb
 URIs: http://download.proxmox.com/debian/pve
 Suites: trixie
 Components: pve-no-subscription
 Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
 EOF
-    msg_ok "Added 'pve-no-subscription' repository"
-    ;;
-  no) msg_error "Selected no to Adding 'pve-no-subscription' repository" ;;
-  esac
+      msg_ok "Added 'pve-no-subscription' repository"
+      ;;
+    no) msg_error "Selected no to Adding 'pve-no-subscription' repository" ;;
+    esac
+  fi
 
-  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CEPH PACKAGE REPOSITORIES" --menu "The 'Ceph Package Repositories' provides access to both the 'no-subscription' and 'enterprise' repositories (deb822).\n \nAdd 'ceph package sources?" 14 58 2 \
-    "yes" " " \
-    "no" " " 3>&2 2>&1 1>&3)
-  case $CHOICE in
-  yes)
-    msg_info "Adding 'ceph package repositories' (deb822)"
-    cat >/etc/apt/sources.list.d/ceph.sources <<EOF
+  # ---- CEPH ----
+  if component_exists_in_sources "no-subscription"; then
+    msg_ok "'ceph' package repository (no-subscription) already exists (skipped)"
+  else
+    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CEPH PACKAGE REPOSITORIES" \
+      --menu "The 'Ceph Package Repositories' provides access to both the 'no-subscription' and 'enterprise' repositories (deb822).\n\nAdd 'ceph package sources?" 14 58 2 \
+      "yes" " " \
+      "no" " " 3>&2 2>&1 1>&3)
+    case $CHOICE in
+    yes)
+      msg_info "Adding 'ceph package repositories' (deb822)"
+      cat >/etc/apt/sources.list.d/ceph.sources <<EOF
 Types: deb
 URIs: http://download.proxmox.com/debian/ceph-squid
 Suites: trixie
 Components: no-subscription
 Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
 EOF
-    msg_ok "Added 'ceph package repositories'"
-    ;;
-  no) msg_error "Selected no to Adding 'ceph package repositories'" ;;
-  esac
+      msg_ok "Added 'ceph package repositories'"
+      ;;
+    no) msg_error "Selected no to Adding 'ceph package repositories'" ;;
+    esac
+  fi
 
-  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVETEST" --menu "The 'pvetest' repository can give advanced users access to new features and updates before they are officially released.\n \nAdd (Disabled) 'pvetest' repository (deb822)?" 14 58 2 \
-    "yes" " " \
-    "no" " " 3>&2 2>&1 1>&3)
-  case $CHOICE in
-  yes)
-    msg_info "Adding 'pvetest' repository (deb822, disabled)"
-    cat >/etc/apt/sources.list.d/pvetest.sources <<EOF
+  # ---- PVETEST ----
+  if component_exists_in_sources "pvetest"; then
+    msg_ok "'pvetest' repository already exists (skipped)"
+  else
+    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVETEST" \
+      --menu "The 'pvetest' repository can give advanced users access to new features and updates before they are officially released.\n\nAdd (Disabled) 'pvetest' repository (deb822)?" 14 58 2 \
+      "yes" " " \
+      "no" " " 3>&2 2>&1 1>&3)
+    case $CHOICE in
+    yes)
+      msg_info "Adding 'pvetest' repository (deb822, disabled)"
+      cat >/etc/apt/sources.list.d/pvetest.sources <<EOF
 # Types: deb
 # URIs: http://download.proxmox.com/debian/pve
 # Suites: trixie
 # Components: pvetest
 # Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
 EOF
-    msg_ok "Added 'pvetest' repository"
-    ;;
-  no) msg_error "Selected no to Adding 'pvetest' repository" ;;
-  esac
+      msg_ok "Added 'pvetest' repository"
+      ;;
+    no) msg_error "Selected no to Adding 'pvetest' repository" ;;
+    esac
+  fi
 
   post_routines_common
 }
@@ -427,12 +455,13 @@ post_routines_common() {
   # Final message for all hosts in cluster and browser cache
   whiptail --backtitle "Proxmox VE Helper Scripts" --title "Post-Install Reminder" --msgbox \
     "IMPORTANT:
+
 If you have multiple Proxmox VE hosts in a cluster, please make sure to run this script on every node individually.
 
 After completing these steps, it is strongly recommended to REBOOT your node.
 
 After the upgrade or post-install routines, always clear your browser cache or perform a hard reload (Ctrl+Shift+R) before using the Proxmox VE Web UI to avoid UI display issues.
-" 14 70
+" 20 80
 
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "REBOOT" --menu "\nReboot Proxmox VE now? (recommended)" 11 58 2 \
     "yes" " " \
