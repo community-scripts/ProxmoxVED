@@ -307,6 +307,7 @@ post_routines_common() {
     rm /etc/apt/apt.conf.d/no-nag-script 2>/dev/null
     ;;
   esac
+  echo "BEFORE WIDGET"
   apt --reinstall install proxmox-widget-toolkit &>/dev/null || msg_error "Widget toolkit reinstall failed"
   echo "AFTER WIDGET"
   if ! systemctl is-active --quiet pve-ha-lrm; then
@@ -357,8 +358,8 @@ post_routines_common() {
   case $CHOICE in
   yes)
     msg_info "Updating Proxmox VE (Patience)"
-    apt-get update &>/dev/null
-    apt-get -y dist-upgrade &>/dev/null
+    apt update &>/dev/null || msg_error "apt update failed"
+    apt -y dist-upgrade &>/dev/null || msg_error "apt dist-upgrade failed"
     msg_ok "Updated Proxmox VE"
     ;;
   no) msg_error "Selected no to Updating Proxmox VE" ;;
