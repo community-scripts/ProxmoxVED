@@ -181,17 +181,71 @@ EOF
 start_routines_9() {
   header_info
 
-  # === Trixie/9.x: deb822 .sources ===
-  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SOURCES" --menu "The package manager will use the correct sources to update and install packages on your Proxmox VE 9 server.\n\nMigrate to deb822 sources format?" 14 58 2 \
-    "yes" " " \
-    "no" " " 3>&2 2>&1 1>&3)
-  case $CHOICE in
-  yes)
-    msg_info "Correcting Proxmox VE Sources (deb822)"
-    rm -f /etc/apt/sources.list.d/*.list
-    sed -i '/proxmox/d;/bookworm/d' /etc/apt/sources.list || true
-    # Modern Debian base sources (deb822)
-    cat >/etc/apt/sources.list.d/debian.sources <<EOF
+  # check if deb822 Sources (*.sources) exist
+  if find /etc/apt/sources.list.d/ -maxdepth 1 -name '*.sources' | grep -q .; then
+    whiptail --backtitle "Proxmox VE Helper Scripts" --title "Deb822 sources detected" \
+      --msgbox "Modern deb822 sources (*.sources) already exist.\n\nNo changes to sources format required.\n\nYou may still have legacy sources.list or .list files, which you can disable in the next step." 12 65
+  else
+    check_and_disable_legacy_sources() {
+      local LEGACY_COUNT=0
+      local listfile="/etc/apt/sources.list"
+
+      # Check sources.list
+      if [[ -f "$listfile" ]] && grep -qE '^\s*deb ' "$listfile"; then
+        ((LEGACY_COUNT++))
+      fi
+
+      # Check .list files
+      local list_files
+      list_files=$(find /etc/apt/sources.list.d/ -type f -name "*.list" 2>/dev/null)
+      if [[ -n "$list_files" ]]; then
+        LEGACY_COUNT=$((LEGACY_COUNT + $(echo "$list_files" | wc -l)))
+      fi
+
+      if ((LEGACY_COUNT > 0)); then
+        # Show summary to user
+        local MSG="Legacy APT sources found:\n"
+        [[ -f "$listfile" ]] && MSG+=" - /etc/apt/sources.list\n"
+        [[ -n "$list_files" ]] && MSG+="$(echo "$list_files" | sed 's|^| - |')\n"
+        MSG+="\nDo you want to disable (comment out/rename) all legacy sources and use ONLY deb822 .sources format?\n\nRecommended for Proxmox VE 9."
+
+        whiptail --backtitle "Proxmox VE Helper Scripts" --title "Disable legacy sources?" \
+          --yesno "$MSG" 18 80
+        if [[ $? -eq 0 ]]; then
+          # Backup and disable sources.list
+          if [[ -f "$listfile" ]] && grep -qE '^\s*deb ' "$listfile"; then
+            cp "$listfile" "$listfile.bak"
+            sed -i '/^\s*deb /s/^/# Disabled by Proxmox Helper Script /' "$listfile"
+            msg_ok "Disabled entries in sources.list (backup: sources.list.bak)"
+          fi
+          # Rename all .list files to .list.bak
+          if [[ -n "$list_files" ]]; then
+            while IFS= read -r f; do
+              mv "$f" "$f.bak"
+            done <<<"$list_files"
+            msg_ok "Renamed legacy .list files to .bak"
+          fi
+        else
+          msg_error "Kept legacy sources as-is (may cause APT warnings)"
+        fi
+      fi
+    }
+
+    check_and_disable_legacy_sources
+    # === Trixie/9.x: deb822 .sources ===
+    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SOURCES" --menu \
+      "The package manager will use the correct sources to update and install packages on your Proxmox VE 9 server.\n\nMigrate to deb822 sources format?" 14 58 2 \
+      "yes" " " \
+      "no" " " 3>&2 2>&1 1>&3)
+    case $CHOICE in
+    yes)
+      msg_info "Correcting Proxmox VE Sources (deb822)"
+      # remove all existing .list files
+      rm -f /etc/apt/sources.list.d/*.list
+      # remove bookworm and proxmox entries from sources.list
+      sed -i '/proxmox/d;/bookworm/d' /etc/apt/sources.list || true
+      # Create new deb822 sources
+      cat >/etc/apt/sources.list.d/debian.sources <<EOF
 Types: deb
 URIs: http://deb.debian.org/debian
 Suites: trixie
@@ -210,12 +264,14 @@ Suites: trixie-updates
 Components: main contrib
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
-    msg_ok "Corrected Proxmox VE 9 (Trixie) Sources"
-    ;;
-  no) msg_error "Selected no to Correcting Proxmox VE Sources" ;;
-  esac
+      msg_ok "Corrected Proxmox VE 9 (Trixie) Sources"
+      ;;
+    no) msg_error "Selected no to Correcting Proxmox VE Sources" ;;
+    esac
+  fi
 
-  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-ENTERPRISE" --menu "The 'pve-enterprise' repository is only available to users who have purchased a Proxmox VE subscription.\n \nAdd 'pve-enterprise' repository (deb822)?" 14 58 2 \
+  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-ENTERPRISE" --menu \
+    "The 'pve-enterprise' repository is only available to users who have purchased a Proxmox VE subscription.\n \nAdd 'pve-enterprise' repository (deb822)?" 14 58 2 \
     "yes" " " \
     "no" " " 3>&2 2>&1 1>&3)
   case $CHOICE in
