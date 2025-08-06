@@ -44,12 +44,6 @@ msg_error() {
   echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
 }
 
-msg_custom() {
-  local msg="$1"
-  echo -e "${BFR} ${YW}⚠ ${msg}${CL}"
-}
-
-
 start_routines() {
   header_info
 
@@ -139,24 +133,23 @@ EOF
     ;;
   esac
 
-  if [[ ! -f /etc/apt/apt.conf.d/no-nag-script ]]; then
-    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUBSCRIPTION NAG" --menu "This will disable the nag message reminding you to purchase a subscription every time you log in to the web interface.\n \nDisable subscription nag?" 14 58 2 \
-      "yes" " " \
-      "no" " " 3>&2 2>&1 1>&3)
-    case $CHOICE in
-    yes)
-      whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox --title "Support Subscriptions" "Supporting the software's development team is essential. Check their official website's Support Subscriptions for pricing. Without their dedicated work, we wouldn't have this exceptional software." 10 58
-      msg_info "Disabling subscription nag"
-      echo "DPkg::Post-Invoke { \"dpkg -V proxmox-widget-toolkit 2>/dev/null && [ -f /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js ] && echo 'Removing subscription nag from UI...' && sed -i '/data\.status/{s/\!/=/;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js\"; };" >/etc/apt/apt.conf.d/no-nag-script
-      apt --reinstall install proxmox-widget-toolkit &>/dev/null
-      msg_ok "Disabled subscription nag (Delete browser cache)"
-      ;;
-    no)
-      whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox --title "Support Subscriptions" "Supporting the software's development team is essential. Check their official website's Support Subscriptions for pricing. Without their dedicated work, we wouldn't have this exceptional software." 10 58
-      msg_error "Selected no to Disabling subscription nag"
-      ;;
-    esac
-  fi
+  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUBSCRIPTION NAG" --menu "This will disable the nag message reminding you to purchase a subscription every time you log in to the web interface.\n \nDisable subscription nag?" 14 58 2 \
+    "yes" " " \
+    "no" " " 3>&2 2>&1 1>&3)
+  case $CHOICE in
+  yes)
+    whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox --title "Support Subscriptions" "Supporting the software's development team is essential. Check their official website's Support Subscriptions for pricing. Without their dedicated work, we wouldn't have this exceptional software." 10 58
+    msg_info "Disabling subscription nag"
+    echo "DPkg::Post-Invoke { \"if [ -s /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js ] && ! grep -q -F 'NoMoreNagging' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; then echo 'Removing subscription nag from UI...'; sed -i '/data\.status/{s/\!//;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; fi\" };" >/etc/apt/apt.conf.d/no-nag-script
+    msg_ok "Disabled subscription nag (Delete browser cache)"
+    ;;
+  no)
+    whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox --title "Support Subscriptions" "Supporting the software's development team is essential. Check their official website's Support Subscriptions for pricing. Without their dedicated work, we wouldn't have this exceptional software." 10 58
+    msg_error "Selected no to Disabling subscription nag"
+    rm /etc/apt/apt.conf.d/no-nag-script 2>/dev/null
+    ;;
+  esac
+  apt --reinstall install proxmox-widget-toolkit &>/dev/null
 
   if ! systemctl is-active --quiet pve-ha-lrm; then
     CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "HIGH AVAILABILITY" --menu "Enable high availability?" 10 58 2 \
@@ -252,38 +245,12 @@ while true; do
   esac
 done
 
-# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-pve_check() {
-  local PVE_VER
-  PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
-
-  # 8 Version Check
-  if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
-    local MINOR="${BASH_REMATCH[1]}"
-    if (( MINOR < 1 || MINOR > 4 )); then
-      msg_error "This version of Proxmox Virtual Environment is not supported"
-      echo -e "Requires Proxmox Virtual Environment Version 8.1 – 8.4"
-      echo -e "Exiting..."
-      sleep 2
-      exit 1
-    fi
-    return 0
-  fi
-
-  # 9 Beta Version Check
-  if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
-    msg_custom "Detected Proxmox Virtual Environment $PVE_VER – Beta state, use with caution!"
-    return 0
-  fi
-
-  # All others (unsupported versions)
+if ! pveversion | grep -Eq "pve-manager/8\.[0-4](\.[0-9]+)*"; then
   msg_error "This version of Proxmox Virtual Environment is not supported"
-  echo -e "Requires Proxmox Virtual Environment Version 8.1 – 8.4 or 9.x (Beta)"
+  echo -e "Requires Proxmox Virtual Environment Version 8.0 or later."
   echo -e "Exiting..."
   sleep 2
-  exit 1
-}
+  exit
+fi
 
-
-pve_check
 start_routines
