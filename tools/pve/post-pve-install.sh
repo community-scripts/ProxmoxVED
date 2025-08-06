@@ -364,6 +364,16 @@ post_routines_common() {
   no) msg_error "Selected no to Updating Proxmox VE" ;;
   esac
 
+  # Final message for all hosts in cluster and browser cache
+  whiptail --backtitle "Proxmox VE Helper Scripts" --title "Post-Install Reminder" --msgbox \
+    "IMPORTANT:
+If you have multiple Proxmox VE hosts in a cluster, please make sure to run this script on every node individually.
+
+After completing these steps, it is strongly recommended to REBOOT your node.
+
+After the upgrade or post-install routines, always clear your browser cache or perform a hard reload (Ctrl+Shift+R) before using the Proxmox VE Web UI to avoid UI display issues.
+" 14 70
+
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "REBOOT" --menu "\nReboot Proxmox VE now? (recommended)" 11 58 2 \
     "yes" " " \
     "no" " " 3>&2 2>&1 1>&3)
