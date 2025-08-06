@@ -77,7 +77,7 @@ sed -e "s/localhost:8/$LOCAL_IP:8/g" \
   -e "/^token_secret/s/=.*/= \"$SECRET\"/" \
   -e "s/admin@example.com/$EMAIL/" \
   -e '/^admin_emails/s/, .*/]/' \
-  /opt/mediamanager/config.example.toml >/opt/"$CONFIG_DIR"/config.toml
+  /opt/mediamanager/config.example.toml >"$CONFIG_DIR"/config.toml
 
 mkdir -p "$MEDIA_DIR"/{images,tv,movies,torrents}
 
