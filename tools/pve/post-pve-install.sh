@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
+# Author: tteckster
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
@@ -47,19 +47,16 @@ msg_error() {
 get_pve_version() {
   local pve_ver
   pve_ver="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
-  # Output: 8.4.6 or 9.0.0
   echo "$pve_ver"
 }
 
 get_pve_major_minor() {
-  # Outputs MAJOR and MINOR as "8 4" or "9 0"
   local ver="$1"
   local major minor
   IFS='.' read -r major minor _ <<<"$ver"
   echo "$major $minor"
 }
 
-# --- Core Logic Trampoline ---
 main() {
   header_info
   echo -e "\nThis script will Perform Post Install Routines.\n"
@@ -79,7 +76,6 @@ main() {
   PVE_VERSION="$(get_pve_version)"
   read -r PVE_MAJOR PVE_MINOR <<<"$(get_pve_major_minor "$PVE_VERSION")"
 
-  # Supported: 8.0–8.9.x or 9.0 (further 9.x possibly later)
   if [[ "$PVE_MAJOR" == "8" ]]; then
     if ((PVE_MINOR < 0 || PVE_MINOR > 9)); then
       msg_error "Unsupported Proxmox 8 version"
@@ -102,6 +98,7 @@ main() {
 start_routines_8() {
   header_info
 
+  # === Bookworm/8.x: .list-Dateien ===
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SOURCES" --menu "The package manager will use the correct sources to update and install packages on your Proxmox VE server.\n \nCorrect Proxmox VE sources?" 14 58 2 \
     "yes" " " \
     "no" " " 3>&2 2>&1 1>&3)
@@ -116,9 +113,7 @@ EOF
     echo 'APT::Get::Update::SourceListWarnings::NonFreeFirmware "false";' >/etc/apt/apt.conf.d/no-bookworm-firmware.conf
     msg_ok "Corrected Proxmox VE Sources"
     ;;
-  no)
-    msg_error "Selected no to Correcting Proxmox VE Sources"
-    ;;
+  no) msg_error "Selected no to Correcting Proxmox VE Sources" ;;
   esac
 
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-ENTERPRISE" --menu "The 'pve-enterprise' repository is only available to users who have purchased a Proxmox VE subscription.\n \nDisable 'pve-enterprise' repository?" 14 58 2 \
@@ -132,9 +127,7 @@ EOF
 EOF
     msg_ok "Disabled 'pve-enterprise' repository"
     ;;
-  no)
-    msg_error "Selected no to Disabling 'pve-enterprise' repository"
-    ;;
+  no) msg_error "Selected no to Disabling 'pve-enterprise' repository" ;;
   esac
 
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-NO-SUBSCRIPTION" --menu "The 'pve-no-subscription' repository provides access to all of the open-source components of Proxmox VE.\n \nEnable 'pve-no-subscription' repository?" 14 58 2 \
@@ -148,9 +141,7 @@ deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
 EOF
     msg_ok "Enabled 'pve-no-subscription' repository"
     ;;
-  no)
-    msg_error "Selected no to Enabling 'pve-no-subscription' repository"
-    ;;
+  no) msg_error "Selected no to Enabling 'pve-no-subscription' repository" ;;
   esac
 
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CEPH PACKAGE REPOSITORIES" --menu "The 'Ceph Package Repositories' provides access to both the 'no-subscription' and 'enterprise' repositories (initially disabled).\n \nCorrect 'ceph package sources?" 14 58 2 \
@@ -167,9 +158,7 @@ EOF
 EOF
     msg_ok "Corrected 'ceph package repositories'"
     ;;
-  no)
-    msg_error "Selected no to Correcting 'ceph package repositories'"
-    ;;
+  no) msg_error "Selected no to Correcting 'ceph package repositories'" ;;
   esac
 
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVETEST" --menu "The 'pvetest' repository can give advanced users access to new features and updates before they are officially released.\n \nAdd (Disabled) 'pvetest' repository?" 14 58 2 \
@@ -183,11 +172,125 @@ EOF
 EOF
     msg_ok "Added 'pvetest' repository"
     ;;
-  no)
-    msg_error "Selected no to Adding 'pvetest' repository"
-    ;;
+  no) msg_error "Selected no to Adding 'pvetest' repository" ;;
   esac
 
+  post_routines_common
+}
+
+start_routines_9() {
+  header_info
+
+  # === Trixie/9.x: deb822 .sources ===
+  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SOURCES" --menu "The package manager will use the correct sources to update and install packages on your Proxmox VE 9 server.\n\nMigrate to deb822 sources format?" 14 58 2 \
+    "yes" " " \
+    "no" " " 3>&2 2>&1 1>&3)
+  case $CHOICE in
+  yes)
+    msg_info "Correcting Proxmox VE Sources (deb822)"
+    rm -f /etc/apt/sources.list.d/*.list
+    sed -i '/proxmox/d;/bookworm/d' /etc/apt/sources.list || true
+    # Modern Debian base sources (deb822)
+    cat >/etc/apt/sources.list.d/debian.sources <<EOF
+Types: deb
+URIs: http://deb.debian.org/debian
+Suites: trixie
+Components: main contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://security.debian.org/debian-security
+Suites: trixie-security
+Components: main contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://deb.debian.org/debian
+Suites: trixie-updates
+Components: main contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+    msg_ok "Corrected Proxmox VE 9 (Trixie) Sources"
+    ;;
+  no) msg_error "Selected no to Correcting Proxmox VE Sources" ;;
+  esac
+
+  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-ENTERPRISE" --menu "The 'pve-enterprise' repository is only available to users who have purchased a Proxmox VE subscription.\n \nAdd 'pve-enterprise' repository (deb822)?" 14 58 2 \
+    "yes" " " \
+    "no" " " 3>&2 2>&1 1>&3)
+  case $CHOICE in
+  yes)
+    msg_info "Adding 'pve-enterprise' repository (deb822)"
+    cat >/etc/apt/sources.list.d/pve-enterprise.sources <<EOF
+Types: deb
+URIs: https://enterprise.proxmox.com/debian/pve
+Suites: trixie
+Components: pve-enterprise
+Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+EOF
+    msg_ok "Added 'pve-enterprise' repository"
+    ;;
+  no) msg_error "Selected no to Adding 'pve-enterprise' repository" ;;
+  esac
+
+  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-NO-SUBSCRIPTION" --menu "The 'pve-no-subscription' repository provides access to all of the open-source components of Proxmox VE.\n \nAdd 'pve-no-subscription' repository (deb822)?" 14 58 2 \
+    "yes" " " \
+    "no" " " 3>&2 2>&1 1>&3)
+  case $CHOICE in
+  yes)
+    msg_info "Adding 'pve-no-subscription' repository (deb822)"
+    cat >/etc/apt/sources.list.d/proxmox.sources <<EOF
+Types: deb
+URIs: http://download.proxmox.com/debian/pve
+Suites: trixie
+Components: pve-no-subscription
+Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+EOF
+    msg_ok "Added 'pve-no-subscription' repository"
+    ;;
+  no) msg_error "Selected no to Adding 'pve-no-subscription' repository" ;;
+  esac
+
+  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CEPH PACKAGE REPOSITORIES" --menu "The 'Ceph Package Repositories' provides access to both the 'no-subscription' and 'enterprise' repositories (deb822).\n \nAdd 'ceph package sources?" 14 58 2 \
+    "yes" " " \
+    "no" " " 3>&2 2>&1 1>&3)
+  case $CHOICE in
+  yes)
+    msg_info "Adding 'ceph package repositories' (deb822)"
+    cat >/etc/apt/sources.list.d/ceph.sources <<EOF
+Types: deb
+URIs: http://download.proxmox.com/debian/ceph-squid
+Suites: trixie
+Components: no-subscription
+Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+EOF
+    msg_ok "Added 'ceph package repositories'"
+    ;;
+  no) msg_error "Selected no to Adding 'ceph package repositories'" ;;
+  esac
+
+  CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVETEST" --menu "The 'pvetest' repository can give advanced users access to new features and updates before they are officially released.\n \nAdd (Disabled) 'pvetest' repository (deb822)?" 14 58 2 \
+    "yes" " " \
+    "no" " " 3>&2 2>&1 1>&3)
+  case $CHOICE in
+  yes)
+    msg_info "Adding 'pvetest' repository (deb822, disabled)"
+    cat >/etc/apt/sources.list.d/pvetest.sources <<EOF
+# Types: deb
+# URIs: http://download.proxmox.com/debian/pve
+# Suites: trixie
+# Components: pvetest
+# Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+EOF
+    msg_ok "Added 'pvetest' repository"
+    ;;
+  no) msg_error "Selected no to Adding 'pvetest' repository" ;;
+  esac
+
+  post_routines_common
+}
+
+post_routines_common() {
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUBSCRIPTION NAG" --menu "This will disable the nag message reminding you to purchase a subscription every time you log in to the web interface.\n \nDisable subscription nag?" 14 58 2 \
     "yes" " " \
     "no" " " 3>&2 2>&1 1>&3)
@@ -195,7 +298,7 @@ EOF
   yes)
     whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox --title "Support Subscriptions" "Supporting the software's development team is essential. Check their official website's Support Subscriptions for pricing. Without their dedicated work, we wouldn't have this exceptional software." 10 58
     msg_info "Disabling subscription nag"
-    echo "DPkg::Post-Invoke { \"if [ -s /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js ] && ! grep -q -F 'NoMoreNagging' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; then echo 'Removing subscription nag from UI...'; sed -i '/data\.status/{s/\!//;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; fi\" };" >/etc/apt/apt.conf.d/no-nag-script
+    echo "DPkg::Post-Invoke { \"if [ -s /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js ] && ! grep -q -F 'NoMoreNagging' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; then echo 'Removing subscription nag from UI...'; sed -i '/data\.status/{s/\\!//;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; fi\" };" >/etc/apt/apt.conf.d/no-nag-script
     msg_ok "Disabled subscription nag (Delete browser cache)"
     ;;
   no)
@@ -218,9 +321,7 @@ EOF
       systemctl enable -q --now corosync
       msg_ok "Enabled high availability"
       ;;
-    no)
-      msg_error "Selected no to Enabling high availability"
-      ;;
+    no) msg_error "Selected no to Enabling high availability" ;;
     esac
   fi
 
@@ -243,14 +344,10 @@ EOF
         systemctl disable -q --now corosync
         msg_ok "Disabled Corosync"
         ;;
-      no)
-        msg_error "Selected no to Disabling Corosync"
-        ;;
+      no) msg_error "Selected no to Disabling Corosync" ;;
       esac
       ;;
-    no)
-      msg_error "Selected no to Disabling high availability"
-      ;;
+    no) msg_error "Selected no to Disabling high availability" ;;
     esac
   fi
 
@@ -264,9 +361,7 @@ EOF
     apt-get -y dist-upgrade &>/dev/null
     msg_ok "Updated Proxmox VE"
     ;;
-  no)
-    msg_error "Selected no to Updating Proxmox VE"
-    ;;
+  no) msg_error "Selected no to Updating Proxmox VE" ;;
   esac
 
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "REBOOT" --menu "\nReboot Proxmox VE now? (recommended)" 11 58 2 \
@@ -286,26 +381,4 @@ EOF
   esac
 }
 
-header_info
-echo -e "\nThis script will Perform Post Install Routines.\n"
-while true; do
-  read -p "Start the Proxmox VE Post Install Script (y/n)?" yn
-  case $yn in
-  [Yy]*) break ;;
-  [Nn]*)
-    clear
-    exit
-    ;;
-  *) echo "Please answer yes or no." ;;
-  esac
-done
-
-if ! pveversion | grep -Eq "pve-manager/8\.[0-4](\.[0-9]+)*"; then
-  msg_error "This version of Proxmox Virtual Environment is not supported"
-  echo -e "Requires Proxmox Virtual Environment Version 8.0 or later."
-  echo -e "Exiting..."
-  sleep 2
-  exit
-fi
-
-start_routines
+main
