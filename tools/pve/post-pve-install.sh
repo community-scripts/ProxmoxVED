@@ -394,9 +394,7 @@ post_routines_common() {
     rm /etc/apt/apt.conf.d/no-nag-script 2>/dev/null
     ;;
   esac
-  echo "BEFORE WIDGET"
   apt --reinstall install proxmox-widget-toolkit &>/dev/null || msg_error "Widget toolkit reinstall failed"
-  echo "AFTER WIDGET"
   if ! systemctl is-active --quiet pve-ha-lrm; then
     CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "HIGH AVAILABILITY" --menu "Enable high availability?" 10 58 2 \
       "yes" " " \
