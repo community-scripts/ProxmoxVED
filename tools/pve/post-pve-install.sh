@@ -333,8 +333,70 @@ EOF
   fi
 
   # ---- PVE-NO-SUBSCRIPTION ----
-  if component_exists_in_sources "pve-no-subscription"; then
-    msg_ok "'pve-no-subscription' repository already exists (skipped)"
+  # ---- PVE-NO-SUBSCRIPTION ----
+  REPO_FILE=""
+  REPO_ACTIVE=0
+  REPO_COMMENTED=0
+  # Suche nach existierendem Block (aktiv oder auskommentiert)
+  for file in /etc/apt/sources.list.d/*.sources; do
+    if grep -q "Components:.*pve-no-subscription" "$file"; then
+      REPO_FILE="$file"
+      if grep -E '^[^#]*Components:.*pve-no-subscription' "$file" >/dev/null; then
+        REPO_ACTIVE=1
+      elif grep -E '^#.*Components:.*pve-no-subscription' "$file" >/dev/null; then
+        REPO_COMMENTED=1
+      fi
+      break
+    fi
+  done
+
+  if [[ "$REPO_ACTIVE" -eq 1 ]]; then
+    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "PVE-NO-SUBSCRIPTION" \
+      --menu "'pve-no-subscription' repository is currently ENABLED.\n\nWhat do you want to do?" 14 58 3 \
+      "keep" "Keep as is" \
+      "disable" "Comment out (disable)" \
+      "delete" "Delete repo file" \
+      3>&2 2>&1 1>&3)
+    case $CHOICE in
+    keep)
+      msg_ok "Kept 'pve-no-subscription' repository"
+      ;;
+    disable)
+      msg_info "Disabling (commenting) 'pve-no-subscription' repository"
+      sed -i '/^\s*Types:/,/^$/s/^\([^#].*\)$/# \1/' "$REPO_FILE"
+      msg_ok "Disabled 'pve-no-subscription' repository"
+      ;;
+    delete)
+      msg_info "Deleting 'pve-no-subscription' repository file"
+      rm -f "$REPO_FILE"
+      msg_ok "Deleted 'pve-no-subscription' repository file"
+      ;;
+    esac
+
+  elif [[ "$REPO_COMMENTED" -eq 1 ]]; then
+    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "PVE-NO-SUBSCRIPTION" \
+      --menu "'pve-no-subscription' repository is currently DISABLED (commented out).\n\nWhat do you want to do?" 14 58 3 \
+      "enable" "Uncomment (enable)" \
+      "keep" "Keep disabled" \
+      "delete" "Delete repo file" \
+      3>&2 2>&1 1>&3)
+    case $CHOICE in
+    enable)
+      msg_info "Enabling (uncommenting) 'pve-no-subscription' repository"
+      sed -i '/^#\s*Types:/,/^$/s/^#\s*//' "$REPO_FILE"
+      msg_ok "Enabled 'pve-no-subscription' repository"
+      ;;
+    keep)
+      msg_ok "Kept 'pve-no-subscription' repository disabled"
+      ;;
+    delete)
+      msg_info "Deleting 'pve-no-subscription' repository file"
+      rm -f "$REPO_FILE"
+      msg_ok "Deleted 'pve-no-subscription' repository file"
+      ;;
+    esac
   else
     CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVE-NO-SUBSCRIPTION" \
       --menu "The 'pve-no-subscription' repository provides access to all of the open-source components of Proxmox VE.\n\nAdd 'pve-no-subscription' repository (deb822)?" 14 58 2 \
