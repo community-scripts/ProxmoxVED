@@ -48,7 +48,6 @@ function run_lxc_clean() {
   local container=$1
   header_info
   name=$(pct exec "$container" hostname)
-  echo -e "${BL}[Info]${GN} Cleaning ${name} ${CL} \n"
 
   pct exec "$container" -- bash -c '
     BL="\033[36m"; GN="\033[1;92m"; CL="\033[m"
