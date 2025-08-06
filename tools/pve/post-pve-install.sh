@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 tteck
-# Author: tteckster
+# Author: tteckster | MickLesk (CanbiZ)
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
@@ -98,7 +98,7 @@ main() {
 start_routines_8() {
   header_info
 
-  # === Bookworm/8.x: .list-Dateien ===
+  # === Bookworm/8.x: .list-Files ===
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SOURCES" --menu "The package manager will use the correct sources to update and install packages on your Proxmox VE server.\n \nCorrect Proxmox VE sources?" 14 58 2 \
     "yes" " " \
     "no" " " 3>&2 2>&1 1>&3)
