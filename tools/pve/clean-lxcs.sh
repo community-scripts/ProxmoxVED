@@ -25,7 +25,7 @@ CL="\033[m"
 header_info
 echo "Loading..."
 
-whiptail --backtitle "Proxmox VE Helper Scripts" --title "Proxmox VE LXC Updater" --yesno "This Will Clean logs, cache and update apt lists on selected LXC Containers. Proceed?" 10 58
+whiptail --backtitle "Proxmox VE Helper Scripts" --title "Proxmox VE LXC Updater" --yesno "This will clean logs, cache and update package lists on selected LXC Containers. Proceed?" 10 58
 
 NODE=$(hostname)
 EXCLUDE_MENU=()
@@ -51,39 +51,24 @@ function run_lxc_clean() {
   echo -e "${BL}[Info]${GN} Cleaning ${name} ${CL} \n"
 
   pct exec "$container" -- bash -c '
-    BL="\033[36m"
-    GN="\033[1;92m"
-    CL="\033[m"
+    BL="\033[36m"; GN="\033[1;92m"; CL="\033[m"
     name=$(hostname)
-    echo -e "${BL}[Info]${GN} Cleaning $name${CL} \n"
-
-    cache=$(find /var/cache/ -type f 2>/dev/null)
-    if [[ -z "$cache" ]]; then
-      echo -e "No cache files found. \n"
-      sleep 1
-    else
-      find /var/cache -type f -delete 2>/dev/null
-      echo "Cache removed."
-      sleep 1
-    fi
-
-    echo -e "${BL}[Info]${GN} Cleaning $name${CL} \n"
-    logs=$(find /var/log/ -type f 2>/dev/null)
-    if [[ -z "$logs" ]]; then
-      echo -e "No log files found. \n"
-      sleep 1
-    else
+    if [ -e /etc/alpine-release ]; then
+      echo -e "${BL}[Info]${GN} Cleaning $name (Alpine)${CL}\n"
+      apk cache clean
       find /var/log -type f -delete 2>/dev/null
-      echo "Logs removed."
-      sleep 1
+      find /tmp -mindepth 1 -delete 2>/dev/null
+      apk update
+    else
+      echo -e "${BL}[Info]${GN} Cleaning $name (Debian/Ubuntu)${CL}\n"
+      find /var/cache -type f -delete 2>/dev/null
+      find /var/log -type f -delete 2>/dev/null
+      find /tmp -mindepth 1 -delete 2>/dev/null
+      apt-get -y --purge autoremove
+      apt-get -y autoclean
+      rm -rf /var/lib/apt/lists/*
+      apt-get update
     fi
-
-    echo -e "${BL}[Info]${GN} Cleaning $name${CL} \n"
-    echo -e "${GN}Populating apt lists${CL} \n"
-    apt-get -y --purge autoremove
-    apt-get -y autoclean
-    rm -rf /var/lib/apt/lists/*
-    apt-get update
   '
 }
 
@@ -96,9 +81,10 @@ for container in $(pct list | awk '{if(NR>1) print $1}'); do
   fi
 
   os=$(pct config "$container" | awk '/^ostype/ {print $2}')
-  if [ "$os" != "debian" ] && [ "$os" != "ubuntu" ]; then
+  # Supported: debian, ubuntu, alpine
+  if [ "$os" != "debian" ] && [ "$os" != "ubuntu" ] && [ "$os" != "alpine" ]; then
     header_info
-    echo -e "${BL}[Info]${GN} Skipping ${RD}$container is not Debian or Ubuntu${CL} \n"
+    echo -e "${BL}[Info]${GN} Skipping ${RD}$container is not Debian, Ubuntu or Alpine${CL} \n"
     sleep 1
     continue
   fi
