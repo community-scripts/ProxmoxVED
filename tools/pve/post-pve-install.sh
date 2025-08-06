@@ -44,7 +44,62 @@ msg_error() {
   echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
 }
 
-start_routines() {
+get_pve_version() {
+  local pve_ver
+  pve_ver="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
+  # Output: 8.4.6 or 9.0.0
+  echo "$pve_ver"
+}
+
+get_pve_major_minor() {
+  # Outputs MAJOR and MINOR as "8 4" or "9 0"
+  local ver="$1"
+  local major minor
+  IFS='.' read -r major minor _ <<<"$ver"
+  echo "$major $minor"
+}
+
+# --- Core Logic Trampoline ---
+main() {
+  header_info
+  echo -e "\nThis script will Perform Post Install Routines.\n"
+  while true; do
+    read -p "Start the Proxmox VE Post Install Script (y/n)? " yn
+    case $yn in
+    [Yy]*) break ;;
+    [Nn]*)
+      clear
+      exit
+      ;;
+    *) echo "Please answer yes or no." ;;
+    esac
+  done
+
+  local PVE_VERSION PVE_MAJOR PVE_MINOR
+  PVE_VERSION="$(get_pve_version)"
+  read -r PVE_MAJOR PVE_MINOR <<<"$(get_pve_major_minor "$PVE_VERSION")"
+
+  # Supported: 8.0–8.9.x or 9.0 (further 9.x possibly later)
+  if [[ "$PVE_MAJOR" == "8" ]]; then
+    if ((PVE_MINOR < 0 || PVE_MINOR > 9)); then
+      msg_error "Unsupported Proxmox 8 version"
+      exit 1
+    fi
+    start_routines_8
+  elif [[ "$PVE_MAJOR" == "9" ]]; then
+    if ((PVE_MINOR != 0)); then
+      msg_error "Only Proxmox 9.0 is currently supported"
+      exit 1
+    fi
+    start_routines_9
+  else
+    msg_error "Unsupported Proxmox VE major version: $PVE_MAJOR"
+    echo -e "Supported: 8.0–8.9.x and 9.0"
+    exit 1
+  fi
+}
+
+start_routines_8() {
   header_info
 
   CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SOURCES" --menu "The package manager will use the correct sources to update and install packages on your Proxmox VE server.\n \nCorrect Proxmox VE sources?" 14 58 2 \
