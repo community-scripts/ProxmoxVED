@@ -19,6 +19,11 @@ RD="\033[01;31m"
 GN="\033[1;92m"
 CL="\033[m"
 
+LOGFILE="/var/log/fstrim.log"
+touch "$LOGFILE"
+chmod 600 "$LOGFILE"
+echo -e "\n----- $(date '+%Y-%m-%d %H:%M:%S') | fstrim Run by $(whoami) on $(hostname) -----" >>"$LOGFILE"
+
 header_info
 echo "Loading..."
 
