@@ -28,7 +28,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/kyantech/palmr/releases/latest | yq '.tag_name' | sed 's/^v//')
+  RELEASE=$(curl -fsSL https://api.github.com/repos/kyantech/palmr/releases/latest | jq '.tag_name' | sed 's/^v//')
   if [[ "${RELEASE}" != "$(cat ~/.palmr 2>/dev/null)" ]] || [[ ! -f ~/.palmr ]]; then
     msg_info "Stopping Services"
     systemctl stop palmr-frontend palmr-backend

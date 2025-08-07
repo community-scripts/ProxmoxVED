@@ -28,7 +28,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/javedh-dev/tracktor/releases/latest | yq '.tag_name' | sed 's/^v//')
+  RELEASE=$(curl -fsSL https://api.github.com/repos/javedh-dev/tracktor/releases/latest | jq '.tag_name' | sed 's/^v//')
   if [[ "${RELEASE}" != "$(cat ~/.tracktor 2>/dev/null)" ]] || [[ ! -f ~/.tracktor ]]; then
     msg_info "Stopping Service"
     systemctl stop tracktor
@@ -40,7 +40,7 @@ function update_script() {
 
     msg_info "Updating ${APP}"
     setup_nodejs
-    fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor" 
+    fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor"
     cd /opt/tracktor
     rm package-lock.json
     $STD npm install
