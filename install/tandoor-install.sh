@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
-# Author: tteck
-# Co-Author: MickLesk (Canbiz)
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (Canbiz)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://tandoor.dev/
 
@@ -31,7 +30,7 @@ $STD apt-get install -y --no-install-recommends \
   libxmlsec1-openssl
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="20" NODE_MODULE="yarn@latest" setup_nodejs
+NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 fetch_and_deploy_gh_release "tandoor" "TandoorRecipes/recipes" "tarball" "latest" "/opt/tandoor"
 PG_VERSION="16" setup_postgresql
 PYTHON_VERSION="3.13" setup_uv
