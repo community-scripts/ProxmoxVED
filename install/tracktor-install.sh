@@ -18,7 +18,7 @@ fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor"
 
 msg_info "Configuring Tracktor"
 cd /opt/tracktor
-$STD npm cache clean --force
+rm package-lock.json
 $STD npm install
 $STD npm run build
 mkdir /opt/tracktor-data
