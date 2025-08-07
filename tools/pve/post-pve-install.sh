@@ -332,7 +332,40 @@ EOF
     esac
   fi
 
-  # ---- PVE-NO-SUBSCRIPTION ----
+  # ---- CEPH-ENTERPRISE ----
+  if grep -q "enterprise.proxmox.com.*ceph" /etc/apt/sources.list.d/*.sources 2>/dev/null; then
+    CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "CEPH-ENTERPRISE" \
+      --menu "'ceph enterprise' repository already exists.\n\nWhat do you want to do?" 14 58 2 \
+      "keep" "Keep as is" \
+      "disable" "Comment out (disable) this repo" \
+      "delete" "Delete this repo file" \
+      3>&2 2>&1 1>&3)
+    case $CHOICE in
+    keep)
+      msg_ok "Kept 'ceph enterprise' repository"
+      ;;
+    disable)
+      msg_info "Disabling (commenting) 'ceph enterprise' repository"
+      for file in /etc/apt/sources.list.d/*.sources; do
+        if grep -q "enterprise.proxmox.com.*ceph" "$file"; then
+          sed -i '/^\s*Types:/,/^$/s/^\([^#].*\)$/# \1/' "$file"
+        fi
+      done
+      msg_ok "Disabled 'ceph enterprise' repository"
+      ;;
+    delete)
+      msg_info "Deleting 'ceph enterprise' repository file"
+      for file in /etc/apt/sources.list.d/*.sources; do
+        if grep -q "enterprise.proxmox.com.*ceph" "$file"; then
+          rm -f "$file"
+        fi
+      done
+      msg_ok "Deleted 'ceph enterprise' repository file"
+      ;;
+    esac
+  fi
+
   # ---- PVE-NO-SUBSCRIPTION ----
   REPO_FILE=""
   REPO_ACTIVE=0
@@ -438,7 +471,12 @@ Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
 EOF
       msg_ok "Added 'ceph package repositories'"
       ;;
-    no) msg_error "Selected no to Adding 'ceph package repositories'" ;;
+    no)
+      msg_error "Selected no to Adding 'ceph package repositories'"
+      find /etc/apt/sources.list.d/ -type f \( -name "*.sources" -o -name "*.list" \) \
+        -exec sed -i '/enterprise.proxmox.com.*ceph/s/^/# /' {} \;
+      msg_ok "Disabled all Ceph Enterprise repositories"
+      ;;
     esac
   fi
 
