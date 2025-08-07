@@ -27,9 +27,8 @@ NODE_ENV=production
 PUBLIC_DEMO_MODE=false
 PUBLIC_API_BASE_URL=/
 DB_PATH=/opt/tracktor-data/vehicles.db
-
+PORT=3000
 EOF
-
 msg_ok "Configured Tracktor"
 
 msg_info "Creating service"
