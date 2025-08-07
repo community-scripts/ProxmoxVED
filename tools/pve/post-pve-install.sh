@@ -515,7 +515,11 @@ post_routines_common() {
   yes)
     whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox --title "Support Subscriptions" "Supporting the software's development team is essential. Check their official website's Support Subscriptions for pricing. Without their dedicated work, we wouldn't have this exceptional software." 10 58
     msg_info "Disabling subscription nag"
-    echo "DPkg::Post-Invoke { \"if [ -s /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js ] && ! grep -q -F 'NoMoreNagging' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; then echo 'Removing subscription nag from UI...'; sed -i '/data\.status/{s/\\!//;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; fi\" };" >/etc/apt/apt.conf.d/no-nag-script
+    encoded_script=$(base64 -w0 <<'EOF'
+[ -s /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js ] && ! grep -q -F 'NoMoreNagging' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js && echo 'Removing subscription nag from UI...' && sed -i '/data\.status/{s/\!//;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; [ -f /usr/share/pve-yew-mobile-gui/index.html.tpl ] && sed -i '/<script id="custom-close-subscription-nag-js">.*<\/script>/d' /usr/share/pve-yew-mobile-gui/index.html.tpl && sed -i '/<\/head>/i <script id="custom-close-subscription-nag-js">document.addEventListener("DOMContentLoaded",()=>{let e=new MutationObserver(()=>{let t=document.querySelector('\''dialog.pwt-outer-dialog[aria-label="No valid subscription"]'\'');if(t){let i=t.querySelector(".fa-close");t.style.visibility="hidden",t.removeAttribute("open"),i&&i.click(),e.disconnect()}});e.observe(document.body,{childList:!0,subtree:!0})});</script>' /usr/share/pve-yew-mobile-gui/index.html.tpl
+EOF
+)
+    echo "DPkg::Post-Invoke { \"echo $encoded_script | base64 -d | bash\"; };" > /etc/apt/apt.conf.d/no-nag-script
     msg_ok "Disabled subscription nag (Delete browser cache)"
     ;;
   no)
