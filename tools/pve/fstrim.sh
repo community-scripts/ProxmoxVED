@@ -102,16 +102,37 @@ function trim_container() {
   local name="$2"
   header_info
   echo -e "${BL}[Info]${GN} Trimming ${BL}$container${CL} \n"
+
   local before_trim after_trim
-  before_trim=$(lvs --noheadings -o lv_name,data_percent | awk -v ctid="vm-${container}-disk-0" '$1 == ctid {gsub(/%/, "", $2); print $2}')
-  echo -e "${RD}Data before trim $before_trim%${CL}"
+  local lv_name="vm-${container}-disk-0"
+  if lvs --noheadings -o lv_name 2>/dev/null | grep -qw "$lv_name"; then
+    before_trim=$(lvs --noheadings -o lv_name,data_percent 2>/dev/null | awk -v ctid="$lv_name" '$1 == ctid {gsub(/%/, "", $2); print $2}')
+    [[ -n "$before_trim" ]] && echo -e "${RD}Data before trim $before_trim%${CL}" || echo -e "${RD}Data before trim: not available${CL}"
+  else
+    before_trim=""
+    echo -e "${RD}Data before trim: not available (non-LVM storage)${CL}"
+  fi
+
   local fstrim_output
   fstrim_output=$(pct fstrim "$container" 2>&1)
-  after_trim=$(lvs --noheadings -o lv_name,data_percent | awk -v ctid="vm-${container}-disk-0" '$1 == ctid {gsub(/%/, "", $2); print $2}')
-  echo -e "${GN}Data after trim $after_trim%${CL}"
+  if echo "$fstrim_output" | grep -qi "not supported"; then
+    echo -e "${RD}fstrim NICHT unterstützt auf diesem Storage!${CL}"
+  elif echo "$fstrim_output" | grep -Eq '([0-9]+(\.[0-9]+)?\s*[KMGT]?B)'; then
+    echo -e "${GN}fstrim result: $fstrim_output${CL}"
+  else
+    echo -e "${RD}fstrim result: $fstrim_output${CL}"
+  fi
+
+  if lvs --noheadings -o lv_name 2>/dev/null | grep -qw "$lv_name"; then
+    after_trim=$(lvs --noheadings -o lv_name,data_percent 2>/dev/null | awk -v ctid="$lv_name" '$1 == ctid {gsub(/%/, "", $2); print $2}')
+    [[ -n "$after_trim" ]] && echo -e "${GN}Data after trim $after_trim%${CL}" || echo -e "${GN}Data after trim: not available${CL}"
+  else
+    after_trim=""
+    echo -e "${GN}Data after trim: not available (non-LVM storage)${CL}"
+  fi
 
   # Logging
-  echo "$(date '+%Y-%m-%d %H:%M:%S') | CTID=$container | Name=$name | Before=$before_trim% | After=$after_trim% | fstrim: $fstrim_output" >>"$LOGFILE"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') | CTID=$container | Name=$name | Before=${before_trim:-N/A}% | After=${after_trim:-N/A}% | fstrim: $fstrim_output" >>"$LOGFILE"
   sleep 0.5
 }
 
