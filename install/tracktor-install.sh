@@ -16,10 +16,10 @@ update_os
 setup_nodejs
 fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor" 
 
-
 msg_info "Configuring Tracktor"
 cd /opt/tracktor
 export NODE_ENV=production
+$STD npm cache clean --force
 $STD npm install
 $STD npm run build
 mkdir /opt/tracktor-data
