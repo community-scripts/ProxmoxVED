@@ -13,58 +13,41 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  sqlite3 \
-  yq
-msg_ok "Installed Dependencies"
+setup_nodejs
+fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor" 
 
-NODE_VERSION="20" setup_nodejs
-fetch_and_deploy_gh_release "tududi" "chrisvel/tududi"
 
-msg_info "Configuring Tududi"
-cd /opt/tududi
+msg_info "Configuring Tracktor"
+cd /opt/tracktor
 $STD npm install
-export NODE_ENV=production
-$STD npm run frontend:build
-mv ./dist ./backend
-mv ./public/locales ./backend/dist
-mv ./public/favicon.* ./backend/dist
-msg_ok "Configured Tududi"
+$STD npm run build
+mkdir /opt/tracktor-data
+cat <<EOF >/opt/tracktor.env
+NODE_ENV=production
+PUBLIC_DEMO_MODE=false
+PUBLIC_API_BASE_URL=/
+DB_PATH=/opt/tracktor-data/vehicles.db
 
-msg_info "Creating env and database"
-DB_LOCATION="/opt/tududi-db"
-UPLOAD_DIR="/opt/tududi-uploads"
-mkdir -p {"$DB_LOCATION","$UPLOAD_DIR"}
-SECRET="$(openssl rand -hex 64)"
-sed -e 's/^GOOGLE/# &/' \
-  -e '/TUDUDI_SESSION/s/^# //' \
-  -e '/NODE_ENV/s/^# //' \
-  -e "s/your_session_secret_here/$SECRET/" \
-  -e 's/development/production/' \
-  -e "\$a\DB_FILE=$DB_LOCATION/production.sqlite3" \
-  -e "\$a\TUDUDI_UPLOAD_PATH=$UPLOAD_DIR" \
-  /opt/tududi/backend/.env.example >/opt/tududi/backend/.env
-export DB_FILE="$DB_LOCATION/production.sqlite3"
-$STD npm run db:init
-msg_ok "Created env and database"
+EOF
+
+msg_ok "Configured Tracktor"
 
 msg_info "Creating service"
-cat <<EOF >/etc/systemd/system/tududi.service
+cat <<EOF >/etc/systemd/system/tracktor.service
 [Unit]
-Description=Tududi Service
+Description=Tracktor Service
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/tududi
-EnvironmentFile=/opt/tududi/backend/.env
+WorkingDirectory=/opt/tracktor
+EnvironmentFile=/opt/tracktor.env
 ExecStart=/usr/bin/npm run start
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now tududi
+systemctl enable -q --now tracktor
 msg_ok "Created service"
 
 motd_ssh
