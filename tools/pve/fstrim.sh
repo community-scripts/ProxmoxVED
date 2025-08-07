@@ -24,7 +24,7 @@ echo "Loading..."
 
 whiptail --backtitle "Proxmox VE Helper Scripts" \
   --title "About fstrim (LXC)" \
-  --msgbox "The 'fstrim' command releases unused blocks back to the storage device. This only makes sense for containers on SSD, NVMe, Thin-LVM, or storage with discard/TRIM support.\n\nIf your root filesystem or container disks are on classic HDDs, thick LVM, or unsupported storage types, running fstrim will have no effect.\n\nRecommended:\n- Use fstrim only on SSD, NVMe, or thin-provisioned storage with discard enabled.\n- For ZFS, ensure 'autotrim=on' is set on your pool.\n\nSee: https://pve.proxmox.com/wiki/Shrinking_LXC_disks" 16 88
+  --msgbox "The 'fstrim' command releases unused blocks back to the storage device. This only makes sense for containers on SSD, NVMe, Thin-LVM, or storage with discard/TRIM support.\n\nIf your root filesystem or container disks are on classic HDDs, thick LVM, or unsupported storage types, running fstrim will have no effect.\n\nRecommended:\n- Use fstrim only on SSD, NVMe, or thin-provisioned storage with discard enabled.\n- For ZFS, ensure 'autotrim=on' is set on your pool.\n" 16 88
 
 ROOT_FS=$(df -Th "/" | awk 'NR==2 {print $2}')
 if [ "$ROOT_FS" != "ext4" ]; then
