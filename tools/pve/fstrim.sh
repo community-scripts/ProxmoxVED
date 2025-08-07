@@ -77,11 +77,12 @@ read -ra EXCLUDED <<<$(echo "$excluded_containers_raw" | tr -d '"')
 
 TO_START=()
 if [ ${#STOPPED_MENU[@]} -gt 0 ]; then
-
-  echo -e "${BL}[Info]${GN}Some containers are currently stopped.${CL}"
   for ((i = 0; i < ${#STOPPED_MENU[@]}; i += 3)); do
     CTID="${STOPPED_MENU[i]}"
     DESC="${STOPPED_MENU[i + 1]}"
+    if [[ " ${EXCLUDED[*]} " =~ " $CTID " ]]; then
+      continue
+    fi
     header_info
     echo -e "${BL}[Info]${GN} Container $CTID ($DESC) is currently stopped.${CL}"
     read -rp "Temporarily start for fstrim? [y/N]: " answer
