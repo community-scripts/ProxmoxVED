@@ -48,21 +48,21 @@ msg_ok "Set up PostgreSQL"
 
 msg_info "Creating Service"
 mkdir -p /opt
-cat <<EOF >/opt/${APPLICATION}.env
-LITELLM_MASTER_KEY=sk-1234
-DATABASE_URL=postgresql://$DB_USER:$DB_PASS@127.0.0.1:5432/$DB_NAME
-STORE_MODEL_IN_DB=true
-USE_PRISMA_MIGRATE=true
+cat <<EOF >/opt/"${APPLICATION}".yaml
+general_settings:
+  master_key: sk-1234
+  database_url: postgresql://$DB_USER:$DB_PASS@127.0.0.1:5432/$DB_NAME
+  store_model_in_db: true
+  use_prisma_migrate: true
 EOF
 
-cat <<EOF >/etc/systemd/system/${APPLICATION}.service
+cat <<EOF >/etc/systemd/system/"${APPLICATION}".service
 [Unit]
 Description=LiteLLM
 
 [Service]
 Type=simple
-EnvironmentFile=/opt/${APPLICATION}.env
-ExecStart=litellm
+ExecStart=litellm --config /opt/"${APPLICATION}".yaml
 Restart=always
 
 [Install]
