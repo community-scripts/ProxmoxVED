@@ -10,7 +10,7 @@
   "privileged": false,
   "interface_port": 3000,
   "documentation": "https://tracktor.bytedge.in/introduction.html",
-  "config_path": "/etc/system/systemd/tracktor.service",
+  "config_path": "/opt/tracktor/app/server/.env",
   "website": "https://tracktor.bytedge.in/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/tracktor.svg",
   "description": "Tracktor is an open-source web application for comprehensive vehicle management.\nEasily track ⛽ fuel consumption, 🛠️ maintenance, 🛡️ insurance, and 📄 regulatory documents for all your vehicles in one place. ",
