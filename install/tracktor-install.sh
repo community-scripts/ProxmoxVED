@@ -19,6 +19,7 @@ fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor"
 
 msg_info "Configuring Tracktor"
 cd /opt/tracktor
+export NODE_ENV=production
 $STD npm install
 $STD npm run build
 mkdir /opt/tracktor-data
@@ -41,7 +42,7 @@ After=network.target
 Type=simple
 WorkingDirectory=/opt/tracktor
 EnvironmentFile=/opt/tracktor.env
-ExecStart=/usr/bin/npm run start
+ExecStart=/usr/bin/npm start
 
 [Install]
 WantedBy=multi-user.target
