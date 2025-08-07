@@ -22,11 +22,12 @@ rm package-lock.json
 $STD npm install
 $STD npm run build
 mkdir /opt/tracktor-data
+HOST_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/opt/tracktor/app/server/.env
 NODE_ENV=production
 PUBLIC_DEMO_MODE=false
-PUBLIC_API_BASE_URL=/
 DB_PATH=/opt/tracktor-data/vehicles.db
+PUBLIC_API_BASE_URL=http://$HOST_IP:3000
 PORT=3000
 EOF
 msg_ok "Configured Tracktor"
