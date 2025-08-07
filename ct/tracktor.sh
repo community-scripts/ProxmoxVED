@@ -38,7 +38,7 @@ function update_script() {
     setup_nodejs
     fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor" 
     cd /opt/tracktor
-    $STD npm cache clean --force
+    rm package-lock.json
     $STD npm install
     $STD npm run build
     msg_ok "Updated $APP"
