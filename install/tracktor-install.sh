@@ -22,7 +22,7 @@ rm package-lock.json
 $STD npm install
 $STD npm run build
 mkdir /opt/tracktor-data
-cat <<EOF >/opt/tracktor.env
+cat <<EOF >/opt/tracktor/app/server/.env
 NODE_ENV=production
 PUBLIC_DEMO_MODE=false
 PUBLIC_API_BASE_URL=/
@@ -40,7 +40,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/tracktor
-EnvironmentFile=/opt/tracktor.env
+EnvironmentFile=/opt/tracktor/app/server/.env
 ExecStart=/usr/bin/npm start
 
 [Install]
