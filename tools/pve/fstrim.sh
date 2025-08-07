@@ -7,8 +7,7 @@ function header_info() {
   cat <<"EOF"
     _______ __                     __                    ______     _
    / ____(_) /__  _______  _______/ /____  ____ ___     /_  __/____(_)___ ___
-  / /_  / / / _ \/ ___/ / / / ___/ __/ _ \/ __ `__ \     / / / ___/ / / __ `__ \
- / __/ / /  __(__  ) /_/ (__  ) /_/  __/ / / / / / /    / / / /  / / / / / / / /
+  / /_  / / / _ \/ ___/ / / / ___/ __/ _ \/ __ `__ \     / / / ___/ / / / / / /
 /_/   /_/_/\___/____/\__, /____/\__/\___/_/ /_/ /_/    /_/ /_/  /_/_/ /_/ /_/
                     /____/
 EOF
@@ -24,7 +23,7 @@ echo "Loading..."
 
 whiptail --backtitle "Proxmox VE Helper Scripts" \
   --title "About fstrim (LXC)" \
-  --msgbox "The 'fstrim' command releases unused blocks back to the storage device. This only makes sense for containers on SSD, NVMe, Thin-LVM, or storage with discard/TRIM support.\n\nIf your root filesystem or container disks are on classic HDDs, thick LVM, or unsupported storage types, running fstrim will have no effect.\n\nRecommended:\n- Use fstrim only on SSD, NVMe, or thin-provisioned storage with discard enabled.\n- For ZFS, ensure 'autotrim=on' is set on your pool.\n" 16 88
+  --msgbox "The 'fstrim' command releases unused blocks back to the storage device. This only makes sense for containers on SSD, NVMe, Thin-LVM, or storage with discard/TRIM support.\n\nIf your root filesystem or container disks are on classic HDDs, thick LVM, or unsupported storage types, running fstrim will have no effect.\n\nRecommended:\n- Use fstrim only on SSD, NVMe, or thin-provisioned storage with discard enabled.\n- For ZFS, ensure 'autotrim=on' is set on your pool.\n\nSee: https://pve.proxmox.com/wiki/Shrinking_LXC_disks" 16 88
 
 ROOT_FS=$(df -Th "/" | awk 'NR==2 {print $2}')
 if [ "$ROOT_FS" != "ext4" ]; then
@@ -37,36 +36,51 @@ NODE=$(hostname)
 EXCLUDE_MENU=()
 STOPPED_MENU=()
 MAX_NAME_LEN=0
+MAX_STAT_LEN=0
 
-while read -r CTID STATUS _ NAME _; do
+# Build arrays with one pct list
+mapfile -t CTLINES < <(pct list | awk 'NR>1')
+
+for LINE in "${CTLINES[@]}"; do
+  CTID=$(awk '{print $1}' <<<"$LINE")
+  STATUS=$(awk '{print $2}' <<<"$LINE")
+  NAME=$(awk '{print $3}' <<<"$LINE")
   ((${#NAME} > MAX_NAME_LEN)) && MAX_NAME_LEN=${#NAME}
-done < <(pct list | awk 'NR>1')
+  ((${#STATUS} > MAX_STAT_LEN)) && MAX_STAT_LEN=${#STATUS}
+done
 
-FMT="%-5s | %-${MAX_NAME_LEN}s | %-8s"
+FMT="%-5s | %-${MAX_NAME_LEN}s | %-${MAX_STAT_LEN}s"
 
-while read -r CTID STATUS _ NAME _; do
+for LINE in "${CTLINES[@]}"; do
+  CTID=$(awk '{print $1}' <<<"$LINE")
+  STATUS=$(awk '{print $2}' <<<"$LINE")
+  NAME=$(awk '{print $3}' <<<"$LINE")
   DESC=$(printf "$FMT" "$CTID" "$NAME" "$STATUS")
   EXCLUDE_MENU+=("$CTID" "$DESC" "OFF")
   if [[ "$STATUS" == "stopped" ]]; then
     STOPPED_MENU+=("$CTID" "$DESC" "OFF")
   fi
-done < <(pct list | awk 'NR>1')
+done
 
 excluded_containers_raw=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
   --title "Containers on $NODE" \
   --checklist "\nSelect containers to skip from trimming:\n" \
-  20 $((MAX_NAME_LEN + 40)) 12 "${EXCLUDE_MENU[@]}" 3>&1 1>&2 2>&3)
+  20 $((MAX_NAME_LEN + MAX_STAT_LEN + 20)) 12 "${EXCLUDE_MENU[@]}" 3>&1 1>&2 2>&3)
 [ $? -ne 0 ] && exit
 read -ra EXCLUDED <<<$(echo "$excluded_containers_raw" | tr -d '"')
 
 TO_START=()
 if [ ${#STOPPED_MENU[@]} -gt 0 ]; then
-  selected=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-    --title "Stopped LXC Containers" \
-    --checklist "\nSome LXC containers are currently stopped.\nWhich ones do you want to temporarily start for the trim operation?\n(They can be stopped again afterwards)\n" \
-    16 $((MAX_NAME_LEN + 40)) 8 "${STOPPED_MENU[@]}" 3>&1 1>&2 2>&3)
-  [ $? -ne 0 ] && exit
-  read -ra TO_START <<<$(echo "$selected" | tr -d '"')
+  echo ""
+  echo "Some containers are currently stopped."
+  for ((i = 0; i < ${#STOPPED_MENU[@]}; i += 3)); do
+    CTID="${STOPPED_MENU[i]}"
+    DESC="${STOPPED_MENU[i + 1]}"
+    read -rp "Temporarily start CT $DESC for fstrim? [y/N]: " answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+      TO_START+=("$CTID")
+    fi
+  done
 fi
 
 declare -A WAS_STOPPED
@@ -87,47 +101,48 @@ function trim_container() {
   sleep 0.5
 }
 
-for container in $(pct list | awk 'NR>1 {print $1}'); do
-  if [[ " ${EXCLUDED[*]} " =~ " $container " ]]; then
+for LINE in "${CTLINES[@]}"; do
+  CTID=$(awk '{print $1}' <<<"$LINE")
+  STATUS=$(awk '{print $2}' <<<"$LINE")
+  NAME=$(awk '{print $3}' <<<"$LINE")
+  if [[ " ${EXCLUDED[*]} " =~ " $CTID " ]]; then
     header_info
-    echo -e "${BL}[Info]${GN} Skipping $container (excluded)${CL}"
+    echo -e "${BL}[Info]${GN} Skipping $CTID ($NAME, excluded)${CL}"
     sleep 0.5
     continue
   fi
-  if pct config "$container" | grep -q "template:"; then
+  if pct config "$CTID" | grep -q "template:"; then
     header_info
-    echo -e "${BL}[Info]${GN} Skipping $container (template)${CL}\n"
+    echo -e "${BL}[Info]${GN} Skipping $CTID ($NAME, template)${CL}\n"
     sleep 0.5
     continue
   fi
-  STATUS=$(pct list | awk -v id="$container" '$1==id{print $2}')
   if [[ "$STATUS" != "running" ]]; then
-    if [[ -n "${WAS_STOPPED[$container]:-}" ]]; then
+    if [[ -n "${WAS_STOPPED[$CTID]:-}" ]]; then
       header_info
-      echo -e "${BL}[Info]${GN} Starting $container for trim...${CL}"
-      pct start "$container"
+      echo -e "${BL}[Info]${GN} Starting $CTID ($NAME) for trim...${CL}"
+      pct start "$CTID"
       sleep 2
     else
       header_info
-      echo -e "${BL}[Info]${GN} Skipping $container (not running, not selected)${CL}"
+      echo -e "${BL}[Info]${GN} Skipping $CTID ($NAME, not running, not selected)${CL}"
       sleep 0.5
       continue
     fi
   fi
 
-  trim_container "$container"
+  trim_container "$CTID"
 
-  if [[ -n "${WAS_STOPPED[$container]:-}" ]]; then
-    if whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "Stop container again?" \
-      --yesno "Container $container was started for the trim operation.\n\nDo you want to stop it again now?" 10 60; then
+  if [[ -n "${WAS_STOPPED[$CTID]:-}" ]]; then
+    read -rp "Stop CT $CTID ($NAME) again after trim? [Y/n]: " answer
+    if [[ ! "$answer" =~ ^[Nn]$ ]]; then
       header_info
-      echo -e "${BL}[Info]${GN} Stopping $container again...${CL}"
-      pct stop "$container"
+      echo -e "${BL}[Info]${GN} Stopping $CTID ($NAME) again...${CL}"
+      pct stop "$CTID"
       sleep 1
     else
       header_info
-      echo -e "${BL}[Info]${GN} Leaving $container running as requested.${CL}"
+      echo -e "${BL}[Info]${GN} Leaving $CTID ($NAME) running as requested.${CL}"
       sleep 1
     fi
   fi
