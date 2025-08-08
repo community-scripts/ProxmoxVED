@@ -26,8 +26,7 @@ fetch_and_deploy_gh_release "mylar3" "mylar3/mylar3"
 msg_info "Setup Mylar3"
 mkdir -p /opt/mylar3
 mkdir -p /opt/mylar3-data
-$STD uv --system pip install -U --no-cache-dir pip
-$STD uv --system pip install --no-cache-dir -r /opt/mylar3/requirements.txt
+$STD uv pip install --no-cache-dir -r /opt/mylar3/requirements.txt --system
 msg_ok "Setup Mylar3"
 
 msg_info "Creating Service"
