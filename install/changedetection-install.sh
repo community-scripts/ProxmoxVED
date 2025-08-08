@@ -46,21 +46,20 @@ msg_ok "Installed Dependencies"
 msg_info "Setup Python3"
 $STD apt-get install -y \
   python3 \
-  python3-dev \
-  python3-pip
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
+  python3-dev
 msg_ok "Setup Python3"
 
 NODE_VERSION="22" setup_nodejs
+PYTHON_VERSION="3.12" setup_uv
 
 msg_info "Installing Change Detection"
 mkdir /opt/changedetection
-$STD pip3 install changedetection.io
+$STD uv pip install changedetection.io --system
 msg_ok "Installed Change Detection"
 
 msg_info "Installing Browserless & Playwright"
 mkdir /opt/browserless
-$STD python3 -m pip install playwright
+$STD uv pip install playwright --system
 $STD git clone https://github.com/browserless/chrome /opt/browserless
 $STD npm install --prefix /opt/browserless
 $STD /opt/browserless/node_modules/playwright-core/cli.js install --with-deps &>/dev/null

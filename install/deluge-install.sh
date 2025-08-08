@@ -14,24 +14,21 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y python3-libtorrent
+$STD apt-get install -y \
+  python3-libtorrent \
+  python3 \
+  python3-dev
 msg_ok "Installed Dependencies"
 
-msg_info "Setup Python3"
-$STD apt-get install -y \
-  python3 \
-  python3-dev \
-  python3-pip
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-msg_ok "Setup Python3"
+setup_uv
 
 msg_info "Installing Deluge"
-$STD pip install deluge[all]
+$STD uv pip install deluge[all] --system
 msg_ok "Installed Deluge"
 
 msg_info "Creating Service"
-service_path="/etc/systemd/system/deluged.service"
-echo "[Unit]
+cat <<EOF >/etc/systemd/system/deluge-web.service
+[Unit]
 Description=Deluge Bittorrent Client Daemon
 Documentation=man:deluged
 After=network-online.target
@@ -44,10 +41,11 @@ Restart=on-failure
 TimeoutStopSec=300
 
 [Install]
-WantedBy=multi-user.target" >$service_path
+WantedBy=multi-user.target
+EOF
 
-service_path="/etc/systemd/system/deluge-web.service"
-echo "[Unit]
+cat <<EOF >/etc/systemd/system/deluge-web.service
+[Unit]
 Description=Deluge Bittorrent Client Web Interface
 Documentation=man:deluge-web
 After=deluged.service
@@ -60,9 +58,10 @@ ExecStart=/usr/local/bin/deluge-web -d
 Restart=on-failure
 
 [Install]
-WantedBy=multi-user.target" >$service_path
-systemctl enable --now -q deluged.service
-systemctl enable --now -q deluge-web.service
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now deluged
+systemctl enable -q --now deluge-web
 msg_ok "Created Service"
 
 motd_ssh
