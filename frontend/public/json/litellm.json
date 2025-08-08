@@ -1,35 +1,35 @@
 {
-  "name": "LiteLLM",
-  "slug": "litellm",
   "categories": [
     20
   ],
+  "config_path": "/opt/litellm.yaml",
   "date_created": "2025-08-07",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": 4000,
-  "documentation": "https://docs.litellm.ai/",
-  "config_path": "/opt/litellm.env",
-  "website": "https://www.litellm.ai/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/litellm-light.webp",
+  "default_credentials": {
+    "password": "sk-1234",
+    "username": "admin"
+  },
   "description": "LiteLLM description is here",
+  "documentation": "https://docs.litellm.ai/",
   "install_methods": [
     {
-      "type": "default",
-      "script": "ct/litellm.sh",
       "resources": {
         "cpu": 2,
-        "ram": 2048,
         "hdd": 4,
         "os": "Debian",
+        "ram": 2048,
         "version": "12"
-      }
+      },
+      "script": "ct/litellm.sh",
+      "type": "default"
     }
   ],
-  "default_credentials": {
-    "username": "admin",
-    "password": "sk-1234"
-  },
-  "notes": []
+  "interface_port": 4000,
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/litellm-light.webp",
+  "name": "LiteLLM",
+  "notes": [],
+  "privileged": false,
+  "slug": "litellm",
+  "type": "ct",
+  "updateable": true,
+  "website": "https://www.litellm.ai/"
 }
