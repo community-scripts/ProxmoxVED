@@ -7,9 +7,9 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 
 APP="HortusFox"
 var_tags="${var_tags:-plants}"
-var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-15}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-5}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
