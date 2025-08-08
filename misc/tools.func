@@ -305,7 +305,7 @@ setup_mariadb() {
       echo "mariadb-server-$ver mariadb-server/feedback boolean false" | debconf-set-selections
     done
   fi
-  echo "Test1"
+  echo "Test"
   DEBIAN_FRONTEND=noninteractive $STD apt-get install -y mariadb-server mariadb-client
 
   msg_ok "Setup MariaDB $MARIADB_VERSION"
