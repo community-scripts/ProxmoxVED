@@ -14,27 +14,21 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y jq
 echo "deb http://deb.debian.org/debian bookworm non-free non-free-firmware" >/etc/apt/sources.list.d/non-free.list
 $STD apt-get update
 $STD apt-get install -y unrar
 rm /etc/apt/sources.list.d/non-free.list
 msg_ok "Installed Dependencies"
 
-msg_info "Setup Python3"
-$STD apt-get install -y python3-pip
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-$STD pip install -U --no-cache-dir pip
-msg_ok "Setup Python3"
+PYTHON_VERSION="3.12" setup_uv
+fetch_and_deploy_gh_release "mylar3" "mylar3/mylar3"
 
-msg_info "Installing ${APPLICATION}"
+msg_info "Setup Mylar3"
 mkdir -p /opt/mylar3
 mkdir -p /opt/mylar3-data
-RELEASE=$(curl -fsSL https://api.github.com/repos/mylar3/mylar3/releases/latest | jq -r '.tag_name')
-curl -fsSL "https://github.com/mylar3/mylar3/archive/refs/tags/${RELEASE}.tar.gz" | tar -xz --strip-components=1 -C /opt/mylar3
-$STD pip install --no-cache-dir -r /opt/mylar3/requirements.txt
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-msg_ok "Installed ${APPLICATION}"
+$STD uv --system pip install -U --no-cache-dir pip
+$STD uv --system pip install --no-cache-dir -r /opt/mylar3/requirements.txt
+msg_ok "Setup Mylar3"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/mylar3.service

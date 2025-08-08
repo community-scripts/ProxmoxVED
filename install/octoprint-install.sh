@@ -16,18 +16,12 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y git \
   libyaml-dev \
-  build-essential
+  build-essential \
+  python3 \
+  python3-dev
 msg_ok "Installed Dependencies"
 
-msg_info "Setup Python3"
-$STD apt-get install -y \
-  python3 \
-  python3-dev \
-  python3-pip \
-  python3-venv \
-  python3-setuptools
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-msg_ok "Setup Python3"
+PYTHON_VERSION="3.12" setup_uv
 
 msg_info "Creating user octoprint"
 useradd -m -s /bin/bash -p $(openssl passwd -1 octoprint) octoprint
@@ -40,11 +34,7 @@ msg_info "Installing OctoPrint"
 $STD sudo -u octoprint bash <<EOF
 mkdir /opt/octoprint
 cd /opt/octoprint
-python3 -m venv .
-source bin/activate
-pip install --upgrade pip
-pip install wheel
-pip install octoprint
+uv --system pip install --upgrade pip wheel octoprint
 EOF
 msg_ok "Installed OctoPrint"
 

@@ -27,12 +27,11 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
+PYTHON_VERSION="3.12" setup_uv
 
 msg_info "Installing Python"
 $STD apt-get install -y \
   python3 \
-  python3-pip \
-  python3-venv \
   python3-dev
 msg_ok "Installed Python"
 
@@ -44,24 +43,20 @@ $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PAS
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
 {
   echo "Netbox-Credentials"
-  echo -e "Netbox Database User: \e[32m$DB_USER\e[0m"
-  echo -e "Netbox Database Password: \e[32m$DB_PASS\e[0m"
-  echo -e "Netbox Database Name: \e[32m$DB_NAME\e[0m"
+  echo -e "Netbox Database User: $DB_USER"
+  echo -e "Netbox Database Password: $DB_PASS"
+  echo -e "Netbox Database Name: $DB_NAME"
 } >>~/netbox.creds
 msg_ok "Set up PostgreSQL"
 
-msg_info "Installing NetBox (Patience)"
-cd /opt
-RELEASE=$(curl -fsSL https://api.github.com/repos/netbox-community/netbox/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-curl -fsSL "https://github.com/netbox-community/netbox/archive/refs/tags/v${RELEASE}.zip" -o "v${RELEASE}.zip"
-$STD unzip "v${RELEASE}.zip"
-mv /opt/netbox-"${RELEASE}"/ /opt/netbox
+fetch_and_deploy_gh_release "netbox" "netbox-community/netbox"
 
+msg_info "Setup NetBox"
+cd /opt/netbox
 $STD adduser --system --group netbox
 chown --recursive netbox /opt/netbox/netbox/media/
 chown --recursive netbox /opt/netbox/netbox/reports/
 chown --recursive netbox /opt/netbox/netbox/scripts/
-
 mv /opt/netbox/netbox/netbox/configuration_example.py /opt/netbox/netbox/netbox/configuration.py
 
 SECRET_KEY=$(python3 /opt/netbox/netbox/generate_secret_key.py)
@@ -85,9 +80,7 @@ mv /opt/netbox/contrib/gunicorn.py /opt/netbox/gunicorn.py
 mv /opt/netbox/contrib/*.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable -q --now netbox netbox-rq
-
-echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
-echo -e "Netbox Secret: \e[32m$SECRET_KEY\e[0m" >>~/netbox.creds
+echo -e "Netbox Secret: $SECRET_KEY" >>~/netbox.creds
 msg_ok "Installed NetBox"
 
 msg_info "Setting up Django Admin"
@@ -115,7 +108,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm "/opt/v${RELEASE}.zip"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"

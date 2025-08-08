@@ -17,7 +17,8 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y \
   python3-libtorrent \
   python3 \
-  python3-dev
+  python3-dev \
+  build-essential
 msg_ok "Installed Dependencies"
 
 setup_uv

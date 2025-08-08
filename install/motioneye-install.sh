@@ -28,7 +28,7 @@ msg_info "Installing MotionEye"
 $STD systemctl stop motion
 $STD systemctl disable motion
 $STD apt-get update
-$STD pip install git+https://github.com/motioneye-project/motioneye.git@dev
+$STD uv --system pip install "git+https://github.com/motioneye-project/motioneye.git@dev"
 mkdir -p /etc/motioneye
 chown -R root:root /etc/motioneye
 chmod -R 777 /etc/motioneye
