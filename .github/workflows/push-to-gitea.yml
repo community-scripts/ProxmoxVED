@@ -11,17 +11,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Push to Gitea
-        run: |
-          git config --global user.name "Push From Github"
-          git config --global user.email "actions@github.com"
-          git remote add gitea https://$GITEA_USER:$GITEA_TOKEN@git.community-scripts.org/community-scripts/ProxmoxVED.git
-          git push gitea --force-with-lease gitea --all
-        env:
-          GITEA_USER: ${{ secrets.GITEA_USERNAME }}
-          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+     - name: Checkout source repo
+       uses: actions/checkout@v4
+       with:
+        fetch-depth: 0
+     - name: Add Gitea remote
+       run: git remote add gitea https://$GITEA_USER:$GITEA_TOKEN@git.community-scripts.org/community-scripts/ProxmoxVED.git
+       env:
+         GITEA_USER: ${{ secrets.GITEA_USERNAME }}
+         GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+     - name: Pull Gitea changes
+       run: |
+         git fetch gitea
+         git rebase gitea/main
+       env:
+         GITEA_USER: ${{ secrets.GITEA_USERNAME }}
+         GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+      
+     - name: Push to Gitea
+       run: git push gitea --all
+       env:
+         GITEA_USER: ${{ secrets.GITEA_USERNAME }}
+         GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
