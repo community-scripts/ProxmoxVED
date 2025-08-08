@@ -26,7 +26,12 @@
   "interface_port": 4000,
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/litellm-light.webp",
   "name": "LiteLLM",
-  "notes": [],
+  "notes": [
+    {
+      "text": "Update master key in the config file",
+      "type": "info"
+    }
+  ],
   "privileged": false,
   "slug": "litellm",
   "type": "ct",
