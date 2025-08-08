@@ -47,26 +47,26 @@ msg_ok "Set up PostgreSQL"
 
 msg_info "Creating Service"
 mkdir -p /opt
-cat <<EOF >/opt/"${APPLICATION}".yaml
+cat <<EOF >/opt/litellm.yaml
 general_settings:
   master_key: sk-1234
   database_url: postgresql://$DB_USER:$DB_PASS@127.0.0.1:5432/$DB_NAME
   store_model_in_db: true
 EOF
 
-cat <<EOF >/etc/systemd/system/"${APPLICATION}".service
+cat <<EOF >/etc/systemd/system/litellm.service
 [Unit]
 Description=LiteLLM
 
 [Service]
 Type=simple
-ExecStart=litellm --config /opt/${APPLICATION}.yaml --use_prisma_migrate
+ExecStart=litellm --config /opt/litellm.yaml --use_prisma_migrate
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now "${APPLICATION}"
+systemctl enable -q --now litellm
 msg_ok "Created Service"
 
 motd_ssh
