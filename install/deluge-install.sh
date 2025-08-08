@@ -28,7 +28,7 @@ $STD uv pip install deluge[all] --system
 msg_ok "Installed Deluge"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/deluge-web.service
+cat <<EOF >/etc/systemd/system/deluged.service
 [Unit]
 Description=Deluge Bittorrent Client Daemon
 Documentation=man:deluged
@@ -61,6 +61,7 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOF
+
 systemctl enable -q --now deluged
 systemctl enable -q --now deluge-web
 msg_ok "Created Service"
