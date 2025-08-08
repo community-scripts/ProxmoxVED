@@ -16,27 +16,25 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    git \
-    libpng-dev \
-    libjpeg-dev \
-    libtiff-dev \
-    imagemagick
+  git \
+  libpng-dev \
+  libjpeg-dev \
+  libtiff-dev \
+  imagemagick \
+  python3-irc
 msg_ok "Installed Dependencies"
 
-msg_info "Setup Python3"
-$STD apt-get install -y \
-    pip \
-    python3-irc
+PYTHON_VERSION="3.12" setup_uv
+
+msg_info "Setup LazyLibrarian"
 $STD pip install jaraco.stream
 $STD pip install python-Levenshtein
 $STD pip install soupsieve
 $STD pip install pypdf
-msg_ok "Setup Python3"
 
-msg_info "Installing LazyLibrarian"
 $STD git clone https://gitlab.com/LazyLibrarian/LazyLibrarian /opt/LazyLibrarian
 cd /opt/LazyLibrarian
-$STD pip install .
+$STD uv pip install .
 msg_ok "Installed LazyLibrarian"
 
 msg_info "Creating Service"
@@ -54,7 +52,7 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable --now -q lazylibrarian
+systemctl enable -q --now lazylibrarian
 msg_ok "Created Service"
 
 motd_ssh
