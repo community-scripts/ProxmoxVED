@@ -1,4 +1,4 @@
-#source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/uv/misc/build.func)
+#source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uvmisc/build.func)
 
 get_gh_release() {
     local repo="$1"
