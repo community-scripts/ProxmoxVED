@@ -53,7 +53,6 @@ general_settings:
   master_key: sk-1234
   database_url: postgresql://$DB_USER:$DB_PASS@127.0.0.1:5432/$DB_NAME
   store_model_in_db: true
-  use_prisma_migrate: true
 EOF
 
 cat <<EOF >/etc/systemd/system/"${APPLICATION}".service
@@ -62,7 +61,7 @@ Description=LiteLLM
 
 [Service]
 Type=simple
-ExecStart=litellm --config /opt/"${APPLICATION}".yaml
+ExecStart=litellm --config /opt/${APPLICATION}.yaml --use_prisma_migrate
 Restart=always
 
 [Install]
