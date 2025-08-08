@@ -7,7 +7,7 @@
 if ! command -v curl >/dev/null 2>&1; then
     apk update && apk add curl >/dev/null 2>&1
 fi
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uvmisc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv/misc/core.func)
 load_functions
 
 # This function enables IPv6 if it's not disabled and sets verbose mode

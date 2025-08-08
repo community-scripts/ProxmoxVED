@@ -1,5 +1,5 @@
 # Copyright (c) 2021-2025 community-scripts ORG
-# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uvLICENSE
+# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv/LICENSE
 
 set -euo pipefail
 SPINNER_PID=""
@@ -35,7 +35,7 @@ load_functions() {
 get_header() {
     local app_name=$(echo "${APP,,}" | tr ' ' '-')
     local app_type=${APP_TYPE:-vm}
-    local header_url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv${app_type}/headers/${app_name}"
+    local header_url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv/${app_type}/headers/${app_name}"
     local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
 
     mkdir -p "$(dirname "$local_header_path")"
@@ -445,7 +445,7 @@ set_description() {
         cat <<EOF
 <div align='center'>
   <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
+    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv//misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
   </a>
 
   <h2 style='font-size: 24px; margin: 20px 0;'>${NSAPP} VM</h2>

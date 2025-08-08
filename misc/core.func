@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2025 community-scripts ORG
-# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv/LICENSE
+# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv//LICENSE
 
 # ------------------------------------------------------------------------------
 # Loads core utility groups once (colors, formatting, icons, defaults).
@@ -198,7 +198,7 @@ silent() {
 get_header() {
     local app_name=$(echo "${APP,,}" | tr -d ' ')
     local app_type=${APP_TYPE:-ct} # Default zu 'ct' falls nicht gesetzt
-    local header_url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv${app_type}/headers/${app_name}"
+    local header_url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/uv/${app_type}/headers/${app_name}"
     local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
 
     mkdir -p "$(dirname "$local_header_path")"
