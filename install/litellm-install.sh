@@ -13,18 +13,16 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Setup Python3"
-$STD apt-get install -y \
-  python3 \
-  python3-dev \
-  python3-pip
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-msg_ok "Setup Python3"
+PYTHON_VERSION="3.13" setup_uv
 
-msg_info "Installing ${APPLICATION}"
-$STD pip install 'litellm[proxy]'
-$STD pip install 'prisma'
-msg_ok "Installed ${APPLICATION}"
+msg_info "Setting up Virtual Environment"
+mkdir -p /opt/litellm
+cd /opt/litellm
+$STD uv venv /opt/litellmtwo/.venv
+$STD /opt/litellmtwo/.venv/bin/python -m ensurepip --upgrade
+$STD /opt/litellmtwo/.venv/bin/python -m pip install --upgrade pip
+$STD /opt/litellmtwo/.venv/bin/python -m pip install litellm[proxy] prisma
+msg_ok "Installed LiteLLM"
 
 PG_VERSION="17" setup_postgresql
 
@@ -47,7 +45,7 @@ msg_ok "Set up PostgreSQL"
 
 msg_info "Creating Service"
 mkdir -p /opt
-cat <<EOF >/opt/litellm.yaml
+cat <<EOF >/opt/litellm/litellm.yaml
 general_settings:
   master_key: sk-1234
   database_url: postgresql://$DB_USER:$DB_PASS@127.0.0.1:5432/$DB_NAME
@@ -60,7 +58,7 @@ Description=LiteLLM
 
 [Service]
 Type=simple
-ExecStart=litellm --config /opt/litellm.yaml --use_prisma_migrate
+ExecStart=/opt/litellm/.venv/bin/litellm --config /opt/litellm/litellm.yaml --use_prisma_migrate
 Restart=always
 
 [Install]

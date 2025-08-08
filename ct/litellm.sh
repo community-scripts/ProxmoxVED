@@ -28,9 +28,10 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
+
     msg_info "Updating $APP"
-    $STD apt-get update
-    pip install litellm[proxy] --upgrade
+    PYTHON_VERSION="3.13" setup_uv
+    $STD "$VENV_PATH/bin/python" -m pip install --upgrade litellm[proxy] prisma
     msg_ok "Updated $APP"
     exit
 }

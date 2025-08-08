@@ -10,7 +10,7 @@
   "privileged": false,
   "interface_port": 4000,
   "documentation": "https://docs.litellm.ai/",
-  "config_path": "/opt/litellm.yaml",
+  "config_path": "/opt/litellm/litellm.yaml",
   "website": "https://www.litellm.ai/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/litellm-light.webp",
   "description": "LLM proxy to call 100+ LLMs in a unified interface & track spend, set budgets per virtual key/user",
