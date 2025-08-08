@@ -8,7 +8,7 @@
     "password": "sk-1234",
     "username": "admin"
   },
-  "description": "LiteLLM description is here",
+  "description": "LLM proxy to call 100+ LLMs in a unified interface & track spend, set budgets per virtual key/user",
   "documentation": "https://docs.litellm.ai/",
   "install_methods": [
     {
