@@ -14,29 +14,19 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y git
-$STD apt-get install -y cifs-utils
-msg_ok "Installed Dependencies"
-
-msg_info "Setup Python3"
 $STD apt-get install -y \
+  git \
+  cifs-utils \
   python3 \
   python3-dev \
-  python3-pip
-rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-msg_ok "Setup Python3"
-
-msg_info "Installing Motion"
-$STD apt-get install -y motion
-systemctl stop motion
-$STD systemctl disable motion
-msg_ok "Installed Motion"
-
-msg_info "Installing FFmpeg"
-$STD apt-get install -y ffmpeg v4l-utils
-msg_ok "Installed FFmpeg"
+  motion \
+  ffmpeg \
+  v4l-utils
+msg_ok "Installed Dependencies"
 
 msg_info "Installing MotionEye"
+$STD systemctl stop motion
+$STD systemctl disable motion
 $STD apt-get update
 $STD pip install git+https://github.com/motioneye-project/motioneye.git@dev
 mkdir -p /etc/motioneye
