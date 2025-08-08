@@ -28,10 +28,10 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-    msg_info "Updating $APP LXC"
+    msg_info "Updating $APP"
     $STD apt-get update
     pip install litellm[proxy] --upgrade
-    msg_ok "Updated $APP LXC"
+    msg_ok "Updated $APP"
     exit
 }
 
