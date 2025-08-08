@@ -15,6 +15,10 @@ jobs:
        uses: actions/checkout@v4
        with:
         fetch-depth: 0
+     - name: Set Git identity for actions
+       run: |
+        git config --global user.name "Push From Github"
+        git config --global user.email "actions@github.com"
      - name: Add Gitea remote
        run: git remote add gitea https://$GITEA_USER:$GITEA_TOKEN@git.community-scripts.org/community-scripts/ProxmoxVED.git
        env:
