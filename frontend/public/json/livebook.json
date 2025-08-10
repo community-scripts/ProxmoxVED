@@ -1,0 +1,42 @@
+{
+  "name": "Livebook",
+  "slug": "livebook",
+  "categories": [
+    8
+  ],
+  "date_created": "2025-08-10",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "config_path": "/data/.env",
+  "interface_port": 8080,
+  "documentation": "https://livebook.dev/",
+  "website": "https://livebook.dev/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/livebook.svg",
+  "description": "Livebook is a web application for writing interactive and collaborative code notebooks for Elixir.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/livebook.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": "Check /data/token.txt"
+  },
+  "notes": [
+    "Access token is stored in /data/token.txt",
+    "Default port is 8080",
+    "Working directory is /data",
+    "Home directory is /home/livebook",
+    "Elixir runtime with Mix.install/2 support",
+    "Service runs as livebook user"
+  ]
+}
