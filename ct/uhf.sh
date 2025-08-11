@@ -31,12 +31,22 @@ function update_script() {
   systemctl stop uhf-server
   msg_ok "Stopped ${APP}"
 
+  msg_info "Updating APT packages"
+  $STD apt-get update
+  $STD apt-get -y upgrade
+  msg_ok "Package list updated"
+
   fetch_and_deploy_gh_release "comskip" "swapplications/comskip" "prebuild" "latest" "/opt/comskip" "comskip-x64-*.zip"
   fetch_and_deploy_gh_release "uhf-server" "swapplications/uhf-server-dist" "prebuild" "latest" "/opt/uhf-server" "UHF.Server-linux-x64-*.zip"
 
   msg_info "Starting ${APP}"
   systemctl start uhf-server
   msg_ok "Started ${APP}"
+
+  msg_info "Cleaning up"
+  $STD apt-get -y autoremove
+  $STD apt-get -y autoclean
+  msg_ok "Cleaned"
 
   msg_ok "Updated Successfully"
   exit
