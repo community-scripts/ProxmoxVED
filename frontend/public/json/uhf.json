@@ -31,10 +31,5 @@
     "username": null,
     "password": null
   },
-  "notes": [
-    {
-      "text": "With Privileged/Unprivileged Hardware Acceleration Support",
-      "type": "info"
-    }
-  ]
+  "notes": []
 }
