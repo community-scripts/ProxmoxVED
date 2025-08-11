@@ -1,0 +1,43 @@
+{
+    "name": "Obsidian-LiveSync",
+    "slug": "obsidian-livesync",
+    "categories": [
+        3
+    ],
+    "date_created": "2024-07-10",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 5984,
+    "documentation": "https://github.com/vrtmrz/obsidian-livesync/blob/main/docs/setup_own_server.md",
+    "website": "https://github.com/vrtmrz/obsidian-livesync",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/obsidian.webp",
+    "description": "CouchDB server for Obsidian LiveSync plugin. This script installs a CouchDB server and initializes it for use with the Obsidian LiveSync plugin.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/obsidian-livesync.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 10,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Show Login Credentials: `cat Obsidian-LiveSync.creds`",
+            "type": "info"
+        },
+        {
+            "text": "Installer configures CouchDB CORS and prints an official Setup URI (or instructions to generate it). Application updates currently cover OS packages; major CouchDB upgrades may require manual steps.",
+            "type": "info"
+        }
+    ]
+}
