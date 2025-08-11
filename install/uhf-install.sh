@@ -29,34 +29,35 @@ $STD apt-get update
 $STD apt-get -y install ffmpeg
 msg_ok "Installed Dependencies"
 
-msg_info "Installing UHF Server"
+msg_info "Setting Up UHF Server Environment"
 mkdir -p /etc/uhf-server
 mkdir -p /var/lib/uhf-server/data
 mkdir -p /var/lib/uhf-server/recordings
-env_path="/etc/uhf-server/.env"
-echo "API_HOST=0.0.0.0
+cat <<EOF >/etc/uhf-server/.env
+API_HOST=0.0.0.0
 API_PORT=7568
 RECORDINGS_DIR=/var/lib/uhf-server/recordings
 DB_PATH=/var/lib/uhf-server/data/db.json
-LOG_LEVEL=INFO" >"${env_path}"
+LOG_LEVEL=INFO
+EOF
+msg_ok "Set Up UHF Server Environment"
 fetch_and_deploy_gh_release "comskip" "swapplications/comskip" "prebuild" "latest" "/opt/comskip" "comskip-x64-*.zip"
 fetch_and_deploy_gh_release "uhf-server" "swapplications/uhf-server-dist" "prebuild" "latest" "/opt/uhf-server" "UHF.Server-linux-x64-*.zip"
-msg_ok "Installed UHF Server"
 
 msg_info "Creating Service"
-service_path="/etc/systemd/system/uhf-server.service"
+service_path=""
+cat <<EOF >/etc/systemd/system/uhf-server.service
 echo "[Unit]
 Description=UHF Server service
 After=syslog.target network-online.target
 [Service]
 Type=simple
-User=root
-Group=root
 WorkingDirectory=/opt/uhf-server
 EnvironmentFile=/etc/uhf-server/.env
 ExecStart=/opt/uhf-server/uhf-server
 [Install]
-WantedBy=multi-user.target" >"${service_path}"
+WantedBy=multi-user.target
+EOF
 systemctl enable --now -q uhf-server.service
 msg_ok "Created Service"
 

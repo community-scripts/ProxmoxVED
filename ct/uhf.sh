@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: zackwithak13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -34,12 +34,10 @@ function update_script() {
   msg_info "Updating ${APP}"
   fetch_and_deploy_gh_release "comskip" "swapplications/comskip" "prebuild" "latest" "/opt/comskip" "comskip-x64-*.zip"
   fetch_and_deploy_gh_release "uhf-server" "swapplications/uhf-server-dist" "prebuild" "latest" "/opt/uhf-server" "UHF.Server-linux-x64-*.zip"
-  msg_ok "Updated ${APP}"
 
   msg_info "Starting ${APP}"
   systemctl start uhf-server
   msg_ok "Started ${APP}"
-  msg_ok "Updated Successfully"
   exit
 }
 
