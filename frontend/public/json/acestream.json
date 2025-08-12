@@ -1,0 +1,39 @@
+{
+  "name": "AceStream",
+  "slug": "acestream",
+  "categories": [
+    13
+  ],
+  "date_created": "2025-08-11",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": 6878,
+  "documentation": "https://acestream.media/",
+  "config_path": "/opt/acestream/config",
+  "website": "https://acestream.media/",
+  "logo": "https://sources.debian.org/src/papirus-icon-theme/20230104-2/Papirus/128x128/apps/acestream.svg/",
+  "description": "AceStream is a multimedia platform that provides live streaming and video-on-demand services.\nIt offers P2P streaming capabilities with support for various media formats and protocols.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/acestream.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Ubuntu",
+        "version": "22.04"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    "AceStream Engine runs on port 6878 and provides HTTP API access",
+    "Engine is configured with memory caching for optimal performance",
+    "Service runs as dedicated 'acestream' user for security"
+  ]
+}
