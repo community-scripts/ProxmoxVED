@@ -41,7 +41,7 @@ function update_script() {
     msg_info "Updating ${APP}"
     rm -rf /opt/tracktor
     setup_nodejs
-    fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor"
+    fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor" "tarball" "latest" "/opt/tracktor"
     cd /opt/tracktor
     rm package-lock.json
     $STD npm install
