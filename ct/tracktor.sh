@@ -28,7 +28,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/javedh-dev/tracktor/releases/latest | jq '.tag_name' | sed 's/^v//')
+  RELEASE=$(curl -fsSL https://api.github.com/repos/javedh-dev/tracktor/releases/latest | jq -r '.tag_name' | sed 's/^v//')
   if [[ "${RELEASE}" != "$(cat ~/.tracktor 2>/dev/null)" ]] || [[ ! -f ~/.tracktor ]]; then
     msg_info "Stopping Service"
     systemctl stop tracktor
