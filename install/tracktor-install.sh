@@ -14,7 +14,7 @@ network_check
 update_os
 
 setup_nodejs
-fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor" 
+fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor" "tarball" "latest" "/opt/tracktor"
 
 msg_info "Configuring Tracktor"
 cd /opt/tracktor
