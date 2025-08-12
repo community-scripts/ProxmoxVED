@@ -44,6 +44,8 @@ msg_info "Writing config"
   echo "TWINGATE_NETWORK=${network}"
   echo "TWINGATE_ACCESS_TOKEN=${access_token}"
   echo "TWINGATE_REFRESH_TOKEN=${refresh_token}"
+  echo "TWINGATE_LABEL_HOSTNAME=$(hostname)"
+  echo "TWINGATE_LABEL_DEPLOYED_BY=proxmox"
 } > /etc/twingate/connector.conf
 chmod 600 /etc/twingate/connector.conf
 msg_ok "Config written"
