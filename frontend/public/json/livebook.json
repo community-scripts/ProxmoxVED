@@ -29,14 +29,13 @@
   ],
   "default_credentials": {
     "username": null,
-    "password": "Check /data/token.txt"
+    "password": null
   },
   "notes": [
-    "Access token is stored in /data/token.txt",
     "Default port is 8080",
     "Working directory is /data",
-    "Home directory is /home/livebook",
+    "Home directory is /opt",
     "Elixir runtime with Mix.install/2 support",
-    "Service runs as livebook user"
+    "Service runs as root user"
   ]
 }
