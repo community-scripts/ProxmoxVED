@@ -5,6 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/dkuku/ProxmoxVED/refs/head
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/livebook-dev/livebook
 
+echo -e "Loading..."
 APP="Livebook"
 var_tags="${var_tags:-development}"
 var_disk="${var_disk:-4}"
@@ -25,7 +26,7 @@ function update_script() {
   check_container_resources
 
   # Check if Livebook is installed
-  if [[ ! -d /opt/${APP}_version.txt ]]; then
+  if [[ ! -f /opt/${APP}_version.txt ]]; then
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
@@ -40,41 +41,24 @@ function update_script() {
   fi
 
   # Check if version file exists and compare versions
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
-    msg_info "Updating ${APP} to v${RELEASE}"
+  if [[ "${RELEASE}" == "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
+  #if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
+    msg_info "Updating ${APP} LXC"
+    $STD apt-get update
+    $STD apt-get -y upgrade
+    msg_ok "Updated ${APP} LXC"
 
-    # Create backup of user data if it exists
-    if [[ -d /home/livebook ]]; then
-      msg_info "Creating backup of user data..."
-      $STD cp -r /home/livebook /home/livebook-backup
-    fi
-
-    # Perform the update
-    msg_info "Installing dependencies and updating Livebook..."
-    if ! sudo -u livebook bash -c '
-      export HOME=/home/livebook
-      cd /home/livebook
-      mix local.hex --force >/dev/null 2>&1
-      mix local.rebar --force >/dev/null 2>&1
-      mix escript.install hex livebook --force >/dev/null 2>&1
-    '; then
-      msg_error "Failed to update Livebook"
-      # Restore from backup if update failed
-      if [[ -d /home/livebook-backup ]]; then
-        msg_info "Restoring from backup..."
-        rm -rf /home/livebook
-        mv /home/livebook-backup /home/livebook
-      fi
-      exit 1
-    fi
+    msg_info "Updating ${APP} to ${RELEASE}"
+    source /opt/.env
+    cd /opt || exit 1
+    mix escript.install hex livebook --force >/dev/null 2>&1
 
     # Save the new version
     echo "$RELEASE" | $STD tee /opt/${APP}_version.txt >/dev/null
 
     # Cleanup backup if update was successful
-    if [[ -d /home/livebook-backup ]]; then
-      msg_info "Cleaning up backup..."
-      $STD rm -rf /home/livebook-backup
+    if [[ -d /opt-backup ]]; then
+      $STD rm -rf /opt-backup
     fi
 
     msg_ok "Successfully updated to v${RELEASE}"
@@ -92,7 +76,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
-echo -e "\n${INFO}${YW} To start Livebook, run the following command:${CL}"
-echo -e "${TAB}${BGN}sudo -u livebook /root/.mix/escripts/livebook server${CL}"
-echo -e "\n${INFO}${YW} To run it as a service, create a systemd service file.${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
