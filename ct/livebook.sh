@@ -41,8 +41,7 @@ function update_script() {
   fi
 
   # Check if version file exists and compare versions
-  if [[ "${RELEASE}" == "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
-  #if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
+  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
     msg_info "Updating ${APP} LXC"
     $STD apt-get update
     $STD apt-get -y upgrade
@@ -51,14 +50,15 @@ function update_script() {
     msg_info "Updating ${APP} to ${RELEASE}"
     source /opt/.env
     cd /opt || exit 1
+    rm /opt/.mix/escripts/livebook
     mix escript.install hex livebook --force >/dev/null 2>&1
 
     # Save the new version
     echo "$RELEASE" | $STD tee /opt/${APP}_version.txt >/dev/null
 
-    msg_ok "Successfully updated to v${RELEASE}"
+    msg_ok "Successfully updated to ${RELEASE}"
   else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}."
+    msg_ok "No update required. ${APP} is already at ${RELEASE}."
   fi
 
   exit
