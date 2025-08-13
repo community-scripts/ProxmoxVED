@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/dkuku/ProxmoxVED/refs/heads/livebook/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: dkuku
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -25,13 +25,11 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  # Check if Livebook is installed
-  if [[ ! -f /opt/${APP}_version.txt ]]; then
+  if [[ ! -f /opt/.mix/escripts/livebook ]]; then
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
 
-  # Get the latest version from GitHub
   msg_info "Checking for updates..."
   RELEASE=$(curl -fsSL https://api.github.com/repos/livebook-dev/livebook/releases/latest | grep "tag_name" | awk -F'"' '{print $4}')
 
@@ -40,7 +38,6 @@ function update_script() {
     exit 1
   fi
 
-  # Check if version file exists and compare versions
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
     msg_info "Updating ${APP} LXC"
     $STD apt-get update
@@ -51,9 +48,8 @@ function update_script() {
     source /opt/.env
     cd /opt || exit 1
     rm /opt/.mix/escripts/livebook
-    mix escript.install hex livebook --force >/dev/null 2>&1
+    mix escript.install hex livebook --force
 
-    # Save the new version
     echo "$RELEASE" | $STD tee /opt/${APP}_version.txt >/dev/null
 
     msg_ok "Successfully updated to ${RELEASE}"

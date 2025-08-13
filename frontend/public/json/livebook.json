@@ -2,28 +2,28 @@
   "name": "Livebook",
   "slug": "livebook",
   "categories": [
-    8
+    20
   ],
-  "date_created": "2025-08-10",
+  "date_created": "2025-08-12",
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "config_path": "/data/.env",
   "interface_port": 8080,
-  "documentation": "https://livebook.dev/",
-  "website": "https://livebook.dev/",
+  "documentation": null,
+  "config_path": "/opt/.env",
+  "website": "https://livebook.dev",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/livebook.svg",
-  "description": "Livebook is a web application for writing interactive and collaborative code notebooks for Elixir.",
+  "description": "Elixir Livebook is an interactive, web-based notebook platform for Elixir that combines code, documentation, and visualizations in a single document. Similar to Jupyter notebooks, it allows developers to write and execute Elixir code in real-time, making it ideal for data exploration, prototyping, learning, and collaborative development. Livebook features rich markdown support, built-in charting capabilities, and seamless integration with the Elixir ecosystem.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/livebook.sh",
       "resources": {
-        "cpu": 2,
+        "cpu": 1,
         "ram": 1024,
         "hdd": 4,
         "os": "Ubuntu",
-        "version": "24"
+        "version": "24.04"
       }
     }
   ],
@@ -31,11 +31,5 @@
     "username": null,
     "password": null
   },
-  "notes": [
-    "Default port is 8080",
-    "Working directory is /data",
-    "Home directory is /opt",
-    "Elixir runtime with Mix.install/2 support",
-    "Service runs as root user"
-  ]
+  "notes": []
 }
