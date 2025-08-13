@@ -56,11 +56,6 @@ function update_script() {
     # Save the new version
     echo "$RELEASE" | $STD tee /opt/${APP}_version.txt >/dev/null
 
-    # Cleanup backup if update was successful
-    if [[ -d /opt-backup ]]; then
-      $STD rm -rf /opt-backup
-    fi
-
     msg_ok "Successfully updated to v${RELEASE}"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}."
