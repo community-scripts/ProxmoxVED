@@ -53,6 +53,14 @@ $STD sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;"
   echo "Redis Password: $REDIS_PASS"
   echo "Access Token Salt: $ACCESS_TOKEN_SALT"
   echo "JWT Secret Key: $JWT_SECRET_KEY"
+  if [[ -n "$COINGECKO_DEMO_KEY" ]]; then
+    echo "CoinGecko Demo API Key: $COINGECKO_DEMO_KEY"
+  fi
+  if [[ -n "$COINGECKO_PRO_KEY" ]]; then
+    echo "CoinGecko Pro API Key: $COINGECKO_PRO_KEY"
+  fi
+  echo ""
+  echo "To add CoinGecko API keys later, edit: /opt/ghostfolio/.env"
 } >>~/ghostfolio.creds
 msg_ok "Set up Database"
 
@@ -69,13 +77,54 @@ RELEASE=$(git describe --tags --abbrev=0)
 git checkout $RELEASE
 msg_ok "Cloned Ghostfolio $RELEASE"
 
+msg_info "Checking Build Resources"
+current_ram=$(free -m | awk 'NR==2{print $2}')
+if [[ "$current_ram" -lt 3584 ]]; then
+  msg_warn "Current RAM: ${current_ram}MB. Ghostfolio build requires ~4GB RAM for optimal performance."
+  msg_info "Creating temporary swap file for build process"
+
+  # Check if swap already exists
+  if ! swapon --noheadings --show | grep -q 'swap'; then
+    TEMP_SWAP_FILE="/tmp/ghostfolio_build_swap"
+    $STD dd if=/dev/zero of="$TEMP_SWAP_FILE" bs=1M count=1024
+    $STD chmod 600 "$TEMP_SWAP_FILE"
+    $STD mkswap "$TEMP_SWAP_FILE"
+    $STD swapon "$TEMP_SWAP_FILE"
+    SWAP_CREATED=true
+    msg_ok "Created 1GB temporary swap file"
+  else
+    msg_ok "Existing swap detected"
+    SWAP_CREATED=false
+  fi
+else
+  msg_ok "Sufficient RAM available for build"
+  SWAP_CREATED=false
+fi
+
 msg_info "Installing Ghostfolio Dependencies"
+export NODE_OPTIONS="--max-old-space-size=3584"
 $STD npm ci
 msg_ok "Installed Dependencies"
 
-msg_info "Building Ghostfolio"
+msg_info "Building Ghostfolio (This may take several minutes)"
 $STD npm run build:production
 msg_ok "Built Ghostfolio"
+
+# Clean up temporary swap if we created it
+if [[ "$SWAP_CREATED" == "true" ]]; then
+  msg_info "Cleaning up temporary swap file"
+  $STD swapoff "$TEMP_SWAP_FILE"
+  $STD rm -f "$TEMP_SWAP_FILE"
+  msg_ok "Removed temporary swap file"
+fi
+
+msg_info "Optional CoinGecko API Configuration"
+echo
+echo -e "${YW}CoinGecko API keys are optional but provide better cryptocurrency data.${CL}"
+echo -e "${YW}You can skip this and add them later by editing /opt/ghostfolio/.env${CL}"
+echo
+read -rp "${TAB3}Enter CoinGecko Demo API key (optional, press Enter to skip): " COINGECKO_DEMO_KEY
+read -rp "${TAB3}Enter CoinGecko Pro API key (optional, press Enter to skip): " COINGECKO_PRO_KEY
 
 msg_info "Setting up Environment"
 cat <<EOF >/opt/ghostfolio/.env
@@ -89,6 +138,15 @@ NODE_ENV=production
 PORT=3333
 HOST=0.0.0.0
 EOF
+
+if [[ -n "$COINGECKO_DEMO_KEY" ]]; then
+  echo "API_KEY_COINGECKO_DEMO=$COINGECKO_DEMO_KEY" >>/opt/ghostfolio/.env
+fi
+
+if [[ -n "$COINGECKO_PRO_KEY" ]]; then
+  echo "API_KEY_COINGECKO_PRO=$COINGECKO_PRO_KEY" >>/opt/ghostfolio/.env
+fi
+
 msg_ok "Set up Environment"
 
 msg_info "Running Database Migrations"
@@ -130,3 +188,9 @@ npm cache clean --force
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
+
+msg_info "Installation Complete"
+echo -e "${INFO}${YW}Ghostfolio is now running and accessible at http://$(hostname -I | awk '{print $1}'):3333${CL}"
+echo -e "${INFO}${YW}Runtime memory usage: ~2GB (you can reduce container memory to 2GB if desired)${CL}"
+echo -e "${INFO}${YW}First user to register will automatically get admin privileges${CL}"
+msg_ok "Setup Complete"
