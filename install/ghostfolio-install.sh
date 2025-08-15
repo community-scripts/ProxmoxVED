@@ -44,6 +44,10 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;"
 $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH ENCRYPTED PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 $STD sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;"
+$STD sudo -u postgres psql -d $DB_NAME -c "GRANT ALL ON SCHEMA public TO $DB_USER;"
+$STD sudo -u postgres psql -d $DB_NAME -c "GRANT CREATE ON SCHEMA public TO $DB_USER;"
+$STD sudo -u postgres psql -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $DB_USER;"
+$STD sudo -u postgres psql -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $DB_USER;"
 
 {
   echo "Ghostfolio Credentials"
@@ -53,10 +57,10 @@ $STD sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;"
   echo "Redis Password: $REDIS_PASS"
   echo "Access Token Salt: $ACCESS_TOKEN_SALT"
   echo "JWT Secret Key: $JWT_SECRET_KEY"
-  if [[ -n "$COINGECKO_DEMO_KEY" ]]; then
+  if [[ -n "${COINGECKO_DEMO_KEY:-}" ]]; then
     echo "CoinGecko Demo API Key: $COINGECKO_DEMO_KEY"
   fi
-  if [[ -n "$COINGECKO_PRO_KEY" ]]; then
+  if [[ -n "${COINGECKO_PRO_KEY:-}" ]]; then
     echo "CoinGecko Pro API Key: $COINGECKO_PRO_KEY"
   fi
   echo ""
@@ -139,18 +143,18 @@ PORT=3333
 HOST=0.0.0.0
 EOF
 
-if [[ -n "$COINGECKO_DEMO_KEY" ]]; then
+if [[ -n "${COINGECKO_DEMO_KEY:-}" ]]; then
   echo "API_KEY_COINGECKO_DEMO=$COINGECKO_DEMO_KEY" >>/opt/ghostfolio/.env
 fi
 
-if [[ -n "$COINGECKO_PRO_KEY" ]]; then
+if [[ -n "${COINGECKO_PRO_KEY:-}" ]]; then
   echo "API_KEY_COINGECKO_PRO=$COINGECKO_PRO_KEY" >>/opt/ghostfolio/.env
 fi
 
 msg_ok "Set up Environment"
 
 msg_info "Running Database Migrations"
-cd /opt/ghostfolio/dist/apps/api
+cd /opt/ghostfolio
 $STD npx prisma migrate deploy
 $STD npx prisma db seed
 msg_ok "Database Migrations Complete"
