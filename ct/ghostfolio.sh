@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: lucasfell
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -38,18 +38,25 @@ function update_script() {
   msg_ok "Backup Created"
 
   msg_info "Updating $APP"
-  cd /opt/ghostfolio
-  git fetch --all
-  RELEASE=$(git describe --tags --abbrev=0 origin/main)
-  if [[ "${RELEASE}" != "$(cat /opt/ghostfolio_version.txt)" ]] || [[ ! -f /opt/ghostfolio_version.txt ]]; then
-    git checkout ${RELEASE}
+  systemctl stop ghostfolio
+
+  if [[ -d /opt/ghostfolio ]]; then
+    rm -rf /opt/ghostfolio_backup
+    mv /opt/ghostfolio /opt/ghostfolio_backup
+  fi
+
+  if fetch_and_deploy_gh_release "ghostfolio" "ghostfolio/ghostfolio" "tarball" "latest" "/opt/ghostfolio"; then
+    cd /opt/ghostfolio
     npm ci
     npm run build:production
-    npm run database:migrate
-    echo "${RELEASE}" >/opt/ghostfolio_version.txt
-    msg_ok "Updated $APP to ${RELEASE}"
+    npx prisma migrate deploy
+    msg_ok "Updated $APP"
   else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    if [[ -d /opt/ghostfolio_backup ]]; then
+      rm -rf /opt/ghostfolio
+      mv /opt/ghostfolio_backup /opt/ghostfolio
+    fi
+    msg_ok "No update required or update failed. ${APP} is up to date"
   fi
 
   msg_info "Starting $APP"
