@@ -150,7 +150,6 @@ fi
 if [[ -n "${COINGECKO_PRO_KEY:-}" ]]; then
   echo "API_KEY_COINGECKO_PRO=$COINGECKO_PRO_KEY" >>/opt/ghostfolio/.env
 fi
-
 msg_ok "Set up Environment"
 
 msg_info "Running Database Migrations"
