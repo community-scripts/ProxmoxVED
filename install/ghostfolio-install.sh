@@ -71,6 +71,7 @@ msg_ok "Configured Redis"
 fetch_and_deploy_gh_release "ghostfolio" "ghostfolio/ghostfolio" "tarball" "latest" "/opt/ghostfolio"
 
 msg_info "Installing Ghostfolio Dependencies"
+cd /opt/ghostfolio
 npm ci
 msg_ok "Installed Dependencies"
 
@@ -78,13 +79,13 @@ msg_info "Building Ghostfolio (This may take several minutes)"
 npm run build:production
 msg_ok "Built Ghostfolio"
 
-msg_info "Optional CoinGecko API Configuration"
+msg_ok "Optional CoinGecko API Configuration"
 echo
 echo -e "${YW}CoinGecko API keys are optional but provide better cryptocurrency data.${CL}"
 echo -e "${YW}You can skip this and add them later by editing /opt/ghostfolio/.env${CL}"
 echo
-read -rp "${TAB3}Enter CoinGecko Demo API key (optional, press Enter to skip): " COINGECKO_DEMO_KEY
-read -rp "${TAB3}Enter CoinGecko Pro API key (optional, press Enter to skip): " COINGECKO_PRO_KEY
+read -rp "${TAB3}CoinGecko Demo API key (press Enter to skip): " COINGECKO_DEMO_KEY
+read -rp "${TAB3}CoinGecko Pro API key (press Enter to skip): " COINGECKO_PRO_KEY
 
 msg_info "Setting up Environment"
 cat <<EOF >/opt/ghostfolio/.env
