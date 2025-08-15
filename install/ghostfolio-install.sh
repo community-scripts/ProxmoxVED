@@ -15,7 +15,6 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  git \
   build-essential \
   python3 \
   openssl \
@@ -24,13 +23,11 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="15" setup_postgresql
+NODE_VERSION="22" setup_nodejs
 
 msg_info "Installing Redis"
 $STD apt-get install -y redis-server
-systemctl enable -q --now redis-server
 msg_ok "Installed Redis"
-
-NODE_VERSION="22" setup_nodejs
 
 msg_info "Setting up Database"
 DB_NAME=ghostfolio
@@ -47,7 +44,6 @@ $STD sudo -u postgres psql -d $DB_NAME -c "GRANT ALL ON SCHEMA public TO $DB_USE
 $STD sudo -u postgres psql -d $DB_NAME -c "GRANT CREATE ON SCHEMA public TO $DB_USER;"
 $STD sudo -u postgres psql -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $DB_USER;"
 $STD sudo -u postgres psql -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $DB_USER;"
-
 {
   echo "Ghostfolio Credentials"
   echo "Database User: $DB_USER"
@@ -72,54 +68,15 @@ sed -i "s/# requirepass foobared/requirepass $REDIS_PASS/" /etc/redis/redis.conf
 systemctl restart redis-server
 msg_ok "Configured Redis"
 
-msg_info "Cloning Ghostfolio"
-cd /opt
-$STD git clone https://github.com/ghostfolio/ghostfolio.git
-cd ghostfolio
-RELEASE=$(git describe --tags --abbrev=0)
-git checkout $RELEASE
-msg_ok "Cloned Ghostfolio $RELEASE"
-
-msg_info "Checking Build Resources"
-current_ram=$(free -m | awk 'NR==2{print $2}')
-if [[ "$current_ram" -lt 3584 ]]; then
-  msg_warn "Current RAM: ${current_ram}MB. Ghostfolio build requires ~4GB RAM for optimal performance."
-  msg_info "Creating temporary swap file for build process"
-
-  # Check if swap already exists
-  if ! swapon --noheadings --show | grep -q 'swap'; then
-    TEMP_SWAP_FILE="/tmp/ghostfolio_build_swap"
-    $STD dd if=/dev/zero of="$TEMP_SWAP_FILE" bs=1M count=1024
-    $STD chmod 600 "$TEMP_SWAP_FILE"
-    $STD mkswap "$TEMP_SWAP_FILE"
-    $STD swapon "$TEMP_SWAP_FILE"
-    SWAP_CREATED=true
-    msg_ok "Created 1GB temporary swap file"
-  else
-    msg_ok "Existing swap detected"
-    SWAP_CREATED=false
-  fi
-else
-  msg_ok "Sufficient RAM available for build"
-  SWAP_CREATED=false
-fi
+fetch_and_deploy_gh_release "ghostfolio" "ghostfolio/ghostfolio" "tarball" "latest" "/opt/ghostfolio"
 
 msg_info "Installing Ghostfolio Dependencies"
-export NODE_OPTIONS="--max-old-space-size=3584"
-$STD npm ci
+npm ci
 msg_ok "Installed Dependencies"
 
 msg_info "Building Ghostfolio (This may take several minutes)"
-$STD npm run build:production
+npm run build:production
 msg_ok "Built Ghostfolio"
-
-# Clean up temporary swap if we created it
-if [[ "$SWAP_CREATED" == "true" ]]; then
-  msg_info "Cleaning up temporary swap file"
-  $STD swapoff "$TEMP_SWAP_FILE"
-  $STD rm -f "$TEMP_SWAP_FILE"
-  msg_ok "Removed temporary swap file"
-fi
 
 msg_info "Optional CoinGecko API Configuration"
 echo
@@ -153,8 +110,8 @@ msg_ok "Set up Environment"
 
 msg_info "Running Database Migrations"
 cd /opt/ghostfolio
-$STD npx prisma migrate deploy
-$STD npx prisma db seed
+npx prisma migrate deploy
+npx prisma db seed
 msg_ok "Database Migrations Complete"
 
 msg_info "Creating Service"
@@ -179,7 +136,6 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable -q --now ghostfolio
-echo "$RELEASE" >/opt/ghostfolio_version.txt
 msg_ok "Created Service"
 
 motd_ssh
@@ -190,9 +146,3 @@ npm cache clean --force
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
-
-msg_info "Installation Complete"
-echo -e "${INFO}${YW}Ghostfolio is now running and accessible at http://$(hostname -I | awk '{print $1}'):3333${CL}"
-echo -e "${INFO}${YW}Runtime memory usage: ~2GB (you can reduce container memory to 2GB if desired)${CL}"
-echo -e "${INFO}${YW}First user to register will automatically get admin privileges${CL}"
-msg_ok "Setup Complete"
