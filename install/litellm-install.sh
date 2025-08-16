@@ -43,7 +43,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/litellm.creds
 msg_ok "Set up PostgreSQL"
 
-msg_info "Creating Service"
+msg_info "Configuring LiteLLM"
 mkdir -p /opt
 cat <<EOF >/opt/litellm/litellm.yaml
 general_settings:
@@ -52,6 +52,10 @@ general_settings:
   store_model_in_db: true
 EOF
 
+uv --directory=/opt/litellm run litellm --config /opt/litellm/litellm.yaml --use_prisma_db_push --skip_server_startup
+msg_ok "Configured LiteLLM"
+
+msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/litellm.service
 [Unit]
 Description=LiteLLM
@@ -64,6 +68,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
+
 systemctl enable -q --now litellm
 msg_ok "Created Service"
 
