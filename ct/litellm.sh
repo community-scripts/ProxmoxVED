@@ -29,11 +29,19 @@ function update_script() {
         exit
     fi
 
+    msg_info "Stopping ${APP}"
+    systemctl stop litellm.service
+    msg_ok "Stopped ${APP}"
+
     msg_info "Updating $APP"
     VENV_PATH="/opt/litellm/.venv"
     PYTHON_VERSION="3.13" setup_uv
     $STD "$VENV_PATH/bin/python" -m pip install --upgrade litellm[proxy] prisma
-    msg_ok "Updated $APP"
+
+    msg_info "Starting ${APP}"
+    systemctl start litellm.service
+    msg_ok "Started ${APP}"
+    msg_ok "Updated Successfully"
     exit
 }
 
