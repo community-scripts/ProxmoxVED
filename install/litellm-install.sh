@@ -21,7 +21,7 @@ cd /opt/litellm
 $STD uv venv /opt/litellm/.venv
 $STD /opt/litellm/.venv/bin/python -m ensurepip --upgrade
 $STD /opt/litellm/.venv/bin/python -m pip install --upgrade pip
-$STD /opt/litellm/.venv/bin/python -m pip install litellm[proxy] prisma
+$STD /opt/litellm/.venv/bin/python -m pip install litellm[proxy]==1.75.4 prisma
 msg_ok "Installed LiteLLM"
 
 PG_VERSION="17" setup_postgresql
@@ -58,7 +58,7 @@ Description=LiteLLM
 
 [Service]
 Type=simple
-ExecStart=/opt/litellm/.venv/bin/litellm --config /opt/litellm/litellm.yaml
+ExecStart=/opt/litellm/.venv/bin/litellm --config /opt/litellm/litellm.yaml --use_prisma_migrate
 Restart=always
 
 [Install]
