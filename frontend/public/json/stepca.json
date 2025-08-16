@@ -1,0 +1,46 @@
+{
+    "name": "Step CA",
+    "slug": "stepca",
+    "categories": [
+        21
+    ],
+    "date_created": "2025-08-03",
+    "type": "ct",
+    "updateable": false,
+    "privileged": false,
+    "interface_port": 443,
+    "documentation": "https://smallstep.com/docs/step-ca/",
+    "config_path": "/opt/step-ca/config/ca.json",
+    "website": "https://smallstep.com/",
+    "logo": "https://smallstep.imgix.net/logo_bfa4201fe5.svg",
+    "description": "Instll a local ACME server providing free certificates for all your internal servers. In the coming years, the lifetime of TLS Certificates will be reduced to 47 days. The best way to handle this fast cycle of certificates rolover is to automate the deployment. Now, with this container you can. You will obtain a private ACME server for all you local webservers. It can be used with numerous ACME clients in order to automate the free X.509 certificates deployments.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/stepca.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+	{
+	"text": "During installation, you will have to provide the FQDN (or IP) of this new ACME server",
+	"type": "info"
+	}, {
+	"text": "Use `cat ~/stepca.creds` to see all information about the CA",
+	"type": "info"
+	}, {
+	"text": "There is a test script created in order to test and demo the setup.",
+	"type": "info"
+	}
+    ]
+}
