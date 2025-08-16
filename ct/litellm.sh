@@ -39,6 +39,10 @@ function update_script() {
     msg_info "Updating $APP"
     $STD "$VENV_PATH/bin/python" -m pip install --upgrade litellm[proxy] prisma
 
+    msg_info "Updating DB Schema"
+    uv --directory=/opt/litellm run litellm --config /opt/litellm/litellm.yaml --use_prisma_db_push --skip_server_startup
+    msg_ok "DB Schema Updated"
+
     msg_info "Starting ${APP}"
     systemctl start litellm.service
     msg_ok "Started ${APP}"
