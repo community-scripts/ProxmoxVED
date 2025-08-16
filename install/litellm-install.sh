@@ -13,18 +13,8 @@ setting_up_container
 network_check
 update_os
 
-PYTHON_VERSION="3.13" setup_uv
-
-msg_info "Setting up Virtual Environment"
-mkdir -p /opt/litellm
-cd /opt/litellm
-$STD uv venv /opt/litellm/.venv
-$STD /opt/litellm/.venv/bin/python -m ensurepip --upgrade
-$STD /opt/litellm/.venv/bin/python -m pip install --upgrade pip
-$STD /opt/litellm/.venv/bin/python -m pip install litellm[proxy] prisma
-msg_ok "Installed LiteLLM"
-
 PG_VERSION="17" setup_postgresql
+PYTHON_VERSION="3.13" setup_uv
 
 msg_info "Setting up PostgreSQL"
 DB_NAME="litellm_db"
@@ -42,6 +32,15 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
   echo "Database Password: $DB_PASS"
 } >>~/litellm.creds
 msg_ok "Set up PostgreSQL"
+
+msg_info "Setting up Virtual Environment"
+mkdir -p /opt/litellm
+cd /opt/litellm
+$STD uv venv /opt/litellm/.venv
+$STD /opt/litellm/.venv/bin/python -m ensurepip --upgrade
+$STD /opt/litellm/.venv/bin/python -m pip install --upgrade pip
+$STD /opt/litellm/.venv/bin/python -m pip install litellm[proxy] prisma
+msg_ok "Installed LiteLLM"
 
 msg_info "Configuring LiteLLM"
 mkdir -p /opt
