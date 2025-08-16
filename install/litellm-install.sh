@@ -18,10 +18,10 @@ PYTHON_VERSION="3.13" setup_uv
 msg_info "Setting up Virtual Environment"
 mkdir -p /opt/litellm
 cd /opt/litellm
-$STD uv venv /opt/litellmtwo/.venv
-$STD /opt/litellmtwo/.venv/bin/python -m ensurepip --upgrade
-$STD /opt/litellmtwo/.venv/bin/python -m pip install --upgrade pip
-$STD /opt/litellmtwo/.venv/bin/python -m pip install litellm[proxy] prisma
+$STD uv venv /opt/litellm/.venv
+$STD /opt/litellm/.venv/bin/python -m ensurepip --upgrade
+$STD /opt/litellm/.venv/bin/python -m pip install --upgrade pip
+$STD /opt/litellm/.venv/bin/python -m pip install litellm[proxy] prisma
 msg_ok "Installed LiteLLM"
 
 PG_VERSION="17" setup_postgresql
