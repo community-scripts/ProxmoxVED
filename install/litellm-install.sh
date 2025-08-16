@@ -58,7 +58,7 @@ Description=LiteLLM
 
 [Service]
 Type=simple
-ExecStart=/opt/litellm/.venv/bin/litellm --config /opt/litellm/litellm.yaml --use_prisma_migrate
+ExecStart=uv --directory=/opt/litellm run litellm --config /opt/litellm/litellm.yaml --use_prisma_migrate
 Restart=always
 
 [Install]
