@@ -30,6 +30,7 @@ function update_script() {
     fi
 
     msg_info "Updating $APP"
+    VENV_PATH="/opt/litellm/.venv"
     PYTHON_VERSION="3.13" setup_uv
     $STD "$VENV_PATH/bin/python" -m pip install --upgrade litellm[proxy] prisma
     msg_ok "Updated $APP"
