@@ -28,7 +28,7 @@ PG_VERSION="17" setup_postgresql
 
 msg_info "Setting up PostgreSQL"
 DB_NAME="litellm_db"
-DB_USER="${APPLICATION}"
+DB_USER="litellm"
 DB_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)"
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
