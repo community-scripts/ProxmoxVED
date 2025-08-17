@@ -19,8 +19,7 @@ $STD apt-get install -y \
     ca-certificates \
     cmake \
     git \
-    libncurses5-dev \
-    curl
+    libncurses5-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Creating livebook user"
