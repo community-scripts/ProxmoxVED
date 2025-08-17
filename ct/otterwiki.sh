@@ -41,7 +41,7 @@ function update_script() {
 
   # Crawling the new version and checking whether an update is required
   RELEASE=$(curl -fsSL https://api.github.com/repos/redimp/otterwiki/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
+  if [[ "${RELEASE}" != "$(cat /opt/otterwiki_version.txt)" ]] || [[ ! -f /opt/otterwiki_version.txt ]]; then
     # Stopping Services
     msg_info "Stopping $APP"
     systemctl stop otterwiki.service
@@ -75,7 +75,7 @@ function update_script() {
     # msg_ok "Cleanup Completed"
 
     # Last Action
-    echo "${RELEASE}" >/opt/${APP}_version.txt
+    echo "${RELEASE}" >/opt/otterwiki_version.txt
     msg_ok "Update Successful"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}"

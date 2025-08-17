@@ -44,8 +44,8 @@ msg_info "Setup ${APPLICATION}"
 RELEASE=$(curl -fsSL https://api.github.com/repos/redimp/otterwiki/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL -o "${RELEASE}.zip" "https://github.com/redimp/otterwiki/archive/refs/tags/${RELEASE}.zip"
 unzip -q "${RELEASE}.zip"
-mv "${APPLICATION}-${RELEASE}/" "/opt/${APPLICATION}"
-cd /opt/${APPLICATION} || exit
+mv "otterwiki-${RELEASE}/" "/opt/otterwiki"
+cd /opt/otterwiki || exit
 mkdir -p app-data/repository
 # initialize the empty repository
 git init -b main app-data/repository
@@ -55,12 +55,12 @@ echo "SECRET_KEY='$(python -c 'import secrets; print(secrets.token_hex())')'" >>
 python3 -m venv venv
 ./venv/bin/pip install -U pip uwsgi
 ./venv/bin/pip install .
-echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
+echo "${RELEASE}" >/opt/otterwiki_version.txt
 msg_ok "Setup ${APPLICATION}"
 
 # Creating Service (if needed)
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/"${APPLICATION}".service
+cat <<EOF >/etc/systemd/system/otterwiki.service
 [Unit]
 Description=uWSGI server for An Otter Wiki
 
@@ -74,7 +74,7 @@ SyslogIdentifier=otterwiki
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-systemctl enable -q --now "${APPLICATION}"
+systemctl enable -q --now otterwiki
 msg_ok "Created Service"
 
 motd_ssh
