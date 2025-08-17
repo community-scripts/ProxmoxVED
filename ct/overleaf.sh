@@ -35,10 +35,8 @@ function update_script() {
   exit
 }
 
-msg_info "Creating container"
 start
 build_container
-msg_info "Finalizing"
 description
 
 msg_ok "Completed Successfully!\n"
