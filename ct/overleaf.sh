@@ -27,7 +27,7 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP\n"
+  msg_info "Updating $APP"
   cd /opt/overleaf-toolkit
   $STD git pull -q || true
   $STD bin/upgrade || $STD bin/up -d
