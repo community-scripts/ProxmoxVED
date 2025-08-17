@@ -20,7 +20,7 @@ $STD apt-get install -y \
   git \
   build-essential \
   python3-dev \
-  python3-venv \
+  python3-venv
 msg_ok "Installed Dependencies"
 
 # # Template: MySQL Database
