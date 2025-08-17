@@ -1,0 +1,40 @@
+{
+    "name": "OtterWiki",
+    "slug": "otterwiki",
+    "categories": [
+      12
+    ],
+    "date_created": "2025-08-17",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8080,
+    "documentation": "https://otterwiki.com/",
+    "config_path": "/opt/OtterWiki/settings.cfg",
+    "website": "https://github.com/redimp/otterwiki",
+    "logo": "https://otterwiki.com/static/img/otterhead.png",
+    "description": "A minimalistic wiki powered by python, markdown and git.",
+    "install_methods": [
+      {
+        "type": "default",
+        "script": "ct/otterwiki.sh",
+        "resources": {
+          "cpu": 2,
+          "ram": 2048,
+          "hdd": 10,
+          "os": "Debian",
+          "version": "12"
+        }
+      }
+    ],
+    "default_credentials": {
+      "username": null,
+      "password": null
+    },
+    "notes": [
+      {
+        "text": "The first account registered will be an admin account with access to the application settings.",
+        "type": "info"
+      }
+    ]
+  }
