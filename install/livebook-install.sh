@@ -19,7 +19,8 @@ $STD apt-get install -y \
     ca-certificates \
     cmake \
     git \
-    libncurses5-dev
+    libncurses5-dev \
+    curl
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Erlang and Elixir"
@@ -39,7 +40,9 @@ ELIXIR_VERSION=$(ls /opt/.elixir-install/installs/elixir/ | head -n1)
 # TODO remove
 echo "Found Erlang version: $ERLANG_VERSION"
 echo "Found Elixir version: $ELIXIR_VERSION"
-export PATH="\$ERLANG_BIN:\$ELIXIR_BIN:\$PATH"
+export ERLANG_BIN="/opt/.elixir-install/installs/otp/\${ERLANG_VERSION}/bin"
+export ELIXIR_BIN="/opt/.elixir-install/installs/elixir/\${ELIXIR_VERSION}/bin"
+export PATH=$ERLANG_BIN:$ELIXIR_BIN:$PATH
 
 $STD mix local.hex --force
 $STD mix local.rebar --force
