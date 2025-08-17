@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies (matching Livebook Dockerfile)"
+msg_info "Installing Dependencies"
 $STD apt-get install -y \
     build-essential \
     ca-certificates \
@@ -23,24 +23,24 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Creating livebook user"
-adduser --system --group --home /opt --shell /bin/bash livebook
+adduser --system --group --home /opt/livebook --shell /bin/bash livebook
 msg_ok "Created livebook user"
 
 msg_info "Installing Erlang and Elixir"
 
-mkdir -p /opt /data
-export HOME=/opt
-cd /opt || exit 1
+mkdir -p /opt/livebook /data
+export HOME=/opt/livebook
+cd /opt/livebook || exit 1
 
 curl -fsSO https://elixir-lang.org/install.sh
 $STD sh install.sh elixir@latest otp@latest
 RELEASE=$(curl -fsSL https://api.github.com/repos/livebook-dev/livebook/releases/latest | grep "tag_name" | awk -F'"' '{print $4}')
 
-ERLANG_VERSION=$(ls /opt/.elixir-install/installs/otp/ | head -n1)
-ELIXIR_VERSION=$(ls /opt/.elixir-install/installs/elixir/ | head -n1)
+ERLANG_VERSION=$(ls /opt/livebook/.elixir-install/installs/otp/ | head -n1)
+ELIXIR_VERSION=$(ls /opt/livebook/.elixir-install/installs/elixir/ | head -n1)
 
-export ERLANG_BIN="/opt/.elixir-install/installs/otp/$ERLANG_VERSION/bin"
-export ELIXIR_BIN="/opt/.elixir-install/installs/elixir/$ELIXIR_VERSION/bin"
+export ERLANG_BIN="/opt/livebook/.elixir-install/installs/otp/$ERLANG_VERSION/bin"
+export ELIXIR_BIN="/opt/livebook/.elixir-install/installs/elixir/$ELIXIR_VERSION/bin"
 export PATH="$ERLANG_BIN:$ELIXIR_BIN:$PATH"
 
 $STD mix local.hex --force
@@ -49,13 +49,13 @@ $STD mix escript.install hex livebook --force
 
 LIVEBOOK_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c16)
 
-cat <<EOF > /opt/livebook.creds
+cat <<EOF > /opt/livebook/livebook.creds
 Livebook-Credentials
 Livebook Password: $LIVEBOOK_PASSWORD
 EOF
 
-cat <<EOF > /opt/.env
-export HOME=/opt
+cat <<EOF > /opt/livebook/.env
+export HOME=/opt/livebook
 export LIVEBOOK_VERSION=$RELEASE
 export ERLANG_VERSION=$ERLANG_VERSION
 export ELIXIR_VERSION=$ELIXIR_VERSION
@@ -63,9 +63,9 @@ export LIVEBOOK_PORT=8080
 export LIVEBOOK_IP="::"
 export LIVEBOOK_HOME=/data
 export LIVEBOOK_PASSWORD="$LIVEBOOK_PASSWORD"
-export ESCRIPTS_BIN=/opt/.mix/escripts
-export ERLANG_BIN="/opt/.elixir-install/installs/otp/\${ERLANG_VERSION}/bin"
-export ELIXIR_BIN="/opt/.elixir-install/installs/elixir/\${ELIXIR_VERSION}/bin"
+export ESCRIPTS_BIN=/opt/livebook/.mix/escripts
+export ERLANG_BIN="/opt/livebook/.elixir-install/installs/otp/\${ERLANG_VERSION}/bin"
+export ELIXIR_BIN="/opt/livebook/.elixir-install/installs/elixir/\${ELIXIR_VERSION}/bin"
 export PATH="\$ESCRIPTS_BIN:\$ERLANG_BIN:\$ELIXIR_BIN:\$PATH"
 EOF
 
@@ -82,8 +82,8 @@ Type=exec
 User=livebook
 Group=livebook
 WorkingDirectory=/data
-EnvironmentFile=-/opt/.env
-ExecStart=/bin/bash -c 'source /opt/.env && cd /opt && livebook server'
+EnvironmentFile=-/opt/livebook/.env
+ExecStart=/bin/bash -c 'source /opt/livebook/.env && cd /opt/livebook && livebook server'
 Restart=always
 RestartSec=5
 
@@ -92,7 +92,7 @@ WantedBy=multi-user.target
 EOF
 
 msg_info "Setting ownership and permissions"
-chown -R livebook:livebook /opt /data
+chown -R livebook:livebook /opt/livebook /data
 msg_ok "Set ownership and permissions"
 
 systemctl enable -q --now livebook

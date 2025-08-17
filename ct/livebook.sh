@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/dkuku/ProxmoxVED/refs/heads/livebook/misc/build.func)
+#source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: dkuku
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -24,7 +25,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/.mix/escripts/livebook ]]; then
+  if [[ ! -f /opt/livebook/.mix/escripts/livebook ]]; then
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
@@ -32,19 +33,19 @@ function update_script() {
   msg_info "Checking for updates..."
   RELEASE=$(curl -fsSL https://api.github.com/repos/livebook-dev/livebook/releases/latest | grep "tag_name" | awk -F'"' '{print $4}')
 
-  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
+  if [[ "${RELEASE}" != "$(cat /opt/.livebook 2>/dev/null)" ]]; then
     msg_info "Updating ${APP} LXC"
     $STD apt-get update
     $STD apt-get -y upgrade
     msg_ok "Updated ${APP} LXC"
 
     msg_info "Updating ${APP} to ${RELEASE}"
-    source /opt/.env
-    cd /opt || exit 1
+    source /opt/livebook/.env
+    cd /opt/livebook || exit 1
     mix escript.install hex livebook --force
 
-    echo "$RELEASE" | $STD tee /opt/${APP}_version.txt >/dev/null
-    chown -R livebook:livebook /opt /data
+    echo "$RELEASE" | $STD tee /opt/.livebook
+    chown -R livebook:livebook /opt/livebook /data
 
     msg_ok "Successfully updated to ${RELEASE}"
   else
