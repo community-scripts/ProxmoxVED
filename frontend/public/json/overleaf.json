@@ -1,0 +1,36 @@
+{
+  "name": "Overleaf",
+  "slug": "overleaf",
+  "categories": [11],
+  "date_created": "2025-08-17",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://docs.overleaf.com/on-premises",
+  "website": "https://github.com/overleaf/toolkit",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Overleaf_Logo.svg",
+  "description": "Overleaf is an open-source, real-time collaborative LaTeX editor that compiles projects server-side with TeX Live. This installs the official Overleaf Toolkit on Docker in an LXC and defaults to Community Edition (AGPL-3.0, self-hosted, community-supported). Community Edition targets trusted environments and omits enterprise features such as SSO via SAML/LDAP, sandboxed compiles, optimized TeX Live, and early security notices; these are in Server Pro, which you can switch to later without redoing your configuration.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/overleaf.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    { "text": "After startup, create the first admin at http://<IP>/launchpad.", "type": "info" },
+    { "text": "Toolkit lives in /opt/overleaf-toolkit. Use bin/up, bin/stop, bin/doctor.", "type": "info" },
+    { "text": "After editing /opt/overleaf-toolkit/config/overleaf.rc, redeploy with: cd /opt/overleaf-toolkit && bin/up --build.", "type": "info" }
+  ]
+}
