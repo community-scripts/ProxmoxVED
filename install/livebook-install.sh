@@ -32,10 +32,6 @@ curl -fsSO https://elixir-lang.org/install.sh
 $STD sh install.sh elixir@latest otp@latest
 RELEASE=$(curl -fsSL https://api.github.com/repos/livebook-dev/livebook/releases/latest | grep "tag_name" | awk -F'"' '{print $4}')
 
-$STD mix local.hex --force
-$STD mix local.rebar --force
-$STD mix escript.install hex livebook --force
-
 # Get the actual installed versions from directory names
 ERLANG_VERSION=$(ls /opt/.elixir-install/installs/otp/ | head -n1)
 ELIXIR_VERSION=$(ls /opt/.elixir-install/installs/elixir/ | head -n1)
@@ -43,6 +39,11 @@ ELIXIR_VERSION=$(ls /opt/.elixir-install/installs/elixir/ | head -n1)
 # TODO remove
 echo "Found Erlang version: $ERLANG_VERSION"
 echo "Found Elixir version: $ELIXIR_VERSION"
+export PATH="\$ERLANG_BIN:\$ELIXIR_BIN:\$PATH"
+
+$STD mix local.hex --force
+$STD mix local.rebar --force
+$STD mix escript.install hex livebook --force
 
 # Create .env file with all environment variables
 cat <<EOF > /opt/.env
@@ -63,7 +64,6 @@ EOF
 msg_ok "Installed Erlang $ERLANG_VERSION and Elixir $ELIXIR_VERSION"
 
 msg_info "Installing Livebook"
-
 cat <<EOF >/etc/systemd/system/livebook.service
 [Unit]
 Description=Livebook
