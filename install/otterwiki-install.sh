@@ -51,7 +51,7 @@ mkdir -p app-data/repository
 git init -b main app-data/repository
 echo "REPOSITORY='${PWD}/app-data/repository'" >> settings.cfg
 echo "SQLALCHEMY_DATABASE_URI='sqlite:///${PWD}/app-data/db.sqlite'" >> settings.cfg
-echo "SECRET_KEY='$(python -c 'import secrets; print(secrets.token_hex())')'" >> settings.cfg
+echo "SECRET_KEY='$(python3 -c 'import secrets; print(secrets.token_hex())')'" >> settings.cfg
 python3 -m venv venv
 ./venv/bin/pip install -U pip uwsgi
 ./venv/bin/pip install .
