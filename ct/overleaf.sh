@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/EEJoshua/ProxmoxVED/refs/heads/overleaf/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: [YourUserName]
+# Author: EEJoshua
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/overleaf/toolkit
 
@@ -27,16 +27,18 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP via Overleaf Toolkit"
+  msg_info "Updating $APP"
   cd /opt/overleaf-toolkit
-  git pull -q || true
-  bin/upgrade || bin/up -d
+  $STD git pull -q || true
+  $STD bin/upgrade || $STD bin/up -d
   msg_ok "Update Successful"
   exit
 }
 
+msg_info "Creating container"
 start
 build_container
+msg_info "Finalizing"
 description
 
 msg_ok "Completed Successfully!\n"
