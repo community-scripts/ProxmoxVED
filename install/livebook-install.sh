@@ -99,6 +99,9 @@ msg_ok "Set ownership and permissions"
 systemctl enable -q --now livebook
 msg_ok "Installed Livebook"
 
+msg_info "Livebook password stored in /opt/livebook.creds"
+msg_ok "Installation completed successfully"
+
 motd_ssh
 customize
 

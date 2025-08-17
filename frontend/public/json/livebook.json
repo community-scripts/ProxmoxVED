@@ -31,5 +31,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Show Livebook password: `cat /opt/livebook.creds`",
+      "type": "info"
+    }
+  ]
 }
