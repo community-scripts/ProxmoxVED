@@ -44,7 +44,7 @@ msg_info "Setup ${APPLICATION}"
 RELEASE=$(curl -fsSL https://api.github.com/repos/redimp/otterwiki/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL -o "${RELEASE}.zip" "https://github.com/redimp/otterwiki/archive/refs/tags/${RELEASE}.zip"
 unzip -q "${RELEASE}.zip"
-mv "otterwiki-${RELEASE}/" "/opt/otterwiki"
+mv "otterwiki-${RELEASE:1}/" "/opt/otterwiki"
 cd /opt/otterwiki || exit
 mkdir -p app-data/repository
 # initialize the empty repository
