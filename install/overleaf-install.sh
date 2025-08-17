@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
+
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: EEJoshua
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/overleaf/toolkit
 
-# Import Functions und Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -14,14 +14,13 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-apt -qq update >/dev/null
-$STD apt -qq install -y git ca-certificates curl gnupg
+$STD apt-get install -y git ca-certificates curl gnupg
 install -d -m 0755 /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
 chmod a+r /etc/apt/keyrings/docker.asc
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" >/etc/apt/sources.list.d/docker.list
-apt -qq update >/dev/null
-$STD apt -qq install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+$STD apt-get update
+$STD apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 $STD systemctl enable --now docker
 msg_ok "Installed Dependencies"
 
@@ -33,7 +32,6 @@ else
   $STD git clone -q https://github.com/overleaf/toolkit.git /opt/overleaf-toolkit
 fi
 cd /opt/overleaf-toolkit
-
 $STD bin/init </dev/null
 
 CFG="config/overleaf.rc"
@@ -44,18 +42,18 @@ grep -q '^OVERLEAF_LISTEN_IP=' "$CFG" \
 grep -q '^SIBLING_CONTAINERS_ENABLED=' "$CFG" \
   && sed -i 's/^SIBLING_CONTAINERS_ENABLED=.*/SIBLING_CONTAINERS_ENABLED=false/' "$CFG" \
   || echo 'SIBLING_CONTAINERS_ENABLED=false' >> "$CFG"
+msg_ok "Setup Overleaf"
 
+msg_info "Starting Overleaf"
 $STD bin/up -d
 IPV4="$(hostname -I | awk '{print $1}')"
-echo "Overleaf is starting. URL: http://${IPV4}"
 echo "First step: create the admin user at http://${IPV4}/launchpad"
-echo "Toolkit dir: /opt/overleaf-toolkit"
-msg_ok "Setup Overleaf"
+msg_ok "Started Overleaf"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt -y autoremove
-$STD apt -y autoclean
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
 msg_ok "Cleaned"
