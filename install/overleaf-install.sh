@@ -46,8 +46,7 @@ msg_ok "Setup Overleaf"
 
 msg_info "Starting Overleaf"
 $STD bin/up -d
-IPV4="$(hostname -I | awk '{print $1}')"
-echo "First step: create the admin user at http://${IPV4}/launchpad"
+
 msg_ok "Started Overleaf"
 
 motd_ssh
