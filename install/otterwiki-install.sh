@@ -67,7 +67,7 @@ Description=uWSGI server for An Otter Wiki
 [Service]
 User=root
 Environment=OTTERWIKI_SETTINGS=/opt/otterwiki/settings.cfg
-ExecStart=/opt/OtterWiki/venv/bin/uwsgi --http 127.0.0.1:8080 --enable-threads --die-on-term -w otterwiki.server:app
+ExecStart=/opt/otterwiki/venv/bin/uwsgi --http :8080 --enable-threads --die-on-term -w otterwiki.server:app
 SyslogIdentifier=otterwiki
 
 [Install]
