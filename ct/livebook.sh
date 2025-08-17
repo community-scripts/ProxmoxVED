@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/main/misc/build.func)
+# source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/dkuku/ProxmoxVED/refs/heads/livebook/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: dkuku
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/livebook-dev/livebook
 
-echo -e "Loading..."
 APP="Livebook"
 var_tags="${var_tags:-development}"
 var_disk="${var_disk:-4}"
@@ -33,11 +33,6 @@ function update_script() {
   msg_info "Checking for updates..."
   RELEASE=$(curl -fsSL https://api.github.com/repos/livebook-dev/livebook/releases/latest | grep "tag_name" | awk -F'"' '{print $4}')
 
-  if [[ -z "$RELEASE" ]]; then
-    msg_error "Failed to fetch latest version information"
-    exit 1
-  fi
-
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]]; then
     msg_info "Updating ${APP} LXC"
     $STD apt-get update
@@ -47,10 +42,10 @@ function update_script() {
     msg_info "Updating ${APP} to ${RELEASE}"
     source /opt/.env
     cd /opt || exit 1
-    rm /opt/.mix/escripts/livebook
     mix escript.install hex livebook --force
 
     echo "$RELEASE" | $STD tee /opt/${APP}_version.txt >/dev/null
+    chown -R livebook:livebook /opt /data
 
     msg_ok "Successfully updated to ${RELEASE}"
   else
