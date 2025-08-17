@@ -34,7 +34,7 @@ function update_script() {
   check_container_resources
 
   # Check if installation is present | -f for file, -d for folder
-  if [[ ! -f /opt/OtterWiki ]]; then
+  if [[ ! -f /opt/otterwiki ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
@@ -44,17 +44,17 @@ function update_script() {
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
     # Stopping Services
     msg_info "Stopping $APP"
-    systemctl stop OtterWiki.service
+    systemctl stop otterwiki.service
     msg_ok "Stopped $APP"
 
     # Creating Backup
     msg_info "Creating Backup"
-    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/OtterWiki/app-data /opt/OtterWiki/settings.cfg
+    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/otterwiki/app-data /opt/otterwiki/settings.cfg
     msg_ok "Backup Created"
 
     # Execute Update
     msg_info "Updating $APP to v${RELEASE}"
-    cd /opt/OtterWiki/
+    cd /opt/otterwiki/ || exit
     # Update the repository information
     git remote update origin
     # Get the latest release tag
@@ -66,7 +66,7 @@ function update_script() {
 
     # Starting Services
     msg_info "Starting $APP"
-    systemctl start OtterWiki.service
+    systemctl start otterwiki.service
     msg_ok "Started $APP"
 
     # # Cleaning up

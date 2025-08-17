@@ -45,6 +45,7 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/redimp/otterwiki/releases/late
 curl -fsSL -o "${RELEASE}.zip" "https://github.com/redimp/otterwiki/archive/refs/tags/${RELEASE}.zip"
 unzip -q "${RELEASE}.zip"
 mv "${APPLICATION}-${RELEASE}/" "/opt/${APPLICATION}"
+cd /opt/${APPLICATION} || exit
 mkdir -p app-data/repository
 # initialize the empty repository
 git init -b main app-data/repository
@@ -64,9 +65,8 @@ cat <<EOF >/etc/systemd/system/"${APPLICATION}".service
 Description=uWSGI server for An Otter Wiki
 
 [Service]
-User=www-data
-Group=www-data
-Environment=OTTERWIKI_SETTINGS=/opt/OtterWiki/settings.cfg
+User=root
+Environment=OTTERWIKI_SETTINGS=/opt/otterwiki/settings.cfg
 ExecStart=/opt/OtterWiki/venv/bin/uwsgi --http 127.0.0.1:8080 --enable-threads --die-on-term -w otterwiki.server:app
 SyslogIdentifier=otterwiki
 
