@@ -23,7 +23,7 @@ $STD apt-get install -y \
   libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
   gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
   build-essential python3-dev python3-gi pkg-config libcairo2-dev gir1.2-glib-2.0 \
-  cmake gfortran libopenblas-dev liblapack-dev libgirepository1.0-dev
+  cmake gfortran libopenblas-dev liblapack-dev libgirepository1.0-dev git
 
 msg_ok "Installed Dependencies"
 
@@ -35,20 +35,20 @@ msg_ok "Installed Dependencies"
 # fi
 # msg_ok "Hardware Acceleration Configured"
 
-msg_info "Setting up Python Environment"
-PYTHON_VERSION="3.12" setup_uv /opt/viseron
-msg_ok "Python Environment Setup"
+PYTHON_VERSION="3.12" setup_uv
 
 msg_info "Setting up Python Environment"
 mkdir -p /opt/viseron
 uv venv --python "python3.12" /opt/viseron
-/opt/viseron/bin/uv pip install --upgrade pip setuptools wheel
+uv pip install --python /opt/viseron/bin/python --upgrade pip setuptools wheel
 msg_ok "Python Environment Setup"
 
 msg_info "Installing Viseron"
 RELEASE=$(curl -fsSL https://api.github.com/repos/roflcoopter/viseron/releases/latest |
-  jq -r '.tag_name' | sed 's/^v//')
-/opt/viseron/bin/uv pip install "viseron==${RELEASE}"
+  jq -r '.tag_name')
+uv pip install --python /opt/viseron/bin/python \
+  "git+https://github.com/roflcoopter/viseron.git@${RELEASE}"
+uv pip install --python /opt/viseron/bin/python -r https://raw.githubusercontent.com/roflcoopter/viseron/${RELEASE}/requirements.txt
 msg_ok "Installed Viseron $RELEASE"
 
 # fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
@@ -133,7 +133,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/viseron
 Environment=PATH=/opt/viseron/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/opt/viseron/.venv/bin/viseron --config /config/viseron.yaml
+ExecStart=/opt/viseron/bin/viseron --config /config/viseron.yaml
 Restart=always
 RestartSec=10
 

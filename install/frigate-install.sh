@@ -27,14 +27,14 @@ fetch_and_deploy_gh_release "go2rtc" "AlexxIT/go2rtc" "singlefile" "latest" "/us
 fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "latest" "/opt/frigate"
 fetch_and_deploy_gh_release "libusb" "libusb/libusb" "tarball" "v1.0.29" "/opt/frigate/libusb"
 
-msg_info "Setting Up Hardware Acceleration"
-$STD apt-get -y install {va-driver-all,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools}
-if [[ "$CTTYPE" == "0" ]]; then
-  chgrp video /dev/dri
-  chmod 755 /dev/dri
-  chmod 660 /dev/dri/*
-fi
-msg_ok "Set Up Hardware Acceleration"
+# msg_info "Setting Up Hardware Acceleration"
+# $STD apt-get -y install {va-driver-all,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools}
+# if [[ "$CTTYPE" == "0" ]]; then
+#   chgrp video /dev/dri
+#   chmod 755 /dev/dri
+#   chmod 660 /dev/dri/*
+# fi
+# msg_ok "Set Up Hardware Acceleration"
 
 msg_info "Setting up Python venv"
 cd /opt/frigate
