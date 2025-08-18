@@ -49,10 +49,21 @@ function update_script() {
       msg_info "Migrating old Paperless-ngx installation to uv"
       rm -rf /opt/paperless/venv
       find /opt/paperless -name "__pycache__" -type d -exec rm -rf {} +
-      sed -i 's|ExecStart=.*manage.py document_consumer|ExecStart=uv run -- python manage.py document_consumer|' /etc/systemd/system/paperless-consumer.service
-      sed -i 's|ExecStart=celery|ExecStart=uv run -- celery|' /etc/systemd/system/paperless-scheduler.service
-      sed -i 's|ExecStart=celery|ExecStart=uv run -- celery|' /etc/systemd/system/paperless-task-queue.service
-      sed -i 's|ExecStart=granian|ExecStart=uv run -- granian|' /etc/systemd/system/paperless-webserver.service
+      declare -A PATCHES=(
+        ["paperless-consumer.service"]="ExecStart=.*manage.py document_consumer|ExecStart=uv run -- python manage.py document_consumer"
+        ["paperless-scheduler.service"]="ExecStart=celery|ExecStart=uv run -- celery"
+        ["paperless-task-queue.service"]="ExecStart=celery|ExecStart=uv run -- celery"
+        ["paperless-webserver.service"]="ExecStart=.*|ExecStart=uv run -- granian --interface asginl --ws \"paperless.asgi:application\""
+      )
+      for svc in "${!PATCHES[@]}"; do
+        path=$(systemctl show -p FragmentPath "$svc" | cut -d= -f2)
+        if [[ -n "$path" && -f "$path" ]]; then
+          sed -i "s|${PATCHES[$svc]%|*}|${PATCHES[$svc]#*|}|" "$path"
+          msg_ok "Patched $svc"
+        else
+          msg_error "Service file for $svc not found!"
+        fi
+      done
       $STD systemctl daemon-reexec
       $STD systemctl daemon-reload
       cd /opt/paperless
