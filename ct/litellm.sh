@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/BerriAI/litellm
 
-APP="litellm"
+APP="LiteLLM"
 var_tags="${var_tags:-ai;interface}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
@@ -20,34 +20,34 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
+  header_info
+  check_container_storage
+  check_container_resources
 
-    if [[ ! -f /etc/systemd/system/litellm.service ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-
-    msg_info "Stopping ${APP}"
-    systemctl stop litellm.service
-    msg_ok "Stopped ${APP}"
-
-    VENV_PATH="/opt/litellm/.venv"
-    PYTHON_VERSION="3.13" setup_uv
-
-    msg_info "Updating $APP"
-    $STD "$VENV_PATH/bin/python" -m pip install --upgrade litellm[proxy] prisma
-
-    msg_info "Updating DB Schema"
-    uv --directory=/opt/litellm run litellm --config /opt/litellm/litellm.yaml --use_prisma_db_push --skip_server_startup
-    msg_ok "DB Schema Updated"
-
-    msg_info "Starting ${APP}"
-    systemctl start litellm.service
-    msg_ok "Started ${APP}"
-    msg_ok "Updated Successfully"
+  if [[ ! -f /etc/systemd/system/litellm.service ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  msg_info "Stopping ${APP}"
+  systemctl stop litellm
+  msg_ok "Stopped ${APP}"
+
+  VENV_PATH="/opt/litellm/.venv"
+  PYTHON_VERSION="3.13" setup_uv
+
+  msg_info "Updating $APP"
+  $STD "$VENV_PATH/bin/python" -m pip install --upgrade litellm[proxy] prisma
+
+  msg_info "Updating DB Schema"
+  $STD uv --directory=/opt/litellm run litellm --config /opt/litellm/litellm.yaml --use_prisma_db_push --skip_server_startup
+  msg_ok "DB Schema Updated"
+
+  msg_info "Starting ${APP}"
+  systemctl start litellm
+  msg_ok "Started ${APP}"
+  msg_ok "Updated Successfully"
+  exit
 }
 
 start
