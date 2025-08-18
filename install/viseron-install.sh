@@ -60,6 +60,18 @@ uv pip install --python /opt/viseron/.venv/bin/python --upgrade pip setuptools w
 msg_ok "Python Environment Setup"
 
 msg_info "Setup Viseron (Patience)"
+if ls /dev/nvidia* >/dev/null 2>&1; then
+  msg_info "GPU detected → Installing PyTorch with CUDA"
+  UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python \
+    torch==2.8.0 torchvision==0.19.0 torchaudio==2.8.0
+  msg_ok "Installed Torch with CUDA"
+else
+  msg_info "No GPU detected → Installing CPU-only PyTorch"
+  UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python \
+    torch==2.8.0+cpu torchvision==0.19.0+cpu torchaudio==2.8.0+cpu \
+    --extra-index-url https://download.pytorch.org/whl/cpu
+  msg_ok "Installed Torch CPU-only"
+fi
 UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -e /opt/viseron/.
 UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -r /opt/viseron/requirements.txt
 mkdir -p /config/{recordings,snapshots,segments,event_clips,thumbnails}

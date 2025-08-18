@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies (Patience)"
-$STD apt-get install -y {git,ca-certificates,automake,build-essential,xz-utils,libtool,ccache,pkg-config,libgtk-3-dev,libavcodec-dev,libavformat-dev,libswscale-dev,libv4l-dev,libxvidcore-dev,libx264-dev,libjpeg-dev,libpng-dev,libtiff-dev,gfortran,openexr,libatlas-base-dev,libssl-dev,libtbbmalloc2,libtbb-dev,libdc1394-dev,libopenexr-dev,libgstreamer-plugins-base1.0-dev,libgstreamer1.0-dev,gcc,gfortran,libopenblas-dev,liblapack-dev,libusb-1.0-0-dev,jq,moreutils}
+$STD apt-get install -y {git,ffmpeg,ca-certificates,automake,build-essential,xz-utils,libtool,ccache,pkg-config,libgtk-3-dev,libavcodec-dev,libavformat-dev,libswscale-dev,libv4l-dev,libxvidcore-dev,libx264-dev,libjpeg-dev,libpng-dev,libtiff-dev,gfortran,openexr,libatlas-base-dev,libssl-dev,libtbbmalloc2,libtbb-dev,libdc1394-dev,libopenexr-dev,libgstreamer-plugins-base1.0-dev,libgstreamer1.0-dev,gcc,gfortran,libopenblas-dev,liblapack-dev,libusb-1.0-0-dev,jq,moreutils}
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Python3"
@@ -48,7 +48,7 @@ msg_ok "Python venv ready"
 
 msg_info "Building Web UI"
 cd /opt/frigate/web
-$STD npm install
+$STD npm ci
 $STD npm run build
 msg_ok "Web UI built"
 
@@ -75,6 +75,11 @@ mkdir -p /config
 ln -sf /opt/frigate/config/config.yml /config/config.yml
 mkdir -p /media/frigate
 wget -qO /media/frigate/person-bicycle-car-detection.mp4 https://github.com/intel-iot-devkit/sample-videos/raw/master/person-bicycle-car-detection.mp4
+cat <<'EOF' >/opt/frigate/frigate/version.py
+VERSION = "0.16.0"
+EOF
+ln -sf /usr/lib/ffmpeg/7.0/bin/ffmpeg /usr/bin/ffmpeg
+ln -sf /usr/lib/ffmpeg/7.0/bin/ffprobe /usr/bin/ffprobe
 msg_ok "Config ready"
 
 msg_info "Building and Installing libUSB without udev"
@@ -120,6 +125,13 @@ echo "libedgetpu1-max libedgetpu/install-confirm-max select true" | debconf-set-
 chmod +x /usr/local/tempio/bin/tempio
 ln -sf /usr/local/tempio/bin/tempio /usr/local/bin/tempio
 msg_ok "Installed Tempio"
+
+msg_info "Copying model files"
+cp /opt/frigate/cpu_model.tflite /
+cp /opt/frigate/edgetpu_model.tflite /
+cp /opt/frigate/audio-labelmap.txt /
+cp /opt/frigate/labelmap.txt /
+msg_ok "Copied model files"
 
 # ------------------------------------------------------------
 # systemd Units
@@ -187,8 +199,8 @@ EOF
 msg_ok "Environment set"
 
 msg_info "Building Nginx with Custom Modules"
-$STD bash /opt/frigate/docker/main/build_nginx.sh
 sed -i 's/if \[\[ "\$VERSION_ID" == "12" \]\]; then/if \[\[ "\$VERSION_ID" == "13" \]\]; then/' /opt/frigate/docker/main/build_nginx.sh
+$STD bash /opt/frigate/docker/main/build_nginx.sh
 sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
 ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
 msg_ok "Built Nginx"
