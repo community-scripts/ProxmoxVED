@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/EEJoshua/ProxmoxVE/refs/heads/moodle/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/EEJoshua/ProxmoxVED/refs/heads/moodle/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: EEJoshua
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -40,10 +40,9 @@ function update_script() {
   exit
 }
 
-msg_info "Creating container"
 start
 build_container
-msg_info "Finalizing"
+
 description
 
 msg_ok "Completed Successfully!\n"
