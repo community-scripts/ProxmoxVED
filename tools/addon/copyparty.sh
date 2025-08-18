@@ -3,6 +3,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Source: https://github.com/9001/copyparty
 
 function header_info() {
   clear
@@ -37,7 +38,6 @@ SVC_GROUP="copyparty"
 SRC_URL="https://github.com/9001/copyparty/releases/latest/download/copyparty-sfx.py"
 DEFAULT_PORT=3923
 
-# OS Detection
 if [[ -f "/etc/alpine-release" ]]; then
   OS="Alpine"
   PKG_MANAGER="apk add --no-cache"
@@ -57,7 +57,6 @@ function msg_info() { echo -e "${INFO} ${YW}$1...${CL}"; }
 function msg_ok() { echo -e "${CM} ${GN}$1${CL}"; }
 function msg_error() { echo -e "${CROSS} ${RD}$1${CL}"; }
 
-# User/Group/Dirs
 function setup_user_and_dirs() {
   msg_info "Creating $SVC_USER user and directories"
   if ! id "$SVC_USER" &>/dev/null; then
@@ -97,7 +96,6 @@ function update_copyparty() {
   exit 0
 }
 
-# --- Existing Install/Update/Uninstall Check ---
 if [[ -f "$BIN_PATH" ]]; then
   echo -e "${YW}⚠️ $APP is already installed.${CL}"
   echo -n "Uninstall $APP? (y/N): "
@@ -116,7 +114,6 @@ if [[ -f "$BIN_PATH" ]]; then
   fi
 fi
 
-# --- Deps ---
 msg_info "Installing dependencies"
 if [[ "$OS" == "Debian" ]]; then
   $PKG_MANAGER python3 curl &>/dev/null
@@ -125,17 +122,14 @@ else
 fi
 msg_ok "Dependencies installed"
 
-# --- User/Dirs ---
 setup_user_and_dirs
 
-# --- Download Binary ---
 msg_info "Downloading $APP"
 curl -fsSL "$SRC_URL" -o "$BIN_PATH"
 chmod +x "$BIN_PATH"
 chown "$SVC_USER:$SVC_GROUP" "$BIN_PATH"
 msg_ok "Downloaded to $BIN_PATH"
 
-# --- Config: Interaktiv, Auth, Rootdir, Port ---
 echo -n "Enter port for $APP (default: $DEFAULT_PORT): "
 read -r PORT
 PORT=${PORT:-$DEFAULT_PORT}
@@ -163,7 +157,6 @@ else
   msg_ok "Configured with admin user: $ADMIN_USER"
 fi
 
-# --- Generate /etc/copyparty.conf ---
 msg_info "Writing config to $CONF_PATH"
 cat <<EOF >/etc/copyparty.conf
 [global]
@@ -188,7 +181,6 @@ chmod 640 "$CONF_PATH"
 chown "$SVC_USER:$SVC_GROUP" "$CONF_PATH"
 msg_ok "Config written"
 
-# --- Systemd/OpenRC Service ---
 msg_info "Creating service"
 if [[ "$OS" == "Debian" ]]; then
   cat <<'EOF' >"$SERVICE_PATH_ALP"
@@ -216,7 +208,6 @@ EOF
 fi
 msg_ok "Service created and started"
 
-# IP detection (as root, maybe interface up/loopback fallback)
 IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
 IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
 [[ -z "$IP" ]] && IP=$(hostname -I | awk '{print $1}')
