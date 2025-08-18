@@ -35,7 +35,7 @@ $STD mysql -u root -e "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,CREATE TEMPORARY
 } >>~/"moodle.creds"
 msg_ok "Database ready"
 
-msg_info "Selecting Moodle branch"
+msg_ok "Selecting Moodle branch"
 REMOTE_BRANCHES="$(git ls-remote --heads https://github.com/moodle/moodle.git 'MOODLE_*_STABLE' | awk -F'refs/heads/' '{print $2}' | sort -V)"
 echo "Available stable branches:"
 echo "${REMOTE_BRANCHES}"
