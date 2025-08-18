@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: twingate-andrewb
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-2}"
 var_os="${var_os:-ubuntu}"
-var_version="${var_version:-22.04}"
+var_version="${var_version:-24.04}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -25,16 +25,14 @@ function update_script() {
   check_container_resources
 
   if [[ ! -f /lib/systemd/system/twingate-connector.service ]]; then
-      msg_error "No ${APP} Installation Found!"
-      exit
+    msg_error "No ${APP} Installation Found!"
+    exit
   fi
 
   msg_info "Updating ${APP}"
-
-  apt update
-  apt install -yq twingate-connector
-  systemctl restart twingate-connector
-
+  $STD apt update
+  $STD apt install -yq twingate-connector
+  $STD systemctl restart twingate-connector
   msg_ok "Updated Successfully"
   exit
 }
