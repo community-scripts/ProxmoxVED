@@ -157,9 +157,6 @@ msg_ok "Cron enabled"
 motd_ssh
 customize
 
-echo "Moodle is ready: ${WWWROOT}"
-echo "Credentials saved to ~/moodle.creds"
-
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
