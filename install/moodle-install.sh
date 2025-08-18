@@ -14,7 +14,6 @@ network_check
 update_os
 
 msg_info "Installing Web & DB stack"
-$STD apt-get update
 $STD apt-get install -y apache2 mariadb-server git unzip \
   php libapache2-mod-php \
   php-mysql php-zip php-xml php-gd php-curl \
@@ -44,14 +43,19 @@ else
   $STD git clone https://github.com/moodle/moodle.git /var/www/moodle
 fi
 cd /var/www/moodle
+msg_ok "Cloned from git"
 REMOTE_BRANCHES="$(git ls-remote --heads origin 'MOODLE_*_STABLE' | awk -F'refs/heads/' '{print $2}' | sort -V)"
 echo "Available stable branches:"
 echo "${REMOTE_BRANCHES}"
 echo -n "Enter branch to install [default MOODLE_500_STABLE]: "
 read -r MOODLE_BRANCH
+msg_info "Checking out ${MOODLE_BRANCH}"
 MOODLE_BRANCH="${MOODLE_BRANCH:-MOODLE_500_STABLE}"
 $STD git fetch origin
 $STD git checkout -B "${MOODLE_BRANCH}" "origin/${MOODLE_BRANCH}"
+$STD git remote remove origin
+$STD git reflog expire --all --expire=now
+$STD git gc --prune=now --aggressive
 msg_ok "Checked out ${MOODLE_BRANCH}"
 
 msg_info "Setting permissions and data directory"
