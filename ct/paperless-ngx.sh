@@ -49,12 +49,14 @@ function update_script() {
       msg_info "Migrating old Paperless-ngx installation to uv"
       rm -rf /opt/paperless/venv
       find /opt/paperless -name "__pycache__" -type d -exec rm -rf {} +
+
       declare -A PATCHES=(
         ["paperless-consumer.service"]="ExecStart=.*manage.py document_consumer|ExecStart=uv run -- python manage.py document_consumer"
         ["paperless-scheduler.service"]="ExecStart=celery|ExecStart=uv run -- celery"
         ["paperless-task-queue.service"]="ExecStart=celery|ExecStart=uv run -- celery"
-        ["paperless-webserver.service"]="ExecStart=.*|ExecStart=uv run -- granian --interface asginl --ws \"paperless.asgi:application\""
+        ["paperless-webserver.service"]="ExecStart=.*granian.*|ExecStart=uv run -- granian --interface asgi --host 0.0.0.0 --port 8000 --ws paperless.asgi:application"
       )
+
       for svc in "${!PATCHES[@]}"; do
         path=$(systemctl show -p FragmentPath "$svc" | cut -d= -f2)
         if [[ -n "$path" && -f "$path" ]]; then
@@ -64,13 +66,18 @@ function update_script() {
           msg_error "Service file for $svc not found!"
         fi
       done
-      $STD systemctl daemon-reexec
+
       $STD systemctl daemon-reload
       cd /opt/paperless
       $STD uv sync --all-extras
       cd /opt/paperless/src
       $STD uv run -- python manage.py migrate
+
       msg_ok "Paperless-ngx migration and update to ${RELEASE} completed"
+
+      # msg_info "Collecting static files (Patience)"
+      # $STD uv run -- python manage.py collectstatic --noinput --clear --link
+      # msg_ok "Collected static files"
     fi
 
     msg_info "Cleaning up"
