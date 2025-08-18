@@ -189,7 +189,28 @@ chown "$SVC_USER:$SVC_GROUP" "$CONF_PATH"
 msg_ok "Config written"
 
 msg_info "Creating service"
-if [[ "$OS" == "Alpine" ]]; then
+if [[ "$OS" == "Debian" ]]; then
+  cat <<EOF >"$SERVICE_PATH_DEB"
+[Unit]
+Description=Copyparty file server
+After=network.target
+
+[Service]
+User=$SVC_USER
+Group=$SVC_GROUP
+WorkingDirectory=$DATA_PATH
+ExecStart=/usr/bin/python3 /usr/local/bin/copyparty-sfx.py -c /etc/copyparty.conf
+Restart=always
+StandardOutput=append:/var/log/copyparty/copyparty.log
+StandardError=append:/var/log/copyparty/copyparty.err
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  systemctl enable -q --now copyparty
+
+elif [[ "$OS" == "Alpine" ]]; then
   cat <<'EOF' >"$SERVICE_PATH_ALP"
 #!/sbin/openrc-run
 
