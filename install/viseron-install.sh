@@ -41,8 +41,8 @@ msg_ok "Python Environment Setup"
 
 msg_info "Setting up Python Environment"
 mkdir -p /opt/viseron
-cd /opt/viseron
-uv venv .
+uv venv --python "python3.12" /opt/viseron
+/opt/viseron/bin/uv pip install --upgrade pip setuptools wheel
 msg_ok "Python Environment Setup"
 
 msg_info "Installing Viseron"
