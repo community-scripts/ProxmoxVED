@@ -158,31 +158,38 @@ else
 fi
 
 msg_info "Writing config to $CONF_PATH"
-cat <<EOF >/etc/copyparty.conf
-[global]
-  p: $PORT
-  ansi
-  e2dsa
-  e2ts
-  theme: 2
-  grid
-
-[accounts]
-  $ADMIN_USER: $ADMIN_PASS
-
-[/]
-  $USER_DATA_PATH
-  accs:
-    rw: *
-    rwmda: $ADMIN_USER
-EOF
+msg_info "Writing config to $CONF_PATH"
+{
+  echo "[global]"
+  echo "  p: $PORT"
+  echo "  ansi"
+  echo "  e2dsa"
+  echo "  e2ts"
+  echo "  theme: 2"
+  echo "  grid"
+  echo
+  if [[ -n "$ADMIN_USER" && -n "$ADMIN_PASS" ]]; then
+    echo "[accounts]"
+    echo "  $ADMIN_USER: $ADMIN_PASS"
+    echo
+  fi
+  echo "[/]"
+  echo "  $USER_DATA_PATH"
+  echo "  accs:"
+  if [[ -n "$ADMIN_USER" ]]; then
+    echo "    rw: *"
+    echo "    rwmda: $ADMIN_USER"
+  else
+    echo "    rw: *"
+  fi
+} >"$CONF_PATH"
 
 chmod 640 "$CONF_PATH"
 chown "$SVC_USER:$SVC_GROUP" "$CONF_PATH"
 msg_ok "Config written"
 
 msg_info "Creating service"
-if [[ "$OS" == "Debian" ]]; then
+if [[ "$OS" == "Alpine" ]]; then
   cat <<'EOF' >"$SERVICE_PATH_ALP"
 #!/sbin/openrc-run
 
@@ -203,8 +210,8 @@ depend() {
 EOF
 
   chmod +x "$SERVICE_PATH_ALP"
-  rc-update add copyparty default &>/dev/null
-  rc-service copyparty restart &>/dev/null
+  rc-update add copyparty default >/dev/null 2>&1
+  rc-service copyparty restart >/dev/null 2>&1
 fi
 msg_ok "Service created and started"
 
