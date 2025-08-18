@@ -38,6 +38,7 @@ fetch_and_deploy_gh_release "libusb" "libusb/libusb" "tarball" "v1.0.29" "/opt/f
 
 msg_info "Setting up Python"
 cd /opt/frigate
+mkdir -p /opt/frigate/models
 $STD pip3 wheel --wheel-dir=/wheels -r /opt/frigate/docker/main/requirements-wheels.txt
 cp -a /opt/frigate/docker/main/rootfs/. /
 export TARGETARCH="amd64"
