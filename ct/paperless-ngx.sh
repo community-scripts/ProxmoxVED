@@ -35,10 +35,10 @@ function update_script() {
     PYTHON_VERSION="3.13" setup_uv
     fetch_and_deploy_gh_release "paperless" "paperless-ngx/paperless-ngx" "tarball" "latest" "/opt/paperless"
     fetch_and_deploy_gh_release "jbig2enc" "ie13/jbig2enc" "tarball" "latest" "/opt/jbig2enc"
-    #setup_gs
+    setup_gs
 
     msg_info "Stopping all Paperless-ngx Services"
-    systemctl stop paperless-consumer paperless-webserver paperless-scheduler paperless-task-queue.service
+    systemctl stop paperless-consumer paperless-webserver paperless-scheduler paperless-task-queue
     msg_ok "Stopped all Paperless-ngx Services"
 
     if grep -q "uv run" /etc/systemd/system/paperless-webserver.service; then
@@ -49,6 +49,17 @@ function update_script() {
       $STD uv run -- python manage.py migrate
       msg_ok "Updated to ${RELEASE}"
     else
+      msg_warn "You are about to migrate your Paperless-ngx installation to uv!"
+      msg_custom "🔒" "It is strongly recommended to take a Proxmox snapshot first:"
+      echo -e "   1. Stop the container:  pct stop <CTID>"
+      echo -e "   2. Create a snapshot:  pct snapshot <CTID> pre-paperless-uv-migration"
+      echo -e "   3. Start the container again\n"
+
+      read -rp "Have you created a snapshot? [y/N]: " confirm
+      if [[ ! "$confirm" =~ ^([yY]|[yY][eE][sS])$ ]]; then
+        msg_error "Migration aborted. Please create a snapshot first."
+        exit 1
+      fi
       msg_info "Migrating old Paperless-ngx installation to uv"
       rm -rf /opt/paperless/venv
       find /opt/paperless -name "__pycache__" -type d -exec rm -rf {} +
@@ -72,20 +83,12 @@ function update_script() {
 
       $STD systemctl daemon-reload
       cd /opt/paperless
+      msg_info "Running Paperless-ngx UV sync"
       $STD uv sync --all-extras
       cd /opt/paperless/src
       $STD uv run -- python manage.py migrate
-
       msg_ok "Paperless-ngx migration and update to ${RELEASE} completed"
-
-      # msg_info "Collecting static files (Patience)"
-      # $STD uv run -- python manage.py collectstatic --noinput --clear --link
-      # msg_ok "Collected static files"
     fi
-
-    msg_info "Cleaning up"
-    cd ~
-    msg_ok "Cleaned"
 
     msg_info "Starting all Paperless-ngx Services"
     systemctl start paperless-consumer paperless-webserver paperless-scheduler paperless-task-queue
