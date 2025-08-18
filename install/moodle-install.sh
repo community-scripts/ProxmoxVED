@@ -49,8 +49,8 @@ echo "Available stable branches:"
 echo "${REMOTE_BRANCHES}"
 echo -n "Enter branch to install [default MOODLE_500_STABLE]: "
 read -r MOODLE_BRANCH
-msg_info "Checking out ${MOODLE_BRANCH}"
 MOODLE_BRANCH="${MOODLE_BRANCH:-MOODLE_500_STABLE}"
+msg_info "Checking out ${MOODLE_BRANCH}"
 $STD git fetch origin
 $STD git checkout -B "${MOODLE_BRANCH}" "origin/${MOODLE_BRANCH}"
 $STD git remote remove origin
