@@ -185,12 +185,12 @@ chmod +x /usr/local/tempio/bin/tempio
 ln -sf /usr/local/tempio/bin/tempio /usr/local/bin/tempio
 msg_ok "Installed Tempio"
 
-msg_info "Copying model files"
-cp /opt/frigate/cpu_model.tflite /
-cp /opt/frigate/edgetpu_model.tflite /
-cp /opt/frigate/audio-labelmap.txt /
-cp /opt/frigate/labelmap.txt /
-msg_ok "Copied model files"
+# msg_info "Copying model files"
+# cp /opt/frigate/cpu_model.tflite /
+# cp /opt/frigate/edgetpu_model.tflite /
+# cp /opt/frigate/audio-labelmap.txt /
+# cp /opt/frigate/labelmap.txt /
+# msg_ok "Copied model files"
 
 msg_info "Building Nginx with Custom Modules"
 sed -i 's/if \[\[ "$VERSION_ID" == "12" \]\]; then/if [[ -f \/etc\/apt\/sources.list.d\/debian.sources ]]; then/' /opt/frigate/docker/main/build_nginx.sh
