@@ -15,11 +15,7 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  git automake build-essential xz-utils libtool ccache pkg-config \
-  libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev \
-  libjpeg-dev libpng-dev libtiff-dev gfortran openexr libatlas-base-dev libssl-dev libtbb-dev \
-  libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev gcc gfortran \
-  libopenblas-dev liblapack-dev libusb-1.0-0-dev jq moreutils tclsh libhdf5-dev libopenexr-dev nginx
+  $STD apt-get install -y {git,ca-certificates,automake,build-essential,xz-utils,libtool,ccache,pkg-config,libgtk-3-dev,libavcodec-dev,libavformat-dev,libswscale-dev,libv4l-dev,libxvidcore-dev,libx264-dev,libjpeg-dev,libpng-dev,libtiff-dev,gfortran,openexr,libatlas-base-dev,libssl-dev,libtbbmalloc2,libtbb-dev,libdc1394-dev,libopenexr-dev,libgstreamer-plugins-base1.0-dev,libgstreamer1.0-dev,gcc,gfortran,libopenblas-dev,liblapack-dev,libusb-1.0-0-dev,jq,moreutils}
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Python3"
@@ -99,7 +95,7 @@ msg_ok "NGINX with Custom Modules Built"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 fetch_and_deploy_gh_release "go2rtc" "AlexxIT/go2rtc" "singlefile" "latest" "/usr/local/go2rtc/bin" "go2rtc_linux_amd64"
-fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "v0.16.0-beta4" "/opt/frigate"
+fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "latest" "/opt/frigate"
 fetch_and_deploy_gh_release "libusb" "libusb/libusb" "tarball" "v1.0.29" "/opt/frigate/libusb"
 
 msg_info "Setting Up Hardware Acceleration"
@@ -241,6 +237,32 @@ EOF
 systemctl daemon-reload
 systemctl enable -q --now frigate
 msg_ok "Frigate service enabled"
+
+msg_info "Setting environmental variables"
+cat <<EOF >>/root/.bashrc
+export TERM='xterm-256color'
+export DEFAULT_FFMPEG_VERSION='7.0'
+export NVIDIA_VISIBLE_DEVICES='all'
+export ENV NVIDIA_DRIVER_CAPABILITIES='compute,video,utility'
+export PATH="/usr/local/go2rtc/bin:/usr/local/tempio/bin:/usr/local/nginx/sbin:${PATH}"
+export TOKENIZERS_PARALLELISM=true
+export TRANSFORMERS_NO_ADVISORY_WARNINGS=1
+export OPENCV_FFMPEG_LOGLEVEL=8
+export HAILORT_LOGGER_PATH=NONE
+export INCLUDED_FFMPEG_VERSIONS="${DEFAULT_FFMPEG_VERSION}:5.0"
+export S6_LOGGING_SCRIPT="T 1 n0 s10000000 T"
+export S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0
+export CCACHE_DIR=/root/.ccache
+export CCACHE_MAXSIZE=2G
+EOF
+msg_ok "Environment set"
+
+msg_info "Building Nginx with Custom Modules"
+$STD bash /opt/frigate/docker/main/build_nginx.sh
+sed -i 's/if \[\[ "\$VERSION_ID" == "12" \]\]; then/if \[\[ "\$VERSION_ID" == "13" \]\]; then/' /opt/frigate/docker/main/build_nginx.sh
+sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
+ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
+msg_ok "Built Nginx"
 
 # msg_info "Setup Frigate"
 # ln -sf /usr/local/go2rtc/bin/go2rtc /usr/local/bin/go2rtc
