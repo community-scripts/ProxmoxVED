@@ -27,11 +27,13 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  BRANCH="$(git -C /var/www/moodle rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'MOODLE_500_STABLE')"
-  msg_info "Updating $APP ($BRANCH)"
-  $STD git -C /var/www/moodle fetch --all --prune
-  $STD git -C /var/www/moodle checkout -B "$BRANCH" "origin/$BRANCH"
-  $STD git -C /var/www/moodle pull --ff-only
+  BRANCH="$(runuser -u www-data -- git -C /var/www/moodle rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'MOODLE_500_STABLE')"
+  msg_info "Updating $APP (${BRANCH})"
+  git config --global --add safe.directory /var/www/moodle || true
+  runuser -u www-data -- git config --global --add safe.directory /var/www/moodle || true
+  $STD runuser -u www-data -- git -C /var/www/moodle fetch --all --prune
+  $STD runuser -u www-data -- git -C /var/www/moodle checkout -B "${BRANCH}" "origin/${BRANCH}"
+  $STD runuser -u www-data -- git -C /var/www/moodle reset --hard "origin/${BRANCH}"
   $STD runuser -u www-data -- /usr/bin/php /var/www/moodle/admin/cli/maintenance.php --enable
   $STD runuser -u www-data -- /usr/bin/php /var/www/moodle/admin/cli/upgrade.php --non-interactive
   $STD runuser -u www-data -- /usr/bin/php /var/www/moodle/admin/cli/purge_caches.php
