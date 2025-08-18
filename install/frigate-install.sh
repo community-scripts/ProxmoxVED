@@ -152,6 +152,8 @@ After=go2rtc.service network.target
 [Service]
 WorkingDirectory=/opt/frigate
 Environment="PATH=/opt/frigate/venv/bin"
+Environment="PYTHONPATH=/opt/frigate"
+ExecStartPre=/bin/mkdir -p /media/frigate/recordings /media/frigate/clips /media/frigate/snapshots
 ExecStart=/opt/frigate/venv/bin/python3 -u -m frigate
 Restart=always
 RestartSec=5
