@@ -12,7 +12,7 @@
   "documentation": "https://www.twingate.com/docs/",
   "config_path": "/etc/twingate/connector.conf",
   "website": "https://www.twingate.com",
-  "logo": "https://avatars.githubusercontent.com/u/97470429?s=200&v=4",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/twingate.webp",
   "description": "Twingate Connectors are lightweight software components that establish secure, least-privileged access between private network resources and authorized users without exposing the network to the internet. They act as outbound-only bridges between your protected resources and the Twingate infrastructure, ensuring zero-trust access without the need for a VPN.",
   "install_methods": [
     {
@@ -20,10 +20,10 @@
       "script": "ct/twingate-connector.sh",
       "resources": {
         "cpu": 1,
-        "ram": 2048,
-        "hdd": 2,
+        "ram": 1024,
+        "hdd": 3,
         "os": "Ubuntu",
-        "version": "22.04"
+        "version": "24.04"
       }
     }
   ],
@@ -32,6 +32,10 @@
     "password": null
   },
   "notes": [
+    {
+      "text": "You can get your Twingate access or refresh tokens from the Twingate Admin Console. `https://auth.twingate.com/signup-v2`",
+      "type": "info"
+    },
     {
       "text": "If you need to update your access or refresh tokens, they can be found in /etc/twingate/connector.conf",
       "type": "info"
