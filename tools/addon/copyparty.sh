@@ -64,7 +64,8 @@ function setup_user_and_dirs() {
     if [[ "$OS" == "Debian" ]]; then
       useradd -r -s /sbin/nologin -d "$DATA_PATH" "$SVC_USER"
     else
-      adduser -D -H -h "$DATA_PATH" -s /sbin/nologin "$SVC_USER"
+      addgroup -S "$SVC_GROUP" 2>/dev/null || true
+      adduser -S -D -H -G "$SVC_GROUP" -h "$DATA_PATH" -s /sbin/nologin "$SVC_USER" 2>/dev/null || true
     fi
   fi
   mkdir -p "$DATA_PATH" "$LOG_PATH"
@@ -190,42 +191,28 @@ msg_ok "Config written"
 # --- Systemd/OpenRC Service ---
 msg_info "Creating service"
 if [[ "$OS" == "Debian" ]]; then
-  cat <<EOF >"$SERVICE_PATH_DEB"
-[Unit]
-Description=CopyParty file server
-
-[Service]
-Type=simple
-User=$SVC_USER
-Group=$SVC_GROUP
-WorkingDirectory=$USER_DATA_PATH
-Environment=PYTHONUNBUFFERED=x
-LogsDirectory=copyparty
-ExecStart=/usr/bin/python3 $BIN_PATH -c $CONF_PATH
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-  systemctl daemon-reload
-  systemctl enable --now copyparty &>/dev/null
-else
-  cat <<EOF >"$SERVICE_PATH_ALP"
+  cat <<'EOF' >"$SERVICE_PATH_ALP"
 #!/sbin/openrc-run
 
-command="/usr/bin/python3"
-command_args="$BIN_PATH -c $CONF_PATH"
+name="copyparty"
+description="Copyparty file server"
+
+command="$(command -v python3)"
+command_args="/usr/local/bin/copyparty-sfx.py -c /etc/copyparty.conf"
 command_background=true
-directory="$USER_DATA_PATH"
-pidfile="$USER_DATA_PATH/copyparty.pid"
+directory="/var/lib/copyparty"
+pidfile="/run/copyparty.pid"
+output_log="/var/log/copyparty/copyparty.log"
+error_log="/var/log/copyparty/copyparty.err"
 
 depend() {
     need net
 }
 EOF
+
   chmod +x "$SERVICE_PATH_ALP"
   rc-update add copyparty default &>/dev/null
-  rc-service copyparty start &>/dev/null
+  rc-service copyparty restart &>/dev/null
 fi
 msg_ok "Service created and started"
 

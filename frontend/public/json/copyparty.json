@@ -13,7 +13,7 @@
   "website": "https://github.com/9001/copyparty",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/copyparty.webp",
   "config_path": "",
-  "description": "This script automatically adds IP address as tags to LXC containers using a Systemd service. The service also updates the tags if a LXC IP address is changed.",
+  "description": "Copyparty is a lightweight, portable HTTP file server with a browser-based interface. It supports drag-and-drop uploads, downloads, deduplication, media playback, and advanced search, making it ideal for quickly sharing and managing files.",
   "install_methods": [
     {
       "type": "default",
