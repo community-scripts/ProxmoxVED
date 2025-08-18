@@ -15,7 +15,11 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  libsodium23 libsodium-dev pkg-config caddy
+  libsodium23 \
+  libsodium-dev \
+  pkg-config \
+  caddy \
+  gcc
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
