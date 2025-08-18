@@ -32,7 +32,7 @@ function update_script() {
     PYTHON_VERSION="3.13" setup_uv
     fetch_and_deploy_gh_release "paperless" "paperless-ngx/paperless-ngx" "tarball" "latest" "/opt/paperless"
     fetch_and_deploy_gh_release "jbig2enc" "ie13/jbig2enc" "tarball" "latest" "/opt/jbig2enc"
-    setup_gs
+    #setup_gs
 
     msg_info "Stopping all Paperless-ngx Services"
     systemctl stop paperless-consumer paperless-webserver paperless-scheduler paperless-task-queue.service
