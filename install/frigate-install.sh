@@ -140,7 +140,6 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reload
 systemctl enable -q --now go2rtc
 msg_ok "go2rtc service enabled"
 
@@ -163,7 +162,6 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reload
 systemctl enable -q --now frigate
 msg_ok "Frigate service enabled"
 

@@ -17,7 +17,6 @@ PYTHON_VERSION="3.12" setup_uv
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  python3 python3-pip python3-venv \
   python3-opencv jq \
   libgl1-mesa-glx libglib2.0-0 \
   libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
@@ -36,28 +35,17 @@ msg_ok "Installed Dependencies"
 # msg_ok "Hardware Acceleration Configured"
 
 PYTHON_VERSION="3.12" setup_uv
-
 fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
 
 msg_info "Setting up Python Environment"
-uv venv --python "python3.12" /opt/viseron
-uv pip install --python /opt/viseron/bin/python --upgrade pip setuptools wheel
+uv venv --python "python3.12" /opt/viseron/.venv
+uv pip install --python /opt/viseron/.venv/bin/python --upgrade pip setuptools wheel
 msg_ok "Python Environment Setup"
 
-msg_info "Installing Viseron"
-uv pip install --python /opt/viseron/bin/python -e .
-uv pip install --python /opt/viseron/bin/python -r requirements.txt
-msg_ok "Installed Viseron $RELEASE"
-
-# fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
-
-# msg_info "Setting up Viseron (Patience)"
-# cd /opt/viseron
-# uv venv .venv
-# $STD uv pip install --upgrade pip setuptools wheel
-# $STD uv pip install -r requirements.txt --python /opt/viseron/.venv/bin/python
-# ln -s /opt/viseron/.venv/bin/viseron /usr/local/bin/viseron
-# msg_ok "Setup Viseron"
+msg_info "Setup Viseron (Patience)"
+UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -e /opt/viseron/.
+UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -r /opt/viseron/requirements.txt
+msg_ok "Setup Viseron"
 
 msg_info "Creating Configuration Directory"
 mkdir -p /config
