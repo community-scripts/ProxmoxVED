@@ -35,28 +35,24 @@ $STD mysql -u root -e "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,CREATE TEMPORARY
 } >>~/"moodle.creds"
 msg_ok "Database ready"
 
-msg_info "Cloning Moodle via Git"
-install -d -m 0755 /var/www
-if [[ -d /var/www/moodle/.git ]]; then
-  $STD git -C /var/www/moodle fetch --all --prune
-else
-  $STD git clone https://github.com/moodle/moodle.git /var/www/moodle
-fi
-cd /var/www/moodle
-msg_ok "Cloned from git"
-REMOTE_BRANCHES="$(git ls-remote --heads origin 'MOODLE_*_STABLE' | awk -F'refs/heads/' '{print $2}' | sort -V)"
+msg_info "Selecting Moodle branch"
+REMOTE_BRANCHES="$(git ls-remote --heads https://github.com/moodle/moodle.git 'MOODLE_*_STABLE' | awk -F'refs/heads/' '{print $2}' | sort -V)"
 echo "Available stable branches:"
 echo "${REMOTE_BRANCHES}"
 echo -n "Enter branch to install [default MOODLE_500_STABLE]: "
 read -r MOODLE_BRANCH
 MOODLE_BRANCH="${MOODLE_BRANCH:-MOODLE_500_STABLE}"
-msg_info "Checking out ${MOODLE_BRANCH}"
-$STD git fetch origin
-$STD git checkout -B "${MOODLE_BRANCH}" "origin/${MOODLE_BRANCH}"
-$STD git remote remove origin
-$STD git reflog expire --all --expire=now
-$STD git gc --prune=now --aggressive
-msg_ok "Checked out ${MOODLE_BRANCH}"
+if ! echo "${REMOTE_BRANCHES}" | grep -qx "${MOODLE_BRANCH}"; then
+  msg_error "Branch ${MOODLE_BRANCH} not found among remotes"
+  exit 1
+fi
+msg_ok "Selected ${MOODLE_BRANCH}"
+
+msg_info "Cloning Moodle (shallow)"
+install -d -m 0755 /var/www
+$STD rm -rf /var/www/moodle
+$STD git clone --depth 1 --branch "${MOODLE_BRANCH}" https://github.com/moodle/moodle.git /var/www/moodle
+msg_ok "Cloned Moodle ${MOODLE_BRANCH}"
 
 msg_info "Setting permissions and data directory"
 install -d -m 0770 -o www-data -g www-data /var/moodledata
