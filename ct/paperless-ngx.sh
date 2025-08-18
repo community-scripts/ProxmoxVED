@@ -54,16 +54,16 @@ function update_script() {
       find /opt/paperless -name "__pycache__" -type d -exec rm -rf {} +
 
       declare -A PATCHES=(
-        ["paperless-consumer.service"]="ExecStart=.*manage.py document_consumer|ExecStart=uv run -- python manage.py document_consumer"
-        ["paperless-scheduler.service"]="ExecStart=celery|ExecStart=uv run -- celery"
-        ["paperless-task-queue.service"]="ExecStart=celery|ExecStart=uv run -- celery"
-        ["paperless-webserver.service"]="ExecStart=.*granian.*|ExecStart=uv run -- granian --interface asgi --host 0.0.0.0 --port 8000 --ws paperless.asgi:application"
+        ["paperless-consumer.service"]="ExecStart=uv run -- python manage.py document_consumer"
+        ["paperless-scheduler.service"]="ExecStart=uv run -- celery beat --loglevel INFO"
+        ["paperless-task-queue.service"]="ExecStart=uv run -- celery worker --loglevel INFO"
+        ["paperless-webserver.service"]="ExecStart=uv run -- granian --interface asgi --host 0.0.0.0 --port 8000 --ws paperless.asgi:application"
       )
 
       for svc in "${!PATCHES[@]}"; do
         path=$(systemctl show -p FragmentPath "$svc" | cut -d= -f2)
         if [[ -n "$path" && -f "$path" ]]; then
-          sed -i "s|${PATCHES[$svc]%|*}|${PATCHES[$svc]#*|}|" "$path"
+          sed -i "s|^ExecStart=.*|${PATCHES[$svc]}|" "$path"
           msg_ok "Patched $svc"
         else
           msg_error "Service file for $svc not found!"
@@ -88,7 +88,7 @@ function update_script() {
     msg_ok "Cleaned"
 
     msg_info "Starting all Paperless-ngx Services"
-    systemctl start paperless-consumer paperless-webserver paperless-scheduler paperless-task-queue.service
+    systemctl start paperless-consumer paperless-webserver paperless-scheduler paperless-task-queue
     sleep 1
     msg_ok "Started all Paperless-ngx Services"
     msg_ok "Updated Successfully!\n"
