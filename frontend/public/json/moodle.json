@@ -1,0 +1,39 @@
+{
+    "name": "Moodle",
+    "slug": "moodle",
+    "categories": [
+        11
+    ],
+    "date_created": "2025-08-18",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://docs.moodle.org/500/en/Main_page",
+    "website": "https://moodle.org/",
+    "logo": "https://moodle.org/theme/image.php/moodleorg/core/1720531200/moodle-logo",
+    "description": "Moodle is the world’s most popular open-source learning management system (LMS). The community edition of Moodle allows educators to create flexible, customizable online learning platforms with extensive plugin support, user management, and activity tracking.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/moodle.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 8,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        "Database and Admin credentials are saved in ~/moodle.creds",
+        "Moodle requires PHP settings: max_input_vars >= 5000 and memory_limit >= 256M. These are applied automatically in the installation script.",
+        "Default data directory: /var/moodledata (writeable by www-data).",
+        "Supports MariaDB as the database backend (configured by the script)."
+    ]
+}
