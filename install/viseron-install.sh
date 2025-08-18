@@ -44,15 +44,15 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/roflcoopter/viseron/releases/l
 uv pip install "viseron==${RELEASE}"
 msg_ok "Installed Viseron $RELEASE"
 
-fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
+# fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
 
-msg_info "Setting up Viseron (Patience)"
-cd /opt/viseron
-uv venv .venv
-$STD uv pip install --upgrade pip setuptools wheel
-$STD uv pip install -r requirements.txt --python /opt/viseron/.venv/bin/python
-ln -s /opt/viseron/.venv/bin/viseron /usr/local/bin/viseron
-msg_ok "Setup Viseron"
+# msg_info "Setting up Viseron (Patience)"
+# cd /opt/viseron
+# uv venv .venv
+# $STD uv pip install --upgrade pip setuptools wheel
+# $STD uv pip install -r requirements.txt --python /opt/viseron/.venv/bin/python
+# ln -s /opt/viseron/.venv/bin/viseron /usr/local/bin/viseron
+# msg_ok "Setup Viseron"
 
 msg_info "Creating Configuration Directory"
 mkdir -p /config
