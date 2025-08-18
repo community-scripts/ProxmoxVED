@@ -35,6 +35,15 @@ msg_ok "Installed Dependencies"
 # fi
 # msg_ok "Hardware Acceleration Configured"
 
+msg_info "Setting up Python Environment"
+PYTHON_VERSION="3.12" setup_uv /opt/viseron
+msg_ok "Python Environment Setup"
+
+msg_info "Installing Viseron"
+RELEASE=$(curl -fsSL https://api.github.com/repos/roflcoopter/viseron/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+uv pip install "viseron==${RELEASE}"
+msg_ok "Installed Viseron $RELEASE"
+
 fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
 
 msg_info "Setting up Viseron (Patience)"
