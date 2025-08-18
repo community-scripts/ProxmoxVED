@@ -27,10 +27,12 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+
+  msg_info "Preparing repository"
+  $STD git config --system --add safe.directory /var/www/moodle || true
+
   BRANCH="$(runuser -u www-data -- git -C /var/www/moodle rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'MOODLE_500_STABLE')"
   msg_info "Updating $APP (${BRANCH})"
-  git config --global --add safe.directory /var/www/moodle || true
-  runuser -u www-data -- git config --global --add safe.directory /var/www/moodle || true
   $STD runuser -u www-data -- git -C /var/www/moodle fetch --all --prune
   $STD runuser -u www-data -- git -C /var/www/moodle checkout -B "${BRANCH}" "origin/${BRANCH}"
   $STD runuser -u www-data -- git -C /var/www/moodle reset --hard "origin/${BRANCH}"
