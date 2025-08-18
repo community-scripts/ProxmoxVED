@@ -44,6 +44,8 @@ msg_info "Building Museum (server)"
 cd /opt/ente/server
 $STD corepack enable
 $STD go mod tidy
+export CGO_CFLAGS="$(pkg-config --cflags libsodium)"
+export CGO_LDFLAGS="$(pkg-config --libs libsodium)"
 $STD go build cmd/museum/main.go
 cp config/example.yaml museum.yaml
 msg_ok "Built Museum"
