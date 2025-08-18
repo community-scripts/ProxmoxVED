@@ -37,18 +37,16 @@ msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.12" setup_uv
 
+fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
+
 msg_info "Setting up Python Environment"
-mkdir -p /opt/viseron
 uv venv --python "python3.12" /opt/viseron
 uv pip install --python /opt/viseron/bin/python --upgrade pip setuptools wheel
 msg_ok "Python Environment Setup"
 
 msg_info "Installing Viseron"
-RELEASE=$(curl -fsSL https://api.github.com/repos/roflcoopter/viseron/releases/latest |
-  jq -r '.tag_name')
-uv pip install --python /opt/viseron/bin/python \
-  "git+https://github.com/roflcoopter/viseron.git@${RELEASE}"
-uv pip install --python /opt/viseron/bin/python -r https://raw.githubusercontent.com/roflcoopter/viseron/${RELEASE}/requirements.txt
+uv pip install --python /opt/viseron/bin/python -e .
+uv pip install --python /opt/viseron/bin/python -r requirements.txt
 msg_ok "Installed Viseron $RELEASE"
 
 # fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
@@ -133,7 +131,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/viseron
 Environment=PATH=/opt/viseron/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/opt/viseron/bin/viseron --config /config/viseron.yaml
+ExecStart=/opt/viseron/bin/python -m viseron --config /config/viseron.yaml
 Restart=always
 RestartSec=10
 
