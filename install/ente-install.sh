@@ -60,30 +60,46 @@ fi
 export CGO_CFLAGS
 export CGO_LDFLAGS
 $STD go build cmd/museum/main.go
-cp config/example.yaml museum.yaml
 msg_ok "Built Museum"
 
 msg_info "Generating Secrets"
-$STD go run tools/gen-random-keys/main.go >secrets.txt
+SECRET_ENC=$($STD go run tools/gen-random-keys/main.go | grep "encryption" | awk '{print $2}')
+SECRET_HASH=$($STD go run tools/gen-random-keys/main.go | grep "hash" | awk '{print $2}')
+SECRET_JWT=$($STD go run tools/gen-random-keys/main.go | grep "jwt" | awk '{print $2}')
 msg_ok "Generated Secrets"
 
-msg_info "Creating Museum Service"
-cat <<EOF >/etc/systemd/system/ente-museum.service
-[Unit]
-Description=Ente Museum Server
-After=network.target postgresql.service
+msg_info "Creating museum.yaml"
+cat <<EOF >/opt/ente/server/museum.yaml
+db:
+  host: 127.0.0.1
+  port: 5432
+  name: $DB_NAME
+  user: $DB_USER
+  password: $DB_PASS
 
-[Service]
-WorkingDirectory=/opt/ente/server
-ExecStart=/opt/ente/server/main
-Restart=always
-Environment="DATABASE_URL=postgresql://$DB_USER:$DB_PASS@127.0.0.1:5432/$DB_NAME"
+s3:
+  are_local_buckets: true
+  use_path_style_urls: true
+  local-dev:
+    key: dummy
+    secret: dummy
+    endpoint: localhost:3200
+    region: eu-central-2
+    bucket: ente-dev
 
-[Install]
-WantedBy=multi-user.target
+apps:
+  public-albums: http://localhost:3002
+  cast: http://localhost:3004
+  accounts: http://localhost:3001
+
+key:
+  encryption: $SECRET_ENC
+  hash: $SECRET_HASH
+
+jwt:
+  secret: $SECRET_JWT
 EOF
-systemctl enable -q --now ente-museum
-msg_ok "Created Museum Service"
+msg_ok "Created museum.yaml"
 
 msg_info "Building Web Applications"
 cd /opt/ente/web
@@ -100,6 +116,23 @@ cp -r apps/accounts/out /var/www/ente/apps/accounts
 cp -r apps/auth/out /var/www/ente/apps/auth
 cp -r apps/cast/out /var/www/ente/apps/cast
 msg_ok "Built Web Applications"
+
+msg_info "Creating Museum Service"
+cat <<EOF >/etc/systemd/system/ente-museum.service
+[Unit]
+Description=Ente Museum Server
+After=network.target postgresql.service
+
+[Service]
+WorkingDirectory=/opt/ente/server
+ExecStart=/opt/ente/server/main -config /opt/ente/server/museum.yaml
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now ente-museum
+msg_ok "Created Museum Service"
 
 msg_info "Configuring Caddy"
 cat <<EOF >/etc/caddy/Caddyfile
