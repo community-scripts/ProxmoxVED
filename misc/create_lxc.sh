@@ -389,8 +389,9 @@ if [[ "${PCT_RAM_SIZE:-2048}" -lt 1024 ]]; then
   msg_warn "Configured RAM (${PCT_RAM_SIZE}MB) is below 1024MB – some apps may not work properly."
 fi
 
-if [[ "${PCT_UNPRIVILEGED:-1}" == "1" && " ${PCT_OPTIONS[*]} " == *"fuse=1"* ]]; then
-  msg_warn "Unprivileged container with FUSE may fail unless extra device mappings are configured."
-fi
+# comment out 19.08.2025 -  PCT Options not correct, message every new lxc (without fuse too)
+# if [[ "${PCT_UNPRIVILEGED:-1}" == "1" && " ${PCT_OPTIONS[*]} " == *"fuse=1"* ]]; then
+#   msg_warn "Unprivileged container with FUSE may fail unless extra device mappings are configured."
+# fi
 
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
