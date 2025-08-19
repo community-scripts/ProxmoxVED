@@ -264,11 +264,11 @@ mapfile -t TEMPLATES < <(
     pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V
 )
 
-# If nothing found online, search local templates
+# If nothing found online, search local templates (file names only)
 if [ ${#TEMPLATES[@]} -eq 0 ]; then
   msg_info "Online search failed or no template found. Checking for local fallbacks..."
   mapfile -t TEMPLATES < <(
-    pveam list "$TEMPLATE_STORAGE" | awk "/$TEMPLATE_SEARCH/ {print \$2}" | sort -t - -k 2 -V
+    pveam list "$TEMPLATE_STORAGE" | awk -v s="$TEMPLATE_SEARCH" '$2 ~ s {print $2}' | sort -t - -k 2 -V
   )
 
   if [ ${#TEMPLATES[@]} -eq 0 ]; then
@@ -289,17 +289,15 @@ msg_debug "TEMPLATES=(${TEMPLATES[*]})"
 msg_debug "Selected TEMPLATE=$TEMPLATE"
 msg_debug "TEMPLATE_PATH=$TEMPLATE_PATH"
 
-# Validate that template file exists and is not corrupted
+# Validation: only run download logic if template came from online list
 TEMPLATE_VALID=1
-if ! pveam list "$TEMPLATE_STORAGE" | grep -q "$TEMPLATE"; then
-  TEMPLATE_VALID=0
-elif [ ! -s "$TEMPLATE_PATH" ]; then
+if [ ! -s "$TEMPLATE_PATH" ]; then
   TEMPLATE_VALID=0
 elif ! tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; then
   TEMPLATE_VALID=0
 fi
 
-if [ "$TEMPLATE_VALID" -eq 0 ]; then
+if [ "$TEMPLATE_VALID" -eq 0 ] && [[ " ${TEMPLATES[*]} " =~ ".tar." ]]; then
   msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
   for attempt in {1..3}; do
