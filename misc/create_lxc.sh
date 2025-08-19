@@ -258,29 +258,30 @@ fi
 # Update LXC template list
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 
-msg_info "Searching for online LXC template for '$TEMPLATE_SEARCH'..."
+# 1. Check local templates first
+msg_info "Checking for local template for '$TEMPLATE_SEARCH'..."
 mapfile -t TEMPLATES < <(
-  pveam update >/dev/null 2>&1 &&
-    pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V
+  pveam list "$TEMPLATE_STORAGE" | awk -v s="$TEMPLATE_SEARCH" '$1 ~ s {print $1}' | sed 's/.*\///' | sort -t - -k 2 -V
 )
 
-# If nothing found online, search local templates (extract filename from volume ID)
-if [ ${#TEMPLATES[@]} -eq 0 ]; then
-  msg_info "Online search failed or no template found. Checking for local fallbacks..."
+if [ ${#TEMPLATES[@]} -gt 0 ]; then
+  msg_ok "Found local template."
+else
+  # 2. If no local match, try online
+  msg_info "No local template found. Searching online..."
   mapfile -t TEMPLATES < <(
-    pveam list "$TEMPLATE_STORAGE" | awk -v s="$TEMPLATE_SEARCH" '$1 ~ s {print $1}' | sed 's/.*\///' | sort -t - -k 2 -V
+    pveam update >/dev/null 2>&1 &&
+      pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V
   )
 
   if [ ${#TEMPLATES[@]} -eq 0 ]; then
     msg_error "No online or local LXC template found for '${TEMPLATE_SEARCH}'. Please check network or install a template manually."
     exit 207
   fi
-  msg_ok "Found local fallback template."
-else
   msg_ok "Found online template."
 fi
 
-# Use the newest available template (last in sorted list)
+# 3. Use the newest template (last in sorted list)
 TEMPLATE="${TEMPLATES[-1]}"
 TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
 
@@ -289,7 +290,7 @@ msg_debug "TEMPLATES=(${TEMPLATES[*]})"
 msg_debug "Selected TEMPLATE=$TEMPLATE"
 msg_debug "TEMPLATE_PATH=$TEMPLATE_PATH"
 
-# Validation: only run download logic if template came from online list
+# 4. Validate template (exists & not corrupted)
 TEMPLATE_VALID=1
 if [ ! -s "$TEMPLATE_PATH" ]; then
   TEMPLATE_VALID=0
@@ -297,8 +298,8 @@ elif ! tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; 
   TEMPLATE_VALID=0
 fi
 
-if [ "$TEMPLATE_VALID" -eq 0 ] && [[ " ${TEMPLATES[*]} " =~ ".tar." ]]; then
-  msg_warn "Template $TEMPLATE not found or appears to be corrupted. Re-downloading."
+if [ "$TEMPLATE_VALID" -eq 0 ]; then
+  msg_warn "Template $TEMPLATE is missing or corrupted. Re-downloading."
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
   for attempt in {1..3}; do
     msg_info "Attempt $attempt: Downloading LXC template..."
