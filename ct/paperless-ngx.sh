@@ -75,6 +75,11 @@ function update_script() {
         path=$(systemctl show -p FragmentPath "$svc" | cut -d= -f2)
         if [[ -n "$path" && -f "$path" ]]; then
           sed -i "s|^ExecStart=.*|${PATCHES[$svc]}|" "$path"
+          if [[ "$svc" == "paperless-webserver.service" ]]; then
+            grep -q "^Environment=GRANIAN_HOST=" "$path" || echo 'Environment=GRANIAN_HOST=::' >>"$path"
+            grep -q "^Environment=GRANIAN_PORT=" "$path" || echo 'Environment=GRANIAN_PORT=8000' >>"$path"
+            grep -q "^Environment=GRANIAN_WORKERS=" "$path" || echo 'Environment=GRANIAN_WORKERS=1' >>"$path"
+          fi
           msg_ok "Patched $svc"
         else
           msg_error "Service file for $svc not found!"
