@@ -15,7 +15,6 @@ hostname="$(hostname)"
 header_info "$APP"
 catch_errors
 
-# install on Debian/Ubuntu
 install_glances_debian() {
   msg_info "Installing dependencies"
   $STD apt-get update
@@ -56,6 +55,21 @@ EOF
   msg_ok "Created systemd service"
 
   echo -e "\n$APP is now running at: http://$IP:61208\n"
+}
+
+# update on Debian/Ubuntu
+update_glances_debian() {
+  if [[ ! -d /opt/glances/.venv ]]; then
+    msg_error "$APP is not installed"
+    exit 1
+  fi
+  msg_info "Updating $APP"
+  cd /opt/glances
+  source .venv/bin/activate
+  uv pip install --upgrade "glances[web]"
+  deactivate
+  systemctl restart glances
+  msg_ok "Updated $APP"
 }
 
 # uninstall on Debian/Ubuntu
@@ -107,6 +121,21 @@ EOF
   echo -e "\n$APP is now running at: http://$IP:61208\n"
 }
 
+# update on Alpine
+update_glances_alpine() {
+  if [[ ! -d /opt/glances/.venv ]]; then
+    msg_error "$APP is not installed"
+    exit 1
+  fi
+  msg_info "Updating $APP"
+  cd /opt/glances
+  source .venv/bin/activate
+  uv pip install --upgrade "glances[web]"
+  deactivate
+  rc-service glances restart
+  msg_ok "Updated $APP"
+}
+
 # uninstall on Alpine
 uninstall_glances_alpine() {
   msg_info "Uninstalling $APP"
@@ -119,21 +148,24 @@ uninstall_glances_alpine() {
 
 # options menu
 OPTIONS=(Install "Install $APP"
+  Update "Update $APP"
   Uninstall "Uninstall $APP")
 
-CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "$APP" --menu "Select an option:" 10 58 2 \
+CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "$APP" --menu "Select an option:" 12 58 3 \
   "${OPTIONS[@]}" 3>&1 1>&2 2>&3 || true)
 
 # OS detection
 if grep -qi "alpine" /etc/os-release; then
   case "$CHOICE" in
   Install) install_glances_alpine ;;
+  Update) update_glances_alpine ;;
   Uninstall) uninstall_glances_alpine ;;
   *) exit 0 ;;
   esac
 else
   case "$CHOICE" in
   Install) install_glances_debian ;;
+  Update) update_glances_debian ;;
   Uninstall) uninstall_glances_debian ;;
   *) exit 0 ;;
   esac
