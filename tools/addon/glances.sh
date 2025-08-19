@@ -5,76 +5,39 @@
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-function header_info {
-  clear
-  cat <<"EOF"
-   ________
-  / ____/ /___ _____  ________  _____
- / / __/ / __ `/ __ \/ ___/ _ \/ ___/
-/ /_/ / / /_/ / / / / /__/  __(__  )
-\____/_/\__,_/_/ /_/\___/\___/____/
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 
-EOF
-}
-IP=$(hostname -I | awk '{print $1}')
-YW=$(echo "\033[33m")
-BL=$(echo "\033[36m")
-RD=$(echo "\033[01;31m")
-BGN=$(echo "\033[4;92m")
-GN=$(echo "\033[1;92m")
-DGN=$(echo "\033[32m")
-CL=$(echo "\033[m")
-BFR="\\r\\033[K"
-HOLD=" "
-CM="${GN}✓${CL}"
 APP="Glances"
+IP=$(hostname -I | awk '{print $1}')
 hostname="$(hostname)"
-silent() { "$@" >/dev/null 2>&1; }
-set -e
-spinner() {
-  local chars="/-\|"
-  local spin_i=0
-  printf "\e[?25l"
-  while true; do
-    printf "\r \e[36m%s\e[0m" "${chars:spin_i++%${#chars}:1}"
-    sleep 0.1
-  done
-}
 
-msg_info() {
-  local msg="$1"
-  echo -ne " ${HOLD} ${YW}${msg}   "
-  spinner &
-  SPINNER_PID=$!
-}
+header_info "$APP"
+catch_errors
 
-msg_ok() {
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
-  printf "\e[?25h"
-  local msg="$1"
-  echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
-}
+# install on Debian/Ubuntu
+install_glances_debian() {
+  msg_info "Installing dependencies"
+  $STD apt-get update
+  $STD apt-get install -y gcc lm-sensors wireless-tools
+  msg_ok "Installed dependencies"
 
-install() {
-  header_info
-  while true; do
-    read -p "This will Install ${APP} on $hostname. Proceed(y/n)?" yn
-    case $yn in
-    [Yy]*) break ;;
-    [Nn]*) exit ;;
-    *) echo "Please answer yes or no." ;;
-    esac
-  done
-  header_info
-  read -r -p "Verbose mode? <y/N> " prompt
-  if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
-    STD=""
-  else
-    STD="silent"
-  fi
-  msg_info "Installing $APP"
-  rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-  $STD bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicolargo/glancesautoinstall/master/install.sh)"
+  msg_info "Setting up Python + uv"
+  setup_uv PYTHON_VERSION="3.12"
+  msg_ok "Setup Python + uv"
+
+  msg_info "Installing $APP (with web UI)"
+  cd /opt
+  mkdir -p glances
+  cd glances
+  uv venv
+  source .venv/bin/activate
+  uv pip install --upgrade pip wheel setuptools
+  uv pip install "glances[web]"
+  deactivate
+  msg_ok "Installed $APP"
+
+  msg_info "Creating systemd service"
   cat <<EOF >/etc/systemd/system/glances.service
 [Unit]
 Description=Glances - An eye on your system
@@ -82,44 +45,96 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/glances -w
+ExecStart=/opt/glances/.venv/bin/glances -w
 Restart=on-failure
+WorkingDirectory=/opt/glances
 
 [Install]
 WantedBy=multi-user.target
 EOF
-  systemctl enable -q --now glances.service
-  msg_ok "Installed $APP on $hostname"
+  systemctl enable -q --now glances
+  msg_ok "Created systemd service"
 
-  echo -e "${APP} should be reachable by going to the following URL.
-           ${BL}http://$IP:61208${CL} \n"
+  echo -e "\n$APP is now running at: http://$IP:61208\n"
 }
-uninstall() {
-  header_info
+
+# uninstall on Debian/Ubuntu
+uninstall_glances_debian() {
   msg_info "Uninstalling $APP"
-  if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
-  systemctl disable -q --now glances
-  bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicolargo/glancesautoinstall/master/uninstall.sh)"
-  rm -rf /etc/systemd/system/glances.service
-  msg_ok "Uninstalled $APP"
-  msg_ok "Completed Successfully!\n"
+  systemctl disable -q --now glances || true
+  rm -f /etc/systemd/system/glances.service
+  rm -rf /opt/glances
+  msg_ok "Removed $APP"
 }
 
+# install on Alpine
+install_glances_alpine() {
+  msg_info "Installing dependencies"
+  $STD apk update
+  $STD apk add --no-cache gcc musl-dev python3 py3-pip py3-virtualenv lm-sensors wireless-tools
+  msg_ok "Installed dependencies"
+
+  msg_info "Setting up Python + uv"
+  setup_uv PYTHON_VERSION="3.12"
+  msg_ok "Setup Python + uv"
+
+  msg_info "Installing $APP (with web UI)"
+  cd /opt
+  mkdir -p glances
+  cd glances
+  uv venv
+  source .venv/bin/activate
+  uv pip install --upgrade pip wheel setuptools
+  uv pip install "glances[web]"
+  deactivate
+  msg_ok "Installed $APP"
+
+  msg_info "Creating OpenRC service"
+  cat <<'EOF' >/etc/init.d/glances
+#!/sbin/openrc-run
+command="/opt/glances/.venv/bin/glances"
+command_args="-w"
+command_background="yes"
+pidfile="/run/glances.pid"
+name="glances"
+description="Glances monitoring tool"
+EOF
+  chmod +x /etc/init.d/glances
+  rc-update add glances default
+  rc-service glances start
+  msg_ok "Created OpenRC service"
+
+  echo -e "\n$APP is now running at: http://$IP:61208\n"
+}
+
+# uninstall on Alpine
+uninstall_glances_alpine() {
+  msg_info "Uninstalling $APP"
+  rc-service glances stop || true
+  rc-update del glances || true
+  rm -f /etc/init.d/glances
+  rm -rf /opt/glances
+  msg_ok "Removed $APP"
+}
+
+# options menu
 OPTIONS=(Install "Install $APP"
   Uninstall "Uninstall $APP")
 
 CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "$APP" --menu "Select an option:" 10 58 2 \
-  "${OPTIONS[@]}" 3>&1 1>&2 2>&3)
+  "${OPTIONS[@]}" 3>&1 1>&2 2>&3 || true)
 
-case $CHOICE in
-"Install")
-  install
-  ;;
-"Uninstall")
-  uninstall
-  ;;
-*)
-  echo "Exiting..."
-  exit 0
-  ;;
-esac
+# OS detection
+if grep -qi "alpine" /etc/os-release; then
+  case "$CHOICE" in
+  Install) install_glances_alpine ;;
+  Uninstall) uninstall_glances_alpine ;;
+  *) exit 0 ;;
+  esac
+else
+  case "$CHOICE" in
+  Install) install_glances_debian ;;
+  Uninstall) uninstall_glances_debian ;;
+  *) exit 0 ;;
+  esac
+fi
