@@ -143,7 +143,35 @@ msg_ok "Python dependencies"
 # Comfyui manager installation
 if [[ "${comfyui_manager_enabled}" =~ ^[Yy]$ ]]; then
   msg_info "Install ${application_name} Manager"
-  install_comfyui_manager
+  # Define the target directory
+  custom_nodes_dir="${app_path}/custom_nodes"
+  comfyui_manager_dir="${custom_nodes_dir}/comfyui-manager"
+
+  # Check if the directory exists
+  if [[ ! -d "${custom_nodes_dir}" ]]; then
+    echo "${TAB3}${TAB3}${TAB3}Error: Directory not found: ${custom_nodes_dir}"
+    return 1
+  fi
+
+  if [[ -d "${comfyui_manager_dir}" ]]; then
+    echo "${TAB3}${TAB3}${TAB3}ComfyUI-Manager already exists. Skipping installation."
+  else
+    if [[ "${comfyui_manager_version}" == "latest" ]]; then
+      # Clone the manager
+      git clone https://github.com/ltdrdata/ComfyUI-Manager "${comfyui_manager_dir}"
+    else
+      # Download Release
+      curl -fsSL -o "${comfyui_manager_version}.zip" "https://github.com/Comfy-Org/ComfyUI-Manager/archive/refs/tags/${comfyui_manager_version}.zip"
+      # Unzip Release
+      unzip -q "${comfyui_manager_version}.zip"
+      # Move and rename
+      mv "ComfyUI-Manager-${comfyui_manager_version}" "${comfyui_manager_dir}"
+      # Clean up the zip file
+      rm -f "${comfyui_manager_version}.zip"
+    fi
+    # Install Manager dependencies with uv
+    $STD uv pip install -r "${comfyui_manager_dir}/requirements.txt" --python="${python_path}"
+  fi
   msg_ok "Installed ${application_name} Manager"
 else
   msg_error "No installed ${application_name} Manager"
