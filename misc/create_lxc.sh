@@ -264,7 +264,6 @@ mapfile -t TEMPLATES < <(
     pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V
 )
 
-# If nothing found online, search local templates (file names only)
 # If nothing found online, search local templates (extract filename from volume ID)
 if [ ${#TEMPLATES[@]} -eq 0 ]; then
   msg_info "Online search failed or no template found. Checking for local fallbacks..."
