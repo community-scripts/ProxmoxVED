@@ -149,6 +149,7 @@ cat <<'EOF' >/usr/bin/addsite
 #!/bin/bash
 
 function setup_site() {
+    set -e
     hostname="$(whiptail --inputbox "Enter the hostname of the Site" 8 78 --title "Hostname" 3>&1 1>&2 2>&3)"
     exitstatus=$?
     [[ "$exitstatus" = 1 ]] && return;
