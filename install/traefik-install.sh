@@ -145,26 +145,18 @@ EOF
 msg_ok "Template Created"
 
 msg_info "Creating Helper Scripts"
-cat <<'EOF' >/usr/bin/addsite
-#!/bin/bash
+install -Dm0755 /dev/stdin /usr/local/bin/addsite <<'EOF'
+#!/usr/bin/env bash
 
-function setup_site() {
-    set -e
-    hostname="$(whiptail --inputbox "Enter the hostname of the Site" 8 78 --title "Hostname" 3>&1 1>&2 2>&3)"
-    exitstatus=$?
-    [[ "$exitstatus" = 1 ]] && return;
-    FQDN="$(whiptail --inputbox "Enter the FQDN of the Site" 8 78 --title "FQDN" 3>&1 1>&2 2>&3)"
-    exitstatus=$?
-    [[ "$exitstatus" = 1 ]] && return;
-    URL="$(whiptail --inputbox "Enter the URL of the Site (For example http://192.168.x.x:8080)" 8 78 --title "URL" 3>&1 1>&2 2>&3)"
-    exitstatus=$?
-    [[ "$exitstatus" = 1 ]] && return;
-    filename="/etc/traefik/sites-available/${hostname}.yaml"
-    export hostname FQDN URL
-    envsubst '${hostname} ${FQDN} ${URL}' < /etc/traefik/template.yaml.tpl > ${filename}
-}
-
-setup_site
+set -e
+hostname="$(whiptail --inputbox 'Enter the hostname of the Site' 8 78 --title 'Hostname' 3>&1 1>&2 2>&3)" || exit 0
+FQDN="$(whiptail --inputbox 'Enter the FQDN of the Site' 8 78 --title 'FQDN' 3>&1 1>&2 2>&3)" || exit 0
+URL="$(whiptail --inputbox 'Enter the URL of the Site (e.g. http://192.168.x.x:8080)' 8 78 --title 'URL' 3>&1 1>&2 2>&3)" || exit 0
+mkdir -p /etc/traefik/sites-available
+filename="/etc/traefik/sites-available/${hostname}.yaml"
+export hostname FQDN URL
+envsubst '${hostname} ${FQDN} ${URL}' < /etc/traefik/template.yaml.tpl > "$filename"
+echo "Wrote $filename"
 EOF
 
 cat <<'EOF' >/usr/bin/ensite
