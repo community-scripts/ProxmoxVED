@@ -28,7 +28,7 @@ echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Traefik v${RELEASE}"
 
 msg_info "Creating Traefik configuration"
-cat <<EOF >/etc/traefik/traefik.yaml
+cat <<'EOF' >/etc/traefik/traefik.yaml
 providers:
   file:
     directory: /etc/traefik/conf.d/
