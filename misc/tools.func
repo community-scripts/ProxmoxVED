@@ -1283,8 +1283,20 @@ function setup_uv() {
   local UV_TAR
 
   case "$ARCH" in
-  x86_64) UV_TAR="uv-x86_64-unknown-linux-gnu.tar.gz" ;;
-  aarch64) UV_TAR="uv-aarch64-unknown-linux-gnu.tar.gz" ;;
+  x86_64)
+    if grep -qi "alpine" /etc/os-release; then
+      UV_TAR="uv-x86_64-unknown-linux-musl.tar.gz"
+    else
+      UV_TAR="uv-x86_64-unknown-linux-gnu.tar.gz"
+    fi
+    ;;
+  aarch64)
+    if grep -qi "alpine" /etc/os-release; then
+      UV_TAR="uv-aarch64-unknown-linux-musl.tar.gz"
+    else
+      UV_TAR="uv-aarch64-unknown-linux-gnu.tar.gz"
+    fi
+    ;;
   *)
     msg_error "Unsupported architecture: $ARCH"
     rm -rf "$TMP_DIR"
