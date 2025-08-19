@@ -165,6 +165,7 @@ function setup_site() {
 
 setup_site
 EOF
+
 cat <<'EOF' >/usr/bin/ensite
 #!/bin/bash
 
@@ -194,6 +195,7 @@ function ensite() {
 
 ensite
 EOF
+
 cat <<'EOF' >/usr/bin/dissite
 #!/bin/bash
 
