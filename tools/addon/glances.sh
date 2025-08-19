@@ -13,7 +13,6 @@ IP=$(hostname -I | awk '{print $1}')
 hostname="$(hostname)"
 
 header_info "$APP"
-catch_errors
 
 install_glances_debian() {
   msg_info "Installing dependencies"
