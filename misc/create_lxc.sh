@@ -225,7 +225,6 @@ while true; do
   fi
 done
 
-msg_info "Checking container storage"
 while true; do
   if select_storage container; then
     CONTAINER_STORAGE="$STORAGE_RESULT"
@@ -309,8 +308,6 @@ if [ "$TEMPLATE_VALID" -eq 0 ]; then
     sleep $((attempt * 5))
   done
 fi
-
-msg_ok "LXC Template '$TEMPLATE' is ready to use."
 
 msg_info "Creating LXC Container"
 # Check and fix subuid/subgid
