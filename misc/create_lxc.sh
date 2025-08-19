@@ -63,9 +63,10 @@ function check_storage_support() {
   local -a VALID_STORAGES=()
 
   while IFS= read -r line; do
-    local STORAGE=$(awk '{print $1}' <<<"$line")
-    [[ "$STORAGE" == "storage" || -z "$STORAGE" ]] && continue
-    VALID_STORAGES+=("$STORAGE")
+    local STORAGE_NAME
+    STORAGE_NAME=$(awk '{print $1}' <<<"$line")
+    [[ -z "$STORAGE_NAME" ]] && continue
+    VALID_STORAGES+=("$STORAGE_NAME")
   done < <(pvesm status -content "$CONTENT" 2>/dev/null | awk 'NR>1')
 
   [[ ${#VALID_STORAGES[@]} -gt 0 ]]
@@ -124,11 +125,12 @@ function select_storage() {
 
   while read -r TAG TYPE _ TOTAL USED FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
-    local DISPLAY="${TAG} (${TYPE})"
+    local STORAGE_NAME="$TAG"
+    local DISPLAY="${STORAGE_NAME} (${TYPE})"
     local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
     local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
     local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
-    STORAGE_MAP["$DISPLAY"]="$TAG"
+    STORAGE_MAP["$DISPLAY"]="$STORAGE_NAME"
     MENU+=("$DISPLAY" "$INFO" "OFF")
     ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
   done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
