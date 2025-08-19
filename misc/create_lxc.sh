@@ -265,10 +265,11 @@ mapfile -t TEMPLATES < <(
 )
 
 # If nothing found online, search local templates (file names only)
+# If nothing found online, search local templates (extract filename from volume ID)
 if [ ${#TEMPLATES[@]} -eq 0 ]; then
   msg_info "Online search failed or no template found. Checking for local fallbacks..."
   mapfile -t TEMPLATES < <(
-    pveam list "$TEMPLATE_STORAGE" | awk -v s="$TEMPLATE_SEARCH" '$2 ~ s {print $2}' | sort -t - -k 2 -V
+    pveam list "$TEMPLATE_STORAGE" | awk -v s="$TEMPLATE_SEARCH" '$1 ~ s {print $1}' | sed 's/.*\///' | sort -t - -k 2 -V
   )
 
   if [ ${#TEMPLATES[@]} -eq 0 ]; then
