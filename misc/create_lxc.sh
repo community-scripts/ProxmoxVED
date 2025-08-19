@@ -205,39 +205,35 @@ if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
 fi
 
 # This checks for the presence of valid Container Storage and Template Storage locations
-msg_info "Validating Storage"
+msg_info "Validating storage"
 if ! check_storage_support "rootdir"; then
-  msg_error "No valid storage found for 'rootdir' (Container)."
-  msg_debug "check_storage_support('rootdir') → success"
+  msg_error "No valid storage found for 'rootdir' [Container]"
   exit 1
 fi
 if ! check_storage_support "vztmpl"; then
-  msg_error "No valid storage found for 'vztmpl' (Template)."
-  msg_debug "check_storage_support('vztmpl') → success"
+  msg_error "No valid storage found for 'vztmpl' [Template]"
   exit 1
 fi
-msg_ok "Valid Storage Found"
 
+msg_info "Checking template storage"
 while true; do
   if select_storage template; then
     TEMPLATE_STORAGE="$STORAGE_RESULT"
     TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
-    msg_debug "TEMPLATE_STORAGE=$TEMPLATE_STORAGE"
-    msg_debug "TEMPLATE_STORAGE_INFO=$TEMPLATE_STORAGE_INFO"
+    msg_ok "Storage ${BL}$TEMPLATE_STORAGE${CL} ($TEMPLATE_STORAGE_INFO) [Template]"
     break
   fi
 done
 
+msg_info "Checking container storage"
 while true; do
   if select_storage container; then
     CONTAINER_STORAGE="$STORAGE_RESULT"
     CONTAINER_STORAGE_INFO="$STORAGE_INFO"
-    msg_debug "CONTAINER_STORAGE=$CONTAINER_STORAGE"
-    msg_debug "CONTAINER_STORAGE_INFO=$CONTAINER_STORAGE_INFO"
+    msg_ok "Storage ${BL}$CONTAINER_STORAGE${CL} ($CONTAINER_STORAGE_INFO) [Container]"
     break
   fi
 done
-msg_ok "Validated Storage | Container: ${BL}$CONTAINER_STORAGE${CL} ($CONTAINER_STORAGE_INFO)"
 
 # Check free space on selected container storage
 STORAGE_FREE=$(pvesm status | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
@@ -246,11 +242,11 @@ if [ "$STORAGE_FREE" -lt "$REQUIRED_KB" ]; then
   msg_error "Not enough space on '$CONTAINER_STORAGE'. Needed: ${PCT_DISK_SIZE:-8}G."
   exit 214
 fi
+
 # Check Cluster Quorum if in Cluster
 if [ -f /etc/pve/corosync.conf ]; then
-  msg_info "Checking Proxmox cluster quorum status"
+  msg_info "Checking cluster quorum"
   if ! pvecm status | awk -F':' '/^Quorate/ { exit ($2 ~ /Yes/) ? 0 : 1 }'; then
-    printf "\e[?25h"
     msg_error "Cluster is not quorate. Start all nodes or configure quorum device (QDevice)."
     exit 210
   fi
@@ -261,31 +257,28 @@ fi
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 
 # 1. Check local templates first
-msg_info "Checking for local template for '$TEMPLATE_SEARCH'..."
+msg_info "Searching for template '$TEMPLATE_SEARCH'"
 mapfile -t TEMPLATES < <(
-  pveam list "$TEMPLATE_STORAGE" | awk -v s="$TEMPLATE_SEARCH" '$1 ~ s {print $1}' | sed 's/.*\///' | sort -t - -k 2 -V
+  pveam list "$TEMPLATE_STORAGE" | awk -v s="$TEMPLATE_SEARCH" '$1 ~ s {print $1}' |
+    sed 's/.*\///' | sort -t - -k 2 -V
 )
 
 if [ ${#TEMPLATES[@]} -gt 0 ]; then
-  msg_ok "Found local template."
+  TEMPLATE_SOURCE="local"
 else
-  # 2. If no local match, try online
-  msg_info "No local template found. Searching online..."
+  msg_info "No local template found, checking online repository"
+  pveam update >/dev/null 2>&1
   mapfile -t TEMPLATES < <(
-    pveam update >/dev/null 2>&1 &&
-      pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" | sort -t - -k 2 -V
+    pveam available -section system | sed -n "s/.*\($TEMPLATE_SEARCH.*\)/\1/p" |
+      sort -t - -k 2 -V
   )
-
-  if [ ${#TEMPLATES[@]} -eq 0 ]; then
-    msg_error "No online or local LXC template found for '${TEMPLATE_SEARCH}'. Please check network or install a template manually."
-    exit 207
-  fi
-  msg_ok "Found online template."
+  TEMPLATE_SOURCE="online"
 fi
 
-# 3. Use the newest template (last in sorted list)
 TEMPLATE="${TEMPLATES[-1]}"
-TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || echo "/var/lib/vz/template/cache/$TEMPLATE")"
+TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null ||
+  echo "/var/lib/vz/template/cache/$TEMPLATE")"
+msg_ok "Template ${BL}$TEMPLATE${CL} [$TEMPLATE_SOURCE]"
 
 msg_debug "TEMPLATE_SEARCH=$TEMPLATE_SEARCH"
 msg_debug "TEMPLATES=(${TEMPLATES[*]})"
