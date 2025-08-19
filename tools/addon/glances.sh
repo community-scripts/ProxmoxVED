@@ -17,8 +17,6 @@ EOF
 }
 
 APP="Glances"
-IP=$(hostname -I | awk '{print $1}')
-hostname="$(hostname)"
 YW=$(echo "\033[33m")
 GN=$(echo "\033[1;92m")
 RD=$(echo "\033[01;31m")
@@ -31,6 +29,17 @@ INFO="${BL}ℹ️${CL}"
 function msg_info() { echo -e "${INFO} ${YW}$1...${CL}"; }
 function msg_ok() { echo -e "${CM} ${GN}$1${CL}"; }
 function msg_error() { echo -e "${CROSS} ${RD}$1${CL}"; }
+
+get_local_ip() {
+  if command -v hostname >/dev/null 2>&1 && hostname -I 2>/dev/null; then
+    hostname -I | awk '{print $1}'
+  elif command -v ip >/dev/null 2>&1; then
+    ip -4 addr show scope global | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1
+  else
+    echo "127.0.0.1"
+  fi
+}
+IP=$(get_local_ip)
 
 install_glances_debian() {
   msg_info "Installing dependencies"
@@ -103,7 +112,9 @@ uninstall_glances_debian() {
 install_glances_alpine() {
   msg_info "Installing dependencies"
   apk update >/dev/null 2>&1
-  apk add --no-cache gcc musl-dev python3 py3-pip py3-virtualenv lm-sensors wireless-tools >/dev/null 2>&1
+  $STD apk add --no-cache \
+    gcc musl-dev linux-headers python3-dev \
+    python3 py3-pip py3-virtualenv lm-sensors wireless-tools >/dev/null 2>&1
   msg_ok "Installed dependencies"
 
   msg_info "Setting up Python + uv"
