@@ -114,11 +114,15 @@ user.is_superuser = True
 user.is_staff = True
 user.save()
 EOF
-
-echo "" >>~/paperless.creds
-echo -e "Paperless-ngx WebUI User: \e[32madmin\e[0m" >>~/paperless.creds
-echo -e "Paperless-ngx WebUI Password: \e[32m$DB_PASS\e[0m" >>~/paperless.creds
-echo "" >>~/paperless.creds
+{
+  echo "Paperless-ngx-Credentials"
+  echo "Paperless-ngx Database Name: $DB_NAME"
+  echo "Paperless-ngx Database User: $DB_USER"
+  echo "Paperless-ngx Database Password: $DB_PASS"
+  echo "Paperless-ngx Secret Key: $SECRET_KEY\n"
+  echo "Paperless-ngx WebUI User: admin"
+  echo "Paperless-ngx WebUI Password: $DB_PASS"
+} >>~/paperless-ngx.creds
 msg_ok "Set up admin Paperless-ngx User & Password"
 
 msg_info "Creating Services"
