@@ -13,38 +13,17 @@ setting_up_container
 network_check
 update_os
 
-
-APPLICATION="Dispatcharr"
-APP_NAME="dispatcharr"
-APP_USER="dispatcharr"
-APP_GROUP="dispatcharr"
-APP_DIR="/opt/dispatcharr"
-GUNICORN_RUNTIME_DIR="dispatcharr"
-GUNICORN_PORT="5656"
-NGINX_HTTP_PORT="9191"
-WEBSOCKET_PORT="8001"
-
-msg_info "Creating ${APP_USER} user"
-groupadd -f $APP_GROUP
-useradd -M -s /usr/sbin/nologin -g $APP_GROUP $APP_USER || true
-msg_ok "Created ${APP_USER} user"
-
-setup_uv
-NODE_VERSION="22" setup_nodejs
-PG_VERSION="16" setup_postgresql
+# msg_info "Creating ${APP_USER} user"
+# groupadd -f $APP_GROUP
+# useradd -M -s /usr/sbin/nologin -g $APP_GROUP $APP_USER || true
+# msg_ok "Created ${APP_USER} user"
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  git \
-  curl \
-  wget \
   build-essential \
   gcc \
   libpcre3-dev \
   libpq-dev \
-  python3-dev \
-  python3-venv \
-  python3-pip \
   nginx \
   redis-server \
   ffmpeg \
@@ -52,74 +31,61 @@ $STD apt-get install -y \
   streamlink
 msg_ok "Installed Dependencies"
 
-msg_info "Configuring PostgreSQL"
+setup_uv
+NODE_VERSION="22" setup_nodejs
+PG_VERSION="16" setup_postgresql
 
-POSTGRES_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-
+msg_info "Set up PostgreSQL Database"
+DB_NAME=dispatcharr_db
+DB_USER=dispatcharr_usr
+DB_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)"
+DB_URL="postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}"
+$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
+$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 {
-  echo "POSTGRES_DB=dispatcharr"
-  echo "POSTGRES_USER=dispatch"
-  echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD"
-  echo "POSTGRES_HOST=localhost"
-} >> ~/.$APP_NAME.creds
+  echo "Dispatcharr-Credentials"
+  echo "Dispatcharr Database Name: $DB_NAME"
+  echo "Dispatcharr Database User: $DB_USER"
+  echo "Dispatcharr Database Password: $DB_PASS"
+} >>~/dispatcharr.creds
+msg_ok "Set up PostgreSQL Database"
 
-source ~/.$APP_NAME.creds
-
-su - postgres -c "psql -tc \"SELECT 1 FROM pg_roles WHERE rolname='${POSTGRES_USER}'\"" | grep -q 1 || \
-  su - postgres -c "psql -c \"CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';\""
-
-su - postgres -c "psql -tc \"SELECT 1 FROM pg_database WHERE datname='${POSTGRES_DB}'\"" | grep -q 1 || \
-  su - postgres -c "psql -c \"CREATE DATABASE ${POSTGRES_DB} OWNER ${POSTGRES_USER};\""
-
-su - postgres -c "psql -d ${POSTGRES_DB} -c \"ALTER SCHEMA public OWNER TO ${POSTGRES_USER};\""
-
-
-
-msg_ok "Configured PostgreSQL"
-
-msg_info "Fetching latest Dispatcharr release version"
-LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/Dispatcharr/Dispatcharr/releases/latest | grep '"tag_name":' | cut -d '"' -f4)
-
-if [[ -z "$LATEST_VERSION" ]]; then
-  msg_error "Failed to fetch latest release version from GitHub."
-  exit 1
-fi
-
-msg_info "Downloading Dispatcharr $LATEST_VERSION"
 fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
-echo "$LATEST_VERSION" > "/opt/${APPLICATION}_version.txt"
-mkdir -p /data/{db,epgs,logos,m3us,recordings,uploads}
-mkdir -p /etc/$APP_NAME
-cp ~/.$APP_NAME.creds /etc/$APP_NAME/$APP_NAME.env
-chown -R "$APP_USER:$APP_GROUP" {/etc/$APP_NAME,$APP_DIR,/data}
 
+mkdir -p /data/{db,epgs,logos,m3us,recordings,uploads}
+mkdir -p /etc/dispatcharr
+cp ~/.dispatcharr.creds /etc/dispatcharr/dispatcharr.env
+chown -R "$APP_USER:$APP_GROUP" {/etc/dispatcharr,/opt/dispatcharr,/data}
 
 sed -i 's/program\[\x27channel_id\x27\]/program["channel_id"]/g' "${APP_DIR}/apps/output/views.py"
 
 msg_ok "Downloaded Dispatcharr $LATEST_VERSION"
 
 msg_info "Install Python Requirements"
-cd $APP_DIR
+cd /opt/dispatcharr
 python3 -m venv env
 source env/bin/activate
 
 $STD pip install --upgrade pip
 $STD pip install -r requirements.txt
 $STD pip install gunicorn
-ln -sf /usr/bin/ffmpeg $APP_DIR/env/bin/ffmpeg
+ln -sf /usr/bin/ffmpeg /opt/dispatcharr/env/bin/ffmpeg
 msg_ok "Python Requirements Installed"
 
 msg_info "Building Frontend"
-cd $APP_DIR/frontend
+cd /opt/dispatcharr/frontend
 $STD npm install --legacy-peer-deps
 $STD npm run build
 msg_ok "Built Frontend"
 
 msg_info "Running Django Migrations"
-cd $APP_DIR
+cd /opt/dispatcharr
 source env/bin/activate
 set -o allexport
-source /etc/$APP_NAME/$APP_NAME.env
+source /etc/dispatcharr/dispatcharr.env
 set +o allexport
 
 $STD python manage.py migrate --noinput
@@ -129,27 +95,27 @@ msg_ok "Migrations Complete"
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/sites-available/dispatcharr.conf
 server {
-    listen $NGINX_HTTP_PORT;
+    listen 9191;
 
     location / {
         include proxy_params;
-        proxy_pass http://127.0.0.1:$GUNICORN_PORT;
+        proxy_pass http://127.0.0.1:5656;
     }
 
     location /static/ {
-        alias $APP_DIR/static/;
+        alias /opt/dispatcharr/static/;
     }
 
     location /assets/ {
-        alias $APP_DIR/frontend/dist/assets/;
+        alias /opt/dispatcharr/frontend/dist/assets/;
     }
 
     location /media/ {
-        alias $APP_DIR/media/;
+        alias /opt/dispatcharr/media/;
     }
 
     location /ws/ {
-        proxy_pass http://127.0.0.1:$WEBSOCKET_PORT;
+        proxy_pass http://127.0.0.1:8001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "Upgrade";
@@ -173,18 +139,16 @@ Description=Gunicorn for Dispatcharr
 After=network.target postgresql.service redis-server.service
 
 [Service]
-User=$APP_USER
-Group=$APP_GROUP
-WorkingDirectory=$APP_DIR
-RuntimeDirectory=$GUNICORN_RUNTIME_DIR
+WorkingDirectory=/opt/dispatcharr
+RuntimeDirectory=dispatcharr
 RuntimeDirectoryMode=0775
-Environment="PATH=$APP_DIR/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
-EnvironmentFile=/etc/$APP_NAME/$APP_NAME.env
-ExecStart=$APP_DIR/env/bin/gunicorn \\
+Environment="PATH=/opt/dispatcharr/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+EnvironmentFile=/etc/dispatcharr/dispatcharr.env
+ExecStart=/opt/dispatcharr/env/bin/gunicorn \\
     --workers=4 \\
     --worker-class=gevent \\
     --timeout=300 \\
-    --bind 0.0.0.0:$GUNICORN_PORT \
+    --bind 0.0.0.0:5656 \
     dispatcharr.wsgi:application
 Restart=always
 KillMode=mixed
@@ -200,13 +164,11 @@ After=network.target redis-server.service
 Requires=dispatcharr.service
 
 [Service]
-User=$APP_USER
-Group=$APP_GROUP
-WorkingDirectory=$APP_DIR
-Environment="PATH=$APP_DIR/env/bin"
-EnvironmentFile=/etc/$APP_NAME/$APP_NAME.env
+WorkingDirectory=/opt/dispatcharr
+Environment="PATH=/opt/dispatcharr/env/bin"
+EnvironmentFile=/etc/dispatcharr/dispatcharr.env
 Environment="CELERY_BROKER_URL=redis://localhost:6379/0"
-ExecStart=$APP_DIR/env/bin/celery -A dispatcharr worker -l info -c 4
+ExecStart=/opt/dispatcharr/env/bin/celery -A dispatcharr worker -l info -c 4
 Restart=always
 KillMode=mixed
 
@@ -221,13 +183,11 @@ After=network.target redis-server.service
 Requires=dispatcharr.service
 
 [Service]
-User=$APP_USER
-Group=$APP_GROUP
-WorkingDirectory=$APP_DIR
-Environment="PATH=$APP_DIR/env/bin"
-EnvironmentFile=/etc/$APP_NAME/$APP_NAME.env
+WorkingDirectory=/opt/dispatcharr
+Environment="PATH=/opt/dispatcharr/env/bin"
+EnvironmentFile=/etc/dispatcharr/dispatcharr.env
 Environment="CELERY_BROKER_URL=redis://localhost:6379/0"
-ExecStart=$APP_DIR/env/bin/celery -A dispatcharr beat -l info
+ExecStart=/opt/dispatcharr/env/bin/celery -A dispatcharr beat -l info
 Restart=always
 KillMode=mixed
 
@@ -242,29 +202,18 @@ After=network.target
 Requires=dispatcharr.service
 
 [Service]
-User=$APP_USER
-Group=$APP_GROUP
-WorkingDirectory=$APP_DIR
-Environment="PATH=$APP_DIR/env/bin"
-EnvironmentFile=/etc/$APP_NAME/$APP_NAME.env
-ExecStart=$APP_DIR/env/bin/daphne -b 0.0.0.0 -p $WEBSOCKET_PORT dispatcharr.asgi:application
+WorkingDirectory=/opt/dispatcharr
+Environment="PATH=/opt/dispatcharr/env/bin"
+EnvironmentFile=/etc/dispatcharr/dispatcharr.env
+ExecStart=/opt/dispatcharr/env/bin/daphne -b 0.0.0.0 -p 8001 dispatcharr.asgi:application
 Restart=always
 KillMode=mixed
 
 [Install]
 WantedBy=multi-user.target
 EOF
-
-msg_ok "Created systemd services"
-
-
-msg_info "Starting Dispatcharr Services"
-systemctl daemon-reexec
-systemctl daemon-reload
-systemctl enable dispatcharr dispatcharr-celery dispatcharr-celerybeat dispatcharr-daphne
-systemctl restart dispatcharr dispatcharr-celery dispatcharr-celerybeat dispatcharr-daphne
+systemctl enable -q --now dispatcharr dispatcharr-celery dispatcharr-celerybeat dispatcharr-daphne
 msg_ok "Started Dispatcharr Services"
-
 
 motd_ssh
 customize
