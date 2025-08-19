@@ -1,18 +1,36 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Author: tteck (tteckster) | MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+function header_info {
+  clear
+  cat <<"EOF"
+   ________
+  / ____/ /___ _____  ________  _____
+ / / __/ / __ `/ __ \/ ___/ _ \/ ___/
+/ /_/ / / /_/ / / / / /__/  __(__  )
+\____/_/\__,_/_/ /_/\___/\___/____/
+
+EOF
+}
 
 APP="Glances"
 IP=$(hostname -I | awk '{print $1}')
 hostname="$(hostname)"
+YW=$(echo "\033[33m")
+GN=$(echo "\033[1;92m")
+RD=$(echo "\033[01;31m")
+BL=$(echo "\033[36m")
+CL=$(echo "\033[m")
+CM="${GN}✔️${CL}"
+CROSS="${RD}✖️${CL}"
+INFO="${BL}ℹ️${CL}"
 
-header_info "$APP"
+function msg_info() { echo -e "${INFO} ${YW}$1...${CL}"; }
+function msg_ok() { echo -e "${CM} ${GN}$1${CL}"; }
+function msg_error() { echo -e "${CROSS} ${RD}$1${CL}"; }
 
 install_glances_debian() {
   msg_info "Installing dependencies"
