@@ -32,7 +32,6 @@ app_path="/opt/${application_name}"
 python_path="${app_path}/venv/bin/python"
 
 # Configurable variables
-skip_user_config="${skip_user_config:-N}"
 # Versions
 comfyui_version="${comfyui_version:-latest}"
 python_version_uv="${python_version_uv:-3.12}"
@@ -53,7 +52,6 @@ comfyui_manager_version="${comfyui_manager_version:-latest}"
 
 
 # Display current configuration variables
-echo -e "${CM}${BOLD}${DGN}Skip User Config           : ${BGN}${skip_user_config}${CL}"
 echo -e "${CM}${BOLD}${DGN}Application name           : ${BGN}${application_name}${CL}"
 echo -e "${CM}${BOLD}${DGN}Application path           : ${BGN}${app_path}${CL}"
 echo -e "${CM}${BOLD}${DGN}ComfyUI version            : ${BGN}${comfyui_version}${CL}"
