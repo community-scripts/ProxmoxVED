@@ -28,7 +28,7 @@ echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed Traefik v${RELEASE}"
 
 msg_info "Creating Traefik configuration"
-cat <<EOF >/etc/traefik/traefik.yaml
+cat <<'EOF' >/etc/traefik/traefik.yaml
 providers:
   file:
     directory: /etc/traefik/conf.d/
@@ -110,7 +110,7 @@ EOF
 msg_ok "Created Traefik configuration"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/traefik.service
+cat <<'EOF' >/etc/systemd/system/traefik.service
 [Unit]
 Description=Traefik is an open-source Edge Router that makes publishing your services a fun and easy experience
 
@@ -128,7 +128,7 @@ systemctl enable -q --now traefik
 msg_ok "Created Service"
 
 msg_info "Creating site templates"
-cat <<EOF >/etc/traefik/template.yaml.tpl
+cat <<'EOF' >/etc/traefik/template.yaml.tpl
 http:
   routers:
     ${hostname}:
@@ -142,9 +142,10 @@ http:
         servers:
         - url: "${URL}"
 EOF
-msg_ok: "Template Created"
-msg_info: "Creating Helper Scripts"
-cat <<EOF >/usr/bin/addsite
+msg_ok "Template Created"
+
+msg_info "Creating Helper Scripts"
+cat <<'EOF' >/usr/bin/addsite
 #!/bin/bash
 
 function setup_site() {
@@ -164,7 +165,7 @@ function setup_site() {
 
 setup_site
 EOF
-cat <<EOF >/usr/bin/ensite
+cat <<'EOF' >/usr/bin/ensite
 #!/bin/bash
 
 function ensite() {
@@ -193,7 +194,7 @@ function ensite() {
 
 ensite
 EOF
-cat <<EOF >/usr/bin/dissite
+cat <<'EOF' >/usr/bin/dissite
 #!/bin/bash
 
 function dissite() {
@@ -223,7 +224,7 @@ function dissite() {
 dissite
 EOF
 
-cat <<EOF >/usr/bin/editsite
+cat <<'EOF' >/usr/bin/editsite
 #!/bin/bash
 
 function edit_site() {
