@@ -34,8 +34,8 @@ function msg_error() { echo -e "${CROSS} ${RD}$1${CL}"; }
 
 install_glances_debian() {
   msg_info "Installing dependencies"
-  apt-get update
-  apt-get install -y gcc lm-sensors wireless-tools
+  apt-get update >/dev/null 2>&1
+  apt-get install -y gcc lm-sensors wireless-tools >/dev/null 2>&1
   msg_ok "Installed dependencies"
 
   msg_info "Setting up Python + uv"
@@ -48,9 +48,9 @@ install_glances_debian() {
   mkdir -p glances
   cd glances
   uv venv
-  source .venv/bin/activate
-  uv pip install --upgrade pip wheel setuptools
-  uv pip install "glances[web]"
+  source .venv/bin/activate >/dev/null 2>&1
+  uv pip install --upgrade pip wheel setuptools >/dev/null 2>&1
+  uv pip install "glances[web]" >/dev/null 2>&1
   deactivate
   msg_ok "Installed $APP"
 
@@ -84,7 +84,7 @@ update_glances_debian() {
   msg_info "Updating $APP"
   cd /opt/glances
   source .venv/bin/activate
-  uv pip install --upgrade "glances[web]"
+  uv pip install --upgrade "glances[web]" >/dev/null 2>&1
   deactivate
   systemctl restart glances
   msg_ok "Updated $APP"
@@ -102,8 +102,8 @@ uninstall_glances_debian() {
 # install on Alpine
 install_glances_alpine() {
   msg_info "Installing dependencies"
-  apk update
-  apk add --no-cache gcc musl-dev python3 py3-pip py3-virtualenv lm-sensors wireless-tools
+  apk update >/dev/null 2>&1
+  apk add --no-cache gcc musl-dev python3 py3-pip py3-virtualenv lm-sensors wireless-tools >/dev/null 2>&1
   msg_ok "Installed dependencies"
 
   msg_info "Setting up Python + uv"
@@ -116,8 +116,8 @@ install_glances_alpine() {
   cd glances
   uv venv
   source .venv/bin/activate
-  uv pip install --upgrade pip wheel setuptools
-  uv pip install "glances[web]"
+  uv pip install --upgrade pip wheel setuptools >/dev/null 2>&1
+  uv pip install "glances[web]" >/dev/null 2>&1
   deactivate
   msg_ok "Installed $APP"
 
@@ -148,7 +148,7 @@ update_glances_alpine() {
   msg_info "Updating $APP"
   cd /opt/glances
   source .venv/bin/activate
-  uv pip install --upgrade "glances[web]"
+  uv pip install --upgrade "glances[web]" >/dev/null 2>&1
   deactivate
   rc-service glances restart
   msg_ok "Updated $APP"
