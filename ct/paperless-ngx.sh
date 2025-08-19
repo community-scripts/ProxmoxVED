@@ -66,9 +66,9 @@ function update_script() {
 
       declare -A PATCHES=(
         ["paperless-consumer.service"]="ExecStart=uv run -- python manage.py document_consumer"
-        ["paperless-scheduler.service"]="ExecStart=uv run -- celery beat --loglevel INFO"
-        ["paperless-task-queue.service"]="ExecStart=uv run -- celery worker --loglevel INFO"
-        ["paperless-webserver.service"]="ExecStart=uv run -- granian --interface asgi --host 0.0.0.0 --port 8000 --ws paperless.asgi:application"
+        ["paperless-scheduler.service"]="ExecStart=uv run -- celery --app paperless beat --loglevel INFO"
+        ["paperless-task-queue.service"]="ExecStart=uv run -- celery --app paperless worker --loglevel INFO"
+        ["paperless-webserver.service"]="ExecStart=uv run -- granian --interface asgi --ws \"paperless.asgi:application\""
       )
 
       for svc in "${!PATCHES[@]}"; do
