@@ -34,8 +34,8 @@ function msg_error() { echo -e "${CROSS} ${RD}$1${CL}"; }
 
 install_glances_debian() {
   msg_info "Installing dependencies"
-  $STD apt-get update
-  $STD apt-get install -y gcc lm-sensors wireless-tools
+  apt-get update
+  apt-get install -y gcc lm-sensors wireless-tools
   msg_ok "Installed dependencies"
 
   msg_info "Setting up Python + uv"
@@ -102,8 +102,8 @@ uninstall_glances_debian() {
 # install on Alpine
 install_glances_alpine() {
   msg_info "Installing dependencies"
-  $STD apk update
-  $STD apk add --no-cache gcc musl-dev python3 py3-pip py3-virtualenv lm-sensors wireless-tools
+  apk update
+  apk add --no-cache gcc musl-dev python3 py3-pip py3-virtualenv lm-sensors wireless-tools
   msg_ok "Installed dependencies"
 
   msg_info "Setting up Python + uv"
