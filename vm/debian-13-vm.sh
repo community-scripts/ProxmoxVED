@@ -11,9 +11,9 @@ function header_info {
   cat <<"EOF"
     ____       __    _                ________
    / __ \___  / /_  (_)___ _____     <  /__  /
-  / / / / _ \/ __ \/ / __ `/ __ \    / / /_ < 
- / /_/ /  __/ /_/ / / /_/ / / / /   / /___/ / 
-/_____/\___/_.___/_/\__,_/_/ /_/   /_//____/  
+  / / / / _ \/ __ \/ / __ `/ __ \    / / /_ <
+ / /_/ /  __/ /_/ / / /_/ / / / /   / /___/ /
+/_____/\___/_.___/_/\__,_/_/ /_/   /_//____/
                                               (Trixie)
 EOF
 }
@@ -474,9 +474,9 @@ msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 msg_info "Retrieving the URL for the Debian 13 Qcow2 Disk Image"
 if [ "$CLOUD_INIT" == "yes" ]; then
-  URL=https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-genericcloud-amd64-daily.qcow2
+  URL=https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
 else
-  URL=https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-nocloud-amd64-daily.qcow2
+  URL=https://cloud.debian.org/images/cloud/trixie/latest/debian-13-nocloud-amd64.qcow2
 fi
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
@@ -540,7 +540,7 @@ DESCRIPTION=$(
       <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
     </a>
   </p>
-  
+
   <span style='margin: 0 10px;'>
     <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
     <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
