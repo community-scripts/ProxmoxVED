@@ -55,16 +55,12 @@ msg_ok "Set up PostgreSQL Database"
 
 fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
 
-mkdir -p /data/{db,epgs,logos,m3us,recordings,uploads}
-mkdir -p /etc/dispatcharr
-cp ~/.dispatcharr.creds /etc/dispatcharr/dispatcharr.env
-chown -R "$APP_USER:$APP_GROUP" {/etc/dispatcharr,/opt/dispatcharr,/data}
-
-sed -i 's/program\[\x27channel_id\x27\]/program["channel_id"]/g' "${APP_DIR}/apps/output/views.py"
-
-msg_ok "Downloaded Dispatcharr $LATEST_VERSION"
+#chown -R "$APP_USER:$APP_GROUP" {/etc/dispatcharr,/opt/dispatcharr,/data}
 
 msg_info "Install Python Requirements"
+mkdir -p /data/{db,epgs,logos,m3us,recordings,uploads}
+mkdir -p /etc/dispatcharr
+sed -i 's/program\[\x27channel_id\x27\]/program["channel_id"]/g' "/opt/dispatcharr/apps/output/views.py"
 cd /opt/dispatcharr
 python3 -m venv env
 source env/bin/activate
