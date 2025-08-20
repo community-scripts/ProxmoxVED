@@ -45,6 +45,7 @@ $STD ./apimain reset-admin-pwd "$ADMINPASS"
   echo "Username: admin"
   echo "Password: $ADMINPASS"
 } >>~/rustdesk.creds
+echo "${APIRELEASE}" >~/.rustdesk-api
 msg_ok "Installed RustDesk API v${APIRELEASE}"
 
 msg_info "Enabling RustDesk Server Services"

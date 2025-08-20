@@ -26,29 +26,41 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
-  RELEASE=$(curl -s https://api.github.com/repos/TwiN/RustDesk Server/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-  if [ "${RELEASE}" != "$(cat /opt/RustDesk Server_version.txt)" ] || [ ! -f /opt/RustDesk Server_version.txt ]; then
-    msg_info "Updating ${APP} LXC"
-    $STD apk -U upgrade
-    $STD service RustDesk Server stop
-    mv /opt/RustDesk Server/config/config.yaml /opt
-    rm -rf /opt/RustDesk Server/*
-    temp_file=$(mktemp)
-    curl -fsSL "https://github.com/TwiN/RustDesk Server/archive/refs/tags/v${RELEASE}.tar.gz" -o "$temp_file"
-    tar zxf "$temp_file" --strip-components=1 -C /opt/RustDesk Server
-    cd /opt/RustDesk Server
-    $STD go mod tidy
-    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o RustDesk Server .
-    setcap CAP_NET_RAW+ep RustDesk Server
-    mv /opt/config.yaml config
-    rm -f "$temp_file"
-    echo "${RELEASE}" >/opt/RustDesk Server_version.txt
-    $STD service RustDesk Server start
-    msg_ok "Updated Successfully"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
-  fi
 
+  APIRELEASE=$(curl -s https://api.github.com/repos/lejianwen/rustdesk-api/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  RELEASE=$(curl -s https://api.github.com/repos/rustdesk/rustdesk-server/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+  if [ "${RELEASE}" != "$(cat ~/.rustdesk-server 2>/dev/null)" ] || [ ! -f ~/.rustdesk-server ]; then
+    msg_info "Updating RustDesk Server to v${RELEASE}"
+    $STD apk -U upgrade
+    $STD service rustdesk-server-hbbs stop
+    $STD service rustdesk-server-hbbr stop
+    temp_file1=$(mktemp)
+    curl -fsSL "https://github.com/rustdesk/rustdesk-server/releases/download/${RELEASE}/rustdesk-server-linux-amd64.zip" -o "$temp_file1"
+    $STD unzip "$temp_file1"
+    cp -r amd64/* /opt/rustdesk-server/
+    echo "${RELEASE}" >~/.rustdesk-server
+    $STD service rustdesk-server-hbbs start
+    $STD service rustdesk-server-hbbr start
+    rm -rf amd64
+    rm -f $temp_file1
+    msg_ok "Updated RustDesk Server successfully"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+  fi
+  if [ "${APIRELEASE}" != "$(cat ~/.rustdesk-api)" ] || [ ! -f ~/.rustdesk-api ]; then
+    msg_info "Updating RustDesk API to v${APIRELEASE}"
+
+    temp_file2=$(mktemp)
+    curl -fsSL "https://github.com/lejianwen/rustdesk-api/releases/download/v${APIRELEASE}/linux-amd64.tar.gz" -o "$temp_file2"
+    $STD tar zxvf "$temp_file2"
+    cp -r release/* /opt/rustdesk-api
+    echo "${APIRELEASE}" >~/.rustdesk-api
+    rm -rf release
+    rm -f $temp_file2
+    msg_ok "Updated RustDesk API"
+  else
+    msg_ok "No update required. RustDesk API is already at v${APIRELEASE}"
+  fi
   exit 0
 }
 
