@@ -32,17 +32,26 @@ function update_script() {
   fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/paperless-ngx/paperless-ngx/releases/latest | jq -r .tag_name | sed 's/^v//')
   if [[ "${RELEASE}" != "$(cat ~/.paperless 2>/dev/null)" ]] || [[ ! -f ~/.paperless ]]; then
-    PYTHON_VERSION="3.13" setup_uv
-    fetch_and_deploy_gh_release "paperless" "paperless-ngx/paperless-ngx" "prebuild" "latest" "/opt/paperless" "paperless*tar.xz"
-    fetch_and_deploy_gh_release "jbig2enc" "ie13/jbig2enc" "tarball" "latest" "/opt/jbig2enc"
-    setup_gs
-
     msg_info "Stopping all Paperless-ngx Services"
     systemctl stop paperless-consumer paperless-webserver paperless-scheduler paperless-task-queue
     msg_ok "Stopped all Paperless-ngx Services"
 
     if grep -q "uv run" /etc/systemd/system/paperless-webserver.service; then
+
+      msg_info "backing up data"
+      mkdir -p /opt/paperless/backup
+      cp -r /opt/paperless/data /opt/paperless/backup/
+      cp -r /opt/paperless/media /opt/paperless/backup/
+      cp -r /opt/paperless/paperless.conf /opt/paperless/backup/
+      msg_ok "Backup completed"
+
+      PYTHON_VERSION="3.13" setup_uv
+      fetch_and_deploy_gh_release "paperless" "paperless-ngx/paperless-ngx" "prebuild" "latest" "/opt/paperless" "paperless*tar.xz"
+      fetch_and_deploy_gh_release "jbig2enc" "ie13/jbig2enc" "tarball" "latest" "/opt/jbig2enc"
+      setup_gs
+
       msg_info "Updating to ${RELEASE}"
+      cp -r /opt/paperless/backup/* /opt/paperless/
       cd /opt/paperless
       $STD uv sync --all-extras
       cd /opt/paperless/src
@@ -87,8 +96,21 @@ function update_script() {
       done
 
       $STD systemctl daemon-reload
+      msg_info "backing up data"
+      mkdir -p /opt/paperless/backup
+      cp -r /opt/paperless/data /opt/paperless/backup/
+      cp -r /opt/paperless/media /opt/paperless/backup/
+      cp -r /opt/paperless/paperless.conf /opt/paperless/backup/
+      msg_ok "Backup completed"
+
+      PYTHON_VERSION="3.13" setup_uv
+      fetch_and_deploy_gh_release "paperless" "paperless-ngx/paperless-ngx" "prebuild" "latest" "/opt/paperless" "paperless*tar.xz"
+      fetch_and_deploy_gh_release "jbig2enc" "ie13/jbig2enc" "tarball" "latest" "/opt/jbig2enc"
+      setup_gs
+
+      msg_info "Updating Paperless-ngx"
+      cp -r /opt/paperless/backup/* /opt/paperless/
       cd /opt/paperless
-      msg_info "Running Paperless-ngx UV sync"
       $STD uv sync --all-extras
       cd /opt/paperless/src
       $STD uv run -- python manage.py migrate
