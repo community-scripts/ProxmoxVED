@@ -1434,7 +1434,9 @@ function setup_gs() {
     rm -rf "$TMP_DIR"
   }
   $STD apt-get install -y build-essential libpng-dev zlib1g-dev
-  $STD ./configure >/dev/null && $STD make && $STD sudo make install
+  $STD ./configure >/dev/null
+  $STD make
+  $STD sudo make install
   local EXIT_CODE=$?
   hash -r
   if [[ ! -x "$(command -v gs)" ]]; then
