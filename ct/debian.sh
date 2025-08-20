@@ -7,9 +7,9 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 
 APP="Debian"
 var_tags="${var_tags:-os}"
-var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-512}"
-var_disk="${var_disk:-2}"
+var_cpu="${var_cpu:-4}"
+var_ram="${var_ram:-4096}"
+var_disk="${var_disk:-15}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
