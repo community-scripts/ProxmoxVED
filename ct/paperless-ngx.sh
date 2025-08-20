@@ -33,7 +33,7 @@ function update_script() {
   RELEASE=$(curl -fsSL https://api.github.com/repos/paperless-ngx/paperless-ngx/releases/latest | jq -r .tag_name | sed 's/^v//')
   if [[ "${RELEASE}" != "$(cat ~/.paperless 2>/dev/null)" ]] || [[ ! -f ~/.paperless ]]; then
     PYTHON_VERSION="3.13" setup_uv
-    fetch_and_deploy_gh_release "paperless" "paperless-ngx/paperless-ngx" "tarball" "latest" "/opt/paperless"
+    fetch_and_deploy_gh_release "paperless" "paperless-ngx/paperless-ngx" "prebuild" "latest" "/opt/paperless" "paperless*tar.xz"
     fetch_and_deploy_gh_release "jbig2enc" "ie13/jbig2enc" "tarball" "latest" "/opt/jbig2enc"
     setup_gs
 
