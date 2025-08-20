@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/rustdesk/rustdesk-server
 
-APP="Alpine-RustDesk Server"
+APP="Alpine-RustDeskServer"
 var_tags="${var_tags:-alpine;monitoring}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
