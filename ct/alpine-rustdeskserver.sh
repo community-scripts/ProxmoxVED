@@ -49,12 +49,13 @@ function update_script() {
   fi
   if [ "${APIRELEASE}" != "$(cat ~/.rustdesk-api)" ] || [ ! -f ~/.rustdesk-api ]; then
     msg_info "Updating RustDesk API to v${APIRELEASE}"
-
+    $STD service rustdesk-api stop
     temp_file2=$(mktemp)
     curl -fsSL "https://github.com/lejianwen/rustdesk-api/releases/download/v${APIRELEASE}/linux-amd64.tar.gz" -o "$temp_file2"
     $STD tar zxvf "$temp_file2"
     cp -r release/* /opt/rustdesk-api
     echo "${APIRELEASE}" >~/.rustdesk-api
+    $STD service rustdesk-api start
     rm -rf release
     rm -f $temp_file2
     msg_ok "Updated RustDesk API"
