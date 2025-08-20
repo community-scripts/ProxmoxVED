@@ -36,6 +36,15 @@ temp_file2=$(mktemp)
 curl -fsSL "https://github.com/lejianwen/rustdesk-api/releases/download/v${APIRELEASE}/linux-amd64.tar.gz" -o "$temp_file2"
 $STD tar zxvf "$temp_file2"
 mv release /opt/rustdesk-api
+cd /opt/rustdesk-api
+ADMINPASS=$(head -c 16 /dev/urandom | xxd -p -c 16)
+$STD ./apimain reset-admin-pwd "$ADMINPASS"
+{
+  echo "RustDesk WebUI"
+  echo ""
+  echo "Username: admin"
+  echo "Password: $ADMINPASS"
+} >>~/rustdesk.creds
 msg_ok "Installed RustDesk API v${APIRELEASE}"
 
 msg_info "Enabling RustDesk Server Services"
