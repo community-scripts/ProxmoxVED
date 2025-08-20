@@ -39,6 +39,8 @@ function msg_ok() {
   echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
 }
 
+function msg_error() { echo -e "${RD}✗ $1${CL}"; }
+
 pve_check() {
   if ! command -v pveversion >/dev/null 2>&1; then
     msg_error "This script can only be run on a Proxmox VE host."
