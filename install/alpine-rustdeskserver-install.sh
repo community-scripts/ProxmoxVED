@@ -21,11 +21,12 @@ unzip "$temp_file1"
 mv amd64 /opt/rustdesk-server
 mkdir -p /root/.config/rustdesk
 cd /opt/rustdesk-server
-$STD ./rustdesk-utils genkeypair | tee \
-  >(grep "Public Key" | awk '{print $3}' > /root/.config/rustdesk/id_ed25519.pub) \
-  >(grep "Secret Key" | awk '{print $3}' > /root/.config/rustdesk/id_ed25519)
+./rustdesk-utils genkeypair > /tmp/rustdesk_keys.txt
+grep "Public Key" /tmp/rustdesk_keys.txt | awk '{print $3}' > /root/.config/rustdesk/id_ed25519.pub
+grep "Secret Key" /tmp/rustdesk_keys.txt | awk '{print $3}' > /root/.config/rustdesk/id_ed25519
 chmod 600 /root/.config/rustdesk/id_ed25519
 chmod 644 /root/.config/rustdesk/id_ed25519.pub
+rm /tmp/rustdesk_keys.txt
 echo "${RELEASE}" >~/.rustdesk-server
 msg_ok "Installed RustDesk Server v${RELEASE}"
 
