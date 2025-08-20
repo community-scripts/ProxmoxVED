@@ -17,7 +17,7 @@ RELEASE=$(curl -s https://api.github.com/repos/rustdesk/rustdesk-server/releases
 msg_info "Installing RustDesk Server v${RELEASE}"
 temp_file1=$(mktemp)
 curl -fsSL "https://github.com/rustdesk/rustdesk-server/releases/download/${RELEASE}/rustdesk-server-linux-amd64.zip" -o "$temp_file1"
-unzip "$temp_file1"
+$STD unzip "$temp_file1"
 mv amd64 /opt/rustdesk-server
 mkdir -p /root/.config/rustdesk
 cd /opt/rustdesk-server
@@ -34,7 +34,7 @@ APIRELEASE=$(curl -s https://api.github.com/repos/lejianwen/rustdesk-api/release
 msg_info "Installing RustDesk API v${APIRELEASE}"
 temp_file2=$(mktemp)
 curl -fsSL "https://github.com/lejianwen/rustdesk-api/releases/download/v${APIRELEASE}/linux-amd64.tar.gz" -o "$temp_file2"
-tar zxvf "$temp_file2"
+$STD tar zxvf "$temp_file2"
 mv release /opt/rustdesk-api
 msg_ok "Installed RustDesk API v${APIRELEASE}"
 
@@ -81,7 +81,7 @@ command="/opt/rustdesk-api/apimain"
 command_args=""
 command_background="true"
 command_user="root"
-pidfile="/var/run/rustdesk-server-hbbr.pid"
+pidfile="/var/run/rustdesk-api.pid"
 output_log="/var/log/rustdesk-api.log"
 error_log="/var/log/rustdesk-api.err"
 
