@@ -44,10 +44,11 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 msg_ok "Set up Database"
 
 fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "source"
+
 msg_info "Setup healthchecks"
 cd /opt/healthchecks
 mkdir -p /opt/healthchecks/static-collected/
-$STD uv pip install wheel gunicorn -r requirements.txt
+$STD uv pip install wheel gunicorn -r requirements.txt --system
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/opt/healthchecks/hc/local_settings.py
 DEBUG = False
