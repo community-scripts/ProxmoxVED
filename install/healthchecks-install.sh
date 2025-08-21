@@ -30,6 +30,8 @@ DB_NAME=healthchecks_db
 DB_USER=hc_user
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 SECRET_KEY="$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)"
+ADMIN_EMAIL="admin@helper-scripts.local"
+ADMIN_PASSWORD="$DB_PASS"
 
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
@@ -41,6 +43,8 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
   echo "healthchecks Database User: $DB_USER"
   echo "healthchecks Database Password: $DB_PASS"
   echo "healthchecks Database Name: $DB_NAME"
+  echo "healthchecks Admin Email: $ADMIN_EMAIL"
+  echo "healthchecks Admin Password: $ADMIN_PASSWORD"
 } >>~/healthchecks.creds
 msg_ok "Set up Database"
 
@@ -85,8 +89,6 @@ $STD uv run -- python manage.py migrate --noinput
 $STD uv run -- python manage.py collectstatic --noinput
 $STD uv run -- python manage.py compress
 
-ADMIN_EMAIL="admin@helper-scripts.local"
-ADMIN_PASSWORD="$DB_PASS"
 cat <<EOF | $STD uv run -- python manage.py shell
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -122,6 +124,7 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now healthchecks caddy
+systemctl reload caddy
 msg_ok "Created Service"
 
 motd_ssh
