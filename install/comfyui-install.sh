@@ -51,6 +51,8 @@ if ! [[ "${comfyui_skip_user_config,,}" =~ ^(y|yes)$ ]]; then
     4) comfyui_gpu_type="intel";;
     *) comfyui_gpu_type="none"; echo "${TAB3}${TAB3}${TAB3}${TAB3}Invalid choice. Defaulting to ${comfyui_gpu_type}." ;;
   esac
+  echo
+  echo
 fi
 
 echo -e "${CM}${BOLD}${DGN}Application name           : ${BGN}${application_name}${CL}"
