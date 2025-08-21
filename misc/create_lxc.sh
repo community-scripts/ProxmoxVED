@@ -6,7 +6,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 # This sets verbose mode if the global variable is set to "yes"
-if [ "$VERBOSE" == "yes" ]; then set -x; fi
+if [ "$CREATE_LXC_VERBOSE" == "yes" ]; then set -x; fi
 
 if command -v curl >/dev/null 2>&1; then
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
@@ -255,17 +255,16 @@ fi
 # Update LXC template list
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 case "$PCT_OSTYPE" in
-  debian|ubuntu)
-    TEMPLATE_PATTERN="-standard_"
-    ;;
-  alpine|fedora|rocky|centos)
-    TEMPLATE_PATTERN="-default_"
-    ;;
-  *)
-    TEMPLATE_PATTERN=""
-    ;;
+debian | ubuntu)
+  TEMPLATE_PATTERN="-standard_"
+  ;;
+alpine | fedora | rocky | centos)
+  TEMPLATE_PATTERN="-default_"
+  ;;
+*)
+  TEMPLATE_PATTERN=""
+  ;;
 esac
-
 
 # 1. Check local templates first
 msg_info "Searching for template '$TEMPLATE_SEARCH'"
@@ -284,11 +283,10 @@ else
     pveam update >/dev/null 2>&1 &&
       pveam available -section system |
       sed -n "s/.*\($TEMPLATE_SEARCH.*$TEMPLATE_PATTERN.*\)/\1/p" |
-      sort -t - -k 2 -V
+        sort -t - -k 2 -V
   )
   TEMPLATE_SOURCE="online"
 fi
-
 
 TEMPLATE="${TEMPLATES[-1]}"
 TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null ||
