@@ -31,7 +31,6 @@ function update_script() {
     exit
 }
 
-
 start
 build_container
 description

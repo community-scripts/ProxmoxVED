@@ -12,7 +12,7 @@
     "documentation": "https://smallstep.com/docs/step-ca/",
     "config_path": "/opt/step-ca/config/ca.json",
     "website": "https://smallstep.com/",
-    "logo": "https://smallstep.imgix.net/logo_bfa4201fe5.svg",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/step-ca.webp",
     "description": "Instll a local ACME server providing free certificates for all your internal servers. In the coming years, the lifetime of TLS Certificates will be reduced to 47 days. The best way to handle this fast cycle of certificates rolover is to automate the deployment. Now, with this container you can. You will obtain a private ACME server for all you local webservers. It can be used with numerous ACME clients in order to automate the free X.509 certificates deployments.",
     "install_methods": [
         {

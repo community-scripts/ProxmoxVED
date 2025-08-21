@@ -2,7 +2,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Tjibbe Hofkamp (tofkamp)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://snipeitapp.com/
+# Source: https://smallstep.com/docs/step-ca/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -42,18 +42,13 @@ fi
 msg_info "Config Step CA"
 export STEPPATH="/opt/step-ca"
 mkdir -p $STEPPATH
-
 useradd --user-group --system --home /opt/step-ca --shell /bin/false step
-
 openssl rand -base64 99 | tr -dc 'a-zA-Z0-9' | head -c33 >/opt/step-ca/CApassword.txt
 openssl rand -base64 99 | tr -dc 'a-zA-Z0-9' | head -c33 >/opt/step-ca/password.txt
-
 $STD step ca init --deployment-type=standalone --name="$pki_name" --dns="$pki_dns" --address=:443 --provisioner="$pki_provisioner" --password-file=/opt/step-ca/CApassword.txt --acme
-
 $STD step crypto change-pass $(step path)/secrets/intermediate_ca_key --password-file=/opt/step-ca/CApassword.txt --new-password-file=/opt/step-ca/password.txt --force
 chown -R step:step /opt/step-ca
 chmod -R og-rwx /opt/step-ca
-
 cat << EOF | sed -i '/"name": "acme"/ r /dev/stdin' /opt/step-ca/config/ca.json
                                 ,"claims": {
                                         "enableSSHCA": false,
@@ -61,7 +56,7 @@ cat << EOF | sed -i '/"name": "acme"/ r /dev/stdin' /opt/step-ca/config/ca.json
                                         "allowRenewalAfterExpiry": false,
                                         "disableSmallstepExtensions": false,
                                         "minTLSCertDuration": "24h",
-                                        "maxTLSCertDuration:": "1100h",
+                                        "maxTLSCertDuration": "1100h",
                                         "defaultTLSCertDuration": "720h"
                                 }
 EOF
@@ -124,19 +119,32 @@ ReadWriteDirectories=/opt/step-ca/db
 [Install]
 WantedBy=multi-user.target
 EOF
-
 systemctl enable -q --now step-ca
 msg_ok "Configured Service"
 
+msg_info "Generating test script"
+{
+  echo "# Create a new container with debian 12, and login by a console-shell on proxmox"
+  echo "# Execute the following lines to request a certificate on ip basis"
+  echo "apt update"
+  echo "apt upgrade -y"
+  echo "apt install socat"
+  echo "wget -O -  https://get.acme.sh | sh -s email=my@example.com"
+  echo "cat <<EOF >/usr/local/share/ca-certificates/${pki_name}.crt"
+  cat /opt/step-ca/certs/root_ca.crt
+  echo "EOF"
+  echo "update-ca-certificates"
+  echo "CURRENT_IP=\$(ip -4 addr show eth0 | awk '/inet / {print \$2}' | cut -d/ -f1 | head -n 1)"
+  echo "/.acme.sh/acme.sh --issue --standalone -d \${CURRENT_IP} --server https://$pki_dns/acme/acme/directory"
+} >~/test-stepca.sh
+msg_ok "Test script generated"
 
 PROFILE_FILE="/etc/profile.d/10_stepca-details.sh"
-temp_file=`mktemp`
+temp_file=$(mktemp)
 {
   echo "${YW}The public key of the root CA can be found at ${GN}/opt/step-ca/certs/root_ca.crt${CL}"
   echo "${YW}or at ${BGN}https://$pki_dns/roots.pem${CL}"
   echo "${YW}Fingerprint of CA ${GN}"`step certificate fingerprint /opt/step-ca/certs/root_ca.crt`"${CL}"
-#  step certificate inspect /opt/step-ca/certs/root_ca.crt --short
-#  cat /opt/step-ca/certs/root_ca.crt
   echo -e "${CL}"
   echo "${YW}The ACME directory server URL is ${BGN}https://$pki_dns/acme/acme/directory${CL}"
   echo "${YW}Documentation on how to connect an ACME client to this server can be found at${CL}"
