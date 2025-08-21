@@ -18,7 +18,8 @@ $STD apt-get install -y \
   gcc \
   libpq-dev \
   libcurl4-openssl-dev \
-  libssl-dev
+  libssl-dev \
+  caddy
 msg_ok "Installed Dependencies"
 
 setup_uv
@@ -94,6 +95,18 @@ if not User.objects.filter(email="${ADMIN_EMAIL}").exists():
 EOF
 msg_ok "Installed healthchecks"
 
+msg_info "Configuring Caddy"
+cat <<EOF >/etc/caddy/Caddyfile
+{
+    email admin@example.com
+}
+
+${LOCAL_IP} {
+    reverse_proxy 127.0.0.1:8000
+}
+EOF
+msg_ok "Configured Caddy"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/healthchecks.service
 [Unit]
@@ -108,7 +121,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now healthchecks
+systemctl enable -q --now healthchecks caddy
 msg_ok "Created Service"
 
 motd_ssh
