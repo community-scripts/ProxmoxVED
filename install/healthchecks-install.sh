@@ -21,12 +21,6 @@ $STD apt-get install -y \
   libssl-dev
 msg_ok "Installed Dependencies"
 
-msg_info "Setup Python3"
-$STD apt-get install -y \
-  python3 python3-dev python3-pip
-$STD pip install --upgrade pip
-msg_ok "Setup Python3"
-
 setup_uv
 PG_VERSION=16 setup_postgresql
 
@@ -49,54 +43,45 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 } >>~/healthchecks.creds
 msg_ok "Set up Database"
 
-msg_info "Setup healthchecks"
 fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "source"
+msg_info "Setup healthchecks"
 cd /opt/healthchecks
 mkdir -p /opt/healthchecks/static-collected/
-$STD uv venv .venv
-$STD source .venv/bin/activate
-$STD uv pip install wheel
-$STD uv pip install gunicorn
-$STD uv pip install -r requirements.txt
+$STD uv pip install wheel gunicorn -r requirements.txt
 LOCAL_IP=$(hostname -I | awk '{print $1}')
-cat <<EOF >/opt/healthchecks/.env
-ALLOWED_HOSTS=localhost,127.0.0.1,${LOCAL_IP},healthchecks
-DB=postgres
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=${DB_NAME}
-DB_USER=${DB_USER}
-DB_PASSWORD=${DB_PASS}
-DB_CONN_MAX_AGE=0
-DB_SSLMODE=prefer
-DB_TARGET_SESSION_ATTRS=read-write
-DATABASE_URL=postgres://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}?sslmode=prefer
+cat <<EOF >/opt/healthchecks/hc/local_settings.py
+DEBUG = False
 
-DEFAULT_FROM_EMAIL=healthchecks@example.org
-EMAIL_HOST=localhost
-EMAIL_HOST_PASSWORD=
-EMAIL_HOST_USER=
-EMAIL_PORT=587
-EMAIL_USE_TLS=True
-EMAIL_USE_VERIFICATION=True
+ALLOWED_HOSTS = ["${LOCAL_IP}", "127.0.0.1", "localhost"]
+CSRF_TRUSTED_ORIGINS = ["https://${LOCAL_IP}"]
 
-# Django & Healthchecks Konfiguration
-SECRET_KEY=${SECRET_KEY}
-DEBUG=True
+SECRET_KEY = "${SECRET_KEY}"
 
-SITE_ROOT=http://${LOCAL_IP}:8000
-SITE_NAME=MyChecks
-STATIC_ROOT=/opt/healthchecks/static-collected
+SITE_ROOT = "https://${LOCAL_IP}"
+SITE_NAME = "MyChecks"
+DEFAULT_FROM_EMAIL = "healthchecks@${LOCAL_IP}"
 
+STATIC_ROOT = "/opt/healthchecks/static-collected"
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': '${DB_NAME}',
+        'USER': '${DB_USER}',
+        'PASSWORD': '${DB_PASS}',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
+        'TEST': {'CHARSET': 'UTF8'}
+    }
+}
 EOF
-
-$STD .venv/bin/python3 manage.py makemigrations
-$STD .venv/bin/python3 manage.py migrate --noinput
-$STD .venv/bin/python3 manage.py collectstatic --noinput
+$STD uv run -- python manage.py makemigrations
+$STD uv run -- python manage.py migrate --noinput
+$STD uv run -- python manage.py collectstatic --noinput
 
 ADMIN_EMAIL="admin@helper-scripts.local"
 ADMIN_PASSWORD="$DB_PASS"
-cat <<EOF | $STD .venv/bin/python3 manage.py shell
+cat <<EOF | $STD uv run -- python manage.py shell
 from django.contrib.auth import get_user_model
 User = get_user_model()
 if not User.objects.filter(email="${ADMIN_EMAIL}").exists():
@@ -113,7 +98,7 @@ After=network.target postgresql.service
 [Service]
 WorkingDirectory=/opt/healthchecks/
 EnvironmentFile=/opt/healthchecks/.env
-ExecStart=/opt/healthchecks/.venv/bin/gunicorn hc.wsgi:application --bind 127.0.0.1:8000
+ExecStart=/usr/local/bin/uv run -- gunicorn hc.wsgi:application --bind 127.0.0.1:8000
 
 Restart=always
 
