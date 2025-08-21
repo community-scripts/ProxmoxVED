@@ -164,26 +164,8 @@ echo 'export STEPPATH="/opt/step-ca"' >>~/.bashrc
 motd_ssh
 customize
 
-msg_info "Generating test script"
-{
-  echo "# Create a new container with debian 12, and login by a console-shell on proxmox"
-  echo "# Execute the following lines to request a certificate on ip basis"
-  echo "apt update"
-  echo "apt upgrade -y"
-  echo "apt install socat"
-  echo "wget -O -  https://get.acme.sh | sh -s email=my@example.com"
-  echo "cat <<EOF >/usr/local/share/ca-certificates/${pki_name}.crt"
-  cat /opt/step-ca/certs/root_ca.crt
-  echo "EOF"
-  echo "update-ca-certificates"
-  echo "CURRENT_IP=\$(ip -4 addr show eth0 | awk '/inet / {print \$2}' | cut -d/ -f1 | head -n 1)"
-  echo "/.acme.sh/acme.sh --issue --standalone -d \${CURRENT_IP} --server https://$pki_dns/acme/acme/directory"
-} >~/test-stepca.sh
-msg_ok "Test script generated"
-
 msg_info "Cleaning up"
 rm -f "$temp_file"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
-
