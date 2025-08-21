@@ -901,68 +901,56 @@ function fetch_and_deploy_gh_release() {
     local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
-    echo "[DEBUG] Listing all available assets from release:"
-    for u in $assets; do
-      echo "  -> $u"
-    done
-
-    # 1. Pattern match
+    # If explicit filename pattern is provided (param $6), match that first
     if [[ -n "$asset_pattern" ]]; then
       for u in $assets; do
-        filename_candidate="${u##*/}"
-        if [[ "$filename_candidate" == *"$asset_pattern"* ]]; then
+        case "${u##*/}" in
+        $asset_pattern)
           url_match="$u"
           break
-        fi
+          ;;
+        esac
       done
     fi
 
-    # 2. Arch match (only if no pattern match)
+    # If no match via explicit pattern, fall back to architecture heuristic
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
-        filename_candidate="${u##*/}"
-        echo "  [DEBUG] Checking asset: $filename_candidate"
-        if [[ "$filename_candidate" == *"$arch"* && "$filename_candidate" == *.deb ]]; then
+        if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
           url_match="$u"
           break
         fi
       done
     fi
 
-    # 3. Fallback
+    # Fallback: any .deb file
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
-        filename_candidate="${u##*/}"
-        if [[ "$filename_candidate" == *.deb ]]; then
-          url_match="$u"
-          break
-        fi
+        [[ "$u" =~ \.deb$ ]] && url_match="$u" && break
       done
     fi
 
     if [[ -z "$url_match" ]]; then
-      echo "[DEBUG] ❌ No suitable .deb asset found!"
+      msg_error "No suitable .deb asset found for $app"
       rm -rf "$tmpdir"
       return 1
     fi
 
-    echo "[DEBUG] Final selected asset: $url_match"
     filename="${url_match##*/}"
-
     curl $download_timeout -fsSL -o "$tmpdir/$filename" "$url_match" || {
-      echo "[DEBUG] ❌ Download failed: $url_match"
+      msg_error "Download failed: $url_match"
       rm -rf "$tmpdir"
       return 1
     }
 
     chmod 644 "$tmpdir/$filename"
-    if ! $STD apt-get install -y "$tmpdir/$filename"; then
-      if ! $STD dpkg -i "$tmpdir/$filename"; then
-        echo "[DEBUG] ❌ Both apt and dpkg installation failed"
+    $STD apt-get install -y "$tmpdir/$filename" || {
+      $STD dpkg -i "$tmpdir/$filename" || {
+        msg_error "Both apt and dpkg installation failed"
         rm -rf "$tmpdir"
         return 1
-      fi
-    fi
+      }
+    }
 
   ### Prebuild Mode ###
   elif [[ "$mode" == "prebuild" ]]; then
