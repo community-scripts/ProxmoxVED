@@ -163,7 +163,7 @@ function setup_postgresql() {
     if [[ "$CURRENT_PG_VERSION" == "$PG_VERSION" ]]; then
       : # PostgreSQL is already at the desired version – no action needed
     else
-      msg_info "Detected PostgreSQL $CURRENT_PG_VERSION, preparing upgrade to $PG_VERSION"
+      $STD msg_info "Detected PostgreSQL $CURRENT_PG_VERSION, preparing upgrade to $PG_VERSION"
       NEED_PG_INSTALL=true
     fi
   else
@@ -173,9 +173,9 @@ function setup_postgresql() {
 
   if [[ "$NEED_PG_INSTALL" == true ]]; then
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
-      msg_info "Dumping PostgreSQL $CURRENT_PG_VERSION data"
+      $STD msg_info "Dumping PostgreSQL $CURRENT_PG_VERSION data"
       su - postgres -c "pg_dumpall > /var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql"
-      msg_ok "Data dump completed"
+      $STD msg_ok "Data dump completed"
 
       systemctl stop postgresql
     fi

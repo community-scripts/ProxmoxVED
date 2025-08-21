@@ -49,20 +49,22 @@ msg_info "Setup healthchecks"
 cd /opt/healthchecks
 mkdir -p /opt/healthchecks/static-collected/
 $STD uv pip install wheel gunicorn -r requirements.txt --system
+
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/opt/healthchecks/hc/local_settings.py
 DEBUG = False
 
 ALLOWED_HOSTS = ["${LOCAL_IP}", "127.0.0.1", "localhost"]
-CSRF_TRUSTED_ORIGINS = ["https://${LOCAL_IP}"]
+CSRF_TRUSTED_ORIGINS = ["http://${LOCAL_IP}", "https://${LOCAL_IP}"]
 
 SECRET_KEY = "${SECRET_KEY}"
 
-SITE_ROOT = "https://${LOCAL_IP}"
+SITE_ROOT = "http://${LOCAL_IP}:8000"
 SITE_NAME = "MyChecks"
 DEFAULT_FROM_EMAIL = "healthchecks@${LOCAL_IP}"
 
 STATIC_ROOT = "/opt/healthchecks/static-collected"
+COMPRESS_OFFLINE = True
 
 DATABASES = {
     'default': {
@@ -76,9 +78,11 @@ DATABASES = {
     }
 }
 EOF
+
 $STD uv run -- python manage.py makemigrations
 $STD uv run -- python manage.py migrate --noinput
 $STD uv run -- python manage.py collectstatic --noinput
+$STD uv run -- python manage.py compress
 
 ADMIN_EMAIL="admin@helper-scripts.local"
 ADMIN_PASSWORD="$DB_PASS"
@@ -98,9 +102,7 @@ After=network.target postgresql.service
 
 [Service]
 WorkingDirectory=/opt/healthchecks/
-EnvironmentFile=/opt/healthchecks/.env
 ExecStart=/usr/local/bin/uv run -- gunicorn hc.wsgi:application --bind 127.0.0.1:8000
-
 Restart=always
 
 [Install]
