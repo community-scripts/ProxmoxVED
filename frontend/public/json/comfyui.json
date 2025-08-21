@@ -40,8 +40,8 @@
             "type": "info"
         },
         {
-            "text": "You can always skip manual configuration by using dynamic variables. For example: `comfyui_version=\"latest|v0.3.49\" python_version_uv=\"3.12\" port_arg=\"8188\" comfyui_python_args=\"--cpu\" gpu_type=\"None|NVIDIA|AMD|Intel\" comfyui_python_index_url_nvidia=\"https://download.pytorch.org/whl/cu128\" comfyui_python_index_url_amd=\"https://download.pytorch.org/whl/rocm6.3\" comfyui_python_index_url_intel=\"https://download.pytorch.org/whl/xpu\" comfyui_manager_enabled=\"Y|y|N|n\" comfyui_manager_version=\"latest|3.35\" bash -c \"$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/comfyui.sh)\"`",
+            "text": "You can always skip manual configuration by using dynamic variables. For example: `comfyui_skip_user_config=\"Y|y\" comfyui_python_version_uv=\"3.12\" comfyui_python_args=\"--cpu\" comfyui_gpu_type=\"None|NVIDIA|AMD|Intel\" comfyui_index_url_nvidia=\"URL\" comfyui_index_url_amd=\"URL\" comfyui_index_url_intel=\"URL\" comfyui_manager_enabled=\"N|n\" bash -c \"$(curl -fsSL ...comfyui.sh)\"`",
             "type": "info"
-          }
+        }
     ]
 }
