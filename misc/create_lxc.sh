@@ -234,6 +234,26 @@ while true; do
   fi
 done
 
+# Storage Content Validation
+msg_info "Validating content types of storage '$CONTAINER_STORAGE'"
+STORAGE_CONTENT=$(grep -A4 -E "^(zfspool|dir|lvmthin|lvm): $CONTAINER_STORAGE" /etc/pve/storage.cfg | grep content | awk '{$1=""; print $0}' | xargs)
+
+msg_debug "Storage '$CONTAINER_STORAGE' has content types: $STORAGE_CONTENT"
+
+# check if rootdir supported
+if ! grep -qw "rootdir" <<<"$STORAGE_CONTENT"; then
+  msg_error "Storage '$CONTAINER_STORAGE' does not support 'rootdir'. Cannot create LXC."
+  exit 217
+fi
+
+# check if template storage is compatible
+TEMPLATE_CONTENT=$(grep -A4 -E "^[^:]+: $TEMPLATE_STORAGE" /etc/pve/storage.cfg | grep content | awk '{$1=""; print $0}' | xargs)
+msg_debug "Template storage '$TEMPLATE_STORAGE' has content types: $TEMPLATE_CONTENT"
+
+if ! grep -qw "vztmpl" <<<"$TEMPLATE_CONTENT"; then
+  msg_warn "Template storage '$TEMPLATE_STORAGE' does not declare 'vztmpl'. This may cause pct create to fail."
+fi
+
 # Check free space on selected container storage
 STORAGE_FREE=$(pvesm status | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
 REQUIRED_KB=$((${PCT_DISK_SIZE:-8} * 1024 * 1024))
