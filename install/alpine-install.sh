@@ -21,5 +21,7 @@ $STD apk add nano
 $STD apk add mc
 msg_ok "Installed Dependencies"
 
+fetch_and_deploy_gh_release "redlib" "redlib-org/redlib" "prebuild" "latest" "/opt/redlib" "redlib-x86_64-unknown-linux-musl.tar.gz"
+
 motd_ssh
 customize
