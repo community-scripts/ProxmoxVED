@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y gpg
 msg_ok "Installed Dependencies"
 
-setup_mariadb
+#setup_mariadb
 
 #FFMPEG_VERSION="n7.1.1" FFMPEG_TYPE="full" setup_ffmpeg
 
@@ -35,7 +35,7 @@ setup_mariadb
 #msg_ok "Get Release $RELEASE"
 #NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 
-PG_VERSION="16" setup_postgresql
+#PG_VERSION="16" setup_postgresql
 
 motd_ssh
 customize
