@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/redlib-org/redlib
 
-APP="Redlib"
+APP="Alpine-Redlib"
 var_tags="${var_tags:-alpine;frontend}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
