@@ -346,35 +346,38 @@ flock -w 60 9 || {
 
 msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-  msg_error "Container creation failed. Checking if template is corrupted or incomplete."
+  msg_error "Container creation failed on ${TEMPLATE_STORAGE}. Checking template..."
 
   if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
     msg_error "Template file too small or missing – re-downloading."
     rm -f "$TEMPLATE_PATH"
+    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
   elif ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
     msg_error "Template appears to be corrupted – re-downloading."
     rm -f "$TEMPLATE_PATH"
+    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
   else
-    msg_error "Template is valid, but container creation still failed."
-    exit 209
+    # --- NEW FALLBACK LOGIC ---
+    if [[ "$TEMPLATE_STORAGE" != "local" ]]; then
+      msg_warn "Retrying container creation with fallback to local storage..."
+      LOCAL_TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
+      if [ ! -f "$LOCAL_TEMPLATE_PATH" ]; then
+        msg_info "Downloading template to local..."
+        pveam download local "$TEMPLATE"
+      fi
+      if pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
+        msg_ok "Container successfully created using fallback to local."
+      else
+        msg_error "Container creation failed even with fallback to local."
+        exit 209
+      fi
+      # Skip the rest of error handling since fallback worked
+      continue
+    else
+      msg_error "Template is valid, but container creation still failed on local."
+      exit 209
+    fi
   fi
-
-  # Retry download
-  for attempt in {1..3}; do
-    msg_info "Attempt $attempt: Re-downloading template..."
-    if timeout 120 pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null; then
-      msg_ok "Template re-download successful."
-      break
-    fi
-    if [ "$attempt" -eq 3 ]; then
-      msg_error "Three failed attempts. Aborting."
-      exit 208
-    fi
-    sleep $((attempt * 5))
-  done
-
-  sleep 1 # I/O-Sync-Delay
-  msg_ok "Re-downloaded LXC Template"
 fi
 
 if ! pct list | awk '{print $1}' | grep -qx "$CTID"; then
