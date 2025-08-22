@@ -28,26 +28,21 @@ function update_script() {
       exit
   fi
 
-  RELEASE=$(curl -s https://api.github.com/repos/redlib-org/redlib/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  if [[ "${RELEASE}" != "$(cat ~/.redlib 2>/dev/null)" ]] || [[ ! -f ~/.redlib ]]; then
-    msg_info "Updating Alpine Packages"
-    $STD apk -U upgrade
-    msg_ok "Updated Alpine Packages"
+  msg_info "Updating Alpine Packages"
+  $STD apk -U upgrade
+  msg_ok "Updated Alpine Packages"
 
-    msg_info "Stopping ${APP} Service"
-    $STD rc-service redlib stop
-    msg_ok "Stopped ${APP} Service"
+  msg_info "Stopping ${APP} Service"
+  $STD rc-service redlib stop
+  msg_ok "Stopped ${APP} Service"
 
-    fetch_and_deploy_gh_release "redlib" "redlib-org/redlib" "prebuild" "latest" "/opt/redlib" "redlib-x86_64-unknown-linux-musl.tar.gz"
+  fetch_and_deploy_gh_release "redlib" "redlib-org/redlib" "prebuild" "latest" "/opt/redlib" "redlib-x86_64-unknown-linux-musl.tar.gz"
 
-    msg_info "Starting ${APP} Service"
-    $STD rc-service redlib start
-    msg_ok "Started ${APP} Service"
+  msg_info "Starting ${APP} Service"
+  $STD rc-service redlib start
+  msg_ok "Started ${APP} Service"
 
-    msg_ok "Update Successful"
-  else
-      msg_ok "No update required. ${APP} is already at ${RELEASE}"
-  fi
+  msg_ok "Update Successful"
   exit
 }
 
