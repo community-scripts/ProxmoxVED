@@ -36,7 +36,7 @@ function update_script() {
 
     msg_info "Stopping ${APP} Service"
     $STD rc-service redlib stop
-    msg_info "Stopped ${APP} Service"
+    msg_ok "Stopped ${APP} Service"
 
     msg_info "Updating ${APP}"
     $STD curl -fsSL -o /tmp/redlib-x86_64-unknown-linux-musl.tar.gz \
