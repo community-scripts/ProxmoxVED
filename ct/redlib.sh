@@ -29,7 +29,7 @@ function update_script() {
   fi
 
   RELEASE=$(curl -s https://api.github.com/repos/redlib-org/redlib/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
+  if [[ "${RELEASE}" != "$(cat ~/.redlib 2>/dev/null)" ]] || [[ ! -f ~/.redlib ]]; then
     msg_info "Updating Alpine Packages"
     $STD apk -U upgrade
     msg_ok "Updated Alpine Packages"
@@ -49,7 +49,7 @@ function update_script() {
     $STD rc-service redlib start
     msg_ok "Started ${APP} Service"
 
-    echo "${RELEASE}" >/opt/${APP}_version.txt
+    echo "${RELEASE}" >~/.redlib
     msg_ok "Update Successful"
   else
       msg_ok "No update required. ${APP} is already at ${RELEASE}"

@@ -23,7 +23,7 @@ msg_info "Installing Redlib"
 mkdir /opt/redlib
 $STD tar -xzf /tmp/redlib-x86_64-unknown-linux-musl.tar.gz -C /opt/redlib
 $STD rm /tmp/redlib-x86_64-unknown-linux-musl.tar.gz
-echo "${RELEASE}" >/opt/Redlib_version.txt
+echo "${RELEASE}" >~/.redlib
 cat <<EOF >/opt/redlib/redlib.conf
 ############################################
 # Redlib Instance Configuration File
@@ -91,11 +91,8 @@ start_pre() {
 }
 EOF
 $STD chmod +x /etc/init.d/redlib
-msg_ok "Created Redlib Service"
-
-msg_info "Enabling Redlib Service"
 $STD rc-update add redlib default
-msg_ok "Enabled Redlib Service"
+msg_ok "Created Redlib Service"
 
 msg_info "Starting Redlib Service"
 $STD rc-service redlib start
