@@ -187,21 +187,16 @@ function setup_postgresql() {
 
     echo "deb https://apt.postgresql.org/pub/repos/apt ${DISTRO}-pgdg main" \
       >/etc/apt/sources.list.d/pgdg.list
-    $STD msg_ok "Repository added"
-
     $STD apt-get update
+    $STD msg_ok "Repository added"
 
     msg_info "Setup PostgreSQL $PG_VERSION"
     $STD apt-get install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}"
-    msg_ok "Setup PostgreSQL $PG_VERSION"
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
       $STD apt-get purge -y "postgresql-${CURRENT_PG_VERSION}" "postgresql-client-${CURRENT_PG_VERSION}" || true
     fi
-
-    $STD msg_info "Starting PostgreSQL $PG_VERSION"
     systemctl enable -q --now postgresql
-    $STD msg_ok "PostgreSQL $PG_VERSION started"
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
       $STD msg_info "Restoring dumped data"
