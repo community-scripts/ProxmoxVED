@@ -9,7 +9,7 @@
   "updateable": true,
   "privileged": false,
   "interface_port": 5252,
-  "documentation": null,
+  "documentation": "https://github.com/redlib-org/redlib/blob/main/README.md",
   "website": "https://github.com/redlib-org/redlib",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/redlib.webp",
   "config_path": "/opt/redlib/redlib.conf",
