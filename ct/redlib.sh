@@ -38,18 +38,12 @@ function update_script() {
     $STD rc-service redlib stop
     msg_ok "Stopped ${APP} Service"
 
-    msg_info "Updating ${APP}"
-    $STD curl -fsSL -o /tmp/redlib-x86_64-unknown-linux-musl.tar.gz \
-    "https://github.com/redlib-org/redlib/releases/latest/download/redlib-x86_64-unknown-linux-musl.tar.gz"
-    $STD tar -xzf /tmp/redlib-x86_64-unknown-linux-musl.tar.gz -C /opt/redlib
-    $STD rm /tmp/redlib-x86_64-unknown-linux-musl.tar.gz
-    msg_ok "Updated ${APP}"
+    fetch_and_deploy_gh_release "redlib" "redlib-org/redlib" "prebuild" "latest" "/opt/redlib" "redlib-x86_64-unknown-linux-musl.tar.gz"
 
     msg_info "Starting ${APP} Service"
     $STD rc-service redlib start
     msg_ok "Started ${APP} Service"
 
-    echo "${RELEASE}" >~/.redlib
     msg_ok "Update Successful"
   else
       msg_ok "No update required. ${APP} is already at ${RELEASE}"
