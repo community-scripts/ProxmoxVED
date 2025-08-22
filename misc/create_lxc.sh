@@ -245,13 +245,18 @@ if ! grep -qw "rootdir" <<<"$STORAGE_CONTENT"; then
   msg_error "Storage '$CONTAINER_STORAGE' does not support 'rootdir'. Cannot create LXC."
   exit 217
 fi
+msg_ok "Storage '$CONTAINER_STORAGE' supports 'rootdir'"
 
 # check if template storage is compatible
+msg_info "Validating content types of template storage '$TEMPLATE_STORAGE'"
 TEMPLATE_CONTENT=$(grep -A4 -E "^[^:]+: $TEMPLATE_STORAGE" /etc/pve/storage.cfg | grep content | awk '{$1=""; print $0}' | xargs)
+
 msg_debug "Template storage '$TEMPLATE_STORAGE' has content types: $TEMPLATE_CONTENT"
 
 if ! grep -qw "vztmpl" <<<"$TEMPLATE_CONTENT"; then
   msg_warn "Template storage '$TEMPLATE_STORAGE' does not declare 'vztmpl'. This may cause pct create to fail."
+else
+  msg_ok "Template storage '$TEMPLATE_STORAGE' supports 'vztmpl'"
 fi
 
 # Check free space on selected container storage
