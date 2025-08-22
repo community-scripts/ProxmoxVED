@@ -167,7 +167,6 @@ function setup_postgresql() {
       NEED_PG_INSTALL=true
     fi
   else
-    msg_info "Setup PostgreSQL $PG_VERSION"
     NEED_PG_INSTALL=true
   fi
 
@@ -205,12 +204,12 @@ function setup_postgresql() {
     $STD msg_ok "PostgreSQL $PG_VERSION started"
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
-      msg_info "Restoring dumped data"
+      $STD msg_info "Restoring dumped data"
       su - postgres -c "psql < /var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql"
-      msg_ok "Data restored"
+      $STD msg_ok "Data restored"
     fi
 
-    msg_ok "PostgreSQL $PG_VERSION installed"
+    $STD msg_ok "PostgreSQL $PG_VERSION installed"
   fi
 
   # Install optional PostgreSQL modules
@@ -218,13 +217,13 @@ function setup_postgresql() {
     IFS=',' read -ra MODULES <<<"$PG_MODULES"
     for module in "${MODULES[@]}"; do
       local pkg="postgresql-${PG_VERSION}-${module}"
-      msg_info "Setup PostgreSQL module/s: $pkg"
+      $STD msg_info "Setup PostgreSQL module/s: $pkg"
       $STD apt-get install -y "$pkg" || {
         msg_error "Failed to install $pkg"
         continue
       }
     done
-    msg_ok "Setup PostgreSQL modules"
+    $STD msg_ok "Setup PostgreSQL modules"
   fi
 }
 
@@ -1412,7 +1411,7 @@ function setup_gs() {
     return
   fi
 
-  msg_info "Setup Ghostscript $LATEST_VERSION_DOTTED"
+  msg_info "Setup Ghostscript $LATEST_VERSION_DOTTED (Patience)"
   curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${LATEST_VERSION}/ghostscript-${LATEST_VERSION_DOTTED}.tar.gz" -o "$TMP_DIR/ghostscript.tar.gz"
 
   if ! tar -xzf "$TMP_DIR/ghostscript.tar.gz" -C "$TMP_DIR"; then
