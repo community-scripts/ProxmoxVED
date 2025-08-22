@@ -5,7 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/redlib-org/redlib
 
-source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"e
 color
 verb_ip6
 catch_errors
@@ -13,17 +13,9 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Downloading Redlib"
-RELEASE=$(curl -s https://api.github.com/repos/redlib-org/redlib/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-$STD curl -fsSL -o /tmp/redlib-x86_64-unknown-linux-musl.tar.gz \
-"https://github.com/redlib-org/redlib/releases/latest/download/redlib-x86_64-unknown-linux-musl.tar.gz"
-msg_ok "Downloaded Redlib"
+fetch_and_deploy_gh_release "redlib" "redlib-org/redlib" "prebuild" "latest" "/opt/redlib" "redlib-x86_64-unknown-linux-musl.tar.gz"
 
-msg_info "Installing Redlib"
-mkdir /opt/redlib
-$STD tar -xzf /tmp/redlib-x86_64-unknown-linux-musl.tar.gz -C /opt/redlib
-$STD rm /tmp/redlib-x86_64-unknown-linux-musl.tar.gz
-echo "${RELEASE}" >~/.redlib
+msg_info "Configuring Redlib"
 cat <<EOF >/opt/redlib/redlib.conf
 ############################################
 # Redlib Instance Configuration File
@@ -61,7 +53,7 @@ PORT=5252                           # Integer (0-65535) - Internal port
 #REDLIB_DEFAULT_FIXED_NAVBAR=on     # ["on", "off"]
 #REDLIB_DEFAULT_REMOVE_DEFAULT_FEEDS=off # ["on", "off"]
 EOF
-msg_ok "Installed Redlib"
+msg_ok "Configured Redlib"
 
 msg_info "Creating Redlib Service"
 cat <<EOF >/etc/init.d/redlib
