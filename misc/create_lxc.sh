@@ -345,6 +345,7 @@ flock -w 60 9 || {
 }
 
 msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
+
 if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
   msg_error "Container creation failed on ${TEMPLATE_STORAGE}. Checking template..."
 
@@ -359,19 +360,21 @@ if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[
   else
     # --- NEW FALLBACK LOGIC ---
     if [[ "$TEMPLATE_STORAGE" != "local" ]]; then
-      msg_warn "Retrying container creation with fallback to local storage..."
+      msg_warn "Retrying container creation with fallback to local template storage..."
       LOCAL_TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
       if [ ! -f "$LOCAL_TEMPLATE_PATH" ]; then
         msg_info "Downloading template to local..."
+        msg_debug "pveam download local $TEMPLATE"
         pveam download local "$TEMPLATE"
       fi
+      msg_debug "pct create command (fallback): pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
       if pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-        msg_ok "Container successfully created using fallback to local."
+        msg_ok "Container successfully created using fallback to local template storage."
       else
         msg_error "Container creation failed even with fallback to local."
         exit 209
       fi
-      # Skip the rest of error handling since fallback worked
+      # Skip remaining error handling since fallback worked
       continue
     else
       msg_error "Template is valid, but container creation still failed on local."
