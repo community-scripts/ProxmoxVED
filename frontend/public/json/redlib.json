@@ -17,7 +17,7 @@
   "install_methods": [
     {
       "type": "default",
-      "script": "ct/redlib.sh",
+      "script": "ct/alpine-redlib.sh",
       "resources": {
         "cpu": 1,
         "ram": 512,
