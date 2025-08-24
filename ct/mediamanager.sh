@@ -28,6 +28,8 @@ function update_script() {
     exit
   fi
 
+  setup_uv
+
   RELEASE=$(curl -fsSL https://api.github.com/repos/maxdorninger/MediaManager/releases/latest | jq '.tag_name' | sed 's/^v//')
   if [[ "${RELEASE}" != "$(cat ~/.mediamanager 2>/dev/null)" ]] || [[ ! -f ~/.mediamanager ]]; then
     msg_info "Stopping Service"
