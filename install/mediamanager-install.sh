@@ -69,7 +69,7 @@ msg_info "Creating config and start script"
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
 SECRET="$(openssl rand -hex 32)"
 sed -e "s/localhost:8/$LOCAL_IP:8/g" \
-  -e "s|/data/|$MEDIA_DIR|g" \
+  -e "s|/data/|$MEDIA_DIR/|g" \
   -e 's/"db"/"localhost"/' \
   -e "s/user = \"MediaManager\"/user = \"$DB_USER\"/" \
   -e "s/password = \"MediaManager\"/password = \"$DB_PASS\"/" \
@@ -104,7 +104,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/"$MM_DIR"
+WorkingDirectory="$MM_DIR"
 ExecStart=/usr/bin/bash start.sh
 
 [Install]
