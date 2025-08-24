@@ -88,12 +88,12 @@ export CONFIG_DIR="$CONFIG_DIR"
 export FRONTEND_FILES_DIR="$FRONTEND_FILES_DIR"
 export BASE_PATH=""
 
-cd /opt/"$MM_DIR"
+cd "$MM_DIR"
 source ./venv/bin/activate
 /usr/local/bin/uv run alembic upgrade head
 /usr/local/bin/uv run fastapi run ./media_manager/main.py --port 8000
 EOF
-chmod +x /opt/"$MM_DIR"/start.sh
+chmod +x "$MM_DIR"/start.sh
 msg_ok "Created config and start script"
 
 msg_info "Creating service"
