@@ -11,12 +11,13 @@ verb_ip6
 catch_errors
 setting_up_container
 network_check
-update_os
 
 read -r -p "Enter the email address of your first admin user: " admin_email
 if [[ "$admin_email" ]]; then
   EMAIL="$admin_email"
 fi
+
+update_os
 
 msg_info "Installing dependencies"
 $STD apt-get install -y yq
@@ -104,7 +105,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory="$MM_DIR"
+WorkingDirectory=${MM_DIR}
 ExecStart=/usr/bin/bash start.sh
 
 [Install]
