@@ -34,8 +34,8 @@ function update_script() {
     systemctl stop mediamanager
     msg_ok "Stopped Service"
 
-    msg_info "Updating ${APP}"
     fetch_and_deploy_gh_release "MediaManager" "maxdorninger/MediaManager" "tarball" "latest" "/opt/mediamanager"
+    msg_info "Updating ${APP}"
     MM_DIR="/opt/mm"
     export CONFIG_DIR="${MM_DIR}/config"
     export FRONTEND_FILES_DIR="${MM_DIR}/web/build"
