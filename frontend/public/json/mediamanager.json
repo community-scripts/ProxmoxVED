@@ -21,7 +21,7 @@
       "script": "ct/mediamanager.sh",
       "resources": {
         "cpu": 2,
-        "ram": 2048,
+        "ram": 3072,
         "hdd": 4,
         "os": "Debian",
         "version": "12"
@@ -35,6 +35,10 @@
   "notes": [
     {
       "text": "During the installation, provide the email address of the first admin user",
+      "type": "info"
+    },
+    {
+      "text": "You're probably going to want to use a bind mount for the media directories",
       "type": "info"
     }
   ]
