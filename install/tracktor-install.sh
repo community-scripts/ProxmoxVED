@@ -23,10 +23,10 @@ $STD npm install
 $STD npm run build
 mkdir /opt/tracktor-data
 HOST_IP=$(hostname -I | awk '{print $1}')
-cat <<EOF >/opt/tracktor/app/server/.env
+cat <<EOF >/opt/tracktor/app/backend/.env
 NODE_ENV=production
 PUBLIC_DEMO_MODE=false
-DB_PATH=/opt/tracktor-data/vehicles.db
+DB_PATH=/opt/tracktor-data/tracktor.db
 PUBLIC_API_BASE_URL=http://$HOST_IP:3000
 PORT=3000
 EOF
@@ -41,7 +41,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/tracktor
-EnvironmentFile=/opt/tracktor/app/server/.env
+EnvironmentFile=/opt/tracktor/app/backend/.env
 ExecStart=/usr/bin/npm start
 
 [Install]
