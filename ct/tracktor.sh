@@ -35,7 +35,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Creating Backup"
-    cp /opt/tracktor/app/server/.env /opt/tracktor.env
+    cp /opt/tracktor/app/backend/.env /opt/tracktor.env
     msg_ok "Created Backup"
 
     msg_info "Updating ${APP}"
@@ -48,7 +48,7 @@ function update_script() {
     msg_ok "Updated $APP"
 
     msg_info "Restoring Backup"
-    cp /opt/tracktor.env /opt/tracktor/app/server/.env
+    cp /opt/tracktor.env /opt/tracktor/app/backend/.env
     msg_ok "Restored Backup"
 
     msg_info "Starting Service"
