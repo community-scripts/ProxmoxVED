@@ -13,6 +13,11 @@ setting_up_container
 network_check
 update_os
 
+read -r -p "Enter the email address of your first admin user: " admin_email
+if [[ "$admin_email" ]]; then
+  EMAIL="$admin_email"
+fi
+
 msg_info "Installing dependencies"
 $STD apt-get install -y yq
 msg_ok "Installed dependencies"
@@ -60,11 +65,6 @@ $STD /usr/local/bin/uv venv "$VIRTUAL_ENV"
 $STD /usr/local/bin/uv sync --locked --active
 msg_ok "Configured MediaManager"
 
-read -r -p "Enter the email address of your first admin user: " admin_email
-if [[ "$admin_email" ]]; then
-  EMAIL="$admin_email"
-fi
-
 msg_info "Creating config and start script"
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
 SECRET="$(openssl rand -hex 32)"
@@ -81,7 +81,7 @@ sed -e "s/localhost:8/$LOCAL_IP:8/g" \
 
 mkdir -p "$MEDIA_DIR"/{images,tv,movies,torrents}
 
-cat <<EOF >/opt/"$MM_DIR"/start.sh
+cat <<EOF >"$MM_DIR"/start.sh
 #!/usr/bin/env bash
 
 export CONFIG_DIR="$CONFIG_DIR"
