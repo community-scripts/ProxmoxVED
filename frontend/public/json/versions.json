@@ -480,11 +480,6 @@
         "date": "2025-07-03T16:09:19Z"
     },
     {
-        "name": "anyproto/any-sync-dockercompose",
-        "version": "v6.3.0",
-        "date": "2025-05-27T18:39:00Z"
-    },
-    {
         "name": "Dolibarr/dolibarr",
         "version": "18.0.7",
         "date": "2025-07-03T08:57:21Z"
