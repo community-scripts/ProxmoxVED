@@ -31,5 +31,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Please check and update the '/opt/tracktor/app/backend/.env' file if using behind reverse proxy.",
+      "type": "info"
+    }
+  ]
 }
