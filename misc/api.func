@@ -2,6 +2,16 @@
 # Author: michelroegl-brunner
 # License: MIT | https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
 
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/logger.func" ]]; then
+  source "$(dirname "${BASH_SOURCE[0]}")/logger.func"
+else
+  if command -v curl >/dev/null 2>&1; then
+    source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/logger.func)
+  elif command -v wget >/dev/null 2>&1; then
+    source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/logger.func)
+  fi
+fi
+
 get_error_description() {
   local exit_code="$1"
   case "$exit_code" in

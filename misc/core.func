@@ -9,6 +9,16 @@
 [[ -n "${_CORE_FUNC_LOADED:-}" ]] && return
 _CORE_FUNC_LOADED=1
 
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/logger.func" ]]; then
+  source "$(dirname "${BASH_SOURCE[0]}")/logger.func"
+else
+  if command -v curl >/dev/null 2>&1; then
+    source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/logger.func)
+  elif command -v wget >/dev/null 2>&1; then
+    source <(wget -qO- https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/logger.func)
+  fi
+fi
+
 load_functions() {
   [[ -n "${__FUNCTIONS_LOADED:-}" ]] && return
   __FUNCTIONS_LOADED=1
@@ -96,9 +106,9 @@ _tool_error_hint() {
 #   exit 143
 # }
 
+# logger.func now sets strict modes and traps globally
 catch_errors() {
-  set -Eeuo pipefail
-  trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
+  :
 }
 
 # ------------------------------------------------------------------------------
@@ -339,6 +349,7 @@ stop_spinner() {
 msg_info() {
   local msg="$1"
   [[ -z "$msg" ]] && return
+  log_info "$msg"
 
   if ! declare -p MSG_INFO_SHOWN &>/dev/null || ! declare -A MSG_INFO_SHOWN &>/dev/null; then
     declare -gA MSG_INFO_SHOWN=()
@@ -365,6 +376,7 @@ msg_info() {
 msg_ok() {
   local msg="$1"
   [[ -z "$msg" ]] && return
+  log_info "$msg"
   stop_spinner
   clear_line
   printf "%s %b\n" "$CM" "${GN}${msg}${CL}" >&2
@@ -374,12 +386,14 @@ msg_ok() {
 msg_error() {
   stop_spinner
   local msg="$1"
+  log_error "$msg"
   echo -e "${BFR:-} ${CROSS:-✖️} ${RD}${msg}${CL}"
 }
 
 msg_warn() {
   stop_spinner
   local msg="$1"
+  log_warn "$msg"
   echo -e "${BFR:-} ${INFO:-ℹ️} ${YWB}${msg}${CL}"
 }
 
@@ -395,6 +409,7 @@ msg_custom() {
 function msg_debug() {
   if [[ "${var_full_verbose:-0}" == "1" ]]; then
     [[ "${var_verbose:-0}" != "1" ]] && var_verbose=1
+    log_debug "$*"
     echo -e "${YWB}[$(date '+%F %T')] [DEBUG]${CL} $*"
   fi
 }
