@@ -46,7 +46,15 @@ $STD apt-get install -y --no-install-recommends \
 msg_ok "Installed dependencies"
 
 fetch_and_deploy_gh_release "kepubify" "pgaskin/kepubify" "singlefile" "latest" "/usr/bin" "kepubify-linux-64bit"
-fetch_and_deploy_gh_release "calibre" "kovidgoyal/calibre" "prebuild" "latest" "/opt/calibre" "calibre-*-x86_64.txz"
+
+msg_info "Installing Calibre"
+CALIBRE_RELEASE="$(curl -s https://api.github.com/repos/kovidgoyal/calibre/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)"
+CALIBRE_VERSION=${CALIBRE_RELEASE#v}
+curl -fsSL https://github.com/kovidgoyal/releases/download/${CALIBRE_RELEASE}/calibre-${CALIBRE_VERSION}-x86_64.txz -o /tmp/calibre.txz
+$STD tar -xf /tmp/calibre.txz /opt/calibre
+rm /tmp/calibre.txz
+$STD /opt/calibre/calibre_postinstall
+msg_ok "Calibre installed"
 
 setup_uv
 
@@ -78,6 +86,7 @@ cat <<EOF >./dirs.json
 }
 EOF
 useradd -s /usr/sbin/nologin -d "$CONFIG_DIR" -M "SERVICE_USER"
+ln -sf "$CONFIG_DIR"/.config/calibre/plugins "$CONFIG_DIR"/calibre_plugins
 msg_ok "Configured Autocaliweb"
 
 msg_info "Creating ACWSync Plugin for KOReader"
