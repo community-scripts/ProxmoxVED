@@ -205,7 +205,6 @@ if qm status "$CTID" &>/dev/null || pct status "$CTID" &>/dev/null; then
 fi
 
 # This checks for the presence of valid Container Storage and Template Storage locations
-msg_info "Validating storage"
 if ! check_storage_support "rootdir"; then
   msg_error "No valid storage found for 'rootdir' [Container]"
   exit 1
@@ -280,158 +279,196 @@ fi
 # Update LXC template list
 TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 case "$PCT_OSTYPE" in
-debian | ubuntu)
-  TEMPLATE_PATTERN="-standard_"
-  ;;
-alpine | fedora | rocky | centos)
-  TEMPLATE_PATTERN="-default_"
-  ;;
-*)
-  TEMPLATE_PATTERN=""
-  ;;
+debian | ubuntu) TEMPLATE_PATTERN="-standard_" ;;
+alpine | fedora | rocky | centos) TEMPLATE_PATTERN="-default_" ;;
+*) TEMPLATE_PATTERN="" ;;
 esac
 
-# 1. Check local templates first
 msg_info "Searching for template '$TEMPLATE_SEARCH'"
-mapfile -t TEMPLATES < <(
-  pveam list "$TEMPLATE_STORAGE" |
+
+# 1. get / check local templates
+mapfile -t LOCAL_TEMPLATES < <(
+  pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
     awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ s && $1 ~ p {print $1}' |
     sed 's/.*\///' | sort -t - -k 2 -V
 )
 
-if [ ${#TEMPLATES[@]} -gt 0 ]; then
+# 2. get online templates
+pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
+mapfile -t ONLINE_TEMPLATES < <(
+  pveam available -section system 2>/dev/null |
+    sed -n "s/.*\($TEMPLATE_SEARCH.*$TEMPLATE_PATTERN.*\)/\1/p" |
+    sort -t - -k 2 -V
+)
+ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]:-}"
+
+# 3. Local vs Online
+if [ ${#LOCAL_TEMPLATES[@]} -gt 0 ]; then
+  TEMPLATE="${LOCAL_TEMPLATES[-1]}"
   TEMPLATE_SOURCE="local"
 else
-  msg_info "No local template found, checking online repository"
-  pveam update >/dev/null 2>&1
-  mapfile -t TEMPLATES < <(
-    pveam update >/dev/null 2>&1 &&
-      pveam available -section system |
-      sed -n "s/.*\($TEMPLATE_SEARCH.*$TEMPLATE_PATTERN.*\)/\1/p" |
-        sort -t - -k 2 -V
-  )
+  TEMPLATE="$ONLINE_TEMPLATE"
   TEMPLATE_SOURCE="online"
 fi
 
-TEMPLATE="${TEMPLATES[-1]}"
-TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null ||
-  echo "/var/lib/vz/template/cache/$TEMPLATE")"
-msg_ok "Template ${BL}$TEMPLATE${CL} [$TEMPLATE_SOURCE]"
-
-msg_debug "TEMPLATE_SEARCH=$TEMPLATE_SEARCH"
-msg_debug "TEMPLATES=(${TEMPLATES[*]})"
-msg_debug "Selected TEMPLATE=$TEMPLATE"
-msg_debug "TEMPLATE_PATH=$TEMPLATE_PATH"
-
-# 4. Validate template (exists & not corrupted)
-TEMPLATE_VALID=1
-if [ ! -s "$TEMPLATE_PATH" ]; then
-  TEMPLATE_VALID=0
-elif ! tar --use-compress-program=zstdcat -tf "$TEMPLATE_PATH" >/dev/null 2>&1; then
-  TEMPLATE_VALID=0
+# 4. Getting Path (universal, also for nfs/cifs)
+TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
+if [[ -z "$TEMPLATE_PATH" ]]; then
+  TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
+  if [[ -n "$TEMPLATE_BASE" ]]; then
+    TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
+  fi
 fi
 
-if [ "$TEMPLATE_VALID" -eq 0 ]; then
-  msg_warn "Template $TEMPLATE is missing or corrupted. Re-downloading."
+if [[ -z "$TEMPLATE_PATH" ]]; then
+  msg_error "Unable to resolve template path for $TEMPLATE_STORAGE. Check storage type and permissions."
+  exit 220
+fi
+
+msg_ok "Template ${BL}$TEMPLATE${CL} [$TEMPLATE_SOURCE]"
+msg_debug "Resolved TEMPLATE_PATH=$TEMPLATE_PATH"
+
+# 5. Validation
+NEED_DOWNLOAD=0
+if [[ ! -f "$TEMPLATE_PATH" ]]; then
+  msg_info "Template not present locally – will download."
+  NEED_DOWNLOAD=1
+elif [[ ! -r "$TEMPLATE_PATH" ]]; then
+  msg_error "Template file exists but is not readable – check permissions."
+  exit 221
+elif [[ "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
+  msg_warn "Template file too small (<1MB) – re-downloading."
+  NEED_DOWNLOAD=1
+elif ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
+  msg_warn "Template appears corrupted – re-downloading."
+  NEED_DOWNLOAD=1
+else
+  msg_ok "Template $TEMPLATE is present and valid."
+fi
+
+# 6. Update-Check (if local exist)
+if [[ "$TEMPLATE_SOURCE" == "local" && -n "$ONLINE_TEMPLATE" && "$TEMPLATE" != "$ONLINE_TEMPLATE" ]]; then
+  msg_warn "Local template is outdated: $TEMPLATE (latest available: $ONLINE_TEMPLATE)"
+  if whiptail --yesno "A newer template is available:\n$ONLINE_TEMPLATE\n\nDo you want to download and use it instead?" 12 70; then
+    TEMPLATE="$ONLINE_TEMPLATE"
+    NEED_DOWNLOAD=1
+  else
+    msg_info "Continuing with local template $TEMPLATE"
+  fi
+fi
+
+# 7. Download if needed
+if [[ "$NEED_DOWNLOAD" -eq 1 ]]; then
   [[ -f "$TEMPLATE_PATH" ]] && rm -f "$TEMPLATE_PATH"
   for attempt in {1..3}; do
-    msg_info "Attempt $attempt: Downloading LXC template..."
+    msg_info "Attempt $attempt: Downloading template $TEMPLATE to $TEMPLATE_STORAGE"
     if pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1; then
       msg_ok "Template download successful."
       break
     fi
     if [ $attempt -eq 3 ]; then
-      msg_error "Failed after 3 attempts. Please check network access or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
-      exit 208
+      msg_error "Failed after 3 attempts. Please check network access, permissions, or manually run:\n  pveam download $TEMPLATE_STORAGE $TEMPLATE"
+      exit 222
     fi
     sleep $((attempt * 5))
   done
 fi
 
-msg_info "Creating LXC Container"
-# Check and fix subuid/subgid
+# 8. Final Check – Template usability
+if ! pveam list "$TEMPLATE_STORAGE" 2>/dev/null | grep -q "$TEMPLATE"; then
+  msg_error "Template $TEMPLATE not available in storage $TEMPLATE_STORAGE after download."
+  exit 223
+fi
+msg_ok "Template $TEMPLATE is ready for container creation."
+
+# ------------------------------------------------------------------------------
+# Create LXC Container with validation, recovery and debug option
+# ------------------------------------------------------------------------------
+
+msg_info "Creating LXC container"
+
+# Ensure subuid/subgid entries exist
 grep -q "root:100000:65536" /etc/subuid || echo "root:100000:65536" >>/etc/subuid
 grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgid
 
-# Combine all options
+# Assemble pct options
 PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
 [[ " ${PCT_OPTIONS[@]} " =~ " -rootfs " ]] || PCT_OPTIONS+=(-rootfs "$CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}")
 
-# Secure creation of the LXC container with lock and template check
+# Secure with lockfile
 lockfile="/tmp/template.${TEMPLATE}.lock"
-msg_debug "Creating lockfile: $lockfile"
 exec 9>"$lockfile" || {
   msg_error "Failed to create lock file '$lockfile'."
   exit 200
 }
 flock -w 60 9 || {
-  msg_error "Timeout while waiting for template lock"
+  msg_error "Timeout while waiting for template lock."
   exit 211
 }
 
+LOGFILE="/tmp/pct_create_${CTID}.log"
 msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
+msg_debug "Logfile: $LOGFILE"
 
-if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
+# First attempt
+if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >"$LOGFILE" 2>&1; then
   msg_error "Container creation failed on ${TEMPLATE_STORAGE}. Checking template..."
 
+  # Validate template file
   if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
-    msg_error "Template file too small or missing – re-downloading."
+    msg_warn "Template file too small or missing – re-downloading."
     rm -f "$TEMPLATE_PATH"
     pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
   elif ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
-    msg_error "Template appears to be corrupted – re-downloading."
+    msg_warn "Template appears corrupted – re-downloading."
     rm -f "$TEMPLATE_PATH"
     pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
-  else
-    # --- NEW FALLBACK LOGIC ---
+  fi
+
+  # Retry after repair
+  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
+    # Fallback to local storage
     if [[ "$TEMPLATE_STORAGE" != "local" ]]; then
-      msg_warn "Retrying container creation with fallback to local template storage..."
+      msg_warn "Retrying container creation with fallback to local storage..."
       LOCAL_TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
       if [ ! -f "$LOCAL_TEMPLATE_PATH" ]; then
         msg_info "Downloading template to local..."
-        msg_debug "pveam download local $TEMPLATE"
-        pveam download local "$TEMPLATE"
+        pveam download local "$TEMPLATE" >/dev/null 2>&1
       fi
-      msg_debug "pct create command (fallback): pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
-      if pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" &>/dev/null; then
-        msg_ok "Container successfully created using fallback to local template storage."
+      if pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
+        msg_ok "Container successfully created using local fallback."
       else
-        msg_error "Container creation failed even with fallback to local."
+        msg_error "Container creation failed even with local fallback. See $LOGFILE"
+        # Ask user if they want debug output
+        if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
+          set -x
+          bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
+          set +x
+        fi
         exit 209
       fi
-      # Skip remaining error handling since fallback worked
-      continue
     else
-      msg_error "Template is valid, but container creation still failed on local."
+      msg_error "Container creation failed on local storage. See $LOGFILE"
+      if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
+        set -x
+        bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
+        set +x
+      fi
       exit 209
     fi
   fi
 fi
 
+# Verify container exists
 if ! pct list | awk '{print $1}' | grep -qx "$CTID"; then
-  msg_error "Container ID $CTID not listed in 'pct list' – unexpected failure."
+  msg_error "Container ID $CTID not listed in 'pct list'. See $LOGFILE"
   exit 215
 fi
 
+# Verify config rootfs
 if ! grep -q '^rootfs:' "/etc/pve/lxc/$CTID.conf"; then
-  msg_error "RootFS entry missing in container config – storage not correctly assigned."
+  msg_error "RootFS entry missing in container config. See $LOGFILE"
   exit 216
 fi
-
-if grep -q '^hostname:' "/etc/pve/lxc/$CTID.conf"; then
-  CT_HOSTNAME=$(grep '^hostname:' "/etc/pve/lxc/$CTID.conf" | awk '{print $2}')
-  if [[ ! "$CT_HOSTNAME" =~ ^[a-z0-9-]+$ ]]; then
-    msg_warn "Hostname '$CT_HOSTNAME' contains invalid characters – may cause issues with networking or DNS."
-  fi
-fi
-
-if [[ "${PCT_RAM_SIZE:-2048}" -lt 1024 ]]; then
-  msg_warn "Configured RAM (${PCT_RAM_SIZE}MB) is below 1024MB – some apps may not work properly."
-fi
-
-# comment out 19.08.2025 -  PCT Options not correct, message every new lxc (without fuse too)
-# if [[ "${PCT_UNPRIVILEGED:-1}" == "1" && " ${PCT_OPTIONS[*]} " == *"fuse=1"* ]]; then
-#   msg_warn "Unprivileged container with FUSE may fail unless extra device mappings are configured."
-# fi
 
 msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
