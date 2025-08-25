@@ -20,7 +20,7 @@ $STD apt-get install -y --no-install-recommends \
   build-essential \
   libldap2-dev \
   libssl-dev \
-  libsasl-dev \
+  libsasl2-dev \
   imagemagick \
   ghostscript \
   libmagic1 \
