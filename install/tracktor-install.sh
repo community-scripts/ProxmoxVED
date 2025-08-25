@@ -26,8 +26,10 @@ cat <<EOF >/opt/tracktor/app/backend/.env
 NODE_ENV=production
 PUBLIC_DEMO_MODE=false
 DB_PATH=/opt/tracktor-data/tracktor.db
-PUBLIC_API_BASE_URL=http://$HOST_IP:3000 # Replace this URL if using behind reverse proxy for https traffic. Though it is optional and should work without changing
-CORS_ORIGINS=http://$HOST_IP:3000 # Here add the reverse proxy url as well to avoid cross errors from the app. 
+# Replace this URL if using behind reverse proxy for https traffic. Though it is optional and should work without changing
+PUBLIC_API_BASE_URL=http://$HOST_IP:3000 
+# Here add the reverse proxy url as well seperated by comma to avoid cross origin errors from the app.
+CORS_ORIGINS=http://$HOST_IP:3000  
 PORT=3000
 EOF
 msg_ok "Configured Tracktor"
@@ -57,3 +59,4 @@ msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
+msg_info "Please check and update the "/opt/tracktor/app/backend/.env" file if using behind reverse proxy."
