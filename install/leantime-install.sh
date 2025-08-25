@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-PHP_VERSION=8.4 PHP_MODULE="mysql" PHP_APACHE="YES" PHP_FPM="YES" setup_php
+PHP_VERSION="8.4" PHP_MODULE="mysql" PHP_APACHE="YES" PHP_FPM="YES" setup_php
 setup_mariadb
 
 msg_info "Setting up Database"
