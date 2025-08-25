@@ -59,4 +59,4 @@ msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
-msg_info "Please check and update the "/opt/tracktor/app/backend/.env" file if using behind reverse proxy."
+msg_info "Please check and update the '/opt/tracktor/app/backend/.env' file if using behind reverse proxy."
