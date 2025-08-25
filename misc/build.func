@@ -1372,8 +1372,12 @@ EOF
       fi
       # Wait and retry if not reachable yet
       if [ "$i" -lt 10 ]; then
-        msg_warn "No network in LXC yet (try $i/10) – waiting..."
-        sleep 3
+        if [ "$i" -le 3 ]; then
+          sleep 2
+        else
+          msg_warn "No network in LXC yet (try $i/10) – waiting..."
+          sleep 3
+        fi
       else
         # After 10 unsuccessful ping attempts, try HTTP connectivity via wget as fallback
         msg_warn "Ping failed 10 times. Trying HTTP connectivity check (wget) as fallback..."
