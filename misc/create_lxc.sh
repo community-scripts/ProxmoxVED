@@ -36,6 +36,7 @@ function error_handler() {
   local line_number="$1"
   local command="$2"
   printf "\e[?25h"
+  log_error "line $line_number: exit code $exit_code while executing command $command"
   echo -e "\n${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}\n"
   exit "$exit_code"
 }
