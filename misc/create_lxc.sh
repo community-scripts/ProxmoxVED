@@ -214,7 +214,6 @@ if ! check_storage_support "vztmpl"; then
   exit 1
 fi
 
-msg_info "Checking template storage"
 while true; do
   if select_storage template; then
     TEMPLATE_STORAGE="$STORAGE_RESULT"
