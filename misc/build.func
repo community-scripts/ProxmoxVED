@@ -43,7 +43,6 @@ error_handler() {
   local line_number="$1"
   local command="$2"
   printf "\e[?25h"
-  log_error "line $line_number: exit code $exit_code while executing command $command"
   local error_message="[ERROR] in line $line_number: exit code $exit_code: while executing command $command"
   post_update_to_api "failed" "$command"
   echo -e "\n$error_message\n"
