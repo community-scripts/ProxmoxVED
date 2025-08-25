@@ -18,7 +18,6 @@ fetch_and_deploy_gh_release "tracktor" "javedh-dev/tracktor" "tarball" "latest" 
 
 msg_info "Configuring Tracktor"
 cd /opt/tracktor
-rm package-lock.json
 $STD npm install
 $STD npm run build
 mkdir /opt/tracktor-data
