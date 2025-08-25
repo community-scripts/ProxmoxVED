@@ -1363,6 +1363,7 @@ EOF
 
   if [ "$var_os" != "alpine" ]; then
     msg_info "Waiting for network in LXC container"
+    sleep 2
     for i in {1..10}; do
       # 1. Primary check: ICMP ping (fastest, but may be blocked by ISP/firewall)
       if pct exec "$CTID" -- ping -c1 -W1 deb.debian.org >/dev/null 2>&1; then
