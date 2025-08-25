@@ -7,9 +7,9 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 
 APP="healthchecks"
 var_tags="${var_tags:-monitoring}"
-var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-20}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-5}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -23,11 +23,40 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -f /etc/systemd/system/healthchecks.service ]]; then
+
+  if [[ ! -d /opt/healthchecks ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_error "No Update."
+
+  RELEASE=$(curl -fsSL https://api.github.com/repos/healthchecks/healthchecks/releases/latest | jq '.tag_name' | sed 's/^"v//;s/"$//')
+  if [[ "${RELEASE}" != "$(cat ~/.healthchecks 2>/dev/null)" ]] || [[ ! -f ~/.healthchecks ]]; then
+    msg_info "Stopping $APP"
+    systemctl stop healthchecks
+    msg_ok "Stopped $APP"
+
+    setup_uv
+    fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks"
+
+    msg_info "Updating $APP to v${RELEASE}"
+    cd /opt/healthchecks
+    mkdir -p /opt/healthchecks/static-collected/
+    $STD uv pip install wheel gunicorn -r requirements.txt --system
+    $STD uv run -- python manage.py makemigrations
+    $STD uv run -- python manage.py migrate --noinput
+    $STD uv run -- python manage.py collectstatic --noinput
+    $STD uv run -- python manage.py compress
+    msg_ok "Updated $APP to v${RELEASE}"
+
+    msg_info "Starting $APP"
+    systemctl start healthchecks
+    systemctl restart caddy
+    msg_ok "Started $APP"
+
+    msg_ok "Update Successful"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+  fi
   exit
 }
 

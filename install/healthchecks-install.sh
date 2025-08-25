@@ -48,7 +48,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 } >>~/healthchecks.creds
 msg_ok "Set up Database"
 
-fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks" "source"
+fetch_and_deploy_gh_release "healthchecks" "healthchecks/healthchecks"
 
 msg_info "Setup healthchecks"
 cd /opt/healthchecks
