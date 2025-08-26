@@ -68,9 +68,9 @@ sed -i -e "s|^LEAN_DB_DATABASE.*|LEAN_DB_DATABASE = '$DB_NAME'|" \
   "/opt/leantime/config/.env"
 
 a2enmod -q proxy_fcgi setenvif rewrite
-a2enconf -q "php${PHP_VERSION}-fpm"
+a2enconf -q "php8.4-fpm"
 
-sed -i -e "s/^;extension.\(curl\|fileinfo\|gd\|intl\|ldap\|mbstring\|exif\|mysqli\|odbc\|openssl\|pdo_mysql\)/extension=\1/g" "/etc/php/${PHP_VERSION}/apache2/php.ini"
+sed -i -e "s/^;extension.\(curl\|fileinfo\|gd\|intl\|ldap\|mbstring\|exif\|mysqli\|odbc\|openssl\|pdo_mysql\)/extension=\1/g" "/etc/php/8.4/apache2/php.ini"
 
 systemctl restart apache2
 
