@@ -332,7 +332,6 @@ msg_ok "Template ${BL}$TEMPLATE${CL} [$TEMPLATE_SOURCE]"
 msg_debug "Resolved TEMPLATE_PATH=$TEMPLATE_PATH"
 
 # 5. Validation
-# 5. Validation
 NEED_DOWNLOAD=0
 if [[ ! -f "$TEMPLATE_PATH" ]]; then
   msg_info "Template not present locally – will download."
