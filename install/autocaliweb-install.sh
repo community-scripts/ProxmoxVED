@@ -107,7 +107,7 @@ PLUGIN_DIGEST="$(find acwsync.koplugin -type f -name "*.lua" -o -name "*.json" |
 echo "Plugin files digest: $PLUGIN_DIGEST" >acwsync.koplugin/${PLUGIN_DIGEST}.digest
 echo "Build date: $(date)" >>acwsync.koplugin/${PLUGIN_DIGEST}.digest
 echo "Files included:" >>acwsync.koplugin/${PLUGIN_DIGEST}.digest
-zip -r koplugin.zip acwsync.koplugin/
+$STD zip -r koplugin.zip acwsync.koplugin/
 cp -r koplugin.zip "$INSTALL_DIR"/cps/static
 msg_ok "Created ACWSync Plugin"
 
@@ -320,7 +320,7 @@ Environment=HOME=${CONFIG_DIR}
 WantedBy=multi-user.target
 EOF
 
-systemctl -q enable --now autocaliweb acw-ingestor acw-auto-zipper metadata-change-detector
+systemctl -q enable --now autocaliweb acw-ingest-service acw-auto-zipper metadata-change-detector
 msg_ok "Created scripts and service files"
 
 motd_ssh
