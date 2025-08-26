@@ -51,6 +51,7 @@ msg_info "Installing Calibre"
 CALIBRE_RELEASE="$(curl -s https://api.github.com/repos/kovidgoyal/calibre/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)"
 CALIBRE_VERSION=${CALIBRE_RELEASE#v}
 curl -fsSL https://github.com/kovidgoyal/calibre/releases/download/${CALIBRE_RELEASE}/calibre-${CALIBRE_VERSION}-x86_64.txz -o /tmp/calibre.txz
+mkdir -p /opt/calibre
 $STD tar -xf /tmp/calibre.txz -C /opt/calibre
 rm /tmp/calibre.txz
 $STD /opt/calibre/calibre_postinstall
