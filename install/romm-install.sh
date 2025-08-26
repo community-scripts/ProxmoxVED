@@ -34,6 +34,7 @@ msg_ok "Installed core dependencies"
 
 PYTHON_VERSION="3.12" setup_uv
 NODE_VERSION="22" NODE_MODULE="serve" setup_nodejs
+setup_mariadb
 
 msg_info "Configuring Database"
 DB_NAME=romm
