@@ -69,7 +69,7 @@ INGEST_DIR="/opt/acw-book-ingest"
 SERVICE_USER="acw"
 SERVICE_GROUP="acw"
 SCRIPTS_DIR="${INSTALL_DIR}/scripts"
-VIRTUAL_ENV="${INSTALL_DIR}/venv"
+export VIRTUAL_ENV="${INSTALL_DIR}/venv"
 
 mkdir -p "$CONFIG_DIR"/{.config/calibre/plugins,log_archive,.acw_conversion_tmp}
 mkdir -p "$CONFIG_DIR"/processed_books/{converted,imported,failed,fixed_originals}
@@ -126,7 +126,8 @@ msg_info "Creating scripts and service files"
 cat <<EOF >"$SCRIPTS_DIR"/ingest_watcher.sh
 #!/bin/bash
 
-WATCH_FOLDER=\$(grep -o '"ingest_folder": "[^"]*' \${INSTALL_DIR}/dirs.json | grep -o '[^"]*\$')
+INSTALL_PATH="$INSTALL_DIR"
+WATCH_FOLDER=\$(grep -o '"ingest_folder": "[^"]*' \${INSTALL_PATH}/dirs.json | grep -o '[^"]*\$')
 echo "[acw-ingest-service] Watching folder: \$WATCH_FOLDER"
 
 # Monitor the folder for new files
@@ -134,7 +135,7 @@ echo "[acw-ingest-service] Watching folder: \$WATCH_FOLDER"
 while read -r events filepath ; do
     echo "[acw-ingest-service] New files detected - \$filepath - Starting Ingest Processor..."
     # Use the Python interpreter from the virtual environment
-    \${VIRTUAL_ENV}/bin/python \${SCRIPTS_DIR}/ingest_processor.py "\$filepath"
+    ${VIRTUAL_ENV}/bin/python \${INSTALL_PATH}/ingest_processor.py "\$filepath"
 done
 EOF
 
