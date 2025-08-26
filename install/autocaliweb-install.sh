@@ -106,9 +106,8 @@ msg_info "Initializing databases"
 KEPUBIFY_PATH=$(command -v kepubify 2>/dev/null || echo "/usr/bin/kepubify")
 EBOOK_CONVERT_PATH=$(command -v ebook-convert 2>/dev/null || echo "/usr/bin/ebook-convert")
 CALIBRE_BIN_DIR=$(dirname "$EBOOK_CONVERT_PATH")
-cp "$INSTALL_DIR"/library/metadata.db "$CALIBRE_LIB_DIR"/metadata.db
-
-cp "$INSTALL_DIR"/library/app.db "$CONFIG_DIR"/app.db
+curl -fsSL https://github.com/gelbphoenix/autocaliweb/raw/refs/heads/master/library/metadata.db -o "$CALIBRE_LIB_DIR"/metadata.db
+curl -fsSL https://github.com/gelbphoenix/autocaliweb/raw/refs/heads/master/library/app.db -o "$CONFIG_DIR"/app.db
 sqlite3 "$CONFIG_DIR/app.db" <<EOS
 UPDATE settings SET
     config_kepubifypath='$KEPUBIFY_PATH',
