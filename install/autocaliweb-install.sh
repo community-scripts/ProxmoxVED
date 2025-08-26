@@ -88,7 +88,7 @@ cat <<EOF >./dirs.json
   "tmp_conversion_dir": "$CONFIG_DIR/.acw_conversion_tmp"
 }
 EOF
-useradd -s /usr/sbin/nologin -d "$CONFIG_DIR" -M "SERVICE_USER"
+useradd -s /usr/sbin/nologin -d "$CONFIG_DIR" -M "$SERVICE_USER"
 ln -sf "$CONFIG_DIR"/.config/calibre/plugins "$CONFIG_DIR"/calibre_plugins
 msg_ok "Configured Autocaliweb"
 
