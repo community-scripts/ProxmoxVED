@@ -299,7 +299,11 @@ mapfile -t ONLINE_TEMPLATES < <(
     sed -n "s/.*\($TEMPLATE_SEARCH.*$TEMPLATE_PATTERN.*\)/\1/p" |
     sort -t - -k 2 -V
 )
-ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]:-}"
+if [ ${#ONLINE_TEMPLATES[@]} -gt 0 ]; then
+  ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
+else
+  ONLINE_TEMPLATE=""
+fi
 
 # 3. Local vs Online
 if [ ${#LOCAL_TEMPLATES[@]} -gt 0 ]; then
