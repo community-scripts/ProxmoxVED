@@ -332,6 +332,7 @@ msg_ok "Template ${BL}$TEMPLATE${CL} [$TEMPLATE_SOURCE]"
 msg_debug "Resolved TEMPLATE_PATH=$TEMPLATE_PATH"
 
 # 5. Validation
+# 5. Validation
 NEED_DOWNLOAD=0
 if [[ ! -f "$TEMPLATE_PATH" ]]; then
   msg_info "Template not present locally – will download."
@@ -340,11 +341,19 @@ elif [[ ! -r "$TEMPLATE_PATH" ]]; then
   msg_error "Template file exists but is not readable – check permissions."
   exit 221
 elif [[ "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
-  msg_warn "Template file too small (<1MB) – re-downloading."
-  NEED_DOWNLOAD=1
-elif ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
-  msg_warn "Template appears corrupted – re-downloading."
-  NEED_DOWNLOAD=1
+  if [[ -n "$ONLINE_TEMPLATE" ]]; then
+    msg_warn "Template file too small (<1MB) – re-downloading."
+    NEED_DOWNLOAD=1
+  else
+    msg_warn "Template looks too small, but no online version exists. Keeping local file."
+  fi
+elif ! tar -tf "$TEMPLATE_PATH" &>/dev/null; then
+  if [[ -n "$ONLINE_TEMPLATE" ]]; then
+    msg_warn "Template appears corrupted – re-downloading."
+    NEED_DOWNLOAD=1
+  else
+    msg_warn "Template appears corrupted, but no online version exists. Keeping local file."
+  fi
 else
   msg_ok "Template $TEMPLATE is present and valid."
 fi
@@ -422,10 +431,14 @@ if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[
     msg_warn "Template file too small or missing – re-downloading."
     rm -f "$TEMPLATE_PATH"
     pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
-  elif ! zstdcat "$TEMPLATE_PATH" | tar -tf - &>/dev/null; then
-    msg_warn "Template appears corrupted – re-downloading."
-    rm -f "$TEMPLATE_PATH"
-    pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
+  elif ! tar -tf "$TEMPLATE_PATH" &>/dev/null; then
+    if [[ -n "$ONLINE_TEMPLATE" ]]; then
+      msg_warn "Template appears corrupted – re-downloading."
+      rm -f "$TEMPLATE_PATH"
+      pveam download "$TEMPLATE_STORAGE" "$TEMPLATE"
+    else
+      msg_warn "Template appears corrupted, but no online version exists. Skipping re-download."
+    fi
   fi
 
   # Retry after repair
