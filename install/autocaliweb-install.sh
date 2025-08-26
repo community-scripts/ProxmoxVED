@@ -144,7 +144,7 @@ cat <<EOF >"$SCRIPTS_DIR"/auto_zipper_wrapper.sh
 #!/bin/bash
 
 # Source virtual environment
-source ${VIRTUAL_ENV}/bin/activate
+source ${INSTALL_DIR}/venv/bin/activate
 
 WAKEUP="23:59"
 
@@ -180,7 +180,7 @@ cat <<EOF >"$SCRIPTS_DIR"/metadata_change_detector_wrapper.sh
 # metadata_change_detector_wrapper.sh - Wrapper for periodic metadata enforcement
 
 # Source virtual environment
-source ${VIRTUAL_ENV}/bin/activate
+source ${INSTALL_DIR}/venv/bin/activate
 
 # Configuration
 CHECK_INTERVAL=300  # Check every 5 minutes (300 seconds)
