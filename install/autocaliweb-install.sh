@@ -78,7 +78,9 @@ mkdir -p {"$CALIBRE_LIB_DIR","$INGEST_DIR"}
 
 cd "$INSTALL_DIR"
 $STD uv venv "$VIRTUAL_ENV"
+$STD source "$VIRTUAL_ENV"
 $STD uv pip install -r pyproject.toml --all-extras
+$STD deactivate
 cat <<EOF >./dirs.json
 {
   "ingest_folder": "$INGEST_DIR",
