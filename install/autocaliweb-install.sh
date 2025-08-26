@@ -78,7 +78,7 @@ mkdir -p {"$CALIBRE_LIB_DIR","$INGEST_DIR"}
 
 cd "$INSTALL_DIR"
 $STD uv venv "$VIRTUAL_ENV"
-$STD source "$VIRTUAL_ENV"
+$STD source "$VIRTUAL_ENV"/bin/activate
 $STD uv pip install -r pyproject.toml --all-extras
 $STD deactivate
 cat <<EOF >./dirs.json
