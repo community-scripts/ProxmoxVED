@@ -79,7 +79,9 @@ mkdir -p {"$CALIBRE_LIB_DIR","$INGEST_DIR"}
 cd "$INSTALL_DIR"
 $STD uv venv "$VIRTUAL_ENV"
 $STD source "$VIRTUAL_ENV"/bin/activate
-$STD uv pip install -r pyproject.toml --all-extras
+echo "pyopenssl>=24.2.1" >./constraint.txt
+$STD uv pip compile requirements.txt optional-requirements.txt -c constraint.txt -o combined-requirements.lock
+$STD uv pip sync combined-requirements.lock
 $STD deactivate
 cat <<EOF >./dirs.json
 {
@@ -90,6 +92,13 @@ cat <<EOF >./dirs.json
 EOF
 useradd -s /usr/sbin/nologin -d "$CONFIG_DIR" -M "$SERVICE_USER"
 ln -sf "$CONFIG_DIR"/.config/calibre/plugins "$CONFIG_DIR"/calibre_plugins
+cat <<EOF >"$INSTALL_DIR"/.env
+ACW_INSTALL_DIR=$INSTALL_DIR
+ACW_CONFIG_DIR=$CONFIG_DIR
+ACW_USER=$SERVICE_USER
+ACW_GROUP=$SERVICE_GROUP
+LIBRARY_DIR=$CALIBRE_LIB_DIR
+EOF
 msg_ok "Configured Autocaliweb"
 
 msg_info "Creating ACWSync Plugin for KOReader"
@@ -240,6 +249,7 @@ Environment=PYTHONPATH=$SCRIPTS_DIR:$INSTALL_DIR
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
 Environment=CALIBRE_DBPATH=$CONFIG_DIR
+EnvironmentFile=$INSTALL_DIR/.env
 ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/cps.py -p $CONFIG_DIR/app.db
 
 Restart=always
@@ -251,7 +261,7 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF >"$SYS_PATH"/acw-ingestor.service
+cat <<EOF >"$SYS_PATH"/acw-ingest-service.service
 [Unit]
 Description=Autocaliweb Ingest Processor Service
 After=autocaliweb.service
