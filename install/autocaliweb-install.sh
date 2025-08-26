@@ -15,7 +15,7 @@ update_os
 
 msg_info "Installing dependencies"
 $STD apt-get install -y --no-install-recommends \
-  git \
+  python3-dev \
   sqlite3 \
   build-essential \
   libldap2-dev \
@@ -78,7 +78,7 @@ mkdir -p {"$CALIBRE_LIB_DIR","$INGEST_DIR"}
 
 cd "$INSTALL_DIR"
 $STD uv venv "$VIRTUAL_ENV"
-$STD uv sync --all-extras --active
+$STD uv pip install -r pyproject.toml --all-extras
 cat <<EOF >./dirs.json
 {
   "ingest_folder": "$INGEST_DIR",
