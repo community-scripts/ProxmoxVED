@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/DevelopmentCats/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2021-2025 DevelopmentCats
-# Author: DevelopmentCats
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://romm.app
-# Updated: 03/10/2025
 
 APP="RomM"
 var_tags="${var_tags:-emulation}"
