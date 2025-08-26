@@ -2,8 +2,7 @@
   "name": "RomM",
   "slug": "romm",
   "categories": [
-    2,
-    3
+    21
   ],
   "date_created": "2025-03-10",
   "type": "ct",
@@ -32,9 +31,5 @@
     "username": "romm",
     "password": "changeme"
   },
-  "notes": [
-    "API Keys: For full functionality, you'll need API keys from IGDB, MobyGames, and/or SteamGridDB.",
-    "ROM Directory: Your ROM files should follow the RomM folder structure outlined in the documentation.",
-    "Authentication: The admin username and password will be set during the first-run setup process."
-  ]
+  "notes": []
 }
