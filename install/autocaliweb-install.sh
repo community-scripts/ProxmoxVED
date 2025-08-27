@@ -46,6 +46,7 @@ $STD apt-get install -y --no-install-recommends \
 msg_ok "Installed dependencies"
 
 fetch_and_deploy_gh_release "kepubify" "pgaskin/kepubify" "singlefile" "latest" "/usr/bin" "kepubify-linux-64bit"
+KEPUB_VERSION="$(/usr/bin/kepubify --version)"
 
 msg_info "Installing Calibre"
 CALIBRE_RELEASE="$(curl -s https://api.github.com/repos/kovidgoyal/calibre/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)"
@@ -75,6 +76,9 @@ mkdir -p "$CONFIG_DIR"/{.config/calibre/plugins,log_archive,.acw_conversion_tmp}
 mkdir -p "$CONFIG_DIR"/processed_books/{converted,imported,failed,fixed_originals}
 mkdir -p "$INSTALL_DIR"/{metadata_change_logs,metadata_temp}
 mkdir -p {"$CALIBRE_LIB_DIR","$INGEST_DIR"}
+echo "$CALIBRE_VERSION" >"$INSTALL_DIR"/CALIBRE_RELEASE
+echo "${KEPUB_VERSION#v}" >"$INSTALL_DIR"/KEPUBIFY_RELEASE
+sed 's/^/v/' ~/.autocaliweb >"$INSTALL_DIR"/ACW_RELEASE
 
 cd "$INSTALL_DIR"
 $STD uv venv "$VIRTUAL_ENV"
