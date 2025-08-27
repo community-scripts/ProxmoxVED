@@ -15,7 +15,7 @@ update_os
 
 msg_info "Installing dependencies"
 $STD apt-get install -y --no-install-recommends \
-  git \
+  python3-dev \
   sqlite3 \
   build-essential \
   libldap2-dev \
@@ -51,7 +51,8 @@ msg_info "Installing Calibre"
 CALIBRE_RELEASE="$(curl -s https://api.github.com/repos/kovidgoyal/calibre/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)"
 CALIBRE_VERSION=${CALIBRE_RELEASE#v}
 curl -fsSL https://github.com/kovidgoyal/calibre/releases/download/${CALIBRE_RELEASE}/calibre-${CALIBRE_VERSION}-x86_64.txz -o /tmp/calibre.txz
-$STD tar -xf /tmp/calibre.txz /opt/calibre
+mkdir -p /opt/calibre
+$STD tar -xf /tmp/calibre.txz -C /opt/calibre
 rm /tmp/calibre.txz
 $STD /opt/calibre/calibre_postinstall
 msg_ok "Calibre installed"
@@ -77,7 +78,11 @@ mkdir -p {"$CALIBRE_LIB_DIR","$INGEST_DIR"}
 
 cd "$INSTALL_DIR"
 $STD uv venv "$VIRTUAL_ENV"
-$STD uv sync --all-extras --active
+$STD source "$VIRTUAL_ENV"/bin/activate
+echo "pyopenssl>=24.2.1" >./constraint.txt
+$STD uv pip compile requirements.txt optional-requirements.txt -c constraint.txt -o combined-requirements.lock
+$STD uv pip sync combined-requirements.lock
+$STD deactivate
 cat <<EOF >./dirs.json
 {
   "ingest_folder": "$INGEST_DIR",
@@ -85,8 +90,15 @@ cat <<EOF >./dirs.json
   "tmp_conversion_dir": "$CONFIG_DIR/.acw_conversion_tmp"
 }
 EOF
-useradd -s /usr/sbin/nologin -d "$CONFIG_DIR" -M "SERVICE_USER"
+useradd -s /usr/sbin/nologin -d "$CONFIG_DIR" -M "$SERVICE_USER"
 ln -sf "$CONFIG_DIR"/.config/calibre/plugins "$CONFIG_DIR"/calibre_plugins
+cat <<EOF >"$INSTALL_DIR"/.env
+ACW_INSTALL_DIR=$INSTALL_DIR
+ACW_CONFIG_DIR=$CONFIG_DIR
+ACW_USER=$SERVICE_USER
+ACW_GROUP=$SERVICE_GROUP
+LIBRARY_DIR=$CALIBRE_LIB_DIR
+EOF
 msg_ok "Configured Autocaliweb"
 
 msg_info "Creating ACWSync Plugin for KOReader"
@@ -95,7 +107,7 @@ PLUGIN_DIGEST="$(find acwsync.koplugin -type f -name "*.lua" -o -name "*.json" |
 echo "Plugin files digest: $PLUGIN_DIGEST" >acwsync.koplugin/${PLUGIN_DIGEST}.digest
 echo "Build date: $(date)" >>acwsync.koplugin/${PLUGIN_DIGEST}.digest
 echo "Files included:" >>acwsync.koplugin/${PLUGIN_DIGEST}.digest
-zip -r koplugin.zip acwsync.koplugin/
+$STD zip -r koplugin.zip acwsync.koplugin/
 cp -r koplugin.zip "$INSTALL_DIR"/cps/static
 msg_ok "Created ACWSync Plugin"
 
@@ -103,9 +115,8 @@ msg_info "Initializing databases"
 KEPUBIFY_PATH=$(command -v kepubify 2>/dev/null || echo "/usr/bin/kepubify")
 EBOOK_CONVERT_PATH=$(command -v ebook-convert 2>/dev/null || echo "/usr/bin/ebook-convert")
 CALIBRE_BIN_DIR=$(dirname "$EBOOK_CONVERT_PATH")
-cp "$INSTALL_DIR"/library/metadata.db "$CALIBRE_LIB_DIR"/metadata.db
-
-cp "$INSTALL_DIR"/library/app.db "$CONFIG_DIR"/app.db
+curl -fsSL https://github.com/gelbphoenix/autocaliweb/raw/refs/heads/master/library/metadata.db -o "$CALIBRE_LIB_DIR"/metadata.db
+curl -fsSL https://github.com/gelbphoenix/autocaliweb/raw/refs/heads/master/library/app.db -o "$CONFIG_DIR"/app.db
 sqlite3 "$CONFIG_DIR/app.db" <<EOS
 UPDATE settings SET
     config_kepubifypath='$KEPUBIFY_PATH',
@@ -124,7 +135,8 @@ msg_info "Creating scripts and service files"
 cat <<EOF >"$SCRIPTS_DIR"/ingest_watcher.sh
 #!/bin/bash
 
-WATCH_FOLDER=\$(grep -o '"ingest_folder": "[^"]*' \${INSTALL_DIR}/dirs.json | grep -o '[^"]*\$')
+INSTALL_PATH="$INSTALL_DIR"
+WATCH_FOLDER=\$(grep -o '"ingest_folder": "[^"]*' \${INSTALL_PATH}/dirs.json | grep -o '[^"]*\$')
 echo "[acw-ingest-service] Watching folder: \$WATCH_FOLDER"
 
 # Monitor the folder for new files
@@ -132,7 +144,7 @@ echo "[acw-ingest-service] Watching folder: \$WATCH_FOLDER"
 while read -r events filepath ; do
     echo "[acw-ingest-service] New files detected - \$filepath - Starting Ingest Processor..."
     # Use the Python interpreter from the virtual environment
-    \${VIRTUAL_ENV}/bin/python \${SCRIPTS_DIR}/ingest_processor.py "\$filepath"
+    \${INSTALL_PATH}/venv/bin/python \${INSTALL_PATH}/scripts/ingest_processor.py "\$filepath"
 done
 EOF
 
@@ -141,7 +153,7 @@ cat <<EOF >"$SCRIPTS_DIR"/auto_zipper_wrapper.sh
 #!/bin/bash
 
 # Source virtual environment
-source ${VIRTUAL_ENV}/bin/activate
+source ${INSTALL_DIR}/venv/bin/activate
 
 WAKEUP="23:59"
 
@@ -177,7 +189,7 @@ cat <<EOF >"$SCRIPTS_DIR"/metadata_change_detector_wrapper.sh
 # metadata_change_detector_wrapper.sh - Wrapper for periodic metadata enforcement
 
 # Source virtual environment
-source ${VIRTUAL_ENV}/bin/activate
+source ${INSTALL_DIR}/venv/bin/activate
 
 # Configuration
 CHECK_INTERVAL=300  # Check every 5 minutes (300 seconds)
@@ -237,6 +249,7 @@ Environment=PYTHONPATH=$SCRIPTS_DIR:$INSTALL_DIR
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
 Environment=CALIBRE_DBPATH=$CONFIG_DIR
+EnvironmentFile=$INSTALL_DIR/.env
 ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/cps.py -p $CONFIG_DIR/app.db
 
 Restart=always
@@ -248,7 +261,7 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF >"$SYS_PATH"/acw-ingestor.service
+cat <<EOF >"$SYS_PATH"/acw-ingest-service.service
 [Unit]
 Description=Autocaliweb Ingest Processor Service
 After=autocaliweb.service
@@ -307,7 +320,7 @@ Environment=HOME=${CONFIG_DIR}
 WantedBy=multi-user.target
 EOF
 
-systemctl -q enable --now autocaliweb acw-ingestor acw-auto-zipper metadata-change-detector
+systemctl -q enable --now autocaliweb acw-ingest-service acw-auto-zipper metadata-change-detector
 msg_ok "Created scripts and service files"
 
 motd_ssh
