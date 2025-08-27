@@ -416,6 +416,9 @@ start_script
 
 post_to_api_vm
 
+qm set socket 105 -serial0
+qm set serial0 <VMID >-vga
+
 msg_info "Validating Storage"
 while read -r line; do
   TAG=$(echo $line | awk '{print $1}')
