@@ -42,11 +42,10 @@ function update_script() {
     fetch_and_deploy_gh_release "autocaliweb" "gelbphoenix/autocaliweb" "tarball" "latest" "/opt/autocaliweb"
     msg_info "Updating ${APP}"
     cd "$INSTALL_DIR"
-    $STD source "$VIRTUAL_ENV"/bin/activate
-    echo "pyopenssl>=24.2.1" >./constraint.txt
-    $STD uv pip compile requirements.txt optional-requirements.txt -c constraint.txt -o combined-requirements.lock
-    $STD uv pip sync combined-requirements.lock
-    $STD deactivate
+    if [[ ! -d "$VIRTUAL_ENV" ]]; then
+      $STD uv venv "$VIRTUAL_ENV"
+    fi
+    $STD uv sync --all-extras --active
     cd "$INSTALL_DIR"/koreader/plugins
     PLUGIN_DIGEST="$(find acwsync.koplugin -type f -name "*.lua" -o -name "*.json" | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)"
     echo "Plugin files digest: $PLUGIN_DIGEST" >acwsync.koplugin/${PLUGIN_DIGEST}.digest
