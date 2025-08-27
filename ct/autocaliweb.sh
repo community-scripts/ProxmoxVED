@@ -30,10 +30,10 @@ function update_script() {
 
   setup_uv
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/gelbphoenix/autocaliweb/releases/latest | jq '.tag_name' | sed 's/^v//')
+  RELEASE=$(curl -fsSL https://api.github.com/repos/gelbphoenix/autocaliweb/releases/latest | jq '.tag_name' | sed 's/^"v//;s/"$//')
   if [[ "${RELEASE}" != "$(cat ~/.autocaliweb 2>/dev/null)" ]] || [[ ! -f ~/.autocaliweb ]]; then
     msg_info "Stopping Services"
-    systemctl stop autocaliweb metadata-change-detector acw-ingestor acw-auto-zipper
+    systemctl stop autocaliweb metadata-change-detector acw-ingest-service acw-auto-zipper
     msg_ok "Stopped Services"
 
     INSTALL_DIR="/opt/autocaliweb"
@@ -42,21 +42,30 @@ function update_script() {
     fetch_and_deploy_gh_release "autocaliweb" "gelbphoenix/autocaliweb" "tarball" "latest" "/opt/autocaliweb"
     msg_info "Updating ${APP}"
     cd "$INSTALL_DIR"
-    $STD uv sync --all-extras --active
+    $STD source "$VIRTUAL_ENV"/bin/activate
+    echo "pyopenssl>=24.2.1" >./constraint.txt
+    $STD uv pip compile requirements.txt optional-requirements.txt -c constraint.txt -o combined-requirements.lock
+    $STD uv pip sync combined-requirements.lock
+    $STD deactivate
     cd "$INSTALL_DIR"/koreader/plugins
     PLUGIN_DIGEST="$(find acwsync.koplugin -type f -name "*.lua" -o -name "*.json" | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)"
     echo "Plugin files digest: $PLUGIN_DIGEST" >acwsync.koplugin/${PLUGIN_DIGEST}.digest
     echo "Build date: $(date)" >>acwsync.koplugin/${PLUGIN_DIGEST}.digest
     echo "Files included:" >>acwsync.koplugin/${PLUGIN_DIGEST}.digest
-    zip -r koplugin.zip acwsync.koplugin/
+    $STD zip -r koplugin.zip acwsync.koplugin/
     cp -r koplugin.zip "$INSTALL_DIR"/cps/static
     mkdir -p "$INSTALL_DIR"/metadata_temp
     $STD tar -xf ~/autocaliweb_bkp.tar --directory /
+    KEPUB_VERSION="$(/usr/bin/kepubify --version)"
+    CALIBRE_RELEASE="$(curl -s https://api.github.com/repos/kovidgoyal/calibre/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)"
+    echo "${KEPUB_VERSION#v}" >"$INSTALL_DIR"/KEPUBIFY_RELEASE
+    echo "${CALIBRE_RELEASE#v}" >/"$INSTALL_DIR"/CALIBRE_RELEASE
+    sed 's/^/v/' ~/.autocaliweb >"$INSTALL_DIR"/ACW_RELEASE
     chown -R acw:acw "$INSTALL_DIR"
     msg_ok "Updated $APP"
 
     msg_info "Starting Services"
-    systemctl start autocaliweb metadata-change-detector acw-ingestor acw-auto-zipper
+    systemctl start autocaliweb metadata-change-detector acw-ingest-service acw-auto-zipper
     msg_ok "Started Services"
 
     msg_ok "Updated Successfully"
