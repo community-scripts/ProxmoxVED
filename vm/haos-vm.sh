@@ -142,7 +142,6 @@ function check_root() {
   fi
 }
 
-
 function arch_check() {
   if [ "$(dpkg --print-architecture)" != "amd64" ]; then
     echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
@@ -412,7 +411,6 @@ function start_script() {
 
 check_root
 arch_check
-pve_check
 ssh_check
 start_script
 
