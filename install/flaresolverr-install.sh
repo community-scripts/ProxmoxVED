@@ -39,7 +39,6 @@ chmod +x /usr/local/bin/python3
 ln -sf "$UV_PY/bin/python3.13" /usr/local/bin/python3.13
 msg_ok "prepared python 3.13"
 
-
 fetch_and_deploy_gh_release "flaresolverr" "FlareSolverr/FlareSolverr" "prebuild" "latest" "/opt/flaresolverr" "flaresolverr_linux_x64.tar.gz"
 
 msg_info "Creating Service"

@@ -34,6 +34,18 @@ function update_script() {
     systemctl stop flaresolverr
     msg_ok "Stopped service"
 
+    PYTHON_VERSION="3.13"setup_uv
+
+    msg_info "prepare uv python 3.13"
+    UV_PY="$(uv python find 3.13)"
+    cat <<'EOF' >/usr/local/bin/python3
+#!/bin/bash
+exec "$UV_PY/bin/python3.13" "$@"
+EOF
+    chmod +x /usr/local/bin/python3
+    ln -sf "$UV_PY/bin/python3.13" /usr/local/bin/python3.13
+    msg_ok "prepared python 3.13"
+
     rm -rf /opt/flaresolverr
     fetch_and_deploy_gh_release "flaresolverr" "FlareSolverr/FlareSolverr" "prebuild" "latest" "/opt/flaresolverr" "flaresolverr_linux_x64.tar.gz"
 
