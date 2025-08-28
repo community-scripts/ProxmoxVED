@@ -2001,7 +2001,27 @@ EOF
   fi
 }
 
-check_for_update() {
+# ------------------------------------------------------------------------------
+# Checks for new GitHub release (latest tag).
+#
+# Description:
+#   - Queries the GitHub API for the latest release tag
+#   - Compares it to a local cached version (~/.<app>)
+#   - If newer, sets global CHECK_UPDATE_RELEASE and returns 0
+#
+# Usage:
+#   check_for_gh_release "AppName" "user/repo"
+#   if [[ $? -eq 0 ]]; then
+#     echo "New version available: $CHECK_UPDATE_RELEASE"
+#     # trigger update...
+#   fi
+#
+# Notes:
+#   - Requires `jq` (auto-installed if missing)
+#   - Does not modify anything, only checks version state
+#   - Does not support pre-releases
+# ------------------------------------------------------------------------------
+check_for_gh_release() {
   local app="$1"
   local source="$2"
   local current_file="$HOME/.${app,,}"

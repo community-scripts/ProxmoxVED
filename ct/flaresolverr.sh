@@ -28,8 +28,9 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -fsSL https://api.github.com/repos/FlareSolverr/FlareSolverr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4)}')
-  if [[ "${RELEASE}" != "$(cat ~/.flaresolverr 2>/dev/null)" ]] || [[ ! -f ~/.flaresolverr ]]; then
+
+  if check_for_gh_release "flaresolverr" "FlareSolverr/FlareSolverr"; then
+
     msg_info "Stopping service"
     systemctl stop flaresolverr
     msg_ok "Stopped service"
@@ -52,10 +53,8 @@ EOF
     msg_info "Starting service"
     systemctl start flaresolverr
     msg_ok "Started service"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
-  exit
+  exit 0
 }
 
 start
