@@ -34,7 +34,7 @@ function update_script() {
     systemctl stop flaresolverr
     msg_ok "Stopped service"
 
-    PYTHON_VERSION="3.13"setup_uv
+    PYTHON_VERSION="3.13" setup_uv
 
     msg_info "prepare uv python 3.13"
     UV_PY="$(uv python find 3.13)"

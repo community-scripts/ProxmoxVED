@@ -20,14 +20,7 @@ $STD apt-get install -y \
   xvfb
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Chrome"
-curl -fsSL "https://dl.google.com/linux/linux_signing_key.pub" | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >/etc/apt/sources.list.d/google-chrome.list
-$STD apt update
-$STD apt install -y google-chrome-stable
-msg_ok "Installed Chrome"
-
-PYTHON_VERSION="3.13"setup_uv
+PYTHON_VERSION="3.13" setup_uv
 
 msg_info "prepare uv python 3.13"
 UV_PY="$(uv python find 3.13)"
@@ -38,6 +31,13 @@ EOF
 chmod +x /usr/local/bin/python3
 ln -sf "$UV_PY/bin/python3.13" /usr/local/bin/python3.13
 msg_ok "prepared python 3.13"
+
+msg_info "Installing Chrome"
+curl -fsSL "https://dl.google.com/linux/linux_signing_key.pub" | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >/etc/apt/sources.list.d/google-chrome.list
+$STD apt update
+$STD apt install -y google-chrome-stable
+msg_ok "Installed Chrome"
 
 fetch_and_deploy_gh_release "flaresolverr" "FlareSolverr/FlareSolverr" "prebuild" "latest" "/opt/flaresolverr" "flaresolverr_linux_x64.tar.gz"
 
