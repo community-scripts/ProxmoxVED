@@ -82,11 +82,7 @@ sed 's/^/v/' ~/.autocaliweb >"$INSTALL_DIR"/ACW_RELEASE
 
 cd "$INSTALL_DIR"
 $STD uv venv "$VIRTUAL_ENV"
-$STD source "$VIRTUAL_ENV"/bin/activate
-echo "pyopenssl>=24.2.1" >./constraint.txt
-$STD uv pip compile requirements.txt optional-requirements.txt -c constraint.txt -o combined-requirements.lock
-$STD uv pip sync combined-requirements.lock
-$STD deactivate
+$STD uv sync --all-extras --active
 cat <<EOF >./dirs.json
 {
   "ingest_folder": "$INGEST_DIR",
