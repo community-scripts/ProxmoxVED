@@ -2024,6 +2024,7 @@ EOF
 check_for_gh_release() {
   local app="$1"
   local source="$2"
+  local pinned_version="${3:-}"   # optional
   local current_file="$HOME/.${app,,}"
 
   msg_info "Check for update: ${app}"
@@ -2043,12 +2044,9 @@ check_for_gh_release() {
   fi
 
   # get latest release
-  local release
+local release
   release=$(curl -fsSL "https://api.github.com/repos/${source}/releases/latest" |
     jq -r '.tag_name' | sed 's/^v//')
-
-  # DEBUG
-  #echo "[DEBUG] Latest release fetched: '${release}'"
 
   if [[ -z "$release" ]]; then
     msg_error "Unable to determine latest release for ${app}"
@@ -2056,20 +2054,29 @@ check_for_gh_release() {
   fi
 
   local current=""
-  if [[ -f "$current_file" ]]; then
-    current=$(<"$current_file")
+  [[ -f "$current_file" ]] && current=$(<"$current_file")
+
+  # PINNED Releases
+  if [[ -n "$pinned_version" ]]; then
+    if [[ "$pinned_version" == "$release" ]]; then
+      msg_ok "${app} pinned to v${pinned_version} (no update needed)"
+      return 1
+    else
+      if [[ "$current" == "$pinned_version" ]]; then
+        msg_ok "${app} pinned to v${pinned_version} (already installed, upstream v${release})"
+        return 1
+      fi
+      msg_info "${app} pinned to v${pinned_version} (upstream v${release}) → update/downgrade required"
+      CHECK_UPDATE_RELEASE="$pinned_version"
+      return 0
+    fi
   fi
 
-  # DEBUG
-  #echo "[DEBUG] Current file: '${current_file}'"
-  #echo "[DEBUG] Current version read: '${current}'"
-
   if [[ "$release" != "$current" ]] || [[ ! -f "$current_file" ]]; then
-    #echo "[DEBUG] Decision: Update required (release='${release}' current='${current}')"
     CHECK_UPDATE_RELEASE="$release"
+    msg_info "New release available: v${release} (current: v${current:-none})"
     return 0
   else
-    #echo "[DEBUG] Decision: No update (release='${release}' current='${current}')"
     msg_ok "${app} is up to date (v${release})"
     return 1
   fi
