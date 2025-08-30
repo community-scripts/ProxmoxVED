@@ -14,6 +14,7 @@ network_check
 update_os
 
 msg_info "Install PHP (Apache) + required modules"
+$STD apt-get install -y git
 PHP_VERSION="8.2"
 PHP_APACHE="YES"
 PHP_FPM="NO"
