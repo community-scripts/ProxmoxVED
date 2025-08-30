@@ -45,31 +45,13 @@ $STD mariadb -u root -e "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,CREATE TEMPORA
 } >>~/"moodle.creds"
 msg_ok "Database ready"
 
-msg_ok "Selecting Moodle branch"
-REMOTE_BRANCHES="$(git ls-remote --heads https://github.com/moodle/moodle.git 'MOODLE_*_STABLE' | awk -F'refs/heads/' '{print $2}' | sort -V)"
-echo "Available stable branches:"
-echo "${REMOTE_BRANCHES}"
-echo -n "Enter branch to install [default MOODLE_500_STABLE]: "
-read -r MOODLE_BRANCH
-MOODLE_BRANCH="${MOODLE_BRANCH:-MOODLE_500_STABLE}"
-if ! echo "${REMOTE_BRANCHES}" | grep -qx "${MOODLE_BRANCH}"; then
-  msg_error "Branch ${MOODLE_BRANCH} not found among remotes"
-  exit 1
-fi
-msg_ok "Selected ${MOODLE_BRANCH}"
-
-msg_info "Cloning Moodle (shallow)"
+msg_info "Deploying Moodle (latest GitHub release)"
 install -d -m 0755 /var/www
 $STD rm -rf /var/www/moodle
-$STD git clone --depth 1 --branch "${MOODLE_BRANCH}" https://github.com/moodle/moodle.git /var/www/moodle
-msg_ok "Cloned Moodle ${MOODLE_BRANCH}"
-
-msg_info "Setting permissions and data directory"
-install -d -m 0770 -o www-data -g www-data /var/moodledata
+fetch_and_deploy_gh_release "moodle" "moodle/moodle" "tarball" "latest" "/var/www/moodle"
 $STD chown -R www-data:www-data /var/www/moodle
-$STD find /var/www/moodle -type d -exec chmod 02775 {} \;
-$STD find /var/www/moodle -type f -exec chmod 0644 {} \;
-msg_ok "Permissions set"
+install -d -m 0770 -o www-data -g www-data /var/moodledata
+msg_ok "Code deployed"
 
 msg_info "Configuring Apache"
 cat >/etc/apache2/sites-available/moodle.conf <<'EOF'
