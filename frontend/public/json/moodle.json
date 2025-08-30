@@ -31,9 +31,9 @@
         "password": null
     },
     "notes": [
-        "Database and Admin credentials are saved in ~/moodle.creds",
-        "Moodle requires PHP settings: max_input_vars >= 5000 and memory_limit >= 256M. These are applied automatically in the installation script.",
-        "Default data directory: /var/moodledata (writeable by www-data).",
-        "Supports MariaDB as the database backend (configured by the script)."
+        { "type": "info", "text": "Database and Admin credentials are saved in ~/moodle.creds" },
+        { "type": "warning", "text": "Moodle requires PHP settings: max_input_vars >= 5000 and memory_limit >= 256M. These are applied automatically." },
+        { "type": "info", "text": "Default data directory: /var/moodledata (writeable by www-data)." },
+        { "type": "info", "text": "Supports MariaDB as the database backend (configured by the script)." }
     ]
 }
