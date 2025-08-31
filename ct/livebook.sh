@@ -42,7 +42,7 @@ function update_script() {
     msg_info "Updating ${APP} to ${RELEASE}"
     source /opt/livebook/.env
     cd /opt/livebook || exit 1
-    mix escript.install hex livebook --force
+    $STD mix escript.install hex livebook --force
 
     echo "$RELEASE" | $STD tee /opt/.livebook
     chown -R livebook:livebook /opt/livebook /data
