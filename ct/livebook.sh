@@ -32,7 +32,7 @@ function update_script() {
   msg_info "Checking for updates..."
   RELEASE=$(curl -fsSL https://api.github.com/repos/livebook-dev/livebook/releases/latest | grep "tag_name" | awk -F'"' '{print $4}')
 
-  if [[ "${RELEASE}" != "$(cat /opt/.livebook 2>/dev/null)" ]]; then
+  if [[ "${RELEASE}" != "$(cat /opt/livebook/.livebook 2>/dev/null)" ]]; then
     msg_info "Updating ${APP} LXC"
     $STD apt-get update
     $STD apt-get -y upgrade
@@ -43,7 +43,7 @@ function update_script() {
     cd /opt/livebook || exit 1
     $STD mix escript.install hex livebook --force
 
-    echo "$RELEASE" | $STD tee /opt/.livebook
+    echo "$RELEASE" | $STD tee /opt/livebook/.livebook
     chown -R livebook:livebook /opt/livebook /data
 
     msg_ok "Successfully updated to ${RELEASE}"
