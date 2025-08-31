@@ -23,7 +23,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Creating livebook user"
-adduser --system --group --home /opt/livebook --shell /bin/bash livebook
+$STD adduser --system --group --home /opt/livebook --shell /bin/bash livebook
 msg_ok "Created livebook user"
 
 msg_info "Installing Erlang and Elixir"
@@ -47,12 +47,14 @@ $STD mix local.hex --force
 $STD mix local.rebar --force
 $STD mix escript.install hex livebook --force
 
+msg_info "Setting Livebook password"
 LIVEBOOK_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c16)
 
 cat <<EOF > /opt/livebook/livebook.creds
 Livebook-Credentials
 Livebook Password: $LIVEBOOK_PASSWORD
 EOF
+msg_ok "Livebook password stored in /opt/livebook/livebook.creds"
 
 cat <<EOF > /opt/livebook/.env
 export HOME=/opt/livebook
@@ -98,7 +100,6 @@ msg_ok "Set ownership and permissions"
 systemctl enable -q --now livebook
 msg_ok "Installed Livebook"
 
-msg_info "Livebook password stored in /opt/livebook.creds"
 msg_ok "Installation completed successfully"
 
 motd_ssh
