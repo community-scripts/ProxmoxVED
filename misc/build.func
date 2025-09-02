@@ -829,8 +829,8 @@ default_var_settings() {
   local VAR_WHITELIST=(
     var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_ctid var_disk var_fuse
     var_gateway var_hostname var_ipv6_method var_ipv6_static var_mac var_mtu
-    var_net var_ns var_os var_pw var_ram var_storage var_tags var_tun var_unprivileged
-    var_verbose var_version var_vlan var_ssh var_ssh_authorized_key
+    var_net var_ns var_pw var_ram var_storage var_tags var_tun var_unprivileged
+    var_verbose var_vlan var_ssh var_ssh_authorized_key
   )
 
   # Snapshot: environment variables (highest precedence)
@@ -864,13 +864,12 @@ default_var_settings() {
     msg_info "No default.vars found. Creating ${canonical}"
     mkdir -p /usr/local/community-scripts
     cat >"$canonical" <<'EOF'
+  cat >"$canonical" <<'EOF'
 # Community-Scripts defaults (var_* only). Lines starting with # are comments.
 # Precedence: ENV var_* > default.vars > built-ins.
 # Keep keys alphabetically sorted.
 
-# CT/OS
-var_os=debian
-var_version=12
+# Container type
 var_unprivileged=1
 
 # Resources
@@ -894,20 +893,20 @@ var_ipv6_method=auto
 var_ssh=no
 # var_ssh_authorized_key=
 
-# APT Cacher
+# APT cacher (optional)
 # var_apt_cacher=yes
 # var_apt_cacher_ip=192.168.1.10
 
-# Features/Tags
+# Features/Tags/verbosity
 var_fuse=no
 var_tun=no
 var_tags=community-script
 var_verbose=no
 
-# Security (root PW) – empty => Autologin
+# Security (root PW) – empty => autologin
 # var_pw=
 
-# CTID/Hostname – empty => auto
+# Optional fixed CTID/hostname – empty => auto
 # var_ctid=
 # var_hostname=
 EOF
