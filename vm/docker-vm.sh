@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: thost96 (thost96) | Co-Author: michelroegl-brunner
-# Refactor (q35 + PVE9 virt-customize network fix): MickLesk
+# Refactor (q35 + PVE9 virt-customize network fix + robustness): MickLesk
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 set -e
@@ -162,9 +162,7 @@ function arch_check() {
 
 function ssh_check() {
     if command -v pveversion >/dev/null 2>&1 && [ -n "${SSH_CLIENT:+x}" ]; then
-        if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Proceed anyway?" 10 62; then
-            :
-        else
+        if whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's suggested to use the Proxmox shell instead of SSH, since SSH can create issues while gathering variables. Proceed anyway?" 10 62; then :; else
             clear
             exit
         fi
@@ -224,7 +222,6 @@ function advanced_settings() {
         else exit-script; fi
     done
 
-    # Force q35 like our other scripts
     FORMAT=",efitype=4m"
     echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
 
@@ -241,11 +238,11 @@ function advanced_settings() {
     if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
         "0" "None (Default)" ON "1" "Write Through" OFF 3>&1 1>&2 2>&3); then
         if [ "$DISK_CACHE" = "1" ]; then
-            echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}Write Through${CL}"
             DISK_CACHE="cache=writethrough,"
+            echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}Write Through${CL}"
         else
-            echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
             DISK_CACHE=""
+            echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
         fi
     else exit-script; fi
 
@@ -257,11 +254,11 @@ function advanced_settings() {
     if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
         "0" "KVM64 (Default)" ON "1" "Host" OFF 3>&1 1>&2 2>&3); then
         if [ "$CPU_TYPE1" = "1" ]; then
-            echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
             CPU_TYPE=" -cpu host"
+            echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
         else
-            echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
             CPU_TYPE=""
+            echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
         fi
     else exit-script; fi
 
@@ -369,7 +366,6 @@ function choose_os() {
 }
 
 PVE_VER=$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1 | cut -d'.' -f1)
-
 if [ "$PVE_VER" -eq 8 ]; then
     INSTALL_MODE="direct"
 elif [ "$PVE_VER" -eq 9 ]; then
@@ -409,12 +405,21 @@ fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
-# ---------- Download Debian Cloud Image ----------
+# ---------- Download Cloud Image ----------
 choose_os
 msg_info "Retrieving Cloud Image for $var_os $var_version"
-curl -f#SL -o "$(basename "$URL")" "$URL"
+curl --retry 30 --retry-delay 3 --retry-connrefused -fSL -o "$(basename "$URL")" "$URL"
 FILE=$(basename "$URL")
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
+
+# Ubuntu RAW → qcow2
+if [[ "$FILE" == *.img ]]; then
+    msg_info "Converting RAW image to qcow2"
+    qemu-img convert -O qcow2 "$FILE" "${FILE%.img}.qcow2"
+    rm -f "$FILE"
+    FILE="${FILE%.img}.qcow2"
+    msg_ok "Converted to ${CL}${BL}${FILE}${CL}"
+fi
 
 # ---------- Ensure libguestfs-tools ----------
 if ! command -v virt-customize &>/dev/null; then
@@ -424,8 +429,7 @@ if ! command -v virt-customize &>/dev/null; then
     msg_ok "Installed libguestfs-tools"
 fi
 
-# ---------- Decide distro codename & Docker repo base from chosen URL ----------
-# (choose_os must have set $URL and we've downloaded $FILE above; we only need URL to derive codename)
+# ---------- Decide distro codename & Docker repo base ----------
 if [[ "$URL" == *"/bookworm/"* || "$FILE" == *"debian-12-"* ]]; then
     CODENAME="bookworm"
     DOCKER_BASE="https://download.docker.com/linux/debian"
@@ -439,24 +443,22 @@ else
     CODENAME="bookworm"
     DOCKER_BASE="https://download.docker.com/linux/debian"
 fi
-
-# ---------- Detect PVE major version and select install mode ----------
-PVE_MAJ=$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1 | cut -d'.' -f1)
-if [ "$PVE_MAJ" -eq 8 ]; then
-    INSTALL_MODE="direct" # fast path: install Docker directly into image
-else
-    INSTALL_MODE="firstboot" # robust path for PVE9: install Docker at first boot inside guest
+# Map Debian trixie → bookworm (Docker-Repo oft später)
+REPO_CODENAME="$CODENAME"
+if [[ "$DOCKER_BASE" == *"linux/debian"* && "$CODENAME" == "trixie" ]]; then
+    REPO_CODENAME="bookworm"
 fi
+
+# ---------- Detect PVE major version (again; independent var) ----------
+PVE_MAJ=$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1 | cut -d'.' -f1)
+if [ "$PVE_MAJ" -eq 8 ]; then INSTALL_MODE="direct"; else INSTALL_MODE="firstboot"; fi
 
 # ---------- Optional: allow manual override ----------
 if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Docker Installation Mode" \
-    --yesno "Detected PVE ${PVE_MAJ}. Use ${INSTALL_MODE^^} mode?\n\nYes = ${INSTALL_MODE^^}\nNo  = Switch to the other mode" 11 70; then
-    : # keep detected mode
-else
+    --yesno "Detected PVE ${PVE_MAJ}. Use ${INSTALL_MODE^^} mode?\n\nYes = ${INSTALL_MODE^^}\nNo  = Switch to the other mode" 11 70; then :; else
     if [ "$INSTALL_MODE" = "direct" ]; then INSTALL_MODE="firstboot"; else INSTALL_MODE="direct"; fi
 fi
 
-# ---------- PVE8: Direct install into image via virt-customize ----------
 # ---------- PVE8: Direct install into image via virt-customize ----------
 if [ "$INSTALL_MODE" = "direct" ]; then
     msg_info "Injecting Docker directly into image (${CODENAME}, $(basename "$DOCKER_BASE"))"
@@ -465,18 +467,19 @@ if [ "$INSTALL_MODE" = "direct" ]; then
         --run-command "install -m 0755 -d /etc/apt/keyrings" \
         --run-command "curl -fsSL ${DOCKER_BASE}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg" \
         --run-command "chmod a+r /etc/apt/keyrings/docker.gpg" \
-        --run-command "echo 'deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] ${DOCKER_BASE} ${CODENAME} stable' > /etc/apt/sources.list.d/docker.list" \
+        --run-command "echo 'deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] ${DOCKER_BASE} ${REPO_CODENAME} stable' > /etc/apt/sources.list.d/docker.list" \
         --run-command "apt-get update -qq" \
         --run-command "apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin" \
         --run-command "systemctl enable docker" \
-        --run-command "systemctl enable qemu-guest-agent"
+        --run-command "systemctl enable qemu-guest-agent" >/dev/null
 
-    # ensure PATH in the guest for root (non-login shells, qm terminal, etc.)
-    --run-command "sed -i 's#^ENV_SUPATH.*#ENV_SUPATH  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true" \
+    # PATH-Fix separat
+    virt-customize -q -a "${FILE}" \
+        --run-command "sed -i 's#^ENV_SUPATH.*#ENV_SUPATH  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true" \
         --run-command "sed -i 's#^ENV_PATH.*#ENV_PATH    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true" \
         --run-command "printf 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n' >/etc/environment" \
-        --run-command "grep -q 'export PATH=' /root/.bashrc || echo 'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' >> /root/.bashrc" \
-        >/dev/null
+        --run-command "grep -q 'export PATH=' /root/.bashrc || echo 'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' >> /root/.bashrc" >/dev/null
+
     msg_ok "Docker injected into image"
 fi
 
@@ -491,25 +494,12 @@ set -euxo pipefail
 LOG=/var/log/firstboot-docker.log
 exec >>"$LOG" 2>&1
 
-mark_done() {
-  mkdir -p /var/lib/firstboot
-  date > /var/lib/firstboot/docker.done
-}
-
-retry() {
-  local tries=$1; shift
-  local n=0
-  until "$@"; do
-    n=$((n+1))
-    if [ "$n" -ge "$tries" ]; then return 1; fi
-    sleep 5
-  done
-}
+mark_done() { mkdir -p /var/lib/firstboot; date > /var/lib/firstboot/docker.done; }
+retry() { local t=$1; shift; local n=0; until "$@"; do n=$((n+1)); [ "$n" -ge "$t" ] && return 1; sleep 5; done; }
 
 wait_network() {
-  # DNS + HTTPS reachability
-  retry 30 getent hosts deb.debian.org || retry 30 getent hosts archive.ubuntu.com
-  retry 30 bash -c 'curl -fsS https://download.docker.com/ >/dev/null'
+  retry 60 getent hosts deb.debian.org || retry 60 getent hosts archive.ubuntu.com
+  retry 60 bash -lc 'curl -fsS https://download.docker.com/ >/dev/null'
 }
 
 fix_path() {
@@ -522,37 +512,36 @@ fix_path() {
 
 main() {
   export DEBIAN_FRONTEND=noninteractive
+  mkdir -p /etc/apt/apt.conf.d
+  printf 'Acquire::Retries "10";\nAcquire::http::Timeout "60";\nAcquire::https::Timeout "60";\n' >/etc/apt/apt.conf.d/80-retries-timeouts
 
   wait_network
 
-  # Distro erkennen -> Codename + Docker-Repo
   . /etc/os-release
   CODENAME="${VERSION_CODENAME:-bookworm}"
   case "$ID" in
     ubuntu) DOCKER_BASE="https://download.docker.com/linux/ubuntu" ;;
     debian|*) DOCKER_BASE="https://download.docker.com/linux/debian" ;;
   esac
+  REPO_CODENAME="$CODENAME"
+  if [ "$ID" = "debian" ] && [ "$CODENAME" = "trixie" ]; then REPO_CODENAME="bookworm"; fi
 
-  # Basispakete mit Retries
-  retry 10 apt-get update -qq
-  retry 5  apt-get install -y ca-certificates curl gnupg qemu-guest-agent apt-transport-https lsb-release software-properties-common
+  retry 20 apt-get update -qq
+  retry 10 apt-get install -y ca-certificates curl gnupg qemu-guest-agent apt-transport-https lsb-release software-properties-common
 
-  # Docker GPG + Repo
   install -m 0755 -d /etc/apt/keyrings
   curl -fsSL "${DOCKER_BASE}/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
   chmod a+r /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] ${DOCKER_BASE} ${CODENAME} stable" > /etc/apt/sources.list.d/docker.list
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] ${DOCKER_BASE} ${REPO_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
 
-  retry 10 apt-get update -qq
-  retry 5  apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  retry 20 apt-get update -qq
+  retry 10 apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
   systemctl enable --now qemu-guest-agent || true
   systemctl enable --now docker
 
-  # PATH sicherstellen
   fix_path
 
-  # Erfolg validieren
   command -v docker >/dev/null
   systemctl is-active --quiet docker
 
@@ -575,13 +564,13 @@ Type=oneshot
 ExecStart=/usr/local/sbin/firstboot-docker.sh
 Restart=on-failure
 RestartSec=10s
+TimeoutStartSec=0
 RemainAfterExit=no
 
 [Install]
 WantedBy=multi-user.target
 EOUNIT
 
-    # hostname + machine-id reset for cloud-init style behaviour
     echo "$HN" >firstboot/hostname
 
     virt-customize -q -a "${FILE}" \
@@ -592,6 +581,7 @@ EOUNIT
         --run-command "systemctl enable firstboot-docker.service" \
         --run-command "echo -n > /etc/machine-id" \
         --run-command "truncate -s 0 /etc/hostname && mv /etc/hostname /etc/hostname.orig && echo '${HN}' >/etc/hostname" >/dev/null
+
     msg_ok "First-boot Docker installer injected"
 fi
 
@@ -611,11 +601,7 @@ msg_ok "Created VM shell"
 
 # ---------- Import disk ----------
 msg_info "Importing disk into storage ($STORAGE)"
-if qm disk import --help >/dev/null 2>&1; then
-    IMPORT_CMD=(qm disk import)
-else
-    IMPORT_CMD=(qm importdisk)
-fi
+if qm disk import --help >/dev/null 2>&1; then IMPORT_CMD=(qm disk import); else IMPORT_CMD=(qm importdisk); fi
 IMPORT_OUT="$("${IMPORT_CMD[@]}" "$VMID" "${FILE}" "$STORAGE" --format qcow2 2>&1 || true)"
 DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p" | tr -d "\r\"'")"
 [[ -z "$DISK_REF" ]] && DISK_REF="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$5 ~ ("vm-"id"-disk-") {print $1":"$5}' | sort | tail -n1)"
