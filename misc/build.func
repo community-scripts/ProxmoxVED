@@ -1016,6 +1016,192 @@ EOF
   echo_default
 }
 
+get_app_defaults_path() {
+  local n="${NSAPP:-${APP,,}}"
+  echo "/usr/local/community-scripts/defaults/${n}.vars"
+}
+
+# ------------------------------------------------------------------------------
+# maybe_offer_save_app_defaults
+#
+# - Called after advanced_settings returned with fully chosen values.
+# - If no <nsapp>.vars exists, offers to persist current advanced settings
+#   into /usr/local/community-scripts/defaults/<nsapp>.vars
+# - Only writes whitelisted var_* keys.
+# - Extracts raw values from flags like ",gw=..." ",mtu=..." etc.
+# ------------------------------------------------------------------------------
+maybe_offer_save_app_defaults() {
+  local app_vars_path
+  app_vars_path="$(get_app_defaults_path)"
+
+  # Only offer if file does not exist yet
+  if [ -f "$app_vars_path" ]; then
+    return 0
+  fi
+
+  # Ask user (English prompt as requested)
+  if ! whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+    --yesno "Save these advanced settings as defaults for ${APP}?\n\nThis will create:\n${app_vars_path}" 12 72; then
+    return 0
+  fi
+
+  # Ensure directory exists
+  mkdir -p "$(dirname "$app_vars_path")"
+
+  # Normalizers (extract raw values from flags used during building)
+  local _val
+
+  # NET/GATE: NET is either 'dhcp' or a CIDR; GATE holds ',gw=IP' or ''
+  local _net="${NET:-}"
+  local _gate=""
+  if [[ "${GATE:-}" =~ ^,gw= ]]; then
+    _gate="${GATE#,gw=}"
+  fi
+
+  # IPv6: method + optional static + optional gateway
+  local _ipv6_method="${IPV6_METHOD:-auto}"
+  local _ipv6_static=""
+  local _ipv6_gateway=""
+  case "$_ipv6_method" in
+  static)
+    _ipv6_static="${IPV6_ADDR:-}"
+    _ipv6_gateway="${IPV6_GATE:-}"
+    ;;
+  esac
+
+  # MTU: MTU looks like ',mtu=1500' or ''
+  local _mtu=""
+  if [[ "${MTU:-}" =~ ^,mtu= ]]; then
+    _mtu="${MTU#,mtu=}"
+  fi
+
+  # VLAN: ',tag=NN' or ''
+  local _vlan=""
+  if [[ "${VLAN:-}" =~ ^,tag= ]]; then
+    _vlan="${VLAN#,tag=}"
+  fi
+
+  # MAC: ',hwaddr=XX:XX:...' or ''
+  local _mac=""
+  if [[ "${MAC:-}" =~ ^,hwaddr= ]]; then
+    _mac="${MAC#,hwaddr=}"
+  fi
+
+  # DNS nameserver: NS is like '-nameserver=IP' or ''
+  local _ns=""
+  if [[ "${NS:-}" =~ ^-nameserver= ]]; then
+    _ns="${NS#-nameserver=}"
+  fi
+
+  # Search domain: SD is like '-searchdomain=foo' or ''
+  local _searchdomain=""
+  if [[ "${SD:-}" =~ ^-searchdomain= ]]; then
+    _searchdomain="${SD#-searchdomain=}"
+  fi
+
+  # Authorized key: raw string already
+  local _ssh_auth="${SSH_AUTHORIZED_KEY:-}"
+
+  # SSH enabled: "yes"/"no"
+  local _ssh="${SSH:-no}"
+
+  # APT cacher
+  local _apt_cacher="${APT_CACHER:-}"
+  local _apt_cacher_ip="${APT_CACHER_IP:-}"
+
+  # Features
+  local _fuse="${ENABLE_FUSE:-no}"
+  local _tun="${ENABLE_TUN:-no}"
+
+  # Tags: TAGS may include 'community-script;' etc. Keep as-is unless empty
+  local _tags="${TAGS:-}"
+
+  # Unprivileged container type: CT_TYPE is "1" (unpriv) or "0" (priv)
+  local _unpriv="${CT_TYPE:-1}"
+
+  # Resources and names
+  local _cpu="${CORE_COUNT:-1}"
+  local _ram="${RAM_SIZE:-1024}"
+  local _disk="${DISK_SIZE:-4}"
+  local _hostname="${HN:-$NSAPP}"
+
+  # Verbose
+  local _verbose="${VERBOSE:-no}"
+
+  # Optional storages if already known in this phase
+  local _tpl_storage="${TEMPLATE_STORAGE:-}"
+  local _ct_storage="${CONTAINER_STORAGE:-}"
+
+  # Sanitize function for values (basic safety for config file)
+  _sanitize_value() {
+    local s="$1"
+    # Disallow backticks, $(), <(), ;, &
+    case "$s" in
+    *'$('* | *'`'* | *';'* | *'&'* | *'<('*)
+      echo ""
+      ;;
+    *)
+      echo "$s"
+      ;;
+    esac
+  }
+
+  # Build the file content
+  {
+    echo "# App-specific defaults for ${APP} (${NSAPP})"
+    echo "# Generated on $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    echo "# Only var_* keys are read by the loader."
+    echo
+
+    # Container type
+    echo "var_unprivileged=$(_sanitize_value "$_unpriv")"
+
+    # Resources
+    echo "var_cpu=$(_sanitize_value "$_cpu")"
+    echo "var_ram=$(_sanitize_value "$_ram")"
+    echo "var_disk=$(_sanitize_value "$_disk")"
+
+    # Network
+    [ -n "$BRG" ] && echo "var_brg=$(_sanitize_value "$BRG")"
+    [ -n "$_net" ] && echo "var_net=$(_sanitize_value "$_net")"
+    [ -n "$_gate" ] && echo "var_gateway=$(_sanitize_value "$_gate")"
+    [ -n "$_mtu" ] && echo "var_mtu=$(_sanitize_value "$_mtu")"
+    [ -n "$_vlan" ] && echo "var_vlan=$(_sanitize_value "$_vlan")"
+    [ -n "$_mac" ] && echo "var_mac=$(_sanitize_value "$_mac")"
+    [ -n "$_ns" ] && echo "var_ns=$(_sanitize_value "$_ns")"
+
+    # IPv6
+    [ -n "$_ipv6_method" ] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
+    [ -n "$_ipv6_static" ] && echo "var_ipv6_static=$(_sanitize_value "$_ipv6_static")"
+    # Note: we do not persist a dedicated var for IPv6 gateway; can be derived if needed
+
+    # SSH
+    [ -n "$_ssh" ] && echo "var_ssh=$(_sanitize_value "$_ssh")"
+    [ -n "$_ssh_auth" ] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
+
+    # APT cacher
+    [ -n "$_apt_cacher" ] && echo "var_apt_cacher=$(_sanitize_value "$_apt_cacher")"
+    [ -n "$_apt_cacher_ip" ] && echo "var_apt_cacher_ip=$(_sanitize_value "$_apt_cacher_ip")"
+
+    # Features / tags / verbosity
+    [ -n "$_fuse" ] && echo "var_fuse=$(_sanitize_value "$_fuse")"
+    [ -n "$_tun" ] && echo "var_tun=$(_sanitize_value "$_tun")"
+    [ -n "$_tags" ] && echo "var_tags=$(_sanitize_value "$_tags")"
+    [ -n "$_verbose" ] && echo "var_verbose=$(_sanitize_value "$_verbose")"
+
+    # Identity (optional)
+    [ -n "$_hostname" ] && echo "var_hostname=$(_sanitize_value "$_hostname")"
+    [ -n "$_searchdomain" ] && echo "var_searchdomain=$(_sanitize_value "$_searchdomain")"
+
+    # Storage (optional, if known at this stage)
+    [ -n "$_tpl_storage" ] && echo "var_template_storage=$(_sanitize_value "$_tpl_storage")"
+    [ -n "$_ct_storage" ] && echo "var_container_storage=$(_sanitize_value "$_ct_storage")"
+  } >"$app_vars_path"
+
+  chmod 0644 "$app_vars_path"
+  msg_ok "Saved app defaults: ${app_vars_path}"
+}
+
 install_script() {
   pve_check
   shell_check
@@ -1101,6 +1287,7 @@ install_script() {
     METHOD="advanced"
     base_settings
     advanced_settings
+    maybe_offer_save_app_defaults
     ;;
     # 4)
     #   header_info
