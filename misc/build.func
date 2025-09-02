@@ -13,7 +13,7 @@ variables() {
   DIAGNOSTICS="yes"                                 # sets the DIAGNOSTICS variable to "yes", used for the API call.
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
-  CT_TYPE=${var_unprivileged:-$CT_TYPE}
+  #CT_TYPE=${var_unprivileged:-$CT_TYPE}
 }
 
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
@@ -213,93 +213,6 @@ ssh_check() {
     fi
   fi
 }
-
-# select_storage() {
-#   local CLASS=$1 CONTENT CONTENT_LABEL
-#   case $CLASS in
-#   container)
-#     CONTENT='rootdir'
-#     CONTENT_LABEL='Container'
-#     ;;
-#   template)
-#     CONTENT='vztmpl'
-#     CONTENT_LABEL='Template'
-#     ;;
-#   iso)
-#     CONTENT='iso'
-#     CONTENT_LABEL='ISO image'
-#     ;;
-#   images)
-#     CONTENT='images'
-#     CONTENT_LABEL='VM Disk image'
-#     ;;
-#   backup)
-#     CONTENT='backup'
-#     CONTENT_LABEL='Backup'
-#     ;;
-#   snippets)
-#     CONTENT='snippets'
-#     CONTENT_LABEL='Snippets'
-#     ;;
-#   *)
-#     msg_error "Invalid storage class '$CLASS'."
-#     exit 201
-#     ;;
-#   esac
-
-#   command -v whiptail >/dev/null || {
-#     msg_error "whiptail missing."
-#     exit 220
-#   }
-#   command -v numfmt >/dev/null || {
-#     msg_error "numfmt missing."
-#     exit 221
-#   }
-
-#   local -a MENU
-#   while read -r line; do
-#     local TAG=$(echo "$line" | awk '{print $1}')
-#     local TYPE=$(echo "$line" | awk '{printf "%-10s", $2}')
-#     local FREE=$(echo "$line" | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf "%9sB", $6}')
-#     MENU+=("$TAG" "Type: $TYPE Free: $FREE" "OFF")
-#   done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
-
-#   if [ ${#MENU[@]} -eq 0 ]; then
-#     msg_error "No storage found for content type '$CONTENT'."
-#     exit 203
-#   fi
-
-#   if [ $((${#MENU[@]} / 3)) -eq 1 ]; then
-#     echo "${MENU[0]}"
-#     return
-#   fi
-
-#   local STORAGE
-#   STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-#     "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-#     16 70 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || {
-#     msg_error "Storage selection cancelled by user."
-#     exit 202
-#   }
-#   echo "$STORAGE"
-# }
-
-# manage_default_storage() {
-#   local file="/usr/local/community-scripts/default_storage"
-#   mkdir -p /usr/local/community-scripts
-
-#   local tmpl=$(select_storage template)
-#   local cont=$(select_storage container)
-
-#   cat <<EOF >"$file"
-# TEMPLATE_STORAGE=$tmpl
-# CONTAINER_STORAGE=$cont
-# EOF
-
-#   msg_ok "Default Storage set: Template=${BL}$tmpl${CL} ${GN}|${CL} Container=${BL}$cont${CL}"
-#   whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#     --msgbox "Default Storage set:\n\nTemplate: $tmpl\nContainer: $cont" 10 58
-# }
 
 base_settings() {
   # Default Settings
@@ -902,6 +815,205 @@ EOF
 
 }
 
+# ------------------------------------------------------------------------------
+# default_var_settings
+#
+# - Ensures /usr/local/community-scripts/default.vars exists (creates if missing)
+# - Loads var_* values from default.vars (safe parser, no source/eval)
+# - Precedence: ENV var_* > default.vars > built-in defaults
+# - Maps var_verbose → VERBOSE
+# - Calls base_settings "$VERBOSE" and echo_default
+# ------------------------------------------------------------------------------
+default_var_settings() {
+  # Allowed var_* keys (alphabetically sorted)
+  local VAR_WHITELIST=(
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_ctid var_disk var_fuse
+    var_gateway var_hostname var_ipv6_method var_ipv6_static var_mac var_mtu
+    var_net var_ns var_os var_pw var_ram var_storage var_tags var_tun var_unprivileged
+    var_verbose var_version var_vlan var_ssh var_ssh_authorized_key
+  )
+
+  # Snapshot: environment variables (highest precedence)
+  declare -A _HARD_ENV=()
+  local _k
+  for _k in "${VAR_WHITELIST[@]}"; do
+    if printenv "$_k" >/dev/null 2>&1; then _HARD_ENV["$_k"]=1; fi
+  done
+
+  # Find default.vars (first valid path wins)
+  local _find_default_vars
+  _find_default_vars() {
+    local f
+    for f in \
+      /usr/local/community-scripts/default.vars \
+      "$HOME/.config/community-scripts/default.vars" \
+      "./default.vars"; do
+      [ -f "$f" ] && {
+        echo "$f"
+        return 0
+      }
+    done
+    return 1
+  }
+
+  # Ensure default.vars exists, create with sane defaults if missing
+  local _ensure_default_vars
+  _ensure_default_vars() {
+    _find_default_vars >/dev/null 2>&1 && return 0
+    local canonical="/usr/local/community-scripts/default.vars"
+    msg_info "No default.vars found. Creating ${canonical}"
+    mkdir -p /usr/local/community-scripts
+    cat >"$canonical" <<'EOF'
+# Community-Scripts defaults (var_* only). Lines starting with # are comments.
+# Precedence: ENV var_* > default.vars > built-ins.
+# Keep keys alphabetically sorted.
+
+# CT/OS
+var_os=debian
+var_version=12
+var_unprivileged=1
+
+# Resources
+var_cpu=1
+var_disk=4
+var_ram=1024
+
+# Network
+var_brg=vmbr0
+var_net=dhcp
+var_ipv6_method=auto
+# var_gateway=
+# var_ipv6_static=
+# var_vlan=
+# var_mtu=
+# var_mac=
+# var_ns=
+# var_storage=
+
+# SSH
+var_ssh=no
+# var_ssh_authorized_key=
+
+# APT Cacher
+# var_apt_cacher=yes
+# var_apt_cacher_ip=192.168.1.10
+
+# Features/Tags
+var_fuse=no
+var_tun=no
+var_tags=community-script
+var_verbose=no
+
+# Security (root PW) – empty => Autologin
+# var_pw=
+
+# CTID/Hostname – empty => auto
+# var_ctid=
+# var_hostname=
+EOF
+    chmod 0644 "$canonical"
+    msg_ok "Created ${canonical}"
+  }
+
+  # Whitelist check
+  local _is_whitelisted_key
+  _is_whitelisted_key() {
+    local k="$1"
+    local w
+    for w in "${VAR_WHITELIST[@]}"; do [ "$k" = "$w" ] && return 0; done
+    return 1
+  }
+
+  # Safe parser for KEY=VALUE lines
+  local _load_vars_file
+  _load_vars_file() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+    msg_info "Loading defaults from ${file}"
+    local line key val
+    while IFS= read -r line || [ -n "$line" ]; do
+      line="${line#"${line%%[![:space:]]*}"}"
+      line="${line%"${line##*[![:space:]]}"}"
+      [[ -z "$line" || "$line" == \#* ]] && continue
+      if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+        local var_key="${BASH_REMATCH[1]}"
+        local var_val="${BASH_REMATCH[2]}"
+
+        [[ "$var_key" != var_* ]] && continue
+        _is_whitelisted_key "$var_key" || {
+          msg_debug "Ignore non-whitelisted ${var_key}"
+          continue
+        }
+
+        # Strip quotes
+        if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
+          var_val="${BASH_REMATCH[1]}"
+        elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
+          var_val="${BASH_REMATCH[1]}"
+        fi
+
+        # Unsafe check without regex (formatter-friendly)
+        local _unsafe=""
+        case "$var_val" in
+        *'$('*) _unsafe=1 ;;
+        *'`'*) _unsafe=1 ;;
+        *';'*) _unsafe=1 ;;
+        *'&'*) _unsafe=1 ;;
+        *'<('*) _unsafe=1 ;;
+        esac
+        if [[ -n "$_unsafe" ]]; then
+          msg_warn "Ignoring ${var_key} from ${file}: unsafe characters"
+          continue
+        fi
+
+        # Hard env wins
+        if [[ -n "${_HARD_ENV[$var_key]:-}" ]]; then
+          continue
+        fi
+
+        # Set only if not already exported
+        if [[ -z "${!var_key+x}" ]]; then
+          export "${var_key}=${var_val}"
+        fi
+
+      else
+        msg_warn "Malformed line in ${file}: ${line}"
+      fi
+
+    done <"$file"
+    msg_ok "Loaded ${file}"
+  }
+
+  # 1) Ensure file exists
+  _ensure_default_vars
+
+  # 2) Load file
+  local dv
+  dv="$(_find_default_vars)" || {
+    msg_error "default.vars not found after ensure step"
+    return 1
+  }
+  _load_vars_file "$dv"
+
+  # 3) Map var_verbose → VERBOSE
+  if [[ -n "${var_verbose:-}" ]]; then
+    case "${var_verbose,,}" in
+    1 | yes | true | on) VERBOSE="yes" ;;
+    0 | no | false | off) VERBOSE="no" ;;
+    *) VERBOSE="${var_verbose}" ;;
+    esac
+  else
+    VERBOSE="no"
+  fi
+
+  # 4) Apply base settings and show summary
+  METHOD="mydefaults-global"
+  base_settings "$VERBOSE"
+  header_info
+  echo -e "${DEFAULT}${BOLD}${BL}Using My Defaults (default.vars) on node $PVEHOST_NAME${CL}"
+  echo_default
+}
+
 install_script() {
   pve_check
   shell_check
@@ -931,23 +1043,27 @@ install_script() {
     ADVANCED | advanced | 3)
       CHOICE="3"
       ;;
+    DEFAULT_VARS | default_vars | 4)
+      CHOICE="4"
+      ;;
     *)
       echo -e "\n${CROSS}${RD}Invalid PRESET value: ${PRESET}${CL}\n"
       exit 1
       ;;
     esac
   else
+    #"4" "Use Config File" \
+    #"5" "Manage Default Storage" \
     while true; do
       TMP_CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "SETTINGS" \
-        --menu "Choose an option:" 20 60 7 \
+        --menu "Choose an option:" 20 60 6 \
         "1" "Default Settings" \
         "2" "Default Settings (with verbose)" \
         "3" "Advanced Settings" \
-        "4" "Use Config File" \
-        "5" "Manage Default Storage" \
-        "6" "Diagnostic Settings" \
-        "7" "Exit" \
+        "4" "My Default Vars" \
+        "5" "Diagnostic Settings" \
+        "6" "Exit" \
         --default-item "1" 3>&1 1>&2 2>&3) || true
 
       if [ -z "$TMP_CHOICE" ]; then
@@ -984,17 +1100,21 @@ install_script() {
     base_settings
     advanced_settings
     ;;
+    # 4)
+    #   header_info
+    #   echo -e "${INFO}${HOLD} ${GN}Using Config File on node $PVEHOST_NAME${CL}"
+    #   METHOD="advanced"
+    #   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/config-file.func)
+    #   config_file
+    #   ;;
   4)
-    header_info
-    echo -e "${INFO}${HOLD} ${GN}Using Config File on node $PVEHOST_NAME${CL}"
-    METHOD="advanced"
-    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/config-file.func)
-    config_file
+    # My Defaults (default.vars)
+    default_var_settings || {
+      msg_error "Failed to apply default.vars"
+      exit 1
+    }
     ;;
   5)
-    manage_default_storage
-    ;;
-  6)
     if [[ $DIAGNOSTICS == "yes" ]]; then
       if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTICS SETTINGS" --yesno "Send Diagnostics of LXC Installation?\n\nCurrent setting: ${DIAGNOSTICS}" 10 58 \
         --yes-button "No" --no-button "Back"; then
@@ -1011,7 +1131,7 @@ install_script() {
       fi
     fi
     ;;
-  7)
+  6)
     echo -e "\n${CROSS}${RD}Script terminated. Have a great day!${CL}\n"
     exit 0
     ;;
