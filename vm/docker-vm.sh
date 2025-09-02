@@ -457,6 +457,7 @@ else
 fi
 
 # ---------- PVE8: Direct install into image via virt-customize ----------
+# ---------- PVE8: Direct install into image via virt-customize ----------
 if [ "$INSTALL_MODE" = "direct" ]; then
     msg_info "Injecting Docker directly into image (${CODENAME}, $(basename "$DOCKER_BASE"))"
     virt-customize -q -a "${FILE}" \
@@ -468,7 +469,14 @@ if [ "$INSTALL_MODE" = "direct" ]; then
         --run-command "apt-get update -qq" \
         --run-command "apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin" \
         --run-command "systemctl enable docker" \
-        --run-command "systemctl enable qemu-guest-agent" >/dev/null
+        --run-command "systemctl enable qemu-guest-agent"
+
+    # ensure PATH in the guest for root (non-login shells, qm terminal, etc.)
+    --run-command "sed -i 's#^ENV_SUPATH.*#ENV_SUPATH  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true" \
+        --run-command "sed -i 's#^ENV_PATH.*#ENV_PATH    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true" \
+        --run-command "printf 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n' >/etc/environment" \
+        --run-command "grep -q 'export PATH=' /root/.bashrc || echo 'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' >> /root/.bashrc" \
+        >/dev/null
     msg_ok "Docker injected into image"
 fi
 
@@ -476,46 +484,97 @@ fi
 if [ "$INSTALL_MODE" = "firstboot" ]; then
     msg_info "Preparing first-boot Docker installer (${CODENAME}, $(basename "$DOCKER_BASE"))"
     mkdir -p firstboot
-    cat >firstboot/firstboot-docker.sh <<EOSH
+    cat >firstboot/firstboot-docker.sh <<'EOSH'
 #!/usr/bin/env bash
-set -e
+set -euxo pipefail
+
 LOG=/var/log/firstboot-docker.log
-exec >>"\$LOG" 2>&1
+exec >>"$LOG" 2>&1
 
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y ca-certificates curl gnupg qemu-guest-agent apt-transport-https software-properties-common lsb-release
+mark_done() {
+  mkdir -p /var/lib/firstboot
+  date > /var/lib/firstboot/docker.done
+}
 
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL ${DOCKER_BASE}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-chmod a+r /etc/apt/keyrings/docker.gpg
-echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] ${DOCKER_BASE} ${CODENAME} stable" >/etc/apt/sources.list.d/docker.list
+retry() {
+  local tries=$1; shift
+  local n=0
+  until "$@"; do
+    n=$((n+1))
+    if [ "$n" -ge "$tries" ]; then return 1; fi
+    sleep 5
+  done
+}
 
-apt-get update -qq
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-sed -i 's#^ENV_SUPATH.*#ENV_SUPATH  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true
-sed -i 's#^ENV_PATH.*#ENV_PATH    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true
-printf 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n' >/etc/environment
-grep -q 'export PATH=' /root/.bashrc || echo 'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' >> /root/.bashrc
+wait_network() {
+  # DNS + HTTPS reachability
+  retry 30 getent hosts deb.debian.org || retry 30 getent hosts archive.ubuntu.com
+  retry 30 bash -c 'curl -fsS https://download.docker.com/ >/dev/null'
+}
 
-systemctl enable --now qemu-guest-agent || true
-systemctl enable --now docker
+fix_path() {
+  sed -i 's#^ENV_SUPATH.*#ENV_SUPATH  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true
+  sed -i 's#^ENV_PATH.*#ENV_PATH    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true
+  printf 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n' >/etc/environment
+  grep -q 'export PATH=' /root/.bashrc || echo 'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' >> /root/.bashrc
+  export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+}
 
-mkdir -p /var/lib/firstboot
-date > /var/lib/firstboot/docker.done
+main() {
+  export DEBIAN_FRONTEND=noninteractive
+
+  wait_network
+
+  # Distro erkennen -> Codename + Docker-Repo
+  . /etc/os-release
+  CODENAME="${VERSION_CODENAME:-bookworm}"
+  case "$ID" in
+    ubuntu) DOCKER_BASE="https://download.docker.com/linux/ubuntu" ;;
+    debian|*) DOCKER_BASE="https://download.docker.com/linux/debian" ;;
+  esac
+
+  # Basispakete mit Retries
+  retry 10 apt-get update -qq
+  retry 5  apt-get install -y ca-certificates curl gnupg qemu-guest-agent apt-transport-https lsb-release software-properties-common
+
+  # Docker GPG + Repo
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL "${DOCKER_BASE}/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  chmod a+r /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] ${DOCKER_BASE} ${CODENAME} stable" > /etc/apt/sources.list.d/docker.list
+
+  retry 10 apt-get update -qq
+  retry 5  apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+  systemctl enable --now qemu-guest-agent || true
+  systemctl enable --now docker
+
+  # PATH sicherstellen
+  fix_path
+
+  # Erfolg validieren
+  command -v docker >/dev/null
+  systemctl is-active --quiet docker
+
+  mark_done
+}
+main
 EOSH
     chmod +x firstboot/firstboot-docker.sh
 
     cat >firstboot/firstboot-docker.service <<'EOUNIT'
 [Unit]
 Description=First boot: install Docker & QGA
-After=network-online.target
+After=network-online.target cloud-init.service
 Wants=network-online.target
 ConditionPathExists=!/var/lib/firstboot/docker.done
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/firstboot-docker.sh
+Restart=on-failure
+RestartSec=10s
 RemainAfterExit=no
 
 [Install]
