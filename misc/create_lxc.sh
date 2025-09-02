@@ -58,6 +58,55 @@ function exit_script() {
   exit 1
 }
 
+# Resolve and validate a preselected storage for a given class.
+# class: "template" -> requires content=vztmpl
+#        "container" -> requires content=rootdir
+resolve_storage_preselect() {
+  local class="$1"
+  local preselect="$2"
+  local required_content=""
+  case "$class" in
+  template) required_content="vztmpl" ;;
+  container) required_content="rootdir" ;;
+  *) return 1 ;;
+  esac
+
+  # No preselect provided
+  [ -z "$preselect" ] && return 1
+
+  # Check storage exists and supports required content
+  if ! pvesm status -content "$required_content" | awk 'NR>1{print $1}' | grep -qx -- "$preselect"; then
+    msg_warn "Preselected storage '${preselect}' does not support content '${required_content}' (or not found)"
+    return 1
+  fi
+
+  # Build human-readable info string from pvesm status
+  # Expected columns: Name Type Status Total Used Free ...
+  local line total used free
+  line="$(pvesm status | awk -v s="$preselect" 'NR>1 && $1==s {print $0}')"
+  if [ -z "$line" ]; then
+    STORAGE_INFO="n/a"
+  else
+    total="$(echo "$line" | awk '{print $4}')"
+    used="$(echo "$line" | awk '{print $5}')"
+    free="$(echo "$line" | awk '{print $6}')"
+    # Format bytes to IEC
+    local total_h used_h free_h
+    if command -v numfmt >/dev/null 2>&1; then
+      total_h="$(numfmt --to=iec --suffix=B --format %.1f "$total" 2>/dev/null || echo "$total")"
+      used_h="$(numfmt --to=iec --suffix=B --format %.1f "$used" 2>/dev/null || echo "$used")"
+      free_h="$(numfmt --to=iec --suffix=B --format %.1f "$free" 2>/dev/null || echo "$free")"
+      STORAGE_INFO="Free: ${free_h}  Used: ${used_h}"
+    else
+      STORAGE_INFO="Free: ${free}  Used: ${used}"
+    fi
+  fi
+
+  # Set outputs expected by your callers
+  STORAGE_RESULT="$preselect"
+  return 0
+}
+
 function check_storage_support() {
   local CONTENT="$1"
   local -a VALID_STORAGES=()
@@ -214,23 +263,37 @@ if ! check_storage_support "vztmpl"; then
   exit 1
 fi
 
-while true; do
-  if select_storage template; then
-    TEMPLATE_STORAGE="$STORAGE_RESULT"
-    TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
-    msg_ok "Storage ${BL}$TEMPLATE_STORAGE${CL} ($TEMPLATE_STORAGE_INFO) [Template]"
-    break
-  fi
-done
+# Template storage selection
+if resolve_storage_preselect template "${TEMPLATE_STORAGE}"; then
+  TEMPLATE_STORAGE="$STORAGE_RESULT"
+  TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
+  msg_ok "Storage ${BL}${TEMPLATE_STORAGE}${CL} (${TEMPLATE_STORAGE_INFO}) [Template]"
+else
+  while true; do
+    if select_storage template; then
+      TEMPLATE_STORAGE="$STORAGE_RESULT"
+      TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
+      msg_ok "Storage ${BL}${TEMPLATE_STORAGE}${CL} (${TEMPLATE_STORAGE_INFO}) [Template]"
+      break
+    fi
+  done
+fi
 
-while true; do
-  if select_storage container; then
-    CONTAINER_STORAGE="$STORAGE_RESULT"
-    CONTAINER_STORAGE_INFO="$STORAGE_INFO"
-    msg_ok "Storage ${BL}$CONTAINER_STORAGE${CL} ($CONTAINER_STORAGE_INFO) [Container]"
-    break
-  fi
-done
+# Container storage selection
+if resolve_storage_preselect container "${CONTAINER_STORAGE}"; then
+  CONTAINER_STORAGE="$STORAGE_RESULT"
+  CONTAINER_STORAGE_INFO="$STORAGE_INFO"
+  msg_ok "Storage ${BL}${CONTAINER_STORAGE}${CL} (${CONTAINER_STORAGE_INFO}) [Container]"
+else
+  while true; do
+    if select_storage container; then
+      CONTAINER_STORAGE="$STORAGE_RESULT"
+      CONTAINER_STORAGE_INFO="$STORAGE_INFO"
+      msg_ok "Storage ${BL}${CONTAINER_STORAGE}${CL} (${CONTAINER_STORAGE_INFO}) [Container]"
+      break
+    fi
+  done
+fi
 
 # Storage Content Validation
 msg_info "Validating content types of storage '$CONTAINER_STORAGE'"
