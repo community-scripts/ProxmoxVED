@@ -467,7 +467,7 @@ grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgi
 
 # Assemble pct options
 PCT_OPTIONS=("${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}}")
-[[ " ${PCT_OPTIONS[*]} " =~ " -rootfs " ]] || PCT_OPTIONS+=(-rootfs "$CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}")
+[[ " ${PCT_OPTIONS[@]} " =~ " -rootfs " ]] || PCT_OPTIONS+=(-rootfs "$CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}")
 
 # Secure with lockfile
 lockfile="/tmp/template.${TEMPLATE}.lock"
