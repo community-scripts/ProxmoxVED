@@ -337,6 +337,48 @@ ssh_check
 start_script
 post_to_api_vm
 
+function choose_os() {
+    if OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+        --title "Choose Base OS" \
+        --radiolist "Select the OS for the Docker VM:" 12 60 3 \
+        "debian12" "Debian 12 (Bookworm, stable & best for scripts)" ON \
+        "debian13" "Debian 13 (Trixie, newer, but repos lag)" OFF \
+        "ubuntu24" "Ubuntu 24.04 LTS (modern kernel, GPU/AI friendly)" OFF \
+        3>&1 1>&2 2>&3); then
+        case "$OS_CHOICE" in
+        debian12)
+            var_os="debian"
+            var_version="12"
+            URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-$(dpkg --print-architecture).qcow2"
+            ;;
+        debian13)
+            var_os="debian"
+            var_version="13"
+            URL="https://cloud.debian.org/images/cloud/trixie/latest/debian-13-nocloud-$(dpkg --print-architecture).qcow2"
+            ;;
+        ubuntu24)
+            var_os="ubuntu"
+            var_version="24.04"
+            URL="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-$(dpkg --print-architecture).img"
+            ;;
+        esac
+        echo -e "${OS}${BOLD}${DGN}Selected OS: ${BGN}${OS_CHOICE}${CL}"
+    else
+        exit-script
+    fi
+}
+
+PVE_VER=$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1 | cut -d'.' -f1)
+
+if [ "$PVE_VER" -eq 8 ]; then
+    INSTALL_MODE="direct"
+elif [ "$PVE_VER" -eq 9 ]; then
+    INSTALL_MODE="firstboot"
+else
+    msg_error "Unsupported Proxmox VE version: $PVE_VER"
+    exit 1
+fi
+
 # ---------- Storage selection ----------
 msg_info "Validating Storage"
 while read -r line; do
@@ -368,12 +410,9 @@ msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
 # ---------- Download Debian Cloud Image ----------
-msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
-URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-$(dpkg --print-architecture).qcow2"
-sleep 1
-msg_ok "${CL}${BL}${URL}${CL}"
+choose_os
+msg_info "Retrieving Cloud Image for $var_os $var_version"
 curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
 FILE=$(basename "$URL")
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
@@ -385,25 +424,72 @@ if ! command -v virt-customize &>/dev/null; then
     msg_ok "Installed libguestfs-tools"
 fi
 
-# ---------- First-boot Docker installer (avoids network in virt-customize on PVE9) ----------
-msg_info "Preparing first-boot Docker install (inside guest)"
-mkdir -p firstboot
-cat >firstboot/firstboot-docker.sh <<'EOSH'
+# ---------- Decide distro codename & Docker repo base from chosen URL ----------
+# (choose_os must have set $URL and we've downloaded $FILE above; we only need URL to derive codename)
+if [[ "$URL" == *"/bookworm/"* || "$FILE" == *"debian-12-"* ]]; then
+    CODENAME="bookworm"
+    DOCKER_BASE="https://download.docker.com/linux/debian"
+elif [[ "$URL" == *"/trixie/"* || "$FILE" == *"debian-13-"* ]]; then
+    CODENAME="trixie"
+    DOCKER_BASE="https://download.docker.com/linux/debian"
+elif [[ "$URL" == *"/noble/"* || "$FILE" == *"noble-"* ]]; then
+    CODENAME="noble"
+    DOCKER_BASE="https://download.docker.com/linux/ubuntu"
+else
+    CODENAME="bookworm"
+    DOCKER_BASE="https://download.docker.com/linux/debian"
+fi
+
+# ---------- Detect PVE major version and select install mode ----------
+PVE_MAJ=$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1 | cut -d'.' -f1)
+if [ "$PVE_MAJ" -eq 8 ]; then
+    INSTALL_MODE="direct" # fast path: install Docker directly into image
+else
+    INSTALL_MODE="firstboot" # robust path for PVE9: install Docker at first boot inside guest
+fi
+
+# ---------- Optional: allow manual override ----------
+if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Docker Installation Mode" \
+    --yesno "Detected PVE ${PVE_MAJ}. Use ${INSTALL_MODE^^} mode?\n\nYes = ${INSTALL_MODE^^}\nNo  = Switch to the other mode" 11 70; then
+    : # keep detected mode
+else
+    if [ "$INSTALL_MODE" = "direct" ]; then INSTALL_MODE="firstboot"; else INSTALL_MODE="direct"; fi
+fi
+
+# ---------- PVE8: Direct install into image via virt-customize ----------
+if [ "$INSTALL_MODE" = "direct" ]; then
+    msg_info "Injecting Docker directly into image (${CODENAME}, $(basename "$DOCKER_BASE"))"
+    virt-customize -q -a "${FILE}" \
+        --install qemu-guest-agent,apt-transport-https,ca-certificates,curl,gnupg,lsb-release \
+        --run-command "install -m 0755 -d /etc/apt/keyrings" \
+        --run-command "curl -fsSL ${DOCKER_BASE}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg" \
+        --run-command "chmod a+r /etc/apt/keyrings/docker.gpg" \
+        --run-command "echo 'deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] ${DOCKER_BASE} ${CODENAME} stable' > /etc/apt/sources.list.d/docker.list" \
+        --run-command "apt-get update -qq" \
+        --run-command "apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin" \
+        --run-command "systemctl enable docker" \
+        --run-command "systemctl enable qemu-guest-agent" >/dev/null
+    msg_ok "Docker injected into image"
+fi
+
+# ---------- PVE9: First-boot installer inside guest ----------
+if [ "$INSTALL_MODE" = "firstboot" ]; then
+    msg_info "Preparing first-boot Docker installer (${CODENAME}, $(basename "$DOCKER_BASE"))"
+    mkdir -p firstboot
+    cat >firstboot/firstboot-docker.sh <<EOSH
 #!/usr/bin/env bash
 set -e
 LOG=/var/log/firstboot-docker.log
-exec >>"$LOG" 2>&1
+exec >>"\$LOG" 2>&1
 
-touch /var/lib/firstboot/.running
 export DEBIAN_FRONTEND=noninteractive
-
 apt-get update -qq
 apt-get install -y ca-certificates curl gnupg qemu-guest-agent apt-transport-https software-properties-common lsb-release
 
 install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+curl -fsSL ${DOCKER_BASE}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable" >/etc/apt/sources.list.d/docker.list
+echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] ${DOCKER_BASE} ${CODENAME} stable" >/etc/apt/sources.list.d/docker.list
 
 apt-get update -qq
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
@@ -413,11 +499,10 @@ systemctl enable --now docker
 
 mkdir -p /var/lib/firstboot
 date > /var/lib/firstboot/docker.done
-rm -f /var/lib/firstboot/.running
 EOSH
-chmod +x firstboot/firstboot-docker.sh
+    chmod +x firstboot/firstboot-docker.sh
 
-cat >firstboot/firstboot-docker.service <<'EOUNIT'
+    cat >firstboot/firstboot-docker.service <<'EOUNIT'
 [Unit]
 Description=First boot: install Docker & QGA
 After=network-online.target
@@ -433,19 +518,19 @@ RemainAfterExit=no
 WantedBy=multi-user.target
 EOUNIT
 
-# hostname + machine-id reset for cloud-init style behaviour
-echo "$HN" >firstboot/hostname
+    # hostname + machine-id reset for cloud-init style behaviour
+    echo "$HN" >firstboot/hostname
 
-# Inject files without requiring guest network
-virt-customize -q -a "${FILE}" \
-    --copy-in firstboot/firstboot-docker.sh:/usr/local/sbin \
-    --copy-in firstboot/firstboot-docker.service:/etc/systemd/system \
-    --copy-in firstboot/hostname:/etc \
-    --run-command "chmod +x /usr/local/sbin/firstboot-docker.sh" \
-    --run-command "systemctl enable firstboot-docker.service" \
-    --run-command "echo -n > /etc/machine-id" \
-    --run-command "truncate -s 0 /etc/hostname && mv /etc/hostname /etc/hostname.orig && echo '${HN}' >/etc/hostname" >/dev/null
-msg_ok "Prepared first-boot installer & hostname"
+    virt-customize -q -a "${FILE}" \
+        --copy-in firstboot/firstboot-docker.sh:/usr/local/sbin \
+        --copy-in firstboot/firstboot-docker.service:/etc/systemd/system \
+        --copy-in firstboot/hostname:/etc \
+        --run-command "chmod +x /usr/local/sbin/firstboot-docker.sh" \
+        --run-command "systemctl enable firstboot-docker.service" \
+        --run-command "echo -n > /etc/machine-id" \
+        --run-command "truncate -s 0 /etc/hostname && mv /etc/hostname /etc/hostname.orig && echo '${HN}' >/etc/hostname" >/dev/null
+    msg_ok "First-boot Docker installer injected"
+fi
 
 # ---------- Expand partition offline ----------
 msg_info "Expanding root partition to use full disk space"
