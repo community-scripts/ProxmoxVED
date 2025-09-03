@@ -54,16 +54,21 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/dispatcharr.creds
 msg_ok "Set up PostgreSQL Database"
 
-msg_info "Setup Python Requirements"
-mkdir -p /data/{db,epgs,logos,m3us,recordings,uploads}
-mkdir -p /etc/dispatcharr
-sed -i 's/program\[\x27channel_id\x27\]/program["channel_id"]/g' "/opt/dispatcharr/apps/output/views.py"
-cd /opt/dispatcharr
+msg_info "Setup Python (uv) requirements (system)"
 UV_PY="${PYTHON_VERSION:-3.13}"
 $STD uv python install "$UV_PY"
-$STD uv venv --python "$UV_PY" .venv
-$STD uv pip install --python ./.venv/bin/python -r requirements.txt
-$STD uv pip install --python ./.venv/bin/python gunicorn gevent celery daphne
+cd /opt/dispatcharr
+PYPI_URL="https://pypi.org/simple"
+mapfile -t EXTRA_INDEX_URLS < <(grep -E '^(--(extra-)?index-url|-i)\s' requirements.txt 2>/dev/null | awk '{print $2}' | sed 's#/*$##')
+
+UV_INDEX_ARGS=(--index-url "$PYPI_URL" --index-strategy unsafe-best-match)
+for u in "${EXTRA_INDEX_URLS[@]}"; do
+  [[ -n "$u" && "$u" != "$PYPI_URL" ]] && UV_INDEX_ARGS+=(--extra-index-url "$u")
+done
+if [[ -f requirements.txt ]]; then
+  $STD uv pip install --system "${UV_INDEX_ARGS[@]}" -r requirements.txt
+fi
+$STD uv pip install --system "${UV_INDEX_ARGS[@]}" gunicorn gevent celery daphne
 ln -sf /usr/bin/ffmpeg /opt/dispatcharr/env/bin/ffmpeg
 msg_ok "Python Requirements Installed"
 
