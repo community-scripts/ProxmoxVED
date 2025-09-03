@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-apt install -y ffmpeg
+$STD apt install -y ffmpeg
 msg_ok "Installed Dependencies"
 
 msg_info "Setting Up UHF Server Environment"
