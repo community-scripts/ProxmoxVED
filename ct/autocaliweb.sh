@@ -37,7 +37,7 @@ function update_script() {
     msg_ok "Stopped Services"
 
     INSTALL_DIR="/opt/autocaliweb"
-    VIRTUAL_ENV="${INSTALL_DIR}/venv"
+    export VIRTUAL_ENV="${INSTALL_DIR}/venv"
     $STD tar -cf ~/autocaliweb_bkp.tar "$INSTALL_DIR"/{metadata_change_logs,dirs.json,.env,scripts/ingest_watcher.sh,scripts/auto_zipper_wrapper.sh,scripts/metadata_change_detector_wrapper.sh}
     fetch_and_deploy_gh_release "autocaliweb" "gelbphoenix/autocaliweb" "tarball" "latest" "/opt/autocaliweb"
     msg_info "Updating ${APP}"
