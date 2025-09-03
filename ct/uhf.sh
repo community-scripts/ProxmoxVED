@@ -27,28 +27,29 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Stopping ${APP}"
-  systemctl stop uhf-server
-  msg_ok "Stopped ${APP}"
+  if check_for_gh_release "uhf-server" "swapplications/uhf-server-dist"; then
+    msg_info "Stopping Service"
+    systemctl stop uhf-server
+    msg_ok "Stopped Service"
 
-  msg_info "Updating APT packages"
-  $STD apt-get update
-  $STD apt-get -y upgrade
-  msg_ok "Package list updated"
+    msg_info "Updating APT packages"
+    $STD apt-get update
+    $STD apt-get -y upgrade
+    msg_ok "Package list updated"
 
-  fetch_and_deploy_gh_release "comskip" "swapplications/comskip" "prebuild" "latest" "/opt/comskip" "comskip-x64-*.zip"
-  fetch_and_deploy_gh_release "uhf-server" "swapplications/uhf-server-dist" "prebuild" "latest" "/opt/uhf-server" "UHF.Server-linux-x64-*.zip"
+    fetch_and_deploy_gh_release "comskip" "swapplications/comskip" "prebuild" "latest" "/opt/comskip" "comskip-x64-*.zip"
+    fetch_and_deploy_gh_release "uhf-server" "swapplications/uhf-server-dist" "prebuild" "latest" "/opt/uhf-server" "UHF.Server-linux-x64-*.zip"
 
-  msg_info "Starting ${APP}"
-  systemctl start uhf-server
-  msg_ok "Started ${APP}"
+    msg_info "Starting Service"
+    systemctl start uhf-server
+    msg_ok "Started Service"
 
-  msg_info "Cleaning up"
-  $STD apt-get -y autoremove
-  $STD apt-get -y autoclean
-  msg_ok "Cleaned"
-
-  msg_ok "Updated Successfully"
+    msg_info "Cleaning up"
+    $STD apt-get -y autoremove
+    $STD apt-get -y autoclean
+    msg_ok "Cleaned"
+    msg_ok "Updated Successfully"
+  fi
   exit
 }
 
