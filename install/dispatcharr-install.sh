@@ -31,9 +31,10 @@ $STD apt-get install -y \
   streamlink
 msg_ok "Installed Dependencies"
 
-setup_uv
+PYTHON_VERSION="3.13" setup_uv
 NODE_VERSION="22" setup_nodejs
 PG_VERSION="16" setup_postgresql
+fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
 
 msg_info "Set up PostgreSQL Database"
 DB_NAME=dispatcharr_db
@@ -53,21 +54,16 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/dispatcharr.creds
 msg_ok "Set up PostgreSQL Database"
 
-fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
-
-#chown -R "$APP_USER:$APP_GROUP" {/etc/dispatcharr,/opt/dispatcharr,/data}
-
-msg_info "Install Python Requirements"
+msg_info "Setup Python Requirements"
 mkdir -p /data/{db,epgs,logos,m3us,recordings,uploads}
 mkdir -p /etc/dispatcharr
 sed -i 's/program\[\x27channel_id\x27\]/program["channel_id"]/g' "/opt/dispatcharr/apps/output/views.py"
 cd /opt/dispatcharr
-python3 -m venv env
-source env/bin/activate
-
-$STD pip install --upgrade pip
-$STD pip install -r requirements.txt
-$STD pip install gunicorn
+UV_PY="${PYTHON_VERSION:-3.13}"
+$STD uv python install "$UV_PY"
+$STD uv venv --python "$UV_PY" .venv
+$STD uv pip install --python ./.venv/bin/python -r requirements.txt
+$STD uv pip install --python ./.venv/bin/python gunicorn gevent celery daphne
 ln -sf /usr/bin/ffmpeg /opt/dispatcharr/env/bin/ffmpeg
 msg_ok "Python Requirements Installed"
 
@@ -79,13 +75,12 @@ msg_ok "Built Frontend"
 
 msg_info "Running Django Migrations"
 cd /opt/dispatcharr
-source env/bin/activate
 set -o allexport
 source /etc/dispatcharr/dispatcharr.env
 set +o allexport
 
-$STD python manage.py migrate --noinput
-$STD python manage.py collectstatic --noinput
+$STD ./.venv/bin/python manage.py migrate --noinput
+$STD ./.venv/bin/python manage.py collectstatic --noinput
 msg_ok "Migrations Complete"
 
 msg_info "Configuring Nginx"
