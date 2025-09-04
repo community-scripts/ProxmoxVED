@@ -282,53 +282,49 @@ exit_script() {
 }
 
 find_host_ssh_keys() {
-  local glob_override="${var_ssh_import_glob:-}"
-  local -a candidates=()
+  local re='(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))'
+  local -a files=() cand=()
+  local g="${var_ssh_import_glob:-}"
+  local total=0 f base c
 
-  if [[ -n "$glob_override" ]]; then
-    shopt -s nullglob
-    candidates+=($glob_override)
-    shopt -u nullglob
+  shopt -s nullglob
+  if [[ -n "$g" ]]; then
+    for pat in $g; do cand+=($pat); done
   else
-    shopt -s nullglob
-    candidates+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
-    candidates+=(/root/.ssh/*.pub)
-    candidates+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
-    shopt -u nullglob
+    cand+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
+    cand+=(/root/.ssh/*.pub)
+    cand+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
   fi
+  shopt -u nullglob
 
-  local -A seen=()
-  local files=()
-  local total=0
-  local f
-
-  for f in "${candidates[@]}"; do
+  for f in "${cand[@]}"; do
     [[ -f "$f" && -r "$f" ]] || continue
-
-    case "$(basename "$f")" in
+    base="$(basename -- "$f")"
+    case "$base" in
     known_hosts | known_hosts.* | config) continue ;;
     id_*) [[ "$f" != *.pub ]] && continue ;;
     esac
 
-    local c
+    # CRLF safe check for host keys
     c=$(tr -d '\r' <"$f" | awk '
       /^[[:space:]]*#/ {next}
       /^[[:space:]]*$/ {next}
-      # Startet mit Key-Typ
-      /^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/ {cnt++; next}
-      # Oder startet mit authorized_keys-Optionen und enthält später einen Key
-      /^(command=|environment=|from=|no-agent-forwarding|no-port-forwarding|no-pty|no-user-rc|no-X11-forwarding|permitopen=|principals=|tunnel=)/ \
-        && /(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))/ {cnt++}
-      END {print cnt+0}
-    ')
+      {print}
+    ' | grep -E -c '"$re"' || true)
+
     if ((c > 0)); then
-      [[ -n "${seen[$f]:-}" ]] || {
-        files+=("$f")
-        seen[$f]=1
-        total=$((total + c))
-      }
+      files+=("$f")
+      total=$((total + c))
     fi
   done
+
+  # Fallback to /root/.ssh/authorized_keys
+  if ((${#files[@]} == 0)) && [[ -r /root/.ssh/authorized_keys ]]; then
+    if grep -E -q "$re" /root/.ssh/authorized_keys; then
+      files+=(/root/.ssh/authorized_keys)
+      total=$((total + $(grep -E -c "$re" /root/.ssh/authorized_keys || echo 0)))
+    fi
+  fi
 
   FOUND_HOST_KEY_COUNT="$total"
   (
@@ -761,39 +757,36 @@ advanced_settings() {
     exit_script
   fi
 
-  SSH_AUTHORIZED_KEY=""
-  if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno \
-    --title "SSH KEY (Manual)" --yesno "Enter a manual SSH public key now?\n(Choose 'No' to skip manual entry)" 10 70); then
-    SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --inputbox "Paste a single SSH public key line (ssh-ed25519 ...)" 10 70 --title "SSH Public Key" 3>&1 1>&2 2>&3)"
-  fi
-
-  SSH_IMPORT_FILES=""
-  HOST_KEYS_AVAILABLE="no"
+  # --- SSH key provisioning (one dialog) ---
   SSH_IMPORT_FILES="$(find_host_ssh_keys)"
-  if [[ -n "$SSH_IMPORT_FILES" && "${FOUND_HOST_KEY_COUNT:-0}" -gt 0 ]]; then
-    HOST_KEYS_AVAILABLE="yes"
-  fi
+  HOST_KEYS_AVAILABLE="no"
+  [[ -n "$SSH_IMPORT_FILES" && "${FOUND_HOST_KEY_COUNT:-0}" -gt 0 ]] && HOST_KEYS_AVAILABLE="yes"
+  msg_debug "SSH host files: $SSH_IMPORT_FILES  (keys=${FOUND_HOST_KEY_COUNT:-0})"
 
-  SSH_SOURCE="none"
   if [[ "$HOST_KEYS_AVAILABLE" == "yes" ]]; then
     SSH_SOURCE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
-      "Choose how to provision SSH keys for root:" 14 70 4 \
-      "none" "No keys" \
-      "host" "Import host store (${FOUND_HOST_KEY_COUNT} keys total)" \
-      "manual" "Use the entered single key" \
-      "both" "Host store + manual key (dedupe)" 3>&1 1>&2 2>&3) || exit_script
+      "Provision SSH keys for root:" 14 72 4 \
+      "host" "Use keys from host (${FOUND_HOST_KEY_COUNT} found)" \
+      "manual" "Paste a single public key" \
+      "both" "Host + Manual (dedupe)" \
+      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
   else
     SSH_SOURCE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
-      "No host keys detected; choose manual/none:" 12 70 2 \
-      "none" "No keys" \
-      "manual" "Use the entered single key" 3>&1 1>&2 2>&3) || exit_script
+      "No host keys detected; choose manual/none:" 12 72 2 \
+      "manual" "Paste a single public key" \
+      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
   fi
 
-  # 4) enable SSH?
+  # Manual-Eingabe nur wenn nötig
+  SSH_AUTHORIZED_KEY=""
+  if [[ "$SSH_SOURCE" == "manual" || "$SSH_SOURCE" == "both" ]]; then
+    SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --inputbox "Paste one SSH public key line (ssh-ed25519/ssh-rsa/...)" 10 72 --title "SSH Public Key" 3>&1 1>&2 2>&3)"
+  fi
+
+  # SSH aktivieren, wenn Quelle != none oder PW gesetzt
   if [[ "$SSH_SOURCE" != "none" || "$PW" == -password* ]]; then
-    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno \
-      --title "SSH ACCESS" --yesno "Enable Root SSH Access?" 10 58); then
+    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable root SSH access?" 10 58); then
       SSH="yes"
     else
       SSH="no"
@@ -802,6 +795,7 @@ advanced_settings() {
     SSH="no"
   fi
   echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
+
   export SSH_SOURCE SSH_AUTHORIZED_KEY SSH_IMPORT_FILES
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
