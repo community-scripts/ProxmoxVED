@@ -281,6 +281,34 @@ exit_script() {
   exit
 }
 
+find_host_ssh_keys() {
+  local glob="${var_ssh_import_glob:-/root/.ssh/*}"
+  local files=()
+  local f
+  local total=0
+  local keyre='^(ssh-(rsa|ed25519|ecdsa)|sk-(ssh-ed25519|ecdsa-sha2-nistp256))\s+'
+
+  shopt -s nullglob
+  for f in $glob; do
+    # skip directories / unreadable
+    [[ -f "$f" && -r "$f" ]] || continue
+    # count lines that look like authorized_keys entries
+    local c
+    c=$(awk -v RS='\r?\n' '$0 ~ /^#/ {next} $0 ~ /'"$keyre"'/ {cnt++} END{print cnt+0}' "$f")
+    if [[ "${c:-0}" -gt 0 ]]; then
+      files+=("$f")
+      total=$((total + c))
+    fi
+  done
+  shopt -u nullglob
+
+  FOUND_HOST_KEY_COUNT="$total"
+  (
+    IFS=:
+    echo "${files[*]}"
+  )
+}
+
 # This function allows the user to configure advanced settings for the script.
 advanced_settings() {
   whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar." 8 58
@@ -705,23 +733,48 @@ advanced_settings() {
     exit_script
   fi
 
-  SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --inputbox "SSH Authorized key for root (leave empty for none)" 8 58 --title "SSH Key" 3>&1 1>&2 2>&3)"
-
-  if [[ -z "${SSH_AUTHORIZED_KEY}" ]]; then
-    SSH_AUTHORIZED_KEY=""
+  SSH_AUTHORIZED_KEY=""
+  if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno \
+    --title "SSH KEY (Manual)" --yesno "Enter a manual SSH public key now?\n(Choose 'No' to skip manual entry)" 10 70); then
+    SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --inputbox "Paste a single SSH public key line (ssh-ed25519 ...)" 10 70 --title "SSH Public Key" 3>&1 1>&2 2>&3)"
   fi
 
-  if [[ "$PW" == -password* || -n "$SSH_AUTHORIZED_KEY" ]]; then
-    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable Root SSH Access?" 10 58); then
+  SSH_IMPORT_FILES=""
+  HOST_KEYS_AVAILABLE="no"
+  SSH_IMPORT_FILES="$(find_host_ssh_keys)"
+  if [[ -n "$SSH_IMPORT_FILES" && "${FOUND_HOST_KEY_COUNT:-0}" -gt 0 ]]; then
+    HOST_KEYS_AVAILABLE="yes"
+  fi
+
+  SSH_SOURCE="none"
+  if [[ "$HOST_KEYS_AVAILABLE" == "yes" ]]; then
+    SSH_SOURCE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+      "Choose how to provision SSH keys for root:" 14 70 4 \
+      "none" "No keys" \
+      "host" "Import host store (${FOUND_HOST_KEY_COUNT} keys total)" \
+      "manual" "Use the entered single key" \
+      "both" "Host store + manual key (dedupe)" 3>&1 1>&2 2>&3) || exit_script
+  else
+    SSH_SOURCE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+      "No host keys detected; choose manual/none:" 12 70 2 \
+      "none" "No keys" \
+      "manual" "Use the entered single key" 3>&1 1>&2 2>&3) || exit_script
+  fi
+
+  # 4) enable SSH?
+  if [[ "$SSH_SOURCE" != "none" || "$PW" == -password* ]]; then
+    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno \
+      --title "SSH ACCESS" --yesno "Enable Root SSH Access?" 10 58); then
       SSH="yes"
     else
       SSH="no"
     fi
-    echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
   else
     SSH="no"
-    echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
   fi
+  echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
+  export SSH_SOURCE SSH_AUTHORIZED_KEY SSH_IMPORT_FILES
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
     ENABLE_FUSE="yes"
@@ -1369,6 +1422,52 @@ check_container_storage() {
   fi
 }
 
+install_ssh_keys_into_ct() {
+  [[ "$SSH" != "yes" ]] && return 0
+
+  local tmp="$(mktemp)" any=0
+  local keyre='^(ssh-(rsa|ed25519|ecdsa)|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+'
+
+  case "$SSH_SOURCE" in
+  host | both)
+    if [[ -n "${SSH_IMPORT_FILES:-}" ]]; then
+      IFS=: read -r -a _files <<<"$SSH_IMPORT_FILES"
+      for f in "${_files[@]}"; do
+        [[ -r "$f" ]] || continue
+        awk '$0 !~ /^#/ && $0 ~ /'"$keyre"'/ {print $0}' "$f" >>"$tmp"
+        any=1
+      done
+    fi
+    ;;
+  esac
+
+  case "$SSH_SOURCE" in
+  manual | both)
+    if [[ -n "${SSH_AUTHORIZED_KEY:-}" ]]; then
+      echo "${SSH_AUTHORIZED_KEY}" | awk '$0 !~ /^#/ && $0 ~ /'"$keyre"'/ {print $0}' >>"$tmp"
+      any=1
+    fi
+    ;;
+  esac
+
+  if [[ "$any" -eq 0 ]]; then
+    rm -f "$tmp"
+    msg_warn "No SSH keys to install (skipping)."
+    return 0
+  fi
+
+  sort -u -o "$tmp" "$tmp"
+
+  msg_info "Installing SSH keys into CT ${CTID}"
+  pct exec "$CTID" -- sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh'
+  pct push "$CTID" "$tmp" /root/.ssh/authorized_keys >/dev/null 2>&1 ||
+    pct exec "$CTID" -- sh -c "cat > /root/.ssh/authorized_keys" <"$tmp"
+  pct exec "$CTID" -- sh -c 'chmod 600 /root/.ssh/authorized_keys'
+
+  rm -f "$tmp"
+  msg_ok "Installed SSH keys into CT ${CTID}"
+}
+
 start() {
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
   if command -v pveversion >/dev/null 2>&1; then
@@ -1753,7 +1852,7 @@ EOF'
     }
   fi
   msg_ok "Customized LXC Container"
-
+  install_ssh_keys_into_ct
   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
 }
 
