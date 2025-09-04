@@ -282,25 +282,53 @@ exit_script() {
 }
 
 find_host_ssh_keys() {
-  local glob="${var_ssh_import_glob:-/root/.ssh/*}"
-  local files=()
-  local f
-  local total=0
-  local keyre='^(ssh-(rsa|ed25519|ecdsa)|sk-(ssh-ed25519|ecdsa-sha2-nistp256))\s+'
+  local glob_override="${var_ssh_import_glob:-}"
+  local -a candidates=()
 
-  shopt -s nullglob
-  for f in $glob; do
-    # skip directories / unreadable
+  if [[ -n "$glob_override" ]]; then
+    shopt -s nullglob
+    candidates+=($glob_override)
+    shopt -u nullglob
+  else
+    shopt -s nullglob
+    candidates+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
+    candidates+=(/root/.ssh/*.pub)
+    candidates+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
+    shopt -u nullglob
+  fi
+
+  local -A seen=()
+  local files=()
+  local total=0
+  local f
+
+  for f in "${candidates[@]}"; do
     [[ -f "$f" && -r "$f" ]] || continue
-    # count lines that look like authorized_keys entries
+
+    case "$(basename "$f")" in
+    known_hosts | known_hosts.* | config) continue ;;
+    id_*) [[ "$f" != *.pub ]] && continue ;;
+    esac
+
     local c
-    c=$(awk -v RS='\r?\n' '$0 ~ /^#/ {next} $0 ~ /'"$keyre"'/ {cnt++} END{print cnt+0}' "$f")
-    if [[ "${c:-0}" -gt 0 ]]; then
-      files+=("$f")
-      total=$((total + c))
+    c=$(tr -d '\r' <"$f" | awk '
+      /^[[:space:]]*#/ {next}
+      /^[[:space:]]*$/ {next}
+      # Startet mit Key-Typ
+      /^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/ {cnt++; next}
+      # Oder startet mit authorized_keys-Optionen und enthält später einen Key
+      /^(command=|environment=|from=|no-agent-forwarding|no-port-forwarding|no-pty|no-user-rc|no-X11-forwarding|permitopen=|principals=|tunnel=)/ \
+        && /(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))/ {cnt++}
+      END {print cnt+0}
+    ')
+    if ((c > 0)); then
+      [[ -n "${seen[$f]:-}" ]] || {
+        files+=("$f")
+        seen[$f]=1
+        total=$((total + c))
+      }
     fi
   done
-  shopt -u nullglob
 
   FOUND_HOST_KEY_COUNT="$total"
   (
@@ -1425,30 +1453,40 @@ check_container_storage() {
 install_ssh_keys_into_ct() {
   [[ "$SSH" != "yes" ]] && return 0
 
-  local tmp="$(mktemp)" any=0
-  local keyre='^(ssh-(rsa|ed25519|ecdsa)|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+'
-
-  case "$SSH_SOURCE" in
-  host | both)
+  local tmp
+  tmp="$(mktemp)" || return 1
+  local any=0
+  if [[ "$SSH_SOURCE" == "host" || "$SSH_SOURCE" == "both" ]]; then
     if [[ -n "${SSH_IMPORT_FILES:-}" ]]; then
       IFS=: read -r -a _files <<<"$SSH_IMPORT_FILES"
       for f in "${_files[@]}"; do
         [[ -r "$f" ]] || continue
-        awk '$0 !~ /^#/ && $0 ~ /'"$keyre"'/ {print $0}' "$f" >>"$tmp"
+        tr -d '\r' <"$f" | awk '
+          /^[[:space:]]*#/ {next}
+          /^[[:space:]]*$/ {next}
+          # reine Keyzeile
+          /^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/ {print; next}
+          # authorized_keys mit Optionen
+          /^(command=|environment=|from=|no-agent-forwarding|no-port-forwarding|no-pty|no-user-rc|no-X11-forwarding|permitopen=|principals=|tunnel=)/ \
+            && /(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))/ {print}
+        ' >>"$tmp"
         any=1
       done
     fi
-    ;;
-  esac
+  fi
 
-  case "$SSH_SOURCE" in
-  manual | both)
+  if [[ "$SSH_SOURCE" == "manual" || "$SSH_SOURCE" == "both" ]]; then
     if [[ -n "${SSH_AUTHORIZED_KEY:-}" ]]; then
-      echo "${SSH_AUTHORIZED_KEY}" | awk '$0 !~ /^#/ && $0 ~ /'"$keyre"'/ {print $0}' >>"$tmp"
+      printf '%s\n' "$SSH_AUTHORIZED_KEY" | tr -d '\r' | awk '
+        /^[[:space:]]*#/ {next}
+        /^[[:space:]]*$/ {next}
+        /^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/ {print; next}
+        /^(command=|environment=|from=|no-agent-forwarding|no-port-forwarding|no-pty|no-user-rc|no-X11-forwarding|permitopen=|principals=|tunnel=)/ \
+          && /(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))/ {print}
+      ' >>"$tmp"
       any=1
     fi
-    ;;
-  esac
+  fi
 
   if [[ "$any" -eq 0 ]]; then
     rm -f "$tmp"
@@ -1456,14 +1494,26 @@ install_ssh_keys_into_ct() {
     return 0
   fi
 
-  sort -u -o "$tmp" "$tmp"
+  # Dedupe + clean EOF
+  sort -u "$tmp" -o "$tmp"
+  printf '\n' >>"$tmp"
 
   msg_info "Installing SSH keys into CT ${CTID}"
-  pct exec "$CTID" -- sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh'
-  pct push "$CTID" "$tmp" /root/.ssh/authorized_keys >/dev/null 2>&1 ||
-    pct exec "$CTID" -- sh -c "cat > /root/.ssh/authorized_keys" <"$tmp"
-  pct exec "$CTID" -- sh -c 'chmod 600 /root/.ssh/authorized_keys'
+  pct exec "$CTID" -- sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh' || {
+    msg_error "prepare /root/.ssh failed"
+    rm -f "$tmp"
+    return 1
+  }
 
+  if ! pct push "$CTID" "$tmp" /root/.ssh/authorized_keys >/dev/null 2>&1; then
+    pct exec "$CTID" -- sh -c "cat > /root/.ssh/authorized_keys" <"$tmp" || {
+      msg_error "write authorized_keys failed"
+      rm -f "$tmp"
+      return 1
+    }
+  fi
+
+  pct exec "$CTID" -- sh -c 'chmod 600 /root/.ssh/authorized_keys' || true
   rm -f "$tmp"
   msg_ok "Installed SSH keys into CT ${CTID}"
 }
