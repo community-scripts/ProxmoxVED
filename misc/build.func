@@ -214,6 +214,30 @@ ssh_check() {
   fi
 }
 
+install_ssh_keys_into_ct() {
+  [[ "$SSH" != "yes" ]] && return 0
+
+  if [[ -n "$SSH_KEYS_FILE" && -s "$SSH_KEYS_FILE" ]]; then
+    msg_info "Installing selected SSH keys into CT ${CTID}"
+    pct exec "$CTID" -- sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh' || {
+      msg_error "prepare /root/.ssh failed"
+      return 1
+    }
+    pct push "$CTID" "$SSH_KEYS_FILE" /root/.ssh/authorized_keys >/dev/null 2>&1 ||
+      pct exec "$CTID" -- sh -c "cat > /root/.ssh/authorized_keys" <"$SSH_KEYS_FILE" || {
+      msg_error "write authorized_keys failed"
+      return 1
+    }
+    pct exec "$CTID" -- sh -c 'chmod 600 /root/.ssh/authorized_keys' || true
+    msg_ok "Installed SSH keys into CT ${CTID}"
+    return 0
+  fi
+
+  # Fallback: nichts ausgewählt
+  msg_warn "No SSH keys to install (skipping)."
+  return 0
+}
+
 base_settings() {
   # Default Settings
   CT_TYPE=${var_unprivileged:-"1"}
@@ -758,34 +782,83 @@ advanced_settings() {
   fi
 
   # --- SSH key provisioning (one dialog) ---
-  SSH_IMPORT_FILES="$(find_host_ssh_keys)"
-  HOST_KEYS_AVAILABLE="no"
-  [[ -n "$SSH_IMPORT_FILES" && "${FOUND_HOST_KEY_COUNT:-0}" -gt 0 ]] && HOST_KEYS_AVAILABLE="yes"
-  msg_debug "SSH host files: $SSH_IMPORT_FILES  (keys=${FOUND_HOST_KEY_COUNT:-0})"
+  SSH_KEYS_FILE="$(mktemp)" # ausgewählte Keys landen hier (eine Datei, mehrere Zeilen)
+  : >"$SSH_KEYS_FILE"
 
-  if [[ "$HOST_KEYS_AVAILABLE" == "yes" ]]; then
-    SSH_SOURCE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+  # 2.1 Default-Files finden und ggf. Auswahl anbieten
+  IFS=$'\0' read -r -d '' -a _def_files < <(ssh_discover_default_files && printf '\0')
+  ssh_build_choices_from_files "${_def_files[@]}"
+  DEF_KEYS_COUNT="$COUNT"
+
+  if [[ "$DEF_KEYS_COUNT" -gt 0 ]]; then
+    SSH_KEY_MODE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
       "Provision SSH keys for root:" 14 72 4 \
-      "host" "Use keys from host (${FOUND_HOST_KEY_COUNT} found)" \
+      "found" "Select from detected keys (${DEF_KEYS_COUNT})" \
       "manual" "Paste a single public key" \
-      "both" "Host + Manual (dedupe)" \
+      "folder" "Scan another folder (path or glob)" \
       "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
   else
-    SSH_SOURCE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+    SSH_KEY_MODE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
       "No host keys detected; choose manual/none:" 12 72 2 \
       "manual" "Paste a single public key" \
       "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
   fi
 
-  # Manual-Eingabe nur wenn nötig
-  SSH_AUTHORIZED_KEY=""
-  if [[ "$SSH_SOURCE" == "manual" || "$SSH_SOURCE" == "both" ]]; then
+  case "$SSH_KEY_MODE" in
+  found)
+    # Checkliste einzelner Keys
+    SEL=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT HOST KEYS" \
+      --checklist "Select one or more keys to import:" 20 78 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
+    for tag in $SEL; do
+      tag="${tag%\"}"
+      tag="${tag#\"}"
+      line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
+      [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
+    done
+    ;;
+  manual)
     SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
       --inputbox "Paste one SSH public key line (ssh-ed25519/ssh-rsa/...)" 10 72 --title "SSH Public Key" 3>&1 1>&2 2>&3)"
+    [[ -n "$SSH_AUTHORIZED_KEY" ]] && printf '%s\n' "$SSH_AUTHORIZED_KEY" >>"$SSH_KEYS_FILE"
+    ;;
+  folder)
+    GLOB_PATH="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --inputbox "Enter a folder or glob to scan (e.g. /root/.ssh/*.pub)" 10 72 --title "Scan Folder/Glob" 3>&1 1>&2 2>&3)"
+    if [[ -n "$GLOB_PATH" ]]; then
+      # expandiere Globs
+      shopt -s nullglob
+      read -r -a _scan_files <<<"$GLOB_PATH"
+      shopt -u nullglob
+      if [[ "${#_scan_files[@]}" -gt 0 ]]; then
+        ssh_build_choices_from_files "${_scan_files[@]}"
+        if [[ "$COUNT" -gt 0 ]]; then
+          SEL=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT FOLDER KEYS" \
+            --checklist "Select key(s) to import:" 20 78 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
+          for tag in $SEL; do
+            tag="${tag%\"}"
+            tag="${tag#\"}"
+            line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
+            [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
+          done
+        else
+          whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "No keys found in: $GLOB_PATH" 8 60
+        fi
+      else
+        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Path/glob returned no files." 8 60
+      fi
+    fi
+    ;;
+  none) : ;;
+  esac
+
+  # Dedupe + sauberer EOF
+  if [[ -s "$SSH_KEYS_FILE" ]]; then
+    sort -u -o "$SSH_KEYS_FILE" "$SSH_KEYS_FILE"
+    printf '\n' >>"$SSH_KEYS_FILE"
   fi
 
-  # SSH aktivieren, wenn Quelle != none oder PW gesetzt
-  if [[ "$SSH_SOURCE" != "none" || "$PW" == -password* ]]; then
+  # SSH aktivieren, wenn Keys oder PW
+  if [[ -s "$SSH_KEYS_FILE" || "$PW" == -password* ]]; then
     if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable root SSH access?" 10 58); then
       SSH="yes"
     else
@@ -796,8 +869,7 @@ advanced_settings() {
   fi
   echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
 
-  export SSH_SOURCE SSH_AUTHORIZED_KEY SSH_IMPORT_FILES
-
+  export SSH_KEYS_FILE
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
     ENABLE_FUSE="yes"
   else
@@ -1444,72 +1516,74 @@ check_container_storage() {
   fi
 }
 
-install_ssh_keys_into_ct() {
-  [[ "$SSH" != "yes" ]] && return 0
-
-  local tmp
-  tmp="$(mktemp)" || return 1
-  local any=0
-  if [[ "$SSH_SOURCE" == "host" || "$SSH_SOURCE" == "both" ]]; then
-    if [[ -n "${SSH_IMPORT_FILES:-}" ]]; then
-      IFS=: read -r -a _files <<<"$SSH_IMPORT_FILES"
-      for f in "${_files[@]}"; do
-        [[ -r "$f" ]] || continue
-        tr -d '\r' <"$f" | awk '
-          /^[[:space:]]*#/ {next}
-          /^[[:space:]]*$/ {next}
-          # reine Keyzeile
-          /^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/ {print; next}
-          # authorized_keys mit Optionen
-          /^(command=|environment=|from=|no-agent-forwarding|no-port-forwarding|no-pty|no-user-rc|no-X11-forwarding|permitopen=|principals=|tunnel=)/ \
-            && /(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))/ {print}
-        ' >>"$tmp"
-        any=1
-      done
-    fi
-  fi
-
-  if [[ "$SSH_SOURCE" == "manual" || "$SSH_SOURCE" == "both" ]]; then
-    if [[ -n "${SSH_AUTHORIZED_KEY:-}" ]]; then
-      printf '%s\n' "$SSH_AUTHORIZED_KEY" | tr -d '\r' | awk '
-        /^[[:space:]]*#/ {next}
-        /^[[:space:]]*$/ {next}
-        /^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/ {print; next}
-        /^(command=|environment=|from=|no-agent-forwarding|no-port-forwarding|no-pty|no-user-rc|no-X11-forwarding|permitopen=|principals=|tunnel=)/ \
-          && /(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))/ {print}
-      ' >>"$tmp"
-      any=1
-    fi
-  fi
-
-  if [[ "$any" -eq 0 ]]; then
-    rm -f "$tmp"
-    msg_warn "No SSH keys to install (skipping)."
-    return 0
-  fi
-
-  # Dedupe + clean EOF
-  sort -u "$tmp" -o "$tmp"
-  printf '\n' >>"$tmp"
-
-  msg_info "Installing SSH keys into CT ${CTID}"
-  pct exec "$CTID" -- sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh' || {
-    msg_error "prepare /root/.ssh failed"
-    rm -f "$tmp"
-    return 1
-  }
-
-  if ! pct push "$CTID" "$tmp" /root/.ssh/authorized_keys >/dev/null 2>&1; then
-    pct exec "$CTID" -- sh -c "cat > /root/.ssh/authorized_keys" <"$tmp" || {
-      msg_error "write authorized_keys failed"
-      rm -f "$tmp"
-      return 1
+ssh_extract_keys_from_file() {
+  local f="$1"
+  [[ -r "$f" ]] || return 0
+  tr -d '\r' <"$f" | awk '
+    /^[[:space:]]*#/ {next}
+    /^[[:space:]]*$/ {next}
+    # nackt: typ base64 [comment]
+    /^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/ {print; next}
+    # mit Optionen: finde ab erstem Key-Typ
+    {
+      match($0, /(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/)
+      if (RSTART>0) { print substr($0, RSTART) }
     }
-  fi
+  '
+}
 
-  pct exec "$CTID" -- sh -c 'chmod 600 /root/.ssh/authorized_keys' || true
-  rm -f "$tmp"
-  msg_ok "Installed SSH keys into CT ${CTID}"
+ssh_build_choices_from_files() {
+  local -a files=("$@")
+  CHOICES=()
+  COUNT=0
+  MAPFILE="$(mktemp)"
+  local id key typ fp cmt base ln=0
+
+  for f in "${files[@]}"; do
+    [[ -f "$f" && -r "$f" ]] || continue
+    base="$(basename -- "$f")"
+    case "$base" in
+    known_hosts | known_hosts.* | config) continue ;;
+    id_*) [[ "$f" != *.pub ]] && continue ;;
+    esac
+
+    # jede Key-Zeile mappen -> K<N>|<key>
+    while IFS= read -r key; do
+      [[ -n "$key" ]] || continue
+
+      # Fingerprint/Type/Comment hübsch machen (best effort)
+      typ=""
+      fp=""
+      cmt=""
+      # Nur der pure Key-Teil (ohne Optionen) ist schon in 'key' enthalten
+      read -r _typ _b64 _cmt <<<"$key"
+      typ="${_typ:-key}"
+      cmt="${_cmt:-}"
+      # Fingerprint via ssh-keygen (falls verfügbar)
+      if command -v ssh-keygen >/dev/null 2>&1; then
+        fp="$(printf '%s\n' "$key" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')"
+      fi
+      # Label kürzen
+      [[ ${#cmt} -gt 40 ]] && cmt="${cmt:0:37}..."
+
+      ln=$((ln + 1))
+      COUNT=$((COUNT + 1))
+      id="K${COUNT}"
+      echo "${id}|${key}" >>"$MAPFILE"
+      CHOICES+=("$id" "[$typ] ${fp:+$fp }${cmt:+$cmt }— ${base}" "OFF")
+    done < <(ssh_extract_keys_from_file "$f")
+  done
+}
+
+# Sucht Standard-Quellen (authorized_keys, *.pub, /etc/ssh/authorized_keys.d/*)
+ssh_discover_default_files() {
+  local -a cand=()
+  shopt -s nullglob
+  cand+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
+  cand+=(/root/.ssh/*.pub)
+  cand+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
+  shopt -u nullglob
+  printf '%s\0' "${cand[@]}"
 }
 
 start() {
