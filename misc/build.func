@@ -782,10 +782,9 @@ advanced_settings() {
   fi
 
   # --- SSH key provisioning (one dialog) ---
-  SSH_KEYS_FILE="$(mktemp)" # ausgewählte Keys landen hier (eine Datei, mehrere Zeilen)
+  SSH_KEYS_FILE="$(mktemp)"
   : >"$SSH_KEYS_FILE"
 
-  # 2.1 Default-Files finden und ggf. Auswahl anbieten
   IFS=$'\0' read -r -d '' -a _def_files < <(ssh_discover_default_files && printf '\0')
   ssh_build_choices_from_files "${_def_files[@]}"
   DEF_KEYS_COUNT="$COUNT"
@@ -806,9 +805,8 @@ advanced_settings() {
 
   case "$SSH_KEY_MODE" in
   found)
-    # Checkliste einzelner Keys
     SEL=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT HOST KEYS" \
-      --checklist "Select one or more keys to import:" 20 78 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
+      --checklist "Select one or more keys to import:" 20 20 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
     for tag in $SEL; do
       tag="${tag%\"}"
       tag="${tag#\"}"
@@ -825,7 +823,6 @@ advanced_settings() {
     GLOB_PATH="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
       --inputbox "Enter a folder or glob to scan (e.g. /root/.ssh/*.pub)" 10 72 --title "Scan Folder/Glob" 3>&1 1>&2 2>&3)"
     if [[ -n "$GLOB_PATH" ]]; then
-      # expandiere Globs
       shopt -s nullglob
       read -r -a _scan_files <<<"$GLOB_PATH"
       shopt -u nullglob
@@ -851,13 +848,13 @@ advanced_settings() {
   none) : ;;
   esac
 
-  # Dedupe + sauberer EOF
+  # Dedupe + clean EOF
   if [[ -s "$SSH_KEYS_FILE" ]]; then
     sort -u -o "$SSH_KEYS_FILE" "$SSH_KEYS_FILE"
     printf '\n' >>"$SSH_KEYS_FILE"
   fi
 
-  # SSH aktivieren, wenn Keys oder PW
+  # SSH activate, if keys found or password set
   if [[ -s "$SSH_KEYS_FILE" || "$PW" == -password* ]]; then
     if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable root SSH access?" 10 58); then
       SSH="yes"

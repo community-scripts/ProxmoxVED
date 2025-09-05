@@ -36,7 +36,6 @@ fetch_and_deploy_gh_release "leantime" "Leantime/leantime" "prebuild" "latest" "
 msg_info "Setup Leantime"
 chown -R www-data:www-data "/opt/leantime"
 chmod -R 750 "/opt/leantime"
-
 cat <<EOF >/etc/apache2/sites-enabled/000-default.conf
 <VirtualHost *:80>
   ServerAdmin webmaster@localhost
@@ -58,19 +57,17 @@ cat <<EOF >/etc/apache2/sites-enabled/000-default.conf
   CustomLog /var/log/apache2/access.log combined
 </VirtualHost>
 EOF
-
 mv "/opt/leantime/config/sample.env" "/opt/leantime/config/.env"
 sed -i -e "s|^LEAN_DB_DATABASE.*|LEAN_DB_DATABASE = '$DB_NAME'|" \
   -e "s|^LEAN_DB_USER.*|LEAN_DB_USER = '$DB_USER'|" \
   -e "s|^LEAN_DB_PASSWORD.*|LEAN_DB_PASSWORD = '$DB_PASS'|" \
   -e "s|^LEAN_SESSION_PASSWORD.*|LEAN_SESSION_PASSWORD = '$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)'|" \
   "/opt/leantime/config/.env"
-
 $STD a2enmod -q proxy_fcgi setenvif rewrite
 $STD a2enconf -q "php8.4-fpm"
 sed -i -e "s/^;extension.\(curl\|fileinfo\|gd\|intl\|ldap\|mbstring\|exif\|mysqli\|odbc\|openssl\|pdo_mysql\)/extension=\1/g" "/etc/php/8.4/apache2/php.ini"
 systemctl restart apache2
-msg_ok "Setup ${APPLICATION}"
+msg_ok "Setup leantime"
 
 motd_ssh
 customize
