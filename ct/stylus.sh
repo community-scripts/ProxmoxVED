@@ -45,7 +45,7 @@ function update_script() {
     msg_ok "Started $APP"
     msg_ok "Update Successful"
   else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}."
+    msg_ok "No update required. Latest version already installed."
   fi
   exit
 }
