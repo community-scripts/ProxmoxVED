@@ -31,7 +31,7 @@ function update_script() {
   setup_uv
 
   RELEASE=$(curl -fsSL https://api.github.com/repos/gelbphoenix/autocaliweb/releases/latest | jq '.tag_name' | sed 's/^"v//;s/"$//')
-  if [[ "${RELEASE}" != "$(cat ~/.autocaliweb 2>/dev/null)" ]] || [[ ! -f ~/.autocaliweb ]]; then
+  if check_for_gh_release "autocaliweb" "gelbphoenix/autocaliweb"; then
     msg_info "Stopping Services"
     systemctl stop autocaliweb metadata-change-detector acw-ingest-service acw-auto-zipper
     msg_ok "Stopped Services"
@@ -61,6 +61,7 @@ function update_script() {
     echo "${CALIBRE_RELEASE#v}" >/"$INSTALL_DIR"/CALIBRE_RELEASE
     sed 's/^/v/' ~/.autocaliweb >"$INSTALL_DIR"/ACW_RELEASE
     chown -R acw:acw "$INSTALL_DIR"
+    rm ~/autocaliweb_bkp.tar
     msg_ok "Updated $APP"
 
     msg_info "Starting Services"
@@ -68,8 +69,6 @@ function update_script() {
     msg_ok "Started Services"
 
     msg_ok "Updated Successfully"
-  else
-    msg_ok "Already up to date"
   fi
   exit
 }
