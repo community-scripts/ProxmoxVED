@@ -128,7 +128,7 @@ systemctl enable -q --now traefik
 msg_ok "Created Service"
 
 msg_info "Creating site templates"
-cat <<EOF >/etc/traefik/template.yaml.tpl
+cat <<'EOF' >/etc/traefik/template.yaml.tpl
 http:
   routers:
     ${hostname}:
@@ -144,7 +144,7 @@ http:
 EOF
 msg_ok: "Template Created"
 msg_info: "Creating Helper Scripts"
-cat <<EOF >/usr/bin/addsite
+cat <<'EOF' >/usr/bin/addsite
 #!/bin/bash
 
 function setup_site() {
@@ -164,7 +164,7 @@ function setup_site() {
 
 setup_site
 EOF
-cat <<EOF >/usr/bin/ensite
+cat <<'EOF' >/usr/bin/ensite
 #!/bin/bash
 
 function ensite() {
@@ -193,7 +193,7 @@ function ensite() {
 
 ensite
 EOF
-cat <<EOF >/usr/bin/dissite
+cat <<'EOF' >/usr/bin/dissite
 #!/bin/bash
 
 function dissite() {
@@ -223,7 +223,7 @@ function dissite() {
 dissite
 EOF
 
-cat <<EOF >/usr/bin/editsite
+cat <<'EOF' >/usr/bin/editsite
 #!/bin/bash
 
 function edit_site() {
