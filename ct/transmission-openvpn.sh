@@ -20,26 +20,25 @@ variables
 color
 catch_errors
 
-# this only updates openvpn-transmission, not influxdb or grafana, which are upgraded with apt
 function update_script() {
   header_info
   check_container_storage
   check_container_resources
-
   if [[ ! -d /opt/transmission-openvpn/ ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+  msg_info "Updating ${APP} LXC"
   if check_for_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn"; then
-
-      fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
-
-      msg_info "Setup transmission-openvpn"
-
-      msg_ok "Setup transmission-openvpn"
-      msg_ok "Updated Successfully"
-    fi
-    exit
+    msg_info "Update transmission-openvpn"
+    fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
+    msg_ok "Update transmission-openvpn"
+    msg_ok "Updated Successfully"
+  fi
+  $STD apt-get update
+  $STD apt-get -y upgrade
+  msg_ok "Updated ${APP} LXC"
+  exit
 }
 
 start

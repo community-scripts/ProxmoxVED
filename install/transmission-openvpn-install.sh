@@ -14,44 +14,42 @@ setting_up_container
 network_check
 update_os
 
-# Installing Dependencies
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
     dumb-init \
-    tzdata dnsutils iputils-ping ufw iproute2 \
-    openssh-client git jq curl wget unrar-free unzip bc systemd
-
+    tzdata \
+    dnsutils \
+    iputils-ping \
+    ufw \
+    iproute2 \
+    openssh-client \
+    git \
+    jq \
+    curl \
+    wget \
+    unrar-free \
+    unzip \
+    bc \
+    systemd 
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Transmission"
-# Blocking the automatic startup of all services
 mkdir -p /etc/systemd/system-preset
 echo "disable *" > /etc/systemd/system-preset/99-no-autostart.preset
 export DEBIAN_FRONTEND=noninteractive
-
-# Installing transmission
 $STD apt install -y transmission-daemon
-
-# Restoring normal systemd behavior
 rm -f /etc/systemd/system-preset/99-no-autostart.preset
 systemctl preset-all
-
-# Disabling and masking transmission so that it does not start either now or on boot
 systemctl disable --now transmission-daemon
 systemctl mask transmission-daemon
-
 msg_ok "Installed Transmission"
 
 msg_info "Installing Openvpn"
-
 $STD apt-get install -y openvpn
-
 msg_ok "Installed Openvpn"
 
 msg_info "Installing Privoxy"
-
 $STD apt-get install -y privoxy
-
 msg_ok "Installed Privoxy"
 
 msg_info "Installing ${APPLICATION}"
@@ -62,33 +60,24 @@ msg_ok "Installed ${APPLICATION}"
 msg_info "Support legacy IPTables commands"
 update-alternatives --set iptables /usr/sbin/iptables-legacy
 update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+msg_ok "Support legacy IPTables commands"
 
-msg_info "Installing WebUi"
-
+msg_info "Installing WebUI"
 mkdir -p /opt/transmission-ui
-cd /opt/transmission-ui || return
-
 wget -qO- https://github.com/killemov/Shift/archive/master.tar.gz | tar xz
 mv Shift-master /opt/transmission-ui/shift
-
 wget -qO- https://github.com/johman10/flood-for-transmission/releases/download/latest/flood-for-transmission.tar.gz | tar xz
 mv flood-for-transmission /opt/transmission-ui/flood
-
 wget -qO- https://github.com/Secretmapper/combustion/archive/release.tar.gz | tar xz
 mv combustion-release /opt/transmission-ui/combustion
-
 wget -qO- https://github.com/endor/kettu/archive/master.tar.gz | tar xz
 mv kettu-master /opt/transmission-ui/kettu
-
 wget -q https://github.com/6c65726f79/Transmissionic/releases/download/v1.8.0/Transmissionic-webui-v1.8.0.zip
 unzip -q Transmissionic-webui-v1.8.0.zip
 mv web /opt/transmission-ui/transmissionic
-rm -f Transmissionic-webui-v1.8.0.zip
-
-msg_ok "Installed WebUi"
+msg_ok "Installed WebUI"
 
 msg_info "Creating Service"
-
 OPENVPN_USERNAME=${OPENVPN_USERNAME:-}
 OPENVPN_PASSWORD=${OPENVPN_PASSWORD:-}
 OPENVPN_PROVIDER=${OPENVPN_PROVIDER:-}
@@ -183,33 +172,25 @@ Type=simple
 ExecStart=/usr/bin/dumb-init /opt/docker-transmission-openvpn/openvpn/start.sh
 Restart=on-failure
 RestartSec=5
-User=root
-Group=root
 EnvironmentFile=/opt/transmission-openvpn/.env
 
 [Install]
 WantedBy=multi-user.target
 EOF
-
-systemctl daemon-reload
-systemctl enable openvpn-custom.service
-systemctl start openvpn-custom.service
-
+systemctl enable --now -q openvpn-custom.service
 msg_ok "Created Service"
 
 msg_info "Creating Healthcheck"
-
 HEALTHCHECK_SCRIPT="/opt/docker-transmission-openvpn/scripts/healthcheck.sh"
 chmod +x "$HEALTHCHECK_SCRIPT"
 (crontab -l 2>/dev/null | grep -v "$HEALTHCHECK_SCRIPT"; echo "* * * * * $HEALTHCHECK_SCRIPT") | crontab -
-
 msg_ok "Created Healthcheck"
 
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
+rm -f Transmissionic-webui-v1.8.0.zip
 msg_ok "Cleaned"
