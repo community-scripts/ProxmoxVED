@@ -124,68 +124,68 @@ ExecReload=/bin/kill -USR1 \$MAINPID
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now traefik
+systemctl enable traefik.service
 msg_ok "Created Service"
 
 msg_info "Creating site templates"
-cat <<'EOF' >/etc/traefik/template.yaml.tpl
+cat <<EOF >/etc/traefik/template.yaml.tpl
 http:
   routers:
-    ${hostname}:
-      rule: Host(`${FQDN}`)
-      service: ${hostname}
+    \${hostname}:
+      rule: Host(`\${FQDN}`)
+      service: \${hostname}
       tls:
         certResolver: letsencrypt
   services:
-    ${hostname}:
+    \${hostname}:
       loadbalancer:
         servers:
-        - url: "${URL}"
+        - url: "\${URL}"
 EOF
-msg_ok: "Template Created"
-msg_info: "Creating Helper Scripts"
-cat <<'EOF' >/usr/bin/addsite
+msg_ok "Template Created"
+msg_info "Creating Helper Scripts"
+cat <<EOF >/usr/bin/addsite
 #!/bin/bash
 
 function setup_site() {
     hostname="$(whiptail --inputbox "Enter the hostname of the Site" 8 78 --title "Hostname" 3>&1 1>&2 2>&3)"
     exitstatus=$?
-    [[ "$exitstatus" = 1 ]] && return;
+    [[ "\$exitstatus" = 1 ]] && return;
     FQDN="$(whiptail --inputbox "Enter the FQDN of the Site" 8 78 --title "FQDN" 3>&1 1>&2 2>&3)"
     exitstatus=$?
-    [[ "$exitstatus" = 1 ]] && return;
+    [[ "\$exitstatus" = 1 ]] && return;
     URL="$(whiptail --inputbox "Enter the URL of the Site (For example http://192.168.x.x:8080)" 8 78 --title "URL" 3>&1 1>&2 2>&3)"
     exitstatus=$?
-    [[ "$exitstatus" = 1 ]] && return;
-    filename="/etc/traefik/sites-available/${hostname}.yaml"
+    [[ "\$exitstatus" = 1 ]] && return;
+    filename="/etc/traefik/sites-available/\${hostname}.yaml"
     export hostname FQDN URL
-    envsubst '${hostname} ${FQDN} ${URL}' < /etc/traefik/template.yaml.tpl > ${filename}
+    envsubst '\${hostname} \${FQDN} \${URL}' < /etc/traefik/template.yaml.tpl > \${filename}
 }
 
 setup_site
 EOF
-cat <<'EOF' >/usr/bin/ensite
+cat <<EOF >/usr/bin/ensite
 #!/bin/bash
 
 function ensite() {
     DIR="/etc/traefik/sites-available"
-    files=( "$DIR"/* )
+    files=( "\$DIR"/* )
 
     opts=()
-    for f in "${files[@]}"; do
-      name="${f##*/}"
-      opts+=( "$name" "" )
+    for f in "\${files[@]}"; do
+      name="\${f##*/}"
+      opts+=( "\$name" "" )
     done
 
     choice=$(whiptail \
       --title "Select an entry" \
       --menu "Choose a site" \
       20 60 12 \
-      "${opts[@]}" \
+      "\${opts[@]}" \
       3>&1 1>&2 2>&3)
 
-    if [ $? -eq 0 ]; then
-      ln -s $DIR/$choice /etc/traefik/conf.d
+    if [ \$? -eq 0 ]; then
+      ln -s \$DIR/\$choice /etc/traefik/conf.d
     else
       return
     fi
@@ -193,28 +193,28 @@ function ensite() {
 
 ensite
 EOF
-cat <<'EOF' >/usr/bin/dissite
+cat <<EOF >/usr/bin/dissite
 #!/bin/bash
 
 function dissite() {
     DIR="/etc/traefik/conf.d"
-    files=( "$DIR"/* )
+    files=( "\$DIR"/* )
 
     opts=()
-    for f in "${files[@]}"; do
-      name="${f##*/}"
-      opts+=( "$name" "" )
+    for f in "\${files[@]}"; do
+      name="\${f##*/}"
+      opts+=( "\$name" "" )
     done
 
     choice=$(whiptail \
       --title "Select an entry" \
       --menu "Choose a site" \
       20 60 12 \
-      "${opts[@]}" \
+      "\${opts[@]}" \
       3>&1 1>&2 2>&3)
 
-    if [ $? -eq 0 ]; then
-      rm $DIR/$choice
+    if [ \$? -eq 0 ]; then
+      rm \$DIR/\$choice
     else
       return
     fi
@@ -223,28 +223,28 @@ function dissite() {
 dissite
 EOF
 
-cat <<'EOF' >/usr/bin/editsite
+cat <<EOF >/usr/bin/editsite
 #!/bin/bash
 
 function edit_site() {
     DIR="/etc/traefik/sites-available"
-    files=( "$DIR"/* )
+    files=( "\$DIR"/* )
 
     opts=()
-    for f in "${files[@]}"; do
-      name="${f##*/}"
-      opts+=( "$name" "" )
+    for f in "\${files[@]}"; do
+      name="\${f##*/}"
+      opts+=( "\$name" "" )
     done
 
     choice=$(whiptail \
       --title "Select an entry" \
       --menu "Choose a site" \
       20 60 12 \
-      "${opts[@]}" \
+      "\${opts[@]}" \
       3>&1 1>&2 2>&3)
 
-    if [ $? -eq 0 ]; then
-      nano $DIR/$choice
+    if [ \$? -eq 0 ]; then
+      nano \$DIR/\$choice
     else
       return
     fi
