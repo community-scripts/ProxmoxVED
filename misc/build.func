@@ -1968,7 +1968,6 @@ EOF'
   fi
   msg_ok "Customized LXC Container"
   install_ssh_keys_into_ct
-  set -x
   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/dellthePROgrammer/ProxmoxVED/main/install/${var_install}.sh)"
 }
 
