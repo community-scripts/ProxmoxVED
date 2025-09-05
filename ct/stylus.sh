@@ -29,9 +29,7 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-
- RELEASE=$(curl -fsSL https://api.github.com/repos/mmastrac/stylus/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-  if [[ ! -f /opt/stylus/stylus_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/stylus/stylus_version.txt)" ]]; then
+  if check_for_gh_release "stylus" "mmastrac/stylus"; then
     msg_info "Stopping $APP"
     systemctl stop stylus
     msg_ok "Stopped $APP"
@@ -39,7 +37,7 @@ function update_script() {
     msg_info "Updating $APP"
     $STD rustup update
     $STD cargo install-update -a
-    $STD su -c "cargo install --list | grep 'stylus' | cut -d' ' -f2 | sed 's/^v//;s/:$//' > /opt/stylus/stylus_version.txt"
+    $STD su -c "cargo install --list | grep 'stylus' | cut -d' ' -f2 | sed 's/^v//;s/:$//' > ~/.stylus"
     msg_ok "Updated $APP"
 
     msg_info "Starting $APP"

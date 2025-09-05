@@ -30,20 +30,21 @@ msg_ok "Installed Rust"
 msg_info "Installing Stylus"
 $STD cargo install stylus
 $STD stylus init /opt/stylus/
-$STD su -c "cargo install --list | grep 'stylus' | cut -d' ' -f2 | sed 's/^v//;s/:$//' > /opt/stylus/stylus_version.txt"
+$STD su -c "cargo install --list | grep 'stylus' | cut -d' ' -f2 | sed 's/^v//;s/:$//' > ~/.stylus"
 msg_ok "Installed Stylus"
 
 msg_info "Creating service"
 
-cat >/etc/systemd/system/stylus.service <<EOF
+cat <<EOF >/etc/systemd/system/stylus.service
 [Unit]
-Description=Stylus
+Description=Stylus Service
 After=network.target
 
 [Service]
 Type=simple
 ExecStart=$HOME/.cargo/bin/stylus run /opt/stylus
 Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
