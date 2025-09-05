@@ -44,6 +44,7 @@ function update_script() {
 }
 
 start
+set -x
 build_container
 description
 
