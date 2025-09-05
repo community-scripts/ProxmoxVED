@@ -1,0 +1,47 @@
+{
+    "name": "ComfyUI",
+    "slug": "comfyui",
+    "categories": [
+        20
+    ],
+    "date_created": "2025-08-01",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8188,
+    "documentation": "https://github.com/comfyanonymous/ComfyUI",
+    "website": "https://www.comfy.org/",
+    "logo": "https://framerusercontent.com/images/3cNQMWKzIhIrQ5KErBm7dSmbd2w.png",
+    "description": "ComfyUI is a node-based interface and inference engine for generative AI. Users can combine various AI models and operations through nodes to achieve highly customizable and controllable content generation. ComfyUI is completely open source and can run on your local device",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/comfyui.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 8192,
+                "hdd": 25,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Application takes long time to install. Please be patient!",
+            "type": "warning"
+        },
+        {
+            "text": "Please check that you have installed the drivers for your GPU.",
+            "type": "info"
+        },
+        {
+            "text": "You can always skip manual configuration by using dynamic variables. For example: `comfyui_skip_user_config=\"Y|y\" comfyui_python_version_uv=\"3.12\" comfyui_python_args=\"--cpu\" comfyui_gpu_type=\"None|NVIDIA|AMD|Intel\" comfyui_index_url_nvidia=\"URL\" comfyui_index_url_amd=\"URL\" comfyui_index_url_intel=\"URL\" comfyui_manager_enabled=\"N|n\" bash -c \"$(curl -fsSL ...comfyui.sh)\"`",
+            "type": "info"
+        }
+    ]
+}
