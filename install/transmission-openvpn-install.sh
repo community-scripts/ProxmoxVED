@@ -72,17 +72,18 @@ msg_ok "Support legacy IPTables commands"
 
 msg_info "Installing WebUI"
 mkdir -p /opt/transmission-ui
-wget -qO- https://github.com/killemov/Shift/archive/master.tar.gz | tar xz
+curl -fsSL -o "Shift-master.tar.gz" "https://github.com/killemov/Shift/archive/master.tar.gz"
+tar xzf Shift-master.tar.gz
 mv Shift-master /opt/transmission-ui/shift
-wget -qO- https://github.com/johman10/flood-for-transmission/releases/download/latest/flood-for-transmission.tar.gz | tar xz
-mv flood-for-transmission /opt/transmission-ui/flood
-wget -qO- https://github.com/Secretmapper/combustion/archive/release.tar.gz | tar xz
-mv combustion-release /opt/transmission-ui/combustion
-wget -qO- https://github.com/endor/kettu/archive/master.tar.gz | tar xz
+curl -fsSL -o "kettu-master.tar.gz" "https://github.com/endor/kettu/archive/master.tar.gz"
+tar xzf kettu-master.tar.gz
 mv kettu-master /opt/transmission-ui/kettu
-wget -q https://github.com/6c65726f79/Transmissionic/releases/download/v1.8.0/Transmissionic-webui-v1.8.0.zip
-unzip -q Transmissionic-webui-v1.8.0.zip
-mv web /opt/transmission-ui/transmissionic
+fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "tarball" "latest" "/opt/flood-for-transmission"
+mv /opt/flood-for-transmission /opt/transmission-ui/flood
+fetch_and_deploy_gh_release "combustion" "Secretmapper/combustion" "tarball" "latest" "/opt/combustion"
+mv /opt/combustion /opt/transmission-ui/combustion
+fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "tarball" "latest" "/opt/transmissionic"
+mv /opt/transmissionic /opt/transmission-ui/transmissionic
 msg_ok "Installed WebUI"
 
 msg_info "Creating Service"
