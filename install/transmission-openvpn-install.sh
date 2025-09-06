@@ -163,6 +163,7 @@ customize
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
-rm -f Transmissionic-webui-v1.8.0.zip
-rm -rf /tmp/crontab.txt
+rm -f Shift-master.tar.gz
+rm -f kettu-master.tar.gz
+rm -f /tmp/crontab.txt
 msg_ok "Cleaned"
