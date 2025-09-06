@@ -149,7 +149,11 @@ msg_ok "Created Service"
 msg_info "Creating Healthcheck"
 HEALTHCHECK_SCRIPT="/etc/scripts/healthcheck.sh"
 chmod +x "$HEALTHCHECK_SCRIPT"
-(crontab -l 2>/dev/null | grep -v "$HEALTHCHECK_SCRIPT"; echo "* * * * * $HEALTHCHECK_SCRIPT") | crontab -
+mkdir -p /var/log
+cat > /tmp/crontab.txt <<EOF
+* * * * * "${HEALTHCHECK_SCRIPT}" >> /var/log/healthcheck.log 2>&1
+EOF
+crontab /tmp/crontab.txt
 msg_ok "Created Healthcheck"
 
 motd_ssh
@@ -159,4 +163,5 @@ msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 rm -f Transmissionic-webui-v1.8.0.zip
+rm -rf /tmp/crontab.txt
 msg_ok "Cleaned"
