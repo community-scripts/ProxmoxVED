@@ -55,9 +55,14 @@ msg_ok "Installed Privoxy"
 msg_info "Installing ${APPLICATION}"
 useradd -u 911 -U -d /config -s /usr/sbin/nologin abc
 fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
-chmod +x /opt/docker-transmission-openvpn/openvpn/*.sh || true
-chmod +x /opt/docker-transmission-openvpn/scripts/*.sh || true
-chmod +x /opt/docker-transmission-openvpn/privoxy/scripts/*.sh || true
+mkdir -p /etc/openvpn /etc/transmission /etc/scripts /opt/privoxy
+cp -r /opt/docker-transmission-openvpn/openvpn/* /etc/openvpn/
+cp -r /opt/docker-transmission-openvpn/transmission/* /etc/transmission/
+cp -r /opt/docker-transmission-openvpn/scripts/* /etc/scripts/
+cp -r /opt/docker-transmission-openvpn/privoxy/scripts/* /opt/privoxy/
+chmod +x /etc/openvpn/*.sh || true
+chmod +x /etc/scripts/*.sh || true
+chmod +x /opt/privoxy/*.sh || true
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Support legacy IPTables commands"
@@ -173,7 +178,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/dumb-init /opt/docker-transmission-openvpn/openvpn/start.sh
+ExecStart=/usr/bin/dumb-init /etc/openvpn/start.sh
 Restart=on-failure
 RestartSec=5
 EnvironmentFile=/opt/transmission-openvpn/.env
@@ -185,7 +190,7 @@ systemctl enable --now -q openvpn-custom.service
 msg_ok "Created Service"
 
 msg_info "Creating Healthcheck"
-HEALTHCHECK_SCRIPT="/opt/docker-transmission-openvpn/scripts/healthcheck.sh"
+HEALTHCHECK_SCRIPT="/etc/scripts/healthcheck.sh"
 chmod +x "$HEALTHCHECK_SCRIPT"
 (crontab -l 2>/dev/null | grep -v "$HEALTHCHECK_SCRIPT"; echo "* * * * * $HEALTHCHECK_SCRIPT") | crontab -
 msg_ok "Created Healthcheck"
