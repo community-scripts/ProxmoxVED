@@ -55,6 +55,9 @@ msg_ok "Installed Privoxy"
 msg_info "Installing ${APPLICATION}"
 useradd -u 911 -U -d /config -s /usr/sbin/nologin abc
 fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
+chmod +x /opt/docker-transmission-openvpn/openvpn/*.sh || true
+chmod +x /opt/docker-transmission-openvpn/scripts/*.sh || true
+chmod +x /opt/docker-transmission-openvpn/privoxy/scripts/*.sh || true
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Support legacy IPTables commands"
