@@ -1715,7 +1715,7 @@ EOF
   VAAPI_APPS=(
     "immich" "Channels" "Emby" "ErsatzTV" "Frigate" "Jellyfin"
     "Plex" "Scrypted" "Tdarr" "Unmanic" "Ollama" "FileFlows"
-    "Open WebUI" "Debian"
+    "Open WebUI" "Debian" "Tunarr"
   )
 
   is_vaapi_app=false
