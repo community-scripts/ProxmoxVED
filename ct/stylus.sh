@@ -7,9 +7,9 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 
 APP="Stylus"
 var_tags="${var_tags:-network}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-2048}"
-var_disk="${var_disk:-8}"
+var_cpu="${var_cpu:-1}"
+var_ram="${var_ram:-1024}"
+var_disk="${var_disk:-2}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -35,9 +35,8 @@ function update_script() {
     msg_ok "Stopped $APP"
 
     msg_info "Updating $APP"
-    $STD rustup update
-    $STD cargo install-update -a
-    $STD su -c "cargo install --list | grep 'stylus' | cut -d' ' -f2 | sed 's/^v//;s/:$//' > ~/.stylus"
+    fetch_and_deploy_gh_release "stylus" "mmastrac/stylus" "singlefile" "latest" "/usr/bin/" "*_linux_amd64"
+
     msg_ok "Updated $APP"
 
     msg_info "Starting $APP"

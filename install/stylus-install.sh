@@ -13,28 +13,14 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing dependencies"
-$STD apt-get install -y \
-  build-essential \
-  openssl \
-  libssl-dev \
-  pkg-config
-msg_ok "Installed dependencies"
-
-msg_info "Installing Rust"
-$STD su -c "curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y"
-$STD . "$HOME/.cargo/env"
-$STD cargo install cargo-update
-msg_ok "Installed Rust"
-
 msg_info "Installing Stylus"
-$STD cargo install stylus
+fetch_and_deploy_gh_release "stylus" "mmastrac/stylus" "singlefile" "latest" "/usr/bin/" "*_linux_amd64"
+
+msg_info "Configuring Stylus"
 $STD stylus init /opt/stylus/
-$STD su -c "cargo install --list | grep 'stylus' | cut -d' ' -f2 | sed 's/^v//;s/:$//' > ~/.stylus"
-msg_ok "Installed Stylus"
+msg_ok "Configured Stylus"
 
 msg_info "Creating service"
-
 cat <<EOF >/etc/systemd/system/stylus.service
 [Unit]
 Description=Stylus Service
@@ -42,7 +28,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=$HOME/.cargo/bin/stylus run /opt/stylus
+ExecStart=stylus run /opt/stylus/
 Restart=on-failure
 RestartSec=5
 
