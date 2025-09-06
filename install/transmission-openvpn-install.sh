@@ -119,6 +119,7 @@ HEALTH_CHECK_HOST=${HEALTH_CHECK_HOST:-google.com}
 SELFHEAL=${SELFHEAL:-false}
 LOCAL_NETWORK=${LOCAL_NETWORK:-}
 
+mkdir -p /opt/transmission-openvpn
 cat > "/opt/transmission-openvpn/.env" <<EOF
 OPENVPN_USERNAME="${OPENVPN_USERNAME}"
 OPENVPN_PASSWORD="${OPENVPN_PASSWORD}"
