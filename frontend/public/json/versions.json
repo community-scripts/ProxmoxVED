@@ -483,5 +483,10 @@
     "name": "Dolibarr/dolibarr",
     "version": "18.0.7",
     "date": "2025-07-03T08:57:21Z"
+  },
+  {
+    "name": "haugene/docker-transmission-openvpn",
+    "version": "v5.3.2",
+    "date": "2025-05-28T18:23:14Z"
   }
 ]
