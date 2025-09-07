@@ -30,14 +30,14 @@ msg_info "Installing Erlang and Elixir"
 
 mkdir -p /opt/livebook /data
 export HOME=/opt/livebook
-cd /opt/livebook || exit 1
+cd /opt/livebook
 
 curl -fsSO https://elixir-lang.org/install.sh
 $STD sh install.sh elixir@latest otp@latest
-RELEASE=$(curl -fsSL https://api.github.com/repos/livebook-dev/livebook/releases/latest | grep "tag_name" | awk -F'"' '{print $4}')
 
 ERLANG_VERSION=$(ls /opt/livebook/.elixir-install/installs/otp/ | head -n1)
 ELIXIR_VERSION=$(ls /opt/livebook/.elixir-install/installs/elixir/ | head -n1)
+LIVEBOOK_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c16)
 
 export ERLANG_BIN="/opt/livebook/.elixir-install/installs/otp/$ERLANG_VERSION/bin"
 export ELIXIR_BIN="/opt/livebook/.elixir-install/installs/elixir/$ELIXIR_VERSION/bin"
@@ -47,18 +47,8 @@ $STD mix local.hex --force
 $STD mix local.rebar --force
 $STD mix escript.install hex livebook --force
 
-msg_info "Setting Livebook password"
-LIVEBOOK_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c16)
-
-cat <<EOF > /opt/livebook/livebook.creds
-Livebook-Credentials
-Livebook Password: $LIVEBOOK_PASSWORD
-EOF
-msg_ok "Livebook password stored in /opt/livebook/livebook.creds"
-
 cat <<EOF > /opt/livebook/.env
 export HOME=/opt/livebook
-export LIVEBOOK_VERSION=$RELEASE
 export ERLANG_VERSION=$ERLANG_VERSION
 export ELIXIR_VERSION=$ELIXIR_VERSION
 export LIVEBOOK_PORT=8080
@@ -93,14 +83,17 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-msg_info "Setting ownership and permissions"
 chown -R livebook:livebook /opt/livebook /data
-msg_ok "Set ownership and permissions"
 
 systemctl enable -q --now livebook
 msg_ok "Installed Livebook"
 
-msg_ok "Installation completed successfully"
+msg_info "Saving Livebook credentials"
+cat <<EOF > /opt/livebook/livebook.creds
+Livebook-Credentials
+Livebook Password: $LIVEBOOK_PASSWORD
+EOF
+msg_ok "Livebook password stored in /opt/livebook/livebook.creds"
 
 motd_ssh
 customize

@@ -26,31 +26,28 @@ function update_script() {
 
   if [[ ! -f /opt/livebook/.mix/escripts/livebook ]]; then
     msg_error "No ${APP} Installation Found!"
-    exit 1
+    exit
   fi
 
-  msg_info "Checking for updates..."
-  RELEASE=$(curl -fsSL https://api.github.com/repos/livebook-dev/livebook/releases/latest | grep "tag_name" | awk -F'"' '{print $4}')
+  if check_for_gh_release "livebook" "livebook-dev/livebook"; then
+    msg_info "Stopping ${APP}"
+    systemctl stop livebook
+    msg_info "Service stopped"
 
-  if [[ "${RELEASE}" != "$(cat /opt/livebook/.livebook 2>/dev/null)" ]]; then
-    msg_info "Updating ${APP} LXC"
+    msg_info "Updating container"
     $STD apt-get update
     $STD apt-get -y upgrade
-    msg_ok "Updated ${APP} LXC"
+    msg_ok "Updated container"
 
-    msg_info "Updating ${APP} to ${RELEASE}"
+    msg_info "Updating ${APP}"
     source /opt/livebook/.env
-    cd /opt/livebook || exit 1
+    cd /opt/livebook
     $STD mix escript.install hex livebook --force
 
-    echo "$RELEASE" | $STD tee /opt/livebook/.livebook
     chown -R livebook:livebook /opt/livebook /data
-
-    msg_ok "Successfully updated to ${RELEASE}"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}."
+    systemctl start livebook
+    msg_ok "Updated ${APP}"
   fi
-
   exit
 }
 
@@ -58,7 +55,6 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
