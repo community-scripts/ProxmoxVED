@@ -147,16 +147,6 @@ EOF
 systemctl enable --now -q openvpn-custom.service
 msg_ok "Created Service"
 
-msg_info "Creating Healthcheck"
-HEALTHCHECK_SCRIPT="/etc/scripts/healthcheck.sh"
-chmod +x "$HEALTHCHECK_SCRIPT"
-mkdir -p /var/log
-cat > /tmp/crontab.txt <<EOF
-* * * * * "${HEALTHCHECK_SCRIPT}" >> /var/log/healthcheck.log 2>&1
-EOF
-crontab /tmp/crontab.txt
-msg_ok "Created Healthcheck"
-
 motd_ssh
 customize
 
@@ -166,5 +156,4 @@ $STD apt-get -y autoclean
 rm -rf /opt/docker-transmission-openvpn
 rm -f Shift-master.tar.gz
 rm -f kettu-master.tar.gz
-rm -f /tmp/crontab.txt
 msg_ok "Cleaned"

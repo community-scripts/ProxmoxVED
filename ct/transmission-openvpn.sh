@@ -84,7 +84,6 @@ function update_script() {
   rm -rf /opt/docker-transmission-openvpn
   rm -f Shift-master.tar.gz
   rm -f kettu-master.tar.gz
-  rm -f /tmp/crontab.txt
   msg_ok "Cleaned"
 
   exit
