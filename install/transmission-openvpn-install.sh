@@ -163,6 +163,7 @@ customize
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
+rm -rf /opt/docker-transmission-openvpn
 rm -f Shift-master.tar.gz
 rm -f kettu-master.tar.gz
 rm -f /tmp/crontab.txt
