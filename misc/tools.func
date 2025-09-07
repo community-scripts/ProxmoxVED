@@ -163,19 +163,18 @@ function setup_postgresql() {
     if [[ "$CURRENT_PG_VERSION" == "$PG_VERSION" ]]; then
       : # PostgreSQL is already at the desired version – no action needed
     else
-      msg_info "Detected PostgreSQL $CURRENT_PG_VERSION, preparing upgrade to $PG_VERSION"
+      $STD msg_info "Detected PostgreSQL $CURRENT_PG_VERSION, preparing upgrade to $PG_VERSION"
       NEED_PG_INSTALL=true
     fi
   else
-    msg_info "Setup PostgreSQL $PG_VERSION"
     NEED_PG_INSTALL=true
   fi
 
   if [[ "$NEED_PG_INSTALL" == true ]]; then
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
-      msg_info "Dumping PostgreSQL $CURRENT_PG_VERSION data"
+      $STD msg_info "Dumping PostgreSQL $CURRENT_PG_VERSION data"
       su - postgres -c "pg_dumpall > /var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql"
-      msg_ok "Data dump completed"
+      $STD msg_ok "Data dump completed"
 
       systemctl stop postgresql
     fi
@@ -188,29 +187,24 @@ function setup_postgresql() {
 
     echo "deb https://apt.postgresql.org/pub/repos/apt ${DISTRO}-pgdg main" \
       >/etc/apt/sources.list.d/pgdg.list
-    $STD msg_ok "Repository added"
-
     $STD apt-get update
+    $STD msg_ok "Repository added"
 
     msg_info "Setup PostgreSQL $PG_VERSION"
     $STD apt-get install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}"
-    msg_ok "Setup PostgreSQL $PG_VERSION"
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
       $STD apt-get purge -y "postgresql-${CURRENT_PG_VERSION}" "postgresql-client-${CURRENT_PG_VERSION}" || true
     fi
-
-    $STD msg_info "Starting PostgreSQL $PG_VERSION"
     systemctl enable -q --now postgresql
-    $STD msg_ok "PostgreSQL $PG_VERSION started"
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
-      msg_info "Restoring dumped data"
+      $STD msg_info "Restoring dumped data"
       su - postgres -c "psql < /var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql"
-      msg_ok "Data restored"
+      $STD msg_ok "Data restored"
     fi
 
-    msg_ok "PostgreSQL $PG_VERSION installed"
+    $STD msg_ok "PostgreSQL $PG_VERSION installed"
   fi
 
   # Install optional PostgreSQL modules
@@ -218,13 +212,13 @@ function setup_postgresql() {
     IFS=',' read -ra MODULES <<<"$PG_MODULES"
     for module in "${MODULES[@]}"; do
       local pkg="postgresql-${PG_VERSION}-${module}"
-      msg_info "Setup PostgreSQL module/s: $pkg"
+      $STD msg_info "Setup PostgreSQL module/s: $pkg"
       $STD apt-get install -y "$pkg" || {
         msg_error "Failed to install $pkg"
         continue
       }
     done
-    msg_ok "Setup PostgreSQL modules"
+    $STD msg_ok "Setup PostgreSQL modules"
   fi
 }
 
@@ -305,7 +299,19 @@ setup_mariadb() {
       echo "mariadb-server-$ver mariadb-server/feedback boolean false" | debconf-set-selections
     done
   fi
-  DEBIAN_FRONTEND=noninteractive $STD apt-get install -y mariadb-server mariadb-client
+  DEBIAN_FRONTEND=noninteractive $STD apt-get install -y mariadb-server mariadb-client || {
+    msg_warn "Failed to install MariaDB ${MARIADB_VERSION} from upstream repo – trying distro package as fallback..."
+    # Cleanup, remove upstream repo to avoid conflicts
+    rm -f /etc/apt/sources.list.d/mariadb.list /etc/apt/trusted.gpg.d/mariadb.gpg
+    $STD apt-get update
+    # Final fallback: distro package
+    DEBIAN_FRONTEND=noninteractive $STD apt-get install -y mariadb-server mariadb-client || {
+      msg_error "MariaDB installation failed even with distro fallback!"
+      return 1
+    }
+    msg_ok "Setup MariaDB (distro fallback)"
+    return 0
+  }
 
   msg_ok "Setup MariaDB $MARIADB_VERSION"
 }
@@ -385,24 +391,6 @@ function setup_mysql() {
 #   PHP_MAX_EXECUTION_TIME     - (default: 300)
 # ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
-# Installs PHP with selected modules and configures Apache/FPM support.
-#
-# Description:
-#   - Adds Sury PHP repo if needed
-#   - Installs default and user-defined modules
-#   - Patches php.ini for CLI, Apache, and FPM as needed
-#
-# Variables:
-#   PHP_VERSION                - PHP version to install (default: 8.4)
-#   PHP_MODULE                 - Additional comma-separated modules
-#   PHP_APACHE                 - Set YES to enable PHP with Apache
-#   PHP_FPM                    - Set YES to enable PHP-FPM
-#   PHP_MEMORY_LIMIT           - (default: 512M)
-#   PHP_UPLOAD_MAX_FILESIZE    - (default: 128M)
-#   PHP_POST_MAX_SIZE          - (default: 128M)
-#   PHP_MAX_EXECUTION_TIME     - (default: 300)
-# ------------------------------------------------------------------------------
 function setup_php() {
   local PHP_VERSION="${PHP_VERSION:-8.4}"
   local PHP_MODULE="${PHP_MODULE:-}"
@@ -901,68 +889,56 @@ function fetch_and_deploy_gh_release() {
     local assets url_match=""
     assets=$(echo "$json" | jq -r '.assets[].browser_download_url')
 
-    echo "[DEBUG] Listing all available assets from release:"
-    for u in $assets; do
-      echo "  -> $u"
-    done
-
-    # 1. Pattern match
+    # If explicit filename pattern is provided (param $6), match that first
     if [[ -n "$asset_pattern" ]]; then
       for u in $assets; do
-        filename_candidate="${u##*/}"
-        if [[ "$filename_candidate" == *"$asset_pattern"* ]]; then
+        case "${u##*/}" in
+        $asset_pattern)
           url_match="$u"
           break
-        fi
+          ;;
+        esac
       done
     fi
 
-    # 2. Arch match (only if no pattern match)
+    # If no match via explicit pattern, fall back to architecture heuristic
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
-        filename_candidate="${u##*/}"
-        echo "  [DEBUG] Checking asset: $filename_candidate"
-        if [[ "$filename_candidate" == *"$arch"* && "$filename_candidate" == *.deb ]]; then
+        if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
           url_match="$u"
           break
         fi
       done
     fi
 
-    # 3. Fallback
+    # Fallback: any .deb file
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
-        filename_candidate="${u##*/}"
-        if [[ "$filename_candidate" == *.deb ]]; then
-          url_match="$u"
-          break
-        fi
+        [[ "$u" =~ \.deb$ ]] && url_match="$u" && break
       done
     fi
 
     if [[ -z "$url_match" ]]; then
-      echo "[DEBUG] ❌ No suitable .deb asset found!"
+      msg_error "No suitable .deb asset found for $app"
       rm -rf "$tmpdir"
       return 1
     fi
 
-    echo "[DEBUG] Final selected asset: $url_match"
     filename="${url_match##*/}"
-
     curl $download_timeout -fsSL -o "$tmpdir/$filename" "$url_match" || {
-      echo "[DEBUG] ❌ Download failed: $url_match"
+      msg_error "Download failed: $url_match"
       rm -rf "$tmpdir"
       return 1
     }
 
     chmod 644 "$tmpdir/$filename"
-    if ! $STD apt-get install -y "$tmpdir/$filename"; then
-      if ! $STD dpkg -i "$tmpdir/$filename"; then
-        echo "[DEBUG] ❌ Both apt and dpkg installation failed"
+    $STD apt-get install -y "$tmpdir/$filename" || {
+      $STD dpkg -i "$tmpdir/$filename" || {
+        msg_error "Both apt and dpkg installation failed"
         rm -rf "$tmpdir"
         return 1
-      fi
-    fi
+      }
+    }
 
   ### Prebuild Mode ###
   elif [[ "$mode" == "prebuild" ]]; then
@@ -1283,8 +1259,20 @@ function setup_uv() {
   local UV_TAR
 
   case "$ARCH" in
-  x86_64) UV_TAR="uv-x86_64-unknown-linux-gnu.tar.gz" ;;
-  aarch64) UV_TAR="uv-aarch64-unknown-linux-gnu.tar.gz" ;;
+  x86_64)
+    if grep -qi "alpine" /etc/os-release; then
+      UV_TAR="uv-x86_64-unknown-linux-musl.tar.gz"
+    else
+      UV_TAR="uv-x86_64-unknown-linux-gnu.tar.gz"
+    fi
+    ;;
+  aarch64)
+    if grep -qi "alpine" /etc/os-release; then
+      UV_TAR="uv-aarch64-unknown-linux-musl.tar.gz"
+    else
+      UV_TAR="uv-aarch64-unknown-linux-gnu.tar.gz"
+    fi
+    ;;
   *)
     msg_error "Unsupported architecture: $ARCH"
     rm -rf "$TMP_DIR"
@@ -1339,7 +1327,11 @@ function setup_uv() {
   }
 
   rm -rf "$TMP_DIR"
-  ensure_usr_local_bin_persist
+  #ensure_usr_local_bin_persist
+  $STD uv python update-shell || {
+    msg_error "Failed to update uv shell integration"
+    return 1
+  }
   msg_ok "Setup uv $LATEST_VERSION"
 
   # Optional: install specific Python version
@@ -1408,7 +1400,7 @@ function setup_gs() {
     return
   fi
 
-  msg_info "Setup Ghostscript $LATEST_VERSION_DOTTED"
+  msg_info "Setup Ghostscript $LATEST_VERSION_DOTTED (Patience)"
   curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${LATEST_VERSION}/ghostscript-${LATEST_VERSION_DOTTED}.tar.gz" -o "$TMP_DIR/ghostscript.tar.gz"
 
   if ! tar -xzf "$TMP_DIR/ghostscript.tar.gz" -C "$TMP_DIR"; then
@@ -1422,7 +1414,9 @@ function setup_gs() {
     rm -rf "$TMP_DIR"
   }
   $STD apt-get install -y build-essential libpng-dev zlib1g-dev
-  ./configure >/dev/null && make && sudo make install >/dev/null
+  $STD ./configure >/dev/null
+  $STD make
+  $STD sudo make install
   local EXIT_CODE=$?
   hash -r
   if [[ ! -x "$(command -v gs)" ]]; then
@@ -2007,9 +2001,30 @@ EOF
   fi
 }
 
-check_for_update() {
+# ------------------------------------------------------------------------------
+# Checks for new GitHub release (latest tag).
+#
+# Description:
+#   - Queries the GitHub API for the latest release tag
+#   - Compares it to a local cached version (~/.<app>)
+#   - If newer, sets global CHECK_UPDATE_RELEASE and returns 0
+#
+# Usage:
+#   check_for_gh_release "AppName" "user/repo"
+#   if [[ $? -eq 0 ]]; then
+#     echo "New version available: $CHECK_UPDATE_RELEASE"
+#     # trigger update...
+#   fi
+#
+# Notes:
+#   - Requires `jq` (auto-installed if missing)
+#   - Does not modify anything, only checks version state
+#   - Does not support pre-releases
+# ------------------------------------------------------------------------------
+check_for_gh_release() {
   local app="$1"
   local source="$2"
+  local pinned_version="${3:-}"   # optional
   local current_file="$HOME/.${app,,}"
 
   msg_info "Check for update: ${app}"
@@ -2029,12 +2044,9 @@ check_for_update() {
   fi
 
   # get latest release
-  local release
+local release
   release=$(curl -fsSL "https://api.github.com/repos/${source}/releases/latest" |
     jq -r '.tag_name' | sed 's/^v//')
-
-  # DEBUG
-  #echo "[DEBUG] Latest release fetched: '${release}'"
 
   if [[ -z "$release" ]]; then
     msg_error "Unable to determine latest release for ${app}"
@@ -2042,20 +2054,29 @@ check_for_update() {
   fi
 
   local current=""
-  if [[ -f "$current_file" ]]; then
-    current=$(<"$current_file")
+  [[ -f "$current_file" ]] && current=$(<"$current_file")
+
+  # PINNED Releases
+  if [[ -n "$pinned_version" ]]; then
+    if [[ "$pinned_version" == "$release" ]]; then
+      msg_ok "${app} pinned to v${pinned_version} (no update needed)"
+      return 1
+    else
+      if [[ "$current" == "$pinned_version" ]]; then
+        msg_ok "${app} pinned to v${pinned_version} (already installed, upstream v${release})"
+        return 1
+      fi
+      msg_info "${app} pinned to v${pinned_version} (upstream v${release}) → update/downgrade required"
+      CHECK_UPDATE_RELEASE="$pinned_version"
+      return 0
+    fi
   fi
 
-  # DEBUG
-  #echo "[DEBUG] Current file: '${current_file}'"
-  #echo "[DEBUG] Current version read: '${current}'"
-
   if [[ "$release" != "$current" ]] || [[ ! -f "$current_file" ]]; then
-    #echo "[DEBUG] Decision: Update required (release='${release}' current='${current}')"
     CHECK_UPDATE_RELEASE="$release"
+    msg_info "New release available: v${release} (current: v${current:-none})"
     return 0
   else
-    #echo "[DEBUG] Decision: No update (release='${release}' current='${current}')"
     msg_ok "${app} is up to date (v${release})"
     return 1
   fi

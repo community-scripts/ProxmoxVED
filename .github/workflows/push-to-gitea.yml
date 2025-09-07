@@ -27,13 +27,13 @@ jobs:
      - name: Pull Gitea changes
        run: |
          git fetch gitea
-         git rebase gitea/main
+         git merge --strategy=ours gitea/main
        env:
          GITEA_USER: ${{ secrets.GITEA_USERNAME }}
          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
       
      - name: Push to Gitea
-       run: git push gitea --all
+       run: git push gitea main --force
        env:
          GITEA_USER: ${{ secrets.GITEA_USERNAME }}
          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}

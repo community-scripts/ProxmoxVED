@@ -142,16 +142,6 @@ function check_root() {
   fi
 }
 
-function pve_check() {
-  if ! pveversion | grep -Eq "pve-manager/8\.[1-4](\.[0-9]+)*"; then
-    msg_error "${CROSS}${RD}This version of Proxmox Virtual Environment is not supported"
-    echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
-}
-
 function arch_check() {
   if [ "$(dpkg --print-architecture)" != "amd64" ]; then
     echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
@@ -184,8 +174,8 @@ function exit-script() {
 function default_settings() {
   BRANCH="$stable"
   VMID=$(get_valid_nextid)
-  FORMAT=",efitype=4m"
-  MACHINE=""
+  FORMAT=",efitype=4m,pre-enrolled-keys=0"
+  MACHINE=" -machine q35"
   DISK_CACHE="cache=writethrough,"
   HN="haos$stable"
   CPU_TYPE=" -cpu host"
@@ -198,11 +188,11 @@ function default_settings() {
   START_VM="yes"
   METHOD="default"
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}Write Through${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
-  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
+  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
   echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
   echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
@@ -246,16 +236,16 @@ function advanced_settings() {
   done
 
   if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Type" 10 58 2 \
-    "i440fx" "Machine i440fx" ON \
-    "q35" "Machine q35" OFF \
+    "i440fx" "Machine i440fx" OFF \
+    "q35" "Machine q35" ON \
     3>&1 1>&2 2>&3); then
     if [ $MACH = q35 ]; then
       echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
-      FORMAT=""
+      FORMAT=",efitype=4m,pre-enrolled-keys=0"
       MACHINE=" -machine q35"
     else
       echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
-      FORMAT=",efitype=4m"
+      FORMAT=",efitype=4m,pre-enrolled-keys=0"
       MACHINE=""
     fi
   else
@@ -421,11 +411,13 @@ function start_script() {
 
 check_root
 arch_check
-pve_check
 ssh_check
 start_script
 
 post_to_api_vm
+
+qm set socket 105 -serial0
+qm set serial0 <VMID >-vga
 
 msg_info "Validating Storage"
 while read -r line; do
@@ -486,7 +478,7 @@ btrfs | local-zfs)
   DISK_EXT=".raw"
   DISK_REF="$VMID/"
   DISK_IMPORT="-format raw"
-  FORMAT=",efitype=4m"
+  FORMAT=",efitype=4m,pre-enrolled-keys=0"
   THIN=""
   ;;
 esac
@@ -506,6 +498,8 @@ qm set $VMID \
   -efidisk0 ${DISK0_REF}${FORMAT} \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=32G \
   -boot order=scsi0 >/dev/null
+
+qm set $VMID -serial0 socket >/dev/null
 
 DESCRIPTION=$(
   cat <<EOF

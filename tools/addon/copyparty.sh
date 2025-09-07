@@ -3,6 +3,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Source: https://github.com/9001/copyparty
 
 function header_info() {
   clear
@@ -37,7 +38,6 @@ SVC_GROUP="copyparty"
 SRC_URL="https://github.com/9001/copyparty/releases/latest/download/copyparty-sfx.py"
 DEFAULT_PORT=3923
 
-# OS Detection
 if [[ -f "/etc/alpine-release" ]]; then
   OS="Alpine"
   PKG_MANAGER="apk add --no-cache"
@@ -57,14 +57,14 @@ function msg_info() { echo -e "${INFO} ${YW}$1...${CL}"; }
 function msg_ok() { echo -e "${CM} ${GN}$1${CL}"; }
 function msg_error() { echo -e "${CROSS} ${RD}$1${CL}"; }
 
-# User/Group/Dirs
 function setup_user_and_dirs() {
   msg_info "Creating $SVC_USER user and directories"
   if ! id "$SVC_USER" &>/dev/null; then
     if [[ "$OS" == "Debian" ]]; then
       useradd -r -s /sbin/nologin -d "$DATA_PATH" "$SVC_USER"
     else
-      adduser -D -H -h "$DATA_PATH" -s /sbin/nologin "$SVC_USER"
+      addgroup -S "$SVC_GROUP" 2>/dev/null || true
+      adduser -S -D -H -G "$SVC_GROUP" -h "$DATA_PATH" -s /sbin/nologin "$SVC_USER" 2>/dev/null || true
     fi
   fi
   mkdir -p "$DATA_PATH" "$LOG_PATH"
@@ -96,7 +96,6 @@ function update_copyparty() {
   exit 0
 }
 
-# --- Existing Install/Update/Uninstall Check ---
 if [[ -f "$BIN_PATH" ]]; then
   echo -e "${YW}⚠️ $APP is already installed.${CL}"
   echo -n "Uninstall $APP? (y/N): "
@@ -115,7 +114,6 @@ if [[ -f "$BIN_PATH" ]]; then
   fi
 fi
 
-# --- Deps ---
 msg_info "Installing dependencies"
 if [[ "$OS" == "Debian" ]]; then
   $PKG_MANAGER python3 curl &>/dev/null
@@ -124,17 +122,14 @@ else
 fi
 msg_ok "Dependencies installed"
 
-# --- User/Dirs ---
 setup_user_and_dirs
 
-# --- Download Binary ---
 msg_info "Downloading $APP"
 curl -fsSL "$SRC_URL" -o "$BIN_PATH"
 chmod +x "$BIN_PATH"
 chown "$SVC_USER:$SVC_GROUP" "$BIN_PATH"
 msg_ok "Downloaded to $BIN_PATH"
 
-# --- Config: Interaktiv, Auth, Rootdir, Port ---
 echo -n "Enter port for $APP (default: $DEFAULT_PORT): "
 read -r PORT
 PORT=${PORT:-$DEFAULT_PORT}
@@ -162,74 +157,85 @@ else
   msg_ok "Configured with admin user: $ADMIN_USER"
 fi
 
-# --- Generate /etc/copyparty.conf ---
 msg_info "Writing config to $CONF_PATH"
-cat <<EOF >/etc/copyparty.conf
-[global]
-  p: $PORT
-  ansi
-  e2dsa
-  e2ts
-  theme: 2
-  grid
-
-[accounts]
-  $ADMIN_USER: $ADMIN_PASS
-
-[/]
-  $USER_DATA_PATH
-  accs:
-    rw: *
-    rwmda: $ADMIN_USER
-EOF
+msg_info "Writing config to $CONF_PATH"
+{
+  echo "[global]"
+  echo "  p: $PORT"
+  echo "  ansi"
+  echo "  e2dsa"
+  echo "  e2ts"
+  echo "  theme: 2"
+  echo "  grid"
+  echo
+  if [[ -n "$ADMIN_USER" && -n "$ADMIN_PASS" ]]; then
+    echo "[accounts]"
+    echo "  $ADMIN_USER: $ADMIN_PASS"
+    echo
+  fi
+  echo "[/]"
+  echo "  $USER_DATA_PATH"
+  echo "  accs:"
+  if [[ -n "$ADMIN_USER" ]]; then
+    echo "    rw: *"
+    echo "    rwmda: $ADMIN_USER"
+  else
+    echo "    rw: *"
+  fi
+} >"$CONF_PATH"
 
 chmod 640 "$CONF_PATH"
 chown "$SVC_USER:$SVC_GROUP" "$CONF_PATH"
 msg_ok "Config written"
 
-# --- Systemd/OpenRC Service ---
 msg_info "Creating service"
 if [[ "$OS" == "Debian" ]]; then
   cat <<EOF >"$SERVICE_PATH_DEB"
 [Unit]
-Description=CopyParty file server
+Description=Copyparty file server
+After=network.target
 
 [Service]
-Type=simple
 User=$SVC_USER
 Group=$SVC_GROUP
-WorkingDirectory=$USER_DATA_PATH
-Environment=PYTHONUNBUFFERED=x
-LogsDirectory=copyparty
-ExecStart=/usr/bin/python3 $BIN_PATH -c $CONF_PATH
+WorkingDirectory=$DATA_PATH
+ExecStart=/usr/bin/python3 /usr/local/bin/copyparty-sfx.py -c /etc/copyparty.conf
 Restart=always
+StandardOutput=append:/var/log/copyparty/copyparty.log
+StandardError=append:/var/log/copyparty/copyparty.err
 
 [Install]
 WantedBy=multi-user.target
 EOF
-  systemctl daemon-reload
-  systemctl enable --now copyparty &>/dev/null
-else
-  cat <<EOF >"$SERVICE_PATH_ALP"
+
+  systemctl enable -q --now copyparty
+
+elif [[ "$OS" == "Alpine" ]]; then
+  cat <<'EOF' >"$SERVICE_PATH_ALP"
 #!/sbin/openrc-run
 
-command="/usr/bin/python3"
-command_args="$BIN_PATH -c $CONF_PATH"
+name="copyparty"
+description="Copyparty file server"
+
+command="$(command -v python3)"
+command_args="/usr/local/bin/copyparty-sfx.py -c /etc/copyparty.conf"
 command_background=true
-directory="$USER_DATA_PATH"
-pidfile="$USER_DATA_PATH/copyparty.pid"
+directory="/var/lib/copyparty"
+pidfile="/run/copyparty.pid"
+output_log="/var/log/copyparty/copyparty.log"
+error_log="/var/log/copyparty/copyparty.err"
 
 depend() {
     need net
 }
 EOF
+
   chmod +x "$SERVICE_PATH_ALP"
-  rc-update add copyparty default &>/dev/null
-  rc-service copyparty start &>/dev/null
+  rc-update add copyparty default >/dev/null 2>&1
+  rc-service copyparty restart >/dev/null 2>&1
 fi
 msg_ok "Service created and started"
 
-# IP detection (as root, maybe interface up/loopback fallback)
 IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
 IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
 [[ -z "$IP" ]] && IP=$(hostname -I | awk '{print $1}')

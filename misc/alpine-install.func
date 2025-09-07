@@ -83,6 +83,7 @@ network_check() {
 update_os() {
   msg_info "Updating Container OS"
   $STD apk update && $STD apk upgrade
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-tools.func)
   msg_ok "Updated Container OS"
 }
 

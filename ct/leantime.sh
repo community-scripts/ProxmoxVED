@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Stroopwafe1
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -25,16 +24,31 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /opt/${APP} ]]; then
+  if [[ ! -d /opt/leantime ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  msg_info "Creating Backup"
-  mariadb-dump leantime >"/opt/${APP}_db_backup_$(date +%F).sql"
-  tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" "/opt/${APP}"
-  msg_ok "Backup Created"
-  fetch_and_deploy_gh_release "$APP" "Leantime/leantime" "prebuild" "latest" "/opt/${APP}" Leantime-v[0-9].[0-9].[0-9].tar.gz
+  if check_for_gh_release "leantime" "Leantime/leantime"; then
+    msg_info "Creating Backup"
+    mariadb-dump leantime >"/opt/${APP}_db_backup_$(date +%F).sql"
+    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" "/opt/${APP}"
+    mv /opt/leantime /opt/leantime_bak
+    msg_ok "Backup Created"
+
+    fetch_and_deploy_gh_release "leantime" "Leantime/leantime" "prebuild" "latest" "/opt/leantime" Leantime*.tar.gz
+
+    msg_info "Restoring Config & Permissions"
+    mv /opt/leantime_bak/config/.env /opt/leantime/config/.env
+    chown -R www-data:www-data "/opt/leantime"
+    chmod -R 750 "/opt/leantime"
+    msg_ok "Restored Config & Permissions"
+
+    msg_info "Removing Backup"
+    rm -rf /opt/leantime_bak
+    msg_ok "Removed Backup"
+    msg_ok "Updated Successfully"
+  fi
   exit
 }
 

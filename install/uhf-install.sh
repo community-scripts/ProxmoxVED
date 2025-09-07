@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-setup_ffmpeg
+$STD apt install -y ffmpeg
 msg_ok "Installed Dependencies"
 
 msg_info "Setting Up UHF Server Environment"
@@ -34,9 +34,8 @@ fetch_and_deploy_gh_release "comskip" "swapplications/comskip" "prebuild" "lates
 fetch_and_deploy_gh_release "uhf-server" "swapplications/uhf-server-dist" "prebuild" "latest" "/opt/uhf-server" "UHF.Server-linux-x64-*.zip"
 
 msg_info "Creating Service"
-service_path=""
 cat <<EOF >/etc/systemd/system/uhf-server.service
-echo "[Unit]
+[Unit]
 Description=UHF Server service
 After=syslog.target network-online.target
 [Service]
@@ -47,7 +46,7 @@ ExecStart=/opt/uhf-server/uhf-server
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable --now -q uhf-server.service
+systemctl enable -q --now uhf-server
 msg_ok "Created Service"
 
 motd_ssh

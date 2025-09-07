@@ -15,28 +15,28 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    lsb-release \
-    ca-certificates \
-    acl \
-    fping \
-    graphviz \
-    imagemagick \
-    mtr-tiny \
-    nginx \
-    nmap \
-    rrdtool \
-    snmp \
-    snmpd
+  lsb-release \
+  ca-certificates \
+  acl \
+  fping \
+  graphviz \
+  imagemagick \
+  mtr-tiny \
+  nginx \
+  nmap \
+  rrdtool \
+  snmp \
+  snmpd
 msg_ok "Installed Dependencies"
 
-PHP_VERSION=8.2 PHP_FPM=YES PHP_APACHE=NO PHP_MODULE="gmp,mysql,snmp" setup_php
+PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="gmp,mysql,snmp" setup_php
 setup_mariadb
 setup_composer
-setup_uv
+PYTHON_VERSION="3.13" setup_uv
 
 msg_info "Installing Python"
 $STD apt-get install -y \
-    python3-{dotenv,pymysql,redis,setuptools,systemd,pip}
+  python3-{dotenv,pymysql,redis,setuptools,systemd,pip}
 msg_ok "Installed Python"
 
 msg_info "Configuring Database"
@@ -47,16 +47,17 @@ $STD mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE 
 $STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 $STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-    echo "LibreNMS-Credentials"
-    echo "LibreNMS Database User: $DB_USER"
-    echo "LibreNMS Database Password: $DB_PASS"
-    echo "LibreNMS Database Name: $DB_NAME"
+  echo "LibreNMS-Credentials"
+  echo "LibreNMS Database User: $DB_USER"
+  echo "LibreNMS Database Password: $DB_PASS"
+  echo "LibreNMS Database Name: $DB_NAME"
 } >>~/librenms.creds
 msg_ok "Configured Database"
 
-msg_info "Setup Librenms"
+fetch_and_deploy_gh_release "LibreNMS" "librenms/librenms"
+
+msg_info "Configuring LibreNMS"
 $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
-fetch_and_deploy_gh_release "librenms/librenms"
 setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
 cd /opt/librenms
@@ -72,7 +73,7 @@ chown -R librenms:librenms /opt/librenms
 chmod 771 /opt/librenms
 setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 chmod -R ug=rwX /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
-msg_ok "Setup LibreNMS"
+msg_ok "Configured LibreNMS"
 
 msg_info "Configure MariaDB"
 sed -i "/\[mysqld\]/a innodb_file_per_table=1\nlower_case_table_names=0" /etc/mysql/mariadb.conf.d/50-server.cnf
@@ -147,7 +148,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -f $tmp_file
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
