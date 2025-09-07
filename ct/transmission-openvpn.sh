@@ -32,16 +32,13 @@ function update_script() {
   msg_info "Updating Transmission Web UIs"
   rm -rf /opt/transmission-ui/*
   if check_for_gh_release "flood-for-transmission" "johman10/flood-for-transmission"; then
-    fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "tarball" "latest" "/opt/flood-for-transmission"
-    mv /opt/flood-for-transmission /opt/transmission-ui/flood
+    fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "tarball" "latest" "/opt/transmission-ui/flood-for-transmission"
   fi
   if check_for_gh_release "combustion" "Secretmapper/combustion"; then
-    fetch_and_deploy_gh_release "combustion" "Secretmapper/combustion" "tarball" "latest" "/opt/combustion"
-    mv /opt/combustion /opt/transmission-ui/combustion
+    fetch_and_deploy_gh_release "combustion" "Secretmapper/combustion" "tarball" "latest" "/opt/transmission-ui/combustion"
   fi
   if check_for_gh_release "transmissionic" "6c65726f79/Transmissionic"; then
-    fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "tarball" "latest" "/opt/transmissionic"
-    mv /opt/transmissionic /opt/transmission-ui/transmissionic
+    fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "tarball" "latest" "/opt/transmission-ui/transmissionic"
   fi
   curl -fsSL -o "Shift-master.tar.gz" "https://github.com/killemov/Shift/archive/master.tar.gz"
   tar xzf Shift-master.tar.gz

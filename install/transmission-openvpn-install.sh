@@ -78,12 +78,9 @@ mv Shift-master /opt/transmission-ui/shift
 curl -fsSL -o "kettu-master.tar.gz" "https://github.com/endor/kettu/archive/master.tar.gz"
 tar xzf kettu-master.tar.gz
 mv kettu-master /opt/transmission-ui/kettu
-fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "tarball" "latest" "/opt/flood-for-transmission"
-mv /opt/flood-for-transmission /opt/transmission-ui/flood
-fetch_and_deploy_gh_release "combustion" "Secretmapper/combustion" "tarball" "latest" "/opt/combustion"
-mv /opt/combustion /opt/transmission-ui/combustion
-fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "tarball" "latest" "/opt/transmissionic"
-mv /opt/transmissionic /opt/transmission-ui/transmissionic
+fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "tarball" "latest" "/opt/transmission-ui/flood-for-transmission"
+fetch_and_deploy_gh_release "combustion" "Secretmapper/combustion" "tarball" "latest" "/opt/transmission-ui/combustion"
+fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "tarball" "latest" "/opt/transmission-ui/transmissionic"
 msg_ok "Installed WebUI"
 
 msg_info "Creating Service"
