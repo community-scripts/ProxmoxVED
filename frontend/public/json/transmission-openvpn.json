@@ -31,5 +31,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "This application requires a VPN provider to work. Please refer to your VPN provider’s documentation for setting up OpenVPN.",
+      "type": "warning"
+    }
+  ]
 }
