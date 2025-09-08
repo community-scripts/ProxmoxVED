@@ -78,9 +78,11 @@ mv Shift-master /opt/transmission-ui/shift
 curl -fsSL -o "kettu-master.tar.gz" "https://github.com/endor/kettu/archive/master.tar.gz"
 tar xzf kettu-master.tar.gz
 mv kettu-master /opt/transmission-ui/kettu
-fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "tarball" "latest" "/opt/transmission-ui/flood-for-transmission"
-fetch_and_deploy_gh_release "combustion" "Secretmapper/combustion" "tarball" "latest" "/opt/transmission-ui/combustion"
-fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "tarball" "latest" "/opt/transmission-ui/transmissionic"
+curl -fsSL -o "combustion-release.tar.gz" "https://github.com/Secretmapper/combustion/archive/release.tar.gz"
+tar xzf combustion-release.tar.gz
+mv combustion-release /opt/transmission-ui/combustion-release
+fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "prebuild" "latest" "/opt/transmission-ui/transmissionic" "Transmissionic-webui-v1.8.0.zip"
+fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "prebuild" "latest" "/opt/transmission-ui/flood-for-transmission" "flood-for-transmission.tar.gz"
 msg_ok "Installed WebUI"
 
 msg_info "Creating Service"
@@ -153,4 +155,5 @@ $STD apt-get -y autoclean
 rm -rf /opt/docker-transmission-openvpn
 rm -f Shift-master.tar.gz
 rm -f kettu-master.tar.gz
+rm -f combustion-release.tar.gz
 msg_ok "Cleaned"

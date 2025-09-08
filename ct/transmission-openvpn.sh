@@ -30,16 +30,21 @@ function update_script() {
   fi
   
   msg_info "Updating Transmission Web UIs"
-  rm -rf /opt/transmission-ui/*
   if check_for_gh_release "flood-for-transmission" "johman10/flood-for-transmission"; then
-    fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "tarball" "latest" "/opt/transmission-ui/flood-for-transmission"
+    rm -rf /opt/transmission-ui/flood-for-transmission
+    fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "prebuild" "latest" "/opt/transmission-ui/flood-for-transmission" "flood-for-transmission.tar.gz"
   fi
   if check_for_gh_release "combustion" "Secretmapper/combustion"; then
-    fetch_and_deploy_gh_release "combustion" "Secretmapper/combustion" "tarball" "latest" "/opt/transmission-ui/combustion"
+    rm -rf /opt/transmission-ui/combustion-release
+    curl -fsSL -o "combustion-release.tar.gz" "https://github.com/Secretmapper/combustion/archive/release.tar.gz"
+    tar xzf combustion-release.tar.gz
+    mv combustion-release /opt/transmission-ui/combustion-release 
   fi
   if check_for_gh_release "transmissionic" "6c65726f79/Transmissionic"; then
-    fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "tarball" "latest" "/opt/transmission-ui/transmissionic"
+    rm -rf /opt/transmission-ui/transmissionic
+    fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "prebuild" "latest" "/opt/transmission-ui/transmissionic" "Transmissionic-webui-v1.8.0.zip"
   fi
+  rm -rf /opt/transmission-ui/shift /opt/transmission-ui/kettu
   curl -fsSL -o "Shift-master.tar.gz" "https://github.com/killemov/Shift/archive/master.tar.gz"
   tar xzf Shift-master.tar.gz
   mv Shift-master /opt/transmission-ui/shift
@@ -90,6 +95,7 @@ function update_script() {
   rm -rf /opt/docker-transmission-openvpn
   rm -f Shift-master.tar.gz
   rm -f kettu-master.tar.gz
+  rm -f combustion-release.tar.gz
   msg_ok "Cleaned"
 
   exit
