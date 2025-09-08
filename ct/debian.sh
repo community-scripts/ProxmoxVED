@@ -6,7 +6,7 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 # Source: https://www.debian.org/
 
 APP="Debian"
-var_tags="${var_tags:-os}"
+var_tags="${var_tags:-}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-15}"
