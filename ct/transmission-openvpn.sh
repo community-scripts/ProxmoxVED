@@ -58,6 +58,11 @@ function update_script() {
     systemctl stop openvpn-custom
     msg_ok "Stopped $APP"
 
+    msg_info "Saving Custom Configs"
+    mv /etc/openvpn/custom /opt/transmission-openvpn/
+    rm -f /opt/transmission-openvpn/config-failure.sh
+    msg_ok "Saved Custom Configs"
+
     msg_info "Updating ${APP} LXC"
     fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
     rm -rf /etc/openvpn/* /etc/transmission/* /etc/scripts/* /opt/privoxy/*
@@ -69,6 +74,10 @@ function update_script() {
     chmod +x /etc/scripts/*.sh || true
     chmod +x /opt/privoxy/*.sh || true
     msg_ok "Updated ${APP} LXC"
+
+    msg_info "Restoring Custom Configs"
+    cp -r /opt/transmission-openvpn/custom/* /etc/openvpn/custom/
+    msg_ok "Restored Custom Configs"
 
     msg_info "Starting $APP"
     systemctl start openvpn-custom
