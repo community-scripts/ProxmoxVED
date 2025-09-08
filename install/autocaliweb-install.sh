@@ -46,7 +46,7 @@ $STD apt-get install -y --no-install-recommends \
 msg_ok "Installed dependencies"
 
 fetch_and_deploy_gh_release "kepubify" "pgaskin/kepubify" "singlefile" "latest" "/usr/bin" "kepubify-linux-64bit"
-KEPUB_VERSION="$(/usr/bin/kepubify --version)"
+KEPUB_VERSION="$(/usr/bin/kepubify --version | awk '{print $2}')"
 
 msg_info "Installing Calibre"
 CALIBRE_RELEASE="$(curl -s https://api.github.com/repos/kovidgoyal/calibre/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)"
