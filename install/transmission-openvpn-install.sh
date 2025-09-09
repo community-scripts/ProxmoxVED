@@ -70,6 +70,7 @@ cp -r /opt/docker-transmission-openvpn/privoxy/scripts/* /opt/privoxy/
 chmod +x /etc/openvpn/*.sh || true
 chmod +x /etc/scripts/*.sh || true
 chmod +x /opt/privoxy/*.sh || true
+ln -s /usr/bin/transmission-daemon /usr/local/bin/transmission-daemon
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Support legacy IPTables commands"
