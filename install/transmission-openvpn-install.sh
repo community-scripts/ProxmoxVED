@@ -49,7 +49,14 @@ $STD apt-get install -y openvpn
 msg_ok "Installed Openvpn"
 
 msg_info "Installing Privoxy"
+mkdir -p /etc/systemd/system-preset
+echo "disable *" > /etc/systemd/system-preset/99-no-autostart.preset
+export DEBIAN_FRONTEND=noninteractive
 $STD apt-get install -y privoxy
+rm -f /etc/systemd/system-preset/99-no-autostart.preset
+systemctl preset-all
+systemctl disable --now privoxy
+systemctl mask privoxy
 msg_ok "Installed Privoxy"
 
 msg_info "Installing ${APPLICATION}"
