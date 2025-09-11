@@ -28,20 +28,19 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "telegraf" "influxdb/telegraf"; then
-    msg_info "Stopping $APP"
-    systemctl stop telegraf
-    msg_ok "Stopped $APP"
+  msg_info "Stopping $APP"
+  systemctl stop telegraf
+  msg_ok "Stopped $APP"
 
-    msg_info "Updating ${APP}"
-    apt-get update
-    apt-get upgrade telegraf -y
-    msg_ok "Updated ${APP}"
+  msg_info "Updating $APP"
+  apt-get update
+  apt-get upgrade telegraf -y
+  msg_ok "Updated $APP"
 
-    msg_info "Starting $APP"
-    systemctl start telegraf
-    msg_ok "Started $APP"
-    msg_ok "Updated Successfully"
+  msg_info "Starting $APP"
+  systemctl start telegraf
+  msg_ok "Started $APP"
+  msg_ok "Updated Successfully"
   fi
   exit
 }
