@@ -47,9 +47,10 @@ msg_ok "Set up PostgreSQL Database"
 
 fetch_and_deploy_gh_release "joplin-server" "laurent22/joplin" "tarball" "latest"
 
-msg_info "Setup Joplin Server (Patience)"
+msg_info "Setting up Joplin Server (Patience)"
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 cd /opt/joplin-server
+sed -i "/onenote-converter/d" packages/lib/package.json
 $STD yarn config set --home enableTelemetry 0
 export BUILD_SEQUENCIAL=1
 $STD yarn install --inline-builds
@@ -59,8 +60,8 @@ APP_BASE_URL=http://$LOCAL_IP:22300
 APP_PORT=22300
 DB_CLIENT=pg
 POSTGRES_PASSWORD=$DB_PASS
-POSTGRES_DATABASE=joplin
-POSTGRES_USER=joplin
+POSTGRES_DATABASE=$DB_NAME
+POSTGRES_USER=$DB_USER
 POSTGRES_PORT=5432
 POSTGRES_HOST=localhost
 EOF
