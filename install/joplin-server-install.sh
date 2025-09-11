@@ -23,10 +23,10 @@ PG_VERSION="16" setup_postgresql
 NODE_VERSION=22 NODE_MODULE="yarn@latest,npm@latest,pm2@latest" setup_nodejs
 mkdir -p /opt/pm2
 export PM2_HOME=/opt/pm2
-pm2 install pm2-logrotate
-pm2 set pm2-logrotate:max_size 100MB
-pm2 set pm2-logrotate:retain 5
-pm2 set pm2-logrotate:compress tr
+$STD pm2 install pm2-logrotate
+$STD pm2 set pm2-logrotate:max_size 100MB
+$STD pm2 set pm2-logrotate:retain 5
+$STD pm2 set pm2-logrotate:compress tr
 
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=joplin
