@@ -189,11 +189,11 @@ wget -q http://download.tensorflow.org/models/object_detection/ssdlite_mobilenet
 $STD tar -zxvf ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz --no-same-owner
 $STD python3 /opt/frigate/docker/main/build_ov_model.py
 #cp -r /opt/frigate/models/public/ssdlite_mobilenet_v2 openvino-model
-mkdir /openvino-model
-cp -r /models/ssdlite_mobilenet_v2.xml openvino-model/
-cp -r /models/ssdlite_mobilenet_v2.bin openvino-model/
-wget -q https://github.com/openvinotoolkit/open_model_zoo/raw/master/data/dataset_classes/coco_91cl_bkgr.txt -O openvino-model/coco_91cl_bkgr.txt
-sed -i 's/truck/car/g' openvino-model/coco_91cl_bkgr.txt
+mkdir -p /openvino-model
+cp -r /models/ssdlite_mobilenet_v2.xml /openvino-model/
+cp -r /models/ssdlite_mobilenet_v2.bin /openvino-model/
+wget -q https://github.com/openvinotoolkit/open_model_zoo/raw/master/data/dataset_classes/coco_91cl_bkgr.txt -O /openvino-model/coco_91cl_bkgr.txt
+sed -i 's/truck/car/g' /openvino-model/coco_91cl_bkgr.txt
 msg_ok "Downloaded OpenVino Model"
 
 # Optional model to test
