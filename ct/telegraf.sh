@@ -41,7 +41,6 @@ function update_script() {
   systemctl start telegraf
   msg_ok "Started $APP"
   msg_ok "Updated Successfully"
-  fi
   exit
 }
 
