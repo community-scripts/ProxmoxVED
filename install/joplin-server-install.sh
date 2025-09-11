@@ -69,7 +69,7 @@ POSTGRES_HOST=localhost
 EOF
 msg_ok "Setup Joplin Server"
 
-msg_info "Setup Service"
+msg_info "Setting up Service"
 cat <<EOF >/etc/systemd/system/joplin-server.service
 [Unit]
 Description=Joplin Server Service
