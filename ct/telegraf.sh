@@ -33,8 +33,8 @@ function update_script() {
   msg_ok "Stopped $APP"
 
   msg_info "Updating $APP"
-  apt-get update
-  apt-get upgrade telegraf -y
+  $STD apt-get update
+  $STD apt-get upgrade telegraf -y
   msg_ok "Updated $APP"
 
   msg_info "Starting $APP"
