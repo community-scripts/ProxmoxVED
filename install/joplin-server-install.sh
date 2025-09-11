@@ -56,6 +56,8 @@ export BUILD_SEQUENCIAL=1
 $STD yarn install --inline-builds
 
 cat <<EOF >/opt/joplin-server/.env
+PM2_HOME=/opt/pm2
+NODE_ENV=production
 APP_BASE_URL=http://$LOCAL_IP:22300
 APP_PORT=22300
 DB_CLIENT=pg
@@ -75,7 +77,7 @@ After=network.target
 
 [Service]
 Type=simple
-Directory=/opt/joplin-server/packages/server
+WorkingDirectory=/opt/joplin-server/packages/server
 EnvironmentFile=/opt/joplin-server/.env
 ExecStart=/usr/bin/yarn start-prod
 Restart=on-failure
