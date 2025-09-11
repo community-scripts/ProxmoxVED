@@ -115,6 +115,12 @@ $STD install -c -m 644 libusb-1.0.pc '/usr/local/lib/pkgconfig'
 ldconfig
 msg_ok "Built libUSB"
 
+msg_info "Installing Pip"
+wget -q https://bootstrap.pypa.io/get-pip.py -O get-pip.py
+sed -i 's/args.append("setuptools")/args.append("setuptools==77.0.3")/' get-pip.py
+$STD python3 get-pip.py "pip"
+msg_ok "Installed Pip"
+
 msg_info "Installing Frigate Dependencies"
 $STD update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 $STD pip3 install -r /opt/frigate/docker/main/requirements.txt
@@ -173,9 +179,6 @@ $STD pip3 install -U /wheels/*.whl
 msg_ok "Built HailoRT"
 
 msg_info "Installing OpenVino Runtime and Dev library"
-wget -q https://bootstrap.pypa.io/get-pip.py -O get-pip.py
-sed -i 's/args.append("setuptools")/args.append("setuptools==77.0.3")/' get-pip.py
-$STD python3 get-pip.py "pip"
 $STD pip3 install -r /opt/frigate/docker/main/requirements-ov.txt
 msg_ok "Installed OpenVino Runtime and Dev library"
 
