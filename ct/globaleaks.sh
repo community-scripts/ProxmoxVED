@@ -28,9 +28,6 @@ function update_script() {
     fi
 
     msg_info "Updating $APP LXC"
-    $STD bash <(curl -fsSL https://deb.globaleaks.org//install.sh) -y
-
-    $STD sh -c 'echo "deb [signed-by=/etc/apt/trusted.gpg.d/globaleaks.gpg] http://deb.globaleaks.org $(lsb_release -sc) main" > /etc/apt/sources.list.d/globaleaks.list'
     $STD apt-get update
     $STD apt-get -y upgrade
 
