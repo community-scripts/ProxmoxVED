@@ -13,7 +13,9 @@ network_check
 update_os
 
 msg_info "Setup GlobaLeaks"
-$STD bash <(curl -fsSL https://deb.globaleaks.org//install.sh) -y
+$STD sh -c 'echo "deb [signed-by=/etc/apt/trusted.gpg.d/globaleaks.gpg] http://deb.globaleaks.org $(lsb_release -sc) main" > /etc/apt/sources.list.d/globaleaks.list'
+$STD apt-get update
+$STD apt-get -y install globaleaks
 msg_ok "Setup GlobaLeaks"
 
 motd_ssh
