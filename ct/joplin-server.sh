@@ -28,42 +28,17 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/laurent22/joplin/releases/latest | jq '.tag_name' | sed 's/^"v//;s/"$//')
   if check_for_gh_release "joplin-server" "laurent22/joplin"; then
     msg_info "Stopping Services"
     systemctl stop joplin-server
     msg_ok "Stopped Services"
 
-    INSTALL_DIR="/opt/autocaliweb"
-    export VIRTUAL_ENV="${INSTALL_DIR}/venv"
-    $STD tar -cf ~/autocaliweb_bkp.tar "$INSTALL_DIR"/{metadata_change_logs,dirs.json,.env,scripts/ingest_watcher.sh,scripts/auto_zipper_wrapper.sh,scripts/metadata_change_detector_wrapper.sh}
-    fetch_and_deploy_gh_release "autocaliweb" "gelbphoenix/autocaliweb" "tarball" "latest" "/opt/autocaliweb"
     msg_info "Updating ${APP}"
-    cd "$INSTALL_DIR"
-    if [[ ! -d "$VIRTUAL_ENV" ]]; then
-      $STD uv venv "$VIRTUAL_ENV"
-    fi
-    $STD uv sync --all-extras --active
-    cd "$INSTALL_DIR"/koreader/plugins
-    PLUGIN_DIGEST="$(find acwsync.koplugin -type f -name "*.lua" -o -name "*.json" | sort | xargs sha256sum | sha256sum | cut -d' ' -f1)"
-    echo "Plugin files digest: $PLUGIN_DIGEST" >acwsync.koplugin/${PLUGIN_DIGEST}.digest
-    echo "Build date: $(date)" >>acwsync.koplugin/${PLUGIN_DIGEST}.digest
-    echo "Files included:" >>acwsync.koplugin/${PLUGIN_DIGEST}.digest
-    $STD zip -r koplugin.zip acwsync.koplugin/
-    cp -r koplugin.zip "$INSTALL_DIR"/cps/static
-    mkdir -p "$INSTALL_DIR"/metadata_temp
-    $STD tar -xf ~/autocaliweb_bkp.tar --directory /
-    KEPUB_VERSION="$(/usr/bin/kepubify --version)"
-    CALIBRE_RELEASE="$(curl -s https://api.github.com/repos/kovidgoyal/calibre/releases/latest | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)"
-    echo "${KEPUB_VERSION#v}" >"$INSTALL_DIR"/KEPUBIFY_RELEASE
-    echo "${CALIBRE_RELEASE#v}" >/"$INSTALL_DIR"/CALIBRE_RELEASE
-    sed 's/^/v/' ~/.autocaliweb >"$INSTALL_DIR"/ACW_RELEASE
-    chown -R acw:acw "$INSTALL_DIR"
-    rm ~/autocaliweb_bkp.tar
+
     msg_ok "Updated $APP"
 
     msg_info "Starting Services"
-    systemctl start autocaliweb metadata-change-detector acw-ingest-service acw-auto-zipper
+    systemctl start joplin-server
     msg_ok "Started Services"
 
     msg_ok "Updated Successfully"
@@ -78,4 +53,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8083${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:22300${CL}"
