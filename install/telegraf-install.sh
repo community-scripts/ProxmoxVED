@@ -29,16 +29,11 @@ apt-get update
 apt-get install telegraf
 msg_ok "Installed Telegraf"
 
-msg_info "Creating default config"
-telegraf config > telegraf.conf
-msg_ok "Created default config"
-
-systemctl enable -q --now telegraf
-
 motd_ssh
 customize
 
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
+rm /influxdata-archive.key
 msg_ok "Cleaned"
