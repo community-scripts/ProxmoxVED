@@ -4,7 +4,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Author: Giovanni `evilaliv3` Pellerano
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/globaleaks/globaleaks-whistleblowing-software
-## App Default Values
+
 APP="GlobaLeaks"
 var_tags="${var_tags:-whistleblowing-software}"
 var_disk="${var_disk:-4}"
