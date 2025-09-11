@@ -21,12 +21,12 @@ gpg --show-keys --with-fingerprint --with-colons ./influxdata-archive.key 2>&1 \
 | gpg --dearmor \
 | tee /etc/apt/keyrings/influxdata-archive.gpg > /dev/null \
 && echo 'deb [signed-by=/etc/apt/keyrings/influxdata-archive.gpg] https://repos.influxdata.com/debian stable main' \
-| tee /etc/apt/sources.list.d/influxdata.list
+| tee /etc/apt/sources.list.d/influxdata.list > /dev/null
 msg_ok "Added Telegraf Repository"
 
 msg_info "Installing Telegraf"
-apt-get update
-apt-get install telegraf
+$STD apt-get update
+$STD apt-get install telegraf
 msg_ok "Installed Telegraf"
 
 motd_ssh
