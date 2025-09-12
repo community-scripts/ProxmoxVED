@@ -19,7 +19,7 @@ $STD apt-get install -y \
   rsync
 msg_ok "Installed Dependencies"
 
-PG_VERSION="16" setup_postgresql
+PG_VERSION="17" setup_postgresql
 NODE_VERSION=22 NODE_MODULE="yarn@latest,npm@latest,pm2@latest" setup_nodejs
 mkdir -p /opt/pm2
 export PM2_HOME=/opt/pm2
