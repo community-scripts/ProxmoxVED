@@ -28,31 +28,7 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  
-  msg_info "Updating Transmission Web UIs"
-  if check_for_gh_release "flood-for-transmission" "johman10/flood-for-transmission"; then
-    rm -rf /opt/transmission-ui/flood-for-transmission
-    fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "prebuild" "latest" "/opt/transmission-ui/flood-for-transmission" "flood-for-transmission.tar.gz"
-  fi
-  if check_for_gh_release "combustion" "Secretmapper/combustion"; then
-    rm -rf /opt/transmission-ui/combustion-release
-    curl -fsSL -o "combustion-release.tar.gz" "https://github.com/Secretmapper/combustion/archive/release.tar.gz"
-    tar xzf combustion-release.tar.gz
-    mv combustion-release /opt/transmission-ui/combustion-release 
-  fi
-  if check_for_gh_release "transmissionic" "6c65726f79/Transmissionic"; then
-    rm -rf /opt/transmission-ui/transmissionic
-    fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "prebuild" "latest" "/opt/transmission-ui/transmissionic" "Transmissionic-webui-v1.8.0.zip"
-  fi
-  rm -rf /opt/transmission-ui/shift /opt/transmission-ui/kettu
-  curl -fsSL -o "Shift-master.tar.gz" "https://github.com/killemov/Shift/archive/master.tar.gz"
-  tar xzf Shift-master.tar.gz
-  mv Shift-master /opt/transmission-ui/shift
-  curl -fsSL -o "kettu-master.tar.gz" "https://github.com/endor/kettu/archive/master.tar.gz"
-  tar xzf kettu-master.tar.gz
-  mv kettu-master /opt/transmission-ui/kettu
-  msg_ok "Updated Transmission Web UIs"
-  
+
   msg_info "Updating Dependencies"
   $STD apt-get update
   $STD apt-get -y upgrade
@@ -93,9 +69,6 @@ function update_script() {
   $STD apt-get -y autoremove
   $STD apt-get -y autoclean
   rm -rf /opt/docker-transmission-openvpn
-  rm -f Shift-master.tar.gz
-  rm -f kettu-master.tar.gz
-  rm -f combustion-release.tar.gz
   msg_ok "Cleaned"
 
   exit

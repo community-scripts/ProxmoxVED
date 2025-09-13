@@ -78,21 +78,6 @@ update-alternatives --set iptables /usr/sbin/iptables-legacy
 update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
 msg_ok "Support legacy IPTables commands"
 
-msg_info "Installing WebUI"
-mkdir -p /opt/transmission-ui
-curl -fsSL -o "Shift-master.tar.gz" "https://github.com/killemov/Shift/archive/master.tar.gz"
-tar xzf Shift-master.tar.gz
-mv Shift-master /opt/transmission-ui/shift
-curl -fsSL -o "kettu-master.tar.gz" "https://github.com/endor/kettu/archive/master.tar.gz"
-tar xzf kettu-master.tar.gz
-mv kettu-master /opt/transmission-ui/kettu
-curl -fsSL -o "combustion-release.tar.gz" "https://github.com/Secretmapper/combustion/archive/release.tar.gz"
-tar xzf combustion-release.tar.gz
-mv combustion-release /opt/transmission-ui/combustion-release
-fetch_and_deploy_gh_release "transmissionic" "6c65726f79/Transmissionic" "prebuild" "latest" "/opt/transmission-ui/transmissionic" "Transmissionic-webui-v1.8.0.zip"
-fetch_and_deploy_gh_release "flood-for-transmission" "johman10/flood-for-transmission" "prebuild" "latest" "/opt/transmission-ui/flood-for-transmission" "flood-for-transmission.tar.gz"
-msg_ok "Installed WebUI"
-
 msg_info "Creating Service"
 mkdir -p /opt/transmission-openvpn
 cat > "/opt/transmission-openvpn/.env" <<EOF
@@ -161,7 +146,4 @@ msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 rm -rf /opt/docker-transmission-openvpn
-rm -f Shift-master.tar.gz
-rm -f kettu-master.tar.gz
-rm -f combustion-release.tar.gz
 msg_ok "Cleaned"
