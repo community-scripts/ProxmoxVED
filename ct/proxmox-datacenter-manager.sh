@@ -33,7 +33,7 @@ function update_script() {
         echo "deb [signed-by=/usr/share/keyrings/proxmox-archive-keyring.gpg] http://download.proxmox.com/debian/pdm bookworm pdm-test" > /etc/apt/sources.list.d/pdm-test.list
         curl -fsSL https://enterprise.proxmox.com/debian/proxmox-archive-keyring-trixie.gpg -o /usr/share/keyrings/proxmox-archive-keyring.gpg
         rm -f /etc/apt/keyrings/proxmox-release-bookworm.gpg /etc/apt/sources.list.d/proxmox-release-bookworm.list
-        $STD apt update
+        $STD apt-get update
         msg_ok "Updated old sources"
     fi
 
