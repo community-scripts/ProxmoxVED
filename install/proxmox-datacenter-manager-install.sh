@@ -14,8 +14,8 @@ network_check
 update_os
 
 msg_info "Installing Proxmox Datacenter Manager"
-curl -fsSL https://enterprise.proxmox.com/debian/proxmox-release-bookworm.gpg | gpg --dearmor -o /etc/apt/keyrings/proxmox-release-bookworm.gpg
-echo "deb [signed-by=/etc/apt/keyrings/proxmox-release-bookworm.gpg] http://download.proxmox.com/debian/pdm bookworm pdm-test  " >/etc/apt/sources.list.d/proxmox-release-bookworm.list
+curl -fsSL https://enterprise.proxmox.com/debian/proxmox-archive-keyring-trixie.gpg -o /usr/share/keyrings/proxmox-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/proxmox-archive-keyring.gpg] http://download.proxmox.com/debian/pdm bookworm pdm-test  " >/etc/apt/sources.list.d/pdm-test.list
 $STD apt-get update
 $STD apt-get install -y \
   proxmox-datacenter-manager \
