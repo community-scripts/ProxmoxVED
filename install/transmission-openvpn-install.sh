@@ -16,48 +16,40 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    dumb-init \
-    tzdata \
     dnsutils \
     iputils-ping \
     ufw \
-    iproute2 \
-    openssh-client \
-    git \
-    jq \
-    curl \
-    wget \
-    unrar-free \
-    unzip \
-    bc \
-    systemd 
+    iproute2
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Transmission"
+msg_info "Disabling systemd autostart"
 mkdir -p /etc/systemd/system-preset
 echo "disable *" > /etc/systemd/system-preset/99-no-autostart.preset
-export DEBIAN_FRONTEND=noninteractive
-$STD apt install -y transmission-daemon
+msg_ok "Disabled systemd autostart"
+
+msg_info "Installing Transmission"
+$STD apt-get install -y transmission-daemon
+msg_ok "Installed Transmission"
+
+msg_info "Installing Privoxy"
+$STD apt-get install -y privoxy
+msg_ok "Installed Privoxy"
+
+msg_info "Enabling systemd autostart"
 rm -f /etc/systemd/system-preset/99-no-autostart.preset
 systemctl preset-all
+msg_ok "Enabled systemd autostart"
+
+msg_info "Disabling and masking Transmission and Privoxy services"
 systemctl disable --now transmission-daemon
 systemctl mask transmission-daemon
-msg_ok "Installed Transmission"
+systemctl disable --now privoxy
+systemctl mask privoxy
+msg_ok "Transmission and Privoxy services disabled and masked"
 
 msg_info "Installing Openvpn"
 $STD apt-get install -y openvpn
 msg_ok "Installed Openvpn"
-
-msg_info "Installing Privoxy"
-mkdir -p /etc/systemd/system-preset
-echo "disable *" > /etc/systemd/system-preset/99-no-autostart.preset
-export DEBIAN_FRONTEND=noninteractive
-$STD apt-get install -y privoxy
-rm -f /etc/systemd/system-preset/99-no-autostart.preset
-systemctl preset-all
-systemctl disable --now privoxy
-systemctl mask privoxy
-msg_ok "Installed Privoxy"
 
 msg_info "Installing ${APPLICATION}"
 useradd -u 911 -U -d /config -s /usr/sbin/nologin abc
@@ -67,9 +59,9 @@ cp -r /opt/docker-transmission-openvpn/openvpn/* /etc/openvpn/
 cp -r /opt/docker-transmission-openvpn/transmission/* /etc/transmission/
 cp -r /opt/docker-transmission-openvpn/scripts/* /etc/scripts/
 cp -r /opt/docker-transmission-openvpn/privoxy/scripts/* /opt/privoxy/
-chmod +x /etc/openvpn/*.sh || true
-chmod +x /etc/scripts/*.sh || true
-chmod +x /opt/privoxy/*.sh || true
+chmod +x /etc/openvpn/*.sh
+chmod +x /etc/scripts/*.sh
+chmod +x /opt/privoxy/*.sh
 ln -s /usr/bin/transmission-daemon /usr/local/bin/transmission-daemon
 msg_ok "Installed ${APPLICATION}"
 
@@ -80,7 +72,7 @@ msg_ok "Support legacy IPTables commands"
 
 msg_info "Creating Service"
 mkdir -p /opt/transmission-openvpn
-cat > "/opt/transmission-openvpn/.env" <<EOF
+cat <<EOF > "/opt/transmission-openvpn/.env"
 OPENVPN_USERNAME="username"
 OPENVPN_PASSWORD="password"
 OPENVPN_PROVIDER="PIA"
@@ -121,14 +113,14 @@ HEALTH_CHECK_HOST="google.com"
 SELFHEAL="false"
 EOF
 
-cat > /etc/systemd/system/openvpn-custom.service <<EOF
+cat <<EOF > /etc/systemd/system/openvpn-custom.service 
 [Unit]
 Description=Custom OpenVPN start service
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/dumb-init /etc/openvpn/start.sh
+ExecStart=/etc/openvpn/start.sh
 Restart=on-failure
 RestartSec=5
 EnvironmentFile=/opt/transmission-openvpn/.env

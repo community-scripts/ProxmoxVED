@@ -51,9 +51,9 @@ function update_script() {
     cp -r /opt/docker-transmission-openvpn/transmission/* /etc/transmission/
     cp -r /opt/docker-transmission-openvpn/scripts/* /etc/scripts/
     cp -r /opt/docker-transmission-openvpn/privoxy/scripts/* /opt/privoxy/
-    chmod +x /etc/openvpn/*.sh || true
-    chmod +x /etc/scripts/*.sh || true
-    chmod +x /opt/privoxy/*.sh || true
+    chmod +x /etc/openvpn/*.sh
+    chmod +x /etc/scripts/*.sh
+    chmod +x /opt/privoxy/*.sh
     msg_ok "Updated ${APP} LXC"
 
     msg_info "Restoring Custom Configs"
