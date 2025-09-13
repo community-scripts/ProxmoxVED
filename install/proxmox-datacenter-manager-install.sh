@@ -17,9 +17,11 @@ msg_info "Installing Proxmox Datacenter Manager"
 curl -fsSL https://enterprise.proxmox.com/debian/proxmox-archive-keyring-trixie.gpg -o /usr/share/keyrings/proxmox-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/proxmox-archive-keyring.gpg] http://download.proxmox.com/debian/pdm bookworm pdm-test  " >/etc/apt/sources.list.d/pdm-test.list
 $STD apt-get update
-$STD apt-get install -y \
-  proxmox-datacenter-manager \
-  proxmox-datacenter-manager-ui
+$STD DEBIAN_FRONTEND=noninteractive \
+$STD apt-get -o Dpkg::Options::="--force-confdef" \
+        -o Dpkg::Options::="--force-confold" \
+        install -y proxmox-datacenter-manager \
+        proxmox-datacenter-manager-ui
 msg_ok "Installed Proxmox Datacenter Manager"
 
 motd_ssh
