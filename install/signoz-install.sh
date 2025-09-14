@@ -253,7 +253,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now signoz-otel-collector
 
-
 motd_ssh
 customize
 
