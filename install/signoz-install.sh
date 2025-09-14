@@ -30,12 +30,12 @@ $STD apt-get install -y clickhouse-server clickhouse-client
 msg_ok "Setup ClickHouse"
 
 msg_info "Setting up Zookeeper"
-curl -fsSL https://dlcdn.apache.org/zookeeper/zookeeper-3.8.4/apache-zookeeper-3.8.4-bin.tar.gz -o zookeeper.tar.gz
-tar -xzf zookeeper.tar.gz
+curl -fsSL https://dlcdn.apache.org/zookeeper/zookeeper-3.8.4/apache-zookeeper-3.8.4-bin.tar.gz -o "$HOME/zookeeper.tar.gz"
+tar -xzf "$HOME/zookeeper.tar.gz"
 mkdir -p /opt/zookeeper
 mkdir -p /var/lib/zookeeper
 mkdir -p /var/log/zookeeper
-cp -r apache-zookeeper-3.8.4-bin/* /opt/zookeeper
+cp -r ~/apache-zookeeper-3.8.4-bin/* /opt/zookeeper
 
 cat <<EOF >/opt/zookeeper/conf/zoo.cfg
 tickTime=2000
@@ -110,7 +110,7 @@ msg_ok "ClickHouse Migrations Completed"
 
 fetch_and_deploy_gh_release "signoz" "SigNoz/signoz" "prebuild" "latest" "/opt/signoz" "signoz-community_linux_amd64.tar.gz"
 
-msg_info "Setting up Signoz"
+msg_info "Setting up SigNoz"
 mkdir -p /var/lib/signoz
 
 cat <<EOF >/opt/signoz/conf/systemd.env
@@ -148,7 +148,7 @@ msg_ok "Setup Signoz"
 
 fetch_and_deploy_gh_release "signoz-otel-collector" "SigNoz/signoz-otel-collector" "prebuild" "latest" "/opt/signoz-otel-collector" "signoz-otel-collector_linux_amd64.tar.gz"
 
-msg_info "Setting up Signoz OTel Collector"
+msg_info "Setting up SigNoz OTel Collector"
 mkdir -p /var/lib/signoz-otel-collector
 
 cat <<EOF >/opt/signoz-otel-collector/conf/config.yaml
@@ -257,6 +257,8 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
+rm -rf ~/zookeeper.tar.gz
+rm -rf ~/apache-zookeeper-3.8.4-bin
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
