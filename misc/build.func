@@ -1978,7 +1978,9 @@ EOF'
   fi
   msg_ok "Customized LXC Container"
   install_ssh_keys_into_ct
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
+    exit $?
+  fi
 }
 
 destroy_lxc() {
