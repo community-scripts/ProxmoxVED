@@ -26,7 +26,7 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 variables
 color
-catch_errors
+init_error_traps
 
 function default_settings() {
     CT_TYPE="1"

@@ -18,48 +18,48 @@ var_fuse="${var_fuse:-1}"
 header_info "$APP"
 variables
 color
-catch_errors
+init_error_traps
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
+    header_info
+    check_container_storage
+    check_container_resources
 
-  if [[ ! -d /opt/romm ]]; then
-    msg_error "No ${APP} Installation Found!"
+    if [[ ! -d /opt/romm ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+
+    msg_info "Stopping $APP"
+    systemctl stop romm
+    systemctl stop nginx
+    msg_ok "Stopped $APP"
+
+    msg_info "Updating $APP"
+    cd /opt/romm/app
+    git pull
+
+    # Update backend
+    cd /opt/romm/app
+    source /opt/romm/venv/bin/activate
+    pip install --upgrade pip
+    pip install poetry
+    poetry install
+
+    # Update frontend
+    cd /opt/romm/app/frontend
+    npm install
+    npm run build
+
+    echo "Updated on $(date)" >/opt/romm/version.txt
+    msg_ok "Updated $APP"
+
+    msg_info "Starting $APP"
+    systemctl start romm
+    systemctl start nginx
+    msg_ok "Started $APP"
+    msg_ok "Update Successful"
     exit
-  fi
-
-  msg_info "Stopping $APP"
-  systemctl stop romm
-  systemctl stop nginx
-  msg_ok "Stopped $APP"
-
-  msg_info "Updating $APP"
-  cd /opt/romm/app
-  git pull
-
-  # Update backend
-  cd /opt/romm/app
-  source /opt/romm/venv/bin/activate
-  pip install --upgrade pip
-  pip install poetry
-  poetry install
-
-  # Update frontend
-  cd /opt/romm/app/frontend
-  npm install
-  npm run build
-
-  echo "Updated on $(date)" >/opt/romm/version.txt
-  msg_ok "Updated $APP"
-
-  msg_info "Starting $APP"
-  systemctl start romm
-  systemctl start nginx
-  msg_ok "Started $APP"
-  msg_ok "Update Successful"
-  exit
 }
 
 start

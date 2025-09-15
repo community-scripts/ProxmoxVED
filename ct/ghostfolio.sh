@@ -17,56 +17,56 @@ var_unprivileged="${var_unprivileged:-1}"
 header_info "$APP"
 variables
 color
-catch_errors
+init_error_traps
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
+    header_info
+    check_container_storage
+    check_container_resources
 
-  if [[ ! -f /opt/ghostfolio/dist/apps/api/main.js ]]; then
-    msg_error "No ${APP} Installation Found!"
-    exit
-  fi
-
-  msg_info "Stopping $APP"
-  systemctl stop ghostfolio
-  msg_ok "Stopped $APP"
-
-  msg_info "Creating Backup"
-  tar -czf "/opt/ghostfolio_backup_$(date +%F).tar.gz" /opt/ghostfolio
-  msg_ok "Backup Created"
-
-  msg_info "Updating $APP"
-  systemctl stop ghostfolio
-
-  if [[ -d /opt/ghostfolio ]]; then
-    rm -rf /opt/ghostfolio_backup
-    mv /opt/ghostfolio /opt/ghostfolio_backup
-  fi
-
-  if fetch_and_deploy_gh_release "ghostfolio" "ghostfolio/ghostfolio" "tarball" "latest" "/opt/ghostfolio"; then
-    cd /opt/ghostfolio
-    npm ci
-    npm run build:production
-    npx prisma migrate deploy
-    msg_ok "Updated $APP"
-  else
-    if [[ -d /opt/ghostfolio_backup ]]; then
-      rm -rf /opt/ghostfolio
-      mv /opt/ghostfolio_backup /opt/ghostfolio
+    if [[ ! -f /opt/ghostfolio/dist/apps/api/main.js ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
     fi
-    msg_ok "No update required or update failed. ${APP} is up to date"
-  fi
 
-  msg_info "Starting $APP"
-  systemctl start ghostfolio
-  msg_ok "Started $APP"
+    msg_info "Stopping $APP"
+    systemctl stop ghostfolio
+    msg_ok "Stopped $APP"
 
-  msg_info "Cleaning Up"
-  npm cache clean --force
-  msg_ok "Cleanup Completed"
-  exit
+    msg_info "Creating Backup"
+    tar -czf "/opt/ghostfolio_backup_$(date +%F).tar.gz" /opt/ghostfolio
+    msg_ok "Backup Created"
+
+    msg_info "Updating $APP"
+    systemctl stop ghostfolio
+
+    if [[ -d /opt/ghostfolio ]]; then
+        rm -rf /opt/ghostfolio_backup
+        mv /opt/ghostfolio /opt/ghostfolio_backup
+    fi
+
+    if fetch_and_deploy_gh_release "ghostfolio" "ghostfolio/ghostfolio" "tarball" "latest" "/opt/ghostfolio"; then
+        cd /opt/ghostfolio
+        npm ci
+        npm run build:production
+        npx prisma migrate deploy
+        msg_ok "Updated $APP"
+    else
+        if [[ -d /opt/ghostfolio_backup ]]; then
+            rm -rf /opt/ghostfolio
+            mv /opt/ghostfolio_backup /opt/ghostfolio
+        fi
+        msg_ok "No update required or update failed. ${APP} is up to date"
+    fi
+
+    msg_info "Starting $APP"
+    systemctl start ghostfolio
+    msg_ok "Started $APP"
+
+    msg_info "Cleaning Up"
+    npm cache clean --force
+    msg_ok "Cleanup Completed"
+    exit
 }
 
 start

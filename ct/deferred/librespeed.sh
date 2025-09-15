@@ -17,34 +17,34 @@ var_unprivileged="1"
 header_info "$APP"
 variables
 color
-catch_errors
+init_error_traps
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
+    header_info
+    check_container_storage
+    check_container_resources
 
-  if [[ ! -f /opt/librespeed/index.html ]]; then
-    msg_error "No ${APP} Installation Found!"
+    if [[ ! -f /opt/librespeed/index.html ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+    RELEASE=$(curl -fsSL https://api.github.com/repos/librespeed/speedtest/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+    if [[ ! -f /opt/librespeed/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt//librespeed/${APP}_version.txt)" ]]; then
+        msg_info "Updating $APP..."
+        temp_file=$(mktemp)
+        curl -fsSL "https://github.com/librespeed/speedtest/archive/refs/tags/${RELEASE}.zip" -o "$temp_file"
+        mkdir -p /temp
+        unzip -qu "$temp_file" -d /temp
+        cd /temp/speedtest-"${RELEASE}"
+        cp -u favicon.ico index.html speedtest.js speedtest_worker.js /opt/librespeed/
+        cp -ru backend /opt/librespeed/
+        echo "${RELEASE}" >/opt/"${APP}"_version.txt
+        systemctl restart caddy
+        msg_ok "$APP has been updated."
+    else
+        msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    fi
     exit
-  fi
-  RELEASE=$(curl -fsSL https://api.github.com/repos/librespeed/speedtest/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-  if [[ ! -f /opt/librespeed/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt//librespeed/${APP}_version.txt)" ]]; then
-    msg_info "Updating $APP..."
-    temp_file=$(mktemp)
-    curl -fsSL "https://github.com/librespeed/speedtest/archive/refs/tags/${RELEASE}.zip" -o "$temp_file"
-    mkdir -p /temp
-    unzip -qu "$temp_file" -d /temp
-    cd /temp/speedtest-"${RELEASE}"
-    cp -u favicon.ico index.html speedtest.js speedtest_worker.js /opt/librespeed/
-    cp -ru backend /opt/librespeed/
-    echo "${RELEASE}" >/opt/"${APP}"_version.txt
-    systemctl restart caddy
-    msg_ok "$APP has been updated."
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
-  fi
-  exit
 }
 start
 build_container

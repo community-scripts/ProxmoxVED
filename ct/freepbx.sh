@@ -18,44 +18,44 @@ var_unprivileged="${var_unprivileged:-1}"
 header_info "$APP"
 variables
 color
-catch_errors
+init_error_traps
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
+    header_info
+    check_container_storage
+    check_container_resources
 
-  if [[ ! -f /lib/systemd/system/freepbx.service ]]; then
-    msg_error "No ${APP} Installation Found!"
+    if [[ ! -f /lib/systemd/system/freepbx.service ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+
+    msg_info "Updating $APP LXC"
+    $STD apt-get update
+    $STD apt-get -y upgrade
+    msg_ok "Updated $APP LXC"
+
+    msg_info "Updating $APP Modules"
+    $STD fwconsole ma updateall
+    $STD fwconsole reload
+    msg_ok "Updated $APP Modules"
+
     exit
-  fi
-
-  msg_info "Updating $APP LXC"
-  $STD apt-get update
-  $STD apt-get -y upgrade
-  msg_ok "Updated $APP LXC"
-
-  msg_info "Updating $APP Modules"
-  $STD fwconsole ma updateall
-  $STD fwconsole reload
-  msg_ok "Updated $APP Modules"
-
-  exit
 }
 
 start
 
 if whiptail --title "Commercial Modules" --yesno "Remove Commercial modules?" --defaultno 10 50; then
-  export ONLY_OPENSOURCE="yes"
+    export ONLY_OPENSOURCE="yes"
 
-  if whiptail --title "Firewall Module" --yesno "Do you want to KEEP the Firewall module (and sysadmin)?" 10 50; then
-    export REMOVE_FIREWALL="no"
-  else
-    export REMOVE_FIREWALL="yes"
-  fi
+    if whiptail --title "Firewall Module" --yesno "Do you want to KEEP the Firewall module (and sysadmin)?" 10 50; then
+        export REMOVE_FIREWALL="no"
+    else
+        export REMOVE_FIREWALL="yes"
+    fi
 else
-  export ONLY_OPENSOURCE="no"
-  export REMOVE_FIREWALL="no"
+    export ONLY_OPENSOURCE="no"
+    export REMOVE_FIREWALL="no"
 fi
 
 build_container

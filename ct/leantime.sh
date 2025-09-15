@@ -17,39 +17,39 @@ var_unprivileged="${var_unprivileged:-1}"
 header_info "$APP"
 variables
 color
-catch_errors
+init_error_traps
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
+    header_info
+    check_container_storage
+    check_container_resources
 
-  if [[ ! -d /opt/leantime ]]; then
-    msg_error "No ${APP} Installation Found!"
+    if [[ ! -d /opt/leantime ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+
+    if check_for_gh_release "leantime" "Leantime/leantime"; then
+        msg_info "Creating Backup"
+        mariadb-dump leantime >"/opt/${APP}_db_backup_$(date +%F).sql"
+        tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" "/opt/${APP}"
+        mv /opt/leantime /opt/leantime_bak
+        msg_ok "Backup Created"
+
+        fetch_and_deploy_gh_release "leantime" "Leantime/leantime" "prebuild" "latest" "/opt/leantime" Leantime*.tar.gz
+
+        msg_info "Restoring Config & Permissions"
+        mv /opt/leantime_bak/config/.env /opt/leantime/config/.env
+        chown -R www-data:www-data "/opt/leantime"
+        chmod -R 750 "/opt/leantime"
+        msg_ok "Restored Config & Permissions"
+
+        msg_info "Removing Backup"
+        rm -rf /opt/leantime_bak
+        msg_ok "Removed Backup"
+        msg_ok "Updated Successfully"
+    fi
     exit
-  fi
-
-  if check_for_gh_release "leantime" "Leantime/leantime"; then
-    msg_info "Creating Backup"
-    mariadb-dump leantime >"/opt/${APP}_db_backup_$(date +%F).sql"
-    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" "/opt/${APP}"
-    mv /opt/leantime /opt/leantime_bak
-    msg_ok "Backup Created"
-
-    fetch_and_deploy_gh_release "leantime" "Leantime/leantime" "prebuild" "latest" "/opt/leantime" Leantime*.tar.gz
-
-    msg_info "Restoring Config & Permissions"
-    mv /opt/leantime_bak/config/.env /opt/leantime/config/.env
-    chown -R www-data:www-data "/opt/leantime"
-    chmod -R 750 "/opt/leantime"
-    msg_ok "Restored Config & Permissions"
-
-    msg_info "Removing Backup"
-    rm -rf /opt/leantime_bak
-    msg_ok "Removed Backup"
-    msg_ok "Updated Successfully"
-  fi
-  exit
 }
 
 start

@@ -17,53 +17,53 @@ var_unprivileged="${var_unprivileged:-1}"
 header_info "$APP"
 variables
 color
-catch_errors
+init_error_traps
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
-  if [[ ! -d /opt/tunarr ]]; then
-    msg_error "No ${APP} Installation Found!"
+    header_info
+    check_container_storage
+    check_container_resources
+    if [[ ! -d /opt/tunarr ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+    if check_for_gh_release "tunarr" "chrisbenincasa/tunarr"; then
+        msg_info "Stopping ${APP}"
+        systemctl stop tunarr
+        msg_ok "Stopped ${APP}"
+
+        msg_info "Creating Backup"
+        tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /usr/.local/share/tunarr
+        msg_ok "Backup Created"
+
+        fetch_and_deploy_gh_release "tunarr" "chrisbenincasa/tunarr" "singlefile" "latest" "/opt/tunarr" "*linux-x64"
+
+        msg_info "Starting ${APP}"
+        systemctl start tunarr
+        msg_ok "Started ${APP}"
+
+        msg_ok "Updated Successfully"
+    fi
+
+    if check_for_gh_release "ersatztv-ffmpeg" "ErsatzTV/ErsatzTV-ffmpeg"; then
+        msg_info "Stopping ${APP}"
+        systemctl stop tunarr
+        msg_ok "Stopped ${APP}"
+
+        fetch_and_deploy_gh_release "ersatztv-ffmpeg" "ErsatzTV/ErsatzTV-ffmpeg" "prebuild" "latest" "/opt/ErsatzTV-ffmpeg" "*-linux64-gpl-7.1.tar.xz"
+
+        msg_info "Set ErsatzTV-ffmpeg links"
+        chmod +x /opt/ErsatzTV-ffmpeg/bin/*
+        ln -sf /opt/ErsatzTV-ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
+        ln -sf /opt/ErsatzTV-ffmpeg/bin/ffplay /usr/local/bin/ffplay
+        ln -sf /opt/ErsatzTV-ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
+        msg_ok "ffmpeg links set"
+
+        msg_info "Starting ${APP}"
+        systemctl start tunarr
+        msg_ok "Started ${APP}"
+        msg_ok "Updated Successfully"
+    fi
     exit
-  fi
-  if check_for_gh_release "tunarr" "chrisbenincasa/tunarr"; then
-    msg_info "Stopping ${APP}"
-    systemctl stop tunarr
-    msg_ok "Stopped ${APP}"
-
-    msg_info "Creating Backup"
-    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /usr/.local/share/tunarr
-    msg_ok "Backup Created"
-
-    fetch_and_deploy_gh_release "tunarr" "chrisbenincasa/tunarr" "singlefile" "latest" "/opt/tunarr" "*linux-x64"
-
-    msg_info "Starting ${APP}"
-    systemctl start tunarr
-    msg_ok "Started ${APP}"
-
-    msg_ok "Updated Successfully"
-  fi
-
-  if check_for_gh_release "ersatztv-ffmpeg" "ErsatzTV/ErsatzTV-ffmpeg"; then
-    msg_info "Stopping ${APP}"
-    systemctl stop tunarr
-    msg_ok "Stopped ${APP}"
-
-    fetch_and_deploy_gh_release "ersatztv-ffmpeg" "ErsatzTV/ErsatzTV-ffmpeg" "prebuild" "latest" "/opt/ErsatzTV-ffmpeg" "*-linux64-gpl-7.1.tar.xz"
-
-    msg_info "Set ErsatzTV-ffmpeg links"
-    chmod +x /opt/ErsatzTV-ffmpeg/bin/*
-    ln -sf /opt/ErsatzTV-ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg
-    ln -sf /opt/ErsatzTV-ffmpeg/bin/ffplay /usr/local/bin/ffplay
-    ln -sf /opt/ErsatzTV-ffmpeg/bin/ffprobe /usr/local/bin/ffprobe
-    msg_ok "ffmpeg links set"
-
-    msg_info "Starting ${APP}"
-    systemctl start tunarr
-    msg_ok "Started ${APP}"
-    msg_ok "Updated Successfully"
-  fi
-  exit
 }
 
 start
