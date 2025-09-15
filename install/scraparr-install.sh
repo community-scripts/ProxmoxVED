@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-PYTHON_VERSION="3.12" setup_uv
+PYTHON_VERSION="3.13" setup_uv
 fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr" "tarball" "latest" "/opt/scraparr"
 
 msg_info "Installing Scraparr"
