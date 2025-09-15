@@ -15,15 +15,16 @@
   "config_path": "/etc/caddy/Caddyfile",
   "description": "Caddy is a powerful, extensible platform to serve your sites, services, and apps, written in Go.",
   "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/caddy.sh",
-      "resources": {
-        "cpu": 1,
-        "ram": 512,
-        "hdd": 4,
-        "os": "debian",
-        "version": "12"
+      {
+        "type": "default",
+        "script": "ct/caddy.sh",
+        "resources": {
+          "cpu": 1,
+          "ram": 512,
+          "hdd": 4,
+          "os": "debian",
+          "version": "12"
+        }
       },
       {
         "type": "alpine",
