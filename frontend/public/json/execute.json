@@ -1,5 +1,5 @@
 {
-  "name": "Proxmox VE LXC Execute Command",
+  "name": "PVE LXC Execute Command",
   "slug": "lxc-execute",
   "categories": [
     1
