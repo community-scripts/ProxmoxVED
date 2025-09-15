@@ -6,7 +6,7 @@
 # Source: https://caddyserver.com/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
-colorYea 
+color
 verb_ip6
 catch_errors
 setting_up_container
