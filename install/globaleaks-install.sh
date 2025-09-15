@@ -13,8 +13,8 @@ network_check
 update_os
 
 msg_info "Setup GlobaLeaks"
-curl -sS https://deb.globaleaks.org/globaleaks.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/globaleaks.gpg
-echo "deb [signed-by=/etc/apt/trusted.gpg.d/globaleaks.gpg] http://deb.globaleaks.org bookworm main" >/etc/apt/sources.list.d/globaleaks.list
+curl -fsSL https://deb.globaleaks.org/globaleaks.asc | gpg --dearmor >/etc/apt/trusted.gpg.d/globaleaks.asc
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/globaleaks.asc] http://deb.globaleaks.org bookworm main" >/etc/apt/sources.list.d/globaleaks.list
 $STD apt-get update
 $STD apt-get -y install globaleaks
 msg_ok "Setup GlobaLeaks"
