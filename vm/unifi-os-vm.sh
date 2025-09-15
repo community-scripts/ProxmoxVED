@@ -141,36 +141,37 @@ function check_root() {
   fi
 }
 
+# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
+# Supported: Proxmox VE 8.0.x – 8.9.x and 9.0 (NOT 9.1+)
 pve_check() {
   local PVE_VER
   PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
 
-  # Check for Proxmox VE 8.x
+  # Check for Proxmox VE 8.x: allow 8.0–8.9
   if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR < 1 || MINOR > 4)); then
+    if ((MINOR < 0 || MINOR > 9)); then
       msg_error "This version of Proxmox VE is not supported."
-      echo -e "Required: Proxmox VE version 8.1 – 8.4"
+      msg_error "Supported: Proxmox VE version 8.0 – 8.9"
       exit 1
     fi
     return 0
   fi
 
-  # Check for Proxmox VE 9.x (Beta) — require confirmation
+  # Check for Proxmox VE 9.x: allow ONLY 9.0
   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
-    if whiptail --title "Proxmox 9.x Detected (Beta)" \
-      --yesno "You are using Proxmox VE $PVE_VER, which is currently in Beta state.\n\nThis version is experimentally supported.\n\nDo you want to proceed anyway?" 12 70; then
-      msg_ok "Confirmed: Continuing with Proxmox VE $PVE_VER"
-      return 0
-    else
-      msg_error "Aborted by user: Proxmox VE 9.x was not confirmed."
+    local MINOR="${BASH_REMATCH[1]}"
+    if ((MINOR != 0)); then
+      msg_error "This version of Proxmox VE is not yet supported."
+      msg_error "Supported: Proxmox VE version 9.0"
       exit 1
     fi
+    return 0
   fi
 
   # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
-  echo -e "Supported versions: Proxmox VE 8.1 – 8.4 or 9.x (Beta, with confirmation)"
+  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0"
   exit 1
 }
 
@@ -205,12 +206,11 @@ function exit-script() {
 
 function default_settings() {
   VMID=$(get_valid_nextid)
-  FORMAT=",efitype=4m"
-  MACHINE="-machine q35"
-  DISK_CACHE=""
+  FORMAT=""
+  MACHINE="q35"
   DISK_SIZE="30G"
   HN="unifi-server-os"
-  CPU_TYPE="-cpu host"
+  CPU_TYPE=""
   CORE_COUNT="2"
   RAM_SIZE="4096"
   BRG="vmbr0"
@@ -220,9 +220,8 @@ function default_settings() {
   START_VM="yes"
   METHOD="default"
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
   echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
@@ -255,16 +254,16 @@ function advanced_settings() {
     fi
   done
 
-  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Type" 10 58 2 \
-    "i440fx" "Machine i440fx" ON \
-    "q35" "Machine q35" OFF \
+  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Machine Type" 10 58 2 \
+    "q35" "Modern (PCIe, UEFI, default)" ON \
+    "i440fx" "Legacy (older compatibility)" OFF \
     3>&1 1>&2 2>&3); then
-    if [ $MACH = q35 ]; then
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+    if [ "$MACH" = "q35" ]; then
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
       FORMAT=""
       MACHINE=" -machine q35"
     else
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
       FORMAT=",efitype=4m"
       MACHINE=""
     fi
@@ -288,8 +287,8 @@ function advanced_settings() {
   fi
 
   if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "None (Default)" ON \
-    "1" "Write Through" OFF \
+    "0" "None" OFF \
+    "1" "Write Through (Default)" ON \
     3>&1 1>&2 2>&3); then
     if [ $DISK_CACHE = "1" ]; then
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}Write Through${CL}"
@@ -314,17 +313,20 @@ function advanced_settings() {
     exit-script
   fi
 
-  if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "KVM64 (Default)" ON \
-    "1" "Host" OFF \
+  if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose CPU Model" --cancel-button Exit-Script 10 58 2 \
+    "KVM64" "Default – safe for migration/compatibility" ON \
+    "Host" "Use host CPU features (faster, no migration)" OFF \
     3>&1 1>&2 2>&3); then
-    if [ $CPU_TYPE1 = "1" ]; then
+    case "$CPU_TYPE1" in
+    Host)
       echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
       CPU_TYPE=" -cpu host"
-    else
+      ;;
+    *)
       echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
       CPU_TYPE=""
-    fi
+      ;;
+    esac
   else
     exit-script
   fi
@@ -436,26 +438,48 @@ start_script
 post_to_api_vm
 
 msg_info "Validating Storage"
-STORAGE_MENU=()
 while read -r line; do
   TAG=$(echo $line | awk '{print $1}')
   TYPE=$(echo $line | awk '{printf "%-10s", $2}')
   FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
-  STORAGE_MENU+=("$TAG" "Type: $TYPE Free: $FREE" OFF)
+  ITEM="  Type: $TYPE Free: $FREE "
+  OFFSET=2
+  if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
+    MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
+  fi
+  STORAGE_MENU+=("$TAG" "$ITEM" "OFF")
 done < <(pvesm status -content images | awk 'NR>1')
-
-if [ $((${#STORAGE_MENU[@]} / 3)) -eq 1 ]; then
+VALID=$(pvesm status -content images | awk 'NR>1')
+if [ -z "$VALID" ]; then
+  msg_error "Unable to detect a valid storage location."
+  exit
+elif [ $((${#STORAGE_MENU[@]} / 3)) -eq 1 ]; then
   STORAGE=${STORAGE_MENU[0]}
 else
-  STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" \
-    --radiolist "Choose storage pool for UniFi OS VM" 16 70 6 "${STORAGE_MENU[@]}" 3>&1 1>&2 2>&3)
+  while [ -z "${STORAGE:+x}" ]; do
+    if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
+    printf "\e[?25h"
+    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
+      "Which storage pool would you like to use for ${HN}?\nTo make a selection, use the Spacebar.\n" \
+      16 $(($MSG_MAX_LENGTH + 23)) 6 \
+      "${STORAGE_MENU[@]}" 3>&1 1>&2 2>&3)
+  done
 fi
-msg_ok "Using $STORAGE"
+msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
+msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
 # --- Download Debian Cloud Image ---
 msg_info "Downloading Debian 13 Cloud Image"
 URL="https://cloud.debian.org/images/cloud/trixie/latest/debian-13-nocloud-amd64.qcow2"
-curl -fsSL -o debian-13-nocloud-amd64.qcow2 "$URL"
+CACHE_DIR="/var/lib/vz/template/cache"
+CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
+FILE_IMG="/var/lib/vz/template/tmp/${CACHE_FILE##*/%.xz}" # .qcow2
+if [[ ! -s "$CACHE_FILE" ]]; then
+  curl -f#SL -o "$CACHE_FILE" "$URL"
+  msg_ok "Downloaded ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
+else
+  msg_ok "Using cached image ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
+fi
 FILE="debian-13-nocloud-amd64.qcow2"
 msg_ok "Downloaded Debian Cloud Image"
 
