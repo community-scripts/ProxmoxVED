@@ -6,7 +6,7 @@
 # Source: https://caddyserver.com/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
-color
+colorYea 
 verb_ip6
 catch_errors
 setting_up_container
@@ -24,7 +24,7 @@ if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
   cd /opt
   RELEASE=$(curl -fsSL https://api.github.com/repos/caddyserver/xcaddy/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
   curl -fsSL "https://github.com/caddyserver/xcaddy/releases/download/${RELEASE}/xcaddy_${RELEASE:1}_linux_amd64.tar.gz" -o "xcaddy_${RELEASE:1}_linux_amd64.tar.gz"
-  $STD tar xzf xcaddy_"${RELEASE:1}"_linux_amd64.tar.gz -C /usr/local/bin
+  $STD tar xzf xcaddy_"${RELEASE:1}"_linux_amd64.tar.gz -C /usr/local/bin xcaddy
   rm -rf /opt/xcaddy*
   $STD xcaddy build
   msg_ok "Setup xCaddy"
