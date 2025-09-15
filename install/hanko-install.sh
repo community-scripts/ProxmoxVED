@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -28,10 +28,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-  echo "Hanko-Credentials"
-  echo "Hanko Database User: $DB_USER"
-  echo "Hanko Database Password: $DB_PASS"
-  echo "Hanko Database Name: $DB_NAME"
+    echo "Hanko-Credentials"
+    echo "Hanko Database User: $DB_USER"
+    echo "Hanko Database Password: $DB_PASS"
+    echo "Hanko Database Name: $DB_NAME"
 } >>~/hanko.creds
 msg_ok "Set up PostgreSQL Database"
 
@@ -39,7 +39,7 @@ msg_info "Setup Hanko"
 fetch_and_deploy_gh_release "hanko" "teamhanko/hanko" "prebuild" "latest" "/opt/hanko" "hanko_Linux_x86_64.tar.gz"
 curl -fsSL https://raw.githubusercontent.com/teamhanko/hanko/refs/heads/main/backend/config/config.yaml -o /opt/hanko/config.yaml
 env DB_USER="$DB_USER" DB_PASS="$DB_PASS" APP_SECRET="$APP_SECRET" \
-  yq eval '
+    yq eval '
   .database.user = strenv(DB_USER) |
   .database.password = strenv(DB_PASS) |
   .database.host = "localhost" |

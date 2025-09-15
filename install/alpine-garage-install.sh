@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -46,7 +46,7 @@ msg_ok "Setup Garage packages"
 
 msg_info "Writing config"
 if [[ ! -f /etc/garage.toml ]]; then
-  cat >/etc/garage.toml <<EOF
+    cat >/etc/garage.toml <<EOF
 replication_factor = 1
 consistency_mode = "consistent"
 

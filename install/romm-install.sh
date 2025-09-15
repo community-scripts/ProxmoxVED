@@ -9,27 +9,27 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing dependencies"
 $STD apt-get install -y \
-  acl \
-  build-essential \
-  libssl-dev \
-  libffi-dev \
-  python3-dev \
-  python3-pip \
-  python3-venv \
-  libmariadb3 \
-  libmariadb-dev \
-  libpq-dev \
-  redis-tools \
-  p7zip \
-  tzdata \
-  jq
+    acl \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    libmariadb3 \
+    libmariadb-dev \
+    libpq-dev \
+    redis-tools \
+    p7zip \
+    tzdata \
+    jq
 msg_ok "Installed core dependencies"
 
 PYTHON_VERSION="3.12" setup_uv
@@ -44,10 +44,10 @@ $STD mariadb -u root -e "CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET ut
 $STD mariadb -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 $STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-  echo "RomM-Credentials"
-  echo "RomM Database User: $DB_USER"
-  echo "RomM Database Password: $DB_PASS"
-  echo "RomM Database Name: $DB_NAME"
+    echo "RomM-Credentials"
+    echo "RomM Database User: $DB_USER"
+    echo "RomM Database Password: $DB_PASS"
+    echo "RomM Database Name: $DB_NAME"
 } >~/romm.creds
 chmod 600 ~/romm.creds
 msg_ok "Configured Database"
@@ -55,11 +55,11 @@ msg_ok "Configured Database"
 msg_info "Creating romm user and directories"
 id -u romm &>/dev/null || useradd -r -m -d /var/lib/romm -s /bin/bash romm
 mkdir -p /opt/romm \
-  /var/lib/romm/config \
-  /var/lib/romm/resources \
-  /var/lib/romm/assets/{saves,states,screenshots} \
-  /var/lib/romm/library/roms/{gba,gbc,ps} \
-  /var/lib/romm/library/bios/{gba,ps}
+    /var/lib/romm/config \
+    /var/lib/romm/resources \
+    /var/lib/romm/assets/{saves,states,screenshots} \
+    /var/lib/romm/library/roms/{gba,gbc,ps} \
+    /var/lib/romm/library/bios/{gba,ps}
 chown -R romm:romm /opt/romm /var/lib/romm
 msg_ok "Created romm user and directories"
 
@@ -71,10 +71,10 @@ $STD mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE 
 $STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 $STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-  echo "RomM-Credentials"
-  echo "RomM Database User: $DB_USER"
-  echo "RomM Database Password: $DB_PASS"
-  echo "RomM Database Name: $DB_NAME"
+    echo "RomM-Credentials"
+    echo "RomM Database User: $DB_USER"
+    echo "RomM Database Password: $DB_PASS"
+    echo "RomM Database Name: $DB_NAME"
 } >~/romm.creds
 msg_ok "Configured Database"
 

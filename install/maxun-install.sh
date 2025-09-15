@@ -8,37 +8,37 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  openssl \
-  redis \
-  libgbm1 \
-  libnss3 \
-  libatk1.0-0 \
-  libatk-bridge2.0-0 \
-  libdrm2 \
-  libxkbcommon0 \
-  libglib2.0-0 \
-  libdbus-1-3 \
-  libx11-xcb1 \
-  libxcb1 \
-  libxcomposite1 \
-  libxcursor1 \
-  libxdamage1 \
-  libxext6 \
-  libxi6 \
-  libxtst6 \
-  ca-certificates \
-  libxrandr2 \
-  libasound2 \
-  libxss1 \
-  libxinerama1 \
-  nginx
+    openssl \
+    redis \
+    libgbm1 \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxkbcommon0 \
+    libglib2.0-0 \
+    libdbus-1-3 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxi6 \
+    libxtst6 \
+    ca-certificates \
+    libxrandr2 \
+    libasound2 \
+    libxss1 \
+    libxinerama1 \
+    nginx
 msg_ok "Installed Dependencies"
 
 PG_VERSION=17 setup_postgresql
@@ -63,13 +63,13 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-  echo "Maxun-Credentials"
-  echo "Maxun Database User: $DB_USER"
-  echo "Maxun Database Password: $DB_PASS"
-  echo "Maxun Database Name: $DB_NAME"
-  echo "Maxun JWT Secret: $JWT_SECRET"
-  echo "Maxun Encryption Key: $ENCRYPTION_KEY"
-  echo "Maxun Session Secret: $SESSION_SECRET"
+    echo "Maxun-Credentials"
+    echo "Maxun Database User: $DB_USER"
+    echo "Maxun Database Password: $DB_PASS"
+    echo "Maxun Database Name: $DB_NAME"
+    echo "Maxun JWT Secret: $JWT_SECRET"
+    echo "Maxun Encryption Key: $ENCRYPTION_KEY"
+    echo "Maxun Session Secret: $SESSION_SECRET"
 } >>~/maxun.creds
 msg_ok "Set up Database"
 
@@ -98,9 +98,9 @@ LimitNOFILE=65536
 WantedBy=multi-user.target
 EOF
 {
-  echo "__________________"
-  echo "MinIO Admin User: $MINIO_USER"
-  echo "MinIO Admin Password: $MINIO_PASS"
+    echo "__________________"
+    echo "MinIO Admin User: $MINIO_USER"
+    echo "MinIO Admin Password: $MINIO_PASS"
 } >>~/maxun.creds
 cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=${MINIO_USER}

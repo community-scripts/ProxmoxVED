@@ -8,18 +8,18 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  build-essential \
-  python3 \
-  openssl \
-  curl \
-  ca-certificates
+    build-essential \
+    python3 \
+    openssl \
+    curl \
+    ca-certificates
 msg_ok "Installed Dependencies"
 
 PG_VERSION="15" setup_postgresql
@@ -45,21 +45,21 @@ $STD sudo -u postgres psql -d $DB_NAME -c "GRANT CREATE ON SCHEMA public TO $DB_
 $STD sudo -u postgres psql -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $DB_USER;"
 $STD sudo -u postgres psql -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $DB_USER;"
 {
-  echo "Ghostfolio Credentials"
-  echo "Database User: $DB_USER"
-  echo "Database Password: $DB_PASS"
-  echo "Database Name: $DB_NAME"
-  echo "Redis Password: $REDIS_PASS"
-  echo "Access Token Salt: $ACCESS_TOKEN_SALT"
-  echo "JWT Secret Key: $JWT_SECRET_KEY"
-  if [[ -n "${COINGECKO_DEMO_KEY:-}" ]]; then
-    echo "CoinGecko Demo API Key: $COINGECKO_DEMO_KEY"
-  fi
-  if [[ -n "${COINGECKO_PRO_KEY:-}" ]]; then
-    echo "CoinGecko Pro API Key: $COINGECKO_PRO_KEY"
-  fi
-  echo ""
-  echo "To add CoinGecko API keys later, edit: /opt/ghostfolio/.env"
+    echo "Ghostfolio Credentials"
+    echo "Database User: $DB_USER"
+    echo "Database Password: $DB_PASS"
+    echo "Database Name: $DB_NAME"
+    echo "Redis Password: $REDIS_PASS"
+    echo "Access Token Salt: $ACCESS_TOKEN_SALT"
+    echo "JWT Secret Key: $JWT_SECRET_KEY"
+    if [[ -n "${COINGECKO_DEMO_KEY:-}" ]]; then
+        echo "CoinGecko Demo API Key: $COINGECKO_DEMO_KEY"
+    fi
+    if [[ -n "${COINGECKO_PRO_KEY:-}" ]]; then
+        echo "CoinGecko Pro API Key: $COINGECKO_PRO_KEY"
+    fi
+    echo ""
+    echo "To add CoinGecko API keys later, edit: /opt/ghostfolio/.env"
 } >>~/ghostfolio.creds
 msg_ok "Set up Database"
 
@@ -101,11 +101,11 @@ HOST=0.0.0.0
 EOF
 
 if [[ -n "${COINGECKO_DEMO_KEY:-}" ]]; then
-  echo "API_KEY_COINGECKO_DEMO=$COINGECKO_DEMO_KEY" >>/opt/ghostfolio/.env
+    echo "API_KEY_COINGECKO_DEMO=$COINGECKO_DEMO_KEY" >>/opt/ghostfolio/.env
 fi
 
 if [[ -n "${COINGECKO_PRO_KEY:-}" ]]; then
-  echo "API_KEY_COINGECKO_PRO=$COINGECKO_PRO_KEY" >>/opt/ghostfolio/.env
+    echo "API_KEY_COINGECKO_PRO=$COINGECKO_PRO_KEY" >>/opt/ghostfolio/.env
 fi
 msg_ok "Set up Environment"
 

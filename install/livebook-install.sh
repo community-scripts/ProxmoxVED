@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -47,7 +47,7 @@ $STD mix local.hex --force
 $STD mix local.rebar --force
 $STD mix escript.install hex livebook --force
 
-cat <<EOF > /opt/livebook/.env
+cat <<EOF >/opt/livebook/.env
 export HOME=/opt/livebook
 export ERLANG_VERSION=$ERLANG_VERSION
 export ELIXIR_VERSION=$ELIXIR_VERSION
@@ -89,7 +89,7 @@ systemctl enable -q --now livebook
 msg_ok "Installed Livebook"
 
 msg_info "Saving Livebook credentials"
-cat <<EOF > /opt/livebook/livebook.creds
+cat <<EOF >/opt/livebook/livebook.creds
 Livebook-Credentials
 Livebook Password: $LIVEBOOK_PASSWORD
 EOF

@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -19,9 +19,9 @@ echo "deb [signed-by=/usr/share/keyrings/proxmox-archive-keyring.gpg] http://dow
 $STD apt-get update
 DEBIAN_FRONTEND=noninteractive
 $STD apt-get -o Dpkg::Options::="--force-confdef" \
-        -o Dpkg::Options::="--force-confold" \
-        install -y proxmox-datacenter-manager \
-        proxmox-datacenter-manager-ui
+    -o Dpkg::Options::="--force-confold" \
+    install -y proxmox-datacenter-manager \
+    proxmox-datacenter-manager-ui
 msg_ok "Installed Proxmox Datacenter Manager"
 
 motd_ssh

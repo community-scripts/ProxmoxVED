@@ -9,25 +9,25 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  pkg-config \
-  libssl-dev \
-  libc6-dev \
-  libpq-dev \
-  clang \
-  llvm \
-  nettle-dev \
-  build-essential \
-  curl \
-  sudo \
-  make \
-  mc
+    pkg-config \
+    libssl-dev \
+    libc6-dev \
+    libpq-dev \
+    clang \
+    llvm \
+    nettle-dev \
+    build-essential \
+    curl \
+    sudo \
+    make \
+    mc
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Rust (Patience)"

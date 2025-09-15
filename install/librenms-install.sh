@@ -8,25 +8,25 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  lsb-release \
-  ca-certificates \
-  acl \
-  fping \
-  graphviz \
-  imagemagick \
-  mtr-tiny \
-  nginx \
-  nmap \
-  rrdtool \
-  snmp \
-  snmpd
+    lsb-release \
+    ca-certificates \
+    acl \
+    fping \
+    graphviz \
+    imagemagick \
+    mtr-tiny \
+    nginx \
+    nmap \
+    rrdtool \
+    snmp \
+    snmpd
 msg_ok "Installed Dependencies"
 
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="gmp,mysql,snmp" setup_php
@@ -36,7 +36,7 @@ PYTHON_VERSION="3.13" setup_uv
 
 msg_info "Installing Python"
 $STD apt-get install -y \
-  python3-{dotenv,pymysql,redis,setuptools,systemd,pip}
+    python3-{dotenv,pymysql,redis,setuptools,systemd,pip}
 msg_ok "Installed Python"
 
 msg_info "Configuring Database"
@@ -47,10 +47,10 @@ $STD mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE 
 $STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 $STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-  echo "LibreNMS-Credentials"
-  echo "LibreNMS Database User: $DB_USER"
-  echo "LibreNMS Database Password: $DB_PASS"
-  echo "LibreNMS Database Name: $DB_NAME"
+    echo "LibreNMS-Credentials"
+    echo "LibreNMS Database User: $DB_USER"
+    echo "LibreNMS Database Password: $DB_PASS"
+    echo "LibreNMS Database Name: $DB_NAME"
 } >>~/librenms.creds
 msg_ok "Configured Database"
 

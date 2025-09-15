@@ -8,15 +8,15 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  apt-transport-https \
-  ca-certificates
+    apt-transport-https \
+    ca-certificates
 msg_ok "Installed Dependencies"
 
 JAVA_VERSION="21" setup_java
@@ -66,7 +66,7 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now  zookeeper
+systemctl enable -q --now zookeeper
 msg_ok "Setup Zookeeper"
 
 msg_info "Configuring ClickHouse"
@@ -104,8 +104,8 @@ fetch_and_deploy_gh_release "signoz-schema-migrator" "SigNoz/signoz-otel-collect
 
 msg_info "Running ClickHouse migrations"
 cd /opt/signoz-schema-migrator/bin
-$STD ./signoz-schema-migrator sync --dsn="tcp://localhost:9000?password=" --replication=true  --up=
-$STD ./signoz-schema-migrator async --dsn="tcp://localhost:9000?password=" --replication=true  --up=
+$STD ./signoz-schema-migrator sync --dsn="tcp://localhost:9000?password=" --replication=true --up=
+$STD ./signoz-schema-migrator async --dsn="tcp://localhost:9000?password=" --replication=true --up=
 msg_ok "ClickHouse Migrations Completed"
 
 fetch_and_deploy_gh_release "signoz" "SigNoz/signoz" "prebuild" "latest" "/opt/signoz" "signoz-community_linux_amd64.tar.gz"

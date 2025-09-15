@@ -7,23 +7,23 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  lsb-release \
-  rbenv \
-  libpq-dev \
-  libarchive-dev \
-  git \
-  libmariadb-dev \
-  redis-server \
-  nginx \
-  libffi-dev \
-  libyaml-dev
+    lsb-release \
+    rbenv \
+    libpq-dev \
+    libarchive-dev \
+    git \
+    libmariadb-dev \
+    redis-server \
+    nginx \
+    libffi-dev \
+    libyaml-dev
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
@@ -38,10 +38,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 {
-  echo "Manyfold Credentials"
-  echo "Manyfold Database User: $DB_USER"
-  echo "Manyfold Database Password: $DB_PASS"
-  echo "Manyfold Database Name: $DB_NAME"
+    echo "Manyfold Credentials"
+    echo "Manyfold Database User: $DB_USER"
+    echo "Manyfold Database Password: $DB_PASS"
+    echo "Manyfold Database Name: $DB_NAME"
 } >>~/manyfold.creds
 msg_ok "Set up PostgreSQL"
 

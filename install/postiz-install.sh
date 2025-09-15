@@ -8,20 +8,20 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing dependencies"
 $STD apt-get install -y \
-  build-essential \
-  python3-pip \
-  supervisor \
-  debian-keyring \
-  debian-archive-keyring \
-  apt-transport-https \
-  redis
+    build-essential \
+    python3-pip \
+    supervisor \
+    debian-keyring \
+    debian-archive-keyring \
+    apt-transport-https \
+    redis
 msg_ok "Installed dependencies"
 
 NODE_VERSION="20" setup_nodejs
@@ -37,10 +37,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-  echo "Postiz DB Credentials"
-  echo "Postiz Database User: $DB_USER"
-  echo "Postiz Database Password: $DB_PASS"
-  echo "Postiz Database Name: $DB_NAME"
+    echo "Postiz DB Credentials"
+    echo "Postiz Database User: $DB_USER"
+    echo "Postiz Database Password: $DB_PASS"
+    echo "Postiz Database Name: $DB_NAME"
 } >>~/postiz.creds
 msg_ok "Set up PostgreSQL Database"
 

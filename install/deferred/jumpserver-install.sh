@@ -8,14 +8,14 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  iptables
+    iptables
 msg_ok "Installed Dependencies"
 
 msg_info "Installing JumpServer"

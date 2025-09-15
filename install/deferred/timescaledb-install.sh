@@ -4,22 +4,22 @@
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
-  gnupg \
-  apt-transport-https \
-  lsb-release
+    curl \
+    sudo \
+    mc \
+    gnupg \
+    apt-transport-https \
+    lsb-release
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up PostgreSQL Repository"
@@ -60,10 +60,10 @@ cat <<EOF >/etc/postgresql/17/main/postgresql.conf
 # FILE LOCATIONS
 #------------------------------------------------------------------------------
 
-data_directory = '/var/lib/postgresql/17/main'       
-hba_file = '/etc/postgresql/17/main/pg_hba.conf'     
-ident_file = '/etc/postgresql/17/main/pg_ident.conf'   
-external_pid_file = '/var/run/postgresql/17-main.pid'                   
+data_directory = '/var/lib/postgresql/17/main'
+hba_file = '/etc/postgresql/17/main/pg_hba.conf'
+ident_file = '/etc/postgresql/17/main/pg_ident.conf'
+external_pid_file = '/var/run/postgresql/17-main.pid'
 
 #------------------------------------------------------------------------------
 # CONNECTIONS AND AUTHENTICATION
@@ -71,10 +71,10 @@ external_pid_file = '/var/run/postgresql/17-main.pid'
 
 # - Connection Settings -
 
-listen_addresses = '*'                 
-port = 5432                             
-max_connections = 100                  
-unix_socket_directories = '/var/run/postgresql' 
+listen_addresses = '*'
+port = 5432
+max_connections = 100
+unix_socket_directories = '/var/run/postgresql'
 
 # - SSL -
 
@@ -86,8 +86,8 @@ ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'
 # RESOURCE USAGE (except WAL)
 #------------------------------------------------------------------------------
 
-shared_buffers = 128MB                
-dynamic_shared_memory_type = posix      
+shared_buffers = 128MB
+dynamic_shared_memory_type = posix
 
 #------------------------------------------------------------------------------
 # WRITE-AHEAD LOG
@@ -102,14 +102,14 @@ min_wal_size = 80MB
 
 # - What to Log -
 
-log_line_prefix = '%m [%p] %q%u@%d '           
+log_line_prefix = '%m [%p] %q%u@%d '
 log_timezone = 'Etc/UTC'
 
 #------------------------------------------------------------------------------
 # PROCESS TITLE
 #------------------------------------------------------------------------------
 
-cluster_name = '17/main'                
+cluster_name = '17/main'
 
 #------------------------------------------------------------------------------
 # CLIENT CONNECTION DEFAULTS
@@ -119,22 +119,21 @@ cluster_name = '17/main'
 
 datestyle = 'iso, mdy'
 timezone = 'Etc/UTC'
-lc_messages = 'C'                      
-lc_monetary = 'C'                       
-lc_numeric = 'C'                        
-lc_time = 'C'                           
+lc_messages = 'C'
+lc_monetary = 'C'
+lc_numeric = 'C'
+lc_time = 'C'
 default_text_search_config = 'pg_catalog.english'
 
 #------------------------------------------------------------------------------
 # CONFIG FILE INCLUDES
 #------------------------------------------------------------------------------
 
-include_dir = 'conf.d'                  
+include_dir = 'conf.d'
 EOF
 
 systemctl restart postgresql
 msg_ok "Installed PostgreSQL"
-
 
 msg_info "Setup TimescaleDB"
 echo "deb https://packagecloud.io/timescale/timescaledb/debian/ $(lsb_release -c -s) main" | sudo tee /etc/apt/sources.list.d/timescaledb.list
@@ -147,11 +146,11 @@ msg_ok "Setup TimescaleDB"
 
 read -r -p "Would you like to add Adminer? <y/N> " prompt
 if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-  msg_info "Installing Adminer"
-  $STD apt install -y adminer
-  $STD a2enconf adminer
-  systemctl reload apache2
-  msg_ok "Installed Adminer"
+    msg_info "Installing Adminer"
+    $STD apt install -y adminer
+    $STD a2enconf adminer
+    systemctl reload apache2
+    msg_ok "Installed Adminer"
 fi
 
 motd_ssh

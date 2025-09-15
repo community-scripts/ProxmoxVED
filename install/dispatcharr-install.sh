@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -20,15 +20,15 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  build-essential \
-  gcc \
-  libpcre3-dev \
-  libpq-dev \
-  nginx \
-  redis-server \
-  ffmpeg \
-  procps \
-  streamlink
+    build-essential \
+    gcc \
+    libpcre3-dev \
+    libpq-dev \
+    nginx \
+    redis-server \
+    ffmpeg \
+    procps \
+    streamlink
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.13" setup_uv
@@ -47,10 +47,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 {
-  echo "Dispatcharr-Credentials"
-  echo "Dispatcharr Database Name: $DB_NAME"
-  echo "Dispatcharr Database User: $DB_USER"
-  echo "Dispatcharr Database Password: $DB_PASS"
+    echo "Dispatcharr-Credentials"
+    echo "Dispatcharr Database Name: $DB_NAME"
+    echo "Dispatcharr Database User: $DB_USER"
+    echo "Dispatcharr Database Password: $DB_PASS"
 } >>~/dispatcharr.creds
 msg_ok "Set up PostgreSQL Database"
 
@@ -63,10 +63,10 @@ mapfile -t EXTRA_INDEX_URLS < <(grep -E '^(--(extra-)?index-url|-i)\s' requireme
 
 UV_INDEX_ARGS=(--index-url "$PYPI_URL" --index-strategy unsafe-best-match)
 for u in "${EXTRA_INDEX_URLS[@]}"; do
-  [[ -n "$u" && "$u" != "$PYPI_URL" ]] && UV_INDEX_ARGS+=(--extra-index-url "$u")
+    [[ -n "$u" && "$u" != "$PYPI_URL" ]] && UV_INDEX_ARGS+=(--extra-index-url "$u")
 done
 if [[ -f requirements.txt ]]; then
-  $STD uv pip install --system "${UV_INDEX_ARGS[@]}" -r requirements.txt
+    $STD uv pip install --system "${UV_INDEX_ARGS[@]}" -r requirements.txt
 fi
 $STD uv pip install --system "${UV_INDEX_ARGS[@]}" gunicorn gevent celery daphne
 ln -sf /usr/bin/ffmpeg /opt/dispatcharr/env/bin/ffmpeg

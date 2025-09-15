@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -24,10 +24,10 @@ $STD mysql -u root -e "CREATE DATABASE $DB_NAME;"
 $STD mysql -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED WITH mysql_native_password AS PASSWORD('$DB_PASS');"
 $STD mysql -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-  echo "Leantime Credentials"
-  echo "Database User: $DB_USER"
-  echo "Database Password: $DB_PASS"
-  echo "Database Name: $DB_NAME"
+    echo "Leantime Credentials"
+    echo "Database User: $DB_USER"
+    echo "Database Password: $DB_PASS"
+    echo "Database Name: $DB_NAME"
 } >>~/leantime.creds
 msg_ok "Set up Database"
 
@@ -59,10 +59,10 @@ cat <<EOF >/etc/apache2/sites-enabled/000-default.conf
 EOF
 mv "/opt/leantime/config/sample.env" "/opt/leantime/config/.env"
 sed -i -e "s|^LEAN_DB_DATABASE.*|LEAN_DB_DATABASE = '$DB_NAME'|" \
-  -e "s|^LEAN_DB_USER.*|LEAN_DB_USER = '$DB_USER'|" \
-  -e "s|^LEAN_DB_PASSWORD.*|LEAN_DB_PASSWORD = '$DB_PASS'|" \
-  -e "s|^LEAN_SESSION_PASSWORD.*|LEAN_SESSION_PASSWORD = '$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)'|" \
-  "/opt/leantime/config/.env"
+    -e "s|^LEAN_DB_USER.*|LEAN_DB_USER = '$DB_USER'|" \
+    -e "s|^LEAN_DB_PASSWORD.*|LEAN_DB_PASSWORD = '$DB_PASS'|" \
+    -e "s|^LEAN_SESSION_PASSWORD.*|LEAN_SESSION_PASSWORD = '$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)'|" \
+    "/opt/leantime/config/.env"
 $STD a2enmod -q proxy_fcgi setenvif rewrite
 $STD a2enconf -q "php8.4-fpm"
 sed -i -e "s/^;extension.\(curl\|fileinfo\|gd\|intl\|ldap\|mbstring\|exif\|mysqli\|odbc\|openssl\|pdo_mysql\)/extension=\1/g" "/etc/php/8.4/apache2/php.ini"
