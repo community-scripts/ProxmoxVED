@@ -576,5 +576,29 @@ if [ "$START_VM" == "yes" ]; then
   msg_ok "Started Debian 13 VM"
 fi
 
+msg_info "Installing resize tools in VM"
+qm set "$VMID" --sshkeys ~/.ssh/id_rsa.pub >/dev/null 2>&1 || true
+qm exec "$VMID" -- bash -c "apt-get update && apt-get install -y cloud-guest-utils e2fsprogs xfsprogs"
+msg_ok "Installed resize tools in VM"
+
+msg_info "Injecting auto-resize script into VM"
+cat <<'EOF' >/var/lib/vz/snippets/resize-root.sh
+#!/bin/bash
+set -e
+DEVICE=$(lsblk -no pkname $(findmnt -n -o SOURCE /))
+PART=$(findmnt -n -o SOURCE / | sed 's|/dev/||')
+growpart /dev/${DEVICE} ${PART##*[a-z]}
+FSTYPE=$(findmnt -n -o FSTYPE /)
+if [ "$FSTYPE" = "ext4" ]; then
+  resize2fs /dev/$PART
+elif [ "$FSTYPE" = "xfs" ]; then
+  xfs_growfs /
+fi
+EOF
+chmod +x /var/lib/vz/snippets/resize-root.sh
+
+qm set "$VMID" --hookscript local:snippets/resize-root.sh >/dev/null
+msg_ok "Injected auto-resize script"
+
 msg_ok "Completed Successfully!\n"
 echo "More Info at https://github.com/community-scripts/ProxmoxVE/discussions/836"
