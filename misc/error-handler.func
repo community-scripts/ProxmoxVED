@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# ------------------------------------------------------------------------------
+# Error & Signal Handling for ProxmoxVED Scripts
+# ------------------------------------------------------------------------------
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# ------------------------------------------------------------------------------
+
+explain_exit_code() {
+  local code="$1"
+  case "$code" in
+  1) echo "General error / Operation not permitted" ;;
+  2) echo "Misuse of shell builtins (e.g. syntax error)" ;;
+  126) echo "Command invoked cannot execute (permission problem?)" ;;
+  127) echo "Command not found" ;;
+  128) echo "Invalid argument to exit" ;;
+  130) echo "Terminated by Ctrl+C (SIGINT)" ;;
+  137) echo "Killed (SIGKILL / out of memory?)" ;;
+  143) echo "Terminated (SIGTERM)" ;;
+  200) echo "Custom: Failed to create lock file" ;;
+  203) echo "Custom: Missing CTID variable" ;;
+  204) echo "Custom: Missing PCT_OSTYPE variable" ;;
+  205) echo "Custom: Invalid CTID (<100)" ;;
+  209) echo "Custom: Container creation failed" ;;
+  210) echo "Custom: Cluster not quorate" ;;
+  214) echo "Custom: Not enough storage space" ;;
+  215) echo "Custom: Container ID not listed" ;;
+  216) echo "Custom: RootFS entry missing in config" ;;
+  217) echo "Custom: Storage does not support rootdir" ;;
+  220) echo "Custom: Unable to resolve template path" ;;
+  222) echo "Custom: Template download failed after 3 attempts" ;;
+  223) echo "Custom: Template not available after download" ;;
+  231) echo "Custom: LXC stack upgrade/retry failed" ;;
+  *) echo "Unknown error" ;;
+  esac
+}
+
+# === Error handler ============================================================
+error_handler() {
+  local exit_code=$?
+  local line_number=${BASH_LINENO[0]:-unknown}
+  local command=${BASH_COMMAND:-unknown}
+
+  # Exitcode 0 = kein Fehler → ignorieren
+  if [[ "$exit_code" -eq 0 ]]; then
+    return 0
+  fi
+
+  local explanation
+  explanation="$(explain_exit_code "$exit_code")"
+
+  printf "\e[?25h"
+  echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL} (${explanation}): while executing command ${YW}${command}${CL}\n"
+
+  if [[ -n "${DEBUG_LOGFILE:-}" ]]; then
+    {
+      echo "------ ERROR ------"
+      echo "Timestamp : $(date '+%Y-%m-%d %H:%M:%S')"
+      echo "Exit Code : $exit_code ($explanation)"
+      echo "Line      : $line_number"
+      echo "Command   : $command"
+      echo "-------------------"
+    } >>"$DEBUG_LOGFILE"
+  fi
+
+  exit "$exit_code"
+}
+
+# === Exit handler =============================================================
+on_exit() {
+  local exit_code=$?
+  [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
+  exit "$exit_code"
+}
+
+# === Signal handlers ==========================================================
+on_interrupt() {
+  echo -e "\n${RD}Interrupted by user (SIGINT)${CL}"
+  exit 130
+}
+
+on_terminate() {
+  echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}"
+  exit 143
+}
+
+# === Init traps ===============================================================
+init_error_traps() {
+  set -Eeuo pipefail
+  trap 'error_handler' ERR
+  trap on_exit EXIT
+  trap on_interrupt INT
+  trap on_terminate TERM
+}
