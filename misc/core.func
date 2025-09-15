@@ -193,8 +193,13 @@ set_std_mode() {
 SILENT_LOGFILE="/tmp/silent.$$.log"
 
 silent() {
+  local cmd="$*"
   "$@" >>"$SILENT_LOGFILE" 2>&1
-  return $?
+  local rc=$?
+  if [[ $rc -ne 0 ]]; then
+    BASH_COMMAND="$cmd"
+  fi
+  return $rc
 }
 
 # Function to download & save header files

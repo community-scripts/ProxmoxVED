@@ -10,14 +10,55 @@
 explain_exit_code() {
   local code="$1"
   case "$code" in
+  # --- Generic / Shell ---
   1) echo "General error / Operation not permitted" ;;
   2) echo "Misuse of shell builtins (e.g. syntax error)" ;;
   126) echo "Command invoked cannot execute (permission problem?)" ;;
   127) echo "Command not found" ;;
   128) echo "Invalid argument to exit" ;;
   130) echo "Terminated by Ctrl+C (SIGINT)" ;;
-  137) echo "Killed (SIGKILL / out of memory?)" ;;
+  137) echo "Killed (SIGKILL / Out of memory?)" ;;
+  139) echo "Segmentation fault (core dumped)" ;;
   143) echo "Terminated (SIGTERM)" ;;
+
+  # --- Package manager / APT / DPKG ---
+  100) echo "APT: Package manager error (broken packages / dependency problems)" ;;
+  101) echo "APT: Configuration error (bad sources.list, malformed config)" ;;
+  255) echo "DPKG: Fatal internal error" ;;
+
+  # --- Node.js / npm / pnpm / yarn ---
+  243) echo "Node.js: Out of memory (JavaScript heap out of memory)" ;;
+  245) echo "Node.js: Invalid command-line option" ;;
+  246) echo "Node.js: Internal JavaScript Parse Error" ;;
+  247) echo "Node.js: Fatal internal error" ;;
+  248) echo "Node.js: Invalid C++ addon / N-API failure" ;;
+  249) echo "Node.js: Inspector error" ;;
+  254) echo "npm/pnpm/yarn: Unknown fatal error" ;;
+
+  # --- Python / pip / uv ---
+  210) echo "Python: Virtualenv / uv environment missing or broken" ;;
+  211) echo "Python: Dependency resolution failed" ;;
+  212) echo "Python: Installation aborted (permissions or EXTERNALLY-MANAGED)" ;;
+
+  # --- PostgreSQL ---
+  231) echo "PostgreSQL: Connection failed (server not running / wrong socket)" ;;
+  232) echo "PostgreSQL: Authentication failed (bad user/password)" ;;
+  233) echo "PostgreSQL: Database does not exist" ;;
+  234) echo "PostgreSQL: Fatal error in query / syntax" ;;
+
+  # --- MySQL / MariaDB ---
+  241) echo "MySQL/MariaDB: Connection failed (server not running / wrong socket)" ;;
+  242) echo "MySQL/MariaDB: Authentication failed (bad user/password)" ;;
+  243) echo "MySQL/MariaDB: Database does not exist" ;;
+  244) echo "MySQL/MariaDB: Fatal error in query / syntax" ;;
+
+  # --- MongoDB ---
+  251) echo "MongoDB: Connection failed (server not running)" ;;
+  252) echo "MongoDB: Authentication failed (bad user/password)" ;;
+  253) echo "MongoDB: Database not found" ;;
+  254) echo "MongoDB: Fatal query error" ;;
+
+  # --- Proxmox Custom Codes ---
   200) echo "Custom: Failed to create lock file" ;;
   203) echo "Custom: Missing CTID variable" ;;
   204) echo "Custom: Missing PCT_OSTYPE variable" ;;
@@ -32,6 +73,8 @@ explain_exit_code() {
   222) echo "Custom: Template download failed after 3 attempts" ;;
   223) echo "Custom: Template not available after download" ;;
   231) echo "Custom: LXC stack upgrade/retry failed" ;;
+
+  # --- Default ---
   *) echo "Unknown error" ;;
   esac
 }
