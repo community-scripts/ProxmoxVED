@@ -117,7 +117,7 @@ offer_lxc_stack_upgrade_and_maybe_retry() {
   case "${_ans,,}" in
   y | yes)
     msg_info "Upgrading Proxmox LXC stack (pve-container, lxc-pve)"
-    if apt-get update -qq && apt-get install -y --only-upgrade pve-container lxc-pve; then
+    if apt-get update -qq >/dev/null && apt-get install -y --only-upgrade pve-container lxc-pve >/dev/null; then
       msg_ok "LXC stack upgraded."
       if [[ "$do_retry" == "yes" ]]; then
         msg_info "Retrying container creation after upgrade"
