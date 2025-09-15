@@ -17,7 +17,7 @@
   "install_methods": [
     {
       "type": "default",
-      "script": "pve/update-apps.sh",
+      "script": "tools/pve/update-apps.sh",
       "resources": {
         "cpu": null,
         "ram": null,
