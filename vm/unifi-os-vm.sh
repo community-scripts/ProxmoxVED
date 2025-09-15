@@ -302,9 +302,9 @@ function advanced_settings() {
     exit-script
   fi
 
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 docker --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 unifi-os-server --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="docker"
+      HN="unifi-os-server"
       echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo ${VM_NAME,,} | tr -d ' ')
@@ -469,6 +469,7 @@ fi
 
 msg_info "Injecting UniFi OS Installer into Cloud Image"
 virt-customize -q -a "$FILE" \
+  --run-command "echo 'nameserver 1.1.1.1' > /etc/resolv.conf" \
   --install qemu-guest-agent,ca-certificates,curl,lsb-release,podman \
   --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER}" \
   --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
