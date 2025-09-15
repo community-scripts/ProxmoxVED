@@ -24,41 +24,41 @@ fi
 # ------------------------------------------------------------------------------
 # Strict error handling
 # ------------------------------------------------------------------------------
-set -Eeuo pipefail
-trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
-trap on_exit EXIT
-trap on_interrupt INT
-trap on_terminate TERM
+# set -Eeuo pipefail
+# trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
+# trap on_exit EXIT
+# trap on_interrupt INT
+# trap on_terminate TERM
 
-error_handler() {
-  local exit_code="$1"
-  local line_number="$2"
-  local command="${3:-}"
+# error_handler() {
+#   local exit_code="$1"
+#   local line_number="$2"
+#   local command="${3:-}"
 
-  if [[ "$exit_code" -eq 0 ]]; then
-    return 0
-  fi
+#   if [[ "$exit_code" -eq 0 ]]; then
+#     return 0
+#   fi
 
-  printf "\e[?25h"
-  echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL}: while executing command ${YW}${command}${CL}\n"
-  exit "$exit_code"
-}
+#   printf "\e[?25h"
+#   echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL}: while executing command ${YW}${command}${CL}\n"
+#   exit "$exit_code"
+# }
 
-on_exit() {
-  local exit_code="$?"
-  [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
-  exit "$exit_code"
-}
+# on_exit() {
+#   local exit_code="$?"
+#   [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
+#   exit "$exit_code"
+# }
 
-on_interrupt() {
-  echo -e "\n${RD}Interrupted by user (SIGINT)${CL}"
-  exit 130
-}
+# on_interrupt() {
+#   echo -e "\n${RD}Interrupted by user (SIGINT)${CL}"
+#   exit 130
+# }
 
-on_terminate() {
-  echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}"
-  exit 143
-}
+# on_terminate() {
+#   echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}"
+#   exit 143
+# }
 
 exit_script() {
   clear
@@ -490,7 +490,6 @@ if ! pveam list "$TEMPLATE_STORAGE" 2>/dev/null | grep -q "$TEMPLATE"; then
   msg_error "Template $TEMPLATE not available in storage $TEMPLATE_STORAGE after download."
   exit 223
 fi
-msg_ok "Template $TEMPLATE is ready for container creation."
 
 # ------------------------------------------------------------------------------
 # Dynamic preflight for Debian 13.x: offer upgrade if available (no hard mins)

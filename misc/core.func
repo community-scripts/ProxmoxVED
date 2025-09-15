@@ -96,10 +96,10 @@ _tool_error_hint() {
 #   exit 143
 # }
 
-catch_errors() {
-  set -Eeuo pipefail
-  trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
-}
+# catch_errors() {
+#   set -Eeuo pipefail
+#   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
+# }
 
 # ------------------------------------------------------------------------------
 # Sets ANSI color codes used for styled terminal output.
@@ -190,8 +190,11 @@ set_std_mode() {
 }
 
 # Silent execution function
+SILENT_LOGFILE="/tmp/silent.$$.log"
+
 silent() {
-  "$@" >/dev/null 2>&1
+  "$@" >>"$SILENT_LOGFILE" 2>&1
+  return $?
 }
 
 # Function to download & save header files

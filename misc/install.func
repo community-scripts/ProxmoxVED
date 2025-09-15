@@ -25,27 +25,27 @@ verb_ip6() {
   fi
 }
 
-# This function sets error handling options and defines the error_handler function to handle errors
-catch_errors() {
-  set -Eeuo pipefail
-  trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
-}
+# # This function sets error handling options and defines the error_handler function to handle errors
+# catch_errors() {
+#   set -Eeuo pipefail
+#   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
+# }
 
-# This function handles errors
-error_handler() {
-  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
-  local exit_code="$1"
-  local line_number="$2"
-  local command="${3:-}"
+# # This function handles errors
+# error_handler() {
+#   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
+#   local exit_code="$1"
+#   local line_number="$2"
+#   local command="${3:-}"
 
-  if [[ "$exit_code" -eq 0 ]]; then
-    return 0
-  fi
+#   if [[ "$exit_code" -eq 0 ]]; then
+#     return 0
+#   fi
 
-  printf "\e[?25h"
-  echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL}: while executing command ${YW}${command}${CL}\n"
-  exit "$exit_code"
-}
+#   printf "\e[?25h"
+#   echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL}: while executing command ${YW}${command}${CL}\n"
+#   exit "$exit_code"
+#}
 
 # This function sets up the Container OS by generating the locale, setting the timezone, and checking the network connection
 setting_up_container() {
