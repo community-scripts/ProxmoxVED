@@ -37,15 +37,14 @@ trap on_terminate TERM
 error_handler() {
   local exit_code="$1"
   local line_number="$2"
-  local command="$3"
+  local command="${3:-}"
 
-  # Exitcode 0 = kein Fehler → ignorieren
   if [[ "$exit_code" -eq 0 ]]; then
     return 0
   fi
 
   printf "\e[?25h"
-  echo -e "\n${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}\n"
+  echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL}: while executing command ${YW}${command}${CL}\n"
   exit "$exit_code"
 }
 
