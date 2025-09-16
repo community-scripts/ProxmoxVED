@@ -1450,113 +1450,137 @@ install_script() {
   # --- PRESET support ---
   if [ -n "${PRESET:-}" ]; then
     case "$PRESET" in
-    DEFAULT | default | 1)
-      CHOICE="1"
-      ;;
-    VERBOSE | verbose | 2)
-      CHOICE="2"
-      ;;
-    ADVANCED | advanced | 3)
-      CHOICE="3"
-      ;;
-    DEFAULT_VARS | default_vars | 4)
-      CHOICE="4"
-      ;;
-    *)
-      echo -e "\n${CROSS}${RD}Invalid PRESET value: ${PRESET}${CL}\n"
-      exit 1
-      ;;
+      DEFAULT | default | 1)
+        CHOICE="1"
+        ;;
+      VERBOSE | verbose | 2)
+        CHOICE="2"
+        ;;
+      ADVANCED | advanced | 3)
+        CHOICE="3"
+        ;;
+      MYDEFAULTS | mydefaults | 4)
+        CHOICE="4"
+        ;;
+      APPDEFAULTS | appdefaults | 5)
+        CHOICE="5"
+        ;;
+      DIAGNOSTICS | diagnostics | 6)
+        CHOICE="6"
+        ;;
+      STORAGE | storage | 7)
+        CHOICE="7"
+        ;;
+      *)
+        echo -e "\n${CROSS}${RD}Invalid PRESET value: ${PRESET}${CL}\n"
+        exit 1
+        ;;
     esac
   else
-    #"4" "Use Config File" \
-    #"5" "Manage Default Storage" \
-    while true; do
-      TMP_CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-        --title "SETTINGS" \
-        --menu "Choose an option:" 20 60 6 \
-        "1" "Default Settings" \
-        "2" "Default Settings (with verbose)" \
-        "3" "Advanced Settings" \
-        "4" "My Default Vars" \
-        "5" "Diagnostic Settings" \
-        "6" "Exit" \
-        --default-item "1" 3>&1 1>&2 2>&3) || true
+    # Build dynamic menu
+    local menu_items=(
+      "1" "Default Settings"
+      "2" "Default Settings (Verbose)"
+      "3" "Advanced Install"
+      "4" "My Defaults"
+    )
+    if [ -f "$(get_app_defaults_path)" ]; then
+      menu_items+=("5" "App Defaults for ${APP}")
+    fi
+    menu_items+=(
+      "6" "Diagnostic Settings"
+      "7" "Storage Settings"
+      "8" "Exit"
+    )
 
-      if [ -z "$TMP_CHOICE" ]; then
-        echo -e "\n${CROSS}${RD}Menu canceled. Exiting script.${CL}\n"
-        exit 0
-      fi
+    TMP_CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "SETTINGS" \
+      --menu "Choose an option:" 20 60 9 \
+      "${menu_items[@]}" \
+      --default-item "1" 3>&1 1>&2 2>&3) || true
 
-      CHOICE="$TMP_CHOICE"
-      break
-    done
+    if [ -z "$TMP_CHOICE" ]; then
+      echo -e "\n${CROSS}${RD}Menu canceled. Exiting script.${CL}\n"
+      exit 0
+    fi
+    CHOICE="$TMP_CHOICE"
   fi
 
   case $CHOICE in
-  1)
-    header_info
-    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME${CL}"
-    VERBOSE="no"
-    METHOD="default"
-    base_settings "$VERBOSE"
-    echo_default
-    ;;
-  2)
-    header_info
-    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME (${VERBOSE_CROPPED}Verbose)${CL}"
-    VERBOSE="yes"
-    METHOD="default"
-    base_settings "$VERBOSE"
-    echo_default
-    ;;
-  3)
-    header_info
-    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings on node $PVEHOST_NAME${CL}"
-    METHOD="advanced"
-    base_settings
-    advanced_settings
-    maybe_offer_save_app_defaults
-    ;;
-    # 4)
-    #   header_info
-    #   echo -e "${INFO}${HOLD} ${GN}Using Config File on node $PVEHOST_NAME${CL}"
-    #   METHOD="advanced"
-    #   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/config-file.func)
-    #   config_file
-    #   ;;
-  4)
-    # My Defaults (default.vars)
-    default_var_settings || {
-      msg_error "Failed to apply default.vars"
-      exit 1
-    }
-    ;;
-  5)
-    if [[ $DIAGNOSTICS == "yes" ]]; then
-      if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTICS SETTINGS" --yesno "Send Diagnostics of LXC Installation?\n\nCurrent setting: ${DIAGNOSTICS}" 10 58 \
-        --yes-button "No" --no-button "Back"; then
-        DIAGNOSTICS="no"
-        sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
-        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTICS SETTINGS" --msgbox "Diagnostics settings changed to ${DIAGNOSTICS}." 8 58
+    1)
+      header_info
+      echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME${CL}"
+      VERBOSE="no"
+      METHOD="default"
+      base_settings "$VERBOSE"
+      echo_default
+      ;;
+    2)
+      header_info
+      echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME (Verbose)${CL}"
+      VERBOSE="yes"
+      METHOD="default"
+      base_settings "$VERBOSE"
+      echo_default
+      ;;
+    3)
+      header_info
+      echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Install on node $PVEHOST_NAME${CL}"
+      METHOD="advanced"
+      base_settings
+      advanced_settings
+      maybe_offer_save_app_defaults
+      ;;
+    4)
+      default_var_settings || {
+        msg_error "Failed to apply default.vars"
+        exit 1
+      }
+      ;;
+    5)
+      # App Defaults
+      if [ -f "$(get_app_defaults_path)" ]; then
+        header_info
+        echo -e "${DEFAULT}${BOLD}${BL}Using App Defaults for ${APP} on node $PVEHOST_NAME${CL}"
+        METHOD="appdefaults"
+        base_settings
+        _load_vars_file "$(get_app_defaults_path)"
+        echo_default
+      else
+        msg_error "No App Defaults available for ${APP}"
+        exit 1
       fi
-    else
-      if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTICS SETTINGS" --yesno "Send Diagnostics of LXC Installation?\n\nCurrent setting: ${DIAGNOSTICS}" 10 58 \
-        --yes-button "Yes" --no-button "Back"; then
-        DIAGNOSTICS="yes"
-        sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
-        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTICS SETTINGS" --msgbox "Diagnostics settings changed to ${DIAGNOSTICS}." 8 58
+      ;;
+    6)
+      if [[ $DIAGNOSTICS == "yes" ]]; then
+        if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTIC SETTINGS" --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
+          --yes-button "No" --no-button "Back"; then
+          DIAGNOSTICS="no"
+          sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
+          whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
+        fi
+      else
+        if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTIC SETTINGS" --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
+          --yes-button "Yes" --no-button "Back"; then
+          DIAGNOSTICS="yes"
+          sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
+          whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
+        fi
       fi
-    fi
-    ;;
-  6)
-    echo -e "\n${CROSS}${RD}Script terminated. Have a great day!${CL}\n"
-    exit 0
-    ;;
-  *)
-    echo -e "${CROSS}${RD}Invalid option, please try again.${CL}"
-    ;;
+      ;;
+    7)
+      storage_settings_menu
+      ;;
+    8)
+      echo -e "\n${CROSS}${RD}Script terminated.${CL}\n"
+      exit 0
+      ;;
+    *)
+      echo -e "${CROSS}${RD}Invalid option, please try again.${CL}"
+      ;;
   esac
 }
+
 
 check_container_resources() {
   # Check actual RAM & Cores
