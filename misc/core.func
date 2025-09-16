@@ -202,7 +202,9 @@ silent() {
 
   if [[ $rc -ne 0 ]]; then
     BASH_COMMAND="$cmd"
+    error_handler "$rc"
   fi
+
   return $rc
 }
 
