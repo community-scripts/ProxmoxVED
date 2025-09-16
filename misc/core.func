@@ -193,18 +193,16 @@ SILENT_LOGFILE="/tmp/silent.$$.log"
 
 silent() {
   local cmd="$*"
-
-  trap - ERR
+  set +Eeuo pipefail
   "$@" >>"$SILENT_LOGFILE" 2>&1
   local rc=$?
-  trap 'error_handler' ERR
+  set -Eeuo pipefail
 
   if [[ $rc -ne 0 ]]; then
-    BASH_COMMAND="$cmd"
-    error_handler "$rc"
+    # Store real command in a helper variable
+    LAST_SILENT_CMD="$cmd"
+    return $rc # let ERR trap fire
   fi
-
-  return $rc
 }
 
 # Check if the shell is using bash

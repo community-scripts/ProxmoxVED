@@ -82,10 +82,9 @@ explain_exit_code() {
 # === Error handler ============================================================
 error_handler() {
   local exit_code=${1:-$?}
-  local command=${2:-${BASH_COMMAND:-unknown}}
   local line_number=${BASH_LINENO[0]:-unknown}
+  local command=${LAST_SILENT_CMD:-${BASH_COMMAND:-unknown}}
 
-  # clean up cosmetic STD variable
   command="${command//\$STD/}"
 
   if [[ "$exit_code" -eq 0 ]]; then
