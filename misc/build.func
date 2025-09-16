@@ -1697,35 +1697,40 @@ check_storage_or_prompt() {
 # - Options: update My Defaults or App Defaults storage
 # ------------------------------------------------------------------------------
 storage_settings_menu() {
-  local menu_items=(
-    "1" "Check & update My Defaults (default.vars)"
-  )
-  if [ -f "$(get_app_defaults_path)" ]; then
-    menu_items+=("2" "Check & update App Defaults for ${APP}")
-  fi
-  menu_items+=("3" "Back")
+  local vars_file="/usr/local/community-scripts/default.vars"
 
-  local choice
-  choice=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+  check_storage_or_prompt "$vars_file"
+  _echo_storage_summary "$vars_file"
+
+  # Always ask user if they want to update, even if values are valid
+  if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
     --title "STORAGE SETTINGS" \
-    --menu "Select what to update:" 15 60 5 \
-    "${menu_items[@]}" 3>&1 1>&2 2>&3) || return 0
+    --yesno "Do you want to update the storage defaults?\n\nCurrent values will be kept unless you select new ones." 12 72; then
 
-  case "$choice" in
-  1)
-    check_storage_or_prompt "/usr/local/community-scripts/default.vars"
-    _echo_storage_summary "/usr/local/community-scripts/default.vars"
-    ;;
-  2)
-    if [ -f "$(get_app_defaults_path)" ]; then
-      check_storage_or_prompt "$(get_app_defaults_path)"
-      _echo_storage_summary "$(get_app_defaults_path)"
+    # container storage selection
+    local new_ct
+    new_ct=$(pvesm status -content images | awk 'NR>1 {print $1"  "$2" "$6}')
+    new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "Select Container Storage" \
+      --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || true
+    if [ -n "$new_ct" ]; then
+      sed -i '/^var_container_storage=/d' "$vars_file"
+      echo "var_container_storage=$new_ct" >>"$vars_file"
+      msg_ok "Updated container storage → $new_ct"
     fi
-    ;;
-  3)
-    return 0
-    ;;
-  esac
+
+    # template storage selection
+    local new_tpl
+    new_tpl=$(pvesm status -content vztmpl | awk 'NR>1 {print $1"  "$2" "$6}')
+    new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "Select Template Storage" \
+      --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || true
+    if [ -n "$new_tpl" ]; then
+      sed -i '/^var_template_storage=/d' "$vars_file"
+      echo "var_template_storage=$new_tpl" >>"$vars_file"
+      msg_ok "Updated template storage → $new_tpl"
+    fi
+  fi
 }
 
 _echo_storage_summary() {
