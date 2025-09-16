@@ -1642,8 +1642,8 @@ check_storage_or_prompt() {
 
   # Load current values
   local ct_store tpl_store
-  ct_store="$(grep -E '^var_container_storage=' "$vars_file" | cut -d= -f2-)"
-  tpl_store="$(grep -E '^var_template_storage=' "$vars_file" | cut -d= -f2-)"
+  ct_store="$(awk -F= '/^var_container_storage=/ {print $2}' "$vars_file" | head -n1)"
+  tpl_store="$(awk -F= '/^var_template_storage=/ {print $2}' "$vars_file" | head -n1)"
 
   # Container storage
   if ! _validate_storage "$ct_store"; then
