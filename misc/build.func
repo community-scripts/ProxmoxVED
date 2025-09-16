@@ -1410,12 +1410,15 @@ maybe_offer_save_app_defaults() {
   fi
 
   # 3) Menü mit Default-Auswahl "Update Defaults"
+  local app_vars_file
+  app_vars_file="$(basename "$app_vars_path")"
+
   while true; do
     local sel
     sel="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
       --title "APP DEFAULTS – ${APP}" \
       --menu "Differences detected. What do you want to do?" 20 78 10 \
-      "Update Defaults" "Write new values to ${app_vars_path}" \
+      "Update Defaults" "Write new values to ${app_vars_file}" \
       "Keep Current" "Keep existing defaults (no changes)" \
       "View Diff" "Show a detailed diff" \
       "Cancel" "Abort without changes" \
@@ -1553,6 +1556,7 @@ install_script() {
       msg_error "Failed to apply default.vars"
       exit 1
     }
+    check_storage_or_prompt "/usr/local/community-scripts/default.vars"
     ;;
   5)
     # App Defaults
@@ -1563,6 +1567,7 @@ install_script() {
       base_settings
       _load_vars_file "$(get_app_defaults_path)"
       echo_default
+      check_storage_or_prompt "$(get_app_defaults_path)"
     else
       msg_error "No App Defaults available for ${APP}"
       exit 1
