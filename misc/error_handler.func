@@ -81,11 +81,13 @@ explain_exit_code() {
 
 # === Error handler ============================================================
 error_handler() {
-  local exit_code=$?
+  local exit_code=${1:-$?}
   local line_number=${BASH_LINENO[0]:-unknown}
   local command=${BASH_COMMAND:-unknown}
 
-  # Exitcode 0 = kein Fehler → ignorieren
+  # $STD im Kommando entfernen (nur kosmetisch)
+  command=${command//\$STD /}
+
   if [[ "$exit_code" -eq 0 ]]; then
     return 0
   fi
@@ -105,6 +107,13 @@ error_handler() {
       echo "Command   : $command"
       echo "-------------------"
     } >>"$DEBUG_LOGFILE"
+  fi
+
+  # Silent-Log
+  if [[ -n "${SILENT_LOGFILE:-}" && -s "$SILENT_LOGFILE" ]]; then
+    echo "--- Last 20 lines of silent log ($SILENT_LOGFILE) ---"
+    tail -n 20 "$SILENT_LOGFILE"
+    echo "---------------------------------------------------"
   fi
 
   exit "$exit_code"
