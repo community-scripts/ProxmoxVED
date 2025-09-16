@@ -1704,16 +1704,30 @@ storage_settings_menu() {
   case "$choice" in
   1)
     check_storage_or_prompt "/usr/local/community-scripts/default.vars"
+    _echo_storage_summary "/usr/local/community-scripts/default.vars"
     ;;
   2)
     if [ -f "$(get_app_defaults_path)" ]; then
       check_storage_or_prompt "$(get_app_defaults_path)"
+      _echo_storage_summary "$(get_app_defaults_path)"
     fi
     ;;
   3)
     return 0
     ;;
   esac
+}
+
+# --- Hilfsfunktion nur für Storage-Ausgabe ---
+_echo_storage_summary() {
+  local vars_file="$1"
+  local ct_store tpl_store
+  ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
+  tpl_store=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
+
+  echo -e "\n${INFO}${BOLD}${DGN}Storage settings from ${vars_file}:${CL}"
+  echo -e "   📦 Container Storage: ${BGN}${ct_store:-<unset>}${CL}"
+  echo -e "   📦 Template Storage:  ${BGN}${tpl_store:-<unset>}${CL}\n"
 }
 
 # ------------------------------------------------------------------------------
