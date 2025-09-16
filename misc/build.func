@@ -1192,7 +1192,10 @@ _is_whitelisted_key() {
 _sanitize_value() {
   # Disallow Command-Substitution / Shell-Meta
   case "$1" in
-    *'$('*|*'`'*|*';'*|*'&'*|*'<('* ) echo ""; return 0 ;;
+  *'$('* | *'`'* | *';'* | *'&'* | *'<('*)
+    echo ""
+    return 0
+    ;;
   esac
   echo "$1"
 }
@@ -1205,7 +1208,8 @@ _load_vars_file_to_map() {
   [[ -f "$file" ]] || return 0
   local line
   while IFS= read -r line || [[ -n "$line" ]]; do
-    line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
     [[ -z "$line" || "$line" == \#* ]] && continue
     if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
       local k="${BASH_REMATCH[1]}"
@@ -1225,8 +1229,10 @@ _build_vars_diff() {
   local oldf="$1" newf="$2"
   local k
   local -A OLD=() NEW=()
-  _load_vars_file_to_map "$oldf"; for k in "${!_VARS_IN[@]}"; do OLD["$k"]="${_VARS_IN[$k]}"; done
-  _load_vars_file_to_map "$newf"; for k in "${!_VARS_IN[@]}"; do NEW["$k"]="${_VARS_IN[$k]}"; done
+  _load_vars_file_to_map "$oldf"
+  for k in "${!_VARS_IN[@]}"; do OLD["$k"]="${_VARS_IN[$k]}"; done
+  _load_vars_file_to_map "$newf"
+  for k in "${!_VARS_IN[@]}"; do NEW["$k"]="${_VARS_IN[$k]}"; done
 
   local out
   out+="# Diff for ${APP} (${NSAPP})\n"
@@ -1262,58 +1268,70 @@ _build_vars_diff() {
   printf "%b" "$out"
 }
 
-# Baut aus der aktuellen Advanced-Auswahl eine temporäre <app>.vars-Datei
+# Build a temporary <app>.vars file from current advanced settings
 _build_current_app_vars_tmp() {
-  local tmpf
-  tmpf="$(mktemp -p /tmp "${NSAPP:-app}.vars.new.XXXXXX")"
+  tmpf="$(mktemp /tmp/${NSAPP:-app}.vars.new.XXXXXX)"
 
   # NET/GW
-  local _net="${NET:-}"
-  local _gate=""
-  [[ "${GATE:-}" =~ ^,gw= ]] && _gate="${GATE#,gw=}"
-
-  # IPv6
-  local _ipv6_method="${IPV6_METHOD:-auto}"
-  local _ipv6_static=""
-  local _ipv6_gateway=""
-  case "$_ipv6_method" in
-    static)
-      _ipv6_static="${IPV6_ADDR:-}"
-      _ipv6_gateway="${IPV6_GATE:-}"
-      ;;
+  _net="${NET:-}"
+  _gate=""
+  case "${GATE:-}" in
+  ,gw=*) _gate=$(echo "$GATE" | sed 's/^,gw=//') ;;
   esac
 
-  # MTU/VLAN/MAC
-  local _mtu="" _vlan="" _mac=""
-  [[ "${MTU:-}"  =~ ^,mtu=   ]] && _mtu="${MTU#,mtu=}"
-  [[ "${VLAN:-}" =~ ^,tag=   ]] && _vlan="${VLAN#,tag=}"
-  [[ "${MAC:-}"  =~ ^,hwaddr=]] && _mac="${MAC#,hwaddr=}"
+  # IPv6
+  _ipv6_method="${IPV6_METHOD:-auto}"
+  _ipv6_static=""
+  _ipv6_gateway=""
+  if [ "$_ipv6_method" = "static" ]; then
+    _ipv6_static="${IPV6_ADDR:-}"
+    _ipv6_gateway="${IPV6_GATE:-}"
+  fi
 
-  # DNS/SD
-  local _ns="" _searchdomain=""
-  [[ "${NS:-}" =~ ^-nameserver=   ]] && _ns="${NS#-nameserver=}"
-  [[ "${SD:-}" =~ ^-searchdomain= ]] && _searchdomain="${SD#-searchdomain=}"
+  # MTU/VLAN/MAC
+  _mtu=""
+  _vlan=""
+  _mac=""
+  case "${MTU:-}" in
+  ,mtu=*) _mtu=$(echo "$MTU" | sed 's/^,mtu=//') ;;
+  esac
+  case "${VLAN:-}" in
+  ,tag=*) _vlan=$(echo "$VLAN" | sed 's/^,tag=//') ;;
+  esac
+  case "${MAC:-}" in
+  ,hwaddr=*) _mac=$(echo "$MAC" | sed 's/^,hwaddr=//') ;;
+  esac
+
+  # DNS / Searchdomain
+  _ns=""
+  _searchdomain=""
+  case "${NS:-}" in
+  -nameserver=*) _ns=$(echo "$NS" | sed 's/^-nameserver=//') ;;
+  esac
+  case "${SD:-}" in
+  -searchdomain=*) _searchdomain=$(echo "$SD" | sed 's/^-searchdomain=//') ;;
+  esac
 
   # SSH / APT / Features
-  local _ssh="${SSH:-no}"
-  local _ssh_auth="${SSH_AUTHORIZED_KEY:-}"
-  local _apt_cacher="${APT_CACHER:-}"
-  local _apt_cacher_ip="${APT_CACHER_IP:-}"
-  local _fuse="${ENABLE_FUSE:-no}"
-  local _tun="${ENABLE_TUN:-no}"
-  local _tags="${TAGS:-}"
-  local _verbose="${VERBOSE:-no}"
+  _ssh="${SSH:-no}"
+  _ssh_auth="${SSH_AUTHORIZED_KEY:-}"
+  _apt_cacher="${APT_CACHER:-}"
+  _apt_cacher_ip="${APT_CACHER_IP:-}"
+  _fuse="${ENABLE_FUSE:-no}"
+  _tun="${ENABLE_TUN:-no}"
+  _tags="${TAGS:-}"
+  _verbose="${VERBOSE:-no}"
 
-  # Typ/Resourcen/Identity
-  local _unpriv="${CT_TYPE:-1}"
-  local _cpu="${CORE_COUNT:-1}"
-  local _ram="${RAM_SIZE:-1024}"
-  local _disk="${DISK_SIZE:-4}"
-  local _hostname="${HN:-$NSAPP}"
+  # Type / Resources / Identity
+  _unpriv="${CT_TYPE:-1}"
+  _cpu="${CORE_COUNT:-1}"
+  _ram="${RAM_SIZE:-1024}"
+  _disk="${DISK_SIZE:-4}"
+  _hostname="${HN:-$NSAPP}"
 
-  # Storage (falls vorhanden)
-  local _tpl_storage="${TEMPLATE_STORAGE:-}"
-  local _ct_storage="${CONTAINER_STORAGE:-}"
+  # Storage
+  _tpl_storage="${TEMPLATE_STORAGE:-}"
+  _ct_storage="${CONTAINER_STORAGE:-}"
 
   {
     echo "# App-specific defaults for ${APP} (${NSAPP})"
@@ -1325,33 +1343,33 @@ _build_current_app_vars_tmp() {
     echo "var_ram=$(_sanitize_value "$_ram")"
     echo "var_disk=$(_sanitize_value "$_disk")"
 
-    [[ -n "${BRG:-}" ]] && echo "var_brg=$(_sanitize_value "$BRG")"
-    [[ -n "$_net"     ]] && echo "var_net=$(_sanitize_value "$_net")"
-    [[ -n "$_gate"    ]] && echo "var_gateway=$(_sanitize_value "$_gate")"
-    [[ -n "$_mtu"     ]] && echo "var_mtu=$(_sanitize_value "$_mtu")"
-    [[ -n "$_vlan"    ]] && echo "var_vlan=$(_sanitize_value "$_vlan")"
-    [[ -n "$_mac"     ]] && echo "var_mac=$(_sanitize_value "$_mac")"
-    [[ -n "$_ns"      ]] && echo "var_ns=$(_sanitize_value "$_ns")"
+    [ -n "${BRG:-}" ] && echo "var_brg=$(_sanitize_value "$BRG")"
+    [ -n "$_net" ] && echo "var_net=$(_sanitize_value "$_net")"
+    [ -n "$_gate" ] && echo "var_gateway=$(_sanitize_value "$_gate")"
+    [ -n "$_mtu" ] && echo "var_mtu=$(_sanitize_value "$_mtu")"
+    [ -n "$_vlan" ] && echo "var_vlan=$(_sanitize_value "$_vlan")"
+    [ -n "$_mac" ] && echo "var_mac=$(_sanitize_value "$_mac")"
+    [ -n "$_ns" ] && echo "var_ns=$(_sanitize_value "$_ns")"
 
-    [[ -n "$_ipv6_method" ]] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
-    [[ -n "$_ipv6_static" ]] && echo "var_ipv6_static=$(_sanitize_value "$_ipv6_static")"
+    [ -n "$_ipv6_method" ] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
+    [ -n "$_ipv6_static" ] && echo "var_ipv6_static=$(_sanitize_value "$_ipv6_static")"
 
-    [[ -n "$_ssh"      ]] && echo "var_ssh=$(_sanitize_value "$_ssh")"
-    [[ -n "$_ssh_auth" ]] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
+    [ -n "$_ssh" ] && echo "var_ssh=$(_sanitize_value "$_ssh")"
+    [ -n "$_ssh_auth" ] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
 
-    [[ -n "$_apt_cacher"    ]] && echo "var_apt_cacher=$(_sanitize_value "$_apt_cacher")"
-    [[ -n "$_apt_cacher_ip" ]] && echo "var_apt_cacher_ip=$(_sanitize_value "$_apt_cacher_ip")"
+    [ -n "$_apt_cacher" ] && echo "var_apt_cacher=$(_sanitize_value "$_apt_cacher")"
+    [ -n "$_apt_cacher_ip" ] && echo "var_apt_cacher_ip=$(_sanitize_value "$_apt_cacher_ip")"
 
-    [[ -n "$_fuse"    ]] && echo "var_fuse=$(_sanitize_value "$_fuse")"
-    [[ -n "$_tun"     ]] && echo "var_tun=$(_sanitize_value "$_tun")"
-    [[ -n "$_tags"    ]] && echo "var_tags=$(_sanitize_value "$_tags")"
-    [[ -n "$_verbose" ]] && echo "var_verbose=$(_sanitize_value "$_verbose")"
+    [ -n "$_fuse" ] && echo "var_fuse=$(_sanitize_value "$_fuse")"
+    [ -n "$_tun" ] && echo "var_tun=$(_sanitize_value "$_tun")"
+    [ -n "$_tags" ] && echo "var_tags=$(_sanitize_value "$_tags")"
+    [ -n "$_verbose" ] && echo "var_verbose=$(_sanitize_value "$_verbose")"
 
-    [[ -n "$_hostname"     ]] && echo "var_hostname=$(_sanitize_value "$_hostname")"
-    [[ -n "$_searchdomain" ]] && echo "var_searchdomain=$(_sanitize_value "$_searchdomain")"
+    [ -n "$_hostname" ] && echo "var_hostname=$(_sanitize_value "$_hostname")"
+    [ -n "$_searchdomain" ] && echo "var_searchdomain=$(_sanitize_value "$_searchdomain")"
 
-    [[ -n "$_tpl_storage" ]] && echo "var_template_storage=$(_sanitize_value "$_tpl_storage")"
-    [[ -n "$_ct_storage"  ]] && echo "var_container_storage=$(_sanitize_value "$_ct_storage")"
+    [ -n "$_tpl_storage" ] && echo "var_template_storage=$(_sanitize_value "$_tpl_storage")"
+    [ -n "$_ct_storage" ] && echo "var_container_storage=$(_sanitize_value "$_ct_storage")"
   } >"$tmpf"
 
   echo "$tmpf"
@@ -1398,37 +1416,36 @@ maybe_offer_save_app_defaults() {
       --title "APP DEFAULTS – ${APP}" \
       --menu "Differences detected. What do you want to do?" 20 78 10 \
       "Update Defaults" "Write new values to ${app_vars_path}" \
-      "Keep Current"    "Keep existing defaults (no changes)" \
-      "View Diff"       "Show a detailed diff" \
-      "Cancel"          "Abort without changes" \
+      "Keep Current" "Keep existing defaults (no changes)" \
+      "View Diff" "Show a detailed diff" \
+      "Cancel" "Abort without changes" \
       --default-item "Update Defaults" \
       3>&1 1>&2 2>&3)" || { sel="Cancel"; }
 
     case "$sel" in
-      "Update Defaults")
-        install -m 0644 "$new_tmp" "$app_vars_path"
-        msg_ok "Updated app defaults: ${app_vars_path}"
-        break
-        ;;
-      "Keep Current")
-        msg_info "Keeping current app defaults: ${app_vars_path}"
-        break
-        ;;
-      "View Diff")
-        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-          --title "Diff – ${APP}" \
-          --scrolltext --textbox "$diff_tmp" 25 100
-        ;;
-      "Cancel"|*)
-        msg_info "Canceled. No changes to app defaults."
-        break
-        ;;
+    "Update Defaults")
+      install -m 0644 "$new_tmp" "$app_vars_path"
+      msg_ok "Updated app defaults: ${app_vars_path}"
+      break
+      ;;
+    "Keep Current")
+      msg_info "Keeping current app defaults: ${app_vars_path}"
+      break
+      ;;
+    "View Diff")
+      whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --title "Diff – ${APP}" \
+        --scrolltext --textbox "$diff_tmp" 25 100
+      ;;
+    "Cancel" | *)
+      msg_info "Canceled. No changes to app defaults."
+      break
+      ;;
     esac
   done
 
   rm -f "$new_tmp" "$diff_tmp"
 }
-
 
 install_script() {
   pve_check
@@ -1450,31 +1467,31 @@ install_script() {
   # --- PRESET support ---
   if [ -n "${PRESET:-}" ]; then
     case "$PRESET" in
-      DEFAULT | default | 1)
-        CHOICE="1"
-        ;;
-      VERBOSE | verbose | 2)
-        CHOICE="2"
-        ;;
-      ADVANCED | advanced | 3)
-        CHOICE="3"
-        ;;
-      MYDEFAULTS | mydefaults | 4)
-        CHOICE="4"
-        ;;
-      APPDEFAULTS | appdefaults | 5)
-        CHOICE="5"
-        ;;
-      DIAGNOSTICS | diagnostics | 6)
-        CHOICE="6"
-        ;;
-      STORAGE | storage | 7)
-        CHOICE="7"
-        ;;
-      *)
-        echo -e "\n${CROSS}${RD}Invalid PRESET value: ${PRESET}${CL}\n"
-        exit 1
-        ;;
+    DEFAULT | default | 1)
+      CHOICE="1"
+      ;;
+    VERBOSE | verbose | 2)
+      CHOICE="2"
+      ;;
+    ADVANCED | advanced | 3)
+      CHOICE="3"
+      ;;
+    MYDEFAULTS | mydefaults | 4)
+      CHOICE="4"
+      ;;
+    APPDEFAULTS | appdefaults | 5)
+      CHOICE="5"
+      ;;
+    DIAGNOSTICS | diagnostics | 6)
+      CHOICE="6"
+      ;;
+    STORAGE | storage | 7)
+      CHOICE="7"
+      ;;
+    *)
+      echo -e "\n${CROSS}${RD}Invalid PRESET value: ${PRESET}${CL}\n"
+      exit 1
+      ;;
     esac
   else
     # Build dynamic menu
@@ -1507,77 +1524,77 @@ install_script() {
   fi
 
   case $CHOICE in
-    1)
+  1)
+    header_info
+    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME${CL}"
+    VERBOSE="no"
+    METHOD="default"
+    base_settings "$VERBOSE"
+    echo_default
+    ;;
+  2)
+    header_info
+    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME (Verbose)${CL}"
+    VERBOSE="yes"
+    METHOD="default"
+    base_settings "$VERBOSE"
+    echo_default
+    ;;
+  3)
+    header_info
+    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Install on node $PVEHOST_NAME${CL}"
+    METHOD="advanced"
+    base_settings
+    advanced_settings
+    maybe_offer_save_app_defaults
+    ;;
+  4)
+    default_var_settings || {
+      msg_error "Failed to apply default.vars"
+      exit 1
+    }
+    ;;
+  5)
+    # App Defaults
+    if [ -f "$(get_app_defaults_path)" ]; then
       header_info
-      echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME${CL}"
-      VERBOSE="no"
-      METHOD="default"
-      base_settings "$VERBOSE"
-      echo_default
-      ;;
-    2)
-      header_info
-      echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME (Verbose)${CL}"
-      VERBOSE="yes"
-      METHOD="default"
-      base_settings "$VERBOSE"
-      echo_default
-      ;;
-    3)
-      header_info
-      echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Install on node $PVEHOST_NAME${CL}"
-      METHOD="advanced"
+      echo -e "${DEFAULT}${BOLD}${BL}Using App Defaults for ${APP} on node $PVEHOST_NAME${CL}"
+      METHOD="appdefaults"
       base_settings
-      advanced_settings
-      maybe_offer_save_app_defaults
-      ;;
-    4)
-      default_var_settings || {
-        msg_error "Failed to apply default.vars"
-        exit 1
-      }
-      ;;
-    5)
-      # App Defaults
-      if [ -f "$(get_app_defaults_path)" ]; then
-        header_info
-        echo -e "${DEFAULT}${BOLD}${BL}Using App Defaults for ${APP} on node $PVEHOST_NAME${CL}"
-        METHOD="appdefaults"
-        base_settings
-        _load_vars_file "$(get_app_defaults_path)"
-        echo_default
-      else
-        msg_error "No App Defaults available for ${APP}"
-        exit 1
+      _load_vars_file "$(get_app_defaults_path)"
+      echo_default
+    else
+      msg_error "No App Defaults available for ${APP}"
+      exit 1
+    fi
+    ;;
+  6)
+    if [[ $DIAGNOSTICS == "yes" ]]; then
+      if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTIC SETTINGS" --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
+        --yes-button "No" --no-button "Back"; then
+        DIAGNOSTICS="no"
+        sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
+        whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
       fi
-      ;;
-    6)
-      if [[ $DIAGNOSTICS == "yes" ]]; then
-        if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTIC SETTINGS" --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
-          --yes-button "No" --no-button "Back"; then
-          DIAGNOSTICS="no"
-          sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
-          whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
-        fi
-      else
-        if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTIC SETTINGS" --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
-          --yes-button "Yes" --no-button "Back"; then
-          DIAGNOSTICS="yes"
-          sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
-          whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
-        fi
+    else
+      if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTIC SETTINGS" --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
+        --yes-button "Yes" --no-button "Back"; then
+        DIAGNOSTICS="yes"
+        sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
+        whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
       fi
-      ;;
-    7)
-      storage_settings_menu
-      ;;
-    8)
-      echo -e "\n${CROSS}${RD}Script terminated.${CL}\n"
-      exit 0
-      ;;
-    *)
-      echo -e "${CROSS}${RD}Invalid option, please try again.${CL}"
-      ;;
+    fi
+    ;;
+  7)
+    storage_settings_menu
+    ;;
+  8)
+    echo -e "\n${CROSS}${RD}Script terminated.${CL}\n"
+    exit 0
+    ;;
+  *)
+    echo -e "${CROSS}${RD}Invalid option, please try again.${CL}"
+    ;;
   esac
 }
 
@@ -1653,20 +1670,19 @@ storage_settings_menu() {
     "${menu_items[@]}" 3>&1 1>&2 2>&3) || return 0
 
   case "$choice" in
-    1)
-      check_storage_or_prompt "/usr/local/community-scripts/default.vars"
-      ;;
-    2)
-      if [ -f "$(get_app_defaults_path)" ]; then
-        check_storage_or_prompt "$(get_app_defaults_path)"
-      fi
-      ;;
-    3)
-      return 0
-      ;;
+  1)
+    check_storage_or_prompt "/usr/local/community-scripts/default.vars"
+    ;;
+  2)
+    if [ -f "$(get_app_defaults_path)" ]; then
+      check_storage_or_prompt "$(get_app_defaults_path)"
+    fi
+    ;;
+  3)
+    return 0
+    ;;
   esac
 }
-
 
 check_container_resources() {
   # Check actual RAM & Cores
