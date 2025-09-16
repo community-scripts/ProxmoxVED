@@ -202,10 +202,8 @@ silent() {
 
   if [[ $rc -ne 0 ]]; then
     BASH_COMMAND="$cmd"
-    error_handler "$rc"
+    return $rc
   fi
-
-  return $rc
 }
 
 # Check if the shell is using bash
