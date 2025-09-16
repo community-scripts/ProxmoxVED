@@ -199,7 +199,19 @@ silent() {
   set -Eeuo pipefail
 
   if [[ $rc -ne 0 ]]; then
-    error_handler "$rc" "$cmd"
+    local explanation
+    explanation="$(explain_exit_code "$rc")"
+
+    printf "\e[?25h"
+    echo -e "\n${RD}[ERROR]${CL}: exit code ${RD}${rc}${CL} (${explanation}): while executing command ${YW}${cmd}${CL}\n"
+
+    if [[ -s "$SILENT_LOGFILE" ]]; then
+      echo "--- Last 20 lines of silent log ($SILENT_LOGFILE) ---"
+      tail -n 20 "$SILENT_LOGFILE"
+      echo "---------------------------------------------------"
+    fi
+
+    exit "$rc"
   fi
 
   return $rc
