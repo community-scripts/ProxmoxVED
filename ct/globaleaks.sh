@@ -11,7 +11,7 @@ var_disk="${var_disk:-4}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 
 header_info "$APP"
 variables
@@ -19,18 +19,18 @@ color
 init_error_traps
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -f /usr/sbin/globaleaks ]]; then
-        msg_error "No ${APP} installation found!"
-        exit
-    fi
+  header_info
+  check_container_storage
+  check_container_resources
+  if [[ ! -f /usr/sbin/globaleaks ]]; then
+    msg_error "No ${APP} installation found!"
+    exit
+  fi
 
-    msg_info "Updating $APP LXC"
-    $STD apt-get update
-    $STD apt-get -y upgrade
-    msg_ok "Updated $APP LXC"
+  msg_info "Updating $APP LXC"
+  $STD apt update
+  $STD apt -y upgrade
+  msg_ok "Updated $APP LXC"
 }
 
 start
