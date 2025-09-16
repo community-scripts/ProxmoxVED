@@ -194,18 +194,38 @@ SILENT_LOGFILE="/tmp/silent.$$.log"
 silent() {
   local cmd="$*"
   local caller_line="${BASH_LINENO[0]:-unknown}"
+  local caller_func="${FUNCNAME[1]:-main}"
+  local caller_file="${BASH_SOURCE[1]:-unknown}"
+
+  # Debug info
+  if [[ "${DEBUG:-0}" == "1" ]]; then
+    echo "[DEBUG] Calling silent from $caller_file:$caller_line in function $caller_func" >&2
+    echo "[DEBUG] Command: $cmd" >&2
+  fi
 
   set +Eeuo pipefail
+  trap - ERR
+
   "$@" >>"$SILENT_LOGFILE" 2>&1
   local rc=$?
+
   set -Eeuo pipefail
+  trap 'error_handler' ERR
 
   if [[ $rc -ne 0 ]]; then
+    # Source explain_exit_code if needed
+    if ! declare -f explain_exit_code >/dev/null 2>&1; then
+      source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+    fi
+
     local explanation
     explanation="$(explain_exit_code "$rc")"
 
     printf "\e[?25h"
     echo -e "\n${RD}[ERROR]${CL} in line ${RD}${caller_line}${CL}: exit code ${RD}${rc}${CL} (${explanation}): while executing command ${YWB}${cmd}${CL}\n"
+
+    # Additional context
+    echo -e "${RD}Context:${CL} Called from ${caller_func} in ${caller_file}"
 
     if [[ -s "$SILENT_LOGFILE" ]]; then
       echo "--- Last 20 lines of silent log ($SILENT_LOGFILE) ---"
