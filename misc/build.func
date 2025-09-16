@@ -1604,9 +1604,11 @@ install_script() {
         whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
       fi
     fi
+    return 0
     ;;
   7)
     storage_settings_menu
+    return 0
     ;;
   8)
     echo -e "\n${CROSS}${RD}Script terminated.${CL}\n"
