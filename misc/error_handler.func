@@ -137,7 +137,10 @@ on_terminate() {
 
 # === Init traps ===============================================================
 init_error_traps() {
-  set -Eeuo pipefail
+  set -Ee -o pipefail
+  if [ "${STRICT_UNSET:-0}" = "1" ]; then
+    set -u
+  fi
   trap 'error_handler' ERR
   trap on_exit EXIT
   trap on_interrupt INT
