@@ -213,8 +213,6 @@ silent() {
 
     exit "$rc"
   fi
-
-  return $rc
 }
 
 # Check if the shell is using bash
