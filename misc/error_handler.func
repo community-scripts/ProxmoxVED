@@ -82,8 +82,8 @@ explain_exit_code() {
 # === Error handler ============================================================
 error_handler() {
   local exit_code=${1:-$?}
+  local command=${2:-${BASH_COMMAND:-unknown}}
   local line_number=${BASH_LINENO[0]:-unknown}
-  local command=${LAST_SILENT_CMD:-${BASH_COMMAND:-unknown}}
 
   command="${command//\$STD/}"
 
@@ -95,7 +95,7 @@ error_handler() {
   explanation="$(explain_exit_code "$exit_code")"
 
   printf "\e[?25h"
-  echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL} (${explanation}): while executing command ${YW}${command}${CL}\n"
+  echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL} (${explanation}): while executing command ${YWB}${command}${CL}\n"
 
   if [[ -n "${DEBUG_LOGFILE:-}" ]]; then
     {

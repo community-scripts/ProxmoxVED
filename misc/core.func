@@ -199,10 +199,10 @@ silent() {
   set -Eeuo pipefail
 
   if [[ $rc -ne 0 ]]; then
-    # Store real command in a helper variable
-    LAST_SILENT_CMD="$cmd"
-    return $rc # let ERR trap fire
+    error_handler "$rc" "$cmd"
   fi
+
+  return $rc
 }
 
 # Check if the shell is using bash
