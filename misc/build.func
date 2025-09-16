@@ -1629,21 +1629,22 @@ check_storage_or_prompt() {
   local vars_file="$1"
   local changed=0
 
-  if [[ ! -f "$vars_file" ]]; then
+  if [ ! -f "$vars_file" ]; then
     msg_warn "No vars file found at $vars_file"
     return 1
   fi
 
+  # Helper: validate storage ID
   _validate_storage() {
     local s="$1"
-    [[ -n "$s" ]] || return 1
+    [ -n "$s" ] || return 1
     pvesm status -content images | awk 'NR>1 {print $1}' | grep -qx "$s"
   }
 
-  # Load current values
+  # Load current values (safe with grep/cut, no BRG/HN etc.)
   local ct_store tpl_store
-  ct_store="$(awk -F= '/^var_container_storage=/ {print $2}' "$vars_file" | head -n1)"
-  tpl_store="$(awk -F= '/^var_template_storage=/ {print $2}' "$vars_file" | head -n1)"
+  ct_store=$(grep -E '^var_container_storage=' "$vars_file" | cut -d= -f2-)
+  tpl_store=$(grep -E '^var_template_storage=' "$vars_file" | cut -d= -f2-)
 
   # Container storage
   if ! _validate_storage "$ct_store"; then
@@ -1652,7 +1653,7 @@ check_storage_or_prompt() {
     new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
       --title "Select Container Storage" \
       --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || return 1
-    if [[ -n "$new_ct" ]]; then
+    if [ -n "$new_ct" ]; then
       sed -i "/^var_container_storage=/d" "$vars_file"
       echo "var_container_storage=$new_ct" >>"$vars_file"
       changed=1
@@ -1667,7 +1668,7 @@ check_storage_or_prompt() {
     new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
       --title "Select Template Storage" \
       --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || return 1
-    if [[ -n "$new_tpl" ]]; then
+    if [ -n "$new_tpl" ]; then
       sed -i "/^var_template_storage=/d" "$vars_file"
       echo "var_template_storage=$new_tpl" >>"$vars_file"
       changed=1
