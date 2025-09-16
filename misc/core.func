@@ -193,17 +193,13 @@ SILENT_LOGFILE="/tmp/silent.$$.log"
 
 silent() {
   local cmd="$*"
-
-  trap - ERR
+  set +Eeuo pipefail
   "$@" >>"$SILENT_LOGFILE" 2>&1
   local rc=$?
-  trap 'error_handler' ERR
-
+  set -Eeuo pipefail
   if [[ $rc -ne 0 ]]; then
     BASH_COMMAND="$cmd"
-    error_handler "$rc"
   fi
-
   return $rc
 }
 
