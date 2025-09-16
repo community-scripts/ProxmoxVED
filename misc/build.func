@@ -1457,6 +1457,28 @@ maybe_offer_save_app_defaults() {
   rm -f "$new_tmp" "$diff_tmp"
 }
 
+diagnostics_menu() {
+  if [ "${DIAGNOSTICS:-no}" = "yes" ]; then
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "DIAGNOSTIC SETTINGS" \
+      --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
+      --yes-button "No" --no-button "Back"; then
+      DIAGNOSTICS="no"
+      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
+      whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
+    fi
+  else
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "DIAGNOSTIC SETTINGS" \
+      --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
+      --yes-button "Yes" --no-button "Back"; then
+      DIAGNOSTICS="yes"
+      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
+      whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
+    fi
+  fi
+}
+
 # ------------------------------------------------------------------------------
 # install_script()
 #
@@ -1589,26 +1611,12 @@ install_script() {
     fi
     ;;
   6)
-    if [[ $DIAGNOSTICS == "yes" ]]; then
-      if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTIC SETTINGS" --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
-        --yes-button "No" --no-button "Back"; then
-        DIAGNOSTICS="no"
-        sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
-        whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
-      fi
-    else
-      if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "DIAGNOSTIC SETTINGS" --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
-        --yes-button "Yes" --no-button "Back"; then
-        DIAGNOSTICS="yes"
-        sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
-        whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
-      fi
-    fi
-    return 0
+    diagnostics_menu
+    exit 0
     ;;
   7)
     storage_settings_menu
-    return 0
+    exit 0
     ;;
   8)
     echo -e "\n${CROSS}${RD}Script terminated.${CL}\n"
