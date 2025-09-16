@@ -194,14 +194,6 @@ SILENT_LOGFILE="/tmp/silent.$$.log"
 silent() {
   local cmd="$*"
   local caller_line="${BASH_LINENO[0]:-unknown}"
-  local caller_func="${FUNCNAME[1]:-main}"
-  local caller_file="${BASH_SOURCE[1]:-unknown}"
-
-  # Debug info
-  if [[ "${DEBUG:-0}" == "1" ]]; then
-    echo "[DEBUG] Calling silent from $caller_file:$caller_line in function $caller_func" >&2
-    echo "[DEBUG] Command: $cmd" >&2
-  fi
 
   set +Eeuo pipefail
   trap - ERR
@@ -222,15 +214,19 @@ silent() {
     explanation="$(explain_exit_code "$rc")"
 
     printf "\e[?25h"
-    echo -e "\n${RD}[ERROR]${CL} in line ${RD}${caller_line}${CL}: exit code ${RD}${rc}${CL} (${explanation}): while executing command ${YWB}${cmd}${CL}\n"
-
-    # Additional context
-    echo -e "${RD}Context:${CL} Called from ${caller_func} in ${caller_file}"
+    echo -e "\n${RD}[ERROR]${CL} in line ${RD}${caller_line}${CL}: exit code ${RD}${rc}${CL} (${explanation})"
+    echo -e "${RD}Command:${CL} ${YWB}${cmd}${CL}\n"
 
     if [[ -s "$SILENT_LOGFILE" ]]; then
-      echo "--- Last 20 lines of silent log ($SILENT_LOGFILE) ---"
-      tail -n 20 "$SILENT_LOGFILE"
-      echo "---------------------------------------------------"
+      local log_lines=$(wc -l <"$SILENT_LOGFILE")
+      echo "--- Last 10 lines of silent log ---"
+      tail -n 10 "$SILENT_LOGFILE"
+      echo "-----------------------------------"
+
+      # Show how to view full log if there are more lines
+      if [[ $log_lines -gt 10 ]]; then
+        echo -e "${YW}View full log (${log_lines} lines):${CL} cat $SILENT_LOGFILE"
+      fi
     fi
 
     exit "$rc"
