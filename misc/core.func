@@ -189,7 +189,6 @@ set_std_mode() {
   fi
 }
 
-# Silent execution function
 SILENT_LOGFILE="/tmp/silent.$$.log"
 
 silent() {
@@ -202,8 +201,10 @@ silent() {
 
   if [[ $rc -ne 0 ]]; then
     BASH_COMMAND="$cmd"
-    return $rc
+    error_handler "$rc"
   fi
+
+  return $rc
 }
 
 # Check if the shell is using bash
