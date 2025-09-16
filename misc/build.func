@@ -1718,7 +1718,6 @@ storage_settings_menu() {
   esac
 }
 
-# --- Hilfsfunktion nur für Storage-Ausgabe ---
 _echo_storage_summary() {
   local vars_file="$1"
   local ct_store tpl_store
@@ -1915,7 +1914,7 @@ start() {
 build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
-  NET_STRING="-net0 name=eth0,bridge=$BRG$MAC,ip=$NET$GATE$VLAN$MTU"
+  NET_STRING="-net0 name=eth0,bridge=${BRG:-vmbr0}${MAC:-},ip=${NET:-dhcp}${GATE:-}${VLAN:-}${MTU:-}"
   case "$IPV6_METHOD" in
   auto) NET_STRING="$NET_STRING,ip6=auto" ;;
   dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
