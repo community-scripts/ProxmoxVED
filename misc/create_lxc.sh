@@ -358,7 +358,7 @@ grep -qw "rootdir" <<<"$STORAGE_CONTENT" || {
   msg_error "Storage '$CONTAINER_STORAGE' does not support 'rootdir'. Cannot create LXC."
   exit 217
 }
-msg_ok "Storage '$CONTAINER_STORAGE' supports 'rootdir'"
+$STD msg_ok "Storage '$CONTAINER_STORAGE' supports 'rootdir'"
 
 msg_info "Validating content types of template storage '$TEMPLATE_STORAGE'"
 TEMPLATE_CONTENT=$(grep -A4 -E "^[^:]+: $TEMPLATE_STORAGE" /etc/pve/storage.cfg | grep content | awk '{$1=""; print $0}' | xargs)
@@ -366,7 +366,7 @@ msg_debug "Template storage '$TEMPLATE_STORAGE' has content types: $TEMPLATE_CON
 if ! grep -qw "vztmpl" <<<"$TEMPLATE_CONTENT"; then
   msg_warn "Template storage '$TEMPLATE_STORAGE' does not declare 'vztmpl'. This may cause pct create to fail."
 else
-  msg_ok "Template storage '$TEMPLATE_STORAGE' supports 'vztmpl'"
+  $STD msg_ok "Template storage '$TEMPLATE_STORAGE' supports 'vztmpl'"
 fi
 
 # Free space check
@@ -457,7 +457,7 @@ elif ! tar -tf "$TEMPLATE_PATH" &>/dev/null; then
     msg_warn "Template appears corrupted, but no online version exists. Keeping local file."
   fi
 else
-  msg_ok "Template $TEMPLATE is present and valid."
+  $STD msg_ok "Template $TEMPLATE is present and valid."
 fi
 
 if [[ "$TEMPLATE_SOURCE" == "local" && -n "$ONLINE_TEMPLATE" && "$TEMPLATE" != "$ONLINE_TEMPLATE" ]]; then
