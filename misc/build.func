@@ -1626,6 +1626,7 @@ install_script() {
 # - Updates vars file accordingly
 # ------------------------------------------------------------------------------
 check_storage_or_prompt() {
+  set +u
   local vars_file="$1"
   local changed=0
 
@@ -1677,6 +1678,7 @@ check_storage_or_prompt() {
   fi
 
   return $changed
+  set -u
 }
 
 # ------------------------------------------------------------------------------
