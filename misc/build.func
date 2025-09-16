@@ -1873,7 +1873,8 @@ ssh_discover_default_files() {
 start() {
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
   if command -v pveversion >/dev/null 2>&1; then
-    install_script
+    install_script || return 0
+    return 0
   elif [ ! -z ${PHS_SILENT+x} ] && [[ "${PHS_SILENT}" == "1" ]]; then
     VERBOSE="no"
     set_std_mode
