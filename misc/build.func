@@ -5,6 +5,16 @@
 # Co-Author: michelroegl-brunner
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
+# ------------------------------------------------------------------------------
+# variables()
+#
+# - Normalize application name (NSAPP = lowercase, no spaces)
+# - Build installer filename (var_install)
+# - Define regex for integer validation
+# - Fetch hostname of Proxmox node
+# - Set default values for diagnostics/method
+# - Generate random UUID for tracking
+# ------------------------------------------------------------------------------
 variables() {
   NSAPP=$(echo "${APP,,}" | tr -d ' ')              # This function sets the NSAPP variable by converting the value of the APP variable to lowercase and removing any spaces.
   var_install="${NSAPP}-install"                    # sets the var_install variable by appending "-install" to the value of NSAPP.
@@ -16,6 +26,13 @@ variables() {
   #CT_TYPE=${var_unprivileged:-$CT_TYPE}
 }
 
+# ------------------------------------------------------------------------------
+# Load core + error handler functions from community-scripts repo
+#
+# - Prefer curl if available, fallback to wget
+# - Load: core.func, error_handler.func, api.func
+# - Initialize error traps after loading
+# ------------------------------------------------------------------------------
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
@@ -32,101 +49,16 @@ elif command -v wget >/dev/null 2>&1; then
   #echo "(build.func) Loaded core.func via wget"
 fi
 
-# set -Eeuo pipefail
-# trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
-# trap on_exit EXIT
-# trap on_interrupt INT
-# trap on_terminate TERM
+# ------------------------------------------------------------------------------
+# maxkeys_check()
+#
+# - Reads kernel keyring limits (maxkeys, maxbytes)
+# - Checks current usage for LXC user (UID 100000)
+# - Warns if usage is close to limits and suggests sysctl tuning
+# - Exits if thresholds are exceeded
+# - https://cleveruptime.com/docs/files/proc-key-users | https://docs.kernel.org/security/keys/core.html
+# ------------------------------------------------------------------------------
 
-# error_handler() {
-#   local exit_code="$1"
-#   local line_number="$2"
-#   local command="${3:-}"
-
-#   if [[ "$exit_code" -eq 0 ]]; then
-#     return 0
-#   fi
-
-#   printf "\e[?25h"
-#   echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL}: while executing command ${YW}${command}${CL}\n"
-#   exit "$exit_code"
-# }
-
-# on_exit() {
-#   local exit_code="$?"
-#   [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
-#   exit "$exit_code"
-# }
-
-# on_interrupt() {
-#   echo -e "\n${RD}Interrupted by user (SIGINT)${CL}"
-#   exit 130
-# }
-
-# on_terminate() {
-#   echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}"
-#   exit 143
-# }
-
-# # Check if the shell is using bash
-# shell_check() {
-#   if [[ "$(basename "$SHELL")" != "bash" ]]; then
-#     clear
-#     msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
-#     echo -e "\nExiting..."
-#     sleep 2
-#     exit
-#   fi
-# }
-
-# # Run as root only
-# root_check() {
-#   if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
-#     clear
-#     msg_error "Please run this script as root."
-#     echo -e "\nExiting..."
-#     sleep 2
-#     exit
-#   fi
-# }
-
-# # This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-# # Supported: Proxmox VE 8.0.x – 8.9.x and 9.0 (NOT 9.1+)
-# pve_check() {
-#   local PVE_VER
-#   PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
-
-#   # Check for Proxmox VE 8.x: allow 8.0–8.9
-#   if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
-#     local MINOR="${BASH_REMATCH[1]}"
-#     if ((MINOR < 0 || MINOR > 9)); then
-#       msg_error "This version of Proxmox VE is not supported."
-#       msg_error "Supported: Proxmox VE version 8.0 – 8.9"
-#       exit 1
-#     fi
-#     return 0
-#   fi
-
-#   # Check for Proxmox VE 9.x: allow ONLY 9.0
-#   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
-#     local MINOR="${BASH_REMATCH[1]}"
-#     if ((MINOR != 0)); then
-#       msg_error "This version of Proxmox VE is not yet supported."
-#       msg_error "Supported: Proxmox VE version 9.0"
-#       exit 1
-#     fi
-#     return 0
-#   fi
-
-#   # All other unsupported versions
-#   msg_error "This version of Proxmox VE is not supported."
-#   msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0"
-#   exit 1
-# }
-
-# When a node is running tens of containers, it's possible to exceed the kernel's cryptographic key storage allocations.
-# These are tuneable, so verify if the currently deployment is approaching the limits, advise the user on how to tune the limits, and exit the script.
-# https://cleveruptime.com/docs/files/proc-key-users | https://docs.kernel.org/security/keys/core.html
 maxkeys_check() {
   # Read kernel parameters
   per_user_maxkeys=$(cat /proc/sys/kernel/keys/maxkeys 2>/dev/null || echo 0)
@@ -170,7 +102,13 @@ maxkeys_check() {
   echo -e "${CM}${GN} All kernel key limits are within safe thresholds.${CL}"
 }
 
-# Function to get the current IP address based on the distribution
+# ------------------------------------------------------------------------------
+# get_current_ip()
+#
+# - Returns current container IP depending on OS type
+# - Debian/Ubuntu: uses `hostname -I`
+# - Alpine: parses eth0 via `ip -4 addr`
+# ------------------------------------------------------------------------------
 get_current_ip() {
   if [ -f /etc/os-release ]; then
     # Check for Debian/Ubuntu (uses hostname -I)
@@ -186,7 +124,12 @@ get_current_ip() {
   echo "$CURRENT_IP"
 }
 
-# Function to update the IP address in the MOTD file
+# ------------------------------------------------------------------------------
+# update_motd_ip()
+#
+# - Updates /etc/motd with current container IP
+# - Removes old IP entries to avoid duplicates
+# ------------------------------------------------------------------------------
 update_motd_ip() {
   MOTD_FILE="/etc/motd"
 
@@ -200,7 +143,13 @@ update_motd_ip() {
   fi
 }
 
-# This function checks if the script is running through SSH and prompts the user to confirm if they want to proceed or exit.
+# ------------------------------------------------------------------------------
+# ssh_check()
+#
+# - Detects if script is running over SSH
+# - Warns user and recommends using Proxmox shell
+# - User can choose to continue or abort
+# ------------------------------------------------------------------------------
 ssh_check() {
   if [ -n "${SSH_CLIENT:+x}" ]; then
     if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's advisable to utilize the Proxmox shell rather than SSH, as there may be potential complications with variable retrieval. Proceed using SSH?" 10 72; then
@@ -213,6 +162,13 @@ ssh_check() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# install_ssh_keys_into_ct()
+#
+# - Installs SSH keys into container root account if SSH is enabled
+# - Uses pct push or direct input to authorized_keys
+# - Falls back to warning if no keys provided
+# ------------------------------------------------------------------------------
 install_ssh_keys_into_ct() {
   [[ "$SSH" != "yes" ]] && return 0
 
@@ -237,6 +193,13 @@ install_ssh_keys_into_ct() {
   return 0
 }
 
+# ------------------------------------------------------------------------------
+# base_settings()
+#
+# - Defines all base/default variables for container creation
+# - Reads from environment variables (var_*)
+# - Provides fallback defaults for OS type/version
+# ------------------------------------------------------------------------------
 base_settings() {
   # Default Settings
   CT_TYPE=${var_unprivileged:-"1"}
@@ -275,15 +238,19 @@ base_settings() {
   fi
 }
 
-# This function displays the default values for various settings.
+# ------------------------------------------------------------------------------
+# echo_default()
+#
+# - Prints summary of default values (ID, OS, type, disk, RAM, CPU, etc.)
+# - Uses icons and formatting for readability
+# - Convert CT_TYPE to description
+# ------------------------------------------------------------------------------
 echo_default() {
-  # Convert CT_TYPE to description
   CT_TYPE_DESC="Unprivileged"
   if [ "$CT_TYPE" -eq 0 ]; then
     CT_TYPE_DESC="Privileged"
   fi
 
-  # Output the selected values with icons
   echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
   echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os ($var_version)${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
@@ -297,13 +264,26 @@ echo_default() {
   echo -e "  "
 }
 
-# This function is called when the user decides to exit the script. It clears the screen and displays an exit message.
+# ------------------------------------------------------------------------------
+# exit_script()
+#
+# - Called when user cancels an action
+# - Clears screen and exits gracefully
+# ------------------------------------------------------------------------------
 exit_script() {
   clear
   echo -e "\n${CROSS}${RD}User exited script${CL}\n"
   exit
 }
 
+# ------------------------------------------------------------------------------
+# find_host_ssh_keys()
+#
+# - Scans system for available SSH keys
+# - Supports defaults (~/.ssh, /etc/ssh/authorized_keys)
+# - Returns list of files containing valid SSH public keys
+# - Sets FOUND_HOST_KEY_COUNT to number of keys found
+# ------------------------------------------------------------------------------
 find_host_ssh_keys() {
   local re='(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))'
   local -a files=() cand=()
@@ -356,7 +336,14 @@ find_host_ssh_keys() {
   )
 }
 
-# This function allows the user to configure advanced settings for the script.
+# ------------------------------------------------------------------------------
+# advanced_settings()
+#
+# - Interactive whiptail menu for advanced configuration
+# - Lets user set container type, password, CT ID, hostname, disk, CPU, RAM
+# - Supports IPv4/IPv6, DNS, MAC, VLAN, tags, SSH keys, FUSE, verbose mode
+# - Ends with confirmation or re-entry if cancelled
+# ------------------------------------------------------------------------------
 advanced_settings() {
   whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar." 8 58
   # Setting Default Tag for Advanced Settings
@@ -890,6 +877,13 @@ advanced_settings() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# diagnostics_check()
+#
+# - Ensures diagnostics config file exists at /usr/local/community-scripts/diagnostics
+# - Asks user whether to send anonymous diagnostic data
+# - Saves DIAGNOSTICS=yes/no in the config file
+# ------------------------------------------------------------------------------
 diagnostics_check() {
   if ! [ -d "/usr/local/community-scripts" ]; then
     mkdir -p /usr/local/community-scripts
@@ -1159,6 +1153,13 @@ EOF
   echo_default
 }
 
+# ------------------------------------------------------------------------------
+# get_app_defaults_path()
+#
+# - Returns full path for app-specific defaults file
+# - Example: /usr/local/community-scripts/defaults/<app>.vars
+# ------------------------------------------------------------------------------
+
 get_app_defaults_path() {
   local n="${NSAPP:-${APP,,}}"
   echo "/usr/local/community-scripts/defaults/${n}.vars"
@@ -1200,7 +1201,7 @@ _sanitize_value() {
   echo "$1"
 }
 
-# Map-Parser: liest var_* aus Datei in eine assoziative Map (Name hart: _VARS_IN)
+# Map-Parser: read var_* from file into _VARS_IN associative array
 declare -A _VARS_IN
 _load_vars_file_to_map() {
   local file="$1"
@@ -1216,7 +1217,7 @@ _load_vars_file_to_map() {
       local v="${BASH_REMATCH[2]}"
       [[ "$k" == var_* ]] || continue
       _is_whitelisted_key "$k" || continue
-      # Quotes strippen
+      # strip Quotes
       if [[ "$v" =~ ^\"(.*)\"$ ]]; then v="${BASH_REMATCH[1]}"; fi
       if [[ "$v" =~ ^\'(.*)\'$ ]]; then v="${BASH_REMATCH[1]}"; fi
       _VARS_IN["$k"]="$v"
@@ -1224,7 +1225,7 @@ _load_vars_file_to_map() {
   done <"$file"
 }
 
-# Diff zweier Dateien mit var_* → gibt in $1 (old) vs $2 (new) eine menschenlesbare Diff-Liste aus
+# Diff function for two var_* files -> produces human-readable diff list for $1 (old) vs $2 (new)
 _build_vars_diff() {
   local oldf="$1" newf="$2"
   local k
@@ -1375,20 +1376,23 @@ _build_current_app_vars_tmp() {
   echo "$tmpf"
 }
 
-# -----------------------------------------------
-# maybe_offer_save_app_defaults (Create/Update)
-# - UPDATE-Pfad mit Diff & Menü (Update = Default)
-# -----------------------------------------------
+# ------------------------------------------------------------------------------
+# maybe_offer_save_app_defaults()
+#
+# - Called after advanced_settings()
+# - Offers to save current values as app defaults if not existing
+# - If file exists: shows diff and allows Update, Keep, View Diff, or Cancel
+# ------------------------------------------------------------------------------
 maybe_offer_save_app_defaults() {
   local app_vars_path
   app_vars_path="$(get_app_defaults_path)"
 
-  # Immer Kandidat aus aktueller Auswahl bauen
+  # always build from current settings
   local new_tmp diff_tmp
   new_tmp="$(_build_current_app_vars_tmp)"
   diff_tmp="$(mktemp -p /tmp "${NSAPP:-app}.vars.diff.XXXXXX")"
 
-  # 1) Wenn Datei noch nicht existiert → Erstellen wie bisher
+  # 1) if no file → offer to create
   if [[ ! -f "$app_vars_path" ]]; then
     if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
       --yesno "Save these advanced settings as defaults for ${APP}?\n\nThis will create:\n${app_vars_path}" 12 72; then
@@ -1400,16 +1404,16 @@ maybe_offer_save_app_defaults() {
     return 0
   fi
 
-  # 2) Datei existiert → Diff bauen
+  # 2) if file exists → build diff
   _build_vars_diff "$app_vars_path" "$new_tmp" >"$diff_tmp"
 
-  # Wenn kein Unterschied → nichts tun
+  # if no differences → do nothing
   if grep -q "^(No differences)$" "$diff_tmp"; then
     rm -f "$new_tmp" "$diff_tmp"
     return 0
   fi
 
-  # 3) Menü mit Default-Auswahl "Update Defaults"
+  # 3) if file exists → show menu with default selection "Update Defaults"
   local app_vars_file
   app_vars_file="$(basename "$app_vars_path")"
 
@@ -1450,6 +1454,14 @@ maybe_offer_save_app_defaults() {
   rm -f "$new_tmp" "$diff_tmp"
 }
 
+# ------------------------------------------------------------------------------
+# install_script()
+#
+# - Main entrypoint for installation mode
+# - Runs safety checks (pve_check, root_check, maxkeys_check, diagnostics_check)
+# - Builds interactive menu (Default, Verbose, Advanced, My Defaults, App Defaults, Diagnostics, Storage, Exit)
+# - Applies chosen settings and triggers container build
+# ------------------------------------------------------------------------------
 install_script() {
   pve_check
   shell_check
@@ -1603,7 +1615,13 @@ install_script() {
   esac
 }
 
-# Check and prompt for storage if missing or invalid
+# ------------------------------------------------------------------------------
+# check_storage_or_prompt()
+#
+# - Validates container/template storage
+# - If invalid or missing, prompts user to select new storage
+# - Updates vars file accordingly
+# ------------------------------------------------------------------------------
 check_storage_or_prompt() {
   local vars_file="$1"
   local changed=0
@@ -1613,7 +1631,6 @@ check_storage_or_prompt() {
     return 1
   fi
 
-  # Helper: validate storage
   _validate_storage() {
     local s="$1"
     [[ -n "$s" ]] || return 1
@@ -1658,7 +1675,12 @@ check_storage_or_prompt() {
   return $changed
 }
 
-# Storage Settings menu
+# ------------------------------------------------------------------------------
+# storage_settings_menu()
+#
+# - Menu for managing storage defaults
+# - Options: update My Defaults or App Defaults storage
+# ------------------------------------------------------------------------------
 storage_settings_menu() {
   local menu_items=(
     "1" "Check & update My Defaults (default.vars)"
@@ -1689,18 +1711,21 @@ storage_settings_menu() {
   esac
 }
 
+# ------------------------------------------------------------------------------
+# check_container_resources()
+#
+# - Compares host RAM/CPU with required values
+# - Warns if under-provisioned and asks user to continue or abort
+# ------------------------------------------------------------------------------
 check_container_resources() {
-  # Check actual RAM & Cores
   current_ram=$(free -m | awk 'NR==2{print $2}')
   current_cpu=$(nproc)
 
-  # Check whether the current RAM is less than the required RAM or the CPU cores are less than required
   if [[ "$current_ram" -lt "$var_ram" ]] || [[ "$current_cpu" -lt "$var_cpu" ]]; then
     echo -e "\n${INFO}${HOLD} ${GN}Required: ${var_cpu} CPU, ${var_ram}MB RAM ${CL}| ${RD}Current: ${current_cpu} CPU, ${current_ram}MB RAM${CL}"
     echo -e "${YWB}Please ensure that the ${APP} LXC is configured with at least ${var_cpu} vCPU and ${var_ram} MB RAM for the build process.${CL}\n"
     echo -ne "${INFO}${HOLD} May cause data loss! ${INFO} Continue update with under-provisioned LXC? <yes/No>  "
     read -r prompt
-    # Check if the input is 'yes', otherwise exit with status 1
     if [[ ! ${prompt,,} =~ ^(yes)$ ]]; then
       echo -e "${CROSS}${HOLD} ${YWB}Exiting based on user input.${CL}"
       exit 1
@@ -1710,17 +1735,20 @@ check_container_resources() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# check_container_storage()
+#
+# - Checks /boot partition usage
+# - Warns if usage >80% and asks user confirmation before proceeding
+# ------------------------------------------------------------------------------
 check_container_storage() {
-  # Check if the /boot partition is more than 80% full
   total_size=$(df /boot --output=size | tail -n 1)
   local used_size=$(df /boot --output=used | tail -n 1)
   usage=$((100 * used_size / total_size))
   if ((usage > 80)); then
-    # Prompt the user for confirmation to continue
     echo -e "${INFO}${HOLD} ${YWB}Warning: Storage is dangerously low (${usage}%).${CL}"
     echo -ne "Continue anyway? <y/N>  "
     read -r prompt
-    # Check if the input is 'y' or 'yes', otherwise exit with status 1
     if [[ ! ${prompt,,} =~ ^(y|yes)$ ]]; then
       echo -e "${CROSS}${HOLD}${YWB}Exiting based on user input.${CL}"
       exit 1
@@ -1728,6 +1756,12 @@ check_container_storage() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# ssh_extract_keys_from_file()
+#
+# - Extracts valid SSH public keys from given file
+# - Supports RSA, Ed25519, ECDSA and filters out comments/invalid lines
+# ------------------------------------------------------------------------------
 ssh_extract_keys_from_file() {
   local f="$1"
   [[ -r "$f" ]] || return 0
@@ -1744,6 +1778,12 @@ ssh_extract_keys_from_file() {
   '
 }
 
+# ------------------------------------------------------------------------------
+# ssh_build_choices_from_files()
+#
+# - Builds interactive whiptail checklist of available SSH keys
+# - Generates fingerprint, type and comment for each key
+# ------------------------------------------------------------------------------
 ssh_build_choices_from_files() {
   local -a files=("$@")
   CHOICES=()
@@ -1759,23 +1799,22 @@ ssh_build_choices_from_files() {
     id_*) [[ "$f" != *.pub ]] && continue ;;
     esac
 
-    # jede Key-Zeile mappen -> K<N>|<key>
+    # map every key in file
     while IFS= read -r key; do
       [[ -n "$key" ]] || continue
 
-      # Fingerprint/Type/Comment hübsch machen (best effort)
       typ=""
       fp=""
       cmt=""
-      # Nur der pure Key-Teil (ohne Optionen) ist schon in 'key' enthalten
+      # Only the pure key part (without options) is already included in ‘key’.
       read -r _typ _b64 _cmt <<<"$key"
       typ="${_typ:-key}"
       cmt="${_cmt:-}"
-      # Fingerprint via ssh-keygen (falls verfügbar)
+      # Fingerprint via ssh-keygen (if available)
       if command -v ssh-keygen >/dev/null 2>&1; then
         fp="$(printf '%s\n' "$key" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')"
       fi
-      # Label kürzen
+      # Label shorten
       [[ ${#cmt} -gt 40 ]] && cmt="${cmt:0:37}..."
 
       ln=$((ln + 1))
@@ -1787,7 +1826,12 @@ ssh_build_choices_from_files() {
   done
 }
 
-# Sucht Standard-Quellen (authorized_keys, *.pub, /etc/ssh/authorized_keys.d/*)
+# ------------------------------------------------------------------------------
+# ssh_discover_default_files()
+#
+# - Scans standard paths for SSH keys
+# - Includes ~/.ssh/*.pub, /etc/ssh/authorized_keys, etc.
+# ------------------------------------------------------------------------------
 ssh_discover_default_files() {
   local -a cand=()
   shopt -s nullglob
@@ -1798,6 +1842,14 @@ ssh_discover_default_files() {
   printf '%s\0' "${cand[@]}"
 }
 
+# ------------------------------------------------------------------------------
+# start()
+#
+# - Entry point of script
+# - On Proxmox host: calls install_script
+# - In silent mode: runs update_script
+# - Otherwise: shows update/setting menu
+# ------------------------------------------------------------------------------
 start() {
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
   if command -v pveversion >/dev/null 2>&1; then
@@ -1833,7 +1885,14 @@ start() {
   fi
 }
 
-# This function collects user settings and integrates all the collected information.
+# ------------------------------------------------------------------------------
+# build_container()
+#
+# - Creates and configures the LXC container
+# - Builds network string and applies features (FUSE, TUN, VAAPI passthrough)
+# - Starts container and waits for network connectivity
+# - Installs base packages, SSH keys, and runs <app>-install.sh
+# ------------------------------------------------------------------------------
 build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
@@ -2203,7 +2262,13 @@ destroy_lxc() {
   fi
 }
 
-# This function sets the description of the container.
+# ------------------------------------------------------------------------------
+# description()
+#
+# - Sets container description with HTML content (logo, links, badges)
+# - Restarts ping-instances.service if present
+# - Posts status "done" to API
+# ------------------------------------------------------------------------------
 description() {
   IP=$(pct exec "$CTID" ip a s dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
 
@@ -2238,8 +2303,6 @@ description() {
 </div>
 EOF
   )
-
-  # Set Description in LXC
   pct set "$CTID" -description "$DESCRIPTION"
 
   if [[ -f /etc/systemd/system/ping-instances.service ]]; then
@@ -2249,6 +2312,13 @@ EOF
   post_update_to_api "done" "none"
 }
 
+# ------------------------------------------------------------------------------
+# api_exit_script()
+#
+# - Exit trap handler
+# - Reports exit codes to API with detailed reason
+# - Handles known codes (100–209) and maps them to errors
+# ------------------------------------------------------------------------------
 api_exit_script() {
   exit_code=$?
   if [ $exit_code -ne 0 ]; then
