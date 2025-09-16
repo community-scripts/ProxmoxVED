@@ -13,8 +13,9 @@ network_check
 update_os
 
 msg_info "Setup GlobaLeaks"
-curl -fsSL https://deb.globaleaks.org/globaleaks.asc | gpg --dearmor >/etc/apt/trusted.gpg.d/globaleaks.asc
-echo "deb [signed-by=/etc/apt/trusted.gpg.d/globaleaks.asc] http://deb.globaleaks.org trixie main" >/etc/apt/sources.list.d/globaleaks.list
+DISTRO_CODENAME="$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)"
+curl -fsSL https://deb.globaleaks.org/globaleaks.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/globaleaks.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/globaleaks.gpg] http://deb.globaleaks.org $DISTRO_CODENAME/" >/etc/apt/sources.list.d/globaleaks.list
 $STD apt update
 $STD apt -y install globaleaks
 msg_ok "Setup GlobaLeaks"
