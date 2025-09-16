@@ -20,87 +20,6 @@ load_functions() {
   # add more
 }
 
-# ============================================================================
-# Error & Signal Handling – robust, universal, subshell-safe
-# ============================================================================
-
-# _stop_spinner_on_error() {
-#   [[ -n "${SPINNER_PID:-}" ]] && kill "$SPINNER_PID" 2>/dev/null && wait "$SPINNER_PID" 2>/dev/null || true
-# }
-
-_tool_error_hint() {
-  local cmd="$1"
-  local code="$2"
-  case "$cmd" in
-  curl)
-    case "$code" in
-    6) echo "Curl: Could not resolve host (DNS problem)" ;;
-    7) echo "Curl: Failed to connect to host (connection refused)" ;;
-    22) echo "Curl: HTTP error (404/403 etc)" ;;
-    28) echo "Curl: Operation timeout" ;;
-    *) echo "Curl: Unknown error ($code)" ;;
-    esac
-    ;;
-  wget)
-    echo "Wget failed – URL unreachable or permission denied"
-    ;;
-  systemctl)
-    echo "Systemd unit failure – check service name and permissions"
-    ;;
-  jq)
-    echo "jq parse error – malformed JSON or missing key"
-    ;;
-  mariadb | mysql)
-    echo "MySQL/MariaDB command failed – check credentials or DB"
-    ;;
-  unzip)
-    echo "unzip failed – corrupt file or missing permission"
-    ;;
-  tar)
-    echo "tar failed – invalid format or missing binary"
-    ;;
-  node | npm | pnpm | yarn)
-    echo "Node tool failed – check version compatibility or package.json"
-    ;;
-  *) echo "" ;;
-  esac
-}
-
-# on_error() {
-#   local code="$?"
-#   local line="${BASH_LINENO[0]:-unknown}"
-#   local cmd="${BASH_COMMAND:-unknown}"
-
-#   # Signalcode unterdrücken, falls INT/TERM kommt
-#   [[ "$code" == "130" || "$code" == "143" ]] && return
-
-#   _stop_spinner_on_error
-#   msg_error "Script failed at line $line with exit code $code: $cmd"
-#   exit "$code"
-# }
-
-# on_exit() {
-#   _stop_spinner_on_error
-#   [[ "${VERBOSE:-no}" == "yes" ]] && msg_info "Script exited cleanly"
-# }
-
-# on_interrupt() {
-#   _stop_spinner_on_error
-#   msg_error "Interrupted by user (CTRL+C)"
-#   exit 130
-# }
-
-# on_terminate() {
-#   _stop_spinner_on_error
-#   msg_error "Terminated by signal (SIGTERM)"
-#   exit 143
-# }
-
-# catch_errors() {
-#   set -Eeuo pipefail
-#   trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
-# }
-
 # ------------------------------------------------------------------------------
 # Sets ANSI color codes used for styled terminal output.
 # ------------------------------------------------------------------------------
@@ -368,43 +287,6 @@ is_verbose_mode() {
   [[ "$verbose" != "no" || ! -t 2 ]]
 }
 
-# ------------------------------------------------------------------------------
-# Handles specific curl error codes and displays descriptive messages.
-# ------------------------------------------------------------------------------
-__curl_err_handler() {
-  local exit_code="$1"
-  local target="$2"
-  local curl_msg="$3"
-
-  case $exit_code in
-  1) msg_error "Unsupported protocol: $target" ;;
-  2) msg_error "Curl init failed: $target" ;;
-  3) msg_error "Malformed URL: $target" ;;
-  5) msg_error "Proxy resolution failed: $target" ;;
-  6) msg_error "Host resolution failed: $target" ;;
-  7) msg_error "Connection failed: $target" ;;
-  9) msg_error "Access denied: $target" ;;
-  18) msg_error "Partial file transfer: $target" ;;
-  22) msg_error "HTTP error (e.g. 400/404): $target" ;;
-  23) msg_error "Write error on local system: $target" ;;
-  26) msg_error "Read error from local file: $target" ;;
-  28) msg_error "Timeout: $target" ;;
-  35) msg_error "SSL connect error: $target" ;;
-  47) msg_error "Too many redirects: $target" ;;
-  51) msg_error "SSL cert verify failed: $target" ;;
-  52) msg_error "Empty server response: $target" ;;
-  55) msg_error "Send error: $target" ;;
-  56) msg_error "Receive error: $target" ;;
-  60) msg_error "SSL CA not trusted: $target" ;;
-  67) msg_error "Login denied by server: $target" ;;
-  78) msg_error "Remote file not found (404): $target" ;;
-  *) msg_error "Curl failed with code $exit_code: $target" ;;
-  esac
-
-  [[ -n "$curl_msg" ]] && printf "%s\n" "$curl_msg" >&2
-  exit 1
-}
-
 fatal() {
   msg_error "$1"
   kill -INT $$
@@ -503,17 +385,6 @@ function msg_debug() {
     [[ "${var_verbose:-0}" != "1" ]] && var_verbose=1
     echo -e "${YWB}[$(date '+%F %T')] [DEBUG]${CL} $*"
   fi
-}
-
-run_container_safe() {
-  local ct="$1"
-  shift
-  local cmd="$*"
-
-  lxc-attach -n "$ct" -- bash -euo pipefail -c "
-    trap 'echo Aborted in container; exit 130' SIGINT SIGTERM
-    $cmd
-  " || __handle_general_error "lxc-attach to CT $ct"
 }
 
 check_or_create_swap() {

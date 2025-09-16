@@ -1017,7 +1017,7 @@ var_unprivileged=1
 # Storage
 # Example: "local", "docker", ...
 # var_template_storage=local
-# var_container_storage=docker
+# var_container_storage=local
 
 # Resources
 var_cpu=1
@@ -1173,177 +1173,262 @@ get_app_defaults_path() {
 # - Only writes whitelisted var_* keys.
 # - Extracts raw values from flags like ",gw=..." ",mtu=..." etc.
 # ------------------------------------------------------------------------------
-maybe_offer_save_app_defaults() {
-  local app_vars_path
-  app_vars_path="$(get_app_defaults_path)"
+if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
+  declare -ag VAR_WHITELIST=(
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_ctid var_disk var_fuse
+    var_gateway var_hostname var_ipv6_method var_ipv6_static var_mac var_mtu
+    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
+    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
+  )
+fi
 
-  # Only offer if file does not exist yet
-  if [ -f "$app_vars_path" ]; then
-    return 0
+_is_whitelisted_key() {
+  local k="$1"
+  local w
+  for w in "${VAR_WHITELIST[@]}"; do [[ "$k" == "$w" ]] && return 0; done
+  return 1
+}
+
+_sanitize_value() {
+  # Disallow Command-Substitution / Shell-Meta
+  case "$1" in
+    *'$('*|*'`'*|*';'*|*'&'*|*'<('* ) echo ""; return 0 ;;
+  esac
+  echo "$1"
+}
+
+# Map-Parser: liest var_* aus Datei in eine assoziative Map (Name hart: _VARS_IN)
+declare -A _VARS_IN
+_load_vars_file_to_map() {
+  local file="$1"
+  _VARS_IN=()
+  [[ -f "$file" ]] || return 0
+  local line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+      local k="${BASH_REMATCH[1]}"
+      local v="${BASH_REMATCH[2]}"
+      [[ "$k" == var_* ]] || continue
+      _is_whitelisted_key "$k" || continue
+      # Quotes strippen
+      if [[ "$v" =~ ^\"(.*)\"$ ]]; then v="${BASH_REMATCH[1]}"; fi
+      if [[ "$v" =~ ^\'(.*)\'$ ]]; then v="${BASH_REMATCH[1]}"; fi
+      _VARS_IN["$k"]="$v"
+    fi
+  done <"$file"
+}
+
+# Diff zweier Dateien mit var_* → gibt in $1 (old) vs $2 (new) eine menschenlesbare Diff-Liste aus
+_build_vars_diff() {
+  local oldf="$1" newf="$2"
+  local k
+  local -A OLD=() NEW=()
+  _load_vars_file_to_map "$oldf"; for k in "${!_VARS_IN[@]}"; do OLD["$k"]="${_VARS_IN[$k]}"; done
+  _load_vars_file_to_map "$newf"; for k in "${!_VARS_IN[@]}"; do NEW["$k"]="${_VARS_IN[$k]}"; done
+
+  local out
+  out+="# Diff for ${APP} (${NSAPP})\n"
+  out+="# Old: ${oldf}\n# New: ${newf}\n\n"
+
+  local found_change=0
+
+  # Changed & Removed
+  for k in "${!OLD[@]}"; do
+    if [[ -v NEW["$k"] ]]; then
+      if [[ "${OLD[$k]}" != "${NEW[$k]}" ]]; then
+        out+="~ ${k}\n    - old: ${OLD[$k]}\n    + new: ${NEW[$k]}\n"
+        found_change=1
+      fi
+    else
+      out+="- ${k}\n    - old: ${OLD[$k]}\n"
+      found_change=1
+    fi
+  done
+
+  # Added
+  for k in "${!NEW[@]}"; do
+    if [[ ! -v OLD["$k"] ]]; then
+      out+="+ ${k}\n    + new: ${NEW[$k]}\n"
+      found_change=1
+    fi
+  done
+
+  if [[ $found_change -eq 0 ]]; then
+    out+="(No differences)\n"
   fi
 
-  # Ask user (English prompt as requested)
-  if ! whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-    --yesno "Save these advanced settings as defaults for ${APP}?\n\nThis will create:\n${app_vars_path}" 12 72; then
-    return 0
-  fi
+  printf "%b" "$out"
+}
 
-  # Ensure directory exists
-  mkdir -p "$(dirname "$app_vars_path")"
+# Baut aus der aktuellen Advanced-Auswahl eine temporäre <app>.vars-Datei
+_build_current_app_vars_tmp() {
+  local tmpf
+  tmpf="$(mktemp -p /tmp "${NSAPP:-app}.vars.new.XXXXXX")"
 
-  # Normalizers (extract raw values from flags used during building)
-  local _val
-
-  # NET/GATE: NET is either 'dhcp' or a CIDR; GATE holds ',gw=IP' or ''
+  # NET/GW
   local _net="${NET:-}"
   local _gate=""
-  if [[ "${GATE:-}" =~ ^,gw= ]]; then
-    _gate="${GATE#,gw=}"
-  fi
+  [[ "${GATE:-}" =~ ^,gw= ]] && _gate="${GATE#,gw=}"
 
-  # IPv6: method + optional static + optional gateway
+  # IPv6
   local _ipv6_method="${IPV6_METHOD:-auto}"
   local _ipv6_static=""
   local _ipv6_gateway=""
   case "$_ipv6_method" in
-  static)
-    _ipv6_static="${IPV6_ADDR:-}"
-    _ipv6_gateway="${IPV6_GATE:-}"
-    ;;
+    static)
+      _ipv6_static="${IPV6_ADDR:-}"
+      _ipv6_gateway="${IPV6_GATE:-}"
+      ;;
   esac
 
-  # MTU: MTU looks like ',mtu=1500' or ''
-  local _mtu=""
-  if [[ "${MTU:-}" =~ ^,mtu= ]]; then
-    _mtu="${MTU#,mtu=}"
-  fi
+  # MTU/VLAN/MAC
+  local _mtu="" _vlan="" _mac=""
+  [[ "${MTU:-}"  =~ ^,mtu=   ]] && _mtu="${MTU#,mtu=}"
+  [[ "${VLAN:-}" =~ ^,tag=   ]] && _vlan="${VLAN#,tag=}"
+  [[ "${MAC:-}"  =~ ^,hwaddr=]] && _mac="${MAC#,hwaddr=}"
 
-  # VLAN: ',tag=NN' or ''
-  local _vlan=""
-  if [[ "${VLAN:-}" =~ ^,tag= ]]; then
-    _vlan="${VLAN#,tag=}"
-  fi
+  # DNS/SD
+  local _ns="" _searchdomain=""
+  [[ "${NS:-}" =~ ^-nameserver=   ]] && _ns="${NS#-nameserver=}"
+  [[ "${SD:-}" =~ ^-searchdomain= ]] && _searchdomain="${SD#-searchdomain=}"
 
-  # MAC: ',hwaddr=XX:XX:...' or ''
-  local _mac=""
-  if [[ "${MAC:-}" =~ ^,hwaddr= ]]; then
-    _mac="${MAC#,hwaddr=}"
-  fi
-
-  # DNS nameserver: NS is like '-nameserver=IP' or ''
-  local _ns=""
-  if [[ "${NS:-}" =~ ^-nameserver= ]]; then
-    _ns="${NS#-nameserver=}"
-  fi
-
-  # Search domain: SD is like '-searchdomain=foo' or ''
-  local _searchdomain=""
-  if [[ "${SD:-}" =~ ^-searchdomain= ]]; then
-    _searchdomain="${SD#-searchdomain=}"
-  fi
-
-  # Authorized key: raw string already
-  local _ssh_auth="${SSH_AUTHORIZED_KEY:-}"
-
-  # SSH enabled: "yes"/"no"
+  # SSH / APT / Features
   local _ssh="${SSH:-no}"
-
-  # APT cacher
+  local _ssh_auth="${SSH_AUTHORIZED_KEY:-}"
   local _apt_cacher="${APT_CACHER:-}"
   local _apt_cacher_ip="${APT_CACHER_IP:-}"
-
-  # Features
   local _fuse="${ENABLE_FUSE:-no}"
   local _tun="${ENABLE_TUN:-no}"
-
-  # Tags: TAGS may include 'community-script;' etc. Keep as-is unless empty
   local _tags="${TAGS:-}"
+  local _verbose="${VERBOSE:-no}"
 
-  # Unprivileged container type: CT_TYPE is "1" (unpriv) or "0" (priv)
+  # Typ/Resourcen/Identity
   local _unpriv="${CT_TYPE:-1}"
-
-  # Resources and names
   local _cpu="${CORE_COUNT:-1}"
   local _ram="${RAM_SIZE:-1024}"
   local _disk="${DISK_SIZE:-4}"
   local _hostname="${HN:-$NSAPP}"
 
-  # Verbose
-  local _verbose="${VERBOSE:-no}"
-
-  # Optional storages if already known in this phase
+  # Storage (falls vorhanden)
   local _tpl_storage="${TEMPLATE_STORAGE:-}"
   local _ct_storage="${CONTAINER_STORAGE:-}"
 
-  # Sanitize function for values (basic safety for config file)
-  _sanitize_value() {
-    local s="$1"
-    # Disallow backticks, $(), <(), ;, &
-    case "$s" in
-    *'$('* | *'`'* | *';'* | *'&'* | *'<('*)
-      echo ""
-      ;;
-    *)
-      echo "$s"
-      ;;
-    esac
-  }
-
-  # Build the file content
   {
     echo "# App-specific defaults for ${APP} (${NSAPP})"
     echo "# Generated on $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    echo "# Only var_* keys are read by the loader."
     echo
 
-    # Container type
     echo "var_unprivileged=$(_sanitize_value "$_unpriv")"
-
-    # Resources
     echo "var_cpu=$(_sanitize_value "$_cpu")"
     echo "var_ram=$(_sanitize_value "$_ram")"
     echo "var_disk=$(_sanitize_value "$_disk")"
 
-    # Network
-    [ -n "$BRG" ] && echo "var_brg=$(_sanitize_value "$BRG")"
-    [ -n "$_net" ] && echo "var_net=$(_sanitize_value "$_net")"
-    [ -n "$_gate" ] && echo "var_gateway=$(_sanitize_value "$_gate")"
-    [ -n "$_mtu" ] && echo "var_mtu=$(_sanitize_value "$_mtu")"
-    [ -n "$_vlan" ] && echo "var_vlan=$(_sanitize_value "$_vlan")"
-    [ -n "$_mac" ] && echo "var_mac=$(_sanitize_value "$_mac")"
-    [ -n "$_ns" ] && echo "var_ns=$(_sanitize_value "$_ns")"
+    [[ -n "${BRG:-}" ]] && echo "var_brg=$(_sanitize_value "$BRG")"
+    [[ -n "$_net"     ]] && echo "var_net=$(_sanitize_value "$_net")"
+    [[ -n "$_gate"    ]] && echo "var_gateway=$(_sanitize_value "$_gate")"
+    [[ -n "$_mtu"     ]] && echo "var_mtu=$(_sanitize_value "$_mtu")"
+    [[ -n "$_vlan"    ]] && echo "var_vlan=$(_sanitize_value "$_vlan")"
+    [[ -n "$_mac"     ]] && echo "var_mac=$(_sanitize_value "$_mac")"
+    [[ -n "$_ns"      ]] && echo "var_ns=$(_sanitize_value "$_ns")"
 
-    # IPv6
-    [ -n "$_ipv6_method" ] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
-    [ -n "$_ipv6_static" ] && echo "var_ipv6_static=$(_sanitize_value "$_ipv6_static")"
-    # Note: we do not persist a dedicated var for IPv6 gateway; can be derived if needed
+    [[ -n "$_ipv6_method" ]] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
+    [[ -n "$_ipv6_static" ]] && echo "var_ipv6_static=$(_sanitize_value "$_ipv6_static")"
 
-    # SSH
-    [ -n "$_ssh" ] && echo "var_ssh=$(_sanitize_value "$_ssh")"
-    [ -n "$_ssh_auth" ] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
+    [[ -n "$_ssh"      ]] && echo "var_ssh=$(_sanitize_value "$_ssh")"
+    [[ -n "$_ssh_auth" ]] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
 
-    # APT cacher
-    [ -n "$_apt_cacher" ] && echo "var_apt_cacher=$(_sanitize_value "$_apt_cacher")"
-    [ -n "$_apt_cacher_ip" ] && echo "var_apt_cacher_ip=$(_sanitize_value "$_apt_cacher_ip")"
+    [[ -n "$_apt_cacher"    ]] && echo "var_apt_cacher=$(_sanitize_value "$_apt_cacher")"
+    [[ -n "$_apt_cacher_ip" ]] && echo "var_apt_cacher_ip=$(_sanitize_value "$_apt_cacher_ip")"
 
-    # Features / tags / verbosity
-    [ -n "$_fuse" ] && echo "var_fuse=$(_sanitize_value "$_fuse")"
-    [ -n "$_tun" ] && echo "var_tun=$(_sanitize_value "$_tun")"
-    [ -n "$_tags" ] && echo "var_tags=$(_sanitize_value "$_tags")"
-    [ -n "$_verbose" ] && echo "var_verbose=$(_sanitize_value "$_verbose")"
+    [[ -n "$_fuse"    ]] && echo "var_fuse=$(_sanitize_value "$_fuse")"
+    [[ -n "$_tun"     ]] && echo "var_tun=$(_sanitize_value "$_tun")"
+    [[ -n "$_tags"    ]] && echo "var_tags=$(_sanitize_value "$_tags")"
+    [[ -n "$_verbose" ]] && echo "var_verbose=$(_sanitize_value "$_verbose")"
 
-    # Identity (optional)
-    [ -n "$_hostname" ] && echo "var_hostname=$(_sanitize_value "$_hostname")"
-    [ -n "$_searchdomain" ] && echo "var_searchdomain=$(_sanitize_value "$_searchdomain")"
+    [[ -n "$_hostname"     ]] && echo "var_hostname=$(_sanitize_value "$_hostname")"
+    [[ -n "$_searchdomain" ]] && echo "var_searchdomain=$(_sanitize_value "$_searchdomain")"
 
-    # Storage (optional, if known at this stage)
-    [ -n "$_tpl_storage" ] && echo "var_template_storage=$(_sanitize_value "$_tpl_storage")"
-    [ -n "$_ct_storage" ] && echo "var_container_storage=$(_sanitize_value "$_ct_storage")"
-  } >"$app_vars_path"
+    [[ -n "$_tpl_storage" ]] && echo "var_template_storage=$(_sanitize_value "$_tpl_storage")"
+    [[ -n "$_ct_storage"  ]] && echo "var_container_storage=$(_sanitize_value "$_ct_storage")"
+  } >"$tmpf"
 
-  chmod 0644 "$app_vars_path"
-  msg_ok "Saved app defaults: ${app_vars_path}"
+  echo "$tmpf"
 }
+
+# -----------------------------------------------
+# maybe_offer_save_app_defaults (Create/Update)
+# - UPDATE-Pfad mit Diff & Menü (Update = Default)
+# -----------------------------------------------
+maybe_offer_save_app_defaults() {
+  local app_vars_path
+  app_vars_path="$(get_app_defaults_path)"
+
+  # Immer Kandidat aus aktueller Auswahl bauen
+  local new_tmp diff_tmp
+  new_tmp="$(_build_current_app_vars_tmp)"
+  diff_tmp="$(mktemp -p /tmp "${NSAPP:-app}.vars.diff.XXXXXX")"
+
+  # 1) Wenn Datei noch nicht existiert → Erstellen wie bisher
+  if [[ ! -f "$app_vars_path" ]]; then
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --yesno "Save these advanced settings as defaults for ${APP}?\n\nThis will create:\n${app_vars_path}" 12 72; then
+      mkdir -p "$(dirname "$app_vars_path")"
+      install -m 0644 "$new_tmp" "$app_vars_path"
+      msg_ok "Saved app defaults: ${app_vars_path}"
+    fi
+    rm -f "$new_tmp" "$diff_tmp"
+    return 0
+  fi
+
+  # 2) Datei existiert → Diff bauen
+  _build_vars_diff "$app_vars_path" "$new_tmp" >"$diff_tmp"
+
+  # Wenn kein Unterschied → nichts tun
+  if grep -q "^(No differences)$" "$diff_tmp"; then
+    rm -f "$new_tmp" "$diff_tmp"
+    return 0
+  fi
+
+  # 3) Menü mit Default-Auswahl "Update Defaults"
+  while true; do
+    local sel
+    sel="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "APP DEFAULTS – ${APP}" \
+      --menu "Differences detected. What do you want to do?" 20 78 10 \
+      "Update Defaults" "Write new values to ${app_vars_path}" \
+      "Keep Current"    "Keep existing defaults (no changes)" \
+      "View Diff"       "Show a detailed diff" \
+      "Cancel"          "Abort without changes" \
+      --default-item "Update Defaults" \
+      3>&1 1>&2 2>&3)" || { sel="Cancel"; }
+
+    case "$sel" in
+      "Update Defaults")
+        install -m 0644 "$new_tmp" "$app_vars_path"
+        msg_ok "Updated app defaults: ${app_vars_path}"
+        break
+        ;;
+      "Keep Current")
+        msg_info "Keeping current app defaults: ${app_vars_path}"
+        break
+        ;;
+      "View Diff")
+        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+          --title "Diff – ${APP}" \
+          --scrolltext --textbox "$diff_tmp" 25 100
+        ;;
+      "Cancel"|*)
+        msg_info "Canceled. No changes to app defaults."
+        break
+        ;;
+    esac
+  done
+
+  rm -f "$new_tmp" "$diff_tmp"
+}
+
 
 install_script() {
   pve_check
