@@ -193,7 +193,7 @@ SILENT_LOGFILE="/tmp/silent.$$.log"
 
 silent() {
   local cmd="$*"
-  local caller_line="${BASH_LINENO[0]:-unknown}" # Capture the line where silent was called
+  local caller_line="${BASH_LINENO[0]:-unknown}"
 
   set +Eeuo pipefail
   "$@" >>"$SILENT_LOGFILE" 2>&1
@@ -201,12 +201,20 @@ silent() {
   set -Eeuo pipefail
 
   if [[ $rc -ne 0 ]]; then
-    # Call error_handler with proper line number context
-    BASH_LINENO[0]=$caller_line # Set the line number for error_handler
-    error_handler "$rc" "$cmd"
-  fi
+    local explanation
+    explanation="$(explain_exit_code "$rc")"
 
-  return $rc
+    printf "\e[?25h"
+    echo -e "\n${RD}[ERROR]${CL} in line ${RD}${caller_line}${CL}: exit code ${RD}${rc}${CL} (${explanation}): while executing command ${YWB}${cmd}${CL}\n"
+
+    if [[ -s "$SILENT_LOGFILE" ]]; then
+      echo "--- Last 20 lines of silent log ($SILENT_LOGFILE) ---"
+      tail -n 20 "$SILENT_LOGFILE"
+      echo "---------------------------------------------------"
+    fi
+
+    exit "$rc"
+  fi
 }
 
 # Check if the shell is using bash
