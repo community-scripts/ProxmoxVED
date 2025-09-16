@@ -85,6 +85,7 @@ error_handler() {
   local command=${2:-${BASH_COMMAND:-unknown}}
   local line_number=${BASH_LINENO[0]:-unknown}
 
+  # clean up cosmetic STD variable
   command="${command//\$STD/}"
 
   if [[ "$exit_code" -eq 0 ]]; then
@@ -95,7 +96,7 @@ error_handler() {
   explanation="$(explain_exit_code "$exit_code")"
 
   printf "\e[?25h"
-  echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL} (${explanation}): while executing command ${YWB}${command}${CL}\n"
+  echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL} (${explanation}): while executing command ${YW}${command}${CL}\n"
 
   if [[ -n "${DEBUG_LOGFILE:-}" ]]; then
     {
@@ -108,7 +109,6 @@ error_handler() {
     } >>"$DEBUG_LOGFILE"
   fi
 
-  # Silent-Log
   if [[ -n "${SILENT_LOGFILE:-}" && -s "$SILENT_LOGFILE" ]]; then
     echo "--- Last 20 lines of silent log ($SILENT_LOGFILE) ---"
     tail -n 20 "$SILENT_LOGFILE"
