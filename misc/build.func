@@ -1537,12 +1537,6 @@ install_script() {
     APPDEFAULTS | appdefaults | 5)
       CHOICE="5"
       ;;
-    DIAGNOSTICS | diagnostics | 6)
-      CHOICE="6"
-      ;;
-    STORAGE | storage | 7)
-      CHOICE="7"
-      ;;
     *)
       echo -e "\n${CROSS}${RD}Invalid PRESET value: ${PRESET}${CL}\n"
       exit 1
@@ -1632,16 +1626,10 @@ install_script() {
     fi
     ;;
   6)
-    diagnostics_menu
+    settings_menu
     exit 0
     ;;
   7)
-    header_info
-    echo -e "${DEFAULT}${BOLD}${BL}Manage Storage Settings on node $PVEHOST_NAME${CL}"
-    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
-    exit 0
-    ;;
-  8)
     echo -e "\n${CROSS}${RD}Script terminated.${CL}\n"
     exit 0
     ;;
