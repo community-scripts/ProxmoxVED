@@ -1735,7 +1735,7 @@ settings_menu() {
     choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
       --title "Community-Scripts SETTINGS Menu" \
       --ok-button "OK" --cancel-button "Back" \
-      --menu "Choose a settings option:" 20 60 9 \
+      --menu "Choose a settings option:\n\nUse TAB or Arrow keys to navigate, ENTER to select." 20 60 9 \
       "${settings_items[@]}" \
       3>&1 1>&2 2>&3) || break
 
