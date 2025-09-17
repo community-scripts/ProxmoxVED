@@ -1551,26 +1551,22 @@ install_script() {
       "4" "My Defaults"
     )
 
-    local next=5
     if [ -f "$(get_app_defaults_path)" ]; then
-      menu_items+=("$next" "App Defaults for ${APP}")
-      next=$((next + 1))
+      menu_items+=("5" "App Defaults for ${APP}")
+      menu_items+=("6" "Settings")
+    else
+      menu_items+=("5" "Settings")
     fi
-
-    menu_items+=(
-      "$next" "Settings"
-      "$((next + 1))" "Exit"
-    )
 
     TMP_CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
       --title "SETTINGS" \
+      --ok-button "OK" --cancel-button "Exit Script" \
       --menu "Choose an option:" 20 60 9 \
       "${menu_items[@]}" \
       --default-item "1" 3>&1 1>&2 2>&3) || true
 
     if [ -z "$TMP_CHOICE" ]; then
-      echo -e "\n${CROSS}${RD}Menu canceled. Exiting script.${CL}\n"
-      exit 0
+      exit_script
     fi
     CHOICE="$TMP_CHOICE"
   fi
@@ -1627,10 +1623,6 @@ install_script() {
     ;;
   6)
     settings_menu
-    exit 0
-    ;;
-  7)
-    echo -e "\n${CROSS}${RD}Script terminated.${CL}\n"
     exit 0
     ;;
   *)
