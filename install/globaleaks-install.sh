@@ -16,13 +16,9 @@ msg_info "Setup GlobaLeaks"
 DISTRO_CODENAME="$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)"
 curl -fsSL https://deb.globaleaks.org/globaleaks.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/globaleaks.gpg
 echo "deb [signed-by=/etc/apt/trusted.gpg.d/globaleaks.gpg] http://deb.globaleaks.org $DISTRO_CODENAME/" >/etc/apt/sources.list.d/globaleaks.list
+echo -ne 'APPARMOR_SANDBOXING=0\nNETWORK_SANDBOXING=0' >/etc/default/globaleaks
 $STD apt update
 $STD apt -y install globaleaks
-systemctl stop globaleaks
-echo 'APPARMOR_SANDBOXING=0' >>/etc/default/globaleaks
-echo 'NETWORK_SANDBOXING=0' >>/etc/default/globaleaks
-systemctl daemon-reexec
-systemctl restart globaleaks
 msg_ok "Setup GlobaLeaks"
 
 motd_ssh
