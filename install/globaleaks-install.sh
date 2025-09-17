@@ -18,8 +18,10 @@ curl -fsSL https://deb.globaleaks.org/globaleaks.asc | gpg --dearmor -o /etc/apt
 echo "deb [signed-by=/etc/apt/trusted.gpg.d/globaleaks.gpg] http://deb.globaleaks.org $DISTRO_CODENAME/" >/etc/apt/sources.list.d/globaleaks.list
 $STD apt update
 $STD apt -y install globaleaks
-echo 'APPARMOR_SANDBOXING=0' | sudo tee -a /etc/default/globaleaks
-echo 'NETWORK_SANDBOXING=0' | sudo tee -a /etc/default/globaleaks
+systemctl stop globaleaks
+echo 'APPARMOR_SANDBOXING=0' >>/etc/default/globaleaks
+echo 'NETWORK_SANDBOXING=0' >>/etc/default/globaleaks
+systemctl daemon-reexec
 systemctl restart globaleaks
 msg_ok "Setup GlobaLeaks"
 
