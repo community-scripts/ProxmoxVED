@@ -1542,7 +1542,7 @@ install_script() {
       --title "Community-Scripts Options" \
       --ok-button "Select" --cancel-button "Exit Script" \
       --notags \
-      --menu "\nChoose an option:\n\nUse TAB or Arrow keys to navigate, ENTER to select.\n" \
+      --menu "\nChoose an option:\n Use TAB or Arrow keys to navigate, ENTER to select.\n" \
       20 60 9 \
       "${menu_items[@]}" \
       --default-item "1" \
