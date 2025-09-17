@@ -977,7 +977,7 @@ default_var_settings() {
     if printenv "$_k" >/dev/null 2>&1; then _HARD_ENV["$_k"]=1; fi
   done
 
-  # Find default.vars (first valid path wins)
+  # Find default.vars location
   local _find_default_vars
   _find_default_vars() {
     local f
@@ -993,13 +993,20 @@ default_var_settings() {
     return 1
   }
 
-  # Ensure default.vars exists, create with sane defaults if missing
+  # Create once, with storages already selected, no var_ctid/var_hostname lines
   local _ensure_default_vars
   _ensure_default_vars() {
     _find_default_vars >/dev/null 2>&1 && return 0
+
     local canonical="/usr/local/community-scripts/default.vars"
     msg_info "No default.vars found. Creating ${canonical}"
     mkdir -p /usr/local/community-scripts
+
+    # Pick storages before writing the file (always ask unless only one)
+    # Create a minimal temp file to write into
+    : >"$canonical"
+
+    # Base content (no var_ctid / var_hostname here)
     cat >"$canonical" <<'EOF'
 # Community-Scripts defaults (var_* only). Lines starting with # are comments.
 # Precedence: ENV var_* > default.vars > built-ins.
@@ -1007,11 +1014,6 @@ default_var_settings() {
 
 # Container type
 var_unprivileged=1
-
-# Storage
-# Example: "local", "docker", ...
-# var_template_storage=local
-# var_container_storage=local
 
 # Resources
 var_cpu=1
@@ -1045,11 +1047,12 @@ var_verbose=no
 
 # Security (root PW) – empty => autologin
 # var_pw=
-
-# Optional fixed CTID/hostname – empty => auto
-# var_ctid=
-# var_hostname=
 EOF
+
+    # Now choose storages (always prompt unless just one exists)
+    choose_and_set_storage_for_file "$canonical" template
+    choose_and_set_storage_for_file "$canonical" container
+
     chmod 0644 "$canonical"
     msg_ok "Created ${canonical}"
   }
@@ -1091,34 +1094,23 @@ EOF
           var_val="${BASH_REMATCH[1]}"
         fi
 
-        # Unsafe check without regex (formatter-friendly)
-        local _unsafe=""
-        case "$var_val" in
-        *'$('*) _unsafe=1 ;;
-        *'`'*) _unsafe=1 ;;
-        *';'*) _unsafe=1 ;;
-        *'&'*) _unsafe=1 ;;
-        *'<('*) _unsafe=1 ;;
-        esac
-        if [[ -n "$_unsafe" ]]; then
-          msg_warn "Ignoring ${var_key} from ${file}: unsafe characters"
-          continue
-        fi
-
-        # Hard env wins
-        if [[ -n "${_HARD_ENV[$var_key]:-}" ]]; then
-          continue
-        fi
-
+        # Unsafe characters
+        case $var_val in
+        \"*\")
+          var_val=${var_val#\"}
+          var_val=${var_val%\"}
+          ;;
+        \'*\')
+          var_val=${var_val#\'}
+          var_val=${var_val%\'}
+          ;;
+        esac # Hard env wins
+        [[ -n "${_HARD_ENV[$var_key]:-}" ]] && continue
         # Set only if not already exported
-        if [[ -z "${!var_key+x}" ]]; then
-          export "${var_key}=${var_val}"
-        fi
-
+        [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
       else
         msg_warn "Malformed line in ${file}: ${line}"
       fi
-
     done <"$file"
     msg_ok "Loaded ${file}"
   }
@@ -1136,11 +1128,7 @@ EOF
 
   # 3) Map var_verbose → VERBOSE
   if [[ -n "${var_verbose:-}" ]]; then
-    case "${var_verbose,,}" in
-    1 | yes | true | on) VERBOSE="yes" ;;
-    0 | no | false | off) VERBOSE="no" ;;
-    *) VERBOSE="${var_verbose}" ;;
-    esac
+    case "${var_verbose,,}" in 1 | yes | true | on) VERBOSE="yes" ;; 0 | no | false | off) VERBOSE="no" ;; *) VERBOSE="${var_verbose}" ;; esac
   else
     VERBOSE="no"
   fi
@@ -1457,6 +1445,15 @@ maybe_offer_save_app_defaults() {
   rm -f "$new_tmp" "$diff_tmp"
 }
 
+ensure_storage_selection_for_vars_file() {
+  # $1 = vars_file
+  local vf="$1"
+  # Always prompt (unless only one choice for that content), per your requirement #4
+  choose_and_set_storage_for_file "$vf" template
+  choose_and_set_storage_for_file "$vf" container
+  echo_storage_summary_from_file "$vf"
+}
+
 diagnostics_menu() {
   if [ "${DIAGNOSTICS:-no}" = "yes" ]; then
     if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
@@ -1571,6 +1568,8 @@ install_script() {
     METHOD="default"
     base_settings "$VERBOSE"
     echo_default
+    # Always ask storages for MyDefaults file (create if missing)
+    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
     ;;
   2)
     header_info
@@ -1579,6 +1578,7 @@ install_script() {
     METHOD="default"
     base_settings "$VERBOSE"
     echo_default
+    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
     ;;
   3)
     header_info
@@ -1586,6 +1586,8 @@ install_script() {
     METHOD="advanced"
     base_settings
     advanced_settings
+    # Always ask storages (stored to env var_* so app-defaults will include them)
+    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
     maybe_offer_save_app_defaults
     ;;
   4)
@@ -1593,8 +1595,8 @@ install_script() {
       msg_error "Failed to apply default.vars"
       exit 1
     }
-    select_container_storage "/usr/local/community-scripts/default.vars"
-    select_template_storage "/usr/local/community-scripts/default.vars"
+    # Always let user pick storages again (unless only one exists)
+    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
     ;;
   5)
     if [ -f "$(get_app_defaults_path)" ]; then
@@ -1604,6 +1606,8 @@ install_script() {
       base_settings
       _load_vars_file "$(get_app_defaults_path)"
       echo_default
+      # Always let user confirm/change storages for the app defaults
+      ensure_storage_selection_for_vars_file "$(get_app_defaults_path)"
     fi
     ;;
   6)
@@ -1613,22 +1617,9 @@ install_script() {
   7)
     header_info
     echo -e "${DEFAULT}${BOLD}${BL}Manage Storage Settings on node $PVEHOST_NAME${CL}"
-
-    local vars_file="/usr/local/community-scripts/default.vars"
-    if [ -f "$(get_app_defaults_path)" ]; then
-      if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-        --title "STORAGE SETTINGS" \
-        --yesno "Do you want to update App Defaults for ${APP} instead of global defaults?\n\nYes = App Defaults (${APP})\nNo = Global Defaults (default.vars)" 12 72; then
-        vars_file="$(get_app_defaults_path)"
-      fi
-    fi
-
-    select_container_storage "$vars_file"
-    select_template_storage "$vars_file"
-    _echo_storage_summary "$vars_file"
+    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
     exit 0
     ;;
-
   8)
     echo -e "\n${CROSS}${RD}Script terminated.${CL}\n"
     exit 0
@@ -1744,72 +1735,58 @@ install_script() {
 #   fi
 # }
 
-select_container_storage() {
-  local vars_file="$1"
-  local current
-  current=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
-
-  local storages
-  storages=$(pvesm status -content images | awk 'NR>1 {print $1}')
-
-  local count
-  count=$(echo "$storages" | wc -l)
-
-  local choice
-  if [ "$count" -eq 1 ]; then
-    choice="$storages"
-  else
-    # Build menu list: ID + type
-    local menu_items
-    menu_items=$(pvesm status -content images | awk -v cur="$current" 'NR>1 {printf "%s %s\n", $1, $2}')
-
-    choice=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "Select Container Storage" \
-      --menu "Choose container storage:" 20 60 10 \
-      --default-item "$current" \
-      $menu_items 3>&1 1>&2 2>&3) || return 1
-  fi
-
-  if [ -n "$choice" ]; then
-    sed -i '/^var_container_storage=/d' "$vars_file"
-    echo "var_container_storage=$choice" >>"$vars_file"
-    msg_ok "Updated container storage → $choice"
-  fi
+# ===== Unified storage selection & writing to vars files =====
+_write_storage_to_vars() {
+  # $1 = vars_file, $2 = key (var_container_storage / var_template_storage), $3 = value
+  local vf="$1" key="$2" val="$3"
+  # remove uncommented and commented versions to avoid duplicates
+  sed -i "/^[#[:space:]]*${key}=/d" "$vf"
+  echo "${key}=${val}" >>"$vf"
 }
 
-select_template_storage() {
-  local vars_file="$1"
-  local current
-  current=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
+choose_and_set_storage_for_file() {
+  # $1 = vars_file, $2 = class ('container'|'template')
+  local vf="$1" class="$2" key="" current=""
+  case "$class" in
+  container) key="var_container_storage" ;;
+  template) key="var_template_storage" ;;
+  *)
+    msg_error "Unknown storage class: $class"
+    return 1
+    ;;
+  esac
 
-  local storages
-  storages=$(pvesm status -content vztmpl | awk 'NR>1 {print $1}')
+  current=$(awk -F= -v k="^${key}=" '$0 ~ k {print $2; exit}' "$vf")
 
+  # If only one storage exists for the content type, auto-pick. Else always ask (your wish #4).
+  local content="rootdir"
+  [[ "$class" == "template" ]] && content="vztmpl"
   local count
-  count=$(echo "$storages" | wc -l)
+  count=$(pvesm status -content "$content" | awk 'NR>1{print $1}' | wc -l)
 
-  local choice
-  if [ "$count" -eq 1 ]; then
-    choice="$storages"
+  if [[ "$count" -eq 1 ]]; then
+    STORAGE_RESULT=$(pvesm status -content "$content" | awk 'NR>1{print $1; exit}')
+    STORAGE_INFO=""
   else
-    local menu_items
-    menu_items=$(pvesm status -content vztmpl | awk -v cur="$current" 'NR>1 {printf "%s %s\n", $1, $2}')
-
-    choice=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "Select Template Storage" \
-      --menu "Choose template storage:" 20 60 10 \
-      --default-item "$current" \
-      $menu_items 3>&1 1>&2 2>&3) || return 1
+    # If the current value is preselectable, we could show it, but per your requirement we always offer selection
+    select_storage "$class" || return 1
   fi
 
-  if [ -n "$choice" ]; then
-    sed -i '/^var_template_storage=/d' "$vars_file"
-    echo "var_template_storage=$choice" >>"$vars_file"
-    msg_ok "Updated template storage → $choice"
+  _write_storage_to_vars "$vf" "$key" "$STORAGE_RESULT"
+
+  # Keep environment in sync for later steps (e.g. app-default save)
+  if [[ "$class" == "container" ]]; then
+    export var_container_storage="$STORAGE_RESULT"
+    export CONTAINER_STORAGE="$STORAGE_RESULT"
+  else
+    export var_template_storage="$STORAGE_RESULT"
+    export TEMPLATE_STORAGE="$STORAGE_RESULT"
   fi
+
+  msg_ok "Updated ${key} → ${STORAGE_RESULT}"
 }
 
-_echo_storage_summary() {
+echo_storage_summary_from_file() {
   local vars_file="$1"
   local ct_store tpl_store
   ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
@@ -1817,7 +1794,7 @@ _echo_storage_summary() {
 
   echo -e "\n${INFO}${BOLD}${DGN}Storage settings from ${vars_file}:${CL}"
   echo -e "   📦 Container Storage: ${BGN}${ct_store:-<unset>}${CL}"
-  echo -e "   📦 Template Storage:  ${BGN}${tpl_store:-<unset>}${CL}\n"
+  echo -e "   📦 Template  Storage: ${BGN}${tpl_store:-<unset>}${CL}\n"
 }
 
 # ------------------------------------------------------------------------------
@@ -2448,6 +2425,7 @@ create_lxc_container() {
   # ------------------------------------------------------------------------------
   # Storage discovery / selection helpers
   # ------------------------------------------------------------------------------
+  # ===== Storage discovery / selection helpers (ported from create_lxc.sh) =====
   resolve_storage_preselect() {
     local class="$1" preselect="$2" required_content=""
     case "$class" in
@@ -2526,17 +2504,6 @@ create_lxc_container() {
       ;;
     esac
 
-    if [[ "$CONTENT" == "rootdir" && -n "${STORAGE:-}" ]]; then
-      if pvesm status -content "$CONTENT" | awk 'NR>1 {print $1}' | grep -qx "$STORAGE"; then
-        STORAGE_RESULT="$STORAGE"
-        msg_info "Using preset storage: $STORAGE_RESULT for $CONTENT_LABEL"
-        return 0
-      else
-        msg_error "Preset storage '$STORAGE' is not valid for content type '$CONTENT'."
-        return 2
-      fi
-    fi
-
     declare -A STORAGE_MAP
     local -a MENU=()
     local COL_WIDTH=0
@@ -2566,10 +2533,10 @@ create_lxc_container() {
     local WIDTH=$((COL_WIDTH + 42))
     while true; do
       local DISPLAY_SELECTED
-      DISPLAY_SELECTED=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      DISPLAY_SELECTED=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
         --title "Storage Pools" \
         --radiolist "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-        16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || exit_script
+        16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || { exit_script; }
 
       DISPLAY_SELECTED=$(sed 's/[[:space:]]*$//' <<<"$DISPLAY_SELECTED")
       if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
