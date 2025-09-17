@@ -1538,9 +1538,9 @@ install_script() {
     fi
 
     TMP_CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "SETTINGS" \
+      --title "Community-Scripts Options" \
       --ok-button "Select" --cancel-button "Exit Script" \
-      --menu "Choose an option:" 20 60 9 \
+      --menu "Choose an option:" 20 40 9 \
       "${menu_items[@]}" \
       --default-item "1" 3>&1 1>&2 2>&3) || exit_script
 
@@ -1733,7 +1733,7 @@ settings_menu() {
 
     local choice
     choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "SETTINGS MENU" \
+      --title "Community-Scripts SETTINGS Menu" \
       --ok-button "OK" --cancel-button "Back" \
       --menu "Choose a settings option:" 20 60 9 \
       "${settings_items[@]}" \
