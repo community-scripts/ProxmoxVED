@@ -4,21 +4,20 @@
 # Erwartet vorhandene msg_* und optional $STD aus deinem Framework.
 
 # ------------------------------
-# kleine Helfer
+# helpers
 # ------------------------------
 lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 has() { command -v "$1" >/dev/null 2>&1; }
 
 need_tool() {
   # usage: need_tool curl jq unzip ...
-  # installiert fehlende Tools via apk --no-cache
+  # setup missing tools via apk
   local missing=0 t
   for t in "$@"; do
     if ! has "$t"; then missing=1; fi
   done
   if [ "$missing" -eq 1 ]; then
     msg_info "Installing tools: $*"
-    # busybox 'apk' ist vorhanden auf Alpine
     apk add --no-cache "$@" >/dev/null 2>&1 || {
       msg_error "apk add failed for: $*"
       return 1
@@ -28,7 +27,7 @@ need_tool() {
 }
 
 net_resolves() {
-  # robust gegen fehlendes getent auf busybox
+  # better handling for missing getent on Alpine
   # usage: net_resolves api.github.com
   local host="$1"
   ping -c1 -W1 "$host" >/dev/null 2>&1 || nslookup "$host" >/dev/null 2>&1
@@ -61,7 +60,7 @@ download_with_progress() {
 }
 
 # ------------------------------
-# GitHub: Release prüfen
+# GitHub: check Release
 # ------------------------------
 check_for_gh_release() {
   # app, repo, [pinned]
@@ -113,11 +112,11 @@ check_for_gh_release() {
 }
 
 # ------------------------------
-# GitHub: Release holen & deployen (Alpine)
+# GitHub: get Release  & deployen (Alpine)
 # modes: tarball | prebuild | singlefile
 # ------------------------------
 fetch_and_deploy_gh() {
-  # $1 app, $2 repo, [$3 mode], [$4 version], [$5 target], [$6 asset_pattern]
+  # $1 app, $2 repo, [$3 mode], [$4 version], [$5 target], [$6 asset_pattern
   local app="$1" repo="$2" mode="${3:-tarball}" version="${4:-latest}" target="${5:-/opt/$1}" pattern="${6:-}"
   local app_lc
   app_lc="$(lower "$app" | tr -d ' ')"
@@ -149,7 +148,7 @@ fetch_and_deploy_gh() {
     }
   fi
 
-  # Effektive Version
+  # correct Version
   version="$(printf '%s' "$json" | jq -r '.tag_name // empty')"
   version="${version#v}"
 
@@ -174,7 +173,7 @@ fetch_and_deploy_gh() {
       return 1
     }
     unpack="$(find "$tmpd" -mindepth 1 -maxdepth 1 -type d | head -n1)"
-    # Inhalte nach target kopieren (inkl. dotfiles)
+    # copy content of unpack to target
     (cd "$unpack" && tar -cf - .) | (cd "$target" && tar -xf -) || {
       msg_error "copy failed"
       rm -rf "$tmpd"
@@ -201,7 +200,7 @@ fetch_and_deploy_gh() {
       rm -rf "$tmpd"
       return 1
     }
-    # entpacken je nach Format
+    # unpack archive (Zip or tarball)
     case "$filename" in
     *.zip)
       need_tool unzip || {
@@ -221,7 +220,7 @@ fetch_and_deploy_gh() {
       return 1
       ;;
     esac
-    # top-level folder ggf. strippen
+    # top-level folder strippen
     if [ "$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ] && [ -z "$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type f | head -n1)" ]; then
       unpack="$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d)"
       (cd "$unpack" && tar -cf - .) | (cd "$target" && tar -xf -) || {
@@ -276,7 +275,7 @@ fetch_and_deploy_gh() {
 # yq (mikefarah) – Alpine
 # ------------------------------
 setup_yq() {
-  # bevorzugt apk, optional FORCE_GH=1 → GitHub Binary
+  # prefer apk, unless FORCE_GH=1
   if [ "${FORCE_GH:-0}" != "1" ] && apk info -e yq >/dev/null 2>&1; then
     msg_info "Updating yq via apk"
     apk add --no-cache --upgrade yq >/dev/null 2>&1 || true
@@ -319,7 +318,7 @@ setup_adminer() {
 
 # ------------------------------
 # uv – Alpine (musl tarball)
-# Optional: PYTHON_VERSION="3.12"
+# optional: PYTHON_VERSION="3.12"
 # ------------------------------
 setup_uv() {
   need_tool curl tar || return 1
@@ -367,11 +366,11 @@ setup_uv() {
     return 1
   }
 
-  # tar enthält ./uv
+  # tar contains ./uv
   if [ -x "$tmpd/uv" ]; then
     install -m 0755 "$tmpd/uv" "$UV_BIN"
   else
-    # fallback: in Unterordner
+    # fallback: in subfolder
     install -m 0755 "$tmpd"/*/uv "$UV_BIN" 2>/dev/null || {
       msg_error "uv binary not found in tar"
       rm -rf "$tmpd"
@@ -383,7 +382,6 @@ setup_uv() {
   msg_ok "Setup uv $ver"
 
   if [ -n "${PYTHON_VERSION:-}" ]; then
-    # uv liefert cpython builds für musl; den neuesten Patchstand finden:
     local match
     match="$(uv python list --only-downloads 2>/dev/null | awk -v maj="$PYTHON_VERSION" '
       $0 ~ "^cpython-"maj"\\." { print $0 }' | awk -F- '{print $2}' | sort -V | tail -n1)"
@@ -417,7 +415,7 @@ setup_java() {
     msg_error "apk add $pkg failed"
     return 1
   }
-  # JAVA_HOME setzen
+  # set JAVA_HOME
   local prof="/etc/profile.d/20-java.sh"
   if [ ! -f "$prof" ]; then
     echo 'export JAVA_HOME=$(dirname $(dirname $(readlink -f $(command -v java))))' >"$prof"
@@ -428,7 +426,7 @@ setup_java() {
 }
 
 # ------------------------------
-# Go – Alpine (apk bevorzugt; optional GO_VERSION tarball)
+# Go – Alpine (apk prefers, else tarball)
 # ------------------------------
 setup_go() {
   if [ -z "${GO_VERSION:-}" ]; then
@@ -441,7 +439,6 @@ setup_go() {
     return 0
   fi
 
-  # explizite Version via offizielles tar.gz
   need_tool curl tar || return 1
   local ARCH TARBALL URL TMP
   case "$(uname -m)" in
