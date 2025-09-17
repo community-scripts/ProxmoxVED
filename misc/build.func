@@ -2346,6 +2346,138 @@ destroy_lxc() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# Storage discovery / selection helpers
+# ------------------------------------------------------------------------------
+# ===== Storage discovery / selection helpers (ported from create_lxc.sh) =====
+resolve_storage_preselect() {
+  local class="$1" preselect="$2" required_content=""
+  case "$class" in
+  template) required_content="vztmpl" ;;
+  container) required_content="rootdir" ;;
+  *) return 1 ;;
+  esac
+  [[ -z "$preselect" ]] && return 1
+  if ! pvesm status -content "$required_content" | awk 'NR>1{print $1}' | grep -qx -- "$preselect"; then
+    msg_warn "Preselected storage '${preselect}' does not support content '${required_content}' (or not found)"
+    return 1
+  fi
+
+  local line total used free
+  line="$(pvesm status | awk -v s="$preselect" 'NR>1 && $1==s {print $0}')"
+  if [[ -z "$line" ]]; then
+    STORAGE_INFO="n/a"
+  else
+    total="$(awk '{print $4}' <<<"$line")"
+    used="$(awk '{print $5}' <<<"$line")"
+    free="$(awk '{print $6}' <<<"$line")"
+    local total_h used_h free_h
+    if command -v numfmt >/dev/null 2>&1; then
+      total_h="$(numfmt --to=iec --suffix=B --format %.1f "$total" 2>/dev/null || echo "$total")"
+      used_h="$(numfmt --to=iec --suffix=B --format %.1f "$used" 2>/dev/null || echo "$used")"
+      free_h="$(numfmt --to=iec --suffix=B --format %.1f "$free" 2>/dev/null || echo "$free")"
+      STORAGE_INFO="Free: ${free_h}  Used: ${used_h}"
+    else
+      STORAGE_INFO="Free: ${free}  Used: ${used}"
+    fi
+  fi
+  STORAGE_RESULT="$preselect"
+  return 0
+}
+
+check_storage_support() {
+  local CONTENT="$1" VALID=0
+  while IFS= read -r line; do
+    local STORAGE_NAME
+    STORAGE_NAME=$(awk '{print $1}' <<<"$line")
+    [[ -n "$STORAGE_NAME" ]] && VALID=1
+  done < <(pvesm status -content "$CONTENT" 2>/dev/null | awk 'NR>1')
+  [[ $VALID -eq 1 ]]
+}
+
+select_storage() {
+  local CLASS=$1 CONTENT CONTENT_LABEL
+  case $CLASS in
+  container)
+    CONTENT='rootdir'
+    CONTENT_LABEL='Container'
+    ;;
+  template)
+    CONTENT='vztmpl'
+    CONTENT_LABEL='Container template'
+    ;;
+  iso)
+    CONTENT='iso'
+    CONTENT_LABEL='ISO image'
+    ;;
+  images)
+    CONTENT='images'
+    CONTENT_LABEL='VM Disk image'
+    ;;
+  backup)
+    CONTENT='backup'
+    CONTENT_LABEL='Backup'
+    ;;
+  snippets)
+    CONTENT='snippets'
+    CONTENT_LABEL='Snippets'
+    ;;
+  *)
+    msg_error "Invalid storage class '$CLASS'"
+    return 1
+    ;;
+  esac
+
+  declare -A STORAGE_MAP
+  local -a MENU=()
+  local COL_WIDTH=0
+
+  while read -r TAG TYPE _ TOTAL USED FREE _; do
+    [[ -n "$TAG" && -n "$TYPE" ]] || continue
+    local DISPLAY="${TAG} (${TYPE})"
+    local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
+    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
+    local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
+    STORAGE_MAP["$DISPLAY"]="$TAG"
+    MENU+=("$DISPLAY" "$INFO" "OFF")
+    ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
+  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
+
+  if [[ ${#MENU[@]} -eq 0 ]]; then
+    msg_error "No storage found for content type '$CONTENT'."
+    return 2
+  fi
+
+  if [[ $((${#MENU[@]} / 3)) -eq 1 ]]; then
+    STORAGE_RESULT="${STORAGE_MAP[${MENU[0]}]}"
+    STORAGE_INFO="${MENU[1]}"
+    return 0
+  fi
+
+  local WIDTH=$((COL_WIDTH + 42))
+  while true; do
+    local DISPLAY_SELECTED
+    DISPLAY_SELECTED=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "Storage Pools" \
+      --radiolist "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
+      16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || { exit_script; }
+
+    DISPLAY_SELECTED=$(sed 's/[[:space:]]*$//' <<<"$DISPLAY_SELECTED")
+    if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
+      whiptail --msgbox "No valid storage selected. Please try again." 8 58
+      continue
+    fi
+    STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"
+    for ((i = 0; i < ${#MENU[@]}; i += 3)); do
+      if [[ "${MENU[$i]}" == "$DISPLAY_SELECTED" ]]; then
+        STORAGE_INFO="${MENU[$i + 1]}"
+        break
+      fi
+    done
+    return 0
+  done
+}
+
 create_lxc_container() {
   # ------------------------------------------------------------------------------
   # Optional verbose mode (debug tracing)
@@ -2420,138 +2552,6 @@ create_lxc_container() {
       ;;
     *) return 2 ;;
     esac
-  }
-
-  # ------------------------------------------------------------------------------
-  # Storage discovery / selection helpers
-  # ------------------------------------------------------------------------------
-  # ===== Storage discovery / selection helpers (ported from create_lxc.sh) =====
-  resolve_storage_preselect() {
-    local class="$1" preselect="$2" required_content=""
-    case "$class" in
-    template) required_content="vztmpl" ;;
-    container) required_content="rootdir" ;;
-    *) return 1 ;;
-    esac
-    [[ -z "$preselect" ]] && return 1
-    if ! pvesm status -content "$required_content" | awk 'NR>1{print $1}' | grep -qx -- "$preselect"; then
-      msg_warn "Preselected storage '${preselect}' does not support content '${required_content}' (or not found)"
-      return 1
-    fi
-
-    local line total used free
-    line="$(pvesm status | awk -v s="$preselect" 'NR>1 && $1==s {print $0}')"
-    if [[ -z "$line" ]]; then
-      STORAGE_INFO="n/a"
-    else
-      total="$(awk '{print $4}' <<<"$line")"
-      used="$(awk '{print $5}' <<<"$line")"
-      free="$(awk '{print $6}' <<<"$line")"
-      local total_h used_h free_h
-      if command -v numfmt >/dev/null 2>&1; then
-        total_h="$(numfmt --to=iec --suffix=B --format %.1f "$total" 2>/dev/null || echo "$total")"
-        used_h="$(numfmt --to=iec --suffix=B --format %.1f "$used" 2>/dev/null || echo "$used")"
-        free_h="$(numfmt --to=iec --suffix=B --format %.1f "$free" 2>/dev/null || echo "$free")"
-        STORAGE_INFO="Free: ${free_h}  Used: ${used_h}"
-      else
-        STORAGE_INFO="Free: ${free}  Used: ${used}"
-      fi
-    fi
-    STORAGE_RESULT="$preselect"
-    return 0
-  }
-
-  check_storage_support() {
-    local CONTENT="$1" VALID=0
-    while IFS= read -r line; do
-      local STORAGE_NAME
-      STORAGE_NAME=$(awk '{print $1}' <<<"$line")
-      [[ -n "$STORAGE_NAME" ]] && VALID=1
-    done < <(pvesm status -content "$CONTENT" 2>/dev/null | awk 'NR>1')
-    [[ $VALID -eq 1 ]]
-  }
-
-  select_storage() {
-    local CLASS=$1 CONTENT CONTENT_LABEL
-    case $CLASS in
-    container)
-      CONTENT='rootdir'
-      CONTENT_LABEL='Container'
-      ;;
-    template)
-      CONTENT='vztmpl'
-      CONTENT_LABEL='Container template'
-      ;;
-    iso)
-      CONTENT='iso'
-      CONTENT_LABEL='ISO image'
-      ;;
-    images)
-      CONTENT='images'
-      CONTENT_LABEL='VM Disk image'
-      ;;
-    backup)
-      CONTENT='backup'
-      CONTENT_LABEL='Backup'
-      ;;
-    snippets)
-      CONTENT='snippets'
-      CONTENT_LABEL='Snippets'
-      ;;
-    *)
-      msg_error "Invalid storage class '$CLASS'"
-      return 1
-      ;;
-    esac
-
-    declare -A STORAGE_MAP
-    local -a MENU=()
-    local COL_WIDTH=0
-
-    while read -r TAG TYPE _ TOTAL USED FREE _; do
-      [[ -n "$TAG" && -n "$TYPE" ]] || continue
-      local DISPLAY="${TAG} (${TYPE})"
-      local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
-      local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
-      local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
-      STORAGE_MAP["$DISPLAY"]="$TAG"
-      MENU+=("$DISPLAY" "$INFO" "OFF")
-      ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
-    done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
-
-    if [[ ${#MENU[@]} -eq 0 ]]; then
-      msg_error "No storage found for content type '$CONTENT'."
-      return 2
-    fi
-
-    if [[ $((${#MENU[@]} / 3)) -eq 1 ]]; then
-      STORAGE_RESULT="${STORAGE_MAP[${MENU[0]}]}"
-      STORAGE_INFO="${MENU[1]}"
-      return 0
-    fi
-
-    local WIDTH=$((COL_WIDTH + 42))
-    while true; do
-      local DISPLAY_SELECTED
-      DISPLAY_SELECTED=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-        --title "Storage Pools" \
-        --radiolist "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-        16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || { exit_script; }
-
-      DISPLAY_SELECTED=$(sed 's/[[:space:]]*$//' <<<"$DISPLAY_SELECTED")
-      if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
-        whiptail --msgbox "No valid storage selected. Please try again." 8 58
-        continue
-      fi
-      STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"
-      for ((i = 0; i < ${#MENU[@]}; i += 3)); do
-        if [[ "${MENU[$i]}" == "$DISPLAY_SELECTED" ]]; then
-          STORAGE_INFO="${MENU[$i + 1]}"
-          break
-        fi
-      done
-      return 0
-    done
   }
 
   # ------------------------------------------------------------------------------
