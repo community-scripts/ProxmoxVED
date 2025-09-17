@@ -1604,8 +1604,6 @@ install_script() {
       base_settings
       _load_vars_file "$(get_app_defaults_path)"
       echo_default
-      select_container_storage "$(get_app_defaults_path)"
-      select_template_storage "$(get_app_defaults_path)"
     fi
     ;;
   6)
