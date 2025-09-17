@@ -1449,11 +1449,26 @@ maybe_offer_save_app_defaults() {
 }
 
 ensure_storage_selection_for_vars_file() {
-  # $1 = vars_file
-  local vf="$1"
-  # Always prompt (unless only one choice for that content), per your requirement #4
-  choose_and_set_storage_for_file "$vf" template
-  choose_and_set_storage_for_file "$vf" container
+  vf="$1"
+
+  # Read stored values (if any)
+  tpl=$(grep -E '^var_template_storage=' "$vf" | cut -d= -f2-)
+  ct=$(grep -E '^var_container_storage=' "$vf" | cut -d= -f2-)
+
+  # Template storage
+  if [ -n "$tpl" ]; then
+    TEMPLATE_STORAGE="$tpl"
+  else
+    choose_and_set_storage_for_file "$vf" template
+  fi
+
+  # Container storage
+  if [ -n "$ct" ]; then
+    CONTAINER_STORAGE="$ct"
+  else
+    choose_and_set_storage_for_file "$vf" container
+  fi
+
   echo_storage_summary_from_file "$vf"
 }
 
