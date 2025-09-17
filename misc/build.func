@@ -1613,7 +1613,11 @@ install_script() {
     exit 0
     ;;
   7)
-    storage_settings_menu
+    header_info
+    echo -e "${DEFAULT}${BOLD}${BL}Manage Storage Settings on node $PVEHOST_NAME${CL}"
+    select_container_storage "/usr/local/community-scripts/default.vars"
+    select_template_storage "/usr/local/community-scripts/default.vars"
+    _echo_storage_summary "/usr/local/community-scripts/default.vars"
     exit 0
     ;;
   8)
@@ -1633,103 +1637,103 @@ install_script() {
 # - If invalid or missing, prompts user to select new storage
 # - Updates vars file accordingly
 # ------------------------------------------------------------------------------
-check_storage_or_prompt() {
-  local vars_file="$1"
-  local changed=0
+# check_storage_or_prompt() {
+#   local vars_file="$1"
+#   local changed=0
 
-  if [ ! -f "$vars_file" ]; then
-    msg_warn "No vars file found at $vars_file"
-    return 0
-  fi
+#   if [ ! -f "$vars_file" ]; then
+#     msg_warn "No vars file found at $vars_file"
+#     return 0
+#   fi
 
-  # Helper: validate storage ID
-  _validate_storage() {
-    local s="$1"
-    [ -n "$s" ] || return 1
-    pvesm status -content images | awk 'NR>1 {print $1}' | grep -qx "$s"
-  }
+#   # Helper: validate storage ID
+#   _validate_storage() {
+#     local s="$1"
+#     [ -n "$s" ] || return 1
+#     pvesm status -content images | awk 'NR>1 {print $1}' | grep -qx "$s"
+#   }
 
-  # Load current values (empty if not set)
-  local ct_store tpl_store
-  ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
-  tpl_store=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
+#   # Load current values (empty if not set)
+#   local ct_store tpl_store
+#   ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
+#   tpl_store=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
 
-  # Container storage
-  if ! _validate_storage "$ct_store"; then
-    local new_ct
-    new_ct=$(pvesm status -content images | awk 'NR>1 {print $1"  "$2" "$6}')
-    new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "Select Container Storage" \
-      --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || return 0
-    if [ -n "$new_ct" ]; then
-      sed -i "/^var_container_storage=/d" "$vars_file"
-      echo "var_container_storage=$new_ct" >>"$vars_file"
-      changed=1
-      msg_ok "Updated container storage in $vars_file → $new_ct"
-    fi
-  fi
+#   # Container storage
+#   if ! _validate_storage "$ct_store"; then
+#     local new_ct
+#     new_ct=$(pvesm status -content images | awk 'NR>1 {print $1"  "$2" "$6}')
+#     new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+#       --title "Select Container Storage" \
+#       --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || return 0
+#     if [ -n "$new_ct" ]; then
+#       sed -i "/^var_container_storage=/d" "$vars_file"
+#       echo "var_container_storage=$new_ct" >>"$vars_file"
+#       changed=1
+#       msg_ok "Updated container storage in $vars_file → $new_ct"
+#     fi
+#   fi
 
-  # Template storage
-  if ! _validate_storage "$tpl_store"; then
-    local new_tpl
-    new_tpl=$(pvesm status -content vztmpl | awk 'NR>1 {print $1"  "$2" "$6}')
-    new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "Select Template Storage" \
-      --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || return 0
-    if [ -n "$new_tpl" ]; then
-      sed -i "/^var_template_storage=/d" "$vars_file"
-      echo "var_template_storage=$new_tpl" >>"$vars_file"
-      changed=1
-      msg_ok "Updated template storage in $vars_file → $new_tpl"
-    fi
-  fi
+#   # Template storage
+#   if ! _validate_storage "$tpl_store"; then
+#     local new_tpl
+#     new_tpl=$(pvesm status -content vztmpl | awk 'NR>1 {print $1"  "$2" "$6}')
+#     new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+#       --title "Select Template Storage" \
+#       --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || return 0
+#     if [ -n "$new_tpl" ]; then
+#       sed -i "/^var_template_storage=/d" "$vars_file"
+#       echo "var_template_storage=$new_tpl" >>"$vars_file"
+#       changed=1
+#       msg_ok "Updated template storage in $vars_file → $new_tpl"
+#     fi
+#   fi
 
-  # Always succeed (no aborts from here)
-  return 0
-}
+#   # Always succeed (no aborts from here)
+#   return 0
+# }
 
-# ------------------------------------------------------------------------------
-# storage_settings_menu()
-#
-# - Menu for managing storage defaults
-# - Options: update My Defaults or App Defaults storage
-# ------------------------------------------------------------------------------
-storage_settings_menu() {
-  local vars_file="/usr/local/community-scripts/default.vars"
+# # ------------------------------------------------------------------------------
+# # storage_settings_menu()
+# #
+# # - Menu for managing storage defaults
+# # - Options: update My Defaults or App Defaults storage
+# # ------------------------------------------------------------------------------
+# storage_settings_menu() {
+#   local vars_file="/usr/local/community-scripts/default.vars"
 
-  check_storage_or_prompt "$vars_file"
-  _echo_storage_summary "$vars_file"
+#   check_storage_or_prompt "$vars_file"
+#   _echo_storage_summary "$vars_file"
 
-  # Always ask user if they want to update, even if values are valid
-  if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-    --title "STORAGE SETTINGS" \
-    --yesno "Do you want to update the storage defaults?\n\nCurrent values will be kept unless you select new ones." 12 72; then
+#   # Always ask user if they want to update, even if values are valid
+#   if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+#     --title "STORAGE SETTINGS" \
+#     --yesno "Do you want to update the storage defaults?\n\nCurrent values will be kept unless you select new ones." 12 72; then
 
-    # container storage selection
-    local new_ct
-    new_ct=$(pvesm status -content images | awk 'NR>1 {print $1"  "$2" "$6}')
-    new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "Select Container Storage" \
-      --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || true
-    if [ -n "$new_ct" ]; then
-      sed -i '/^var_container_storage=/d' "$vars_file"
-      echo "var_container_storage=$new_ct" >>"$vars_file"
-      msg_ok "Updated container storage → $new_ct"
-    fi
+#     # container storage selection
+#     local new_ct
+#     new_ct=$(pvesm status -content images | awk 'NR>1 {print $1"  "$2" "$6}')
+#     new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+#       --title "Select Container Storage" \
+#       --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || true
+#     if [ -n "$new_ct" ]; then
+#       sed -i '/^var_container_storage=/d' "$vars_file"
+#       echo "var_container_storage=$new_ct" >>"$vars_file"
+#       msg_ok "Updated container storage → $new_ct"
+#     fi
 
-    # template storage selection
-    local new_tpl
-    new_tpl=$(pvesm status -content vztmpl | awk 'NR>1 {print $1"  "$2" "$6}')
-    new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "Select Template Storage" \
-      --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || true
-    if [ -n "$new_tpl" ]; then
-      sed -i '/^var_template_storage=/d' "$vars_file"
-      echo "var_template_storage=$new_tpl" >>"$vars_file"
-      msg_ok "Updated template storage → $new_tpl"
-    fi
-  fi
-}
+#     # template storage selection
+#     local new_tpl
+#     new_tpl=$(pvesm status -content vztmpl | awk 'NR>1 {print $1"  "$2" "$6}')
+#     new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+#       --title "Select Template Storage" \
+#       --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || true
+#     if [ -n "$new_tpl" ]; then
+#       sed -i '/^var_template_storage=/d' "$vars_file"
+#       echo "var_template_storage=$new_tpl" >>"$vars_file"
+#       msg_ok "Updated template storage → $new_tpl"
+#     fi
+#   fi
+# }
 
 select_container_storage() {
   local vars_file="$1"
