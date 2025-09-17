@@ -30,6 +30,47 @@ if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
   msg_ok "Setup xCaddy"
 fi
 
+cat<<EOF>/etc/caddy/Caddyfile
+# The Caddyfile is an easy way to configure your Caddy web server.
+#
+# Unless the file starts with a global options block, the first
+# uncommented line is always the address of your site.
+#
+# To use your own domain name (with automatic HTTPS), first make
+# sure your domain's A/AAAA DNS records are properly pointed to
+# this machine's public IP, then replace ":80" below with your
+# domain name.
+
+:80 {
+        # Set this path to your site's directory.
+        root * /var/www/html
+
+        # Enable the static file server.
+        file_server
+
+        # Another common task is to set up a reverse proxy:
+        # reverse_proxy localhost:8080
+
+        # Or serve a PHP site through php-fpm:
+        # php_fastcgi localhost:9000
+}
+
+# Refer to the Caddy docs for more information:
+# https://caddyserver.com/docs/caddyfile
+EOF
+mkdir -p /var/www/html
+cat<<EOF>/var/www/html/index.html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Caddy works!</title>
+  </head>
+  <body>
+    <h1>Hello Caddy!</h1>
+    <p>For more information, refer to the Caddy <a href="https://caddyserver.com/docs/">documentation</a><p>
+  </body>
+</html>
+EOF
 msg_info "Enabling Caddy Service"
 $STD rc-update add caddy default
 msg_ok "Enabled Caddy Service"
