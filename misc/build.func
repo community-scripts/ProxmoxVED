@@ -1593,10 +1593,10 @@ install_script() {
       msg_error "Failed to apply default.vars"
       exit 1
     }
-    check_storage_or_prompt "/usr/local/community-scripts/default.vars"
+    select_container_storage "/usr/local/community-scripts/default.vars"
+    select_template_storage "/usr/local/community-scripts/default.vars"
     ;;
   5)
-    # App Defaults
     if [ -f "$(get_app_defaults_path)" ]; then
       header_info
       echo -e "${DEFAULT}${BOLD}${BL}Using App Defaults for ${APP} on node $PVEHOST_NAME${CL}"
@@ -1604,10 +1604,8 @@ install_script() {
       base_settings
       _load_vars_file "$(get_app_defaults_path)"
       echo_default
-      check_storage_or_prompt "$(get_app_defaults_path)"
-    else
-      msg_error "No App Defaults available for ${APP}"
-      exit 1
+      select_container_storage "$(get_app_defaults_path)"
+      select_template_storage "$(get_app_defaults_path)"
     fi
     ;;
   6)
@@ -1730,6 +1728,71 @@ storage_settings_menu() {
       echo "var_template_storage=$new_tpl" >>"$vars_file"
       msg_ok "Updated template storage → $new_tpl"
     fi
+  fi
+}
+
+select_container_storage() {
+  local vars_file="$1"
+  local current
+  current=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
+
+  local storages
+  storages=$(pvesm status -content images | awk 'NR>1 {print $1}')
+
+  local count
+  count=$(echo "$storages" | wc -l)
+
+  local choice
+  if [ "$count" -eq 1 ]; then
+    choice="$storages"
+  else
+    # Build menu list: ID + type
+    local menu_items
+    menu_items=$(pvesm status -content images | awk -v cur="$current" 'NR>1 {printf "%s %s\n", $1, $2}')
+
+    choice=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "Select Container Storage" \
+      --menu "Choose container storage:" 20 60 10 \
+      --default-item "$current" \
+      $menu_items 3>&1 1>&2 2>&3) || return 1
+  fi
+
+  if [ -n "$choice" ]; then
+    sed -i '/^var_container_storage=/d' "$vars_file"
+    echo "var_container_storage=$choice" >>"$vars_file"
+    msg_ok "Updated container storage → $choice"
+  fi
+}
+
+select_template_storage() {
+  local vars_file="$1"
+  local current
+  current=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
+
+  local storages
+  storages=$(pvesm status -content vztmpl | awk 'NR>1 {print $1}')
+
+  local count
+  count=$(echo "$storages" | wc -l)
+
+  local choice
+  if [ "$count" -eq 1 ]; then
+    choice="$storages"
+  else
+    local menu_items
+    menu_items=$(pvesm status -content vztmpl | awk -v cur="$current" 'NR>1 {printf "%s %s\n", $1, $2}')
+
+    choice=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "Select Template Storage" \
+      --menu "Choose template storage:" 20 60 10 \
+      --default-item "$current" \
+      $menu_items 3>&1 1>&2 2>&3) || return 1
+  fi
+
+  if [ -n "$choice" ]; then
+    sed -i '/^var_template_storage=/d' "$vars_file"
+    echo "var_template_storage=$choice" >>"$vars_file"
+    msg_ok "Updated template storage → $choice"
   fi
 }
 
