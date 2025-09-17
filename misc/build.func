@@ -1809,10 +1809,17 @@ echo_storage_summary_from_file() {
   local ct_store tpl_store
   ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
   tpl_store=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
+  if [ -n "$tpl" ]; then
+    TEMPLATE_STORAGE="$tpl"
+  else
+    choose_and_set_storage_for_file "$vf" template
+  fi
 
-  echo -e "\n${INFO}${BOLD}${DGN}Storage settings from ${vars_file}:${CL}"
-  echo -e "   📦 Container Storage: ${BGN}${ct_store:-<unset>}${CL}"
-  echo -e "   📦 Template  Storage: ${BGN}${tpl_store:-<unset>}${CL}\n"
+  if [ -n "$ct" ]; then
+    CONTAINER_STORAGE="$ct"
+  else
+    choose_and_set_storage_for_file "$vf" container
+  fi
 }
 
 # ------------------------------------------------------------------------------
