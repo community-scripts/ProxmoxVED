@@ -1744,6 +1744,20 @@ install_script() {
 #   fi
 # }
 
+edit_default_storage() {
+  local vf="/usr/local/community-scripts/default.vars"
+
+  # make sure file exists
+  if [ ! -f "$vf" ]; then
+    msg_info "No default.vars found, creating $vf"
+    mkdir -p /usr/local/community-scripts
+    touch "$vf"
+  fi
+
+  # reuse the same Whiptail selection we already have
+  ensure_storage_selection_for_vars_file "$vf"
+}
+
 settings_menu() {
   while true; do
     local settings_items=(
@@ -1764,7 +1778,7 @@ settings_menu() {
       --ok-button "OK" --cancel-button "Back" \
       --menu "Choose a settings option:" 20 60 9 \
       "${settings_items[@]}" \
-      3>&1 1>&2 2>&3) || return 0
+      3>&1 1>&2 2>&3) || break
 
     case "$choice" in
     1) diagnostics_menu ;;
@@ -1774,10 +1788,10 @@ settings_menu() {
       if [ -f "$(get_app_defaults_path)" ]; then
         ${EDITOR:-nano} "$(get_app_defaults_path)"
       else
-        return 0
+        exit_script
       fi
       ;;
-    5) return 0 ;;
+    5) exit_script ;;
     esac
   done
 }
