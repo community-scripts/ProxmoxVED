@@ -12,7 +12,7 @@
     "documentation": "https://github.com/comfyanonymous/ComfyUI",
     "website": "https://www.comfy.org/",
     "logo": "https://framerusercontent.com/images/3cNQMWKzIhIrQ5KErBm7dSmbd2w.png",
-    "description": "ComfyUI is a node-based interface and inference engine for generative AI. Users can combine various AI models and operations through nodes to achieve highly customizable and controllable content generation. ComfyUI is completely open source and can run on your local device",
+    "description": "ComfyUI is a node-based interface and inference engine for generative AI. Users can combine various AI models and operations through nodes to achieve highly customizable and controllable content generation.",
     "install_methods": [
         {
             "type": "default",
@@ -37,10 +37,6 @@
         },
         {
             "text": "Please check that you have installed the drivers for your GPU.",
-            "type": "info"
-        },
-        {
-            "text": "You can always skip manual configuration by using dynamic variables. For example: `comfyui_skip_user_config=\"Y|y\" comfyui_python_version_uv=\"3.12\" comfyui_python_args=\"--cpu\" comfyui_gpu_type=\"None|NVIDIA|AMD|Intel\" comfyui_index_url_nvidia=\"URL\" comfyui_index_url_amd=\"URL\" comfyui_index_url_intel=\"URL\" comfyui_manager_enabled=\"N|n\" bash -c \"$(curl -fsSL ...comfyui.sh)\"`",
             "type": "info"
         }
     ]
