@@ -17,7 +17,7 @@ var_unprivileged="${var_unprivileged:-1}"
 header_info "$APP"
 variables
 color
-catch_errors
+init_error_traps
 
 function update_script() {
    header_info
