@@ -1541,7 +1541,7 @@ install_script() {
       --backtitle "Proxmox VE Helper Scripts" \
       --title "Community-Scripts Options" \
       --ok-button "Select" --cancel-button "Exit Script" \
-      --fb --notags \
+      --notags \
       --menu "\nChoose an option:\n\nUse TAB or Arrow keys to navigate, ENTER to select.\n" \
       20 60 9 \
       "${menu_items[@]}" \
