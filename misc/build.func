@@ -1520,7 +1520,7 @@ install_script() {
   header_info
 
   # --- Support CLI argument as direct preset (default, advanced, …) ---
-  CHOICE="${1:-}"
+  CHOICE="${mode:-${1:-}}"
 
   # If no CLI argument → show whiptail menu
   if [ -z "$CHOICE" ]; then
