@@ -1334,8 +1334,8 @@ _build_current_app_vars_tmp() {
   _hostname="${HN:-$NSAPP}"
 
   # Storage
-  _tpl_storage="${TEMPLATE_STORAGE:-}"
-  _ct_storage="${CONTAINER_STORAGE:-}"
+  _tpl_storage="${TEMPLATE_STORAGE:-${var_template_storage:-}}"
+  _ct_storage="${CONTAINER_STORAGE:-${var_container_storage:-}}"
 
   {
     echo "# App-specific defaults for ${APP} (${NSAPP})"
@@ -1615,11 +1615,22 @@ install_script() {
   7)
     header_info
     echo -e "${DEFAULT}${BOLD}${BL}Manage Storage Settings on node $PVEHOST_NAME${CL}"
-    select_container_storage "/usr/local/community-scripts/default.vars"
-    select_template_storage "/usr/local/community-scripts/default.vars"
-    _echo_storage_summary "/usr/local/community-scripts/default.vars"
+
+    local vars_file="/usr/local/community-scripts/default.vars"
+    if [ -f "$(get_app_defaults_path)" ]; then
+      if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --title "STORAGE SETTINGS" \
+        --yesno "Do you want to update App Defaults for ${APP} instead of global defaults?\n\nYes = App Defaults (${APP})\nNo = Global Defaults (default.vars)" 12 72; then
+        vars_file="$(get_app_defaults_path)"
+      fi
+    fi
+
+    select_container_storage "$vars_file"
+    select_template_storage "$vars_file"
+    _echo_storage_summary "$vars_file"
     exit 0
     ;;
+
   8)
     echo -e "\n${CROSS}${RD}Script terminated.${CL}\n"
     exit 0
