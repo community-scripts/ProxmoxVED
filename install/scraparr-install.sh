@@ -8,12 +8,12 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
-PYTHON_VERSION="3.12" setup_uv
+PYTHON_VERSION="3.13" setup_uv
 fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr" "tarball" "latest" "/opt/scraparr"
 
 msg_info "Installing Scraparr"

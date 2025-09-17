@@ -8,16 +8,16 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  make \
-  git \
-  caddy
+    make \
+    git \
+    caddy
 msg_ok "Installed Dependencies"
 
 LOCAL_IP=$(hostname -I | awk '{print $1}')

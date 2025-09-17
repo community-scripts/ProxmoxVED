@@ -7,17 +7,17 @@
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  make \
-  apache2 \
-  libapache2-mod-php \
-  redis
+    make \
+    apache2 \
+    libapache2-mod-php \
+    redis
 msg_ok "Installed Dependencies"
 
 setup_mariadb
@@ -33,10 +33,10 @@ $STD mariadb -u root -e "CREATE DATABASE $DB_NAME;"
 $STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 $STD mariadb -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-  echo "Wallabag Credentials"
-  echo "Database User: $DB_USER"
-  echo "Database Password: $DB_PASS"
-  echo "Database Name: $DB_NAME"
+    echo "Wallabag Credentials"
+    echo "Database User: $DB_USER"
+    echo "Database Password: $DB_PASS"
+    echo "Database Name: $DB_NAME"
 } >>~/wallabag.creds
 msg_ok "Set up Database"
 
@@ -48,12 +48,12 @@ useradd -d /opt/wallabag -s /bin/bash -M wallabag
 chown -R wallabag:wallabag /opt/wallabag
 mv /opt/wallabag/app/config/parameters.yml.dist /opt/wallabag/app/config/parameters.yml
 sed -i \
-  -e 's|database_name: wallabag|database_name: wallabag_db|' \
-  -e 's|database_port: ~|database_port: 3306|' \
-  -e 's|database_user: root|database_user: wallabag|' \
-  -e 's|database_password: ~|database_password: '"$DB_PASS"'|' \
-  -e 's|secret: .*|secret: '"$SECRET_KEY"'|' \
-  /opt/wallabag/app/config/parameters.yml
+    -e 's|database_name: wallabag|database_name: wallabag_db|' \
+    -e 's|database_port: ~|database_port: 3306|' \
+    -e 's|database_user: root|database_user: wallabag|' \
+    -e 's|database_password: ~|database_password: '"$DB_PASS"'|' \
+    -e 's|secret: .*|secret: '"$SECRET_KEY"'|' \
+    /opt/wallabag/app/config/parameters.yml
 
 export COMPOSER_ALLOW_SUPERUSER=1
 sudo -u wallabag make install --no-interaction

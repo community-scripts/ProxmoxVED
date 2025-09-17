@@ -5,10 +5,10 @@
 # License: MIT
 # https://github.com/tteck/Proxmox/raw/main/LICENSE
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -22,8 +22,8 @@ msg_info "Installing netboot.xyz ${RELEASE}"
 $STD curl --silent -o ${RELEASE}.tar.gz -L "https://github.com/netbootxyz/netboot.xyz/archive/${RELEASE}.tar.gz"
 $STD tar xvzf ${RELEASE}.tar.gz
 VER=$(curl -s https://api.github.com/repos/netbootxyz/netboot.xyz/releases/latest |
-  grep "tag_name" |
-  awk '{print substr($2, 2, length($2)-3) }')
+    grep "tag_name" |
+    awk '{print substr($2, 2, length($2)-3) }')
 rm -rf ${RELEASE}.tar.gz
 mv netboot.xyz-${VER} /opt/netboot.xyz
 msg_ok "Installed netboot.xyz ${RELEASE}"

@@ -7,7 +7,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -23,14 +23,13 @@ $STD apt-get install -y \
     ca-certificates \
     apt-transport-https \
     tesseract-ocr
-    #tesseract-ocr-deu \
-    #tesseract-ocr-eng \
-    #unpaper \
-    #unoconv \
-    #wkhtmltopdf \
-    #ocrmypdf
+#tesseract-ocr-deu \
+#tesseract-ocr-eng \
+#unpaper \
+#unoconv \
+#wkhtmltopdf \
+#ocrmypdf
 msg_ok "Installed Dependencies"
-
 
 setup_gs
 JAVA_VERSION="21" setup_java
@@ -55,12 +54,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/docspell.creds
 msg_ok "Set up PostgreSQL Database"
 
-
 fetch_and_deploy_gh_release "docspell-joex" "eikek/docspell" "binary" "latest" "/opt/docspell-joex" "docspell-joex_*all.deb"
 fetch_and_deploy_gh_release "docspell-restserver" "eikek/docspell" "binary" "latest" "/opt/docspell-restserver" "docspell-restserver_*all.deb"
 fetch_and_deploy_gh_release "docspell-dsc" "docspell/dsc" "singlefile" "latest" "/usr/bin" "dsc"
 fetch_and_deploy_gh_release "apache-solr" "apache/solr" "tarball" "latest" "/opt/docspell"
-
 
 msg_info "Setup Docspell"
 ln -s /etc/docspell-joex /opt/docspell/docspell-joex && ln -s /etc/docspell-restserver /opt/docspell/docspell-restserver && ln -s /usr/bin/dsc /opt/docspell/dsc

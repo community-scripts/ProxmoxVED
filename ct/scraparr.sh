@@ -17,7 +17,7 @@ var_unprivileged="${var_unprivileged:-1}"
 header_info "$APP"
 variables
 color
-catch_errors
+init_error_traps
 
 function update_script() {
     header_info
@@ -28,9 +28,7 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-
-    RELEASE=$(curl -fsSL https://api.github.com/repos/thecfu/scraparr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-    if [[ ! -f "${HOME}/.scrappar" ]] || [[ "${RELEASE}" != "$(cat "${HOME}"/.scrappar)" ]]; then
+    if check_for_gh_release "scraparr" "thecfu/scraparr"; then
         msg_info "Stopping Services"
         systemctl stop scraparr
         msg_ok "Services Stopped"
@@ -38,20 +36,19 @@ function update_script() {
         PYTHON_VERSION="3.12" setup_uv
         fetch_and_deploy_gh_release "scrappar" "thecfu/scraparr" "tarball" "latest" "/opt/scraparr"
 
-        msg_info "Updating ${APP} to ${RELEASE}"
-        cd /opt/scraparr || exit
+        msg_info "Updating Scraparr"
+        cd /opt/scraparr
         $STD uv venv /opt/scraparr/.venv
         $STD /opt/scraparr/.venv/bin/python -m ensurepip --upgrade
         $STD /opt/scraparr/.venv/bin/python -m pip install --upgrade pip
         $STD /opt/scraparr/.venv/bin/python -m pip install -r /opt/scraparr/src/scraparr/requirements.txt
         chmod -R 755 /opt/scraparr
-        msg_ok "Updated ${APP} to v${RELEASE}"
+        msg_ok "Updated Scraparr"
 
         msg_info "Starting Services"
         systemctl start scraparr
         msg_ok "Services Started"
-    else
-        msg_ok "No update required. ${APP} is already at v${RELEASE}"
+        msg_ok "Updated Successfully"
     fi
     exit
 }

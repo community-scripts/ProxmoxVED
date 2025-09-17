@@ -8,18 +8,18 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  libsodium23 \
-  libsodium-dev \
-  pkg-config \
-  caddy \
-  gcc
+    libsodium23 \
+    libsodium-dev \
+    pkg-config \
+    caddy \
+    gcc
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
@@ -37,10 +37,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 {
-  echo "Ente Credentials"
-  echo "Database Name: $DB_NAME"
-  echo "Database User: $DB_USER"
-  echo "Database Password: $DB_PASS"
+    echo "Ente Credentials"
+    echo "Database Name: $DB_NAME"
+    echo "Database User: $DB_USER"
+    echo "Database Password: $DB_PASS"
 } >>~/ente.creds
 msg_ok "Set up PostgreSQL"
 
@@ -52,10 +52,10 @@ export CGO_ENABLED=1
 CGO_CFLAGS="$(pkg-config --cflags libsodium || true)"
 CGO_LDFLAGS="$(pkg-config --libs libsodium || true)"
 if [ -z "$CGO_CFLAGS" ]; then
-  CGO_CFLAGS="-I/usr/include"
+    CGO_CFLAGS="-I/usr/include"
 fi
 if [ -z "$CGO_LDFLAGS" ]; then
-  CGO_LDFLAGS="-lsodium"
+    CGO_LDFLAGS="-lsodium"
 fi
 export CGO_CFLAGS
 export CGO_LDFLAGS

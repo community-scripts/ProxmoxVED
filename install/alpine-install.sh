@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -20,6 +20,8 @@ $STD apk add openssh
 $STD apk add nano
 $STD apk add mc
 msg_ok "Installed Dependencies"
+
+fetch_and_deploy_gh_release "redlib" "redlib-org/redlib" "prebuild" "latest" "/opt/redlib" "redlib-x86_64-unknown-linux-musl.tar.gz"
 
 motd_ssh
 customize

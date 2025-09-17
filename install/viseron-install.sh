@@ -8,19 +8,19 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  python3-opencv jq \
-  libgl1-mesa-glx libglib2.0-0 \
-  libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
-  gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
-  build-essential python3-dev python3-gi pkg-config libcairo2-dev gir1.2-glib-2.0 \
-  cmake gfortran libopenblas-dev liblapack-dev libgirepository1.0-dev git
+    python3-opencv jq \
+    libgl1-mesa-glx libglib2.0-0 \
+    libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
+    gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
+    build-essential python3-dev python3-gi pkg-config libcairo2-dev gir1.2-glib-2.0 \
+    cmake gfortran libopenblas-dev liblapack-dev libgirepository1.0-dev git
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.12" setup_uv
@@ -36,10 +36,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-  echo "Hanko-Credentials"
-  echo "Hanko Database User: $DB_USER"
-  echo "Hanko Database Password: $DB_PASS"
-  echo "Hanko Database Name: $DB_NAME"
+    echo "Hanko-Credentials"
+    echo "Hanko Database User: $DB_USER"
+    echo "Hanko Database Password: $DB_PASS"
+    echo "Hanko Database Name: $DB_NAME"
 } >>~/hanko.creds
 msg_ok "Set up PostgreSQL Database"
 
@@ -61,16 +61,16 @@ msg_ok "Python Environment Setup"
 
 msg_info "Setup Viseron (Patience)"
 if ls /dev/nvidia* >/dev/null 2>&1; then
-  msg_info "GPU detected → Installing PyTorch with CUDA"
-  UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python \
-    torch==2.8.0 torchvision==0.19.0 torchaudio==2.8.0
-  msg_ok "Installed Torch with CUDA"
+    msg_info "GPU detected → Installing PyTorch with CUDA"
+    UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python \
+        torch==2.8.0 torchvision==0.19.0 torchaudio==2.8.0
+    msg_ok "Installed Torch with CUDA"
 else
-  msg_info "No GPU detected → Installing CPU-only PyTorch"
-  UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python \
-    torch==2.8.0+cpu torchvision==0.19.0+cpu torchaudio==2.8.0+cpu \
-    --extra-index-url https://download.pytorch.org/whl/cpu
-  msg_ok "Installed Torch CPU-only"
+    msg_info "No GPU detected → Installing CPU-only PyTorch"
+    UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python \
+        torch==2.8.0+cpu torchvision==0.19.0+cpu torchaudio==2.8.0+cpu \
+        --extra-index-url https://download.pytorch.org/whl/cpu
+    msg_ok "Installed Torch CPU-only"
 fi
 UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -e /opt/viseron/.
 UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -r /opt/viseron/requirements.txt

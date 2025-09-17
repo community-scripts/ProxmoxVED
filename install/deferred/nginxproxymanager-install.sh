@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -16,29 +16,29 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get update
 $STD apt-get -y install \
-  sudo \
-  mc \
-  curl \
-  gnupg \
-  make \
-  gcc \
-  g++ \
-  ca-certificates \
-  apache2-utils \
-  logrotate \
-  build-essential \
-  git
+    sudo \
+    mc \
+    curl \
+    gnupg \
+    make \
+    gcc \
+    g++ \
+    ca-certificates \
+    apache2-utils \
+    logrotate \
+    build-essential \
+    git
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Python3"
 $STD apt-get install -y \
-  python3 \
-  python3-dev \
-  python3-pip \
-  python3-venv \
-  python3-cffi \
-  python3-certbot \
-  python3-certbot-dns-cloudflare
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    python3-cffi \
+    python3-certbot \
+    python3-certbot-dns-cloudflare
 $STD pip3 install certbot-dns-multi
 $STD python3 -m venv /opt/certbot/
 rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
@@ -76,7 +76,7 @@ sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" frontend/package.js
 sed -i 's+^daemon+#daemon+g' docker/rootfs/etc/nginx/nginx.conf
 NGINX_CONFS=$(find "$(pwd)" -type f -name "*.conf")
 for NGINX_CONF in $NGINX_CONFS; do
-  sed -i 's+include conf.d+include /etc/nginx/conf.d+g' "$NGINX_CONF"
+    sed -i 's+include conf.d+include /etc/nginx/conf.d+g' "$NGINX_CONF"
 done
 
 mkdir -p /var/www/html /etc/nginx/logs
@@ -88,21 +88,21 @@ ln -sf /etc/nginx/nginx.conf /etc/nginx/conf/nginx.conf
 rm -f /etc/nginx/conf.d/dev.conf
 
 mkdir -p /tmp/nginx/body \
-  /run/nginx \
-  /data/nginx \
-  /data/custom_ssl \
-  /data/logs \
-  /data/access \
-  /data/nginx/default_host \
-  /data/nginx/default_www \
-  /data/nginx/proxy_host \
-  /data/nginx/redirection_host \
-  /data/nginx/stream \
-  /data/nginx/dead_host \
-  /data/nginx/temp \
-  /var/lib/nginx/cache/public \
-  /var/lib/nginx/cache/private \
-  /var/cache/nginx/proxy_temp
+    /run/nginx \
+    /data/nginx \
+    /data/custom_ssl \
+    /data/logs \
+    /data/access \
+    /data/nginx/default_host \
+    /data/nginx/default_www \
+    /data/nginx/proxy_host \
+    /data/nginx/redirection_host \
+    /data/nginx/stream \
+    /data/nginx/dead_host \
+    /data/nginx/temp \
+    /var/lib/nginx/cache/public \
+    /var/lib/nginx/cache/private \
+    /var/cache/nginx/proxy_temp
 
 chmod -R 777 /var/cache/nginx
 chown root /tmp/nginx
@@ -110,7 +110,7 @@ chown root /tmp/nginx
 echo resolver "$(awk 'BEGIN{ORS=" "} $1=="nameserver" {print ($2 ~ ":")? "["$2"]": $2}' /etc/resolv.conf);" >/etc/nginx/conf.d/include/resolvers.conf
 
 if [ ! -f /data/nginx/dummycert.pem ] || [ ! -f /data/nginx/dummykey.pem ]; then
-  openssl req -new -newkey rsa:2048 -days 3650 -nodes -x509 -subj "/O=Nginx Proxy Manager/OU=Dummy Certificate/CN=localhost" -keyout /data/nginx/dummykey.pem -out /data/nginx/dummycert.pem &>/dev/null
+    openssl req -new -newkey rsa:2048 -days 3650 -nodes -x509 -subj "/O=Nginx Proxy Manager/OU=Dummy Certificate/CN=localhost" -keyout /data/nginx/dummykey.pem -out /data/nginx/dummycert.pem &>/dev/null
 fi
 
 mkdir -p /app/global /app/frontend/images
@@ -130,7 +130,7 @@ msg_ok "Built Frontend"
 msg_info "Initializing Backend"
 rm -rf /app/config/default.json
 if [ ! -f /app/config/production.json ]; then
-  cat <<'EOF' >/app/config/production.json
+    cat <<'EOF' >/app/config/production.json
 {
   "database": {
     "engine": "knex-native",

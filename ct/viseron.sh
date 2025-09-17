@@ -14,18 +14,18 @@ header_info "$APP"
 
 variables
 color
-catch_errors
+init_error_traps
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
-  if [[ ! -f /etc/systemd/system/viseron.service ]]; then
-    msg_error "No ${APP} Installation Found!"
+    header_info
+    check_container_storage
+    check_container_resources
+    if [[ ! -f /etc/systemd/system/viseron.service ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+    msg_error "To update Viseron, create a new container and transfer your configuration."
     exit
-  fi
-  msg_error "To update Viseron, create a new container and transfer your configuration."
-  exit
 }
 
 start

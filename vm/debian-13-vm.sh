@@ -11,9 +11,9 @@ function header_info {
   cat <<"EOF"
     ____       __    _                ________
    / __ \___  / /_  (_)___ _____     <  /__  /
-  / / / / _ \/ __ \/ / __ `/ __ \    / / /_ < 
- / /_/ /  __/ /_/ / / /_/ / / / /   / /___/ / 
-/_____/\___/_.___/_/\__,_/_/ /_/   /_//____/  
+  / / / / _ \/ __ \/ / __ `/ __ \    / / /_ <
+ / /_/ /  __/ /_/ / / /_/ / / / /   / /___/ /
+/_____/\___/_.___/_/\__,_/_/ /_/   /_//____/
                                               (Trixie)
 EOF
 }
@@ -138,36 +138,37 @@ function check_root() {
   fi
 }
 
+# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
+# Supported: Proxmox VE 8.0.x – 8.9.x and 9.0 (NOT 9.1+)
 pve_check() {
   local PVE_VER
   PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
 
-  # Check for Proxmox VE 8.x
+  # Check for Proxmox VE 8.x: allow 8.0–8.9
   if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR < 1 || MINOR > 4)); then
+    if ((MINOR < 0 || MINOR > 9)); then
       msg_error "This version of Proxmox VE is not supported."
-      echo -e "Required: Proxmox VE version 8.1 – 8.4"
+      msg_error "Supported: Proxmox VE version 8.0 – 8.9"
       exit 1
     fi
     return 0
   fi
 
-  # Check for Proxmox VE 9.x (Beta) — require confirmation
+  # Check for Proxmox VE 9.x: allow ONLY 9.0
   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
-    if whiptail --title "Proxmox 9.x Detected (Beta)" \
-      --yesno "You are using Proxmox VE $PVE_VER, which is currently in Beta state.\n\nThis version is experimentally supported.\n\nDo you want to proceed anyway?" 12 70; then
-      msg_ok "Confirmed: Continuing with Proxmox VE $PVE_VER"
-      return 0
-    else
-      msg_error "Aborted by user: Proxmox VE 9.x was not confirmed."
+    local MINOR="${BASH_REMATCH[1]}"
+    if ((MINOR != 0)); then
+      msg_error "This version of Proxmox VE is not yet supported."
+      msg_error "Supported: Proxmox VE version 9.0"
       exit 1
     fi
+    return 0
   fi
 
   # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
-  echo -e "Supported versions: Proxmox VE 8.1 – 8.4 or 9.x (Beta, with confirmation)"
+  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0"
   exit 1
 }
 
@@ -202,25 +203,22 @@ function exit-script() {
 
 function default_settings() {
   VMID=$(get_valid_nextid)
-  FORMAT=",efitype=4m"
-  MACHINE=""
-  DISK_SIZE="8G"
-  DISK_CACHE=""
+  FORMAT=""
+  MACHINE="q35"
+  DISK_SIZE="30G"
   HN="debian"
   CPU_TYPE=""
   CORE_COUNT="2"
-  RAM_SIZE="2048"
+  RAM_SIZE="4096"
   BRG="vmbr0"
   MAC="$GEN_MAC"
   VLAN=""
   MTU=""
   START_VM="yes"
-  CLOUD_INIT="no"
   METHOD="default"
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
   echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
@@ -229,7 +227,6 @@ function default_settings() {
   echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
   echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${CLOUD}${BOLD}${DGN}Configure Cloud-init: ${BGN}no${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
   echo -e "${CREATING}${BOLD}${DGN}Creating a Debian 13 VM using the above default settings${CL}"
 }
@@ -254,16 +251,16 @@ function advanced_settings() {
     fi
   done
 
-  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Type" 10 58 2 \
-    "i440fx" "Machine i440fx" ON \
-    "q35" "Machine q35" OFF \
+  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Machine Type" 10 58 2 \
+    "q35" "Modern (PCIe, UEFI, default)" ON \
+    "i440fx" "Legacy (older compatibility)" OFF \
     3>&1 1>&2 2>&3); then
-    if [ $MACH = q35 ]; then
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+    if [ "$MACH" = "q35" ]; then
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
       FORMAT=""
       MACHINE=" -machine q35"
     else
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
       FORMAT=",efitype=4m"
       MACHINE=""
     fi
@@ -287,8 +284,8 @@ function advanced_settings() {
   fi
 
   if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "None (Default)" ON \
-    "1" "Write Through" OFF \
+    "0" "None" OFF \
+    "1" "Write Through (Default)" ON \
     3>&1 1>&2 2>&3); then
     if [ $DISK_CACHE = "1" ]; then
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}Write Through${CL}"
@@ -301,9 +298,9 @@ function advanced_settings() {
     exit-script
   fi
 
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 debian --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 unifi-os-server --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="debian"
+      HN="unifi-os-server"
       echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo ${VM_NAME,,} | tr -d ' ')
@@ -313,17 +310,20 @@ function advanced_settings() {
     exit-script
   fi
 
-  if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "KVM64 (Default)" ON \
-    "1" "Host" OFF \
+  if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose CPU Model" --cancel-button Exit-Script 10 58 2 \
+    "KVM64" "Default – safe for migration/compatibility" ON \
+    "Host" "Use host CPU features (faster, no migration)" OFF \
     3>&1 1>&2 2>&3); then
-    if [ $CPU_TYPE1 = "1" ]; then
+    case "$CPU_TYPE1" in
+    Host)
       echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
       CPU_TYPE=" -cpu host"
-    else
+      ;;
+    *)
       echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
       CPU_TYPE=""
-    fi
+      ;;
+    esac
   else
     exit-script
   fi
@@ -435,13 +435,11 @@ function start_script() {
     advanced_settings
   fi
 }
-
 check_root
 arch_check
 pve_check
 ssh_check
 start_script
-
 post_to_api_vm
 
 msg_info "Validating Storage"
@@ -464,6 +462,8 @@ elif [ $((${#STORAGE_MENU[@]} / 3)) -eq 1 ]; then
   STORAGE=${STORAGE_MENU[0]}
 else
   while [ -z "${STORAGE:+x}" ]; do
+    if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
+    printf "\e[?25h"
     STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
       "Which storage pool would you like to use for ${HN}?\nTo make a selection, use the Spacebar.\n" \
       16 $(($MSG_MAX_LENGTH + 23)) 6 \
@@ -472,60 +472,71 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
+
 msg_info "Retrieving the URL for the Debian 13 Qcow2 Disk Image"
 if [ "$CLOUD_INIT" == "yes" ]; then
-  URL=https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-genericcloud-amd64-daily.qcow2
+  URL=https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2
 else
-  URL=https://cloud.debian.org/images/cloud/trixie/daily/latest/debian-13-nocloud-amd64-daily.qcow2
+  URL=https://cloud.debian.org/images/cloud/trixie/latest/debian-13-nocloud-amd64.qcow2
 fi
-sleep 2
+CACHE_DIR="/var/lib/vz/template/cache"
+CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
+FILE_IMG="/var/lib/vz/template/tmp/${CACHE_FILE##*/%.xz}" # .qcow2
+mkdir -p "$CACHE_DIR" "$(dirname "$FILE_IMG")"
 msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-STORAGE_TYPE=$(pvesm status -storage $STORAGE | awk 'NR>1 {print $2}')
-case $STORAGE_TYPE in
-nfs | dir)
-  DISK_EXT=".qcow2"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format qcow2"
-  THIN=""
-  ;;
-btrfs)
-  DISK_EXT=".raw"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format raw"
-  FORMAT=",efitype=4m"
-  THIN=""
-  ;;
-esac
-for i in {0,1}; do
-  disk="DISK$i"
-  eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
-  eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
-done
-
-msg_info "Creating a Debian 13 VM"
-qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
-qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
-if [ "$CLOUD_INIT" == "yes" ]; then
-  qm set $VMID \
-    -efidisk0 ${DISK0_REF}${FORMAT} \
-    -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-    -scsi1 ${STORAGE}:cloudinit \
-    -boot order=scsi0 \
-    -serial0 socket >/dev/null
+if [[ ! -s "$CACHE_FILE" ]]; then
+  curl -f#SL -o "$CACHE_FILE" "$URL"
+  msg_ok "Downloaded ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
 else
-  qm set $VMID \
-    -efidisk0 ${DISK0_REF}${FORMAT} \
-    -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-    -boot order=scsi0 \
-    -serial0 socket >/dev/null
+  msg_ok "Using cached image ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
 fi
+
+set -o pipefail
+msg_info "Creating Debian 13 VM shell"
+qm create "$VMID" -machine q35 -bios ovmf -agent 1 -tablet 0 -localtime 1 ${CPU_TYPE} \
+  -cores "$CORE_COUNT" -memory "$RAM_SIZE" -name "$HN" -tags community-script \
+  -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
+msg_ok "Created VM shell"
+
+msg_info "Importing disk into storage ($STORAGE)"
+if qm disk import --help >/dev/null 2>&1; then
+  IMPORT_CMD=(qm disk import)
+else
+  IMPORT_CMD=(qm importdisk)
+fi
+IMPORT_OUT="$("${IMPORT_CMD[@]}" "$VMID" "$CACHE_FILE" "$STORAGE" --format raw 2>&1 || true)"
+DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p" | tr -d "\r\"'")"
+[[ -z "$DISK_REF" ]] && DISK_REF="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$5 ~ ("vm-"id"-disk-") {print $1":"$5}' | sort | tail -n1)"
+[[ -z "$DISK_REF" ]] && {
+  msg_error "Unable to determine imported disk reference."
+  echo "$IMPORT_OUT"
+  exit 1
+}
+msg_ok "Imported disk (${CL}${BL}${DISK_REF}${CL})"
+
+msg_info "Attaching EFI and root disk"
+if [ "$CLOUD_INIT" == "yes" ]; then
+  qm set "$VMID" \
+    --efidisk0 "${STORAGE}:0,efitype=4m" \
+    --scsi0 "${DISK_REF},ssd=1,discard=on" \
+    --scsi1 "${STORAGE}:cloudinit" \
+    --boot order=scsi0 \
+    --serial0 socket >/dev/null
+else
+  qm set "$VMID" \
+    --efidisk0 "${STORAGE}:0,efitype=4m" \
+    --scsi0 "${DISK_REF},ssd=1,discard=on" \
+    --boot order=scsi0 \
+    --serial0 socket >/dev/null
+fi
+qm set "$VMID" --agent enabled=1 >/dev/null
+msg_ok "Attached EFI and root disk"
+
+msg_info "Resizing disk to ${DISK_SIZE}"
+qm resize "$VMID" scsi0 "${DISK_SIZE}" >/dev/null
+msg_ok "Resized disk"
+
 DESCRIPTION=$(
   cat <<EOF
 <div align='center'>
@@ -540,7 +551,7 @@ DESCRIPTION=$(
       <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
     </a>
   </p>
-  
+
   <span style='margin: 0 10px;'>
     <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
     <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
@@ -557,13 +568,6 @@ DESCRIPTION=$(
 EOF
 )
 qm set "$VMID" -description "$DESCRIPTION" >/dev/null
-if [ -n "$DISK_SIZE" ]; then
-  msg_info "Resizing disk to $DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
-else
-  msg_info "Using default disk size of $DEFAULT_DISK_SIZE GB"
-  qm resize $VMID scsi0 ${DEFAULT_DISK_SIZE} >/dev/null
-fi
 
 msg_ok "Created a Debian 13 VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
@@ -571,6 +575,30 @@ if [ "$START_VM" == "yes" ]; then
   qm start $VMID
   msg_ok "Started Debian 13 VM"
 fi
+
+msg_info "Installing resize tools in VM"
+qm set "$VMID" --sshkeys ~/.ssh/id_rsa.pub >/dev/null 2>&1 || true
+qm exec "$VMID" -- bash -c "apt-get update && apt-get install -y cloud-guest-utils e2fsprogs xfsprogs"
+msg_ok "Installed resize tools in VM"
+
+msg_info "Injecting auto-resize script into VM"
+cat <<'EOF' >/var/lib/vz/snippets/resize-root.sh
+#!/bin/bash
+set -e
+DEVICE=$(lsblk -no pkname $(findmnt -n -o SOURCE /))
+PART=$(findmnt -n -o SOURCE / | sed 's|/dev/||')
+growpart /dev/${DEVICE} ${PART##*[a-z]}
+FSTYPE=$(findmnt -n -o FSTYPE /)
+if [ "$FSTYPE" = "ext4" ]; then
+  resize2fs /dev/$PART
+elif [ "$FSTYPE" = "xfs" ]; then
+  xfs_growfs /
+fi
+EOF
+chmod +x /var/lib/vz/snippets/resize-root.sh
+
+qm set "$VMID" --hookscript local:snippets/resize-root.sh >/dev/null
+msg_ok "Injected auto-resize script"
 
 msg_ok "Completed Successfully!\n"
 echo "More Info at https://github.com/community-scripts/ProxmoxVE/discussions/836"

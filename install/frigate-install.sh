@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -84,9 +84,9 @@ EOF
 mkdir -p /config
 ln -sf /config/config.yml /opt/frigate/config/config.yml
 if [[ "$CTTYPE" == "0" ]]; then
-  sed -i -e 's/^kvm:x:104:$/render:x:104:root,frigate/' -e 's/^render:x:105:root$/kvm:x:105:/' /etc/group
+    sed -i -e 's/^kvm:x:104:$/render:x:104:root,frigate/' -e 's/^render:x:105:root$/kvm:x:105:/' /etc/group
 else
-  sed -i -e 's/^kvm:x:104:$/render:x:104:frigate/' -e 's/^render:x:105:$/kvm:x:105:/' /etc/group
+    sed -i -e 's/^kvm:x:104:$/render:x:104:frigate/' -e 's/^render:x:105:$/kvm:x:105:/' /etc/group
 fi
 echo "tmpfs   /tmp/cache      tmpfs   defaults        0       0" >>/etc/fstab
 mkdir -p /media/frigate
@@ -97,18 +97,18 @@ EOF
 msg_ok "Config ready"
 
 if grep -q -o -m1 -E 'avx[^ ]*' /proc/cpuinfo; then
-  msg_ok "AVX Support Detected"
-  msg_info "Installing Openvino Object Detection Model (Resilience)"
-  $STD pip install -r /opt/frigate/docker/main/requirements-ov.txt
-  cd /opt/frigate/models
-  export ENABLE_ANALYTICS=NO
-  $STD /usr/local/bin/omz_downloader --name ssdlite_mobilenet_v2 --num_attempts 2
-  $STD /usr/local/bin/omz_converter --name ssdlite_mobilenet_v2 --precision FP16 --mo /usr/local/bin/mo
-  cd /
-  cp -r /opt/frigate/models/public/ssdlite_mobilenet_v2 openvino-model
-  curl -fsSL "https://github.com/openvinotoolkit/open_model_zoo/raw/master/data/dataset_classes/coco_91cl_bkgr.txt" -o "openvino-model/coco_91cl_bkgr.txt"
-  sed -i 's/truck/car/g' openvino-model/coco_91cl_bkgr.txt
-  cat <<EOF >>/config/config.yml
+    msg_ok "AVX Support Detected"
+    msg_info "Installing Openvino Object Detection Model (Resilience)"
+    $STD pip install -r /opt/frigate/docker/main/requirements-ov.txt
+    cd /opt/frigate/models
+    export ENABLE_ANALYTICS=NO
+    $STD /usr/local/bin/omz_downloader --name ssdlite_mobilenet_v2 --num_attempts 2
+    $STD /usr/local/bin/omz_converter --name ssdlite_mobilenet_v2 --precision FP16 --mo /usr/local/bin/mo
+    cd /
+    cp -r /opt/frigate/models/public/ssdlite_mobilenet_v2 openvino-model
+    curl -fsSL "https://github.com/openvinotoolkit/open_model_zoo/raw/master/data/dataset_classes/coco_91cl_bkgr.txt" -o "openvino-model/coco_91cl_bkgr.txt"
+    sed -i 's/truck/car/g' openvino-model/coco_91cl_bkgr.txt
+    cat <<EOF >>/config/config.yml
 detectors:
   ov:
     type: openvino
@@ -122,9 +122,9 @@ model:
   input_pixel_format: bgr
   labelmap_path: /openvino-model/coco_91cl_bkgr.txt
 EOF
-  msg_ok "Installed Openvino Object Detection Model"
+    msg_ok "Installed Openvino Object Detection Model"
 else
-  cat <<EOF >>/config/config.yml
+    cat <<EOF >>/config/config.yml
 model:
   path: /cpu_model.tflite
 EOF

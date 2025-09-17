@@ -8,16 +8,16 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing dependencies"
 $STD apt-get install -y \
-  build-essential \
-  openssl \
-  git
+    build-essential \
+    openssl \
+    git
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Bun"
@@ -38,10 +38,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-  echo "Nimbus-Credentials"
-  echo "Nimbus Database User: $DB_USER"
-  echo "Nimbus Database Password: $DB_PASS"
-  echo "Nimbus Database Name: $DB_NAME"
+    echo "Nimbus-Credentials"
+    echo "Nimbus Database User: $DB_USER"
+    echo "Nimbus Database Password: $DB_PASS"
+    echo "Nimbus Database Name: $DB_NAME"
 } >>~/nimbus.creds
 msg_ok "Set up PostgreSQL Database"
 

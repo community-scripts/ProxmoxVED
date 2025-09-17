@@ -8,20 +8,20 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  make \
-  git \
-  build-essential \
-  binutils \
-  pkg-config \
-  libsqlite3-dev \
-  libssl-dev
+    make \
+    git \
+    build-essential \
+    binutils \
+    pkg-config \
+    libsqlite3-dev \
+    libssl-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Rust"

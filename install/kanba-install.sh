@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-catch_errors
+init_error_traps
 setting_up_container
 network_check
 update_os
@@ -29,10 +29,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 {
-  echo "Kanba-Credentials"
-  echo "Kanba Database Name: $DB_NAME"
-  echo "Kanba Database User: $DB_USER"
-  echo "Kanba Database Password: $DB_PASS"
+    echo "Kanba-Credentials"
+    echo "Kanba Database Name: $DB_NAME"
+    echo "Kanba Database User: $DB_USER"
+    echo "Kanba Database Password: $DB_PASS"
 } >>~/kanba.creds
 msg_ok "Set up PostgreSQL Database"
 
