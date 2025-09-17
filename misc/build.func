@@ -1519,97 +1519,62 @@ install_script() {
   timezone=$(cat /etc/timezone)
   header_info
 
-  # --- PRESET support ---
-  if [ -n "${PRESET:-}" ]; then
-    case "$PRESET" in
-    DEFAULT | default | 1)
-      CHOICE="1"
-      ;;
-    VERBOSE | verbose | 2)
-      CHOICE="2"
-      ;;
-    ADVANCED | advanced | 3)
-      CHOICE="3"
-      ;;
-    MYDEFAULTS | mydefaults | 4)
-      CHOICE="4"
-      ;;
-    APPDEFAULTS | appdefaults | 5)
-      CHOICE="5"
-      ;;
-    *)
-      echo -e "\n${CROSS}${RD}Invalid PRESET value: ${PRESET}${CL}\n"
-      exit 1
-      ;;
-    esac
-  else
-    # Build dynamic menu
+  # --- Support CLI argument as direct preset (default, advanced, …) ---
+  CHOICE="${1:-}"
+
+  # If no CLI argument → show whiptail menu
+  if [ -z "$CHOICE" ]; then
     local menu_items=(
       "1" "Default Install"
-      "2" "Default Install (Verbose)"
-      "3" "Advanced Settings"
-      "4" "My Defaults"
+      "2" "Advanced Install"
+      "3" "My Defaults"
     )
 
     if [ -f "$(get_app_defaults_path)" ]; then
-      menu_items+=("5" "App Defaults for ${APP}")
-      menu_items+=("6" "Settings")
-    else
+      menu_items+=("4" "App Defaults for ${APP}")
       menu_items+=("5" "Settings")
+    else
+      menu_items+=("4" "Settings")
     fi
 
     TMP_CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
       --title "SETTINGS" \
-      --ok-button "OK" --cancel-button "Exit Script" \
+      --ok-button "Select" --cancel-button "Exit Script" \
       --menu "Choose an option:" 20 60 9 \
       "${menu_items[@]}" \
-      --default-item "1" 3>&1 1>&2 2>&3) || true
+      --default-item "1" 3>&1 1>&2 2>&3) || exit_script
 
-    if [ -z "$TMP_CHOICE" ]; then
-      exit_script
-    fi
     CHOICE="$TMP_CHOICE"
   fi
 
-  case $CHOICE in
-  1)
+  # --- Main case ---
+  case "$CHOICE" in
+  1 | default | DEFAULT)
     header_info
     echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME${CL}"
     VERBOSE="no"
     METHOD="default"
     base_settings "$VERBOSE"
     echo_default
-    # Always ask storages for MyDefaults file (create if missing)
     ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
     ;;
-  2)
-    header_info
-    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME (Verbose)${CL}"
-    VERBOSE="yes"
-    METHOD="default"
-    base_settings "$VERBOSE"
-    echo_default
-    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
-    ;;
-  3)
+  2 | advanced | ADVANCED)
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Install on node $PVEHOST_NAME${CL}"
     METHOD="advanced"
     base_settings
     advanced_settings
-    # Always ask storages (stored to env var_* so app-defaults will include them)
     ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
     maybe_offer_save_app_defaults
     ;;
-  4)
+  3 | mydefaults | MYDEFAULTS)
     default_var_settings || {
       msg_error "Failed to apply default.vars"
       exit 1
     }
-    # Always let user pick storages again (unless only one exists)
     ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
     ;;
-  5)
+  4 | appdefaults | APPDEFAULTS)
     if [ -f "$(get_app_defaults_path)" ]; then
       header_info
       echo -e "${DEFAULT}${BOLD}${BL}Using App Defaults for ${APP} on node $PVEHOST_NAME${CL}"
@@ -1617,16 +1582,18 @@ install_script() {
       base_settings
       _load_vars_file "$(get_app_defaults_path)"
       echo_default
-      # Always let user confirm/change storages for the app defaults
       ensure_storage_selection_for_vars_file "$(get_app_defaults_path)"
+    else
+      msg_error "No App Defaults available for ${APP}"
+      exit 1
     fi
     ;;
-  6)
+  5 | settings | SETTINGS)
     settings_menu
-    exit 0
     ;;
   *)
-    echo -e "${CROSS}${RD}Invalid option, please try again.${CL}"
+    echo -e "${CROSS}${RD}Invalid option: $CHOICE${CL}"
+    exit 1
     ;;
   esac
 }
