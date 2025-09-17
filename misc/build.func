@@ -992,6 +992,9 @@ default_var_settings() {
     done
     return 1
   }
+  # Allow override of storages via env (for non-interactive use cases)
+  [ -n "${var_template_storage:-}" ] && TEMPLATE_STORAGE="$var_template_storage"
+  [ -n "${var_container_storage:-}" ] && CONTAINER_STORAGE="$var_container_storage"
 
   # Create once, with storages already selected, no var_ctid/var_hostname lines
   local _ensure_default_vars
