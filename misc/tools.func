@@ -232,7 +232,7 @@ function setup_postgresql() {
 #
 # Variables:
 #   MARIADB_VERSION - MariaDB version to install (e.g. 10.11, latest) (default: latest)
-# ------------------------------------------------------------------------------ tes
+# ------------------------------------------------------------------------------ testi
 
 setup_mariadb() {
   local MARIADB_VERSION="${MARIADB_VERSION:-latest}"
