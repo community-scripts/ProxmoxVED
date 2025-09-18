@@ -232,7 +232,7 @@ function setup_postgresql() {
 #
 # Variables:
 #   MARIADB_VERSION - MariaDB version to install (e.g. 10.11, latest) (default: latest)
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ test
 
 setup_mariadb() {
   local MARIADB_VERSION="${MARIADB_VERSION:-latest}"
@@ -2024,7 +2024,7 @@ EOF
 check_for_gh_release() {
   local app="$1"
   local source="$2"
-  local pinned_version="${3:-}"   # optional
+  local pinned_version="${3:-}" # optional
   local current_file="$HOME/.${app,,}"
 
   msg_info "Check for update: ${app}"
@@ -2044,7 +2044,7 @@ check_for_gh_release() {
   fi
 
   # get latest release
-local release
+  local release
   release=$(curl -fsSL "https://api.github.com/repos/${source}/releases/latest" |
     jq -r '.tag_name' | sed 's/^v//')
 
