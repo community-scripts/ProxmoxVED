@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://ntfy.sh/
 
-APP="ntfy"
+APP="Alpine-ntfy"
 var_tags="${var_tags:-notification}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-256}"
