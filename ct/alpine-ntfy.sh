@@ -31,6 +31,10 @@ function update_script() {
     $STD apk -U upgrade
     setcap 'cap_net_bind_service=+ep' /usr/bin/ntfy
     msg_ok "Updated $APP LXC"
+
+    msg_info "Restarting ntfy"
+    rc-service ntfy restart
+    msg_ok "Restarted ntfy"
     exit
 }
 
