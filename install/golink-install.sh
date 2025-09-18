@@ -15,16 +15,25 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  git \
   ca-certificates \
   sqlite3
 msg_ok "Installed Dependencies"
 
 setup_go
 
-msg_info "Cloning Golink Repository"
-$STD git clone https://github.com/tailscale/golink.git /opt/golink
-msg_ok "Cloned Golink Repository"
+# To update: change the version below to a newer tag
+RELEASE="1.0.0"
+
+# SPECIAL CASE: tailscale/golink repository has tags but no formal GitHub releases
+# fetch_and_deploy_gh_release requires formal releases, not just tags
+# Since v1.0.0 exists only as a tag, we must use direct tarball download
+# This follows the same pattern as fetch_and_deploy_gh_release but for tags
+msg_info "Downloading Golink v${RELEASE} source"
+mkdir -p /opt/golink
+cd /opt/golink || exit
+# Download v1.0.0 tag tarball
+$STD curl -fsSL https://github.com/tailscale/golink/archive/refs/tags/v${RELEASE}.tar.gz | tar -xz --strip-components=1
+msg_ok "Downloaded Golink v${RELEASE}"
 
 msg_info "Building Golink"
 cd /opt/golink || exit
@@ -40,8 +49,7 @@ chmod +x golink
 # Clean up build artifacts
 $STD go clean -cache
 
-RELEASE=$(git describe --tags --always 2>/dev/null || echo "main-$(git rev-parse --short HEAD)")
-echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
+echo "v${RELEASE}" >"/opt/${APPLICATION}_version.txt"
 msg_ok "Built Golink"
 
 msg_info "Configuring Golink"
