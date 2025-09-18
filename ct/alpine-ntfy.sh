@@ -23,12 +23,13 @@ function update_script() {
     header_info
     check_container_storage
     check_container_resources
-    if [[ ! -d /var ]]; then
+    if [[ ! -d /etc/ntfy ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi
     msg_info "Updating $APP LXC"
     $STD apk -U upgrade
+    setcap 'cap_net_bind_service=+ep' /usr/bin/ntfy
     msg_ok "Updated $APP LXC"
     exit
 }
