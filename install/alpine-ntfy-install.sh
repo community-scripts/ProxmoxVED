@@ -14,7 +14,9 @@ network_check
 update_os
 
 msg_info "Installing ntfy"
-$STD apk add --no-cache ntfy ntfy-openrc
+$STD apk add --no-cache ntfy ntfy-openrc libcap
+sed -i '/^listen-http/s/^\(.*\)$/#\1\n/' /etc/ntfy/server.yml
+setcap 'cap_net_bind_service=+ep' /usr/bin/ntfy
 $STD rc-update add ntfy default
 $STD service ntfy start
 msg_ok "Installed ntfy"
