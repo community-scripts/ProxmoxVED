@@ -10,7 +10,7 @@ on:
 
 jobs:
   bump-revision:
-    if: github.repository == 'community-scripts/ProxmoxVE'
+    if: github.repository == 'community-scripts/ProxmoxVED'
     runs-on: ubuntu-latest
 
     permissions:
