@@ -4,10 +4,10 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "misc/**"
     paths-ignore:
       - "misc/build.func"
+    paths:
+      - "misc/**"
   workflow_dispatch:
 
 jobs:
