@@ -483,6 +483,7 @@ setup_composer() {
         return 1
       }
     }
+    msg_ok "PHP CLI ready: $(php -v | head -n1)"
   fi
 
   if [ -x "$COMPOSER_BIN" ]; then
