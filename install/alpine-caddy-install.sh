@@ -16,16 +16,6 @@ update_os
 msg_info "Installing Caddy"
 $STD apk add --no-cache caddy caddy-openrc
 cat<<EOF>/etc/caddy/Caddyfile
-# The Caddyfile is an easy way to configure your Caddy web server.
-#
-# Unless the file starts with a global options block, the first
-# uncommented line is always the address of your site.
-#
-# To use your own domain name (with automatic HTTPS), first make
-# sure your domain's A/AAAA DNS records are properly pointed to
-# this machine's public IP, then replace ":80" below with your
-# domain name.
-
 :80 {
         # Set this path to your site's directory.
         root * /var/www/html
@@ -39,9 +29,6 @@ cat<<EOF>/etc/caddy/Caddyfile
         # Or serve a PHP site through php-fpm:
         # php_fastcgi localhost:9000
 }
-
-# Refer to the Caddy docs for more information:
-# https://caddyserver.com/docs/caddyfile
 EOF
 mkdir -p /var/www/html
 cat<<EOF>/var/www/html/index.html
