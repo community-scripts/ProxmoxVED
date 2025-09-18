@@ -5,8 +5,9 @@ on:
     branches:
       - main
     paths:
-      - "misc/*.func"
-      - "misc/*.sh"
+      - "misc/**"
+    paths-ignore:
+      - "misc/build.func"
   workflow_dispatch:
 
 jobs:
