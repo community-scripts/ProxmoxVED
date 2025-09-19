@@ -48,7 +48,7 @@ $STD sudo -u postgres psql -d "$DB_NAME" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA 
 } >>~/warracker.creds
 msg_ok "Installed PostgreSQL"
 
-fetch_and_deploy_gh_release "warracker" "sassanix/Warracker" "tarball" "0.10.1.10-beta" "/opt/warracker"
+fetch_and_deploy_gh_release "warracker" "sassanix/Warracker" "tarball" "0.10.1.10" "/opt/warracker"
 
 msg_info "Installing Warracker"
 cd /opt/warracker/backend
