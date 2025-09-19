@@ -43,11 +43,20 @@ URIs: http://deb.debian.org/debian
 Suites: trixie-updates
 Components: non-free non-free-firmware
 EOF
+
   $STD apt update
-  $STD apt -y install {intel-media-va-driver-non-free,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools}
+  $STD apt -y install \
+    intel-media-va-driver-non-free \
+    ocl-icd-libopencl1 \
+    vainfo \
+    intel-gpu-tools
 else
-  msg_info "Installing Intel Hardware Acceleration"
-  $STD apt -y install {va-driver-all,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools}
+  msg_info "Installing Intel Hardware Acceleration (open packages)"
+  $STD apt -y install \
+    va-driver-all \
+    ocl-icd-libopencl1 \
+    vainfo \
+    intel-gpu-tools
 fi
 msg_ok "Installed and Set Up Intel Hardware Acceleration"
 
