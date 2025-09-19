@@ -14,11 +14,6 @@ network_check
 update_os
 
 msg_info "Setting Up Hardware Acceleration"
-$STD apt-get -y install \
-  va-driver-all \
-  ocl-icd-libopencl1 \
-  vainfo \
-  intel-gpu-tools
 if [[ "$CTTYPE" == "0" ]]; then
   $STD adduser "$(id -un)" video
   $STD adduser "$(id -un)" render
@@ -51,7 +46,6 @@ EOF
     ocl-icd-libopencl1 \
     mesa-opencl-icd \
     mesa-va-drivers \
-    libmfx1 \
     libvpl2 \
     vainfo \
     intel-gpu-tools
