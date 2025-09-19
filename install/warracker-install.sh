@@ -8,7 +8,7 @@
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-init_error_traps
+catch_errors
 setting_up_container
 network_check
 update_os
@@ -16,8 +16,7 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
     apt-transport-https \
-    ca-certificates\
-    nginx
+    ca-certificates nginx
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.11" setup_uv
@@ -37,12 +36,12 @@ $STD sudo -u postgres psql -d "$DB_NAME" -c "GRANT USAGE ON SCHEMA public TO $DB
 $STD sudo -u postgres psql -d "$DB_NAME" -c "GRANT CREATE ON SCHEMA public TO $DB_USER;"
 $STD sudo -u postgres psql -d "$DB_NAME" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $DB_USER;"
 {
-  echo "Application Credentials"
-  echo "DB_NAME: $DB_NAME"
-  echo "DB_USER: $DB_USER"
-  echo "DB_PASS: $DB_PASS"
-  echo "DB_ADMIN_USER: $DB_ADMIN_USER"
-  echo "DB_ADMIN_PASS: $DB_ADMIN_PASS"
+    echo "Application Credentials"
+    echo "DB_NAME: $DB_NAME"
+    echo "DB_USER: $DB_USER"
+    echo "DB_PASS: $DB_PASS"
+    echo "DB_ADMIN_USER: $DB_ADMIN_USER"
+    echo "DB_ADMIN_PASS: $DB_ADMIN_PASS"
 } >>~/warracker.creds
 msg_ok "Installed PostgreSQL"
 
@@ -55,17 +54,17 @@ $STD source .venv/bin/activate
 $STD uv pip install -r requirements.txt
 mv /opt/warracker/env.example /opt/warracker/.env
 sed -i \
-  -e "s/your_secure_database_password/$DB_PASS/" \
-  -e "s/your_secure_admin_password/$DB_ADMIN_PASS/" \
-  -e "s|^# DB_PORT=5432$|DB_HOST=127.0.0.1|" \
-  /opt/warracker/.env
+    -e "s/your_secure_database_password/$DB_PASS/" \
+    -e "s/your_secure_admin_password/$DB_ADMIN_PASS/" \
+    -e "s|^# DB_PORT=5432$|DB_HOST=127.0.0.1|" \
+    /opt/warracker/.env
 
 mv /opt/warracker/nginx.conf /etc/nginx/sites-available/warracker.conf
 sed -i \
-  -e "s|alias /var/www/html/locales/;|alias /opt/warracker/locales/;|" \
-  -e "s|/var/www/html|/opt/warracker/frontend|g" \
-  -e "s/client_max_body_size __NGINX_MAX_BODY_SIZE_CONFIG_VALUE__/client_max_body_size 32M/" \
-  /etc/nginx/sites-available/warracker.conf
+    -e "s|alias /var/www/html/locales/;|alias /opt/warracker/locales/;|" \
+    -e "s|/var/www/html|/opt/warracker/frontend|g" \
+    -e "s/client_max_body_size __NGINX_MAX_BODY_SIZE_CONFIG_VALUE__/client_max_body_size 32M/" \
+    /etc/nginx/sites-available/warracker.conf
 ln -s /etc/nginx/sites-available/warracker.conf /etc/nginx/sites-enabled/warracker.conf
 rm /etc/nginx/sites-enabled/default
 systemctl restart nginx

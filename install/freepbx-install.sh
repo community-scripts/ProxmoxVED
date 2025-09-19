@@ -12,7 +12,7 @@ INSTALL_PATH="/opt/sng_freepbx_debian_install.sh"
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
-init_error_traps
+catch_errors
 setting_up_container
 network_check
 update_os

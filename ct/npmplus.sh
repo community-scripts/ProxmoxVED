@@ -17,7 +17,7 @@ var_unprivileged="${var_unprivileged:-1}"
 header_info "$APP"
 variables
 color
-init_error_traps
+catch_errors
 
 function update_script() {
     UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "UPDATE MODE" --radiolist --cancel-button Exit-Script "Spacebar = Select" 14 60 2 \
