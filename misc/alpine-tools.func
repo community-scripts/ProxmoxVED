@@ -469,20 +469,21 @@ setup_go() {
 
 # ------------------------------
 # Composer – Alpine
-# nutzt php83-cli + openssl + phar
+# uses php83-cli + openssl + phar
 # ------------------------------
 setup_composer() {
   local COMPOSER_BIN="/usr/local/bin/composer"
   if ! has php; then
-    # bevorzugt php83 auf Alpine 3.20/3.21+
+    # prefers php83
     msg_info "Installing PHP CLI for Composer"
     apk add --no-cache php83-cli php83-openssl php83-phar php83-iconv >/dev/null 2>&1 || {
-      # Fallback auf generisches php-cli
+      # Fallback to generic php if 83 not available
       apk add --no-cache php-cli php-openssl php-phar php-iconv >/dev/null 2>&1 || {
         msg_error "Failed to install php-cli for composer"
         return 1
       }
     }
+    msg_ok "PHP CLI ready: $(php -v | head -n1)"
   fi
 
   if [ -x "$COMPOSER_BIN" ]; then
@@ -503,30 +504,4 @@ setup_composer() {
   rm -f /tmp/composer-setup.php
   ensure_usr_local_bin_persist
   msg_ok "Composer ready: $(composer --version 2>/dev/null)"
-}
-
-# ------------------------------
-# Adminer/uv/go/java/yq/composer stehen oben
-# ------------------------------
-
-# ------------------------------
-# (Optional) LOCAL_IP import – POSIX-safe
-# ------------------------------
-import_local_ip() {
-  # lädt LOCAL_IP aus /run/local-ip.env oder ermittelt es best effort
-  local IP_FILE="/run/local-ip.env"
-  if [ -f "$IP_FILE" ]; then
-    # shellcheck disable=SC1090
-    . "$IP_FILE"
-  fi
-  if [ -z "${LOCAL_IP:-}" ]; then
-    LOCAL_IP="$(ip route get 1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')"
-    [ -z "$LOCAL_IP" ] && LOCAL_IP="$(hostname -i 2>/dev/null | awk '{print $1}')"
-    [ -z "$LOCAL_IP" ] && {
-      msg_error "Could not determine LOCAL_IP"
-      return 1
-    }
-    echo "LOCAL_IP=$LOCAL_IP" >"$IP_FILE"
-  fi
-  export LOCAL_IP
 }

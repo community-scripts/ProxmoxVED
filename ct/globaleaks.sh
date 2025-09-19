@@ -16,21 +16,21 @@ var_version="${var_version:-13}"
 header_info "$APP"
 variables
 color
-init_error_traps
+catch_errors
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
-  if [[ ! -f /usr/sbin/globaleaks ]]; then
-    msg_error "No ${APP} installation found!"
-    exit
-  fi
+    header_info
+    check_container_storage
+    check_container_resources
+    if [[ ! -f /usr/sbin/globaleaks ]]; then
+        msg_error "No ${APP} installation found!"
+        exit
+    fi
 
-  msg_info "Updating $APP LXC"
-  $STD apt update
-  $STD apt -y upgrade
-  msg_ok "Updated $APP LXC"
+    msg_info "Updating $APP LXC"
+    $STD apt update
+    $STD apt -y upgrade
+    msg_ok "Updated $APP LXC"
 }
 
 start

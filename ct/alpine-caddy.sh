@@ -17,24 +17,24 @@ var_unprivileged="${var_unprivileged:-1}"
 header_info "$APP"
 variables
 color
-init_error_traps
+catch_errors
 
 function update_script() {
-   header_info
-   check_container_storage
-   check_container_resources
-   if [[ ! -d /etc/caddy ]]; then
-      msg_error "No ${APP} Installation Found!"
-      exit
-   fi
-   msg_info "Updating $APP LXC"
-   $STD apk -U upgrade
-   msg_ok "Updated $APP LXC"
+    header_info
+    check_container_storage
+    check_container_resources
+    if [[ ! -d /etc/caddy ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+    msg_info "Updating $APP LXC"
+    $STD apk -U upgrade
+    msg_ok "Updated $APP LXC"
 
-   msg_info "Restarting Caddy"
-   rc-service caddy restart
-   msg_ok "Restarted Caddy"
-   exit
+    msg_info "Restarting Caddy"
+    rc-service caddy restart
+    msg_ok "Restarted Caddy"
+    exit
 }
 
 start

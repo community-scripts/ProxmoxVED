@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
-# Co-Author: MickLesk
-# Co-Author: michelroegl-brunner
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: tteck (tteckster) | MickLesk | michelroegl-brunner
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Revision: 1
 
 # ------------------------------------------------------------------------------
 # variables()
@@ -26,6 +25,101 @@ variables() {
   #CT_TYPE=${var_unprivileged:-$CT_TYPE}
 }
 
+# -----------------------------------------------------------------------------
+# Community-Scripts bootstrap loader
+# - Always sources build.func from remote
+# - Updates local core files only if build.func changed
+# - Local cache: /usr/local/community-scripts/core
+# -----------------------------------------------------------------------------
+
+# FUNC_DIR="/usr/local/community-scripts/core"
+# mkdir -p "$FUNC_DIR"
+
+# BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
+# BUILD_REV="$FUNC_DIR/build.rev"
+# DEVMODE="${DEVMODE:-no}"
+
+# # --- Step 1: fetch build.func content once, compute hash ---
+# build_content="$(curl -fsSL "$BUILD_URL")" || {
+#   echo "❌ Failed to fetch build.func"
+#   exit 1
+# }
+
+# newhash=$(printf "%s" "$build_content" | sha256sum | awk '{print $1}')
+# oldhash=$(cat "$BUILD_REV" 2>/dev/null || echo "")
+
+# # --- Step 2: if build.func changed, offer update for core files ---
+# if [ "$newhash" != "$oldhash" ]; then
+#   echo "⚠️  build.func changed!"
+
+#   while true; do
+#     read -rp "Refresh local core files? [y/N/diff]: " ans
+#     case "$ans" in
+#     [Yy]*)
+#       echo "$newhash" >"$BUILD_REV"
+
+#       update_func_file() {
+#         local file="$1"
+#         local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
+#         local local_path="$FUNC_DIR/$file"
+
+#         echo "⬇️  Downloading $file ..."
+#         curl -fsSL "$url" -o "$local_path" || {
+#           echo "❌ Failed to fetch $file"
+#           exit 1
+#         }
+#         echo "✔️  Updated $file"
+#       }
+
+#       update_func_file core.func
+#       update_func_file error_handler.func
+#       update_func_file tools.func
+#       break
+#       ;;
+#     [Dd]*)
+#       for file in core.func error_handler.func tools.func; do
+#         local_path="$FUNC_DIR/$file"
+#         url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
+#         remote_tmp="$(mktemp)"
+
+#         curl -fsSL "$url" -o "$remote_tmp" || continue
+
+#         if [ -f "$local_path" ]; then
+#           echo "🔍 Diff for $file:"
+#           diff -u "$local_path" "$remote_tmp" || echo "(no differences)"
+#         else
+#           echo "📦 New file $file will be installed"
+#         fi
+
+#         rm -f "$remote_tmp"
+#       done
+#       ;;
+#     *)
+#       echo "❌ Skipped updating local core files"
+#       break
+#       ;;
+#     esac
+#   done
+# else
+#   if [ "$DEVMODE" != "yes" ]; then
+#     echo "✔️  build.func unchanged → using existing local core files"
+#   fi
+# fi
+
+# if [ -n "${_COMMUNITY_SCRIPTS_LOADER:-}" ]; then
+#   return 0 2>/dev/null || exit 0
+# fi
+# _COMMUNITY_SCRIPTS_LOADER=1
+
+# # --- Step 3: always source local versions of the core files ---
+# source "$FUNC_DIR/core.func"
+# source "$FUNC_DIR/error_handler.func"
+# source "$FUNC_DIR/tools.func"
+
+# # --- Step 4: finally, source build.func directly from memory ---
+# # (no tmp file needed)
+# source <(printf "%s" "$build_content")
+
 # ------------------------------------------------------------------------------
 # Load core + error handler functions from community-scripts repo
 #
@@ -33,19 +127,20 @@ variables() {
 # - Load: core.func, error_handler.func, api.func
 # - Initialize error traps after loading
 # ------------------------------------------------------------------------------
+
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
-  init_error_traps
+  catch_errors
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
-  init_error_traps
+  catch_errors
   #echo "(build.func) Loaded core.func via wget"
 fi
 
@@ -2277,47 +2372,43 @@ EOF
   if [ "$var_os" != "alpine" ]; then
     msg_info "Waiting for network in LXC container"
     sleep 2
+
     for i in {1..10}; do
-      # 1. Primary check: ICMP ping (fastest, but may be blocked by ISP/firewall)
-      if pct exec "$CTID" -- ping -c1 -W1 deb.debian.org >/dev/null 2>&1; then
-        msg_ok "Network in LXC is reachable (ping)"
-        break
+      # --- Check 1: Has CT an IP? ---
+      ip_in_lxc=$(pct exec "$CTID" -- ip -4 addr show dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
+      if [ -z "$ip_in_lxc" ]; then
+        msg_warn "No IP in LXC yet (try $i/10) – waiting..."
+        sleep 3
+        continue
       fi
-      # Wait and retry if not reachable yet
-      if [ "$i" -lt 10 ]; then
-        if [ "$i" -le 3 ]; then
-          sleep 2
-        else
-          msg_warn "No network in LXC yet (try $i/10) – waiting..."
-          sleep 3
-        fi
-      else
-        # After 10 unsuccessful ping attempts, try HTTP connectivity via wget as fallback
-        msg_warn "Ping failed 10 times. Trying HTTP connectivity check (wget) as fallback..."
-        if pct exec "$CTID" -- wget -q --spider http://deb.debian.org; then
-          msg_ok "Network in LXC is reachable (wget fallback)"
-        else
-          msg_error "No network in LXC after all checks."
-          read -r -p "Set fallback DNS (1.1.1.1/8.8.8.8)? [y/N]: " choice
-          case "$choice" in
-          [yY]*)
-            pct set "$CTID" --nameserver 1.1.1.1
-            pct set "$CTID" --nameserver 8.8.8.8
-            # Final attempt with wget after DNS change
-            if pct exec "$CTID" -- wget -q --spider http://deb.debian.org; then
-              msg_ok "Network reachable after DNS fallback"
-            else
-              msg_error "Still no network/DNS in LXC! Aborting customization."
-              exit_script
-            fi
-            ;;
-          *)
-            msg_error "Aborted by user – no DNS fallback set."
-            exit_script
-            ;;
-          esac
-        fi
+
+      # --- Check 2: Can reach gateway? ---
+      if ! pct exec "$CTID" -- ping -c1 -W1 "$GATEWAY" >/dev/null 2>&1; then
+        msg_warn "CT $CTID has IP $ip_in_lxc but cannot reach gateway $GATEWAY (try $i/10)"
+        sleep 3
+        continue
+      fi
+
+      # --- Check 3: Can resolve DNS? ---
+      if pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1; then
+        msg_ok "Network in LXC is reachable (DNS OK, IP $ip_in_lxc)"
         break
+      else
+        msg_warn "CT $CTID has IP $ip_in_lxc, gateway OK, but DNS failed (try $i/10)"
+        sleep 3
+      fi
+
+      # --- End of loop fallback ---
+      if [ "$i" -eq 10 ]; then
+        msg_warn "DNS still failing after 10 attempts. Applying fallback resolv.conf..."
+        pct exec "$CTID" -- bash -c 'echo "nameserver 1.1.1.1" > /etc/resolv.conf && echo "nameserver 8.8.8.8" >> /etc/resolv.conf'
+
+        if pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1; then
+          msg_ok "Network reachable after DNS fallback"
+        else
+          msg_error "Still no DNS/network in LXC! Aborting customization."
+          exit_script
+        fi
       fi
     done
   fi
