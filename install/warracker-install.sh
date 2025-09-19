@@ -60,7 +60,10 @@ sed -i \
     -e "s|^# DB_PORT=5432$|DB_HOST=127.0.0.1|" \
     -e "s|your_very_secure_flask_secret_key_change_this_in_production|$(openssl rand -base64 32 | tr -d '\n')|" \
     /opt/.env
+mkdir -p /data/uploads
+msg_ok "Installed Warracker"
 
+msg_info "Configuring Nginx"
 mv /opt/warracker/nginx.conf /etc/nginx/sites-available/warracker.conf
 sed -i \
     -e "s|alias /var/www/html/locales/;|alias /opt/warracker/locales/;|" \
@@ -71,11 +74,9 @@ ln -s /etc/nginx/sites-available/warracker.conf /etc/nginx/sites-enabled/warrack
 rm /etc/nginx/sites-enabled/default
 systemctl restart nginx
 
-mkdir -p /data/uploads
+msg_ok "Configured Nginx"
 
-msg_ok "Installed Warracker"
-
-msg_info "Creating Services"
+msg_info "Creating systemd services"
 cat <<EOF >/etc/systemd/system/warrackermigration.service
 [Unit]
 Description=Warracker Migration Service
@@ -107,7 +108,7 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now warracker
-msg_ok "Created Services"
+msg_ok "Started Warracker Services"
 
 motd_ssh
 customize
