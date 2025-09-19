@@ -15,9 +15,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    apt-transport-https \
     build-essential \
-    ca-certificates \
     libpq-dev \
     nginx
 msg_ok "Installed Dependencies"
