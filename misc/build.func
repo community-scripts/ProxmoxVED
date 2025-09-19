@@ -2,7 +2,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: tteck (tteckster) | MickLesk | michelroegl-brunner
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Revision: 
+# Revision:
 
 # ------------------------------------------------------------------------------
 # variables()
@@ -33,93 +33,93 @@ variables() {
 # - Local cache: /usr/local/community-scripts/core
 # -----------------------------------------------------------------------------
 
-FUNC_DIR="/usr/local/community-scripts/core"
-mkdir -p "$FUNC_DIR"
+# FUNC_DIR="/usr/local/community-scripts/core"
+# mkdir -p "$FUNC_DIR"
 
-BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
-BUILD_REV="$FUNC_DIR/build.rev"
+# BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
+# BUILD_REV="$FUNC_DIR/build.rev"
 
-# --- Step 1: fetch build.func content once, compute hash ---
-build_content="$(curl -fsSL "$BUILD_URL")" || {
-  echo "❌ Failed to fetch build.func"
-  exit 1
-}
+# # --- Step 1: fetch build.func content once, compute hash ---
+# build_content="$(curl -fsSL "$BUILD_URL")" || {
+#   echo "❌ Failed to fetch build.func"
+#   exit 1
+# }
 
-newhash=$(printf "%s" "$build_content" | sha256sum | awk '{print $1}')
-oldhash=$(cat "$BUILD_REV" 2>/dev/null || echo "")
+# newhash=$(printf "%s" "$build_content" | sha256sum | awk '{print $1}')
+# oldhash=$(cat "$BUILD_REV" 2>/dev/null || echo "")
 
-# --- Step 2: if build.func changed, offer update for core files ---
-if [ "$newhash" != "$oldhash" ]; then
-  echo "⚠️  build.func changed!"
+# # --- Step 2: if build.func changed, offer update for core files ---
+# if [ "$newhash" != "$oldhash" ]; then
+#   echo "⚠️  build.func changed!"
 
-  while true; do
-    read -rp "Refresh local core files? [y/N/diff]: " ans
-    case "$ans" in
-    [Yy]*)
-      echo "$newhash" >"$BUILD_REV"
+#   while true; do
+#     read -rp "Refresh local core files? [y/N/diff]: " ans
+#     case "$ans" in
+#     [Yy]*)
+#       echo "$newhash" >"$BUILD_REV"
 
-      update_func_file() {
-        local file="$1"
-        local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
-        local local_path="$FUNC_DIR/$file"
+#       update_func_file() {
+#         local file="$1"
+#         local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
+#         local local_path="$FUNC_DIR/$file"
 
-        echo "⬇️  Downloading $file ..."
-        curl -fsSL "$url" -o "$local_path" || {
-          echo "❌ Failed to fetch $file"
-          exit 1
-        }
-        echo "✔️  Updated $file"
-      }
+#         echo "⬇️  Downloading $file ..."
+#         curl -fsSL "$url" -o "$local_path" || {
+#           echo "❌ Failed to fetch $file"
+#           exit 1
+#         }
+#         echo "✔️  Updated $file"
+#       }
 
-      update_func_file core.func
-      update_func_file error_handler.func
-      update_func_file tools.func
-      break
-      ;;
-    [Dd]*)
-      for file in core.func error_handler.func tools.func; do
-        local_path="$FUNC_DIR/$file"
-        url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
-        remote_tmp="$(mktemp)"
+#       update_func_file core.func
+#       update_func_file error_handler.func
+#       update_func_file tools.func
+#       break
+#       ;;
+#     [Dd]*)
+#       for file in core.func error_handler.func tools.func; do
+#         local_path="$FUNC_DIR/$file"
+#         url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
+#         remote_tmp="$(mktemp)"
 
-        curl -fsSL "$url" -o "$remote_tmp" || continue
+#         curl -fsSL "$url" -o "$remote_tmp" || continue
 
-        if [ -f "$local_path" ]; then
-          echo "🔍 Diff for $file:"
-          diff -u "$local_path" "$remote_tmp" || echo "(no differences)"
-        else
-          echo "📦 New file $file will be installed"
-        fi
+#         if [ -f "$local_path" ]; then
+#           echo "🔍 Diff for $file:"
+#           diff -u "$local_path" "$remote_tmp" || echo "(no differences)"
+#         else
+#           echo "📦 New file $file will be installed"
+#         fi
 
-        rm -f "$remote_tmp"
-      done
-      ;;
-    *)
-      echo "❌ Skipped updating local core files"
-      break
-      ;;
-    esac
-  done
-else
-  echo "✔️  build.func unchanged → using existing local core files"
-fi
+#         rm -f "$remote_tmp"
+#       done
+#       ;;
+#     *)
+#       echo "❌ Skipped updating local core files"
+#       break
+#       ;;
+#     esac
+#   done
+# else
+#   echo "✔️  build.func unchanged → using existing local core files"
+# fi
 
-# --- Step 3: always source local versions of the core files ---
-source "$FUNC_DIR/core.func"
-source "$FUNC_DIR/error_handler.func"
-source "$FUNC_DIR/tools.func"
+# # --- Step 3: always source local versions of the core files ---
+# source "$FUNC_DIR/core.func"
+# source "$FUNC_DIR/error_handler.func"
+# source "$FUNC_DIR/tools.func"
 
-# --- Step 4: finally, source build.func directly from memory ---
-# (no tmp file needed)
-source <(printf "%s" "$build_content")
+# # --- Step 4: finally, source build.func directly from memory ---
+# # (no tmp file needed)
+# source <(printf "%s" "$build_content")
 
-# ------------------------------------------------------------------------------
-# Load core + error handler functions from community-scripts repo
-#
-# - Prefer curl if available, fallback to wget
-# - Load: core.func, error_handler.func, api.func
-# - Initialize error traps after loading
-# ------------------------------------------------------------------------------
+# # ------------------------------------------------------------------------------
+# # Load core + error handler functions from community-scripts repo
+# #
+# # - Prefer curl if available, fallback to wget
+# # - Load: core.func, error_handler.func, api.func
+# # - Initialize error traps after loading
+# # ------------------------------------------------------------------------------
 
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 
