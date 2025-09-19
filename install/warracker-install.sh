@@ -16,7 +16,10 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
     apt-transport-https \
-    ca-certificates nginx
+    build-essential \
+    ca-certificates \
+    libpq-dev \
+    nginx
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.11" setup_uv
