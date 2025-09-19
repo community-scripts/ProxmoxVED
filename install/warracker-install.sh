@@ -48,19 +48,20 @@ $STD sudo -u postgres psql -d "$DB_NAME" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA 
 } >>~/warracker.creds
 msg_ok "Installed PostgreSQL"
 
-fetch_and_deploy_gh_release "warracker" "sassanix/Warracker" "tarball" "latest" "/opt/warracker"
+fetch_and_deploy_gh_release "warracker" "sassanix/Warracker" "tarball" "0.10.1.10-beta" "/opt/warracker"
 
 msg_info "Installing Warracker"
 cd /opt/warracker/backend
 $STD uv venv .venv
 $STD source .venv/bin/activate
 $STD uv pip install -r requirements.txt
-mv /opt/warracker/env.example /opt/warracker/.env
+mv /opt/warracker/env.example /opt/.env
 sed -i \
     -e "s/your_secure_database_password/$DB_PASS/" \
     -e "s/your_secure_admin_password/$DB_ADMIN_PASS/" \
     -e "s|^# DB_PORT=5432$|DB_HOST=127.0.0.1|" \
-    /opt/warracker/.env
+    -e "s|your_very_secure_flask_secret_key_change_this_in_production|$(openssl rand -base64 32 | tr -d '\n')|" \
+    /opt/.env
 
 mv /opt/warracker/nginx.conf /etc/nginx/sites-available/warracker.conf
 sed -i \
@@ -85,7 +86,7 @@ After=network.target
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/warracker/backend/migrations
-EnvironmentFile=/opt/warracker/.env
+EnvironmentFile=/opt/.env
 ExecStart=/opt/warracker/backend/.venv/bin/python apply_migrations.py
 
 [Install]
@@ -100,7 +101,7 @@ Requires=warrackermigration.service
 
 [Service]
 WorkingDirectory=/opt/warracker
-EnvironmentFile=/opt/warracker/.env
+EnvironmentFile=/opt/.env
 ExecStart=/opt/warracker/backend/.venv/bin/gunicorn --config /opt/warracker/backend/gunicorn_config.py backend:create_app() --bind 127.0.0.1:5000
 Restart=always
 
