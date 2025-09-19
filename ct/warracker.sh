@@ -7,9 +7,9 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 
 APP="warracker"
 var_tags="${var_tags:-warranty}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-20}"
+var_cpu="${var_cpu:-1}"
+var_ram="${var_ram:-512}"
+var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -28,7 +28,7 @@ function update_script() {
         exit
     fi
 
-    if check_for_gh_release "signoz" "SigNoz/signoz"; then
+    if check_for_gh_release "warracker" "sassanix/Warracker"; then
         msg_info "Stopping Services"
         systemctl stop warrackermigration
         systemctl stop warracker
