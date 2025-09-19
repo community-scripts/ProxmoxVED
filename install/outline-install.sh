@@ -40,7 +40,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/outline.creds
 msg_ok "Set up PostgreSQL Database"
 
-fetch_and_deploy_gh_release "outline" "outline/outline" "tarball"
+fetch_and_deploy_gh_release "outline" "outline/outline" "tarball" "v0.87.3"
 
 msg_info "Configuring Outline (Patience)"
 SECRET_KEY="$(openssl rand -hex 32)"
