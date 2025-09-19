@@ -32,14 +32,14 @@ function update_script() {
         msg_info "Stopping Services"
         systemctl stop warrackermigration
         systemctl stop warracker
-        systemctl stop ngninx
+        systemctl stop nginx
         msg_ok "Stopped Services"
 
         fetch_and_deploy_gh_release "warracker" "sassanix/Warracker" "tarball" "latest" "/opt/warracker"
 
         msg_info "Starting Services"
         systemctl start warracker
-        systemctl start ngninx
+        systemctl start nginx
         msg_ok "Started Services"
 
         msg_ok "Updated Successfully"
