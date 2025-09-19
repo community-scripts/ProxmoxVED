@@ -37,6 +37,7 @@ mkdir -p "$FUNC_DIR"
 
 BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
 BUILD_REV="$FUNC_DIR/build.rev"
+DEVMODE="${DEVMODE:-no}"
 
 # --- Step 1: fetch build.func content once, compute hash ---
 build_content="$(curl -fsSL "$BUILD_URL")" || {
@@ -100,7 +101,9 @@ if [ "$newhash" != "$oldhash" ]; then
     esac
   done
 else
-  echo "✔️  build.func unchanged → using existing local core files"
+  if [ "$DEVMODE" != "yes" ]; then
+    echo "✔️  build.func unchanged → using existing local core files"
+  fi
 fi
 
 # --- Step 3: always source local versions of the core files ---
