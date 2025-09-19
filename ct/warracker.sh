@@ -30,15 +30,12 @@ function update_script() {
 
     if check_for_gh_release "signoz" "SigNoz/signoz"; then
         msg_info "Stopping Services"
+        systemctl stop warrackermigration
         systemctl stop warracker
         systemctl stop ngninx
         msg_ok "Stopped Services"
 
         fetch_and_deploy_gh_release "warracker" "sassanix/Warracker" "tarball" "latest" "/opt/warracker"
-
-        msg_info "Updating ${APP}"
-
-        msg_ok "Updated $APP"
 
         msg_info "Starting Services"
         systemctl start warracker
