@@ -32,93 +32,93 @@ variables() {
 # - Local cache: /usr/local/community-scripts/core
 # -----------------------------------------------------------------------------
 
-FUNC_DIR="/usr/local/community-scripts/core"
-mkdir -p "$FUNC_DIR"
+# FUNC_DIR="/usr/local/community-scripts/core"
+# mkdir -p "$FUNC_DIR"
 
-BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
-BUILD_REV="$FUNC_DIR/build.rev"
-DEVMODE="${DEVMODE:-no}"
+# BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
+# BUILD_REV="$FUNC_DIR/build.rev"
+# DEVMODE="${DEVMODE:-no}"
 
-# --- Step 1: fetch build.func content once, compute hash ---
-build_content="$(curl -fsSL "$BUILD_URL")" || {
-  echo "❌ Failed to fetch build.func"
-  exit 1
-}
+# # --- Step 1: fetch build.func content once, compute hash ---
+# build_content="$(curl -fsSL "$BUILD_URL")" || {
+#   echo "❌ Failed to fetch build.func"
+#   exit 1
+# }
 
-newhash=$(printf "%s" "$build_content" | sha256sum | awk '{print $1}')
-oldhash=$(cat "$BUILD_REV" 2>/dev/null || echo "")
+# newhash=$(printf "%s" "$build_content" | sha256sum | awk '{print $1}')
+# oldhash=$(cat "$BUILD_REV" 2>/dev/null || echo "")
 
-# --- Step 2: if build.func changed, offer update for core files ---
-if [ "$newhash" != "$oldhash" ]; then
-  echo "⚠️  build.func changed!"
+# # --- Step 2: if build.func changed, offer update for core files ---
+# if [ "$newhash" != "$oldhash" ]; then
+#   echo "⚠️  build.func changed!"
 
-  while true; do
-    read -rp "Refresh local core files? [y/N/diff]: " ans
-    case "$ans" in
-    [Yy]*)
-      echo "$newhash" >"$BUILD_REV"
+#   while true; do
+#     read -rp "Refresh local core files? [y/N/diff]: " ans
+#     case "$ans" in
+#     [Yy]*)
+#       echo "$newhash" >"$BUILD_REV"
 
-      update_func_file() {
-        local file="$1"
-        local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
-        local local_path="$FUNC_DIR/$file"
+#       update_func_file() {
+#         local file="$1"
+#         local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
+#         local local_path="$FUNC_DIR/$file"
 
-        echo "⬇️  Downloading $file ..."
-        curl -fsSL "$url" -o "$local_path" || {
-          echo "❌ Failed to fetch $file"
-          exit 1
-        }
-        echo "✔️  Updated $file"
-      }
+#         echo "⬇️  Downloading $file ..."
+#         curl -fsSL "$url" -o "$local_path" || {
+#           echo "❌ Failed to fetch $file"
+#           exit 1
+#         }
+#         echo "✔️  Updated $file"
+#       }
 
-      update_func_file core.func
-      update_func_file error_handler.func
-      update_func_file tools.func
-      break
-      ;;
-    [Dd]*)
-      for file in core.func error_handler.func tools.func; do
-        local_path="$FUNC_DIR/$file"
-        url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
-        remote_tmp="$(mktemp)"
+#       update_func_file core.func
+#       update_func_file error_handler.func
+#       update_func_file tools.func
+#       break
+#       ;;
+#     [Dd]*)
+#       for file in core.func error_handler.func tools.func; do
+#         local_path="$FUNC_DIR/$file"
+#         url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
+#         remote_tmp="$(mktemp)"
 
-        curl -fsSL "$url" -o "$remote_tmp" || continue
+#         curl -fsSL "$url" -o "$remote_tmp" || continue
 
-        if [ -f "$local_path" ]; then
-          echo "🔍 Diff for $file:"
-          diff -u "$local_path" "$remote_tmp" || echo "(no differences)"
-        else
-          echo "📦 New file $file will be installed"
-        fi
+#         if [ -f "$local_path" ]; then
+#           echo "🔍 Diff for $file:"
+#           diff -u "$local_path" "$remote_tmp" || echo "(no differences)"
+#         else
+#           echo "📦 New file $file will be installed"
+#         fi
 
-        rm -f "$remote_tmp"
-      done
-      ;;
-    *)
-      echo "❌ Skipped updating local core files"
-      break
-      ;;
-    esac
-  done
-else
-  if [ "$DEVMODE" != "yes" ]; then
-    echo "✔️  build.func unchanged → using existing local core files"
-  fi
-fi
+#         rm -f "$remote_tmp"
+#       done
+#       ;;
+#     *)
+#       echo "❌ Skipped updating local core files"
+#       break
+#       ;;
+#     esac
+#   done
+# else
+#   if [ "$DEVMODE" != "yes" ]; then
+#     echo "✔️  build.func unchanged → using existing local core files"
+#   fi
+# fi
 
-if [ -n "${_COMMUNITY_SCRIPTS_LOADER:-}" ]; then
-  return 0 2>/dev/null || exit 0
-fi
-_COMMUNITY_SCRIPTS_LOADER=1
+# if [ -n "${_COMMUNITY_SCRIPTS_LOADER:-}" ]; then
+#   return 0 2>/dev/null || exit 0
+# fi
+# _COMMUNITY_SCRIPTS_LOADER=1
 
-# --- Step 3: always source local versions of the core files ---
-source "$FUNC_DIR/core.func"
-source "$FUNC_DIR/error_handler.func"
-source "$FUNC_DIR/tools.func"
+# # --- Step 3: always source local versions of the core files ---
+# source "$FUNC_DIR/core.func"
+# source "$FUNC_DIR/error_handler.func"
+# source "$FUNC_DIR/tools.func"
 
-# --- Step 4: finally, source build.func directly from memory ---
-# (no tmp file needed)
-source <(printf "%s" "$build_content")
+# # --- Step 4: finally, source build.func directly from memory ---
+# # (no tmp file needed)
+# source <(printf "%s" "$build_content")
 
 # ------------------------------------------------------------------------------
 # Load core + error handler functions from community-scripts repo
