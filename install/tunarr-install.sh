@@ -48,6 +48,10 @@ EOF
   $STD apt -y install \
     intel-media-va-driver-non-free \
     ocl-icd-libopencl1 \
+    mesa-opencl-icd \
+    mesa-va-drivers \
+    libmfx1 \
+    libvpl2 \
     vainfo \
     intel-gpu-tools
 else
@@ -55,6 +59,8 @@ else
   $STD apt -y install \
     va-driver-all \
     ocl-icd-libopencl1 \
+    mesa-opencl-icd \
+    mesa-va-drivers \
     vainfo \
     intel-gpu-tools
 fi
