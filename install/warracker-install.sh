@@ -22,7 +22,7 @@ $STD apt-get install -y \
     nginx
 msg_ok "Installed Dependencies"
 
-PYTHON_VERSION="3.11" setup_uv
+PYTHON_VERSION="3.12" setup_uv
 PG_VERSION="17" setup_postgresql
 
 msg_info "Installing Postgresql"
