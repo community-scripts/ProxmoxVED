@@ -37,7 +37,7 @@ function update_script() {
     cp /opt/outline/.env /opt
     msg_ok "Backup created"
 
-    fetch_and_deploy_gh_release "outline" "outline/outline" "tarball"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "outline" "outline/outline" "tarball"
 
     msg_info "Updating ${APP}"
     cd /opt/outline
