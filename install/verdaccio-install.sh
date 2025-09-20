@@ -26,16 +26,15 @@ $STD npm install --global verdaccio
 msg_ok "Installed Verdaccio"
 
 msg_info "Configuring Verdaccio"
-HOST_IP=$(hostname -I | awk '{print $1}')
-mkdir -p /etc/verdaccio
-mkdir -p /var/lib/verdaccio
+mkdir -p /opt/verdaccio/config
+mkdir -p /opt/verdaccio/storage
 
-cat <<EOF >/etc/verdaccio/config.yaml
+cat <<EOF >/opt/verdaccio/config/config.yaml
 # Verdaccio configuration
-storage: /var/lib/verdaccio
+storage: /opt/verdaccio/storage
 auth:
   htpasswd:
-    file: /var/lib/verdaccio/htpasswd
+    file: /opt/verdaccio/storage/htpasswd
     max_users: 1000
 uplinks:
   npmjs:
@@ -64,10 +63,8 @@ web:
   login: true
 EOF
 
-chown -R root:root /etc/verdaccio
-chown -R root:root /var/lib/verdaccio
-chmod -R 755 /etc/verdaccio
-chmod -R 755 /var/lib/verdaccio
+chown -R root:root /opt/verdaccio
+chmod -R 755 /opt/verdaccio
 msg_ok "Configured Verdaccio"
 
 msg_info "Creating Service"
@@ -78,7 +75,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/verdaccio --config /etc/verdaccio/config.yaml
+ExecStart=/usr/bin/verdaccio --config /opt/verdaccio/config/config.yaml
 Restart=on-failure
 StandardOutput=journal
 StandardError=journal
@@ -92,22 +89,6 @@ EOF
 systemctl enable -q --now verdaccio
 msg_ok "Created Service"
 
-msg_info "Creating Update Script"
-cat <<'EOF' >/usr/bin/update
-#!/bin/bash
-set -euo pipefail
-NODE_VERSION="22"
-export NVM_DIR="/opt/nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-nvm use $NODE_VERSION >/dev/null 2>&1
-
-echo "Updating Verdaccio..."
-npm update -g verdaccio
-systemctl restart verdaccio
-echo "Verdaccio has been updated successfully."
-EOF
-chmod +x /usr/bin/update
-msg_ok "Created Update Script"
 
 motd_ssh
 customize
