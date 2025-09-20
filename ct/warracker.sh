@@ -37,11 +37,17 @@ function update_script() {
 
         fetch_and_deploy_gh_release "warracker" "sassanix/Warracker" "tarball" "latest" "/opt/warracker"
 
+        msg_info "Updating $APP"
+        cd /opt/warracker/backend
+        $STD uv venv .venv
+        $STD source .venv/bin/activate
+        $STD uv pip install -r requirements.txt
+        msg_ok "Updated $APP"
+        
         msg_info "Starting Services"
         systemctl start warracker
         systemctl start nginx
         msg_ok "Started Services"
-
         msg_ok "Updated Successfully"
     fi
     exit
