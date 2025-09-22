@@ -187,6 +187,9 @@ vaapi_handle_passthrough() {
 
   if [[ "$CTTYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
     vaapi_select_and_apply "$CTID" "$CTTYPE"
+
+    # Run userland install inside CT via pct exec
+    pct exec "$CTID" -- bash -lc "_hwaccel_setup_in_ct '$CTTYPE'"
   fi
 }
 
@@ -227,13 +230,30 @@ nvidia_handle_passthrough() {
 
   if whiptail --title "NVIDIA passthrough" \
     --yesno "NVIDIA GPU detected on host.\n\nMap /dev/nvidia* into CT ${CTID} and install NVIDIA userland inside the container?" 12 70; then
+
+    # 1. Host: map devices into LXC config
     nvidia_passthrough_to_lxc "$CTID" "$CTTYPE"
-    # flag for in-CT install (consumed by *-install.sh via tools.func:nvidia_setup_in_ct)
-    export ENABLE_NVIDIA_IN_CT=1
+
+    # 2. CT must be running before pct exec
+    if ! pct status "$CTID" | grep -q "status: running"; then
+      msg_info "Starting CT $CTID for NVIDIA setup"
+      pct start "$CTID"
+      for i in {1..10}; do
+        if pct status "$CTID" | grep -q "status: running"; then
+          break
+        fi
+        sleep 1
+      done
+    fi
+
+    # 3. Run NVIDIA setup inside CT
+    pct exec "$CTID" -- bash -lc "_nvidia_setup_in_ct '$CTTYPE'"
+
   else
     msg_warn "Skipped NVIDIA passthrough by user choice."
   fi
 }
+
 # ------------------------------------------------------------------------------
 # Hardware acceleration setup inside container (Intel/AMD via VAAPI)
 # Debian 12 (bookworm), Debian 13 (trixie), Ubuntu 24.04 (noble)
