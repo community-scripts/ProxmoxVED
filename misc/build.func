@@ -2183,26 +2183,8 @@ build_container() {
 
   LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
 
-  # USB passthrough for privileged LXC (CT_TYPE=0)
-  if [ "$CT_TYPE" == "0" ]; then
-    cat <<EOF >>"$LXC_CONFIG"
-# USB passthrough
-lxc.cgroup2.devices.allow: a
-lxc.cap.drop:
-lxc.cgroup2.devices.allow: c 188:* rwm
-lxc.cgroup2.devices.allow: c 189:* rwm
-lxc.mount.entry: /dev/serial/by-id  dev/serial/by-id  none bind,optional,create=dir
-lxc.mount.entry: /dev/ttyUSB0       dev/ttyUSB0       none bind,optional,create=file
-lxc.mount.entry: /dev/ttyUSB1       dev/ttyUSB1       none bind,optional,create=file
-lxc.mount.entry: /dev/ttyACM0       dev/ttyACM0       none bind,optional,create=file
-lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=file
-EOF
-  fi
-
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/passthrough.func)
-  usb_handle_passthrough "$CTID" "$CT_TYPE"
-  vaapi_select_and_apply "$CTID" "$CT_TYPE"
-  nvidia_passthrough_to_lxc "$CTID" "$CT_TYPE"
+  select_hw_passthrough "$CTID" "$CT_TYPE" "$APP"
 
   # TUN device passthrough
   if [ "$ENABLE_TUN" == "yes" ]; then

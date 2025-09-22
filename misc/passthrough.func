@@ -15,8 +15,61 @@ _whiptail_dims() {
   echo "$H $maxW"
 }
 
+select_hw_passthrough() {
+  local CTID="$1" CTTYPE="$2" APP="$3"
+  local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
+
+  local choices=()
+  [[ -d /dev/dri ]] && choices+=("VAAPI" "Intel/AMD GPU via VAAPI" OFF)
+  compgen -G "/dev/nvidia*" >/dev/null && choices+=("NVIDIA" "NVIDIA GPU passthrough" OFF)
+
+  [[ ${#choices[@]} -eq 0 ]] && {
+    msg_info "No GPU devices detected"
+    return
+  }
+
+  local HEIGHT WIDTH
+  HEIGHT=12
+  WIDTH=70
+  local SELECTED
+  SELECTED=$(whiptail --title "GPU Passthrough" \
+    --checklist "Select GPU passthrough for CT $CTID:" $HEIGHT $WIDTH 2 \
+    "${choices[@]}" 3>&1 1>&2 2>&3) || return
+
+  # export flags for install.sh
+  for sel in $SELECTED; do
+    case "$sel" in
+    "\"VAAPI\"")
+      export ENABLE_VAAPI=1
+      vaapi_select_and_apply "$CTID" "$CTTYPE"
+      ;;
+    "\"NVIDIA\"")
+      export ENABLE_NVIDIA=1
+      nvidia_passthrough_to_lxc "$CTID" "$CTTYPE"
+      ;;
+    esac
+  done
+}
+
 # Apps that benefit from GPU passthrough (VAAPI + NVIDIA)
-_GPU_APPS=(immich Channels Emby ErsatzTV Frigate Jellyfin Plex Scrypted Tdarr Unmanic Ollama FileFlows "Open WebUI" Tunarr Debian)
+# Apps that benefit from GPU passthrough (VAAPI + NVIDIA)
+_GPU_APPS=(
+  immich
+  Channels
+  Emby
+  ErsatzTV
+  Frigate
+  Jellyfin
+  Plex
+  Scrypted
+  Tdarr
+  Unmanic
+  Ollama
+  FileFlows
+  "Open WebUI"
+  Tunarr
+  Debian
+)
 
 # ------------------------------ USB -------------------------------------------
 
@@ -45,15 +98,11 @@ EOF
 _vaapi_gid() {
   local g="$1" gid
   gid="$(getent group "$g" | cut -d: -f3)"
-  if [[ -z "$gid" ]]; then
-    case "$g" in
-    video) echo 44 ;;
-    render) echo 104 ;;
-    *) echo 44 ;;
-    esac
-  else
-    echo "$gid"
-  fi
+  case "$g" in
+  video) echo "${gid:-44}" ;;
+  render) echo "${gid:-104}" ;;
+  *) echo "${gid:-44}" ;;
+  esac
 }
 
 _vaapi_pairs() {
@@ -68,11 +117,7 @@ _vaapi_pairs() {
     seen+=("$id")
 
     idx="${id#renderD}"
-    if [[ "$idx" =~ ^[0-9]+$ ]]; then
-      idx=$((idx - 128))
-    else
-      idx=0
-    fi
+    [[ "$idx" =~ ^[0-9]+$ ]] && idx=$((idx - 128)) || idx=0
     card="/dev/dri/card${idx}"
     [[ -e "$card" ]] || card=""
 
@@ -88,7 +133,6 @@ _vaapi_pairs() {
     label="$(basename "$real")"
     [[ -n "$card" ]] && label+=" + $(basename "$card")"
     label+=" – ${name}"
-
     printf "%s:%s\t%s\n" "$real" "$card" "$label"
   done
   shopt -u nullglob
@@ -98,42 +142,30 @@ vaapi_select_and_apply() {
   local CTID="$1" CTTYPE="$2"
   local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
 
-  local pairs=() items=() maxlen=0 n h w
   mapfile -t pairs < <(_vaapi_pairs)
-
-  if ((${#pairs[@]} == 0)); then
+  ((${#pairs[@]} == 0)) && {
     msg_warn "No VAAPI devices detected – skipping."
-    return 0
-  fi
+    return
+  }
 
+  local items=() maxlen=0
   for p in "${pairs[@]}"; do
-    local devs="${p%%$'\t'*}"
-    local label="${p#*$'\t'}"
+    local devs="${p%%$'\t'*}" label="${p#*$'\t'}"
     items+=("$devs" "$label" "OFF")
     ((${#label} > maxlen)) && maxlen=${#label}
   done
-  n=$((${#items[@]} / 3))
-  read -r h w < <(_whiptail_dims "$n" "$maxlen")
-
-  whiptail --title "VAAPI passthrough" --msgbox "\
-VAAPI passthrough will be enabled.
-
-Privileged CT = full DRM access
-Unprivileged CT = may be limited." 12 "$w"
+  read -r h w < <(_whiptail_dims $((${#items[@]} / 3)) "$maxlen")
 
   local SELECTED
-  SELECTED="$(
-    whiptail --title "VAAPI Device Selection" \
-      --checklist "Select GPU / VAAPI device(s) to passthrough:" "$h" "$w" "$((n > 6 ? 6 : n))" \
-      "${items[@]}" 3>&1 1>&2 2>&3
-  )" || {
+  SELECTED="$(whiptail --title "VAAPI Device Selection" \
+    --checklist "Select VAAPI devices for CT $CTID:" "$h" "$w" 6 \
+    "${items[@]}" 3>&1 1>&2 2>&3)" || {
     msg_warn "VAAPI selection cancelled."
-    return 0
+    return
   }
-
   [[ -z "$SELECTED" ]] && {
-    msg_warn "No devices selected – skipping."
-    return 0
+    msg_warn "No VAAPI devices selected."
+    return
   }
 
   local DID_MOUNT_DRI=0 idx=0
@@ -144,109 +176,110 @@ Unprivileged CT = may be limited." 12 "$w"
     for d in "$path" "$card"; do
       [[ -n "$d" && -e "$d" ]] || continue
       if [[ "$CTTYPE" == "0" ]]; then
-        if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
+        [[ $DID_MOUNT_DRI -eq 0 && -d /dev/dri ]] && {
           echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
           DID_MOUNT_DRI=1
-        fi
-        if mm=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}'); then
+        }
+        if mm=$(stat -c '%t:%T' "$d" | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}'); then
           echo "lxc.cgroup2.devices.allow: c $mm rwm" >>"$LXC_CONFIG"
           echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
-        else
-          msg_warn "Could not stat $d – skipping."
         fi
       else
-        local gid
-        if [[ "$d" =~ renderD ]]; then gid="$(_vaapi_gid render)"; else gid="$(_vaapi_gid video)"; fi
+        gid=$([[ "$d" =~ renderD ]] && _vaapi_gid render || _vaapi_gid video)
         echo "dev${idx}: $d,gid=${gid}" >>"$LXC_CONFIG"
         idx=$((idx + 1))
       fi
     done
   done
-
-  # fallback for card0/card1 flip
-  if [[ "$CTTYPE" == "0" ]]; then
-    cat <<'EOF' >>"$LXC_CONFIG"
-# VAAPI fallback: bind /dev/dri and allow 226:* to survive node flips
+  [[ "$CTTYPE" == "0" ]] && cat <<'EOF' >>"$LXC_CONFIG"
+# VAAPI fallback
 lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir
 lxc.cgroup2.devices.allow: c 226:* rwm
 EOF
-  fi
-}
-
-vaapi_inside_setup() {
-  local CTID="$1" CTTYPE="$2" APP="$3"
-
-  local is_gpu_app=false
-  for a in "${_GPU_APPS[@]}"; do [[ "$APP" == "$a" ]] && is_gpu_app=true && break; done
-  [[ "$CTTYPE" == "0" || "$is_gpu_app" == "true" ]] || return 0
-
-  msg_info "Installing VAAPI userland inside CT $CTID"
-  pct exec "$CTID" -- bash -lc '
-    . /etc/os-release
-    case "$VERSION_CODENAME" in
-      trixie|noble)
-        apt-get update
-        apt-get install -y intel-media-va-driver-non-free ocl-icd-libopencl1 \
-          mesa-opencl-icd mesa-va-drivers libvpl2 vainfo intel-gpu-tools
-        ;;
-      *)
-        apt-get update
-        apt-get install -y va-driver-all ocl-icd-libopencl1 \
-          mesa-opencl-icd mesa-va-drivers vainfo intel-gpu-tools
-        ;;
-    esac
-    if [[ "'"$CTTYPE"'" == "0" ]]; then
-      adduser "$(id -un)" video || true
-      adduser "$(id -un)" render || true
-    fi
-  '
-  msg_ok "VAAPI setup done in CT $CTID"
 }
 
 # ----------------------------- NVIDIA -----------------------------------------
 
 nvidia_passthrough_to_lxc() {
-  local CTID="$1" CTTYPE="${2:-0}"
+  local CTID="$1" CTTYPE="$2"
   local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
-  local found=0 dev mm
+  local found=0
 
-  for dev in /dev/nvidia0 /dev/nvidia1 /dev/nvidiactl /dev/nvidia-uvm /dev/nvidia-uvm-tools /dev/nvidia-modeset; do
+  for dev in /dev/nvidia*; do
     [[ -e "$dev" ]] || continue
     found=1
-    if mm="$(stat -c '%t:%T' "$dev" 2>/dev/null | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}')"; then
+    if mm="$(stat -c '%t:%T' "$dev" | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}')"; then
       echo "lxc.cgroup2.devices.allow: c $mm rwm" >>"$LXC_CONFIG"
       echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
     fi
   done
+  ((found == 0)) && {
+    msg_warn "No NVIDIA devices found."
+    return
+  }
 
-  if [[ "$found" -eq 0 ]]; then
-    msg_warn "No /dev/nvidia* devices found on host; skipping NVIDIA passthrough."
-    return 0
-  fi
-
-  if [[ -d /dev/dri && "$CTTYPE" == "0" ]]; then
-    echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-  fi
-
+  [[ -d /dev/dri && "$CTTYPE" == "0" ]] && echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
   msg_ok "NVIDIA devices mapped to CT ${CTID}"
 }
 
-nvidia_inside_setup() {
-  local CTID="$1" CTTYPE="$2" APP="$3"
+install_vaapi_userland_interactive() {
+  . /etc/os-release
+  if [[ "$VERSION_CODENAME" == "trixie" ]]; then
+    read -r -p "${TAB3}Do you need the intel-media-va-driver-non-free driver for HW encoding (Debian 13 only)? <y/N> " prompt
+    if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
+      msg_info "Installing Intel Hardware Acceleration (non-free)"
+      cat <<'EOF' >/etc/apt/sources.list.d/non-free.sources
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: trixie
+Components: non-free non-free-firmware
 
-  local is_gpu_app=false
-  for a in "${_GPU_APPS[@]}"; do [[ "$APP" == "$a" ]] && is_gpu_app=true && break; done
-  [[ "$CTTYPE" == "0" || "$is_gpu_app" == "true" ]] || return 0
+Types: deb deb-src
+URIs: http://deb.debian.org/debian-security
+Suites: trixie-security
+Components: non-free non-free-firmware
 
-  compgen -G "/dev/nvidia*" >/dev/null || return 0
-  msg_info "Installing NVIDIA userland inside CT $CTID"
-  pct exec "$CTID" -- bash -lc '
-    . /etc/os-release
-    apt-get update
-    apt-get install -y nvidia-driver nvidia-utils libnvidia-encode1 libcuda1
-    if [[ "'"$CTTYPE"'" == "0" ]]; then
-      adduser "$(id -un)" video || true
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: trixie-updates
+Components: non-free non-free-firmware
+EOF
+      $STD apt-get update
+      $STD apt-get install -y \
+        intel-media-va-driver-non-free \
+        ocl-icd-libopencl1 \
+        mesa-opencl-icd \
+        mesa-va-drivers \
+        libvpl2 \
+        vainfo \
+        intel-gpu-tools
+      msg_ok "Installed Intel Hardware Acceleration (non-free)"
+      return
     fi
-  '
-  msg_ok "NVIDIA setup done in CT $CTID"
+  fi
+
+  msg_info "Installing Intel Hardware Acceleration (open packages)"
+  $STD apt-get update
+  $STD apt-get install -y \
+    va-driver-all \
+    ocl-icd-libopencl1 \
+    mesa-opencl-icd \
+    mesa-va-drivers \
+    vainfo \
+    intel-gpu-tools
+  msg_ok "Installed Intel Hardware Acceleration (open packages)"
+}
+
+install_nvidia_userland_interactive() {
+  msg_info "Installing NVIDIA Userland"
+  $STD apt-get update
+  $STD apt-get install -y \
+    nvidia-driver \
+    nvidia-utils \
+    libnvidia-encode1 \
+    libcuda1 || {
+    msg_error "Failed to install NVIDIA packages"
+    return 1
+  }
+  msg_ok "Installed NVIDIA Userland"
 }
