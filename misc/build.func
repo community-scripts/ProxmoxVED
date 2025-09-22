@@ -2377,47 +2377,46 @@ EOF
   if [ "$var_os" != "alpine" ]; then
     msg_info "Waiting for network in LXC container"
 
-    # Try up to 20 times (about 20s total), break early when ready
+    # --- Step 1: Wait until the CT has an IP ---
     for i in {1..20}; do
       ip_in_lxc=$(pct exec "$CTID" -- ip -4 addr show dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
-
-      if [ -z "$ip_in_lxc" ]; then
-        msg_warn "No IP in LXC yet (try $i/20) – waiting..."
-        sleep 1
-        continue
-      fi
-
-      # Optional ARP warm-up
-      if pct exec "$CTID" -- command -v arping >/dev/null 2>&1; then
-        pct exec "$CTID" -- arping -c1 -I eth0 "$GATEWAY" >/dev/null 2>&1 || true
-      fi
-
-      if ! pct exec "$CTID" -- ping -c1 -W1 "$GATEWAY" >/dev/null 2>&1; then
-        msg_warn "CT $CTID has IP $ip_in_lxc but cannot reach gateway $GATEWAY (try $i/20)"
-        sleep 1
-        continue
-      fi
-
-      if pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1; then
-        msg_ok "Network in LXC is reachable (DNS OK, IP $ip_in_lxc)"
+      if [ -n "$ip_in_lxc" ]; then
         break
-      else
-        msg_warn "CT $CTID has IP $ip_in_lxc, gateway OK, but DNS failed (try $i/20)"
-        sleep 1
       fi
-
-      if [ "$i" -eq 20 ]; then
-        msg_warn "DNS still failing after 20 attempts. Applying fallback resolv.conf..."
-        pct exec "$CTID" -- bash -c 'echo "nameserver 1.1.1.1" > /etc/resolv.conf && echo "nameserver 8.8.8.8" >> /etc/resolv.conf'
-
-        if pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1; then
-          msg_ok "Network reachable after DNS fallback"
-        else
-          msg_error "Still no DNS/network in LXC! Aborting customization."
-          exit_script
-        fi
-      fi
+      sleep 1
     done
+
+    if [ -z "$ip_in_lxc" ]; then
+      msg_error "No IP assigned to CT $CTID after 20s"
+      exit 1
+    fi
+
+    # --- Step 2: Wait until gateway responds ---
+    for i in {1..20}; do
+      if pct exec "$CTID" -- ping -c1 -W1 "$GATEWAY" >/dev/null 2>&1; then
+        break
+      fi
+      sleep 1
+    done
+
+    if [ "$i" -eq 20 ]; then
+      msg_error "Gateway $GATEWAY unreachable from CT $CTID (IP $ip_in_lxc)"
+      exit 1
+    fi
+
+    # --- Step 3: DNS check ---
+    if pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1; then
+      msg_ok "Network in LXC is reachable (DNS OK, IP $ip_in_lxc)"
+    else
+      msg_warn "Network reachable (IP $ip_in_lxc), but DNS failed – applying fallback resolv.conf"
+      pct exec "$CTID" -- bash -c 'echo "nameserver 1.1.1.1" > /etc/resolv.conf && echo "nameserver 8.8.8.8" >> /etc/resolv.conf'
+      if pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1; then
+        msg_ok "Network reachable after DNS fallback"
+      else
+        msg_error "Still no DNS/network in LXC! Aborting customization."
+        exit_script
+      fi
+    fi
   fi
 
   msg_info "Customizing LXC Container"
