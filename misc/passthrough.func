@@ -23,20 +23,24 @@ select_hw_passthrough() {
   [[ -d /dev/dri ]] && choices+=("VAAPI" "Intel/AMD GPU via VAAPI" OFF)
   compgen -G "/dev/nvidia*" >/dev/null && choices+=("NVIDIA" "NVIDIA GPU passthrough" OFF)
 
+  # no GPUs found
   [[ ${#choices[@]} -eq 0 ]] && {
     msg_info "No GPU devices detected"
     return
   }
 
-  local HEIGHT WIDTH
-  HEIGHT=12
-  WIDTH=70
   local SELECTED
-  SELECTED=$(whiptail --title "GPU Passthrough" \
-    --checklist "Select GPU passthrough for CT $CTID:" $HEIGHT $WIDTH 2 \
-    "${choices[@]}" 3>&1 1>&2 2>&3) || return
+  if [[ ${#choices[@]} -eq 2 ]]; then
+    # both available → show whiptail
+    SELECTED=$(whiptail --title "GPU Passthrough" \
+      --checklist "Select GPU passthrough for CT $CTID:" 12 70 2 \
+      "${choices[@]}" 3>&1 1>&2 2>&3) || return
+  else
+    # only one option → auto-select
+    SELECTED="\"${choices[0]}\""
+    msg_info "Auto-selecting GPU passthrough: ${choices[0]}"
+  fi
 
-  # export flags for install.sh
   for sel in $SELECTED; do
     case "$sel" in
     "\"VAAPI\"")
@@ -51,7 +55,6 @@ select_hw_passthrough() {
   done
 }
 
-# Apps that benefit from GPU passthrough (VAAPI + NVIDIA)
 # Apps that benefit from GPU passthrough (VAAPI + NVIDIA)
 _GPU_APPS=(
   immich
