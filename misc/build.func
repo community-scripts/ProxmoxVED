@@ -2201,8 +2201,8 @@ EOF
 
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/passthrough.func)
   usb_handle_passthrough "$CTID" "$CT_TYPE"
-  vaapi_handle_passthrough "$CTID" "$CT_TYPE" "$APP"
-  nvidia_handle_passthrough "$CTID" "$CT_TYPE" "$APP"
+  vaapi_select_and_apply "$CTID" "$CT_TYPE"
+  nvidia_passthrough_to_lxc "$CTID" "$CT_TYPE"
 
   # TUN device passthrough
   if [ "$ENABLE_TUN" == "yes" ]; then
@@ -2276,9 +2276,10 @@ EOF
   fi
 
   msg_info "Customizing LXC Container"
-  # Container erfolgreich gestartet
-  vaapi_inside_setup "$CTID" "$CT_TYPE"
-  nvidia_inside_setup "$CTID" "$CT_TYPE"
+  if [ "$var_os" != "alpine" ]; then
+    vaapi_inside_setup "$CTID" "$CT_TYPE" "$APP"
+    nvidia_inside_setup "$CTID" "$CT_TYPE" "$APP"
+  fi
   if [ "$var_os" == "alpine" ]; then
     sleep 3
     pct exec "$CTID" -- /bin/sh -c 'cat <<EOF >/etc/apk/repositories
