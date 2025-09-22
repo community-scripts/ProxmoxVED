@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://github.com/seriousm4x/UpSnap
 
 APP="UpSnap"
-var_tags="${var_tags:-notes}"
+var_tags="${var_tags:-network}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
 var_disk="${var_disk:-1024}"
