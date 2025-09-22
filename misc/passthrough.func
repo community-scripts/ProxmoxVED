@@ -166,26 +166,34 @@ vaapi_select_and_apply() {
     return
   }
 
-  local items=() maxlen=0
-  for p in "${pairs[@]}"; do
-    local devs="${p%%$'\t'*}" label="${p#*$'\t'}"
-    items+=("$devs" "$label" "OFF")
-    ((${#label} > maxlen)) && maxlen=${#label}
-  done
-  read -r h w < <(_whiptail_dims $((${#items[@]} / 3)) "$maxlen")
-
+  # only one device -> auto-select
   local SELECTED
-  SELECTED="$(whiptail --title "VAAPI Device Selection" \
-    --checklist "Select VAAPI devices for CT $CTID:" "$h" "$w" 6 \
-    "${items[@]}" 3>&1 1>&2 2>&3)" || {
-    msg_warn "VAAPI selection cancelled."
-    return
-  }
-  [[ -z "$SELECTED" ]] && {
-    msg_warn "No VAAPI devices selected."
-    return
-  }
+  if [[ ${#pairs[@]} -eq 1 ]]; then
+    SELECTED="${pairs[0]%%$'\t'*}"
+    msg_info "Auto-selecting VAAPI device: ${pairs[0]#*$'\t'}"
+  else
+    # more than one device -> show whiptail
+    local items=() maxlen=0
+    for p in "${pairs[@]}"; do
+      local devs="${p%%$'\t'*}" label="${p#*$'\t'}"
+      items+=("$devs" "$label" "OFF")
+      ((${#label} > maxlen)) && maxlen=${#label}
+    done
+    read -r h w < <(_whiptail_dims $((${#items[@]} / 3)) "$maxlen")
 
+    SELECTED="$(whiptail --title "VAAPI Device Selection" \
+      --checklist "Select VAAPI devices for CT $CTID:" "$h" "$w" 6 \
+      "${items[@]}" 3>&1 1>&2 2>&3)" || {
+      msg_warn "VAAPI selection cancelled."
+      return
+    }
+    [[ -z "$SELECTED" ]] && {
+      msg_warn "No VAAPI devices selected."
+      return
+    }
+  fi
+
+  # Apply selection to LXC config
   local DID_MOUNT_DRI=0 idx=0
   for dev in $SELECTED; do
     dev="${dev%\"}"
@@ -209,6 +217,8 @@ vaapi_select_and_apply() {
       fi
     done
   done
+
+  # Fallback only for privileged CTs
   [[ "$CTTYPE" == "0" ]] && cat <<'EOF' >>"$LXC_CONFIG"
 # VAAPI fallback
 lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir
