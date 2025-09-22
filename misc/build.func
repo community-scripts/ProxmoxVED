@@ -2377,12 +2377,10 @@ EOF
   if [ "$var_os" != "alpine" ]; then
     msg_info "Waiting for network in LXC container"
 
-    # --- Step 1: Wait until the CT has an IP ---
+    # --- Step 1: Wait for IP ---
     for i in {1..20}; do
       ip_in_lxc=$(pct exec "$CTID" -- ip -4 addr show dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
-      if [ -n "$ip_in_lxc" ]; then
-        break
-      fi
+      [ -n "$ip_in_lxc" ] && break
       sleep 1
     done
 
@@ -2391,20 +2389,23 @@ EOF
       exit 1
     fi
 
-    # --- Step 2: Wait until gateway responds ---
-    for i in {1..20}; do
+    # --- Step 2: Try to reach gateway ---
+    gw_ok=0
+    for i in {1..10}; do
       if pct exec "$CTID" -- ping -c1 -W1 "$GATEWAY" >/dev/null 2>&1; then
+        gw_ok=1
         break
       fi
       sleep 1
     done
 
-    if [ "$i" -eq 20 ]; then
-      msg_error "Gateway $GATEWAY unreachable from CT $CTID (IP $ip_in_lxc)"
-      exit 1
+    if [ "$gw_ok" -eq 1 ]; then
+      msg_ok "CT $CTID gateway $GATEWAY reachable (IP $ip_in_lxc)"
+    else
+      msg_warn "CT $CTID has IP $ip_in_lxc but gateway $GATEWAY did not reply"
     fi
 
-    # --- Step 3: DNS check ---
+    # --- Step 3: DNS / Internet check ---
     if pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1; then
       msg_ok "Network in LXC is reachable (DNS OK, IP $ip_in_lxc)"
     else
