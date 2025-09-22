@@ -2215,139 +2215,304 @@ EOF
   done
 
   if [[ "$CT_TYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
-    VAAPI_DEVICES=()
-    SINGLE_VAAPI_DEVICE=""
-    seen_ids=()
+    # Standard: don’t include fb0 unless explicitly wanted
+    vaapi_select_and_apply "$CTID" "$CT_TYPE" || msg_warn "VAAPI setup skipped/partial."
+  fi
 
-    for bypath in /dev/dri/by-path/*-render /dev/dri/renderD*; do
-      [[ -e "$bypath" ]] || continue
-      dev_render=$(readlink -f "$bypath") || continue
-      id=$(basename "$dev_render")
-      [[ " ${seen_ids[*]} " == *" $id "* ]] && continue
-      seen_ids+=("$id")
+  # --- VAAPI: helper to resolve GID dynamically
+  _vaapi_gid() {
+    local g="$1" gid
+    gid="$(getent group "$g" | cut -d: -f3)"
+    if [[ -z "$gid" ]]; then
+      case "$g" in
+      video) echo 44 ;;   # default fallback
+      render) echo 104 ;; # default fallback
+      *) echo 44 ;;
+      esac
+    else
+      echo "$gid"
+    fi
+  }
 
-      card_index="${id#renderD}"
-      card="/dev/dri/card${card_index}"
-      combo_devices=("$dev_render")
-      if [[ "${#combo_devices[@]}" -eq 1 && -e /dev/dri/card0 ]]; then
-        combo_devices+=("/dev/dri/card0")
+  # --- VAAPI: detect devices, dedupe, pretty labels
+  _vaapi_pairs() {
+    local seen=() by real id idx card pci pci_info name
+    shopt -s nullglob
+    for by in /dev/dri/by-path/*-render /dev/dri/renderD*; do
+      [[ -e "$by" ]] || continue
+      real="$(readlink -f "$by" || true)"
+      [[ -e "$real" ]] || continue
+      id="$(basename "$real")"
+      if [[ " ${seen[*]} " == *" $id "* ]]; then
+        continue
       fi
-      #echo "combo_devices=${combo_devices[*]}"
+      seen+=("$id")
 
-      pci_addr=$(basename "$bypath" | cut -d- -f1 --complement | sed 's/-render//' || true)
-      pci_info=$(lspci -nn | grep "${pci_addr#0000:}" || true)
-      name="${pci_info#*: }"
-      [[ -z "$name" ]] && name="Unknown GPU ($pci_addr)"
+      idx="${id#renderD}"
+      if [[ "$idx" =~ ^[0-9]+$ ]]; then
+        idx=$((idx - 128))
+      else
+        idx=0
+      fi
+      card="/dev/dri/card${idx}"
+      [[ -e "$card" ]] || card=""
 
-      label="$(basename "$dev_render")"
-      [[ -e "$card" ]] && label+=" + $(basename "$card")"
-      label+=" – $name"
-      msg_debug "[VAAPI DEBUG] Adding VAAPI combo: ${combo_devices[*]} ($label)"
+      if [[ "$by" == *"/by-path/"* ]]; then
+        pci="$(basename "$by" | sed -E 's/^pci-([0-9a-fA-F:.]+)-render/\1/')"
+        pci_info="$(lspci -nn 2>/dev/null | grep -i "${pci#0000:}" || true)"
+        name="${pci_info#*: }"
+        [[ -z "$name" ]] && name="GPU ${pci}"
+      else
+        name="DRM $(basename "$real")"
+      fi
 
-      VAAPI_DEVICES+=("$(
-        IFS=:
-        echo "${combo_devices[*]}"
-      )" "$label" "OFF")
+      label="$(basename "$real")"
+      [[ -n "$card" ]] && label+=" + $(basename "$card")"
+      label+=" – ${name}"
+
+      printf "%s:%s\t%s\n" "$real" "$card" "$label"
     done
+    shopt -u nullglob
+  }
 
-    [[ -e /dev/fb0 ]] && VAAPI_DEVICES+=("/dev/fb0" "fb0 - Framebuffer" "OFF")
+  # --- VAAPI: whiptail dimension helper
+  _whiptail_dims() {
+    local n="$1" L="$2"
+    local maxW=$((L + 8))
+    ((maxW < 70)) && maxW=70
+    ((maxW > 100)) && maxW=100
+    local H=$((10 + n * 2))
+    ((H > 22)) && H=22
+    echo "$H $maxW"
+  }
 
-    GID_VIDEO=$(getent group video | cut -d: -f3)
-    GID_RENDER=$(getent group render | cut -d: -f3)
-    [[ -z "$GID_VIDEO" ]] && GID_VIDEO=44 && msg_warn "'video' group not found, falling back to GID 44"
-    [[ -z "$GID_RENDER" ]] && GID_RENDER=104 && msg_warn "'render' group not found, falling back to GID 104"
+  # --- VAAPI: main selector and config writer
+  vaapi_select_and_apply() {
+    local CTID="$1" CTTYPE="$2"
+    local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
 
-    if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
-      msg_warn "No VAAPI-compatible devices found."
-    elif [[ "${#VAAPI_DEVICES[@]}" -eq 3 ]]; then
-      #msg_info "Only one VAAPI-compatible device found – enabling passthrough."
+    local pairs=() items=() maxlen=0 n h w
+    mapfile -t pairs < <(_vaapi_pairs)
 
-      IFS=":" read -ra devices <<<"${VAAPI_DEVICES[0]//\"/}"
-      IDX=0
-      DID_MOUNT_DRI=0
+    if ((${#pairs[@]} == 0)); then
+      msg_warn "No VAAPI devices detected – skipping passthrough."
+      return 0
+    fi
 
-      for d in "${devices[@]}"; do
-        if [[ "$CT_TYPE" == "0" ]]; then
+    for p in "${pairs[@]}"; do
+      local devs="${p%%$'\t'*}"
+      local label="${p#*$'\t'}"
+      items+=("$devs" "$label" "OFF")
+      ((${#label} > maxlen)) && maxlen=${#label}
+    done
+    n=$((${#items[@]} / 3))
+    read -r h w < <(_whiptail_dims "$n" "$maxlen")
+
+    if [[ "$CTTYPE" == "0" ]]; then
+      whiptail --title "VAAPI passthrough" --msgbox "\
+VAAPI passthrough will be enabled.
+
+• Privileged CT: full DRM access
+• You may need to install drivers inside the container
+  (e.g. intel-media-driver, vainfo)." 12 "$w"
+    else
+      whiptail --title "VAAPI passthrough (unprivileged)" --msgbox "\
+Unprivileged CT: VAAPI may be limited.
+
+If it fails, consider using a privileged container.
+You may still need drivers inside the CT." 12 "$w"
+    fi
+
+    local SELECTED
+    SELECTED="$(
+      whiptail --title "VAAPI Device Selection" \
+        --checklist "Select GPU / VAAPI device(s) to passthrough:" "$h" "$w" "$((n > 6 ? 6 : n))" \
+        "${items[@]}" 3>&1 1>&2 2>&3
+    )" || {
+      msg_warn "VAAPI selection cancelled."
+      return 0
+    }
+
+    [[ -z "$SELECTED" ]] && {
+      msg_warn "No devices selected – skipping passthrough."
+      return 0
+    }
+
+    local DID_MOUNT_DRI=0 idx=0
+    for dev in $SELECTED; do
+      dev="${dev%\"}"
+      dev="${dev#\"}"
+      IFS=":" read -r path card <<<"$dev"
+      for d in "$path" "$card"; do
+        [[ -n "$d" && -e "$d" ]] || continue
+        if [[ "$CTTYPE" == "0" ]]; then
           if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
             echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
             DID_MOUNT_DRI=1
           fi
-          if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
+          if mm=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}'); then
+            echo "lxc.cgroup2.devices.allow: c $mm rwm" >>"$LXC_CONFIG"
+            echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
+          else
             msg_warn "Could not stat $d – skipping."
-            continue
           fi
-          echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
-          echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
         else
-          GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
-          echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
-          IDX=$((IDX + 1))
+          local gid
+          if [[ "$d" =~ renderD ]]; then
+            gid="$(_vaapi_gid render)"
+          else
+            gid="$(_vaapi_gid video)"
+          fi
+          echo "dev${idx}: $d,gid=${gid}" >>"$LXC_CONFIG"
+          idx=$((idx + 1))
         fi
       done
+    done
 
-    else
-      if [[ "$CT_TYPE" == "0" ]]; then
-        whiptail --title "VAAPI passthrough" --msgbox "\
-✅ VAAPI passthrough has been enabled
-
-GPU hardware acceleration will be available inside the container
-(e.g., for Jellyfin, Plex, Frigate, etc.)
-
-ℹ️  Note: You may need to install drivers manually inside the container,
-such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
-      else
-        whiptail --title "VAAPI passthrough (limited)" --msgbox "\
-⚠️  VAAPI passthrough in unprivileged containers may be limited
-
-Some drivers (e.g., iHD) require privileged access to DRM subsystems.
-If VAAPI fails, consider switching to a privileged container.
-
-ℹ️  Note: You may need to install drivers manually inside the container,
-such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
-      fi
-
-      SELECTED_DEVICES=$(whiptail --title "VAAPI Device Selection" \
-        --checklist "Select VAAPI device(s) / GPU(s) to passthrough:" 20 100 6 \
-        "${VAAPI_DEVICES[@]}" 3>&1 1>&2 2>&3)
-
-      if [[ $? -ne 0 ]]; then
-        exit_script
-        msg_error "VAAPI passthrough selection cancelled by user."
-      fi
-
-      if [[ -n "$SELECTED_DEVICES" ]]; then
-        IDX=0
-        DID_MOUNT_DRI=0
-        for dev in $SELECTED_DEVICES; do
-          dev="${dev%\"}"
-          dev="${dev#\"}" # strip quotes
-          IFS=":" read -ra devices <<<"$dev"
-          msg_debug "[VAAPI DEBUG] Autopassthrough for devices: ${devices[*]}"
-          for d in "${devices[@]}"; do
-            if [[ "$CT_TYPE" == "0" ]]; then
-              if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
-                echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-                DID_MOUNT_DRI=1
-              fi
-              if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
-                msg_warn "Could not stat $d – skipping."
-                continue
-              fi
-              echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
-              echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
-            else
-              GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
-
-              echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
-              IDX=$((IDX + 1))
-            fi
-          done
-        done
-      else
-        msg_warn "No VAAPI devices selected – passthrough skipped."
-      fi
+    # Fallback if card0/card1 flip causes missing nodes
+    if [[ "$CTTYPE" == "0" ]]; then
+      cat <<'EOF' >>"$LXC_CONFIG"
+# VAAPI fallback: bind /dev/dri if specific nodes are missing
+lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir
+lxc.cgroup2.devices.allow: c 226:* rwm
+EOF
     fi
-  fi
+  }
+
+  #   if [[ "$CT_TYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
+  #     VAAPI_DEVICES=()
+  #     SINGLE_VAAPI_DEVICE=""
+  #     seen_ids=()
+
+  #     for bypath in /dev/dri/by-path/*-render /dev/dri/renderD*; do
+  #       [[ -e "$bypath" ]] || continue
+  #       dev_render=$(readlink -f "$bypath") || continue
+  #       id=$(basename "$dev_render")
+  #       [[ " ${seen_ids[*]} " == *" $id "* ]] && continue
+  #       seen_ids+=("$id")
+
+  #       card_index="${id#renderD}"
+  #       card="/dev/dri/card${card_index}"
+  #       combo_devices=("$dev_render")
+  #       if [[ "${#combo_devices[@]}" -eq 1 && -e /dev/dri/card0 ]]; then
+  #         combo_devices+=("/dev/dri/card0")
+  #       fi
+  #       #echo "combo_devices=${combo_devices[*]}"
+
+  #       pci_addr=$(basename "$bypath" | cut -d- -f1 --complement | sed 's/-render//' || true)
+  #       pci_info=$(lspci -nn | grep "${pci_addr#0000:}" || true)
+  #       name="${pci_info#*: }"
+  #       [[ -z "$name" ]] && name="Unknown GPU ($pci_addr)"
+
+  #       label="$(basename "$dev_render")"
+  #       [[ -e "$card" ]] && label+=" + $(basename "$card")"
+  #       label+=" – $name"
+  #       msg_debug "[VAAPI DEBUG] Adding VAAPI combo: ${combo_devices[*]} ($label)"
+
+  #       VAAPI_DEVICES+=("$(
+  #         IFS=:
+  #         echo "${combo_devices[*]}"
+  #       )" "$label" "OFF")
+  #     done
+
+  #     [[ -e /dev/fb0 ]] && VAAPI_DEVICES+=("/dev/fb0" "fb0 - Framebuffer" "OFF")
+
+  #     GID_VIDEO=$(getent group video | cut -d: -f3)
+  #     GID_RENDER=$(getent group render | cut -d: -f3)
+  #     [[ -z "$GID_VIDEO" ]] && GID_VIDEO=44 && msg_warn "'video' group not found, falling back to GID 44"
+  #     [[ -z "$GID_RENDER" ]] && GID_RENDER=104 && msg_warn "'render' group not found, falling back to GID 104"
+
+  #     if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
+  #       msg_warn "No VAAPI-compatible devices found."
+  #     elif [[ "${#VAAPI_DEVICES[@]}" -eq 3 ]]; then
+  #       #msg_info "Only one VAAPI-compatible device found – enabling passthrough."
+
+  #       IFS=":" read -ra devices <<<"${VAAPI_DEVICES[0]//\"/}"
+  #       IDX=0
+  #       DID_MOUNT_DRI=0
+
+  #       for d in "${devices[@]}"; do
+  #         if [[ "$CT_TYPE" == "0" ]]; then
+  #           if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
+  #             echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+  #             DID_MOUNT_DRI=1
+  #           fi
+  #           if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
+  #             msg_warn "Could not stat $d – skipping."
+  #             continue
+  #           fi
+  #           echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
+  #           echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
+  #         else
+  #           GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
+  #           echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
+  #           IDX=$((IDX + 1))
+  #         fi
+  #       done
+
+  #     else
+  #       if [[ "$CT_TYPE" == "0" ]]; then
+  #         whiptail --title "VAAPI passthrough" --msgbox "\
+  # ✅ VAAPI passthrough has been enabled
+
+  # GPU hardware acceleration will be available inside the container
+  # (e.g., for Jellyfin, Plex, Frigate, etc.)
+
+  # ℹ️  Note: You may need to install drivers manually inside the container,
+  # such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
+  #       else
+  #         whiptail --title "VAAPI passthrough (limited)" --msgbox "\
+  # ⚠️  VAAPI passthrough in unprivileged containers may be limited
+
+  # Some drivers (e.g., iHD) require privileged access to DRM subsystems.
+  # If VAAPI fails, consider switching to a privileged container.
+
+  # ℹ️  Note: You may need to install drivers manually inside the container,
+  # such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
+  #       fi
+
+  #       SELECTED_DEVICES=$(whiptail --title "VAAPI Device Selection" \
+  #         --checklist "Select VAAPI device(s) / GPU(s) to passthrough:" 20 100 6 \
+  #         "${VAAPI_DEVICES[@]}" 3>&1 1>&2 2>&3)
+
+  #       if [[ $? -ne 0 ]]; then
+  #         exit_script
+  #         msg_error "VAAPI passthrough selection cancelled by user."
+  #       fi
+
+  #       if [[ -n "$SELECTED_DEVICES" ]]; then
+  #         IDX=0
+  #         DID_MOUNT_DRI=0
+  #         for dev in $SELECTED_DEVICES; do
+  #           dev="${dev%\"}"
+  #           dev="${dev#\"}" # strip quotes
+  #           IFS=":" read -ra devices <<<"$dev"
+  #           msg_debug "[VAAPI DEBUG] Autopassthrough for devices: ${devices[*]}"
+  #           for d in "${devices[@]}"; do
+  #             if [[ "$CT_TYPE" == "0" ]]; then
+  #               if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
+  #                 echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+  #                 DID_MOUNT_DRI=1
+  #               fi
+  #               if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
+  #                 msg_warn "Could not stat $d – skipping."
+  #                 continue
+  #               fi
+  #               echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
+  #               echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
+  #             else
+  #               GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
+
+  #               echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
+  #               IDX=$((IDX + 1))
+  #             fi
+  #           done
+  #         done
+  #       else
+  #         msg_warn "No VAAPI devices selected – passthrough skipped."
+  #       fi
+  #     fi
+  #   fi
 
   # TUN device passthrough
   if [ "$ENABLE_TUN" == "yes" ]; then
