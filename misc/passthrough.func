@@ -180,15 +180,28 @@ EOF
 vaapi_handle_passthrough() {
   local CTID="$1" CTTYPE="$2" APP="$3"
 
-  # Allowlist of apps that benefit from VAAPI even in unpriv CTs
   local VAAPI_APPS=(immich Channels Emby ErsatzTV Frigate Jellyfin Plex Scrypted Tdarr Unmanic Ollama FileFlows "Open WebUI" Tunarr Debian)
   local is_vaapi_app=false a
   for a in "${VAAPI_APPS[@]}"; do [[ "$APP" == "$a" ]] && is_vaapi_app=true && break; done
 
   if [[ "$CTTYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
+    # 1. write config
     vaapi_select_and_apply "$CTID" "$CTTYPE"
 
-    # Run userland install inside CT via pct exec
+    # 2. ensure CT is running
+    if ! pct status "$CTID" | grep -q "status: running"; then
+      msg_info "Starting CT $CTID for VAAPI setup"
+      pct start "$CTID"
+      for i in {1..10}; do
+        if pct status "$CTID" | grep -q "status: running"; then
+          msg_ok "CT $CTID is running"
+          break
+        fi
+        sleep 1
+      done
+    fi
+
+    # 3. run setup inside CT
     pct exec "$CTID" -- bash -lc "_hwaccel_setup_in_ct '$CTTYPE'"
   fi
 }
