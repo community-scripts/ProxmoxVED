@@ -2091,3 +2091,80 @@ check_for_gh_release() {
     return 1
   fi
 }
+
+# ------------------------------------------------------------------------------
+# Hardware acceleration setup inside container
+# Works with: Debian 12 (bookworm), Debian 13 (trixie), Ubuntu 24.04 (noble)
+# Usage: hwaccel_setup_in_ct <CTTYPE 0|1> [--nonfree-intel]
+# ------------------------------------------------------------------------------
+
+hwaccel_setup_in_ct() {
+  local CTTYPE="$1" NONFREE=0
+  [[ "$2" == "--nonfree-intel" ]] && NONFREE=1
+
+  # Detect OS info inside the container
+  local ID VERSION_CODENAME
+  if [[ -r /etc/os-release ]]; then
+    . /etc/os-release
+  fi
+  ID="${ID:-debian}"
+  VERSION_CODENAME="${VERSION_CODENAME:-bookworm}"
+
+  msg_info "Setting up hardware acceleration for ${ID^} ($VERSION_CODENAME)"
+
+  case "$ID" in
+  debian | ubuntu)
+    if ((NONFREE)) && [[ "$VERSION_CODENAME" =~ (trixie|noble) ]]; then
+      # Debian 13 / Ubuntu 24.04 → non-free Intel driver
+      cat >/etc/apt/sources.list.d/non-free.sources <<'SRC'
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: trixie
+Components: non-free non-free-firmware
+
+Types: deb deb-src
+URIs: http://deb.debian.org/debian-security
+Suites: trixie-security
+Components: non-free non-free-firmware
+
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: trixie-updates
+Components: non-free non-free-firmware
+SRC
+
+      $STD apt-get update
+      $STD apt-get install -y \
+        intel-media-va-driver-non-free \
+        ocl-icd-libopencl1 \
+        mesa-opencl-icd \
+        mesa-va-drivers \
+        libvpl2 \
+        vainfo \
+        intel-gpu-tools
+    else
+      # Debian 12 (bookworm) and fallback for Debian 13/Ubuntu 24.04 without non-free
+      $STD apt-get update
+      $STD apt-get install -y \
+        va-driver-all \
+        ocl-icd-libopencl1 \
+        mesa-opencl-icd \
+        mesa-va-drivers \
+        vainfo \
+        intel-gpu-tools
+    fi
+    ;;
+  *)
+    msg_warn "Unsupported distribution ($ID $VERSION_CODENAME) – skipping HW accel setup"
+    return 0
+    ;;
+  esac
+
+  # Add current user to video/render groups (only for privileged CTs)
+  if [[ "$CTTYPE" == "0" ]]; then
+    $STD adduser "$(id -un)" video || true
+    $STD adduser "$(id -un)" render || true
+  fi
+
+  msg_ok "Hardware acceleration is ready"
+}
