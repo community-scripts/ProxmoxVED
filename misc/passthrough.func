@@ -181,28 +181,41 @@ vaapi_handle_passthrough() {
   local CTID="$1" CTTYPE="$2" APP="$3"
 
   local VAAPI_APPS=(immich Channels Emby ErsatzTV Frigate Jellyfin Plex Scrypted Tdarr Unmanic Ollama FileFlows "Open WebUI" Tunarr Debian)
-  local is_vaapi_app=false a
+  local is_vaapi_app=false
   for a in "${VAAPI_APPS[@]}"; do [[ "$APP" == "$a" ]] && is_vaapi_app=true && break; done
 
   if [[ "$CTTYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
-    # 1. write config
     vaapi_select_and_apply "$CTID" "$CTTYPE"
 
-    # 2. ensure CT is running
-    if ! pct status "$CTID" | grep -q "status: running"; then
-      msg_info "Starting CT $CTID for VAAPI setup"
+    # ensure CT is running
+    if ! pct status "$CTID" | grep -q running; then
       pct start "$CTID"
       for i in {1..10}; do
-        if pct status "$CTID" | grep -q "status: running"; then
-          msg_ok "CT $CTID is running"
-          break
-        fi
+        pct status "$CTID" | grep -q running && break
         sleep 1
       done
     fi
 
-    # 3. run setup inside CT
-    pct exec "$CTID" -- bash -lc "_hwaccel_setup_in_ct '$CTTYPE'"
+    # run apt install directly inside CT
+    pct exec "$CTID" -- bash -lc '
+      . /etc/os-release
+      case "$VERSION_CODENAME" in
+        trixie|noble)
+          apt-get update
+          apt-get install -y intel-media-va-driver-non-free ocl-icd-libopencl1 \
+            mesa-opencl-icd mesa-va-drivers libvpl2 vainfo intel-gpu-tools
+          ;;
+        *)
+          apt-get update
+          apt-get install -y va-driver-all ocl-icd-libopencl1 \
+            mesa-opencl-icd mesa-va-drivers vainfo intel-gpu-tools
+          ;;
+      esac
+      if [[ "'"$CTTYPE"'" == "0" ]]; then
+        adduser "$(id -un)" video || true
+        adduser "$(id -un)" render || true
+      fi
+    '
   fi
 }
 
@@ -238,32 +251,29 @@ nvidia_passthrough_to_lxc() {
 nvidia_handle_passthrough() {
   local CTID="$1" CTTYPE="$2" APP="$3"
 
-  # Only offer if NVIDIA devices exist on host
   compgen -G "/dev/nvidia*" >/dev/null || return 0
 
   if whiptail --title "NVIDIA passthrough" \
-    --yesno "NVIDIA GPU detected on host.\n\nMap /dev/nvidia* into CT ${CTID} and install NVIDIA userland inside the container?" 12 70; then
+    --yesno "NVIDIA GPU detected. Map /dev/nvidia* into CT $CTID and install drivers inside?" 12 70; then
 
-    # 1. Host: map devices into LXC config
     nvidia_passthrough_to_lxc "$CTID" "$CTTYPE"
 
-    # 2. CT must be running before pct exec
-    if ! pct status "$CTID" | grep -q "status: running"; then
-      msg_info "Starting CT $CTID for NVIDIA setup"
+    if ! pct status "$CTID" | grep -q running; then
       pct start "$CTID"
       for i in {1..10}; do
-        if pct status "$CTID" | grep -q "status: running"; then
-          break
-        fi
+        pct status "$CTID" | grep -q running && break
         sleep 1
       done
     fi
 
-    # 3. Run NVIDIA setup inside CT
-    pct exec "$CTID" -- bash -lc "_nvidia_setup_in_ct '$CTTYPE'"
-
-  else
-    msg_warn "Skipped NVIDIA passthrough by user choice."
+    pct exec "$CTID" -- bash -lc '
+      . /etc/os-release
+      apt-get update
+      apt-get install -y nvidia-driver nvidia-utils libnvidia-encode1 libcuda1
+      if [[ "'"$CTTYPE"'" == "0" ]]; then
+        adduser "$(id -un)" video || true
+      fi
+    '
   fi
 }
 

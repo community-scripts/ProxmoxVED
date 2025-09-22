@@ -2276,6 +2276,9 @@ EOF
   fi
 
   msg_info "Customizing LXC Container"
+  # Container erfolgreich gestartet
+  vaapi_inside_setup "$CTID" "$CT_TYPE"
+  nvidia_inside_setup "$CTID" "$CT_TYPE"
   if [ "$var_os" == "alpine" ]; then
     sleep 3
     pct exec "$CTID" -- /bin/sh -c 'cat <<EOF >/etc/apk/repositories
