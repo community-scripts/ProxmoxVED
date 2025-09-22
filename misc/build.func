@@ -2276,10 +2276,10 @@ EOF
   fi
 
   msg_info "Customizing LXC Container"
-  if [ "$var_os" != "alpine" ]; then
-    vaapi_inside_setup "$CTID" "$CT_TYPE" "$APP"
-    nvidia_inside_setup "$CTID" "$CT_TYPE" "$APP"
-  fi
+  #if [ "$var_os" != "alpine" ]; then
+  #  vaapi_inside_setup "$CTID" "$CT_TYPE" "$APP"
+  #  nvidia_inside_setup "$CTID" "$CT_TYPE" "$APP"
+  #fi
   if [ "$var_os" == "alpine" ]; then
     sleep 3
     pct exec "$CTID" -- /bin/sh -c 'cat <<EOF >/etc/apk/repositories

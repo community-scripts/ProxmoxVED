@@ -17,6 +17,9 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y gpg
 msg_ok "Installed Dependencies"
 
+vaapi_inside_setup "$CTID" "$CT_TYPE" "$APP"
+nvidia_inside_setup "$CTID" "$CT_TYPE" "$APP"
+
 #setup_mariadb
 
 #FFMPEG_VERSION="n7.1.1" FFMPEG_TYPE="full" setup_ffmpeg
