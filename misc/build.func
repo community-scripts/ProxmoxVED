@@ -2301,18 +2301,37 @@ EOF'
 }
 
 destroy_lxc() {
-  if [[ -n "$CT_ID" ]]; then
-    read -p "Remove this Container? <y/N> " prompt
-    if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-      pct stop "$CT_ID" &>/dev/null
-      pct destroy "$CT_ID" &>/dev/null
-      msg_ok "Removed this Container"
-    else
-      msg_info "Container was not removed."
-    fi
-  else
+  if [[ -z "$CT_ID" ]]; then
     msg_error "No CT_ID found. Nothing to remove."
+    return 1
   fi
+
+  # Abbruch bei Ctrl-C / Ctrl-D / ESC
+  trap 'echo; msg_error "Aborted by user (SIGINT/SIGQUIT)"; return 130' INT QUIT
+
+  local prompt
+  if ! read -rp "Remove this Container? <y/N> " prompt; then
+    # read gibt != 0 zurück bei Ctrl-D/ESC
+    msg_error "Aborted input (Ctrl-D/ESC)"
+    return 130
+  fi
+
+  case "${prompt,,}" in
+  y | yes)
+    if pct stop "$CT_ID" &>/dev/null && pct destroy "$CT_ID" &>/dev/null; then
+      msg_ok "Removed Container $CT_ID"
+    else
+      msg_error "Failed to remove Container $CT_ID"
+      return 1
+    fi
+    ;;
+  "" | n | no)
+    msg_info "Container was not removed."
+    ;;
+  *)
+    msg_warn "Invalid response. Container was not removed."
+    ;;
+  esac
 }
 
 # ------------------------------------------------------------------------------
