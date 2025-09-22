@@ -19,6 +19,10 @@ select_hw_passthrough() {
   local CTID="$1" CTTYPE="$2" APP="$3"
   local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
 
+  if ! _is_gpu_app "$APP" && [[ "$CTTYPE" != "0" ]]; then
+    return
+  fi
+
   local choices=()
   [[ -d /dev/dri ]] && choices+=("VAAPI" "Intel/AMD GPU via VAAPI" OFF)
   compgen -G "/dev/nvidia*" >/dev/null && choices+=("NVIDIA" "NVIDIA GPU passthrough" OFF)
@@ -58,21 +62,32 @@ select_hw_passthrough() {
 # Apps that benefit from GPU passthrough (VAAPI + NVIDIA)
 _GPU_APPS=(
   immich
-  Channels
-  Emby
-  ErsatzTV
-  Frigate
-  Jellyfin
-  Plex
-  Scrypted
-  Tdarr
-  Unmanic
-  Ollama
-  FileFlows
-  "Open WebUI"
-  Tunarr
-  Debian
+  channels
+  emby
+  ersatztv
+  frigate
+  jellyfin
+  plex
+  scrypted
+  tdarr
+  unmanic
+  ollama
+  fileflows
+  "open webui"
+  tunarr
+  debian
 )
+
+_is_gpu_app() {
+  local app="$1"
+  local a
+  shopt -s nocasematch
+  for a in "${_GPU_APPS[@]}"; do
+    [[ "$app" == "$a" ]] && shopt -u nocasematch && return 0
+  done
+  shopt -u nocasematch
+  return 1
+}
 
 # ------------------------------ USB -------------------------------------------
 
