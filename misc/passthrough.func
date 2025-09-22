@@ -1,0 +1,236 @@
+#!/usr/bin/env bash
+# passthrough.func — host-side passthrough logic (VAAPI & NVIDIA) for LXC
+# This file ONLY touches host config (/etc/pve/lxc/<CTID>.conf) and whiptail.
+# Inside-CT package setup lives in tools.func (hwaccel_setup_in_ct / nvidia_setup_in_ct).
+
+# --------------------------- Common helpers -----------------------------------
+
+_whiptail_dims() {
+  local n="$1" L="$2"
+  local maxW=$((L + 8))
+  ((maxW < 70)) && maxW=70
+  ((maxW > 100)) && maxW=100
+  local H=$((10 + n * 2))
+  ((H > 22)) && H=22
+  echo "$H $maxW"
+}
+
+# ------------------------------ USB -------------------------------------------
+
+usb_handle_passthrough() {
+  local CTID="$1" CTTYPE="$2"
+  local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
+
+  [[ "$CTTYPE" != "0" ]] && return 0 # USB passthrough only for privileged CTs
+
+  cat <<EOF >>"$LXC_CONFIG"
+# USB passthrough
+lxc.cgroup2.devices.allow: a
+lxc.cap.drop:
+lxc.cgroup2.devices.allow: c 188:* rwm
+lxc.cgroup2.devices.allow: c 189:* rwm
+lxc.mount.entry: /dev/serial/by-id  dev/serial/by-id  none bind,optional,create=dir
+lxc.mount.entry: /dev/ttyUSB0       dev/ttyUSB0       none bind,optional,create=file
+lxc.mount.entry: /dev/ttyUSB1       dev/ttyUSB1       none bind,optional,create=file
+lxc.mount.entry: /dev/ttyACM0       dev/ttyACM0       none bind,optional,create=file
+lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=file
+EOF
+}
+
+# ------------------------------ VAAPI -----------------------------------------
+
+_vaapi_gid() {
+  local g="$1" gid
+  gid="$(getent group "$g" | cut -d: -f3)"
+  if [[ -z "$gid" ]]; then
+    case "$g" in
+    video) echo 44 ;;
+    render) echo 104 ;;
+    *) echo 44 ;;
+    esac
+  else
+    echo "$gid"
+  fi
+}
+
+_vaapi_pairs() {
+  local seen=() by real id idx card pci pci_info name
+  shopt -s nullglob
+  for by in /dev/dri/by-path/*-render /dev/dri/renderD*; do
+    [[ -e "$by" ]] || continue
+    real="$(readlink -f "$by" || true)"
+    [[ -e "$real" ]] || continue
+    id="$(basename "$real")"
+    [[ " ${seen[*]} " == *" $id "* ]] && continue
+    seen+=("$id")
+
+    idx="${id#renderD}"
+    if [[ "$idx" =~ ^[0-9]+$ ]]; then
+      idx=$((idx - 128))
+    else
+      idx=0
+    fi
+    card="/dev/dri/card${idx}"
+    [[ -e "$card" ]] || card=""
+
+    if [[ "$by" == *"/by-path/"* ]]; then
+      pci="$(basename "$by" | sed -E 's/^pci-([0-9a-fA-F:.]+)-render/\1/')"
+      pci_info="$(lspci -nn 2>/dev/null | grep -i "${pci#0000:}" || true)"
+      name="${pci_info#*: }"
+      [[ -z "$name" ]] && name="GPU ${pci}"
+    else
+      name="DRM $(basename "$real")"
+    fi
+
+    label="$(basename "$real")"
+    [[ -n "$card" ]] && label+=" + $(basename "$card")"
+    label+=" – ${name}"
+
+    printf "%s:%s\t%s\n" "$real" "$card" "$label"
+  done
+  shopt -u nullglob
+}
+
+vaapi_select_and_apply() {
+  local CTID="$1" CTTYPE="$2"
+  local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
+
+  local pairs=() items=() maxlen=0 n h w
+  mapfile -t pairs < <(_vaapi_pairs)
+
+  if ((${#pairs[@]} == 0)); then
+    msg_warn "No VAAPI devices detected – skipping."
+    return 0
+  fi
+
+  for p in "${pairs[@]}"; do
+    local devs="${p%%$'\t'*}"
+    local label="${p#*$'\t'}"
+    items+=("$devs" "$label" "OFF")
+    ((${#label} > maxlen)) && maxlen=${#label}
+  done
+  n=$((${#items[@]} / 3))
+  read -r h w < <(_whiptail_dims "$n" "$maxlen")
+
+  if [[ "$CTTYPE" == "0" ]]; then
+    whiptail --title "VAAPI passthrough" --msgbox "\
+VAAPI passthrough will be enabled.
+
+• Privileged CT: full DRM access
+• You may need to install drivers inside the CT (intel-media-driver, vainfo)." 12 "$w"
+  else
+    whiptail --title "VAAPI passthrough (unprivileged)" --msgbox "\
+Unprivileged CT: VAAPI may be limited.
+
+If it fails, consider a privileged CT. You may still need drivers inside the CT." 12 "$w"
+  fi
+
+  local SELECTED
+  SELECTED="$(
+    whiptail --title "VAAPI Device Selection" \
+      --checklist "Select GPU / VAAPI device(s) to passthrough:" "$h" "$w" "$((n > 6 ? 6 : n))" \
+      "${items[@]}" 3>&1 1>&2 2>&3
+  )" || {
+    msg_warn "VAAPI selection cancelled."
+    return 0
+  }
+
+  [[ -z "$SELECTED" ]] && {
+    msg_warn "No devices selected – skipping."
+    return 0
+  }
+
+  local DID_MOUNT_DRI=0 idx=0
+  for dev in $SELECTED; do
+    dev="${dev%\"}"
+    dev="${dev#\"}"
+    IFS=":" read -r path card <<<"$dev"
+    for d in "$path" "$card"; do
+      [[ -n "$d" && -e "$d" ]] || continue
+      if [[ "$CTTYPE" == "0" ]]; then
+        if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
+          echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+          DID_MOUNT_DRI=1
+        fi
+        if mm=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}'); then
+          echo "lxc.cgroup2.devices.allow: c $mm rwm" >>"$LXC_CONFIG"
+          echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
+        else
+          msg_warn "Could not stat $d – skipping."
+        fi
+      else
+        local gid
+        if [[ "$d" =~ renderD ]]; then gid="$(_vaapi_gid render)"; else gid="$(_vaapi_gid video)"; fi
+        echo "dev${idx}: $d,gid=${gid}" >>"$LXC_CONFIG"
+        idx=$((idx + 1))
+      fi
+    done
+  done
+
+  # fallback for card0/card1 flip
+  if [[ "$CTTYPE" == "0" ]]; then
+    cat <<'EOF' >>"$LXC_CONFIG"
+# VAAPI fallback: bind /dev/dri and allow 226:* to survive node flips
+lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir
+lxc.cgroup2.devices.allow: c 226:* rwm
+EOF
+  fi
+}
+
+vaapi_handle_passthrough() {
+  local CTID="$1" CTTYPE="$2" APP="$3"
+
+  # Allowlist of apps that benefit from VAAPI even in unpriv CTs
+  local VAAPI_APPS=(immich Channels Emby ErsatzTV Frigate Jellyfin Plex Scrypted Tdarr Unmanic Ollama FileFlows "Open WebUI" Tunarr Debian)
+  local is_vaapi_app=false a
+  for a in "${VAAPI_APPS[@]}"; do [[ "$APP" == "$a" ]] && is_vaapi_app=true && break; done
+
+  if [[ "$CTTYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
+    vaapi_select_and_apply "$CTID" "$CTTYPE"
+  fi
+}
+
+# ----------------------------- NVIDIA -----------------------------------------
+
+nvidia_passthrough_to_lxc() {
+  local CTID="$1" CTTYPE="${2:-0}"
+  local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
+  local found=0 dev mm
+
+  for dev in /dev/nvidia0 /dev/nvidia1 /dev/nvidiactl /dev/nvidia-uvm /dev/nvidia-uvm-tools /dev/nvidia-modeset; do
+    [[ -e "$dev" ]] || continue
+    found=1
+    if mm="$(stat -c '%t:%T' "$dev" 2>/dev/null | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}')"; then
+      echo "lxc.cgroup2.devices.allow: c $mm rwm" >>"$LXC_CONFIG"
+      echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
+    fi
+  done
+
+  if [[ "$found" -eq 0 ]]; then
+    msg_warn "No /dev/nvidia* devices found on host; skipping NVIDIA passthrough."
+    return 0
+  fi
+
+  # optional: expose /dev/dri for apps probing VAAPI; harmless with NVIDIA
+  if [[ -d /dev/dri && "$CTTYPE" == "0" ]]; then
+    echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+  fi
+
+  msg_ok "NVIDIA devices mapped to CT ${CTID}"
+}
+
+nvidia_handle_passthrough() {
+  local CTID="$1" CTTYPE="$2" APP="$3"
+
+  # Only offer if NVIDIA devices exist on host
+  compgen -G "/dev/nvidia*" >/dev/null || return 0
+
+  if whiptail --title "NVIDIA passthrough" \
+    --yesno "NVIDIA GPU detected on host.\n\nMap /dev/nvidia* into CT ${CTID} and install NVIDIA userland inside the container?" 12 70; then
+    nvidia_passthrough_to_lxc "$CTID" "$CTTYPE"
+    # flag for in-CT install (consumed by *-install.sh via tools.func:nvidia_setup_in_ct)
+    export ENABLE_NVIDIA_IN_CT=1
+  else
+    msg_warn "Skipped NVIDIA passthrough by user choice."
+  fi
+}
