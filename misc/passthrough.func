@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # passthrough.func — host-side passthrough logic (VAAPI & NVIDIA) for LXC
-# This file ONLY touches host config (/etc/pve/lxc/<CTID>.conf) and whiptail.
+# This file ONLY touches host config (/etc/pve/lxc/<CT_ID>.conf) and whiptail.
 # Inside-CT package setup lives in *_inside_setup (called from build.func).
 
 # --------------------------- Common helpers -----------------------------------
@@ -16,10 +16,10 @@ _whiptail_dims() {
 }
 
 select_hw_passthrough() {
-  local CTID="$1" CTTYPE="$2" APP="$3"
-  local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
+  local CT_ID="$1" CT_TYPE="$2" APP="$3"
+  local LXC_CONFIG="/etc/pve/lxc/${CT_ID}.conf"
 
-  if ! _is_gpu_app "$APP" && [[ "$CTTYPE" != "0" ]]; then
+  if ! _is_gpu_app "$APP" && [[ "$CT_TYPE" != "0" ]]; then
     return
   fi
 
@@ -37,7 +37,7 @@ select_hw_passthrough() {
   if [[ ${#choices[@]} -eq 2 ]]; then
     # both available → show whiptail
     SELECTED=$(whiptail --title "GPU Passthrough" \
-      --checklist "Select GPU passthrough for CT $CTID:" 12 70 2 \
+      --checklist "Select GPU passthrough for CT $CT_ID:" 12 70 2 \
       "${choices[@]}" 3>&1 1>&2 2>&3) || return
   else
     # only one option → auto-select
@@ -49,11 +49,11 @@ select_hw_passthrough() {
     case "$sel" in
     "\"VAAPI\"")
       export ENABLE_VAAPI=1
-      vaapi_select_and_apply "$CTID" "$CTTYPE"
+      vaapi_select_and_apply "$CT_ID" "$CT_TYPE"
       ;;
     "\"NVIDIA\"")
       export ENABLE_NVIDIA=1
-      nvidia_passthrough_to_lxc "$CTID" "$CTTYPE"
+      nvidia_passthrough_to_lxc "$CT_ID" "$CT_TYPE"
       ;;
     esac
   done
@@ -92,10 +92,10 @@ _is_gpu_app() {
 # ------------------------------ USB -------------------------------------------
 
 usb_handle_passthrough() {
-  local CTID="$1" CTTYPE="$2"
-  local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
+  local CT_ID="$1" CT_TYPE="$2"
+  local LXC_CONFIG="/etc/pve/lxc/${CT_ID}.conf"
 
-  [[ "$CTTYPE" != "0" ]] && return 0 # USB passthrough only for privileged CTs
+  [[ "$CT_TYPE" != "0" ]] && return 0 # USB passthrough only for privileged CTs
 
   cat <<EOF >>"$LXC_CONFIG"
 # USB passthrough
@@ -157,8 +157,8 @@ _vaapi_pairs() {
 }
 
 vaapi_select_and_apply() {
-  local CTID="$1" CTTYPE="$2"
-  local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
+  local CT_ID="$1" CT_TYPE="$2"
+  local LXC_CONFIG="/etc/pve/lxc/${CT_ID}.conf"
 
   mapfile -t pairs < <(_vaapi_pairs)
   ((${#pairs[@]} == 0)) && {
@@ -182,7 +182,7 @@ vaapi_select_and_apply() {
     read -r h w < <(_whiptail_dims $((${#items[@]} / 3)) "$maxlen")
 
     SELECTED="$(whiptail --title "VAAPI Device Selection" \
-      --checklist "Select VAAPI devices for CT $CTID:" "$h" "$w" 6 \
+      --checklist "Select VAAPI devices for CT $CT_ID:" "$h" "$w" 6 \
       "${items[@]}" 3>&1 1>&2 2>&3)" || {
       msg_warn "VAAPI selection cancelled."
       return
@@ -201,7 +201,7 @@ vaapi_select_and_apply() {
     IFS=":" read -r path card <<<"$dev"
     for d in "$path" "$card"; do
       [[ -n "$d" && -e "$d" ]] || continue
-      if [[ "$CTTYPE" == "0" ]]; then
+      if [[ "$CT_TYPE" == "0" ]]; then
         [[ $DID_MOUNT_DRI -eq 0 && -d /dev/dri ]] && {
           echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
           DID_MOUNT_DRI=1
@@ -219,7 +219,7 @@ vaapi_select_and_apply() {
   done
 
   # Fallback only for privileged CTs
-  [[ "$CTTYPE" == "0" ]] && cat <<'EOF' >>"$LXC_CONFIG"
+  [[ "$CT_TYPE" == "0" ]] && cat <<'EOF' >>"$LXC_CONFIG"
 # VAAPI fallback
 lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir
 lxc.cgroup2.devices.allow: c 226:* rwm
@@ -229,8 +229,8 @@ EOF
 # ----------------------------- NVIDIA -----------------------------------------
 
 nvidia_passthrough_to_lxc() {
-  local CTID="$1" CTTYPE="$2"
-  local LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
+  local CT_ID="$1" CT_TYPE="$2"
+  local LXC_CONFIG="/etc/pve/lxc/${CT_ID}.conf"
   local found=0
 
   for dev in /dev/nvidia*; do
@@ -246,8 +246,8 @@ nvidia_passthrough_to_lxc() {
     return
   }
 
-  [[ -d /dev/dri && "$CTTYPE" == "0" ]] && echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-  msg_ok "NVIDIA devices mapped to CT ${CTID}"
+  [[ -d /dev/dri && "$CT_TYPE" == "0" ]] && echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+  msg_ok "NVIDIA devices mapped to CT ${CT_ID}"
 }
 
 install_vaapi_userland_interactive() {
