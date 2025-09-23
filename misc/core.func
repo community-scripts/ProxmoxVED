@@ -153,13 +153,18 @@ silent() {
 }
 
 # Check if the shell is using bash
+# Check if the shell is using bash
 shell_check() {
-  if [[ "$(ps -p $$ -o comm=)" != "bash" ]]; then
+  local CURRENT_SHELL
+  CURRENT_SHELL="$(ps -p $$ -o comm=)"
+  echo "DEBUG: Detected shell is: '$CURRENT_SHELL'"
+
+  if [[ "$CURRENT_SHELL" != "bash" && "$CURRENT_SHELL" != "-bash" ]]; then
     clear
     msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
     echo -e "\nExiting..."
     sleep 2
-    exit
+    exit 1
   fi
 }
 
