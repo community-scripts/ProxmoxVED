@@ -97,8 +97,9 @@ usb_handle_passthrough() {
   local CT_ID="$1" CT_TYPE="$2"
   local LXC_CONFIG="/etc/pve/lxc/${CT_ID}.conf"
 
-  [[ "$CT_TYPE" != "0" ]] && return 0 # USB passthrough only for privileged CTs
-
+  if [[ "$CT_TYPE" != "0" ]]; then
+    return 0 # USB passthrough only for privileged CTs
+  fi
   cat <<EOF >>"$LXC_CONFIG"
 # USB passthrough
 lxc.cgroup2.devices.allow: a
@@ -221,11 +222,13 @@ vaapi_select_and_apply() {
   done
 
   # Fallback only for privileged CTs
-  [[ "$CT_TYPE" == "0" ]] && cat <<'EOF' >>"$LXC_CONFIG"
+  if [[ "$CT_TYPE" == "0" ]]; then
+    cat <<'EOF' >>"$LXC_CONFIG"
 # VAAPI fallback
 lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir
 lxc.cgroup2.devices.allow: c 226:* rwm
 EOF
+  fi
 }
 
 # ----------------------------- NVIDIA -----------------------------------------
@@ -248,7 +251,9 @@ nvidia_passthrough_to_lxc() {
     return
   }
 
-  [[ -d /dev/dri && "$CT_TYPE" == "0" ]] && echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+  if [[ -d /dev/dri && "$CT_TYPE" == "0" ]]; then
+    echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+  fi
   msg_ok "NVIDIA devices mapped to CT ${CT_ID}"
 }
 

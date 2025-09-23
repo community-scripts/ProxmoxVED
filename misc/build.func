@@ -2290,11 +2290,60 @@ EOF
     fi
   fi
 
+  gpu_inside_setup() {
+    local CTID="$1"
+
+    # VAAPI inside (Debian/Ubuntu)
+    if [[ "${ENABLE_VAAPI:-0}" -eq 1 ]]; then
+      msg_info "Installing VAAPI userland inside CT ${CTID}"
+      pct exec "$CTID" -- bash -lc '
+      set -e
+      . /etc/os-release || true
+      if [[ "${VERSION_CODENAME:-}" == "trixie" ]]; then
+        cat >/etc/apt/sources.list.d/non-free.sources <<EOF
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: trixie trixie-updates trixie-security
+Components: non-free non-free-firmware
+EOF
+      fi
+      DEBIAN_FRONTEND=noninteractive apt-get update
+      DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        intel-media-va-driver-non-free \
+        ocl-icd-libopencl1 \
+        mesa-opencl-icd \
+        mesa-va-drivers \
+        libvpl2 \
+        vainfo \
+        intel-gpu-tools
+    ' || {
+        msg_error "VAAPI userland install failed"
+        return 1
+      }
+      msg_ok "Installed VAAPI userland"
+    fi
+
+    # NVIDIA inside (Debian/Ubuntu)
+    if [[ "${ENABLE_NVIDIA:-0}" -eq 1 ]]; then
+      msg_info "Installing NVIDIA userland inside CT ${CTID}"
+      pct exec "$CTID" -- bash -lc '
+      set -e
+      DEBIAN_FRONTEND=noninteractive apt-get update
+      DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        nvidia-driver \
+        nvidia-utils \
+        libnvidia-encode1 \
+        libcuda1
+    ' || {
+        msg_error "NVIDIA userland install failed"
+        return 1
+      }
+      msg_ok "Installed NVIDIA userland"
+    fi
+  }
+
   msg_info "Customizing LXC Container"
-  #if [ "$var_os" != "alpine" ]; then
-  #  vaapi_inside_setup "$CTID" "$CT_TYPE" "$APP"
-  #  nvidia_inside_setup "$CTID" "$CT_TYPE" "$APP"
-  #fi
+  gpu_inside_setup "$CTID"
   if [ "$var_os" == "alpine" ]; then
     sleep 3
     pct exec "$CTID" -- /bin/sh -c 'cat <<EOF >/etc/apk/repositories
