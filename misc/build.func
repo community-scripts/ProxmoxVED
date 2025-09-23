@@ -2128,16 +2128,15 @@ build_container() {
     VAAPI_DEVICES=()
     NVIDIA_DEVICES=()
 
-    # Detect VAAPI devices (Intel/AMD)
-    if [[ -d /dev/dri ]]; then
-      for device in /dev/dri/renderD* /dev/dri/card*; do
-        [[ -e "$device" ]] && VAAPI_DEVICES+=("$device")
-      done
-    fi
+    for device in $(compgen -G "/dev/dri/renderD*" || true); do
+      VAAPI_DEVICES+=("$device")
+    done
+    for device in $(compgen -G "/dev/dri/card*" || true); do
+      VAAPI_DEVICES+=("$device")
+    done
 
-    # Detect NVIDIA devices
-    for device in /dev/nvidia*; do
-      [[ -e "$device" ]] && NVIDIA_DEVICES+=("$device")
+    for device in $(compgen -G "/dev/nvidia*" || true); do
+      NVIDIA_DEVICES+=("$device")
     done
   }
 
