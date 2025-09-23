@@ -63,8 +63,8 @@ start_pre() {
 }
 EOF
 chmod +x /etc/init.d/wastebin
-rc-update add wastebin default
-rc-service wastebin start
+$STD rc-update add wastebin default
+$STD rc-service wastebin start
 msg_ok "Created Service"
 
 motd_ssh
