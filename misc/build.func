@@ -2263,6 +2263,10 @@ EOF
 
     # Apply configuration for selected GPUs
     local dev_index=0
+    for device in "${VAAPI_DEVICES[@]}"; do
+      configure_vaapi_device "$device" "$dev_index"
+      ((dev_index++))
+    done
     for gpu_type in "${SELECTED_GPUS[@]}"; do
       case "$gpu_type" in
       VAAPI)
