@@ -2109,11 +2109,43 @@ build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
   NET_STRING="-net0 name=eth0,bridge=${BRG:-vmbr0}"
-  NET_STRING+="${MAC:+,hwaddr=$MAC}"
+
+  # MAC
+  if [[ -n "$MAC" ]]; then
+    case "$MAC" in
+    ,hwaddr=*) NET_STRING+="$MAC" ;;
+    *) NET_STRING+=",hwaddr=$MAC" ;;
+    esac
+  fi
+
+  # IP (immer zwingend, Standard dhcp)
   NET_STRING+=",ip=${NET:-dhcp}"
-  NET_STRING+="${GATE:+,gw=$GATE}"
-  NET_STRING+="${VLAN:+,tag=$VLAN}"
-  NET_STRING+="${MTU:+,mtu=$MTU}"
+
+  # Gateway
+  if [[ -n "$GATE" ]]; then
+    case "$GATE" in
+    ,gw=*) NET_STRING+="$GATE" ;;
+    *) NET_STRING+=",gw=$GATE" ;;
+    esac
+  fi
+
+  # VLAN
+  if [[ -n "$VLAN" ]]; then
+    case "$VLAN" in
+    ,tag=*) NET_STRING+="$VLAN" ;;
+    *) NET_STRING+=",tag=$VLAN" ;;
+    esac
+  fi
+
+  # MTU
+  if [[ -n "$MTU" ]]; then
+    case "$MTU" in
+    ,mtu=*) NET_STRING+="$MTU" ;;
+    *) NET_STRING+=",mtu=$MTU" ;;
+    esac
+  fi
+
+  # IPv6 Handling
   case "$IPV6_METHOD" in
   auto) NET_STRING="$NET_STRING,ip6=auto" ;;
   dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
