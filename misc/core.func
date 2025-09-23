@@ -232,7 +232,7 @@ ssh_check() {
     local host_ip=$(hostname -I | awk '{print $1}')
 
     if [[ "$client_ip" == "127.0.0.1" || "$client_ip" == "$host_ip" ]]; then
-      return # WebUI-Shell → kein Hinweis
+      return
     fi
 
     msg_warn "Running via external SSH (client: $client_ip)."
