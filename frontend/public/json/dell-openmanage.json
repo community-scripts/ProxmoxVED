@@ -1,0 +1,44 @@
+{
+  "name": "Dell OpenManage Tools",
+  "slug": "dell-openmanage",
+  "categories": [
+    1
+  ],
+  "date_created": "2025-09-23",
+  "type": "pve",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": null,
+  "website": "https://linux.dell.com/repo/community/openmanage/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/proxmox.webp",
+  "config_path": "",
+  "description": "Dell Systems Management Tools for iDRAC 8/9. Provides racadm and iSM service to update iDRAC system details",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "tools/pve/dell-openmanage.sh",
+      "resources": {
+        "cpu": null,
+        "ram": null,
+        "hdd": null,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Execute within the Proxmox shell",
+      "type": "info"
+    },
+    {
+      "text": "You can check system details by running the following command. `racadm getsysinfo`",
+      "type": "info"
+    }
+  ]
+}
