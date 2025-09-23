@@ -12,7 +12,7 @@
   "documentation": "https://github.com/seriousm4x/UpSnap/wiki",
   "config_path": "",
   "website": "https://github.com/seriousm4x/UpSnap",
-  "logo": "hhttps://cdn.jsdelivr.net/gh/selfhst/icons/webp/upsnap.webp",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/upsnap.webp",
   "description": "A simple wake on lan web app written with SvelteKit, Go and PocketBase.",
   "install_methods": [
     {
