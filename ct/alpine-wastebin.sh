@@ -32,7 +32,6 @@ function update_script() {
     $STD apk add --no-cache zstd
   fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/matze/wastebin/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  # Dirty-Fix 03/2025 for missing APP_version.txt on old installations, set to pre-latest release
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Stopping Wastebin"
     rc-service wastebin stop
