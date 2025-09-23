@@ -3,6 +3,8 @@
 # This file ONLY touches host config (/etc/pve/lxc/<CT_ID>.conf) and whiptail.
 # Inside-CT package setup lives in *_inside_setup (called from build.func).
 
+CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
+
 # --------------------------- Common helpers -----------------------------------
 
 _whiptail_dims() {
