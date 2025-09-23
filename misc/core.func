@@ -227,28 +227,15 @@ arch_check() {
 # - User can choose to continue or abort
 # ------------------------------------------------------------------------------
 ssh_check() {
-  # Skip if override
-  if [[ "${ALLOW_SSH:-0}" -eq 1 ]]; then return; fi
-
   if [ -n "$SSH_CLIENT" ]; then
-    local client_ip server_port
-    client_ip=$(awk '{print $1}' <<<"$SSH_CLIENT")
-    server_port=$(awk '{print $3}' <<<"$SSH_CLIENT")
+    local client_ip=$(awk '{print $1}' <<<"$SSH_CLIENT")
+    local host_ip=$(hostname -I | awk '{print $1}')
 
-    # Wenn client_ip = localhost oder host-IP → kein Warnpopup
-    if [[ "$client_ip" == "127.0.0.1" || "$client_ip" == "$(hostname -I | awk '{print $1}')" ]]; then
-      return
+    if [[ "$client_ip" == "127.0.0.1" || "$client_ip" == "$host_ip" ]]; then
+      return # WebUI-Shell → kein Hinweis
     fi
 
-    # Andernfalls Popup
-    if ! whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --defaultno \
-      --title "SSH DETECTED" \
-      --yesno "It's advisable to utilize the Proxmox shell rather than SSH..." 10 72; then
-      clear
-      echo "Exiting due to SSH usage."
-      exit 1
-    fi
+    msg_warn "Running via external SSH (client: $client_ip)."
   fi
 }
 
