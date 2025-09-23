@@ -2216,9 +2216,6 @@ build_container() {
 
   LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
 
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/passthrough.func)
-  select_hw_passthrough "$CTID" "$CT_TYPE" "$APP"
-
   # TUN device passthrough
   if [ "$ENABLE_TUN" == "yes" ]; then
     cat <<EOF >>"$LXC_CONFIG"
