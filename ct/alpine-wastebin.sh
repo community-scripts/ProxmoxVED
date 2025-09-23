@@ -28,7 +28,6 @@ function update_script() {
     exit
   fi
   if ! command -v zstd >/dev/null 2>&1; then
-    $STD apk update
     $STD apk add --no-cache zstd
   fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/matze/wastebin/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
