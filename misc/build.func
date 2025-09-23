@@ -1697,111 +1697,6 @@ install_script() {
   esac
 }
 
-# ------------------------------------------------------------------------------
-# check_storage_or_prompt()
-#
-# - Validates container/template storage
-# - If invalid or missing, prompts user to select new storage
-# - Updates vars file accordingly
-# ------------------------------------------------------------------------------
-# check_storage_or_prompt() {
-#   local vars_file="$1"
-#   local changed=0
-
-#   if [ ! -f "$vars_file" ]; then
-#     msg_warn "No vars file found at $vars_file"
-#     return 0
-#   fi
-
-#   # Helper: validate storage ID
-#   _validate_storage() {
-#     local s="$1"
-#     [ -n "$s" ] || return 1
-#     pvesm status -content images | awk 'NR>1 {print $1}' | grep -qx "$s"
-#   }
-
-#   # Load current values (empty if not set)
-#   local ct_store tpl_store
-#   ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
-#   tpl_store=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
-
-#   # Container storage
-#   if ! _validate_storage "$ct_store"; then
-#     local new_ct
-#     new_ct=$(pvesm status -content images | awk 'NR>1 {print $1"  "$2" "$6}')
-#     new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#       --title "Select Container Storage" \
-#       --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || return 0
-#     if [ -n "$new_ct" ]; then
-#       sed -i "/^var_container_storage=/d" "$vars_file"
-#       echo "var_container_storage=$new_ct" >>"$vars_file"
-#       changed=1
-#       msg_ok "Updated container storage in $vars_file → $new_ct"
-#     fi
-#   fi
-
-#   # Template storage
-#   if ! _validate_storage "$tpl_store"; then
-#     local new_tpl
-#     new_tpl=$(pvesm status -content vztmpl | awk 'NR>1 {print $1"  "$2" "$6}')
-#     new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#       --title "Select Template Storage" \
-#       --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || return 0
-#     if [ -n "$new_tpl" ]; then
-#       sed -i "/^var_template_storage=/d" "$vars_file"
-#       echo "var_template_storage=$new_tpl" >>"$vars_file"
-#       changed=1
-#       msg_ok "Updated template storage in $vars_file → $new_tpl"
-#     fi
-#   fi
-
-#   # Always succeed (no aborts from here)
-#   return 0
-# }
-
-# # ------------------------------------------------------------------------------
-# # storage_settings_menu()
-# #
-# # - Menu for managing storage defaults
-# # - Options: update My Defaults or App Defaults storage
-# # ------------------------------------------------------------------------------
-# storage_settings_menu() {
-#   local vars_file="/usr/local/community-scripts/default.vars"
-
-#   check_storage_or_prompt "$vars_file"
-#   _echo_storage_summary "$vars_file"
-
-#   # Always ask user if they want to update, even if values are valid
-#   if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#     --title "STORAGE SETTINGS" \
-#     --yesno "Do you want to update the storage defaults?\n\nCurrent values will be kept unless you select new ones." 12 72; then
-
-#     # container storage selection
-#     local new_ct
-#     new_ct=$(pvesm status -content images | awk 'NR>1 {print $1"  "$2" "$6}')
-#     new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#       --title "Select Container Storage" \
-#       --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || true
-#     if [ -n "$new_ct" ]; then
-#       sed -i '/^var_container_storage=/d' "$vars_file"
-#       echo "var_container_storage=$new_ct" >>"$vars_file"
-#       msg_ok "Updated container storage → $new_ct"
-#     fi
-
-#     # template storage selection
-#     local new_tpl
-#     new_tpl=$(pvesm status -content vztmpl | awk 'NR>1 {print $1"  "$2" "$6}')
-#     new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#       --title "Select Template Storage" \
-#       --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || true
-#     if [ -n "$new_tpl" ]; then
-#       sed -i '/^var_template_storage=/d' "$vars_file"
-#       echo "var_template_storage=$new_tpl" >>"$vars_file"
-#       msg_ok "Updated template storage → $new_tpl"
-#     fi
-#   fi
-# }
-
 edit_default_storage() {
   local vf="/usr/local/community-scripts/default.vars"
 
@@ -2167,10 +2062,6 @@ build_container() {
     FEATURES="$FEATURES,fuse=1"
   fi
 
-  #if [[ $DIAGNOSTICS == "yes" ]]; then
-  #  post_to_api
-  #fi
-
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
   if [ "$var_os" == "alpine" ]; then
@@ -2183,7 +2074,6 @@ build_container() {
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"
-  #export DISABLEIPV6="$DISABLEIP6"
   export APPLICATION="$APP"
   export app="$NSAPP"
   export PASSWORD="$PW"
@@ -2216,6 +2106,221 @@ build_container() {
 
   LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
 
+  # ============================================================================
+  # GPU/USB PASSTHROUGH CONFIGURATION
+  # ============================================================================
+
+  # List of applications that benefit from GPU acceleration
+  GPU_APPS=(
+    "immich" "channels" "emby" "ersatztv" "frigate"
+    "jellyfin" "plex" "scrypted" "tdarr" "unmanic"
+    "ollama" "fileflows" "open-webui" "tunarr" "debian"
+    "handbrake" "sunshine" "moonlight" "kodi" "stremio"
+  )
+
+  # ------------------------------------------------------------------------------
+  # Helper Functions for GPU/USB Configuration
+  # ------------------------------------------------------------------------------
+
+  # Get device GID dynamically
+  get_device_gid() {
+    local group="$1"
+    local gid
+    gid=$(getent group "$group" 2>/dev/null | cut -d: -f3)
+    if [[ -z "$gid" ]]; then
+      case "$group" in
+      video) gid=44 ;;
+      render) gid=104 ;;
+      *) gid=44 ;;
+      esac
+    fi
+    echo "$gid"
+  }
+
+  # Check if app needs GPU
+  is_gpu_app() {
+    local app="${1,,}"
+    for gpu_app in "${GPU_APPS[@]}"; do
+      [[ "$app" == "${gpu_app,,}" ]] && return 0
+    done
+    return 1
+  }
+
+  # Detect available GPU devices
+  detect_gpu_devices() {
+    VAAPI_DEVICES=()
+    NVIDIA_DEVICES=()
+
+    # Detect VAAPI devices (Intel/AMD)
+    if [[ -d /dev/dri ]]; then
+      for device in /dev/dri/renderD* /dev/dri/card*; do
+        [[ -e "$device" ]] && VAAPI_DEVICES+=("$device")
+      done
+    fi
+
+    # Detect NVIDIA devices
+    for device in /dev/nvidia*; do
+      [[ -e "$device" ]] && NVIDIA_DEVICES+=("$device")
+    done
+  }
+
+  # Configure USB passthrough for privileged containers
+  configure_usb_passthrough() {
+    if [[ "$CT_TYPE" != "0" ]]; then
+      return 0
+    fi
+
+    msg_info "Configuring automatic USB passthrough (privileged container)"
+    cat <<EOF >>"$LXC_CONFIG"
+# USB passthrough (privileged container)
+lxc.cgroup2.devices.allow: a
+lxc.cap.drop:
+lxc.cgroup2.devices.allow: c 188:* rwm
+lxc.cgroup2.devices.allow: c 189:* rwm
+lxc.mount.entry: /dev/serial/by-id  dev/serial/by-id  none bind,optional,create=dir
+lxc.mount.entry: /dev/ttyUSB0       dev/ttyUSB0       none bind,optional,create=file
+lxc.mount.entry: /dev/ttyUSB1       dev/ttyUSB1       none bind,optional,create=file
+lxc.mount.entry: /dev/ttyACM0       dev/ttyACM0       none bind,optional,create=file
+lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=file
+EOF
+    msg_ok "USB passthrough configured"
+  }
+
+  # Configure VAAPI device
+  configure_vaapi_device() {
+    local device="$1"
+    local dev_index="$2"
+
+    if [[ "$CT_TYPE" == "0" ]]; then
+      # Privileged container
+      local major minor
+      major=$(stat -c '%t' "$device")
+      minor=$(stat -c '%T' "$device")
+      major=$((0x$major))
+      minor=$((0x$minor))
+      echo "lxc.cgroup2.devices.allow: c $major:$minor rwm" >>"$LXC_CONFIG"
+      echo "lxc.mount.entry: $device dev/$(basename "$device") none bind,optional,create=file" >>"$LXC_CONFIG"
+    else
+      # Unprivileged container
+      local gid
+      if [[ "$device" =~ renderD ]]; then
+        gid=$(get_device_gid "render")
+      else
+        gid=$(get_device_gid "video")
+      fi
+      echo "dev${dev_index}: $device,gid=$gid" >>"$LXC_CONFIG"
+    fi
+  }
+
+  # Configure NVIDIA devices
+  configure_nvidia_devices() {
+    for device in "${NVIDIA_DEVICES[@]}"; do
+      if [[ "$CT_TYPE" == "0" ]]; then
+        local major minor
+        major=$(stat -c '%t' "$device")
+        minor=$(stat -c '%T' "$device")
+        major=$((0x$major))
+        minor=$((0x$minor))
+        echo "lxc.cgroup2.devices.allow: c $major:$minor rwm" >>"$LXC_CONFIG"
+        echo "lxc.mount.entry: $device dev/$(basename "$device") none bind,optional,create=file" >>"$LXC_CONFIG"
+      else
+        msg_warn "NVIDIA passthrough to unprivileged container may require additional configuration"
+      fi
+    done
+
+    if [[ -d /dev/dri ]] && [[ "$CT_TYPE" == "0" ]]; then
+      echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+    fi
+  }
+
+  # Main GPU configuration logic
+  configure_gpu_passthrough() {
+    detect_gpu_devices
+
+    # Check if we should configure GPU
+    local should_configure=false
+    if [[ "$CT_TYPE" == "0" ]] || is_gpu_app "$APP"; then
+      should_configure=true
+    fi
+
+    if [[ "$should_configure" == "false" ]]; then
+      return 0
+    fi
+
+    # No GPU devices available
+    if [[ ${#VAAPI_DEVICES[@]} -eq 0 ]] && [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
+      msg_info "No GPU devices detected on host"
+      return 0
+    fi
+
+    # Build selection options
+    local choices=()
+    local SELECTED_GPUS=()
+
+    if [[ ${#VAAPI_DEVICES[@]} -gt 0 ]]; then
+      choices+=("VAAPI" "Intel/AMD GPU (${#VAAPI_DEVICES[@]} devices)" "OFF")
+    fi
+
+    if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
+      choices+=("NVIDIA" "NVIDIA GPU (${#NVIDIA_DEVICES[@]} devices)" "OFF")
+    fi
+
+    # Auto-select if only one type available
+    if [[ ${#choices[@]} -eq 3 ]]; then
+      SELECTED_GPUS=("${choices[0]}")
+      msg_info "Auto-configuring ${choices[0]} GPU passthrough"
+    elif [[ ${#choices[@]} -gt 3 ]]; then
+      # Show selection dialog
+      local selected
+      selected=$(whiptail --title "GPU Passthrough Selection" \
+        --checklist "Multiple GPU types detected. Select which to pass through:" \
+        12 60 $((${#choices[@]} / 3)) \
+        "${choices[@]}" 3>&1 1>&2 2>&3) || {
+        msg_info "GPU passthrough skipped"
+        return 0
+      }
+
+      for item in $selected; do
+        SELECTED_GPUS+=("${item//\"/}")
+      done
+    fi
+
+    # Apply configuration for selected GPUs
+    local dev_index=0
+    for gpu_type in "${SELECTED_GPUS[@]}"; do
+      case "$gpu_type" in
+      VAAPI)
+        msg_info "Configuring VAAPI passthrough (${#VAAPI_DEVICES[@]} devices)"
+        for device in "${VAAPI_DEVICES[@]}"; do
+          configure_vaapi_device "$device" "$dev_index"
+          ((dev_index++))
+        done
+        if [[ "$CT_TYPE" == "0" ]] && [[ -d /dev/dri ]]; then
+          echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+        fi
+        export ENABLE_VAAPI=1
+        ;;
+      NVIDIA)
+        msg_info "Configuring NVIDIA passthrough"
+        configure_nvidia_devices
+        export ENABLE_NVIDIA=1
+        ;;
+      esac
+    done
+
+    [[ ${#SELECTED_GPUS[@]} -gt 0 ]] && msg_ok "GPU passthrough configured"
+  }
+
+  # ------------------------------------------------------------------------------
+  # Apply all hardware passthrough configurations
+  # ------------------------------------------------------------------------------
+
+  # USB passthrough (automatic for privileged)
+  configure_usb_passthrough
+
+  # GPU passthrough (based on container type and app)
+  configure_gpu_passthrough
+
   # TUN device passthrough
   if [ "$ENABLE_TUN" == "yes" ]; then
     cat <<EOF >>"$LXC_CONFIG"
@@ -2224,11 +2329,20 @@ lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
 EOF
   fi
 
-  # This starts the container and executes <app>-install.sh
+  # Coral TPU passthrough (if available)
+  if [[ -e /dev/apex_0 ]]; then
+    msg_info "Detected Coral TPU - configuring passthrough"
+    echo "lxc.mount.entry: /dev/apex_0 dev/apex_0 none bind,optional,create=file" >>"$LXC_CONFIG"
+  fi
+
+  # ============================================================================
+  # START CONTAINER AND INSTALL USERLAND
+  # ============================================================================
+
   msg_info "Starting LXC Container"
   pct start "$CTID"
 
-  # wait for status 'running'
+  # Wait for container to be running
   for i in {1..10}; do
     if pct status "$CTID" | grep -q "status: running"; then
       msg_ok "Started LXC Container"
@@ -2241,10 +2355,11 @@ EOF
     fi
   done
 
+  # Wait for network (skip for Alpine initially)
   if [ "$var_os" != "alpine" ]; then
     msg_info "Waiting for network in LXC container"
 
-    # --- Step 1: Wait for IP ---
+    # Wait for IP
     for i in {1..20}; do
       ip_in_lxc=$(pct exec "$CTID" -- ip -4 addr show dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
       [ -n "$ip_in_lxc" ] && break
@@ -2256,10 +2371,10 @@ EOF
       exit 1
     fi
 
-    # --- Step 2: Try to reach gateway ---
+    # Try to reach gateway
     gw_ok=0
     for i in {1..10}; do
-      if pct exec "$CTID" -- ping -c1 -W1 "$GATEWAY" >/dev/null 2>&1; then
+      if pct exec "$CTID" -- ping -c1 -W1 "${GATEWAY:-8.8.8.8}" >/dev/null 2>&1; then
         gw_ok=1
         break
       fi
@@ -2267,80 +2382,85 @@ EOF
     done
 
     if [ "$gw_ok" -eq 1 ]; then
-      msg_ok "CT $CTID gateway $GATEWAY reachable (IP $ip_in_lxc)"
+      msg_ok "Network in LXC is reachable (IP $ip_in_lxc)"
     else
-      msg_warn "CT $CTID has IP $ip_in_lxc but gateway $GATEWAY did not reply"
-    fi
-
-    # --- Step 3: DNS / Internet check ---
-    if pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1; then
-      msg_ok "Network in LXC is reachable (DNS OK, IP $ip_in_lxc)"
-    else
-      msg_warn "Network reachable (IP $ip_in_lxc), but DNS failed – applying fallback resolv.conf"
-      pct exec "$CTID" -- bash -c 'echo "nameserver 1.1.1.1" > /etc/resolv.conf && echo "nameserver 8.8.8.8" >> /etc/resolv.conf'
-      if pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1; then
-        msg_ok "Network reachable after DNS fallback"
-      else
-        msg_error "Still no DNS/network in LXC! Aborting customization."
-        exit_script
-      fi
+      msg_warn "Network reachable but gateway check failed"
     fi
   fi
 
-  gpu_inside_setup() {
-    local CTID="$1"
+  # Install GPU userland packages
+  install_gpu_userland() {
+    local gpu_type="$1"
 
-    # VAAPI inside (Debian/Ubuntu)
-    if [[ "${ENABLE_VAAPI:-0}" -eq 1 ]]; then
-      msg_info "Installing VAAPI userland inside CT ${CTID}"
-      pct exec "$CTID" -- bash -lc '
-      set -e
-      . /etc/os-release || true
-      if [[ "${VERSION_CODENAME:-}" == "trixie" ]]; then
-        cat >/etc/apt/sources.list.d/non-free.sources <<EOF
+    if [ "$var_os" == "alpine" ]; then
+      case "$gpu_type" in
+      VAAPI)
+        msg_info "Installing VAAPI packages in Alpine container"
+        pct exec "$CTID" -- ash -c '
+            apk add --no-cache \
+              mesa-dri-gallium \
+              mesa-va-gallium \
+              intel-media-driver \
+              libva-utils >/dev/null 2>&1
+          ' || msg_warn "Some VAAPI packages may not be available in Alpine"
+        ;;
+      NVIDIA)
+        msg_warn "NVIDIA drivers are not readily available in Alpine Linux"
+        ;;
+      esac
+    else
+      case "$gpu_type" in
+      VAAPI)
+        msg_info "Installing VAAPI userland packages"
+        pct exec "$CTID" -- bash -c '
+            . /etc/os-release || true
+            if [[ "${VERSION_CODENAME:-}" == "trixie" ]]; then
+              cat >/etc/apt/sources.list.d/non-free.sources <<EOF
 Types: deb deb-src
 URIs: http://deb.debian.org/debian
 Suites: trixie trixie-updates trixie-security
 Components: non-free non-free-firmware
 EOF
-      fi
-      DEBIAN_FRONTEND=noninteractive apt-get update
-      DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        intel-media-va-driver-non-free \
-        ocl-icd-libopencl1 \
-        mesa-opencl-icd \
-        mesa-va-drivers \
-        libvpl2 \
-        vainfo \
-        intel-gpu-tools
-    ' || {
-        msg_error "VAAPI userland install failed"
-        return 1
-      }
-      msg_ok "Installed VAAPI userland"
-    fi
-
-    # NVIDIA inside (Debian/Ubuntu)
-    if [[ "${ENABLE_NVIDIA:-0}" -eq 1 ]]; then
-      msg_info "Installing NVIDIA userland inside CT ${CTID}"
-      pct exec "$CTID" -- bash -lc '
-      set -e
-      DEBIAN_FRONTEND=noninteractive apt-get update
-      DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        nvidia-driver \
-        nvidia-utils \
-        libnvidia-encode1 \
-        libcuda1
-    ' || {
-        msg_error "NVIDIA userland install failed"
-        return 1
-      }
-      msg_ok "Installed NVIDIA userland"
+            fi
+            apt-get update >/dev/null 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              intel-media-va-driver-non-free \
+              mesa-va-drivers \
+              libvpl2 \
+              vainfo \
+              ocl-icd-libopencl1 \
+              mesa-opencl-icd \
+              intel-gpu-tools >/dev/null 2>&1
+          ' && msg_ok "VAAPI userland installed" || msg_warn "Some VAAPI packages failed to install"
+        ;;
+      NVIDIA)
+        msg_info "Installing NVIDIA userland packages"
+        pct exec "$CTID" -- bash -c '
+            apt-get update >/dev/null 2>&1
+            DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              nvidia-driver \
+              nvidia-utils \
+              libnvidia-encode1 \
+              libcuda1 >/dev/null 2>&1
+          ' && msg_ok "NVIDIA userland installed" || msg_warn "Some NVIDIA packages failed to install"
+        ;;
+      esac
     fi
   }
 
+  # Customize container
   msg_info "Customizing LXC Container"
-  gpu_inside_setup "$CTID"
+
+  # Install GPU userland if configured
+  if [[ "${ENABLE_VAAPI:-0}" == "1" ]]; then
+    install_gpu_userland "VAAPI"
+  fi
+
+  if [[ "${ENABLE_NVIDIA:-0}" == "1" ]]; then
+    install_gpu_userland "NVIDIA"
+  fi
+
+  # Continue with standard container setup
   if [ "$var_os" == "alpine" ]; then
     sleep 3
     pct exec "$CTID" -- /bin/sh -c 'cat <<EOF >/etc/apk/repositories
@@ -2350,7 +2470,6 @@ EOF'
     pct exec "$CTID" -- ash -c "apk add bash newt curl openssh nano mc ncurses jq >/dev/null"
   else
     sleep 3
-
     pct exec "$CTID" -- bash -c "sed -i '/$LANG/ s/^# //' /etc/locale.gen"
     pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
     echo LANG=\$locale_line >/etc/default/locale && \
@@ -2372,8 +2491,26 @@ EOF'
       exit 1
     }
   fi
+
   msg_ok "Customized LXC Container"
+
+  # Verify GPU access if enabled
+  if [[ "${ENABLE_VAAPI:-0}" == "1" ]] && [ "$var_os" != "alpine" ]; then
+    pct exec "$CTID" -- bash -c "vainfo >/dev/null 2>&1" &&
+      msg_ok "VAAPI verified working" ||
+      msg_warn "VAAPI verification failed - may need additional configuration"
+  fi
+
+  if [[ "${ENABLE_NVIDIA:-0}" == "1" ]] && [ "$var_os" != "alpine" ]; then
+    pct exec "$CTID" -- bash -c "nvidia-smi >/dev/null 2>&1" &&
+      msg_ok "NVIDIA verified working" ||
+      msg_warn "NVIDIA verification failed - may need additional configuration"
+  fi
+
+  # Install SSH keys
   install_ssh_keys_into_ct
+
+  # Run application installer
   if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
     exit $?
   fi
