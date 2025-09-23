@@ -154,16 +154,12 @@ silent() {
 
 # Check if the shell is using bash
 shell_check() {
-  local CURRENT_SHELL
-  CURRENT_SHELL="$(ps -p $$ -o comm= | xargs)" # trims whitespace
-  echo "DEBUG: Detected shell is: '$CURRENT_SHELL'"
-
-  if [[ -z "$BASH_VERSION" ]]; then
+  if [[ "$(ps -p $$ -o comm=)" != "bash" ]]; then
     clear
-    msg_error "This script requires bash, but current shell is: $CURRENT_SHELL"
+    msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
     echo -e "\nExiting..."
     sleep 2
-    exit 1
+    exit
   fi
 }
 
@@ -220,6 +216,39 @@ arch_check() {
     echo -e "Exiting..."
     sleep 2
     exit
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# ssh_check()
+#
+# - Detects if script is running over SSH
+# - Warns user and recommends using Proxmox shell
+# - User can choose to continue or abort
+# ------------------------------------------------------------------------------
+ssh_check() {
+  # Skip if override
+  if [[ "${ALLOW_SSH:-0}" -eq 1 ]]; then return; fi
+
+  if [ -n "$SSH_CLIENT" ]; then
+    local client_ip server_port
+    client_ip=$(awk '{print $1}' <<<"$SSH_CLIENT")
+    server_port=$(awk '{print $3}' <<<"$SSH_CLIENT")
+
+    # Wenn client_ip = localhost oder host-IP → kein Warnpopup
+    if [[ "$client_ip" == "127.0.0.1" || "$client_ip" == "$(hostname -I | awk '{print $1}')" ]]; then
+      return
+    fi
+
+    # Andernfalls Popup
+    if ! whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --defaultno \
+      --title "SSH DETECTED" \
+      --yesno "It's advisable to utilize the Proxmox shell rather than SSH..." 10 72; then
+      clear
+      echo "Exiting due to SSH usage."
+      exit 1
+    fi
   fi
 }
 
