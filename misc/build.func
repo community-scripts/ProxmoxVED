@@ -2269,7 +2269,8 @@ EOF
         msg_info "Configuring VAAPI passthrough (${#VAAPI_DEVICES[@]} devices)"
         for device in "${VAAPI_DEVICES[@]}"; do
           configure_vaapi_device "$device" "$dev_index"
-          ((dev_index++))
+          : "${dev_index:=0}"
+          dev_index=$((dev_index + 1))
         done
         if [[ "$CT_TYPE" == "0" ]] && [[ -d /dev/dri ]]; then
           echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
