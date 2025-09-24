@@ -2163,16 +2163,20 @@ build_container() {
     VAAPI_DEVICES=()
     NVIDIA_DEVICES=()
 
-    for device in $(compgen -G "/dev/dri/renderD*" || true); do
-      VAAPI_DEVICES+=("$device")
-    done
-    for device in $(compgen -G "/dev/dri/card*" || true); do
+    # VAAPI / Intel / AMD
+    for device in /dev/dri/renderD* /dev/dri/card*; do
+      [[ -e "$device" ]] || continue
       VAAPI_DEVICES+=("$device")
     done
 
-    for device in $(compgen -G "/dev/nvidia*" || true); do
+    # NVIDIA
+    for device in /dev/nvidia*; do
+      [[ -e "$device" ]] || continue
       NVIDIA_DEVICES+=("$device")
     done
+
+    msg_debug "Detected VAAPI devices: ${VAAPI_DEVICES[*]:-(none)}"
+    msg_debug "Detected NVIDIA devices: ${NVIDIA_DEVICES[*]:-(none)}"
   }
 
   # Configure USB passthrough for privileged containers
@@ -2401,77 +2405,77 @@ EOF
     fi
   fi
 
-  # Install GPU userland packages
-  install_gpu_userland() {
-    local gpu_type="$1"
+  #   # Install GPU userland packages
+  #   install_gpu_userland() {
+  #     local gpu_type="$1"
 
-    if [ "$var_os" == "alpine" ]; then
-      case "$gpu_type" in
-      VAAPI)
-        msg_info "Installing VAAPI packages in Alpine container"
-        pct exec "$CTID" -- ash -c '
-            apk add --no-cache \
-              mesa-dri-gallium \
-              mesa-va-gallium \
-              intel-media-driver \
-              libva-utils >/dev/null 2>&1
-          ' || msg_warn "Some VAAPI packages may not be available in Alpine"
-        ;;
-      NVIDIA)
-        msg_warn "NVIDIA drivers are not readily available in Alpine Linux"
-        ;;
-      esac
-    else
-      case "$gpu_type" in
-      VAAPI)
-        msg_info "Installing VAAPI userland packages"
-        pct exec "$CTID" -- bash -c '
-            . /etc/os-release || true
-            if [[ "${VERSION_CODENAME:-}" == "trixie" ]]; then
-              cat >/etc/apt/sources.list.d/non-free.sources <<EOF
-Types: deb deb-src
-URIs: http://deb.debian.org/debian
-Suites: trixie trixie-updates trixie-security
-Components: non-free non-free-firmware
-EOF
-            fi
-            apt-get update >/dev/null 2>&1
-            DEBIAN_FRONTEND=noninteractive apt-get install -y \
-              intel-media-va-driver-non-free \
-              mesa-va-drivers \
-              libvpl2 \
-              vainfo \
-              ocl-icd-libopencl1 \
-              mesa-opencl-icd \
-              intel-gpu-tools >/dev/null 2>&1
-          ' && msg_ok "VAAPI userland installed" || msg_warn "Some VAAPI packages failed to install"
-        ;;
-      NVIDIA)
-        msg_info "Installing NVIDIA userland packages"
-        pct exec "$CTID" -- bash -c '
-            apt-get update >/dev/null 2>&1
-            DEBIAN_FRONTEND=noninteractive apt-get install -y \
-              nvidia-driver \
-              nvidia-utils \
-              libnvidia-encode1 \
-              libcuda1 >/dev/null 2>&1
-          ' && msg_ok "NVIDIA userland installed" || msg_warn "Some NVIDIA packages failed to install"
-        ;;
-      esac
-    fi
-  }
+  #     if [ "$var_os" == "alpine" ]; then
+  #       case "$gpu_type" in
+  #       VAAPI)
+  #         msg_info "Installing VAAPI packages in Alpine container"
+  #         pct exec "$CTID" -- ash -c '
+  #             apk add --no-cache \
+  #               mesa-dri-gallium \
+  #               mesa-va-gallium \
+  #               intel-media-driver \
+  #               libva-utils >/dev/null 2>&1
+  #           ' || msg_warn "Some VAAPI packages may not be available in Alpine"
+  #         ;;
+  #       NVIDIA)
+  #         msg_warn "NVIDIA drivers are not readily available in Alpine Linux"
+  #         ;;
+  #       esac
+  #     else
+  #       case "$gpu_type" in
+  #       VAAPI)
+  #         msg_info "Installing VAAPI userland packages"
+  #         pct exec "$CTID" -- bash -c '
+  #             . /etc/os-release || true
+  #             if [[ "${VERSION_CODENAME:-}" == "trixie" ]]; then
+  #               cat >/etc/apt/sources.list.d/non-free.sources <<EOF
+  # Types: deb deb-src
+  # URIs: http://deb.debian.org/debian
+  # Suites: trixie trixie-updates trixie-security
+  # Components: non-free non-free-firmware
+  # EOF
+  #             fi
+  #             apt-get update >/dev/null 2>&1
+  #             DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  #               intel-media-va-driver-non-free \
+  #               mesa-va-drivers \
+  #               libvpl2 \
+  #               vainfo \
+  #               ocl-icd-libopencl1 \
+  #               mesa-opencl-icd \
+  #               intel-gpu-tools >/dev/null 2>&1
+  #           ' && msg_ok "VAAPI userland installed" || msg_warn "Some VAAPI packages failed to install"
+  #         ;;
+  #       NVIDIA)
+  #         msg_info "Installing NVIDIA userland packages"
+  #         pct exec "$CTID" -- bash -c '
+  #             apt-get update >/dev/null 2>&1
+  #             DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  #               nvidia-driver \
+  #               nvidia-utils \
+  #               libnvidia-encode1 \
+  #               libcuda1 >/dev/null 2>&1
+  #           ' && msg_ok "NVIDIA userland installed" || msg_warn "Some NVIDIA packages failed to install"
+  #         ;;
+  #       esac
+  #     fi
+  #   }
 
   # Customize container
   msg_info "Customizing LXC Container"
 
-  # Install GPU userland if configured
-  if [[ "${ENABLE_VAAPI:-0}" == "1" ]]; then
-    install_gpu_userland "VAAPI"
-  fi
+  # # Install GPU userland if configured
+  # if [[ "${ENABLE_VAAPI:-0}" == "1" ]]; then
+  #   install_gpu_userland "VAAPI"
+  # fi
 
-  if [[ "${ENABLE_NVIDIA:-0}" == "1" ]]; then
-    install_gpu_userland "NVIDIA"
-  fi
+  # if [[ "${ENABLE_NVIDIA:-0}" == "1" ]]; then
+  #   install_gpu_userland "NVIDIA"
+  # fi
 
   # Continue with standard container setup
   if [ "$var_os" == "alpine" ]; then
