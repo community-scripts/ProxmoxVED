@@ -1522,27 +1522,47 @@ maybe_offer_save_app_defaults() {
 }
 
 ensure_storage_selection_for_vars_file() {
-  vf="$1"
+  local vf="$1"
 
   # Read stored values (if any)
+  local tpl ct
   tpl=$(grep -E '^var_template_storage=' "$vf" | cut -d= -f2-)
   ct=$(grep -E '^var_container_storage=' "$vf" | cut -d= -f2-)
 
-  # Template storage
-  if [ -n "$tpl" ]; then
+  # Wenn beide Werte schon existieren → übernehmen
+  if [[ -n "$tpl" && -n "$ct" ]]; then
     TEMPLATE_STORAGE="$tpl"
-  else
-    choose_and_set_storage_for_file "$vf" template
-  fi
-
-  # Container storage
-  if [ -n "$ct" ]; then
     CONTAINER_STORAGE="$ct"
-  else
-    choose_and_set_storage_for_file "$vf" container
+    echo_storage_summary_from_file "$vf"
+    return 0
   fi
 
-  echo_storage_summary_from_file "$vf"
+  # --- Erstmalige Auswahl: beide Abfragen ---
+  select_storage template
+  local tpl_sel="$STORAGE_RESULT"
+
+  select_storage container
+  local ct_sel="$STORAGE_RESULT"
+
+  # --- Zusammenfassung + Nachfrage ---
+  if whiptail --backtitle "Community Scripts" --title "Default Storage" \
+    --yesno "Template-Storage --> $tpl_sel\nContainer-Storage --> $ct_sel\n\nSave as global defaults?" \
+    12 70; then
+    sed -i '/^[#[:space:]]*var_template_storage=/d' "$vf"
+    sed -i '/^[#[:space:]]*var_container_storage=/d' "$vf"
+    echo "var_template_storage=$tpl_sel" >>"$vf"
+    echo "var_container_storage=$ct_sel" >>"$vf"
+  else
+    sed -i '/^[#[:space:]]*var_template_storage=/d' "$vf"
+    sed -i '/^[#[:space:]]*var_container_storage=/d' "$vf"
+    echo "# var_template_storage=$tpl_sel" >>"$vf"
+    echo "# var_container_storage=$ct_sel" >>"$vf"
+  fi
+
+  TEMPLATE_STORAGE="$tpl_sel"
+  CONTAINER_STORAGE="$ct_sel"
+  msg_ok "Using Template-Storage → $tpl_sel"
+  msg_ok "Using Container-Storage → $ct_sel"
 }
 
 diagnostics_menu() {
