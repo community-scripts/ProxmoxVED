@@ -1529,7 +1529,6 @@ ensure_storage_selection_for_vars_file() {
   tpl=$(grep -E '^var_template_storage=' "$vf" | cut -d= -f2-)
   ct=$(grep -E '^var_container_storage=' "$vf" | cut -d= -f2-)
 
-  # Wenn beide Werte schon existieren → übernehmen
   if [[ -n "$tpl" && -n "$ct" ]]; then
     TEMPLATE_STORAGE="$tpl"
     CONTAINER_STORAGE="$ct"
@@ -1537,14 +1536,12 @@ ensure_storage_selection_for_vars_file() {
     return 0
   fi
 
-  # --- Erstmalige Auswahl: beide Abfragen ---
   select_storage template
   local tpl_sel="$STORAGE_RESULT"
 
   select_storage container
   local ct_sel="$STORAGE_RESULT"
 
-  # --- Zusammenfassung + Nachfrage ---
   if whiptail --backtitle "Community Scripts" --title "Default Storage" \
     --yesno "Template-Storage --> $tpl_sel\nContainer-Storage --> $ct_sel\n\nSave as global defaults?" \
     12 70; then
