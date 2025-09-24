@@ -44,7 +44,8 @@ sed -i -e "s|^DB_USERNAME=.*|DB_USERNAME=${DB_USER}|" \
   -e "s|^HASH_SALT=.*|HASH_SALT=${HASH_SALT}|" \
   /opt/monica/.env
 $STD composer install --no-dev -o --no-interaction
-$STD yarn install --ignore-engines
+$STD yarn config set ignore-engines true
+$STD yarn install
 $STD yarn run production
 $STD php artisan key:generate
 $STD php artisan setup:production --email=admin@helper-scripts.com --password=helper-scripts.com --force
