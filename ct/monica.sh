@@ -46,7 +46,7 @@ function update_script() {
     cp -r /opt/monica-backup/.env /opt/monica
     cp -r /opt/monica-backup/storage/* /opt/monica/storage/
     $STD composer install --no-interaction --no-dev
-    $STD yarn install
+    $STD yarn install --ignore-engines
     $STD yarn run production
     $STD php artisan monica:update --force
     chown -R www-data:www-data /opt/monica
