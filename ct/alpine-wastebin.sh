@@ -31,7 +31,7 @@ function update_script() {
     $STD apk add --no-cache zstd
   fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/matze/wastebin/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+  if [[ ! -f "~/.wastebin" ]] || [[ "${RELEASE}" != "$(cat "~/.wastebin")" ]]; then
     msg_info "Stopping Wastebin"
     rc-service wastebin stop
     msg_ok "Wastebin Stopped"
@@ -39,10 +39,7 @@ function update_script() {
     msg_info "Updating Wastebin"
     temp_file=$(mktemp)
     curl -fsSL "https://github.com/matze/wastebin/releases/download/${RELEASE}/wastebin_${RELEASE}_x86_64-unknown-linux-musl.tar.zst" -o "$temp_file"
-    zstd -dc $temp_file | tar -x
-    cp -f wastebin* /opt/wastebin/
-    chmod +x /opt/wastebin/wastebin
-    chmod +x /opt/wastebin/wastebin-ctl
+    zstd -dc $temp_file | tar x -C /opt/wastebin wastebin wastebin-ctl
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated Wastebin"
 
