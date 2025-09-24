@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
-# Authors: MickLesk (CanbiZ)
+# Authors: MickLesk (CanbiZ) | Co-Author: remz1337
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://frigate.video/
 
