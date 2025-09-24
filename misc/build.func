@@ -1688,10 +1688,18 @@ edit_default_storage() {
   local vf="/usr/local/community-scripts/default.vars"
 
   # make sure file exists
-  if [ ! -f "$vf" ]; then
-    msg_info "No default.vars found, creating $vf"
-    mkdir -p /usr/local/community-scripts
+  if [[ ! -f "$vf" ]]; then
+    # still create
+    mkdir -p "$(dirname "$vf")"
     touch "$vf"
+
+    if select_storage template; then
+      echo "var_template_storage=$STORAGE_RESULT" >>"$vf"
+    fi
+
+    if select_storage container; then
+      echo "var_container_storage=$STORAGE_RESULT" >>"$vf"
+    fi
   fi
 
   # reuse the same Whiptail selection we already have
