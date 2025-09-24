@@ -33,7 +33,7 @@ install_sources() {
     curl -sSL https://linux.dell.com/repo/pgp_pubkeys/0x1285491434D8786F.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/dell-apt-key.gpg
 
     msg_info "Adding Dell provided repos"
-    cat > /etc/apt/sources.list.d/dell-openmanage.sources << EOF
+    cat<<EOF >/etc/apt/sources.list.d/dell-openmanage.sources
 Types: deb
 URIs: http://linux.dell.com/repo/community/openmanage/11000/jammy/
 Suites: jammy
@@ -47,7 +47,7 @@ Components: main
 EOF
 
     msg_info "Adding debian bullseye for dependencies"
-    cat > /etc/apt/sources.list.d/debian-bullseye.sources << EOF
+    cat<<EOF >/etc/apt/sources.list.d/debian-bullseye.sources
 Types: deb
 URIs: http://deb.debian.org/debian/
 Suites: bullseye
@@ -58,19 +58,19 @@ EOF
     msg_info "Setting package pinning for dell-openmanage"
     mkdir -p /etc/apt/preferences.d
 
-    cat > /etc/apt/preferences.d/debian-bullseye.pref << EOF
+    cat<<EOF >/etc/apt/preferences.d/debian-bullseye.pref
 Package: *
 Pin: release n=bullseye
 Pin-Priority: -1
 EOF
 
-    cat > /etc/apt/preferences.d/libssl1.1.pref << EOF
+    cat<<EOF >/etc/apt/preferences.d/libssl1.1.pref
 Package: libssl1.1
 Pin: release n=bullseye
 Pin-Priority: 500
 EOF
 
-    cat > /etc/apt/preferences.d/dell-openmanage.pref << EOF
+    cat<<EOF >/etc/apt/preferences.d/dell-openmanage.pref
 Package: *
 Pin: origin linux.dell.com
 Pin-Priority: 500
