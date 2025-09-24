@@ -33,7 +33,7 @@ WASTEBIN_HTTP_TIMEOUT=30
 WASTEBIN_SIGNING_KEY=$(openssl rand -hex 32)
 WASTEBIN_PASTE_EXPIRATIONS=0,600,3600=d,86400,604800,2419200,29030400
 EOF
-echo "${RELEASE}" >"/opt/${APPLICATION}_version.txt"
+echo "${RELEASE}" >"~/.wastebin"
 
 msg_ok "Installed Wastebin"
 
@@ -46,7 +46,7 @@ description="Start Wastebin Service"
 
 command="/opt/wastebin/wastebin"
 command_background="yes"
-pidfile="/var/run/${name}.pid"
+pidfile="/var/run/wastebin.pid"
 directory="/opt/wastebin"
 
 depend() {

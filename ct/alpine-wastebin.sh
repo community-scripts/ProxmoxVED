@@ -40,7 +40,7 @@ function update_script() {
     temp_file=$(mktemp)
     curl -fsSL "https://github.com/matze/wastebin/releases/download/${RELEASE}/wastebin_${RELEASE}_x86_64-unknown-linux-musl.tar.zst" -o "$temp_file"
     zstd -dc $temp_file | tar x -C /opt/wastebin wastebin wastebin-ctl
-    echo "${RELEASE}" >/opt/${APP}_version.txt
+    echo "${RELEASE}" >~/.wastebin
     msg_ok "Updated Wastebin"
 
     msg_info "Starting Wastebin"
