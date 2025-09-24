@@ -20,36 +20,36 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -d /opt/joplin-server ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-
-    if check_for_gh_release "joplin-server" "laurent22/joplin"; then
-        msg_info "Stopping Services"
-        systemctl stop joplin-server
-        msg_ok "Stopped Services"
-
-        fetch_and_deploy_gh_release "joplin-server" "laurent22/joplin" "tarball" "latest"
-
-        msg_info "Updating ${APP}"
-        cd /opt/joplin-server
-        sed -i "/onenote-converter/d" packages/lib/package.json
-        $STD yarn config set --home enableTelemetry 0
-        export BUILD_SEQUENCIAL=1
-        $STD yarn install --inline-builds
-        msg_ok "Updated $APP"
-
-        msg_info "Starting Services"
-        systemctl start joplin-server
-        msg_ok "Started Services"
-
-        msg_ok "Updated Successfully"
-    fi
+  header_info
+  check_container_storage
+  check_container_resources
+  if [[ ! -d /opt/joplin-server ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  if check_for_gh_release "joplin-server" "laurent22/joplin"; then
+    msg_info "Stopping Services"
+    systemctl stop joplin-server
+    msg_ok "Stopped Services"
+
+    fetch_and_deploy_gh_release "joplin-server" "laurent22/joplin" "tarball" "latest"
+
+    msg_info "Updating ${APP}"
+    cd /opt/joplin-server
+    sed -i "/onenote-converter/d" packages/lib/package.json
+    $STD yarn config set --home enableTelemetry 0
+    export BUILD_SEQUENCIAL=1
+    $STD yarn install --inline-builds
+    msg_ok "Updated $APP"
+
+    msg_info "Starting Services"
+    systemctl start joplin-server
+    msg_ok "Started Services"
+
+    msg_ok "Updated Successfully"
+  fi
+  exit
 }
 
 start

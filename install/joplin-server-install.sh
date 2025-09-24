@@ -15,8 +15,8 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    git \
-    rsync
+  git \
+  rsync
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
@@ -38,10 +38,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-    echo "Joplin-Credentials"
-    echo "Joplin Database User: $DB_USER"
-    echo "Joplin Database Password: $DB_PASS"
-    echo "Joplin Database Name: $DB_NAME"
+  echo "Joplin-Credentials"
+  echo "Joplin Database User: $DB_USER"
+  echo "Joplin Database Password: $DB_PASS"
+  echo "Joplin Database Name: $DB_NAME"
 } >>~/joplin.creds
 msg_ok "Set up PostgreSQL Database"
 
