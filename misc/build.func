@@ -1632,7 +1632,12 @@ install_script() {
     METHOD="default"
     base_settings "$VERBOSE"
     echo_default
+    [[ -f /usr/local/community-scripts/default.vars ]] || {
+      mkdir -p /usr/local/community-scripts
+      touch /usr/local/community-scripts/default.vars
+    }
     ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
+
     ;;
   2 | advanced | ADVANCED)
     header_info
@@ -1640,7 +1645,12 @@ install_script() {
     METHOD="advanced"
     base_settings
     advanced_settings
+    [[ -f /usr/local/community-scripts/default.vars ]] || {
+      mkdir -p /usr/local/community-scripts
+      touch /usr/local/community-scripts/default.vars
+    }
     ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
+
     maybe_offer_save_app_defaults
     ;;
   3 | mydefaults | MYDEFAULTS)
@@ -2781,11 +2791,13 @@ create_lxc_container() {
     msg_ok "Storage ${BL}${TEMPLATE_STORAGE}${CL} (${TEMPLATE_STORAGE_INFO}) [Template]"
   else
     while true; do
-      if select_storage template; then
-        TEMPLATE_STORAGE="$STORAGE_RESULT"
-        TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
-        msg_ok "Storage ${BL}${TEMPLATE_STORAGE}${CL} (${TEMPLATE_STORAGE_INFO}) [Template]"
-        break
+      if [[ -z "${var_template_storage:-}" ]]; then
+        if select_storage template; then
+          TEMPLATE_STORAGE="$STORAGE_RESULT"
+          TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
+          msg_ok "Storage ${BL}${TEMPLATE_STORAGE}${CL} (${TEMPLATE_STORAGE_INFO}) [Template]"
+          break
+        fi
       fi
     done
   fi
@@ -2796,14 +2808,13 @@ create_lxc_container() {
     CONTAINER_STORAGE_INFO="$STORAGE_INFO"
     msg_ok "Storage ${BL}${CONTAINER_STORAGE}${CL} (${CONTAINER_STORAGE_INFO}) [Container]"
   else
-    while true; do
+    if [[ -z "${var_container_storage:-}" ]]; then
       if select_storage container; then
         CONTAINER_STORAGE="$STORAGE_RESULT"
         CONTAINER_STORAGE_INFO="$STORAGE_INFO"
         msg_ok "Storage ${BL}${CONTAINER_STORAGE}${CL} (${CONTAINER_STORAGE_INFO}) [Container]"
-        break
       fi
-    done
+    fi
   fi
 
   # Validate content types
