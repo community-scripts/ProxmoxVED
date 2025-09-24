@@ -33,7 +33,7 @@ WASTEBIN_HTTP_TIMEOUT=30
 WASTEBIN_SIGNING_KEY=$(openssl rand -hex 32)
 WASTEBIN_PASTE_EXPIRATIONS=0,600,3600=d,86400,604800,2419200,29030400
 EOF
-echo "${RELEASE}" >"~/.wastebin"
+echo "${RELEASE}" >~/.wastebin
 
 msg_ok "Installed Wastebin"
 
