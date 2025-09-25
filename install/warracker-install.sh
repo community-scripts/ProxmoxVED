@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
     build-essential \
     libpq-dev \
     nginx
@@ -23,13 +23,12 @@ msg_ok "Installed Dependencies"
 PYTHON_VERSION="3.12" setup_uv
 PG_VERSION="17" setup_postgresql
 
-msg_info "Installing Postgresql"
+msg_info "Setup PostgreSQL"
 DB_NAME="warranty_db"
 DB_USER="warranty_user"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 DB_ADMIN_USER="warracker_admin"
 DB_ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
-systemctl start postgresql
 $STD sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE USER $DB_ADMIN_USER WITH PASSWORD '$DB_ADMIN_PASS' SUPERUSER;"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_ADMIN_USER;"
@@ -44,7 +43,7 @@ $STD sudo -u postgres psql -d "$DB_NAME" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA 
     echo "DB_ADMIN_USER: $DB_ADMIN_USER"
     echo "DB_ADMIN_PASS: $DB_ADMIN_PASS"
 } >>~/warracker.creds
-msg_ok "Installed PostgreSQL"
+msg_ok "Setup PostgreSQL"
 
 fetch_and_deploy_gh_release "warracker" "sassanix/Warracker" "tarball" "latest" "/opt/warracker"
 
@@ -114,6 +113,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD apt -y autoremove
+$STD apt -y autoclean
+$STD apt -y clean
 msg_ok "Cleaned"
