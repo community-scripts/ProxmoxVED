@@ -27,10 +27,13 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  NODE_VERSION="22" setup_nodejs
-  
-  msg_info "Updating ${APP} LXC"
-  $STD npm update -g verdaccio
+
+  msg_info "Updating LXC Container"
+  $STD apt update
+  $STD apt -y upgrade
+  msg_ok "Updated LXC Container"
+
+  NODE_VERSION="22" NODE_MODULE="verdaccio" setup_nodejs
   systemctl restart verdaccio
   msg_ok "Updated Successfully"
   exit

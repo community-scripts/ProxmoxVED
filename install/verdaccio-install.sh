@@ -19,11 +19,7 @@ $STD apt-get install -y \
   build-essential
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" setup_nodejs
-
-msg_info "Installing Verdaccio"
-$STD npm install --global verdaccio
-msg_ok "Installed Verdaccio"
+NODE_VERSION="22" NODE_MODULE="verdaccio" setup_nodejs
 
 msg_info "Configuring Verdaccio"
 mkdir -p /opt/verdaccio/config
@@ -94,6 +90,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD apt -y autoremove
+$STD apt -y autoclean
+$STD apt -y clean
 msg_ok "Cleaned"
