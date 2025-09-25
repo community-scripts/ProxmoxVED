@@ -27,6 +27,24 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
+
+    if [ -f /etc/apt/keyrings/archive.heckel.io.gpg ]; then
+        msg_info "Correcting old Ntfy Repository"
+        rm -f /etc/apt/keyrings/archive.heckel.io.gpg
+        rm -f /etc/apt/sources.list.d/archive.heckel.io.list
+        rm -f /etc/apt/sources.list.d/archive.heckel.io.list.bak
+        rm -f /etc/apt/sources.list.d/archive.heckel.io.sources
+        sudo curl -fsSL -o /etc/apt/keyrings/ntfy.gpg https://archive.ntfy.sh/apt/keyring.gpg
+        cat <<'EOF' >/etc/apt/sources.list.d/ntfy.sources 
+Types: deb
+URIs: https://archive.ntfy.sh/apt/
+Suites: stable
+Components: main
+Signed-By: /etc/apt/keyrings/ntfy.gpg
+EOF
+        msg_ok "Corrected old Ntfy Repository"
+    fi
+    
     msg_info "Updating $APP LXC"
     $STD apt update
     $STD apt -y upgrade
