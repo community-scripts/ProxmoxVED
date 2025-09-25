@@ -30,6 +30,8 @@ Type=simple
 User=root
 WorkingDirectory=/opt/goaway
 ExecStart=/opt/goaway/goaway
+StandardOutput=file:/var/log/goaway.log
+StandardError=inherit
 Restart=on-failure
 RestartSec=5
 
@@ -38,7 +40,7 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now goaway
 sleep 5
-ADMIN_PASS=$(journalctl -u goaway -o cat | grep -oP 'Randomly generated admin password:\s*\K\S+' | tail -n1)
+ADMIN_PASS=$(grep -oP 'Randomly generated admin password:\s*\K\S+' /var/log/goaway.log | tail -n1)
 {
   echo "GoAway Credentials"
   echo "Admin User: admin"
