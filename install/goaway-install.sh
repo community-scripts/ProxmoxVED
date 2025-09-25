@@ -27,6 +27,7 @@ After=network.target
 
 [Service]
 Type=simple
+User=root
 WorkingDirectory=/opt/goaway
 ExecStart=/opt/goaway/goaway
 Restart=on-failure
