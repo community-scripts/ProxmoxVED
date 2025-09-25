@@ -1,0 +1,40 @@
+{
+  "name": "GoAway",
+  "slug": "goaway",
+  "categories": [
+    5
+  ],
+  "date_created": "2025-09-12",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://github.com/pommee/goaway#configuration-file",
+  "config_path": "/opt/goaway/config/settings.yaml",
+  "website": "https://github.com/pommee/goaway",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/goaway.webp",
+  "description": "Very good looking new alternative to Pi-Hole and Adguard Home. Been trying it out in Docker and thought it would be a great addition to the community scripts.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/goaway.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Type `cat ~/goaway.creds` to see login credentials.",
+      "type": "info"
+    }
+  ]
+}
