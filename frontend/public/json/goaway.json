@@ -13,14 +13,14 @@
   "config_path": "/opt/goaway/config/settings.yaml",
   "website": "https://github.com/pommee/goaway",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/goaway.webp",
-  "description": "Very good looking new alternative to Pi-Hole and Adguard Home. Been trying it out in Docker and thought it would be a great addition to the community scripts.",
+  "description": "Lightweight DNS sinkhole written in Go with a modern dashboard client. Very good looking new alternative to Pi-Hole and Adguard Home.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/goaway.sh",
       "resources": {
         "cpu": 1,
-        "ram": 512,
+        "ram": 1024,
         "hdd": 4,
         "os": "Debian",
         "version": "13"
