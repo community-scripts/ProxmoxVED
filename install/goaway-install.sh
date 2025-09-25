@@ -40,7 +40,7 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now goaway
 sleep 5
-ADMIN_PASS=$(grep -oP 'Randomly generated admin password:\s*\K\S+' /var/log/goaway.log | tail -n1)
+ADMIN_PASS=$(awk -F': ' '/Randomly generated admin password:/ {print $2}' /var/log/goaway.log | tail -n1)
 {
   echo "GoAway Credentials"
   echo "Admin User: admin"
