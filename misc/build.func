@@ -642,7 +642,7 @@ advanced_settings() {
       fi
     done <<< "$BRIDGES"
 
-    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 60 6 "${BRIDGE_MENU_OPTIONS[@]}" 3>&1 1>&2 2>&3)
+    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge:\To add a description, edit /usr/local/community-scripts/bridge_description\nExample: vmbr0:LAN vmbr1:WAN" 15 60 6 "${BRIDGE_MENU_OPTIONS[@]}" 3>&1 1>&2 2>&3)
     if [[ -z "$BRG" ]]; then
       exit_script
     else
