@@ -635,7 +635,7 @@ advanced_settings() {
       if [[ -n "$bridge" ]]; then
         description=$(get_bridge_description "$bridge")
         if [[ -n "$description" ]]; then
-          BRIDGE_MENU_OPTIONS+=("$bridge" "${bridge} - ${description}")
+          BRIDGE_MENU_OPTIONS+=("$bridge" "${description}")
         else
           BRIDGE_MENU_OPTIONS+=("$bridge" "$bridge")
         fi
