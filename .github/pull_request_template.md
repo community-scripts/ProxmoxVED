@@ -1,6 +1,8 @@
 🛑 **New scripts must first be submitted to [ProxmoxVED](https://github.com/community-scripts/ProxmoxVED) for testing.**  
 PRs for new scripts that skip this process will be closed.
 
+# Scripts wich are clearly AI generated and not further revied by the Author of this PR (in terms of Coding Standards and Script Layout) may be closed without review. 
+
 ---
 
 ## ✍️ Description  
