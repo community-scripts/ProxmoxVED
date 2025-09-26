@@ -221,6 +221,22 @@ get_current_ip() {
 }
 
 # ------------------------------------------------------------------------------
+# get_bridge_description()
+#
+# - Reads bridge descriptions from /usr/local/community-scripts/bridge_description
+# - Returns description for given bridge name, or empty string if not found
+# - File format: bridge_name:description (e.g., vmbr0:LAN, vmbr1:WAN)
+# ------------------------------------------------------------------------------
+get_bridge_description() {
+  local bridge_name="$1"
+  local desc_file="/usr/local/community-scripts/bridge_description"
+
+  if [[ -f "$desc_file" ]]; then
+    grep "^${bridge_name}:" "$desc_file" 2>/dev/null | cut -d':' -f2- | head -n1
+  fi
+}
+
+# ------------------------------------------------------------------------------
 # update_motd_ip()
 #
 # - Updates /etc/motd with current container IP
@@ -613,7 +629,20 @@ advanced_settings() {
     BRG="vmbr0"
     echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
   else
-    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 40 6 $(echo "$BRIDGES" | awk '{print $0, "Bridge"}') 3>&1 1>&2 2>&3)
+    # Build bridge menu with descriptions
+    BRIDGE_MENU_OPTIONS=""
+    while IFS= read -r bridge; do
+      if [[ -n "$bridge" ]]; then
+        description=$(get_bridge_description "$bridge")
+        if [[ -n "$description" ]]; then
+          BRIDGE_MENU_OPTIONS="${BRIDGE_MENU_OPTIONS}${bridge} \"${bridge} - ${description}\" "
+        else
+          BRIDGE_MENU_OPTIONS="${BRIDGE_MENU_OPTIONS}${bridge} \"${bridge}\" "
+        fi
+      fi
+    done <<< "$BRIDGES"
+
+    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 60 6 $BRIDGE_MENU_OPTIONS 3>&1 1>&2 2>&3)
     if [[ -z "$BRG" ]]; then
       exit_script
     else
