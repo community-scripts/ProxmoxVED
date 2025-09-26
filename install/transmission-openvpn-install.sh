@@ -70,6 +70,27 @@ update-alternatives --set iptables /usr/sbin/iptables-legacy
 update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
 msg_ok "Support legacy IPTables commands"
 
+msg_info "Analyzing Network Interfaces"
+LOCAL_SUBNETS=$(
+  ip -o -4 addr show \
+  | awk '!/127.0.0.1/ {
+      split($4, a, "/"); ip=a[1]; mask=a[2];
+      split(ip, o, ".");
+      if (mask < 8) {
+        print "*.*.*.*";
+      } else if (mask < 16) {
+        print o[1]".*.*.*";
+      } else if (mask < 24) {
+        print o[1]"."o[2]".*.*";
+      } else {
+        print o[1]"."o[2]"."o[3]".*";
+      }
+    }' \
+  | sort -u | paste -sd, -
+)
+TRANSMISSION_RPC_WHITELIST="127.0.0.*,${LOCAL_SUBNETS}"
+msg_ok "Analyzed Network Interfaces"
+
 msg_info "Creating Service"
 mkdir -p /opt/transmission-openvpn
 cat <<EOF > "/opt/transmission-openvpn/.env"
@@ -92,7 +113,7 @@ TRANSMISSION_UMASK="2"
 TRANSMISSION_RATIO_LIMIT_ENABLED="true"
 TRANSMISSION_RATIO_LIMIT="0"
 TRANSMISSION_RPC_WHITELIST_ENABLED="false"
-TRANSMISSION_RPC_WHITELIST="127.0.0.1,192.168.*.*"
+TRANSMISSION_RPC_WHITELIST="${TRANSMISSION_RPC_WHITELIST}"
 CREATE_TUN_DEVICE="false"
 ENABLE_UFW="false"
 UFW_ALLOW_GW_NET="false"
@@ -112,7 +133,6 @@ LOG_TO_STDOUT="false"
 HEALTH_CHECK_HOST="google.com"
 SELFHEAL="false"
 EOF
-
 cat <<EOF > /etc/systemd/system/openvpn-custom.service 
 [Unit]
 Description=Custom OpenVPN start service
