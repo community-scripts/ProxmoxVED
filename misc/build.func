@@ -630,19 +630,19 @@ advanced_settings() {
     echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
   else
     # Build bridge menu with descriptions
-    BRIDGE_MENU_OPTIONS=""
+    BRIDGE_MENU_OPTIONS=()
     while IFS= read -r bridge; do
       if [[ -n "$bridge" ]]; then
         description=$(get_bridge_description "$bridge")
         if [[ -n "$description" ]]; then
-          BRIDGE_MENU_OPTIONS="${BRIDGE_MENU_OPTIONS}${bridge} \"${bridge} - ${description}\" "
+          BRIDGE_MENU_OPTIONS+=("$bridge" "${bridge} - ${description}")
         else
-          BRIDGE_MENU_OPTIONS="${BRIDGE_MENU_OPTIONS}${bridge} \"${bridge}\" "
+          BRIDGE_MENU_OPTIONS+=("$bridge" "$bridge")
         fi
       fi
     done <<< "$BRIDGES"
 
-    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 60 6 $BRIDGE_MENU_OPTIONS 3>&1 1>&2 2>&3)
+    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 60 6 "${BRIDGE_MENU_OPTIONS[@]}" 3>&1 1>&2 2>&3)
     if [[ -z "$BRG" ]]; then
       exit_script
     else
