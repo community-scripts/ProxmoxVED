@@ -91,7 +91,7 @@ install() {
 
     local IDRAC_VERSION
     IDRAC_VERSION=$(get_idrac_version)
-    if [[ -n "$IDRAC_VERSION" && ($IDRAC_VERSION == 7 || $IDRAC_VERSION == 8)]]; then
+    if [[ -n "$IDRAC_VERSION" && ($IDRAC_VERSION == 7 || $IDRAC_VERSION == 8) ]]; then
         msg_info "iDRAC version $IDRAC_VERSION detected"
     else
         msg_error "supported iDRAC not detected, exiting"
