@@ -1,7 +1,5 @@
 ## **Scripts wich are clearly AI generated and not further revied by the Author of this PR (in terms of Coding Standards and Script Layout) may be closed without review.**
 
----
-
 ## ✍️ Description  
 <!-- Briefly describe your changes. -->  
 
