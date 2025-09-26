@@ -637,7 +637,7 @@ advanced_settings() {
         if [[ -n "$description" ]]; then
           BRIDGE_MENU_OPTIONS+=("$bridge" "${description}")
         else
-          BRIDGE_MENU_OPTIONS+=("$bridge" "$bridge")
+          BRIDGE_MENU_OPTIONS+=("$bridge" " ")
         fi
       fi
     done <<< "$BRIDGES"
