@@ -3,10 +3,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: rtgibbons
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source:
-
-# Install iDRAC7/8 and iSM tools for dell servers
-# https://linux.dell.com/repo/community/openmanage/\
+# Source: https://linux.dell.com/repo/community/openmanage/
 
 load_functions
 
@@ -36,8 +33,7 @@ install_sources() {
     curl -sSL https://linux.dell.com/repo/pgp_pubkeys/0x1285491434D8786F.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/dell-apt-key.gpg
 
     msg_info "Adding Dell provided repos"
-    ## Dell provided repos
-    cat > /etc/apt/sources.list.d/dell-openmanage.sources << EOF
+    cat<<EOF >/etc/apt/sources.list.d/dell-openmanage.sources
 Types: deb
 URIs: http://linux.dell.com/repo/community/openmanage/11000/jammy/
 Suites: jammy
@@ -51,8 +47,7 @@ Components: main
 EOF
 
     msg_info "Adding debian bullseye for dependencies"
-    ## Currently dell tools have hard dependency on libssl1.1
-    cat > /etc/apt/sources.list.d/debian-bullseye.sources << EOF
+    cat<<EOF >/etc/apt/sources.list.d/debian-bullseye.sources
 Types: deb
 URIs: http://deb.debian.org/debian/
 Suites: bullseye
@@ -63,22 +58,19 @@ EOF
     msg_info "Setting package pinning for dell-openmanage"
     mkdir -p /etc/apt/preferences.d
 
-    ## Default deprioritize all install from bullseye
-    cat > /etc/apt/preferences.d/debian-bullseye.pref << EOF
+    cat<<EOF >/etc/apt/preferences.d/debian-bullseye.pref
 Package: *
 Pin: release n=bullseye
 Pin-Priority: -1
 EOF
 
-    ## Allow libssl1.1 to be installed
-    cat > /etc/apt/preferences.d/libssl1.1.pref << EOF
+    cat<<EOF >/etc/apt/preferences.d/libssl1.1.pref
 Package: libssl1.1
 Pin: release n=bullseye
 Pin-Priority: 500
 EOF
 
-    ## Allow all install from dell repos
-    cat > /etc/apt/preferences.d/dell-openmanage.pref << EOF
+    cat<<EOF >/etc/apt/preferences.d/dell-openmanage.pref
 Package: *
 Pin: origin linux.dell.com
 Pin-Priority: 500
