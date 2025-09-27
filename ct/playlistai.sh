@@ -26,17 +26,16 @@ function description() {
   echo -e "Supports both standalone Music Assistant (REST) and the HA add-on (WebSocket) via music-assistant-client."
 }
 
-# ✅ Corrected update_script to run installer inside the container
+# Runs the installer inside the container (curl -> bash inside LXC)
 function update_script() {
   header_info
   msg_info "Running PlaylistAI installation inside container $CTID"
-
   pct exec "$CTID" -- bash -c "curl -fsSL https://raw.githubusercontent.com/Hoosier-IT/ProxmoxVED/playlistai/install/playlistai-install.sh | bash"
-
   msg_ok "PlaylistAI installation complete"
 }
 
 start
 build_container
+update_script
 description
 msg_ok "Completed Successfully!"
