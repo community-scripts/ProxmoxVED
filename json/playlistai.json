@@ -1,0 +1,19 @@
+{
+  "name": "PlaylistAI",
+  "categories": [
+    "music",
+    "llm",
+    "flask"
+  ],
+  "description": "Flask API that curates playlists using Music Assistant and an LLM. Supports both standalone Music Assistant (REST) and the Home Assistant add-on (WebSocket) via the official music-assistant-client.",
+  "install": "playlistai-install.sh",
+  "ct": "playlistai.sh",
+  "developer": "Michael (Hoosier-IT)",
+  "website": "https://github.com/Hoosier-IT/playlistai",
+  "license": "MIT",
+  "notes": [
+    "Binds your host music folder into /data/music inside the container.",
+    "Configuration is stored in /opt/playlistai/config.env.",
+    "Systemd service runs PlaylistAI on port 5000."
+  ]
+}
