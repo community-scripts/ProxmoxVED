@@ -32,7 +32,7 @@ function update_script() {
   $STD miniflux -flush-sessions -config-file /etc/miniflux.conf
   $STD systemctl stop miniflux
   $STD pg_dump -U miniflux miniflux >~/miniflux_$(date +%F)_backup.sql
-  $STD apt upgrade miniflux
+  $STD apt update && apt upgrade miniflux
   $STD miniflux -migrate -config-file /etc/miniflux.conf
   $STD systemctl start miniflux
   msg_ok "Updated Successfully"

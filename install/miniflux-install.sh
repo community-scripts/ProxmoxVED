@@ -24,13 +24,12 @@ $STD sudo -u postgres psql -c "CREATE EXTENSION hstore;"
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing Miniflux"
-$STD echo "deb [trusted=yes] https://repo.miniflux.app/apt/ * *" | sudo tee /etc/apt/sources.list.d/miniflux.list >/dev/null
+$STD echo "deb https://repo.miniflux.app/apt/ * *" | sudo tee /etc/apt/sources.list.d/miniflux.list >/dev/null
 $STD apt update
 $STD apt install miniflux
 msg_ok "Installed Miniflux"
 
 msg_info "Configuring Miniflux"
-
 {
   echo -n "user=$DB_USER password=$DB_PASS dbname=$DB_NAME sslmode=disable"
 } >>/etc/miniflux-db.creds
@@ -39,7 +38,6 @@ chown miniflux:miniflux /etc/miniflux-db.creds
 
 cat <<EOF >/etc/miniflux.conf
 # See https://miniflux.app/docs/configuration.html
-
 DATABASE_URL_FILE=/etc/miniflux-db.creds
 CREATE_ADMIN=1
 ADMIN_USERNAME=admin
@@ -57,6 +55,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD apt -y autoremove
+$STD apt -y autoclean
 msg_ok "Cleaned"

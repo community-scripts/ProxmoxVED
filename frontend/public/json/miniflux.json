@@ -12,7 +12,7 @@
   "interface_port": 8080,
   "documentation": "https://miniflux.app/docs/index.html",
   "website": "https://miniflux.app/",
-  "logo": "https://github.com/miniflux/v2/blob/main/internal/ui/static/bin/icon-512.png?raw=true",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/miniflux-light.webp",
   "description": "Miniflux is a minimalist and opinionated feed reader.",
   "install_methods": [
     {
