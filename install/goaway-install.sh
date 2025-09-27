@@ -40,7 +40,7 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now goaway
 ADMIN_PASS=$(
-  tail -F /var/log/goaway.log 2>/dev/null \
+  tail -n0 -f /var/log/goaway.log 2>/dev/null \
   | grep -m1 'Randomly generated admin password:' \
   | awk -F': ' '{print $2}'
 )
