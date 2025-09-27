@@ -36,7 +36,7 @@ variables() {
 # FUNC_DIR="/usr/local/community-scripts/core"
 # mkdir -p "$FUNC_DIR"
 
-# BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
+# BUILD_URL="https://raw.githubusercontent.com/Hoosier-IT/ProxmoxVED/playlistai/misc/build.func"
 # BUILD_REV="$FUNC_DIR/build.rev"
 # DEVMODE="${DEVMODE:-no}"
 
