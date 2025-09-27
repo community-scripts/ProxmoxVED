@@ -3,8 +3,8 @@
 # Author: Michael (Hoosier-IT)
 # License: MIT
 
-# Source the community-scripts build functions
-source <(curl -fsSL https://raw.githubusercontent.com/Hoosier-IT/ProxmoxVED/refs/heads/playlistai/misc/build.func)
+# Source the community-scripts build functions (pointing to your fork/branch for testing)
+source <(curl -fsSL https://raw.githubusercontent.com/Hoosier-IT/ProxmoxVED/playlistai/misc/build.func)
 
 APP="PlaylistAI"
 var_os="debian"
@@ -26,12 +26,12 @@ function description() {
   echo -e "Supports both standalone Music Assistant (REST) and the HA add-on (WebSocket) via music-assistant-client."
 }
 
-# ✅ Override update_script to run our installer
+# ✅ Override update_script to run our installer inside the container
 function update_script() {
   header_info
   msg_info "Running PlaylistAI installation inside container $CTID"
 
-  pct exec "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hoosier-IT/ProxmoxVED/playlistai/install/playlistai-install.sh)"
+  pct exec "$CTID" -- bash -c "curl -fsSL https://raw.githubusercontent.com/Hoosier-IT/ProxmoxVED/playlistai/install/playlistai-install.sh | bash"
 
   msg_ok "PlaylistAI installation complete"
 }
