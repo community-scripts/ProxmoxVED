@@ -40,7 +40,7 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now goaway
 for i in {1..30}; do
-  ADMIN_PASS=$(awk -F': ' '/Randomly generated admin password:/ {print $2; exit}' /var/log/goaway.log)
+  ADMIN_PASS=$(awk -F': ' "/Randomly generated admin password:/ {print \$2; exit}" /var/log/goaway.log)
   [ -n "$ADMIN_PASS" ] && break
   sleep 1
 done
