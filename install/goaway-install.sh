@@ -39,6 +39,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now goaway
+sleep 10
 for i in {1..30}; do
   ADMIN_PASS=$(awk -F': ' "/Randomly generated admin password:/ {print \$2; exit}" /var/log/goaway.log)
   [ -n "$ADMIN_PASS" ] && break
