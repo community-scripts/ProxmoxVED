@@ -39,7 +39,6 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now goaway
-sleep 10
 ADMIN_PASS=$(
   tail -F /var/log/goaway.log 2>/dev/null \
   | grep -m1 'Randomly generated admin password:' \
