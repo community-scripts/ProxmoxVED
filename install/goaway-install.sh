@@ -39,11 +39,11 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now goaway
-ADMIN_PASS=$(
-  tail -n0 -f /var/log/goaway.log 2>/dev/null \
-  | grep -m1 'Randomly generated admin password:' \
-  | awk -F': ' '{print $2}'
-)
+for i in {1..30}; do
+  ADMIN_PASS=$(awk -F': ' '/Randomly generated admin password:/ {print $2; exit}' /var/log/goaway.log)
+  [ -n "$ADMIN_PASS" ] && break
+  sleep 1
+done
 {
   echo "GoAway Credentials"
   echo "Admin User: admin"
