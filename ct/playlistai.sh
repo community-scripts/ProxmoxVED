@@ -31,7 +31,7 @@ function update_script() {
   header_info
   msg_info "Running PlaylistAI installation inside container $CTID"
 
-  pct exec "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hoosier-IT/playlistai/main/install/playlistai-install.sh)"
+  pct exec "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hoosier-IT/ProxmoxVED/playlistai/install/playlistai-install.sh)"
 
   msg_ok "PlaylistAI installation complete"
 }
