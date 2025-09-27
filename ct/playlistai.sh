@@ -4,7 +4,7 @@
 # License: MIT
 
 # Source the community-scripts build functions
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/Hoosier-IT/ProxmoxVED/refs/heads/playlistai/misc/build.func)
 
 APP="PlaylistAI"
 var_os="debian"
