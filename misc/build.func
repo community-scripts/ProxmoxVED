@@ -2247,131 +2247,136 @@ EOF
   }
 
   # Configure GPU passthrough
-  configure_gpu_passthrough() {
-    # Skip if not a GPU app and not privileged
-    if [[ "$CT_TYPE" != "0" ]] && ! is_gpu_app "$APP"; then
+configure_gpu_passthrough() {
+  # Skip if not a GPU app and not privileged
+  if [[ "$CT_TYPE" != "0" ]] && ! is_gpu_app "$APP"; then
+    return 0
+  fi
+
+  detect_gpu_devices
+
+  # Count available GPU types
+  local gpu_count=0
+  local available_gpus=()
+
+  if [[ ${#INTEL_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("INTEL")
+    gpu_count=$((gpu_count + 1))
+  fi
+
+  if [[ ${#AMD_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("AMD")
+    gpu_count=$((gpu_count + 1))
+  fi
+
+  if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("NVIDIA")
+    gpu_count=$((gpu_count + 1))
+  fi
+
+  if [[ $gpu_count -eq 0 ]]; then
+    msg_info "No GPU devices found for passthrough"
+    return 0
+  fi
+
+  local selected_gpu=""
+
+  if [[ $gpu_count -eq 1 ]]; then
+    # Automatic selection for single GPU
+    selected_gpu="${available_gpus[0]}"
+    msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
+  else
+    # Multiple GPUs - ask user
+    echo -e "\n${INFO} Multiple GPU types detected:"
+    for gpu in "${available_gpus[@]}"; do
+      echo "  - $gpu"
+    done
+    read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
+    selected_gpu="${selected_gpu^^}"
+
+    # Validate selection
+    local valid=0
+    for gpu in "${available_gpus[@]}"; do
+      [[ "$selected_gpu" == "$gpu" ]] && valid=1
+    done
+
+    if [[ $valid -eq 0 ]]; then
+      msg_warn "Invalid selection. Skipping GPU passthrough."
       return 0
     fi
+  fi
 
-    detect_gpu_devices
+  # Apply passthrough configuration based on selection
+  local dev_idx=0
 
-    # Count available GPU types
-    local gpu_count=0
-    local available_gpus=()
+  case "$selected_gpu" in
+    INTEL|AMD)
+      local devices=()
+      [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
+      [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
 
-    if [[ ${#INTEL_DEVICES[@]} -gt 0 ]]; then
-      available_gpus+=("INTEL")
-      gpu_count=$((gpu_count + 1))
-    fi
-
-    if [[ ${#AMD_DEVICES[@]} -gt 0 ]]; then
-      available_gpus+=("AMD")
-      gpu_count=$((gpu_count + 1))
-    fi
-
-    if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
-      available_gpus+=("NVIDIA")
-      gpu_count=$((gpu_count + 1))
-    fi
-
-    if [[ $gpu_count -eq 0 ]]; then
-      msg_info "No GPU devices found for passthrough"
-      return 0
-    fi
-
-    local selected_gpu=""
-
-    if [[ $gpu_count -eq 1 ]]; then
-      # Automatic selection for single GPU
-      selected_gpu="${available_gpus[0]}"
-      msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
-    else
-      # Multiple GPUs - ask user
-      echo -e "\n${INFO} Multiple GPU types detected:"
-      for gpu in "${available_gpus[@]}"; do
-        echo "  - $gpu"
-      done
-      read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
-      selected_gpu="${selected_gpu^^}"
-
-      # Validate selection
-      local valid=0
-      for gpu in "${available_gpus[@]}"; do
-        [[ "$selected_gpu" == "$gpu" ]] && valid=1
-      done
-
-      if [[ $valid -eq 0 ]]; then
-        msg_warn "Invalid selection. Skipping GPU passthrough."
-        return 0
-      fi
-    fi
-
-    # Apply passthrough configuration based on selection
-    local dev_idx=0
-
-    case "$selected_gpu" in
-      INTEL|AMD)
-        local devices=()
-        [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
-        [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
-
-        for dev in "${devices[@]}"; do
-          if [[ "$CT_TYPE" == "0" ]]; then
-            # Privileged container
-            local major minor
-            major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
-            minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
-
-            if [[ "$major" != "0" && "$minor" != "0" ]]; then
-              echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
-              echo "lxc.mount.entry: $dev dev/$(basename "$dev") none bind,optional,create=file" >>"$LXC_CONFIG"
-            fi
+      # For Proxmox WebUI visibility, add as dev0, dev1 etc.
+      for dev in "${devices[@]}"; do
+        if [[ "$CT_TYPE" == "0" ]]; then
+          # Privileged container - use dev entries for WebUI visibility
+          # Use initial GID 104 (render) for renderD*, 44 (video) for card*
+          if [[ "$dev" =~ renderD ]]; then
+            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
           else
-            # Unprivileged container - use generic GID, will be fixed after start
             echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
-            dev_idx=$((dev_idx + 1))
           fi
-        done
+          dev_idx=$((dev_idx + 1))
 
-        # Mount entire /dev/dri for privileged containers
-        if [[ "$CT_TYPE" == "0" && -d /dev/dri ]]; then
-          echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-        fi
+          # Also add cgroup allows for privileged containers
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
 
-        export GPU_TYPE="$selected_gpu"
-        msg_ok "${selected_gpu} GPU passthrough configured"
-        ;;
-
-      NVIDIA)
-        if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
-          msg_error "NVIDIA drivers not installed on host. Please install: apt install nvidia-driver"
-          return 1
-        fi
-
-        for dev in "${NVIDIA_DEVICES[@]}"; do
-          if [[ "$CT_TYPE" == "0" ]]; then
-            local major minor
-            major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
-            minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
-
-            if [[ "$major" != "0" && "$minor" != "0" ]]; then
-              echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
-              echo "lxc.mount.entry: $dev dev/$(basename "$dev") none bind,optional,create=file" >>"$LXC_CONFIG"
-            fi
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+          fi
+        else
+          # Unprivileged container
+          if [[ "$dev" =~ renderD ]]; then
+            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
           else
-            msg_warn "NVIDIA passthrough on unprivileged container may not work properly"
+            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
           fi
-        done
-
-        if [[ "$CT_TYPE" == "0" && -d /dev/dri ]]; then
-          echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+          dev_idx=$((dev_idx + 1))
         fi
+      done
 
-        export GPU_TYPE="NVIDIA"
-        msg_ok "NVIDIA GPU passthrough configured"
-        ;;
-    esac
-  }
+      export GPU_TYPE="$selected_gpu"
+      msg_ok "${selected_gpu} GPU passthrough configured (${dev_idx} devices)"
+      ;;
+
+    NVIDIA)
+      if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
+        msg_error "NVIDIA drivers not installed on host. Please install: apt install nvidia-driver"
+        return 1
+      fi
+
+      for dev in "${NVIDIA_DEVICES[@]}"; do
+        # NVIDIA devices typically need different handling
+        echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+        dev_idx=$((dev_idx + 1))
+
+        if [[ "$CT_TYPE" == "0" ]]; then
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
+
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+          fi
+        fi
+      done
+
+      export GPU_TYPE="NVIDIA"
+      msg_ok "NVIDIA GPU passthrough configured (${dev_idx} devices)"
+      ;;
+  esac
+}
 
   # Additional device passthrough
   configure_additional_devices() {
@@ -2447,86 +2452,144 @@ EOF
       msg_warn "Network reachable but gateway check failed"
     fi
   fi
- # Function to get correct GID inside container
-  get_container_gid() {
-    local group="$1"
-    local gid=$(pct exec "$CTID" -- getent group "$group" 2>/dev/null | cut -d: -f3)
-    echo "${gid:-44}"  # Default to 44 if not found
-  }
+  Function to get correct GID inside container
+get_container_gid() {
+  local group="$1"
+  local gid=$(pct exec "$CTID" -- getent group "$group" 2>/dev/null | cut -d: -f3)
+  echo "${gid:-44}"  # Default to 44 if not found
+}
 
-  # Install GPU drivers and fix permissions
-  if [[ -n "${GPU_TYPE:-}" ]]; then
-    msg_info "Installing GPU userland drivers for ${GPU_TYPE}"
-
-    case "$GPU_TYPE" in
-      INTEL|AMD)
-        if [[ "$var_os" == "alpine" ]]; then
-          pct exec "$CTID" -- apk add mesa-dri-gallium mesa-va-gallium intel-media-driver libva-utils 2>/dev/null || true
-        else
-          pct exec "$CTID" -- bash -c "apt-get update && apt-get install -y vainfo intel-media-va-driver-non-free mesa-va-drivers" 2>/dev/null || true
-        fi
-
-        # Fix permissions with correct GID
-        local video_gid=$(get_container_gid "video")
-        local render_gid=$(get_container_gid "render")
-
-        msg_info "Setting GPU permissions (video:${video_gid}, render:${render_gid})"
-
-        # Fix device permissions inside container
-        if [[ "$CT_TYPE" == "0" ]]; then
-          pct exec "$CTID" -- bash -c "
-            if [ -d /dev/dri ]; then
-              chgrp ${video_gid} /dev/dri 2>/dev/null || true
-              chmod 755 /dev/dri
-              for dev in /dev/dri/*; do
-                if [[ \"\$dev\" =~ renderD ]]; then
-                  chgrp ${render_gid} \"\$dev\" 2>/dev/null || true
-                else
-                  chgrp ${video_gid} \"\$dev\" 2>/dev/null || true
-                fi
-                chmod 660 \"\$dev\"
-              done
-            fi
-          "
-        else
-          # For unprivileged containers, update the LXC config with correct GIDs
-          msg_info "Updating unprivileged container device GIDs"
-
-          # Stop container to update config
-          pct stop "$CTID"
-
-          # Update device entries with correct GIDs
-          sed -i "s/dev\([0-9]\+\):.*renderD.*/dev\1: \/dev\/dri\/renderD*, gid=${render_gid}/" "$LXC_CONFIG"
-          sed -i "s/dev\([0-9]\+\):.*card.*/dev\1: \/dev\/dri\/card*, gid=${video_gid}/" "$LXC_CONFIG"
-
-          # Restart container
-          pct start "$CTID"
-          sleep 5
-        fi
-
-        # Verify GPU access
-        if pct exec "$CTID" -- vainfo >/dev/null 2>&1; then
-          msg_ok "${GPU_TYPE} GPU verified working"
-        else
-          msg_warn "${GPU_TYPE} GPU verification failed - may need additional configuration"
-        fi
-        ;;
-
-      NVIDIA)
-        if [[ "$var_os" != "alpine" ]]; then
-          pct exec "$CTID" -- bash -c "apt-get update && apt-get install -y nvidia-driver nvidia-utils libnvidia-encode1" 2>/dev/null || true
-        else
-          msg_warn "NVIDIA drivers not available in Alpine repos"
-        fi
-
-        if pct exec "$CTID" -- nvidia-smi >/dev/null 2>&1; then
-          msg_ok "NVIDIA GPU verified working"
-        else
-          msg_warn "NVIDIA GPU verification failed"
-        fi
-        ;;
-    esac
+# Configure GPU passthrough
+configure_gpu_passthrough() {
+  # Skip if not a GPU app and not privileged
+  if [[ "$CT_TYPE" != "0" ]] && ! is_gpu_app "$APP"; then
+    return 0
   fi
+
+  detect_gpu_devices
+
+  # Count available GPU types
+  local gpu_count=0
+  local available_gpus=()
+
+  if [[ ${#INTEL_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("INTEL")
+    gpu_count=$((gpu_count + 1))
+  fi
+
+  if [[ ${#AMD_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("AMD")
+    gpu_count=$((gpu_count + 1))
+  fi
+
+  if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("NVIDIA")
+    gpu_count=$((gpu_count + 1))
+  fi
+
+  if [[ $gpu_count -eq 0 ]]; then
+    msg_info "No GPU devices found for passthrough"
+    return 0
+  fi
+
+  local selected_gpu=""
+
+  if [[ $gpu_count -eq 1 ]]; then
+    # Automatic selection for single GPU
+    selected_gpu="${available_gpus[0]}"
+    msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
+  else
+    # Multiple GPUs - ask user
+    echo -e "\n${INFO} Multiple GPU types detected:"
+    for gpu in "${available_gpus[@]}"; do
+      echo "  - $gpu"
+    done
+    read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
+    selected_gpu="${selected_gpu^^}"
+
+    # Validate selection
+    local valid=0
+    for gpu in "${available_gpus[@]}"; do
+      [[ "$selected_gpu" == "$gpu" ]] && valid=1
+    done
+
+    if [[ $valid -eq 0 ]]; then
+      msg_warn "Invalid selection. Skipping GPU passthrough."
+      return 0
+    fi
+  fi
+
+  # Apply passthrough configuration based on selection
+  local dev_idx=0
+
+  case "$selected_gpu" in
+    INTEL|AMD)
+      local devices=()
+      [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
+      [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
+
+      # For Proxmox WebUI visibility, add as dev0, dev1 etc.
+      for dev in "${devices[@]}"; do
+        if [[ "$CT_TYPE" == "0" ]]; then
+          # Privileged container - use dev entries for WebUI visibility
+          # Use initial GID 104 (render) for renderD*, 44 (video) for card*
+          if [[ "$dev" =~ renderD ]]; then
+            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
+          else
+            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+          fi
+          dev_idx=$((dev_idx + 1))
+
+          # Also add cgroup allows for privileged containers
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
+
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+          fi
+        else
+          # Unprivileged container
+          if [[ "$dev" =~ renderD ]]; then
+            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
+          else
+            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+          fi
+          dev_idx=$((dev_idx + 1))
+        fi
+      done
+
+      export GPU_TYPE="$selected_gpu"
+      msg_ok "${selected_gpu} GPU passthrough configured (${dev_idx} devices)"
+      ;;
+
+    NVIDIA)
+      if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
+        msg_error "NVIDIA drivers not installed on host. Please install: apt install nvidia-driver"
+        return 1
+      fi
+
+      for dev in "${NVIDIA_DEVICES[@]}"; do
+        # NVIDIA devices typically need different handling
+        echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+        dev_idx=$((dev_idx + 1))
+
+        if [[ "$CT_TYPE" == "0" ]]; then
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
+
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+          fi
+        fi
+      done
+
+      export GPU_TYPE="NVIDIA"
+      msg_ok "NVIDIA GPU passthrough configured (${dev_idx} devices)"
+      ;;
+  esac
+}
 
   # Continue with standard container setup
   msg_info "Customizing LXC Container"
