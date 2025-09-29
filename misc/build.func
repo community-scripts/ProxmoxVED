@@ -2321,9 +2321,9 @@ configure_gpu_passthrough() {
           # Privileged container - use dev entries for WebUI visibility
           # Use initial GID 104 (render) for renderD*, 44 (video) for card*
           if [[ "$dev" =~ renderD ]]; then
-            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
+            echo "dev${dev_idx}: $dev,gid=104" >>"$LXC_CONFIG"
           else
-            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+            echo "dev${dev_idx}: $dev,gid=44" >>"$LXC_CONFIG"
           fi
           dev_idx=$((dev_idx + 1))
 
@@ -2458,6 +2458,8 @@ EOF
     local gid=$(pct exec "$CTID" -- getent group "$group" 2>/dev/null | cut -d: -f3)
     echo "${gid:-44}"  # Default to 44 if not found
   }
+
+  fix_gpu_gids
 
 # Configure GPU passthrough
 configure_gpu_passthrough() {
@@ -2730,6 +2732,101 @@ resolve_storage_preselect() {
   fi
   STORAGE_RESULT="$preselect"
   return 0
+}
+
+fix_gpu_gids() {
+  if [[ -z "${GPU_TYPE:-}" ]]; then
+    return 0
+  fi
+
+  msg_info "Detecting and setting correct GPU group IDs"
+
+  # Ermittle die tatsächlichen GIDs aus dem Container
+  local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
+  local render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
+
+  # Fallbacks wenn Gruppen nicht existieren
+  if [[ -z "$video_gid" ]]; then
+    # Versuche die video Gruppe zu erstellen
+    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true"
+    video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
+    [[ -z "$video_gid" ]] && video_gid="44"  # Ultimate fallback
+  fi
+
+  if [[ -z "$render_gid" ]]; then
+    # Versuche die render Gruppe zu erstellen
+    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true"
+    render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
+    [[ -z "$render_gid" ]] && render_gid="104"  # Ultimate fallback
+  fi
+
+  msg_info "Container GIDs detected - video:${video_gid}, render:${render_gid}"
+
+  # Prüfe ob die GIDs von den Defaults abweichen
+  local need_update=0
+  if [[ "$video_gid" != "44" ]] || [[ "$render_gid" != "104" ]]; then
+    need_update=1
+  fi
+
+  if [[ $need_update -eq 1 ]]; then
+    msg_info "Updating device GIDs in container config"
+
+    # Stoppe Container für Config-Update
+    pct stop "$CTID" >/dev/null 2>&1
+
+    # Update die dev Einträge mit korrekten GIDs
+    # Backup der Config
+    cp "$LXC_CONFIG" "${LXC_CONFIG}.bak"
+
+    # Parse und update jeden dev Eintrag
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^dev[0-9]+: ]]; then
+        # Extract device path
+        local device_path=$(echo "$line" | sed -E 's/^dev[0-9]+: ([^,]+).*/\1/')
+        local dev_num=$(echo "$line" | sed -E 's/^(dev[0-9]+):.*/\1/')
+
+        if [[ "$device_path" =~ renderD ]]; then
+          # RenderD device - use render GID
+          echo "${dev_num}: ${device_path},gid=${render_gid}"
+        elif [[ "$device_path" =~ card ]]; then
+          # Card device - use video GID
+          echo "${dev_num}: ${device_path},gid=${video_gid}"
+        else
+          # Keep original line
+          echo "$line"
+        fi
+      else
+        # Keep non-dev lines
+        echo "$line"
+      fi
+    done < "$LXC_CONFIG" > "${LXC_CONFIG}.new"
+
+    mv "${LXC_CONFIG}.new" "$LXC_CONFIG"
+
+    # Starte Container wieder
+    pct start "$CTID" >/dev/null 2>&1
+    sleep 3
+
+    msg_ok "Device GIDs updated successfully"
+  else
+    msg_ok "Device GIDs are already correct"
+  fi
+  if [[ "$CT_TYPE" == "0" ]]; then
+    pct exec "$CTID" -- bash -c "
+      if [ -d /dev/dri ]; then
+        for dev in /dev/dri/*; do
+          if [ -e \"\$dev\" ]; then
+            if [[ \"\$dev\" =~ renderD ]]; then
+              chgrp ${render_gid} \"\$dev\" 2>/dev/null || true
+            else
+              chgrp ${video_gid} \"\$dev\" 2>/dev/null || true
+            fi
+            chmod 660 \"\$dev\" 2>/dev/null || true
+          fi
+        done
+      fi
+    " >/dev/null 2>&1
+  fi
 }
 
 check_storage_support() {
