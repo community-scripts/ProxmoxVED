@@ -35,7 +35,11 @@ function update_script() {
       msg_ok "Stopped Service"
 
       msg_info "Creating Backup"
-      tar -czf "/opt/ghostfolio_backup_$(date +%F).tar.gz" /opt/ghostfolio
+      tar -czf "/opt/ghostfolio_backup_$(date +%F).tar.gz" \
+        -C /opt \
+        --exclude="ghostfolio/node_modules" \
+        --exclude="ghostfolio/dist" \
+        ghostfolio
       mv /opt/ghostfolio/.env /opt/env.backup
       msg_ok "Backup Created"
 
