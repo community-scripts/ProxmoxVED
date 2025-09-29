@@ -24,7 +24,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
-PYTHON_VERSION="3.13" setup_uv
+PYTHON_VERSION="3.11" setup_uv
 
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=viseron
@@ -54,7 +54,7 @@ msg_ok "Hardware Acceleration Configured"
 fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron"
 
 msg_info "Setting up Python Environment"
-uv venv --python "python3.13" /opt/viseron/.venv
+uv venv --python "python3.11" /opt/viseron/.venv
 uv pip install --python /opt/viseron/.venv/bin/python --upgrade pip setuptools wheel
 msg_ok "Python Environment Setup"
 
@@ -92,6 +92,7 @@ case "$GPU_VENDOR" in
 esac
 
 UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -e /opt/viseron/.
+UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -r /opt/viseron/requirements.txt
 
 mkdir -p /config/{recordings,snapshots,segments,event_clips,thumbnails}
 for d in recordings snapshots segments event_clips thumbnails; do
