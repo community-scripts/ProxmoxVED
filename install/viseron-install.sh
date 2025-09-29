@@ -51,7 +51,7 @@ if [[ "$CTTYPE" == "0" ]]; then
 fi
 msg_ok "Hardware Acceleration Configured"
 
-fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "/opt/viseron"
+fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron"
 
 msg_info "Setting up Python Environment"
 uv venv --python "python3.13" /opt/viseron/.venv

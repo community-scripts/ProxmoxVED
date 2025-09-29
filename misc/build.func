@@ -2534,9 +2534,9 @@ configure_gpu_passthrough() {
           # Privileged container - use dev entries for WebUI visibility
           # Use initial GID 104 (render) for renderD*, 44 (video) for card*
           if [[ "$dev" =~ renderD ]]; then
-            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
+            echo "dev${dev_idx}: $dev,gid=104" >>"$LXC_CONFIG"
           else
-            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+            echo "dev${dev_idx}: $dev,gid=44" >>"$LXC_CONFIG"
           fi
           dev_idx=$((dev_idx + 1))
 
