@@ -50,7 +50,7 @@ function update_script() {
       cd /opt/ghostfolio
       $STD npm ci
       $STD npm run build:production
-      $STD prisma migrate deploy
+      $STD npx prisma migrate deploy
       msg_ok "Updated Ghostfolio"
 
     msg_info "Starting Service"
