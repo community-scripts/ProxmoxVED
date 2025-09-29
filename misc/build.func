@@ -2193,6 +2193,11 @@ build_container() {
     # Check for NVIDIA GPU - look for NVIDIA vendor ID [10de]
     if echo "$pci_vga_info" | grep -q "\[10de:"; then
       msg_info "Detected NVIDIA GPU"
+      if ! check_nvidia_host_setup; then
+        msg_error "NVIDIA host setup incomplete. Skipping GPU passthrough."
+        msg_info "Fix NVIDIA drivers on host, then recreate container or passthrough manually."
+        return 0
+      fi
       for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset; do
         [[ -e "$d" ]] && NVIDIA_DEVICES+=("$d")
       done
@@ -2201,7 +2206,30 @@ build_container() {
         msg_warn "NVIDIA GPU detected but no /dev/nvidia* devices found"
         msg_warn "Please install NVIDIA drivers on host: apt install nvidia-driver"
       fi
-    fi
+      if [[ "$CT_TYPE" == "0" ]]; then
+          cat <<EOF >>"$LXC_CONFIG"
+        # NVIDIA GPU Passthrough (privileged)
+        lxc.cgroup2.devices.allow: c 195:* rwm
+        lxc.cgroup2.devices.allow: c 243:* rwm
+        lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
+        lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
+        lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
+        lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,create=file
+        EOF
+      fi
+          if [[ -e /dev/dri/renderD128 ]]; then
+        echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
+      fi
+
+            export GPU_TYPE="NVIDIA"
+            export NVIDIA_DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n1)
+            msg_ok "NVIDIA GPU passthrough configured (driver: ${NVIDIA_DRIVER_VERSION})"
+          else
+            msg_warn "NVIDIA passthrough only supported for privileged containers"
+            return 0
+          fi
+        fi
+      }
 
     # Debug output
     msg_debug "Intel devices: ${INTEL_DEVICES[*]}"
@@ -2813,6 +2841,26 @@ fix_gpu_gids() {
       fi
     " >/dev/null 2>&1
   fi
+}
+
+# NVIDIA-spezific check on host
+check_nvidia_host_setup() {
+  if ! command -v nvidia-smi >/dev/null 2>&1; then
+    msg_warn "NVIDIA GPU detected but nvidia-smi not found on host"
+    msg_warn "Please install NVIDIA drivers on host first."
+    #echo "  1. Download driver: wget https://us.download.nvidia.com/XFree86/Linux-x86_64/550.127.05/NVIDIA-Linux-x86_64-550.127.05.run"
+    #echo "  2. Install: ./NVIDIA-Linux-x86_64-550.127.05.run --dkms"
+    #echo "  3. Verify: nvidia-smi"
+    return 1
+  fi
+
+  # check if nvidia-smi works
+  if ! nvidia-smi >/dev/null 2>&1; then
+    msg_warn "nvidia-smi installed but not working. Driver issue?"
+    return 1
+  fi
+
+  return 0
 }
 
 check_storage_support() {
