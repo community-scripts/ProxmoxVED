@@ -23,18 +23,25 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Creating livebook user"
+mkdir -p /opt/livebook /data
+export HOME=/opt/livebook
 $STD adduser --system --group --home /opt/livebook --shell /bin/bash livebook
 msg_ok "Created livebook user"
 
-msg_info "Installing Erlang and Elixir"
 
-mkdir -p /opt/livebook /data
-export HOME=/opt/livebook
-cd /opt/livebook
+msg_warn "WARNING: This script will run an external installer from a third-party source (https://elixir-lang.org)."
+msg_warn "The following code is NOT maintained or audited by our repository."
+msg_warn "If you have any doubts or concerns, please review the installer code before proceeding:"
+msg_custom "${TAB3}${GATEWAY}${BGN}${CL}" "\e[1;34m" "→  https://elixir-lang.org/install.sh"
+echo
+read -r -p "${TAB3}Do you want to continue? [y/N]: " CONFIRM
+if [[ ! "$CONFIRM" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+  msg_error "Aborted by user. No changes have been made."
+  exit 10
+fi
+bash <(curl -sL https://elixir-lang.org/install.sh)
 
-curl -fsSO https://elixir-lang.org/install.sh
-$STD sh install.sh elixir@latest otp@latest
-
+msg_info "Setup Erlang and Elixir"
 ERLANG_VERSION=$(ls /opt/livebook/.elixir-install/installs/otp/ | head -n1)
 ELIXIR_VERSION=$(ls /opt/livebook/.elixir-install/installs/elixir/ | head -n1)
 LIVEBOOK_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c16)
@@ -60,7 +67,10 @@ export ERLANG_BIN="/opt/livebook/.elixir-install/installs/otp/\${ERLANG_VERSION}
 export ELIXIR_BIN="/opt/livebook/.elixir-install/installs/elixir/\${ELIXIR_VERSION}/bin"
 export PATH="\$ESCRIPTS_BIN:\$ERLANG_BIN:\$ELIXIR_BIN:\$PATH"
 EOF
-
+cat <<EOF >/opt/livebook/livebook.creds
+Livebook-Credentials
+Livebook Password: $LIVEBOOK_PASSWORD
+EOF
 msg_ok "Installed Erlang $ERLANG_VERSION and Elixir $ELIXIR_VERSION"
 
 msg_info "Installing Livebook"
@@ -82,24 +92,14 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-
 chown -R livebook:livebook /opt/livebook /data
-
 systemctl enable -q --now livebook
 msg_ok "Installed Livebook"
-
-msg_info "Saving Livebook credentials"
-cat <<EOF >/opt/livebook/livebook.creds
-Livebook-Credentials
-Livebook Password: $LIVEBOOK_PASSWORD
-EOF
-msg_ok "Livebook password stored in /opt/livebook/livebook.creds"
 
 motd_ssh
 customize
 
 msg_info "Cleaning Up"
-rm -f /opt/install.sh
 $STD apt-get autoremove -y
 $STD apt-get autoclean
 msg_ok "Cleaned Up"
