@@ -2198,9 +2198,23 @@ build_container() {
   }
 
   detect_gpu_devices() {
-    VAAPI_DEVICES=(); NVIDIA_DEVICES=()
-    for d in /dev/dri/renderD* /dev/dri/card*; do [[ -e $d ]] && VAAPI_DEVICES+=("$d"); done
-    for d in /dev/nvidia*; do [[ -e $d ]] && NVIDIA_DEVICES+=("$d"); done
+    VAAPI_DEVICES=()
+    NVIDIA_DEVICES=()
+
+    # Intel/AMD (VAAPI)
+    for d in /dev/dri/renderD* /dev/dri/card*; do
+      [ -e "$d" ] || continue
+      VAAPI_DEVICES+=("$d")
+    done
+
+    # NVIDIA
+    for d in /dev/nvidia*; do
+      [ -e "$d" ] || continue
+      NVIDIA_DEVICES+=("$d")
+    done
+
+    msg_debug "Detected VAAPI devices: ${VAAPI_DEVICES[*]:-(none)}"
+    msg_debug "Detected NVIDIA devices: ${NVIDIA_DEVICES[*]:-(none)}"
   }
 
   # Configure USB passthrough for privileged containers
