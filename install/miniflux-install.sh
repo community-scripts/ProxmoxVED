@@ -30,15 +30,9 @@ $STD apt install miniflux
 msg_ok "Installed Miniflux"
 
 msg_info "Configuring Miniflux"
-{
-  echo -n "user=$DB_USER password=$DB_PASS dbname=$DB_NAME sslmode=disable"
-} >>/etc/miniflux-db.creds
-chmod 600 /etc/miniflux-db.creds
-chown miniflux:miniflux /etc/miniflux-db.creds
-
 cat <<EOF >/etc/miniflux.conf
 # See https://miniflux.app/docs/configuration.html
-DATABASE_URL_FILE=/etc/miniflux-db.creds
+DATABASE_URL=user=$DB_USER password=$DB_PASS dbname=$DB_NAME sslmode=disable
 CREATE_ADMIN=1
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=changeme
