@@ -14,9 +14,9 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
     python3-opencv jq \
-    libgl1-mesa-glx libglib2.0-0 pciutils gcc musl-dev \
+    libglib2.0-0 pciutils gcc musl-dev \
     libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
     gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
     build-essential python3-dev python3-gi pkg-config libcairo2-dev gir1.2-glib-2.0 \
