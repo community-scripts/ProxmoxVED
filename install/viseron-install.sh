@@ -16,15 +16,15 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
     python3-opencv jq \
-    libgl1-mesa-glx libglib2.0-0 \
+    libgl1-mesa-glx libglib2.0-0 pciutils \
     libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
     gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
     build-essential python3-dev python3-gi pkg-config libcairo2-dev gir1.2-glib-2.0 \
     cmake gfortran libopenblas-dev liblapack-dev libgirepository1.0-dev git
 msg_ok "Installed Dependencies"
 
-PYTHON_VERSION="3.12" setup_uv
 PG_VERSION="16" setup_postgresql
+PYTHON_VERSION="3.13" setup_uv
 
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=viseron
@@ -50,9 +50,6 @@ if [[ "$CTTYPE" == "0" ]]; then
    chmod 660 /dev/dri/*
 fi
 msg_ok "Hardware Acceleration Configured"
-
-PYTHON_VERSION="3.13" setup_uv
-fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
 
 msg_info "Setting up Python Environment"
 uv venv --python "python3.13" /opt/viseron/.venv
