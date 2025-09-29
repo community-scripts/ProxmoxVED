@@ -36,46 +36,69 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
 {
-    echo "Hanko-Credentials"
-    echo "Hanko Database User: $DB_USER"
-    echo "Hanko Database Password: $DB_PASS"
-    echo "Hanko Database Name: $DB_NAME"
-} >>~/hanko.creds
+    echo "Viseron-Credentials"
+    echo "Viseron Database User: $DB_USER"
+    echo "Viseron Database Password: $DB_PASS"
+    echo "Viseron Database Name: $DB_NAME"
+} >>~/viseron.creds
 msg_ok "Set up PostgreSQL Database"
 
-# msg_info "Setting up Hardware Acceleration"
-# if [[ "$CTTYPE" == "0" ]]; then
-#   chgrp video /dev/dri
-#   chmod 755 /dev/dri
-#   chmod 660 /dev/dri/*
-# fi
-# msg_ok "Hardware Acceleration Configured"
+msg_info "Setting up Hardware Acceleration"
+if [[ "$CTTYPE" == "0" ]]; then
+   chgrp video /dev/dri
+   chmod 755 /dev/dri
+   chmod 660 /dev/dri/*
+fi
+msg_ok "Hardware Acceleration Configured"
 
-PYTHON_VERSION="3.12" setup_uv
+PYTHON_VERSION="3.13" setup_uv
 fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron" "tarball" "latest" "/opt/viseron"
 
 msg_info "Setting up Python Environment"
-uv venv --python "python3.12" /opt/viseron/.venv
+uv venv --python "python3.13" /opt/viseron/.venv
 uv pip install --python /opt/viseron/.venv/bin/python --upgrade pip setuptools wheel
 msg_ok "Python Environment Setup"
 
 msg_info "Setup Viseron (Patience)"
-if ls /dev/nvidia* >/dev/null 2>&1; then
-    msg_info "GPU detected → Installing PyTorch with CUDA"
-    UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python \
-        torch==2.8.0 torchvision==0.19.0 torchaudio==2.8.0
-    msg_ok "Installed Torch with CUDA"
-else
-    msg_info "No GPU detected → Installing CPU-only PyTorch"
-    UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python \
-        torch==2.8.0+cpu torchvision==0.19.0+cpu torchaudio==2.8.0+cpu \
-        --extra-index-url https://download.pytorch.org/whl/cpu
-    msg_ok "Installed Torch CPU-only"
-fi
-UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -e /opt/viseron/.
+GPU_VENDOR=$(lspci | grep -E "VGA|3D" | grep -oE "NVIDIA|Intel|AMD" | head -n1)
+
+case "$GPU_VENDOR" in
+    NVIDIA)
+        msg_info "NVIDIA GPU detected → Installing PyTorch with CUDA"
+        UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
+            'torch>=2.2,<3.0' 'torchvision>=0.17,<1.0' 'torchaudio>=2.2,<3.0'
+        msg_ok "Installed Torch with CUDA"
+        ;;
+    Intel)
+        msg_info "Intel GPU detected → Installing PyTorch with Intel Extension"
+        UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
+            'torch>=2.2,<3.0' 'torchvision>=0.17,<1.0' 'torchaudio>=2.2,<3.0' \
+            intel-extension-for-pytorch
+        msg_ok "Installed Torch with Intel Extension"
+        ;;
+    AMD)
+        msg_info "AMD GPU detected → Installing PyTorch with ROCm"
+        UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
+            'torch>=2.2,<3.0' 'torchvision>=0.17,<1.0' 'torchaudio>=2.2,<3.0' \
+            --index-url https://download.pytorch.org/whl/rocm6.0
+        msg_ok "Installed Torch with ROCm"
+        ;;
+    *)
+        msg_info "No GPU detected → Installing CPU-only PyTorch"
+        UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
+            'torch>=2.2,<3.0' 'torchvision>=0.17,<1.0' 'torchaudio>=2.2,<3.0' \
+            --extra-index-url https://download.pytorch.org/whl/cpu
+        msg_ok "Installed Torch CPU-only"
+        ;;
+esac
+
 UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -r /opt/viseron/requirements.txt
+UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -e /opt/viseron/.
+
 mkdir -p /config/{recordings,snapshots,segments,event_clips,thumbnails}
-for d in recordings snapshots segments event_clips thumbnails; do ln -s "/config/$d" "/$d" 2>/dev/null || true; done
+for d in recordings snapshots segments event_clips thumbnails; do
+    ln -sfn "/config/$d" "/$d"
+done
 msg_ok "Setup Viseron"
 
 msg_info "Creating Default Configuration"
