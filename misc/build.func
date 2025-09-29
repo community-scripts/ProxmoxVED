@@ -2160,6 +2160,7 @@ build_container() {
     "jellyfin" "plex" "scrypted" "tdarr" "unmanic"
     "ollama" "fileflows" "open-webui" "tunarr" "debian"
     "handbrake" "sunshine" "moonlight" "kodi" "stremio"
+    "viseron"
   )
 
   # ------------------------------------------------------------------------------
