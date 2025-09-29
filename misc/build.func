@@ -618,8 +618,8 @@ advanced_settings() {
     BRIDGE_MENU_OPTIONS=()
     while IFS= read -r bridge; do
       if [[ -n "$bridge" ]]; then
-        # Get description from Proxmox built-in method
-        description=$(grep '^#' /etc/network/interfaces | sed 's/^#\s*//' | tail -n1)
+        # Get description from Proxmox built-in method - find comment for this specific bridge
+        description=$(grep -A 10 "iface $bridge" /etc/network/interfaces | grep '^#' | head -n1 | sed 's/^#\s*//')
         if [[ -n "$description" ]]; then
           BRIDGE_MENU_OPTIONS+=("$bridge" "${description}")
         else
