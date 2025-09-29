@@ -40,7 +40,6 @@ function update_script() {
         msg_info "Starting Services"
         systemctl start myip
         msg_ok "Started Services"
-
         msg_ok "Updated Successfully"
     fi
     exit
