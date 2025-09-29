@@ -14,20 +14,15 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
     build-essential \
-    python3 \
     openssl \
-    curl \
-    ca-certificates
+    ca-certificates \
+    redis-server
 msg_ok "Installed Dependencies"
 
-PG_VERSION="15" setup_postgresql
-NODE_VERSION="22" setup_nodejs
-
-msg_info "Installing Redis"
-$STD apt-get install -y redis-server
-msg_ok "Installed Redis"
+PG_VERSION="17" setup_postgresql
+NODE_VERSION="24" setup_nodejs
 
 msg_info "Setting up Database"
 DB_NAME=ghostfolio
@@ -52,31 +47,17 @@ $STD sudo -u postgres psql -d $DB_NAME -c "ALTER DEFAULT PRIVILEGES IN SCHEMA pu
     echo "Redis Password: $REDIS_PASS"
     echo "Access Token Salt: $ACCESS_TOKEN_SALT"
     echo "JWT Secret Key: $JWT_SECRET_KEY"
-    if [[ -n "${COINGECKO_DEMO_KEY:-}" ]]; then
-        echo "CoinGecko Demo API Key: $COINGECKO_DEMO_KEY"
-    fi
-    if [[ -n "${COINGECKO_PRO_KEY:-}" ]]; then
-        echo "CoinGecko Pro API Key: $COINGECKO_PRO_KEY"
-    fi
-    echo ""
-    echo "To add CoinGecko API keys later, edit: /opt/ghostfolio/.env"
 } >>~/ghostfolio.creds
 msg_ok "Set up Database"
 
-msg_info "Configuring Redis"
-sed -i "s/# requirepass foobared/requirepass $REDIS_PASS/" /etc/redis/redis.conf
-systemctl restart redis-server
-msg_ok "Configured Redis"
-
 fetch_and_deploy_gh_release "ghostfolio" "ghostfolio/ghostfolio" "tarball" "latest" "/opt/ghostfolio"
 
-msg_info "Installing Ghostfolio Dependencies"
+msg_info "Setup Ghostfolio"
+sed -i "s/# requirepass foobared/requirepass $REDIS_PASS/" /etc/redis/redis.conf
+systemctl restart redis-server
 cd /opt/ghostfolio
-npm ci
-msg_ok "Installed Dependencies"
-
-msg_info "Building Ghostfolio (This may take several minutes)"
-npm run build:production
+$STD npm ci
+$STD npm run build:production
 msg_ok "Built Ghostfolio"
 
 msg_ok "Optional CoinGecko API Configuration"
@@ -111,8 +92,8 @@ msg_ok "Set up Environment"
 
 msg_info "Running Database Migrations"
 cd /opt/ghostfolio
-npx prisma migrate deploy
-npx prisma db seed
+$STD npx prisma migrate deploy
+$STD npx prisma db seed
 msg_ok "Database Migrations Complete"
 
 msg_info "Creating Service"
@@ -143,7 +124,8 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-npm cache clean --force
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD npm cache clean --force
+$STD apt -y autoremove
+$STD apt -y autoclean
+$STD apt -y clean
 msg_ok "Cleaned"

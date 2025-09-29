@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -29,43 +29,35 @@ function update_script() {
         exit
     fi
 
-    msg_info "Stopping $APP"
-    systemctl stop ghostfolio
-    msg_ok "Stopped $APP"
+    if check_for_gh_release "ghostfolio" "ghostfolio/ghostfolio"; then
+      msg_info "Stopping Service"
+      systemctl stop ghostfolio
+      msg_ok "Stopped Service"
 
-    msg_info "Creating Backup"
-    tar -czf "/opt/ghostfolio_backup_$(date +%F).tar.gz" /opt/ghostfolio
-    msg_ok "Backup Created"
+      msg_info "Creating Backup"
+      tar -czf "/opt/ghostfolio_backup_$(date +%F).tar.gz" /opt/ghostfolio
+      mv /opt/ghostfolio/.env /opt/env.backup
+      msg_ok "Backup Created"
 
-    msg_info "Updating $APP"
-    systemctl stop ghostfolio
+      CLEAN_INSTALL=1 fetch_and_deploy_gh_release "ghostfolio" "ghostfolio/ghostfolio" "tarball" "latest" "/opt/ghostfolio"
 
-    if [[ -d /opt/ghostfolio ]]; then
-        rm -rf /opt/ghostfolio_backup
-        mv /opt/ghostfolio /opt/ghostfolio_backup
-    fi
+      msg_info "Updating Ghostfolio"
+      mv /opt/env.backup /opt/ghostfolio/.env
+      cd /opt/ghostfolio
+      $STD npm ci
+      $STD npm run build:production
+      $STD prisma migrate deploy
+      msg_ok "Updated Ghostfolio"
 
-    if fetch_and_deploy_gh_release "ghostfolio" "ghostfolio/ghostfolio" "tarball" "latest" "/opt/ghostfolio"; then
-        cd /opt/ghostfolio
-        npm ci
-        npm run build:production
-        npx prisma migrate deploy
-        msg_ok "Updated $APP"
-    else
-        if [[ -d /opt/ghostfolio_backup ]]; then
-            rm -rf /opt/ghostfolio
-            mv /opt/ghostfolio_backup /opt/ghostfolio
-        fi
-        msg_ok "No update required or update failed. ${APP} is up to date"
-    fi
-
-    msg_info "Starting $APP"
+    msg_info "Starting Service"
     systemctl start ghostfolio
-    msg_ok "Started $APP"
+    msg_ok "Started Service"
 
     msg_info "Cleaning Up"
-    npm cache clean --force
+    $STD npm cache clean --force
     msg_ok "Cleanup Completed"
+    msg_ok "Updated Successfully"
+    fi
     exit
 }
 
