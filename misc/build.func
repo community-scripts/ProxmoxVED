@@ -2178,8 +2178,11 @@ build_container() {
     AMD_DEVICES=()
     NVIDIA_DEVICES=()
 
-    # Check for Intel GPU
-    if lspci 2>/dev/null | grep -iq "VGA.*Intel\|Display.*Intel"; then
+    # Store PCI info to avoid multiple calls
+    local pci_vga_info=$(lspci -nn 2>/dev/null | grep -E "VGA|Display|3D")
+
+    # Check for Intel GPU - look for Intel vendor ID [8086]
+    if echo "$pci_vga_info" | grep -q "\[8086:"; then
       msg_info "Detected Intel GPU"
       if [[ -d /dev/dri ]]; then
         for d in /dev/dri/renderD* /dev/dri/card*; do
@@ -2188,18 +2191,21 @@ build_container() {
       fi
     fi
 
-    # Check for AMD GPU
-    if lspci 2>/dev/null | grep -iq "VGA.*AMD\|Display.*AMD\|VGA.*ATI"; then
+    # Check for AMD GPU - look for AMD vendor IDs [1002] (AMD/ATI) or [1022] (AMD)
+    if echo "$pci_vga_info" | grep -qE "\[1002:|\[1022:"; then
       msg_info "Detected AMD GPU"
       if [[ -d /dev/dri ]]; then
-        for d in /dev/dri/renderD* /dev/dri/card*; do
-          [[ -e "$d" ]] && AMD_DEVICES+=("$d")
-        done
+        # Only add if not already claimed by Intel
+        if [[ ${#INTEL_DEVICES[@]} -eq 0 ]]; then
+          for d in /dev/dri/renderD* /dev/dri/card*; do
+            [[ -e "$d" ]] && AMD_DEVICES+=("$d")
+          done
+        fi
       fi
     fi
 
-    # Check for NVIDIA GPU
-    if lspci 2>/dev/null | grep -iq "VGA.*NVIDIA\|3D.*NVIDIA"; then
+    # Check for NVIDIA GPU - look for NVIDIA vendor ID [10de]
+    if echo "$pci_vga_info" | grep -q "\[10de:"; then
       msg_info "Detected NVIDIA GPU"
       for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset; do
         [[ -e "$d" ]] && NVIDIA_DEVICES+=("$d")
@@ -2210,6 +2216,11 @@ build_container() {
         msg_warn "Please install NVIDIA drivers on host: apt install nvidia-driver"
       fi
     fi
+
+    # Debug output
+    msg_debug "Intel devices: ${INTEL_DEVICES[*]}"
+    msg_debug "AMD devices: ${AMD_DEVICES[*]}"
+    msg_debug "NVIDIA devices: ${NVIDIA_DEVICES[*]}"
   }
 
 
