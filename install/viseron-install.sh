@@ -89,7 +89,6 @@ case "$GPU_VENDOR" in
         ;;
 esac
 
-UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -r /opt/viseron/requirements.txt
 UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -e /opt/viseron/.
 
 mkdir -p /config/{recordings,snapshots,segments,event_clips,thumbnails}
@@ -171,7 +170,6 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/viseron
-Environment=PATH=/opt/viseron/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=/opt/viseron/.venv/bin/python -m viseron --config /config/viseron.yaml
 Restart=always
 RestartSec=10
