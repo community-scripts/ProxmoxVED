@@ -2452,12 +2452,12 @@ EOF
       msg_warn "Network reachable but gateway check failed"
     fi
   fi
-  Function to get correct GID inside container
-get_container_gid() {
-  local group="$1"
-  local gid=$(pct exec "$CTID" -- getent group "$group" 2>/dev/null | cut -d: -f3)
-  echo "${gid:-44}"  # Default to 44 if not found
-}
+  # Function to get correct GID inside container
+  get_container_gid() {
+    local group="$1"
+    local gid=$(pct exec "$CTID" -- getent group "$group" 2>/dev/null | cut -d: -f3)
+    echo "${gid:-44}"  # Default to 44 if not found
+  }
 
 # Configure GPU passthrough
 configure_gpu_passthrough() {
