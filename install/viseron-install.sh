@@ -63,27 +63,27 @@ case "$GPU_VENDOR" in
     NVIDIA)
         msg_info "NVIDIA GPU detected → Installing PyTorch with CUDA"
         UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
-            'torch>=2.2,<3.0' 'torchvision>=0.17,<1.0' 'torchaudio>=2.2,<3.0'
+            torch torchvision torchaudio
         msg_ok "Installed Torch with CUDA"
         ;;
     Intel)
-        msg_info "Intel GPU detected → Installing PyTorch with Intel Extension"
+        msg_info "Intel GPU detected → Installing PyTorch with Intel Extension (CPU wheels)"
         UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
-            'torch>=2.2,<3.0' 'torchvision>=0.17,<1.0' 'torchaudio>=2.2,<3.0' \
-            intel-extension-for-pytorch
+            torch torchvision torchaudio intel-extension-for-pytorch \
+            --extra-index-url https://download.pytorch.org/whl/cpu
         msg_ok "Installed Torch with Intel Extension"
         ;;
     AMD)
         msg_info "AMD GPU detected → Installing PyTorch with ROCm"
         UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
-            'torch>=2.2,<3.0' 'torchvision>=0.17,<1.0' 'torchaudio>=2.2,<3.0' \
+            torch torchvision torchaudio \
             --index-url https://download.pytorch.org/whl/rocm6.0
         msg_ok "Installed Torch with ROCm"
         ;;
-    *)
+    CPU)
         msg_info "No GPU detected → Installing CPU-only PyTorch"
         UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
-            'torch>=2.2,<3.0' 'torchvision>=0.17,<1.0' 'torchaudio>=2.2,<3.0' \
+            torch torchvision torchaudio \
             --extra-index-url https://download.pytorch.org/whl/cpu
         msg_ok "Installed Torch CPU-only"
         ;;
