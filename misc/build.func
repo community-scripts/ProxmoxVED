@@ -2170,16 +2170,13 @@ build_container() {
   # Get device GID dynamically
   get_device_gid() {
     local group="$1"
-    local gid
-    gid=$(getent group "$group" 2>/dev/null | cut -d: -f3)
-    if [[ -z "$gid" ]]; then
-      case "$group" in
-      video) gid=44 ;;
-      render) gid=104 ;;
-      *) gid=44 ;;
-      esac
-    fi
-    echo "$gid"
+    gid=$(getent group "$group" | cut -d: -f3)
+    [[ -n "$gid" ]] && echo "$gid" && return
+    case "$group" in
+      video) echo 44 ;;
+      render) echo 104 ;;
+      *) echo 44 ;;
+    esac
   }
 
   # Check if app needs GPU
@@ -2192,24 +2189,18 @@ build_container() {
   }
 
   # Detect available GPU devices
+  is_gpu_app() {
+    local app="${1,,}"
+    for gpu in "${GPU_APPS[@]}"; do
+      [[ "$gpu" == "$app" ]] && return 0
+    done
+    return 1
+  }
+
   detect_gpu_devices() {
-    VAAPI_DEVICES=()
-    NVIDIA_DEVICES=()
-
-    # VAAPI / Intel / AMD
-    for device in /dev/dri/renderD* /dev/dri/card*; do
-      [[ -e "$device" ]] || continue
-      VAAPI_DEVICES+=("$device")
-    done
-
-    # NVIDIA
-    for device in /dev/nvidia*; do
-      [[ -e "$device" ]] || continue
-      NVIDIA_DEVICES+=("$device")
-    done
-
-    msg_debug "Detected VAAPI devices: ${VAAPI_DEVICES[*]:-(none)}"
-    msg_debug "Detected NVIDIA devices: ${NVIDIA_DEVICES[*]:-(none)}"
+    VAAPI_DEVICES=(); NVIDIA_DEVICES=()
+    for d in /dev/dri/renderD* /dev/dri/card*; do [[ -e $d ]] && VAAPI_DEVICES+=("$d"); done
+    for d in /dev/nvidia*; do [[ -e $d ]] && NVIDIA_DEVICES+=("$d"); done
   }
 
   # Configure USB passthrough for privileged containers
@@ -2233,142 +2224,64 @@ lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=
 EOF
     msg_ok "USB passthrough configured"
   }
-
-  # Configure VAAPI device
-  configure_vaapi_device() {
-    local device="$1"
-    local dev_index="$2"
-
+ configure_vaapi_device() {
+    local dev="$1" idx="$2"
     if [[ "$CT_TYPE" == "0" ]]; then
-      # Privileged container
-      local major minor
-      major=$(stat -c '%t' "$device")
-      minor=$(stat -c '%T' "$device")
-      major=$((0x$major))
-      minor=$((0x$minor))
-      echo "lxc.cgroup2.devices.allow: c $major:$minor rwm" >>"$LXC_CONFIG"
-      echo "lxc.mount.entry: $device dev/$(basename "$device") none bind,optional,create=file" >>"$LXC_CONFIG"
+      major=$(stat -c '%t' "$dev"); minor=$(stat -c '%T' "$dev")
+      echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+      echo "lxc.mount.entry: $dev dev/$(basename "$dev") none bind,optional,create=file" >>"$LXC_CONFIG"
     else
-      # Unprivileged container
-      local gid
-      if [[ "$device" =~ renderD ]]; then
-        gid=$(get_device_gid "render")
-      else
-        gid=$(get_device_gid "video")
-      fi
-      echo "dev${dev_index}: $device,gid=$gid" >>"$LXC_CONFIG"
+      [[ "$dev" =~ renderD ]] && gid=$(get_device_gid "render") || gid=$(get_device_gid "video")
+      echo "dev$idx: $dev,gid=$gid" >>"$LXC_CONFIG"
     fi
   }
 
-  # Configure NVIDIA devices
   configure_nvidia_devices() {
-    for device in "${NVIDIA_DEVICES[@]}"; do
+    for dev in "${NVIDIA_DEVICES[@]}"; do
       if [[ "$CT_TYPE" == "0" ]]; then
-        local major minor
-        major=$(stat -c '%t' "$device")
-        minor=$(stat -c '%T' "$device")
-        major=$((0x$major))
-        minor=$((0x$minor))
-        echo "lxc.cgroup2.devices.allow: c $major:$minor rwm" >>"$LXC_CONFIG"
-        echo "lxc.mount.entry: $device dev/$(basename "$device") none bind,optional,create=file" >>"$LXC_CONFIG"
+        major=$(stat -c '%t' "$dev"); minor=$(stat -c '%T' "$dev")
+        echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+        echo "lxc.mount.entry: $dev dev/$(basename "$dev") none bind,optional,create=file" >>"$LXC_CONFIG"
       else
-        msg_warn "NVIDIA passthrough to unprivileged container may require additional configuration"
+        msg_warn "NVIDIA passthrough on unprivileged CT may fail"
       fi
     done
-
-    if [[ -d /dev/dri ]] && [[ "$CT_TYPE" == "0" ]]; then
-      echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-    fi
+    [[ -d /dev/dri && "$CT_TYPE" == "0" ]] && echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
   }
 
-  # Main GPU configuration logic
   configure_gpu_passthrough() {
     detect_gpu_devices
+    local should=false
+    if [[ "$CT_TYPE" == "0" ]] || is_gpu_app "$APP"; then should=true; fi
+    [[ "$should" == "false" ]] && return
 
-    # Check if we should configure GPU
-    local should_configure=false
-    if [[ "$CT_TYPE" == "0" ]] || is_gpu_app "$APP"; then
-      should_configure=true
+    if [[ ${#VAAPI_DEVICES[@]} -eq 0 && ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
+      msg_info "No GPU devices found"; return
     fi
 
-    if [[ "$should_configure" == "false" ]]; then
-      return 0
-    fi
+    local choices=() selected=()
+    [[ ${#VAAPI_DEVICES[@]} -gt 0 ]] && choices+=("VAAPI" "Intel/AMD GPU" "OFF")
+    [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]] && choices+=("NVIDIA" "NVIDIA GPU" "OFF")
 
-    # No GPU devices available
-    if [[ ${#VAAPI_DEVICES[@]} -eq 0 ]] && [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
-      msg_info "No GPU devices detected on host"
-      return 0
-    fi
-
-    # Build selection options
-    local choices=()
-    local SELECTED_GPUS=()
-
-    if [[ ${#VAAPI_DEVICES[@]} -gt 0 ]]; then
-      choices+=("VAAPI" "Intel/AMD GPU (${#VAAPI_DEVICES[@]} devices)" "OFF")
-    fi
-
-    if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
-      choices+=("NVIDIA" "NVIDIA GPU (${#NVIDIA_DEVICES[@]} devices)" "OFF")
-    fi
-
-    # Auto-select if only one type available
     if [[ ${#choices[@]} -eq 3 ]]; then
-      SELECTED_GPUS=("${choices[0]}")
-      msg_info "Auto-configuring ${choices[0]} GPU passthrough"
-    elif [[ ${#choices[@]} -gt 3 ]]; then
-      # Show selection dialog
-      local selected
-      selected=$(whiptail --title "GPU Passthrough Selection" \
-        --checklist "Multiple GPU types detected. Select which to pass through:" \
-        12 60 $((${#choices[@]} / 3)) \
-        "${choices[@]}" 3>&1 1>&2 2>&3) || {
-        msg_info "GPU passthrough skipped"
-        return 0
-      }
-
-      for item in $selected; do
-        SELECTED_GPUS+=("${item//\"/}")
-      done
+      selected=("VAAPI")
+    elif [[ ${#choices[@]} -eq 6 ]]; then
+      read -rp "Multiple GPUs found (VAAPI/NVIDIA). Which passthrough? " sel
+      [[ "$sel" =~ VAAPI|vaapi ]] && selected=("VAAPI")
+      [[ "$sel" =~ NVIDIA|nvidia ]] && selected=("NVIDIA")
     fi
 
-    # Apply configuration for selected GPUs
-    local dev_index=0
-    for gpu_type in "${SELECTED_GPUS[@]}"; do
-      case "$gpu_type" in
-      VAAPI)
-        msg_info "Configuring VAAPI passthrough (${#VAAPI_DEVICES[@]} devices)"
-        for device in "${VAAPI_DEVICES[@]}"; do
-          configure_vaapi_device "$device" "$dev_index"
-          : "${dev_index:=0}"
-          dev_index=$((dev_index + 1))
-        done
-        if [[ "$CT_TYPE" == "0" ]] && [[ -d /dev/dri ]]; then
-          echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-        fi
-        export ENABLE_VAAPI=1
-        ;;
-      NVIDIA)
-        msg_info "Configuring NVIDIA passthrough"
-        configure_nvidia_devices
-        export ENABLE_NVIDIA=1
-        ;;
+    local idx=0
+    for s in "${selected[@]}"; do
+      case "$s" in
+        VAAPI) for d in "${VAAPI_DEVICES[@]}"; do configure_vaapi_device "$d" "$idx"; idx=$((idx+1)); done; export ENABLE_VAAPI=1 ;;
+        NVIDIA) configure_nvidia_devices; export ENABLE_NVIDIA=1 ;;
       esac
     done
-
-    [[ ${#SELECTED_GPUS[@]} -gt 0 ]] && msg_ok "GPU passthrough configured"
-
+    [[ ${#selected[@]} -gt 0 ]] && msg_ok "GPU passthrough configured"
   }
 
-  # ------------------------------------------------------------------------------
-  # Apply all hardware passthrough configurations
-  # ------------------------------------------------------------------------------
-
-  # USB passthrough (automatic for privileged)
   configure_usb_passthrough
-
-  # GPU passthrough (based on container type and app)
   configure_gpu_passthrough
 
   # TUN device passthrough
@@ -2438,67 +2351,30 @@ EOF
     fi
   fi
 
-  #   # Install GPU userland packages
-  #   install_gpu_userland() {
-  #     local gpu_type="$1"
+  install_gpu_userland() {
+    local gpu="$1"
+    if [[ "$var_os" == "alpine" ]]; then
+      case "$gpu" in
+        VAAPI) pct exec "$CTID" -- apk add mesa-dri-gallium mesa-va-gallium intel-media-driver libva-utils ;;
+        NVIDIA) msg_warn "NVIDIA drivers not in Alpine repos" ;;
+      esac
+    else
+      case "$gpu" in
+        VAAPI) pct exec "$CTID" -- bash -c "apt-get update && apt-get install -y intel-media-va-driver-non-free mesa-va-drivers vainfo" ;;
+        NVIDIA) pct exec "$CTID" -- bash -c "apt-get update && apt-get install -y nvidia-driver nvidia-utils libnvidia-encode1" ;;
+      esac
+    fi
+  }
 
-  #     if [ "$var_os" == "alpine" ]; then
-  #       case "$gpu_type" in
-  #       VAAPI)
-  #         msg_info "Installing VAAPI packages in Alpine container"
-  #         pct exec "$CTID" -- ash -c '
-  #             apk add --no-cache \
-  #               mesa-dri-gallium \
-  #               mesa-va-gallium \
-  #               intel-media-driver \
-  #               libva-utils >/dev/null 2>&1
-  #           ' || msg_warn "Some VAAPI packages may not be available in Alpine"
-  #         ;;
-  #       NVIDIA)
-  #         msg_warn "NVIDIA drivers are not readily available in Alpine Linux"
-  #         ;;
-  #       esac
-  #     else
-  #       case "$gpu_type" in
-  #       VAAPI)
-  #         msg_info "Installing VAAPI userland packages"
-  #         pct exec "$CTID" -- bash -c '
-  #             . /etc/os-release || true
-  #             if [[ "${VERSION_CODENAME:-}" == "trixie" ]]; then
-  #               cat >/etc/apt/sources.list.d/non-free.sources <<EOF
-  # Types: deb deb-src
-  # URIs: http://deb.debian.org/debian
-  # Suites: trixie trixie-updates trixie-security
-  # Components: non-free non-free-firmware
-  # EOF
-  #             fi
-  #             apt-get update >/dev/null 2>&1
-  #             DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  #               intel-media-va-driver-non-free \
-  #               mesa-va-drivers \
-  #               libvpl2 \
-  #               vainfo \
-  #               ocl-icd-libopencl1 \
-  #               mesa-opencl-icd \
-  #               intel-gpu-tools >/dev/null 2>&1
-  #           ' && msg_ok "VAAPI userland installed" || msg_warn "Some VAAPI packages failed to install"
-  #         ;;
-  #       NVIDIA)
-  #         msg_info "Installing NVIDIA userland packages"
-  #         pct exec "$CTID" -- bash -c '
-  #             apt-get update >/dev/null 2>&1
-  #             DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  #               nvidia-driver \
-  #               nvidia-utils \
-  #               libnvidia-encode1 \
-  #               libcuda1 >/dev/null 2>&1
-  #           ' && msg_ok "NVIDIA userland installed" || msg_warn "Some NVIDIA packages failed to install"
-  #         ;;
-  #       esac
-  #     fi
-  #   }
-
-  # Customize container
+  if [[ "${ENABLE_VAAPI:-0}" == "1" ]]; then
+    install_gpu_userland "VAAPI"
+    pct exec "$CTID" -- bash -c "chgrp video /dev/dri && chmod 755 /dev/dri && chmod 660 /dev/dri/*"
+    pct exec "$CTID" -- vainfo >/dev/null 2>&1 && msg_ok "VAAPI verified" || msg_warn "VAAPI failed"
+  fi
+  if [[ "${ENABLE_NVIDIA:-0}" == "1" ]]; then
+    install_gpu_userland "NVIDIA"
+    pct exec "$CTID" -- nvidia-smi >/dev/null 2>&1 && msg_ok "NVIDIA verified" || msg_warn "NVIDIA failed"
+  fi
   msg_info "Customizing LXC Container"
 
   # # Install GPU userland if configured
