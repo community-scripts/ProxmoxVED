@@ -282,7 +282,7 @@ start_script; post_to_api_vm
 choose_os() {
   local OS_CHOICE
   if OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Choose Base OS" --radiolist \
-      "Select the OS for the Docker VM:" 12 60 3 \
+      "Select the OS for the Docker VM:" 12 70 3 \
       "debian12" "Debian 12 (Bookworm, stable & best for scripts)" ON \
       "debian13" "Debian 13 (Trixie, newer, but repos lag)" OFF \
       "ubuntu24" "Ubuntu 24.04 LTS (modern kernel, GPU/AI friendly)" OFF \
@@ -436,7 +436,7 @@ if [[ "$INSTALL_MODE" = "cloudinit" ]]; then
   mkdir -p "$SNIPPET_DIR"
 
   SNIPPET_FILE="docker-${VMID}-user-data.yaml"
-  SNIPPET_PATH="${SNIPPET_DIR}/${SNIPPET_FILE}""
+  SNIPPET_PATH="${SNIPPET_DIR}/${SNIPPET_FILE}"
 
   DOCKER_GPG_B64="$(curl -fsSL "${DOCKER_BASE}/gpg" | gpg --dearmor | base64 -w0)"
 
