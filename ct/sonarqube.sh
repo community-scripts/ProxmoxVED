@@ -33,8 +33,10 @@ function update_script() {
       systemctl stop sonarqube
       msg_ok "Service stopped"
 
+			msg_info "Creating backup"
       BACKUP_DIR="/opt/sonarqube-backup"
       mv /opt/sonarqube ${BACKUP_DIR}
+      msg_ok "Backup created"
 
       curl -fsSL -o /tmp/sonarqube.zip "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${RELEASE}.zip"
 
