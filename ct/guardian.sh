@@ -34,56 +34,33 @@ function update_script() {
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
 
     msg_info "Stopping $APP"
-    systemctl stop guardian-backend guardian-frontend
+    cd /opt/Guardian
+    docker compose down
     msg_ok "Stopped $APP"
 
-
-    msg_info "Preserving Database"
-    if [[ -f "/opt/Guardian/backend/plex-guard.db" ]]; then
-      cp "/opt/Guardian/backend/plex-guard.db" "/tmp/plex-guard.db.backup"
-      msg_ok "Database backed up"
-    fi
-
-
     msg_info "Updating $APP to v${RELEASE}"
-    cd /tmp
+    # Download new docker-compose.yml
+    curl -fsSL -o docker-compose.yml "https://raw.githubusercontent.com/HydroshieldMKII/Guardian/main/docker-compose.yml"
 
-    curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
-    unzip -q "${RELEASE}.zip"
-    rm -rf /opt/Guardian
-
-    FOLDER_NAME=$(echo "${RELEASE}" | sed 's/^v//')
-    mv "Guardian-${FOLDER_NAME}/" "/opt/Guardian"
-
-    if [[ -f "/tmp/plex-guard.db.backup" ]]; then
-      msg_info "Restoring Database"
-      cp "/tmp/plex-guard.db.backup" "/opt/Guardian/backend/plex-guard.db"
-      rm "/tmp/plex-guard.db.backup"
-      msg_ok "Database restored"
-    fi
-
-    cd /opt/Guardian/backend
-    npm ci
-    npm run build
-
-    cd /opt/Guardian/frontend
-    npm ci
-    NODE_ENV=development npm run build
+    # Pull new Docker images
+    docker compose pull
 
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"
-    systemctl start guardian-backend guardian-frontend
+    cd /opt/Guardian
+    docker compose up -d
     msg_ok "Started $APP"
 
     msg_info "Cleaning Up"
-    rm -rf /tmp/"${RELEASE}.zip" /tmp/"Guardian-${FOLDER_NAME}" /tmp/plex-guard.db.backup
+    rm -f /tmp/plex-guard.db.backup
+    docker system prune -f
     msg_ok "Cleanup Completed"
 
     msg_ok "Update Successful"
   else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+    msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
   exit
 }
