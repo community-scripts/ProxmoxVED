@@ -43,12 +43,11 @@ npm ci
 npm run build
 msg_ok "Built backend"
 
-# ===== Build Frontend =====
-msg_info "Building frontend"
+# ===== Install Frontend Dependencies =====
+msg_info "Installing frontend dependencies"
 cd /opt/Guardian/frontend
 npm ci
-npm run build
-msg_ok "Built frontend"
+msg_ok "Installed frontend dependencies"
 
 # ===== Backend Service =====
 msg_info "Creating Backend Service"
@@ -81,7 +80,8 @@ Wants=guardian-backend.service
 [Service]
 WorkingDirectory=/opt/Guardian/frontend
 Environment=NODE_ENV=development
-ExecStart=/usr/bin/npm run start
+Environment=PORT=3000
+ExecStart=/usr/bin/npm run dev
 Restart=always
 RestartSec=3
 
