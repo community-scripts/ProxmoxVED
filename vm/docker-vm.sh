@@ -298,6 +298,20 @@ choose_os() {
   fi
 }
 
+SSH_PUB_KEYS=()
+while IFS= read -r -d '' key; do
+  SSH_PUB_KEYS+=("$key")
+done < <(find /root/.ssh -maxdepth 1 -type f -name "*.pub" -print0 2>/dev/null)
+
+USE_KEYS="no"
+if [[ ${#SSH_PUB_KEYS[@]} -gt 0 ]]; then
+  if whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "SSH Key Authentication" \
+      --yesno "Found SSH public keys on the host:\n\n${SSH_PUB_KEYS[*]}\n\nUse them for root login in the new VM?" 15 70; then
+    USE_KEYS="yes"
+  fi
+fi
+
 # ---- PVE Version + Install-Mode (einmalig) -----------------------------------
 PVE_MAJ="$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1 | cut -d'.' -f1)"
 case "$PVE_MAJ" in
@@ -366,6 +380,47 @@ if [[ "$PVE_MAJ" -eq 9 && "$INSTALL_MODE" = "cloudinit" ]]; then
   fi
   msg_ok "Using ${BL}${SNIPPET_STORE}${CL} for Cloud-Init snippets"
 fi
+
+configure_authentication() {
+  local SSH_PUB_KEYS=()
+  while IFS= read -r -d '' key; do
+    SSH_PUB_KEYS+=("$key")
+  done < <(find /root/.ssh -maxdepth 1 -type f -name "*.pub" -print0 2>/dev/null)
+
+  if [[ ${#SSH_PUB_KEYS[@]} -gt 0 ]]; then
+    # Found keys → ask user
+    if whiptail --backtitle "Proxmox VE Helper Scripts" \
+        --title "SSH Key Authentication" \
+        --yesno "Found SSH public keys:\n\n${SSH_PUB_KEYS[*]}\n\nDo you want to use them for root login in the new VM?" \
+        15 70; then
+      echo -e "${CM}${GN}Using SSH keys for root login${CL}"
+      qm set "$VMID" --ciuser root --sshkeys "${SSH_PUB_KEYS[0]}" >/dev/null
+      return
+    fi
+  fi
+
+  # No key or user said No → ask for password twice
+  local PASS1 PASS2
+  while true; do
+    PASS1=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "Root Password" \
+      --passwordbox "Enter a password for root user" 10 70 3>&1 1>&2 2>&3) || exit-script
+
+    PASS2=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "Confirm Root Password" \
+      --passwordbox "Re-enter password for confirmation" 10 70 3>&1 1>&2 2>&3) || exit-script
+
+    if [[ "$PASS1" == "$PASS2" && -n "$PASS1" ]]; then
+      echo -e "${CM}${GN}Root password confirmed and set${CL}"
+      qm set "$VMID" --ciuser root --cipassword "$PASS1" >/dev/null
+      break
+    else
+      whiptail --backtitle "Proxmox VE Helper Scripts" \
+        --title "Password Mismatch" \
+        --msgbox "Passwords did not match or were empty. Please try again." 10 70
+    fi
+  done
+}
 
 
 # ---- Cloud Image Download ----------------------------------------------------
@@ -494,6 +549,10 @@ qm create "$VMID" -machine q35 -bios ovmf -agent 1 -tablet 0 -localtime 1 ${CPU_
   -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
 msg_ok "Created VM shell"
 
+msg_info "Configuring authentication"
+configure_authentication
+msg_ok "Authentication configured"
+
 # ---- Disk importieren --------------------------------------------------------
 msg_info "Importing disk into storage ($STORAGE)"
 if qm disk import --help >/dev/null 2>&1; then IMPORT_CMD=(qm disk import); else IMPORT_CMD=(qm importdisk); fi
@@ -517,10 +576,7 @@ qm set "$VMID" \
   --serial0 socket \
   --agent enabled=1,fstrim_cloned_disks=1 \
   --ide2 "${STORAGE}:cloudinit" \
-  --ipconfig0 "ip=dhcp" \
-  --nameserver "1.1.1.1 9.9.9.9" --searchdomain "lan" \
-  --ciuser root --cipassword '' \
-  $SSHKEYS_ARG >/dev/null || true
+  --ipconfig0 "ip=dhcp" >/dev/null
 
 if [[ "$INSTALL_MODE" = "cloudinit" ]]; then
   qm set "$VMID" --cicustom "user=${SNIPPET_STORE}:snippets/${SNIPPET_FILE}" >/dev/null
