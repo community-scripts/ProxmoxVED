@@ -35,34 +35,12 @@ function update_script() {
   fi
 
   # Crawling the new version and checking whether an update is required
-  current_file="/opt/${APP}_version.txt"
-  current_ver="$( [ -f "$current_file" ] && cat "$current_file" || dpkg-query -W -f='${Version}\n' prometheus-blackbox-exporter 2>/dev/null || echo 0 )"
-  candidate_ver="$(apt-cache policy prometheus-blackbox-exporter | awk '/Candidate:/ {print $2}')"
-
-  if [[ -z "$candidate_ver" || "$candidate_ver" == "(none)" ]]; then
-    msg_error "Could not determine candidate version from APT."
-    exit
-  fi
-
-  if [[ ! -f "$current_file" ]] || dpkg --compare-versions "$candidate_ver" gt "$current_ver"; then
-
-    # Execute Update
-    msg_info "Updating ${APP} to v${candidate_ver}"
+     msg_info "Updating ${APP} to v${candidate_ver}"
     $STD apt-get update
     $STD apt-get install -y --only-upgrade prometheus-blackbox-exporter
-
-    # Starting Services
     $STD systemctl restart prometheus-blackbox-exporter
-
-    # Cleaning up
-    # (No temporary files to remove for APT-based update.)
-
-    # Last Action
-    echo "$candidate_ver" > "$current_file"
+    
     msg_ok "Updated ${APP} to v${candidate_ver}"
-  else
-    msg_ok "No update required. ${APP} is already at v${current_ver}."
-  fi
   exit
 }
 
