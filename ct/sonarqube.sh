@@ -6,10 +6,10 @@ source <(curl -s https://raw.githubusercontent.com/prop4n/ProxmoxVED/refs/heads/
 # Source: https://docs.sonarsource.com/sonarqube-server
 
 APP="SonarQube"
-var_tags="${var_tags:-asset-automation}"
+var_tags="${var_tags:-automation}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-6144}"
-var_disk="${var_disk:-15}"
+var_disk="${var_disk:-25}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
