@@ -70,7 +70,7 @@ LimitNPROC=8192
 [Install]
 WantedBy=multi-user.target
 EOF
-$STD systemctl enable --now sonarqube
+systemctl enable -q --now sonarqube
 msg_ok "Service Created"
 
 motd_ssh
