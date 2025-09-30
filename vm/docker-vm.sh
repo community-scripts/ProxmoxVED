@@ -504,7 +504,7 @@ DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk
 msg_ok "Imported disk (${BL}${DISK_REF}${CL})"
 
 # ---- EFI + Root + Cloud-Init anhängen ---------------------------------------
-msg_info "Attaching EFI/root disk and Cloud-Init"
+msg_info "Attaching EFI/root disk and Cloud-Init (Patience)"
 qm set "$VMID" --efidisk0 "${STORAGE}:0${FORMAT}" >/dev/null
 qm set "$VMID" --scsi0 "${DISK_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE}" >/dev/null
 qm set "$VMID" --boot order=scsi0 >/dev/null
