@@ -80,7 +80,7 @@ variables() {
 #     [Dd]*)
 #       for file in core.func error_handler.func tools.func; do
 #         local_path="$FUNC_DIR/$file"
-#         url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
+#         url="https://raw.githubusercontent.com/prop4n/ProxmoxVED/refs/heads/add-script-sonarqube/misc/$file"
 #         remote_tmp="$(mktemp)"
 
 #         curl -fsSL "$url" -o "$remote_tmp" || continue
