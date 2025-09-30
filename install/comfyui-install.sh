@@ -13,16 +13,6 @@ setting_up_container
 network_check
 update_os
 
-application_name="${APPLICATION}"
-comfyui_path="/opt/${application_name}"
-comfyui_python_path="${comfyui_path}/venv/bin/python"
-comfyui_port_arg="8188"
-comfyui_python_version_uv="3.12"
-comfyui_python_args="--cpu"
-comfyui_index_url_nvidia="https://download.pytorch.org/whl/cu128"
-comfyui_index_url_amd="https://download.pytorch.org/whl/rocm6.3"
-comfyui_index_url_intel="https://download.pytorch.org/whl/xpu"
-
 echo
 echo "${TAB3}Choose the GPU type for ComfyUI:"
 echo "${TAB3}[1]-None  [2]-NVIDIA  [3]-AMD  [4]-Intel"
@@ -37,67 +27,54 @@ case "$gpu_choice" in
 esac
 echo
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  git
-msg_ok "Installed Dependencies"
+PYTHON_VERSION="3.12" setup_uv
 
-msg_info "Setup uv"
-PYTHON_VERSION="${comfyui_python_version_uv}" setup_uv
-msg_ok "Setup uv"
-
-fetch_and_deploy_gh_release "${application_name}" "comfyanonymous/ComfyUI" "tarball" "latest" "${comfyui_path}"
+fetch_and_deploy_gh_release "ComfyUI" "comfyanonymous/ComfyUI" "tarball" "latest" "/opt/ComfyUI"
 
 msg_info "Python dependencies"
-$STD uv venv "${comfyui_path}/venv"
+$STD uv venv "/opt/ComfyUI/venv"
 if [[ "${comfyui_gpu_type,,}" == "nvidia" ]]; then
   $STD uv pip install \
       torch \
       torchvision \
       torchaudio \
-      --extra-index-url "${comfyui_index_url_nvidia}" \
-      --python="${comfyui_python_path}"
+      --extra-index-url "https://download.pytorch.org/whl/cu128" \
+      --python="/opt/ComfyUI/venv/bin/python"
 elif [[ "${comfyui_gpu_type,,}" == "amd" ]]; then
   $STD uv pip install \
       torch \
       torchvision \
       torchaudio \
-      --index-url "${comfyui_index_url_amd}" \
-      --python="${comfyui_python_path}"
+      --index-url "https://download.pytorch.org/whl/rocm6.3" \
+      --python="/opt/ComfyUI/venv/bin/python"
 elif [[ "${comfyui_gpu_type,,}" == "intel" ]]; then
   $STD uv pip install \
       torch \
       torchvision \
       torchaudio \
-      --index-url "${comfyui_index_url_intel}" \
-      --python="${comfyui_python_path}"
+      --index-url "https://download.pytorch.org/whl/xpu" \
+      --python="/opt/ComfyUI/venv/bin/python"
 fi
-$STD uv pip install -r "${comfyui_path}/requirements.txt" --python="${comfyui_python_path}"
+$STD uv pip install -r "/opt/ComfyUI/requirements.txt" --python="/opt/ComfyUI/venv/bin/python"
 msg_ok "Python dependencies"
 
-msg_info "Install ${application_name} Manager"
-comfyui_manager_dir="${comfyui_path}/custom_nodes/comfyui-manager"
-git clone https://github.com/ltdrdata/ComfyUI-Manager "${comfyui_manager_dir}"
-$STD uv pip install -r "${comfyui_manager_dir}/requirements.txt" --python="${comfyui_python_path}"
-msg_ok "Installed ${application_name} Manager"
-
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/"${application_name}".service
+cat <<EOF >/etc/systemd/system/comfyui.service
 [Unit]
-Description=${application_name} Service
+Description=ComfyUI Service
 After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=${comfyui_path}
-ExecStart=${comfyui_python_path} ${comfyui_path}/main.py --listen --port ${comfyui_port_arg} ${comfyui_python_args}
+WorkingDirectory=/opt/ComfyUI
+ExecStart=/opt/ComfyUI/venv/bin/python /opt/ComfyUI/main.py --listen --port 8188 --cpu
 Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now "${application_name}"
+systemctl enable -q --now comfyui
 msg_ok "Created Service"
 
 motd_ssh
