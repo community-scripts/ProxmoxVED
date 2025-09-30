@@ -51,7 +51,7 @@ After=network.target
 WorkingDirectory=/opt/rwmarkable
 EnvironmentFile=/opt/rwmarkable/.env
 ExecStart=yarn start
-Restart=unless-stopped
+Restart=on-abnormal
 
 [Install]
 WantedBy=multi-user.target
