@@ -18,9 +18,8 @@ fetch_and_deploy_gh_release "rwMarkable" "fccview/rwMarkable" "tarball" "latest"
 
 msg_info "Building app"
 cd /opt/rwmarkable
-export NEXT_TELEMETRY_DISABLE=1
-export NODE_ENV=production
 $STD yarn --frozen-lockfile
+$STD yarn next telemetry disable
 $STD yarn build
 mkdir -p data/{users,checklists,notes}
 # maybe move some stuff around so the app is in a sensible spot?

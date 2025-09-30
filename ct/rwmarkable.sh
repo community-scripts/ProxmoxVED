@@ -46,10 +46,9 @@ function update_script() {
     fetch_and_deploy_gh_release "rwMarkable" "fccview/rwMarkable" "tarball" "latest" "/opt/rwmarkable"
 
     msg_info "Updating app"
-    export NEXT_TELEMETRY_DISABLE=1
-    export NODE_ENV=production
     cd /opt/rwmarkable
     $STD yarn --frozen-lockfile
+    $STD yarn next telemetry disable
     $STD yarn build
     msg_ok "Updated app"
 
