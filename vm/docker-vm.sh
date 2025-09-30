@@ -106,12 +106,6 @@ METHOD="default"
 var_os="debian"
 var_version="12"
 
-# ---- Startdialog -------------------------------------------------------------
-if ! whiptail --backtitle "Proxmox VE Helper Scripts" --title "Docker VM" \
-     --yesno "This will create a NEW Docker VM. Proceed?" 10 58; then
-  header_info; echo -e "${CROSS}${RD}User exited script${CL}\n"; exit 1
-fi
-
 # ---- Helper: VMID-Find -------------------------------------------------------
 get_valid_nextid() {
   local id; id=$(pvesh get /cluster/nextid)
