@@ -76,14 +76,6 @@ pushd "$TEMP_DIR" >/dev/null
 # ---- Sanity Checks -----------------------------------------------------------
 check_root() { if [[ "$(id -u)" -ne 0 ]]; then msg_error "Run as root."; exit 1; fi; }
 arch_check() { [[ "$(dpkg --print-architecture)" = "amd64" ]] || { msg_error "ARM/PiMox nicht unterstützt."; exit 1; }; }
-ssh_check() {
-  if command -v pveversion >/dev/null 2>&1 && [[ -n "${SSH_CLIENT:+x}" ]]; then
-    if ! whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" \
-        --yesno "Nutze besser die Proxmox Shell (Konsole) – SSH kann Variablen-Ermittlung stören. Trotzdem fortfahren?" 10 70; then
-      clear; exit 1
-    fi
-  fi
-}
 pve_check() {
   local ver; ver="$(pveversion | awk -F'/' '{print $2}' | cut -d'-' -f1)"
   case "$ver" in
@@ -92,7 +84,7 @@ pve_check() {
   esac
 }
 
-check_root; arch_check; pve_check; ssh_check
+check_root; arch_check; pve_check;
 
 # ---- Defaults / UI Vorbelegung ----------------------------------------------
 GEN_MAC="02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/:$//')"
