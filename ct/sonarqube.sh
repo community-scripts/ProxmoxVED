@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/prop4n/ProxmoxVED/refs/heads/add-script-sonarqube/misc/build.func)
+source <(curl -fsSL  https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: prop4n
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
