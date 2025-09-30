@@ -29,7 +29,6 @@ function update_script() {
     fi
 
 		if check_for_gh_release "sonarqube" "SonarSource/sonarqube"; then
-      msg_info "Updating ${APP} to v${RELEASE}"
 
       systemctl stop sonarqube
 
