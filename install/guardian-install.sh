@@ -16,11 +16,14 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   git \
-  nodejs \
-  npm \
   sqlite3 \
   unzip \
-  curl
+  curl \
+  ca-certificates \
+  gnupg
+
+curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+$STD apt-get install -y nodejs
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Guardian"
