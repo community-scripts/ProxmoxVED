@@ -31,6 +31,7 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
 msg_ok "Installed PostgreSQL"
 
 msg_info "Configuring SonarQube"
+$STD useradd -r -m -U -d /opt/sonarqube -s /bin/bash sonarqube
 chown -R sonarqube:sonarqube /opt/sonarqube
 chmod -R 755 /opt/sonarqube
 mkdir -p /opt/sonarqube/conf
