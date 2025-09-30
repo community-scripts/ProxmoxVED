@@ -35,10 +35,6 @@ msg_info "Creating SonarQube User"
 useradd -r -m -U -d /opt/sonarqube -s /bin/bash sonarqube 2>/dev/null || true
 
 msg_info "Configuring SonarQube"
-curl -fsSL -o /tmp/sonarqube.zip "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${RELEASE}.zip"
-unzip -q /tmp/sonarqube.zip -d /tmp
-cp -r /tmp/sonarqube-*/* /opt/sonarqube/
-rm -rf /tmp/sonarqube*
 chown -R sonarqube:sonarqube /opt/sonarqube
 chmod -R 755 /opt/sonarqube
 msg_ok "Installed SonarQube"
