@@ -39,10 +39,8 @@ function update_script() {
     msg_ok "Stopped $APP"
 
     msg_info "Updating $APP to v${RELEASE}"
-    # Download new docker-compose.yml
-    curl -fsSL -o docker-compose.yml "https://raw.githubusercontent.com/HydroshieldMKII/Guardian/main/docker-compose.yml"
+    curl -fsSL -o docker-compose.yml "https://raw.githubusercontent.com/HydroshieldMKII/Guardian/main/docker-compose.example.yml"
 
-    # Pull new Docker images
     docker compose pull
 
     echo "${RELEASE}" >/opt/${APP}_version.txt
@@ -54,7 +52,6 @@ function update_script() {
     msg_ok "Started $APP"
 
     msg_info "Cleaning Up"
-    rm -f /tmp/plex-guard.db.backup
     docker system prune -f
     msg_ok "Cleanup Completed"
 
