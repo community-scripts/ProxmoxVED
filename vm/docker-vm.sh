@@ -437,19 +437,16 @@ fi
 if [[ "$INSTALL_MODE" = "cloudinit" ]]; then
   msg_info "Preparing Cloud-Init user-data for Docker (${CODENAME})"
 
-  if ! pick_snippet_storage; then
-    msg_error "No storage with snippets support available. Please enable 'Snippets' on at least one dir storage (e.g. local)."
-    exit 1
-  fi
-
+  # Use SNIPPET_STORE selected earlier
+  SNIPPET_DIR="$(pvesm path "$SNIPPET_STORE")/snippets"
   mkdir -p "$SNIPPET_DIR"
+
   SNIPPET_FILE="docker-${VMID}-user-data.yaml"
-  SNIPPET_PATH="${SNIPPET_DIR}/${SNIPPET_FILE}"
+  SNIPPET_PATH="${SNIPPET_DIR}/${SNIPPET_FILE}""
 
   DOCKER_GPG_B64="$(curl -fsSL "${DOCKER_BASE}/gpg" | gpg --dearmor | base64 -w0)"
 
-
-  cat >"$SNIPPET_PATH" <<EOYAML
+cat >"$SNIPPET_PATH" <<EOYAML
 #cloud-config
 hostname: ${HN}
 manage_etc_hosts: true
