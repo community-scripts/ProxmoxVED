@@ -40,8 +40,7 @@ msg_ok "Configured Blackbox Exporter"
 
 # Enable service
 msg_info "Enabling Service"
-systemctl daemon-reload
-systemctl enable -q --now prometheus-blackbox-exporter
+systemctl restart prometheus-blackbox-exporter
 msg_ok "Service Enabled"
 
 motd_ssh
