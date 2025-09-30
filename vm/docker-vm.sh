@@ -288,8 +288,8 @@ choose_os() {
       "ubuntu24" "Ubuntu 24.04 LTS (modern kernel, GPU/AI friendly)" OFF \
       3>&1 1>&2 2>&3); then
     case "$OS_CHOICE" in
-      debian12) var_os="debian"; var_version="12"; URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-$(dpkg --print-architecture).qcow2" ;;
-      debian13) var_os="debian"; var_version="13"; URL="https://cloud.debian.org/images/cloud/trixie/latest/debian-13-nocloud-$(dpkg --print-architecture).qcow2" ;;
+      debian12) var_os="debian"; var_version="12"; URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-$(dpkg --print-architecture).qcow2" ;;
+      debian13) var_os="debian"; var_version="13"; URL="https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-$(dpkg --print-architecture).qcow2" ;;
       ubuntu24) var_os="ubuntu"; var_version="24.04"; URL="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-$(dpkg --print-architecture).img" ;;
     esac
     echo -e "${OSI}${BOLD}${DGN}Selected OS: ${GN}${OS_CHOICE}${CL}"
