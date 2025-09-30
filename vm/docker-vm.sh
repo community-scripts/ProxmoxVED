@@ -503,17 +503,24 @@ DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk
 [[ -z "$DISK_REF" ]] && { msg_error "Unable to determine imported disk reference."; echo "$IMPORT_OUT"; exit 1; }
 msg_ok "Imported disk (${BL}${DISK_REF}${CL})"
 
+SSHKEYS_ARG=""
+if [[ -s /root/.ssh/authorized_keys ]]; then
+  SSHKEYS_ARG="--sshkeys /root/.ssh/authorized_keys"
+fi
+
 # ---- EFI + Root + Cloud-Init anhängen ---------------------------------------
 msg_info "Attaching EFI/root disk and Cloud-Init (Patience)"
-qm set "$VMID" --efidisk0 "${STORAGE}:0${FORMAT}" >/dev/null
-qm set "$VMID" --scsi0 "${DISK_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE}" >/dev/null
-qm set "$VMID" --boot order=scsi0 >/dev/null
-qm set "$VMID" --serial0 socket >/dev/null
-qm set "$VMID" --agent enabled=1,fstrim_cloned_disks=1 >/dev/null
-qm set "$VMID" --ide2 "${STORAGE}:cloudinit" >/dev/null
-qm set "$VMID" --ipconfig0 "ip=dhcp" >/dev/null
-qm set "$VMID" --nameserver "1.1.1.1 9.9.9.9" --searchdomain "lan" >/dev/null
-qm set "$VMID" --ciuser root --cipassword '' --sshkeys "/root/.ssh/authorized_keys" >/dev/null || true
+qm set "$VMID" \
+  --efidisk0 "${STORAGE}:0${FORMAT}" \
+  --scsi0 "${DISK_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE}" \
+  --boot order=scsi0 \
+  --serial0 socket \
+  --agent enabled=1,fstrim_cloned_disks=1 \
+  --ide2 "${STORAGE}:cloudinit" \
+  --ipconfig0 "ip=dhcp" \
+  --nameserver "1.1.1.1 9.9.9.9" --searchdomain "lan" \
+  --ciuser root --cipassword '' \
+  $SSHKEYS_ARG >/dev/null || true
 
 if [[ "$INSTALL_MODE" = "cloudinit" ]]; then
   qm set "$VMID" --cicustom "user=${SNIPPET_STORE}:snippets/${SNIPPET_FILE}" >/dev/null
