@@ -33,7 +33,7 @@ msg_ok "Installed PostgreSQL"
 msg_info "Creating SonarQube User"
 useradd -r -m -U -d /opt/sonarqube -s /bin/bash sonarqube 2>/dev/null || true
 
-msg_info "SonarQube Installation"
+msg_info "Configuring SonarQube"
 curl -fsSL -o /tmp/sonarqube.zip "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${RELEASE}.zip"
 unzip -q /tmp/sonarqube.zip -d /tmp
 cp -r /tmp/sonarqube-*/* /opt/sonarqube/
