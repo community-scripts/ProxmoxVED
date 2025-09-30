@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: vhsdream
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Source: https://github.com/fccview/rwMarkable
+
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
+
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+fetch_and_deploy_gh_release "rwMarkable" "fccview/rwMarkable" "tarball" "latest" "/opt/rwmarkable"
+
+msg_info "Building app"
+cd /opt/rwmarkable
+export NEXT_TELEMETRY_DISABLE=1
+export NODE_ENV=production
+$STD yarn --frozen-lockfile
+$STD yarn build
+# maybe move some stuff around so the app is in a sensible spot?
+msg_ok "Successfully built app"
+
+msg_info "Creating .env file"
+cat <<EOF >/opt/rwmarkable/.env
+NODE_ENV=production
+# HTTPS=true
+
+# --- SSO with OIDC (optional)
+# SSO_MODE=oidc
+# OIDC_ISSUER=<your-oidc-issuer-url>
+# OIDC_CLIENT_ID=<oidc-client-id>
+# APP_URL=<https://app.domain.tld>
+# SSO_FALLBACK_LOCAL=true # Allow both SSO and normal login
+# OIDC_CLIENT_SECRET=your_client_secret  # Enable confidential client mode with client authentication
+# OIDC_ADMIN_GROUPS=admins # Map provider groups to admin role
+EOF
+msg_ok "Created .env file"
+
+msg_info "Creating rwMarkable Service"
+cat <<EOF >/etc/systemd/system/rwmarkable.service
+[Unit]
+Description=rwMarkable server
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/rwmarkable
+EnvironmentFile=/opt/rwmarkable/.env
+ExecStart=yarn start
+Restart=unless-stopped
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now rwmarkable
+msg_ok "Created rwMarkable Service"
+motd_ssh
+customize
+
+msg_info "Cleaning up"
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
+msg_ok "Cleaned"
