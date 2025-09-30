@@ -460,6 +460,7 @@ packages:
   - gnupg
   - qemu-guest-agent
   - cloud-guest-utils   # growpart/resizefs
+  - cloud-init
 
 write_files:
   - path: /etc/apt/keyrings/docker.gpg
