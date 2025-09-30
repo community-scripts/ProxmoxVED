@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/HydroshieldMKII/ProxmoxVED/refs/heads/add-guardian-app/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: HydroshieldMKII
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -31,35 +31,49 @@ function update_script() {
   fi
 
   # Crawling the new version and checking whether an update is required
-  RELEASE=$(curl -fsSL [RELEASE_URL] | [PARSE_RELEASE_COMMAND])
+  RELEASE=$(curl -fsSL https://api.github.com/repos/HydroshieldMKII/Guardian/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
     # Stopping Services
     msg_info "Stopping $APP"
-    systemctl stop [SERVICE_NAME]
+    systemctl stop guardian-backend guardian-frontend
     msg_ok "Stopped $APP"
 
     # Creating Backup
     msg_info "Creating Backup"
-    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" [IMPORTANT_PATHS]
+    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/Guardian
     msg_ok "Backup Created"
 
     # Execute Update
     msg_info "Updating $APP to v${RELEASE}"
-    [UPDATE_COMMANDS]
+    cd /tmp
+    curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
+    unzip -q "${RELEASE}.zip"
+    rm -rf /opt/Guardian
+    mv "Guardian-${RELEASE}/" "/opt/Guardian"
+    
+    # Build Backend
+    cd /opt/Guardian/backend
+    npm ci
+    npm run build
+    
+    # Build Frontend
+    cd /opt/Guardian/frontend
+    npm ci
+    npm run build
+    
+    echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated $APP to v${RELEASE}"
 
     # Starting Services
     msg_info "Starting $APP"
-    systemctl start [SERVICE_NAME]
+    systemctl start guardian-backend guardian-frontend
     msg_ok "Started $APP"
 
     # Cleaning up
     msg_info "Cleaning Up"
-    rm -rf [TEMP_FILES]
+    rm -rf /tmp/"${RELEASE}.zip" /tmp/"Guardian-${RELEASE}"
     msg_ok "Cleanup Completed"
 
-    # Last Action
-    echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Update Successful"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
@@ -74,4 +88,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:[PORT]${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"

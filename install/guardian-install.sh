@@ -20,31 +20,30 @@ $STD apt-get install -y \
   git \
   nodejs \
   npm \
-  sqlite
+  sqlite3 \
+  unzip \
+  curl
 msg_ok "Installed Dependencies"
 
 # Setup App
-msg_info "Setup ${APPLICATION}"
+msg_info "Setup Guardian"
 RELEASE=$(curl -fsSL https://api.github.com/repos/HydroshieldMKII/Guardian/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
 unzip -q "${RELEASE}.zip"
-mv "${APPLICATION}-${RELEASE}/" "/opt/${APPLICATION}"
-#
-#
-#
-echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
-msg_ok "Setup ${APPLICATION}"
+mv "Guardian-${RELEASE}/" "/opt/Guardian"
+echo "${RELEASE}" >/opt/Guardian_version.txt
+msg_ok "Setup Guardian"
 
 # ===== Build Backend =====
 msg_info "Building backend"
-cd /opt/${APPLICATION}/backend
+cd /opt/Guardian/backend
 npm ci
 npm run build
 msg_ok "Built backend"
 
 # ===== Build Frontend =====
 msg_info "Building frontend"
-cd /opt/${APPLICATION}/frontend
+cd /opt/Guardian/frontend
 npm ci
 npm run build
 msg_ok "Built frontend"
