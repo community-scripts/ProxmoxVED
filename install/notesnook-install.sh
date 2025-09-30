@@ -20,8 +20,7 @@ $STD apt-get install -y \
     caddy
 msg_ok "Installed Dependencies"
 
-LOCAL_IP=$(hostname -I | awk '{print $1}')
-NODE_MODULE="yarn" setup_nodejs
+NODE_VERSION="22" setup_nodejs
 fetch_and_deploy_gh_release "notesnook" "streetwriters/notesnook" "tarball"
 
 msg_info "Configuring Notesnook (Patience)"
@@ -30,6 +29,19 @@ export NODE_OPTIONS="--max-old-space-size=2560"
 $STD npm install
 $STD npm run build:web
 msg_ok "Configured Notesnook"
+
+msg_info "Configuring Caddy"
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+cat <<EOF >/etc/caddy/Caddyfile
+{
+    email admin@example.com
+}
+
+${LOCAL_IP} {
+    reverse_proxy 127.0.0.1:3000
+}
+EOF
+msg_ok "Configured Caddy"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/notesnook.service
@@ -41,16 +53,13 @@ After=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/notesnook
-ExecStart=/usr/bin/npx serve -l tcp://0.0.0.0:3000 apps/web/build
+ExecStart=/usr/bin/npx serve apps/web/build
 Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 EOF
-sed -i "s|^ExecStart=.*|ExecStart=/usr/bin/caddy reverse-proxy --from https://$LOCAL_IP --to localhost:3000|" /lib/systemd/system/caddy.service
-sed -i "/^ExecReload=/d" /lib/systemd/system/caddy.service
-systemctl daemon-reload
-systemctl restart caddy
+systemctl reload caddy
 systemctl enable -q --now notesnook
 msg_ok "Created Service"
 
