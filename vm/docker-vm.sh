@@ -402,6 +402,13 @@ detect_codename_and_repo() {
 }
 detect_codename_and_repo
 
+get_snippet_dir() {
+  local store="$1"
+  awk -v s="$store" '
+    $1 == "dir:" && $2 == s {getline; print $2 "/snippets"}
+  ' /etc/pve/storage.cfg
+}
+
 # ---- PVE8: direct inject via virt-customize ----------------------------------
 if [[ "$INSTALL_MODE" = "direct" ]]; then
   msg_info "Injecting Docker & QGA into image (${CODENAME}, repo: $(basename "$DOCKER_BASE"))"
@@ -432,7 +439,7 @@ if [[ "$INSTALL_MODE" = "cloudinit" ]]; then
   msg_info "Preparing Cloud-Init user-data for Docker (${CODENAME})"
 
   # Use SNIPPET_STORE selected earlier
-  SNIPPET_DIR="$(pvesm path "$SNIPPET_STORE")/snippets"
+  SNIPPET_DIR="$(get_snippet_dir "$SNIPPET_STORE")"
   mkdir -p "$SNIPPET_DIR"
 
   SNIPPET_FILE="docker-${VMID}-user-data.yaml"
