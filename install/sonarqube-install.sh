@@ -12,7 +12,7 @@ setting_up_container
 network_check
 update_os
 
-JAVA_VERSION=21 setup_java
+JAVA_VERSION="21" setup_java
 PG_VERSION="17" setup_postgresql
 fetch_and_deploy_gh_release "sonarqube" "SonarSource/sonarqube" "tarball"
 
@@ -30,7 +30,6 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
   echo "DB_PASS: $DB_PASS"
 } >>~/sonarqube.creds
 msg_ok "Installed PostgreSQL"
-
 
 msg_info "Configuring SonarQube"
 chown -R sonarqube:sonarqube /opt/sonarqube
