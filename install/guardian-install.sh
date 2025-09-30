@@ -16,14 +16,11 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   git \
+  nodejs \
+  npm \
   sqlite3 \
   unzip \
-  curl \
-  ca-certificates \
-  gnupg
-
-curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
-$STD apt-get install -y nodejs
+  curl
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Guardian"
@@ -77,6 +74,7 @@ Wants=guardian-backend.service
 
 [Service]
 WorkingDirectory=/opt/Guardian/frontend
+Environment=DEPLOYMENT_MODE=standalone
 ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=3
