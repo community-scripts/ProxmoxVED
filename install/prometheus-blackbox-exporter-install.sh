@@ -18,7 +18,10 @@ update_os
 msg_info "Installing Prometheus Blackbox Exporter"
 export DEBIAN_FRONTEND=noninteractive
 $STD apt-get update
-$STD apt-get install -y --no-install-recommends prometheus-blackbox-exporter ca-certificates curl
+$STD apt-get install -y --no-install-recommends \
+    prometheus-blackbox-exporter \
+    ca-certificates \
+    curl
 msg_ok "Installed Prometheus Blackbox Exporter"
 
 # Configure exporter
