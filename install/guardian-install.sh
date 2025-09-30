@@ -76,7 +76,6 @@ Wants=guardian-backend.service
 [Service]
 WorkingDirectory=/opt/Guardian/frontend
 Environment=NODE_ENV=production
-Environment=DEPLOYMENT_MODE=standalone
 Environment=PORT=3000
 ExecStart=/usr/bin/npm run start
 Restart=always
