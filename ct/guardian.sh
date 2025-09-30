@@ -24,43 +24,37 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  # Check if installation is present | -f for file, -d for folder
   if [[ ! -d "/opt/${APP}" ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  # Crawling the new version and checking whether an update is required
+
   RELEASE=$(curl -fsSL https://api.github.com/repos/HydroshieldMKII/Guardian/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
-    # Stopping Services
+
     msg_info "Stopping $APP"
     systemctl stop guardian-backend guardian-frontend
     msg_ok "Stopped $APP"
 
-    # Creating Backup
-    msg_info "Creating Backup"
-    tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/Guardian
-    msg_ok "Backup Created"
 
-    # Preserve Database
     msg_info "Preserving Database"
     if [[ -f "/opt/Guardian/backend/plex-guard.db" ]]; then
       cp "/opt/Guardian/backend/plex-guard.db" "/tmp/plex-guard.db.backup"
       msg_ok "Database backed up"
     fi
 
-    # Execute Update
+
     msg_info "Updating $APP to v${RELEASE}"
     cd /tmp
+
     curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
     unzip -q "${RELEASE}.zip"
     rm -rf /opt/Guardian
-    # Strip 'v' prefix from RELEASE for folder name
+
     FOLDER_NAME=$(echo "${RELEASE}" | sed 's/^v//')
     mv "Guardian-${FOLDER_NAME}/" "/opt/Guardian"
 
-    # Restore Database
     if [[ -f "/tmp/plex-guard.db.backup" ]]; then
       msg_info "Restoring Database"
       cp "/tmp/plex-guard.db.backup" "/opt/Guardian/backend/plex-guard.db"
@@ -68,25 +62,21 @@ function update_script() {
       msg_ok "Database restored"
     fi
 
-    # Build Backend
     cd /opt/Guardian/backend
     npm ci
     npm run build
 
-    # Build Frontend
     cd /opt/Guardian/frontend
     npm ci
-    npm run build
+    NODE_ENV=development npm run build
 
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated $APP to v${RELEASE}"
 
-    # Starting Services
     msg_info "Starting $APP"
     systemctl start guardian-backend guardian-frontend
     msg_ok "Started $APP"
 
-    # Cleaning up
     msg_info "Cleaning Up"
     rm -rf /tmp/"${RELEASE}.zip" /tmp/"Guardian-${FOLDER_NAME}" /tmp/plex-guard.db.backup
     msg_ok "Cleanup Completed"

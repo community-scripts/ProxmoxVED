@@ -5,7 +5,6 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/HydroshieldMKII/Guardian
 
-# Import Functions und Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -14,7 +13,6 @@ setting_up_container
 network_check
 update_os
 
-# Installing Dependencies
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   git \
@@ -25,31 +23,30 @@ $STD apt-get install -y \
   curl
 msg_ok "Installed Dependencies"
 
-# Setup App
 msg_info "Setup Guardian"
 RELEASE=$(curl -fsSL https://api.github.com/repos/HydroshieldMKII/Guardian/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
 unzip -q "${RELEASE}.zip"
-# Strip 'v' prefix from RELEASE for folder name
+
 FOLDER_NAME=$(echo "${RELEASE}" | sed 's/^v//')
 mv "Guardian-${FOLDER_NAME}/" "/opt/Guardian"
+
 echo "${RELEASE}" >/opt/Guardian_version.txt
 msg_ok "Setup Guardian"
 
-# ===== Build Backend =====
+
 msg_info "Building backend"
 cd /opt/Guardian/backend
 npm ci
 npm run build
 msg_ok "Built backend"
 
-# ===== Install Frontend Dependencies =====
-msg_info "Installing frontend dependencies"
+msg_info "Building frontend"
 cd /opt/Guardian/frontend
 npm ci
-msg_ok "Installed frontend dependencies"
+NODE_ENV=development npm run build
+msg_ok "Built frontend"
 
-# ===== Backend Service =====
 msg_info "Creating Backend Service"
 cat <<EOF >/etc/systemd/system/guardian-backend.service
 [Unit]
@@ -69,7 +66,6 @@ EOF
 systemctl enable -q --now guardian-backend
 msg_ok "Created Backend Service"
 
-# ===== Frontend Service =====
 msg_info "Creating Frontend Service"
 cat <<EOF >/etc/systemd/system/guardian-frontend.service
 [Unit]
@@ -79,9 +75,9 @@ Wants=guardian-backend.service
 
 [Service]
 WorkingDirectory=/opt/Guardian/frontend
-Environment=NODE_ENV=development
+Environment=NODE_ENV=production
 Environment=PORT=3000
-ExecStart=/usr/bin/npm run dev
+ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=3
 
