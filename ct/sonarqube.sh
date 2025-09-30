@@ -40,20 +40,18 @@ function update_script() {
 
 			fetch_and_deploy_gh_release "sonarqube" "SonarSource/sonarqube" "tarball"
 
+			msg_info "Restoring backup"
       cp -rp ${BACKUP_DIR}/data/ /opt/sonarqube/data/
       cp -rp ${BACKUP_DIR}/extensions/ /opt/sonarqube/extensions/
       cp -p ${BACKUP_DIR}/conf/sonar.properties /opt/sonarqube/conf/sonar.properties
       rm -rf ${BACKUP_DIR}
-
       chown -R sonarqube:sonarqube /opt/sonarqube
-
-      echo "${RELEASE}" > /opt/${APP}_version.txt
-
+      msg_ok "Backup restored"
+      
+      msg_info "Starting service"
       systemctl start sonarqube
-
-      msg_ok "Updated to v${RELEASE}"
-    else
-      msg_ok "No update required. ${APP} is already at v${RELEASE}."
+      msg_ok "Service started"
+      msg_ok "Updated Successfully"
     fi
     exit
 }
