@@ -44,7 +44,7 @@ msg_ok "Built backend"
 msg_info "Building frontend"
 cd /opt/Guardian/frontend
 npm ci
-NODE_ENV=development npm run build
+npm run build
 msg_ok "Built frontend"
 
 msg_info "Creating Backend Service"
@@ -55,7 +55,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/Guardian/backend
-Environment=NODE_ENV=development
+Environment=NODE_ENV=production
 ExecStart=/usr/bin/node dist/main.js
 Restart=always
 RestartSec=3
@@ -76,6 +76,7 @@ Wants=guardian-backend.service
 [Service]
 WorkingDirectory=/opt/Guardian/frontend
 Environment=NODE_ENV=production
+Environment=DEPLOYMENT_MODE=standalone
 Environment=PORT=3000
 ExecStart=/usr/bin/npm run start
 Restart=always

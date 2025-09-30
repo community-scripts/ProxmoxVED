@@ -17,7 +17,7 @@
       "type": "default",
       "script": "ct/guardian.sh",
       "resources": {
-        "cpu": 4,
+        "cpu": 2,
         "ram": 2048,
         "hdd": 6,
         "os": "Debian",
