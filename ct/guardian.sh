@@ -34,30 +34,56 @@ function update_script() {
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
 
     msg_info "Stopping $APP"
-    cd /opt/Guardian
-    docker compose down
+    systemctl stop guardian-backend guardian-frontend
     msg_ok "Stopped $APP"
 
-    msg_info "Updating $APP to v${RELEASE}"
-    curl -fsSL -o docker-compose.yml "https://raw.githubusercontent.com/HydroshieldMKII/Guardian/main/docker-compose.example.yml"
 
-    docker compose pull
+    msg_info "Saving Database"
+    if [[ -f "/opt/Guardian/backend/plex-guard.db" ]]; then
+      cp "/opt/Guardian/backend/plex-guard.db" "/tmp/plex-guard.db.backup"
+      msg_ok "Database backed up"
+    fi
+
+
+    msg_info "Updating $APP to v${RELEASE}"
+    cd /tmp
+
+    curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
+    unzip -q "${RELEASE}.zip"
+    rm -rf /opt/Guardian
+
+    FOLDER_NAME=$(echo "${RELEASE}" | sed 's/^v//')
+    mv "Guardian-${FOLDER_NAME}/" "/opt/Guardian"
+
+    if [[ -f "/tmp/plex-guard.db.backup" ]]; then
+      msg_info "Restoring Database"
+      cp "/tmp/plex-guard.db.backup" "/opt/Guardian/backend/plex-guard.db"
+      rm "/tmp/plex-guard.db.backup"
+      msg_ok "Database restored"
+    fi
+
+    cd /opt/Guardian/backend
+    npm ci
+    npm run build
+
+    cd /opt/Guardian/frontend
+    npm ci
+    DEPLOYMENT_MODE=standalone npm run build
 
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated $APP to v${RELEASE}"
 
     msg_info "Starting $APP"
-    cd /opt/Guardian
-    docker compose up -d
+    systemctl start guardian-backend guardian-frontend
     msg_ok "Started $APP"
 
     msg_info "Cleaning Up"
-    docker system prune -f
+    rm -rf /tmp/"${RELEASE}.zip" /tmp/"Guardian-${FOLDER_NAME}" /tmp/plex-guard.db.backup
     msg_ok "Cleanup Completed"
 
     msg_ok "Update Successful"
   else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
   exit
 }
