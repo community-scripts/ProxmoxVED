@@ -70,7 +70,6 @@ LimitNPROC=8192
 [Install]
 WantedBy=multi-user.target
 EOF
-$STD systemctl daemon-reload
 msg_ok "Created Systemd Service"
 
 msg_info "Starting SonarQube service"
