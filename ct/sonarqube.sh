@@ -28,8 +28,7 @@ function update_script() {
         exit
     fi
 
-    RELEASE=$(curl -s https://api.github.com/repos/SonarSource/sonarqube/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-    if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+		if check_for_gh_release "sonarqube" "SonarSource/sonarqube"; then
       msg_info "Updating ${APP} to v${RELEASE}"
 
       systemctl stop sonarqube
