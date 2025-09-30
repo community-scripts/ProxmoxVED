@@ -2198,6 +2198,7 @@ build_container() {
         msg_info "Fix NVIDIA drivers on host, then recreate container or passthrough manually."
         return 0
       fi
+
       for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset; do
         [[ -e "$d" ]] && NVIDIA_DEVICES+=("$d")
       done
@@ -2205,37 +2206,37 @@ build_container() {
       if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
         msg_warn "NVIDIA GPU detected but no /dev/nvidia* devices found"
         msg_warn "Please install NVIDIA drivers on host: apt install nvidia-driver"
-      fi
-      if [[ "$CT_TYPE" == "0" ]]; then
+      else
+        if [[ "$CT_TYPE" == "0" ]]; then
           cat <<EOF >>"$LXC_CONFIG"
-        # NVIDIA GPU Passthrough (privileged)
-        lxc.cgroup2.devices.allow: c 195:* rwm
-        lxc.cgroup2.devices.allow: c 243:* rwm
-        lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
-        lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
-        lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
-        lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,create=file
-        EOF
-      fi
+    # NVIDIA GPU Passthrough (privileged)
+    lxc.cgroup2.devices.allow: c 195:* rwm
+    lxc.cgroup2.devices.allow: c 243:* rwm
+    lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
+    lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
+    lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
+    lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,create=file
+EOF
+
           if [[ -e /dev/dri/renderD128 ]]; then
-        echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
-      fi
-
-            export GPU_TYPE="NVIDIA"
-            export NVIDIA_DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n1)
-            msg_ok "NVIDIA GPU passthrough configured (driver: ${NVIDIA_DRIVER_VERSION})"
-          else
-            msg_warn "NVIDIA passthrough only supported for privileged containers"
-            return 0
+            echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
           fi
-        fi
-      }
 
-    # Debug output
-    msg_debug "Intel devices: ${INTEL_DEVICES[*]}"
-    msg_debug "AMD devices: ${AMD_DEVICES[*]}"
-    msg_debug "NVIDIA devices: ${NVIDIA_DEVICES[*]}"
-  }
+          export GPU_TYPE="NVIDIA"
+          export NVIDIA_DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n1)
+          msg_ok "NVIDIA GPU passthrough configured (driver: ${NVIDIA_DRIVER_VERSION})"
+        else
+          msg_warn "NVIDIA passthrough only supported for privileged containers"
+          return 0
+        fi
+      fi
+    fi
+
+      # Debug output
+      msg_debug "Intel devices: ${INTEL_DEVICES[*]}"
+      msg_debug "AMD devices: ${AMD_DEVICES[*]}"
+      msg_debug "NVIDIA devices: ${NVIDIA_DEVICES[*]}"
+    }
 
 
   # Configure USB passthrough for privileged containers
