@@ -29,8 +29,9 @@ function update_script() {
     fi
 
 		if check_for_gh_release "sonarqube" "SonarSource/sonarqube"; then
-
+      msg_info "Stopping service"
       systemctl stop sonarqube
+      msg_ok "Service stopped"
 
       BACKUP_DIR="/opt/sonarqube-backup"
       mv /opt/sonarqube ${BACKUP_DIR}
