@@ -37,9 +37,6 @@ useradd -r -m -U -d /opt/sonarqube -s /bin/bash sonarqube 2>/dev/null || true
 msg_info "Configuring SonarQube"
 chown -R sonarqube:sonarqube /opt/sonarqube
 chmod -R 755 /opt/sonarqube
-msg_ok "Installed SonarQube"
-
-msg_info "Configuring SonarQube"
 mkdir -p /opt/sonarqube/conf
 cat >/opt/sonarqube/conf/sonar.properties <<EOF
 sonar.jdbc.username=${DB_USER}
