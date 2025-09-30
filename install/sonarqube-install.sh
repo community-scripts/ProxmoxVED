@@ -71,7 +71,7 @@ LimitNPROC=8192
 WantedBy=multi-user.target
 EOF
 $STD systemctl enable --now sonarqube
-msg_ok "SonarQube service started"
+msg_ok "Service Created"
 
 motd_ssh
 customize
