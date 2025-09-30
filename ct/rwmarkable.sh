@@ -54,14 +54,16 @@ function update_script() {
 
     msg_info "Restoring configuration & data"
     mv /opt/app.env /opt/rwmarkable/.env
-    $STD tar xf /opt/data.tar
+    $STD tar -xf /opt/data.tar
     msg_ok "Restored configuration & data"
 
     msg_info "Restarting ${APP} service"
     systemctl start rwmarkable
     msg_ok "Restarted ${APP} service"
+    rm /opt/data.tar
+    msg_ok "Updated Successfully"
   fi
-
+  exit
 }
 
 start

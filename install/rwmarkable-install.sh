@@ -22,7 +22,6 @@ $STD yarn --frozen-lockfile
 $STD yarn next telemetry disable
 $STD yarn build
 mkdir -p data/{users,checklists,notes}
-# maybe move some stuff around so the app is in a sensible spot?
 msg_ok "Successfully built app"
 
 msg_info "Creating .env file"
