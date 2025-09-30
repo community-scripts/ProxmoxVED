@@ -51,7 +51,7 @@ EOF
 chmod +x /opt/sonarqube/bin/linux-x86-64/sonar.sh
 msg_ok "Configured SonarQube"
 
-msg_info "Creating Systemd Service"
+msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/sonarqube.service
 [Unit]
 Description=SonarQube service
