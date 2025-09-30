@@ -35,7 +35,7 @@ $STD useradd -r -m -U -d /opt/sonarqube -s /bin/bash sonarqube
 chown -R sonarqube:sonarqube /opt/sonarqube
 chmod -R 755 /opt/sonarqube
 mkdir -p /opt/sonarqube/conf
-cat >/opt/sonarqube/conf/sonar.properties <<EOF
+cat <<EOF >/opt/sonarqube/conf/sonar.properties 
 sonar.jdbc.username=${DB_USER}
 sonar.jdbc.password=${DB_PASS}
 sonar.jdbc.url=jdbc:postgresql://localhost/${DB_NAME}
