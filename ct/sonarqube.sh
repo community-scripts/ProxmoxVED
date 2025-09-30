@@ -38,13 +38,7 @@ function update_script() {
       mv /opt/sonarqube ${BACKUP_DIR}
       msg_ok "Backup created"
 
-      curl -fsSL -o /tmp/sonarqube.zip "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${RELEASE}.zip"
-
-      mkdir -p /opt/sonarqube
-
-      unzip -q /tmp/sonarqube.zip -d /tmp
-      cp -r /tmp/sonarqube-${RELEASE}/* /opt/sonarqube/
-      rm -rf /tmp/sonarqube*
+			fetch_and_deploy_gh_release "sonarqube" "SonarSource/sonarqube" "tarball"
 
       cp -rp ${BACKUP_DIR}/data/ /opt/sonarqube/data/
       cp -rp ${BACKUP_DIR}/extensions/ /opt/sonarqube/extensions/
