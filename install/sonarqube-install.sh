@@ -70,9 +70,6 @@ LimitNPROC=8192
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Created Systemd Service"
-
-msg_info "Starting SonarQube service"
 $STD systemctl enable --now sonarqube
 msg_ok "SonarQube service started"
 
