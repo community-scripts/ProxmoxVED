@@ -9,7 +9,7 @@ APP="Guardian"
 var_tags="${var_tags:-media;monitoring}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
-var_disk="${var_disk:-4}"
+var_disk="${var_disk:-6}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -43,6 +43,13 @@ function update_script() {
     tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" /opt/Guardian
     msg_ok "Backup Created"
 
+    # Preserve Database
+    msg_info "Preserving Database"
+    if [[ -f "/opt/Guardian/backend/plex-guard.db" ]]; then
+      cp "/opt/Guardian/backend/plex-guard.db" "/tmp/plex-guard.db.backup"
+      msg_ok "Database backed up"
+    fi
+
     # Execute Update
     msg_info "Updating $APP to v${RELEASE}"
     cd /tmp
@@ -52,6 +59,14 @@ function update_script() {
     # Strip 'v' prefix from RELEASE for folder name
     FOLDER_NAME=$(echo "${RELEASE}" | sed 's/^v//')
     mv "Guardian-${FOLDER_NAME}/" "/opt/Guardian"
+
+    # Restore Database
+    if [[ -f "/tmp/plex-guard.db.backup" ]]; then
+      msg_info "Restoring Database"
+      cp "/tmp/plex-guard.db.backup" "/opt/Guardian/backend/plex-guard.db"
+      rm "/tmp/plex-guard.db.backup"
+      msg_ok "Database restored"
+    fi
 
     # Build Backend
     cd /opt/Guardian/backend
@@ -73,7 +88,7 @@ function update_script() {
 
     # Cleaning up
     msg_info "Cleaning Up"
-    rm -rf /tmp/"${RELEASE}.zip" /tmp/"Guardian-${RELEASE}"
+    rm -rf /tmp/"${RELEASE}.zip" /tmp/"Guardian-${FOLDER_NAME}" /tmp/plex-guard.db.backup
     msg_ok "Cleanup Completed"
 
     msg_ok "Update Successful"
