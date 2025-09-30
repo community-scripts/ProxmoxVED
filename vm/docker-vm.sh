@@ -255,6 +255,42 @@ start_script() {
   fi
 }
 
+# ---------- Cloud-Init Snippet-Storage ermitteln ----------
+pick_snippet_storage() {
+  # Liefert in SNIPPET_STORE und SNIPPET_DIR zurück
+  mapfile -t SNIPPET_STORES < <(pvesm status -content snippets | awk 'NR>1 {print $1}')
+
+  _store_snippets_dir() {
+    local store="$1"
+    local p; p="$(pvesm path "$store" 2>/dev/null || true)"
+    [[ -n "$p" ]] || return 1
+    echo "$p/snippets"
+  }
+
+  # 1) Gewählter Storage selbst
+  if printf '%s\n' "${SNIPPET_STORES[@]}" | grep -qx -- "$STORAGE"; then
+    SNIPPET_STORE="$STORAGE"
+    SNIPPET_DIR="$(_store_snippets_dir "$STORAGE")" || return 1
+    return 0
+  fi
+
+  # 2) Fallback: "local"
+  if printf '%s\n' "${SNIPPET_STORES[@]}" | grep -qx -- "local"; then
+    SNIPPET_STORE="local"
+    SNIPPET_DIR="$(_store_snippets_dir local)" || true
+    [[ -n "$SNIPPET_DIR" ]] && return 0
+  fi
+
+  # 3) Irgendein anderer
+  for s in "${SNIPPET_STORES[@]}"; do
+    SNIPPET_DIR="$(_store_snippets_dir "$s")" || continue
+    SNIPPET_STORE="$s"
+    return 0
+  done
+
+  return 1
+}
+
 start_script; post_to_api_vm
 
 # ---- OS Auswahl --------------------------------------------------------------
@@ -382,17 +418,19 @@ fi
 if [[ "$INSTALL_MODE" = "cloudinit" ]]; then
   msg_info "Preparing Cloud-Init user-data for Docker (${CODENAME})"
 
-  # Prüfen, ob local Snippets erlaubt
-  if ! pvesm status | awk '$1=="local" && $2 ~ /snippets/ {ok=1} END{exit !ok}'; then
-    msg_error "Storage 'local' must allow content 'Snippets'. Enable it in Datacenter → Storage → local."
+  if ! pick_snippet_storage; then
+    msg_error "No storage with snippets support available. Please enable 'Snippets' on at least one dir storage (e.g. local)."
     exit 1
   fi
 
-  SNIPPET="/var/lib/vz/snippets/docker-${VMID}-user-data.yaml"
-  # Docker GPG in base64
+  mkdir -p "$SNIPPET_DIR"
+  SNIPPET_FILE="docker-${VMID}-user-data.yaml"
+  SNIPPET_PATH="${SNIPPET_DIR}/${SNIPPET_FILE}"
+
   DOCKER_GPG_B64="$(curl -fsSL "${DOCKER_BASE}/gpg" | gpg --dearmor | base64 -w0)"
 
-  cat >"$SNIPPET" <<EOYAML
+
+  cat >"$SNIPPET_PATH" <<EOYAML
 #cloud-config
 hostname: ${HN}
 manage_etc_hosts: true
@@ -439,8 +477,8 @@ power_state:
   condition: true
 EOYAML
 
-  chmod 0644 "$SNIPPET"
-  msg_ok "Cloud-Init user-data written: ${SNIPPET}"
+  chmod 0644 "$SNIPPET_PATH"
+  msg_ok "Cloud-Init user-data written: ${SNIPPET_PATH}"
 fi
 
 # ---- VM erstellen (q35) ------------------------------------------------------
@@ -472,7 +510,7 @@ qm set "$VMID" --nameserver "1.1.1.1 9.9.9.9" --searchdomain "lan" >/dev/null
 qm set "$VMID" --ciuser root --cipassword '' --sshkeys "/root/.ssh/authorized_keys" >/dev/null || true
 
 if [[ "$INSTALL_MODE" = "cloudinit" ]]; then
-  qm set "$VMID" --cicustom "user=local:snippets/$(basename "$SNIPPET")" >/dev/null
+  qm set "$VMID" --cicustom "user=${SNIPPET_STORE}:snippets/${SNIPPET_FILE}" >/dev/null
 fi
 msg_ok "Attached EFI/root and Cloud-Init"
 
