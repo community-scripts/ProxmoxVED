@@ -2295,7 +2295,7 @@ EOF'
   fi
   msg_ok "Customized LXC Container"
   install_ssh_keys_into_ct
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/HydroshieldMKII/ProxmoxVED/refs/heads/add-guardian-app/install/${var_install}.sh)"; then
     exit $?
   fi
 }
