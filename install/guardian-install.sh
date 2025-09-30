@@ -55,7 +55,6 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/Guardian/backend
-Environment=NODE_ENV=production
 ExecStart=/usr/bin/node dist/main.js
 Restart=always
 RestartSec=3
@@ -75,8 +74,6 @@ Wants=guardian-backend.service
 
 [Service]
 WorkingDirectory=/opt/Guardian/frontend
-Environment=NODE_ENV=production
-Environment=PORT=3000
 ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=3
