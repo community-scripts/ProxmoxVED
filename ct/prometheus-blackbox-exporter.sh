@@ -5,7 +5,6 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/prometheus/blackbox_exporter
 
-# App Default Values
 APP="Prometheus-Blackbox-Exporter"
 var_tags="${var_tags:-monitoring;prometheus}"
 var_cpu="${var_cpu:-1}"
@@ -15,26 +14,21 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
 
-# App output & base settings
 header_info "$APP"
 variables
 color
 catch_errors
 
-# Update function
 function update_script() {
-  # Function Header
   header_info
   check_container_storage
   check_container_resources
 
-  # Check if installation is present | -f for file, -d for folder
   if ! dpkg -s prometheus-blackbox-exporter &>/dev/null && [[ ! -f "/opt/${APP}_version.txt" ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  # Crawling the new version and checking whether an update is required
      msg_info "Updating ${APP} to v${candidate_ver}"
     $STD apt-get update
     $STD apt-get install -y --only-upgrade prometheus-blackbox-exporter
