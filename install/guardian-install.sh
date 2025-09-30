@@ -44,7 +44,7 @@ msg_ok "Built backend"
 msg_info "Building frontend"
 cd /opt/Guardian/frontend
 npm ci
-npm run build
+DEPLOYMENT_MODE=standalone npm run build
 msg_ok "Built frontend"
 
 msg_info "Creating Backend Service"
