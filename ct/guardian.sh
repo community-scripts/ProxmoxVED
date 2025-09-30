@@ -49,7 +49,9 @@ function update_script() {
     curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
     unzip -q "${RELEASE}.zip"
     rm -rf /opt/Guardian
-    mv "Guardian-${RELEASE}/" "/opt/Guardian"
+    # Strip 'v' prefix from RELEASE for folder name
+    FOLDER_NAME=$(echo "${RELEASE}" | sed 's/^v//')
+    mv "Guardian-${FOLDER_NAME}/" "/opt/Guardian"
 
     # Build Backend
     cd /opt/Guardian/backend

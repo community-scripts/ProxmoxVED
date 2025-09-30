@@ -30,7 +30,9 @@ msg_info "Setup Guardian"
 RELEASE=$(curl -fsSL https://api.github.com/repos/HydroshieldMKII/Guardian/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
 unzip -q "${RELEASE}.zip"
-mv "Guardian-${RELEASE}/" "/opt/Guardian"
+# Strip 'v' prefix from RELEASE for folder name
+FOLDER_NAME=$(echo "${RELEASE}" | sed 's/^v//')
+mv "Guardian-${FOLDER_NAME}/" "/opt/Guardian"
 echo "${RELEASE}" >/opt/Guardian_version.txt
 msg_ok "Setup Guardian"
 
