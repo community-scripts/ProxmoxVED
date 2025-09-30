@@ -37,7 +37,7 @@ cd /opt/Guardian
 
 # Download docker-compose.yml from repository
 RELEASE=$(curl -fsSL https://api.github.com/repos/HydroshieldMKII/Guardian/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL -o docker-compose.yml "https://raw.githubusercontent.com/HydroshieldMKII/Guardian/main/docker-compose.yml"
+curl -fsSL -o docker-compose.yml "https://raw.githubusercontent.com/HydroshieldMKII/Guardian/main/docker-compose.example.yml"
 
 # Create data directory for persistent storage
 mkdir -p data
