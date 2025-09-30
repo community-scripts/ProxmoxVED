@@ -43,7 +43,6 @@ EOF
 }
 header_info; echo -e "\n Loading..."
 
-# ---- Fehler-/Aufräum-Handling ------------------------------------------------
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap 'cleanup' EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
@@ -321,31 +320,59 @@ fi
 
 # ---- Storage Auswahl ---------------------------------------------------------
 msg_info "Validating Storage"
-STORAGE_MENU=(); MSG_MAX_LENGTH=0
+DISK_MENU=(); MSG_MAX_LENGTH=0
 while read -r line; do
   TAG=$(echo "$line" | awk '{print $1}')
   TYPE=$(echo "$line" | awk '{printf "%-10s", $2}')
-  FREE=$(echo "$line" | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
+  FREE=$(echo "$line" | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf("%9sB", $6)}')
   ITEM="  Type: $TYPE Free: $FREE "
   (( ${#ITEM} + 2 > MSG_MAX_LENGTH )) && MSG_MAX_LENGTH=${#ITEM}+2
-  STORAGE_MENU+=("$TAG" "$ITEM" "OFF")
+  DISK_MENU+=("$TAG" "$ITEM" "OFF")
 done < <(pvesm status -content images | awk 'NR>1')
 
 VALID=$(pvesm status -content images | awk 'NR>1')
 if [[ -z "$VALID" ]]; then
-  msg_error "No valid storage with content=images found."
+  msg_error "No storage with content=images available. You need at least one images-capable storage."
   exit 1
-elif (( ${#STORAGE_MENU[@]} / 3 == 1 )); then
-  STORAGE=${STORAGE_MENU[0]}
+elif (( ${#DISK_MENU[@]} / 3 == 1 )); then
+  STORAGE=${DISK_MENU[0]}
 else
   while [[ -z "${STORAGE:+x}" ]]; do
-    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
-      "Which storage pool for ${HN}?\n(Use Spacebar to select)" \
-      16 $((MSG_MAX_LENGTH + 23)) 6 "${STORAGE_MENU[@]}" 3>&1 1>&2 2>&3)
+    STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Disk Storage" --radiolist \
+      "Which storage pool should be used for the VM disk?\n(Use Spacebar to select)" \
+      16 $((MSG_MAX_LENGTH + 23)) 6 "${DISK_MENU[@]}" 3>&1 1>&2 2>&3)
   done
 fi
-msg_ok "Using ${BL}${STORAGE}${CL} for Storage"
-msg_ok "Virtual Machine ID is ${BL}${VMID}${CL}"
+msg_ok "Using ${BL}${STORAGE}${CL} for VM disk"
+
+if [[ "$PVE_MAJ" -eq 9 && "$INSTALL_MODE" = "cloudinit" ]]; then
+  msg_info "Validating Snippet Storage"
+  SNIP_MENU=(); MSG_MAX_LENGTH=0
+  while read -r line; do
+    TAG=$(echo "$line" | awk '{print $1}')
+    TYPE=$(echo "$line" | awk '{printf "%-10s", $2}')
+    FREE=$(echo "$line" | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf("%9sB", $6)}')
+    ITEM="  Type: $TYPE Free: $FREE "
+    (( ${#ITEM} + 2 > MSG_MAX_LENGTH )) && MSG_MAX_LENGTH=${#ITEM}+2
+    SNIP_MENU+=("$TAG" "$ITEM" "OFF")
+  done < <(pvesm status -content snippets | awk 'NR>1')
+
+  VALID=$(pvesm status -content snippets | awk 'NR>1')
+  if [[ -z "$VALID" ]]; then
+    msg_error "No storage with content=snippets available. Please enable 'Snippets' on at least one directory storage (e.g. local)."
+    exit 1
+  elif (( ${#SNIP_MENU[@]} / 3 == 1 )); then
+    SNIPPET_STORE=${SNIP_MENU[0]}
+  else
+    while [[ -z "${SNIPPET_STORE:+x}" ]]; do
+      SNIPPET_STORE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Snippet Storage" --radiolist \
+        "Which storage should be used for the Cloud-Init snippet?\n(Use Spacebar to select)" \
+        16 $((MSG_MAX_LENGTH + 23)) 6 "${SNIP_MENU[@]}" 3>&1 1>&2 2>&3)
+    done
+  fi
+  msg_ok "Using ${BL}${SNIPPET_STORE}${CL} for Cloud-Init snippets"
+fi
+
 
 # ---- Cloud Image Download ----------------------------------------------------
 choose_os
