@@ -426,6 +426,8 @@ configure_authentication() {
 # ---- Cloud Image Download ----------------------------------------------------
 choose_os
 msg_info "Retrieving Cloud Image for $var_os $var_version"
+echo -e ""
+echo -e ""
 curl --retry 30 --retry-delay 3 --retry-connrefused -fSL -o "$(basename "$URL")" "$URL"
 FILE="$(basename "$URL")"
 msg_ok "Downloaded ${BL}${FILE}${CL}"
