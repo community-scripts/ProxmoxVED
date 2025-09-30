@@ -50,17 +50,17 @@ function update_script() {
     unzip -q "${RELEASE}.zip"
     rm -rf /opt/Guardian
     mv "Guardian-${RELEASE}/" "/opt/Guardian"
-    
+
     # Build Backend
     cd /opt/Guardian/backend
     npm ci
     npm run build
-    
+
     # Build Frontend
     cd /opt/Guardian/frontend
     npm ci
     npm run build
-    
+
     echo "${RELEASE}" >/opt/${APP}_version.txt
     msg_ok "Updated $APP to v${RELEASE}"
 
