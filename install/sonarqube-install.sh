@@ -12,11 +12,7 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies (Patience)"
-$STD apt-get install -y openjdk-17-jdk curl unzip
-msg_ok "Installed Dependencies"
-
-RELEASE=$(curl -s https://api.github.com/repos/SonarSource/sonarqube/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+JAVA_VERSION=21 setup_java
 PG_VERSION="17" setup_postgresql
 
 msg_info "Installing Postgresql"
