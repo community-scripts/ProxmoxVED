@@ -45,7 +45,7 @@ function update_script() {
     fi
 
 
-    msg_info "Updating $APP to v${RELEASE}"
+    msg_info "Updating $APP to ${RELEASE}"
     cd /tmp
 
     curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
