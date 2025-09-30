@@ -14,6 +14,7 @@ update_os
 
 JAVA_VERSION=21 setup_java
 PG_VERSION="17" setup_postgresql
+fetch_and_deploy_gh_release "sonarqube" "SonarSource/sonarqube" "tarball"
 
 msg_info "Installing Postgresql"
 DB_NAME="sonarqube"
