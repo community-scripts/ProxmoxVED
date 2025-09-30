@@ -459,27 +459,15 @@ packages:
   - curl
   - gnupg
   - qemu-guest-agent
-  - cloud-guest-utils   # growpart/resizefs
-  - cloud-init
-
-write_files:
-  - path: /etc/apt/keyrings/docker.gpg
-    permissions: '0644'
-    encoding: b64
-    content: ${DOCKER_GPG_B64}
+  - cloud-guest-utils
 
 runcmd:
-  - sed -i 's#^ENV_SUPATH.*#ENV_SUPATH  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true
-  - sed -i 's#^ENV_PATH.*#ENV_PATH    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin#' /etc/login.defs || true
-  - printf 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n' > /etc/environment
-  - "grep -q 'export PATH=' /root/.bashrc || echo 'export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' >> /root/.bashrc"
-
   - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL ${DOCKER_BASE}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
   - echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] ${DOCKER_BASE} ${REPO_CODENAME} stable" > /etc/apt/sources.list.d/docker.list
-
   - apt-get update -qq
   - apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-
   - systemctl enable --now qemu-guest-agent
   - systemctl enable --now docker
 
