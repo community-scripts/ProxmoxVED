@@ -23,18 +23,25 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-
-  if ! dpkg -s prometheus-blackbox-exporter &>/dev/null && [[ ! -f "/opt/${APP}_version.txt" ]]; then
+  if [[ ! -d /opt/blackbox-exporter ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-     msg_info "Updating ${APP} to v${candidate_ver}"
-    $STD apt-get update
-    $STD apt-get install -y --only-upgrade prometheus-blackbox-exporter
-    $STD systemctl restart prometheus-blackbox-exporter
+  if check_for_gh_release "blackbox-exporter" "prometheus/blackbox_exporter"; then
+    msg_info "Stopping $APP"
+    systemctl stop blackbox-exporter
+    msg_ok "Stopped $APP"
+
+    fetch_and_deploy_gh_release "blackbox-exporter" "prometheus/blackbox_exporter" "prebuild" "latest" "/opt/blackbox-exporter" "blackbox_exporter-*.linux-amd64.tar.gz"
     
-    msg_ok "Updated ${APP} to v${candidate_ver}"
+    msg_info "Starting $APP"
+    systemctl start blackbox-exporter
+    msg_ok "Started $APP"
+    msg_ok "Update Successful"
+  fi
+    
+  msg_ok "Updated ${APP} to v${candidate_ver}"
   exit
 }
 
