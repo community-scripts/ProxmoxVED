@@ -33,15 +33,22 @@ function update_script() {
     systemctl stop blackbox-exporter
     msg_ok "Stopped $APP"
 
+    msg_info "Creating backup"
+    mv /opt/blackbox-exporter/blackbox.yml /opt
+    msg_ok "Backup created"
+
     fetch_and_deploy_gh_release "blackbox-exporter" "prometheus/blackbox_exporter" "prebuild" "latest" "/opt/blackbox-exporter" "blackbox_exporter-*.linux-amd64.tar.gz"
+
+    msg_info "Restoring backup"
+    cp -r /opt/blackbox.yml /opt/blackbox-exporter
+    rm -f /opt/blackbox.yml
+    msg_ok "Backup restored"
     
     msg_info "Starting $APP"
     systemctl start blackbox-exporter
     msg_ok "Started $APP"
     msg_ok "Update Successful"
   fi
-    
-  msg_ok "Updated ${APP} to v${candidate_ver}"
   exit
 }
 
