@@ -1,6 +1,27 @@
 #!/bin/bash
 
 # ------------------------------------------------------------------------------
+# Installs Microsoft .NET
+#
+# Description:
+#   - Installs specified .NET version using Microsoft APT repo
+#
+# Variables:
+#   NET_VERSION   - .NET version to install (default: "8.0")
+# ------------------------------------------------------------------------------
+
+function setup_dotnet() {
+  local NET_VERSION="${NET_VERSION:-8.0}"
+
+  msg_info "Setup .NET $NET_VERSION"
+  curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+  curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list -o /etc/apt/sources.list.d/msprod.list
+  $STD apt-get update
+  $STD apt-get install -y dotnet-sdk-$NET_VERSION
+  msg_ok "Setup .NET ${NET_VERSION}"
+}
+
+# ------------------------------------------------------------------------------
 # Installs Node.js and optional global modules.
 #
 # Description:
