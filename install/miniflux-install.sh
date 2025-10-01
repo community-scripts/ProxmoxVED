@@ -20,7 +20,9 @@ DB_USER=miniflux
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER;"
-$STD sudo -u postgres psql -c "CREATE EXTENSION hstore;"
+$STD sudo -u postgres psql -d "$DB_NAME" -c "CREATE EXTENSION hstore;"
+$STD echo "localhost:5432:$DB_NAME:$DB_USER:$DB_PASSWORD" | sudo tee ~/.pgpass >/dev/null
+$STD chmod 0600 ~/.pgpass
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing Miniflux"
