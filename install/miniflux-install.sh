@@ -24,7 +24,7 @@ $STD sudo -u postgres psql -c "CREATE EXTENSION hstore;"
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing Miniflux"
-$STD echo "deb https://repo.miniflux.app/apt/ * *" | sudo tee /etc/apt/sources.list.d/miniflux.list >/dev/null
+$STD echo "deb [trusted=yes] https://repo.miniflux.app/apt/ * *" | sudo tee /etc/apt/sources.list.d/miniflux.list >/dev/null
 $STD apt update
 $STD apt install miniflux
 msg_ok "Installed Miniflux"
