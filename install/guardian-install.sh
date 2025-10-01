@@ -24,13 +24,13 @@ fetch_and_deploy_gh_release "guardian" "HydroshieldMKII/Guardian" "tarball" "lat
 
 
 msg_info "Building backend"
-cd /opt/Guardian/backend
+cd /opt/guardian/backend
 $STD npm ci
 $STD npm run build
 msg_ok "Built backend"
 
 msg_info "Building frontend"
-cd /opt/Guardian/frontend
+cd /opt/guardian/frontend
 $STD npm ci
 $STD DEPLOYMENT_MODE=standalone npm run build
 msg_ok "Built frontend"
@@ -41,7 +41,7 @@ cat <<EOF >/etc/systemd/system/guardian-backend.service
 Description=Guardian Backend
 After=network.target
 [Service]
-WorkingDirectory=/opt/Guardian/backend
+WorkingDirectory=/opt/guardian/backend
 ExecStart=/usr/bin/node dist/main.js
 Restart=always
 RestartSec=3
@@ -55,7 +55,7 @@ Description=Guardian Frontend
 After=guardian-backend.service network.target
 Wants=guardian-backend.service
 [Service]
-WorkingDirectory=/opt/Guardian/frontend
+WorkingDirectory=/opt/guardian/frontend
 Environment=DEPLOYMENT_MODE=standalone
 ExecStart=/usr/bin/npm run start
 Restart=always

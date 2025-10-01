@@ -35,9 +35,9 @@ if check_for_gh_release "guardian" "HydroshieldMKII/Guardian" ; then
     msg_ok "Stopped Services"
 
 
-    if [[ -f "/opt/Guardian/backend/plex-guard.db" ]] ; then
+    if [[ -f "/opt/guardian/backend/plex-guard.db" ]] ; then
         msg_info "Saving Database"
-        cp "/opt/Guardian/backend/plex-guard.db" "/tmp/plex-guard.db.backup"
+        cp "/opt/guardian/backend/plex-guard.db" "/tmp/plex-guard.db.backup"
         msg_ok "Database backed up"
     fi
 
@@ -47,19 +47,19 @@ if check_for_gh_release "guardian" "HydroshieldMKII/Guardian" ; then
 
     if [[ -f "/tmp/plex-guard.db.backup" ]] ; then
         msg_info "Restoring Database"
-        cp "/tmp/plex-guard.db.backup" "/opt/Guardian/backend/plex-guard.db"
+        cp "/tmp/plex-guard.db.backup" "/opt/guardian/backend/plex-guard.db"
         rm "/tmp/plex-guard.db.backup"
         msg_ok "Database restored"
     fi
 
     msg_info "Updating Guardian"
-    cd /opt/Guardian/backend
+    cd /opt/guardian/backend
     $STD npm ci
     $STD npm run build
 
-    cd /opt/Guardian/frontend
+    cd /opt/guardian/frontend
     $STD npm ci
-    $STD DEPLOYMENT_MODE = standalone npm run build
+    $STD DEPLOYMENT_MODE=standalone npm run build
 
     msg_ok "Updated Guardian"
 
