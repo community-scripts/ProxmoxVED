@@ -14,31 +14,28 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
-  sqlite3
-NODE_VERSION="24" setup_nodejs
+$STD apt install -y sqlite3
 msg_ok "Installed Dependencies"
 
-msg_info "Setup Guardian"
+NODE_VERSION="24" setup_nodejs
 fetch_and_deploy_gh_release "guardian" "HydroshieldMKII/Guardian" "tarball" "latest" "/opt/guardian"
 
-
-msg_info "Building App"
+msg_info "Configuring ${APPLICATION}"
 cd /opt/guardian/backend
 $STD npm ci
 $STD npm run build
-
 cd /opt/guardian/frontend
 $STD npm ci
 export DEPLOYMENT_MODE=standalone
 $STD npm run build
-msg_ok "Built App"
+msg_ok "Configured {APPLICATION}"
 
-msg_info "Creating Services"
+msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/guardian-backend.service
 [Unit]
 Description=Guardian Backend
 After=network.target
+
 [Service]
 WorkingDirectory=/opt/guardian/backend
 ExecStart=/usr/bin/node dist/main.js
@@ -53,6 +50,7 @@ cat <<EOF >/etc/systemd/system/guardian-frontend.service
 Description=Guardian Frontend
 After=guardian-backend.service network.target
 Wants=guardian-backend.service
+
 [Service]
 WorkingDirectory=/opt/guardian/frontend
 Environment=DEPLOYMENT_MODE=standalone
@@ -65,9 +63,10 @@ EOF
 
 systemctl enable -q --now guardian-backend
 systemctl enable -q --now guardian-frontend
-msg_ok "Created Services"
+msg_ok "Created Service"
 
 motd_ssh
+customize
 
 apt -y autoremove
 apt -y autoclean
