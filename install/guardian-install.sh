@@ -28,7 +28,7 @@ cd /opt/guardian/frontend
 $STD npm ci
 export DEPLOYMENT_MODE=standalone
 $STD npm run build
-msg_ok "Configured {APPLICATION}"
+msg_ok "Configured ${APPLICATION}"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/guardian-backend.service
