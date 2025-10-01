@@ -25,48 +25,46 @@ check_container_storage
 check_container_resources
 
 if [[ ! -d "/opt/guardian" ]] ; then
-    msg_error "No ${APP} Installation Found!"
-    exit
+  msg_error "No ${APP} Installation Found!"
+  exit
 fi
 
 if check_for_gh_release "guardian" "HydroshieldMKII/Guardian" ; then
-    msg_info "Stopping Services"
-    systemctl stop guardian-backend guardian-frontend
-    msg_ok "Stopped Services"
+  msg_info "Stopping Services"
+  systemctl stop guardian-backend guardian-frontend
+  msg_ok "Stopped Services"
 
+  if [[ -f "/opt/guardian/backend/plex-guard.db" ]] ; then
+    msg_info "Saving Database"
+    cp "/opt/guardian/backend/plex-guard.db" "/tmp/plex-guard.db.backup"
+    msg_ok "Database backed up"
+  fi
 
-    if [[ -f "/opt/guardian/backend/plex-guard.db" ]] ; then
-        msg_info "Saving Database"
-        cp "/opt/guardian/backend/plex-guard.db" "/tmp/plex-guard.db.backup"
-        msg_ok "Database backed up"
-    fi
+  cp /opt/guardian/.env /opt
+  CLEAN_INSTALL=1 fetch_and_deploy_gh_release "guardian" "HydroshieldMKII/Guardian" "tarball" "latest" "/opt/guardian"
+  mv /opt/.env /opt/guardian
 
-    cp /opt/guardian/.env /opt
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "guardian" "HydroshieldMKII/Guardian" "tarball" "latest" "/opt/guardian"
-    mv /opt/.env /opt/guardian
+  if [[ -f "/tmp/plex-guard.db.backup" ]] ; then
+    msg_info "Restoring Database"
+    cp "/tmp/plex-guard.db.backup" "/opt/guardian/backend/plex-guard.db"
+    rm "/tmp/plex-guard.db.backup"
+    msg_ok "Database restored"
+  fi
 
-    if [[ -f "/tmp/plex-guard.db.backup" ]] ; then
-        msg_info "Restoring Database"
-        cp "/tmp/plex-guard.db.backup" "/opt/guardian/backend/plex-guard.db"
-        rm "/tmp/plex-guard.db.backup"
-        msg_ok "Database restored"
-    fi
+  msg_info "Updating Guardian"
+  cd /opt/guardian/backend
+  $STD npm ci
+  $STD npm run build
 
-    msg_info "Updating Guardian"
-    cd /opt/guardian/backend
-    $STD npm ci
-    $STD npm run build
+  cd /opt/guardian/frontend
+  $STD npm ci
+  $STD DEPLOYMENT_MODE=standalone npm run build
+  msg_ok "Updated Guardian"
 
-    cd /opt/guardian/frontend
-    $STD npm ci
-    $STD DEPLOYMENT_MODE=standalone npm run build
-
-    msg_ok "Updated Guardian"
-
-    msg_info "Starting Services"
-    systemctl start guardian-backend guardian-frontend
-    msg_ok "Started Services"
-    msg_ok "Updated Successfully"
+  msg_info "Starting Services"
+  systemctl start guardian-backend guardian-frontend
+  msg_ok "Started Services"
+  msg_ok "Updated Successfully"
 fi
 exit
 }
