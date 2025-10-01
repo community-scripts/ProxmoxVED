@@ -23,18 +23,16 @@ msg_info "Setup Guardian"
 fetch_and_deploy_gh_release "guardian" "HydroshieldMKII/Guardian" "tarball" "latest" "/opt/guardian"
 
 
-msg_info "Building backend"
+msg_info "Building App"
 cd /opt/guardian/backend
 $STD npm ci
 $STD npm run build
-msg_ok "Built backend"
 
-msg_info "Building frontend"
 cd /opt/guardian/frontend
 $STD npm ci
 export DEPLOYMENT_MODE=standalone
 $STD npm run build
-msg_ok "Built frontend"
+msg_ok "Built App"
 
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/guardian-backend.service
