@@ -1,13 +1,15 @@
 {
   "name": "Guardian",
   "slug": "guardian",
-  "categories": [13],
+  "categories": [
+    13
+  ],
   "date_created": "2025-09-22",
   "type": "ct",
   "updateable": true,
   "privileged": false,
   "interface_port": 3000,
-  "documentation": null,
+  "documentation": "https://github.com/HydroshieldMKII/Guardian/blob/main/README.md",
   "config_path": "/opt/guardian/.env",
   "website": "https://github.com/HydroshieldMKII/Guardian",
   "logo": null,
