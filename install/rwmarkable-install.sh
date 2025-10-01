@@ -16,15 +16,13 @@ update_os
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 fetch_and_deploy_gh_release "rwMarkable" "fccview/rwMarkable" "tarball" "latest" "/opt/rwmarkable"
 
-msg_info "Building app"
+msg_info "Installing ${APPLICATION}"
 cd /opt/rwmarkable
 $STD yarn --frozen-lockfile
 $STD yarn next telemetry disable
 $STD yarn build
 mkdir -p data/{users,checklists,notes}
-msg_ok "Successfully built app"
 
-msg_info "Creating .env file"
 cat <<EOF >/opt/rwmarkable/.env
 NODE_ENV=production
 # HTTPS=true
@@ -38,9 +36,9 @@ NODE_ENV=production
 # OIDC_CLIENT_SECRET=your_client_secret  # Enable confidential client mode with client authentication
 # OIDC_ADMIN_GROUPS=admins # Map provider groups to admin role
 EOF
-msg_ok "Created .env file"
+msg_ok "Installed ${APPLICATION}"
 
-msg_info "Creating rwMarkable Service"
+msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/rwmarkable.service
 [Unit]
 Description=rwMarkable server
@@ -56,7 +54,8 @@ Restart=on-abnormal
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now rwmarkable
-msg_ok "Created rwMarkable Service"
+msg_ok "Created Service"
+
 motd_ssh
 customize
 
