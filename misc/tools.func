@@ -12,18 +12,30 @@
 
 function setup_dotnet() {
   local NET_VERSION="${NET_VERSION:-8.0}"
-  DISTRO_CODENAME=$(awk -F= '/^VERSION_CODENAME=/{ print $2 }' /etc/os-release)
+  local DISTRO_CODENAME=$(awk -F= '/^VERSION_CODENAME=/{ print $2 }' /etc/os-release)
+  local NEED_NET_INSTALL=false
 
-  msg_info "Setup .NET $NET_VERSION"
-  curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
-  if [[ "$DISTRO_CODENAME" != "trixie" ]]; then
-    curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list -o /etc/apt/sources.list.d/msprod.list
+  if command -v dotnet >/dev/null; then
+    CURRENT_NET_VERSION=$(dotnet --version | awk -F. '{print $1 "." $2}')
+    if [[ "$CURRENT_NET_VERSION" == "$NET_VERSION" ]]; then
+      :
+    fi
   else
-    curl -fsSL https://packages.microsoft.com/config/debian/13/prod.list -o /etc/apt/sources.list.d/msprod.list
+    msg_info "Setup .NET $NET_VERSION"
+    NEED_NET_INSTALL=true
   fi
-  $STD apt-get update
-  $STD apt-get install -y dotnet-sdk-$NET_VERSION
-  msg_ok "Setup .NET ${NET_VERSION}"
+
+  if [[ "$NEED_NET_INSTALL" == true ]]; then
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+    if [[ "$DISTRO_CODENAME" != "trixie" ]]; then
+      curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list -o /etc/apt/sources.list.d/msprod.list
+    else
+      curl -fsSL https://packages.microsoft.com/config/debian/13/prod.list -o /etc/apt/sources.list.d/msprod.list
+    fi
+    $STD apt-get update
+    $STD apt-get install -y dotnet-sdk-$NET_VERSION
+    msg_ok "Setup .NET ${NET_VERSION}"
+  fi
 }
 
 # ------------------------------------------------------------------------------
