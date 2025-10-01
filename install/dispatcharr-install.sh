@@ -13,13 +13,8 @@ setting_up_container
 network_check
 update_os
 
-# msg_info "Creating ${APP_USER} user"
-# groupadd -f $APP_GROUP
-# useradd -M -s /usr/sbin/nologin -g $APP_GROUP $APP_USER || true
-# msg_ok "Created ${APP_USER} user"
-
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
     build-essential \
     gcc \
     libpcre3-dev \
@@ -34,7 +29,6 @@ msg_ok "Installed Dependencies"
 PYTHON_VERSION="3.13" setup_uv
 NODE_VERSION="22" setup_nodejs
 PG_VERSION="16" setup_postgresql
-fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
 
 msg_info "Set up PostgreSQL Database"
 DB_NAME=dispatcharr_db
@@ -54,9 +48,9 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/dispatcharr.creds
 msg_ok "Set up PostgreSQL Database"
 
+fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
+
 msg_info "Setup Python (uv) requirements (system)"
-UV_PY="${PYTHON_VERSION:-3.13}"
-$STD uv python install "$UV_PY"
 cd /opt/dispatcharr
 PYPI_URL="https://pypi.org/simple"
 mapfile -t EXTRA_INDEX_URLS < <(grep -E '^(--(extra-)?index-url|-i)\s' requirements.txt 2>/dev/null | awk '{print $2}' | sed 's#/*$##')
