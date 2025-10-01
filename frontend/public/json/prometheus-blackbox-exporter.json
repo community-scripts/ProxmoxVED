@@ -13,7 +13,7 @@
   "documentation": "https://github.com/prometheus/blackbox_exporter",
   "website": "https://github.com/prometheus/blackbox_exporter",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/prometheus.webp",
-  "config_path": "/opt/prometheus-pve-exporter/pve.yml",
+  "config_path": "/opt/blackbox-exporter/blackbox.yml",
   "description": "An exporter allows blackbox probing of endpoints over HTTP, HTTPS, DNS, TCP, ICMP and gRPC for use by the Prometheus monitoring system.",
   "install_methods": [
     {
@@ -24,7 +24,7 @@
         "ram": 512,
         "hdd": 4,
         "os": "debian",
-        "version": "12"
+        "version": "13"
       }
     }
   ],
