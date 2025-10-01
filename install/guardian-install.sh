@@ -14,86 +14,63 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  git \
-  sqlite3 \
-  unzip \
-  curl \
-  ca-certificates \
-  gnupg
-
-curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
-$STD apt-get install -y nodejs
-
+$STD apt install -y \
+  sqlite3
+NODE_VERSION="24" setup_nodejs
 msg_ok "Installed Dependencies"
 
 msg_info "Setup Guardian"
-RELEASE=$(curl -fsSL https://api.github.com/repos/HydroshieldMKII/Guardian/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-curl -fsSL -o "${RELEASE}.zip" "https://github.com/HydroshieldMKII/Guardian/archive/refs/tags/${RELEASE}.zip"
-unzip -q "${RELEASE}.zip"
-
-FOLDER_NAME=$(echo "${RELEASE}" | sed 's/^v//')
-mv "Guardian-${FOLDER_NAME}/" "/opt/Guardian"
-
-echo "${RELEASE}" >/opt/Guardian_version.txt
-msg_ok "Setup Guardian"
+fetch_and_deploy_gh_release "guardian" "HydroshieldMKII/Guardian" "tarball" "latest" "/opt/guardian"
 
 
 msg_info "Building backend"
 cd /opt/Guardian/backend
-npm ci
-npm run build
+$STD npm ci
+$STD npm run build
 msg_ok "Built backend"
 
 msg_info "Building frontend"
 cd /opt/Guardian/frontend
-npm ci
-DEPLOYMENT_MODE=standalone npm run build
+$STD npm ci
+$STD DEPLOYMENT_MODE=standalone npm run build
 msg_ok "Built frontend"
 
-msg_info "Creating Backend Service"
+msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/guardian-backend.service
 [Unit]
 Description=Guardian Backend
 After=network.target
-
 [Service]
 WorkingDirectory=/opt/Guardian/backend
 ExecStart=/usr/bin/node dist/main.js
 Restart=always
 RestartSec=3
-
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now guardian-backend
-msg_ok "Created Backend Service"
 
-msg_info "Creating Frontend Service"
 cat <<EOF >/etc/systemd/system/guardian-frontend.service
 [Unit]
 Description=Guardian Frontend
 After=guardian-backend.service network.target
 Wants=guardian-backend.service
-
 [Service]
 WorkingDirectory=/opt/Guardian/frontend
 Environment=DEPLOYMENT_MODE=standalone
 ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=3
-
 [Install]
 WantedBy=multi-user.target
 EOF
+
+systemctl enable -q --now guardian-backend
 systemctl enable -q --now guardian-frontend
-msg_ok "Created Frontend Service"
+msg_ok "Created Services"
 
 motd_ssh
-customize
 
-msg_info "Cleaning up"
-rm -f "${RELEASE}".zip
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+apt -y autoremove
+apt -y autoclean
+apt -y clean
 msg_ok "Cleaned"

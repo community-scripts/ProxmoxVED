@@ -8,10 +8,10 @@
   "privileged": false,
   "interface_port": 3000,
   "documentation": null,
-  "config_path": "",
+  "config_path": "/opt/guardian/.env",
   "website": "https://github.com/HydroshieldMKII/Guardian",
   "logo": null,
-  "description": "A tool to manage devices access to your Plex server with a nice Dashboard ",
+  "description": "Guardian is a lightweight companion app for Plex that lets you monitor, approve or block devices in real time. It helps you enforce per-user or global policies, stop unwanted sessions automatically and grant temporary access - all through a simple web interface.",
   "install_methods": [
     {
       "type": "default",
@@ -21,7 +21,7 @@
         "ram": 2048,
         "hdd": 6,
         "os": "Debian",
-        "version": "12"
+        "version": "13"
       }
     }
   ],
