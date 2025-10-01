@@ -32,7 +32,8 @@ msg_ok "Built backend"
 msg_info "Building frontend"
 cd /opt/guardian/frontend
 $STD npm ci
-$STD DEPLOYMENT_MODE=standalone npm run build
+export DEPLOYMENT_MODE=standalone
+$STD npm run build
 msg_ok "Built frontend"
 
 msg_info "Creating Services"
