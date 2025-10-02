@@ -97,7 +97,7 @@ fi
     msg_ok "Installed Bun"
 
     rm -rf /opt/gitea-mirror
-    fetch_and_deploy_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror" "tarball" "3.8.1"
+    fetch_and_deploy_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror" "tarball" "v3.8.1"
 
     msg_info "Updating and rebuilding ${APP}"
     cd /opt/gitea-mirror
