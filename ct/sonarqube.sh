@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL  https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: prop4n
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -20,40 +20,45 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -d /opt/sonarqube ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-
-		if check_for_gh_release "sonarqube" "SonarSource/sonarqube"; then
-      msg_info "Stopping service"
-      systemctl stop sonarqube
-      msg_ok "Service stopped"
-
-			msg_info "Creating backup"
-      BACKUP_DIR="/opt/sonarqube-backup"
-      mv /opt/sonarqube ${BACKUP_DIR}
-      msg_ok "Backup created"
-
-			fetch_and_deploy_gh_release "sonarqube" "SonarSource/sonarqube" "tarball"
-
-			msg_info "Restoring backup"
-      cp -rp ${BACKUP_DIR}/data/ /opt/sonarqube/data/
-      cp -rp ${BACKUP_DIR}/extensions/ /opt/sonarqube/extensions/
-      cp -p ${BACKUP_DIR}/conf/sonar.properties /opt/sonarqube/conf/sonar.properties
-      rm -rf ${BACKUP_DIR}
-      chown -R sonarqube:sonarqube /opt/sonarqube
-      msg_ok "Backup restored"
-      
-      msg_info "Starting service"
-      systemctl start sonarqube
-      msg_ok "Service started"
-      msg_ok "Updated Successfully"
-    fi
+  header_info
+  check_container_storage
+  check_container_resources
+  if [[ ! -d /opt/sonarqube ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  if check_for_gh_release "sonarqube" "SonarSource/sonarqube"; then
+    msg_info "Stopping service"
+    systemctl stop sonarqube
+    msg_ok "Service stopped"
+
+    msg_info "Creating backup"
+    BACKUP_DIR="/opt/sonarqube-backup"
+    mv /opt/sonarqube ${BACKUP_DIR}
+    msg_ok "Backup created"
+
+    msg_info "Installing sonarqube"
+    RELEASE=$(curl -fsSL https://api.github.com/repos/SonarSource/sonarqube/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
+    curl -fsSL "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-${RELEASE}.zip" -o $temp_file
+    unzip -q "$temp_file" -d /opt
+    mv /opt/sonarqube-* /opt/sonarqube
+    msg_ok "Installed sonarqube"
+
+    msg_info "Restoring backup"
+    cp -rp ${BACKUP_DIR}/data/ /opt/sonarqube/data/
+    cp -rp ${BACKUP_DIR}/extensions/ /opt/sonarqube/extensions/
+    cp -p ${BACKUP_DIR}/conf/sonar.properties /opt/sonarqube/conf/sonar.properties
+    rm -rf ${BACKUP_DIR}
+    chown -R sonarqube:sonarqube /opt/sonarqube
+    msg_ok "Backup restored"
+
+    msg_info "Starting service"
+    systemctl start sonarqube
+    msg_ok "Service started"
+    msg_ok "Updated Successfully"
+  fi
+  exit
 }
 
 start
