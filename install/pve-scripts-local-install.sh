@@ -4,7 +4,6 @@
 # Author: michelroegl-brunner
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -14,20 +13,18 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-  $STD apt-get update
-  $STD apt-get install -y \
-    build-essential \
-    sshpass \
-    expect
+$STD apt-get update
+$STD apt-get install -y \
+  build-essential \
+  sshpass \
+  expect
 msg_ok "Dependencies installed."
 
 NODE_VERSION=22 setup_nodejs
-
 fetch_and_deploy_gh_release "ProxmoxVE-Local" "community-scripts/ProxmoxVE-Local"
 
-cd /opt/ProxmoxVE-Local
-
 msg_info "Installing PVE Scripts local"
+cd /opt/ProxmoxVE-Local
 $STD npm install
 cp .env.example .env
 mkdir -p data
@@ -36,7 +33,7 @@ $STD npm run build
 msg_ok "Installed PVE Scripts local"
 
 msg_info "Creating Service"
-cat > "etc/systemd/system/pvescriptslocal.service" <<EOF
+cat <<EOF >/etc/systemd/system/pvescriptslocal.service
 [Unit]
 Description=PVEScriptslocal Service
 After=network.target
@@ -54,7 +51,6 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable -q --now pvescriptslocal
-
 msg_ok "Created Service"
 
 motd_ssh
@@ -65,4 +61,3 @@ $STD apt -y autoremove
 $STD apt -y autoclean
 $STD apt -y clean
 msg_ok "Cleaned"
-
