@@ -36,7 +36,7 @@ else
     msg_ok "Repository updated."
 fi
 
-cd "$INSTALL_DIR" || exit
+cd "$INSTALL_DIR"
 
 msg_info "Installing PVE Scripts local"
 $STD npm install
