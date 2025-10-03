@@ -56,7 +56,7 @@ msg_ok "Installed ${APPLICATION}"
 
 msg_info "Configuring ${APPLICATION}"
 curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
-curl -fsSL https://github.com/opencloud-eu/opencloud/raw/refs/heads/main/deployments/examples/opencloud_full/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
+curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
 
 cat <<EOF >"$ENV_FILE"
 OC_URL=https://${OC_HOST}
