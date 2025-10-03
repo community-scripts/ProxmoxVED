@@ -25,6 +25,8 @@ NODE_VERSION=22 setup_nodejs
 
 fetch_and_deploy_gh_release "ProxmoxVE-Local" "community-scripts/ProxmoxVE-Local"
 
+cd /opt/ProxmoxVE-Local
+
 msg_info "Installing PVE Scripts local"
 $STD npm install
 cp .env.example .env
