@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: michelroegl-brunner 
+# Author: michelroegl-brunner
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 
@@ -22,7 +22,7 @@ msg_info "Installing Dependencies"
     expect
 msg_ok "Dependencies installed."
 
-NODE_VERSION=24 setup_nodejs
+NODE_VERSION=22 setup_nodejs
 
 INSTALL_DIR=${INSTALL_DIR:-/opt/PVESciptslocal}
 
@@ -36,7 +36,7 @@ else
     msg_ok "Repository updated."
 fi
 
-cd "$INSTALL_DIR" || exit 
+cd "$INSTALL_DIR" || exit
 
 msg_info "Installing PVE Scripts local"
 $STD npm install
