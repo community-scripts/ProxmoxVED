@@ -44,8 +44,8 @@ msg_ok "Set up database"
 msg_info "Installing GLPi"
 cd /opt
 RELEASE=$(curl -fsSL https://api.github.com/repos/glpi-project/glpi/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
-curl -fsSL "https://github.com/glpi-project/glpi/releases/download/${RELEASE}/glpi-${RELEASE}.tgz" -o "glpi-${RELEASE}.tgz"
-$STD tar -xzvf glpi-${RELEASE}.tgz
+curl -fsSL "https://github.com/glpi-project/glpi/releases/download/10.0.20/glpi-10.0.20.tgz" -o "glpi-10.0.20.tgz"
+$STD tar -xzvf glpi-10.0.20.tgz
 cd /opt/glpi
 $STD php bin/console db:install --db-name=$DB_NAME --db-user=$DB_USER --db-password=$DB_PASS --no-interaction --allow-superuser
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
@@ -81,6 +81,7 @@ define('GLPI_TMP_DIR', GLPI_VAR_DIR . '/_tmp');
 define('GLPI_UPLOAD_DIR', GLPI_VAR_DIR . '/_uploads');
 define('GLPI_CACHE_DIR', GLPI_VAR_DIR . '/_cache');
 define('GLPI_LOG_DIR', '/var/log/glpi');
+define('GLPI_THEMES_DIR',GLPI_VAR_DIR . '/_themes');
 EOF
 msg_ok "Configured Downstream file"
 
