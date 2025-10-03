@@ -47,7 +47,7 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/glpi-project/glpi/releases/lat
 curl -fsSL "https://github.com/glpi-project/glpi/releases/download/${RELEASE}/glpi-${RELEASE}.tgz" -o "glpi-${RELEASE}.tgz"
 $STD tar -xzvf glpi-${RELEASE}.tgz
 cd /opt/glpi
-$STD php bin/console db:install --db-name=$DB_NAME --db-user=$DB_USER --db-password=$DB_PASS --no-interaction
+$STD php bin/console db:install --db-name=$DB_NAME --db-user=$DB_USER --db-password=$DB_PASS --no-interaction --allow-superuser
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Installed GLPi"
 
@@ -71,6 +71,7 @@ define('GLPI_DOC_DIR', GLPI_VAR_DIR);
 define('GLPI_CRON_DIR', GLPI_VAR_DIR . '/_cron');
 define('GLPI_DUMP_DIR', GLPI_VAR_DIR . '/_dumps');
 define('GLPI_GRAPH_DIR', GLPI_VAR_DIR . '/_graphs');
+define('GLPI_LOCAL_I18N_DIR', GLPI_VAR_DIR . '/_locales');
 define('GLPI_LOCK_DIR', GLPI_VAR_DIR . '/_lock');
 define('GLPI_PICTURE_DIR', GLPI_VAR_DIR . '/_pictures');
 define('GLPI_PLUGIN_DOC_DIR', GLPI_VAR_DIR . '/_plugins');
