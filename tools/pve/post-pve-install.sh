@@ -197,7 +197,7 @@ start_routines_9() {
 
       # Check sources.list
       if [[ -f "$listfile" ]] && grep -qE '^\s*deb ' "$listfile"; then
-        ((LEGACY_COUNT++))
+        ((++ LEGACY_COUNT ))
       fi
 
       # Check .list files
