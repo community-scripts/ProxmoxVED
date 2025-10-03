@@ -17,26 +17,13 @@ msg_info "Installing Dependencies"
   $STD apt-get update
   $STD apt-get install -y \
     build-essential \
-    git \
     sshpass \
     expect
 msg_ok "Dependencies installed."
 
 NODE_VERSION=22 setup_nodejs
 
-INSTALL_DIR=${INSTALL_DIR:-/opt/PVESciptslocal}
-
-if [ ! -d "$INSTALL_DIR/.git" ]; then
-    msg_info "Cloning repository into $INSTALL_DIR..."
-    $STD git clone https://github.com/michelroegl-brunner/PVESciptslocal.git "$INSTALL_DIR"
-    msg_ok "Repository cloned."
-else
-    msg_info "Directory already exists. Pulling latest changes..."
-    $STD git -C "$INSTALL_DIR" pull
-    msg_ok "Repository updated."
-fi
-
-cd "$INSTALL_DIR"
+fetch_and_deploy_gh_release "ProxmoxVE-Local" "community-scripts/ProxmoxVE-Local"
 
 msg_info "Installing PVE Scripts local"
 $STD npm install
