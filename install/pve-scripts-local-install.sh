@@ -13,11 +13,12 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get update
-$STD apt-get install -y \
-  build-essential \
-  sshpass \
-  expect
+  $STD apt-get update
+  $STD apt-get install -y \
+    build-essential \
+    sshpass \
+    rsync \
+    expect
 msg_ok "Dependencies installed."
 
 NODE_VERSION=22 setup_nodejs
