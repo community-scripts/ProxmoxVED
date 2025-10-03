@@ -35,17 +35,14 @@ chmod 755 data
 $STD npm run build
 msg_ok "Installed PVE Scripts local"
 
-SERVICE_NAME="pvescriptslocal"
-SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-
 msg_info "Creating Service"
-cat > "$SERVICE_FILE" <<EOF
+cat > "etc/systemd/system/pvescriptslocal.service" <<EOF
 [Unit]
 Description=PVEScriptslocal Service
 After=network.target
 
 [Service]
-WorkingDirectory=${INSTALL_DIR}
+WorkingDirectory=/opt/ProxmoxVE-Local
 ExecStart=/usr/bin/npm start
 Restart=always
 RestartSec=10
@@ -56,7 +53,7 @@ User=root
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now $SERVICE_NAME
+systemctl enable -q --now pvescriptslocal
 
 msg_ok "Created Service"
 
