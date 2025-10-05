@@ -60,7 +60,7 @@ function update_script() {
     msg_info "Restarting ${APP} service"
     systemctl start rwmarkable
     msg_ok "Restarted ${APP} service"
-    rm /opt/data.tar
+    rm /opt/data_config.tar
     msg_ok "Updated Successfully"
   fi
   exit
