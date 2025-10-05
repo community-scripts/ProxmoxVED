@@ -37,7 +37,7 @@ function update_script() {
     msg_info "Backing up configuration & data"
     cd /opt/rwmarkable
     cp ./.env /opt/app.env
-    $STD tar -cf /opt/data.tar ./data
+    $STD tar -cf /opt/data_config.tar ./data ./config
     msg_ok "Backed up configuration & data"
 
     NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
@@ -54,7 +54,7 @@ function update_script() {
 
     msg_info "Restoring configuration & data"
     mv /opt/app.env /opt/rwmarkable/.env
-    $STD tar -xf /opt/data.tar
+    $STD tar -xf /opt/data_config.tar
     msg_ok "Restored configuration & data"
 
     msg_info "Restarting ${APP} service"
