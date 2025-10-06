@@ -26,9 +26,7 @@ $STD chmod 0600 ~/.pgpass
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing Miniflux"
-$STD echo "deb [trusted=yes] https://repo.miniflux.app/apt/ * *" | sudo tee /etc/apt/sources.list.d/miniflux.list >/dev/null
-$STD apt update
-$STD apt install miniflux
+fetch_and_deploy_gh_release "miniflux" "miniflux/v2" "tarball" "latest"
 msg_ok "Installed Miniflux"
 
 msg_info "Configuring Miniflux"
