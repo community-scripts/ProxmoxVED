@@ -15,15 +15,15 @@ update_os
 
 read -r -p "Enter the hostname of your OpenCloud server (eg cloud.domain.tld): " oc_host
 if [[ "$oc_host" ]]; then
-  OC_HOST="$oc_host"
+    OC_HOST="$oc_host"
 fi
 read -r -p "Enter the hostname of your Collabora server (eg collabora.domain.tld): " collabora_host
 if [[ "$collabora_host" ]]; then
-  COLLABORA_HOST="$collabora_host"
+    COLLABORA_HOST="$collabora_host"
 fi
 read -r -p "Enter the hostname of your WOPI server (eg wopiserver.domain.tld): " wopi_host
 if [[ "$wopi_host" ]]; then
-  WOPI_HOST="$wopi_host"
+    WOPI_HOST="$wopi_host"
 fi
 
 msg_info "Installing Collabora Online"
@@ -56,7 +56,7 @@ msg_ok "Installed ${APPLICATION}"
 
 msg_info "Configuring ${APPLICATION}"
 curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
-curl -fsSL https://github.com/opencloud-eu/opencloud/raw/refs/heads/main/deployments/examples/opencloud_full/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
+curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
 
 cat <<EOF >"$ENV_FILE"
 OC_URL=https://${OC_HOST}

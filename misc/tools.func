@@ -1,6 +1,44 @@
 #!/bin/bash
 
 # ------------------------------------------------------------------------------
+# Installs Microsoft .NET
+#
+# Description:
+#   - Installs specified .NET version using Microsoft APT repo
+#
+# Variables:
+#   NET_VERSION   - .NET version to install (default: "8.0")
+# ------------------------------------------------------------------------------
+
+function setup_dotnet() {
+  local NET_VERSION="${NET_VERSION:-8.0}"
+  local DISTRO_CODENAME=$(awk -F= '/^VERSION_CODENAME=/{ print $2 }' /etc/os-release)
+  local NEED_NET_INSTALL=false
+
+  if command -v dotnet >/dev/null; then
+    CURRENT_NET_VERSION=$(dotnet --version | awk -F. '{print $1 "." $2}')
+    if [[ "$CURRENT_NET_VERSION" == "$NET_VERSION" ]]; then
+      :
+    fi
+  else
+    msg_info "Setup .NET $NET_VERSION"
+    NEED_NET_INSTALL=true
+  fi
+
+  if [[ "$NEED_NET_INSTALL" == true ]]; then
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+    if [[ "$DISTRO_CODENAME" != "trixie" ]]; then
+      curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list -o /etc/apt/sources.list.d/msprod.list
+    else
+      curl -fsSL https://packages.microsoft.com/config/debian/13/prod.list -o /etc/apt/sources.list.d/msprod.list
+    fi
+    $STD apt-get update
+    $STD apt-get install -y dotnet-sdk-$NET_VERSION
+    msg_ok "Setup .NET ${NET_VERSION}"
+  fi
+}
+
+# ------------------------------------------------------------------------------
 # Installs Node.js and optional global modules.
 #
 # Description:
@@ -232,7 +270,7 @@ function setup_postgresql() {
 #
 # Variables:
 #   MARIADB_VERSION - MariaDB version to install (e.g. 10.11, latest) (default: latest)
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------ test
 
 setup_mariadb() {
   local MARIADB_VERSION="${MARIADB_VERSION:-latest}"
@@ -858,6 +896,9 @@ function fetch_and_deploy_gh_release() {
 
   msg_info "Fetching GitHub release: $app ($version)"
 
+  local clean_install=false
+  [[ -n "${CLEAN_INSTALL:-}" && "$CLEAN_INSTALL" == "1" ]] && clean_install=true
+
   ### Tarball Mode ###
   if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
     url=$(echo "$json" | jq -r '.tarball_url // empty')
@@ -871,6 +912,10 @@ function fetch_and_deploy_gh_release() {
     }
 
     mkdir -p "$target"
+    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+      rm -rf "${target:?}/"*
+    fi
+
     tar -xzf "$tmpdir/$filename" -C "$tmpdir"
     local unpack_dir
     unpack_dir=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -n1)
@@ -940,7 +985,7 @@ function fetch_and_deploy_gh_release() {
       }
     }
 
-  ### Prebuild Mode ###
+    ### Prebuild Mode ###
   elif [[ "$mode" == "prebuild" ]]; then
     local pattern="${6%\"}"
     pattern="${pattern#\"}"
@@ -977,6 +1022,9 @@ function fetch_and_deploy_gh_release() {
     local unpack_tmp
     unpack_tmp=$(mktemp -d)
     mkdir -p "$target"
+    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+      rm -rf "${target:?}/"*
+    fi
 
     if [[ "$filename" == *.zip ]]; then
       if ! command -v unzip &>/dev/null; then
@@ -2024,7 +2072,7 @@ EOF
 check_for_gh_release() {
   local app="$1"
   local source="$2"
-  local pinned_version="${3:-}"   # optional
+  local pinned_version="${3:-}" # optional
   local current_file="$HOME/.${app,,}"
 
   msg_info "Check for update: ${app}"
@@ -2044,7 +2092,7 @@ check_for_gh_release() {
   fi
 
   # get latest release
-local release
+  local release
   release=$(curl -fsSL "https://api.github.com/repos/${source}/releases/latest" |
     jq -r '.tag_name' | sed 's/^v//')
 
@@ -2080,4 +2128,81 @@ local release
     msg_ok "${app} is up to date (v${release})"
     return 1
   fi
+}
+
+# ------------------------------------------------------------------------------
+# Hardware acceleration setup inside container
+# Works with: Debian 12 (bookworm), Debian 13 (trixie), Ubuntu 24.04 (noble)
+# Usage: hwaccel_setup_in_ct <CTTYPE 0|1> [--nonfree-intel]
+# ------------------------------------------------------------------------------
+
+hwaccel_setup_in_ct() {
+  local CTTYPE="$1" NONFREE=0
+  [[ "$2" == "--nonfree-intel" ]] && NONFREE=1
+
+  # Detect OS info inside the container
+  local ID VERSION_CODENAME
+  if [[ -r /etc/os-release ]]; then
+    . /etc/os-release
+  fi
+  ID="${ID:-debian}"
+  VERSION_CODENAME="${VERSION_CODENAME:-bookworm}"
+
+  msg_info "Setting up hardware acceleration for ${ID^} ($VERSION_CODENAME)"
+
+  case "$ID" in
+  debian | ubuntu)
+    if ((NONFREE)) && [[ "$VERSION_CODENAME" =~ (trixie|noble) ]]; then
+      # Debian 13 / Ubuntu 24.04 → non-free Intel driver
+      cat >/etc/apt/sources.list.d/non-free.sources <<'SRC'
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: trixie
+Components: non-free non-free-firmware
+
+Types: deb deb-src
+URIs: http://deb.debian.org/debian-security
+Suites: trixie-security
+Components: non-free non-free-firmware
+
+Types: deb deb-src
+URIs: http://deb.debian.org/debian
+Suites: trixie-updates
+Components: non-free non-free-firmware
+SRC
+
+      $STD apt-get update
+      $STD apt-get install -y \
+        intel-media-va-driver-non-free \
+        ocl-icd-libopencl1 \
+        mesa-opencl-icd \
+        mesa-va-drivers \
+        libvpl2 \
+        vainfo \
+        intel-gpu-tools
+    else
+      # Debian 12 (bookworm) and fallback for Debian 13/Ubuntu 24.04 without non-free
+      $STD apt-get update
+      $STD apt-get install -y \
+        va-driver-all \
+        ocl-icd-libopencl1 \
+        mesa-opencl-icd \
+        mesa-va-drivers \
+        vainfo \
+        intel-gpu-tools
+    fi
+    ;;
+  *)
+    msg_warn "Unsupported distribution ($ID $VERSION_CODENAME) – skipping HW accel setup"
+    return 0
+    ;;
+  esac
+
+  # Add current user to video/render groups (only for privileged CTs)
+  if [[ "$CTTYPE" == "0" ]]; then
+    $STD adduser "$(id -un)" video || true
+    $STD adduser "$(id -un)" render || true
+  fi
+
+  msg_ok "Hardware acceleration is ready"
 }

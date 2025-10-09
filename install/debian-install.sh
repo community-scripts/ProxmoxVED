@@ -17,6 +17,8 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y gpg
 msg_ok "Installed Dependencies"
 
+#install_vaapi_userland_interactive
+
 #setup_mariadb
 
 #FFMPEG_VERSION="n7.1.1" FFMPEG_TYPE="full" setup_ffmpeg

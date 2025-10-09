@@ -6,7 +6,7 @@
 # License: MIT
 # https://github.com/tteck/Proxmox/raw/main/LICENSE
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -71,7 +71,7 @@ REDIS_PORT=6379
 REDIS_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)"
 
 $STD redis-cli CONFIG SET requirepass "$REDIS_PASSWORD"
-$STD redis-cli  -a "$REDIS_PASSWORD" CONFIG REWRITE
+$STD redis-cli -a "$REDIS_PASSWORD" CONFIG REWRITE
 $STD systemctl restart redis
 echo "" >>~/ghostfolio.creds
 echo "Ghostfolio Redis Credentials" >>~/ghostfolio.creds

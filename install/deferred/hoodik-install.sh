@@ -16,18 +16,18 @@ update_os
 
 msg_info "Installing Dependencies (Patience)"
 $STD apt-get install -y \
-  pkg-config \
-  libssl-dev \
-  libc6-dev \
-  libpq-dev \
-  clang \
-  llvm \
-  nettle-dev \
-  build-essential \
-  curl \
-  sudo \
-  make \
-  mc
+    pkg-config \
+    libssl-dev \
+    libc6-dev \
+    libpq-dev \
+    clang \
+    llvm \
+    nettle-dev \
+    build-essential \
+    curl \
+    sudo \
+    make \
+    mc
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Rust (Patience)"

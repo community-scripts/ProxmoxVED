@@ -7,7 +7,7 @@
 # https://github.com/tteck/Proxmox/raw/main/LICENSE
 # Source: https://github.com/roundcube/roundcubemail
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -17,14 +17,14 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
-  postgresql \
-  apache2 \
-  libapache2-mod-php \
-  composer \
-  php8.2-{mbstring,gd,imap,mysql,ldap,curl,intl,imagick,bz2,sqlite3,zip,xml} 
+    curl \
+    sudo \
+    mc \
+    postgresql \
+    apache2 \
+    libapache2-mod-php \
+    composer \
+    php8.2-{mbstring,gd,imap,mysql,ldap,curl,intl,imagick,bz2,sqlite3,zip,xml}
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up PostgreSQL"
@@ -74,7 +74,7 @@ $STD sudo a2enmod deflate
 $STD sudo a2enmod expires
 $STD sudo a2enmod headers
 $STD a2ensite roundcubemail.conf
-$STD a2dissite 000-default.conf  
+$STD a2dissite 000-default.conf
 $STD systemctl reload apache2
 msg_ok "Installed Wallos"
 

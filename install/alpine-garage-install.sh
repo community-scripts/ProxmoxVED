@@ -46,7 +46,7 @@ msg_ok "Setup Garage packages"
 
 msg_info "Writing config"
 if [[ ! -f /etc/garage.toml ]]; then
-  cat >/etc/garage.toml <<EOF
+    cat >/etc/garage.toml <<EOF
 replication_factor = 1
 consistency_mode = "consistent"
 

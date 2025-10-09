@@ -9,11 +9,11 @@ source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-sc
 function header_info() {
   clear
   cat <<"EOF"
-    ____             __                _    ____  ___
-   / __ \____  _____/ /_____  _____   | |  / /  |/  /
-  / / / / __ \/ ___/ //_/ _ \/ ___/   | | / / /|_/ /
- / /_/ / /_/ / /__/ ,< /  __/ /       | |/ / /  / /
-/_____/\____/\___/_/|_|\___/_/        |___/_/  /_/
+   __  __      _ _____    ____  _____    _____
+  / / / /___  (_) __(_)  / __ \/ ___/   / ___/___  ______   _____  _____
+ / / / / __ \/ / /_/ /  / / / /\__ \    \__ \/ _ \/ ___/ | / / _ \/ ___/
+/ /_/ / / / / / __/ /  / /_/ /___/ /   ___/ /  __/ /   | |/ /  __/ /
+\____/_/ /_/_/_/ /_/   \____//____/   /____/\___/_/    |___/\___/_/
 
 EOF
 }
@@ -25,8 +25,8 @@ METHOD=""
 NSAPP="UniFi OS Server"
 var_os="linux"
 var_version="x64"
-UOS_VERSION="4.2.23"
-UOS_URL="https://fw-download.ubnt.com/data/unifi-os-server/8b93-linux-x64-4.2.23-158fa00b-6b2c-4cd8-94ea-e92bc4a81369.23-x64"
+UOS_VERSION="4.3.5"
+UOS_URL="https://fw-download.ubnt.com/data/unifi-os-server/da70-linux-x64-4.3.5-5306ffbb-fc6d-4414-912b-29cbfb0ce85a.5-x64"
 UOS_INSTALLER="unifi-os-server-${UOS_VERSION}.bin"
 
 YW=$(echo "\033[33m")
@@ -62,19 +62,20 @@ VLANTAG="${TAB}🏷️${TAB}${CL}"
 CREATING="${TAB}🚀${TAB}${CL}"
 ADVANCED="${TAB}🧩${TAB}${CL}"
 THIN="discard=on,ssd=1,"
-set -e
+
+set -Eeuo pipefail
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
 trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
+
 function error_handler() {
   local exit_code="$?"
   local line_number="$1"
   local command="$2"
   post_update_to_api "failed" "${command}"
-  local error_message="${RD}[ERROR]${CL} in line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing command ${YW}$command${CL}"
-  echo -e "\n$error_message\n"
-  cleanup_vmid
+  echo -e "\n${RD}[ERROR]${CL} line ${RD}$line_number${CL}: exit code ${RD}$exit_code${CL}: while executing ${YW}$command${CL}\n"
+  if qm status $VMID &>/dev/null; then qm stop $VMID &>/dev/null || true; fi
 }
 
 function get_valid_nextid() {
@@ -140,36 +141,37 @@ function check_root() {
   fi
 }
 
+# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
+# Supported: Proxmox VE 8.0.x – 8.9.x and 9.0 (NOT 9.1+)
 pve_check() {
   local PVE_VER
   PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
 
-  # Check for Proxmox VE 8.x
+  # Check for Proxmox VE 8.x: allow 8.0–8.9
   if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR < 1 || MINOR > 4)); then
+    if ((MINOR < 0 || MINOR > 9)); then
       msg_error "This version of Proxmox VE is not supported."
-      echo -e "Required: Proxmox VE version 8.1 – 8.4"
+      msg_error "Supported: Proxmox VE version 8.0 – 8.9"
       exit 1
     fi
     return 0
   fi
 
-  # Check for Proxmox VE 9.x (Beta) — require confirmation
+  # Check for Proxmox VE 9.x: allow ONLY 9.0
   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
-    if whiptail --title "Proxmox 9.x Detected (Beta)" \
-      --yesno "You are using Proxmox VE $PVE_VER, which is currently in Beta state.\n\nThis version is experimentally supported.\n\nDo you want to proceed anyway?" 12 70; then
-      msg_ok "Confirmed: Continuing with Proxmox VE $PVE_VER"
-      return 0
-    else
-      msg_error "Aborted by user: Proxmox VE 9.x was not confirmed."
+    local MINOR="${BASH_REMATCH[1]}"
+    if ((MINOR != 0)); then
+      msg_error "This version of Proxmox VE is not yet supported."
+      msg_error "Supported: Proxmox VE version 9.0"
       exit 1
     fi
+    return 0
   fi
 
   # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
-  echo -e "Supported versions: Proxmox VE 8.1 – 8.4 or 9.x (Beta, with confirmation)"
+  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0"
   exit 1
 }
 
@@ -204,9 +206,8 @@ function exit-script() {
 
 function default_settings() {
   VMID=$(get_valid_nextid)
-  FORMAT=",efitype=4m"
-  MACHINE=""
-  DISK_CACHE=""
+  FORMAT=""
+  MACHINE="q35"
   DISK_SIZE="30G"
   HN="unifi-server-os"
   CPU_TYPE=""
@@ -219,9 +220,8 @@ function default_settings() {
   START_VM="yes"
   METHOD="default"
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
   echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
@@ -254,16 +254,16 @@ function advanced_settings() {
     fi
   done
 
-  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Type" 10 58 2 \
-    "i440fx" "Machine i440fx" ON \
-    "q35" "Machine q35" OFF \
+  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Machine Type" 10 58 2 \
+    "q35" "Modern (PCIe, UEFI, default)" ON \
+    "i440fx" "Legacy (older compatibility)" OFF \
     3>&1 1>&2 2>&3); then
-    if [ $MACH = q35 ]; then
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+    if [ "$MACH" = "q35" ]; then
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
       FORMAT=""
       MACHINE=" -machine q35"
     else
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
       FORMAT=",efitype=4m"
       MACHINE=""
     fi
@@ -287,8 +287,8 @@ function advanced_settings() {
   fi
 
   if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "None (Default)" ON \
-    "1" "Write Through" OFF \
+    "0" "None" OFF \
+    "1" "Write Through (Default)" ON \
     3>&1 1>&2 2>&3); then
     if [ $DISK_CACHE = "1" ]; then
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}Write Through${CL}"
@@ -301,9 +301,9 @@ function advanced_settings() {
     exit-script
   fi
 
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 docker --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 unifi-os-server --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="docker"
+      HN="unifi-os-server"
       echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo ${VM_NAME,,} | tr -d ' ')
@@ -313,17 +313,20 @@ function advanced_settings() {
     exit-script
   fi
 
-  if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "KVM64 (Default)" ON \
-    "1" "Host" OFF \
+  if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose CPU Model" --cancel-button Exit-Script 10 58 2 \
+    "KVM64" "Default – safe for migration/compatibility" ON \
+    "Host" "Use host CPU features (faster, no migration)" OFF \
     3>&1 1>&2 2>&3); then
-    if [ $CPU_TYPE1 = "1" ]; then
+    case "$CPU_TYPE1" in
+    Host)
       echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
       CPU_TYPE=" -cpu host"
-    else
+      ;;
+    *)
       echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
       CPU_TYPE=""
-    fi
+      ;;
+    esac
   else
     exit-script
   fi
@@ -454,6 +457,8 @@ elif [ $((${#STORAGE_MENU[@]} / 3)) -eq 1 ]; then
   STORAGE=${STORAGE_MENU[0]}
 else
   while [ -z "${STORAGE:+x}" ]; do
+    #if [ -n "$SPINNER_PID" ] && ps -p $SPINNER_PID >/dev/null; then kill $SPINNER_PID >/dev/null; fi
+    printf "\e[?25h"
     STORAGE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Storage Pools" --radiolist \
       "Which storage pool would you like to use for ${HN}?\nTo make a selection, use the Spacebar.\n" \
       16 $(($MSG_MAX_LENGTH + 23)) 6 \
@@ -462,75 +467,61 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
-URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-$(dpkg --print-architecture).qcow2"
-sleep 2
-msg_ok "${CL}${BL}${URL}${CL}"
-curl -f#SL -o "$(basename "$URL")" "$URL"
-echo -en "\e[1A\e[0K"
-FILE=$(basename $URL)
-msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')
-case $STORAGE_TYPE in
-nfs | dir | cifs)
-  DISK_EXT=".qcow2"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format qcow2"
-  THIN=""
-  ;;
-btrfs)
-  DISK_EXT=".raw"
-  DISK_REF="$VMID/"
-  DISK_IMPORT="-format raw"
-  FORMAT=",efitype=4m"
-  THIN=""
-  ;;
-esac
-for i in {0,1}; do
-  disk="DISK$i"
-  eval DISK${i}=vm-${VMID}-disk-${i}${DISK_EXT:-}
-  eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
-done
+# --- Download Debian Cloud Image ---
+msg_info "Downloading Debian 13 Cloud Image"
+URL="https://cloud.debian.org/images/cloud/trixie/latest/debian-13-nocloud-amd64.qcow2"
+CACHE_DIR="/var/lib/vz/template/cache"
+CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
+FILE_IMG="/var/lib/vz/template/tmp/${CACHE_FILE##*/%.xz}" # .qcow2
+if [[ ! -s "$CACHE_FILE" ]]; then
+  curl -f#SL -o "$CACHE_FILE" "$URL"
+  msg_ok "Downloaded ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
+else
+  msg_ok "Using cached image ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
+fi
+FILE="debian-13-nocloud-amd64.qcow2"
+msg_ok "Downloaded Debian Cloud Image"
 
+# --- Inject UniFi Installer ---
 if ! command -v virt-customize &>/dev/null; then
-  msg_info "Installing Pre-Requisite libguestfs-tools onto Host"
+  msg_info "Installing libguestfs-tools on host"
   apt-get -qq update >/dev/null
-  apt-get -qq install libguestfs-tools lsb-release -y >/dev/null
-  msg_ok "Installed libguestfs-tools successfully"
+  apt-get -qq install libguestfs-tools -y >/dev/null
+  msg_ok "Installed libguestfs-tools"
 fi
 
-msg_info "Adding UniFi OS Server Installer & root Autologin zu Debian 12 Qcow2 Disk Image"
-UOS_VERSION="4.2.23"
-UOS_URL="https://fw-download.ubnt.com/data/unifi-os-server/8b93-linux-x64-4.2.23-158fa00b-6b2c-4cd8-94ea-e92bc4a81369.23-x64"
-UOS_INSTALLER="unifi-os-server-${UOS_VERSION}.bin"
-virt-customize -q -a "${FILE}" \
+msg_info "Injecting UniFi OS Installer into Cloud Image"
+virt-customize -q -a "$FILE" \
+  --run-command "echo 'nameserver 1.1.1.1' > /etc/resolv.conf" \
   --install qemu-guest-agent,ca-certificates,curl,lsb-release,podman \
   --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER}" \
   --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
   --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" \
-  --run-command 'systemctl daemon-reload' \
-  --run-command 'systemctl restart getty@tty1' >/dev/null
-msg_ok "Installer & root Autologin integrated in image"
+  >/dev/null
+msg_ok "UniFi OS Installer integrated"
 
-msg_info "Expanding root partition to use full disk space"
-qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
-virt-resize --expand /dev/sda1 ${FILE} expanded.qcow2 >/dev/null 2>&1
-mv expanded.qcow2 ${FILE} >/dev/null 2>&1
-msg_ok "Expanded image to full size"
+msg_info "Creating UniFi OS VM"
+qm create "$VMID" -agent 1 $MACHINE -tablet 0 -localtime 1 -bios ovmf \
+  $CPU_TYPE -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
+  -name "$HN" -tags community-script \
+  -net0 virtio,bridge="$BRG",macaddr="$MAC""$VLAN""$MTU" \
+  -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 
-msg_info "Creating a Unifi OS VM"
-qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
-pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
-qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
-qm set $VMID \
-  -efidisk0 ${DISK0_REF}${FORMAT} \
-  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-  -boot order=scsi0 \
-  -serial0 socket >/dev/null
-qm resize $VMID scsi0 8G >/dev/null
-qm set $VMID --agent enabled=1 >/dev/null
+pvesm alloc "$STORAGE" "$VMID" "vm-$VMID-disk-0" 4M >/dev/null
+IMPORT_OUT="$(qm importdisk "$VMID" "$FILE" "$STORAGE" --format qcow2 2>&1 || true)"
+DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p")"
+
+if [[ -z "$DISK_REF" ]]; then
+  DISK_REF="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$1 ~ ("vm-"id"-disk-") {print $1}' | sort | tail -n1)"
+fi
+
+qm set "$VMID" \
+  -efidisk0 "${STORAGE}:0${FORMAT},size=4M" \
+  -scsi0 "${DISK_REF},size=${DISK_SIZE}" \
+  -boot order=scsi0 -serial0 socket >/dev/null
+qm resize "$VMID" scsi0 "$DISK_SIZE" >/dev/null
+qm set "$VMID" --agent enabled=1 >/dev/null
 
 DESCRIPTION=$(
   cat <<EOF

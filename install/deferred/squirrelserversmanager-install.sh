@@ -4,7 +4,7 @@
 # Author: tteck (tteckster)
 # License: MIT
 # https://github.com/tteck/Proxmox/raw/main/LICENSE
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 
 color
 verb_ip6
@@ -16,7 +16,7 @@ update_os
 # Generate a random string
 generate_random_string() {
     local LENGTH=$1
-  tr -dc A-Za-z0-9 </dev/urandom | head -c ${LENGTH} 2>/dev/null || true
+    tr -dc A-Za-z0-9 </dev/urandom | head -c ${LENGTH} 2>/dev/null || true
 }
 
 msg_info "Installing Dependencies"
@@ -46,7 +46,7 @@ msg_ok "Installed Redis"
 msg_info "Installing Nginx"
 $STD apk add nginx
 rm -rf /etc/nginx/http.d/default.conf
-cat <<'EOF'> /etc/nginx/http.d/default.conf
+cat <<'EOF' >/etc/nginx/http.d/default.conf
 server {
   listen 80;
   server_name localhost;
@@ -90,8 +90,8 @@ msg_ok "Installed Nginx"
 msg_info "Installing MongoDB Database"
 DB_NAME=ssm
 DB_PORT=27017
-echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/main' >> /etc/apk/repositories
-echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repositories
+echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/main' >>/etc/apk/repositories
+echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >>/etc/apk/repositories
 $STD apk update
 $STD apk add mongodb mongodb-tools
 msg_ok "Installed MongoDB Database"
@@ -108,7 +108,7 @@ $STD git clone https://github.com/SquirrelCorporation/SquirrelServersManager.git
 SECRET=$(generate_random_string 32)
 SALT=$(generate_random_string 16)
 VAULT_PWD=$(generate_random_string 32)
-cat <<EOF > /opt/squirrelserversmanager/.env
+cat <<EOF >/opt/squirrelserversmanager/.env
 # SECRETS
 SECRET=$SECRET
 SALT=$SALT

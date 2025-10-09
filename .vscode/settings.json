@@ -18,7 +18,7 @@
     "editor.minimap.enabled": false,
     "terminal.integrated.scrollback": 10000,
     "[shellscript]": {
-        "editor.defaultFormatter": "foxundermoon.shell-format",
+        "editor.defaultFormatter": "mads-hartmann.bash-ide-vscode",
         "editor.tabSize": 4,
         "editor.insertSpaces": true,
     },
