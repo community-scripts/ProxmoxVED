@@ -27,10 +27,8 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-    msg_info "Updating $APP LXC"
-    $STD apt-get update
-    $STD apt-get -y upgrade
-    msg_ok "Updated $APP LXC"
+
+    msg_warn "Application is updated via Web Interface"
     exit
 }
 
