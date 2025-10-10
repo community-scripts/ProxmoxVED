@@ -20,38 +20,21 @@ $STD apt-get install -y \
     iputils-ping \
     ufw \
     iproute2
-msg_ok "Installed Dependencies"
-
-msg_info "Disabling systemd autostart"
 mkdir -p /etc/systemd/system-preset
 echo "disable *" > /etc/systemd/system-preset/99-no-autostart.preset
-msg_ok "Disabled systemd autostart"
-
-msg_info "Installing Transmission"
-$STD apt-get install -y transmission-daemon
-msg_ok "Installed Transmission"
-
-msg_info "Installing Privoxy"
-$STD apt-get install -y privoxy
-msg_ok "Installed Privoxy"
-
-msg_info "Enabling systemd autostart"
+$STD apt-get install -y \
+    transmission-daemon \
+    privoxy
 rm -f /etc/systemd/system-preset/99-no-autostart.preset
 $STD systemctl preset-all
-msg_ok "Enabled systemd autostart"
-
-msg_info "Disabling and masking Transmission and Privoxy services"
 $STD systemctl disable --now transmission-daemon
 $STD systemctl mask transmission-daemon
 $STD systemctl disable --now privoxy
 $STD systemctl mask privoxy
-msg_ok "Transmission and Privoxy services disabled and masked"
-
-msg_info "Installing Openvpn"
 $STD apt-get install -y openvpn
-msg_ok "Installed Openvpn"
+msg_ok "Installed Dependencies"
 
-msg_info "Installing transmission-openvpn"
+msg_info "Deploying transmission-openvpn"
 $STD useradd -u 911 -U -d /config -s /usr/sbin/nologin abc
 fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
 mkdir -p /etc/openvpn /etc/transmission /etc/scripts /opt/privoxy
@@ -63,14 +46,11 @@ chmod +x /etc/openvpn/*.sh
 chmod +x /etc/scripts/*.sh
 chmod +x /opt/privoxy/*.sh
 $STD ln -s /usr/bin/transmission-daemon /usr/local/bin/transmission-daemon
-msg_ok "Installed transmission-openvpn"
-
-msg_info "Support legacy IPTables commands"
 $STD update-alternatives --set iptables /usr/sbin/iptables-legacy
 $STD update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
-msg_ok "Support legacy IPTables commands"
+msg_ok "Deployed transmission-openvpn"
 
-msg_info "Analyzing Network Interfaces"
+msg_info "Creating Service"
 LOCAL_SUBNETS=$(
   ip -o -4 addr show \
   | awk '!/127.0.0.1/ {
@@ -89,9 +69,6 @@ LOCAL_SUBNETS=$(
   | sort -u | paste -sd, -
 )
 TRANSMISSION_RPC_WHITELIST="127.0.0.*,${LOCAL_SUBNETS}"
-msg_ok "Analyzed Network Interfaces"
-
-msg_info "Creating Service"
 mkdir -p /opt/transmission-openvpn
 cat <<EOF > "/opt/transmission-openvpn/.env"
 OPENVPN_USERNAME="username"
