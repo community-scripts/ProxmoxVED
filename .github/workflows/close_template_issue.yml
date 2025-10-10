@@ -17,7 +17,7 @@ jobs:
             const issueNumber = issue.number;
 
             // Check for tteck script mention
-            if (content.includes("Template debian-13-standard_13.1-2_amd64.tar.zst [local]") || content.includes("Container creation failed. Checking if template is corrupted or incomplete.")) || content.includes("Template is valid, but container creation still failed."){
+            if (content.includes("Template debian-13-standard_13.1-2_amd64.tar.zst [local]") || content.includes("Container creation failed. Checking if template is corrupted or incomplete.") || content.includes("Template is valid, but container creation still failed.")){
               const message = `Hello, it looks like you are referencing a container creation issue!.
 
               We get many simmilar issues with this topic, so please check this disscusion #8126.
