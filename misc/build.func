@@ -598,7 +598,7 @@ advanced_settings() {
         start=$(echo "${pair}" | cut -d':' -f1)
         end=$(echo "${pair}" | cut -d':' -f2)
 
-        if awk "NR >= ${start} && NR <= ${end}" "${iface_filepath}" | grep -qP '^\s*(bridge[-_](ports|stp|fd|vlan-aware|vids)|ovs_type\s+OVSBridge)\b'; then
+        if awk "NR >= ${start} && NR <= ${end}" "${iface_filepath}" | grep -qP '^\s*(bridge[-_](ports|stp|fd|vlan-aware|vids)|ovs_type\s+OVSBridge|vlan-raw-device)\b'; then
           iface_name=$(sed "${start}q;d" "${iface_filepath}" | awk '{print $2}')
           BRIDGES="${iface_name}"$'\n'"${BRIDGES}"
         fi
@@ -618,8 +618,23 @@ advanced_settings() {
     BRIDGE_MENU_OPTIONS=()
     while IFS= read -r bridge; do
       if [[ -n "$bridge" ]]; then
-        # Get description from Proxmox built-in method - find comment for this specific bridge
-        description=$(grep -A 10 "iface $bridge" /etc/network/interfaces | grep '^#' | head -n1 | sed 's/^#\s*//')
+        # Check if this is a VLAN interface (pattern: name.vlan_id)
+        if [[ "$bridge" =~ ^(.+)\.([0-9]+)$ ]]; then
+          parent_device="${BASH_REMATCH[1]}"
+          vlan_id="${BASH_REMATCH[2]}"
+
+          # Try to get the actual parent device from vlan-raw-device line
+          vlan_raw_device=$(grep -A 10 "iface $bridge" /etc/network/interfaces | grep '^\s*vlan-raw-device' | awk '{print $2}')
+          if [[ -n "$vlan_raw_device" ]]; then
+            parent_device="$vlan_raw_device"
+          fi
+
+          description="VLAN $vlan_id on $parent_device"
+        else
+          # Regular bridge - get description from Proxmox built-in method - find comment for this specific bridge
+          description=$(grep -A 10 "iface $bridge" /etc/network/interfaces | grep '^#' | head -n1 | sed 's/^#\s*//')
+        fi
+
         if [[ -n "$description" ]]; then
           BRIDGE_MENU_OPTIONS+=("$bridge" "${description}")
         else
