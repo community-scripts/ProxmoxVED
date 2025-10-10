@@ -5,7 +5,7 @@ on:
 
 jobs:
   close_tteck_issues:
-    if: github.repository == 'community-scripts/ProxmoxVE'
+    if: github.repository == 'community-scripts/ProxmoxVED'
     runs-on: ubuntu-latest
     steps:
       - name: Auto-close if wrong Template issue detected
