@@ -37,14 +37,14 @@ msg_ok "Installed Privoxy"
 
 msg_info "Enabling systemd autostart"
 rm -f /etc/systemd/system-preset/99-no-autostart.preset
-systemctl preset-all
+$STD systemctl preset-all
 msg_ok "Enabled systemd autostart"
 
 msg_info "Disabling and masking Transmission and Privoxy services"
-systemctl disable --now transmission-daemon
-systemctl mask transmission-daemon
-systemctl disable --now privoxy
-systemctl mask privoxy
+$STD systemctl disable --now transmission-daemon
+$STD systemctl mask transmission-daemon
+$STD systemctl disable --now privoxy
+$STD systemctl mask privoxy
 msg_ok "Transmission and Privoxy services disabled and masked"
 
 msg_info "Installing Openvpn"
@@ -52,7 +52,7 @@ $STD apt-get install -y openvpn
 msg_ok "Installed Openvpn"
 
 msg_info "Installing ${APPLICATION}"
-useradd -u 911 -U -d /config -s /usr/sbin/nologin abc
+$STD useradd -u 911 -U -d /config -s /usr/sbin/nologin abc
 fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
 mkdir -p /etc/openvpn /etc/transmission /etc/scripts /opt/privoxy
 cp -r /opt/docker-transmission-openvpn/openvpn/* /etc/openvpn/
@@ -62,12 +62,12 @@ cp -r /opt/docker-transmission-openvpn/privoxy/scripts/* /opt/privoxy/
 chmod +x /etc/openvpn/*.sh
 chmod +x /etc/scripts/*.sh
 chmod +x /opt/privoxy/*.sh
-ln -s /usr/bin/transmission-daemon /usr/local/bin/transmission-daemon
+$STD ln -s /usr/bin/transmission-daemon /usr/local/bin/transmission-daemon
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Support legacy IPTables commands"
-update-alternatives --set iptables /usr/sbin/iptables-legacy
-update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+$STD update-alternatives --set iptables /usr/sbin/iptables-legacy
+$STD update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
 msg_ok "Support legacy IPTables commands"
 
 msg_info "Analyzing Network Interfaces"
@@ -133,7 +133,7 @@ LOG_TO_STDOUT="false"
 HEALTH_CHECK_HOST="google.com"
 SELFHEAL="false"
 EOF
-cat <<EOF > /etc/systemd/system/openvpn-custom.service 
+cat <<EOF > /etc/systemd/system/openvpn-custom.service
 [Unit]
 Description=Custom OpenVPN start service
 After=network.target
