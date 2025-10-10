@@ -33,6 +33,15 @@ Comprehensive error handling and signal management for Proxmox Community Scripts
 - Practical usage examples
 - Integration with other components
 
+### 📁 [api.func/](./api.func/)
+Proxmox API integration and diagnostic reporting functionality for Community Scripts.
+
+**Contents:**
+- Visual execution flowcharts
+- Complete function reference
+- Practical usage examples
+- Integration with other components
+
 ## Other Documentation
 
 Additional miscellaneous documentation may be added here as the project grows.
