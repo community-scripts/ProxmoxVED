@@ -35,16 +35,16 @@ function update_script() {
     msg_ok "Updated Dependencies"
 
     if check_for_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn"; then
-        msg_info "Stopping $APP"
+        msg_info "Stopping transmission-openvpn"
         systemctl stop openvpn-custom
-        msg_ok "Stopped $APP"
+        msg_ok "Stopped transmission-openvpn"
 
         msg_info "Saving Custom Configs"
         mv /etc/openvpn/custom /opt/transmission-openvpn/
         rm -f /opt/transmission-openvpn/config-failure.sh
         msg_ok "Saved Custom Configs"
 
-        msg_info "Updating ${APP} LXC"
+        msg_info "Updating transmission-openvpn LXC"
         fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
         rm -rf /etc/openvpn/* /etc/transmission/* /etc/scripts/* /opt/privoxy/*
         cp -r /opt/docker-transmission-openvpn/openvpn/* /etc/openvpn/
@@ -54,15 +54,15 @@ function update_script() {
         chmod +x /etc/openvpn/*.sh
         chmod +x /etc/scripts/*.sh
         chmod +x /opt/privoxy/*.sh
-        msg_ok "Updated ${APP} LXC"
+        msg_ok "Updated transmission-openvpn LXC"
 
         msg_info "Restoring Custom Configs"
         cp -r /opt/transmission-openvpn/custom/* /etc/openvpn/custom/
         msg_ok "Restored Custom Configs"
 
-        msg_info "Starting $APP"
+        msg_info "Starting transmission-openvpn"
         systemctl start openvpn-custom
-        msg_ok "Started $APP"
+        msg_ok "Started transmission-openvpn"
     fi
 
     msg_info "Cleaning up"

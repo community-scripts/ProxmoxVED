@@ -51,7 +51,7 @@ msg_info "Installing Openvpn"
 $STD apt-get install -y openvpn
 msg_ok "Installed Openvpn"
 
-msg_info "Installing ${APPLICATION}"
+msg_info "Installing transmission-openvpn"
 $STD useradd -u 911 -U -d /config -s /usr/sbin/nologin abc
 fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
 mkdir -p /etc/openvpn /etc/transmission /etc/scripts /opt/privoxy
@@ -63,7 +63,7 @@ chmod +x /etc/openvpn/*.sh
 chmod +x /etc/scripts/*.sh
 chmod +x /opt/privoxy/*.sh
 $STD ln -s /usr/bin/transmission-daemon /usr/local/bin/transmission-daemon
-msg_ok "Installed ${APPLICATION}"
+msg_ok "Installed transmission-openvpn"
 
 msg_info "Support legacy IPTables commands"
 $STD update-alternatives --set iptables /usr/sbin/iptables-legacy
