@@ -1625,6 +1625,8 @@ install_script() {
 
   NEXTID=$(pvesh get /cluster/nextid)
   timezone=$(cat /etc/timezone)
+
+  # Show APP Header
   header_info
 
   # --- Support CLI argument as direct preset (default, advanced, …) ---
