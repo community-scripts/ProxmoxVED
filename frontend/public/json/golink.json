@@ -1,0 +1,44 @@
+{
+  "name": "golink",
+  "slug": "golink",
+  "categories": [
+    4
+  ],
+  "date_created": "2025-09-17",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://github.com/tailscale/golink",
+  "website": "https://github.com/tailscale/golink",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/tailscale.webp",
+  "config_path": "/opt/golink/.env",
+  "description": "Golink is a private shortlink service for your tailnet. It lets you create short, memorable links that redirect to any URL of your choice.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/golink.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 8,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Configuration details saved to ~/golink.creds",
+      "type": "info"
+    },
+    {
+      "text": "For Tailscale integration, configure TS_AUTHKEY in /opt/golink/.env",
+      "type": "info"
+    }
+  ]
+}
