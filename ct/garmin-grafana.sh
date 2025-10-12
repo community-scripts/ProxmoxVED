@@ -17,7 +17,7 @@ var_unprivileged="${var_unprivileged:-1}"
 header_info "$APP"
 variables
 color
-init_error_traps
+catch_errors
 
 # this only updates garmin-grafana, not influxdb or grafana, which are upgraded with apt
 function update_script() {

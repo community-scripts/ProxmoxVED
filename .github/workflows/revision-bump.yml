@@ -1,0 +1,106 @@
+name: Bump build.func Revision
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "misc/**"
+  workflow_dispatch:
+
+jobs:
+  bump-revision:
+    if: github.repository == 'community-scripts/ProxmoxVED'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Generate token for PR
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Generate token for auto-merge
+        id: generate-token-merge
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID_APPROVE_AND_MERGE }}
+          private-key: ${{ secrets.APP_KEY_APPROVE_AND_MERGE }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get changed files
+        id: changes
+        run: |
+          git diff --name-only HEAD^ HEAD > changed_files.txt
+          echo "Changed files:"
+          cat changed_files.txt
+
+      - name: Skip if only build.func changed
+        id: skipcheck
+        run: |
+          if grep -q "^misc/build.func$" changed_files.txt && [ $(wc -l < changed_files.txt) -eq 1 ]; then
+            echo "skip=true" >> $GITHUB_ENV
+          else
+            echo "skip=false" >> $GITHUB_ENV
+          fi
+
+      - name: Disable file mode changes
+        run: git config core.fileMode false
+
+      - name: Bump build.func revision
+        if: env.skip == 'false'
+        run: |
+          REV_FILE=".build-revision"
+          if [ ! -f "$REV_FILE" ]; then echo 0 > "$REV_FILE"; fi
+          REV_NUM=$(($(cat $REV_FILE) + 1))
+          echo $REV_NUM > $REV_FILE
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          REV_STR="Revision: r${REV_NUM} (git-${SHORT_SHA})"
+
+          echo "Updating build.func with $REV_STR"
+          sed -i "s/^# Revision:.*/# $REV_STR/" misc/build.func
+          echo "REV_STR=$REV_STR" >> $GITHUB_ENV
+
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add misc/build.func .build-revision
+          git commit -m "chore: bump build.func to $REV_STR"
+
+      - name: Create PR
+        if: env.skip == 'false'
+        run: |
+          BRANCH_NAME="pr-build-revision-$(date +'%Y%m%d%H%M%S')"
+          git checkout -b $BRANCH_NAME
+          git push origin $BRANCH_NAME
+
+          gh pr create --title "[core] bump build.func to $REV_STR" \
+                       --body "This PR bumps build.func revision because files in misc/ changed." \
+                       --head $BRANCH_NAME \
+                       --base main \
+                       --label "automated pr"
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+
+      - name: Approve PR and merge
+        if: env.skip == 'false'
+        env:
+          GH_TOKEN: ${{ steps.generate-token-merge.outputs.token }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "${BRANCH_NAME}" --json number --jq '.[].number')
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr review $PR_NUMBER --approve
+            gh pr merge $PR_NUMBER --squash --admin
+          fi
+
+      - name: Skip log
+        if: env.skip == 'true'
+        run: echo "Only build.func changed – nothing to do."

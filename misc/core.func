@@ -154,7 +154,7 @@ silent() {
 
 # Check if the shell is using bash
 shell_check() {
-  if [[ "$(basename "$SHELL")" != "bash" ]]; then
+  if [[ "$(ps -p $$ -o comm=)" != "bash" ]]; then
     clear
     msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
     echo -e "\nExiting..."
@@ -216,6 +216,26 @@ arch_check() {
     echo -e "Exiting..."
     sleep 2
     exit
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# ssh_check()
+#
+# - Detects if script is running over SSH
+# - Warns user and recommends using Proxmox shell
+# - User can choose to continue or abort
+# ------------------------------------------------------------------------------
+ssh_check() {
+  if [ -n "$SSH_CLIENT" ]; then
+    local client_ip=$(awk '{print $1}' <<<"$SSH_CLIENT")
+    local host_ip=$(hostname -I | awk '{print $1}')
+
+    if [[ "$client_ip" == "127.0.0.1" || "$client_ip" == "$host_ip" ]]; then
+      return
+    fi
+
+    msg_warn "Running via external SSH (client: $client_ip)."
   fi
 }
 

@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
-# Co-Author: MickLesk
-# Co-Author: michelroegl-brunner
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: tteck (tteckster) | MickLesk | michelroegl-brunner
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Revision: 1
 
 # ------------------------------------------------------------------------------
 # variables()
@@ -23,8 +22,104 @@ variables() {
   DIAGNOSTICS="yes"                                 # sets the DIAGNOSTICS variable to "yes", used for the API call.
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
+  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
   #CT_TYPE=${var_unprivileged:-$CT_TYPE}
 }
+
+# -----------------------------------------------------------------------------
+# Community-Scripts bootstrap loader
+# - Always sources build.func from remote
+# - Updates local core files only if build.func changed
+# - Local cache: /usr/local/community-scripts/core
+# -----------------------------------------------------------------------------
+
+# FUNC_DIR="/usr/local/community-scripts/core"
+# mkdir -p "$FUNC_DIR"
+
+# BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
+# BUILD_REV="$FUNC_DIR/build.rev"
+# DEVMODE="${DEVMODE:-no}"
+
+# # --- Step 1: fetch build.func content once, compute hash ---
+# build_content="$(curl -fsSL "$BUILD_URL")" || {
+#   echo "❌ Failed to fetch build.func"
+#   exit 1
+# }
+
+# newhash=$(printf "%s" "$build_content" | sha256sum | awk '{print $1}')
+# oldhash=$(cat "$BUILD_REV" 2>/dev/null || echo "")
+
+# # --- Step 2: if build.func changed, offer update for core files ---
+# if [ "$newhash" != "$oldhash" ]; then
+#   echo "⚠️  build.func changed!"
+
+#   while true; do
+#     read -rp "Refresh local core files? [y/N/diff]: " ans
+#     case "$ans" in
+#     [Yy]*)
+#       echo "$newhash" >"$BUILD_REV"
+
+#       update_func_file() {
+#         local file="$1"
+#         local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
+#         local local_path="$FUNC_DIR/$file"
+
+#         echo "⬇️  Downloading $file ..."
+#         curl -fsSL "$url" -o "$local_path" || {
+#           echo "❌ Failed to fetch $file"
+#           exit 1
+#         }
+#         echo "✔️  Updated $file"
+#       }
+
+#       update_func_file core.func
+#       update_func_file error_handler.func
+#       update_func_file tools.func
+#       break
+#       ;;
+#     [Dd]*)
+#       for file in core.func error_handler.func tools.func; do
+#         local_path="$FUNC_DIR/$file"
+#         url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
+#         remote_tmp="$(mktemp)"
+
+#         curl -fsSL "$url" -o "$remote_tmp" || continue
+
+#         if [ -f "$local_path" ]; then
+#           echo "🔍 Diff for $file:"
+#           diff -u "$local_path" "$remote_tmp" || echo "(no differences)"
+#         else
+#           echo "📦 New file $file will be installed"
+#         fi
+
+#         rm -f "$remote_tmp"
+#       done
+#       ;;
+#     *)
+#       echo "❌ Skipped updating local core files"
+#       break
+#       ;;
+#     esac
+#   done
+# else
+#   if [ "$DEVMODE" != "yes" ]; then
+#     echo "✔️  build.func unchanged → using existing local core files"
+#   fi
+# fi
+
+# if [ -n "${_COMMUNITY_SCRIPTS_LOADER:-}" ]; then
+#   return 0 2>/dev/null || exit 0
+# fi
+# _COMMUNITY_SCRIPTS_LOADER=1
+
+# # --- Step 3: always source local versions of the core files ---
+# source "$FUNC_DIR/core.func"
+# source "$FUNC_DIR/error_handler.func"
+# source "$FUNC_DIR/tools.func"
+
+# # --- Step 4: finally, source build.func directly from memory ---
+# # (no tmp file needed)
+# source <(printf "%s" "$build_content")
 
 # ------------------------------------------------------------------------------
 # Load core + error handler functions from community-scripts repo
@@ -33,19 +128,20 @@ variables() {
 # - Load: core.func, error_handler.func, api.func
 # - Initialize error traps after loading
 # ------------------------------------------------------------------------------
+
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
-  init_error_traps
+  catch_errors
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
-  init_error_traps
+  catch_errors
   #echo "(build.func) Loaded core.func via wget"
 fi
 
@@ -124,6 +220,7 @@ get_current_ip() {
   echo "$CURRENT_IP"
 }
 
+
 # ------------------------------------------------------------------------------
 # update_motd_ip()
 #
@@ -140,25 +237,6 @@ update_motd_ip() {
     IP=$(get_current_ip)
     # Add the new IP address
     echo -e "${TAB}${NETWORK}${YW} IP Address: ${GN}${IP}${CL}" >>"$MOTD_FILE"
-  fi
-}
-
-# ------------------------------------------------------------------------------
-# ssh_check()
-#
-# - Detects if script is running over SSH
-# - Warns user and recommends using Proxmox shell
-# - User can choose to continue or abort
-# ------------------------------------------------------------------------------
-ssh_check() {
-  if [ -n "${SSH_CLIENT:+x}" ]; then
-    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH DETECTED" --yesno "It's advisable to utilize the Proxmox shell rather than SSH, as there may be potential complications with variable retrieval. Proceed using SSH?" 10 72; then
-      whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Proceed using SSH" "You've chosen to proceed using SSH. If any issues arise, please run the script in the Proxmox shell before creating a repository issue." 10 72
-    else
-      clear
-      echo "Exiting due to SSH usage. Please consider using the Proxmox shell."
-      exit
-    fi
   fi
 }
 
@@ -536,7 +614,21 @@ advanced_settings() {
     BRG="vmbr0"
     echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
   else
-    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge:" 15 40 6 $(echo "$BRIDGES" | awk '{print $0, "Bridge"}') 3>&1 1>&2 2>&3)
+    # Build bridge menu with descriptions
+    BRIDGE_MENU_OPTIONS=()
+    while IFS= read -r bridge; do
+      if [[ -n "$bridge" ]]; then
+        # Get description from Proxmox built-in method - find comment for this specific bridge
+        description=$(grep -A 10 "iface $bridge" /etc/network/interfaces | grep '^#' | head -n1 | sed 's/^#\s*//')
+        if [[ -n "$description" ]]; then
+          BRIDGE_MENU_OPTIONS+=("$bridge" "${description}")
+        else
+          BRIDGE_MENU_OPTIONS+=("$bridge" " ")
+        fi
+      fi
+    done <<< "$BRIDGES"
+
+    BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge: " 18 55 6 "${BRIDGE_MENU_OPTIONS[@]}" 3>&1 1>&2 2>&3)
     if [[ -z "$BRG" ]]; then
       exit_script
     else
@@ -903,13 +995,11 @@ DIAGNOSTICS=yes
 #To send diagnostics, set the variable 'DIAGNOSTICS' to "yes" in /usr/local/community-scripts/diagnostics, or use the menue.
 #This will enable the diagnostics feature.
 #The following information will be sent:
-#"ct_type"
 #"disk_size"
 #"core_count"
 #"ram_size"
 #"os_type"
 #"os_version"
-#"disableip6"
 #"nsapp"
 #"method"
 #"pve_version"
@@ -930,13 +1020,11 @@ DIAGNOSTICS=no
 #To send diagnostics, set the variable 'DIAGNOSTICS' to "yes" in /usr/local/community-scripts/diagnostics, or use the menue.
 #This will enable the diagnostics feature.
 #The following information will be sent:
-#"ct_type"
 #"disk_size"
 #"core_count"
 #"ram_size"
 #"os_type"
 #"os_version"
-#"disableip6"
 #"nsapp"
 #"method"
 #"pve_version"
@@ -1449,27 +1537,47 @@ maybe_offer_save_app_defaults() {
 }
 
 ensure_storage_selection_for_vars_file() {
-  vf="$1"
+  local vf="$1"
 
   # Read stored values (if any)
+  local tpl ct
   tpl=$(grep -E '^var_template_storage=' "$vf" | cut -d= -f2-)
   ct=$(grep -E '^var_container_storage=' "$vf" | cut -d= -f2-)
 
-  # Template storage
-  if [ -n "$tpl" ]; then
+  # Wenn beide Werte schon existieren → übernehmen
+  if [[ -n "$tpl" && -n "$ct" ]]; then
     TEMPLATE_STORAGE="$tpl"
-  else
-    choose_and_set_storage_for_file "$vf" template
-  fi
-
-  # Container storage
-  if [ -n "$ct" ]; then
     CONTAINER_STORAGE="$ct"
-  else
-    choose_and_set_storage_for_file "$vf" container
+    echo_storage_summary_from_file "$vf"
+    return 0
   fi
 
-  echo_storage_summary_from_file "$vf"
+  # --- Erstmalige Auswahl: beide Abfragen ---
+  select_storage template
+  local tpl_sel="$STORAGE_RESULT"
+
+  select_storage container
+  local ct_sel="$STORAGE_RESULT"
+
+  # --- Zusammenfassung + Nachfrage ---
+  if whiptail --backtitle "Community Scripts" --title "Default Storage" \
+    --yesno "Template-Storage --> $tpl_sel\nContainer-Storage --> $ct_sel\n\nSave as global defaults?" \
+    12 70; then
+    sed -i '/^[#[:space:]]*var_template_storage=/d' "$vf"
+    sed -i '/^[#[:space:]]*var_container_storage=/d' "$vf"
+    echo "var_template_storage=$tpl_sel" >>"$vf"
+    echo "var_container_storage=$ct_sel" >>"$vf"
+  else
+    sed -i '/^[#[:space:]]*var_template_storage=/d' "$vf"
+    sed -i '/^[#[:space:]]*var_container_storage=/d' "$vf"
+    echo "# var_template_storage=$tpl_sel" >>"$vf"
+    echo "# var_container_storage=$ct_sel" >>"$vf"
+  fi
+
+  TEMPLATE_STORAGE="$tpl_sel"
+  CONTAINER_STORAGE="$ct_sel"
+  msg_ok "Using Template-Storage → $tpl_sel"
+  msg_ok "Using Container-Storage → $ct_sel"
 }
 
 diagnostics_menu() {
@@ -1517,6 +1625,8 @@ install_script() {
 
   NEXTID=$(pvesh get /cluster/nextid)
   timezone=$(cat /etc/timezone)
+
+  # Show APP Header
   header_info
 
   # --- Support CLI argument as direct preset (default, advanced, …) ---
@@ -1559,7 +1669,12 @@ install_script() {
     METHOD="default"
     base_settings "$VERBOSE"
     echo_default
+    [[ -f /usr/local/community-scripts/default.vars ]] || {
+      mkdir -p /usr/local/community-scripts
+      touch /usr/local/community-scripts/default.vars
+    }
     ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
+
     ;;
   2 | advanced | ADVANCED)
     header_info
@@ -1567,7 +1682,12 @@ install_script() {
     METHOD="advanced"
     base_settings
     advanced_settings
+    [[ -f /usr/local/community-scripts/default.vars ]] || {
+      mkdir -p /usr/local/community-scripts
+      touch /usr/local/community-scripts/default.vars
+    }
     ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
+
     maybe_offer_save_app_defaults
     ;;
   3 | mydefaults | MYDEFAULTS)
@@ -1601,119 +1721,22 @@ install_script() {
   esac
 }
 
-# ------------------------------------------------------------------------------
-# check_storage_or_prompt()
-#
-# - Validates container/template storage
-# - If invalid or missing, prompts user to select new storage
-# - Updates vars file accordingly
-# ------------------------------------------------------------------------------
-# check_storage_or_prompt() {
-#   local vars_file="$1"
-#   local changed=0
-
-#   if [ ! -f "$vars_file" ]; then
-#     msg_warn "No vars file found at $vars_file"
-#     return 0
-#   fi
-
-#   # Helper: validate storage ID
-#   _validate_storage() {
-#     local s="$1"
-#     [ -n "$s" ] || return 1
-#     pvesm status -content images | awk 'NR>1 {print $1}' | grep -qx "$s"
-#   }
-
-#   # Load current values (empty if not set)
-#   local ct_store tpl_store
-#   ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
-#   tpl_store=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
-
-#   # Container storage
-#   if ! _validate_storage "$ct_store"; then
-#     local new_ct
-#     new_ct=$(pvesm status -content images | awk 'NR>1 {print $1"  "$2" "$6}')
-#     new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#       --title "Select Container Storage" \
-#       --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || return 0
-#     if [ -n "$new_ct" ]; then
-#       sed -i "/^var_container_storage=/d" "$vars_file"
-#       echo "var_container_storage=$new_ct" >>"$vars_file"
-#       changed=1
-#       msg_ok "Updated container storage in $vars_file → $new_ct"
-#     fi
-#   fi
-
-#   # Template storage
-#   if ! _validate_storage "$tpl_store"; then
-#     local new_tpl
-#     new_tpl=$(pvesm status -content vztmpl | awk 'NR>1 {print $1"  "$2" "$6}')
-#     new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#       --title "Select Template Storage" \
-#       --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || return 0
-#     if [ -n "$new_tpl" ]; then
-#       sed -i "/^var_template_storage=/d" "$vars_file"
-#       echo "var_template_storage=$new_tpl" >>"$vars_file"
-#       changed=1
-#       msg_ok "Updated template storage in $vars_file → $new_tpl"
-#     fi
-#   fi
-
-#   # Always succeed (no aborts from here)
-#   return 0
-# }
-
-# # ------------------------------------------------------------------------------
-# # storage_settings_menu()
-# #
-# # - Menu for managing storage defaults
-# # - Options: update My Defaults or App Defaults storage
-# # ------------------------------------------------------------------------------
-# storage_settings_menu() {
-#   local vars_file="/usr/local/community-scripts/default.vars"
-
-#   check_storage_or_prompt "$vars_file"
-#   _echo_storage_summary "$vars_file"
-
-#   # Always ask user if they want to update, even if values are valid
-#   if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#     --title "STORAGE SETTINGS" \
-#     --yesno "Do you want to update the storage defaults?\n\nCurrent values will be kept unless you select new ones." 12 72; then
-
-#     # container storage selection
-#     local new_ct
-#     new_ct=$(pvesm status -content images | awk 'NR>1 {print $1"  "$2" "$6}')
-#     new_ct=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#       --title "Select Container Storage" \
-#       --menu "Choose container storage:" 20 60 10 $new_ct 3>&1 1>&2 2>&3) || true
-#     if [ -n "$new_ct" ]; then
-#       sed -i '/^var_container_storage=/d' "$vars_file"
-#       echo "var_container_storage=$new_ct" >>"$vars_file"
-#       msg_ok "Updated container storage → $new_ct"
-#     fi
-
-#     # template storage selection
-#     local new_tpl
-#     new_tpl=$(pvesm status -content vztmpl | awk 'NR>1 {print $1"  "$2" "$6}')
-#     new_tpl=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-#       --title "Select Template Storage" \
-#       --menu "Choose template storage:" 20 60 10 $new_tpl 3>&1 1>&2 2>&3) || true
-#     if [ -n "$new_tpl" ]; then
-#       sed -i '/^var_template_storage=/d' "$vars_file"
-#       echo "var_template_storage=$new_tpl" >>"$vars_file"
-#       msg_ok "Updated template storage → $new_tpl"
-#     fi
-#   fi
-# }
-
 edit_default_storage() {
   local vf="/usr/local/community-scripts/default.vars"
 
   # make sure file exists
-  if [ ! -f "$vf" ]; then
-    msg_info "No default.vars found, creating $vf"
-    mkdir -p /usr/local/community-scripts
+  if [[ ! -f "$vf" ]]; then
+    # still create
+    mkdir -p "$(dirname "$vf")"
     touch "$vf"
+
+    if select_storage template; then
+      echo "var_template_storage=$STORAGE_RESULT" >>"$vf"
+    fi
+
+    if select_storage container; then
+      echo "var_container_storage=$STORAGE_RESULT" >>"$vf"
+    fi
   fi
 
   # reuse the same Whiptail selection we already have
@@ -2013,7 +2036,44 @@ start() {
 build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
-  NET_STRING="-net0 name=eth0,bridge=${BRG:-vmbr0}${MAC:-},ip=${NET:-dhcp}${GATE:-}${VLAN:-}${MTU:-}"
+  NET_STRING="-net0 name=eth0,bridge=${BRG:-vmbr0}"
+
+  # MAC
+  if [[ -n "$MAC" ]]; then
+    case "$MAC" in
+    ,hwaddr=*) NET_STRING+="$MAC" ;;
+    *) NET_STRING+=",hwaddr=$MAC" ;;
+    esac
+  fi
+
+  # IP (immer zwingend, Standard dhcp)
+  NET_STRING+=",ip=${NET:-dhcp}"
+
+  # Gateway
+  if [[ -n "$GATE" ]]; then
+    case "$GATE" in
+    ,gw=*) NET_STRING+="$GATE" ;;
+    *) NET_STRING+=",gw=$GATE" ;;
+    esac
+  fi
+
+  # VLAN
+  if [[ -n "$VLAN" ]]; then
+    case "$VLAN" in
+    ,tag=*) NET_STRING+="$VLAN" ;;
+    *) NET_STRING+=",tag=$VLAN" ;;
+    esac
+  fi
+
+  # MTU
+  if [[ -n "$MTU" ]]; then
+    case "$MTU" in
+    ,mtu=*) NET_STRING+="$MTU" ;;
+    *) NET_STRING+=",mtu=$MTU" ;;
+    esac
+  fi
+
+  # IPv6 Handling
   case "$IPV6_METHOD" in
   auto) NET_STRING="$NET_STRING,ip6=auto" ;;
   dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
@@ -2034,10 +2094,6 @@ build_container() {
     FEATURES="$FEATURES,fuse=1"
   fi
 
-  #if [[ $DIAGNOSTICS == "yes" ]]; then
-  #  post_to_api
-  #fi
-
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
   if [ "$var_os" == "alpine" ]; then
@@ -2050,7 +2106,6 @@ build_container() {
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"
-  #export DISABLEIPV6="$DISABLEIP6"
   export APPLICATION="$APP"
   export app="$NSAPP"
   export PASSWORD="$PW"
@@ -2083,10 +2138,118 @@ build_container() {
 
   LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
 
-  # USB passthrough for privileged LXC (CT_TYPE=0)
-  if [ "$CT_TYPE" == "0" ]; then
+  # ============================================================================
+  # GPU/USB PASSTHROUGH CONFIGURATION
+  # ============================================================================
+
+  # List of applications that benefit from GPU acceleration
+ GPU_APPS=(
+    "immich" "channels" "emby" "ersatztv" "frigate"
+    "jellyfin" "plex" "scrypted" "tdarr" "unmanic"
+    "ollama" "fileflows" "open-webui" "tunarr" "debian"
+    "handbrake" "sunshine" "moonlight" "kodi" "stremio"
+    "viseron"
+  )
+
+  # Check if app needs GPU
+  is_gpu_app() {
+    local app="${1,,}"
+    for gpu_app in "${GPU_APPS[@]}"; do
+      [[ "$app" == "${gpu_app,,}" ]] && return 0
+    done
+    return 1
+  }
+
+  # Detect all available GPU devices
+  detect_gpu_devices() {
+    INTEL_DEVICES=()
+    AMD_DEVICES=()
+    NVIDIA_DEVICES=()
+
+    # Store PCI info to avoid multiple calls
+    local pci_vga_info=$(lspci -nn 2>/dev/null | grep -E "VGA|Display|3D")
+
+    # Check for Intel GPU - look for Intel vendor ID [8086]
+    if echo "$pci_vga_info" | grep -q "\[8086:"; then
+      msg_info "Detected Intel GPU"
+      if [[ -d /dev/dri ]]; then
+        for d in /dev/dri/renderD* /dev/dri/card*; do
+          [[ -e "$d" ]] && INTEL_DEVICES+=("$d")
+        done
+      fi
+    fi
+
+    # Check for AMD GPU - look for AMD vendor IDs [1002] (AMD/ATI) or [1022] (AMD)
+    if echo "$pci_vga_info" | grep -qE "\[1002:|\[1022:"; then
+      msg_info "Detected AMD GPU"
+      if [[ -d /dev/dri ]]; then
+        # Only add if not already claimed by Intel
+        if [[ ${#INTEL_DEVICES[@]} -eq 0 ]]; then
+          for d in /dev/dri/renderD* /dev/dri/card*; do
+            [[ -e "$d" ]] && AMD_DEVICES+=("$d")
+          done
+        fi
+      fi
+    fi
+
+    # Check for NVIDIA GPU - look for NVIDIA vendor ID [10de]
+    if echo "$pci_vga_info" | grep -q "\[10de:"; then
+      msg_info "Detected NVIDIA GPU"
+      if ! check_nvidia_host_setup; then
+        msg_error "NVIDIA host setup incomplete. Skipping GPU passthrough."
+        msg_info "Fix NVIDIA drivers on host, then recreate container or passthrough manually."
+        return 0
+      fi
+
+      for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset; do
+        [[ -e "$d" ]] && NVIDIA_DEVICES+=("$d")
+      done
+
+      if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
+        msg_warn "NVIDIA GPU detected but no /dev/nvidia* devices found"
+        msg_warn "Please install NVIDIA drivers on host: apt install nvidia-driver"
+      else
+        if [[ "$CT_TYPE" == "0" ]]; then
+          cat <<EOF >>"$LXC_CONFIG"
+    # NVIDIA GPU Passthrough (privileged)
+    lxc.cgroup2.devices.allow: c 195:* rwm
+    lxc.cgroup2.devices.allow: c 243:* rwm
+    lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
+    lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
+    lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
+    lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,create=file
+EOF
+
+          if [[ -e /dev/dri/renderD128 ]]; then
+            echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
+          fi
+
+          export GPU_TYPE="NVIDIA"
+          export NVIDIA_DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n1)
+          msg_ok "NVIDIA GPU passthrough configured (driver: ${NVIDIA_DRIVER_VERSION})"
+        else
+          msg_warn "NVIDIA passthrough only supported for privileged containers"
+          return 0
+        fi
+      fi
+    fi
+
+      # Debug output
+      msg_debug "Intel devices: ${INTEL_DEVICES[*]}"
+      msg_debug "AMD devices: ${AMD_DEVICES[*]}"
+      msg_debug "NVIDIA devices: ${NVIDIA_DEVICES[*]}"
+    }
+
+
+  # Configure USB passthrough for privileged containers
+  configure_usb_passthrough() {
+    if [[ "$CT_TYPE" != "0" ]]; then
+      return 0
+    fi
+
+    msg_info "Configuring automatic USB passthrough (privileged container)"
     cat <<EOF >>"$LXC_CONFIG"
-# USB passthrough
+# Automatic USB passthrough (privileged container)
 lxc.cgroup2.devices.allow: a
 lxc.cap.drop:
 lxc.cgroup2.devices.allow: c 188:* rwm
@@ -2097,171 +2260,171 @@ lxc.mount.entry: /dev/ttyUSB1       dev/ttyUSB1       none bind,optional,create=
 lxc.mount.entry: /dev/ttyACM0       dev/ttyACM0       none bind,optional,create=file
 lxc.mount.entry: /dev/ttyACM1       dev/ttyACM1       none bind,optional,create=file
 EOF
+    msg_ok "USB passthrough configured"
+  }
+
+  # Configure GPU passthrough
+configure_gpu_passthrough() {
+  # Skip if not a GPU app and not privileged
+  if [[ "$CT_TYPE" != "0" ]] && ! is_gpu_app "$APP"; then
+    return 0
   fi
 
-  # VAAPI passthrough for privileged containers or known apps
-  VAAPI_APPS=(
-    "immich" "Channels" "Emby" "ErsatzTV" "Frigate" "Jellyfin"
-    "Plex" "Scrypted" "Tdarr" "Unmanic" "Ollama" "FileFlows"
-    "Open WebUI" "Debian" "Tunarr"
-  )
+  detect_gpu_devices
 
-  is_vaapi_app=false
-  for vaapi_app in "${VAAPI_APPS[@]}"; do
-    if [[ "$APP" == "$vaapi_app" ]]; then
-      is_vaapi_app=true
-      break
-    fi
-  done
+  # Count available GPU types
+  local gpu_count=0
+  local available_gpus=()
 
-  if [[ "$CT_TYPE" == "0" || "$is_vaapi_app" == "true" ]]; then
-    VAAPI_DEVICES=()
-    SINGLE_VAAPI_DEVICE=""
-    seen_ids=()
+  if [[ ${#INTEL_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("INTEL")
+    gpu_count=$((gpu_count + 1))
+  fi
 
-    for bypath in /dev/dri/by-path/*-render /dev/dri/renderD*; do
-      [[ -e "$bypath" ]] || continue
-      dev_render=$(readlink -f "$bypath") || continue
-      id=$(basename "$dev_render")
-      [[ " ${seen_ids[*]} " == *" $id "* ]] && continue
-      seen_ids+=("$id")
+  if [[ ${#AMD_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("AMD")
+    gpu_count=$((gpu_count + 1))
+  fi
 
-      card_index="${id#renderD}"
-      card="/dev/dri/card${card_index}"
-      combo_devices=("$dev_render")
-      if [[ "${#combo_devices[@]}" -eq 1 && -e /dev/dri/card0 ]]; then
-        combo_devices+=("/dev/dri/card0")
-      fi
-      #echo "combo_devices=${combo_devices[*]}"
+  if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("NVIDIA")
+    gpu_count=$((gpu_count + 1))
+  fi
 
-      pci_addr=$(basename "$bypath" | cut -d- -f1 --complement | sed 's/-render//' || true)
-      pci_info=$(lspci -nn | grep "${pci_addr#0000:}" || true)
-      name="${pci_info#*: }"
-      [[ -z "$name" ]] && name="Unknown GPU ($pci_addr)"
+  if [[ $gpu_count -eq 0 ]]; then
+    msg_info "No GPU devices found for passthrough"
+    return 0
+  fi
 
-      label="$(basename "$dev_render")"
-      [[ -e "$card" ]] && label+=" + $(basename "$card")"
-      label+=" – $name"
-      msg_debug "[VAAPI DEBUG] Adding VAAPI combo: ${combo_devices[*]} ($label)"
+  local selected_gpu=""
 
-      VAAPI_DEVICES+=("$(
-        IFS=:
-        echo "${combo_devices[*]}"
-      )" "$label" "OFF")
+  if [[ $gpu_count -eq 1 ]]; then
+    # Automatic selection for single GPU
+    selected_gpu="${available_gpus[0]}"
+    msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
+  else
+    # Multiple GPUs - ask user
+    echo -e "\n${INFO} Multiple GPU types detected:"
+    for gpu in "${available_gpus[@]}"; do
+      echo "  - $gpu"
+    done
+    read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
+    selected_gpu="${selected_gpu^^}"
+
+    # Validate selection
+    local valid=0
+    for gpu in "${available_gpus[@]}"; do
+      [[ "$selected_gpu" == "$gpu" ]] && valid=1
     done
 
-    [[ -e /dev/fb0 ]] && VAAPI_DEVICES+=("/dev/fb0" "fb0 - Framebuffer" "OFF")
+    if [[ $valid -eq 0 ]]; then
+      msg_warn "Invalid selection. Skipping GPU passthrough."
+      return 0
+    fi
+  fi
 
-    GID_VIDEO=$(getent group video | cut -d: -f3)
-    GID_RENDER=$(getent group render | cut -d: -f3)
-    [[ -z "$GID_VIDEO" ]] && GID_VIDEO=44 && msg_warn "'video' group not found, falling back to GID 44"
-    [[ -z "$GID_RENDER" ]] && GID_RENDER=104 && msg_warn "'render' group not found, falling back to GID 104"
+  # Apply passthrough configuration based on selection
+  local dev_idx=0
 
-    if [[ "${#VAAPI_DEVICES[@]}" -eq 0 ]]; then
-      msg_warn "No VAAPI-compatible devices found."
-    elif [[ "${#VAAPI_DEVICES[@]}" -eq 3 ]]; then
-      #msg_info "Only one VAAPI-compatible device found – enabling passthrough."
+  case "$selected_gpu" in
+    INTEL|AMD)
+      local devices=()
+      [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
+      [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
 
-      IFS=":" read -ra devices <<<"${VAAPI_DEVICES[0]//\"/}"
-      IDX=0
-      DID_MOUNT_DRI=0
-
-      for d in "${devices[@]}"; do
+      # For Proxmox WebUI visibility, add as dev0, dev1 etc.
+      for dev in "${devices[@]}"; do
         if [[ "$CT_TYPE" == "0" ]]; then
-          if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
-            echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-            DID_MOUNT_DRI=1
+          # Privileged container - use dev entries for WebUI visibility
+          # Use initial GID 104 (render) for renderD*, 44 (video) for card*
+          if [[ "$dev" =~ renderD ]]; then
+            echo "dev${dev_idx}: $dev,gid=104" >>"$LXC_CONFIG"
+          else
+            echo "dev${dev_idx}: $dev,gid=44" >>"$LXC_CONFIG"
           fi
-          if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
-            msg_warn "Could not stat $d – skipping."
-            continue
+          dev_idx=$((dev_idx + 1))
+
+          # Also add cgroup allows for privileged containers
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
+
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
           fi
-          echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
-          echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
         else
-          GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
-          echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
-          IDX=$((IDX + 1))
+          # Unprivileged container
+          if [[ "$dev" =~ renderD ]]; then
+            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
+          else
+            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+          fi
+          dev_idx=$((dev_idx + 1))
         fi
       done
 
-    else
-      if [[ "$CT_TYPE" == "0" ]]; then
-        whiptail --title "VAAPI passthrough" --msgbox "\
-✅ VAAPI passthrough has been enabled
+      export GPU_TYPE="$selected_gpu"
+      msg_ok "${selected_gpu} GPU passthrough configured (${dev_idx} devices)"
+      ;;
 
-GPU hardware acceleration will be available inside the container
-(e.g., for Jellyfin, Plex, Frigate, etc.)
-
-ℹ️  Note: You may need to install drivers manually inside the container,
-such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
-      else
-        whiptail --title "VAAPI passthrough (limited)" --msgbox "\
-⚠️  VAAPI passthrough in unprivileged containers may be limited
-
-Some drivers (e.g., iHD) require privileged access to DRM subsystems.
-If VAAPI fails, consider switching to a privileged container.
-
-ℹ️  Note: You may need to install drivers manually inside the container,
-such as 'intel-media-driver', 'libva2', or 'vainfo'." 15 74
+    NVIDIA)
+      if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
+        msg_error "NVIDIA drivers not installed on host. Please install: apt install nvidia-driver"
+        return 1
       fi
 
-      SELECTED_DEVICES=$(whiptail --title "VAAPI Device Selection" \
-        --checklist "Select VAAPI device(s) / GPU(s) to passthrough:" 20 100 6 \
-        "${VAAPI_DEVICES[@]}" 3>&1 1>&2 2>&3)
+      for dev in "${NVIDIA_DEVICES[@]}"; do
+        # NVIDIA devices typically need different handling
+        echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+        dev_idx=$((dev_idx + 1))
 
-      if [[ $? -ne 0 ]]; then
-        exit_script
-        msg_error "VAAPI passthrough selection cancelled by user."
-      fi
+        if [[ "$CT_TYPE" == "0" ]]; then
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
 
-      if [[ -n "$SELECTED_DEVICES" ]]; then
-        IDX=0
-        DID_MOUNT_DRI=0
-        for dev in $SELECTED_DEVICES; do
-          dev="${dev%\"}"
-          dev="${dev#\"}" # strip quotes
-          IFS=":" read -ra devices <<<"$dev"
-          msg_debug "[VAAPI DEBUG] Autopassthrough for devices: ${devices[*]}"
-          for d in "${devices[@]}"; do
-            if [[ "$CT_TYPE" == "0" ]]; then
-              if [[ "$DID_MOUNT_DRI" -eq 0 && -d /dev/dri ]]; then
-                echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
-                DID_MOUNT_DRI=1
-              fi
-              if ! major_minor=$(stat -c '%t:%T' "$d" 2>/dev/null | awk -F: '{ printf "%d:%d", "0x"$1, "0x"$2 }'); then
-                msg_warn "Could not stat $d – skipping."
-                continue
-              fi
-              echo "lxc.cgroup2.devices.allow: c $major_minor rwm" >>"$LXC_CONFIG"
-              echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
-            else
-              GID=$([[ "$d" =~ render ]] && echo "$GID_RENDER" || echo "$GID_VIDEO")
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+          fi
+        fi
+      done
 
-              echo "dev${IDX}: $d,gid=${GID}" >>"$LXC_CONFIG"
-              IDX=$((IDX + 1))
-            fi
-          done
-        done
-      else
-        msg_warn "No VAAPI devices selected – passthrough skipped."
-      fi
-    fi
-  fi
+      export GPU_TYPE="NVIDIA"
+      msg_ok "NVIDIA GPU passthrough configured (${dev_idx} devices)"
+      ;;
+  esac
+}
 
-  # TUN device passthrough
-  if [ "$ENABLE_TUN" == "yes" ]; then
-    cat <<EOF >>"$LXC_CONFIG"
+  # Additional device passthrough
+  configure_additional_devices() {
+    # TUN device passthrough
+    if [ "$ENABLE_TUN" == "yes" ]; then
+      cat <<EOF >>"$LXC_CONFIG"
 lxc.cgroup2.devices.allow: c 10:200 rwm
 lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
 EOF
-  fi
+    fi
 
-  # This starts the container and executes <app>-install.sh
+    # Coral TPU passthrough
+    if [[ -e /dev/apex_0 ]]; then
+      msg_info "Detected Coral TPU - configuring passthrough"
+      echo "lxc.mount.entry: /dev/apex_0 dev/apex_0 none bind,optional,create=file" >>"$LXC_CONFIG"
+    fi
+  }
+
+  # Execute pre-start configurations
+  configure_usb_passthrough
+  configure_gpu_passthrough
+  configure_additional_devices
+
+  # ============================================================================
+  # START CONTAINER AND INSTALL USERLAND
+  # ============================================================================
+
   msg_info "Starting LXC Container"
   pct start "$CTID"
 
-  # wait for status 'running'
+  # Wait for container to be running
   for i in {1..10}; do
     if pct status "$CTID" | grep -q "status: running"; then
       msg_ok "Started LXC Container"
@@ -2274,55 +2437,192 @@ EOF
     fi
   done
 
+  # Wait for network (skip for Alpine initially)
   if [ "$var_os" != "alpine" ]; then
     msg_info "Waiting for network in LXC container"
-    sleep 2
-    for i in {1..10}; do
-      # 1. Primary check: ICMP ping (fastest, but may be blocked by ISP/firewall)
-      if pct exec "$CTID" -- ping -c1 -W1 deb.debian.org >/dev/null 2>&1; then
-        msg_ok "Network in LXC is reachable (ping)"
-        break
-      fi
-      # Wait and retry if not reachable yet
-      if [ "$i" -lt 10 ]; then
-        if [ "$i" -le 3 ]; then
-          sleep 2
-        else
-          msg_warn "No network in LXC yet (try $i/10) – waiting..."
-          sleep 3
-        fi
-      else
-        # After 10 unsuccessful ping attempts, try HTTP connectivity via wget as fallback
-        msg_warn "Ping failed 10 times. Trying HTTP connectivity check (wget) as fallback..."
-        if pct exec "$CTID" -- wget -q --spider http://deb.debian.org; then
-          msg_ok "Network in LXC is reachable (wget fallback)"
-        else
-          msg_error "No network in LXC after all checks."
-          read -r -p "Set fallback DNS (1.1.1.1/8.8.8.8)? [y/N]: " choice
-          case "$choice" in
-          [yY]*)
-            pct set "$CTID" --nameserver 1.1.1.1
-            pct set "$CTID" --nameserver 8.8.8.8
-            # Final attempt with wget after DNS change
-            if pct exec "$CTID" -- wget -q --spider http://deb.debian.org; then
-              msg_ok "Network reachable after DNS fallback"
-            else
-              msg_error "Still no network/DNS in LXC! Aborting customization."
-              exit_script
-            fi
-            ;;
-          *)
-            msg_error "Aborted by user – no DNS fallback set."
-            exit_script
-            ;;
-          esac
-        fi
-        break
-      fi
+
+    # Wait for IP
+    for i in {1..20}; do
+      ip_in_lxc=$(pct exec "$CTID" -- ip -4 addr show dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
+      [ -n "$ip_in_lxc" ] && break
+      sleep 1
     done
+
+    if [ -z "$ip_in_lxc" ]; then
+      msg_error "No IP assigned to CT $CTID after 20s"
+      exit 1
+    fi
+
+    # Try to reach gateway
+    gw_ok=0
+    for i in {1..10}; do
+      if pct exec "$CTID" -- ping -c1 -W1 "${GATEWAY:-8.8.8.8}" >/dev/null 2>&1; then
+        gw_ok=1
+        break
+      fi
+      sleep 1
+    done
+
+    if [ "$gw_ok" -eq 1 ]; then
+      msg_ok "Network in LXC is reachable (IP $ip_in_lxc)"
+    else
+      msg_warn "Network reachable but gateway check failed"
+    fi
+  fi
+  # Function to get correct GID inside container
+  get_container_gid() {
+    local group="$1"
+    local gid=$(pct exec "$CTID" -- getent group "$group" 2>/dev/null | cut -d: -f3)
+    echo "${gid:-44}"  # Default to 44 if not found
+  }
+
+  fix_gpu_gids
+
+# Configure GPU passthrough
+configure_gpu_passthrough() {
+  # Skip if not a GPU app and not privileged
+  if [[ "$CT_TYPE" != "0" ]] && ! is_gpu_app "$APP"; then
+    return 0
   fi
 
+  detect_gpu_devices
+
+  # Count available GPU types
+  local gpu_count=0
+  local available_gpus=()
+
+  if [[ ${#INTEL_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("INTEL")
+    gpu_count=$((gpu_count + 1))
+  fi
+
+  if [[ ${#AMD_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("AMD")
+    gpu_count=$((gpu_count + 1))
+  fi
+
+  if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
+    available_gpus+=("NVIDIA")
+    gpu_count=$((gpu_count + 1))
+  fi
+
+  if [[ $gpu_count -eq 0 ]]; then
+    msg_info "No GPU devices found for passthrough"
+    return 0
+  fi
+
+  local selected_gpu=""
+
+  if [[ $gpu_count -eq 1 ]]; then
+    # Automatic selection for single GPU
+    selected_gpu="${available_gpus[0]}"
+    msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
+  else
+    # Multiple GPUs - ask user
+    echo -e "\n${INFO} Multiple GPU types detected:"
+    for gpu in "${available_gpus[@]}"; do
+      echo "  - $gpu"
+    done
+    read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
+    selected_gpu="${selected_gpu^^}"
+
+    # Validate selection
+    local valid=0
+    for gpu in "${available_gpus[@]}"; do
+      [[ "$selected_gpu" == "$gpu" ]] && valid=1
+    done
+
+    if [[ $valid -eq 0 ]]; then
+      msg_warn "Invalid selection. Skipping GPU passthrough."
+      return 0
+    fi
+  fi
+
+  # Apply passthrough configuration based on selection
+  local dev_idx=0
+
+  case "$selected_gpu" in
+    INTEL|AMD)
+      local devices=()
+      [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
+      [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
+
+      # For Proxmox WebUI visibility, add as dev0, dev1 etc.
+      for dev in "${devices[@]}"; do
+        if [[ "$CT_TYPE" == "0" ]]; then
+          # Privileged container - use dev entries for WebUI visibility
+          # Use initial GID 104 (render) for renderD*, 44 (video) for card*
+          if [[ "$dev" =~ renderD ]]; then
+            echo "dev${dev_idx}: $dev,gid=104" >>"$LXC_CONFIG"
+          else
+            echo "dev${dev_idx}: $dev,gid=44" >>"$LXC_CONFIG"
+          fi
+          dev_idx=$((dev_idx + 1))
+
+          # Also add cgroup allows for privileged containers
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
+
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+          fi
+        else
+          # Unprivileged container
+          if [[ "$dev" =~ renderD ]]; then
+            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
+          else
+            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+          fi
+          dev_idx=$((dev_idx + 1))
+        fi
+      done
+
+      export GPU_TYPE="$selected_gpu"
+      msg_ok "${selected_gpu} GPU passthrough configured (${dev_idx} devices)"
+      ;;
+
+    NVIDIA)
+      if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
+        msg_error "NVIDIA drivers not installed on host. Please install: apt install nvidia-driver"
+        return 1
+      fi
+
+      for dev in "${NVIDIA_DEVICES[@]}"; do
+        # NVIDIA devices typically need different handling
+        echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
+        dev_idx=$((dev_idx + 1))
+
+        if [[ "$CT_TYPE" == "0" ]]; then
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
+
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+          fi
+        fi
+      done
+
+      export GPU_TYPE="NVIDIA"
+      msg_ok "NVIDIA GPU passthrough configured (${dev_idx} devices)"
+      ;;
+  esac
+}
+
+  # Continue with standard container setup
   msg_info "Customizing LXC Container"
+
+  # # Install GPU userland if configured
+  # if [[ "${ENABLE_VAAPI:-0}" == "1" ]]; then
+  #   install_gpu_userland "VAAPI"
+  # fi
+
+  # if [[ "${ENABLE_NVIDIA:-0}" == "1" ]]; then
+  #   install_gpu_userland "NVIDIA"
+  # fi
+
+  # Continue with standard container setup
   if [ "$var_os" == "alpine" ]; then
     sleep 3
     pct exec "$CTID" -- /bin/sh -c 'cat <<EOF >/etc/apk/repositories
@@ -2332,7 +2632,6 @@ EOF'
     pct exec "$CTID" -- ash -c "apk add bash newt curl openssh nano mc ncurses jq >/dev/null"
   else
     sleep 3
-
     pct exec "$CTID" -- bash -c "sed -i '/$LANG/ s/^# //' /etc/locale.gen"
     pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
     echo LANG=\$locale_line >/etc/default/locale && \
@@ -2354,26 +2653,63 @@ EOF'
       exit 1
     }
   fi
+
   msg_ok "Customized LXC Container"
+
+  # Verify GPU access if enabled
+  if [[ "${ENABLE_VAAPI:-0}" == "1" ]] && [ "$var_os" != "alpine" ]; then
+    pct exec "$CTID" -- bash -c "vainfo >/dev/null 2>&1" &&
+      msg_ok "VAAPI verified working" ||
+      msg_warn "VAAPI verification failed - may need additional configuration"
+  fi
+
+  if [[ "${ENABLE_NVIDIA:-0}" == "1" ]] && [ "$var_os" != "alpine" ]; then
+    pct exec "$CTID" -- bash -c "nvidia-smi >/dev/null 2>&1" &&
+      msg_ok "NVIDIA verified working" ||
+      msg_warn "NVIDIA verification failed - may need additional configuration"
+  fi
+
+  # Install SSH keys
   install_ssh_keys_into_ct
+
+  # Run application installer
   if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
     exit $?
   fi
 }
 
 destroy_lxc() {
-  if [[ -n "$CT_ID" ]]; then
-    read -p "Remove this Container? <y/N> " prompt
-    if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-      pct stop "$CT_ID" &>/dev/null
-      pct destroy "$CT_ID" &>/dev/null
-      msg_ok "Removed this Container"
-    else
-      msg_info "Container was not removed."
-    fi
-  else
+  if [[ -z "$CT_ID" ]]; then
     msg_error "No CT_ID found. Nothing to remove."
+    return 1
   fi
+
+  # Abbruch bei Ctrl-C / Ctrl-D / ESC
+  trap 'echo; msg_error "Aborted by user (SIGINT/SIGQUIT)"; return 130' INT QUIT
+
+  local prompt
+  if ! read -rp "Remove this Container? <y/N> " prompt; then
+    # read gibt != 0 zurück bei Ctrl-D/ESC
+    msg_error "Aborted input (Ctrl-D/ESC)"
+    return 130
+  fi
+
+  case "${prompt,,}" in
+  y | yes)
+    if pct stop "$CT_ID" &>/dev/null && pct destroy "$CT_ID" &>/dev/null; then
+      msg_ok "Removed Container $CT_ID"
+    else
+      msg_error "Failed to remove Container $CT_ID"
+      return 1
+    fi
+    ;;
+  "" | n | no)
+    msg_info "Container was not removed."
+    ;;
+  *)
+    msg_warn "Invalid response. Container was not removed."
+    ;;
+  esac
 }
 
 # ------------------------------------------------------------------------------
@@ -2412,6 +2748,121 @@ resolve_storage_preselect() {
     fi
   fi
   STORAGE_RESULT="$preselect"
+  return 0
+}
+
+fix_gpu_gids() {
+  if [[ -z "${GPU_TYPE:-}" ]]; then
+    return 0
+  fi
+
+  msg_info "Detecting and setting correct GPU group IDs"
+
+  # Ermittle die tatsächlichen GIDs aus dem Container
+  local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
+  local render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
+
+  # Fallbacks wenn Gruppen nicht existieren
+  if [[ -z "$video_gid" ]]; then
+    # Versuche die video Gruppe zu erstellen
+    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true"
+    video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
+    [[ -z "$video_gid" ]] && video_gid="44"  # Ultimate fallback
+  fi
+
+  if [[ -z "$render_gid" ]]; then
+    # Versuche die render Gruppe zu erstellen
+    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true"
+    render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
+    [[ -z "$render_gid" ]] && render_gid="104"  # Ultimate fallback
+  fi
+
+  msg_info "Container GIDs detected - video:${video_gid}, render:${render_gid}"
+
+  # Prüfe ob die GIDs von den Defaults abweichen
+  local need_update=0
+  if [[ "$video_gid" != "44" ]] || [[ "$render_gid" != "104" ]]; then
+    need_update=1
+  fi
+
+  if [[ $need_update -eq 1 ]]; then
+    msg_info "Updating device GIDs in container config"
+
+    # Stoppe Container für Config-Update
+    pct stop "$CTID" >/dev/null 2>&1
+
+    # Update die dev Einträge mit korrekten GIDs
+    # Backup der Config
+    cp "$LXC_CONFIG" "${LXC_CONFIG}.bak"
+
+    # Parse und update jeden dev Eintrag
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^dev[0-9]+: ]]; then
+        # Extract device path
+        local device_path=$(echo "$line" | sed -E 's/^dev[0-9]+: ([^,]+).*/\1/')
+        local dev_num=$(echo "$line" | sed -E 's/^(dev[0-9]+):.*/\1/')
+
+        if [[ "$device_path" =~ renderD ]]; then
+          # RenderD device - use render GID
+          echo "${dev_num}: ${device_path},gid=${render_gid}"
+        elif [[ "$device_path" =~ card ]]; then
+          # Card device - use video GID
+          echo "${dev_num}: ${device_path},gid=${video_gid}"
+        else
+          # Keep original line
+          echo "$line"
+        fi
+      else
+        # Keep non-dev lines
+        echo "$line"
+      fi
+    done < "$LXC_CONFIG" > "${LXC_CONFIG}.new"
+
+    mv "${LXC_CONFIG}.new" "$LXC_CONFIG"
+
+    # Starte Container wieder
+    pct start "$CTID" >/dev/null 2>&1
+    sleep 3
+
+    msg_ok "Device GIDs updated successfully"
+  else
+    msg_ok "Device GIDs are already correct"
+  fi
+  if [[ "$CT_TYPE" == "0" ]]; then
+    pct exec "$CTID" -- bash -c "
+      if [ -d /dev/dri ]; then
+        for dev in /dev/dri/*; do
+          if [ -e \"\$dev\" ]; then
+            if [[ \"\$dev\" =~ renderD ]]; then
+              chgrp ${render_gid} \"\$dev\" 2>/dev/null || true
+            else
+              chgrp ${video_gid} \"\$dev\" 2>/dev/null || true
+            fi
+            chmod 660 \"\$dev\" 2>/dev/null || true
+          fi
+        done
+      fi
+    " >/dev/null 2>&1
+  fi
+}
+
+# NVIDIA-spezific check on host
+check_nvidia_host_setup() {
+  if ! command -v nvidia-smi >/dev/null 2>&1; then
+    msg_warn "NVIDIA GPU detected but nvidia-smi not found on host"
+    msg_warn "Please install NVIDIA drivers on host first."
+    #echo "  1. Download driver: wget https://us.download.nvidia.com/XFree86/Linux-x86_64/550.127.05/NVIDIA-Linux-x86_64-550.127.05.run"
+    #echo "  2. Install: ./NVIDIA-Linux-x86_64-550.127.05.run --dkms"
+    #echo "  3. Verify: nvidia-smi"
+    return 1
+  fi
+
+  # check if nvidia-smi works
+  if ! nvidia-smi >/dev/null 2>&1; then
+    msg_warn "nvidia-smi installed but not working. Driver issue?"
+    return 1
+  fi
+
   return 0
 }
 
@@ -2629,11 +3080,13 @@ create_lxc_container() {
     msg_ok "Storage ${BL}${TEMPLATE_STORAGE}${CL} (${TEMPLATE_STORAGE_INFO}) [Template]"
   else
     while true; do
-      if select_storage template; then
-        TEMPLATE_STORAGE="$STORAGE_RESULT"
-        TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
-        msg_ok "Storage ${BL}${TEMPLATE_STORAGE}${CL} (${TEMPLATE_STORAGE_INFO}) [Template]"
-        break
+      if [[ -z "${var_template_storage:-}" ]]; then
+        if select_storage template; then
+          TEMPLATE_STORAGE="$STORAGE_RESULT"
+          TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
+          msg_ok "Storage ${BL}${TEMPLATE_STORAGE}${CL} (${TEMPLATE_STORAGE_INFO}) [Template]"
+          break
+        fi
       fi
     done
   fi
@@ -2644,14 +3097,13 @@ create_lxc_container() {
     CONTAINER_STORAGE_INFO="$STORAGE_INFO"
     msg_ok "Storage ${BL}${CONTAINER_STORAGE}${CL} (${CONTAINER_STORAGE_INFO}) [Container]"
   else
-    while true; do
+    if [[ -z "${var_container_storage:-}" ]]; then
       if select_storage container; then
         CONTAINER_STORAGE="$STORAGE_RESULT"
         CONTAINER_STORAGE_INFO="$STORAGE_INFO"
         msg_ok "Storage ${BL}${CONTAINER_STORAGE}${CL} (${CONTAINER_STORAGE_INFO}) [Container]"
-        break
       fi
-    done
+    fi
   fi
 
   # Validate content types

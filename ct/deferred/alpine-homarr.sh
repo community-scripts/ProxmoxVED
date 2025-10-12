@@ -18,7 +18,7 @@ header_info "$APP"
 
 variables
 color
-init_error_traps
+catch_errors
 
 function update_script() {
     header_info

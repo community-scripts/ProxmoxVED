@@ -7,7 +7,7 @@
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 color
 verb_ip6
-init_error_traps
+catch_errors
 setting_up_container
 network_check
 update_os

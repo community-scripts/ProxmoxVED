@@ -22,7 +22,7 @@ base_settings
 # Core
 variables
 color
-init_error_traps
+catch_errors
 
 function update_script() {
     header_info
