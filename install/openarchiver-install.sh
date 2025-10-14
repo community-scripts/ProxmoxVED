@@ -100,6 +100,7 @@ After=network-online.target
 [Service]
 Type=simple
 User=root
+EnvironmentFile=/opt/openarchiver/.env
 WorkingDirectory=/opt/openarchiver
 ExecStart=/usr/bin/pnpm start
 Restart=on-failure
