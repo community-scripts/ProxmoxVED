@@ -15,14 +15,14 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
     dnsutils \
     iputils-ping \
     ufw \
     iproute2
 mkdir -p /etc/systemd/system-preset
 echo "disable *" > /etc/systemd/system-preset/99-no-autostart.preset
-$STD apt-get install -y \
+$STD apt install -y \
     transmission-daemon \
     privoxy
 rm -f /etc/systemd/system-preset/99-no-autostart.preset
@@ -31,12 +31,13 @@ $STD systemctl disable --now transmission-daemon
 $STD systemctl mask transmission-daemon
 $STD systemctl disable --now privoxy
 $STD systemctl mask privoxy
-$STD apt-get install -y openvpn
+$STD apt install -y openvpn
 msg_ok "Installed Dependencies"
 
-msg_info "Deploying transmission-openvpn"
-$STD useradd -u 911 -U -d /config -s /usr/sbin/nologin abc
 fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
+
+msg_info "Configuring transmission-openvpn"
+$STD useradd -u 911 -U -d /config -s /usr/sbin/nologin abc
 mkdir -p /etc/openvpn /etc/transmission /etc/scripts /opt/privoxy
 cp -r /opt/docker-transmission-openvpn/openvpn/* /etc/openvpn/
 cp -r /opt/docker-transmission-openvpn/transmission/* /etc/transmission/
@@ -48,7 +49,7 @@ chmod +x /opt/privoxy/*.sh
 $STD ln -s /usr/bin/transmission-daemon /usr/local/bin/transmission-daemon
 $STD update-alternatives --set iptables /usr/sbin/iptables-legacy
 $STD update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
-msg_ok "Deployed transmission-openvpn"
+msg_ok "Configured transmission-openvpn"
 
 msg_info "Creating Service"
 LOCAL_SUBNETS=$(
@@ -132,7 +133,8 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD apt -y autoremove
+$STD apt -y autoclean
+$STD apt -y clean
 rm -rf /opt/docker-transmission-openvpn
 msg_ok "Cleaned"
