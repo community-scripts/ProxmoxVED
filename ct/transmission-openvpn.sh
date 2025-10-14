@@ -35,17 +35,18 @@ function update_script() {
     msg_ok "Updated Dependencies"
 
     if check_for_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn"; then
-        msg_info "Stopping transmission-openvpn"
+        msg_info "Stopping Service"
         systemctl stop openvpn-custom
-        msg_ok "Stopped transmission-openvpn"
+        msg_ok "Stopped Service"
 
-        msg_info "Saving Custom Configs"
+        msg_info "Creating Backup"
         mv /etc/openvpn/custom /opt/transmission-openvpn/
         rm -f /opt/transmission-openvpn/config-failure.sh
-        msg_ok "Saved Custom Configs"
+        msg_ok "Created Backup"
 
-        msg_info "Updating transmission-openvpn LXC"
         fetch_and_deploy_gh_release "docker-transmission-openvpn" "haugene/docker-transmission-openvpn" "tarball" "latest" "/opt/docker-transmission-openvpn"
+
+        msg_info "Configuring transmission-openvpn"
         rm -rf /etc/openvpn/* /etc/transmission/* /etc/scripts/* /opt/privoxy/*
         cp -r /opt/docker-transmission-openvpn/openvpn/* /etc/openvpn/
         cp -r /opt/docker-transmission-openvpn/transmission/* /etc/transmission/
@@ -54,20 +55,21 @@ function update_script() {
         chmod +x /etc/openvpn/*.sh
         chmod +x /etc/scripts/*.sh
         chmod +x /opt/privoxy/*.sh
-        msg_ok "Updated transmission-openvpn LXC"
+        msg_ok "Configured transmission-openvpn"
 
-        msg_info "Restoring Custom Configs"
+        msg_info "Restoring Backup"
         cp -r /opt/transmission-openvpn/custom/* /etc/openvpn/custom/
-        msg_ok "Restored Custom Configs"
+        msg_ok "Restored Backup"
 
-        msg_info "Starting transmission-openvpn"
+        msg_info "Starting Service"
         systemctl start openvpn-custom
-        msg_ok "Started transmission-openvpn"
+        msg_ok "Started Service"
     fi
 
     msg_info "Cleaning up"
-    $STD apt-get -y autoremove
-    $STD apt-get -y autoclean
+    $STD apt -y autoremove
+    $STD apt -y autoclean
+    $STD apt -y clean
     rm -rf /opt/docker-transmission-openvpn
     msg_ok "Cleaned"
 
