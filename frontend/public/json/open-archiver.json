@@ -17,7 +17,7 @@
   "install_methods": [
     {
       "type": "default",
-      "script": "ct/openarchiver.sh",
+      "script": "ct/open-archiver.sh",
       "resources": {
         "cpu": 2,
         "ram": 3072,
