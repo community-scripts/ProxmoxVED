@@ -103,9 +103,10 @@ test_function() {
         echo "=== Test: ${test_name} ==="
         echo "Command: ${test_command}"
         echo "Started: $(date)"
-    } >>"$TEST_LOG"
+    } | tee -a "$TEST_LOG"
 
-    if eval "$test_command" >>"$TEST_LOG" 2>&1; then
+    # Execute installation with output visible AND logged
+    if eval "$test_command" 2>&1 | tee -a "$TEST_LOG"; then
         # Reload PATH after installation
         reload_path
 
@@ -116,9 +117,11 @@ test_function() {
                 ((TESTS_PASSED++))
             else
                 msg_error "${test_name} - Installation succeeded but validation failed"
-                echo "Validation command: $validation_cmd" >>"$TEST_LOG"
-                echo "Validation output: $output" >>"$TEST_LOG"
-                echo "PATH: $PATH" >>"$TEST_LOG"
+                {
+                    echo "Validation command: $validation_cmd"
+                    echo "Validation output: $output"
+                    echo "PATH: $PATH"
+                } | tee -a "$TEST_LOG"
                 ((TESTS_FAILED++))
             fi
         else
@@ -127,12 +130,12 @@ test_function() {
         fi
     else
         msg_error "${test_name} - Installation failed"
-        echo "Installation failed" >>"$TEST_LOG"
+        echo "Installation failed" | tee -a "$TEST_LOG"
         ((TESTS_FAILED++))
     fi
 
-    echo "Completed: $(date)" >>"$TEST_LOG"
-    echo "" >>"$TEST_LOG"
+    echo "Completed: $(date)" | tee -a "$TEST_LOG"
+    echo "" | tee -a "$TEST_LOG"
 }
 
 # Skip test with reason
