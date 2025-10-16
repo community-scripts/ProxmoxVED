@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://openarchiver.com/
 
-APP="Open Archiver"
+APP="Open-Archiver"
 var_tags="${var_tags:-os}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-3072}"
