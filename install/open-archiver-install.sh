@@ -25,7 +25,6 @@ JWT_KEY="$(openssl rand -hex 32)"
 SECRET_KEY="$(openssl rand -hex 32)"
 IP_ADDR=$(hostname -I | awk '{print $1}')
 
-
 msg_info "Setting up PostgreSQL"
 DB_NAME="openarchiver_db"
 DB_USER="openarchiver"
