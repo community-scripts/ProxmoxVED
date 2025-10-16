@@ -81,13 +81,13 @@ reload_path() {
 cleanup_before_test() {
     # Kill any hanging apt processes
     killall apt-get apt 2>/dev/null || true
-    
+
     # Remove apt locks
     rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock 2>/dev/null || true
-    
-    # Remove existing keyrings to avoid overwrite prompts  
+
+    # Remove existing keyrings to avoid overwrite prompts
     rm -f /etc/apt/keyrings/*.gpg 2>/dev/null || true
-    
+
     # Wait a moment for processes to clean up
     sleep 1
 }
