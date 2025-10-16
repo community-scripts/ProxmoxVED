@@ -4,7 +4,7 @@
 # Author: Test Suite for tools.func
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Purpose: Comprehensive test of all setup_* functions from tools.func
+# Purpose: Run comprehensive test suite for all setup_* functions from tools.func
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -15,29 +15,20 @@ network_check
 update_os
 
 msg_info "Installing Base Dependencies"
-$STD apt-get install -y curl wget gpg jq git build-essential
+$STD apt-get install -y curl wget ca-certificates
 msg_ok "Installed Base Dependencies"
 
-# Helper function to test and validate installation
-test_and_validate() {
-  local test_name="$1"
-  local command_check="$2"
-  local version_cmd="$3"
+msg_info "Downloading and executing tools.func test suite"
+bash <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/test-tools-func.sh)
+msg_ok "Test suite completed"
 
-  echo -e "\n${GN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${CL}"
-  echo -e "${GN}Testing: ${test_name}${CL}"
-  echo -e "${GN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${CL}\n"
+motd_ssh
+customize
 
-  if command -v "$command_check" &>/dev/null; then
-    local version_output
-    version_output=$($version_cmd 2>&1 | head -n1)
-    msg_ok "${test_name} installed: ${version_output}"
-    return 0
-  else
-    msg_error "${test_name} validation FAILED - command not found: $command_check"
-    return 1
-  fi
-}
+msg_info "Cleaning up"
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
+msg_ok "Cleaned"
 
 # ==============================================================================
 # 1. YQ - YAML Processor
