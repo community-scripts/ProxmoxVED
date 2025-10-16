@@ -46,14 +46,48 @@ if curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw
     source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func) || true
 fi
 
-# Define STD if not already defined
-STD="${STD:-&>/dev/null}"
+# Override STD to show all output for debugging
+export STD=''
+
+# Update PATH to include common installation directories
+export PATH="/usr/local/bin:/usr/local/go/bin:/root/.cargo/bin:/root/.rbenv/bin:/root/.rbenv/shims:/opt/java/bin:$PATH"
+
+# Helper functions (override if needed from core.func)
+msg_info() { echo -e "${BLUE}ℹ ${1}${CL:-${NC}}"; }
+msg_ok() { echo -e "${GREEN}✔ ${1}${CL:-${NC}}"; }
+msg_error() { echo -e "${RED}✖ ${1}${CL:-${NC}}"; }
+msg_warn() { echo -e "${YELLOW}⚠ ${1}${CL:-${NC}}"; }
+
+# Color definitions if not already set
+GN="${GN:-${GREEN}}"
+BL="${BL:-${BLUE}}"
+RD="${RD:-${RED}}"
+YW="${YW:-${YELLOW}}"
+CL="${CL:-${NC}}"
+
+# Reload environment helper
+reload_path() {
+    export PATH="/usr/local/bin:/usr/local/go/bin:/root/.cargo/bin:/root/.rbenv/bin:/root/.rbenv/shims:/opt/java/bin:$PATH"
+    # Source profile files if they exist
+    [ -f "/root/.bashrc" ] && source /root/.bashrc 2>/dev/null || true
+    [ -f "/root/.profile" ] && source /root/.profile 2>/dev/null || true
+    [ -f "/root/.cargo/env" ] && source /root/.cargo/env 2>/dev/null || true
+}
 
 # Helper functions
 msg_info() { echo -e "${BLUE}ℹ ${1}${NC}"; }
 msg_ok() { echo -e "${GREEN}✔ ${1}${NC}"; }
 msg_error() { echo -e "${RED}✖ ${1}${NC}"; }
 msg_warn() { echo -e "${YELLOW}⚠ ${1}${NC}"; }
+
+# Reload environment helper
+reload_path() {
+    export PATH="/usr/local/bin:/usr/local/go/bin:/root/.cargo/bin:/root/.rbenv/bin:/root/.rbenv/shims:/opt/java/bin:$PATH"
+    # Source profile files if they exist
+    [ -f "/root/.bashrc" ] && source /root/.bashrc 2>/dev/null || true
+    [ -f "/root/.profile" ] && source /root/.profile 2>/dev/null || true
+    [ -f "/root/.cargo/env" ] && source /root/.cargo/env 2>/dev/null || true
+}
 
 # Test validation function
 test_function() {
@@ -72,15 +106,19 @@ test_function() {
     } >>"$TEST_LOG"
 
     if eval "$test_command" >>"$TEST_LOG" 2>&1; then
+        # Reload PATH after installation
+        reload_path
+
         if [[ -n "$validation_cmd" ]]; then
             local output
-            if output=$(eval "$validation_cmd" 2>&1); then
+            if output=$(bash -c "$validation_cmd" 2>&1); then
                 msg_ok "${test_name} - $(echo "$output" | head -n1)"
                 ((TESTS_PASSED++))
             else
                 msg_error "${test_name} - Installation succeeded but validation failed"
                 echo "Validation command: $validation_cmd" >>"$TEST_LOG"
-                echo "Validation failed" >>"$TEST_LOG"
+                echo "Validation output: $output" >>"$TEST_LOG"
+                echo "PATH: $PATH" >>"$TEST_LOG"
                 ((TESTS_FAILED++))
             fi
         else
