@@ -20,16 +20,35 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -d /opt/openarchiver ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-
-    msg_warn "Application is updated via Web Interface"
+  header_info
+  check_container_storage
+  check_container_resources
+  if [[ ! -d /opt/openarchiver ]]; then
+    msg_error "No Open Archiver Installation Found!"
     exit
+  fi
+
+  if check_for_gh_release "openarchiver" "LogicLabs-OU/OpenArchiver"; then
+    msg_info "Stopping Services"
+    systemctl stop openarchiver
+    msg_ok "Stopped Services"
+
+    cp /opt/openarchiver/.env /opt/openarchiver.env
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "openarchiver" "LogicLabs-OU/OpenArchiver" "tarball" "latest" "/opt/openarchiver"
+    mv /opt/openarchiver.env /opt/openarchiver/.env
+
+    msg_info "Updating Open Archiver"
+    $STD pnpm install --shamefully-hoist --frozen-lockfile --prod=false
+    $STD pnpm build
+    $STD pnpm db:migrate
+    msg_ok "Updated Open Archiver"
+
+    msg_info "Starting Services"
+    systemctl start openarchiver
+    msg_ok "Started Services"
+    msg_ok "Updated Successfully"
+  fi
+  exit
 }
 
 start

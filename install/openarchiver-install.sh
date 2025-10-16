@@ -89,8 +89,7 @@ sed -i "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$SECRET_KEY|g" /opt/openarchiver/.en
 sed -i "s|^TIKA_URL=.*|TIKA_URL=|g" /opt/openarchiver/.env
 $STD pnpm install --shamefully-hoist --frozen-lockfile --prod=false
 $STD pnpm build
-$STD pnpm db:generate
-#$STD pnpm db:migrate
+$STD pnpm db:migrate
 msg_ok "Setup Open Archiver"
 
 msg_info "Creating Service"
