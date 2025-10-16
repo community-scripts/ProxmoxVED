@@ -16,6 +16,7 @@ cache_installed_version() {
 
 get_cached_version() {
   local app="$1"
+  mkdir -p /var/cache/app-versions
   [[ -f "/var/cache/app-versions/${app}_version.txt" ]] && cat "/var/cache/app-versions/${app}_version.txt"
 }
 

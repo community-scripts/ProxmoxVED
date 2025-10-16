@@ -278,7 +278,7 @@ msg_info "Generating installation report"
   systemctl is-active mongod &>/dev/null && echo "MongoDB: Active"
   systemctl is-active php8.3-fpm &>/dev/null && echo "PHP-FPM: Active"
   systemctl is-active local-ip-helper &>/dev/null && echo "Local IP Helper: Active"
-} > ~/tools-func-test-report.txt
+} >~/tools-func-test-report.txt
 
 cat ~/tools-func-test-report.txt
 msg_ok "Test report saved to ~/tools-func-test-report.txt"
