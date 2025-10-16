@@ -8,8 +8,8 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 APP="Debian"
 var_tags="${var_tags:-}"
 var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-15}"
+var_ram="${var_ram:-8192}"
+var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -22,18 +22,18 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -d /var ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-    msg_info "Updating $APP LXC"
-    $STD apt-get update
-    $STD apt-get -y upgrade
-    msg_ok "Updated $APP LXC"
+  header_info
+  check_container_storage
+  check_container_resources
+  if [[ ! -d /var ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+  msg_info "Updating $APP LXC"
+  $STD apt-get update
+  $STD apt-get -y upgrade
+  msg_ok "Updated $APP LXC"
+  exit
 }
 
 start
