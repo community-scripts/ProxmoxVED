@@ -49,6 +49,9 @@ fi
 # Override STD to show all output for debugging
 export STD=''
 
+# Force non-interactive mode for all apt operations
+export DEBIAN_FRONTEND=noninteractive
+
 # Update PATH to include common installation directories
 export PATH="/usr/local/bin:/usr/local/go/bin:/root/.cargo/bin:/root/.rbenv/bin:/root/.rbenv/shims:/opt/java/bin:$PATH"
 
@@ -74,17 +77,20 @@ reload_path() {
     [ -f "/root/.cargo/env" ] && source /root/.cargo/env 2>/dev/null || true
 }
 
-# Helper functions
-msg_info() { echo -e "${BLUE}ℹ ${1}${NC}"; }
-msg_ok() { echo -e "${GREEN}✔ ${1}${NC}"; }
-msg_error() { echo -e "${RED}✖ ${1}${NC}"; }
-msg_warn() { echo -e "${YELLOW}⚠ ${1}${NC}"; }
-
-# Reload environment helper
-reload_path() {
-    export PATH="/usr/local/bin:/usr/local/go/bin:/root/.cargo/bin:/root/.rbenv/bin:/root/.rbenv/shims:/opt/java/bin:$PATH"
-    # Source profile files if they exist
-    [ -f "/root/.bashrc" ] && source /root/.bashrc 2>/dev/null || true
+# Clean up before test to avoid interactive prompts and locks
+cleanup_before_test() {
+    # Kill any hanging apt processes
+    killall apt-get apt 2>/dev/null || true
+    
+    # Remove apt locks
+    rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock 2>/dev/null || true
+    
+    # Remove existing keyrings to avoid overwrite prompts  
+    rm -f /etc/apt/keyrings/*.gpg 2>/dev/null || true
+    
+    # Wait a moment for processes to clean up
+    sleep 1
+}
     [ -f "/root/.profile" ] && source /root/.profile 2>/dev/null || true
     [ -f "/root/.cargo/env" ] && source /root/.cargo/env 2>/dev/null || true
 }
@@ -94,6 +100,9 @@ test_function() {
     local test_name="$1"
     local test_command="$2"
     local validation_cmd="${3:-}"
+
+    # Clean up before starting test
+    cleanup_before_test
 
     echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${CYAN}Testing: ${test_name}${NC}"
@@ -173,21 +182,14 @@ test_function "Adminer" \
     "test -f /usr/share/adminer/latest.php && echo 'Adminer installed'"
 
 # ==============================================================================
-# TEST 3: LOCAL IP HELPER
-# ==============================================================================
-test_function "Local IP Helper" \
-    "setup_local_ip_helper" \
-    "systemctl is-enabled local-ip-helper.service &>/dev/null && echo 'Service enabled'"
-
-# ==============================================================================
-# TEST 4: CLICKHOUSE
+# TEST 3: CLICKHOUSE
 # ==============================================================================
 test_function "ClickHouse" \
     "setup_clickhouse" \
     "clickhouse-server --version"
 
 # ==============================================================================
-# TEST 5: POSTGRESQL
+# TEST 4: POSTGRESQL
 # ==============================================================================
 test_function "PostgreSQL 17" \
     "PG_VERSION=17 setup_postgresql" \

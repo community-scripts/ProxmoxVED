@@ -551,8 +551,8 @@ setup_deb822_repo() {
     # Ensure keyring directory exists
     mkdir -p /etc/apt/keyrings
 
-    # Download GPG key
-    curl -fsSL "$gpg_url" | gpg --dearmor -o "/etc/apt/keyrings/${name}.gpg"
+    # Download GPG key (with --yes to avoid interactive prompts)
+    curl -fsSL "$gpg_url" | gpg --dearmor --yes -o "/etc/apt/keyrings/${name}.gpg"
 
     # Create deb822 sources file
     cat <<EOF >/etc/apt/sources.list.d/${name}.sources
@@ -2138,7 +2138,7 @@ function setup_mongodb() {
 
     # Use standardized repo setup
     mkdir -p /etc/apt/keyrings
-    curl -fsSL "https://pgp.mongodb.com/server-${MONGO_VERSION}.asc" | gpg --dearmor -o "/etc/apt/keyrings/mongodb-${MONGO_VERSION}.gpg"
+    curl -fsSL "https://pgp.mongodb.com/server-${MONGO_VERSION}.asc" | gpg --dearmor --yes -o "/etc/apt/keyrings/mongodb-${MONGO_VERSION}.gpg"
 
     cat <<EOF >/etc/apt/sources.list.d/mongodb-org-${MONGO_VERSION}.sources
 Types: deb
