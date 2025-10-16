@@ -10,7 +10,7 @@
 #   bash <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/test-tools-func.sh)
 # ==============================================================================
 
-set -euo pipefail
+set -uo pipefail
 
 # Colors
 RED='\033[0;31m'
@@ -73,13 +73,14 @@ test_function() {
 
     if eval "$test_command" >>"$TEST_LOG" 2>&1; then
         if [[ -n "$validation_cmd" ]]; then
-            if eval "$validation_cmd" >>"$TEST_LOG" 2>&1; then
-                local output
-                output=$(eval "$validation_cmd" 2>&1 | head -n1)
-                msg_ok "${test_name} - ${output}"
+            local output
+            if output=$(eval "$validation_cmd" 2>&1); then
+                msg_ok "${test_name} - $(echo "$output" | head -n1)"
                 ((TESTS_PASSED++))
             else
                 msg_error "${test_name} - Installation succeeded but validation failed"
+                echo "Validation command: $validation_cmd" >>"$TEST_LOG"
+                echo "Validation failed" >>"$TEST_LOG"
                 ((TESTS_FAILED++))
             fi
         else
@@ -88,6 +89,7 @@ test_function() {
         fi
     else
         msg_error "${test_name} - Installation failed"
+        echo "Installation failed" >>"$TEST_LOG"
         ((TESTS_FAILED++))
     fi
 
