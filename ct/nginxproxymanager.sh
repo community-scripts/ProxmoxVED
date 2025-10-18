@@ -115,7 +115,11 @@ function update_script() {
   cp -r frontend/app-images/* /app/frontend/images
   cp -r backend/* /app
   cp -r global/* /app/global
-  $STD python3 -m pip install --no-cache-dir --break-system-packages certbot-dns-cloudflare
+  
+  # Update Certbot and plugins in virtual environment
+  if [ -d /opt/certbot ]; then
+    $STD /opt/certbot/bin/pip install --upgrade certbot certbot-dns-cloudflare
+  fi
   msg_ok "Setup Environment"
 
   msg_info "Initializing Backend"

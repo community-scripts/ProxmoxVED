@@ -29,10 +29,15 @@ $STD apt install -y \
   python3-dev \
   python3-pip \
   python3-venv \
-  python3-cffi \
-  python3-certbot \
-  python3-certbot-dns-cloudflare
+  python3-cffi
 msg_ok "Installed Python Dependencies"
+
+msg_info "Setting up Certbot"
+$STD python3 -m venv /opt/certbot
+$STD /opt/certbot/bin/pip install --upgrade pip
+$STD /opt/certbot/bin/pip install certbot certbot-dns-cloudflare
+ln -sf /opt/certbot/bin/certbot /usr/local/bin/certbot
+msg_ok "Set up Certbot"
 
 VERSION="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
 
@@ -63,7 +68,6 @@ msg_ok "Downloaded Nginx Proxy Manager v${RELEASE}"
 
 msg_info "Setting up Environment"
 ln -sf /usr/bin/python3 /usr/bin/python
-ln -sf /usr/bin/certbot /usr/local/bin/certbot
 ln -sf /usr/local/openresty/nginx/sbin/nginx /usr/sbin/nginx
 ln -sf /usr/local/openresty/nginx/ /etc/nginx
 sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" backend/package.json
