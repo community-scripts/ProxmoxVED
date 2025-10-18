@@ -115,7 +115,7 @@ function update_script() {
   cp -r frontend/app-images/* /app/frontend/images
   cp -r backend/* /app
   cp -r global/* /app/global
-  
+
   # Update Certbot and plugins in virtual environment
   if [ -d /opt/certbot ]; then
     $STD /opt/certbot/bin/pip install --upgrade certbot certbot-dns-cloudflare
