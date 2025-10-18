@@ -13,8 +13,6 @@ setting_up_container
 network_check
 update_os
 
-setup_go
-
 msg_info "Installing Dependencies"
 $STD apt update
 $STD apt -y install \
@@ -34,7 +32,6 @@ $STD apt install -y \
   python3-cffi \
   python3-certbot \
   python3-certbot-dns-cloudflare
-$STD pip3 install --break-system-packages certbot-dns-multi
 msg_ok "Installed Python Dependencies"
 
 VERSION="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
@@ -53,7 +50,7 @@ $STD apt update
 $STD apt -y install openresty
 msg_ok "Installed Openresty"
 
-NODE_VERSION="22" NODE_MODULE="pnpm@latest" setup_nodejs
+NODE_VERSION="20" NODE_MODULE="pnpm@latest" setup_nodejs
 
 RELEASE=$(curl -fsSL https://api.github.com/repos/NginxProxyManager/nginx-proxy-manager/releases/latest |
   grep "tag_name" |
