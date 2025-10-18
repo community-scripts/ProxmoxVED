@@ -116,6 +116,9 @@ msg_ok "Set up Environment"
 msg_info "Building Frontend"
 cd ./frontend
 export NODE_OPTIONS="--openssl-legacy-provider"
+rm -f yarn.lock
+$STD yarn remove node-sass 2>/dev/null || true
+$STD yarn add -D sass
 $STD yarn install --network-timeout 600000
 $STD yarn build
 cp -r dist/* /app/frontend
