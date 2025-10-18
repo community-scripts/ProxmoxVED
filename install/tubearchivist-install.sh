@@ -37,16 +37,16 @@ services:
       - media:/youtube
       - cache:/cache
     environment:
-      - ES_URL=http://archivist-es:9200     # needs protocol e.g. http and port
+      - ES_URL=http://archivist-es:9200
       - REDIS_CON=redis://archivist-redis:6379
       - HOST_UID=1000
       - HOST_GID=1000
-      - TA_HOST=http://${IP}:8000$  # set your host name with protocol and port
-      - TA_USERNAME=admin           # your initial TA credentials
-      - TA_PASSWORD=admin              # your initial TA credentials
+      - TA_HOST=http://${IP}:8000
+      - TA_USERNAME=admin
+      - TA_PASSWORD=admin
       - TA_AUTO_UPDATE_YTDLP=release
-      - ELASTIC_PASSWORD=verysecret         # set password for Elasticsearch
-      - TZ=Europe/Copenhagen                 # set your time zone
+      - ELASTIC_PASSWORD=verysecret
+      - TZ=Europe/Copenhagen
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 2m
@@ -67,17 +67,17 @@ services:
     depends_on:
       - archivist-es
   archivist-es:
-    image: bbilly1/tubearchivist-es         # only for amd64, or use official es 8.18.0
+    image: bbilly1/tubearchivist-es
     container_name: archivist-es
     restart: unless-stopped
     environment:
-      - "ELASTIC_PASSWORD=verysecret"       # matching Elasticsearch password
+      - "ELASTIC_PASSWORD=verysecret"
       - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
       - "xpack.security.enabled=true"
       - "discovery.type=single-node"
       - "path.repo=/usr/share/elasticsearch/data/snapshot"
     volumes:
-      - es:/usr/share/elasticsearch/data    # check for permission error when using bind mount, see readme
+      - es:/usr/share/elasticsearch/data
     expose:
       - "9200"
 
