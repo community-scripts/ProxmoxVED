@@ -1,0 +1,35 @@
+{
+  "name": "Tube Archivist",
+  "slug": "tubearchivist",
+  "categories": [
+    13
+  ],
+  "date_created": "2025-10-18",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8000,
+  "documentation": "https://github.com/tubearchivist/tubearchivist",
+  "config_path": "",
+  "website": "https://www.tubearchivist.com/",
+  "logo": "https://avatars.githubusercontent.com/u/102734415?s=48&v=4",
+  "description": "Your self hosted YouTube media server",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/tubearchivist.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "admin"
+  },
+  "notes": []
+}
