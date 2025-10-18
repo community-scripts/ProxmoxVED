@@ -25,6 +25,13 @@ $STD apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up docker compose file"
+TA_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+{
+  echo "Tube Archivist Default Credentials"
+  echo "Username: admin"
+  echo "Password: $TA_PASS"
+} >>~/ta.creds
+
 cat << EOF >docker-compose.yml
 services:
   tubearchivist:
@@ -43,7 +50,7 @@ services:
       - HOST_GID=1000
       - TA_HOST=http://${IP}:8000
       - TA_USERNAME=admin
-      - TA_PASSWORD=admin
+      - TA_PASSWORD=${TA_PASS}
       - TA_AUTO_UPDATE_YTDLP=release
       - ELASTIC_PASSWORD=verysecret
       - TZ=Europe/Copenhagen

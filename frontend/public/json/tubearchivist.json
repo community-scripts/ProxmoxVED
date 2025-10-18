@@ -28,8 +28,13 @@
     }
   ],
   "default_credentials": {
-    "username": "admin",
-    "password": "admin"
+    "username": null,
+    "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Default credentials: `cat ~/ta.creds`",
+      "type": "info"
+    }
+  ]
 }
