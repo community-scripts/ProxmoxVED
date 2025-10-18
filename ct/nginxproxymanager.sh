@@ -118,6 +118,7 @@ function update_script() {
 
   # Update Certbot and plugins in virtual environment
   if [ -d /opt/certbot ]; then
+    $STD /opt/certbot/bin/pip install --upgrade pip setuptools wheel
     $STD /opt/certbot/bin/pip install --upgrade certbot certbot-dns-cloudflare
   fi
   msg_ok "Setup Environment"

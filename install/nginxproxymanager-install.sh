@@ -34,7 +34,7 @@ msg_ok "Installed Python Dependencies"
 
 msg_info "Setting up Certbot"
 $STD python3 -m venv /opt/certbot
-$STD /opt/certbot/bin/pip install --upgrade pip
+$STD /opt/certbot/bin/pip install --upgrade pip setuptools wheel
 $STD /opt/certbot/bin/pip install certbot certbot-dns-cloudflare
 ln -sf /opt/certbot/bin/certbot /usr/local/bin/certbot
 msg_ok "Set up Certbot"
