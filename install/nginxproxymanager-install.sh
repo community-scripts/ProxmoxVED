@@ -50,7 +50,7 @@ $STD apt update
 $STD apt -y install openresty
 msg_ok "Installed Openresty"
 
-NODE_VERSION="20" NODE_MODULE="pnpm@latest" setup_nodejs
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 
 RELEASE=$(curl -fsSL https://api.github.com/repos/NginxProxyManager/nginx-proxy-manager/releases/latest |
   grep "tag_name" |
@@ -115,9 +115,9 @@ msg_ok "Set up Environment"
 
 msg_info "Building Frontend"
 cd ./frontend
-$STD pnpm install
-$STD pnpm upgrade
-$STD pnpm run build
+export NODE_OPTIONS="--openssl-legacy-provider"
+$STD yarn install --network-timeout 600000
+$STD yarn build
 cp -r dist/* /app/frontend
 cp -r app-images/* /app/frontend/images
 msg_ok "Built Frontend"
@@ -140,7 +140,8 @@ if [ ! -f /app/config/production.json ]; then
 EOF
 fi
 cd /app
-$STD pnpm install
+export NODE_OPTIONS="--openssl-legacy-provider"
+$STD yarn install --network-timeout 600000
 msg_ok "Initialized Backend"
 
 msg_info "Creating Service"

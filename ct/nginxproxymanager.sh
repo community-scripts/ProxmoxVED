@@ -28,12 +28,13 @@ function update_script() {
     exit
   fi
 
-  if ! command -v pnpm &>/dev/null; then
-    msg_info "Installing pnpm"
-    #export NODE_OPTIONS=--openssl-legacy-provider
-    $STD npm install -g pnpm@8.15
-    msg_ok "Installed pnpm"
+  if ! command -v yarn &>/dev/null; then
+    msg_info "Installing Yarn"
+    $STD npm install -g yarn
+    msg_ok "Installed Yarn"
   fi
+
+  export NODE_OPTIONS="--openssl-legacy-provider"
 
   RELEASE=$(curl -fsSL https://api.github.com/repos/NginxProxyManager/nginx-proxy-manager/releases/latest |
     grep "tag_name" |
@@ -49,9 +50,8 @@ function update_script() {
     sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" backend/package.json
     sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" frontend/package.json
     cd ./frontend || exit
-    $STD pnpm install
-    $STD pnpm upgrade
-    $STD pnpm run build
+    $STD yarn install --network-timeout 600000
+    $STD yarn build
   )
   msg_ok "Built Frontend"
 
@@ -134,7 +134,7 @@ function update_script() {
 EOF
   fi
   cd /app || exit
-  $STD pnpm install
+  $STD yarn install --network-timeout 600000
   msg_ok "Initialized Backend"
 
   msg_info "Starting Services"
