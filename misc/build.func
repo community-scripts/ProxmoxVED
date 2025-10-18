@@ -3063,15 +3063,6 @@ create_lxc_container() {
     exit 206
   fi
 
-  # Storage capability check
-  check_storage_support "rootdir" || {
-    msg_error "No valid storage found for 'rootdir' [Container]"
-    exit 1
-  }
-  check_storage_support "vztmpl" || {
-    msg_error "No valid storage found for 'vztmpl' [Template]"
-    exit 1
-  }
 
   # Template storage selection
   if resolve_storage_preselect template "${TEMPLATE_STORAGE:-}"; then
