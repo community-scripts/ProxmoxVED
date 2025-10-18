@@ -73,7 +73,7 @@ function update_script() {
 
   msg_info "Setting up Environment"
   ln -sf /usr/bin/python3 /usr/bin/python
-  ln -sf /usr/bin/certbot /opt/certbot/bin/certbot
+  ln -sf /opt/certbot/bin/certbot /usr/local/bin/certbot
   ln -sf /usr/local/openresty/nginx/sbin/nginx /usr/sbin/nginx
   ln -sf /usr/local/openresty/nginx/ /etc/nginx
   sed -i 's+^daemon+#daemon+g' docker/rootfs/etc/nginx/nginx.conf
@@ -141,6 +141,7 @@ function update_script() {
 EOF
   fi
   cd /app || exit
+  export NODE_OPTIONS="--openssl-legacy-provider"
   $STD yarn install --network-timeout 600000
   msg_ok "Initialized Backend"
 
