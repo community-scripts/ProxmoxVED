@@ -80,7 +80,7 @@ variables() {
 #     [Dd]*)
 #       for file in core.func error_handler.func tools.func; do
 #         local_path="$FUNC_DIR/$file"
-#         url="https://raw.githubusercontent.com/kris701/ProxmoxVED/refs/heads/tubearchivist/misc/$file"
+#         url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
 #         remote_tmp="$(mktemp)"
 
 #         curl -fsSL "$url" -o "$remote_tmp" || continue
@@ -3063,6 +3063,15 @@ create_lxc_container() {
     exit 206
   fi
 
+  # Storage capability check
+  check_storage_support "rootdir" || {
+    msg_error "No valid storage found for 'rootdir' [Container]"
+    exit 1
+  }
+  check_storage_support "vztmpl" || {
+    msg_error "No valid storage found for 'vztmpl' [Template]"
+    exit 1
+  }
 
   # Template storage selection
   if resolve_storage_preselect template "${TEMPLATE_STORAGE:-}"; then
