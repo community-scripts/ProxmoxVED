@@ -46,7 +46,7 @@ services:
       - REDIS_CON=redis://archivist-redis:6379
       - HOST_UID=1000
       - HOST_GID=1000
-      - TA_HOST=http://${IP}:[PORT]$  # set your host name with protocol and port
+      - TA_HOST=http://${IP}:8000$  # set your host name with protocol and port
       - TA_USERNAME=admin           # your initial TA credentials
       - TA_PASSWORD=admin              # your initial TA credentials
       - TA_AUTO_UPDATE_YTDLP=release
