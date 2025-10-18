@@ -92,7 +92,6 @@ volumes:
   redis:
   es:
 EOF
-  
 msg_ok "Docker compose file created"
 
 msg_info "Pulling Docker Image"
