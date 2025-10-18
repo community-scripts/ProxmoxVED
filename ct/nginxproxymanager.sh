@@ -50,10 +50,9 @@ function update_script() {
     sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" backend/package.json
     sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" frontend/package.json
     cd ./frontend || exit
-    # First install to generate yarn.lock, then swap node-sass for sass
+    # Replace node-sass with sass in package.json before installation
+    sed -i 's/"node-sass".*$/"sass": "^1.92.1",/g' package.json
     $STD yarn install --network-timeout 600000
-    $STD yarn remove node-sass
-    $STD yarn add -D sass
     $STD yarn build
   )
   msg_ok "Built Frontend"

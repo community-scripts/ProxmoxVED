@@ -116,10 +116,9 @@ msg_ok "Set up Environment"
 msg_info "Building Frontend"
 cd ./frontend
 export NODE_OPTIONS="--openssl-legacy-provider"
-# First install to generate yarn.lock, then swap node-sass for sass
+# Replace node-sass with sass in package.json before installation
+sed -i 's/"node-sass".*$/"sass": "^1.92.1",/g' package.json
 $STD yarn install --network-timeout 600000
-$STD yarn remove node-sass
-$STD yarn add -D sass
 $STD yarn build
 cp -r dist/* /app/frontend
 cp -r app-images/* /app/frontend/images
