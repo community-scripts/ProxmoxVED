@@ -5,7 +5,6 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://www.tubearchivist.com/
 
-# Import Functions und Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -20,13 +19,9 @@ $STD apt-get install ca-certificates curl
 $STD install -m 0755 -d /etc/apt/keyrings
 $STD curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
 $STD chmod a+r /etc/apt/keyrings/docker.asc
-
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
 $STD apt-get update -y
-
 $STD apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up docker compose file"
@@ -94,12 +89,12 @@ volumes:
 EOF
 msg_ok "Docker compose file created"
 
-msg_info "Pulling Docker Image"
-docker compose pull
+msg_info "Pulling Docker Image (Patience!)"
+$STD docker compose pull
 msg_ok "Docker image pulled"
 
-msg_info "Starting Tubearchivist"
-docker compose up -d
+msg_info "Starting Tubearchivist (Patience!)"
+$STD docker compose up -d
 msg_ok "Tubearchivist started"
 
 motd_ssh
