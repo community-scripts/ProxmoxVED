@@ -220,7 +220,6 @@ get_current_ip() {
   echo "$CURRENT_IP"
 }
 
-
 # ------------------------------------------------------------------------------
 # update_motd_ip()
 #
@@ -626,7 +625,7 @@ advanced_settings() {
           BRIDGE_MENU_OPTIONS+=("$bridge" " ")
         fi
       fi
-    done <<< "$BRIDGES"
+    done <<<"$BRIDGES"
 
     BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --menu "Select network bridge: " 18 55 6 "${BRIDGE_MENU_OPTIONS[@]}" 3>&1 1>&2 2>&3)
     if [[ -z "$BRG" ]]; then
@@ -859,92 +858,9 @@ advanced_settings() {
     exit_script
   fi
 
-  # --- SSH key provisioning (one dialog) ---
-  SSH_KEYS_FILE="$(mktemp)"
-  : >"$SSH_KEYS_FILE"
-
-  IFS=$'\0' read -r -d '' -a _def_files < <(ssh_discover_default_files && printf '\0')
-  ssh_build_choices_from_files "${_def_files[@]}"
-  DEF_KEYS_COUNT="$COUNT"
-
-  if [[ "$DEF_KEYS_COUNT" -gt 0 ]]; then
-    SSH_KEY_MODE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
-      "Provision SSH keys for root:" 14 72 4 \
-      "found" "Select from detected keys (${DEF_KEYS_COUNT})" \
-      "manual" "Paste a single public key" \
-      "folder" "Scan another folder (path or glob)" \
-      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
-  else
-    SSH_KEY_MODE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
-      "No host keys detected; choose manual/none:" 12 72 2 \
-      "manual" "Paste a single public key" \
-      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
-  fi
-
-  case "$SSH_KEY_MODE" in
-  found)
-    SEL=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT HOST KEYS" \
-      --checklist "Select one or more keys to import:" 20 140 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
-    for tag in $SEL; do
-      tag="${tag%\"}"
-      tag="${tag#\"}"
-      line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
-      [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
-    done
-    ;;
-  manual)
-    SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --inputbox "Paste one SSH public key line (ssh-ed25519/ssh-rsa/...)" 10 72 --title "SSH Public Key" 3>&1 1>&2 2>&3)"
-    [[ -n "$SSH_AUTHORIZED_KEY" ]] && printf '%s\n' "$SSH_AUTHORIZED_KEY" >>"$SSH_KEYS_FILE"
-    ;;
-  folder)
-    GLOB_PATH="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --inputbox "Enter a folder or glob to scan (e.g. /root/.ssh/*.pub)" 10 72 --title "Scan Folder/Glob" 3>&1 1>&2 2>&3)"
-    if [[ -n "$GLOB_PATH" ]]; then
-      shopt -s nullglob
-      read -r -a _scan_files <<<"$GLOB_PATH"
-      shopt -u nullglob
-      if [[ "${#_scan_files[@]}" -gt 0 ]]; then
-        ssh_build_choices_from_files "${_scan_files[@]}"
-        if [[ "$COUNT" -gt 0 ]]; then
-          SEL=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT FOLDER KEYS" \
-            --checklist "Select key(s) to import:" 20 78 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
-          for tag in $SEL; do
-            tag="${tag%\"}"
-            tag="${tag#\"}"
-            line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
-            [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
-          done
-        else
-          whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "No keys found in: $GLOB_PATH" 8 60
-        fi
-      else
-        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Path/glob returned no files." 8 60
-      fi
-    fi
-    ;;
-  none) : ;;
-  esac
-
-  # Dedupe + clean EOF
-  if [[ -s "$SSH_KEYS_FILE" ]]; then
-    sort -u -o "$SSH_KEYS_FILE" "$SSH_KEYS_FILE"
-    printf '\n' >>"$SSH_KEYS_FILE"
-  fi
-
-  # SSH activate, if keys found or password set
-  if [[ -s "$SSH_KEYS_FILE" || "$PW" == -password* ]]; then
-    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable root SSH access?" 10 58); then
-      SSH="yes"
-    else
-      SSH="no"
-    fi
-  else
-    SSH="no"
-  fi
-  echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
-
+  configure_ssh_settings
   export SSH_KEYS_FILE
+  echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
     ENABLE_FUSE="yes"
   else
@@ -1552,32 +1468,11 @@ ensure_storage_selection_for_vars_file() {
     return 0
   fi
 
-  # --- Erstmalige Auswahl: beide Abfragen ---
-  select_storage template
-  local tpl_sel="$STORAGE_RESULT"
+  # --- Erstmalige Auswahl: beide Abfragen (nutze existierende Helper) ---
+  choose_and_set_storage_for_file "$vf" template
+  choose_and_set_storage_for_file "$vf" container
 
-  select_storage container
-  local ct_sel="$STORAGE_RESULT"
-
-  # --- Zusammenfassung + Nachfrage ---
-  if whiptail --backtitle "Community Scripts" --title "Default Storage" \
-    --yesno "Template-Storage --> $tpl_sel\nContainer-Storage --> $ct_sel\n\nSave as global defaults?" \
-    12 70; then
-    sed -i '/^[#[:space:]]*var_template_storage=/d' "$vf"
-    sed -i '/^[#[:space:]]*var_container_storage=/d' "$vf"
-    echo "var_template_storage=$tpl_sel" >>"$vf"
-    echo "var_container_storage=$ct_sel" >>"$vf"
-  else
-    sed -i '/^[#[:space:]]*var_template_storage=/d' "$vf"
-    sed -i '/^[#[:space:]]*var_container_storage=/d' "$vf"
-    echo "# var_template_storage=$tpl_sel" >>"$vf"
-    echo "# var_container_storage=$ct_sel" >>"$vf"
-  fi
-
-  TEMPLATE_STORAGE="$tpl_sel"
-  CONTAINER_STORAGE="$ct_sel"
-  msg_ok "Using Template-Storage → $tpl_sel"
-  msg_ok "Using Container-Storage → $ct_sel"
+  msg_ok "Storage configuration saved to $(basename "$vf")"
 }
 
 diagnostics_menu() {
@@ -1600,6 +1495,15 @@ diagnostics_menu() {
       whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
     fi
   fi
+}
+
+ensure_global_default_vars_file() {
+  local vars_path="/usr/local/community-scripts/default.vars"
+  if [[ ! -f "$vars_path" ]]; then
+    mkdir -p "$(dirname "$vars_path")"
+    touch "$vars_path"
+  fi
+  echo "$vars_path"
 }
 
 # ------------------------------------------------------------------------------
@@ -1633,19 +1537,26 @@ install_script() {
   CHOICE="${mode:-${1:-}}"
 
   # If no CLI argument → show whiptail menu
-  if [ -z "$CHOICE" ]; then
-    local menu_items=(
-      "1" "Default Install"
-      "2" "Advanced Install"
-      "3" "My Defaults"
-    )
+  # Build menu dynamically based on available options
+  local appdefaults_option=""
+  local settings_option=""
+  local menu_items=(
+    "1" "Default Install"
+    "2" "Advanced Install"
+    "3" "My Defaults"
+  )
 
-    if [ -f "$(get_app_defaults_path)" ]; then
-      menu_items+=("4" "App Defaults for ${APP}")
-      menu_items+=("5" "Settings")
-    else
-      menu_items+=("4" "Settings")
-    fi
+  if [ -f "$(get_app_defaults_path)" ]; then
+    appdefaults_option="4"
+    menu_items+=("4" "App Defaults for ${APP}")
+    settings_option="5"
+    menu_items+=("5" "Settings")
+  else
+    settings_option="4"
+    menu_items+=("4" "Settings")
+  fi
+
+  if [ -z "$CHOICE" ]; then
 
     TMP_CHOICE=$(whiptail \
       --backtitle "Proxmox VE Helper Scripts" \
@@ -1660,7 +1571,12 @@ install_script() {
     CHOICE="$TMP_CHOICE"
   fi
 
+  APPDEFAULTS_OPTION="$appdefaults_option"
+  SETTINGS_OPTION="$settings_option"
+
   # --- Main case ---
+  local defaults_target=""
+  local run_maybe_offer="no"
   case "$CHOICE" in
   1 | default | DEFAULT)
     header_info
@@ -1669,12 +1585,7 @@ install_script() {
     METHOD="default"
     base_settings "$VERBOSE"
     echo_default
-    [[ -f /usr/local/community-scripts/default.vars ]] || {
-      mkdir -p /usr/local/community-scripts
-      touch /usr/local/community-scripts/default.vars
-    }
-    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
-
+    defaults_target="$(ensure_global_default_vars_file)"
     ;;
   2 | advanced | ADVANCED)
     header_info
@@ -1682,22 +1593,17 @@ install_script() {
     METHOD="advanced"
     base_settings
     advanced_settings
-    [[ -f /usr/local/community-scripts/default.vars ]] || {
-      mkdir -p /usr/local/community-scripts
-      touch /usr/local/community-scripts/default.vars
-    }
-    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
-
-    maybe_offer_save_app_defaults
+    defaults_target="$(ensure_global_default_vars_file)"
+    run_maybe_offer="yes"
     ;;
   3 | mydefaults | MYDEFAULTS)
     default_var_settings || {
       msg_error "Failed to apply default.vars"
       exit 1
     }
-    ensure_storage_selection_for_vars_file "/usr/local/community-scripts/default.vars"
+    defaults_target="/usr/local/community-scripts/default.vars"
     ;;
-  4 | appdefaults | APPDEFAULTS)
+  "$APPDEFAULTS_OPTION" | appdefaults | APPDEFAULTS)
     if [ -f "$(get_app_defaults_path)" ]; then
       header_info
       echo -e "${DEFAULT}${BOLD}${BL}Using App Defaults for ${APP} on node $PVEHOST_NAME${CL}"
@@ -1705,41 +1611,41 @@ install_script() {
       base_settings
       _load_vars_file "$(get_app_defaults_path)"
       echo_default
-      ensure_storage_selection_for_vars_file "$(get_app_defaults_path)"
+      defaults_target="$(get_app_defaults_path)"
     else
       msg_error "No App Defaults available for ${APP}"
       exit 1
     fi
     ;;
-  5 | settings | SETTINGS)
+  "$SETTINGS_OPTION" | settings | SETTINGS)
     settings_menu
+    defaults_target=""
     ;;
   *)
     echo -e "${CROSS}${RD}Invalid option: $CHOICE${CL}"
     exit 1
     ;;
   esac
+
+  if [[ -n "$defaults_target" ]]; then
+    ensure_storage_selection_for_vars_file "$defaults_target"
+  fi
+
+  if [[ "$run_maybe_offer" == "yes" ]]; then
+    maybe_offer_save_app_defaults
+  fi
 }
 
 edit_default_storage() {
   local vf="/usr/local/community-scripts/default.vars"
 
-  # make sure file exists
+  # Ensure file exists
   if [[ ! -f "$vf" ]]; then
-    # still create
     mkdir -p "$(dirname "$vf")"
     touch "$vf"
-
-    if select_storage template; then
-      echo "var_template_storage=$STORAGE_RESULT" >>"$vf"
-    fi
-
-    if select_storage container; then
-      echo "var_container_storage=$STORAGE_RESULT" >>"$vf"
-    fi
   fi
 
-  # reuse the same Whiptail selection we already have
+  # Let ensure_storage_selection_for_vars_file handle everything
   ensure_storage_selection_for_vars_file "$vf"
 }
 
@@ -1834,19 +1740,24 @@ choose_and_set_storage_for_file() {
 
 echo_storage_summary_from_file() {
   local vars_file="$1"
-  local ct_store tpl_store
-  ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
+  local tpl_store ct_store
   tpl_store=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
-  if [ -n "$tpl" ]; then
-    TEMPLATE_STORAGE="$tpl"
+  ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
+
+  if [[ -n "$tpl_store" ]] && resolve_storage_preselect template "$tpl_store"; then
+    TEMPLATE_STORAGE="$STORAGE_RESULT"
+    TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
+    msg_ok "Using Template-Storage → $TEMPLATE_STORAGE${TEMPLATE_STORAGE_INFO:+ ($TEMPLATE_STORAGE_INFO)}"
   else
-    choose_and_set_storage_for_file "$vf" template
+    choose_and_set_storage_for_file "$vars_file" template
   fi
 
-  if [ -n "$ct" ]; then
-    CONTAINER_STORAGE="$ct"
+  if [[ -n "$ct_store" ]] && resolve_storage_preselect container "$ct_store"; then
+    CONTAINER_STORAGE="$STORAGE_RESULT"
+    CONTAINER_STORAGE_INFO="$STORAGE_INFO"
+    msg_ok "Using Container-Storage → $CONTAINER_STORAGE${CONTAINER_STORAGE_INFO:+ ($CONTAINER_STORAGE_INFO)}"
   else
-    choose_and_set_storage_for_file "$vf" container
+    choose_and_set_storage_for_file "$vars_file" container
   fi
 }
 
@@ -1979,6 +1890,97 @@ ssh_discover_default_files() {
   cand+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
   shopt -u nullglob
   printf '%s\0' "${cand[@]}"
+}
+
+configure_ssh_settings() {
+  SSH_KEYS_FILE="$(mktemp)"
+  : >"$SSH_KEYS_FILE"
+
+  IFS=$'\0' read -r -d '' -a _def_files < <(ssh_discover_default_files && printf '\0')
+  ssh_build_choices_from_files "${_def_files[@]}"
+  local default_key_count="$COUNT"
+
+  local ssh_key_mode
+  if [[ "$default_key_count" -gt 0 ]]; then
+    ssh_key_mode=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+      "Provision SSH keys for root:" 14 72 4 \
+      "found" "Select from detected keys (${default_key_count})" \
+      "manual" "Paste a single public key" \
+      "folder" "Scan another folder (path or glob)" \
+      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
+  else
+    ssh_key_mode=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+      "No host keys detected; choose manual/none:" 12 72 2 \
+      "manual" "Paste a single public key" \
+      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
+  fi
+
+  case "$ssh_key_mode" in
+  found)
+    local selection
+    selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT HOST KEYS" \
+      --checklist "Select one or more keys to import:" 20 140 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
+    for tag in $selection; do
+      tag="${tag%\"}"
+      tag="${tag#\"}"
+      local line
+      line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
+      [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
+    done
+    ;;
+  manual)
+    SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --inputbox "Paste one SSH public key line (ssh-ed25519/ssh-rsa/...)" 10 72 --title "SSH Public Key" 3>&1 1>&2 2>&3)"
+    [[ -n "$SSH_AUTHORIZED_KEY" ]] && printf '%s\n' "$SSH_AUTHORIZED_KEY" >>"$SSH_KEYS_FILE"
+    ;;
+  folder)
+    local glob_path
+    glob_path=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --inputbox "Enter a folder or glob to scan (e.g. /root/.ssh/*.pub)" 10 72 --title "Scan Folder/Glob" 3>&1 1>&2 2>&3)
+    if [[ -n "$glob_path" ]]; then
+      shopt -s nullglob
+      read -r -a _scan_files <<<"$glob_path"
+      shopt -u nullglob
+      if [[ "${#_scan_files[@]}" -gt 0 ]]; then
+        ssh_build_choices_from_files "${_scan_files[@]}"
+        if [[ "$COUNT" -gt 0 ]]; then
+          local folder_selection
+          folder_selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT FOLDER KEYS" \
+            --checklist "Select key(s) to import:" 20 78 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
+          for tag in $folder_selection; do
+            tag="${tag%\"}"
+            tag="${tag#\"}"
+            local line
+            line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
+            [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
+          done
+        else
+          whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "No keys found in: $glob_path" 8 60
+        fi
+      else
+        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Path/glob returned no files." 8 60
+      fi
+    fi
+    ;;
+  none)
+    :
+    ;;
+  esac
+
+  if [[ -s "$SSH_KEYS_FILE" ]]; then
+    sort -u -o "$SSH_KEYS_FILE" "$SSH_KEYS_FILE"
+    printf '\n' >>"$SSH_KEYS_FILE"
+  fi
+
+  if [[ -s "$SSH_KEYS_FILE" || "$PW" == -password* ]]; then
+    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable root SSH access?" 10 58); then
+      SSH="yes"
+    else
+      SSH="no"
+    fi
+  else
+    SSH="no"
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -2143,7 +2145,7 @@ build_container() {
   # ============================================================================
 
   # List of applications that benefit from GPU acceleration
- GPU_APPS=(
+  GPU_APPS=(
     "immich" "channels" "emby" "ersatztv" "frigate"
     "jellyfin" "plex" "scrypted" "tdarr" "unmanic"
     "ollama" "fileflows" "open-webui" "tunarr" "debian"
@@ -2234,12 +2236,11 @@ EOF
       fi
     fi
 
-      # Debug output
-      msg_debug "Intel devices: ${INTEL_DEVICES[*]}"
-      msg_debug "AMD devices: ${AMD_DEVICES[*]}"
-      msg_debug "NVIDIA devices: ${NVIDIA_DEVICES[*]}"
-    }
-
+    # Debug output
+    msg_debug "Intel devices: ${INTEL_DEVICES[*]}"
+    msg_debug "AMD devices: ${AMD_DEVICES[*]}"
+    msg_debug "NVIDIA devices: ${NVIDIA_DEVICES[*]}"
+  }
 
   # Configure USB passthrough for privileged containers
   configure_usb_passthrough() {
@@ -2264,70 +2265,70 @@ EOF
   }
 
   # Configure GPU passthrough
-configure_gpu_passthrough() {
-  # Skip if not a GPU app and not privileged
-  if [[ "$CT_TYPE" != "0" ]] && ! is_gpu_app "$APP"; then
-    return 0
-  fi
-
-  detect_gpu_devices
-
-  # Count available GPU types
-  local gpu_count=0
-  local available_gpus=()
-
-  if [[ ${#INTEL_DEVICES[@]} -gt 0 ]]; then
-    available_gpus+=("INTEL")
-    gpu_count=$((gpu_count + 1))
-  fi
-
-  if [[ ${#AMD_DEVICES[@]} -gt 0 ]]; then
-    available_gpus+=("AMD")
-    gpu_count=$((gpu_count + 1))
-  fi
-
-  if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
-    available_gpus+=("NVIDIA")
-    gpu_count=$((gpu_count + 1))
-  fi
-
-  if [[ $gpu_count -eq 0 ]]; then
-    msg_info "No GPU devices found for passthrough"
-    return 0
-  fi
-
-  local selected_gpu=""
-
-  if [[ $gpu_count -eq 1 ]]; then
-    # Automatic selection for single GPU
-    selected_gpu="${available_gpus[0]}"
-    msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
-  else
-    # Multiple GPUs - ask user
-    echo -e "\n${INFO} Multiple GPU types detected:"
-    for gpu in "${available_gpus[@]}"; do
-      echo "  - $gpu"
-    done
-    read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
-    selected_gpu="${selected_gpu^^}"
-
-    # Validate selection
-    local valid=0
-    for gpu in "${available_gpus[@]}"; do
-      [[ "$selected_gpu" == "$gpu" ]] && valid=1
-    done
-
-    if [[ $valid -eq 0 ]]; then
-      msg_warn "Invalid selection. Skipping GPU passthrough."
+  configure_gpu_passthrough() {
+    # Skip if not a GPU app and not privileged
+    if [[ "$CT_TYPE" != "0" ]] && ! is_gpu_app "$APP"; then
       return 0
     fi
-  fi
 
-  # Apply passthrough configuration based on selection
-  local dev_idx=0
+    detect_gpu_devices
 
-  case "$selected_gpu" in
-    INTEL|AMD)
+    # Count available GPU types
+    local gpu_count=0
+    local available_gpus=()
+
+    if [[ ${#INTEL_DEVICES[@]} -gt 0 ]]; then
+      available_gpus+=("INTEL")
+      gpu_count=$((gpu_count + 1))
+    fi
+
+    if [[ ${#AMD_DEVICES[@]} -gt 0 ]]; then
+      available_gpus+=("AMD")
+      gpu_count=$((gpu_count + 1))
+    fi
+
+    if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
+      available_gpus+=("NVIDIA")
+      gpu_count=$((gpu_count + 1))
+    fi
+
+    if [[ $gpu_count -eq 0 ]]; then
+      msg_info "No GPU devices found for passthrough"
+      return 0
+    fi
+
+    local selected_gpu=""
+
+    if [[ $gpu_count -eq 1 ]]; then
+      # Automatic selection for single GPU
+      selected_gpu="${available_gpus[0]}"
+      msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
+    else
+      # Multiple GPUs - ask user
+      echo -e "\n${INFO} Multiple GPU types detected:"
+      for gpu in "${available_gpus[@]}"; do
+        echo "  - $gpu"
+      done
+      read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
+      selected_gpu="${selected_gpu^^}"
+
+      # Validate selection
+      local valid=0
+      for gpu in "${available_gpus[@]}"; do
+        [[ "$selected_gpu" == "$gpu" ]] && valid=1
+      done
+
+      if [[ $valid -eq 0 ]]; then
+        msg_warn "Invalid selection. Skipping GPU passthrough."
+        return 0
+      fi
+    fi
+
+    # Apply passthrough configuration based on selection
+    local dev_idx=0
+
+    case "$selected_gpu" in
+    INTEL | AMD)
       local devices=()
       [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
       [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
@@ -2392,8 +2393,8 @@ configure_gpu_passthrough() {
       export GPU_TYPE="NVIDIA"
       msg_ok "NVIDIA GPU passthrough configured (${dev_idx} devices)"
       ;;
-  esac
-}
+    esac
+  }
 
   # Additional device passthrough
   configure_additional_devices() {
@@ -2473,142 +2474,10 @@ EOF
   get_container_gid() {
     local group="$1"
     local gid=$(pct exec "$CTID" -- getent group "$group" 2>/dev/null | cut -d: -f3)
-    echo "${gid:-44}"  # Default to 44 if not found
+    echo "${gid:-44}" # Default to 44 if not found
   }
 
   fix_gpu_gids
-
-# Configure GPU passthrough
-configure_gpu_passthrough() {
-  # Skip if not a GPU app and not privileged
-  if [[ "$CT_TYPE" != "0" ]] && ! is_gpu_app "$APP"; then
-    return 0
-  fi
-
-  detect_gpu_devices
-
-  # Count available GPU types
-  local gpu_count=0
-  local available_gpus=()
-
-  if [[ ${#INTEL_DEVICES[@]} -gt 0 ]]; then
-    available_gpus+=("INTEL")
-    gpu_count=$((gpu_count + 1))
-  fi
-
-  if [[ ${#AMD_DEVICES[@]} -gt 0 ]]; then
-    available_gpus+=("AMD")
-    gpu_count=$((gpu_count + 1))
-  fi
-
-  if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
-    available_gpus+=("NVIDIA")
-    gpu_count=$((gpu_count + 1))
-  fi
-
-  if [[ $gpu_count -eq 0 ]]; then
-    msg_info "No GPU devices found for passthrough"
-    return 0
-  fi
-
-  local selected_gpu=""
-
-  if [[ $gpu_count -eq 1 ]]; then
-    # Automatic selection for single GPU
-    selected_gpu="${available_gpus[0]}"
-    msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
-  else
-    # Multiple GPUs - ask user
-    echo -e "\n${INFO} Multiple GPU types detected:"
-    for gpu in "${available_gpus[@]}"; do
-      echo "  - $gpu"
-    done
-    read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
-    selected_gpu="${selected_gpu^^}"
-
-    # Validate selection
-    local valid=0
-    for gpu in "${available_gpus[@]}"; do
-      [[ "$selected_gpu" == "$gpu" ]] && valid=1
-    done
-
-    if [[ $valid -eq 0 ]]; then
-      msg_warn "Invalid selection. Skipping GPU passthrough."
-      return 0
-    fi
-  fi
-
-  # Apply passthrough configuration based on selection
-  local dev_idx=0
-
-  case "$selected_gpu" in
-    INTEL|AMD)
-      local devices=()
-      [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
-      [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
-
-      # For Proxmox WebUI visibility, add as dev0, dev1 etc.
-      for dev in "${devices[@]}"; do
-        if [[ "$CT_TYPE" == "0" ]]; then
-          # Privileged container - use dev entries for WebUI visibility
-          # Use initial GID 104 (render) for renderD*, 44 (video) for card*
-          if [[ "$dev" =~ renderD ]]; then
-            echo "dev${dev_idx}: $dev,gid=104" >>"$LXC_CONFIG"
-          else
-            echo "dev${dev_idx}: $dev,gid=44" >>"$LXC_CONFIG"
-          fi
-          dev_idx=$((dev_idx + 1))
-
-          # Also add cgroup allows for privileged containers
-          local major minor
-          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
-          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
-
-          if [[ "$major" != "0" && "$minor" != "0" ]]; then
-            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
-          fi
-        else
-          # Unprivileged container
-          if [[ "$dev" =~ renderD ]]; then
-            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
-          else
-            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
-          fi
-          dev_idx=$((dev_idx + 1))
-        fi
-      done
-
-      export GPU_TYPE="$selected_gpu"
-      msg_ok "${selected_gpu} GPU passthrough configured (${dev_idx} devices)"
-      ;;
-
-    NVIDIA)
-      if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
-        msg_error "NVIDIA drivers not installed on host. Please install: apt install nvidia-driver"
-        return 1
-      fi
-
-      for dev in "${NVIDIA_DEVICES[@]}"; do
-        # NVIDIA devices typically need different handling
-        echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
-        dev_idx=$((dev_idx + 1))
-
-        if [[ "$CT_TYPE" == "0" ]]; then
-          local major minor
-          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
-          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
-
-          if [[ "$major" != "0" && "$minor" != "0" ]]; then
-            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
-          fi
-        fi
-      done
-
-      export GPU_TYPE="NVIDIA"
-      msg_ok "NVIDIA GPU passthrough configured (${dev_idx} devices)"
-      ;;
-  esac
-}
 
   # Continue with standard container setup
   msg_info "Customizing LXC Container"
@@ -2767,14 +2636,14 @@ fix_gpu_gids() {
     # Versuche die video Gruppe zu erstellen
     pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true"
     video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
-    [[ -z "$video_gid" ]] && video_gid="44"  # Ultimate fallback
+    [[ -z "$video_gid" ]] && video_gid="44" # Ultimate fallback
   fi
 
   if [[ -z "$render_gid" ]]; then
     # Versuche die render Gruppe zu erstellen
     pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true"
     render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
-    [[ -z "$render_gid" ]] && render_gid="104"  # Ultimate fallback
+    [[ -z "$render_gid" ]] && render_gid="104" # Ultimate fallback
   fi
 
   msg_info "Container GIDs detected - video:${video_gid}, render:${render_gid}"
@@ -2816,7 +2685,7 @@ fix_gpu_gids() {
         # Keep non-dev lines
         echo "$line"
       fi
-    done < "$LXC_CONFIG" > "${LXC_CONFIG}.new"
+    done <"$LXC_CONFIG" >"${LXC_CONFIG}.new"
 
     mv "${LXC_CONFIG}.new" "$LXC_CONFIG"
 
