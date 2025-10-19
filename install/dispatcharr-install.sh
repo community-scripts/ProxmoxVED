@@ -13,15 +13,12 @@ setting_up_container
 network_check
 update_os
 
-# Suppress apt-listchanges mails and prompts during automated install
 export DEBIAN_FRONTEND=noninteractive
 export APT_LISTCHANGES_FRONTEND=none
 export APT_LISTCHANGES_NO_MAIL=1
 
-# Application location
 APP_DIR="/opt/dispatcharr"
 
-# Variables
 APP="Dispatcharr"
 DISPATCH_USER="dispatcharr"
 DISPATCH_GROUP="dispatcharr"
@@ -61,7 +58,6 @@ $STD apt-get install -y --no-install-recommends "${packages[@]}"
 msg_ok "Core packages installed"
 
 msg_info "Installing uv (Python package manager)"
-# Use latest Python via uv on Debian 13
 PYTHON_VERSION="3.13" setup_uv
 msg_ok "uv installed"
 
@@ -94,12 +90,9 @@ PG_VERSION="$PG_VERSION" setup_postgresql
 msg_ok "PostgreSQL installed"
 
 msg_info "Reconfiguring PostgreSQL ${PG_VERSION}/${PG_CLUSTER} to ${PG_DATADIR}"
-# Strict perms are REQUIRED by Postgres
 install -d -m 0700 -o postgres -g postgres "${PG_DATADIR}"
-# Drop default cluster (if present) and recreate pointing at the new datadir
 $STD sudo -u postgres pg_dropcluster --stop "${PG_VERSION}" "${PG_CLUSTER}"
 $STD sudo -u postgres pg_createcluster --datadir="${PG_DATADIR}" "${PG_VERSION}" "${PG_CLUSTER}"
-# Start this specific cluster and wait for readiness
 $STD pg_ctlcluster "${PG_VERSION}" "${PG_CLUSTER}" start
 for _ in {1..20}; do sudo -u postgres pg_isready -q && break; sleep 0.5; done
 msg_ok "PostgreSQL ${PG_VERSION}/${PG_CLUSTER} running from ${PG_DATADIR}"
@@ -132,9 +125,6 @@ export UV_INDEX_URL="https://pypi.org/simple"
 export UV_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu"
 export UV_INDEX_STRATEGY="unsafe-best-match"
 $STD runuser -u "$DISPATCH_USER" -- bash -c 'cd "'"${APP_DIR}"'"; uv venv --seed env || uv venv env'
-
-# Build a filtered requirements without uWSGI
-# Ensure APP_DIR is visible to the child shell
 runuser -u "$DISPATCH_USER" -- env APP_DIR="$APP_DIR" bash -s <<'BASH'
 set -e
 cd "$APP_DIR"
@@ -148,7 +138,6 @@ if [ -f "$REQ" ]; then
   fi
 fi
 BASH
-
 runuser -u "$DISPATCH_USER" -- bash -c 'cd "'"${APP_DIR}"'"; . env/bin/activate; uv pip install -q -r requirements.nouwsgi.txt'
 runuser -u "$DISPATCH_USER" -- bash -c 'cd "'"${APP_DIR}"'"; . env/bin/activate; uv pip install -q gunicorn'
 ln -sf /usr/bin/ffmpeg "${APP_DIR}/env/bin/ffmpeg"
@@ -340,7 +329,6 @@ echo "  http://${SERVER_IP}:${NGINX_HTTP_PORT}"
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean

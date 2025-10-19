@@ -24,55 +24,24 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  # Disable all apt-listchanges prompts and mails
   export DEBIAN_FRONTEND=noninteractive
   export APT_LISTCHANGES_FRONTEND=none
   export APT_LISTCHANGES_NO_MAIL=1
 
-  # Application location
   APP_DIR="/opt/dispatcharr"
 
-  # Check if installation is present
   if [[ ! -d "$APP_DIR" ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  # Unified backup retention setting
   DEFAULT_BACKUP_RETENTION=3                 # keep newest N backups by default
   VARS_FILE="/root/.dispatcharr_vars"
   VERSION_FILE="/root/.dispatcharr"
   CURRENT_VERSION=""
 
-  # CLI cannot override retention directly; only VARS_FILE or DOPT=BR may change it
   BACKUP_RETENTION="$DEFAULT_BACKUP_RETENTION"
 
-  # ============================================================================
-  #  Dispatcharr Options (DOPT)
-  #  --------------------------------------------------------------------------
-  #  The DOPT environment variable controls optional behaviors during update.
-  #  Only one mode should be used at a time.
-  #
-  #  DOPT=BR  →  Backup Retention
-  #      • Prompts for BACKUP_RETENTION (ALL or number > 0)
-  #      • Saves the setting to /root/.dispatcharr_vars
-  #
-  #  DOPT=IV  →  Ignore Version
-  #      • Removes /root/.dispatcharr before running the update
-  #      • Forces the update to run regardless of any recorded version match
-  #      • Useful when testing or reapplying an update without changing code
-  #      • Runs non-interactively (no user prompt)
-  #
-  #  DOPT=BO  →  Build-Only (Fast Path)
-  #      • Skips release check, apt upgrade, backup creation/pruning,
-  #        Django migrations, and nginx reload
-  #      • Intended for rapid rebuilds or testing inside an existing container
-  #
-  #  If DOPT is unset or not recognized:
-  #      • Normal full update process runs using saved /root/.dispatcharr_vars
-  # ============================================================================
-  # === Validate DOPT value ===
-  # Must be one of: BR, IV, BO — if unset, normal update; if invalid, exit.
   VALID_DOPTS=("BR" "IV" "BO")
   DOPT="${DOPT:-}"  # Empty string if not set
 
@@ -84,24 +53,20 @@ function update_script() {
         break
       fi
     done
-
     if [[ "$valid_flag" != "true" ]]; then
       msg_warn "Invalid DOPT=${DOPT}. Valid options are: BR (Backup Retention), IV (Ignore Version), BO (Build-Only)."
       exit 1
     fi
   fi
 
-  # --- Load and validate PostgreSQL credentials from /root/Dispatcharr.creds ---
   POSTGRES_DB="dispatcharr"
   POSTGRES_USER="dispatch"
   POSTGRES_PASSWORD=""
   CREDS_FILE="/root/dispatcharr.creds"
   if [ -f "${CREDS_FILE}" ]; then
-    # Extract values safely, removing CRs or stray spaces
     POSTGRES_USER=$(grep -E '^Dispatcharr Database User:' "${CREDS_FILE}" | awk -F': ' '{print $2}' | tr -d '\r[:space:]')
     POSTGRES_PASSWORD=$(grep -E '^Dispatcharr Database Password:' "${CREDS_FILE}" | awk -F': ' '{print $2}' | tr -d '\r[:space:]')
     POSTGRES_DB=$(grep -E '^Dispatcharr Database Name:' "${CREDS_FILE}" | awk -F': ' '{print $2}' | tr -d '\r[:space:]')
-    # Validate that all three were found and non-empty
     if [ -z "${POSTGRES_USER}" ] || [ -z "${POSTGRES_PASSWORD}" ] || [ -z "${POSTGRES_DB}" ]; then
       msg_error "One or more PostgreSQL credentials are missing in ${CREDS_FILE}."
       echo "Expected lines:"
@@ -114,29 +79,23 @@ function update_script() {
     msg_error "Postgres credentials file ${CREDS_FILE} not found!"
     exit 1
   fi
-  # --- Verify PostgreSQL login works with stored credentials ---
   if ! PGPASSWORD="${POSTGRES_PASSWORD}" \
       psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -h localhost -q -c "SELECT 1;" >/dev/null 2>&1; then
     msg_error "PostgreSQL login failed — credentials in ${CREDS_FILE} may be invalid."
     exit 1
   fi
 
-  # Load from vars file if present
   if [ -f "$VARS_FILE" ]; then
-    # shellcheck disable=SC1090
     . "$VARS_FILE"
   fi
 
-  # Normalize/validate BACKUP_RETENTION
   if [[ "${BACKUP_RETENTION}" =~ ^[Aa][Ll][Ll]$ ]]; then
     BACKUP_RETENTION="ALL"
   elif ! [[ "${BACKUP_RETENTION}" =~ ^[0-9]+$ ]] || [ "${BACKUP_RETENTION}" -le 0 ]; then
     BACKUP_RETENTION="$DEFAULT_BACKUP_RETENTION"
   fi
 
-  # If ignore-version or build-only, we won't prompt or touch backups/version here
   if [[ "$DOPT" != "BO" ]]; then
-    # DOPT=BR → prompt retention, save file, and ask whether to continue
     if [[ "$DOPT" == "BR" || ! -f "$VARS_FILE" ]]; then
       while true; do
         ans=$(whiptail --inputbox "Backup retention:\n\n• Enter 'ALL' to keep all backups (no pruning)\n• Or enter a number > 0 to keep only the newest N backups" 12 70 "$BACKUP_RETENTION" --title "Dispatcharr Options: Backup Retention" 3>&1 1>&2 2>&3) || {
@@ -151,10 +110,8 @@ function update_script() {
           whiptail --msgbox "Invalid input. Type ALL or a positive number (e.g., 3)." 8 70 --title "Invalid Entry"
         fi
       done
-
       printf 'BACKUP_RETENTION=%s\n' "$BACKUP_RETENTION" > "$VARS_FILE"
       chmod 0644 "$VARS_FILE"
-
       msg_ok "Backup Retention is now set to $BACKUP_RETENTION."
     fi
 
@@ -167,12 +124,10 @@ function update_script() {
         msg_ok "No new release available; current version is up to date."
         exit
       fi
-      #spinner left from check_for_gh_release message "New release available ....."
       stop_spinner
     fi
   fi
 
-  # Variables
   DISPATCH_USER="dispatcharr"
   DISPATCH_GROUP="dispatcharr"
 
@@ -197,14 +152,12 @@ function update_script() {
     msg_ok "Using DOPT=${DOPT}"
   fi
 
-  # If build-only, announce fast path
   if [[ "$DOPT" == "BO" ]]; then
     msg_ok "Build-Only enabled — skipping apt upgrade, backup/prune, and Django migrations."
   fi
 
   if [[ "$DOPT" != "BO" ]]; then
     if [[ "$BACKUP_RETENTION" =~ ^[0-9]+$ ]]; then
-      # shellcheck disable=SC2086
       EXISTING_BACKUPS=( $(ls -1 $BACKUP_GLOB 2>/dev/null | sort -r || true) )
       COUNT=${#EXISTING_BACKUPS[@]}
       if [ "$COUNT" -ge "$BACKUP_RETENTION" ]; then
@@ -224,12 +177,9 @@ function update_script() {
         fi
       fi
     fi
-
-    # --- Remove any leftover temporary DB dumps (safe cleanup) ---
     if [ -d "$TMP_PGDUMP" ]; then
       shown=0
       for f in "$TMP_PGDUMP/${APP}_DB_"*.dump; do
-        # If the glob didn't match anything, skip the literal pattern
         [ -e "$f" ] || continue
         if [ "$shown" -eq 0 ]; then
           msg_warn "Found leftover database dump(s) that may have been included in previous backups — removing:"
@@ -255,16 +205,10 @@ function update_script() {
 
   if [[ "$DOPT" != "BO" ]]; then
     msg_ok "Backup Retention: ${BACKUP_RETENTION}"
-
-    # --- Backup important paths and database ---
     msg_info "Creating Backup of current installation"
-
-    # DB dump (custom format for pg_restore)
     [ -d "$TMP_PGDUMP" ] || install -d -m 700 -o postgres -g postgres "$TMP_PGDUMP"
     sudo -u postgres pg_dump -Fc -f "${DB_BACKUP_FILE}" "$POSTGRES_DB"
     [ -s "${DB_BACKUP_FILE}" ] || { msg_error "Database dump is empty — aborting backup"; exit 1; }
-
-    # Build TAR_* variables (NO /data; exclude rebuildable dirs)
     TAR_OPTS=( -C / --warning=no-file-changed --ignore-failed-read )
     TAR_EXCLUDES=(
       --exclude=opt/dispatcharr/env
@@ -288,12 +232,8 @@ function update_script() {
       "${DB_BACKUP_FILE#/}"
     )
     $STD tar -czf "${BACKUP_FILE}" "${TAR_OPTS[@]}" "${TAR_EXCLUDES[@]}" "${TAR_ITEMS[@]}"
-
-    # Cleanup temp DB dump
     rm -f "${DB_BACKUP_FILE}"
-
     if [[ "$BACKUP_RETENTION" =~ ^[0-9]+$ ]]; then
-      # shellcheck disable=SC2086
       ALL_BACKUPS="$(ls -1 $BACKUP_GLOB 2>/dev/null | sort -r || true)"
       COUNT="$(printf '%s\n' "$ALL_BACKUPS" | sed '/^$/d' | wc -l)"
       if [ "$COUNT" -gt "$BACKUP_RETENTION" ]; then
@@ -306,31 +246,24 @@ function update_script() {
     fi
     msg_ok "Backup Created: ${BACKUP_FILE}"
 
-    # ====== BEGIN update steps ======
-
-    # DOPT=IV → remove /root/.dispatcharr (ignore-version), then continue update
     if [[ "$DOPT" == "IV" ]]; then
       rm -f "$VERSION_FILE"
       msg_ok "Cleared version file"
     fi
 
-    # Fetch latest release into APP_DIR
     msg_info "Fetching latest Dispatcharr release"
     fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
     $STD chown -R "$DISPATCH_USER:$DISPATCH_GROUP" "$APP_DIR"
     msg_ok "Release deployed"
   fi
 
-  # Load current version
   [[ -f "$VERSION_FILE" ]] && CURRENT_VERSION=$(<"$VERSION_FILE")
 
-  # Ensure required runtime dirs inside $APP_DIR (in case clean unpack removed them)
   msg_info "Ensuring runtime directories in APP_DIR"
   install -d -m 0755 -o "$DISPATCH_USER" -g "$DISPATCH_GROUP" \
     "${APP_DIR}/logo_cache" "${APP_DIR}/media"
   msg_ok "Runtime directories ensured"
 
-  # Rebuild frontend (clean)
   msg_info "Rebuilding frontend"
   sudo -u "$DISPATCH_USER" bash -c "cd \"${APP_DIR}/frontend\"; rm -rf node_modules .cache dist build .next || true"
   sudo -u "$DISPATCH_USER" bash -c "cd \"${APP_DIR}/frontend\"; if [ -f package-lock.json ]; then npm ci --silent --no-progress --no-audit --no-fund; else npm install --legacy-peer-deps --silent --no-progress --no-audit --no-fund; fi"
@@ -343,9 +276,6 @@ function update_script() {
   export UV_INDEX_STRATEGY="unsafe-best-match"
   export PATH="/usr/local/bin:$PATH"
   $STD runuser -u "$DISPATCH_USER" -- bash -c 'cd "'"${APP_DIR}"'"; [ -x env/bin/python ] || uv venv --seed env || uv venv env'
-
-  # Build a filtered requirements without uWSGI
-  # Ensure APP_DIR is visible to the child shell
   runuser -u "$DISPATCH_USER" -- env APP_DIR="$APP_DIR" bash -s <<'BASH'
   set -e
   cd "$APP_DIR"
@@ -359,14 +289,12 @@ function update_script() {
     fi
   fi
 BASH
-
   runuser -u "$DISPATCH_USER" -- bash -c 'cd "'"${APP_DIR}"'"; . env/bin/activate; uv pip install -q -r requirements.nouwsgi.txt'
   runuser -u "$DISPATCH_USER" -- bash -c 'cd "'"${APP_DIR}"'"; . env/bin/activate; uv pip install -q gunicorn'
   ln -sf /usr/bin/ffmpeg "${APP_DIR}/env/bin/ffmpeg"
   msg_ok "Python environment refreshed"
 
   if [[ "$DOPT" != "BO" ]]; then
-    # Run Django migrations
     msg_info "Running Django migrations"
     $STD sudo -u "$DISPATCH_USER" bash -c "cd \"${APP_DIR}\"; source env/bin/activate; POSTGRES_DB='${POSTGRES_DB}' POSTGRES_USER='${POSTGRES_USER}' POSTGRES_PASSWORD='${POSTGRES_PASSWORD}' POSTGRES_HOST=localhost python manage.py migrate --noinput"
     msg_ok "Django migrations complete"
@@ -376,7 +304,6 @@ BASH
   $STD sudo -u "$DISPATCH_USER" bash -c "cd \"${APP_DIR}\"; source env/bin/activate; python manage.py collectstatic --noinput"
   msg_ok "Collecting Django static files complete"
 
-  # Restart services
   msg_info "Restarting services"
   $STD systemctl daemon-reload || true
   $STD systemctl restart dispatcharr dispatcharr-celery dispatcharr-celerybeat dispatcharr-daphne || true
@@ -384,8 +311,6 @@ BASH
     $STD systemctl reload nginx 2>/dev/null || true
   fi
   msg_ok "Services restarted"
-
-  # ====== END update steps ======
 
   msg_ok "Updated ${APP} to v${CURRENT_VERSION}"
 
