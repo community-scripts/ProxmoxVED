@@ -35,7 +35,7 @@ function update_script() {
     exit
   fi
 
-  DEFAULT_BACKUP_RETENTION=3                 # keep newest N backups by default
+  DEFAULT_BACKUP_RETENTION=3
   VARS_FILE="/root/.dispatcharr_vars"
   VERSION_FILE="/root/.dispatcharr"
   CURRENT_VERSION=""
@@ -43,7 +43,7 @@ function update_script() {
   BACKUP_RETENTION="$DEFAULT_BACKUP_RETENTION"
 
   VALID_DOPTS=("BR" "IV" "BO")
-  DOPT="${DOPT:-}"  # Empty string if not set
+  DOPT="${DOPT:-}"
 
   if [ ! -z "$DOPT" ]; then
     valid_flag="false"
