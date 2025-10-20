@@ -16,7 +16,9 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
+  git \
   gcc \
+  python3-dev \
   libpq-dev \
   nginx \
   redis-server \
@@ -26,7 +28,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 setup_uv
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 PG_VERSION="16" setup_postgresql
 
 msg_info "Creating PostgreSQL Database"
@@ -49,12 +51,23 @@ msg_ok "Created PostgreSQL Database"
 
 fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
 
-msg_info "Configuring Dispatcharr"
+msg_info "Installing Python Dependencies with uv"
 cd /opt/dispatcharr || exit
 
-$STD uv sync --frozen
-$STD uv run --frozen python manage.py migrate --noinput
-$STD uv run --frozen python manage.py collectstatic --noinput
+$STD uv venv
+$STD uv pip install -r requirements.txt --index-strategy unsafe-best-match
+$STD uv pip install gunicorn gevent celery redis daphne
+msg_ok "Installed Python Dependencies"
+
+msg_info "Configuring Dispatcharr"
+export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}"
+export POSTGRES_DB=$DB_NAME
+export POSTGRES_USER=$DB_USER
+export POSTGRES_PASSWORD=$DB_PASS
+export POSTGRES_HOST=localhost
+
+$STD uv run python manage.py migrate --noinput
+$STD uv run python manage.py collectstatic --noinput
 
 cd /opt/dispatcharr/frontend || exit
 $STD npm install --legacy-peer-deps
@@ -105,18 +118,27 @@ msg_ok "Configured Nginx"
 
 msg_info "Creating Services"
 
+# Create environment file for services
+cat <<EOF >/opt/dispatcharr/.env
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}
+POSTGRES_DB=$DB_NAME
+POSTGRES_USER=$DB_USER
+POSTGRES_PASSWORD=$DB_PASS
+POSTGRES_HOST=localhost
+CELERY_BROKER_URL=redis://localhost:6379/0
+EOF
+
 cat <<EOF >/opt/dispatcharr/start-gunicorn.sh
 #!/usr/bin/env bash
 cd /opt/dispatcharr
-export POSTGRES_DB=$DB_NAME
-export POSTGRES_USER=$DB_USER
-export POSTGRES_PASSWORD=$DB_PASS
-export POSTGRES_HOST=localhost
-uv run --frozen gunicorn \
-    --workers=4 \
-    --worker-class=gevent \
-    --timeout=300 \
-    --bind 0.0.0.0:5656 \
+set -a
+source .env
+set +a
+exec uv run gunicorn \\
+    --workers=4 \\
+    --worker-class=gevent \\
+    --timeout=300 \\
+    --bind 0.0.0.0:5656 \\
     dispatcharr.wsgi:application
 EOF
 chmod +x /opt/dispatcharr/start-gunicorn.sh
@@ -124,35 +146,30 @@ chmod +x /opt/dispatcharr/start-gunicorn.sh
 cat <<EOF >/opt/dispatcharr/start-celery.sh
 #!/usr/bin/env bash
 cd /opt/dispatcharr
-export POSTGRES_DB=$DB_NAME
-export POSTGRES_USER=$DB_USER
-export POSTGRES_PASSWORD=$DB_PASS
-export POSTGRES_HOST=localhost
-export CELERY_BROKER_URL=redis://localhost:6379/0
-uv run --frozen celery -A dispatcharr worker -l info -c 4
+set -a
+source .env
+set +a
+exec uv run celery -A dispatcharr worker -l info -c 4
 EOF
 chmod +x /opt/dispatcharr/start-celery.sh
 
 cat <<EOF >/opt/dispatcharr/start-celerybeat.sh
 #!/usr/bin/env bash
 cd /opt/dispatcharr
-export POSTGRES_DB=$DB_NAME
-export POSTGRES_USER=$DB_USER
-export POSTGRES_PASSWORD=$DB_PASS
-export POSTGRES_HOST=localhost
-export CELERY_BROKER_URL=redis://localhost:6379/0
-uv run --frozen celery -A dispatcharr beat -l info
+set -a
+source .env
+set +a
+exec uv run celery -A dispatcharr beat -l info
 EOF
 chmod +x /opt/dispatcharr/start-celerybeat.sh
 
 cat <<EOF >/opt/dispatcharr/start-daphne.sh
 #!/usr/bin/env bash
 cd /opt/dispatcharr
-export POSTGRES_DB=$DB_NAME
-export POSTGRES_USER=$DB_USER
-export POSTGRES_PASSWORD=$DB_PASS
-export POSTGRES_HOST=localhost
-uv run --frozen daphne -b 0.0.0.0 -p 8001 dispatcharr.asgi:application
+set -a
+source .env
+set +a
+exec uv run daphne -b 0.0.0.0 -p 8001 dispatcharr.asgi:application
 EOF
 chmod +x /opt/dispatcharr/start-daphne.sh
 
