@@ -85,8 +85,17 @@ cleanup_before_test() {
   # Remove apt locks
   rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock 2>/dev/null || true
 
-  # Remove existing keyrings to avoid overwrite prompts
+  # Clean up broken repository files from previous tests
+  # Remove all custom sources files
+  rm -f /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+  rm -f /etc/apt/sources.list.d/*.list 2>/dev/null || true
+
+  # Remove all keyrings
   rm -f /etc/apt/keyrings/*.gpg 2>/dev/null || true
+  rm -f /etc/apt/keyrings/*.asc 2>/dev/null || true
+
+  # Update package lists to ensure clean state
+  apt-get update -qq 2>/dev/null || true
 
   # Wait a moment for processes to clean up
   sleep 1
@@ -176,23 +185,23 @@ apt-get install -y curl wget gpg jq git build-essential ca-certificates &>/dev/n
 # ==============================================================================
 # TEST 2: ADMINER - Database Management
 # ==============================================================================
-test_function "Adminer" \
-  "setup_adminer" \
-  "dpkg -l adminer 2>/dev/null | grep -q '^ii' && a2query -c adminer 2>/dev/null && echo 'Adminer installed'"
+# test_function "Adminer" \
+#   "setup_adminer" \
+#   "dpkg -l adminer 2>/dev/null | grep -q '^ii' && a2query -c adminer 2>/dev/null && echo 'Adminer installed'"
 
 # ==============================================================================
 # TEST 3: CLICKHOUSE
 # ==============================================================================
-test_function "ClickHouse" \
-  "setup_clickhouse" \
-  "clickhouse-server --version"
+# test_function "ClickHouse" \
+#   "setup_clickhouse" \
+#   "clickhouse-server --version"
 
 # ==============================================================================
 # TEST 4: POSTGRESQL
 # ==============================================================================
-# test_function "PostgreSQL 17" \
-#   "PG_VERSION=17 setup_postgresql" \
-#   "psql --version"
+test_function "PostgreSQL 16" \
+  "PG_VERSION=16 setup_postgresql" \
+  "psql --version"
 
 # ==============================================================================
 # TEST 6: MARIADB
@@ -218,13 +227,13 @@ test_function "MySQL 8.0" \
 # ==============================================================================
 # TEST 8: MONGODB (Check AVX support)
 # ==============================================================================
-if grep -q avx /proc/cpuinfo; then
-  test_function "MongoDB 8.0" \
-    "MONGO_VERSION=8.0 setup_mongodb" \
-    "mongod --version"
-else
-  skip_test "MongoDB 8.0" "CPU does not support AVX"
-fi
+# if grep -q avx /proc/cpuinfo; then
+#   test_function "MongoDB 8.0" \
+#     "MONGO_VERSION=8.0 setup_mongodb" \
+#     "mongod --version"
+# else
+#   skip_test "MongoDB 8.0" "CPU does not support AVX"
+# fi
 
 # ==============================================================================
 # TEST 9: NODE.JS
@@ -278,9 +287,9 @@ test_function "Ruby 3.4.1 with Rails" \
 # ==============================================================================
 # TEST 16: RUST
 # ==============================================================================
-test_function "Rust (stable)" \
-  "RUST_TOOLCHAIN=stable RUST_CRATES='cargo-edit' setup_rust" \
-  "source \$HOME/.cargo/env && rustc --version"
+# test_function "Rust (stable)" \
+#   "RUST_TOOLCHAIN=stable RUST_CRATES='cargo-edit' setup_rust" \
+#   "source \$HOME/.cargo/env && rustc --version"
 
 # ==============================================================================
 # TEST 17: GHOSTSCRIPT

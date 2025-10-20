@@ -88,11 +88,20 @@ ensure_dependencies() {
     fi
 
     if ((current_time - last_update > 300)); then
-      $STD apt update
+      # Ensure orphaned sources are cleaned before updating
+      cleanup_orphaned_sources 2>/dev/null || true
+
+      if ! $STD apt update; then
+        msg_warn "apt update failed, attempting to fix..."
+        ensure_apt_working || return 1
+      fi
       echo "$current_time" >"$apt_cache_file"
     fi
 
-    $STD apt install -y "${missing[@]}"
+    $STD apt install -y "${missing[@]}" || {
+      msg_error "Failed to install dependencies: ${missing[*]}"
+      return 1
+    }
     msg_ok "Installed dependencies"
   fi
 }
@@ -536,6 +545,7 @@ cleanup_old_repo_files() {
 # ------------------------------------------------------------------------------
 # Cleanup orphaned .sources files that reference missing keyrings
 # This prevents APT signature verification errors
+# Call this at the start of any setup function to ensure APT is in a clean state
 # ------------------------------------------------------------------------------
 cleanup_orphaned_sources() {
   local sources_dir="/etc/apt/sources.list.d"
@@ -554,6 +564,37 @@ cleanup_orphaned_sources() {
       rm -f "$sources_file"
     fi
   done < <(find "$sources_dir" -name "*.sources" -print0 2>/dev/null)
+
+  # Also check for broken symlinks in keyrings directory
+  if [[ -d "$keyrings_dir" ]]; then
+    find "$keyrings_dir" -type l ! -exec test -e {} \; -delete 2>/dev/null || true
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# Ensure APT is in a working state before installing packages
+# This should be called at the start of any setup function
+# ------------------------------------------------------------------------------
+ensure_apt_working() {
+  # Clean up orphaned sources first
+  cleanup_orphaned_sources
+
+  # Try to update package lists
+  if ! apt-get update -qq 2>/dev/null; then
+    msg_warn "APT update failed, attempting to fix..."
+
+    # More aggressive cleanup
+    rm -f /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+    cleanup_orphaned_sources
+
+    # Try again
+    if ! apt-get update -qq 2>/dev/null; then
+      msg_error "Cannot update package lists - APT is critically broken"
+      return 1
+    fi
+  fi
+
+  return 0
 }
 
 # ------------------------------------------------------------------------------
@@ -2055,16 +2096,18 @@ setup_mariadb() {
     $STD apt purge -y 'mariadb*' || true
   fi
 
-  # Install required dependencies first (MariaDB needs these from main repos)
-  msg_info "Installing MariaDB dependencies"
-  $STD apt update
-  $STD apt install -y gawk rsync socat libdbi-perl pv || {
-    msg_error "Failed to install MariaDB dependencies"
-    return 1
-  }
+  # Ensure APT is working before proceeding
+  ensure_apt_working || return 1
 
   # Cleanup old repository files
   cleanup_old_repo_files "mariadb"
+
+  # Install required dependencies first (MariaDB needs these from main repos)
+  msg_info "Installing MariaDB dependencies"
+  ensure_dependencies gawk rsync socat libdbi-perl pv || {
+    msg_error "Failed to install MariaDB dependencies"
+    return 1
+  }
 
   # Use helper function to get fallback suite
   local SUITE
@@ -2286,16 +2329,25 @@ function setup_mysql() {
       return 1
     fi
 
-    if ! apt-cache policy mysql-server | grep -q 'Candidate:'; then
+    # Check for either mysql-server meta package or mysql-community-server
+    if ! apt-cache policy mysql-server mysql-community-server 2>/dev/null | grep -q 'Candidate:'; then
       msg_error "MySQL ${MYSQL_VERSION} package not available for suite ${SUITE}"
       msg_info "Available MySQL components:"
       apt-cache search "^mysql-" | grep "^mysql-" | head -20 | sed 's/^/  /'
       return 1
     fi
 
-    if ! $STD apt install -y mysql-server; then
-      msg_error "Failed to install MySQL ${MYSQL_VERSION}"
-      return 1
+    # Try to install mysql-server first (meta package), fallback to mysql-community-server
+    if apt-cache policy mysql-server 2>/dev/null | grep -q 'Candidate:'; then
+      if ! $STD apt install -y mysql-server mysql-client; then
+        msg_error "Failed to install MySQL ${MYSQL_VERSION}"
+        return 1
+      fi
+    else
+      if ! $STD apt install -y mysql-community-server mysql-community-client; then
+        msg_error "Failed to install MySQL ${MYSQL_VERSION}"
+        return 1
+      fi
     fi
 
     # Verify installation
@@ -2718,6 +2770,9 @@ function setup_ruby() {
   CACHED_VERSION=$(get_cached_version "ruby")
 
   msg_info "Installing Ruby $RUBY_VERSION"
+
+  # Ensure APT is working before installing dependencies
+  ensure_apt_working || return 1
 
   # Install all required build dependencies
   ensure_dependencies jq autoconf patch build-essential rustc libssl-dev libyaml-dev \
