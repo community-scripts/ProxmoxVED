@@ -525,14 +525,35 @@ cleanup_old_repo_files() {
   # Remove old GPG keys from trusted.gpg.d
   rm -f /etc/apt/trusted.gpg.d/"${app}"*.gpg
 
-  # Remove keyrings from /etc/apt/keyrings (FIX: This was missing!)
+  # Remove keyrings from /etc/apt/keyrings
   rm -f /etc/apt/keyrings/"${app}"*.gpg
 
-  # Remove duplicate .sources files (keep only the main one)
-  local sources_file="/etc/apt/sources.list.d/${app}.sources"
-  if [[ -f "$sources_file" ]]; then
-    find /etc/apt/sources.list.d/ -name "${app}*.sources" ! -name "${app}.sources" -delete 2>/dev/null || true
-  fi
+  # Remove ALL .sources files for this app (including the main one)
+  # This ensures no orphaned .sources files reference deleted keyrings
+  rm -f /etc/apt/sources.list.d/"${app}"*.sources
+}
+
+# ------------------------------------------------------------------------------
+# Cleanup orphaned .sources files that reference missing keyrings
+# This prevents APT signature verification errors
+# ------------------------------------------------------------------------------
+cleanup_orphaned_sources() {
+  local sources_dir="/etc/apt/sources.list.d"
+  local keyrings_dir="/etc/apt/keyrings"
+
+  [[ ! -d "$sources_dir" ]] && return 0
+
+  while IFS= read -r -d '' sources_file; do
+    # Extract Signed-By path from .sources file
+    local keyring_path
+    keyring_path=$(grep -E '^Signed-By:' "$sources_file" 2>/dev/null | awk '{print $2}')
+
+    # If keyring doesn't exist, remove the .sources file
+    if [[ -n "$keyring_path" ]] && [[ ! -f "$keyring_path" ]]; then
+      msg_warn "Removing orphaned sources file: $(basename "$sources_file") (missing keyring: $(basename "$keyring_path"))"
+      rm -f "$sources_file"
+    fi
+  done < <(find "$sources_dir" -name "*.sources" -print0 2>/dev/null)
 }
 
 # ------------------------------------------------------------------------------
@@ -548,8 +569,11 @@ setup_deb822_repo() {
 
   msg_info "Setting up $name repository"
 
-  # Cleanup old configs
+  # Cleanup old configs for this app
   cleanup_old_repo_files "$name"
+
+  # Cleanup any orphaned .sources files from other apps
+  cleanup_orphaned_sources
 
   # Ensure keyring directory exists
   mkdir -p /etc/apt/keyrings
@@ -2135,6 +2159,9 @@ function setup_mongodb() {
   # Cleanup old repository files
   cleanup_old_repo_files "mongodb-org-${MONGO_VERSION}"
 
+  # Cleanup any orphaned .sources files from other apps
+  cleanup_orphaned_sources
+
   # Use helper function to get fallback suite
   local SUITE
   SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "$MONGO_BASE_URL")
@@ -2565,12 +2592,25 @@ function setup_postgresql() {
     # Cleanup old repository files
     cleanup_old_repo_files "pgdg"
 
-    # Use helper function to get fallback suite
+    # PostgreSQL PGDG repository uses special suite naming
+    # For unstable/testing Debian, we need to check what's actually available
     local SUITE
-    SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://apt.postgresql.org/pub/repos/apt")
-
-    # PGDG uses special suite naming: ${SUITE}-pgdg
-    SUITE="${SUITE}-pgdg"
+    case "$DISTRO_CODENAME" in
+    trixie | forky | sid)
+      # Try trixie-pgdg first, fallback to bookworm-pgdg if not available
+      if verify_repo_available "https://apt.postgresql.org/pub/repos/apt" "trixie-pgdg"; then
+        SUITE="trixie-pgdg"
+      else
+        SUITE="bookworm-pgdg"
+      fi
+      ;;
+    *)
+      # Use helper function for stable releases
+      SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://apt.postgresql.org/pub/repos/apt")
+      # PGDG uses special suite naming: ${SUITE}-pgdg
+      SUITE="${SUITE}-pgdg"
+      ;;
+    esac
 
     # Use standardized repo setup
     setup_deb822_repo \
@@ -2581,7 +2621,23 @@ function setup_postgresql() {
       "main" \
       "amd64 arm64"
 
-    $STD apt install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}"
+    # Update apt and verify package availability
+    if ! $STD apt update; then
+      msg_error "APT update failed for PostgreSQL repository"
+      return 1
+    fi
+
+    if ! apt-cache policy "postgresql-${PG_VERSION}" | grep -q 'Candidate:'; then
+      msg_error "PostgreSQL ${PG_VERSION} package not available for suite ${SUITE}"
+      msg_info "Available PostgreSQL versions:"
+      apt-cache search "^postgresql-[0-9]" | grep "^postgresql-" | sed 's/^/  /'
+      return 1
+    fi
+
+    if ! $STD apt install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}"; then
+      msg_error "Failed to install PostgreSQL ${PG_VERSION}"
+      return 1
+    fi
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
       $STD apt purge -y "postgresql-${CURRENT_PG_VERSION}" "postgresql-client-${CURRENT_PG_VERSION}" || true
@@ -2791,9 +2847,8 @@ function setup_clickhouse() {
   # Ensure dependencies
   ensure_dependencies apt-transport-https ca-certificates dirmngr gnupg
 
-  # Use helper function to get fallback suite
-  local SUITE
-  SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://packages.clickhouse.com/deb")
+  # ClickHouse uses 'stable' instead of distro codenames
+  local SUITE="stable"
 
   # Use standardized repo setup
   setup_deb822_repo \
@@ -2804,17 +2859,42 @@ function setup_clickhouse() {
     "main" \
     "amd64 arm64"
 
-  # Install ClickHouse packages
+  # Update and install ClickHouse packages
   export DEBIAN_FRONTEND=noninteractive
-  $STD apt install -y clickhouse-server clickhouse-client
+  if ! $STD apt update; then
+    msg_error "APT update failed for ClickHouse repository"
+    return 1
+  fi
+
+  if ! $STD apt install -y clickhouse-server clickhouse-client; then
+    msg_error "Failed to install ClickHouse packages"
+    return 1
+  fi
+
+  # Verify installation
+  if ! command -v clickhouse-server >/dev/null 2>&1; then
+    msg_error "ClickHouse installation completed but clickhouse-server command not found"
+    return 1
+  fi
 
   # Create data directory if it doesn't exist
   mkdir -p /var/lib/clickhouse
-  chown -R clickhouse:clickhouse /var/lib/clickhouse
+
+  # Check if clickhouse user exists before chown
+  if id clickhouse >/dev/null 2>&1; then
+    chown -R clickhouse:clickhouse /var/lib/clickhouse
+  else
+    msg_warn "ClickHouse user not found, skipping chown"
+  fi
 
   # Enable and start service
-  $STD systemctl enable clickhouse-server
-  safe_service_restart clickhouse-server
+  if ! $STD systemctl enable clickhouse-server; then
+    msg_warn "Failed to enable clickhouse-server service"
+  fi
+
+  if ! safe_service_restart clickhouse-server; then
+    msg_warn "Failed to start clickhouse-server service (this may be normal on first install)"
+  fi
 
   cache_installed_version "clickhouse" "$CLICKHOUSE_VERSION"
   msg_ok "Installed ClickHouse $CLICKHOUSE_VERSION"
