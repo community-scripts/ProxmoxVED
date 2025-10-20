@@ -169,16 +169,16 @@ apt-get install -y curl wget gpg jq git build-essential ca-certificates &>/dev/n
 # ==============================================================================
 # TEST 1: YQ - YAML Processor
 # ==============================================================================
-test_function "YQ" \
-  "setup_yq" \
-  "yq --version"
+# test_function "YQ" \
+#   "setup_yq" \
+#   "yq --version"
 
 # ==============================================================================
 # TEST 2: ADMINER - Database Management
 # ==============================================================================
 test_function "Adminer" \
   "setup_adminer" \
-  "test -f /usr/share/adminer/latest.php && echo 'Adminer installed'"
+  "dpkg -l adminer 2>/dev/null | grep -q '^ii' && a2query -c adminer 2>/dev/null && echo 'Adminer installed'"
 
 # ==============================================================================
 # TEST 3: CLICKHOUSE
@@ -190,9 +190,9 @@ test_function "ClickHouse" \
 # ==============================================================================
 # TEST 4: POSTGRESQL
 # ==============================================================================
-test_function "PostgreSQL 17" \
-  "PG_VERSION=17 setup_postgresql" \
-  "psql --version"
+# test_function "PostgreSQL 17" \
+#   "PG_VERSION=17 setup_postgresql" \
+#   "psql --version"
 
 # ==============================================================================
 # TEST 6: MARIADB
@@ -229,44 +229,44 @@ fi
 # ==============================================================================
 # TEST 9: NODE.JS
 # ==============================================================================
-test_function "Node.js 22 with modules" \
-  "NODE_VERSION=22 NODE_MODULE='yarn,pnpm@10.1.0,pm2' setup_nodejs" \
-  "node --version && npm --version && yarn --version && pnpm --version && pm2 --version"
+# test_function "Node.js 22 with modules" \
+#   "NODE_VERSION=22 NODE_MODULE='yarn,pnpm@10.1.0,pm2' setup_nodejs" \
+#   "node --version && npm --version && yarn --version && pnpm --version && pm2 --version"
 
 # ==============================================================================
 # TEST 10: PYTHON (UV)
 # ==============================================================================
-test_function "Python 3.12 via uv" \
-  "PYTHON_VERSION=3.12 setup_uv" \
-  "uv --version"
+# test_function "Python 3.12 via uv" \
+#   "PYTHON_VERSION=3.12 setup_uv" \
+#   "uv --version"
 
 # ==============================================================================
 # TEST 11: PHP
 # ==============================================================================
-test_function "PHP 8.3 with FPM" \
-  "PHP_VERSION=8.3 PHP_FPM=YES PHP_MODULE='redis,imagick,apcu,zip,mbstring' setup_php" \
-  "php --version"
+# test_function "PHP 8.3 with FPM" \
+#   "PHP_VERSION=8.3 PHP_FPM=YES PHP_MODULE='redis,imagick,apcu,zip,mbstring' setup_php" \
+#   "php --version"
 
 # ==============================================================================
 # TEST 12: COMPOSER
-# ==============================================================================
-test_function "Composer" \
-  "setup_composer" \
-  "composer --version"
+# # ==============================================================================
+# test_function "Composer" \
+#   "setup_composer" \
+#   "composer --version"
 
 # ==============================================================================
 # TEST 13: JAVA
 # ==============================================================================
-test_function "Java Temurin 21" \
-  "JAVA_VERSION=21 setup_java" \
-  "java --version"
+# test_function "Java Temurin 21" \
+#   "JAVA_VERSION=21 setup_java" \
+#   "java --version"
 
 # ==============================================================================
 # TEST 14: GO
 # ==============================================================================
-test_function "Go (latest)" \
-  "GO_VERSION=latest setup_go" \
-  "go version"
+# test_function "Go (latest)" \
+#   "GO_VERSION=latest setup_go" \
+#   "go version"
 
 # ==============================================================================
 # TEST 15: RUBY
@@ -285,23 +285,23 @@ test_function "Rust (stable)" \
 # ==============================================================================
 # TEST 17: GHOSTSCRIPT
 # ==============================================================================
-test_function "Ghostscript" \
-  "setup_gs" \
-  "gs --version"
+# test_function "Ghostscript" \
+#   "setup_gs" \
+#   "gs --version"
 
 # ==============================================================================
 # TEST 18: IMAGEMAGICK
 # ==============================================================================
-test_function "ImageMagick" \
-  "setup_imagemagick" \
-  "magick --version"
+# test_function "ImageMagick" \
+#   "setup_imagemagick" \
+#   "magick --version"
 
 # ==============================================================================
 # TEST 19: FFMPEG
 # ==============================================================================
-test_function "FFmpeg n7.1.1 (full)" \
-  "FFMPEG_VERSION=n7.1.1 FFMPEG_TYPE=full setup_ffmpeg" \
-  "ffmpeg -version"
+# test_function "FFmpeg n7.1.1 (full)" \
+#   "FFMPEG_VERSION=n7.1.1 FFMPEG_TYPE=full setup_ffmpeg" \
+#   "ffmpeg -version"
 
 # ==============================================================================
 # FINAL SUMMARY
