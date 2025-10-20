@@ -77,7 +77,7 @@ msg_ok "Configured Dispatcharr"
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/sites-available/dispatcharr.conf
 server {
-    listen 9191;
+    listen 80;
     server_name _;
 
     # Serve static assets with correct MIME types
