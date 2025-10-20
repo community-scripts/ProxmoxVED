@@ -17,17 +17,12 @@ msg_info "Setting Up Hardware Acceleration"
 if [[ ! -d /etc/apt/keyrings ]]; then
   mkdir -p /etc/apt/keyrings
 fi
-curl -fsSL https://repositories.intel.com/graphics/intel-graphics.key | gpg --dearmor --yes -o /etc/apt/keyrings/intel-graphics.gpg
-cat <<'EOF' | sudo tee /etc/apt/sources.list.d/intel-gpu.sources > /dev/null
-Types: deb
-URIs: https://repositories.intel.com/graphics/ubuntu
-Suites: stable
-Components: main
-Architectures: amd64
-Signed-By: /etc/apt/keyrings/intel-graphics.gpg
-EOF
+fetch_and_deploy_gh_release "intel-igc-core-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-core-2_*_amd64.deb"
+fetch_and_deploy_gh_release "intel-igc-opencl-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-opencl-2_*_amd64.deb"
+fetch_and_deploy_gh_release "intel-libgdgmm12" "intel/compute-runtime" "binary" "latest" "" "libigdgmm12_*_amd64.deb"
+fetch_and_deploy_gh_release "intel-opencl-icd" "intel/compute-runtime" "binary" "latest" "" "intel-opencl-icd_*_amd64.deb"
 
-$STD apt-get -y install {va-driver-all,ocl-icd-libopencl1,intel-opencl-icd,vainfo,intel-gpu-tools}
+$STD apt-get -y install {va-driver-all,ocl-icd-libopencl1,vainfo,intel-gpu-tools}
 if [[ "$CTTYPE" == "0" ]]; then
   chgrp video /dev/dri
   chmod 755 /dev/dri
