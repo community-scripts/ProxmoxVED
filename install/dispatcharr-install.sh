@@ -17,7 +17,6 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
   gcc \
-  libpcre3-dev \
   libpq-dev \
   nginx \
   redis-server \
@@ -26,11 +25,11 @@ $STD apt install -y \
   streamlink
 msg_ok "Installed Dependencies"
 
-PYTHON_VERSION="3.13" setup_uv
+setup_uv
 NODE_VERSION="22" setup_nodejs
-PG_VERSION="16" setup_postgresql
+PG_VERSION="17" setup_postgresql
 
-msg_info "Set up PostgreSQL Database"
+msg_info "Creating PostgreSQL Database"
 DB_NAME=dispatcharr_db
 DB_USER=dispatcharr_usr
 DB_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)"
@@ -39,59 +38,34 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCO
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
-{
-  echo "Dispatcharr-Credentials"
-  echo "Dispatcharr Database Name: $DB_NAME"
-  echo "Dispatcharr Database User: $DB_USER"
-  echo "Dispatcharr Database Password: $DB_PASS"
-} >>~/dispatcharr.creds
-msg_ok "Set up PostgreSQL Database"
+
+cat <<EOF >~/dispatcharr.creds
+Dispatcharr-Credentials
+Dispatcharr Database Name: $DB_NAME
+Dispatcharr Database User: $DB_USER
+Dispatcharr Database Password: $DB_PASS
+EOF
+msg_ok "Created PostgreSQL Database"
 
 fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
 
-msg_info "Setup Python virtual environment"
-cd /opt/dispatcharr
-# uv venv erstellt ein minimales venv - wir nutzen uv zum Installieren
-$STD uv venv env
-msg_ok "Virtual environment created"
+msg_info "Configuring Dispatcharr"
+cd /opt/dispatcharr || exit
 
-msg_info "Installing Python requirements"
-PYPI_URL="https://pypi.org/simple"
-mapfile -t EXTRA_INDEX_URLS < <(grep -E '^(--(extra-)?index-url|-i)\s' requirements.txt 2>/dev/null | awk '{print $2}' | sed 's#/*$##')
+$STD uv sync --frozen
+$STD uv run --frozen python manage.py migrate --noinput
+$STD uv run --frozen python manage.py collectstatic --noinput
 
-UV_INDEX_ARGS=(--index-url "$PYPI_URL" --index-strategy unsafe-best-match)
-for u in "${EXTRA_INDEX_URLS[@]}"; do
-  [[ -n "$u" && "$u" != "$PYPI_URL" ]] && UV_INDEX_ARGS+=(--extra-index-url "$u")
-done
-
-if [[ -f requirements.txt ]]; then
-  $STD uv pip install --python /opt/dispatcharr/env/bin/python "${UV_INDEX_ARGS[@]}" -r requirements.txt
-fi
-$STD uv pip install --python /opt/dispatcharr/env/bin/python "${UV_INDEX_ARGS[@]}" gunicorn gevent celery daphne
-ln -sf /usr/bin/ffmpeg /opt/dispatcharr/env/bin/ffmpeg
-msg_ok "Python Requirements Installed"
-
-msg_info "Building Frontend"
-cd /opt/dispatcharr/frontend
+cd /opt/dispatcharr/frontend || exit
 $STD npm install --legacy-peer-deps
 $STD npm run build
-msg_ok "Built Frontend"
-
-msg_info "Running Django Migrations"
-cd /opt/dispatcharr
-export POSTGRES_DB="$DB_NAME"
-export POSTGRES_USER="$DB_USER"
-export POSTGRES_PASSWORD="$DB_PASS"
-export POSTGRES_HOST="localhost"
-
-$STD ./env/bin/python manage.py migrate --noinput
-$STD ./env/bin/python manage.py collectstatic --noinput
-msg_ok "Migrations Complete"
+msg_ok "Configured Dispatcharr"
 
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/sites-available/dispatcharr.conf
 server {
     listen 9191;
+    server_name _;
 
     location / {
         include proxy_params;
@@ -116,6 +90,9 @@ server {
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "Upgrade";
         proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
     }
 }
 EOF
@@ -123,34 +100,74 @@ EOF
 ln -sf /etc/nginx/sites-available/dispatcharr.conf /etc/nginx/sites-enabled/dispatcharr.conf
 rm -f /etc/nginx/sites-enabled/default
 $STD nginx -t
-systemctl restart nginx
-systemctl enable nginx
+systemctl enable -q --now nginx
 msg_ok "Configured Nginx"
 
-msg_info "Creating systemd services"
+msg_info "Creating Services"
+
+cat <<EOF >/opt/dispatcharr/start-gunicorn.sh
+#!/usr/bin/env bash
+cd /opt/dispatcharr
+export POSTGRES_DB=$DB_NAME
+export POSTGRES_USER=$DB_USER
+export POSTGRES_PASSWORD=$DB_PASS
+export POSTGRES_HOST=localhost
+uv run --frozen gunicorn \
+    --workers=4 \
+    --worker-class=gevent \
+    --timeout=300 \
+    --bind 0.0.0.0:5656 \
+    dispatcharr.wsgi:application
+EOF
+chmod +x /opt/dispatcharr/start-gunicorn.sh
+
+cat <<EOF >/opt/dispatcharr/start-celery.sh
+#!/usr/bin/env bash
+cd /opt/dispatcharr
+export POSTGRES_DB=$DB_NAME
+export POSTGRES_USER=$DB_USER
+export POSTGRES_PASSWORD=$DB_PASS
+export POSTGRES_HOST=localhost
+export CELERY_BROKER_URL=redis://localhost:6379/0
+uv run --frozen celery -A dispatcharr worker -l info -c 4
+EOF
+chmod +x /opt/dispatcharr/start-celery.sh
+
+cat <<EOF >/opt/dispatcharr/start-celerybeat.sh
+#!/usr/bin/env bash
+cd /opt/dispatcharr
+export POSTGRES_DB=$DB_NAME
+export POSTGRES_USER=$DB_USER
+export POSTGRES_PASSWORD=$DB_PASS
+export POSTGRES_HOST=localhost
+export CELERY_BROKER_URL=redis://localhost:6379/0
+uv run --frozen celery -A dispatcharr beat -l info
+EOF
+chmod +x /opt/dispatcharr/start-celerybeat.sh
+
+cat <<EOF >/opt/dispatcharr/start-daphne.sh
+#!/usr/bin/env bash
+cd /opt/dispatcharr
+export POSTGRES_DB=$DB_NAME
+export POSTGRES_USER=$DB_USER
+export POSTGRES_PASSWORD=$DB_PASS
+export POSTGRES_HOST=localhost
+uv run --frozen daphne -b 0.0.0.0 -p 8001 dispatcharr.asgi:application
+EOF
+chmod +x /opt/dispatcharr/start-daphne.sh
 
 cat <<EOF >/etc/systemd/system/dispatcharr.service
 [Unit]
-Description=Gunicorn for Dispatcharr
+Description=Dispatcharr Web Server
 After=network.target postgresql.service redis-server.service
 
 [Service]
+Type=simple
 WorkingDirectory=/opt/dispatcharr
-RuntimeDirectory=dispatcharr
-RuntimeDirectoryMode=0775
-Environment="PATH=/opt/dispatcharr/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
-Environment="POSTGRES_DB=$DB_NAME"
-Environment="POSTGRES_USER=$DB_USER"
-Environment="POSTGRES_PASSWORD=$DB_PASS"
-Environment="POSTGRES_HOST=localhost"
-ExecStart=/opt/dispatcharr/env/bin/gunicorn \\
-    --workers=4 \\
-    --worker-class=gevent \\
-    --timeout=300 \\
-    --bind 0.0.0.0:5656 \\
-    dispatcharr.wsgi:application
-Restart=always
-KillMode=mixed
+ExecStart=/opt/dispatcharr/start-gunicorn.sh
+Restart=on-failure
+RestartSec=10
+User=root
 
 [Install]
 WantedBy=multi-user.target
@@ -158,21 +175,17 @@ EOF
 
 cat <<EOF >/etc/systemd/system/dispatcharr-celery.service
 [Unit]
-Description=Celery Worker for Dispatcharr
+Description=Dispatcharr Celery Worker
 After=network.target redis-server.service
 Requires=dispatcharr.service
 
 [Service]
+Type=simple
 WorkingDirectory=/opt/dispatcharr
-Environment="PATH=/opt/dispatcharr/env/bin"
-Environment="POSTGRES_DB=$DB_NAME"
-Environment="POSTGRES_USER=$DB_USER"
-Environment="POSTGRES_PASSWORD=$DB_PASS"
-Environment="POSTGRES_HOST=localhost"
-Environment="CELERY_BROKER_URL=redis://localhost:6379/0"
-ExecStart=/opt/dispatcharr/env/bin/celery -A dispatcharr worker -l info -c 4
-Restart=always
-KillMode=mixed
+ExecStart=/opt/dispatcharr/start-celery.sh
+Restart=on-failure
+RestartSec=10
+User=root
 
 [Install]
 WantedBy=multi-user.target
@@ -180,21 +193,17 @@ EOF
 
 cat <<EOF >/etc/systemd/system/dispatcharr-celerybeat.service
 [Unit]
-Description=Celery Beat Scheduler for Dispatcharr
+Description=Dispatcharr Celery Beat Scheduler
 After=network.target redis-server.service
 Requires=dispatcharr.service
 
 [Service]
+Type=simple
 WorkingDirectory=/opt/dispatcharr
-Environment="PATH=/opt/dispatcharr/env/bin"
-Environment="POSTGRES_DB=$DB_NAME"
-Environment="POSTGRES_USER=$DB_USER"
-Environment="POSTGRES_PASSWORD=$DB_PASS"
-Environment="POSTGRES_HOST=localhost"
-Environment="CELERY_BROKER_URL=redis://localhost:6379/0"
-ExecStart=/opt/dispatcharr/env/bin/celery -A dispatcharr beat -l info
-Restart=always
-KillMode=mixed
+ExecStart=/opt/dispatcharr/start-celerybeat.sh
+Restart=on-failure
+RestartSec=10
+User=root
 
 [Install]
 WantedBy=multi-user.target
@@ -202,28 +211,25 @@ EOF
 
 cat <<EOF >/etc/systemd/system/dispatcharr-daphne.service
 [Unit]
-Description=Daphne for Dispatcharr (ASGI)
+Description=Dispatcharr WebSocket Server (Daphne)
 After=network.target
 Requires=dispatcharr.service
 
 [Service]
+Type=simple
 WorkingDirectory=/opt/dispatcharr
-Environment="PATH=/opt/dispatcharr/env/bin"
-Environment="POSTGRES_DB=$DB_NAME"
-Environment="POSTGRES_USER=$DB_USER"
-Environment="POSTGRES_PASSWORD=$DB_PASS"
-Environment="POSTGRES_HOST=localhost"
-ExecStart=/opt/dispatcharr/env/bin/daphne -b 0.0.0.0 -p 8001 dispatcharr.asgi:application
-Restart=always
-KillMode=mixed
+ExecStart=/opt/dispatcharr/start-daphne.sh
+Restart=on-failure
+RestartSec=10
+User=root
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now dispatcharr dispatcharr-celery dispatcharr-celerybeat dispatcharr-daphne
-msg_ok "Started Dispatcharr Services"
+systemctl enable -q --now dispatcharr dispatcharr-celery dispatcharr-celerybeat dispatcharr-daphne
+msg_ok "Created Services"
 
 motd_ssh
 customize
