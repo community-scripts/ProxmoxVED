@@ -64,9 +64,10 @@ for u in "${EXTRA_INDEX_URLS[@]}"; do
   [[ -n "$u" && "$u" != "$PYPI_URL" ]] && UV_INDEX_ARGS+=(--extra-index-url "$u")
 done
 if [[ -f requirements.txt ]]; then
-  $STD uv pip install "${UV_INDEX_ARGS[@]}" -r requirements.txt
+  $STD /opt/dispatcharr/env/bin/python -m pip install --upgrade pip setuptools wheel
+  $STD /opt/dispatcharr/env/bin/pip install "${UV_INDEX_ARGS[@]}" -r requirements.txt
 fi
-$STD uv pip install "${UV_INDEX_ARGS[@]}" gunicorn gevent celery daphne
+$STD /opt/dispatcharr/env/bin/pip install "${UV_INDEX_ARGS[@]}" gunicorn gevent celery daphne
 ln -sf /usr/bin/ffmpeg /opt/dispatcharr/env/bin/ffmpeg
 msg_ok "Python Requirements Installed"
 
