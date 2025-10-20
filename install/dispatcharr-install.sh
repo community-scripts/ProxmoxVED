@@ -51,7 +51,7 @@ fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
 
 msg_info "Setup Python virtual environment"
 cd /opt/dispatcharr
-# WICHTIG: Erstelle ein echtes venv statt --system
+# uv venv erstellt ein minimales venv - wir nutzen uv zum Installieren
 $STD uv venv env
 msg_ok "Virtual environment created"
 
@@ -63,11 +63,11 @@ UV_INDEX_ARGS=(--index-url "$PYPI_URL" --index-strategy unsafe-best-match)
 for u in "${EXTRA_INDEX_URLS[@]}"; do
   [[ -n "$u" && "$u" != "$PYPI_URL" ]] && UV_INDEX_ARGS+=(--extra-index-url "$u")
 done
+
 if [[ -f requirements.txt ]]; then
-  $STD /opt/dispatcharr/env/bin/python -m pip install --upgrade pip setuptools wheel
-  $STD /opt/dispatcharr/env/bin/pip install "${UV_INDEX_ARGS[@]}" -r requirements.txt
+  $STD uv pip install --python /opt/dispatcharr/env/bin/python "${UV_INDEX_ARGS[@]}" -r requirements.txt
 fi
-$STD /opt/dispatcharr/env/bin/pip install "${UV_INDEX_ARGS[@]}" gunicorn gevent celery daphne
+$STD uv pip install --python /opt/dispatcharr/env/bin/python "${UV_INDEX_ARGS[@]}" gunicorn gevent celery daphne
 ln -sf /usr/bin/ffmpeg /opt/dispatcharr/env/bin/ffmpeg
 msg_ok "Python Requirements Installed"
 
@@ -79,7 +79,6 @@ msg_ok "Built Frontend"
 
 msg_info "Running Django Migrations"
 cd /opt/dispatcharr
-# WICHTIG: Setze Umgebungsvariablen für Django/PostgreSQL
 export POSTGRES_DB="$DB_NAME"
 export POSTGRES_USER="$DB_USER"
 export POSTGRES_PASSWORD="$DB_PASS"
