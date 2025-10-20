@@ -2055,6 +2055,14 @@ setup_mariadb() {
     $STD apt purge -y 'mariadb*' || true
   fi
 
+  # Install required dependencies first (MariaDB needs these from main repos)
+  msg_info "Installing MariaDB dependencies"
+  $STD apt update
+  $STD apt install -y gawk rsync socat libdbi-perl pv || {
+    msg_error "Failed to install MariaDB dependencies"
+    return 1
+  }
+
   # Cleanup old repository files
   cleanup_old_repo_files "mariadb"
 
@@ -2241,9 +2249,25 @@ function setup_mysql() {
     # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
-    # Use helper function to get fallback suite
+    # MySQL doesn't support Debian testing/unstable - try bookworm as fallback
     local SUITE
-    SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://repo.mysql.com/apt/${DISTRO_ID}")
+    case "$DISTRO_CODENAME" in
+    trixie | forky | sid)
+      # MySQL doesn't publish packages for Debian testing/unstable
+      # Try bookworm as fallback
+      if verify_repo_available "https://repo.mysql.com/apt/${DISTRO_ID}" "bookworm"; then
+        SUITE="bookworm"
+        msg_warn "MySQL ${MYSQL_VERSION} not available for ${DISTRO_CODENAME}, using bookworm packages"
+      else
+        msg_error "MySQL ${MYSQL_VERSION} package not available for ${DISTRO_ID}-${DISTRO_CODENAME}"
+        msg_info "MySQL typically doesn't support Debian testing/unstable. Consider using MariaDB instead."
+        return 1
+      fi
+      ;;
+    *)
+      SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://repo.mysql.com/apt/${DISTRO_ID}")
+      ;;
+    esac
 
     # Use standardized repo setup
     setup_deb822_repo \
@@ -2263,7 +2287,9 @@ function setup_mysql() {
     fi
 
     if ! apt-cache policy mysql-server | grep -q 'Candidate:'; then
-      msg_error "MySQL ${MYSQL_VERSION} package not available for ${DISTRO_ID}-${DISTRO_CODENAME}"
+      msg_error "MySQL ${MYSQL_VERSION} package not available for suite ${SUITE}"
+      msg_info "Available MySQL components:"
+      apt-cache search "^mysql-" | grep "^mysql-" | head -20 | sed 's/^/  /'
       return 1
     fi
 
@@ -2645,6 +2671,12 @@ function setup_postgresql() {
     fi
 
     $STD systemctl enable --now postgresql
+
+    # Add PostgreSQL binaries to PATH for the install script
+    if ! grep -q '/usr/lib/postgresql' /etc/environment 2>/dev/null; then
+      echo 'PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/'"${PG_VERSION}"'/bin"' >/etc/environment
+    fi
+
     cache_installed_version "postgresql" "$PG_VERSION"
     msg_ok "Installed PostgreSQL $PG_VERSION"
   fi
@@ -2687,7 +2719,10 @@ function setup_ruby() {
 
   msg_info "Installing Ruby $RUBY_VERSION"
 
-  ensure_dependencies jq
+  # Install all required build dependencies
+  ensure_dependencies jq autoconf patch build-essential rustc libssl-dev libyaml-dev \
+    libreadline6-dev zlib1g-dev libgmp-dev libncurses5-dev libffi-dev libgdbm6 \
+    libgdbm-dev libdb-dev uuid-dev
 
   local RBENV_RELEASE
   RBENV_RELEASE=$(curl -fsSL https://api.github.com/repos/rbenv/rbenv/releases/latest | jq -r '.tag_name' | sed 's/^v//')
