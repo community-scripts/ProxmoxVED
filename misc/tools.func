@@ -554,13 +554,21 @@ cleanup_orphaned_sources() {
   [[ ! -d "$sources_dir" ]] && return 0
 
   while IFS= read -r -d '' sources_file; do
+    local basename_file
+    basename_file=$(basename "$sources_file")
+
+    # NEVER remove debian.sources - this is the standard Debian repository
+    if [[ "$basename_file" == "debian.sources" ]]; then
+      continue
+    fi
+
     # Extract Signed-By path from .sources file
     local keyring_path
     keyring_path=$(grep -E '^Signed-By:' "$sources_file" 2>/dev/null | awk '{print $2}')
 
     # If keyring doesn't exist, remove the .sources file
     if [[ -n "$keyring_path" ]] && [[ ! -f "$keyring_path" ]]; then
-      msg_warn "Removing orphaned sources file: $(basename "$sources_file") (missing keyring: $(basename "$keyring_path"))"
+      msg_warn "Removing orphaned sources file: $basename_file (missing keyring: $(basename "$keyring_path"))"
       rm -f "$sources_file"
     fi
   done < <(find "$sources_dir" -name "*.sources" -print0 2>/dev/null)
