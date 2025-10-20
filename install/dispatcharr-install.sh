@@ -134,7 +134,7 @@ EOF
 
 ln -sf /etc/nginx/sites-available/dispatcharr.conf /etc/nginx/sites-enabled/dispatcharr.conf
 rm -f /etc/nginx/sites-enabled/default
-systemctl enable -q --now nginx
+systemctl restart nginx
 msg_ok "Configured Nginx"
 
 msg_info "Creating Services"
