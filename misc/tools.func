@@ -2727,6 +2727,11 @@ function setup_postgresql() {
     # Try multiple PostgreSQL package patterns
     local pg_install_success=false
 
+    # First, ensure ssl-cert is available (PostgreSQL dependency)
+    if apt-cache search "^ssl-cert$" 2>/dev/null | grep -q .; then
+      $STD apt install -y ssl-cert 2>/dev/null || true
+    fi
+
     # First try: postgresql-X (common in most repos)
     if apt-cache search "^postgresql-${PG_VERSION}$" 2>/dev/null | grep -q . && $STD apt install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null; then
       pg_install_success=true

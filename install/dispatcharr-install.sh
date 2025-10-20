@@ -27,7 +27,7 @@ msg_ok "Installed Dependencies"
 
 setup_uv
 NODE_VERSION="22" setup_nodejs
-PG_VERSION="17" setup_postgresql
+PG_VERSION="16" setup_postgresql
 
 msg_info "Creating PostgreSQL Database"
 DB_NAME=dispatcharr_db
