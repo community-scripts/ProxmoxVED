@@ -80,17 +80,28 @@ server {
     listen 9191;
     server_name _;
 
-    location / {
-        include proxy_params;
-        proxy_pass http://127.0.0.1:5656;
+    # Serve static assets with correct MIME types
+    location /assets/ {
+        alias /opt/dispatcharr/frontend/dist/assets/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+
+        # Explicitly set MIME types for webpack-built assets
+        types {
+            text/javascript js;
+            text/css css;
+            image/png png;
+            image/svg+xml svg svgz;
+            font/woff2 woff2;
+            font/woff woff;
+            font/ttf ttf;
+        }
     }
 
     location /static/ {
         alias /opt/dispatcharr/static/;
-    }
-
-    location /assets/ {
-        alias /opt/dispatcharr/frontend/dist/assets/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
     }
 
     location /media/ {
@@ -107,6 +118,12 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
+
+    # All other requests proxy to Gunicorn
+    location / {
+        include proxy_params;
+        proxy_pass http://127.0.0.1:5656;
+    }
 }
 EOF
 
@@ -118,7 +135,6 @@ msg_ok "Configured Nginx"
 
 msg_info "Creating Services"
 
-# Create environment file for services
 cat <<EOF >/opt/dispatcharr/.env
 DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}
 POSTGRES_DB=$DB_NAME
