@@ -14,9 +14,6 @@ network_check
 update_os
 
 msg_info "Setting Up Hardware Acceleration"
-if [[ ! -d /etc/apt/keyrings ]]; then
-  mkdir -p /etc/apt/keyrings
-fi
 fetch_and_deploy_gh_release "intel-igc-core-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-core-2_*_amd64.deb"
 fetch_and_deploy_gh_release "intel-igc-opencl-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-opencl-2_*_amd64.deb"
 fetch_and_deploy_gh_release "intel-libgdgmm12" "intel/compute-runtime" "binary" "latest" "" "libigdgmm12_*_amd64.deb"
@@ -33,10 +30,11 @@ fi
 msg_ok "Set Up Hardware Acceleration"
 
 msg_info "Installing Jellyfin"
+if [[ ! -d /etc/apt/keyrings ]]; then
+  mkdir -p /etc/apt/keyrings
+fi
 VERSION="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
-# Download the repository signing key and install it to the keyring directory
 curl -fsSL https://repo.jellyfin.org/jellyfin_team.gpg.key | gpg --dearmor --yes --output /etc/apt/keyrings/jellyfin.gpg
-# Install the Deb822 format jellyfin.sources entry
 cat <<EOF >/etc/apt/sources.list.d/jellyfin.sources
 Types: deb
 URIs: https://repo.jellyfin.org/${PCT_OSTYPE}
@@ -45,9 +43,8 @@ Components: main
 Architectures: amd64
 Signed-By: /etc/apt/keyrings/jellyfin.gpg
 EOF
-# Install Jellyfin using the metapackage (which will fetch jellyfin-server, jellyfin-web, and jellyfin-ffmpeg5)
-$STD apt-get update
-$STD apt-get install -y jellyfin
+$STD apt update
+$STD apt install -y jellyfin
 sed -i 's/"MinimumLevel": "Information"/"MinimumLevel": "Error"/g' /etc/jellyfin/logging.json
 chown -R jellyfin:adm /etc/jellyfin
 sleep 10
