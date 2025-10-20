@@ -16,7 +16,6 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
-  git \
   gcc \
   python3-dev \
   libpq-dev \
@@ -65,10 +64,16 @@ export POSTGRES_DB=$DB_NAME
 export POSTGRES_USER=$DB_USER
 export POSTGRES_PASSWORD=$DB_PASS
 export POSTGRES_HOST=localhost
-
 $STD uv run python manage.py migrate --noinput
 $STD uv run python manage.py collectstatic --noinput
-
+cat <<EOF >/opt/dispatcharr/.env
+DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}
+POSTGRES_DB=$DB_NAME
+POSTGRES_USER=$DB_USER
+POSTGRES_PASSWORD=$DB_PASS
+POSTGRES_HOST=localhost
+CELERY_BROKER_URL=redis://localhost:6379/0
+EOF
 cd /opt/dispatcharr/frontend || exit
 $STD npm install --legacy-peer-deps
 $STD npm run build
@@ -129,21 +134,10 @@ EOF
 
 ln -sf /etc/nginx/sites-available/dispatcharr.conf /etc/nginx/sites-enabled/dispatcharr.conf
 rm -f /etc/nginx/sites-enabled/default
-$STD nginx -t
 systemctl enable -q --now nginx
 msg_ok "Configured Nginx"
 
 msg_info "Creating Services"
-
-cat <<EOF >/opt/dispatcharr/.env
-DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}
-POSTGRES_DB=$DB_NAME
-POSTGRES_USER=$DB_USER
-POSTGRES_PASSWORD=$DB_PASS
-POSTGRES_HOST=localhost
-CELERY_BROKER_URL=redis://localhost:6379/0
-EOF
-
 cat <<EOF >/opt/dispatcharr/start-gunicorn.sh
 #!/usr/bin/env bash
 cd /opt/dispatcharr
@@ -259,8 +253,6 @@ User=root
 [Install]
 WantedBy=multi-user.target
 EOF
-
-systemctl daemon-reload
 systemctl enable -q --now dispatcharr dispatcharr-celery dispatcharr-celerybeat dispatcharr-daphne
 msg_ok "Created Services"
 
