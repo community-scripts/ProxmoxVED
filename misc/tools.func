@@ -2104,10 +2104,21 @@ setup_mariadb() {
 
   # Install required dependencies first (MariaDB needs these from main repos)
   msg_info "Installing MariaDB dependencies"
-  ensure_dependencies gawk rsync socat libdbi-perl pv || {
-    msg_error "Failed to install MariaDB dependencies"
-    return 1
-  }
+
+  local mariadb_deps=()
+  for dep in gawk rsync socat libdbi-perl pv; do
+    if apt-cache search "^${dep}$" 2>/dev/null | grep -q .; then
+      mariadb_deps+=("$dep")
+    else
+      msg_warn "Package $dep not available, skipping"
+    fi
+  done
+
+  if [[ ${#mariadb_deps[@]} -gt 0 ]]; then
+    if ! $STD apt install -y "${mariadb_deps[@]}" 2>/dev/null; then
+      msg_warn "Some MariaDB dependencies failed to install - continuing anyway"
+    fi
+  fi
 
   # Use helper function to get fallback suite
   local SUITE
@@ -2323,37 +2334,45 @@ function setup_mysql() {
 
     export DEBIAN_FRONTEND=noninteractive
 
-    # Update apt and check if package is available
+    # Update apt
     if ! $STD apt update; then
       msg_error "APT update failed for MySQL repository"
       return 1
     fi
 
-    # Check for either mysql-server meta package or mysql-community-server
-    if ! apt-cache policy mysql-server mysql-community-server 2>/dev/null | grep -q 'Candidate:'; then
-      msg_error "MySQL ${MYSQL_VERSION} package not available for suite ${SUITE}"
-      msg_info "Available MySQL components:"
-      apt-cache search "^mysql-" | grep "^mysql-" | head -20 | sed 's/^/  /'
-      return 1
+    # Try multiple MySQL package patterns
+    local mysql_install_success=false
+
+    # First try: mysql-server (most common)
+    if apt-cache search "^mysql-server$" 2>/dev/null | grep -q . && $STD apt install -y mysql-server mysql-client 2>/dev/null; then
+      mysql_install_success=true
     fi
 
-    # Try to install mysql-server first (meta package), fallback to mysql-community-server
-    if apt-cache policy mysql-server 2>/dev/null | grep -q 'Candidate:'; then
-      if ! $STD apt install -y mysql-server mysql-client; then
-        msg_error "Failed to install MySQL ${MYSQL_VERSION}"
-        return 1
-      fi
-    else
-      if ! $STD apt install -y mysql-community-server mysql-community-client; then
-        msg_error "Failed to install MySQL ${MYSQL_VERSION}"
-        return 1
-      fi
+    # Second try: mysql-community-server (when official repo)
+    if [[ "$mysql_install_success" == false ]] && apt-cache search "^mysql-community-server$" 2>/dev/null | grep -q . && $STD apt install -y mysql-community-server mysql-community-client 2>/dev/null; then
+      mysql_install_success=true
+    fi
+
+    # Third try: just mysql meta package
+    if [[ "$mysql_install_success" == false ]] && apt-cache search "^mysql$" 2>/dev/null | grep -q . && $STD apt install -y mysql 2>/dev/null; then
+      mysql_install_success=true
+    fi
+
+    if [[ "$mysql_install_success" == false ]]; then
+      msg_error "MySQL ${MYSQL_VERSION} package not available for suite ${SUITE}"
+      msg_info "Available MySQL components:"
+      apt-cache search "mysql" | grep "^mysql" | head -20 | sed 's/^/  /'
+      return 1
     fi
 
     # Verify installation
     if ! command -v mysql >/dev/null 2>&1; then
-      msg_error "MySQL installation completed but mysql command not found"
-      return 1
+      msg_warn "MySQL installed but mysql command not immediately available - retrying after shell refresh"
+      hash -r
+      if ! command -v mysql >/dev/null 2>&1; then
+        msg_error "MySQL installed but mysql command still not found"
+        return 1
+      fi
     fi
 
     cache_installed_version "mysql" "$MYSQL_VERSION"
@@ -2699,30 +2718,50 @@ function setup_postgresql() {
       "main" \
       "amd64 arm64"
 
-    # Update apt and verify package availability
+    # Update apt
     if ! $STD apt update; then
       msg_error "APT update failed for PostgreSQL repository"
       return 1
     fi
 
-    if ! apt-cache policy "postgresql-${PG_VERSION}" | grep -q 'Candidate:'; then
-      msg_error "PostgreSQL ${PG_VERSION} package not available for suite ${SUITE}"
-      msg_info "Available PostgreSQL versions:"
-      apt-cache search "^postgresql-[0-9]" | grep "^postgresql-" | sed 's/^/  /'
+    # Try multiple PostgreSQL package patterns
+    local pg_install_success=false
+
+    # First try: postgresql-X (common in most repos)
+    if apt-cache search "^postgresql-${PG_VERSION}$" 2>/dev/null | grep -q . && $STD apt install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null; then
+      pg_install_success=true
+    fi
+
+    # Second try: postgresql-server-X (some repos use this)
+    if [[ "$pg_install_success" == false ]] && apt-cache search "^postgresql-server-${PG_VERSION}$" 2>/dev/null | grep -q . && $STD apt install -y "postgresql-server-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null; then
+      pg_install_success=true
+    fi
+
+    # Third try: just postgresql (any version)
+    if [[ "$pg_install_success" == false ]] && apt-cache search "^postgresql$" 2>/dev/null | grep -q . && $STD apt install -y postgresql postgresql-client 2>/dev/null; then
+      pg_install_success=true
+      msg_warn "PostgreSQL ${PG_VERSION} not available, installed latest available version"
+    fi
+
+    if [[ "$pg_install_success" == false ]]; then
+      msg_error "PostgreSQL package not available for suite ${SUITE}"
+      msg_info "Available PostgreSQL packages:"
+      apt-cache search "postgresql" | grep "^postgresql" | head -20 | sed 's/^/  /'
       return 1
     fi
 
-    if ! $STD apt install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}"; then
-      msg_error "Failed to install PostgreSQL ${PG_VERSION}"
+    # Verify installation
+    if ! command -v psql >/dev/null 2>&1; then
+      msg_error "PostgreSQL installed but psql command not found"
       return 1
     fi
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
-      $STD apt purge -y "postgresql-${CURRENT_PG_VERSION}" "postgresql-client-${CURRENT_PG_VERSION}" || true
-      $STD su - postgres -c "psql < /var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql"
+      $STD apt purge -y "postgresql-${CURRENT_PG_VERSION}" "postgresql-client-${CURRENT_PG_VERSION}" 2>/dev/null || true
+      $STD su - postgres -c "psql < /var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql" 2>/dev/null || true
     fi
 
-    $STD systemctl enable --now postgresql
+    $STD systemctl enable --now postgresql 2>/dev/null || true
 
     # Add PostgreSQL binaries to PATH for the install script
     if ! grep -q '/usr/lib/postgresql' /etc/environment 2>/dev/null; then
@@ -2774,10 +2813,58 @@ function setup_ruby() {
   # Ensure APT is working before installing dependencies
   ensure_apt_working || return 1
 
-  # Install all required build dependencies
-  ensure_dependencies jq autoconf patch build-essential rustc libssl-dev libyaml-dev \
-    libreadline6-dev zlib1g-dev libgmp-dev libncurses5-dev libffi-dev libgdbm6 \
-    libgdbm-dev libdb-dev uuid-dev
+  # Install build dependencies - with fallback for different Debian versions
+  # In Trixie: libreadline6-dev -> libreadline-dev, libncurses5-dev -> libncurses-dev
+  msg_info "Installing Ruby build dependencies"
+
+  local ruby_deps=()
+  local dep_variations=(
+    "jq"
+    "autoconf"
+    "patch"
+    "build-essential"
+    "libssl-dev"
+    "libyaml-dev"
+    "libreadline-dev|libreadline6-dev"
+    "zlib1g-dev"
+    "libgmp-dev"
+    "libncurses-dev|libncurses5-dev"
+    "libffi-dev"
+    "libgdbm-dev"
+    "libdb-dev"
+    "uuid-dev"
+  )
+
+  for dep_pattern in "${dep_variations[@]}"; do
+    if [[ "$dep_pattern" == *"|"* ]]; then
+      # Try multiple variations
+      IFS='|' read -ra variations <<<"$dep_pattern"
+      local found=false
+      for var in "${variations[@]}"; do
+        if apt-cache search "^${var}$" 2>/dev/null | grep -q .; then
+          ruby_deps+=("$var")
+          found=true
+          break
+        fi
+      done
+      [[ "$found" == false ]] && msg_warn "No version of $dep_pattern available"
+    else
+      if apt-cache search "^${dep_pattern}$" 2>/dev/null | grep -q .; then
+        ruby_deps+=("$dep_pattern")
+      else
+        msg_warn "Package $dep_pattern not available"
+      fi
+    fi
+  done
+
+  if [[ ${#ruby_deps[@]} -gt 0 ]]; then
+    if ! $STD apt install -y "${ruby_deps[@]}" 2>/dev/null; then
+      msg_warn "Some Ruby dependencies failed to install - Ruby may not compile fully\nContinuing anyway..."
+    fi
+  else
+    msg_error "No Ruby build dependencies available"
+    return 1
+  fi
 
   local RBENV_RELEASE
   RBENV_RELEASE=$(curl -fsSL https://api.github.com/repos/rbenv/rbenv/releases/latest | jq -r '.tag_name' | sed 's/^v//')
