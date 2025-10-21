@@ -3000,14 +3000,14 @@ create_lxc_container() {
 
   mapfile -t LOCAL_TEMPLATES < <(
     pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
-      awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ "^"s"[-_]" && $1 ~ p {print $1}' |
+      awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ "^"s"[^0-9]" && $1 ~ p {print $1}' |
       sed 's|.*/||' | sort -t - -k 2 -V
   )
 
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
   mapfile -t ONLINE_TEMPLATES < <(
     pveam available -section system 2>/dev/null |
-      grep -E "^${TEMPLATE_SEARCH}[-_].*${TEMPLATE_PATTERN}" |
+      grep -E "^${TEMPLATE_SEARCH}[^0-9].*${TEMPLATE_PATTERN}" |
       sort -t - -k 2 -V
   )
   ONLINE_TEMPLATE=""
@@ -3063,12 +3063,12 @@ create_lxc_container() {
           TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
           mapfile -t LOCAL_TEMPLATES < <(
             pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
-              awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ "^"s"[-_]" && $1 ~ p {print $1}' |
+              awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ "^"s"[^0-9]" && $1 ~ p {print $1}' |
               sed 's|.*/||' | sort -t - -k 2 -V
           )
           mapfile -t ONLINE_TEMPLATES < <(
             pveam available -section system 2>/dev/null |
-              grep -E "^${TEMPLATE_SEARCH}[-_].*${TEMPLATE_PATTERN}" |
+              grep -E "^${TEMPLATE_SEARCH}[^0-9].*${TEMPLATE_PATTERN}" |
               sort -t - -k 2 -V
           )
           ONLINE_TEMPLATE=""
