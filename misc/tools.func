@@ -1813,7 +1813,7 @@ function setup_gs() {
 #   - Sets up Hardware Acceleration
 #
 # Notes:
-#   - Requires: build-essential, libtool, libjpeg-dev, libpng-dev, etc.
+#   - Some things are fetched from intel repositories due to not being in debian repositories.
 # ------------------------------------------------------------------------------
 function setup_hwaccel () {
   msg_info "Setting Up Hardware Acceleration"
