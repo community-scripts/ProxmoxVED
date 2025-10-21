@@ -1803,6 +1803,95 @@ function setup_gs() {
   msg_ok "Installed Ghostscript $LATEST_VERSION_DOTTED"
 }
 
+
+# ------------------------------------------------------------------------------
+# Sets up Hardware Acceleration on debian or ubuntu.
+#
+# Description:
+#   - Determites CPU/GPU/APU Vendor
+#   - Installs the correct libraries and packages
+#   - Sets up Hardware Acceleration
+#
+# Notes:
+#   - Requires: build-essential, libtool, libjpeg-dev, libpng-dev, etc.
+# ------------------------------------------------------------------------------
+function setup_hwaccel () {
+  msg_info "Setting Up Hardware Acceleration"
+
+  # Detect GPU vendor (Intel, AMD, NVIDIA)
+  local gpu_vendor
+  gpu_vendor=$(lspci | grep -Ei 'vga|3d|display' | grep -Eo 'Intel|AMD|NVIDIA' | head -n1)
+
+  # Detect CPU vendor (relevant for AMD APUs)
+  local cpu_vendor
+  cpu_vendor=$(lscpu | grep -i 'Vendor ID' | awk '{print $3}')
+
+  if [[ -z "$gpu_vendor" && -z "$cpu_vendor" ]]; then
+    msg_error "No GPU or CPU vendor detected (missing lspci/lscpu output)"
+    return 1
+  fi
+
+  # Detect OS
+  local os_id os_codename
+  os_id=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+  os_codename=$(grep -oP '(?<=^VERSION_CODENAME=).+' /etc/os-release | tr -d '"')
+
+  # Determine if we are on a VM or LXC
+  local in_ct="${CTTYPE:-0}"
+
+  case "$gpu_vendor" in
+    Intel)
+      msg_info "Detected Intel GPU — configuring Intel hardware acceleration"
+
+      if [[ "$os_id" == "ubuntu" ]]; then
+        $STD apt -y install intel-opencl-icd || msg_error "Failed to install intel-opencl-icd"
+      else
+        fetch_and_deploy_gh_release "intel-igc-core-2"   "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-core-2_*_amd64.deb"
+        fetch_and_deploy_gh_release "intel-igc-opencl-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-opencl-2_*_amd64.deb"
+        fetch_and_deploy_gh_release "intel-libgdgmm12"   "intel/compute-runtime"        "binary" "latest" "" "libigdgmm12_*_amd64.deb"
+        fetch_and_deploy_gh_release "intel-opencl-icd"   "intel/compute-runtime"        "binary" "latest" "" "intel-opencl-icd_*_amd64.deb"
+      fi
+
+      $STD apt -y install va-driver-all ocl-icd-libopencl1 vainfo intel-gpu-tools || msg_error "Failed to install GPU dependencies"
+      ;;
+    AMD)
+      msg_info "Detected AMD GPU — configuring Mesa-based hardware acceleration"
+
+      $STD apt -y install mesa-va-drivers mesa-vdpau-drivers mesa-opencl-icd vainfo clinfo || msg_error "Failed to install AMD GPU dependencies"
+
+      # For AMD CPUs without discrete GPU (APUs)
+      if [[ "$cpu_vendor" == "AuthenticAMD" && "$gpu_vendor" != "AMD" ]]; then
+        msg_info "Detected AMD CPU (APU) — enabling VAAPI via Mesa"
+        $STD apt -y install libdrm-amdgpu1 firmware-amd-graphics || true
+      fi
+      ;;
+    NVIDIA)
+      msg_info "Detected NVIDIA GPU — skipping automatic configuration (manual driver setup required)"
+      msg_info "→ Please install proprietary drivers manually via: apt install nvidia-driver"
+      ;;
+    *)
+      # If no discrete GPU, but AMD CPU (e.g., Ryzen APU)
+      if [[ "$cpu_vendor" == "AuthenticAMD" ]]; then
+        msg_info "Detected AMD CPU without discrete GPU — installing Mesa OpenCL stack"
+        $STD apt -y install mesa-opencl-icd ocl-icd-libopencl1 clinfo || msg_error "Failed to install Mesa OpenCL stack"
+      else
+        msg_error "No supported GPU vendor detected"
+        return 1
+      fi
+      ;;
+  esac
+
+  if [[ "$in_ct" == "0" ]]; then
+    chgrp video /dev/dri 2>/dev/null || true
+    chmod 755 /dev/dri 2>/dev/null || true
+    chmod 660 /dev/dri/* 2>/dev/null || true
+    $STD adduser "$(id -u -n)" video
+    $STD adduser "$(id -u -n)" render
+  fi
+
+  msg_ok "Hardware Acceleration Setup Complete"
+}
+
 # ------------------------------------------------------------------------------
 # Installs ImageMagick 7 from source (Debian/Ubuntu only).
 #
