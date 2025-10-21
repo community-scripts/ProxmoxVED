@@ -2305,35 +2305,33 @@ function setup_mysql() {
   fi
 
   if [[ "$NEED_INSTALL" == true ]]; then
-    $STD systemctl stop mysql || true
-    $STD apt purge -y "^mysql-server.*" "^mysql-client.*" "^mysql-common.*" || true
-
     # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
-    # MySQL compatibility check for Debian Trixie
+    # MySQL compatibility check for Debian Trixie - use Bookworm packages
+    local SUITE
     if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-      msg_error "MySQL is not compatible with Debian testing/unstable (${DISTRO_CODENAME})"
-      msg_info "Reason: MySQL packages depend on libaio1, but Debian Trixie uses libaio1t64"
-      msg_info ""
-      msg_info "Alternative solutions:"
-      msg_info "  1. Use MariaDB instead: MARIADB_VERSION=\"11.4\" setup_mariadb"
-      msg_info "  2. Wait for Oracle to update MySQL packages for Debian 13"
-      msg_info "  3. Use Debian 12 (Bookworm) which is officially supported"
-      return 1
+      msg_warn "MySQL not officially supported on Debian testing/unstable - using Bookworm packages"
+      SUITE="bookworm"
+    else
+      case "$DISTRO_CODENAME" in
+      bookworm | bullseye)
+        SUITE="$DISTRO_CODENAME"
+        ;;
+      *)
+        # For Ubuntu
+        SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://repo.mysql.com/apt/${DISTRO_ID}")
+        ;;
+      esac
     fi
 
-    # MySQL doesn't support Debian testing/unstable - try bookworm as fallback
-    local SUITE
-    case "$DISTRO_CODENAME" in
-    bookworm | bullseye)
-      SUITE="$DISTRO_CODENAME"
-      ;;
-    *)
-      # For Ubuntu
-      SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://repo.mysql.com/apt/${DISTRO_ID}")
-      ;;
-    esac
+    # Stop existing MySQL if running
+    $STD systemctl stop mysql 2>/dev/null || true
+    
+    # Only purge if MySQL is actually installed
+    if dpkg -l | grep -q "^ii.*mysql-server"; then
+      $STD apt purge -y mysql-server* mysql-client* mysql-common 2>/dev/null || true
+    fi
 
     # Use standardized repo setup
     setup_deb822_repo \
