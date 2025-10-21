@@ -2365,6 +2365,7 @@ EOF
 #   - Detects existing MySQL installation
 #   - Purges conflicting packages before installation
 #   - Supports clean upgrade
+#   - Handles Debian Trixie libaio1t64 transition
 #
 # Variables:
 #   MYSQL_VERSION  - MySQL version to install (e.g. 5.7, 8.0) (default: 8.0)
@@ -2398,19 +2399,51 @@ function setup_mysql() {
   fi
 
   if [[ "$NEED_INSTALL" == true ]]; then
+    # For Debian Trixie+, use native packages due to libaio1t64 transition
+    if [[ "$DISTRO_ID" == "debian" ]] && [[ "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
+      msg_info "Using Debian native MySQL packages for ${DISTRO_CODENAME} (libaio1t64 compatibility)"
+      
+      # Stop existing MySQL if running
+      $STD systemctl stop mysql 2>/dev/null || true
+      
+      # Only purge if MySQL is actually installed
+      if dpkg -l 2>/dev/null | grep -q "^ii.*mysql-server"; then
+        $STD apt purge -y mysql-server* mysql-client* mysql-common 2>/dev/null || true
+      fi
+      
+      # Update and install from Debian repos
+      $STD apt update
+      
+      if ! $STD apt install -y mysql-server mysql-client; then
+        msg_error "Failed to install MySQL from Debian repository"
+        return 1
+      fi
+      
+      # Verify installation
+      if ! command -v mysql >/dev/null 2>&1; then
+        msg_warn "MySQL installed but mysql command not immediately available - retrying after shell refresh"
+        hash -r
+        if ! command -v mysql >/dev/null 2>&1; then
+          msg_error "MySQL installed but mysql command still not found"
+          return 1
+        fi
+      fi
+      
+      cache_installed_version "mysql" "$MYSQL_VERSION"
+      msg_ok "Installed MySQL $MYSQL_VERSION from Debian repository"
+      return 0
+    fi
+
+    # For stable Debian and Ubuntu - use upstream MySQL repo
     # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
-    # Determine suite - use bookworm for Debian testing/unstable
+    # Determine suite
     local SUITE
     if [[ "$DISTRO_ID" == "debian" ]]; then
       case "$DISTRO_CODENAME" in
       bookworm | bullseye)
         SUITE="$DISTRO_CODENAME"
-        ;;
-      trixie | forky | sid)
-        msg_warn "Using MySQL Bookworm packages on Debian ${DISTRO_CODENAME}"
-        SUITE="bookworm"
         ;;
       *)
         SUITE="bookworm" # Fallback to bookworm for unknown Debian versions
