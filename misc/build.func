@@ -3015,14 +3015,10 @@ create_lxc_container() {
 
   echo "[DEBUG] pveam available output (first 5 lines with .tar files):"
   pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | head -5 | sed 's/^/  /'
-  
-  mapfile -t ONLINE_TEMPLATES < <(
-    pveam available -section system 2>/dev/null |
-      grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
-      awk -F'\t' '{print $1}' |
-      grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
-      sort -t - -k 2 -V 2>/dev/null || true
-  )  echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found"
+
+  mapfile -t ONLINE_TEMPLATES \
+    \
+    echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found" < <(pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | awk -F'\t' '{print $1}' | grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" | sort -t - -k 2 -V 2>/dev/null || true)
   if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
     echo "[DEBUG] Online templates:"
     for tmpl in "${ONLINE_TEMPLATES[@]}"; do
@@ -3051,8 +3047,67 @@ create_lxc_container() {
     TEMPLATE_SOURCE="online"
   fi
 
+  # If still no template, try to find alternatives
+  if [[ -z "$TEMPLATE" ]]; then
+    echo ""
+    echo "[DEBUG] No template found for ${PCT_OSTYPE} ${PCT_OSVERSION}, searching for alternatives..."
+
+    # Get all available versions for this OS type
+    mapfile -t AVAILABLE_VERSIONS < <(
+      pveam available -section system 2>/dev/null |
+        grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
+        awk -F'\t' '{print $1}' |
+        grep "^${PCT_OSTYPE}-" |
+        sed -E "s/.*${PCT_OSTYPE}-([0-9]+(\.[0-9]+)?).*/\1/" |
+        sort -u -V 2>/dev/null
+    )
+
+    if [[ ${#AVAILABLE_VERSIONS[@]} -gt 0 ]]; then
+      echo ""
+      echo "${BL}Available ${PCT_OSTYPE} versions:${CL}"
+      for i in "${!AVAILABLE_VERSIONS[@]}"; do
+        echo "  [$((i + 1))] ${AVAILABLE_VERSIONS[$i]}"
+      done
+      echo ""
+      read -p "Select version [1-${#AVAILABLE_VERSIONS[@]}] or press Enter to cancel: " choice
+
+      if [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le ${#AVAILABLE_VERSIONS[@]} ]]; then
+        PCT_OSVERSION="${AVAILABLE_VERSIONS[$((choice - 1))]}"
+        TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION}"
+        SEARCH_PATTERN="^${TEMPLATE_SEARCH}-"
+
+        echo "[DEBUG] Retrying with version: $PCT_OSVERSION"
+
+        mapfile -t ONLINE_TEMPLATES < <(
+          pveam available -section system 2>/dev/null |
+            grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
+            awk -F'\t' '{print $1}' |
+            grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
+            sort -t - -k 2 -V 2>/dev/null || true
+        )
+
+        if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
+          TEMPLATE="${ONLINE_TEMPLATES[-1]}"
+          TEMPLATE_SOURCE="online"
+          echo "[DEBUG] Found alternative: $TEMPLATE"
+        else
+          msg_error "No templates available for ${PCT_OSTYPE} ${PCT_OSVERSION}"
+          exit 225
+        fi
+      else
+        msg_info "Installation cancelled"
+        exit 0
+      fi
+    else
+      msg_error "No ${PCT_OSTYPE} templates available at all"
+      exit 225
+    fi
+  fi
+
   echo "[DEBUG] Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
-  msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'" TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
+  msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
+
+  TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
   if [[ -z "$TEMPLATE_PATH" ]]; then
     TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
     [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
