@@ -3010,8 +3010,8 @@ create_lxc_container() {
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
   mapfile -t ONLINE_TEMPLATES < <(
     pveam available -section system 2>/dev/null |
+      awk '/\.tar\.(zst|xz|gz)/ {print $1}' |
       grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
-      awk '{print $1}' |
       sort -t - -k 2 -V
   )
   ONLINE_TEMPLATE=""
@@ -3080,8 +3080,8 @@ create_lxc_container() {
           )
           mapfile -t ONLINE_TEMPLATES < <(
             pveam available -section system 2>/dev/null |
+              awk '/\.tar\.(zst|xz|gz)/ {print $1}' |
               grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
-              awk '{print $1}' |
               sort -t - -k 2 -V
           )
           ONLINE_TEMPLATE=""
