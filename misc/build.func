@@ -1747,7 +1747,6 @@ echo_storage_summary_from_file() {
   if [[ -n "$tpl_store" ]] && resolve_storage_preselect template "$tpl_store"; then
     TEMPLATE_STORAGE="$STORAGE_RESULT"
     TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
-    msg_ok "Using Template-Storage → $TEMPLATE_STORAGE${TEMPLATE_STORAGE_INFO:+ ($TEMPLATE_STORAGE_INFO)}"
   else
     choose_and_set_storage_for_file "$vars_file" template
   fi
@@ -1755,7 +1754,6 @@ echo_storage_summary_from_file() {
   if [[ -n "$ct_store" ]] && resolve_storage_preselect container "$ct_store"; then
     CONTAINER_STORAGE="$STORAGE_RESULT"
     CONTAINER_STORAGE_INFO="$STORAGE_INFO"
-    msg_ok "Using Container-Storage → $CONTAINER_STORAGE${CONTAINER_STORAGE_INFO:+ ($CONTAINER_STORAGE_INFO)}"
   else
     choose_and_set_storage_for_file "$vars_file" container
   fi
@@ -2888,7 +2886,7 @@ create_lxc_container() {
           msg_info "Retrying container creation after upgrade"
           if pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
             msg_ok "Container created successfully after upgrade."
-            return 1
+            return 0
           else
             msg_error "pct create still failed after upgrade. See $LOGFILE"
             return 3
@@ -3026,14 +3024,14 @@ create_lxc_container() {
 
   mapfile -t LOCAL_TEMPLATES < <(
     pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
-      awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ s && $1 ~ p {print $1}' |
+      awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ "^"s"[-_]" && $1 ~ p {print $1}' |
       sed 's|.*/||' | sort -t - -k 2 -V
   )
 
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
   mapfile -t ONLINE_TEMPLATES < <(
     pveam available -section system 2>/dev/null |
-      sed -n "s/.*\($TEMPLATE_SEARCH.*$TEMPLATE_PATTERN.*\)/\1/p" |
+      grep -E "^${TEMPLATE_SEARCH}[-_].*${TEMPLATE_PATTERN}" |
       sort -t - -k 2 -V
   )
   ONLINE_TEMPLATE=""
@@ -3262,17 +3260,16 @@ create_lxc_container() {
             echo
             echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
             echo "We can try to upgrade 'pve-container' and 'lxc-pve' now and retry automatically."
-            if offer_lxc_stack_upgrade_and_maybe_retry "yes"; then
-              : # success after retry
-            else
-              rc=$?
-              case $rc in
-              2) echo "Upgrade was declined. Please update and re-run:
-  apt update && apt install --only-upgrade pve-container lxc-pve" ;;
-              3) echo "Upgrade and/or retry failed. Please inspect: $LOGFILE" ;;
-              esac
-              exit 231
-            fi
+            offer_lxc_stack_upgrade_and_maybe_retry "yes"
+            rc=$?
+            case $rc in
+            0) : ;;  # success - container created, continue
+            2) echo "Upgrade was declined. Please update and re-run:
+  apt update && apt install --only-upgrade pve-container lxc-pve"
+              exit 231 ;;
+            3) echo "Upgrade and/or retry failed. Please inspect: $LOGFILE"
+              exit 231 ;;
+            esac
           else
             msg_error "Container creation failed even with local fallback. See $LOGFILE"
             if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
@@ -3290,16 +3287,17 @@ create_lxc_container() {
           echo
           echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
           echo "We can try to upgrade 'pve-container' and 'lxc-pve' now and retry automatically."
-          if offer_lxc_stack_upgrade_and_maybe_retry "yes"; then
-            : # success after retry
-          else
-            rc=$?
-            case $rc in
-            2) echo "Upgrade was declined. Please update and re-run:
-  apt update && apt install --only-upgrade pve-container lxc-pve" ;;
-            3) echo "Upgrade and/or retry failed. Please inspect: $LOGFILE" ;;
-            esac
-            exit 231
+          offer_lxc_stack_upgrade_and_maybe_retry "yes"
+          rc=$?
+          case $rc in
+          0) : ;;  # success - container created, continue
+          2) echo "Upgrade was declined. Please update and re-run:
+  apt update && apt install --only-upgrade pve-container lxc-pve"
+            exit 231 ;;
+          3) echo "Upgrade and/or retry failed. Please inspect: $LOGFILE"
+            exit 231 ;;
+          esac
+        else
           fi
         else
           if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
