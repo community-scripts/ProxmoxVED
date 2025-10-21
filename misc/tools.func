@@ -1818,6 +1818,14 @@ function setup_gs() {
 function setup_hwaccel () {
   msg_info "Setting Up Hardware Acceleration"
 
+  if ! command -v lspci &>/dev/null; then
+    msg_info "Installing pciutils (provides lspci)"
+    $STD apt -y update && $STD apt -y install pciutils || {
+      msg_error "Failed to install pciutils — cannot detect GPU"
+      return 1
+    }
+  fi
+
   # Detect GPU vendor (Intel, AMD, NVIDIA)
   local gpu_vendor
   gpu_vendor=$(lspci | grep -Ei 'vga|3d|display' | grep -Eo 'Intel|AMD|NVIDIA' | head -n1)
