@@ -3027,6 +3027,11 @@ create_lxc_container() {
     [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
   fi
 
+  # If we still don't have a path but have a valid template name, construct it
+  if [[ -z "$TEMPLATE_PATH" && -n "$TEMPLATE" ]]; then
+    TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
+  fi
+
   [[ -n "$TEMPLATE_PATH" ]] || {
     if [[ -z "$TEMPLATE" ]]; then
       msg_error "Template ${PCT_OSTYPE} ${PCT_OSVERSION} not available"
@@ -3058,12 +3063,12 @@ create_lxc_container() {
           TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
           mapfile -t LOCAL_TEMPLATES < <(
             pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
-              awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ s && $1 ~ p {print $1}' |
+              awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ "^"s"[-_]" && $1 ~ p {print $1}' |
               sed 's|.*/||' | sort -t - -k 2 -V
           )
           mapfile -t ONLINE_TEMPLATES < <(
             pveam available -section system 2>/dev/null |
-              sed -n "s/.*\($TEMPLATE_SEARCH.*$TEMPLATE_PATTERN.*\)/\1/p" |
+              grep -E "^${TEMPLATE_SEARCH}[-_].*${TEMPLATE_PATTERN}" |
               sort -t - -k 2 -V
           )
           ONLINE_TEMPLATE=""
@@ -3083,6 +3088,11 @@ create_lxc_container() {
             [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
           fi
 
+          # If we still don't have a path but have a valid template name, construct it
+          if [[ -z "$TEMPLATE_PATH" && -n "$TEMPLATE" ]]; then
+            TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
+          fi
+
           [[ -n "$TEMPLATE_PATH" ]] || {
             msg_error "Template still not found after version change"
             exit 220
@@ -3095,9 +3105,6 @@ create_lxc_container() {
         msg_error "No ${PCT_OSTYPE} templates available"
         exit 220
       fi
-    else
-      msg_error "Unable to resolve template path for $TEMPLATE_STORAGE"
-      exit 220
     fi
   }
 
