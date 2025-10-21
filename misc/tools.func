@@ -2308,22 +2308,24 @@ function setup_mysql() {
     # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
-    # MySQL compatibility check for Debian Trixie - use Bookworm packages
-    local SUITE
+    # MySQL compatibility check for Debian Trixie
     if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-      msg_warn "MySQL not officially supported on Debian testing/unstable - using Bookworm packages"
-      SUITE="bookworm"
-    else
-      case "$DISTRO_CODENAME" in
-      bookworm | bullseye)
-        SUITE="$DISTRO_CODENAME"
-        ;;
-      *)
-        # For Ubuntu
-        SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://repo.mysql.com/apt/${DISTRO_ID}")
-        ;;
-      esac
+      msg_error "MySQL is not compatible with Debian ${DISTRO_CODENAME}"
+      msg_info "Use MariaDB instead: MARIADB_VERSION=\"11.4\" setup_mariadb"
+      return 1
     fi
+
+    # Determine suite
+    local SUITE
+    case "$DISTRO_CODENAME" in
+    bookworm | bullseye)
+      SUITE="$DISTRO_CODENAME"
+      ;;
+    *)
+      # For Ubuntu
+      SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://repo.mysql.com/apt/${DISTRO_ID}")
+      ;;
+    esac
 
     # Stop existing MySQL if running
     $STD systemctl stop mysql 2>/dev/null || true
