@@ -3010,7 +3010,8 @@ create_lxc_container() {
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
   mapfile -t ONLINE_TEMPLATES < <(
     pveam available -section system 2>/dev/null |
-      awk '/\.tar\.(zst|xz|gz)/ {print $1}' |
+      grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
+      awk '{print $1}' |
       grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
       sort -t - -k 2 -V
   )
@@ -3019,6 +3020,12 @@ create_lxc_container() {
 
   msg_debug "SEARCH_PATTERN='${SEARCH_PATTERN}' TEMPLATE_PATTERN='${TEMPLATE_PATTERN}'"
   msg_debug "Found ${#LOCAL_TEMPLATES[@]} local templates, ${#ONLINE_TEMPLATES[@]} online templates"
+  if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
+    msg_debug "First 3 online templates:"
+    for i in {0..2}; do
+      [[ -n "${ONLINE_TEMPLATES[$i]}" ]] && msg_debug "  [$i]: ${ONLINE_TEMPLATES[$i]}"
+    done
+  fi
   msg_debug "ONLINE_TEMPLATE='$ONLINE_TEMPLATE'"
 
   if [[ ${#LOCAL_TEMPLATES[@]} -gt 0 ]]; then
@@ -3080,7 +3087,8 @@ create_lxc_container() {
           )
           mapfile -t ONLINE_TEMPLATES < <(
             pveam available -section system 2>/dev/null |
-              awk '/\.tar\.(zst|xz|gz)/ {print $1}' |
+              grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
+              awk '{print $1}' |
               grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
               sort -t - -k 2 -V
           )
@@ -3120,6 +3128,15 @@ create_lxc_container() {
       fi
     fi
   }
+
+  # Validate that we found a template
+  if [[ -z "$TEMPLATE" ]]; then
+    msg_error "No template found for ${PCT_OSTYPE} ${PCT_OSVERSION}"
+    msg_info "Please check:"
+    msg_info "  - Is pveam catalog available? (run: pveam available -section system)"
+    msg_info "  - Does the template exist for your OS version?"
+    exit 225
+  fi
 
   msg_ok "Template ${BL}$TEMPLATE${CL} [$TEMPLATE_SOURCE]"
   msg_debug "Resolved TEMPLATE_PATH=$TEMPLATE_PATH"
