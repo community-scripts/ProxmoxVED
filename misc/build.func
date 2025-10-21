@@ -3007,11 +3007,14 @@ create_lxc_container() {
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
   mapfile -t ONLINE_TEMPLATES < <(
     pveam available -section system 2>/dev/null |
-      grep -E "^${TEMPLATE_SEARCH}-.*${TEMPLATE_PATTERN}" |
+      grep -E "^${TEMPLATE_SEARCH}.*${TEMPLATE_PATTERN}" |
       sort -t - -k 2 -V
   )
   ONLINE_TEMPLATE=""
   [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
+
+  msg_debug "Found ${#LOCAL_TEMPLATES[@]} local templates, ${#ONLINE_TEMPLATES[@]} online templates"
+  msg_debug "ONLINE_TEMPLATE='$ONLINE_TEMPLATE'"
 
   if [[ ${#LOCAL_TEMPLATES[@]} -gt 0 ]]; then
     TEMPLATE="${LOCAL_TEMPLATES[-1]}"
@@ -3020,6 +3023,8 @@ create_lxc_container() {
     TEMPLATE="$ONLINE_TEMPLATE"
     TEMPLATE_SOURCE="online"
   fi
+
+  echo -e "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
 
   TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
   if [[ -z "$TEMPLATE_PATH" ]]; then
@@ -3068,7 +3073,7 @@ create_lxc_container() {
           )
           mapfile -t ONLINE_TEMPLATES < <(
             pveam available -section system 2>/dev/null |
-              grep -E "^${TEMPLATE_SEARCH}-.*${TEMPLATE_PATTERN}" |
+              grep -E "^${TEMPLATE_SEARCH}.*${TEMPLATE_PATTERN}" |
               sort -t - -k 2 -V
           )
           ONLINE_TEMPLATE=""
