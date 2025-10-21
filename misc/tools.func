@@ -1803,7 +1803,6 @@ function setup_gs() {
   msg_ok "Installed Ghostscript $LATEST_VERSION_DOTTED"
 }
 
-
 # ------------------------------------------------------------------------------
 # Sets up Hardware Acceleration on debian or ubuntu.
 #
@@ -1815,7 +1814,7 @@ function setup_gs() {
 # Notes:
 #   - Some things are fetched from intel repositories due to not being in debian repositories.
 # ------------------------------------------------------------------------------
-function setup_hwaccel () {
+function setup_hwaccel() {
   msg_info "Setting Up Hardware Acceleration"
 
   if ! command -v lspci &>/dev/null; then
@@ -1845,45 +1844,45 @@ function setup_hwaccel () {
   local in_ct="${CTTYPE:-0}"
 
   case "$gpu_vendor" in
-    Intel)
-      msg_info "Detected Intel GPU — configuring Intel hardware acceleration"
+  Intel)
+    msg_info "Detected Intel GPU — configuring Intel hardware acceleration"
 
-      if [[ "$os_id" == "ubuntu" ]]; then
-        $STD apt -y install intel-opencl-icd || msg_error "Failed to install intel-opencl-icd"
-      else
-        fetch_and_deploy_gh_release "intel-igc-core-2"   "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-core-2_*_amd64.deb"
-        fetch_and_deploy_gh_release "intel-igc-opencl-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-opencl-2_*_amd64.deb"
-        fetch_and_deploy_gh_release "intel-libgdgmm12"   "intel/compute-runtime"        "binary" "latest" "" "libigdgmm12_*_amd64.deb"
-        fetch_and_deploy_gh_release "intel-opencl-icd"   "intel/compute-runtime"        "binary" "latest" "" "intel-opencl-icd_*_amd64.deb"
-      fi
+    if [[ "$os_id" == "ubuntu" ]]; then
+      $STD apt -y install intel-opencl-icd || msg_error "Failed to install intel-opencl-icd"
+    else
+      fetch_and_deploy_gh_release "intel-igc-core-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-core-2_*_amd64.deb"
+      fetch_and_deploy_gh_release "intel-igc-opencl-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-opencl-2_*_amd64.deb"
+      fetch_and_deploy_gh_release "intel-libgdgmm12" "intel/compute-runtime" "binary" "latest" "" "libigdgmm12_*_amd64.deb"
+      fetch_and_deploy_gh_release "intel-opencl-icd" "intel/compute-runtime" "binary" "latest" "" "intel-opencl-icd_*_amd64.deb"
+    fi
 
-      $STD apt -y install va-driver-all ocl-icd-libopencl1 vainfo intel-gpu-tools || msg_error "Failed to install GPU dependencies"
-      ;;
-    AMD)
-      msg_info "Detected AMD GPU — configuring Mesa-based hardware acceleration"
+    $STD apt -y install va-driver-all ocl-icd-libopencl1 vainfo intel-gpu-tools || msg_error "Failed to install GPU dependencies"
+    ;;
+  AMD)
+    msg_info "Detected AMD GPU — configuring Mesa-based hardware acceleration"
 
-      $STD apt -y install mesa-va-drivers mesa-vdpau-drivers mesa-opencl-icd vainfo clinfo || msg_error "Failed to install AMD GPU dependencies"
+    $STD apt -y install mesa-va-drivers mesa-vdpau-drivers mesa-opencl-icd vainfo clinfo || msg_error "Failed to install AMD GPU dependencies"
 
-      # For AMD CPUs without discrete GPU (APUs)
-      if [[ "$cpu_vendor" == "AuthenticAMD" && "$gpu_vendor" != "AMD" ]]; then
-        msg_info "Detected AMD CPU (APU) — enabling VAAPI via Mesa"
-        $STD apt -y install libdrm-amdgpu1 firmware-amd-graphics || true
-      fi
-      ;;
-    NVIDIA)
-      msg_info "Detected NVIDIA GPU — skipping automatic configuration (manual driver setup required)"
-      msg_info "→ Please install proprietary drivers manually via: apt install nvidia-driver"
-      ;;
-    *)
-      # If no discrete GPU, but AMD CPU (e.g., Ryzen APU)
-      if [[ "$cpu_vendor" == "AuthenticAMD" ]]; then
-        msg_info "Detected AMD CPU without discrete GPU — installing Mesa OpenCL stack"
-        $STD apt -y install mesa-opencl-icd ocl-icd-libopencl1 clinfo || msg_error "Failed to install Mesa OpenCL stack"
-      else
-        msg_error "No supported GPU vendor detected"
-        return 1
-      fi
-      ;;
+    # For AMD CPUs without discrete GPU (APUs)
+    if [[ "$cpu_vendor" == "AuthenticAMD" && "$gpu_vendor" != "AMD" ]]; then
+      msg_info "Detected AMD CPU (APU) — enabling VAAPI via Mesa"
+      $STD apt -y install libdrm-amdgpu1 firmware-amd-graphics || true
+    fi
+    ;;
+  NVIDIA)
+    msg_info "Detected NVIDIA GPU — skipping automatic configuration (manual driver setup required)"
+    msg_info "→ Please install proprietary drivers manually via: apt install nvidia-driver"
+    ;;
+  *)
+    # If no discrete GPU, but AMD CPU (e.g., Ryzen APU)
+    if [[ "$cpu_vendor" == "AuthenticAMD" ]]; then
+      msg_info "Detected AMD CPU without discrete GPU — installing Mesa OpenCL stack"
+      $STD apt -y install mesa-opencl-icd ocl-icd-libopencl1 clinfo || msg_error "Failed to install Mesa OpenCL stack"
+    else
+      msg_error "No supported GPU vendor detected"
+      return 1
+    fi
+    ;;
   esac
 
   if [[ "$in_ct" == "0" ]]; then
@@ -2414,7 +2413,7 @@ function setup_mysql() {
         SUITE="bookworm"
         ;;
       *)
-        SUITE="bookworm"  # Fallback to bookworm for unknown Debian versions
+        SUITE="bookworm" # Fallback to bookworm for unknown Debian versions
         ;;
       esac
     else
@@ -2424,7 +2423,7 @@ function setup_mysql() {
 
     # Stop existing MySQL if running
     $STD systemctl stop mysql 2>/dev/null || true
-    
+
     # Only purge if MySQL is actually installed
     if dpkg -l 2>/dev/null | grep -q "^ii.*mysql-server"; then
       $STD apt purge -y mysql-server* mysql-client* mysql-common 2>/dev/null || true

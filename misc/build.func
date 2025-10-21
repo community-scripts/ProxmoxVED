@@ -3052,9 +3052,78 @@ create_lxc_container() {
     TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
     [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
   fi
+
   [[ -n "$TEMPLATE_PATH" ]] || {
-    msg_error "Unable to resolve template path for $TEMPLATE_STORAGE. Check storage type and permissions."
-    exit 220
+    if [[ -z "$TEMPLATE" ]]; then
+      msg_error "Template ${PCT_OSTYPE} ${PCT_OSVERSION} not available"
+
+      # Get available versions
+      mapfile -t AVAILABLE_VERSIONS < <(
+        pveam available -section system 2>/dev/null |
+          grep "^${PCT_OSTYPE}-" |
+          sed -E 's/.*'"${PCT_OSTYPE}"'-([0-9]+\.[0-9]+).*/\1/' |
+          sort -V -u
+      )
+
+      if [[ ${#AVAILABLE_VERSIONS[@]} -gt 0 ]]; then
+        msg_info "Available versions:"
+        for i in "${!AVAILABLE_VERSIONS[@]}"; do
+          echo "  [$((i + 1))] ${AVAILABLE_VERSIONS[$i]}"
+        done
+
+        echo ""
+        read -p "Select version [1-${#AVAILABLE_VERSIONS[@]}] or Enter to exit: " choice
+
+        if [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le ${#AVAILABLE_VERSIONS[@]} ]]; then
+          export var_version="${AVAILABLE_VERSIONS[$((choice - 1))]}"
+          export PCT_OSVERSION="$var_version"
+          msg_ok "Switched to ${PCT_OSTYPE} ${var_version}"
+
+          # Retry template search with new version
+          TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
+          mapfile -t LOCAL_TEMPLATES < <(
+            pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
+              awk -v s="$TEMPLATE_SEARCH" -v p="$TEMPLATE_PATTERN" '$1 ~ s && $1 ~ p {print $1}' |
+              sed 's|.*/||' | sort -t - -k 2 -V
+          )
+          mapfile -t ONLINE_TEMPLATES < <(
+            pveam available -section system 2>/dev/null |
+              sed -n "s/.*\($TEMPLATE_SEARCH.*$TEMPLATE_PATTERN.*\)/\1/p" |
+              sort -t - -k 2 -V
+          )
+          ONLINE_TEMPLATE=""
+          [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
+
+          if [[ ${#LOCAL_TEMPLATES[@]} -gt 0 ]]; then
+            TEMPLATE="${LOCAL_TEMPLATES[-1]}"
+            TEMPLATE_SOURCE="local"
+          else
+            TEMPLATE="$ONLINE_TEMPLATE"
+            TEMPLATE_SOURCE="online"
+          fi
+
+          TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
+          if [[ -z "$TEMPLATE_PATH" ]]; then
+            TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
+            [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
+          fi
+
+          [[ -n "$TEMPLATE_PATH" ]] || {
+            msg_error "Template still not found after version change"
+            exit 220
+          }
+        else
+          msg_info "Installation cancelled"
+          exit 0
+        fi
+      else
+        msg_error "No ${PCT_OSTYPE} templates available"
+        exit 220
+      fi
+    else
+      msg_error "Unable to resolve template path for $TEMPLATE_STORAGE"
+      exit 220
+    fi
   }
 
   msg_ok "Template ${BL}$TEMPLATE${CL} [$TEMPLATE_SOURCE]"
