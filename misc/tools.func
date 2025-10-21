@@ -2399,51 +2399,19 @@ function setup_mysql() {
   fi
 
   if [[ "$NEED_INSTALL" == true ]]; then
-    # For Debian Trixie+, use native packages due to libaio1t64 transition
-    if [[ "$DISTRO_ID" == "debian" ]] && [[ "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-      msg_info "Using Debian native MySQL packages for ${DISTRO_CODENAME} (libaio1t64 compatibility)"
-      
-      # Stop existing MySQL if running
-      $STD systemctl stop mysql 2>/dev/null || true
-      
-      # Only purge if MySQL is actually installed
-      if dpkg -l 2>/dev/null | grep -q "^ii.*mysql-server"; then
-        $STD apt purge -y mysql-server* mysql-client* mysql-common 2>/dev/null || true
-      fi
-      
-      # Update and install from Debian repos
-      $STD apt update
-      
-      if ! $STD apt install -y mysql-server mysql-client; then
-        msg_error "Failed to install MySQL from Debian repository"
-        return 1
-      fi
-      
-      # Verify installation
-      if ! command -v mysql >/dev/null 2>&1; then
-        msg_warn "MySQL installed but mysql command not immediately available - retrying after shell refresh"
-        hash -r
-        if ! command -v mysql >/dev/null 2>&1; then
-          msg_error "MySQL installed but mysql command still not found"
-          return 1
-        fi
-      fi
-      
-      cache_installed_version "mysql" "$MYSQL_VERSION"
-      msg_ok "Installed MySQL $MYSQL_VERSION from Debian repository"
-      return 0
-    fi
-
-    # For stable Debian and Ubuntu - use upstream MySQL repo
     # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
-    # Determine suite
+    # Determine suite - use bookworm for Debian testing/unstable
     local SUITE
     if [[ "$DISTRO_ID" == "debian" ]]; then
       case "$DISTRO_CODENAME" in
       bookworm | bullseye)
         SUITE="$DISTRO_CODENAME"
+        ;;
+      trixie | forky | sid)
+        msg_warn "Using MySQL Bookworm packages on Debian ${DISTRO_CODENAME}"
+        SUITE="bookworm"
         ;;
       *)
         SUITE="bookworm" # Fallback to bookworm for unknown Debian versions
@@ -2460,6 +2428,48 @@ function setup_mysql() {
     # Only purge if MySQL is actually installed
     if dpkg -l 2>/dev/null | grep -q "^ii.*mysql-server"; then
       $STD apt purge -y mysql-server* mysql-client* mysql-common 2>/dev/null || true
+    fi
+
+    # Handle libaio dependency for Debian Trixie+ (time64 transition)
+    if [[ "$DISTRO_ID" == "debian" ]] && [[ "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
+      msg_info "Installing libaio compatibility for Debian ${DISTRO_CODENAME}"
+      
+      # Install libaio1t64 if not present
+      if ! dpkg -l libaio1t64 2>/dev/null | grep -q "^ii"; then
+        $STD apt update
+        $STD apt install -y libaio1t64
+      fi
+      
+      # Create dummy libaio1 package for dependency satisfaction
+      local TEMP_DIR="/tmp/libaio1-compat-$$"
+      mkdir -p "$TEMP_DIR"
+      cd "$TEMP_DIR"
+      
+      # Create control file
+      mkdir -p DEBIAN
+      cat > DEBIAN/control <<EOF
+Package: libaio1
+Version: 0.3.113-99~compat
+Architecture: amd64
+Maintainer: Local Build
+Depends: libaio1t64
+Provides: libaio1
+Description: Compatibility package for libaio1 -> libaio1t64 transition
+ This is a transitional dummy package to satisfy dependencies on libaio1
+ while actually using libaio1t64 (time64 transition).
+EOF
+      
+      # Build the dummy package
+      cd /tmp
+      dpkg-deb -b "$TEMP_DIR" libaio1-compat.deb >/dev/null 2>&1
+      
+      # Install it
+      $STD dpkg -i libaio1-compat.deb
+      
+      # Cleanup
+      rm -rf "$TEMP_DIR" libaio1-compat.deb
+      
+      msg_ok "libaio1 compatibility package installed"
     fi
 
     # Use standardized repo setup
