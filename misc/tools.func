@@ -2308,30 +2308,31 @@ function setup_mysql() {
     # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
-    # MySQL compatibility check for Debian Trixie
-    if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-      msg_error "MySQL is not compatible with Debian ${DISTRO_CODENAME}"
-      msg_info "Use MariaDB instead: MARIADB_VERSION=\"11.4\" setup_mariadb"
-      return 1
-    fi
-
-    # Determine suite
+    # Determine suite - use bookworm for Debian testing/unstable
     local SUITE
-    case "$DISTRO_CODENAME" in
-    bookworm | bullseye)
-      SUITE="$DISTRO_CODENAME"
-      ;;
-    *)
-      # For Ubuntu
+    if [[ "$DISTRO_ID" == "debian" ]]; then
+      case "$DISTRO_CODENAME" in
+      bookworm | bullseye)
+        SUITE="$DISTRO_CODENAME"
+        ;;
+      trixie | forky | sid)
+        msg_warn "Using MySQL Bookworm packages on Debian ${DISTRO_CODENAME}"
+        SUITE="bookworm"
+        ;;
+      *)
+        SUITE="bookworm"  # Fallback to bookworm for unknown Debian versions
+        ;;
+      esac
+    else
+      # For Ubuntu - use fallback detection
       SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://repo.mysql.com/apt/${DISTRO_ID}")
-      ;;
-    esac
+    fi
 
     # Stop existing MySQL if running
     $STD systemctl stop mysql 2>/dev/null || true
     
     # Only purge if MySQL is actually installed
-    if dpkg -l | grep -q "^ii.*mysql-server"; then
+    if dpkg -l 2>/dev/null | grep -q "^ii.*mysql-server"; then
       $STD apt purge -y mysql-server* mysql-client* mysql-common 2>/dev/null || true
     fi
 
