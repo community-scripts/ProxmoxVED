@@ -1735,7 +1735,6 @@ choose_and_set_storage_for_file() {
   msg_ok "Updated ${key} → ${STORAGE_RESULT}"
 }
 
-
 # ------------------------------------------------------------------------------
 # check_container_resources()
 #
@@ -3240,12 +3239,16 @@ create_lxc_container() {
             offer_lxc_stack_upgrade_and_maybe_retry "yes"
             rc=$?
             case $rc in
-            0) : ;;  # success - container created, continue
-            2) echo "Upgrade was declined. Please update and re-run:
+            0) : ;; # success - container created, continue
+            2)
+              echo "Upgrade was declined. Please update and re-run:
   apt update && apt install --only-upgrade pve-container lxc-pve"
-              exit 231 ;;
-            3) echo "Upgrade and/or retry failed. Please inspect: $LOGFILE"
-              exit 231 ;;
+              exit 231
+              ;;
+            3)
+              echo "Upgrade and/or retry failed. Please inspect: $LOGFILE"
+              exit 231
+              ;;
             esac
           else
             msg_error "Container creation failed even with local fallback. See $LOGFILE"
@@ -3267,16 +3270,19 @@ create_lxc_container() {
           offer_lxc_stack_upgrade_and_maybe_retry "yes"
           rc=$?
           case $rc in
-          0) : ;;  # success - container created, continue
-          2) echo "Upgrade was declined. Please update and re-run:
+          0) : ;; # success - container created, continue
+          2)
+            echo "Upgrade was declined. Please update and re-run:
   apt update && apt install --only-upgrade pve-container lxc-pve"
-            exit 231 ;;
-          3) echo "Upgrade and/or retry failed. Please inspect: $LOGFILE"
-            exit 231 ;;
+            exit 231
+            ;;
+          3)
+            echo "Upgrade and/or retry failed. Please inspect: $LOGFILE"
+            exit 231
+            ;;
           esac
         else
-          fi
-        else
+          msg_error "Container creation failed. See $LOGFILE"
           if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
             set -x
             bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
