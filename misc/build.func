@@ -3001,6 +3001,10 @@ create_lxc_container() {
   # Build regex patterns outside awk/grep for clarity
   SEARCH_PATTERN="^${TEMPLATE_SEARCH}-"
 
+  echo "[DEBUG] TEMPLATE_SEARCH='$TEMPLATE_SEARCH'"
+  echo "[DEBUG] SEARCH_PATTERN='$SEARCH_PATTERN'"
+  echo "[DEBUG] TEMPLATE_PATTERN='$TEMPLATE_PATTERN'"
+
   mapfile -t LOCAL_TEMPLATES < <(
     pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
       awk -v search="${SEARCH_PATTERN}" -v pattern="${TEMPLATE_PATTERN}" '$1 ~ search && $1 ~ pattern {print $1}' |
@@ -3008,6 +3012,10 @@ create_lxc_container() {
   )
 
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
+
+  echo "[DEBUG] pveam available output (first 5 lines with .tar files):"
+  pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | head -5 | sed 's/^/  /'
+
   mapfile -t ONLINE_TEMPLATES < <(
     pveam available -section system 2>/dev/null |
       grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
@@ -3015,6 +3023,15 @@ create_lxc_container() {
       grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
       sort -t - -k 2 -V
   )
+
+  echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found"
+  if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
+    echo "[DEBUG] Online templates:"
+    for tmpl in "${ONLINE_TEMPLATES[@]}"; do
+      echo "  - $tmpl"
+    done
+  fi
+
   ONLINE_TEMPLATE=""
   [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
 
@@ -3036,9 +3053,8 @@ create_lxc_container() {
     TEMPLATE_SOURCE="online"
   fi
 
-  msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
-
-  TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
+  echo "[DEBUG] Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
+  msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'" TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
   if [[ -z "$TEMPLATE_PATH" ]]; then
     TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
     [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
