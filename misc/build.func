@@ -3062,11 +3062,12 @@ create_lxc_container() {
         pveam available -section system 2>/dev/null |
           grep "^${PCT_OSTYPE}-" |
           sed -E 's/.*'"${PCT_OSTYPE}"'-([0-9]+\.[0-9]+).*/\1/' |
-          sort -V -u
+          grep -E '^[0-9]+\.[0-9]+$' |
+          sort -u -V 2>/dev/null || sort -u
       )
 
       if [[ ${#AVAILABLE_VERSIONS[@]} -gt 0 ]]; then
-        msg_info "Available versions:"
+        echo -e "\n${BL}Available versions:${CL}"
         for i in "${!AVAILABLE_VERSIONS[@]}"; do
           echo "  [$((i + 1))] ${AVAILABLE_VERSIONS[$i]}"
         done
