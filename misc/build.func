@@ -2988,86 +2988,74 @@ create_lxc_container() {
 
   # ------------------------------------------------------------------------------
   # Template discovery & validation
+  # Simple approach: var_os (alpine/ubuntu/debian) + var_version (24.04/11/12/13/22.04)
+  # 1. Check local storage
+  # 2. Check for newer version in pveam
+  # 3. If not found at all, offer alternatives
   # ------------------------------------------------------------------------------
-  TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
+  msg_info "Finding template for ${PCT_OSTYPE} ${PCT_OSVERSION}"
+
+  # Determine template pattern based on OS
   case "$PCT_OSTYPE" in
   debian | ubuntu) TEMPLATE_PATTERN="-standard_" ;;
   alpine | fedora | rocky | centos) TEMPLATE_PATTERN="-default_" ;;
-  *) TEMPLATE_PATTERN="" ;;
+  *) TEMPLATE_PATTERN="-" ;;
   esac
 
-  msg_info "Searching for template '$TEMPLATE_SEARCH'"
-
-  # Build regex patterns outside awk/grep for clarity
-  SEARCH_PATTERN="^${TEMPLATE_SEARCH}-"
-
-  echo "[DEBUG] TEMPLATE_SEARCH='$TEMPLATE_SEARCH'"
-  echo "[DEBUG] SEARCH_PATTERN='$SEARCH_PATTERN'"
-  echo "[DEBUG] TEMPLATE_PATTERN='$TEMPLATE_PATTERN'"
-
-  mapfile -t LOCAL_TEMPLATES < <(
-    pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
-      awk -v search="${SEARCH_PATTERN}" -v pattern="${TEMPLATE_PATTERN}" '$1 ~ search && $1 ~ pattern {print $1}' |
-      sed 's|.*/||' | sort -t - -k 2 -V
-  )
-
-  pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
-
-  echo "[DEBUG] pveam available output (first 5 lines with .tar files):"
-  pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | head -5 | sed 's/^/  /'
-
-  mapfile -t ONLINE_TEMPLATES < <(
-    pveam available -section system 2>/dev/null |
-      grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
-      awk '{print $NF}' |
-      grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
-      sort -V 2>/dev/null
-  )
+  # Step 1: Search in local storage
+  LOCAL_TEMPLATE=$(pveam list "$TEMPLATE_STORAGE" 2>/dev/null | awk '{print $NF}' | grep "^${PCT_OSTYPE}-${PCT_OSVERSION}.*${TEMPLATE_PATTERN}" | sort -V | tail -1)
   
-  echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found"
-  if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
-    echo "[DEBUG] Online templates:"
-    for tmpl in "${ONLINE_TEMPLATES[@]}"; do
-      echo "  - $tmpl"
-    done
-  fi
-
-  ONLINE_TEMPLATE=""
-  [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
-
-  msg_debug "SEARCH_PATTERN='${SEARCH_PATTERN}' TEMPLATE_PATTERN='${TEMPLATE_PATTERN}'"
-  msg_debug "Found ${#LOCAL_TEMPLATES[@]} local templates, ${#ONLINE_TEMPLATES[@]} online templates"
-  if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
-    msg_debug "First 3 online templates:"
-    for i in {0..2}; do
-      [[ -n "${ONLINE_TEMPLATES[$i]}" ]] && msg_debug "  [$i]: ${ONLINE_TEMPLATES[$i]}"
-    done
-  fi
-  msg_debug "ONLINE_TEMPLATE='$ONLINE_TEMPLATE'"
-
-  if [[ ${#LOCAL_TEMPLATES[@]} -gt 0 ]]; then
-    TEMPLATE="${LOCAL_TEMPLATES[-1]}"
+  # Step 2: Check pveam for available version (could be newer)
+  ONLINE_TEMPLATE=$(pveam available -section system 2>/dev/null | awk '{print $NF}' | grep "^${PCT_OSTYPE}-${PCT_OSVERSION}.*${TEMPLATE_PATTERN}" | sort -V | tail -1)
+  
+  # Decide what to use
+  if [[ -n "$LOCAL_TEMPLATE" && -n "$ONLINE_TEMPLATE" ]]; then
+    # Both exist - check if online is newer
+    if [[ "$LOCAL_TEMPLATE" != "$ONLINE_TEMPLATE" ]]; then
+      msg_info "Local template: $LOCAL_TEMPLATE"
+      msg_info "Newer version available: $ONLINE_TEMPLATE"
+      echo ""
+      read -p "Download newer version? [y/N]: " answer
+      case "${answer,,}" in
+        y|yes)
+          TEMPLATE="$ONLINE_TEMPLATE"
+          TEMPLATE_SOURCE="online"
+          msg_ok "Using newer version: $TEMPLATE"
+          ;;
+        *)
+          TEMPLATE="$LOCAL_TEMPLATE"
+          TEMPLATE_SOURCE="local"
+          msg_ok "Using local version: $TEMPLATE"
+          ;;
+      esac
+    else
+      # Same version
+      TEMPLATE="$LOCAL_TEMPLATE"
+      TEMPLATE_SOURCE="local"
+      msg_ok "Using local template: $TEMPLATE"
+    fi
+  elif [[ -n "$LOCAL_TEMPLATE" ]]; then
+    # Only local exists
+    TEMPLATE="$LOCAL_TEMPLATE"
     TEMPLATE_SOURCE="local"
-  else
+    msg_ok "Using local template: $TEMPLATE"
+  elif [[ -n "$ONLINE_TEMPLATE" ]]; then
+    # Only online exists
     TEMPLATE="$ONLINE_TEMPLATE"
     TEMPLATE_SOURCE="online"
-  fi
-
-  # If still no template, try to find alternatives
-  if [[ -z "$TEMPLATE" ]]; then
-    echo ""
-    echo "[DEBUG] No template found for ${PCT_OSTYPE} ${PCT_OSVERSION}, searching for alternatives..."
-
-    # Get all available versions for this OS type
+    msg_ok "Template found online: $TEMPLATE"
+  else
+    # Nothing found - offer alternatives
+    msg_error "No template found for ${PCT_OSTYPE} ${PCT_OSVERSION}"
+    
     mapfile -t AVAILABLE_VERSIONS < <(
       pveam available -section system 2>/dev/null |
-        grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
-        awk -F'\t' '{print $1}' |
+        awk '{print $NF}' |
         grep "^${PCT_OSTYPE}-" |
         sed -E "s/.*${PCT_OSTYPE}-([0-9]+(\.[0-9]+)?).*/\1/" |
-        sort -u -V 2>/dev/null
+        sort -u -V
     )
-
+    
     if [[ ${#AVAILABLE_VERSIONS[@]} -gt 0 ]]; then
       echo ""
       echo "${BL}Available ${PCT_OSTYPE} versions:${CL}"
@@ -3076,36 +3064,23 @@ create_lxc_container() {
       done
       echo ""
       read -p "Select version [1-${#AVAILABLE_VERSIONS[@]}] or press Enter to cancel: " choice
-
+      
       if [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le ${#AVAILABLE_VERSIONS[@]} ]]; then
         PCT_OSVERSION="${AVAILABLE_VERSIONS[$((choice - 1))]}"
-        TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION}"
-        SEARCH_PATTERN="^${TEMPLATE_SEARCH}-"
-
-        echo "[DEBUG] Retrying with version: $PCT_OSVERSION"
-
-        mapfile -t ONLINE_TEMPLATES < <(
-          pveam available -section system 2>/dev/null |
-            grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
-            awk '{print $NF}' |
-            grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
-            sort -V 2>/dev/null
-        )
-
-        if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
-          TEMPLATE="${ONLINE_TEMPLATES[-1]}"
+        TEMPLATE=$(pveam available -section system 2>/dev/null | awk '{print $NF}' | grep "^${PCT_OSTYPE}-${PCT_OSVERSION}.*${TEMPLATE_PATTERN}" | sort -V | tail -1)
+        if [[ -n "$TEMPLATE" ]]; then
+          msg_ok "Selected: $TEMPLATE"
           TEMPLATE_SOURCE="online"
-          echo "[DEBUG] Found alternative: $TEMPLATE"
         else
-          msg_error "No templates available for ${PCT_OSTYPE} ${PCT_OSVERSION}"
+          msg_error "No template found for ${PCT_OSTYPE} ${PCT_OSVERSION}"
           exit 225
         fi
       else
-        msg_info "Installation cancelled"
+        msg_info "Cancelled"
         exit 0
       fi
     else
-      msg_error "No ${PCT_OSTYPE} templates available at all"
+      msg_error "No templates available for ${PCT_OSTYPE}"
       exit 225
     fi
   fi
