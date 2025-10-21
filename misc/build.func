@@ -3015,16 +3015,14 @@ create_lxc_container() {
 
   echo "[DEBUG] pveam available output (first 5 lines with .tar files):"
   pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | head -5 | sed 's/^/  /'
-
+  
   mapfile -t ONLINE_TEMPLATES < <(
     pveam available -section system 2>/dev/null |
       grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
-      awk '{print $1}' |
+      awk -F'\t' '{print $1}' |
       grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
-      sort -t - -k 2 -V
-  )
-
-  echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found"
+      sort -t - -k 2 -V 2>/dev/null || true
+  )  echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found"
   if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
     echo "[DEBUG] Online templates:"
     for tmpl in "${ONLINE_TEMPLATES[@]}"; do
@@ -3104,9 +3102,9 @@ create_lxc_container() {
           mapfile -t ONLINE_TEMPLATES < <(
             pveam available -section system 2>/dev/null |
               grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
-              awk '{print $1}' |
+              awk -F'\t' '{print $1}' |
               grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
-              sort -t - -k 2 -V
+              sort -t - -k 2 -V 2>/dev/null || true
           )
           ONLINE_TEMPLATE=""
           [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
