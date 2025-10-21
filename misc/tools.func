@@ -2311,22 +2311,26 @@ function setup_mysql() {
     # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
+    # MySQL compatibility check for Debian Trixie
+    if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
+      msg_error "MySQL is not compatible with Debian testing/unstable (${DISTRO_CODENAME})"
+      msg_info "Reason: MySQL packages depend on libaio1, but Debian Trixie uses libaio1t64"
+      msg_info ""
+      msg_info "Alternative solutions:"
+      msg_info "  1. Use MariaDB instead: MARIADB_VERSION=\"11.4\" setup_mariadb"
+      msg_info "  2. Wait for Oracle to update MySQL packages for Debian 13"
+      msg_info "  3. Use Debian 12 (Bookworm) which is officially supported"
+      return 1
+    fi
+
     # MySQL doesn't support Debian testing/unstable - try bookworm as fallback
     local SUITE
     case "$DISTRO_CODENAME" in
-    trixie | forky | sid)
-      # MySQL doesn't publish packages for Debian testing/unstable
-      # Try bookworm as fallback
-      if verify_repo_available "https://repo.mysql.com/apt/${DISTRO_ID}" "bookworm"; then
-        SUITE="bookworm"
-        msg_warn "MySQL ${MYSQL_VERSION} not available for ${DISTRO_CODENAME}, using bookworm packages"
-      else
-        msg_error "MySQL ${MYSQL_VERSION} package not available for ${DISTRO_ID}-${DISTRO_CODENAME}"
-        msg_info "MySQL typically doesn't support Debian testing/unstable. Consider using MariaDB instead."
-        return 1
-      fi
+    bookworm | bullseye)
+      SUITE="$DISTRO_CODENAME"
       ;;
     *)
+      # For Ubuntu
       SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://repo.mysql.com/apt/${DISTRO_ID}")
       ;;
     esac

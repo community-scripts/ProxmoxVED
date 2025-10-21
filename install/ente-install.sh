@@ -24,7 +24,7 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
 setup_go
-NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 fetch_and_deploy_gh_release "ente" "ente-io/ente" "tarball" "latest" "/opt/ente"
 
 msg_info "Setting up PostgreSQL"
