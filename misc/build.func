@@ -1460,15 +1460,12 @@ ensure_storage_selection_for_vars_file() {
   tpl=$(grep -E '^var_template_storage=' "$vf" | cut -d= -f2-)
   ct=$(grep -E '^var_container_storage=' "$vf" | cut -d= -f2-)
 
-  # Wenn beide Werte schon existieren → übernehmen
   if [[ -n "$tpl" && -n "$ct" ]]; then
     TEMPLATE_STORAGE="$tpl"
     CONTAINER_STORAGE="$ct"
-    echo_storage_summary_from_file "$vf"
     return 0
   fi
 
-  # --- Erstmalige Auswahl: beide Abfragen (nutze existierende Helper) ---
   choose_and_set_storage_for_file "$vf" template
   choose_and_set_storage_for_file "$vf" container
 
@@ -1738,26 +1735,6 @@ choose_and_set_storage_for_file() {
   msg_ok "Updated ${key} → ${STORAGE_RESULT}"
 }
 
-echo_storage_summary_from_file() {
-  local vars_file="$1"
-  local tpl_store ct_store
-  tpl_store=$(awk -F= '/^var_template_storage=/ {print $2; exit}' "$vars_file")
-  ct_store=$(awk -F= '/^var_container_storage=/ {print $2; exit}' "$vars_file")
-
-  if [[ -n "$tpl_store" ]] && resolve_storage_preselect template "$tpl_store"; then
-    TEMPLATE_STORAGE="$STORAGE_RESULT"
-    TEMPLATE_STORAGE_INFO="$STORAGE_INFO"
-  else
-    choose_and_set_storage_for_file "$vars_file" template
-  fi
-
-  if [[ -n "$ct_store" ]] && resolve_storage_preselect container "$ct_store"; then
-    CONTAINER_STORAGE="$STORAGE_RESULT"
-    CONTAINER_STORAGE_INFO="$STORAGE_INFO"
-  else
-    choose_and_set_storage_for_file "$vars_file" container
-  fi
-}
 
 # ------------------------------------------------------------------------------
 # check_container_resources()
