@@ -2998,21 +2998,26 @@ create_lxc_container() {
 
   msg_info "Searching for template '$TEMPLATE_SEARCH'"
 
+  # Build regex patterns outside awk/grep for clarity
+  SEARCH_PATTERN="^${TEMPLATE_SEARCH}-"
+
   mapfile -t LOCAL_TEMPLATES < <(
     pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
-      awk -v search="^${TEMPLATE_SEARCH}-" -v pattern="${TEMPLATE_PATTERN}" '$1 ~ search && $1 ~ pattern {print $1}' |
+      awk -v search="${SEARCH_PATTERN}" -v pattern="${TEMPLATE_PATTERN}" '$1 ~ search && $1 ~ pattern {print $1}' |
       sed 's|.*/||' | sort -t - -k 2 -V
   )
 
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
   mapfile -t ONLINE_TEMPLATES < <(
     pveam available -section system 2>/dev/null |
-      grep -E "^${TEMPLATE_SEARCH}.*${TEMPLATE_PATTERN}" |
+      grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
+      awk '{print $1}' |
       sort -t - -k 2 -V
   )
   ONLINE_TEMPLATE=""
   [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
 
+  msg_debug "SEARCH_PATTERN='${SEARCH_PATTERN}' TEMPLATE_PATTERN='${TEMPLATE_PATTERN}'"
   msg_debug "Found ${#LOCAL_TEMPLATES[@]} local templates, ${#ONLINE_TEMPLATES[@]} online templates"
   msg_debug "ONLINE_TEMPLATE='$ONLINE_TEMPLATE'"
 
@@ -3024,7 +3029,7 @@ create_lxc_container() {
     TEMPLATE_SOURCE="online"
   fi
 
-  echo -e "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
+  msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
 
   TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
   if [[ -z "$TEMPLATE_PATH" ]]; then
@@ -3066,14 +3071,17 @@ create_lxc_container() {
 
           # Retry template search with new version
           TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
+          SEARCH_PATTERN="^${TEMPLATE_SEARCH}-"
+
           mapfile -t LOCAL_TEMPLATES < <(
             pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
-              awk -v search="^${TEMPLATE_SEARCH}-" -v pattern="${TEMPLATE_PATTERN}" '$1 ~ search && $1 ~ pattern {print $1}' |
+              awk -v search="${SEARCH_PATTERN}" -v pattern="${TEMPLATE_PATTERN}" '$1 ~ search && $1 ~ pattern {print $1}' |
               sed 's|.*/||' | sort -t - -k 2 -V
           )
           mapfile -t ONLINE_TEMPLATES < <(
             pveam available -section system 2>/dev/null |
-              grep -E "^${TEMPLATE_SEARCH}.*${TEMPLATE_PATTERN}" |
+              grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" |
+              awk '{print $1}' |
               sort -t - -k 2 -V
           )
           ONLINE_TEMPLATE=""
