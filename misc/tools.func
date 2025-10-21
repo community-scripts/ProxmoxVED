@@ -1819,11 +1819,8 @@ function setup_hwaccel () {
   msg_info "Setting Up Hardware Acceleration"
 
   if ! command -v lspci &>/dev/null; then
-    msg_info "Installing pciutils (provides lspci)"
-    $STD apt -y update && $STD apt -y install pciutils || {
-      msg_error "Failed to install pciutils — cannot detect GPU"
-      return 1
-    }
+    $STD apt -y update
+    $STD apt -y install pciutils
   fi
 
   # Detect GPU vendor (Intel, AMD, NVIDIA)
