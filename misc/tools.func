@@ -2694,7 +2694,7 @@ function setup_postgresql() {
     msg_info "Installing PostgreSQL $PG_VERSION"
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
-      $STD runuser -u postgres -- pg_dumpall > /var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql
+      $STD runuser -u postgres -- pg_dumpall >/var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql
       $STD systemctl stop postgresql
     fi
 
@@ -2775,7 +2775,7 @@ function setup_postgresql() {
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
       $STD apt purge -y "postgresql-${CURRENT_PG_VERSION}" "postgresql-client-${CURRENT_PG_VERSION}" 2>/dev/null || true
-      $STD runuser -u postgres -- psql < /var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql 2>/dev/null || true
+      $STD runuser -u postgres -- psql </var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql 2>/dev/null || true
     fi
 
     $STD systemctl enable --now postgresql 2>/dev/null || true
