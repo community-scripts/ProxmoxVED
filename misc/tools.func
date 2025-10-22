@@ -2143,16 +2143,14 @@ setup_mariadb() {
       upgrade_package mariadb-server
       upgrade_package mariadb-client
     else
-      msg_info "Upgrading MariaDB $MARIADB_VERSION"
       $STD apt update
       $STD apt install --only-upgrade -y mariadb-server mariadb-client
       cache_installed_version "mariadb" "$MARIADB_VERSION"
-      msg_ok "Upgraded MariaDB $MARIADB_VERSION"
     fi
     return 0
   fi
 
-  msg_info "Installing MariaDB $MARIADB_VERSION"
+  msg_info "Setup MariaDB $MARIADB_VERSION"
 
   if [[ -n "$CURRENT_VERSION" ]]; then
     $STD systemctl stop mariadb >/dev/null 2>&1 || true
@@ -2166,21 +2164,15 @@ setup_mariadb() {
   cleanup_old_repo_files "mariadb"
 
   # Install required dependencies first (MariaDB needs these from main repos)
-  msg_info "Installing MariaDB dependencies"
-
   local mariadb_deps=()
   for dep in gawk rsync socat libdbi-perl pv; do
     if apt-cache search "^${dep}$" 2>/dev/null | grep -q .; then
       mariadb_deps+=("$dep")
-    else
-      msg_warn "Package $dep not available, skipping"
     fi
   done
 
   if [[ ${#mariadb_deps[@]} -gt 0 ]]; then
-    if ! $STD apt install -y "${mariadb_deps[@]}" 2>/dev/null; then
-      msg_warn "Some MariaDB dependencies failed to install - continuing anyway"
-    fi
+    $STD apt install -y "${mariadb_deps[@]}" 2>/dev/null || true
   fi
 
   # Use helper function to get fallback suite
@@ -2209,7 +2201,7 @@ setup_mariadb() {
   }
 
   cache_installed_version "mariadb" "$MARIADB_VERSION"
-  msg_ok "Installed MariaDB $MARIADB_VERSION"
+  msg_ok "Setup MariaDB $MARIADB_VERSION"
 }
 
 # ------------------------------------------------------------------------------
@@ -2265,16 +2257,14 @@ function setup_mongodb() {
     if [[ "$CACHED_VERSION" == "$MONGO_VERSION" ]]; then
       upgrade_package mongodb-org
     else
-      msg_info "Upgrading MongoDB $MONGO_VERSION"
       $STD apt update
       $STD apt install --only-upgrade -y mongodb-org
       cache_installed_version "mongodb" "$MONGO_VERSION"
-      msg_ok "Upgraded MongoDB $MONGO_VERSION"
     fi
     return 0
   fi
 
-  msg_info "Installing MongoDB $MONGO_VERSION"
+  msg_info "Setup MongoDB $MONGO_VERSION"
 
   if [[ -n "$INSTALLED_VERSION" ]]; then
     $STD systemctl stop mongod || true
@@ -2317,7 +2307,7 @@ EOF
   $STD systemctl enable mongod
   safe_service_restart mongod
   cache_installed_version "mongodb" "$MONGO_VERSION"
-  msg_ok "Installed MongoDB $MONGO_VERSION"
+  msg_ok "Setup MongoDB $MONGO_VERSION"
 }
 
 # ------------------------------------------------------------------------------
@@ -2344,23 +2334,21 @@ function setup_mysql() {
   if command -v mysql >/dev/null; then
     CURRENT_VERSION="$(mysql --version | grep -oP '[0-9]+\.[0-9]+' | head -n1)"
     if [[ "$CURRENT_VERSION" != "$MYSQL_VERSION" ]]; then
-      msg_info "MySQL $CURRENT_VERSION will be upgraded to $MYSQL_VERSION"
       NEED_INSTALL=true
     else
       if apt list --upgradable 2>/dev/null | grep -q '^mysql-server/'; then
-        msg_info "MySQL $CURRENT_VERSION available for upgrade"
         $STD apt update
         $STD apt install --only-upgrade -y mysql-server
-        msg_ok "MySQL upgraded"
       fi
       return
     fi
   else
-    msg_info "Setup MySQL $MYSQL_VERSION"
     NEED_INSTALL=true
   fi
 
   if [[ "$NEED_INSTALL" == true ]]; then
+    msg_info "Setup MySQL $MYSQL_VERSION"
+    
     # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
@@ -2372,7 +2360,6 @@ function setup_mysql() {
         SUITE="$DISTRO_CODENAME"
         ;;
       trixie | forky | sid)
-        msg_warn "Using MySQL Bookworm packages on Debian ${DISTRO_CODENAME}"
         SUITE="bookworm"
         ;;
       *)
@@ -2394,8 +2381,6 @@ function setup_mysql() {
 
     # Handle libaio dependency for Debian Trixie+ (time64 transition)
     if [[ "$DISTRO_ID" == "debian" ]] && [[ "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-      msg_info "Installing libaio compatibility for Debian ${DISTRO_CODENAME}"
-      
       # Install libaio1t64 if not present
       if ! dpkg -l libaio1t64 2>/dev/null | grep -q "^ii"; then
         $STD apt update
@@ -2430,8 +2415,6 @@ EOF
       
       # Cleanup
       rm -rf "$TEMP_DIR" libaio1-compat.deb
-      
-      msg_ok "libaio1 compatibility package installed"
     fi
 
     # Use standardized repo setup
@@ -2471,14 +2454,11 @@ EOF
 
     if [[ "$mysql_install_success" == false ]]; then
       msg_error "MySQL ${MYSQL_VERSION} package not available for suite ${SUITE}"
-      msg_info "Available MySQL components:"
-      apt-cache search "mysql" | grep "^mysql" | head -20 | sed 's/^/  /'
       return 1
     fi
 
     # Verify installation
     if ! command -v mysql >/dev/null 2>&1; then
-      msg_warn "MySQL installed but mysql command not immediately available - retrying after shell refresh"
       hash -r
       if ! command -v mysql >/dev/null 2>&1; then
         msg_error "MySQL installed but mysql command still not found"
@@ -2487,7 +2467,7 @@ EOF
     fi
 
     cache_installed_version "mysql" "$MYSQL_VERSION"
-    msg_ok "Installed MySQL $MYSQL_VERSION"
+    msg_ok "Setup MySQL $MYSQL_VERSION"
   fi
 }
 
@@ -2515,17 +2495,17 @@ function setup_nodejs() {
   if command -v node >/dev/null; then
     CURRENT_NODE_VERSION="$(node -v | grep -oP '^v\K[0-9]+')"
     if [[ "$CURRENT_NODE_VERSION" != "$NODE_VERSION" ]]; then
-      msg_info "Old Node.js $CURRENT_NODE_VERSION found, replacing with $NODE_VERSION"
       NEED_NODE_INSTALL=true
     fi
   else
-    msg_info "Setup Node.js $NODE_VERSION"
     NEED_NODE_INSTALL=true
   fi
 
-  ensure_dependencies jq
-
   if [[ "$NEED_NODE_INSTALL" == true ]]; then
+    msg_info "Setup Node.js $NODE_VERSION"
+    
+    ensure_dependencies jq
+    
     $STD apt purge -y nodejs
 
     # Cleanup old repository files
@@ -2546,12 +2526,10 @@ function setup_nodejs() {
       return 1
     fi
 
-    $STD npm install -g npm@latest || {
-      msg_warn "Failed to update npm to latest version"
-    }
+    $STD npm install -g npm@latest 2>/dev/null || true
 
     cache_installed_version "nodejs" "$NODE_VERSION"
-    msg_ok "Installed Node.js ${NODE_VERSION}"
+    msg_ok "Setup Node.js $NODE_VERSION"
   fi
 
   export NODE_OPTIONS="--max-old-space-size=4096"
@@ -2582,27 +2560,23 @@ function setup_nodejs() {
       if npm list -g --depth=0 "$MODULE_NAME" >/dev/null 2>&1; then
         MODULE_INSTALLED_VERSION="$(npm list -g --depth=0 "$MODULE_NAME" | grep "$MODULE_NAME@" | awk -F@ '{print $2}' | tr -d '[:space:]')"
         if [[ "$MODULE_REQ_VERSION" != "latest" && "$MODULE_REQ_VERSION" != "$MODULE_INSTALLED_VERSION" ]]; then
-          msg_info "Updating $MODULE_NAME from v$MODULE_INSTALLED_VERSION to v$MODULE_REQ_VERSION"
           if ! $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}"; then
             msg_error "Failed to update $MODULE_NAME to version $MODULE_REQ_VERSION"
             return 1
           fi
         elif [[ "$MODULE_REQ_VERSION" == "latest" ]]; then
-          msg_info "Updating $MODULE_NAME to latest version"
           if ! $STD npm install -g "${MODULE_NAME}@latest"; then
             msg_error "Failed to update $MODULE_NAME to latest version"
             return 1
           fi
         fi
       else
-        msg_info "Installing $MODULE_NAME@$MODULE_REQ_VERSION"
         if ! $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}"; then
           msg_error "Failed to install $MODULE_NAME@$MODULE_REQ_VERSION"
           return 1
         fi
       fi
     done
-    msg_ok "Installed Node.js modules: $NODE_MODULE"
   fi
 }
 
@@ -2658,10 +2632,9 @@ function setup_php() {
     CURRENT_PHP=$(php -v 2>/dev/null | awk '/^PHP/{print $2}' | cut -d. -f1,2)
   fi
 
-  if [[ -z "$CURRENT_PHP" ]]; then
-    msg_info "Setup PHP $PHP_VERSION"
-  elif [[ "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
-    msg_info "Old PHP $CURRENT_PHP detected, Setup new PHP $PHP_VERSION"
+  msg_info "Setup PHP $PHP_VERSION"
+
+  if [[ -n "$CURRENT_PHP" && "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
     $STD apt purge -y "php${CURRENT_PHP//./}"* || true
   fi
 
@@ -2694,8 +2667,6 @@ EOF
   for mod in "${MODULES[@]}"; do
     if apt-cache show "php${PHP_VERSION}-${mod}" >/dev/null 2>&1; then
       MODULE_LIST+=" php${PHP_VERSION}-${mod}"
-    else
-      msg_warn "PHP-Module ${mod} for PHP ${PHP_VERSION} not found – skipping"
     fi
   done
   if [[ "$PHP_FPM" == "YES" ]]; then
@@ -2705,17 +2676,13 @@ EOF
   # install apache2 with PHP support if requested
   if [[ "$PHP_APACHE" == "YES" ]]; then
     if ! dpkg -l | grep -q "libapache2-mod-php${PHP_VERSION}"; then
-      msg_info "Installing Apache with PHP${PHP_VERSION} support"
       $STD apt install -y apache2 libapache2-mod-php${PHP_VERSION}
-    else
-      msg_info "Apache with PHP${PHP_VERSION} already installed – skipping install"
     fi
   fi
 
   # setup / update PHP modules
   $STD apt install -y $MODULE_LIST
   cache_installed_version "php" "$PHP_VERSION"
-  msg_ok "Installed PHP $PHP_VERSION"
 
   # optional stop old PHP-FPM service
   if [[ "$PHP_FPM" == "YES" && -n "$CURRENT_PHP" && "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
@@ -2753,10 +2720,10 @@ EOF
     if systemctl list-unit-files | grep -q "php${PHP_VERSION}-fpm.service"; then
       $STD systemctl enable php${PHP_VERSION}-fpm
       safe_service_restart php${PHP_VERSION}-fpm
-    else
-      msg_warn "FPM requested but service php${PHP_VERSION}-fpm not found"
     fi
   fi
+  
+  msg_ok "Setup PHP $PHP_VERSION"
 }
 
 # ------------------------------------------------------------------------------
@@ -2790,7 +2757,7 @@ function setup_postgresql() {
   fi
 
   if [[ "$NEED_PG_INSTALL" == true ]]; then
-    msg_info "Installing PostgreSQL $PG_VERSION"
+    msg_info "Setup PostgreSQL $PG_VERSION"
 
     if [[ -n "$CURRENT_PG_VERSION" ]]; then
       $STD runuser -u postgres -- pg_dumpall >/var/lib/postgresql/backup_$(date +%F)_v${CURRENT_PG_VERSION}.sql
@@ -2856,13 +2823,10 @@ function setup_postgresql() {
     # Third try: just postgresql (any version)
     if [[ "$pg_install_success" == false ]] && apt-cache search "^postgresql$" 2>/dev/null | grep -q . && $STD apt install -y postgresql postgresql-client 2>/dev/null; then
       pg_install_success=true
-      msg_warn "PostgreSQL ${PG_VERSION} not available, installed latest available version"
     fi
 
     if [[ "$pg_install_success" == false ]]; then
       msg_error "PostgreSQL package not available for suite ${SUITE}"
-      msg_info "Available PostgreSQL packages:"
-      apt-cache search "postgresql" | grep "^postgresql" | head -20 | sed 's/^/  /'
       return 1
     fi
 
@@ -2885,19 +2849,14 @@ function setup_postgresql() {
     fi
 
     cache_installed_version "postgresql" "$PG_VERSION"
-    msg_ok "Installed PostgreSQL $PG_VERSION"
+    msg_ok "Setup PostgreSQL $PG_VERSION"
   fi
 
   if [[ -n "$PG_MODULES" ]]; then
-    msg_info "Installing PostgreSQL modules"
     IFS=',' read -ra MODULES <<<"$PG_MODULES"
     for module in "${MODULES[@]}"; do
-      $STD apt install -y "postgresql-${PG_VERSION}-${module}" || {
-        msg_warn "Failed to install postgresql-${PG_VERSION}-${module}"
-        continue
-      }
+      $STD apt install -y "postgresql-${PG_VERSION}-${module}" 2>/dev/null || true
     done
-    msg_ok "Installed PostgreSQL modules"
   fi
 }
 
@@ -2924,15 +2883,13 @@ function setup_ruby() {
   local CACHED_VERSION
   CACHED_VERSION=$(get_cached_version "ruby")
 
-  msg_info "Installing Ruby $RUBY_VERSION"
+  msg_info "Setup Ruby $RUBY_VERSION"
 
   # Ensure APT is working before installing dependencies
   ensure_apt_working || return 1
 
   # Install build dependencies - with fallback for different Debian versions
   # In Trixie: libreadline6-dev -> libreadline-dev, libncurses5-dev -> libncurses-dev
-  msg_info "Installing Ruby build dependencies"
-
   local ruby_deps=()
   local dep_variations=(
     "jq"
@@ -2963,20 +2920,15 @@ function setup_ruby() {
           break
         fi
       done
-      [[ "$found" == false ]] && msg_warn "No version of $dep_pattern available"
     else
       if apt-cache search "^${dep_pattern}$" 2>/dev/null | grep -q .; then
         ruby_deps+=("$dep_pattern")
-      else
-        msg_warn "Package $dep_pattern not available"
       fi
     fi
   done
 
   if [[ ${#ruby_deps[@]} -gt 0 ]]; then
-    if ! $STD apt install -y "${ruby_deps[@]}" 2>/dev/null; then
-      msg_warn "Some Ruby dependencies failed to install - Ruby may not compile fully\nContinuing anyway..."
-    fi
+    $STD apt install -y "${ruby_deps[@]}" 2>/dev/null || true
   else
     msg_error "No Ruby build dependencies available"
     return 1
@@ -3047,13 +2999,11 @@ function setup_ruby() {
 
   if [[ "$RUBY_INSTALL_RAILS" == "true" ]]; then
     $STD gem install rails
-    local RAILS_VERSION=$(rails -v 2>/dev/null | awk '{print $2}')
-    msg_ok "Installed Rails $RAILS_VERSION"
   fi
 
   rm -rf "$TMP_DIR"
   cache_installed_version "ruby" "$RUBY_VERSION"
-  msg_ok "Installed Ruby $RUBY_VERSION"
+  msg_ok "Setup Ruby $RUBY_VERSION"
 }
 
 # ------------------------------------------------------------------------------
@@ -3118,16 +3068,16 @@ function setup_clickhouse() {
       upgrade_package clickhouse-server
       upgrade_package clickhouse-client
     else
-      msg_info "Upgrading ClickHouse $CLICKHOUSE_VERSION"
+      msg_info "Setup ClickHouse $CLICKHOUSE_VERSION"
       $STD apt update
       $STD apt install --only-upgrade -y clickhouse-server clickhouse-client
       cache_installed_version "clickhouse" "$CLICKHOUSE_VERSION"
-      msg_ok "Upgraded ClickHouse $CLICKHOUSE_VERSION"
+      msg_ok "Setup ClickHouse $CLICKHOUSE_VERSION"
     fi
     return 0
   fi
 
-  msg_info "Installing ClickHouse $CLICKHOUSE_VERSION"
+  msg_info "Setup ClickHouse $CLICKHOUSE_VERSION"
 
   # Stop existing service if upgrading
   if [[ -n "$CURRENT_VERSION" ]]; then
@@ -3176,21 +3126,14 @@ function setup_clickhouse() {
   # Check if clickhouse user exists before chown
   if id clickhouse >/dev/null 2>&1; then
     chown -R clickhouse:clickhouse /var/lib/clickhouse
-  else
-    msg_warn "ClickHouse user not found, skipping chown"
   fi
 
   # Enable and start service
-  if ! $STD systemctl enable clickhouse-server; then
-    msg_warn "Failed to enable clickhouse-server service"
-  fi
-
-  if ! safe_service_restart clickhouse-server; then
-    msg_warn "Failed to start clickhouse-server service (this may be normal on first install)"
-  fi
+  $STD systemctl enable clickhouse-server
+  safe_service_restart clickhouse-server || true
 
   cache_installed_version "clickhouse" "$CLICKHOUSE_VERSION"
-  msg_ok "Installed ClickHouse $CLICKHOUSE_VERSION"
+  msg_ok "Setup ClickHouse $CLICKHOUSE_VERSION"
 }
 
 # ------------------------------------------------------------------------------
@@ -3218,7 +3161,7 @@ function setup_rust() {
   CACHED_VERSION=$(get_cached_version "rust")
 
   if ! command -v rustup &>/dev/null; then
-    msg_info "Installing Rust"
+    msg_info "Setup Rust"
     curl -fsSL https://sh.rustup.rs | $STD sh -s -- -y --default-toolchain "$RUST_TOOLCHAIN" || {
       msg_error "Failed to install Rust"
       return 1
@@ -3227,14 +3170,15 @@ function setup_rust() {
     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>"$HOME/.profile"
     local RUST_VERSION=$(rustc --version 2>/dev/null | awk '{print $2}')
     cache_installed_version "rust" "$RUST_VERSION"
-    msg_ok "Installed Rust $RUST_VERSION"
+    msg_ok "Setup Rust $RUST_VERSION"
   else
+    msg_info "Setup Rust"
     $STD rustup install "$RUST_TOOLCHAIN"
     $STD rustup default "$RUST_TOOLCHAIN"
     $STD rustup update "$RUST_TOOLCHAIN"
     local RUST_VERSION=$(rustc --version 2>/dev/null | awk '{print $2}')
     cache_installed_version "rust" "$RUST_VERSION"
-    msg_ok "Updated Rust toolchain to $RUST_TOOLCHAIN ($RUST_VERSION)"
+    msg_ok "Setup Rust $RUST_VERSION"
   fi
 
   if [[ -n "$RUST_CRATES" ]]; then
@@ -3253,19 +3197,12 @@ function setup_rust() {
 
       if [[ -n "$INSTALLED_VER" ]]; then
         if [[ -n "$VER" && "$VER" != "$INSTALLED_VER" ]]; then
-          msg_info "Updating $NAME: $INSTALLED_VER → $VER"
           $STD cargo install "$NAME" --version "$VER" --force
-          msg_ok "Updated $NAME to $VER"
         elif [[ -z "$VER" ]]; then
-          msg_info "Updating $NAME: $INSTALLED_VER → latest"
           $STD cargo install "$NAME" --force
-          local NEW_VER=$(cargo install --list 2>/dev/null | awk "/^$NAME v[0-9]/ {print \$2}" | tr -d 'v')
-          msg_ok "Updated $NAME to $NEW_VER"
         fi
       else
-        msg_info "Installing $NAME ${VER:+$VER}"
         $STD cargo install "$NAME" ${VER:+--version "$VER"}
-        msg_ok "Installed $NAME ${VER:-latest}"
       fi
     done
   fi
@@ -3333,12 +3270,10 @@ function setup_uv() {
       cache_installed_version "uv" "$LATEST_VERSION"
       rm -rf "$TMP_DIR"
       return 0
-    else
-      msg_info "Updating uv from $INSTALLED_VERSION to $LATEST_VERSION"
     fi
-  else
-    msg_info "Installing uv $LATEST_VERSION"
   fi
+
+  msg_info "Setup uv $LATEST_VERSION"
 
   local UV_URL="https://github.com/astral-sh/uv/releases/latest/download/${UV_TAR}"
   curl -fsSL "$UV_URL" -o "$TMP_DIR/uv.tar.gz" || {
@@ -3365,7 +3300,7 @@ function setup_uv() {
 
   $STD uv python update-shell || true
   cache_installed_version "uv" "$LATEST_VERSION"
-  msg_ok "Installed uv $LATEST_VERSION"
+  msg_ok "Setup uv $LATEST_VERSION"
 
   if [[ -n "${PYTHON_VERSION:-}" ]]; then
     local VERSION_MATCH
@@ -3383,7 +3318,6 @@ function setup_uv() {
         msg_error "Failed to install Python $VERSION_MATCH"
         return 1
       }
-      msg_ok "Installed Python $VERSION_MATCH"
     fi
   fi
 }
@@ -3436,7 +3370,7 @@ function setup_yq() {
     return 0
   fi
 
-  msg_info "Installing yq $LATEST_VERSION"
+  msg_info "Setup yq $LATEST_VERSION"
   curl -fsSL "https://github.com/${GITHUB_REPO}/releases/download/v${LATEST_VERSION}/yq_linux_amd64" -o "$TMP_DIR/yq" || {
     msg_error "Failed to download yq"
     rm -rf "$TMP_DIR"
@@ -3458,5 +3392,5 @@ function setup_yq() {
   local FINAL_VERSION
   FINAL_VERSION=$("$BINARY_PATH" --version 2>/dev/null | awk '{print $NF}' | sed 's/^v//')
   cache_installed_version "yq" "$FINAL_VERSION"
-  msg_ok "Installed yq $FINAL_VERSION"
+  msg_ok "Setup yq $FINAL_VERSION"
 }
