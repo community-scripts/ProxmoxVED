@@ -616,7 +616,10 @@ setup_deb822_repo() {
   mkdir -p /etc/apt/keyrings
 
   # Download GPG key (with --yes to avoid interactive prompts)
-  curl -fsSL "$gpg_url" | gpg --dearmor --yes -o "/etc/apt/keyrings/${name}.gpg"
+  curl -fsSL "$gpg_url" | gpg --dearmor --yes -o "/etc/apt/keyrings/${name}.gpg" || {
+    msg_error "Failed to download or import GPG key for ${name}"
+    return 1
+  }
 
   # Create deb822 sources file
   cat <<EOF >/etc/apt/sources.list.d/${name}.sources
@@ -936,14 +939,23 @@ create_self_signed_cert() {
     return 0
   fi
 
-  $STD apt update
-  $STD apt install -y openssl
+  $STD apt update || {
+    msg_error "Failed to update package list"
+    return 1
+  }
+  $STD apt install -y openssl || {
+    msg_error "Failed to install OpenSSL"
+    return 1
+  }
 
   mkdir -p "$CERT_DIR"
   $STD openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 \
     -subj "/C=US/ST=State/L=City/O=Organization/CN=${APP_NAME}" \
     -keyout "$CERT_KEY" \
-    -out "$CERT_CRT"
+    -out "$CERT_CRT" || {
+    msg_error "Failed to create self-signed certificate"
+    return 1
+  }
 
   chmod 600 "$CERT_KEY"
   chmod 644 "$CERT_CRT"
@@ -1129,7 +1141,11 @@ function fetch_and_deploy_gh_release() {
       rm -rf "${target:?}/"*
     fi
 
-    tar -xzf "$tmpdir/$filename" -C "$tmpdir"
+    tar -xzf "$tmpdir/$filename" -C "$tmpdir" || {
+      msg_error "Failed to extract tarball"
+      rm -rf "$tmpdir"
+      return 1
+    }
     local unpack_dir
     unpack_dir=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -n1)
 
@@ -1241,9 +1257,17 @@ function fetch_and_deploy_gh_release() {
 
     if [[ "$filename" == *.zip ]]; then
       ensure_dependencies unzip
-      unzip -q "$tmpdir/$filename" -d "$unpack_tmp"
+      unzip -q "$tmpdir/$filename" -d "$unpack_tmp" || {
+        msg_error "Failed to extract ZIP archive"
+        rm -rf "$tmpdir" "$unpack_tmp"
+        return 1
+      }
     elif [[ "$filename" == *.tar.* || "$filename" == *.tgz ]]; then
-      tar -xf "$tmpdir/$filename" -C "$unpack_tmp"
+      tar -xf "$tmpdir/$filename" -C "$unpack_tmp" || {
+        msg_error "Failed to extract TAR archive"
+        rm -rf "$tmpdir" "$unpack_tmp"
+        return 1
+      }
     else
       msg_error "Unsupported archive format: $filename"
       rm -rf "$tmpdir" "$unpack_tmp"
@@ -1411,8 +1435,14 @@ function setup_adminer() {
   else
     msg_info "Setup Adminer (Debian/Ubuntu)"
     ensure_dependencies adminer
-    $STD a2enconf adminer
-    $STD systemctl reload apache2
+    $STD a2enconf adminer || {
+      msg_error "Failed to enable Adminer Apache config"
+      return 1
+    }
+    $STD systemctl reload apache2 || {
+      msg_error "Failed to reload Apache"
+      return 1
+    }
     local VERSION
     VERSION=$(dpkg -s adminer 2>/dev/null | grep '^Version:' | awk '{print $2}')
     cache_installed_version "adminer" "${VERSION:-unknown}"
@@ -1448,7 +1478,11 @@ function setup_composer() {
     return 1
   }
 
-  $STD php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+  $STD php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer || {
+    msg_error "Failed to install Composer"
+    rm -f /tmp/composer-setup.php
+    return 1
+  }
   rm -f /tmp/composer-setup.php
 
   if [[ ! -x "$COMPOSER_BIN" ]]; then
@@ -1501,7 +1535,11 @@ function setup_ffmpeg() {
       rm -rf "$TMP_DIR"
       return 1
     }
-    tar -xf "$TMP_DIR/ffmpeg.tar.xz" -C "$TMP_DIR"
+    tar -xf "$TMP_DIR/ffmpeg.tar.xz" -C "$TMP_DIR" || {
+      msg_error "Failed to extract FFmpeg binary"
+      rm -rf "$TMP_DIR"
+      return 1
+    }
     local EXTRACTED_DIR
     EXTRACTED_DIR=$(find "$TMP_DIR" -maxdepth 1 -type d -name "ffmpeg-*")
     cp "$EXTRACTED_DIR/ffmpeg" "$BIN_PATH"
@@ -1600,9 +1638,21 @@ function setup_ffmpeg() {
     return 1
   fi
 
-  $STD ./configure "${args[@]}"
-  $STD make -j"$(nproc)"
-  $STD make install
+  $STD ./configure "${args[@]}" || {
+    msg_error "FFmpeg configure failed"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
+  $STD make -j"$(nproc)" || {
+    msg_error "FFmpeg compilation failed"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
+  $STD make install || {
+    msg_error "FFmpeg installation failed"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
   echo "/usr/local/lib" >/etc/ld.so.conf.d/ffmpeg.conf
   $STD ldconfig
 
@@ -1688,7 +1738,11 @@ function setup_go() {
     return 1
   }
 
-  $STD tar -C /usr/local -xzf "$TMP_TAR"
+  $STD tar -C /usr/local -xzf "$TMP_TAR" || {
+    msg_error "Failed to extract Go tarball"
+    rm -f "$TMP_TAR"
+    return 1
+  }
   ln -sf /usr/local/go/bin/go /usr/local/bin/go
   ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt
   rm -f "$TMP_TAR"
@@ -1759,9 +1813,21 @@ function setup_gs() {
 
   ensure_dependencies build-essential libpng-dev zlib1g-dev
 
-  $STD ./configure
-  $STD make -j"$(nproc)"
-  $STD make install
+  $STD ./configure || {
+    msg_error "Ghostscript configure failed"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
+  $STD make -j"$(nproc)" || {
+    msg_error "Ghostscript compilation failed"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
+  $STD make install || {
+    msg_error "Ghostscript installation failed"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
 
   hash -r
   if [[ ! -x "$(command -v gs)" ]]; then
@@ -1791,8 +1857,14 @@ function setup_hwaccel() {
   msg_info "Setup Hardware Acceleration"
 
   if ! command -v lspci &>/dev/null; then
-    $STD apt -y update
-    $STD apt -y install pciutils
+    $STD apt -y update || {
+      msg_error "Failed to update package list"
+      return 1
+    }
+    $STD apt -y install pciutils || {
+      msg_error "Failed to install pciutils"
+      return 1
+    }
   fi
 
   # Detect GPU vendor (Intel, AMD, NVIDIA)
@@ -1931,9 +2003,21 @@ function setup_imagemagick() {
     return 1
   }
 
-  $STD ./configure --disable-static
-  $STD make -j"$(nproc)"
-  $STD make install
+  $STD ./configure --disable-static || {
+    msg_error "ImageMagick configure failed"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
+  $STD make -j"$(nproc)" || {
+    msg_error "ImageMagick compilation failed"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
+  $STD make install || {
+    msg_error "ImageMagick installation failed"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
   $STD ldconfig /usr/local/lib
 
   if [[ ! -x "$BINARY_PATH" ]]; then
@@ -2010,7 +2094,10 @@ function setup_java() {
       $STD apt purge -y "temurin-${INSTALLED_VERSION}-jdk"
     fi
 
-    $STD apt install -y "$DESIRED_PACKAGE"
+    $STD apt install -y "$DESIRED_PACKAGE" || {
+      msg_error "Failed to install Temurin JDK $JAVA_VERSION"
+      return 1
+    }
     cache_installed_version "temurin-jdk" "$JAVA_VERSION"
     msg_ok "Setup Temurin JDK $JAVA_VERSION"
   fi
@@ -2034,8 +2121,14 @@ function setup_local_ip_helper() {
 
   # Install networkd-dispatcher if not present
   if ! dpkg -s networkd-dispatcher >/dev/null 2>&1; then
-    $STD apt update
-    $STD apt install -y networkd-dispatcher
+    $STD apt update || {
+      msg_error "Failed to update package list"
+      return 1
+    }
+    $STD apt install -y networkd-dispatcher || {
+      msg_error "Failed to install networkd-dispatcher"
+      return 1
+    }
   fi
 
   # Write update_local_ip.sh
@@ -2143,8 +2236,14 @@ setup_mariadb() {
       upgrade_package mariadb-server
       upgrade_package mariadb-client
     else
-      $STD apt update
-      $STD apt install --only-upgrade -y mariadb-server mariadb-client
+      $STD apt update || {
+        msg_error "Failed to update package list"
+        return 1
+      }
+      $STD apt install --only-upgrade -y mariadb-server mariadb-client || {
+        msg_error "Failed to upgrade MariaDB"
+        return 1
+      }
       cache_installed_version "mariadb" "$MARIADB_VERSION"
     fi
     return 0
@@ -2197,7 +2296,10 @@ setup_mariadb() {
   DEBIAN_FRONTEND=noninteractive $STD apt install -y mariadb-server mariadb-client || {
     cleanup_old_repo_files "mariadb"
     $STD apt update
-    DEBIAN_FRONTEND=noninteractive $STD apt install -y mariadb-server mariadb-client
+    DEBIAN_FRONTEND=noninteractive $STD apt install -y mariadb-server mariadb-client || {
+      msg_error "Failed to install MariaDB packages"
+      return 1
+    }
   }
 
   cache_installed_version "mariadb" "$MARIADB_VERSION"
@@ -2257,8 +2359,14 @@ function setup_mongodb() {
     if [[ "$CACHED_VERSION" == "$MONGO_VERSION" ]]; then
       upgrade_package mongodb-org
     else
-      $STD apt update
-      $STD apt install --only-upgrade -y mongodb-org
+      $STD apt update || {
+        msg_error "Failed to update package list"
+        return 1
+      }
+      $STD apt install --only-upgrade -y mongodb-org || {
+        msg_error "Failed to upgrade MongoDB"
+        return 1
+      }
       cache_installed_version "mongodb" "$MONGO_VERSION"
     fi
     return 0
@@ -2283,7 +2391,10 @@ function setup_mongodb() {
 
   # Use standardized repo setup
   mkdir -p /etc/apt/keyrings
-  curl -fsSL "https://pgp.mongodb.com/server-${MONGO_VERSION}.asc" | gpg --dearmor --yes -o "/etc/apt/keyrings/mongodb-${MONGO_VERSION}.gpg"
+  curl -fsSL "https://pgp.mongodb.com/server-${MONGO_VERSION}.asc" | gpg --dearmor --yes -o "/etc/apt/keyrings/mongodb-${MONGO_VERSION}.gpg" || {
+    msg_error "Failed to download or import MongoDB GPG key"
+    return 1
+  }
 
   cat <<EOF >/etc/apt/sources.list.d/mongodb-org-${MONGO_VERSION}.sources
 Types: deb
@@ -2299,7 +2410,10 @@ EOF
     return 1
   }
 
-  $STD apt install -y mongodb-org
+  $STD apt install -y mongodb-org || {
+    msg_error "Failed to install MongoDB packages"
+    return 1
+  }
 
   mkdir -p /var/lib/mongodb
   chown -R mongodb:mongodb /var/lib/mongodb
@@ -2337,8 +2451,14 @@ function setup_mysql() {
       NEED_INSTALL=true
     else
       if apt list --upgradable 2>/dev/null | grep -q '^mysql-server/'; then
-        $STD apt update
-        $STD apt install --only-upgrade -y mysql-server
+        $STD apt update || {
+          msg_error "Failed to update package list"
+          return 1
+        }
+        $STD apt install --only-upgrade -y mysql-server || {
+          msg_error "Failed to upgrade MySQL"
+          return 1
+        }
       fi
       return
     fi
@@ -2348,7 +2468,7 @@ function setup_mysql() {
 
   if [[ "$NEED_INSTALL" == true ]]; then
     msg_info "Setup MySQL $MYSQL_VERSION"
-    
+
     # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
@@ -2383,18 +2503,24 @@ function setup_mysql() {
     if [[ "$DISTRO_ID" == "debian" ]] && [[ "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
       # Install libaio1t64 if not present
       if ! dpkg -l libaio1t64 2>/dev/null | grep -q "^ii"; then
-        $STD apt update
-        $STD apt install -y libaio1t64
+        $STD apt update || {
+          msg_error "Failed to update package list"
+          return 1
+        }
+        $STD apt install -y libaio1t64 || {
+          msg_error "Failed to install libaio1t64"
+          return 1
+        }
       fi
-      
+
       # Create dummy libaio1 package for dependency satisfaction
       local TEMP_DIR="/tmp/libaio1-compat-$$"
       mkdir -p "$TEMP_DIR"
       cd "$TEMP_DIR"
-      
+
       # Create control file
       mkdir -p DEBIAN
-      cat > DEBIAN/control <<EOF
+      cat >DEBIAN/control <<EOF
 Package: libaio1
 Version: 0.3.113-99~compat
 Architecture: amd64
@@ -2405,14 +2531,14 @@ Description: Compatibility package for libaio1 -> libaio1t64 transition
  This is a transitional dummy package to satisfy dependencies on libaio1
  while actually using libaio1t64 (time64 transition).
 EOF
-      
+
       # Build the dummy package
       cd /tmp
       dpkg-deb -b "$TEMP_DIR" libaio1-compat.deb >/dev/null 2>&1
-      
+
       # Install it
       $STD dpkg -i libaio1-compat.deb
-      
+
       # Cleanup
       rm -rf "$TEMP_DIR" libaio1-compat.deb
     fi
@@ -2503,9 +2629,9 @@ function setup_nodejs() {
 
   if [[ "$NEED_NODE_INSTALL" == true ]]; then
     msg_info "Setup Node.js $NODE_VERSION"
-    
+
     ensure_dependencies jq
-    
+
     $STD apt purge -y nodejs
 
     # Cleanup old repository files
@@ -2643,8 +2769,15 @@ function setup_php() {
     # Cleanup old repository files
     cleanup_old_repo_files "php"
 
-    $STD curl -fsSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
-    $STD dpkg -i /tmp/debsuryorg-archive-keyring.deb
+    $STD curl -fsSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb || {
+      msg_error "Failed to download PHP repository keyring"
+      return 1
+    }
+    $STD dpkg -i /tmp/debsuryorg-archive-keyring.deb || {
+      msg_error "Failed to install PHP repository keyring"
+      rm -f /tmp/debsuryorg-archive-keyring.deb
+      return 1
+    }
 
     # Use helper function to get fallback suite
     local SUITE
@@ -2658,7 +2791,10 @@ Components: main
 Architectures: amd64 arm64
 Signed-By: /usr/share/keyrings/deb.sury.org-php.gpg
 EOF
-    $STD apt update
+    $STD apt update || {
+      msg_error "APT update failed for PHP repository"
+      return 1
+    }
   fi
 
   # Build module list
@@ -2676,12 +2812,18 @@ EOF
   # install apache2 with PHP support if requested
   if [[ "$PHP_APACHE" == "YES" ]]; then
     if ! dpkg -l | grep -q "libapache2-mod-php${PHP_VERSION}"; then
-      $STD apt install -y apache2 libapache2-mod-php${PHP_VERSION}
+      $STD apt install -y apache2 libapache2-mod-php${PHP_VERSION} || {
+        msg_error "Failed to install Apache with PHP module"
+        return 1
+      }
     fi
   fi
 
   # setup / update PHP modules
-  $STD apt install -y $MODULE_LIST
+  $STD apt install -y $MODULE_LIST || {
+    msg_error "Failed to install PHP packages"
+    return 1
+  }
   cache_installed_version "php" "$PHP_VERSION"
 
   # optional stop old PHP-FPM service
@@ -2722,7 +2864,7 @@ EOF
       safe_service_restart php${PHP_VERSION}-fpm
     fi
   fi
-  
+
   msg_ok "Setup PHP $PHP_VERSION"
 }
 
@@ -2956,7 +3098,11 @@ function setup_ruby() {
 
   mkdir -p "$RBENV_DIR"
   cp -r "$TMP_DIR/rbenv-${RBENV_RELEASE}/." "$RBENV_DIR/"
-  cd "$RBENV_DIR" && src/configure && $STD make -C src
+  cd "$RBENV_DIR" && src/configure && $STD make -C src || {
+    msg_error "Failed to build rbenv"
+    rm -rf "$TMP_DIR"
+    return 1
+  }
 
   local RUBY_BUILD_RELEASE
   RUBY_BUILD_RELEASE=$(curl -fsSL https://api.github.com/repos/rbenv/ruby-build/releases/latest | jq -r '.tag_name' | sed 's/^v//')
@@ -2991,14 +3137,22 @@ function setup_ruby() {
   eval "$("$RBENV_BIN" init - bash)"
 
   if ! "$RBENV_BIN" versions --bare | grep -qx "$RUBY_VERSION"; then
-    $STD "$RBENV_BIN" install "$RUBY_VERSION"
+    $STD "$RBENV_BIN" install "$RUBY_VERSION" || {
+      msg_error "Failed to install Ruby $RUBY_VERSION"
+      rm -rf "$TMP_DIR"
+      return 1
+    }
   fi
 
   "$RBENV_BIN" global "$RUBY_VERSION"
   hash -r
 
   if [[ "$RUBY_INSTALL_RAILS" == "true" ]]; then
-    $STD gem install rails
+    $STD gem install rails || {
+      msg_error "Failed to install Rails"
+      rm -rf "$TMP_DIR"
+      return 1
+    }
   fi
 
   rm -rf "$TMP_DIR"
@@ -3069,8 +3223,14 @@ function setup_clickhouse() {
       upgrade_package clickhouse-client
     else
       msg_info "Setup ClickHouse $CLICKHOUSE_VERSION"
-      $STD apt update
-      $STD apt install --only-upgrade -y clickhouse-server clickhouse-client
+      $STD apt update || {
+        msg_error "Failed to update package list"
+        return 1
+      }
+      $STD apt install --only-upgrade -y clickhouse-server clickhouse-client || {
+        msg_error "Failed to upgrade ClickHouse"
+        return 1
+      }
       cache_installed_version "clickhouse" "$CLICKHOUSE_VERSION"
       msg_ok "Setup ClickHouse $CLICKHOUSE_VERSION"
     fi
@@ -3173,8 +3333,14 @@ function setup_rust() {
     msg_ok "Setup Rust $RUST_VERSION"
   else
     msg_info "Setup Rust"
-    $STD rustup install "$RUST_TOOLCHAIN"
-    $STD rustup default "$RUST_TOOLCHAIN"
+    $STD rustup install "$RUST_TOOLCHAIN" || {
+      msg_error "Failed to install Rust toolchain"
+      return 1
+    }
+    $STD rustup default "$RUST_TOOLCHAIN" || {
+      msg_error "Failed to set default Rust toolchain"
+      return 1
+    }
     $STD rustup update "$RUST_TOOLCHAIN"
     local RUST_VERSION=$(rustc --version 2>/dev/null | awk '{print $2}')
     cache_installed_version "rust" "$RUST_VERSION"
