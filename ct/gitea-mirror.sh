@@ -13,6 +13,7 @@ var_disk="${var_disk:-6}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
+var_app_version="${var_app_version:-latest}"
 
 header_info "$APP"
 
@@ -97,7 +98,7 @@ fi
     msg_ok "Installed Bun"
 
     rm -rf /opt/gitea-mirror
-    fetch_and_deploy_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror" "tarball" "v3.8.1"
+    fetch_and_deploy_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror" "tarball" $var_app_version
 
     msg_info "Updating and rebuilding ${APP}"
     cd /opt/gitea-mirror
