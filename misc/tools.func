@@ -29,7 +29,6 @@ get_cached_version() {
 # ------------------------------------------------------------------------------
 upgrade_package() {
   local package="$1"
-  msg_info "Upgrading $package"
 
   # Use same caching logic as ensure_dependencies
   local apt_cache_file="/var/cache/apt-update-timestamp"
@@ -46,7 +45,6 @@ upgrade_package() {
   fi
 
   $STD apt install --only-upgrade -y "$package"
-  msg_ok "Upgraded $package"
 }
 
 # ------------------------------------------------------------------------------
@@ -76,8 +74,6 @@ ensure_dependencies() {
   done
 
   if [[ ${#missing[@]} -gt 0 ]]; then
-    msg_info "Installing dependencies: ${missing[*]}"
-
     # Only run apt update if not done recently (within last 5 minutes)
     local apt_cache_file="/var/cache/apt-update-timestamp"
     local current_time=$(date +%s)
@@ -92,7 +88,6 @@ ensure_dependencies() {
       cleanup_orphaned_sources 2>/dev/null || true
 
       if ! $STD apt update; then
-        msg_warn "apt update failed, attempting to fix..."
         ensure_apt_working || return 1
       fi
       echo "$current_time" >"$apt_cache_file"
@@ -102,7 +97,6 @@ ensure_dependencies() {
       msg_error "Failed to install dependencies: ${missing[*]}"
       return 1
     }
-    msg_ok "Installed dependencies"
   fi
 }
 
@@ -511,7 +505,6 @@ wait_for_apt() {
       return 1
     fi
 
-    debug_log "Waiting for apt to be available... (${waited}s)"
     sleep 5
     waited=$((waited + 5))
   done
@@ -568,7 +561,6 @@ cleanup_orphaned_sources() {
 
     # If keyring doesn't exist, remove the .sources file
     if [[ -n "$keyring_path" ]] && [[ ! -f "$keyring_path" ]]; then
-      msg_warn "Removing orphaned sources file: $basename_file (missing keyring: $(basename "$keyring_path"))"
       rm -f "$sources_file"
     fi
   done < <(find "$sources_dir" -name "*.sources" -print0 2>/dev/null)
@@ -589,8 +581,6 @@ ensure_apt_working() {
 
   # Try to update package lists
   if ! apt-get update -qq 2>/dev/null; then
-    msg_warn "APT update failed, attempting to fix..."
-
     # More aggressive cleanup
     rm -f /etc/apt/sources.list.d/*.sources 2>/dev/null || true
     cleanup_orphaned_sources
@@ -615,8 +605,6 @@ setup_deb822_repo() {
   local suite="$4"
   local component="${5:-main}"
   local architectures="${6:-amd64 arm64}"
-
-  msg_info "Setting up $name repository"
 
   # Cleanup old configs for this app
   cleanup_old_repo_files "$name"
@@ -654,8 +642,6 @@ EOF
     $STD apt update
     echo "$current_time" >"$apt_cache_file"
   fi
-
-  msg_ok "Set up $name repository"
 }
 
 # ------------------------------------------------------------------------------
@@ -698,7 +684,7 @@ enable_and_start_service() {
   local service="$1"
 
   if ! systemctl enable "$service" &>/dev/null; then
-    msg_warn "Could not enable $service (may not be installed yet)"
+    return 1
   fi
 
   if ! systemctl start "$service" &>/dev/null; then
@@ -793,7 +779,6 @@ end_timer() {
   local label="${2:-Operation}"
   local end_time=$(date +%s)
   local duration=$((end_time - start_time))
-  debug_log "$label took ${duration}s"
 }
 
 # ------------------------------------------------------------------------------
@@ -912,27 +897,23 @@ check_for_gh_release() {
     fi
 
     if [[ "$current" != "$pin_clean" ]]; then
-      msg_info "${app} pinned to ${pinned_version_in} (installed ${current:-none}) → update required"
       CHECK_UPDATE_RELEASE="$match_raw"
+      msg_ok "Checking for update: ${app}"
       return 0
     fi
 
-    if [[ "$pin_clean" == "$latest_clean" ]]; then
-      msg_ok "${app} pinned to ${pinned_version_in} (up to date)"
-    else
-      msg_ok "${app} pinned to ${pinned_version_in} (already installed, upstream ${latest_raw})"
-    fi
+    msg_ok "Checking for update: ${app}"
     return 1
   fi
 
   # No pinning → use latest
   if [[ -z "$current" || "$current" != "$latest_clean" ]]; then
     CHECK_UPDATE_RELEASE="$latest_raw"
-    msg_info "New release available: ${latest_raw} (current: v${current:-none})"
+    msg_ok "Checking for update: ${app}"
     return 0
   fi
 
-  msg_ok "${app} is up to date (${latest_raw})"
+  msg_ok "Checking for update: ${app}"
   return 1
 }
 
@@ -1418,7 +1399,7 @@ function setup_adminer() {
   CACHED_VERSION=$(get_cached_version "adminer")
 
   if grep -qi alpine /etc/os-release; then
-    msg_info "Installing Adminer (Alpine)"
+    msg_info "Setup Adminer (Alpine)"
     mkdir -p /var/www/localhost/htdocs/adminer
     curl -fsSL https://github.com/vrana/adminer/releases/latest/download/adminer.php \
       -o /var/www/localhost/htdocs/adminer/index.php || {
@@ -1426,16 +1407,16 @@ function setup_adminer() {
       return 1
     }
     cache_installed_version "adminer" "latest-alpine"
-    msg_ok "Installed Adminer (Alpine)"
+    msg_ok "Setup Adminer (Alpine)"
   else
-    msg_info "Installing Adminer (Debian/Ubuntu)"
+    msg_info "Setup Adminer (Debian/Ubuntu)"
     ensure_dependencies adminer
     $STD a2enconf adminer
     $STD systemctl reload apache2
     local VERSION
     VERSION=$(dpkg -s adminer 2>/dev/null | grep '^Version:' | awk '{print $2}')
     cache_installed_version "adminer" "${VERSION:-unknown}"
-    msg_ok "Installed Adminer (Debian/Ubuntu)"
+    msg_ok "Setup Adminer (Debian/Ubuntu)"
   fi
 }
 
@@ -1453,20 +1434,14 @@ function setup_composer() {
   CACHED_VERSION=$(get_cached_version "composer")
   export COMPOSER_ALLOW_SUPERUSER=1
 
+  msg_info "Setup Composer"
+
   for old in /usr/bin/composer /bin/composer /root/.composer/vendor/bin/composer; do
     [[ -e "$old" && "$old" != "$COMPOSER_BIN" ]] && rm -f "$old"
   done
 
   ensure_usr_local_bin_persist
   export PATH="/usr/local/bin:$PATH"
-
-  if [[ -x "$COMPOSER_BIN" ]]; then
-    local CURRENT_VERSION
-    CURRENT_VERSION=$("$COMPOSER_BIN" --version 2>/dev/null | awk '{print $3}')
-    msg_info "Updating Composer from $CURRENT_VERSION to latest"
-  else
-    msg_info "Installing Composer"
-  fi
 
   curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php || {
     msg_error "Failed to download Composer installer"
@@ -1487,7 +1462,7 @@ function setup_composer() {
   local FINAL_VERSION
   FINAL_VERSION=$("$COMPOSER_BIN" --version 2>/dev/null | awk '{print $3}')
   cache_installed_version "composer" "$FINAL_VERSION"
-  msg_ok "Installed Composer $FINAL_VERSION"
+  msg_ok "Setup Composer"
 }
 
 # ------------------------------------------------------------------------------
@@ -1517,9 +1492,10 @@ function setup_ffmpeg() {
   local CACHED_VERSION
   CACHED_VERSION=$(get_cached_version "ffmpeg")
 
+  msg_info "Setup FFmpeg ${VERSION} ($TYPE)"
+
   # Binary fallback mode
   if [[ "$TYPE" == "binary" ]]; then
-    msg_info "Installing FFmpeg (static binary)"
     curl -fsSL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o "$TMP_DIR/ffmpeg.tar.xz" || {
       msg_error "Failed to download FFmpeg binary"
       rm -rf "$TMP_DIR"
@@ -1535,7 +1511,7 @@ function setup_ffmpeg() {
     rm -rf "$TMP_DIR"
     cache_installed_version "ffmpeg" "$FINAL_VERSION"
     ensure_usr_local_bin_persist
-    msg_ok "Installed FFmpeg binary $FINAL_VERSION"
+    msg_ok "Setup FFmpeg"
     return 0
   fi
 
@@ -1554,8 +1530,6 @@ function setup_ffmpeg() {
     rm -rf "$TMP_DIR"
     return 1
   fi
-
-  msg_info "Installing FFmpeg ${VERSION} ($TYPE)"
 
   # Dependency selection
   local DEPS=(build-essential yasm nasm pkg-config)
@@ -1649,7 +1623,7 @@ function setup_ffmpeg() {
   rm -rf "$TMP_DIR"
   cache_installed_version "ffmpeg" "$FINAL_VERSION"
   ensure_usr_local_bin_persist
-  msg_ok "Installed FFmpeg $FINAL_VERSION"
+  msg_ok "Setup FFmpeg"
 }
 
 # ------------------------------------------------------------------------------
@@ -1698,12 +1672,11 @@ function setup_go() {
       cache_installed_version "go" "$GO_VERSION"
       return 0
     else
-      msg_info "Upgrading Go from $CURRENT_VERSION to $GO_VERSION"
       rm -rf "$GO_INSTALL_DIR"
     fi
-  else
-    msg_info "Installing Go $GO_VERSION"
   fi
+
+  msg_info "Setup Go $GO_VERSION"
 
   local TARBALL="go${GO_VERSION}.linux-${ARCH}.tar.gz"
   local URL="https://go.dev/dl/${TARBALL}"
@@ -1722,7 +1695,7 @@ function setup_go() {
 
   cache_installed_version "go" "$GO_VERSION"
   ensure_usr_local_bin_persist
-  msg_ok "Installed Go $GO_VERSION"
+  msg_ok "Setup Go $GO_VERSION"
 }
 
 # ------------------------------------------------------------------------------
@@ -1764,7 +1737,7 @@ function setup_gs() {
     return 0
   fi
 
-  msg_info "Installing Ghostscript $LATEST_VERSION_DOTTED"
+  msg_info "Setup Ghostscript $LATEST_VERSION_DOTTED"
 
   curl -fsSL "https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs${LATEST_VERSION}/ghostscript-${LATEST_VERSION_DOTTED}.tar.gz" -o "$TMP_DIR/ghostscript.tar.gz" || {
     msg_error "Failed to download Ghostscript"
@@ -1800,7 +1773,7 @@ function setup_gs() {
   rm -rf "$TMP_DIR"
   cache_installed_version "ghostscript" "$LATEST_VERSION_DOTTED"
   ensure_usr_local_bin_persist
-  msg_ok "Installed Ghostscript $LATEST_VERSION_DOTTED"
+  msg_ok "Setup Ghostscript $LATEST_VERSION_DOTTED"
 }
 
 # ------------------------------------------------------------------------------
@@ -1815,7 +1788,7 @@ function setup_gs() {
 #   - Some things are fetched from intel repositories due to not being in debian repositories.
 # ------------------------------------------------------------------------------
 function setup_hwaccel() {
-  msg_info "Setting Up Hardware Acceleration"
+  msg_info "Setup Hardware Acceleration"
 
   if ! command -v lspci &>/dev/null; then
     $STD apt -y update
@@ -1845,8 +1818,6 @@ function setup_hwaccel() {
 
   case "$gpu_vendor" in
   Intel)
-    msg_info "Detected Intel GPU — configuring Intel hardware acceleration"
-
     if [[ "$os_id" == "ubuntu" ]]; then
       $STD apt -y install intel-opencl-icd || msg_error "Failed to install intel-opencl-icd"
     else
@@ -1859,24 +1830,19 @@ function setup_hwaccel() {
     $STD apt -y install va-driver-all ocl-icd-libopencl1 vainfo intel-gpu-tools || msg_error "Failed to install GPU dependencies"
     ;;
   AMD)
-    msg_info "Detected AMD GPU — configuring Mesa-based hardware acceleration"
-
     $STD apt -y install mesa-va-drivers mesa-vdpau-drivers mesa-opencl-icd vainfo clinfo || msg_error "Failed to install AMD GPU dependencies"
 
     # For AMD CPUs without discrete GPU (APUs)
     if [[ "$cpu_vendor" == "AuthenticAMD" && "$gpu_vendor" != "AMD" ]]; then
-      msg_info "Detected AMD CPU (APU) — enabling VAAPI via Mesa"
       $STD apt -y install libdrm-amdgpu1 firmware-amd-graphics || true
     fi
     ;;
   NVIDIA)
-    msg_info "Detected NVIDIA GPU — skipping automatic configuration (manual driver setup required)"
-    msg_info "→ Please install proprietary drivers manually via: apt install nvidia-driver"
+    # NVIDIA needs manual driver setup
     ;;
   *)
     # If no discrete GPU, but AMD CPU (e.g., Ryzen APU)
     if [[ "$cpu_vendor" == "AuthenticAMD" ]]; then
-      msg_info "Detected AMD CPU without discrete GPU — installing Mesa OpenCL stack"
       $STD apt -y install mesa-opencl-icd ocl-icd-libopencl1 clinfo || msg_error "Failed to install Mesa OpenCL stack"
     else
       msg_error "No supported GPU vendor detected"
@@ -1893,7 +1859,7 @@ function setup_hwaccel() {
     $STD adduser "$(id -u -n)" render
   fi
 
-  msg_ok "Hardware Acceleration Setup Complete"
+  msg_ok "Setup Hardware Acceleration"
 }
 
 # ------------------------------------------------------------------------------
@@ -1925,7 +1891,7 @@ function setup_imagemagick() {
     return 0
   fi
 
-  msg_info "Installing ImageMagick (Patience)"
+  msg_info "Setup ImageMagick"
 
   ensure_dependencies \
     build-essential \
@@ -1980,7 +1946,7 @@ function setup_imagemagick() {
   rm -rf "$TMP_DIR"
   cache_installed_version "imagemagick" "$VERSION"
   ensure_usr_local_bin_persist
-  msg_ok "Installed ImageMagick $VERSION"
+  msg_ok "Setup ImageMagick"
 }
 
 # ------------------------------------------------------------------------------
@@ -2034,23 +2000,19 @@ function setup_java() {
       # Already at correct version, just upgrade if available
       upgrade_package "$DESIRED_PACKAGE"
     else
-      msg_info "Upgrading Temurin JDK $JAVA_VERSION"
       $STD apt update
       $STD apt install --only-upgrade -y "$DESIRED_PACKAGE"
       cache_installed_version "temurin-jdk" "$JAVA_VERSION"
-      msg_ok "Upgraded Temurin JDK $JAVA_VERSION"
     fi
   else
+    msg_info "Setup Temurin JDK $JAVA_VERSION"
     if [[ -n "$INSTALLED_VERSION" ]]; then
-      msg_info "Removing old Temurin JDK $INSTALLED_VERSION"
       $STD apt purge -y "temurin-${INSTALLED_VERSION}-jdk"
-      msg_ok "Removed old Temurin JDK"
     fi
 
-    msg_info "Installing Temurin JDK $JAVA_VERSION"
     $STD apt install -y "$DESIRED_PACKAGE"
     cache_installed_version "temurin-jdk" "$JAVA_VERSION"
-    msg_ok "Installed Temurin JDK $JAVA_VERSION"
+    msg_ok "Setup Temurin JDK $JAVA_VERSION"
   fi
 }
 
