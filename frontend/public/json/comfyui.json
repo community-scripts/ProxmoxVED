@@ -8,6 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
+    "config_path": "/opt",
     "interface_port": 8188,
     "documentation": "https://github.com/comfyanonymous/ComfyUI",
     "website": "https://www.comfy.org/",
