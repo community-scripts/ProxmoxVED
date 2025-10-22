@@ -35,10 +35,6 @@
     {
       "text": "Admin password available as `ADMIN_PASSWORD` in `~/miniflux.creds`",
       "type": "info"
-    },
-    {
-      "text": "By default, Miniflux is only available via `127.0.0.1:8080`. Set `LISTEN_ADDR` in `/etc/miniflux.conf` to `0.0.0.0:8080` to allow external access",
-      "type": "info"
     }
   ]
 }
