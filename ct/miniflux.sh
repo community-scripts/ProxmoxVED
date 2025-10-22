@@ -31,8 +31,7 @@ function update_script() {
   msg_info "Updating ${APP} LXC"
   $STD miniflux -flush-sessions -config-file /etc/miniflux.conf
   $STD systemctl stop miniflux
-  $STD pg_dump -U miniflux miniflux >~/miniflux_$(date +%F)_backup.sql
-  fetch_and_deploy_gh_release "miniflux" "miniflux/v2" "tarball" "latest"
+  fetch_and_deploy_gh_release "miniflux" "miniflux/v2" "binary" "latest"
   $STD miniflux -migrate -config-file /etc/miniflux.conf
   $STD systemctl start miniflux
   msg_ok "Updated Successfully"

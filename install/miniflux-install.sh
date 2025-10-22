@@ -21,22 +21,31 @@ DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER;"
 $STD sudo -u postgres psql -d "$DB_NAME" -c "CREATE EXTENSION hstore;"
-$STD echo "localhost:5432:$DB_NAME:$DB_USER:$DB_PASSWORD" | sudo tee ~/.pgpass >/dev/null
-$STD chmod 0600 ~/.pgpass
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing Miniflux"
-fetch_and_deploy_gh_release "miniflux" "miniflux/v2" "tarball" "latest"
+fetch_and_deploy_gh_release "miniflux" "miniflux/v2" "binary" "latest"
 msg_ok "Installed Miniflux"
 
 msg_info "Configuring Miniflux"
+ADMIN_NAME=admin
+ADMIN_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)"
 cat <<EOF >/etc/miniflux.conf
 # See https://miniflux.app/docs/configuration.html
-DATABASE_URL=user=$DB_USER password=$DB_PASS dbname=$DB_NAME sslmode=disable
+DATABASE_URL=postgres://$DB_USER:$DB_PASS@localhost/$DB_NAME?sslmode=disable
 CREATE_ADMIN=1
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=changeme
+ADMIN_USERNAME=$ADMIN_NAME
+ADMIN_PASSWORD=$ADMIN_PASS
 EOF
+
+{
+  echo "Application Credentials"
+  echo "DB_NAME: $DB_NAME"
+  echo "DB_USER: $DB_USER"
+  echo "DB_PASS: $DB_PASS"
+  echo "ADMIN_USERNAME: $ADMIN_NAME"
+  echo "ADMIN_PASSWORD: $ADMIN_PASS"
+} >>~/miniflux.creds
 
 miniflux -migrate -config-file /etc/miniflux.conf
 msg_ok "Configured Miniflux"
