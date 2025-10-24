@@ -379,11 +379,16 @@ upgrade_package() {
   fi
 
   if ((current_time - last_update > 300)); then
-    $STD apt update
+    $STD apt update || {
+      msg_warn "APT update failed in upgrade_package - continuing with cached packages"
+    }
     echo "$current_time" >"$apt_cache_file"
   fi
 
-  $STD apt install --only-upgrade -y "$package"
+  $STD apt install --only-upgrade -y "$package" || {
+    msg_warn "Failed to upgrade $package"
+    return 1
+  }
 }
 
 # ------------------------------------------------------------------------------
@@ -919,13 +924,13 @@ ensure_apt_working() {
   cleanup_orphaned_sources
 
   # Try to update package lists
-  if ! apt-get update -qq 2>/dev/null; then
+  if ! apt update -qq 2>/dev/null; then
     # More aggressive cleanup
     rm -f /etc/apt/sources.list.d/*.sources 2>/dev/null || true
     cleanup_orphaned_sources
 
     # Try again
-    if ! apt-get update -qq 2>/dev/null; then
+    if ! apt update -qq 2>/dev/null; then
       msg_error "Cannot update package lists - APT is critically broken"
       return 1
     fi
@@ -2663,7 +2668,9 @@ $SCRIPT_PATH
 EOF
 
   chmod +x "$DISPATCHER_SCRIPT"
-  systemctl enable -q --now networkd-dispatcher.service
+  systemctl enable -q --now networkd-dispatcher.service || {
+    msg_warn "Failed to enable networkd-dispatcher service"
+  }
 
   cache_installed_version "local-ip-helper" "1.0"
   msg_ok "Setup Local IP Helper"
@@ -2787,7 +2794,9 @@ setup_mariadb() {
     # Fallback: try without specific version
     msg_warn "Failed to install MariaDB packages from upstream repo, trying distro fallback..."
     cleanup_old_repo_files "mariadb"
-    $STD apt update
+    $STD apt update || {
+      msg_warn "APT update also failed, continuing with cache"
+    }
     DEBIAN_FRONTEND=noninteractive $STD apt install -y mariadb-server mariadb-client || {
       msg_error "Failed to install MariaDB packages (both upstream and distro)"
       return 1
@@ -2889,7 +2898,9 @@ function setup_mongodb() {
   mkdir -p /var/lib/mongodb
   chown -R mongodb:mongodb /var/lib/mongodb
 
-  $STD systemctl enable mongod
+  $STD systemctl enable mongod || {
+    msg_warn "Failed to enable mongod service"
+  }
   safe_service_restart mongod
   cache_installed_version "mongodb" "$MONGO_VERSION"
 
@@ -3290,7 +3301,7 @@ function setup_php() {
 
   # install apache2 with PHP support if requested
   if [[ "$PHP_APACHE" == "YES" ]]; then
-    if ! dpkg -l | grep -q "libapache2-mod-php${PHP_VERSION}"; then
+    if ! dpkg -l 2>/dev/null | grep -q "libapache2-mod-php${PHP_VERSION}"; then
       $STD apt install -y apache2 libapache2-mod-php${PHP_VERSION} || {
         msg_error "Failed to install Apache with PHP module"
         return 1
@@ -3791,7 +3802,9 @@ function setup_clickhouse() {
   fi
 
   # Enable and start service
-  $STD systemctl enable clickhouse-server
+  $STD systemctl enable clickhouse-server || {
+    msg_warn "Failed to enable clickhouse-server service"
+  }
   safe_service_restart clickhouse-server || true
 
   cache_installed_version "clickhouse" "$CLICKHOUSE_VERSION"
