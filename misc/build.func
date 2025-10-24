@@ -3001,9 +3001,9 @@ create_lxc_container() {
   # Build regex patterns outside awk/grep for clarity
   SEARCH_PATTERN="^${TEMPLATE_SEARCH}"
 
-  echo "[DEBUG] TEMPLATE_SEARCH='$TEMPLATE_SEARCH'"
-  echo "[DEBUG] SEARCH_PATTERN='$SEARCH_PATTERN'"
-  echo "[DEBUG] TEMPLATE_PATTERN='$TEMPLATE_PATTERN'"
+  #echo "[DEBUG] TEMPLATE_SEARCH='$TEMPLATE_SEARCH'"
+  #echo "[DEBUG] SEARCH_PATTERN='$SEARCH_PATTERN'"
+  #echo "[DEBUG] TEMPLATE_PATTERN='$TEMPLATE_PATTERN'"
 
   mapfile -t LOCAL_TEMPLATES < <(
     pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
@@ -3013,16 +3013,15 @@ create_lxc_container() {
 
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
 
-  echo "[DEBUG] pveam available output (first 5 lines with .tar files):"
+  #echo "[DEBUG] pveam available output (first 5 lines with .tar files):"
   pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | head -5 | sed 's/^/  /'
 
   set +u
-  mapfile -t ONLINE_TEMPLATES \
-    \
-    echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found" < <(pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | awk '{print $2}' | grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" | sort -t - -k 2 -V 2>/dev/null || true)
+  mapfile -t ONLINE_TEMPLATES < <(pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | awk '{print $2}' | grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" | sort -t - -k 2 -V 2>/dev/null || true)
+  #echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found"
   set -u
   if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
-    echo "[DEBUG] Online templates:"
+    #echo "[DEBUG] Online templates:"
     for tmpl in "${ONLINE_TEMPLATES[@]}"; do
       echo "  - $tmpl"
     done
@@ -3031,15 +3030,15 @@ create_lxc_container() {
   ONLINE_TEMPLATE=""
   [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
 
-  msg_debug "SEARCH_PATTERN='${SEARCH_PATTERN}' TEMPLATE_PATTERN='${TEMPLATE_PATTERN}'"
-  msg_debug "Found ${#LOCAL_TEMPLATES[@]} local templates, ${#ONLINE_TEMPLATES[@]} online templates"
+  #msg_debug "SEARCH_PATTERN='${SEARCH_PATTERN}' TEMPLATE_PATTERN='${TEMPLATE_PATTERN}'"
+  #msg_debug "Found ${#LOCAL_TEMPLATES[@]} local templates, ${#ONLINE_TEMPLATES[@]} online templates"
   if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
-    msg_debug "First 3 online templates:"
+    #msg_debug "First 3 online templates:"
     for i in {0..2}; do
       [[ -n "${ONLINE_TEMPLATES[$i]}" ]] && msg_debug "  [$i]: ${ONLINE_TEMPLATES[$i]}"
     done
   fi
-  msg_debug "ONLINE_TEMPLATE='$ONLINE_TEMPLATE'"
+  #msg_debug "ONLINE_TEMPLATE='$ONLINE_TEMPLATE'"
 
   if [[ ${#LOCAL_TEMPLATES[@]} -gt 0 ]]; then
     TEMPLATE="${LOCAL_TEMPLATES[-1]}"
