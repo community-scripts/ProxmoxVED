@@ -53,7 +53,8 @@ $STD npm install --omit=dev --no-audit --no-fund --no-save --ignore-scripts
 cd /opt/patchmon/backend
 $STD npm install --omit=dev --no-audit --no-fund --no-save --ignore-scripts
 cd /opt/patchmon/frontend
-$STD npm install --no-audit --no-fund --no-save --ignore-scripts
+export npm_config_production=false
+$STD npm install --no-audit --no-fund --no-save
 $STD npm run build
 msg_ok "Configured PatchMon"
 
@@ -127,13 +128,13 @@ cat <<EOF >/etc/nginx/sites-available/patchmon.conf
 server {
     listen 80;
     server_name $LOCAL_IP;
-    
+
     # Security headers
     add_header X-Frame-Options DENY always;
     add_header X-Content-Type-Options nosniff always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    
+
     # Frontend
     location / {
         root /opt/patchmon/frontend/dist;
@@ -155,11 +156,11 @@ server {
         proxy_cache_bypass \$http_upgrade;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
-        
+
         # Enable cookie passthrough
         proxy_pass_header Set-Cookie;
         proxy_cookie_path / /;
-        
+
         # Preserve original client IP
         proxy_set_header X-Original-Forwarded-For \$http_x_forwarded_for;
         if (\$request_method = 'OPTIONS') {
@@ -180,7 +181,7 @@ server {
         proxy_cache_bypass \$http_upgrade;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
-        
+
         # Preserve original client IP
         proxy_set_header X-Original-Forwarded-For \$http_x_forwarded_for;
         if (\$request_method = 'OPTIONS') {
@@ -194,7 +195,7 @@ server {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
-    
+
     # Health check endpoint
     location /health {
         proxy_pass http://127.0.0.1:3399/health;
