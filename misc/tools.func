@@ -477,7 +477,7 @@ get_default_python_version() {
 # ------------------------------------------------------------------------------
 get_default_nodejs_version() {
   # Always return current LTS (as of 2025)
-  echo "20"
+  echo "22"
 }
 
 # ------------------------------------------------------------------------------
@@ -901,22 +901,22 @@ check_for_gh_release() {
 
     if [[ "$current" != "$pin_clean" ]]; then
       CHECK_UPDATE_RELEASE="$match_raw"
-      msg_ok "Checking for update: ${app}"
+      msg_ok "Update available: ${app} ${current:-not installed} → ${pin_clean}"
       return 0
     fi
 
-    msg_ok "Checking for update: ${app}"
+    msg_error "No update available: ${app} is not installed!"
     return 1
   fi
 
   # No pinning → use latest
   if [[ -z "$current" || "$current" != "$latest_clean" ]]; then
     CHECK_UPDATE_RELEASE="$latest_raw"
-    msg_ok "Checking for update: ${app}"
+    msg_ok "Update available: ${app} ${current:-not installed} → ${latest_clean}"
     return 0
   fi
 
-  msg_ok "Checking for update: ${app}"
+  msg_ok "No update available: ${app} (${latest_clean})"
   return 1
 }
 
@@ -1141,7 +1141,7 @@ function fetch_and_deploy_gh_release() {
       rm -rf "${target:?}/"*
     fi
 
-    tar -xzf "$tmpdir/$filename" -C "$tmpdir" || {
+  tar --no-same-owner -xzf "$tmpdir/$filename" -C "$tmpdir" || {
       msg_error "Failed to extract tarball"
       rm -rf "$tmpdir"
       return 1
@@ -1263,7 +1263,7 @@ function fetch_and_deploy_gh_release() {
         return 1
       }
     elif [[ "$filename" == *.tar.* || "$filename" == *.tgz ]]; then
-      tar -xf "$tmpdir/$filename" -C "$unpack_tmp" || {
+      tar --no-same-owner -xf "$tmpdir/$filename" -C "$unpack_tmp" || {
         msg_error "Failed to extract TAR archive"
         rm -rf "$tmpdir" "$unpack_tmp"
         return 1
@@ -2360,8 +2360,8 @@ setup_mariadb() {
 function setup_mongodb() {
   local MONGO_VERSION="${MONGO_VERSION:-8.0}"
   local DISTRO_ID DISTRO_CODENAME
-  DISTRO_ID=$(awk -F= '/^ID=/{ gsub(/"/,"",$2); print $2 }' /etc/os-release)
-  DISTRO_CODENAME=$(awk -F= '/^VERSION_CODENAME=/{ print $2 }' /etc/os-release)
+  DISTRO_ID=$(get_os_info id)
+  DISTRO_CODENAME=$(get_os_info codename)
 
   # Check AVX support
   if ! grep -qm1 'avx[^ ]*' /proc/cpuinfo; then
@@ -2388,7 +2388,7 @@ function setup_mongodb() {
   esac
 
   local INSTALLED_VERSION=""
-  if command -v mongod >/dev/null; then
+  if command -v mongod >/dev/null 2>&1; then
     INSTALLED_VERSION=$(mongod --version | awk '/db version/{print $3}' | cut -d. -f1,2)
   fi
 
@@ -2415,26 +2415,72 @@ function setup_mongodb() {
   msg_info "Setup MongoDB $MONGO_VERSION"
 
   if [[ -n "$INSTALLED_VERSION" ]]; then
-    $STD systemctl stop mongod || true
-    $STD apt purge -y mongodb-org || true
+    $STD systemctl stop mongod 2>/dev/null || true
+    $STD apt purge -y mongodb-org 2>/dev/null || true
   fi
 
-  # Cleanup old repository files
   cleanup_old_repo_files "mongodb-org-${MONGO_VERSION}"
-
-  # Cleanup any orphaned .sources files from other apps
   cleanup_orphaned_sources
 
-  # Use helper function to get fallback suite
+  # Map distro codenames to MongoDB-supported suites
   local SUITE
-  SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "$MONGO_BASE_URL")
+  if [[ "$DISTRO_ID" == "debian" ]]; then
+    case "$DISTRO_CODENAME" in
+    trixie | forky | sid)
+      # Debian 13+ and testing/unstable use Bookworm (MongoDB doesn't support newer)
+      SUITE="bookworm"
+      ;;
+    bookworm)
+      SUITE="bookworm"
+      ;;
+    bullseye)
+      SUITE="bullseye"
+      ;;
+    buster)
+      SUITE="buster"
+      ;;
+    *)
+      # Fallback: try bookworm for unknown Debian releases
+      msg_warn "Unknown Debian release '${DISTRO_CODENAME}', using bookworm"
+      SUITE="bookworm"
+      ;;
+    esac
+  elif [[ "$DISTRO_ID" == "ubuntu" ]]; then
+    case "$DISTRO_CODENAME" in
+    oracular | plucky)
+      # Ubuntu 24.10+ uses noble
+      SUITE="noble"
+      ;;
+    noble)
+      SUITE="noble"
+      ;;
+    jammy)
+      SUITE="jammy"
+      ;;
+    focal)
+      SUITE="focal"
+      ;;
+    *)
+      # Fallback: try noble for unknown Ubuntu releases
+      msg_warn "Unknown Ubuntu release '${DISTRO_CODENAME}', using noble"
+      SUITE="noble"
+      ;;
+    esac
+  fi
 
-  # Use standardized repo setup
+  # Verify MongoDB repository is available (MongoDB has nested structure)
+  if ! curl -fsSL --max-time 10 "${MONGO_BASE_URL}/dists/${SUITE}/mongodb-org/${MONGO_VERSION}/Release" &>/dev/null; then
+    msg_error "MongoDB ${MONGO_VERSION} repository not available for ${DISTRO_ID}-${SUITE}"
+    msg_error "Please check: ${MONGO_BASE_URL}/dists/${SUITE}/mongodb-org/${MONGO_VERSION}/"
+    return 1
+  fi
+
   mkdir -p /etc/apt/keyrings
-  curl -fsSL "https://pgp.mongodb.com/server-${MONGO_VERSION}.asc" | gpg --dearmor --yes -o "/etc/apt/keyrings/mongodb-${MONGO_VERSION}.gpg" || {
+  if ! curl -fsSL "https://www.mongodb.org/static/pgp/server-${MONGO_VERSION}.asc" |
+    gpg --dearmor --yes -o "/etc/apt/keyrings/mongodb-server-${MONGO_VERSION}.gpg"; then
     msg_error "Failed to download or import MongoDB GPG key"
     return 1
-  }
+  fi
 
   cat <<EOF >/etc/apt/sources.list.d/mongodb-org-${MONGO_VERSION}.sources
 Types: deb
@@ -2442,11 +2488,11 @@ URIs: ${MONGO_BASE_URL}
 Suites: ${SUITE}/mongodb-org/${MONGO_VERSION}
 Components: ${REPO_COMPONENT}
 Architectures: amd64 arm64
-Signed-By: /etc/apt/keyrings/mongodb-${MONGO_VERSION}.gpg
+Signed-By: /etc/apt/keyrings/mongodb-server-${MONGO_VERSION}.gpg
 EOF
 
   $STD apt update || {
-    msg_error "APT update failed — invalid MongoDB repo for ${DISTRO_ID}-${DISTRO_CODENAME}?"
+    msg_error "APT update failed — invalid MongoDB repo for ${DISTRO_ID}-${DISTRO_CODENAME}? (Suite: ${SUITE})"
     return 1
   }
 
@@ -2461,6 +2507,7 @@ EOF
   $STD systemctl enable mongod
   safe_service_restart mongod
   cache_installed_version "mongodb" "$MONGO_VERSION"
+
   msg_ok "Setup MongoDB $MONGO_VERSION"
 }
 
@@ -2509,81 +2556,46 @@ function setup_mysql() {
   if [[ "$NEED_INSTALL" == true ]]; then
     msg_info "Setup MySQL $MYSQL_VERSION"
 
-    # Cleanup old repository files
     cleanup_old_repo_files "mysql"
 
-    # Determine suite - use bookworm for Debian testing/unstable
     local SUITE
     if [[ "$DISTRO_ID" == "debian" ]]; then
       case "$DISTRO_CODENAME" in
-      bookworm | bullseye)
-        SUITE="$DISTRO_CODENAME"
-        ;;
-      trixie | forky | sid)
-        SUITE="bookworm"
-        ;;
-      *)
-        SUITE="bookworm" # Fallback to bookworm for unknown Debian versions
-        ;;
+      bookworm | bullseye) SUITE="$DISTRO_CODENAME" ;;
+      trixie | forky | sid) SUITE="bookworm" ;;
+      *) SUITE="bookworm" ;;
       esac
     else
-      # For Ubuntu - use fallback detection
       SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://repo.mysql.com/apt/${DISTRO_ID}")
     fi
 
-    # Stop existing MySQL if running
     $STD systemctl stop mysql 2>/dev/null || true
-
-    # Only purge if MySQL is actually installed
     if dpkg -l 2>/dev/null | grep -q "^ii.*mysql-server"; then
-      $STD apt purge -y mysql-server* mysql-client* mysql-common 2>/dev/null || true
+      $STD apt purge -y mysql-server* mysql-client* mysql-common mysql-community-* 2>/dev/null || true
     fi
 
-    # Handle libaio dependency for Debian Trixie+ (time64 transition)
-    if [[ "$DISTRO_ID" == "debian" ]] && [[ "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-      # Install libaio1t64 if not present
-      if ! dpkg -l libaio1t64 2>/dev/null | grep -q "^ii"; then
-        $STD apt update || {
-          msg_error "Failed to update package list"
-          return 1
-        }
-        $STD apt install -y libaio1t64 || {
-          msg_error "Failed to install libaio1t64"
-          return 1
-        }
-      fi
-
-      # Create dummy libaio1 package for dependency satisfaction
-      local TEMP_DIR="/tmp/libaio1-compat-$$"
-      mkdir -p "$TEMP_DIR"
-      cd "$TEMP_DIR"
-
-      # Create control file
-      mkdir -p DEBIAN
-      cat >DEBIAN/control <<EOF
-Package: libaio1
-Version: 0.3.113-99~compat
-Architecture: amd64
-Maintainer: Local Build
-Depends: libaio1t64
-Provides: libaio1
-Description: Compatibility package for libaio1 -> libaio1t64 transition
- This is a transitional dummy package to satisfy dependencies on libaio1
- while actually using libaio1t64 (time64 transition).
+    # --- Debian 13+ Fix: MySQL 8.0 incompatible with libaio1t64 ---
+    if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
+      msg_info "Debian ${DISTRO_CODENAME} detected → using MySQL 8.4 LTS (libaio1t64)"
+      curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 | gpg --dearmor -o /etc/apt/keyrings/mysql.gpg
+      cat >/etc/apt/sources.list.d/mysql.sources <<'EOF'
+Types: deb
+URIs: https://repo.mysql.com/apt/debian/
+Suites: bookworm
+Components: mysql-8.4-lts
+Architectures: amd64 arm64
+Signed-By: /etc/apt/keyrings/mysql.gpg
 EOF
-
-      # Build the dummy package
-      cd /tmp
-      dpkg-deb -b "$TEMP_DIR" libaio1-compat.deb >/dev/null 2>&1
-
-      # Install it
-      $STD dpkg -i libaio1-compat.deb
-
-      # Cleanup
-      rm -rf "$TEMP_DIR" libaio1-compat.deb
+      $STD apt update
+      if ! $STD apt install -y mysql-community-server mysql-community-client; then
+        msg_error "MySQL 8.4 LTS installation failed – falling back to MariaDB"
+        $STD apt install -y mariadb-server mariadb-client
+      fi
+      msg_ok "Setup Database Engine (MySQL 8.4 LTS / MariaDB)"
+      return
     fi
+    # -------------------------------------------------------------
 
-    # Use standardized repo setup
     setup_deb822_repo \
       "mysql" \
       "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023" \
@@ -2593,37 +2605,26 @@ EOF
       "amd64 arm64"
 
     export DEBIAN_FRONTEND=noninteractive
-
-    # Update apt
     if ! $STD apt update; then
       msg_error "APT update failed for MySQL repository"
       return 1
     fi
 
-    # Try multiple MySQL package patterns
     local mysql_install_success=false
-
-    # First try: mysql-server (most common)
     if apt-cache search "^mysql-server$" 2>/dev/null | grep -q . && $STD apt install -y mysql-server mysql-client 2>/dev/null; then
       mysql_install_success=true
     fi
-
-    # Second try: mysql-community-server (when official repo)
     if [[ "$mysql_install_success" == false ]] && apt-cache search "^mysql-community-server$" 2>/dev/null | grep -q . && $STD apt install -y mysql-community-server mysql-community-client 2>/dev/null; then
       mysql_install_success=true
     fi
-
-    # Third try: just mysql meta package
     if [[ "$mysql_install_success" == false ]] && apt-cache search "^mysql$" 2>/dev/null | grep -q . && $STD apt install -y mysql 2>/dev/null; then
       mysql_install_success=true
     fi
-
     if [[ "$mysql_install_success" == false ]]; then
       msg_error "MySQL ${MYSQL_VERSION} package not available for suite ${SUITE}"
       return 1
     fi
 
-    # Verify installation
     if ! command -v mysql >/dev/null 2>&1; then
       hash -r
       if ! command -v mysql >/dev/null 2>&1; then
@@ -2654,31 +2655,38 @@ function setup_nodejs() {
   local NODE_MODULE="${NODE_MODULE:-}"
   local CURRENT_NODE_VERSION=""
   local NEED_NODE_INSTALL=false
-  local DISTRO_ID DISTRO_CODENAME
-  DISTRO_ID=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
-  DISTRO_CODENAME=$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)
 
+  # Check if Node.js is already installed
   if command -v node >/dev/null; then
     CURRENT_NODE_VERSION="$(node -v | grep -oP '^v\K[0-9]+')"
     if [[ "$CURRENT_NODE_VERSION" != "$NODE_VERSION" ]]; then
+      msg_info "Old Node.js $CURRENT_NODE_VERSION found, replacing with $NODE_VERSION"
       NEED_NODE_INSTALL=true
     fi
   else
+    msg_info "Setup Node.js $NODE_VERSION"
     NEED_NODE_INSTALL=true
   fi
 
+  if ! command -v jq &>/dev/null; then
+    $STD apt-get update
+    $STD apt-get install -y jq || {
+      msg_error "Failed to install jq"
+      return 1
+    }
+  fi
+
+  # Install Node.js if required
   if [[ "$NEED_NODE_INSTALL" == true ]]; then
-    msg_info "Setup Node.js $NODE_VERSION"
+    ensure_dependencies curl ca-certificates gnupg
 
-    ensure_dependencies jq
+    if [[ -n "$CURRENT_NODE_VERSION" ]]; then
+      $STD apt-get purge -y nodejs npm || true
+    fi
 
-    $STD apt purge -y nodejs
-
-    # Cleanup old repository files
     cleanup_old_repo_files "nodesource"
 
-    # NodeSource uses 'nodistro' for all distributions - no fallback needed
-    # Use standardized repo setup
+    # NodeSource uses deb822 format with "nodistro"
     setup_deb822_repo \
       "nodesource" \
       "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key" \
@@ -2687,19 +2695,33 @@ function setup_nodejs() {
       "main" \
       "amd64 arm64"
 
-    if ! $STD apt install -y nodejs; then
+    sleep 2
+    if ! apt-get update >/dev/null 2>&1; then
+      msg_warn "APT update failed – retrying in 5s"
+      sleep 5
+      if ! apt-get update >/dev/null 2>&1; then
+        msg_error "Failed to update APT repositories after adding NodeSource"
+        return 1
+      fi
+    fi
+
+    if ! apt-get install -y nodejs >/dev/null 2>&1; then
       msg_error "Failed to install Node.js ${NODE_VERSION} from NodeSource"
       return 1
     fi
 
-    $STD npm install -g npm@latest 2>/dev/null || true
+    # Update to latest npm
+    $STD npm install -g npm@latest || {
+      msg_error "Failed to update npm to latest version"
+    }
 
     cache_installed_version "nodejs" "$NODE_VERSION"
-    msg_ok "Setup Node.js $NODE_VERSION"
+    msg_ok "Setup Node.js ${NODE_VERSION}"
   fi
 
   export NODE_OPTIONS="--max-old-space-size=4096"
 
+  # Ensure valid working directory for npm (avoids uv_cwd error)
   if [[ ! -d /opt ]]; then
     mkdir -p /opt
   fi
@@ -2708,41 +2730,50 @@ function setup_nodejs() {
     return 1
   }
 
+  # Install global Node modules
   if [[ -n "$NODE_MODULE" ]]; then
     IFS=',' read -ra MODULES <<<"$NODE_MODULE"
     for mod in "${MODULES[@]}"; do
       local MODULE_NAME MODULE_REQ_VERSION MODULE_INSTALLED_VERSION
       if [[ "$mod" == @*/*@* ]]; then
+        # Scoped package with version, e.g. @vue/cli-service@latest
         MODULE_NAME="${mod%@*}"
         MODULE_REQ_VERSION="${mod##*@}"
       elif [[ "$mod" == *"@"* ]]; then
+        # Unscoped package with version, e.g. yarn@latest
         MODULE_NAME="${mod%@*}"
         MODULE_REQ_VERSION="${mod##*@}"
       else
+        # No version specified
         MODULE_NAME="$mod"
         MODULE_REQ_VERSION="latest"
       fi
 
+      # Check if the module is already installed
       if npm list -g --depth=0 "$MODULE_NAME" >/dev/null 2>&1; then
         MODULE_INSTALLED_VERSION="$(npm list -g --depth=0 "$MODULE_NAME" | grep "$MODULE_NAME@" | awk -F@ '{print $2}' | tr -d '[:space:]')"
         if [[ "$MODULE_REQ_VERSION" != "latest" && "$MODULE_REQ_VERSION" != "$MODULE_INSTALLED_VERSION" ]]; then
+          msg_info "Updating $MODULE_NAME from v$MODULE_INSTALLED_VERSION to v$MODULE_REQ_VERSION"
           if ! $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}"; then
             msg_error "Failed to update $MODULE_NAME to version $MODULE_REQ_VERSION"
             return 1
           fi
         elif [[ "$MODULE_REQ_VERSION" == "latest" ]]; then
+          msg_info "Updating $MODULE_NAME to latest version"
           if ! $STD npm install -g "${MODULE_NAME}@latest"; then
             msg_error "Failed to update $MODULE_NAME to latest version"
             return 1
           fi
         fi
       else
+        msg_info "Installing $MODULE_NAME@$MODULE_REQ_VERSION"
         if ! $STD npm install -g "${MODULE_NAME}@${MODULE_REQ_VERSION}"; then
           msg_error "Failed to install $MODULE_NAME@$MODULE_REQ_VERSION"
           return 1
         fi
       fi
     done
+    msg_ok "Installed Node.js modules: $NODE_MODULE"
   fi
 }
 
