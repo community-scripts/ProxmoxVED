@@ -47,14 +47,11 @@ function update_script() {
     msg_info "Updating ${APP}"
     cd /opt/patchmon
     export NODE_ENV=production
-    export NPM_CONFIG_CACHE=/opt/patchmon/.npm
-    export NPM_CONFIG_PREFIX=/opt/patchmon/.npm-global
-    export NPM_CONFIG_TMP=/opt/patchmon/.npm/tmp
-    $STD npm install --omit=dev --no-audit --no-fund --no-save --ignore-scripts
-    cd /opt/patchmon/backend
-    $STD npm install --omit=dev --no-audit --no-fund --no-save --ignore-scripts
-    cd /opt/patchmon/frontend
     $STD npm install --no-audit --no-fund --no-save --ignore-scripts
+    cd /opt/patchmon/backend
+    $STD npm install --no-audit --no-fund --no-save --ignore-scripts
+    cd /opt/patchmon/frontend
+    $STD npm install --include=dev --no-audit --no-fund --no-save --ignore-scripts
     $STD npm run build
     cd /opt/patchmon/backend
     $STD npx prisma migrate deploy

@@ -46,15 +46,11 @@ fetch_and_deploy_gh_release "PatchMon" "PatchMon/PatchMon" "tarball" "latest" "/
 msg_info "Configuring PatchMon"
 cd /opt/patchmon
 export NODE_ENV=production
-export NPM_CONFIG_CACHE=/opt/patchmon/.npm
-export NPM_CONFIG_PREFIX=/opt/patchmon/.npm-global
-export NPM_CONFIG_TMP=/opt/patchmon/.npm/tmp
-$STD npm install --omit=dev --no-audit --no-fund --no-save --ignore-scripts
+$STD npm install --no-audit --no-fund --no-save --ignore-scripts
 cd /opt/patchmon/backend
-$STD npm install --omit=dev --no-audit --no-fund --no-save --ignore-scripts
+$STD npm install --no-audit --no-fund --no-save --ignore-scripts
 cd /opt/patchmon/frontend
-export npm_config_production=false
-$STD npm install --no-audit --no-fund --no-save
+$STD npm install --include=dev --no-audit --no-fund --no-save --ignore-scripts
 $STD npm run build
 msg_ok "Configured PatchMon"
 
@@ -156,11 +152,11 @@ server {
         proxy_cache_bypass \$http_upgrade;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
-
+ 
         # Enable cookie passthrough
         proxy_pass_header Set-Cookie;
         proxy_cookie_path / /;
-
+ 
         # Preserve original client IP
         proxy_set_header X-Original-Forwarded-For \$http_x_forwarded_for;
         if (\$request_method = 'OPTIONS') {
@@ -181,7 +177,7 @@ server {
         proxy_cache_bypass \$http_upgrade;
         proxy_read_timeout 300s;
         proxy_connect_timeout 75s;
-
+ 
         # Preserve original client IP
         proxy_set_header X-Original-Forwarded-For \$http_x_forwarded_for;
         if (\$request_method = 'OPTIONS') {
@@ -195,7 +191,7 @@ server {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
-
+ 
     # Health check endpoint
     location /health {
         proxy_pass http://127.0.0.1:3399/health;
@@ -238,17 +234,24 @@ msg_ok "Created and started service"
 msg_info "Populating server settings in DB"
 cat <<EOF >/opt/patchmon/backend/update-settings.js
 const { PrismaClient } = require('@prisma/client');
+const { v4: uuidv4 } = require('uuid');
 const prisma = new PrismaClient();
 
 async function updateSettings() {
   try {
+    const existingSettings = await prisma.settings.findFirst();
+
     const settingsData = {
+      id: uuidv4(),
       server_url: 'http://$LOCAL_IP',
       server_protocol: 'http',
       server_host: '$LOCAL_IP',
       server_port: 3399,
       update_interval: 60,
-      auto_update: true
+      auto_update: true,
+      signup_enabled: false,
+      ignore_ssl_self_signed: false,
+      updated_at: new Date()
     };
 
   if (existingSettings) {
