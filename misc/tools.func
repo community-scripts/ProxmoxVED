@@ -2231,30 +2231,70 @@ setup_mariadb() {
   local CACHED_VERSION
   CACHED_VERSION=$(get_cached_version "mariadb")
 
-  if [[ "$CURRENT_VERSION" == "$MARIADB_VERSION" ]]; then
-    if [[ "$CACHED_VERSION" == "$MARIADB_VERSION" ]]; then
-      upgrade_package mariadb-server
-      upgrade_package mariadb-client
-    else
-      $STD apt update || {
-        msg_error "Failed to update package list"
-        return 1
-      }
-      $STD apt install --only-upgrade -y mariadb-server mariadb-client || {
-        msg_error "Failed to upgrade MariaDB"
-        return 1
-      }
-      cache_installed_version "mariadb" "$MARIADB_VERSION"
+  # Check if MariaDB is already installed and needs update
+  if [[ -n "$CURRENT_VERSION" ]]; then
+    # Check if repository exists and needs update
+    local REPO_VERSION=""
+    if [[ -f /etc/apt/sources.list.d/mariadb.sources ]]; then
+      REPO_VERSION=$(grep -oP 'repo/\K[0-9]+\.[0-9]+\.[0-9]+' /etc/apt/sources.list.d/mariadb.sources 2>/dev/null || echo "")
     fi
-    return 0
+
+    if [[ -n "$REPO_VERSION" && "$REPO_VERSION" != "$MARIADB_VERSION" ]]; then
+      msg_info "Update MariaDB repository from $REPO_VERSION to $MARIADB_VERSION"
+
+      # Remove old repository
+      cleanup_old_repo_files "mariadb"
+
+      # Use helper function to get fallback suite
+      local SUITE
+      DISTRO_ID=$(awk -F= '/^ID=/{print $2}' /etc/os-release | tr -d '"')
+      DISTRO_CODENAME=$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)
+      SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "http://mirror.mariadb.org/repo/${MARIADB_VERSION}/${DISTRO_ID}")
+
+      # Setup new repository
+      setup_deb822_repo \
+        "mariadb" \
+        "https://mariadb.org/mariadb_release_signing_key.asc" \
+        "http://mirror.mariadb.org/repo/${MARIADB_VERSION}/${DISTRO_ID}" \
+        "$SUITE" \
+        "main" \
+        "amd64 arm64" || {
+        msg_error "Failed to update MariaDB repository"
+        return 1
+      }
+
+      msg_ok "Update MariaDB repository from $REPO_VERSION to $MARIADB_VERSION"
+    fi
+
+    # Now perform the update
+    if [[ "$CURRENT_VERSION" == "$MARIADB_VERSION" ]]; then
+      if [[ "$CACHED_VERSION" == "$MARIADB_VERSION" ]]; then
+        msg_info "Update MariaDB $MARIADB_VERSION"
+        upgrade_package mariadb-server
+        upgrade_package mariadb-client
+        msg_ok "Update MariaDB $MARIADB_VERSION"
+      else
+        msg_info "Update MariaDB $MARIADB_VERSION"
+        $STD apt update || {
+          msg_error "Failed to update package list"
+          return 1
+        }
+        $STD apt install --only-upgrade -y mariadb-server mariadb-client || {
+          msg_error "Failed to upgrade MariaDB"
+          return 1
+        }
+        cache_installed_version "mariadb" "$MARIADB_VERSION"
+        msg_ok "Update MariaDB $MARIADB_VERSION"
+      fi
+      return 0
+    else
+      # Version mismatch - need to upgrade to new version
+      msg_info "Upgrade MariaDB from $CURRENT_VERSION to $MARIADB_VERSION"
+      $STD systemctl stop mariadb >/dev/null 2>&1 || true
+    fi
   fi
 
   msg_info "Setup MariaDB $MARIADB_VERSION"
-
-  if [[ -n "$CURRENT_VERSION" ]]; then
-    $STD systemctl stop mariadb >/dev/null 2>&1 || true
-    $STD apt purge -y 'mariadb*' || true
-  fi
 
   # Ensure APT is working before proceeding
   ensure_apt_working || return 1
