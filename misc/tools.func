@@ -1924,16 +1924,22 @@ function setup_ffmpeg() {
 
   # Auto-detect latest stable version if none specified
   if [[ "$VERSION" == "latest" || -z "$VERSION" ]]; then
-    VERSION=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/tags" 2>/dev/null |
-      jq -r '.[].name' |
-      grep -E '^n[0-9]+\.[0-9]+\.[0-9]+$' |
-      sort -V | tail -n1)
+    local ffmpeg_tags
+    ffmpeg_tags=$(curl -fsSL --max-time 15 "https://api.github.com/repos/${GITHUB_REPO}/tags" 2>/dev/null || echo "")
+
+    if [[ -z "$ffmpeg_tags" ]]; then
+      msg_warn "Could not fetch FFmpeg versions from GitHub, trying binary fallback"
+      VERSION=""  # Will trigger binary fallback below
+    else
+      VERSION=$(echo "$ffmpeg_tags" | jq -r '.[].name' 2>/dev/null |
+        grep -E '^n[0-9]+\.[0-9]+\.[0-9]+$' |
+        sort -V | tail -n1 || echo "")
+    fi
   fi
 
   if [[ -z "$VERSION" ]]; then
-    msg_error "Could not determine FFmpeg version"
-    rm -rf "$TMP_DIR"
-    return 1
+    msg_info "Could not determine FFmpeg source version, using pre-built binary"
+    VERSION=""  # Will use binary fallback
   fi
 
   # Dependency selection
@@ -1962,14 +1968,43 @@ function setup_ffmpeg() {
 
   ensure_dependencies "${DEPS[@]}"
 
-  curl -fsSL "https://github.com/${GITHUB_REPO}/archive/refs/tags/${VERSION}.tar.gz" -o "$TMP_DIR/ffmpeg.tar.gz" || {
-    msg_error "Failed to download FFmpeg source"
+  # Try to download source if VERSION is set
+  if [[ -n "$VERSION" ]]; then
+    curl -fsSL "https://github.com/${GITHUB_REPO}/archive/refs/tags/${VERSION}.tar.gz" -o "$TMP_DIR/ffmpeg.tar.gz" || {
+      msg_warn "Failed to download FFmpeg source ${VERSION}, falling back to pre-built binary"
+      VERSION=""
+    }
+  fi
+
+  # If no source download (either VERSION empty or download failed), use binary
+  if [[ -z "$VERSION" ]]; then
+    msg_info "Setup FFmpeg from pre-built binary"
+    curl -fsSL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o "$TMP_DIR/ffmpeg.tar.xz" || {
+      msg_error "Failed to download FFmpeg pre-built binary"
+      rm -rf "$TMP_DIR"
+      return 1
+    }
+
+    tar -xJf "$TMP_DIR/ffmpeg.tar.xz" -C "$TMP_DIR" || {
+      msg_error "Failed to extract FFmpeg binary archive"
+      rm -rf "$TMP_DIR"
+      return 1
+    }
+
+    if ! cp "$TMP_DIR/ffmpeg-"*/ffmpeg /usr/local/bin/ffmpeg 2>/dev/null; then
+      msg_error "Failed to install FFmpeg binary"
+      rm -rf "$TMP_DIR"
+      return 1
+    fi
+
+    cache_installed_version "ffmpeg" "static"
     rm -rf "$TMP_DIR"
-    return 1
-  }
+    msg_ok "Setup FFmpeg from pre-built binary"
+    return 0
+  fi
 
   tar -xzf "$TMP_DIR/ffmpeg.tar.gz" -C "$TMP_DIR" || {
-    msg_error "Failed to extract FFmpeg"
+    msg_error "Failed to extract FFmpeg source"
     rm -rf "$TMP_DIR"
     return 1
   }
@@ -2141,20 +2176,38 @@ function setup_gs() {
   ensure_dependencies jq
 
   local RELEASE_JSON
-  RELEASE_JSON=$(curl -fsSL https://api.github.com/repos/ArtifexSoftware/ghostpdl-downloads/releases/latest 2>/dev/null)
+  RELEASE_JSON=$(curl -fsSL --max-time 15 https://api.github.com/repos/ArtifexSoftware/ghostpdl-downloads/releases/latest 2>/dev/null || echo "")
+
+  if [[ -z "$RELEASE_JSON" ]]; then
+    msg_warn "Cannot fetch latest Ghostscript version from GitHub API"
+    # Try to get from current version
+    if command -v gs &>/dev/null; then
+      gs --version | head -n1
+      cache_installed_version "ghostscript" "$CURRENT_VERSION"
+      return 0
+    fi
+    msg_error "Cannot determine Ghostscript version and no existing installation found"
+    return 1
+  fi
   local LATEST_VERSION
   LATEST_VERSION=$(echo "$RELEASE_JSON" | jq -r '.tag_name' | sed 's/^gs//')
   local LATEST_VERSION_DOTTED
   LATEST_VERSION_DOTTED=$(echo "$RELEASE_JSON" | jq -r '.name' | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 
   if [[ -z "$LATEST_VERSION" || -z "$LATEST_VERSION_DOTTED" ]]; then
-    msg_error "Could not determine latest Ghostscript version"
+    msg_warn "Could not determine latest Ghostscript version from GitHub - checking system"
+    # Fallback: try to use system version or return error
+    if [[ "$CURRENT_VERSION" == "0" ]]; then
+      msg_error "Ghostscript not installed and cannot determine latest version"
+      rm -rf "$TMP_DIR"
+      return 1
+    fi
     rm -rf "$TMP_DIR"
-    return 1
+    return 0
   fi
 
   # Scenario 1: Already at latest version
-  if dpkg --compare-versions "$CURRENT_VERSION" ge "$LATEST_VERSION_DOTTED" 2>/dev/null; then
+  if [[ -n "$LATEST_VERSION_DOTTED" ]] && dpkg --compare-versions "$CURRENT_VERSION" ge "$LATEST_VERSION_DOTTED" 2>/dev/null; then
     cache_installed_version "ghostscript" "$LATEST_VERSION_DOTTED"
     rm -rf "$TMP_DIR"
     return 0
@@ -2175,6 +2228,13 @@ function setup_gs() {
 
   if ! tar -xzf "$TMP_DIR/ghostscript.tar.gz" -C "$TMP_DIR"; then
     msg_error "Failed to extract Ghostscript archive"
+    rm -rf "$TMP_DIR"
+    return 1
+  fi
+
+  # Verify directory exists before cd
+  if [[ ! -d "$TMP_DIR/ghostscript-${LATEST_VERSION_DOTTED}" ]]; then
+    msg_error "Ghostscript source directory not found: $TMP_DIR/ghostscript-${LATEST_VERSION_DOTTED}"
     rm -rf "$TMP_DIR"
     return 1
   fi
@@ -2243,21 +2303,26 @@ function setup_hwaccel() {
 
   # Detect GPU vendor (Intel, AMD, NVIDIA)
   local gpu_vendor
-  gpu_vendor=$(lspci | grep -Ei 'vga|3d|display' | grep -Eo 'Intel|AMD|NVIDIA' | head -n1)
+  gpu_vendor=$(lspci 2>/dev/null | grep -Ei 'vga|3d|display' | grep -Eo 'Intel|AMD|NVIDIA' | head -n1 || echo "")
 
   # Detect CPU vendor (relevant for AMD APUs)
   local cpu_vendor
-  cpu_vendor=$(lscpu | grep -i 'Vendor ID' | awk '{print $3}')
+  cpu_vendor=$(lscpu 2>/dev/null | grep -i 'Vendor ID' | awk '{print $3}' || echo "")
 
   if [[ -z "$gpu_vendor" && -z "$cpu_vendor" ]]; then
     msg_error "No GPU or CPU vendor detected (missing lspci/lscpu output)"
     return 1
   fi
 
-  # Detect OS
+  # Detect OS with fallbacks
   local os_id os_codename
-  os_id=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
-  os_codename=$(grep -oP '(?<=^VERSION_CODENAME=).+' /etc/os-release | tr -d '"')
+  os_id=$(grep -oP '(?<=^ID=).+' /etc/os-release 2>/dev/null | tr -d '"' || grep '^ID=' /etc/os-release 2>/dev/null | cut -d'=' -f2 | tr -d '"' || echo "debian")
+  os_codename=$(grep -oP '(?<=^VERSION_CODENAME=).+' /etc/os-release 2>/dev/null | tr -d '"' || grep '^VERSION_CODENAME=' /etc/os-release 2>/dev/null | cut -d'=' -f2 | tr -d '"' || echo "unknown")
+
+  # Validate os_id
+  if [[ -z "$os_id" ]]; then
+    os_id="debian"
+  fi
 
   # Determine if we are on a VM or LXC
   local in_ct="${CTTYPE:-0}"
@@ -2265,34 +2330,55 @@ function setup_hwaccel() {
   case "$gpu_vendor" in
   Intel)
     if [[ "$os_id" == "ubuntu" ]]; then
-      $STD apt -y install intel-opencl-icd || msg_error "Failed to install intel-opencl-icd"
+      $STD apt -y install intel-opencl-icd || {
+        msg_error "Failed to install intel-opencl-icd"
+        return 1
+      }
     else
-      fetch_and_deploy_gh_release "intel-igc-core-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-core-2_*_amd64.deb"
-      fetch_and_deploy_gh_release "intel-igc-opencl-2" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-opencl-2_*_amd64.deb"
-      fetch_and_deploy_gh_release "intel-libgdgmm12" "intel/compute-runtime" "binary" "latest" "" "libigdgmm12_*_amd64.deb"
-      fetch_and_deploy_gh_release "intel-opencl-icd" "intel/compute-runtime" "binary" "latest" "" "intel-opencl-icd_*_amd64.deb"
+      # For Debian: fetch Intel GPU drivers from GitHub
+      fetch_and_deploy_gh_release "" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-core-2_*_amd64.deb" || {
+        msg_warn "Failed to deploy Intel IGC core 2"
+      }
+      fetch_and_deploy_gh_release "" "intel/intel-graphics-compiler" "binary" "latest" "" "intel-igc-opencl-2_*_amd64.deb" || {
+        msg_warn "Failed to deploy Intel IGC OpenCL 2"
+      }
+      fetch_and_deploy_gh_release "" "intel/compute-runtime" "binary" "latest" "" "libigdgmm12_*_amd64.deb" || {
+        msg_warn "Failed to deploy Intel GDGMM12"
+      }
+      fetch_and_deploy_gh_release "" "intel/compute-runtime" "binary" "latest" "" "intel-opencl-icd_*_amd64.deb" || {
+        msg_warn "Failed to deploy Intel OpenCL ICD"
+      }
     fi
 
-    $STD apt -y install va-driver-all ocl-icd-libopencl1 vainfo intel-gpu-tools || msg_error "Failed to install GPU dependencies"
+    $STD apt -y install va-driver-all ocl-icd-libopencl1 vainfo intel-gpu-tools || {
+      msg_error "Failed to install Intel GPU dependencies"
+      return 1
+    }
     ;;
   AMD)
-    $STD apt -y install mesa-va-drivers mesa-vdpau-drivers mesa-opencl-icd vainfo clinfo || msg_error "Failed to install AMD GPU dependencies"
+    $STD apt -y install mesa-va-drivers mesa-vdpau-drivers mesa-opencl-icd vainfo clinfo || {
+      msg_error "Failed to install AMD GPU dependencies"
+      return 1
+    }
 
     # For AMD CPUs without discrete GPU (APUs)
-    if [[ "$cpu_vendor" == "AuthenticAMD" && "$gpu_vendor" != "AMD" ]]; then
+    if [[ "$cpu_vendor" == "AuthenticAMD" && -n "$gpu_vendor" ]]; then
       $STD apt -y install libdrm-amdgpu1 firmware-amd-graphics || true
     fi
     ;;
   NVIDIA)
-    # NVIDIA needs manual driver setup
+    # NVIDIA needs manual driver setup - skip for now
+    msg_info "NVIDIA GPU detected - manual driver setup required"
     ;;
   *)
     # If no discrete GPU, but AMD CPU (e.g., Ryzen APU)
     if [[ "$cpu_vendor" == "AuthenticAMD" ]]; then
-      $STD apt -y install mesa-opencl-icd ocl-icd-libopencl1 clinfo || msg_error "Failed to install Mesa OpenCL stack"
+      $STD apt -y install mesa-opencl-icd ocl-icd-libopencl1 clinfo || {
+        msg_error "Failed to install Mesa OpenCL stack"
+        return 1
+      }
     else
-      msg_error "No supported GPU vendor detected"
-      return 1
+      msg_warn "No supported GPU vendor detected - skipping GPU acceleration"
     fi
     ;;
   esac
@@ -2440,15 +2526,27 @@ function setup_java() {
 
   # Get currently installed version
   local INSTALLED_VERSION=""
-  if dpkg -l | grep -q "temurin-.*-jdk"; then
-    INSTALLED_VERSION=$(dpkg -l | awk '/temurin-.*-jdk/{print $2}' | grep -oP 'temurin-\K[0-9]+')
+  if dpkg -l | grep -q "temurin-.*-jdk" 2>/dev/null; then
+    INSTALLED_VERSION=$(dpkg -l 2>/dev/null | awk '/temurin-.*-jdk/{print $2}' | grep -oP 'temurin-\K[0-9]+' | head -n1 || echo "")
+  fi
+
+  # Validate INSTALLED_VERSION is not empty if matched
+  if [[ -z "$INSTALLED_VERSION" && $(dpkg -l 2>/dev/null | grep -c "temurin-.*-jdk" || echo "0") -gt 0 ]]; then
+    msg_warn "Found Temurin JDK but cannot determine version"
+    INSTALLED_VERSION="0"
   fi
 
   # Scenario 1: Already at correct version
   if [[ "$INSTALLED_VERSION" == "$JAVA_VERSION" ]]; then
     msg_info "Update Temurin JDK $JAVA_VERSION"
-    $STD apt update
-    $STD apt install --only-upgrade -y "$DESIRED_PACKAGE"
+    $STD apt update || {
+      msg_error "APT update failed"
+      return 1
+    }
+    $STD apt install --only-upgrade -y "$DESIRED_PACKAGE" || {
+      msg_error "Failed to update Temurin JDK"
+      return 1
+    }
     cache_installed_version "temurin-jdk" "$JAVA_VERSION"
     msg_ok "Update Temurin JDK $JAVA_VERSION"
     return 0
@@ -2462,7 +2560,10 @@ function setup_java() {
     msg_info "Setup Temurin JDK $JAVA_VERSION"
   fi
 
-  $STD apt update
+  $STD apt update || {
+    msg_error "APT update failed"
+    return 1
+  }
   $STD apt install -y "$DESIRED_PACKAGE" || {
     msg_error "Failed to install Temurin JDK $JAVA_VERSION"
     return 1
@@ -2585,23 +2686,23 @@ setup_mariadb() {
 
   # Resolve "latest" to actual version
   if [[ "$MARIADB_VERSION" == "latest" ]]; then
-    if ! curl -fsI http://mirror.mariadb.org/repo/ >/dev/null 2>&1; then
-      msg_error "MariaDB mirror not reachable"
-      return 1
+    if ! curl -fsI --max-time 10 http://mirror.mariadb.org/repo/ >/dev/null 2>&1; then
+      msg_warn "MariaDB mirror not reachable - trying cached package list fallback"
+      # Fallback: try to use a known stable version
+      MARIADB_VERSION="12.0"
+    else
+      MARIADB_VERSION=$(curl -fsSL --max-time 15 http://mirror.mariadb.org/repo/ 2>/dev/null |
+        grep -Eo '[0-9]+\.[0-9]+\.[0-9]+/' |
+        grep -vE 'rc/|rolling/' |
+        sed 's|/||' |
+        sort -Vr |
+        head -n1 || echo "")
+
+      if [[ -z "$MARIADB_VERSION" ]]; then
+        msg_warn "Could not parse latest GA MariaDB version from mirror - using fallback"
+        MARIADB_VERSION="12.0"
+      fi
     fi
-    MARIADB_VERSION=$(curl -fsSL http://mirror.mariadb.org/repo/ 2>/dev/null |
-      grep -Eo '[0-9]+\.[0-9]+\.[0-9]+/' |
-      grep -vE 'rc/|rolling/' |
-      sed 's|/||' |
-      sort -Vr |
-      head -n1) || {
-      msg_error "Could not determine latest GA MariaDB version"
-      return 1
-    }
-    [[ -z "$MARIADB_VERSION" ]] && {
-      msg_error "Latest MariaDB version is empty"
-      return 1
-    }
   fi
 
   # Get currently installed version
@@ -3480,11 +3581,22 @@ function setup_ruby() {
   # Download and build rbenv if needed
   if [[ ! -x "$RBENV_BIN" ]]; then
     local RBENV_RELEASE
-    RBENV_RELEASE=$(curl -fsSL https://api.github.com/repos/rbenv/rbenv/releases/latest 2>/dev/null | jq -r '.tag_name' | sed 's/^v//') || {
-      msg_error "Failed to fetch latest rbenv version"
+    local rbenv_json
+    rbenv_json=$(curl -fsSL --max-time 15 https://api.github.com/repos/rbenv/rbenv/releases/latest 2>/dev/null || echo "")
+
+    if [[ -z "$rbenv_json" ]]; then
+      msg_error "Failed to fetch latest rbenv version from GitHub"
       rm -rf "$TMP_DIR"
       return 1
-    }
+    fi
+
+    RBENV_RELEASE=$(echo "$rbenv_json" | jq -r '.tag_name' 2>/dev/null | sed 's/^v//' || echo "")
+
+    if [[ -z "$RBENV_RELEASE" ]]; then
+      msg_error "Could not parse rbenv version from GitHub response"
+      rm -rf "$TMP_DIR"
+      return 1
+    fi
 
     curl -fsSL "https://github.com/rbenv/rbenv/archive/refs/tags/v${RBENV_RELEASE}.tar.gz" -o "$TMP_DIR/rbenv.tar.gz" || {
       msg_error "Failed to download rbenv"
@@ -3516,11 +3628,22 @@ function setup_ruby() {
   # Install ruby-build plugin
   if [[ ! -d "$RBENV_DIR/plugins/ruby-build" ]]; then
     local RUBY_BUILD_RELEASE
-    RUBY_BUILD_RELEASE=$(curl -fsSL https://api.github.com/repos/rbenv/ruby-build/releases/latest 2>/dev/null | jq -r '.tag_name' | sed 's/^v//') || {
-      msg_error "Failed to fetch latest ruby-build version"
+    local ruby_build_json
+    ruby_build_json=$(curl -fsSL --max-time 15 https://api.github.com/repos/rbenv/ruby-build/releases/latest 2>/dev/null || echo "")
+
+    if [[ -z "$ruby_build_json" ]]; then
+      msg_error "Failed to fetch latest ruby-build version from GitHub"
       rm -rf "$TMP_DIR"
       return 1
-    }
+    fi
+
+    RUBY_BUILD_RELEASE=$(echo "$ruby_build_json" | jq -r '.tag_name' 2>/dev/null | sed 's/^v//' || echo "")
+
+    if [[ -z "$RUBY_BUILD_RELEASE" ]]; then
+      msg_error "Could not parse ruby-build version from GitHub response"
+      rm -rf "$TMP_DIR"
+      return 1
+    fi
 
     curl -fsSL "https://github.com/rbenv/ruby-build/archive/refs/tags/v${RUBY_BUILD_RELEASE}.tar.gz" -o "$TMP_DIR/ruby-build.tar.gz" || {
       msg_error "Failed to download ruby-build"
@@ -3591,15 +3714,18 @@ function setup_clickhouse() {
 
   # Resolve "latest" version
   if [[ "$CLICKHOUSE_VERSION" == "latest" ]]; then
-    CLICKHOUSE_VERSION=$(curl -fsSL https://packages.clickhouse.com/tgz/stable/ 2>/dev/null |
+    CLICKHOUSE_VERSION=$(curl -fsSL --max-time 15 https://packages.clickhouse.com/tgz/stable/ 2>/dev/null |
       grep -oP 'clickhouse-common-static-\K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' |
-      sort -V | tail -n1) || {
-      CLICKHOUSE_VERSION=$(curl -fsSL https://api.github.com/repos/ClickHouse/ClickHouse/releases/latest 2>/dev/null |
-        grep -oP '"tag_name":\s*"v\K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n1)
-    }
+      sort -V | tail -n1 || echo "")
+
+    # Fallback to GitHub API if package server failed
+    if [[ -z "$CLICKHOUSE_VERSION" ]]; then
+      CLICKHOUSE_VERSION=$(curl -fsSL --max-time 15 https://api.github.com/repos/ClickHouse/ClickHouse/releases/latest 2>/dev/null |
+        grep -oP '"tag_name":\s*"v\K[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || echo "")
+    fi
 
     [[ -z "$CLICKHOUSE_VERSION" ]] && {
-      msg_error "Could not determine latest ClickHouse version"
+      msg_error "Could not determine latest ClickHouse version from any source"
       return 1
     }
   fi
@@ -3799,12 +3925,22 @@ function setup_uv() {
   ensure_dependencies jq
 
   local LATEST_VERSION
-  LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/astral-sh/uv/releases/latest 2>/dev/null |
-    jq -r '.tag_name' | sed 's/^v//') || {
-    msg_error "Could not fetch latest uv version"
+  local releases_json
+  releases_json=$(curl -fsSL --max-time 15 https://api.github.com/repos/astral-sh/uv/releases/latest 2>/dev/null || echo "")
+
+  if [[ -z "$releases_json" ]]; then
+    msg_error "Could not fetch latest uv version from GitHub API"
     rm -rf "$TMP_DIR"
     return 1
-  }
+  fi
+
+  LATEST_VERSION=$(echo "$releases_json" | jq -r '.tag_name' 2>/dev/null | sed 's/^v//' || echo "")
+
+  if [[ -z "$LATEST_VERSION" ]]; then
+    msg_error "Could not parse uv version from GitHub API response"
+    rm -rf "$TMP_DIR"
+    return 1
+  fi
 
   # Get currently installed version
   local INSTALLED_VERSION=""
@@ -3899,12 +4035,22 @@ function setup_yq() {
   fi
 
   local LATEST_VERSION
-  LATEST_VERSION=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" 2>/dev/null |
-    jq -r '.tag_name' | sed 's/^v//') || {
-    msg_error "Could not determine latest yq version"
+  local releases_json
+  releases_json=$(curl -fsSL --max-time 15 "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" 2>/dev/null || echo "")
+
+  if [[ -z "$releases_json" ]]; then
+    msg_error "Could not fetch latest yq version from GitHub API"
     rm -rf "$TMP_DIR"
     return 1
-  }
+  fi
+
+  LATEST_VERSION=$(echo "$releases_json" | jq -r '.tag_name' 2>/dev/null | sed 's/^v//' || echo "")
+
+  if [[ -z "$LATEST_VERSION" ]]; then
+    msg_error "Could not parse yq version from GitHub API response"
+    rm -rf "$TMP_DIR"
+    return 1
+  fi
 
   # Get currently installed version
   local INSTALLED_VERSION=""
