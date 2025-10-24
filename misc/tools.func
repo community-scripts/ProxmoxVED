@@ -1856,7 +1856,7 @@ function setup_composer() {
   if [[ ! -x "$COMPOSER_BIN" ]]; then
     msg_error "Composer installation failed"
     return 1
-  }
+  fi
 
   chmod +x "$COMPOSER_BIN"
   $STD "$COMPOSER_BIN" self-update --no-interaction || true
