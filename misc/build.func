@@ -3034,8 +3034,11 @@ create_lxc_container() {
   #msg_debug "Found ${#LOCAL_TEMPLATES[@]} local templates, ${#ONLINE_TEMPLATES[@]} online templates"
   if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
     #msg_debug "First 3 online templates:"
-    for i in {0..2}; do
-      [[ -n "${ONLINE_TEMPLATES[$i]}" ]] && msg_debug "  [$i]: ${ONLINE_TEMPLATES[$i]}"
+    count=0
+    for idx in "${!ONLINE_TEMPLATES[@]}"; do
+      #msg_debug "  [$idx]: ${ONLINE_TEMPLATES[$idx]}"
+      ((count++))
+      [[ $count -ge 3 ]] && break
     done
   fi
   #msg_debug "ONLINE_TEMPLATE='$ONLINE_TEMPLATE'"
