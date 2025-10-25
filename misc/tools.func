@@ -88,16 +88,16 @@ is_tool_installed() {
   esac
 
   if [[ -z "$installed_version" ]]; then
-    return 1  # Not installed
+    return 1 # Not installed
   fi
 
   if [[ -n "$required_version" && "$installed_version" != "$required_version" ]]; then
     echo "$installed_version"
-    return 1  # Version mismatch
+    return 1 # Version mismatch
   fi
 
   echo "$installed_version"
-  return 0  # Installed and version matches (if specified)
+  return 0 # Installed and version matches (if specified)
 }
 
 # ------------------------------------------------------------------------------
@@ -177,14 +177,14 @@ should_update_tool() {
   local current_version=""
 
   # Get currently installed version
-  current_version=$(is_tool_installed "$tool_name" 2>/dev/null) || return 0  # Not installed = needs install
+  current_version=$(is_tool_installed "$tool_name" 2>/dev/null) || return 0 # Not installed = needs install
 
   # If versions are identical, no update needed
   if [[ "$current_version" == "$target_version" ]]; then
-    return 1  # No update needed
+    return 1 # No update needed
   fi
 
-  return 0  # Update needed
+  return 0 # Update needed
 }
 
 # ---------------------–----------------------------------------------------------
@@ -258,8 +258,8 @@ EOF
     ;;
 
   nodejs)
-    if [[ -z "$repo_url" ]]; then
-      msg_error "Node.js repository requires repo_url"
+    if [[ -z "$repo_url" || -z "$gpg_key_url" ]]; then
+      msg_error "Node.js repository requires repo_url and gpg_key_url"
       return 1
     fi
 
@@ -273,7 +273,7 @@ EOF
     mkdir -p /etc/apt/keyrings
 
     # Download GPG key from NodeSource
-    curl -fsSL "$repo_url/gpg.key" | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg || {
+    curl -fsSL "$gpg_key_url" | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg || {
       msg_error "Failed to import NodeSource GPG key"
       return 1
     }
@@ -1495,7 +1495,7 @@ function fetch_and_deploy_gh_release() {
       rm -rf "${target:?}/"*
     fi
 
-  tar --no-same-owner -xzf "$tmpdir/$filename" -C "$tmpdir" || {
+    tar --no-same-owner -xzf "$tmpdir/$filename" -C "$tmpdir" || {
       msg_error "Failed to extract tarball"
       rm -rf "$tmpdir"
       return 1
@@ -1934,7 +1934,7 @@ function setup_ffmpeg() {
 
     if [[ -z "$ffmpeg_tags" ]]; then
       msg_warn "Could not fetch FFmpeg versions from GitHub, trying binary fallback"
-      VERSION=""  # Will trigger binary fallback below
+      VERSION="" # Will trigger binary fallback below
     else
       VERSION=$(echo "$ffmpeg_tags" | jq -r '.[].name' 2>/dev/null |
         grep -E '^n[0-9]+\.[0-9]+\.[0-9]+$' |
@@ -1944,7 +1944,7 @@ function setup_ffmpeg() {
 
   if [[ -z "$VERSION" ]]; then
     msg_info "Could not determine FFmpeg source version, using pre-built binary"
-    VERSION=""  # Will use binary fallback
+    VERSION="" # Will use binary fallback
   fi
 
   # Dependency selection
@@ -3017,14 +3017,14 @@ EOF
   export DEBIAN_FRONTEND=noninteractive
   local mysql_install_success=false
 
-  if apt-cache search "^mysql-server$" 2>/dev/null | grep -q . && \
-     $STD apt install -y mysql-server mysql-client 2>/dev/null; then
+  if apt-cache search "^mysql-server$" 2>/dev/null | grep -q . &&
+    $STD apt install -y mysql-server mysql-client 2>/dev/null; then
     mysql_install_success=true
-  elif apt-cache search "^mysql-community-server$" 2>/dev/null | grep -q . && \
-       $STD apt install -y mysql-community-server mysql-community-client 2>/dev/null; then
+  elif apt-cache search "^mysql-community-server$" 2>/dev/null | grep -q . &&
+    $STD apt install -y mysql-community-server mysql-community-client 2>/dev/null; then
     mysql_install_success=true
-  elif apt-cache search "^mysql$" 2>/dev/null | grep -q . && \
-       $STD apt install -y mysql 2>/dev/null; then
+  elif apt-cache search "^mysql$" 2>/dev/null | grep -q . &&
+    $STD apt install -y mysql 2>/dev/null; then
     mysql_install_success=true
   fi
 
@@ -3098,7 +3098,7 @@ function setup_nodejs() {
     ensure_dependencies curl ca-certificates gnupg
 
     # Setup repository
-    manage_tool_repository "nodejs" "$NODE_VERSION" "https://deb.nodesource.com/node_${NODE_VERSION}.x" "" || {
+    manage_tool_repository "nodejs" "$NODE_VERSION" "https://deb.nodesource.com/node_${NODE_VERSION}.x" "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key" || {
       msg_error "Failed to setup Node.js repository"
       return 1
     }
@@ -3448,20 +3448,20 @@ function setup_postgresql() {
   # Try multiple PostgreSQL package patterns
   local pg_install_success=false
 
-  if apt-cache search "^postgresql-${PG_VERSION}$" 2>/dev/null | grep -q . && \
-     $STD apt install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null; then
+  if apt-cache search "^postgresql-${PG_VERSION}$" 2>/dev/null | grep -q . &&
+    $STD apt install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null; then
     pg_install_success=true
   fi
 
-  if [[ "$pg_install_success" == false ]] && \
-     apt-cache search "^postgresql-server-${PG_VERSION}$" 2>/dev/null | grep -q . && \
-     $STD apt install -y "postgresql-server-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null; then
+  if [[ "$pg_install_success" == false ]] &&
+    apt-cache search "^postgresql-server-${PG_VERSION}$" 2>/dev/null | grep -q . &&
+    $STD apt install -y "postgresql-server-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null; then
     pg_install_success=true
   fi
 
-  if [[ "$pg_install_success" == false ]] && \
-     apt-cache search "^postgresql$" 2>/dev/null | grep -q . && \
-     $STD apt install -y postgresql postgresql-client 2>/dev/null; then
+  if [[ "$pg_install_success" == false ]] &&
+    apt-cache search "^postgresql$" 2>/dev/null | grep -q . &&
+    $STD apt install -y postgresql postgresql-client 2>/dev/null; then
     pg_install_success=true
   fi
 
