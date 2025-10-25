@@ -281,7 +281,7 @@ EOF
     cat <<EOF >/etc/apt/sources.list.d/nodesource.sources
 Types: deb
 URIs: $repo_url
-Suites: $distro_codename
+Suites: nodistro
 Components: main
 Architectures: amd64 arm64
 Signed-By: /etc/apt/keyrings/nodesource.gpg
