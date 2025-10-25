@@ -30,6 +30,8 @@ function update_script() {
     exit
   fi
 
+  NODE_VERSION="24" setup_nodejs
+
   if check_for_gh_release "PatchMon" "PatchMon/PatchMon"; then
 
     msg_info "Stopping $APP"

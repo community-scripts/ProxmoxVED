@@ -21,7 +21,7 @@ $STD apt install -y \
   redis-server
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 PG_VERSION="17" setup_postgresql
 
 msg_info "Creating PostgreSQL Database"
@@ -52,9 +52,7 @@ $STD npm install --no-audit --no-fund --no-save --ignore-scripts
 cd /opt/patchmon/frontend
 $STD npm install --include=dev --no-audit --no-fund --no-save --ignore-scripts
 $STD npm run build
-msg_ok "Configured PatchMon"
 
-msg_info "Creating env files"
 JWT_SECRET="$(openssl rand -base64 64 | tr -d "=+/" | cut -c1-50)"
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
 cat <<EOF >/opt/patchmon/backend/.env
@@ -111,13 +109,11 @@ VITE_API_URL=http://$LOCAL_IP/api/v1
 VITE_APP_NAME=PatchMon
 VITE_APP_VERSION=1.3.0
 EOF
-msg_ok "Created env files"
 
-msg_info "Running database migrations"
 cd /opt/patchmon/backend
 $STD npx prisma migrate deploy
 $STD npx prisma generate
-msg_ok "Database migrations complete"
+msg_ok "Configured PatchMon"
 
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/sites-available/patchmon.conf
@@ -231,7 +227,7 @@ EOF
 systemctl enable -q --now patchmon-server
 msg_ok "Created and started service"
 
-msg_info "Populating server settings in DB"
+msg_info "Updating settings"
 cat <<EOF >/opt/patchmon/backend/update-settings.js
 const { PrismaClient } = require('@prisma/client');
 const { v4: uuidv4 } = require('uuid');
@@ -281,7 +277,7 @@ EOF
 
 cd /opt/patchmon/backend
 $STD node update-settings.js
-msg_ok "Server settings populated successfully"
+msg_ok "Settings updated successfully"
 
 motd_ssh
 customize
