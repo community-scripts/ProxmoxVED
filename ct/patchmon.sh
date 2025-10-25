@@ -59,6 +59,7 @@ function update_script() {
     mv /opt/backend.env /opt/patchmon/backend/.env
     mv /opt/frontend.env /opt/patchmon/frontend/.env
     $STD npx prisma migrate deploy
+    $STD npx prisma generate
     msg_ok "Updated ${APP}"
 
     msg_info "Starting $APP"
