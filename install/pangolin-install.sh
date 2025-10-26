@@ -23,6 +23,7 @@ NODE_VERSION="22" setup_nodejs
 fetch_and_deploy_gh_release "pangolin" "fosrl/pangolin" "tarball"
 fetch_and_deploy_gh_release "gerbil" "fosrl/gerbil" "singlefile" "latest" "/usr/bin" "gerbil_linux_amd64"
 IP_ADDR=$(hostname -I | awk '{print $1}')
+SECRET_KEY=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32)
 
 msg_info "Setup Pangolin (Patience)"
 export BUILD=oss
@@ -41,6 +42,34 @@ cp -R .next/standalone ./
 cp ./cli/wrapper.sh /usr/local/bin/pangctl
 chmod +x /usr/local/bin/pangctl ./dist/cli.mjs
 cp server/db/names.json ./dist/names.json
+
+cat <<EOF >/opt/pangolin/config/config.yml
+app:
+  dashboard_url: http://$IP_ADDR:3002
+  log_level: debug
+
+domains:
+  domain1:
+    base_domain: example.com
+
+server:
+  secret: $SECRET_KEY
+
+gerbil:
+  base_endpoint: example.com
+
+orgs:
+  block_size: 24
+  subnet_group: 100.90.137.0/20
+
+flags:
+  require_email_verification: false
+  disable_signup_without_invite: true
+  disable_user_create_org: true
+  allow_raw_resources: true
+  enable_integration_api: true
+  enable_clients: true
+EOF
 $STD npm run db:sqlite:generate
 $STD npm run db:sqlite:push
 msg_ok "Setup Pangolin"
@@ -63,6 +92,7 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now pangolin
+journalctl -u pangolin -f | grep -m1 -oP 'Token:\s*\K\w+' > ~/pangolin.creds
 msg_ok "Created pangolin Service"
 
 msg_info "Setting up gerbil"
@@ -85,7 +115,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now gerbil
 msg_ok "Set up gerbil"
-
 
 motd_ssh
 customize
