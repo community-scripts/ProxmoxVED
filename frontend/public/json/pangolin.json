@@ -39,6 +39,10 @@
     {
       "text": "LXC has 4GB of RAM set initially for the build stage. After installation finishes, you can decrease the RAM allocated to 1024MB or 512MB even.",
       "type": "info"
+    },
+    {
+      "text": "Make sure you edit `/opt/pangolin/config/config.yml` and change it to match your needs",
+      "type": "warning"
     }
   ]
 }
