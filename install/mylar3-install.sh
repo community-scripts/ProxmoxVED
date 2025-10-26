@@ -14,6 +14,13 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
+cat <<EOF >/etc/apt/sources.list.d/non-free.sources
+Types: deb
+URIs: http://deb.debian.org/debian
+Suites: bookworm
+Components: non-free non-free-firmware
+EOF
+$STD apt update
 $STD apt install -y unrar
 msg_ok "Installed Dependencies"
 
