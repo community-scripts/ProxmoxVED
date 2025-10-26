@@ -44,6 +44,30 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/ente.creds
 msg_ok "Set up PostgreSQL"
 
+# Download Ente cli
+msg_info "Downloading Ente CLI"
+$STD mkdir -p /opt/ente/cli/dist
+fetch_and_deploy_gh_release "ente" "ente-io/ente" "prebuild" "cli-v0.2.3" "/opt/ente/cli/dist" "ente-cli-v0.2.3-linux-amd64.tar.gz"
+$STD chmod +x /opt/ente/cli/dist/ente
+msg_ok "Downloaded Ente CLI"
+
+msg_info "Configuring Ente CLI"
+$STD export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/dist/secrets.txt
+$STD export PATH="/opt/ente/cli/dist:$PATH"
+cat <<EOF >>~/.bashrc
+export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/dist/secrets.txt
+export PATH="/opt/ente/cli/dist:$PATH"
+EOF
+msg_ok "Exported Ente CLI paths"
+
+cat <<EOF >~/.ente/config.yaml
+endpoint:
+    api: http://localhost:8080
+EOF
+msg_ok "Created Ente CLI config.yaml"
+
+msg_ok "Configured Ente CLI"
+
 msg_info "Building Museum (server)"
 cd /opt/ente/server
 $STD corepack enable
@@ -101,11 +125,42 @@ jwt:
 EOF
 msg_ok "Created museum.yaml"
 
+# Prompt for backend URL
+read -r -p "Enter the public URL for Ente backend (e.g., https://api.ente.yourdomain.com or http://192.168.1.100:8080) leave empty to use container IP: " backend_url
+if [[ -z "$backend_url" ]]; then
+    # Default to local IP if user doesn't provide one
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    ENTE_BACKEND_URL="http://$LOCAL_IP:8080"
+    msg_info "No URL provided, using local IP: $ENTE_BACKEND_URL"
+else
+    ENTE_BACKEND_URL="$backend_url"
+    msg_info "Using provided URL: $ENTE_BACKEND_URL"
+fi
+
+# Prompt for albums URL
+read -r -p "Enter the public URL for Ente albums (e.g., https://albums.ente.yourdomain.com or http://192.168.1.100:3002) leave empty to use container IP: " albums_url
+if [[ -z "$albums_url" ]]; then
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    ENTE_ALBUMS_URL="http://$LOCAL_IP:3002"
+    msg_info "No URL provided, using local IP: $ENTE_ALBUMS_URL"
+else
+    ENTE_ALBUMS_URL="$albums_url"
+    msg_info "Using provided URL: $ENTE_ALBUMS_URL"
+fi
+
+export NEXT_PUBLIC_ENTE_ENDPOINT=$ENTE_BACKEND_URL
+export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=$ENTE_ALBUMS_URL
+
+# save to bashrc
+cat <<EOF >>~/.bashrc
+export NEXT_PUBLIC_ENTE_ENDPOINT=$ENTE_BACKEND_URL
+export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=$ENTE_ALBUMS_URL
+EOF
+msg_ok "Saved to bashrc"
+
 msg_info "Building Web Applications"
 cd /opt/ente/web
 $STD yarn install
-export NEXT_PUBLIC_ENTE_ENDPOINT=http://localhost:8080
-export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=http://localhost:3002
 $STD yarn build
 $STD yarn build:accounts
 $STD yarn build:auth
@@ -172,3 +227,5 @@ msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
+
+msg_info "If you want to use the Ente CLI, please follow the instructions at https://ente.io/help/self-hosting/administration/cli"
