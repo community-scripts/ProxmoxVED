@@ -92,7 +92,7 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now pangolin
-journalctl -u pangolin -f | grep -m1 -oP 'Token:\s*\K\w+' > ~/pangolin.creds
+journalctl -u pangolin -f | grep -m1 'Token:' | awk '{print $NF}' > ~/pangolin.creds
 msg_ok "Created pangolin Service"
 
 msg_info "Setting up gerbil"
