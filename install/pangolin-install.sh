@@ -39,7 +39,12 @@ $STD node esbuild.mjs -e server/index.ts -o dist/server.mjs -b $BUILD
 $STD node esbuild.mjs -e server/setup/migrationsSqlite.ts -o dist/migrations.mjs
 $STD npm run build:cli
 cp -R .next/standalone ./
-cp ./cli/wrapper.sh /usr/local/bin/pangctl
+
+cat <<EOF >/usr/local/bin/pangctl
+#!/bin/sh
+cd /opt/pangolin
+./dist/cli.mjs "$@"
+EOF
 chmod +x /usr/local/bin/pangctl ./dist/cli.mjs
 cp server/db/names.json ./dist/names.json
 

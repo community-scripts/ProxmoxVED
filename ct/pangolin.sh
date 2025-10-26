@@ -27,10 +27,48 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-    msg_info "Updating $APP LXC"
-    $STD apt-get update
-    $STD apt-get -y upgrade
-    msg_ok "Updated $APP LXC"
+
+    if check_for_gh_release "pangolin" "fosrl/pangolin"; then
+        msg_info "Stopping ${APP}"
+        systemctl stop pangolin
+        msg_info "Service stopped"
+
+        msg_info "Creating backup"
+        tar -czf /opt/pangolin_config_backup.tar.gz -C /opt/pangolin config
+        msg_ok "Created backup"
+
+        fetch_and_deploy_gh_release "pangolin" "fosrl/pangolin" "tarball"
+        fetch_and_deploy_gh_release "gerbil" "fosrl/gerbil" "singlefile" "latest" "/usr/bin" "gerbil_linux_amd64"
+
+        msg_info "Updating ${APP}"
+        export BUILD=oss
+        export DATABASE=sqlite
+        cd /opt/pangolin
+        $STD npm ci
+        echo "export * from \"./$DATABASE\";" > server/db/index.ts
+        echo "export const build = \"$BUILD\" as any;" > server/build.ts
+        cp tsconfig.oss.json tsconfig.json
+        $STD npm run next:build
+        $STD node esbuild.mjs -e server/index.ts -o dist/server.mjs -b $BUILD
+        $STD node esbuild.mjs -e server/setup/migrationsSqlite.ts -o dist/migrations.mjs
+        $STD npm run build:cli
+        cp -R .next/standalone ./
+
+        cat <<EOF >/usr/local/bin/pangctl
+#!/bin/sh
+cd /opt/pangolin
+./dist/cli.mjs "$@"
+EOF
+        chmod +x /usr/local/bin/pangctl ./dist/cli.mjs
+        cp server/db/names.json ./dist/names.json
+        msg_ok "Updated ${APP}"
+
+        msg_info "Restoring config"
+        tar -xzf /opt/pangolin_config_backup.tar.gz -C /opt/pangolin --overwrite
+        rm -f /opt/pangolin_config_backup.tar.gz
+        msg_ok "Restored config"
+        msg_ok "Updated successfully!"
+    fi
     exit
 }
 
