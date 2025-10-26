@@ -59,7 +59,6 @@ export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/dist/secrets.txt
 export PATH="/opt/ente/cli/dist:$PATH"
 EOF
 msg_ok "Exported Ente CLI paths"
-$STD mkdir -p ~/.ente
 $STD touch ~/.ente/config.yaml
 cat <<EOF >~/.ente/config.yaml
 endpoint:
