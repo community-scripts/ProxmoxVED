@@ -46,6 +46,20 @@ function update_script() {
     if [[ -f /opt/dispatcharr/.env ]]; then
       cp /opt/dispatcharr/.env /tmp/dispatcharr.env.backup
     fi
+
+    if [[ -f /opt/dispatcharr/start-gunicorn.sh ]]; then
+      cp /opt/dispatcharr/start-gunicorn.sh /tmp/start-gunicorn.sh.backup
+    fi
+    if [[ -f /opt/dispatcharr/start-celery.sh ]]; then
+      cp /opt/dispatcharr/start-celery.sh /tmp/start-celery.sh.backup
+    fi
+    if [[ -f /opt/dispatcharr/start-celerybeat.sh ]]; then
+      cp /opt/dispatcharr/start-celerybeat.sh /tmp/start-celerybeat.sh.backup
+    fi
+    if [[ -f /opt/dispatcharr/start-daphne.sh ]]; then
+      cp /opt/dispatcharr/start-daphne.sh /tmp/start-daphne.sh.backup
+    fi
+
     if [[ -f /opt/dispatcharr/.env ]]; then
       set -o allexport
       source /opt/dispatcharr/.env
@@ -65,6 +79,21 @@ function update_script() {
       mv /tmp/dispatcharr.env.backup /opt/dispatcharr/.env
       msg_info "Restored environment configuration"
     fi
+
+    # Restore service scripts
+    if [[ -f /tmp/start-gunicorn.sh.backup ]]; then
+      mv /tmp/start-gunicorn.sh.backup /opt/dispatcharr/start-gunicorn.sh
+    fi
+    if [[ -f /tmp/start-celery.sh.backup ]]; then
+      mv /tmp/start-celery.sh.backup /opt/dispatcharr/start-celery.sh
+    fi
+    if [[ -f /tmp/start-celerybeat.sh.backup ]]; then
+      mv /tmp/start-celerybeat.sh.backup /opt/dispatcharr/start-celerybeat.sh
+    fi
+    if [[ -f /tmp/start-daphne.sh.backup ]]; then
+      mv /tmp/start-daphne.sh.backup /opt/dispatcharr/start-daphne.sh
+    fi
+
     cd /opt/dispatcharr || exit
     rm -rf .venv
     $STD uv venv
