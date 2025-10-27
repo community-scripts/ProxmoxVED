@@ -1,0 +1,48 @@
+{
+  "name": "OpenBao",
+  "slug": "openbao",
+  "categories": [
+    6
+  ],
+  "date_created": "2025-10-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8200,
+  "documentation": "https://openbao.org/docs",
+  "website": "https://openbao.org/",
+  "logo": "https://avatars.githubusercontent.com/u/149122427?s=200&v=4",
+  "config_path": "/etc/openbao/config.hcl",
+  "description": "OpenBao is an open-source secret management platform that stores, protects, and controls access to sensitive credentials, tokens, and encryption keys with fine-grained policy controls.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/openbao.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Initialization details, including the unseal key and root token, are written to `~/openbao.creds`. Secure this file immediately after installation.",
+      "type": "warning"
+    },
+    {
+      "text": "OpenBao listens on port `8200` without TLS by default. Enable TLS before exposing the service outside trusted networks.",
+      "type": "warning"
+    },
+    {
+      "text": "The file storage backend is configured at `/var/lib/openbao/data`. Back up this directory regularly to retain secrets.",
+      "type": "info"
+    }
+  ]
+}
