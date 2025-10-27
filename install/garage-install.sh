@@ -29,6 +29,7 @@ METRICS_TOKEN=$(openssl rand -base64 32)
     echo "Admin Token: $ADMIN_TOKEN"
     echo "Metrics Token: $METRICS_TOKEN"
 } >>~/garage.creds
+echo $GITEA_RELEASE >>~/.garage
 cat <<EOF >/etc/garage.toml
 metadata_dir = "/var/lib/garage/meta"
 data_dir = "/var/lib/garage/data"

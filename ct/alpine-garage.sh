@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
-# Author: MickLesk (CanbiZ)
+# Copyright (c) 2021-2025 tteck
+# Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://garagehq.deuxfleurs.fr/
+# Source: https://alpinelinux.org/
 
-APP="Garage"
-var_tags="${var_tags:-object-storage}"
+APP="Alpine-Garage"
+var_tags="${var_tags:-alpine;object-storage}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
 var_disk="${var_disk:-3}"
-var_os="${var_os:-debian}"
-var_version="${var_version:-13}"
+var_os="${var_os:-alpine}"
+var_version="${var_version:-3.22}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -21,16 +21,15 @@ catch_errors
 
 function update_script() {
   header_info
-  check_container_storage
-  check_container_resources
   if [[ ! -f /usr/local/bin/garage ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+
   GITEA_RELEASE=$(curl -fsSL https://api.github.com/repos/deuxfleurs-org/garage/tags | jq -r '.[0].name')
   if [[ "${GITEA_RELEASE}" != "$(cat ~/.garage 2>/dev/null)" ]] || [[ ! -f ~/.garage ]]; then
     msg_info "Stopping Service"
-    systemctl stop garage
+    rc-service garage stop || true
     msg_ok "Stopped Service"
 
     msg_info "Backing Up Data"
@@ -45,7 +44,7 @@ function update_script() {
     msg_ok "Updated Garage"
 
     msg_info "Starting Service"
-    systemctl start garage
+    rc-service garage start || rc-service garage restart
     msg_ok "Started Service"
     msg_ok "Update Successfully!"
   else
@@ -53,6 +52,7 @@ function update_script() {
   fi
   exit
 }
+
 
 start
 build_container
