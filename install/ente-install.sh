@@ -83,9 +83,9 @@ $STD go build cmd/museum/main.go
 msg_ok "Built Museum"
 
 msg_info "Generating Secrets"
-SECRET_ENC=$($STD go run tools/gen-random-keys/main.go | grep "encryption" | awk '{print $2}')
-SECRET_HASH=$($STD go run tools/gen-random-keys/main.go | grep "hash" | awk '{print $2}')
-SECRET_JWT=$($STD go run tools/gen-random-keys/main.go | grep "jwt" | awk '{print $2}')
+SECRET_ENC=$(go run tools/gen-random-keys/main.go 2>/dev/null | grep "encryption" | awk '{print $2}')
+SECRET_HASH=$(go run tools/gen-random-keys/main.go 2>/dev/null | grep "hash" | awk '{print $2}')
+SECRET_JWT=$(go run tools/gen-random-keys/main.go 2>/dev/null | grep "jwt" | awk '{print $2}')
 msg_ok "Generated Secrets"
 
 msg_info "Creating museum.yaml"
