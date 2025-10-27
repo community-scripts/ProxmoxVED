@@ -25,38 +25,38 @@ color
 catch_errors
 
 prompt_input() {
-    local __result_var="$1"
-    local __title="$2"
-    local __prompt="$3"
-    local __default="$4"
-    local __allow_empty="${5:-0}"
-    local __value
+  local __result_var="$1"
+  local __title="$2"
+  local __prompt="$3"
+  local __default="$4"
+  local __allow_empty="${5:-0}"
+  local __value
 
-    while true; do
-        __value=$(whiptail --title "$__title" --inputbox "$__prompt" 10 70 "$__default" 3>&1 1>&2 2>&3) || exit_script
-        if [[ -n "${__value}" || "$__allow_empty" -eq 1 ]]; then
-            printf -v "$__result_var" '%s' "${__value}"
-            return 0
-        fi
-        whiptail --title "$APP" --msgbox "Input cannot be empty." 8 50
-    done
+  while true; do
+    __value=$(whiptail --title "$__title" --inputbox "$__prompt" 10 70 "$__default" 3>&1 1>&2 2>&3) || exit_script
+    if [[ -n "$__value" || "$__allow_empty" -eq 1 ]]; then
+      printf -v "$__result_var" '%s' "$__value"
+      return 0
+    fi
+    whiptail --title "$APP" --msgbox "Input cannot be empty." 8 50
+  done
 }
 
 prompt_password() {
-    local __result_var="$1"
-    local __title="$2"
-    local __prompt="$3"
-    local __allow_empty="${4:-0}"
-    local __password
+  local __result_var="$1"
+  local __title="$2"
+  local __prompt="$3"
+  local __allow_empty="${4:-0}"
+  local __password
 
-    while true; do
-        __password=$(whiptail --title "$__title" --passwordbox "$__prompt" 10 70 3>&1 1>&2 2>&3) || exit_script
-        if [[ -n "${__password}" || "$__allow_empty" -eq 1 ]]; then
-            printf -v "$__result_var" '%s' "${__password}"
-            return 0
-        fi
-        whiptail --title "$APP" --msgbox "Password cannot be empty." 8 55
-    done
+  while true; do
+    __password=$(whiptail --title "$__title" --passwordbox "$__prompt" 10 70 3>&1 1>&2 2>&3) || exit_script
+    if [[ -n "$__password" || "$__allow_empty" -eq 1 ]]; then
+      printf -v "$__result_var" '%s' "$__password"
+      return 0
+    fi
+    whiptail --title "$APP" --msgbox "Password cannot be empty." 8 55
+  done
 }
 
 collect_lxc_ids() {
@@ -94,11 +94,11 @@ verify_tcp_endpoint() {
         msg_warn "${__label} is still unreachable at ${__host}:${__port}"
     fi
 
-    if whiptail --title "$APP" --yesno "Unable to connect to ${__label} at ${__host}:${__port}.\n\nChoose <Yes> to retry entering the connection details or <No> to continue anyway." 11 70; then
-        return 1
-    fi
+  if whiptail --title "$APP" --yesno "Unable to connect to ${__label} at ${__host}:${__port}.\n\nChoose <Yes> to re-enter the connection details or <No> to continue anyway." 11 70; then
+    return 1
+  fi
 
-    return 0
+  return 0
 }
 
 configure_mariadb_remote_access() {
@@ -172,45 +172,48 @@ EOF
 }
 
 configure_site_settings() {
-    local site_name
-    local db_name
-    local admin_email
-    local admin_password
-    local default_site="${ERPNEXT_SITE_NAME:-erpnext.local}"
-    local generated_password
+  local site_name
+  local db_name
+  local admin_email
+  local admin_password
+  local default_site="${ERPNEXT_SITE_NAME:-erpnext.local}"
+  local generated_password
 
-    prompt_input site_name "${APP} Site" "Enter the ERPNext site name" "${default_site}"
+  prompt_input site_name "${APP} Site" "Enter the ERPNext site name" "$default_site"
 
-    local sanitized_default="${site_name//./_}"
-    sanitized_default="${sanitized_default// /_}"
-    prompt_input db_name "${APP} Database" "Enter the MariaDB database name" "${ERPNEXT_DB_NAME:-${sanitized_default}}"
+  local sanitized_default
+  sanitized_default=$(printf '%s' "$site_name" | tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '_')
+  sanitized_default="${sanitized_default##_}"
+  sanitized_default="${sanitized_default%%_}"
+  sanitized_default="${sanitized_default:-erpnext}"
+  prompt_input db_name "${APP} Database" "Enter the MariaDB database name" "${ERPNEXT_DB_NAME:-${sanitized_default}}"
 
-    prompt_input admin_email "${APP} Administrator" "Enter the ERPNext administrator email" "${ERPNEXT_ADMIN_EMAIL:-administrator@example.com}"
+  prompt_input admin_email "${APP} Administrator" "Enter the ERPNext administrator email" "${ERPNEXT_ADMIN_EMAIL:-administrator@example.com}"
 
-    generated_password=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c18)
-    prompt_password admin_password "${APP} Administrator" "Enter the ERPNext administrator password (leave blank to autogenerate)" 1
-    if [[ -z "${admin_password}" ]]; then
-        admin_password="${generated_password}"
-        msg_info "Generated administrator password: ${admin_password}"
-    fi
+  generated_password=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c18)
+  prompt_password admin_password "${APP} Administrator" "Enter the ERPNext administrator password (leave blank to autogenerate)" 1
+  if [[ -z "$admin_password" ]]; then
+    admin_password="$generated_password"
+    msg_info "Generated administrator password: ${admin_password}"
+  fi
 
-    export ERPNEXT_SITE_NAME="${site_name}"
-    export ERPNEXT_DB_NAME="${db_name}"
-    export ERPNEXT_ADMIN_EMAIL="${admin_email}"
-    export ERPNEXT_ADMIN_PASSWORD="${admin_password}"
+  export ERPNEXT_SITE_NAME="$site_name"
+  export ERPNEXT_DB_NAME="$db_name"
+  export ERPNEXT_ADMIN_EMAIL="$admin_email"
+  export ERPNEXT_ADMIN_PASSWORD="$admin_password"
 }
 
 run_remote_installer() {
-    local __url="$1"
-    local __label="$2"
+  local __url="$1"
+  local __label="$2"
 
-    msg_info "Launching ${__label} installer"
-    if bash -c "$(curl -fsSL "${__url}")"; then
-        msg_ok "${__label} installer finished"
-    else
-        msg_error "${__label} installer failed"
-        exit 1
-    fi
+  msg_info "Launching ${__label} installer"
+  if bash -c "$(curl -fsSL "${__url}")"; then
+    msg_ok "${__label} installer finished"
+  else
+    msg_error "${__label} installer failed"
+    exit 1
+  fi
 }
 
 configure_mariadb() {
@@ -310,77 +313,78 @@ configure_mariadb() {
 }
 
 prompt_redis_endpoint() {
-    local __label="$1"
-    local __default_port="$2"
-    local __host
-    local __port
-    local __password
+  local __label="$1"
+  local __default_port="$2"
+  local __host
+  local __port
+  local __password
 
-    while true; do
-        prompt_input __host "${APP} Redis (${__label})" "Enter the Redis host or IP for ${__label}" "127.0.0.1"
-        prompt_input __port "${APP} Redis (${__label})" "Enter the Redis port for ${__label}" "${__default_port}"
-        prompt_password __password "${APP} Redis (${__label})" "Enter the Redis password for ${__label} (leave blank for none)" 1
+  while true; do
+    prompt_input __host "${APP} Redis (${__label})" "Enter the Redis host or IP for ${__label}" "127.0.0.1"
+    prompt_input __port "${APP} Redis (${__label})" "Enter the Redis port for ${__label}" "${__default_port}"
+    prompt_password __password "${APP} Redis (${__label})" "Enter the Redis password for ${__label} (leave blank for none)" 1
 
-        if verify_tcp_endpoint "${__host}" "${__port}" "Redis (${__label})"; then
-            break
-        fi
-    done
-
-    if [[ -n "${__password}" ]]; then
-        printf 'redis://:%s@%s:%s' "${__password}" "${__host}" "${__port}"
-    else
-        printf 'redis://%s:%s' "${__host}" "${__port}"
+    if verify_tcp_endpoint "$__host" "$__port" "Redis (${__label})"; then
+      break
     fi
+  done
+
+  if [[ -n "$__password" ]]; then
+    printf 'redis://:%s@%s:%s' "$__password" "$__host" "$__port"
+  else
+    printf 'redis://%s:%s' "$__host" "$__port"
+  fi
 }
 
 configure_redis_instance() {
-    local __label="$1"
-    local __env_var="$2"
-    local __default_port="$3"
-    local __choice
-    local __url
+  local __label="$1"
+  local __env_var="$2"
+  local __default_port="$3"
+  local __choice
+  local __url
 
-    __choice=$(whiptail --title "${APP} Redis (${__label})" --menu "Select how to provide Redis for ${__label}" 16 72 3 \
-        create "Create a new dedicated Redis LXC now" \
-        existing "Use an existing Redis instance" \
-        internal "Use Redis inside the ERPNext container" 3>&1 1>&2 2>&3) || exit_script
+  __choice=$(whiptail --title "${APP} Redis (${__label})" --menu "Select how to provide Redis for ${__label}" 16 72 3 \
+    create "Create a new dedicated Redis LXC now" \
+    existing "Use an existing Redis instance" \
+    internal "Use Redis inside the ERPNext container" 3>&1 1>&2 2>&3) || exit_script
 
-    case "$__choice" in
-        create)
-            run_remote_installer "https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/redis.sh" "Redis LXC (${__label})"
-            __url=$(prompt_redis_endpoint "$__label" "$__default_port")
-            ;;
-        existing)
-            __url=$(prompt_redis_endpoint "$__label" "$__default_port")
-            ;;
-        internal)
-            __url="redis://127.0.0.1:${__default_port}"
-            export ERPNEXT_ENABLE_INTERNAL_REDIS="yes"
-            ;;
-    esac
+  case "$__choice" in
+    create)
+      run_remote_installer "https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/redis.sh" "Redis LXC (${__label})"
+      __url=$(prompt_redis_endpoint "$__label" "$__default_port")
+      ;;
+    existing)
+      __url=$(prompt_redis_endpoint "$__label" "$__default_port")
+      ;;
+    internal)
+      __url="redis://127.0.0.1:${__default_port}"
+      export ERPNEXT_ENABLE_INTERNAL_REDIS="yes"
+      ;;
+  esac
 
-    export "$__env_var"="${__url}"
+  export "$__env_var"="$__url"
 }
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
+  header_info
+  check_container_storage
+  check_container_resources
 
-    if [[ ! -d /home/frappe/frappe-bench ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-
-    msg_error "Update automation for ${APP} is not available yet."
-    msg_info "Please run 'bench update' inside the container to apply updates."
+  if [[ ! -d /home/frappe/frappe-bench ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  msg_error "Update automation for ${APP} is not available yet."
+  msg_info "Please run 'bench update' inside the container to apply updates."
+  exit
 }
 
 start
 
 configure_mariadb
 configure_site_settings
+export ERPNEXT_ROLE="combined"
 export ERPNEXT_ENABLE_INTERNAL_REDIS="no"
 configure_redis_instance "Cache" "ERPNEXT_REDIS_CACHE" "6379"
 configure_redis_instance "Queue" "ERPNEXT_REDIS_QUEUE" "6379"

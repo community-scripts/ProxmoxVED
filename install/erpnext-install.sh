@@ -11,10 +11,12 @@ verb_ip6
 catch_errors
 
 if [[ -z "${ERPNEXT_PARENT_INITIALIZED:-}" ]]; then
-  setting_up_container
-  network_check
-  update_os
+    setting_up_container
+    network_check
+    update_os
 fi
+
+export DEBIAN_FRONTEND=noninteractive
 
 ROLE="${ERPNEXT_ROLE:-combined}"
 FRAPPE_BRANCH="${ERPNEXT_FRAPPE_BRANCH:-version-15}"
@@ -46,37 +48,39 @@ ADMIN_EMAIL_DEFAULT="${ERPNEXT_ADMIN_EMAIL:-administrator@example.com}"
 ADMIN_PASS_DEFAULT="${ERPNEXT_ADMIN_PASSWORD:-}"
 
 if [[ ! "$ROLE" =~ ^(combined|backend|frontend|scheduler|websocket|worker)$ ]]; then
-  msg_error "Unsupported ERPNext role: ${ROLE}"
-  exit 1
+    msg_error "Unsupported ERPNext role: ${ROLE}"
+    exit 1
 fi
 
 prompt_or_default() {
-  local __var_name="$1"
-  local __prompt="$2"
-  local __default="$3"
-  local __silent="${4:-0}"
-  local __value="${!__var_name}"
+    local __var_name="$1"
+    local __prompt="$2"
+    local __default="$3"
+    local __silent="${4:-0}"
+    local __value="${!__var_name}"
 
-  if [[ -z "$__value" ]]; then
-    __value="$__default"
-  fi
-
-  if [[ -t 0 ]]; then
-    if [[ "$__silent" -eq 1 ]]; then
-      read -rsp "$__prompt" __input </dev/tty || true
-      echo
-    else
-      read -rp "$__prompt" __input </dev/tty || true
+    if [[ -z "$__value" ]]; then
+        __value="$__default"
     fi
-    if [[ -n "$__input" ]]; then
-      __value="$__input"
-    fi
-  fi
 
-  printf -v "$__var_name" '%s' "$__value"
+    if [[ -t 0 ]]; then
+        if [[ "$__silent" -eq 1 ]]; then
+            read -rsp "$__prompt" __input </dev/tty || true
+            echo
+        else
+            read -rp "$__prompt" __input </dev/tty || true
+        fi
+        if [[ -n "$__input" ]]; then
+            __value="$__input"
+        fi
+    fi
+
+    printf -v "$__var_name" '%s' "$__value"
 }
 
-ADMIN_PASS_DEFAULT=${ADMIN_PASS_DEFAULT:-$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c18)}
+if [[ -z "$ADMIN_PASS_DEFAULT" ]]; then
+    ADMIN_PASS_DEFAULT=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c18)
+fi
 
 SITE_NAME="$SITE_NAME_DEFAULT"
 DB_NAME="$DB_NAME_DEFAULT"
@@ -115,91 +119,99 @@ prompt_or_default ADMIN_EMAIL "Administrator email [${ADMIN_EMAIL}]: " "$ADMIN_E
 prompt_or_default ADMIN_PASSWORD "Administrator password [hidden]: " "$ADMIN_PASSWORD" 1
 
 if [[ "$ROLE" == "frontend" ]]; then
-  prompt_or_default BACKEND_HOST "Backend host [${BACKEND_HOST}]: " "$BACKEND_HOST"
-  prompt_or_default BACKEND_PORT "Backend port [${BACKEND_PORT}]: " "$BACKEND_PORT"
-  prompt_or_default SOCKETIO_HOST "Socket.IO host [${SOCKETIO_HOST}]: " "$SOCKETIO_HOST"
-  prompt_or_default SOCKETIO_PUBLIC_PORT "Socket.IO port for frontend [${SOCKETIO_PUBLIC_PORT}]: " "$SOCKETIO_PUBLIC_PORT"
-  prompt_or_default FRAPPE_SITE_NAME_HEADER "Frappe site header [${FRAPPE_SITE_NAME_HEADER}]: " "$FRAPPE_SITE_NAME_HEADER"
-  prompt_or_default UPSTREAM_REAL_IP_ADDRESS "Upstream real IP address [${UPSTREAM_REAL_IP_ADDRESS}]: " "$UPSTREAM_REAL_IP_ADDRESS"
-  prompt_or_default UPSTREAM_REAL_IP_HEADER "Upstream real IP header [${UPSTREAM_REAL_IP_HEADER}]: " "$UPSTREAM_REAL_IP_HEADER"
-  prompt_or_default UPSTREAM_REAL_IP_RECURSIVE "Upstream real IP recursive [${UPSTREAM_REAL_IP_RECURSIVE}]: " "$UPSTREAM_REAL_IP_RECURSIVE"
-  prompt_or_default PROXY_READ_TIMEOUT "Proxy read timeout [${PROXY_READ_TIMEOUT}]: " "$PROXY_READ_TIMEOUT"
-  prompt_or_default CLIENT_MAX_BODY_SIZE "Client max body size [${CLIENT_MAX_BODY_SIZE}]: " "$CLIENT_MAX_BODY_SIZE"
+    prompt_or_default BACKEND_HOST "Backend host [${BACKEND_HOST}]: " "$BACKEND_HOST"
+    prompt_or_default BACKEND_PORT "Backend port [${BACKEND_PORT}]: " "$BACKEND_PORT"
+    prompt_or_default SOCKETIO_HOST "Socket.IO host [${SOCKETIO_HOST}]: " "$SOCKETIO_HOST"
+    prompt_or_default SOCKETIO_PUBLIC_PORT "Socket.IO port for frontend [${SOCKETIO_PUBLIC_PORT}]: " "$SOCKETIO_PUBLIC_PORT"
+    prompt_or_default FRAPPE_SITE_NAME_HEADER "Frappe site header [${FRAPPE_SITE_NAME_HEADER}]: " "$FRAPPE_SITE_NAME_HEADER"
+    prompt_or_default UPSTREAM_REAL_IP_ADDRESS "Upstream real IP address [${UPSTREAM_REAL_IP_ADDRESS}]: " "$UPSTREAM_REAL_IP_ADDRESS"
+    prompt_or_default UPSTREAM_REAL_IP_HEADER "Upstream real IP header [${UPSTREAM_REAL_IP_HEADER}]: " "$UPSTREAM_REAL_IP_HEADER"
+    prompt_or_default UPSTREAM_REAL_IP_RECURSIVE "Upstream real IP recursive [${UPSTREAM_REAL_IP_RECURSIVE}]: " "$UPSTREAM_REAL_IP_RECURSIVE"
+    prompt_or_default PROXY_READ_TIMEOUT "Proxy read timeout [${PROXY_READ_TIMEOUT}]: " "$PROXY_READ_TIMEOUT"
+    prompt_or_default CLIENT_MAX_BODY_SIZE "Client max body size [${CLIENT_MAX_BODY_SIZE}]: " "$CLIENT_MAX_BODY_SIZE"
 else
-  SOCKETIO_PUBLIC_PORT="$SOCKETIO_PORT"
-  BACKEND_HOST="127.0.0.1"
-  BACKEND_PORT="8000"
-  SOCKETIO_HOST="127.0.0.1"
-  FRAPPE_SITE_NAME_HEADER="\$host"
-  UPSTREAM_REAL_IP_ADDRESS="127.0.0.1"
-  UPSTREAM_REAL_IP_HEADER="X-Forwarded-For"
-  UPSTREAM_REAL_IP_RECURSIVE="off"
-  PROXY_READ_TIMEOUT="120"
-  CLIENT_MAX_BODY_SIZE="50m"
+    SOCKETIO_PUBLIC_PORT="$SOCKETIO_PORT"
+    BACKEND_HOST="127.0.0.1"
+    BACKEND_PORT="8000"
+    SOCKETIO_HOST="127.0.0.1"
+    FRAPPE_SITE_NAME_HEADER="\$host"
+    UPSTREAM_REAL_IP_ADDRESS="127.0.0.1"
+    UPSTREAM_REAL_IP_HEADER="X-Forwarded-For"
+    UPSTREAM_REAL_IP_RECURSIVE="off"
+    PROXY_READ_TIMEOUT="120"
+    CLIENT_MAX_BODY_SIZE="50m"
 fi
 
 if [[ -z "$DB_HOST" ]]; then
-  msg_error "MariaDB host is required for ERPNext installation."
-  exit 1
+    msg_error "MariaDB host is required for ERPNext installation."
+    exit 1
 fi
 
 msg_info "Installing ERPNext prerequisites"
 $STD apt-get install -y \
-  curl \
-  git \
-  vim \
-  nginx \
-  gettext-base \
-  file \
-  libpango-1.0-0 \
-  libharfbuzz0b \
-  libpangoft2-1.0-0 \
-  libpangocairo-1.0-0 \
-  restic \
-  gpg \
-  mariadb-client \
-  less \
-  libpq-dev \
-  postgresql-client \
-  wait-for-it \
-  jq \
-  media-types \
-  wget \
-  libffi-dev \
-  liblcms2-dev \
-  libldap2-dev \
-  libmariadb-dev \
-  libsasl2-dev \
-  libtiff5-dev \
-  libwebp-dev \
-  pkg-config \
-  redis-tools \
-  rlwrap \
-  tk8.6-dev \
-  cron \
-  gcc \
-  build-essential \
-  libbz2-dev \
-  python3 \
-  python3-dev \
-  python3-pip \
-  python3-venv \
-  sudo \
-  supervisor \
-  locales
+    curl \
+    git \
+    vim \
+    nginx \
+    gettext-base \
+    file \
+    libpango-1.0-0 \
+    libharfbuzz0b \
+    libpangoft2-1.0-0 \
+    libpangocairo-1.0-0 \
+    restic \
+    gpg \
+    mariadb-client \
+    less \
+    libpq-dev \
+    postgresql-client \
+    wait-for-it \
+    jq \
+    media-types \
+    wget \
+    libffi-dev \
+    liblcms2-dev \
+    libldap2-dev \
+    libmariadb-dev \
+    libsasl2-dev \
+    libtiff5-dev \
+    libwebp-dev \
+    pkg-config \
+    redis-tools \
+    rlwrap \
+    tk8.6-dev \
+    cron \
+    gcc \
+    build-essential \
+    libbz2-dev \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    sudo \
+    supervisor \
+    locales
 msg_ok "Installed prerequisites"
 
 if [[ "$ENABLE_INTERNAL_REDIS" == "yes" ]]; then
-  msg_info "Installing Redis server"
-  $STD apt-get install -y redis-server
-  systemctl enable -q --now redis-server
-  msg_ok "Redis server ready"
+    msg_info "Installing Redis server"
+    $STD apt-get install -y redis-server
+    systemctl enable -q --now redis-server
+    msg_ok "Redis server ready"
 fi
 
 msg_info "Installing wkhtmltopdf"
 WKHTML_VERSION="0.12.6.1-3"
 WKHTML_DISTRO="bookworm"
 ARCH=$(dpkg --print-architecture)
+case "$ARCH" in
+    amd64|arm64)
+        ;;
+    *)
+        msg_error "Unsupported architecture for wkhtmltopdf: ${ARCH}"
+        exit 1
+        ;;
+esac
 WKHTML_DEB="wkhtmltox_${WKHTML_VERSION}.${WKHTML_DISTRO}_${ARCH}.deb"
 cd /tmp || exit
 curl -fsSLO "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTML_VERSION}/${WKHTML_DEB}"
@@ -217,154 +229,108 @@ msg_ok "Installed Bench"
 
 msg_info "Preparing frappe user"
 if ! id -u frappe >/dev/null 2>&1; then
-  useradd -m -s /bin/bash frappe
+    useradd -m -s /bin/bash frappe
 fi
 usermod -aG sudo frappe
 msg_ok "Prepared frappe user"
 
 install_bench_stack() {
-  sudo -u frappe -H bash -c "set -euo pipefail
-    if [[ ! -d /home/frappe/frappe-bench ]]; then
-      bench init --frappe-branch=${FRAPPE_BRANCH} --frappe-path=${FRAPPE_REPO} --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
-    fi
-    cd /home/frappe/frappe-bench
-    if [[ ! -d apps/erpnext ]]; then
-      bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO}
-    fi
-  "
+    sudo -u frappe -H bash -c "set -Eeuo pipefail
+        if [[ ! -d /home/frappe/frappe-bench ]]; then
+            bench init --frappe-branch=${FRAPPE_BRANCH} --frappe-path=${FRAPPE_REPO} --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
+        fi
+        cd /home/frappe/frappe-bench
+        if [[ ! -d apps/erpnext ]]; then
+            bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO}
+        fi
+    "
 }
 
 msg_info "Bootstrapping frappe bench"
 install_bench_stack
 msg_ok "Bench prepared"
 
-ensure_site_configuration() {
-  sudo -u frappe -H bash -c "set -euo pipefail
-    cd /home/frappe/frappe-bench
-    mkdir -p sites
-    local config_path=sites/common_site_config.json
-    if [[ -f ""$config_path"" ]]; then
-      local tmp_file
-      tmp_file=$(mktemp)
-      jq \
-        --arg db_name ""${DB_NAME}"" \
-        --arg db_host ""${DB_HOST}"" \
-        --arg db_port ""${DB_PORT}"" \
-        --arg redis_cache ""${REDIS_CACHE_URL}"" \
-        --arg redis_queue ""${REDIS_QUEUE_URL}"" \
-        --arg redis_socketio ""${REDIS_SOCKETIO_URL}"" \
-        --arg socketio_port ""${SOCKETIO_PORT}"" \
-        '
-          .db_name = $db_name |
-          .db_host = $db_host |
-          .db_port = $db_port |
-          .redis_cache = $redis_cache |
-          .redis_queue = $redis_queue |
-          .redis_socketio = $redis_socketio |
-          .socketio_port = ($socketio_port | tonumber? // $socketio_port)
-        ' ""$config_path"" >""$tmp_file""
-      mv ""$tmp_file"" ""$config_path""
-    else
-      cat <<JSON >""$config_path""
-{
-  "db_name": ""${DB_NAME}"",
-  "db_password": "",
-  "db_host": ""${DB_HOST}"",
-  "db_port": ""${DB_PORT}"",
-  "redis_cache": ""${REDIS_CACHE_URL}"",
-  "redis_queue": ""${REDIS_QUEUE_URL}"",
-  "redis_socketio": ""${REDIS_SOCKETIO_URL}"",
-  "socketio_port": ${SOCKETIO_PORT}
-}
-JSON
-    fi
-  "
-}
-
 apply_bench_globals() {
-  sudo -u frappe -H bash -c "set -euo pipefail
-    cd /home/frappe/frappe-bench
-    bench set-config -g db_host ${DB_HOST}
-    bench set-config -gp db_port ${DB_PORT}
-    bench set-config -g redis_cache ${REDIS_CACHE_URL}
-    bench set-config -g redis_queue ${REDIS_QUEUE_URL}
-    bench set-config -g redis_socketio ${REDIS_SOCKETIO_URL}
-    bench set-config -gp socketio_port ${SOCKETIO_PORT}
-  "
+    sudo -u frappe -H bash -c "set -Eeuo pipefail
+        cd /home/frappe/frappe-bench
+        bench set-config -g db_host '${DB_HOST}'
+        bench set-config -gp db_port '${DB_PORT}'
+        bench set-config -g redis_cache '${REDIS_CACHE_URL}'
+        bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
+        bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
+        bench set-config -gp socketio_port '${SOCKETIO_PORT}'
+    "
 }
 
 configure_site_data() {
-  sudo -u frappe -H bash -c "set -euo pipefail
-    cd /home/frappe/frappe-bench
-    mkdir -p sites/${SITE_NAME}
-    if [[ ! -f sites/${SITE_NAME}/site_config.json ]]; then
-      bench new-site ${SITE_NAME} \
-        --db-name ${DB_NAME} \
-        --db-host ${DB_HOST} \
-        --db-port ${DB_PORT} \
-        --mariadb-root-username ${DB_ROOT_USER} \
-        --mariadb-root-password ${DB_ROOT_PASSWORD} \
-        --admin-password ${ADMIN_PASSWORD} \
-        --admin-email ${ADMIN_EMAIL} \
-        --no-mariadb-socket
-      bench --site ${SITE_NAME} install-app erpnext
-    else
-      bench --site ${SITE_NAME} migrate
-    fi
-    bench build
-  "
+    sudo -u frappe -H bash -c "set -Eeuo pipefail
+        cd /home/frappe/frappe-bench
+        if [[ ! -f sites/${SITE_NAME}/site_config.json ]]; then
+            bench new-site '${SITE_NAME}' \
+                --db-name '${DB_NAME}' \
+                --db-host '${DB_HOST}' \
+                --db-port '${DB_PORT}' \
+                --mariadb-root-username '${DB_ROOT_USER}' \
+                --mariadb-root-password '${DB_ROOT_PASSWORD}' \
+                --admin-password '${ADMIN_PASSWORD}' \
+                --admin-email '${ADMIN_EMAIL}' \
+                --no-mariadb-socket
+            bench --site '${SITE_NAME}' install-app erpnext
+            bench --site '${SITE_NAME}' enable-scheduler
+        else
+            bench --site '${SITE_NAME}' migrate
+        fi
+        bench use '${SITE_NAME}'
+        bench build
+    "
 }
-
-msg_info "Updating bench configuration"
-ensure_site_configuration
-msg_ok "Base configuration written"
 
 SITE_CONFIG_PATH="/home/frappe/frappe-bench/sites/${SITE_NAME}/site_config.json"
 
 if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
-  msg_info "Configuring ERPNext site"
-  configure_site_data
-  msg_ok "Site configured"
+    msg_info "Configuring ERPNext site"
+    configure_site_data
+    msg_ok "Site configured"
 else
-  if [[ ! -f "$SITE_CONFIG_PATH" ]]; then
-    msg_error "Site configuration not found at ${SITE_CONFIG_PATH}. Copy the 'sites' directory from your backend or combined container (or mount shared storage) before installing the ${ROLE} role."
-    exit 1
-  fi
-  msg_info "Using site configuration from ${SITE_CONFIG_PATH}"
-  msg_info "Running database migrations for ${SITE_NAME}"
-  sudo -u frappe -H bash -c "set -euo pipefail
-    cd /home/frappe/frappe-bench
-    bench --site ${SITE_NAME} migrate
-  "
-  msg_ok "Migrations complete"
+    if [[ ! -f "$SITE_CONFIG_PATH" ]]; then
+        msg_error "Site configuration not found at ${SITE_CONFIG_PATH}. Copy the 'sites' directory from your backend or combined container (or mount shared storage) before installing the ${ROLE} role."
+        exit 1
+    fi
+    msg_info "Running database migrations for ${SITE_NAME}"
+    sudo -u frappe -H bash -c "set -Eeuo pipefail
+        cd /home/frappe/frappe-bench
+        bench --site '${SITE_NAME}' migrate
+        bench use '${SITE_NAME}'
+    "
+    msg_ok "Migrations complete"
 fi
 
 apply_bench_globals
 
 if [[ "$ROLE" == "frontend" ]]; then
-  msg_info "Building frontend assets"
-  sudo -u frappe -H bash -c "set -euo pipefail
-    cd /home/frappe/frappe-bench
-    bench build
-  "
-  msg_ok "Frontend assets ready"
+    msg_info "Building frontend assets"
+    sudo -u frappe -H bash -c "set -Eeuo pipefail
+        cd /home/frappe/frappe-bench
+        bench build
+    "
+    msg_ok "Frontend assets ready"
 fi
 
 SITE_DB_PASSWORD=""
 if [[ -f "$SITE_CONFIG_PATH" ]]; then
-  SITE_DB_PASSWORD=$(jq -r '.db_password // empty' "$SITE_CONFIG_PATH" 2>/dev/null || true)
+    SITE_DB_PASSWORD=$(jq -r '.db_password // empty' "$SITE_CONFIG_PATH" 2>/dev/null || true)
 fi
 
 create_service() {
-  local service_name="$1"
-  local service_content="$2"
-  printf '%s' "$service_content" >/etc/systemd/system/"${service_name}".service
+    local service_name="$1"
+    local service_content="$2"
+    printf '%s' "$service_content" >/etc/systemd/system/${service_name}.service
 }
 
 msg_info "Creating systemd units"
 case "$ROLE" in
-  combined|backend)
-    create_service "erpnext-backend" "[Unit]
+    combined|backend)
+        create_service "erpnext-backend" "[Unit]
 Description=ERPNext Backend (Gunicorn)
 After=network.target
 
@@ -380,9 +346,9 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 "
-    ;;&
-  combined|frontend)
-    create_service "erpnext-frontend" "[Unit]
+        ;;&
+    combined|frontend)
+        create_service "erpnext-frontend" "[Unit]
 Description=ERPNext Frontend (nginx)
 After=network.target
 
@@ -398,9 +364,9 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 "
-    ;;&
-  combined|scheduler)
-    create_service "erpnext-scheduler" "[Unit]
+        ;;&
+    combined|scheduler)
+        create_service "erpnext-scheduler" "[Unit]
 Description=ERPNext Scheduler
 After=network.target
 
@@ -415,9 +381,9 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 "
-    ;;&
-  combined|websocket)
-    create_service "erpnext-websocket" "[Unit]
+        ;;&
+    combined|websocket)
+        create_service "erpnext-websocket" "[Unit]
 Description=ERPNext Websocket
 After=network.target
 
@@ -435,9 +401,9 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 "
-    ;;&
-  combined|worker)
-    create_service "erpnext-worker" "[Unit]
+        ;;&
+    combined|worker)
+        create_service "erpnext-worker" "[Unit]
 Description=ERPNext Worker (long,default,short)
 After=network.target
 
@@ -452,16 +418,16 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 "
-    ;;
+        ;;
 esac
 msg_ok "Systemd units created"
 
 if [[ "$ROLE" == "combined" || "$ROLE" == "frontend" ]]; then
-  msg_info "Configuring nginx"
-  backend_target="${BACKEND_HOST}:${BACKEND_PORT}"
-  socketio_target="${SOCKETIO_HOST}:${SOCKETIO_PUBLIC_PORT}"
-  mkdir -p /etc/nginx/conf.d
-  cat >/etc/nginx/conf.d/erpnext.conf <<EOF_NGINX
+    msg_info "Configuring nginx"
+    backend_target="${BACKEND_HOST}:${BACKEND_PORT}"
+    socketio_target="${SOCKETIO_HOST}:${SOCKETIO_PUBLIC_PORT}"
+    mkdir -p /etc/nginx/conf.d
+    cat >/etc/nginx/conf.d/erpnext.conf <<EOF_NGINX
 upstream erpnext_backend {
     server ${backend_target};
 }
@@ -513,11 +479,11 @@ server {
 }
 EOF_NGINX
 
-  ln -sf /dev/stdout /var/log/nginx/erpnext.access.log
-  ln -sf /dev/stderr /var/log/nginx/erpnext.error.log
-  rm -f /etc/nginx/sites-enabled/default
-  systemctl disable -q --now nginx >/dev/null 2>&1 || true
-  msg_ok "nginx configured"
+    ln -sf /dev/stdout /var/log/nginx/erpnext.access.log
+    ln -sf /dev/stderr /var/log/nginx/erpnext.error.log
+    rm -f /etc/nginx/sites-enabled/default
+    systemctl disable -q --now nginx >/dev/null 2>&1 || true
+    msg_ok "nginx configured"
 fi
 
 msg_info "Adjusting ownership"
@@ -526,47 +492,48 @@ msg_ok "Ownership set"
 
 msg_info "Enabling services"
 case "$ROLE" in
-  combined)
-    systemctl daemon-reload
-    systemctl enable -q --now erpnext-backend erpnext-frontend erpnext-scheduler erpnext-websocket erpnext-worker
-    ;;
-  frontend)
-    systemctl daemon-reload
-    systemctl enable -q --now erpnext-frontend
-    ;;
-  backend)
-    systemctl daemon-reload
-    systemctl enable -q --now erpnext-backend
-    ;;
-  scheduler)
-    systemctl daemon-reload
-    systemctl enable -q --now erpnext-scheduler
-    ;;
-  websocket)
-    systemctl daemon-reload
-    systemctl enable -q --now erpnext-websocket
-    ;;
-  worker)
-    systemctl daemon-reload
-    systemctl enable -q --now erpnext-worker
-    ;;
-  *)
-    systemctl daemon-reload
-    ;;
+    combined)
+        systemctl daemon-reload
+        systemctl enable -q --now erpnext-backend erpnext-frontend erpnext-scheduler erpnext-websocket erpnext-worker
+        ;;
+    frontend)
+        systemctl daemon-reload
+        systemctl enable -q --now erpnext-frontend
+        ;;
+    backend)
+        systemctl daemon-reload
+        systemctl enable -q --now erpnext-backend
+        ;;
+    scheduler)
+        systemctl daemon-reload
+        systemctl enable -q --now erpnext-scheduler
+        ;;
+    websocket)
+        systemctl daemon-reload
+        systemctl enable -q --now erpnext-websocket
+        ;;
+    worker)
+        systemctl daemon-reload
+        systemctl enable -q --now erpnext-worker
+        ;;
+    *)
+        systemctl daemon-reload
+        ;;
 esac
 msg_ok "Services enabled"
 
 if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
-  {
-    echo "ERPNext Administrator"
-    echo "Site: ${SITE_NAME}"
-    echo "Email: ${ADMIN_EMAIL}"
-    echo "Password: ${ADMIN_PASSWORD}"
-    if [[ -n "$SITE_DB_PASSWORD" ]]; then
-      echo "Database Password: ${SITE_DB_PASSWORD}"
-    fi
-  } >~/erpnext-admin.creds
-  chmod 600 ~/erpnext-admin.creds
+    {
+        echo "ERPNext Administrator"
+        echo "Site: ${SITE_NAME}"
+        echo "Email: ${ADMIN_EMAIL}"
+        echo "Password: ${ADMIN_PASSWORD}"
+        if [[ -n "$SITE_DB_PASSWORD" ]]; then
+            echo "Database Password: ${SITE_DB_PASSWORD}"
+        fi
+    } >~/erpnext-admin.creds
+    chmod 600 ~/erpnext-admin.creds
+    msg_info "Administrator credentials stored in ~/erpnext-admin.creds"
 fi
 
 motd_ssh
