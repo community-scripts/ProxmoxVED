@@ -504,7 +504,7 @@ advanced_settings() {
     fi
   done
 
- if CT_ID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Container ID" 8 58 "$NEXTID" --title "CONTAINER ID" 3>&1 1>&2 2>&3); then
+  if CT_ID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Container ID" 8 58 "$NEXTID" --title "CONTAINER ID" 3>&1 1>&2 2>&3); then
     if [ -z "$CT_ID" ]; then
       CT_ID="$NEXTID"
     fi
@@ -3078,7 +3078,7 @@ create_lxc_container() {
         TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION}"
         SEARCH_PATTERN="^${TEMPLATE_SEARCH}-"
 
-        echo "[DEBUG] Retrying with version: $PCT_OSVERSION"
+        #echo "[DEBUG] Retrying with version: $PCT_OSVERSION"
 
         mapfile -t ONLINE_TEMPLATES < <(
           pveam available -section system 2>/dev/null |
@@ -3091,7 +3091,7 @@ create_lxc_container() {
         if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
           TEMPLATE="${ONLINE_TEMPLATES[-1]}"
           TEMPLATE_SOURCE="online"
-          echo "[DEBUG] Found alternative: $TEMPLATE"
+          #echo "[DEBUG] Found alternative: $TEMPLATE"
         else
           msg_error "No templates available for ${PCT_OSTYPE} ${PCT_OSVERSION}"
           exit 225
@@ -3106,8 +3106,8 @@ create_lxc_container() {
     fi
   fi
 
-  echo "[DEBUG] Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
-  msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
+  #echo "[DEBUG] Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
+  #msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
 
   TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
   if [[ -z "$TEMPLATE_PATH" ]]; then
