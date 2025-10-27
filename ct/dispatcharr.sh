@@ -30,80 +30,75 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/Dispatcharr/Dispatcharr/releases/latest | jq -r '.tag_name' | sed 's/^v//')
-  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
-    msg_ok "Starting update"
-    APP_DIR="/opt/dispatcharr"
-    APP_USER="dispatcharr"
-    APP_GROUP="dispatcharr"
+  setup_uv
+  NODE_VERSION="24" setup_nodejs
 
-    msg_info "Stopping $APP"
+  if check_for_gh_release "Dispatcharr" "Dispatcharr/Dispatcharr"; then
+    msg_info "Stopping Services"
     systemctl stop dispatcharr-celery
     systemctl stop dispatcharr-celerybeat
     systemctl stop dispatcharr-daphne
     systemctl stop dispatcharr
-    msg_ok "Stopped $APP"
+    msg_ok "Stopped Services"
 
     msg_info "Creating Backup"
-    BACKUP_FILE="/opt/dispatcharr_$(date +%F).tar.gz"
-    msg_info "Source and Database backup"
-    set -o allexport
-    source /etc/$APP_NAME/$APP_NAME.env
-    set +o allexport
-    PGPASSWORD=$POSTGRES_PASSWORD pg_dump -U $POSTGRES_USER -h $POSTGRES_HOST $POSTGRES_DB >/opt/$POSTGRES_DB-$(date +%F).sql
-    $STD tar -czf "$BACKUP_FILE" /opt/dispatcharr /opt/Dispatcharr_version.txt /opt/$POSTGRES_DB-$(date +%F).sql &>/dev/null
-    msg_ok "Backup Created"
+    BACKUP_FILE="/opt/dispatcharr_backup_$(date +%F_%H-%M-%S).tar.gz"
+    if [[ -f /opt/dispatcharr/.env ]]; then
+      cp /opt/dispatcharr/.env /tmp/dispatcharr.env.backup
+    fi
+    if [[ -f /opt/dispatcharr/.env ]]; then
+      set -o allexport
+      source /opt/dispatcharr/.env
+      set +o allexport
+      if [[ -n "$POSTGRES_DB" ]] && [[ -n "$POSTGRES_USER" ]] && [[ -n "$POSTGRES_PASSWORD" ]]; then
+        PGPASSWORD=$POSTGRES_PASSWORD pg_dump -U $POSTGRES_USER -h ${POSTGRES_HOST:-localhost} $POSTGRES_DB >/tmp/dispatcharr_db_$(date +%F).sql
+        msg_info "Database backup created"
+      fi
+    fi
+    $STD tar -czf "$BACKUP_FILE" -C /opt dispatcharr /tmp/dispatcharr_db_*.sql 2>/dev/null || true
+    msg_ok "Backup created: $BACKUP_FILE"
 
-    msg_info "Updating $APP to v${RELEASE}"
-    rm -rf /opt/dispatcharr
-    fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
-    chown -R "$APP_USER:$APP_GROUP" "$APP_DIR"
-    sed -i 's/program\[\x27channel_id\x27\]/program["channel_id"]/g' "${APP_DIR}/apps/output/views.py"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "dispatcharr" "Dispatcharr/Dispatcharr"
 
-    msg_ok "Dispatcharr Updated to $RELEASE"
-
-    msg_info "Creating Python Virtual Environment"
-    cd $APP_DIR
-    python3 -m venv env
-    source env/bin/activate
-    $STD pip install --upgrade pip
-    $STD pip install -r requirements.txt
-    $STD pip install gunicorn
-    ln -sf /usr/bin/ffmpeg $APP_DIR/env/bin/ffmpeg
-    msg_ok "Python Environment Setup"
+    msg_info "Updating Dispatcharr Backend"
+    if [[ -f /tmp/dispatcharr.env.backup ]]; then
+      mv /tmp/dispatcharr.env.backup /opt/dispatcharr/.env
+      msg_info "Restored environment configuration"
+    fi
+    cd /opt/dispatcharr || exit
+    $STD uv venv
+    $STD uv pip install -r requirements.txt --index-strategy unsafe-best-match
+    $STD uv pip install gunicorn gevent celery redis daphne
+    msg_ok "Updated Dispatcharr Backend"
 
     msg_info "Building Frontend"
-    cd $APP_DIR/frontend
+    cd /opt/dispatcharr/frontend || exit
     $STD npm install --legacy-peer-deps
     $STD npm run build
     msg_ok "Built Frontend"
 
     msg_info "Running Django Migrations"
-    cd $APP_DIR
-    source env/bin/activate
-    set -o allexport
-    source /etc/$APP_NAME/$APP_NAME.env
-    set +o allexport
-    $STD python manage.py migrate --noinput
-    $STD python manage.py collectstatic --noinput
+    cd /opt/dispatcharr || exit
+    if [[ -f .env ]]; then
+      set -o allexport
+      source .env
+      set +o allexport
+    fi
+    $STD uv run python manage.py migrate --noinput
+    $STD uv run python manage.py collectstatic --noinput
     msg_ok "Migrations Complete"
 
-    msg_info "Starting $APP"
+    msg_info "Starting Services"
+    systemctl start dispatcharr
     systemctl start dispatcharr-celery
     systemctl start dispatcharr-celerybeat
     systemctl start dispatcharr-daphne
-    systemctl start dispatcharr
-    msg_ok "Started $APP"
-    echo "${RELEASE}" >"/opt/${APP}_version.txt"
+    msg_ok "Started Services"
 
-    msg_info "Cleaning Up"
-    rm -rf /opt/$POSTGRES_DB-$(date +%F).sql
-    msg_ok "Cleanup Completed"
-
-    msg_ok "Update Successful, Backup saved to $BACKUP_FILE"
-
-  else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+    msg_info "Cleaning up"
+    rm -f /tmp/dispatcharr_db_*.sql
+    msg_ok "Cleanup completed"
+    msg_ok "Update Successfully!"
   fi
   exit
 }
