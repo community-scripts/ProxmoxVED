@@ -59,20 +59,116 @@ prompt_password() {
   done
 }
 
-verify_tcp_endpoint() {
-  local __host="$1"
-  local __port="$2"
-  local __label="$3"
+collect_lxc_ids() {
+    command -v pct >/dev/null 2>&1 || return 0
+    pct list 2>/dev/null | awk 'NR>1 {print $1}' | sort -n
+}
 
-  if timeout 5 bash -c "</dev/tcp/${__host}/${__port}" &>/dev/null; then
-    return 0
-  fi
+verify_tcp_endpoint() {
+    local __host="$1"
+    local __port="$2"
+    local __label="$3"
+    local __attempts="${4:-1}"
+    local __delay="${5:-5}"
+    local __attempt
+    local __logged_wait=0
+
+    if (( __attempts > 1 )); then
+        msg_info "Waiting for ${__label} at ${__host}:${__port}"
+        __logged_wait=1
+    fi
+
+    for ((__attempt = 1; __attempt <= __attempts; __attempt++)); do
+        if timeout 5 bash -c "</dev/tcp/${__host}/${__port}" &>/dev/null; then
+            if (( __logged_wait == 1 )); then
+                msg_ok "${__label} is reachable at ${__host}:${__port}"
+            fi
+            return 0
+        fi
+        if ((__attempt < __attempts)); then
+            sleep "${__delay}"
+        fi
+    done
+
+    if (( __logged_wait == 1 )); then
+        msg_warn "${__label} is still unreachable at ${__host}:${__port}"
+    fi
 
   if whiptail --title "$APP" --yesno "Unable to connect to ${__label} at ${__host}:${__port}.\n\nChoose <Yes> to re-enter the connection details or <No> to continue anyway." 11 70; then
     return 1
   fi
 
   return 0
+}
+
+configure_mariadb_remote_access() {
+    local __ctid="$1"
+    local __allow_host="$2"
+    local __admin_user="$3"
+    local __admin_password="$4"
+
+    [[ -n "${__ctid}" ]] || return 0
+
+    if ! command -v pct >/dev/null 2>&1; then
+        msg_warn "pct command not available; skipping MariaDB remote access adjustments."
+        return 0
+    fi
+
+    msg_info "Configuring MariaDB CT ${__ctid} for remote access (${__admin_user}@${__allow_host})"
+
+    if ! pct exec "${__ctid}" -- env SQL_USER="${__admin_user}" SQL_PASS="${__admin_password}" SQL_ALLOW="${__allow_host}" bash -s <<'EOF'
+set -e
+CONFIG_FILE="/etc/mysql/mariadb.conf.d/50-server.cnf"
+if [ -f "$CONFIG_FILE" ]; then
+  if grep -qE '^[[:space:]]*bind-address' "$CONFIG_FILE"; then
+    sed -i 's/^[[:space:]]*bind-address.*/bind-address = 0.0.0.0/' "$CONFIG_FILE"
+  else
+    cat <<'EOCFG' >>"$CONFIG_FILE"
+
+# Added by ERPNext installer
+bind-address = 0.0.0.0
+EOCFG
+  fi
+
+  if grep -qE '^[[:space:]]*skip-networking' "$CONFIG_FILE"; then
+    sed -i 's/^[[:space:]]*skip-networking/# &/' "$CONFIG_FILE"
+  fi
+fi
+
+restart_service() {
+  local svc="$1"
+  if systemctl list-unit-files "$svc" >/dev/null 2>&1; then
+    systemctl restart "$svc"
+    return 0
+  fi
+  if service "$svc" status >/dev/null 2>&1; then
+    service "$svc" restart
+    return 0
+  fi
+  return 1
+}
+
+if ! restart_service mariadb; then
+  restart_service mysql || true
+fi
+
+SQL_ESCAPED_PASS=${SQL_PASS//\'/\'\'}
+SQL_QUERY="CREATE USER IF NOT EXISTS '$SQL_USER'@'$SQL_ALLOW' IDENTIFIED BY '$SQL_ESCAPED_PASS'; GRANT ALL PRIVILEGES ON *.* TO '$SQL_USER'@'$SQL_ALLOW' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+
+SQL_OPTS=(-u"$SQL_USER")
+if [ -n "$SQL_PASS" ]; then
+  SQL_OPTS+=(-p"$SQL_PASS")
+fi
+
+mysql "${SQL_OPTS[@]}" -e "$SQL_QUERY" || mysql "${SQL_OPTS[@]}" -e "GRANT ALL PRIVILEGES ON *.* TO '$SQL_USER'@'$SQL_ALLOW' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+EOF
+    then
+        msg_warn "Failed to configure remote access on MariaDB CT ${__ctid}"
+        return 1
+    fi
+
+    msg_ok "MariaDB CT ${__ctid} now accepts remote connections"
+    return 0
 }
 
 configure_site_settings() {
@@ -121,38 +217,99 @@ run_remote_installer() {
 }
 
 configure_mariadb() {
-  local choice
-  local host
-  local port
-  local admin_user
-  local admin_password
+    local choice
+    local host
+    local port
+    local admin_user
+    local admin_password
+    local allow_host
+    local detected_ctid=""
+    local mariadb_ctid=""
+    local asked_ctid=0
+    local -a before_ctids=()
+    local -a after_ctids=()
+    local -a new_ctids=()
 
-  choice=$(whiptail --title "${APP} MariaDB" --menu "Select how to provide MariaDB for ${APP}" 15 70 2 \
-    create "Create a new MariaDB LXC now" \
-    existing "Use an existing MariaDB instance" 3>&1 1>&2 2>&3) || exit_script
+    choice=$(whiptail --title "${APP} MariaDB" --menu "Select how to provide MariaDB for ${APP}" 15 70 2 \
+        create "Create a new MariaDB LXC now" \
+        existing "Use an existing MariaDB instance" 3>&1 1>&2 2>&3) || exit_script
 
-  case "$choice" in
-    create)
-      run_remote_installer "https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/mariadb.sh" "MariaDB LXC"
-      ;;&
-    create|existing)
-      while true; do
-        prompt_input host "${APP} MariaDB" "Enter the MariaDB host or IP" "${ERPNEXT_DB_HOST:-}"
-        prompt_input port "${APP} MariaDB" "Enter the MariaDB port" "${ERPNEXT_DB_PORT:-3306}"
-        prompt_input admin_user "${APP} MariaDB" "Enter the MariaDB administrative user" "${ERPNEXT_DB_ROOT_USER:-root}"
-        prompt_password admin_password "${APP} MariaDB" "Enter the MariaDB administrative password (leave blank for none)" 1
+    case "$choice" in
+        create)
+            if command -v pct >/dev/null 2>&1; then
+                mapfile -t before_ctids < <(collect_lxc_ids)
+            fi
+            run_remote_installer "https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/mariadb.sh" "MariaDB LXC"
+            if command -v pct >/dev/null 2>&1; then
+                mapfile -t after_ctids < <(collect_lxc_ids)
+                mapfile -t new_ctids < <(comm -13 <(printf '%s\n' "${before_ctids[@]}") <(printf '%s\n' "${after_ctids[@]}"))
+                if [[ ${#new_ctids[@]} -eq 1 ]]; then
+                    detected_ctid="${new_ctids[0]}"
+                fi
+            fi
+            ;;&
+        create|existing)
+            mariadb_ctid="${detected_ctid}"
+            while true; do
+                prompt_input host "${APP} MariaDB" "Enter the MariaDB host or IP" "${ERPNEXT_DB_HOST:-}"
+                if ! [[ "${host}" =~ ^[A-Za-z0-9_.:-]+$ ]]; then
+                    whiptail --title "$APP" --msgbox "MariaDB host must be an IP address or hostname." 8 70
+                    continue
+                fi
 
-        if verify_tcp_endpoint "$host" "$port" "MariaDB"; then
-          break
-        fi
-      done
-      ;;
-  esac
+                prompt_input port "${APP} MariaDB" "Enter the MariaDB port" "${ERPNEXT_DB_PORT:-3306}"
+                if ! [[ "${port}" =~ ^[0-9]+$ ]]; then
+                    whiptail --title "$APP" --msgbox "MariaDB port must be numeric." 8 60
+                    continue
+                fi
 
-  export ERPNEXT_DB_HOST="$host"
-  export ERPNEXT_DB_PORT="$port"
-  export ERPNEXT_DB_ROOT_USER="$admin_user"
-  export ERPNEXT_DB_ROOT_PASSWORD="$admin_password"
+                prompt_input admin_user "${APP} MariaDB" "Enter the MariaDB administrative user" "${ERPNEXT_DB_ROOT_USER:-root}"
+                if ! [[ "${admin_user}" =~ ^[A-Za-z0-9_.@-]+$ ]]; then
+                    whiptail --title "$APP" --msgbox "MariaDB administrative user contains invalid characters." 8 70
+                    continue
+                fi
+
+                prompt_password admin_password "${APP} MariaDB" "Enter the MariaDB administrative password (leave blank for none)" 1
+
+                prompt_input allow_host "${APP} MariaDB" "Enter the host pattern allowed to connect (e.g. %, 192.168.0.% )" "${ERPNEXT_DB_ALLOWED_HOST:-%}"
+                if ! [[ "${allow_host}" =~ ^[%A-Za-z0-9_.:-]+$ ]]; then
+                    whiptail --title "$APP" --msgbox "MariaDB allowed host may only contain letters, numbers, dots, colons, dashes, underscores, or % wildcards." 9 75
+                    continue
+                fi
+
+                if command -v pct >/dev/null 2>&1; then
+                    if (( asked_ctid == 0 )); then
+                        prompt_input mariadb_ctid "${APP} MariaDB" "Enter the MariaDB LXC ID to adjust remote access (leave blank to skip)" "${mariadb_ctid}" 1
+                        asked_ctid=1
+                    fi
+
+                    if [[ -n "${mariadb_ctid}" && ! "${mariadb_ctid}" =~ ^[0-9]+$ ]]; then
+                        whiptail --title "$APP" --msgbox "MariaDB LXC ID must be numeric." 8 60
+                        mariadb_ctid=""
+                        asked_ctid=0
+                        continue
+                    fi
+                fi
+
+                if [[ -n "${mariadb_ctid}" ]]; then
+                    if ! configure_mariadb_remote_access "${mariadb_ctid}" "${allow_host}" "${admin_user}" "${admin_password}"; then
+                        asked_ctid=0
+                        continue
+                    fi
+                fi
+
+                if verify_tcp_endpoint "${host}" "${port}" "MariaDB" 12 5; then
+                    break
+                fi
+                asked_ctid=0
+            done
+            ;;
+    esac
+
+    export ERPNEXT_DB_HOST="${host}"
+    export ERPNEXT_DB_PORT="${port}"
+    export ERPNEXT_DB_ROOT_USER="${admin_user}"
+    export ERPNEXT_DB_ROOT_PASSWORD="${admin_password}"
 }
 
 prompt_redis_endpoint() {
