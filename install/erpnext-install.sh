@@ -21,6 +21,7 @@ FRAPPE_BRANCH="${ERPNEXT_FRAPPE_BRANCH:-version-15}"
 FRAPPE_REPO="${ERPNEXT_FRAPPE_REPO:-https://github.com/frappe/frappe}"
 ERPNEXT_BRANCH="${ERPNEXT_APP_BRANCH:-version-15}"
 ERPNEXT_REPO="${ERPNEXT_APP_REPO:-https://github.com/frappe/erpnext}"
+ENABLE_INTERNAL_REDIS="${ERPNEXT_ENABLE_INTERNAL_REDIS:-no}"
 SITE_NAME_DEFAULT="${ERPNEXT_SITE_NAME:-erpnext.local}"
 DB_NAME_DEFAULT="${ERPNEXT_DB_NAME:-${SITE_NAME_DEFAULT//./_}}"
 DB_HOST_DEFAULT="${ERPNEXT_DB_HOST:-}"
@@ -187,6 +188,13 @@ $STD apt-get install -y \
   supervisor \
   locales
 msg_ok "Installed prerequisites"
+
+if [[ "$ENABLE_INTERNAL_REDIS" == "yes" ]]; then
+  msg_info "Installing Redis server"
+  $STD apt-get install -y redis-server
+  systemctl enable -q --now redis-server
+  msg_ok "Redis server ready"
+fi
 
 msg_info "Installing wkhtmltopdf"
 WKHTML_VERSION="0.12.6.1-3"
