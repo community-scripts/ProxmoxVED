@@ -1,103 +1,36 @@
 {
-  "name": "ERPNext",
-  "slug": "erpnext",
-  "categories": [
-    25
-  ],
-  "date_created": "2025-02-14",
-  "type": "ct",
-  "updateable": false,
-  "privileged": false,
-  "interface_port": 80,
-  "documentation": "https://docs.erpnext.com/docs/v15/user/manual/en/introduction/installation",
-  "website": "https://erpnext.com/",
-  "logo": "https://raw.githubusercontent.com/frappe/design/master/logos/erpnext-logo-blue.svg",
-  "config_path": "/home/frappe/frappe-bench/sites/common_site_config.json",
-  "description": "ERPNext is an open-source ERP platform built on the Frappe Framework. These helpers provision production-ready LXC containers that mirror the official Bench deployment, with roles for backend application servers, frontend nginx, websocket bridges, workers, and schedulers.",
-  "install_methods": [
-    {
-      "type": "combined",
-      "script": "ct/erpnext.sh",
-      "resources": {
-        "cpu": 4,
-        "ram": 8192,
-        "hdd": 60,
-        "os": "debian",
-        "version": "12"
-      }
+    "name": "ERPNext",
+    "slug": "erpnext",
+    "categories": [
+        25
+    ],
+    "date_created": "2025-02-14",
+    "type": "ct",
+    "updateable": false,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://docs.erpnext.com/docs/v15/user/manual/en/introduction/installation",
+    "website": "https://erpnext.com/",
+    "logo": "https://raw.githubusercontent.com/frappe/design/master/logos/erpnext-logo-blue.svg",
+    "description": "Provision a production-style ERPNext stack on Debian LXC, bundling backend, frontend, websocket, worker, and scheduler services in a single container.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/erpnext.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 8192,
+                "hdd": 60,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
     },
-    {
-      "type": "backend",
-      "script": "ct/erpnext-backend.sh",
-      "resources": {
-        "cpu": 4,
-        "ram": 8192,
-        "hdd": 60,
-        "os": "debian",
-        "version": "12"
-      }
-    },
-    {
-      "type": "frontend",
-      "script": "ct/erpnext-frontend.sh",
-      "resources": {
-        "cpu": 2,
-        "ram": 4096,
-        "hdd": 20,
-        "os": "debian",
-        "version": "12"
-      }
-    },
-    {
-      "type": "scheduler",
-      "script": "ct/erpnext-scheduler.sh",
-      "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 12,
-        "os": "debian",
-        "version": "12"
-      }
-    },
-    {
-      "type": "websocket",
-      "script": "ct/erpnext-websocket.sh",
-      "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 12,
-        "os": "debian",
-        "version": "12"
-      }
-    },
-    {
-      "type": "worker",
-      "script": "ct/erpnext-worker.sh",
-      "resources": {
-        "cpu": 4,
-        "ram": 4096,
-        "hdd": 20,
-        "os": "debian",
-        "version": "12"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": null,
-    "password": null
-  },
-  "notes": [
-    {
-      "text": "Provide reachable MariaDB and Redis endpoints during installation. The helpers do not deploy database or cache services inside the containers.",
-      "type": "info"
-    },
-    {
-      "text": "For distributed roles (frontend, scheduler, websocket, worker), share or copy the `/home/frappe/frappe-bench/sites` directory from the backend/combined container before running the installer.",
-      "type": "warning"
-    },
-    {
-      "text": "Backend and combined roles store administrator and site database credentials in `~/erpnext-admin.creds` inside the container.",
-      "type": "info"
-    }
-  ]
+    "notes": [
+        "Provide reachable MariaDB and Redis endpoints during installation; the helper will optionally deploy dedicated LXCs for you."
+    ]
 }
