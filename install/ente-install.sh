@@ -27,7 +27,9 @@ msg_ok "Installed Dependencies"
 PG_VERSION="17" setup_postgresql
 setup_go
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
+ENTE_CLI_VERSION=$(curl -s https://api.github.com/repos/ente-io/ente/releases | jq -r '[.[] | select(.tag_name | startswith("cli-v"))][0].tag_name')
 fetch_and_deploy_gh_release "ente" "ente-io/ente" "tarball" "latest" "/opt/ente"
+fetch_and_deploy_gh_release "ente" "ente-io/ente" "tarball" "$ENTE_CLI_VERSION" "/usr/local/bin/ente" "ente-cli-$ENTE_CLI_VERSION-linux-amd64.tar.gz"
 
 msg_info "Setting up PostgreSQL"
 DB_NAME="ente_db"
@@ -189,19 +191,6 @@ EOF
 systemctl enable -q --now ente-museum
 msg_ok "Created Museum Service"
 
-msg_info "Installing Ente CLI"
-ENTE_CLI_VERSION=$(curl -s https://api.github.com/repos/ente-io/ente/releases | jq -r '[.[] | select(.tag_name | startswith("cli-v"))][0].tag_name')
-if [ -n "$ENTE_CLI_VERSION" ]; then
-  ENTE_CLI_URL="https://github.com/ente-io/ente/releases/download/${ENTE_CLI_VERSION}/ente-${ENTE_CLI_VERSION#cli-}-linux-amd64.tar.gz"
-  $STD curl -fsSL "$ENTE_CLI_URL" -o /tmp/ente-cli.tar.gz
-  $STD tar -xzf /tmp/ente-cli.tar.gz -C /usr/local/bin
-  chmod +x /usr/local/bin/ente
-  rm /tmp/ente-cli.tar.gz
-  msg_ok "Installed Ente CLI ($ENTE_CLI_VERSION)"
-else
-  msg_warn "Could not determine latest Ente CLI version, skipping CLI installation"
-fi
-
 msg_info "Configuring Caddy"
 CONTAINER_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/etc/caddy/Caddyfile
@@ -288,7 +277,6 @@ motd_ssh
 customize
 
 msg_info "Creating helper scripts"
-# Create verification code finder script
 cat <<'HELPER_EOF' >/usr/local/bin/ente-get-verification
 #!/usr/bin/env bash
 echo "Searching for verification codes in museum logs..."
@@ -296,7 +284,6 @@ journalctl -u ente-museum --no-pager | grep -i "verification\|verify\|code" | ta
 HELPER_EOF
 chmod +x /usr/local/bin/ente-get-verification
 
-# Create subscription upgrade helper
 cat <<'HELPER_EOF' >/usr/local/bin/ente-upgrade-subscription
 #!/usr/bin/env bash
 if [ -z "$1" ]; then
@@ -313,8 +300,8 @@ chmod +x /usr/local/bin/ente-upgrade-subscription
 msg_ok "Created helper scripts"
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD apt -y autoremove
+$STD apt -y autoclean
 msg_ok "Cleaned"
 
 # Final setup summary
