@@ -61,7 +61,7 @@ msg_ok "Configured RabbitMQ"
 
 USE_ORIGINAL_FILENAME="true" fetch_and_deploy_gh_release "reitti" "dedicatedcode/reitti" "singlefile" "latest" "/opt/reitti" "reitti-app.jar"
 mv /opt/reitti/reitti-*.jar /opt/reitti/reitti.jar
-USE_ORIGINAL_FILENAME="true" fetch_and_deploy_gh_release "photon" "komoot/photon" "singlefile" "latest" "/opt/photon" "photon*.jar"
+USE_ORIGINAL_FILENAME="true" fetch_and_deploy_gh_release "photon" "komoot/photon" "singlefile" "latest" "/opt/photon" "photon-0*.jar"
 mv /opt/photon/photon-*.jar /opt/photon/photon.jar
 
 msg_info "Create Configuration"
@@ -124,15 +124,19 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF >/etc/systemd/system/photon.service
+cat <<'EOF' >/etc/systemd/system/photon.service
 [Unit]
-Description=Photon Geocoding Service
+Description=Photon Geocoding Service (Germany, OpenSearch)
 After=network.target
 
 [Service]
 Type=simple
 WorkingDirectory=/opt/photon
-ExecStart=/usr/bin/java -Xmx2g -jar photon.jar
+ExecStart=/usr/bin/java -Xmx4g -jar photon.jar \
+  -data-dir /opt/photon \
+  -listen-port 2322 \
+  -listen-ip 0.0.0.0 \
+  -cors-any
 Restart=on-failure
 TimeoutStopSec=20
 
