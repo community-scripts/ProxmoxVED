@@ -13,23 +13,14 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  nginx
-msg_ok "Installed Dependencies"
-
 NODE_VERSION="24" setup_nodejs
 fetch_and_deploy_gh_release "bentopdf" "alam00000/bentopdf" "tarball" "latest" "/opt/bentopdf"
 
 msg_info "Setup BentoPDF"
 cd /opt/bentopdf
 $STD npm ci --no-audit --no-fund
+export SIMPLE_MODE=true
 $STD npm run build -- --mode production
-cp -r /opt/bentopdf/dist/* /usr/share/nginx/html/
-cp /opt/bentopdf/nginx.conf /etc/nginx/nginx.conf
-mkdir -p /etc/nginx/tmp
-useradd -M -s /usr/sbin/nologin -r -d /usr/share/nginx/html nginx
-chown -R nginx:nginx {/usr/share/nginx/html,/etc/nginx/tmp,/etc/nginx/nginx.conf,/var/log/nginx}
 msg_ok "Setup BentoPDF"
 
 msg_info "Creating Service"
@@ -40,9 +31,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=nginx
-Group=nginx
-ExecStart=/sbin/nginx -g "daemon off;"
+WorkingDirectory=/opt/bentopdf
+ExecStart=/usr/bin/npx serve dist -p 8080
 Restart=always
 RestartSec=10
 

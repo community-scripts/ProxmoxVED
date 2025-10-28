@@ -40,10 +40,8 @@ function update_script() {
     msg_info "Updating BentoPDF"
     cd /opt/bentopdf
     $STD npm ci --no-audit --no-fund
+    export SIMPLE_MODE=true
     $STD npm run build -- --mode production
-    cp -r /opt/bentopdf/dist/* /usr/share/nginx/html/
-    cp /opt/bentopdf/nginx.conf /etc/nginx/nginx.conf
-    chown -R nginx:nginx {/usr/share/nginx/html,/etc/nginx/tmp,/etc/nginx/nginx.conf,/var/log/nginx}
     msg_ok "Updated BentoPDF"
 
     msg_info "Starting Service"
