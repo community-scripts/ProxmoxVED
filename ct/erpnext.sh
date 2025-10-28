@@ -177,17 +177,18 @@ get_container_ipv4() {
     local __root_password="${3:-}"
     local __script
     local __ip=""
+    local __output=""
 
     read -r -d '' __script <<'EOS'
 hostname -I 2>/dev/null | awk '{for (i = 1; i <= NF; i++) { if ($i != "127.0.0.1") { print $i; exit } }}'
 EOS
 
-    if __ip=$(run_container_script "$__ctid" "$__host" "$__root_password" "$__script" 2>/dev/null | tr -d '\r' | head -n1); then
-        printf '%s' "$__ip"
-        return
+    __output="$(run_container_script "$__ctid" "$__host" "$__root_password" "$__script" 2>/dev/null || true)"
+    if [[ -n "$__output" ]]; then
+        __ip=$(printf '%s' "$__output" | tr -d '\r' | head -n1)
     fi
 
-    printf '%s' ""
+    printf '%s' "$__ip"
 }
 
 detect_mariadb_port() {
@@ -196,6 +197,7 @@ detect_mariadb_port() {
     local __root_password="$3"
     local __script
     local __port=""
+    local __output=""
 
     read -r -d '' __script <<'EOS'
 port=""
@@ -225,10 +227,9 @@ fi
 exit 0
 EOS
 
-    if __port=$(run_container_script "$__ctid" "$__host" "$__root_password" "$__script" 2>/dev/null | tr -d '\r' | head -n1); then
-        :
-    else
-        __port=""
+    __output="$(run_container_script "$__ctid" "$__host" "$__root_password" "$__script" 2>/dev/null || true)"
+    if [[ -n "$__output" ]]; then
+        __port=$(printf '%s' "$__output" | tr -d '\r' | head -n1)
     fi
 
     if [[ -z "$__port" ]]; then
@@ -374,6 +375,93 @@ EOS
     fi
 
     msg_ok "MariaDB CT ${__ctid} now accepts remote connections"
+    return 0
+}
+
+
+configure_redis_remote_access() {
+    local __label="$1"
+    local __ctid="$2"
+    local __allow_host="$3"
+    local __port="$4"
+    local __host="$5"
+    local __root_password="$6"
+    local __script
+
+    [[ -n "$__ctid" ]] || return 0
+
+    msg_info "Configuring Redis CT ${__ctid} (${__label}) for remote access (${__allow_host})"
+
+    read -r -d '' __script <<'EOS'
+ALLOW_HOST=__ALLOW_HOST__
+PORT=__PORT__
+CONFIG="/etc/redis/redis.conf"
+set -e
+
+ensure_config_line() {
+  local key="$1"
+  local value="$2"
+  if [ -f "$CONFIG" ]; then
+    if grep -qE "^[[:space:]]*$key" "$CONFIG"; then
+      sed -i "s/^[[:space:]]*$key.*/$key $value/" "$CONFIG"
+    else
+      cat <<EOCFG >>"$CONFIG"
+
+# Added by ERPNext installer
+$key $value
+EOCFG
+    fi
+  fi
+}
+
+if [ -f "$CONFIG" ]; then
+  ensure_config_line "bind" "0.0.0.0"
+  ensure_config_line "protected-mode" "no"
+fi
+
+restart_service() {
+  local svc="$1"
+  if systemctl list-unit-files "$svc" >/dev/null 2>&1; then
+    systemctl restart "$svc" >/dev/null 2>&1 && return 0
+  fi
+  if service "$svc" status >/dev/null 2>&1; then
+    service "$svc" restart >/dev/null 2>&1 && return 0
+  fi
+  return 1
+}
+
+restart_service redis-server || restart_service redis || true
+
+ALLOW_IS_IPV4=0
+if printf '%s\n' "$ALLOW_HOST" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+  ALLOW_IS_IPV4=1
+fi
+
+if [ "$ALLOW_IS_IPV4" -eq 1 ]; then
+  if command -v ufw >/dev/null 2>&1; then
+    if ufw status 2>/dev/null | grep -qi active; then
+      ufw allow from "$ALLOW_HOST" to any port "$PORT" proto tcp >/dev/null 2>&1 || true
+    fi
+  fi
+  if command -v firewall-cmd >/dev/null 2>&1; then
+    firewall-cmd --permanent --add-rich-rule="rule family=\"ipv4\" source address=\"$ALLOW_HOST\" port protocol=\"tcp\" port=\"$PORT\" accept" >/dev/null 2>&1 || true
+    firewall-cmd --reload >/dev/null 2>&1 || true
+  fi
+fi
+EOS
+
+    local __script_allow=$(escape_for_script "$__allow_host")
+    local __script_port=$(escape_for_script "$__port")
+
+    __script=${__script//__ALLOW_HOST__/$__script_allow}
+    __script=${__script//__PORT__/$__script_port}
+
+    if ! run_container_script "$__ctid" "$__host" "$__root_password" "$__script"; then
+        msg_warn "Failed to configure Redis CT ${__ctid} (${__label}) for remote access"
+        return 1
+    fi
+
+    msg_ok "Redis CT ${__ctid} (${__label}) now accepts remote connections"
     return 0
 }
 
@@ -611,6 +699,7 @@ detect_redis_port() {
     local __root_password="$3"
     local __script
     local __port=""
+    local __output=""
 
     read -r -d '' __script <<'EOS'
 port=""
@@ -633,11 +722,9 @@ fi
 exit 0
 EOS
 
-    if __port=$(run_container_script "$__ctid" "$__host" "$__root_password" "$__script" 2>/dev/null | tr -d '
-' | head -n1); then
-        :
-    else
-        __port=""
+    __output="$(run_container_script "$__ctid" "$__host" "$__root_password" "$__script" 2>/dev/null || true)"
+    if [[ -n "$__output" ]]; then
+        __port=$(printf '%s' "$__output" | tr -d '\r' | head -n1)
     fi
 
     if [[ -z "$__port" ]]; then
@@ -652,13 +739,16 @@ detect_redis_password() {
     local __host="$2"
     local __root_password="$3"
     local __script
+    local __output=""
 
     read -r -d '' __script <<'EOS'
 awk '/^[[:space:]]*requirepass[[:space:]]+/ {print $2; exit}' /etc/redis/redis.conf 2>/dev/null
 EOS
 
-    run_container_script "$__ctid" "$__host" "$__root_password" "$__script" 2>/dev/null | tr -d '
-' | head -n1 || true
+    __output="$(run_container_script "$__ctid" "$__host" "$__root_password" "$__script" 2>/dev/null || true)"
+    if [[ -n "$__output" ]]; then
+        printf '%s' "$(printf '%s' "$__output" | tr -d '\r' | head -n1)"
+    fi
 }
 
 configure_redis_manual() {
@@ -865,6 +955,60 @@ post_install_validate_mariadb() {
         return
     fi
 
+    if [[ -n "$MARIADB_CTID" && -n "$IP" ]]; then
+        if ! configure_mariadb_remote_access "$MARIADB_CTID" "$IP" "$ERPNEXT_DB_ROOT_USER" "$ERPNEXT_DB_ROOT_PASSWORD" "$ERPNEXT_DB_PORT" "$ERPNEXT_DB_HOST" "$MARIADB_ROOT_PASSWORD"; then
+            msg_warn "Unable to adjust MariaDB container permissions for ${IP}"
+        else
+            local check_query="SELECT COUNT(*) FROM mysql.user WHERE user='${ERPNEXT_DB_ROOT_USER}' AND host='${IP}';"
+            local count_script
+            local count_output
+
+            read -r -d '' count_script <<'EOSQL'
+SQL_USER=__SQL_USER__
+SQL_PASS=__SQL_PASS__
+QUERY=__QUERY__
+if [ -n "$SQL_PASS" ]; then
+  MYSQL_PWD="$SQL_PASS" mysql -u "$SQL_USER" -NBe "$QUERY" 2>/dev/null
+else
+  mysql -u "$SQL_USER" -NBe "$QUERY" 2>/dev/null
+fi
+EOSQL
+
+            local count_user=$(escape_for_script "$ERPNEXT_DB_ROOT_USER")
+            local count_pass=$(escape_for_script "$ERPNEXT_DB_ROOT_PASSWORD")
+            local count_query=$(escape_for_script "$check_query")
+            count_script=${count_script//__SQL_USER__/$count_user}
+            count_script=${count_script//__SQL_PASS__/$count_pass}
+            count_script=${count_script//__QUERY__/$count_query}
+
+            count_output=$(run_container_script "$MARIADB_CTID" "$ERPNEXT_DB_HOST" "$MARIADB_ROOT_PASSWORD" "$count_script" 2>/dev/null | tail -n1)
+            local count="${count_output:-0}"
+
+            if [[ "$count" -lt 1 ]]; then
+                local grant_script
+                read -r -d '' grant_script <<'EOSQL'
+SQL_USER=__SQL_USER__
+SQL_PASS=__SQL_PASS__
+ERP_IP=__ERP_IP__
+if [ -n "$SQL_PASS" ]; then
+  ESCAPED_PASS=$(printf "%s" "$SQL_PASS" | sed "s/'/''/g")
+  MYSQL_PWD="$SQL_PASS" mysql -u "$SQL_USER" -e "CREATE USER IF NOT EXISTS '$SQL_USER'@'$ERP_IP' IDENTIFIED BY '$ESCAPED_PASS'; GRANT ALL PRIVILEGES ON *.* TO '$SQL_USER'@'$ERP_IP' WITH GRANT OPTION; FLUSH PRIVILEGES;" >/dev/null 2>&1
+else
+  mysql -u "$SQL_USER" -e "CREATE USER IF NOT EXISTS '$SQL_USER'@'$ERP_IP' IDENTIFIED BY ''; GRANT ALL PRIVILEGES ON *.* TO '$SQL_USER'@'$ERP_IP' WITH GRANT OPTION; FLUSH PRIVILEGES;" >/dev/null 2>&1
+fi
+EOSQL
+                local grant_user=$(escape_for_script "$ERPNEXT_DB_ROOT_USER")
+                local grant_pass=$(escape_for_script "$ERPNEXT_DB_ROOT_PASSWORD")
+                local grant_ip=$(escape_for_script "$IP")
+                grant_script=${grant_script//__SQL_USER__/$grant_user}
+                grant_script=${grant_script//__SQL_PASS__/$grant_pass}
+                grant_script=${grant_script//__ERP_IP__/$grant_ip}
+
+                run_container_script "$MARIADB_CTID" "$ERPNEXT_DB_HOST" "$MARIADB_ROOT_PASSWORD" "$grant_script" >/dev/null 2>&1 || true
+            fi
+        fi
+    fi
+
     msg_info "Validating MariaDB connectivity"
     if ! pct exec "$CT_ID" -- bash -lc "timeout 10 bash -c '</dev/tcp/${ERPNEXT_DB_HOST}/${ERPNEXT_DB_PORT}>'" >/dev/null 2>&1; then
         msg_error "Unable to reach MariaDB at ${ERPNEXT_DB_HOST}:${ERPNEXT_DB_PORT} from container ${CT_ID}"
@@ -883,60 +1027,6 @@ post_install_validate_mariadb() {
         fi
     fi
     msg_ok "MariaDB connectivity verified"
-
-    if [[ -n "$MARIADB_CTID" && -n "$IP" ]]; then
-        if ! configure_mariadb_remote_access "$MARIADB_CTID" "$IP" "$ERPNEXT_DB_ROOT_USER" "$ERPNEXT_DB_ROOT_PASSWORD" "$ERPNEXT_DB_PORT" "$ERPNEXT_DB_HOST" "$MARIADB_ROOT_PASSWORD"; then
-            msg_warn "Unable to adjust MariaDB container permissions for ${IP}"
-        fi
-
-        local check_query="SELECT COUNT(*) FROM mysql.user WHERE user='${ERPNEXT_DB_ROOT_USER}' AND host='${IP}';"
-        local count_script
-        local count_output
-
-        read -r -d '' count_script <<'EOSQL'
-SQL_USER=__SQL_USER__
-SQL_PASS=__SQL_PASS__
-QUERY=__QUERY__
-if [ -n "$SQL_PASS" ]; then
-  MYSQL_PWD="$SQL_PASS" mysql -u "$SQL_USER" -NBe "$QUERY" 2>/dev/null
-else
-  mysql -u "$SQL_USER" -NBe "$QUERY" 2>/dev/null
-fi
-EOSQL
-
-        local count_user=$(escape_for_script "$ERPNEXT_DB_ROOT_USER")
-        local count_pass=$(escape_for_script "$ERPNEXT_DB_ROOT_PASSWORD")
-        local count_query=$(escape_for_script "$check_query")
-        count_script=${count_script//__SQL_USER__/$count_user}
-        count_script=${count_script//__SQL_PASS__/$count_pass}
-        count_script=${count_script//__QUERY__/$count_query}
-
-        count_output=$(run_container_script "$MARIADB_CTID" "$ERPNEXT_DB_HOST" "$MARIADB_ROOT_PASSWORD" "$count_script" 2>/dev/null | tail -n1)
-        local count="${count_output:-0}"
-
-        if [[ "$count" -lt 1 ]]; then
-            local grant_script
-            read -r -d '' grant_script <<'EOSQL'
-SQL_USER=__SQL_USER__
-SQL_PASS=__SQL_PASS__
-ERP_IP=__ERP_IP__
-if [ -n "$SQL_PASS" ]; then
-  ESCAPED_PASS=$(printf "%s" "$SQL_PASS" | sed "s/'/''/g")
-  MYSQL_PWD="$SQL_PASS" mysql -u "$SQL_USER" -e "CREATE USER IF NOT EXISTS '$SQL_USER'@'$ERP_IP' IDENTIFIED BY '$ESCAPED_PASS'; GRANT ALL PRIVILEGES ON *.* TO '$SQL_USER'@'$ERP_IP' WITH GRANT OPTION; FLUSH PRIVILEGES;" >/dev/null 2>&1
-else
-  mysql -u "$SQL_USER" -e "CREATE USER IF NOT EXISTS '$SQL_USER'@'$ERP_IP' IDENTIFIED BY ''; GRANT ALL PRIVILEGES ON *.* TO '$SQL_USER'@'$ERP_IP' WITH GRANT OPTION; FLUSH PRIVILEGES;" >/dev/null 2>&1
-fi
-EOSQL
-            local grant_user=$(escape_for_script "$ERPNEXT_DB_ROOT_USER")
-            local grant_pass=$(escape_for_script "$ERPNEXT_DB_ROOT_PASSWORD")
-            local grant_ip=$(escape_for_script "$IP")
-            grant_script=${grant_script//__SQL_USER__/$grant_user}
-            grant_script=${grant_script//__SQL_PASS__/$grant_pass}
-            grant_script=${grant_script//__ERP_IP__/$grant_ip}
-
-            run_container_script "$MARIADB_CTID" "$ERPNEXT_DB_HOST" "$MARIADB_ROOT_PASSWORD" "$grant_script" >/dev/null 2>&1 || true
-        fi
-    fi
 }
 
 post_install_validate_redis() {
@@ -963,8 +1053,17 @@ post_install_validate_redis() {
 }
 
 post_install_validation() {
-    post_install_validate_mariadb
     local label
+
+    if [[ -n "$IP" ]]; then
+        for label in "${!REDIS_CTIDS[@]}"; do
+            if [[ "${REDIS_SOURCES[$label]}" == "ctid" ]]; then
+                configure_redis_remote_access "$label" "${REDIS_CTIDS[$label]}" "$IP" "${REDIS_PORTS[$label]}" "${REDIS_HOSTS[$label]}" "${REDIS_ROOT_PASSWORDS[$label]}" || true
+            fi
+        done
+    fi
+
+    post_install_validate_mariadb
     for label in "${!REDIS_URLS[@]}"; do
         post_install_validate_redis "$label" "${REDIS_URLS[$label]}"
     done
