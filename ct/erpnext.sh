@@ -113,17 +113,18 @@ ensure_container_running() {
 
 get_container_ipv4() {
     local __ctid="$1"
-    local __ip
+    local __ip=""
 
-    __ip=$(pct exec "$__ctid" -- bash -lc "hostname -I 2>/dev/null" 2>/dev/null | awk '{for (i = 1; i <= NF; i++) { if ($i != "127.0.0.1") { print $i; exit } }}')
+    __ip=$(pct exec "$__ctid" -- bash -lc "hostname -I 2>/dev/null" 2>/dev/null | awk '{for (i = 1; i <= NF; i++) { if ($i != "127.0.0.1") { print $i; exit } }}' || true)
     printf '%s' "$__ip"
 }
 
 detect_mariadb_port() {
     local __ctid="$1"
-    local __port
+    local __port=""
 
-    __port=$(pct exec "$__ctid" -- bash -lc "ss -ltnp 2>/dev/null | awk '/mysqld|mariadbd/ {split(\$4, a, ":"); port=a[length(a)]; if (port ~ /^[0-9]+$/) {print port; exit}}'" 2>/dev/null | tr -d '\r')
+    __port=$(pct exec "$__ctid" -- bash -lc "port=""; for cfg in /etc/mysql/mariadb.conf.d/*.cnf /etc/mysql/mysql.conf.d/*.cnf /etc/mysql/my.cnf /etc/my.cnf; do if [ -f "\$cfg" ]; then port=$(awk -F'=' '/^[[:space:]]*port[[:space:]]*=/{gsub(/[[:space:]]/, "", \$2); if (\$2 ~ /^[0-9]+$/) {print \$2; exit 0}}' "\$cfg"); if [ -n "\$port" ]; then echo "\$port"; exit 0; fi; fi; done; if command -v my_print_defaults >/dev/null 2>&1; then port=$(my_print_defaults mysqld 2>/dev/null | awk -F'=' '/^--port=/{print \$2; exit 0}'); if [ -n "\$port" ]; then echo "\$port"; exit 0; fi; fi; if command -v mysql >/dev/null 2>&1; then port=$(mysql -NBe "SHOW VARIABLES LIKE 'port'" 2>/dev/null | awk '{print \$2; exit}'); if [ -n "\$port" ]; then echo "\$port"; exit 0; fi; fi; exit 0" 2>/dev/null | tr -d '\r' | head -n1 || true)
+
     if [[ -z "$__port" ]]; then
         __port="3306"
     fi
@@ -465,7 +466,8 @@ detect_redis_port() {
     local __ctid="$1"
     local __port=""
 
-    __port=$(pct exec "$__ctid" -- ss -lntp 2>/dev/null | awk '/redis-server/ {split($4, a, ":"); print a[length(a)]; exit}')
+    __port=$(pct exec "$__ctid" -- bash -lc "port=""; for cfg in /etc/redis/redis.conf /etc/redis/*.conf; do if [ -f "\$cfg" ]; then port=$(awk '/^[[:space:]]*port[[:space:]]+/ {print \$2; exit 0}' "\$cfg"); if [ -n "\$port" ]; then echo "\$port"; exit 0; fi; fi; done; if command -v redis-cli >/dev/null 2>&1; then port=$(redis-cli -h 127.0.0.1 -p 6379 CONFIG GET port 2>/dev/null | awk 'NR==2 {print \$1; exit}'); if [ -n "\$port" ]; then echo "\$port"; exit 0; fi; fi; exit 0" 2>/dev/null | tr -d '\r' | head -n1 || true)
+
     if [[ -z "$__port" ]]; then
         __port="6379"
     fi
@@ -475,7 +477,7 @@ detect_redis_port() {
 
 detect_redis_password() {
     local __ctid="$1"
-    pct exec "$__ctid" -- bash -lc "awk '/^[[:space:]]*requirepass[[:space:]]+/ {print \$2; exit}' /etc/redis/redis.conf 2>/dev/null" 2>/dev/null | tr -d '\r' | head -n1
+    pct exec "$__ctid" -- bash -lc "awk '/^[[:space:]]*requirepass[[:space:]]+/ {print \$2; exit}' /etc/redis/redis.conf 2>/dev/null" 2>/dev/null | tr -d '\r' | head -n1 || true
 }
 
 configure_redis_manual() {
