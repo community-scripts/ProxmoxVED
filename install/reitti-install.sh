@@ -169,6 +169,7 @@ if [[ "$setup_sample" =~ ^[Yy]$ ]]; then
       -data-dir /opt/photon \
       -languages de,en,fr,it
   curl -fsSL -o /opt/photon/photon-dump-switzerland-liechtenstein.jsonl.zst "$PHOTON_DUMP_URL"
+  systemctl start photon
   msg_ok "Sample Data Setup Completed"
 fi
 
