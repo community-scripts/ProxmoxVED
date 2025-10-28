@@ -2,9 +2,7 @@
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Test Suite for tools.func
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Purpose: Run comprehensive test suite for all setup_* functions from tools.func
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -15,10 +13,11 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-apt install -y \
+$STD apt install -y \
   redis-server \
   rabbitmq-server \
-  libpq-dev
+  libpq-dev \
+  zstd
 msg_ok "Installed Dependencies"
 
 JAVA_VERSION="24" setup_java
@@ -109,7 +108,8 @@ msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/reitti.service
 [Unit]
 Description=Reitti
-After=syslog.target network.target
+After=network.target postgresql.service redis-server.service rabbitmq-server.service photon.service
+Wants=postgresql.service redis-server.service rabbitmq-server.service photon.service
 
 [Service]
 Type=simple
@@ -145,12 +145,39 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable -q --now photon
+systemctl enable -q --now reitti
 msg_ok "Created Service"
+
+read -rp "Would you like to setup sample data for Photon (Switzerland)? (y/n): " setup_sample
+if [[ "$setup_sample" =~ ^[Yy]$ ]]; then
+  msg_info "Setup Sample Data for Photon (Switzerland) - Patience"
+  systemctl stop photon
+  PHOTON_DUMP_URL="$(
+    curl -fsSL https://download1.graphhopper.com/public/europe/switzerland-liechtenstein/ |
+      grep -A1 '>0\.7' |
+      grep -o 'https[^"]*photon-dump-switzerland-liechtenstein-[^"]*\.jsonl\.zst' |
+      head -n1
+  )"
+  if [[ -z "$PHOTON_DUMP_URL" ]]; then
+    PHOTON_DUMP_URL="https://download1.graphhopper.com/public/europe/switzerland-liechtenstein/photon-dump-switzerland-liechtenstein-0.7-latest.jsonl.zst"
+  fi
+  mkdir -p /opt/photon
+  zstd --stdout -d /opt/photon/photon-dump-switzerland-liechtenstein.jsonl.zst |
+    java --enable-native-access=ALL-UNNAMED -Xmx4g -jar /opt/photon/photon.jar \
+      -nominatim-import \
+      -import-file - \
+      -data-dir /opt/photon \
+      -languages de,en,fr,it
+  curl -fsSL -o /opt/photon/photon-dump-switzerland-liechtenstein.jsonl.zst "$PHOTON_DUMP_URL"
+  msg_ok "Sample Data Setup Completed"
+fi
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+rm -rf /opt/photon/photon-dump-*.jsonl.zst
+$STD apt -y autoremove
+$STD apt -y autoclean
+$STD apt -y clean
 msg_ok "Cleaned"
