@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: Test Suite for tools.func
+# Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/dedicatedcode/reitti
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -63,36 +64,25 @@ mv /opt/reitti/reitti-*.jar /opt/reitti/reitti.jar
 USE_ORIGINAL_FILENAME="true" fetch_and_deploy_gh_release "photon" "komoot/photon" "singlefile" "latest" "/opt/photon" "photon-0*.jar"
 mv /opt/photon/photon-*.jar /opt/photon/photon.jar
 
-msg_info "Create Configuration"
-cat <<EOF >/opt/reitti/application.properties
-# PostgreSQL Database Connection
-spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/$DB_NAME
-spring.datasource.username=$DB_USER
-spring.datasource.password=$DB_PASS
-spring.datasource.driver-class-name=org.postgresql.Driver
+msg_info "Creating Reitti Environment (.env)"
+cat <<EOF >/opt/reitti/.env
+# PostgreSQL (PostGIS)
+POSTGIS_HOST=127.0.0.1
+POSTGIS_PORT=5432
+POSTGIS_DB=$DB_NAME
+POSTGIS_USER=$DB_USER
+POSTGIS_PASSWORD=$DB_PASS
 
-# Flyway Database Migrations
-spring.flyway.enabled=true
-spring.flyway.locations=classpath:db/migration
-spring.flyway.baseline-on-migrate=true
+# RabbitMQ
+RABBITMQ_HOST=127.0.0.1
+RABBITMQ_PORT=5672
+RABBITMQ_USER=$RABBIT_USER
+RABBITMQ_PASSWORD=$RABBIT_PASS
+RABBITMQ_VHOST=/
 
-# RabbitMQ (Message Queue)
-spring.rabbitmq.host=127.0.0.1
-spring.rabbitmq.port=5672
-spring.rabbitmq.username=$RABBIT_USER
-spring.rabbitmq.password=$RABBIT_PASS
-
-# Redis (Cache)
-spring.data.redis.host=127.0.0.1
-spring.data.redis.port=6379
-
-# Server Port
-server.port=8080
-
-# Optional: Logging & Performance
-logging.level.root=INFO
-spring.jpa.hibernate.ddl-auto=none
-spring.datasource.hikari.maximum-pool-size=10
+# Redis
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
 
 # Photon (Geocoding)
 PHOTON_BASE_URL=http://127.0.0.1:2322
@@ -100,9 +90,12 @@ PROCESSING_WAIT_TIME=15
 PROCESSING_BATCH_SIZE=1000
 PROCESSING_WORKERS_PER_QUEUE=4-16
 
-# Disable potentially dangerous features unless needed
+# General
+SERVER_PORT=8080
+LOGGING_LEVEL=INFO
 DANGEROUS_LIFE=false
 EOF
+msg_ok "Created .env for Reitti"
 
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/reitti.service
@@ -114,7 +107,7 @@ Wants=postgresql.service redis-server.service rabbitmq-server.service photon.ser
 [Service]
 Type=simple
 WorkingDirectory=/opt/reitti/
-Environment=LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
+EnvironmentFile=/opt/reitti/.env
 ExecStart=/usr/bin/java --enable-native-access=ALL-UNNAMED -jar -Xmx2g reitti.jar
 TimeoutStopSec=20
 KillMode=process
@@ -146,38 +139,12 @@ EOF
 
 systemctl enable -q --now photon
 systemctl enable -q --now reitti
-msg_ok "Created Service"
-
-read -rp "Would you like to setup sample data for Photon (Switzerland)? (y/n): " setup_sample
-if [[ "$setup_sample" =~ ^[Yy]$ ]]; then
-  msg_info "Setup Sample Data for Photon (Switzerland) - Patience"
-  systemctl stop photon
-  PHOTON_DUMP_URL="$(
-    curl -fsSL https://download1.graphhopper.com/public/europe/switzerland-liechtenstein/ |
-      grep -A1 '>0\.7' |
-      grep -o 'https[^"]*photon-dump-switzerland-liechtenstein-[^"]*\.jsonl\.zst' |
-      head -n1
-  )"
-  if [[ -z "$PHOTON_DUMP_URL" ]]; then
-    PHOTON_DUMP_URL="https://download1.graphhopper.com/public/europe/switzerland-liechtenstein/photon-dump-switzerland-liechtenstein-0.7-latest.jsonl.zst"
-  fi
-  mkdir -p /opt/photon
-  zstd --stdout -d /opt/photon/photon-dump-switzerland-liechtenstein.jsonl.zst |
-    java --enable-native-access=ALL-UNNAMED -Xmx4g -jar /opt/photon/photon.jar \
-      -nominatim-import \
-      -import-file - \
-      -data-dir /opt/photon \
-      -languages de,en,fr,it
-  curl -fsSL -o /opt/photon/photon-dump-switzerland-liechtenstein.jsonl.zst "$PHOTON_DUMP_URL"
-  systemctl start photon
-  msg_ok "Sample Data Setup Completed"
-fi
+msg_ok "Created Services"
 
 motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -rf /opt/photon/photon-dump-*.jsonl.zst
 $STD apt -y autoremove
 $STD apt -y autoclean
 $STD apt -y clean
