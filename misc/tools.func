@@ -2536,7 +2536,8 @@ function setup_java() {
   fi
 
   # Validate INSTALLED_VERSION is not empty if matched
-  if [[ -z "$INSTALLED_VERSION" && $(dpkg -l 2>/dev/null | grep -c "temurin-.*-jdk" || echo "0") -gt 0 ]]; then
+  local JDK_COUNT=$(dpkg -l 2>/dev/null | grep -c "temurin-.*-jdk" || echo "0")
+  if [[ -z "$INSTALLED_VERSION" && "$JDK_COUNT" -gt 0 ]]; then
     msg_warn "Found Temurin JDK but cannot determine version"
     INSTALLED_VERSION="0"
   fi

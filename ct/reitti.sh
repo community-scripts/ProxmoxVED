@@ -39,7 +39,21 @@ function update_script() {
     msg_info "Starting Service"
     systemctl start reitti
     msg_ok "Started Service"
-    msg_ok "Updated Successfully"
+    msg_ok "Updated Successfully!"
+  fi
+  if check_for_gh_release "photon" "dedicatedcode/reitti"; then
+    msg_info "Stopping Service"
+    systemctl stop photon
+    msg_ok "Stopped Service"
+
+    rm -f /opt/photon/photon.jar
+    USE_ORIGINAL_FILENAME="true" fetch_and_deploy_gh_release "photon" "komoot/photon" "singlefile" "latest" "/opt/photon" "photon-0*.jar"
+    mv /opt/photon/photon-*.jar /opt/photon/photon.jar
+
+    msg_info "Starting Service"
+    systemctl start photon
+    msg_ok "Started Service"
+    msg_ok "Updated Successfully!"
   fi
   exit
 }
