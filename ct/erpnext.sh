@@ -76,6 +76,61 @@ collect_lxc_ids() {
     pct list 2>/dev/null | awk 'NR>1 {print $1}' | sort -n
 }
 
+ensure_container_running() {
+    local __ctid="$1"
+    local __status
+
+    if ! command -v pct >/dev/null 2>&1; then
+        return 1
+    fi
+
+    __status=$(pct status "$__ctid" 2>/dev/null | awk '{print $2}')
+    if [[ -z "$__status" ]]; then
+        return 1
+    fi
+
+    if [[ "$__status" != "running" ]]; then
+        if whiptail --title "$APP" --yesno "Container ${__ctid} is not running.\n\nChoose <Yes> to start it now." 10 65; then
+            if ! pct start "$__ctid" >/dev/null 2>&1; then
+                return 1
+            fi
+            local __attempt
+            for __attempt in {1..10}; do
+                sleep 1
+                __status=$(pct status "$__ctid" 2>/dev/null | awk '{print $2}')
+                if [[ "$__status" == "running" ]]; then
+                    return 0
+                fi
+            done
+            return 1
+        else
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+get_container_ipv4() {
+    local __ctid="$1"
+    local __ip
+
+    __ip=$(pct exec "$__ctid" -- bash -lc "hostname -I 2>/dev/null" 2>/dev/null | awk '{for (i = 1; i <= NF; i++) { if ($i != "127.0.0.1") { print $i; exit } }}')
+    printf '%s' "$__ip"
+}
+
+detect_mariadb_port() {
+    local __ctid="$1"
+    local __port
+
+    __port=$(pct exec "$__ctid" -- bash -lc "ss -ltnp 2>/dev/null | awk '/mysqld|mariadbd/ {split(\$4, a, ":"); port=a[length(a)]; if (port ~ /^[0-9]+$/) {print port; exit}}'" 2>/dev/null | tr -d '\r')
+    if [[ -z "$__port" ]]; then
+        __port="3306"
+    fi
+
+    printf '%s' "$__port"
+}
+
 verify_tcp_endpoint() {
     local __host="$1"
     local __port="$2"
