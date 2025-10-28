@@ -243,6 +243,9 @@ install_bench_stack() {
         if [[ ! -d apps/erpnext ]]; then
             bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO}
         fi
+        if [[ ! -f sites/apps.txt ]] || ! grep -qx 'erpnext' sites/apps.txt; then
+            ls -1 apps >sites/apps.txt
+        fi
     "
 }
 
@@ -259,6 +262,8 @@ apply_bench_globals() {
         bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
         bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
         bench set-config -gp socketio_port '${SOCKETIO_PORT}'
+        bench set-config -g default_site '${SITE_NAME}'
+        bench set-config -g serve_default_site "true"
     "
 }
 
@@ -282,6 +287,7 @@ configure_site_data() {
         fi
         bench use '${SITE_NAME}'
         bench build
+        bench --site '${SITE_NAME}' clear-cache
     "
 }
 
