@@ -22,8 +22,8 @@
         "cpu": 4,
         "ram": 6144,
         "hdd": 20,
-        "os": "Debian",
-        "version": "12"
+        "os": "debian",
+        "version": "13"
       }
     }
   ],
@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "Photon Geocoder must be running at http://127.0.0.1:2322. The installer sets this up automatically using the Germany OpenSearch dataset.",
+      "text": "Photon Geocoder must be running at http://127.0.0.1:2322. The installer sets this up Photon automatically, but without sample data. (filesize is big).",
       "type": "info"
     }
   ]
