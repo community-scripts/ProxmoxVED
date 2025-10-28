@@ -113,17 +113,17 @@ ensure_container_running() {
 
 get_container_ipv4() {
     local __ctid="$1"
-    local __ip
+    local __ip=""
 
-    __ip=$(pct exec "$__ctid" -- bash -lc "hostname -I 2>/dev/null" 2>/dev/null | awk '{for (i = 1; i <= NF; i++) { if ($i != "127.0.0.1") { print $i; exit } }}')
+    __ip=$(pct exec "$__ctid" -- bash -lc "hostname -I 2>/dev/null" 2>/dev/null | awk '{for (i = 1; i <= NF; i++) { if ($i != "127.0.0.1") { print $i; exit } }}' || true)
     printf '%s' "$__ip"
 }
 
 detect_mariadb_port() {
     local __ctid="$1"
-    local __port
+    local __port=""
 
-    __port=$(pct exec "$__ctid" -- bash -lc "ss -ltnp 2>/dev/null | awk '/mysqld|mariadbd/ {split(\$4, a, ":"); port=a[length(a)]; if (port ~ /^[0-9]+$/) {print port; exit}}'" 2>/dev/null | tr -d '\r')
+    __port=$(pct exec "$__ctid" -- bash -lc "ss -ltnp 2>/dev/null | awk '/mysqld|mariadbd/ {split(\$4, a, ":"); port=a[length(a)]; if (port ~ /^[0-9]+$/) {print port; exit}}'" 2>/dev/null | tr -d '\r' || true)
     if [[ -z "$__port" ]]; then
         __port="3306"
     fi
@@ -465,7 +465,7 @@ detect_redis_port() {
     local __ctid="$1"
     local __port=""
 
-    __port=$(pct exec "$__ctid" -- ss -lntp 2>/dev/null | awk '/redis-server/ {split($4, a, ":"); print a[length(a)]; exit}')
+    __port=$(pct exec "$__ctid" -- ss -lntp 2>/dev/null | awk '/redis-server/ {split($4, a, ":"); print a[length(a)]; exit}' || true)
     if [[ -z "$__port" ]]; then
         __port="6379"
     fi
@@ -475,7 +475,7 @@ detect_redis_port() {
 
 detect_redis_password() {
     local __ctid="$1"
-    pct exec "$__ctid" -- bash -lc "awk '/^[[:space:]]*requirepass[[:space:]]+/ {print \$2; exit}' /etc/redis/redis.conf 2>/dev/null" 2>/dev/null | tr -d '\r' | head -n1
+    pct exec "$__ctid" -- bash -lc "awk '/^[[:space:]]*requirepass[[:space:]]+/ {print \$2; exit}' /etc/redis/redis.conf 2>/dev/null" 2>/dev/null | tr -d '\r' | head -n1 || true
 }
 
 configure_redis_manual() {
