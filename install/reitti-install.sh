@@ -15,10 +15,10 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-    redis-server \
-    rabbitmq-server \
-    libpq-dev \
-    zstd
+  redis-server \
+  rabbitmq-server \
+  libpq-dev \
+  zstd
 msg_ok "Installed Dependencies"
 
 JAVA_VERSION="24" setup_java
@@ -36,10 +36,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 $STD sudo -u postgres psql -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 $STD sudo -u postgres psql -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS postgis_topology;"
 {
-    echo "Reitti Credentials"
-    echo "Database Name: $DB_NAME"
-    echo "Database User: $DB_USER"
-    echo "Database Password: $DB_PASS"
+  echo "Reitti Credentials"
+  echo "Database Name: $DB_NAME"
+  echo "Database User: $DB_USER"
+  echo "Database Password: $DB_PASS"
 } >>~/reitti.creds
 msg_ok "PostgreSQL Setup Completed"
 
@@ -52,10 +52,10 @@ $STD rabbitmqctl add_vhost "$RABBIT_VHOST"
 $STD rabbitmqctl set_permissions -p "$RABBIT_VHOST" "$RABBIT_USER" ".*" ".*" ".*"
 $STD rabbitmqctl set_user_tags "$RABBIT_USER" administrator
 {
-    echo ""
-    echo "Reitti Credentials"
-    echo "RabbitMQ User: $RABBIT_USER"
-    echo "RabbitMQ Password: $RABBIT_PASS"
+  echo ""
+  echo "Reitti Credentials"
+  echo "RabbitMQ User: $RABBIT_USER"
+  echo "RabbitMQ Password: $RABBIT_PASS"
 } >>~/reitti.creds
 msg_ok "Configured RabbitMQ"
 
@@ -66,6 +66,9 @@ mv /opt/photon/photon-*.jar /opt/photon/photon.jar
 
 msg_info "Creating Reitti Configuration-File"
 cat <<EOF >/opt/reitti/application.properties
+# Reitti Server Base URI
+reitti.server.advertise-uri=http://127.0.0.1:8080
+
 # PostgreSQL Database Connection
 spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/$DB_NAME
 spring.datasource.username=$DB_USER
@@ -94,6 +97,9 @@ server.port=8080
 logging.level.root=INFO
 spring.jpa.hibernate.ddl-auto=none
 spring.datasource.hikari.maximum-pool-size=10
+
+# OIDC / Security Settings
+reitti.security.oidc.registration.enabled=false
 
 # Photon (Geocoding)
 PHOTON_BASE_URL=http://127.0.0.1:2322
