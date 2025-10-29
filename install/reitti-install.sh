@@ -122,8 +122,7 @@ Wants=postgresql.service redis-server.service rabbitmq-server.service photon.ser
 [Service]
 Type=simple
 WorkingDirectory=/opt/reitti/
-ExecStart=/usr/bin/java -jar /opt/reitti/reitti.jar \
-  --spring.config.location=file:/opt/reitti/application.properties
+ExecStart=/usr/bin/java --enable-native-access=ALL-UNNAMED -jar -Xmx2g reitti.jar
 TimeoutStopSec=20
 KillMode=process
 Restart=on-failure

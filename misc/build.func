@@ -307,7 +307,7 @@ base_settings() {
   GATE=${var_gateway:-""}
   APT_CACHER=${var_apt_cacher:-""}
   APT_CACHER_IP=${var_apt_cacher_ip:-""}
-  
+
   # Runtime check: Verify APT cacher is reachable if configured
   if [[ -n "$APT_CACHER_IP" && "$APT_CACHER" == "yes" ]]; then
     if ! curl -s --connect-timeout 2 "http://${APT_CACHER_IP}:3142" >/dev/null 2>&1; then
@@ -319,7 +319,7 @@ base_settings() {
       msg_ok "APT Cacher verified at ${APT_CACHER_IP}:3142"
     fi
   fi
-  
+
   MTU=${var_mtu:-""}
   SD=${var_storage:-""}
   NS=${var_ns:-""}
@@ -2197,7 +2197,7 @@ build_container() {
     # Check for NVIDIA GPU - look for NVIDIA vendor ID [10de]
     if echo "$pci_vga_info" | grep -q "\[10de:"; then
       msg_info "Detected NVIDIA GPU"
-      
+
       # Simple passthrough - just bind /dev/nvidia* devices if they exist
       for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset /dev/nvidia-uvm /dev/nvidia-uvm-tools; do
         [[ -e "$d" ]] && NVIDIA_DEVICES+=("$d")
@@ -2311,7 +2311,7 @@ EOF
       # Add lxc.mount.entry for each device
       for dev in "${devices[@]}"; do
         echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
-        
+
         if [[ "$CT_TYPE" == "0" ]]; then
           # Privileged container - also add cgroup allows
           local major minor
@@ -2337,7 +2337,7 @@ EOF
       # Add lxc.mount.entry for each NVIDIA device
       for dev in "${NVIDIA_DEVICES[@]}"; do
         echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
-        
+
         if [[ "$CT_TYPE" == "0" ]]; then
           # Privileged container - also add cgroup allows
           local major minor
