@@ -28,12 +28,14 @@ NODE_ENV=production
 DB_PATH=/opt/tracktor-data/tracktor.db
 UPLOADS_DIR="/opt/tracktor-data/uploads"
 LOG_DIR="/opt/tracktor-data/logs"
-# If server host is not set by default it will run on all interfaces - `0.0.0.0`
-SERVER_HOST="<LXC_IP_ADDRESS>" 
+# If server host is not set by default it will run on all interfaces - 0.0.0.0
+# SERVER_HOST="" 
 SERVER_PORT=3000
 PORT=3000
-# CORS_ORIGINS="*"  // Set this if you want to secure your endpoints otherwise default will be "*"
-# PUBLIC_API_BASE_URL="" // Set this if you are using backend and frontend separately. For lxc installation this is not needed
+# Set this if you want to secure your endpoints otherwise default will be "*"
+# CORS_ORIGINS="*"
+# Set this if you are using backend and frontend separately. For lxc installation this is not needed
+# PUBLIC_API_BASE_URL=""
 LOG_REQUESTS=true
 LOG_LEVEL="info"
 AUTH_PIN=123456
