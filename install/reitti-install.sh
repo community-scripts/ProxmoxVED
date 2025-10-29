@@ -64,38 +64,47 @@ mv /opt/reitti/reitti-*.jar /opt/reitti/reitti.jar
 USE_ORIGINAL_FILENAME="true" fetch_and_deploy_gh_release "photon" "komoot/photon" "singlefile" "latest" "/opt/photon" "photon-0*.jar"
 mv /opt/photon/photon-*.jar /opt/photon/photon.jar
 
-msg_info "Creating Reitti Environment (.env)"
-cat <<EOF >/opt/reitti/.env
-# PostgreSQL (PostGIS)
-POSTGIS_HOST=127.0.0.1
-POSTGIS_PORT=5432
-POSTGIS_DB=$DB_NAME
-POSTGIS_USER=$DB_USER
-POSTGIS_PASSWORD=$DB_PASS
+msg_info "Creating Reitti Configuration-File"
+cat <<'EOF' >/opt/reitti/application.properties
+# ─── Database (PostgreSQL/PostGIS) ──────────────────────────────────
+spring.datasource.url=jdbc:postgresql://${POSTGIS_HOST}:${POSTGIS_PORT}/${POSTGIS_DB}
+spring.datasource.username=${POSTGIS_USER}
+spring.datasource.password=${POSTGIS_PASSWORD}
+spring.datasource.driver-class-name=org.postgresql.Driver
 
-# RabbitMQ
-RABBITMQ_HOST=127.0.0.1
-RABBITMQ_PORT=5672
-RABBITMQ_USER=$RABBIT_USER
-RABBITMQ_PASSWORD=$RABBIT_PASS
-RABBITMQ_VHOST=/
+# ─── Flyway Migration ───────────────────────────────────────────────
+spring.flyway.enabled=true
+spring.flyway.locations=classpath:db/migration
+spring.flyway.baseline-on-migrate=true
 
-# Redis
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
+# ─── RabbitMQ ───────────────────────────────────────────────────────
+spring.rabbitmq.host=${RABBITMQ_HOST}
+spring.rabbitmq.port=${RABBITMQ_PORT}
+spring.rabbitmq.username=${RABBITMQ_USER}
+spring.rabbitmq.password=${RABBITMQ_PASSWORD}
+spring.rabbitmq.virtual-host=${RABBITMQ_VHOST}
 
-# Photon (Geocoding)
-PHOTON_BASE_URL=http://127.0.0.1:2322
-PROCESSING_WAIT_TIME=15
-PROCESSING_BATCH_SIZE=1000
-PROCESSING_WORKERS_PER_QUEUE=4-16
+# ─── Redis ─────────────────────────────────────────────────────────
+spring.redis.host=${REDIS_HOST}
+spring.redis.port=${REDIS_PORT}
+# spring.redis.username=${REDIS_USERNAME}
+# spring.redis.password=${REDIS_PASSWORD}
 
-# General
-SERVER_PORT=8080
-LOGGING_LEVEL=INFO
-DANGEROUS_LIFE=false
+# ─── Photon / Processing ────────────────────────────────────────────
+reitti.photon.base-url=${PHOTON_BASE_URL}
+reitti.processing.wait-time=${PROCESSING_WAIT_TIME}
+reitti.processing.batch-size=${PROCESSING_BATCH_SIZE}
+reitti.processing.workers-per-queue=${PROCESSING_WORKERS_PER_QUEUE}
+
+# ─── Application Server / Logging ───────────────────────────────────
+server.port=${SERVER_PORT}
+logging.level.root=${LOGGING_LEVEL}
+
+# ─── Misc / Safety ─────────────────────────────────────────────────
+reitti.dangerous-life=${DANGEROUS_LIFE}
+spring.jpa.hibernate.ddl-auto=none
 EOF
-msg_ok "Created .env for Reitti"
+msg_ok "Created Configuration-File for Reitti"
 
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/reitti.service
@@ -107,8 +116,8 @@ Wants=postgresql.service redis-server.service rabbitmq-server.service photon.ser
 [Service]
 Type=simple
 WorkingDirectory=/opt/reitti/
-EnvironmentFile=/opt/reitti/.env
-ExecStart=/usr/bin/java --enable-native-access=ALL-UNNAMED -jar -Xmx2g reitti.jar
+ExecStart=/usr/bin/java -jar /opt/reitti/reitti.jar \
+  --spring.config.location=file:/opt/reitti/application.properties
 TimeoutStopSec=20
 KillMode=process
 Restart=on-failure
