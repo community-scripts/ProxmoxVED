@@ -15,10 +15,10 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  redis-server \
-  rabbitmq-server \
-  libpq-dev \
-  zstd
+    redis-server \
+    rabbitmq-server \
+    libpq-dev \
+    zstd
 msg_ok "Installed Dependencies"
 
 JAVA_VERSION="24" setup_java
@@ -36,10 +36,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 $STD sudo -u postgres psql -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 $STD sudo -u postgres psql -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS postgis_topology;"
 {
-  echo "Reitti Credentials"
-  echo "Database Name: $DB_NAME"
-  echo "Database User: $DB_USER"
-  echo "Database Password: $DB_PASS"
+    echo "Reitti Credentials"
+    echo "Database Name: $DB_NAME"
+    echo "Database User: $DB_USER"
+    echo "Database Password: $DB_PASS"
 } >>~/reitti.creds
 msg_ok "PostgreSQL Setup Completed"
 
@@ -52,10 +52,10 @@ $STD rabbitmqctl add_vhost "$RABBIT_VHOST"
 $STD rabbitmqctl set_permissions -p "$RABBIT_VHOST" "$RABBIT_USER" ".*" ".*" ".*"
 $STD rabbitmqctl set_user_tags "$RABBIT_USER" administrator
 {
-  echo ""
-  echo "Reitti Credentials"
-  echo "RabbitMQ User: $RABBIT_USER"
-  echo "RabbitMQ Password: $RABBIT_PASS"
+    echo ""
+    echo "Reitti Credentials"
+    echo "RabbitMQ User: $RABBIT_USER"
+    echo "RabbitMQ Password: $RABBIT_PASS"
 } >>~/reitti.creds
 msg_ok "Configured RabbitMQ"
 
@@ -65,44 +65,44 @@ USE_ORIGINAL_FILENAME="true" fetch_and_deploy_gh_release "photon" "komoot/photon
 mv /opt/photon/photon-*.jar /opt/photon/photon.jar
 
 msg_info "Creating Reitti Configuration-File"
-cat <<'EOF' >/opt/reitti/application.properties
-# ─── Database (PostgreSQL/PostGIS) ──────────────────────────────────
-spring.datasource.url=jdbc:postgresql://${POSTGIS_HOST}:${POSTGIS_PORT}/${POSTGIS_DB}
-spring.datasource.username=${POSTGIS_USER}
-spring.datasource.password=${POSTGIS_PASSWORD}
+cat <<EOF >/opt/reitti/application.properties
+# PostgreSQL Database Connection
+spring.datasource.url=jdbc:postgresql://127.0.0.1:5432/$DB_NAME
+spring.datasource.username=$DB_USER
+spring.datasource.password=$DB_PASS
 spring.datasource.driver-class-name=org.postgresql.Driver
 
-# ─── Flyway Migration ───────────────────────────────────────────────
+# Flyway Database Migrations
 spring.flyway.enabled=true
 spring.flyway.locations=classpath:db/migration
 spring.flyway.baseline-on-migrate=true
 
-# ─── RabbitMQ ───────────────────────────────────────────────────────
-spring.rabbitmq.host=${RABBITMQ_HOST}
-spring.rabbitmq.port=${RABBITMQ_PORT}
-spring.rabbitmq.username=${RABBITMQ_USER}
-spring.rabbitmq.password=${RABBITMQ_PASSWORD}
-spring.rabbitmq.virtual-host=${RABBITMQ_VHOST}
+# RabbitMQ (Message Queue)
+spring.rabbitmq.host=127.0.0.1
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=$RABBIT_USER
+spring.rabbitmq.password=$RABBIT_PASS
 
-# ─── Redis ─────────────────────────────────────────────────────────
-spring.redis.host=${REDIS_HOST}
-spring.redis.port=${REDIS_PORT}
-# spring.redis.username=${REDIS_USERNAME}
-# spring.redis.password=${REDIS_PASSWORD}
+# Redis (Cache)
+spring.data.redis.host=127.0.0.1
+spring.data.redis.port=6379
 
-# ─── Photon / Processing ────────────────────────────────────────────
-reitti.photon.base-url=${PHOTON_BASE_URL}
-reitti.processing.wait-time=${PROCESSING_WAIT_TIME}
-reitti.processing.batch-size=${PROCESSING_BATCH_SIZE}
-reitti.processing.workers-per-queue=${PROCESSING_WORKERS_PER_QUEUE}
+# Server Port
+server.port=8080
 
-# ─── Application Server / Logging ───────────────────────────────────
-server.port=${SERVER_PORT}
-logging.level.root=${LOGGING_LEVEL}
-
-# ─── Misc / Safety ─────────────────────────────────────────────────
-reitti.dangerous-life=${DANGEROUS_LIFE}
+# Optional: Logging & Performance
+logging.level.root=INFO
 spring.jpa.hibernate.ddl-auto=none
+spring.datasource.hikari.maximum-pool-size=10
+
+# Photon (Geocoding)
+PHOTON_BASE_URL=http://127.0.0.1:2322
+PROCESSING_WAIT_TIME=15
+PROCESSING_BATCH_SIZE=1000
+PROCESSING_WORKERS_PER_QUEUE=4-16
+
+# Disable potentially dangerous features unless needed
+DANGEROUS_LIFE=false
 EOF
 msg_ok "Created Configuration-File for Reitti"
 
