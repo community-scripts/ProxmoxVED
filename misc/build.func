@@ -307,6 +307,19 @@ base_settings() {
   GATE=${var_gateway:-""}
   APT_CACHER=${var_apt_cacher:-""}
   APT_CACHER_IP=${var_apt_cacher_ip:-""}
+  
+  # Runtime check: Verify APT cacher is reachable if configured
+  if [[ -n "$APT_CACHER_IP" && "$APT_CACHER" == "yes" ]]; then
+    if ! curl -s --connect-timeout 2 "http://${APT_CACHER_IP}:3142" >/dev/null 2>&1; then
+      msg_warn "APT Cacher configured but not reachable at ${APT_CACHER_IP}:3142"
+      msg_info "Disabling APT Cacher for this installation"
+      APT_CACHER=""
+      APT_CACHER_IP=""
+    else
+      msg_ok "APT Cacher verified at ${APT_CACHER_IP}:3142"
+    fi
+  fi
+  
   MTU=${var_mtu:-""}
   SD=${var_storage:-""}
   NS=${var_ns:-""}
@@ -981,9 +994,10 @@ EOF
 # ------------------------------------------------------------------------------
 default_var_settings() {
   # Allowed var_* keys (alphabetically sorted)
+  # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
   local VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_ctid var_disk var_fuse
-    var_gateway var_hostname var_ipv6_method var_ipv6_static var_mac var_mtu
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse
+    var_gateway var_hostname var_ipv6_method var_mac var_mtu
     var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
     var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
   )
@@ -1046,7 +1060,6 @@ var_brg=vmbr0
 var_net=dhcp
 var_ipv6_method=none
 # var_gateway=
-# var_ipv6_static=
 # var_vlan=
 # var_mtu=
 # var_mac=
@@ -1184,9 +1197,10 @@ get_app_defaults_path() {
 # - Extracts raw values from flags like ",gw=..." ",mtu=..." etc.
 # ------------------------------------------------------------------------------
 if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
+  # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
   declare -ag VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_ctid var_disk var_fuse
-    var_gateway var_hostname var_ipv6_method var_ipv6_static var_mac var_mtu
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse
+    var_gateway var_hostname var_ipv6_method var_mac var_mtu
     var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
     var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
   )
@@ -1361,7 +1375,7 @@ _build_current_app_vars_tmp() {
     [ -n "$_ns" ] && echo "var_ns=$(_sanitize_value "$_ns")"
 
     [ -n "$_ipv6_method" ] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
-    [ -n "$_ipv6_static" ] && echo "var_ipv6_static=$(_sanitize_value "$_ipv6_static")"
+    # var_ipv6_static removed - static IPs are unique, can't be default
 
     [ -n "$_ssh" ] && echo "var_ssh=$(_sanitize_value "$_ssh")"
     [ -n "$_ssh_auth" ] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
@@ -2183,42 +2197,17 @@ build_container() {
     # Check for NVIDIA GPU - look for NVIDIA vendor ID [10de]
     if echo "$pci_vga_info" | grep -q "\[10de:"; then
       msg_info "Detected NVIDIA GPU"
-      if ! check_nvidia_host_setup; then
-        msg_error "NVIDIA host setup incomplete. Skipping GPU passthrough."
-        msg_info "Fix NVIDIA drivers on host, then recreate container or passthrough manually."
-        return 0
-      fi
-
-      for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset; do
+      
+      # Simple passthrough - just bind /dev/nvidia* devices if they exist
+      for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset /dev/nvidia-uvm /dev/nvidia-uvm-tools; do
         [[ -e "$d" ]] && NVIDIA_DEVICES+=("$d")
       done
 
-      if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
-        msg_warn "NVIDIA GPU detected but no /dev/nvidia* devices found"
-        msg_warn "Please install NVIDIA drivers on host: apt install nvidia-driver"
+      if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
+        msg_info "Found ${#NVIDIA_DEVICES[@]} NVIDIA device(s) for passthrough"
       else
-        if [[ "$CT_TYPE" == "0" ]]; then
-          cat <<EOF >>"$LXC_CONFIG"
-    # NVIDIA GPU Passthrough (privileged)
-    lxc.cgroup2.devices.allow: c 195:* rwm
-    lxc.cgroup2.devices.allow: c 243:* rwm
-    lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
-    lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
-    lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
-    lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,create=file
-EOF
-
-          if [[ -e /dev/dri/renderD128 ]]; then
-            echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
-          fi
-
-          export GPU_TYPE="NVIDIA"
-          export NVIDIA_DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n1)
-          msg_ok "NVIDIA GPU passthrough configured (driver: ${NVIDIA_DRIVER_VERSION})"
-        else
-          msg_warn "NVIDIA passthrough only supported for privileged containers"
-          return 0
-        fi
+        msg_warn "NVIDIA GPU detected via PCI but no /dev/nvidia* devices found"
+        msg_info "Skipping NVIDIA passthrough (host drivers may not be loaded)"
       fi
     fi
 
@@ -2319,19 +2308,12 @@ EOF
       [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
       [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
 
-      # For Proxmox WebUI visibility, add as dev0, dev1 etc.
+      # Add lxc.mount.entry for each device
       for dev in "${devices[@]}"; do
+        echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
+        
         if [[ "$CT_TYPE" == "0" ]]; then
-          # Privileged container - use dev entries for WebUI visibility
-          # Use initial GID 104 (render) for renderD*, 44 (video) for card*
-          if [[ "$dev" =~ renderD ]]; then
-            echo "dev${dev_idx}: $dev,gid=104" >>"$LXC_CONFIG"
-          else
-            echo "dev${dev_idx}: $dev,gid=44" >>"$LXC_CONFIG"
-          fi
-          dev_idx=$((dev_idx + 1))
-
-          # Also add cgroup allows for privileged containers
+          # Privileged container - also add cgroup allows
           local major minor
           major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
           minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
@@ -2339,33 +2321,25 @@ EOF
           if [[ "$major" != "0" && "$minor" != "0" ]]; then
             echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
           fi
-        else
-          # Unprivileged container
-          if [[ "$dev" =~ renderD ]]; then
-            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
-          else
-            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
-          fi
-          dev_idx=$((dev_idx + 1))
         fi
       done
 
       export GPU_TYPE="$selected_gpu"
-      msg_ok "${selected_gpu} GPU passthrough configured (${dev_idx} devices)"
+      msg_ok "${selected_gpu} GPU passthrough configured (${#devices[@]} devices)"
       ;;
 
     NVIDIA)
       if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
-        msg_error "NVIDIA drivers not installed on host. Please install: apt install nvidia-driver"
-        return 1
+        msg_warn "No NVIDIA devices available for passthrough"
+        return 0
       fi
 
+      # Add lxc.mount.entry for each NVIDIA device
       for dev in "${NVIDIA_DEVICES[@]}"; do
-        # NVIDIA devices typically need different handling
-        echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
-        dev_idx=$((dev_idx + 1))
-
+        echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
+        
         if [[ "$CT_TYPE" == "0" ]]; then
+          # Privileged container - also add cgroup allows
           local major minor
           major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
           minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
@@ -2377,7 +2351,7 @@ EOF
       done
 
       export GPU_TYPE="NVIDIA"
-      msg_ok "NVIDIA GPU passthrough configured (${dev_idx} devices)"
+      msg_ok "NVIDIA GPU passthrough configured (${#NVIDIA_DEVICES[@]} devices) - install drivers in container if needed"
       ;;
     esac
   }
@@ -2510,19 +2484,6 @@ EOF'
   fi
 
   msg_ok "Customized LXC Container"
-
-  # Verify GPU access if enabled
-  if [[ "${ENABLE_VAAPI:-0}" == "1" ]] && [ "$var_os" != "alpine" ]; then
-    pct exec "$CTID" -- bash -c "vainfo >/dev/null 2>&1" &&
-      msg_ok "VAAPI verified working" ||
-      msg_warn "VAAPI verification failed - may need additional configuration"
-  fi
-
-  if [[ "${ENABLE_NVIDIA:-0}" == "1" ]] && [ "$var_os" != "alpine" ]; then
-    pct exec "$CTID" -- bash -c "nvidia-smi >/dev/null 2>&1" &&
-      msg_ok "NVIDIA verified working" ||
-      msg_warn "NVIDIA verification failed - may need additional configuration"
-  fi
 
   # Install SSH keys
   install_ssh_keys_into_ct
@@ -2699,26 +2660,6 @@ fix_gpu_gids() {
       fi
     " >/dev/null 2>&1
   fi
-}
-
-# NVIDIA-spezific check on host
-check_nvidia_host_setup() {
-  if ! command -v nvidia-smi >/dev/null 2>&1; then
-    msg_warn "NVIDIA GPU detected but nvidia-smi not found on host"
-    msg_warn "Please install NVIDIA drivers on host first."
-    #echo "  1. Download driver: wget https://us.download.nvidia.com/XFree86/Linux-x86_64/550.127.05/NVIDIA-Linux-x86_64-550.127.05.run"
-    #echo "  2. Install: ./NVIDIA-Linux-x86_64-550.127.05.run --dkms"
-    #echo "  3. Verify: nvidia-smi"
-    return 1
-  fi
-
-  # check if nvidia-smi works
-  if ! nvidia-smi >/dev/null 2>&1; then
-    msg_warn "nvidia-smi installed but not working. Driver issue?"
-    return 1
-  fi
-
-  return 0
 }
 
 check_storage_support() {
