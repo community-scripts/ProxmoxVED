@@ -4,6 +4,10 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Revision: 1
 
+# ==============================================================================
+# CORE INITIALIZATION & VARIABLES
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # variables()
 #
@@ -35,124 +39,10 @@ variables() {
   KERNEL_VERSION=$(uname -r)
 }
 
-# -----------------------------------------------------------------------------
-# Community-Scripts bootstrap loader
-# - Always sources build.func from remote
-# - Updates local core files only if build.func changed
-# - Local cache: /usr/local/community-scripts/core
-# -----------------------------------------------------------------------------
 
-# FUNC_DIR="/usr/local/community-scripts/core"
-# mkdir -p "$FUNC_DIR"
-
-# BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
-# BUILD_REV="$FUNC_DIR/build.rev"
-# DEVMODE="${DEVMODE:-no}"
-
-# # --- Step 1: fetch build.func content once, compute hash ---
-# build_content="$(curl -fsSL "$BUILD_URL")" || {
-#   echo "❌ Failed to fetch build.func"
-#   exit 1
-# }
-
-# newhash=$(printf "%s" "$build_content" | sha256sum | awk '{print $1}')
-# oldhash=$(cat "$BUILD_REV" 2>/dev/null || echo "")
-
-# # --- Step 2: if build.func changed, offer update for core files ---
-# if [ "$newhash" != "$oldhash" ]; then
-#   echo "⚠️  build.func changed!"
-
-#   while true; do
-#     read -rp "Refresh local core files? [y/N/diff]: " ans
-#     case "$ans" in
-#     [Yy]*)
-#       echo "$newhash" >"$BUILD_REV"
-
-#       update_func_file() {
-#         local file="$1"
-#         local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
-#         local local_path="$FUNC_DIR/$file"
-
-#         echo "⬇️  Downloading $file ..."
-#         curl -fsSL "$url" -o "$local_path" || {
-#           echo "❌ Failed to fetch $file"
-#           exit 1
-#         }
-#         echo "✔️  Updated $file"
-#       }
-
-#       update_func_file core.func
-#       update_func_file error_handler.func
-#       update_func_file tools.func
-#       break
-#       ;;
-#     [Dd]*)
-#       for file in core.func error_handler.func tools.func; do
-#         local_path="$FUNC_DIR/$file"
-#         url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
-#         remote_tmp="$(mktemp)"
-
-#         curl -fsSL "$url" -o "$remote_tmp" || continue
-
-#         if [ -f "$local_path" ]; then
-#           echo "🔍 Diff for $file:"
-#           diff -u "$local_path" "$remote_tmp" || echo "(no differences)"
-#         else
-#           echo "📦 New file $file will be installed"
-#         fi
-
-#         rm -f "$remote_tmp"
-#       done
-#       ;;
-#     *)
-#       echo "❌ Skipped updating local core files"
-#       break
-#       ;;
-#     esac
-#   done
-# else
-#   if [ "$DEVMODE" != "yes" ]; then
-#     echo "✔️  build.func unchanged → using existing local core files"
-#   fi
-# fi
-
-# if [ -n "${_COMMUNITY_SCRIPTS_LOADER:-}" ]; then
-#   return 0 2>/dev/null || exit 0
-# fi
-# _COMMUNITY_SCRIPTS_LOADER=1
-
-# # --- Step 3: always source local versions of the core files ---
-# source "$FUNC_DIR/core.func"
-# source "$FUNC_DIR/error_handler.func"
-# source "$FUNC_DIR/tools.func"
-
-# # --- Step 4: finally, source build.func directly from memory ---
-# # (no tmp file needed)
-# source <(printf "%s" "$build_content")
-
-# ------------------------------------------------------------------------------
-# Load core + error handler functions from community-scripts repo
-#
-# - Prefer curl if available, fallback to wget
-# - Load: core.func, error_handler.func, api.func
-# - Initialize error traps after loading
-# ------------------------------------------------------------------------------
-
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
-
-if command -v curl >/dev/null 2>&1; then
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
-  load_functions
-  catch_errors
-  #echo "(build.func) Loaded core.func via curl"
-elif command -v wget >/dev/null 2>&1; then
-  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
-  load_functions
-  catch_errors
-  #echo "(build.func) Loaded core.func via wget"
-fi
+# ==============================================================================
+# SYSTEM VALIDATION & CHECKS
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # maxkeys_check()
@@ -163,7 +53,6 @@ fi
 # - Exits if thresholds are exceeded
 # - https://cleveruptime.com/docs/files/proc-key-users | https://docs.kernel.org/security/keys/core.html
 # ------------------------------------------------------------------------------
-
 maxkeys_check() {
   # Read kernel parameters
   per_user_maxkeys=$(cat /proc/sys/kernel/keys/maxkeys 2>/dev/null || echo 0)
@@ -208,6 +97,86 @@ maxkeys_check() {
 }
 
 # ------------------------------------------------------------------------------
+# check_container_resources()
+#
+# - Compares host RAM/CPU with required values
+# - Warns if under-provisioned and asks user to continue or abort
+# ------------------------------------------------------------------------------
+check_container_resources() {
+  current_ram=$(free -m | awk 'NR==2{print $2}')
+  current_cpu=$(nproc)
+
+  if [[ "$current_ram" -lt "$var_ram" ]] || [[ "$current_cpu" -lt "$var_cpu" ]]; then
+    echo -e "\n${INFO}${HOLD} ${GN}Required: ${var_cpu} CPU, ${var_ram}MB RAM ${CL}| ${RD}Current: ${current_cpu} CPU, ${current_ram}MB RAM${CL}"
+    echo -e "${YWB}Please ensure that the ${APP} LXC is configured with at least ${var_cpu} vCPU and ${var_ram} MB RAM for the build process.${CL}\n"
+    echo -ne "${INFO}${HOLD} May cause data loss! ${INFO} Continue update with under-provisioned LXC? <yes/No>  "
+    read -r prompt
+    if [[ ! ${prompt,,} =~ ^(yes)$ ]]; then
+      echo -e "${CROSS}${HOLD} ${YWB}Exiting based on user input.${CL}"
+      exit 1
+    fi
+  else
+    echo -e ""
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# check_container_storage()
+#
+# - Checks /boot partition usage
+# - Warns if usage >80% and asks user confirmation before proceeding
+# ------------------------------------------------------------------------------
+check_container_storage() {
+  total_size=$(df /boot --output=size | tail -n 1)
+  local used_size=$(df /boot --output=used | tail -n 1)
+  usage=$((100 * used_size / total_size))
+  if ((usage > 80)); then
+    echo -e "${INFO}${HOLD} ${YWB}Warning: Storage is dangerously low (${usage}%).${CL}"
+    echo -ne "Continue anyway? <y/N>  "
+    read -r prompt
+    if [[ ! ${prompt,,} =~ ^(y|yes)$ ]]; then
+      echo -e "${CROSS}${HOLD}${YWB}Exiting based on user input.${CL}"
+      exit 1
+    fi
+  fi
+}
+
+# NVIDIA-spezific check on host
+check_nvidia_host_setup() {
+  if ! command -v nvidia-smi >/dev/null 2>&1; then
+    msg_warn "NVIDIA GPU detected but nvidia-smi not found on host"
+    msg_warn "Please install NVIDIA drivers on host first."
+    #echo "  1. Download driver: wget https://us.download.nvidia.com/XFree86/Linux-x86_64/550.127.05/NVIDIA-Linux-x86_64-550.127.05.run"
+    #echo "  2. Install: ./NVIDIA-Linux-x86_64-550.127.05.run --dkms"
+    #echo "  3. Verify: nvidia-smi"
+    return 1
+  fi
+
+  # check if nvidia-smi works
+  if ! nvidia-smi >/dev/null 2>&1; then
+    msg_warn "nvidia-smi installed but not working. Driver issue?"
+    return 1
+  fi
+
+  return 0
+}
+
+check_storage_support() {
+  local CONTENT="$1" VALID=0
+  while IFS= read -r line; do
+    local STORAGE_NAME
+    STORAGE_NAME=$(awk '{print $1}' <<<"$line")
+    [[ -n "$STORAGE_NAME" ]] && VALID=1
+  done < <(pvesm status -content "$CONTENT" 2>/dev/null | awk 'NR>1')
+  [[ $VALID -eq 1 ]]
+}
+
+
+# ==============================================================================
+# NETWORK & IP MANAGEMENT
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
 # get_current_ip()
 #
 # - Returns current container IP depending on OS type
@@ -248,6 +217,11 @@ update_motd_ip() {
   fi
 }
 
+
+# ==============================================================================
+# SSH KEY MANAGEMENT
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # install_ssh_keys_into_ct()
 #
@@ -277,89 +251,6 @@ install_ssh_keys_into_ct() {
   # Fallback: nichts ausgewählt
   msg_warn "No SSH keys to install (skipping)."
   return 0
-}
-
-# ------------------------------------------------------------------------------
-# base_settings()
-#
-# - Defines all base/default variables for container creation
-# - Reads from environment variables (var_*)
-# - Provides fallback defaults for OS type/version
-# ------------------------------------------------------------------------------
-base_settings() {
-  # Default Settings
-  CT_TYPE=${var_unprivileged:-"1"}
-  DISK_SIZE=${var_disk:-"4"}
-  CORE_COUNT=${var_cpu:-"1"}
-  RAM_SIZE=${var_ram:-"1024"}
-  VERBOSE=${var_verbose:-"${1:-no}"}
-  PW=${var_pw:-""}
-  CT_ID=${var_ctid:-$NEXTID}
-  HN=${var_hostname:-$NSAPP}
-  BRG=${var_brg:-"vmbr0"}
-  NET=${var_net:-"dhcp"}
-  IPV6_METHOD=${var_ipv6_method:-"none"}
-  IPV6_STATIC=${var_ipv6_static:-""}
-  GATE=${var_gateway:-""}
-  APT_CACHER=${var_apt_cacher:-""}
-  APT_CACHER_IP=${var_apt_cacher_ip:-""}
-  MTU=${var_mtu:-""}
-  SD=${var_storage:-""}
-  NS=${var_ns:-""}
-  MAC=${var_mac:-""}
-  VLAN=${var_vlan:-""}
-  SSH=${var_ssh:-"no"}
-  SSH_AUTHORIZED_KEY=${var_ssh_authorized_key:-""}
-  UDHCPC_FIX=${var_udhcpc_fix:-""}
-  TAGS="community-script,${var_tags:-}"
-  ENABLE_FUSE=${var_fuse:-"${1:-no}"}
-  ENABLE_TUN=${var_tun:-"${1:-no}"}
-
-  # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
-  if [ -z "$var_os" ]; then
-    var_os="debian"
-  fi
-  if [ -z "$var_version" ]; then
-    var_version="12"
-  fi
-}
-
-# ------------------------------------------------------------------------------
-# echo_default()
-#
-# - Prints summary of default values (ID, OS, type, disk, RAM, CPU, etc.)
-# - Uses icons and formatting for readability
-# - Convert CT_TYPE to description
-# ------------------------------------------------------------------------------
-echo_default() {
-  CT_TYPE_DESC="Unprivileged"
-  if [ "$CT_TYPE" -eq 0 ]; then
-    CT_TYPE_DESC="Privileged"
-  fi
-  echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
-  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
-  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os ($var_version)${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
-  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
-  if [ "$VERBOSE" == "yes" ]; then
-    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
-  fi
-  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
-  echo -e "  "
-}
-
-# ------------------------------------------------------------------------------
-# exit_script()
-#
-# - Called when user cancels an action
-# - Clears screen and exits gracefully
-# ------------------------------------------------------------------------------
-exit_script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
 }
 
 # ------------------------------------------------------------------------------
@@ -423,6 +314,271 @@ find_host_ssh_keys() {
 }
 
 # ------------------------------------------------------------------------------
+# ssh_extract_keys_from_file()
+#
+# - Extracts valid SSH public keys from given file
+# - Supports RSA, Ed25519, ECDSA and filters out comments/invalid lines
+# ------------------------------------------------------------------------------
+ssh_extract_keys_from_file() {
+  local f="$1"
+  [[ -r "$f" ]] || return 0
+  tr -d '\r' <"$f" | awk '
+    /^[[:space:]]*#/ {next}
+    /^[[:space:]]*$/ {next}
+    # nackt: typ base64 [comment]
+    /^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/ {print; next}
+    # mit Optionen: finde ab erstem Key-Typ
+    {
+      match($0, /(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/)
+      if (RSTART>0) { print substr($0, RSTART) }
+    }
+  '
+}
+
+# ------------------------------------------------------------------------------
+# ssh_build_choices_from_files()
+#
+# - Builds interactive whiptail checklist of available SSH keys
+# - Generates fingerprint, type and comment for each key
+# ------------------------------------------------------------------------------
+ssh_build_choices_from_files() {
+  local -a files=("$@")
+  CHOICES=()
+  COUNT=0
+  MAPFILE="$(mktemp)"
+  local id key typ fp cmt base ln=0
+
+  for f in "${files[@]}"; do
+    [[ -f "$f" && -r "$f" ]] || continue
+    base="$(basename -- "$f")"
+    case "$base" in
+    known_hosts | known_hosts.* | config) continue ;;
+    id_*) [[ "$f" != *.pub ]] && continue ;;
+    esac
+
+    # map every key in file
+    while IFS= read -r key; do
+      [[ -n "$key" ]] || continue
+
+      typ=""
+      fp=""
+      cmt=""
+      # Only the pure key part (without options) is already included in ‘key’.
+      read -r _typ _b64 _cmt <<<"$key"
+      typ="${_typ:-key}"
+      cmt="${_cmt:-}"
+      # Fingerprint via ssh-keygen (if available)
+      if command -v ssh-keygen >/dev/null 2>&1; then
+        fp="$(printf '%s\n' "$key" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')"
+      fi
+      # Label shorten
+      [[ ${#cmt} -gt 40 ]] && cmt="${cmt:0:37}..."
+
+      ln=$((ln + 1))
+      COUNT=$((COUNT + 1))
+      id="K${COUNT}"
+      echo "${id}|${key}" >>"$MAPFILE"
+      CHOICES+=("$id" "[$typ] ${fp:+$fp }${cmt:+$cmt }— ${base}" "OFF")
+    done < <(ssh_extract_keys_from_file "$f")
+  done
+}
+
+# ------------------------------------------------------------------------------
+# ssh_discover_default_files()
+#
+# - Scans standard paths for SSH keys
+# - Includes ~/.ssh/*.pub, /etc/ssh/authorized_keys, etc.
+# ------------------------------------------------------------------------------
+ssh_discover_default_files() {
+  local -a cand=()
+  shopt -s nullglob
+  cand+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
+  cand+=(/root/.ssh/*.pub)
+  cand+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
+  shopt -u nullglob
+  printf '%s\0' "${cand[@]}"
+}
+
+configure_ssh_settings() {
+  SSH_KEYS_FILE="$(mktemp)"
+  : >"$SSH_KEYS_FILE"
+
+  IFS=$'\0' read -r -d '' -a _def_files < <(ssh_discover_default_files && printf '\0')
+  ssh_build_choices_from_files "${_def_files[@]}"
+  local default_key_count="$COUNT"
+
+  local ssh_key_mode
+  if [[ "$default_key_count" -gt 0 ]]; then
+    ssh_key_mode=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+      "Provision SSH keys for root:" 14 72 4 \
+      "found" "Select from detected keys (${default_key_count})" \
+      "manual" "Paste a single public key" \
+      "folder" "Scan another folder (path or glob)" \
+      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
+  else
+    ssh_key_mode=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+      "No host keys detected; choose manual/none:" 12 72 2 \
+      "manual" "Paste a single public key" \
+      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
+  fi
+
+  case "$ssh_key_mode" in
+  found)
+    local selection
+    selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT HOST KEYS" \
+      --checklist "Select one or more keys to import:" 20 140 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
+    for tag in $selection; do
+      tag="${tag%\"}"
+      tag="${tag#\"}"
+      local line
+      line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
+      [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
+    done
+    ;;
+  manual)
+    SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --inputbox "Paste one SSH public key line (ssh-ed25519/ssh-rsa/...)" 10 72 --title "SSH Public Key" 3>&1 1>&2 2>&3)"
+    [[ -n "$SSH_AUTHORIZED_KEY" ]] && printf '%s\n' "$SSH_AUTHORIZED_KEY" >>"$SSH_KEYS_FILE"
+    ;;
+  folder)
+    local glob_path
+    glob_path=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --inputbox "Enter a folder or glob to scan (e.g. /root/.ssh/*.pub)" 10 72 --title "Scan Folder/Glob" 3>&1 1>&2 2>&3)
+    if [[ -n "$glob_path" ]]; then
+      shopt -s nullglob
+      read -r -a _scan_files <<<"$glob_path"
+      shopt -u nullglob
+      if [[ "${#_scan_files[@]}" -gt 0 ]]; then
+        ssh_build_choices_from_files "${_scan_files[@]}"
+        if [[ "$COUNT" -gt 0 ]]; then
+          local folder_selection
+          folder_selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT FOLDER KEYS" \
+            --checklist "Select key(s) to import:" 20 78 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
+          for tag in $folder_selection; do
+            tag="${tag%\"}"
+            tag="${tag#\"}"
+            local line
+            line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
+            [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
+          done
+        else
+          whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "No keys found in: $glob_path" 8 60
+        fi
+      else
+        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Path/glob returned no files." 8 60
+      fi
+    fi
+    ;;
+  none)
+    :
+    ;;
+  esac
+
+  if [[ -s "$SSH_KEYS_FILE" ]]; then
+    sort -u -o "$SSH_KEYS_FILE" "$SSH_KEYS_FILE"
+    printf '\n' >>"$SSH_KEYS_FILE"
+  fi
+
+  if [[ -s "$SSH_KEYS_FILE" || "$PW" == -password* ]]; then
+    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable root SSH access?" 10 58); then
+      SSH="yes"
+    else
+      SSH="no"
+    fi
+  else
+    SSH="no"
+  fi
+}
+
+
+# ==============================================================================
+# SETTINGS & CONFIGURATION
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# base_settings()
+#
+# - Defines all base/default variables for container creation
+# - Reads from environment variables (var_*)
+# - Provides fallback defaults for OS type/version
+# ------------------------------------------------------------------------------
+base_settings() {
+  # Default Settings
+  CT_TYPE=${var_unprivileged:-"1"}
+  DISK_SIZE=${var_disk:-"4"}
+  CORE_COUNT=${var_cpu:-"1"}
+  RAM_SIZE=${var_ram:-"1024"}
+  VERBOSE=${var_verbose:-"${1:-no}"}
+  PW=${var_pw:-""}
+  CT_ID=${var_ctid:-$NEXTID}
+  HN=${var_hostname:-$NSAPP}
+  BRG=${var_brg:-"vmbr0"}
+  NET=${var_net:-"dhcp"}
+  IPV6_METHOD=${var_ipv6_method:-"none"}
+  IPV6_STATIC=${var_ipv6_static:-""}
+  GATE=${var_gateway:-""}
+  APT_CACHER=${var_apt_cacher:-""}
+  APT_CACHER_IP=${var_apt_cacher_ip:-""}
+  MTU=${var_mtu:-""}
+  SD=${var_storage:-""}
+  NS=${var_ns:-""}
+  MAC=${var_mac:-""}
+  VLAN=${var_vlan:-""}
+  SSH=${var_ssh:-"no"}
+  SSH_AUTHORIZED_KEY=${var_ssh_authorized_key:-""}
+  UDHCPC_FIX=${var_udhcpc_fix:-""}
+  TAGS="community-script,${var_tags:-}"
+  ENABLE_FUSE=${var_fuse:-"${1:-no}"}
+  ENABLE_TUN=${var_tun:-"${1:-no}"}
+
+  # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
+  if [ -z "$var_os" ]; then
+    var_os="debian"
+  fi
+  if [ -z "$var_version" ]; then
+    var_version="12"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# echo_default()
+#
+# - Prints summary of default values (ID, OS, type, disk, RAM, CPU, etc.)
+# - Uses icons and formatting for readability
+# - Convert CT_TYPE to description
+# ------------------------------------------------------------------------------
+echo_default() {
+  CT_TYPE_DESC="Unprivileged"
+  if [ "$CT_TYPE" -eq 0 ]; then
+    CT_TYPE_DESC="Privileged"
+  fi
+  echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
+  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
+  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os ($var_version)${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
+  if [ "$VERBOSE" == "yes" ]; then
+    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
+  fi
+  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
+  echo -e "  "
+}
+
+# ------------------------------------------------------------------------------
+# exit_script()
+#
+# - Called when user cancels an action
+# - Clears screen and exits gracefully
+# ------------------------------------------------------------------------------
+exit_script() {
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  exit
+}
+
+# ------------------------------------------------------------------------------
 # advanced_settings()
 #
 # - Interactive whiptail menu for advanced configuration
@@ -447,7 +603,7 @@ advanced_settings() {
           if [ "$CT_TYPE" -eq 0 ]; then
             CT_TYPE_DESC="Privileged"
           fi
-          echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
+          echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
           echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os |${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
           echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
         fi
@@ -465,7 +621,7 @@ advanced_settings() {
           if [ "$CT_TYPE" -eq 0 ]; then
             CT_TYPE_DESC="Privileged"
           fi
-          echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
+          echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
           echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
           echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
           echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
@@ -889,7 +1045,7 @@ advanced_settings() {
   else
     clear
     header_info
-    echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
+    echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings on node $PVEHOST_NAME${CL}"
     advanced_settings
   fi
@@ -1158,43 +1314,105 @@ EOF
   echo_default
 }
 
+diagnostics_menu() {
+  if [ "${DIAGNOSTICS:-no}" = "yes" ]; then
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "DIAGNOSTIC SETTINGS" \
+      --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
+      --yes-button "No" --no-button "Back"; then
+      DIAGNOSTICS="no"
+      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
+      whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
+    fi
+  else
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "DIAGNOSTIC SETTINGS" \
+      --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
+      --yes-button "Yes" --no-button "Back"; then
+      DIAGNOSTICS="yes"
+      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
+      whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
+    fi
+  fi
+}
+
+ensure_global_default_vars_file() {
+  local vars_path="/usr/local/community-scripts/default.vars"
+  if [[ ! -f "$vars_path" ]]; then
+    mkdir -p "$(dirname "$vars_path")"
+    touch "$vars_path"
+  fi
+  echo "$vars_path"
+}
+
+edit_default_storage() {
+  local vf="/usr/local/community-scripts/default.vars"
+
+  # Ensure file exists
+  if [[ ! -f "$vf" ]]; then
+    mkdir -p "$(dirname "$vf")"
+    touch "$vf"
+  fi
+
+  # Let ensure_storage_selection_for_vars_file handle everything
+  ensure_storage_selection_for_vars_file "$vf"
+}
+
+settings_menu() {
+  while true; do
+    local settings_items=(
+      "1" "Manage API-Diagnostic Setting"
+      "2" "Edit Default.vars"
+      "3" "Edit Default Storage"
+    )
+    if [ -f "$(get_app_defaults_path)" ]; then
+      settings_items+=("4" "Edit App.vars for ${APP}")
+      settings_items+=("5" "Exit")
+    else
+      settings_items+=("4" "Exit")
+    fi
+
+    local choice
+    choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+      --title "Community-Scripts SETTINGS Menu" \
+      --ok-button "OK" --cancel-button "Back" \
+      --menu "\n\nChoose a settings option:\n\nUse TAB or Arrow keys to navigate, ENTER to select." 20 60 9 \
+      "${settings_items[@]}" \
+      3>&1 1>&2 2>&3) || break
+
+    case "$choice" in
+    1) diagnostics_menu ;;
+    2) ${EDITOR:-nano} /usr/local/community-scripts/default.vars ;;
+    3) edit_default_storage ;;
+    4)
+      if [ -f "$(get_app_defaults_path)" ]; then
+        ${EDITOR:-nano} "$(get_app_defaults_path)"
+      else
+        exit_script
+      fi
+      ;;
+    5) exit_script ;;
+    esac
+  done
+}
+
+
+# ==============================================================================
+# DEFAULTS MANAGEMENT (VAR_* FILES)
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # get_app_defaults_path()
 #
 # - Returns full path for app-specific defaults file
 # - Example: /usr/local/community-scripts/defaults/<app>.vars
 # ------------------------------------------------------------------------------
-
 get_app_defaults_path() {
   local n="${NSAPP:-${APP,,}}"
   echo "/usr/local/community-scripts/defaults/${n}.vars"
 }
 
-# ------------------------------------------------------------------------------
-# maybe_offer_save_app_defaults
-#
-# - Called after advanced_settings returned with fully chosen values.
-# - If no <nsapp>.vars exists, offers to persist current advanced settings
-#   into /usr/local/community-scripts/defaults/<nsapp>.vars
-# - Only writes whitelisted var_* keys.
-# - Extracts raw values from flags like ",gw=..." ",mtu=..." etc.
-# ------------------------------------------------------------------------------
-if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
-  declare -ag VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_ctid var_disk var_fuse
-    var_gateway var_hostname var_ipv6_method var_ipv6_static var_mac var_mtu
-    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
-    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
-  )
-fi
-
-_is_whitelisted_key() {
-  local k="$1"
-  local w
-  for w in "${VAR_WHITELIST[@]}"; do [[ "$k" == "$w" ]] && return 0; done
-  return 1
-}
-
+# Note: _is_whitelisted_key() is defined above in default_var_settings section
 _sanitize_value() {
   # Disallow Command-Substitution / Shell-Meta
   case "$1" in
@@ -1206,12 +1424,10 @@ _sanitize_value() {
   echo "$1"
 }
 
-# Map-Parser: read var_* from file into _VARS_IN associative array
-declare -A _VARS_IN
-_load_vars_file() {
+_load_vars_file_to_map() {
   local file="$1"
   [ -f "$file" ] || return 0
-  msg_info "Loading defaults from ${file}"
+  _VARS_IN=() # Clear array
   local line key val
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line#"${line%%[![:space:]]*}"}"
@@ -1225,12 +1441,11 @@ _load_vars_file() {
     case "$key" in
     var_*)
       if _is_whitelisted_key "$key"; then
-        [ -z "${!key+x}" ] && export "$key=$val"
+        _VARS_IN["$key"]="$val"
       fi
       ;;
     esac
   done <"$file"
-  msg_ok "Loaded ${file}"
 }
 
 # Diff function for two var_* files -> produces human-readable diff list for $1 (old) vs $2 (new)
@@ -1482,220 +1697,11 @@ ensure_storage_selection_for_vars_file() {
   msg_ok "Storage configuration saved to $(basename "$vf")"
 }
 
-diagnostics_menu() {
-  if [ "${DIAGNOSTICS:-no}" = "yes" ]; then
-    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "DIAGNOSTIC SETTINGS" \
-      --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
-      --yes-button "No" --no-button "Back"; then
-      DIAGNOSTICS="no"
-      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=no/' /usr/local/community-scripts/diagnostics
-      whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
-    fi
-  else
-    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "DIAGNOSTIC SETTINGS" \
-      --yesno "Send Diagnostics?\n\nCurrent: ${DIAGNOSTICS}" 10 58 \
-      --yes-button "Yes" --no-button "Back"; then
-      DIAGNOSTICS="yes"
-      sed -i 's/^DIAGNOSTICS=.*/DIAGNOSTICS=yes/' /usr/local/community-scripts/diagnostics
-      whiptail --msgbox "Diagnostics set to ${DIAGNOSTICS}." 8 58
-    fi
-  fi
-}
 
-ensure_global_default_vars_file() {
-  local vars_path="/usr/local/community-scripts/default.vars"
-  if [[ ! -f "$vars_path" ]]; then
-    mkdir -p "$(dirname "$vars_path")"
-    touch "$vars_path"
-  fi
-  echo "$vars_path"
-}
+# ==============================================================================
+# STORAGE DISCOVERY & SELECTION
+# ==============================================================================
 
-# ------------------------------------------------------------------------------
-# install_script()
-#
-# - Main entrypoint for installation mode
-# - Runs safety checks (pve_check, root_check, maxkeys_check, diagnostics_check)
-# - Builds interactive menu (Default, Verbose, Advanced, My Defaults, App Defaults, Diagnostics, Storage, Exit)
-# - Applies chosen settings and triggers container build
-# ------------------------------------------------------------------------------
-install_script() {
-  pve_check
-  shell_check
-  root_check
-  arch_check
-  ssh_check
-  maxkeys_check
-  diagnostics_check
-
-  if systemctl is-active -q ping-instances.service; then
-    systemctl -q stop ping-instances.service
-  fi
-
-  NEXTID=$(pvesh get /cluster/nextid)
-  timezone=$(cat /etc/timezone)
-
-  # Show APP Header
-  header_info
-
-  # --- Support CLI argument as direct preset (default, advanced, …) ---
-  CHOICE="${mode:-${1:-}}"
-
-  # If no CLI argument → show whiptail menu
-  # Build menu dynamically based on available options
-  local appdefaults_option=""
-  local settings_option=""
-  local menu_items=(
-    "1" "Default Install"
-    "2" "Advanced Install"
-    "3" "My Defaults"
-  )
-
-  if [ -f "$(get_app_defaults_path)" ]; then
-    appdefaults_option="4"
-    menu_items+=("4" "App Defaults for ${APP}")
-    settings_option="5"
-    menu_items+=("5" "Settings")
-  else
-    settings_option="4"
-    menu_items+=("4" "Settings")
-  fi
-
-  if [ -z "$CHOICE" ]; then
-
-    TMP_CHOICE=$(whiptail \
-      --backtitle "Proxmox VE Helper Scripts" \
-      --title "Community-Scripts Options" \
-      --ok-button "Select" --cancel-button "Exit Script" \
-      --notags \
-      --menu "\nChoose an option:\n Use TAB or Arrow keys to navigate, ENTER to select.\n" \
-      20 60 9 \
-      "${menu_items[@]}" \
-      --default-item "1" \
-      3>&1 1>&2 2>&3) || exit_script
-    CHOICE="$TMP_CHOICE"
-  fi
-
-  APPDEFAULTS_OPTION="$appdefaults_option"
-  SETTINGS_OPTION="$settings_option"
-
-  # --- Main case ---
-  local defaults_target=""
-  local run_maybe_offer="no"
-  case "$CHOICE" in
-  1 | default | DEFAULT)
-    header_info
-    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME${CL}"
-    VERBOSE="no"
-    METHOD="default"
-    base_settings "$VERBOSE"
-    echo_default
-    defaults_target="$(ensure_global_default_vars_file)"
-    ;;
-  2 | advanced | ADVANCED)
-    header_info
-    echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
-    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Install on node $PVEHOST_NAME${CL}"
-    METHOD="advanced"
-    base_settings
-    advanced_settings
-    defaults_target="$(ensure_global_default_vars_file)"
-    run_maybe_offer="yes"
-    ;;
-  3 | mydefaults | MYDEFAULTS)
-    default_var_settings || {
-      msg_error "Failed to apply default.vars"
-      exit 1
-    }
-    defaults_target="/usr/local/community-scripts/default.vars"
-    ;;
-  "$APPDEFAULTS_OPTION" | appdefaults | APPDEFAULTS)
-    if [ -f "$(get_app_defaults_path)" ]; then
-      header_info
-      echo -e "${DEFAULT}${BOLD}${BL}Using App Defaults for ${APP} on node $PVEHOST_NAME${CL}"
-      METHOD="appdefaults"
-      base_settings
-      _load_vars_file "$(get_app_defaults_path)"
-      echo_default
-      defaults_target="$(get_app_defaults_path)"
-    else
-      msg_error "No App Defaults available for ${APP}"
-      exit 1
-    fi
-    ;;
-  "$SETTINGS_OPTION" | settings | SETTINGS)
-    settings_menu
-    defaults_target=""
-    ;;
-  *)
-    echo -e "${CROSS}${RD}Invalid option: $CHOICE${CL}"
-    exit 1
-    ;;
-  esac
-
-  if [[ -n "$defaults_target" ]]; then
-    ensure_storage_selection_for_vars_file "$defaults_target"
-  fi
-
-  if [[ "$run_maybe_offer" == "yes" ]]; then
-    maybe_offer_save_app_defaults
-  fi
-}
-
-edit_default_storage() {
-  local vf="/usr/local/community-scripts/default.vars"
-
-  # Ensure file exists
-  if [[ ! -f "$vf" ]]; then
-    mkdir -p "$(dirname "$vf")"
-    touch "$vf"
-  fi
-
-  # Let ensure_storage_selection_for_vars_file handle everything
-  ensure_storage_selection_for_vars_file "$vf"
-}
-
-settings_menu() {
-  while true; do
-    local settings_items=(
-      "1" "Manage API-Diagnostic Setting"
-      "2" "Edit Default.vars"
-      "3" "Edit Default Storage"
-    )
-    if [ -f "$(get_app_defaults_path)" ]; then
-      settings_items+=("4" "Edit App.vars for ${APP}")
-      settings_items+=("5" "Exit")
-    else
-      settings_items+=("4" "Exit")
-    fi
-
-    local choice
-    choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "Community-Scripts SETTINGS Menu" \
-      --ok-button "OK" --cancel-button "Back" \
-      --menu "\n\nChoose a settings option:\n\nUse TAB or Arrow keys to navigate, ENTER to select." 20 60 9 \
-      "${settings_items[@]}" \
-      3>&1 1>&2 2>&3) || break
-
-    case "$choice" in
-    1) diagnostics_menu ;;
-    2) ${EDITOR:-nano} /usr/local/community-scripts/default.vars ;;
-    3) edit_default_storage ;;
-    4)
-      if [ -f "$(get_app_defaults_path)" ]; then
-        ${EDITOR:-nano} "$(get_app_defaults_path)"
-      else
-        exit_script
-      fi
-      ;;
-    5) exit_script ;;
-    esac
-  done
-}
-
-# ===== Unified storage selection & writing to vars files =====
 _write_storage_to_vars() {
   # $1 = vars_file, $2 = key (var_container_storage / var_template_storage), $3 = value
   local vf="$1" key="$2" val="$3"
@@ -1747,270 +1753,230 @@ choose_and_set_storage_for_file() {
 }
 
 # ------------------------------------------------------------------------------
-# check_container_resources()
-#
-# - Compares host RAM/CPU with required values
-# - Warns if under-provisioned and asks user to continue or abort
+# Storage discovery / selection helpers
 # ------------------------------------------------------------------------------
-check_container_resources() {
-  current_ram=$(free -m | awk 'NR==2{print $2}')
-  current_cpu=$(nproc)
+resolve_storage_preselect() {
+  local class="$1" preselect="$2" required_content=""
+  case "$class" in
+  template) required_content="vztmpl" ;;
+  container) required_content="rootdir" ;;
+  *) return 1 ;;
+  esac
+  [[ -z "$preselect" ]] && return 1
+  if ! pvesm status -content "$required_content" | awk 'NR>1{print $1}' | grep -qx -- "$preselect"; then
+    msg_warn "Preselected storage '${preselect}' does not support content '${required_content}' (or not found)"
+    return 1
+  fi
 
-  if [[ "$current_ram" -lt "$var_ram" ]] || [[ "$current_cpu" -lt "$var_cpu" ]]; then
-    echo -e "\n${INFO}${HOLD} ${GN}Required: ${var_cpu} CPU, ${var_ram}MB RAM ${CL}| ${RD}Current: ${current_cpu} CPU, ${current_ram}MB RAM${CL}"
-    echo -e "${YWB}Please ensure that the ${APP} LXC is configured with at least ${var_cpu} vCPU and ${var_ram} MB RAM for the build process.${CL}\n"
-    echo -ne "${INFO}${HOLD} May cause data loss! ${INFO} Continue update with under-provisioned LXC? <yes/No>  "
-    read -r prompt
-    if [[ ! ${prompt,,} =~ ^(yes)$ ]]; then
-      echo -e "${CROSS}${HOLD} ${YWB}Exiting based on user input.${CL}"
-      exit 1
-    fi
+  local line total used free
+  line="$(pvesm status | awk -v s="$preselect" 'NR>1 && $1==s {print $0}')"
+  if [[ -z "$line" ]]; then
+    STORAGE_INFO="n/a"
   else
-    echo -e ""
-  fi
-}
-
-# ------------------------------------------------------------------------------
-# check_container_storage()
-#
-# - Checks /boot partition usage
-# - Warns if usage >80% and asks user confirmation before proceeding
-# ------------------------------------------------------------------------------
-check_container_storage() {
-  total_size=$(df /boot --output=size | tail -n 1)
-  local used_size=$(df /boot --output=used | tail -n 1)
-  usage=$((100 * used_size / total_size))
-  if ((usage > 80)); then
-    echo -e "${INFO}${HOLD} ${YWB}Warning: Storage is dangerously low (${usage}%).${CL}"
-    echo -ne "Continue anyway? <y/N>  "
-    read -r prompt
-    if [[ ! ${prompt,,} =~ ^(y|yes)$ ]]; then
-      echo -e "${CROSS}${HOLD}${YWB}Exiting based on user input.${CL}"
-      exit 1
+    total="$(awk '{print $4}' <<<"$line")"
+    used="$(awk '{print $5}' <<<"$line")"
+    free="$(awk '{print $6}' <<<"$line")"
+    local total_h used_h free_h
+    if command -v numfmt >/dev/null 2>&1; then
+      total_h="$(numfmt --to=iec --suffix=B --format %.1f "$total" 2>/dev/null || echo "$total")"
+      used_h="$(numfmt --to=iec --suffix=B --format %.1f "$used" 2>/dev/null || echo "$used")"
+      free_h="$(numfmt --to=iec --suffix=B --format %.1f "$free" 2>/dev/null || echo "$free")"
+      STORAGE_INFO="Free: ${free_h}  Used: ${used_h}"
+    else
+      STORAGE_INFO="Free: ${free}  Used: ${used}"
     fi
   fi
+  STORAGE_RESULT="$preselect"
+  return 0
 }
 
-# ------------------------------------------------------------------------------
-# ssh_extract_keys_from_file()
-#
-# - Extracts valid SSH public keys from given file
-# - Supports RSA, Ed25519, ECDSA and filters out comments/invalid lines
-# ------------------------------------------------------------------------------
-ssh_extract_keys_from_file() {
-  local f="$1"
-  [[ -r "$f" ]] || return 0
-  tr -d '\r' <"$f" | awk '
-    /^[[:space:]]*#/ {next}
-    /^[[:space:]]*$/ {next}
-    # nackt: typ base64 [comment]
-    /^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/ {print; next}
-    # mit Optionen: finde ab erstem Key-Typ
-    {
-      match($0, /(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+/)
-      if (RSTART>0) { print substr($0, RSTART) }
-    }
-  '
-}
-
-# ------------------------------------------------------------------------------
-# ssh_build_choices_from_files()
-#
-# - Builds interactive whiptail checklist of available SSH keys
-# - Generates fingerprint, type and comment for each key
-# ------------------------------------------------------------------------------
-ssh_build_choices_from_files() {
-  local -a files=("$@")
-  CHOICES=()
-  COUNT=0
-  MAPFILE="$(mktemp)"
-  local id key typ fp cmt base ln=0
-
-  for f in "${files[@]}"; do
-    [[ -f "$f" && -r "$f" ]] || continue
-    base="$(basename -- "$f")"
-    case "$base" in
-    known_hosts | known_hosts.* | config) continue ;;
-    id_*) [[ "$f" != *.pub ]] && continue ;;
-    esac
-
-    # map every key in file
-    while IFS= read -r key; do
-      [[ -n "$key" ]] || continue
-
-      typ=""
-      fp=""
-      cmt=""
-      # Only the pure key part (without options) is already included in ‘key’.
-      read -r _typ _b64 _cmt <<<"$key"
-      typ="${_typ:-key}"
-      cmt="${_cmt:-}"
-      # Fingerprint via ssh-keygen (if available)
-      if command -v ssh-keygen >/dev/null 2>&1; then
-        fp="$(printf '%s\n' "$key" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')"
-      fi
-      # Label shorten
-      [[ ${#cmt} -gt 40 ]] && cmt="${cmt:0:37}..."
-
-      ln=$((ln + 1))
-      COUNT=$((COUNT + 1))
-      id="K${COUNT}"
-      echo "${id}|${key}" >>"$MAPFILE"
-      CHOICES+=("$id" "[$typ] ${fp:+$fp }${cmt:+$cmt }— ${base}" "OFF")
-    done < <(ssh_extract_keys_from_file "$f")
-  done
-}
-
-# ------------------------------------------------------------------------------
-# ssh_discover_default_files()
-#
-# - Scans standard paths for SSH keys
-# - Includes ~/.ssh/*.pub, /etc/ssh/authorized_keys, etc.
-# ------------------------------------------------------------------------------
-ssh_discover_default_files() {
-  local -a cand=()
-  shopt -s nullglob
-  cand+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
-  cand+=(/root/.ssh/*.pub)
-  cand+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
-  shopt -u nullglob
-  printf '%s\0' "${cand[@]}"
-}
-
-configure_ssh_settings() {
-  SSH_KEYS_FILE="$(mktemp)"
-  : >"$SSH_KEYS_FILE"
-
-  IFS=$'\0' read -r -d '' -a _def_files < <(ssh_discover_default_files && printf '\0')
-  ssh_build_choices_from_files "${_def_files[@]}"
-  local default_key_count="$COUNT"
-
-  local ssh_key_mode
-  if [[ "$default_key_count" -gt 0 ]]; then
-    ssh_key_mode=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
-      "Provision SSH keys for root:" 14 72 4 \
-      "found" "Select from detected keys (${default_key_count})" \
-      "manual" "Paste a single public key" \
-      "folder" "Scan another folder (path or glob)" \
-      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
-  else
-    ssh_key_mode=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
-      "No host keys detected; choose manual/none:" 12 72 2 \
-      "manual" "Paste a single public key" \
-      "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
-  fi
-
-  case "$ssh_key_mode" in
-  found)
-    local selection
-    selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT HOST KEYS" \
-      --checklist "Select one or more keys to import:" 20 140 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
-    for tag in $selection; do
-      tag="${tag%\"}"
-      tag="${tag#\"}"
-      local line
-      line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
-      [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
-    done
+select_storage() {
+  local CLASS=$1 CONTENT CONTENT_LABEL
+  case $CLASS in
+  container)
+    CONTENT='rootdir'
+    CONTENT_LABEL='Container'
     ;;
-  manual)
-    SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --inputbox "Paste one SSH public key line (ssh-ed25519/ssh-rsa/...)" 10 72 --title "SSH Public Key" 3>&1 1>&2 2>&3)"
-    [[ -n "$SSH_AUTHORIZED_KEY" ]] && printf '%s\n' "$SSH_AUTHORIZED_KEY" >>"$SSH_KEYS_FILE"
+  template)
+    CONTENT='vztmpl'
+    CONTENT_LABEL='Container template'
     ;;
-  folder)
-    local glob_path
-    glob_path=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --inputbox "Enter a folder or glob to scan (e.g. /root/.ssh/*.pub)" 10 72 --title "Scan Folder/Glob" 3>&1 1>&2 2>&3)
-    if [[ -n "$glob_path" ]]; then
-      shopt -s nullglob
-      read -r -a _scan_files <<<"$glob_path"
-      shopt -u nullglob
-      if [[ "${#_scan_files[@]}" -gt 0 ]]; then
-        ssh_build_choices_from_files "${_scan_files[@]}"
-        if [[ "$COUNT" -gt 0 ]]; then
-          local folder_selection
-          folder_selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT FOLDER KEYS" \
-            --checklist "Select key(s) to import:" 20 78 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
-          for tag in $folder_selection; do
-            tag="${tag%\"}"
-            tag="${tag#\"}"
-            local line
-            line=$(grep -E "^${tag}\|" "$MAPFILE" | head -n1 | cut -d'|' -f2-)
-            [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
-          done
-        else
-          whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "No keys found in: $glob_path" 8 60
-        fi
-      else
-        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Path/glob returned no files." 8 60
-      fi
-    fi
+  iso)
+    CONTENT='iso'
+    CONTENT_LABEL='ISO image'
     ;;
-  none)
-    :
+  images)
+    CONTENT='images'
+    CONTENT_LABEL='VM Disk image'
+    ;;
+  backup)
+    CONTENT='backup'
+    CONTENT_LABEL='Backup'
+    ;;
+  snippets)
+    CONTENT='snippets'
+    CONTENT_LABEL='Snippets'
+    ;;
+  *)
+    msg_error "Invalid storage class '$CLASS'"
+    return 1
     ;;
   esac
 
-  if [[ -s "$SSH_KEYS_FILE" ]]; then
-    sort -u -o "$SSH_KEYS_FILE" "$SSH_KEYS_FILE"
-    printf '\n' >>"$SSH_KEYS_FILE"
+  declare -A STORAGE_MAP
+  local -a MENU=()
+  local COL_WIDTH=0
+
+  while read -r TAG TYPE _ TOTAL USED FREE _; do
+    [[ -n "$TAG" && -n "$TYPE" ]] || continue
+    local DISPLAY="${TAG} (${TYPE})"
+    local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
+    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
+    local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
+    STORAGE_MAP["$DISPLAY"]="$TAG"
+    MENU+=("$DISPLAY" "$INFO" "OFF")
+    ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
+  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
+
+  if [[ ${#MENU[@]} -eq 0 ]]; then
+    msg_error "No storage found for content type '$CONTENT'."
+    return 2
   fi
 
-  if [[ -s "$SSH_KEYS_FILE" || "$PW" == -password* ]]; then
-    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable root SSH access?" 10 58); then
-      SSH="yes"
-    else
-      SSH="no"
-    fi
-  else
-    SSH="no"
-  fi
-}
-
-# ------------------------------------------------------------------------------
-# start()
-#
-# - Entry point of script
-# - On Proxmox host: calls install_script
-# - In silent mode: runs update_script
-# - Otherwise: shows update/setting menu
-# ------------------------------------------------------------------------------
-start() {
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
-  if command -v pveversion >/dev/null 2>&1; then
-    install_script || return 0
+  if [[ $((${#MENU[@]} / 3)) -eq 1 ]]; then
+    STORAGE_RESULT="${STORAGE_MAP[${MENU[0]}]}"
+    STORAGE_INFO="${MENU[1]}"
     return 0
-  elif [ ! -z ${PHS_SILENT+x} ] && [[ "${PHS_SILENT}" == "1" ]]; then
-    VERBOSE="no"
-    set_std_mode
-    update_script
-  else
-    CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC Update/Setting" --menu \
-      "Support/Update functions for ${APP} LXC. Choose an option:" \
-      12 60 3 \
-      "1" "YES (Silent Mode)" \
-      "2" "YES (Verbose Mode)" \
-      "3" "NO (Cancel Update)" --nocancel --default-item "1" 3>&1 1>&2 2>&3)
+  fi
 
-    case "$CHOICE" in
-    1)
-      VERBOSE="no"
-      set_std_mode
-      ;;
-    2)
-      VERBOSE="yes"
-      set_std_mode
-      ;;
-    3)
-      clear
-      exit_script
-      exit
-      ;;
-    esac
-    update_script
+  local WIDTH=$((COL_WIDTH + 42))
+  while true; do
+    local DISPLAY_SELECTED
+    DISPLAY_SELECTED=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "Storage Pools" \
+      --radiolist "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
+      16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || { exit_script; }
+
+    DISPLAY_SELECTED=$(sed 's/[[:space:]]*$//' <<<"$DISPLAY_SELECTED")
+    if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
+      whiptail --msgbox "No valid storage selected. Please try again." 8 58
+      continue
+    fi
+    STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"
+    for ((i = 0; i < ${#MENU[@]}; i += 3)); do
+      if [[ "${MENU[$i]}" == "$DISPLAY_SELECTED" ]]; then
+        STORAGE_INFO="${MENU[$i + 1]}"
+        break
+      fi
+    done
+    return 0
+  done
+}
+
+
+# ==============================================================================
+# GPU & HARDWARE PASSTHROUGH
+# ==============================================================================
+
+fix_gpu_gids() {
+  if [[ -z "${GPU_TYPE:-}" ]]; then
+    return 0
+  fi
+
+  msg_info "Detecting and setting correct GPU group IDs"
+
+  # Ermittle die tatsächlichen GIDs aus dem Container
+  local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
+  local render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
+
+  # Fallbacks wenn Gruppen nicht existieren
+  if [[ -z "$video_gid" ]]; then
+    # Versuche die video Gruppe zu erstellen
+    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true"
+    video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
+    [[ -z "$video_gid" ]] && video_gid="44" # Ultimate fallback
+  fi
+
+  if [[ -z "$render_gid" ]]; then
+    # Versuche die render Gruppe zu erstellen
+    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true"
+    render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
+    [[ -z "$render_gid" ]] && render_gid="104" # Ultimate fallback
+  fi
+
+  msg_info "Container GIDs detected - video:${video_gid}, render:${render_gid}"
+
+  # Prüfe ob die GIDs von den Defaults abweichen
+  local need_update=0
+  if [[ "$video_gid" != "44" ]] || [[ "$render_gid" != "104" ]]; then
+    need_update=1
+  fi
+
+  if [[ $need_update -eq 1 ]]; then
+    msg_info "Updating device GIDs in container config"
+
+    # Stoppe Container für Config-Update
+    pct stop "$CTID" >/dev/null 2>&1
+
+    # Update die dev Einträge mit korrekten GIDs
+    # Backup der Config
+    cp "$LXC_CONFIG" "${LXC_CONFIG}.bak"
+
+    # Parse und update jeden dev Eintrag
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^dev[0-9]+: ]]; then
+        # Extract device path
+        local device_path=$(echo "$line" | sed -E 's/^dev[0-9]+: ([^,]+).*/\1/')
+        local dev_num=$(echo "$line" | sed -E 's/^(dev[0-9]+):.*/\1/')
+
+        if [[ "$device_path" =~ renderD ]]; then
+          # RenderD device - use render GID
+          echo "${dev_num}: ${device_path},gid=${render_gid}"
+        elif [[ "$device_path" =~ card ]]; then
+          # Card device - use video GID
+          echo "${dev_num}: ${device_path},gid=${video_gid}"
+        else
+          # Keep original line
+          echo "$line"
+        fi
+      else
+        # Keep non-dev lines
+        echo "$line"
+      fi
+    done <"$LXC_CONFIG" >"${LXC_CONFIG}.new"
+
+    mv "${LXC_CONFIG}.new" "$LXC_CONFIG"
+
+    # Starte Container wieder
+    pct start "$CTID" >/dev/null 2>&1
+    sleep 3
+
+    msg_ok "Device GIDs updated successfully"
+  else
+    msg_ok "Device GIDs are already correct"
+  fi
+  if [[ "$CT_TYPE" == "0" ]]; then
+    pct exec "$CTID" -- bash -c "
+      if [ -d /dev/dri ]; then
+        for dev in /dev/dri/*; do
+          if [ -e \"\$dev\" ]; then
+            if [[ \"\$dev\" =~ renderD ]]; then
+              chgrp ${render_gid} \"\$dev\" 2>/dev/null || true
+            else
+              chgrp ${video_gid} \"\$dev\" 2>/dev/null || true
+            fi
+            chmod 660 \"\$dev\" 2>/dev/null || true
+          fi
+        done
+      fi
+    " >/dev/null 2>&1
   fi
 }
+
+
+# ==============================================================================
+# CONTAINER LIFECYCLE & CREATION
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # build_container()
@@ -2564,253 +2530,6 @@ destroy_lxc() {
     msg_warn "Invalid response. Container was not removed."
     ;;
   esac
-}
-
-# ------------------------------------------------------------------------------
-# Storage discovery / selection helpers
-# ------------------------------------------------------------------------------
-# ===== Storage discovery / selection helpers (ported from create_lxc.sh) =====
-resolve_storage_preselect() {
-  local class="$1" preselect="$2" required_content=""
-  case "$class" in
-  template) required_content="vztmpl" ;;
-  container) required_content="rootdir" ;;
-  *) return 1 ;;
-  esac
-  [[ -z "$preselect" ]] && return 1
-  if ! pvesm status -content "$required_content" | awk 'NR>1{print $1}' | grep -qx -- "$preselect"; then
-    msg_warn "Preselected storage '${preselect}' does not support content '${required_content}' (or not found)"
-    return 1
-  fi
-
-  local line total used free
-  line="$(pvesm status | awk -v s="$preselect" 'NR>1 && $1==s {print $0}')"
-  if [[ -z "$line" ]]; then
-    STORAGE_INFO="n/a"
-  else
-    total="$(awk '{print $4}' <<<"$line")"
-    used="$(awk '{print $5}' <<<"$line")"
-    free="$(awk '{print $6}' <<<"$line")"
-    local total_h used_h free_h
-    if command -v numfmt >/dev/null 2>&1; then
-      total_h="$(numfmt --to=iec --suffix=B --format %.1f "$total" 2>/dev/null || echo "$total")"
-      used_h="$(numfmt --to=iec --suffix=B --format %.1f "$used" 2>/dev/null || echo "$used")"
-      free_h="$(numfmt --to=iec --suffix=B --format %.1f "$free" 2>/dev/null || echo "$free")"
-      STORAGE_INFO="Free: ${free_h}  Used: ${used_h}"
-    else
-      STORAGE_INFO="Free: ${free}  Used: ${used}"
-    fi
-  fi
-  STORAGE_RESULT="$preselect"
-  return 0
-}
-
-fix_gpu_gids() {
-  if [[ -z "${GPU_TYPE:-}" ]]; then
-    return 0
-  fi
-
-  msg_info "Detecting and setting correct GPU group IDs"
-
-  # Ermittle die tatsächlichen GIDs aus dem Container
-  local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
-  local render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
-
-  # Fallbacks wenn Gruppen nicht existieren
-  if [[ -z "$video_gid" ]]; then
-    # Versuche die video Gruppe zu erstellen
-    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true"
-    video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
-    [[ -z "$video_gid" ]] && video_gid="44" # Ultimate fallback
-  fi
-
-  if [[ -z "$render_gid" ]]; then
-    # Versuche die render Gruppe zu erstellen
-    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true"
-    render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
-    [[ -z "$render_gid" ]] && render_gid="104" # Ultimate fallback
-  fi
-
-  msg_info "Container GIDs detected - video:${video_gid}, render:${render_gid}"
-
-  # Prüfe ob die GIDs von den Defaults abweichen
-  local need_update=0
-  if [[ "$video_gid" != "44" ]] || [[ "$render_gid" != "104" ]]; then
-    need_update=1
-  fi
-
-  if [[ $need_update -eq 1 ]]; then
-    msg_info "Updating device GIDs in container config"
-
-    # Stoppe Container für Config-Update
-    pct stop "$CTID" >/dev/null 2>&1
-
-    # Update die dev Einträge mit korrekten GIDs
-    # Backup der Config
-    cp "$LXC_CONFIG" "${LXC_CONFIG}.bak"
-
-    # Parse und update jeden dev Eintrag
-    while IFS= read -r line; do
-      if [[ "$line" =~ ^dev[0-9]+: ]]; then
-        # Extract device path
-        local device_path=$(echo "$line" | sed -E 's/^dev[0-9]+: ([^,]+).*/\1/')
-        local dev_num=$(echo "$line" | sed -E 's/^(dev[0-9]+):.*/\1/')
-
-        if [[ "$device_path" =~ renderD ]]; then
-          # RenderD device - use render GID
-          echo "${dev_num}: ${device_path},gid=${render_gid}"
-        elif [[ "$device_path" =~ card ]]; then
-          # Card device - use video GID
-          echo "${dev_num}: ${device_path},gid=${video_gid}"
-        else
-          # Keep original line
-          echo "$line"
-        fi
-      else
-        # Keep non-dev lines
-        echo "$line"
-      fi
-    done <"$LXC_CONFIG" >"${LXC_CONFIG}.new"
-
-    mv "${LXC_CONFIG}.new" "$LXC_CONFIG"
-
-    # Starte Container wieder
-    pct start "$CTID" >/dev/null 2>&1
-    sleep 3
-
-    msg_ok "Device GIDs updated successfully"
-  else
-    msg_ok "Device GIDs are already correct"
-  fi
-  if [[ "$CT_TYPE" == "0" ]]; then
-    pct exec "$CTID" -- bash -c "
-      if [ -d /dev/dri ]; then
-        for dev in /dev/dri/*; do
-          if [ -e \"\$dev\" ]; then
-            if [[ \"\$dev\" =~ renderD ]]; then
-              chgrp ${render_gid} \"\$dev\" 2>/dev/null || true
-            else
-              chgrp ${video_gid} \"\$dev\" 2>/dev/null || true
-            fi
-            chmod 660 \"\$dev\" 2>/dev/null || true
-          fi
-        done
-      fi
-    " >/dev/null 2>&1
-  fi
-}
-
-# NVIDIA-spezific check on host
-check_nvidia_host_setup() {
-  if ! command -v nvidia-smi >/dev/null 2>&1; then
-    msg_warn "NVIDIA GPU detected but nvidia-smi not found on host"
-    msg_warn "Please install NVIDIA drivers on host first."
-    #echo "  1. Download driver: wget https://us.download.nvidia.com/XFree86/Linux-x86_64/550.127.05/NVIDIA-Linux-x86_64-550.127.05.run"
-    #echo "  2. Install: ./NVIDIA-Linux-x86_64-550.127.05.run --dkms"
-    #echo "  3. Verify: nvidia-smi"
-    return 1
-  fi
-
-  # check if nvidia-smi works
-  if ! nvidia-smi >/dev/null 2>&1; then
-    msg_warn "nvidia-smi installed but not working. Driver issue?"
-    return 1
-  fi
-
-  return 0
-}
-
-check_storage_support() {
-  local CONTENT="$1" VALID=0
-  while IFS= read -r line; do
-    local STORAGE_NAME
-    STORAGE_NAME=$(awk '{print $1}' <<<"$line")
-    [[ -n "$STORAGE_NAME" ]] && VALID=1
-  done < <(pvesm status -content "$CONTENT" 2>/dev/null | awk 'NR>1')
-  [[ $VALID -eq 1 ]]
-}
-
-select_storage() {
-  local CLASS=$1 CONTENT CONTENT_LABEL
-  case $CLASS in
-  container)
-    CONTENT='rootdir'
-    CONTENT_LABEL='Container'
-    ;;
-  template)
-    CONTENT='vztmpl'
-    CONTENT_LABEL='Container template'
-    ;;
-  iso)
-    CONTENT='iso'
-    CONTENT_LABEL='ISO image'
-    ;;
-  images)
-    CONTENT='images'
-    CONTENT_LABEL='VM Disk image'
-    ;;
-  backup)
-    CONTENT='backup'
-    CONTENT_LABEL='Backup'
-    ;;
-  snippets)
-    CONTENT='snippets'
-    CONTENT_LABEL='Snippets'
-    ;;
-  *)
-    msg_error "Invalid storage class '$CLASS'"
-    return 1
-    ;;
-  esac
-
-  declare -A STORAGE_MAP
-  local -a MENU=()
-  local COL_WIDTH=0
-
-  while read -r TAG TYPE _ TOTAL USED FREE _; do
-    [[ -n "$TAG" && -n "$TYPE" ]] || continue
-    local DISPLAY="${TAG} (${TYPE})"
-    local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
-    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
-    local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
-    STORAGE_MAP["$DISPLAY"]="$TAG"
-    MENU+=("$DISPLAY" "$INFO" "OFF")
-    ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
-  done < <(pvesm status -content "$CONTENT" | awk 'NR>1')
-
-  if [[ ${#MENU[@]} -eq 0 ]]; then
-    msg_error "No storage found for content type '$CONTENT'."
-    return 2
-  fi
-
-  if [[ $((${#MENU[@]} / 3)) -eq 1 ]]; then
-    STORAGE_RESULT="${STORAGE_MAP[${MENU[0]}]}"
-    STORAGE_INFO="${MENU[1]}"
-    return 0
-  fi
-
-  local WIDTH=$((COL_WIDTH + 42))
-  while true; do
-    local DISPLAY_SELECTED
-    DISPLAY_SELECTED=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "Storage Pools" \
-      --radiolist "Which storage pool for ${CONTENT_LABEL,,}?\n(Spacebar to select)" \
-      16 "$WIDTH" 6 "${MENU[@]}" 3>&1 1>&2 2>&3) || { exit_script; }
-
-    DISPLAY_SELECTED=$(sed 's/[[:space:]]*$//' <<<"$DISPLAY_SELECTED")
-    if [[ -z "$DISPLAY_SELECTED" || -z "${STORAGE_MAP[$DISPLAY_SELECTED]+_}" ]]; then
-      whiptail --msgbox "No valid storage selected. Please try again." 8 58
-      continue
-    fi
-    STORAGE_RESULT="${STORAGE_MAP[$DISPLAY_SELECTED]}"
-    for ((i = 0; i < ${#MENU[@]}; i += 3)); do
-      if [[ "${MENU[$i]}" == "$DISPLAY_SELECTED" ]]; then
-        STORAGE_INFO="${MENU[$i + 1]}"
-        break
-      fi
-    done
-    return 0
-  done
 }
 
 create_lxc_container() {
@@ -3480,6 +3199,187 @@ EOF
   post_update_to_api "done" "none"
 }
 
+
+# ==============================================================================
+# MAIN ENTRY POINTS & ERROR HANDLING
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# install_script()
+#
+# - Main entrypoint for installation mode
+# - Runs safety checks (pve_check, root_check, maxkeys_check, diagnostics_check)
+# - Builds interactive menu (Default, Verbose, Advanced, My Defaults, App Defaults, Diagnostics, Storage, Exit)
+# - Applies chosen settings and triggers container build
+# ------------------------------------------------------------------------------
+install_script() {
+  pve_check
+  shell_check
+  root_check
+  arch_check
+  ssh_check
+  maxkeys_check
+  diagnostics_check
+
+  if systemctl is-active -q ping-instances.service; then
+    systemctl -q stop ping-instances.service
+  fi
+
+  NEXTID=$(pvesh get /cluster/nextid)
+  timezone=$(cat /etc/timezone)
+
+  # Show APP Header
+  header_info
+
+  # --- Support CLI argument as direct preset (default, advanced, …) ---
+  CHOICE="${mode:-${1:-}}"
+
+  # If no CLI argument → show whiptail menu
+  # Build menu dynamically based on available options
+  local appdefaults_option=""
+  local settings_option=""
+  local menu_items=(
+    "1" "Default Install"
+    "2" "Advanced Install"
+    "3" "My Defaults"
+  )
+
+  if [ -f "$(get_app_defaults_path)" ]; then
+    appdefaults_option="4"
+    menu_items+=("4" "App Defaults for ${APP}")
+    settings_option="5"
+    menu_items+=("5" "Settings")
+  else
+    settings_option="4"
+    menu_items+=("4" "Settings")
+  fi
+
+  if [ -z "$CHOICE" ]; then
+
+    TMP_CHOICE=$(whiptail \
+      --backtitle "Proxmox VE Helper Scripts" \
+      --title "Community-Scripts Options" \
+      --ok-button "Select" --cancel-button "Exit Script" \
+      --notags \
+      --menu "\nChoose an option:\n Use TAB or Arrow keys to navigate, ENTER to select.\n" \
+      20 60 9 \
+      "${menu_items[@]}" \
+      --default-item "1" \
+      3>&1 1>&2 2>&3) || exit_script
+    CHOICE="$TMP_CHOICE"
+  fi
+
+  APPDEFAULTS_OPTION="$appdefaults_option"
+  SETTINGS_OPTION="$settings_option"
+
+  # --- Main case ---
+  local defaults_target=""
+  local run_maybe_offer="no"
+  case "$CHOICE" in
+  1 | default | DEFAULT)
+    header_info
+    echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings on node $PVEHOST_NAME${CL}"
+    VERBOSE="no"
+    METHOD="default"
+    base_settings "$VERBOSE"
+    echo_default
+    defaults_target="$(ensure_global_default_vars_file)"
+    ;;
+  2 | advanced | ADVANCED)
+    header_info
+
+    echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Install on node $PVEHOST_NAME${CL}"
+    echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
+    METHOD="advanced"
+    base_settings
+    advanced_settings
+    defaults_target="$(ensure_global_default_vars_file)"
+    run_maybe_offer="yes"
+    ;;
+  3 | mydefaults | MYDEFAULTS)
+    default_var_settings || {
+      msg_error "Failed to apply default.vars"
+      exit 1
+    }
+    defaults_target="/usr/local/community-scripts/default.vars"
+    ;;
+  "$APPDEFAULTS_OPTION" | appdefaults | APPDEFAULTS)
+    if [ -f "$(get_app_defaults_path)" ]; then
+      header_info
+      echo -e "${DEFAULT}${BOLD}${BL}Using App Defaults for ${APP} on node $PVEHOST_NAME${CL}"
+      METHOD="appdefaults"
+      base_settings
+      _load_vars_file "$(get_app_defaults_path)"
+      echo_default
+      defaults_target="$(get_app_defaults_path)"
+    else
+      msg_error "No App Defaults available for ${APP}"
+      exit 1
+    fi
+    ;;
+  "$SETTINGS_OPTION" | settings | SETTINGS)
+    settings_menu
+    defaults_target=""
+    ;;
+  *)
+    echo -e "${CROSS}${RD}Invalid option: $CHOICE${CL}"
+    exit 1
+    ;;
+  esac
+
+  if [[ -n "$defaults_target" ]]; then
+    ensure_storage_selection_for_vars_file "$defaults_target"
+  fi
+
+  if [[ "$run_maybe_offer" == "yes" ]]; then
+    maybe_offer_save_app_defaults
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# start()
+#
+# - Entry point of script
+# - On Proxmox host: calls install_script
+# - In silent mode: runs update_script
+# - Otherwise: shows update/setting menu
+# ------------------------------------------------------------------------------
+start() {
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
+  if command -v pveversion >/dev/null 2>&1; then
+    install_script || return 0
+    return 0
+  elif [ ! -z ${PHS_SILENT+x} ] && [[ "${PHS_SILENT}" == "1" ]]; then
+    VERBOSE="no"
+    set_std_mode
+    update_script
+  else
+    CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC Update/Setting" --menu \
+      "Support/Update functions for ${APP} LXC. Choose an option:" \
+      12 60 3 \
+      "1" "YES (Silent Mode)" \
+      "2" "YES (Verbose Mode)" \
+      "3" "NO (Cancel Update)" --nocancel --default-item "1" 3>&1 1>&2 2>&3)
+
+    case "$CHOICE" in
+    1)
+      VERBOSE="no"
+      set_std_mode
+      ;;
+    2)
+      VERBOSE="yes"
+      set_std_mode
+      ;;
+    3)
+      clear
+      exit_script
+      exit
+      ;;
+    esac
+    update_script
+  fi
+}
+
 # ------------------------------------------------------------------------------
 # api_exit_script()
 #
@@ -3508,9 +3408,28 @@ api_exit_script() {
   fi
 }
 
-if command -v pveversion >/dev/null 2>&1; then
-  trap 'api_exit_script' EXIT
-fi
-trap 'post_update_to_api "failed" "$BASH_COMMAND"' ERR
-trap 'post_update_to_api "failed" "INTERRUPTED"' SIGINT
-trap 'post_update_to_api "failed" "TERMINATED"' SIGTERM
+
+# ==============================================================================
+# DEPENDENCY LOADING
+# ==============================================================================
+
+# Community-Scripts bootstrap loader
+
+# Load core + error handler functions from community-scripts repo
+
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
+
+if command -v curl >/dev/null 2>&1; then
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+  load_functions
+  catch_errors
+elif command -v wget >/dev/null 2>&1; then
+  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+  load_functions
+  catch_errors
+
+
+  declare -ag VAR_WHITELIST=(
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_ctid var_disk var_fuse
