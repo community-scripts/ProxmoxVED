@@ -13,6 +13,7 @@
 # - Fetch hostname of Proxmox node
 # - Set default values for diagnostics/method
 # - Generate random UUID for tracking
+# - Get Proxmox VE version and kernel version
 # ------------------------------------------------------------------------------
 variables() {
   NSAPP=$(echo "${APP,,}" | tr -d ' ')              # This function sets the NSAPP variable by converting the value of the APP variable to lowercase and removing any spaces.
@@ -24,6 +25,14 @@ variables() {
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
   CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
   #CT_TYPE=${var_unprivileged:-$CT_TYPE}
+
+  # Get Proxmox VE version and kernel version
+  if command -v pveversion >/dev/null 2>&1; then
+    PVEVERSION=$(pveversion | grep "pve-manager" | awk '{print $2}' | cut -d'/' -f1)
+  else
+    PVEVERSION="N/A"
+  fi
+  KERNEL_VERSION=$(uname -r)
 }
 
 # -----------------------------------------------------------------------------
@@ -327,7 +336,7 @@ echo_default() {
   if [ "$CT_TYPE" -eq 0 ]; then
     CT_TYPE_DESC="Privileged"
   fi
-
+  echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
   echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
   echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os ($var_version)${CL}"
   echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
@@ -438,7 +447,8 @@ advanced_settings() {
           if [ "$CT_TYPE" -eq 0 ]; then
             CT_TYPE_DESC="Privileged"
           fi
-          echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os | ${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+          echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
+          echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os |${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
           echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
         fi
       else
@@ -455,6 +465,7 @@ advanced_settings() {
           if [ "$CT_TYPE" -eq 0 ]; then
             CT_TYPE_DESC="Privileged"
           fi
+          echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
           echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
           echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
           echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
@@ -878,6 +889,7 @@ advanced_settings() {
   else
     clear
     header_info
+    echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings on node $PVEHOST_NAME${CL}"
     advanced_settings
   fi
@@ -1584,6 +1596,7 @@ install_script() {
     ;;
   2 | advanced | ADVANCED)
     header_info
+    echo -e "${TAB}${INFO} ProxmoxVE Version ${PVEVERSION} | Kernel: ${KERNEL_VERSION}${CL}"
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Install on node $PVEHOST_NAME${CL}"
     METHOD="advanced"
     base_settings
