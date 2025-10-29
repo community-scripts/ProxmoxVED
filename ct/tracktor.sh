@@ -40,9 +40,11 @@ function update_script() {
         sed -i 's|^EnvironmentFile=.*|EnvironmentFile=/opt/tracktor.env|' /etc/systemd/system/tracktor.service
         systemctl daemon-reload
     fi
-    EXISTING_AUTH_PIN=$(grep '^AUTH_PIN=' /opt/tracktor.env 2>/dev/null | cut -d'=' -f2)
-    AUTH_PIN=${EXISTING_AUTH_PIN:-123456}
-    cat <<EOF >/opt/tracktor.env
+    if [ ! -d "/opt/tracktor-data/uploads" ]; then
+        mkdir -p /opt/tracktor-data/{uploads,logs}
+        EXISTING_AUTH_PIN=$(grep '^AUTH_PIN=' /opt/tracktor.env 2>/dev/null | cut -d'=' -f2)
+        AUTH_PIN=${EXISTING_AUTH_PIN:-123456}
+        cat <<EOF >/opt/tracktor.env
 NODE_ENV=production
 DB_PATH=/opt/tracktor-data/tracktor.db
 UPLOADS_DIR="/opt/tracktor-data/uploads"
@@ -60,6 +62,7 @@ AUTH_PIN=${AUTH_PIN}
 # PUBLIC_DEMO_MODE=false
 # FORCE_DATA_SEED=false
 EOF
+    fi
     msg_ok "Corrected Services"
 
     setup_nodejs
