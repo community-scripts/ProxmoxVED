@@ -17,6 +17,7 @@ $STD apt-get install -y \
   curl \
   sudo \
   git \
+  jq \
   make \
   gnupg \
   ca-certificates \
@@ -49,11 +50,23 @@ echo -e "SnowShare Database Name: \e[32m$DB_NAME\e[0m" >>~/snowshare.creds
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing SnowShare (Patience)"
+# Find the latest release tag using the GitHub API
+LATEST_TAG=$(curl -s "https://api.github.com/repos/TuroYT/snowshare/releases/latest" | jq -r .tag_name)
+
+if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" == "null" ]; then
+  msg_error "Failed to fetch the latest release tag from GitHub."
+  exit 1
+fi
+msg_ok "Fetching latest release: $LATEST_TAG"
+
 cd /opt
 $STD git clone https://github.com/TuroYT/snowshare.git
 cd /opt/snowshare
+$STD git checkout $LATEST_TAG
+msg_ok "Checked out $LATEST_TAG"
+
 $STD npm ci
-msg_ok "Installed SnowShare"
+msg_ok "Installed SnowShare dependencies"
 
 msg_info "Creating Environment Configuration"
 cat <<EOF >/opt/snowshare/.env
