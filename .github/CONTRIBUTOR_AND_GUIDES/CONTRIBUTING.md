@@ -82,11 +82,11 @@ git switch -c your-feature-branch
 ### 4. Run with the environment variable
 To be able to develop from your own branch you need to run the installer script of your choice with the `BASE_URL` environment variable:
 
-`export BASE_URL=https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_FORK_NAME/COMMIT_HASH && bash -c "$(curl -fsSL "$BASE_URL"/ct/YOUR_CT.sh)"`
+`export BASE_URL=https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_FORK_NAME/COMMIT_HASH && bash -c "$(curl -fsSL "$BASE_URL"/ct/AppName.sh)"`
 
 or
 
-`export BASE_URL=https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_FORK_NAME/BRANCH_NAME && bash -c "$(curl -fsSL "$BASE_URL"/ct/YOUR_CT.sh)"`
+`export BASE_URL=https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_FORK_NAME/BRANCH_NAME && bash -c "$(curl -fsSL "$BASE_URL"/ct/AppName.sh)"`
 
 this allows the scripts to target your changes without requiring any mutation of core scripts.
 
