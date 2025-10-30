@@ -247,6 +247,8 @@ if ! id -u frappe >/dev/null 2>&1; then
     useradd -m -s /bin/bash frappe
 fi
 usermod -aG sudo frappe
+echo "frappe ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/frappe
+chmod 0440 /etc/sudoers.d/frappe
 msg_ok "Prepared frappe user"
 
 install_bench_stack() {
