@@ -11,6 +11,9 @@ verb_ip6
 catch_errors
 setting_up_container
 
+# Source tools.func for additional helper functions like setup_nodejs
+source <(curl -fsSL "${BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main}/misc/tools.func")
+
 export DEBIAN_FRONTEND=noninteractive
 
 # Configuration variables with defaults
@@ -19,16 +22,17 @@ FRAPPE_BRANCH="${ERPNEXT_FRAPPE_BRANCH:-version-15}"
 FRAPPE_REPO="${ERPNEXT_FRAPPE_REPO:-https://github.com/frappe/frappe}"
 ERPNEXT_BRANCH="${ERPNEXT_APP_BRANCH:-version-15}"
 ERPNEXT_REPO="${ERPNEXT_APP_REPO:-https://github.com/frappe/erpnext}"
-ENABLE_INTERNAL_REDIS="${ERPNEXT_ENABLE_INTERNAL_REDIS:-no}"
+ENABLE_INTERNAL_REDIS="${ERPNEXT_ENABLE_INTERNAL_REDIS:-yes}"
 SITE_NAME_DEFAULT="${ERPNEXT_SITE_NAME:-erpnext.local}"
 DB_NAME_DEFAULT="${ERPNEXT_DB_NAME:-${SITE_NAME_DEFAULT//./_}}"
 DB_HOST_DEFAULT="${ERPNEXT_DB_HOST:-}"
 DB_PORT_DEFAULT="${ERPNEXT_DB_PORT:-3306}"
 DB_ROOT_USER_DEFAULT="${ERPNEXT_DB_ROOT_USER:-root}"
 DB_ROOT_PASS_DEFAULT="${ERPNEXT_DB_ROOT_PASSWORD:-}"
-REDIS_CACHE_DEFAULT="${ERPNEXT_REDIS_CACHE:-redis://127.0.0.1:6379}"
-REDIS_QUEUE_DEFAULT="${ERPNEXT_REDIS_QUEUE:-redis://127.0.0.1:6379}"
-REDIS_SOCKETIO_DEFAULT="${ERPNEXT_REDIS_SOCKETIO:-redis://127.0.0.1:6379}"
+# FIXED: Separate Redis instances for cache, queue, and socketio
+REDIS_CACHE_DEFAULT="${ERPNEXT_REDIS_CACHE:-redis://127.0.0.1:6379/0}"
+REDIS_QUEUE_DEFAULT="${ERPNEXT_REDIS_QUEUE:-redis://127.0.0.1:6379/1}"
+REDIS_SOCKETIO_DEFAULT="${ERPNEXT_REDIS_SOCKETIO:-redis://127.0.0.1:6379/2}"
 SOCKETIO_PORT_DEFAULT="${ERPNEXT_SOCKETIO_PORT:-9000}"
 SOCKETIO_FRONTEND_PORT_DEFAULT="${ERPNEXT_SOCKETIO_FRONTEND_PORT:-${SOCKETIO_PORT_DEFAULT}}"
 BACKEND_HOST_DEFAULT="${ERPNEXT_BACKEND_HOST:-127.0.0.1}"
@@ -199,8 +203,12 @@ msg_ok "Installed prerequisites"
 if [[ "$ENABLE_INTERNAL_REDIS" == "yes" ]]; then
     msg_info "Installing Redis server"
     $STD apt-get install -y redis-server
+
+    # Configure Redis to support multiple databases
+    sed -i 's/^databases .*/databases 16/' /etc/redis/redis.conf
+
     systemctl enable -q --now redis-server
-    msg_ok "Redis server ready"
+    msg_ok "Redis server ready (configured for multiple databases)"
 fi
 
 msg_info "Installing wkhtmltopdf"
@@ -248,9 +256,6 @@ install_bench_stack() {
         if [[ ! -d apps/erpnext ]]; then
             bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO}
         fi
-        if [[ ! -f sites/apps.txt ]] || ! grep -qx 'erpnext' sites/apps.txt; then
-            ls -1 apps >sites/apps.txt
-        fi
     "
 }
 
@@ -258,40 +263,49 @@ apply_bench_globals() {
     sudo -u frappe -H bash -c "set -Eeuo pipefail
         cd /home/frappe/frappe-bench
         bench set-config -g db_host '${DB_HOST}'
-        bench set-config -g db_port ${DB_PORT}
+        bench set-config -gp db_port ${DB_PORT}
         bench set-config -g redis_cache '${REDIS_CACHE_URL}'
         bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
         bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
-        bench set-config -g socketio_port ${SOCKETIO_PORT}
+        bench set-config -gp socketio_port ${SOCKETIO_PORT}
     "
 }
 
-if [[ "$ROLE" == "combined" || "$ROLE" == "backend" || "$ROLE" == "scheduler" || "$ROLE" == "worker" || "$ROLE" == "websocket" ]]; then
-    msg_info "Installing Bench and ERPNext"
-    install_bench_stack
-    msg_ok "Bench and ERPNext installed"
-fi
-
-SITE_CONFIG_PATH="/home/frappe/frappe-bench/sites/${SITE_NAME}/site_config.json"
-
 if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
-    msg_info "Creating site ${SITE_NAME}"
-    sudo -u frappe -H bash -c "set -Eeuo pipefail
-        cd /home/frappe/frappe-bench
-        bench new-site '${SITE_NAME}' \
-            --mariadb-root-username '${DB_ROOT_USER}' \
-            --mariadb-root-password '${DB_ROOT_PASSWORD}' \
-            --db-name '${DB_NAME}' \
-            --db-host '${DB_HOST}' \
-            --db-port ${DB_PORT} \
-            --admin-password '${ADMIN_PASSWORD}' \
-            --install-app erpnext
-        bench use '${SITE_NAME}'
-    "
-    msg_ok "Site ${SITE_NAME} created"
-elif [[ "$ROLE" == "frontend" || "$ROLE" == "worker" || "$ROLE" == "scheduler" || "$ROLE" == "websocket" ]]; then
+    msg_info "Initializing ERPNext bench"
+    install_bench_stack
+    msg_ok "Bench initialized"
+
+    msg_info "Applying global bench configuration"
+    apply_bench_globals
+    msg_ok "Configuration applied"
+
+    SITE_CONFIG_PATH="/home/frappe/frappe-bench/sites/${SITE_NAME}/site_config.json"
     if [[ ! -f "$SITE_CONFIG_PATH" ]]; then
-        msg_error "Site configuration not found at ${SITE_CONFIG_PATH}. Copy the 'sites' directory from your backend or combined container (or mount shared storage) before installing the ${ROLE} role."
+        msg_info "Creating new ERPNext site: ${SITE_NAME}"
+        DB_ROOT_PASSWORD_FLAG=""
+        if [[ -n "$DB_ROOT_PASSWORD" ]]; then
+            DB_ROOT_PASSWORD_FLAG="--root-password '${DB_ROOT_PASSWORD}'"
+        fi
+        sudo -u frappe -H bash -c "set -Eeuo pipefail
+            cd /home/frappe/frappe-bench
+            bench new-site '${SITE_NAME}' \
+                --mariadb-root-username '${DB_ROOT_USER}' \
+                ${DB_ROOT_PASSWORD_FLAG} \
+                --db-name '${DB_NAME}' \
+                --admin-password '${ADMIN_PASSWORD}' \
+                --install-app erpnext
+        " || {
+            msg_error "Failed to create site ${SITE_NAME}"
+            exit 1
+        }
+        msg_ok "Site ${SITE_NAME} created"
+    else
+        msg_info "Site ${SITE_NAME} already exists"
+    fi
+
+    if [[ ! -f "$SITE_CONFIG_PATH" ]]; then
+        msg_error "Site config not found at ${SITE_CONFIG_PATH}"
         exit 1
     fi
     msg_info "Running database migrations for ${SITE_NAME}"
@@ -529,6 +543,11 @@ if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
         if [[ -n "$SITE_DB_PASSWORD" ]]; then
             echo "Database Password: ${SITE_DB_PASSWORD}"
         fi
+        echo ""
+        echo "Redis Configuration:"
+        echo "  Cache:    ${REDIS_CACHE_URL}"
+        echo "  Queue:    ${REDIS_QUEUE_URL}"
+        echo "  SocketIO: ${REDIS_SOCKETIO_URL}"
     } >~/erpnext-admin.creds
     chmod 600 ~/erpnext-admin.creds
     msg_info "Administrator credentials stored in ~/erpnext-admin.creds"
