@@ -285,7 +285,7 @@ if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
         msg_info "Creating new ERPNext site: ${SITE_NAME}"
         DB_ROOT_PASSWORD_FLAG=""
         if [[ -n "$DB_ROOT_PASSWORD" ]]; then
-            DB_ROOT_PASSWORD_FLAG="--root-password '${DB_ROOT_PASSWORD}'"
+            DB_ROOT_PASSWORD_FLAG="--mariadb-root-password '${DB_ROOT_PASSWORD}'"
         fi
         sudo -u frappe -H bash -c "set -Eeuo pipefail
             cd /home/frappe/frappe-bench
@@ -336,7 +336,7 @@ fi
 create_service() {
     local service_name="$1"
     local service_content="$2"
-    printf '%s' "$service_content" >/etc/systemd/system/${service_name}.service
+    printf '%s' "$service_content" >/etc/systemd/system/"${service_name}".service
 }
 
 msg_info "Creating systemd units"
