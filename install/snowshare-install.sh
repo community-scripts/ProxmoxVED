@@ -36,11 +36,12 @@ msg_info "Setting up PostgreSQL Database"
 DB_NAME=snowshare
 DB_USER=snowshare
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
+systemctl enable -q --now postgresql
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
+$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 echo "" >>~/snowshare.creds
 echo -e "SnowShare Database User: \e[32m$DB_USER\e[0m" >>~/snowshare.creds
 echo -e "SnowShare Database Password: \e[32m$DB_PASS\e[0m" >>~/snowshare.creds
@@ -49,7 +50,6 @@ msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing SnowShare (Patience)"
 cd /opt
-RELEASE=$(curl -s https://api.github.com/repos/TuroYT/snowshare/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 $STD git clone https://github.com/TuroYT/snowshare.git
 cd /opt/snowshare
 $STD npm ci
@@ -72,7 +72,8 @@ $STD npx prisma migrate deploy
 msg_ok "Ran Database Migrations"
 
 msg_info "Building SnowShare"
-$STD npm run build
+cd /opt/snowshare
+npm run build
 msg_ok "Built SnowShare"
 
 msg_info "Creating Service"
