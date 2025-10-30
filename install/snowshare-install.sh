@@ -73,7 +73,7 @@ msg_ok "Ran Database Migrations"
 
 msg_info "Building SnowShare"
 cd /opt/snowshare
-npm run build
+$STD npm run build
 msg_ok "Built SnowShare"
 
 msg_info "Creating Service"
