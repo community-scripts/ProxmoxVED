@@ -332,8 +332,7 @@ configure_site_data() {
                 --db-port '${DB_PORT}' \
                 --mariadb-root-username '${DB_ROOT_USER}' \
                 --mariadb-root-password '${DB_ROOT_PASSWORD}' \
-                --admin-password '${ADMIN_PASSWORD}' \
-                --no-mariadb-socket
+                --admin-password '${ADMIN_PASSWORD}'
             bench --site '${SITE_NAME}' install-app erpnext
             bench --site '${SITE_NAME}' enable-scheduler
         else
@@ -539,8 +538,9 @@ server {
 }
 EOF_NGINX
 
-    ln -sf /dev/stdout /var/log/nginx/erpnext.access.log
-    ln -sf /dev/stderr /var/log/nginx/erpnext.error.log
+    # Create actual log files instead of symlinks (LXC containers don't support /dev/stdout symlinks)
+    touch /var/log/nginx/erpnext.access.log
+    touch /var/log/nginx/erpnext.error.log
     rm -f /etc/nginx/sites-enabled/default
     systemctl disable -q --now nginx >/dev/null 2>&1 || true
     msg_ok "nginx configured"
