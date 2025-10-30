@@ -20,35 +20,36 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
+  header_info
+  check_container_storage
+  check_container_resources
 
-    if [[ ! -f /opt/livebook/.mix/escripts/livebook ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-
-    if check_for_gh_release "livebook" "livebook-dev/livebook"; then
-        msg_info "Stopping ${APP}"
-        systemctl stop livebook
-        msg_info "Service stopped"
-
-        msg_info "Updating container"
-        $STD apt-get update
-        $STD apt-get -y upgrade
-        msg_ok "Updated container"
-
-        msg_info "Updating ${APP}"
-        source /opt/livebook/.env
-        cd /opt/livebook
-        $STD mix escript.install hex livebook --force
-
-        chown -R livebook:livebook /opt/livebook /data
-        systemctl start livebook
-        msg_ok "Updated ${APP}"
-    fi
+  if [[ ! -f /opt/livebook/.mix/escripts/livebook ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  if check_for_gh_release "livebook" "livebook-dev/livebook"; then
+    msg_info "Stopping Service"
+    systemctl stop livebook
+    msg_info "Stopped Service"
+
+    msg_info "Updating Container"
+    $STD apt update
+    $STD apt upgrade -y
+    msg_ok "Updated Container"
+
+    msg_info "Updating Livebook"
+    source /opt/livebook/.env
+    cd /opt/livebook
+    $STD mix escript.install hex livebook --force
+
+    chown -R livebook:livebook /opt/livebook /data
+    systemctl start livebook
+    msg_ok "Updated Livebook"
+    msg_ok "Updated Successfully!"
+  fi
+  exit
 }
 
 start

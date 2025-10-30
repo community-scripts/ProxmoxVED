@@ -15,11 +15,11 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    build-essential \
-    ca-certificates \
-    cmake \
-    git \
-    libncurses5-dev
+  build-essential \
+  ca-certificates \
+  cmake \
+  git \
+  libncurses5-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Creating livebook user"
@@ -27,7 +27,6 @@ mkdir -p /opt/livebook /data
 export HOME=/opt/livebook
 $STD adduser --system --group --home /opt/livebook --shell /bin/bash livebook
 msg_ok "Created livebook user"
-
 
 msg_warn "WARNING: This script will run an external installer from a third-party source (https://elixir-lang.org)."
 msg_warn "The following code is NOT maintained or audited by our repository."
@@ -39,7 +38,8 @@ if [[ ! "$CONFIRM" =~ ^([yY][eE][sS]|[yY])$ ]]; then
   msg_error "Aborted by user. No changes have been made."
   exit 10
 fi
-bash <(curl -sL https://elixir-lang.org/install.sh)
+curl -fsSO https://elixir-lang.org/install.sh
+$STD sh install.sh elixir@latest otp@latest
 
 msg_info "Setup Erlang and Elixir"
 ERLANG_VERSION=$(ls /opt/livebook/.elixir-install/installs/otp/ | head -n1)
@@ -99,7 +99,8 @@ msg_ok "Installed Livebook"
 motd_ssh
 customize
 
-msg_info "Cleaning Up"  
-$STD apt-get autoremove -y
-$STD apt-get autoclean
+msg_info "Cleaning Up"
+$STD apt autoremove -y
+$STD apt autoclean -y
+$STD apt clean -y
 msg_ok "Cleaned Up"
