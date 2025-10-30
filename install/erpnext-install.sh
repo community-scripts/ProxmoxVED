@@ -213,14 +213,14 @@ if [[ "$ENABLE_INTERNAL_REDIS" == "yes" ]]; then
         msg_error "Redis failed to start properly"
         systemctl status redis-server
         journalctl -u redis-server -n 50 --no-pager
-        netstat -tlnp | grep 6379 || true
+        ss -tlnp | grep 6379 || true
         exit 1
     fi
 
     # Verify Redis is actually listening
-    if ! netstat -tlnp | grep -q ':6379'; then
+    if ! ss -tlnp | grep -q ':6379'; then
         msg_error "Redis is running but not listening on port 6379"
-        netstat -tlnp | grep redis || true
+        ss -tlnp | grep redis || true
         cat /etc/redis/redis.conf | grep -E '^(bind|port)' || true
         exit 1
     fi
@@ -279,7 +279,7 @@ install_bench_stack() {
         # Check Redis status before testing connectivity
         echo 'Checking Redis status...'
         systemctl is-active redis-server || (echo 'Redis is not active, restarting...' && sudo systemctl restart redis-server && sleep 2)
-        redis-cli ping || (echo 'Redis ping failed' && sudo systemctl status redis-server && sudo netstat -tlnp | grep 6379 && exit 1)
+        redis-cli ping || (echo 'Redis ping failed' && sudo systemctl status redis-server && sudo ss -tlnp | grep 6379 && exit 1)
 
         # Verify Redis connectivity using bench's python
         echo 'Testing Redis connectivity from bench...'
@@ -384,7 +384,7 @@ fi
 create_service() {
     local service_name="$1"
     local service_content="$2"
-    printf '%s' "$service_content" >/etc/systemd/system/${service_name}.service
+    printf '%s' "$service_content" >/etc/systemd/system/"${service_name}".service
 }
 
 msg_info "Creating systemd units"
