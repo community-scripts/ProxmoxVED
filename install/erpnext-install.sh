@@ -263,6 +263,19 @@ install_bench_stack() {
         bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
         bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
 
+        # Verify Redis connectivity
+        echo 'Testing Redis connectivity...'
+        python3 -c \"
+import redis
+try:
+    r = redis.from_url('${REDIS_CACHE_URL}')
+    r.ping()
+    print('✓ Redis cache connection successful')
+except Exception as e:
+    print(f'✗ Redis connection failed: {e}')
+    exit(1)
+\"
+
         if [[ ! -d apps/erpnext ]]; then
             bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO}
         fi
