@@ -263,9 +263,9 @@ install_bench_stack() {
         bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
         bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
 
-        # Verify Redis connectivity
+        # Verify Redis connectivity using bench's python
         echo 'Testing Redis connectivity...'
-        python3 -c \"
+        ./env/bin/python3 -c \"
 import redis
 try:
     r = redis.from_url('${REDIS_CACHE_URL}')
@@ -366,7 +366,7 @@ fi
 create_service() {
     local service_name="$1"
     local service_content="$2"
-    printf '%s' "$service_content" >/etc/systemd/system/${service_name}.service
+    printf '%s' "$service_content" >/etc/systemd/system/"${service_name}".service
 }
 
 msg_info "Creating systemd units"
