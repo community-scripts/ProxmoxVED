@@ -200,6 +200,48 @@ $STD apt-get install -y \
     locales
 msg_ok "Installed prerequisites"
 
+# Test database connection and reprompt if necessary
+msg_info "Testing MariaDB connection"
+test_db_connection() {
+    local password_arg=""
+    if [[ -n "$DB_ROOT_PASSWORD" ]]; then
+        password_arg="-p${DB_ROOT_PASSWORD}"
+    fi
+
+    if mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${DB_ROOT_USER}" ${password_arg} -e "SELECT 1;" >/dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+CONNECTION_ATTEMPTS=0
+while ! test_db_connection; do
+    CONNECTION_ATTEMPTS=$((CONNECTION_ATTEMPTS + 1))
+
+    if [[ $CONNECTION_ATTEMPTS -eq 1 ]]; then
+        msg_error "Failed to connect to MariaDB at ${DB_HOST}:${DB_PORT}"
+    fi
+
+    echo ""
+    echo "Unable to connect to MariaDB. Please verify your connection details:"
+    echo "Current settings:"
+    echo "  Host: ${DB_HOST}"
+    echo "  Port: ${DB_PORT}"
+    echo "  User: ${DB_ROOT_USER}"
+    echo ""
+
+    # Reprompt for credentials
+    prompt_or_default DB_HOST "MariaDB host [${DB_HOST}]: " "$DB_HOST"
+    prompt_or_default DB_PORT "MariaDB port [${DB_PORT}]: " "$DB_PORT"
+    prompt_or_default DB_ROOT_USER "MariaDB admin user [${DB_ROOT_USER}]: " "$DB_ROOT_USER"
+    prompt_or_default DB_ROOT_PASSWORD "MariaDB admin password: " "$DB_ROOT_PASSWORD" 1
+
+    msg_info "Retrying connection (attempt $((CONNECTION_ATTEMPTS + 1)))..."
+done
+
+msg_ok "MariaDB connection successful"
+
 if [[ "$ENABLE_INTERNAL_REDIS" == "yes" ]]; then
     msg_info "Installing Redis server"
     $STD apt-get install -y redis-server
@@ -336,7 +378,7 @@ fi
 create_service() {
     local service_name="$1"
     local service_content="$2"
-    printf '%s' "$service_content" >/etc/systemd/system/"${service_name}".service
+    printf '%s' "$service_content" >/etc/systemd/system/${service_name}.service
 }
 
 msg_info "Creating systemd units"
