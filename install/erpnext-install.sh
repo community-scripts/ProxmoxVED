@@ -2,37 +2,37 @@
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: JamesonRGrieve
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/frappe/erpnext
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
-setting_up_container
 
-# Source tools.func for additional helper functions like setup_nodejs
-source <(curl -fsSL "${BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main}/misc/tools.func")
+if [[ -z "${ERPNEXT_PARENT_INITIALIZED:-}" ]]; then
+    setting_up_container
+    network_check
+    update_os
+fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-# Configuration variables with defaults
 ROLE="${ERPNEXT_ROLE:-combined}"
 FRAPPE_BRANCH="${ERPNEXT_FRAPPE_BRANCH:-version-15}"
 FRAPPE_REPO="${ERPNEXT_FRAPPE_REPO:-https://github.com/frappe/frappe}"
 ERPNEXT_BRANCH="${ERPNEXT_APP_BRANCH:-version-15}"
 ERPNEXT_REPO="${ERPNEXT_APP_REPO:-https://github.com/frappe/erpnext}"
-ENABLE_INTERNAL_REDIS="${ERPNEXT_ENABLE_INTERNAL_REDIS:-yes}"
+ENABLE_INTERNAL_REDIS="${ERPNEXT_ENABLE_INTERNAL_REDIS:-no}"
 SITE_NAME_DEFAULT="${ERPNEXT_SITE_NAME:-erpnext.local}"
 DB_NAME_DEFAULT="${ERPNEXT_DB_NAME:-${SITE_NAME_DEFAULT//./_}}"
 DB_HOST_DEFAULT="${ERPNEXT_DB_HOST:-}"
 DB_PORT_DEFAULT="${ERPNEXT_DB_PORT:-3306}"
 DB_ROOT_USER_DEFAULT="${ERPNEXT_DB_ROOT_USER:-root}"
 DB_ROOT_PASS_DEFAULT="${ERPNEXT_DB_ROOT_PASSWORD:-}"
-# FIXED: Separate Redis instances for cache, queue, and socketio
-REDIS_CACHE_DEFAULT="${ERPNEXT_REDIS_CACHE:-redis://127.0.0.1:6379/0}"
-REDIS_QUEUE_DEFAULT="${ERPNEXT_REDIS_QUEUE:-redis://127.0.0.1:6379/1}"
-REDIS_SOCKETIO_DEFAULT="${ERPNEXT_REDIS_SOCKETIO:-redis://127.0.0.1:6379/2}"
+REDIS_CACHE_DEFAULT="${ERPNEXT_REDIS_CACHE:-redis://127.0.0.1:6379}"
+REDIS_QUEUE_DEFAULT="${ERPNEXT_REDIS_QUEUE:-redis://127.0.0.1:6379}"
+REDIS_SOCKETIO_DEFAULT="${ERPNEXT_REDIS_SOCKETIO:-redis://127.0.0.1:6379}"
 SOCKETIO_PORT_DEFAULT="${ERPNEXT_SOCKETIO_PORT:-9000}"
 SOCKETIO_FRONTEND_PORT_DEFAULT="${ERPNEXT_SOCKETIO_FRONTEND_PORT:-${SOCKETIO_PORT_DEFAULT}}"
 BACKEND_HOST_DEFAULT="${ERPNEXT_BACKEND_HOST:-127.0.0.1}"
@@ -47,13 +47,11 @@ CLIENT_MAX_BODY_SIZE_DEFAULT="${ERPNEXT_CLIENT_MAX_BODY_SIZE:-50m}"
 ADMIN_EMAIL_DEFAULT="${ERPNEXT_ADMIN_EMAIL:-administrator@example.com}"
 ADMIN_PASS_DEFAULT="${ERPNEXT_ADMIN_PASSWORD:-}"
 
-# Validate role
 if [[ ! "$ROLE" =~ ^(combined|backend|frontend|scheduler|websocket|worker)$ ]]; then
     msg_error "Unsupported ERPNext role: ${ROLE}"
     exit 1
 fi
 
-# Helper function for prompts
 prompt_or_default() {
     local __var_name="$1"
     local __prompt="$2"
@@ -80,12 +78,10 @@ prompt_or_default() {
     printf -v "$__var_name" '%s' "$__value"
 }
 
-# Generate admin password if not provided
 if [[ -z "$ADMIN_PASS_DEFAULT" ]]; then
     ADMIN_PASS_DEFAULT=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c18)
 fi
 
-# Initialize variables with defaults
 SITE_NAME="$SITE_NAME_DEFAULT"
 DB_NAME="$DB_NAME_DEFAULT"
 DB_HOST="$DB_HOST_DEFAULT"
@@ -109,7 +105,6 @@ CLIENT_MAX_BODY_SIZE="$CLIENT_MAX_BODY_SIZE_DEFAULT"
 ADMIN_EMAIL="$ADMIN_EMAIL_DEFAULT"
 ADMIN_PASSWORD="$ADMIN_PASS_DEFAULT"
 
-# Interactive prompts (only if TTY is available)
 prompt_or_default SITE_NAME "Site name [${SITE_NAME}]: " "$SITE_NAME"
 prompt_or_default DB_NAME "Database name [${DB_NAME}]: " "$DB_NAME"
 prompt_or_default DB_HOST "MariaDB host (required): " "$DB_HOST"
@@ -123,7 +118,6 @@ prompt_or_default SOCKETIO_PORT "Socket.IO port [${SOCKETIO_PORT}]: " "$SOCKETIO
 prompt_or_default ADMIN_EMAIL "Administrator email [${ADMIN_EMAIL}]: " "$ADMIN_EMAIL"
 prompt_or_default ADMIN_PASSWORD "Administrator password [hidden]: " "$ADMIN_PASSWORD" 1
 
-# Additional prompts for frontend role
 if [[ "$ROLE" == "frontend" ]]; then
     prompt_or_default BACKEND_HOST "Backend host [${BACKEND_HOST}]: " "$BACKEND_HOST"
     prompt_or_default BACKEND_PORT "Backend port [${BACKEND_PORT}]: " "$BACKEND_PORT"
@@ -148,7 +142,6 @@ else
     CLIENT_MAX_BODY_SIZE="50m"
 fi
 
-# Validate required parameters
 if [[ -z "$DB_HOST" ]]; then
     msg_error "MariaDB host is required for ERPNext installation."
     exit 1
@@ -200,57 +193,26 @@ $STD apt-get install -y \
     locales
 msg_ok "Installed prerequisites"
 
-# Test database connection and reprompt if necessary
-msg_info "Testing MariaDB connection"
-test_db_connection() {
-    local password_arg=""
-    if [[ -n "$DB_ROOT_PASSWORD" ]]; then
-        password_arg="-p${DB_ROOT_PASSWORD}"
-    fi
-
-    if mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${DB_ROOT_USER}" ${password_arg} -e "SELECT 1;" >/dev/null 2>&1; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-CONNECTION_ATTEMPTS=0
-while ! test_db_connection; do
-    CONNECTION_ATTEMPTS=$((CONNECTION_ATTEMPTS + 1))
-
-    if [[ $CONNECTION_ATTEMPTS -eq 1 ]]; then
-        msg_error "Failed to connect to MariaDB at ${DB_HOST}:${DB_PORT}"
-    fi
-
-    echo ""
-    echo "Unable to connect to MariaDB. Please verify your connection details:"
-    echo "Current settings:"
-    echo "  Host: ${DB_HOST}"
-    echo "  Port: ${DB_PORT}"
-    echo "  User: ${DB_ROOT_USER}"
-    echo ""
-
-    # Reprompt for credentials
-    prompt_or_default DB_HOST "MariaDB host [${DB_HOST}]: " "$DB_HOST"
-    prompt_or_default DB_PORT "MariaDB port [${DB_PORT}]: " "$DB_PORT"
-    prompt_or_default DB_ROOT_USER "MariaDB admin user [${DB_ROOT_USER}]: " "$DB_ROOT_USER"
-    prompt_or_default DB_ROOT_PASSWORD "MariaDB admin password: " "$DB_ROOT_PASSWORD" 1
-
-    msg_info "Retrying connection (attempt $((CONNECTION_ATTEMPTS + 1)))..."
-done
-
-msg_ok "MariaDB connection successful"
-
 if [[ "$ENABLE_INTERNAL_REDIS" == "yes" ]]; then
     msg_info "Installing Redis server"
     $STD apt-get install -y redis-server
-
-    # Configure Redis to support multiple databases
-    sed -i 's/^databases .*/databases 16/' /etc/redis/redis.conf
-
     systemctl enable -q --now redis-server
-    msg_ok "Redis server ready (configured for multiple databases)"
+
+    # Wait for Redis to be ready
+    for i in {1..30}; do
+        if redis-cli ping >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+
+    if ! redis-cli ping >/dev/null 2>&1; then
+        msg_error "Redis failed to start properly"
+        systemctl status redis-server
+        journalctl -u redis-server -n 50 --no-pager
+        exit 1
+    fi
+    msg_ok "Redis server ready"
 fi
 
 msg_info "Installing wkhtmltopdf"
@@ -277,7 +239,7 @@ NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 msg_ok "Node.js ready"
 
 msg_info "Installing Bench"
-$STD pip3 install frappe-bench --break-system-packages
+$STD pip3 install frappe-bench
 msg_ok "Installed Bench"
 
 msg_info "Preparing frappe user"
@@ -285,8 +247,6 @@ if ! id -u frappe >/dev/null 2>&1; then
     useradd -m -s /bin/bash frappe
 fi
 usermod -aG sudo frappe
-echo "frappe ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/frappe
-chmod 0440 /etc/sudoers.d/frappe
 msg_ok "Prepared frappe user"
 
 install_bench_stack() {
@@ -298,56 +258,64 @@ install_bench_stack() {
         if [[ ! -d apps/erpnext ]]; then
             bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO}
         fi
+        if [[ ! -f sites/apps.txt ]] || ! grep -qx 'erpnext' sites/apps.txt; then
+            ls -1 apps >sites/apps.txt
+        fi
     "
 }
+
+msg_info "Bootstrapping frappe bench"
+install_bench_stack
+msg_ok "Bench prepared"
 
 apply_bench_globals() {
     sudo -u frappe -H bash -c "set -Eeuo pipefail
         cd /home/frappe/frappe-bench
         bench set-config -g db_host '${DB_HOST}'
-        bench set-config -gp db_port ${DB_PORT}
+        bench set-config -gp db_port '${DB_PORT}'
         bench set-config -g redis_cache '${REDIS_CACHE_URL}'
         bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
         bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
-        bench set-config -gp socketio_port ${SOCKETIO_PORT}
+        bench set-config -gp socketio_port '${SOCKETIO_PORT}'
+        bench set-config -g default_site '${SITE_NAME}'
+        bench set-config -g serve_default_site "true"
+        bench --site '${SITE_NAME}' set-config enable_scheduler 1
     "
 }
 
-if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
-    msg_info "Initializing ERPNext bench"
-    install_bench_stack
-    msg_ok "Bench initialized"
-
-    msg_info "Applying global bench configuration"
-    apply_bench_globals
-    msg_ok "Configuration applied"
-
-    SITE_CONFIG_PATH="/home/frappe/frappe-bench/sites/${SITE_NAME}/site_config.json"
-    if [[ ! -f "$SITE_CONFIG_PATH" ]]; then
-        msg_info "Creating new ERPNext site: ${SITE_NAME}"
-        DB_ROOT_PASSWORD_FLAG=""
-        if [[ -n "$DB_ROOT_PASSWORD" ]]; then
-            DB_ROOT_PASSWORD_FLAG="--mariadb-root-password '${DB_ROOT_PASSWORD}'"
-        fi
-        sudo -u frappe -H bash -c "set -Eeuo pipefail
-            cd /home/frappe/frappe-bench
+configure_site_data() {
+    sudo -u frappe -H bash -c "set -Eeuo pipefail
+        cd /home/frappe/frappe-bench
+        if [[ ! -f sites/${SITE_NAME}/site_config.json ]]; then
             bench new-site '${SITE_NAME}' \
-                --mariadb-root-username '${DB_ROOT_USER}' \
-                ${DB_ROOT_PASSWORD_FLAG} \
                 --db-name '${DB_NAME}' \
+                --db-host '${DB_HOST}' \
+                --db-port '${DB_PORT}' \
+                --mariadb-root-username '${DB_ROOT_USER}' \
+                --mariadb-root-password '${DB_ROOT_PASSWORD}' \
                 --admin-password '${ADMIN_PASSWORD}' \
-                --install-app erpnext
-        " || {
-            msg_error "Failed to create site ${SITE_NAME}"
-            exit 1
-        }
-        msg_ok "Site ${SITE_NAME} created"
-    else
-        msg_info "Site ${SITE_NAME} already exists"
-    fi
+                --admin-email '${ADMIN_EMAIL}' \
+                --no-mariadb-socket
+            bench --site '${SITE_NAME}' install-app erpnext
+            bench --site '${SITE_NAME}' enable-scheduler
+        else
+            bench --site '${SITE_NAME}' migrate
+        fi
+        bench use '${SITE_NAME}'
+        bench build
+        bench --site '${SITE_NAME}' clear-cache
+    "
+}
 
+SITE_CONFIG_PATH="/home/frappe/frappe-bench/sites/${SITE_NAME}/site_config.json"
+
+if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
+    msg_info "Configuring ERPNext site"
+    configure_site_data
+    msg_ok "Site configured"
+else
     if [[ ! -f "$SITE_CONFIG_PATH" ]]; then
-        msg_error "Site config not found at ${SITE_CONFIG_PATH}"
+        msg_error "Site configuration not found at ${SITE_CONFIG_PATH}. Copy the 'sites' directory from your backend or combined container (or mount shared storage) before installing the ${ROLE} role."
         exit 1
     fi
     msg_info "Running database migrations for ${SITE_NAME}"
@@ -548,27 +516,62 @@ msg_info "Enabling services"
 case "$ROLE" in
     combined)
         systemctl daemon-reload
-        systemctl enable -q --now erpnext-backend erpnext-frontend erpnext-scheduler erpnext-websocket erpnext-worker
+        if ! systemctl enable -q --now erpnext-backend erpnext-frontend erpnext-scheduler erpnext-websocket erpnext-worker; then
+            msg_error "Failed to enable services. Checking logs..."
+            for svc in erpnext-backend erpnext-frontend erpnext-scheduler erpnext-websocket erpnext-worker; do
+                echo "=== Status for $svc ==="
+                systemctl status $svc --no-pager || true
+                echo "=== Journal for $svc ==="
+                journalctl -u $svc -n 50 --no-pager || true
+                echo ""
+            done
+            exit 1
+        fi
         ;;
     frontend)
         systemctl daemon-reload
-        systemctl enable -q --now erpnext-frontend
+        if ! systemctl enable -q --now erpnext-frontend; then
+            msg_error "Failed to enable erpnext-frontend"
+            systemctl status erpnext-frontend --no-pager
+            journalctl -u erpnext-frontend -n 50 --no-pager
+            exit 1
+        fi
         ;;
     backend)
         systemctl daemon-reload
-        systemctl enable -q --now erpnext-backend
+        if ! systemctl enable -q --now erpnext-backend; then
+            msg_error "Failed to enable erpnext-backend"
+            systemctl status erpnext-backend --no-pager
+            journalctl -u erpnext-backend -n 50 --no-pager
+            exit 1
+        fi
         ;;
     scheduler)
         systemctl daemon-reload
-        systemctl enable -q --now erpnext-scheduler
+        if ! systemctl enable -q --now erpnext-scheduler; then
+            msg_error "Failed to enable erpnext-scheduler"
+            systemctl status erpnext-scheduler --no-pager
+            journalctl -u erpnext-scheduler -n 50 --no-pager
+            exit 1
+        fi
         ;;
     websocket)
         systemctl daemon-reload
-        systemctl enable -q --now erpnext-websocket
+        if ! systemctl enable -q --now erpnext-websocket; then
+            msg_error "Failed to enable erpnext-websocket"
+            systemctl status erpnext-websocket --no-pager
+            journalctl -u erpnext-websocket -n 50 --no-pager
+            exit 1
+        fi
         ;;
     worker)
         systemctl daemon-reload
-        systemctl enable -q --now erpnext-worker
+        if ! systemctl enable -q --now erpnext-worker; then
+            msg_error "Failed to enable erpnext-worker"
+            systemctl status erpnext-worker --no-pager
+            journalctl -u erpnext-worker -n 50 --no-pager
+            exit 1
+        fi
         ;;
     *)
         systemctl daemon-reload
@@ -585,11 +588,6 @@ if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
         if [[ -n "$SITE_DB_PASSWORD" ]]; then
             echo "Database Password: ${SITE_DB_PASSWORD}"
         fi
-        echo ""
-        echo "Redis Configuration:"
-        echo "  Cache:    ${REDIS_CACHE_URL}"
-        echo "  Queue:    ${REDIS_QUEUE_URL}"
-        echo "  SocketIO: ${REDIS_SOCKETIO_URL}"
     } >~/erpnext-admin.creds
     chmod 600 ~/erpnext-admin.creds
     msg_info "Administrator credentials stored in ~/erpnext-admin.creds"
