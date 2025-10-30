@@ -16,7 +16,8 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   apt-transport-https \
-  ca-certificates
+  ca-certificates \
+  redis
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Infisical repository"
@@ -32,7 +33,7 @@ msg_ok "Setup Infisical repository"
 
 PG_VERSION="17" setup_postgresql
 
-msg_info "Setting up PostgreSQL"
+msg_info "Configuring PostgreSQL"
 DB_NAME="infisical_db"
 DB_USER="infisical"
 DB_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)"
@@ -47,15 +48,16 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
   echo "Database User: $DB_USER"
   echo "Database Password: $DB_PASS"
 } >>~/infisical.creds
-msg_ok "Setup PostgreSQL"
+msg_ok "Configured PostgreSQL"
 
 msg_info "Setting up Infisical"
+IP_ADDR=$(hostname -I | awk '{print $1}')
 $STD apt install -y infisical-core
 mkdir -p /etc/infisical
 cat <<EOF >/etc/infisical/infisical.rb
 infisical_core['ENCRYPTION_KEY'] = '6c1fe4e407b8911c104518103505b218'
 infisical_core['AUTH_SECRET'] = '5lrMXKKWCVocS/uerPsl7V+TX/aaUaI7iDkgl3tSmLE='
-
+infisical_core['HOST'] = '$IP_ADDR'
 infisical_core['DB_CONNECTION_URI'] = 'postgres://${DB_USER}:${DB_PASS}@localhost:5432/${DB_NAME}'
 infisical_core['REDIS_URL'] = 'redis://localhost:6379'
 EOF
