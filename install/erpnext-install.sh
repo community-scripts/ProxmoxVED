@@ -115,7 +115,6 @@ prompt_or_default REDIS_CACHE_URL "Redis cache URL [${REDIS_CACHE_URL}]: " "$RED
 prompt_or_default REDIS_QUEUE_URL "Redis queue URL [${REDIS_QUEUE_URL}]: " "$REDIS_QUEUE_URL"
 prompt_or_default REDIS_SOCKETIO_URL "Redis socketio URL [${REDIS_SOCKETIO_URL}]: " "$REDIS_SOCKETIO_URL"
 prompt_or_default SOCKETIO_PORT "Socket.IO port [${SOCKETIO_PORT}]: " "$SOCKETIO_PORT"
-prompt_or_default ADMIN_EMAIL "Administrator email [${ADMIN_EMAIL}]: " "$ADMIN_EMAIL"
 prompt_or_default ADMIN_PASSWORD "Administrator password [hidden]: " "$ADMIN_PASSWORD" 1
 
 if [[ "$ROLE" == "frontend" ]]; then
@@ -196,6 +195,10 @@ msg_ok "Installed prerequisites"
 if [[ "$ENABLE_INTERNAL_REDIS" == "yes" ]]; then
     msg_info "Installing Redis server"
     $STD apt-get install -y redis-server
+
+    # Configure Redis to listen on 127.0.0.1
+    sed -i 's/^bind .*/bind 127.0.0.1/' /etc/redis/redis.conf
+
     systemctl enable -q --now redis-server
 
     # Wait for Redis to be ready
@@ -210,8 +213,18 @@ if [[ "$ENABLE_INTERNAL_REDIS" == "yes" ]]; then
         msg_error "Redis failed to start properly"
         systemctl status redis-server
         journalctl -u redis-server -n 50 --no-pager
+        netstat -tlnp | grep 6379 || true
         exit 1
     fi
+
+    # Verify Redis is actually listening
+    if ! netstat -tlnp | grep -q ':6379'; then
+        msg_error "Redis is running but not listening on port 6379"
+        netstat -tlnp | grep redis || true
+        cat /etc/redis/redis.conf | grep -E '^(bind|port)' || true
+        exit 1
+    fi
+
     msg_ok "Redis server ready"
 fi
 
@@ -366,7 +379,7 @@ fi
 create_service() {
     local service_name="$1"
     local service_content="$2"
-    printf '%s' "$service_content" >/etc/systemd/system/"${service_name}".service
+    printf '%s' "$service_content" >/etc/systemd/system/${service_name}.service
 }
 
 msg_info "Creating systemd units"
