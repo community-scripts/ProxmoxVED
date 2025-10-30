@@ -23,16 +23,16 @@ FRAPPE_BRANCH="${ERPNEXT_FRAPPE_BRANCH:-version-15}"
 FRAPPE_REPO="${ERPNEXT_FRAPPE_REPO:-https://github.com/frappe/frappe}"
 ERPNEXT_BRANCH="${ERPNEXT_APP_BRANCH:-version-15}"
 ERPNEXT_REPO="${ERPNEXT_APP_REPO:-https://github.com/frappe/erpnext}"
-ENABLE_INTERNAL_REDIS="${ERPNEXT_ENABLE_INTERNAL_REDIS:-no}"
+ENABLE_INTERNAL_REDIS="${ERPNEXT_ENABLE_INTERNAL_REDIS:-yes}"
 SITE_NAME_DEFAULT="${ERPNEXT_SITE_NAME:-erpnext.local}"
-DB_NAME_DEFAULT="${ERPNEXT_DB_NAME:-${SITE_NAME_DEFAULT//./_}}"
+DB_NAME_DEFAULT="${ERPNEXT_DB_NAME:-erpnext}"
 DB_HOST_DEFAULT="${ERPNEXT_DB_HOST:-}"
 DB_PORT_DEFAULT="${ERPNEXT_DB_PORT:-3306}"
 DB_ROOT_USER_DEFAULT="${ERPNEXT_DB_ROOT_USER:-root}"
 DB_ROOT_PASS_DEFAULT="${ERPNEXT_DB_ROOT_PASSWORD:-}"
-REDIS_CACHE_DEFAULT="${ERPNEXT_REDIS_CACHE:-redis://127.0.0.1:6379}"
-REDIS_QUEUE_DEFAULT="${ERPNEXT_REDIS_QUEUE:-redis://127.0.0.1:6379}"
-REDIS_SOCKETIO_DEFAULT="${ERPNEXT_REDIS_SOCKETIO:-redis://127.0.0.1:6379}"
+REDIS_CACHE_DEFAULT="${ERPNEXT_REDIS_CACHE:-redis://127.0.0.1:6379/0}"
+REDIS_QUEUE_DEFAULT="${ERPNEXT_REDIS_QUEUE:-redis://127.0.0.1:6379/1}"
+REDIS_SOCKETIO_DEFAULT="${ERPNEXT_REDIS_SOCKETIO:-redis://127.0.0.1:6379/2}"
 SOCKETIO_PORT_DEFAULT="${ERPNEXT_SOCKETIO_PORT:-9000}"
 SOCKETIO_FRONTEND_PORT_DEFAULT="${ERPNEXT_SOCKETIO_FRONTEND_PORT:-${SOCKETIO_PORT_DEFAULT}}"
 BACKEND_HOST_DEFAULT="${ERPNEXT_BACKEND_HOST:-127.0.0.1}"
@@ -276,8 +276,13 @@ install_bench_stack() {
         bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
         bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
 
+        # Check Redis status before testing connectivity
+        echo 'Checking Redis status...'
+        systemctl is-active redis-server || (echo 'Redis is not active, restarting...' && sudo systemctl restart redis-server && sleep 2)
+        redis-cli ping || (echo 'Redis ping failed' && sudo systemctl status redis-server && sudo netstat -tlnp | grep 6379 && exit 1)
+
         # Verify Redis connectivity using bench's python
-        echo 'Testing Redis connectivity...'
+        echo 'Testing Redis connectivity from bench...'
         ./env/bin/python3 -c \"
 import redis
 try:
