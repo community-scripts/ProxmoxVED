@@ -1,25 +1,23 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: JamesonRGrieve
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/frappe/erpnext
 
 # App Default Values
 APP="ERPNext"
-var_tags="${var_tags:-erp;frappe}"
-var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-8192}"
-var_disk="${var_disk:-60}"
-var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
-var_unprivileged="${var_unprivileged:-1}"
+var_tags="erp;frappe"
+var_cpu="4"
+var_ram="8192"
+var_disk="60"
+var_os="debian"
+var_version="12"
+var_unprivileged="1"
 
 # App Output & Base Settings
 header_info "$APP"
 base_settings
-
-# Core
 variables
 color
 catch_errors

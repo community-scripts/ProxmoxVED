@@ -2,22 +2,18 @@
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: JamesonRGrieve
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/frappe/erpnext
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
-
-if [[ -z "${ERPNEXT_PARENT_INITIALIZED:-}" ]]; then
-    setting_up_container
-    network_check
-    update_os
-fi
+setting_up_container
 
 export DEBIAN_FRONTEND=noninteractive
 
+# Configuration variables with defaults
 ROLE="${ERPNEXT_ROLE:-combined}"
 FRAPPE_BRANCH="${ERPNEXT_FRAPPE_BRANCH:-version-15}"
 FRAPPE_REPO="${ERPNEXT_FRAPPE_REPO:-https://github.com/frappe/frappe}"
@@ -47,11 +43,13 @@ CLIENT_MAX_BODY_SIZE_DEFAULT="${ERPNEXT_CLIENT_MAX_BODY_SIZE:-50m}"
 ADMIN_EMAIL_DEFAULT="${ERPNEXT_ADMIN_EMAIL:-administrator@example.com}"
 ADMIN_PASS_DEFAULT="${ERPNEXT_ADMIN_PASSWORD:-}"
 
+# Validate role
 if [[ ! "$ROLE" =~ ^(combined|backend|frontend|scheduler|websocket|worker)$ ]]; then
     msg_error "Unsupported ERPNext role: ${ROLE}"
     exit 1
 fi
 
+# Helper function for prompts
 prompt_or_default() {
     local __var_name="$1"
     local __prompt="$2"
@@ -78,10 +76,12 @@ prompt_or_default() {
     printf -v "$__var_name" '%s' "$__value"
 }
 
+# Generate admin password if not provided
 if [[ -z "$ADMIN_PASS_DEFAULT" ]]; then
     ADMIN_PASS_DEFAULT=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c18)
 fi
 
+# Initialize variables with defaults
 SITE_NAME="$SITE_NAME_DEFAULT"
 DB_NAME="$DB_NAME_DEFAULT"
 DB_HOST="$DB_HOST_DEFAULT"
@@ -105,6 +105,7 @@ CLIENT_MAX_BODY_SIZE="$CLIENT_MAX_BODY_SIZE_DEFAULT"
 ADMIN_EMAIL="$ADMIN_EMAIL_DEFAULT"
 ADMIN_PASSWORD="$ADMIN_PASS_DEFAULT"
 
+# Interactive prompts (only if TTY is available)
 prompt_or_default SITE_NAME "Site name [${SITE_NAME}]: " "$SITE_NAME"
 prompt_or_default DB_NAME "Database name [${DB_NAME}]: " "$DB_NAME"
 prompt_or_default DB_HOST "MariaDB host (required): " "$DB_HOST"
@@ -118,6 +119,7 @@ prompt_or_default SOCKETIO_PORT "Socket.IO port [${SOCKETIO_PORT}]: " "$SOCKETIO
 prompt_or_default ADMIN_EMAIL "Administrator email [${ADMIN_EMAIL}]: " "$ADMIN_EMAIL"
 prompt_or_default ADMIN_PASSWORD "Administrator password [hidden]: " "$ADMIN_PASSWORD" 1
 
+# Additional prompts for frontend role
 if [[ "$ROLE" == "frontend" ]]; then
     prompt_or_default BACKEND_HOST "Backend host [${BACKEND_HOST}]: " "$BACKEND_HOST"
     prompt_or_default BACKEND_PORT "Backend port [${BACKEND_PORT}]: " "$BACKEND_PORT"
@@ -142,6 +144,7 @@ else
     CLIENT_MAX_BODY_SIZE="50m"
 fi
 
+# Validate required parameters
 if [[ -z "$DB_HOST" ]]; then
     msg_error "MariaDB host is required for ERPNext installation."
     exit 1
@@ -224,7 +227,7 @@ NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 msg_ok "Node.js ready"
 
 msg_info "Installing Bench"
-$STD pip3 install frappe-bench
+$STD pip3 install frappe-bench --break-system-packages
 msg_ok "Installed Bench"
 
 msg_info "Preparing frappe user"
@@ -232,6 +235,8 @@ if ! id -u frappe >/dev/null 2>&1; then
     useradd -m -s /bin/bash frappe
 fi
 usermod -aG sudo frappe
+echo "frappe ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/frappe
+chmod 0440 /etc/sudoers.d/frappe
 msg_ok "Prepared frappe user"
 
 install_bench_stack() {
@@ -249,55 +254,42 @@ install_bench_stack() {
     "
 }
 
-msg_info "Bootstrapping frappe bench"
-install_bench_stack
-msg_ok "Bench prepared"
-
 apply_bench_globals() {
     sudo -u frappe -H bash -c "set -Eeuo pipefail
         cd /home/frappe/frappe-bench
         bench set-config -g db_host '${DB_HOST}'
-        bench set-config -gp db_port '${DB_PORT}'
+        bench set-config -g db_port ${DB_PORT}
         bench set-config -g redis_cache '${REDIS_CACHE_URL}'
         bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
         bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
-        bench set-config -gp socketio_port '${SOCKETIO_PORT}'
-        bench set-config -g default_site '${SITE_NAME}'
-        bench set-config -g serve_default_site "true"
+        bench set-config -g socketio_port ${SOCKETIO_PORT}
     "
 }
 
-configure_site_data() {
-    sudo -u frappe -H bash -c "set -Eeuo pipefail
-        cd /home/frappe/frappe-bench
-        if [[ ! -f sites/${SITE_NAME}/site_config.json ]]; then
-            bench new-site '${SITE_NAME}' \
-                --db-name '${DB_NAME}' \
-                --db-host '${DB_HOST}' \
-                --db-port '${DB_PORT}' \
-                --mariadb-root-username '${DB_ROOT_USER}' \
-                --mariadb-root-password '${DB_ROOT_PASSWORD}' \
-                --admin-password '${ADMIN_PASSWORD}' \
-                --admin-email '${ADMIN_EMAIL}' \
-                --no-mariadb-socket
-            bench --site '${SITE_NAME}' install-app erpnext
-            bench --site '${SITE_NAME}' enable-scheduler
-        else
-            bench --site '${SITE_NAME}' migrate
-        fi
-        bench use '${SITE_NAME}'
-        bench build
-        bench --site '${SITE_NAME}' clear-cache
-    "
-}
+if [[ "$ROLE" == "combined" || "$ROLE" == "backend" || "$ROLE" == "scheduler" || "$ROLE" == "worker" || "$ROLE" == "websocket" ]]; then
+    msg_info "Installing Bench and ERPNext"
+    install_bench_stack
+    msg_ok "Bench and ERPNext installed"
+fi
 
 SITE_CONFIG_PATH="/home/frappe/frappe-bench/sites/${SITE_NAME}/site_config.json"
 
 if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
-    msg_info "Configuring ERPNext site"
-    configure_site_data
-    msg_ok "Site configured"
-else
+    msg_info "Creating site ${SITE_NAME}"
+    sudo -u frappe -H bash -c "set -Eeuo pipefail
+        cd /home/frappe/frappe-bench
+        bench new-site '${SITE_NAME}' \
+            --mariadb-root-username '${DB_ROOT_USER}' \
+            --mariadb-root-password '${DB_ROOT_PASSWORD}' \
+            --db-name '${DB_NAME}' \
+            --db-host '${DB_HOST}' \
+            --db-port ${DB_PORT} \
+            --admin-password '${ADMIN_PASSWORD}' \
+            --install-app erpnext
+        bench use '${SITE_NAME}'
+    "
+    msg_ok "Site ${SITE_NAME} created"
+elif [[ "$ROLE" == "frontend" || "$ROLE" == "worker" || "$ROLE" == "scheduler" || "$ROLE" == "websocket" ]]; then
     if [[ ! -f "$SITE_CONFIG_PATH" ]]; then
         msg_error "Site configuration not found at ${SITE_CONFIG_PATH}. Copy the 'sites' directory from your backend or combined container (or mount shared storage) before installing the ${ROLE} role."
         exit 1
