@@ -257,6 +257,12 @@ install_bench_stack() {
             bench init --frappe-branch=${FRAPPE_BRANCH} --frappe-path=${FRAPPE_REPO} --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
         fi
         cd /home/frappe/frappe-bench
+
+        # Configure Redis URLs immediately after bench init
+        bench set-config -g redis_cache '${REDIS_CACHE_URL}'
+        bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
+        bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
+
         if [[ ! -d apps/erpnext ]]; then
             bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO}
         fi
@@ -296,7 +302,6 @@ configure_site_data() {
                 --mariadb-root-username '${DB_ROOT_USER}' \
                 --mariadb-root-password '${DB_ROOT_PASSWORD}' \
                 --admin-password '${ADMIN_PASSWORD}' \
-                --admin-email '${ADMIN_EMAIL}' \
                 --no-mariadb-socket
             bench --site '${SITE_NAME}' install-app erpnext
             bench --site '${SITE_NAME}' enable-scheduler
