@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Setting up PostgreSQL Database"
+
 PG_VERSION=17 setup_postgresql
 DB_NAME=miniflux
 DB_USER=miniflux
@@ -21,11 +21,11 @@ DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER;"
 $STD sudo -u postgres psql -d "$DB_NAME" -c "CREATE EXTENSION hstore;"
-msg_ok "Set up PostgreSQL Database"
 
-msg_info "Installing Miniflux"
+
+
 fetch_and_deploy_gh_release "miniflux" "miniflux/v2" "binary" "latest"
-msg_ok "Installed Miniflux"
+
 
 msg_info "Configuring Miniflux"
 ADMIN_NAME=admin
@@ -49,11 +49,9 @@ EOF
 } >>~/miniflux.creds
 
 miniflux -migrate -config-file /etc/miniflux.conf
-msg_ok "Configured Miniflux"
 
-msg_info "Starting Service"
 systemctl enable -q --now miniflux
-msg_ok "Started Service"
+msg_ok "Configured Miniflux"
 
 motd_ssh
 customize
