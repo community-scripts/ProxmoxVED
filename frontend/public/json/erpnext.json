@@ -1,36 +1,35 @@
 {
-    "name": "ERPNext",
-    "slug": "erpnext",
-    "categories": [
-        25
-    ],
-    "date_created": "2025-02-14",
-    "type": "ct",
-    "updateable": false,
-    "privileged": false,
-    "interface_port": 80,
-    "documentation": "https://docs.erpnext.com/docs/v15/user/manual/en/introduction/installation",
-    "website": "https://erpnext.com/",
-    "logo": "https://raw.githubusercontent.com/frappe/design/master/logos/erpnext-logo-blue.svg",
-    "description": "Provision a production-style ERPNext stack on Debian LXC, bundling backend, frontend, websocket, worker, and scheduler services in a single container.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/erpnext.sh",
-            "resources": {
-                "cpu": 4,
-                "ram": 8192,
-                "hdd": 60,
-                "os": "debian",
-                "version": "12"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
-    },
-    "notes": [
-        "Provide reachable MariaDB and Redis endpoints during installation; the helper will optionally deploy dedicated LXCs for you."
-    ]
+  "name": "ERPNext",
+  "slug": "erpnext",
+  "categories": [
+    25
+  ],
+  "date_created": "2025-10-31",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": null,
+  "config_path": "",
+  "website": null,
+  "logo": "https://github.com/frappe/erpnext/raw/develop/erpnext/public/images/v16/erpnext.svg",
+  "description": "Completely open source enterprise resource planning software.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/erpnext.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 40,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
 }

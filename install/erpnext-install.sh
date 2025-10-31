@@ -16,37 +16,6 @@ if [[ -z "${ERPNEXT_PARENT_INITIALIZED:-}" ]]; then
     update_os
 fi
 
-export DEBIAN_FRONTEND=noninteractive
-
-ROLE="${ERPNEXT_ROLE:-combined}"
-FRAPPE_BRANCH="${ERPNEXT_FRAPPE_BRANCH:-version-15}"
-FRAPPE_REPO="${ERPNEXT_FRAPPE_REPO:-https://github.com/frappe/frappe}"
-ERPNEXT_BRANCH="${ERPNEXT_APP_BRANCH:-version-15}"
-ERPNEXT_REPO="${ERPNEXT_APP_REPO:-https://github.com/frappe/erpnext}"
-ENABLE_INTERNAL_REDIS="${ERPNEXT_ENABLE_INTERNAL_REDIS:-yes}"
-SITE_NAME_DEFAULT="${ERPNEXT_SITE_NAME:-erpnext.local}"
-DB_NAME_DEFAULT="${ERPNEXT_DB_NAME:-erpnext}"
-DB_HOST_DEFAULT="${ERPNEXT_DB_HOST:-}"
-DB_PORT_DEFAULT="${ERPNEXT_DB_PORT:-3306}"
-DB_ROOT_USER_DEFAULT="${ERPNEXT_DB_ROOT_USER:-root}"
-DB_ROOT_PASS_DEFAULT="${ERPNEXT_DB_ROOT_PASSWORD:-}"
-REDIS_CACHE_DEFAULT="${ERPNEXT_REDIS_CACHE:-redis://127.0.0.1:6379/0}"
-REDIS_QUEUE_DEFAULT="${ERPNEXT_REDIS_QUEUE:-redis://127.0.0.1:6379/1}"
-REDIS_SOCKETIO_DEFAULT="${ERPNEXT_REDIS_SOCKETIO:-redis://127.0.0.1:6379/2}"
-SOCKETIO_PORT_DEFAULT="${ERPNEXT_SOCKETIO_PORT:-9000}"
-SOCKETIO_FRONTEND_PORT_DEFAULT="${ERPNEXT_SOCKETIO_FRONTEND_PORT:-${SOCKETIO_PORT_DEFAULT}}"
-BACKEND_HOST_DEFAULT="${ERPNEXT_BACKEND_HOST:-127.0.0.1}"
-BACKEND_PORT_DEFAULT="${ERPNEXT_BACKEND_PORT:-8000}"
-SOCKETIO_HOST_DEFAULT="${ERPNEXT_SOCKETIO_HOST:-127.0.0.1}"
-FRAPPE_SITE_HEADER_DEFAULT="${ERPNEXT_SITE_NAME_HEADER:-\$host}"
-UPSTREAM_REAL_IP_DEFAULT="${ERPNEXT_UPSTREAM_REAL_IP_ADDRESS:-127.0.0.1}"
-UPSTREAM_REAL_IP_HEADER_DEFAULT="${ERPNEXT_UPSTREAM_REAL_IP_HEADER:-X-Forwarded-For}"
-UPSTREAM_REAL_IP_RECURSIVE_DEFAULT="${ERPNEXT_UPSTREAM_REAL_IP_RECURSIVE:-off}"
-PROXY_READ_TIMEOUT_DEFAULT="${ERPNEXT_PROXY_READ_TIMEOUT:-120}"
-CLIENT_MAX_BODY_SIZE_DEFAULT="${ERPNEXT_CLIENT_MAX_BODY_SIZE:-50m}"
-ADMIN_EMAIL_DEFAULT="${ERPNEXT_ADMIN_EMAIL:-administrator@example.com}"
-ADMIN_PASS_DEFAULT="${ERPNEXT_ADMIN_PASSWORD:-}"
-
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
     curl \
@@ -250,14 +219,12 @@ msg_ok "Site configured"
 
 apply_bench_globals
 
-if [[ "$ROLE" == "frontend" ]]; then
-    msg_info "Building frontend assets"
-    sudo -u frappe -H bash -c "set -Eeuo pipefail
-        cd /home/frappe/frappe-bench
-        bench build
-    "
-    msg_ok "Frontend assets ready"
-fi
+# msg_info "Building frontend assets"
+# sudo -u frappe -H bash -c "set -Eeuo pipefail
+#     cd /home/frappe/frappe-bench
+#     bench build
+# "
+# msg_ok "Frontend assets ready"
 
 SITE_DB_PASSWORD=""
 if [[ -f "$SITE_CONFIG_PATH" ]]; then
@@ -271,9 +238,8 @@ create_service() {
 }
 
 msg_info "Creating systemd units"
-case "$ROLE" in
-    combined|backend)
-        create_service "erpnext-backend" "[Unit]
+
+create_service "erpnext-backend" "[Unit]
 Description=ERPNext Backend (Gunicorn)
 After=network.target
 
@@ -289,9 +255,8 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 "
-        ;;&
-    combined|frontend)
-        create_service "erpnext-frontend" "[Unit]
+
+create_service "erpnext-frontend" "[Unit]
 Description=ERPNext Frontend (nginx)
 After=network.target
 
@@ -307,9 +272,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 "
-        ;;&
-    combined|scheduler)
-        create_service "erpnext-scheduler" "[Unit]
+
+create_service "erpnext-scheduler" "[Unit]
 Description=ERPNext Scheduler
 After=network.target
 
@@ -324,9 +288,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 "
-        ;;&
-    combined|websocket)
-        create_service "erpnext-websocket" "[Unit]
+
+create_service "erpnext-websocket" "[Unit]
 Description=ERPNext Websocket
 After=network.target
 
@@ -344,9 +307,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 "
-        ;;&
-    combined|worker)
-        create_service "erpnext-worker" "[Unit]
+
+create_service "erpnext-worker" "[Unit]
 Description=ERPNext Worker (long,default,short)
 After=network.target
 
@@ -361,8 +323,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 "
-        ;;
-esac
+
 msg_ok "Systemd units created"
 
 if [[ "$ROLE" == "combined" || "$ROLE" == "frontend" ]]; then
@@ -430,90 +391,35 @@ EOF_NGINX
     msg_ok "nginx configured"
 fi
 
-msg_info "Adjusting ownership"
 chown -R frappe:frappe /home/frappe
-msg_ok "Ownership set"
+msg_ok "Ownership of frappe home set"
 
 msg_info "Enabling services"
-case "$ROLE" in
-    combined)
-        systemctl daemon-reload
-        if ! systemctl enable -q --now erpnext-backend erpnext-frontend erpnext-scheduler erpnext-websocket erpnext-worker; then
-            msg_error "Failed to enable services. Checking logs..."
-            for svc in erpnext-backend erpnext-frontend erpnext-scheduler erpnext-websocket erpnext-worker; do
-                echo "=== Status for $svc ==="
-                systemctl status $svc --no-pager || true
-                echo "=== Journal for $svc ==="
-                journalctl -u $svc -n 50 --no-pager || true
-                echo ""
-            done
-            exit 1
-        fi
-        ;;
-    frontend)
-        systemctl daemon-reload
-        if ! systemctl enable -q --now erpnext-frontend; then
-            msg_error "Failed to enable erpnext-frontend"
-            systemctl status erpnext-frontend --no-pager
-            journalctl -u erpnext-frontend -n 50 --no-pager
-            exit 1
-        fi
-        ;;
-    backend)
-        systemctl daemon-reload
-        if ! systemctl enable -q --now erpnext-backend; then
-            msg_error "Failed to enable erpnext-backend"
-            systemctl status erpnext-backend --no-pager
-            journalctl -u erpnext-backend -n 50 --no-pager
-            exit 1
-        fi
-        ;;
-    scheduler)
-        systemctl daemon-reload
-        if ! systemctl enable -q --now erpnext-scheduler; then
-            msg_error "Failed to enable erpnext-scheduler"
-            systemctl status erpnext-scheduler --no-pager
-            journalctl -u erpnext-scheduler -n 50 --no-pager
-            exit 1
-        fi
-        ;;
-    websocket)
-        systemctl daemon-reload
-        if ! systemctl enable -q --now erpnext-websocket; then
-            msg_error "Failed to enable erpnext-websocket"
-            systemctl status erpnext-websocket --no-pager
-            journalctl -u erpnext-websocket -n 50 --no-pager
-            exit 1
-        fi
-        ;;
-    worker)
-        systemctl daemon-reload
-        if ! systemctl enable -q --now erpnext-worker; then
-            msg_error "Failed to enable erpnext-worker"
-            systemctl status erpnext-worker --no-pager
-            journalctl -u erpnext-worker -n 50 --no-pager
-            exit 1
-        fi
-        ;;
-    *)
-        systemctl daemon-reload
-        ;;
-esac
+systemctl daemon-reload
+if ! systemctl enable -q --now erpnext-backend erpnext-frontend erpnext-scheduler erpnext-websocket erpnext-worker; then
+    msg_error "Failed to enable services. Checking logs..."
+    for svc in erpnext-backend erpnext-frontend erpnext-scheduler erpnext-websocket erpnext-worker; do
+        echo "=== Status for $svc ==="
+        systemctl status $svc --no-pager || true
+        echo "=== Journal for $svc ==="
+        journalctl -u $svc -n 50 --no-pager || true
+        echo ""
+    done
+    exit 1
+fi
 msg_ok "Services enabled"
 
-if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
-    {
-        echo "ERPNext Administrator"
-        echo "Site: ${SITE_NAME}"
-        echo "Email: ${ADMIN_EMAIL}"
-        echo "Password: ${ADMIN_PASSWORD}"
-        if [[ -n "$SITE_DB_PASSWORD" ]]; then
-            echo "Database Password: ${SITE_DB_PASSWORD}"
-        fi
-    } >~/erpnext-admin.creds
-    chmod 600 ~/erpnext-admin.creds
-    msg_info "Administrator credentials stored in ~/erpnext-admin.creds"
-fi
+{
+    echo "ERPNext Administrator"
+    echo "Site: ${SITE_NAME}"
+    echo "Email: ${ADMIN_EMAIL}"
+    echo "Password: ${ADMIN_PASSWORD}"
+    if [[ -n "$SITE_DB_PASSWORD" ]]; then
+        echo "Database Password: ${SITE_DB_PASSWORD}"
+    fi
+} >~/erpnext-admin.creds
+chmod 600 ~/erpnext-admin.creds
+msg_ok "Administrator credentials stored in ~/erpnext-admin.creds"
 
 motd_ssh
 customize
