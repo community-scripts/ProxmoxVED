@@ -47,105 +47,6 @@ CLIENT_MAX_BODY_SIZE_DEFAULT="${ERPNEXT_CLIENT_MAX_BODY_SIZE:-50m}"
 ADMIN_EMAIL_DEFAULT="${ERPNEXT_ADMIN_EMAIL:-administrator@example.com}"
 ADMIN_PASS_DEFAULT="${ERPNEXT_ADMIN_PASSWORD:-}"
 
-if [[ ! "$ROLE" =~ ^(combined|backend|frontend|scheduler|websocket|worker)$ ]]; then
-    msg_error "Unsupported ERPNext role: ${ROLE}"
-    exit 1
-fi
-
-prompt_or_default() {
-    local __var_name="$1"
-    local __prompt="$2"
-    local __default="$3"
-    local __silent="${4:-0}"
-    local __value="${!__var_name}"
-
-    if [[ -z "$__value" ]]; then
-        __value="$__default"
-    fi
-
-    if [[ -t 0 ]]; then
-        if [[ "$__silent" -eq 1 ]]; then
-            read -rsp "$__prompt" __input </dev/tty || true
-            echo
-        else
-            read -rp "$__prompt" __input </dev/tty || true
-        fi
-        if [[ -n "$__input" ]]; then
-            __value="$__input"
-        fi
-    fi
-
-    printf -v "$__var_name" '%s' "$__value"
-}
-
-if [[ -z "$ADMIN_PASS_DEFAULT" ]]; then
-    ADMIN_PASS_DEFAULT=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c18)
-fi
-
-SITE_NAME="$SITE_NAME_DEFAULT"
-DB_NAME="$DB_NAME_DEFAULT"
-DB_HOST="$DB_HOST_DEFAULT"
-DB_PORT="$DB_PORT_DEFAULT"
-DB_ROOT_USER="$DB_ROOT_USER_DEFAULT"
-DB_ROOT_PASSWORD="$DB_ROOT_PASS_DEFAULT"
-REDIS_CACHE_URL="$REDIS_CACHE_DEFAULT"
-REDIS_QUEUE_URL="$REDIS_QUEUE_DEFAULT"
-REDIS_SOCKETIO_URL="$REDIS_SOCKETIO_DEFAULT"
-SOCKETIO_PORT="$SOCKETIO_PORT_DEFAULT"
-SOCKETIO_PUBLIC_PORT="$SOCKETIO_FRONTEND_PORT_DEFAULT"
-BACKEND_HOST="$BACKEND_HOST_DEFAULT"
-BACKEND_PORT="$BACKEND_PORT_DEFAULT"
-SOCKETIO_HOST="$SOCKETIO_HOST_DEFAULT"
-FRAPPE_SITE_NAME_HEADER="$FRAPPE_SITE_HEADER_DEFAULT"
-UPSTREAM_REAL_IP_ADDRESS="$UPSTREAM_REAL_IP_DEFAULT"
-UPSTREAM_REAL_IP_HEADER="$UPSTREAM_REAL_IP_HEADER_DEFAULT"
-UPSTREAM_REAL_IP_RECURSIVE="$UPSTREAM_REAL_IP_RECURSIVE_DEFAULT"
-PROXY_READ_TIMEOUT="$PROXY_READ_TIMEOUT_DEFAULT"
-CLIENT_MAX_BODY_SIZE="$CLIENT_MAX_BODY_SIZE_DEFAULT"
-ADMIN_EMAIL="$ADMIN_EMAIL_DEFAULT"
-ADMIN_PASSWORD="$ADMIN_PASS_DEFAULT"
-
-prompt_or_default SITE_NAME "Site name [${SITE_NAME}]: " "$SITE_NAME"
-prompt_or_default DB_NAME "Database name [${DB_NAME}]: " "$DB_NAME"
-prompt_or_default DB_HOST "MariaDB host (required): " "$DB_HOST"
-prompt_or_default DB_PORT "MariaDB port [${DB_PORT}]: " "$DB_PORT"
-prompt_or_default DB_ROOT_USER "MariaDB admin user [${DB_ROOT_USER}]: " "$DB_ROOT_USER"
-prompt_or_default DB_ROOT_PASSWORD "MariaDB admin password (leave blank for none): " "$DB_ROOT_PASSWORD" 1
-prompt_or_default REDIS_CACHE_URL "Redis cache URL [${REDIS_CACHE_URL}]: " "$REDIS_CACHE_URL"
-prompt_or_default REDIS_QUEUE_URL "Redis queue URL [${REDIS_QUEUE_URL}]: " "$REDIS_QUEUE_URL"
-prompt_or_default REDIS_SOCKETIO_URL "Redis socketio URL [${REDIS_SOCKETIO_URL}]: " "$REDIS_SOCKETIO_URL"
-prompt_or_default SOCKETIO_PORT "Socket.IO port [${SOCKETIO_PORT}]: " "$SOCKETIO_PORT"
-prompt_or_default ADMIN_PASSWORD "Administrator password [hidden]: " "$ADMIN_PASSWORD" 1
-
-if [[ "$ROLE" == "frontend" ]]; then
-    prompt_or_default BACKEND_HOST "Backend host [${BACKEND_HOST}]: " "$BACKEND_HOST"
-    prompt_or_default BACKEND_PORT "Backend port [${BACKEND_PORT}]: " "$BACKEND_PORT"
-    prompt_or_default SOCKETIO_HOST "Socket.IO host [${SOCKETIO_HOST}]: " "$SOCKETIO_HOST"
-    prompt_or_default SOCKETIO_PUBLIC_PORT "Socket.IO port for frontend [${SOCKETIO_PUBLIC_PORT}]: " "$SOCKETIO_PUBLIC_PORT"
-    prompt_or_default FRAPPE_SITE_NAME_HEADER "Frappe site header [${FRAPPE_SITE_NAME_HEADER}]: " "$FRAPPE_SITE_NAME_HEADER"
-    prompt_or_default UPSTREAM_REAL_IP_ADDRESS "Upstream real IP address [${UPSTREAM_REAL_IP_ADDRESS}]: " "$UPSTREAM_REAL_IP_ADDRESS"
-    prompt_or_default UPSTREAM_REAL_IP_HEADER "Upstream real IP header [${UPSTREAM_REAL_IP_HEADER}]: " "$UPSTREAM_REAL_IP_HEADER"
-    prompt_or_default UPSTREAM_REAL_IP_RECURSIVE "Upstream real IP recursive [${UPSTREAM_REAL_IP_RECURSIVE}]: " "$UPSTREAM_REAL_IP_RECURSIVE"
-    prompt_or_default PROXY_READ_TIMEOUT "Proxy read timeout [${PROXY_READ_TIMEOUT}]: " "$PROXY_READ_TIMEOUT"
-    prompt_or_default CLIENT_MAX_BODY_SIZE "Client max body size [${CLIENT_MAX_BODY_SIZE}]: " "$CLIENT_MAX_BODY_SIZE"
-else
-    SOCKETIO_PUBLIC_PORT="$SOCKETIO_PORT"
-    BACKEND_HOST="127.0.0.1"
-    BACKEND_PORT="8000"
-    SOCKETIO_HOST="127.0.0.1"
-    FRAPPE_SITE_NAME_HEADER="\$host"
-    UPSTREAM_REAL_IP_ADDRESS="127.0.0.1"
-    UPSTREAM_REAL_IP_HEADER="X-Forwarded-For"
-    UPSTREAM_REAL_IP_RECURSIVE="off"
-    PROXY_READ_TIMEOUT="120"
-    CLIENT_MAX_BODY_SIZE="50m"
-fi
-
-if [[ -z "$DB_HOST" ]]; then
-    msg_error "MariaDB host is required for ERPNext installation."
-    exit 1
-fi
-
 msg_info "Installing ERPNext prerequisites"
 $STD apt-get install -y \
     curl \
@@ -189,48 +90,45 @@ $STD apt-get install -y \
     python3-venv \
     sudo \
     supervisor \
-    locales
+    locales \
+    redis-server
 msg_ok "Installed prerequisites"
 
-if [[ "$ENABLE_INTERNAL_REDIS" == "yes" ]]; then
-    msg_info "Installing Redis server"
-    $STD apt-get install -y redis-server
+# Configure Redis to listen on 127.0.0.1
+sed -i 's/^bind .*/bind 127.0.0.1/' /etc/redis/redis.conf
 
-    # Configure Redis to listen on 127.0.0.1
-    sed -i 's/^bind .*/bind 127.0.0.1/' /etc/redis/redis.conf
+systemctl enable -q --now redis-server
 
-    systemctl enable -q --now redis-server
-
-    # Wait for Redis to be ready
-    for i in {1..30}; do
-        if redis-cli ping >/dev/null 2>&1; then
-            break
-        fi
-        sleep 1
-    done
-
-    if ! redis-cli ping >/dev/null 2>&1; then
-        msg_error "Redis failed to start properly"
-        systemctl status redis-server
-        journalctl -u redis-server -n 50 --no-pager
-        ss -tlnp | grep 6379 || true
-        exit 1
+# Wait for Redis to be ready
+for i in {1..30}; do
+    if redis-cli ping >/dev/null 2>&1; then
+        break
     fi
+    sleep 1
+done
 
-    # Verify Redis is actually listening
-    if ! ss -tlnp | grep -q ':6379'; then
-        msg_error "Redis is running but not listening on port 6379"
-        ss -tlnp | grep redis || true
-        cat /etc/redis/redis.conf | grep -E '^(bind|port)' || true
-        exit 1
-    fi
-
-    msg_ok "Redis server ready"
+if ! redis-cli ping >/dev/null 2>&1; then
+    msg_error "Redis failed to start properly"
+    systemctl status redis-server
+    journalctl -u redis-server -n 50 --no-pager
+    ss -tlnp | grep 6379 || true
+    exit 1
 fi
+
+# Verify Redis is actually listening
+if ! ss -tlnp | grep -q ':6379'; then
+    msg_error "Redis is running but not listening on port 6379"
+    ss -tlnp | grep redis || true
+    cat /etc/redis/redis.conf | grep -E '^(bind|port)' || true
+    exit 1
+fi
+
+msg_ok "Redis server ready"
+
+setup_mariadb
 
 msg_info "Installing wkhtmltopdf"
 WKHTML_VERSION="0.12.6.1-3"
-WKHTML_DISTRO="bookworm"
 ARCH=$(dpkg --print-architecture)
 case "$ARCH" in
     amd64|arm64)
@@ -240,7 +138,7 @@ case "$ARCH" in
         exit 1
         ;;
 esac
-WKHTML_DEB="wkhtmltox_${WKHTML_VERSION}.${WKHTML_DISTRO}_${ARCH}.deb"
+WKHTML_DEB="wkhtmltox_${WKHTML_VERSION}.bookworm_${ARCH}.deb"
 cd /tmp || exit
 curl -fsSLO "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTML_VERSION}/${WKHTML_DEB}"
 $STD apt-get install -y "./${WKHTML_DEB}"
@@ -267,14 +165,14 @@ msg_ok "Prepared frappe user"
 install_bench_stack() {
     sudo -u frappe -H bash -c "set -Eeuo pipefail
         if [[ ! -d /home/frappe/frappe-bench ]]; then
-            bench init --frappe-branch=${FRAPPE_BRANCH} --frappe-path=${FRAPPE_REPO} --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
+            bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
         fi
         cd /home/frappe/frappe-bench
 
         # Configure Redis URLs immediately after bench init
-        bench set-config -g redis_cache '${REDIS_CACHE_URL}'
-        bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
-        bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
+        bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
+        bench set-config -g redis_queue 'redis://127.0.0.1:6379/1'
+        bench set-config -g redis_socketio 'redis://127.0.0.1:6379/0'
 
         # Check Redis status before testing connectivity
         echo 'Checking Redis status...'
@@ -286,7 +184,7 @@ install_bench_stack() {
         ./env/bin/python3 -c \"
 import redis
 try:
-    r = redis.from_url('${REDIS_CACHE_URL}')
+    r = redis.from_url('redis://127.0.0.1:6379/0')
     r.ping()
     print('✓ Redis cache connection successful')
 except Exception as e:
@@ -295,7 +193,7 @@ except Exception as e:
 \"
 
         if [[ ! -d apps/erpnext ]]; then
-            bench get-app --branch=${ERPNEXT_BRANCH} --resolve-deps erpnext ${ERPNEXT_REPO}
+            bench get-app --branch=version-15 --resolve-deps erpnext https://github.com/frappe/erpnext
         fi
         if [[ ! -f sites/apps.txt ]] || ! grep -qx 'erpnext' sites/apps.txt; then
             ls -1 apps >sites/apps.txt
@@ -310,14 +208,14 @@ msg_ok "Bench prepared"
 apply_bench_globals() {
     sudo -u frappe -H bash -c "set -Eeuo pipefail
         cd /home/frappe/frappe-bench
-        bench set-config -g db_host '${DB_HOST}'
-        bench set-config -gp db_port '${DB_PORT}'
-        bench set-config -g redis_cache '${REDIS_CACHE_URL}'
-        bench set-config -g redis_queue '${REDIS_QUEUE_URL}'
-        bench set-config -g redis_socketio '${REDIS_SOCKETIO_URL}'
-        bench set-config -gp socketio_port '${SOCKETIO_PORT}'
+        bench set-config -g db_host 'localhost'
+        bench set-config -gp db_port '3306'
+        bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
+        bench set-config -g redis_queue 'redis://127.0.0.1:6379/1'
+        bench set-config -g redis_socketio 'redis://127.0.0.1:6379/2'
+        bench set-config -gp socketio_port '9000'
         bench set-config -g default_site '${SITE_NAME}'
-        bench set-config -g serve_default_site "true"
+        bench set-config -g serve_default_site true
         bench --site '${SITE_NAME}' set-config enable_scheduler 1
     "
 }
@@ -327,10 +225,10 @@ configure_site_data() {
         cd /home/frappe/frappe-bench
         if [[ ! -f sites/${SITE_NAME}/site_config.json ]]; then
             bench new-site '${SITE_NAME}' \
-                --db-name '${DB_NAME}' \
-                --db-host '${DB_HOST}' \
-                --db-port '${DB_PORT}' \
-                --mariadb-root-username '${DB_ROOT_USER}' \
+                --db-name 'erpnext' \
+                --db-host 'localhost' \
+                --db-port '3306' \
+                --mariadb-root-username 'root' \
                 --mariadb-root-password '${DB_ROOT_PASSWORD}' \
                 --admin-password '${ADMIN_PASSWORD}'
             bench --site '${SITE_NAME}' install-app erpnext
@@ -346,23 +244,9 @@ configure_site_data() {
 
 SITE_CONFIG_PATH="/home/frappe/frappe-bench/sites/${SITE_NAME}/site_config.json"
 
-if [[ "$ROLE" == "combined" || "$ROLE" == "backend" ]]; then
-    msg_info "Configuring ERPNext site"
-    configure_site_data
-    msg_ok "Site configured"
-else
-    if [[ ! -f "$SITE_CONFIG_PATH" ]]; then
-        msg_error "Site configuration not found at ${SITE_CONFIG_PATH}. Copy the 'sites' directory from your backend or combined container (or mount shared storage) before installing the ${ROLE} role."
-        exit 1
-    fi
-    msg_info "Running database migrations for ${SITE_NAME}"
-    sudo -u frappe -H bash -c "set -Eeuo pipefail
-        cd /home/frappe/frappe-bench
-        bench --site '${SITE_NAME}' migrate
-        bench use '${SITE_NAME}'
-    "
-    msg_ok "Migrations complete"
-fi
+msg_info "Configuring ERPNext site"
+configure_site_data
+msg_ok "Site configured"
 
 apply_bench_globals
 
