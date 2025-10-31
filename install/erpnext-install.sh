@@ -47,7 +47,7 @@ CLIENT_MAX_BODY_SIZE_DEFAULT="${ERPNEXT_CLIENT_MAX_BODY_SIZE:-50m}"
 ADMIN_EMAIL_DEFAULT="${ERPNEXT_ADMIN_EMAIL:-administrator@example.com}"
 ADMIN_PASS_DEFAULT="${ERPNEXT_ADMIN_PASSWORD:-}"
 
-msg_info "Installing ERPNext prerequisites"
+msg_info "Installing Dependencies"
 $STD apt-get install -y \
     curl \
     git \
