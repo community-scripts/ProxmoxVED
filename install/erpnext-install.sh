@@ -131,93 +131,81 @@ echo "frappe ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/frappe
 chmod 0440 /etc/sudoers.d/frappe
 msg_ok "Prepared frappe user"
 
-install_bench_stack() {
-    sudo -u frappe -H bash -c "set -Eeuo pipefail
-        if [[ ! -d /home/frappe/frappe-bench ]]; then
-            bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
-        fi
-        cd /home/frappe/frappe-bench
+msg_info "Bootstrapping frappe bench"
+sudo -u frappe -H bash -c "set -Eeuo pipefail
+    if [[ ! -d /home/frappe/frappe-bench ]]; then
+        bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
+    fi
+    cd /home/frappe/frappe-bench
 
-        # Configure Redis URLs immediately after bench init
-        bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
-        bench set-config -g redis_queue 'redis://127.0.0.1:6379/1'
-        bench set-config -g redis_socketio 'redis://127.0.0.1:6379/0'
+    # Configure Redis URLs immediately after bench init
+    bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
+    bench set-config -g redis_queue 'redis://127.0.0.1:6379/1'
+    bench set-config -g redis_socketio 'redis://127.0.0.1:6379/0'
 
-        # Check Redis status before testing connectivity
-        echo 'Checking Redis status...'
-        systemctl is-active redis-server || (echo 'Redis is not active, restarting...' && sudo systemctl restart redis-server && sleep 2)
-        redis-cli ping || (echo 'Redis ping failed' && sudo systemctl status redis-server && sudo ss -tlnp | grep 6379 && exit 1)
+    # Check Redis status before testing connectivity
+    echo 'Checking Redis status...'
+    systemctl is-active redis-server || (echo 'Redis is not active, restarting...' && sudo systemctl restart redis-server && sleep 2)
+    redis-cli ping || (echo 'Redis ping failed' && sudo systemctl status redis-server && sudo ss -tlnp | grep 6379 && exit 1)
 
-        # Verify Redis connectivity using bench's python
-        echo 'Testing Redis connectivity from bench...'
-        ./env/bin/python3 -c \"
+    # Verify Redis connectivity using bench's python
+    echo 'Testing Redis connectivity from bench...'
+    ./env/bin/python3 -c \"
 import redis
 try:
-    r = redis.from_url('redis://127.0.0.1:6379/0')
-    r.ping()
-    print('✓ Redis cache connection successful')
+r = redis.from_url('redis://127.0.0.1:6379/0')
+r.ping()
+print('✓ Redis cache connection successful')
 except Exception as e:
-    print(f'✗ Redis connection failed: {e}')
-    exit(1)
+print(f'✗ Redis connection failed: {e}')
+exit(1)
 \"
 
-        if [[ ! -d apps/erpnext ]]; then
-            bench get-app --branch=version-15 --resolve-deps erpnext https://github.com/frappe/erpnext
-        fi
-        if [[ ! -f sites/apps.txt ]] || ! grep -qx 'erpnext' sites/apps.txt; then
-            ls -1 apps >sites/apps.txt
-        fi
-    "
-}
-
-msg_info "Bootstrapping frappe bench"
-install_bench_stack
+    if [[ ! -d apps/erpnext ]]; then
+        bench get-app --branch=version-15 --resolve-deps erpnext https://github.com/frappe/erpnext
+    fi
+    if [[ ! -f sites/apps.txt ]] || ! grep -qx 'erpnext' sites/apps.txt; then
+        ls -1 apps >sites/apps.txt
+    fi
+"
 msg_ok "Bench prepared"
-
-apply_bench_globals() {
-    sudo -u frappe -H bash -c "set -Eeuo pipefail
-        cd /home/frappe/frappe-bench
-        bench set-config -g db_host 'localhost'
-        bench set-config -gp db_port '3306'
-        bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
-        bench set-config -g redis_queue 'redis://127.0.0.1:6379/1'
-        bench set-config -g redis_socketio 'redis://127.0.0.1:6379/2'
-        bench set-config -gp socketio_port '9000'
-        bench set-config -g default_site '${SITE_NAME}'
-        bench set-config -g serve_default_site true
-        bench --site '${SITE_NAME}' set-config enable_scheduler 1
-    "
-}
-
-configure_site_data() {
-    sudo -u frappe -H bash -c "set -Eeuo pipefail
-        cd /home/frappe/frappe-bench
-        if [[ ! -f sites/${SITE_NAME}/site_config.json ]]; then
-            bench new-site '${SITE_NAME}' \
-                --db-name 'erpnext' \
-                --db-host 'localhost' \
-                --db-port '3306' \
-                --mariadb-root-username 'root' \
-                --mariadb-root-password '${DB_ROOT_PASSWORD}' \
-                --admin-password '${ADMIN_PASSWORD}'
-            bench --site '${SITE_NAME}' install-app erpnext
-            bench --site '${SITE_NAME}' enable-scheduler
-        else
-            bench --site '${SITE_NAME}' migrate
-        fi
-        bench use '${SITE_NAME}'
-        bench build
-        bench --site '${SITE_NAME}' clear-cache
-    "
-}
 
 SITE_CONFIG_PATH="/home/frappe/frappe-bench/sites/${SITE_NAME}/site_config.json"
 
 msg_info "Configuring ERPNext site"
-configure_site_data
+sudo -u frappe -H bash -c "set -Eeuo pipefail
+    cd /home/frappe/frappe-bench
+    if [[ ! -f sites/${SITE_NAME}/site_config.json ]]; then
+        bench new-site '${SITE_NAME}' \
+            --db-name 'erpnext' \
+            --db-host 'localhost' \
+            --db-port '3306' \
+            --mariadb-root-username 'root' \
+            --mariadb-root-password '${DB_ROOT_PASSWORD}' \
+            --admin-password '${ADMIN_PASSWORD}'
+        bench --site '${SITE_NAME}' install-app erpnext
+        bench --site '${SITE_NAME}' enable-scheduler
+    else
+        bench --site '${SITE_NAME}' migrate
+    fi
+    bench use '${SITE_NAME}'
+    bench build
+    bench --site '${SITE_NAME}' clear-cache
+"
 msg_ok "Site configured"
 
-apply_bench_globals
+sudo -u frappe -H bash -c "set -Eeuo pipefail
+    cd /home/frappe/frappe-bench
+    bench set-config -g db_host 'localhost'
+    bench set-config -gp db_port '3306'
+    bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
+    bench set-config -g redis_queue 'redis://127.0.0.1:6379/1'
+    bench set-config -g redis_socketio 'redis://127.0.0.1:6379/2'
+    bench set-config -gp socketio_port '9000'
+    bench set-config -g default_site '${SITE_NAME}'
+    bench set-config -g serve_default_site true
+    bench --site '${SITE_NAME}' set-config enable_scheduler 1
+"
 
 # msg_info "Building frontend assets"
 # sudo -u frappe -H bash -c "set -Eeuo pipefail
