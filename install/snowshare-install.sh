@@ -14,6 +14,13 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
+<<<<<<< HEAD
+=======
+  curl \
+  sudo \
+  git \
+  jq \
+>>>>>>> 77a82c78e04e7b06b20494c7f9ec9f72fca1c117
   make \
   gnupg \
   ca-certificates
@@ -39,13 +46,32 @@ echo -e "Database Name: $DB_NAME" >>~/snowshare.creds
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing SnowShare (Patience)"
+<<<<<<< HEAD
 APP="snowshare"
+=======
+# Find the latest release tag using the GitHub API
+LATEST_TAG=$(curl -s "https://api.github.com/repos/TuroYT/snowshare/releases/latest" | jq -r .tag_name)
+
+if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" == "null" ]; then
+  msg_error "Failed to fetch the latest release tag from GitHub."
+  exit 1
+fi
+msg_ok "Fetching latest release: $LATEST_TAG"
+
+>>>>>>> 77a82c78e04e7b06b20494c7f9ec9f72fca1c117
 cd /opt
 
 fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
 
 cd /opt/snowshare
+$STD git checkout $LATEST_TAG
+msg_ok "Checked out $LATEST_TAG"
+
 $STD npm ci
+<<<<<<< HEAD
+=======
+msg_ok "Installed SnowShare dependencies"
+>>>>>>> 77a82c78e04e7b06b20494c7f9ec9f72fca1c117
 
 echo "${RELEASE}" >/opt/${APP}_version.txt
 
@@ -97,7 +123,12 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
+<<<<<<< HEAD
 $STD apt -y autoremove
 $STD apt -y autoclean
 $STD apt -y clean
+=======
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
+>>>>>>> 77a82c78e04e7b06b20494c7f9ec9f72fca1c117
 msg_ok "Cleaned"
