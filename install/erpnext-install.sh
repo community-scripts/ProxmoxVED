@@ -84,6 +84,8 @@ NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 
 setup_uv
 
+SITE_NAME=$(hostname -I)
+
 msg_info "Preparing frappe user"
 if ! id -u frappe >/dev/null 2>&1; then
     useradd -m -s /bin/bash frappe
@@ -98,11 +100,9 @@ msg_info "Bootstrapping frappe bench"
 sudo -u frappe -H bash -c "set -Eeuo pipefail
     export UV_PROJECT_ENVIRONMENT=/home/frappe/.venv
     uv venv
-    uv pip install frappe-bench
     source .venv/bin/activate
+    pip install frappe-bench
     bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
-    rm -rf /home/frappe/frappe-bench/env
-    ln -s /home/frappe/.venv /home/frappe/frappe-bench/env
     cd /home/frappe/frappe-bench
 
     # Configure Redis URLs immediately after bench init
@@ -115,25 +115,8 @@ sudo -u frappe -H bash -c "set -Eeuo pipefail
     systemctl is-active redis-server || (echo 'Redis is not active, restarting...' && sudo systemctl restart redis-server && sleep 2)
     redis-cli ping || (echo 'Redis ping failed' && sudo systemctl status redis-server && sudo ss -tlnp | grep 6379 && exit 1)
 
-    # Verify Redis connectivity using bench's python
-    echo 'Testing Redis connectivity from bench...'
-    ./env/bin/python3 -c \"
-import redis
-try:
-r = redis.from_url('redis://127.0.0.1:6379/0')
-r.ping()
-print('✓ Redis cache connection successful')
-except Exception as e:
-print(f'✗ Redis connection failed: {e}')
-exit(1)
-\"
-
-    if [[ ! -d apps/erpnext ]]; then
-        bench get-app --branch=version-15 --resolve-deps erpnext https://github.com/frappe/erpnext
-    fi
-    if [[ ! -f sites/apps.txt ]] || ! grep -qx 'erpnext' sites/apps.txt; then
-        ls -1 apps >sites/apps.txt
-    fi
+    bench get-app --branch=version-15 --resolve-deps erpnext https://github.com/frappe/erpnext
+    ls -1 apps >sites/apps.txt
 "
 msg_ok "Bench prepared"
 
@@ -254,8 +237,8 @@ User=frappe
 Group=frappe
 WorkingDirectory=/home/frappe/frappe-bench
 Environment=NODE_ENV=production
-Environment=PORT=${SOCKETIO_PORT}
-Environment=SOCKETIO_PORT=${SOCKETIO_PORT}
+Environment=PORT=9000
+Environment=SOCKETIO_PORT=9000
 ExecStart=/usr/bin/node /home/frappe/frappe-bench/apps/frappe/socketio.js
 Restart=always
 
@@ -281,18 +264,15 @@ WantedBy=multi-user.target
 
 msg_ok "Systemd units created"
 
-if [[ "$ROLE" == "combined" || "$ROLE" == "frontend" ]]; then
-    msg_info "Configuring nginx"
-    backend_target="${BACKEND_HOST}:${BACKEND_PORT}"
-    socketio_target="${SOCKETIO_HOST}:${SOCKETIO_PUBLIC_PORT}"
-    mkdir -p /etc/nginx/conf.d
-    cat >/etc/nginx/conf.d/erpnext.conf <<EOF_NGINX
+msg_info "Configuring nginx"
+mkdir -p /etc/nginx/conf.d
+cat >/etc/nginx/conf.d/erpnext.conf <<EOF_NGINX
 upstream erpnext_backend {
-    server ${backend_target};
+    server 127.0.0.1:8000;
 }
 
 upstream erpnext_socketio {
-    server ${socketio_target};
+    server 127.0.0.1:9000;
 }
 
 server {
@@ -304,11 +284,11 @@ server {
 
     root /home/frappe/frappe-bench/sites;
 
-    set_real_ip_from ${UPSTREAM_REAL_IP_ADDRESS};
-    real_ip_header ${UPSTREAM_REAL_IP_HEADER};
-    real_ip_recursive ${UPSTREAM_REAL_IP_RECURSIVE};
+    set_real_ip_from 127.0.0.1;
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive off;
 
-    client_max_body_size ${CLIENT_MAX_BODY_SIZE};
+    client_max_body_size 50m;
 
     location /assets {
         try_files \$uri =404;
@@ -322,7 +302,7 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_set_header Host \$http_host;
         proxy_set_header Origin \$scheme://\$http_host;
-        proxy_read_timeout ${PROXY_READ_TIMEOUT};
+        proxy_read_timeout 120;
         proxy_pass http://erpnext_socketio/socket.io;
     }
 
@@ -331,8 +311,8 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_set_header Host \$http_host;
-        proxy_set_header X-Frappe-Site-Name ${FRAPPE_SITE_NAME_HEADER};
-        proxy_read_timeout ${PROXY_READ_TIMEOUT};
+        proxy_set_header X-Frappe-Site-Name \$host;
+        proxy_read_timeout 120;
         proxy_pass http://erpnext_backend;
     }
 }
@@ -344,7 +324,7 @@ EOF_NGINX
     rm -f /etc/nginx/sites-enabled/default
     systemctl disable -q --now nginx >/dev/null 2>&1 || true
     msg_ok "nginx configured"
-fi
+
 
 chown -R frappe:frappe /home/frappe
 msg_ok "Ownership of frappe home set"
