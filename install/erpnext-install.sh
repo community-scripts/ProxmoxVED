@@ -146,7 +146,7 @@ if [[ -z "$DB_HOST" ]]; then
     exit 1
 fi
 
-msg_info "Installing ERPNext prerequisites"
+msg_info "Installing Dependencies"
 $STD apt-get install -y \
     curl \
     git \
