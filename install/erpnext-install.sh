@@ -49,8 +49,6 @@ $STD apt install -y \
     libbz2-dev \
     python3 \
     python3-dev \
-    python3-pip \
-    python3-venv \
     supervisor \
     redis-server
 msg_ok "Installed prerequisites"
@@ -80,16 +78,12 @@ msg_ok "Redis server ready"
 
 setup_mariadb
 
-msg_info "Installing wkhtmltopdf"
 fetch_and_deploy_gh_release "wkhtmltopdf" "wkhtmltopdf/packaging"
-# curl -fsSLO "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTML_VERSION}/${WKHTML_DEB}"
-msg_ok "Installed wkhtmltopdf"
 
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 
-msg_info "Installing Bench"
-$STD pip3 install frappe-bench
-msg_ok "Installed Bench"
+setup_uv
+uv pip install frappe-bench
 
 msg_info "Preparing frappe user"
 if ! id -u frappe >/dev/null 2>&1; then
