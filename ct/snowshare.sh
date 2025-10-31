@@ -32,21 +32,18 @@ function update_script() {
   fi
 
   if check_for_gh_release "snowshare" "TuroYT/snowshare"; then
-    msg_info "Updating ${APP} to v${RELEASE}"
-
+    msg_info "Downloading ${APP}"
     systemctl stop snowshare
-    cd /opt/
     fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
     cd /opt/snowshare
+    msg_ok "Downloaded ${APP}"
+    msg_info "Installing ${APP}"
     npm ci
     npx prisma generate
     npm run build
     systemctl start snowshare
     msg_ok "Updated ${APP}"
     exit
-
-  else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}."
   fi
   exit
 }

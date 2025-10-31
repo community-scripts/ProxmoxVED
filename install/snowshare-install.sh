@@ -23,6 +23,11 @@ msg_ok "Installed Dependencies"
 setup_nodejs
 
 msg_info "Setting up PostgreSQL Database"
+cd /opt
+
+fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
+
+cd /opt/snowshare
 DB_NAME=snowshare
 DB_USER=snowshare
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
@@ -42,17 +47,7 @@ msg_info "Installing SnowShare (Patience)"
 
 APP="snowshare"
 
-cd /opt
-
-fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
-
-cd /opt/snowshare
-
-
 $STD npm ci
-
-
-echo "${RELEASE}" >/opt/${APP}_version.txt
 
 cat <<EOF >/opt/snowshare/.env
 DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME"
@@ -65,11 +60,7 @@ EOF
 cd /opt/snowshare
 $STD npx prisma generate
 $STD npx prisma migrate deploy
-
-
-cd /opt/snowshare
 $STD npm run build
-
 
 cat <<EOF >/etc/systemd/system/snowshare.service
 [Unit]
@@ -90,21 +81,17 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now snowshare.service
-msg_ok "Installed SnowShare v${RELEASE}"
+msg_ok "Installed SnowShare"
 
 msg_info "Setting up Cleanup Cron Job"
 cat <<EOF >/etc/cron.d/snowshare-cleanup
 0 2 * * * root cd /opt/snowshare && /usr/bin/npm run cleanup:expired >> /var/log/snowshare-cleanup.log 2>&1
 EOF
 msg_ok "Set up Cleanup Cron Job"
-
 motd_ssh
 customize
-
 msg_info "Cleaning up"
-
 $STD apt -y autoremove
 $STD apt -y autoclean
 $STD apt -y clean
-
 msg_ok "Cleaned"
