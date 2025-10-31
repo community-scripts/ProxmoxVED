@@ -18,12 +18,9 @@ fi
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-    curl \
     git \
-    vim \
     nginx \
     gettext-base \
-    file \
     libpango-1.0-0 \
     libharfbuzz0b \
     libpangoft2-1.0-0 \
@@ -31,11 +28,9 @@ $STD apt install -y \
     restic \
     gpg \
     mariadb-client \
-    less \
     libpq-dev \
     postgresql-client \
     wait-for-it \
-    jq \
     media-types \
     wget \
     libffi-dev \
@@ -50,16 +45,13 @@ $STD apt install -y \
     rlwrap \
     tk8.6-dev \
     cron \
-    gcc \
     build-essential \
     libbz2-dev \
     python3 \
     python3-dev \
     python3-pip \
     python3-venv \
-    sudo \
     supervisor \
-    locales \
     redis-server
 msg_ok "Installed prerequisites"
 
