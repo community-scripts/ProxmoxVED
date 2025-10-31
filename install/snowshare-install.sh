@@ -12,26 +12,18 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  make \
-  gnupg \
-  ca-certificates
+NODE_VERSION="22" setup_nodejs
 
-msg_ok "Installed Dependencies"
-
-setup_nodejs
+cd /opt
+msg_info "Downloading"
+fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
+msg_ok "Snowshare Downloaded"
 
 msg_info "Setting up PostgreSQL Database"
-cd /opt
-
-fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
-
-cd /opt/snowshare
+setup_postgresql
 DB_NAME=snowshare
 DB_USER=snowshare
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
-setup_postgresql
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
@@ -44,11 +36,9 @@ echo -e "Database Name: $DB_NAME" >>~/snowshare.creds
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing SnowShare (Patience)"
-
 APP="snowshare"
-
+cd /opt/snowshare
 $STD npm ci
-
 cat <<EOF >/opt/snowshare/.env
 DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME"
 NEXTAUTH_URL="http://localhost:3000"
@@ -57,7 +47,6 @@ ALLOW_SIGNUP=true
 NODE_ENV=production
 EOF
 
-cd /opt/snowshare
 $STD npx prisma generate
 $STD npx prisma migrate deploy
 $STD npm run build
