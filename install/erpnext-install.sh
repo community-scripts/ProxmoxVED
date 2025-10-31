@@ -124,39 +124,49 @@ msg_ok "Bench prepared"
 SITE_CONFIG_PATH="/home/frappe/bench/sites/${SITE_NAME}/site_config.json"
 
 msg_info "Configuring ERPNext site"
-sudo -u frappe -H bash -c "set -Eeuo pipefail
-    cd /home/frappe/bench
-    if [[ ! -f sites/${SITE_NAME}/site_config.json ]]; then
-        bench new-site '${SITE_NAME}' \
-            --db-name 'erpnext' \
-            --db-host 'localhost' \
-            --db-port '3306' \
-            --mariadb-root-username 'root' \
-            --mariadb-root-password '${DB_ROOT_PASSWORD}' \
-            --admin-password '${ADMIN_PASSWORD}'
-        bench --site '${SITE_NAME}' install-app erpnext
-        bench --site '${SITE_NAME}' enable-scheduler
-    else
-        bench --site '${SITE_NAME}' migrate
-    fi
-    bench use '${SITE_NAME}'
-    bench build
-    bench --site '${SITE_NAME}' clear-cache
-"
-msg_ok "Site configured"
+sudo -u frappe -H bash -c '
+set -Eeuo pipefail
+export PATH="$HOME/.local/bin:$PATH"
 
-sudo -u frappe -H bash -c "set -Eeuo pipefail
-    cd /home/frappe/bench
-    bench set-config -g db_host 'localhost'
-    bench set-config -gp db_port '3306'
-    bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
-    bench set-config -g redis_queue 'redis://127.0.0.1:6379/1'
-    bench set-config -g redis_socketio 'redis://127.0.0.1:6379/2'
-    bench set-config -gp socketio_port '9000'
-    bench set-config -g default_site '${SITE_NAME}'
-    bench set-config -g serve_default_site true
-    bench --site '${SITE_NAME}' set-config enable_scheduler 1
-"
+cd "$HOME/bench"
+
+SITE_NAME='"$SITE_NAME"'
+DB_ROOT_PASSWORD='"$DB_ROOT_PASSWORD"'
+ADMIN_PASSWORD='"$ADMIN_PASSWORD"'
+
+if [[ ! -f "sites/${SITE_NAME}/site_config.json" ]]; then
+    bench new-site "$SITE_NAME" \
+        --db-name erpnext \
+        --db-host localhost \
+        --db-port 3306 \
+        --mariadb-root-username root \
+        --mariadb-root-password "$DB_ROOT_PASSWORD" \
+        --admin-password "$ADMIN_PASSWORD"
+
+    bench --site "$SITE_NAME" install-app erpnext
+    bench --site "$SITE_NAME" enable-scheduler
+else
+    bench --site "$SITE_NAME" migrate
+fi
+
+bench use "$SITE_NAME"
+bench build
+bench --site "$SITE_NAME" clear-cache
+
+# global bench config
+bench set-config -g db_host localhost
+bench set-config -gp db_port 3306
+bench set-config -g  redis_cache    "redis://127.0.0.1:6379/0"
+bench set-config -g  redis_queue    "redis://127.0.0.1:6379/1"
+bench set-config -g  redis_socketio "redis://127.0.0.1:6379/2"
+bench set-config -gp socketio_port 9000
+bench set-config -g  default_site "$SITE_NAME"
+bench set-config -g  serve_default_site true
+
+# per-site config
+bench --site "$SITE_NAME" set-config enable_scheduler 1
+'
+msg_ok "Site configured"
 
 # msg_info "Building frontend assets"
 # sudo -u frappe -H bash -c "set -Eeuo pipefail
