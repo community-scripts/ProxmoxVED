@@ -50,7 +50,7 @@ $STD apt install -y \
     python3 \
     python3-dev \
     python3-pip \
-    python3-venv \
+    python3-venv
 msg_ok "Installed prerequisites"
 
 # Configure Redis to listen on 127.0.0.1
