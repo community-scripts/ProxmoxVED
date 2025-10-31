@@ -114,9 +114,7 @@ $STD apt-get install -y "./${WKHTML_DEB}"
 rm -f "${WKHTML_DEB}"
 msg_ok "Installed wkhtmltopdf"
 
-msg_info "Configuring Node.js environment"
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
-msg_ok "Node.js ready"
 
 msg_info "Installing Bench"
 $STD pip3 install frappe-bench
