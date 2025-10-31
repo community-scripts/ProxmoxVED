@@ -82,7 +82,6 @@ fetch_and_deploy_gh_release "wkhtmltopdf" "wkhtmltopdf/packaging"
 
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 
-setup_uv
 
 SITE_NAME=$(hostname -I)
 
@@ -98,12 +97,9 @@ msg_ok "Prepared frappe user"
 msg_info "Bootstrapping frappe bench"
 
 sudo -u frappe -H bash -c "set -Eeuo pipefail
-    export UV_PROJECT_ENVIRONMENT=/home/frappe/.venv
-    uv venv
-    source .venv/bin/activate
     pip install frappe-bench
-    bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
-    cd /home/frappe/frappe-bench
+    /home/frappe/.local/bin/bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/bench
+    cd /home/frappe/bench
 
     # Configure Redis URLs immediately after bench init
     bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
@@ -120,11 +116,11 @@ sudo -u frappe -H bash -c "set -Eeuo pipefail
 "
 msg_ok "Bench prepared"
 
-SITE_CONFIG_PATH="/home/frappe/frappe-bench/sites/${SITE_NAME}/site_config.json"
+SITE_CONFIG_PATH="/home/frappe/bench/sites/${SITE_NAME}/site_config.json"
 
 msg_info "Configuring ERPNext site"
 sudo -u frappe -H bash -c "set -Eeuo pipefail
-    cd /home/frappe/frappe-bench
+    cd /home/frappe/bench
     if [[ ! -f sites/${SITE_NAME}/site_config.json ]]; then
         bench new-site '${SITE_NAME}' \
             --db-name 'erpnext' \
@@ -145,7 +141,7 @@ sudo -u frappe -H bash -c "set -Eeuo pipefail
 msg_ok "Site configured"
 
 sudo -u frappe -H bash -c "set -Eeuo pipefail
-    cd /home/frappe/frappe-bench
+    cd /home/frappe/bench
     bench set-config -g db_host 'localhost'
     bench set-config -gp db_port '3306'
     bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
@@ -159,7 +155,7 @@ sudo -u frappe -H bash -c "set -Eeuo pipefail
 
 # msg_info "Building frontend assets"
 # sudo -u frappe -H bash -c "set -Eeuo pipefail
-#     cd /home/frappe/frappe-bench
+#     cd /home/frappe/bench
 #     bench build
 # "
 # msg_ok "Frontend assets ready"
@@ -185,9 +181,9 @@ After=network.target
 Type=simple
 User=frappe
 Group=frappe
-WorkingDirectory=/home/frappe/frappe-bench
-Environment=PATH=/home/frappe/frappe-bench/env/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/home/frappe/frappe-bench/env/bin/gunicorn --chdir=/home/frappe/frappe-bench/sites --bind=0.0.0.0:8000 --threads=4 --workers=2 --worker-class=gthread --worker-tmp-dir=/dev/shm --timeout=120 --preload frappe.app:application
+WorkingDirectory=/home/frappe/bench
+Environment=PATH=/home/frappe/bench/env/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/frappe/bench/env/bin/gunicorn --chdir=/home/frappe/bench/sites --bind=0.0.0.0:8000 --threads=4 --workers=2 --worker-class=gthread --worker-tmp-dir=/dev/shm --timeout=120 --preload frappe.app:application
 Restart=on-failure
 
 [Install]
@@ -219,7 +215,7 @@ After=network.target
 Type=simple
 User=frappe
 Group=frappe
-WorkingDirectory=/home/frappe/frappe-bench
+WorkingDirectory=/home/frappe/bench
 ExecStart=/usr/local/bin/bench schedule
 Restart=always
 
@@ -235,11 +231,11 @@ After=network.target
 Type=simple
 User=frappe
 Group=frappe
-WorkingDirectory=/home/frappe/frappe-bench
+WorkingDirectory=/home/frappe/bench
 Environment=NODE_ENV=production
 Environment=PORT=9000
 Environment=SOCKETIO_PORT=9000
-ExecStart=/usr/bin/node /home/frappe/frappe-bench/apps/frappe/socketio.js
+ExecStart=/usr/bin/node /home/frappe/bench/apps/frappe/socketio.js
 Restart=always
 
 [Install]
@@ -254,7 +250,7 @@ After=network.target
 Type=simple
 User=frappe
 Group=frappe
-WorkingDirectory=/home/frappe/frappe-bench
+WorkingDirectory=/home/frappe/bench
 ExecStart=/usr/local/bin/bench worker --queue long,default,short
 Restart=always
 
@@ -282,7 +278,7 @@ server {
     access_log /var/log/nginx/erpnext.access.log;
     error_log /var/log/nginx/erpnext.error.log;
 
-    root /home/frappe/frappe-bench/sites;
+    root /home/frappe/bench/sites;
 
     set_real_ip_from 127.0.0.1;
     real_ip_header X-Forwarded-For;
