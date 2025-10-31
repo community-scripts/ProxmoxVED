@@ -97,21 +97,8 @@ msg_ok "Redis server ready"
 setup_mariadb
 
 msg_info "Installing wkhtmltopdf"
-WKHTML_VERSION="0.12.6.1-3"
-ARCH=$(dpkg --print-architecture)
-case "$ARCH" in
-    amd64|arm64)
-        ;;
-    *)
-        msg_error "Unsupported architecture for wkhtmltopdf: ${ARCH}"
-        exit 1
-        ;;
-esac
-WKHTML_DEB="wkhtmltox_${WKHTML_VERSION}.bookworm_${ARCH}.deb"
-cd /tmp || exit
-curl -fsSLO "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTML_VERSION}/${WKHTML_DEB}"
-$STD apt-get install -y "./${WKHTML_DEB}"
-rm -f "${WKHTML_DEB}"
+fetch_and_deploy_gh_release "wkhtmltopdf" "wkhtmltopdf/packaging"
+# curl -fsSLO "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTML_VERSION}/${WKHTML_DEB}"
 msg_ok "Installed wkhtmltopdf"
 
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
