@@ -366,6 +366,7 @@ if ! systemctl enable -q --now erpnext-backend erpnext-frontend erpnext-schedule
 fi
 msg_ok "Services enabled"
 
+msg_info "Storing administrator credentials"
 {
     echo "ERPNext Administrator"
     echo "Site: ${SITE_NAME}"
