@@ -108,7 +108,7 @@ fetch_and_deploy_gh_release "wkhtmltopdf" "wkhtmltopdf/packaging"
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 
 
-SITE_NAME=$(hostname -I)
+SITE_NAME=erpnext.local
 
 msg_info "Preparing frappe user"
 if ! id -u frappe >/dev/null 2>&1; then
@@ -154,10 +154,6 @@ set -Eeuo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 
 cd "$HOME/bench"
-
-SITE_NAME='"$SITE_NAME"'
-DB_ROOT_PASSWORD='"$DB_ROOT_PASSWORD"'
-ADMIN_PASSWORD='"$ADMIN_PASSWORD"'
 
 if [[ ! -f "sites/${SITE_NAME}/site_config.json" ]]; then
     bench new-site "$SITE_NAME" \
