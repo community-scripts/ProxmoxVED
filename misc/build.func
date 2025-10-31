@@ -2488,7 +2488,7 @@ EOF'
   install_ssh_keys_into_ct
 
   # Run application installer
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://github.com/TuroYT/ProxmoxVED/raw/refs/heads/add-snowshare/install/${var_install}.sh)"; then
     exit $?
   fi
 }

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+#source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://github.com/TuroYT/ProxmoxVED/raw/refs/heads/add-snowshare/misc/build.func)
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: TuroYT
