@@ -65,12 +65,12 @@ EOF
 cd /opt/snowshare
 $STD npx prisma generate
 $STD npx prisma migrate deploy
-msg_ok "Ran Database Migrations"
+
 
 cd /opt/snowshare
 $STD npm run build
 
-msg_info "Creating Service"
+
 cat <<EOF >/etc/systemd/system/snowshare.service
 [Unit]
 Description=SnowShare - Modern File Sharing Platform
