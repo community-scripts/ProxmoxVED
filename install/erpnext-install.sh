@@ -77,23 +77,24 @@ fi
 msg_ok "Redis server ready"
 
 setup_mariadb
-DB_ROOT_PASSWORD=$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c20)
+DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c20)}"
+
 for i in {1..30}; do
-    if mysqladmin ping >/dev/null 2>&1; then
+    if mariadb-admin ping >/dev/null 2>&1; then
         break
     fi
     sleep 1
 done
+
 set +e
-if mysql -uroot -e "SELECT 1" >/dev/null 2>&1; then
-    mysql -uroot <<SQL
+if mariadb -uroot -e "SELECT 1" >/dev/null 2>&1; then
+    mariadb -uroot <<SQL
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
 FLUSH PRIVILEGES;
 SQL
 else
-    # Some images require sudo mysql
-    if sudo mysql -e "SELECT 1" >/dev/null 2>&1; then
-        sudo mysql <<SQL
+    if sudo mariadb -e "SELECT 1" >/dev/null 2>&1; then
+        sudo mariadb <<SQL
 ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
 FLUSH PRIVILEGES;
 SQL
@@ -102,7 +103,6 @@ SQL
     fi
 fi
 set -e
-
 fetch_and_deploy_gh_release "wkhtmltopdf" "wkhtmltopdf/packaging"
 
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
