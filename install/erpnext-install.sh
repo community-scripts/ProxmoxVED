@@ -27,9 +27,7 @@ $STD apt install -y \
     libpangocairo-1.0-0 \
     restic \
     gpg \
-    mariadb-client \
     libpq-dev \
-    postgresql-client \
     wait-for-it \
     media-types \
     wget \
@@ -47,8 +45,6 @@ $STD apt install -y \
     cron \
     build-essential \
     libbz2-dev \
-    python3 \
-    python3-dev \
     supervisor \
     redis-server
 msg_ok "Installed prerequisites"
@@ -83,6 +79,7 @@ fetch_and_deploy_gh_release "wkhtmltopdf" "wkhtmltopdf/packaging"
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 
 setup_uv
+uv venv
 uv pip install frappe-bench
 
 msg_info "Preparing frappe user"
