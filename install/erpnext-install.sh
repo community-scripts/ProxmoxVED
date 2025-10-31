@@ -79,8 +79,6 @@ fetch_and_deploy_gh_release "wkhtmltopdf" "wkhtmltopdf/packaging"
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 
 setup_uv
-uv venv
-uv pip install frappe-bench
 
 msg_info "Preparing frappe user"
 if ! id -u frappe >/dev/null 2>&1; then
@@ -93,6 +91,8 @@ msg_ok "Prepared frappe user"
 
 msg_info "Bootstrapping frappe bench"
 sudo -u frappe -H bash -c "set -Eeuo pipefail
+    uv venv
+    uv pip install frappe-bench
     if [[ ! -d /home/frappe/frappe-bench ]]; then
         bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
     fi
