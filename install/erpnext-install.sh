@@ -78,6 +78,7 @@ msg_ok "Redis server ready"
 
 setup_mariadb
 DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c20)}"
+export DB_ROOT_PASSWORD ADMIN_PASSWORD
 
 for i in {1..30}; do
     if mariadb-admin ping >/dev/null 2>&1; then
@@ -107,8 +108,6 @@ fetch_and_deploy_gh_release "wkhtmltopdf" "wkhtmltopdf/packaging"
 
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 
-
-SITE_NAME=erpnext.local
 
 msg_info "Preparing frappe user"
 if ! id -u frappe >/dev/null 2>&1; then
@@ -146,7 +145,7 @@ ls -1 apps > sites/apps.txt
 
 msg_ok "Bench prepared"
 
-SITE_CONFIG_PATH="/home/frappe/bench/sites/${SITE_NAME}/site_config.json"
+SITE_CONFIG_PATH="/home/frappe/bench/sites/erpnext.local/site_config.json"
 
 msg_info "Configuring ERPNext site"
 sudo -u frappe -H bash -c '
@@ -155,24 +154,24 @@ export PATH="$HOME/.local/bin:$PATH"
 
 cd "$HOME/bench"
 
-if [[ ! -f "sites/${SITE_NAME}/site_config.json" ]]; then
-    bench new-site "$SITE_NAME" \
+if [[ ! -f "sites/erpnext.local/site_config.json" ]]; then
+    bench new-site erpnext.local \
         --db-name erpnext \
         --db-host localhost \
         --db-port 3306 \
         --mariadb-root-username root \
         --mariadb-root-password "$DB_ROOT_PASSWORD" \
-        --admin-password "$ADMIN_PASSWORD"
+        --admin-password Password123
 
-    bench --site "$SITE_NAME" install-app erpnext
-    bench --site "$SITE_NAME" enable-scheduler
+    bench --site erpnext.local install-app erpnext
+    bench --site erpnext.local enable-scheduler
 else
-    bench --site "$SITE_NAME" migrate
+    bench --site erpnext.local migrate
 fi
 
-bench use "$SITE_NAME"
+bench use erpnext.local
 bench build
-bench --site "$SITE_NAME" clear-cache
+bench --site erpnext.local clear-cache
 
 # global bench config
 bench set-config -g db_host localhost
@@ -181,11 +180,11 @@ bench set-config -g  redis_cache    "redis://127.0.0.1:6379/0"
 bench set-config -g  redis_queue    "redis://127.0.0.1:6379/1"
 bench set-config -g  redis_socketio "redis://127.0.0.1:6379/2"
 bench set-config -gp socketio_port 9000
-bench set-config -g  default_site "$SITE_NAME"
+bench set-config -g  default_site erpnext.local
 bench set-config -g  serve_default_site true
 
 # per-site config
-bench --site "$SITE_NAME" set-config enable_scheduler 1
+bench --site erpnext.local set-config enable_scheduler 1
 '
 msg_ok "Site configured"
 
@@ -379,9 +378,8 @@ msg_ok "Services enabled"
 msg_info "Storing administrator credentials"
 {
     echo "ERPNext Administrator"
-    echo "Site: ${SITE_NAME}"
-    echo "Email: ${ADMIN_EMAIL}"
-    echo "Password: ${ADMIN_PASSWORD}"
+    echo "Site: erpnext.local
+    echo "Password: Password123
     if [[ -n "$SITE_DB_PASSWORD" ]]; then
         echo "Database Password: ${SITE_DB_PASSWORD}"
     fi
