@@ -47,9 +47,10 @@ $STD apt install -y \
     libbz2-dev \
     supervisor \
     redis-server \
+    python3 \
+    python3-dev \
+    python3-pip \
     python3-venv \
-    python3.10 \
-    python3.10-dev
 msg_ok "Installed prerequisites"
 
 # Configure Redis to listen on 127.0.0.1
@@ -93,6 +94,7 @@ msg_ok "Prepared frappe user"
 msg_info "Bootstrapping frappe bench"
 
 sudo -u frappe -H bash -c "set -Eeuo pipefail
+    pip install frappe-bench
     bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
     rm -rf /home/frappe/frappe-bench/env
     ln -s /home/frappe/.venv /home/frappe/frappe-bench/env
