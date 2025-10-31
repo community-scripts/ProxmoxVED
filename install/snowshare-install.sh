@@ -4,7 +4,7 @@
 # Author: TuroYT
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
@@ -14,48 +14,41 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  sudo \
-  git \
   make \
   gnupg \
-  ca-certificates \
-  postgresql \
-  postgresql-contrib
+  ca-certificates
+
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Node.js"
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" >/etc/apt/sources.list.d/nodesource.list
-$STD apt-get update
-$STD apt-get install -y nodejs
-msg_ok "Installed Node.js $(node -v)"
+setup_nodejs
 
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=snowshare
 DB_USER=snowshare
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
-systemctl enable -q --now postgresql
+setup_postgresql
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 echo "" >>~/snowshare.creds
-echo -e "SnowShare Database User: \e[32m$DB_USER\e[0m" >>~/snowshare.creds
-echo -e "SnowShare Database Password: \e[32m$DB_PASS\e[0m" >>~/snowshare.creds
-echo -e "SnowShare Database Name: \e[32m$DB_NAME\e[0m" >>~/snowshare.creds
+echo -e "Database Username: $DB_USER" >>~/snowshare.creds
+echo -e "Database Password: $DB_PASS" >>~/snowshare.creds
+echo -e "Database Name: $DB_NAME" >>~/snowshare.creds
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing SnowShare (Patience)"
+APP="snowshare"
 cd /opt
-$STD git clone https://github.com/TuroYT/snowshare.git
+
+fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
+
 cd /opt/snowshare
 $STD npm ci
-msg_ok "Installed SnowShare"
 
-msg_info "Creating Environment Configuration"
+echo "${RELEASE}" >/opt/${APP}_version.txt
+
 cat <<EOF >/opt/snowshare/.env
 DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME"
 NEXTAUTH_URL="http://localhost:3000"
@@ -63,18 +56,14 @@ NEXTAUTH_SECRET="$(openssl rand -base64 32)"
 ALLOW_SIGNUP=true
 NODE_ENV=production
 EOF
-msg_ok "Created Environment Configuration"
 
-msg_info "Running Database Migrations"
 cd /opt/snowshare
 $STD npx prisma generate
 $STD npx prisma migrate deploy
 msg_ok "Ran Database Migrations"
 
-msg_info "Building SnowShare"
 cd /opt/snowshare
 $STD npm run build
-msg_ok "Built SnowShare"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/snowshare.service
@@ -96,7 +85,7 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now snowshare.service
-msg_ok "Created Service"
+msg_ok "Installed SnowShare v${RELEASE}"
 
 msg_info "Setting up Cleanup Cron Job"
 cat <<EOF >/etc/cron.d/snowshare-cleanup
@@ -108,6 +97,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD apt -y autoremove
+$STD apt -y autoclean
+$STD apt -y clean
 msg_ok "Cleaned"
