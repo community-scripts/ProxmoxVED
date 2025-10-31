@@ -78,7 +78,7 @@ msg_ok "Redis server ready"
 
 setup_mariadb
 DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c20)}"
-export DB_ROOT_PASSWORD ADMIN_PASSWORD
+export DB_ROOT_PASSWORD
 
 for i in {1..30}; do
     if mariadb-admin ping >/dev/null 2>&1; then
@@ -148,7 +148,7 @@ msg_ok "Bench prepared"
 SITE_CONFIG_PATH="/home/frappe/bench/sites/erpnext.local/site_config.json"
 
 msg_info "Configuring ERPNext site"
-sudo -u frappe -H bash -c '
+sudo DB_ROOT_PASSWORD="$DB_ROOT_PASSWORD" -u frappe -H bash -c '
 set -Eeuo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 
