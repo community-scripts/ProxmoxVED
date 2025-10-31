@@ -251,7 +251,8 @@ Type=simple
 User=frappe
 Group=frappe
 WorkingDirectory=/home/frappe/bench
-ExecStart=/usr/local/bin/bench schedule
+Environment=PATH=/home/frappe/bench/env/bin:/home/frappe/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/frappe/.local/bin/bench schedule
 Restart=always
 
 [Install]
@@ -286,7 +287,8 @@ Type=simple
 User=frappe
 Group=frappe
 WorkingDirectory=/home/frappe/bench
-ExecStart=/usr/local/bin/bench worker --queue long,default,short
+Environment=PATH=/home/frappe/bench/env/bin:/home/frappe/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/frappe/.local/bin/bench worker --queue long,default,short
 Restart=always
 
 [Install]
