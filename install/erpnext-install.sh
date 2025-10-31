@@ -46,7 +46,10 @@ $STD apt install -y \
     build-essential \
     libbz2-dev \
     supervisor \
-    redis-server
+    redis-server \
+    python3-venv \
+    python3.10 \
+    python3.10-dev
 msg_ok "Installed prerequisites"
 
 # Configure Redis to listen on 127.0.0.1
@@ -78,8 +81,6 @@ fetch_and_deploy_gh_release "wkhtmltopdf" "wkhtmltopdf/packaging"
 
 NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
 
-setup_uv
-
 msg_info "Preparing frappe user"
 if ! id -u frappe >/dev/null 2>&1; then
     useradd -m -s /bin/bash frappe
@@ -90,13 +91,11 @@ chmod 0440 /etc/sudoers.d/frappe
 msg_ok "Prepared frappe user"
 
 msg_info "Bootstrapping frappe bench"
+
 sudo -u frappe -H bash -c "set -Eeuo pipefail
-    export UV_PROJECT_ENVIRONMENT=/home/frappe/.venv
-    uv sync
-    uv pip install frappe-bench
-    if [[ ! -d /home/frappe/frappe-bench ]]; then
-        bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
-    fi
+    bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/frappe-bench
+    rm -rf /home/frappe/frappe-bench/env
+    ln -s /home/frappe/.venv /home/frappe/frappe-bench/env
     cd /home/frappe/frappe-bench
 
     # Configure Redis URLs immediately after bench init
