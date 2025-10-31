@@ -76,14 +76,6 @@ for i in {1..30}; do
     sleep 1
 done
 
-if ! redis-cli ping >/dev/null 2>&1; then
-    msg_error "Redis failed to start properly"
-    systemctl status redis-server
-    journalctl -u redis-server -n 50 --no-pager
-    ss -tlnp | grep 6379 || true
-    exit 1
-fi
-
 # Verify Redis is actually listening
 if ! ss -tlnp | grep -q ':6379'; then
     msg_error "Redis is running but not listening on port 6379"
