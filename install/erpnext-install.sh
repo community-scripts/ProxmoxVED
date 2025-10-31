@@ -96,30 +96,29 @@ msg_ok "Prepared frappe user"
 
 msg_info "Bootstrapping frappe bench"
 
+
+
 sudo -u frappe -H bash -c '
 set -Eeuo pipefail
 pip install --user frappe-bench
-echo '\''export PATH="$HOME/.local/bin:$PATH"'\'' >> "$HOME/.bashrc"
+export PATH="$HOME/.local/bin:$PATH"
+
+bench init --frappe-branch=version-15 \
+  --frappe-path=https://github.com/frappe/frappe \
+  --no-procfile --no-backups --skip-redis-config-generation \
+  "$HOME/bench"
+
+cd "$HOME/bench"
+
+bench set-config -g redis_cache    "redis://127.0.0.1:6379/0"
+bench set-config -g redis_queue    "redis://127.0.0.1:6379/1"
+bench set-config -g redis_socketio "redis://127.0.0.1:6379/0"
+
+bench get-app --branch=version-15 --resolve-deps erpnext https://github.com/frappe/erpnext
+
+ls -1 apps > sites/apps.txt
 '
 
-
-sudo -u frappe -H bash -c "set -Eeuo pipefail
-    bench init --frappe-branch=version-15 --frappe-path=https://github.com/frappe/frappe --no-procfile --no-backups --skip-redis-config-generation /home/frappe/bench
-    cd /home/frappe/bench
-
-    # Configure Redis URLs immediately after bench init
-    bench set-config -g redis_cache 'redis://127.0.0.1:6379/0'
-    bench set-config -g redis_queue 'redis://127.0.0.1:6379/1'
-    bench set-config -g redis_socketio 'redis://127.0.0.1:6379/0'
-
-    # Check Redis status before testing connectivity
-    echo 'Checking Redis status...'
-    systemctl is-active redis-server || (echo 'Redis is not active, restarting...' && sudo systemctl restart redis-server && sleep 2)
-    redis-cli ping || (echo 'Redis ping failed' && sudo systemctl status redis-server && sudo ss -tlnp | grep 6379 && exit 1)
-
-    bench get-app --branch=version-15 --resolve-deps erpnext https://github.com/frappe/erpnext
-    ls -1 apps >sites/apps.txt
-"
 msg_ok "Bench prepared"
 
 SITE_CONFIG_PATH="/home/frappe/bench/sites/${SITE_NAME}/site_config.json"
