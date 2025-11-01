@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -33,18 +33,13 @@ function update_script() {
         systemctl stop upgopher
         msg_ok "Stopped Services"
 
-        cd /opt/upgopher
-        RELEASE_URL=$(curl -s https://api.github.com/repos/wanetty/upgopher/releases/latest | grep "browser_download_url.*linux_amd64.tar.gz" | cut -d '"' -f 4)
-        wget -q "$RELEASE_URL"
-        tar -xzf upgopher_*_linux_amd64.tar.gz
-        mv upgopher_*_linux_amd64/* .
-        rmdir upgopher_*_linux_amd64
-        rm -f upgopher_*_linux_amd64.tar.gz
-        chmod +x upgopher
+        fetch_and_deploy_gh_release "upgopher" "wanetty/upgopher" "prebuild" "latest" "/opt/upgopher" "upgopher_*_linux_amd64.tar.gz"
+        chmod +x /opt/upgopher/upgopher
+
         msg_info "Starting Services"
         systemctl start upgopher
         msg_ok "Started Services"
-        msg_ok "Updated Successfully"
+        msg_ok "Updated successfully!"
     fi
     exit
 }

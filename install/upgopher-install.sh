@@ -13,25 +13,13 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y curl wget
-msg_ok "Installed Dependencies"
-
 msg_info "Installing Upgopher"
 mkdir -p /opt/upgopher
-cd /opt/upgopher
-RELEASE_URL=$(curl -s https://api.github.com/repos/wanetty/upgopher/releases/latest | grep "browser_download_url.*linux_amd64.tar.gz" | cut -d '"' -f 4)
-wget -q "$RELEASE_URL"
-tar -xzf upgopher_*_linux_amd64.tar.gz
-mv upgopher_*_linux_amd64/* .
-rmdir upgopher_*_linux_amd64
-rm -f upgopher_*_linux_amd64.tar.gz
-chmod +x upgopher
+fetch_and_deploy_gh_release "upgopher" "wanetty/upgopher" "prebuild" "latest" "/opt/upgopher" "upgopher_*_linux_amd64.tar.gz"
+chmod +x /opt/upgopher/upgopher
 msg_ok "Installed Upgopher"
 
 msg_info "Configuring Upgopher"
-# Use default configuration (no authentication, HTTP, default port/directory)
-# Users can modify /etc/systemd/system/upgopher.service after installation to enable features
 UPGOPHER_PORT="9090"
 UPGOPHER_DIR="/opt/upgopher/uploads"
 mkdir -p "$UPGOPHER_DIR"
@@ -62,6 +50,7 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD apt -y autoremove
+$STD apt -y autoclean
+$STD apt clean -y
 msg_ok "Cleaned"
