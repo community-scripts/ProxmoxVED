@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/fstof/ProxmoxVED/refs/head
 # Source: https://github.com/donetick/donetick
 
 # App Default Values
-APP="Donetick"
+APP="donetick"
 var_tags="${var_tags:-productivity;tasks}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"

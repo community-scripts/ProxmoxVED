@@ -21,7 +21,7 @@ $STD apt install -y \
   libc6-compat
 msg_ok "Installed Dependencies"
 
-msg_info "Setup Donetick"
+msg_info "Setup donetick"
 RELEASE=$(curl -fsSL https://api.github.com/repos/donetick/donetick/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 
 mkdir -p /opt/donetick
@@ -34,13 +34,13 @@ TOKEN=$(openssl rand -hex 16)
 sed -i -e "s/change_this_to_a_secure_random_string_32_characters_long/${TOKEN}/g" config/selfhosted.yaml
 
 echo "${RELEASE}" > /opt/donetick/donetick_version.txt
-msg_ok "Setup Donetick"
+msg_ok "Setup donetick"
 
 # Creating Service (if needed)
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/donetick.service
 [Unit]
-Description=Donetick Service
+Description=donetick Service
 After=network.target
 
 [Service]
