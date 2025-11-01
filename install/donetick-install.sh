@@ -16,7 +16,7 @@ update_os
 
 # Installing Dependencies
 msg_info "Installing Dependencies"
-$STD apt-get install -y ca-certificates libc6-compat
+$STD apt-get install -y ca-certificates
 msg_ok "Installed Dependencies"
 
 msg_info "Setup donetick"
