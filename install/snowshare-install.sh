@@ -12,12 +12,10 @@ setting_up_container
 network_check
 update_os
 
-NODE_VERSION="22" setup_nodejs
+setup_nodejs
 
 cd /opt
-msg_info "Downloading"
 fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
-msg_ok "Snowshare Downloaded"
 
 msg_info "Setting up PostgreSQL Database"
 setup_postgresql
@@ -29,14 +27,15 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCO
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
-echo "" >>~/snowshare.creds
-echo -e "Database Username: $DB_USER" >>~/snowshare.creds
-echo -e "Database Password: $DB_PASS" >>~/snowshare.creds
-echo -e "Database Name: $DB_NAME" >>~/snowshare.creds
+{
+    echo "SnowShare-Database-Credentials"
+    echo "Database Username: $DB_USER"
+    echo "Database Password: $DB_PASS"
+    echo "Database Name: $DB_NAME"
+} >>~/snowshare.creds
 msg_ok "Set up PostgreSQL Database"
 
 msg_info "Installing SnowShare (Patience)"
-APP="snowshare"
 cd /opt/snowshare
 $STD npm ci
 cat <<EOF >/opt/snowshare/.env
@@ -46,11 +45,9 @@ NEXTAUTH_SECRET="$(openssl rand -base64 32)"
 ALLOW_SIGNUP=true
 NODE_ENV=production
 EOF
-
 $STD npx prisma generate
 $STD npx prisma migrate deploy
 $STD npm run build
-
 cat <<EOF >/etc/systemd/system/snowshare.service
 [Unit]
 Description=SnowShare - Modern File Sharing Platform
@@ -69,7 +66,7 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now snowshare.service
+systemctl enable -q --now snowshare
 msg_ok "Installed SnowShare"
 
 msg_info "Setting up Cleanup Cron Job"
@@ -77,8 +74,10 @@ cat <<EOF >/etc/cron.d/snowshare-cleanup
 0 2 * * * root cd /opt/snowshare && /usr/bin/npm run cleanup:expired >> /var/log/snowshare-cleanup.log 2>&1
 EOF
 msg_ok "Set up Cleanup Cron Job"
+
 motd_ssh
 customize
+
 msg_info "Cleaning up"
 $STD apt -y autoremove
 $STD apt -y autoclean
