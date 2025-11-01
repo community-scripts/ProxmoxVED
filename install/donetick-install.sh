@@ -14,14 +14,7 @@ setting_up_container
 network_check
 update_os
 
-# Installing Dependencies
-msg_info "Installing Dependencies"
-$STD apt install -y \
-  ca-certificates \
-  libc6-compat
-msg_ok "Installed Dependencies"
-
-msg_info "Setup donetick"
+msg_info "Install donetick"
 RELEASE=$(curl -fsSL https://api.github.com/repos/donetick/donetick/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
 
 mkdir -p /opt/donetick
@@ -34,9 +27,8 @@ TOKEN=$(openssl rand -hex 16)
 sed -i -e "s/change_this_to_a_secure_random_string_32_characters_long/${TOKEN}/g" config/selfhosted.yaml
 
 echo "${RELEASE}" > /opt/donetick/donetick_version.txt
-msg_ok "Setup donetick"
+msg_ok "Install donetick"
 
-# Creating Service (if needed)
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/donetick.service
 [Unit]
@@ -61,7 +53,5 @@ customize
 # Cleanup
 msg_info "Cleaning up"
 rm -rf /opt/donetick/donetick_Linux_x86_64.tar.gz
-$STD apt -y autoremove
-$STD apt -y autoclean
 msg_ok "Cleaned"
 
