@@ -26,7 +26,12 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/donetick/donetick/releases/lat
 
 mkdir -p /opt/donetick
 cd /opt/donetick
-curl -fsSL "https://github.com/donetick/donetick/releases/download/${RELEASE}/donetick_Linux_x86_64.tar.gz" | tar -xz -C .
+
+wget -q https://github.com/donetick/donetick/releases/download/${RELEASE}/donetick_Linux_x86_64.tar.gz
+tar -xf donetick_Linux_x86_64.tar.gz
+
+TOKEN=$(openssl rand -hex 16)
+sed -i -e "s/change_this_to_a_secure_random_string_32_characters_long/${TOKEN}/g" config/selfhosted.yaml
 
 echo "${RELEASE}" > /opt/donetick/donetick_version.txt
 msg_ok "Setup Donetick"
@@ -55,6 +60,8 @@ customize
 
 # Cleanup
 msg_info "Cleaning up"
+rm -rf /opt/donetick/donetick_Linux_x86_64.tar.gz
 $STD apt -y autoremove
 $STD apt -y autoclean
 msg_ok "Cleaned"
+

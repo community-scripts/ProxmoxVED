@@ -41,8 +41,14 @@ function update_script() {
 
     # Execute Update
     msg_info "Updating $APP to ${RELEASE}"
-    curl -fsSL "https://github.com/donetick/donetick/releases/download/${RELEASE}/donetick_Linux_x86_64.tar.gz" | tar -xz -C .
-    mv donetick "/opt/donetick/donetick"
+
+    cd /opt/donetick
+
+    wget -q https://github.com/donetick/donetick/releases/download/${RELEASE}/donetick_Linux_x86_64.tar.gz
+    tar -xf donetick_Linux_x86_64.tar.gz
+
+    rm -rf /opt/donetick/donetick_Linux_x86_64.tar.gz
+
     msg_ok "Updated $APP to ${RELEASE}"
 
     # Starting Services
