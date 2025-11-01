@@ -1,0 +1,36 @@
+{
+  "name": "Donetick",
+  "slug": "donetick",
+  "categories": [
+    0,
+    12
+  ],
+  "date_created": "2025-11-01",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 2021,
+  "documentation": null,
+  "config_path": "",
+  "website": "https://donetick.com",
+  "logo": "https://donetick.com/assets/logo-inhNxF6J.svg",
+  "description": "The smart task manager that keeps individuals and families organized with intelligent scheduling and fair task distribution",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/Donetick.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
