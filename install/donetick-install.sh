@@ -14,22 +14,15 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y ca-certificates
+$STD apt install -y ca-certificates
 msg_ok "Installed Dependencies"
 
+fetch_and_deploy_gh_release "donetick" "donetick/donetick" "prebuild" "latest" "/opt/donetick" "donetick_Linux_x86_64.tar.gz"
+
 msg_info "Setup donetick"
-RELEASE=$(curl -fsSL https://api.github.com/repos/donetick/donetick/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-
-mkdir -p /opt/donetick
 cd /opt/donetick
-
-wget -q https://github.com/donetick/donetick/releases/download/${RELEASE}/donetick_Linux_x86_64.tar.gz
-tar -xf donetick_Linux_x86_64.tar.gz
-
 TOKEN=$(openssl rand -hex 16)
 sed -i -e "s/change_this_to_a_secure_random_string_32_characters_long/${TOKEN}/g" config/selfhosted.yaml
-
-echo "${RELEASE}" > /opt/donetick/donetick_version.txt
 msg_ok "Setup donetick"
 
 msg_info "Creating Service"
@@ -54,8 +47,8 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-rm -rf /opt/donetick/donetick_Linux_x86_64.tar.gz
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD apt -y autoremove
+$STD apt -y autoclean
+$STD apt -y clean
 msg_ok "Cleaned"
 
