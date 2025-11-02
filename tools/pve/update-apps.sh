@@ -4,7 +4,7 @@
 # Author: BvdBerg01 | Co-Author: remz1337
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source <(curl -fsSL https://raw.githubusercontent.com/fstof/ProxmoxVED/refs/heads/donetick/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/main/misc/core.func)
 
 function header_info {
   clear
@@ -64,7 +64,8 @@ END {
 }
 
 header_info
-msg_info "Loading all possible LXC containers from Proxmox VE. This may take a few seconds..."
+echo "Loading all possible LXC containers from Proxmox VE"
+echo "This may take a few seconds..."
 whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "This will update LXC container. Proceed?" 10 58 || exit
 
 NODE=$(hostname)
@@ -88,7 +89,6 @@ while read -r container; do
     menu_items+=("$container_id" "$formatted_line" "OFF")
   fi
 done <<<"$containers"
-msg_ok "Loaded ${#menu_items[@]} containers"
 
 CHOICE=$(whiptail --title "LXC Container Update" \
   --checklist "Select LXC containers to update:" 25 60 13 \
@@ -168,7 +168,7 @@ for container in $CHOICE; do
   fi
 
   #2) Extract service build/update resource requirements from config/installation file
-  script=$(curl -fsSL https://raw.githubusercontent.com/fstof/ProxmoxVED/donetick/ct/${service}.sh)
+  script=$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/${service}.sh)
 
   #2.1) Check if the script downloaded successfully
   if [ $? -ne 0 ]; then

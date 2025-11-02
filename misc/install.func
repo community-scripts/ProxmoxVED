@@ -32,7 +32,7 @@ verb_ip6() {
 
 # # This function handles errors
 # error_handler() {
-#   source <(curl -fsSL https://raw.githubusercontent.com/fstof/ProxmoxVED/refs/heads/donetick/misc/api.func)
+#   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
 #   local exit_code="$1"
 #   local line_number="$2"
 #   local command="${3:-}"
