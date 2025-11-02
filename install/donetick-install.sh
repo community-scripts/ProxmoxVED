@@ -5,7 +5,6 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/donetick/donetick
 
-# Import Functions und Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -14,7 +13,6 @@ setting_up_container
 network_check
 update_os
 
-# Installing Dependencies
 msg_info "Installing Dependencies"
 $STD apt-get install -y ca-certificates
 msg_ok "Installed Dependencies"
@@ -34,7 +32,6 @@ sed -i -e "s/change_this_to_a_secure_random_string_32_characters_long/${TOKEN}/g
 echo "${RELEASE}" > /opt/donetick/donetick_version.txt
 msg_ok "Setup donetick"
 
-# Creating Service (if needed)
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/donetick.service
 [Unit]
@@ -56,7 +53,6 @@ msg_ok "Created Service"
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 rm -rf /opt/donetick/donetick_Linux_x86_64.tar.gz
 $STD apt-get -y autoremove
