@@ -33,6 +33,7 @@ $STD npm ci
 echo "export * from \"./$DATABASE\";" > server/db/index.ts
 echo "export const build = \"$BUILD\" as any;" > server/build.ts
 cp tsconfig.oss.json tsconfig.json
+rm -rf server/private
 mkdir -p dist
 $STD npm run next:build
 $STD node esbuild.mjs -e server/index.ts -o dist/server.mjs -b $BUILD
