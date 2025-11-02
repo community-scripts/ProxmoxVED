@@ -64,8 +64,7 @@ END {
 }
 
 header_info
-echo "Loading all possible LXC containers from Proxmox VE"
-echo "This may take a few seconds..."
+msg_info "Loading all possible LXC containers from Proxmox VE. This may take a few seconds..."
 whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "This will update LXC container. Proceed?" 10 58 || exit
 
 NODE=$(hostname)
@@ -89,6 +88,7 @@ while read -r container; do
     menu_items+=("$container_id" "$formatted_line" "OFF")
   fi
 done <<<"$containers"
+msg_ok "Loaded ${#menu_items[@]} containers"
 
 CHOICE=$(whiptail --title "LXC Container Update" \
   --checklist "Select LXC containers to update:" 25 60 13 \
