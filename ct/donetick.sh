@@ -7,9 +7,9 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 
 APP="donetick"
 var_tags="${var_tags:-productivity;tasks}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-2048}"
-var_disk="${var_disk:-8}"
+var_cpu="${var_cpu:-1}"
+var_ram="${var_ram:-512}"
+var_disk="${var_disk:-2}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -24,38 +24,24 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/donetick ]]; then
+  if [[ ! -d /opt/donetick ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/donetick/donetick/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  if [[ "${RELEASE}" != "$(cat /opt/donetick/donetick_version.txt)" ]] || [[ ! -f /opt/donetick/donetick_version.txt ]]; then
-    msg_info "Stopping $APP"
+  if check_for_gh_release "donetick" "donetick/donetick"; then
+    msg_info "Stopping Service"
     systemctl stop donetick
-    msg_ok "Stopped $APP"
+    msg_ok "Stopped Service"
 
-    msg_info "Updating $APP to ${RELEASE}"
+    mv /opt/donetick/config/selfhosted.yml /opt
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "donetick" "donetick/donetick" "prebuild" "latest" "/opt/donetick" "donetick_Linux_x86_64.tar.gz"
+    mv /opt/selfhosted.yml /opt/donetick/config
 
-    wget -q https://github.com/donetick/donetick/releases/download/${RELEASE}/donetick_Linux_x86_64.tar.gz
-    tar -xf donetick_Linux_x86_64.tar.gz
-    mv donetick /opt/donetick/donetick
-
-    msg_ok "Updated $APP to ${RELEASE}"
-
-    msg_info "Starting $APP"
+    msg_info "Starting Service"
     systemctl start donetick
-    msg_ok "Started $APP"
-
-    msg_info "Cleaning Up"
-    rm -rf donetick_Linux_x86_64.tar.gz
-    rm -rf config
-    msg_ok "Cleanup Completed"
-
-    echo "${RELEASE}" > /opt/donetick/donetick_version.txt
-    msg_ok "Update Successful"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+    msg_ok "Started Service"
+    msg_ok "Updated Successfully!"
   fi
   exit
 }
