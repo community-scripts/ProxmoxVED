@@ -34,9 +34,10 @@ function update_script() {
     systemctl stop donetick
     msg_ok "Stopped Service"
 
-    mv /opt/donetick/config/selfhosted.yml /opt
+    mv /opt/donetick/config/selfhosted.yml /opt/donetick/donetick.db /opt
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "donetick" "donetick/donetick" "prebuild" "latest" "/opt/donetick" "donetick_Linux_x86_64.tar.gz"
     mv /opt/selfhosted.yml /opt/donetick/config
+    mv /opt/donetick.db /opt/donetick
 
     msg_info "Starting Service"
     systemctl start donetick
