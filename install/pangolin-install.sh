@@ -75,8 +75,8 @@ flags:
   enable_integration_api: true
   enable_clients: true
 EOF
-$STD npm run db:sqlite:generate
-$STD npm run db:sqlite:push
+#$STD npm run db:sqlite:generate
+#$STD npm run db:sqlite:push
 msg_ok "Setup Pangolin"
 
 msg_info "Creating Pangolin Service"
