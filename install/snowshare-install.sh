@@ -37,7 +37,7 @@ msg_ok "Set up PostgreSQL Database"
 msg_info "Installing SnowShare"
 cd /opt/snowshare
 $STD npm ci
-cat <<EOF >.env
+cat <<EOF >/opt/snowshare.env
 DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="$(openssl rand -base64 32)"
@@ -56,7 +56,7 @@ Requires=postgresql.service
 [Service]
 Type=simple
 WorkingDirectory=/opt/snowshare
-EnvironmentFile=.env
+EnvironmentFile=/opt/snowshare.env
 ExecStart=/usr/bin/npm start
 Restart=on-failure
 RestartSec=10
