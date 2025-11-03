@@ -14,11 +14,10 @@ update_os
 
 setup_nodejs
 
-cd /opt
 fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
 
-msg_info "Setting up PostgreSQL Database"
 setup_postgresql
+msg_info "Setting up PostgreSQL Database"
 DB_NAME=snowshare
 DB_USER=snowshare
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
@@ -35,10 +34,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/snowshare.creds
 msg_ok "Set up PostgreSQL Database"
 
-msg_info "Installing SnowShare (Patience)"
+msg_info "Installing SnowShare"
 cd /opt/snowshare
 $STD npm ci
-cat <<EOF >/opt/snowshare/.env
+cat <<EOF >.env
 DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="$(openssl rand -base64 32)"
@@ -56,9 +55,8 @@ Requires=postgresql.service
 
 [Service]
 Type=simple
-User=root
 WorkingDirectory=/opt/snowshare
-EnvironmentFile=/opt/snowshare/.env
+EnvironmentFile=.env
 ExecStart=/usr/bin/npm start
 Restart=on-failure
 RestartSec=10
