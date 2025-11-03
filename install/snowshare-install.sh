@@ -44,7 +44,9 @@ NEXTAUTH_SECRET="$(openssl rand -base64 32)"
 ALLOW_SIGNUP=true
 NODE_ENV=production
 EOF
-DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME"
+set -a
+source /opt/snowshare.env
+set +a
 $STD npx prisma generate
 $STD npx prisma migrate deploy
 $STD npm run build
