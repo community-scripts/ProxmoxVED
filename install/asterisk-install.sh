@@ -49,6 +49,7 @@ Choose Asterisk version to install:
 EOF
 read -rp "Enter choice [1-3]: " ASTERISK_CHOICE
 
+CERTIFIED=0
 case "$ASTERISK_CHOICE" in
 2)
   ASTERISK_VERSION="$LTS_VERSION"
