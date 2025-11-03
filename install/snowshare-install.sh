@@ -44,6 +44,9 @@ NEXTAUTH_SECRET="$(openssl rand -base64 32)"
 ALLOW_SIGNUP=true
 NODE_ENV=production
 EOF
+set -a
+source /opt/snowshare.env
+set +a
 $STD npx prisma generate
 $STD npx prisma migrate deploy
 $STD npm run build
