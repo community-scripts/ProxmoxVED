@@ -34,15 +34,21 @@ function update_script() {
     systemctl stop donetick
     msg_ok "Stopped Service"
 
+    msg_info "Backing Up Configurations"
     mv /opt/donetick/config/selfhosted.yml /opt/donetick/donetick.db /opt
+    msg_ok "Backed Up Configurations"
+
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "donetick" "donetick/donetick" "prebuild" "latest" "/opt/donetick" "donetick_Linux_x86_64.tar.gz"
+
+    msg_info "Restoring Configurations"
     mv /opt/selfhosted.yml /opt/donetick/config
     mv /opt/donetick.db /opt/donetick
+    msg_ok "Restored Configurations"
 
     msg_info "Starting Service"
     systemctl start donetick
     msg_ok "Started Service"
-    msg_ok "Updated Successfully!"
+    msg_ok "Updated successfully!"
   fi
   exit
 }
