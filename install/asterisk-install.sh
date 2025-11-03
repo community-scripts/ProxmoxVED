@@ -18,7 +18,7 @@ html=$(curl -fsSL "$ASTERISK_VERSIONS_URL")
 
 LTS_VERSION=""
 for major in 20 22 24 26; do
-  block=$(echo "$html" | awk "/Asterisk $major - LTS/,/<ul>/")
+  block=$(echo "$html" | awk "/Asterisk $major - LTS/,/<ul>/" || true)
   ver=$(echo "$block" | grep -oE 'Download Latest - [0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 | sed -E 's/.* - //' || true)
   if [ -n "$ver" ]; then
     LTS_VERSION="$LTS_VERSION $ver"
@@ -29,7 +29,7 @@ LTS_VERSION=$(echo "$LTS_VERSION" | xargs | tr ' ' '\n' | sort -V | tail -n1)
 
 STD_VERSION=""
 for major in 21 23 25 27; do
-  block=$(echo "$html" | grep -A 20 "Asterisk $major</h3>" | head -n 20)
+  block=$(echo "$html" | grep -A 20 "Asterisk $major</h3>" | head -n 20 || true)
   ver=$(echo "$block" | grep -oE 'Download (Latest - )?'"$major"'\.[0-9]+\.[0-9]+' | head -n1 | sed -E 's/Download (Latest - )?//' || true)
   if [ -n "$ver" ]; then
     STD_VERSION="$STD_VERSION $ver"
