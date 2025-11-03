@@ -1,0 +1,35 @@
+{
+  "name": "ERPNext",
+  "slug": "erpnext",
+  "categories": [
+    25
+  ],
+  "date_created": "2025-10-31",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": null,
+  "config_path": "",
+  "website": null,
+  "logo": "https://github.com/frappe/erpnext/raw/develop/erpnext/public/images/v16/erpnext.svg",
+  "description": "Completely open source enterprise resource planning software.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/erpnext.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 40,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
