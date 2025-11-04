@@ -52,7 +52,7 @@ $STD apt update
 $STD apt -y install openresty
 msg_ok "Installed Openresty"
 
-NODE_VERSION="20" NODE_MODULE="yarn" setup_nodejs
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 
 RELEASE=$(curl -fsSL https://api.github.com/repos/NginxProxyManager/nginx-proxy-manager/releases/latest |
   grep "tag_name" |
@@ -116,8 +116,8 @@ export NODE_OPTIONS=--openssl-legacy-provide
 cd /opt/nginxproxymanager/frontend
 # Replace node-sass with sass in package.json before installation
 sed -i 's/"node-sass".*$/"sass": "^1.92.1",/g' package.json
-$STD yarn install --network-timeout 600000
-$STD yarn build
+$STD node --openssl-legacy-provider $(which yarn) install --network-timeout 600000
+$STD node --openssl-legacy-provider $(which yarn) build
 cp -r /opt/nginxproxymanager/frontend/dist/* /app/frontend
 cp -r /opt/nginxproxymanager/frontend/app-images/* /app/frontend/images
 msg_ok "Built Frontend"
