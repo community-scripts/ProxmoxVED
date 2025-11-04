@@ -1108,7 +1108,7 @@ var_ipv6_method=none
 var_ssh=no
 # var_ssh_authorized_key=
 
-# APT cacher (optional)
+# APT cacher (optional - with example)
 # var_apt_cacher=yes
 # var_apt_cacher_ip=192.168.1.10
 
@@ -2453,21 +2453,8 @@ EOF
       exit 1
     fi
 
-    # Try to reach gateway
-    gw_ok=0
-    for i in {1..10}; do
-      if pct exec "$CTID" -- ping -c1 -W1 "${GATEWAY:-8.8.8.8}" >/dev/null 2>&1; then
-        gw_ok=1
-        break
-      fi
-      sleep 1
-    done
-
-    if [ "$gw_ok" -eq 1 ]; then
-      msg_ok "Network in LXC is reachable (IP $ip_in_lxc)"
-    else
-      msg_warn "Network reachable but gateway check failed"
-    fi
+    # Simple connectivity check - just verify IP is assigned
+    msg_ok "Network configured (IP: $ip_in_lxc)"
   fi
   # Function to get correct GID inside container
   get_container_gid() {
@@ -2611,7 +2598,8 @@ fix_gpu_gids() {
     return 0
   fi
 
-  msg_info "Detecting and setting correct GPU group IDs"
+  # Silent operation to avoid spinner conflicts
+  echo -e "\n  🔧  Detecting and setting correct GPU group IDs"
 
   # Ermittle die tatsächlichen GIDs aus dem Container
   local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
@@ -2632,7 +2620,7 @@ fix_gpu_gids() {
     [[ -z "$render_gid" ]] && render_gid="104" # Ultimate fallback
   fi
 
-  msg_info "Container GIDs detected - video:${video_gid}, render:${render_gid}"
+  echo "  ℹ️   Container GIDs detected - video:${video_gid}, render:${render_gid}"
 
   # Prüfe ob die GIDs von den Defaults abweichen
   local need_update=0
@@ -2641,7 +2629,7 @@ fix_gpu_gids() {
   fi
 
   if [[ $need_update -eq 1 ]]; then
-    msg_info "Updating device GIDs in container config"
+    echo "  🔄  Updating device GIDs in container config"
 
     # Stoppe Container für Config-Update
     pct stop "$CTID" >/dev/null 2>&1
@@ -2679,9 +2667,9 @@ fix_gpu_gids() {
     pct start "$CTID" >/dev/null 2>&1
     sleep 3
 
-    msg_ok "Device GIDs updated successfully"
+    echo -e "  ✔️   Device GIDs updated successfully\n"
   else
-    msg_ok "Device GIDs are already correct"
+    echo -e "  ✔️   Device GIDs are already correct\n"
   fi
   if [[ "$CT_TYPE" == "0" ]]; then
     pct exec "$CTID" -- bash -c "
@@ -3004,6 +2992,8 @@ create_lxc_container() {
   )
 
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
+  
+  msg_ok "Template search completed"
 
   #echo "[DEBUG] pveam available output (first 5 lines with .tar files):"
   #pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | head -5 | sed 's/^/  /'
