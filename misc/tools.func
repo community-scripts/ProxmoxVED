@@ -3382,16 +3382,34 @@ function setup_nodejs() {
 
     # Check what version APT will install
     echo "🔍 DEBUG: Checking APT policy for nodejs package..."
-    apt-cache policy nodejs | head -n 20
+    apt-cache policy nodejs 2>&1 | head -n 20 || true
     echo ""
 
     # Now install dependencies (NodeSource repo is already active, no Debian nodejs available)
     echo "🔍 DEBUG: Installing dependencies (curl, ca-certificates, gnupg)..."
+    echo "   ⚠️  CRITICAL: This is where Debian nodejs might sneak back in!"
+
+    # Check available nodejs packages BEFORE ensure_dependencies
+    echo "🔍 DEBUG: Available nodejs packages BEFORE ensure_dependencies:"
+    apt-cache search "^nodejs$" 2>&1 || true
+    apt-cache madison nodejs 2>&1 | head -n 5 || true
+
     ensure_dependencies curl ca-certificates gnupg
 
-    # Check again after dependencies
-    echo "🔍 DEBUG: Checking installed packages after dependencies..."
-    dpkg -l | grep -E "(nodejs|libnode|node-)" | awk '{print "   * " $2 " " $3}' || echo "   * none"
+    echo "🔍 DEBUG: ensure_dependencies completed"
+
+    # Check again after dependencies - THIS IS THE SMOKING GUN
+    echo "🔍 DEBUG: Checking installed packages AFTER ensure_dependencies..."
+    if dpkg -l 2>/dev/null | grep -qE "^ii.*nodejs"; then
+      echo "   ❌❌❌ DEBIAN NODEJS WAS INSTALLED BY ensure_dependencies! ❌❌❌"
+      dpkg -l | grep -E "(nodejs|libnode|node-)" | awk '{print "   * " $2 " " $3}'
+      echo ""
+      echo "   🔧 Purging it again before final install..."
+      apt purge -y nodejs nodejs-doc libnode* node-* 2>&1 | grep -i "remove\|purge" || true
+      apt autoremove -y 2>&1 >/dev/null || true
+    else
+      echo "   ✅ No nodejs packages installed (good!)"
+    fi
     echo ""
 
     # Wait for repo to settle
