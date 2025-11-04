@@ -3321,6 +3321,13 @@ function setup_nodejs() {
     # Clean up legacy installations (nvm, etc.)
     cleanup_legacy_install "nodejs"
 
+    # Remove Debian's nodejs if present (conflicts with NodeSource)
+    if dpkg -l | grep -q "^ii.*nodejs.*dfsg"; then
+      $STD msg_info "Removing Debian-packaged Node.js (conflicts with NodeSource)"
+      $STD apt purge -y nodejs libnode* 2>/dev/null || true
+      $STD apt autoremove -y 2>/dev/null || true
+    fi
+
     ensure_dependencies curl ca-certificates gnupg
 
     # Prepare repository (cleanup + validation)
@@ -3335,10 +3342,21 @@ function setup_nodejs() {
       return 1
     }
 
+    # Set APT priority to prefer NodeSource over Debian repos
+    cat >/etc/apt/preferences.d/nodesource <<'EOF'
+Package: nodejs
+Pin: origin deb.nodesource.com
+Pin-Priority: 600
+
+Package: *
+Pin: origin deb.nodesource.com
+Pin-Priority: 600
+EOF
+
     # Wait for repo to settle
     sleep 2
 
-    # Install Node.js with retry logic
+    # Install Node.js with retry logic (explicit version to avoid Debian repo)
     install_packages_with_retry "nodejs" || {
       msg_error "Failed to install Node.js ${NODE_VERSION} from NodeSource"
       return 1
@@ -3353,6 +3371,12 @@ function setup_nodejs() {
     local INSTALLED_NODE_VERSION
     INSTALLED_NODE_VERSION=$(node -v 2>/dev/null | grep -oP '^v\K[0-9]+' || echo "0")
     verify_tool_version "Node.js" "$NODE_VERSION" "$INSTALLED_NODE_VERSION" || true
+
+    # Verify npm is available (should come with NodeSource nodejs)
+    if ! command -v npm >/dev/null 2>&1; then
+      msg_error "npm not found after Node.js installation - repository issue?"
+      return 1
+    fi
 
     # Update to latest npm (with version check to avoid incompatibility)
     local NPM_VERSION
