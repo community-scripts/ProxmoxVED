@@ -8,141 +8,178 @@
 # ------------------------------------------------------------------------------
 
 explain_exit_code() {
-    local code="$1"
-    case "$code" in
-    # --- Generic / Shell ---
-    1) echo "General error / Operation not permitted" ;;
-    2) echo "Misuse of shell builtins (e.g. syntax error)" ;;
-    126) echo "Command invoked cannot execute (permission problem?)" ;;
-    127) echo "Command not found" ;;
-    128) echo "Invalid argument to exit" ;;
-    130) echo "Terminated by Ctrl+C (SIGINT)" ;;
-    137) echo "Killed (SIGKILL / Out of memory?)" ;;
-    139) echo "Segmentation fault (core dumped)" ;;
-    143) echo "Terminated (SIGTERM)" ;;
+  local code="$1"
+  case "$code" in
+  # --- Generic / Shell ---
+  1) echo "General error / Operation not permitted" ;;
+  2) echo "Misuse of shell builtins (e.g. syntax error)" ;;
+  126) echo "Command invoked cannot execute (permission problem?)" ;;
+  127) echo "Command not found" ;;
+  128) echo "Invalid argument to exit" ;;
+  130) echo "Terminated by Ctrl+C (SIGINT)" ;;
+  137) echo "Killed (SIGKILL / Out of memory?)" ;;
+  139) echo "Segmentation fault (core dumped)" ;;
+  143) echo "Terminated (SIGTERM)" ;;
 
-    # --- Package manager / APT / DPKG ---
-    100) echo "APT: Package manager error (broken packages / dependency problems)" ;;
-    101) echo "APT: Configuration error (bad sources.list, malformed config)" ;;
-    255) echo "DPKG: Fatal internal error" ;;
+  # --- Package manager / APT / DPKG ---
+  100) echo "APT: Package manager error (broken packages / dependency problems)" ;;
+  101) echo "APT: Configuration error (bad sources.list, malformed config)" ;;
+  255) echo "DPKG: Fatal internal error" ;;
 
-    # --- Node.js / npm / pnpm / yarn ---
-    243) echo "Node.js: Out of memory (JavaScript heap out of memory)" ;;
-    245) echo "Node.js: Invalid command-line option" ;;
-    246) echo "Node.js: Internal JavaScript Parse Error" ;;
-    247) echo "Node.js: Fatal internal error" ;;
-    248) echo "Node.js: Invalid C++ addon / N-API failure" ;;
-    249) echo "Node.js: Inspector error" ;;
-    254) echo "npm/pnpm/yarn: Unknown fatal error" ;;
+  # --- Node.js / npm / pnpm / yarn ---
+  243) echo "Node.js: Out of memory (JavaScript heap out of memory)" ;;
+  245) echo "Node.js: Invalid command-line option" ;;
+  246) echo "Node.js: Internal JavaScript Parse Error" ;;
+  247) echo "Node.js: Fatal internal error" ;;
+  248) echo "Node.js: Invalid C++ addon / N-API failure" ;;
+  249) echo "Node.js: Inspector error" ;;
+  254) echo "npm/pnpm/yarn: Unknown fatal error" ;;
 
-    # --- Python / pip / uv ---
-    210) echo "Python: Virtualenv / uv environment missing or broken" ;;
-    211) echo "Python: Dependency resolution failed" ;;
-    212) echo "Python: Installation aborted (permissions or EXTERNALLY-MANAGED)" ;;
+  # --- Python / pip / uv ---
+  210) echo "Python: Virtualenv / uv environment missing or broken" ;;
+  211) echo "Python: Dependency resolution failed" ;;
+  212) echo "Python: Installation aborted (permissions or EXTERNALLY-MANAGED)" ;;
 
-    # --- PostgreSQL ---
-    231) echo "PostgreSQL: Connection failed (server not running / wrong socket)" ;;
-    232) echo "PostgreSQL: Authentication failed (bad user/password)" ;;
-    233) echo "PostgreSQL: Database does not exist" ;;
-    234) echo "PostgreSQL: Fatal error in query / syntax" ;;
+  # --- PostgreSQL ---
+  231) echo "PostgreSQL: Connection failed (server not running / wrong socket)" ;;
+  232) echo "PostgreSQL: Authentication failed (bad user/password)" ;;
+  233) echo "PostgreSQL: Database does not exist" ;;
+  234) echo "PostgreSQL: Fatal error in query / syntax" ;;
 
-    # --- MySQL / MariaDB ---
-    241) echo "MySQL/MariaDB: Connection failed (server not running / wrong socket)" ;;
-    242) echo "MySQL/MariaDB: Authentication failed (bad user/password)" ;;
-    243) echo "MySQL/MariaDB: Database does not exist" ;;
-    244) echo "MySQL/MariaDB: Fatal error in query / syntax" ;;
+  # --- MySQL / MariaDB ---
+  241) echo "MySQL/MariaDB: Connection failed (server not running / wrong socket)" ;;
+  242) echo "MySQL/MariaDB: Authentication failed (bad user/password)" ;;
+  243) echo "MySQL/MariaDB: Database does not exist" ;;
+  244) echo "MySQL/MariaDB: Fatal error in query / syntax" ;;
 
-    # --- MongoDB ---
-    251) echo "MongoDB: Connection failed (server not running)" ;;
-    252) echo "MongoDB: Authentication failed (bad user/password)" ;;
-    253) echo "MongoDB: Database not found" ;;
-    254) echo "MongoDB: Fatal query error" ;;
+  # --- MongoDB ---
+  251) echo "MongoDB: Connection failed (server not running)" ;;
+  252) echo "MongoDB: Authentication failed (bad user/password)" ;;
+  253) echo "MongoDB: Database not found" ;;
+  254) echo "MongoDB: Fatal query error" ;;
 
-    # --- Proxmox Custom Codes ---
-    200) echo "Custom: Failed to create lock file" ;;
-    203) echo "Custom: Missing CTID variable" ;;
-    204) echo "Custom: Missing PCT_OSTYPE variable" ;;
-    205) echo "Custom: Invalid CTID (<100)" ;;
-    209) echo "Custom: Container creation failed" ;;
-    210) echo "Custom: Cluster not quorate" ;;
-    214) echo "Custom: Not enough storage space" ;;
-    215) echo "Custom: Container ID not listed" ;;
-    216) echo "Custom: RootFS entry missing in config" ;;
-    217) echo "Custom: Storage does not support rootdir" ;;
-    220) echo "Custom: Unable to resolve template path" ;;
-    222) echo "Custom: Template download failed after 3 attempts" ;;
-    223) echo "Custom: Template not available after download" ;;
-    231) echo "Custom: LXC stack upgrade/retry failed" ;;
+  # --- Proxmox Custom Codes ---
+  200) echo "Custom: Failed to create lock file" ;;
+  203) echo "Custom: Missing CTID variable" ;;
+  204) echo "Custom: Missing PCT_OSTYPE variable" ;;
+  205) echo "Custom: Invalid CTID (<100)" ;;
+  209) echo "Custom: Container creation failed" ;;
+  210) echo "Custom: Cluster not quorate" ;;
+  214) echo "Custom: Not enough storage space" ;;
+  215) echo "Custom: Container ID not listed" ;;
+  216) echo "Custom: RootFS entry missing in config" ;;
+  217) echo "Custom: Storage does not support rootdir" ;;
+  220) echo "Custom: Unable to resolve template path" ;;
+  222) echo "Custom: Template download failed after 3 attempts" ;;
+  223) echo "Custom: Template not available after download" ;;
+  231) echo "Custom: LXC stack upgrade/retry failed" ;;
 
-    # --- Default ---
-    *) echo "Unknown error" ;;
-    esac
+  # --- Default ---
+  *) echo "Unknown error" ;;
+  esac
 }
 
 # === Error handler ============================================================
 error_handler() {
-    local exit_code=${1:-$?}
-    local command=${2:-${BASH_COMMAND:-unknown}}
-    local line_number=${BASH_LINENO[0]:-unknown}
+  local exit_code=${1:-$?}
+  local command=${2:-${BASH_COMMAND:-unknown}}
+  local line_number=${BASH_LINENO[0]:-unknown}
 
-    command="${command//\$STD/}"
+  command="${command//\$STD/}"
 
-    if [[ "$exit_code" -eq 0 ]]; then
-        return 0
-    fi
+  if [[ "$exit_code" -eq 0 ]]; then
+    return 0
+  fi
 
-    local explanation
-    explanation="$(explain_exit_code "$exit_code")"
+  local explanation
+  explanation="$(explain_exit_code "$exit_code")"
 
-    printf "\e[?25h"
+  printf "\e[?25h"
+
+  # Use msg_error if available, fallback to echo
+  if declare -f msg_error >/dev/null 2>&1; then
+    msg_error "in line ${line_number}: exit code ${exit_code} (${explanation}): while executing command ${command}"
+  else
     echo -e "\n${RD}[ERROR]${CL} in line ${RD}${line_number}${CL}: exit code ${RD}${exit_code}${CL} (${explanation}): while executing command ${YWB}${command}${CL}\n"
+  fi
 
-    if [[ -n "${DEBUG_LOGFILE:-}" ]]; then
-        {
-            echo "------ ERROR ------"
-            echo "Timestamp : $(date '+%Y-%m-%d %H:%M:%S')"
-            echo "Exit Code : $exit_code ($explanation)"
-            echo "Line      : $line_number"
-            echo "Command   : $command"
-            echo "-------------------"
-        } >>"$DEBUG_LOGFILE"
+  if [[ -n "${DEBUG_LOGFILE:-}" ]]; then
+    {
+      echo "------ ERROR ------"
+      echo "Timestamp : $(date '+%Y-%m-%d %H:%M:%S')"
+      echo "Exit Code : $exit_code ($explanation)"
+      echo "Line      : $line_number"
+      echo "Command   : $command"
+      echo "-------------------"
+    } >>"$DEBUG_LOGFILE"
+  fi
+
+  if [[ -n "${SILENT_LOGFILE:-}" && -s "$SILENT_LOGFILE" ]]; then
+    echo "--- Last 20 lines of silent log ---"
+    tail -n 20 "$SILENT_LOGFILE"
+    echo "-----------------------------------"
+
+    if [[ -n "${CTID:-}" ]]; then
+      local HOST_LOG="/tmp/install-$(date +%Y%m%d_%H%M%S)_${SESSION_ID:-error}.log"
+      if pct push $CTID "$SILENT_LOGFILE" "$HOST_LOG" 2>/dev/null; then
+        if declare -f msg_custom >/dev/null 2>&1; then
+          msg_custom "✓" "${GN}" "Full log saved to host: ${HOST_LOG}"
+        else
+          echo -e "${GN}✓ Full log saved to host:${CL} ${BL}${HOST_LOG}${CL}"
+        fi
+      else
+        if declare -f msg_custom >/dev/null 2>&1; then
+          msg_custom "📋" "${YW}" "Full log path in container: ${SILENT_LOGFILE}"
+        else
+          echo -e "${YW}Full log path in container:${CL} ${BL}${SILENT_LOGFILE}${CL}"
+        fi
+      fi
+    else
+      if declare -f msg_custom >/dev/null 2>&1; then
+        msg_custom "📋" "${YW}" "Full log: ${SILENT_LOGFILE}"
+      else
+        echo -e "${YW}Full log:${CL} ${BL}${SILENT_LOGFILE}${CL}"
+      fi
     fi
+  fi
 
-    if [[ -n "${SILENT_LOGFILE:-}" && -s "$SILENT_LOGFILE" ]]; then
-        echo "--- Last 20 lines of silent log ($SILENT_LOGFILE) ---"
-        tail -n 20 "$SILENT_LOGFILE"
-        echo "---------------------------------------------------"
-    fi
-
-    exit "$exit_code"
+  exit "$exit_code"
 }
 
 # === Exit handler =============================================================
 on_exit() {
-    local exit_code=$?
-    [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
-    exit "$exit_code"
+  local exit_code=$?
+  [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
+  exit "$exit_code"
 }
 
 # === Signal handlers ==========================================================
 on_interrupt() {
+  if declare -f msg_error >/dev/null 2>&1; then
+    msg_error "Interrupted by user (SIGINT)"
+  else
     echo -e "\n${RD}Interrupted by user (SIGINT)${CL}"
-    exit 130
+  fi
+  exit 130
 }
 
 on_terminate() {
+  if declare -f msg_error >/dev/null 2>&1; then
+    msg_error "Terminated by signal (SIGTERM)"
+  else
     echo -e "\n${RD}Terminated by signal (SIGTERM)${CL}"
-    exit 143
+  fi
+  exit 143
 }
 
 # === Init traps ===============================================================
 catch_errors() {
-    set -Ee -o pipefail
-    if [ "${STRICT_UNSET:-0}" = "1" ]; then
-        set -u
-    fi
-    trap 'error_handler' ERR
-    trap on_exit EXIT
-    trap on_interrupt INT
-    trap on_terminate TERM
+  set -Ee -o pipefail
+  if [ "${STRICT_UNSET:-0}" = "1" ]; then
+    set -u
+  fi
+  trap 'error_handler' ERR
+  trap on_exit EXIT
+  trap on_interrupt INT
+  trap on_terminate TERM
 }

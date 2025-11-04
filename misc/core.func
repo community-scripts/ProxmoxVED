@@ -108,7 +108,7 @@ set_std_mode() {
   fi
 }
 
-SILENT_LOGFILE="/tmp/silent.$$.log"
+SILENT_LOGFILE="/tmp/install-$(date +%Y%m%d_%H%M%S)_${SESSION_ID:-$(date +%s)}.log"
 
 silent() {
   local cmd="$*"
@@ -133,8 +133,8 @@ silent() {
     explanation="$(explain_exit_code "$rc")"
 
     printf "\e[?25h"
-    echo -e "\n${RD}[ERROR]${CL} in line ${RD}${caller_line}${CL}: exit code ${RD}${rc}${CL} (${explanation})"
-    echo -e "${RD}Command:${CL} ${YWB}${cmd}${CL}\n"
+    msg_error "in line ${caller_line}: exit code ${rc} (${explanation})"
+    msg_custom "→" "${YWB}" "${cmd}"
 
     if [[ -s "$SILENT_LOGFILE" ]]; then
       local log_lines=$(wc -l <"$SILENT_LOGFILE")
@@ -144,7 +144,7 @@ silent() {
 
       # Show how to view full log if there are more lines
       if [[ $log_lines -gt 10 ]]; then
-        echo -e "${YW}View full log (${log_lines} lines):${CL} cat $SILENT_LOGFILE"
+        msg_custom "📋" "${YW}" "View full log (${log_lines} lines): /tmp/install-*_${SESSION_ID:-*}.log"
       fi
     fi
 
