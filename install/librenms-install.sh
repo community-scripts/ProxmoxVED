@@ -14,30 +14,34 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-    lsb-release \
-    ca-certificates \
-    acl \
-    fping \
-    graphviz \
-    imagemagick \
-    mtr-tiny \
-    nginx \
-    nmap \
-    rrdtool \
-    snmp \
-    snmpd
+$STD apt install -y \
+  acl \
+  fping \
+  graphviz \
+  imagemagick \
+  mtr-tiny \
+  nginx \
+  nmap \
+  rrdtool \
+  snmp \
+  snmpd \
+  whois
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="gmp,mysql,snmp" setup_php
+PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="gmp,mysql,snmp" setup_php
 setup_mariadb
 setup_composer
 PYTHON_VERSION="3.13" setup_uv
 
-msg_info "Installing Python"
-$STD apt-get install -y \
-    python3-{dotenv,pymysql,redis,setuptools,systemd,pip}
-msg_ok "Installed Python"
+msg_info "Installing Python Dependencies"
+$STD apt install -y \
+  python3-dotenv \
+  python3-pymysql \
+  python3-redis \
+  python3-setuptools \
+  python3-systemd \
+  python3-pip
+msg_ok "Installed Python Dependencies"
 
 msg_info "Configuring Database"
 DB_NAME=librenms
@@ -47,10 +51,10 @@ $STD mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE 
 $STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 $STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
 {
-    echo "LibreNMS-Credentials"
-    echo "LibreNMS Database User: $DB_USER"
-    echo "LibreNMS Database Password: $DB_PASS"
-    echo "LibreNMS Database Name: $DB_NAME"
+  echo "LibreNMS-Credentials"
+  echo "LibreNMS Database User: $DB_USER"
+  echo "LibreNMS Database Password: $DB_PASS"
+  echo "LibreNMS Database Name: $DB_NAME"
 } >>~/librenms.creds
 msg_ok "Configured Database"
 
@@ -81,11 +85,11 @@ systemctl enable -q --now mariadb
 msg_ok "Configured MariaDB"
 
 msg_info "Configure PHP-FPM"
-cp /etc/php/8.2/fpm/pool.d/www.conf /etc/php/8.2/fpm/pool.d/librenms.conf
-sed -i "s/\[www\]/\[librenms\]/g" /etc/php/8.2/fpm/pool.d/librenms.conf
-sed -i "s/user = www-data/user = librenms/g" /etc/php/8.2/fpm/pool.d/librenms.conf
-sed -i "s/group = www-data/group = librenms/g" /etc/php/8.2/fpm/pool.d/librenms.conf
-sed -i "s/listen = \/run\/php\/php8.2-fpm.sock/listen = \/run\/php-fpm-librenms.sock/g" /etc/php/8.2/fpm/pool.d/librenms.conf
+cp /etc/php/8.4/fpm/pool.d/www.conf /etc/php/8.4/fpm/pool.d/librenms.conf
+sed -i "s/\[www\]/\[librenms\]/g" /etc/php/8.4/fpm/pool.d/librenms.conf
+sed -i "s/user = www-data/user = librenms/g" /etc/php/8.4/fpm/pool.d/librenms.conf
+sed -i "s/group = www-data/group = librenms/g" /etc/php/8.4/fpm/pool.d/librenms.conf
+sed -i "s/listen = \/run\/php\/php8.4-fpm.sock/listen = \/run\/php-fpm-librenms.sock/g" /etc/php/8.4/fpm/pool.d/librenms.conf
 msg_ok "Configured PHP-FPM"
 
 msg_info "Configure Nginx"
@@ -115,14 +119,14 @@ server {
 EOF
 rm /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
-systemctl restart php8.2-fpm
+systemctl restart php8.4-fpm
 msg_ok "Configured Nginx"
 
 msg_info "Configure Services"
 COMPOSER_ALLOW_SUPERUSER=1
 $STD composer install --no-dev
-$STD php8.2 artisan migrate --force
-$STD php8.2 artisan key:generate --force
+$STD php8.4 artisan migrate --force
+$STD php8.4 artisan key:generate --force
 $STD su librenms -s /bin/bash -c "lnms db:seed --force"
 $STD su librenms -s /bin/bash -c "lnms user:add -p admin -r admin admin"
 ln -s /opt/librenms/lnms /usr/bin/lnms
@@ -148,6 +152,6 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
+$STD apt -y autoremove
+$STD apt -y autoclean
 msg_ok "Cleaned"
