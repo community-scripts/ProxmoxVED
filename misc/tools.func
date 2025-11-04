@@ -166,6 +166,31 @@ install_packages_with_retry() {
 }
 
 # ------------------------------------------------------------------------------
+# Upgrade specific packages with retry logic
+# Usage: upgrade_packages_with_retry "mariadb-server" "mariadb-client"
+# ------------------------------------------------------------------------------
+upgrade_packages_with_retry() {
+  local packages=("$@")
+  local max_retries=2
+  local retry=0
+
+  while [[ $retry -le $max_retries ]]; do
+    if $STD apt install --only-upgrade -y "${packages[@]}" 2>/dev/null; then
+      return 0
+    fi
+
+    retry=$((retry + 1))
+    if [[ $retry -le $max_retries ]]; then
+      msg_warn "Package upgrade failed, retrying ($retry/$max_retries)..."
+      sleep 2
+      $STD apt update 2>/dev/null || true
+    fi
+  done
+
+  return 1
+}
+
+# ------------------------------------------------------------------------------
 # Check if tool is already installed and optionally verify exact version
 # Returns: 0 if installed (with optional version match), 1 if not installed
 # Usage: is_tool_installed "mariadb" "11.4" || echo "Not installed"
@@ -1447,11 +1472,8 @@ create_self_signed_cert() {
     return 0
   fi
 
-  $STD apt update || {
-    msg_error "Failed to update package list"
-    return 1
-  }
-  $STD apt install -y openssl || {
+  # Use ensure_dependencies for cleaner handling
+  ensure_dependencies openssl || {
     msg_error "Failed to install OpenSSL"
     return 1
   }
@@ -2669,9 +2691,11 @@ function setup_java() {
   DISTRO_CODENAME=$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)
   local DESIRED_PACKAGE="temurin-${JAVA_VERSION}-jdk"
 
-  # Clean up ALL old Adoptium repo configs and keyrings before setup
-  cleanup_old_repo_files "adoptium"
-  cleanup_tool_keyrings "adoptium"
+  # Prepare repository (cleanup + validation)
+  prepare_repository_setup "adoptium" || {
+    msg_error "Failed to prepare Adoptium repository"
+    return 1
+  }
 
   # Add repo if needed
   if [[ ! -f /etc/apt/sources.list.d/adoptium.sources ]]; then
@@ -2702,11 +2726,8 @@ function setup_java() {
   # Scenario 1: Already at correct version
   if [[ "$INSTALLED_VERSION" == "$JAVA_VERSION" ]]; then
     msg_info "Update Temurin JDK $JAVA_VERSION"
-    $STD apt update || {
-      msg_error "APT update failed"
-      return 1
-    }
-    $STD apt install --only-upgrade -y "$DESIRED_PACKAGE" || {
+    ensure_apt_working || return 1
+    upgrade_packages_with_retry "$DESIRED_PACKAGE" || {
       msg_error "Failed to update Temurin JDK"
       return 1
     }
@@ -2723,11 +2744,10 @@ function setup_java() {
     msg_info "Setup Temurin JDK $JAVA_VERSION"
   fi
 
-  $STD apt update || {
-    msg_error "APT update failed"
-    return 1
-  }
-  $STD apt install -y "$DESIRED_PACKAGE" || {
+  ensure_apt_working || return 1
+
+  # Install with retry logic
+  install_packages_with_retry "$DESIRED_PACKAGE" || {
     msg_error "Failed to install Temurin JDK $JAVA_VERSION"
     return 1
   }
@@ -2763,11 +2783,7 @@ function setup_local_ip_helper() {
 
   # Install networkd-dispatcher if not present
   if ! dpkg -s networkd-dispatcher >/dev/null 2>&1; then
-    $STD apt update || {
-      msg_error "Failed to update package list"
-      return 1
-    }
-    $STD apt install -y networkd-dispatcher || {
+    ensure_dependencies networkd-dispatcher || {
       msg_error "Failed to install networkd-dispatcher"
       return 1
     }
@@ -2895,12 +2911,9 @@ setup_mariadb() {
       fi
     fi
 
-    # Perform upgrade
-    $STD apt update || {
-      msg_error "Failed to update package list"
-      return 1
-    }
-    $STD apt install --only-upgrade -y mariadb-server mariadb-client || {
+    # Perform upgrade with retry logic
+    ensure_apt_working || return 1
+    upgrade_packages_with_retry "mariadb-server" "mariadb-client" || {
       msg_error "Failed to upgrade MariaDB packages"
       return 1
     }
