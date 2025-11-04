@@ -54,6 +54,10 @@ msg_ok "Installed Openresty"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 
+RELEASE=$(curl -fsSL https://api.github.com/repos/NginxProxyManager/nginx-proxy-manager/releases/latest |
+  grep "tag_name" |
+  awk '{print substr($2, 3, length($2)-4) }')
+
 fetch_and_deploy_gh_release "nginxproxymanager" "NginxProxyManager/nginx-proxy-manager"
 
 msg_info "Setting up Environment"
