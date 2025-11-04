@@ -112,55 +112,101 @@ remove_old_tool_version() {
   mariadb)
     $STD systemctl stop mariadb >/dev/null 2>&1 || true
     $STD apt purge -y 'mariadb*' >/dev/null 2>&1 || true
+    # Clean up ALL keyring locations
+    rm -f /usr/share/keyrings/mariadb*.gpg \
+      /etc/apt/keyrings/mariadb*.gpg \
+      /etc/apt/trusted.gpg.d/mariadb*.gpg 2>/dev/null || true
     ;;
   mysql)
     $STD systemctl stop mysql >/dev/null 2>&1 || true
     $STD apt purge -y 'mysql*' >/dev/null 2>&1 || true
-    rm -rf /var/lib/mysql >/dev/null 2>&1 || true
+    rm -rf /var/lib/mysql 2>/dev/null || true
+    # Clean up ALL keyring locations
+    rm -f /usr/share/keyrings/mysql*.gpg \
+      /etc/apt/keyrings/mysql*.gpg \
+      /etc/apt/trusted.gpg.d/mysql*.gpg 2>/dev/null || true
     ;;
   mongodb)
     $STD systemctl stop mongod >/dev/null 2>&1 || true
     $STD apt purge -y 'mongodb*' >/dev/null 2>&1 || true
-    rm -rf /var/lib/mongodb >/dev/null 2>&1 || true
+    rm -rf /var/lib/mongodb 2>/dev/null || true
+    # Clean up ALL keyring locations
+    rm -f /usr/share/keyrings/mongodb*.gpg \
+      /etc/apt/keyrings/mongodb*.gpg \
+      /etc/apt/trusted.gpg.d/mongodb*.gpg 2>/dev/null || true
     ;;
   node | nodejs)
     $STD apt purge -y nodejs npm >/dev/null 2>&1 || true
-    npm list -g 2>/dev/null | grep -oE '^  \S+' | awk '{print $1}' | while read -r module; do
-      npm uninstall -g "$module" >/dev/null 2>&1 || true
-    done
+    # Clean up npm global modules
+    if command -v npm >/dev/null 2>&1; then
+      npm list -g 2>/dev/null | grep -oE '^  \S+' | awk '{print $1}' | while read -r module; do
+        npm uninstall -g "$module" >/dev/null 2>&1 || true
+      done
+    fi
+    # Clean up nvm installations and npm caches
+    rm -rf "$HOME/.nvm" "$HOME/.npm" "$HOME/.bower" "$HOME/.config/yarn" 2>/dev/null || true
+    sed -i '/NVM_DIR/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
+    # Clean up ALL keyring locations
+    rm -f /usr/share/keyrings/nodesource*.gpg \
+      /etc/apt/keyrings/nodesource*.gpg \
+      /etc/apt/trusted.gpg.d/nodesource*.gpg 2>/dev/null || true
     ;;
   php)
-    # Disable PHP-FPM if running
-    $STD systemctl disable php*-fpm >/dev/null 2>&1 || true
-    $STD systemctl stop php*-fpm >/dev/null 2>&1 || true
+    # Stop and disable ALL PHP-FPM versions
+    for fpm_service in $(systemctl list-units --type=service --all | grep -oE 'php[0-9]+\.[0-9]+-fpm' | sort -u); do
+      $STD systemctl stop "$fpm_service" >/dev/null 2>&1 || true
+      $STD systemctl disable "$fpm_service" >/dev/null 2>&1 || true
+    done
     $STD apt purge -y 'php*' >/dev/null 2>&1 || true
-    rm -rf /etc/php >/dev/null 2>&1 || true
+    rm -rf /etc/php 2>/dev/null || true
+    # Clean up ALL keyring locations (Sury PHP)
+    rm -f /usr/share/keyrings/deb.sury.org-php.gpg \
+      /usr/share/keyrings/php*.gpg \
+      /etc/apt/keyrings/php*.gpg \
+      /etc/apt/trusted.gpg.d/php*.gpg 2>/dev/null || true
     ;;
   postgresql)
     $STD systemctl stop postgresql >/dev/null 2>&1 || true
     $STD apt purge -y 'postgresql*' >/dev/null 2>&1 || true
-    rm -rf /var/lib/postgresql >/dev/null 2>&1 || true
+    # Keep data directory for safety (can be removed manually if needed)
+    # rm -rf /var/lib/postgresql 2>/dev/null || true
+    # Clean up ALL keyring locations
+    rm -f /usr/share/keyrings/postgresql*.gpg \
+      /usr/share/keyrings/pgdg*.gpg \
+      /etc/apt/keyrings/postgresql*.gpg \
+      /etc/apt/keyrings/pgdg*.gpg \
+      /etc/apt/trusted.gpg.d/postgresql*.gpg \
+      /etc/apt/trusted.gpg.d/pgdg*.gpg 2>/dev/null || true
+    ;;
+  java)
+    $STD apt purge -y 'temurin*' 'adoptium*' 'openjdk*' >/dev/null 2>&1 || true
+    # Clean up ALL keyring locations (Adoptium)
+    rm -f /usr/share/keyrings/adoptium*.gpg \
+      /etc/apt/keyrings/adoptium*.gpg \
+      /etc/apt/trusted.gpg.d/adoptium*.gpg 2>/dev/null || true
     ;;
   ruby)
-    if [[ -d "$HOME/.rbenv" ]]; then
-      rm -rf "$HOME/.rbenv"
-    fi
+    rm -rf "$HOME/.rbenv" 2>/dev/null || true
     $STD apt purge -y 'ruby*' >/dev/null 2>&1 || true
     ;;
   rust)
-    rm -rf "$HOME/.cargo" "$HOME/.rustup" >/dev/null 2>&1 || true
+    rm -rf "$HOME/.cargo" "$HOME/.rustup" 2>/dev/null || true
     ;;
   go | golang)
-    rm -rf /usr/local/go >/dev/null 2>&1 || true
+    rm -rf /usr/local/go 2>/dev/null || true
     ;;
   clickhouse)
     $STD systemctl stop clickhouse-server >/dev/null 2>&1 || true
     $STD apt purge -y 'clickhouse*' >/dev/null 2>&1 || true
-    rm -rf /var/lib/clickhouse >/dev/null 2>&1 || true
+    rm -rf /var/lib/clickhouse 2>/dev/null || true
+    # Clean up ALL keyring locations
+    rm -f /usr/share/keyrings/clickhouse*.gpg \
+      /etc/apt/keyrings/clickhouse*.gpg \
+      /etc/apt/trusted.gpg.d/clickhouse*.gpg 2>/dev/null || true
     ;;
   esac
 
-  # Clean up old repositories
+  # Clean up old repository files (both .list and .sources)
   cleanup_old_repo_files "$repo_name"
 
   return 0
@@ -2515,9 +2561,14 @@ function setup_java() {
   DISTRO_CODENAME=$(awk -F= '/VERSION_CODENAME/ { print $2 }' /etc/os-release)
   local DESIRED_PACKAGE="temurin-${JAVA_VERSION}-jdk"
 
+  # Clean up ALL old Adoptium repo configs and keyrings before setup
+  cleanup_old_repo_files "adoptium"
+  rm -f /usr/share/keyrings/adoptium*.gpg \
+    /etc/apt/keyrings/adoptium*.gpg \
+    /etc/apt/trusted.gpg.d/adoptium*.gpg 2>/dev/null || true
+
   # Add repo if needed
   if [[ ! -f /etc/apt/sources.list.d/adoptium.sources ]]; then
-    cleanup_old_repo_files "adoptium"
     local SUITE
     SUITE=$(get_fallback_suite "$DISTRO_ID" "$DISTRO_CODENAME" "https://packages.adoptium.net/artifactory/deb")
     setup_deb822_repo \
@@ -2761,6 +2812,12 @@ setup_mariadb() {
   # Scenario 3: Fresh install or version change
   msg_info "Setup MariaDB $MARIADB_VERSION"
 
+  # Clean up ALL old MariaDB repo configs and keyrings before setup
+  cleanup_old_repo_files "mariadb"
+  rm -f /usr/share/keyrings/mariadb*.gpg \
+    /etc/apt/keyrings/mariadb*.gpg \
+    /etc/apt/trusted.gpg.d/mariadb*.gpg 2>/dev/null || true
+
   # Ensure APT is working before proceeding
   ensure_apt_working || return 1
 
@@ -2877,6 +2934,12 @@ function setup_mongodb() {
 
   cleanup_orphaned_sources
 
+  # Clean up ALL old MongoDB repo configs and keyrings before setup
+  cleanup_old_repo_files "mongodb"
+  rm -f /usr/share/keyrings/mongodb*.gpg \
+    /etc/apt/keyrings/mongodb*.gpg \
+    /etc/apt/trusted.gpg.d/mongodb*.gpg 2>/dev/null || true
+
   # Setup repository
   manage_tool_repository "mongodb" "$MONGO_VERSION" "$MONGO_BASE_URL" \
     "https://www.mongodb.org/static/pgp/server-${MONGO_VERSION}.asc" || {
@@ -2896,6 +2959,12 @@ function setup_mongodb() {
     return 1
   }
 
+  # Verify MongoDB was installed correctly
+  if ! command -v mongod >/dev/null 2>&1; then
+    msg_error "MongoDB binary not found after installation"
+    return 1
+  fi
+
   mkdir -p /var/lib/mongodb
   chown -R mongodb:mongodb /var/lib/mongodb
 
@@ -2903,8 +2972,15 @@ function setup_mongodb() {
     msg_warn "Failed to enable mongod service"
   }
   safe_service_restart mongod
-  cache_installed_version "mongodb" "$MONGO_VERSION"
 
+  # Verify MongoDB version
+  local INSTALLED_VERSION
+  INSTALLED_VERSION=$(mongod --version 2>/dev/null | grep -oP 'db version v\K[0-9]+\.[0-9]+' | head -n1 || echo "0.0")
+  if [[ "${INSTALLED_VERSION%%.*}" != "${MONGO_VERSION%%.*}" ]]; then
+    msg_warn "MongoDB version mismatch: expected $MONGO_VERSION, got $INSTALLED_VERSION"
+  fi
+
+  cache_installed_version "mongodb" "$MONGO_VERSION"
   msg_ok "Setup MongoDB $MONGO_VERSION"
 }
 
@@ -2952,11 +3028,15 @@ function setup_mysql() {
     msg_info "Setup MySQL $MYSQL_VERSION"
   fi
 
+  # Clean up ALL old MySQL repo configs and keyrings before setup
+  cleanup_old_repo_files "mysql"
+  rm -f /usr/share/keyrings/mysql*.gpg \
+    /etc/apt/keyrings/mysql*.gpg \
+    /etc/apt/trusted.gpg.d/mysql*.gpg 2>/dev/null || true
+
   # Debian 13+ Fix: MySQL 8.0 incompatible with libaio1t64, use 8.4 LTS
   if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
     msg_info "Debian ${DISTRO_CODENAME} detected → using MySQL 8.4 LTS (libaio1t64 compatible)"
-
-    cleanup_old_repo_files "mysql"
 
     if ! curl -fsSL https://repo.mysql.com/RPM-GPG-KEY-mysql-2023 | gpg --dearmor -o /etc/apt/keyrings/mysql.gpg 2>/dev/null; then
       msg_error "Failed to import MySQL GPG key"
@@ -3300,13 +3380,22 @@ function setup_php() {
     # Scenario 2: Different version installed - clean upgrade
     if [[ -n "$CURRENT_PHP" && "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
       msg_info "Upgrade PHP from $CURRENT_PHP to $PHP_VERSION"
-      # Stop old PHP-FPM if running
-      $STD systemctl stop "php${CURRENT_PHP}-fpm" >/dev/null 2>&1 || true
-      $STD systemctl disable "php${CURRENT_PHP}-fpm" >/dev/null 2>&1 || true
+      # Stop and disable ALL PHP-FPM versions (not just current one)
+      for fpm_service in $(systemctl list-units --type=service --all 2>/dev/null | grep -oE 'php[0-9]+\.[0-9]+-fpm' | sort -u); do
+        $STD systemctl stop "$fpm_service" >/dev/null 2>&1 || true
+        $STD systemctl disable "$fpm_service" >/dev/null 2>&1 || true
+      done
       remove_old_tool_version "php"
     else
       msg_info "Setup PHP $PHP_VERSION"
     fi
+
+    # Clean up ALL old PHP repo configs and keyrings before setup
+    cleanup_old_repo_files "php"
+    rm -f /usr/share/keyrings/deb.sury.org-php.gpg \
+      /usr/share/keyrings/php*.gpg \
+      /etc/apt/keyrings/php*.gpg \
+      /etc/apt/trusted.gpg.d/php*.gpg 2>/dev/null || true
 
     # Setup Sury repository
     manage_tool_repository "php" "$PHP_VERSION" "" "https://packages.sury.org/debsuryorg-archive-keyring.deb" || {
@@ -3441,6 +3530,15 @@ function setup_postgresql() {
 
   # Scenario 3: Fresh install or after removal - setup repo and install
   cleanup_old_repo_files "pgdg"
+  cleanup_old_repo_files "postgresql"
+
+  # Clean up ALL old PostgreSQL repo configs and keyrings before setup
+  rm -f /usr/share/keyrings/postgresql*.gpg \
+    /usr/share/keyrings/pgdg*.gpg \
+    /etc/apt/keyrings/postgresql*.gpg \
+    /etc/apt/keyrings/pgdg*.gpg \
+    /etc/apt/trusted.gpg.d/postgresql*.gpg \
+    /etc/apt/trusted.gpg.d/pgdg*.gpg 2>/dev/null || true
 
   local SUITE
   case "$DISTRO_CODENAME" in
@@ -3797,6 +3895,12 @@ function setup_clickhouse() {
   fi
 
   ensure_dependencies apt-transport-https ca-certificates dirmngr gnupg
+
+  # Clean up ALL old ClickHouse repo configs and keyrings before setup
+  cleanup_old_repo_files "clickhouse"
+  rm -f /usr/share/keyrings/clickhouse*.gpg \
+    /etc/apt/keyrings/clickhouse*.gpg \
+    /etc/apt/trusted.gpg.d/clickhouse*.gpg 2>/dev/null || true
 
   # Setup repository (ClickHouse uses 'stable' suite)
   setup_deb822_repo \
