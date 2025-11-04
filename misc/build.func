@@ -2518,7 +2518,12 @@ EOF'
 
   # Run application installer
   if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
-    exit $?
+    local exit_code=$?
+    # Try to copy installation log from container before exiting
+    if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
+      pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-${SESSION_ID}.log" 2>/dev/null || true
+    fi
+    exit $exit_code
   fi
 }
 

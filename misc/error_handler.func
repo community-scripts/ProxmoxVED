@@ -119,22 +119,17 @@ error_handler() {
     tail -n 20 "$SILENT_LOGFILE"
     echo "-----------------------------------"
 
-    if [[ -n "${CTID:-}" ]]; then
-      local HOST_LOG="/tmp/install-$(date +%Y%m%d_%H%M%S)_${SESSION_ID:-error}.log"
-      if pct push $CTID "$SILENT_LOGFILE" "$HOST_LOG" 2>/dev/null; then
-        if declare -f msg_custom >/dev/null 2>&1; then
-          msg_custom "✓" "${GN}" "Full log saved to host: ${HOST_LOG}"
-        else
-          echo -e "${GN}✓ Full log saved to host:${CL} ${BL}${HOST_LOG}${CL}"
-        fi
+    # Copy log to container home for later retrieval (if running inside container via pct exec)
+    if [[ -d /root ]]; then
+      local container_log="/root/.install-${SESSION_ID:-error}.log"
+      cp "$SILENT_LOGFILE" "$container_log" 2>/dev/null || true
+      if declare -f msg_custom >/dev/null 2>&1; then
+        msg_custom "📋" "${YW}" "Log saved to: ${container_log}"
       else
-        if declare -f msg_custom >/dev/null 2>&1; then
-          msg_custom "📋" "${YW}" "Full log path in container: ${SILENT_LOGFILE}"
-        else
-          echo -e "${YW}Full log path in container:${CL} ${BL}${SILENT_LOGFILE}${CL}"
-        fi
+        echo -e "${YW}Log saved to:${CL} ${BL}${container_log}${CL}"
       fi
     else
+      # Running on host - show local path
       if declare -f msg_custom >/dev/null 2>&1; then
         msg_custom "📋" "${YW}" "Full log: ${SILENT_LOGFILE}"
       else
