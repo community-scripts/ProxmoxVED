@@ -40,7 +40,7 @@ ln -sf /opt/certbot/bin/certbot /usr/local/bin/certbot
 msg_ok "Set up Certbot"
 
 msg_info "Installing Openresty"
-curl -fsSL "https://openresty.org/package/pubkey.gpg" | gpg --dearmor -o /etc/apt/trusted.gpg.d/openresty-archive-keyring.gpg
+curl -fsSL "https://openresty.org/package/pubkey.gpg" | gpg --dearmor -o /etc/apt/trusted.gpg.d/openresty.gpg
 cat <<'EOF' >/etc/apt/sources.list.d/openresty.sources
 Types: deb
 URIs: http://openresty.org/package/debian/
