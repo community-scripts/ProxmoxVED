@@ -3322,26 +3322,17 @@ function setup_nodejs() {
     # Clean up legacy installations (nvm, etc.)
     cleanup_legacy_install "nodejs"
 
-    # Set APT priority FIRST to prevent Debian nodejs from being installed
-    cat >/etc/apt/preferences.d/nodesource <<'EOF'
-Package: nodejs
-Pin: origin deb.nodesource.com
-Pin-Priority: 600
-
-Package: *
-Pin: origin deb.nodesource.com
-Pin-Priority: 600
-EOF
-
-    # Remove any existing Debian nodejs BEFORE adding NodeSource repo
-    if dpkg -l 2>/dev/null | grep -q "^ii.*nodejs"; then
-      msg_info "Removing Debian-packaged Node.js (conflicts with NodeSource)"
+    # CRITICAL: Remove ALL Debian nodejs packages BEFORE adding NodeSource repo
+    # This prevents conflicts during dependency resolution
+    if dpkg -l 2>/dev/null | grep -qE "^ii.*(nodejs|libnode|node-cjs|node-acorn|node-balanced|node-brace|node-minimatch|node-undici|node-xtend|node-corepack)"; then
+      msg_info "Removing Debian-packaged Node.js and dependencies"
       $STD apt purge -y nodejs nodejs-doc libnode* node-* 2>/dev/null || true
       $STD apt autoremove -y 2>/dev/null || true
+      $STD apt clean 2>/dev/null || true
     fi
 
-    # Install dependencies (now protected by APT pinning)
-    ensure_dependencies curl ca-certificates gnupg
+    # Remove any APT pinning (not needed if Debian nodejs is purged)
+    rm -f /etc/apt/preferences.d/nodesource 2>/dev/null || true
 
     # Prepare repository (cleanup + validation)
     prepare_repository_setup "nodesource" || {
@@ -3349,11 +3340,14 @@ EOF
       return 1
     }
 
-    # Setup repository
+    # Setup NodeSource repository BEFORE installing dependencies
     manage_tool_repository "nodejs" "$NODE_VERSION" "https://deb.nodesource.com/node_${NODE_VERSION}.x" "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key" || {
       msg_error "Failed to setup Node.js repository"
       return 1
     }
+
+    # Now install dependencies (NodeSource repo is already active, no Debian nodejs available)
+    ensure_dependencies curl ca-certificates gnupg
 
     # Wait for repo to settle
     sleep 2
