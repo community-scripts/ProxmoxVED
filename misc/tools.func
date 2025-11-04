@@ -4276,8 +4276,14 @@ function setup_uv() {
     return 1
   }
 
-  # Install uv binary
-  $STD install -m 755 "$TMP_DIR/uv/uv" "$UV_BIN" || {
+  # Find and install uv binary (tarball extracts to uv-VERSION-ARCH/ directory)
+  local UV_BINARY=$(find "$TMP_DIR" -name "uv" -type f -executable | head -n1)
+  if [[ ! -f "$UV_BINARY" ]]; then
+    msg_error "Could not find uv binary in extracted tarball"
+    return 1
+  fi
+
+  $STD install -m 755 "$UV_BINARY" "$UV_BIN" || {
     msg_error "Failed to install uv binary"
     return 1
   }
