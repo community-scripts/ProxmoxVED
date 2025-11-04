@@ -58,7 +58,7 @@ $STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUS
 } >>~/librenms.creds
 msg_ok "Configured Database"
 
-fetch_and_deploy_gh_release "LibreNMS" "librenms/librenms"
+fetch_and_deploy_gh_release "librenms" "librenms/librenms"
 
 msg_info "Configuring LibreNMS"
 $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
