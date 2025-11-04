@@ -3057,8 +3057,8 @@ function setup_mongodb() {
 
     ensure_apt_working || return 1
 
-    # Perform upgrade
-    $STD apt install --only-upgrade -y mongodb-org || {
+    # Perform upgrade with retry logic
+    upgrade_packages_with_retry "mongodb-org" || {
       msg_error "Failed to upgrade MongoDB"
       return 1
     }
@@ -3154,7 +3154,8 @@ function setup_mysql() {
 
     ensure_apt_working || return 1
 
-    $STD apt install --only-upgrade -y mysql-server mysql-client || true
+    # Perform upgrade with retry logic (non-fatal if fails)
+    upgrade_packages_with_retry "mysql-server" "mysql-client" || true
 
     cache_installed_version "mysql" "$MYSQL_VERSION"
     msg_ok "Update MySQL $MYSQL_VERSION"
@@ -3521,8 +3522,8 @@ function setup_php() {
 
     ensure_apt_working || return 1
 
-    # Just update PHP packages
-    $STD apt install --only-upgrade -y "php${PHP_VERSION}" || true
+    # Perform upgrade with retry logic (non-fatal if fails)
+    upgrade_packages_with_retry "php${PHP_VERSION}" || true
 
     cache_installed_version "php" "$PHP_VERSION"
     msg_ok "Update PHP $PHP_VERSION"
@@ -3645,8 +3646,10 @@ function setup_postgresql() {
   # Scenario 1: Already at correct version
   if [[ "$CURRENT_PG_VERSION" == "$PG_VERSION" ]]; then
     msg_info "Update PostgreSQL $PG_VERSION"
-    $STD apt update
-    $STD apt install --only-upgrade -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null || true
+    ensure_apt_working || return 1
+
+    # Perform upgrade with retry logic (non-fatal if fails)
+    upgrade_packages_with_retry "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null || true
     cache_installed_version "postgresql" "$PG_VERSION"
     msg_ok "Update PostgreSQL $PG_VERSION"
 
@@ -4019,7 +4022,9 @@ function setup_clickhouse() {
   if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" == "$CLICKHOUSE_VERSION" ]]; then
     msg_info "Update ClickHouse $CLICKHOUSE_VERSION"
     ensure_apt_working || return 1
-    $STD apt install --only-upgrade -y clickhouse-server clickhouse-client || true
+
+    # Perform upgrade with retry logic (non-fatal if fails)
+    upgrade_packages_with_retry "clickhouse-server" "clickhouse-client" || true
     cache_installed_version "clickhouse" "$CLICKHOUSE_VERSION"
     msg_ok "Update ClickHouse $CLICKHOUSE_VERSION"
     return 0
