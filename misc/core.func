@@ -231,11 +231,24 @@ ssh_check() {
     local client_ip=$(awk '{print $1}' <<<"$SSH_CLIENT")
     local host_ip=$(hostname -I | awk '{print $1}')
 
-    if [[ "$client_ip" == "127.0.0.1" || "$client_ip" == "$host_ip" ]]; then
+    # Check if connection is local (Proxmox WebUI or same machine)
+    # - localhost (127.0.0.1, ::1)
+    # - same IP as host
+    # - local network range (10.x, 172.16-31.x, 192.168.x)
+    if [[ "$client_ip" == "127.0.0.1" || "$client_ip" == "::1" || "$client_ip" == "$host_ip" ]]; then
       return
     fi
 
+    # Check if client is in same local network (optional, safer approach)
+    local host_subnet=$(echo "$host_ip" | cut -d. -f1-3)
+    local client_subnet=$(echo "$client_ip" | cut -d. -f1-3)
+    if [[ "$host_subnet" == "$client_subnet" ]]; then
+      return
+    fi
+
+    # Only warn for truly external connections
     msg_warn "Running via external SSH (client: $client_ip)."
+    msg_warn "For better stability, consider using the Proxmox Shell (Console) instead."
   fi
 }
 

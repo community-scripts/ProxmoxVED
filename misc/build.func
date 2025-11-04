@@ -220,7 +220,7 @@ maxkeys_check() {
     exit 1
   fi
 
-  echo -e "${CM}${GN} All kernel key limits are within safe thresholds.${CL}"
+  # Silent success - only show errors if they exist
 }
 
 # ------------------------------------------------------------------------------
@@ -351,7 +351,7 @@ base_settings() {
   if [[ -n "$APT_CACHER_IP" && "$APT_CACHER" == "yes" ]]; then
     if ! curl -s --connect-timeout 2 "http://${APT_CACHER_IP}:3142" >/dev/null 2>&1; then
       msg_warn "APT Cacher configured but not reachable at ${APT_CACHER_IP}:3142"
-      msg_info "Disabling APT Cacher for this installation"
+      msg_custom "⚠️" "${YW}" "Disabling APT Cacher for this installation"
       APT_CACHER=""
       APT_CACHER_IP=""
     else
@@ -1497,7 +1497,7 @@ maybe_offer_save_app_defaults() {
       break
       ;;
     "Keep Current")
-      msg_info "Keeping current app defaults: ${app_vars_path}"
+      msg_custom "ℹ️" "${BL}" "Keeping current app defaults: ${app_vars_path}"
       break
       ;;
     "View Diff")
@@ -1506,7 +1506,7 @@ maybe_offer_save_app_defaults() {
         --scrolltext --textbox "$diff_tmp" 25 100
       ;;
     "Cancel" | *)
-      msg_info "Canceled. No changes to app defaults."
+      msg_custom "🚫" "${YW}" "Canceled. No changes to app defaults."
       break
       ;;
     esac
@@ -2212,7 +2212,7 @@ build_container() {
 
     # Check for Intel GPU - look for Intel vendor ID [8086]
     if echo "$pci_vga_info" | grep -q "\[8086:"; then
-      msg_info "Detected Intel GPU"
+      msg_custom "🎮" "${BL}" "Detected Intel GPU"
       if [[ -d /dev/dri ]]; then
         for d in /dev/dri/renderD* /dev/dri/card*; do
           [[ -e "$d" ]] && INTEL_DEVICES+=("$d")
@@ -2222,7 +2222,7 @@ build_container() {
 
     # Check for AMD GPU - look for AMD vendor IDs [1002] (AMD/ATI) or [1022] (AMD)
     if echo "$pci_vga_info" | grep -qE "\[1002:|\[1022:"; then
-      msg_info "Detected AMD GPU"
+      msg_custom "🎮" "${RD}" "Detected AMD GPU"
       if [[ -d /dev/dri ]]; then
         # Only add if not already claimed by Intel
         if [[ ${#INTEL_DEVICES[@]} -eq 0 ]]; then
@@ -2235,7 +2235,7 @@ build_container() {
 
     # Check for NVIDIA GPU - look for NVIDIA vendor ID [10de]
     if echo "$pci_vga_info" | grep -q "\[10de:"; then
-      msg_info "Detected NVIDIA GPU"
+      msg_custom "🎮" "${GN}" "Detected NVIDIA GPU"
 
       # Simple passthrough - just bind /dev/nvidia* devices if they exist
       for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset /dev/nvidia-uvm /dev/nvidia-uvm-tools; do
@@ -2243,10 +2243,10 @@ build_container() {
       done
 
       if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
-        msg_info "Found ${#NVIDIA_DEVICES[@]} NVIDIA device(s) for passthrough"
+        msg_custom "🎮" "${GN}" "Found ${#NVIDIA_DEVICES[@]} NVIDIA device(s) for passthrough"
       else
         msg_warn "NVIDIA GPU detected via PCI but no /dev/nvidia* devices found"
-        msg_info "Skipping NVIDIA passthrough (host drivers may not be loaded)"
+        msg_custom "ℹ️" "${YW}" "Skipping NVIDIA passthrough (host drivers may not be loaded)"
       fi
     fi
 
@@ -2307,7 +2307,7 @@ EOF
     fi
 
     if [[ $gpu_count -eq 0 ]]; then
-      msg_info "No GPU devices found for passthrough"
+      msg_custom "ℹ️" "${YW}" "No GPU devices found for passthrough"
       return 0
     fi
 
@@ -2316,7 +2316,7 @@ EOF
     if [[ $gpu_count -eq 1 ]]; then
       # Automatic selection for single GPU
       selected_gpu="${available_gpus[0]}"
-      msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
+      msg_custom "⚙️" "${GN}" "Automatically configuring ${selected_gpu} GPU passthrough"
     else
       # Multiple GPUs - ask user
       echo -e "\n${INFO} Multiple GPU types detected:"
@@ -2407,7 +2407,7 @@ EOF
 
     # Coral TPU passthrough
     if [[ -e /dev/apex_0 ]]; then
-      msg_info "Detected Coral TPU - configuring passthrough"
+      msg_custom "🔌" "${BL}" "Detected Coral TPU - configuring passthrough"
       echo "lxc.mount.entry: /dev/apex_0 dev/apex_0 none bind,optional,create=file" >>"$LXC_CONFIG"
     fi
   }
@@ -2546,7 +2546,7 @@ destroy_lxc() {
     fi
     ;;
   "" | n | no)
-    msg_info "Container was not removed."
+    msg_custom "ℹ️" "${BL}" "Container was not removed."
     ;;
   *)
     msg_warn "Invalid response. Container was not removed."
@@ -2599,7 +2599,7 @@ fix_gpu_gids() {
   fi
 
   # Silent operation to avoid spinner conflicts
-  echo -e "\n  🔧  Detecting and setting correct GPU group IDs"
+  msg_custom "🔧" "${BL}" "Detecting and setting correct GPU group IDs"
 
   # Ermittle die tatsächlichen GIDs aus dem Container
   local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
@@ -2620,7 +2620,7 @@ fix_gpu_gids() {
     [[ -z "$render_gid" ]] && render_gid="104" # Ultimate fallback
   fi
 
-  echo "  ℹ️   Container GIDs detected - video:${video_gid}, render:${render_gid}"
+  msg_custom "ℹ️" "${DGN}" "Container GIDs detected - video:${video_gid}, render:${render_gid}"
 
   # Prüfe ob die GIDs von den Defaults abweichen
   local need_update=0
@@ -2629,7 +2629,7 @@ fix_gpu_gids() {
   fi
 
   if [[ $need_update -eq 1 ]]; then
-    echo "  🔄  Updating device GIDs in container config"
+    msg_custom "🔄" "${YW}" "Updating device GIDs in container config"
 
     # Stoppe Container für Config-Update
     pct stop "$CTID" >/dev/null 2>&1
@@ -2667,9 +2667,9 @@ fix_gpu_gids() {
     pct start "$CTID" >/dev/null 2>&1
     sleep 3
 
-    echo -e "  ✔️   Device GIDs updated successfully\n"
+    msg_ok "Device GIDs updated successfully"
   else
-    echo -e "  ✔️   Device GIDs are already correct\n"
+    msg_ok "Device GIDs are already correct"
   fi
   if [[ "$CT_TYPE" == "0" ]]; then
     pct exec "$CTID" -- bash -c "
@@ -2992,7 +2992,7 @@ create_lxc_container() {
   )
 
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
-  
+
   msg_ok "Template search completed"
 
   #echo "[DEBUG] pveam available output (first 5 lines with .tar files):"
@@ -3081,7 +3081,7 @@ create_lxc_container() {
           exit 225
         fi
       else
-        msg_info "Installation cancelled"
+        msg_custom "🚫" "${YW}" "Installation cancelled"
         exit 0
       fi
     else
@@ -3174,7 +3174,7 @@ create_lxc_container() {
             exit 220
           }
         else
-          msg_info "Installation cancelled"
+          msg_custom "🚫" "${YW}" "Installation cancelled"
           exit 1
         fi
       else
@@ -3187,9 +3187,9 @@ create_lxc_container() {
   # Validate that we found a template
   if [[ -z "$TEMPLATE" ]]; then
     msg_error "No template found for ${PCT_OSTYPE} ${PCT_OSVERSION}"
-    msg_info "Please check:"
-    msg_info "  - Is pveam catalog available? (run: pveam available -section system)"
-    msg_info "  - Does the template exist for your OS version?"
+    msg_custom "ℹ️" "${YW}" "Please check:"
+    msg_custom "  •" "${YW}" "Is pveam catalog available? (run: pveam available -section system)"
+    msg_custom "  •" "${YW}" "Does the template exist for your OS version?"
     exit 225
   fi
 
@@ -3227,7 +3227,7 @@ create_lxc_container() {
       TEMPLATE="$ONLINE_TEMPLATE"
       NEED_DOWNLOAD=1
     else
-      msg_info "Continuing with local template $TEMPLATE"
+      msg_custom "ℹ️" "${BL}" "Continuing with local template $TEMPLATE"
     fi
   fi
 
