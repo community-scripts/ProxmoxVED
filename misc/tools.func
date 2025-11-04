@@ -4180,65 +4180,79 @@ function setup_rust() {
 
 function setup_uv() {
   local UV_BIN="/usr/local/bin/uv"
+  local UVX_BIN="/usr/local/bin/uvx"
   local TMP_DIR=$(mktemp -d)
   local CACHED_VERSION
+
+  # Trap für TMP Cleanup
+  trap "rm -rf '$TMP_DIR'" EXIT
+
   CACHED_VERSION=$(get_cached_version "uv")
 
+  # Architektur-Detection
   local ARCH=$(uname -m)
-  local UV_TAR
+  local OS_TYPE=""
+  local UV_TAR=""
+
+  if grep -qi "alpine" /etc/os-release; then
+    OS_TYPE="musl"
+  else
+    OS_TYPE="gnu"
+  fi
 
   case "$ARCH" in
   x86_64)
-    if grep -qi "alpine" /etc/os-release; then
-      UV_TAR="uv-x86_64-unknown-linux-musl.tar.gz"
-    else
-      UV_TAR="uv-x86_64-unknown-linux-gnu.tar.gz"
-    fi
+    UV_TAR="uv-x86_64-unknown-linux-${OS_TYPE}.tar.gz"
     ;;
   aarch64)
-    if grep -qi "alpine" /etc/os-release; then
-      UV_TAR="uv-aarch64-unknown-linux-musl.tar.gz"
-    else
-      UV_TAR="uv-aarch64-unknown-linux-gnu.tar.gz"
-    fi
+    UV_TAR="uv-aarch64-unknown-linux-${OS_TYPE}.tar.gz"
+    ;;
+  i686)
+    UV_TAR="uv-i686-unknown-linux-${OS_TYPE}.tar.gz"
     ;;
   *)
-    msg_error "Unsupported architecture: $ARCH"
-    rm -rf "$TMP_DIR"
+    msg_error "Unsupported architecture: $ARCH (supported: x86_64, aarch64, i686)"
     return 1
     ;;
   esac
 
   ensure_dependencies jq
 
-  local LATEST_VERSION
+  # Fetch latest version
   local releases_json
-  releases_json=$(curl -fsSL --max-time 15 https://api.github.com/repos/astral-sh/uv/releases/latest 2>/dev/null || echo "")
+  releases_json=$(curl -fsSL --max-time 15 \
+    "https://api.github.com/repos/astral-sh/uv/releases/latest" 2>/dev/null || echo "")
 
   if [[ -z "$releases_json" ]]; then
     msg_error "Could not fetch latest uv version from GitHub API"
-    rm -rf "$TMP_DIR"
     return 1
   fi
 
-  LATEST_VERSION=$(echo "$releases_json" | jq -r '.tag_name' 2>/dev/null | sed 's/^v//' || echo "")
+  local LATEST_VERSION
+  LATEST_VERSION=$(echo "$releases_json" | jq -r '.tag_name' 2>/dev/null | sed 's/^v//')
 
   if [[ -z "$LATEST_VERSION" ]]; then
     msg_error "Could not parse uv version from GitHub API response"
-    rm -rf "$TMP_DIR"
     return 1
   fi
 
   # Get currently installed version
   local INSTALLED_VERSION=""
   if [[ -x "$UV_BIN" ]]; then
-    INSTALLED_VERSION=$($UV_BIN -V 2>/dev/null | awk '{print $2}')
+    INSTALLED_VERSION=$("$UV_BIN" --version 2>/dev/null | awk '{print $2}')
   fi
 
   # Scenario 1: Already at latest version
   if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$LATEST_VERSION" ]]; then
     cache_installed_version "uv" "$LATEST_VERSION"
-    rm -rf "$TMP_DIR"
+
+    # Check if uvx is needed and missing
+    if [[ "${USE_UVX:-NO}" == "YES" ]] && [[ ! -x "$UVX_BIN" ]]; then
+      msg_info "Installing uvx wrapper"
+      _install_uvx_wrapper || return 1
+      msg_ok "uvx wrapper installed"
+    fi
+
     return 0
   fi
 
@@ -4249,52 +4263,70 @@ function setup_uv() {
     msg_info "Setup uv $LATEST_VERSION"
   fi
 
-  local UV_URL="https://github.com/astral-sh/uv/releases/latest/download/${UV_TAR}"
-  curl -fsSL "$UV_URL" -o "$TMP_DIR/uv.tar.gz" || {
-    msg_error "Failed to download uv"
-    rm -rf "$TMP_DIR"
+  # Download
+  local UV_URL="https://github.com/astral-sh/uv/releases/download/v${LATEST_VERSION}/${UV_TAR}"
+
+  $STD curl -fsSL "$UV_URL" -o "$TMP_DIR/uv.tar.gz" || {
+    msg_error "Failed to download uv from $UV_URL"
     return 1
   }
 
-  tar -xzf "$TMP_DIR/uv.tar.gz" -C "$TMP_DIR" || {
+  # Extract
+  $STD tar -xzf "$TMP_DIR/uv.tar.gz" -C "$TMP_DIR" || {
     msg_error "Failed to extract uv"
-    rm -rf "$TMP_DIR"
     return 1
   }
 
-  install -m 755 "$TMP_DIR"/*/uv "$UV_BIN" || {
+  # Install uv binary
+  $STD install -m 755 "$TMP_DIR/uv/uv" "$UV_BIN" || {
     msg_error "Failed to install uv binary"
-    rm -rf "$TMP_DIR"
     return 1
   }
 
-  rm -rf "$TMP_DIR"
   ensure_usr_local_bin_persist
   export PATH="/usr/local/bin:$PATH"
 
-  $STD uv python update-shell || true
+  # Optional: Install uvx wrapper
+  if [[ "${USE_UVX:-NO}" == "YES" ]]; then
+    msg_info "Installing uvx wrapper"
+    _install_uvx_wrapper || {
+      msg_error "Failed to install uvx wrapper"
+      return 1
+    }
+    msg_ok "uvx wrapper installed"
+  fi
+
+  # Optional: Generate shell completions
+  $STD uv generate-shell-completion bash >/etc/bash_completion.d/uv 2>/dev/null || true
+  $STD uv generate-shell-completion zsh >/usr/share/zsh/site-functions/_uv 2>/dev/null || true
+
+  # Optional: Install specific Python version if requested
+  if [[ -n "${PYTHON_VERSION:-}" ]]; then
+    msg_info "Installing Python $PYTHON_VERSION via uv"
+    $STD uv python install "$PYTHON_VERSION" || {
+      msg_error "Failed to install Python $PYTHON_VERSION"
+      return 1
+    }
+    msg_ok "Python $PYTHON_VERSION installed"
+  fi
+
   cache_installed_version "uv" "$LATEST_VERSION"
   msg_ok "Setup uv $LATEST_VERSION"
+}
 
-  # Optional: Install specific Python version
-  if [[ -n "${PYTHON_VERSION:-}" ]]; then
-    local VERSION_MATCH
-    VERSION_MATCH=$(uv python list --only-downloads 2>/dev/null |
-      grep -E "^cpython-${PYTHON_VERSION//./\\.}\.[0-9]+-linux" |
-      cut -d'-' -f2 | sort -V | tail -n1)
+# Helper function to install uvx wrapper
+_install_uvx_wrapper() {
+  local UVX_BIN="/usr/local/bin/uvx"
 
-    if [[ -z "$VERSION_MATCH" ]]; then
-      msg_error "No matching Python $PYTHON_VERSION.x version found"
-      return 1
-    fi
+  cat >"$UVX_BIN" <<'EOF'
+#!/bin/bash
+# uvx - Run Python applications from PyPI as command-line tools
+# Wrapper for: uv tool run
+exec /usr/local/bin/uv tool run "$@"
+EOF
 
-    if ! uv python list 2>/dev/null | grep -q "cpython-${VERSION_MATCH}-linux.*uv/python"; then
-      $STD uv python install "$VERSION_MATCH" || {
-        msg_error "Failed to install Python $VERSION_MATCH"
-        return 1
-      }
-    fi
-  fi
+  chmod +x "$UVX_BIN"
+  return 0
 }
 
 # ------------------------------------------------------------------------------
