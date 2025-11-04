@@ -36,6 +36,19 @@ variables() {
     PVEVERSION="N/A"
   fi
   KERNEL_VERSION=$(uname -r)
+
+  # Capture app-declared defaults (for precedence logic)
+  # These values are set by the app script BEFORE default.vars is loaded
+  # If app declares higher values than default.vars, app values take precedence
+  if [[ -n "${var_cpu:-}" && "${var_cpu}" =~ ^[0-9]+$ ]]; then
+    export APP_DEFAULT_CPU="${var_cpu}"
+  fi
+  if [[ -n "${var_ram:-}" && "${var_ram}" =~ ^[0-9]+$ ]]; then
+    export APP_DEFAULT_RAM="${var_ram}"
+  fi
+  if [[ -n "${var_disk:-}" && "${var_disk}" =~ ^[0-9]+$ ]]; then
+    export APP_DEFAULT_DISK="${var_disk}"
+  fi
 }
 
 # -----------------------------------------------------------------------------
@@ -288,13 +301,40 @@ install_ssh_keys_into_ct() {
 # - Defines all base/default variables for container creation
 # - Reads from environment variables (var_*)
 # - Provides fallback defaults for OS type/version
+# - App-specific values take precedence when they are HIGHER (for CPU, RAM, DISK)
 # ------------------------------------------------------------------------------
 base_settings() {
   # Default Settings
   CT_TYPE=${var_unprivileged:-"1"}
-  DISK_SIZE=${var_disk:-"4"}
-  CORE_COUNT=${var_cpu:-"1"}
-  RAM_SIZE=${var_ram:-"1024"}
+
+  # Resource allocation: App defaults take precedence if HIGHER
+  # Compare app-declared values (saved in APP_DEFAULT_*) with current var_* values
+  local final_disk="${var_disk:-4}"
+  local final_cpu="${var_cpu:-1}"
+  local final_ram="${var_ram:-1024}"
+
+  # If app declared higher values, use those instead
+  if [[ -n "${APP_DEFAULT_DISK:-}" && "${APP_DEFAULT_DISK}" =~ ^[0-9]+$ ]]; then
+    if [[ "${APP_DEFAULT_DISK}" -gt "${final_disk}" ]]; then
+      final_disk="${APP_DEFAULT_DISK}"
+    fi
+  fi
+
+  if [[ -n "${APP_DEFAULT_CPU:-}" && "${APP_DEFAULT_CPU}" =~ ^[0-9]+$ ]]; then
+    if [[ "${APP_DEFAULT_CPU}" -gt "${final_cpu}" ]]; then
+      final_cpu="${APP_DEFAULT_CPU}"
+    fi
+  fi
+
+  if [[ -n "${APP_DEFAULT_RAM:-}" && "${APP_DEFAULT_RAM}" =~ ^[0-9]+$ ]]; then
+    if [[ "${APP_DEFAULT_RAM}" -gt "${final_ram}" ]]; then
+      final_ram="${APP_DEFAULT_RAM}"
+    fi
+  fi
+
+  DISK_SIZE="${final_disk}"
+  CORE_COUNT="${final_cpu}"
+  RAM_SIZE="${final_ram}"
   VERBOSE=${var_verbose:-"${1:-no}"}
   PW=${var_pw:-""}
   CT_ID=${var_ctid:-$NEXTID}
@@ -1033,7 +1073,7 @@ default_var_settings() {
     _find_default_vars >/dev/null 2>&1 && return 0
 
     local canonical="/usr/local/community-scripts/default.vars"
-    msg_info "No default.vars found. Creating ${canonical}"
+    # Silent creation - no msg_info output
     mkdir -p /usr/local/community-scripts
 
     # Pick storages before writing the file (always ask unless only one)
@@ -1087,7 +1127,7 @@ EOF
     choose_and_set_storage_for_file "$canonical" container
 
     chmod 0644 "$canonical"
-    msg_ok "Created ${canonical}"
+    # Silent creation - no output message
   }
 
   # Whitelist check
@@ -1492,7 +1532,7 @@ ensure_storage_selection_for_vars_file() {
   choose_and_set_storage_for_file "$vf" template
   choose_and_set_storage_for_file "$vf" container
 
-  msg_ok "Storage configuration saved to $(basename "$vf")"
+  # Silent operation - no output message
 }
 
 diagnostics_menu() {
@@ -1757,7 +1797,7 @@ choose_and_set_storage_for_file() {
     export TEMPLATE_STORAGE="$STORAGE_RESULT"
   fi
 
-  msg_ok "Updated ${key} → ${STORAGE_RESULT}"
+  # Silent operation - no output message
 }
 
 # ------------------------------------------------------------------------------
