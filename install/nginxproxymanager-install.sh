@@ -112,6 +112,7 @@ cp -r /opt/nginxproxymanager/global/* /app/global
 msg_ok "Set up Environment"
 
 msg_info "Building Frontend"
+export NODE_OPTIONS=--openssl-legacy-provide
 cd /opt/nginxproxymanager/frontend
 # Replace node-sass with sass in package.json before installation
 sed -i 's/"node-sass".*$/"sass": "^1.92.1",/g' package.json
