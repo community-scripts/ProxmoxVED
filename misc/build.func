@@ -3002,12 +3002,6 @@ create_lxc_container() {
   mapfile -t ONLINE_TEMPLATES < <(pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | awk '{print $2}' | grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" | sort -t - -k 2 -V 2>/dev/null || true)
   #echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found"
   set -u
-  if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
-    #echo "[DEBUG] Online templates:"
-    for tmpl in "${ONLINE_TEMPLATES[@]}"; do
-      echo "  - $tmpl"
-    done
-  fi
 
   ONLINE_TEMPLATE=""
   [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
