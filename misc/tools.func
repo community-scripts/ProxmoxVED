@@ -3,6 +3,32 @@
 # ==============================================================================
 # HELPER FUNCTIONS FOR PACKAGE MANAGEMENT
 # ==============================================================================
+#
+# This file provides unified helper functions for robust package installation
+# and repository management across Debian/Ubuntu OS upgrades.
+#
+# Key Features:
+#   - Automatic retry logic for transient APT/network failures
+#   - Unified keyring cleanup from all 3 locations
+#   - Legacy installation cleanup (nvm, rbenv, rustup)
+#   - OS-upgrade-safe repository preparation
+#   - Service pattern matching for multi-version tools
+#
+# Usage in install scripts:
+#   source /dev/stdin <<< "$FUNCTIONS"  # Load from build.func
+#   prepare_repository_setup "mysql"
+#   install_packages_with_retry "mysql-server" "mysql-client"
+#
+# Quick Reference (Core Helpers):
+#   cleanup_tool_keyrings()          - Remove keyrings from all 3 locations
+#   stop_all_services()              - Stop services by pattern (e.g. "php*-fpm")
+#   verify_tool_version()            - Validate installed version matches expected
+#   cleanup_legacy_install()         - Remove nvm, rbenv, rustup, etc.
+#   prepare_repository_setup()       - Cleanup repos + keyrings + validate APT
+#   install_packages_with_retry()    - Install with 3 retries and APT refresh
+#   upgrade_packages_with_retry()    - Upgrade with 3 retries and APT refresh
+#
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # Cache installed version to avoid repeated checks
