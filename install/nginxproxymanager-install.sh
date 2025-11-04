@@ -116,8 +116,8 @@ export NODE_OPTIONS=--openssl-legacy-provider
 cd /opt/nginxproxymanager/frontend
 # Replace node-sass with sass in package.json before installation
 sed -i 's/"node-sass".*$/"sass": "^1.92.1",/g' package.json
-$STD node --openssl-legacy-provider $(which yarn) install --network-timeout 600000
-$STD node --openssl-legacy-provider $(which yarn) build
+$STD yarn install --network-timeout 600000
+$STD yarn build
 cp -r /opt/nginxproxymanager/frontend/dist/* /app/frontend
 cp -r /opt/nginxproxymanager/frontend/app-images/* /app/frontend/images
 msg_ok "Built Frontend"
