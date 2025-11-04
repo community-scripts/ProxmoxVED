@@ -3319,113 +3319,44 @@ function setup_nodejs() {
       msg_info "Setup Node.js $NODE_VERSION"
     fi
 
-    # DEBUG: Initial state
-    echo "🔍 DEBUG: Initial state check..."
-    echo "   - Requested version: $NODE_VERSION"
-    echo "   - Current version: ${CURRENT_NODE_VERSION:-none}"
-    echo "   - Installed packages:"
-    dpkg -l | grep -E "(nodejs|libnode|node-)" | awk '{print "     * " $2 " " $3}' || echo "     * none"
-    echo ""
-
     # Clean up legacy installations (nvm, etc.)
-    echo "🔍 DEBUG: Running cleanup_legacy_install..."
     cleanup_legacy_install "nodejs"
 
-    # CRITICAL: Remove ALL Debian nodejs packages BEFORE adding NodeSource repo
-    # This prevents conflicts during dependency resolution
-    echo "🔍 DEBUG: Checking for Debian nodejs packages..."
+    # Remove ALL Debian nodejs packages BEFORE adding NodeSource repo
     if dpkg -l 2>/dev/null | grep -qE "^ii.*(nodejs|libnode|node-cjs|node-acorn|node-balanced|node-brace|node-minimatch|node-undici|node-xtend|node-corepack)"; then
-      echo "   ⚠️  Found Debian nodejs packages - purging now..."
       msg_info "Removing Debian-packaged Node.js and dependencies"
-      apt purge -y nodejs nodejs-doc libnode* node-* 2>&1 | tee -a /tmp/silent.$$.log || true
-      apt autoremove -y 2>&1 | tee -a /tmp/silent.$$.log || true
-      apt clean 2>&1 | tee -a /tmp/silent.$$.log || true
-      echo "   ✅ Purge completed"
-    else
-      echo "   ✅ No Debian nodejs packages found"
+      $STD apt purge -y nodejs nodejs-doc libnode* node-* 2>/dev/null || true
+      $STD apt autoremove -y 2>/dev/null || true
+      $STD apt clean 2>/dev/null || true
     fi
-    echo ""
 
-    # Remove any APT pinning (not needed if Debian nodejs is purged)
-    echo "🔍 DEBUG: Removing old APT pinning..."
+    # Remove any APT pinning (not needed)
     rm -f /etc/apt/preferences.d/nodesource 2>/dev/null || true
 
     # Prepare repository (cleanup + validation)
-    echo "🔍 DEBUG: Running prepare_repository_setup..."
     prepare_repository_setup "nodesource" || {
       msg_error "Failed to prepare Node.js repository"
       return 1
     }
 
-    # Setup NodeSource repository BEFORE installing dependencies
-    echo "🔍 DEBUG: Setting up NodeSource repository..."
-    echo "   - URL: https://deb.nodesource.com/node_${NODE_VERSION}.x"
+    # Setup NodeSource repository
     manage_tool_repository "nodejs" "$NODE_VERSION" "https://deb.nodesource.com/node_${NODE_VERSION}.x" "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key" || {
       msg_error "Failed to setup Node.js repository"
       return 1
     }
 
-    # Verify repository is active
-    echo "🔍 DEBUG: Verifying NodeSource repository..."
-    if [[ -f /etc/apt/sources.list.d/nodesource.sources ]]; then
-      echo "   ✅ Repository file exists:"
-      cat /etc/apt/sources.list.d/nodesource.sources | sed 's/^/     /'
-    else
-      echo "   ❌ Repository file NOT FOUND!"
-    fi
-    echo ""
+    # CRITICAL: Force APT cache refresh AFTER repository setup
+    # This ensures NodeSource is the only nodejs source in APT cache
+    $STD apt update
 
-    # Force APT cache refresh to see NodeSource packages
-    echo "🔍 DEBUG: Forcing APT update to refresh NodeSource cache..."
-    apt update 2>&1 | grep -i "node\|nodesource" || echo "   (no nodejs-related output)"
-    echo ""
-
-    # Check what version APT will install
-    echo "🔍 DEBUG: Checking APT policy for nodejs package..."
-    apt-cache policy nodejs 2>&1 | head -n 20 || true
-    echo ""
-
-    # Now install dependencies (NodeSource repo is already active, no Debian nodejs available)
-    echo "🔍 DEBUG: Installing dependencies (curl, ca-certificates, gnupg)..."
-    echo "   ⚠️  CRITICAL: This is where Debian nodejs might sneak back in!"
-
-    # Check available nodejs packages BEFORE ensure_dependencies
-    echo "🔍 DEBUG: Available nodejs packages BEFORE ensure_dependencies:"
-    apt-cache search "^nodejs$" 2>&1 || true
-    apt-cache madison nodejs 2>&1 | head -n 5 || true
-
+    # Install dependencies (NodeSource is now the only nodejs source)
     ensure_dependencies curl ca-certificates gnupg
 
-    echo "🔍 DEBUG: ensure_dependencies completed"
-
-    # Check again after dependencies - THIS IS THE SMOKING GUN
-    echo "🔍 DEBUG: Checking installed packages AFTER ensure_dependencies..."
-    if dpkg -l 2>/dev/null | grep -qE "^ii.*nodejs"; then
-      echo "   ❌❌❌ DEBIAN NODEJS WAS INSTALLED BY ensure_dependencies! ❌❌❌"
-      dpkg -l | grep -E "(nodejs|libnode|node-)" | awk '{print "   * " $2 " " $3}'
-      echo ""
-      echo "   🔧 Purging it again before final install..."
-      apt purge -y nodejs nodejs-doc libnode* node-* 2>&1 | grep -i "remove\|purge" || true
-      apt autoremove -y 2>&1 >/dev/null || true
-    else
-      echo "   ✅ No nodejs packages installed (good!)"
-    fi
-    echo ""
-
-    # Wait for repo to settle
-    sleep 2
-
-    # Install Node.js with retry logic (explicit version to avoid Debian repo)
-    echo "🔍 DEBUG: Installing Node.js from NodeSource..."
+    # Install Node.js from NodeSource
     install_packages_with_retry "nodejs" || {
-      echo "❌ DEBUG: Installation failed!"
-      echo "Final APT policy:"
-      apt-cache policy nodejs
       msg_error "Failed to install Node.js ${NODE_VERSION} from NodeSource"
       return 1
     }
-
-    echo "🔍 DEBUG: Installation completed, verifying..."
 
     # Verify Node.js was installed correctly
     if ! command -v node >/dev/null 2>&1; then
