@@ -39,18 +39,15 @@ $STD /opt/certbot/bin/pip install certbot certbot-dns-cloudflare
 ln -sf /opt/certbot/bin/certbot /usr/local/bin/certbot
 msg_ok "Set up Certbot"
 
-VERSION="$(awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release)"
-
 msg_info "Installing Openresty"
 curl -fsSL "https://openresty.org/package/pubkey.gpg" | gpg --dearmor -o /etc/apt/trusted.gpg.d/openresty-archive-keyring.gpg
-case "$VERSION" in
-trixie)
-  echo -e "deb http://openresty.org/package/debian bookworm openresty" >/etc/apt/sources.list.d/openresty.list
-  ;;
-*)
-  echo -e "deb http://openresty.org/package/debian $VERSION openresty" >/etc/apt/sources.list.d/openresty.list
-  ;;
-esac
+cat <<'EOF' >/etc/apt/sources.list.d/openresty.sources
+Types: deb
+URIs: http://openresty.org/package/debian/
+Suites: bookworm
+Components: openresty
+Signed-By: /etc/apt/trusted.gpg.d/openresty.gpg
+EOF
 $STD apt update
 $STD apt -y install openresty
 msg_ok "Installed Openresty"
@@ -61,33 +58,25 @@ RELEASE=$(curl -fsSL https://api.github.com/repos/NginxProxyManager/nginx-proxy-
   grep "tag_name" |
   awk '{print substr($2, 3, length($2)-4) }')
 
-##################
-RELEASE="2.13"
-##################
-
-
-msg_info "Downloading Nginx Proxy Manager v${RELEASE}"
-curl -fsSL "https://codeload.github.com/NginxProxyManager/nginx-proxy-manager/tar.gz/v${RELEASE}" | tar -xz
-cd ./nginx-proxy-manager-"${RELEASE}"
-msg_ok "Downloaded Nginx Proxy Manager v${RELEASE}"
+fetch_and_deploy_gh_release "nginxproxymanager" "NginxProxyManager/nginx-proxy-manager"
 
 msg_info "Setting up Environment"
 ln -sf /usr/bin/python3 /usr/bin/python
 ln -sf /usr/local/openresty/nginx/sbin/nginx /usr/sbin/nginx
 ln -sf /usr/local/openresty/nginx/ /etc/nginx
-sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" backend/package.json
-sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" frontend/package.json
-sed -i 's+^daemon+#daemon+g' docker/rootfs/etc/nginx/nginx.conf
-NGINX_CONFS=$(find "$(pwd)" -type f -name "*.conf")
+sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" /opt/nginxproxymanager/backend/package.json
+sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" /opt/nginxproxymanager/frontend/package.json
+sed -i 's+^daemon+#daemon+g' /opt/nginxproxymanager/docker/rootfs/etc/nginx/nginx.conf
+NGINX_CONFS=$(find /opt/nginxproxymanager -type f -name "*.conf")
 for NGINX_CONF in $NGINX_CONFS; do
   sed -i 's+include conf.d+include /etc/nginx/conf.d+g' "$NGINX_CONF"
 done
 
 mkdir -p /var/www/html /etc/nginx/logs
-cp -r docker/rootfs/var/www/html/* /var/www/html/
-cp -r docker/rootfs/etc/nginx/* /etc/nginx/
-cp docker/rootfs/etc/letsencrypt.ini /etc/letsencrypt.ini
-cp docker/rootfs/etc/logrotate.d/nginx-proxy-manager /etc/logrotate.d/nginx-proxy-manager
+cp -r /opt/nginxproxymanager/docker/rootfs/var/www/html/* /var/www/html/
+cp -r /opt/nginxproxymanager/docker/rootfs/etc/nginx/* /etc/nginx/
+cp /opt/nginxproxymanager/docker/rootfs/etc/letsencrypt.ini /etc/letsencrypt.ini
+cp /opt/nginxproxymanager/docker/rootfs/etc/logrotate.d/nginx-proxy-manager /etc/logrotate.d/nginx-proxy-manager
 ln -sf /etc/nginx/nginx.conf /etc/nginx/conf/nginx.conf
 rm -f /etc/nginx/conf.d/dev.conf
 
@@ -118,18 +107,18 @@ if [ ! -f /data/nginx/dummycert.pem ] || [ ! -f /data/nginx/dummykey.pem ]; then
 fi
 
 mkdir -p /app/global /app/frontend/images
-cp -r backend/* /app
-cp -r global/* /app/global
+cp -r /opt/nginxproxymanager/backend/* /app
+cp -r /opt/nginxproxymanager/global/* /app/global
 msg_ok "Set up Environment"
 
 msg_info "Building Frontend"
-cd ./frontend
+cd /opt/nginxproxymanager/frontend
 # Replace node-sass with sass in package.json before installation
 sed -i 's/"node-sass".*$/"sass": "^1.92.1",/g' package.json
 $STD yarn install --network-timeout 600000
 $STD yarn build
-cp -r dist/* /app/frontend
-cp -r app-images/* /app/frontend/images
+cp -r /opt/nginxproxymanager/frontend/dist/* /app/frontend
+cp -r /opt/nginxproxymanager/frontend/app-images/* /app/frontend/images
 msg_ok "Built Frontend"
 
 msg_info "Initializing Backend"
@@ -150,7 +139,6 @@ if [ ! -f /app/config/production.json ]; then
 EOF
 fi
 cd /app
-# export NODE_OPTIONS="--openssl-legacy-provider"
 $STD yarn install --network-timeout 600000
 msg_ok "Initialized Backend"
 
@@ -185,7 +173,6 @@ systemctl enable -q --now npm
 msg_ok "Started Services"
 
 msg_info "Cleaning up"
-rm -rf ../nginx-proxy-manager-*
 systemctl restart openresty
 $STD apt -y autoremove
 $STD apt -y autoclean
