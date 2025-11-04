@@ -25,6 +25,147 @@ get_cached_version() {
 }
 
 # ------------------------------------------------------------------------------
+# Clean up ALL keyring locations for a tool (unified helper)
+# Usage: cleanup_tool_keyrings "mariadb" "mysql" "postgresql"
+# ------------------------------------------------------------------------------
+cleanup_tool_keyrings() {
+  local tool_patterns=("$@")
+
+  for pattern in "${tool_patterns[@]}"; do
+    rm -f /usr/share/keyrings/${pattern}*.gpg \
+      /etc/apt/keyrings/${pattern}*.gpg \
+      /etc/apt/trusted.gpg.d/${pattern}*.gpg 2>/dev/null || true
+  done
+}
+
+# ------------------------------------------------------------------------------
+# Stop and disable all service instances matching a pattern
+# Usage: stop_all_services "php*-fpm" "mysql" "mariadb"
+# ------------------------------------------------------------------------------
+stop_all_services() {
+  local service_patterns=("$@")
+
+  for pattern in "${service_patterns[@]}"; do
+    # Find all matching services
+    systemctl list-units --type=service --all 2>/dev/null |
+      grep -oE "${pattern}[^ ]*\.service" |
+      sort -u |
+      while read -r service; do
+        $STD systemctl stop "$service" 2>/dev/null || true
+        $STD systemctl disable "$service" 2>/dev/null || true
+      done
+  done
+}
+
+# ------------------------------------------------------------------------------
+# Verify installed tool version matches expected version
+# Returns: 0 if match, 1 if mismatch (with warning)
+# Usage: verify_tool_version "nodejs" "22" "$(node -v | grep -oP '^v\K[0-9]+')"
+# ------------------------------------------------------------------------------
+verify_tool_version() {
+  local tool_name="$1"
+  local expected_version="$2"
+  local installed_version="$3"
+
+  # Extract major version for comparison
+  local expected_major="${expected_version%%.*}"
+  local installed_major="${installed_version%%.*}"
+
+  if [[ "$installed_major" != "$expected_major" ]]; then
+    msg_warn "$tool_name version mismatch: expected $expected_version, got $installed_version"
+    return 1
+  fi
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# Clean up legacy installation methods (nvm, rbenv, rustup, etc.)
+# Usage: cleanup_legacy_install "nodejs" -> removes nvm
+# ------------------------------------------------------------------------------
+cleanup_legacy_install() {
+  local tool_name="$1"
+
+  case "$tool_name" in
+  nodejs | node)
+    if [[ -d "$HOME/.nvm" ]]; then
+      msg_info "Removing legacy nvm installation"
+      rm -rf "$HOME/.nvm" "$HOME/.npm" "$HOME/.bower" "$HOME/.config/yarn" 2>/dev/null || true
+      sed -i '/NVM_DIR/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
+    fi
+    ;;
+  ruby)
+    if [[ -d "$HOME/.rbenv" ]]; then
+      msg_info "Removing legacy rbenv installation"
+      rm -rf "$HOME/.rbenv" 2>/dev/null || true
+      sed -i '/rbenv/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
+    fi
+    ;;
+  rust)
+    if [[ -d "$HOME/.cargo" ]] || [[ -d "$HOME/.rustup" ]]; then
+      msg_info "Removing legacy rustup installation"
+      rm -rf "$HOME/.cargo" "$HOME/.rustup" 2>/dev/null || true
+      sed -i '/cargo/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
+    fi
+    ;;
+  go | golang)
+    if [[ -d "$HOME/go" ]]; then
+      msg_info "Removing legacy Go workspace"
+      # Keep user code, just remove GOPATH env
+      sed -i '/GOPATH/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
+    fi
+    ;;
+  esac
+}
+
+# ------------------------------------------------------------------------------
+# Unified repository preparation before setup
+# Cleans up old repos, keyrings, and ensures APT is working
+# Usage: prepare_repository_setup "mariadb" "mysql"
+# ------------------------------------------------------------------------------
+prepare_repository_setup() {
+  local repo_names=("$@")
+
+  # Clean up all old repository files
+  for repo in "${repo_names[@]}"; do
+    cleanup_old_repo_files "$repo"
+  done
+
+  # Clean up all keyrings
+  cleanup_tool_keyrings "${repo_names[@]}"
+
+  # Ensure APT is in working state
+  ensure_apt_working || return 1
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# Install packages with retry logic
+# Usage: install_packages_with_retry "mysql-server" "mysql-client"
+# ------------------------------------------------------------------------------
+install_packages_with_retry() {
+  local packages=("$@")
+  local max_retries=2
+  local retry=0
+
+  while [[ $retry -le $max_retries ]]; do
+    if $STD apt install -y "${packages[@]}" 2>/dev/null; then
+      return 0
+    fi
+
+    retry=$((retry + 1))
+    if [[ $retry -le $max_retries ]]; then
+      msg_warn "Package installation failed, retrying ($retry/$max_retries)..."
+      sleep 2
+      $STD apt update 2>/dev/null || true
+    fi
+  done
+
+  return 1
+}
+
+# ------------------------------------------------------------------------------
 # Check if tool is already installed and optionally verify exact version
 # Returns: 0 if installed (with optional version match), 1 if not installed
 # Usage: is_tool_installed "mariadb" "11.4" || echo "Not installed"
@@ -110,30 +251,21 @@ remove_old_tool_version() {
 
   case "$tool_name" in
   mariadb)
-    $STD systemctl stop mariadb >/dev/null 2>&1 || true
+    stop_all_services "mariadb"
     $STD apt purge -y 'mariadb*' >/dev/null 2>&1 || true
-    # Clean up ALL keyring locations
-    rm -f /usr/share/keyrings/mariadb*.gpg \
-      /etc/apt/keyrings/mariadb*.gpg \
-      /etc/apt/trusted.gpg.d/mariadb*.gpg 2>/dev/null || true
+    cleanup_tool_keyrings "mariadb"
     ;;
   mysql)
-    $STD systemctl stop mysql >/dev/null 2>&1 || true
+    stop_all_services "mysql"
     $STD apt purge -y 'mysql*' >/dev/null 2>&1 || true
     rm -rf /var/lib/mysql 2>/dev/null || true
-    # Clean up ALL keyring locations
-    rm -f /usr/share/keyrings/mysql*.gpg \
-      /etc/apt/keyrings/mysql*.gpg \
-      /etc/apt/trusted.gpg.d/mysql*.gpg 2>/dev/null || true
+    cleanup_tool_keyrings "mysql"
     ;;
   mongodb)
-    $STD systemctl stop mongod >/dev/null 2>&1 || true
+    stop_all_services "mongod"
     $STD apt purge -y 'mongodb*' >/dev/null 2>&1 || true
     rm -rf /var/lib/mongodb 2>/dev/null || true
-    # Clean up ALL keyring locations
-    rm -f /usr/share/keyrings/mongodb*.gpg \
-      /etc/apt/keyrings/mongodb*.gpg \
-      /etc/apt/trusted.gpg.d/mongodb*.gpg 2>/dev/null || true
+    cleanup_tool_keyrings "mongodb"
     ;;
   node | nodejs)
     $STD apt purge -y nodejs npm >/dev/null 2>&1 || true
@@ -143,66 +275,42 @@ remove_old_tool_version() {
         npm uninstall -g "$module" >/dev/null 2>&1 || true
       done
     fi
-    # Clean up nvm installations and npm caches
-    rm -rf "$HOME/.nvm" "$HOME/.npm" "$HOME/.bower" "$HOME/.config/yarn" 2>/dev/null || true
-    sed -i '/NVM_DIR/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
-    # Clean up ALL keyring locations
-    rm -f /usr/share/keyrings/nodesource*.gpg \
-      /etc/apt/keyrings/nodesource*.gpg \
-      /etc/apt/trusted.gpg.d/nodesource*.gpg 2>/dev/null || true
+    cleanup_legacy_install "nodejs"
+    cleanup_tool_keyrings "nodesource"
     ;;
   php)
-    # Stop and disable ALL PHP-FPM versions
-    for fpm_service in $(systemctl list-units --type=service --all | grep -oE 'php[0-9]+\.[0-9]+-fpm' | sort -u); do
-      $STD systemctl stop "$fpm_service" >/dev/null 2>&1 || true
-      $STD systemctl disable "$fpm_service" >/dev/null 2>&1 || true
-    done
+    stop_all_services "php.*-fpm"
     $STD apt purge -y 'php*' >/dev/null 2>&1 || true
     rm -rf /etc/php 2>/dev/null || true
-    # Clean up ALL keyring locations (Sury PHP)
-    rm -f /usr/share/keyrings/deb.sury.org-php.gpg \
-      /usr/share/keyrings/php*.gpg \
-      /etc/apt/keyrings/php*.gpg \
-      /etc/apt/trusted.gpg.d/php*.gpg 2>/dev/null || true
+    cleanup_tool_keyrings "deb.sury.org-php" "php"
     ;;
   postgresql)
-    $STD systemctl stop postgresql >/dev/null 2>&1 || true
+    stop_all_services "postgresql"
     $STD apt purge -y 'postgresql*' >/dev/null 2>&1 || true
     # Keep data directory for safety (can be removed manually if needed)
     # rm -rf /var/lib/postgresql 2>/dev/null || true
-    # Clean up ALL keyring locations
-    rm -f /usr/share/keyrings/postgresql*.gpg \
-      /usr/share/keyrings/pgdg*.gpg \
-      /etc/apt/keyrings/postgresql*.gpg \
-      /etc/apt/keyrings/pgdg*.gpg \
-      /etc/apt/trusted.gpg.d/postgresql*.gpg \
-      /etc/apt/trusted.gpg.d/pgdg*.gpg 2>/dev/null || true
+    cleanup_tool_keyrings "postgresql" "pgdg"
     ;;
   java)
     $STD apt purge -y 'temurin*' 'adoptium*' 'openjdk*' >/dev/null 2>&1 || true
-    # Clean up ALL keyring locations (Adoptium)
-    rm -f /usr/share/keyrings/adoptium*.gpg \
-      /etc/apt/keyrings/adoptium*.gpg \
-      /etc/apt/trusted.gpg.d/adoptium*.gpg 2>/dev/null || true
+    cleanup_tool_keyrings "adoptium"
     ;;
   ruby)
-    rm -rf "$HOME/.rbenv" 2>/dev/null || true
+    cleanup_legacy_install "ruby"
     $STD apt purge -y 'ruby*' >/dev/null 2>&1 || true
     ;;
   rust)
-    rm -rf "$HOME/.cargo" "$HOME/.rustup" 2>/dev/null || true
+    cleanup_legacy_install "rust"
     ;;
   go | golang)
     rm -rf /usr/local/go 2>/dev/null || true
+    cleanup_legacy_install "golang"
     ;;
   clickhouse)
-    $STD systemctl stop clickhouse-server >/dev/null 2>&1 || true
+    stop_all_services "clickhouse-server"
     $STD apt purge -y 'clickhouse*' >/dev/null 2>&1 || true
     rm -rf /var/lib/clickhouse 2>/dev/null || true
-    # Clean up ALL keyring locations
-    rm -f /usr/share/keyrings/clickhouse*.gpg \
-      /etc/apt/keyrings/clickhouse*.gpg \
-      /etc/apt/trusted.gpg.d/clickhouse*.gpg 2>/dev/null || true
+    cleanup_tool_keyrings "clickhouse"
     ;;
   esac
 
@@ -2563,9 +2671,7 @@ function setup_java() {
 
   # Clean up ALL old Adoptium repo configs and keyrings before setup
   cleanup_old_repo_files "adoptium"
-  rm -f /usr/share/keyrings/adoptium*.gpg \
-    /etc/apt/keyrings/adoptium*.gpg \
-    /etc/apt/trusted.gpg.d/adoptium*.gpg 2>/dev/null || true
+  cleanup_tool_keyrings "adoptium"
 
   # Add repo if needed
   if [[ ! -f /etc/apt/sources.list.d/adoptium.sources ]]; then
@@ -2812,14 +2918,11 @@ setup_mariadb() {
   # Scenario 3: Fresh install or version change
   msg_info "Setup MariaDB $MARIADB_VERSION"
 
-  # Clean up ALL old MariaDB repo configs and keyrings before setup
-  cleanup_old_repo_files "mariadb"
-  rm -f /usr/share/keyrings/mariadb*.gpg \
-    /etc/apt/keyrings/mariadb*.gpg \
-    /etc/apt/trusted.gpg.d/mariadb*.gpg 2>/dev/null || true
-
-  # Ensure APT is working before proceeding
-  ensure_apt_working || return 1
+  # Prepare repository (cleanup + validation)
+  prepare_repository_setup "mariadb" || {
+    msg_error "Failed to prepare MariaDB repository"
+    return 1
+  }
 
   # Install required dependencies first
   local mariadb_deps=()
@@ -2847,19 +2950,20 @@ setup_mariadb() {
     echo "mariadb-server-$MARIADB_MAJOR_MINOR mariadb-server/feedback boolean false" | debconf-set-selections
   fi
 
-  # Install packages
-  DEBIAN_FRONTEND=noninteractive $STD apt install -y mariadb-server mariadb-client || {
+  # Install packages with retry logic
+  export DEBIAN_FRONTEND=noninteractive
+  if ! install_packages_with_retry "mariadb-server" "mariadb-client"; then
     # Fallback: try without specific version
     msg_warn "Failed to install MariaDB packages from upstream repo, trying distro fallback..."
     cleanup_old_repo_files "mariadb"
     $STD apt update || {
       msg_warn "APT update also failed, continuing with cache"
     }
-    DEBIAN_FRONTEND=noninteractive $STD apt install -y mariadb-server mariadb-client || {
+    install_packages_with_retry "mariadb-server" "mariadb-client" || {
       msg_error "Failed to install MariaDB packages (both upstream and distro)"
       return 1
     }
-  }
+  fi
 
   cache_installed_version "mariadb" "$MARIADB_VERSION"
   msg_ok "Setup MariaDB $MARIADB_VERSION"
@@ -2934,11 +3038,11 @@ function setup_mongodb() {
 
   cleanup_orphaned_sources
 
-  # Clean up ALL old MongoDB repo configs and keyrings before setup
-  cleanup_old_repo_files "mongodb"
-  rm -f /usr/share/keyrings/mongodb*.gpg \
-    /etc/apt/keyrings/mongodb*.gpg \
-    /etc/apt/trusted.gpg.d/mongodb*.gpg 2>/dev/null || true
+  # Prepare repository (cleanup + validation)
+  prepare_repository_setup "mongodb" || {
+    msg_error "Failed to prepare MongoDB repository"
+    return 1
+  }
 
   # Setup repository
   manage_tool_repository "mongodb" "$MONGO_VERSION" "$MONGO_BASE_URL" \
@@ -2953,8 +3057,8 @@ function setup_mongodb() {
     return 1
   }
 
-  # Install MongoDB
-  $STD apt install -y mongodb-org || {
+  # Install MongoDB with retry logic
+  install_packages_with_retry "mongodb-org" || {
     msg_error "Failed to install MongoDB packages"
     return 1
   }
@@ -2976,9 +3080,7 @@ function setup_mongodb() {
   # Verify MongoDB version
   local INSTALLED_VERSION
   INSTALLED_VERSION=$(mongod --version 2>/dev/null | grep -oP 'db version v\K[0-9]+\.[0-9]+' | head -n1 || echo "0.0")
-  if [[ "${INSTALLED_VERSION%%.*}" != "${MONGO_VERSION%%.*}" ]]; then
-    msg_warn "MongoDB version mismatch: expected $MONGO_VERSION, got $INSTALLED_VERSION"
-  fi
+  verify_tool_version "MongoDB" "$MONGO_VERSION" "$INSTALLED_VERSION" || true
 
   cache_installed_version "mongodb" "$MONGO_VERSION"
   msg_ok "Setup MongoDB $MONGO_VERSION"
@@ -3028,11 +3130,11 @@ function setup_mysql() {
     msg_info "Setup MySQL $MYSQL_VERSION"
   fi
 
-  # Clean up ALL old MySQL repo configs and keyrings before setup
-  cleanup_old_repo_files "mysql"
-  rm -f /usr/share/keyrings/mysql*.gpg \
-    /etc/apt/keyrings/mysql*.gpg \
-    /etc/apt/trusted.gpg.d/mysql*.gpg 2>/dev/null || true
+  # Prepare repository (cleanup + validation)
+  prepare_repository_setup "mysql" || {
+    msg_error "Failed to prepare MySQL repository"
+    return 1
+  }
 
   # Debian 13+ Fix: MySQL 8.0 incompatible with libaio1t64, use 8.4 LTS
   if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
@@ -3057,11 +3159,12 @@ EOF
       return 1
     }
 
-    if ! $STD apt install -y mysql-community-server mysql-community-client; then
+    # Install with retry logic
+    if ! install_packages_with_retry "mysql-community-server" "mysql-community-client"; then
       msg_warn "MySQL 8.4 LTS installation failed – falling back to MariaDB"
       cleanup_old_repo_files "mysql"
       $STD apt update
-      $STD apt install -y mariadb-server mariadb-client || {
+      install_packages_with_retry "mariadb-server" "mariadb-client" || {
         msg_error "Failed to install database engine (MySQL/MariaDB fallback)"
         return 1
       }
@@ -3094,18 +3197,18 @@ EOF
 
   ensure_apt_working || return 1
 
-  # Try multiple package names (mysql-server, mysql-community-server, mysql)
+  # Try multiple package names with retry logic
   export DEBIAN_FRONTEND=noninteractive
   local mysql_install_success=false
 
   if apt-cache search "^mysql-server$" 2>/dev/null | grep -q . &&
-    $STD apt install -y mysql-server mysql-client 2>/dev/null; then
+    install_packages_with_retry "mysql-server" "mysql-client"; then
     mysql_install_success=true
   elif apt-cache search "^mysql-community-server$" 2>/dev/null | grep -q . &&
-    $STD apt install -y mysql-community-server mysql-community-client 2>/dev/null; then
+    install_packages_with_retry "mysql-community-server" "mysql-community-client"; then
     mysql_install_success=true
   elif apt-cache search "^mysql$" 2>/dev/null | grep -q . &&
-    $STD apt install -y mysql 2>/dev/null; then
+    install_packages_with_retry "mysql"; then
     mysql_install_success=true
   fi
 
@@ -3176,20 +3279,16 @@ function setup_nodejs() {
       msg_info "Setup Node.js $NODE_VERSION"
     fi
 
-    # Clean up any legacy nvm installations
-    if [[ -d "$HOME/.nvm" ]]; then
-      msg_info "Removing legacy nvm installation"
-      rm -rf "$HOME/.nvm" "$HOME/.npm" "$HOME/.bower" "$HOME/.config/yarn" 2>/dev/null || true
-      sed -i '/NVM_DIR/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
-    fi
+    # Clean up legacy installations (nvm, etc.)
+    cleanup_legacy_install "nodejs"
 
     ensure_dependencies curl ca-certificates gnupg
 
-    # Clean up ALL old NodeSource repository configurations to avoid conflicts
-    rm -f /etc/apt/sources.list.d/nodesource.list \
-      /etc/apt/sources.list.d/nodesource.sources \
-      /usr/share/keyrings/nodesource.gpg \
-      /etc/apt/keyrings/nodesource.gpg 2>/dev/null || true
+    # Prepare repository (cleanup + validation)
+    prepare_repository_setup "nodesource" || {
+      msg_error "Failed to prepare Node.js repository"
+      return 1
+    }
 
     # Setup repository
     manage_tool_repository "nodejs" "$NODE_VERSION" "https://deb.nodesource.com/node_${NODE_VERSION}.x" "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key" || {
@@ -3200,20 +3299,11 @@ function setup_nodejs() {
     # Wait for repo to settle
     sleep 2
 
-    # Install Node.js
-    if ! $STD apt update; then
-      msg_warn "APT update failed – retrying in 5s"
-      sleep 5
-      if ! $STD apt update; then
-        msg_error "Failed to update APT repositories after adding NodeSource"
-        return 1
-      fi
-    fi
-
-    if ! $STD apt install -y nodejs; then
+    # Install Node.js with retry logic
+    install_packages_with_retry "nodejs" || {
       msg_error "Failed to install Node.js ${NODE_VERSION} from NodeSource"
       return 1
-    fi
+    }
 
     # Verify Node.js was installed correctly
     if ! command -v node >/dev/null 2>&1; then
@@ -3223,10 +3313,7 @@ function setup_nodejs() {
 
     local INSTALLED_NODE_VERSION
     INSTALLED_NODE_VERSION=$(node -v 2>/dev/null | grep -oP '^v\K[0-9]+' || echo "0")
-    if [[ "$INSTALLED_NODE_VERSION" != "$NODE_VERSION" ]]; then
-      msg_error "Node.js version mismatch: expected $NODE_VERSION, got $INSTALLED_NODE_VERSION"
-      return 1
-    fi
+    verify_tool_version "Node.js" "$NODE_VERSION" "$INSTALLED_NODE_VERSION" || true
 
     # Update to latest npm (with version check to avoid incompatibility)
     local NPM_VERSION
@@ -3380,22 +3467,18 @@ function setup_php() {
     # Scenario 2: Different version installed - clean upgrade
     if [[ -n "$CURRENT_PHP" && "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
       msg_info "Upgrade PHP from $CURRENT_PHP to $PHP_VERSION"
-      # Stop and disable ALL PHP-FPM versions (not just current one)
-      for fpm_service in $(systemctl list-units --type=service --all 2>/dev/null | grep -oE 'php[0-9]+\.[0-9]+-fpm' | sort -u); do
-        $STD systemctl stop "$fpm_service" >/dev/null 2>&1 || true
-        $STD systemctl disable "$fpm_service" >/dev/null 2>&1 || true
-      done
+      # Stop and disable ALL PHP-FPM versions
+      stop_all_services "php.*-fpm"
       remove_old_tool_version "php"
     else
       msg_info "Setup PHP $PHP_VERSION"
     fi
 
-    # Clean up ALL old PHP repo configs and keyrings before setup
-    cleanup_old_repo_files "php"
-    rm -f /usr/share/keyrings/deb.sury.org-php.gpg \
-      /usr/share/keyrings/php*.gpg \
-      /etc/apt/keyrings/php*.gpg \
-      /etc/apt/trusted.gpg.d/php*.gpg 2>/dev/null || true
+    # Prepare repository (cleanup + validation)
+    prepare_repository_setup "php" "deb.sury.org-php" || {
+      msg_error "Failed to prepare PHP repository"
+      return 1
+    }
 
     # Setup Sury repository
     manage_tool_repository "php" "$PHP_VERSION" "" "https://packages.sury.org/debsuryorg-archive-keyring.deb" || {
@@ -3421,15 +3504,15 @@ function setup_php() {
   # install apache2 with PHP support if requested
   if [[ "$PHP_APACHE" == "YES" ]]; then
     if ! dpkg -l 2>/dev/null | grep -q "libapache2-mod-php${PHP_VERSION}"; then
-      $STD apt install -y apache2 libapache2-mod-php${PHP_VERSION} || {
+      install_packages_with_retry "apache2" "libapache2-mod-php${PHP_VERSION}" || {
         msg_error "Failed to install Apache with PHP module"
         return 1
       }
     fi
   fi
 
-  # Install PHP packages
-  $STD apt install -y $MODULE_LIST || {
+  # Install PHP packages with retry logic
+  install_packages_with_retry $MODULE_LIST || {
     msg_error "Failed to install PHP packages"
     return 1
   }
@@ -3529,16 +3612,10 @@ function setup_postgresql() {
   fi
 
   # Scenario 3: Fresh install or after removal - setup repo and install
-  cleanup_old_repo_files "pgdg"
-  cleanup_old_repo_files "postgresql"
-
-  # Clean up ALL old PostgreSQL repo configs and keyrings before setup
-  rm -f /usr/share/keyrings/postgresql*.gpg \
-    /usr/share/keyrings/pgdg*.gpg \
-    /etc/apt/keyrings/postgresql*.gpg \
-    /etc/apt/keyrings/pgdg*.gpg \
-    /etc/apt/trusted.gpg.d/postgresql*.gpg \
-    /etc/apt/trusted.gpg.d/pgdg*.gpg 2>/dev/null || true
+  prepare_repository_setup "pgdg" "postgresql" || {
+    msg_error "Failed to prepare PostgreSQL repository"
+    return 1
+  }
 
   local SUITE
   case "$DISTRO_CODENAME" in
@@ -3573,11 +3650,11 @@ function setup_postgresql() {
     $STD apt install -y ssl-cert 2>/dev/null || true
   fi
 
-  # Try multiple PostgreSQL package patterns
+  # Try multiple PostgreSQL package patterns with retry logic
   local pg_install_success=false
 
   if apt-cache search "^postgresql-${PG_VERSION}$" 2>/dev/null | grep -q . &&
-    $STD apt install -y "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}" 2>/dev/null; then
+    install_packages_with_retry "postgresql-${PG_VERSION}" "postgresql-client-${PG_VERSION}"; then
     pg_install_success=true
   fi
 
@@ -3888,7 +3965,7 @@ function setup_clickhouse() {
   # Scenario 2: Different version - clean upgrade
   if [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" != "$CLICKHOUSE_VERSION" ]]; then
     msg_info "Upgrade ClickHouse from $CURRENT_VERSION to $CLICKHOUSE_VERSION"
-    $STD systemctl stop clickhouse-server >/dev/null 2>&1 || true
+    stop_all_services "clickhouse-server"
     remove_old_tool_version "clickhouse"
   else
     msg_info "Setup ClickHouse $CLICKHOUSE_VERSION"
@@ -3896,11 +3973,11 @@ function setup_clickhouse() {
 
   ensure_dependencies apt-transport-https ca-certificates dirmngr gnupg
 
-  # Clean up ALL old ClickHouse repo configs and keyrings before setup
-  cleanup_old_repo_files "clickhouse"
-  rm -f /usr/share/keyrings/clickhouse*.gpg \
-    /etc/apt/keyrings/clickhouse*.gpg \
-    /etc/apt/trusted.gpg.d/clickhouse*.gpg 2>/dev/null || true
+  # Prepare repository (cleanup + validation)
+  prepare_repository_setup "clickhouse" || {
+    msg_error "Failed to prepare ClickHouse repository"
+    return 1
+  }
 
   # Setup repository (ClickHouse uses 'stable' suite)
   setup_deb822_repo \
@@ -3911,14 +3988,14 @@ function setup_clickhouse() {
     "main" \
     "amd64 arm64"
 
-  # Install packages
+  # Install packages with retry logic
   export DEBIAN_FRONTEND=noninteractive
   $STD apt update || {
     msg_error "APT update failed for ClickHouse repository"
     return 1
   }
 
-  $STD apt install -y clickhouse-server clickhouse-client || {
+  install_packages_with_retry "clickhouse-server" "clickhouse-client" || {
     msg_error "Failed to install ClickHouse packages"
     return 1
   }
