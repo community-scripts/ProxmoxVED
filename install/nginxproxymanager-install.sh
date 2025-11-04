@@ -52,7 +52,7 @@ $STD apt update
 $STD apt -y install openresty
 msg_ok "Installed Openresty"
 
-NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+NODE_VERSION="21" NODE_MODULE="yarn" setup_nodejs
 
 RELEASE=$(curl -fsSL https://api.github.com/repos/NginxProxyManager/nginx-proxy-manager/releases/latest |
   grep "tag_name" |
