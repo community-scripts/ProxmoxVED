@@ -13,10 +13,9 @@ network_check
 update_os
 
 setup_nodejs
-
+setup_postgresql
 fetch_and_deploy_gh_release "snowshare" "TuroYT/snowshare"
 
-setup_postgresql
 msg_info "Setting up PostgreSQL Database"
 DB_NAME=snowshare
 DB_USER=snowshare
@@ -27,10 +26,10 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 {
-    echo "SnowShare-Database-Credentials"
-    echo "Database Username: $DB_USER"
-    echo "Database Password: $DB_PASS"
-    echo "Database Name: $DB_NAME"
+  echo "SnowShare-Database-Credentials"
+  echo "Database Username: $DB_USER"
+  echo "Database Password: $DB_PASS"
+  echo "Database Name: $DB_NAME"
 } >>~/snowshare.creds
 msg_ok "Set up PostgreSQL Database"
 
