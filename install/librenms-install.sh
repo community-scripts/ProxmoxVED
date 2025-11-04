@@ -62,8 +62,7 @@ fetch_and_deploy_gh_release "LibreNMS" "librenms/librenms"
 
 msg_info "Configuring LibreNMS"
 $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
-setfacl -d -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
-setfacl -R -m g::rwx /opt/librenms/rrd /opt/librenms/logs /opt/librenms/bootstrap/cache/ /opt/librenms/storage/
+mkdir -p /opt/librenms/{rrd,logs,bootstrap/cache,storage,html}
 cd /opt/librenms
 $STD uv venv .venv
 $STD source .venv/bin/activate
@@ -75,7 +74,6 @@ DB_PASSWORD=${DB_PASS}
 EOF
 chown -R librenms:librenms /opt/librenms
 chmod 771 /opt/librenms
-setfacl -d -m g::rwx /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 chmod -R ug=rwX /opt/librenms/bootstrap/cache /opt/librenms/storage /opt/librenms/logs /opt/librenms/rrd
 msg_ok "Configured LibreNMS"
 
