@@ -54,10 +54,6 @@ msg_ok "Installed Openresty"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 
-RELEASE=$(curl -fsSL https://api.github.com/repos/NginxProxyManager/nginx-proxy-manager/releases/latest |
-  grep "tag_name" |
-  awk '{print substr($2, 3, length($2)-4) }')
-
 fetch_and_deploy_gh_release "nginxproxymanager" "NginxProxyManager/nginx-proxy-manager"
 
 msg_info "Setting up Environment"
@@ -112,7 +108,7 @@ cp -r /opt/nginxproxymanager/global/* /app/global
 msg_ok "Set up Environment"
 
 msg_info "Building Frontend"
-export NODE_OPTIONS=--openssl-legacy-provide
+export NODE_OPTIONS=--openssl-legacy-provider
 cd /opt/nginxproxymanager/frontend
 # Replace node-sass with sass in package.json before installation
 sed -i 's/"node-sass".*$/"sass": "^1.92.1",/g' package.json
