@@ -111,7 +111,7 @@ cp -r /opt/nginxproxymanager/backend/* /app
 msg_ok "Set up Environment"
 
 msg_info "Building Frontend"
-export NODE_OPTIONS="--max_old_space_size=1024 --openssl-legacy-provider"
+export NODE_OPTIONS="--max_old_space_size=2048 --openssl-legacy-provider"
 cd /opt/nginxproxymanager/frontend
 # Replace node-sass with sass in package.json before installation
 sed -E -i 's/"node-sass" *: *"([^"]*)"/"sass": "\1"/g' package.json
