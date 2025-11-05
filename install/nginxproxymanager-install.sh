@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
+# Copyright (c) 2021-2025 Community-Scripts ORG
+# Author: tteck (tteckster) | Co-Author: CrazyWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://nginxproxymanager.com/
 
@@ -106,19 +106,19 @@ if [ ! -f /data/nginx/dummycert.pem ] || [ ! -f /data/nginx/dummykey.pem ]; then
   openssl req -new -newkey rsa:2048 -days 3650 -nodes -x509 -subj "/O=Nginx Proxy Manager/OU=Dummy Certificate/CN=localhost" -keyout /data/nginx/dummykey.pem -out /data/nginx/dummycert.pem &>/dev/null
 fi
 
-mkdir -p /app/global /app/frontend/images
+mkdir -p /app/frontend/images
 cp -r /opt/nginxproxymanager/backend/* /app
-cp -r /opt/nginxproxymanager/global/* /app/global
 msg_ok "Set up Environment"
 
 msg_info "Building Frontend"
+export NODE_OPTIONS="--max_old_space_size=2048 --openssl-legacy-provider"
 cd /opt/nginxproxymanager/frontend
 # Replace node-sass with sass in package.json before installation
-sed -i 's/"node-sass".*$/"sass": "^1.92.1",/g' package.json
+sed -E -i 's/"node-sass" *: *"([^"]*)"/"sass": "\1"/g' package.json
 $STD yarn install --network-timeout 600000
 $STD yarn build
 cp -r /opt/nginxproxymanager/frontend/dist/* /app/frontend
-cp -r /opt/nginxproxymanager/frontend/app-images/* /app/frontend/images
+cp -r /opt/nginxproxymanager/frontend/public/images/* /app/frontend/images
 msg_ok "Built Frontend"
 
 msg_info "Initializing Backend"
@@ -162,15 +162,15 @@ WantedBy=multi-user.target
 EOF
 msg_ok "Created Service"
 
-motd_ssh
-customize
-
 msg_info "Starting Services"
 sed -i 's/user npm/user root/g; s/^pid/#pid/g' /usr/local/openresty/nginx/conf/nginx.conf
 sed -r -i 's/^([[:space:]]*)su npm npm/\1#su npm npm/g;' /etc/logrotate.d/nginx-proxy-manager
 systemctl enable -q --now openresty
 systemctl enable -q --now npm
 msg_ok "Started Services"
+
+motd_ssh
+customize
 
 msg_info "Cleaning up"
 systemctl restart openresty
