@@ -67,8 +67,8 @@ function update_script() {
   ln -sf /usr/bin/python3 /usr/bin/python
   ln -sf /usr/local/openresty/nginx/sbin/nginx /usr/sbin/nginx
   ln -sf /usr/local/openresty/nginx/ /etc/nginx
-  sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" /opt/nginxproxymanager/backend/package.json
-  sed -i "s|\"version\": \"0.0.0\"|\"version\": \"$RELEASE\"|" /opt/nginxproxymanager/frontend/package.json
+  sed -i "s|\"version\": \"2.0.0\"|\"version\": \"$RELEASE\"|" /opt/nginxproxymanager/backend/package.json
+  sed -i "s|\"version\": \"2.0.0\"|\"version\": \"$RELEASE\"|" /opt/nginxproxymanager/frontend/package.json
   sed -i 's+^daemon+#daemon+g' /opt/nginxproxymanager/docker/rootfs/etc/nginx/nginx.conf
   NGINX_CONFS=$(find /opt/nginxproxymanager -type f -name "*.conf")
   for NGINX_CONF in $NGINX_CONFS; do
