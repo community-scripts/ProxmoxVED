@@ -146,8 +146,10 @@ EOF
   msg_ok "Initialized Backend"
   
   msg_info "Updating Certbot"
-  curl -fsSL "https://openresty.org/package/pubkey.gpg" | gpg --dearmor -o /etc/apt/trusted.gpg.d/openresty.gpg
-  cat <<'EOF' >/etc/apt/sources.list.d/openresty.sources
+  [ -f /etc/apt/trusted.gpg.d/openresty-archive-keyring.gpg ] && rm -f /etc/apt/trusted.gpg.d/openresty-archive-keyring.gpg
+  [ -f /etc/apt/sources.list.d/openresty.list ] && rm -f /etc/apt/sources.list.d/openresty.list
+  [ ! -f /etc/apt/trusted.gpg.d/openresty.gpg ] && curl -fsSL https://openresty.org/package/pubkey.gpg | gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/openresty.gpg
+  [ ! -f /etc/apt/sources.list.d/openresty.sources ] && cat <<'EOF' >/etc/apt/sources.list.d/openresty.sources
 Types: deb
 URIs: http://openresty.org/package/debian/
 Suites: bookworm
