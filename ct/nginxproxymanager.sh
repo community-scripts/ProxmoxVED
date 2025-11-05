@@ -146,6 +146,16 @@ EOF
   msg_ok "Initialized Backend"
   
   msg_info "Updating Certbot"
+  curl -fsSL "https://openresty.org/package/pubkey.gpg" | gpg --dearmor -o /etc/apt/trusted.gpg.d/openresty.gpg
+  cat <<'EOF' >/etc/apt/sources.list.d/openresty.sources
+Types: deb
+URIs: http://openresty.org/package/debian/
+Suites: bookworm
+Components: openresty
+Signed-By: /etc/apt/trusted.gpg.d/openresty.gpg
+EOF
+  $STD apt update
+  $STD apt -y install openresty
   if [ -d /opt/certbot ]; then
     $STD /opt/certbot/bin/pip install --upgrade pip setuptools wheel
     $STD /opt/certbot/bin/pip install --upgrade certbot certbot-dns-cloudflare
