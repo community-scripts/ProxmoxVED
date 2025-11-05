@@ -118,6 +118,7 @@ cleanup_legacy_install() {
       msg_info "Removing legacy nvm installation"
       rm -rf "$HOME/.nvm" "$HOME/.npm" "$HOME/.bower" "$HOME/.config/yarn" 2>/dev/null || true
       sed -i '/NVM_DIR/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
+      msg_ok "Legacy nvm installation removed"
     fi
     ;;
   ruby)
@@ -125,6 +126,7 @@ cleanup_legacy_install() {
       msg_info "Removing legacy rbenv installation"
       rm -rf "$HOME/.rbenv" 2>/dev/null || true
       sed -i '/rbenv/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
+      msg_ok "Legacy rbenv installation removed"
     fi
     ;;
   rust)
@@ -132,6 +134,7 @@ cleanup_legacy_install() {
       msg_info "Removing legacy rustup installation"
       rm -rf "$HOME/.cargo" "$HOME/.rustup" 2>/dev/null || true
       sed -i '/cargo/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
+      msg_ok "Legacy rustup installation removed"
     fi
     ;;
   go | golang)
@@ -139,6 +142,7 @@ cleanup_legacy_install() {
       msg_info "Removing legacy Go workspace"
       # Keep user code, just remove GOPATH env
       sed -i '/GOPATH/d' "$HOME/.bashrc" "$HOME/.profile" 2>/dev/null || true
+      msg_ok "Legacy Go workspace cleaned"
     fi
     ;;
   esac
@@ -1129,13 +1133,13 @@ ensure_apt_working() {
   cleanup_orphaned_sources
 
   # Try to update package lists
-  if ! apt update -qq 2>/dev/null; then
+  if ! $STD apt update; then
     # More aggressive cleanup
     rm -f /etc/apt/sources.list.d/*.sources 2>/dev/null || true
     cleanup_orphaned_sources
 
     # Try again
-    if ! apt update -qq 2>/dev/null; then
+    if ! $STD apt update; then
       msg_error "Cannot update package lists - APT is critically broken"
       return 1
     fi
