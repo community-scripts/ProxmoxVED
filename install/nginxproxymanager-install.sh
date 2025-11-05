@@ -108,7 +108,6 @@ fi
 
 mkdir -p /app/global /app/frontend/images
 cp -r /opt/nginxproxymanager/backend/* /app
-cp -r /opt/nginxproxymanager/global/* /app/global
 msg_ok "Set up Environment"
 
 msg_info "Building Frontend"
