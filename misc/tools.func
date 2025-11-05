@@ -3286,6 +3286,9 @@ function setup_nodejs() {
   local NODE_VERSION="${NODE_VERSION:-22}"
   local NODE_MODULE="${NODE_MODULE:-}"
 
+  # ALWAYS clean up legacy installations first (nvm, etc.) to prevent conflicts
+  cleanup_legacy_install "nodejs"
+
   # Get currently installed version
   local CURRENT_NODE_VERSION=""
   CURRENT_NODE_VERSION=$(is_tool_installed "nodejs" 2>/dev/null) || true
@@ -3318,9 +3321,6 @@ function setup_nodejs() {
     else
       msg_info "Setup Node.js $NODE_VERSION"
     fi
-
-    # Clean up legacy installations (nvm, etc.)
-    cleanup_legacy_install "nodejs"
 
     # Remove ALL Debian nodejs packages BEFORE adding NodeSource repo
     if dpkg -l 2>/dev/null | grep -qE "^ii.*(nodejs|libnode|node-cjs|node-acorn|node-balanced|node-brace|node-minimatch|node-undici|node-xtend|node-corepack)"; then
