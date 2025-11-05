@@ -8,8 +8,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="Nginx Proxy Manager"
 var_tags="${var_tags:-proxy}"
 var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-1024}"
-var_disk="${var_disk:-4}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -114,7 +114,7 @@ function update_script() {
   msg_ok "Set up Environment"
 
   msg_info "Building Frontend"
-  export NODE_OPTIONS="--max_old_space_size=1024 --openssl-legacy-provider"
+  export NODE_OPTIONS="--max_old_space_size=2048 --openssl-legacy-provider"
   cd /opt/nginxproxymanager/frontend
   # Replace node-sass with sass in package.json before installation
   sed -E -i 's/"node-sass" *: *"([^"]*)"/"sass": "\1"/g' package.json
