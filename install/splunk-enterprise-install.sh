@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-
-# Copyright (c) 2021-2025 Community-Scripts ORG
+# Copyright (c) 2021-2025 community-scripts ORG
 # Author: rcastley
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://www.splunk.com/en_us/download.html
@@ -46,16 +45,14 @@ done
 DOWNLOAD_URL=$(curl -s "https://www.splunk.com/en_us/download/splunk-enterprise.html" | grep -o 'data-link="[^"]*' | sed 's/data-link="//' | grep "https.*products/splunk/releases" | grep "\.deb$")
 RELEASE=$(echo "$DOWNLOAD_URL" | sed 's|.*/releases/\([^/]*\)/.*|\1|')
 
-msg_info "Downloading Splunk Enterprise"
+msg_info "Setup Splunk Enterprise"
 $STD curl -fsSL -o "splunk-enterprise.deb" "$DOWNLOAD_URL" || {
     msg_error "Failed to download Splunk Enterprise from the provided link."
     exit 1
 }
-msg_ok "Downloaded Splunk Enterprise v${RELEASE}"
-
-msg_info "Installing Splunk Enterprise"
 $STD dpkg -i "splunk-enterprise.deb"
-msg_ok "Installed Splunk Enterprise v${RELEASE}"
+rm -f "$DEB_FILE"
+msg_ok "Setup Splunk Enterprise v${RELEASE}"
 
 msg_info "Creating Splunk admin user"
 SPLUNK_HOME="/opt/splunk"
@@ -81,10 +78,4 @@ msg_ok "Splunk Enterprise started"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD rm -f "$DEB_FILE"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
 cleanup_lxc
