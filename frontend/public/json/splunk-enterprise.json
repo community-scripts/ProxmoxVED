@@ -33,7 +33,7 @@
     },
     "notes": [
         {
-            "text": "The credentials to login can be found in application.creds.",
+            "text": "The credentials to login can be found in splunk.creds.",
             "type": "info"
         }
     ]

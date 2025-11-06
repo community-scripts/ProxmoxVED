@@ -13,7 +13,6 @@ setting_up_container
 network_check
 update_os
 
-# Prompt user to accept Splunk General Terms
 echo -e "${TAB3}┌─────────────────────────────────────────────────────────────────────────┐"
 echo -e "${TAB3}│                          SPLUNK GENERAL TERMS                           │"
 echo -e "${TAB3}└─────────────────────────────────────────────────────────────────────────┘"
@@ -49,43 +48,28 @@ DEB_URL=$(curl -s "$URL" | grep -o 'data-link="[^"]*' | sed 's/data-link="//' | 
 VERSION=$(echo "$DEB_URL" | sed 's|.*/releases/\([^/]*\)/.*|\1|')
 DEB_FILE="splunk-enterprise.deb"
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y curl
-msg_ok "Installed Dependencies"
-
 msg_info "Downloading Splunk Enterprise"
-
 $STD curl -fsSL -o "$DEB_FILE" "$DEB_URL" || {
     msg_error "Failed to download Splunk Enterprise from the provided link."
     exit 1
 }
-
 msg_ok "Downloaded Splunk Enterprise v${VERSION}"
 
 msg_info "Installing Splunk Enterprise"
-
-$STD dpkg -i "$DEB_FILE" || {
-    msg_error "Failed to install Splunk Enterprise. Please check the .deb file."
-    exit 1
-}
-
+$STD dpkg -i "$DEB_FILE"
 msg_ok "Installed Splunk Enterprise v${VERSION}"
 
 msg_info "Creating Splunk admin user"
-# Define the target directory and file based on version
 SPLUNK_HOME="/opt/splunk"
-
-TARGET_DIR="${SPLUNK_HOME}/etc/system/local"
-TARGET_FILE="${TARGET_DIR}/user-seed.conf"
 ADMIN_USER="admin"
 ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 {
-    echo "Application-Credentials"
+    echo "Splunk-Credentials"
     echo "Username: $ADMIN_USER"
     echo "Password: $ADMIN_PASS"
-} >> ~/application.creds
+} >> ~/splunk.creds
 
-cat > "$TARGET_FILE" << EOF
+cat > "${SPLUNK_HOME}/etc/system/local/user-seed.conf" << EOF
 [user_info]
 USERNAME = $ADMIN_USER
 PASSWORD = $ADMIN_PASS
@@ -93,10 +77,8 @@ EOF
 msg_ok "Created Splunk admin user"
 
 msg_info "Starting Splunk Enterprise"
-
 $STD ${SPLUNK_HOME}/bin/splunk start --accept-license --answer-yes --no-prompt
 $STD ${SPLUNK_HOME}/bin/splunk enable boot-start
-
 msg_ok "Splunk Enterprise started"
 
 motd_ssh
@@ -107,3 +89,4 @@ $STD rm -f "$DEB_FILE"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
+cleanup_lxc
