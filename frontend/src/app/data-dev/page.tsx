@@ -29,7 +29,7 @@ const DataFetcher: React.FC = () => {
     const fetchPaginatedData = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`https://api.htl-braunau.at/dev/data/paginated?page=${currentPage}&limit=${itemsPerPage === 0 ? '' : itemsPerPage}`);
+        const response = await fetch(`https://api.htl-braunau.at/data/paginated?page=${currentPage}&limit=${itemsPerPage === 0 ? '' : itemsPerPage}`);
         if (!response.ok) throw new Error(`Failed to fetch data: ${response.statusText}`);
         const result: DataModel[] = await response.json();
         setData(result);

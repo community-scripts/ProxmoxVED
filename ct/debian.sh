@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
-# Copyright (c) 2021-2025 tteck
-# Author: tteck (tteckster)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://www.debian.org/
+# Source:
 
 APP="Debian"
-var_tags="${var_tags:-os}"
-var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-512}"
-var_disk="${var_disk:-2}"
+var_tags="${var_tags:-}"
+var_cpu="${var_cpu:-4}"
+var_ram="${var_ram:-8192}"
+var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
-var_fuse="${var_fuse:-no}"
-var_tun="${var_tun:-no}"
+#var_fuse="${var_fuse:-no}"
+#var_tun="${var_tun:-no}"
 
 header_info "$APP"
 variables
@@ -30,9 +30,10 @@ function update_script() {
     exit
   fi
   msg_info "Updating $APP LXC"
-  $STD apt-get update
-  $STD apt-get -y upgrade
+  $STD apt update
+  $STD apt upgrade -y
   msg_ok "Updated $APP LXC"
+  cleanup_lxc
   exit
 }
 

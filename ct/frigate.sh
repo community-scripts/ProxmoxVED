@@ -1,38 +1,34 @@
 #!/usr/bin/env bash
-source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
-# Authors: MickLesk (CanbiZ)
+# Authors: MickLesk (CanbiZ) | Co-Author: remz1337
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://frigate.video/
 
-# App Default Values
 APP="Frigate"
 var_tags="${var_tags:-nvr}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-11}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-0}"
 
-# App Output
 header_info "$APP"
-
-# Core
 variables
 color
 catch_errors
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
-  if [[ ! -f /etc/systemd/system/frigate.service ]]; then
-    msg_error "No ${APP} Installation Found!"
+    header_info
+    check_container_storage
+    check_container_resources
+    if [[ ! -f /etc/systemd/system/frigate.service ]]; then
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+    msg_error "To update Frigate, create a new container and transfer your configuration."
     exit
-  fi
-  msg_error "To update Frigate, create a new container and transfer your configuration."
-  exit
 }
 
 start
