@@ -1,0 +1,40 @@
+{
+    "name": "Splunk Enterprise",
+    "slug": "splunk-enterprise",
+    "categories": [
+        9
+    ],
+    "date_created": "2025-11-06",
+    "type": "ct",
+    "updateable": false,
+    "privileged": false,
+    "interface_port": 8000,
+    "documentation": "https://help.splunk.com",
+    "config_path": "",
+    "website": "https://www.splunk.com/en_us/download/splunk-enterprise.html",
+    "logo": "https://www.splunk.com/content/dam/splunk2/en_us/images/icon-library/footer/logo-splunk-corp-rgb-k-web.svg",
+    "description": "Index 500 MB/Day. After 60 days you can convert to a perpetual free license or purchase a Splunk Enterprise license to continue using the expanded functionality designed for enterprise-scale deployments.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/splunk-enterprise.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 20,
+                "os": "Ubuntu",
+                "version": "22.04"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "The credentials to login can be found in application.creds.",
+            "type": "info"
+        }
+    ]
+}
