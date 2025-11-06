@@ -13,7 +13,7 @@
     "config_path": "",
     "website": "https://www.splunk.com/en_us/download/splunk-enterprise.html",
     "logo": "https://www.splunk.com/content/dam/splunk2/en_us/images/icon-library/footer/logo-splunk-corp-rgb-k-web.svg",
-    "description": "Index 500 MB/Day. After 60 days you can convert to a perpetual free license or purchase a Splunk Enterprise license to continue using the expanded functionality designed for enterprise-scale deployments.",
+    "description": "Platform for searching, monitoring, and analyzing machine-generated data at scale for operational intelligence and security.",
     "install_methods": [
         {
             "type": "default",
@@ -34,6 +34,10 @@
     "notes": [
         {
             "text": "The credentials to login can be found in splunk.creds.",
+            "type": "info"
+        },
+        {
+            "text": "Trial license allows indexing 500 MB/Day. After 60 days you can convert to a perpetual free license or purchase a Splunk Enterprise license to continue using the expanded functionality designed for enterprise-scale deployments.",
             "type": "info"
         }
     ]
