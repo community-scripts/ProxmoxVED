@@ -43,21 +43,19 @@ while true; do
     esac
 done
 
-URL="https://www.splunk.com/en_us/download/splunk-enterprise.html"
-DEB_URL=$(curl -s "$URL" | grep -o 'data-link="[^"]*' | sed 's/data-link="//' | grep "https.*products/splunk/releases" | grep "\.deb$")
-VERSION=$(echo "$DEB_URL" | sed 's|.*/releases/\([^/]*\)/.*|\1|')
-DEB_FILE="splunk-enterprise.deb"
+DOWNLOAD_URL=$(curl -s "https://www.splunk.com/en_us/download/splunk-enterprise.html" | grep -o 'data-link="[^"]*' | sed 's/data-link="//' | grep "https.*products/splunk/releases" | grep "\.deb$")
+RELEASE=$(echo "$DOWNLOAD_URL" | sed 's|.*/releases/\([^/]*\)/.*|\1|')
 
 msg_info "Downloading Splunk Enterprise"
-$STD curl -fsSL -o "$DEB_FILE" "$DEB_URL" || {
+$STD curl -fsSL -o "splunk-enterprise.deb" "$DOWNLOAD_URL" || {
     msg_error "Failed to download Splunk Enterprise from the provided link."
     exit 1
 }
-msg_ok "Downloaded Splunk Enterprise v${VERSION}"
+msg_ok "Downloaded Splunk Enterprise v${RELEASE}"
 
 msg_info "Installing Splunk Enterprise"
-$STD dpkg -i "$DEB_FILE"
-msg_ok "Installed Splunk Enterprise v${VERSION}"
+$STD dpkg -i "splunk-enterprise.deb"
+msg_ok "Installed Splunk Enterprise v${RELEASE}"
 
 msg_info "Creating Splunk admin user"
 SPLUNK_HOME="/opt/splunk"
