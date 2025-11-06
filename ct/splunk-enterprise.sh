@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-#source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
-source <(curl -s https://raw.githubusercontent.com/rcastley/ProxmoxVED/refs/heads/splunk-enterprise/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 tteck
 # Author: rcastley
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://www.splunk.com/en_us/download.html
 
-# bash -c "$(curl -fsSL https://raw.githubusercontent.com/rcastley/ProxmoxVED/refs/heads/splunk-enterprise/ct/splunk-enterprise.sh)"
 APP="Splunk-Enterprise"
 var_tags="${var_tags:-monitoring}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-20}"
+var_cpu="${var_cpu:-4}"
+var_ram="${var_ram:-8096}"
+var_disk="${var_disk:-40}"
 var_os="${var_os:-ubuntu}"
 var_version="${var_version:-22.04}"
 var_unprivileged="${var_unprivileged:-1}"
