@@ -20,10 +20,10 @@
             "script": "ct/splunk-enterprise.sh",
             "resources": {
                 "cpu": 4,
-                "ram": 8096,
+                "ram": 8192,
                 "hdd": 40,
                 "os": "Ubuntu",
-                "version": "22.04"
+                "version": "24.04"
             }
         }
     ],
