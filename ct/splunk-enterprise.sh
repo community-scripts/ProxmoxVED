@@ -8,10 +8,10 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="Splunk-Enterprise"
 var_tags="${var_tags:-monitoring}"
 var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-8096}"
+var_ram="${var_ram:-8192}"
 var_disk="${var_disk:-40}"
 var_os="${var_os:-ubuntu}"
-var_version="${var_version:-22.04}"
+var_version="${var_version:-24.04}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
