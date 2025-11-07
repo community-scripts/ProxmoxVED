@@ -31,6 +31,13 @@ DOCKER_CONFIG_PATH='/etc/docker/daemon.json'
 mkdir -p $(dirname $DOCKER_CONFIG_PATH)
 echo -e '{\n  "log-driver": "journald"\n}' >/etc/docker/daemon.json
 $STD sh <(curl -fsSL https://get.docker.com)
+
+# Restart Docker to apply AppArmor workaround (if running in LXC)
+if grep -q "lxc" /proc/1/cgroup 2>/dev/null || systemd-detect-virt -c 2>/dev/null | grep -q lxc; then
+  $STD systemctl restart docker.service
+  sleep 2
+fi
+
 msg_ok "Installed Docker $DOCKER_LATEST_VERSION"
 
 read -r -p "${TAB3}Install Docker Compose v2 plugin? <y/N> " prompt_compose
