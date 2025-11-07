@@ -35,47 +35,54 @@
 # Apply Docker in LXC AppArmor workaround
 # Fixes permission denied errors with containerd.io 1.7.28-2+ and runc 1.3.3
 # See: https://github.com/opencontainers/runc/issues/4968
+#      https://github.com/containerd/containerd/issues/12484
 # Usage: apply_docker_apparmor_workaround
 # ------------------------------------------------------------------------------
 apply_docker_apparmor_workaround() {
-  # Only apply in LXC containers
-  if ! grep -q "lxc" /proc/1/cgroup 2>/dev/null && [ ! -f /.dockerenv ] && ! (systemd-detect-virt -c 2>/dev/null | grep -q lxc); then
+  # Only apply in LXC containers (check multiple indicators)
+  local is_lxc=false
+  if grep -q "lxc" /proc/1/cgroup 2>/dev/null; then
+    is_lxc=true
+  elif systemd-detect-virt -c 2>/dev/null | grep -q lxc; then
+    is_lxc=true
+  elif [ -f /run/systemd/container ] && grep -q lxc /run/systemd/container 2>/dev/null; then
+    is_lxc=true
+  fi
+
+  if [ "$is_lxc" = false ]; then
     return 0
   fi
 
-  # Apply the mount bind workaround
+  msg_info "Applying Docker AppArmor workaround for LXC"
+
+  # Apply the mount bind workaround immediately
   if [ -f /sys/module/apparmor/parameters/enabled ]; then
     mount --bind /dev/null /sys/module/apparmor/parameters/enabled 2>/dev/null || true
   fi
 
-  # Make the workaround persistent across reboots
-  if ! grep -q "mount --bind /dev/null /sys/module/apparmor/parameters/enabled" /etc/rc.local 2>/dev/null; then
-    if [ ! -f /etc/rc.local ]; then
-      cat >/etc/rc.local <<'RCLOCAL'
-#!/bin/bash
-# AppArmor workaround for Docker in LXC
-if [ -f /sys/module/apparmor/parameters/enabled ]; then
-  mount --bind /dev/null /sys/module/apparmor/parameters/enabled 2>/dev/null || true
-fi
-exit 0
-RCLOCAL
-      chmod +x /etc/rc.local
-    else
-      # Remove existing exit 0 if present
-      sed -i '/^exit 0/d' /etc/rc.local
-      # Add workaround if not already present
-      if ! grep -q "AppArmor workaround for Docker in LXC" /etc/rc.local; then
-        cat >>/etc/rc.local <<'RCLOCAL'
-# AppArmor workaround for Docker in LXC
-if [ -f /sys/module/apparmor/parameters/enabled ]; then
-  mount --bind /dev/null /sys/module/apparmor/parameters/enabled 2>/dev/null || true
-fi
-RCLOCAL
-      fi
-      # Re-add exit 0 at the end
-      echo "exit 0" >>/etc/rc.local
-    fi
-  fi
+  # Create systemd service for persistence (preferred over rc.local)
+  cat >/etc/systemd/system/docker-apparmor-workaround.service <<'EOF'
+[Unit]
+Description=Docker AppArmor workaround for LXC
+Documentation=https://github.com/opencontainers/runc/issues/4968
+Before=docker.service containerd.service
+ConditionPathExists=/sys/module/apparmor/parameters/enabled
+
+[Service]
+Type=oneshot
+ExecStart=/bin/mount --bind /dev/null /sys/module/apparmor/parameters/enabled
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  # Enable and start the service
+  $STD systemctl daemon-reload
+  $STD systemctl enable docker-apparmor-workaround.service
+  $STD systemctl start docker-apparmor-workaround.service 2>/dev/null || true
+
+  msg_ok "Applied Docker AppArmor workaround"
 }
 
 # ------------------------------------------------------------------------------
