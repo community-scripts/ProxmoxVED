@@ -69,6 +69,7 @@ cat <<EOF >/etc/apache2/sites-enabled/000-default.conf
     </Directory>
 </VirtualHost>
 EOF
+chown -R www-data:www-data /opt/domain-monitor
 $STD a2enmod rewrite headers
 $STD systemctl reload apache2
 msg_ok "Setup Domain Monitor"
