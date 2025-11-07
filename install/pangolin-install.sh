@@ -24,7 +24,7 @@ fetch_and_deploy_gh_release "pangolin" "fosrl/pangolin" "tarball"
 fetch_and_deploy_gh_release "gerbil" "fosrl/gerbil" "singlefile" "latest" "/usr/bin" "gerbil_linux_amd64"
 fetch_and_deploy_gh_release "traefik" "traefik/traefik" "prebuild" "latest" "/usr/bin" "traefik_v*_linux_amd64.tar.gz"
 
-read -rp "${TAB3}Enter your Pangolin URL: " pango_url
+read -rp "${TAB3}Enter your Pangolin URL (ex: https://pangolin.example.com): " pango_url
 read -rp "${TAB3}Enter your email address: " pango_email
 
 msg_info "Setup Pangolin"
@@ -70,7 +70,7 @@ flags:
   disable_user_create_org: false
 EOF
 
-cat <<EOF >/opt/pangolin/config/traefik/traefik_config.yaml
+cat <<EOF >/opt/pangolin/config/traefik/traefik_config.yml
 api:
   insecure: true
   dashboard: true
