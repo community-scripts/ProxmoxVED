@@ -139,7 +139,7 @@ http:
 
     # Next.js router (handles everything except API and WebSocket paths)
     next-router:
-      rule: "Host(\`$pango_url\`) && !PathPrefix($(/api/v1))"
+      rule: "Host(\`$pango_url\`) && !PathPrefix(\`/api/v1\`)"
       service: next-service
       entryPoints:
         - websecure
@@ -148,7 +148,7 @@ http:
 
     # API router (handles /api/v1 paths)
     api-router:
-      rule: "Host(\`$pango_url\`) && PathPrefix($(/api/v1))"
+      rule: "Host(\`$pango_url\`) && PathPrefix(\`/api/v1\`)"
       service: api-service
       entryPoints:
         - websecure
