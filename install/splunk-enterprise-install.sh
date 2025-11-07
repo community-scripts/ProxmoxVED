@@ -42,12 +42,9 @@ while true; do
     esac
 done
 
-msg_info "Getting Splunk Enterprise download link"
+msg_info "Setup Splunk Enterprise"
 DOWNLOAD_URL=$(curl -s "https://www.splunk.com/en_us/download/splunk-enterprise.html" | grep -o 'data-link="[^"]*' | sed 's/data-link="//' | grep "https.*products/splunk/releases" | grep "\.deb$")
 RELEASE=$(echo "$DOWNLOAD_URL" | sed 's|.*/releases/\([^/]*\)/.*|\1|')
-msg_ok "Got Splunk Enterprise v${RELEASE} download link"
-
-msg_info "Setup Splunk Enterprise"
 $STD curl -fsSL -o "splunk-enterprise.deb" "$DOWNLOAD_URL" || {
     msg_error "Failed to download Splunk Enterprise from the provided link."
     exit 1
@@ -57,7 +54,6 @@ rm -f "splunk-enterprise.deb"
 msg_ok "Setup Splunk Enterprise v${RELEASE}"
 
 msg_info "Creating Splunk admin user"
-SPLUNK_HOME="/opt/splunk"
 ADMIN_USER="admin"
 ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 {
@@ -66,17 +62,17 @@ ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
     echo "Password: $ADMIN_PASS"
 } >> ~/splunk.creds
 
-cat > "${SPLUNK_HOME}/etc/system/local/user-seed.conf" << EOF
+cat > "/opt/splunk/etc/system/local/user-seed.conf" << EOF
 [user_info]
 USERNAME = $ADMIN_USER
 PASSWORD = $ADMIN_PASS
 EOF
 msg_ok "Created Splunk admin user"
 
-msg_info "Starting Splunk Enterprise"
-$STD ${SPLUNK_HOME}/bin/splunk start --accept-license --answer-yes --no-prompt
-$STD ${SPLUNK_HOME}/bin/splunk enable boot-start
-msg_ok "Splunk Enterprise started"
+msg_info "Starting Service"
+$STD /opt/splunk/bin/splunk start --accept-license --answer-yes --no-prompt
+$STD /opt/splunk/bin/splunk enable boot-start
+msg_ok "Started Service"
 
 motd_ssh
 customize
