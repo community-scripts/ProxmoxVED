@@ -3899,7 +3899,7 @@ function setup_postgresql_db() {
   fi
 
   # Save credentials
-  local CREDS_FILE="${DB_CREDS_FILE:-~/pg_${DB_NAME}.creds}"
+  local CREDS_FILE="${DB_CREDS_FILE:-~/${APPLICATION}.creds}"
   {
     echo "PostgreSQL Credentials"
     echo "Database: $DB_NAME"
