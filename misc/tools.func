@@ -27,8 +27,56 @@
 #   prepare_repository_setup()       - Cleanup repos + keyrings + validate APT
 #   install_packages_with_retry()    - Install with 3 retries and APT refresh
 #   upgrade_packages_with_retry()    - Upgrade with 3 retries and APT refresh
+#   apply_docker_apparmor_workaround() - Fix Docker in LXC AppArmor issues
 #
 # ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Apply Docker in LXC AppArmor workaround
+# Fixes permission denied errors with containerd.io 1.7.28-2+ and runc 1.3.3
+# See: https://github.com/opencontainers/runc/issues/4968
+# Usage: apply_docker_apparmor_workaround
+# ------------------------------------------------------------------------------
+apply_docker_apparmor_workaround() {
+  # Only apply in LXC containers
+  if ! grep -q "lxc" /proc/1/cgroup 2>/dev/null && [ ! -f /.dockerenv ] && ! (systemd-detect-virt -c 2>/dev/null | grep -q lxc); then
+    return 0
+  fi
+
+  # Apply the mount bind workaround
+  if [ -f /sys/module/apparmor/parameters/enabled ]; then
+    mount --bind /dev/null /sys/module/apparmor/parameters/enabled 2>/dev/null || true
+  fi
+
+  # Make the workaround persistent across reboots
+  if ! grep -q "mount --bind /dev/null /sys/module/apparmor/parameters/enabled" /etc/rc.local 2>/dev/null; then
+    if [ ! -f /etc/rc.local ]; then
+      cat >/etc/rc.local <<'RCLOCAL'
+#!/bin/bash
+# AppArmor workaround for Docker in LXC
+if [ -f /sys/module/apparmor/parameters/enabled ]; then
+  mount --bind /dev/null /sys/module/apparmor/parameters/enabled 2>/dev/null || true
+fi
+exit 0
+RCLOCAL
+      chmod +x /etc/rc.local
+    else
+      # Remove existing exit 0 if present
+      sed -i '/^exit 0/d' /etc/rc.local
+      # Add workaround if not already present
+      if ! grep -q "AppArmor workaround for Docker in LXC" /etc/rc.local; then
+        cat >>/etc/rc.local <<'RCLOCAL'
+# AppArmor workaround for Docker in LXC
+if [ -f /sys/module/apparmor/parameters/enabled ]; then
+  mount --bind /dev/null /sys/module/apparmor/parameters/enabled 2>/dev/null || true
+fi
+RCLOCAL
+      fi
+      # Re-add exit 0 at the end
+      echo "exit 0" >>/etc/rc.local
+    fi
+  fi
+}
 
 # ------------------------------------------------------------------------------
 # Cache installed version to avoid repeated checks
