@@ -33,13 +33,21 @@ function update_script() {
         systemctl stop apache2
         msg_info "Service stopped"
 
+        msg_info "Creating backup"
+        mv /opt/domain-monitor/.env /opt
+        msg_ok "Created backup"
+
         setup_composer
-        fetch_and_deploy_gh_release "domain-monitor" "Hosteroid/domain-monitor" "prebuild" "latest" "/opt/domain-monitor" "domain-monitor-v*.zip"
+        CLEAN_INSTALL=1 fetch_and_deploy_gh_release "domain-monitor" "Hosteroid/domain-monitor" "prebuild" "latest" "/opt/domain-monitor" "domain-monitor-v*.zip"
 
         msg_info "Updating Domain Monitor"
         cd /opt/domain-monitor
         $STD composer install
         msg_ok "Updated Domain Monitor"
+
+        msg_info "Restoring backup"
+        mv /opt/.env /opt/domain-monitor
+        msg_ok "Restored backup"
 
         msg_info "Restarting Services"
         systemctl reload apache2
