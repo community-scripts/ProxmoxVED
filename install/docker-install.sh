@@ -13,10 +13,6 @@ setting_up_container
 network_check
 update_os
 
-# Apply AppArmor workaround BEFORE installing Docker
-# See: https://github.com/opencontainers/runc/issues/4968
-apply_docker_apparmor_workaround
-
 get_latest_release() {
   curl -fsSL https://api.github.com/repos/"$1"/releases/latest | grep '"tag_name":' | cut -d'"' -f4
 }
@@ -31,14 +27,13 @@ DOCKER_CONFIG_PATH='/etc/docker/daemon.json'
 mkdir -p $(dirname $DOCKER_CONFIG_PATH)
 echo -e '{\n  "log-driver": "journald"\n}' >/etc/docker/daemon.json
 $STD sh <(curl -fsSL https://get.docker.com)
-
-# Restart Docker to apply AppArmor workaround (if running in LXC)
-if grep -q "lxc" /proc/1/cgroup 2>/dev/null || systemd-detect-virt -c 2>/dev/null | grep -q lxc; then
-  $STD systemctl restart docker.service
-  sleep 2
-fi
-
 msg_ok "Installed Docker $DOCKER_LATEST_VERSION"
+
+# Apply AppArmor workaround BEFORE installing Docker
+# See: https://github.com/opencontainers/runc/issues/4968
+apply_docker_apparmor_workaround
+# Restart Docker to apply AppArmor workaround (if running in LXC)
+$STD systemctl restart docker
 
 read -r -p "${TAB3}Install Docker Compose v2 plugin? <y/N> " prompt_compose
 if [[ ${prompt_compose,,} =~ ^(y|yes)$ ]]; then
