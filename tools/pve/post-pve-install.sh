@@ -189,7 +189,7 @@ start_routines_9() {
   # check if deb822 Sources (*.sources) exist
   if find /etc/apt/sources.list.d/ -maxdepth 1 -name '*.sources' | grep -q .; then
     whiptail --backtitle "Proxmox VE Helper Scripts" --title "Deb822 sources detected" \
-      --msgbox "Modern deb822 sources (*.sources) already exist.\n\nNo changes to sources format required.\n\nYou may still have legacy sources.list or .list files, which you can disable in the next step." 12 65
+      --msgbox "Modern deb822 sources (*.sources) already exist.\n\nNo changes to sources format required.\n\nYou may still have legacy sources.list or .list files, which you can disable in the next step." 12 65 || true
   else
     check_and_disable_legacy_sources() {
       local LEGACY_COUNT=0
@@ -197,7 +197,7 @@ start_routines_9() {
 
       # Check sources.list
       if [[ -f "$listfile" ]] && grep -qE '^\s*deb ' "$listfile"; then
-        ((LEGACY_COUNT++))
+        (( ++LEGACY_COUNT ))
       fi
 
       # Check .list files
@@ -370,7 +370,6 @@ EOF
   REPO_FILE=""
   REPO_ACTIVE=0
   REPO_COMMENTED=0
-  # Suche nach existierendem Block (aktiv oder auskommentiert)
   for file in /etc/apt/sources.list.d/*.sources; do
     if grep -q "Components:.*pve-no-subscription" "$file"; then
       REPO_FILE="$file"
@@ -481,24 +480,24 @@ EOF
   fi
 
   # ---- PVETEST ----
-  if component_exists_in_sources "pvetest"; then
-    msg_ok "'pvetest' repository already exists (skipped)"
+  if component_exists_in_sources "pve-test"; then
+    msg_ok "'pve-test' repository already exists (skipped)"
   else
     CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "PVETEST" \
-      --menu "The 'pvetest' repository can give advanced users access to new features and updates before they are officially released.\n\nAdd (Disabled) 'pvetest' repository (deb822)?" 14 58 2 \
+      --menu "The 'pve-test' repository can give advanced users access to new features and updates before they are officially released.\n\nAdd (Disabled) 'pvetest' repository (deb822)?" 14 58 2 \
       "yes" " " \
       "no" " " 3>&2 2>&1 1>&3)
     case $CHOICE in
     yes)
-      msg_info "Adding 'pvetest' repository (deb822, disabled)"
-      cat >/etc/apt/sources.list.d/pvetest.sources <<EOF
+      msg_info "Adding 'pve-test' repository (deb822, disabled)"
+      cat >/etc/apt/sources.list.d/pve-test.sources <<EOF
 # Types: deb
 # URIs: http://download.proxmox.com/debian/pve
 # Suites: trixie
-# Components: pvetest
+# Components: pve-test
 # Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
 EOF
-      msg_ok "Added 'pvetest' repository"
+      msg_ok "Added 'pve-test' repository"
       ;;
     no) msg_error "Selected no to Adding 'pvetest' repository" ;;
     esac
@@ -515,11 +514,62 @@ post_routines_common() {
   yes)
     whiptail --backtitle "Proxmox VE Helper Scripts" --msgbox --title "Support Subscriptions" "Supporting the software's development team is essential. Check their official website's Support Subscriptions for pricing. Without their dedicated work, we wouldn't have this exceptional software." 10 58
     msg_info "Disabling subscription nag"
-    encoded_script=$(base64 -w0 <<'EOF'
-[ -s /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js ] && ! grep -q -F 'NoMoreNagging' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js && echo 'Removing subscription nag from UI...' && sed -i '/data\.status/{s/\!//;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; [ -s /usr/share/pve-yew-mobile-gui/index.html.tpl ] && sed -i '/<script id="custom-close-subscription-nag-js">.*<\/script>/d' /usr/share/pve-yew-mobile-gui/index.html.tpl && sed -i '/<\/head>/i <script id="custom-close-subscription-nag-js">document.addEventListener("DOMContentLoaded",()=>{let e=new MutationObserver(()=>{let t=document.querySelector('\''dialog.pwt-outer-dialog[aria-label="No valid subscription"]'\'');if(t){let i=t.querySelector(".fa-close");t.style.visibility="hidden",t.removeAttribute("open"),i&&i.click(),e.disconnect()}});e.observe(document.body,{childList:!0,subtree:!0})});</script>' /usr/share/pve-yew-mobile-gui/index.html.tpl
+    # Create external script, this is needed because DPkg::Post-Invoke is fidly with quote interpretation
+    mkdir -p /usr/local/bin
+    cat >/usr/local/bin/pve-remove-nag.sh <<'EOF'
+#!/bin/sh
+WEB_JS=/usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
+if [ -s "$WEB_JS" ] && ! grep -q NoMoreNagging "$WEB_JS"; then
+    echo "Patching Web UI nag..."
+    sed -i -e "/data\.status/ s/!//" -e "/data\.status/ s/active/NoMoreNagging/" "$WEB_JS"
+fi
+
+MOBILE_TPL=/usr/share/pve-yew-mobile-gui/index.html.tpl
+MARKER="<!-- MANAGED BLOCK FOR MOBILE NAG -->"
+if [ -f "$MOBILE_TPL" ] && ! grep -q "$MARKER" "$MOBILE_TPL"; then
+    echo "Patching Mobile UI nag..."
+    printf "%s\n" \
+      "$MARKER" \
+      "<script>" \
+      "  function removeSubscriptionElements() {" \
+      "    // --- Remove subscription dialogs ---" \
+      "    const dialogs = document.querySelectorAll('dialog.pwt-outer-dialog');" \
+      "    dialogs.forEach(dialog => {" \
+      "      const text = (dialog.textContent || '').toLowerCase();" \
+      "      if (text.includes('subscription')) {" \
+      "        dialog.remove();" \
+      "        console.log('Removed subscription dialog');" \
+      "      }" \
+      "    });" \
+      "" \
+      "    // --- Remove subscription cards, but keep Reboot/Shutdown/Console ---" \
+      "    const cards = document.querySelectorAll('.pwt-card.pwt-p-2.pwt-d-flex.pwt-interactive.pwt-justify-content-center');" \
+      "    cards.forEach(card => {" \
+      "      const text = (card.textContent || '').toLowerCase();" \
+      "      const hasButton = card.querySelector('button');" \
+      "      if (!hasButton && text.includes('subscription')) {" \
+      "        card.remove();" \
+      "        console.log('Removed subscription card');" \
+      "      }" \
+      "    });" \
+      "  }" \
+      "" \
+      "  const observer = new MutationObserver(removeSubscriptionElements);" \
+      "  observer.observe(document.body, { childList: true, subtree: true });" \
+      "  removeSubscriptionElements();" \
+      "  setInterval(removeSubscriptionElements, 300);" \
+      "  setTimeout(() => {observer.disconnect();}, 10000);" \
+      "</script>" \
+      "" >> "$MOBILE_TPL"
+fi
 EOF
-)
-    echo "DPkg::Post-Invoke { \"echo $encoded_script | base64 -d | bash\"; };" > /etc/apt/apt.conf.d/no-nag-script
+    chmod 755 /usr/local/bin/pve-remove-nag.sh
+
+    cat >/etc/apt/apt.conf.d/no-nag-script <<'EOF'
+DPkg::Post-Invoke { "/usr/local/bin/pve-remove-nag.sh"; };
+EOF
+    chmod 644 /etc/apt/apt.conf.d/no-nag-script
+
     msg_ok "Disabled subscription nag (Delete browser cache)"
     ;;
   no)
