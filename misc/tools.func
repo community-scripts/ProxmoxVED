@@ -55,26 +55,30 @@ apply_docker_apparmor_workaround() {
 
   msg_info "Applying Docker AppArmor workaround for LXC"
 
-  # Apply the mount bind workaround immediately
+  # Method 1: Mount bind /dev/null over AppArmor enabled file
   if [ -f /sys/module/apparmor/parameters/enabled ]; then
+    # Unmount first if already mounted
+    umount /sys/module/apparmor/parameters/enabled 2>/dev/null || true
+    # Apply mount
     mount --bind /dev/null /sys/module/apparmor/parameters/enabled 2>/dev/null || true
   fi
 
-  # Create systemd service for persistence (preferred over rc.local)
+  # Method 2: Create systemd service for persistence
   cat >/etc/systemd/system/docker-apparmor-workaround.service <<'EOF'
 [Unit]
 Description=Docker AppArmor workaround for LXC
 Documentation=https://github.com/opencontainers/runc/issues/4968
 Before=docker.service containerd.service
-ConditionPathExists=/sys/module/apparmor/parameters/enabled
+DefaultDependencies=no
 
 [Service]
 Type=oneshot
+ExecStartPre=-/bin/umount /sys/module/apparmor/parameters/enabled
 ExecStart=/bin/mount --bind /dev/null /sys/module/apparmor/parameters/enabled
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=sysinit.target
 EOF
 
   # Enable and start the service
@@ -82,7 +86,12 @@ EOF
   $STD systemctl enable docker-apparmor-workaround.service
   $STD systemctl start docker-apparmor-workaround.service 2>/dev/null || true
 
-  msg_ok "Applied Docker AppArmor workaround"
+  # Verify the mount is active
+  if mount | grep -q "on /sys/module/apparmor/parameters/enabled"; then
+    msg_ok "Applied Docker AppArmor workaround"
+  else
+    msg_warn "AppArmor workaround may not be active - please check 'mount | grep apparmor'"
+  fi
 }
 
 # ------------------------------------------------------------------------------
