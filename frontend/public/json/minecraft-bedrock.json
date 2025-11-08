@@ -1,0 +1,30 @@
+{
+  "name": "Minecraft Bedrock",
+  "slug": "minicraft-bedrock",
+  "categories": [
+    24
+  ],
+  "date_created": "2025-11-08",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "config_path": "/minecraft/server.properties",
+  "interface_port": "19132",
+  "website": "https://www.minecraft.net",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/minecraft.svg"
+  "description": "Microsoft Minicraft Bedrock server.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/minicraft-bedrock.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 2048,
+        "hdd": 2,
+        "os": "Ubuntu",
+        "version": "24.04"
+      }
+    }
+  ],
+  "notes": []
+}
