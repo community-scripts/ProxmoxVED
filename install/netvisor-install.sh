@@ -48,7 +48,7 @@ $STD npm ci --no-fund --no-audit
 $STD npm run build
 msg_ok "Created frontend UI"
 
-msg_info "Building backend server"
+msg_info "Building backend server (patience)"
 cd /opt/netvisor/backend
 $STD cargo build --release --bin server
 mv ./target/release/server /usr/bin/netvisor-server
@@ -63,24 +63,35 @@ msg_ok "Built Netvisor-daemon (amd64 version)"
 
 msg_info "Configuring server & daemon for first-run"
 cat <<EOF >/opt/netvisor/.env
-## - UI
+### - UI
 PUBLIC_SERVER_HOSTNAME=default
+## - comment out below when using reverse proxy
 PUBLIC_SERVER_PORT=60072
 
-## - SERVER
+### - SERVER
 NETVISOR_DATABASE_URL=postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME
 NETVISOR_WEB_EXTERNAL_PATH="/opt/netvisor/ui/build"
 NETVISOR_SERVER_PORT=60072
 NETVISOR_LOG_LEVEL=info
-## - OIDC (optional)
-# oidc config here
+NETVISOR_INTEGRATED_DAEMON_URL=http://127.0.0.1:60073
+## - uncomment to disable signups
+# NETVISOR_DISABLE_REGISTRATION=true
+## - uncomment when behind reverse proxy
+# NETVISOR_USE_SECURE_SESSION_COKKIES=true
 
-## - DAEMON
+### - OIDC (optional)
+# NETVISOR_OIDC_ISSUER_URL=
+# NETVISOR_OIDC_CLIENT_ID=
+# NETVISOR_OIDC_CLIENT_SECRET=
+# NETVISOR_OIDC_PROVIDER_NAME=
+## - Callback URL for reference
+# http://your-netvisor-domain:60072/api/auth/oidc/callback
+
+### - INTEGRATED DAEMON
 NETVISOR_SERVER_TARGET=127.0.0.1
 NETVISOR_BIND_ADDRESS=0.0.0.0
 NETVISOR_NAME="netvisor-daemon"
 NETVISOR_HEARTBEAT_INTERVAL=30
-NETVISOR_INTEGRATED_DAEMON_URL=http://127.0.0.1:60073
 EOF
 
 cat <<EOF >/etc/systemd/system/netvisor-server.service

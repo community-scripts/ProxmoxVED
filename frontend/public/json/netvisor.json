@@ -31,5 +31,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "The integrated daemon config is located at `/root/.config/daemon/config.json`",
+      "type": "info"
+    }
+  ]
 }

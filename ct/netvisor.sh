@@ -49,7 +49,7 @@ function update_script() {
     $STD npm run build
     msg_ok "Created frontend UI"
 
-    msg_info "Building backend server"
+    msg_info "Building backend server (patience)"
     cd /opt/netvisor/backend
     $STD cargo build --release --bin server
     mv ./target/release/server /usr/bin/netvisor-server
