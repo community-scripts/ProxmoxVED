@@ -100,6 +100,7 @@ WantedBy=multi-user.target
 EOF
 
 systemctl -q enable --now netvisor-server
+sleep 5
 NETWORK_ID="$(sudo -u postgres psql -1 -t -d $DB_NAME -c 'SELECT id FROM networks;')"
 API_KEY="$(sudo -u postgres psql -1 -t -d $DB_NAME -c 'SELECT key from api_keys;')"
 
@@ -108,10 +109,10 @@ cat <<EOF >/etc/systemd/system/netvisor-daemon.service
 Description=Netvisor daemon
 After=network.target netvisor-server.service
 
-[Unit]
+[Service]
 Type=simple
 EnvironmentFile=/opt/netvisor/.env
-ExecStart=/usr/bin/netvisor-daemon --server-target http://127.0.0.1 --server-port 60072 --network-id $NETWORK_ID --daemon-api-key $API_KEY
+ExecStart=/usr/bin/netvisor-daemon --server-target http://127.0.0.1 --server-port 60072 --network-id ${NETWORK_ID} --daemon-api-key ${API_KEY}
 Restart=always
 RestartSec=10
 
