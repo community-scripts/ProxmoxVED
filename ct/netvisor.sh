@@ -40,6 +40,9 @@ function update_script() {
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "netvisor" "mayanayza/netvisor" "tarball" "latest" "/opt/netvisor"
 
+    TOOLCHAIN="$(grep "channel" /opt/netvisor/backend/rust-toolchain.toml | awk '{print $3}')"
+    RUST_TOOLCHAIN=$TOOLCHAIN setup_rust
+
     mv /opt/netvisor.env /opt/netvisor/.env
     msg_info "Creating frontend UI"
     export PUBLIC_SERVER_HOSTNAME=default
@@ -49,12 +52,12 @@ function update_script() {
     $STD npm run build
     msg_ok "Created frontend UI"
 
-    msg_info "Building backend server (patience)"
+    msg_info "Building Netvisor-server (patience)"
     cd /opt/netvisor/backend
     $STD cargo build --release --bin server
     mv ./target/release/server /usr/bin/netvisor-server
     chmod +x /usr/bin/netvisor-server
-    msg_ok "Built backend server"
+    msg_ok "Built Netvisor-server"
 
     msg_info "Building Netvisor-daemon (amd64 version)"
     $STD cargo build --release --bin daemon
