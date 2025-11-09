@@ -40,7 +40,7 @@ function update_script() {
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "netvisor" "mayanayza/netvisor" "tarball" "latest" "/opt/netvisor"
 
-    TOOLCHAIN="$(grep "channel" /opt/netvisor/backend/rust-toolchain.toml | awk '{print $3}')"
+    TOOLCHAIN="$(grep "channel" /opt/netvisor/backend/rust-toolchain.toml | awk -F\" '{print $2}')"
     RUST_TOOLCHAIN=$TOOLCHAIN setup_rust
 
     mv /opt/netvisor.env /opt/netvisor/.env
