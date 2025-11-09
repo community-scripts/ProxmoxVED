@@ -98,7 +98,7 @@ EOF
 
 cat <<EOF >/etc/systemd/system/netvisor-server.service
 [Unit]
-Description=Netvisor server
+Description=NetVisor Network Discovery Server
 After=network.target postgresql.service
 
 [Service]
@@ -107,6 +107,8 @@ EnvironmentFile=/opt/netvisor/.env
 ExecStart=/usr/bin/netvisor-server
 Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -119,7 +121,7 @@ API_KEY="$(sudo -u postgres psql -1 -t -d $DB_NAME -c 'SELECT key from api_keys;
 
 cat <<EOF >/etc/systemd/system/netvisor-daemon.service
 [Unit]
-Description=Netvisor daemon
+Description=NetVisor Network Discovery Daemon
 After=network.target netvisor-server.service
 
 [Service]
@@ -128,6 +130,8 @@ EnvironmentFile=/opt/netvisor/.env
 ExecStart=/usr/bin/netvisor-daemon --server-target http://127.0.0.1 --server-port 60072 --network-id ${NETWORK_ID} --daemon-api-key ${API_KEY}
 Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
