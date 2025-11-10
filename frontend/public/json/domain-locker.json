@@ -1,0 +1,40 @@
+{
+  "name": "Domain Locker",
+  "slug": "domain-locker",
+  "categories": [
+    9
+  ],
+  "date_created": "2025-11-10",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://domain-locker.com/about",
+  "config_path": "/opt/domain-locker.env",
+  "website": "https://github.com/Lissy93/domain-locker",
+  "logo": "https://raw.githubusercontent.com/Lissy93/domain-locker/refs/heads/main/src/assets/favicon.ico",
+  "description": "The all-in-one tool, for keeping track of your domain name portfolio. Got domain names? Get Domain Locker! ",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/domain-locker.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Show DB credentials: `cat ~/domain-monitor.creds`",
+      "type": "info"
+    }
+  ]
+}
