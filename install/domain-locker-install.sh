@@ -15,9 +15,7 @@ update_os
 
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="domainlocker" PG_DB_USER="domainlocker" setup_postgresql_db
-
-ANGULAR_VERSION=$(curl -s https://raw.githubusercontent.com/Lissy93/domain-locker/refs/heads/main/package-lock.json | jq -r '.packages["node_modules/@angular/build"].version')
-NODE_MODULE="@angular/build@$ANGULAR_VERSION,typescript@5.5" setup_nodejs
+setup_nodejs
 
 fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
@@ -26,6 +24,8 @@ cd /opt/domain-locker
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 corepack enable
 $STD yarn install --immutable
+$STD yarn add @angular/build@$(curl -s https://raw.githubusercontent.com/Lissy93/domain-locker/refs/heads/main/package-lock.json | jq -r '.packages["node_modules/@angular/build"].version')
+$STD yarn add typescript@5.5
 export NODE_OPTIONS="--max-old-space-size=2048"
 cat <<EOF >/opt/domain-locker.env
 # Database connection
