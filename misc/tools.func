@@ -3108,7 +3108,7 @@ function setup_mariadb_db() {
 
   $STD mariadb -u root -e "FLUSH PRIVILEGES;"
 
-  local CREDS_FILE="${DB_CREDS_FILE:-~/mariadb_${DB_NAME}.creds}"
+  local CREDS_FILE="${DB_CREDS_FILE:-~/${APPLICATION}.creds}"
   {
     echo "MariaDB Credentials"
     echo "Database: $DB_NAME"
