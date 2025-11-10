@@ -13,7 +13,8 @@ setting_up_container
 network_check
 update_os
 
-DB_NAME="domainlocker" DB_USER="domainlocker" setup_postgresql_db
+PG_VERSION="17" setup_postgresql
+PG_DB_NAME="domainlocker" PG_DB_USER="domainlocker" setup_postgresql_db
 fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
 msg_info "Building Domain-Locker"
@@ -26,7 +27,7 @@ cat <<EOF >/opt/domain-locker.env
 DL_PG_HOST=localhost
 DL_PG_PORT=5432
 DL_PG_USER=$PG_DB_USER
-DL_PG_PASSWORD=$PG_DB_PASSWORD
+DL_PG_PASSWORD=$PG_DB_PASS
 DL_PG_NAME=$PG_DB_NAME
 
 # Build + Runtime

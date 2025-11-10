@@ -29,7 +29,7 @@ msg_ok "Installed Dependencies"
 PHP_VERSION="8.4" PHP_APACHE="YES" PHP_FPM="YES" PHP_MODULE="mysql" setup_php
 setup_composer
 setup_mariadb
-DB_NAME="domain_monitor" DB_USER="domainmonitor" setup_mariadb_db
+MARIADB_DB_NAME="domain_monitor" MARIADB_DB_USER="domainmonitor" setup_mariadb_db
 fetch_and_deploy_gh_release "domain-monitor" "Hosteroid/domain-monitor" "prebuild" "latest" "/opt/domain-monitor" "domain-monitor-v*.zip"
 
 msg_info "Setting up Domain Monitor"
