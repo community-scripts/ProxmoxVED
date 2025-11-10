@@ -32,21 +32,6 @@ setup_mariadb
 DB_NAME="domain_monitor" DB_USER="domainmonitor" setup_mariadb_db
 fetch_and_deploy_gh_release "domain-monitor" "Hosteroid/domain-monitor" "prebuild" "latest" "/opt/domain-monitor" "domain-monitor-v*.zip"
 
-# msg_info "Configuring Database"
-# DB_NAME=domain_monitor
-# DB_USER=domainmonitor
-# DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-# $STD mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-# $STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-# $STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
-# {
-#   echo "Domain Monitor Credentials"
-#   echo "Database User: $DB_USER"
-#   echo "Database Password: $DB_PASS"
-#   echo "Database Name: $DB_NAME"
-# } >>~/domain-monitor.creds
-# msg_ok "Configured Database"
-
 msg_info "Setting up Domain Monitor"
 ENC_KEY=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32)
 cd /opt/domain-monitor
@@ -55,9 +40,9 @@ cp env.example.txt .env
 sed -i -e "s|^APP_ENV=.*|APP_ENV=production|" \
   -e "s|^APP_ENCRYPTION_KEY=.*|APP_ENCRYPTION_KEY=$ENC_KEY|" \
   -e "s|^SESSION_COOKIE_HTTPONLY=.*|SESSION_COOKIE_HTTPONLY=0|" \
-  -e "s|^DB_USERNAME=.*|DB_USERNAME=$DB_USER|" \
-  -e "s|^DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" \
-  -e "s|^DB_DATABASE=.*|DB_DATABASE=$DB_NAME|" .env
+  -e "s|^DB_USERNAME=.*|DB_USERNAME=$MARIADB_DB_USER|" \
+  -e "s|^DB_PASSWORD=.*|DB_PASSWORD=$MARIADB_DB_PASS|" \
+  -e "s|^DB_DATABASE=.*|DB_DATABASE=$MARIADB_DB_NAME|" .env
 
 cat <<EOF >/etc/apache2/sites-enabled/000-default.conf
 <VirtualHost *:80>
