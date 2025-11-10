@@ -21,8 +21,8 @@ fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
 msg_info "Building Domain-Locker"
 cd /opt/domain-locker
-corepack enable
-yarn install --immutable
+$STD corepack enable --force
+$STD yarn install --immutable
 export NODE_OPTIONS="--max-old-space-size=1024"
 cat <<EOF >/opt/domain-locker.env
 # Database connection
@@ -36,7 +36,7 @@ DL_PG_NAME=$PG_DB_NAME
 DL_ENV_TYPE=selfHosted
 NITRO_PRESET=node_server
 EOF
-yarn build
+$STD yarn build
 msg_info "Built Domain-Locker"
 
 msg_info "Creating Service"
