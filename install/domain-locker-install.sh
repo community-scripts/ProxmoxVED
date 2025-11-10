@@ -36,7 +36,7 @@ DL_PG_NAME=$PG_DB_NAME
 DL_ENV_TYPE=selfHosted
 NITRO_PRESET=node_server
 EOF
-$STD yarn build
+yarn build
 msg_info "Built Domain-Locker"
 
 msg_info "Creating Service"
