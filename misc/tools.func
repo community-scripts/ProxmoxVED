@@ -3077,8 +3077,8 @@ setup_mariadb() {
 # ------------------------------------------------------------------------------
 
 function setup_mariadb_db() {
-  if [[ -z "$DB_NAME" || -z "$DB_USER" ]]; then
-    msg_error "DB_NAME and DB_USER must be set"
+  if [[ -z "${DB_NAME:-}" || -z "${DB_USER:-}" ]]; then
+    msg_error "DB_NAME and DB_USER must be set before calling setup_mariadb_db"
     return 1
   fi
 
@@ -3092,23 +3092,23 @@ function setup_mariadb_db() {
   $STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
   $STD mariadb -u root -e "GRANT ALL ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';"
 
-  # optional extra grants
-  if [[ -n "$DB_EXTRA_GRANTS" ]]; then
-    IFS=',' read -ra G_LIST <<<"$DB_EXTRA_GRANTS"
+  # Optional extra grants
+  if [[ -n "${DB_EXTRA_GRANTS:-}" ]]; then
+    IFS=',' read -ra G_LIST <<<"${DB_EXTRA_GRANTS:-}"
     for g in "${G_LIST[@]}"; do
       g=$(echo "$g" | xargs)
       $STD mariadb -u root -e "$g TO '$DB_USER'@'localhost';"
     done
   fi
 
-  # optional sql mode
-  if [[ -n "$DB_SQL_MODE" ]]; then
-    $STD mariadb -u root -e "SET GLOBAL sql_mode='$DB_SQL_MODE';"
+  # Optional sql_mode override
+  if [[ -n "${DB_SQL_MODE:-}" ]]; then
+    $STD mariadb -u root -e "SET GLOBAL sql_mode='${DB_SQL_MODE:-}';"
   fi
 
   $STD mariadb -u root -e "FLUSH PRIVILEGES;"
 
-  local CREDS_FILE="${DB_CREDS_FILE:-~/${APPLICATION}.creds}"
+  local CREDS_FILE="${DB_CREDS_FILE:-~/mariadb_${DB_NAME}.creds}"
   {
     echo "MariaDB Credentials"
     echo "Database: $DB_NAME"
@@ -3915,7 +3915,7 @@ function setup_postgresql() {
 
 function setup_postgresql_db() {
   # Validation
-  if [[ -z "$DB_NAME" || -z "$DB_USER" ]]; then
+  if [[ -z "${DB_NAME:-}" || -z "${DB_USER:-}" ]]; then
     msg_error "DB_NAME and DB_USER must be set before calling setup_postgresql_db"
     return 1
   fi
@@ -3930,8 +3930,8 @@ function setup_postgresql_db() {
   $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
 
   # Install extensions (comma-separated)
-  if [[ -n "$DB_EXTENSIONS" ]]; then
-    IFS=',' read -ra EXT_LIST <<<"$DB_EXTENSIONS"
+  if [[ -n "${DB_EXTENSIONS:-}" ]]; then
+    IFS=',' read -ra EXT_LIST <<<"${DB_EXTENSIONS:-}"
     for ext in "${EXT_LIST[@]}"; do
       ext=$(echo "$ext" | xargs) # Trim whitespace
       $STD sudo -u postgres psql -d "$DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS $ext;"
@@ -3939,14 +3939,14 @@ function setup_postgresql_db() {
   fi
 
   # ALTER ROLE settings for Django/Rails compatibility (unless skipped)
-  if [[ "$DB_SKIP_ALTER_ROLE" != "true" ]]; then
+  if [[ "${DB_SKIP_ALTER_ROLE:-}" != "true" ]]; then
     $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
     $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
     $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
   fi
 
   # Schema permissions (if requested)
-  if [[ "$DB_SCHEMA_PERMS" == "true" ]]; then
+  if [[ "${DB_SCHEMA_PERMS:-}" == "true" ]]; then
     $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
     $STD sudo -u postgres psql -c "ALTER USER $DB_USER CREATEDB;"
     $STD sudo -u postgres psql -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;"
@@ -3956,7 +3956,7 @@ function setup_postgresql_db() {
   fi
 
   # Superuser grant (if requested - WARNING!)
-  if [[ "$DB_GRANT_SUPERUSER" == "true" ]]; then
+  if [[ "${DB_GRANT_SUPERUSER:-}" == "true" ]]; then
     msg_warn "Granting SUPERUSER privilege (security risk!)"
     $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME to $DB_USER;"
     $STD sudo -u postgres psql -c "ALTER USER $DB_USER WITH SUPERUSER;"
