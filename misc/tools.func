@@ -3045,18 +3045,34 @@ setup_mariadb() {
 }
 
 # ------------------------------------------------------------------------------
-# Creates MariaDB database with user and optional grants / sql-modes
+# Creates MariaDB database with user, charset and optional extra grants/modes
 #
-# Variablen:
-#   DB_NAME             - Datenbankname (required)
-#   DB_USER             - Datenbank Benutzer (required)
-#   DB_PASS             - Passwort (optional, auto-gen wenn leer)
-#   DB_CREDS_FILE       - Credentials File (optional default ~/mariadb_${DB_NAME}.creds)
-#   DB_EXTRA_GRANTS     - (optional) Komma-separiert, volle SQL Grant Statements
-#                         Beispiel: "GRANT SELECT ON \`mysql\`.\`time_zone_name\`"
-#   DB_SQL_MODE         - (optional) z.B. "" oder "STRICT_TRANS_TABLES"
+# Description:
+#   - Generates password if empty
+#   - Creates database with utf8mb4_unicode_ci
+#   - Creates local user with password
+#   - Grants full access to this DB
+#   - Optional: apply extra GRANT statements (comma-separated)
+#   - Optional: apply custom GLOBAL sql_mode
+#   - Saves credentials to file
+#   - Exports variables for use in calling script
 #
-# exports:
+# Usage:
+#   DB_NAME="myapp_db" DB_USER="myapp_user" setup_mariadb_db
+#   DB_NAME="domain_monitor" DB_USER="domainmonitor" setup_mariadb_db
+#   DB_NAME="myapp" DB_USER="myapp" DB_EXTRA_GRANTS="GRANT SELECT ON \`mysql\`.\`time_zone_name\`" setup_mariadb_db
+#   DB_NAME="ghostfolio" DB_USER="ghostfolio" DB_SQL_MODE="" setup_mariadb_db
+#
+# Variables:
+#   DB_NAME         - Database name (required)
+#   DB_USER         - Database user (required)
+#   DB_PASS         - User password (optional, auto-generated if empty)
+#   DB_EXTRA_GRANTS - Comma-separated GRANT statements (optional)
+#                     Example: "GRANT SELECT ON \`mysql\`.\`time_zone_name\`"
+#   DB_SQL_MODE     - Optional global sql_mode override (e.g. "", "STRICT_TRANS_TABLES")
+#   DB_CREDS_FILE   - Credentials file path (optional, default: ~/mariadb_${DB_NAME}.creds)
+#
+# Exports:
 #   MARIADB_DB_NAME, MARIADB_DB_USER, MARIADB_DB_PASS
 # ------------------------------------------------------------------------------
 
