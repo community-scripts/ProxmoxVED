@@ -3108,7 +3108,7 @@ function setup_mariadb_db() {
 
   $STD mariadb -u root -e "FLUSH PRIVILEGES;"
 
-  local CREDS_FILE="${DB_CREDS_FILE:-~/${APPLICATION}.creds}"
+  local CREDS_FILE="${DB_CREDS_FILE:-${HOME}/${APPLICATION}.creds}"
   {
     echo "MariaDB Credentials"
     echo "Database: $DB_NAME"
@@ -3963,7 +3963,7 @@ function setup_postgresql_db() {
   fi
 
   # Save credentials
-  local CREDS_FILE="${DB_CREDS_FILE:-~/${APPLICATION}.creds}"
+  local CREDS_FILE="${DB_CREDS_FILE:-${HOME}/${APPLICATION}.creds}"
   {
     echo "PostgreSQL Credentials"
     echo "Database: $DB_NAME"
