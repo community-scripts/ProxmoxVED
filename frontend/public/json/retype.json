@@ -1,0 +1,35 @@
+{
+  "name": "Retype",
+  "slug": "retype",
+  "categories": [
+    12
+  ],
+  "date_created": "2025-11-11",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": 5001,
+  "documentation": "https://retype.com/",
+  "config_path": "/root/retype.yml",
+  "website": "https://retype.com/",
+  "logo": "https://avatars.githubusercontent.com/u/76267054",
+  "description": "Retype is a static website generator that builds a website based on simple Markdown (.md) text files. Focus on your writing while Retype builds the rest.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/retype.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Ubuntu",
+        "version": "24.04"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
