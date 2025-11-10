@@ -23,7 +23,8 @@ fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
 msg_info "Building Domain-Locker"
 cd /opt/domain-locker
-$STD corepack enable --force
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+corepack enable
 $STD yarn install --immutable
 export NODE_OPTIONS="--max-old-space-size=2048"
 cat <<EOF >/opt/domain-locker.env
