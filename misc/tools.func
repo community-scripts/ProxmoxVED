@@ -3082,7 +3082,7 @@ function setup_mariadb_db() {
     return 1
   fi
 
-  if [[ -z "$DB_PASS" ]]; then
+  if [[ -z "${DB_PASS:-}" ]]; then
     DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
   fi
 
