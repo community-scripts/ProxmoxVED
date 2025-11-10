@@ -27,72 +27,8 @@
 #   prepare_repository_setup()       - Cleanup repos + keyrings + validate APT
 #   install_packages_with_retry()    - Install with 3 retries and APT refresh
 #   upgrade_packages_with_retry()    - Upgrade with 3 retries and APT refresh
-#   apply_docker_apparmor_workaround() - Fix Docker in LXC AppArmor issues
 #
 # ==============================================================================
-
-# ------------------------------------------------------------------------------
-# Apply Docker in LXC AppArmor workaround
-# Fixes permission denied errors with containerd.io 1.7.28-2+ and runc 1.3.3
-# See: https://github.com/opencontainers/runc/issues/4968
-#      https://github.com/containerd/containerd/issues/12484
-# Usage: apply_docker_apparmor_workaround
-# ------------------------------------------------------------------------------
-apply_docker_apparmor_workaround() {
-  # Only apply in LXC containers (check multiple indicators)
-  local is_lxc=false
-  if grep -q "lxc" /proc/1/cgroup 2>/dev/null; then
-    is_lxc=true
-  elif systemd-detect-virt -c 2>/dev/null | grep -q lxc; then
-    is_lxc=true
-  elif [ -f /run/systemd/container ] && grep -q lxc /run/systemd/container 2>/dev/null; then
-    is_lxc=true
-  fi
-
-  if [ "$is_lxc" = false ]; then
-    return 0
-  fi
-
-  msg_info "Applying Docker AppArmor workaround for LXC"
-
-  # Method 1: Mount bind /dev/null over AppArmor enabled file
-  if [ -f /sys/module/apparmor/parameters/enabled ]; then
-    # Unmount first if already mounted
-    umount /sys/module/apparmor/parameters/enabled 2>/dev/null || true
-    # Apply mount
-    mount --bind /dev/null /sys/module/apparmor/parameters/enabled 2>/dev/null || true
-  fi
-
-  # Method 2: Create systemd service for persistence
-  cat >/etc/systemd/system/docker-apparmor-workaround.service <<'EOF'
-[Unit]
-Description=Docker AppArmor workaround for LXC
-Documentation=https://github.com/opencontainers/runc/issues/4968
-Before=docker.service containerd.service
-DefaultDependencies=no
-
-[Service]
-Type=oneshot
-ExecStartPre=-/bin/umount /sys/module/apparmor/parameters/enabled
-ExecStart=/bin/mount --bind /dev/null /sys/module/apparmor/parameters/enabled
-RemainAfterExit=yes
-
-[Install]
-WantedBy=sysinit.target
-EOF
-
-  # Enable and start the service
-  $STD systemctl daemon-reload
-  $STD systemctl enable docker-apparmor-workaround.service
-  $STD systemctl start docker-apparmor-workaround.service 2>/dev/null || true
-
-  # Verify the mount is active
-  if mount | grep -q "on /sys/module/apparmor/parameters/enabled"; then
-    msg_ok "Applied Docker AppArmor workaround"
-  else
-    msg_warn "AppArmor workaround may not be active - please check 'mount | grep apparmor'"
-  fi
-}
 
 # ------------------------------------------------------------------------------
 # Cache installed version to avoid repeated checks
@@ -491,7 +427,12 @@ manage_tool_repository() {
     suite=$(get_fallback_suite "$distro_id" "$distro_codename" "$repo_url/$distro_id")
 
     # Setup new repository using deb822 format
-    setup_deb822_repo "mariadb" "$gpg_key_url" "$repo_url/$distro_id" "$suite" "main" "amd64 arm64" || return 1
+    setup_deb822_repo \
+      "mariadb" \
+      "$gpg_key_url" \
+      "$repo_url/$distro_id" \
+      "$suite" \
+      "main"
     return 0
     ;;
 
@@ -568,7 +509,7 @@ Types: deb
 URIs: ${repo_url}
 Suites: ${suite}/mongodb-org/${version}
 Components: ${repo_component}
-Architectures: amd64 arm64
+Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/mongodb-server-${version}.gpg
 EOF
     return 0
@@ -600,7 +541,7 @@ Types: deb
 URIs: $repo_url
 Suites: nodistro
 Components: main
-Architectures: amd64 arm64
+Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/nodesource.gpg
 EOF
     return 0
@@ -634,7 +575,7 @@ Types: deb
 URIs: https://packages.sury.org/php
 Suites: $distro_codename
 Components: main
-Architectures: amd64 arm64
+Architectures: $(dpkg --print-architecture)
 Signed-By: /usr/share/keyrings/deb.sury.org-php.gpg
 EOF
     return 0
@@ -665,7 +606,7 @@ Types: deb
 URIs: http://apt.postgresql.org/pub/repos/apt
 Suites: $distro_codename-pgdg
 Components: main
-Architectures: amd64 arm64
+Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/postgresql.gpg
 EOF
     return 0
@@ -1257,8 +1198,8 @@ ensure_apt_working() {
 }
 
 # ------------------------------------------------------------------------------
-# Standardized deb822 repository setup
-# Validates all parameters and fails safely if any are empty
+# Standardized deb822 repository setup (with optional Architectures)
+# Always runs apt update after repo creation to ensure package availability
 # ------------------------------------------------------------------------------
 setup_deb822_repo() {
   local name="$1"
@@ -1266,56 +1207,40 @@ setup_deb822_repo() {
   local repo_url="$3"
   local suite="$4"
   local component="${5:-main}"
-  local architectures="${6:-amd64 arm64}"
+  local architectures="${6-}" # optional
 
   # Validate required parameters
   if [[ -z "$name" || -z "$gpg_url" || -z "$repo_url" || -z "$suite" ]]; then
-    msg_error "setup_deb822_repo: missing required parameters (name=$name, gpg=$gpg_url, repo=$repo_url, suite=$suite)"
+    msg_error "setup_deb822_repo: missing required parameters (name=$name repo=$repo_url suite=$suite)"
     return 1
   fi
 
-  # Cleanup old configs for this app
+  # Cleanup
   cleanup_old_repo_files "$name"
-
-  # Cleanup any orphaned .sources files from other apps
   cleanup_orphaned_sources
 
-  # Ensure keyring directory exists
   mkdir -p /etc/apt/keyrings || {
-    msg_error "Failed to create /etc/apt/keyrings directory"
+    msg_error "Failed to create /etc/apt/keyrings"
     return 1
   }
 
-  # Download GPG key (with --yes to avoid interactive prompts)
-  curl -fsSL "$gpg_url" | gpg --dearmor --yes -o "/etc/apt/keyrings/${name}.gpg" 2>/dev/null || {
-    msg_error "Failed to download or import GPG key for ${name} from $gpg_url"
+  # Import GPG
+  curl -fsSL "$gpg_url" | gpg --dearmor --yes -o "/etc/apt/keyrings/${name}.gpg" || {
+    msg_error "Failed to import GPG key for ${name}"
     return 1
   }
 
-  # Create deb822 sources file
-  cat <<EOF >/etc/apt/sources.list.d/${name}.sources
-Types: deb
-URIs: $repo_url
-Suites: $suite
-Components: $component
-Architectures: $architectures
-Signed-By: /etc/apt/keyrings/${name}.gpg
-EOF
+  # Write deb822
+  {
+    echo "Types: deb"
+    echo "URIs: $repo_url"
+    echo "Suites: $suite"
+    echo "Components: $component"
+    [[ -n "$architectures" ]] && echo "Architectures: $architectures"
+    echo "Signed-By: /etc/apt/keyrings/${name}.gpg"
+  } >/etc/apt/sources.list.d/${name}.sources
 
-  # Use cached apt update
-  local apt_cache_file="/var/cache/apt-update-timestamp"
-  local current_time=$(date +%s)
-  local last_update=0
-
-  if [[ -f "$apt_cache_file" ]]; then
-    last_update=$(cat "$apt_cache_file" 2>/dev/null || echo 0)
-  fi
-
-  # For repo changes, always update but respect short-term cache (30s)
-  if ((current_time - last_update > 30)); then
-    $STD apt update
-    echo "$current_time" >"$apt_cache_file"
-  fi
+  $STD apt update
 }
 
 # ------------------------------------------------------------------------------
@@ -1474,7 +1399,7 @@ verify_gpg_fingerprint() {
 }
 
 # ==============================================================================
-# EXISTING FUNCTIONS
+# INSTALL FUNCTIONS
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -1576,7 +1501,7 @@ check_for_gh_release() {
       return 0
     fi
 
-    msg_error "No update available: ${app} is not installed!"
+    msg_ok "No update available: ${app} is already on pinned version (${current})"
     return 1
   fi
 
@@ -2844,8 +2769,7 @@ function setup_java() {
       "https://packages.adoptium.net/artifactory/api/gpg/key/public" \
       "https://packages.adoptium.net/artifactory/deb" \
       "$SUITE" \
-      "main" \
-      "amd64 arm64"
+      "main"
   fi
 
   # Get currently installed version
@@ -2855,10 +2779,8 @@ function setup_java() {
   fi
 
   # Validate INSTALLED_VERSION is not empty if matched
-  local JDK_COUNT
-  JDK_COUNT=$(dpkg -l 2>/dev/null | grep -c "temurin-.*-jdk" || echo "0")
-  JDK_COUNT=${JDK_COUNT//[^0-9]/} # Remove any non-numeric characters
-  if [[ -z "$INSTALLED_VERSION" && "${JDK_COUNT:-0}" -gt 0 ]]; then
+  local JDK_COUNT=$(dpkg -l 2>/dev/null | grep -c "temurin-.*-jdk" || echo "0")
+  if [[ -z "$INSTALLED_VERSION" && "$JDK_COUNT" -gt 0 ]]; then
     msg_warn "Found Temurin JDK but cannot determine version"
     INSTALLED_VERSION="0"
   fi
@@ -3299,12 +3221,12 @@ function setup_mysql() {
       return 1
     fi
 
-    cat >/etc/apt/sources.list.d/mysql.sources <<'EOF'
+    cat >/etc/apt/sources.list.d/mysql.sources <<EOF
 Types: deb
 URIs: https://repo.mysql.com/apt/debian/
 Suites: bookworm
 Components: mysql-8.4-lts
-Architectures: amd64 arm64
+Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/mysql.gpg
 EOF
 
@@ -3812,8 +3734,7 @@ function setup_postgresql() {
     "https://www.postgresql.org/media/keys/ACCC4CF8.asc" \
     "https://apt.postgresql.org/pub/repos/apt" \
     "$SUITE" \
-    "main" \
-    "amd64 arm64"
+    "main"
 
   if ! $STD apt update; then
     msg_error "APT update failed for PostgreSQL repository"
@@ -4259,8 +4180,7 @@ function setup_clickhouse() {
     "https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key" \
     "https://packages.clickhouse.com/deb" \
     "stable" \
-    "main" \
-    "amd64 arm64"
+    "main"
 
   # Install packages with retry logic
   export DEBIAN_FRONTEND=noninteractive
