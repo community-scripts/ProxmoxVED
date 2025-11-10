@@ -3078,7 +3078,7 @@ setup_mariadb() {
 
 function setup_mariadb_db() {
   if [[ -z "$DB_NAME" || -z "$DB_USER" ]]; then
-    msg_error "DB_NAME und DB_USER müssen gesetzt sein"
+    msg_error "DB_NAME and DB_USER must be set"
     return 1
   fi
 
@@ -3921,7 +3921,7 @@ function setup_postgresql_db() {
   fi
 
   # Generate password if not provided
-  if [[ -z "$DB_PASS" ]]; then
+  if [[ -z "${DB_PASS:-}" ]]; then
     DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
   fi
 
