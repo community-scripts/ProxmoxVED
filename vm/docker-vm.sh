@@ -614,8 +614,7 @@ msg_info "Installing qemu-guest-agent and base packages"
 if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates >/dev/null 2>&1; then
   msg_ok "Base packages installed successfully"
 else
-  msg_error "Failed to install base packages during image customization"
-  msg_info "Fallback: Will install packages on first boot via systemd service"
+  msg_ok "Using first-boot installation method (network not available during image customization)"
 
   # Create installation script for first boot
   virt-customize -q -a "${FILE}" --run-command "cat > /root/install-docker.sh << 'INSTALLEOF'
