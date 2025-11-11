@@ -294,8 +294,8 @@ function default_settings() {
 
   # Set defaults for other settings
   VMID=$(get_valid_nextid)
-  FORMAT=",efitype=4m"
-  MACHINE=""
+  FORMAT=""
+  MACHINE=" -machine q35"
   DISK_CACHE=""
   DISK_SIZE="10G"
   HN="docker"
@@ -311,7 +311,7 @@ function default_settings() {
 
   # Display summary
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
@@ -356,15 +356,15 @@ function advanced_settings() {
   done
 
   if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Type" 10 58 2 \
-    "i440fx" "Machine i440fx" ON \
-    "q35" "Machine q35" OFF \
+    "q35" "Q35 (Modern, PCIe)" ON \
+    "i440fx" "i440fx (Legacy, PCI)" OFF \
     3>&1 1>&2 2>&3); then
     if [ $MACH = q35 ]; then
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
       FORMAT=""
       MACHINE=" -machine q35"
     else
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx (Legacy)${CL}"
       FORMAT=",efitype=4m"
       MACHINE=""
     fi
@@ -606,16 +606,71 @@ done
 
 msg_info "Adding Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image"
 
+# Configure DNS before package installation
+msg_info "Configuring DNS resolvers for package installation"
+virt-customize -q -a "${FILE}" --run-command "echo 'nameserver 8.8.8.8' > /etc/resolv.conf" >/dev/null 2>&1
+virt-customize -q -a "${FILE}" --run-command "echo 'nameserver 1.1.1.1' >> /etc/resolv.conf" >/dev/null 2>&1
+
 # Install base packages including qemu-guest-agent
-virt-customize -q -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates >/dev/null
+msg_info "Installing qemu-guest-agent and base packages"
+if ! virt-customize -v -x -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates 2>&1 | tee /tmp/virt-customize-$VMID.log | grep -q "error"; then
+  msg_ok "Base packages installed successfully"
+else
+  msg_error "Failed to install base packages. Check /tmp/virt-customize-$VMID.log"
+  echo "Debug info:"
+  tail -20 /tmp/virt-customize-$VMID.log
 
-# Install Docker using the official convenience script (includes Docker Compose v2)
-virt-customize -q -a "${FILE}" --run-command "curl -fsSL https://get.docker.com | sh" >/dev/null
-virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" >/dev/null
+  # Try alternative: Install packages after first boot via cloud-init
+  msg_info "Fallback: Will install packages via cloud-init on first boot"
+  virt-customize -q -a "${FILE}" --run-command "cat > /root/install-docker.sh << 'INSTALLEOF'
+#!/bin/bash
+# Wait for network
+sleep 10
+# Update DNS
+echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+echo 'nameserver 1.1.1.1' >> /etc/resolv.conf
+# Install packages
+apt-get update
+apt-get install -y qemu-guest-agent curl ca-certificates
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+systemctl enable docker
+systemctl start docker
+# Create flag file
+touch /root/.docker-installed
+INSTALLEOF" >/dev/null
 
-# Optimize Docker daemon configuration
-virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/docker" >/dev/null
-virt-customize -q -a "${FILE}" --run-command "cat > /etc/docker/daemon.json << 'DOCKEREOF'
+  virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-docker.sh" >/dev/null
+  virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/install-docker.service << 'SERVICEEOF'
+[Unit]
+Description=Install Docker on First Boot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/install-docker.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+SERVICEEOF" >/dev/null
+
+  virt-customize -q -a "${FILE}" --run-command "systemctl enable install-docker.service" >/dev/null
+  msg_ok "Configured Docker installation for first boot"
+  DOCKER_INSTALLED_ON_FIRST_BOOT="yes"
+fi
+
+# Only continue if packages were installed successfully
+if [ "$DOCKER_INSTALLED_ON_FIRST_BOOT" != "yes" ]; then
+  # Install Docker using the official convenience script (includes Docker Compose v2)
+  msg_info "Installing Docker via get.docker.com"
+  virt-customize -q -a "${FILE}" --run-command "curl -fsSL https://get.docker.com | sh" >/dev/null 2>&1
+  virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" >/dev/null
+
+  # Optimize Docker daemon configuration
+  virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/docker" >/dev/null
+  virt-customize -q -a "${FILE}" --run-command "cat > /etc/docker/daemon.json << 'DOCKEREOF'
 {
   \"storage-driver\": \"overlay2\",
   \"log-driver\": \"json-file\",
@@ -626,10 +681,10 @@ virt-customize -q -a "${FILE}" --run-command "cat > /etc/docker/daemon.json << '
 }
 DOCKEREOF" >/dev/null
 
-# Install Portainer if requested
-if [ "$INSTALL_PORTAINER" = "yes" ]; then
-  virt-customize -q -a "${FILE}" --run-command "docker volume create portainer_data" >/dev/null || true
-  virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/portainer.service << 'PORTEOF'
+  # Install Portainer if requested
+  if [ "$INSTALL_PORTAINER" = "yes" ]; then
+    virt-customize -q -a "${FILE}" --run-command "docker volume create portainer_data" >/dev/null || true
+    virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/portainer.service << 'PORTEOF'
 [Unit]
 Description=Portainer Container
 Requires=docker.service
@@ -645,15 +700,16 @@ ExecStopPost=/usr/bin/docker rm portainer
 [Install]
 WantedBy=multi-user.target
 PORTEOF" >/dev/null
-  virt-customize -q -a "${FILE}" --run-command "systemctl enable portainer.service" >/dev/null
+    virt-customize -q -a "${FILE}" --run-command "systemctl enable portainer.service" >/dev/null
+  fi
+
+  msg_ok "Added Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image successfully"
 fi
 
 # Set hostname and clean machine-id
 virt-customize -q -a "${FILE}" --hostname "${HN}" >/dev/null
 virt-customize -q -a "${FILE}" --run-command "truncate -s 0 /etc/machine-id" >/dev/null
 virt-customize -q -a "${FILE}" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null
-
-msg_ok "Added Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image successfully"
 
 msg_info "Expanding root partition to use full disk space"
 qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
