@@ -174,6 +174,7 @@ pve_check() {
       msg_error "Supported: Proxmox VE version 8.0 – 8.9"
       exit 1
     fi
+    PVE_MAJOR=8
     return 0
   fi
 
@@ -185,6 +186,7 @@ pve_check() {
       msg_error "Supported: Proxmox VE version 9.0"
       exit 1
     fi
+    PVE_MAJOR=9
     return 0
   fi
 
@@ -330,7 +332,7 @@ function default_settings() {
   DISK_CACHE=""
   DISK_SIZE="10G"
   HN="docker"
-  CPU_TYPE=""
+  CPU_TYPE=" -cpu host"
   CORE_COUNT="2"
   RAM_SIZE="4096"
   BRG="vmbr0"
@@ -346,7 +348,7 @@ function default_settings() {
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
-  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
+  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
   echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
   echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
@@ -446,8 +448,8 @@ function advanced_settings() {
   fi
 
   if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "KVM64 (Default)" ON \
-    "1" "Host" OFF \
+    "1" "Host (Recommended)" ON \
+    "0" "KVM64" OFF \
     3>&1 1>&2 2>&3); then
     if [ $CPU_TYPE1 = "1" ]; then
       echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
@@ -790,8 +792,16 @@ mv expanded.qcow2 ${FILE} >/dev/null 2>&1
 msg_ok "Expanded image to full size"
 
 msg_info "Creating a Docker VM"
+
+# Proxmox 9 specific optimizations
+PVE9_OPTS=""
+if [ "${PVE_MAJOR:-8}" = "9" ]; then
+  # Enable enhanced QEMU 9.0 features for better performance
+  PVE9_OPTS=" -hookscript local:snippets/qemu-hook.pl"
+fi
+
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
+  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci${PVE9_OPTS}
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
@@ -800,6 +810,12 @@ qm set $VMID \
   -boot order=scsi0 \
   -serial0 socket >/dev/null
 qm set $VMID --agent enabled=1 >/dev/null
+
+# Proxmox 9: Enable I/O Thread for better disk performance
+if [ "${PVE_MAJOR:-8}" = "9" ]; then
+  qm set $VMID -iothread 1 >/dev/null 2>&1 || true
+fi
+
 msg_ok "Created a Docker VM ${CL}${BL}(${HN})${CL}"
 
 # Add Cloud-Init drive if requested
