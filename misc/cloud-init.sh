@@ -120,16 +120,7 @@ EOF
 
   msg_ok "Cloud-Init configured (User: ${ciuser})" 2>/dev/null || echo "[OK] Cloud-Init configured (User: ${ciuser})"
 
-  # Display password info
-  if [ -n "${INFO:-}" ]; then
-    echo -e "${INFO}${BOLD:-} Cloud-Init Password: ${BGN:-}${cipassword}${CL:-}"
-    echo -e "${INFO}${BOLD:-} Credentials saved to: ${BGN:-}${cred_file}${CL:-}"
-  else
-    echo "[INFO] Cloud-Init Password: ${cipassword}"
-    echo "[INFO] Credentials saved to: ${cred_file}"
-  fi
-
-  # Export for use in calling script
+  # Export for use in calling script (DO NOT display password here - will be shown in summary)
   export CLOUDINIT_USER="$ciuser"
   export CLOUDINIT_PASSWORD="$cipassword"
   export CLOUDINIT_CRED_FILE="$cred_file"
@@ -226,25 +217,19 @@ function display_cloud_init_info() {
     if [ -n "${INFO:-}" ]; then
       echo -e "\n${INFO}${BOLD:-}${GN:-} Cloud-Init Configuration:${CL:-}"
       echo -e "${TAB:-  }${DGN:-}User: ${BGN:-}${CLOUDINIT_USER:-root}${CL:-}"
-      echo -e "${TAB:-  }${DGN:-}Password: ${BGN:-}${CLOUDINIT_PASSWORD:-(saved in file)}${CL:-}"
-      echo -e "${TAB:-  }${DGN:-}Credentials: ${BGN:-}${CLOUDINIT_CRED_FILE}${CL:-}"
+      echo -e "${TAB:-  }${DGN:-}Password: ${BGN:-}${CLOUDINIT_PASSWORD}${CL:-}"
+      echo -e "${TAB:-  }${DGN:-}Credentials: ${BL:-}${CLOUDINIT_CRED_FILE}${CL:-}"
+      echo -e "${TAB:-  }${YW:-}💡 You can configure Cloud-Init settings in Proxmox UI:${CL:-}"
+      echo -e "${TAB:-  }${YW:-}   VM ${vmid} > Cloud-Init > Edit (User, Password, SSH Keys, Network)${CL:-}"
     else
       echo ""
       echo "[INFO] Cloud-Init Configuration:"
       echo "  User: ${CLOUDINIT_USER:-root}"
-      echo "  Password: ${CLOUDINIT_PASSWORD:-(saved in file)}"
+      echo "  Password: ${CLOUDINIT_PASSWORD}"
       echo "  Credentials: ${CLOUDINIT_CRED_FILE}"
+      echo "  You can configure Cloud-Init settings in Proxmox UI:"
+      echo "  VM ${vmid} > Cloud-Init > Edit"
     fi
-  fi
-
-  # Show Proxmox UI info
-  if [ -n "${INFO:-}" ]; then
-    echo -e "\n${INFO}${BOLD:-}${YW:-} You can configure Cloud-Init settings in Proxmox UI:${CL:-}"
-    echo -e "${TAB:-  }${DGN:-}VM ${vmid} > Cloud-Init > Edit (User, Password, SSH Keys, Network)${CL:-}"
-  else
-    echo ""
-    echo "[INFO] You can configure Cloud-Init settings in Proxmox UI:"
-    echo "  VM ${vmid} > Cloud-Init > Edit"
   fi
 }
 

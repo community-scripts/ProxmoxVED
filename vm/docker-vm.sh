@@ -19,7 +19,6 @@ function header_info() {
 
 EOF
 }
-
 header_info
 echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
@@ -275,9 +274,17 @@ function get_image_url() {
   local arch=$(dpkg --print-architecture)
   case $OS_TYPE in
   debian)
-    echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-nocloud-${arch}.qcow2"
+    # Debian has two variants:
+    # - generic: For Cloud-Init enabled VMs
+    # - nocloud: For VMs without Cloud-Init (has console auto-login)
+    if [ "$USE_CLOUD_INIT" = "yes" ]; then
+      echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-generic-${arch}.qcow2"
+    else
+      echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-nocloud-${arch}.qcow2"
+    fi
     ;;
   ubuntu)
+    # Ubuntu only has cloudimg variant (always with Cloud-Init support)
     echo "https://cloud-images.ubuntu.com/${OS_CODENAME}/current/${OS_CODENAME}-server-cloudimg-${arch}.img"
     ;;
   esac
@@ -611,7 +618,6 @@ msg_info "Adding Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image"
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 
 # Always create first-boot installation script as fallback
-msg_info "Preparing first-boot installation script as fallback"
 virt-customize -q -a "${FILE}" --run-command "cat > /root/install-docker.sh << 'INSTALLEOF'
 #!/bin/bash
 # Log output to file
@@ -705,16 +711,10 @@ WantedBy=multi-user.target
 SERVICEEOF" >/dev/null
 
 virt-customize -q -a "${FILE}" --run-command "systemctl enable install-docker.service" >/dev/null
-msg_ok "First-boot installation script prepared"
 
 # Try to install packages and Docker during image customization
-msg_info "Attempting to install packages during image customization"
 DOCKER_INSTALLED_ON_FIRST_BOOT="yes" # Assume first-boot by default
 if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates 2>/dev/null; then
-  msg_ok "Base packages installed successfully"
-
-  # Try Docker installation
-  msg_info "Installing Docker via get.docker.com"
   if virt-customize -q -a "${FILE}" --run-command "curl -fsSL https://get.docker.com | sh" 2>/dev/null &&
     virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" 2>/dev/null; then
 
@@ -747,6 +747,19 @@ fi
 virt-customize -q -a "${FILE}" --hostname "${HN}" >/dev/null
 virt-customize -q -a "${FILE}" --run-command "truncate -s 0 /etc/machine-id" >/dev/null
 virt-customize -q -a "${FILE}" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null
+
+# Configure SSH to allow root login with password (Cloud-Init will set the password)
+virt-customize -q -a "${FILE}" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
+virt-customize -q -a "${FILE}" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
+
+# Disable console auto-login ONLY for Debian nocloud images with Cloud-Init enabled
+# (generic images don't have auto-login, Ubuntu images don't have auto-login)
+if [ "$USE_CLOUD_INIT" = "yes" ] && [ "$OS_TYPE" = "debian" ]; then
+  # Only needed for Debian nocloud variant (but we use generic when Cloud-Init is enabled)
+  # This is a safety measure in case we somehow use nocloud with Cloud-Init
+  virt-customize -q -a "${FILE}" --run-command "rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf" >/dev/null 2>&1 || true
+  virt-customize -q -a "${FILE}" --run-command "rm -f /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf" >/dev/null 2>&1 || true
+fi
 
 msg_info "Expanding root partition to use full disk space"
 qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
