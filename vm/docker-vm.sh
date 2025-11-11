@@ -19,6 +19,7 @@ function header_info() {
 
 EOF
 }
+
 header_info
 echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
@@ -609,32 +610,36 @@ msg_info "Adding Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image"
 # Set DNS for libguestfs appliance environment (not the guest)
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 
-# Install base packages including qemu-guest-agent
-msg_info "Installing qemu-guest-agent and base packages"
-if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates >/dev/null 2>&1; then
-  msg_ok "Base packages installed successfully"
-else
-  msg_ok "Using first-boot installation method (network not available during image customization)"
-
-  # Create installation script for first boot
-  virt-customize -q -a "${FILE}" --run-command "cat > /root/install-docker.sh << 'INSTALLEOF'
+# Always create first-boot installation script as fallback
+msg_info "Preparing first-boot installation script as fallback"
+virt-customize -q -a "${FILE}" --run-command "cat > /root/install-docker.sh << 'INSTALLEOF'
 #!/bin/bash
 # Log output to file
 exec > /var/log/install-docker.log 2>&1
-echo \"[$(date)] Starting Docker installation on first boot\"
+echo \"[\\$(date)] Starting Docker installation on first boot\"
+
+# Check if Docker is already installed
+if command -v docker >/dev/null 2>&1; then
+  echo \"[\\$(date)] Docker already installed, checking if running\"
+  systemctl start docker 2>/dev/null || true
+  if docker info >/dev/null 2>&1; then
+    echo \"[\\$(date)] Docker is already working, exiting\"
+    exit 0
+  fi
+fi
 
 # Wait for network to be fully available
 for i in {1..30}; do
   if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
-    echo \"[$(date)] Network is available\"
+    echo \"[\\$(date)] Network is available\"
     break
   fi
-  echo \"[$(date)] Waiting for network... attempt \$i/30\"
+  echo \"[\\$(date)] Waiting for network... attempt \\$i/30\"
   sleep 2
 done
 
 # Configure DNS
-echo \"[$(date)] Configuring DNS\"
+echo \"[\\$(date)] Configuring DNS\"
 mkdir -p /etc/systemd/resolved.conf.d
 cat > /etc/systemd/resolved.conf.d/dns.conf << DNSEOF
 [Resolve]
@@ -644,15 +649,15 @@ DNSEOF
 systemctl restart systemd-resolved 2>/dev/null || true
 
 # Update package lists
-echo \"[$(date)] Updating package lists\"
+echo \"[\\$(date)] Updating package lists\"
 apt-get update
 
-# Install base packages
-echo \"[$(date)] Installing base packages\"
-apt-get install -y qemu-guest-agent curl ca-certificates
+# Install base packages if not already installed
+echo \"[\\$(date)] Installing base packages\"
+apt-get install -y qemu-guest-agent curl ca-certificates 2>/dev/null || true
 
 # Install Docker
-echo \"[$(date)] Installing Docker\"
+echo \"[\\$(date)] Installing Docker\"
 curl -fsSL https://get.docker.com | sh
 systemctl enable docker
 systemctl start docker
@@ -660,7 +665,7 @@ systemctl start docker
 # Wait for Docker to be ready
 for i in {1..10}; do
   if docker info >/dev/null 2>&1; then
-    echo \"[$(date)] Docker is ready\"
+    echo \"[\\$(date)] Docker is ready\"
     break
   fi
   sleep 1
@@ -670,24 +675,25 @@ done
 INSTALL_PORTAINER_PLACEHOLDER
 
 # Create completion flag
-echo \"[$(date)] Docker installation completed successfully\"
+echo \"[\\$(date)] Docker installation completed successfully\"
 touch /root/.docker-installed
 INSTALLEOF" >/dev/null
 
-  # Replace Portainer placeholder based on user choice
-  if [ "$INSTALL_PORTAINER" = "yes" ]; then
-    virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|echo \"[\\$(date)] Installing Portainer\"\ndocker volume create portainer_data\ndocker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest\necho \"[\\$(date)] Portainer installed and started\"|' /root/install-docker.sh" >/dev/null
-  else
-    virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|echo \"[\\$(date)] Skipping Portainer installation\"|' /root/install-docker.sh" >/dev/null
-  fi
+# Replace Portainer placeholder based on user choice
+if [ "$INSTALL_PORTAINER" = "yes" ]; then
+  virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|echo \"[\\\\\\$(date)] Installing Portainer\"\\\ndocker volume create portainer_data\\\ndocker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest\\\necho \"[\\\\\\$(date)] Portainer installed and started\"|' /root/install-docker.sh" >/dev/null
+else
+  virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|echo \"[\\\\\\$(date)] Skipping Portainer installation\"|' /root/install-docker.sh" >/dev/null
+fi
 
-  virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-docker.sh" >/dev/null
+virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-docker.sh" >/dev/null
 
-  virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/install-docker.service << 'SERVICEEOF'
+virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/install-docker.service << 'SERVICEEOF'
 [Unit]
 Description=Install Docker on First Boot
 After=network-online.target
 Wants=network-online.target
+ConditionPathExists=!/root/.docker-installed
 
 [Service]
 Type=oneshot
@@ -698,21 +704,23 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 SERVICEEOF" >/dev/null
 
-  virt-customize -q -a "${FILE}" --run-command "systemctl enable install-docker.service" >/dev/null
-  msg_ok "Configured Docker installation for first boot"
-  DOCKER_INSTALLED_ON_FIRST_BOOT="yes"
-fi
+virt-customize -q -a "${FILE}" --run-command "systemctl enable install-docker.service" >/dev/null
+msg_ok "First-boot installation script prepared"
 
-# Only continue if packages were installed successfully
-if [ "$DOCKER_INSTALLED_ON_FIRST_BOOT" != "yes" ]; then
-  # Install Docker using the official convenience script (includes Docker Compose v2)
+# Try to install packages and Docker during image customization
+msg_info "Attempting to install packages during image customization"
+DOCKER_INSTALLED_ON_FIRST_BOOT="yes" # Assume first-boot by default
+if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates 2>/dev/null; then
+  msg_ok "Base packages installed successfully"
+
+  # Try Docker installation
   msg_info "Installing Docker via get.docker.com"
-  virt-customize -q -a "${FILE}" --run-command "curl -fsSL https://get.docker.com | sh" >/dev/null 2>&1
-  virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" >/dev/null
+  if virt-customize -q -a "${FILE}" --run-command "curl -fsSL https://get.docker.com | sh" 2>/dev/null &&
+    virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" 2>/dev/null; then
 
-  # Optimize Docker daemon configuration
-  virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/docker" >/dev/null
-  virt-customize -q -a "${FILE}" --run-command "cat > /etc/docker/daemon.json << 'DOCKEREOF'
+    # Optimize Docker daemon configuration
+    virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/docker" >/dev/null
+    virt-customize -q -a "${FILE}" --run-command "cat > /etc/docker/daemon.json << 'DOCKEREOF'
 {
   \"storage-driver\": \"overlay2\",
   \"log-driver\": \"json-file\",
@@ -723,29 +731,16 @@ if [ "$DOCKER_INSTALLED_ON_FIRST_BOOT" != "yes" ]; then
 }
 DOCKEREOF" >/dev/null
 
-  # Install Portainer if requested
-  if [ "$INSTALL_PORTAINER" = "yes" ]; then
-    virt-customize -q -a "${FILE}" --run-command "docker volume create portainer_data" >/dev/null || true
-    virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/portainer.service << 'PORTEOF'
-[Unit]
-Description=Portainer Container
-Requires=docker.service
-After=docker.service
+    # Create completion flag to prevent first-boot script from running
+    virt-customize -q -a "${FILE}" --run-command "touch /root/.docker-installed" >/dev/null
 
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/usr/bin/docker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
-ExecStop=/usr/bin/docker stop portainer
-ExecStopPost=/usr/bin/docker rm portainer
-
-[Install]
-WantedBy=multi-user.target
-PORTEOF" >/dev/null
-    virt-customize -q -a "${FILE}" --run-command "systemctl enable portainer.service" >/dev/null
+    DOCKER_INSTALLED_ON_FIRST_BOOT="no"
+    msg_ok "Added Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image successfully"
+  else
+    msg_ok "Using first-boot installation method (Docker installation failed during image customization)"
   fi
-
-  msg_ok "Added Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image successfully"
+else
+  msg_ok "Using first-boot installation method (network not available during image customization)"
 fi
 
 # Set hostname and clean machine-id
