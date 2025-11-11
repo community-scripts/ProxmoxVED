@@ -793,15 +793,8 @@ msg_ok "Expanded image to full size"
 
 msg_info "Creating a Docker VM"
 
-# Proxmox 9 specific optimizations
-PVE9_OPTS=""
-if [ "${PVE_MAJOR:-8}" = "9" ]; then
-  # Enable enhanced QEMU 9.0 features for better performance
-  PVE9_OPTS=" -hookscript local:snippets/qemu-hook.pl"
-fi
-
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
-  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci${PVE9_OPTS}
+  -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID ${FILE} $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
 qm set $VMID \
