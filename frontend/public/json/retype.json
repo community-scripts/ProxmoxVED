@@ -12,7 +12,7 @@
   "documentation": "https://retype.com/",
   "config_path": "/root/retype.yml",
   "website": "https://retype.com/",
-  "logo": "https://avatars.githubusercontent.com/u/76267054",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/retype-light.svg",
   "description": "Retype is a static website generator that builds a website based on simple Markdown (.md) text files. Focus on your writing while Retype builds the rest.",
   "install_methods": [
     {
