@@ -748,17 +748,11 @@ virt-customize -q -a "${FILE}" --hostname "${HN}" >/dev/null
 virt-customize -q -a "${FILE}" --run-command "truncate -s 0 /etc/machine-id" >/dev/null
 virt-customize -q -a "${FILE}" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null
 
-# Configure SSH to allow root login with password (Cloud-Init will set the password)
-virt-customize -q -a "${FILE}" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
-virt-customize -q -a "${FILE}" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
-
-# Disable console auto-login ONLY for Debian nocloud images with Cloud-Init enabled
-# (generic images don't have auto-login, Ubuntu images don't have auto-login)
-if [ "$USE_CLOUD_INIT" = "yes" ] && [ "$OS_TYPE" = "debian" ]; then
-  # Only needed for Debian nocloud variant (but we use generic when Cloud-Init is enabled)
-  # This is a safety measure in case we somehow use nocloud with Cloud-Init
-  virt-customize -q -a "${FILE}" --run-command "rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf" >/dev/null 2>&1 || true
-  virt-customize -q -a "${FILE}" --run-command "rm -f /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf" >/dev/null 2>&1 || true
+# Configure SSH to allow root login with password when Cloud-Init is enabled
+# (Cloud-Init will set the password, but SSH needs to accept password authentication)
+if [ "$USE_CLOUD_INIT" = "yes" ]; then
+  virt-customize -q -a "${FILE}" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
+  virt-customize -q -a "${FILE}" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
 fi
 
 msg_info "Expanding root partition to use full disk space"
