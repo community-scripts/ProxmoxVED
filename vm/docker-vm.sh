@@ -738,36 +738,14 @@ virt-customize -q -a "${FILE}" --run-command "systemctl enable install-docker.se
 # Try to install packages and Docker during image customization
 DOCKER_INSTALLED_ON_FIRST_BOOT="yes" # Assume first-boot by default
 
-# Start package installation in background with spinner
-echo -ne "${TAB}${YW}Installing base packages (qemu-guest-agent, curl, ca-certificates)..."
-virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates >/dev/null 2>&1 &
-INSTALL_PID=$!
+msg_info "Installing base packages (qemu-guest-agent, curl, ca-certificates)"
+if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates >/dev/null 2>&1; then
+  msg_ok "Installed base packages"
 
-# Simple progress dots instead of spinner (more reliable)
-while kill -0 $INSTALL_PID 2>/dev/null; do
-  echo -ne "."
-  sleep 1
-done
-wait $INSTALL_PID
-INSTALL_EXIT=$?
-
-if [ $INSTALL_EXIT -eq 0 ]; then
-  echo -e " ${GN}✓${CL}"
-
-  echo -ne "${TAB}${YW}Installing Docker via get.docker.com..."
-  virt-customize -q -a "${FILE}" --run-command "curl -fsSL https://get.docker.com | sh" >/dev/null 2>&1 &
-  DOCKER_PID=$!
-
-  while kill -0 $DOCKER_PID 2>/dev/null; do
-    echo -ne "."
-    sleep 1
-  done
-  wait $DOCKER_PID
-  DOCKER_EXIT=$?
-
-  if [ $DOCKER_EXIT -eq 0 ]; then
-    echo -e " ${GN}✓${CL}"
-    virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" >/dev/null 2>&1
+  msg_info "Installing Docker via get.docker.com"
+  if virt-customize -q -a "${FILE}" --run-command "curl -fsSL https://get.docker.com | sh" >/dev/null 2>&1 &&
+    virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" >/dev/null 2>&1; then
+    msg_ok "Installed Docker"
 
     # Optimize Docker daemon configuration
     virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/docker" >/dev/null 2>&1
@@ -786,14 +764,11 @@ DOCKEREOF" >/dev/null 2>&1
     virt-customize -q -a "${FILE}" --run-command "touch /root/.docker-installed" >/dev/null 2>&1
 
     DOCKER_INSTALLED_ON_FIRST_BOOT="no"
-    msg_ok "Docker and Docker Compose added to ${OS_DISPLAY} Qcow2 Disk Image successfully"
   else
-    echo -e " ${RD}✗${CL}"
-    msg_ok "Using first-boot installation method (Docker installation failed during image customization)"
+    msg_ok "Docker will be installed on first boot (installation failed during image preparation)"
   fi
 else
-  echo -e " ${RD}✗${CL}"
-  msg_ok "Using first-boot installation method (network not available during image customization)"
+  msg_ok "Packages will be installed on first boot (network not available during image preparation)"
 fi
 
 # Set hostname and clean machine-id
