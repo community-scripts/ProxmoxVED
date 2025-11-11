@@ -135,6 +135,21 @@ function msg_error() {
   echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
 }
 
+function spinner() {
+  local pid=$1
+  local msg="$2"
+  local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+  local i=0
+
+  echo -ne "${TAB}${YW}${msg} "
+  while kill -0 $pid 2>/dev/null; do
+    i=$(((i + 1) % 10))
+    echo -ne "\b${spin:$i:1}"
+    sleep 0.1
+  done
+  echo -ne "\b"
+}
+
 function check_root() {
   if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
     clear
@@ -249,8 +264,16 @@ function select_os() {
 }
 
 function select_cloud_init() {
+  # Ubuntu only has cloudimg variant (always Cloud-Init), so no choice needed
+  if [ "$OS_TYPE" = "ubuntu" ]; then
+    USE_CLOUD_INIT="yes"
+    echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes (Ubuntu requires Cloud-Init)${CL}"
+    return
+  fi
+
+  # Debian has two image variants, so user can choose
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" \
-    --yesno "Enable Cloud-Init for VM configuration?\n\nCloud-Init allows automatic configuration of:\n• User accounts and passwords\n• SSH keys\n• Network settings (DHCP/Static)\n• DNS configuration\n\nYou can also configure these settings later in Proxmox UI." 16 68); then
+    --yesno "Enable Cloud-Init for VM configuration?\n\nCloud-Init allows automatic configuration of:\n• User accounts and passwords\n• SSH keys\n• Network settings (DHCP/Static)\n• DNS configuration\n\nYou can also configure these settings later in Proxmox UI.\n\nNote: Debian without Cloud-Init will use nocloud image with console auto-login." 18 68); then
     USE_CLOUD_INIT="yes"
     echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes${CL}"
   else
@@ -612,7 +635,7 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Adding Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image"
+echo -e "${INFO}${BOLD}${GN}Preparing ${OS_DISPLAY} Qcow2 Disk Image${CL}"
 
 # Set DNS for libguestfs appliance environment (not the guest)
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
@@ -714,12 +737,40 @@ virt-customize -q -a "${FILE}" --run-command "systemctl enable install-docker.se
 
 # Try to install packages and Docker during image customization
 DOCKER_INSTALLED_ON_FIRST_BOOT="yes" # Assume first-boot by default
-if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates 2>/dev/null; then
-  if virt-customize -q -a "${FILE}" --run-command "curl -fsSL https://get.docker.com | sh" 2>/dev/null &&
-    virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" 2>/dev/null; then
+
+# Start package installation in background with spinner
+echo -ne "${TAB}${YW}Installing base packages (qemu-guest-agent, curl, ca-certificates)..."
+virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates >/dev/null 2>&1 &
+INSTALL_PID=$!
+
+# Simple progress dots instead of spinner (more reliable)
+while kill -0 $INSTALL_PID 2>/dev/null; do
+  echo -ne "."
+  sleep 1
+done
+wait $INSTALL_PID
+INSTALL_EXIT=$?
+
+if [ $INSTALL_EXIT -eq 0 ]; then
+  echo -e " ${GN}✓${CL}"
+
+  echo -ne "${TAB}${YW}Installing Docker via get.docker.com..."
+  virt-customize -q -a "${FILE}" --run-command "curl -fsSL https://get.docker.com | sh" >/dev/null 2>&1 &
+  DOCKER_PID=$!
+
+  while kill -0 $DOCKER_PID 2>/dev/null; do
+    echo -ne "."
+    sleep 1
+  done
+  wait $DOCKER_PID
+  DOCKER_EXIT=$?
+
+  if [ $DOCKER_EXIT -eq 0 ]; then
+    echo -e " ${GN}✓${CL}"
+    virt-customize -q -a "${FILE}" --run-command "systemctl enable docker" >/dev/null 2>&1
 
     # Optimize Docker daemon configuration
-    virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/docker" >/dev/null
+    virt-customize -q -a "${FILE}" --run-command "mkdir -p /etc/docker" >/dev/null 2>&1
     virt-customize -q -a "${FILE}" --run-command "cat > /etc/docker/daemon.json << 'DOCKEREOF'
 {
   \"storage-driver\": \"overlay2\",
@@ -729,24 +780,26 @@ if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates 2
     \"max-file\": \"3\"
   }
 }
-DOCKEREOF" >/dev/null
+DOCKEREOF" >/dev/null 2>&1
 
     # Create completion flag to prevent first-boot script from running
-    virt-customize -q -a "${FILE}" --run-command "touch /root/.docker-installed" >/dev/null
+    virt-customize -q -a "${FILE}" --run-command "touch /root/.docker-installed" >/dev/null 2>&1
 
     DOCKER_INSTALLED_ON_FIRST_BOOT="no"
-    msg_ok "Added Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image successfully"
+    msg_ok "Docker and Docker Compose added to ${OS_DISPLAY} Qcow2 Disk Image successfully"
   else
+    echo -e " ${RD}✗${CL}"
     msg_ok "Using first-boot installation method (Docker installation failed during image customization)"
   fi
 else
+  echo -e " ${RD}✗${CL}"
   msg_ok "Using first-boot installation method (network not available during image customization)"
 fi
 
 # Set hostname and clean machine-id
-virt-customize -q -a "${FILE}" --hostname "${HN}" >/dev/null
-virt-customize -q -a "${FILE}" --run-command "truncate -s 0 /etc/machine-id" >/dev/null
-virt-customize -q -a "${FILE}" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null
+virt-customize -q -a "${FILE}" --hostname "${HN}" >/dev/null 2>&1
+virt-customize -q -a "${FILE}" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1
+virt-customize -q -a "${FILE}" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null 2>&1
 
 # Configure SSH to allow root login with password when Cloud-Init is enabled
 # (Cloud-Init will set the password, but SSH needs to accept password authentication)
@@ -757,7 +810,7 @@ fi
 
 msg_info "Expanding root partition to use full disk space"
 qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
-virt-resize --expand /dev/sda1 ${FILE} expanded.qcow2 >/dev/null 2>&1
+virt-resize --quiet --expand /dev/sda1 ${FILE} expanded.qcow2 >/dev/null 2>&1
 mv expanded.qcow2 ${FILE} >/dev/null 2>&1
 msg_ok "Expanded image to full size"
 
@@ -771,12 +824,14 @@ qm set $VMID \
   -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
   -boot order=scsi0 \
   -serial0 socket >/dev/null
-qm resize $VMID scsi0 8G >/dev/null
 qm set $VMID --agent enabled=1 >/dev/null
+msg_ok "Created a Docker VM ${CL}${BL}(${HN})${CL}"
 
 # Add Cloud-Init drive if requested
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
+  msg_info "Configuring Cloud-Init"
+  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" >/dev/null 2>&1
+  msg_ok "Cloud-Init configured"
 fi
 
 DESCRIPTION=$(
@@ -811,11 +866,25 @@ EOF
 )
 qm set "$VMID" -description "$DESCRIPTION" >/dev/null
 
-msg_ok "Created a Docker VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting Docker VM"
-  qm start $VMID
+  qm start $VMID >/dev/null 2>&1
   msg_ok "Started Docker VM"
+fi
+
+# Try to get VM IP address silently in background (max 10 seconds)
+VM_IP=""
+if [ "$START_VM" == "yes" ]; then
+  for i in {1..5}; do
+    VM_IP=$(qm guest cmd "$VMID" network-get-interfaces 2>/dev/null |
+      jq -r '.[] | select(.name != "lo") | ."ip-addresses"[]? | select(."ip-address-type" == "ipv4") | ."ip-address"' 2>/dev/null |
+      grep -v "^127\." | head -1)
+
+    if [ -n "$VM_IP" ]; then
+      break
+    fi
+    sleep 2
+  done
 fi
 
 # Display information about installed components
@@ -823,6 +892,10 @@ echo -e "\n${INFO}${BOLD}${GN}VM Configuration Summary:${CL}"
 echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
 echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
 echo -e "${TAB}${DGN}OS: ${BGN}${OS_DISPLAY}${CL}"
+
+if [ -n "$VM_IP" ]; then
+  echo -e "${TAB}${DGN}IP Address: ${BGN}${VM_IP}${CL}"
+fi
 
 if [ "$DOCKER_INSTALLED_ON_FIRST_BOOT" = "yes" ]; then
   echo -e "${TAB}${DGN}Docker: ${BGN}Will be installed on first boot${CL}"
@@ -832,9 +905,14 @@ if [ "$DOCKER_INSTALLED_ON_FIRST_BOOT" = "yes" ]; then
 else
   echo -e "${TAB}${DGN}Docker: ${BGN}Latest (via get.docker.com)${CL}"
 fi
-echo -e "${TAB}${DGN}Docker Compose: ${BGN}v2 (docker compose command)${CL}"
+
 if [ "$INSTALL_PORTAINER" = "yes" ]; then
-  echo -e "${TAB}${DGN}Portainer: ${BGN}Installed (accessible at https://<VM-IP>:9443)${CL}"
+  if [ -n "$VM_IP" ]; then
+    echo -e "${TAB}${DGN}Portainer: ${BGN}https://${VM_IP}:9443${CL}"
+  else
+    echo -e "${TAB}${DGN}Portainer: ${BGN}Will be accessible at https://<VM-IP>:9443${CL}"
+    echo -e "${TAB}${YW}⚠️  Get IP with: ${BL}qm guest cmd ${VMID} network-get-interfaces${CL}"
+  fi
 fi
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   display_cloud_init_info "$VMID" "$HN"
