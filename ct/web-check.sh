@@ -28,7 +28,7 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "web-check" "MickLesk/web-check"; then
+  if check_for_gh_release "web-check" "CrazyWolf13/web-check"; then
     msg_info "Stopping Service"
     systemctl stop web-check
     msg_ok "Stopped Service"
@@ -38,7 +38,7 @@ function update_script() {
     msg_ok "Created backup"
 
     NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "web-check" "MickLesk/web-check"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "web-check" "CrazyWolf13/web-check"
 
     msg_info "Building Web-Check"
     cd /opt/web-check
