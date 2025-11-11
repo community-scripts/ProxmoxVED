@@ -19,8 +19,8 @@
       "type": "default",
       "script": "ct/domain-locker.sh",
       "resources": {
-        "cpu": 1,
-        "ram": 2048,
+        "cpu": 2,
+        "ram": 4096,
         "hdd": 8,
         "os": "Debian",
         "version": "13"
