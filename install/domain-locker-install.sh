@@ -21,11 +21,8 @@ fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
 msg_info "Building Domain-Locker"
 cd /opt/domain-locker
-export COREPACK_ENABLE_DOWNLOAD_PROMPT=0 && corepack enable
-yarn install --immutable
-yarn add @angular/build@$(curl -s https://raw.githubusercontent.com/Lissy93/domain-locker/refs/heads/main/package-lock.json | jq -r '.packages["node_modules/@angular/build"].version')
-yarn add typescript@5.5
-export NODE_OPTIONS="--max-old-space-size=2048"
+npm install --legacy-peer-deps
+export NODE_OPTIONS="--max-old-space-size=4096"
 cat <<EOF >/opt/domain-locker.env
 # Database connection
 DL_PG_HOST=localhost
@@ -38,7 +35,7 @@ DL_PG_NAME=$PG_DB_NAME
 DL_ENV_TYPE=selfHosted
 NITRO_PRESET=node_server
 EOF
-yarn build
+npm build
 msg_info "Built Domain-Locker"
 
 msg_info "Creating Service"
