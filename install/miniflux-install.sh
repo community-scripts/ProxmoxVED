@@ -33,6 +33,7 @@ ADMIN_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)"
 cat <<EOF >/etc/miniflux.conf
 # See https://miniflux.app/docs/configuration.html
 DATABASE_URL=postgres://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME?sslmode=disable
+DATABASE_URL="user=$DB_USER password=postgres dbname=miniflux2 sslmode=disable"
 CREATE_ADMIN=1
 ADMIN_USERNAME=$ADMIN_NAME
 ADMIN_PASSWORD=$ADMIN_PASS
