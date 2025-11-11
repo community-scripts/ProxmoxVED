@@ -34,7 +34,11 @@ DL_PG_NAME=$PG_DB_NAME
 # Build + Runtime
 DL_ENV_TYPE=selfHosted
 NITRO_PRESET=node_server
+NODE_ENV=production
 EOF
+set -a
+source /opt/domain-locker.env
+set +a
 npm run build
 msg_info "Built Domain-Locker"
 
