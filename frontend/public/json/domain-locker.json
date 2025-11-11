@@ -20,7 +20,7 @@
       "script": "ct/domain-locker.sh",
       "resources": {
         "cpu": 1,
-        "ram": 1024,
+        "ram": 2048,
         "hdd": 8,
         "os": "Debian",
         "version": "13"
