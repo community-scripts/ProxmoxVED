@@ -38,7 +38,7 @@ function update_script() {
     msg_ok "Created backup"
     
     NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
-    fetch_and_deploy_gh_release "web-check" "MickLesk/web-check"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "web-check" "MickLesk/web-check"
 
     msg_info "Building Web-Check"
     cd /opt/web-check
