@@ -4,9 +4,9 @@
 # Author: thost96 (thost96) | Co-Author: michelroegl-brunner
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
+source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
 # Load Cloud-Init library for VM configuration
-source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/cloud-init.sh) 2>/dev/null || true
+source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/vm/cloud-init-lib.sh) 2>/dev/null || true
 
 function header_info() {
   clear
@@ -606,41 +606,84 @@ done
 
 msg_info "Adding Docker and Docker Compose to ${OS_DISPLAY} Qcow2 Disk Image"
 
-# Configure DNS before package installation
-msg_info "Configuring DNS resolvers for package installation"
-virt-customize -q -a "${FILE}" --run-command "echo 'nameserver 8.8.8.8' > /etc/resolv.conf" >/dev/null 2>&1
-virt-customize -q -a "${FILE}" --run-command "echo 'nameserver 1.1.1.1' >> /etc/resolv.conf" >/dev/null 2>&1
+# Set DNS for libguestfs appliance environment (not the guest)
+export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 
 # Install base packages including qemu-guest-agent
 msg_info "Installing qemu-guest-agent and base packages"
-if ! virt-customize -v -x -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates 2>&1 | tee /tmp/virt-customize-$VMID.log | grep -q "error"; then
+if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates >/dev/null 2>&1; then
   msg_ok "Base packages installed successfully"
 else
-  msg_error "Failed to install base packages. Check /tmp/virt-customize-$VMID.log"
-  echo "Debug info:"
-  tail -20 /tmp/virt-customize-$VMID.log
+  msg_error "Failed to install base packages during image customization"
+  msg_info "Fallback: Will install packages on first boot via systemd service"
 
-  # Try alternative: Install packages after first boot via cloud-init
-  msg_info "Fallback: Will install packages via cloud-init on first boot"
+  # Create installation script for first boot
   virt-customize -q -a "${FILE}" --run-command "cat > /root/install-docker.sh << 'INSTALLEOF'
 #!/bin/bash
-# Wait for network
-sleep 10
-# Update DNS
-echo 'nameserver 8.8.8.8' > /etc/resolv.conf
-echo 'nameserver 1.1.1.1' >> /etc/resolv.conf
-# Install packages
+# Log output to file
+exec > /var/log/install-docker.log 2>&1
+echo \"[$(date)] Starting Docker installation on first boot\"
+
+# Wait for network to be fully available
+for i in {1..30}; do
+  if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+    echo \"[$(date)] Network is available\"
+    break
+  fi
+  echo \"[$(date)] Waiting for network... attempt \$i/30\"
+  sleep 2
+done
+
+# Configure DNS
+echo \"[$(date)] Configuring DNS\"
+mkdir -p /etc/systemd/resolved.conf.d
+cat > /etc/systemd/resolved.conf.d/dns.conf << DNSEOF
+[Resolve]
+DNS=8.8.8.8 1.1.1.1
+FallbackDNS=8.8.4.4 1.0.0.1
+DNSEOF
+systemctl restart systemd-resolved 2>/dev/null || true
+
+# Update package lists
+echo \"[$(date)] Updating package lists\"
 apt-get update
+
+# Install base packages
+echo \"[$(date)] Installing base packages\"
 apt-get install -y qemu-guest-agent curl ca-certificates
+
 # Install Docker
+echo \"[$(date)] Installing Docker\"
 curl -fsSL https://get.docker.com | sh
 systemctl enable docker
 systemctl start docker
-# Create flag file
+
+# Wait for Docker to be ready
+for i in {1..10}; do
+  if docker info >/dev/null 2>&1; then
+    echo \"[$(date)] Docker is ready\"
+    break
+  fi
+  sleep 1
+done
+
+# Install Portainer if requested
+INSTALL_PORTAINER_PLACEHOLDER
+
+# Create completion flag
+echo \"[$(date)] Docker installation completed successfully\"
 touch /root/.docker-installed
 INSTALLEOF" >/dev/null
 
+  # Replace Portainer placeholder based on user choice
+  if [ "$INSTALL_PORTAINER" = "yes" ]; then
+    virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|echo \"[\\$(date)] Installing Portainer\"\ndocker volume create portainer_data\ndocker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest\necho \"[\\$(date)] Portainer installed and started\"|' /root/install-docker.sh" >/dev/null
+  else
+    virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|echo \"[\\$(date)] Skipping Portainer installation\"|' /root/install-docker.sh" >/dev/null
+  fi
+
   virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-docker.sh" >/dev/null
+
   virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/install-docker.service << 'SERVICEEOF'
 [Unit]
 Description=Install Docker on First Boot
@@ -779,7 +822,15 @@ echo -e "\n${INFO}${BOLD}${GN}VM Configuration Summary:${CL}"
 echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
 echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
 echo -e "${TAB}${DGN}OS: ${BGN}${OS_DISPLAY}${CL}"
-echo -e "${TAB}${DGN}Docker: ${BGN}Latest (via get.docker.com)${CL}"
+
+if [ "$DOCKER_INSTALLED_ON_FIRST_BOOT" = "yes" ]; then
+  echo -e "${TAB}${DGN}Docker: ${BGN}Will be installed on first boot${CL}"
+  echo -e "${TAB}${YW}⚠️  Docker installation will happen automatically after VM starts${CL}"
+  echo -e "${TAB}${YW}⚠️  Wait 2-3 minutes after boot for installation to complete${CL}"
+  echo -e "${TAB}${YW}⚠️  Check installation progress: ${BL}cat /var/log/install-docker.log${CL}"
+else
+  echo -e "${TAB}${DGN}Docker: ${BGN}Latest (via get.docker.com)${CL}"
+fi
 echo -e "${TAB}${DGN}Docker Compose: ${BGN}v2 (docker compose command)${CL}"
 if [ "$INSTALL_PORTAINER" = "yes" ]; then
   echo -e "${TAB}${DGN}Portainer: ${BGN}Installed (accessible at https://<VM-IP>:9443)${CL}"
