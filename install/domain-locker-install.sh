@@ -22,7 +22,7 @@ fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 msg_info "Building Domain-Locker"
 cd /opt/domain-locker
 npm install --legacy-peer-deps
-export NODE_OPTIONS="--max-old-space-size=4096"
+export NODE_OPTIONS="--max-old-space-size=6144"
 cat <<EOF >/opt/domain-locker.env
 # Database connection
 DL_PG_HOST=localhost
