@@ -904,6 +904,7 @@ if [ "$INSTALL_PORTAINER" = "yes" ]; then
     echo -e "${TAB}${DGN}Portainer: ${BGN}https://${VM_IP}:9443${CL}"
   else
     echo -e "${TAB}${DGN}Portainer: ${BGN}Will be accessible at https://<VM-IP>:9443${CL}"
+    echo -e "${TAB}${YW}⚠️  Wait 2-3 minutes after boot for installation to complete${CL}"
     echo -e "${TAB}${YW}⚠️  Get IP with: ${BL}qm guest cmd ${VMID} network-get-interfaces${CL}"
   fi
 fi
