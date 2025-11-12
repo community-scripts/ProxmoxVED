@@ -45,7 +45,7 @@ EOF
   echo "ADMIN_PASSWORD: $ADMIN_PASS"
 } >>~/miniflux.creds
 
-miniflux -migrate -config-file /etc/miniflux.conf
+$STD miniflux -migrate -config-file /etc/miniflux.conf
 
 systemctl enable -q --now miniflux
 msg_ok "Configured Miniflux"
