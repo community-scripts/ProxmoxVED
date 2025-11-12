@@ -15,9 +15,9 @@ update_os
 
 
 PG_VERSION=17 setup_postgresql
-DB_NAME=miniflux2
-DB_USER=postgres
-DB_PASS=postgres
+DB_NAME=miniflux
+DB_USER=miniflux
+DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER;"
 $STD sudo -u postgres psql -d "$DB_NAME" -c "CREATE EXTENSION hstore;"
@@ -31,7 +31,7 @@ ADMIN_NAME=admin
 ADMIN_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)"
 cat <<EOF >/etc/miniflux.conf
 # See https://miniflux.app/docs/configuration.html
-
+DATABASE_URL=user=$DB_USER password=$DB_PASS dbname=$DB_NAME sslmode=disable
 CREATE_ADMIN=1
 ADMIN_USERNAME=$ADMIN_NAME
 ADMIN_PASSWORD=$ADMIN_PASS
