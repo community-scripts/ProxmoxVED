@@ -23,6 +23,7 @@ msg_info "Building Domain-Locker"
 cd /opt/domain-locker
 npm install --legacy-peer-deps
 export NODE_OPTIONS="--max-old-space-size=8192"
+HOST_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/opt/domain-locker.env
 # Database connection
 DL_PG_HOST=localhost
@@ -30,6 +31,8 @@ DL_PG_PORT=5432
 DL_PG_USER=$PG_DB_USER
 DL_PG_PASSWORD=$PG_DB_PASS
 DL_PG_NAME=$PG_DB_NAME
+
+DL_API_BASE_URL=http://${HOST_IP}:3000
 
 # Build + Runtime
 DL_ENV_TYPE=selfHosted
