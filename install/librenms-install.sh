@@ -121,12 +121,11 @@ systemctl restart php8.4-fpm
 msg_ok "Configured Nginx"
 
 msg_info "Configure Services"
-COMPOSER_ALLOW_SUPERUSER=1
-$STD composer install --no-dev
-$STD php8.4 artisan migrate --force
-$STD php8.4 artisan key:generate --force
-$STD su librenms -s /bin/bash -c "lnms db:seed --force"
-$STD su librenms -s /bin/bash -c "lnms user:add -p admin -r admin admin"
+$STD su - librenms -s /bin/bash -c "cd /opt/librenms && COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev"
+$STD su - librenms -s /bin/bash -c "cd /opt/librenms && php8.4 artisan migrate --force"
+$STD su - librenms -s /bin/bash -c "cd /opt/librenms && php8.4 artisan key:generate --force"
+$STD su - librenms -s /bin/bash -c "cd /opt/librenms && lnms db:seed --force"
+$STD su - librenms -s /bin/bash -c "cd /opt/librenms && lnms user:add -p admin -r admin admin"
 ln -s /opt/librenms/lnms /usr/bin/lnms
 mkdir -p /etc/bash_completion.d/
 cp /opt/librenms/misc/lnms-completion.bash /etc/bash_completion.d/
