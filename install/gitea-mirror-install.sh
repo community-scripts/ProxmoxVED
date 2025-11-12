@@ -13,14 +13,6 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing dependencies"
-$STD apt-get install -y \
-  build-essential \
-  openssl \
-  sqlite3 \
-  unzip
-msg_ok "Installed Dependencies"
-
 NODE_VERSION="22" NODE_MODULES="bun" setup_nodejs
 fetch_and_deploy_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror"
 
