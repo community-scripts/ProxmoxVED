@@ -20,10 +20,7 @@ DB_USER=miniflux
 DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
 $STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
 $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER;"
-$STD sudo -u $DB_USER -p $DB_PASS psql -d "$DB_NAME" -c "CREATE EXTENSION hstore;"
-DROP EXTENSION hstore;
-
-
+msg_ok "Set up PostgreSQL database"
 
 fetch_and_deploy_gh_release "miniflux" "miniflux/v2" "binary" "latest"
 
