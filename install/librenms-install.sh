@@ -43,22 +43,9 @@ $STD apt install -y \
   python3-pip
 msg_ok "Installed Python Dependencies"
 
-msg_info "Configuring Database"
-APP_KEY=$(openssl rand -base64 40 | tr -dc 'a-zA-Z0-9')
-DB_NAME=librenms
-DB_USER=librenms
-DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-$STD mariadb -u root -e "CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-$STD mariadb -u root -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
-$STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUSH PRIVILEGES;"
-{
-  echo "LibreNMS-Credentials"
-  echo "LibreNMS Database User: $DB_USER"
-  echo "LibreNMS Database Password: $DB_PASS"
-  echo "LibreNMS Database Name: $DB_NAME"
-  echo "APP Key: $APP_KEY"
-} >>~/librenms.creds
-msg_ok "Configured Database"
+
+
+MARIADB_DB_NAME="librenms" MARIADB_DB_USER="librenms" MARIADB_DB_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)" setup_mariadb_db
 
 fetch_and_deploy_gh_release "librenms" "librenms/librenms"
 
@@ -66,13 +53,14 @@ msg_info "Configuring LibreNMS"
 $STD useradd librenms -d /opt/librenms -M -r -s "$(which bash)"
 mkdir -p /opt/librenms/{rrd,logs,bootstrap/cache,storage,html}
 cd /opt/librenms
+APP_KEY=$(openssl rand -base64 40 | tr -dc 'a-zA-Z0-9')
 $STD uv venv .venv
 $STD source .venv/bin/activate
 $STD uv pip install -r requirements.txt
 cat <<EOF >/opt/librenms/.env
-DB_DATABASE=${DB_NAME}
-DB_USERNAME=${DB_USER}
-DB_PASSWORD=${DB_PASS}
+DB_DATABASE=${MARIADB_DB_NAME}
+DB_USERNAME=${MARIADB_DB_USER}
+DB_PASSWORD=${MARIADB_DB_PASS}
 APP_KEY=${APP_KEY}
 EOF
 chown -R librenms:librenms /opt/librenms
