@@ -619,11 +619,12 @@ msg_info "Preparing ${OS_DISPLAY} Qcow2 Disk Image"
 
 # Set DNS for libguestfs appliance environment
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
+# Suppress libguestfs warnings about random seed
+export LIBGUESTFS_DEBUG=0
+export LIBGUESTFS_TRACE=0
 
-# Suppress all virt-customize output including warnings
-{
-  # Create first-boot installation script
-  virt-customize -q -a "${FILE}" --run-command "cat > /root/install-unifi.sh << 'INSTALLEOF'
+# Create first-boot installation script
+virt-customize -q -a "${FILE}" --run-command "cat > /root/install-unifi.sh << 'INSTALLEOF'
 #!/bin/bash
 # Log output to file
 exec > /var/log/install-unifi.log 2>&1
@@ -656,6 +657,10 @@ apt-get update
 # Install base packages
 echo \"[\$(date)] Installing base packages\"
 apt-get install -y qemu-guest-agent curl ca-certificates lsb-release podman uidmap slirp4netns iptables 2>/dev/null || true
+
+# Start and enable QEMU Guest Agent
+echo \"[\$(date)] Starting QEMU Guest Agent\"
+systemctl enable --now qemu-guest-agent 2>/dev/null || true
 
 # Start and enable Podman
 echo \"[\$(date)] Enabling Podman service\"
@@ -722,13 +727,12 @@ WantedBy=multi-user.target
 SVCEOF
 systemctl enable unifi-firstboot.service"
 
-  # Add auto-login if Cloud-Init is disabled
-  if [ "$USE_CLOUD_INIT" != "yes" ]; then
-    virt-customize -q -a "${FILE}" \
-      --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
-      --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'"
-  fi
-} 2>/dev/null
+# Add auto-login if Cloud-Init is disabled
+if [ "$USE_CLOUD_INIT" != "yes" ]; then
+  virt-customize -q -a "${FILE}" \
+    --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
+    --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'"
+fi
 
 msg_ok "UniFi OS Installer integrated (will run on first boot)"
 
@@ -818,21 +822,35 @@ if [ "$START_VM" == "yes" ]; then
 
   msg_info "Waiting for VM to boot and complete first-boot setup (this may take 3-5 minutes)"
 
-  # Get VM IP address (wait up to 60 seconds)
-  VM_IP=""
+  # Wait for qemu-guest-agent to be ready (up to 120 seconds)
+  msg_info "Waiting for QEMU Guest Agent to become available..."
+  AGENT_READY=0
   for i in {1..60}; do
-    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[] | select(.name != "lo") | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | head -1)
-    if [ -n "$VM_IP" ]; then
+    if qm agent $VMID ping 2>/dev/null | grep -q "returns OK"; then
+      AGENT_READY=1
+      msg_ok "QEMU Guest Agent is ready"
       break
     fi
     sleep 2
   done
 
+  # Get VM IP address
+  VM_IP=""
+  if [ $AGENT_READY -eq 1 ]; then
+    for i in {1..30}; do
+      VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[] | select(.name != "lo") | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | head -1 || echo "")
+      if [ -n "$VM_IP" ] && [ "$VM_IP" != "127.0.0.1" ]; then
+        break
+      fi
+      sleep 2
+    done
+  fi
+
+  # Fallback: Try to get IP from Proxmox network info
   if [ -z "$VM_IP" ]; then
-    msg_info "Unable to detect VM IP automatically - checking manually..."
-    # Fallback: use qm guest agent
-    sleep 10
-    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[1]["ip-addresses"][0]["ip-address"]' 2>/dev/null || echo "")
+    msg_info "Attempting alternative IP detection method..."
+    sleep 5
+    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[1]["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | grep -v "127.0.0.1" | head -1 || echo "")
   fi
 
   if [ -n "$VM_IP" ]; then
