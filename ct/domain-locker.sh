@@ -33,32 +33,19 @@ function update_script() {
         systemctl stop domain-locker
         msg_info "Service stopped"
 
-        CLEAN_INSTALL=1 fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
+        PG_VERSION="17" setup_postgresql
+        setup_nodejs
+        fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
-        msg_info "Updating Domain-Locker"
+        msg_info "Building Domain-Locker"
         cd /opt/domain-locker
-        corepack enable
-        $STD yarn install --immutable
-
-
-# Database connection
-DL_PG_HOST=localhost
-DL_PG_PORT=5432
-DL_PG_USER=postgres
-DL_PG_PASSWORD=your-password
-DL_PG_NAME=domain_locker
-
-# Build + Runtime
-DL_ENV_TYPE=selfHosted
-NITRO_PRESET=node_server
-        
-        export NODE_OPTIONS="--max-old-space-size=1024"
-        export DL_ENV_TYPE="selfHosted"
-        $STD npm ci --legacy-peer-deps
-        $STD npm run build
-        
-        setup_postgresql
-        msg_ok "Updated Domain-Locker"
+        npm install --legacy-peer-deps
+        export NODE_OPTIONS="--max-old-space-size=8192"
+        set -a
+        source /opt/domain-locker.env
+        set +a
+        npm run build
+        msg_info "Built Domain-Locker"
 
         msg_info "Restarting Services"
         systemctl start domain-locker
