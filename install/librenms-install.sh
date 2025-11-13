@@ -139,7 +139,7 @@ $STD su - librenms -s /bin/bash -c "cd /opt/librenms && lnms user:add -p admin -
 RANDOM_STRING=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9')
 sed -i "s/RANDOMSTRINGHERE/$RANDOM_STRING/g" /etc/snmp/snmpd.conf
 echo "SNMP Community String: $RANDOM_STRING" >>~/librenms.creds
-curl -qo /usr/bin/distro https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro
+curl -qso /usr/bin/distro https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro
 chmod +x /usr/bin/distro
 systemctl enable -q --now snmpd
 
