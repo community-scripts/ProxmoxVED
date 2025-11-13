@@ -44,6 +44,7 @@ $STD apt install -y \
 msg_ok "Installed Python Dependencies"
 
 msg_info "Configuring Database"
+APP_KEY=$(openssl rand -base64 40 | tr -dc 'a-zA-Z0-9')
 DB_NAME=librenms
 DB_USER=librenms
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
@@ -55,6 +56,7 @@ $STD mariadb -u root -e "GRANT ALL ON $DB_NAME.* TO '$DB_USER'@'localhost'; FLUS
   echo "LibreNMS Database User: $DB_USER"
   echo "LibreNMS Database Password: $DB_PASS"
   echo "LibreNMS Database Name: $DB_NAME"
+  echo "APP Key: $APP_KEY"
 } >>~/librenms.creds
 msg_ok "Configured Database"
 
@@ -71,6 +73,7 @@ cat <<EOF >/opt/librenms/.env
 DB_DATABASE=${DB_NAME}
 DB_USERNAME=${DB_USER}
 DB_PASSWORD=${DB_PASS}
+APP_KEY=${APP_KEY}
 EOF
 chown -R librenms:librenms /opt/librenms
 chmod 771 /opt/librenms
