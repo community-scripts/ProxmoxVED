@@ -5,6 +5,8 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func)
+# Load Cloud-Init library for VM configuration
+source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/cloud-init.sh) 2>/dev/null || true
 
 function header_info() {
   clear
@@ -23,11 +25,13 @@ GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
 NSAPP="UniFi OS Server"
-var_os="linux"
-var_version="x64"
-UOS_VERSION="4.3.5"
-UOS_URL="https://fw-download.ubnt.com/data/unifi-os-server/da70-linux-x64-4.3.5-5306ffbb-fc6d-4414-912b-29cbfb0ce85a.5-x64"
-UOS_INSTALLER="unifi-os-server-${UOS_VERSION}.bin"
+var_os="debian"
+var_version="13"
+USE_CLOUD_INIT="no"
+OS_TYPE=""
+OS_VERSION=""
+OS_CODENAME=""
+OS_DISPLAY=""
 
 YW=$(echo "\033[33m")
 BL=$(echo "\033[36m")
@@ -61,6 +65,7 @@ MACADDRESS="${TAB}🔗${TAB}${CL}"
 VLANTAG="${TAB}🏷️${TAB}${CL}"
 CREATING="${TAB}🚀${TAB}${CL}"
 ADVANCED="${TAB}🧩${TAB}${CL}"
+CLOUD="${TAB}☁️${TAB}${CL}"
 THIN="discard=on,ssd=1,"
 
 set -Eeuo pipefail
@@ -204,13 +209,86 @@ function exit-script() {
   exit
 }
 
+function select_os() {
+  if OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
+    "Choose Operating System for UniFi OS VM" 12 68 2 \
+    "debian13" "Debian 13 (Trixie) - Latest" ON \
+    "ubuntu2404" "Ubuntu 24.04 LTS (Noble)" OFF \
+    3>&1 1>&2 2>&3); then
+    case $OS_CHOICE in
+    debian13)
+      OS_TYPE="debian"
+      OS_VERSION="13"
+      OS_CODENAME="trixie"
+      OS_DISPLAY="Debian 13 (Trixie)"
+      ;;
+    ubuntu2404)
+      OS_TYPE="ubuntu"
+      OS_VERSION="24.04"
+      OS_CODENAME="noble"
+      OS_DISPLAY="Ubuntu 24.04 LTS"
+      ;;
+    esac
+    echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}${OS_DISPLAY}${CL}"
+  else
+    exit-script
+  fi
+}
+
+function select_cloud_init() {
+  # Ubuntu only has cloudimg variant (always Cloud-Init), so no choice needed
+  if [ "$OS_TYPE" = "ubuntu" ]; then
+    USE_CLOUD_INIT="yes"
+    echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes (Ubuntu requires Cloud-Init)${CL}"
+    return
+  fi
+
+  # Debian has two image variants, so user can choose
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" \
+    --yesno "Enable Cloud-Init for VM configuration?\n\nCloud-Init allows automatic configuration of:\n• User accounts and passwords\n• SSH keys\n• Network settings (DHCP/Static)\n• DNS configuration\n\nYou can also configure these settings later in Proxmox UI.\n\nNote: Debian without Cloud-Init will use nocloud image with console auto-login." 18 68); then
+    USE_CLOUD_INIT="yes"
+    echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes${CL}"
+  else
+    USE_CLOUD_INIT="no"
+    echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}no${CL}"
+  fi
+}
+
+function get_image_url() {
+  local arch=$(dpkg --print-architecture)
+  case $OS_TYPE in
+  debian)
+    # Debian has two variants:
+    # - generic: For Cloud-Init enabled VMs
+    # - nocloud: For VMs without Cloud-Init (has console auto-login)
+    if [ "$USE_CLOUD_INIT" = "yes" ]; then
+      echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-generic-${arch}.qcow2"
+    else
+      echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-nocloud-${arch}.qcow2"
+    fi
+    ;;
+  ubuntu)
+    # Ubuntu only has cloudimg variant (always with Cloud-Init support)
+    echo "https://cloud-images.ubuntu.com/${OS_CODENAME}/current/${OS_CODENAME}-server-cloudimg-${arch}.img"
+    ;;
+  esac
+}
+
 function default_settings() {
+  # OS Selection - ALWAYS ask
+  select_os
+
+  # Cloud-Init Selection - ALWAYS ask
+  select_cloud_init
+
+  # Set defaults for other settings
   VMID=$(get_valid_nextid)
   FORMAT=""
-  MACHINE="q35"
+  MACHINE=" -machine q35"
+  DISK_CACHE=""
   DISK_SIZE="30G"
   HN="unifi-server-os"
-  CPU_TYPE=""
+  CPU_TYPE=" -cpu host"
   CORE_COUNT="2"
   RAM_SIZE="4096"
   BRG="vmbr0"
@@ -220,10 +298,11 @@ function default_settings() {
   START_VM="yes"
   METHOD="default"
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
-  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
+  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
   echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
   echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
@@ -231,11 +310,18 @@ function default_settings() {
   echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
-  echo -e "${CREATING}${BOLD}${DGN}Creating a Unifi OS VM using the above default settings${CL}"
+  echo -e "${CREATING}${BOLD}${DGN}Creating a UniFi OS VM using the above default settings${CL}"
 }
 
 function advanced_settings() {
   METHOD="advanced"
+
+  # OS Selection - ALWAYS ask
+  select_os
+
+  # Cloud-Init Selection - ALWAYS ask
+  select_cloud_init
+
   [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
   while true; do
     if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -255,15 +341,15 @@ function advanced_settings() {
   done
 
   if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Machine Type" 10 58 2 \
-    "q35" "Modern (PCIe, UEFI, default)" ON \
-    "i440fx" "Legacy (older compatibility)" OFF \
+    "q35" "Q35 (Modern, PCIe, UEFI)" ON \
+    "i440fx" "i440fx (Legacy)" OFF \
     3>&1 1>&2 2>&3); then
     if [ "$MACH" = "q35" ]; then
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}q35${CL}"
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
       FORMAT=""
       MACHINE=" -machine q35"
     else
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
+      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx (Legacy)${CL}"
       FORMAT=",efitype=4m"
       MACHINE=""
     fi
@@ -287,8 +373,8 @@ function advanced_settings() {
   fi
 
   if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "None" OFF \
-    "1" "Write Through (Default)" ON \
+    "0" "None (Default)" ON \
+    "1" "Write Through" OFF \
     3>&1 1>&2 2>&3); then
     if [ $DISK_CACHE = "1" ]; then
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}Write Through${CL}"
@@ -314,8 +400,8 @@ function advanced_settings() {
   fi
 
   if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose CPU Model" --cancel-button Exit-Script 10 58 2 \
-    "KVM64" "Default – safe for migration/compatibility" ON \
-    "Host" "Use host CPU features (faster, no migration)" OFF \
+    "Host" "Host (Faster, recommended)" ON \
+    "KVM64" "KVM64 (Compatibility)" OFF \
     3>&1 1>&2 2>&3); then
     case "$CPU_TYPE1" in
     Host)
@@ -468,20 +554,63 @@ fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
-# --- Download Debian Cloud Image ---
-msg_info "Downloading Debian 13 Cloud Image"
-URL="https://cloud.debian.org/images/cloud/trixie/latest/debian-13-nocloud-amd64.qcow2"
+# Fetch latest UniFi OS Server version and download URL
+msg_info "Fetching latest UniFi OS Server version"
+
+# Install jq if not available
+if ! command -v jq &>/dev/null; then
+  msg_info "Installing jq for JSON parsing"
+  apt-get update -qq >/dev/null 2>&1
+  apt-get install -y jq -qq >/dev/null 2>&1
+fi
+
+# Download firmware list from Ubiquiti API
+API_URL="https://fw-update.ui.com/api/firmware-latest"
+TEMP_JSON=$(mktemp)
+
+if ! curl -fsSL "$API_URL" -o "$TEMP_JSON"; then
+  rm -f "$TEMP_JSON"
+  msg_error "Failed to fetch data from Ubiquiti API"
+  exit 1
+fi
+
+# Parse JSON to find latest unifi-os-server linux-x64 version
+LATEST=$(jq -r '
+  ._embedded.firmware
+  | map(select(.product == "unifi-os-server"))
+  | map(select(.platform == "linux-x64"))
+  | sort_by(.version_major, .version_minor, .version_patch)
+  | last
+' "$TEMP_JSON")
+
+UOS_VERSION=$(echo "$LATEST" | jq -r '.version' | sed 's/^v//')
+UOS_URL=$(echo "$LATEST" | jq -r '._links.data.href')
+
+# Cleanup temp file
+rm -f "$TEMP_JSON"
+
+if [ -z "$UOS_URL" ] || [ -z "$UOS_VERSION" ]; then
+  msg_error "Failed to parse UniFi OS Server version or download URL"
+  exit 1
+fi
+
+UOS_INSTALLER="unifi-os-server-${UOS_VERSION}.bin"
+msg_ok "Found UniFi OS Server ${UOS_VERSION}"
+
+# --- Download Cloud Image ---
+msg_info "Downloading ${OS_DISPLAY} Cloud Image"
+URL=$(get_image_url)
 CACHE_DIR="/var/lib/vz/template/cache"
 CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
-FILE_IMG="/var/lib/vz/template/tmp/${CACHE_FILE##*/%.xz}" # .qcow2
+FILE_IMG="/var/lib/vz/template/tmp/${CACHE_FILE##*/%.xz}"
 if [[ ! -s "$CACHE_FILE" ]]; then
   curl -f#SL -o "$CACHE_FILE" "$URL"
   msg_ok "Downloaded ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
 else
   msg_ok "Using cached image ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
 fi
-FILE="debian-13-nocloud-amd64.qcow2"
-msg_ok "Downloaded Debian Cloud Image"
+FILE="$(basename "$CACHE_FILE")"
+msg_ok "Downloaded ${OS_DISPLAY} Cloud Image"
 
 # --- Inject UniFi Installer ---
 if ! command -v virt-customize &>/dev/null; then
@@ -492,18 +621,28 @@ if ! command -v virt-customize &>/dev/null; then
 fi
 
 msg_info "Injecting UniFi OS Installer into Cloud Image"
-virt-customize -q -a "$FILE" \
-  --run-command "echo 'nameserver 1.1.1.1' > /etc/resolv.conf" \
-  --install qemu-guest-agent,ca-certificates,curl,lsb-release,podman \
-  --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER}" \
-  --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
-  --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" \
-  >/dev/null
+if [ "$USE_CLOUD_INIT" = "yes" ]; then
+  # Cloud-Init enabled: No auto-login, standard setup
+  virt-customize -q -a "$FILE" \
+    --run-command "echo 'nameserver 1.1.1.1' > /etc/resolv.conf" \
+    --install qemu-guest-agent,ca-certificates,curl,lsb-release,podman \
+    --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER}" \
+    >/dev/null
+else
+  # No Cloud-Init: Keep auto-login for console access
+  virt-customize -q -a "$FILE" \
+    --run-command "echo 'nameserver 1.1.1.1' > /etc/resolv.conf" \
+    --install qemu-guest-agent,ca-certificates,curl,lsb-release,podman \
+    --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER}" \
+    --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
+    --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" \
+    >/dev/null
+fi
 msg_ok "UniFi OS Installer integrated"
 
 msg_info "Creating UniFi OS VM"
-qm create "$VMID" -agent 1 $MACHINE -tablet 0 -localtime 1 -bios ovmf \
-  $CPU_TYPE -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
+qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf \
+  ${CPU_TYPE} -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
   -name "$HN" -tags community-script \
   -net0 virtio,bridge="$BRG",macaddr="$MAC""$VLAN""$MTU" \
   -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
@@ -518,10 +657,17 @@ fi
 
 qm set "$VMID" \
   -efidisk0 "${STORAGE}:0${FORMAT},size=4M" \
-  -scsi0 "${DISK_REF},size=${DISK_SIZE}" \
+  -scsi0 "${DISK_REF},${DISK_CACHE}size=${DISK_SIZE}" \
   -boot order=scsi0 -serial0 socket >/dev/null
 qm resize "$VMID" scsi0 "$DISK_SIZE" >/dev/null
 qm set "$VMID" --agent enabled=1 >/dev/null
+
+# Add Cloud-Init drive if enabled
+if [ "$USE_CLOUD_INIT" = "yes" ]; then
+  msg_info "Configuring Cloud-Init"
+  qm set "$VMID" --ide2 "${STORAGE}:cloudinit" >/dev/null
+  msg_ok "Cloud-Init configured"
+fi
 
 DESCRIPTION=$(
   cat <<EOF
@@ -555,11 +701,13 @@ EOF
 )
 qm set "$VMID" -description "$DESCRIPTION" >/dev/null
 
-msg_ok "Created a Unifi OS VM ${CL}${BL}(${HN})"
+msg_ok "Created a UniFi OS VM ${CL}${BL}(${HN})"
+msg_info "Operating System: ${OS_DISPLAY}"
+msg_info "Cloud-Init: ${USE_CLOUD_INIT}"
 if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting Unifi OS VM"
+  msg_info "Starting UniFi OS VM"
   qm start $VMID
-  msg_ok "Started Unifi OS VM"
+  msg_ok "Started UniFi OS VM"
 fi
 post_update_to_api "done" "none"
 msg_ok "Completed Successfully!\n"
