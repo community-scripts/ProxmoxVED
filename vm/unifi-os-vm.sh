@@ -653,17 +653,39 @@ apt-get update
 
 # Install base packages
 echo \"[\$(date)] Installing base packages\"
-apt-get install -y qemu-guest-agent curl ca-certificates lsb-release podman 2>/dev/null || true
+apt-get install -y qemu-guest-agent curl ca-certificates lsb-release podman uidmap slirp4netns iptables 2>/dev/null || true
+
+# Start and enable Podman
+echo \"[\$(date)] Enabling Podman service\"
+systemctl enable --now podman 2>/dev/null || true
 
 # Download UniFi OS installer
 echo \"[\$(date)] Downloading UniFi OS Server ${UOS_VERSION}\"
 curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER}
 chmod +x /root/${UOS_INSTALLER}
 
-# Run UniFi OS installer automatically with yes confirmation
+# Run UniFi OS installer automatically with 'install' argument
 echo \"[\$(date)] Running UniFi OS installer automatically...\"
-yes y | /root/${UOS_INSTALLER} 2>&1 || true
+/root/${UOS_INSTALLER} install <<< 'y' 2>&1 || {
+  echo \"[\$(date)] First install attempt failed, trying again...\"
+  sleep 5
+  /root/${UOS_INSTALLER} install 2>&1 || true
+}
 echo \"[\$(date)] UniFi OS installation completed\"
+
+# Wait for UniFi OS to initialize
+echo \"[\$(date)] Waiting for UniFi OS Server to initialize...\"
+sleep 10
+
+# Check if uosserver command exists
+if command -v uosserver >/dev/null 2>&1; then
+  echo \"[\$(date)] UniFi OS Server installed successfully\"
+  echo \"[\$(date)] Starting UniFi OS Server...\"
+  uosserver start 2>&1 || true
+  echo \"[\$(date)] UniFi OS Server should be accessible at https://\$(hostname -I | awk '{print \$1}'):11443\"
+else
+  echo \"[\$(date)] WARNING: uosserver command not found - installation may have failed\"
+fi
 
 # Self-destruct this installation script
 rm -f /root/install-unifi.sh
