@@ -56,13 +56,11 @@ function update_script() {
     cd /opt/netvisor/backend
     $STD cargo build --release --bin server
     mv ./target/release/server /usr/bin/netvisor-server
-    chmod +x /usr/bin/netvisor-server
     msg_ok "Built Netvisor-server"
 
     msg_info "Building Netvisor-daemon (amd64 version)"
     $STD cargo build --release --bin daemon
     cp ./target/release/daemon /usr/bin/netvisor-daemon
-    chmod +x /usr/bin/netvisor-daemon
     msg_ok "Built Netvisor-daemon (amd64 version)"
 
     msg_info "Starting services"

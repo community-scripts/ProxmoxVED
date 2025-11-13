@@ -54,13 +54,11 @@ msg_info "Building Netvisor-server (patience)"
 cd /opt/netvisor/backend
 $STD cargo build --release --bin server
 mv ./target/release/server /usr/bin/netvisor-server
-chmod +x /usr/bin/netvisor-server
 msg_ok "Built Netvisor-server"
 
 msg_info "Building Netvisor-daemon (amd64 version)"
 $STD cargo build --release --bin daemon
 cp ./target/release/daemon /usr/bin/netvisor-daemon
-chmod +x /usr/bin/netvisor-daemon
 msg_ok "Built Netvisor-daemon (amd64 version)"
 
 msg_info "Configuring server & daemon for first-run"
@@ -79,13 +77,14 @@ NETVISOR_INTEGRATED_DAEMON_URL=http://127.0.0.1:60073
 ## - uncomment to disable signups
 # NETVISOR_DISABLE_REGISTRATION=true
 ## - uncomment when behind reverse proxy
-# NETVISOR_USE_SECURE_SESSION_COKKIES=true
+# NETVISOR_USE_SECURE_SESSION_COOKIES=true
 
 ### - OIDC (optional)
 # NETVISOR_OIDC_ISSUER_URL=
 # NETVISOR_OIDC_CLIENT_ID=
 # NETVISOR_OIDC_CLIENT_SECRET=
 # NETVISOR_OIDC_PROVIDER_NAME=
+# NETVISOR_OIDC_REDIRECT_URL=
 ## - Callback URL for reference
 # http://your-netvisor-domain:60072/api/auth/oidc/callback
 
