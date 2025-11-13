@@ -615,25 +615,84 @@ if ! command -v virt-customize &>/dev/null; then
   msg_ok "Installed libguestfs-tools"
 fi
 
-msg_info "Injecting UniFi OS Installer into Cloud Image"
-if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  # Cloud-Init enabled: No auto-login, standard setup
-  virt-customize -q -a "$FILE" \
-    --run-command "echo 'nameserver 1.1.1.1' > /etc/resolv.conf" \
-    --install qemu-guest-agent,ca-certificates,curl,lsb-release,podman \
-    --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER}" \
-    >/dev/null
-else
-  # No Cloud-Init: Keep auto-login for console access
-  virt-customize -q -a "$FILE" \
-    --run-command "echo 'nameserver 1.1.1.1' > /etc/resolv.conf" \
-    --install qemu-guest-agent,ca-certificates,curl,lsb-release,podman \
-    --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER}" \
+msg_info "Preparing ${OS_DISPLAY} Qcow2 Disk Image"
+
+# Set DNS for libguestfs appliance environment
+export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
+
+# Create first-boot installation script
+virt-customize -q -a "${FILE}" --run-command "cat > /root/install-unifi.sh << 'INSTALLEOF'
+#!/bin/bash
+# Log output to file
+exec > /var/log/install-unifi.log 2>&1
+echo \"[\$(date)] Starting UniFi OS installation on first boot\"
+
+# Wait for network to be fully available
+for i in {1..30}; do
+  if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+    echo \"[\$(date)] Network is available\"
+    break
+  fi
+  echo \"[\$(date)] Waiting for network... attempt \$i/30\"
+  sleep 2
+done
+
+# Configure DNS
+echo \"[\$(date)] Configuring DNS\"
+mkdir -p /etc/systemd/resolved.conf.d
+cat > /etc/systemd/resolved.conf.d/dns.conf << DNSEOF
+[Resolve]
+DNS=8.8.8.8 1.1.1.1
+FallbackDNS=8.8.4.4 1.0.0.1
+DNSEOF
+systemctl restart systemd-resolved 2>/dev/null || true
+
+# Update package lists
+echo \"[\$(date)] Updating package lists\"
+apt-get update
+
+# Install base packages
+echo \"[\$(date)] Installing base packages\"
+apt-get install -y qemu-guest-agent curl ca-certificates lsb-release podman 2>/dev/null || true
+
+# Download UniFi OS installer
+echo \"[\$(date)] Downloading UniFi OS Server ${UOS_VERSION}\"
+curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER}
+chmod +x /root/${UOS_INSTALLER}
+echo \"[\$(date)] UniFi OS installer ready at /root/${UOS_INSTALLER}\"
+echo \"[\$(date)] Run the installer manually: /root/${UOS_INSTALLER}\"
+
+# Self-destruct this installation script
+rm -f /root/install-unifi.sh
+INSTALLEOF
+chmod +x /root/install-unifi.sh"
+
+# Set up systemd service for first boot
+virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/unifi-firstboot.service << 'SVCEOF'
+[Unit]
+Description=UniFi OS First Boot Setup
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/root/install-unifi.sh
+
+[Service]
+Type=oneshot
+ExecStart=/root/install-unifi.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+ln -s /etc/systemd/system/unifi-firstboot.service /etc/systemd/system/multi-user.target.wants/unifi-firstboot.service"
+
+# Add auto-login if Cloud-Init is disabled
+if [ "$USE_CLOUD_INIT" != "yes" ]; then
+  virt-customize -q -a "${FILE}" \
     --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
-    --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" \
-    >/dev/null
+    --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'"
 fi
-msg_ok "UniFi OS Installer integrated"
+
+msg_ok "UniFi OS Installer integrated (will run on first boot)"
 
 msg_info "Creating UniFi OS VM"
 qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf \
