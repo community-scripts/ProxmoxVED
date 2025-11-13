@@ -620,8 +620,10 @@ msg_info "Preparing ${OS_DISPLAY} Qcow2 Disk Image"
 # Set DNS for libguestfs appliance environment
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 
-# Create first-boot installation script (suppress stderr warnings)
-virt-customize -q -a "${FILE}" --run-command "cat > /root/install-unifi.sh << 'INSTALLEOF'
+# Suppress all virt-customize output including warnings
+{
+  # Create first-boot installation script
+  virt-customize -q -a "${FILE}" --run-command "cat > /root/install-unifi.sh << 'INSTALLEOF'
 #!/bin/bash
 # Log output to file
 exec > /var/log/install-unifi.log 2>&1
@@ -681,8 +683,18 @@ sleep 10
 if command -v uosserver >/dev/null 2>&1; then
   echo \"[\$(date)] UniFi OS Server installed successfully\"
   echo \"[\$(date)] Starting UniFi OS Server...\"
-  uosserver start 2>&1 || true
-  echo \"[\$(date)] UniFi OS Server should be accessible at https://\$(hostname -I | awk '{print \$1}'):11443\"
+
+  # UniFi OS Server must be started as the uosserver user, not root
+  if id -u uosserver >/dev/null 2>&1; then
+    su - uosserver -c 'uosserver start' 2>&1 || true
+    sleep 5
+    echo \"[\$(date)] UniFi OS Server started as user uosserver\"
+    echo \"[\$(date)] UniFi OS Server should be accessible at https://\$(hostname -I | awk '{print \$1}'):11443\"
+    echo \"[\$(date)] Note: First boot may take 2-3 minutes to fully initialize\"
+  else
+    echo \"[\$(date)] WARNING: uosserver user not found - trying as root\"
+    uosserver start 2>&1 || true
+  fi
 else
   echo \"[\$(date)] WARNING: uosserver command not found - installation may have failed\"
 fi
@@ -690,10 +702,10 @@ fi
 # Self-destruct this installation script
 rm -f /root/install-unifi.sh
 INSTALLEOF
-chmod +x /root/install-unifi.sh" 2>/dev/null
+chmod +x /root/install-unifi.sh"
 
-# Set up systemd service for first boot (suppress stderr warnings)
-virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/unifi-firstboot.service << 'SVCEOF'
+  # Set up systemd service for first boot
+  virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/unifi-firstboot.service << 'SVCEOF'
 [Unit]
 Description=UniFi OS First Boot Setup
 After=network-online.target
@@ -708,14 +720,15 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 SVCEOF
-ln -s /etc/systemd/system/unifi-firstboot.service /etc/systemd/system/multi-user.target.wants/unifi-firstboot.service" 2>/dev/null
+systemctl enable unifi-firstboot.service"
 
-# Add auto-login if Cloud-Init is disabled (suppress stderr warnings)
-if [ "$USE_CLOUD_INIT" != "yes" ]; then
-  virt-customize -q -a "${FILE}" \
-    --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
-    --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" 2>/dev/null
-fi
+  # Add auto-login if Cloud-Init is disabled
+  if [ "$USE_CLOUD_INIT" != "yes" ]; then
+    virt-customize -q -a "${FILE}" \
+      --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
+      --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'"
+  fi
+} 2>/dev/null
 
 msg_ok "UniFi OS Installer integrated (will run on first boot)"
 
@@ -797,10 +810,79 @@ qm set "$VMID" -description "$DESCRIPTION" >/dev/null
 msg_ok "Created a UniFi OS VM ${CL}${BL}(${HN})"
 msg_info "Operating System: ${OS_DISPLAY}"
 msg_info "Cloud-Init: ${USE_CLOUD_INIT}"
+
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting UniFi OS VM"
   qm start $VMID
   msg_ok "Started UniFi OS VM"
+
+  msg_info "Waiting for VM to boot and complete first-boot setup (this may take 3-5 minutes)"
+
+  # Get VM IP address (wait up to 60 seconds)
+  VM_IP=""
+  for i in {1..60}; do
+    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[] | select(.name != "lo") | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | head -1)
+    if [ -n "$VM_IP" ]; then
+      break
+    fi
+    sleep 2
+  done
+
+  if [ -z "$VM_IP" ]; then
+    msg_info "Unable to detect VM IP automatically - checking manually..."
+    # Fallback: use qm guest agent
+    sleep 10
+    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[1]["ip-addresses"][0]["ip-address"]' 2>/dev/null || echo "")
+  fi
+
+  if [ -n "$VM_IP" ]; then
+    msg_ok "VM IP Address: ${CL}${BL}${VM_IP}${CL}"
+
+    # Wait for UniFi OS first-boot installation to complete
+    msg_info "Waiting for UniFi OS Server installation to complete..."
+
+    # Monitor the installation log via qm guest exec
+    WAIT_COUNT=0
+    MAX_WAIT=180 # 3 minutes max wait
+
+    while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
+      # Check if install-unifi.sh still exists (it deletes itself when done)
+      SCRIPT_EXISTS=$(qm guest exec $VMID -- test -f /root/install-unifi.sh 2>/dev/null && echo "yes" || echo "no")
+
+      if [ "$SCRIPT_EXISTS" = "no" ]; then
+        msg_ok "UniFi OS Server installation completed"
+        break
+      fi
+
+      sleep 2
+      WAIT_COUNT=$((WAIT_COUNT + 2))
+
+      # Show progress every 10 seconds
+      if [ $((WAIT_COUNT % 10)) -eq 0 ]; then
+        echo -ne "${BFR}${TAB}${YW}${HOLD}Still installing UniFi OS Server... (${WAIT_COUNT}s elapsed)${HOLD}"
+      fi
+    done
+
+    if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
+      echo -e "${BFR}${TAB}${YW}Installation is taking longer than expected. Check logs: tail -f /var/log/install-unifi.log${CL}"
+    fi
+
+    # Wait a bit more for services to fully start
+    sleep 10
+
+    # Check if port 11443 is accessible
+    msg_info "Verifying UniFi OS Server accessibility..."
+    if timeout 5 bash -c ">/dev/tcp/${VM_IP}/11443" 2>/dev/null; then
+      msg_ok "UniFi OS Server is online!"
+      echo -e "\n${TAB}${GATEWAY}${BOLD}${GN}Access UniFi OS Server at: ${BGN}https://${VM_IP}:11443${CL}\n"
+    else
+      msg_info "UniFi OS Server may still be initializing. Please wait 1-2 minutes and access:"
+      echo -e "${TAB}${GATEWAY}${BOLD}${GN}URL: ${BGN}https://${VM_IP}:11443${CL}"
+    fi
+  else
+    msg_info "Could not detect VM IP. Access via Proxmox console or check VM network settings."
+  fi
 fi
+
 post_update_to_api "done" "none"
 msg_ok "Completed Successfully!\n"
