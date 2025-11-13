@@ -286,7 +286,7 @@ function default_settings() {
   FORMAT=""
   MACHINE=" -machine q35"
   DISK_CACHE=""
-  DISK_SIZE="30G"
+  DISK_SIZE="32G"
   HN="unifi-server-os"
   CPU_TYPE=" -cpu host"
   CORE_COUNT="2"
@@ -620,7 +620,7 @@ msg_info "Preparing ${OS_DISPLAY} Qcow2 Disk Image"
 # Set DNS for libguestfs appliance environment
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 
-# Create first-boot installation script
+# Create first-boot installation script (suppress stderr warnings)
 virt-customize -q -a "${FILE}" --run-command "cat > /root/install-unifi.sh << 'INSTALLEOF'
 #!/bin/bash
 # Log output to file
@@ -659,15 +659,18 @@ apt-get install -y qemu-guest-agent curl ca-certificates lsb-release podman 2>/d
 echo \"[\$(date)] Downloading UniFi OS Server ${UOS_VERSION}\"
 curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER}
 chmod +x /root/${UOS_INSTALLER}
-echo \"[\$(date)] UniFi OS installer ready at /root/${UOS_INSTALLER}\"
-echo \"[\$(date)] Run the installer manually: /root/${UOS_INSTALLER}\"
+
+# Run UniFi OS installer automatically with yes confirmation
+echo \"[\$(date)] Running UniFi OS installer automatically...\"
+yes y | /root/${UOS_INSTALLER} 2>&1 || true
+echo \"[\$(date)] UniFi OS installation completed\"
 
 # Self-destruct this installation script
 rm -f /root/install-unifi.sh
 INSTALLEOF
-chmod +x /root/install-unifi.sh"
+chmod +x /root/install-unifi.sh" 2>/dev/null
 
-# Set up systemd service for first boot
+# Set up systemd service for first boot (suppress stderr warnings)
 virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/unifi-firstboot.service << 'SVCEOF'
 [Unit]
 Description=UniFi OS First Boot Setup
@@ -683,16 +686,30 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 SVCEOF
-ln -s /etc/systemd/system/unifi-firstboot.service /etc/systemd/system/multi-user.target.wants/unifi-firstboot.service"
+ln -s /etc/systemd/system/unifi-firstboot.service /etc/systemd/system/multi-user.target.wants/unifi-firstboot.service" 2>/dev/null
 
-# Add auto-login if Cloud-Init is disabled
+# Add auto-login if Cloud-Init is disabled (suppress stderr warnings)
 if [ "$USE_CLOUD_INIT" != "yes" ]; then
   virt-customize -q -a "${FILE}" \
     --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
-    --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'"
+    --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" 2>/dev/null
 fi
 
 msg_ok "UniFi OS Installer integrated (will run on first boot)"
+
+# Expand root partition to use full disk space
+msg_info "Expanding disk image to ${DISK_SIZE}"
+qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
+
+# Detect partition device (sda1 for Ubuntu, vda1 for Debian)
+PARTITION_DEV=$(virt-filesystems --long -h --all -a "${FILE}" | grep -oP '/dev/\K(s|v)da1' | head -1)
+if [ -z "$PARTITION_DEV" ]; then
+  PARTITION_DEV="sda1" # fallback
+fi
+
+virt-resize --quiet --expand /dev/${PARTITION_DEV} ${FILE} expanded.qcow2 >/dev/null 2>&1
+mv expanded.qcow2 ${FILE}
+msg_ok "Expanded disk image to ${DISK_SIZE}"
 
 msg_info "Creating UniFi OS VM"
 qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf \
