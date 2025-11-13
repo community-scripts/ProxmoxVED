@@ -600,17 +600,12 @@ msg_ok "Found UniFi OS Server ${UOS_VERSION}"
 # --- Download Cloud Image ---
 msg_info "Downloading ${OS_DISPLAY} Cloud Image"
 URL=$(get_image_url)
-CACHE_DIR="/var/lib/vz/template/cache"
-CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
-FILE_IMG="/var/lib/vz/template/tmp/${CACHE_FILE##*/%.xz}"
-if [[ ! -s "$CACHE_FILE" ]]; then
-  curl -f#SL -o "$CACHE_FILE" "$URL"
-  msg_ok "Downloaded ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
-else
-  msg_ok "Using cached image ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
-fi
-FILE="$(basename "$CACHE_FILE")"
-msg_ok "Downloaded ${OS_DISPLAY} Cloud Image"
+sleep 2
+msg_ok "${CL}${BL}${URL}${CL}"
+curl -f#SL -o "$(basename "$URL")" "$URL"
+echo -en "\e[1A\e[0K"
+FILE=$(basename $URL)
+msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
 # --- Inject UniFi Installer ---
 if ! command -v virt-customize &>/dev/null; then
