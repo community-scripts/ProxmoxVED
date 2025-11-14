@@ -17,6 +17,11 @@ fetch_and_deploy_gh_release "Byparr" "ThePhaseless/Byparr"
 
 setup_uv
 
+msg_info "Setup Byparr"
+cd /opt/Byparr
+$STD /usr/local/bin/uv sync
+msg_ok "Setup Byparr"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/byparr.service
 [Unit]
