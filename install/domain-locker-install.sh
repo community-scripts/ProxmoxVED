@@ -22,11 +22,13 @@ $STD apt install -y git
 git clone https://github.com/Lissy93/domain-locker.git /opt/domain-locker
 # fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
-msg_info "Building Domain-Locker"
+msg_info "Installing Modules (patience)"
 cd /opt/domain-locker
 # $STD npm install --legacy-peer-deps
-npm install
-export NODE_OPTIONS="--max-old-space-size=8192"
+$STD npm install
+msg_ok "Installed Modules"
+
+msg_info "Building Domain-Locker (a lot of patience)"
 cat <<EOF >/opt/domain-locker.env
 # Database connection
 DL_PG_HOST=localhost
