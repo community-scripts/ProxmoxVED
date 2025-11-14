@@ -703,7 +703,7 @@ fi
 
 # Self-destruct this installation script
 rm -f /root/install-unifi.sh
-INSTALLEOF
+INSTALLEOF 2>/dev/null
 chmod +x /root/install-unifi.sh" 2>/dev/null
 
 # Set up systemd service for first boot (suppress warnings)
@@ -721,7 +721,7 @@ RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
-SVCEOF
+SVCEOF 2>/dev/null
 systemctl enable unifi-firstboot.service" 2>/dev/null
 
 # Add auto-login if Cloud-Init is disabled
