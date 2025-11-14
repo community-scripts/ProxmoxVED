@@ -17,14 +17,10 @@ PG_VERSION="17" setup_postgresql
 PG_DB_NAME="domainlocker" PG_DB_USER="domainlocker" setup_postgresql_db
 NODE_VERSION="22" setup_nodejs
 
-
-$STD apt install -y git
-git clone https://github.com/Lissy93/domain-locker.git /opt/domain-locker
-# fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
+fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
 msg_info "Installing Modules (patience)"
 cd /opt/domain-locker
-# $STD npm install --legacy-peer-deps
 $STD npm install
 msg_ok "Installed Modules"
 
@@ -47,6 +43,10 @@ source /opt/domain-locker.env
 set +a
 npm run build
 msg_info "Built Domain-Locker"
+
+msg_info "Building Database schema"
+bash /opt/domain-locker/db/setup-postgres.sh 
+msg_ok "Built Database schema"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/domain-locker.service
