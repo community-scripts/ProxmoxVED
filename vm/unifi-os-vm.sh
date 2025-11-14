@@ -623,21 +623,34 @@ export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 # Create first-boot installation script (suppress all stderr)
 virt-customize -q -a "${FILE}" --run-command "cat > /root/install-unifi.sh << 'INSTALLEOF'
 #!/bin/bash
+set -e
 # Log output to file
 exec > /var/log/install-unifi.log 2>&1
 echo \"[\$(date)] Starting UniFi OS installation on first boot\"
 
+# Wait for cloud-init to complete first
+echo \"[\$(date)] Waiting for cloud-init to complete...\"
+if command -v cloud-init >/dev/null 2>&1; then
+  cloud-init status --wait 2>/dev/null || true
+  echo \"[\$(date)] Cloud-init completed\"
+fi
+
 # Wait for network to be fully available
-for i in {1..30}; do
-  if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+echo \"[\$(date)] Waiting for network connectivity...\"
+for i in {1..60}; do
+  if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
     echo \"[\$(date)] Network is available\"
     break
   fi
-  echo \"[\$(date)] Waiting for network... attempt \$i/30\"
+  echo \"[\$(date)] Waiting for network... attempt \$i/60\"
   sleep 2
 done
 
-# Configure DNS
+# Wait for systemd-resolved to be ready
+echo \"[\$(date)] Waiting for DNS resolution...\"
+systemctl is-active systemd-resolved >/dev/null 2>&1 || systemctl start systemd-resolved
+
+# Configure DNS with multiple fallbacks
 echo \"[\$(date)] Configuring DNS\"
 mkdir -p /etc/systemd/resolved.conf.d
 cat > /etc/systemd/resolved.conf.d/dns.conf << DNSEOF
@@ -645,62 +658,137 @@ cat > /etc/systemd/resolved.conf.d/dns.conf << DNSEOF
 DNS=8.8.8.8 1.1.1.1
 FallbackDNS=8.8.4.4 1.0.0.1
 DNSEOF
-systemctl restart systemd-resolved 2>/dev/null || true
+systemctl restart systemd-resolved
+sleep 3
 
-# Update package lists
+# Test DNS resolution
+echo \"[\$(date)] Testing DNS resolution...\"
+for i in {1..10}; do
+  if nslookup archive.ubuntu.com >/dev/null 2>&1 || host archive.ubuntu.com >/dev/null 2>&1; then
+    echo \"[\$(date)] DNS resolution working\"
+    break
+  fi
+  echo \"[\$(date)] DNS not ready, waiting... attempt \$i/10\"
+  sleep 2
+done
+
+# Wait for apt locks to be released (cloud-init might still be updating)
+echo \"[\$(date)] Waiting for package manager to be ready...\"
+while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+  echo \"[\$(date)] Waiting for other package managers to finish...\"
+  sleep 5
+done
+
+# Update package lists with retries
 echo \"[\$(date)] Updating package lists\"
-apt-get update
+for i in {1..5}; do
+  if apt-get update -y; then
+    echo \"[\$(date)] Package lists updated successfully\"
+    break
+  fi
+  echo \"[\$(date)] apt-get update failed, retrying in 5s... attempt \$i/5\"
+  sleep 5
+done
 
-# Install base packages
-echo \"[\$(date)] Installing base packages\"
-apt-get install -y qemu-guest-agent curl ca-certificates lsb-release podman uidmap slirp4netns iptables 2>/dev/null || true
+# Install base packages with proper error handling
+echo \"[\$(date)] Installing base packages (this may take several minutes)\"
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+  qemu-guest-agent \
+  curl \
+  wget \
+  ca-certificates \
+  gnupg \
+  lsb-release \
+  software-properties-common \
+  apt-transport-https \
+  podman \
+  uidmap \
+  slirp4netns \
+  fuse-overlayfs \
+  iptables \
+  iproute2 \
+  systemd-container 2>&1 || {
+    echo \"[\$(date)] First install attempt failed, trying again...\"
+    sleep 5
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      qemu-guest-agent curl wget ca-certificates podman uidmap slirp4netns iptables 2>&1 || true
+  }
+
+echo \"[\$(date)] Packages installed successfully\"
 
 # Start and enable QEMU Guest Agent
 echo \"[\$(date)] Starting QEMU Guest Agent\"
-systemctl enable --now qemu-guest-agent 2>/dev/null || true
+systemctl enable qemu-guest-agent 2>/dev/null || true
+systemctl start qemu-guest-agent 2>/dev/null || true
 
-# Start and enable Podman
-echo \"[\$(date)] Enabling Podman service\"
-systemctl enable --now podman 2>/dev/null || true
+# Configure Podman for rootless operation
+echo \"[\$(date)] Configuring Podman\"
+systemctl enable podman.socket 2>/dev/null || true
+systemctl start podman.socket 2>/dev/null || true
+
+# Verify Podman is working
+echo \"[\$(date)] Verifying Podman installation\"
+podman --version || echo \"WARNING: Podman not responding\"
 
 # Download UniFi OS installer
 echo \"[\$(date)] Downloading UniFi OS Server ${UOS_VERSION}\"
-curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER}
+for i in {1..3}; do
+  if curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER}; then
+    echo \"[\$(date)] UniFi OS installer downloaded successfully\"
+    break
+  fi
+  echo \"[\$(date)] Download failed, retrying... attempt \$i/3\"
+  sleep 5
+done
+
 chmod +x /root/${UOS_INSTALLER}
 
-# Run UniFi OS installer automatically with 'install' argument
-echo \"[\$(date)] Running UniFi OS installer automatically...\"
-/root/${UOS_INSTALLER} install <<< 'y' 2>&1 || {
-  echo \"[\$(date)] First install attempt failed, trying again...\"
-  sleep 5
-  /root/${UOS_INSTALLER} install 2>&1 || true
-}
-echo \"[\$(date)] UniFi OS installation completed\"
-
-# Wait for UniFi OS to initialize
-echo \"[\$(date)] Waiting for UniFi OS Server to initialize...\"
-sleep 10
-
-# Check if uosserver command exists
-if command -v uosserver >/dev/null 2>&1; then
-  echo \"[\$(date)] UniFi OS Server installed successfully\"
-  echo \"[\$(date)] Starting UniFi OS Server...\"
-
-  # UniFi OS Server must be started as the uosserver user, not root
-  if id -u uosserver >/dev/null 2>&1; then
-    su - uosserver -c 'uosserver start' 2>&1 || true
-    sleep 5
-    echo \"[\$(date)] UniFi OS Server started as user uosserver\"
-    echo \"[\$(date)] UniFi OS Server should be accessible at https://\$(hostname -I | awk '{print \$1}'):11443\"
-    echo \"[\$(date)] Note: First boot may take 2-3 minutes to fully initialize\"
-  else
-    echo \"[\$(date)] WARNING: uosserver user not found - trying as root\"
-    uosserver start 2>&1 || true
-  fi
+# Run UniFi OS installer
+echo \"[\$(date)] Running UniFi OS installer (this will take 2-5 minutes)\"
+echo \"[\$(date)] Installer output:\"
+if /root/${UOS_INSTALLER} install 2>&1; then
+  echo \"[\$(date)] UniFi OS installation completed successfully\"
 else
-  echo \"[\$(date)] WARNING: uosserver command not found - installation may have failed\"
+  echo \"[\$(date)] Installation exited with code \$?, checking status...\"
 fi
 
+# Wait for installation to settle
+sleep 10
+
+# Check if uosserver command exists and user was created
+if command -v uosserver >/dev/null 2>&1; then
+  echo \"[\$(date)] UniFi OS Server command found\"
+
+  if id -u uosserver >/dev/null 2>&1; then
+    echo \"[\$(date)] Starting UniFi OS Server as uosserver user\"
+    su - uosserver -c 'uosserver start' 2>&1 || {
+      echo \"[\$(date)] Failed to start as user, trying direct command\"
+      uosserver start 2>&1 || true
+    }
+  else
+    echo \"[\$(date)] Starting UniFi OS Server as root\"
+    uosserver start 2>&1 || true
+  fi
+
+  sleep 5
+
+  # Check if service is running
+  if pgrep -f uosserver >/dev/null 2>&1 || systemctl is-active unifi-os >/dev/null 2>&1; then
+    IP=\$(hostname -I | awk '{print \$1}')
+    echo \"[\$(date)] ✓ UniFi OS Server is running\"
+    echo \"[\$(date)] ✓ Access at: https://\${IP}:11443\"
+  else
+    echo \"[\$(date)] ⚠ UniFi OS Server may not be running, check manually\"
+  fi
+else
+  echo \"[\$(date)] ✗ ERROR: uosserver command not found after installation\"
+  echo \"[\$(date)] Installation log contents:\"
+  ls -la /root/ | grep -i unifi || true
+  echo \"[\$(date)] Checking for error logs:\"
+  find /root /var/log -name '*unifi*' -o -name '*uos*' 2>/dev/null || true
+fi
+
+echo \"[\$(date)] First boot installation script completed\"
 # Self-destruct this installation script
 rm -f /root/install-unifi.sh
 INSTALLEOF 2>/dev/null
