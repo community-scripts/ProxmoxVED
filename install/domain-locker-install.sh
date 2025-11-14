@@ -17,11 +17,15 @@ PG_VERSION="17" setup_postgresql
 PG_DB_NAME="domainlocker" PG_DB_USER="domainlocker" setup_postgresql_db
 NODE_VERSION="22" setup_nodejs
 
-fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
+
+$STD apt install -y git
+git clone https://github.com/Lissy93/domain-locker.git /opt/domain-locker
+# fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
 msg_info "Building Domain-Locker"
 cd /opt/domain-locker
-npm install --legacy-peer-deps
+# $STD npm install --legacy-peer-deps
+npm install
 export NODE_OPTIONS="--max-old-space-size=8192"
 cat <<EOF >/opt/domain-locker.env
 # Database connection
