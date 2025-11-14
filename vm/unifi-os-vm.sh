@@ -772,7 +772,7 @@ qm set "$VMID" --agent enabled=1 >/dev/null
 # Add Cloud-Init drive if enabled
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   msg_info "Configuring Cloud-Init"
-  qm set "$VMID" --ide2 "${STORAGE}:cloudinit" >/dev/null
+  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" >/dev/null 2>&1
   msg_ok "Cloud-Init configured"
 fi
 
@@ -872,6 +872,10 @@ if [ "$START_VM" == "yes" ]; then
   else
     msg_info "Could not detect VM IP. Access via Proxmox console or check VM network settings."
   fi
+fi
+
+if [ "$USE_CLOUD_INIT" = "yes" ]; then
+  display_cloud_init_info "$VMID" "$HN"
 fi
 
 post_update_to_api "done" "none"
