@@ -775,17 +775,9 @@ UNIFI_PREINSTALLED="no"
 
 msg_info "Pre-installing base packages (qemu-guest-agent, podman, curl)"
 if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates,podman,uidmap,slirp4netns >/dev/null 2>&1; then
-  msg_ok "Pre-installed base packages"
-
-  msg_info "Pre-installing UniFi OS Server ${UOS_VERSION}"
-  if virt-customize -q -a "${FILE}" --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER} && /root/${UOS_INSTALLER} install && touch /root/.unifi-installed" >/dev/null 2>&1; then
-    msg_ok "Pre-installed UniFi OS Server (first-boot script will be skipped)"
-    UNIFI_PREINSTALLED="yes"
-  else
-    msg_info "Pre-installation failed, will install on first boot"
-  fi
+  msg_ok "Pre-installed base packages (UniFi OS will install on first boot)"
 else
-  msg_info "Pre-installation not possible, will install on first boot"
+  msg_info "Pre-installation not possible, packages will install on first boot"
 fi
 
 # Add auto-login if Cloud-Init is disabled
@@ -795,11 +787,9 @@ if [ "$USE_CLOUD_INIT" != "yes" ]; then
     --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" 2>/dev/null
 fi
 
-if [ "$UNIFI_PREINSTALLED" = "yes" ]; then
-  msg_ok "UniFi OS Server ${UOS_VERSION} pre-installed in image"
-else
-  msg_ok "UniFi OS Server will be installed on first boot"
-fi# Expand root partition to use full disk space
+msg_ok "UniFi OS Server will be installed on first boot"
+
+# Expand root partition to use full disk space
 msg_info "Expanding disk image to ${DISK_SIZE}"
 qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
 
