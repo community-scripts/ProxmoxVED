@@ -704,7 +704,7 @@ fi
 # Self-destruct this installation script
 rm -f /root/install-unifi.sh
 INSTALLEOF
-chmod +x /root/install-unifi.sh" 2>&1 | grep -v "random seed"
+chmod +x /root/install-unifi.sh" 2>/dev/null
 
 # Set up systemd service for first boot (suppress warnings)
 virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/unifi-firstboot.service << 'SVCEOF'
@@ -722,13 +722,13 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 SVCEOF
-systemctl enable unifi-firstboot.service" 2>&1 | grep -v "random seed"
+systemctl enable unifi-firstboot.service" 2>/dev/null
 
 # Add auto-login if Cloud-Init is disabled
 if [ "$USE_CLOUD_INIT" != "yes" ]; then
   virt-customize -q -a "${FILE}" \
     --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
-    --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" 2>&1 | grep -v "random seed"
+    --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" 2>/dev/null
 fi
 
 msg_ok "UniFi OS Installer integrated (will run on first boot)"
@@ -825,7 +825,7 @@ if [ "$START_VM" == "yes" ]; then
   # Get VM IP address using simple method
   VM_IP=""
   for i in {1..30}; do
-    # Try to get IP via qm guest cmd (may fail if agent not ready, that's ok)
+    # Try to get IP via qm guest cmd (may fail ifd agent not ready, that's ok)
     VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[1]["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | grep -v "127.0.0.1" | head -1 || echo "")
 
     if [ -n "$VM_IP" ]; then
