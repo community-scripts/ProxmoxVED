@@ -35,6 +35,10 @@
     {
       "text": "Show DB credentials: `cat ~/domain-locker.creds`",
       "type": "info"
+    },
+    {
+      "text": "Domain-locker takes quite some time to build and a lot of ressources, RAM and Cores can be lowered after install.",
+      "type": "info"
     }
   ]
 }
