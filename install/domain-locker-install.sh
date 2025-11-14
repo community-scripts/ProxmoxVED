@@ -45,6 +45,7 @@ npm run build
 msg_info "Built Domain-Locker"
 
 msg_info "Building Database schema"
+export PGPASSWORD="$DL_PG_PASSWORD"
 psql -h "$DL_PG_HOST" -p "$DL_PG_PORT" -U "$DL_PG_USER" -d "$DL_PG_NAME" -f "/opt/domain-locker/db/schema.sql"
 msg_ok "Built Database schema"
 
