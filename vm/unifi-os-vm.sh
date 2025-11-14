@@ -679,46 +679,69 @@ apt-get update
 
 # Install base packages
 echo \"[\$(date)] Installing base packages (this may take several minutes)\"
-DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  qemu-guest-agent curl wget ca-certificates podman uidmap slirp4netns iptables 2>/dev/null || true
+if DEBIAN_FRONTEND=noninteractive apt-get install -y qemu-guest-agent curl wget ca-certificates podman uidmap slirp4netns iptables; then
+  echo \"[\$(date)] ✓ Base packages installed successfully\"
+else
+  echo \"[\$(date)] ✗ ERROR: Failed to install packages\"
+  exit 1
+fi
 
 # Start QEMU Guest Agent
 echo \"[\$(date)] Starting QEMU Guest Agent\"
 systemctl enable qemu-guest-agent 2>/dev/null || true
 systemctl start qemu-guest-agent 2>/dev/null || true
 
-# Configure Podman
+# Configure and start Podman
 echo \"[\$(date)] Configuring Podman\"
 loginctl enable-linger root 2>/dev/null || true
-systemctl enable podman.socket 2>/dev/null || true
-systemctl start podman.socket 2>/dev/null || true
 
-# Verify Podman
+# Verify Podman is working
 echo \"[\$(date)] Verifying Podman installation\"
-podman --version || echo \"WARNING: Podman not responding\"
+if ! podman --version >/dev/null 2>&1; then
+  echo \"[\$(date)] ✗ ERROR: Podman not working after installation\"
+  exit 1
+fi
+echo \"[\$(date)] ✓ Podman $(podman --version)\"
 
 # Download UniFi OS installer
 echo \"[\$(date)] Downloading UniFi OS Server ${UOS_VERSION}\"
-curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER}
+if ! curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER}; then
+  echo \"[\$(date)] ✗ ERROR: Failed to download UniFi OS installer\"
+  exit 1
+fi
 chmod +x /root/${UOS_INSTALLER}
+echo \"[\$(date)] ✓ Downloaded UniFi OS installer\"
 
 # Run UniFi OS installer
-echo \"[\$(date)] Running UniFi OS installer\"
-/root/${UOS_INSTALLER} install 2>&1 || echo \"Installation returned exit code \$?\"
+echo \"[\$(date)] Running UniFi OS installer (this will take 2-5 minutes)\"
+if /root/${UOS_INSTALLER} install; then
+  echo \"[\$(date)] ✓ UniFi OS installer completed successfully\"
+else
+  EXIT_CODE=\$?
+  echo \"[\$(date)] ⚠ Installer exited with code \${EXIT_CODE}\"
+fi
 
-# Wait and start UniFi OS Server
+# Wait for installation to settle
 sleep 10
+
+# Start UniFi OS Server
 if command -v uosserver >/dev/null 2>&1; then
-  echo \"[\$(date)] Starting UniFi OS Server\"
+  echo \"[\$(date)] ✓ uosserver command found\"
   if id -u uosserver >/dev/null 2>&1; then
+    echo \"[\$(date)] Starting UniFi OS Server as uosserver user\"
     su - uosserver -c 'uosserver start' 2>&1 || true
   else
+    echo \"[\$(date)] Starting UniFi OS Server as root\"
     uosserver start 2>&1 || true
   fi
+  sleep 3
   IP=\$(hostname -I | awk '{print \$1}')
-  echo \"[\$(date)] ✓ UniFi OS Server installed - Access at: https://\${IP}:11443\"
+  echo \"[\$(date)] ✓ UniFi OS Server should be accessible at: https://\${IP}:11443\"
 else
-  echo \"[\$(date)] ✗ ERROR: uosserver command not found\"
+  echo \"[\$(date)] ✗ ERROR: uosserver command not found after installation\"
+  echo \"[\$(date)] Checking installation artifacts...\"
+  ls -la /root/ | grep -i unifi || true
+  which uosserver 2>&1 || true
 fi
 
 # Create completion flag
@@ -763,15 +786,6 @@ if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates,p
   fi
 else
   msg_info "Pre-installation not possible, will install on first boot"
-  fi# Add auto-login if Cloud-Init is disabled
-  if [ "$USE_CLOUD_INIT" != "yes" ]; then
-    virt-customize -q -a "${FILE}" \
-      --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
-      --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" 2>/dev/null
-  fi
-
-  msg_ok "UniFi OS Installer integrated (will run on first boot)"
-
 fi
 
 # Add auto-login if Cloud-Init is disabled
@@ -785,9 +799,7 @@ if [ "$UNIFI_PREINSTALLED" = "yes" ]; then
   msg_ok "UniFi OS Server ${UOS_VERSION} pre-installed in image"
 else
   msg_ok "UniFi OS Server will be installed on first boot"
-fi
-
-# Expand root partition to use full disk space
+fi# Expand root partition to use full disk space
 msg_info "Expanding disk image to ${DISK_SIZE}"
 qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
 
