@@ -692,7 +692,7 @@ done
 
 # Install base packages with proper error handling
 echo \"[\$(date)] Installing base packages (this may take several minutes)\"
-DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
   qemu-guest-agent \
   curl \
   wget \
@@ -707,28 +707,41 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
   fuse-overlayfs \
   iptables \
   iproute2 \
-  systemd-container 2>&1 || {
-    echo \"[\$(date)] First install attempt failed, trying again...\"
-    sleep 5
-    DEBIAN_FRONTEND=noninteractive apt-get install -y \
-      qemu-guest-agent curl wget ca-certificates podman uidmap slirp4netns iptables 2>&1 || true
-  }
+  dbus-user-session \
+  systemd-container 2>&1
 
-echo \"[\$(date)] Packages installed successfully\"
+if [ \$? -eq 0 ]; then
+  echo \"[\$(date)] ✓ Packages installed successfully\"
+else
+  echo \"[\$(date)] ⚠ Some packages failed, retrying essential packages...\"
+  sleep 5
+  DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    qemu-guest-agent curl wget ca-certificates podman uidmap slirp4netns iptables 2>&1
+fi
 
 # Start and enable QEMU Guest Agent
 echo \"[\$(date)] Starting QEMU Guest Agent\"
 systemctl enable qemu-guest-agent 2>/dev/null || true
 systemctl start qemu-guest-agent 2>/dev/null || true
+systemctl status qemu-guest-agent --no-pager | head -3
 
-# Configure Podman for rootless operation
+# Configure Podman properly
 echo \"[\$(date)] Configuring Podman\"
+# Enable lingering for root user (allows rootless podman)
+loginctl enable-linger root 2>/dev/null || true
+
+# Start podman socket
 systemctl enable podman.socket 2>/dev/null || true
 systemctl start podman.socket 2>/dev/null || true
 
 # Verify Podman is working
 echo \"[\$(date)] Verifying Podman installation\"
-podman --version || echo \"WARNING: Podman not responding\"
+if podman --version; then
+  echo \"[\$(date)] ✓ Podman is working\"
+  podman info 2>&1 | grep -E '(host|store|runRoot)' || true
+else
+  echo \"[\$(date)] ✗ WARNING: Podman not responding\"
+fi
 
 # Download UniFi OS installer
 echo \"[\$(date)] Downloading UniFi OS Server ${UOS_VERSION}\"
@@ -905,60 +918,62 @@ if [ "$START_VM" == "yes" ]; then
   qm start $VMID
   msg_ok "Started UniFi OS VM"
 
-  msg_info "Waiting for VM to boot and complete first-boot setup (this may take 3-5 minutes)"
-
-  # Simple approach: Wait for VM to boot and get network (30 seconds)
+  msg_info "Waiting for VM to boot (30 seconds)"
   sleep 30
+  msg_ok "VM should be booting now"
 
-  # Get VM IP address using simple method
+  msg_info "Detecting VM IP address (may take up to 60 seconds)"
   VM_IP=""
   for i in {1..30}; do
-    # Try to get IP via qm guest cmd (may fail ifd agent not ready, that's ok)
     VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[1]["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | grep -v "127.0.0.1" | head -1 || echo "")
 
     if [ -n "$VM_IP" ]; then
+      msg_ok "VM IP Address detected: ${VM_IP}"
       break
     fi
     sleep 2
   done
 
   if [ -n "$VM_IP" ]; then
-    msg_ok "VM IP Address: ${CL}${BL}${VM_IP}${CL}"
-
-    # Wait for UniFi OS Server to become available by checking port 11443
-    msg_info "Waiting for UniFi OS Server to complete installation..."
+    msg_info "Waiting for UniFi OS installation to complete (this takes 3-5 minutes)"
 
     WAIT_COUNT=0
-    MAX_WAIT=240 # 4 minutes max wait
+    MAX_WAIT=300 # 5 minutes max
     PORT_OPEN=0
+    LAST_MSG_TIME=0
 
     while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
-      # Check if port 11443 is open
       if timeout 2 bash -c ">/dev/tcp/${VM_IP}/11443" 2>/dev/null; then
         PORT_OPEN=1
-        msg_ok "UniFi OS Server installation completed"
+        msg_ok "UniFi OS Server installation completed successfully"
         break
       fi
 
       sleep 5
       WAIT_COUNT=$((WAIT_COUNT + 5))
 
-      # Show progress every 20 seconds
-      if [ $((WAIT_COUNT % 20)) -eq 0 ]; then
-        echo -ne "${BFR}${TAB}${YW}${HOLD}Still installing UniFi OS Server... (${WAIT_COUNT}s elapsed)${HOLD}"
+      # Update message every 20 seconds
+      if [ $((WAIT_COUNT - LAST_MSG_TIME)) -ge 20 ]; then
+        echo -e "${BFR}${TAB}${YW}${HOLD}Installation in progress... ${WAIT_COUNT}s elapsed (check: tail -f /var/log/install-unifi.log in VM)${CL}"
+        LAST_MSG_TIME=$WAIT_COUNT
       fi
     done
 
     if [ $PORT_OPEN -eq 1 ]; then
-      msg_ok "UniFi OS Server is online!"
-      echo -e "\n${TAB}${GATEWAY}${BOLD}${GN}Access UniFi OS Server at: ${BGN}https://${VM_IP}:11443${CL}\n"
+      echo -e "\n${TAB}${GATEWAY}${BOLD}${GN}✓ UniFi OS Server is ready!${CL}"
+      echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ Access at: ${BGN}https://${VM_IP}:11443${CL}\n"
     else
-      echo -e "${BFR}${TAB}${YW}Installation is taking longer than expected.${CL}"
-      echo -e "${TAB}${INFO}${YW}Check installation log in VM: ${CL}${BL}tail -f /var/log/install-unifi.log${CL}"
-      echo -e "${TAB}${INFO}${YW}Or try accessing: ${BGN}https://${VM_IP}:11443${CL}"
+      msg_ok "VM is running, but installation is still in progress"
+      echo -e "${TAB}${INFO}${YW}Installation takes 3-5 minutes after first boot${CL}"
+      echo -e "${TAB}${INFO}${YW}Check progress: ${BL}qm guest exec ${VMID} -- tail -f /var/log/install-unifi.log${CL}"
+      echo -e "${TAB}${INFO}${YW}Or SSH to: ${BL}${VM_IP}${CL} and run: ${BL}tail -f /var/log/install-unifi.log${CL}"
+      echo -e "${TAB}${INFO}${YW}Access will be at: ${BGN}https://${VM_IP}:11443${CL}"
     fi
   else
-    msg_info "Could not detect VM IP. Access via Proxmox console or check VM network settings."
+    msg_ok "VM is running (ID: ${VMID})"
+    echo -e "${TAB}${INFO}${YW}Could not auto-detect IP address${CL}"
+    echo -e "${TAB}${INFO}${YW}Access VM console in Proxmox to check status${CL}"
+    echo -e "${TAB}${INFO}${YW}Or check installation log: ${BL}tail -f /var/log/install-unifi.log${CL}"
   fi
 fi
 
