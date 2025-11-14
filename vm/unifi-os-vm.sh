@@ -620,7 +620,7 @@ msg_info "Preparing ${OS_DISPLAY} Qcow2 Disk Image"
 # Set DNS for libguestfs appliance environment
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 
-# Create first-boot installation script (suppress all stderr)
+# Always create first-boot installation script as fallback
 virt-customize -q -a "${FILE}" --run-command "cat > /root/install-unifi.sh << 'INSTALLEOF'
 #!/bin/bash
 set -e
@@ -628,11 +628,16 @@ set -e
 exec > /var/log/install-unifi.log 2>&1
 echo \"[\$(date)] Starting UniFi OS installation on first boot\"
 
-# Wait for cloud-init to complete first
-echo \"[\$(date)] Waiting for cloud-init to complete...\"
+# Check if already installed
+if [ -f /root/.unifi-installed ]; then
+  echo \"[\$(date)] UniFi OS already installed, exiting\"
+  exit 0
+fi
+
+# Wait for cloud-init to complete if present
 if command -v cloud-init >/dev/null 2>&1; then
+  echo \"[\$(date)] Waiting for cloud-init to complete...\"
   cloud-init status --wait 2>/dev/null || true
-  echo \"[\$(date)] Cloud-init completed\"
 fi
 
 # Wait for network to be fully available
@@ -646,11 +651,7 @@ for i in {1..60}; do
   sleep 2
 done
 
-# Wait for systemd-resolved to be ready
-echo \"[\$(date)] Waiting for DNS resolution...\"
-systemctl is-active systemd-resolved >/dev/null 2>&1 || systemctl start systemd-resolved
-
-# Configure DNS with multiple fallbacks
+# Configure DNS
 echo \"[\$(date)] Configuring DNS\"
 mkdir -p /etc/systemd/resolved.conf.d
 cat > /etc/systemd/resolved.conf.d/dns.conf << DNSEOF
@@ -658,162 +659,82 @@ cat > /etc/systemd/resolved.conf.d/dns.conf << DNSEOF
 DNS=8.8.8.8 1.1.1.1
 FallbackDNS=8.8.4.4 1.0.0.1
 DNSEOF
-systemctl restart systemd-resolved
+systemctl restart systemd-resolved 2>/dev/null || true
 sleep 3
 
-# Test DNS resolution
-echo \"[\$(date)] Testing DNS resolution...\"
-for i in {1..10}; do
-  if nslookup archive.ubuntu.com >/dev/null 2>&1 || host archive.ubuntu.com >/dev/null 2>&1; then
-    echo \"[\$(date)] DNS resolution working\"
-    break
-  fi
-  echo \"[\$(date)] DNS not ready, waiting... attempt \$i/10\"
-  sleep 2
-done
-
-# Wait for apt locks to be released (cloud-init might still be updating)
+# Wait for apt locks to be released
 echo \"[\$(date)] Waiting for package manager to be ready...\"
-while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
-  echo \"[\$(date)] Waiting for other package managers to finish...\"
-  sleep 5
-done
-
-# Update package lists with retries
-echo \"[\$(date)] Updating package lists\"
-for i in {1..5}; do
-  if apt-get update -y; then
-    echo \"[\$(date)] Package lists updated successfully\"
+for i in {1..30}; do
+  if ! fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 && ! fuser /var/lib/apt/lists/lock >/dev/null 2>&1; then
+    echo \"[\$(date)] Package manager is ready\"
     break
   fi
-  echo \"[\$(date)] apt-get update failed, retrying in 5s... attempt \$i/5\"
+  echo \"[\$(date)] Waiting for other package managers to finish... attempt \$i/30\"
   sleep 5
 done
 
-# Install base packages with proper error handling
+# Update package lists
+echo \"[\$(date)] Updating package lists\"
+apt-get update
+
+# Install base packages
 echo \"[\$(date)] Installing base packages (this may take several minutes)\"
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  qemu-guest-agent \
-  curl \
-  wget \
-  ca-certificates \
-  gnupg \
-  lsb-release \
-  software-properties-common \
-  apt-transport-https \
-  podman \
-  uidmap \
-  slirp4netns \
-  fuse-overlayfs \
-  iptables \
-  iproute2 \
-  dbus-user-session \
-  systemd-container 2>&1
+  qemu-guest-agent curl wget ca-certificates podman uidmap slirp4netns iptables 2>/dev/null || true
 
-if [ \$? -eq 0 ]; then
-  echo \"[\$(date)] ✓ Packages installed successfully\"
-else
-  echo \"[\$(date)] ⚠ Some packages failed, retrying essential packages...\"
-  sleep 5
-  DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    qemu-guest-agent curl wget ca-certificates podman uidmap slirp4netns iptables 2>&1
-fi
-
-# Start and enable QEMU Guest Agent
+# Start QEMU Guest Agent
 echo \"[\$(date)] Starting QEMU Guest Agent\"
 systemctl enable qemu-guest-agent 2>/dev/null || true
 systemctl start qemu-guest-agent 2>/dev/null || true
-systemctl status qemu-guest-agent --no-pager | head -3
 
-# Configure Podman properly
+# Configure Podman
 echo \"[\$(date)] Configuring Podman\"
-# Enable lingering for root user (allows rootless podman)
 loginctl enable-linger root 2>/dev/null || true
-
-# Start podman socket
 systemctl enable podman.socket 2>/dev/null || true
 systemctl start podman.socket 2>/dev/null || true
 
-# Verify Podman is working
+# Verify Podman
 echo \"[\$(date)] Verifying Podman installation\"
-if podman --version; then
-  echo \"[\$(date)] ✓ Podman is working\"
-  podman info 2>&1 | grep -E '(host|store|runRoot)' || true
-else
-  echo \"[\$(date)] ✗ WARNING: Podman not responding\"
-fi
+podman --version || echo \"WARNING: Podman not responding\"
 
 # Download UniFi OS installer
 echo \"[\$(date)] Downloading UniFi OS Server ${UOS_VERSION}\"
-for i in {1..3}; do
-  if curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER}; then
-    echo \"[\$(date)] UniFi OS installer downloaded successfully\"
-    break
-  fi
-  echo \"[\$(date)] Download failed, retrying... attempt \$i/3\"
-  sleep 5
-done
-
+curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER}
 chmod +x /root/${UOS_INSTALLER}
 
 # Run UniFi OS installer
-echo \"[\$(date)] Running UniFi OS installer (this will take 2-5 minutes)\"
-echo \"[\$(date)] Installer output:\"
-if /root/${UOS_INSTALLER} install 2>&1; then
-  echo \"[\$(date)] UniFi OS installation completed successfully\"
-else
-  echo \"[\$(date)] Installation exited with code \$?, checking status...\"
-fi
+echo \"[\$(date)] Running UniFi OS installer\"
+/root/${UOS_INSTALLER} install 2>&1 || echo \"Installation returned exit code \$?\"
 
-# Wait for installation to settle
+# Wait and start UniFi OS Server
 sleep 10
-
-# Check if uosserver command exists and user was created
 if command -v uosserver >/dev/null 2>&1; then
-  echo \"[\$(date)] UniFi OS Server command found\"
-
+  echo \"[\$(date)] Starting UniFi OS Server\"
   if id -u uosserver >/dev/null 2>&1; then
-    echo \"[\$(date)] Starting UniFi OS Server as uosserver user\"
-    su - uosserver -c 'uosserver start' 2>&1 || {
-      echo \"[\$(date)] Failed to start as user, trying direct command\"
-      uosserver start 2>&1 || true
-    }
+    su - uosserver -c 'uosserver start' 2>&1 || true
   else
-    echo \"[\$(date)] Starting UniFi OS Server as root\"
     uosserver start 2>&1 || true
   fi
-
-  sleep 5
-
-  # Check if service is running
-  if pgrep -f uosserver >/dev/null 2>&1 || systemctl is-active unifi-os >/dev/null 2>&1; then
-    IP=\$(hostname -I | awk '{print \$1}')
-    echo \"[\$(date)] ✓ UniFi OS Server is running\"
-    echo \"[\$(date)] ✓ Access at: https://\${IP}:11443\"
-  else
-    echo \"[\$(date)] ⚠ UniFi OS Server may not be running, check manually\"
-  fi
+  IP=\$(hostname -I | awk '{print \$1}')
+  echo \"[\$(date)] ✓ UniFi OS Server installed - Access at: https://\${IP}:11443\"
 else
-  echo \"[\$(date)] ✗ ERROR: uosserver command not found after installation\"
-  echo \"[\$(date)] Installation log contents:\"
-  ls -la /root/ | grep -i unifi || true
-  echo \"[\$(date)] Checking for error logs:\"
-  find /root /var/log -name '*unifi*' -o -name '*uos*' 2>/dev/null || true
+  echo \"[\$(date)] ✗ ERROR: uosserver command not found\"
 fi
 
-echo \"[\$(date)] First boot installation script completed\"
-# Self-destruct this installation script
-rm -f /root/install-unifi.sh
-INSTALLEOF 2>/dev/null
-chmod +x /root/install-unifi.sh" 2>/dev/null
+# Create completion flag
+echo \"[\$(date)] Installation completed\"
+touch /root/.unifi-installed
+INSTALLEOF" >/dev/null
 
-# Set up systemd service for first boot (suppress warnings)
+virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-unifi.sh" >/dev/null
+
+# Create systemd service
 virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/unifi-firstboot.service << 'SVCEOF'
 [Unit]
 Description=UniFi OS First Boot Setup
 After=network-online.target
 Wants=network-online.target
-ConditionPathExists=/root/install-unifi.sh
+ConditionPathExists=!/root/.unifi-installed
 
 [Service]
 Type=oneshot
@@ -822,8 +743,36 @@ RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
-SVCEOF 2>/dev/null
-systemctl enable unifi-firstboot.service" 2>/dev/null
+SVCEOF" >/dev/null
+
+virt-customize -q -a "${FILE}" --run-command "systemctl enable unifi-firstboot.service" >/dev/null
+
+# Try to install base packages during image customization (faster startup if it works)
+UNIFI_PREINSTALLED="no"
+
+msg_info "Pre-installing base packages (qemu-guest-agent, podman, curl)"
+if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates,podman,uidmap,slirp4netns >/dev/null 2>&1; then
+  msg_ok "Pre-installed base packages"
+
+  msg_info "Pre-installing UniFi OS Server ${UOS_VERSION}"
+  if virt-customize -q -a "${FILE}" --run-command "curl -fsSL '${UOS_URL}' -o /root/${UOS_INSTALLER} && chmod +x /root/${UOS_INSTALLER} && /root/${UOS_INSTALLER} install && touch /root/.unifi-installed" >/dev/null 2>&1; then
+    msg_ok "Pre-installed UniFi OS Server (first-boot script will be skipped)"
+    UNIFI_PREINSTALLED="yes"
+  else
+    msg_info "Pre-installation failed, will install on first boot"
+  fi
+else
+  msg_info "Pre-installation not possible, will install on first boot"
+  fi# Add auto-login if Cloud-Init is disabled
+  if [ "$USE_CLOUD_INIT" != "yes" ]; then
+    virt-customize -q -a "${FILE}" \
+      --run-command 'mkdir -p /etc/systemd/system/getty@tty1.service.d' \
+      --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" 2>/dev/null
+  fi
+
+  msg_ok "UniFi OS Installer integrated (will run on first boot)"
+
+fi
 
 # Add auto-login if Cloud-Init is disabled
 if [ "$USE_CLOUD_INIT" != "yes" ]; then
@@ -832,7 +781,11 @@ if [ "$USE_CLOUD_INIT" != "yes" ]; then
     --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" 2>/dev/null
 fi
 
-msg_ok "UniFi OS Installer integrated (will run on first boot)"
+if [ "$UNIFI_PREINSTALLED" = "yes" ]; then
+  msg_ok "UniFi OS Server ${UOS_VERSION} pre-installed in image"
+else
+  msg_ok "UniFi OS Server will be installed on first boot"
+fi
 
 # Expand root partition to use full disk space
 msg_info "Expanding disk image to ${DISK_SIZE}"
