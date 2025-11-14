@@ -35,12 +35,15 @@ function update_script() {
 
         PG_VERSION="17" setup_postgresql
         setup_nodejs
-        fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
+        CLEAN_INSTALL=1 fetch_and_deploy_gh_release "domain-locker" "Lissy93/domain-locker"
 
-        msg_info "Building Domain-Locker"
+        msg_info "Installing Modules (patience)"
         cd /opt/domain-locker
-        npm install --legacy-peer-deps
-        export NODE_OPTIONS="--max-old-space-size=8192"
+        $STD npm install
+        msg_ok "Installed Modules"
+
+        msg_info "Building Domain-Locker (a lot of patience)"
+        npm install
         set -a
         source /opt/domain-locker.env
         set +a
