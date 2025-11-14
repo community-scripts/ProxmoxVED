@@ -45,9 +45,9 @@ npm run build
 msg_info "Built Domain-Locker"
 
 msg_info "Building Database schema"
-DOMAIN_LOCKER_DB_NAME=${PG_DB_NAME}
-DOMAIN_LOCKER_DB_USER=${PG_DB_USER}
-DOMAIN_LOCKER_DB_PASSWORD=${PG_DB_PASS}
+export DOMAIN_LOCKER_DB_NAME=${PG_DB_NAME}
+export DOMAIN_LOCKER_DB_USER=${PG_DB_USER}
+export DOMAIN_LOCKER_DB_PASSWORD=${PG_DB_PASS}
 bash /opt/domain-locker/db/setup-postgres.sh 
 msg_ok "Built Database schema"
 
