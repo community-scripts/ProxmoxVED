@@ -47,7 +47,7 @@ function update_script() {
         set -a
         source /opt/domain-locker.env
         set +a
-        npm run build
+        $STD npm run build
         msg_info "Built Domain-Locker"
 
         msg_info "Restarting Services"
