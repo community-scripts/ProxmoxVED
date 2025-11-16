@@ -30,7 +30,7 @@ setup_deb822_repo \
   "stable"
 create_self_signed_cert
 
-msg_info "Setting up Passbolt"
+msg_info "Setting up Passbolt (Patience)"
 export DEBIAN_FRONTEND=noninteractive
 IP_ADDR=$(hostname -I | awk '{print $1}')
 echo passbolt-ce-server passbolt/mysql-configuration boolean true | debconf-set-selections

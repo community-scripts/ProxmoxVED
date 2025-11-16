@@ -35,6 +35,10 @@
     {
       "text": "Type `cat ~/.creds` to see MariaDB database credentials. You will need those to setup Passbolt.",
       "type": "info"
+    },
+    {
+      "text": "The application uses self-signed certificates. You can use Let's Encrypt to get a valid certificate for your domain. Please read the documentation for more information.",
+      "type": "info"
     }
   ]
 }
