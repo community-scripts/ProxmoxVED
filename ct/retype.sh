@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -s https://registry.npmjs.org/retype | grep -Po '"latest":"\K[^"]+')
+  RELEASE=$(npm view retype version)
   if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
     msg_info "Stopping Retype.service"
     systemctl stop Retype.service

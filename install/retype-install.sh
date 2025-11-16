@@ -17,7 +17,7 @@ NODE_VERSION="22" NODE_MODULE="node-gyp" setup_nodejs
 
 msg_info "Setup Retype"
 $STD npm install retypeapp --global
-RELEASE=$(curl -s https://registry.npmjs.org/retype | grep -Po '"latest":"\K[^"]+')
+RELEASE=$(npm view retype version)
 echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
 msg_ok "Setup Retype"
 
