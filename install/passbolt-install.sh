@@ -28,7 +28,7 @@ setup_deb822_repo \
   "https://download.passbolt.com/ce/debian" \
   "buster" \
   "stable"
-create_self_signed_cert
+create_self_signed_cert "passbolt"
 
 msg_info "Setting up Passbolt (Patience)"
 export DEBIAN_FRONTEND=noninteractive
