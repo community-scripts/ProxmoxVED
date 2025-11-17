@@ -205,6 +205,10 @@ error_handler() {
     if [[ -d /root ]]; then
       local container_log="/root/.install-${SESSION_ID:-error}.log"
       cp "$SILENT_LOGFILE" "$container_log" 2>/dev/null || true
+      
+      # Create error flag file with exit code for host detection
+      echo "$exit_code" > "/root/.install-${SESSION_ID:-error}.failed" 2>/dev/null || true
+      
       if declare -f msg_custom >/dev/null 2>&1; then
         msg_custom "📋" "${YW}" "Log saved to: ${container_log}"
       else
