@@ -146,12 +146,87 @@ default_vars() {
 # - Sets default verbose mode for script and OS execution
 # - If VERBOSE=yes: STD="" (show all output)
 # - If VERBOSE=no: STD="silent" (suppress output via silent() wrapper)
+# - If DEV_MODE_TRACE=true: Enables bash tracing (set -x)
 # ------------------------------------------------------------------------------
 set_std_mode() {
   if [ "${VERBOSE:-no}" = "yes" ]; then
     STD=""
   else
     STD="silent"
+  fi
+
+  # Enable bash tracing if trace mode active
+  if [[ "${DEV_MODE_TRACE:-false}" == "true" ]]; then
+    set -x
+    export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# parse_dev_mode()
+#
+# - Parses comma-separated dev_mode variable (e.g., "motd,keep,trace")
+# - Sets global flags for each mode:
+#   * DEV_MODE_MOTD: Setup SSH/MOTD before installation
+#   * DEV_MODE_KEEP: Never delete container on failure
+#   * DEV_MODE_TRACE: Enable bash set -x tracing
+#   * DEV_MODE_PAUSE: Pause after each msg_info step
+#   * DEV_MODE_BREAKPOINT: Open shell on error instead of cleanup
+#   * DEV_MODE_LOGS: Persist all logs to /var/log/community-scripts/
+#   * DEV_MODE_DRYRUN: Show commands without executing
+# - Call this early in script execution
+# ------------------------------------------------------------------------------
+parse_dev_mode() {
+  local mode
+  # Initialize all flags to false
+  export DEV_MODE_MOTD=false
+  export DEV_MODE_KEEP=false
+  export DEV_MODE_TRACE=false
+  export DEV_MODE_PAUSE=false
+  export DEV_MODE_BREAKPOINT=false
+  export DEV_MODE_LOGS=false
+  export DEV_MODE_DRYRUN=false
+
+  # Parse comma-separated modes
+  if [[ -n "${dev_mode:-}" ]]; then
+    IFS=',' read -ra MODES <<<"$dev_mode"
+    for mode in "${MODES[@]}"; do
+      mode="$(echo "$mode" | xargs)" # Trim whitespace
+      case "$mode" in
+      motd) export DEV_MODE_MOTD=true ;;
+      keep) export DEV_MODE_KEEP=true ;;
+      trace) export DEV_MODE_TRACE=true ;;
+      pause) export DEV_MODE_PAUSE=true ;;
+      breakpoint) export DEV_MODE_BREAKPOINT=true ;;
+      logs) export DEV_MODE_LOGS=true ;;
+      dryrun) export DEV_MODE_DRYRUN=true ;;
+      *)
+        if declare -f msg_warn >/dev/null 2>&1; then
+          msg_warn "Unknown dev_mode: '$mode' (ignored)"
+        else
+          echo "[WARN] Unknown dev_mode: '$mode' (ignored)" >&2
+        fi
+        ;;
+      esac
+    done
+
+    # Show active dev modes
+    local active_modes=()
+    [[ $DEV_MODE_MOTD == true ]] && active_modes+=("motd")
+    [[ $DEV_MODE_KEEP == true ]] && active_modes+=("keep")
+    [[ $DEV_MODE_TRACE == true ]] && active_modes+=("trace")
+    [[ $DEV_MODE_PAUSE == true ]] && active_modes+=("pause")
+    [[ $DEV_MODE_BREAKPOINT == true ]] && active_modes+=("breakpoint")
+    [[ $DEV_MODE_LOGS == true ]] && active_modes+=("logs")
+    [[ $DEV_MODE_DRYRUN == true ]] && active_modes+=("dryrun")
+
+    if [[ ${#active_modes[@]} -gt 0 ]]; then
+      if declare -f msg_custom >/dev/null 2>&1; then
+        msg_custom "🔧" "${YWB}" "Dev modes active: ${active_modes[*]}"
+      else
+        echo "[DEV] Active modes: ${active_modes[*]}" >&2
+      fi
+    fi
   fi
 }
 
@@ -322,6 +397,16 @@ silent() {
   local caller_line="${BASH_LINENO[0]:-unknown}"
   local logfile="$(get_active_logfile)"
 
+  # Dryrun mode: Show command without executing
+  if [[ "${DEV_MODE_DRYRUN:-false}" == "true" ]]; then
+    if declare -f msg_custom >/dev/null 2>&1; then
+      msg_custom "🔍" "${BL}" "[DRYRUN] $cmd"
+    else
+      echo "[DRYRUN] $cmd" >&2
+    fi
+    return 0
+  fi
+
   set +Eeuo pipefail
   trap - ERR
 
@@ -447,6 +532,12 @@ msg_info() {
   if is_verbose_mode || is_alpine; then
     local HOURGLASS="${TAB}⏳${TAB}"
     printf "\r\e[2K%s %b" "$HOURGLASS" "${YW}${msg}${CL}" >&2
+
+    # Pause mode: Wait for Enter after each step
+    if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
+      echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
+      read -r
+    fi
     return
   fi
 
@@ -455,6 +546,13 @@ msg_info() {
   SPINNER_PID=$!
   echo "$SPINNER_PID" >/tmp/.spinner.pid
   disown "$SPINNER_PID" 2>/dev/null || true
+
+  # Pause mode: Stop spinner and wait
+  if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
+    stop_spinner
+    echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
+    read -r
+  fi
 }
 
 # ------------------------------------------------------------------------------

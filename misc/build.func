@@ -48,7 +48,16 @@ variables() {
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
   SESSION_ID="${RANDOM_UUID:0:8}"                   # Short session ID (first 8 chars of UUID) for log files
   BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"     # Host-side container creation log
-  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"}
+  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
+
+  # Parse dev_mode early
+  parse_dev_mode
+
+  # Setup persistent log directory if logs mode active
+  if [[ "${DEV_MODE_LOGS:-false}" == "true" ]]; then
+    mkdir -p /var/log/community-scripts
+    BUILD_LOG="/var/log/community-scripts/create-lxc-${SESSION_ID}-$(date +%Y%m%d_%H%M%S).log"
+  fi
 
   # Get Proxmox VE version and kernel version
   if command -v pveversion >/dev/null 2>&1; then
@@ -2209,6 +2218,14 @@ build_container() {
   export SESSION_ID="$SESSION_ID"
   export BUILD_LOG="$BUILD_LOG"
   export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
+  export dev_mode="${dev_mode:-}"
+  export DEV_MODE_MOTD="${DEV_MODE_MOTD:-false}"
+  export DEV_MODE_KEEP="${DEV_MODE_KEEP:-false}"
+  export DEV_MODE_TRACE="${DEV_MODE_TRACE:-false}"
+  export DEV_MODE_PAUSE="${DEV_MODE_PAUSE:-false}"
+  export DEV_MODE_BREAKPOINT="${DEV_MODE_BREAKPOINT:-false}"
+  export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
+  export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"
@@ -2579,6 +2596,20 @@ EOF'
   # Install SSH keys
   install_ssh_keys_into_ct
 
+  # Dev mode: Setup MOTD/SSH before installation for debugging
+  if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
+    msg_info "[DEV] Setting up MOTD and SSH before installation"
+    pct exec "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)" <<'MOTD_SETUP'
+      # Only run motd_ssh function if it exists
+      if declare -f motd_ssh >/dev/null 2>&1; then
+        motd_ssh
+      else
+        msg_warn "motd_ssh function not found in ${var_install}.sh"
+      fi
+MOTD_SETUP
+    msg_ok "[DEV] MOTD/SSH ready - container accessible"
+  fi
+
   # Run application installer (disable ERR trap to handle errors manually)
   set +e
   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
@@ -2623,6 +2654,26 @@ EOF'
       echo ""
       [[ $build_log_copied == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
       [[ $install_log_copied == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
+    fi
+
+    # Dev mode: Keep container or open breakpoint shell
+    if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
+      msg_custom "🔧" "${YWB}" "[DEV] Keep mode active - container ${CTID} preserved"
+      return 0
+    elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
+      msg_custom "🐛" "${RD}" "[DEV] Breakpoint mode - opening shell in container ${CTID}"
+      echo -e "${YW}Type 'exit' to return to host${CL}"
+      pct enter "$CTID"
+      echo ""
+      echo -en "${YW}Container ${CTID} still running. Remove now? (y/N): ${CL}"
+      if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
+        pct stop "$CTID" &>/dev/null || true
+        pct destroy "$CTID" &>/dev/null || true
+        msg_ok "Container ${CTID} removed"
+      else
+        msg_custom "🔧" "${YW}" "Container ${CTID} kept for debugging"
+      fi
+      exit $install_exit_code
     fi
 
     # Prompt user for cleanup with 60s timeout (plain echo - no msg_info to avoid spinner)
