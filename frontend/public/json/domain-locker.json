@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "Show DB credentials: `cat ~/domain-locker.creds`",
+      "text": "Show DB credentials: `cat ~/Domain-Locker.creds`",
       "type": "info"
     },
     {
