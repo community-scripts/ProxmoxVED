@@ -2708,15 +2708,15 @@ EOF'
   # This ensures the container is fully booted and accessible via SSH
   if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
     msg_dev "Setting up MOTD and SSH for debugging access"
-    pct exec "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)" <<'MOTD_SETUP'
-      # Only run motd_ssh function if it exists
-      if declare -f motd_ssh >/dev/null 2>&1; then
-        motd_ssh
-      else
-        msg_warn "motd_ssh function not found in ${var_install}.sh"
-      fi
-MOTD_SETUP
-    msg_dev "MOTD/SSH ready - container accessible via SSH (IP: $ip_in_lxc)"
+    # Load common install functions and run motd_ssh if available
+    if pct exec "$CTID" -- bash -c "
+      source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
+      declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
+    " >/dev/null 2>&1; then
+      msg_dev "MOTD/SSH ready - container accessible via SSH (IP: $ip_in_lxc)"
+    else
+      msg_warn "MOTD/SSH setup failed, but continuing with installation"
+    fi
   fi
 
   # Run application installer
