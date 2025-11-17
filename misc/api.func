@@ -151,6 +151,8 @@ explain_exit_code() {
 # ------------------------------------------------------------------------------
 post_to_api() {
 
+    echo "post_to_api"
+
     if ! command -v curl &>/dev/null; then
         return
     fi
