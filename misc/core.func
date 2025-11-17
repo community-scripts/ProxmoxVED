@@ -252,6 +252,18 @@ ssh_check() {
   fi
 }
 
+# ------------------------------------------------------------------------------
+# exit_script()
+#
+# - Called when user cancels an action
+# - Clears screen and exits gracefully
+# ------------------------------------------------------------------------------
+exit_script() {
+  clear
+  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+  exit
+}
+
 # Function to download & save header files
 get_header() {
   local app_name=$(echo "${APP,,}" | tr -d ' ')

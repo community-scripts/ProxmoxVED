@@ -297,6 +297,117 @@ install_ssh_keys_into_ct() {
 }
 
 # ------------------------------------------------------------------------------
+# find_host_ssh_keys()
+#
+# - Scans system for available SSH keys
+# - Supports defaults (~/.ssh, /etc/ssh/authorized_keys)
+# - Returns list of files containing valid SSH public keys
+# - Sets FOUND_HOST_KEY_COUNT to number of keys found
+# ------------------------------------------------------------------------------
+find_host_ssh_keys() {
+  local re='(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))'
+  local -a files=() cand=()
+  local g="${var_ssh_import_glob:-}"
+  local total=0 f base c
+
+  shopt -s nullglob
+  if [[ -n "$g" ]]; then
+    for pat in $g; do cand+=($pat); done
+  else
+    cand+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
+    cand+=(/root/.ssh/*.pub)
+    cand+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
+  fi
+  shopt -u nullglob
+
+  for f in "${cand[@]}"; do
+    [[ -f "$f" && -r "$f" ]] || continue
+    base="$(basename -- "$f")"
+    case "$base" in
+    known_hosts | known_hosts.* | config) continue ;;
+    id_*) [[ "$f" != *.pub ]] && continue ;;
+    esac
+
+    # CRLF safe check for host keys
+    c=$(tr -d '\r' <"$f" | awk '
+      /^[[:space:]]*#/ {next}
+      /^[[:space:]]*$/ {next}
+      {print}
+    ' | grep -E -c '"$re"' || true)
+
+    if ((c > 0)); then
+      files+=("$f")
+      total=$((total + c))
+    fi
+  done
+
+  # Fallback to /root/.ssh/authorized_keys
+  if ((${#files[@]} == 0)) && [[ -r /root/.ssh/authorized_keys ]]; then
+    if grep -E -q "$re" /root/.ssh/authorized_keys; then
+      files+=(/root/.ssh/authorized_keys)
+      total=$((total + $(grep -E -c "$re" /root/.ssh/authorized_keys || echo 0)))
+    fi
+  fi
+
+  FOUND_HOST_KEY_COUNT="$total"
+  (
+    IFS=:
+    echo "${files[*]}"
+  )
+}
+
+# ===== Unified storage selection & writing to vars files =====
+_write_storage_to_vars() {
+  # $1 = vars_file, $2 = key (var_container_storage / var_template_storage), $3 = value
+  local vf="$1" key="$2" val="$3"
+  # remove uncommented and commented versions to avoid duplicates
+  sed -i "/^[#[:space:]]*${key}=/d" "$vf"
+  echo "${key}=${val}" >>"$vf"
+}
+
+choose_and_set_storage_for_file() {
+  # $1 = vars_file, $2 = class ('container'|'template')
+  local vf="$1" class="$2" key="" current=""
+  case "$class" in
+  container) key="var_container_storage" ;;
+  template) key="var_template_storage" ;;
+  *)
+    msg_error "Unknown storage class: $class"
+    return 1
+    ;;
+  esac
+
+  current=$(awk -F= -v k="^${key}=" '$0 ~ k {print $2; exit}' "$vf")
+
+  # If only one storage exists for the content type, auto-pick. Else always ask (your wish #4).
+  local content="rootdir"
+  [[ "$class" == "template" ]] && content="vztmpl"
+  local count
+  count=$(pvesm status -content "$content" | awk 'NR>1{print $1}' | wc -l)
+
+  if [[ "$count" -eq 1 ]]; then
+    STORAGE_RESULT=$(pvesm status -content "$content" | awk 'NR>1{print $1; exit}')
+    STORAGE_INFO=""
+  else
+    # If the current value is preselectable, we could show it, but per your requirement we always offer selection
+    select_storage "$class" || return 1
+  fi
+
+  _write_storage_to_vars "$vf" "$key" "$STORAGE_RESULT"
+
+  # Keep environment in sync for later steps (e.g. app-default save)
+  if [[ "$class" == "container" ]]; then
+    export var_container_storage="$STORAGE_RESULT"
+    export CONTAINER_STORAGE="$STORAGE_RESULT"
+  else
+    export var_template_storage="$STORAGE_RESULT"
+    export TEMPLATE_STORAGE="$STORAGE_RESULT"
+  fi
+
+  # Silent operation - no output message
+}
+
+# ------------------------------------------------------------------------------
 # base_settings()
 #
 # - Defines all base/default variables for container creation
@@ -382,101 +493,525 @@ base_settings() {
 }
 
 # ------------------------------------------------------------------------------
-# echo_default()
+# default_var_settings
 #
-# - Prints summary of default values (ID, OS, type, disk, RAM, CPU, etc.)
-# - Uses icons and formatting for readability
-# - Convert CT_TYPE to description
+# - Ensures /usr/local/community-scripts/default.vars exists (creates if missing)
+# - Loads var_* values from default.vars (safe parser, no source/eval)
+# - Precedence: ENV var_* > default.vars > built-in defaults
+# - Maps var_verbose → VERBOSE
+# - Calls base_settings "$VERBOSE" and echo_default
 # ------------------------------------------------------------------------------
-echo_default() {
-  CT_TYPE_DESC="Unprivileged"
-  if [ "$CT_TYPE" -eq 0 ]; then
-    CT_TYPE_DESC="Privileged"
-  fi
-  echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
-  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
-  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os ($var_version)${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
-  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
-  if [ "$VERBOSE" == "yes" ]; then
-    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
-  fi
-  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
-  echo -e "  "
-}
+default_var_settings() {
+  # Allowed var_* keys (alphabetically sorted)
+  # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
+  local VAR_WHITELIST=(
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse
+    var_gateway var_hostname var_ipv6_method var_mac var_mtu
+    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
+    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
+  )
 
-# ------------------------------------------------------------------------------
-# exit_script()
-#
-# - Called when user cancels an action
-# - Clears screen and exits gracefully
-# ------------------------------------------------------------------------------
-exit_script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
-}
+  # Snapshot: environment variables (highest precedence)
+  declare -A _HARD_ENV=()
+  local _k
+  for _k in "${VAR_WHITELIST[@]}"; do
+    if printenv "$_k" >/dev/null 2>&1; then _HARD_ENV["$_k"]=1; fi
+  done
 
-# ------------------------------------------------------------------------------
-# find_host_ssh_keys()
-#
-# - Scans system for available SSH keys
-# - Supports defaults (~/.ssh, /etc/ssh/authorized_keys)
-# - Returns list of files containing valid SSH public keys
-# - Sets FOUND_HOST_KEY_COUNT to number of keys found
-# ------------------------------------------------------------------------------
-find_host_ssh_keys() {
-  local re='(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))'
-  local -a files=() cand=()
-  local g="${var_ssh_import_glob:-}"
-  local total=0 f base c
+  # Find default.vars location
+  local _find_default_vars
+  _find_default_vars() {
+    local f
+    for f in \
+      /usr/local/community-scripts/default.vars \
+      "$HOME/.config/community-scripts/default.vars" \
+      "./default.vars"; do
+      [ -f "$f" ] && {
+        echo "$f"
+        return 0
+      }
+    done
+    return 1
+  }
+  # Allow override of storages via env (for non-interactive use cases)
+  [ -n "${var_template_storage:-}" ] && TEMPLATE_STORAGE="$var_template_storage"
+  [ -n "${var_container_storage:-}" ] && CONTAINER_STORAGE="$var_container_storage"
 
-  shopt -s nullglob
-  if [[ -n "$g" ]]; then
-    for pat in $g; do cand+=($pat); done
+  # Create once, with storages already selected, no var_ctid/var_hostname lines
+  local _ensure_default_vars
+  _ensure_default_vars() {
+    _find_default_vars >/dev/null 2>&1 && return 0
+
+    local canonical="/usr/local/community-scripts/default.vars"
+    # Silent creation - no msg_info output
+    mkdir -p /usr/local/community-scripts
+
+    # Pick storages before writing the file (always ask unless only one)
+    # Create a minimal temp file to write into
+    : >"$canonical"
+
+    # Base content (no var_ctid / var_hostname here)
+    cat >"$canonical" <<'EOF'
+# Community-Scripts defaults (var_* only). Lines starting with # are comments.
+# Precedence: ENV var_* > default.vars > built-ins.
+# Keep keys alphabetically sorted.
+
+# Container type
+var_unprivileged=1
+
+# Resources
+var_cpu=1
+var_disk=4
+var_ram=1024
+
+# Network
+var_brg=vmbr0
+var_net=dhcp
+var_ipv6_method=none
+# var_gateway=
+# var_vlan=
+# var_mtu=
+# var_mac=
+# var_ns=
+
+# SSH
+var_ssh=no
+# var_ssh_authorized_key=
+
+# APT cacher (optional - with example)
+# var_apt_cacher=yes
+# var_apt_cacher_ip=192.168.1.10
+
+# Features/Tags/verbosity
+var_fuse=no
+var_tun=no
+var_tags=community-script
+var_verbose=no
+
+# Security (root PW) – empty => autologin
+# var_pw=
+EOF
+
+    # Now choose storages (always prompt unless just one exists)
+    choose_and_set_storage_for_file "$canonical" template
+    choose_and_set_storage_for_file "$canonical" container
+
+    chmod 0644 "$canonical"
+    # Silent creation - no output message
+  }
+
+  # Whitelist check
+  local _is_whitelisted_key
+  _is_whitelisted_key() {
+    local k="$1"
+    local w
+    for w in "${VAR_WHITELIST[@]}"; do [ "$k" = "$w" ] && return 0; done
+    return 1
+  }
+
+  # Safe parser for KEY=VALUE lines
+  local _load_vars_file
+  _load_vars_file() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+    msg_info "Loading defaults from ${file}"
+    local line key val
+    while IFS= read -r line || [ -n "$line" ]; do
+      line="${line#"${line%%[![:space:]]*}"}"
+      line="${line%"${line##*[![:space:]]}"}"
+      [[ -z "$line" || "$line" == \#* ]] && continue
+      if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+        local var_key="${BASH_REMATCH[1]}"
+        local var_val="${BASH_REMATCH[2]}"
+
+        [[ "$var_key" != var_* ]] && continue
+        _is_whitelisted_key "$var_key" || {
+          msg_debug "Ignore non-whitelisted ${var_key}"
+          continue
+        }
+
+        # Strip quotes
+        if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
+          var_val="${BASH_REMATCH[1]}"
+        elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
+          var_val="${BASH_REMATCH[1]}"
+        fi
+
+        # Unsafe characters
+        case $var_val in
+        \"*\")
+          var_val=${var_val#\"}
+          var_val=${var_val%\"}
+          ;;
+        \'*\')
+          var_val=${var_val#\'}
+          var_val=${var_val%\'}
+          ;;
+        esac # Hard env wins
+        [[ -n "${_HARD_ENV[$var_key]:-}" ]] && continue
+        # Set only if not already exported
+        [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
+      else
+        msg_warn "Malformed line in ${file}: ${line}"
+      fi
+    done <"$file"
+    msg_ok "Loaded ${file}"
+  }
+
+  # 1) Ensure file exists
+  _ensure_default_vars
+
+  # 2) Load file
+  local dv
+  dv="$(_find_default_vars)" || {
+    msg_error "default.vars not found after ensure step"
+    return 1
+  }
+  _load_vars_file "$dv"
+
+  # 3) Map var_verbose → VERBOSE
+  if [[ -n "${var_verbose:-}" ]]; then
+    case "${var_verbose,,}" in 1 | yes | true | on) VERBOSE="yes" ;; 0 | no | false | off) VERBOSE="no" ;; *) VERBOSE="${var_verbose}" ;; esac
   else
-    cand+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
-    cand+=(/root/.ssh/*.pub)
-    cand+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
+    VERBOSE="no"
   fi
-  shopt -u nullglob
 
-  for f in "${cand[@]}"; do
-    [[ -f "$f" && -r "$f" ]] || continue
-    base="$(basename -- "$f")"
-    case "$base" in
-    known_hosts | known_hosts.* | config) continue ;;
-    id_*) [[ "$f" != *.pub ]] && continue ;;
+  # 4) Apply base settings and show summary
+  METHOD="mydefaults-global"
+  base_settings "$VERBOSE"
+  header_info
+  echo -e "${DEFAULT}${BOLD}${BL}Using My Defaults (default.vars) on node $PVEHOST_NAME${CL}"
+  echo_default
+}
+
+# ------------------------------------------------------------------------------
+# get_app_defaults_path()
+#
+# - Returns full path for app-specific defaults file
+# - Example: /usr/local/community-scripts/defaults/<app>.vars
+# ------------------------------------------------------------------------------
+
+get_app_defaults_path() {
+  local n="${NSAPP:-${APP,,}}"
+  echo "/usr/local/community-scripts/defaults/${n}.vars"
+}
+
+# ------------------------------------------------------------------------------
+# maybe_offer_save_app_defaults
+#
+# - Called after advanced_settings returned with fully chosen values.
+# - If no <nsapp>.vars exists, offers to persist current advanced settings
+#   into /usr/local/community-scripts/defaults/<nsapp>.vars
+# - Only writes whitelisted var_* keys.
+# - Extracts raw values from flags like ",gw=..." ",mtu=..." etc.
+# ------------------------------------------------------------------------------
+if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
+  # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
+  declare -ag VAR_WHITELIST=(
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse
+    var_gateway var_hostname var_ipv6_method var_mac var_mtu
+    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
+    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
+  )
+fi
+
+# Note: _is_whitelisted_key() is defined above in default_var_settings section
+
+_sanitize_value() {
+  # Disallow Command-Substitution / Shell-Meta
+  case "$1" in
+  *'$('* | *'`'* | *';'* | *'&'* | *'<('*)
+    echo ""
+    return 0
+    ;;
+  esac
+  echo "$1"
+}
+
+# Map-Parser: read var_* from file into _VARS_IN associative array
+# Note: Main _load_vars_file() with full validation is defined in default_var_settings section
+# This simplified version is used specifically for diff operations via _VARS_IN array
+declare -A _VARS_IN
+_load_vars_file_to_map() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+  _VARS_IN=() # Clear array
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [ -z "$line" ] && continue
+    case "$line" in
+    \#*) continue ;;
     esac
+    key=$(printf "%s" "$line" | cut -d= -f1)
+    val=$(printf "%s" "$line" | cut -d= -f2-)
+    case "$key" in
+    var_*)
+      if _is_whitelisted_key "$key"; then
+        _VARS_IN["$key"]="$val"
+      fi
+      ;;
+    esac
+  done <"$file"
+}
 
-    # CRLF safe check for host keys
-    c=$(tr -d '\r' <"$f" | awk '
-      /^[[:space:]]*#/ {next}
-      /^[[:space:]]*$/ {next}
-      {print}
-    ' | grep -E -c '"$re"' || true)
+# Diff function for two var_* files -> produces human-readable diff list for $1 (old) vs $2 (new)
+_build_vars_diff() {
+  local oldf="$1" newf="$2"
+  local k
+  local -A OLD=() NEW=()
+  _load_vars_file_to_map "$oldf"
+  for k in "${!_VARS_IN[@]}"; do OLD["$k"]="${_VARS_IN[$k]}"; done
+  _load_vars_file_to_map "$newf"
+  for k in "${!_VARS_IN[@]}"; do NEW["$k"]="${_VARS_IN[$k]}"; done
 
-    if ((c > 0)); then
-      files+=("$f")
-      total=$((total + c))
+  local out
+  out+="# Diff for ${APP} (${NSAPP})\n"
+  out+="# Old: ${oldf}\n# New: ${newf}\n\n"
+
+  local found_change=0
+
+  # Changed & Removed
+  for k in "${!OLD[@]}"; do
+    if [[ -v NEW["$k"] ]]; then
+      if [[ "${OLD[$k]}" != "${NEW[$k]}" ]]; then
+        out+="~ ${k}\n    - old: ${OLD[$k]}\n    + new: ${NEW[$k]}\n"
+        found_change=1
+      fi
+    else
+      out+="- ${k}\n    - old: ${OLD[$k]}\n"
+      found_change=1
     fi
   done
 
-  # Fallback to /root/.ssh/authorized_keys
-  if ((${#files[@]} == 0)) && [[ -r /root/.ssh/authorized_keys ]]; then
-    if grep -E -q "$re" /root/.ssh/authorized_keys; then
-      files+=(/root/.ssh/authorized_keys)
-      total=$((total + $(grep -E -c "$re" /root/.ssh/authorized_keys || echo 0)))
+  # Added
+  for k in "${!NEW[@]}"; do
+    if [[ ! -v OLD["$k"] ]]; then
+      out+="+ ${k}\n    + new: ${NEW[$k]}\n"
+      found_change=1
     fi
+  done
+
+  if [[ $found_change -eq 0 ]]; then
+    out+="(No differences)\n"
   fi
 
-  FOUND_HOST_KEY_COUNT="$total"
-  (
-    IFS=:
-    echo "${files[*]}"
-  )
+  printf "%b" "$out"
+}
+
+# Build a temporary <app>.vars file from current advanced settings
+_build_current_app_vars_tmp() {
+  tmpf="$(mktemp /tmp/${NSAPP:-app}.vars.new.XXXXXX)"
+
+  # NET/GW
+  _net="${NET:-}"
+  _gate=""
+  case "${GATE:-}" in
+  ,gw=*) _gate=$(echo "$GATE" | sed 's/^,gw=//') ;;
+  esac
+
+  # IPv6
+  _ipv6_method="${IPV6_METHOD:-auto}"
+  _ipv6_static=""
+  _ipv6_gateway=""
+  if [ "$_ipv6_method" = "static" ]; then
+    _ipv6_static="${IPV6_ADDR:-}"
+    _ipv6_gateway="${IPV6_GATE:-}"
+  fi
+
+  # MTU/VLAN/MAC
+  _mtu=""
+  _vlan=""
+  _mac=""
+  case "${MTU:-}" in
+  ,mtu=*) _mtu=$(echo "$MTU" | sed 's/^,mtu=//') ;;
+  esac
+  case "${VLAN:-}" in
+  ,tag=*) _vlan=$(echo "$VLAN" | sed 's/^,tag=//') ;;
+  esac
+  case "${MAC:-}" in
+  ,hwaddr=*) _mac=$(echo "$MAC" | sed 's/^,hwaddr=//') ;;
+  esac
+
+  # DNS / Searchdomain
+  _ns=""
+  _searchdomain=""
+  case "${NS:-}" in
+  -nameserver=*) _ns=$(echo "$NS" | sed 's/^-nameserver=//') ;;
+  esac
+  case "${SD:-}" in
+  -searchdomain=*) _searchdomain=$(echo "$SD" | sed 's/^-searchdomain=//') ;;
+  esac
+
+  # SSH / APT / Features
+  _ssh="${SSH:-no}"
+  _ssh_auth="${SSH_AUTHORIZED_KEY:-}"
+  _apt_cacher="${APT_CACHER:-}"
+  _apt_cacher_ip="${APT_CACHER_IP:-}"
+  _fuse="${ENABLE_FUSE:-no}"
+  _tun="${ENABLE_TUN:-no}"
+  _tags="${TAGS:-}"
+  _verbose="${VERBOSE:-no}"
+
+  # Type / Resources / Identity
+  _unpriv="${CT_TYPE:-1}"
+  _cpu="${CORE_COUNT:-1}"
+  _ram="${RAM_SIZE:-1024}"
+  _disk="${DISK_SIZE:-4}"
+  _hostname="${HN:-$NSAPP}"
+
+  # Storage
+  _tpl_storage="${TEMPLATE_STORAGE:-${var_template_storage:-}}"
+  _ct_storage="${CONTAINER_STORAGE:-${var_container_storage:-}}"
+
+  {
+    echo "# App-specific defaults for ${APP} (${NSAPP})"
+    echo "# Generated on $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    echo
+
+    echo "var_unprivileged=$(_sanitize_value "$_unpriv")"
+    echo "var_cpu=$(_sanitize_value "$_cpu")"
+    echo "var_ram=$(_sanitize_value "$_ram")"
+    echo "var_disk=$(_sanitize_value "$_disk")"
+
+    [ -n "${BRG:-}" ] && echo "var_brg=$(_sanitize_value "$BRG")"
+    [ -n "$_net" ] && echo "var_net=$(_sanitize_value "$_net")"
+    [ -n "$_gate" ] && echo "var_gateway=$(_sanitize_value "$_gate")"
+    [ -n "$_mtu" ] && echo "var_mtu=$(_sanitize_value "$_mtu")"
+    [ -n "$_vlan" ] && echo "var_vlan=$(_sanitize_value "$_vlan")"
+    [ -n "$_mac" ] && echo "var_mac=$(_sanitize_value "$_mac")"
+    [ -n "$_ns" ] && echo "var_ns=$(_sanitize_value "$_ns")"
+
+    [ -n "$_ipv6_method" ] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
+    # var_ipv6_static removed - static IPs are unique, can't be default
+
+    [ -n "$_ssh" ] && echo "var_ssh=$(_sanitize_value "$_ssh")"
+    [ -n "$_ssh_auth" ] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
+
+    [ -n "$_apt_cacher" ] && echo "var_apt_cacher=$(_sanitize_value "$_apt_cacher")"
+    [ -n "$_apt_cacher_ip" ] && echo "var_apt_cacher_ip=$(_sanitize_value "$_apt_cacher_ip")"
+
+    [ -n "$_fuse" ] && echo "var_fuse=$(_sanitize_value "$_fuse")"
+    [ -n "$_tun" ] && echo "var_tun=$(_sanitize_value "$_tun")"
+    [ -n "$_tags" ] && echo "var_tags=$(_sanitize_value "$_tags")"
+    [ -n "$_verbose" ] && echo "var_verbose=$(_sanitize_value "$_verbose")"
+
+    [ -n "$_hostname" ] && echo "var_hostname=$(_sanitize_value "$_hostname")"
+    [ -n "$_searchdomain" ] && echo "var_searchdomain=$(_sanitize_value "$_searchdomain")"
+
+    [ -n "$_tpl_storage" ] && echo "var_template_storage=$(_sanitize_value "$_tpl_storage")"
+    [ -n "$_ct_storage" ] && echo "var_container_storage=$(_sanitize_value "$_ct_storage")"
+  } >"$tmpf"
+
+  echo "$tmpf"
+}
+
+# ------------------------------------------------------------------------------
+# maybe_offer_save_app_defaults()
+#
+# - Called after advanced_settings()
+# - Offers to save current values as app defaults if not existing
+# - If file exists: shows diff and allows Update, Keep, View Diff, or Cancel
+# ------------------------------------------------------------------------------
+maybe_offer_save_app_defaults() {
+  local app_vars_path
+  app_vars_path="$(get_app_defaults_path)"
+
+  # always build from current settings
+  local new_tmp diff_tmp
+  new_tmp="$(_build_current_app_vars_tmp)"
+  diff_tmp="$(mktemp -p /tmp "${NSAPP:-app}.vars.diff.XXXXXX")"
+
+  # 1) if no file → offer to create
+  if [[ ! -f "$app_vars_path" ]]; then
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --yesno "Save these advanced settings as defaults for ${APP}?\n\nThis will create:\n${app_vars_path}" 12 72; then
+      mkdir -p "$(dirname "$app_vars_path")"
+      install -m 0644 "$new_tmp" "$app_vars_path"
+      msg_ok "Saved app defaults: ${app_vars_path}"
+    fi
+    rm -f "$new_tmp" "$diff_tmp"
+    return 0
+  fi
+
+  # 2) if file exists → build diff
+  _build_vars_diff "$app_vars_path" "$new_tmp" >"$diff_tmp"
+
+  # if no differences → do nothing
+  if grep -q "^(No differences)$" "$diff_tmp"; then
+    rm -f "$new_tmp" "$diff_tmp"
+    return 0
+  fi
+
+  # 3) if file exists → show menu with default selection "Update Defaults"
+  local app_vars_file
+  app_vars_file="$(basename "$app_vars_path")"
+
+  while true; do
+    local sel
+    sel="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "APP DEFAULTS – ${APP}" \
+      --menu "Differences detected. What do you want to do?" 20 78 10 \
+      "Update Defaults" "Write new values to ${app_vars_file}" \
+      "Keep Current" "Keep existing defaults (no changes)" \
+      "View Diff" "Show a detailed diff" \
+      "Cancel" "Abort without changes" \
+      --default-item "Update Defaults" \
+      3>&1 1>&2 2>&3)" || { sel="Cancel"; }
+
+    case "$sel" in
+    "Update Defaults")
+      install -m 0644 "$new_tmp" "$app_vars_path"
+      msg_ok "Updated app defaults: ${app_vars_path}"
+      break
+      ;;
+    "Keep Current")
+      msg_custom "ℹ️" "${BL}" "Keeping current app defaults: ${app_vars_path}"
+      break
+      ;;
+    "View Diff")
+      whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --title "Diff – ${APP}" \
+        --scrolltext --textbox "$diff_tmp" 25 100
+      ;;
+    "Cancel" | *)
+      msg_custom "🚫" "${YW}" "Canceled. No changes to app defaults."
+      break
+      ;;
+    esac
+  done
+
+  rm -f "$new_tmp" "$diff_tmp"
+}
+
+ensure_storage_selection_for_vars_file() {
+  local vf="$1"
+
+  # Read stored values (if any)
+  local tpl ct
+  tpl=$(grep -E '^var_template_storage=' "$vf" | cut -d= -f2-)
+  ct=$(grep -E '^var_container_storage=' "$vf" | cut -d= -f2-)
+
+  if [[ -n "$tpl" && -n "$ct" ]]; then
+    TEMPLATE_STORAGE="$tpl"
+    CONTAINER_STORAGE="$ct"
+    return 0
+  fi
+
+  choose_and_set_storage_for_file "$vf" template
+  choose_and_set_storage_for_file "$vf" container
+
+  # Silent operation - no output message
+}
+
+ensure_global_default_vars_file() {
+  local vars_path="/usr/local/community-scripts/default.vars"
+  if [[ ! -f "$vars_path" ]]; then
+    mkdir -p "$(dirname "$vars_path")"
+    touch "$vars_path"
+  fi
+  echo "$vars_path"
 }
 
 # ------------------------------------------------------------------------------
@@ -1020,520 +1555,6 @@ EOF
     DIAGNOSTICS=$(awk -F '=' '/^DIAGNOSTICS/ {print $2}' /usr/local/community-scripts/diagnostics)
 
   fi
-
-}
-
-# ------------------------------------------------------------------------------
-# default_var_settings
-#
-# - Ensures /usr/local/community-scripts/default.vars exists (creates if missing)
-# - Loads var_* values from default.vars (safe parser, no source/eval)
-# - Precedence: ENV var_* > default.vars > built-in defaults
-# - Maps var_verbose → VERBOSE
-# - Calls base_settings "$VERBOSE" and echo_default
-# ------------------------------------------------------------------------------
-default_var_settings() {
-  # Allowed var_* keys (alphabetically sorted)
-  # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
-  local VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse
-    var_gateway var_hostname var_ipv6_method var_mac var_mtu
-    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
-    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
-  )
-
-  # Snapshot: environment variables (highest precedence)
-  declare -A _HARD_ENV=()
-  local _k
-  for _k in "${VAR_WHITELIST[@]}"; do
-    if printenv "$_k" >/dev/null 2>&1; then _HARD_ENV["$_k"]=1; fi
-  done
-
-  # Find default.vars location
-  local _find_default_vars
-  _find_default_vars() {
-    local f
-    for f in \
-      /usr/local/community-scripts/default.vars \
-      "$HOME/.config/community-scripts/default.vars" \
-      "./default.vars"; do
-      [ -f "$f" ] && {
-        echo "$f"
-        return 0
-      }
-    done
-    return 1
-  }
-  # Allow override of storages via env (for non-interactive use cases)
-  [ -n "${var_template_storage:-}" ] && TEMPLATE_STORAGE="$var_template_storage"
-  [ -n "${var_container_storage:-}" ] && CONTAINER_STORAGE="$var_container_storage"
-
-  # Create once, with storages already selected, no var_ctid/var_hostname lines
-  local _ensure_default_vars
-  _ensure_default_vars() {
-    _find_default_vars >/dev/null 2>&1 && return 0
-
-    local canonical="/usr/local/community-scripts/default.vars"
-    # Silent creation - no msg_info output
-    mkdir -p /usr/local/community-scripts
-
-    # Pick storages before writing the file (always ask unless only one)
-    # Create a minimal temp file to write into
-    : >"$canonical"
-
-    # Base content (no var_ctid / var_hostname here)
-    cat >"$canonical" <<'EOF'
-# Community-Scripts defaults (var_* only). Lines starting with # are comments.
-# Precedence: ENV var_* > default.vars > built-ins.
-# Keep keys alphabetically sorted.
-
-# Container type
-var_unprivileged=1
-
-# Resources
-var_cpu=1
-var_disk=4
-var_ram=1024
-
-# Network
-var_brg=vmbr0
-var_net=dhcp
-var_ipv6_method=none
-# var_gateway=
-# var_vlan=
-# var_mtu=
-# var_mac=
-# var_ns=
-
-# SSH
-var_ssh=no
-# var_ssh_authorized_key=
-
-# APT cacher (optional - with example)
-# var_apt_cacher=yes
-# var_apt_cacher_ip=192.168.1.10
-
-# Features/Tags/verbosity
-var_fuse=no
-var_tun=no
-var_tags=community-script
-var_verbose=no
-
-# Security (root PW) – empty => autologin
-# var_pw=
-EOF
-
-    # Now choose storages (always prompt unless just one exists)
-    choose_and_set_storage_for_file "$canonical" template
-    choose_and_set_storage_for_file "$canonical" container
-
-    chmod 0644 "$canonical"
-    # Silent creation - no output message
-  }
-
-  # Whitelist check
-  local _is_whitelisted_key
-  _is_whitelisted_key() {
-    local k="$1"
-    local w
-    for w in "${VAR_WHITELIST[@]}"; do [ "$k" = "$w" ] && return 0; done
-    return 1
-  }
-
-  # Safe parser for KEY=VALUE lines
-  local _load_vars_file
-  _load_vars_file() {
-    local file="$1"
-    [ -f "$file" ] || return 0
-    msg_info "Loading defaults from ${file}"
-    local line key val
-    while IFS= read -r line || [ -n "$line" ]; do
-      line="${line#"${line%%[![:space:]]*}"}"
-      line="${line%"${line##*[![:space:]]}"}"
-      [[ -z "$line" || "$line" == \#* ]] && continue
-      if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
-        local var_key="${BASH_REMATCH[1]}"
-        local var_val="${BASH_REMATCH[2]}"
-
-        [[ "$var_key" != var_* ]] && continue
-        _is_whitelisted_key "$var_key" || {
-          msg_debug "Ignore non-whitelisted ${var_key}"
-          continue
-        }
-
-        # Strip quotes
-        if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
-          var_val="${BASH_REMATCH[1]}"
-        elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
-          var_val="${BASH_REMATCH[1]}"
-        fi
-
-        # Unsafe characters
-        case $var_val in
-        \"*\")
-          var_val=${var_val#\"}
-          var_val=${var_val%\"}
-          ;;
-        \'*\')
-          var_val=${var_val#\'}
-          var_val=${var_val%\'}
-          ;;
-        esac # Hard env wins
-        [[ -n "${_HARD_ENV[$var_key]:-}" ]] && continue
-        # Set only if not already exported
-        [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
-      else
-        msg_warn "Malformed line in ${file}: ${line}"
-      fi
-    done <"$file"
-    msg_ok "Loaded ${file}"
-  }
-
-  # 1) Ensure file exists
-  _ensure_default_vars
-
-  # 2) Load file
-  local dv
-  dv="$(_find_default_vars)" || {
-    msg_error "default.vars not found after ensure step"
-    return 1
-  }
-  _load_vars_file "$dv"
-
-  # 3) Map var_verbose → VERBOSE
-  if [[ -n "${var_verbose:-}" ]]; then
-    case "${var_verbose,,}" in 1 | yes | true | on) VERBOSE="yes" ;; 0 | no | false | off) VERBOSE="no" ;; *) VERBOSE="${var_verbose}" ;; esac
-  else
-    VERBOSE="no"
-  fi
-
-  # 4) Apply base settings and show summary
-  METHOD="mydefaults-global"
-  base_settings "$VERBOSE"
-  header_info
-  echo -e "${DEFAULT}${BOLD}${BL}Using My Defaults (default.vars) on node $PVEHOST_NAME${CL}"
-  echo_default
-}
-
-# ------------------------------------------------------------------------------
-# get_app_defaults_path()
-#
-# - Returns full path for app-specific defaults file
-# - Example: /usr/local/community-scripts/defaults/<app>.vars
-# ------------------------------------------------------------------------------
-
-get_app_defaults_path() {
-  local n="${NSAPP:-${APP,,}}"
-  echo "/usr/local/community-scripts/defaults/${n}.vars"
-}
-
-# ------------------------------------------------------------------------------
-# maybe_offer_save_app_defaults
-#
-# - Called after advanced_settings returned with fully chosen values.
-# - If no <nsapp>.vars exists, offers to persist current advanced settings
-#   into /usr/local/community-scripts/defaults/<nsapp>.vars
-# - Only writes whitelisted var_* keys.
-# - Extracts raw values from flags like ",gw=..." ",mtu=..." etc.
-# ------------------------------------------------------------------------------
-if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
-  # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
-  declare -ag VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse
-    var_gateway var_hostname var_ipv6_method var_mac var_mtu
-    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
-    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
-  )
-fi
-
-# Note: _is_whitelisted_key() is defined above in default_var_settings section
-
-_sanitize_value() {
-  # Disallow Command-Substitution / Shell-Meta
-  case "$1" in
-  *'$('* | *'`'* | *';'* | *'&'* | *'<('*)
-    echo ""
-    return 0
-    ;;
-  esac
-  echo "$1"
-}
-
-# Map-Parser: read var_* from file into _VARS_IN associative array
-# Note: Main _load_vars_file() with full validation is defined in default_var_settings section
-# This simplified version is used specifically for diff operations via _VARS_IN array
-declare -A _VARS_IN
-_load_vars_file_to_map() {
-  local file="$1"
-  [ -f "$file" ] || return 0
-  _VARS_IN=() # Clear array
-  local line key val
-  while IFS= read -r line || [ -n "$line" ]; do
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
-    [ -z "$line" ] && continue
-    case "$line" in
-    \#*) continue ;;
-    esac
-    key=$(printf "%s" "$line" | cut -d= -f1)
-    val=$(printf "%s" "$line" | cut -d= -f2-)
-    case "$key" in
-    var_*)
-      if _is_whitelisted_key "$key"; then
-        _VARS_IN["$key"]="$val"
-      fi
-      ;;
-    esac
-  done <"$file"
-}
-
-# Diff function for two var_* files -> produces human-readable diff list for $1 (old) vs $2 (new)
-_build_vars_diff() {
-  local oldf="$1" newf="$2"
-  local k
-  local -A OLD=() NEW=()
-  _load_vars_file_to_map "$oldf"
-  for k in "${!_VARS_IN[@]}"; do OLD["$k"]="${_VARS_IN[$k]}"; done
-  _load_vars_file_to_map "$newf"
-  for k in "${!_VARS_IN[@]}"; do NEW["$k"]="${_VARS_IN[$k]}"; done
-
-  local out
-  out+="# Diff for ${APP} (${NSAPP})\n"
-  out+="# Old: ${oldf}\n# New: ${newf}\n\n"
-
-  local found_change=0
-
-  # Changed & Removed
-  for k in "${!OLD[@]}"; do
-    if [[ -v NEW["$k"] ]]; then
-      if [[ "${OLD[$k]}" != "${NEW[$k]}" ]]; then
-        out+="~ ${k}\n    - old: ${OLD[$k]}\n    + new: ${NEW[$k]}\n"
-        found_change=1
-      fi
-    else
-      out+="- ${k}\n    - old: ${OLD[$k]}\n"
-      found_change=1
-    fi
-  done
-
-  # Added
-  for k in "${!NEW[@]}"; do
-    if [[ ! -v OLD["$k"] ]]; then
-      out+="+ ${k}\n    + new: ${NEW[$k]}\n"
-      found_change=1
-    fi
-  done
-
-  if [[ $found_change -eq 0 ]]; then
-    out+="(No differences)\n"
-  fi
-
-  printf "%b" "$out"
-}
-
-# Build a temporary <app>.vars file from current advanced settings
-_build_current_app_vars_tmp() {
-  tmpf="$(mktemp /tmp/${NSAPP:-app}.vars.new.XXXXXX)"
-
-  # NET/GW
-  _net="${NET:-}"
-  _gate=""
-  case "${GATE:-}" in
-  ,gw=*) _gate=$(echo "$GATE" | sed 's/^,gw=//') ;;
-  esac
-
-  # IPv6
-  _ipv6_method="${IPV6_METHOD:-auto}"
-  _ipv6_static=""
-  _ipv6_gateway=""
-  if [ "$_ipv6_method" = "static" ]; then
-    _ipv6_static="${IPV6_ADDR:-}"
-    _ipv6_gateway="${IPV6_GATE:-}"
-  fi
-
-  # MTU/VLAN/MAC
-  _mtu=""
-  _vlan=""
-  _mac=""
-  case "${MTU:-}" in
-  ,mtu=*) _mtu=$(echo "$MTU" | sed 's/^,mtu=//') ;;
-  esac
-  case "${VLAN:-}" in
-  ,tag=*) _vlan=$(echo "$VLAN" | sed 's/^,tag=//') ;;
-  esac
-  case "${MAC:-}" in
-  ,hwaddr=*) _mac=$(echo "$MAC" | sed 's/^,hwaddr=//') ;;
-  esac
-
-  # DNS / Searchdomain
-  _ns=""
-  _searchdomain=""
-  case "${NS:-}" in
-  -nameserver=*) _ns=$(echo "$NS" | sed 's/^-nameserver=//') ;;
-  esac
-  case "${SD:-}" in
-  -searchdomain=*) _searchdomain=$(echo "$SD" | sed 's/^-searchdomain=//') ;;
-  esac
-
-  # SSH / APT / Features
-  _ssh="${SSH:-no}"
-  _ssh_auth="${SSH_AUTHORIZED_KEY:-}"
-  _apt_cacher="${APT_CACHER:-}"
-  _apt_cacher_ip="${APT_CACHER_IP:-}"
-  _fuse="${ENABLE_FUSE:-no}"
-  _tun="${ENABLE_TUN:-no}"
-  _tags="${TAGS:-}"
-  _verbose="${VERBOSE:-no}"
-
-  # Type / Resources / Identity
-  _unpriv="${CT_TYPE:-1}"
-  _cpu="${CORE_COUNT:-1}"
-  _ram="${RAM_SIZE:-1024}"
-  _disk="${DISK_SIZE:-4}"
-  _hostname="${HN:-$NSAPP}"
-
-  # Storage
-  _tpl_storage="${TEMPLATE_STORAGE:-${var_template_storage:-}}"
-  _ct_storage="${CONTAINER_STORAGE:-${var_container_storage:-}}"
-
-  {
-    echo "# App-specific defaults for ${APP} (${NSAPP})"
-    echo "# Generated on $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    echo
-
-    echo "var_unprivileged=$(_sanitize_value "$_unpriv")"
-    echo "var_cpu=$(_sanitize_value "$_cpu")"
-    echo "var_ram=$(_sanitize_value "$_ram")"
-    echo "var_disk=$(_sanitize_value "$_disk")"
-
-    [ -n "${BRG:-}" ] && echo "var_brg=$(_sanitize_value "$BRG")"
-    [ -n "$_net" ] && echo "var_net=$(_sanitize_value "$_net")"
-    [ -n "$_gate" ] && echo "var_gateway=$(_sanitize_value "$_gate")"
-    [ -n "$_mtu" ] && echo "var_mtu=$(_sanitize_value "$_mtu")"
-    [ -n "$_vlan" ] && echo "var_vlan=$(_sanitize_value "$_vlan")"
-    [ -n "$_mac" ] && echo "var_mac=$(_sanitize_value "$_mac")"
-    [ -n "$_ns" ] && echo "var_ns=$(_sanitize_value "$_ns")"
-
-    [ -n "$_ipv6_method" ] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
-    # var_ipv6_static removed - static IPs are unique, can't be default
-
-    [ -n "$_ssh" ] && echo "var_ssh=$(_sanitize_value "$_ssh")"
-    [ -n "$_ssh_auth" ] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
-
-    [ -n "$_apt_cacher" ] && echo "var_apt_cacher=$(_sanitize_value "$_apt_cacher")"
-    [ -n "$_apt_cacher_ip" ] && echo "var_apt_cacher_ip=$(_sanitize_value "$_apt_cacher_ip")"
-
-    [ -n "$_fuse" ] && echo "var_fuse=$(_sanitize_value "$_fuse")"
-    [ -n "$_tun" ] && echo "var_tun=$(_sanitize_value "$_tun")"
-    [ -n "$_tags" ] && echo "var_tags=$(_sanitize_value "$_tags")"
-    [ -n "$_verbose" ] && echo "var_verbose=$(_sanitize_value "$_verbose")"
-
-    [ -n "$_hostname" ] && echo "var_hostname=$(_sanitize_value "$_hostname")"
-    [ -n "$_searchdomain" ] && echo "var_searchdomain=$(_sanitize_value "$_searchdomain")"
-
-    [ -n "$_tpl_storage" ] && echo "var_template_storage=$(_sanitize_value "$_tpl_storage")"
-    [ -n "$_ct_storage" ] && echo "var_container_storage=$(_sanitize_value "$_ct_storage")"
-  } >"$tmpf"
-
-  echo "$tmpf"
-}
-
-# ------------------------------------------------------------------------------
-# maybe_offer_save_app_defaults()
-#
-# - Called after advanced_settings()
-# - Offers to save current values as app defaults if not existing
-# - If file exists: shows diff and allows Update, Keep, View Diff, or Cancel
-# ------------------------------------------------------------------------------
-maybe_offer_save_app_defaults() {
-  local app_vars_path
-  app_vars_path="$(get_app_defaults_path)"
-
-  # always build from current settings
-  local new_tmp diff_tmp
-  new_tmp="$(_build_current_app_vars_tmp)"
-  diff_tmp="$(mktemp -p /tmp "${NSAPP:-app}.vars.diff.XXXXXX")"
-
-  # 1) if no file → offer to create
-  if [[ ! -f "$app_vars_path" ]]; then
-    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --yesno "Save these advanced settings as defaults for ${APP}?\n\nThis will create:\n${app_vars_path}" 12 72; then
-      mkdir -p "$(dirname "$app_vars_path")"
-      install -m 0644 "$new_tmp" "$app_vars_path"
-      msg_ok "Saved app defaults: ${app_vars_path}"
-    fi
-    rm -f "$new_tmp" "$diff_tmp"
-    return 0
-  fi
-
-  # 2) if file exists → build diff
-  _build_vars_diff "$app_vars_path" "$new_tmp" >"$diff_tmp"
-
-  # if no differences → do nothing
-  if grep -q "^(No differences)$" "$diff_tmp"; then
-    rm -f "$new_tmp" "$diff_tmp"
-    return 0
-  fi
-
-  # 3) if file exists → show menu with default selection "Update Defaults"
-  local app_vars_file
-  app_vars_file="$(basename "$app_vars_path")"
-
-  while true; do
-    local sel
-    sel="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "APP DEFAULTS – ${APP}" \
-      --menu "Differences detected. What do you want to do?" 20 78 10 \
-      "Update Defaults" "Write new values to ${app_vars_file}" \
-      "Keep Current" "Keep existing defaults (no changes)" \
-      "View Diff" "Show a detailed diff" \
-      "Cancel" "Abort without changes" \
-      --default-item "Update Defaults" \
-      3>&1 1>&2 2>&3)" || { sel="Cancel"; }
-
-    case "$sel" in
-    "Update Defaults")
-      install -m 0644 "$new_tmp" "$app_vars_path"
-      msg_ok "Updated app defaults: ${app_vars_path}"
-      break
-      ;;
-    "Keep Current")
-      msg_custom "ℹ️" "${BL}" "Keeping current app defaults: ${app_vars_path}"
-      break
-      ;;
-    "View Diff")
-      whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-        --title "Diff – ${APP}" \
-        --scrolltext --textbox "$diff_tmp" 25 100
-      ;;
-    "Cancel" | *)
-      msg_custom "🚫" "${YW}" "Canceled. No changes to app defaults."
-      break
-      ;;
-    esac
-  done
-
-  rm -f "$new_tmp" "$diff_tmp"
-}
-
-ensure_storage_selection_for_vars_file() {
-  local vf="$1"
-
-  # Read stored values (if any)
-  local tpl ct
-  tpl=$(grep -E '^var_template_storage=' "$vf" | cut -d= -f2-)
-  ct=$(grep -E '^var_container_storage=' "$vf" | cut -d= -f2-)
-
-  if [[ -n "$tpl" && -n "$ct" ]]; then
-    TEMPLATE_STORAGE="$tpl"
-    CONTAINER_STORAGE="$ct"
-    return 0
-  fi
-
-  choose_and_set_storage_for_file "$vf" template
-  choose_and_set_storage_for_file "$vf" container
-
-  # Silent operation - no output message
 }
 
 diagnostics_menu() {
@@ -1558,13 +1579,30 @@ diagnostics_menu() {
   fi
 }
 
-ensure_global_default_vars_file() {
-  local vars_path="/usr/local/community-scripts/default.vars"
-  if [[ ! -f "$vars_path" ]]; then
-    mkdir -p "$(dirname "$vars_path")"
-    touch "$vars_path"
+# ------------------------------------------------------------------------------
+# echo_default()
+#
+# - Prints summary of default values (ID, OS, type, disk, RAM, CPU, etc.)
+# - Uses icons and formatting for readability
+# - Convert CT_TYPE to description
+# ------------------------------------------------------------------------------
+echo_default() {
+  CT_TYPE_DESC="Unprivileged"
+  if [ "$CT_TYPE" -eq 0 ]; then
+    CT_TYPE_DESC="Privileged"
   fi
-  echo "$vars_path"
+  echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
+  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
+  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os ($var_version)${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
+  if [ "$VERBOSE" == "yes" ]; then
+    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
+  fi
+  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
+  echo -e "  "
 }
 
 # ------------------------------------------------------------------------------
@@ -1748,57 +1786,6 @@ settings_menu() {
     5) exit_script ;;
     esac
   done
-}
-
-# ===== Unified storage selection & writing to vars files =====
-_write_storage_to_vars() {
-  # $1 = vars_file, $2 = key (var_container_storage / var_template_storage), $3 = value
-  local vf="$1" key="$2" val="$3"
-  # remove uncommented and commented versions to avoid duplicates
-  sed -i "/^[#[:space:]]*${key}=/d" "$vf"
-  echo "${key}=${val}" >>"$vf"
-}
-
-choose_and_set_storage_for_file() {
-  # $1 = vars_file, $2 = class ('container'|'template')
-  local vf="$1" class="$2" key="" current=""
-  case "$class" in
-  container) key="var_container_storage" ;;
-  template) key="var_template_storage" ;;
-  *)
-    msg_error "Unknown storage class: $class"
-    return 1
-    ;;
-  esac
-
-  current=$(awk -F= -v k="^${key}=" '$0 ~ k {print $2; exit}' "$vf")
-
-  # If only one storage exists for the content type, auto-pick. Else always ask (your wish #4).
-  local content="rootdir"
-  [[ "$class" == "template" ]] && content="vztmpl"
-  local count
-  count=$(pvesm status -content "$content" | awk 'NR>1{print $1}' | wc -l)
-
-  if [[ "$count" -eq 1 ]]; then
-    STORAGE_RESULT=$(pvesm status -content "$content" | awk 'NR>1{print $1; exit}')
-    STORAGE_INFO=""
-  else
-    # If the current value is preselectable, we could show it, but per your requirement we always offer selection
-    select_storage "$class" || return 1
-  fi
-
-  _write_storage_to_vars "$vf" "$key" "$STORAGE_RESULT"
-
-  # Keep environment in sync for later steps (e.g. app-default save)
-  if [[ "$class" == "container" ]]; then
-    export var_container_storage="$STORAGE_RESULT"
-    export CONTAINER_STORAGE="$STORAGE_RESULT"
-  else
-    export var_template_storage="$STORAGE_RESULT"
-    export TEMPLATE_STORAGE="$STORAGE_RESULT"
-  fi
-
-  # Silent operation - no output message
 }
 
 # ------------------------------------------------------------------------------
