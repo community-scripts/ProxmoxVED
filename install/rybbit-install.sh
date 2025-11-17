@@ -22,7 +22,7 @@ msg_ok "Installed Dependencies"
 
 setup_clickhouse
 PG_VERSION=17 setup_postgresql
-NODE_VERSION="20" NODE_MODULE="next" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="next" setup_nodejs
 PG_DB_NAME="rybbit_db" PG_DB_USER="rybbit" setup_postgresql_db
 
 fetch_and_deploy_gh_release "rybbit" "rybbit-io/rybbit" "tarball" "latest" "/opt/rybbit"
