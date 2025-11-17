@@ -1555,7 +1555,7 @@ advanced_settings() {
   configure_ssh_settings
   export SSH_KEYS_FILE
   echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
-  
+
   # Advanced Settings - Proxmox Features
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS" --yesno "Configure Advanced Proxmox Features?" 10 58); then
     # keyctl: for Docker support
@@ -1565,7 +1565,7 @@ advanced_settings() {
       ENABLE_KEYCTL="0"
     fi
     echo -e "${SEARCH}${BOLD}${DGN}Allow keyctl(): ${BGN}$ENABLE_KEYCTL${CL}"
-    
+
     # mknod: device node creation
     if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "Enable mknod()" --yesno "Allow device node creation?\n\nNeeded for: Complex device management (experimental, kernel 5.3+)\nDefault: No (rarely needed)" 10 58); then
       ENABLE_MKNOD="1"
@@ -1573,7 +1573,7 @@ advanced_settings() {
       ENABLE_MKNOD="0"
     fi
     echo -e "${SEARCH}${BOLD}${DGN}Allow mknod(): ${BGN}$ENABLE_MKNOD${CL}"
-    
+
     # mount: specific filesystems
     if MOUNT_FS=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allow specific filesystems (e.g., nfs,fuse,ext4)\nLeave blank for defaults" 8 58 "$ALLOW_MOUNT_FS" --title "Mount Filesystems" 3>&1 1>&2 2>&3); then
       ALLOW_MOUNT_FS="$MOUNT_FS"
@@ -1582,7 +1582,7 @@ advanced_settings() {
       exit_script
     fi
     echo -e "${SEARCH}${BOLD}${DGN}Mount Filesystems: ${BGN}$ALLOW_MOUNT_FS${CL}"
-    
+
     # Container protection
     if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "Protection Flag" --yesno "Prevent accidental deletion?\n\nIf enabled, container cannot be deleted or its disk modified\nDefault: No" 10 58); then
       PROTECT_CT="yes"
@@ -1590,7 +1590,7 @@ advanced_settings() {
       PROTECT_CT="no"
     fi
     echo -e "${SEARCH}${BOLD}${DGN}Container Protection: ${BGN}$PROTECT_CT${CL}"
-    
+
     # Container timezone
     if CT_TIMEZONE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set container timezone (e.g., Europe/Berlin)\nLeave blank to use host timezone" 8 58 "$CT_TIMEZONE" --title "Container Timezone" 3>&1 1>&2 2>&3); then
       [ -z "$CT_TIMEZONE" ] && CT_TIMEZONE="(host)"
@@ -1599,7 +1599,7 @@ advanced_settings() {
     fi
     echo -e "${SEARCH}${BOLD}${DGN}Container Timezone: ${BGN}$CT_TIMEZONE${CL}"
   fi
-  
+
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
     ENABLE_FUSE="yes"
   else
@@ -2287,8 +2287,11 @@ build_container() {
   fi
 
   # mount: allow specific filesystems (e.g., nfs, ext4, etc.)
+  # Format: mount=fstype1;fstype2;fstype3 (semicolon-separated, not comma!)
   if [ -n "$ALLOW_MOUNT_FS" ]; then
-    FEATURES="$FEATURES,mount=$ALLOW_MOUNT_FS"
+    # Replace commas with semicolons for proper pct syntax
+    ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
+    FEATURES="$FEATURES,mount=$ALLOW_MOUNT_FS_FORMATTED"
   fi
 
   TEMP_DIR=$(mktemp -d)
@@ -2346,7 +2349,7 @@ build_container() {
   fi
 
   export PCT_OPTIONS="
-  -features $FEATURES
+  -features '$FEATURES'
   -hostname $HN
   -tags $TAGS
   $SD
@@ -3585,7 +3588,7 @@ create_lxc_container() {
 
   # First attempt
   if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >"$LOGFILE" 2>&1; then
-    msg_error "Container creation failed on ${TEMPLATE_STORAGE}. Checking template..."
+    msg_debug "Container creation failed on ${TEMPLATE_STORAGE}. Validating template..."
 
     # Validate template file
     if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
@@ -3604,18 +3607,16 @@ create_lxc_container() {
 
     # Retry after repair
     if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
-      # Fallback to local storage
+      # Fallback to local storage if not already on local
       if [[ "$TEMPLATE_STORAGE" != "local" ]]; then
-        msg_warn "Retrying container creation with fallback to local storage..."
+        msg_info "Retrying container creation with fallback to local storage..."
         LOCAL_TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
         if [[ ! -f "$LOCAL_TEMPLATE_PATH" ]]; then
           msg_info "Downloading template to local..."
           pveam download local "$TEMPLATE" >/dev/null 2>&1
         fi
-        if pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
-          msg_ok "Container successfully created using local fallback."
-        else
-          # --- Dynamic stack upgrade + auto-retry on the well-known error pattern ---
+        if ! pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
+          # Local fallback also failed - check for LXC stack version issue
           if grep -qiE 'unsupported .* version' "$LOGFILE"; then
             echo
             echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
@@ -3635,7 +3636,7 @@ create_lxc_container() {
               ;;
             esac
           else
-            msg_error "Container creation failed even with local fallback. See $LOGFILE"
+            msg_error "Container creation failed. See $LOGFILE"
             if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
               set -x
               bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
@@ -3643,10 +3644,11 @@ create_lxc_container() {
             fi
             exit 209
           fi
+        else
+          msg_ok "Container successfully created using local fallback."
         fi
       else
-        msg_error "Container creation failed on local storage. See $LOGFILE"
-        # --- Dynamic stack upgrade + auto-retry on the well-known error pattern ---
+        # Already on local storage and still failed - check LXC stack version
         if grep -qiE 'unsupported .* version' "$LOGFILE"; then
           echo
           echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
@@ -3675,6 +3677,8 @@ create_lxc_container() {
           exit 209
         fi
       fi
+    else
+      msg_ok "Container successfully created after template repair."
     fi
   fi
 
