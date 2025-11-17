@@ -196,30 +196,39 @@ error_handler() {
     } >>"$DEBUG_LOGFILE"
   fi
 
-  if [[ -n "${SILENT_LOGFILE:-}" && -s "$SILENT_LOGFILE" ]]; then
+  # Get active log file (BUILD_LOG or INSTALL_LOG)
+  local active_log=""
+  if declare -f get_active_logfile >/dev/null 2>&1; then
+    active_log="$(get_active_logfile)"
+  elif [[ -n "${SILENT_LOGFILE:-}" ]]; then
+    active_log="$SILENT_LOGFILE"
+  fi
+
+  if [[ -n "$active_log" && -s "$active_log" ]]; then
     echo "--- Last 20 lines of silent log ---"
-    tail -n 20 "$SILENT_LOGFILE"
+    tail -n 20 "$active_log"
     echo "-----------------------------------"
 
-    # Copy log to container home for later retrieval (if running inside container via pct exec)
-    if [[ -d /root ]]; then
+    # Detect context: Container (INSTALL_LOG set + /root exists) vs Host (BUILD_LOG)
+    if [[ -n "${INSTALL_LOG:-}" && -d /root ]]; then
+      # CONTAINER CONTEXT: Copy log and create flag file for host
       local container_log="/root/.install-${SESSION_ID:-error}.log"
-      cp "$SILENT_LOGFILE" "$container_log" 2>/dev/null || true
-      
+      cp "$active_log" "$container_log" 2>/dev/null || true
+
       # Create error flag file with exit code for host detection
-      echo "$exit_code" > "/root/.install-${SESSION_ID:-error}.failed" 2>/dev/null || true
-      
+      echo "$exit_code" >"/root/.install-${SESSION_ID:-error}.failed" 2>/dev/null || true
+
       if declare -f msg_custom >/dev/null 2>&1; then
         msg_custom "📋" "${YW}" "Log saved to: ${container_log}"
       else
         echo -e "${YW}Log saved to:${CL} ${BL}${container_log}${CL}"
       fi
     else
-      # Running on host - show local path
+      # HOST CONTEXT: Show local log path
       if declare -f msg_custom >/dev/null 2>&1; then
-        msg_custom "📋" "${YW}" "Full log: ${SILENT_LOGFILE}"
+        msg_custom "📋" "${YW}" "Full log: ${active_log}"
       else
-        echo -e "${YW}Full log:${CL} ${BL}${SILENT_LOGFILE}${CL}"
+        echo -e "${YW}Full log:${CL} ${BL}${active_log}${CL}"
       fi
     fi
   fi
@@ -302,7 +311,7 @@ catch_errors() {
   if [ "${STRICT_UNSET:-0}" = "1" ]; then
     set -u
   fi
-  
+
   trap 'error_handler' ERR
   trap on_exit EXIT
   trap on_interrupt INT

@@ -47,6 +47,7 @@ variables() {
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
   SESSION_ID="${RANDOM_UUID:0:8}"                   # Short session ID (first 8 chars of UUID) for log files
+  BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"     # Host-side container creation log
   CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"}
 
   # Get Proxmox VE version and kernel version
@@ -2206,6 +2207,8 @@ build_container() {
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
   export SESSION_ID="$SESSION_ID"
+  export BUILD_LOG="$BUILD_LOG"
+  export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"
@@ -2576,10 +2579,12 @@ EOF'
   # Install SSH keys
   install_ssh_keys_into_ct
 
-  # Run application installer
+  # Run application installer (disable ERR trap to handle errors manually)
+  set +e
   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
   local lxc_exit=$?
-  
+  set -e
+
   # Check for error flag file in container (more reliable than lxc-attach exit code)
   local install_exit_code=0
   if [[ -n "${SESSION_ID:-}" ]]; then
@@ -2589,21 +2594,35 @@ EOF'
       pct exec "$CTID" -- rm -f "$error_flag" 2>/dev/null || true
     fi
   fi
-  
+
   # Fallback to lxc-attach exit code if no flag file
   if [[ $install_exit_code -eq 0 && $lxc_exit -ne 0 ]]; then
     install_exit_code=$lxc_exit
   fi
-  
+
   # Installation failed?
   if [[ $install_exit_code -ne 0 ]]; then
     msg_error "Installation failed in container ${CTID} (exit code: ${install_exit_code})"
 
-    # Try to copy installation log from container (without spinner/msg_info)
+    # Copy both logs from container before potential deletion
+    local build_log_copied=false
+    local install_log_copied=false
+
     if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
-      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-${SESSION_ID}.log" 2>/dev/null; then
-        echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-${SESSION_ID}.log${CL}"
+      # Copy BUILD_LOG (creation log) if it exists
+      if [[ -f "${BUILD_LOG}" ]]; then
+        cp "${BUILD_LOG}" "/tmp/create-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null && build_log_copied=true
       fi
+
+      # Copy INSTALL_LOG from container
+      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null; then
+        install_log_copied=true
+      fi
+
+      # Show available logs
+      echo ""
+      [[ $build_log_copied == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
+      [[ $install_log_copied == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
     fi
 
     # Prompt user for cleanup with 60s timeout (plain echo - no msg_info to avoid spinner)

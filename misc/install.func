@@ -28,6 +28,11 @@
 # SECTION 1: INITIALIZATION
 # ==============================================================================
 
+# Ensure INSTALL_LOG is set (exported from build.func, but fallback if missing)
+if [[ -z "${INSTALL_LOG:-}" ]]; then
+    INSTALL_LOG="/root/.install-${SESSION_ID:-unknown}.log"
+fi
+
 if ! command -v curl >/dev/null 2>&1; then
     printf "\r\e[2K%b" '\033[93m Setup Source \033[m' >&2
     apt-get update >/dev/null 2>&1

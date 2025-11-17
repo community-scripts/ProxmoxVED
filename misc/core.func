@@ -287,12 +287,32 @@ ssh_check() {
 # SECTION 3: EXECUTION HELPERS
 # ==============================================================================
 
-SILENT_LOGFILE="/tmp/install-$(date +%Y%m%d_%H%M%S)_${SESSION_ID:-$(date +%s)}.log"
+# ------------------------------------------------------------------------------
+# get_active_logfile()
+#
+# - Returns the appropriate log file based on execution context
+# - BUILD_LOG: Host operations (container creation)
+# - INSTALL_LOG: Container operations (application installation)
+# - Fallback to BUILD_LOG if neither is set
+# ------------------------------------------------------------------------------
+get_active_logfile() {
+  if [[ -n "${INSTALL_LOG:-}" ]]; then
+    echo "$INSTALL_LOG"
+  elif [[ -n "${BUILD_LOG:-}" ]]; then
+    echo "$BUILD_LOG"
+  else
+    # Fallback for legacy scripts
+    echo "/tmp/build-$(date +%Y%m%d_%H%M%S).log"
+  fi
+}
+
+# Legacy compatibility: SILENT_LOGFILE points to active log
+SILENT_LOGFILE="$(get_active_logfile)"
 
 # ------------------------------------------------------------------------------
 # silent()
 #
-# - Executes command with output redirected to SILENT_LOGFILE
+# - Executes command with output redirected to active log file
 # - On error: displays last 10 lines of log and exits with original exit code
 # - Temporarily disables error trap to capture exit code correctly
 # - Sources explain_exit_code() for detailed error messages
@@ -300,11 +320,12 @@ SILENT_LOGFILE="/tmp/install-$(date +%Y%m%d_%H%M%S)_${SESSION_ID:-$(date +%s)}.l
 silent() {
   local cmd="$*"
   local caller_line="${BASH_LINENO[0]:-unknown}"
+  local logfile="$(get_active_logfile)"
 
   set +Eeuo pipefail
   trap - ERR
 
-  "$@" >>"$SILENT_LOGFILE" 2>&1
+  "$@" >>"$logfile" 2>&1
   local rc=$?
 
   set -Eeuo pipefail
@@ -323,15 +344,15 @@ silent() {
     msg_error "in line ${caller_line}: exit code ${rc} (${explanation})"
     msg_custom "→" "${YWB}" "${cmd}"
 
-    if [[ -s "$SILENT_LOGFILE" ]]; then
-      local log_lines=$(wc -l <"$SILENT_LOGFILE")
+    if [[ -s "$logfile" ]]; then
+      local log_lines=$(wc -l <"$logfile")
       echo "--- Last 10 lines of silent log ---"
-      tail -n 10 "$SILENT_LOGFILE"
+      tail -n 10 "$logfile"
       echo "-----------------------------------"
 
       # Show how to view full log if there are more lines
       if [[ $log_lines -gt 10 ]]; then
-        msg_custom "📋" "${YW}" "View full log (${log_lines} lines): /tmp/install-*_${SESSION_ID:-*}.log"
+        msg_custom "📋" "${YW}" "View full log (${log_lines} lines): ${logfile}"
       fi
     fi
 
