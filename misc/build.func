@@ -2289,25 +2289,26 @@ build_container() {
   none) ;;
   esac
 
-  # Build FEATURES string with advanced settings
+  # Build FEATURES array with advanced settings
   # Note: All feature flags are already normalized to 0/1 in default_settings()
-
-  FEATURES="nesting=${ENABLE_NESTING}"
+  # Proxmox requires each feature as a separate parameter, not comma-separated string
+  FEATURES_ARRAY=()
+  FEATURES_ARRAY+=("nesting=${ENABLE_NESTING}")
 
   # keyctl: needed for Docker inside containers (systemd-networkd workaround)
   # Typically needed for unprivileged containers with Docker
   if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
-    FEATURES="$FEATURES,keyctl=1"
+    FEATURES_ARRAY+=("keyctl=1")
   fi
 
   # mknod: allow device node creation (requires kernel 5.3+, experimental)
   if [ "$ENABLE_MKNOD" == "1" ]; then
-    FEATURES="$FEATURES,mknod=1"
+    FEATURES_ARRAY+=("mknod=1")
   fi
 
   # FUSE: required for rclone, mergerfs, AppImage, etc.
   if [ "$ENABLE_FUSE" == "1" ]; then
-    FEATURES="$FEATURES,fuse=1"
+    FEATURES_ARRAY+=("fuse=1")
   fi
 
   # mount: allow specific filesystems (e.g., nfs, ext4, etc.)
@@ -2315,7 +2316,7 @@ build_container() {
   if [ -n "$ALLOW_MOUNT_FS" ]; then
     # Replace commas with semicolons for proper pct syntax
     ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
-    FEATURES="$FEATURES,mount=$ALLOW_MOUNT_FS_FORMATTED"
+    FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
   fi
 
   TEMP_DIR=$(mktemp -d)
@@ -2360,33 +2361,50 @@ build_container() {
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
-  # Build protection flag if enabled
-  _PROT_FLAG=""
-  if [ "$PROTECT_CT" == "yes" ]; then
-    _PROT_FLAG="-protection 1"
+  
+  # Build PCT_OPTIONS array (not string) for proper parameter handling
+  PCT_OPTIONS=()
+  
+  # Add features - each as separate -features parameter
+  for feature in "${FEATURES_ARRAY[@]}"; do
+    PCT_OPTIONS+=("-features" "$feature")
+  done
+  
+  PCT_OPTIONS+=("-hostname" "$HN")
+  PCT_OPTIONS+=("-tags" "$TAGS")
+  
+  if [ -n "$SD" ]; then
+    PCT_OPTIONS+=($SD)  # Storage device flags (already formatted)
   fi
-
-  # Build timezone flag if set
-  _TZ_FLAG=""
+  
+  if [ -n "$NS" ]; then
+    PCT_OPTIONS+=($NS)  # Nameserver flags (already formatted)
+  fi
+  
+  # Network configuration (single string with all network parameters)
+  PCT_OPTIONS+=($NET_STRING)
+  
+  PCT_OPTIONS+=("-onboot" "1")
+  PCT_OPTIONS+=("-cores" "$CORE_COUNT")
+  PCT_OPTIONS+=("-memory" "$RAM_SIZE")
+  PCT_OPTIONS+=("-unprivileged" "$CT_TYPE")
+  
+  # Protection flag
+  if [ "$PROTECT_CT" == "1" ]; then
+    PCT_OPTIONS+=("-protection" "1")
+  fi
+  
+  # Timezone flag
   if [ -n "$CT_TIMEZONE" ]; then
-    _TZ_FLAG="-timezone $CT_TIMEZONE"
+    PCT_OPTIONS+=("-timezone" "$CT_TIMEZONE")
   fi
-
-  export PCT_OPTIONS="
-  -features '$FEATURES'
-  -hostname $HN
-  -tags $TAGS
-  $SD
-  $NS
-  $NET_STRING
-  -onboot 1
-  -cores $CORE_COUNT
-  -memory $RAM_SIZE
-  -unprivileged $CT_TYPE
-  $_PROT_FLAG
-  $_TZ_FLAG
-  $PW
-"
+  
+  # Password flag (already formatted as "-password xxx")
+  if [ -n "$PW" ]; then
+    PCT_OPTIONS+=($PW)
+  fi
+  
+  export PCT_OPTIONS
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
   create_lxc_container || exit $?
@@ -3664,7 +3682,7 @@ create_lxc_container() {
             msg_error "Container creation failed. See $LOGFILE"
             if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
               set -x
-              bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
+              pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" 2>&1 | tee -a "$LOGFILE"
               set +x
             fi
             exit 209
@@ -3696,7 +3714,7 @@ create_lxc_container() {
           msg_error "Container creation failed. See $LOGFILE"
           if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
             set -x
-            bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
+            pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" 2>&1 | tee -a "$LOGFILE"
             set +x
           fi
           exit 209
@@ -3720,6 +3738,9 @@ create_lxc_container() {
   }
 
   msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
+  
+  # Report container creation start to API
+  post_start_to_api
 }
 
 # ==============================================================================
