@@ -224,11 +224,34 @@ error_handler() {
         echo -e "${YW}Log saved to:${CL} ${BL}${container_log}${CL}"
       fi
     else
-      # HOST CONTEXT: Show local log path
+      # HOST CONTEXT: Show local log path and offer container cleanup
       if declare -f msg_custom >/dev/null 2>&1; then
         msg_custom "📋" "${YW}" "Full log: ${active_log}"
       else
         echo -e "${YW}Full log:${CL} ${BL}${active_log}${CL}"
+      fi
+
+      # Offer to remove container if it exists (build errors after container creation)
+      if [[ -n "${CTID:-}" ]] && command -v pct &>/dev/null && pct status "$CTID" &>/dev/null; then
+        echo ""
+        echo -en "${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"
+        
+        if read -t 60 -r response; then
+          if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
+            echo -e "\n${YW}Removing container ${CTID}${CL}"
+            pct stop "$CTID" &>/dev/null || true
+            pct destroy "$CTID" &>/dev/null || true
+            echo -e "${GN}✔${CL} Container ${CTID} removed"
+          elif [[ "$response" =~ ^[Nn]$ ]]; then
+            echo -e "\n${YW}Container ${CTID} kept for debugging${CL}"
+          fi
+        else
+          # Timeout - auto-remove
+          echo -e "\n${YW}No response - auto-removing container${CL}"
+          pct stop "$CTID" &>/dev/null || true
+          pct destroy "$CTID" &>/dev/null || true
+          echo -e "${GN}✔${CL} Container ${CTID} removed"
+        fi
       fi
     fi
   fi
