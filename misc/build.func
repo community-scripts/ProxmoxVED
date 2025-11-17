@@ -542,6 +542,29 @@ base_settings() {
   PROTECT_CT=${var_protection:-"${1:-no}"}
   CT_TIMEZONE=${var_timezone:-""}
 
+  # Normalize feature flags to 0/1 immediately (pct requires numeric values, not yes/no)
+  # This must happen here before any usage of these variables
+  case "${ENABLE_NESTING,,}" in
+  yes | true) ENABLE_NESTING="1" ;;
+  no | false) ENABLE_NESTING="0" ;;
+  esac
+  case "${ENABLE_KEYCTL,,}" in
+  yes | true) ENABLE_KEYCTL="1" ;;
+  no | false) ENABLE_KEYCTL="0" ;;
+  esac
+  case "${ENABLE_MKNOD,,}" in
+  yes | true) ENABLE_MKNOD="1" ;;
+  no | false) ENABLE_MKNOD="0" ;;
+  esac
+  case "${ENABLE_FUSE,,}" in
+  yes | true) ENABLE_FUSE="1" ;;
+  no | false) ENABLE_FUSE="0" ;;
+  esac
+  case "${PROTECT_CT,,}" in
+  yes | true) PROTECT_CT="1" ;;
+  no | false) PROTECT_CT="0" ;;
+  esac
+
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
     var_os="debian"
@@ -2267,28 +2290,8 @@ build_container() {
   esac
 
   # Build FEATURES string with advanced settings
-  # Normalize ENABLE_NESTING to 0 or 1 (pct requires numeric values, not yes/no)
-  case "$ENABLE_NESTING" in
-  yes | 1 | true) ENABLE_NESTING="1" ;;
-  no | 0 | false) ENABLE_NESTING="0" ;;
-  *) ENABLE_NESTING="1" ;; # Default to enabled
-  esac
+  # Note: All feature flags are already normalized to 0/1 in default_settings()
 
-  # Normalize ENABLE_KEYCTL to 0 or 1
-  case "$ENABLE_KEYCTL" in
-  yes | 1 | true) ENABLE_KEYCTL="1" ;;
-  no | 0 | false) ENABLE_KEYCTL="0" ;;
-  *) ENABLE_KEYCTL="0" ;; # Default to disabled
-  esac
-
-  # Normalize ENABLE_MKNOD to 0 or 1
-  case "$ENABLE_MKNOD" in
-  yes | 1 | true) ENABLE_MKNOD="1" ;;
-  no | 0 | false) ENABLE_MKNOD="0" ;;
-  *) ENABLE_MKNOD="0" ;; # Default to disabled
-  esac
-
-  # Build FEATURES string
   FEATURES="nesting=${ENABLE_NESTING}"
 
   # keyctl: needed for Docker inside containers (systemd-networkd workaround)
@@ -2303,7 +2306,7 @@ build_container() {
   fi
 
   # FUSE: required for rclone, mergerfs, AppImage, etc.
-  if [ "$ENABLE_FUSE" == "yes" ]; then
+  if [ "$ENABLE_FUSE" == "1" ]; then
     FEATURES="$FEATURES,fuse=1"
   fi
 
@@ -3604,7 +3607,7 @@ create_lxc_container() {
     exit 211
   }
 
-  LOGFILE="/tmp/pct_create_${CTID}.log"
+  LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
   msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
   msg_debug "Logfile: $LOGFILE"
 
