@@ -1,12 +1,44 @@
 #!/usr/bin/env bash
 # ------------------------------------------------------------------------------
-# Error & Signal Handling for ProxmoxVED Scripts
+# ERROR HANDLER - ERROR & SIGNAL MANAGEMENT
 # ------------------------------------------------------------------------------
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # ------------------------------------------------------------------------------
+#
+# Provides comprehensive error handling and signal management for all scripts.
+# Includes:
+#   - Exit code explanations (shell, package managers, databases, custom codes)
+#   - Error handler with detailed logging
+#   - Signal handlers (EXIT, INT, TERM)
+#   - Initialization function for trap setup
+#
+# Usage:
+#   source <(curl -fsSL .../error_handler.func)
+#   catch_errors
+#
+# ------------------------------------------------------------------------------
 
+# ==============================================================================
+# SECTION 1: EXIT CODE EXPLANATIONS
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# explain_exit_code()
+#
+# - Maps numeric exit codes to human-readable error descriptions
+# - Supports:
+#   * Generic/Shell errors (1, 2, 126, 127, 128, 130, 137, 139, 143)
+#   * Package manager errors (APT, DPKG: 100, 101, 255)
+#   * Node.js/npm errors (243-249, 254)
+#   * Python/pip/uv errors (210-212)
+#   * PostgreSQL errors (231-234)
+#   * MySQL/MariaDB errors (241-244)
+#   * MongoDB errors (251-254)
+#   * Proxmox custom codes (200-231)
+# - Returns description string for given exit code
+# ------------------------------------------------------------------------------
 explain_exit_code() {
   local code="$1"
   case "$code" in
@@ -79,7 +111,26 @@ explain_exit_code() {
   esac
 }
 
-# === Error handler ============================================================
+# ==============================================================================
+# SECTION 2: ERROR HANDLERS
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# error_handler()
+#
+# - Main error handler triggered by ERR trap
+# - Arguments: exit_code, command, line_number
+# - Behavior:
+#   * Returns silently if exit_code is 0 (success)
+#   * Sources explain_exit_code() for detailed error description
+#   * Displays error message with:
+#     - Line number where error occurred
+#     - Exit code with explanation
+#     - Command that failed
+#   * Shows last 20 lines of SILENT_LOGFILE if available
+#   * Copies log to container /root for later inspection
+#   * Exits with original exit code
+# ------------------------------------------------------------------------------
 error_handler() {
   local exit_code=${1:-$?}
   local command=${2:-${BASH_COMMAND:-unknown}}
@@ -141,14 +192,31 @@ error_handler() {
   exit "$exit_code"
 }
 
-# === Exit handler =============================================================
+# ==============================================================================
+# SECTION 3: SIGNAL HANDLERS
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# on_exit()
+#
+# - EXIT trap handler
+# - Cleans up lock files if lockfile variable is set
+# - Exits with captured exit code
+# - Always runs on script termination (success or failure)
+# ------------------------------------------------------------------------------
 on_exit() {
   local exit_code=$?
   [[ -n "${lockfile:-}" && -e "$lockfile" ]] && rm -f "$lockfile"
   exit "$exit_code"
 }
 
-# === Signal handlers ==========================================================
+# ------------------------------------------------------------------------------
+# on_interrupt()
+#
+# - SIGINT (Ctrl+C) trap handler
+# - Displays "Interrupted by user" message
+# - Exits with code 130 (128 + SIGINT=2)
+# ------------------------------------------------------------------------------
 on_interrupt() {
   if declare -f msg_error >/dev/null 2>&1; then
     msg_error "Interrupted by user (SIGINT)"
@@ -158,6 +226,14 @@ on_interrupt() {
   exit 130
 }
 
+# ------------------------------------------------------------------------------
+# on_terminate()
+#
+# - SIGTERM trap handler
+# - Displays "Terminated by signal" message
+# - Exits with code 143 (128 + SIGTERM=15)
+# - Triggered by external process termination
+# ------------------------------------------------------------------------------
 on_terminate() {
   if declare -f msg_error >/dev/null 2>&1; then
     msg_error "Terminated by signal (SIGTERM)"
@@ -167,7 +243,25 @@ on_terminate() {
   exit 143
 }
 
-# === Init traps ===============================================================
+# ==============================================================================
+# SECTION 4: INITIALIZATION
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# catch_errors()
+#
+# - Initializes error handling and signal traps
+# - Enables strict error handling:
+#   * set -Ee: Exit on error, inherit ERR trap in functions
+#   * set -o pipefail: Pipeline fails if any command fails
+#   * set -u: (optional) Exit on undefined variable (if STRICT_UNSET=1)
+# - Sets up traps:
+#   * ERR → error_handler
+#   * EXIT → on_exit
+#   * INT → on_interrupt
+#   * TERM → on_terminate
+# - Call this function early in every script
+# ------------------------------------------------------------------------------
 catch_errors() {
   set -Ee -o pipefail
   if [ "${STRICT_UNSET:-0}" = "1" ]; then
