@@ -2610,11 +2610,21 @@ MOTD_SETUP
     msg_ok "[DEV] MOTD/SSH ready - container accessible"
   fi
 
-  # Run application installer (disable ERR trap to handle errors manually)
-  set +e
+  # Run application installer
+  # NOTE: We disable error handling here because:
+  # 1. Container errors are caught by error_handler INSIDE container
+  # 2. Container creates flag file with exit code
+  # 3. We read flag file and handle cleanup manually below
+  # 4. We DON'T want host error_handler to fire for lxc-attach command itself
+
+  set +Eeuo pipefail # Disable ALL error handling temporarily
+  trap - ERR         # Remove ERR trap completely
+
   lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
   local lxc_exit=$?
-  set -e
+
+  set -Eeuo pipefail       # Re-enable error handling
+  trap 'error_handler' ERR # Restore ERR trap
 
   # Check for error flag file in container (more reliable than lxc-attach exit code)
   local install_exit_code=0
