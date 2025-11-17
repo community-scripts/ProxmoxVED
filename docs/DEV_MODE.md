@@ -22,14 +22,17 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/Proxmo
 ## Available Modes
 
 ### 1. **motd** - Early SSH/MOTD Setup
+
 Sets up SSH access and MOTD **before** the main application installation.
 
-**Use Case**: 
+**Use Case**:
+
 - Quick access to container for manual debugging
 - Continue installation manually if something goes wrong
 - Verify container networking before main install
 
 **Behavior**:
+
 ```
 ✔ Container created
 ✔ Network configured
@@ -43,21 +46,24 @@ Sets up SSH access and MOTD **before** the main application installation.
 ---
 
 ### 2. **keep** - Preserve Container on Failure
+
 Never delete the container when installation fails. Skips cleanup prompt.
 
 **Use Case**:
+
 - Repeated tests of the same installation
 - Debugging failed installations
 - Manual fix attempts
 
 **Behavior**:
+
 ```
 ✖ Installation failed in container 107 (exit code: 1)
 ✔ Container creation log: /tmp/create-lxc-107-abc12345.log
 ✔ Installation log: /tmp/install-lxc-107-abc12345.log
 
 🔧 [DEV] Keep mode active - container 107 preserved
-root@proxmox:~# 
+root@proxmox:~#
 ```
 
 **Container remains**: `pct enter 107` to access and debug
@@ -67,14 +73,17 @@ root@proxmox:~#
 ---
 
 ### 3. **trace** - Bash Command Tracing
+
 Enables `set -x` for complete command-line tracing. Shows every command before execution.
 
 **Use Case**:
+
 - Deep debugging of installation logic
 - Understanding script flow
 - Identifying where errors occur exactly
 
 **Behavior**:
+
 ```
 +(/opt/wallabag/bin/console): /opt/wallabag/bin/console cache:warmup
 +(/opt/wallabag/bin/console): env APP_ENV=prod /opt/wallabag/bin/console cache:warmup
@@ -91,14 +100,17 @@ Enables `set -x` for complete command-line tracing. Shows every command before e
 ---
 
 ### 4. **pause** - Step-by-Step Execution
+
 Pauses after each major step (`msg_info`). Requires manual Enter press to continue.
 
 **Use Case**:
+
 - Inspect container state between steps
 - Understand what each step does
 - Identify which step causes problems
 
 **Behavior**:
+
 ```
 ⏳ Setting up Container OS
 [PAUSE] Press Enter to continue...
@@ -109,6 +121,7 @@ Pauses after each major step (`msg_info`). Requires manual Enter press to contin
 ```
 
 **Between pauses**: You can open another terminal and inspect the container
+
 ```bash
 # In another terminal while paused
 pct enter 107
@@ -121,14 +134,17 @@ root@container:~# ps aux # Check running processes
 ---
 
 ### 5. **breakpoint** - Interactive Shell on Error
+
 Opens interactive shell inside the container when an error occurs instead of cleanup prompt.
 
 **Use Case**:
+
 - Live debugging in the actual container
 - Manual command testing
 - Inspect container state at point of failure
 
 **Behavior**:
+
 ```
 ✖ Installation failed in container 107 (exit code: 1)
 ✔ Container creation log: /tmp/create-lxc-107-abc12345.log
@@ -136,7 +152,7 @@ Opens interactive shell inside the container when an error occurs instead of cle
 
 🐛 [DEV] Breakpoint mode - opening shell in container 107
 Type 'exit' to return to host
-root@wallabag:~# 
+root@wallabag:~#
 
 # Now you can debug:
 root@wallabag:~# tail -f /root/.install-abc12345.log
@@ -153,15 +169,18 @@ Container 107 still running. Remove now? (y/N): n
 ---
 
 ### 6. **logs** - Persistent Logging
+
 Saves all logs to `/var/log/community-scripts/` with timestamps. Logs persist even on successful installation.
 
 **Use Case**:
+
 - Post-mortem analysis
 - Performance analysis
 - Automated testing with log collection
 - CI/CD integration
 
 **Behavior**:
+
 ```
 Logs location: /var/log/community-scripts/
 
@@ -170,6 +189,7 @@ install-abc12345-20251117_143022.log       (container-side installation)
 ```
 
 **Access logs**:
+
 ```bash
 # View creation log
 tail -f /var/log/community-scripts/create-lxc-*.log
@@ -182,6 +202,7 @@ grep "msg_info\|msg_ok" /var/log/community-scripts/create-*.log
 ```
 
 **With trace mode**: Creates detailed trace of all commands
+
 ```bash
 grep "^+" /var/log/community-scripts/install-*.log
 ```
@@ -191,15 +212,18 @@ grep "^+" /var/log/community-scripts/install-*.log
 ---
 
 ### 7. **dryrun** - Simulation Mode
+
 Shows all commands that would be executed without actually running them.
 
 **Use Case**:
+
 - Test script logic without making changes
 - Verify command syntax
 - Understand what will happen
 - Pre-flight checks
 
 **Behavior**:
+
 ```
 [DRYRUN] apt-get update
 [DRYRUN] apt-get install -y curl
@@ -217,6 +241,7 @@ Shows all commands that would be executed without actually running them.
 ## Mode Combinations
 
 ### Development Workflow
+
 ```bash
 # First test: See what would happen
 export dev_mode="dryrun,logs"
@@ -232,6 +257,7 @@ bash -c "$(curl ...)"
 ```
 
 ### CI/CD Integration
+
 ```bash
 # Automated testing with full logging
 export dev_mode="logs"
@@ -243,6 +269,7 @@ tar czf installation-logs-$(date +%s).tar.gz /var/log/community-scripts/
 ```
 
 ### Production-like Testing
+
 ```bash
 # Keep containers for manual verification
 export dev_mode="keep,logs"
@@ -256,6 +283,7 @@ pct enter 100
 ```
 
 ### Live Debugging
+
 ```bash
 # SSH in early, step through installation, debug on error
 export dev_mode="motd,pause,breakpoint,keep"
@@ -267,15 +295,18 @@ bash -c "$(curl ...)"
 ## Environment Variables Reference
 
 ### Dev Mode Variables
+
 - `dev_mode` (string): Comma-separated list of modes
   - Format: `"motd,keep,trace"`
   - Default: Empty (no dev modes)
 
 ### Output Control
+
 - `var_verbose="yes"`: Show all command output (disables silent mode)
   - Pairs well with: `trace`, `pause`, `logs`
 
 ### Examples with vars
+
 ```bash
 # Maximum verbosity and debugging
 export var_verbose="yes"
@@ -297,6 +328,7 @@ bash -c "$(curl ...)"
 ## Troubleshooting with Dev Mode
 
 ### "Installation failed at step X"
+
 ```bash
 export dev_mode="pause,logs"
 # Step through until the failure point
@@ -305,6 +337,7 @@ pct enter 107
 ```
 
 ### "Password/credentials not working"
+
 ```bash
 export dev_mode="motd,keep,trace"
 # With trace mode, see exact password handling (be careful with logs!)
@@ -313,6 +346,7 @@ ssh root@container-ip
 ```
 
 ### "Permission denied errors"
+
 ```bash
 export dev_mode="breakpoint,keep"
 # Get shell at failure point
@@ -322,6 +356,7 @@ whoami
 ```
 
 ### "Networking issues"
+
 ```bash
 export dev_mode="motd"
 # SSH in with motd mode before main install
@@ -331,6 +366,7 @@ nslookup example.com
 ```
 
 ### "Need to manually complete installation"
+
 ```bash
 export dev_mode="motd,keep"
 # Container accessible via SSH while installation runs
@@ -346,14 +382,17 @@ exit
 ## Log Files Locations
 
 ### Default (without `logs` mode)
+
 - Host creation: `/tmp/create-lxc-<SESSION_ID>.log`
 - Container install: Copied to `/tmp/install-lxc-<CTID>-<SESSION_ID>.log` on failure
 
 ### With `logs` mode
+
 - Host creation: `/var/log/community-scripts/create-lxc-<SESSION_ID>-<TIMESTAMP>.log`
 - Container install: `/var/log/community-scripts/install-<SESSION_ID>-<TIMESTAMP>.log`
 
 ### View logs
+
 ```bash
 # Tail in real-time
 tail -f /var/log/community-scripts/*.log
@@ -370,6 +409,7 @@ grep "ed563b19" /var/log/community-scripts/*.log
 ## Best Practices
 
 ### ✅ DO
+
 - Use `logs` mode for CI/CD and automated testing
 - Use `motd` for early SSH access during long installations
 - Use `pause` when learning the installation flow
@@ -378,6 +418,7 @@ grep "ed563b19" /var/log/community-scripts/*.log
 - Archive logs after successful tests
 
 ### ❌ DON'T
+
 - Use `trace` in production or with untrusted networks (exposes secrets)
 - Leave `keep` mode enabled for unattended scripts (containers accumulate)
 - Use `dryrun` and expect actual changes
@@ -389,6 +430,7 @@ grep "ed563b19" /var/log/community-scripts/*.log
 ## Examples
 
 ### Example 1: Debug a Failed Installation
+
 ```bash
 # Initial test to see the failure
 export dev_mode="keep,logs"
@@ -409,6 +451,7 @@ bash -c "$(curl ...)"
 ```
 
 ### Example 2: Verify Installation Steps
+
 ```bash
 export dev_mode="pause,logs"
 export var_verbose="yes"
@@ -421,6 +464,7 @@ bash -c "$(curl ...)"
 ```
 
 ### Example 3: CI/CD Pipeline Integration
+
 ```bash
 #!/bin/bash
 export dev_mode="logs"
@@ -445,6 +489,7 @@ tar czf all-logs.tar.gz /var/log/community-scripts/
 ## Advanced Usage
 
 ### Custom Log Analysis
+
 ```bash
 # Extract all errors
 grep "ERROR\|exit code [1-9]" /var/log/community-scripts/*.log
@@ -457,6 +502,7 @@ grep "free\|available" /var/log/community-scripts/*.log
 ```
 
 ### Integration with External Tools
+
 ```bash
 # Send logs to Elasticsearch
 curl -X POST "localhost:9200/installation-logs/_doc" \
@@ -474,6 +520,7 @@ gpg --encrypt installation-records-*.tar.gz
 ## Support & Issues
 
 When reporting installation issues, always include:
+
 ```bash
 # Collect all relevant information
 export dev_mode="logs"
