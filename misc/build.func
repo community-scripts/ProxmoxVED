@@ -2267,7 +2267,28 @@ build_container() {
   esac
 
   # Build FEATURES string with advanced settings
-  # Start with nesting (almost always enabled for Proxmox CTs)
+  # Normalize ENABLE_NESTING to 0 or 1 (pct requires numeric values, not yes/no)
+  case "$ENABLE_NESTING" in
+  yes | 1 | true) ENABLE_NESTING="1" ;;
+  no | 0 | false) ENABLE_NESTING="0" ;;
+  *) ENABLE_NESTING="1" ;; # Default to enabled
+  esac
+
+  # Normalize ENABLE_KEYCTL to 0 or 1
+  case "$ENABLE_KEYCTL" in
+  yes | 1 | true) ENABLE_KEYCTL="1" ;;
+  no | 0 | false) ENABLE_KEYCTL="0" ;;
+  *) ENABLE_KEYCTL="0" ;; # Default to disabled
+  esac
+
+  # Normalize ENABLE_MKNOD to 0 or 1
+  case "$ENABLE_MKNOD" in
+  yes | 1 | true) ENABLE_MKNOD="1" ;;
+  no | 0 | false) ENABLE_MKNOD="0" ;;
+  *) ENABLE_MKNOD="0" ;; # Default to disabled
+  esac
+
+  # Build FEATURES string
   FEATURES="nesting=${ENABLE_NESTING}"
 
   # keyctl: needed for Docker inside containers (systemd-networkd workaround)
