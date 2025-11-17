@@ -17,13 +17,9 @@ msg_info "Installing Upgopher"
 mkdir -p /opt/upgopher
 fetch_and_deploy_gh_release "upgopher" "wanetty/upgopher" "prebuild" "latest" "/opt/upgopher" "upgopher_*_linux_amd64.tar.gz"
 chmod +x /opt/upgopher/upgopher
+mkdir -p /opt/upgopher/uploads
 msg_ok "Installed Upgopher"
 
-msg_info "Configuring Upgopher"
-UPGOPHER_PORT="9090"
-UPGOPHER_DIR="/opt/upgopher/uploads"
-mkdir -p "$UPGOPHER_DIR"
-msg_ok "Configured Upgopher (default settings: no auth, HTTP, port 9090)"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/upgopher.service
@@ -36,7 +32,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/upgopher
-ExecStart=/opt/upgopher/upgopher -port $UPGOPHER_PORT -dir "$UPGOPHER_DIR"
+ExecStart=/opt/upgopher/upgopher -port 9090 -dir /opt/upgopher/uploads
 Restart=always
 RestartSec=5
 
