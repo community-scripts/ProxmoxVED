@@ -2361,49 +2361,49 @@ build_container() {
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
-  
+
   # Build PCT_OPTIONS array (not string) for proper parameter handling
   PCT_OPTIONS=()
-  
+
   # Add features - each as separate -features parameter
   for feature in "${FEATURES_ARRAY[@]}"; do
     PCT_OPTIONS+=("-features" "$feature")
   done
-  
+
   PCT_OPTIONS+=("-hostname" "$HN")
   PCT_OPTIONS+=("-tags" "$TAGS")
-  
+
   if [ -n "$SD" ]; then
-    PCT_OPTIONS+=($SD)  # Storage device flags (already formatted)
+    PCT_OPTIONS+=($SD) # Storage device flags (already formatted)
   fi
-  
+
   if [ -n "$NS" ]; then
-    PCT_OPTIONS+=($NS)  # Nameserver flags (already formatted)
+    PCT_OPTIONS+=($NS) # Nameserver flags (already formatted)
   fi
-  
+
   # Network configuration (single string with all network parameters)
   PCT_OPTIONS+=($NET_STRING)
-  
+
   PCT_OPTIONS+=("-onboot" "1")
   PCT_OPTIONS+=("-cores" "$CORE_COUNT")
   PCT_OPTIONS+=("-memory" "$RAM_SIZE")
   PCT_OPTIONS+=("-unprivileged" "$CT_TYPE")
-  
+
   # Protection flag
   if [ "$PROTECT_CT" == "1" ]; then
     PCT_OPTIONS+=("-protection" "1")
   fi
-  
+
   # Timezone flag
   if [ -n "$CT_TIMEZONE" ]; then
     PCT_OPTIONS+=("-timezone" "$CT_TIMEZONE")
   fi
-  
+
   # Password flag (already formatted as "-password xxx")
   if [ -n "$PW" ]; then
     PCT_OPTIONS+=($PW)
   fi
-  
+
   export PCT_OPTIONS
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
@@ -3738,9 +3738,9 @@ create_lxc_container() {
   }
 
   msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
-  
-  # Report container creation start to API
-  post_start_to_api
+
+  # Report container creation to API
+  post_to_api
 }
 
 # ==============================================================================
