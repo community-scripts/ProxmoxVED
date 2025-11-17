@@ -1,23 +1,42 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: tteck (tteckster) | MickLesk | michelroegl-brunner
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
 # Revision: 1
 
 # ==============================================================================
-# SECTION 1: CORE INITIALIZATION & VARIABLES
+# BUILD.FUNC - LXC CONTAINER BUILD & CONFIGURATION
+# ==============================================================================
+#
+# This file provides the main build functions for creating and configuring
+# LXC containers in Proxmox VE. It handles:
+#
+#   - Variable initialization and defaults
+#   - Container creation and resource allocation
+#   - Storage selection and management
+#   - Advanced configuration and customization
+#   - User interaction menus and prompts
+#
+# Usage:
+#   - Sourced automatically by CT creation scripts
+#   - Requires core.func and error_handler.func to be loaded first
+#
+# ==============================================================================
+
+# ==============================================================================
+# SECTION 1: INITIALIZATION & CORE VARIABLES
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
 # variables()
 #
-# - Normalize application name (NSAPP = lowercase, no spaces)
-# - Build installer filename (var_install)
-# - Define regex for integer validation
-# - Fetch hostname of Proxmox node
-# - Set default values for diagnostics/method
-# - Generate random UUID for tracking
-# - Get Proxmox VE version and kernel version
+# - Initializes core variables for container creation
+# - Normalizes application name (NSAPP = lowercase, no spaces)
+# - Builds installer filename (var_install)
+# - Defines regex patterns for validation
+# - Fetches Proxmox hostname and version
+# - Generates unique session ID for tracking and logging
+# - Captures app-declared resource defaults (CPU, RAM, Disk)
 # ------------------------------------------------------------------------------
 variables() {
   NSAPP=$(echo "${APP,,}" | tr -d ' ')              # This function sets the NSAPP variable by converting the value of the APP variable to lowercase and removing any spaces.
@@ -171,6 +190,10 @@ elif command -v wget >/dev/null 2>&1; then
   #echo "(build.func) Loaded core.func via wget"
 fi
 
+# ==============================================================================
+# SECTION 2: PRE-FLIGHT CHECKS & SYSTEM VALIDATION
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # maxkeys_check()
 #
@@ -224,12 +247,17 @@ maxkeys_check() {
   # Silent success - only show errors if they exist
 }
 
+# ==============================================================================
+# SECTION 3: CONTAINER SETUP UTILITIES
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # get_current_ip()
 #
 # - Returns current container IP depending on OS type
 # - Debian/Ubuntu: uses `hostname -I`
 # - Alpine: parses eth0 via `ip -4 addr`
+# - Returns "Unknown" if OS type cannot be determined
 # ------------------------------------------------------------------------------
 get_current_ip() {
   if [ -f /etc/os-release ]; then
@@ -356,7 +384,17 @@ find_host_ssh_keys() {
   )
 }
 
-# ===== Unified storage selection & writing to vars files =====
+# ==============================================================================
+# SECTION 4: STORAGE & RESOURCE MANAGEMENT
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# _write_storage_to_vars()
+#
+# - Writes storage selection to vars file
+# - Removes old entries (commented and uncommented) to avoid duplicates
+# - Arguments: vars_file, key (var_container_storage/var_template_storage), value
+# ------------------------------------------------------------------------------
 _write_storage_to_vars() {
   # $1 = vars_file, $2 = key (var_container_storage / var_template_storage), $3 = value
   local vf="$1" key="$2" val="$3"
@@ -407,6 +445,10 @@ choose_and_set_storage_for_file() {
   # Silent operation - no output message
 }
 
+# ==============================================================================
+# SECTION 5: CONFIGURATION & DEFAULTS MANAGEMENT
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # base_settings()
 #
@@ -414,6 +456,7 @@ choose_and_set_storage_for_file() {
 # - Reads from environment variables (var_*)
 # - Provides fallback defaults for OS type/version
 # - App-specific values take precedence when they are HIGHER (for CPU, RAM, DISK)
+# - Sets up container type, resources, network, SSH, features, and tags
 # ------------------------------------------------------------------------------
 base_settings() {
   # Default Settings
@@ -1014,13 +1057,27 @@ ensure_global_default_vars_file() {
   echo "$vars_path"
 }
 
+# ==============================================================================
+# SECTION 6: ADVANCED INTERACTIVE CONFIGURATION
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # advanced_settings()
 #
-# - Interactive whiptail menu for advanced configuration
-# - Lets user set container type, password, CT ID, hostname, disk, CPU, RAM
-# - Supports IPv4/IPv6, DNS, MAC, VLAN, tags, SSH keys, FUSE, verbose mode
-# - Ends with confirmation or re-entry if cancelled
+# - Interactive whiptail menu for comprehensive container configuration
+# - Allows user to customize:
+#   * Container type (privileged/unprivileged)
+#   * Root password
+#   * Container ID (CTID)
+#   * Hostname
+#   * Resources (disk size, CPU cores, RAM)
+#   * Network (IPv4/IPv6, gateway, DNS, MAC, VLAN, MTU)
+#   * SSH settings and key injection
+#   * Advanced features (FUSE, TUN, keyctl)
+#   * Tags for organization
+#   * Verbose/debug mode
+# - Loops until user confirms or cancels
+# - Validates all input and shows current selections
 # ------------------------------------------------------------------------------
 advanced_settings() {
   whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar." 8 58
@@ -1487,10 +1544,19 @@ advanced_settings() {
   fi
 }
 
+# ==============================================================================
+# SECTION 7: USER INTERFACE & DIAGNOSTICS
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # diagnostics_check()
 #
 # - Ensures diagnostics config file exists at /usr/local/community-scripts/diagnostics
+# - Creates file if missing with default DIAGNOSTICS=yes
+# - Reads current diagnostics setting from file
+# - Sets global DIAGNOSTICS variable for API telemetry opt-in/out
+# ------------------------------------------------------------------------------
+diagnostics_check() {
 # - Asks user whether to send anonymous diagnostic data
 # - Saves DIAGNOSTICS=yes/no in the config file
 # ------------------------------------------------------------------------------
@@ -2054,13 +2120,22 @@ start() {
   fi
 }
 
+# ==============================================================================
+# SECTION 8: CONTAINER CREATION & DEPLOYMENT
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # build_container()
 #
-# - Creates and configures the LXC container
-# - Builds network string and applies features (FUSE, TUN, VAAPI passthrough)
+# - Main function for creating and configuring LXC container
+# - Builds network configuration string (IP, gateway, VLAN, MTU, MAC, IPv6)
+# - Creates container via pct create with all specified settings
+# - Applies features: FUSE, TUN, keyctl, VAAPI passthrough
 # - Starts container and waits for network connectivity
-# - Installs base packages, SSH keys, and runs <app>-install.sh
+# - Installs base packages (curl, sudo, etc.)
+# - Injects SSH keys if configured
+# - Executes <app>-install.sh inside container
+# - Posts installation telemetry to API if diagnostics enabled
 # ------------------------------------------------------------------------------
 build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
@@ -3389,12 +3464,21 @@ create_lxc_container() {
   msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
 }
 
+# ==============================================================================
+# SECTION 9: POST-INSTALLATION & FINALIZATION
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # description()
 #
-# - Sets container description with HTML content (logo, links, badges)
-# - Restarts ping-instances.service if present
-# - Posts status "done" to API
+# - Sets container description with formatted HTML content
+# - Includes:
+#   * Community-Scripts logo
+#   * Application name
+#   * Links to GitHub, Discussions, Issues
+#   * Ko-fi donation badge
+# - Restarts ping-instances.service if present (monitoring)
+# - Posts final "done" status to API telemetry
 # ------------------------------------------------------------------------------
 description() {
   IP=$(pct exec "$CTID" ip a s dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
@@ -3439,31 +3523,23 @@ EOF
   post_update_to_api "done" "none"
 }
 
+# ==============================================================================
+# SECTION 10: ERROR HANDLING & EXIT TRAPS
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # api_exit_script()
 #
-# - Exit trap handler
-# - Reports exit codes to API with detailed reason
-# - Handles known codes (100–209) and maps them to errors
+# - Exit trap handler for reporting to API telemetry
+# - Captures exit code and reports to API using centralized error descriptions
+# - Uses explain_exit_code() from error_handler.func for consistent error messages
+# - Posts failure status with exit code to API (error description added automatically)
+# - Only executes on non-zero exit codes
 # ------------------------------------------------------------------------------
 api_exit_script() {
   exit_code=$?
   if [ $exit_code -ne 0 ]; then
-    case $exit_code in
-    100) post_update_to_api "failed" "100: Unexpected error in create_lxc.sh" ;;
-    101) post_update_to_api "failed" "101: No network connection detected in create_lxc.sh" ;;
-    200) post_update_to_api "failed" "200: LXC creation failed in create_lxc.sh" ;;
-    201) post_update_to_api "failed" "201: Invalid Storage class in create_lxc.sh" ;;
-    202) post_update_to_api "failed" "202: User aborted menu in create_lxc.sh" ;;
-    203) post_update_to_api "failed" "203: CTID not set in create_lxc.sh" ;;
-    204) post_update_to_api "failed" "204: PCT_OSTYPE not set in create_lxc.sh" ;;
-    205) post_update_to_api "failed" "205: CTID cannot be less than 100 in create_lxc.sh" ;;
-    206) post_update_to_api "failed" "206: CTID already in use in create_lxc.sh" ;;
-    207) post_update_to_api "failed" "207: Template not found in create_lxc.sh" ;;
-    208) post_update_to_api "failed" "208: Error downloading template in create_lxc.sh" ;;
-    209) post_update_to_api "failed" "209: Container creation failed, but template is intact in create_lxc.sh" ;;
-    *) post_update_to_api "failed" "Unknown error, exit code: $exit_code in create_lxc.sh" ;;
-    esac
+    post_update_to_api "failed" "$exit_code"
   fi
 }
 
