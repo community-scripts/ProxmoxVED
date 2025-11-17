@@ -3702,17 +3702,6 @@ create_lxc_container() {
 # - Posts final "done" status to API telemetry
 # ------------------------------------------------------------------------------
 description() {
-  # Dev mode: Setup MOTD/SSH on successful installation
-  if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
-    msg_dev "Setting up MOTD and SSH for debugging access"
-    if pct exec "$CTID" -- bash -c "
-      source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
-      declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
-    " >/dev/null 2>&1; then
-      msg_dev "MOTD/SSH configured successfully"
-    fi
-  fi
-
   IP=$(pct exec "$CTID" ip a s dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
 
   # Generate LXC Description
