@@ -235,7 +235,7 @@ error_handler() {
       if [[ -n "${CTID:-}" ]] && command -v pct &>/dev/null && pct status "$CTID" &>/dev/null; then
         echo ""
         echo -en "${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"
-        
+
         if read -t 60 -r response; then
           if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
             echo -e "\n${YW}Removing container ${CTID}${CL}"
