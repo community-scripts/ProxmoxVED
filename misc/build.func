@@ -2585,7 +2585,7 @@ EOF
       for dev in "${devices[@]}"; do
         # Add to config using pct set (will be visible in GUI)
         echo "dev${dev_index}: ${dev},gid=44" >>"$LXC_CONFIG"
-        ((dev_index++))
+        dev_index=$((dev_index + 1))
       done
 
       export GPU_TYPE="$selected_gpu"
@@ -2602,7 +2602,7 @@ EOF
       local dev_index=0
       for dev in "${NVIDIA_DEVICES[@]}"; do
         echo "dev${dev_index}: ${dev},gid=44" >>"$LXC_CONFIG"
-        ((dev_index++))
+        dev_index=$((dev_index + 1))
       done
 
       export GPU_TYPE="NVIDIA"
