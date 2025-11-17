@@ -2578,12 +2578,39 @@ EOF'
 
   # Run application installer
   if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
-    local exit_code=$?
-    # Try to copy installation log from container before exiting
+    local install_exit_code=$?
+    msg_error "Installation failed in container ${CTID} (exit code: ${install_exit_code})"
+
+    # Try to copy installation log from container before cleanup prompt
     if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
       pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-${SESSION_ID}.log" 2>/dev/null || true
+      msg_info "Installation log copied to /tmp/install-${SESSION_ID}.log"
     fi
-    exit $exit_code
+
+    # Prompt user for cleanup with 60s timeout
+    local response
+    echo -en "${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"
+
+    if read -t 60 -r response; then
+      if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
+        # Remove container
+        msg_info "Removing container ${CTID}"
+        pct stop "$CTID" &>/dev/null || true
+        pct destroy "$CTID" &>/dev/null || true
+        msg_ok "Container ${CTID} removed"
+      elif [[ "$response" =~ ^[Nn]$ ]]; then
+        msg_info "Container ${CTID} kept for debugging"
+      fi
+    else
+      # Timeout - auto-remove
+      echo -e "\n${YW}No response - auto-removing container${CL}"
+      msg_info "Removing container ${CTID}"
+      pct stop "$CTID" &>/dev/null || true
+      pct destroy "$CTID" &>/dev/null || true
+      msg_ok "Container ${CTID} removed"
+    fi
+
+    exit $install_exit_code
   fi
 }
 
