@@ -1552,14 +1552,11 @@ advanced_settings() {
 # diagnostics_check()
 #
 # - Ensures diagnostics config file exists at /usr/local/community-scripts/diagnostics
-<<<<<<< Updated upstream
 # - Asks user whether to send anonymous diagnostic data
 # - Saves DIAGNOSTICS=yes/no in the config file
-=======
 # - Creates file if missing with default DIAGNOSTICS=yes
 # - Reads current diagnostics setting from file
 # - Sets global DIAGNOSTICS variable for API telemetry opt-in/out
->>>>>>> Stashed changes
 # ------------------------------------------------------------------------------
 diagnostics_check() {
   if ! [ -d "/usr/local/community-scripts" ]; then
