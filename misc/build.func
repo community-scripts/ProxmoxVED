@@ -2746,21 +2746,6 @@ EOF'
   # Install SSH keys
   install_ssh_keys_into_ct
 
-  # Dev mode: Setup MOTD/SSH AFTER network is ready and before installation
-  # This ensures the container is fully booted and accessible via SSH
-  if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
-    msg_dev "Setting up MOTD and SSH for debugging access"
-    # Load common install functions and run motd_ssh if available
-    if pct exec "$CTID" -- bash -c "
-      source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
-      declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
-    " >/dev/null 2>&1; then
-      msg_dev "MOTD/SSH ready - container accessible via SSH (IP: $ip_in_lxc)"
-    else
-      msg_warn "MOTD/SSH setup failed, but continuing with installation"
-    fi
-  fi
-
   # Run application installer
   # NOTE: We disable error handling here because:
   # 1. Container errors are caught by error_handler INSIDE container
@@ -2850,6 +2835,18 @@ EOF'
         echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
       elif [[ "$response" =~ ^[Nn]$ ]]; then
         echo -e "\n${TAB}${YW}Container ${CTID} kept for debugging${CL}"
+
+        # Dev mode: Setup MOTD/SSH for debugging access to broken container
+        if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
+          echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
+          if pct exec "$CTID" -- bash -c "
+            source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
+            declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
+          " >/dev/null 2>&1; then
+            local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
+            echo -e "${BFR}${CM}${GN}MOTD/SSH ready - SSH into container: ssh root@${ct_ip}${CL}"
+          fi
+        fi
       fi
     else
       # Timeout - auto-remove
@@ -3760,6 +3757,17 @@ create_lxc_container() {
 # - Posts final "done" status to API telemetry
 # ------------------------------------------------------------------------------
 description() {
+  # Dev mode: Setup MOTD/SSH on successful installation
+  if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
+    msg_dev "Setting up MOTD and SSH for debugging access"
+    if pct exec "$CTID" -- bash -c "
+      source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
+      declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
+    " >/dev/null 2>&1; then
+      msg_dev "MOTD/SSH configured successfully"
+    fi
+  fi
+
   IP=$(pct exec "$CTID" ip a s dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
 
   # Generate LXC Description

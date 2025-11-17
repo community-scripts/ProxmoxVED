@@ -834,8 +834,9 @@ cleanup_lxc() {
   if command -v composer &>/dev/null; then $STD composer clear-cache || true; fi
 
   if command -v journalctl &>/dev/null; then
-    $STD journalctl --rotate || true
-    $STD journalctl --vacuum-time=10m || true
+    # Journal rotation may fail if systemd-journald not fully initialized yet
+    journalctl --rotate 2>/dev/null || true
+    journalctl --vacuum-time=10m 2>/dev/null || true
   fi
   msg_ok "Cleaned"
 }
