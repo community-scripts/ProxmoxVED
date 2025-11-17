@@ -280,6 +280,9 @@ post_update_to_api() {
         return
     fi
 
+    # Initialize flag if not set (prevents 'unbound variable' error with set -u)
+    POST_UPDATE_DONE=${POST_UPDATE_DONE:-false}
+
     if [ "$POST_UPDATE_DONE" = true ]; then
         return 0
     fi
