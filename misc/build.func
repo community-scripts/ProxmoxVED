@@ -2704,9 +2704,10 @@ EOF'
   # Install SSH keys
   install_ssh_keys_into_ct
 
-  # Dev mode: Setup MOTD/SSH before installation for debugging
+  # Dev mode: Setup MOTD/SSH AFTER network is ready and before installation
+  # This ensures the container is fully booted and accessible via SSH
   if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
-    msg_info "[DEV] Setting up MOTD and SSH before installation"
+    msg_dev "Setting up MOTD and SSH for debugging access"
     pct exec "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)" <<'MOTD_SETUP'
       # Only run motd_ssh function if it exists
       if declare -f motd_ssh >/dev/null 2>&1; then
@@ -2715,7 +2716,7 @@ EOF'
         msg_warn "motd_ssh function not found in ${var_install}.sh"
       fi
 MOTD_SETUP
-    msg_ok "[DEV] MOTD/SSH ready - container accessible"
+    msg_dev "MOTD/SSH ready - container accessible via SSH (IP: $ip_in_lxc)"
   fi
 
   # Run application installer
@@ -2776,10 +2777,10 @@ MOTD_SETUP
 
     # Dev mode: Keep container or open breakpoint shell
     if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
-      msg_custom "🔧" "${YWB}" "[DEV] Keep mode active - container ${CTID} preserved"
+      msg_dev "Keep mode active - container ${CTID} preserved"
       return 0
     elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
-      msg_custom "🐛" "${RD}" "[DEV] Breakpoint mode - opening shell in container ${CTID}"
+      msg_dev "Breakpoint mode - opening shell in container ${CTID}"
       echo -e "${YW}Type 'exit' to return to host${CL}"
       pct enter "$CTID"
       echo ""
@@ -2789,7 +2790,7 @@ MOTD_SETUP
         pct destroy "$CTID" &>/dev/null || true
         msg_ok "Container ${CTID} removed"
       else
-        msg_custom "🔧" "${YW}" "Container ${CTID} kept for debugging"
+        msg_dev "Container ${CTID} kept for debugging"
       fi
       exit $install_exit_code
     fi

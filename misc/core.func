@@ -633,7 +633,19 @@ msg_debug() {
 }
 
 # ------------------------------------------------------------------------------
-# fatal()
+# msg_dev()
+#
+# - Display development mode messages with 🔧 icon
+# - Only shown when dev_mode is active
+# - Useful for debugging and development-specific output
+# - Format: [DEV] message with distinct formatting
+# - Usage: msg_dev "Container ready for debugging"
+# ------------------------------------------------------------------------------
+msg_dev() {
+  if [[ -n "${dev_mode:-}" ]]; then
+    echo -e "${SEARCH}${BOLD}${DGN}🔧 [DEV]${CL} $*"
+  fi
+}
 #
 # - Displays error message and immediately terminates script
 # - Sends SIGINT to current process to trigger error handler
