@@ -29,16 +29,16 @@ function update_script() {
     fi
 
     if check_for_gh_release "upgopher" "wanetty/upgopher"; then
-        msg_info "Stopping Services"
+        msg_info "Stopping Service"
         systemctl stop upgopher
-        msg_ok "Stopped Services"
+        msg_ok "Stopped Service"
 
         fetch_and_deploy_gh_release "upgopher" "wanetty/upgopher" "prebuild" "latest" "/opt/upgopher" "upgopher_*_linux_amd64.tar.gz"
         chmod +x /opt/upgopher/upgopher
 
-        msg_info "Starting Services"
+        msg_info "Starting Service"
         systemctl start upgopher
-        msg_ok "Started Services"
+        msg_ok "Started Service"
         msg_ok "Updated successfully!"
     fi
     exit
