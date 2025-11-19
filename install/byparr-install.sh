@@ -15,8 +15,13 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt -y install \
-    chromium-common \
-    libasound2
+    xauth \
+    xvfb \
+    scrot \
+    curl \
+    chromium \
+    chromium-driver \
+    ca-certificates
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "Byparr" "ThePhaseless/Byparr"
