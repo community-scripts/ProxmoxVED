@@ -2731,7 +2731,7 @@ EOF'
   install_ssh_keys_into_ct
 
   # Run application installer
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/install/${var_install}.sh)"; then
     local exit_code=$?
     # Try to copy installation log from container before exiting
     if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
