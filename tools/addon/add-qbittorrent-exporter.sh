@@ -6,11 +6,11 @@
 
 
 APP="qbittorrent-exporter"
-INSTALL_PATH="/usr/local/bin/filebrowser"
-CONFIG_PATH="/usr/local/community-scripts/fq-config.yaml"
+INSTALL_PATH="/opt/qbittorrent-exporter/src/qbittorrent-exporter"
+CONFIG_PATH="/opt/qbittorrent-exporter.env"
 DEFAULT_PORT=8080
 SRC_DIR="/"
-TMP_BIN="/tmp/filebrowser.$$"
+TMP_BIN="/tmp/qbittorrent-exporter.$$"
 
 # Get primary IP
 IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
@@ -21,11 +21,11 @@ IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n
 # OS Detection
 if [[ -f "/etc/alpine-release" ]]; then
   OS="Alpine"
-  SERVICE_PATH="/etc/init.d/filebrowser"
+  SERVICE_PATH="/etc/init.d/qbittorrent-exporter"
   PKG_MANAGER="apk add --no-cache"
 elif [[ -f "/etc/debian_version" ]]; then
   OS="Debian"
-  SERVICE_PATH="/etc/systemd/system/filebrowser.service"
+  SERVICE_PATH="/etc/systemd/system/qbittorrent-exporter.service"
   PKG_MANAGER="apt-get install -y"
 else
   echo -e "${CROSS} Unsupported OS detected. Exiting."
@@ -33,38 +33,8 @@ else
 fi
 
 header_info
-
-function msg_info() { echo -e "${INFO} ${YW}$1...${CL}"; }
-function msg_ok() { echo -e "${CM} ${GN}$1${CL}"; }
-function msg_error() { echo -e "${CROSS} ${RD}$1${CL}"; }
-
-# Detect legacy FileBrowser installation
-LEGACY_DB="/usr/local/community-scripts/filebrowser.db"
-LEGACY_BIN="/usr/local/bin/filebrowser"
-LEGACY_SERVICE_DEB="/etc/systemd/system/filebrowser.service"
-LEGACY_SERVICE_ALP="/etc/init.d/filebrowser"
-
-if [[ -f "$LEGACY_DB" || -f "$LEGACY_BIN" && ! -f "$CONFIG_PATH" ]]; then
-  echo -e "${YW}⚠️ Detected legacy FileBrowser installation.${CL}"
-  echo -n "Uninstall legacy FileBrowser and continue with Quantum install? (y/n): "
-  read -r remove_legacy
-  if [[ "${remove_legacy,,}" =~ ^(y|yes)$ ]]; then
-    msg_info "Uninstalling legacy FileBrowser"
-    if [[ -f "$LEGACY_SERVICE_DEB" ]]; then
-      systemctl disable --now filebrowser.service &>/dev/null
-      rm -f "$LEGACY_SERVICE_DEB"
-    elif [[ -f "$LEGACY_SERVICE_ALP" ]]; then
-      rc-service filebrowser stop &>/dev/null
-      rc-update del filebrowser &>/dev/null
-      rm -f "$LEGACY_SERVICE_ALP"
-    fi
-    rm -f "$LEGACY_BIN" "$LEGACY_DB"
-    msg_ok "Legacy FileBrowser removed"
-  else
-    echo -e "${YW}❌ Installation aborted by user.${CL}"
-    exit 0
-  fi
-fi
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
 
 # Existing installation
 if [[ -f "$INSTALL_PATH" ]]; then
@@ -74,11 +44,11 @@ if [[ -f "$INSTALL_PATH" ]]; then
   if [[ "${uninstall_prompt,,}" =~ ^(y|yes)$ ]]; then
     msg_info "Uninstalling ${APP}"
     if [[ "$OS" == "Debian" ]]; then
-      systemctl disable --now filebrowser.service &>/dev/null
+      systemctl disable --now qbittorrent-exporter.service &>/dev/null
       rm -f "$SERVICE_PATH"
     else
-      rc-service filebrowser stop &>/dev/null
-      rc-update del filebrowser &>/dev/null
+      rc-service qbittorrent-exporter stop &>/dev/null
+      rc-update del qbittorrent-exporter &>/dev/null
       rm -f "$SERVICE_PATH"
     fi
     rm -f "$INSTALL_PATH" "$CONFIG_PATH"
@@ -90,9 +60,12 @@ if [[ -f "$INSTALL_PATH" ]]; then
   read -r update_prompt
   if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
     msg_info "Updating ${APP}"
-    curl -fsSL https://github.com/gtsteffaniak/filebrowser/releases/latest/download/linux-amd64-filebrowser -o "$TMP_BIN"
-    chmod +x "$TMP_BIN"
-    mv -f "$TMP_BIN" /usr/local/bin/filebrowser
+    fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"
+    setup_go
+    cd /opt/qbittorrent-exporter
+    go get -d -v
+    cd src
+    go build -o ./qbittorrent-exporter
     msg_ok "Updated ${APP}"
     exit 0
   else
@@ -102,9 +75,16 @@ if [[ -f "$INSTALL_PATH" ]]; then
 fi
 
 echo -e "${YW}⚠️ ${APP} is not installed.${CL}"
-echo -n "Enter port number (Default: ${DEFAULT_PORT}): "
-read -r PORT
-PORT=${PORT:-$DEFAULT_PORT}
+echo -n "Enter URL of qbittorrent example: (http://192.168.1.10:8080): "
+read -r QBITTORRENT_BASE_URL
+
+echo -e "${YW}⚠️ ${APP} is not installed.${CL}"
+echo -n "Enter qbittorrent username: "
+read -r QBITTORRENT_USERNAME
+
+echo -e "${YW}⚠️ ${APP} is not installed.${CL}"
+echo -n "Enter qbittorrent password: "
+read -r QBITTORRENT_PASSWORD
 
 echo -n "Install ${APP}? (y/n): "
 read -r install_prompt
@@ -114,107 +94,58 @@ if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
 fi
 
 msg_info "Installing ${APP} on ${OS}"
-$PKG_MANAGER curl ffmpeg &>/dev/null
-curl -fsSL https://github.com/gtsteffaniak/filebrowser/releases/latest/download/linux-amd64-filebrowser -o "$TMP_BIN"
-chmod +x "$TMP_BIN"
-mv -f "$TMP_BIN" /usr/local/bin/filebrowser
+fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"
+setup_go
+cd /opt/qbittorrent-exporter
+go get -d -v
+cd src
+go build -o ./qbittorrent-exporter
 msg_ok "Installed ${APP}"
 
-msg_info "Preparing configuration directory"
-mkdir -p /usr/local/community-scripts
-chown root:root /usr/local/community-scripts
-chmod 755 /usr/local/community-scripts
-msg_ok "Directory prepared"
-
-echo -n "Use No Authentication? (y/N): "
-read -r noauth_prompt
-
-# === YAML CONFIG GENERATION ===
-if [[ "${noauth_prompt,,}" =~ ^(y|yes)$ ]]; then
-  cat <<EOF >"$CONFIG_PATH"
-server:
-  port: $PORT
-  sources:
-    - path: "$SRC_DIR"      
-      name: "RootFS"
-      config:
-        denyByDefault: false
-        disableIndexing: false
-        indexingIntervalMinutes: 240
-        conditionals:
-          rules:
-            - neverWatchPath: "/proc"
-            - neverWatchPath: "/sys"
-            - neverWatchPath: "/dev"
-            - neverWatchPath: "/run"
-            - neverWatchPath: "/tmp"
-            - neverWatchPath: "/lost+found"
-auth:
-  methods:
-    noauth: true
+msg_info "Creating configuration"
+cat <<EOF >"$CONFIG_PATH"
+QBITTORRENT_BASE_URL=${QBITTORRENT_BASE_URL}
+QBITTORRENT_USERNAME=${QBITTORRENT_USERNAME}
+QBITTORRENT_PASSWORD=${QBITTORRENT_PASSWORD}
 EOF
-  msg_ok "Configured with no authentication"
-else
-  cat <<EOF >"$CONFIG_PATH"
-server:
-  port: $PORT
-  sources:
-    - path: "$SRC_DIR"
-      name: "RootFS"
-      config:
-        denyByDefault: false
-        disableIndexing: false
-        indexingIntervalMinutes: 240
-        conditionals:
-          rules:
-            - neverWatchPath: "/proc"
-            - neverWatchPath: "/sys"
-            - neverWatchPath: "/dev"
-            - neverWatchPath: "/run"
-            - neverWatchPath: "/tmp"
-            - neverWatchPath: "/lost+found"
-auth:
-  adminUsername: admin
-  adminPassword: helper-scripts.com
-EOF
-  msg_ok "Configured with default admin (admin / helper-scripts.com)"
-fi
+msg_ok "Created configuration"
 
 msg_info "Creating service"
 if [[ "$OS" == "Debian" ]]; then
   cat <<EOF >"$SERVICE_PATH"
 [Unit]
-Description=FileBrowser Quantum
+Description=qbittorrent-exporter
 After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/usr/local/community-scripts
-ExecStart=/usr/local/bin/filebrowser -c $CONFIG_PATH
+WorkingDirectory=/opt/qbittorrent-exporter/src
+EnvironmentFile="$CONFIG_PATH"
+ExecStart=/opt/qbittorrent-exporter/src/qbittorrent-exporter
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF
-  systemctl enable --now filebrowser &>/dev/null
+  systemctl enable --now qbittorrent-exporter &>/dev/null
 else
   cat <<EOF >"$SERVICE_PATH"
 #!/sbin/openrc-run
 
-command="/usr/local/bin/filebrowser"
-command_args="-c $CONFIG_PATH"
+command="$INSTALL_PATH"
+command_args=""
 command_background=true
-directory="/usr/local/community-scripts"
-pidfile="/usr/local/community-scripts/pidfile"
+directory="/opt/qbittorrent-exporter/src"
+pidfile="/opt/qbittorrent-exporter/src/pidfile"
 
 depend() {
     need net
 }
 EOF
   chmod +x "$SERVICE_PATH"
-  rc-update add filebrowser default &>/dev/null
-  rc-service filebrowser start &>/dev/null
+  rc-update add qbittorrent-exporter default &>/dev/null
+  rc-service qbittorrent-exporter start &>/dev/null
 fi
 
 msg_ok "Service created successfully"
-echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://$IP:$PORT${CL}"
+echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://$IP:8090${CL}"
