@@ -13,6 +13,10 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Installing Dependencies"
+$STD apt -y install chromium-common
+msg_ok "Installed Dependencies"
+
 fetch_and_deploy_gh_release "Byparr" "ThePhaseless/Byparr"
 
 setup_uv
