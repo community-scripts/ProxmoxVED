@@ -14,7 +14,9 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt -y install chromium-common
+$STD apt -y install \
+    chromium-common \
+    libasound2
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "Byparr" "ThePhaseless/Byparr"
