@@ -4,11 +4,6 @@
 # Author: CrazWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-function header_info() {
-  clear
-}
-
-
 
 APP="qbittorrent-exporter"
 INSTALL_PATH="/usr/local/bin/filebrowser"
