@@ -279,8 +279,7 @@ customize() {
   ExecStart=
   ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
 EOF
-    systemctl daemon-reload
-    systemctl restart $(basename $(dirname $GETTY_OVERRIDE) | sed 's/\.d//')
+    $STD systemctl daemon-reload || true
     msg_ok "Customized Container"
   fi
   echo "bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${app}.sh)\"" >/usr/bin/update
