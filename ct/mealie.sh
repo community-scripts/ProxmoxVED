@@ -7,8 +7,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 
 APP="Mealie"
 var_tags="${var_tags:-recipes}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-2048}"
+var_cpu="${var_cpu:-5}"
+var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -51,21 +51,22 @@ function update_script() {
     cp -r /opt/mealie/frontend/dist /opt/mealie/mealie/frontend
     msg_ok "Frontend rebuilt"
 
-    msg_info "Rebuilding Backend Environment"
+    msg_info "Updating Python dependencies"
     cd /opt/mealie
-    $STD /opt/mealie/.venv/bin/poetry self add "poetry-plugin-export>=1.9"
-    MEALIE_VERSION=$(/opt/mealie/.venv/bin/poetry version --short)
-    $STD /opt/mealie/.venv/bin/poetry build --output dist
-    $STD /opt/mealie/.venv/bin/poetry export --only=main --extras=pgsql --output=dist/requirements.txt
-    echo "mealie[pgsql]==$MEALIE_VERSION \\" >>dist/requirements.txt
-    /opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.whl | tail -n1 | tr -d '\n' >>dist/requirements.txt
-    echo " \\" >>dist/requirements.txt
-    /opt/mealie/.venv/bin/poetry run pip hash dist/mealie-$MEALIE_VERSION*.tar.gz | tail -n1 >>dist/requirements.txt
-    msg_ok "Backend prepared"
+    $STD uv sync --frozen
+    msg_ok "Python dependencies updated"
 
-    msg_info "Finalize Installation"
-    $STD /opt/mealie/.venv/bin/uv pip install --require-hashes -r /opt/mealie/dist/requirements.txt --find-links dist
-    msg_ok "Mealie installed"
+    msg_info "Recreating Start Script"
+    cat <<'EOF' >/opt/mealie/start.sh
+#!/bin/bash
+set -a
+source /opt/mealie/mealie.env
+set +a
+cd /opt/mealie
+exec uv run mealie
+EOF
+    chmod +x /opt/mealie/start.sh
+    msg_ok "Start Script recreated"
 
     msg_info "Restoring Configuration"
     mv -f /opt/mealie/mealie.env.bak /opt/mealie/mealie.env
@@ -76,7 +77,7 @@ function update_script() {
     msg_info "Starting Service"
     systemctl start mealie
     msg_ok "Started Service"
-    msg_ok "Update Successful"
+    msg_ok "Updated successfully"
   fi
   exit
 }
