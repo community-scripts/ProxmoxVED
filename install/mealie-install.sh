@@ -25,16 +25,16 @@ msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.12" setup_uv
 POSTGRES_VERSION="16" setup_postgresql
-NODE_MODULE="yarn" NODE_VERSION="20" setup_nodejs
+NODE_MODULE="yarn" NODE_VERSION="24" setup_nodejs
 
 fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "latest" "/opt/mealie"
 
 PG_DB_NAME="mealie_db" PG_DB_USER="mealie_user" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
 
-msg_info "Setting up uv environment"
+msg_info "Installing Python Dependencies with uv"
 cd /opt/mealie
-$STD uv sync --frozen
-msg_ok "Set up uv environment"
+$STD uv sync --frozen --extra pgsql 2>/dev/null || $STD uv sync --extra pgsql
+msg_ok "Installed Python Dependencies"
 
 msg_info "Building Frontend"
 export NUXT_TELEMETRY_DISABLED=1
@@ -43,8 +43,9 @@ $STD yarn install --prefer-offline --frozen-lockfile --non-interactive --product
 $STD yarn generate
 msg_ok "Built Frontend"
 
-msg_info "Copying Built Frontend into Backend Package"
-cp -r /opt/mealie/frontend/dist /opt/mealie/mealie/frontend
+msg_info "Copying Built Frontend"
+mkdir -p /opt/mealie/mealie/frontend
+cp -r /opt/mealie/frontend/dist/* /opt/mealie/mealie/frontend/
 msg_ok "Copied Frontend"
 
 msg_info "Downloading NLTK Data"
@@ -55,49 +56,41 @@ msg_ok "Downloaded NLTK Data"
 
 msg_info "Writing Environment File"
 cat <<EOF >/opt/mealie/mealie.env
-HOST=0.0.0.0
-PORT=9000
+MEALIE_HOME=/opt/mealie/data
+NLTK_DATA=/nltk_data
 DB_ENGINE=postgres
 POSTGRES_SERVER=localhost
 POSTGRES_PORT=5432
 POSTGRES_USER=${PG_DB_USER}
 POSTGRES_PASSWORD=${PG_DB_PASS}
 POSTGRES_DB=${PG_DB_NAME}
-NLTK_DATA=/nltk_data
 PRODUCTION=true
-STATIC_FILES=/opt/mealie/frontend/dist
+HOST=0.0.0.0
+PORT=9000
 EOF
 msg_ok "Wrote Environment File"
 
-msg_info "Creating Start Script"
-cat <<'EOF' >/opt/mealie/start.sh
-#!/bin/bash
-set -a
-source /opt/mealie/mealie.env
-set +a
-cd /opt/mealie
-exec uv run mealie
-EOF
-chmod +x /opt/mealie/start.sh
-msg_ok "Created Start Script"
-
 msg_info "Creating Systemd Service"
-cat <<EOF >/etc/systemd/system/mealie.service
+cat <<'EOF' >/etc/systemd/system/mealie.service
 [Unit]
-Description=Mealie Backend Server
+Description=Mealie Recipe Manager
 After=network.target postgresql.service
+Wants=postgresql.service
 
 [Service]
+Type=simple
 User=root
 WorkingDirectory=/opt/mealie
-ExecStart=/opt/mealie/start.sh
-Restart=always
+EnvironmentFile=/opt/mealie/mealie.env
+ExecStart=/root/.cargo/bin/uv run --directory /opt/mealie mealie
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now mealie
-msg_ok "Created Service"
+msg_ok "Created and Started Service"
 
 motd_ssh
 customize
