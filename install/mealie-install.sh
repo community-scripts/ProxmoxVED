@@ -26,14 +26,12 @@ msg_ok "Installed Dependencies"
 PYTHON_VERSION="3.12" setup_uv
 POSTGRES_VERSION="16" setup_postgresql
 NODE_MODULE="yarn" NODE_VERSION="24" setup_nodejs
-
 fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "latest" "/opt/mealie"
-
 PG_DB_NAME="mealie_db" PG_DB_USER="mealie_user" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
 
 msg_info "Installing Python Dependencies with uv"
 cd /opt/mealie
-$STD uv sync --frozen --extra pgsql 2>/dev/null || $STD uv sync --extra pgsql
+$STD uv sync --frozen --extra pgsql
 msg_ok "Installed Python Dependencies"
 
 msg_info "Building Frontend"
@@ -55,20 +53,37 @@ $STD uv run python -m nltk.downloader -d /nltk_data averaged_perceptron_tagger_e
 msg_ok "Downloaded NLTK Data"
 
 msg_info "Writing Environment File"
+SECRET=$(openssl rand -hex 32)
+mkdir -p /run/secrets
 cat <<EOF >/opt/mealie/mealie.env
-MEALIE_HOME=/opt/mealie/data
+MEALIE_HOME=/opt/mealie
 NLTK_DATA=/nltk_data
+
+SECRET=${SECRET}
+
 DB_ENGINE=postgres
 POSTGRES_SERVER=localhost
 POSTGRES_PORT=5432
 POSTGRES_USER=${PG_DB_USER}
 POSTGRES_PASSWORD=${PG_DB_PASS}
 POSTGRES_DB=${PG_DB_NAME}
+
 PRODUCTION=true
 HOST=0.0.0.0
 PORT=9000
 EOF
 msg_ok "Wrote Environment File"
+
+msg_info "Creating Start Script"
+cat <<'EOF' >/opt/mealie/start.sh
+#!/bin/bash
+set -a
+source /opt/mealie/mealie.env
+set +a
+exec uv run mealie
+EOF
+chmod +x /opt/mealie/start.sh
+msg_ok "Created Start Script"
 
 msg_info "Creating Systemd Service"
 cat <<'EOF' >/etc/systemd/system/mealie.service
@@ -81,14 +96,14 @@ Wants=postgresql.service
 Type=simple
 User=root
 WorkingDirectory=/opt/mealie
-EnvironmentFile=/opt/mealie/mealie.env
-ExecStart=/root/.cargo/bin/uv run --directory /opt/mealie mealie
+ExecStart=/opt/mealie/start.sh
 Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
 systemctl enable -q --now mealie
 msg_ok "Created and Started Service"
 
