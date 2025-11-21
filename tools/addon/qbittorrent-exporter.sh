@@ -4,11 +4,11 @@
 # Author: CrazyWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 
 APP="qbittorrent-exporter"
-# APP_TYPE="tools"
+APP_TYPE="tools"
 INSTALL_PATH="/opt/qbittorrent-exporter/src/qbittorrent-exporter"
 CONFIG_PATH="/opt/qbittorrent-exporter.env"
 SRC_DIR="/"
