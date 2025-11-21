@@ -76,11 +76,9 @@ echo -e "${YW}⚠️ ${APP} is not installed.${CL}"
 echo -n "Enter URL of qbittorrent example: (http://192.168.1.10:8080): "
 read -r QBITTORRENT_BASE_URL
 
-echo -e "${YW}⚠️ ${APP} is not installed.${CL}"
 echo -n "Enter qbittorrent username: "
 read -r QBITTORRENT_USERNAME
 
-echo -e "${YW}⚠️ ${APP} is not installed.${CL}"
 echo -n "Enter qbittorrent password: "
 read -r QBITTORRENT_PASSWORD
 
