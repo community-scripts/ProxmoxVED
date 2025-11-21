@@ -47,7 +47,7 @@ if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   exit 0
 fi
 
-fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "tarball" "1.12.0"
+fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "tarball" "v1.12.0"
 setup_go
 msg_info "Installing qbittorrent-exporter on ${OS}"
 cd /opt/qbittorrent-exporter/src
