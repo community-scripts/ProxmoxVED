@@ -22,7 +22,6 @@ $STD apt-get install -y \
     sudo \
     mc \
     jq \
-    unzip \
     libcap2-bin \
     openssl
 msg_ok "Installed Dependencies"
@@ -36,22 +35,17 @@ install -d -m 0750 -o openbao -g openbao /etc/openbao
 install -d -m 0750 -o openbao -g openbao /var/log/openbao
 msg_ok "Prepared OpenBao user and directories"
 
-msg_info "Downloading OpenBao"
-TMP_EXTRACT="/tmp/openbao-extract"
-mkdir -p "$TMP_EXTRACT"
+msg_info "Downloading and installing OpenBao"
 
-fetch_and_deploy_gh_release "openbao" "openbao/openbao" "prebuild" "latest" "$TMP_EXTRACT" "openbao_*_linux_amd64.zip"
+fetch_and_deploy_gh_release "bao" "openbao/openbao" "binary" "latest" "" "bao_*_linux_amd64.deb"
 
-# Move binary to system location
-if [[ -f "$TMP_EXTRACT/openbao" ]]; then
-    install -m 0755 "$TMP_EXTRACT/openbao" /usr/local/bin/openbao
-    setcap cap_ipc_lock=+ep /usr/local/bin/openbao
-    RELEASE=$(openbao version | grep -oP 'Bao v\K[0-9.]+' || cat "$HOME/.openbao" 2>/dev/null || echo "unknown")
-    rm -rf "$TMP_EXTRACT"
+# Create symlink from bao to openbao for consistency
+if [[ -f /usr/bin/bao ]]; then
+    ln -sf /usr/bin/bao /usr/local/bin/openbao
+    RELEASE=$(bao version | grep -oP 'Bao v\K[0-9.]+' || cat "$HOME/.bao" 2>/dev/null || echo "unknown")
     msg_ok "Installed OpenBao ${RELEASE}"
 else
-    msg_error "OpenBao binary not found in extracted archive"
-    rm -rf "$TMP_EXTRACT"
+    msg_error "OpenBao binary not found after installation"
     exit 1
 fi
 

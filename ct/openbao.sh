@@ -29,46 +29,54 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/openbao/openbao/releases/latest | jq -r '.tag_name' | sed 's/^v//')
-  if [[ -z "${RELEASE}" ]]; then
+  CURRENT_VERSION="$(cat /opt/openbao_version.txt 2>/dev/null || echo '')"
+  LATEST_VERSION="$(cat "$HOME/.bao" 2>/dev/null || echo '')"
+
+  # If we don't have latest version cached, fetch it
+  if [[ -z "$LATEST_VERSION" ]]; then
+    LATEST_VERSION=$(curl -fsSL https://api.github.com/repos/openbao/openbao/releases/latest 2>/dev/null | jq -r '.tag_name' | sed 's/^v//')
+  fi
+
+  if [[ -z "${LATEST_VERSION}" ]]; then
     msg_error "Unable to determine the latest release version."
     exit 1
   fi
 
-  CURRENT_VERSION="$(cat /opt/openbao_version.txt 2>/dev/null || echo '')"
-
-  if [[ ! -f /opt/openbao_version.txt ]] || [[ "${RELEASE}" != "${CURRENT_VERSION}" ]]; then
-    msg_info "Updating ${APP} to v${RELEASE}"
+  if [[ ! -f /opt/openbao_version.txt ]] || [[ "${LATEST_VERSION}" != "${CURRENT_VERSION}" ]]; then
+    msg_info "Updating ${APP} to v${LATEST_VERSION}"
 
     msg_info "Stopping ${APP}"
     systemctl stop openbao
     msg_ok "Stopped ${APP}"
-
-    TMP_DIR="$(mktemp -d)"
 
     msg_info "Creating Backup"
     tar -czf "/opt/openbao_backup_$(date +%F).tar.gz" \
       /etc/openbao /var/lib/openbao /var/log/openbao
     msg_ok "Backup Created"
 
-    curl -fsSL "https://github.com/openbao/openbao/releases/download/v${RELEASE}/openbao_${RELEASE}_linux_amd64.zip" \
-      -o "${TMP_DIR}/openbao.zip"
-    unzip -qo "${TMP_DIR}/openbao.zip" -d "${TMP_DIR}"
-    install -m 0755 "${TMP_DIR}/openbao" /usr/local/bin/openbao
-    setcap cap_ipc_lock=+ep /usr/local/bin/openbao
+    msg_info "Downloading and installing new version"
+
+    fetch_and_deploy_gh_release "bao" "openbao/openbao" "binary" "latest" "" "bao_*_linux_amd64.deb"
+
+    # Ensure symlink exists
+    if [[ -f /usr/bin/bao ]]; then
+      ln -sf /usr/bin/bao /usr/local/bin/openbao
+    else
+      msg_error "OpenBao binary not found after installation"
+      systemctl start openbao
+      exit 1
+    fi
+    msg_ok "Installed new version"
 
     msg_info "Starting ${APP}"
     systemctl start openbao
     msg_ok "Started ${APP}"
 
-    msg_info "Cleaning Up"
-    rm -rf "${TMP_DIR}"
-    msg_ok "Cleanup Completed"
-
+    RELEASE=$(bao version | grep -oP 'Bao v\K[0-9.]+' || echo "${LATEST_VERSION}")
     echo "${RELEASE}" >/opt/openbao_version.txt
-    msg_ok "Update Successful"
+    msg_ok "Updated to v${RELEASE}"
   else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+    msg_ok "No update required. ${APP} is already at v${CURRENT_VERSION}"
   fi
   exit
 }
