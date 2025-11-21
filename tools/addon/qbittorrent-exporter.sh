@@ -6,13 +6,13 @@
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
-header_info
 
 APP="qbittorrent-exporter"
 INSTALL_PATH="/opt/qbittorrent-exporter/src/qbittorrent-exporter"
 CONFIG_PATH="/opt/qbittorrent-exporter.env"
 SRC_DIR="/"
 TMP_BIN="/tmp/qbittorrent-exporter.$$"
+header_info
 
 # Get primary IP
 IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
