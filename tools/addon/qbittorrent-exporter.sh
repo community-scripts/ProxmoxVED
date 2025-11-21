@@ -80,7 +80,7 @@ echo -n "Enter qbittorrent username: "
 read -r QBITTORRENT_USERNAME
 
 echo -n "Enter qbittorrent password: "
-read -r QBITTORRENT_PASSWORD
+read -sr QBITTORRENT_PASSWORD
 
 echo -n "Install ${APP}? (y/n): "
 read -r install_prompt
