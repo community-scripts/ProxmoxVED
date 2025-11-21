@@ -21,7 +21,6 @@ $STD apt-get install -y \
     curl \
     sudo \
     mc \
-    jq \
     libcap2-bin \
     openssl
 msg_ok "Installed Dependencies"
@@ -37,12 +36,40 @@ msg_ok "Prepared OpenBao user and directories"
 
 msg_info "Downloading and installing OpenBao"
 
-fetch_and_deploy_gh_release "bao" "openbao/openbao" "binary" "latest" "" "bao_*_linux_amd64.deb"
+# Get latest version from HTML (avoids API rate limit)
+RELEASE=$(curl -fsSL https://github.com/openbao/openbao/releases/latest 2>&1 | grep -oP 'openbao/openbao/releases/tag/v\K[0-9.]+' | head -1)
 
-# Create symlink from bao to openbao for consistency
+if [[ -z "$RELEASE" ]]; then
+    # Fallback: use a known stable version
+    RELEASE="2.4.3"
+    msg_info "Could not determine latest version, using v${RELEASE}"
+fi
+
+msg_info "Installing OpenBao v${RELEASE}"
+
+# Download .deb package directly (no API needed)
+DEB_URL="https://github.com/openbao/openbao/releases/download/v${RELEASE}/bao_${RELEASE}_linux_amd64.deb"
+TMP_DEB="/tmp/openbao.deb"
+
+if ! curl -fsSL "$DEB_URL" -o "$TMP_DEB"; then
+    msg_error "Failed to download from ${DEB_URL}"
+    exit 1
+fi
+
+# Install the package
+if ! $STD apt install -y "$TMP_DEB"; then
+    if ! $STD dpkg -i "$TMP_DEB"; then
+        msg_error "Failed to install OpenBao package"
+        rm -f "$TMP_DEB"
+        exit 1
+    fi
+fi
+
+rm -f "$TMP_DEB"
+
+# Create symlink for consistency
 if [[ -f /usr/bin/bao ]]; then
     ln -sf /usr/bin/bao /usr/local/bin/openbao
-    RELEASE=$(bao version | grep -oP 'Bao v\K[0-9.]+' || cat "$HOME/.bao" 2>/dev/null || echo "unknown")
     msg_ok "Installed OpenBao ${RELEASE}"
 else
     msg_error "OpenBao binary not found after installation"
