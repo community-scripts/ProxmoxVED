@@ -182,9 +182,7 @@ bench set-config -g  redis_socketio "redis://127.0.0.1:6379/2"
 bench set-config -gp socketio_port 9000
 bench set-config -g  default_site erpnext.local
 bench set-config -g  serve_default_site true
-
-# per-site config
-bench --site erpnext.local set-config enable_scheduler 1
+bench enable-scheduler
 '
 msg_ok "Site configured"
 
