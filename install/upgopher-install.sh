@@ -13,13 +13,12 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Upgopher"
-mkdir -p /opt/upgopher
 fetch_and_deploy_gh_release "upgopher" "wanetty/upgopher" "prebuild" "latest" "/opt/upgopher" "upgopher_*_linux_amd64.tar.gz"
+
+msg_info "Installing Upgopher"
 chmod +x /opt/upgopher/upgopher
 mkdir -p /opt/upgopher/uploads
 msg_ok "Installed Upgopher"
-
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/upgopher.service
