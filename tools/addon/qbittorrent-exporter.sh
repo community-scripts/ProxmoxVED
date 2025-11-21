@@ -4,6 +4,9 @@
 # Author: CrazWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
+header_info
 
 APP="qbittorrent-exporter"
 INSTALL_PATH="/opt/qbittorrent-exporter/src/qbittorrent-exporter"
@@ -30,10 +33,6 @@ else
   echo -e "${CROSS} Unsupported OS detected. Exiting."
   exit 1
 fi
-
-header_info
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
 
 # Existing installation
 if [[ -f "$INSTALL_PATH" ]]; then
