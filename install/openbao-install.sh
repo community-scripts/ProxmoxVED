@@ -89,8 +89,8 @@ listener "tcp" {
   tls_disable = 1
 }
 
-cluster_addr = "https://127.0.0.1:8201"
-api_addr     = "https://0.0.0.0:8200"
+cluster_addr = "http://127.0.0.1:8201"
+api_addr     = "http://0.0.0.0:8200"
 ui           = true
 
 log_level      = "info"
@@ -151,7 +151,7 @@ msg_info "Initializing OpenBao"
 
 # Wait for OpenBao to be ready
 for i in {1..30}; do
-    if curl -fsS https://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
+    if curl -fsS http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
         break
     fi
     sleep 2
@@ -164,6 +164,8 @@ if ! ss -tlnp | grep -q ':8200'; then
     journalctl -u openbao -n 50 --no-pager || true
     exit 1
 fi
+
+export VAULT_ADDR="http://127.0.0.1:8200"
 
 if ! openbao operator init -status >/dev/null 2>&1; then
     INIT_OUTPUT=$(openbao operator init -key-shares=1 -key-threshold=1)
