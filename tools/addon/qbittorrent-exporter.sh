@@ -8,7 +8,6 @@
 APP="qbittorrent-exporter"
 INSTALL_PATH="/opt/qbittorrent-exporter/src/qbittorrent-exporter"
 CONFIG_PATH="/opt/qbittorrent-exporter.env"
-DEFAULT_PORT=8080
 SRC_DIR="/"
 TMP_BIN="/tmp/qbittorrent-exporter.$$"
 
