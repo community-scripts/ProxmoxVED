@@ -5,31 +5,31 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/openbao/openbao
 
-# Import Functions und Setup
-APPLICATION="openbao"
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
 catch_errors
-setting_up_container
-network_check
-update_os
 
-# Installing Dependencies with the 3 core dependencies (curl;sudo;mc)
+if [[ -z "${OPENBAO_PARENT_INITIALIZED:-}" ]]; then
+    setting_up_container
+    network_check
+    update_os
+fi
+
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
-  jq \
-  unzip \
-  libcap2-bin \
-  openssl
+    curl \
+    sudo \
+    mc \
+    jq \
+    unzip \
+    libcap2-bin \
+    openssl
 msg_ok "Installed Dependencies"
 
 msg_info "Creating OpenBao user and directories"
 if ! id -u openbao >/dev/null 2>&1; then
-  useradd --system --home /var/lib/openbao --shell /usr/sbin/nologin openbao
+    useradd --system --home /var/lib/openbao --shell /usr/sbin/nologin openbao
 fi
 install -d -m 0750 -o openbao -g openbao /var/lib/openbao/data
 install -d -m 0750 -o openbao -g openbao /etc/openbao
@@ -39,8 +39,8 @@ msg_ok "Prepared OpenBao user and directories"
 msg_info "Downloading OpenBao"
 RELEASE=$(curl -fsSL https://api.github.com/repos/openbao/openbao/releases/latest | jq -r '.tag_name' | sed 's/^v//')
 if [[ -z "${RELEASE}" ]]; then
-  msg_error "Unable to determine latest OpenBao release"
-  exit 1
+    msg_error "Unable to determine latest OpenBao release"
+    exit 1
 fi
 TMP_DIR="$(mktemp -d)"
 curl -fsSL "https://github.com/openbao/openbao/releases/download/v${RELEASE}/openbao_${RELEASE}_linux_amd64.zip" -o "${TMP_DIR}/openbao.zip"
@@ -50,10 +50,10 @@ setcap cap_ipc_lock=+ep /usr/local/bin/openbao
 rm -rf "${TMP_DIR}"
 msg_ok "Installed OpenBao ${RELEASE}"
 
-echo "${RELEASE}" >/opt/OpenBao_version.txt
+echo "${RELEASE}" >/opt/openbao_version.txt
 
 msg_info "Configuring OpenBao"
-cat <<'EOF_CONF' >/etc/openbao/config.hcl
+cat >/etc/openbao/config.hcl <<'EOF_CONF'
 storage "file" {
   path = "/var/lib/openbao/data"
 }
@@ -74,9 +74,15 @@ chown openbao:openbao /etc/openbao/config.hcl
 chmod 640 /etc/openbao/config.hcl
 msg_ok "Configured OpenBao"
 
-msg_info "Creating Service"
-cat <<'EOF_SERVICE' >/etc/systemd/system/openbao.service
-[Unit]
+create_service() {
+    local service_name="$1"
+    local service_content="$2"
+    printf '%s' "$service_content" >/etc/systemd/system/"${service_name}".service
+}
+
+msg_info "Creating systemd service"
+
+create_service "openbao" "[Unit]
 Description=OpenBao Secrets Management Server
 After=network-online.target
 Wants=network-online.target
@@ -86,7 +92,7 @@ Documentation=https://openbao.org/docs
 User=openbao
 Group=openbao
 ExecStart=/usr/local/bin/openbao server -config=/etc/openbao/config.hcl
-ExecReload=/bin/kill --signal HUP $MAINPID
+ExecReload=/bin/kill --signal HUP \$MAINPID
 CapabilityBoundingSet=CAP_IPC_LOCK
 AmbientCapabilities=CAP_IPC_LOCK
 LimitMEMLOCK=infinity
@@ -100,41 +106,68 @@ StandardError=inherit
 
 [Install]
 WantedBy=multi-user.target
-EOF_SERVICE
+"
+
+msg_ok "Systemd service created"
+
+msg_info "Enabling service"
 systemctl daemon-reload
-systemctl enable -q --now openbao.service
-msg_ok "Created Service"
+if ! systemctl enable -q --now openbao.service; then
+    msg_error "Failed to enable service. Checking logs..."
+    echo "=== Status for openbao ==="
+    systemctl status openbao --no-pager || true
+    echo "=== Journal for openbao ==="
+    journalctl -u openbao -n 50 --no-pager || true
+    exit 1
+fi
+msg_ok "Service enabled"
 
 msg_info "Initializing OpenBao"
 export OPENBAO_ADDR="http://127.0.0.1:8200"
-for _ in {1..30}; do
-  if curl -fsS http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
-    break
-  fi
-  sleep 2
+
+# Wait for OpenBao to be ready
+for i in {1..30}; do
+    if curl -fsS http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
+        break
+    fi
+    sleep 2
 done
+
+# Verify OpenBao is actually listening
+if ! ss -tlnp | grep -q ':8200'; then
+    msg_error "OpenBao is running but not listening on port 8200"
+    ss -tlnp | grep openbao || true
+    journalctl -u openbao -n 50 --no-pager || true
+    exit 1
+fi
+
 if ! openbao operator init -status >/dev/null 2>&1; then
-  INIT_OUTPUT=$(openbao operator init -key-shares=1 -key-threshold=1)
-  UNSEAL_KEY=$(echo "$INIT_OUTPUT" | awk '/Unseal Key 1/ {print $4}')
-  ROOT_TOKEN=$(echo "$INIT_OUTPUT" | awk '/Initial Root Token/ {print $4}')
-  openbao operator unseal "$UNSEAL_KEY"
-  {
-    echo "OpenBao Credentials"
-    echo "$INIT_OUTPUT"
-    echo "Root Token: $ROOT_TOKEN"
-    echo "Unseal Key: $UNSEAL_KEY"
-  } >>~/$APPLICATION.creds
-  chmod 600 ~/$APPLICATION.creds
-  msg_ok "Initialized OpenBao"
+    INIT_OUTPUT=$(openbao operator init -key-shares=1 -key-threshold=1)
+    UNSEAL_KEY=$(echo "$INIT_OUTPUT" | awk '/Unseal Key 1/ {print $4}')
+    ROOT_TOKEN=$(echo "$INIT_OUTPUT" | awk '/Initial Root Token/ {print $4}')
+
+    openbao operator unseal "$UNSEAL_KEY"
+
+    msg_info "Storing administrator credentials"
+    {
+        echo "OpenBao Administrator"
+        echo "Root Token: ${ROOT_TOKEN}"
+        echo "Unseal Key: ${UNSEAL_KEY}"
+        echo ""
+        echo "Full initialization output:"
+        echo "$INIT_OUTPUT"
+    } >~/openbao.creds
+    chmod 600 ~/openbao.creds
+    msg_ok "Administrator credentials stored in ~/openbao.creds"
 else
-  msg_ok "OpenBao already initialized"
+    msg_ok "OpenBao already initialized"
 fi
 
 motd_ssh
 customize
 
-# Cleanup
 msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
+$STD apt-get -y clean
 msg_ok "Cleaned"
