@@ -5,8 +5,8 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
 var_verbose=${var_verbose:-0}
 APP="qbittorrent-exporter"
@@ -31,11 +31,11 @@ fi
 
 # Existing installation
 if [[ -f "$INSTALL_PATH" ]]; then
-  echo -e "${YW}⚠️ ${APP} is already installed.${CL}"
+  echo -e "${YW}⚠️ qbittorrent-exporter is already installed.${CL}"
   echo -n "Uninstall ${APP}? (y/N): "
   read -r uninstall_prompt
   if [[ "${uninstall_prompt,,}" =~ ^(y|yes)$ ]]; then
-    msg_info "Uninstalling ${APP}"
+    msg_info "Uninstalling qbittorrent-exporter"
     if [[ "$OS" == "Debian" ]]; then
       systemctl disable --now qbittorrent-exporter.service &>/dev/null
       rm -f "$SERVICE_PATH"
@@ -49,18 +49,18 @@ if [[ -f "$INSTALL_PATH" ]]; then
     exit 0
   fi
 
-  echo -n "Update ${APP}? (y/N): "
+  echo -n "Update qbittorrent-exporter? (y/N): "
   read -r update_prompt
   if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
 
     fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" 
     setup_go
-    msg_info "Updating ${APP}"
+    msg_info "Updating qbittorrent-exporter"
     cd /opt/qbittorrent-exporter
-    /usr/local/bin/go get -d=true -v &>/dev/null
+    /usr/local/bin/go get -d -v &>/dev/null
     cd src
     /usr/local/bin/go build -o ./qbittorrent-exporter
-    msg_ok "Updated ${APP}"
+    msg_ok "Updated qbittorrent-exporter"
     exit 0
   else
     echo -e "${YW}⚠️ Update skipped. Exiting.${CL}"
@@ -68,7 +68,7 @@ if [[ -f "$INSTALL_PATH" ]]; then
   fi
 fi
 
-echo -e "${YW}⚠️ ${APP} is not installed.${CL}"
+echo -e "${YW}⚠️ qbittorrent-exporter is not installed.${CL}"
 echo -n "Enter URL of qbittorrent example: (http://192.168.1.10:8080): "
 read -er QBITTORRENT_BASE_URL
 
@@ -79,7 +79,7 @@ echo -n "Enter qbittorrent password: "
 read -rs QBITTORRENT_PASSWORD
 echo ""
 
-echo -n "Install ${APP}? (y/n): "
+echo -n "Install qbittorrent-exporter? (y/n): "
 read -r install_prompt
 if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
@@ -88,12 +88,12 @@ fi
 
 fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "1.12.0"
 setup_go
-msg_info "Installing ${APP} on ${OS}"
+msg_info "Installing qbittorrent-exporter on ${OS}"
 cd /opt/qbittorrent-exporter
 /usr/local/bin/go get -d -v &>/dev/null
 cd src
 /usr/local/bin/go build -o ./qbittorrent-exporter
-msg_ok "Installed ${APP}"
+msg_ok "Installed qbittorrent-exporter"
 
 msg_info "Creating configuration"
 cat <<EOF >"$CONFIG_PATH"
