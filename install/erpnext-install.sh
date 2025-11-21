@@ -137,7 +137,6 @@ cd "$HOME/bench"
 bench set-config -g redis_cache    "redis://127.0.0.1:6379/0"
 bench set-config -g redis_queue    "redis://127.0.0.1:6379/1"
 bench set-config -g redis_socketio "redis://127.0.0.1:6379/0"
-bench enable-scheduler
 bench get-app --branch=version-15 --resolve-deps erpnext https://github.com/frappe/erpnext
 
 ls -1 apps > sites/apps.txt
@@ -182,7 +181,7 @@ bench set-config -g  redis_socketio "redis://127.0.0.1:6379/2"
 bench set-config -gp socketio_port 9000
 bench set-config -g  default_site erpnext.local
 bench set-config -g  serve_default_site true
-bench enable-scheduler
+bench set-config -g enable_scheduler 1
 '
 msg_ok "Site configured"
 
