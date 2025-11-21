@@ -371,6 +371,12 @@ EOF_APACHE
     # Disable the default Apache service as we'll use our custom systemd service
     systemctl disable -q --now apache2 >/dev/null 2>&1 || true
 
+    # Ensure Apache is completely stopped before starting our custom service
+    systemctl stop apache2 >/dev/null 2>&1 || true
+    systemctl disable apache2 >/dev/null 2>&1 || true
+    pkill -9 apache2 >/dev/null 2>&1 || true
+    sleep 2
+
     msg_ok "Apache configured"
 
 
