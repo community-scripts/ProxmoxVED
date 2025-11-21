@@ -9,6 +9,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
 var_verbose=${var_verbose:-0}
+VERBOSE=${var_verbose:-no}
 APP="qbittorrent-exporter"
 APP_TYPE="tools"
 INSTALL_PATH="/opt/qbittorrent-exporter/src/qbittorrent-exporter"
