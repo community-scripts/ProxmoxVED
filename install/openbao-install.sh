@@ -22,7 +22,6 @@ $STD apt-get install -y \
     sudo \
     mc \
     jq \
-    unzip \
     libcap2-bin \
     openssl
 msg_ok "Installed Dependencies"
@@ -36,20 +35,11 @@ install -d -m 0750 -o openbao -g openbao /etc/openbao
 install -d -m 0750 -o openbao -g openbao /var/log/openbao
 msg_ok "Prepared OpenBao user and directories"
 
-msg_info "Downloading OpenBao"
-RELEASE=$(curl -fsSL https://api.github.com/repos/openbao/openbao/releases/latest | jq -r '.tag_name' | sed 's/^v//')
-if [[ -z "${RELEASE}" ]]; then
-    msg_error "Unable to determine latest OpenBao release"
-    exit 1
-fi
-TMP_DIR="$(mktemp -d)"
-curl -fsSL "https://github.com/openbao/openbao/releases/download/v${RELEASE}/openbao_${RELEASE}_linux_amd64.zip" -o "${TMP_DIR}/openbao.zip"
-unzip -qo "${TMP_DIR}/openbao.zip" -d "${TMP_DIR}"
-install -m 0755 "${TMP_DIR}/openbao" /usr/local/bin/openbao
-setcap cap_ipc_lock=+ep /usr/local/bin/openbao
-rm -rf "${TMP_DIR}"
-msg_ok "Installed OpenBao ${RELEASE}"
+fetch_and_deploy_gh_release "openbao" "openbao/openbao"
 
+setcap cap_ipc_lock=+ep /usr/local/bin/openbao
+
+RELEASE=$(openbao version | grep -oP 'Bao v\K[0-9.]+' || echo "unknown")
 echo "${RELEASE}" >/opt/openbao_version.txt
 
 msg_info "Configuring OpenBao"
