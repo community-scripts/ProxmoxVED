@@ -137,7 +137,7 @@ cd "$HOME/bench"
 bench set-config -g redis_cache    "redis://127.0.0.1:6379/0"
 bench set-config -g redis_queue    "redis://127.0.0.1:6379/1"
 bench set-config -g redis_socketio "redis://127.0.0.1:6379/0"
-
+bench enable-scheduler
 bench get-app --branch=version-15 --resolve-deps erpnext https://github.com/frappe/erpnext
 
 ls -1 apps > sites/apps.txt
@@ -164,7 +164,7 @@ if [[ ! -f "sites/erpnext.local/site_config.json" ]]; then
         --admin-password Password123
 
     bench --site erpnext.local install-app erpnext
-    bench --site erpnext.local enable-scheduler
+
 else
     bench --site erpnext.local migrate
 fi
