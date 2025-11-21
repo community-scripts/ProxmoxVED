@@ -121,7 +121,7 @@ After=network.target
 [Service]
 User=root
 WorkingDirectory=/opt/qbittorrent-exporter/src
-EnvironmentFile="$CONFIG_PATH"
+EnvironmentFile=$CONFIG_PATH
 ExecStart=/opt/qbittorrent-exporter/src/qbittorrent-exporter
 Restart=always
 
@@ -141,6 +141,12 @@ pidfile="/opt/qbittorrent-exporter/src/pidfile"
 
 depend() {
     need net
+}
+
+start_pre() {
+    if [ -f "$CONFIG_PATH" ]; then
+        export \$(grep -v '^#' $CONFIG_PATH | xargs)
+    fi
 }
 EOF
   chmod +x "$SERVICE_PATH"
