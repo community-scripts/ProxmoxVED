@@ -89,8 +89,8 @@ listener "tcp" {
   tls_disable = 1
 }
 
-cluster_addr = "http://127.0.0.1:8201"
-api_addr     = "http://0.0.0.0:8200"
+cluster_addr = "https://127.0.0.1:8201"
+api_addr     = "https://0.0.0.0:8200"
 ui           = true
 
 log_level      = "info"
@@ -148,11 +148,10 @@ fi
 msg_ok "Service enabled"
 
 msg_info "Initializing OpenBao"
-export OPENBAO_ADDR="http://127.0.0.1:8200"
 
 # Wait for OpenBao to be ready
 for i in {1..30}; do
-    if curl -fsS http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
+    if curl -fsS https://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
         break
     fi
     sleep 2
