@@ -71,11 +71,9 @@ fi
 echo -e "${YW}⚠️ qbittorrent-exporter is not installed.${CL}"
 echo -n "Enter URL of qbittorrent example: (http://192.168.1.10:8080): "
 read -er QBITTORRENT_BASE_URL
-echo ""
 
 echo -n "Enter qbittorrent username: "
 read -er QBITTORRENT_USERNAME
-echo ""
 
 echo -n "Enter qbittorrent password: "
 read -rs QBITTORRENT_PASSWORD
@@ -88,7 +86,7 @@ if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   exit 0
 fi
 
-fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "1.12.0"
+fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "tarball" "1.12.0"
 setup_go
 msg_info "Installing qbittorrent-exporter on ${OS}"
 cd /opt/qbittorrent-exporter
