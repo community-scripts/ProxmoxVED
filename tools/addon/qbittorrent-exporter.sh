@@ -50,7 +50,7 @@ if [[ -f "$INSTALL_PATH" ]]; then
       rc-update del qbittorrent-exporter &>/dev/null
       rm -f "$SERVICE_PATH"
     fi
-    rm -f "$INSTALL_PATH" "$CONFIG_PATH"
+    rm -f "$INSTALL_PATH" "$CONFIG_PATH" ~/.qbittorrent-exporter
     msg_ok "${APP} has been uninstalled."
     exit 0
   fi
