@@ -61,9 +61,9 @@ if [[ -f "$INSTALL_PATH" ]]; then
     fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"
     setup_go
     cd /opt/qbittorrent-exporter
-    go get -d -v
+    /usr/local/bin/go get -d -v
     cd src
-    go build -o ./qbittorrent-exporter
+    /usr/local/bin/go build -o ./qbittorrent-exporter
     msg_ok "Updated ${APP}"
     exit 0
   else
@@ -93,9 +93,9 @@ msg_info "Installing ${APP} on ${OS}"
 fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"
 setup_go
 cd /opt/qbittorrent-exporter
-go get -d -v
+/usr/local/bin/go get -d -v
 cd src
-go build -o ./qbittorrent-exporter
+/usr/local/bin/go build -o ./qbittorrent-exporter
 msg_ok "Installed ${APP}"
 
 msg_info "Creating configuration"
