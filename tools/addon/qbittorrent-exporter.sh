@@ -12,22 +12,15 @@ APP="qbittorrent-exporter"
 APP_TYPE="tools"
 INSTALL_PATH="/opt/qbittorrent-exporter/src/qbittorrent-exporter"
 CONFIG_PATH="/opt/qbittorrent-exporter.env"
-SRC_DIR="/"
-TMP_BIN="/tmp/qbittorrent-exporter.$$"
 header_info
 ensure_usr_local_bin_persist
-
-# Get primary IP
-IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
-IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
-[[ -z "$IP" ]] && IP=$(hostname -I | awk '{print $1}')
-[[ -z "$IP" ]] && IP="127.0.0.1"
+get_current_ip
 
 # OS Detection
 if [[ -f "/etc/alpine-release" ]]; then
   OS="Alpine"
   SERVICE_PATH="/etc/init.d/qbittorrent-exporter"
-elif [[ -f "/etc/debian_version" ]]; then
+elif grep -qE 'ID=debian|ID=ubuntu' /etc/os-release; then
   OS="Debian"
   SERVICE_PATH="/etc/systemd/system/qbittorrent-exporter.service"
 else
@@ -153,4 +146,4 @@ EOF
 fi
 
 msg_ok "Service created successfully"
-echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://$IP:8090/metrics${CL}"
+echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://$CURRENT_IP:8090/metrics${CL}"
