@@ -14,6 +14,7 @@ CONFIG_PATH="/opt/qbittorrent-exporter.env"
 SRC_DIR="/"
 TMP_BIN="/tmp/qbittorrent-exporter.$$"
 header_info
+ensure_usr_local_bin_persist
 
 # Get primary IP
 IFACE=$(ip -4 route | awk '/default/ {print $5; exit}')
@@ -58,9 +59,10 @@ if [[ -f "$INSTALL_PATH" ]]; then
   echo -n "Update ${APP}? (y/N): "
   read -r update_prompt
   if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
-    msg_info "Updating ${APP}"
+
     fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"
     setup_go
+    msg_info "Updating ${APP}"
     cd /opt/qbittorrent-exporter
     /usr/local/bin/go get -d -v
     cd src
@@ -90,9 +92,9 @@ if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   exit 0
 fi
 
-msg_info "Installing ${APP} on ${OS}"
 fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"
 setup_go
+msg_info "Installing ${APP} on ${OS}"
 cd /opt/qbittorrent-exporter
 /usr/local/bin/go get -d -v
 cd src
