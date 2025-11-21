@@ -129,22 +129,21 @@ variables() {
 # - Initialize error traps after loading
 # ------------------------------------------------------------------------------
 
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
+source <(curl -fsSL "${BASE_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}/misc/api.func")
 
 if command -v curl >/dev/null 2>&1; then
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+  source <(curl -fsSL "${BASE_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}/misc/core.func")
+  source <(curl -fsSL "${BASE_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}/misc/error_handler.func")
   load_functions
   catch_errors
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
-  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+  source <(wget -qO- "${BASE_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}/misc/core.func")
+  source <(wget -qO- "${BASE_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}/misc/error_handler.func")
   load_functions
   catch_errors
   #echo "(build.func) Loaded core.func via wget"
 fi
-
 # ------------------------------------------------------------------------------
 # maxkeys_check()
 #
@@ -1267,7 +1266,7 @@ _build_vars_diff() {
 
 # Build a temporary <app>.vars file from current advanced settings
 _build_current_app_vars_tmp() {
-  tmpf="$(mktemp /tmp/${NSAPP:-app}.vars.new.XXXXXX)"
+  tmpf="$(mktemp /tmp/"${NSAPP:-app}".vars.new.XXXXXX)"
 
   # NET/GW
   _net="${NET:-}"
@@ -1964,7 +1963,7 @@ configure_ssh_settings() {
 # - Otherwise: shows update/setting menu
 # ------------------------------------------------------------------------------
 start() {
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
+  source <(curl -fsSL "${BASE_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}/misc/tools.func")
   if command -v pveversion >/dev/null 2>&1; then
     install_script || return 0
     return 0
@@ -2069,11 +2068,11 @@ build_container() {
   fi
 
   TEMP_DIR=$(mktemp -d)
-  pushd "$TEMP_DIR" >/dev/null
-  if [ "$var_os" == "alpine" ]; then
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)"
+  pushd "$TEMP_DIR" >/dev/null || exit
+if [ "$var_os" == "alpine" ]; then
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL "${BASE_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}/misc/alpine-install.func")"
   else
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL "${BASE_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}/misc/install.func")"
   fi
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
@@ -2514,7 +2513,7 @@ EOF'
   install_ssh_keys_into_ct
 
   # Run application installer
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL "${BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/install/${var_install}.sh")"; then
     exit $?
   fi
 }
@@ -3109,7 +3108,7 @@ create_lxc_container() {
   #echo "[DEBUG] Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
   #msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
 
-  TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
+  TEMPLATE_PATH="$(pvesm path "$TEMPLATE_STORAGE":vztmpl/"$TEMPLATE" 2>/dev/null || true)"
   if [[ -z "$TEMPLATE_PATH" ]]; then
     TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
     [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
@@ -3174,7 +3173,7 @@ create_lxc_container() {
             TEMPLATE_SOURCE="online"
           fi
 
-          TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
+          TEMPLATE_PATH="$(pvesm path "$TEMPLATE_STORAGE":vztmpl/"$TEMPLATE" 2>/dev/null || true)"
           if [[ -z "$TEMPLATE_PATH" ]]; then
             TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
             [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
