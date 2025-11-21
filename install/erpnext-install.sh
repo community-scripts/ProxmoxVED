@@ -297,6 +297,10 @@ msg_ok "Systemd units created"
 
 msg_info "Configuring Apache"
 
+# Run Apache worker processes as the frappe user so static assets are readable
+sed -i 's/^export APACHE_RUN_USER=.*/export APACHE_RUN_USER=frappe/' /etc/apache2/envvars
+sed -i 's/^export APACHE_RUN_GROUP=.*/export APACHE_RUN_GROUP=frappe/' /etc/apache2/envvars
+
 # Enable required Apache modules
 a2enmod proxy proxy_http proxy_wstunnel headers rewrite remoteip
 
