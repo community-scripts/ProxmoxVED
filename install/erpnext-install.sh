@@ -333,8 +333,21 @@ cat >/etc/apache2/sites-available/erpnext.conf <<EOF_APACHE
         Require all granted
     </Directory>
 
-    ProxyPass /assets http://127.0.0.1:8000/assets
-    ProxyPassReverse /assets http://127.0.0.1:8000/assets
+    <Directory /home/frappe/bench/sites/assets>
+        Options +FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+    ProxyPass /assets !
+
+    # Expose site public files (e.g. attachments)
+    Alias /files /home/frappe/bench/sites/erpnext.local/public/files
+    <Directory /home/frappe/bench/sites/erpnext.local/public/files>
+        Options +FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+    ProxyPass /files !
 
     # WebSocket proxy for socket.io
     RewriteEngine On
