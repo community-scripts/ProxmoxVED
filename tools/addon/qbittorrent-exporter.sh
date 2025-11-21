@@ -28,46 +28,7 @@ else
   echo -e "${CROSS} Unsupported OS detected. Exiting."
   exit 1
 fi
-
-# Existing installation
-if [[ -f "$INSTALL_PATH" ]]; then
-  echo -e "${YW}⚠️ qbittorrent-exporter is already installed.${CL}"
-  echo -n "Uninstall ${APP}? (y/N): "
-  read -r uninstall_prompt
-  if [[ "${uninstall_prompt,,}" =~ ^(y|yes)$ ]]; then
-    msg_info "Uninstalling qbittorrent-exporter"
-    if [[ "$OS" == "Debian" ]]; then
-      systemctl disable --now qbittorrent-exporter.service &>/dev/null
-      rm -f "$SERVICE_PATH"
-    else
-      rc-service qbittorrent-exporter stop &>/dev/null
-      rc-update del qbittorrent-exporter &>/dev/null
-      rm -f "$SERVICE_PATH"
-    fi
-    rm -f "$INSTALL_PATH" "$CONFIG_PATH" ~/.qbittorrent-exporter
-    msg_ok "${APP} has been uninstalled."
-    exit 0
-  fi
-
-  echo -n "Update qbittorrent-exporter? (y/N): "
-  read -r update_prompt
-  if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
-
-    fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" 
-    setup_go
-    msg_info "Updating qbittorrent-exporter"
-    cd /opt/qbittorrent-exporter
-    /usr/local/bin/go get -d -v &>/dev/null
-    cd src
-    /usr/local/bin/go build -o ./qbittorrent-exporter
-    msg_ok "Updated qbittorrent-exporter"
-    exit 0
-  else
-    echo -e "${YW}⚠️ Update skipped. Exiting.${CL}"
-    exit 0
-  fi
-fi
-
+ 
 echo -e "${YW}⚠️ qbittorrent-exporter is not installed.${CL}"
 echo -n "Enter URL of qbittorrent example: (http://192.168.1.10:8080): "
 read -er QBITTORRENT_BASE_URL
@@ -89,9 +50,7 @@ fi
 fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "tarball" "1.12.0"
 setup_go
 msg_info "Installing qbittorrent-exporter on ${OS}"
-cd /opt/qbittorrent-exporter
-/usr/local/bin/go get -d -v &>/dev/null
-cd src
+cd /opt/qbittorrent-exporter/src
 /usr/local/bin/go build -o ./qbittorrent-exporter
 msg_ok "Installed qbittorrent-exporter"
 
@@ -145,6 +104,44 @@ EOF
   rc-update add qbittorrent-exporter default &>/dev/null
   rc-service qbittorrent-exporter start &>/dev/null
 fi
-
 msg_ok "Service created successfully"
+
+# Existing installation
+if [[ -f "$INSTALL_PATH" ]]; then
+  echo -e "${YW}⚠️ qbittorrent-exporter is already installed.${CL}"
+  echo -n "Uninstall ${APP}? (y/N): "
+  read -r uninstall_prompt
+  if [[ "${uninstall_prompt,,}" =~ ^(y|yes)$ ]]; then
+    msg_info "Uninstalling qbittorrent-exporter"
+    if [[ "$OS" == "Debian" ]]; then
+      systemctl disable --now qbittorrent-exporter.service &>/dev/null
+      rm -f "$SERVICE_PATH"
+    else
+      rc-service qbittorrent-exporter stop &>/dev/null
+      rc-update del qbittorrent-exporter &>/dev/null
+      rm -f "$SERVICE_PATH"
+    fi
+    rm -f "$INSTALL_PATH" "$CONFIG_PATH" ~/.qbittorrent-exporter
+    msg_ok "${APP} has been uninstalled."
+    exit 0
+  fi
+
+  echo -n "Update qbittorrent-exporter? (y/N): "
+  read -r update_prompt
+  if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
+    if check_for_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"; then
+      fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" 
+      setup_go
+      msg_info "Updating qbittorrent-exporter"
+      cd /opt/qbittorrent-exporter/src
+      /usr/local/bin/go build -o ./qbittorrent-exporter
+      msg_ok "Updated Successfully!"
+    fi
+    exit 0
+  else
+    echo -e "${YW}⚠️ Update skipped. Exiting.${CL}"
+    exit 0
+  fi
+fi
+
 echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://$CURRENT_IP:8090/metrics${CL}"
