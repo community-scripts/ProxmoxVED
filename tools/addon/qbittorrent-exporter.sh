@@ -8,6 +8,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
 
 APP="qbittorrent-exporter"
+APP_TYPE="tools"
 INSTALL_PATH="/opt/qbittorrent-exporter/src/qbittorrent-exporter"
 CONFIG_PATH="/opt/qbittorrent-exporter.env"
 SRC_DIR="/"
