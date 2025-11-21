@@ -58,7 +58,6 @@ mkdir -p /run/secrets
 cat <<EOF >/opt/mealie/mealie.env
 MEALIE_HOME=/opt/mealie
 NLTK_DATA=/nltk_data
-
 SECRET=${SECRET}
 
 DB_ENGINE=postgres
@@ -103,7 +102,6 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-
 systemctl enable -q --now mealie
 msg_ok "Created and Started Service"
 

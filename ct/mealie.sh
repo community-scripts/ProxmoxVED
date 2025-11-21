@@ -30,48 +30,42 @@ function update_script() {
   fi
   if check_for_gh_release "mealie" "mealie-recipes/mealie"; then
     PYTHON_VERSION="3.12" setup_uv
-    NODE_MODULE="yarn" NODE_VERSION="20" setup_nodejs
+    NODE_MODULE="yarn" NODE_VERSION="24" setup_nodejs
 
     msg_info "Stopping Service"
     systemctl stop mealie
-    msg_info "Stopped Service"
+    msg_ok "Stopped Service"
 
-    msg_info "Backing up .env and start.sh"
-    cp -f /opt/mealie/mealie.env /opt/mealie/mealie.env.bak
-    cp -f /opt/mealie/start.sh /opt/mealie/start.sh.bak
+    msg_info "Backing up configuration"
+    mkdir -p /opt/mealie_bak
+    cp -f /opt/mealie/mealie.env /opt/mealie_bak/mealie.env.bak
+    cp -f /opt/mealie/start.sh /opt/mealie_bak/start.sh.bak
     msg_ok "Backup completed"
 
-    fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "latest" "/opt/mealie"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "mealie" "mealie-recipes/mealie" "tarball" "latest" "/opt/mealie"
 
     msg_info "Rebuilding Frontend"
     export NUXT_TELEMETRY_DISABLED=1
     cd /opt/mealie/frontend
     $STD yarn install --prefer-offline --frozen-lockfile --non-interactive --production=false --network-timeout 1000000
     $STD yarn generate
-    cp -r /opt/mealie/frontend/dist /opt/mealie/mealie/frontend
+    cp -r /opt/mealie/frontend/dist/* /opt/mealie/mealie/frontend/
     msg_ok "Frontend rebuilt"
 
-    msg_info "Updating Python dependencies"
+    msg_info "Updating Python Dependencies"
     cd /opt/mealie
-    $STD uv sync --frozen
-    msg_ok "Python dependencies updated"
+    $STD uv sync --frozen --extra pgsql
+    msg_ok "Dependencies updated"
 
-    msg_info "Recreating Start Script"
-    cat <<'EOF' >/opt/mealie/start.sh
-#!/bin/bash
-set -a
-source /opt/mealie/mealie.env
-set +a
-cd /opt/mealie
-exec uv run mealie
-EOF
-    chmod +x /opt/mealie/start.sh
-    msg_ok "Start Script recreated"
+    msg_info "Restoring configuration"
+    grep -q "^SECRET=" /opt/mealie_bak/mealie.env.bak || echo "SECRET=$(openssl rand -hex 32)" >>/opt/mealie_bak/mealie.env.bak
+    grep -q "^MEALIE_HOME=" /opt/mealie_bak/mealie.env.bak || echo "MEALIE_HOME=/opt/mealie" >>/opt/mealie_bak/mealie.env.bak
+    grep -q "^NLTK_DATA=" /opt/mealie_bak/mealie.env.bak || echo "NLTK_DATA=/nltk_data" >>/opt/mealie_bak/mealie.env.bak
 
-    msg_info "Restoring Configuration"
-    mv -f /opt/mealie/mealie.env.bak /opt/mealie/mealie.env
-    mv -f /opt/mealie/start.sh.bak /opt/mealie/start.sh
+    mv -f /opt/mealie_bak/mealie.env.bak /opt/mealie/mealie.env
+    mv -f /opt/mealie_bak/start.sh.bak /opt/mealie/start.sh
     chmod +x /opt/mealie/start.sh
+    sed -i 's|exec .*|source /opt/mealie/.venv/bin/activate\nexec uv run mealie|' /opt/mealie/start.sh
     msg_ok "Configuration restored"
 
     msg_info "Starting Service"
@@ -79,6 +73,7 @@ EOF
     msg_ok "Started Service"
     msg_ok "Updated successfully"
   fi
+
   exit
 }
 
