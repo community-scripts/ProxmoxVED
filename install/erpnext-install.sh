@@ -355,7 +355,7 @@ cat >/etc/apache2/sites-available/erpnext.conf <<EOF_APACHE
     ProxyPassReverse / http://127.0.0.1:8000/
 
     # Additional headers for proxy
-    RequestHeader set X-Frappe-Site-Name %{HTTP_HOST}s
+    RequestHeader set X-Frappe-Site-Name erpnext.local
     RequestHeader set X-Forwarded-Proto "http"
     RequestHeader set X-Forwarded-For %{REMOTE_ADDR}s
 </VirtualHost>
