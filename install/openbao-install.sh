@@ -93,7 +93,6 @@ cluster_addr = "http://127.0.0.1:8201"
 api_addr     = "http://0.0.0.0:8200"
 ui           = true
 
-disable_mlock = false
 log_level      = "info"
 EOF_CONF
 chown openbao:openbao /etc/openbao/config.hcl
