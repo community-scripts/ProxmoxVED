@@ -27,11 +27,9 @@ IP=$(ip -4 addr show "$IFACE" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n
 if [[ -f "/etc/alpine-release" ]]; then
   OS="Alpine"
   SERVICE_PATH="/etc/init.d/qbittorrent-exporter"
-  PKG_MANAGER="apk add --no-cache"
 elif [[ -f "/etc/debian_version" ]]; then
   OS="Debian"
   SERVICE_PATH="/etc/systemd/system/qbittorrent-exporter.service"
-  PKG_MANAGER="apt-get install -y"
 else
   echo -e "${CROSS} Unsupported OS detected. Exiting."
   exit 1
@@ -61,11 +59,11 @@ if [[ -f "$INSTALL_PATH" ]]; then
   read -r update_prompt
   if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
 
-    fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"
+    fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" 
     setup_go
     msg_info "Updating ${APP}"
     cd /opt/qbittorrent-exporter
-    /usr/local/bin/go get -d=true -v
+    /usr/local/bin/go get -d=true -v &>/dev/null
     cd src
     /usr/local/bin/go build -o ./qbittorrent-exporter
     msg_ok "Updated ${APP}"
@@ -94,11 +92,11 @@ if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   exit 0
 fi
 
-fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"
+fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "1.12.0"
 setup_go
 msg_info "Installing ${APP} on ${OS}"
 cd /opt/qbittorrent-exporter
-/usr/local/bin/go get -d=true -v
+/usr/local/bin/go get -d -v &>/dev/null
 cd src
 /usr/local/bin/go build -o ./qbittorrent-exporter
 msg_ok "Installed ${APP}"
