@@ -15,7 +15,7 @@ INSTALL_PATH="/opt/qbittorrent-exporter/src/qbittorrent-exporter"
 CONFIG_PATH="/opt/qbittorrent-exporter.env"
 header_info
 ensure_usr_local_bin_persist
-get_current_ip
+get_current_ip &>/dev/null
 
 # OS Detection
 if [[ -f "/etc/alpine-release" ]]; then
