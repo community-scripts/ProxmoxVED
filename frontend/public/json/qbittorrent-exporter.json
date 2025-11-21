@@ -2,8 +2,7 @@
   "name": "qbittorren Exporter",
   "slug": "qbittorrent-exporter",
   "categories": [
-    1,
-    11
+    9
   ],
   "date_created": "2025-11-21",
   "type": "addon",
