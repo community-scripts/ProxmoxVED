@@ -19,7 +19,7 @@ fi
 msg_info "Installing Dependencies"
 $STD apt install -y \
     git \
-    nginx \
+    apache2 \
     gettext-base \
     libpango-1.0-0 \
     libharfbuzz0b \
@@ -226,16 +226,17 @@ WantedBy=multi-user.target
 "
 
 create_service "erpnext-frontend" "[Unit]
-Description=ERPNext Frontend (nginx)
+Description=ERPNext Frontend (Apache)
 After=network.target
 
 [Service]
 Type=notify
 User=root
 Group=root
-ExecStart=/usr/sbin/nginx -g 'daemon off;'
-ExecReload=/usr/sbin/nginx -s reload
-KillSignal=QUIT
+ExecStartPre=/usr/sbin/apache2ctl configtest
+ExecStart=/usr/sbin/apache2ctl -D FOREGROUND
+ExecReload=/usr/sbin/apache2ctl graceful
+KillSignal=SIGTERM
 Restart=always
 
 [Install]
@@ -297,66 +298,80 @@ WantedBy=multi-user.target
 
 msg_ok "Systemd units created"
 
-msg_info "Configuring nginx"
-mkdir -p /etc/nginx/conf.d
-cat >/etc/nginx/conf.d/erpnext.conf <<EOF_NGINX
-upstream erpnext_backend {
-    server 127.0.0.1:8000;
-}
+msg_info "Configuring Apache"
 
-upstream erpnext_socketio {
-    server 127.0.0.1:9000;
-}
+# Enable required Apache modules
+a2enmod proxy proxy_http proxy_wstunnel headers rewrite remoteip
 
-server {
-    listen 80 default_server;
-    server_name _;
+# Disable the default site
+a2dissite 000-default
 
-    access_log /var/log/nginx/erpnext.access.log;
-    error_log /var/log/nginx/erpnext.error.log;
+# Create Apache configuration for ERPNext
+cat >/etc/apache2/sites-available/erpnext.conf <<EOF_APACHE
+<VirtualHost *:80>
+    ServerName _
 
-    root /home/frappe/bench/sites;
+    ErrorLog /var/log/apache2/erpnext.error.log
+    CustomLog /var/log/apache2/erpnext.access.log combined
 
-    set_real_ip_from 127.0.0.1;
-    real_ip_header X-Forwarded-For;
-    real_ip_recursive off;
+    DocumentRoot /home/frappe/bench/sites
 
-    client_max_body_size 50m;
+    # Set real IP from proxy
+    RemoteIPHeader X-Forwarded-For
+    RemoteIPInternalProxy 127.0.0.1
 
-    location /assets {
-        try_files \$uri =404;
-    }
+    # Client max body size (50MB)
+    LimitRequestBody 52428800
 
-    location /socket.io {
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header Host \$http_host;
-        proxy_set_header Origin \$scheme://\$http_host;
-        proxy_read_timeout 120;
-        proxy_pass http://erpnext_socketio/socket.io;
-    }
+    # Proxy settings
+    ProxyRequests Off
+    ProxyPreserveHost On
+    ProxyTimeout 120
 
-    location / {
-        proxy_http_version 1.1;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header Host \$http_host;
-        proxy_set_header X-Frappe-Site-Name \$host;
-        proxy_read_timeout 120;
-        proxy_pass http://erpnext_backend;
-    }
-}
-EOF_NGINX
+    # Static assets
+    <Directory /home/frappe/bench/sites>
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    Alias /assets /home/frappe/bench/sites/assets
+    <Location /assets>
+        ProxyPass !
+    </Location>
+
+    # WebSocket proxy for socket.io
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} websocket [NC]
+    RewriteCond %{HTTP:Connection} upgrade [NC]
+    RewriteRule ^/socket.io/(.*) ws://127.0.0.1:9000/socket.io/\$1 [P,L]
+
+    # Regular socket.io proxy (non-websocket)
+    ProxyPass /socket.io http://127.0.0.1:9000/socket.io
+    ProxyPassReverse /socket.io http://127.0.0.1:9000/socket.io
+
+    # Backend proxy
+    ProxyPass / http://127.0.0.1:8000/
+    ProxyPassReverse / http://127.0.0.1:8000/
+
+    # Additional headers for proxy
+    RequestHeader set X-Frappe-Site-Name %{HTTP_HOST}s
+    RequestHeader set X-Forwarded-Proto "http"
+    RequestHeader set X-Forwarded-For %{REMOTE_ADDR}s
+</VirtualHost>
+EOF_APACHE
+
+    # Enable the ERPNext site
+    a2ensite erpnext
 
     # Create actual log files instead of symlinks (LXC containers don't support /dev/stdout symlinks)
-    touch /var/log/nginx/erpnext.access.log
-    touch /var/log/nginx/erpnext.error.log
-    rm -f /etc/nginx/sites-enabled/default
-    systemctl disable -q --now nginx >/dev/null 2>&1 || true
-    msg_ok "nginx configured"
+    touch /var/log/apache2/erpnext.access.log
+    touch /var/log/apache2/erpnext.error.log
+
+    # Disable the default Apache service as we'll use our custom systemd service
+    systemctl disable -q --now apache2 >/dev/null 2>&1 || true
+
+    msg_ok "Apache configured"
 
 
 chown -R frappe:frappe /home/frappe
@@ -380,8 +395,8 @@ msg_ok "Services enabled"
 msg_info "Storing administrator credentials"
 {
     echo "ERPNext Administrator"
-    echo "Site: erpnext.local
-    echo "Password: Password123
+    echo "Site: erpnext.local"
+    echo "Password: Password123"
     if [[ -n "$SITE_DB_PASSWORD" ]]; then
         echo "Database Password: ${SITE_DB_PASSWORD}"
     fi
