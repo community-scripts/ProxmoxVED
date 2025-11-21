@@ -230,7 +230,7 @@ Description=ERPNext Frontend (Apache)
 After=network.target
 
 [Service]
-Type=notify
+Type=simple
 User=root
 Group=root
 ExecStartPre=/usr/sbin/apache2ctl configtest
