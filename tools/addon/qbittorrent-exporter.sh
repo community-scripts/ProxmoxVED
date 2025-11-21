@@ -155,4 +155,4 @@ EOF
 fi
 
 msg_ok "Service created successfully"
-echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://$IP:8090${CL}"
+echo -e "${CM} ${GN}${APP} is reachable at: ${BL}http://$IP:8090/metrics${CL}"
