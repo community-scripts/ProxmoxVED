@@ -133,10 +133,10 @@ if [[ -z "$backend_url" ]]; then
     # Default to local IP if user doesn't provide one
     LOCAL_IP=$(hostname -I | awk '{print $1}')
     ENTE_BACKEND_URL="http://$LOCAL_IP:8080"
-    msg_info "No URL provided, using local IP: $ENTE_BACKEND_URL"
+    msg_info "No URL provided, using local IP: $ENTE_BACKEND_URL\n"
 else
     ENTE_BACKEND_URL="$backend_url"
-    msg_info "Using provided URL: $ENTE_BACKEND_URL"
+    msg_info "Using provided URL: $ENTE_BACKEND_URL\n"
 fi
 
 # Prompt for albums URL
@@ -144,10 +144,10 @@ read -r -p "Enter the public URL for Ente albums (e.g., https://albums.ente.your
 if [[ -z "$albums_url" ]]; then
     LOCAL_IP=$(hostname -I | awk '{print $1}')
     ENTE_ALBUMS_URL="http://$LOCAL_IP:3002"
-    msg_info "No URL provided, using local IP: $ENTE_ALBUMS_URL"
+    msg_info "No URL provided, using local IP: $ENTE_ALBUMS_URL\n"
 else
     ENTE_ALBUMS_URL="$albums_url"
-    msg_info "Using provided URL: $ENTE_ALBUMS_URL"
+    msg_info "Using provided URL: $ENTE_ALBUMS_URL\n"
 fi
 
 export NEXT_PUBLIC_ENTE_ENDPOINT=$ENTE_BACKEND_URL
@@ -160,7 +160,7 @@ export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=$ENTE_ALBUMS_URL
 EOF
 msg_ok "Saved to bashrc"
 
-msg_info "Building Web Applications"
+msg_info "Building Web Applications\n"
 cd /opt/ente/web
 $STD yarn install
 $STD yarn build
@@ -229,5 +229,3 @@ msg_info "Cleaning up"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
-
-msg_info "If you want to use the Ente CLI, please follow the instructions at https://ente.io/help/self-hosting/administration/cli"
