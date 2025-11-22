@@ -1795,7 +1795,16 @@ install_script() {
   fi
 
   NEXTID=$(pvesh get /cluster/nextid)
-  timezone=$(cat /etc/timezone)
+
+  # Get timezone using timedatectl (Debian 13+ compatible)
+  # Fallback to /etc/timezone for older systems
+  if command -v timedatectl >/dev/null 2>&1; then
+    timezone=$(timedatectl show --value --property=Timezone 2>/dev/null || echo "UTC")
+  elif [ -f /etc/timezone ]; then
+    timezone=$(cat /etc/timezone)
+  else
+    timezone="UTC"
+  fi
 
   # Show APP Header
   header_info
@@ -2714,7 +2723,9 @@ EOF'
     fi
 
     if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
-      pct exec "$CTID" -- bash -c "tz='$tz'; echo \"\$tz\" >/etc/timezone && ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime"
+      # Set timezone using symlink (Debian 13+ compatible)
+      # Create /etc/timezone for backwards compatibility with older scripts
+      pct exec "$CTID" -- bash -c "tz='$tz'; ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime && echo \"\$tz\" >/etc/timezone || true"
     else
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
