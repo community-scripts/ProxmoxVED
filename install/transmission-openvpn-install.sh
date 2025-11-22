@@ -16,15 +16,15 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-    dnsutils \
-    iputils-ping \
-    ufw \
-    iproute2
+  dnsutils \
+  iputils-ping \
+  ufw \
+  iproute2
 mkdir -p /etc/systemd/system-preset
-echo "disable *" > /etc/systemd/system-preset/99-no-autostart.preset
+echo "disable *" >/etc/systemd/system-preset/99-no-autostart.preset
 $STD apt install -y \
-    transmission-daemon \
-    privoxy
+  transmission-daemon \
+  privoxy
 rm -f /etc/systemd/system-preset/99-no-autostart.preset
 $STD systemctl preset-all
 $STD systemctl disable --now transmission-daemon
@@ -49,12 +49,13 @@ chmod +x /opt/privoxy/*.sh
 $STD ln -s /usr/bin/transmission-daemon /usr/local/bin/transmission-daemon
 $STD update-alternatives --set iptables /usr/sbin/iptables-legacy
 $STD update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+rm -rf /opt/docker-transmission-openvpn
 msg_ok "Configured transmission-openvpn"
 
 msg_info "Creating Service"
 LOCAL_SUBNETS=$(
-  ip -o -4 addr show \
-  | awk '!/127.0.0.1/ {
+  ip -o -4 addr show |
+    awk '!/127.0.0.1/ {
       split($4, a, "/"); ip=a[1]; mask=a[2];
       split(ip, o, ".");
       if (mask < 8) {
@@ -66,12 +67,12 @@ LOCAL_SUBNETS=$(
       } else {
         print o[1]"."o[2]"."o[3]".*";
       }
-    }' \
-  | sort -u | paste -sd, -
+    }' |
+    sort -u | paste -sd, -
 )
 TRANSMISSION_RPC_WHITELIST="127.0.0.*,${LOCAL_SUBNETS}"
 mkdir -p /opt/transmission-openvpn
-cat <<EOF > "/opt/transmission-openvpn/.env"
+cat <<EOF >"/opt/transmission-openvpn/.env"
 OPENVPN_USERNAME="username"
 OPENVPN_PASSWORD="password"
 OPENVPN_PROVIDER="PIA"
@@ -111,7 +112,7 @@ LOG_TO_STDOUT="false"
 HEALTH_CHECK_HOST="google.com"
 SELFHEAL="false"
 EOF
-cat <<EOF > /etc/systemd/system/openvpn-custom.service
+cat <<EOF >/etc/systemd/system/openvpn-custom.service
 [Unit]
 Description=Custom OpenVPN start service
 After=network.target
@@ -126,15 +127,9 @@ EnvironmentFile=/opt/transmission-openvpn/.env
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable --now -q openvpn-custom.service
+systemctl enable -q --now openvpn-custom
 msg_ok "Created Service"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt -y autoremove
-$STD apt -y autoclean
-$STD apt -y clean
-rm -rf /opt/docker-transmission-openvpn
-msg_ok "Cleaned"
+cleanup_lxc
