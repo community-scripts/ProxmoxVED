@@ -73,12 +73,11 @@ $STD chmod +x /opt/ente/cli/dist/ente
 msg_ok "Downloaded Ente CLI"
 
 msg_info "Configuring Ente CLI"
-$STD export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/dist/secrets.txt
-$STD export PATH="/opt/ente/cli/dist:$PATH"
 cat <<EOF >>~/.bashrc
 export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/dist/secrets.txt
 export PATH="/opt/ente/cli/dist:$PATH"
 EOF
+$STD source ~/.bashrc
 $STD rm ~/.ente
 $STD mkdir -p ~/.ente
 cat <<EOF >~/.ente/config.yaml
