@@ -94,7 +94,7 @@ EOF
 msg_ok "Built Frontend"
 
 msg_info "Setting up Backend"
-cd /opt/endurain/backend || exit
+cd /opt/endurain/backend
 $STD uv tool install poetry
 $STD uv tool update-shell
 $STD export PATH="/root/.local/bin:$PATH"
