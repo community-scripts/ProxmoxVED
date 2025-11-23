@@ -99,8 +99,6 @@ $STD bundle install
 $STD gem install sidekiq
 $STD npm install --global corepack
 corepack enable yarn
-# $STD corepack prepare $YARN_VERSION --activate
-# $STD corepack use $YARN_VERSION
 chown manyfold:manyfold /opt/.env
 rm /opt/manyfold/config/credentials.yml.enc
 $STD bin/rails credentials:edit
