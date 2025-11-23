@@ -1,0 +1,34 @@
+{
+    "name": "Wanderer",
+    "slug": "wanderer",
+    "categories": [
+        0
+    ],
+    "date_created": "DATE CREATED",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://wanderer.to/welcome",
+    "website": "https://wanderer.to",
+    "logo": "https://github.com/Flomp/wanderer/blob/main/docs/src/assets/logo_dark.svg",
+    "description": "Wanderer is a decentralized, self-hosted trail database. You can upload your recorded GPS tracks or create new ones and add various metadata to build an easily searchable catalogue.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/AppName.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 8,
+                "os": "debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": []
+}
