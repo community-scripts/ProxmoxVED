@@ -7,9 +7,9 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 
 APP="Alpine"
 var_tags="${var_tags:-os;alpine}"
-var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-512}"
-var_disk="${var_disk:-1}"
+var_cpu="${var_cpu:-4}"
+var_ram="${var_ram:-4096}"
+var_disk="${var_disk:-5}"
 var_os="${var_os:-alpine}"
 var_version="${var_version:-3.22}"
 var_unprivileged="${var_unprivileged:-1}"

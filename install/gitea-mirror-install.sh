@@ -13,21 +13,7 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing dependencies"
-$STD apt-get install -y \
-  build-essential \
-  openssl \
-  sqlite3 \
-  unzip
-msg_ok "Installed Dependencies"
-
-msg_info "Installing Bun"
-export BUN_INSTALL=/opt/bun
-curl -fsSL https://bun.sh/install | $STD bash
-ln -sf /opt/bun/bin/bun /usr/local/bin/bun
-ln -sf /opt/bun/bin/bun /usr/local/bin/bunx
-msg_ok "Installed Bun"
-
+NODE_VERSION="22" NODE_MODULES="bun" setup_nodejs
 fetch_and_deploy_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror"
 
 msg_info "Installing gitea-mirror"
@@ -70,8 +56,4 @@ msg_ok "Created Service"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc

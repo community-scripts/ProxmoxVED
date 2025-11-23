@@ -1,18 +1,42 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: tteck (tteckster) | MickLesk | michelroegl-brunner
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
 # Revision: 1
+
+# ==============================================================================
+# BUILD.FUNC - LXC CONTAINER BUILD & CONFIGURATION
+# ==============================================================================
+#
+# This file provides the main build functions for creating and configuring
+# LXC containers in Proxmox VE. It handles:
+#
+#   - Variable initialization and defaults
+#   - Container creation and resource allocation
+#   - Storage selection and management
+#   - Advanced configuration and customization
+#   - User interaction menus and prompts
+#
+# Usage:
+#   - Sourced automatically by CT creation scripts
+#   - Requires core.func and error_handler.func to be loaded first
+#
+# ==============================================================================
+
+# ==============================================================================
+# SECTION 1: INITIALIZATION & CORE VARIABLES
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # variables()
 #
-# - Normalize application name (NSAPP = lowercase, no spaces)
-# - Build installer filename (var_install)
-# - Define regex for integer validation
-# - Fetch hostname of Proxmox node
-# - Set default values for diagnostics/method
-# - Generate random UUID for tracking
+# - Initializes core variables for container creation
+# - Normalizes application name (NSAPP = lowercase, no spaces)
+# - Builds installer filename (var_install)
+# - Defines regex patterns for validation
+# - Fetches Proxmox hostname and version
+# - Generates unique session ID for tracking and logging
+# - Captures app-declared resource defaults (CPU, RAM, Disk)
 # ------------------------------------------------------------------------------
 variables() {
   NSAPP=$(echo "${APP,,}" | tr -d ' ')              # This function sets the NSAPP variable by converting the value of the APP variable to lowercase and removing any spaces.
@@ -22,8 +46,39 @@ variables() {
   DIAGNOSTICS="yes"                                 # sets the DIAGNOSTICS variable to "yes", used for the API call.
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
+  SESSION_ID="${RANDOM_UUID:0:8}"                   # Short session ID (first 8 chars of UUID) for log files
+  BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"     # Host-side container creation log
   CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
-  #CT_TYPE=${var_unprivileged:-$CT_TYPE}
+
+  # Parse dev_mode early
+  parse_dev_mode
+
+  # Setup persistent log directory if logs mode active
+  if [[ "${DEV_MODE_LOGS:-false}" == "true" ]]; then
+    mkdir -p /var/log/community-scripts
+    BUILD_LOG="/var/log/community-scripts/create-lxc-${SESSION_ID}-$(date +%Y%m%d_%H%M%S).log"
+  fi
+
+  # Get Proxmox VE version and kernel version
+  if command -v pveversion >/dev/null 2>&1; then
+    PVEVERSION="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
+  else
+    PVEVERSION="N/A"
+  fi
+  KERNEL_VERSION=$(uname -r)
+
+  # Capture app-declared defaults (for precedence logic)
+  # These values are set by the app script BEFORE default.vars is loaded
+  # If app declares higher values than default.vars, app values take precedence
+  if [[ -n "${var_cpu:-}" && "${var_cpu}" =~ ^[0-9]+$ ]]; then
+    export APP_DEFAULT_CPU="${var_cpu}"
+  fi
+  if [[ -n "${var_ram:-}" && "${var_ram}" =~ ^[0-9]+$ ]]; then
+    export APP_DEFAULT_RAM="${var_ram}"
+  fi
+  if [[ -n "${var_disk:-}" && "${var_disk}" =~ ^[0-9]+$ ]]; then
+    export APP_DEFAULT_DISK="${var_disk}"
+  fi
 }
 
 # -----------------------------------------------------------------------------
@@ -145,6 +200,10 @@ elif command -v wget >/dev/null 2>&1; then
   #echo "(build.func) Loaded core.func via wget"
 fi
 
+# ==============================================================================
+# SECTION 2: PRE-FLIGHT CHECKS & SYSTEM VALIDATION
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # maxkeys_check()
 #
@@ -195,8 +254,12 @@ maxkeys_check() {
     exit 1
   fi
 
-  echo -e "${CM}${GN} All kernel key limits are within safe thresholds.${CL}"
+  # Silent success - only show errors if they exist
 }
+
+# ==============================================================================
+# SECTION 3: CONTAINER SETUP UTILITIES
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # get_current_ip()
@@ -204,6 +267,7 @@ maxkeys_check() {
 # - Returns current container IP depending on OS type
 # - Debian/Ubuntu: uses `hostname -I`
 # - Alpine: parses eth0 via `ip -4 addr`
+# - Returns "Unknown" if OS type cannot be determined
 # ------------------------------------------------------------------------------
 get_current_ip() {
   if [ -f /etc/os-release ]; then
@@ -271,89 +335,6 @@ install_ssh_keys_into_ct() {
 }
 
 # ------------------------------------------------------------------------------
-# base_settings()
-#
-# - Defines all base/default variables for container creation
-# - Reads from environment variables (var_*)
-# - Provides fallback defaults for OS type/version
-# ------------------------------------------------------------------------------
-base_settings() {
-  # Default Settings
-  CT_TYPE=${var_unprivileged:-"1"}
-  DISK_SIZE=${var_disk:-"4"}
-  CORE_COUNT=${var_cpu:-"1"}
-  RAM_SIZE=${var_ram:-"1024"}
-  VERBOSE=${var_verbose:-"${1:-no}"}
-  PW=${var_pw:-""}
-  CT_ID=${var_ctid:-$NEXTID}
-  HN=${var_hostname:-$NSAPP}
-  BRG=${var_brg:-"vmbr0"}
-  NET=${var_net:-"dhcp"}
-  IPV6_METHOD=${var_ipv6_method:-"none"}
-  IPV6_STATIC=${var_ipv6_static:-""}
-  GATE=${var_gateway:-""}
-  APT_CACHER=${var_apt_cacher:-""}
-  APT_CACHER_IP=${var_apt_cacher_ip:-""}
-  MTU=${var_mtu:-""}
-  SD=${var_storage:-""}
-  NS=${var_ns:-""}
-  MAC=${var_mac:-""}
-  VLAN=${var_vlan:-""}
-  SSH=${var_ssh:-"no"}
-  SSH_AUTHORIZED_KEY=${var_ssh_authorized_key:-""}
-  UDHCPC_FIX=${var_udhcpc_fix:-""}
-  TAGS="community-script,${var_tags:-}"
-  ENABLE_FUSE=${var_fuse:-"${1:-no}"}
-  ENABLE_TUN=${var_tun:-"${1:-no}"}
-
-  # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
-  if [ -z "$var_os" ]; then
-    var_os="debian"
-  fi
-  if [ -z "$var_version" ]; then
-    var_version="12"
-  fi
-}
-
-# ------------------------------------------------------------------------------
-# echo_default()
-#
-# - Prints summary of default values (ID, OS, type, disk, RAM, CPU, etc.)
-# - Uses icons and formatting for readability
-# - Convert CT_TYPE to description
-# ------------------------------------------------------------------------------
-echo_default() {
-  CT_TYPE_DESC="Unprivileged"
-  if [ "$CT_TYPE" -eq 0 ]; then
-    CT_TYPE_DESC="Privileged"
-  fi
-
-  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
-  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os ($var_version)${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
-  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
-  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
-  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
-  if [ "$VERBOSE" == "yes" ]; then
-    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
-  fi
-  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
-  echo -e "  "
-}
-
-# ------------------------------------------------------------------------------
-# exit_script()
-#
-# - Called when user cancels an action
-# - Clears screen and exits gracefully
-# ------------------------------------------------------------------------------
-exit_script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
-}
-
-# ------------------------------------------------------------------------------
 # find_host_ssh_keys()
 #
 # - Scans system for available SSH keys
@@ -413,13 +394,749 @@ find_host_ssh_keys() {
   )
 }
 
+# ==============================================================================
+# SECTION 4: STORAGE & RESOURCE MANAGEMENT
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# _write_storage_to_vars()
+#
+# - Writes storage selection to vars file
+# - Removes old entries (commented and uncommented) to avoid duplicates
+# - Arguments: vars_file, key (var_container_storage/var_template_storage), value
+# ------------------------------------------------------------------------------
+_write_storage_to_vars() {
+  # $1 = vars_file, $2 = key (var_container_storage / var_template_storage), $3 = value
+  local vf="$1" key="$2" val="$3"
+  # remove uncommented and commented versions to avoid duplicates
+  sed -i "/^[#[:space:]]*${key}=/d" "$vf"
+  echo "${key}=${val}" >>"$vf"
+}
+
+choose_and_set_storage_for_file() {
+  # $1 = vars_file, $2 = class ('container'|'template')
+  local vf="$1" class="$2" key="" current=""
+  case "$class" in
+  container) key="var_container_storage" ;;
+  template) key="var_template_storage" ;;
+  *)
+    msg_error "Unknown storage class: $class"
+    return 1
+    ;;
+  esac
+
+  current=$(awk -F= -v k="^${key}=" '$0 ~ k {print $2; exit}' "$vf")
+
+  # If only one storage exists for the content type, auto-pick. Else always ask (your wish #4).
+  local content="rootdir"
+  [[ "$class" == "template" ]] && content="vztmpl"
+  local count
+  count=$(pvesm status -content "$content" | awk 'NR>1{print $1}' | wc -l)
+
+  if [[ "$count" -eq 1 ]]; then
+    STORAGE_RESULT=$(pvesm status -content "$content" | awk 'NR>1{print $1; exit}')
+    STORAGE_INFO=""
+  else
+    # If the current value is preselectable, we could show it, but per your requirement we always offer selection
+    select_storage "$class" || return 1
+  fi
+
+  _write_storage_to_vars "$vf" "$key" "$STORAGE_RESULT"
+
+  # Keep environment in sync for later steps (e.g. app-default save)
+  if [[ "$class" == "container" ]]; then
+    export var_container_storage="$STORAGE_RESULT"
+    export CONTAINER_STORAGE="$STORAGE_RESULT"
+  else
+    export var_template_storage="$STORAGE_RESULT"
+    export TEMPLATE_STORAGE="$STORAGE_RESULT"
+  fi
+
+  # Silent operation - no output message
+}
+
+# ==============================================================================
+# SECTION 5: CONFIGURATION & DEFAULTS MANAGEMENT
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# base_settings()
+#
+# - Defines all base/default variables for container creation
+# - Reads from environment variables (var_*)
+# - Provides fallback defaults for OS type/version
+# - App-specific values take precedence when they are HIGHER (for CPU, RAM, DISK)
+# - Sets up container type, resources, network, SSH, features, and tags
+# ------------------------------------------------------------------------------
+base_settings() {
+  # Default Settings
+  CT_TYPE=${var_unprivileged:-"1"}
+
+  # Resource allocation: App defaults take precedence if HIGHER
+  # Compare app-declared values (saved in APP_DEFAULT_*) with current var_* values
+  local final_disk="${var_disk:-4}"
+  local final_cpu="${var_cpu:-1}"
+  local final_ram="${var_ram:-1024}"
+
+  # If app declared higher values, use those instead
+  if [[ -n "${APP_DEFAULT_DISK:-}" && "${APP_DEFAULT_DISK}" =~ ^[0-9]+$ ]]; then
+    if [[ "${APP_DEFAULT_DISK}" -gt "${final_disk}" ]]; then
+      final_disk="${APP_DEFAULT_DISK}"
+    fi
+  fi
+
+  if [[ -n "${APP_DEFAULT_CPU:-}" && "${APP_DEFAULT_CPU}" =~ ^[0-9]+$ ]]; then
+    if [[ "${APP_DEFAULT_CPU}" -gt "${final_cpu}" ]]; then
+      final_cpu="${APP_DEFAULT_CPU}"
+    fi
+  fi
+
+  if [[ -n "${APP_DEFAULT_RAM:-}" && "${APP_DEFAULT_RAM}" =~ ^[0-9]+$ ]]; then
+    if [[ "${APP_DEFAULT_RAM}" -gt "${final_ram}" ]]; then
+      final_ram="${APP_DEFAULT_RAM}"
+    fi
+  fi
+
+  DISK_SIZE="${final_disk}"
+  CORE_COUNT="${final_cpu}"
+  RAM_SIZE="${final_ram}"
+  VERBOSE=${var_verbose:-"${1:-no}"}
+  PW=${var_pw:-""}
+  CT_ID=${var_ctid:-$NEXTID}
+  HN=${var_hostname:-$NSAPP}
+  BRG=${var_brg:-"vmbr0"}
+  NET=${var_net:-"dhcp"}
+  IPV6_METHOD=${var_ipv6_method:-"none"}
+  IPV6_STATIC=${var_ipv6_static:-""}
+  GATE=${var_gateway:-""}
+  APT_CACHER=${var_apt_cacher:-""}
+  APT_CACHER_IP=${var_apt_cacher_ip:-""}
+
+  # Runtime check: Verify APT cacher is reachable if configured
+  if [[ -n "$APT_CACHER_IP" && "$APT_CACHER" == "yes" ]]; then
+    if ! curl -s --connect-timeout 2 "http://${APT_CACHER_IP}:3142" >/dev/null 2>&1; then
+      msg_warn "APT Cacher configured but not reachable at ${APT_CACHER_IP}:3142"
+      msg_custom "⚠️" "${YW}" "Disabling APT Cacher for this installation"
+      APT_CACHER=""
+      APT_CACHER_IP=""
+    else
+      msg_ok "APT Cacher verified at ${APT_CACHER_IP}:3142"
+    fi
+  fi
+
+  MTU=${var_mtu:-""}
+  SD=${var_storage:-""}
+  NS=${var_ns:-""}
+  MAC=${var_mac:-""}
+  VLAN=${var_vlan:-""}
+  SSH=${var_ssh:-"no"}
+  SSH_AUTHORIZED_KEY=${var_ssh_authorized_key:-""}
+  UDHCPC_FIX=${var_udhcpc_fix:-""}
+  TAGS="community-script,${var_tags:-}"
+  ENABLE_FUSE=${var_fuse:-"${1:-no}"}
+  ENABLE_TUN=${var_tun:-"${1:-no}"}
+  ENABLE_NESTING=${var_nesting:-"${1:-1}"}
+  ENABLE_KEYCTL=${var_keyctl:-"${1:-0}"}
+  ALLOW_MOUNT_FS=${var_mount_fs:-""}
+  ENABLE_MKNOD=${var_mknod:-"${1:-0}"}
+  PROTECT_CT=${var_protection:-"${1:-no}"}
+  CT_TIMEZONE=${var_timezone:-""}
+
+  # Normalize feature flags to 0/1 immediately (pct requires numeric values, not yes/no)
+  # This must happen here before any usage of these variables
+  case "${ENABLE_NESTING,,}" in
+  yes | true) ENABLE_NESTING="1" ;;
+  no | false) ENABLE_NESTING="0" ;;
+  esac
+  case "${ENABLE_KEYCTL,,}" in
+  yes | true) ENABLE_KEYCTL="1" ;;
+  no | false) ENABLE_KEYCTL="0" ;;
+  esac
+  case "${ENABLE_MKNOD,,}" in
+  yes | true) ENABLE_MKNOD="1" ;;
+  no | false) ENABLE_MKNOD="0" ;;
+  esac
+  case "${ENABLE_FUSE,,}" in
+  yes | true) ENABLE_FUSE="1" ;;
+  no | false) ENABLE_FUSE="0" ;;
+  esac
+  case "${PROTECT_CT,,}" in
+  yes | true) PROTECT_CT="1" ;;
+  no | false) PROTECT_CT="0" ;;
+  esac
+
+  # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
+  if [ -z "$var_os" ]; then
+    var_os="debian"
+  fi
+  if [ -z "$var_version" ]; then
+    var_version="12"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# default_var_settings
+#
+# - Ensures /usr/local/community-scripts/default.vars exists (creates if missing)
+# - Loads var_* values from default.vars (safe parser, no source/eval)
+# - Precedence: ENV var_* > default.vars > built-in defaults
+# - Maps var_verbose → VERBOSE
+# - Calls base_settings "$VERBOSE" and echo_default
+# ------------------------------------------------------------------------------
+default_var_settings() {
+  # Allowed var_* keys (alphabetically sorted)
+  # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
+  local VAR_WHITELIST=(
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_keyctl
+    var_gateway var_hostname var_ipv6_method var_mac var_mknod var_mount_fs var_mtu
+    var_net var_nesting var_ns var_protection var_pw var_ram var_tags var_timezone var_tun var_unprivileged
+    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
+  )
+
+  # Snapshot: environment variables (highest precedence)
+  declare -A _HARD_ENV=()
+  local _k
+  for _k in "${VAR_WHITELIST[@]}"; do
+    if printenv "$_k" >/dev/null 2>&1; then _HARD_ENV["$_k"]=1; fi
+  done
+
+  # Find default.vars location
+  local _find_default_vars
+  _find_default_vars() {
+    local f
+    for f in \
+      /usr/local/community-scripts/default.vars \
+      "$HOME/.config/community-scripts/default.vars" \
+      "./default.vars"; do
+      [ -f "$f" ] && {
+        echo "$f"
+        return 0
+      }
+    done
+    return 1
+  }
+  # Allow override of storages via env (for non-interactive use cases)
+  [ -n "${var_template_storage:-}" ] && TEMPLATE_STORAGE="$var_template_storage"
+  [ -n "${var_container_storage:-}" ] && CONTAINER_STORAGE="$var_container_storage"
+
+  # Create once, with storages already selected, no var_ctid/var_hostname lines
+  local _ensure_default_vars
+  _ensure_default_vars() {
+    _find_default_vars >/dev/null 2>&1 && return 0
+
+    local canonical="/usr/local/community-scripts/default.vars"
+    # Silent creation - no msg_info output
+    mkdir -p /usr/local/community-scripts
+
+    # Pick storages before writing the file (always ask unless only one)
+    # Create a minimal temp file to write into
+    : >"$canonical"
+
+    # Base content (no var_ctid / var_hostname here)
+    cat >"$canonical" <<'EOF'
+# Community-Scripts defaults (var_* only). Lines starting with # are comments.
+# Precedence: ENV var_* > default.vars > built-ins.
+# Keep keys alphabetically sorted.
+
+# Container type
+var_unprivileged=1
+
+# Resources
+var_cpu=1
+var_disk=4
+var_ram=1024
+
+# Network
+var_brg=vmbr0
+var_net=dhcp
+var_ipv6_method=none
+# var_gateway=
+# var_vlan=
+# var_mtu=
+# var_mac=
+# var_ns=
+
+# SSH
+var_ssh=no
+# var_ssh_authorized_key=
+
+# APT cacher (optional - with example)
+# var_apt_cacher=yes
+# var_apt_cacher_ip=192.168.1.10
+
+# Features/Tags/verbosity
+var_fuse=no
+var_tun=no
+
+# Advanced Settings (Proxmox-official features)
+var_nesting=1          # Allow nesting (required for Docker/LXC in CT)
+var_keyctl=0           # Allow keyctl() - needed for Docker (systemd-networkd workaround)
+var_mknod=0            # Allow device node creation (requires kernel 5.3+, experimental)
+var_mount_fs=          # Allow specific filesystems: nfs,fuse,ext4,etc (leave empty for defaults)
+var_protection=no      # Prevent accidental deletion of container
+var_timezone=          # Container timezone (e.g. Europe/Berlin, leave empty for host timezone)
+var_tags=community-script
+var_verbose=no
+
+# Security (root PW) – empty => autologin
+# var_pw=
+EOF
+
+    # Now choose storages (always prompt unless just one exists)
+    choose_and_set_storage_for_file "$canonical" template
+    choose_and_set_storage_for_file "$canonical" container
+
+    chmod 0644 "$canonical"
+    # Silent creation - no output message
+  }
+
+  # Whitelist check
+  local _is_whitelisted_key
+  _is_whitelisted_key() {
+    local k="$1"
+    local w
+    for w in "${VAR_WHITELIST[@]}"; do [ "$k" = "$w" ] && return 0; done
+    return 1
+  }
+
+  # Safe parser for KEY=VALUE lines
+  local _load_vars_file
+  _load_vars_file() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+    msg_info "Loading defaults from ${file}"
+    local line key val
+    while IFS= read -r line || [ -n "$line" ]; do
+      line="${line#"${line%%[![:space:]]*}"}"
+      line="${line%"${line##*[![:space:]]}"}"
+      [[ -z "$line" || "$line" == \#* ]] && continue
+      if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+        local var_key="${BASH_REMATCH[1]}"
+        local var_val="${BASH_REMATCH[2]}"
+
+        [[ "$var_key" != var_* ]] && continue
+        _is_whitelisted_key "$var_key" || {
+          msg_debug "Ignore non-whitelisted ${var_key}"
+          continue
+        }
+
+        # Strip quotes
+        if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
+          var_val="${BASH_REMATCH[1]}"
+        elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
+          var_val="${BASH_REMATCH[1]}"
+        fi
+
+        # Unsafe characters
+        case $var_val in
+        \"*\")
+          var_val=${var_val#\"}
+          var_val=${var_val%\"}
+          ;;
+        \'*\')
+          var_val=${var_val#\'}
+          var_val=${var_val%\'}
+          ;;
+        esac # Hard env wins
+        [[ -n "${_HARD_ENV[$var_key]:-}" ]] && continue
+        # Set only if not already exported
+        [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
+      else
+        msg_warn "Malformed line in ${file}: ${line}"
+      fi
+    done <"$file"
+    msg_ok "Loaded ${file}"
+  }
+
+  # 1) Ensure file exists
+  _ensure_default_vars
+
+  # 2) Load file
+  local dv
+  dv="$(_find_default_vars)" || {
+    msg_error "default.vars not found after ensure step"
+    return 1
+  }
+  _load_vars_file "$dv"
+
+  # 3) Map var_verbose → VERBOSE
+  if [[ -n "${var_verbose:-}" ]]; then
+    case "${var_verbose,,}" in 1 | yes | true | on) VERBOSE="yes" ;; 0 | no | false | off) VERBOSE="no" ;; *) VERBOSE="${var_verbose}" ;; esac
+  else
+    VERBOSE="no"
+  fi
+
+  # 4) Apply base settings and show summary
+  METHOD="mydefaults-global"
+  base_settings "$VERBOSE"
+  header_info
+  echo -e "${DEFAULT}${BOLD}${BL}Using My Defaults (default.vars) on node $PVEHOST_NAME${CL}"
+  echo_default
+}
+
+# ------------------------------------------------------------------------------
+# get_app_defaults_path()
+#
+# - Returns full path for app-specific defaults file
+# - Example: /usr/local/community-scripts/defaults/<app>.vars
+# ------------------------------------------------------------------------------
+
+get_app_defaults_path() {
+  local n="${NSAPP:-${APP,,}}"
+  echo "/usr/local/community-scripts/defaults/${n}.vars"
+}
+
+# ------------------------------------------------------------------------------
+# maybe_offer_save_app_defaults
+#
+# - Called after advanced_settings returned with fully chosen values.
+# - If no <nsapp>.vars exists, offers to persist current advanced settings
+#   into /usr/local/community-scripts/defaults/<nsapp>.vars
+# - Only writes whitelisted var_* keys.
+# - Extracts raw values from flags like ",gw=..." ",mtu=..." etc.
+# ------------------------------------------------------------------------------
+if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
+  # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
+  declare -ag VAR_WHITELIST=(
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse
+    var_gateway var_hostname var_ipv6_method var_mac var_mtu
+    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
+    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
+  )
+fi
+
+# Note: _is_whitelisted_key() is defined above in default_var_settings section
+
+_sanitize_value() {
+  # Disallow Command-Substitution / Shell-Meta
+  case "$1" in
+  *'$('* | *'`'* | *';'* | *'&'* | *'<('*)
+    echo ""
+    return 0
+    ;;
+  esac
+  echo "$1"
+}
+
+# Map-Parser: read var_* from file into _VARS_IN associative array
+# Note: Main _load_vars_file() with full validation is defined in default_var_settings section
+# This simplified version is used specifically for diff operations via _VARS_IN array
+declare -A _VARS_IN
+_load_vars_file_to_map() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+  _VARS_IN=() # Clear array
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [ -z "$line" ] && continue
+    case "$line" in
+    \#*) continue ;;
+    esac
+    key=$(printf "%s" "$line" | cut -d= -f1)
+    val=$(printf "%s" "$line" | cut -d= -f2-)
+    case "$key" in
+    var_*)
+      if _is_whitelisted_key "$key"; then
+        _VARS_IN["$key"]="$val"
+      fi
+      ;;
+    esac
+  done <"$file"
+}
+
+# Diff function for two var_* files -> produces human-readable diff list for $1 (old) vs $2 (new)
+_build_vars_diff() {
+  local oldf="$1" newf="$2"
+  local k
+  local -A OLD=() NEW=()
+  _load_vars_file_to_map "$oldf"
+  for k in "${!_VARS_IN[@]}"; do OLD["$k"]="${_VARS_IN[$k]}"; done
+  _load_vars_file_to_map "$newf"
+  for k in "${!_VARS_IN[@]}"; do NEW["$k"]="${_VARS_IN[$k]}"; done
+
+  local out
+  out+="# Diff for ${APP} (${NSAPP})\n"
+  out+="# Old: ${oldf}\n# New: ${newf}\n\n"
+
+  local found_change=0
+
+  # Changed & Removed
+  for k in "${!OLD[@]}"; do
+    if [[ -v NEW["$k"] ]]; then
+      if [[ "${OLD[$k]}" != "${NEW[$k]}" ]]; then
+        out+="~ ${k}\n    - old: ${OLD[$k]}\n    + new: ${NEW[$k]}\n"
+        found_change=1
+      fi
+    else
+      out+="- ${k}\n    - old: ${OLD[$k]}\n"
+      found_change=1
+    fi
+  done
+
+  # Added
+  for k in "${!NEW[@]}"; do
+    if [[ ! -v OLD["$k"] ]]; then
+      out+="+ ${k}\n    + new: ${NEW[$k]}\n"
+      found_change=1
+    fi
+  done
+
+  if [[ $found_change -eq 0 ]]; then
+    out+="(No differences)\n"
+  fi
+
+  printf "%b" "$out"
+}
+
+# Build a temporary <app>.vars file from current advanced settings
+_build_current_app_vars_tmp() {
+  tmpf="$(mktemp /tmp/${NSAPP:-app}.vars.new.XXXXXX)"
+
+  # NET/GW
+  _net="${NET:-}"
+  _gate=""
+  case "${GATE:-}" in
+  ,gw=*) _gate=$(echo "$GATE" | sed 's/^,gw=//') ;;
+  esac
+
+  # IPv6
+  _ipv6_method="${IPV6_METHOD:-auto}"
+  _ipv6_static=""
+  _ipv6_gateway=""
+  if [ "$_ipv6_method" = "static" ]; then
+    _ipv6_static="${IPV6_ADDR:-}"
+    _ipv6_gateway="${IPV6_GATE:-}"
+  fi
+
+  # MTU/VLAN/MAC
+  _mtu=""
+  _vlan=""
+  _mac=""
+  case "${MTU:-}" in
+  ,mtu=*) _mtu=$(echo "$MTU" | sed 's/^,mtu=//') ;;
+  esac
+  case "${VLAN:-}" in
+  ,tag=*) _vlan=$(echo "$VLAN" | sed 's/^,tag=//') ;;
+  esac
+  case "${MAC:-}" in
+  ,hwaddr=*) _mac=$(echo "$MAC" | sed 's/^,hwaddr=//') ;;
+  esac
+
+  # DNS / Searchdomain
+  _ns=""
+  _searchdomain=""
+  case "${NS:-}" in
+  -nameserver=*) _ns=$(echo "$NS" | sed 's/^-nameserver=//') ;;
+  esac
+  case "${SD:-}" in
+  -searchdomain=*) _searchdomain=$(echo "$SD" | sed 's/^-searchdomain=//') ;;
+  esac
+
+  # SSH / APT / Features
+  _ssh="${SSH:-no}"
+  _ssh_auth="${SSH_AUTHORIZED_KEY:-}"
+  _apt_cacher="${APT_CACHER:-}"
+  _apt_cacher_ip="${APT_CACHER_IP:-}"
+  _fuse="${ENABLE_FUSE:-no}"
+  _tun="${ENABLE_TUN:-no}"
+  _nesting="${ENABLE_NESTING:-1}"
+  _keyctl="${ENABLE_KEYCTL:-0}"
+  _mknod="${ENABLE_MKNOD:-0}"
+  _mount_fs="${ALLOW_MOUNT_FS:-}"
+  _protect="${PROTECT_CT:-no}"
+  _timezone="${CT_TIMEZONE:-}"
+  _tags="${TAGS:-}"
+  _verbose="${VERBOSE:-no}"
+
+  # Type / Resources / Identity
+  _unpriv="${CT_TYPE:-1}"
+  _cpu="${CORE_COUNT:-1}"
+  _ram="${RAM_SIZE:-1024}"
+  _disk="${DISK_SIZE:-4}"
+  _hostname="${HN:-$NSAPP}"
+
+  # Storage
+  _tpl_storage="${TEMPLATE_STORAGE:-${var_template_storage:-}}"
+  _ct_storage="${CONTAINER_STORAGE:-${var_container_storage:-}}"
+
+  {
+    echo "# App-specific defaults for ${APP} (${NSAPP})"
+    echo "# Generated on $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    echo
+
+    echo "var_unprivileged=$(_sanitize_value "$_unpriv")"
+    echo "var_cpu=$(_sanitize_value "$_cpu")"
+    echo "var_ram=$(_sanitize_value "$_ram")"
+    echo "var_disk=$(_sanitize_value "$_disk")"
+
+    [ -n "${BRG:-}" ] && echo "var_brg=$(_sanitize_value "$BRG")"
+    [ -n "$_net" ] && echo "var_net=$(_sanitize_value "$_net")"
+    [ -n "$_gate" ] && echo "var_gateway=$(_sanitize_value "$_gate")"
+    [ -n "$_mtu" ] && echo "var_mtu=$(_sanitize_value "$_mtu")"
+    [ -n "$_vlan" ] && echo "var_vlan=$(_sanitize_value "$_vlan")"
+    [ -n "$_mac" ] && echo "var_mac=$(_sanitize_value "$_mac")"
+    [ -n "$_ns" ] && echo "var_ns=$(_sanitize_value "$_ns")"
+
+    [ -n "$_ipv6_method" ] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
+    # var_ipv6_static removed - static IPs are unique, can't be default
+
+    [ -n "$_ssh" ] && echo "var_ssh=$(_sanitize_value "$_ssh")"
+    [ -n "$_ssh_auth" ] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
+
+    [ -n "$_apt_cacher" ] && echo "var_apt_cacher=$(_sanitize_value "$_apt_cacher")"
+    [ -n "$_apt_cacher_ip" ] && echo "var_apt_cacher_ip=$(_sanitize_value "$_apt_cacher_ip")"
+
+    [ -n "$_fuse" ] && echo "var_fuse=$(_sanitize_value "$_fuse")"
+    [ -n "$_tun" ] && echo "var_tun=$(_sanitize_value "$_tun")"
+    [ -n "$_nesting" ] && echo "var_nesting=$(_sanitize_value "$_nesting")"
+    [ -n "$_keyctl" ] && echo "var_keyctl=$(_sanitize_value "$_keyctl")"
+    [ -n "$_mknod" ] && echo "var_mknod=$(_sanitize_value "$_mknod")"
+    [ -n "$_mount_fs" ] && echo "var_mount_fs=$(_sanitize_value "$_mount_fs")"
+    [ -n "$_protect" ] && echo "var_protection=$(_sanitize_value "$_protect")"
+    [ -n "$_timezone" ] && echo "var_timezone=$(_sanitize_value "$_timezone")"
+    [ -n "$_tags" ] && echo "var_tags=$(_sanitize_value "$_tags")"
+    [ -n "$_verbose" ] && echo "var_verbose=$(_sanitize_value "$_verbose")"
+
+    [ -n "$_hostname" ] && echo "var_hostname=$(_sanitize_value "$_hostname")"
+    [ -n "$_searchdomain" ] && echo "var_searchdomain=$(_sanitize_value "$_searchdomain")"
+
+    [ -n "$_tpl_storage" ] && echo "var_template_storage=$(_sanitize_value "$_tpl_storage")"
+    [ -n "$_ct_storage" ] && echo "var_container_storage=$(_sanitize_value "$_ct_storage")"
+  } >"$tmpf"
+
+  echo "$tmpf"
+}
+
+# ------------------------------------------------------------------------------
+# maybe_offer_save_app_defaults()
+#
+# - Called after advanced_settings()
+# - Offers to save current values as app defaults if not existing
+# - If file exists: shows diff and allows Update, Keep, View Diff, or Cancel
+# ------------------------------------------------------------------------------
+maybe_offer_save_app_defaults() {
+  local app_vars_path
+  app_vars_path="$(get_app_defaults_path)"
+
+  # always build from current settings
+  local new_tmp diff_tmp
+  new_tmp="$(_build_current_app_vars_tmp)"
+  diff_tmp="$(mktemp -p /tmp "${NSAPP:-app}.vars.diff.XXXXXX")"
+
+  # 1) if no file → offer to create
+  if [[ ! -f "$app_vars_path" ]]; then
+    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --yesno "Save these advanced settings as defaults for ${APP}?\n\nThis will create:\n${app_vars_path}" 12 72; then
+      mkdir -p "$(dirname "$app_vars_path")"
+      install -m 0644 "$new_tmp" "$app_vars_path"
+      msg_ok "Saved app defaults: ${app_vars_path}"
+    fi
+    rm -f "$new_tmp" "$diff_tmp"
+    return 0
+  fi
+
+  # 2) if file exists → build diff
+  _build_vars_diff "$app_vars_path" "$new_tmp" >"$diff_tmp"
+
+  # if no differences → do nothing
+  if grep -q "^(No differences)$" "$diff_tmp"; then
+    rm -f "$new_tmp" "$diff_tmp"
+    return 0
+  fi
+
+  # 3) if file exists → show menu with default selection "Update Defaults"
+  local app_vars_file
+  app_vars_file="$(basename "$app_vars_path")"
+
+  while true; do
+    local sel
+    sel="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+      --title "APP DEFAULTS – ${APP}" \
+      --menu "Differences detected. What do you want to do?" 20 78 10 \
+      "Update Defaults" "Write new values to ${app_vars_file}" \
+      "Keep Current" "Keep existing defaults (no changes)" \
+      "View Diff" "Show a detailed diff" \
+      "Cancel" "Abort without changes" \
+      --default-item "Update Defaults" \
+      3>&1 1>&2 2>&3)" || { sel="Cancel"; }
+
+    case "$sel" in
+    "Update Defaults")
+      install -m 0644 "$new_tmp" "$app_vars_path"
+      msg_ok "Updated app defaults: ${app_vars_path}"
+      break
+      ;;
+    "Keep Current")
+      msg_custom "ℹ️" "${BL}" "Keeping current app defaults: ${app_vars_path}"
+      break
+      ;;
+    "View Diff")
+      whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+        --title "Diff – ${APP}" \
+        --scrolltext --textbox "$diff_tmp" 25 100
+      ;;
+    "Cancel" | *)
+      msg_custom "🚫" "${YW}" "Canceled. No changes to app defaults."
+      break
+      ;;
+    esac
+  done
+
+  rm -f "$new_tmp" "$diff_tmp"
+}
+
+ensure_storage_selection_for_vars_file() {
+  local vf="$1"
+
+  # Read stored values (if any)
+  local tpl ct
+  tpl=$(grep -E '^var_template_storage=' "$vf" | cut -d= -f2-)
+  ct=$(grep -E '^var_container_storage=' "$vf" | cut -d= -f2-)
+
+  if [[ -n "$tpl" && -n "$ct" ]]; then
+    TEMPLATE_STORAGE="$tpl"
+    CONTAINER_STORAGE="$ct"
+    return 0
+  fi
+
+  choose_and_set_storage_for_file "$vf" template
+  choose_and_set_storage_for_file "$vf" container
+
+  # Silent operation - no output message
+}
+
+ensure_global_default_vars_file() {
+  local vars_path="/usr/local/community-scripts/default.vars"
+  if [[ ! -f "$vars_path" ]]; then
+    mkdir -p "$(dirname "$vars_path")"
+    touch "$vars_path"
+  fi
+  echo "$vars_path"
+}
+
+# ==============================================================================
+# SECTION 6: ADVANCED INTERACTIVE CONFIGURATION
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # advanced_settings()
 #
-# - Interactive whiptail menu for advanced configuration
-# - Lets user set container type, password, CT ID, hostname, disk, CPU, RAM
-# - Supports IPv4/IPv6, DNS, MAC, VLAN, tags, SSH keys, FUSE, verbose mode
-# - Ends with confirmation or re-entry if cancelled
+# - Interactive whiptail menu for comprehensive container configuration
+# - Allows user to customize:
+#   * Container type (privileged/unprivileged)
+#   * Root password
+#   * Container ID (CTID)
+#   * Hostname
+#   * Resources (disk size, CPU cores, RAM)
+#   * Network (IPv4/IPv6, gateway, DNS, MAC, VLAN, MTU)
+#   * SSH settings and key injection
+#   * Advanced features (FUSE, TUN, keyctl)
+#   * Tags for organization
+#   * Verbose/debug mode
+# - Loops until user confirms or cancels
+# - Validates all input and shows current selections
 # ------------------------------------------------------------------------------
 advanced_settings() {
   whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar." 8 58
@@ -438,7 +1155,8 @@ advanced_settings() {
           if [ "$CT_TYPE" -eq 0 ]; then
             CT_TYPE_DESC="Privileged"
           fi
-          echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os | ${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
+          echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
+          echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os |${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
           echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
         fi
       else
@@ -455,6 +1173,7 @@ advanced_settings() {
           if [ "$CT_TYPE" -eq 0 ]; then
             CT_TYPE_DESC="Privileged"
           fi
+          echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
           echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
           echo -e "${OSVERSION}${BOLD}${DGN}Version: ${BGN}$var_version${CL}"
           echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
@@ -504,7 +1223,7 @@ advanced_settings() {
     fi
   done
 
- if CT_ID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Container ID" 8 58 "$NEXTID" --title "CONTAINER ID" 3>&1 1>&2 2>&3); then
+  if CT_ID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Container ID" 8 58 "$NEXTID" --title "CONTAINER ID" 3>&1 1>&2 2>&3); then
     if [ -z "$CT_ID" ]; then
       CT_ID="$NEXTID"
     fi
@@ -859,6 +1578,51 @@ advanced_settings() {
   configure_ssh_settings
   export SSH_KEYS_FILE
   echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
+
+  # Advanced Settings - Proxmox Features
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS" --yesno "Configure Advanced Proxmox Features?" 10 58); then
+    # keyctl: for Docker support
+    if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "Enable keyctl()" --yesno "Allow keyctl() system calls?\n\nNeeded for: Docker inside container, systemd-networkd\nDefault: No (not needed for most applications)" 10 58); then
+      ENABLE_KEYCTL="1"
+    else
+      ENABLE_KEYCTL="0"
+    fi
+    echo -e "${SEARCH}${BOLD}${DGN}Allow keyctl(): ${BGN}$ENABLE_KEYCTL${CL}"
+
+    # mknod: device node creation
+    if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "Enable mknod()" --yesno "Allow device node creation?\n\nNeeded for: Complex device management (experimental, kernel 5.3+)\nDefault: No (rarely needed)" 10 58); then
+      ENABLE_MKNOD="1"
+    else
+      ENABLE_MKNOD="0"
+    fi
+    echo -e "${SEARCH}${BOLD}${DGN}Allow mknod(): ${BGN}$ENABLE_MKNOD${CL}"
+
+    # mount: specific filesystems
+    if MOUNT_FS=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allow specific filesystems (e.g., nfs,fuse,ext4)\nLeave blank for defaults" 8 58 "$ALLOW_MOUNT_FS" --title "Mount Filesystems" 3>&1 1>&2 2>&3); then
+      ALLOW_MOUNT_FS="$MOUNT_FS"
+      [ -z "$ALLOW_MOUNT_FS" ] && ALLOW_MOUNT_FS="(defaults)"
+    else
+      exit_script
+    fi
+    echo -e "${SEARCH}${BOLD}${DGN}Mount Filesystems: ${BGN}$ALLOW_MOUNT_FS${CL}"
+
+    # Container protection
+    if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "Protection Flag" --yesno "Prevent accidental deletion?\n\nIf enabled, container cannot be deleted or its disk modified\nDefault: No" 10 58); then
+      PROTECT_CT="yes"
+    else
+      PROTECT_CT="no"
+    fi
+    echo -e "${SEARCH}${BOLD}${DGN}Container Protection: ${BGN}$PROTECT_CT${CL}"
+
+    # Container timezone
+    if CT_TIMEZONE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set container timezone (e.g., Europe/Berlin)\nLeave blank to use host timezone" 8 58 "$CT_TIMEZONE" --title "Container Timezone" 3>&1 1>&2 2>&3); then
+      [ -z "$CT_TIMEZONE" ] && CT_TIMEZONE="(host)"
+    else
+      exit_script
+    fi
+    echo -e "${SEARCH}${BOLD}${DGN}Container Timezone: ${BGN}$CT_TIMEZONE${CL}"
+  fi
+
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
     ENABLE_FUSE="yes"
   else
@@ -878,10 +1642,15 @@ advanced_settings() {
   else
     clear
     header_info
+    echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings on node $PVEHOST_NAME${CL}"
     advanced_settings
   fi
 }
+
+# ==============================================================================
+# SECTION 7: USER INTERFACE & DIAGNOSTICS
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # diagnostics_check()
@@ -889,6 +1658,9 @@ advanced_settings() {
 # - Ensures diagnostics config file exists at /usr/local/community-scripts/diagnostics
 # - Asks user whether to send anonymous diagnostic data
 # - Saves DIAGNOSTICS=yes/no in the config file
+# - Creates file if missing with default DIAGNOSTICS=yes
+# - Reads current diagnostics setting from file
+# - Sets global DIAGNOSTICS variable for API telemetry opt-in/out
 # ------------------------------------------------------------------------------
 diagnostics_check() {
   if ! [ -d "/usr/local/community-scripts" ]; then
@@ -951,523 +1723,6 @@ EOF
     DIAGNOSTICS=$(awk -F '=' '/^DIAGNOSTICS/ {print $2}' /usr/local/community-scripts/diagnostics)
 
   fi
-
-}
-
-# ------------------------------------------------------------------------------
-# default_var_settings
-#
-# - Ensures /usr/local/community-scripts/default.vars exists (creates if missing)
-# - Loads var_* values from default.vars (safe parser, no source/eval)
-# - Precedence: ENV var_* > default.vars > built-in defaults
-# - Maps var_verbose → VERBOSE
-# - Calls base_settings "$VERBOSE" and echo_default
-# ------------------------------------------------------------------------------
-default_var_settings() {
-  # Allowed var_* keys (alphabetically sorted)
-  local VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_ctid var_disk var_fuse
-    var_gateway var_hostname var_ipv6_method var_ipv6_static var_mac var_mtu
-    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
-    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
-  )
-
-  # Snapshot: environment variables (highest precedence)
-  declare -A _HARD_ENV=()
-  local _k
-  for _k in "${VAR_WHITELIST[@]}"; do
-    if printenv "$_k" >/dev/null 2>&1; then _HARD_ENV["$_k"]=1; fi
-  done
-
-  # Find default.vars location
-  local _find_default_vars
-  _find_default_vars() {
-    local f
-    for f in \
-      /usr/local/community-scripts/default.vars \
-      "$HOME/.config/community-scripts/default.vars" \
-      "./default.vars"; do
-      [ -f "$f" ] && {
-        echo "$f"
-        return 0
-      }
-    done
-    return 1
-  }
-  # Allow override of storages via env (for non-interactive use cases)
-  [ -n "${var_template_storage:-}" ] && TEMPLATE_STORAGE="$var_template_storage"
-  [ -n "${var_container_storage:-}" ] && CONTAINER_STORAGE="$var_container_storage"
-
-  # Create once, with storages already selected, no var_ctid/var_hostname lines
-  local _ensure_default_vars
-  _ensure_default_vars() {
-    _find_default_vars >/dev/null 2>&1 && return 0
-
-    local canonical="/usr/local/community-scripts/default.vars"
-    msg_info "No default.vars found. Creating ${canonical}"
-    mkdir -p /usr/local/community-scripts
-
-    # Pick storages before writing the file (always ask unless only one)
-    # Create a minimal temp file to write into
-    : >"$canonical"
-
-    # Base content (no var_ctid / var_hostname here)
-    cat >"$canonical" <<'EOF'
-# Community-Scripts defaults (var_* only). Lines starting with # are comments.
-# Precedence: ENV var_* > default.vars > built-ins.
-# Keep keys alphabetically sorted.
-
-# Container type
-var_unprivileged=1
-
-# Resources
-var_cpu=1
-var_disk=4
-var_ram=1024
-
-# Network
-var_brg=vmbr0
-var_net=dhcp
-var_ipv6_method=none
-# var_gateway=
-# var_ipv6_static=
-# var_vlan=
-# var_mtu=
-# var_mac=
-# var_ns=
-
-# SSH
-var_ssh=no
-# var_ssh_authorized_key=
-
-# APT cacher (optional)
-# var_apt_cacher=yes
-# var_apt_cacher_ip=192.168.1.10
-
-# Features/Tags/verbosity
-var_fuse=no
-var_tun=no
-var_tags=community-script
-var_verbose=no
-
-# Security (root PW) – empty => autologin
-# var_pw=
-EOF
-
-    # Now choose storages (always prompt unless just one exists)
-    choose_and_set_storage_for_file "$canonical" template
-    choose_and_set_storage_for_file "$canonical" container
-
-    chmod 0644 "$canonical"
-    msg_ok "Created ${canonical}"
-  }
-
-  # Whitelist check
-  local _is_whitelisted_key
-  _is_whitelisted_key() {
-    local k="$1"
-    local w
-    for w in "${VAR_WHITELIST[@]}"; do [ "$k" = "$w" ] && return 0; done
-    return 1
-  }
-
-  # Safe parser for KEY=VALUE lines
-  local _load_vars_file
-  _load_vars_file() {
-    local file="$1"
-    [ -f "$file" ] || return 0
-    msg_info "Loading defaults from ${file}"
-    local line key val
-    while IFS= read -r line || [ -n "$line" ]; do
-      line="${line#"${line%%[![:space:]]*}"}"
-      line="${line%"${line##*[![:space:]]}"}"
-      [[ -z "$line" || "$line" == \#* ]] && continue
-      if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
-        local var_key="${BASH_REMATCH[1]}"
-        local var_val="${BASH_REMATCH[2]}"
-
-        [[ "$var_key" != var_* ]] && continue
-        _is_whitelisted_key "$var_key" || {
-          msg_debug "Ignore non-whitelisted ${var_key}"
-          continue
-        }
-
-        # Strip quotes
-        if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
-          var_val="${BASH_REMATCH[1]}"
-        elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
-          var_val="${BASH_REMATCH[1]}"
-        fi
-
-        # Unsafe characters
-        case $var_val in
-        \"*\")
-          var_val=${var_val#\"}
-          var_val=${var_val%\"}
-          ;;
-        \'*\')
-          var_val=${var_val#\'}
-          var_val=${var_val%\'}
-          ;;
-        esac # Hard env wins
-        [[ -n "${_HARD_ENV[$var_key]:-}" ]] && continue
-        # Set only if not already exported
-        [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
-      else
-        msg_warn "Malformed line in ${file}: ${line}"
-      fi
-    done <"$file"
-    msg_ok "Loaded ${file}"
-  }
-
-  # 1) Ensure file exists
-  _ensure_default_vars
-
-  # 2) Load file
-  local dv
-  dv="$(_find_default_vars)" || {
-    msg_error "default.vars not found after ensure step"
-    return 1
-  }
-  _load_vars_file "$dv"
-
-  # 3) Map var_verbose → VERBOSE
-  if [[ -n "${var_verbose:-}" ]]; then
-    case "${var_verbose,,}" in 1 | yes | true | on) VERBOSE="yes" ;; 0 | no | false | off) VERBOSE="no" ;; *) VERBOSE="${var_verbose}" ;; esac
-  else
-    VERBOSE="no"
-  fi
-
-  # 4) Apply base settings and show summary
-  METHOD="mydefaults-global"
-  base_settings "$VERBOSE"
-  header_info
-  echo -e "${DEFAULT}${BOLD}${BL}Using My Defaults (default.vars) on node $PVEHOST_NAME${CL}"
-  echo_default
-}
-
-# ------------------------------------------------------------------------------
-# get_app_defaults_path()
-#
-# - Returns full path for app-specific defaults file
-# - Example: /usr/local/community-scripts/defaults/<app>.vars
-# ------------------------------------------------------------------------------
-
-get_app_defaults_path() {
-  local n="${NSAPP:-${APP,,}}"
-  echo "/usr/local/community-scripts/defaults/${n}.vars"
-}
-
-# ------------------------------------------------------------------------------
-# maybe_offer_save_app_defaults
-#
-# - Called after advanced_settings returned with fully chosen values.
-# - If no <nsapp>.vars exists, offers to persist current advanced settings
-#   into /usr/local/community-scripts/defaults/<nsapp>.vars
-# - Only writes whitelisted var_* keys.
-# - Extracts raw values from flags like ",gw=..." ",mtu=..." etc.
-# ------------------------------------------------------------------------------
-if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
-  declare -ag VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_ctid var_disk var_fuse
-    var_gateway var_hostname var_ipv6_method var_ipv6_static var_mac var_mtu
-    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
-    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
-  )
-fi
-
-_is_whitelisted_key() {
-  local k="$1"
-  local w
-  for w in "${VAR_WHITELIST[@]}"; do [[ "$k" == "$w" ]] && return 0; done
-  return 1
-}
-
-_sanitize_value() {
-  # Disallow Command-Substitution / Shell-Meta
-  case "$1" in
-  *'$('* | *'`'* | *';'* | *'&'* | *'<('*)
-    echo ""
-    return 0
-    ;;
-  esac
-  echo "$1"
-}
-
-# Map-Parser: read var_* from file into _VARS_IN associative array
-declare -A _VARS_IN
-_load_vars_file() {
-  local file="$1"
-  [ -f "$file" ] || return 0
-  msg_info "Loading defaults from ${file}"
-  local line key val
-  while IFS= read -r line || [ -n "$line" ]; do
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
-    [ -z "$line" ] && continue
-    case "$line" in
-    \#*) continue ;;
-    esac
-    key=$(printf "%s" "$line" | cut -d= -f1)
-    val=$(printf "%s" "$line" | cut -d= -f2-)
-    case "$key" in
-    var_*)
-      if _is_whitelisted_key "$key"; then
-        [ -z "${!key+x}" ] && export "$key=$val"
-      fi
-      ;;
-    esac
-  done <"$file"
-  msg_ok "Loaded ${file}"
-}
-
-# Diff function for two var_* files -> produces human-readable diff list for $1 (old) vs $2 (new)
-_build_vars_diff() {
-  local oldf="$1" newf="$2"
-  local k
-  local -A OLD=() NEW=()
-  _load_vars_file_to_map "$oldf"
-  for k in "${!_VARS_IN[@]}"; do OLD["$k"]="${_VARS_IN[$k]}"; done
-  _load_vars_file_to_map "$newf"
-  for k in "${!_VARS_IN[@]}"; do NEW["$k"]="${_VARS_IN[$k]}"; done
-
-  local out
-  out+="# Diff for ${APP} (${NSAPP})\n"
-  out+="# Old: ${oldf}\n# New: ${newf}\n\n"
-
-  local found_change=0
-
-  # Changed & Removed
-  for k in "${!OLD[@]}"; do
-    if [[ -v NEW["$k"] ]]; then
-      if [[ "${OLD[$k]}" != "${NEW[$k]}" ]]; then
-        out+="~ ${k}\n    - old: ${OLD[$k]}\n    + new: ${NEW[$k]}\n"
-        found_change=1
-      fi
-    else
-      out+="- ${k}\n    - old: ${OLD[$k]}\n"
-      found_change=1
-    fi
-  done
-
-  # Added
-  for k in "${!NEW[@]}"; do
-    if [[ ! -v OLD["$k"] ]]; then
-      out+="+ ${k}\n    + new: ${NEW[$k]}\n"
-      found_change=1
-    fi
-  done
-
-  if [[ $found_change -eq 0 ]]; then
-    out+="(No differences)\n"
-  fi
-
-  printf "%b" "$out"
-}
-
-# Build a temporary <app>.vars file from current advanced settings
-_build_current_app_vars_tmp() {
-  tmpf="$(mktemp /tmp/${NSAPP:-app}.vars.new.XXXXXX)"
-
-  # NET/GW
-  _net="${NET:-}"
-  _gate=""
-  case "${GATE:-}" in
-  ,gw=*) _gate=$(echo "$GATE" | sed 's/^,gw=//') ;;
-  esac
-
-  # IPv6
-  _ipv6_method="${IPV6_METHOD:-auto}"
-  _ipv6_static=""
-  _ipv6_gateway=""
-  if [ "$_ipv6_method" = "static" ]; then
-    _ipv6_static="${IPV6_ADDR:-}"
-    _ipv6_gateway="${IPV6_GATE:-}"
-  fi
-
-  # MTU/VLAN/MAC
-  _mtu=""
-  _vlan=""
-  _mac=""
-  case "${MTU:-}" in
-  ,mtu=*) _mtu=$(echo "$MTU" | sed 's/^,mtu=//') ;;
-  esac
-  case "${VLAN:-}" in
-  ,tag=*) _vlan=$(echo "$VLAN" | sed 's/^,tag=//') ;;
-  esac
-  case "${MAC:-}" in
-  ,hwaddr=*) _mac=$(echo "$MAC" | sed 's/^,hwaddr=//') ;;
-  esac
-
-  # DNS / Searchdomain
-  _ns=""
-  _searchdomain=""
-  case "${NS:-}" in
-  -nameserver=*) _ns=$(echo "$NS" | sed 's/^-nameserver=//') ;;
-  esac
-  case "${SD:-}" in
-  -searchdomain=*) _searchdomain=$(echo "$SD" | sed 's/^-searchdomain=//') ;;
-  esac
-
-  # SSH / APT / Features
-  _ssh="${SSH:-no}"
-  _ssh_auth="${SSH_AUTHORIZED_KEY:-}"
-  _apt_cacher="${APT_CACHER:-}"
-  _apt_cacher_ip="${APT_CACHER_IP:-}"
-  _fuse="${ENABLE_FUSE:-no}"
-  _tun="${ENABLE_TUN:-no}"
-  _tags="${TAGS:-}"
-  _verbose="${VERBOSE:-no}"
-
-  # Type / Resources / Identity
-  _unpriv="${CT_TYPE:-1}"
-  _cpu="${CORE_COUNT:-1}"
-  _ram="${RAM_SIZE:-1024}"
-  _disk="${DISK_SIZE:-4}"
-  _hostname="${HN:-$NSAPP}"
-
-  # Storage
-  _tpl_storage="${TEMPLATE_STORAGE:-${var_template_storage:-}}"
-  _ct_storage="${CONTAINER_STORAGE:-${var_container_storage:-}}"
-
-  {
-    echo "# App-specific defaults for ${APP} (${NSAPP})"
-    echo "# Generated on $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-    echo
-
-    echo "var_unprivileged=$(_sanitize_value "$_unpriv")"
-    echo "var_cpu=$(_sanitize_value "$_cpu")"
-    echo "var_ram=$(_sanitize_value "$_ram")"
-    echo "var_disk=$(_sanitize_value "$_disk")"
-
-    [ -n "${BRG:-}" ] && echo "var_brg=$(_sanitize_value "$BRG")"
-    [ -n "$_net" ] && echo "var_net=$(_sanitize_value "$_net")"
-    [ -n "$_gate" ] && echo "var_gateway=$(_sanitize_value "$_gate")"
-    [ -n "$_mtu" ] && echo "var_mtu=$(_sanitize_value "$_mtu")"
-    [ -n "$_vlan" ] && echo "var_vlan=$(_sanitize_value "$_vlan")"
-    [ -n "$_mac" ] && echo "var_mac=$(_sanitize_value "$_mac")"
-    [ -n "$_ns" ] && echo "var_ns=$(_sanitize_value "$_ns")"
-
-    [ -n "$_ipv6_method" ] && echo "var_ipv6_method=$(_sanitize_value "$_ipv6_method")"
-    [ -n "$_ipv6_static" ] && echo "var_ipv6_static=$(_sanitize_value "$_ipv6_static")"
-
-    [ -n "$_ssh" ] && echo "var_ssh=$(_sanitize_value "$_ssh")"
-    [ -n "$_ssh_auth" ] && echo "var_ssh_authorized_key=$(_sanitize_value "$_ssh_auth")"
-
-    [ -n "$_apt_cacher" ] && echo "var_apt_cacher=$(_sanitize_value "$_apt_cacher")"
-    [ -n "$_apt_cacher_ip" ] && echo "var_apt_cacher_ip=$(_sanitize_value "$_apt_cacher_ip")"
-
-    [ -n "$_fuse" ] && echo "var_fuse=$(_sanitize_value "$_fuse")"
-    [ -n "$_tun" ] && echo "var_tun=$(_sanitize_value "$_tun")"
-    [ -n "$_tags" ] && echo "var_tags=$(_sanitize_value "$_tags")"
-    [ -n "$_verbose" ] && echo "var_verbose=$(_sanitize_value "$_verbose")"
-
-    [ -n "$_hostname" ] && echo "var_hostname=$(_sanitize_value "$_hostname")"
-    [ -n "$_searchdomain" ] && echo "var_searchdomain=$(_sanitize_value "$_searchdomain")"
-
-    [ -n "$_tpl_storage" ] && echo "var_template_storage=$(_sanitize_value "$_tpl_storage")"
-    [ -n "$_ct_storage" ] && echo "var_container_storage=$(_sanitize_value "$_ct_storage")"
-  } >"$tmpf"
-
-  echo "$tmpf"
-}
-
-# ------------------------------------------------------------------------------
-# maybe_offer_save_app_defaults()
-#
-# - Called after advanced_settings()
-# - Offers to save current values as app defaults if not existing
-# - If file exists: shows diff and allows Update, Keep, View Diff, or Cancel
-# ------------------------------------------------------------------------------
-maybe_offer_save_app_defaults() {
-  local app_vars_path
-  app_vars_path="$(get_app_defaults_path)"
-
-  # always build from current settings
-  local new_tmp diff_tmp
-  new_tmp="$(_build_current_app_vars_tmp)"
-  diff_tmp="$(mktemp -p /tmp "${NSAPP:-app}.vars.diff.XXXXXX")"
-
-  # 1) if no file → offer to create
-  if [[ ! -f "$app_vars_path" ]]; then
-    if whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --yesno "Save these advanced settings as defaults for ${APP}?\n\nThis will create:\n${app_vars_path}" 12 72; then
-      mkdir -p "$(dirname "$app_vars_path")"
-      install -m 0644 "$new_tmp" "$app_vars_path"
-      msg_ok "Saved app defaults: ${app_vars_path}"
-    fi
-    rm -f "$new_tmp" "$diff_tmp"
-    return 0
-  fi
-
-  # 2) if file exists → build diff
-  _build_vars_diff "$app_vars_path" "$new_tmp" >"$diff_tmp"
-
-  # if no differences → do nothing
-  if grep -q "^(No differences)$" "$diff_tmp"; then
-    rm -f "$new_tmp" "$diff_tmp"
-    return 0
-  fi
-
-  # 3) if file exists → show menu with default selection "Update Defaults"
-  local app_vars_file
-  app_vars_file="$(basename "$app_vars_path")"
-
-  while true; do
-    local sel
-    sel="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-      --title "APP DEFAULTS – ${APP}" \
-      --menu "Differences detected. What do you want to do?" 20 78 10 \
-      "Update Defaults" "Write new values to ${app_vars_file}" \
-      "Keep Current" "Keep existing defaults (no changes)" \
-      "View Diff" "Show a detailed diff" \
-      "Cancel" "Abort without changes" \
-      --default-item "Update Defaults" \
-      3>&1 1>&2 2>&3)" || { sel="Cancel"; }
-
-    case "$sel" in
-    "Update Defaults")
-      install -m 0644 "$new_tmp" "$app_vars_path"
-      msg_ok "Updated app defaults: ${app_vars_path}"
-      break
-      ;;
-    "Keep Current")
-      msg_info "Keeping current app defaults: ${app_vars_path}"
-      break
-      ;;
-    "View Diff")
-      whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
-        --title "Diff – ${APP}" \
-        --scrolltext --textbox "$diff_tmp" 25 100
-      ;;
-    "Cancel" | *)
-      msg_info "Canceled. No changes to app defaults."
-      break
-      ;;
-    esac
-  done
-
-  rm -f "$new_tmp" "$diff_tmp"
-}
-
-ensure_storage_selection_for_vars_file() {
-  local vf="$1"
-
-  # Read stored values (if any)
-  local tpl ct
-  tpl=$(grep -E '^var_template_storage=' "$vf" | cut -d= -f2-)
-  ct=$(grep -E '^var_container_storage=' "$vf" | cut -d= -f2-)
-
-  if [[ -n "$tpl" && -n "$ct" ]]; then
-    TEMPLATE_STORAGE="$tpl"
-    CONTAINER_STORAGE="$ct"
-    return 0
-  fi
-
-  choose_and_set_storage_for_file "$vf" template
-  choose_and_set_storage_for_file "$vf" container
-
-  msg_ok "Storage configuration saved to $(basename "$vf")"
 }
 
 diagnostics_menu() {
@@ -1492,13 +1747,30 @@ diagnostics_menu() {
   fi
 }
 
-ensure_global_default_vars_file() {
-  local vars_path="/usr/local/community-scripts/default.vars"
-  if [[ ! -f "$vars_path" ]]; then
-    mkdir -p "$(dirname "$vars_path")"
-    touch "$vars_path"
+# ------------------------------------------------------------------------------
+# echo_default()
+#
+# - Prints summary of default values (ID, OS, type, disk, RAM, CPU, etc.)
+# - Uses icons and formatting for readability
+# - Convert CT_TYPE to description
+# ------------------------------------------------------------------------------
+echo_default() {
+  CT_TYPE_DESC="Unprivileged"
+  if [ "$CT_TYPE" -eq 0 ]; then
+    CT_TYPE_DESC="Privileged"
   fi
-  echo "$vars_path"
+  echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
+  echo -e "${CONTAINERID}${BOLD}${DGN}Container ID: ${BGN}${CT_ID}${CL}"
+  echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os ($var_version)${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Container Type: ${BGN}$CT_TYPE_DESC${CL}"
+  echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE} GB${CL}"
+  echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE} MiB${CL}"
+  if [ "$VERBOSE" == "yes" ]; then
+    echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}Enabled${CL}"
+  fi
+  echo -e "${CREATING}${BOLD}${BL}Creating a ${APP} LXC using the above default settings${CL}"
+  echo -e "  "
 }
 
 # ------------------------------------------------------------------------------
@@ -1523,7 +1795,16 @@ install_script() {
   fi
 
   NEXTID=$(pvesh get /cluster/nextid)
-  timezone=$(cat /etc/timezone)
+
+  # Get timezone using timedatectl (Debian 13+ compatible)
+  # Fallback to /etc/timezone for older systems
+  if command -v timedatectl >/dev/null 2>&1; then
+    timezone=$(timedatectl show --value --property=Timezone 2>/dev/null || echo "UTC")
+  elif [ -f /etc/timezone ]; then
+    timezone=$(cat /etc/timezone)
+  else
+    timezone="UTC"
+  fi
 
   # Show APP Header
   header_info
@@ -1584,7 +1865,9 @@ install_script() {
     ;;
   2 | advanced | ADVANCED)
     header_info
+
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Install on node $PVEHOST_NAME${CL}"
+    echo -e "${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
     METHOD="advanced"
     base_settings
     advanced_settings
@@ -1649,13 +1932,12 @@ settings_menu() {
     local settings_items=(
       "1" "Manage API-Diagnostic Setting"
       "2" "Edit Default.vars"
-      "3" "Edit Default Storage"
     )
     if [ -f "$(get_app_defaults_path)" ]; then
-      settings_items+=("4" "Edit App.vars for ${APP}")
-      settings_items+=("5" "Exit")
-    else
+      settings_items+=("3" "Edit App.vars for ${APP}")
       settings_items+=("4" "Exit")
+    else
+      settings_items+=("3" "Exit")
     fi
 
     local choice
@@ -1680,57 +1962,6 @@ settings_menu() {
     5) exit_script ;;
     esac
   done
-}
-
-# ===== Unified storage selection & writing to vars files =====
-_write_storage_to_vars() {
-  # $1 = vars_file, $2 = key (var_container_storage / var_template_storage), $3 = value
-  local vf="$1" key="$2" val="$3"
-  # remove uncommented and commented versions to avoid duplicates
-  sed -i "/^[#[:space:]]*${key}=/d" "$vf"
-  echo "${key}=${val}" >>"$vf"
-}
-
-choose_and_set_storage_for_file() {
-  # $1 = vars_file, $2 = class ('container'|'template')
-  local vf="$1" class="$2" key="" current=""
-  case "$class" in
-  container) key="var_container_storage" ;;
-  template) key="var_template_storage" ;;
-  *)
-    msg_error "Unknown storage class: $class"
-    return 1
-    ;;
-  esac
-
-  current=$(awk -F= -v k="^${key}=" '$0 ~ k {print $2; exit}' "$vf")
-
-  # If only one storage exists for the content type, auto-pick. Else always ask (your wish #4).
-  local content="rootdir"
-  [[ "$class" == "template" ]] && content="vztmpl"
-  local count
-  count=$(pvesm status -content "$content" | awk 'NR>1{print $1}' | wc -l)
-
-  if [[ "$count" -eq 1 ]]; then
-    STORAGE_RESULT=$(pvesm status -content "$content" | awk 'NR>1{print $1; exit}')
-    STORAGE_INFO=""
-  else
-    # If the current value is preselectable, we could show it, but per your requirement we always offer selection
-    select_storage "$class" || return 1
-  fi
-
-  _write_storage_to_vars "$vf" "$key" "$STORAGE_RESULT"
-
-  # Keep environment in sync for later steps (e.g. app-default save)
-  if [[ "$class" == "container" ]]; then
-    export var_container_storage="$STORAGE_RESULT"
-    export CONTAINER_STORAGE="$STORAGE_RESULT"
-  else
-    export var_template_storage="$STORAGE_RESULT"
-    export TEMPLATE_STORAGE="$STORAGE_RESULT"
-  fi
-
-  msg_ok "Updated ${key} → ${STORAGE_RESULT}"
 }
 
 # ------------------------------------------------------------------------------
@@ -1999,13 +2230,22 @@ start() {
   fi
 }
 
+# ==============================================================================
+# SECTION 8: CONTAINER CREATION & DEPLOYMENT
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # build_container()
 #
-# - Creates and configures the LXC container
-# - Builds network string and applies features (FUSE, TUN, VAAPI passthrough)
+# - Main function for creating and configuring LXC container
+# - Builds network configuration string (IP, gateway, VLAN, MTU, MAC, IPv6)
+# - Creates container via pct create with all specified settings
+# - Applies features: FUSE, TUN, keyctl, VAAPI passthrough
 # - Starts container and waits for network connectivity
-# - Installs base packages, SSH keys, and runs <app>-install.sh
+# - Installs base packages (curl, sudo, etc.)
+# - Injects SSH keys if configured
+# - Executes <app>-install.sh inside container
+# - Posts installation telemetry to API if diagnostics enabled
 # ------------------------------------------------------------------------------
 build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
@@ -2058,14 +2298,34 @@ build_container() {
   none) ;;
   esac
 
-  if [ "$CT_TYPE" == "1" ]; then
-    FEATURES="keyctl=1,nesting=1"
-  else
-    FEATURES="nesting=1"
+  # Build FEATURES array with advanced settings
+  # Note: All feature flags are already normalized to 0/1 in default_settings()
+  # Proxmox requires each feature as a separate parameter, not comma-separated string
+  FEATURES_ARRAY=()
+  FEATURES_ARRAY+=("nesting=${ENABLE_NESTING}")
+
+  # keyctl: needed for Docker inside containers (systemd-networkd workaround)
+  # Typically needed for unprivileged containers with Docker
+  if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
+    FEATURES_ARRAY+=("keyctl=1")
   fi
 
-  if [ "$ENABLE_FUSE" == "yes" ]; then
-    FEATURES="$FEATURES,fuse=1"
+  # mknod: allow device node creation (requires kernel 5.3+, experimental)
+  if [ "$ENABLE_MKNOD" == "1" ]; then
+    FEATURES_ARRAY+=("mknod=1")
+  fi
+
+  # FUSE: required for rclone, mergerfs, AppImage, etc.
+  if [ "$ENABLE_FUSE" == "1" ]; then
+    FEATURES_ARRAY+=("fuse=1")
+  fi
+
+  # mount: allow specific filesystems (e.g., nfs, ext4, etc.)
+  # Format: mount=fstype1;fstype2;fstype3 (semicolon-separated, not comma!)
+  if [ -n "$ALLOW_MOUNT_FS" ]; then
+    # Replace commas with semicolons for proper pct syntax
+    ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
+    FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
   fi
 
   TEMP_DIR=$(mktemp -d)
@@ -2077,6 +2337,17 @@ build_container() {
   fi
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
+  export SESSION_ID="$SESSION_ID"
+  export BUILD_LOG="$BUILD_LOG"
+  export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
+  export dev_mode="${dev_mode:-}"
+  export DEV_MODE_MOTD="${DEV_MODE_MOTD:-false}"
+  export DEV_MODE_KEEP="${DEV_MODE_KEEP:-false}"
+  export DEV_MODE_TRACE="${DEV_MODE_TRACE:-false}"
+  export DEV_MODE_PAUSE="${DEV_MODE_PAUSE:-false}"
+  export DEV_MODE_BREAKPOINT="${DEV_MODE_BREAKPOINT:-false}"
+  export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
+  export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"
@@ -2090,22 +2361,59 @@ build_container() {
   export CTTYPE="$CT_TYPE"
   export ENABLE_FUSE="$ENABLE_FUSE"
   export ENABLE_TUN="$ENABLE_TUN"
+  export ENABLE_NESTING="$ENABLE_NESTING"
+  export ENABLE_KEYCTL="$ENABLE_KEYCTL"
+  export ENABLE_MKNOD="$ENABLE_MKNOD"
+  export ALLOW_MOUNT_FS="$ALLOW_MOUNT_FS"
+  export PROTECT_CT="$PROTECT_CT"
+  export CT_TIMEZONE="$CT_TIMEZONE"
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
-  export PCT_OPTIONS="
-  -features $FEATURES
-  -hostname $HN
-  -tags $TAGS
-  $SD
-  $NS
-  $NET_STRING
-  -onboot 1
-  -cores $CORE_COUNT
-  -memory $RAM_SIZE
-  -unprivileged $CT_TYPE
-  $PW
-"
+
+  # Build PCT_OPTIONS array (not string) for proper parameter handling
+  PCT_OPTIONS=()
+
+  # Add features - each as separate -features parameter
+  for feature in "${FEATURES_ARRAY[@]}"; do
+    PCT_OPTIONS+=("-features" "$feature")
+  done
+
+  PCT_OPTIONS+=("-hostname" "$HN")
+  PCT_OPTIONS+=("-tags" "$TAGS")
+
+  if [ -n "$SD" ]; then
+    PCT_OPTIONS+=($SD) # Storage device flags (already formatted)
+  fi
+
+  if [ -n "$NS" ]; then
+    PCT_OPTIONS+=($NS) # Nameserver flags (already formatted)
+  fi
+
+  # Network configuration (single string with all network parameters)
+  PCT_OPTIONS+=($NET_STRING)
+
+  PCT_OPTIONS+=("-onboot" "1")
+  PCT_OPTIONS+=("-cores" "$CORE_COUNT")
+  PCT_OPTIONS+=("-memory" "$RAM_SIZE")
+  PCT_OPTIONS+=("-unprivileged" "$CT_TYPE")
+
+  # Protection flag
+  if [ "$PROTECT_CT" == "1" ]; then
+    PCT_OPTIONS+=("-protection" "1")
+  fi
+
+  # Timezone flag
+  if [ -n "$CT_TIMEZONE" ]; then
+    PCT_OPTIONS+=("-timezone" "$CT_TIMEZONE")
+  fi
+
+  # Password flag (already formatted as "-password xxx")
+  if [ -n "$PW" ]; then
+    PCT_OPTIONS+=($PW)
+  fi
+
+  export PCT_OPTIONS
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
   create_lxc_container || exit $?
@@ -2145,7 +2453,7 @@ build_container() {
 
     # Check for Intel GPU - look for Intel vendor ID [8086]
     if echo "$pci_vga_info" | grep -q "\[8086:"; then
-      msg_info "Detected Intel GPU"
+      msg_custom "🎮" "${BL}" "Detected Intel GPU"
       if [[ -d /dev/dri ]]; then
         for d in /dev/dri/renderD* /dev/dri/card*; do
           [[ -e "$d" ]] && INTEL_DEVICES+=("$d")
@@ -2155,7 +2463,7 @@ build_container() {
 
     # Check for AMD GPU - look for AMD vendor IDs [1002] (AMD/ATI) or [1022] (AMD)
     if echo "$pci_vga_info" | grep -qE "\[1002:|\[1022:"; then
-      msg_info "Detected AMD GPU"
+      msg_custom "🎮" "${RD}" "Detected AMD GPU"
       if [[ -d /dev/dri ]]; then
         # Only add if not already claimed by Intel
         if [[ ${#INTEL_DEVICES[@]} -eq 0 ]]; then
@@ -2168,43 +2476,18 @@ build_container() {
 
     # Check for NVIDIA GPU - look for NVIDIA vendor ID [10de]
     if echo "$pci_vga_info" | grep -q "\[10de:"; then
-      msg_info "Detected NVIDIA GPU"
-      if ! check_nvidia_host_setup; then
-        msg_error "NVIDIA host setup incomplete. Skipping GPU passthrough."
-        msg_info "Fix NVIDIA drivers on host, then recreate container or passthrough manually."
-        return 0
-      fi
+      msg_custom "🎮" "${GN}" "Detected NVIDIA GPU"
 
-      for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset; do
+      # Simple passthrough - just bind /dev/nvidia* devices if they exist
+      for d in /dev/nvidia* /dev/nvidiactl /dev/nvidia-modeset /dev/nvidia-uvm /dev/nvidia-uvm-tools; do
         [[ -e "$d" ]] && NVIDIA_DEVICES+=("$d")
       done
 
-      if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
-        msg_warn "NVIDIA GPU detected but no /dev/nvidia* devices found"
-        msg_warn "Please install NVIDIA drivers on host: apt install nvidia-driver"
+      if [[ ${#NVIDIA_DEVICES[@]} -gt 0 ]]; then
+        msg_custom "🎮" "${GN}" "Found ${#NVIDIA_DEVICES[@]} NVIDIA device(s) for passthrough"
       else
-        if [[ "$CT_TYPE" == "0" ]]; then
-          cat <<EOF >>"$LXC_CONFIG"
-    # NVIDIA GPU Passthrough (privileged)
-    lxc.cgroup2.devices.allow: c 195:* rwm
-    lxc.cgroup2.devices.allow: c 243:* rwm
-    lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
-    lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
-    lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
-    lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,create=file
-EOF
-
-          if [[ -e /dev/dri/renderD128 ]]; then
-            echo "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file" >>"$LXC_CONFIG"
-          fi
-
-          export GPU_TYPE="NVIDIA"
-          export NVIDIA_DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n1)
-          msg_ok "NVIDIA GPU passthrough configured (driver: ${NVIDIA_DRIVER_VERSION})"
-        else
-          msg_warn "NVIDIA passthrough only supported for privileged containers"
-          return 0
-        fi
+        msg_warn "NVIDIA GPU detected via PCI but no /dev/nvidia* devices found"
+        msg_custom "ℹ️" "${YW}" "Skipping NVIDIA passthrough (host drivers may not be loaded)"
       fi
     fi
 
@@ -2265,7 +2548,7 @@ EOF
     fi
 
     if [[ $gpu_count -eq 0 ]]; then
-      msg_info "No GPU devices found for passthrough"
+      msg_custom "ℹ️" "${YW}" "No GPU devices found for passthrough"
       return 0
     fi
 
@@ -2274,7 +2557,7 @@ EOF
     if [[ $gpu_count -eq 1 ]]; then
       # Automatic selection for single GPU
       selected_gpu="${available_gpus[0]}"
-      msg_info "Automatically configuring ${selected_gpu} GPU passthrough"
+      msg_custom "⚙️" "${GN}" "Automatically configuring ${selected_gpu} GPU passthrough"
     else
       # Multiple GPUs - ask user
       echo -e "\n${INFO} Multiple GPU types detected:"
@@ -2305,65 +2588,34 @@ EOF
       [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
       [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
 
-      # For Proxmox WebUI visibility, add as dev0, dev1 etc.
+      # Use pct set to add devices with proper dev0/dev1 format
+      # GIDs will be detected and set after container starts
+      local dev_index=0
       for dev in "${devices[@]}"; do
-        if [[ "$CT_TYPE" == "0" ]]; then
-          # Privileged container - use dev entries for WebUI visibility
-          # Use initial GID 104 (render) for renderD*, 44 (video) for card*
-          if [[ "$dev" =~ renderD ]]; then
-            echo "dev${dev_idx}: $dev,gid=104" >>"$LXC_CONFIG"
-          else
-            echo "dev${dev_idx}: $dev,gid=44" >>"$LXC_CONFIG"
-          fi
-          dev_idx=$((dev_idx + 1))
-
-          # Also add cgroup allows for privileged containers
-          local major minor
-          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
-          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
-
-          if [[ "$major" != "0" && "$minor" != "0" ]]; then
-            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
-          fi
-        else
-          # Unprivileged container
-          if [[ "$dev" =~ renderD ]]; then
-            echo "dev${dev_idx}: $dev,uid=0,gid=104" >>"$LXC_CONFIG"
-          else
-            echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
-          fi
-          dev_idx=$((dev_idx + 1))
-        fi
+        # Add to config using pct set (will be visible in GUI)
+        echo "dev${dev_index}: ${dev},gid=44" >>"$LXC_CONFIG"
+        dev_index=$((dev_index + 1))
       done
 
       export GPU_TYPE="$selected_gpu"
-      msg_ok "${selected_gpu} GPU passthrough configured (${dev_idx} devices)"
+      msg_ok "${selected_gpu} GPU passthrough configured (${#devices[@]} devices)"
       ;;
 
     NVIDIA)
       if [[ ${#NVIDIA_DEVICES[@]} -eq 0 ]]; then
-        msg_error "NVIDIA drivers not installed on host. Please install: apt install nvidia-driver"
-        return 1
+        msg_warn "No NVIDIA devices available for passthrough"
+        return 0
       fi
 
+      # Use pct set for NVIDIA devices
+      local dev_index=0
       for dev in "${NVIDIA_DEVICES[@]}"; do
-        # NVIDIA devices typically need different handling
-        echo "dev${dev_idx}: $dev,uid=0,gid=44" >>"$LXC_CONFIG"
-        dev_idx=$((dev_idx + 1))
-
-        if [[ "$CT_TYPE" == "0" ]]; then
-          local major minor
-          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
-          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
-
-          if [[ "$major" != "0" && "$minor" != "0" ]]; then
-            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
-          fi
-        fi
+        echo "dev${dev_index}: ${dev},gid=44" >>"$LXC_CONFIG"
+        dev_index=$((dev_index + 1))
       done
 
       export GPU_TYPE="NVIDIA"
-      msg_ok "NVIDIA GPU passthrough configured (${dev_idx} devices)"
+      msg_ok "NVIDIA GPU passthrough configured (${#NVIDIA_DEVICES[@]} devices) - install drivers in container if needed"
       ;;
     esac
   }
@@ -2380,7 +2632,7 @@ EOF
 
     # Coral TPU passthrough
     if [[ -e /dev/apex_0 ]]; then
-      msg_info "Detected Coral TPU - configuring passthrough"
+      msg_custom "🔌" "${BL}" "Detected Coral TPU - configuring passthrough"
       echo "lxc.mount.entry: /dev/apex_0 dev/apex_0 none bind,optional,create=file" >>"$LXC_CONFIG"
     fi
   }
@@ -2426,21 +2678,8 @@ EOF
       exit 1
     fi
 
-    # Try to reach gateway
-    gw_ok=0
-    for i in {1..10}; do
-      if pct exec "$CTID" -- ping -c1 -W1 "${GATEWAY:-8.8.8.8}" >/dev/null 2>&1; then
-        gw_ok=1
-        break
-      fi
-      sleep 1
-    done
-
-    if [ "$gw_ok" -eq 1 ]; then
-      msg_ok "Network in LXC is reachable (IP $ip_in_lxc)"
-    else
-      msg_warn "Network reachable but gateway check failed"
-    fi
+    # Simple connectivity check - just verify IP is assigned
+    msg_ok "Network configured (IP: $ip_in_lxc)"
   fi
   # Function to get correct GID inside container
   get_container_gid() {
@@ -2484,7 +2723,9 @@ EOF'
     fi
 
     if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
-      pct exec "$CTID" -- bash -c "tz='$tz'; echo \"\$tz\" >/etc/timezone && ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime"
+      # Set timezone using symlink (Debian 13+ compatible)
+      # Create /etc/timezone for backwards compatibility with older scripts
+      pct exec "$CTID" -- bash -c "tz='$tz'; ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime && echo \"\$tz\" >/etc/timezone || true"
     else
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
@@ -2497,25 +2738,121 @@ EOF'
 
   msg_ok "Customized LXC Container"
 
-  # Verify GPU access if enabled
-  if [[ "${ENABLE_VAAPI:-0}" == "1" ]] && [ "$var_os" != "alpine" ]; then
-    pct exec "$CTID" -- bash -c "vainfo >/dev/null 2>&1" &&
-      msg_ok "VAAPI verified working" ||
-      msg_warn "VAAPI verification failed - may need additional configuration"
-  fi
-
-  if [[ "${ENABLE_NVIDIA:-0}" == "1" ]] && [ "$var_os" != "alpine" ]; then
-    pct exec "$CTID" -- bash -c "nvidia-smi >/dev/null 2>&1" &&
-      msg_ok "NVIDIA verified working" ||
-      msg_warn "NVIDIA verification failed - may need additional configuration"
-  fi
-
   # Install SSH keys
   install_ssh_keys_into_ct
 
   # Run application installer
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
-    exit $?
+  # NOTE: We disable error handling here because:
+  # 1. Container errors are caught by error_handler INSIDE container
+  # 2. Container creates flag file with exit code
+  # 3. We read flag file and handle cleanup manually below
+  # 4. We DON'T want host error_handler to fire for lxc-attach command itself
+
+  set +Eeuo pipefail # Disable ALL error handling temporarily
+  trap - ERR         # Remove ERR trap completely
+
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
+  local lxc_exit=$?
+
+  set -Eeuo pipefail       # Re-enable error handling
+  trap 'error_handler' ERR # Restore ERR trap
+
+  # Check for error flag file in container (more reliable than lxc-attach exit code)
+  local install_exit_code=0
+  if [[ -n "${SESSION_ID:-}" ]]; then
+    local error_flag="/root/.install-${SESSION_ID}.failed"
+    if pct exec "$CTID" -- test -f "$error_flag" 2>/dev/null; then
+      install_exit_code=$(pct exec "$CTID" -- cat "$error_flag" 2>/dev/null || echo "1")
+      pct exec "$CTID" -- rm -f "$error_flag" 2>/dev/null || true
+    fi
+  fi
+
+  # Fallback to lxc-attach exit code if no flag file
+  if [[ $install_exit_code -eq 0 && $lxc_exit -ne 0 ]]; then
+    install_exit_code=$lxc_exit
+  fi
+
+  # Installation failed?
+  if [[ $install_exit_code -ne 0 ]]; then
+    msg_error "Installation failed in container ${CTID} (exit code: ${install_exit_code})"
+
+    # Copy both logs from container before potential deletion
+    local build_log_copied=false
+    local install_log_copied=false
+
+    if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
+      # Copy BUILD_LOG (creation log) if it exists
+      if [[ -f "${BUILD_LOG}" ]]; then
+        cp "${BUILD_LOG}" "/tmp/create-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null && build_log_copied=true
+      fi
+
+      # Copy INSTALL_LOG from container
+      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null; then
+        install_log_copied=true
+      fi
+
+      # Show available logs
+      echo ""
+      [[ "$build_log_copied" == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
+      [[ "$install_log_copied" == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
+    fi
+
+    # Dev mode: Keep container or open breakpoint shell
+    if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
+      msg_dev "Keep mode active - container ${CTID} preserved"
+      return 0
+    elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
+      msg_dev "Breakpoint mode - opening shell in container ${CTID}"
+      echo -e "${YW}Type 'exit' to return to host${CL}"
+      pct enter "$CTID"
+      echo ""
+      echo -en "${YW}Container ${CTID} still running. Remove now? (y/N): ${CL}"
+      if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
+        pct stop "$CTID" &>/dev/null || true
+        pct destroy "$CTID" &>/dev/null || true
+        msg_ok "Container ${CTID} removed"
+      else
+        msg_dev "Container ${CTID} kept for debugging"
+      fi
+      exit $install_exit_code
+    fi
+
+    # Prompt user for cleanup with 60s timeout (plain echo - no msg_info to avoid spinner)
+    echo ""
+    echo -en "${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"
+
+    if read -t 60 -r response; then
+      if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
+        # Remove container
+        echo -e "\n${TAB}${HOLD}${YW}Removing container ${CTID}${CL}"
+        pct stop "$CTID" &>/dev/null || true
+        pct destroy "$CTID" &>/dev/null || true
+        echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
+      elif [[ "$response" =~ ^[Nn]$ ]]; then
+        echo -e "\n${TAB}${YW}Container ${CTID} kept for debugging${CL}"
+
+        # Dev mode: Setup MOTD/SSH for debugging access to broken container
+        if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
+          echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
+          if pct exec "$CTID" -- bash -c "
+            source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
+            declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
+          " >/dev/null 2>&1; then
+            local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
+            echo -e "${BFR}${CM}${GN}MOTD/SSH ready - SSH into container: ssh root@${ct_ip}${CL}"
+          fi
+        fi
+      fi
+    else
+      # Timeout - auto-remove
+      echo -e "\n${YW}No response - auto-removing container${CL}"
+      echo -e "${TAB}${HOLD}${YW}Removing container ${CTID}${CL}"
+      pct stop "$CTID" &>/dev/null || true
+      pct destroy "$CTID" &>/dev/null || true
+      echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
+    fi
+
+    exit $install_exit_code
   fi
 }
 
@@ -2545,7 +2882,7 @@ destroy_lxc() {
     fi
     ;;
   "" | n | no)
-    msg_info "Container was not removed."
+    msg_custom "ℹ️" "${BL}" "Container was not removed."
     ;;
   *)
     msg_warn "Invalid response. Container was not removed."
@@ -2597,78 +2934,40 @@ fix_gpu_gids() {
     return 0
   fi
 
-  msg_info "Detecting and setting correct GPU group IDs"
+  msg_custom "🔧" "${BL}" "Detecting and setting correct GPU group IDs"
 
-  # Ermittle die tatsächlichen GIDs aus dem Container
+  # Get actual GIDs from container
   local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
   local render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
 
-  # Fallbacks wenn Gruppen nicht existieren
+  # Create groups if they don't exist
   if [[ -z "$video_gid" ]]; then
-    # Versuche die video Gruppe zu erstellen
-    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true"
+    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true" >/dev/null 2>&1
     video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
-    [[ -z "$video_gid" ]] && video_gid="44" # Ultimate fallback
+    [[ -z "$video_gid" ]] && video_gid="44"
   fi
 
   if [[ -z "$render_gid" ]]; then
-    # Versuche die render Gruppe zu erstellen
-    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true"
+    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true" >/dev/null 2>&1
     render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
-    [[ -z "$render_gid" ]] && render_gid="104" # Ultimate fallback
+    [[ -z "$render_gid" ]] && render_gid="104"
   fi
 
-  msg_info "Container GIDs detected - video:${video_gid}, render:${render_gid}"
+  # Stop container to update config
+  pct stop "$CTID" >/dev/null 2>&1
+  sleep 1
 
-  # Prüfe ob die GIDs von den Defaults abweichen
-  local need_update=0
-  if [[ "$video_gid" != "44" ]] || [[ "$render_gid" != "104" ]]; then
-    need_update=1
-  fi
+  # Update dev entries with correct GIDs
+  sed -i.bak -E "s|(dev[0-9]+: /dev/dri/renderD[0-9]+),gid=[0-9]+|\1,gid=${render_gid}|g" "$LXC_CONFIG"
+  sed -i -E "s|(dev[0-9]+: /dev/dri/card[0-9]+),gid=[0-9]+|\1,gid=${video_gid}|g" "$LXC_CONFIG"
 
-  if [[ $need_update -eq 1 ]]; then
-    msg_info "Updating device GIDs in container config"
+  # Restart container
+  pct start "$CTID" >/dev/null 2>&1
+  sleep 2
 
-    # Stoppe Container für Config-Update
-    pct stop "$CTID" >/dev/null 2>&1
+  msg_ok "GPU passthrough configured (video:${video_gid}, render:${render_gid})"
 
-    # Update die dev Einträge mit korrekten GIDs
-    # Backup der Config
-    cp "$LXC_CONFIG" "${LXC_CONFIG}.bak"
-
-    # Parse und update jeden dev Eintrag
-    while IFS= read -r line; do
-      if [[ "$line" =~ ^dev[0-9]+: ]]; then
-        # Extract device path
-        local device_path=$(echo "$line" | sed -E 's/^dev[0-9]+: ([^,]+).*/\1/')
-        local dev_num=$(echo "$line" | sed -E 's/^(dev[0-9]+):.*/\1/')
-
-        if [[ "$device_path" =~ renderD ]]; then
-          # RenderD device - use render GID
-          echo "${dev_num}: ${device_path},gid=${render_gid}"
-        elif [[ "$device_path" =~ card ]]; then
-          # Card device - use video GID
-          echo "${dev_num}: ${device_path},gid=${video_gid}"
-        else
-          # Keep original line
-          echo "$line"
-        fi
-      else
-        # Keep non-dev lines
-        echo "$line"
-      fi
-    done <"$LXC_CONFIG" >"${LXC_CONFIG}.new"
-
-    mv "${LXC_CONFIG}.new" "$LXC_CONFIG"
-
-    # Starte Container wieder
-    pct start "$CTID" >/dev/null 2>&1
-    sleep 3
-
-    msg_ok "Device GIDs updated successfully"
-  else
-    msg_ok "Device GIDs are already correct"
-  fi
+  # For privileged containers: also fix permissions inside container
   if [[ "$CT_TYPE" == "0" ]]; then
     pct exec "$CTID" -- bash -c "
       if [ -d /dev/dri ]; then
@@ -2685,26 +2984,6 @@ fix_gpu_gids() {
       fi
     " >/dev/null 2>&1
   fi
-}
-
-# NVIDIA-spezific check on host
-check_nvidia_host_setup() {
-  if ! command -v nvidia-smi >/dev/null 2>&1; then
-    msg_warn "NVIDIA GPU detected but nvidia-smi not found on host"
-    msg_warn "Please install NVIDIA drivers on host first."
-    #echo "  1. Download driver: wget https://us.download.nvidia.com/XFree86/Linux-x86_64/550.127.05/NVIDIA-Linux-x86_64-550.127.05.run"
-    #echo "  2. Install: ./NVIDIA-Linux-x86_64-550.127.05.run --dkms"
-    #echo "  3. Verify: nvidia-smi"
-    return 1
-  fi
-
-  # check if nvidia-smi works
-  if ! nvidia-smi >/dev/null 2>&1; then
-    msg_warn "nvidia-smi installed but not working. Driver issue?"
-    return 1
-  fi
-
-  return 0
 }
 
 check_storage_support() {
@@ -2854,7 +3133,7 @@ create_lxc_container() {
     case "${_ans,,}" in
     y | yes)
       msg_info "Upgrading Proxmox LXC stack (pve-container, lxc-pve)"
-      if apt-get update -qq >/dev/null && apt-get install -y --only-upgrade pve-container lxc-pve >/dev/null; then
+      if $STD apt-get update && $STD apt-get install -y --only-upgrade pve-container lxc-pve; then
         msg_ok "LXC stack upgraded."
         if [[ "$do_retry" == "yes" ]]; then
           msg_info "Retrying container creation after upgrade"
@@ -3011,19 +3290,15 @@ create_lxc_container() {
 
   pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
 
+  msg_ok "Template search completed"
+
   #echo "[DEBUG] pveam available output (first 5 lines with .tar files):"
-  pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | head -5 | sed 's/^/  /'
+  #pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | head -5 | sed 's/^/  /'
 
   set +u
   mapfile -t ONLINE_TEMPLATES < <(pveam available -section system 2>/dev/null | grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' | awk '{print $2}' | grep -E "${SEARCH_PATTERN}.*${TEMPLATE_PATTERN}" | sort -t - -k 2 -V 2>/dev/null || true)
   #echo "[DEBUG] After filtering: ${#ONLINE_TEMPLATES[@]} online templates found"
   set -u
-  if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
-    #echo "[DEBUG] Online templates:"
-    for tmpl in "${ONLINE_TEMPLATES[@]}"; do
-      echo "  - $tmpl"
-    done
-  fi
 
   ONLINE_TEMPLATE=""
   [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
@@ -3078,7 +3353,7 @@ create_lxc_container() {
         TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION}"
         SEARCH_PATTERN="^${TEMPLATE_SEARCH}-"
 
-        echo "[DEBUG] Retrying with version: $PCT_OSVERSION"
+        #echo "[DEBUG] Retrying with version: $PCT_OSVERSION"
 
         mapfile -t ONLINE_TEMPLATES < <(
           pveam available -section system 2>/dev/null |
@@ -3091,13 +3366,13 @@ create_lxc_container() {
         if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
           TEMPLATE="${ONLINE_TEMPLATES[-1]}"
           TEMPLATE_SOURCE="online"
-          echo "[DEBUG] Found alternative: $TEMPLATE"
+          #echo "[DEBUG] Found alternative: $TEMPLATE"
         else
           msg_error "No templates available for ${PCT_OSTYPE} ${PCT_OSVERSION}"
           exit 225
         fi
       else
-        msg_info "Installation cancelled"
+        msg_custom "🚫" "${YW}" "Installation cancelled"
         exit 0
       fi
     else
@@ -3106,8 +3381,8 @@ create_lxc_container() {
     fi
   fi
 
-  echo "[DEBUG] Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
-  msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
+  #echo "[DEBUG] Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
+  #msg_debug "Selected TEMPLATE='$TEMPLATE' SOURCE='$TEMPLATE_SOURCE'"
 
   TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
   if [[ -z "$TEMPLATE_PATH" ]]; then
@@ -3190,7 +3465,7 @@ create_lxc_container() {
             exit 220
           }
         else
-          msg_info "Installation cancelled"
+          msg_custom "🚫" "${YW}" "Installation cancelled"
           exit 1
         fi
       else
@@ -3203,9 +3478,9 @@ create_lxc_container() {
   # Validate that we found a template
   if [[ -z "$TEMPLATE" ]]; then
     msg_error "No template found for ${PCT_OSTYPE} ${PCT_OSVERSION}"
-    msg_info "Please check:"
-    msg_info "  - Is pveam catalog available? (run: pveam available -section system)"
-    msg_info "  - Does the template exist for your OS version?"
+    msg_custom "ℹ️" "${YW}" "Please check:"
+    msg_custom "  •" "${YW}" "Is pveam catalog available? (run: pveam available -section system)"
+    msg_custom "  •" "${YW}" "Does the template exist for your OS version?"
     exit 225
   fi
 
@@ -3243,7 +3518,7 @@ create_lxc_container() {
       TEMPLATE="$ONLINE_TEMPLATE"
       NEED_DOWNLOAD=1
     else
-      msg_info "Continuing with local template $TEMPLATE"
+      msg_custom "ℹ️" "${BL}" "Continuing with local template $TEMPLATE"
     fi
   fi
 
@@ -3303,13 +3578,13 @@ create_lxc_container() {
     exit 211
   }
 
-  LOGFILE="/tmp/pct_create_${CTID}.log"
+  LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
   msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
   msg_debug "Logfile: $LOGFILE"
 
   # First attempt
   if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >"$LOGFILE" 2>&1; then
-    msg_error "Container creation failed on ${TEMPLATE_STORAGE}. Checking template..."
+    msg_debug "Container creation failed on ${TEMPLATE_STORAGE}. Validating template..."
 
     # Validate template file
     if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
@@ -3328,18 +3603,16 @@ create_lxc_container() {
 
     # Retry after repair
     if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
-      # Fallback to local storage
+      # Fallback to local storage if not already on local
       if [[ "$TEMPLATE_STORAGE" != "local" ]]; then
-        msg_warn "Retrying container creation with fallback to local storage..."
+        msg_info "Retrying container creation with fallback to local storage..."
         LOCAL_TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
         if [[ ! -f "$LOCAL_TEMPLATE_PATH" ]]; then
           msg_info "Downloading template to local..."
           pveam download local "$TEMPLATE" >/dev/null 2>&1
         fi
-        if pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
-          msg_ok "Container successfully created using local fallback."
-        else
-          # --- Dynamic stack upgrade + auto-retry on the well-known error pattern ---
+        if ! pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
+          # Local fallback also failed - check for LXC stack version issue
           if grep -qiE 'unsupported .* version' "$LOGFILE"; then
             echo
             echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
@@ -3359,18 +3632,19 @@ create_lxc_container() {
               ;;
             esac
           else
-            msg_error "Container creation failed even with local fallback. See $LOGFILE"
+            msg_error "Container creation failed. See $LOGFILE"
             if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
               set -x
-              bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
+              pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" 2>&1 | tee -a "$LOGFILE"
               set +x
             fi
             exit 209
           fi
+        else
+          msg_ok "Container successfully created using local fallback."
         fi
       else
-        msg_error "Container creation failed on local storage. See $LOGFILE"
-        # --- Dynamic stack upgrade + auto-retry on the well-known error pattern ---
+        # Already on local storage and still failed - check LXC stack version
         if grep -qiE 'unsupported .* version' "$LOGFILE"; then
           echo
           echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
@@ -3393,12 +3667,14 @@ create_lxc_container() {
           msg_error "Container creation failed. See $LOGFILE"
           if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
             set -x
-            bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
+            pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" 2>&1 | tee -a "$LOGFILE"
             set +x
           fi
           exit 209
         fi
       fi
+    else
+      msg_ok "Container successfully created after template repair."
     fi
   fi
 
@@ -3415,14 +3691,26 @@ create_lxc_container() {
   }
 
   msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
+
+  # Report container creation to API
+  post_to_api
 }
+
+# ==============================================================================
+# SECTION 9: POST-INSTALLATION & FINALIZATION
+# ==============================================================================
 
 # ------------------------------------------------------------------------------
 # description()
 #
-# - Sets container description with HTML content (logo, links, badges)
-# - Restarts ping-instances.service if present
-# - Posts status "done" to API
+# - Sets container description with formatted HTML content
+# - Includes:
+#   * Community-Scripts logo
+#   * Application name
+#   * Links to GitHub, Discussions, Issues
+#   * Ko-fi donation badge
+# - Restarts ping-instances.service if present (monitoring)
+# - Posts final "done" status to API telemetry
 # ------------------------------------------------------------------------------
 description() {
   IP=$(pct exec "$CTID" ip a s dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
@@ -3467,31 +3755,23 @@ EOF
   post_update_to_api "done" "none"
 }
 
+# ==============================================================================
+# SECTION 10: ERROR HANDLING & EXIT TRAPS
+# ==============================================================================
+
 # ------------------------------------------------------------------------------
 # api_exit_script()
 #
-# - Exit trap handler
-# - Reports exit codes to API with detailed reason
-# - Handles known codes (100–209) and maps them to errors
+# - Exit trap handler for reporting to API telemetry
+# - Captures exit code and reports to API using centralized error descriptions
+# - Uses explain_exit_code() from error_handler.func for consistent error messages
+# - Posts failure status with exit code to API (error description added automatically)
+# - Only executes on non-zero exit codes
 # ------------------------------------------------------------------------------
 api_exit_script() {
   exit_code=$?
   if [ $exit_code -ne 0 ]; then
-    case $exit_code in
-    100) post_update_to_api "failed" "100: Unexpected error in create_lxc.sh" ;;
-    101) post_update_to_api "failed" "101: No network connection detected in create_lxc.sh" ;;
-    200) post_update_to_api "failed" "200: LXC creation failed in create_lxc.sh" ;;
-    201) post_update_to_api "failed" "201: Invalid Storage class in create_lxc.sh" ;;
-    202) post_update_to_api "failed" "202: User aborted menu in create_lxc.sh" ;;
-    203) post_update_to_api "failed" "203: CTID not set in create_lxc.sh" ;;
-    204) post_update_to_api "failed" "204: PCT_OSTYPE not set in create_lxc.sh" ;;
-    205) post_update_to_api "failed" "205: CTID cannot be less than 100 in create_lxc.sh" ;;
-    206) post_update_to_api "failed" "206: CTID already in use in create_lxc.sh" ;;
-    207) post_update_to_api "failed" "207: Template not found in create_lxc.sh" ;;
-    208) post_update_to_api "failed" "208: Error downloading template in create_lxc.sh" ;;
-    209) post_update_to_api "failed" "209: Container creation failed, but template is intact in create_lxc.sh" ;;
-    *) post_update_to_api "failed" "Unknown error, exit code: $exit_code in create_lxc.sh" ;;
-    esac
+    post_update_to_api "failed" "$exit_code"
   fi
 }
 

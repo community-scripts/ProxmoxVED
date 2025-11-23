@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: CrazyWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -13,7 +13,6 @@ var_disk="${var_disk:-6}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
-var_app_version="${var_app_version:-latest}"
 
 header_info "$APP"
 
@@ -48,10 +47,10 @@ function update_script() {
   fi
 
   if [[ ! -f /opt/gitea-mirror.env ]]; then
-      msg_info "Detected old Enviroment, updating files"
-      APP_SECRET=$(openssl rand -base64 32)
-      HOST_IP=$(hostname -I | awk '{print $1}')
-      cat <<EOF >/opt/gitea-mirror.env
+    msg_info "Detected old Enviroment, updating files"
+    APP_SECRET=$(openssl rand -base64 32)
+    HOST_IP=$(hostname -I | awk '{print $1}')
+    cat <<EOF >/opt/gitea-mirror.env
 # See here for config options: https://github.com/RayLabsHQ/gitea-mirror/blob/main/docs/ENVIRONMENT_VARIABLES.md
 NODE_ENV=production
 HOST=0.0.0.0
@@ -78,7 +77,7 @@ WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
     msg_ok "Old Enviroment fixed"
-fi
+  fi
 
   if check_for_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror"; then
     msg_info "Stopping Services"
@@ -90,15 +89,10 @@ fi
     cp /opt/gitea-mirror/data/* /opt/gitea-mirror-backup/data/
     msg_ok "Backup Data"
 
-    msg_info "Installing Bun"
-    export BUN_INSTALL=/opt/bun
-    curl -fsSL https://bun.sh/install | $STD bash
-    ln -sf /opt/bun/bin/bun /usr/local/bin/bun
-    ln -sf /opt/bun/bin/bun /usr/local/bin/bunx
-    msg_ok "Installed Bun"
+    NODE_VERSION="22" NODE_MODULES="bun" setup_nodejs
 
     rm -rf /opt/gitea-mirror
-    fetch_and_deploy_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror" "tarball" $var_app_version
+    fetch_and_deploy_gh_release "gitea-mirror" "RayLabsHQ/gitea-mirror"
 
     msg_info "Updating and rebuilding ${APP}"
     cd /opt/gitea-mirror
@@ -116,7 +110,7 @@ fi
     msg_info "Starting Service"
     systemctl start gitea-mirror
     msg_ok "Service Started"
-    msg_ok "Update Successfully"
+    msg_ok "Updated successfully!"
   fi
   exit
 }
