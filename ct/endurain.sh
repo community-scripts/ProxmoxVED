@@ -49,7 +49,7 @@ function update_script() {
       /opt/endurain/docker* \
       /opt/endurain/*.yml
     mv /opt/env.backup /opt/endurain/.env
-    msg_ok "Update prepared"
+    msg_ok "Prepared Update"
 
     msg_info "Updating Frontend"
     cd /opt/endurain/frontend/app
