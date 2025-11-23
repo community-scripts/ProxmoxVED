@@ -28,8 +28,21 @@ PG_VERSION="17" setup_postgresql
 setup_go
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 ENTE_CLI_VERSION=$(curl -s https://api.github.com/repos/ente-io/ente/releases | jq -r '[.[] | select(.tag_name | startswith("cli-v"))][0].tag_name')
-fetch_and_deploy_gh_release "ente" "ente-io/ente" "tarball" "latest" "/opt/ente"
-fetch_and_deploy_gh_release "ente" "ente-io/ente" "tarball" "$ENTE_CLI_VERSION" "/usr/local/bin/ente" "ente-cli-$ENTE_CLI_VERSION-linux-amd64.tar.gz"
+fetch_and_deploy_gh_release "ente-server" "ente-io/ente" "tarball" "latest" "/opt/ente"
+fetch_and_deploy_gh_release "ente-cli" "ente-io/ente" "tarball" "$ENTE_CLI_VERSION" "/usr/local/bin/ente" "ente-cli-$ENTE_CLI_VERSION-linux-amd64.tar.gz"
+
+$STD mkdir -p /opt/ente/cli
+msg_info "Configuring Ente CLI"
+cat <<EOF >>~/.bashrc
+export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/secrets.txt
+EOF
+$STD source ~/.bashrc
+$STD mkdir -p ~/.ente
+cat <<EOF >~/.ente/config.yaml
+endpoint:
+    api: http://localhost:8080
+EOF
+msg_ok "Configured Ente CLI"
 
 msg_info "Setting up PostgreSQL"
 DB_NAME="ente_db"
@@ -65,25 +78,6 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
   echo "Note: Email verification requires manual intervention since SMTP is not configured"
 } >>~/ente.creds
 msg_ok "Set up PostgreSQL"
-
-msg_info "Downloading Ente CLI"
-$STD mkdir -p /opt/ente/cli/dist
-fetch_and_deploy_gh_release "ente-cli" "ente-io/ente" "prebuild" "cli-v0.2.3" "/opt/ente/cli/dist" "ente-cli-v0.2.3-linux-amd64.tar.gz"
-$STD chmod +x /opt/ente/cli/dist/ente
-msg_ok "Downloaded Ente CLI"
-
-msg_info "Configuring Ente CLI"
-cat <<EOF >>~/.bashrc
-export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/dist/secrets.txt
-export PATH="/opt/ente/cli/dist:$PATH"
-EOF
-$STD source ~/.bashrc
-$STD mkdir -p ~/.ente
-cat <<EOF >~/.ente/config.yaml
-endpoint:
-    api: http://localhost:8080
-EOF
-msg_ok "Configured Ente CLI"
 
 msg_info "Building Museum (server)"
 cd /opt/ente/server
