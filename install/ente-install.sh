@@ -29,7 +29,7 @@ setup_go
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 ENTE_CLI_VERSION=$(curl -s https://api.github.com/repos/ente-io/ente/releases | jq -r '[.[] | select(.tag_name | startswith("cli-v"))][0].tag_name')
 fetch_and_deploy_gh_release "ente-server" "ente-io/ente" "tarball" "latest" "/opt/ente"
-fetch_and_deploy_gh_release "ente-cli" "ente-io/ente" "tarball" "$ENTE_CLI_VERSION" "/usr/local/bin/ente" "ente-cli-$ENTE_CLI_VERSION-linux-amd64.tar.gz"
+fetch_and_deploy_gh_release "ente-cli" "ente-io/ente" "prebuild" "$ENTE_CLI_VERSION" "/usr/local/bin/ente" "ente-cli-$ENTE_CLI_VERSION-linux-amd64.tar.gz"
 
 $STD mkdir -p /opt/ente/cli
 msg_info "Configuring Ente CLI"
