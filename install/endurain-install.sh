@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y default-libmysqlclient-dev build-essential pkg-config
+$STD apt install -y default-libmysqlclient-dev build-essential pkg-config
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.13" setup_uv
@@ -24,17 +24,9 @@ PG_VERSION="17" PG_MODULES="postgis,contrib" setup_postgresql
 fetch_and_deploy_gh_release "endurain" "joaovitoriasilva/endurain" "tarball" "latest" "/opt/endurain"
 
 msg_info "Setting up Endurain"
-DB_NAME=enduraindb
-DB_USER=endurain
-DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-DB_PORT=5432
-DB_HOST=localhost
-
-$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
-$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
+PG_DB_NAME="enduraindb" PG_DB_USER="endurain" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
+PG_DB_HOST=localhost
+PG_DB_PORT=5432
 
 cd /opt/endurain
 rm -rf \
@@ -48,7 +40,7 @@ IP=$(hostname -I | awk '{print $1}')
 ENDURAIN_HOST=http://${IP}:8080
 cat <<EOF > /opt/endurain/.env
 
-DB_PASSWORD=${DB_PASS}
+DB_PASSWORD=${PG_DB_PASS}
 
 SECRET_KEY=${SECRET_KEY}
 FERNET_KEY=${FERNET_KEY}
@@ -57,16 +49,16 @@ TZ=Europe/Berlin
 ENDURAIN_HOST=${ENDURAIN_HOST}
 BEHIND_PROXY=false
 
-POSTGRES_DB=${DB_NAME}
-POSTGRES_USER=${DB_USER}
-PGDATA=/var/lib/postgresql/${DB_NAME}
+POSTGRES_DB=${PG_DB_NAME}
+POSTGRES_USER=${PG_DB_USER}
+PGDATA=/var/lib/postgresql/${PG_DB_NAME}
 
-DB_DATABASE=${DB_NAME}
-DB_USER=${DB_USER}
-DB_PORT=${DB_PORT}
-DB_HOST=${DB_HOST}
+DB_DATABASE=${PG_DB_NAME}
+DB_USER=${PG_DB_USER}
+DB_PORT=${PG_DB_PORT}
+DB_HOST=${PG_DB_HOST}
 
-DATABASE_URL=postgresql+psycopg://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+DATABASE_URL=postgresql+psycopg://${PG_DB_USER}:${PG_DB_PASS}@${PG_DB_HOST}:${PG_DB_PORT}/${PG_DB_NAME}
 
 BACKEND_DIR="/opt/endurain/backend/app"
 FRONTEND_DIR="/opt/endurain/frontend/app/dist"
@@ -95,10 +87,10 @@ msg_ok "Built Frontend"
 
 msg_info "Setting up Backend"
 cd /opt/endurain/backend
-$STD uv tool install poetry
-$STD uv tool update-shell
-$STD export PATH="/root/.local/bin:$PATH"
-$STD poetry self add poetry-plugin-export
+uv tool install poetry
+uv tool update-shell
+export PATH="/root/.local/bin:$PATH"
+poetry self add poetry-plugin-export
 $STD poetry export -f requirements.txt --output requirements.txt --without-hashes
 $STD uv venv
 $STD uv pip install -r requirements.txt

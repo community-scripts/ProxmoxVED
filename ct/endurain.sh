@@ -36,8 +36,8 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Creating Backup"
-    mv /opt/endurain/.env /opt/env.backup
-    mv /opt/endurain/frontend/app/dist/env.js /opt/env.js.backup
+    cp /opt/endurain/.env /opt/env.backup
+    cp /opt/endurain/frontend/app/dist/env.js /opt/env.js.backup
     msg_ok "Backup Created"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "endurain" "joaovitoriasilva/endurain" "tarball" "latest" "/opt/endurain"
@@ -48,14 +48,22 @@ function update_script() {
       /opt/endurain/{docs,example.env,screenshot_01.png} \
       /opt/endurain/docker* \
       /opt/endurain/*.yml
+<<<<<<< HEAD
     mv /opt/env.backup /opt/endurain/.env
     msg_ok "Prepared Update"
+=======
+    cp /opt/env.backup /opt/endurain/.env
+    rm /opt/env.backup
+
+    msg_ok "Update prepared"
+>>>>>>> 5fbe83a8 (setup_postgressql_db and cp instead of mv)
 
     msg_info "Updating Frontend"
     cd /opt/endurain/frontend/app
     $STD npm ci
     $STD npm run build
-    mv /opt/env.js.backup /opt/endurain/frontend/app/dist/env.js
+    cp /opt/env.js.backup /opt/endurain/frontend/app/dist/env.js
+    rm /opt/env.js.backup
     msg_ok "Frontend Updated"
 
     msg_info "Updating Backend"
