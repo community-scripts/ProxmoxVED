@@ -83,7 +83,7 @@ EOF
 msg_ok "Setup Endurain"
 
 msg_info "Building Frontend"
-cd /opt/endurain/frontend/app || exit
+cd /opt/endurain/frontend/app
 $STD npm ci --prefer-offline
 $STD npm run build
 cat <<EOF > /opt/endurain/frontend/app/dist/env.js
