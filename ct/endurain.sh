@@ -52,8 +52,7 @@ function update_script() {
     rm /opt/env.backup
     msg_ok "Prepared Update"
 
-
-    msg_ok "Update prepared"
+    msg_ok "Prepared Update"
 
     msg_info "Updating Frontend"
     cd /opt/endurain/frontend/app
