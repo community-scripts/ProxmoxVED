@@ -38,7 +38,7 @@ function update_script() {
     msg_info "Creating Backup"
     cp /opt/endurain/.env /opt/env.backup
     cp /opt/endurain/frontend/app/dist/env.js /opt/env.js.backup
-    msg_ok "Backup Created"
+    msg_ok "Created Backup"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "endurain" "joaovitoriasilva/endurain" "tarball" "latest" "/opt/endurain"
 
