@@ -19,6 +19,7 @@ $STD apt-get install -y \
     rbenv \
     libpq-dev \
     libarchive-dev \
+    git \
     libmariadb-dev \
     redis-server \
     nginx \
