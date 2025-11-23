@@ -66,7 +66,6 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 } >>~/ente.creds
 msg_ok "Set up PostgreSQL"
 
-# Download Ente cli
 msg_info "Downloading Ente CLI"
 $STD mkdir -p /opt/ente/cli/dist
 fetch_and_deploy_gh_release "ente" "ente-io/ente" "prebuild" "cli-v0.2.3" "/opt/ente/cli/dist" "ente-cli-v0.2.3-linux-amd64.tar.gz"
@@ -155,10 +154,8 @@ jwt:
 EOF
 msg_ok "Created museum.yaml"
 
-# Prompt for backend URL
 read -r -p "Enter the public URL for Ente backend (e.g., https://api.ente.yourdomain.com or http://192.168.1.100:8080) leave empty to use container IP: " backend_url
 if [[ -z "$backend_url" ]]; then
-    # Default to local IP if user doesn't provide one
     LOCAL_IP=$(hostname -I | awk '{print $1}')
     ENTE_BACKEND_URL="http://$LOCAL_IP:8080"
     msg_info "No URL provided"
@@ -169,7 +166,6 @@ else
     msg_ok "Using provided URL: $ENTE_BACKEND_URL\n"
 fi
 
-# Prompt for albums URL
 read -r -p "Enter the public URL for Ente albums (e.g., https://albums.ente.yourdomain.com or http://192.168.1.100:3002) leave empty to use container IP: " albums_url
 if [[ -z "$albums_url" ]]; then
     LOCAL_IP=$(hostname -I | awk '{print $1}')
@@ -205,7 +201,6 @@ cat <<REBUILD_EOF >/opt/ente/rebuild-frontend.sh
 # Prompt for backend URL
 read -r -p "Enter the public URL for Ente backend (e.g., https://api.ente.yourdomain.com or http://192.168.1.100:8080) leave empty to use container IP: " backend_url
 if [[ -z "\$backend_url" ]]; then
-    # Default to local IP if user doesn't provide one
     LOCAL_IP=$(hostname -I | awk '{print $1}')
     ENTE_BACKEND_URL="http://\$LOCAL_IP:8080"
     echo "No URL provided, using local IP: \$ENTE_BACKEND_URL\n"
