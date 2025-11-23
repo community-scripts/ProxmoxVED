@@ -176,6 +176,7 @@ export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=$ENTE_ALBUMS_URL
 
 msg_info "Building Web Applications"
 cd /opt/ente/web
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 $STD yarn install
 $STD yarn build
 $STD yarn build:accounts
