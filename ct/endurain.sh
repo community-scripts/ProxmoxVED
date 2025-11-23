@@ -5,7 +5,6 @@ source <(curl -fsSL https://raw.githubusercontent.com/johanngrobe/ProxmoxVE/endu
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/joaovitoriasilva/endurain
 
-# App Defaults
 APP="Endurain"
 var_tags="${var_tags:-sport;social-media}"
 var_cpu="${var_cpu:-2}"
