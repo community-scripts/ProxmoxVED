@@ -185,13 +185,6 @@ fi
 export NEXT_PUBLIC_ENTE_ENDPOINT=$ENTE_BACKEND_URL
 export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=$ENTE_ALBUMS_URL
 
-# save to bashrc
-cat <<EOF >>~/.bashrc
-export NEXT_PUBLIC_ENTE_ENDPOINT=$ENTE_BACKEND_URL
-export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=$ENTE_ALBUMS_URL
-EOF
-msg_ok "Saved to bashrc"
-
 msg_info "Building Web Applications\n"
 cd /opt/ente/web
 $STD yarn install
@@ -208,13 +201,36 @@ cp -r apps/cast/out /var/www/ente/apps/cast
 # Save build configuration for future rebuilds
 cat <<REBUILD_EOF >/opt/ente/rebuild-frontend.sh
 #!/usr/bin/env bash
-# Rebuild Ente frontend with current IP
-CONTAINER_IP=\$(hostname -I | awk '{print \$1}')
-echo "Building frontend with IP: \$CONTAINER_IP"
+# Rebuild Ente frontend
+# Prompt for backend URL
+read -r -p "Enter the public URL for Ente backend (e.g., https://api.ente.yourdomain.com or http://192.168.1.100:8080) leave empty to use container IP: " backend_url
+if [[ -z "\$backend_url" ]]; then
+    # Default to local IP if user doesn't provide one
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    ENTE_BACKEND_URL="http://\$LOCAL_IP:8080"
+    echo "No URL provided, using local IP: \$ENTE_BACKEND_URL\n"
+else
+    ENTE_BACKEND_URL="\$backend_url"
+    echo "Using provided URL: \$ENTE_BACKEND_URL\n"
+fi
+
+# Prompt for albums URL
+read -r -p "Enter the public URL for Ente albums (e.g., https://albums.ente.yourdomain.com or http://192.168.1.100:3002) leave empty to use container IP: " albums_url
+if [[ -z "\$albums_url" ]]; then
+    LOCAL_IP=\$(hostname -I | awk '{print $1}')
+    ENTE_ALBUMS_URL="http://\$LOCAL_IP:3002"
+    echo "No URL provided, using local IP: \$ENTE_ALBUMS_URL\n"
+else
+    ENTE_ALBUMS_URL="\$albums_url"
+    echo "Using provided URL: \$ENTE_ALBUMS_URL\n"
+fi
+
+export NEXT_PUBLIC_ENTE_ENDPOINT=\$ENTE_BACKEND_URL
+export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=\$ENTE_ALBUMS_URL
+
+echo "Building Web Applications\n"
+
 cd /opt/ente/web
-export 
-=http://\${CONTAINER_IP}:8080
-export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=http://\${CONTAINER_IP}:3002
 yarn build
 yarn build:accounts
 yarn build:auth
@@ -368,8 +384,9 @@ echo -e "━━━━━━━━━━━━━━━━━━━━━━━�
 echo -e "\n${BL}Access URLs:${CL}"
 echo -e "  Photos:   http://${CONTAINER_IP}:3000"
 echo -e "  Accounts: http://${CONTAINER_IP}:3001"
+echo -e "  Albums:   ${ENTE_ALBUMS_URL}"
 echo -e "  Auth:     http://${CONTAINER_IP}:3003"
-echo -e "  API:      http://${CONTAINER_IP}:8080"
+echo -e "  API:      ${ENTE_BACKEND_URL}"
 echo -e "\n${YW}⚠️  Important Post-Installation Steps:${CL}"
 echo -e "\n${BL}1. Create your first account:${CL}"
 echo -e "   • Open http://${CONTAINER_IP}:3000 in your browser"
