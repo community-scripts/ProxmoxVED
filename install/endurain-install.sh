@@ -113,7 +113,7 @@ User=root
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now endurain
-msg_ok "Service Created & Started"
+msg_ok "Created Service"
 
 motd_ssh
 customize
