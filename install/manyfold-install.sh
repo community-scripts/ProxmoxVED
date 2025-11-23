@@ -75,7 +75,6 @@ cat <<EOF >/opt/.env
 export APP_VERSION=12345
 export GUID=1002
 export PUID=1001
-export PUBLIC_HOSTNAME=subdomain.somehost.org
 export PUBLIC_PORT=5000
 export REDIS_URL=redis://127.0.0.1:6379/1
 export DATABASE_ADAPTER=postgresql
