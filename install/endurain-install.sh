@@ -91,7 +91,7 @@ window.env = {
   ENDURAIN_HOST: "${ENDURAIN_HOST}"
 }
 EOF
-msg_ok "Build Frontend"
+msg_ok "Built Frontend"
 
 msg_info "Setting up Backend"
 cd /opt/endurain/backend || exit
