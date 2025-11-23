@@ -67,7 +67,7 @@ function update_script() {
 
     msg_info "Starting Service"
     systemctl start endurain
-    msg_ok "Endurain Service Started"
+    msg_ok "Started Service"
 
     msg_ok "Update Completed Successfully!"
 
