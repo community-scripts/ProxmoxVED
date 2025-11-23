@@ -2,6 +2,7 @@
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: bvdberg01
+# Co-Author: SunFlowerOwl
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -18,12 +19,24 @@ $STD apt-get install -y \
     rbenv \
     libpq-dev \
     libarchive-dev \
-    git \
     libmariadb-dev \
     redis-server \
     nginx \
     libffi-dev \
-    libyaml-dev
+    libyaml-dev \
+    libassimp-dev \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    libreadline-dev \
+    zlib1g-dev \
+    libgmp-dev \
+    libmagickwand-dev \
+    redis \
+    imagemagick \
+    libjpeg-dev \
+    libwebp-dev \
+    libheif-dev
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
