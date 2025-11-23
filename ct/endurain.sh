@@ -52,7 +52,7 @@ function update_script() {
     msg_ok "Update prepared"
 
     msg_info "Updating Frontend"
-    cd /opt/endurain/frontend/app || exit 1
+    cd /opt/endurain/frontend/app
     $STD npm ci
     $STD npm run build
     mv /opt/env.js.backup /opt/endurain/frontend/app/dist/env.js
