@@ -39,7 +39,6 @@ FERNET_KEY=$(openssl rand -base64 32)
 IP=$(hostname -I | awk '{print $1}')
 ENDURAIN_HOST=http://${IP}:8080
 cat <<EOF > /opt/endurain/.env
-
 DB_PASSWORD=${PG_DB_PASS}
 
 SECRET_KEY=${SECRET_KEY}
