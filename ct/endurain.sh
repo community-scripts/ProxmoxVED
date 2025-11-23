@@ -41,9 +41,7 @@ function update_script() {
     mv /opt/endurain/frontend/app/dist/env.js /opt/env.js.backup
     msg_ok "Backup Created"
 
-    msg_info "Fetching Latest Release"
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "endurain" "joaovitoriasilva/endurain" "tarball" "latest" "/opt/endurain"
-    msg_ok "Release Updated"
 
     msg_info "Preparing Update"
     cd /opt/endurain
