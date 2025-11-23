@@ -80,16 +80,12 @@ cat <<EOF >>~/.bashrc
 export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/dist/secrets.txt
 export PATH="/opt/ente/cli/dist:$PATH"
 EOF
-msg_ok "Exported Ente CLI paths"
-# remove .ente txt file
 $STD rm ~/.ente
 $STD mkdir -p ~/.ente
 cat <<EOF >~/.ente/config.yaml
 endpoint:
     api: http://localhost:8080
 EOF
-msg_ok "Created Ente CLI config.yaml"
-
 msg_ok "Configured Ente CLI"
 
 msg_info "Building Museum (server)"
@@ -165,10 +161,12 @@ if [[ -z "$backend_url" ]]; then
     # Default to local IP if user doesn't provide one
     LOCAL_IP=$(hostname -I | awk '{print $1}')
     ENTE_BACKEND_URL="http://$LOCAL_IP:8080"
-    msg_info "No URL provided, using local IP: $ENTE_BACKEND_URL\n"
+    msg_info "No URL provided"
+    msg_ok "using local IP: $ENTE_BACKEND_URL\n"
 else
     ENTE_BACKEND_URL="$backend_url"
-    msg_info "Using provided URL: $ENTE_BACKEND_URL\n"
+    msg_info "URL provided"
+    msg_ok "Using provided URL: $ENTE_BACKEND_URL\n"
 fi
 
 # Prompt for albums URL
@@ -176,10 +174,12 @@ read -r -p "Enter the public URL for Ente albums (e.g., https://albums.ente.your
 if [[ -z "$albums_url" ]]; then
     LOCAL_IP=$(hostname -I | awk '{print $1}')
     ENTE_ALBUMS_URL="http://$LOCAL_IP:3002"
-    msg_info "No URL provided, using local IP: $ENTE_ALBUMS_URL\n"
+    msg_info "No URL provided"
+    msg_ok "using local IP: $ENTE_ALBUMS_URL\n"
 else
     ENTE_ALBUMS_URL="$albums_url"
-    msg_info "Using provided URL: $ENTE_ALBUMS_URL\n"
+    msg_info "URL provided"
+    msg_ok "Using provided URL: $ENTE_ALBUMS_URL\n"
 fi
 
 export NEXT_PUBLIC_ENTE_ENDPOINT=$ENTE_BACKEND_URL
