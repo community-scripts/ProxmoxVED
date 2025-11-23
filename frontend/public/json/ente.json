@@ -37,6 +37,10 @@
             "type": "info"
         },
         {
+            "text": "If you want to use the Ente CLI to add/whitelist admins, please follow the instructions at https://ente.io/help/self-hosting/administration/cli",
+            "type": "info"
+        },
+        {
             "text": "To see Museium config:  `cat /opt/ente/server/museum.yaml`",
             "type": "info"
         }

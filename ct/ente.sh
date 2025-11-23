@@ -39,4 +39,4 @@ build_container
 description
 
 msg_ok "Completed Successfully!"
-msg_custom "🚀" "${GN}" "${APP} setup has been successfully initialized!\nIf you want to use the Ente CLI to add/whitelist admins, please follow the instructions at https://ente.io/help/self-hosting/administration/cli"
+msg_custom "🚀" "${GN}" "${APP} setup has been successfully initialized!"
