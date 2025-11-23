@@ -60,7 +60,7 @@ function update_script() {
     $STD npm run build
     cp /opt/env.js.backup /opt/endurain/frontend/app/dist/env.js
     rm /opt/env.js.backup
-    msg_ok "Frontend Updated"
+    msg_ok "Updated Frontend"
 
     msg_info "Updating Backend"
     cd /opt/endurain/backend
