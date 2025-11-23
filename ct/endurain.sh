@@ -59,7 +59,7 @@ function update_script() {
     msg_ok "Frontend Updated"
 
     msg_info "Updating Backend"
-    cd /opt/endurain/backend || exit
+    cd /opt/endurain/backend
     $STD poetry export -f requirements.txt --output requirements.txt --without-hashes
     $STD uv venv
     $STD uv pip install -r requirements.txt
