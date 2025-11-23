@@ -106,27 +106,12 @@ $STD bin/rails db:migrate
 $STD bin/rails assets:precompile
 msg_ok "Installed manyfold"
 
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/manyfold.service
-[Unit]
-Description=Manyfold3d
-Requires=network.target
-
-[Service]
-Type=simple
-User=root
-Group=root
-WorkingDirectory=/opt/manyfold
-ExecStart=/usr/bin/bash -lc 'source /opt/.env && /opt/manyfold/bin/rails server -b 127.0.0.1 --port 5000 --environment production'
-TimeoutSec=30
-RestartSec=15s
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable -q --now manyfold
-
+msg_info "Creating Services"
+$STD foreman export systemd /etc/systemd/system -a manyfold -u root -f /opt/manyfold/Procfile
+for f in /etc/systemd/system/manyfold-*.service; do
+    sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/.env \&\& |" "$f"
+done
+systemctl enable -q --now manyfold manyfold-rails manyfold-default_worker manyfold-performance_worker
 cat <<EOF >/etc/nginx/sites-available/manyfold.conf
 server {
     listen 80;
@@ -149,7 +134,7 @@ EOF
 ln -s /etc/nginx/sites-available/manyfold.conf /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
-msg_ok "Created Service"
+msg_ok "Created Services"
 
 motd_ssh
 customize
