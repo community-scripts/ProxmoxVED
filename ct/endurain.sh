@@ -36,7 +36,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Creating Backup"
-    cp /opt/endurain/.env /opt/env.backup
+    cp /opt/endurain/.env /opt/endurain.env
     cp /opt/endurain/frontend/app/dist/env.js /opt/env.js.backup
     msg_ok "Created Backup"
 
