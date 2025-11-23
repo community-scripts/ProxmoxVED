@@ -48,8 +48,8 @@ function update_script() {
       /opt/endurain/{docs,example.env,screenshot_01.png} \
       /opt/endurain/docker* \
       /opt/endurain/*.yml
-    cp /opt/env.backup /opt/endurain/.env
-    rm /opt/env.backup
+    cp /opt/endurain.env /opt/endurain/.env
+    rm /opt/endurain.env
     msg_ok "Prepared Update"
 
     msg_ok "Prepared Update"
@@ -58,8 +58,8 @@ function update_script() {
     cd /opt/endurain/frontend/app
     $STD npm ci
     $STD npm run build
-    cp /opt/env.js.backup /opt/endurain/frontend/app/dist/env.js
-    rm /opt/env.js.backup
+    cp /opt/endurain.env.js /opt/endurain/frontend/app/dist/env.js
+    rm /opt/endurain.env.js
     msg_ok "Updated Frontend"
 
     msg_info "Updating Backend"
