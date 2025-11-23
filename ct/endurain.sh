@@ -46,7 +46,7 @@ function update_script() {
     msg_ok "Release Updated"
 
     msg_info "Preparing Update"
-    cd /opt/endurain || exit
+    cd /opt/endurain
     rm -rf \
       /opt/endurain/{docs,example.env,screenshot_01.png} \
       /opt/endurain/docker* \
