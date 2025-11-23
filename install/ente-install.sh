@@ -68,7 +68,7 @@ msg_ok "Set up PostgreSQL"
 
 msg_info "Downloading Ente CLI"
 $STD mkdir -p /opt/ente/cli/dist
-fetch_and_deploy_gh_release "ente" "ente-io/ente" "prebuild" "cli-v0.2.3" "/opt/ente/cli/dist" "ente-cli-v0.2.3-linux-amd64.tar.gz"
+fetch_and_deploy_gh_release "ente-cli" "ente-io/ente" "prebuild" "cli-v0.2.3" "/opt/ente/cli/dist" "ente-cli-v0.2.3-linux-amd64.tar.gz"
 $STD chmod +x /opt/ente/cli/dist/ente
 msg_ok "Downloaded Ente CLI"
 
@@ -78,7 +78,6 @@ export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/dist/secrets.txt
 export PATH="/opt/ente/cli/dist:$PATH"
 EOF
 $STD source ~/.bashrc
-$STD rm ~/.ente
 $STD mkdir -p ~/.ente
 cat <<EOF >~/.ente/config.yaml
 endpoint:
