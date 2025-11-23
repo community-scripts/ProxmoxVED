@@ -48,15 +48,12 @@ function update_script() {
       /opt/endurain/{docs,example.env,screenshot_01.png} \
       /opt/endurain/docker* \
       /opt/endurain/*.yml
-<<<<<<< HEAD
-    mv /opt/env.backup /opt/endurain/.env
-    msg_ok "Prepared Update"
-=======
     cp /opt/env.backup /opt/endurain/.env
     rm /opt/env.backup
+    msg_ok "Prepared Update"
+
 
     msg_ok "Update prepared"
->>>>>>> 5fbe83a8 (setup_postgressql_db and cp instead of mv)
 
     msg_info "Updating Frontend"
     cd /opt/endurain/frontend/app
