@@ -525,35 +525,6 @@ base_settings() {
   TAGS="community-script,${var_tags:-}"
   ENABLE_FUSE=${var_fuse:-"${1:-no}"}
   ENABLE_TUN=${var_tun:-"${1:-no}"}
-  ENABLE_NESTING=${var_nesting:-"${1:-1}"}
-  ENABLE_KEYCTL=${var_keyctl:-"${1:-0}"}
-  ALLOW_MOUNT_FS=${var_mount_fs:-""}
-  ENABLE_MKNOD=${var_mknod:-"${1:-0}"}
-  PROTECT_CT=${var_protection:-"${1:-no}"}
-  CT_TIMEZONE=${var_timezone:-""}
-
-  # Normalize feature flags to 0/1 immediately (pct requires numeric values, not yes/no)
-  # This must happen here before any usage of these variables
-  case "${ENABLE_NESTING,,}" in
-  yes | true) ENABLE_NESTING="1" ;;
-  no | false) ENABLE_NESTING="0" ;;
-  esac
-  case "${ENABLE_KEYCTL,,}" in
-  yes | true) ENABLE_KEYCTL="1" ;;
-  no | false) ENABLE_KEYCTL="0" ;;
-  esac
-  case "${ENABLE_MKNOD,,}" in
-  yes | true) ENABLE_MKNOD="1" ;;
-  no | false) ENABLE_MKNOD="0" ;;
-  esac
-  case "${ENABLE_FUSE,,}" in
-  yes | true) ENABLE_FUSE="1" ;;
-  no | false) ENABLE_FUSE="0" ;;
-  esac
-  case "${PROTECT_CT,,}" in
-  yes | true) PROTECT_CT="1" ;;
-  no | false) PROTECT_CT="0" ;;
-  esac
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
@@ -2288,34 +2259,14 @@ build_container() {
   none) ;;
   esac
 
-  # Build FEATURES array with advanced settings
-  # Note: All feature flags are already normalized to 0/1 in default_settings()
-  # Proxmox requires each feature as a separate parameter, not comma-separated string
-  FEATURES_ARRAY=()
-  FEATURES_ARRAY+=("nesting=${ENABLE_NESTING}")
-
-  # keyctl: needed for Docker inside containers (systemd-networkd workaround)
-  # Typically needed for unprivileged containers with Docker
-  if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
-    FEATURES_ARRAY+=("keyctl=1")
+  if [ "$CT_TYPE" == "1" ]; then
+    FEATURES="keyctl=1,nesting=1"
+  else
+    FEATURES="nesting=1"
   fi
 
-  # mknod: allow device node creation (requires kernel 5.3+, experimental)
-  if [ "$ENABLE_MKNOD" == "1" ]; then
-    FEATURES_ARRAY+=("mknod=1")
-  fi
-
-  # FUSE: required for rclone, mergerfs, AppImage, etc.
-  if [ "$ENABLE_FUSE" == "1" ]; then
-    FEATURES_ARRAY+=("fuse=1")
-  fi
-
-  # mount: allow specific filesystems (e.g., nfs, ext4, etc.)
-  # Format: mount=fstype1;fstype2;fstype3 (semicolon-separated, not comma!)
-  if [ -n "$ALLOW_MOUNT_FS" ]; then
-    # Replace commas with semicolons for proper pct syntax
-    ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
-    FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
+  if [ "$ENABLE_FUSE" == "yes" ]; then
+    FEATURES="$FEATURES,fuse=1"
   fi
 
   TEMP_DIR=$(mktemp -d)
@@ -2341,51 +2292,22 @@ build_container() {
   export CTTYPE="$CT_TYPE"
   export ENABLE_FUSE="$ENABLE_FUSE"
   export ENABLE_TUN="$ENABLE_TUN"
-  export ENABLE_NESTING="$ENABLE_NESTING"
-  export ENABLE_KEYCTL="$ENABLE_KEYCTL"
-  export ENABLE_MKNOD="$ENABLE_MKNOD"
-  export ALLOW_MOUNT_FS="$ALLOW_MOUNT_FS"
-  export PROTECT_CT="$PROTECT_CT"
-  export CT_TIMEZONE="$CT_TIMEZONE"
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
-
-  # Build FEATURES string from array
-  # Proxmox pct expects comma-separated features: -features nesting=1,keyctl=1,fuse=1
-  FEATURES=$(
-    IFS=,
-    echo "${FEATURES_ARRAY[*]}"
-  )
-
-  # Build PCT_OPTIONS as string (must be string for export to work)
-  PCT_OPTIONS="-features $FEATURES
--hostname $HN
--tags $TAGS
-$SD
-$NS
-$NET_STRING
--onboot 1
--cores $CORE_COUNT
--memory $RAM_SIZE
--unprivileged $CT_TYPE"
-
-  # Add optional flags
-  if [ "$PROTECT_CT" == "1" ]; then
-    PCT_OPTIONS="$PCT_OPTIONS
--protection 1"
-  fi
-
-  if [ -n "$CT_TIMEZONE" ]; then
-    PCT_OPTIONS="$PCT_OPTIONS
--timezone $CT_TIMEZONE"
-  fi
-
-  if [ -n "$PW" ]; then
-    PCT_OPTIONS="$PCT_OPTIONS
-$PW"
-  fi
-
+  export PCT_OPTIONS="
+  -features $FEATURES
+  -hostname $HN
+  -tags $TAGS
+  $SD
+  $NS
+  $NET_STRING
+  -onboot 1
+  -cores $CORE_COUNT
+  -memory $RAM_SIZE
+  -unprivileged $CT_TYPE
+  $PW
+"
   export PCT_OPTIONS
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
