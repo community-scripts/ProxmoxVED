@@ -2351,46 +2351,39 @@ build_container() {
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
 
-  # Build PCT_OPTIONS array (not string) for proper parameter handling
-  PCT_OPTIONS=()
+  # Build FEATURES string from array
+  # Proxmox pct expects comma-separated features: -features nesting=1,keyctl=1,fuse=1
+  FEATURES=$(
+    IFS=,
+    echo "${FEATURES_ARRAY[*]}"
+  )
 
-  # Add features - each as separate -features parameter
-  for feature in "${FEATURES_ARRAY[@]}"; do
-    PCT_OPTIONS+=("-features" "$feature")
-  done
+  # Build PCT_OPTIONS as string (must be string for export to work)
+  PCT_OPTIONS="-features $FEATURES
+-hostname $HN
+-tags $TAGS
+$SD
+$NS
+$NET_STRING
+-onboot 1
+-cores $CORE_COUNT
+-memory $RAM_SIZE
+-unprivileged $CT_TYPE"
 
-  PCT_OPTIONS+=("-hostname" "$HN")
-  PCT_OPTIONS+=("-tags" "$TAGS")
-
-  if [ -n "$SD" ]; then
-    PCT_OPTIONS+=($SD) # Storage device flags (already formatted)
-  fi
-
-  if [ -n "$NS" ]; then
-    PCT_OPTIONS+=($NS) # Nameserver flags (already formatted)
-  fi
-
-  # Network configuration (single string with all network parameters)
-  PCT_OPTIONS+=($NET_STRING)
-
-  PCT_OPTIONS+=("-onboot" "1")
-  PCT_OPTIONS+=("-cores" "$CORE_COUNT")
-  PCT_OPTIONS+=("-memory" "$RAM_SIZE")
-  PCT_OPTIONS+=("-unprivileged" "$CT_TYPE")
-
-  # Protection flag
+  # Add optional flags
   if [ "$PROTECT_CT" == "1" ]; then
-    PCT_OPTIONS+=("-protection" "1")
+    PCT_OPTIONS="$PCT_OPTIONS
+-protection 1"
   fi
 
-  # Timezone flag
   if [ -n "$CT_TIMEZONE" ]; then
-    PCT_OPTIONS+=("-timezone" "$CT_TIMEZONE")
+    PCT_OPTIONS="$PCT_OPTIONS
+-timezone $CT_TIMEZONE"
   fi
 
-  # Password flag (already formatted as "-password xxx")
   if [ -n "$PW" ]; then
-    PCT_OPTIONS+=($PW)
+    PCT_OPTIONS="$PCT_OPTIONS
+$PW"
   fi
 
   export PCT_OPTIONS
