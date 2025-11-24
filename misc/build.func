@@ -2275,7 +2275,7 @@ build_container() {
   else
     FEATURES="nesting=1"
   fi
-  
+
   if [ "$ENABLE_FUSE" == "yes" ]; then
     FEATURES="$FEATURES,fuse=1"
   fi
@@ -2372,10 +2372,10 @@ build_container() {
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
 
-  # DEBUG: Show final PCT_OPTIONS being exported
-  echo "[DEBUG] PCT_OPTIONS to be exported:"
-  echo "$PCT_OPTIONS" | sed 's/^/  /'
-  echo "[DEBUG] Calling create_lxc_container..."
+  # # DEBUG: Show final PCT_OPTIONS being exported
+  # echo "[DEBUG] PCT_OPTIONS to be exported:"
+  # echo "$PCT_OPTIONS" | sed 's/^/  /'
+  # echo "[DEBUG] Calling create_lxc_container..."
 
   create_lxc_container || exit $?
 
@@ -3544,15 +3544,15 @@ create_lxc_container() {
 
   LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
 
-  # DEBUG: Show the actual command that will be executed
-  echo "[DEBUG] ===== PCT CREATE COMMAND DETAILS ====="
-  echo "[DEBUG] CTID: $CTID"
-  echo "[DEBUG] Template: ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}"
-  echo "[DEBUG] PCT_OPTIONS (will be word-split):"
-  echo "$PCT_OPTIONS" | sed 's/^/  /'
-  echo "[DEBUG] Full command line:"
-  echo "  pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} $PCT_OPTIONS"
-  echo "[DEBUG] ========================================"
+  # # DEBUG: Show the actual command that will be executed
+  # echo "[DEBUG] ===== PCT CREATE COMMAND DETAILS ====="
+  # echo "[DEBUG] CTID: $CTID"
+  # echo "[DEBUG] Template: ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}"
+  # echo "[DEBUG] PCT_OPTIONS (will be word-split):"
+  # echo "$PCT_OPTIONS" | sed 's/^/  /'
+  # echo "[DEBUG] Full command line:"
+  # echo "  pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} $PCT_OPTIONS"
+  # echo "[DEBUG] ========================================"
 
   msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} $PCT_OPTIONS"
   msg_debug "Logfile: $LOGFILE"
