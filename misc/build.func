@@ -47,17 +47,23 @@ variables() {
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
   SESSION_ID="${RANDOM_UUID:0:8}"                   # Short session ID (first 8 chars of UUID) for log files
-  BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"     # Host-side container creation log
+  # PROBLEMATIC: BUILD_LOG and DEV_MODE initialization
+  # TODO: Working version doesn't have BUILD_LOG or DEV_MODE
+  # BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"     # Host-side container creation log
   CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
 
+  # PROBLEMATIC: parse_dev_mode function call (function doesn't exist)
+  # TODO: Comment out until DEV_MODE is properly implemented
   # Parse dev_mode early
-  parse_dev_mode
+  # parse_dev_mode
 
-  # Setup persistent log directory if logs mode active
-  if [[ "${DEV_MODE_LOGS:-false}" == "true" ]]; then
-    mkdir -p /var/log/community-scripts
-    BUILD_LOG="/var/log/community-scripts/create-lxc-${SESSION_ID}-$(date +%Y%m%d_%H%M%S).log"
-  fi
+  # PROBLEMATIC: DEV_MODE_LOGS directory setup
+  # TODO: Working version doesn't use persistent logs
+  # # Setup persistent log directory if logs mode active
+  # if [[ "${DEV_MODE_LOGS:-false}" == "true" ]]; then
+  #   mkdir -p /var/log/community-scripts
+  #   BUILD_LOG="/var/log/community-scripts/create-lxc-${SESSION_ID}-$(date +%Y%m%d_%H%M%S).log"
+  # fi
 
   # Get Proxmox VE version and kernel version
   if command -v pveversion >/dev/null 2>&1; then
@@ -2806,22 +2812,24 @@ EOF'
   if [[ $install_exit_code -ne 0 ]]; then
     msg_error "Installation failed in container ${CTID} (exit code: ${install_exit_code})"
 
-    # Copy both logs from container before potential deletion
-    local build_log_copied=false
-    local install_log_copied=false
-
-    if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
-      # Copy BUILD_LOG (creation log) if it exists
-      if [[ -f "${BUILD_LOG}" ]]; then
-        cp "${BUILD_LOG}" "/tmp/create-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null && build_log_copied=true
-      fi
-
-      # Copy INSTALL_LOG from container
-      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null; then
-        install_log_copied=true
-      fi
-
-      # Show available logs
+    # PROBLEMATIC: BUILD_LOG copy logic
+    # TODO: Working version doesn't use BUILD_LOG
+    # # Copy both logs from container before potential deletion
+    # local build_log_copied=false
+    # local install_log_copied=false
+    #
+    # if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
+    #   # Copy BUILD_LOG (creation log) if it exists
+    #   if [[ -f "${BUILD_LOG}" ]]; then
+    #     cp "${BUILD_LOG}" "/tmp/create-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null && build_log_copied=true
+    #   fi
+    #
+    #   # Copy INSTALL_LOG from container
+    #   if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null; then
+    #     install_log_copied=true
+    #   fi
+    #
+    #   # Show available logs
       echo ""
       [[ "$build_log_copied" == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
       [[ "$install_log_copied" == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
