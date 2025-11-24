@@ -2269,44 +2269,16 @@ build_container() {
   none) ;;
   esac
 
-  # Build FEATURES_ARRAY with all requested features
-  # Note: Set safe defaults for all feature flags to prevent undefined variables
-  : "${ENABLE_NESTING:=1}"
-  : "${ENABLE_KEYCTL:=0}"
-  : "${ENABLE_MKNOD:=0}"
-  : "${ENABLE_FUSE:=no}"
-  : "${ALLOW_MOUNT_FS:=}"
-
-  FEATURES_ARRAY=()
-  FEATURES_ARRAY+=("nesting=$ENABLE_NESTING")
-
-  # keyctl: needed for Docker inside containers (systemd-networkd workaround)
-  if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
-    FEATURES_ARRAY+=("keyctl=1")
+  # Build FEATURES string (simple working version)
+  if [ "$CT_TYPE" == "1" ]; then
+    FEATURES="keyctl=1,nesting=1"
+  else
+    FEATURES="nesting=1"
   fi
-
-  # mknod: allow device node creation (requires kernel 5.3+)
-  if [ "$ENABLE_MKNOD" == "1" ]; then
-    FEATURES_ARRAY+=("mknod=1")
-  fi
-
-  # FUSE: required for rclone, mergerfs, AppImage, etc.
+  
   if [ "$ENABLE_FUSE" == "yes" ]; then
-    FEATURES_ARRAY+=("fuse=1")
+    FEATURES="$FEATURES,fuse=1"
   fi
-
-  # mount: allow specific filesystems (e.g., nfs, ext4)
-  # Format: mount=fstype1;fstype2;fstype3 (semicolon-separated!)
-  if [ -n "$ALLOW_MOUNT_FS" ]; then
-    ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
-    FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
-  fi
-
-  # DEBUG: Show built FEATURES_ARRAY
-  echo "[DEBUG] FEATURES_ARRAY built with ${#FEATURES_ARRAY[@]} elements:"
-  for i in "${!FEATURES_ARRAY[@]}"; do
-    echo "  [$i] = ${FEATURES_ARRAY[$i]}"
-  done
 
   # NEW IMPLEMENTATION (Fixed): Build PCT_OPTIONS properly
   # Key insight: Bash cannot export arrays, so we build the options as a string
