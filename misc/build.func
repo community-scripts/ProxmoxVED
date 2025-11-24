@@ -542,6 +542,29 @@ base_settings() {
   PROTECT_CT=${var_protection:-"${1:-no}"}
   CT_TIMEZONE=${var_timezone:-""}
 
+  # Normalize feature flags to 0/1 immediately (pct requires numeric values, not yes/no)
+  # This must happen here before any usage of these variables
+  case "${ENABLE_NESTING,,}" in
+  yes | true) ENABLE_NESTING="1" ;;
+  no | false) ENABLE_NESTING="0" ;;
+  esac
+  case "${ENABLE_KEYCTL,,}" in
+  yes | true) ENABLE_KEYCTL="1" ;;
+  no | false) ENABLE_KEYCTL="0" ;;
+  esac
+  case "${ENABLE_MKNOD,,}" in
+  yes | true) ENABLE_MKNOD="1" ;;
+  no | false) ENABLE_MKNOD="0" ;;
+  esac
+  case "${ENABLE_FUSE,,}" in
+  yes | true) ENABLE_FUSE="1" ;;
+  no | false) ENABLE_FUSE="0" ;;
+  esac
+  case "${PROTECT_CT,,}" in
+  yes | true) PROTECT_CT="1" ;;
+  no | false) PROTECT_CT="0" ;;
+  esac
+
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
     var_os="debian"
@@ -1772,7 +1795,16 @@ install_script() {
   fi
 
   NEXTID=$(pvesh get /cluster/nextid)
-  timezone=$(cat /etc/timezone)
+
+  # Get timezone using timedatectl (Debian 13+ compatible)
+  # Fallback to /etc/timezone for older systems
+  if command -v timedatectl >/dev/null 2>&1; then
+    timezone=$(timedatectl show --value --property=Timezone 2>/dev/null || echo "UTC")
+  elif [ -f /etc/timezone ]; then
+    timezone=$(cat /etc/timezone)
+  else
+    timezone="UTC"
+  fi
 
   # Show APP Header
   header_info
@@ -2266,24 +2298,26 @@ build_container() {
   none) ;;
   esac
 
-  # Build FEATURES string with advanced settings
-  # Start with nesting (almost always enabled for Proxmox CTs)
-  FEATURES="nesting=${ENABLE_NESTING}"
+  # Build FEATURES array with advanced settings
+  # Note: All feature flags are already normalized to 0/1 in default_settings()
+  # Proxmox requires each feature as a separate parameter, not comma-separated string
+  FEATURES_ARRAY=()
+  FEATURES_ARRAY+=("nesting=${ENABLE_NESTING}")
 
   # keyctl: needed for Docker inside containers (systemd-networkd workaround)
   # Typically needed for unprivileged containers with Docker
   if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
-    FEATURES="$FEATURES,keyctl=1"
+    FEATURES_ARRAY+=("keyctl=1")
   fi
 
   # mknod: allow device node creation (requires kernel 5.3+, experimental)
   if [ "$ENABLE_MKNOD" == "1" ]; then
-    FEATURES="$FEATURES,mknod=1"
+    FEATURES_ARRAY+=("mknod=1")
   fi
 
   # FUSE: required for rclone, mergerfs, AppImage, etc.
-  if [ "$ENABLE_FUSE" == "yes" ]; then
-    FEATURES="$FEATURES,fuse=1"
+  if [ "$ENABLE_FUSE" == "1" ]; then
+    FEATURES_ARRAY+=("fuse=1")
   fi
 
   # mount: allow specific filesystems (e.g., nfs, ext4, etc.)
@@ -2291,7 +2325,7 @@ build_container() {
   if [ -n "$ALLOW_MOUNT_FS" ]; then
     # Replace commas with semicolons for proper pct syntax
     ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
-    FEATURES="$FEATURES,mount=$ALLOW_MOUNT_FS_FORMATTED"
+    FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
   fi
 
   TEMP_DIR=$(mktemp -d)
@@ -2336,33 +2370,50 @@ build_container() {
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
-  # Build protection flag if enabled
-  _PROT_FLAG=""
-  if [ "$PROTECT_CT" == "yes" ]; then
-    _PROT_FLAG="-protection 1"
+
+  # Build PCT_OPTIONS array (not string) for proper parameter handling
+  PCT_OPTIONS=()
+
+  # Add features - each as separate -features parameter
+  for feature in "${FEATURES_ARRAY[@]}"; do
+    PCT_OPTIONS+=("-features" "$feature")
+  done
+
+  PCT_OPTIONS+=("-hostname" "$HN")
+  PCT_OPTIONS+=("-tags" "$TAGS")
+
+  if [ -n "$SD" ]; then
+    PCT_OPTIONS+=($SD) # Storage device flags (already formatted)
   fi
 
-  # Build timezone flag if set
-  _TZ_FLAG=""
+  if [ -n "$NS" ]; then
+    PCT_OPTIONS+=($NS) # Nameserver flags (already formatted)
+  fi
+
+  # Network configuration (single string with all network parameters)
+  PCT_OPTIONS+=($NET_STRING)
+
+  PCT_OPTIONS+=("-onboot" "1")
+  PCT_OPTIONS+=("-cores" "$CORE_COUNT")
+  PCT_OPTIONS+=("-memory" "$RAM_SIZE")
+  PCT_OPTIONS+=("-unprivileged" "$CT_TYPE")
+
+  # Protection flag
+  if [ "$PROTECT_CT" == "1" ]; then
+    PCT_OPTIONS+=("-protection" "1")
+  fi
+
+  # Timezone flag
   if [ -n "$CT_TIMEZONE" ]; then
-    _TZ_FLAG="-timezone $CT_TIMEZONE"
+    PCT_OPTIONS+=("-timezone" "$CT_TIMEZONE")
   fi
 
-  export PCT_OPTIONS="
-  -features '$FEATURES'
-  -hostname $HN
-  -tags $TAGS
-  $SD
-  $NS
-  $NET_STRING
-  -onboot 1
-  -cores $CORE_COUNT
-  -memory $RAM_SIZE
-  -unprivileged $CT_TYPE
-  $_PROT_FLAG
-  $_TZ_FLAG
-  $PW
-"
+  # Password flag (already formatted as "-password xxx")
+  if [ -n "$PW" ]; then
+    PCT_OPTIONS+=($PW)
+  fi
+
+  export PCT_OPTIONS
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
   create_lxc_container || exit $?
@@ -2688,7 +2739,9 @@ EOF'
     fi
 
     if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
-      pct exec "$CTID" -- bash -c "tz='$tz'; echo \"\$tz\" >/etc/timezone && ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime"
+      # Set timezone using symlink (Debian 13+ compatible)
+      # Create /etc/timezone for backwards compatibility with older scripts
+      pct exec "$CTID" -- bash -c "tz='$tz'; ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime && echo \"\$tz\" >/etc/timezone || true"
     else
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
@@ -2900,31 +2953,30 @@ fix_gpu_gids() {
     return 0
   fi
 
-  # Silent operation to avoid spinner conflicts
   msg_custom "🔧" "${BL}" "Detecting and setting correct GPU group IDs"
 
-  # Ermittle die tatsächlichen GIDs aus dem Container
+  # Get actual GIDs from container
   local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
   local render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
 
-  # Fallbacks wenn Gruppen nicht existieren
+  # Create groups if they don't exist
   if [[ -z "$video_gid" ]]; then
-    # Versuche die video Gruppe zu erstellen
-    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true"
+    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true" >/dev/null 2>&1
     video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
-    [[ -z "$video_gid" ]] && video_gid="44" # Ultimate fallback
+    [[ -z "$video_gid" ]] && video_gid="44"
   fi
 
   if [[ -z "$render_gid" ]]; then
-    # Versuche die render Gruppe zu erstellen
-    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true"
+    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true" >/dev/null 2>&1
     render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
-    [[ -z "$render_gid" ]] && render_gid="104" # Ultimate fallback
+    [[ -z "$render_gid" ]] && render_gid="104"
   fi
 
-  msg_custom "ℹ️" "${DGN}" "Container GIDs detected - video:${video_gid}, render:${render_gid}"
+  # Stop container to update config
+  pct stop "$CTID" >/dev/null 2>&1
+  sleep 1
 
-  # Prüfe ob die GIDs von den Defaults abweichen
+  # Check if GIDs differ from defaults
   local need_update=0
   if [[ "$video_gid" != "44" ]] || [[ "$render_gid" != "104" ]]; then
     need_update=1
