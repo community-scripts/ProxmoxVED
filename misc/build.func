@@ -47,17 +47,7 @@ variables() {
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
   SESSION_ID="${RANDOM_UUID:0:8}"                   # Short session ID (first 8 chars of UUID) for log files
-  BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"     # Host-side container creation log
-  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
-
-  # Parse dev_mode early
-  parse_dev_mode
-
-  # Setup persistent log directory if logs mode active
-  if [[ "${DEV_MODE_LOGS:-false}" == "true" ]]; then
-    mkdir -p /var/log/community-scripts
-    BUILD_LOG="/var/log/community-scripts/create-lxc-${SESSION_ID}-$(date +%Y%m%d_%H%M%S).log"
-  fi
+  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"}
 
   # Get Proxmox VE version and kernel version
   if command -v pveversion >/dev/null 2>&1; then
@@ -2338,16 +2328,6 @@ build_container() {
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
   export SESSION_ID="$SESSION_ID"
-  export BUILD_LOG="$BUILD_LOG"
-  export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
-  export dev_mode="${dev_mode:-}"
-  export DEV_MODE_MOTD="${DEV_MODE_MOTD:-false}"
-  export DEV_MODE_KEEP="${DEV_MODE_KEEP:-false}"
-  export DEV_MODE_TRACE="${DEV_MODE_TRACE:-false}"
-  export DEV_MODE_PAUSE="${DEV_MODE_PAUSE:-false}"
-  export DEV_MODE_BREAKPOINT="${DEV_MODE_BREAKPOINT:-false}"
-  export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
-  export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"
