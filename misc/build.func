@@ -2588,20 +2588,13 @@ EOF
       [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
       [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
 
-      # Add lxc.mount.entry for each device
+      # Use pct set to add devices with proper dev0/dev1 format
+      # GIDs will be detected and set after container starts
+      local dev_index=0
       for dev in "${devices[@]}"; do
-        echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
-
-        if [[ "$CT_TYPE" == "0" ]]; then
-          # Privileged container - also add cgroup allows
-          local major minor
-          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
-          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
-
-          if [[ "$major" != "0" && "$minor" != "0" ]]; then
-            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
-          fi
-        fi
+        # Add to config using pct set (will be visible in GUI)
+        echo "dev${dev_index}: ${dev},gid=44" >>"$LXC_CONFIG"
+        dev_index=$((dev_index + 1))
       done
 
       export GPU_TYPE="$selected_gpu"
@@ -2614,20 +2607,11 @@ EOF
         return 0
       fi
 
-      # Add lxc.mount.entry for each NVIDIA device
+      # Use pct set for NVIDIA devices
+      local dev_index=0
       for dev in "${NVIDIA_DEVICES[@]}"; do
-        echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
-
-        if [[ "$CT_TYPE" == "0" ]]; then
-          # Privileged container - also add cgroup allows
-          local major minor
-          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
-          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
-
-          if [[ "$major" != "0" && "$minor" != "0" ]]; then
-            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
-          fi
-        fi
+        echo "dev${dev_index}: ${dev},gid=44" >>"$LXC_CONFIG"
+        dev_index=$((dev_index + 1))
       done
 
       export GPU_TYPE="NVIDIA"
@@ -2976,55 +2960,17 @@ fix_gpu_gids() {
   pct stop "$CTID" >/dev/null 2>&1
   sleep 1
 
-  # Check if GIDs differ from defaults
-  local need_update=0
-  if [[ "$video_gid" != "44" ]] || [[ "$render_gid" != "104" ]]; then
-    need_update=1
-  fi
+  # Update dev entries with correct GIDs
+  sed -i.bak -E "s|(dev[0-9]+: /dev/dri/renderD[0-9]+),gid=[0-9]+|\1,gid=${render_gid}|g" "$LXC_CONFIG"
+  sed -i -E "s|(dev[0-9]+: /dev/dri/card[0-9]+),gid=[0-9]+|\1,gid=${video_gid}|g" "$LXC_CONFIG"
 
-  if [[ $need_update -eq 1 ]]; then
-    msg_custom "🔄" "${YW}" "Updating device GIDs in container config"
+  # Restart container
+  pct start "$CTID" >/dev/null 2>&1
+  sleep 2
 
-    # Stoppe Container für Config-Update
-    pct stop "$CTID" >/dev/null 2>&1
-
-    # Update die dev Einträge mit korrekten GIDs
-    # Backup der Config
-    cp "$LXC_CONFIG" "${LXC_CONFIG}.bak"
-
-    # Parse und update jeden dev Eintrag
-    while IFS= read -r line; do
-      if [[ "$line" =~ ^dev[0-9]+: ]]; then
-        # Extract device path
-        local device_path=$(echo "$line" | sed -E 's/^dev[0-9]+: ([^,]+).*/\1/')
-        local dev_num=$(echo "$line" | sed -E 's/^(dev[0-9]+):.*/\1/')
-
-        if [[ "$device_path" =~ renderD ]]; then
-          # RenderD device - use render GID
-          echo "${dev_num}: ${device_path},gid=${render_gid}"
-        elif [[ "$device_path" =~ card ]]; then
-          # Card device - use video GID
-          echo "${dev_num}: ${device_path},gid=${video_gid}"
-        else
-          # Keep original line
-          echo "$line"
-        fi
-      else
-        # Keep non-dev lines
-        echo "$line"
-      fi
-    done <"$LXC_CONFIG" >"${LXC_CONFIG}.new"
-
-    mv "${LXC_CONFIG}.new" "$LXC_CONFIG"
-
-    # Starte Container wieder
-    pct start "$CTID" >/dev/null 2>&1
-    sleep 3
-
-    msg_ok "Device GIDs updated successfully"
-  else
-    msg_ok "Device GIDs are already correct"
-  fi
+  msg_ok "GPU passthrough configured (video:${video_gid}, render:${render_gid})"
+  
+  # For privileged containers: also fix permissions inside container
   if [[ "$CT_TYPE" == "0" ]]; then
     pct exec "$CTID" -- bash -c "
       if [ -d /dev/dri ]; then
@@ -3190,7 +3136,7 @@ create_lxc_container() {
     case "${_ans,,}" in
     y | yes)
       msg_info "Upgrading Proxmox LXC stack (pve-container, lxc-pve)"
-      if apt-get update -qq >/dev/null && apt-get install -y --only-upgrade pve-container lxc-pve >/dev/null; then
+      if $STD apt-get update && $STD apt-get install -y --only-upgrade pve-container lxc-pve; then
         msg_ok "LXC stack upgraded."
         if [[ "$do_retry" == "yes" ]]; then
           msg_info "Retrying container creation after upgrade"
@@ -3635,7 +3581,7 @@ create_lxc_container() {
     exit 211
   }
 
-  LOGFILE="/tmp/pct_create_${CTID}.log"
+  LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
   msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
   msg_debug "Logfile: $LOGFILE"
 
@@ -3692,7 +3638,7 @@ create_lxc_container() {
             msg_error "Container creation failed. See $LOGFILE"
             if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
               set -x
-              bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
+              pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" 2>&1 | tee -a "$LOGFILE"
               set +x
             fi
             exit 209
@@ -3724,7 +3670,7 @@ create_lxc_container() {
           msg_error "Container creation failed. See $LOGFILE"
           if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
             set -x
-            bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
+            pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" 2>&1 | tee -a "$LOGFILE"
             set +x
           fi
           exit 209
@@ -3748,6 +3694,9 @@ create_lxc_container() {
   }
 
   msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
+
+  # Report container creation to API
+  post_to_api
 }
 
 # ==============================================================================
