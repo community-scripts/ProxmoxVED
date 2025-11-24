@@ -47,23 +47,17 @@ variables() {
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
   SESSION_ID="${RANDOM_UUID:0:8}"                   # Short session ID (first 8 chars of UUID) for log files
-  # PROBLEMATIC: BUILD_LOG and DEV_MODE initialization
-  # TODO: Working version doesn't have BUILD_LOG or DEV_MODE
-  # BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"     # Host-side container creation log
+  BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"     # Host-side container creation log
   CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
 
-  # PROBLEMATIC: parse_dev_mode function call (function doesn't exist)
-  # TODO: Comment out until DEV_MODE is properly implemented
   # Parse dev_mode early
-  # parse_dev_mode
+  parse_dev_mode
 
-  # PROBLEMATIC: DEV_MODE_LOGS directory setup
-  # TODO: Working version doesn't use persistent logs
-  # # Setup persistent log directory if logs mode active
-  # if [[ "${DEV_MODE_LOGS:-false}" == "true" ]]; then
-  #   mkdir -p /var/log/community-scripts
-  #   BUILD_LOG="/var/log/community-scripts/create-lxc-${SESSION_ID}-$(date +%Y%m%d_%H%M%S).log"
-  # fi
+  # Setup persistent log directory if logs mode active
+  if [[ "${DEV_MODE_LOGS:-false}" == "true" ]]; then
+    mkdir -p /var/log/community-scripts
+    BUILD_LOG="/var/log/community-scripts/create-lxc-${SESSION_ID}-$(date +%Y%m%d_%H%M%S).log"
+  fi
 
   # Get Proxmox VE version and kernel version
   if command -v pveversion >/dev/null 2>&1; then
@@ -541,40 +535,35 @@ base_settings() {
   TAGS="community-script,${var_tags:-}"
   ENABLE_FUSE=${var_fuse:-"${1:-no}"}
   ENABLE_TUN=${var_tun:-"${1:-no}"}
-  # PROBLEMATIC: Extra feature variables not in working version - Comment out for now
-  # TODO: These need proper integration with string-based FEATURES export (not array)
-  # ENABLE_NESTING=${var_nesting:-"${1:-1}"}
-  # ENABLE_KEYCTL=${var_keyctl:-"${1:-0}"}
-  # ALLOW_MOUNT_FS=${var_mount_fs:-""}
-  # ENABLE_MKNOD=${var_mknod:-"${1:-0}"}
-  # PROTECT_CT=${var_protection:-"${1:-no}"}
-  # CT_TIMEZONE=${var_timezone:-""}
+  ENABLE_NESTING=${var_nesting:-"${1:-1}"}
+  ENABLE_KEYCTL=${var_keyctl:-"${1:-0}"}
+  ALLOW_MOUNT_FS=${var_mount_fs:-""}
+  ENABLE_MKNOD=${var_mknod:-"${1:-0}"}
+  PROTECT_CT=${var_protection:-"${1:-no}"}
+  CT_TIMEZONE=${var_timezone:-""}
 
-  # PROBLEMATIC: Feature normalization breaks compatibility
-  # TODO: Working version expects ENABLE_FUSE="yes" but this converts to "1"
-  # If implementing, must update all checks throughout codebase to handle numeric values
-  # # Normalize feature flags to 0/1 immediately (pct requires numeric values, not yes/no)
-  # # This must happen here before any usage of these variables
-  # case "${ENABLE_NESTING,,}" in
-  # yes | true) ENABLE_NESTING="1" ;;
-  # no | false) ENABLE_NESTING="0" ;;
-  # esac
-  # case "${ENABLE_KEYCTL,,}" in
-  # yes | true) ENABLE_KEYCTL="1" ;;
-  # no | false) ENABLE_KEYCTL="0" ;;
-  # esac
-  # case "${ENABLE_MKNOD,,}" in
-  # yes | true) ENABLE_MKNOD="1" ;;
-  # no | false) ENABLE_MKNOD="0" ;;
-  # esac
-  # case "${ENABLE_FUSE,,}" in
-  # yes | true) ENABLE_FUSE="1" ;;
-  # no | false) ENABLE_FUSE="0" ;;
-  # esac
-  # case "${PROTECT_CT,,}" in
-  # yes | true) PROTECT_CT="1" ;;
-  # no | false) PROTECT_CT="0" ;;
-  # esac
+  # Normalize feature flags to 0/1 immediately (pct requires numeric values, not yes/no)
+  # This must happen here before any usage of these variables
+  case "${ENABLE_NESTING,,}" in
+  yes | true) ENABLE_NESTING="1" ;;
+  no | false) ENABLE_NESTING="0" ;;
+  esac
+  case "${ENABLE_KEYCTL,,}" in
+  yes | true) ENABLE_KEYCTL="1" ;;
+  no | false) ENABLE_KEYCTL="0" ;;
+  esac
+  case "${ENABLE_MKNOD,,}" in
+  yes | true) ENABLE_MKNOD="1" ;;
+  no | false) ENABLE_MKNOD="0" ;;
+  esac
+  case "${ENABLE_FUSE,,}" in
+  yes | true) ENABLE_FUSE="1" ;;
+  no | false) ENABLE_FUSE="0" ;;
+  esac
+  case "${PROTECT_CT,,}" in
+  yes | true) PROTECT_CT="1" ;;
+  no | false) PROTECT_CT="0" ;;
+  esac
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
@@ -2309,48 +2298,35 @@ build_container() {
   none) ;;
   esac
 
-  # PROBLEMATIC: FEATURES_ARRAY system - ROOT CAUSE OF AUTOLOGIN FAILURE
-  # TODO: Bash arrays cannot be exported to child processes!
-  # When PCT_OPTIONS was built from this array, exports failed silently
-  # This caused container creation to succeed but configuration to fail (black console)
-  # SOLUTION: Use string-based FEATURES like working version:
-  #   if [ "$CT_TYPE" == "1" ]; then
-  #     FEATURES="keyctl=1,nesting=1"
-  #   else
-  #     FEATURES="nesting=1"
-  #   fi
-  #   if [ "$ENABLE_FUSE" == "yes" ]; then
-  #     FEATURES="$FEATURES,fuse=1"
-  #   fi
-  # # Build FEATURES array with advanced settings
-  # # Note: All feature flags are already normalized to 0/1 in default_settings()
-  # # Proxmox requires each feature as a separate parameter, not comma-separated string
-  # FEATURES_ARRAY=()
-  # FEATURES_ARRAY+=("nesting=${ENABLE_NESTING}")
-  #
-  # # keyctl: needed for Docker inside containers (systemd-networkd workaround)
-  # # Typically needed for unprivileged containers with Docker
-  # if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
-  #   FEATURES_ARRAY+=("keyctl=1")
-  # fi
-  #
-  # # mknod: allow device node creation (requires kernel 5.3+, experimental)
-  # if [ "$ENABLE_MKNOD" == "1" ]; then
-  #   FEATURES_ARRAY+=("mknod=1")
-  # fi
-  #
-  # # FUSE: required for rclone, mergerfs, AppImage, etc.
-  # if [ "$ENABLE_FUSE" == "1" ]; then
-  #   FEATURES_ARRAY+=("fuse=1")
-  # fi
-  #
-  # # mount: allow specific filesystems (e.g., nfs, ext4, etc.)
-  # # Format: mount=fstype1;fstype2;fstype3 (semicolon-separated, not comma!)
-  # if [ -n "$ALLOW_MOUNT_FS" ]; then
-  #   # Replace commas with semicolons for proper pct syntax
-  #   ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
-  #   FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
-  # fi
+  # Build FEATURES array with advanced settings
+  # Note: All feature flags are already normalized to 0/1 in default_settings()
+  # Proxmox requires each feature as a separate parameter, not comma-separated string
+  FEATURES_ARRAY=()
+  FEATURES_ARRAY+=("nesting=${ENABLE_NESTING}")
+
+  # keyctl: needed for Docker inside containers (systemd-networkd workaround)
+  # Typically needed for unprivileged containers with Docker
+  if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
+    FEATURES_ARRAY+=("keyctl=1")
+  fi
+
+  # mknod: allow device node creation (requires kernel 5.3+, experimental)
+  if [ "$ENABLE_MKNOD" == "1" ]; then
+    FEATURES_ARRAY+=("mknod=1")
+  fi
+
+  # FUSE: required for rclone, mergerfs, AppImage, etc.
+  if [ "$ENABLE_FUSE" == "1" ]; then
+    FEATURES_ARRAY+=("fuse=1")
+  fi
+
+  # mount: allow specific filesystems (e.g., nfs, ext4, etc.)
+  # Format: mount=fstype1;fstype2;fstype3 (semicolon-separated, not comma!)
+  if [ -n "$ALLOW_MOUNT_FS" ]; then
+    # Replace commas with semicolons for proper pct syntax
+    ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
+    FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
+  fi
 
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
@@ -2362,19 +2338,16 @@ build_container() {
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
   export SESSION_ID="$SESSION_ID"
-  # PROBLEMATIC: DEV_MODE exports not in working version
-  # TODO: These were causing autologin issues by interfering with getty service
-  # If implementing DEV_MODE, must ensure it doesn't modify container startup
-  # export BUILD_LOG="$BUILD_LOG"
-  # export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
-  # export dev_mode="${dev_mode:-}"
-  # export DEV_MODE_MOTD="${DEV_MODE_MOTD:-false}"
-  # export DEV_MODE_KEEP="${DEV_MODE_KEEP:-false}"
-  # export DEV_MODE_TRACE="${DEV_MODE_TRACE:-false}"
-  # export DEV_MODE_PAUSE="${DEV_MODE_PAUSE:-false}"
-  # export DEV_MODE_BREAKPOINT="${DEV_MODE_BREAKPOINT:-false}"
-  # export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
-  # export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
+  export BUILD_LOG="$BUILD_LOG"
+  export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
+  export dev_mode="${dev_mode:-}"
+  export DEV_MODE_MOTD="${DEV_MODE_MOTD:-false}"
+  export DEV_MODE_KEEP="${DEV_MODE_KEEP:-false}"
+  export DEV_MODE_TRACE="${DEV_MODE_TRACE:-false}"
+  export DEV_MODE_PAUSE="${DEV_MODE_PAUSE:-false}"
+  export DEV_MODE_BREAKPOINT="${DEV_MODE_BREAKPOINT:-false}"
+  export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
+  export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
   export CACHER="$APT_CACHER"
   export CACHER_IP="$APT_CACHER_IP"
   export tz="$timezone"
@@ -2388,68 +2361,59 @@ build_container() {
   export CTTYPE="$CT_TYPE"
   export ENABLE_FUSE="$ENABLE_FUSE"
   export ENABLE_TUN="$ENABLE_TUN"
-  # PROBLEMATIC: Extra exports for features not in working version
-  # TODO: These variables don't exist in working version (see above where commented out)
-  # export ENABLE_NESTING="$ENABLE_NESTING"
-  # export ENABLE_KEYCTL="$ENABLE_KEYCTL"
-  # export ENABLE_MKNOD="$ENABLE_MKNOD"
-  # export ALLOW_MOUNT_FS="$ALLOW_MOUNT_FS"
-  # export PROTECT_CT="$PROTECT_CT"
-  # export CT_TIMEZONE="$CT_TIMEZONE"
+  export ENABLE_NESTING="$ENABLE_NESTING"
+  export ENABLE_KEYCTL="$ENABLE_KEYCTL"
+  export ENABLE_MKNOD="$ENABLE_MKNOD"
+  export ALLOW_MOUNT_FS="$ALLOW_MOUNT_FS"
+  export PROTECT_CT="$PROTECT_CT"
+  export CT_TIMEZONE="$CT_TIMEZONE"
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
 
-  # PROBLEMATIC: PCT_OPTIONS as array cannot be exported
-  # TODO: Working version uses string with newlines (see create_lxc_container function)
-  # # Build PCT_OPTIONS array (not string) for proper parameter handling
-  # PCT_OPTIONS=()
+  # Build PCT_OPTIONS array (not string) for proper parameter handling
+  PCT_OPTIONS=()
 
-  # PROBLEMATIC: Loop building PCT_OPTIONS from FEATURES_ARRAY
-  # TODO: Since both are commented out above, this loop has no effect
-  # # Add features - each as separate -features parameter
-  # for feature in "${FEATURES_ARRAY[@]}"; do
-  #   PCT_OPTIONS+=("-features" "$feature")
-  # done
+  # Add features - each as separate -features parameter
+  for feature in "${FEATURES_ARRAY[@]}"; do
+    PCT_OPTIONS+=("-features" "$feature")
+  done
 
-  # PROBLEMATIC: All PCT_OPTIONS array operations
-  # TODO: Working version uses string-based PCT_OPTIONS built in create_lxc_container
-  # The export below is the CRITICAL FAILURE POINT - Bash cannot export arrays!
-  # # PCT_OPTIONS+=("-hostname" "$HN")
-  # PCT_OPTIONS+=("-tags" "$TAGS")
-  #
-  # if [ -n "$SD" ]; then
-  #   PCT_OPTIONS+=($SD) # Storage device flags (already formatted)
-  # fi
-  #
-  # if [ -n "$NS" ]; then
-  #   PCT_OPTIONS+=($NS) # Nameserver flags (already formatted)
-  # fi
-  #
-  # # Network configuration (single string with all network parameters)
-  # PCT_OPTIONS+=($NET_STRING)
-  #
-  # PCT_OPTIONS+=("-onboot" "1")
-  # PCT_OPTIONS+=("-cores" "$CORE_COUNT")
-  # PCT_OPTIONS+=("-memory" "$RAM_SIZE")
-  # PCT_OPTIONS+=("-unprivileged" "$CT_TYPE")
-  #
-  # # Protection flag
-  # if [ "$PROTECT_CT" == "1" ]; then
-  #   PCT_OPTIONS+=("-protection" "1")
-  # fi
-  #
-  # # Timezone flag
-  # if [ -n "$CT_TIMEZONE" ]; then
-  #   PCT_OPTIONS+=("-timezone" "$CT_TIMEZONE")
-  # fi
-  #
-  # # Password flag (already formatted as "-password xxx")
-  # if [ -n "$PW" ]; then
-  #   PCT_OPTIONS+=($PW)
-  # fi
-  #
-  # export PCT_OPTIONS
+  PCT_OPTIONS+=("-hostname" "$HN")
+  PCT_OPTIONS+=("-tags" "$TAGS")
+
+  if [ -n "$SD" ]; then
+    PCT_OPTIONS+=($SD) # Storage device flags (already formatted)
+  fi
+
+  if [ -n "$NS" ]; then
+    PCT_OPTIONS+=($NS) # Nameserver flags (already formatted)
+  fi
+
+  # Network configuration (single string with all network parameters)
+  PCT_OPTIONS+=($NET_STRING)
+
+  PCT_OPTIONS+=("-onboot" "1")
+  PCT_OPTIONS+=("-cores" "$CORE_COUNT")
+  PCT_OPTIONS+=("-memory" "$RAM_SIZE")
+  PCT_OPTIONS+=("-unprivileged" "$CT_TYPE")
+
+  # Protection flag
+  if [ "$PROTECT_CT" == "1" ]; then
+    PCT_OPTIONS+=("-protection" "1")
+  fi
+
+  # Timezone flag
+  if [ -n "$CT_TIMEZONE" ]; then
+    PCT_OPTIONS+=("-timezone" "$CT_TIMEZONE")
+  fi
+
+  # Password flag (already formatted as "-password xxx")
+  if [ -n "$PW" ]; then
+    PCT_OPTIONS+=($PW)
+  fi
+
+  export PCT_OPTIONS
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
   create_lxc_container || exit $?
@@ -2812,52 +2776,46 @@ EOF'
   if [[ $install_exit_code -ne 0 ]]; then
     msg_error "Installation failed in container ${CTID} (exit code: ${install_exit_code})"
 
-    # PROBLEMATIC: BUILD_LOG copy logic
-    # TODO: Working version doesn't use BUILD_LOG
-    # # Copy both logs from container before potential deletion
-    # local build_log_copied=false
-    # local install_log_copied=false
-    #
-    # if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
-    #   # Copy BUILD_LOG (creation log) if it exists
-    #   if [[ -f "${BUILD_LOG}" ]]; then
-    #     cp "${BUILD_LOG}" "/tmp/create-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null && build_log_copied=true
-    #   fi
-    #
-    #   # Copy INSTALL_LOG from container
-    #   if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null; then
-    #     install_log_copied=true
-    #   fi
-    #
-    #   # Show available logs
-    #   echo ""
-    #   [[ "$build_log_copied" == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
-    #   [[ "$install_log_copied" == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
-    # fi
+    # Copy both logs from container before potential deletion
+    local build_log_copied=false
+    local install_log_copied=false
 
-    # PROBLEMATIC: DEV_MODE keep/breakpoint logic
-    # TODO: Working version doesn't have DEV_MODE
-    # # Dev mode: Keep container or open breakpoint shell
-    # if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
-    #   msg_dev "Keep mode active - container ${CTID} preserved"
-    #   return 0
-    # elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
-    #   msg_dev "Breakpoint mode - opening shell in container ${CTID}"
-    #   echo -e "${YW}Type 'exit' to return to host${CL}"
-    #   pct enter "$CTID"
-    #   echo ""
-    #   echo -en "${YW}Container ${CTID} still running. Remove now? (y/N): ${CL}"
-    #   if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
-    #     pct stop "$CTID" &>/dev/null || true
-    #     pct destroy "$CTID" &>/dev/null || true
-    #     msg_ok "Container ${CTID} removed"
-    #   else
-    #     msg_dev "Container ${CTID} kept for debugging"
-    #   fi
-    #   exit $install_exit_code
-    # fi
+    if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
+      # Copy BUILD_LOG (creation log) if it exists
+      if [[ -f "${BUILD_LOG}" ]]; then
+        cp "${BUILD_LOG}" "/tmp/create-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null && build_log_copied=true
+      fi
 
-    # Working version: Simple cleanup on failure
+      # Copy INSTALL_LOG from container
+      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null; then
+        install_log_copied=true
+      fi
+
+      # Show available logs
+      echo ""
+      [[ "$build_log_copied" == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
+      [[ "$install_log_copied" == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
+    fi
+
+    # Dev mode: Keep container or open breakpoint shell
+    if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
+      msg_dev "Keep mode active - container ${CTID} preserved"
+      return 0
+    elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
+      msg_dev "Breakpoint mode - opening shell in container ${CTID}"
+      echo -e "${YW}Type 'exit' to return to host${CL}"
+      pct enter "$CTID"
+      echo ""
+      echo -en "${YW}Container ${CTID} still running. Remove now? (y/N): ${CL}"
+      if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
+        pct stop "$CTID" &>/dev/null || true
+        pct destroy "$CTID" &>/dev/null || true
+        msg_ok "Container ${CTID} removed"
+      else
+        msg_dev "Container ${CTID} kept for debugging"
+      fi
+      exit $install_exit_code
+    fi
 
     # Prompt user for cleanup with 60s timeout (plain echo - no msg_info to avoid spinner)
     echo ""
