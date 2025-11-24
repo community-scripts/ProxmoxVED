@@ -542,18 +542,19 @@ base_settings() {
   PROTECT_CT=${var_protection:-"${1:-no}"}
   CT_TIMEZONE=${var_timezone:-""}
 
-  # Normalize numeric feature flags (keep ENABLE_FUSE as yes/no for compatibility)
+  # Normalize numeric feature flags (handle both yes/no and 0/1 formats)
+  # Keep ENABLE_FUSE as yes/no for backward compatibility
   case "${ENABLE_NESTING,,}" in
-  yes | true) ENABLE_NESTING="1" ;;
-  no | false) ENABLE_NESTING="0" ;;
+  yes | true | 1) ENABLE_NESTING="1" ;;
+  no | false | 0) ENABLE_NESTING="0" ;;
   esac
   case "${ENABLE_KEYCTL,,}" in
-  yes | true) ENABLE_KEYCTL="1" ;;
-  no | false) ENABLE_KEYCTL="0" ;;
+  yes | true | 1) ENABLE_KEYCTL="1" ;;
+  no | false | 0) ENABLE_KEYCTL="0" ;;
   esac
   case "${ENABLE_MKNOD,,}" in
-  yes | true) ENABLE_MKNOD="1" ;;
-  no | false) ENABLE_MKNOD="0" ;;
+  yes | true | 1) ENABLE_MKNOD="1" ;;
+  no | false | 0) ENABLE_MKNOD="0" ;;
   esac
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
