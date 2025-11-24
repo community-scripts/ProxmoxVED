@@ -535,6 +535,26 @@ base_settings() {
   TAGS="community-script,${var_tags:-}"
   ENABLE_FUSE=${var_fuse:-"${1:-no}"}
   ENABLE_TUN=${var_tun:-"${1:-no}"}
+  ENABLE_NESTING=${var_nesting:-"${1:-1}"}
+  ENABLE_KEYCTL=${var_keyctl:-"${1:-0}"}
+  ALLOW_MOUNT_FS=${var_mount_fs:-""}
+  ENABLE_MKNOD=${var_mknod:-"${1:-0}"}
+  PROTECT_CT=${var_protection:-"${1:-no}"}
+  CT_TIMEZONE=${var_timezone:-""}
+
+  # Normalize numeric feature flags (keep ENABLE_FUSE as yes/no for compatibility)
+  case "${ENABLE_NESTING,,}" in
+  yes | true) ENABLE_NESTING="1" ;;
+  no | false) ENABLE_NESTING="0" ;;
+  esac
+  case "${ENABLE_KEYCTL,,}" in
+  yes | true) ENABLE_KEYCTL="1" ;;
+  no | false) ENABLE_KEYCTL="0" ;;
+  esac
+  case "${ENABLE_MKNOD,,}" in
+  yes | true) ENABLE_MKNOD="1" ;;
+  no | false) ENABLE_MKNOD="0" ;;
+  esac
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
@@ -2269,16 +2289,34 @@ build_container() {
   none) ;;
   esac
 
-  # Build FEATURES string (working version - simple and reliable)
-  if [ "$CT_TYPE" == "1" ]; then
-    FEATURES="keyctl=1,nesting=1"
-  else
-    FEATURES="nesting=1"
+  # Build FEATURES_ARRAY with all requested features
+  FEATURES_ARRAY=()
+  FEATURES_ARRAY+=("nesting=${ENABLE_NESTING}")
+
+  # keyctl: needed for Docker inside containers (systemd-networkd workaround)
+  if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
+    FEATURES_ARRAY+=("keyctl=1")
   fi
 
-  if [ "$ENABLE_FUSE" == "yes" ]; then
-    FEATURES="$FEATURES,fuse=1"
+  # mknod: allow device node creation (requires kernel 5.3+)
+  if [ "$ENABLE_MKNOD" == "1" ]; then
+    FEATURES_ARRAY+=("mknod=1")
   fi
+
+  # FUSE: required for rclone, mergerfs, AppImage, etc.
+  if [ "$ENABLE_FUSE" == "yes" ]; then
+    FEATURES_ARRAY+=("fuse=1")
+  fi
+
+  # mount: allow specific filesystems (e.g., nfs, ext4)
+  # Format: mount=fstype1;fstype2;fstype3 (semicolon-separated!)
+  if [ -n "$ALLOW_MOUNT_FS" ]; then
+    ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
+    FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
+  fi
+
+  # NEW IMPLEMENTATION (Fixed): Build PCT_OPTIONS properly
+  # Key insight: Bash cannot export arrays, so we build the options as a string
 
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
@@ -2287,6 +2325,8 @@ build_container() {
   else
     export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
   fi
+
+  # Core exports for install.func
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
   export SESSION_ID="$SESSION_ID"
@@ -2306,116 +2346,81 @@ build_container() {
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
-  export PCT_OPTIONS="
-  -features $FEATURES
+
+  # DEV_MODE exports (optional, for debugging)
+  export BUILD_LOG="$BUILD_LOG"
+  export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
+  export dev_mode="${dev_mode:-}"
+  export DEV_MODE_MOTD="${DEV_MODE_MOTD:-false}"
+  export DEV_MODE_KEEP="${DEV_MODE_KEEP:-false}"
+  export DEV_MODE_TRACE="${DEV_MODE_TRACE:-false}"
+  export DEV_MODE_PAUSE="${DEV_MODE_PAUSE:-false}"
+  export DEV_MODE_BREAKPOINT="${DEV_MODE_BREAKPOINT:-false}"
+  export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
+  export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
+
+  # Build PCT_OPTIONS as multi-line string (arrays cannot be exported!)
+  # Use FEATURES_ARRAY to build the FEATURES string
+  FEATURES_STRING=""
+  for feature in "${FEATURES_ARRAY[@]}"; do
+    if [ -z "$FEATURES_STRING" ]; then
+      FEATURES_STRING="$feature"
+    else
+      FEATURES_STRING="$FEATURES_STRING,$feature"
+    fi
+  done
+
+  # Start building PCT_OPTIONS as a string
+  PCT_OPTIONS_STRING="  -features $FEATURES_STRING
   -hostname $HN
-  -tags $TAGS
-  $SD
-  $NS
+  -tags $TAGS"
+
+  # Add storage if specified
+  if [ -n "$SD" ]; then
+    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
+  $SD"
+  fi
+
+  # Add nameserver if specified
+  if [ -n "$NS" ]; then
+    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
+  $NS"
+  fi
+
+  # Network configuration
+  PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
   $NET_STRING
   -onboot 1
   -cores $CORE_COUNT
   -memory $RAM_SIZE
-  -unprivileged $CT_TYPE
-  $PW
-"
+  -unprivileged $CT_TYPE"
+
+  # Protection flag (if var_protection was set)
+  if [ "${PROTECT_CT:-}" == "1" ] || [ "${PROTECT_CT:-}" == "yes" ]; then
+    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
+  -protection 1"
+  fi
+
+  # Timezone flag (if var_timezone was set)
+  if [ -n "${CT_TIMEZONE:-}" ]; then
+    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
+  -timezone $CT_TIMEZONE"
+  fi
+
+  # Password (already formatted)
+  if [ -n "$PW" ]; then
+    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
+  $PW"
+  fi
+
+  # Export as string (this works, unlike arrays!)
+  export PCT_OPTIONS="$PCT_OPTIONS_STRING"
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
+
   create_lxc_container || exit $?
 
   LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
-
-  # TEMP_DIR=$(mktemp -d)
-  # pushd "$TEMP_DIR" >/dev/null
-  # if [ "$var_os" == "alpine" ]; then
-  #   export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)"
-  # else
-  #   export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
-  # fi
-  # export DIAGNOSTICS="$DIAGNOSTICS"
-  # export RANDOM_UUID="$RANDOM_UUID"
-  # export SESSION_ID="$SESSION_ID"
-  # export BUILD_LOG="$BUILD_LOG"
-  # export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
-  # export dev_mode="${dev_mode:-}"
-  # export DEV_MODE_MOTD="${DEV_MODE_MOTD:-false}"
-  # export DEV_MODE_KEEP="${DEV_MODE_KEEP:-false}"
-  # export DEV_MODE_TRACE="${DEV_MODE_TRACE:-false}"
-  # export DEV_MODE_PAUSE="${DEV_MODE_PAUSE:-false}"
-  # export DEV_MODE_BREAKPOINT="${DEV_MODE_BREAKPOINT:-false}"
-  # export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
-  # export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
-  # export CACHER="$APT_CACHER"
-  # export CACHER_IP="$APT_CACHER_IP"
-  # export tz="$timezone"
-  # export APPLICATION="$APP"
-  # export app="$NSAPP"
-  # export PASSWORD="$PW"
-  # export VERBOSE="$VERBOSE"
-  # export SSH_ROOT="${SSH}"
-  # export SSH_AUTHORIZED_KEY
-  # export CTID="$CT_ID"
-  # export CTTYPE="$CT_TYPE"
-  # export ENABLE_FUSE="$ENABLE_FUSE"
-  # export ENABLE_TUN="$ENABLE_TUN"
-  # export ENABLE_NESTING="$ENABLE_NESTING"
-  # export ENABLE_KEYCTL="$ENABLE_KEYCTL"
-  # export ENABLE_MKNOD="$ENABLE_MKNOD"
-  # export ALLOW_MOUNT_FS="$ALLOW_MOUNT_FS"
-  # export PROTECT_CT="$PROTECT_CT"
-  # export CT_TIMEZONE="$CT_TIMEZONE"
-  # export PCT_OSTYPE="$var_os"
-  # export PCT_OSVERSION="$var_version"
-  # export PCT_DISK_SIZE="$DISK_SIZE"
-
-  # # Build PCT_OPTIONS array (not string) for proper parameter handling
-  # PCT_OPTIONS=()
-
-  # # Add features - each as separate -features parameter
-  # for feature in "${FEATURES_ARRAY[@]}"; do
-  #   PCT_OPTIONS+=("-features" "$feature")
-  # done
-
-  # PCT_OPTIONS+=("-hostname" "$HN")
-  # PCT_OPTIONS+=("-tags" "$TAGS")
-
-  # if [ -n "$SD" ]; then
-  #   PCT_OPTIONS+=($SD) # Storage device flags (already formatted)
-  # fi
-
-  # if [ -n "$NS" ]; then
-  #   PCT_OPTIONS+=($NS) # Nameserver flags (already formatted)
-  # fi
-
-  # # Network configuration (single string with all network parameters)
-  # PCT_OPTIONS+=($NET_STRING)
-
-  # PCT_OPTIONS+=("-onboot" "1")
-  # PCT_OPTIONS+=("-cores" "$CORE_COUNT")
-  # PCT_OPTIONS+=("-memory" "$RAM_SIZE")
-  # PCT_OPTIONS+=("-unprivileged" "$CT_TYPE")
-
-  # # Protection flag
-  # if [ "$PROTECT_CT" == "1" ]; then
-  #   PCT_OPTIONS+=("-protection" "1")
-  # fi
-
-  # # Timezone flag
-  # if [ -n "$CT_TIMEZONE" ]; then
-  #   PCT_OPTIONS+=("-timezone" "$CT_TIMEZONE")
-  # fi
-
-  # # Password flag (already formatted as "-password xxx")
-  # if [ -n "$PW" ]; then
-  #   PCT_OPTIONS+=($PW)
-  # fi
-
-  # export PCT_OPTIONS
-  # export TEMPLATE_STORAGE="${var_template_storage:-}"
-  # export CONTAINER_STORAGE="${var_container_storage:-}"
-  # create_lxc_container || exit $?
-
-  # LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
 
   # ============================================================================
   # GPU/USB PASSTHROUGH CONFIGURATION
