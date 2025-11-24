@@ -2832,16 +2832,16 @@ EOF'
         echo -e "\n${TAB}${YW}Container ${CTID} kept for debugging${CL}"
 
         # Dev mode: Setup MOTD/SSH for debugging access to broken container
-        if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
-          echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
-          if pct exec "$CTID" -- bash -c "
-            source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
-            declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
-          " >/dev/null 2>&1; then
-            local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
-            echo -e "${BFR}${CM}${GN}MOTD/SSH ready - SSH into container: ssh root@${ct_ip}${CL}"
-          fi
-        fi
+        # if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
+        #   echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
+        #   if pct exec "$CTID" -- bash -c "
+        #     source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
+        #     declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
+        #   " >/dev/null 2>&1; then
+        #     local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
+        #     echo -e "${BFR}${CM}${GN}MOTD/SSH ready - SSH into container: ssh root@${ct_ip}${CL}"
+        #   fi
+        # fi
       fi
     else
       # Timeout - auto-remove
