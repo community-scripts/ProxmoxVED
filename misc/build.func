@@ -47,7 +47,7 @@ variables() {
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
   SESSION_ID="${RANDOM_UUID:0:8}"                   # Short session ID (first 8 chars of UUID) for log files
-  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"}
+  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
 
   # Get Proxmox VE version and kernel version
   if command -v pveversion >/dev/null 2>&1; then
