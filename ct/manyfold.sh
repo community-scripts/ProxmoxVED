@@ -27,31 +27,30 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-    RELEASE=$(curl -fsSL https://api.github.com/repos/benjaminjonard/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-    if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+    if check_for_gh_release "manyfold" "manyfold3d/manyfold"; then
         msg_info "Stopping Service"
-        systemctl stop apache2
+        systemctl stop manyfold manyfold-rails manyfold-default_worker manyfold-performance_worker
         msg_ok "Stopped Service"
 
-        msg_info "Updating ${APP} to v${RELEASE}"
-        cd /opt
-        mv /opt/manyfold/ /opt/manyfold-backup
+        fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold/app"
 
-        echo "${RELEASE}" >/opt/${APP}_version.txt
-        msg_ok "Updated $APP to v${RELEASE}"
+        msg_info "Update services"
+        $STD foreman export systemd /etc/systemd/system -a manyfold -u root -f /opt/manyfold/Procfile
+        for f in /etc/systemd/system/manyfold-*.service; do
+            sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/.env \&\& |" "$f"
+        done
+        msg_ok "Updated services"
 
         msg_info "Starting Service"
-        systemctl start service
+        systemctl start manyfold manyfold-rails manyfold-default_worker manyfold-performance_worker
         msg_ok "Started Service"
-
-        msg_info "Cleaning up"
-        rm -r "/opt/${RELEASE}.zip"
-        rm -r /opt/manyfold-backup
-        msg_ok "Cleaned"
-        msg_ok "Updated Successfully"
-    else
-        msg_ok "No update required. ${APP} is already at v${RELEASE}"
     fi
+
+    msg_info "Cleaning up"
+    $STD apt -y autoremove
+    $STD apt -y autoclean
+    $STD apt -y clean
+    msg_ok "Cleaned"
     exit
 }
 
