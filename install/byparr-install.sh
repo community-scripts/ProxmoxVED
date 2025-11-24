@@ -33,12 +33,14 @@ cat <<EOF >/etc/systemd/system/byparr.service
 [Unit]
 Description=Byparr
 After=network.target
+
 [Service]
 Type=simple
 WorkingDirectory=/opt/Byparr
 ExecStart=/usr/local/bin/uv run python3 main.py
 Restart=on-failure
 RestartSec=10
+
 [Install]
 WantedBy=multi-user.target
 EOF
