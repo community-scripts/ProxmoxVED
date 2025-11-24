@@ -2830,30 +2830,34 @@ EOF'
     #   fi
     #
     #   # Show available logs
-      echo ""
-      [[ "$build_log_copied" == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
-      [[ "$install_log_copied" == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
-    fi
+    #   echo ""
+    #   [[ "$build_log_copied" == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
+    #   [[ "$install_log_copied" == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
+    # fi
 
-    # Dev mode: Keep container or open breakpoint shell
-    if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
-      msg_dev "Keep mode active - container ${CTID} preserved"
-      return 0
-    elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
-      msg_dev "Breakpoint mode - opening shell in container ${CTID}"
-      echo -e "${YW}Type 'exit' to return to host${CL}"
-      pct enter "$CTID"
-      echo ""
-      echo -en "${YW}Container ${CTID} still running. Remove now? (y/N): ${CL}"
-      if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
-        pct stop "$CTID" &>/dev/null || true
-        pct destroy "$CTID" &>/dev/null || true
-        msg_ok "Container ${CTID} removed"
-      else
-        msg_dev "Container ${CTID} kept for debugging"
-      fi
-      exit $install_exit_code
-    fi
+    # PROBLEMATIC: DEV_MODE keep/breakpoint logic
+    # TODO: Working version doesn't have DEV_MODE
+    # # Dev mode: Keep container or open breakpoint shell
+    # if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
+    #   msg_dev "Keep mode active - container ${CTID} preserved"
+    #   return 0
+    # elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
+    #   msg_dev "Breakpoint mode - opening shell in container ${CTID}"
+    #   echo -e "${YW}Type 'exit' to return to host${CL}"
+    #   pct enter "$CTID"
+    #   echo ""
+    #   echo -en "${YW}Container ${CTID} still running. Remove now? (y/N): ${CL}"
+    #   if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
+    #     pct stop "$CTID" &>/dev/null || true
+    #     pct destroy "$CTID" &>/dev/null || true
+    #     msg_ok "Container ${CTID} removed"
+    #   else
+    #     msg_dev "Container ${CTID} kept for debugging"
+    #   fi
+    #   exit $install_exit_code
+    # fi
+
+    # Working version: Simple cleanup on failure
 
     # Prompt user for cleanup with 60s timeout (plain echo - no msg_info to avoid spinner)
     echo ""
