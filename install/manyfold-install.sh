@@ -102,6 +102,8 @@ $STD npm install --global corepack
 corepack enable yarn
 chown manyfold:manyfold /opt/.env
 rm /opt/manyfold/config/credentials.yml.enc
+$STD corepack prepare $YARN_VERSION --activate
+$STD corepack use $YARN_VERSION
 $STD bin/rails credentials:edit
 $STD bin/rails db:migrate
 $STD bin/rails assets:precompile
