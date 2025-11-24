@@ -274,24 +274,16 @@ customize() {
 
     # Create getty override for container-getty@1.service
     GETTY_OVERRIDE="/etc/systemd/system/container-getty@1.service.d/override.conf"
-    mkdir -p "$(dirname "$GETTY_OVERRIDE")"
-    cat <<'EOF' >"$GETTY_OVERRIDE"
+    mkdir -p $(dirname $GETTY_OVERRIDE)
+    cat <<EOF >$GETTY_OVERRIDE
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 linux
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
 EOF
 
-    # Create getty override for console-getty.service
-    CONSOLE_OVERRIDE="/etc/systemd/system/console-getty.service.d/override.conf"
-    mkdir -p "$(dirname "$CONSOLE_OVERRIDE")"
-    cat <<'EOF' >"$CONSOLE_OVERRIDE"
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud console 115200,38400,9600 linux
-EOF
-
-    # Reload systemd daemon
+    # Reload and restart getty service
     $STD systemctl daemon-reload
+    $STD systemctl restart $(basename $(dirname $GETTY_OVERRIDE) | sed 's/\.d//') || true
 
     msg_ok "Autologin configured"
   fi
