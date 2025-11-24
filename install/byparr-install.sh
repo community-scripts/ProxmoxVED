@@ -43,8 +43,9 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 msg_ok "Created Service"
-systemctl enable -q --now byparr
 
 motd_ssh
 customize
 cleanup_lxc
+
+systemctl enable -q --now byparr
