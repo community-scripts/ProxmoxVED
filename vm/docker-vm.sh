@@ -29,7 +29,7 @@ var_os="debian"
 var_version="13"
 DISK_SIZE="10G"
 USE_CLOUD_INIT="no"
-INSTALL_PORTAINER="no"
+# INSTALL_PORTAINER="no"
 OS_TYPE=""
 OS_VERSION=""
 
@@ -161,7 +161,7 @@ function check_root() {
 }
 
 # This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-# Supported: Proxmox VE 8.0.x – 8.9.x and 9.0 (NOT 9.1+)
+# Supported: Proxmox VE 8.0.x – 8.9.x and 9.0 – 9.1
 pve_check() {
   local PVE_VER
   PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
@@ -178,12 +178,12 @@ pve_check() {
     return 0
   fi
 
-  # Check for Proxmox VE 9.x: allow ONLY 9.0
+  # Check for Proxmox VE 9.x: allow 9.0–9.1
   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR != 0)); then
+    if ((MINOR < 0 || MINOR > 1)); then
       msg_error "This version of Proxmox VE is not yet supported."
-      msg_error "Supported: Proxmox VE version 9.0"
+      msg_error "Supported: Proxmox VE version 9.0 – 9.1"
       exit 1
     fi
     PVE_MAJOR=9
@@ -192,7 +192,7 @@ pve_check() {
 
   # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
-  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0"
+  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0 – 9.1"
   exit 1
 }
 
@@ -284,16 +284,16 @@ function select_cloud_init() {
   fi
 }
 
-function select_portainer() {
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "PORTAINER" \
-    --yesno "Install Portainer for Docker management?\n\nPortainer is a lightweight management UI for Docker.\n\nAccess after installation:\n• HTTP:  http://<VM-IP>:9000\n• HTTPS: https://<VM-IP>:9443" 14 68); then
-    INSTALL_PORTAINER="yes"
-    echo -e "${ADVANCED}${BOLD}${DGN}Portainer: ${BGN}yes${CL}"
-  else
-    INSTALL_PORTAINER="no"
-    echo -e "${ADVANCED}${BOLD}${DGN}Portainer: ${BGN}no${CL}"
-  fi
-}
+# function select_portainer() {
+#   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "PORTAINER" \
+#     --yesno "Install Portainer for Docker management?\n\nPortainer is a lightweight management UI for Docker.\n\nAccess after installation:\n• HTTP:  http://<VM-IP>:9000\n• HTTPS: https://<VM-IP>:9443" 14 68); then
+#     INSTALL_PORTAINER="yes"
+#     echo -e "${ADVANCED}${BOLD}${DGN}Portainer: ${BGN}yes${CL}"
+#   else
+#     INSTALL_PORTAINER="no"
+#     echo -e "${ADVANCED}${BOLD}${DGN}Portainer: ${BGN}no${CL}"
+#   fi
+# }
 
 function get_image_url() {
   local arch=$(dpkg --print-architecture)
@@ -323,7 +323,7 @@ function default_settings() {
   select_cloud_init
 
   # Portainer Selection - ALWAYS ask
-  select_portainer
+  # select_portainer
 
   # Set defaults for other settings
   VMID=$(get_valid_nextid)
@@ -367,7 +367,7 @@ function advanced_settings() {
   select_cloud_init
 
   # Portainer Selection - ALWAYS ask (at the beginning)
-  select_portainer
+  # select_portainer
 
   METHOD="advanced"
   [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
@@ -703,7 +703,7 @@ for i in {1..10}; do
 done
 
 # Install Portainer if requested
-INSTALL_PORTAINER_PLACEHOLDER
+# INSTALL_PORTAINER_PLACEHOLDER
 
 # Create completion flag
 echo \"[\\$(date)] Docker installation completed successfully\"
@@ -711,20 +711,20 @@ touch /root/.docker-installed
 INSTALLEOF" >/dev/null
 
 # Add Portainer installation script if requested
-if [ "$INSTALL_PORTAINER" = "yes" ]; then
-  virt-customize -q -a "${FILE}" --run-command "cat > /root/install-portainer.sh << 'PORTAINEREOF'
-#!/bin/bash
-exec >> /var/log/install-docker.log 2>&1
-echo \"[\\$(date)] Installing Portainer\"
-docker volume create portainer_data
-docker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
-echo \"[\\$(date)] Portainer installed and started\"
-PORTAINEREOF" >/dev/null
-  virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-portainer.sh" >/dev/null
-  virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|/root/install-portainer.sh|' /root/install-docker.sh" >/dev/null
-else
-  virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|echo \"[\\\\\\$(date)] Skipping Portainer installation\"|' /root/install-docker.sh" >/dev/null
-fi
+# if [ "$INSTALL_PORTAINER" = "yes" ]; then
+#   virt-customize -q -a "${FILE}" --run-command "cat > /root/install-portainer.sh << 'PORTAINEREOF'
+# #!/bin/bash
+# exec >> /var/log/install-docker.log 2>&1
+# echo \"[\\$(date)] Installing Portainer\"
+# docker volume create portainer_data
+# docker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+# echo \"[\\$(date)] Portainer installed and started\"
+# PORTAINEREOF" >/dev/null
+#   virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-portainer.sh" >/dev/null
+#   virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|/root/install-portainer.sh|' /root/install-docker.sh" >/dev/null
+# else
+#   virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|echo \"[\\\\\\$(date)] Skipping Portainer installation\"|' /root/install-docker.sh" >/dev/null
+# fi
 
 virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-docker.sh" >/dev/null
 
@@ -899,15 +899,15 @@ else
   echo -e "${TAB}${DGN}Docker: ${BGN}Latest (via get.docker.com)${CL}"
 fi
 
-if [ "$INSTALL_PORTAINER" = "yes" ]; then
-  if [ -n "$VM_IP" ]; then
-    echo -e "${TAB}${DGN}Portainer: ${BGN}https://${VM_IP}:9443${CL}"
-  else
-    echo -e "${TAB}${DGN}Portainer: ${BGN}Will be accessible at https://<VM-IP>:9443${CL}"
-    echo -e "${TAB}${YW}⚠️  Wait 2-3 minutes after boot for installation to complete${CL}"
-    echo -e "${TAB}${YW}⚠️  Get IP with: ${BL}qm guest cmd ${VMID} network-get-interfaces${CL}"
-  fi
-fi
+# if [ "$INSTALL_PORTAINER" = "yes" ]; then
+#   if [ -n "$VM_IP" ]; then
+#     echo -e "${TAB}${DGN}Portainer: ${BGN}https://${VM_IP}:9443${CL}"
+#   else
+#     echo -e "${TAB}${DGN}Portainer: ${BGN}Will be accessible at https://<VM-IP>:9443${CL}"
+#     echo -e "${TAB}${YW}⚠️  Wait 2-3 minutes after boot for installation to complete${CL}"
+#     echo -e "${TAB}${YW}⚠️  Get IP with: ${BL}qm guest cmd ${VMID} network-get-interfaces${CL}"
+#   fi
+# fi
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   display_cloud_init_info "$VMID" "$HN"
 fi

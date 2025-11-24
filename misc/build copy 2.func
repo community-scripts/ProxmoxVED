@@ -47,17 +47,7 @@ variables() {
   METHOD="default"                                  # sets the METHOD variable to "default", used for the API call.
   RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)" # generates a random UUID and sets it to the RANDOM_UUID variable.
   SESSION_ID="${RANDOM_UUID:0:8}"                   # Short session ID (first 8 chars of UUID) for log files
-  BUILD_LOG="/tmp/create-lxc-${SESSION_ID}.log"     # Host-side container creation log
-  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"
-
-  # Parse dev_mode early
-  parse_dev_mode
-
-  # Setup persistent log directory if logs mode active
-  if [[ "${DEV_MODE_LOGS:-false}" == "true" ]]; then
-    mkdir -p /var/log/community-scripts
-    BUILD_LOG="/var/log/community-scripts/create-lxc-${SESSION_ID}-$(date +%Y%m%d_%H%M%S).log"
-  fi
+  CTTYPE="${CTTYPE:-${CT_TYPE:-1}}"}
 
   # Get Proxmox VE version and kernel version
   if command -v pveversion >/dev/null 2>&1; then
@@ -184,17 +174,17 @@ variables() {
 # - Initialize error traps after loading
 # ------------------------------------------------------------------------------
 
-source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/api.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
-  source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/core.func)
-  source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/error_handler.func)
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
-  source <(wget -qO- https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/core.func)
-  source <(wget -qO- https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/error_handler.func)
+  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
   #echo "(build.func) Loaded core.func via wget"
@@ -558,9 +548,9 @@ default_var_settings() {
   # Allowed var_* keys (alphabetically sorted)
   # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
   local VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_keyctl
-    var_gateway var_hostname var_ipv6_method var_mac var_mknod var_mount_fs var_mtu
-    var_net var_nesting var_ns var_protection var_pw var_ram var_tags var_timezone var_tun var_unprivileged
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse
+    var_gateway var_hostname var_ipv6_method var_mac var_mtu
+    var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
     var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
   )
 
@@ -638,14 +628,6 @@ var_ssh=no
 # Features/Tags/verbosity
 var_fuse=no
 var_tun=no
-
-# Advanced Settings (Proxmox-official features)
-var_nesting=1          # Allow nesting (required for Docker/LXC in CT)
-var_keyctl=0           # Allow keyctl() - needed for Docker (systemd-networkd workaround)
-var_mknod=0            # Allow device node creation (requires kernel 5.3+, experimental)
-var_mount_fs=          # Allow specific filesystems: nfs,fuse,ext4,etc (leave empty for defaults)
-var_protection=no      # Prevent accidental deletion of container
-var_timezone=          # Container timezone (e.g. Europe/Berlin, leave empty for host timezone)
 var_tags=community-script
 var_verbose=no
 
@@ -912,12 +894,6 @@ _build_current_app_vars_tmp() {
   _apt_cacher_ip="${APT_CACHER_IP:-}"
   _fuse="${ENABLE_FUSE:-no}"
   _tun="${ENABLE_TUN:-no}"
-  _nesting="${ENABLE_NESTING:-1}"
-  _keyctl="${ENABLE_KEYCTL:-0}"
-  _mknod="${ENABLE_MKNOD:-0}"
-  _mount_fs="${ALLOW_MOUNT_FS:-}"
-  _protect="${PROTECT_CT:-no}"
-  _timezone="${CT_TIMEZONE:-}"
   _tags="${TAGS:-}"
   _verbose="${VERBOSE:-no}"
 
@@ -961,12 +937,6 @@ _build_current_app_vars_tmp() {
 
     [ -n "$_fuse" ] && echo "var_fuse=$(_sanitize_value "$_fuse")"
     [ -n "$_tun" ] && echo "var_tun=$(_sanitize_value "$_tun")"
-    [ -n "$_nesting" ] && echo "var_nesting=$(_sanitize_value "$_nesting")"
-    [ -n "$_keyctl" ] && echo "var_keyctl=$(_sanitize_value "$_keyctl")"
-    [ -n "$_mknod" ] && echo "var_mknod=$(_sanitize_value "$_mknod")"
-    [ -n "$_mount_fs" ] && echo "var_mount_fs=$(_sanitize_value "$_mount_fs")"
-    [ -n "$_protect" ] && echo "var_protection=$(_sanitize_value "$_protect")"
-    [ -n "$_timezone" ] && echo "var_timezone=$(_sanitize_value "$_timezone")"
     [ -n "$_tags" ] && echo "var_tags=$(_sanitize_value "$_tags")"
     [ -n "$_verbose" ] && echo "var_verbose=$(_sanitize_value "$_verbose")"
 
@@ -1549,51 +1519,6 @@ advanced_settings() {
   configure_ssh_settings
   export SSH_KEYS_FILE
   echo -e "${ROOTSSH}${BOLD}${DGN}Root SSH Access: ${BGN}$SSH${CL}"
-
-  # Advanced Settings - Proxmox Features
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS" --yesno "Configure Advanced Proxmox Features?" 10 58); then
-    # keyctl: for Docker support
-    if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "Enable keyctl()" --yesno "Allow keyctl() system calls?\n\nNeeded for: Docker inside container, systemd-networkd\nDefault: No (not needed for most applications)" 10 58); then
-      ENABLE_KEYCTL="1"
-    else
-      ENABLE_KEYCTL="0"
-    fi
-    echo -e "${SEARCH}${BOLD}${DGN}Allow keyctl(): ${BGN}$ENABLE_KEYCTL${CL}"
-
-    # mknod: device node creation
-    if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "Enable mknod()" --yesno "Allow device node creation?\n\nNeeded for: Complex device management (experimental, kernel 5.3+)\nDefault: No (rarely needed)" 10 58); then
-      ENABLE_MKNOD="1"
-    else
-      ENABLE_MKNOD="0"
-    fi
-    echo -e "${SEARCH}${BOLD}${DGN}Allow mknod(): ${BGN}$ENABLE_MKNOD${CL}"
-
-    # mount: specific filesystems
-    if MOUNT_FS=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allow specific filesystems (e.g., nfs,fuse,ext4)\nLeave blank for defaults" 8 58 "$ALLOW_MOUNT_FS" --title "Mount Filesystems" 3>&1 1>&2 2>&3); then
-      ALLOW_MOUNT_FS="$MOUNT_FS"
-      [ -z "$ALLOW_MOUNT_FS" ] && ALLOW_MOUNT_FS="(defaults)"
-    else
-      exit_script
-    fi
-    echo -e "${SEARCH}${BOLD}${DGN}Mount Filesystems: ${BGN}$ALLOW_MOUNT_FS${CL}"
-
-    # Container protection
-    if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "Protection Flag" --yesno "Prevent accidental deletion?\n\nIf enabled, container cannot be deleted or its disk modified\nDefault: No" 10 58); then
-      PROTECT_CT="yes"
-    else
-      PROTECT_CT="no"
-    fi
-    echo -e "${SEARCH}${BOLD}${DGN}Container Protection: ${BGN}$PROTECT_CT${CL}"
-
-    # Container timezone
-    if CT_TIMEZONE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set container timezone (e.g., Europe/Berlin)\nLeave blank to use host timezone" 8 58 "$CT_TIMEZONE" --title "Container Timezone" 3>&1 1>&2 2>&3); then
-      [ -z "$CT_TIMEZONE" ] && CT_TIMEZONE="(host)"
-    else
-      exit_script
-    fi
-    echo -e "${SEARCH}${BOLD}${DGN}Container Timezone: ${BGN}$CT_TIMEZONE${CL}"
-  fi
-
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --defaultno --title "FUSE Support" --yesno "Enable FUSE support?\nRequired for tools like rclone, mergerfs, AppImage, etc." 10 58); then
     ENABLE_FUSE="yes"
   else
@@ -1766,16 +1691,7 @@ install_script() {
   fi
 
   NEXTID=$(pvesh get /cluster/nextid)
-
-  # Get timezone using timedatectl (Debian 13+ compatible)
-  # Fallback to /etc/timezone for older systems
-  if command -v timedatectl >/dev/null 2>&1; then
-    timezone=$(timedatectl show --value --property=Timezone 2>/dev/null || echo "UTC")
-  elif [ -f /etc/timezone ]; then
-    timezone=$(cat /etc/timezone)
-  else
-    timezone="UTC"
-  fi
+  timezone=$(cat /etc/timezone)
 
   # Show APP Header
   header_info
@@ -1903,12 +1819,13 @@ settings_menu() {
     local settings_items=(
       "1" "Manage API-Diagnostic Setting"
       "2" "Edit Default.vars"
+      "3" "Edit Default Storage"
     )
     if [ -f "$(get_app_defaults_path)" ]; then
-      settings_items+=("3" "Edit App.vars for ${APP}")
-      settings_items+=("4" "Exit")
+      settings_items+=("4" "Edit App.vars for ${APP}")
+      settings_items+=("5" "Exit")
     else
-      settings_items+=("3" "Exit")
+      settings_items+=("4" "Exit")
     fi
 
     local choice
@@ -2166,7 +2083,7 @@ configure_ssh_settings() {
 # - Otherwise: shows update/setting menu
 # ------------------------------------------------------------------------------
 start() {
-  source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/tools.func)
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
   if command -v pveversion >/dev/null 2>&1; then
     install_script || return 0
     return 0
@@ -2269,7 +2186,6 @@ build_container() {
   none) ;;
   esac
 
-  # Build FEATURES string (simple working version)
   if [ "$CT_TYPE" == "1" ]; then
     FEATURES="keyctl=1,nesting=1"
   else
@@ -2280,18 +2196,13 @@ build_container() {
     FEATURES="$FEATURES,fuse=1"
   fi
 
-  # NEW IMPLEMENTATION (Fixed): Build PCT_OPTIONS properly
-  # Key insight: Bash cannot export arrays, so we build the options as a string
-
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
   if [ "$var_os" == "alpine" ]; then
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/alpine-install.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)"
   else
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/install.func)"
+    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
   fi
-
-  # Core exports for install.func
   export DIAGNOSTICS="$DIAGNOSTICS"
   export RANDOM_UUID="$RANDOM_UUID"
   export SESSION_ID="$SESSION_ID"
@@ -2311,72 +2222,21 @@ build_container() {
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
-
-  # DEV_MODE exports (optional, for debugging)
-  export BUILD_LOG="$BUILD_LOG"
-  export INSTALL_LOG="/root/.install-${SESSION_ID}.log"
-  export dev_mode="${dev_mode:-}"
-  export DEV_MODE_MOTD="${DEV_MODE_MOTD:-false}"
-  export DEV_MODE_KEEP="${DEV_MODE_KEEP:-false}"
-  export DEV_MODE_TRACE="${DEV_MODE_TRACE:-false}"
-  export DEV_MODE_PAUSE="${DEV_MODE_PAUSE:-false}"
-  export DEV_MODE_BREAKPOINT="${DEV_MODE_BREAKPOINT:-false}"
-  export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
-  export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
-
-  # Build PCT_OPTIONS as multi-line string
-  PCT_OPTIONS_STRING="  -features $FEATURES
+  export PCT_OPTIONS="
+  -features $FEATURES
   -hostname $HN
-  -tags $TAGS"
-
-  # Add storage if specified
-  if [ -n "$SD" ]; then
-    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
-  $SD"
-  fi
-
-  # Add nameserver if specified
-  if [ -n "$NS" ]; then
-    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
-  $NS"
-  fi
-
-  # Network configuration
-  PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
+  -tags $TAGS
+  $SD
+  $NS
   $NET_STRING
   -onboot 1
   -cores $CORE_COUNT
   -memory $RAM_SIZE
-  -unprivileged $CT_TYPE"
-
-  # Protection flag (if var_protection was set)
-  if [ "${PROTECT_CT:-}" == "1" ] || [ "${PROTECT_CT:-}" == "yes" ]; then
-    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
-  -protection 1"
-  fi
-
-  # Timezone flag (if var_timezone was set)
-  if [ -n "${CT_TIMEZONE:-}" ]; then
-    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
-  -timezone $CT_TIMEZONE"
-  fi
-
-  # Password (already formatted)
-  if [ -n "$PW" ]; then
-    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
-  $PW"
-  fi
-
-  # Export as string (this works, unlike arrays!)
-  export PCT_OPTIONS="$PCT_OPTIONS_STRING"
+  -unprivileged $CT_TYPE
+  $PW
+"
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
-
-  # # DEBUG: Show final PCT_OPTIONS being exported
-  # echo "[DEBUG] PCT_OPTIONS to be exported:"
-  # echo "$PCT_OPTIONS" | sed 's/^/  /'
-  # echo "[DEBUG] Calling create_lxc_container..."
-
   create_lxc_container || exit $?
 
   LXC_CONFIG="/etc/pve/lxc/${CTID}.conf"
@@ -2518,7 +2378,7 @@ EOF
     if [[ $gpu_count -eq 1 ]]; then
       # Automatic selection for single GPU
       selected_gpu="${available_gpus[0]}"
-      msg_ok "Automatically configuring ${selected_gpu} GPU passthrough"
+      msg_custom "⚙️" "${GN}" "Automatically configuring ${selected_gpu} GPU passthrough"
     else
       # Multiple GPUs - ask user
       echo -e "\n${INFO} Multiple GPU types detected:"
@@ -2549,13 +2409,20 @@ EOF
       [[ "$selected_gpu" == "INTEL" ]] && devices=("${INTEL_DEVICES[@]}")
       [[ "$selected_gpu" == "AMD" ]] && devices=("${AMD_DEVICES[@]}")
 
-      # Use pct set to add devices with proper dev0/dev1 format
-      # GIDs will be detected and set after container starts
-      local dev_index=0
+      # Add lxc.mount.entry for each device
       for dev in "${devices[@]}"; do
-        # Add to config using pct set (will be visible in GUI)
-        echo "dev${dev_index}: ${dev},gid=44" >>"$LXC_CONFIG"
-        dev_index=$((dev_index + 1))
+        echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
+
+        if [[ "$CT_TYPE" == "0" ]]; then
+          # Privileged container - also add cgroup allows
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
+
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+          fi
+        fi
       done
 
       export GPU_TYPE="$selected_gpu"
@@ -2568,11 +2435,20 @@ EOF
         return 0
       fi
 
-      # Use pct set for NVIDIA devices
-      local dev_index=0
+      # Add lxc.mount.entry for each NVIDIA device
       for dev in "${NVIDIA_DEVICES[@]}"; do
-        echo "dev${dev_index}: ${dev},gid=44" >>"$LXC_CONFIG"
-        dev_index=$((dev_index + 1))
+        echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
+
+        if [[ "$CT_TYPE" == "0" ]]; then
+          # Privileged container - also add cgroup allows
+          local major minor
+          major=$(stat -c '%t' "$dev" 2>/dev/null || echo "0")
+          minor=$(stat -c '%T' "$dev" 2>/dev/null || echo "0")
+
+          if [[ "$major" != "0" && "$minor" != "0" ]]; then
+            echo "lxc.cgroup2.devices.allow: c $((0x$major)):$((0x$minor)) rwm" >>"$LXC_CONFIG"
+          fi
+        fi
       done
 
       export GPU_TYPE="NVIDIA"
@@ -2684,9 +2560,7 @@ EOF'
     fi
 
     if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
-      # Set timezone using symlink (Debian 13+ compatible)
-      # Create /etc/timezone for backwards compatibility with older scripts
-      pct exec "$CTID" -- bash -c "tz='$tz'; ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime && echo \"\$tz\" >/etc/timezone || true"
+      pct exec "$CTID" -- bash -c "tz='$tz'; echo \"\$tz\" >/etc/timezone && ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime"
     else
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
@@ -2703,82 +2577,13 @@ EOF'
   install_ssh_keys_into_ct
 
   # Run application installer
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/install/${var_install}.sh)"; then
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
     local exit_code=$?
     # Try to copy installation log from container before exiting
     if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
-      # Copy BUILD_LOG (creation log) if it exists
-      if [[ -f "${BUILD_LOG}" ]]; then
-        cp "${BUILD_LOG}" "/tmp/create-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null && build_log_copied=true
-      fi
-
-      # Copy INSTALL_LOG from container
-      if pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-lxc-${CTID}-${SESSION_ID}.log" 2>/dev/null; then
-        install_log_copied=true
-      fi
-
-      # Show available logs
-      echo ""
-      [[ "$build_log_copied" == true ]] && echo -e "${GN}✔${CL} Container creation log: ${BL}/tmp/create-lxc-${CTID}-${SESSION_ID}.log${CL}"
-      [[ "$install_log_copied" == true ]] && echo -e "${GN}✔${CL} Installation log: ${BL}/tmp/install-lxc-${CTID}-${SESSION_ID}.log${CL}"
+      pct pull "$CTID" "/root/.install-${SESSION_ID}.log" "/tmp/install-${SESSION_ID}.log" 2>/dev/null || true
     fi
-
-    # Dev mode: Keep container or open breakpoint shell
-    if [[ "${DEV_MODE_KEEP:-false}" == "true" ]]; then
-      msg_dev "Keep mode active - container ${CTID} preserved"
-      return 0
-    elif [[ "${DEV_MODE_BREAKPOINT:-false}" == "true" ]]; then
-      msg_dev "Breakpoint mode - opening shell in container ${CTID}"
-      echo -e "${YW}Type 'exit' to return to host${CL}"
-      pct enter "$CTID"
-      echo ""
-      echo -en "${YW}Container ${CTID} still running. Remove now? (y/N): ${CL}"
-      if read -r response && [[ "$response" =~ ^[Yy]$ ]]; then
-        pct stop "$CTID" &>/dev/null || true
-        pct destroy "$CTID" &>/dev/null || true
-        msg_ok "Container ${CTID} removed"
-      else
-        msg_dev "Container ${CTID} kept for debugging"
-      fi
-      exit $install_exit_code
-    fi
-
-    # Prompt user for cleanup with 60s timeout (plain echo - no msg_info to avoid spinner)
-    echo ""
-    echo -en "${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"
-
-    if read -t 60 -r response; then
-      if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
-        # Remove container
-        echo -e "\n${TAB}${HOLD}${YW}Removing container ${CTID}${CL}"
-        pct stop "$CTID" &>/dev/null || true
-        pct destroy "$CTID" &>/dev/null || true
-        echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
-      elif [[ "$response" =~ ^[Nn]$ ]]; then
-        echo -e "\n${TAB}${YW}Container ${CTID} kept for debugging${CL}"
-
-        # Dev mode: Setup MOTD/SSH for debugging access to broken container
-        if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
-          echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
-          if pct exec "$CTID" -- bash -c "
-            source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
-            declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
-          " >/dev/null 2>&1; then
-            local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
-            echo -e "${BFR}${CM}${GN}MOTD/SSH ready - SSH into container: ssh root@${ct_ip}${CL}"
-          fi
-        fi
-      fi
-    else
-      # Timeout - auto-remove
-      echo -e "\n${YW}No response - auto-removing container${CL}"
-      echo -e "${TAB}${HOLD}${YW}Removing container ${CTID}${CL}"
-      pct stop "$CTID" &>/dev/null || true
-      pct destroy "$CTID" &>/dev/null || true
-      echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
-    fi
-
-    exit $install_exit_code
+    exit $exit_code
   fi
 }
 
@@ -2860,40 +2665,79 @@ fix_gpu_gids() {
     return 0
   fi
 
-  msg_info "Detecting and setting correct GPU group IDs"
+  # Silent operation to avoid spinner conflicts
+  msg_custom "🔧" "${BL}" "Detecting and setting correct GPU group IDs"
 
-  # Get actual GIDs from container
+  # Ermittle die tatsächlichen GIDs aus dem Container
   local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
   local render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
 
-  # Create groups if they don't exist
+  # Fallbacks wenn Gruppen nicht existieren
   if [[ -z "$video_gid" ]]; then
-    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true" >/dev/null 2>&1
+    # Versuche die video Gruppe zu erstellen
+    pct exec "$CTID" -- sh -c "groupadd -r video 2>/dev/null || true"
     video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
-    [[ -z "$video_gid" ]] && video_gid="44"
+    [[ -z "$video_gid" ]] && video_gid="44" # Ultimate fallback
   fi
 
   if [[ -z "$render_gid" ]]; then
-    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true" >/dev/null 2>&1
+    # Versuche die render Gruppe zu erstellen
+    pct exec "$CTID" -- sh -c "groupadd -r render 2>/dev/null || true"
     render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
-    [[ -z "$render_gid" ]] && render_gid="104"
+    [[ -z "$render_gid" ]] && render_gid="104" # Ultimate fallback
   fi
 
-  # Stop container to update config
-  pct stop "$CTID" >/dev/null 2>&1
-  sleep 1
+  msg_custom "ℹ️" "${DGN}" "Container GIDs detected - video:${video_gid}, render:${render_gid}"
 
-  # Update dev entries with correct GIDs
-  sed -i.bak -E "s|(dev[0-9]+: /dev/dri/renderD[0-9]+),gid=[0-9]+|\1,gid=${render_gid}|g" "$LXC_CONFIG"
-  sed -i -E "s|(dev[0-9]+: /dev/dri/card[0-9]+),gid=[0-9]+|\1,gid=${video_gid}|g" "$LXC_CONFIG"
+  # Prüfe ob die GIDs von den Defaults abweichen
+  local need_update=0
+  if [[ "$video_gid" != "44" ]] || [[ "$render_gid" != "104" ]]; then
+    need_update=1
+  fi
 
-  # Restart container
-  pct start "$CTID" >/dev/null 2>&1
-  sleep 2
+  if [[ $need_update -eq 1 ]]; then
+    msg_custom "🔄" "${YW}" "Updating device GIDs in container config"
 
-  msg_ok "GPU passthrough configured (video:${video_gid}, render:${render_gid})"
+    # Stoppe Container für Config-Update
+    pct stop "$CTID" >/dev/null 2>&1
 
-  # For privileged containers: also fix permissions inside container
+    # Update die dev Einträge mit korrekten GIDs
+    # Backup der Config
+    cp "$LXC_CONFIG" "${LXC_CONFIG}.bak"
+
+    # Parse und update jeden dev Eintrag
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^dev[0-9]+: ]]; then
+        # Extract device path
+        local device_path=$(echo "$line" | sed -E 's/^dev[0-9]+: ([^,]+).*/\1/')
+        local dev_num=$(echo "$line" | sed -E 's/^(dev[0-9]+):.*/\1/')
+
+        if [[ "$device_path" =~ renderD ]]; then
+          # RenderD device - use render GID
+          echo "${dev_num}: ${device_path},gid=${render_gid}"
+        elif [[ "$device_path" =~ card ]]; then
+          # Card device - use video GID
+          echo "${dev_num}: ${device_path},gid=${video_gid}"
+        else
+          # Keep original line
+          echo "$line"
+        fi
+      else
+        # Keep non-dev lines
+        echo "$line"
+      fi
+    done <"$LXC_CONFIG" >"${LXC_CONFIG}.new"
+
+    mv "${LXC_CONFIG}.new" "$LXC_CONFIG"
+
+    # Starte Container wieder
+    pct start "$CTID" >/dev/null 2>&1
+    sleep 3
+
+    msg_ok "Device GIDs updated successfully"
+  else
+    msg_ok "Device GIDs are already correct"
+  fi
   if [[ "$CT_TYPE" == "0" ]]; then
     pct exec "$CTID" -- bash -c "
       if [ -d /dev/dri ]; then
@@ -3059,11 +2903,11 @@ create_lxc_container() {
     case "${_ans,,}" in
     y | yes)
       msg_info "Upgrading Proxmox LXC stack (pve-container, lxc-pve)"
-      if $STD apt-get update && $STD apt-get install -y --only-upgrade pve-container lxc-pve; then
+      if apt-get update -qq >/dev/null && apt-get install -y --only-upgrade pve-container lxc-pve >/dev/null; then
         msg_ok "LXC stack upgraded."
         if [[ "$do_retry" == "yes" ]]; then
           msg_info "Retrying container creation after upgrade"
-          if pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
+          if pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
             msg_ok "Container created successfully after upgrade."
             return 0
           else
@@ -3489,12 +3333,9 @@ create_lxc_container() {
   grep -q "root:100000:65536" /etc/subuid || echo "root:100000:65536" >>/etc/subuid
   grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgid
 
-  # PCT_OPTIONS is now a string (exported from build_container)
-  # Add rootfs if not already specified
-  if [[ ! "$PCT_OPTIONS" =~ "-rootfs" ]]; then
-    PCT_OPTIONS="$PCT_OPTIONS
-  -rootfs $CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}"
-  fi
+  # Assemble pct options
+  PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
+  [[ " ${PCT_OPTIONS[*]} " =~ " -rootfs " ]] || PCT_OPTIONS+=(-rootfs "$CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}")
 
   # Lock by template file (avoid concurrent downloads/creates)
   lockfile="/tmp/template.${TEMPLATE}.lock"
@@ -3507,24 +3348,13 @@ create_lxc_container() {
     exit 211
   }
 
-  LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
-
-  # # DEBUG: Show the actual command that will be executed
-  # echo "[DEBUG] ===== PCT CREATE COMMAND DETAILS ====="
-  # echo "[DEBUG] CTID: $CTID"
-  # echo "[DEBUG] Template: ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}"
-  # echo "[DEBUG] PCT_OPTIONS (will be word-split):"
-  # echo "$PCT_OPTIONS" | sed 's/^/  /'
-  # echo "[DEBUG] Full command line:"
-  # echo "  pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} $PCT_OPTIONS"
-  # echo "[DEBUG] ========================================"
-
-  msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} $PCT_OPTIONS"
+  LOGFILE="/tmp/pct_create_${CTID}.log"
+  msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
   msg_debug "Logfile: $LOGFILE"
 
-  # First attempt (PCT_OPTIONS is a multi-line string, use it directly)
-  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >"$LOGFILE" 2>&1; then
-    msg_debug "Container creation failed on ${TEMPLATE_STORAGE}. Validating template..."
+  # First attempt
+  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >"$LOGFILE" 2>&1; then
+    msg_error "Container creation failed on ${TEMPLATE_STORAGE}. Checking template..."
 
     # Validate template file
     if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
@@ -3542,17 +3372,19 @@ create_lxc_container() {
     fi
 
     # Retry after repair
-    if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
-      # Fallback to local storage if not already on local
+    if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
+      # Fallback to local storage
       if [[ "$TEMPLATE_STORAGE" != "local" ]]; then
-        msg_info "Retrying container creation with fallback to local storage..."
+        msg_warn "Retrying container creation with fallback to local storage..."
         LOCAL_TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
         if [[ ! -f "$LOCAL_TEMPLATE_PATH" ]]; then
           msg_info "Downloading template to local..."
           pveam download local "$TEMPLATE" >/dev/null 2>&1
         fi
-        if ! pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
-          # Local fallback also failed - check for LXC stack version issue
+        if pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
+          msg_ok "Container successfully created using local fallback."
+        else
+          # --- Dynamic stack upgrade + auto-retry on the well-known error pattern ---
           if grep -qiE 'unsupported .* version' "$LOGFILE"; then
             echo
             echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
@@ -3572,19 +3404,18 @@ create_lxc_container() {
               ;;
             esac
           else
-            msg_error "Container creation failed. See $LOGFILE"
+            msg_error "Container creation failed even with local fallback. See $LOGFILE"
             if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
               set -x
-              pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS 2>&1 | tee -a "$LOGFILE"
+              bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
               set +x
             fi
             exit 209
           fi
-        else
-          msg_ok "Container successfully created using local fallback."
         fi
       else
-        # Already on local storage and still failed - check LXC stack version
+        msg_error "Container creation failed on local storage. See $LOGFILE"
+        # --- Dynamic stack upgrade + auto-retry on the well-known error pattern ---
         if grep -qiE 'unsupported .* version' "$LOGFILE"; then
           echo
           echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
@@ -3607,14 +3438,12 @@ create_lxc_container() {
           msg_error "Container creation failed. See $LOGFILE"
           if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
             set -x
-            pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS 2>&1 | tee -a "$LOGFILE"
+            bash -x -c "pct create $CTID local:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}" 2>&1 | tee -a "$LOGFILE"
             set +x
           fi
           exit 209
         fi
       fi
-    else
-      msg_ok "Container successfully created after template repair."
     fi
   fi
 
@@ -3631,9 +3460,6 @@ create_lxc_container() {
   }
 
   msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
-
-  # Report container creation to API
-  post_to_api
 }
 
 # ==============================================================================

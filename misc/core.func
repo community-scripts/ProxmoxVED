@@ -272,7 +272,7 @@ root_check() {
 # pve_check()
 #
 # - Validates Proxmox VE version compatibility
-# - Supported: PVE 8.0-8.9 and PVE 9.0 only
+# - Supported: PVE 8.0-8.9 and PVE 9.0-9.1
 # - Exits with error message if unsupported version detected
 # ------------------------------------------------------------------------------
 pve_check() {
@@ -290,12 +290,12 @@ pve_check() {
     return 0
   fi
 
-  # Check for Proxmox VE 9.x: allow ONLY 9.0
+  # Check for Proxmox VE 9.x: allow 9.0–9.1
   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR != 0)); then
+    if ((MINOR < 0 || MINOR > 1)); then
       msg_error "This version of Proxmox VE is not yet supported."
-      msg_error "Supported: Proxmox VE version 9.0"
+      msg_error "Supported: Proxmox VE version 9.0 – 9.1"
       exit 1
     fi
     return 0
@@ -303,7 +303,7 @@ pve_check() {
 
   # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
-  msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0"
+  msg_error "Supported versions: Proxmox VE 8.0 – 8.9 or 9.0 – 9.1"
   exit 1
 }
 
@@ -686,7 +686,7 @@ get_header() {
   local app_type=${APP_TYPE:-ct} # Default zu 'ct' falls nicht gesetzt
   local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
-
+  
   mkdir -p "$(dirname "$local_header_path")"
 
   if [ ! -s "$local_header_path" ]; then
@@ -817,7 +817,7 @@ cleanup_lxc() {
   # Python pip
   if command -v pip &>/dev/null; then $STD pip cache purge || true; fi
   # Python uv
-  if command -v uv &>/dev/null; then $STD uv cache clear || true; fi
+  if command -v uv &>/dev/null; then $STD uv cache clean || true; fi
   # Node.js npm
   if command -v npm &>/dev/null; then $STD npm cache clean --force || true; fi
   # Node.js yarn

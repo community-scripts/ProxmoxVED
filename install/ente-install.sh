@@ -28,8 +28,22 @@ PG_VERSION="17" setup_postgresql
 setup_go
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 ENTE_CLI_VERSION=$(curl -s https://api.github.com/repos/ente-io/ente/releases | jq -r '[.[] | select(.tag_name | startswith("cli-v"))][0].tag_name')
-fetch_and_deploy_gh_release "ente" "ente-io/ente" "tarball" "latest" "/opt/ente"
-fetch_and_deploy_gh_release "ente" "ente-io/ente" "tarball" "$ENTE_CLI_VERSION" "/usr/local/bin/ente" "ente-cli-$ENTE_CLI_VERSION-linux-amd64.tar.gz"
+fetch_and_deploy_gh_release "ente-server" "ente-io/ente" "tarball" "latest" "/opt/ente"
+fetch_and_deploy_gh_release "ente-cli" "ente-io/ente" "prebuild" "$ENTE_CLI_VERSION" "/usr/local/bin" "ente-$ENTE_CLI_VERSION-linux-amd64.tar.gz"
+
+$STD mkdir -p /opt/ente/cli
+msg_info "Configuring Ente CLI"
+cat <<EOF >>~/.bashrc
+export ENTE_CLI_SECRETS_PATH=/opt/ente/cli/secrets.txt
+export PATH="/usr/local/bin:$PATH"
+EOF
+$STD source ~/.bashrc
+$STD mkdir -p ~/.ente
+cat <<EOF >~/.ente/config.yaml
+endpoint:
+    api: http://localhost:8080
+EOF
+msg_ok "Configured Ente CLI"
 
 msg_info "Setting up PostgreSQL"
 DB_NAME="ente_db"
@@ -133,13 +147,37 @@ jwt:
 EOF
 msg_ok "Created museum.yaml"
 
+read -r -p "Enter the public URL for Ente backend (e.g., https://api.ente.yourdomain.com or http://192.168.1.100:8080) leave empty to use container IP: " backend_url
+if [[ -z "$backend_url" ]]; then
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    ENTE_BACKEND_URL="http://$LOCAL_IP:8080"
+    msg_info "No URL provided"
+    msg_ok "using local IP: $ENTE_BACKEND_URL\n"
+else
+    ENTE_BACKEND_URL="$backend_url"
+    msg_info "URL provided"
+    msg_ok "Using provided URL: $ENTE_BACKEND_URL\n"
+fi
+
+read -r -p "Enter the public URL for Ente albums (e.g., https://albums.ente.yourdomain.com or http://192.168.1.100:3002) leave empty to use container IP: " albums_url
+if [[ -z "$albums_url" ]]; then
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    ENTE_ALBUMS_URL="http://$LOCAL_IP:3002"
+    msg_info "No URL provided"
+    msg_ok "using local IP: $ENTE_ALBUMS_URL\n"
+else
+    ENTE_ALBUMS_URL="$albums_url"
+    msg_info "URL provided"
+    msg_ok "Using provided URL: $ENTE_ALBUMS_URL\n"
+fi
+
+export NEXT_PUBLIC_ENTE_ENDPOINT=$ENTE_BACKEND_URL
+export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=$ENTE_ALBUMS_URL
+
 msg_info "Building Web Applications"
-# Get container IP address
-CONTAINER_IP=$(hostname -I | awk '{print $1}')
 cd /opt/ente/web
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 $STD yarn install
-export NEXT_PUBLIC_ENTE_ENDPOINT=http://${CONTAINER_IP}:8080
-export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=http://${CONTAINER_IP}:3002
 $STD yarn build
 $STD yarn build:accounts
 $STD yarn build:auth
@@ -153,12 +191,35 @@ cp -r apps/cast/out /var/www/ente/apps/cast
 # Save build configuration for future rebuilds
 cat <<REBUILD_EOF >/opt/ente/rebuild-frontend.sh
 #!/usr/bin/env bash
-# Rebuild Ente frontend with current IP
-CONTAINER_IP=\$(hostname -I | awk '{print \$1}')
-echo "Building frontend with IP: \$CONTAINER_IP"
+# Rebuild Ente frontend
+# Prompt for backend URL
+read -r -p "Enter the public URL for Ente backend (e.g., https://api.ente.yourdomain.com or http://192.168.1.100:8080) leave empty to use container IP: " backend_url
+if [[ -z "\$backend_url" ]]; then
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    ENTE_BACKEND_URL="http://\$LOCAL_IP:8080"
+    echo "No URL provided, using local IP: \$ENTE_BACKEND_URL\n"
+else
+    ENTE_BACKEND_URL="\$backend_url"
+    echo "Using provided URL: \$ENTE_BACKEND_URL\n"
+fi
+
+# Prompt for albums URL
+read -r -p "Enter the public URL for Ente albums (e.g., https://albums.ente.yourdomain.com or http://192.168.1.100:3002) leave empty to use container IP: " albums_url
+if [[ -z "\$albums_url" ]]; then
+    LOCAL_IP=\$(hostname -I | awk '{print $1}')
+    ENTE_ALBUMS_URL="http://\$LOCAL_IP:3002"
+    echo "No URL provided, using local IP: \$ENTE_ALBUMS_URL\n"
+else
+    ENTE_ALBUMS_URL="\$albums_url"
+    echo "Using provided URL: \$ENTE_ALBUMS_URL\n"
+fi
+
+export NEXT_PUBLIC_ENTE_ENDPOINT=\$ENTE_BACKEND_URL
+export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=\$ENTE_ALBUMS_URL
+
+echo "Building Web Applications\n"
+
 cd /opt/ente/web
-export NEXT_PUBLIC_ENTE_ENDPOINT=http://\${CONTAINER_IP}:8080
-export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=http://\${CONTAINER_IP}:3002
 yarn build
 yarn build:accounts
 yarn build:auth
@@ -312,8 +373,9 @@ echo -e "━━━━━━━━━━━━━━━━━━━━━━━�
 echo -e "\n${BL}Access URLs:${CL}"
 echo -e "  Photos:   http://${CONTAINER_IP}:3000"
 echo -e "  Accounts: http://${CONTAINER_IP}:3001"
+echo -e "  Albums:   ${ENTE_ALBUMS_URL}"
 echo -e "  Auth:     http://${CONTAINER_IP}:3003"
-echo -e "  API:      http://${CONTAINER_IP}:8080"
+echo -e "  API:      ${ENTE_BACKEND_URL}"
 echo -e "\n${YW}⚠️  Important Post-Installation Steps:${CL}"
 echo -e "\n${BL}1. Create your first account:${CL}"
 echo -e "   • Open http://${CONTAINER_IP}:3000 in your browser"
