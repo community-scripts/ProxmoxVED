@@ -535,35 +535,6 @@ base_settings() {
   TAGS="community-script,${var_tags:-}"
   ENABLE_FUSE=${var_fuse:-"${1:-no}"}
   ENABLE_TUN=${var_tun:-"${1:-no}"}
-  ENABLE_NESTING=${var_nesting:-"${1:-1}"}
-  ENABLE_KEYCTL=${var_keyctl:-"${1:-0}"}
-  ALLOW_MOUNT_FS=${var_mount_fs:-""}
-  ENABLE_MKNOD=${var_mknod:-"${1:-0}"}
-  PROTECT_CT=${var_protection:-"${1:-no}"}
-  CT_TIMEZONE=${var_timezone:-""}
-
-  # Normalize feature flags to 0/1 immediately (pct requires numeric values, not yes/no)
-  # This must happen here before any usage of these variables
-  case "${ENABLE_NESTING,,}" in
-  yes | true) ENABLE_NESTING="1" ;;
-  no | false) ENABLE_NESTING="0" ;;
-  esac
-  case "${ENABLE_KEYCTL,,}" in
-  yes | true) ENABLE_KEYCTL="1" ;;
-  no | false) ENABLE_KEYCTL="0" ;;
-  esac
-  case "${ENABLE_MKNOD,,}" in
-  yes | true) ENABLE_MKNOD="1" ;;
-  no | false) ENABLE_MKNOD="0" ;;
-  esac
-  case "${ENABLE_FUSE,,}" in
-  yes | true) ENABLE_FUSE="1" ;;
-  no | false) ENABLE_FUSE="0" ;;
-  esac
-  case "${PROTECT_CT,,}" in
-  yes | true) PROTECT_CT="1" ;;
-  no | false) PROTECT_CT="0" ;;
-  esac
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
@@ -2298,34 +2269,15 @@ build_container() {
   none) ;;
   esac
 
-  # Build FEATURES array with advanced settings
-  # Note: All feature flags are already normalized to 0/1 in default_settings()
-  # Proxmox requires each feature as a separate parameter, not comma-separated string
-  FEATURES_ARRAY=()
-  FEATURES_ARRAY+=("nesting=${ENABLE_NESTING}")
-
-  # keyctl: needed for Docker inside containers (systemd-networkd workaround)
-  # Typically needed for unprivileged containers with Docker
-  if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
-    FEATURES_ARRAY+=("keyctl=1")
+  # Build FEATURES string (working version - simple and reliable)
+  if [ "$CT_TYPE" == "1" ]; then
+    FEATURES="keyctl=1,nesting=1"
+  else
+    FEATURES="nesting=1"
   fi
 
-  # mknod: allow device node creation (requires kernel 5.3+, experimental)
-  if [ "$ENABLE_MKNOD" == "1" ]; then
-    FEATURES_ARRAY+=("mknod=1")
-  fi
-
-  # FUSE: required for rclone, mergerfs, AppImage, etc.
-  if [ "$ENABLE_FUSE" == "1" ]; then
-    FEATURES_ARRAY+=("fuse=1")
-  fi
-
-  # mount: allow specific filesystems (e.g., nfs, ext4, etc.)
-  # Format: mount=fstype1;fstype2;fstype3 (semicolon-separated, not comma!)
-  if [ -n "$ALLOW_MOUNT_FS" ]; then
-    # Replace commas with semicolons for proper pct syntax
-    ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
-    FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
+  if [ "$ENABLE_FUSE" == "yes" ]; then
+    FEATURES="$FEATURES,fuse=1"
   fi
 
   TEMP_DIR=$(mktemp -d)
@@ -3182,7 +3134,7 @@ create_lxc_container() {
         msg_ok "LXC stack upgraded."
         if [[ "$do_retry" == "yes" ]]; then
           msg_info "Retrying container creation after upgrade"
-          if pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
+          if pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
             msg_ok "Container created successfully after upgrade."
             return 0
           else
@@ -3608,9 +3560,12 @@ create_lxc_container() {
   grep -q "root:100000:65536" /etc/subuid || echo "root:100000:65536" >>/etc/subuid
   grep -q "root:100000:65536" /etc/subgid || echo "root:100000:65536" >>/etc/subgid
 
-  # Assemble pct options
-  PCT_OPTIONS=(${PCT_OPTIONS[@]:-${DEFAULT_PCT_OPTIONS[@]}})
-  [[ " ${PCT_OPTIONS[*]} " =~ " -rootfs " ]] || PCT_OPTIONS+=(-rootfs "$CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}")
+  # PCT_OPTIONS is now a string (exported from build_container)
+  # Add rootfs if not already specified
+  if [[ ! "$PCT_OPTIONS" =~ "-rootfs" ]]; then
+    PCT_OPTIONS="$PCT_OPTIONS
+  -rootfs $CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}"
+  fi
 
   # Lock by template file (avoid concurrent downloads/creates)
   lockfile="/tmp/template.${TEMPLATE}.lock"
@@ -3624,11 +3579,11 @@ create_lxc_container() {
   }
 
   LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
-  msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} ${PCT_OPTIONS[*]}"
+  msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} $PCT_OPTIONS"
   msg_debug "Logfile: $LOGFILE"
 
-  # First attempt
-  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >"$LOGFILE" 2>&1; then
+  # First attempt (PCT_OPTIONS is a multi-line string, use it directly)
+  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >"$LOGFILE" 2>&1; then
     msg_debug "Container creation failed on ${TEMPLATE_STORAGE}. Validating template..."
 
     # Validate template file
@@ -3647,7 +3602,7 @@ create_lxc_container() {
     fi
 
     # Retry after repair
-    if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
+    if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
       # Fallback to local storage if not already on local
       if [[ "$TEMPLATE_STORAGE" != "local" ]]; then
         msg_info "Retrying container creation with fallback to local storage..."
@@ -3656,7 +3611,7 @@ create_lxc_container() {
           msg_info "Downloading template to local..."
           pveam download local "$TEMPLATE" >/dev/null 2>&1
         fi
-        if ! pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" >>"$LOGFILE" 2>&1; then
+        if ! pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
           # Local fallback also failed - check for LXC stack version issue
           if grep -qiE 'unsupported .* version' "$LOGFILE"; then
             echo
@@ -3680,7 +3635,7 @@ create_lxc_container() {
             msg_error "Container creation failed. See $LOGFILE"
             if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
               set -x
-              pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" 2>&1 | tee -a "$LOGFILE"
+              pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS 2>&1 | tee -a "$LOGFILE"
               set +x
             fi
             exit 209
@@ -3712,7 +3667,7 @@ create_lxc_container() {
           msg_error "Container creation failed. See $LOGFILE"
           if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
             set -x
-            pct create "$CTID" "local:vztmpl/${TEMPLATE}" "${PCT_OPTIONS[@]}" 2>&1 | tee -a "$LOGFILE"
+            pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS 2>&1 | tee -a "$LOGFILE"
             set +x
           fi
           exit 209
