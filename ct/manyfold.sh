@@ -6,7 +6,7 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 # Source: https://github.com/manyfold3d/manyfold
 
 APP="Manyfold"
-var_tags="${var_tags:-network}"
+var_tags="${var_tags:-3d}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-15}"
