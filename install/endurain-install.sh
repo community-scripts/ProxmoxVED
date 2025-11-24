@@ -14,7 +14,10 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y default-libmysqlclient-dev build-essential pkg-config
+$STD apt install -y  \
+  default-libmysqlclient-dev  \
+  build-essential  \
+  pkg-config
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.13" setup_uv
@@ -24,9 +27,7 @@ PG_VERSION="17" PG_MODULES="postgis,contrib" setup_postgresql
 fetch_and_deploy_gh_release "endurain" "joaovitoriasilva/endurain" "tarball" "latest" "/opt/endurain"
 
 msg_info "Setting up Endurain"
-PG_DB_NAME="enduraindb" PG_DB_USER="endurain" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
-PG_DB_HOST=localhost
-PG_DB_PORT=5432
+PG_DB_NAME="enduraindb" PG_DB_USER="endurain" setup_postgresql_db
 
 cd /opt/endurain
 rm -rf \
@@ -54,10 +55,10 @@ PGDATA=/var/lib/postgresql/${PG_DB_NAME}
 
 DB_DATABASE=${PG_DB_NAME}
 DB_USER=${PG_DB_USER}
-DB_PORT=${PG_DB_PORT}
-DB_HOST=${PG_DB_HOST}
+DB_PORT=5432
+DB_HOST=localhost
 
-DATABASE_URL=postgresql+psycopg://${PG_DB_USER}:${PG_DB_PASS}@${PG_DB_HOST}:${PG_DB_PORT}/${PG_DB_NAME}
+DATABASE_URL=postgresql+psycopg://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}
 
 BACKEND_DIR="/opt/endurain/backend/app"
 FRONTEND_DIR="/opt/endurain/frontend/app/dist"

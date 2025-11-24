@@ -28,9 +28,7 @@ function update_script() {
     msg_error "No ${APP} installation found!"
     exit 1
   fi
-
   if check_for_gh_release "endurain" "joaovitoriasilva/endurain"; then
-
     msg_info "Stopping Service"
     systemctl stop endurain
     msg_ok "Stopped Service"
@@ -50,8 +48,6 @@ function update_script() {
       /opt/endurain/*.yml
     cp /opt/endurain.env /opt/endurain/.env
     rm /opt/endurain.env
-    msg_ok "Prepared Update"
-
     msg_ok "Prepared Update"
 
     msg_info "Updating Frontend"
