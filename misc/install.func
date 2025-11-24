@@ -30,19 +30,19 @@
 
 # Ensure INSTALL_LOG is set (exported from build.func, but fallback if missing)
 if [[ -z "${INSTALL_LOG:-}" ]]; then
-    INSTALL_LOG="/root/.install-${SESSION_ID:-unknown}.log"
+  INSTALL_LOG="/root/.install-${SESSION_ID:-unknown}.log"
 fi
 
 # Dev mode: Persistent logs directory
 if [[ "${DEV_MODE_LOGS:-false}" == "true" ]]; then
-    mkdir -p /var/log/community-scripts
-    INSTALL_LOG="/var/log/community-scripts/install-${SESSION_ID:-unknown}-$(date +%Y%m%d_%H%M%S).log"
+  mkdir -p /var/log/community-scripts
+  INSTALL_LOG="/var/log/community-scripts/install-${SESSION_ID:-unknown}-$(date +%Y%m%d_%H%M%S).log"
 fi
 
 if ! command -v curl >/dev/null 2>&1; then
-    printf "\r\e[2K%b" '\033[93m Setup Source \033[m' >&2
-    apt-get update >/dev/null 2>&1
-    apt-get install -y curl >/dev/null 2>&1
+  printf "\r\e[2K%b" '\033[93m Setup Source \033[m' >&2
+  apt-get update >/dev/null 2>&1
+  apt-get install -y curl >/dev/null 2>&1
 fi
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
@@ -64,12 +64,12 @@ parse_dev_mode
 # - Sets verbose mode via set_std_mode()
 # ------------------------------------------------------------------------------
 verb_ip6() {
-    set_std_mode # Set STD mode based on VERBOSE
+  set_std_mode # Set STD mode based on VERBOSE
 
-    if [ "$DISABLEIPV6" == "yes" ]; then
-        echo "net.ipv6.conf.all.disable_ipv6 = 1" >>/etc/sysctl.conf
-        $STD sysctl -p
-    fi
+  if [ "$DISABLEIPV6" == "yes" ]; then
+    echo "net.ipv6.conf.all.disable_ipv6 = 1" >>/etc/sysctl.conf
+    $STD sysctl -p
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -82,24 +82,24 @@ verb_ip6() {
 # - Exits with error if network unavailable after retries
 # ------------------------------------------------------------------------------
 setting_up_container() {
-    msg_info "Setting up Container OS"
-    for ((i = RETRY_NUM; i > 0; i--)); do
-        if [ "$(hostname -I)" != "" ]; then
-            break
-        fi
-        echo 1>&2 -en "${CROSS}${RD} No Network! "
-        sleep $RETRY_EVERY
-    done
-    if [ "$(hostname -I)" = "" ]; then
-        echo 1>&2 -e "\n${CROSS}${RD} No Network After $RETRY_NUM Tries${CL}"
-        echo -e "${NETWORK}Check Network Settings"
-        exit 1
+  msg_info "Setting up Container OS"
+  for ((i = RETRY_NUM; i > 0; i--)); do
+    if [ "$(hostname -I)" != "" ]; then
+      break
     fi
-    rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-    systemctl disable -q --now systemd-networkd-wait-online.service
-    msg_ok "Set up Container OS"
-    #msg_custom "${CM}" "${GN}" "Network Connected: ${BL}$(hostname -I)"
-    msg_ok "Network Connected: ${BL}$(hostname -I)"
+    echo 1>&2 -en "${CROSS}${RD} No Network! "
+    sleep $RETRY_EVERY
+  done
+  if [ "$(hostname -I)" = "" ]; then
+    echo 1>&2 -e "\n${CROSS}${RD} No Network After $RETRY_NUM Tries${CL}"
+    echo -e "${NETWORK}Check Network Settings"
+    exit 1
+  fi
+  rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
+  systemctl disable -q --now systemd-networkd-wait-online.service
+  msg_ok "Set up Container OS"
+  #msg_custom "${CM}" "${GN}" "Network Connected: ${BL}$(hostname -I)"
+  msg_ok "Network Connected: ${BL}$(hostname -I)"
 }
 
 # ------------------------------------------------------------------------------
@@ -114,65 +114,65 @@ setting_up_container() {
 # - Uses fatal() on DNS resolution failure for critical hosts
 # ------------------------------------------------------------------------------
 network_check() {
-    set +e
-    trap - ERR
-    ipv4_connected=false
-    ipv6_connected=false
-    sleep 1
+  set +e
+  trap - ERR
+  ipv4_connected=false
+  ipv6_connected=false
+  sleep 1
 
-    # Check IPv4 connectivity to Google, Cloudflare & Quad9 DNS servers.
-    if ping -c 1 -W 1 1.1.1.1 &>/dev/null || ping -c 1 -W 1 8.8.8.8 &>/dev/null || ping -c 1 -W 1 9.9.9.9 &>/dev/null; then
-        ipv4_connected=true
-        ipv4_status="${GN}✔${CL} IPv4"
+  # Check IPv4 connectivity to Google, Cloudflare & Quad9 DNS servers.
+  if ping -c 1 -W 1 1.1.1.1 &>/dev/null || ping -c 1 -W 1 8.8.8.8 &>/dev/null || ping -c 1 -W 1 9.9.9.9 &>/dev/null; then
+    ipv4_connected=true
+    ipv4_status="${GN}✔${CL} IPv4"
+  else
+    ipv4_status="${RD}✖${CL} IPv4"
+  fi
+
+  # Check IPv6 connectivity to Google, Cloudflare & Quad9 DNS servers.
+  if ping6 -c 1 -W 1 2606:4700:4700::1111 &>/dev/null || ping6 -c 1 -W 1 2001:4860:4860::8888 &>/dev/null || ping6 -c 1 -W 1 2620:fe::fe &>/dev/null; then
+    ipv6_connected=true
+    ipv6_status="${GN}✔${CL} IPv6"
+  else
+    ipv6_status="${RD}✖${CL} IPv6"
+  fi
+
+  # Show combined status
+  msg_ok "Internet: ${ipv4_status}  ${ipv6_status}"
+
+  # If both IPv4 and IPv6 checks fail, prompt the user
+  if [[ $ipv4_connected == false && $ipv6_connected == false ]]; then
+    read -r -p "No Internet detected, would you like to continue anyway? <y/N> " prompt
+    if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
+      echo -e "${INFO}${RD}Expect Issues Without Internet${CL}"
     else
-        ipv4_status="${RD}✖${CL} IPv4"
+      echo -e "${NETWORK}Check Network Settings"
+      exit 1
     fi
+  fi
 
-    # Check IPv6 connectivity to Google, Cloudflare & Quad9 DNS servers.
-    if ping6 -c 1 -W 1 2606:4700:4700::1111 &>/dev/null || ping6 -c 1 -W 1 2001:4860:4860::8888 &>/dev/null || ping6 -c 1 -W 1 2620:fe::fe &>/dev/null; then
-        ipv6_connected=true
-        ipv6_status="${GN}✔${CL} IPv6"
+  # DNS resolution checks for GitHub-related domains (IPv4 and/or IPv6)
+  GIT_HOSTS=("github.com" "raw.githubusercontent.com" "api.github.com" "git.community-scripts.org")
+  GIT_STATUS="Git DNS:"
+  DNS_FAILED=false
+
+  for HOST in "${GIT_HOSTS[@]}"; do
+    RESOLVEDIP=$(getent hosts "$HOST" | awk '{ print $1 }' | grep -E '(^([0-9]{1,3}\.){3}[0-9]{1,3}$)|(^[a-fA-F0-9:]+$)' | head -n1)
+    if [[ -z "$RESOLVEDIP" ]]; then
+      GIT_STATUS+="$HOST:($DNSFAIL)"
+      DNS_FAILED=true
     else
-        ipv6_status="${RD}✖${CL} IPv6"
+      GIT_STATUS+=" $HOST:($DNSOK)"
     fi
+  done
 
-    # Show combined status
-    msg_ok "Internet: ${ipv4_status}  ${ipv6_status}"
+  if [[ "$DNS_FAILED" == true ]]; then
+    fatal "$GIT_STATUS"
+  else
+    msg_ok "$GIT_STATUS"
+  fi
 
-    # If both IPv4 and IPv6 checks fail, prompt the user
-    if [[ $ipv4_connected == false && $ipv6_connected == false ]]; then
-        read -r -p "No Internet detected, would you like to continue anyway? <y/N> " prompt
-        if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-            echo -e "${INFO}${RD}Expect Issues Without Internet${CL}"
-        else
-            echo -e "${NETWORK}Check Network Settings"
-            exit 1
-        fi
-    fi
-
-    # DNS resolution checks for GitHub-related domains (IPv4 and/or IPv6)
-    GIT_HOSTS=("github.com" "raw.githubusercontent.com" "api.github.com" "git.community-scripts.org")
-    GIT_STATUS="Git DNS:"
-    DNS_FAILED=false
-
-    for HOST in "${GIT_HOSTS[@]}"; do
-        RESOLVEDIP=$(getent hosts "$HOST" | awk '{ print $1 }' | grep -E '(^([0-9]{1,3}\.){3}[0-9]{1,3}$)|(^[a-fA-F0-9:]+$)' | head -n1)
-        if [[ -z "$RESOLVEDIP" ]]; then
-            GIT_STATUS+="$HOST:($DNSFAIL)"
-            DNS_FAILED=true
-        else
-            GIT_STATUS+=" $HOST:($DNSOK)"
-        fi
-    done
-
-    if [[ "$DNS_FAILED" == true ]]; then
-        fatal "$GIT_STATUS"
-    else
-        msg_ok "$GIT_STATUS"
-    fi
-
-    set -e
-    trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
+  set -e
+  trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
 
 # ==============================================================================
@@ -189,10 +189,10 @@ network_check() {
 # - Uses $STD wrapper to suppress output unless VERBOSE=yes
 # ------------------------------------------------------------------------------
 update_os() {
-    msg_info "Updating Container OS"
-    if [[ "$CACHER" == "yes" ]]; then
-        echo "Acquire::http::Proxy-Auto-Detect \"/usr/local/bin/apt-proxy-detect.sh\";" >/etc/apt/apt.conf.d/00aptproxy
-        cat <<'EOF' >/usr/local/bin/apt-proxy-detect.sh
+  msg_info "Updating Container OS"
+  if [[ "$CACHER" == "yes" ]]; then
+    echo "Acquire::http::Proxy-Auto-Detect \"/usr/local/bin/apt-proxy-detect.sh\";" >/etc/apt/apt.conf.d/00aptproxy
+    cat <<'EOF' >/usr/local/bin/apt-proxy-detect.sh
 #!/bin/bash
 if nc -w1 -z "${CACHER_IP}" 3142; then
   echo -n "http://${CACHER_IP}:3142"
@@ -200,13 +200,13 @@ else
   echo -n "DIRECT"
 fi
 EOF
-        chmod +x /usr/local/bin/apt-proxy-detect.sh
-    fi
-    $STD apt-get update
-    $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
-    rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-    msg_ok "Updated Container OS"
-    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
+    chmod +x /usr/local/bin/apt-proxy-detect.sh
+  fi
+  $STD apt-get update
+  $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
+  rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
+  msg_ok "Updated Container OS"
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
 }
 
 # ==============================================================================
@@ -228,32 +228,32 @@ EOF
 # - Configures TERM environment variable for better terminal support
 # ------------------------------------------------------------------------------
 motd_ssh() {
-    grep -qxF "export TERM='xterm-256color'" /root/.bashrc || echo "export TERM='xterm-256color'" >>/root/.bashrc
+  grep -qxF "export TERM='xterm-256color'" /root/.bashrc || echo "export TERM='xterm-256color'" >>/root/.bashrc
 
-    if [ -f "/etc/os-release" ]; then
-        OS_NAME=$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '"')
-        OS_VERSION=$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
-    elif [ -f "/etc/debian_version" ]; then
-        OS_NAME="Debian"
-        OS_VERSION=$(cat /etc/debian_version)
-    fi
+  if [ -f "/etc/os-release" ]; then
+    OS_NAME=$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '"')
+    OS_VERSION=$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+  elif [ -f "/etc/debian_version" ]; then
+    OS_NAME="Debian"
+    OS_VERSION=$(cat /etc/debian_version)
+  fi
 
-    PROFILE_FILE="/etc/profile.d/00_lxc-details.sh"
-    echo "echo -e \"\"" >"$PROFILE_FILE"
-    echo -e "echo -e \"${BOLD}${YW}${APPLICATION} LXC Container - DEV Repository${CL}\"" >>"$PROFILE_FILE"
-    echo -e "echo -e \"${RD}WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use in production!${CL}\"" >>"$PROFILE_FILE"
-    echo -e "echo -e \"${YW} OS: ${GN}${OS_NAME} - Version: ${OS_VERSION}${CL}\"" >>"$PROFILE_FILE"
-    echo -e "echo -e \"${YW} Hostname: ${GN}\$(hostname)${CL}\"" >>"$PROFILE_FILE"
-    echo -e "echo -e \"${YW} IP Address: ${GN}\$(hostname -I | awk '{print \$1}')${CL}\"" >>"$PROFILE_FILE"
-    echo -e "echo -e \"${YW} Repository: ${GN}https://github.com/community-scripts/ProxmoxVED${CL}\"" >>"$PROFILE_FILE"
-    echo "echo \"\"" >>"$PROFILE_FILE"
+  PROFILE_FILE="/etc/profile.d/00_lxc-details.sh"
+  echo "echo -e \"\"" >"$PROFILE_FILE"
+  echo -e "echo -e \"${BOLD}${YW}${APPLICATION} LXC Container - DEV Repository${CL}\"" >>"$PROFILE_FILE"
+  echo -e "echo -e \"${RD}WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use in production!${CL}\"" >>"$PROFILE_FILE"
+  echo -e "echo -e \"${YW} OS: ${GN}${OS_NAME} - Version: ${OS_VERSION}${CL}\"" >>"$PROFILE_FILE"
+  echo -e "echo -e \"${YW} Hostname: ${GN}\$(hostname)${CL}\"" >>"$PROFILE_FILE"
+  echo -e "echo -e \"${YW} IP Address: ${GN}\$(hostname -I | awk '{print \$1}')${CL}\"" >>"$PROFILE_FILE"
+  echo -e "echo -e \"${YW} Repository: ${GN}https://github.com/community-scripts/ProxmoxVED${CL}\"" >>"$PROFILE_FILE"
+  echo "echo \"\"" >>"$PROFILE_FILE"
 
-    chmod -x /etc/update-motd.d/*
+  chmod -x /etc/update-motd.d/*
 
-    if [[ "${SSH_ROOT}" == "yes" ]]; then
-        sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/g" /etc/ssh/sshd_config
-        systemctl restart sshd
-    fi
+  if [[ "${SSH_ROOT}" == "yes" ]]; then
+    sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/g" /etc/ssh/sshd_config
+    systemctl restart sshd
+  fi
 }
 
 # ==============================================================================
@@ -270,24 +270,25 @@ motd_ssh() {
 # - Sets proper permissions on SSH directories and key files
 # ------------------------------------------------------------------------------
 customize() {
-    if [[ "$PASSWORD" == "" ]]; then
-        msg_info "Customizing Container"
-        GETTY_OVERRIDE="/etc/systemd/system/container-getty@1.service.d/override.conf"
-        mkdir -p $(dirname $GETTY_OVERRIDE)
-        cat <<EOF >$GETTY_OVERRIDE
-  [Service]
-  ExecStart=
-  ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
+  if [[ -z "${PASSWORD:-}" ]]; then
+    msg_info "Configuring autologin for root"
+    passwd -d root >/dev/null 2>&1 || true
+    GETTY_OVERRIDE="/etc/systemd/system/container-getty@1.service.d/override.conf"
+    mkdir -p "$(dirname "$GETTY_OVERRIDE")"
+    cat <<EOF >"$GETTY_OVERRIDE"
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
 EOF
-        $STD systemctl daemon-reload || true
-        msg_ok "Customized Container"
-    fi
-    echo "bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${app}.sh)\"" >/usr/bin/update
-    chmod +x /usr/bin/update
-    if [[ -n "${SSH_AUTHORIZED_KEY}" ]]; then
-        mkdir -p /root/.ssh
-        echo "${SSH_AUTHORIZED_KEY}" >/root/.ssh/authorized_keys
-        chmod 700 /root/.ssh
-        chmod 600 /root/.ssh/authorized_keys
-    fi
+    $STD systemctl daemon-reload || true
+    msg_ok "Customized Container"
+  fi
+  echo "bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${app}.sh)\"" >/usr/bin/update
+  chmod +x /usr/bin/update
+  if [[ -n "${SSH_AUTHORIZED_KEY}" ]]; then
+    mkdir -p /root/.ssh
+    echo "${SSH_AUTHORIZED_KEY}" >/root/.ssh/authorized_keys
+    chmod 700 /root/.ssh
+    chmod 600 /root/.ssh/authorized_keys
+  fi
 }
