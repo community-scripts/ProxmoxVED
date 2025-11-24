@@ -2559,7 +2559,7 @@ EOF
     if [[ $gpu_count -eq 1 ]]; then
       # Automatic selection for single GPU
       selected_gpu="${available_gpus[0]}"
-      msg_custom "⚙️" "${GN}" "Automatically configuring ${selected_gpu} GPU passthrough"
+      msg_ok "Automatically configuring ${selected_gpu} GPU passthrough"
     else
       # Multiple GPUs - ask user
       echo -e "\n${INFO} Multiple GPU types detected:"
@@ -2936,7 +2936,7 @@ fix_gpu_gids() {
     return 0
   fi
 
-  msg_custom "🔧" "${BL}" "Detecting and setting correct GPU group IDs"
+  msg_info "Detecting and setting correct GPU group IDs"
 
   # Get actual GIDs from container
   local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
