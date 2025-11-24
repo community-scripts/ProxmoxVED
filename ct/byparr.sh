@@ -3,7 +3,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/he
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: luismco
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/Lissy93/web-check
+# Source: https://github.com/ThePhaseless/Byparr
 
 APP="Byparr"
 var_tags="${var_tags:-proxy}"
