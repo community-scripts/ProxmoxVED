@@ -2290,8 +2290,15 @@ build_container() {
   esac
 
   # Build FEATURES_ARRAY with all requested features
+  # Note: Set safe defaults for all feature flags to prevent undefined variables
+  : "${ENABLE_NESTING:=1}"
+  : "${ENABLE_KEYCTL:=0}"
+  : "${ENABLE_MKNOD:=0}"
+  : "${ENABLE_FUSE:=no}"
+  : "${ALLOW_MOUNT_FS:=}"
+
   FEATURES_ARRAY=()
-  FEATURES_ARRAY+=("nesting=${ENABLE_NESTING}")
+  FEATURES_ARRAY+=("nesting=$ENABLE_NESTING")
 
   # keyctl: needed for Docker inside containers (systemd-networkd workaround)
   if [ "$CT_TYPE" == "1" ] || [ "$ENABLE_KEYCTL" == "1" ]; then
@@ -2314,6 +2321,12 @@ build_container() {
     ALLOW_MOUNT_FS_FORMATTED="${ALLOW_MOUNT_FS//,/;}"
     FEATURES_ARRAY+=("mount=$ALLOW_MOUNT_FS_FORMATTED")
   fi
+
+  # DEBUG: Show built FEATURES_ARRAY
+  echo "[DEBUG] FEATURES_ARRAY built with ${#FEATURES_ARRAY[@]} elements:"
+  for i in "${!FEATURES_ARRAY[@]}"; do
+    echo "  [$i] = ${FEATURES_ARRAY[$i]}"
+  done
 
   # NEW IMPLEMENTATION (Fixed): Build PCT_OPTIONS properly
   # Key insight: Bash cannot export arrays, so we build the options as a string
@@ -2370,6 +2383,9 @@ build_container() {
     fi
   done
 
+  # DEBUG: Show converted FEATURES_STRING
+  echo "[DEBUG] FEATURES_STRING (comma-separated): $FEATURES_STRING"
+
   # Start building PCT_OPTIONS as a string
   PCT_OPTIONS_STRING="  -features $FEATURES_STRING
   -hostname $HN
@@ -2417,6 +2433,11 @@ build_container() {
   export PCT_OPTIONS="$PCT_OPTIONS_STRING"
   export TEMPLATE_STORAGE="${var_template_storage:-}"
   export CONTAINER_STORAGE="${var_container_storage:-}"
+
+  # DEBUG: Show final PCT_OPTIONS being exported
+  echo "[DEBUG] PCT_OPTIONS to be exported:"
+  echo "$PCT_OPTIONS" | sed 's/^/  /'
+  echo "[DEBUG] Calling create_lxc_container..."
 
   create_lxc_container || exit $?
 
@@ -3584,6 +3605,17 @@ create_lxc_container() {
   }
 
   LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
+
+  # DEBUG: Show the actual command that will be executed
+  echo "[DEBUG] ===== PCT CREATE COMMAND DETAILS ====="
+  echo "[DEBUG] CTID: $CTID"
+  echo "[DEBUG] Template: ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}"
+  echo "[DEBUG] PCT_OPTIONS (will be word-split):"
+  echo "$PCT_OPTIONS" | sed 's/^/  /'
+  echo "[DEBUG] Full command line:"
+  echo "  pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} $PCT_OPTIONS"
+  echo "[DEBUG] ========================================"
+
   msg_debug "pct create command: pct create $CTID ${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE} $PCT_OPTIONS"
   msg_debug "Logfile: $LOGFILE"
 
