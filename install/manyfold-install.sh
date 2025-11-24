@@ -110,11 +110,12 @@ $STD bin/rails assets:precompile
 msg_ok "Installed manyfold"
 
 msg_info "Creating Services"
+$STD gem install foreman
 $STD foreman export systemd /etc/systemd/system -a manyfold -u root -f /opt/manyfold/Procfile
 for f in /etc/systemd/system/manyfold-*.service; do
     sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/.env \&\& |" "$f"
 done
-systemctl enable -q --now manyfold manyfold-rails manyfold-default_worker manyfold-performance_worker
+systemctl enable -q --now manyfold.target manyfold-rails.1 manyfold-default_worker.1 manyfold-performance_worker.1
 cat <<EOF >/etc/nginx/sites-available/manyfold.conf
 server {
     listen 80;
