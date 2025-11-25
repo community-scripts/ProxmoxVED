@@ -87,6 +87,7 @@ msg_ok "SQLite built successfully"
 fetch_and_deploy_gh_release "go2rtc" "AlexxIT/go2rtc" "singlefile" "latest" "/usr/local/go2rtc/bin" "go2rtc_linux_amd64"
 
 msg_info "Installing tempio"
+export TARGETARCH=amd64
 sed -i 's|/rootfs/usr/local|/usr/local|g' /opt/frigate/docker/main/install_tempio.sh
 $STD bash /opt/frigate/docker/main/install_tempio.sh
 ln -sf /usr/local/tempio/bin/tempio /usr/local/bin/tempio
