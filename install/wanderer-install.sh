@@ -90,7 +90,4 @@ msg_ok "Created env file, scripts and services"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
 cleanup_lxc
-msg_ok "Cleaned"
