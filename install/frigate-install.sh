@@ -129,12 +129,15 @@ msg_ok "Python dependencies installed"
 msg_info "Building pysqlite3"
 sed -i 's|^SQLITE3_VERSION=.*|SQLITE3_VERSION="version-3.46.0"|g' /opt/frigate/docker/main/build_pysqlite3.sh
 $STD bash /opt/frigate/docker/main/build_pysqlite3.sh
-$STD pip3 wheel --wheel-dir=/wheels -r /opt/frigate/docker/main/requirements-wheels.txt
+mkdir -p /wheels
+for i in {1..3}; do
+  msg_info "Building wheels (attempt $i/3)..."
+  pip3 wheel --wheel-dir=/wheels -r /opt/frigate/docker/main/requirements-wheels.txt --default-timeout=300 --retries=3 && break
+  if [[ $i -lt 3 ]]; then sleep 10; fi
+done
 msg_ok "pysqlite3 built successfully"
 
-msg_info "Setting up Node.js"
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
-msg_ok "Node.js installed"
 
 msg_info "Downloading inference models"
 mkdir -p /models /openvino-model
