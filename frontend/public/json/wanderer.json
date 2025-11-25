@@ -8,6 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
+    "config_path": "/opt/wanderer/.env",
     "interface_port": 3000,
     "documentation": "https://wanderer.to/welcome",
     "website": "https://wanderer.to",
