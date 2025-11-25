@@ -25,19 +25,11 @@ function update_script() {
     check_container_storage
     check_container_resources
 
-    if [[ ! -f /opt/${APP}/start.sh ]]; then
+    if [[ ! -f /opt/wanderer/start.sh ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi
 
-    INSTALL_DIR="/opt/$APP"
-    SRC_DIR="${INSTALL_DIR}/source"
-    DB_DIR="${SRC_DIR}/db"
-    SEARCH_DIR="${SRC_DIR}/search"
-    WEB_DIR="${SRC_DIR}/web"
-    DATA_DIR="${INSTALL_DIR}/data"
-    PB_DB_LOCATION="${DATA_DIR}/pb_data"
-    MEILI_DB_LOCATION="${DATA_DIR}/meili_data"
     if check_for_gh_release "$APP" "Flomp/wanderer"; then
 
         msg_info "Stopping $APP"
@@ -46,10 +38,10 @@ function update_script() {
 
 
         msg_info "Updating $APP"
-        $STD fetch_and_deploy_gh_release "$APP" "Flomp/wanderer"  "tarball" "latest" "$SRC_DIR"
-        cd $DB_DIR
+        $STD fetch_and_deploy_gh_release "$APP" "Flomp/wanderer"  "tarball" "latest" "/opt/wanderer/source"
+        cd /opt/wanderer/source/db
         $STD go mod tidy && $STD go build
-        cd $WEB_DIR
+        cd /opt/wanderer/source/web
         $STD npm ci --omit=dev
         $STD npm run build
         msg_ok "Updated $APP"
@@ -68,8 +60,8 @@ function update_script() {
 
         msg_info "Updating Meilisearch"
 
-        cd $SEARCH_DIR
-        $STD fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "$SEARCH_DIR"
+        cd /opt/wanderer/source/search
+        $STD fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
         msg_ok "Updated Meilisearch"
 
         msg_info "Starting $APP"

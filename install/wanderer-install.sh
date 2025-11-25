@@ -24,33 +24,23 @@ $STD apt-get install --no-install-recommends -y \
   nodejs 
 msg_ok "Installded Dependencies"
 
-INSTALL_DIR="/opt/${APPLICATION}"
-SRC_DIR="${INSTALL_DIR}/source"
-DB_DIR="${SRC_DIR}/db"
-SEARCH_DIR="${SRC_DIR}/search"
-WEB_DIR="${SRC_DIR}/web"
-DATA_DIR="${INSTALL_DIR}/data"
-PB_DB_LOCATION="${DATA_DIR}/pb_data"
-MEILI_DB_LOCATION="${DATA_DIR}/meili_data"
+mkdir -p "/opt/wanderer"
+mkdir -p "/opt/wanderer/source"
+mkdir -p "/opt/wanderer/data"
+mkdir -p "/opt/wanderer/data/pb_data"
+mkdir -p "/opt/wanderer/data/meili_data"
 
-
-mkdir -p "$INSTALL_DIR"
-mkdir -p "$SRC_DIR"
-mkdir -p "$DATA_DIR"
-mkdir -p "$PB_DB_LOCATION"
-mkdir -p "$MEILI_DB_LOCATION"
-
-$STD fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer" "tarball" "latest" "$SRC_DIR"
+$STD fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer" "tarball" "latest" "/opt/wanderer/source"
 
 msg_info "Installing ${APPLICATION} (patience)"
-cd $SEARCH_DIR
-$STD fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "$SEARCH_DIR"
+cd /opt/wanderer/source/search
+$STD fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
 $STD meilisearch &
 $STD sleep 1
 $STD kill %%
-cd $DB_DIR
+cd /opt/wanderer/source/db
 $STD go mod tidy && $STD go build
-cd $WEB_DIR
+cd /opt/wanderer/source/web
 $STD npm i -s vitest
 $STD npm ci --omit=dev
 $STD npm run build
@@ -61,7 +51,7 @@ MEILI_KEY=$(openssl rand -hex 32)
 POCKETBASE_KEY=$(openssl rand -hex 16)
 LOCAL_IP="$(hostname -I | awk '{print $1}')"
 
-cat <<EOF >"${INSTALL_DIR}"/.env
+cat <<EOF >/opt/wanderer/.env
 ORIGIN=http://${LOCAL_IP}:3000
 MEILI_HTTP_ADDR=${LOCAL_IP}:7700
 MEILI_URL=http://${LOCAL_IP}:7700
@@ -70,21 +60,21 @@ PB_URL=${LOCAL_IP}:8090
 PUBLIC_POCKETBASE_URL=http://${LOCAL_IP}:8090
 PUBLIC_VALHALLA_URL=https://valhalla1.openstreetmap.de
 POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_KEY}
-PB_DB_LOCATION=${PB_DB_LOCATION}
-MEILI_DB_PATH=${MEILI_DB_LOCATION}
+PB_DB_LOCATION=/opt/wanderer/data/pb_data
+MEILI_DB_PATH=/opt/wanderer/data/meili_data
 EOF
-cat <<EOF >"${INSTALL_DIR}"/start.sh
+cat <<EOF >/opt/wanderer/start.sh
 #!/usr/bin/env bash
 
 trap "kill 0" EXIT
 
-cd ${SEARCH_DIR} && meilisearch --master-key \$MEILI_MASTER_KEY &
-cd ${DB_DIR} && ./pocketbase serve --http=\$PB_URL --dir=\$PB_DB_LOCATION &
-cd ${WEB_DIR} && node build &
+cd /opt/wanderer/source/search && meilisearch --master-key \$MEILI_MASTER_KEY &
+cd /opt/wanderer/source/db && ./pocketbase serve --http=\$PB_URL --dir=\$PB_DB_LOCATION &
+cd /opt/wanderer/source/web && node build &
 
 wait -n
 EOF
-chmod +x  "${INSTALL_DIR}"/start.sh
+chmod +x  /opt/wanderer/start.sh
 cat <<EOF >/etc/systemd/system/"${APPLICATION}"-web.service
 [Unit]
 Description=${APPLICATION}
@@ -94,8 +84,8 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-EnvironmentFile=${INSTALL_DIR}/.env
-ExecStart=/usr/bin/bash ${INSTALL_DIR}/start.sh
+EnvironmentFile=/opt/wanderer/.env
+ExecStart=/usr/bin/bash /opt/wanderer/start.sh
 Restart=always
 RestartSec=1
 
