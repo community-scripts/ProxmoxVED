@@ -32,9 +32,9 @@ function update_script() {
 
     if check_for_gh_release "wanderer" "Flomp/wanderer"; then
 
-        msg_info "Stopping wanderer"
-        systemctl stop wanderer-web.service
-        msg_ok "Stopped wanderer"
+        msg_info "Stopping wanderer service"
+        systemctl stop wanderer-web
+        msg_ok "Stopped wanderer service"
 
 
         msg_info "Updating wanderer"
@@ -48,16 +48,16 @@ function update_script() {
         msg_ok "Updated wanderer"
 
 
-        msg_info "Starting wanderer"
-        systemctl start wanderer-web.service
-        msg_ok "Started wanderer"
+        msg_info "Starting wanderer service"
+        systemctl start wanderer-web
+        msg_ok "Started wanderer service"
 
         msg_ok "Update Successful"
     fi
     if check_for_gh_release "meilisearch" "meilisearch/meilisearch"; then
-        msg_info "Stopping wanderer"
-        systemctl stop wanderer-web.service
-        msg_ok "Stopped wanderer"
+        msg_info "Stopping wanderer service"
+        systemctl stop wanderer-web
+        msg_ok "Stopped wanderer service"
 
         msg_info "Updating Meilisearch"
 
@@ -65,9 +65,9 @@ function update_script() {
         $STD fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
         msg_ok "Updated Meilisearch"
 
-        msg_info "Starting wanderer"
-        systemctl start wanderer-web.service
-        msg_ok "Started wanderer"
+        msg_info "Starting wanderer service"
+        systemctl start wanderer-web
+        msg_ok "Started wanderer service"
         msg_ok "Update Successful"
     fi
     exit
