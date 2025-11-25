@@ -7,6 +7,7 @@
 # Source: https://frigate.video/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+set +e
 color
 verb_ip6
 catch_errors
