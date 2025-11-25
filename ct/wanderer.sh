@@ -54,10 +54,7 @@ function update_script() {
         systemctl stop wanderer-web
         msg_ok "Stopped wanderer service"
 
-        msg_info "Updating Meilisearch"
-        cd /opt/wanderer/source/search
-        $STD fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
-        msg_ok "Updated Meilisearch"
+    		fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
 
         msg_info "Starting wanderer service"
         systemctl start wanderer-web
