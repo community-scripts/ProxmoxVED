@@ -39,7 +39,8 @@ $STD meilisearch &
 $STD sleep 1
 $STD kill %%
 cd /opt/wanderer/source/db
-$STD go mod tidy && $STD go build
+$STD go mod tidy
+$STD go build
 cd /opt/wanderer/source/web
 $STD npm i -s vitest
 $STD npm ci --omit=dev

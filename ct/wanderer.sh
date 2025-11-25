@@ -40,7 +40,8 @@ function update_script() {
         msg_info "Updating $APP"
         $STD fetch_and_deploy_gh_release "$APP" "Flomp/wanderer"  "tarball" "latest" "/opt/wanderer/source"
         cd /opt/wanderer/source/db
-        $STD go mod tidy && $STD go build
+        $STD go mod tidy
+       	$STD go build
         cd /opt/wanderer/source/web
         $STD npm ci --omit=dev
         $STD npm run build
