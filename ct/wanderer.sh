@@ -34,7 +34,6 @@ function update_script() {
         systemctl stop wanderer-web
         msg_ok "Stopped wanderer service"
 
-
         msg_info "Updating wanderer"
         $STD fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer"  "tarball" "latest" "/opt/wanderer/source"
         cd /opt/wanderer/source/db
