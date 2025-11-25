@@ -14,7 +14,6 @@ var_os="debian"
 var_version="13"
 var_unprivileged="1"
 
-
 header_info "$APP"
 variables
 color
