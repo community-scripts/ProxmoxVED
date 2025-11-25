@@ -26,38 +26,38 @@ function update_script() {
     check_container_resources
 
     if [[ ! -f /opt/wanderer/start.sh ]]; then
-        msg_error "No ${APP} Installation Found!"
+        msg_error "No wanderer Installation Found!"
         exit
     fi
 
-    if check_for_gh_release "$APP" "Flomp/wanderer"; then
+    if check_for_gh_release "wanderer" "Flomp/wanderer"; then
 
-        msg_info "Stopping $APP"
+        msg_info "Stopping wanderer"
         systemctl stop wanderer-web.service
-        msg_ok "Stopped $APP"
+        msg_ok "Stopped wanderer"
 
 
-        msg_info "Updating $APP"
-        $STD fetch_and_deploy_gh_release "$APP" "Flomp/wanderer"  "tarball" "latest" "/opt/wanderer/source"
+        msg_info "Updating wanderer"
+        $STD fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer"  "tarball" "latest" "/opt/wanderer/source"
         cd /opt/wanderer/source/db
         $STD go mod tidy
        	$STD go build
         cd /opt/wanderer/source/web
         $STD npm ci --omit=dev
         $STD npm run build
-        msg_ok "Updated $APP"
+        msg_ok "Updated wanderer"
 
 
-        msg_info "Starting $APP"
-        systemctl start "${APP}"-web.service
-        msg_ok "Started $APP"
+        msg_info "Starting wanderer"
+        systemctl start wanderer-web.service
+        msg_ok "Started wanderer"
 
         msg_ok "Update Successful"
     fi
     if check_for_gh_release "meilisearch" "meilisearch/meilisearch"; then
-        msg_info "Stopping $APP"
+        msg_info "Stopping wanderer"
         systemctl stop wanderer-web.service
-        msg_ok "Stopped $APP"
+        msg_ok "Stopped wanderer"
 
         msg_info "Updating Meilisearch"
 
@@ -65,9 +65,9 @@ function update_script() {
         $STD fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
         msg_ok "Updated Meilisearch"
 
-        msg_info "Starting $APP"
-        systemctl start "${APP}"-web.service
-        msg_ok "Started $APP"
+        msg_info "Starting wanderer"
+        systemctl start wanderer-web.service
+        msg_ok "Started wanderer"
         msg_ok "Update Successful"
     fi
     exit

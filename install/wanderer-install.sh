@@ -32,7 +32,7 @@ mkdir -p "/opt/wanderer/data/meili_data"
 
 $STD fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer" "tarball" "latest" "/opt/wanderer/source"
 
-msg_info "Installing ${APPLICATION} (patience)"
+msg_info "Installing wanderer (patience)"
 cd /opt/wanderer/source/search
 $STD fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
 $STD meilisearch &
@@ -45,7 +45,7 @@ cd /opt/wanderer/source/web
 $STD npm i -s vitest
 $STD npm ci --omit=dev
 $STD npm run build
-msg_ok "Installed ${APPLICATION}"
+msg_ok "Installed wanderer"
 
 msg_info "Modifying user, creating env file, scripts & services"
 MEILI_KEY=$(openssl rand -hex 32)
@@ -76,9 +76,9 @@ cd /opt/wanderer/source/web && node build &
 wait -n
 EOF
 chmod +x  /opt/wanderer/start.sh
-cat <<EOF >/etc/systemd/system/"${APPLICATION}"-web.service
+cat <<EOF >/etc/systemd/system/wanderer-web.service
 [Unit]
-Description=${APPLICATION}
+Description=wanderer
 After=network.target
 StartLimitIntervalSec=10
 StartLimitBurst=5
@@ -94,7 +94,7 @@ RestartSec=1
 WantedBy=multi-user.target
 EOF
 sleep 1
-systemctl enable -q --now "$APPLICATION"-web.service
+systemctl enable -q --now wanderer-web.service
 msg_ok "Modified user, created env file, scripts and services"
 
 motd_ssh
