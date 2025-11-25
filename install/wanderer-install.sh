@@ -18,8 +18,6 @@ mkdir -p "/opt/wanderer/data/pb_data"
 mkdir -p "/opt/wanderer/data/meili_data"
 
 msg_info "Installing dependencies"
-$STD apt-get update
-$STD apt-get upgrade
 $STD apt-get install --no-install-recommends -y \
   git
 setup_go
@@ -97,7 +95,5 @@ motd_ssh
 customize
 
 msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-$STD apt clean -y
+cleanup_lxc
 msg_ok "Cleaned"
