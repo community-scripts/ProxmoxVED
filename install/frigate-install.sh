@@ -37,7 +37,7 @@ EOF
 rm -f /etc/apt/sources.list
 
 msg_info "Installing system dependencies"
-$STD apt-get install -y jq wget xz-utils python3 python3-dev gcc pkg-config libhdf5-dev unzip build-essential automake libtool ccache libusb-1.0-0-dev apt-transport-https cmake git libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libjpeg-dev libpng-dev libtiff-dev gfortran openexr libssl-dev libtbbmalloc2 libtbb-dev libdc1394-dev libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev tclsh libopenblas-dev liblapack-dev make moreutils
+$STD apt-get install -y jq wget xz-utils python3 python3-dev python3-pip gcc pkg-config libhdf5-dev unzip build-essential automake libtool ccache libusb-1.0-0-dev apt-transport-https cmake git libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libjpeg-dev libpng-dev libtiff-dev gfortran openexr libssl-dev libtbbmalloc2 libtbb-dev libdc1394-dev libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev tclsh libopenblas-dev liblapack-dev make moreutils
 msg_ok "System dependencies installed"
 
 msg_info "Installing hardware acceleration drivers"
@@ -112,15 +112,15 @@ $STD install -c -m 644 libusb-1.0.pc '/usr/local/lib/pkgconfig'
 ldconfig
 msg_ok "libUSB built successfully"
 
-msg_info "Setting up Python"
-$STD update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3 1
-msg_ok "Python configured"
+#msg_info "Setting up Python"
+#$STD update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3 1
+#msg_ok "Python configured"
 
-msg_info "Initializing pip"
-wget -q https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
-sed -i 's/args.append("setuptools")/args.append("setuptools==77.0.3")/' /tmp/get-pip.py
-$STD python3 /tmp/get-pip.py "pip"
-msg_ok "Pip initialized"
+#msg_info "Initializing pip"
+#wget -q https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
+#sed -i 's/args.append("setuptools")/args.append("setuptools==77.0.3")/' /tmp/get-pip.py
+#$STD python3 /tmp/get-pip.py "pip"
+#msg_ok "Pip initialized"
 
 msg_info "Installing Python dependencies from requirements"
 $STD pip3 install -r /opt/frigate/docker/main/requirements.txt
