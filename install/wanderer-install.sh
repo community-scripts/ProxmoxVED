@@ -13,6 +13,9 @@ setting_up_container
 network_check
 update_os
 
+mkdir -p "/opt/wanderer/source"
+mkdir -p "/opt/wanderer/data/pb_data"
+mkdir -p "/opt/wanderer/data/meili_data"
 
 msg_info "Installing dependencies"
 $STD apt-get update
@@ -21,17 +24,13 @@ $STD apt-get install --no-install-recommends -y \
   git
 setup_go
 setup_nodejs
+fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
 msg_ok "Installded Dependencies"
 
-mkdir -p "/opt/wanderer/source"
-mkdir -p "/opt/wanderer/data/pb_data"
-mkdir -p "/opt/wanderer/data/meili_data"
-
-$STD fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer" "tarball" "latest" "/opt/wanderer/source"
+fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer" "tarball" "latest" "/opt/wanderer/source"
 
 msg_info "Installing wanderer (patience)"
 cd /opt/wanderer/source/search
-$STD fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
 $STD meilisearch &
 $STD sleep 1
 $STD kill %%
