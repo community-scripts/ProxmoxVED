@@ -13,17 +13,14 @@ setting_up_container
 network_check
 update_os
 
-mkdir -p "/opt/wanderer/source"
-mkdir -p "/opt/wanderer/data/pb_data"
-mkdir -p "/opt/wanderer/data/meili_data"
-
 msg_info "Installing Dependencies"
-$STD apt-get install --no-install-recommends -y \
-  git
+$STD apt install --no-install-recommends -y git
+msg_ok "Installed Dependencies"
+
 setup_go
 setup_nodejs
 fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
-msg_ok "Installed Dependencies"
+mkdir -p /opt/wanderer/{source,data/pb_data,data/meili_data}
 
 fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer" "tarball" "latest" "/opt/wanderer/source"
 
