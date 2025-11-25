@@ -104,6 +104,7 @@ chown manyfold:manyfold /opt/.env
 rm /opt/manyfold/config/credentials.yml.enc
 $STD corepack prepare $YARN_VERSION --activate
 $STD corepack use $YARN_VERSION
+export VISUAL="code --wait"
 $STD bin/rails credentials:edit
 $STD bin/rails db:migrate
 $STD bin/rails assets:precompile
