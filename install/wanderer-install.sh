@@ -23,7 +23,7 @@ $STD apt-get install --no-install-recommends -y \
 setup_go
 setup_nodejs
 fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
-msg_ok "Installded Dependencies"
+msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer" "tarball" "latest" "/opt/wanderer/source"
 
