@@ -31,7 +31,6 @@ function update_script() {
     fi
 
     if check_for_gh_release "wanderer" "Flomp/wanderer"; then
-
         msg_info "Stopping wanderer service"
         systemctl stop wanderer-web
         msg_ok "Stopped wanderer service"
