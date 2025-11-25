@@ -54,6 +54,7 @@ POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_KEY}
 PB_DB_LOCATION=/opt/wanderer/data/pb_data
 MEILI_DB_PATH=/opt/wanderer/data/meili_data
 EOF
+
 cat <<EOF >/opt/wanderer/start.sh
 #!/usr/bin/env bash
 
