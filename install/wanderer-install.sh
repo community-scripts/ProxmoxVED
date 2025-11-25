@@ -68,6 +68,7 @@ cd /opt/wanderer/source/web && node build &
 wait -n
 EOF
 chmod +x  /opt/wanderer/start.sh
+
 cat <<EOF >/etc/systemd/system/wanderer-web.service
 [Unit]
 Description=wanderer
