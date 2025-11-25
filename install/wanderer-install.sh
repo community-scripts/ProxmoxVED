@@ -18,10 +18,9 @@ msg_info "Installing dependencies"
 $STD apt-get update
 $STD apt-get upgrade
 $STD apt-get install --no-install-recommends -y \
-  git \
-  golang-go \
-  npm \
-  nodejs 
+  git
+setup_go
+setup_nodejs
 msg_ok "Installded Dependencies"
 
 mkdir -p "/opt/wanderer"
