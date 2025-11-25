@@ -1,0 +1,35 @@
+{
+  "name": "DiscoPanel",
+  "slug": "disco-panel",
+  "categories": [
+    24
+  ],
+  "date_created": "2025-11-26",
+  "type": "ct",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://discopanel.app/docs/",
+  "config_path": "",
+  "website": "https://discopanel.app/",
+  "logo": "https://discopanel.app/g1_256x256.png",
+  "description": "The Minecraft Server Manager that Actually Works\nBuilt by someone who was tired of bloated control panels that require a PhD to operate and still manage to break at the worst possible moment.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/disco-panel.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 8096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
