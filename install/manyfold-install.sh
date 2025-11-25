@@ -54,6 +54,7 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 msg_ok "Set up PostgreSQL"
 
 fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold"
+RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 
 RUBY_INSTALL_VERSION=$(cat /opt/manyfold/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
@@ -67,7 +68,7 @@ msg_ok "Added manyfold user"
 
 msg_info "Setting .env file"
 cat <<EOF >/opt/.env
-export APP_VERSION=12345
+export APP_VERSION=${RELEASE}
 export GUID=1002
 export PUID=1001
 export PUBLIC_PORT=5000
