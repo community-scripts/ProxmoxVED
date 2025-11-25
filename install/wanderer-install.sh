@@ -21,7 +21,6 @@ setup_go
 setup_nodejs
 fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
 mkdir -p /opt/wanderer/{source,data/pb_data,data/meili_data}
-
 fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer" "tarball" "latest" "/opt/wanderer/source"
 
 msg_info "Installing wanderer (patience)"
