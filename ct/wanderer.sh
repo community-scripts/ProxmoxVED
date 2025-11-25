@@ -47,7 +47,6 @@ function update_script() {
         msg_info "Starting wanderer service"
         systemctl start wanderer-web
         msg_ok "Started wanderer service"
-
         msg_ok "Update Successful"
     fi
     if check_for_gh_release "meilisearch" "meilisearch/meilisearch"; then
