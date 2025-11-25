@@ -52,14 +52,14 @@ export HAILORT_LOGGER_PATH=NONE
 fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "latest" "/opt/frigate"
 
 msg_info "Building Nginx with custom modules"
-sed -i 's|if.*"$VERSION_ID" == "12".*|if [[ "$VERSION_ID" == "12" ]] \&\& [[ -f /etc/apt/sources.list.d/debian.list ]]; then|g' /opt/frigate/docker/main/build_nginx.sh
+sed -i 's|if.*"$VERSION_ID" == "12".*|if [[ "$VERSION_ID" =~ ^(12|13)$ ]]; then|g' /opt/frigate/docker/main/build_nginx.sh
 $STD bash /opt/frigate/docker/main/build_nginx.sh
 sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
 ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
 msg_ok "Nginx built successfully"
 
 msg_info "Building SQLite with custom modules"
-sed -i 's|if.*"$VERSION_ID" == "12".*|if [[ "$VERSION_ID" == "12" ]] \&\& [[ -f /etc/apt/sources.list.d/debian.list ]]; then|g' /opt/frigate/docker/main/build_sqlite_vec.sh
+sed -i 's|if.*"$VERSION_ID" == "12".*|if [[ "$VERSION_ID" =~ ^(12|13)$ ]]; then|g' /opt/frigate/docker/main/build_sqlite_vec.sh
 $STD bash /opt/frigate/docker/main/build_sqlite_vec.sh
 msg_ok "SQLite built successfully"
 
