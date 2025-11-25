@@ -17,7 +17,7 @@ mkdir -p "/opt/wanderer/source"
 mkdir -p "/opt/wanderer/data/pb_data"
 mkdir -p "/opt/wanderer/data/meili_data"
 
-msg_info "Installing dependencies"
+msg_info "Installing Dependencies"
 $STD apt-get install --no-install-recommends -y \
   git
 setup_go
