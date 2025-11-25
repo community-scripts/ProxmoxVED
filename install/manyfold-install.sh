@@ -51,12 +51,6 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMP
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
-{
-    echo "Manyfold Credentials"
-    echo "Manyfold Database User: $DB_USER"
-    echo "Manyfold Database Password: $DB_PASS"
-    echo "Manyfold Database Name: $DB_NAME"
-} >>~/manyfold.creds
 msg_ok "Set up PostgreSQL"
 
 fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold"
