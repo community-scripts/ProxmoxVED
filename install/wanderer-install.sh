@@ -23,9 +23,7 @@ setup_go
 setup_nodejs
 msg_ok "Installded Dependencies"
 
-mkdir -p "/opt/wanderer"
 mkdir -p "/opt/wanderer/source"
-mkdir -p "/opt/wanderer/data"
 mkdir -p "/opt/wanderer/data/pb_data"
 mkdir -p "/opt/wanderer/data/meili_data"
 
