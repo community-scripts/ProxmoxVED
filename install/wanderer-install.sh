@@ -86,7 +86,7 @@ WantedBy=multi-user.target
 EOF
 sleep 1
 systemctl enable -q --now wanderer-web
-msg_ok "Created env file, scripts and services"
+msg_ok "Created Service"
 
 motd_ssh
 customize
