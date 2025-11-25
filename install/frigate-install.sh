@@ -15,7 +15,7 @@ network_check
 update_os
 
 msg_info "Installing system dependencies"
-$STD apt-get install -y jq wget xz-utils python3 python3-dev python3-distutils gcc pkg-config libhdf5-dev unzip build-essential automake libtool ccache libusb-1.0-0-dev apt-transport-https python3.11 python3.11-dev cmake git libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libjpeg-dev libpng-dev libtiff-dev gfortran openexr libatlas-base-dev libssl-dev libtbbmalloc2 libtbb-dev libdc1394-dev libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev tclsh libopenblas-dev liblapack-dev make moreutils
+$STD apt-get install -y jq wget xz-utils python3 python3-dev gcc pkg-config libhdf5-dev unzip build-essential automake libtool ccache libusb-1.0-0-dev apt-transport-https cmake git libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libjpeg-dev libpng-dev libtiff-dev gfortran openexr libssl-dev libtbbmalloc2 libtbb-dev libdc1394-dev libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev tclsh libopenblas-dev liblapack-dev make moreutils
 msg_ok "System dependencies installed"
 
 msg_info "Installing hardware acceleration drivers"
@@ -48,9 +48,7 @@ export TRANSFORMERS_NO_ADVISORY_WARNINGS=1
 export OPENCV_FFMPEG_LOGLEVEL=8
 export HAILORT_LOGGER_PATH=NONE
 
-msg_info "Downloading Frigate source"
 fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "latest" "/opt/frigate"
-msg_ok "Frigate source downloaded"
 
 msg_info "Building Nginx with custom modules"
 sed -i 's|if.*"$VERSION_ID" == "12".*|if [[ "$VERSION_ID" == "12" ]] \&\& [[ -f /etc/apt/sources.list.d/debian.list ]]; then|g' /opt/frigate/docker/main/build_nginx.sh
@@ -64,9 +62,7 @@ sed -i 's|if.*"$VERSION_ID" == "12".*|if [[ "$VERSION_ID" == "12" ]] \&\& [[ -f 
 $STD bash /opt/frigate/docker/main/build_sqlite_vec.sh
 msg_ok "SQLite built successfully"
 
-msg_info "Installing go2rtc"
 fetch_and_deploy_gh_release "go2rtc" "AlexxIT/go2rtc" "singlefile" "latest" "/usr/local/go2rtc/bin" "go2rtc_linux_amd64"
-msg_ok "go2rtc installed"
 
 msg_info "Installing tempio"
 sed -i 's|/rootfs/usr/local|/usr/local|g' /opt/frigate/docker/main/install_tempio.sh
@@ -93,9 +89,9 @@ $STD install -c -m 644 libusb-1.0.pc '/usr/local/lib/pkgconfig'
 ldconfig
 msg_ok "libUSB built successfully"
 
-msg_info "Setting up Python 3.11"
-$STD update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
-msg_ok "Python 3.11 configured"
+msg_info "Setting up Python"
+$STD update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3 1
+msg_ok "Python configured"
 
 msg_info "Initializing pip"
 wget -q https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
