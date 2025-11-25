@@ -13,10 +13,6 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt install --no-install-recommends -y git
-msg_ok "Installed Dependencies"
-
 setup_go
 setup_nodejs
 fetch_and_deploy_gh_release "meilisearch" "meilisearch/meilisearch" "binary" "latest" "/opt/wanderer/source/search"
