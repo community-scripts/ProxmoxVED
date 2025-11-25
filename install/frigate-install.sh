@@ -19,7 +19,7 @@ $STD apt-get install -y jq wget xz-utils python3 python3-dev gcc pkg-config libh
 msg_ok "System dependencies installed"
 
 msg_info "Installing hardware acceleration drivers"
-$STD apt-get install -y va-driver-all ocl-icd-libopencl1 intel-opencl-icd vainfo intel-gpu-tools
+$STD apt-get install -y va-driver-all ocl-icd-libopencl1 vainfo intel-gpu-tools
 msg_ok "Hardware acceleration drivers installed"
 
 if [[ "$CTTYPE" == "0" ]]; then
