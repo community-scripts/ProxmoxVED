@@ -44,7 +44,6 @@ function update_script() {
         $STD npm run build
         msg_ok "Updated wanderer"
 
-
         msg_info "Starting wanderer service"
         systemctl start wanderer-web
         msg_ok "Started wanderer service"
