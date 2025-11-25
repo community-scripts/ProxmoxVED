@@ -28,10 +28,6 @@ msg_ok "Installded Dependencies"
 fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer" "tarball" "latest" "/opt/wanderer/source"
 
 msg_info "Installing wanderer (patience)"
-cd /opt/wanderer/source/search
-$STD meilisearch &
-$STD sleep 1
-$STD kill %%
 cd /opt/wanderer/source/db
 $STD go mod tidy
 $STD go build
@@ -64,6 +60,7 @@ cat <<EOF >/opt/wanderer/start.sh
 trap "kill 0" EXIT
 
 cd /opt/wanderer/source/search && meilisearch --master-key \$MEILI_MASTER_KEY &
+sleep 1
 cd /opt/wanderer/source/db && ./pocketbase serve --http=\$PB_URL --dir=\$PB_DB_LOCATION &
 cd /opt/wanderer/source/web && node build &
 
