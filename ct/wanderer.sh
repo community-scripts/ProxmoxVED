@@ -33,9 +33,9 @@ function update_script() {
         msg_info "Stopping wanderer service"
         systemctl stop wanderer-web
         msg_ok "Stopped wanderer service"
-
+				fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer"  "tarball" "latest" "/opt/wanderer/source"
+				
         msg_info "Updating wanderer"
-        $STD fetch_and_deploy_gh_release "wanderer" "Flomp/wanderer"  "tarball" "latest" "/opt/wanderer/source"
         cd /opt/wanderer/source/db
         $STD go mod tidy
        	$STD go build
