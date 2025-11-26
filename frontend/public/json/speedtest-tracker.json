@@ -1,0 +1,39 @@
+{
+    "name": "Speedtest Tracker",
+    "slug": "speedtest-tracker",
+    "categories": [
+        4
+    ],
+    "date_created": "2025-01-24",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://docs.speedtest-tracker.dev",
+    "website": "https://github.com/alexjustesen/speedtest-tracker",
+    "logo": "https://raw.githubusercontent.com/alexjustesen/speedtest-tracker/main/.github/screenshots/speedtest-tracker-logo.png",
+    "config_path": "/opt/speedtest-tracker/.env",
+    "description": "Speedtest Tracker is a self-hosted application built with Laravel that monitors your internet connection's performance and uptime over time. It automatically runs speed tests using Ookla's official Speedtest CLI, capturing detailed metrics including download/upload speeds, ping, packet loss, and jitter. Features include scheduled automated tests, historical data tracking with beautiful responsive dashboards, customizable notification alerts (Discord, Slack, Telegram, email) for performance drops, multi-database support (SQLite, MySQL, PostgreSQL), data export capabilities, InfluxDB integration, multi-user support with role-based access control, and mobile-friendly interface. Perfect for tracking ISP performance, verifying advertised speeds, identifying network patterns, and maintaining accountability with your Internet Service Provider.",    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/speedtest-tracker.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin@example.com",
+        "password": "password"
+    },
+    "notes": [
+        {
+            "text": "Database Default is SQLite stored at /opt/speedtest-tracker/database/database.sqlite",
+            "type": "info"
+        }
+    ]
+}
