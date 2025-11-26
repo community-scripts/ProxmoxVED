@@ -42,7 +42,6 @@ cat >/etc/systemd/system/php8.4-fpm.service.d/override.conf <<'EOF'
 RuntimeDirectory=php
 RuntimeDirectoryMode=0755
 EOF
-systemctl daemon-reload
 msg_ok "Configured PHP-FPM runtime directory"
 
 msg_info "Setting up Speedtest Tracker"
