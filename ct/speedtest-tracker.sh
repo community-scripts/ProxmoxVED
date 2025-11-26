@@ -70,8 +70,6 @@ function update_script() {
     systemctl start speedtest-tracker
     msg_ok "Started Service"
     msg_ok "Updated successfully"
-  else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
   exit
 }
