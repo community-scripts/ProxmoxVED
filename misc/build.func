@@ -1913,18 +1913,18 @@ settings_menu() {
     )
     if [ -f "$(get_app_defaults_path)" ]; then
       settings_items+=("3" "Edit App.vars for ${APP}")
-      settings_items+=("4" "Exit")
+      settings_items+=("4" "← Back to Main Menu")
     else
-      settings_items+=("3" "Exit")
+      settings_items+=("3" "← Back to Main Menu")
     fi
 
     local choice
     choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
       --title "Community-Scripts SETTINGS Menu" \
-      --ok-button "OK" --cancel-button "Back" \
-      --menu "\n\nChoose a settings option:\n\nUse TAB or Arrow keys to navigate, ENTER to select." 20 60 9 \
+      --ok-button "Select" --cancel-button "Exit Script" \
+      --menu "\n\nChoose a settings option:\n\nUse TAB or Arrow keys to navigate, ENTER or SPACE to select." 20 60 9 \
       "${settings_items[@]}" \
-      3>&1 1>&2 2>&3) || break
+      3>&1 1>&2 2>&3) || exit_script
 
     case "$choice" in
     1) diagnostics_menu ;;
@@ -1933,12 +1933,12 @@ settings_menu() {
       if [ -f "$(get_app_defaults_path)" ]; then
         nano "$(get_app_defaults_path)"
       else
-        # Exit was selected (no app.vars available)
+        # Back was selected (no app.vars available)
         return
       fi
       ;;
     4)
-      # Exit - return to main menu
+      # Back to main menu
       return
       ;;
     esac
