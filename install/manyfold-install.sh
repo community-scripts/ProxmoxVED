@@ -16,7 +16,6 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
     lsb-release \
-    rbenv \
     libpq-dev \
     libarchive-dev \
     git \
@@ -54,19 +53,12 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 msg_ok "Set up PostgreSQL"
 
 fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold"
-RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 
-RUBY_INSTALL_VERSION=$(cat /opt/manyfold/.ruby-version)
-YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
-
-NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
-RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" setup_ruby
-
-msg_info "Adding manyfold user"
+msg_info "Configuring manyfold environment"
 useradd -m -s /usr/bin/bash manyfold
-msg_ok "Added manyfold user"
-
-msg_info "Setting .env file"
+echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >>/home/manyfold/.bashrc
+echo 'eval "$(rbenv init -)"' >>/home/manyfold/.bashrc
+RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 cat <<EOF >/opt/.env
 export APP_VERSION=${RELEASE}
 export GUID=1002
@@ -83,31 +75,50 @@ export MULTIUSER=enabled
 export HTTPS_ONLY=false
 export RAILS_ENV=production
 EOF
-msg_ok ".env file setup"
+RUBY_INSTALL_VERSION=$(cat /opt/manyfold/.ruby-version)
+YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
+cat <<EOF >/opt/user_setup.sh
+#!/bin/bash
+
+source /opt/.env
+export PATH="/home/manyfold/.rbenv/bin:\$PATH"
+eval "\$(/home/manyfold/.rbenv/bin/rbenv init - bash)"
+cd /opt/manyfold
+rbenv global $RUBY_INSTALL_VERSION
+gem install bundler
+bundle install
+gem install sidekiq
+gem install foreman
+corepack enable yarn
+rm -f /opt/manyfold/config/credentials.yml.enc
+corepack prepare $YARN_VERSION --activate
+corepack use $YARN_VERSION
+export VISUAL="code --wait"
+bin/rails credentials:edit
+bin/rails db:migrate
+bin/rails assets:precompile
+EOF
+chown -R manyfold:manyfold /opt
+$STD chmod +x /opt/user_setup.sh
+msg_ok "Configured manyfold environment"
+
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" HOME=/home/manyfold setup_ruby
 
 msg_info "Installing Manyfold"
-source /opt/.env
-cd /opt/manyfold
-chown -R manyfold:manyfold /opt/manyfold
-$STD gem install bundler
-$STD rbenv global $RUBY_INSTALL_VERSION
-$STD bundle install
-$STD gem install sidekiq
-$STD npm install --global corepack
-corepack enable yarn
-chown manyfold:manyfold /opt/.env
-rm /opt/manyfold/config/credentials.yml.enc
-$STD corepack prepare $YARN_VERSION --activate
-$STD corepack use $YARN_VERSION
-export VISUAL="code --wait"
-$STD bin/rails credentials:edit
-$STD bin/rails db:migrate
-$STD bin/rails assets:precompile
+chown -R manyfold:manyfold /home/manyfold/.rbenv
+npm install --global corepack
+$STD sudo -u manyfold bash /opt/user_setup.sh
+rm -f /opt/user_setup.sh
 msg_ok "Installed manyfold"
 
 msg_info "Creating Services"
-$STD gem install foreman
-$STD foreman export systemd /etc/systemd/system -a manyfold -u root -f /opt/manyfold/Procfile
+cd /opt/manyfold
+source /opt/.env
+export RBENV_PATH="/home/manyfold/.rbenv"
+export PATH="$RBENV_PATH/bin:$PATH"
+eval "$($RBENV_PATH/bin/rbenv init - bash)"
+$STD foreman export systemd /etc/systemd/system -a manyfold -u manyfold -f /opt/manyfold/Procfile
 for f in /etc/systemd/system/manyfold-*.service; do
     sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/.env \&\& |" "$f"
 done
