@@ -1922,7 +1922,7 @@ settings_menu() {
     choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
       --title "Community-Scripts SETTINGS Menu" \
       --ok-button "Select" --cancel-button "Exit Script" \
-      --menu "\n\nChoose a settings option:\n\nUse TAB or Arrow keys to navigate, ENTER or SPACE to select." 20 60 9 \
+      --menu "\n\nChoose a settings option:\n\nUse Arrow keys to navigate, ENTER to select, TAB for buttons." 20 60 9 \
       "${settings_items[@]}" \
       3>&1 1>&2 2>&3) || exit_script
 
