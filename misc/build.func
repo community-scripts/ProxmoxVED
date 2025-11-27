@@ -780,7 +780,13 @@ if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
   )
 fi
 
-# Note: _is_whitelisted_key() is defined above in default_var_settings section
+# Global whitelist check function (used by _load_vars_file_to_map and others)
+_is_whitelisted_key() {
+  local k="$1"
+  local w
+  for w in "${VAR_WHITELIST[@]}"; do [ "$k" = "$w" ] && return 0; done
+  return 1
+}
 
 _sanitize_value() {
   # Disallow Command-Substitution / Shell-Meta
@@ -1112,7 +1118,7 @@ advanced_settings() {
   TAGS="community-script;${var_tags:-}"
   local STEP=1
   local MAX_STEP=19
-  
+
   # Store values for back navigation
   local _ct_type="${CT_TYPE:-1}"
   local _pw=""
@@ -1142,7 +1148,7 @@ advanced_settings() {
   local _mount_fs=""
   local _protect_ct="no"
   local _ct_timezone=""
-  
+
   # Helper to show current progress
   show_progress() {
     local current=$1
@@ -1175,7 +1181,7 @@ advanced_settings() {
     done
     IFS=$OLD_IFS
     BRIDGES=$(echo "$BRIDGES" | grep -v '^\s*$' | sort | uniq)
-    
+
     # Build bridge menu
     BRIDGE_MENU_OPTIONS=()
     if [[ -n "$BRIDGES" ]]; then
@@ -1192,15 +1198,18 @@ advanced_settings() {
   # Main wizard loop
   while [ $STEP -le $MAX_STEP ]; do
     case $STEP in
-    
+
     # ═══════════════════════════════════════════════════════════════════════════
     # STEP 1: Container Type
     # ═══════════════════════════════════════════════════════════════════════════
     1)
       local default_on="ON"
       local default_off="OFF"
-      [[ "$_ct_type" == "0" ]] && { default_on="OFF"; default_off="ON"; }
-      
+      [[ "$_ct_type" == "0" ]] && {
+        default_on="OFF"
+        default_off="ON"
+      }
+
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "CONTAINER TYPE" \
         --ok-button "Next" --cancel-button "Exit" \
@@ -1224,7 +1233,7 @@ advanced_settings() {
         --ok-button "Next" --cancel-button "Back" \
         --passwordbox "\nSet Root Password (needed for root ssh access)\n\nLeave blank for automatic login (no password)" 12 58 \
         3>&1 1>&2 2>&3); then
-        
+
         if [[ -z "$PW1" ]]; then
           _pw=""
           _pw_display="Automatic Login"
@@ -1390,7 +1399,7 @@ advanced_settings() {
         "dhcp" "Automatic (DHCP, recommended)" \
         "static" "Static (manual entry)" \
         3>&1 1>&2 2>&3); then
-        
+
         if [[ "$result" == "static" ]]; then
           # Get static IP
           local static_ip
@@ -1442,43 +1451,43 @@ advanced_settings() {
         "static" "Static (manual entry)" \
         "none" "Disabled" \
         3>&1 1>&2 2>&3); then
-        
+
         _ipv6_method="$result"
         case "$result" in
-          static)
-            local ipv6_addr
-            if ipv6_addr=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-              --title "STATIC IPv6 ADDRESS" \
-              --inputbox "\nEnter IPv6 CIDR address\n(e.g. 2001:db8::1/64)" 12 58 "" \
-              3>&1 1>&2 2>&3); then
-              if [[ "$ipv6_addr" =~ ^([0-9a-fA-F:]+:+)+[0-9a-fA-F]+(/[0-9]{1,3})$ ]]; then
-                _ipv6_addr="$ipv6_addr"
-                # Optional gateway
-                _ipv6_gate=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-                  --title "IPv6 GATEWAY" \
-                  --inputbox "\nEnter IPv6 gateway (optional, leave blank for none)" 10 58 "" \
-                  3>&1 1>&2 2>&3) || true
-                ((STEP++))
-              else
-                whiptail --msgbox "Invalid IPv6 CIDR format." 8 58
-              fi
+        static)
+          local ipv6_addr
+          if ipv6_addr=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+            --title "STATIC IPv6 ADDRESS" \
+            --inputbox "\nEnter IPv6 CIDR address\n(e.g. 2001:db8::1/64)" 12 58 "" \
+            3>&1 1>&2 2>&3); then
+            if [[ "$ipv6_addr" =~ ^([0-9a-fA-F:]+:+)+[0-9a-fA-F]+(/[0-9]{1,3})$ ]]; then
+              _ipv6_addr="$ipv6_addr"
+              # Optional gateway
+              _ipv6_gate=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+                --title "IPv6 GATEWAY" \
+                --inputbox "\nEnter IPv6 gateway (optional, leave blank for none)" 10 58 "" \
+                3>&1 1>&2 2>&3) || true
+              ((STEP++))
+            else
+              whiptail --msgbox "Invalid IPv6 CIDR format." 8 58
             fi
-            ;;
-          dhcp)
-            _ipv6_addr="dhcp"
-            _ipv6_gate=""
-            ((STEP++))
-            ;;
-          none)
-            _ipv6_addr="none"
-            _ipv6_gate=""
-            ((STEP++))
-            ;;
-          *)
-            _ipv6_addr=""
-            _ipv6_gate=""
-            ((STEP++))
-            ;;
+          fi
+          ;;
+        dhcp)
+          _ipv6_addr="dhcp"
+          _ipv6_gate=""
+          ((STEP++))
+          ;;
+        none)
+          _ipv6_addr="none"
+          _ipv6_gate=""
+          ((STEP++))
+          ;;
+        *)
+          _ipv6_addr=""
+          _ipv6_gate=""
+          ((STEP++))
+          ;;
         esac
       else
         ((STEP--))
@@ -1609,7 +1618,7 @@ advanced_settings() {
           continue
         fi
       fi
-      
+
       if whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "VERBOSE MODE" \
         --defaultno \
@@ -1628,7 +1637,7 @@ advanced_settings() {
       # Build summary
       local ct_type_desc="Unprivileged"
       [[ "$_ct_type" == "0" ]] && ct_type_desc="Privileged"
-      
+
       local summary="Container Type: $ct_type_desc
 Container ID: $_ct_id
 Hostname: $_hostname
@@ -1678,14 +1687,14 @@ Options:
   TAGS="$_tags"
   ENABLE_FUSE="$_enable_fuse"
   VERBOSE="$_verbose"
-  
+
   # Format optional values
   [[ -n "$_mtu" ]] && MTU=",mtu=$_mtu" || MTU=""
   [[ -n "$_sd" ]] && SD="-searchdomain=$_sd" || SD=""
   [[ -n "$_ns" ]] && NS="-nameserver=$_ns" || NS=""
   [[ -n "$_mac" ]] && MAC=",hwaddr=$_mac" || MAC=""
   [[ -n "$_vlan" ]] && VLAN=",tag=$_vlan" || VLAN=""
-  
+
   # Alpine UDHCPC fix
   if [ "$var_os" == "alpine" ] && [ "$NET" == "dhcp" ] && [ -n "$_ns" ]; then
     UDHCPC_FIX="yes"
