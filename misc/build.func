@@ -741,7 +741,7 @@ EOF
   METHOD="mydefaults-global"
   base_settings "$VERBOSE"
   header_info
-  echo -e "${DEFAULT}${BOLD}${BL}Using My Defaults (default.vars) on node $PVEHOST_NAME${CL}"
+  echo -e "${DEFAULT}${BOLD}${BL}Using User Defaults (default.vars) on node $PVEHOST_NAME${CL}"
   echo_default
 }
 
@@ -1790,7 +1790,7 @@ install_script() {
   local menu_items=(
     "1" "Default Install"
     "2" "Advanced Install"
-    "3" "My Defaults"
+    "3" "User Defaults"
   )
 
   if [ -f "$(get_app_defaults_path)" ]; then
@@ -1868,7 +1868,9 @@ install_script() {
     ;;
   "$SETTINGS_OPTION" | settings | SETTINGS)
     settings_menu
-    defaults_target=""
+    # After settings menu, return to main menu
+    input_options
+    return
     ;;
   *)
     echo -e "${CROSS}${RD}Invalid option: $CHOICE${CL}"
@@ -1922,15 +1924,18 @@ settings_menu() {
     case "$choice" in
     1) diagnostics_menu ;;
     2) ${EDITOR:-nano} /usr/local/community-scripts/default.vars ;;
-    3) edit_default_storage ;;
-    4)
+    3)
       if [ -f "$(get_app_defaults_path)" ]; then
         ${EDITOR:-nano} "$(get_app_defaults_path)"
       else
-        exit_script
+        # Exit was selected (no app.vars available)
+        return
       fi
       ;;
-    5) exit_script ;;
+    4)
+      # Exit - return to main menu
+      return
+      ;;
     esac
   done
 }
