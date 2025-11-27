@@ -546,6 +546,59 @@ base_settings() {
 }
 
 # ------------------------------------------------------------------------------
+# load_vars_file()
+#
+# - Safe parser for KEY=VALUE lines from vars files
+# - Used by default_var_settings and app defaults loading
+# - Only loads whitelisted var_* keys
+# ------------------------------------------------------------------------------
+load_vars_file() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+  msg_info "Loading defaults from ${file}"
+
+  # Allowed var_* keys
+  local VAR_WHITELIST=(
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_keyctl
+    var_gateway var_hostname var_ipv6_method var_mac var_mknod var_mount_fs var_mtu
+    var_net var_nesting var_ns var_protection var_pw var_ram var_tags var_timezone var_tun var_unprivileged
+    var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
+  )
+
+  # Whitelist check helper
+  _is_whitelisted() {
+    local k="$1" w
+    for w in "${VAR_WHITELIST[@]}"; do [ "$k" = "$w" ] && return 0; done
+    return 1
+  }
+
+  local line key val
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+      local var_key="${BASH_REMATCH[1]}"
+      local var_val="${BASH_REMATCH[2]}"
+
+      [[ "$var_key" != var_* ]] && continue
+      _is_whitelisted "$var_key" || continue
+
+      # Strip quotes
+      if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
+        var_val="${BASH_REMATCH[1]}"
+      elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
+        var_val="${BASH_REMATCH[1]}"
+      fi
+
+      # Set only if not already exported
+      [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
+    fi
+  done <"$file"
+  msg_ok "Loaded ${file}"
+}
+
+# ------------------------------------------------------------------------------
 # default_var_settings
 #
 # - Ensures /usr/local/community-scripts/default.vars exists (creates if missing)
@@ -670,55 +723,6 @@ EOF
     return 1
   }
 
-  # Safe parser for KEY=VALUE lines
-  local _load_vars_file
-  _load_vars_file() {
-    local file="$1"
-    [ -f "$file" ] || return 0
-    msg_info "Loading defaults from ${file}"
-    local line key val
-    while IFS= read -r line || [ -n "$line" ]; do
-      line="${line#"${line%%[![:space:]]*}"}"
-      line="${line%"${line##*[![:space:]]}"}"
-      [[ -z "$line" || "$line" == \#* ]] && continue
-      if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
-        local var_key="${BASH_REMATCH[1]}"
-        local var_val="${BASH_REMATCH[2]}"
-
-        [[ "$var_key" != var_* ]] && continue
-        _is_whitelisted_key "$var_key" || {
-          msg_debug "Ignore non-whitelisted ${var_key}"
-          continue
-        }
-
-        # Strip quotes
-        if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
-          var_val="${BASH_REMATCH[1]}"
-        elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
-          var_val="${BASH_REMATCH[1]}"
-        fi
-
-        # Unsafe characters
-        case $var_val in
-        \"*\")
-          var_val=${var_val#\"}
-          var_val=${var_val%\"}
-          ;;
-        \'*\')
-          var_val=${var_val#\'}
-          var_val=${var_val%\'}
-          ;;
-        esac # Hard env wins
-        [[ -n "${_HARD_ENV[$var_key]:-}" ]] && continue
-        # Set only if not already exported
-        [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
-      else
-        msg_warn "Malformed line in ${file}: ${line}"
-      fi
-    done <"$file"
-    msg_ok "Loaded ${file}"
-  }
-
   # 1) Ensure file exists
   _ensure_default_vars
 
@@ -728,7 +732,7 @@ EOF
     msg_error "default.vars not found after ensure step"
     return 1
   }
-  _load_vars_file "$dv"
+  load_vars_file "$dv"
 
   # 3) Map var_verbose → VERBOSE
   if [[ -n "${var_verbose:-}" ]]; then
@@ -1112,10 +1116,10 @@ ensure_global_default_vars_file() {
 advanced_settings() {
   # Enter alternate screen buffer to prevent flicker between dialogs
   tput smcup 2>/dev/null || true
-  
+
   # Trap to ensure we exit alternate screen on any exit
   trap 'tput rmcup 2>/dev/null || true' RETURN
-  
+
   whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar." 8 58
   # Setting Default Tag for Advanced Settings
   TAGS="community-script;${var_tags:-}"
@@ -1867,7 +1871,7 @@ install_script() {
         echo -e "${DEFAULT}${BOLD}${BL}Using App Defaults for ${APP} on node $PVEHOST_NAME${CL}"
         METHOD="appdefaults"
         base_settings
-        _load_vars_file "$(get_app_defaults_path)"
+        load_vars_file "$(get_app_defaults_path)"
         echo_default
         defaults_target="$(get_app_defaults_path)"
         break
