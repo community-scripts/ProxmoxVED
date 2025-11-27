@@ -1110,6 +1110,12 @@ ensure_global_default_vars_file() {
 # - Validates all input and shows current selections
 # ------------------------------------------------------------------------------
 advanced_settings() {
+  # Enter alternate screen buffer to prevent flicker between dialogs
+  tput smcup 2>/dev/null || true
+  
+  # Trap to ensure we exit alternate screen on any exit
+  trap 'tput rmcup 2>/dev/null || true' RETURN
+  
   whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox --title "Here is an instructional tip:" "To make a selection, use the Spacebar." 8 58
   # Setting Default Tag for Advanced Settings
   TAGS="community-script;${var_tags:-}"
