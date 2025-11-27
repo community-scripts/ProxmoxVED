@@ -48,9 +48,11 @@ msg_info "Setting up Speedtest Tracker"
 cd /opt/speedtest-tracker
 CONTAINER_IP=$(hostname -I | awk '{print $1}')
 APP_KEY=$(php -r "echo bin2hex(random_bytes(16));")
+TIMEZONE=$(timedatectl | grep "Time zone" | awk '{print $3}')
 cat <<EOF >/opt/speedtest-tracker/.env
 APP_NAME="Speedtest Tracker"
 APP_ENV=production
+APP_TIMEZONE=${TIMEZONE}
 APP_KEY=base64:$(echo -n $APP_KEY | base64)
 APP_DEBUG=false
 APP_URL=http://${CONTAINER_IP}
@@ -72,7 +74,7 @@ SPEEDTEST_SCHEDULE="0 */6 * * *"
 SPEEDTEST_SERVERS=
 PRUNE_RESULTS_OLDER_THAN=0
 
-DISPLAY_TIMEZONE=UTC
+DISPLAY_TIMEZONE=${TIMEZONE}
 EOF
 mkdir -p /opt/speedtest-tracker/database
 touch /opt/speedtest-tracker/database/database.sqlite
