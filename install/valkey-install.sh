@@ -18,6 +18,7 @@ $STD apt update
 $STD apt install -y valkey
 sed -i 's/^bind .*/bind 0.0.0.0/' /etc/valkey/valkey.conf
 systemctl enable -q --now valkey-server
+systemctl restart valkey-server
 msg_ok "Installed Valkey"
 
 motd_ssh
