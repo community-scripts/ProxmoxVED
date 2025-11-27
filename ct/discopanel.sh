@@ -29,48 +29,37 @@ function update_script() {
     exit
   fi
 
-  LATEST=$(curl -fsSL https://api.github.com/repos/nickheyer/discopanel/releases/latest \
-    grep '"tag_name":' | cut -d'"' -f4)
+  if check_for_gh_release "discopanel" "nickheyer/discopanel"; then
+    msg_info "Stopping Service"
+    systemctl stop discopanel
+    msg_ok "Stopped Service"
 
-  CURRENT=$(cat /opt/${APP}_version.txt 2>/dev/null || echo "none")
+    msg_info "Creating Backup"
+    tar -czf "/opt/discopanel_backup_$(date +%F).tar.gz" "/opt/discopanel"
+    msg_ok "Created Backup"
 
-  if [[ "$LATEST" == "$CURRENT" ]]; then
-    msg_ok "${APP} is already at ${LATEST}"
-    exit
+    rm -rf /opt/discopanel
+
+    fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "/opt/discopanel"
+
+
+    msg_info "Building frontend"
+    cd /opt/discopanel/web/discopanel
+    npm install
+    npm run build
+    msg_ok "Builded frontend"
+
+    msg_info "Building backend"
+    cd /opt/discopanel
+    go build -o discopanel cmd/discopanel/main.go
+    msg_ok "Builded backend"
+
+    msg_info "Starting Service"
+    systemctl start discopanel
+    msg_ok "Started Service"
+    msg_ok "Updated Successfully!"
   fi
-
-  msg_info "Updating ${APP} from ${CURRENT} → ${LATEST}"
-
-  systemctl stop "${APP}"
-
-  msg_info "Creating Backup"
-  tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" "/opt/${APP}"
-  msg_ok "Backup Created"
-
-  rm -rf /opt/${APP}
-
-  msg_info "Downloading ${APP} ${LATEST}"
-  git clone --branch "$LATEST" --depth 1 \
-    https://github.com/nickheyer/discopanel.git \
-    /opt/${APP}
-  msg_ok "Downloaded ${APP} ${LATEST}"
-
-
-  msg_info "Building frontend"
-  cd /opt/${APP}/web/discopanel || exit
-  npm install
-  npm run build
-  msg_ok "Frontend Built"
-
-  msg_info "Building backend"
-  cd /opt/${APP} || exit
-  go build -o discopanel cmd/discopanel/main.go
-  msg_ok "Backend Built"
-
-  echo "$LATEST" >/opt/${APP}_version.txt
-
-  systemctl start "${APP}"
-  msg_ok "Update Successful → now at ${LATEST}"
+  exit
 }
 
 start
