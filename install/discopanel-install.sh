@@ -52,7 +52,6 @@ WorkingDirectory=/opt/discopanel
 ExecStart=/opt/discopanel/discopanel
 Restart=always
 User=root
-Environment=PORT=8080
 
 [Install]
 WantedBy=multi-user.target
