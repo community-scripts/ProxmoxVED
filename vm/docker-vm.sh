@@ -275,7 +275,7 @@ function select_cloud_init() {
 
   # Debian has two image variants, so user can choose
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" \
-    --yesno "Enable Cloud-Init for VM configuration?\n\nCloud-Init allows automatic configuration of:\n• User accounts and passwords\n• SSH keys\n• Network settings (DHCP/Static)\n• DNS configuration\n\nYou can also configure these settings later in Proxmox UI.\n\nNote: Debian without Cloud-Init will use nocloud image with console auto-login." 18 68); then
+    --yesno "Enable Cloud-Init for VM configuration?\n\nCloud-Init allows automatic configuration of:\n- User accounts and passwords\n- SSH keys\n- Network settings (DHCP/Static)\n- DNS configuration\n\nYou can also configure these settings later in Proxmox UI.\n\nNote: Debian without Cloud-Init will use nocloud image with console auto-login." 18 68); then
     USE_CLOUD_INIT="yes"
     echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes${CL}"
   else
@@ -286,7 +286,7 @@ function select_cloud_init() {
 
 function select_portainer() {
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "PORTAINER" \
-    --yesno "Install Portainer for Docker management?\n\nPortainer is a lightweight management UI for Docker.\n\nAccess after installation:\n• HTTP:  http://<VM-IP>:9000\n• HTTPS: https://<VM-IP>:9443" 14 68); then
+    --yesno "Install Portainer for Docker management?\n\nPortainer is a lightweight management UI for Docker.\n\nAccess after installation:\n- HTTP:  http://<VM-IP>:9000\n- HTTPS: https://<VM-IP>:9443" 14 68); then
     INSTALL_PORTAINER="yes"
     echo -e "${ADVANCED}${BOLD}${DGN}Portainer: ${BGN}yes${CL}"
   else
