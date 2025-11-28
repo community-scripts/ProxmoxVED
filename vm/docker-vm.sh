@@ -728,7 +728,7 @@ fi
 
 virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-docker.sh" >/dev/null
 
-virt-customize -q -a "${FILE}" --run-command "cat > /etc/systemd/system/install-docker.service << 'SERVICEEOF'
+virt-customize -q -a "${FILE}" --run-command 'cat > /etc/systemd/system/install-docker.service << "SERVICEEOF"
 [Unit]
 Description=Install Docker on First Boot
 After=network-online.target
@@ -742,7 +742,8 @@ RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
-SERVICEEOF" >/dev/null
+SERVICEEOF
+' >/dev/null
 
 virt-customize -q -a "${FILE}" --run-command "systemctl enable install-docker.service" >/dev/null
 
