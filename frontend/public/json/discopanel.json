@@ -19,9 +19,9 @@
       "type": "default",
       "script": "ct/discopanel.sh",
       "resources": {
-        "cpu": 4,
-        "ram": 8096,
-        "hdd": 20,
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
         "os": "Debian",
         "version": "13"
       }
