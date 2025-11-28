@@ -14,6 +14,11 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Installing Dependencies"
+$STD apt install -y build-essential gcc
+msg_ok "Installed Dependencies"
+
+
 msg_info "Installing Docker"
 DOCKER_CONFIG_PATH='/etc/docker/daemon.json'
 mkdir -p $(dirname $DOCKER_CONFIG_PATH)
@@ -21,10 +26,7 @@ echo -e '{\n  "log-driver": "journald"\n}' >/etc/docker/daemon.json
 $STD sh <(curl -fsSL https://get.docker.com)
 msg_ok "Installed Docker"
 
-
-msg_info "Installing DiscoPanel"
 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
-msg_ok "Installed DiscoPanel"
 
 setup_nodejs
 
@@ -52,6 +54,7 @@ WorkingDirectory=/opt/discopanel
 ExecStart=/opt/discopanel/discopanel
 Restart=always
 User=root
+
 
 [Install]
 WantedBy=multi-user.target
