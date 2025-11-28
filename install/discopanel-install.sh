@@ -44,14 +44,14 @@ go build -o discopanel cmd/discopanel/main.go
 msg_ok "Built DiscoPanel backend"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/"${APPLICATION}".service
+cat <<EOF >/etc/systemd/system/discopanel.service
 [Unit]
-Description=${APPLICATION} Service
+Description=DiscoPanel Service
 After=network.target
 
 [Service]
-WorkingDirectory=/opt/${APPLICATION}
-ExecStart=/opt/${APPLICATION}/discopanel
+WorkingDirectory=/opt/discopanel
+ExecStart=/opt/discopanel/discopanel
 Restart=always
 User=root
 Environment=PORT=8080
@@ -60,14 +60,9 @@ Environment=PORT=8080
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now "${APPLICATION}"
+systemctl enable -q --now "discopanel"
 msg_ok "Created Service"
 
 motd_ssh
 customize
-
-# Cleanup
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc
