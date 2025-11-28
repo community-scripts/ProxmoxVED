@@ -642,8 +642,9 @@ echo -e "${INFO}${BOLD}${GN}Preparing ${OS_DISPLAY} Qcow2 Disk Image${CL}"
 # Set DNS for libguestfs appliance environment (not the guest)
 export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 
-# Always create first-boot installation script as fallback
-virt-customize -q -a "${FILE}" --run-command "cat > /root/install-docker.sh << 'INSTALLEOF'
+# Create install-docker.sh with Portainer support if requested
+if [ "$INSTALL_PORTAINER" = "yes" ]; then
+  virt-customize -q -a "${FILE}" --run-command "cat > /root/install-docker.sh << \"INSTALLEOF\"
 #!/bin/bash
 # Log output to file
 exec > /var/log/install-docker.log 2>&1
@@ -665,7 +666,7 @@ for i in {1..30}; do
     echo \"[\\$(date)] Network is available\"
     break
   fi
-  echo \"[\\$(date)] Waiting for network... attempt \\$i/30\"
+  echo \"[\\$(date)] Waiting for network... attempt \\\$i/30\"
   sleep 2
 done
 
@@ -702,13 +703,80 @@ for i in {1..10}; do
   sleep 1
 done
 
-# Install Portainer if requested
-# INSTALL_PORTAINER_PLACEHOLDER
+# Install Portainer
+/root/portainer-install.sh
 
 # Create completion flag
 echo \"[\\$(date)] Docker installation completed successfully\"
 touch /root/.docker-installed
 INSTALLEOF" >/dev/null
+else
+  virt-customize -q -a "${FILE}" --run-command "cat > /root/install-docker.sh << \"INSTALLEOF\"
+#!/bin/bash
+# Log output to file
+exec > /var/log/install-docker.log 2>&1
+echo \"[\\$(date)] Starting Docker installation on first boot\"
+
+# Check if Docker is already installed
+if command -v docker >/dev/null 2>&1; then
+  echo \"[\\$(date)] Docker already installed, checking if running\"
+  systemctl start docker 2>/dev/null || true
+  if docker info >/dev/null 2>&1; then
+    echo \"[\\$(date)] Docker is already working, exiting\"
+    exit 0
+  fi
+fi
+
+# Wait for network to be fully available
+for i in {1..30}; do
+  if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+    echo \"[\\$(date)] Network is available\"
+    break
+  fi
+  echo \"[\\$(date)] Waiting for network... attempt \\\$i/30\"
+  sleep 2
+done
+
+# Configure DNS
+echo \"[\\$(date)] Configuring DNS\"
+mkdir -p /etc/systemd/resolved.conf.d
+cat > /etc/systemd/resolved.conf.d/dns.conf << DNSEOF
+[Resolve]
+DNS=8.8.8.8 1.1.1.1
+FallbackDNS=8.8.4.4 1.0.0.1
+DNSEOF
+systemctl restart systemd-resolved 2>/dev/null || true
+
+# Update package lists
+echo \"[\\$(date)] Updating package lists\"
+apt-get update
+
+# Install base packages if not already installed
+echo \"[\\$(date)] Installing base packages\"
+apt-get install -y qemu-guest-agent curl ca-certificates 2>/dev/null || true
+
+# Install Docker
+echo \"[\\$(date)] Installing Docker\"
+curl -fsSL https://get.docker.com | sh
+systemctl enable docker
+systemctl start docker
+
+# Wait for Docker to be ready
+for i in {1..10}; do
+  if docker info >/dev/null 2>&1; then
+    echo \"[\\$(date)] Docker is ready\"
+    break
+  fi
+  sleep 1
+done
+
+# Portainer not requested - skip installation
+
+# Create completion flag
+echo \"[\\$(date)] Docker installation completed successfully\"
+touch /root/.docker-installed
+INSTALLEOF" >/dev/null
+fi
 
 # Add Portainer installation script if requested
 if [ "$INSTALL_PORTAINER" = "yes" ]; then
@@ -729,11 +797,6 @@ echo "[$(date)] Portainer installed"
 PORTAINEREOF' >/dev/null
 
   virt-customize -q -a "${FILE}" --run-command 'chmod +x /root/portainer-install.sh' >/dev/null
-
-  # Update the install-docker.sh to call portainer installer
-  virt-customize -q -a "${FILE}" --run-command 'sed -i "s|# INSTALL_PORTAINER_PLACEHOLDER|/root/portainer-install.sh|" /root/install-docker.sh' >/dev/null
-else
-  virt-customize -q -a "${FILE}" --run-command 'sed -i "s|# INSTALL_PORTAINER_PLACEHOLDER|true|" /root/install-docker.sh' >/dev/null
 fi
 
 virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-docker.sh" >/dev/null
