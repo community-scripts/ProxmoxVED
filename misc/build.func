@@ -2016,9 +2016,9 @@ settings_menu() {
     )
     if [ -f "$(get_app_defaults_path)" ]; then
       settings_items+=("3" "Edit App.vars for ${APP}")
-      settings_items+=("4" "← Back to Main Menu")
+      settings_items+=("4" "Back to Main Menu")
     else
-      settings_items+=("3" "← Back to Main Menu")
+      settings_items+=("3" "Back to Main Menu")
     fi
 
     local choice
