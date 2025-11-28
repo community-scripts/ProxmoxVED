@@ -32,18 +32,16 @@ msg_info "Installing DiscoPanel"
 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
 msg_ok "Installed DiscoPanel"
 
-msg_info "Building DiscoPanel frontend Application"
-cd /opt/"${APPLICATION}"/web/discopanel || exit
+msg_info "Building DiscoPanel frontend"
+cd /opt/discopanel/web/discopanel
 npm install
 npm run build
-msg_ok "Builded DiscoPanel frontend Application"
+msg_ok "Built DiscoPanel frontend"
 
-msg_info "Building DiscoPanel backend Application"
-cd /opt/"${APPLICATION}" || exit
+msg_info "Building DiscoPanel backend"
+cd /opt/discopanel
 go build -o discopanel cmd/discopanel/main.go
-
-echo "$DISCOPANEL_LATEST_VERSION" >/opt/"${APPLICATION}"_version.txt
-msg_ok "Builded DiscoPanel backend Application"
+msg_ok "Built DiscoPanel backend"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/"${APPLICATION}".service
