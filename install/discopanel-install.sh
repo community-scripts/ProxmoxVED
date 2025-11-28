@@ -14,28 +14,23 @@ setting_up_container
 network_check
 update_os
 
-get_latest_release() {
-  curl -fsSL https://api.github.com/repos/"$1"/releases/latest | grep '"tag_name":' | cut -d'"' -f4
-}
-
 msg_info "Installing Dependencies"
 $STD apt install -y \
   npm \
   golang
 msg_ok "Installed Dependencies"
 
-DOCKER_LATEST_VERSION=$(get_latest_release "moby/moby")
-msg_info "Installing Docker $DOCKER_LATEST_VERSION"
+msg_info "Installing Docker"
 DOCKER_CONFIG_PATH='/etc/docker/daemon.json'
 mkdir -p $(dirname $DOCKER_CONFIG_PATH)
 echo -e '{\n  "log-driver": "journald"\n}' >/etc/docker/daemon.json
 $STD sh <(curl -fsSL https://get.docker.com)
-msg_ok "Installed Docker $DOCKER_LATEST_VERSION"
+msg_ok "Installed Docker"
 
-DISCOPANEL_LATEST_VERSION=$(get_latest_release "nickheyer/discopanel")
-msg_info "Installing DiscoPanel ${DISCOPANEL_LATEST_VERSION}"
-git clone https://github.com/nickheyer/discopanel.git /opt/"${APPLICATION}"
-msg_ok "Installed DiscoPanel ${DISCOPANEL_LATEST_VERSION}"
+
+msg_info "Installing DiscoPanel"
+fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
+msg_ok "Installed DiscoPanel"
 
 msg_info "Building DiscoPanel frontend Application"
 cd /opt/"${APPLICATION}"/web/discopanel || exit
