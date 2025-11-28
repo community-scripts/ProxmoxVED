@@ -2,6 +2,7 @@
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: bvdberg01
+# Co-Author: SunFlowerOwl
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/manyfold3d/manyfold
 
@@ -27,23 +28,72 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
+
     if check_for_gh_release "manyfold" "manyfold3d/manyfold"; then
         msg_info "Stopping Service"
-        systemctl stop manyfold manyfold-rails manyfold-default_worker manyfold-performance_worker
+        systemctl stop manyfold.target manyfold-rails.1 manyfold-default_worker.1 manyfold-performance_worker.1
         msg_ok "Stopped Service"
+
+        msg_info "Backing up data"
+        source /opt/manyfold/.env
+        mv /opt/manyfold/app/storage /opt/manyfold/app/tmp /opt/manyfold/app/config/credentials.yml.enc /opt/manyfold/app/config/master.key ~/
+        tar -cvzf "/opt/manyfold_${APP_VERSION}_backup.tar.gz" /opt/manyfold/app/
+        rm -rf /opt/manyfold/app/
+        msg_ok "Backed-up data"
 
         fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold/app"
 
-        msg_info "Update services"
-        $STD foreman export systemd /etc/systemd/system -a manyfold -u root -f /opt/manyfold/Procfile
-        for f in /etc/systemd/system/manyfold-*.service; do
-            sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/.env \&\& |" "$f"
-        done
-        msg_ok "Updated services"
+        msg_info "Configuring manyfold environment"
+        RUBY_INSTALL_VERSION=$(cat /opt/manyfold/app/.ruby-version)
+        YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/app/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
+        RBENV_PATH="/home/manyfold/.rbenv"
+        RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+        sed -i "s/^export APP_VERSION=.*/export APP_VERSION=$RELEASE/" "/opt/manyfold/.env"
+        cat <<EOF >/opt/manyfold/user_setup.sh
+#!/bin/bash
 
-        msg_info "Starting Service"
-        systemctl start manyfold manyfold-rails manyfold-default_worker manyfold-performance_worker
-        msg_ok "Started Service"
+source /opt/manyfold/.env
+export PATH="$RBENV_PATH/bin:\$PATH"
+eval "\$($RBENV_PATH/bin/rbenv init - bash)"
+cd /opt/manyfold/app
+rbenv global $RUBY_INSTALL_VERSION
+gem install bundler
+bundle install
+gem install sidekiq
+gem install foreman
+corepack enable yarn
+corepack prepare $YARN_VERSION --activate
+corepack use $YARN_VERSION
+bin/rails db:migrate
+bin/rails assets:precompile
+EOF
+        $STD mkdir -p /opt/manyfold/data
+        chown -R manyfold:manyfold /opt/manyfold
+        $STD chmod +x /opt/manyfold/user_setup.sh
+        msg_ok "Configured manyfold environment"
+
+        RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" HOME=/home/manyfold setup_ruby
+
+        msg_info "Installing Manyfold"
+        chown -R manyfold:manyfold /home/manyfold/.rbenv
+        rm -rf /opt/manyfold/app/storage /opt/manyfold/app/tmp /opt/manyfold/app/config/credentials.yml.enc
+        mv ~/storage ~/tmp /opt/manyfold/app/
+        mv ~/credentials.yml.enc ~/master.key /opt/manyfold/app/config/
+        chown -R manyfold:manyfold /opt/manyfold
+        $STD sudo -u manyfold bash /opt/manyfold/user_setup.sh
+        rm -f /opt/manyfold/user_setup.sh
+        msg_ok "Installed manyfold"
+
+        msg_info "Restoring Service"
+        cd /opt/manyfold/app
+        source /opt/manyfold/.env
+        export PATH="$RBENV_PATH//shims:$RBENV_PATH/bin:$PATH"
+        $STD foreman export systemd /etc/systemd/system -a manyfold -u manyfold -f /opt/manyfold/app/Procfile
+        for f in /etc/systemd/system/manyfold-*.service; do
+            sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/manyfold/.env \&\& |" "$f"
+        done
+        systemctl enable -q --now manyfold.target manyfold-rails.1 manyfold-default_worker.1 manyfold-performance_worker.1
+        msg_ok "Restored Service"
     fi
 
     msg_info "Cleaning up"
