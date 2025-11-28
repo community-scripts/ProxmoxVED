@@ -41,7 +41,13 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
 
-msg_info "Setting up PostgreSQL"
+fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold/app"
+
+msg_info "Configuring manyfold building environment"
+RUBY_INSTALL_VERSION=$(cat /opt/manyfold/app/.ruby-version)
+YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/app/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
+RBENV_PATH="/home/manyfold/.rbenv"
+PATH="$RBENV_PATH/bin:$PATH"
 DB_NAME=manyfold
 DB_USER=manyfold
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
@@ -50,16 +56,11 @@ $STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMP
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
-msg_ok "Set up PostgreSQL"
-
-fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold"
-
-msg_info "Configuring manyfold environment"
 useradd -m -s /usr/bin/bash manyfold
 echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >>/home/manyfold/.bashrc
 echo 'eval "$(rbenv init -)"' >>/home/manyfold/.bashrc
 RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-cat <<EOF >/opt/.env
+cat <<EOF >/opt/manyfold/.env
 export APP_VERSION=${RELEASE}
 export GUID=1002
 export PUID=1001
@@ -75,22 +76,20 @@ export MULTIUSER=enabled
 export HTTPS_ONLY=false
 export RAILS_ENV=production
 EOF
-RUBY_INSTALL_VERSION=$(cat /opt/manyfold/.ruby-version)
-YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
-cat <<EOF >/opt/user_setup.sh
+cat <<EOF >/opt/manyfold/user_setup.sh
 #!/bin/bash
 
-source /opt/.env
-export PATH="/home/manyfold/.rbenv/bin:\$PATH"
-eval "\$(/home/manyfold/.rbenv/bin/rbenv init - bash)"
-cd /opt/manyfold
+source /opt/manyfold/.env
+export PATH="$RBENV_PATH/bin:\$PATH"
+eval "\$($RBENV_PATH/bin/rbenv init - bash)"
+cd /opt/manyfold/app
 rbenv global $RUBY_INSTALL_VERSION
 gem install bundler
 bundle install
 gem install sidekiq
 gem install foreman
 corepack enable yarn
-rm -f /opt/manyfold/config/credentials.yml.enc
+rm -f /opt/manyfold/app/config/credentials.yml.enc
 corepack prepare $YARN_VERSION --activate
 corepack use $YARN_VERSION
 export VISUAL="code --wait"
@@ -99,8 +98,8 @@ bin/rails db:migrate
 bin/rails assets:precompile
 EOF
 chown -R manyfold:manyfold /opt
-$STD chmod +x /opt/user_setup.sh
-msg_ok "Configured manyfold environment"
+$STD chmod +x /opt/manyfold/user_setup.sh
+msg_ok "Configured manyfold building environment"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" HOME=/home/manyfold setup_ruby
@@ -108,26 +107,24 @@ RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" HOME=/home/manyfo
 msg_info "Installing Manyfold"
 chown -R manyfold:manyfold /home/manyfold/.rbenv
 npm install --global corepack
-$STD sudo -u manyfold bash /opt/user_setup.sh
-rm -f /opt/user_setup.sh
+$STD sudo -u manyfold bash /opt/manyfold/user_setup.sh
+rm -f /opt/manyfold/user_setup.sh
 msg_ok "Installed manyfold"
 
 msg_info "Creating Services"
-cd /opt/manyfold
-source /opt/.env
-export RBENV_PATH="/home/manyfold/.rbenv"
-export PATH="$RBENV_PATH/bin:$PATH"
+cd /opt/manyfold/app
+source /opt/manyfold/.env
 eval "$($RBENV_PATH/bin/rbenv init - bash)"
-$STD foreman export systemd /etc/systemd/system -a manyfold -u manyfold -f /opt/manyfold/Procfile
+$STD foreman export systemd /etc/systemd/system -a manyfold -u manyfold -f /opt/manyfold/app/Procfile
 for f in /etc/systemd/system/manyfold-*.service; do
-    sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/.env \&\& |" "$f"
+    sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/manyfold/.env \&\& |" "$f"
 done
 systemctl enable -q --now manyfold.target manyfold-rails.1 manyfold-default_worker.1 manyfold-performance_worker.1
 cat <<EOF >/etc/nginx/sites-available/manyfold.conf
 server {
     listen 80;
     server_name manyfold;
-    root /opt/manyfold/public;
+    root /opt/manyfold/app/public;
 
     location /cable {
         proxy_pass http://127.0.0.1:5000;
