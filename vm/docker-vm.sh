@@ -710,20 +710,11 @@ echo \"[\\$(date)] Docker installation completed successfully\"
 touch /root/.docker-installed
 INSTALLEOF" >/dev/null
 
-# Add Portainer installation script if requested
+# Add Portainer installation inline (no separate script needed)
 if [ "$INSTALL_PORTAINER" = "yes" ]; then
-  virt-customize -q -a "${FILE}" --run-command "cat > /root/install-portainer.sh << 'PORTAINEREOF'
-#!/bin/bash
-exec >> /var/log/install-docker.log 2>&1
-echo \"[\\$(date)] Installing Portainer\"
-docker volume create portainer_data
-docker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
-echo \"[\\$(date)] Portainer installed and started\"
-PORTAINEREOF\" >/dev/null
-  virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-portainer.sh" >/dev/null
-  virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|/root/install-portainer.sh|' /root/install-docker.sh" >/dev/null
+  virt-customize -q -a "${FILE}" --run-command 'sed -i "s|INSTALL_PORTAINER_PLACEHOLDER|docker volume create portainer_data; docker run -d -p 9000:9000 -p 9443:9443 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest; echo \"Portainer installed\"|" /root/install-docker.sh' >/dev/null
 else
-  virt-customize -q -a "${FILE}" --run-command "sed -i 's|INSTALL_PORTAINER_PLACEHOLDER|echo \"[\\\\\\$(date)] Skipping Portainer installation\"|' /root/install-docker.sh" >/dev/null
+  virt-customize -q -a "${FILE}" --run-command 'sed -i "s|INSTALL_PORTAINER_PLACEHOLDER|true # Portainer skipped|" /root/install-docker.sh' >/dev/null
 fi
 
 virt-customize -q -a "${FILE}" --run-command "chmod +x /root/install-docker.sh" >/dev/null
