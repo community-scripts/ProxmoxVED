@@ -16,8 +16,7 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  npm \
-  golang
+  npm
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Docker"
@@ -34,13 +33,15 @@ msg_ok "Installed DiscoPanel"
 
 msg_info "Building DiscoPanel frontend"
 cd /opt/discopanel/web/discopanel
-npm install
-npm run build
+$STD npm install
+$STD npm run build
 msg_ok "Built DiscoPanel frontend"
+
+setup_go
 
 msg_info "Building DiscoPanel backend"
 cd /opt/discopanel
-go build -o discopanel cmd/discopanel/main.go
+$STD go build -o discopanel cmd/discopanel/main.go
 msg_ok "Built DiscoPanel backend"
 
 msg_info "Creating Service"
