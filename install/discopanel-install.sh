@@ -20,9 +20,6 @@ get_latest_release() {
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  ca-certificates \
-  git \
-  curl \
   npm \
   golang
 msg_ok "Installed Dependencies"
