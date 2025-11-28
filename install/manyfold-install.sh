@@ -43,7 +43,7 @@ PG_VERSION="16" setup_postgresql
 
 fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold/app"
 
-msg_info "Configuring manyfold building environment"
+msg_info "Configuring manyfold environment"
 RUBY_INSTALL_VERSION=$(cat /opt/manyfold/app/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/app/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 RBENV_PATH="/home/manyfold/.rbenv"
@@ -97,9 +97,10 @@ bin/rails credentials:edit
 bin/rails db:migrate
 bin/rails assets:precompile
 EOF
-chown -R manyfold:manyfold /opt
+$STD mkdir -p /opt/manyfold/data
+chown -R manyfold:manyfold /opt/manyfold
 $STD chmod +x /opt/manyfold/user_setup.sh
-msg_ok "Configured manyfold building environment"
+msg_ok "Configured manyfold environment"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" HOME=/home/manyfold setup_ruby
