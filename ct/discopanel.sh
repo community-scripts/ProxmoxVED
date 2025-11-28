@@ -35,7 +35,11 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Creating Backup"
-    tar -czf "/opt/discopanel_backup_last.tar.gz" -C "/opt/discopanel/data" discopanel.db .recovery_key servers
+    mkdir -p /opt/discopanel_backup_last
+    cp -r /opt/discopanel/data/discopanel.db \
+      /opt/discopanel/data/.recovery_key \
+      /opt/discopanel/data/servers \
+      /opt/discopanel_backup_last/
     msg_ok "Created Backup"
 
     rm -rf /opt/discopanel
@@ -53,7 +57,7 @@ function update_script() {
     msg_ok "Builded backend"
 
     msg_info "Restoring Data"
-    tar -xzf "/opt/discopanel_backup_last.tar.gz" -C "/opt/discopanel/data"
+    cp -r /opt/discopanel_backup_last/* /opt/discopanel/data/
     msg_ok "Restored Data"
 
     msg_info "Starting Service"

@@ -14,11 +14,6 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt install -y \
-  npm
-msg_ok "Installed Dependencies"
-
 msg_info "Installing Docker"
 DOCKER_CONFIG_PATH='/etc/docker/daemon.json'
 mkdir -p $(dirname $DOCKER_CONFIG_PATH)
@@ -30,6 +25,8 @@ msg_ok "Installed Docker"
 msg_info "Installing DiscoPanel"
 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
 msg_ok "Installed DiscoPanel"
+
+setup_nodejs
 
 msg_info "Building DiscoPanel frontend"
 cd /opt/discopanel/web/discopanel
