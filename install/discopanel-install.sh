@@ -15,7 +15,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y build-essential gcc
+$STD apt install -y build-essential
 msg_ok "Installed Dependencies"
 
 
