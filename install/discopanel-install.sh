@@ -51,7 +51,7 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now "discopanel"
+systemctl enable -q --now discopanel
 msg_ok "Created Service"
 
 motd_ssh
