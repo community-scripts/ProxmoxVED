@@ -27,7 +27,6 @@ $STD sh <(curl -fsSL https://get.docker.com)
 msg_ok "Installed Docker"
 
 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
-
 setup_nodejs
 setup_go
 
