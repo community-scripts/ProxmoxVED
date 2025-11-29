@@ -17,6 +17,10 @@ msg_info "Installing Dependencies"
 $STD apt install -y build-essential
 msg_ok "Installed Dependencies"
 
+NODE_VERSION="22" setup_nodejs
+setup_go
+fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
+
 msg_info "Installing Docker"
 DOCKER_CONFIG_PATH='/etc/docker/daemon.json'
 mkdir -p $(dirname $DOCKER_CONFIG_PATH)
@@ -24,20 +28,13 @@ echo -e '{\n  "log-driver": "journald"\n}' >/etc/docker/daemon.json
 $STD sh <(curl -fsSL https://get.docker.com)
 msg_ok "Installed Docker"
 
-fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball"
-setup_nodejs
-setup_go
-
-msg_info "Building DiscoPanel frontend"
+msg_info "Setting up DiscoPanel"
 cd /opt/discopanel/web/discopanel
 $STD npm install
 $STD npm run build
-msg_ok "Built DiscoPanel frontend"
-
-msg_info "Building DiscoPanel backend"
 cd /opt/discopanel
 $STD go build -o discopanel cmd/discopanel/main.go
-msg_ok "Built DiscoPanel backend"
+msg_ok "Setup DiscoPanel"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/discopanel.service
