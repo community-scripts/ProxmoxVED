@@ -18,7 +18,6 @@ msg_info "Installing Dependencies"
 $STD apt install -y build-essential gcc
 msg_ok "Installed Dependencies"
 
-
 msg_info "Installing Docker"
 DOCKER_CONFIG_PATH='/etc/docker/daemon.json'
 mkdir -p $(dirname $DOCKER_CONFIG_PATH)
