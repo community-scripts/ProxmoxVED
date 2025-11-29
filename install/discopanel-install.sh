@@ -26,7 +26,7 @@ echo -e '{\n  "log-driver": "journald"\n}' >/etc/docker/daemon.json
 $STD sh <(curl -fsSL https://get.docker.com)
 msg_ok "Installed Docker"
 
-fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
+fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball"
 setup_nodejs
 setup_go
 
