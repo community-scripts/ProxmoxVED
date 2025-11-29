@@ -29,14 +29,13 @@ msg_ok "Installed Docker"
 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
 
 setup_nodejs
+setup_go
 
 msg_info "Building DiscoPanel frontend"
 cd /opt/discopanel/web/discopanel
 $STD npm install
 $STD npm run build
 msg_ok "Built DiscoPanel frontend"
-
-setup_go
 
 msg_info "Building DiscoPanel backend"
 cd /opt/discopanel
