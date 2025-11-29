@@ -49,8 +49,6 @@ After=network.target
 WorkingDirectory=/opt/discopanel
 ExecStart=/opt/discopanel/discopanel
 Restart=always
-User=root
-
 
 [Install]
 WantedBy=multi-user.target
