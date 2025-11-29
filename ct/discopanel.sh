@@ -49,13 +49,13 @@ function update_script() {
     CLEAN_INSTALL= 1 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
     msg_info "Building frontend"
     cd /opt/discopanel/web/discopanel
-    npm install
-    npm run build
+    $STD npm install
+    $STD npm run build
     msg_ok "Builded frontend"
 
     msg_info "Building backend"
     cd /opt/discopanel
-    go build -o discopanel cmd/discopanel/main.go
+    $STD go build -o discopanel cmd/discopanel/main.go
     msg_ok "Builded backend"
 
     msg_info "Restoring Data"
