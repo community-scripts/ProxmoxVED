@@ -15,28 +15,32 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    lsb-release \
-    libpq-dev \
     libarchive-dev \
     git \
     libmariadb-dev \
     redis-server \
     nginx \
-    libffi-dev \
-    libyaml-dev \
     libassimp-dev \
-    build-essential \
-    pkg-config \
-    libssl-dev \
-    libreadline-dev \
-    zlib1g-dev \
-    libgmp-dev \
     libmagickwand-dev \
-    redis \
     imagemagick \
+    build-essential \
+    libtool \
     libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
     libwebp-dev \
-    libheif-dev
+    libheif-dev \
+    libde265-dev \
+    libopenjp2-7-dev \
+    libxml2-dev \
+    liblcms2-dev \
+    libfreetype6-dev \
+    libraw-dev \
+    libfftw3-dev \
+    liblqr-1-0-dev \
+    libgsl-dev \
+    pkg-config \
+    ghostscript
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
@@ -46,8 +50,7 @@ fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" 
 msg_info "Configuring manyfold environment"
 RUBY_INSTALL_VERSION=$(cat /opt/manyfold/app/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/app/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
-RBENV_PATH="/home/manyfold/.rbenv"
-PATH="$RBENV_PATH/bin:$PATH"
+RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 DB_NAME=manyfold
 DB_USER=manyfold
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
@@ -57,9 +60,6 @@ $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8'
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
 $STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 useradd -m -s /usr/bin/bash manyfold
-echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >>/home/manyfold/.bashrc
-echo 'eval "$(rbenv init -)"' >>/home/manyfold/.bashrc
-RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 cat <<EOF >/opt/manyfold/.env
 export APP_VERSION=${RELEASE}
 export GUID=1002
@@ -80,8 +80,8 @@ cat <<EOF >/opt/manyfold/user_setup.sh
 #!/bin/bash
 
 source /opt/manyfold/.env
-export PATH="$RBENV_PATH/bin:\$PATH"
-eval "\$($RBENV_PATH/bin/rbenv init - bash)"
+export PATH="/home/manyfold/.rbenv/bin:\$PATH"
+eval "\$(/home/manyfold/.rbenv/bin/rbenv init - bash)"
 cd /opt/manyfold/app
 rbenv global $RUBY_INSTALL_VERSION
 gem install bundler
@@ -98,8 +98,6 @@ bin/rails db:migrate
 bin/rails assets:precompile
 EOF
 $STD mkdir -p /opt/manyfold/data
-chown -R manyfold:manyfold /opt/manyfold
-$STD chmod +x /opt/manyfold/user_setup.sh
 msg_ok "Configured manyfold environment"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
@@ -107,15 +105,16 @@ RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" HOME=/home/manyfo
 
 msg_info "Installing Manyfold"
 chown -R manyfold:manyfold /home/manyfold/.rbenv
+chown -R manyfold:manyfold /opt/manyfold
+chmod +x /opt/manyfold/user_setup.sh
 npm install --global corepack
 $STD sudo -u manyfold bash /opt/manyfold/user_setup.sh
 rm -f /opt/manyfold/user_setup.sh
 msg_ok "Installed manyfold"
 
 msg_info "Creating Services"
-cd /opt/manyfold/app
 source /opt/manyfold/.env
-eval "$($RBENV_PATH/bin/rbenv init - bash)"
+export PATH="/home/manyfold/.rbenv/shims:/home/manyfold/.rbenv/bin:$PATH"
 $STD foreman export systemd /etc/systemd/system -a manyfold -u manyfold -f /opt/manyfold/app/Procfile
 for f in /etc/systemd/system/manyfold-*.service; do
     sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/manyfold/.env \&\& |" "$f"
