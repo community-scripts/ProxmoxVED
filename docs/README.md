@@ -9,7 +9,7 @@ Complete guide to all ProxmoxVED documentation - quickly find what you need.
 ### 👤 **I want to...**
 
 **Contribute a new application**
-→ Start with: [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md)
+→ Start with: [contribution/README.md](contribution/README.md)
 → Then: [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) + [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
 
 **Understand the architecture**
@@ -37,7 +37,7 @@ Complete guide to all ProxmoxVED documentation - quickly find what you need.
 ### **I'm a...**
 
 **New Contributor**
-→ Start: [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md)
+→ Start: [contribution/README.md](contribution/README.md)
 → Then: Choose your path below
 
 **Container Creator**
@@ -93,7 +93,7 @@ ProxmoxVED/
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md) | How to contribute | Contributors |
+| [contribution/README.md](contribution/README.md) | How to contribute | Contributors |
 | [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) | Create ct scripts | Container developers |
 | [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md) | Create install scripts | Installation developers |
 | [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) | Architecture deep-dive | Architects, advanced users |
@@ -171,7 +171,7 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 
 ### Path 1: First-Time Contributor (2-3 hours)
 
-1. [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md) - Quick Start
+1. [contribution/README.md](contribution/README.md) - Quick Start
 2. Pick your area:
    - Containers → [ct/README.md](ct/README.md) + [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md)
    - Installation → [install/README.md](install/README.md) + [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
@@ -238,7 +238,7 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 - **Package error?** → [misc/tools.func/](misc/tools.func/)
 
 ### By Role
-- **Contributor** → [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md)
+- **Contributor** → [contribution/README.md](contribution/README.md)
 - **Operator** → [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md)
 - **Developer** → [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)
 - **Architect** → [misc/README.md](misc/README.md)
@@ -262,7 +262,7 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 
 ## 🚀 **Start Here**
 
-**New to ProxmoxVED?** → [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md)
+**New to ProxmoxVED?** → [contribution/README.md](contribution/README.md)
 
 **Looking for something specific?** → Choose your role above or browse by directory
 
@@ -276,9 +276,9 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 
 Found an error? Want to improve docs?
 
-1. Open issue: [GitHub Issues](https://github.com/community-scripts/ProxmoxVED/issues)
-2. Or submit PR with improvements
-3. See [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md) for details
+1. See: [contribution/README.md](contribution/README.md) for full contribution guide
+2. Open issue: [GitHub Issues](https://github.com/community-scripts/ProxmoxVED/issues)
+3. Or submit PR with improvements
 
 ---
 

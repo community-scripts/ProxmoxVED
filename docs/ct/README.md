@@ -12,9 +12,9 @@ Each script has standardized documentation following the project pattern.
 
 ## Key Resources
 
-- **[UPDATED_APP-ct.md](../UPDATED_APP-ct.md)** - Complete guide for creating ct scripts
-- **[CONTRIBUTION_GUIDE.md](../CONTRIBUTION_GUIDE.md)** - Contribution workflow
-- **[misc/build.func/](../misc/build.func/)** - Core orchestrator documentation
+- **[DETAILED_GUIDE.md](DETAILED_GUIDE.md)** - Complete reference for creating ct scripts
+- **[../contribution/README.md](../contribution/README.md)** - How to contribute
+- **[../misc/build.func/](../misc/build.func/)** - Core orchestrator documentation
 
 ## Container Creation Flow
 

@@ -12,10 +12,10 @@ Each installation script category has documentation following the project patter
 
 ## Key Resources
 
-- **[UPDATED_APP-install.md](../UPDATED_APP-install.md)** - Complete guide for creating install scripts
-- **[CONTRIBUTION_GUIDE.md](../CONTRIBUTION_GUIDE.md)** - Contribution workflow
-- **[misc/install.func/](../misc/install.func/)** - Installation workflow documentation
-- **[misc/tools.func/](../misc/tools.func/)** - Package installation documentation
+- **[DETAILED_GUIDE.md](DETAILED_GUIDE.md)** - Complete reference for creating install scripts
+- **[../contribution/README.md](../contribution/README.md)** - How to contribute
+- **[../misc/install.func/](../misc/install.func/)** - Installation workflow documentation
+- **[../misc/tools.func/](../misc/tools.func/)** - Package installation documentation
 
 ## Installation Script Flow
 
