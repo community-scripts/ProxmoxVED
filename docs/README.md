@@ -24,9 +24,6 @@ Complete guide to all ProxmoxVED documentation - quickly find what you need.
 **Configure system defaults**
 → Read: [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md)
 
-**Learn about recent changes**
-→ Check: [CHANGELOG_MISC.md](CHANGELOG_MISC.md)
-
 **Develop a function library**
 → Study: [misc/](misc/) documentation
 
@@ -100,7 +97,6 @@ ProxmoxVED/
 | [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md) | Configuration system | Operators, power users |
 | [EXIT_CODES.md](EXIT_CODES.md) | Exit code reference | Troubleshooters |
 | [DEV_MODE.md](DEV_MODE.md) | Debugging tools | Developers |
-| [CHANGELOG_MISC.md](CHANGELOG_MISC.md) | Recent changes | Everyone |
 
 ---
 
@@ -189,7 +185,6 @@ Documentation for `/misc` - 9 core function libraries with complete references.
    - [misc/install.func/README.md](misc/install.func/README.md)
 3. Study advanced examples
 4. Create complex applications
-5. Review [CHANGELOG_MISC.md](CHANGELOG_MISC.md) for recent changes
 
 ### Path 3: Advanced Architect (8+ hours)
 
