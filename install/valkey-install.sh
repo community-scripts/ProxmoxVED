@@ -15,8 +15,10 @@ update_os
 
 msg_info "Installing Valkey"
 $STD apt update
-$STD apt install -y valkey
+$STD apt install -y valkey openssl
 sed -i 's/^bind .*/bind 0.0.0.0/' /etc/valkey/valkey.conf
+PASS="$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c32)"
+sed -ri "s|(# *)?requirepass .*|requirepass $PASS|" /etc/valkey/valkey.conf
 systemctl enable -q --now valkey-server
 systemctl restart valkey-server
 msg_ok "Installed Valkey"
