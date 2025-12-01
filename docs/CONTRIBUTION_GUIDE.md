@@ -2,9 +2,9 @@
 
 **Everything you need to know to contribute to ProxmoxVED**
 
-> **Last Updated**: December 2025  
-> **Difficulty**: Beginner → Advanced  
-> **Time to Setup**: 15 minutes  
+> **Last Updated**: December 2025
+> **Difficulty**: Beginner → Advanced
+> **Time to Setup**: 15 minutes
 > **Time to Contribute**: 1-3 hours
 
 ---
@@ -26,7 +26,7 @@
 
 ## Quick Start
 
-### 60 Seconds to First Contribution
+### Setup Your Fork (First Time Only)
 
 ```bash
 # 1. Fork the repository on GitHub
@@ -37,29 +37,45 @@
 git clone https://github.com/YOUR_USERNAME/ProxmoxVED.git
 cd ProxmoxVED
 
-# 3. Create feature branch
+# 3. Run fork setup script (automatically configures everything)
+bash setup-fork.sh
+# This auto-detects your username and updates all documentation links
+
+# 4. Read the git workflow tips
+cat .git-setup-info
+```
+
+### 60 Seconds to First Contribution
+
+```bash
+# 1. Create feature branch
 git checkout -b add/my-awesome-app
 
-# 4. Create application scripts
+# 2. Create application scripts
 cp ct/example.sh ct/myapp.sh
 cp install/example-install.sh install/myapp-install.sh
 
-# 5. Edit your scripts
+# 3. Edit your scripts
 nano ct/myapp.sh
 nano install/myapp-install.sh
 
-# 6. Test locally
+# 4. Test locally
 bash ct/myapp.sh  # Will prompt for container creation
 
-# 7. Commit and push
+# 5. Commit and push
 git add ct/myapp.sh install/myapp-install.sh
 git commit -m "feat: add MyApp container"
 git push origin add/my-awesome-app
 
-# 8. Open Pull Request on GitHub
-# Visit: https://github.com/community-scripts/ProxmoxVED/pulls
-# Click: New Pull Request
+# 6. Open Pull Request on GitHub
+# Click: New Pull Request (GitHub will show this automatically)
+
+# 7. Keep your fork updated
+git fetch upstream
+git rebase upstream/main
 ```
+
+**💡 Tip**: See `../FORK_SETUP.md` for detailed fork setup and troubleshooting
 
 ---
 
@@ -269,16 +285,16 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  
+
   if [[ ! -d /opt/myapp ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  
+
   # Get latest version
   RELEASE=$(curl -fsSL https://api.github.com/repos/user/repo/releases/latest | \
     grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-  
+
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Updating ${APP} to v${RELEASE}"
     # ... update logic ...
@@ -952,7 +968,7 @@ echo "Edit /opt/myapp/config.json to customize settings"
 
 ### Q: Can I contribute Windows/macOS/ARM support?
 
-**A**: 
+**A**:
 - **Windows**: Not planned (ProxmoxVED is Linux/Proxmox focused)
 - **macOS**: Can contribute Docker-based alternatives
 - **ARM**: Yes! Many apps work on ARM. Add to vm/pimox-*.sh scripts
