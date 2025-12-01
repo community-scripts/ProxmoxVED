@@ -20,7 +20,11 @@ $STD apt install -y \
   libwebp-dev \
   libsasl2-dev \
   libldap2-dev \
-  libssl-dev
+  libldap-common \
+  libssl-dev \
+  libldap2 \
+  gosu \
+  iproute2
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.12" setup_uv
