@@ -15,32 +15,31 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-python3 python3-pip python3-venv \
-git curl wget \
-libgl1-mesa-glx libglib2.0-0 \
-libsm6 libxext6 libxrender-dev \
-libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
-libgstreamer-plugins-bad1.0-0 gstreamer1.0-plugins-base \
-gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-gstreamer1.0-plugins-ugly gstreamer1.0-libav \
-gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa \
-gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 \
-gstreamer1.0-pulseaudio \
-libavcodec-dev libavformat-dev libswscale-dev \
-libv4l-dev libxvidcore-dev libx264-dev \
-libjpeg-dev libpng-dev libtiff-dev \
-libatlas-base-dev gfortran \
-libhdf5-dev libhdf5-serial-dev \
-libhdf5-103 libqtgui4 libqtwebkit4 libqt4-test python3-pyqt5 \
-libgtk-3-dev libcanberra-gtk3-module \
-libgirepository1.0-dev libcairo2-dev pkg-config \
-libcblas-dev libopenblas-dev liblapack-dev \
-libsm6 libxext6 libxrender-dev libxss1 \
-libgconf-2-4 libasound2
+  python3 python3-pip python3-venv \
+  libgl1 libglib2.0-0 \
+  libsm6 libxext6 libxrender-dev \
+  libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
+  libgstreamer-plugins-bad1.0-0 gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+  gstreamer1.0-plugins-ugly gstreamer1.0-libav \
+  gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa \
+  gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 \
+  gstreamer1.0-pulseaudio \
+  libavcodec-dev libavformat-dev libswscale-dev \
+  libv4l-dev libxvidcore-dev libx264-dev \
+  libjpeg-dev libpng-dev libtiff-dev \
+  gfortran \
+  libhdf5-dev \
+  python3-pyqt5 \
+  libgtk-3-dev libcanberra-gtk3-module \
+  libgirepository1.0-dev libcairo2-dev pkg-config \
+  libopenblas-dev liblapack-dev \
+  libxss1 \
+  libasound2
 msg_ok "Installed Dependencies"
 
 mkdir -p ~/.config/pip
-cat > ~/.config/pip/pip.conf << EOF
+cat >~/.config/pip/pip.conf <<EOF
 [global]
 break-system-packages = true
 EOF
