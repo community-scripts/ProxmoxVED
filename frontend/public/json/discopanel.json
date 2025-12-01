@@ -31,5 +31,14 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Servers data location: /opt/discopanel/data/servers",
+      "type": "info"
+    },
+    {
+      "text": "Proxy config database location: /opt/discopanel/data/discopanel.db",
+      "type": "info"
+    }
+  ]
 }
