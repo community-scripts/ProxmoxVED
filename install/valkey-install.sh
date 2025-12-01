@@ -25,7 +25,7 @@ sed -i 's/^protected-mode .*/protected-mode no/' /etc/valkey/valkey.conf
 systemctl enable -q --now valkey-server
 systemctl restart valkey-server
 msg_ok "Installed Valkey"
-msg "Valkey password saved to /root/valkey_pass.txt"
+msg_info "Valkey password saved to /root/valkey_pass.txt"
 
 motd_ssh
 customize
