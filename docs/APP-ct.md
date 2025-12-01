@@ -1,273 +1,493 @@
-# **AppName<span></span>.sh Scripts**
+# 🚀 **Application Container Scripts (ct/AppName.sh)**
 
- `AppName.sh` scripts found in the `/ct` directory. These scripts are responsible for the installation of the desired application. For this guide we take `/ct/snipeit.sh` as example.
+**Modern Guide to Creating LXC Container Installation Scripts**
 
-## Table of Contents
+> **Updated**: December 2025
+> **Context**: Fully integrated with build.func, advanced_settings wizard, and defaults system
+> **Example Used**: `/ct/pihole.sh`, `/ct/docker.sh`
 
-- [**AppName.sh Scripts**](#appnamesh-scripts)
-  - [Table of Contents](#table-of-contents)
-  - [1. **File Header**](#1-file-header)
-    - [1.1 **Shebang**](#11-shebang)
-    - [1.2 **Import Functions**](#12-import-functions)
-    - [1.3 **Metadata**](#13-metadata)
-  - [2 **Variables and function import**](#2-variables-and-function-import)
-    - [2.1 **Default Values**](#21-default-values)
-  - [2.2 **📋 App output \& base settings**](#22--app-output--base-settings)
-  - [2.3 **🛠 Core functions**](#23--core-functions)
-  - [3 **Update function**](#3-update-function)
-    - [3.1 **Function Header**](#31-function-header)
-    - [3.2 **Check APP**](#32-check-app)
-    - [3.3 **Check version**](#33-check-version)
-    - [3.4 **Verbosity**](#34-verbosity)
-    - [3.5 **Backups**](#35-backups)
-    - [3.6 **Cleanup**](#36-cleanup)
-    - [3.7 **No update function**](#37-no-update-function)
-  - [4 **End of the script**](#4-end-of-the-script)
-  - [5. **Contribution checklist**](#5-contribution-checklist)
+---
 
-## 1. **File Header**
+## 📋 Table of Contents
 
-### 1.1 **Shebang**
+- [Overview](#overview)
+- [Architecture & Flow](#architecture--flow)
+- [File Structure](#file-structure)
+- [Complete Script Template](#complete-script-template)
+- [Function Reference](#function-reference)
+- [Advanced Features](#advanced-features)
+- [Real Examples](#real-examples)
+- [Troubleshooting](#troubleshooting)
+- [Contribution Checklist](#contribution-checklist)
 
-- Use `#!/usr/bin/env bash` as the shebang.
+---
+
+## Overview
+
+### Purpose
+
+Container scripts (`ct/AppName.sh`) are **entry points for creating LXC containers** with specific applications pre-installed. They:
+
+1. Define container defaults (CPU, RAM, disk, OS)
+2. Call the main build orchestrator (`build.func`)
+3. Implement application-specific update mechanisms
+4. Provide user-facing success messages
+
+### Execution Context
+
+```
+Proxmox Host
+    ↓
+ct/AppName.sh sourced (runs as root on host)
+    ↓
+build.func: Creates LXC container + runs install script inside
+    ↓
+install/AppName-install.sh (runs inside container)
+    ↓
+Container ready with app installed
+```
+
+### Key Integration Points
+
+- **build.func** - Main orchestrator (container creation, storage, variable management)
+- **install.func** - Container-specific setup (OS update, package management)
+- **tools.func** - Tool installation helpers (repositories, GitHub releases)
+- **core.func** - UI/messaging functions (colors, spinners, validation)
+- **error_handler.func** - Error handling and signal management
+
+---
+
+## Architecture & Flow
+
+### Container Creation Flow
+
+```
+START: bash ct/pihole.sh
+  ↓
+[1] Set APP, var_*, defaults
+  ↓
+[2] header_info() → Display ASCII art
+  ↓
+[3] variables() → Parse arguments & load build.func
+  ↓
+[4] color() → Setup ANSI codes
+  ↓
+[5] catch_errors() → Setup trap handlers
+  ↓
+[6] install_script() → Show mode menu (5 options)
+  ↓
+  ├─ INSTALL_MODE="0" (Default)
+  ├─ INSTALL_MODE="1" (Advanced - 19-step wizard)
+  ├─ INSTALL_MODE="2" (User Defaults)
+  ├─ INSTALL_MODE="3" (App Defaults)
+  └─ INSTALL_MODE="4" (Settings Menu)
+  ↓
+[7] advanced_settings() → Collect user configuration (if mode=1)
+  ↓
+[8] start() → Confirm or re-edit settings
+  ↓
+[9] build_container() → Create LXC + execute install script
+  ↓
+[10] description() → Set container description
+  ↓
+[11] SUCCESS → Display access URL
+  ↓
+END
+```
+
+### Default Values Precedence
+
+```
+Priority 1 (Highest): Environment Variables (var_cpu, var_ram, etc.)
+Priority 2: App-Specific Defaults (/defaults/AppName.vars)
+Priority 3: User Global Defaults (/default.vars)
+Priority 4 (Lowest): Built-in Defaults (in build.func)
+```
+
+---
+
+## File Structure
+
+### Minimal ct/AppName.sh Template
+
+```
+#!/usr/bin/env bash                          # [1] Shebang
+                                             # [2] Copyright/License
+source <(curl -s .../misc/build.func)        # [3] Import functions
+                                             # [4] APP metadata
+APP="AppName"                                # [5] Default values
+var_tags="tag1;tag2"
+var_cpu="2"
+var_ram="2048"
+...
+
+header_info "$APP"                           # [6] Display header
+variables                                    # [7] Process arguments
+color                                        # [8] Setup colors
+catch_errors                                 # [9] Setup error handling
+
+function update_script() { ... }             # [10] Update function (optional)
+
+start                                        # [11] Launch container creation
+build_container
+description
+msg_ok "Completed Successfully!\n"
+```
+
+---
+
+## Complete Script Template
+
+### 1. File Header & Imports
 
 ```bash
 #!/usr/bin/env bash
-```
-
-### 1.2 **Import Functions**
-
-- Import the build.func file.
-- When developing your own script, change the URL to your own repository.
-
-> [!IMPORTANT]
-> You also need to change all apperances of this URL in `misc/build.func` and `misc/install.func`
-
-
-Example for development:
-
-```bash
-source <(curl -s https://raw.githubusercontent.com/[USER]/[REPO]/refs/heads/[BRANCH]/misc/build.func)
-```
-
-Final script:
-
-```bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
-```
-
-> [!CAUTION]
-> Before opening a Pull Request, change the URL to point to the community-scripts repo.
-
-### 1.3 **Metadata**
-
-- Add clear comments for script metadata, including author, copyright, and license information.
-
-Example:
-
-```bash
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: [YourUserName]
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: [SOURCE_URL]
+# Author: YourUsername
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/example/project
+
+# Import main orchestrator
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 ```
 
-> [!NOTE]:
->
-> - Add your username and source URL
-> - For existing scripts, add "| Co-Author [YourUserName]" after the current author
+> **⚠️ IMPORTANT**: Before opening a PR, change URL to `community-scripts` repo!
 
----
-
-## 2 **Variables and function import**
->
-> [!NOTE]
-> You need to have all this set in your script, otherwise it will not work!
-
-### 2.1 **Default Values**
-
-- This section sets the default values for the container.
-- `APP` needs to be set to the application name and must be equal to the filenames of your scripts.
-- `var_tags`: You can set Tags for the CT wich show up in the Proxmox UI. Don´t overdo it!
-
->[!NOTE]
->Description for all Default Values
->
->| Variable | Description | Notes |
->|----------|-------------|-------|
->| `APP` | Application name | Must match ct\AppName.sh |
->| `TAGS` | Proxmox display tags without Spaces, only ; | Limit the number |
->| `var_cpu` | CPU cores | Number of cores |
->| `var_ram` | RAM | In MB |
->| `var_disk` | Disk capacity | In GB |
->| `var_os` | Operating system | alpine, debian, ubuntu |
->| `var_version` | OS version | e.g., 3.20, 11, 12, 20.04 |
->| `var_unprivileged` | Container type | 1 = Unprivileged, 0 = Privileged |
-
-Example:
+### 2. Application Metadata
 
 ```bash
-APP="SnipeIT"
-var_tags="asset-management;foss"
-var_cpu="2"
-var_ram="2048"
-var_disk="4"
-var_os="debian"
-var_version="12"
-var_unprivileged="1"
+# Application Configuration
+APP="ApplicationName"
+var_tags="tag1;tag2;tag3"      # Max 3-4 tags, no spaces, semicolon-separated
+
+# Container Resources
+var_cpu="2"                    # CPU cores
+var_ram="2048"                 # RAM in MB
+var_disk="10"                  # Disk in GB
+
+# Container Type & OS
+var_os="debian"                # Options: alpine, debian, ubuntu
+var_version="12"               # Alpine: 3.20+, Debian: 11-13, Ubuntu: 20.04+
+var_unprivileged="1"           # 1=unprivileged (secure), 0=privileged (rarely needed)
 ```
 
-## 2.2 **📋 App output & base settings**
+**Variable Naming Convention**:
+- Variables exposed to user: `var_*` (e.g., `var_cpu`, `var_hostname`, `var_ssh`)
+- Internal variables: lowercase (e.g., `container_id`, `app_version`)
+
+### 3. Display & Initialization
 
 ```bash
-# App Output & Base Settings
+# Display header ASCII art
 header_info "$APP"
-base_settings
-```
 
-- `header_info`: Generates ASCII header for APP
-- `base_settings`: Allows overwriting variable values
-
-## 2.3 **🛠 Core functions**
-
-```bash
-# Core
+# Process command-line arguments and load configuration
 variables
+
+# Setup ANSI color codes and formatting
 color
+
+# Initialize error handling (trap ERR, EXIT, INT, TERM)
 catch_errors
 ```
 
-- `variables`: Processes input and prepares variables
-- `color`: Sets icons, colors, and formatting
-- `catch_errors`: Enables error handling
-
----
-
-## 3 **Update function**
-
-### 3.1 **Function Header**
-
-- If applicable write a function that updates the application and the OS in the container.
-- Each update function starts with the same code:
+### 4. Update Function (Highly Recommended)
 
 ```bash
 function update_script() {
   header_info
+
+  # Always start with these checks
   check_container_storage
   check_container_resources
-```
 
-### 3.2 **Check APP**
-
-- Before doing anything update-wise, check if the app is installed in the container.
-
-Example:
-
-```bash
-if [[ ! -d /opt/snipe-it ]]; then
+  # Verify app is installed
+  if [[ ! -d /opt/appname ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-```
 
-### 3.3 **Check version**
+  # Get latest version from GitHub
+  RELEASE=$(curl -fsSL https://api.github.com/repos/user/repo/releases/latest | \
+    grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
 
-- Before updating, check if a new version exists.
-  - We use the `${APPLICATION}_version.txt` file created in `/opt` during the install to compare new versions against the currently installed version.
-
-Example with a Github Release:
-
-```bash
- RELEASE=$(curl -fsSL https://api.github.com/repos/snipe/snipe-it/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+  # Compare with saved version
   if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
     msg_info "Updating ${APP} to v${RELEASE}"
-    #DO UPDATE
+
+    # Backup user data
+    cp -r /opt/appname /opt/appname-backup
+
+    # Perform update
+    cd /opt
+    wget -q "https://github.com/user/repo/releases/download/v${RELEASE}/app-${RELEASE}.tar.gz"
+    tar -xzf app-${RELEASE}.tar.gz
+
+    # Restore user data
+    cp /opt/appname-backup/config/* /opt/appname/config/
+
+    # Cleanup
+    rm -rf app-${RELEASE}.tar.gz /opt/appname-backup
+
+    # Save new version
+    echo "${RELEASE}" > /opt/${APP}_version.txt
+
+    msg_ok "Updated ${APP} to v${RELEASE}"
+  else
+    msg_ok "No update required. ${APP} is already at v${RELEASE}."
+  fi
+
+  exit
+}
+```
+
+### 5. Script Launch
+
+```bash
+# Start the container creation workflow
+start
+
+# Build the container with selected configuration
+build_container
+
+# Set container description/notes in Proxmox UI
+description
+
+# Display success message
+msg_ok "Completed Successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
+```
+
+---
+
+## Function Reference
+
+### Core Functions (From build.func)
+
+#### `variables()`
+
+**Purpose**: Initialize container variables, load user arguments, setup orchestration
+
+**Triggered by**: Called automatically at script start
+
+**Behavior**:
+1. Parse command-line arguments (if any)
+2. Generate random UUID for session tracking
+3. Load container storage from Proxmox
+4. Initialize application-specific defaults
+5. Setup SSH/environment configuration
+
+**Example Output**:
+```
+Setting up variables...
+Container ID: 100
+Storage: local-lvm
+Install method: Default
+```
+
+#### `start()`
+
+**Purpose**: Launch the container creation menu with 5 installation modes
+
+**Triggered by**: Called just before `build_container()`
+
+**Menu Options**:
+```
+1. Default Installation (Quick setup, predefined settings)
+2. Advanced Installation (19-step wizard with full control)
+3. User Defaults (Load ~/.community-scripts/default.vars)
+4. App Defaults (Load /defaults/AppName.vars)
+5. Settings Menu (Interactive mode selection)
+```
+
+**User Flow**:
+```
+Select installation mode:
+1) Default
+2) Advanced
+3) User Defaults
+4) App Defaults
+5) Settings Menu
+Enter choice: 2
+```
+
+#### `build_container()`
+
+**Purpose**: Main orchestrator for LXC container creation
+
+**Operations**:
+1. Validates all variables
+2. Creates LXC container via `pct create`
+3. Executes `install/AppName-install.sh` inside container
+4. Monitors installation progress
+5. Handles errors and rollback on failure
+
+**Exit Codes**:
+- `0` - Success
+- `1-255` - Various error conditions (see error_handler.func)
+
+#### `description()`
+
+**Purpose**: Set container description/notes visible in Proxmox UI
+
+**Format**:
+```
+AppName
+IP: [IP]
+Version: [Version]
+Tags: [Tags]
+```
+
+#### `header_info()`
+
+**Purpose**: Display ASCII art header for application
+
+**Sources**:
+- Tries `/usr/local/community-scripts/headers/ct/appname` (cached)
+- Falls back to remote fetch from GitHub
+- Returns silently if not found
+
+---
+
+## Advanced Features
+
+### 1. Integration with Defaults System
+
+#### Save App Defaults After Installation
+
+```bash
+# At end of install script, after successful setup:
+maybe_offer_save_app_defaults
+
+# Output:
+# "Save these settings as App Defaults for AppName? (Y/n)"
+# Yes → Saves to /defaults/appname.vars
+# No → Skips saving
+```
+
+#### Load Saved Defaults During Container Creation
+
+```bash
+# In ct/AppName.sh, user selects "App Defaults" mode
+# Automatically loads /defaults/appname.vars
+# Container uses previously saved configuration
+```
+
+### 2. Custom Configuration Menus
+
+If your app has additional setup beyond standard vars:
+
+```bash
+# In ct/AppName.sh, after variables()
+custom_app_settings() {
+  CONFIGURE_DB=$(whiptail --title "Database Setup" \
+    --yesno "Would you like to configure a custom database?" 8 60)
+
+  if [[ $? -eq 0 ]]; then
+    DB_HOST=$(whiptail --inputbox "Database Host:" 8 60 3>&1 1>&2 2>&3)
+    DB_PORT=$(whiptail --inputbox "Database Port:" 8 60 "3306" 3>&1 1>&2 2>&3)
+  fi
+}
+
+custom_app_settings
+```
+
+### 3. Version Tracking
+
+Save installed version for update checks:
+
+```bash
+# In install script, after successful app download:
+RELEASE="1.2.3"
+echo "${RELEASE}" > /opt/${APP}_version.txt
+
+# In update function, compare:
+CURRENT=$(cat /opt/${APP}_version.txt 2>/dev/null)
+LATEST=$(curl -fsSL https://api.github.com/repos/user/repo/releases/latest | jq -r '.tag_name')
+
+if [[ "$LATEST" != "$CURRENT" ]]; then
+  echo "Update available: $CURRENT → $LATEST"
+fi
+```
+
+### 4. Health Check Functions
+
+Add custom validation:
+
+```bash
+function health_check() {
+  header_info
+
+  if [[ ! -d /opt/appname ]]; then
+    msg_error "Application not found!"
+    exit 1
+  fi
+
+  if ! systemctl is-active --quiet appname; then
+    msg_error "Application service not running"
+    exit 1
+  fi
+
+  msg_ok "Health check passed"
+}
+
+# Called via: bash ct/appname.sh health_check
+```
+
+---
+
+## Real Examples
+
+### Example 1: Simple Web App (Debian-based)
+
+```bash
+#!/usr/bin/env bash
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+
+APP="Homarr"
+var_tags="dashboard;homepage"
+var_cpu="2"
+var_ram="1024"
+var_disk="5"
+var_os="debian"
+var_version="12"
+var_unprivileged="1"
+
+header_info "$APP"
+variables
+color
+catch_errors
+
+function update_script() {
+  header_info
+  check_container_storage
+  check_container_resources
+
+  if [[ ! -d /opt/homarr ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit
+  fi
+
+  RELEASE=$(curl -fsSL https://api.github.com/repos/ajnart/homarr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4)}')
+
+  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+    msg_info "Updating ${APP} to v${RELEASE}"
+    systemctl stop homarr
+
+    cd /opt/homarr
+    wget -q "https://github.com/ajnart/homarr/releases/download/v${RELEASE}/docker-compose.yml"
+    docker-compose up -d
+
+    echo "${RELEASE}" > /opt/${APP}_version.txt
+    msg_ok "Updated ${APP} to v${RELEASE}"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}."
   fi
   exit
 }
-```
 
-### 3.4 **Verbosity**
-
-- Use the appropriate flag (**-q** in the examples) for a command to suppress its output.
-Example:
-
-```bash
-wget -q
-unzip -q
-```
-
-- If a command does not come with this functionality use `&>/dev/null` to suppress it's output.
-
-Example:
-
-```bash
-php artisan migrate --force &>/dev/null
-php artisan config:clear &>/dev/null
-```
-
-### 3.5 **Backups**
-
-- Backup user data if necessary.
-- Move all user data back in the directory when the update is finished.
-
->[!NOTE]
->This is not meant to be a permanent backup
-
-Example backup:
-
-```bash
-  mv /opt/snipe-it /opt/snipe-it-backup
-```
-
-Example config restore:
-
-```bash
-  cp /opt/snipe-it-backup/.env /opt/snipe-it/.env
-  cp -r /opt/snipe-it-backup/public/uploads/ /opt/snipe-it/public/uploads/
-  cp -r /opt/snipe-it-backup/storage/private_uploads /opt/snipe-it/storage/private_uploads
-```
-
-### 3.6 **Cleanup**
-
-- Do not forget to remove any temporary files/folders such as zip-files or temporary backups.
-Example:
-
-```bash
-  rm -rf /opt/v${RELEASE}.zip
-  rm -rf /opt/snipe-it-backup
-```
-
-### 3.7 **No update function**
-
-- In case you can not provide a update function use the following code to provide user feedback.
-
-```bash
-function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -d /opt/snipeit ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-    msg_error "There is currently no automatic update function for ${APP}."
-    exit
-}
-```
-
----
-
-## 4 **End of the script**
-
-- `start`: Launches Whiptail dialogue
-- `build_container`: Collects and integrates user settings
-- `description`: Sets LXC container description
-- With `echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"` you can point the user to the IP:PORT/folder needed to access the app.
-
-```bash
 start
 build_container
 description
@@ -275,18 +495,223 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5100${CL}"
+```
+
+### Example 2: Database App (Alpine-based)
+
+```bash
+#!/usr/bin/env bash
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+
+APP="PostgreSQL"
+var_tags="database;sql"
+var_cpu="4"
+var_ram="4096"
+var_disk="20"
+var_os="alpine"
+var_version="3.20"
+var_unprivileged="1"
+
+header_info "$APP"
+variables
+color
+catch_errors
+
+function update_script() {
+  header_info
+  check_container_storage
+
+  if ! command -v psql &>/dev/null; then
+    msg_error "PostgreSQL not installed!"
+    exit
+  fi
+
+  msg_info "Updating Alpine packages"
+  apk update
+  apk upgrade
+  msg_ok "Updated Alpine packages"
+  exit
+}
+
+start
+build_container
+description
+
+msg_ok "Completed Successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Connect using:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}psql -h ${IP} -U postgres${CL}"
 ```
 
 ---
 
-## 5. **Contribution checklist**
+## Troubleshooting
 
-- [ ] Shebang is correctly set (`#!/usr/bin/env bash`).
-- [ ] Correct link to *build.func*
-- [ ] Metadata (author, license) is included at the top.
-- [ ] Variables follow naming conventions.
-- [ ] Update function exists.
-- [ ] Update functions checks if app is installed an for new version.
-- [ ] Update function up temporary files.
-- [ ] Script ends with a helpful message for the user to reach the application.
+### Container Creation Fails
+
+**Symptom**: `pct create` exits with error code 209
+
+**Causes**:
+1. CTID already exists: `pct list` shows duplicate
+2. Storage full: Check storage space
+3. Network template unavailable
+
+**Solution**:
+```bash
+# Check existing containers
+pct list | grep CTID
+
+# Remove conflicting container
+pct destroy CTID
+
+# Retry ct/AppName.sh
+```
+
+### Update Function Doesn't Detect New Version
+
+**Symptom**: Update available but script says "already at latest"
+
+**Causes**:
+1. Version file missing: `/opt/AppName_version.txt`
+2. GitHub API rate limit exceeded
+3. Release tag format mismatch
+
+**Debug**:
+```bash
+# Check version file
+cat /opt/AppName_version.txt
+
+# Test GitHub API
+curl -fsSL https://api.github.com/repos/user/repo/releases/latest | grep tag_name
+
+# Inside container
+bash ct/appname.sh update_script
+```
+
+### Header ASCII Art Not Displaying
+
+**Symptom**: Container script runs but no header shown
+
+**Causes**:
+1. Header file not in repository
+2. Caching issue
+
+**Solution**:
+```bash
+# Create header file manually
+mkdir -p /usr/local/community-scripts/headers/ct
+echo "Your ASCII art here" > /usr/local/community-scripts/headers/ct/appname
+
+# Or remove cache to force re-download
+rm -f /usr/local/community-scripts/headers/ct/appname
+```
+
+---
+
+## Contribution Checklist
+
+Before submitting a PR:
+
+### Script Structure
+- [ ] Shebang is `#!/usr/bin/env bash`
+- [ ] Imports `build.func` from community-scripts repo (not personal fork)
+- [ ] Copyright header with author and source URL
+- [ ] APP variable matches filename
+- [ ] `var_tags` are semicolon-separated (no spaces)
+
+### Default Values
+- [ ] `var_cpu` set appropriately (2-4 for most apps)
+- [ ] `var_ram` set appropriately (1024-4096 MB minimum)
+- [ ] `var_disk` sufficient for app + data (5-20 GB)
+- [ ] `var_os` is realistic (Alpine if lightweight, Debian/Ubuntu otherwise)
+- [ ] `var_unprivileged="1"` unless app absolutely needs privileges
+
+### Functions
+- [ ] `update_script()` implemented (or marked as unavailable)
+- [ ] Update function checks if app installed
+- [ ] Update function checks for new version
+- [ ] Update function performs cleanup after update
+- [ ] Proper error handling with `msg_error` on failure
+
+### Output
+- [ ] Success message displayed with access URL
+- [ ] URL format: `http://IP:PORT/path` (if web-based)
+- [ ] Uses `msg_ok`, `msg_info`, `msg_error` for feedback
+
+### Testing
+- [ ] Script tested with default installation
+- [ ] Script tested with advanced (19-step) installation
+- [ ] Update function tested on existing installation
+- [ ] Error handling tested (invalid settings, network issues)
+
+---
+
+## Best Practices
+
+### ✅ DO:
+
+1. **Use meaningful defaults**
+   ```bash
+   var_cpu="2"        # ✅ Good: Typical workload
+   var_cpu="128"      # ❌ Bad: Unrealistic
+   ```
+
+2. **Implement version tracking**
+   ```bash
+   echo "${RELEASE}" > /opt/${APP}_version.txt  # ✅ Good
+   # ❌ Bad: No version tracking
+   ```
+
+3. **Handle edge cases**
+   ```bash
+   if [[ ! -f /opt/${APP}_version.txt ]]; then
+     msg_info "First installation detected"
+   fi
+   ```
+
+4. **Use proper messaging**
+   ```bash
+   msg_info "Updating..."  # ✅ Good: Clear status
+   echo "Updating..."      # ❌ Bad: No formatting
+   ```
+
+### ❌ DON'T:
+
+1. **Hardcode versions**
+   ```bash
+   RELEASE="1.2.3"    # ❌ Bad: Won't auto-update
+   ```
+
+2. **Use custom color codes**
+   ```bash
+   echo -e "\033[32mSuccess"  # ❌ Bad: Use $GN instead
+   ```
+
+3. **Forget error handling**
+   ```bash
+   wget file.zip      # ❌ Bad: No error check
+   if ! wget -q file.zip; then  # ✅ Good
+     msg_error "Download failed"
+   fi
+   ```
+
+4. **Leave temporary files**
+   ```bash
+   rm -rf /opt/file.zip     # ✅ Always cleanup
+   ```
+
+---
+
+## Related Documentation
+
+- [install/AppName-install.sh Guide](UPDATED_APP-install.md)
+- [build.func Wiki](../misc/build.func.md)
+- [tools.func Wiki](../misc/tools.func.md)
+- [Defaults System Guide](../DEFAULTS_SYSTEM_GUIDE.md)
+
+---
+
+**Last Updated**: December 2025
+**Compatibility**: ProxmoxVED with build.func v3+
+**Questions?** Open an issue in the repository
