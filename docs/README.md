@@ -1,12 +1,40 @@
 # 📚 ProxmoxVED Documentation
 
-Complete documentation for the ProxmoxVED project - mirroring the project structure with comprehensive guides for every component.
+Complete guide to all ProxmoxVED documentation - quickly find what you need.
 
 ---
 
-## 🎯 **Quick Start by Role**
+## 🎯 **Quick Navigation by Goal**
 
-### 👤 **I'm a...**
+### 👤 **I want to...**
+
+**Contribute a new application**
+→ Start with: [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md)
+→ Then: [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) + [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
+
+**Understand the architecture**
+→ Read: [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)
+→ Then: [misc/README.md](misc/README.md)
+
+**Debug a failed installation**
+→ Check: [EXIT_CODES.md](EXIT_CODES.md)
+→ Then: [DEV_MODE.md](DEV_MODE.md)
+→ See also: [misc/error_handler.func/](misc/error_handler.func/)
+
+**Configure system defaults**
+→ Read: [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md)
+
+**Learn about recent changes**
+→ Check: [CHANGELOG_MISC.md](CHANGELOG_MISC.md)
+
+**Develop a function library**
+→ Study: [misc/](misc/) documentation
+
+---
+
+## 👤 **Quick Start by Role**
+
+### **I'm a...**
 
 **New Contributor**
 → Start: [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md)
@@ -14,12 +42,12 @@ Complete documentation for the ProxmoxVED project - mirroring the project struct
 
 **Container Creator**
 → Read: [ct/README.md](ct/README.md)
-→ Guide: [UPDATED_APP-ct.md](UPDATED_APP-ct.md)
+→ Deep Dive: [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md)
 → Reference: [misc/build.func/](misc/build.func/)
 
 **Installation Script Developer**
 → Read: [install/README.md](install/README.md)
-→ Guide: [UPDATED_APP-install.md](UPDATED_APP-install.md)
+→ Deep Dive: [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
 → Reference: [misc/tools.func/](misc/tools.func/)
 
 **VM Provisioner**
@@ -45,7 +73,7 @@ Complete documentation for the ProxmoxVED project - mirroring the project struct
 
 ---
 
-## 📁 **Documentation Structure**
+## 📂 **Documentation Structure**
 
 ### Project-Mirrored Directories
 
@@ -53,11 +81,11 @@ Each major project directory has documentation:
 
 ```
 ProxmoxVED/
-├─ ct/                 ↔ docs/ct/README.md
-├─ install/           ↔ docs/install/README.md
-├─ vm/                ↔ docs/vm/README.md
-├─ tools/            ↔ docs/tools/README.md
-├─ api/              ↔ docs/api/README.md
+├─ ct/                 ↔ docs/ct/ (README.md + DETAILED_GUIDE.md)
+├─ install/           ↔ docs/install/ (README.md + DETAILED_GUIDE.md)
+├─ vm/                ↔ docs/vm/ (README.md)
+├─ tools/            ↔ docs/tools/ (README.md)
+├─ api/              ↔ docs/api/ (README.md)
 └─ misc/             ↔ docs/misc/ (9 function libraries)
 ```
 
@@ -66,8 +94,8 @@ ProxmoxVED/
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md) | How to contribute | Contributors |
-| [UPDATED_APP-ct.md](UPDATED_APP-ct.md) | Create ct scripts | Container developers |
-| [UPDATED_APP-install.md](UPDATED_APP-install.md) | Create install scripts | Installation developers |
+| [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) | Create ct scripts | Container developers |
+| [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md) | Create install scripts | Installation developers |
 | [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) | Architecture deep-dive | Architects, advanced users |
 | [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md) | Configuration system | Operators, power users |
 | [EXIT_CODES.md](EXIT_CODES.md) | Exit code reference | Troubleshooters |
@@ -83,7 +111,7 @@ Documentation for `/ct` - Container creation scripts that run on the Proxmox hos
 
 **Includes**:
 - Overview of container creation process
-- Link to [UPDATED_APP-ct.md](UPDATED_APP-ct.md) guide
+- Deep dive: [DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) - Complete reference with examples
 - Reference to [misc/build.func/](misc/build.func/)
 - Quick start for creating new containers
 
@@ -92,7 +120,7 @@ Documentation for `/install` - Scripts that run inside containers to install app
 
 **Includes**:
 - Overview of 10-phase installation pattern
-- Link to [UPDATED_APP-install.md](UPDATED_APP-install.md) guide
+- Deep dive: [DETAILED_GUIDE.md](install/DETAILED_GUIDE.md) - Complete reference with examples
 - Reference to [misc/tools.func/](misc/tools.func/)
 - Alpine vs Debian differences
 
@@ -145,13 +173,12 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 
 1. [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md) - Quick Start
 2. Pick your area:
-   - Containers → [ct/README.md](ct/README.md)
-   - Installation → [install/README.md](install/README.md)
+   - Containers → [ct/README.md](ct/README.md) + [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md)
+   - Installation → [install/README.md](install/README.md) + [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
    - VMs → [vm/README.md](vm/README.md)
-3. Read the corresponding UPDATED_APP guide
-4. Study existing similar script
-5. Create your contribution
-6. Submit PR
+3. Study existing similar script
+4. Create your contribution
+5. Submit PR
 
 ### Path 2: Intermediate Developer (4-6 hours)
 
@@ -167,8 +194,7 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 ### Path 3: Advanced Architect (8+ hours)
 
 1. All of Intermediate Path
-2. Study all 9 function libraries:
-   - Each with FLOWCHART, FUNCTIONS_REFERENCE, INTEGRATION, USAGE_EXAMPLES
+2. Study all 9 function libraries in depth
 3. [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md) - Configuration system
 4. [DEV_MODE.md](DEV_MODE.md) - Debugging and development
 5. Design new features or function libraries
@@ -186,7 +212,7 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 
 | Metric | Count |
 |--------|:---:|
-| **Documentation Files** | 67 |
+| **Documentation Files** | 63 |
 | **Total Lines** | 15,000+ |
 | **Function Libraries** | 9 |
 | **Functions Documented** | 150+ |
@@ -200,8 +226,8 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 ## 🔍 **Find It Fast**
 
 ### By Feature
-- **How do I create a container?** → [UPDATED_APP-ct.md](UPDATED_APP-ct.md)
-- **How do I create an install script?** → [UPDATED_APP-install.md](UPDATED_APP-install.md)
+- **How do I create a container?** → [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md)
+- **How do I create an install script?** → [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
 - **How do I create a VM?** → [vm/README.md](vm/README.md)
 - **How do I install Node.js?** → [misc/tools.func/](misc/tools.func/)
 - **How do I debug?** → [DEV_MODE.md](DEV_MODE.md)
@@ -230,7 +256,7 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 - ✅ **Best practices** - DO/DON'T sections throughout
 - ✅ **Learning paths** - Structured curriculum by role
 - ✅ **Quick references** - Fast lookup by error code
-- ✅ **Comprehensive index** → [INDEX.md](INDEX.md)
+- ✅ **Comprehensive navigation** - This page
 
 ---
 
@@ -238,7 +264,7 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 
 **New to ProxmoxVED?** → [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md)
 
-**Looking for something specific?** → [INDEX.md](INDEX.md)
+**Looking for something specific?** → Choose your role above or browse by directory
 
 **Need to debug?** → [EXIT_CODES.md](EXIT_CODES.md)
 
@@ -250,7 +276,7 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 
 Found an error? Want to improve docs?
 
-1. Open issue: https://github.com/community-scripts/ProxmoxVED/issues
+1. Open issue: [GitHub Issues](https://github.com/community-scripts/ProxmoxVED/issues)
 2. Or submit PR with improvements
 3. See [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md) for details
 
@@ -259,10 +285,10 @@ Found an error? Want to improve docs?
 ## 📝 **Status**
 
 - **Last Updated**: December 2025
-- **Version**: 2.1 (Project Structure Mirror)
+- **Version**: 2.3 (Consolidated & Reorganized)
 - **Completeness**: ✅ 100% - All components documented
 - **Quality**: ✅ Production-ready
-- **Examples**: ✅ 50+ tested examples
+- **Structure**: ✅ Clean and organized
 
 ---
 

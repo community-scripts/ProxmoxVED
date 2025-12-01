@@ -279,19 +279,9 @@ echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
 4. Initialize application-specific defaults
 5. Setup SSH/environment configuration
 
-**Example Output**:
-```
-Setting up variables...
-Container ID: 100
-Storage: local-lvm
-Install method: Default
-```
-
 #### `start()`
 
 **Purpose**: Launch the container creation menu with 5 installation modes
-
-**Triggered by**: Called just before `build_container()`
 
 **Menu Options**:
 ```
@@ -300,17 +290,6 @@ Install method: Default
 3. User Defaults (Load ~/.community-scripts/default.vars)
 4. App Defaults (Load /defaults/AppName.vars)
 5. Settings Menu (Interactive mode selection)
-```
-
-**User Flow**:
-```
-Select installation mode:
-1) Default
-2) Advanced
-3) User Defaults
-4) App Defaults
-5) Settings Menu
-Enter choice: 2
 ```
 
 #### `build_container()`
@@ -324,63 +303,19 @@ Enter choice: 2
 4. Monitors installation progress
 5. Handles errors and rollback on failure
 
-**Exit Codes**:
-- `0` - Success
-- `1-255` - Various error conditions (see error_handler.func)
-
 #### `description()`
 
 **Purpose**: Set container description/notes visible in Proxmox UI
-
-**Format**:
-```
-AppName
-IP: [IP]
-Version: [Version]
-Tags: [Tags]
-```
-
-#### `header_info()`
-
-**Purpose**: Display ASCII art header for application
-
-**Sources**:
-- Tries `/usr/local/community-scripts/headers/ct/appname` (cached)
-- Falls back to remote fetch from GitHub
-- Returns silently if not found
 
 ---
 
 ## Advanced Features
 
-### 1. Integration with Defaults System
-
-#### Save App Defaults After Installation
-
-```bash
-# At end of install script, after successful setup:
-maybe_offer_save_app_defaults
-
-# Output:
-# "Save these settings as App Defaults for AppName? (Y/n)"
-# Yes → Saves to /defaults/appname.vars
-# No → Skips saving
-```
-
-#### Load Saved Defaults During Container Creation
-
-```bash
-# In ct/AppName.sh, user selects "App Defaults" mode
-# Automatically loads /defaults/appname.vars
-# Container uses previously saved configuration
-```
-
-### 2. Custom Configuration Menus
+### 1. Custom Configuration Menus
 
 If your app has additional setup beyond standard vars:
 
 ```bash
-# In ct/AppName.sh, after variables()
 custom_app_settings() {
   CONFIGURE_DB=$(whiptail --title "Database Setup" \
     --yesno "Would you like to configure a custom database?" 8 60)
@@ -394,25 +329,11 @@ custom_app_settings() {
 custom_app_settings
 ```
 
-### 3. Version Tracking
+### 2. Update Function Patterns
 
-Save installed version for update checks:
+Save installed version for update checks
 
-```bash
-# In install script, after successful app download:
-RELEASE="1.2.3"
-echo "${RELEASE}" > /opt/${APP}_version.txt
-
-# In update function, compare:
-CURRENT=$(cat /opt/${APP}_version.txt 2>/dev/null)
-LATEST=$(curl -fsSL https://api.github.com/repos/user/repo/releases/latest | jq -r '.tag_name')
-
-if [[ "$LATEST" != "$CURRENT" ]]; then
-  echo "Update available: $CURRENT → $LATEST"
-fi
-```
-
-### 4. Health Check Functions
+### 3. Health Check Functions
 
 Add custom validation:
 
@@ -432,8 +353,6 @@ function health_check() {
 
   msg_ok "Health check passed"
 }
-
-# Called via: bash ct/appname.sh health_check
 ```
 
 ---
@@ -461,87 +380,13 @@ color
 catch_errors
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
-
-  if [[ ! -d /opt/homarr ]]; then
-    msg_error "No ${APP} Installation Found!"
-    exit
-  fi
-
-  RELEASE=$(curl -fsSL https://api.github.com/repos/ajnart/homarr/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4)}')
-
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-    msg_info "Updating ${APP} to v${RELEASE}"
-    systemctl stop homarr
-
-    cd /opt/homarr
-    wget -q "https://github.com/ajnart/homarr/releases/download/v${RELEASE}/docker-compose.yml"
-    docker-compose up -d
-
-    echo "${RELEASE}" > /opt/${APP}_version.txt
-    msg_ok "Updated ${APP} to v${RELEASE}"
-  else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}."
-  fi
-  exit
+  # Update logic here
 }
 
 start
 build_container
 description
-
 msg_ok "Completed Successfully!\n"
-echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5100${CL}"
-```
-
-### Example 2: Database App (Alpine-based)
-
-```bash
-#!/usr/bin/env bash
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
-
-APP="PostgreSQL"
-var_tags="database;sql"
-var_cpu="4"
-var_ram="4096"
-var_disk="20"
-var_os="alpine"
-var_version="3.20"
-var_unprivileged="1"
-
-header_info "$APP"
-variables
-color
-catch_errors
-
-function update_script() {
-  header_info
-  check_container_storage
-
-  if ! command -v psql &>/dev/null; then
-    msg_error "PostgreSQL not installed!"
-    exit
-  fi
-
-  msg_info "Updating Alpine packages"
-  apk update
-  apk upgrade
-  msg_ok "Updated Alpine packages"
-  exit
-}
-
-start
-build_container
-description
-
-msg_ok "Completed Successfully!\n"
-echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Connect using:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}psql -h ${IP} -U postgres${CL}"
 ```
 
 ---
@@ -551,11 +396,6 @@ echo -e "${TAB}${GATEWAY}${BGN}psql -h ${IP} -U postgres${CL}"
 ### Container Creation Fails
 
 **Symptom**: `pct create` exits with error code 209
-
-**Causes**:
-1. CTID already exists: `pct list` shows duplicate
-2. Storage full: Check storage space
-3. Network template unavailable
 
 **Solution**:
 ```bash
@@ -570,13 +410,6 @@ pct destroy CTID
 
 ### Update Function Doesn't Detect New Version
 
-**Symptom**: Update available but script says "already at latest"
-
-**Causes**:
-1. Version file missing: `/opt/AppName_version.txt`
-2. GitHub API rate limit exceeded
-3. Release tag format mismatch
-
 **Debug**:
 ```bash
 # Check version file
@@ -584,27 +417,6 @@ cat /opt/AppName_version.txt
 
 # Test GitHub API
 curl -fsSL https://api.github.com/repos/user/repo/releases/latest | grep tag_name
-
-# Inside container
-bash ct/appname.sh update_script
-```
-
-### Header ASCII Art Not Displaying
-
-**Symptom**: Container script runs but no header shown
-
-**Causes**:
-1. Header file not in repository
-2. Caching issue
-
-**Solution**:
-```bash
-# Create header file manually
-mkdir -p /usr/local/community-scripts/headers/ct
-echo "Your ASCII art here" > /usr/local/community-scripts/headers/ct/appname
-
-# Or remove cache to force re-download
-rm -f /usr/local/community-scripts/headers/ct/appname
 ```
 
 ---
@@ -615,7 +427,7 @@ Before submitting a PR:
 
 ### Script Structure
 - [ ] Shebang is `#!/usr/bin/env bash`
-- [ ] Imports `build.func` from community-scripts repo (not personal fork)
+- [ ] Imports `build.func` from community-scripts repo
 - [ ] Copyright header with author and source URL
 - [ ] APP variable matches filename
 - [ ] `var_tags` are semicolon-separated (no spaces)
@@ -624,26 +436,17 @@ Before submitting a PR:
 - [ ] `var_cpu` set appropriately (2-4 for most apps)
 - [ ] `var_ram` set appropriately (1024-4096 MB minimum)
 - [ ] `var_disk` sufficient for app + data (5-20 GB)
-- [ ] `var_os` is realistic (Alpine if lightweight, Debian/Ubuntu otherwise)
-- [ ] `var_unprivileged="1"` unless app absolutely needs privileges
+- [ ] `var_os` is realistic
 
 ### Functions
-- [ ] `update_script()` implemented (or marked as unavailable)
+- [ ] `update_script()` implemented
 - [ ] Update function checks if app installed
-- [ ] Update function checks for new version
-- [ ] Update function performs cleanup after update
-- [ ] Proper error handling with `msg_error` on failure
-
-### Output
-- [ ] Success message displayed with access URL
-- [ ] URL format: `http://IP:PORT/path` (if web-based)
-- [ ] Uses `msg_ok`, `msg_info`, `msg_error` for feedback
+- [ ] Proper error handling with `msg_error`
 
 ### Testing
 - [ ] Script tested with default installation
 - [ ] Script tested with advanced (19-step) installation
 - [ ] Update function tested on existing installation
-- [ ] Error handling tested (invalid settings, network issues)
 
 ---
 
@@ -652,66 +455,18 @@ Before submitting a PR:
 ### ✅ DO:
 
 1. **Use meaningful defaults**
-   ```bash
-   var_cpu="2"        # ✅ Good: Typical workload
-   var_cpu="128"      # ❌ Bad: Unrealistic
-   ```
-
 2. **Implement version tracking**
-   ```bash
-   echo "${RELEASE}" > /opt/${APP}_version.txt  # ✅ Good
-   # ❌ Bad: No version tracking
-   ```
-
 3. **Handle edge cases**
-   ```bash
-   if [[ ! -f /opt/${APP}_version.txt ]]; then
-     msg_info "First installation detected"
-   fi
-   ```
-
-4. **Use proper messaging**
-   ```bash
-   msg_info "Updating..."  # ✅ Good: Clear status
-   echo "Updating..."      # ❌ Bad: No formatting
-   ```
+4. **Use proper messaging with msg_info/msg_ok/msg_error**
 
 ### ❌ DON'T:
 
 1. **Hardcode versions**
-   ```bash
-   RELEASE="1.2.3"    # ❌ Bad: Won't auto-update
-   ```
-
-2. **Use custom color codes**
-   ```bash
-   echo -e "\033[32mSuccess"  # ❌ Bad: Use $GN instead
-   ```
-
+2. **Use custom color codes** (use built-in variables)
 3. **Forget error handling**
-   ```bash
-   wget file.zip      # ❌ Bad: No error check
-   if ! wget -q file.zip; then  # ✅ Good
-     msg_error "Download failed"
-   fi
-   ```
-
 4. **Leave temporary files**
-   ```bash
-   rm -rf /opt/file.zip     # ✅ Always cleanup
-   ```
-
----
-
-## Related Documentation
-
-- [install/AppName-install.sh Guide](UPDATED_APP-install.md)
-- [build.func Wiki](../misc/build.func.md)
-- [tools.func Wiki](../misc/tools.func.md)
-- [Defaults System Guide](../DEFAULTS_SYSTEM_GUIDE.md)
 
 ---
 
 **Last Updated**: December 2025
 **Compatibility**: ProxmoxVED with build.func v3+
-**Questions?** Open an issue in the repository
