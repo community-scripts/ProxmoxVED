@@ -1,17 +1,9 @@
 #!/usr/bin/env bash
-<<<<<<< HEAD
-source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
-# Author: luismco
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/Lissy93/web-check
-=======
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: luismco
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/ThePhaseless/Byparr
->>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
 
 APP="Byparr"
 var_tags="${var_tags:-proxy}"

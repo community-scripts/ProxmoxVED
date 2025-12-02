@@ -33,8 +33,8 @@ if ! command -v curl >/dev/null 2>&1; then
   apt-get update >/dev/null 2>&1
   apt-get install -y curl >/dev/null 2>&1
 fi
-source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/error_handler.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
 load_functions
 catch_errors
 
@@ -191,8 +191,6 @@ else
   echo -n "DIRECT"
 fi
 EOF
-<<<<<<< HEAD
-<<<<<<< HEAD
     chmod +x /usr/local/bin/apt-proxy-detect.sh
   fi
   $STD apt-get update
@@ -200,20 +198,6 @@ EOF
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
   msg_ok "Updated Container OS"
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
-=======
-=======
->>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
-        chmod +x /usr/local/bin/apt-proxy-detect.sh
-    fi
-    $STD apt-get update
-    $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
-    rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
-    msg_ok "Updated Container OS"
-    source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/tools.func)
-<<<<<<< HEAD
->>>>>>> 1b856490 (Added install and ct files)
-=======
->>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
 }
 
 # ==============================================================================
@@ -288,8 +272,6 @@ customize() {
   ExecStart=
   ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
 EOF
-<<<<<<< HEAD
-<<<<<<< HEAD
     systemctl daemon-reload
     systemctl restart $(basename $(dirname $GETTY_OVERRIDE) | sed 's/\.d//')
     msg_ok "Customized Container"
@@ -302,23 +284,4 @@ EOF
     chmod 700 /root/.ssh
     chmod 600 /root/.ssh/authorized_keys
   fi
-=======
-=======
->>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
-        systemctl daemon-reload
-        systemctl restart $(basename $(dirname $GETTY_OVERRIDE) | sed 's/\.d//')
-        msg_ok "Customized Container"
-    fi
-    echo "bash -c \"\$(curl -fsSL https://github.com/luismco/ProxmoxVED/refs/heads/byparr/ct/${app}.sh)\"" >/usr/bin/update
-    chmod +x /usr/bin/update
-    if [[ -n "${SSH_AUTHORIZED_KEY}" ]]; then
-        mkdir -p /root/.ssh
-        echo "${SSH_AUTHORIZED_KEY}" >/root/.ssh/authorized_keys
-        chmod 700 /root/.ssh
-        chmod 600 /root/.ssh/authorized_keys
-    fi
-<<<<<<< HEAD
->>>>>>> 1b856490 (Added install and ct files)
-=======
->>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
 }
