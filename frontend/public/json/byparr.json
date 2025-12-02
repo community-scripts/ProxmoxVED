@@ -4,14 +4,14 @@
   "categories": [
     14
   ],
-  "date_created": "2025-11-24",
+  "date_created": "2025-12-02",
   "type": "ct",
   "updateable": true,
   "privileged": false,
   "interface_port": 8191,
   "documentation": "https://github.com/ThePhaseless/Byparr/blob/master/README.md",
   "website": "https://github.com/ThePhaseless/Byparr",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/byparr.webp",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/byparr.svg",
   "config_path": "",
   "description": "Byparr is a proxy server to bypass Cloudflare and DDoS-GUARD protection.",
   "install_methods": [
