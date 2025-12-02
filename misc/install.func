@@ -174,8 +174,8 @@ network_check() {
 update_os() {
   msg_info "Updating Container OS"
   if [[ "$CACHER" == "yes" ]]; then
-    echo "Acquire::http::Proxy-Auto-Detect \"/usr/local/bin/apt-proxy-detect.sh\";" >/etc/apt/apt.conf.d/00aptproxy
-    cat <<'EOF' >/usr/local/bin/apt-proxy-detect.sh
+    echo 'Acquire::http::Proxy-Auto-Detect "/usr/local/bin/apt-proxy-detect.sh";' >/etc/apt/apt.conf.d/00aptproxy
+    cat <<EOF >/usr/local/bin/apt-proxy-detect.sh
 #!/bin/bash
 if nc -w1 -z "${CACHER_IP}" 3142; then
   echo -n "http://${CACHER_IP}:3142"
@@ -211,8 +211,10 @@ EOF
 # - Configures TERM environment variable for better terminal support
 # ------------------------------------------------------------------------------
 motd_ssh() {
+  # Set terminal to 256-color mode
   grep -qxF "export TERM='xterm-256color'" /root/.bashrc || echo "export TERM='xterm-256color'" >>/root/.bashrc
 
+  # Get OS information (Debian / Ubuntu)
   if [ -f "/etc/os-release" ]; then
     OS_NAME=$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '"')
     OS_VERSION=$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
@@ -257,16 +259,16 @@ customize() {
     msg_info "Customizing Container"
     GETTY_OVERRIDE="/etc/systemd/system/container-getty@1.service.d/override.conf"
     mkdir -p $(dirname $GETTY_OVERRIDE)
-    cat <<'EOF' >$GETTY_OVERRIDE
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 $TERM
+    cat <<EOF >$GETTY_OVERRIDE
+  [Service]
+  ExecStart=
+  ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
 EOF
     systemctl daemon-reload
     systemctl restart $(basename $(dirname $GETTY_OVERRIDE) | sed 's/\.d//')
     msg_ok "Customized Container"
   fi
-  echo "bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${app}.sh)\"" >/usr/bin/update
+  echo "bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/${app}.sh)\"" >/usr/bin/update
   chmod +x /usr/bin/update
   if [[ -n "${SSH_AUTHORIZED_KEY}" ]]; then
     mkdir -p /root/.ssh

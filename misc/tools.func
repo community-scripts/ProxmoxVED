@@ -1527,9 +1527,10 @@ check_for_gh_release() {
 # ------------------------------------------------------------------------------
 create_self_signed_cert() {
   local APP_NAME="${1:-${APPLICATION}}"
-  local CERT_DIR="/etc/ssl/${APP_NAME}"
-  local CERT_KEY="${CERT_DIR}/${APP_NAME}.key"
-  local CERT_CRT="${CERT_DIR}/${APP_NAME}.crt"
+  local APP_NAME_LC=$(echo "${APP_NAME,,}" | tr -d ' ')
+  local CERT_DIR="/etc/ssl/${APP_NAME_LC}"
+  local CERT_KEY="${CERT_DIR}/${APP_NAME_LC}.key"
+  local CERT_CRT="${CERT_DIR}/${APP_NAME_LC}.crt"
 
   if [[ -f "$CERT_CRT" && -f "$CERT_KEY" ]]; then
     return 0
@@ -1543,7 +1544,8 @@ create_self_signed_cert() {
 
   mkdir -p "$CERT_DIR"
   $STD openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 \
-    -subj "/C=US/ST=State/L=City/O=Organization/CN=${APP_NAME}" \
+    -subj "/CN=${APP_NAME}" \
+    -addext "subjectAltName=DNS:${APP_NAME}" \
     -keyout "$CERT_KEY" \
     -out "$CERT_CRT" || {
     msg_error "Failed to create self-signed certificate"
@@ -2780,7 +2782,7 @@ function setup_java() {
 
   # Validate INSTALLED_VERSION is not empty if matched
   local JDK_COUNT=0
-  JDK_COUNT=$(dpkg -l 2>/dev/null | grep -c "temurin-.*-jdk" || echo "0")
+  JDK_COUNT=$(dpkg -l 2>/dev/null | grep -c "temurin-.*-jdk" || true)
   if [[ -z "$INSTALLED_VERSION" && "${JDK_COUNT:-0}" -gt 0 ]]; then
     msg_warn "Found Temurin JDK but cannot determine version"
     INSTALLED_VERSION="0"
@@ -2931,9 +2933,16 @@ setup_mariadb() {
   # Resolve "latest" to actual version
   if [[ "$MARIADB_VERSION" == "latest" ]]; then
     if ! curl -fsI --max-time 10 http://mirror.mariadb.org/repo/ >/dev/null 2>&1; then
-      msg_warn "MariaDB mirror not reachable - trying cached package list fallback"
-      # Fallback: try to use a known stable version
-      MARIADB_VERSION="12.0"
+      msg_warn "MariaDB mirror not reachable - trying mariadb_repo_setup fallback"
+      # Try using official mariadb_repo_setup script as fallback
+      if curl -fsSL --max-time 15 https://r.mariadb.com/downloads/mariadb_repo_setup 2>/dev/null | bash -s -- --skip-verify >/dev/null 2>&1; then
+        msg_ok "MariaDB repository configured via mariadb_repo_setup"
+        # Extract version from configured repo
+        MARIADB_VERSION=$(grep -oP 'repo/\K[0-9]+\.[0-9]+\.[0-9]+' /etc/apt/sources.list.d/mariadb.list 2>/dev/null | head -n1 || echo "12.2")
+      else
+        msg_warn "mariadb_repo_setup failed - using hardcoded fallback version"
+        MARIADB_VERSION="12.2"
+      fi
     else
       MARIADB_VERSION=$(curl -fsSL --max-time 15 http://mirror.mariadb.org/repo/ 2>/dev/null |
         grep -Eo '[0-9]+\.[0-9]+\.[0-9]+/' |
@@ -2943,8 +2952,14 @@ setup_mariadb() {
         head -n1 || echo "")
 
       if [[ -z "$MARIADB_VERSION" ]]; then
-        msg_warn "Could not parse latest GA MariaDB version from mirror - using fallback"
-        MARIADB_VERSION="12.0"
+        msg_warn "Could not parse latest GA MariaDB version from mirror - trying mariadb_repo_setup"
+        if curl -fsSL --max-time 15 https://r.mariadb.com/downloads/mariadb_repo_setup 2>/dev/null | bash -s -- --skip-verify >/dev/null 2>&1; then
+          msg_ok "MariaDB repository configured via mariadb_repo_setup"
+          MARIADB_VERSION=$(grep -oP 'repo/\K[0-9]+\.[0-9]+\.[0-9]+' /etc/apt/sources.list.d/mariadb.list 2>/dev/null | head -n1 || echo "12.2")
+        else
+          msg_warn "mariadb_repo_setup failed - using hardcoded fallback version"
+          MARIADB_VERSION="12.2"
+        fi
       fi
     fi
   fi
@@ -3620,59 +3635,57 @@ function setup_php() {
   local CURRENT_PHP=""
   CURRENT_PHP=$(is_tool_installed "php" 2>/dev/null) || true
 
-  # Scenario 1: Already at target version - just update packages
-  if [[ -n "$CURRENT_PHP" && "$CURRENT_PHP" == "$PHP_VERSION" ]]; then
-    msg_info "Update PHP $PHP_VERSION"
-
-    # Ensure Sury repo is available
-    if [[ ! -f /etc/apt/sources.list.d/php.sources ]]; then
-      manage_tool_repository "php" "$PHP_VERSION" "" "https://packages.sury.org/debsuryorg-archive-keyring.deb" || {
-        msg_error "Failed to setup PHP repository"
-        return 1
-      }
-    fi
-
-    ensure_apt_working || return 1
-
-    # Perform upgrade with retry logic (non-fatal if fails)
-    upgrade_packages_with_retry "php${PHP_VERSION}" || true
-
-    cache_installed_version "php" "$PHP_VERSION"
-    msg_ok "Update PHP $PHP_VERSION"
-  else
-    # Scenario 2: Different version installed - clean upgrade
-    if [[ -n "$CURRENT_PHP" && "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
-      msg_info "Upgrade PHP from $CURRENT_PHP to $PHP_VERSION"
-      # Stop and disable ALL PHP-FPM versions
-      stop_all_services "php.*-fpm"
-      remove_old_tool_version "php"
-    else
-      msg_info "Setup PHP $PHP_VERSION"
-    fi
-
-    # Prepare repository (cleanup + validation)
-    prepare_repository_setup "php" "deb.sury.org-php" || {
-      msg_error "Failed to prepare PHP repository"
-      return 1
-    }
-
-    # Setup Sury repository
-    manage_tool_repository "php" "$PHP_VERSION" "" "https://packages.sury.org/debsuryorg-archive-keyring.deb" || {
-      msg_error "Failed to setup PHP repository"
-      return 1
-    }
-
-    ensure_apt_working || return 1
+  # CRITICAL: If wrong version is installed, remove it FIRST before any pinning
+  if [[ -n "$CURRENT_PHP" && "$CURRENT_PHP" != "$PHP_VERSION" ]]; then
+    msg_info "Removing conflicting PHP ${CURRENT_PHP} (need ${PHP_VERSION})"
+    stop_all_services "php.*-fpm"
+    $STD apt purge -y "php*" 2>/dev/null || true
+    $STD apt autoremove -y 2>/dev/null || true
   fi
 
-  # Build module list
+  # NOW create pinning for the desired version
+  mkdir -p /etc/apt/preferences.d
+  cat <<EOF >/etc/apt/preferences.d/php-pin
+Package: php${PHP_VERSION}*
+Pin: version ${PHP_VERSION}.*
+Pin-Priority: 1001
+
+Package: php[0-9].*
+Pin: release o=packages.sury.org-php
+Pin-Priority: -1
+EOF
+
+  # Setup repository
+  prepare_repository_setup "php" "deb.sury.org-php" || {
+    msg_error "Failed to prepare PHP repository"
+    return 1
+  }
+
+  manage_tool_repository "php" "$PHP_VERSION" "" "https://packages.sury.org/debsuryorg-archive-keyring.deb" || {
+    msg_error "Failed to setup PHP repository"
+    return 1
+  }
+
+  ensure_apt_working || return 1
+  $STD apt update
+
+  # Get available PHP version from repository
+  local AVAILABLE_PHP_VERSION=""
+  AVAILABLE_PHP_VERSION=$(apt-cache show "php${PHP_VERSION}" 2>/dev/null | grep -m1 "^Version:" | awk '{print $2}' | cut -d- -f1) || true
+
+  if [[ -z "$AVAILABLE_PHP_VERSION" ]]; then
+    msg_error "PHP ${PHP_VERSION} not found in configured repositories"
+    return 1
+  fi
+
+  # Build module list - without version pinning (preferences.d handles it)
   local MODULE_LIST="php${PHP_VERSION}"
+
   IFS=',' read -ra MODULES <<<"$COMBINED_MODULES"
   for mod in "${MODULES[@]}"; do
-    if apt-cache show "php${PHP_VERSION}-${mod}" >/dev/null 2>&1; then
-      MODULE_LIST+=" php${PHP_VERSION}-${mod}"
-    fi
+    MODULE_LIST+=" php${PHP_VERSION}-${mod}"
   done
+
   if [[ "$PHP_FPM" == "YES" ]]; then
     MODULE_LIST+=" php${PHP_VERSION}-fpm"
   fi
@@ -3680,18 +3693,52 @@ function setup_php() {
   # install apache2 with PHP support if requested
   if [[ "$PHP_APACHE" == "YES" ]]; then
     if ! dpkg -l 2>/dev/null | grep -q "libapache2-mod-php${PHP_VERSION}"; then
-      install_packages_with_retry "apache2" "libapache2-mod-php${PHP_VERSION}" || {
-        msg_error "Failed to install Apache with PHP module"
+      msg_info "Installing Apache with PHP ${PHP_VERSION} module"
+      install_packages_with_retry "apache2" || {
+        msg_error "Failed to install Apache"
         return 1
+      }
+      install_packages_with_retry "libapache2-mod-php${PHP_VERSION}" || {
+        msg_warn "Failed to install libapache2-mod-php${PHP_VERSION}, continuing without Apache module"
       }
     fi
   fi
 
-  # Install PHP packages with retry logic
-  install_packages_with_retry $MODULE_LIST || {
-    msg_error "Failed to install PHP packages"
-    return 1
-  }
+  # Install PHP packages (pinning via preferences.d ensures correct version)
+  msg_info "Installing PHP ${PHP_VERSION} packages"
+  if ! install_packages_with_retry $MODULE_LIST; then
+    msg_warn "Failed to install PHP packages, attempting individual installation"
+
+    # Install main package first (critical)
+    install_packages_with_retry "php${PHP_VERSION}" || {
+      msg_error "Failed to install php${PHP_VERSION}"
+      return 1
+    }
+
+    # Try to install Apache module individually if requested
+    if [[ "$PHP_APACHE" == "YES" ]]; then
+      install_packages_with_retry "libapache2-mod-php${PHP_VERSION}" || {
+        msg_warn "Could not install libapache2-mod-php${PHP_VERSION}"
+      }
+    fi
+
+    # Try to install modules individually - skip those that don't exist
+    for pkg in "${MODULES[@]}"; do
+      if apt-cache search "^php${PHP_VERSION}-${pkg}\$" 2>/dev/null | grep -q "^php${PHP_VERSION}-${pkg}"; then
+        install_packages_with_retry "php${PHP_VERSION}-${pkg}" || {
+          msg_warn "Could not install php${PHP_VERSION}-${pkg}"
+        }
+      fi
+    done
+
+    if [[ "$PHP_FPM" == "YES" ]]; then
+      if apt-cache search "^php${PHP_VERSION}-fpm\$" 2>/dev/null | grep -q "^php${PHP_VERSION}-fpm"; then
+        install_packages_with_retry "php${PHP_VERSION}-fpm" || {
+          msg_warn "Could not install php${PHP_VERSION}-fpm"
+        }
+      fi
+    fi
+  fi
   cache_installed_version "php" "$PHP_VERSION"
 
   # Patch all relevant php.ini files
@@ -3727,7 +3774,24 @@ function setup_php() {
     fi
   fi
 
-  msg_ok "Setup PHP $PHP_VERSION"
+  # Verify PHP installation - critical check
+  if ! command -v php >/dev/null 2>&1; then
+    msg_error "PHP installation verification failed - php command not found"
+    return 1
+  fi
+
+  local INSTALLED_VERSION=$(php -v 2>/dev/null | awk '/^PHP/{print $2}' | cut -d. -f1,2)
+
+  # Critical: if major.minor doesn't match, fail and cleanup
+  if [[ "$INSTALLED_VERSION" != "$PHP_VERSION" ]]; then
+    msg_error "PHP version mismatch: requested ${PHP_VERSION} but got ${INSTALLED_VERSION}"
+    msg_error "This indicates a critical package installation issue"
+    # Don't cache wrong version
+    return 1
+  fi
+
+  cache_installed_version "php" "$INSTALLED_VERSION"
+  msg_ok "Setup PHP ${INSTALLED_VERSION}"
 }
 
 # ------------------------------------------------------------------------------
@@ -3974,7 +4038,7 @@ function setup_postgresql_db() {
     echo "Password: $PG_DB_PASS"
   } >>"$CREDS_FILE"
 
-  msg_ok "Setup PostgreSQL Database"
+  msg_ok "Set up PostgreSQL Database"
 
   # Export for use in calling script
   export PG_DB_NAME
@@ -4335,31 +4399,63 @@ function setup_rust() {
     }
     export PATH="$CARGO_BIN:$PATH"
     echo 'export PATH="$HOME/.cargo/bin:$PATH"' >>"$HOME/.profile"
+
+    # Verify installation
+    if ! command -v rustc >/dev/null 2>&1; then
+      msg_error "Rust binary not found after installation"
+      return 1
+    fi
+
     local RUST_VERSION=$(rustc --version 2>/dev/null | awk '{print $2}')
+    if [[ -z "$RUST_VERSION" ]]; then
+      msg_error "Failed to determine Rust version"
+      return 1
+    fi
+
     cache_installed_version "rust" "$RUST_VERSION"
     msg_ok "Setup Rust $RUST_VERSION"
   else
     # Scenario 2: Rustup already installed - update/maintain
     msg_info "Update Rust ($RUST_TOOLCHAIN)"
-    $STD rustup install "$RUST_TOOLCHAIN" || {
-      msg_error "Failed to install Rust toolchain $RUST_TOOLCHAIN"
-      return 1
+
+    # Ensure default toolchain is set
+    $STD rustup default "$RUST_TOOLCHAIN" 2>/dev/null || {
+      # If default fails, install the toolchain first
+      $STD rustup install "$RUST_TOOLCHAIN" || {
+        msg_error "Failed to install Rust toolchain $RUST_TOOLCHAIN"
+        return 1
+      }
+      $STD rustup default "$RUST_TOOLCHAIN" || {
+        msg_error "Failed to set default Rust toolchain"
+        return 1
+      }
     }
-    $STD rustup default "$RUST_TOOLCHAIN" || {
-      msg_error "Failed to set default Rust toolchain"
-      return 1
-    }
-    $STD rustup update "$RUST_TOOLCHAIN" || true
+
+    # Update to latest patch version
+    $STD rustup update "$RUST_TOOLCHAIN" </dev/null || true
+
+    # Ensure PATH is updated for current shell session
+    export PATH="$CARGO_BIN:$PATH"
+
     local RUST_VERSION=$(rustc --version 2>/dev/null | awk '{print $2}')
+    if [[ -z "$RUST_VERSION" ]]; then
+      msg_error "Failed to determine Rust version after update"
+      return 1
+    fi
+
     cache_installed_version "rust" "$RUST_VERSION"
     msg_ok "Update Rust $RUST_VERSION"
   fi
 
   # Install global crates
   if [[ -n "$RUST_CRATES" ]]; then
+    msg_info "Processing Rust crates: $RUST_CRATES"
     IFS=',' read -ra CRATES <<<"$RUST_CRATES"
     for crate in "${CRATES[@]}"; do
-      local NAME VER INSTALLED_VER
+      crate=$(echo "$crate" | xargs) # trim whitespace
+      [[ -z "$crate" ]] && continue  # skip empty entries
+
+      local NAME VER INSTALLED_VER CRATE_LIST
       if [[ "$crate" == *"@"* ]]; then
         NAME="${crate%@*}"
         VER="${crate##*@}"
@@ -4368,18 +4464,50 @@ function setup_rust() {
         VER=""
       fi
 
-      INSTALLED_VER=$(cargo install --list 2>/dev/null | awk "/^$NAME v[0-9]/ {print \$2}" | tr -d 'v')
+      # Get list of installed crates once
+      CRATE_LIST=$(cargo install --list 2>/dev/null || echo "")
 
-      if [[ -n "$INSTALLED_VER" ]]; then
+      # Check if already installed
+      if echo "$CRATE_LIST" | grep -q "^${NAME} "; then
+        INSTALLED_VER=$(echo "$CRATE_LIST" | grep "^${NAME} " | head -1 | awk '{print $2}' | tr -d 'v:')
+
         if [[ -n "$VER" && "$VER" != "$INSTALLED_VER" ]]; then
-          $STD cargo install "$NAME" --version "$VER" --force
+          msg_info "Upgrading $NAME from v$INSTALLED_VER to v$VER"
+          $STD cargo install "$NAME" --version "$VER" --force || {
+            msg_error "Failed to install $NAME@$VER"
+            return 1
+          }
+          msg_ok "Upgraded $NAME to v$VER"
         elif [[ -z "$VER" ]]; then
-          $STD cargo install "$NAME" --force
+          msg_info "Upgrading $NAME to latest"
+          $STD cargo install "$NAME" --force || {
+            msg_error "Failed to upgrade $NAME"
+            return 1
+          }
+          local NEW_VER=$(cargo install --list 2>/dev/null | grep "^${NAME} " | head -1 | awk '{print $2}' | tr -d 'v:')
+          msg_ok "Upgraded $NAME to v$NEW_VER"
+        else
+          msg_ok "$NAME v$INSTALLED_VER already installed"
         fi
       else
-        $STD cargo install "$NAME" ${VER:+--version "$VER"}
+        msg_info "Installing $NAME${VER:+@$VER}"
+        if [[ -n "$VER" ]]; then
+          $STD cargo install "$NAME" --version "$VER" || {
+            msg_error "Failed to install $NAME@$VER"
+            return 1
+          }
+          msg_ok "Installed $NAME v$VER"
+        else
+          $STD cargo install "$NAME" || {
+            msg_error "Failed to install $NAME"
+            return 1
+          }
+          local NEW_VER=$(cargo install --list 2>/dev/null | grep "^${NAME} " | head -1 | awk '{print $2}' | tr -d 'v:')
+          msg_ok "Installed $NAME v$NEW_VER"
+        fi
       fi
     done
+    msg_ok "Processed Rust crates"
   fi
 }
 
@@ -4516,8 +4644,9 @@ function setup_uv() {
 
   # Optional: Generate shell completions
   $STD uv generate-shell-completion bash >/etc/bash_completion.d/uv 2>/dev/null || true
-  $STD uv generate-shell-completion zsh >/usr/share/zsh/site-functions/_uv 2>/dev/null || true
-
+  if [[ -d /usr/share/zsh/site-functions ]]; then
+    $STD uv generate-shell-completion zsh >/usr/share/zsh/site-functions/_uv 2>/dev/null || true
+  fi
   # Optional: Install specific Python version if requested
   if [[ -n "${PYTHON_VERSION:-}" ]]; then
     msg_info "Installing Python $PYTHON_VERSION via uv"
@@ -4698,7 +4827,7 @@ function setup_docker() {
 
     if [ "$DOCKER_CURRENT_VERSION" != "$DOCKER_LATEST_VERSION" ]; then
       msg_info "Updating Docker $DOCKER_CURRENT_VERSION → $DOCKER_LATEST_VERSION"
-      $STD apt-get install -y --only-upgrade \
+      $STD apt install -y --only-upgrade \
         docker-ce \
         docker-ce-cli \
         containerd.io \
@@ -4710,7 +4839,7 @@ function setup_docker() {
     fi
   else
     msg_info "Installing Docker"
-    $STD apt-get install -y \
+    $STD apt install -y \
       docker-ce \
       docker-ce-cli \
       containerd.io \
