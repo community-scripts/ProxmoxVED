@@ -25,7 +25,6 @@ $STD apt -y install \
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "Byparr" "ThePhaseless/Byparr"
-
 setup_uv
 
 msg_info "Creating Service"
