@@ -15,90 +15,53 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-    python3-opencv jq \
-    libglib2.0-0 pciutils gcc musl-dev \
-    libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
-    gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
-    build-essential python3-dev python3-gi pkg-config libcairo2-dev gir1.2-glib-2.0 \
-    cmake gfortran libopenblas-dev liblapack-dev libgirepository1.0-dev git libpq-dev
+  python3 python3-pip python3-venv \
+  libgl1 libglib2.0-0 \
+  libsm6 libxext6 libxrender-dev \
+  libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 \
+  libgstreamer-plugins-bad1.0-0 gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+  gstreamer1.0-plugins-ugly gstreamer1.0-libav \
+  gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa \
+  gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 \
+  gstreamer1.0-pulseaudio \
+  libavcodec-dev libavformat-dev libswscale-dev \
+  libv4l-dev libxvidcore-dev libx264-dev \
+  libjpeg-dev libpng-dev libtiff-dev \
+  gfortran \
+  libhdf5-dev \
+  python3-pyqt5 \
+  libgtk-3-dev libcanberra-gtk3-module \
+  libgirepository1.0-dev libcairo2-dev pkg-config \
+  libopenblas-dev liblapack-dev \
+  libxss1 \
+  libasound2
 msg_ok "Installed Dependencies"
 
-PG_VERSION="16" setup_postgresql
-PYTHON_VERSION="3.11" setup_uv
-
-msg_info "Setting up PostgreSQL Database"
-DB_NAME=viseron
-DB_USER=viseron_usr
-DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
-$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
-$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
-{
-    echo "Viseron-Credentials"
-    echo "Viseron Database User: $DB_USER"
-    echo "Viseron Database Password: $DB_PASS"
-    echo "Viseron Database Name: $DB_NAME"
-} >>~/viseron.creds
-msg_ok "Set up PostgreSQL Database"
-
-msg_info "Setting up Hardware Acceleration"
-if [[ "$CTTYPE" == "0" ]]; then
-   chgrp video /dev/dri
-   chmod 755 /dev/dri
-   chmod 660 /dev/dri/*
-fi
-msg_ok "Hardware Acceleration Configured"
-
-fetch_and_deploy_gh_release "viseron" "roflcoopter/viseron"
+mkdir -p ~/.config/pip
+cat >~/.config/pip/pip.conf <<EOF
+[global]
+break-system-packages = true
+EOF
+msg_ok "Installed Dependencies"
 
 msg_info "Setting up Python Environment"
-uv venv --python "python3.11" /opt/viseron/.venv
-uv pip install --python /opt/viseron/.venv/bin/python --upgrade pip setuptools wheel
+cd /opt
+python3 -m venv viseron
+source viseron/bin/activate
+pip install --upgrade pip setuptools wheel
 msg_ok "Python Environment Setup"
 
-msg_info "Setup Viseron (Patience)"
-GPU_VENDOR=$(lspci | grep -E "VGA|3D" | grep -oE "NVIDIA|Intel|AMD" | head -n1)
+msg_info "Installing Viseron"
+RELEASE=$(curl -fsSL https://api.github.com/repos/roflcoopter/viseron/releases/latest | jq -r '.tag_name')
+pip install viseron==${RELEASE#v}
+msg_ok "Installed Viseron $RELEASE"
 
-case "$GPU_VENDOR" in
-    NVIDIA)
-        msg_info "NVIDIA GPU detected → Installing PyTorch with CUDA"
-        UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
-            torch torchvision torchaudio
-        msg_ok "Installed Torch with CUDA"
-        ;;
-    Intel)
-        msg_info "Intel GPU detected → Installing PyTorch with Intel Extension (CPU wheels)"
-        UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
-            torch torchvision torchaudio intel-extension-for-pytorch \
-            --extra-index-url https://download.pytorch.org/whl/cpu
-        msg_ok "Installed Torch with Intel Extension"
-        ;;
-    AMD)
-        msg_info "AMD GPU detected → Installing PyTorch with ROCm"
-        UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
-            torch torchvision torchaudio \
-            --index-url https://download.pytorch.org/whl/rocm6.0
-        msg_ok "Installed Torch with ROCm"
-        ;;
-    CPU)
-        msg_info "No GPU detected → Installing CPU-only PyTorch"
-        UV_HTTP_TIMEOUT=1200 uv pip install --python /opt/viseron/.venv/bin/python \
-            torch torchvision torchaudio \
-            --extra-index-url https://download.pytorch.org/whl/cpu
-        msg_ok "Installed Torch CPU-only"
-        ;;
-esac
-
-UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -e /opt/viseron/.
-UV_HTTP_TIMEOUT=600 uv pip install --python /opt/viseron/.venv/bin/python -r /opt/viseron/requirements.txt
-
-mkdir -p /config/{recordings,snapshots,segments,event_clips,thumbnails}
-for d in recordings snapshots segments event_clips thumbnails; do
-    ln -sfn "/config/$d" "/$d"
-done
-msg_ok "Setup Viseron"
+msg_info "Creating Configuration Directory"
+mkdir -p /config
+mkdir -p /config/recordings
+mkdir -p /config/logs
+msg_ok "Created Configuration Directory"
 
 msg_info "Creating Default Configuration"
 cat <<EOF >/config/viseron.yaml
@@ -152,14 +115,6 @@ motion_detection:
   enabled: true
   threshold: 25
   sensitivity: 0.8
-
-storage:
-  connection_string: postgresql://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME
-  recordings: /recordings
-  snapshots: /snapshots
-  segments: /segments
-  event_clips: /event_clips
-  thumbnails: /thumbnails
 EOF
 msg_ok "Created Default Configuration"
 
@@ -173,7 +128,8 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/viseron
-ExecStart=/opt/viseron/.venv/bin/python -m viseron --config /config/viseron.yaml
+Environment=PATH=/opt/viseron/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/viseron/bin/viseron --config /config/viseron.yaml
 Restart=always
 RestartSec=10
 
@@ -185,8 +141,4 @@ msg_ok "Created Systemd Service"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt -y autoremove
-$STD apt -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc
