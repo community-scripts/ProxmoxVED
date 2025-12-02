@@ -2817,6 +2817,7 @@ EOF'
 
   # Run application installer
 <<<<<<< HEAD
+<<<<<<< HEAD
   # NOTE: We disable error handling here because:
   # 1. Container errors are caught by error_handler INSIDE container
   # 2. Container creates flag file with exit code
@@ -2862,6 +2863,11 @@ EOF'
     local build_log_copied=false
     local install_log_copied=false
 
+=======
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/install/${var_install}.sh)"; then
+    local exit_code=$?
+    # Try to copy installation log from container before exiting
+>>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
     if [[ -n "$CTID" && -n "${SESSION_ID:-}" ]]; then
       # Copy BUILD_LOG (creation log) if it exists
       if [[ -f "${BUILD_LOG}" ]]; then

@@ -184,6 +184,7 @@ else
 fi
 EOF
 <<<<<<< HEAD
+<<<<<<< HEAD
     chmod +x /usr/local/bin/apt-proxy-detect.sh
   fi
   $STD apt-get update
@@ -192,6 +193,8 @@ EOF
   msg_ok "Updated Container OS"
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
 =======
+=======
+>>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
         chmod +x /usr/local/bin/apt-proxy-detect.sh
     fi
     $STD apt-get update
@@ -199,7 +202,10 @@ EOF
     rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED
     msg_ok "Updated Container OS"
     source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/heads/byparr/misc/tools.func)
+<<<<<<< HEAD
 >>>>>>> 1b856490 (Added install and ct files)
+=======
+>>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
 }
 
 # ==============================================================================
@@ -275,6 +281,7 @@ customize() {
   ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
 EOF
 <<<<<<< HEAD
+<<<<<<< HEAD
     systemctl daemon-reload
     systemctl restart $(basename $(dirname $GETTY_OVERRIDE) | sed 's/\.d//')
     msg_ok "Customized Container"
@@ -288,6 +295,8 @@ EOF
     chmod 600 /root/.ssh/authorized_keys
   fi
 =======
+=======
+>>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
         systemctl daemon-reload
         systemctl restart $(basename $(dirname $GETTY_OVERRIDE) | sed 's/\.d//')
         msg_ok "Customized Container"
@@ -300,5 +309,8 @@ EOF
         chmod 700 /root/.ssh
         chmod 600 /root/.ssh/authorized_keys
     fi
+<<<<<<< HEAD
 >>>>>>> 1b856490 (Added install and ct files)
+=======
+>>>>>>> 705b0b3ed245a44466c93f68bc8f966962c11eee
 }
