@@ -11,7 +11,7 @@
   "interface_port": 8191,
   "documentation": "https://github.com/ThePhaseless/Byparr/blob/master/README.md",
   "website": "https://github.com/ThePhaseless/Byparr",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/byparr.svg",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/byparr.svg",
   "config_path": "",
   "description": "Byparr is a proxy server to bypass Cloudflare and DDoS-GUARD protection.",
   "install_methods": [
