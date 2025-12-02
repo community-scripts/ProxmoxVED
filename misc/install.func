@@ -45,16 +45,24 @@ catch_errors
 # ------------------------------------------------------------------------------
 # verb_ip6()
 #
-# - Configures IPv6 based on DISABLEIPV6 variable
-# - If DISABLEIPV6=yes: disables IPv6 via sysctl
+# - Configures IPv6 based on IPV6_METHOD variable
+# - If IPV6_METHOD=disable: disables IPv6 via sysctl
 # - Sets verbose mode via set_std_mode()
 # ------------------------------------------------------------------------------
 verb_ip6() {
   set_std_mode # Set STD mode based on VERBOSE
 
-  if [ "$DISABLEIPV6" == "yes" ]; then
-    echo "net.ipv6.conf.all.disable_ipv6 = 1" >>/etc/sysctl.conf
-    $STD sysctl -p
+  if [ "$IPV6_METHOD" == "disable" ]; then
+    msg_info "Disabling IPv6 (this may affect some services)"
+    mkdir -p /etc/sysctl.d
+    $STD tee /etc/sysctl.d/99-disable-ipv6.conf >/dev/null <<EOF
+# Disable IPv6 (set by community-scripts)
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+EOF
+    $STD sysctl -p /etc/sysctl.d/99-disable-ipv6.conf
+    msg_ok "Disabled IPv6"
   fi
 }
 

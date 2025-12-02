@@ -1445,11 +1445,12 @@ advanced_settings() {
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "IPv6 CONFIGURATION" \
         --ok-button "Next" --cancel-button "Back" \
-        --menu "\nSelect IPv6 Address Management:" 16 58 4 \
-        "auto" "SLAAC/AUTO (recommended)" \
-        "dhcp" "DHCPv6" \
-        "static" "Static (manual entry)" \
-        "none" "Disabled" \
+        --menu "\nSelect IPv6 Address Management:" 16 70 5 \
+        "auto" "SLAAC/AUTO (recommended) - Dynamic IPv6 from network" \
+        "dhcp" "DHCPv6 - DHCP-assigned IPv6 address" \
+        "static" "Static - Manual IPv6 address configuration" \
+        "none" "None - No IPv6 assignment (most containers)" \
+        "disable" "Fully Disabled - (breaks some services)" \
         3>&1 1>&2 2>&3); then
 
         _ipv6_method="$result"
@@ -1475,6 +1476,11 @@ advanced_settings() {
           ;;
         dhcp)
           _ipv6_addr="dhcp"
+          _ipv6_gate=""
+          ((STEP++))
+          ;;
+        disable)
+          _ipv6_addr=""
           _ipv6_gate=""
           ((STEP++))
           ;;
