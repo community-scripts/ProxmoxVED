@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/pshankinclarke/ProxmoxVED/refs/heads/valkey-alpine/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: MickLesk (CanbiZ)
+# Author: pshankinclarke (lazarillo)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://redis.io/
+# Source: https://valkey.io/
 
-APP="Alpine-Redis"
+APP="Alpine-Valkey"
 var_tags="${var_tags:-alpine;database}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-256}"
@@ -26,8 +26,8 @@ function update_script() {
   LXCIP=$(ip a s dev eth0 | awk '/inet / {print $2}' | cut -d/ -f1)
   while true; do
     CHOICE=$(
-      whiptail --backtitle "Proxmox VE Helper Scripts" --title "Redis Management" --menu "Select option" 11 58 3 \
-        "1" "Update Redis" \
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "Valkey Management" --menu "Select option" 11 58 3 \
+        "1" "Update Valkey" \
         "2" "Allow 0.0.0.0 for listening" \
         "3" "Allow only ${LXCIP} for listening" 3>&2 2>&1 1>&3
     )
@@ -39,24 +39,24 @@ function update_script() {
     header_info
     case $CHOICE in
     1)
-      msg_info "Updating Redis"
-      apk update && apk upgrade redis
-      rc-service redis restart
+      msg_info "Updating Valkey"
+      apk update && apk upgrade valkey
+      rc-service valkey restart
       msg_ok "Updated successfully!"
       exit
       ;;
     2)
-      msg_info "Setting Redis to listen on all interfaces"
-      sed -i 's/^bind .*/bind 0.0.0.0/' /etc/redis.conf
-      rc-service redis restart
-      msg_ok "Redis now listens on all interfaces!"
+      msg_info "Setting Valkey to listen on all interfaces"
+      sed -i 's/^bind .*/bind 0.0.0.0/' /etc/valkey/valkey.conf
+      rc-service valkey restart
+      msg_ok "Valkey now listens on all interfaces!"
       exit
       ;;
     3)
-      msg_info "Setting Redis to listen only on ${LXCIP}"
-      sed -i "s/^bind .*/bind ${LXCIP}/" /etc/redis.conf
-      rc-service redis restart
-      msg_ok "Redis now listens only on ${LXCIP}!"
+      msg_info "Setting Valkey to listen only on ${LXCIP}"
+      sed -i "s/^bind .*/bind ${LXCIP}/" /etc/valkey/valkey.conf
+      rc-service valkey restart
+      msg_ok "Valkey now listens only on ${LXCIP}!"
       exit
       ;;
     esac
@@ -69,4 +69,4 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${APP} should be reachable on port 6379.
-         ${BL}redis-cli -h ${IP} -p 6379${CL} \n"
+         ${BL}valkey-cli -h ${IP} -p 6379${CL} \n"
