@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Valkey"
-$STD apk add valkey valkey-openrc
+$STD apk add valkey valkey-openrc valkey-cli
 $STD sed -i 's/^bind .*/bind 0.0.0.0/' /etc/valkey/valkey.conf
 $STD rc-update add valkey default
 $STD rc-service valkey start
