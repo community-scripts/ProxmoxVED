@@ -18,7 +18,6 @@ $STD apt -y install \
     xauth \
     xvfb \
     scrot \
-    curl \
     chromium \
     chromium-driver \
     ca-certificates
