@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: community-scripts ORG
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/branch/main/LICENSE
 # Revision: 1
 
 # ==============================================================================
@@ -17,7 +17,7 @@
 #   - Cloud-Init status monitoring and waiting
 #
 # Usage:
-#   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/cloud-init.func)
+#   source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/cloud-init.func)
 #   setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
 #
 # Compatible with: Debian, Ubuntu, and all Cloud-Init enabled distributions
