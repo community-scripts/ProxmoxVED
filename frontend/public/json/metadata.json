@@ -1,5 +1,5 @@
 {
-	"categories": [
+	"categories": [ 
 		{ "name": "Proxmox & Virtualization", "id": 1, "sort_order": 1.0, "description": "Tools and scripts to manage Proxmox VE and virtualization platforms effectively." },
 		{ "name": "Operating Systems", "id": 2, "sort_order": 2.0, "description": "Scripts for deploying and managing various operating systems." },
 		{ "name": "Containers & Docker", "id": 3, "sort_order": 3.0, "description": "Solutions for containerization using Docker and related technologies." },
