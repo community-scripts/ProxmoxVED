@@ -5,6 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://valkey.io/
 
+: "${IPV6_METHOD:=none}"
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
