@@ -776,8 +776,6 @@ if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates,p
   msg_info "Pre-installed base packages (faster first boot)"
 fi
 
-msg_ok "UniFi OS Server will be installed on first boot"
-
 # Add auto-login if Cloud-Init is disabled
 if [ "$USE_CLOUD_INIT" != "yes" ]; then
   virt-customize -q -a "${FILE}" \
@@ -785,7 +783,7 @@ if [ "$USE_CLOUD_INIT" != "yes" ]; then
     --run-command "bash -c 'echo -e \"[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %I \\\$TERM\" > /etc/systemd/system/getty@tty1.service.d/override.conf'" 2>/dev/null
 fi
 
-msg_ok "UniFi OS Server will be installed on first boot"
+msg_ok "Prepared ${OS_DISPLAY} image with UniFi OS installer"
 
 # Expand root partition to use full disk space
 msg_info "Expanding disk image to ${DISK_SIZE}"
@@ -828,6 +826,16 @@ if [ "$USE_CLOUD_INIT" = "yes" ]; then
   msg_info "Configuring Cloud-Init"
   setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" >/dev/null 2>&1
   msg_ok "Cloud-Init configured"
+
+  # Display credentials immediately so user can login
+  if [ -n "$CLOUDINIT_CRED_FILE" ] && [ -f "$CLOUDINIT_CRED_FILE" ]; then
+    echo ""
+    echo -e "${INFO}${BOLD}${GN}Cloud-Init Credentials (save these now!):${CL}"
+    echo -e "${TAB}${DGN}User:     ${BGN}${CLOUDINIT_USER:-root}${CL}"
+    echo -e "${TAB}${DGN}Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
+    echo -e "${TAB}${RD}⚠️  SSH to VM IP or use Proxmox Console${CL}"
+    echo ""
+  fi
 fi
 
 DESCRIPTION=$(
@@ -918,20 +926,28 @@ if [ "$START_VM" == "yes" ]; then
     else
       msg_ok "VM is running, but installation is still in progress"
       echo -e "${TAB}${INFO}${YW}Installation takes 3-5 minutes after first boot${CL}"
-      echo -e "${TAB}${INFO}${YW}Check progress: ${BL}qm guest exec ${VMID} -- tail -f /var/log/install-unifi.log${CL}"
-      echo -e "${TAB}${INFO}${YW}Or SSH to: ${BL}${VM_IP}${CL} and run: ${BL}tail -f /var/log/install-unifi.log${CL}"
+      if [ "$USE_CLOUD_INIT" = "yes" ]; then
+        echo -e "${TAB}${INFO}${YW}SSH to: ${BL}ssh ${CLOUDINIT_USER:-root}@${VM_IP}${CL}"
+        echo -e "${TAB}${INFO}${YW}Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
+        echo -e "${TAB}${INFO}${YW}Then run: ${BL}tail -f /var/log/install-unifi.log${CL}"
+      else
+        echo -e "${TAB}${INFO}${YW}Console login: ${BL}root${CL} (auto-login enabled)"
+        echo -e "${TAB}${INFO}${YW}Then run: ${BL}tail -f /var/log/install-unifi.log${CL}"
+      fi
       echo -e "${TAB}${INFO}${YW}Access will be at: ${BGN}https://${VM_IP}:11443${CL}"
     fi
   else
     msg_ok "VM is running (ID: ${VMID})"
     echo -e "${TAB}${INFO}${YW}Could not auto-detect IP address${CL}"
+    if [ "$USE_CLOUD_INIT" = "yes" ]; then
+      echo -e "${TAB}${INFO}${YW}Use Proxmox Console to login with Cloud-Init credentials${CL}"
+      echo -e "${TAB}${INFO}${YW}User: ${BGN}${CLOUDINIT_USER:-root}${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
+    else
+      echo -e "${TAB}${INFO}${YW}Use Proxmox Console (root auto-login enabled)${CL}"
+    fi
     echo -e "${TAB}${INFO}${YW}Access VM console in Proxmox to check status${CL}"
-    echo -e "${TAB}${INFO}${YW}Or check installation log: ${BL}tail -f /var/log/install-unifi.log${CL}"
+    echo -e "${TAB}${INFO}${YW}Check installation log: ${BL}tail -f /var/log/install-unifi.log${CL}"
   fi
-fi
-
-if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  display_cloud_init_info "$VMID" "$HN"
 fi
 
 post_update_to_api "done" "none"
