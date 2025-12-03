@@ -86,10 +86,10 @@ msg_ok "Built Frontend"
 
 msg_info "Setting up Backend"
 cd /opt/endurain/backend
-uv tool install poetry
-uv tool update-shell
+$STD uv tool install poetry
+$STD uv tool update-shell
 export PATH="/root/.local/bin:$PATH"
-poetry self add poetry-plugin-export
+$STD poetry self add poetry-plugin-export
 $STD poetry export -f requirements.txt --output requirements.txt --without-hashes
 $STD uv venv
 $STD uv pip install -r requirements.txt
