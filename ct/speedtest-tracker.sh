@@ -60,6 +60,7 @@ function update_script() {
     cp -r /opt/speedtest-tracker-backup/.env /opt/speedtest-tracker/.env
     cd /opt/speedtest-tracker
     export COMPOSER_ALLOW_SUPERUSER=1
+    export PATH="/usr/local/bin:$PATH"
     $STD composer install --optimize-autoloader --no-dev
     $STD npm ci
     $STD npm run build
