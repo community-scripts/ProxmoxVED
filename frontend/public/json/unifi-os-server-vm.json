@@ -10,18 +10,18 @@
   "privileged": false,
   "interface_port": null,
   "documentation": "https://help.ui.com/hc/en-us",
-  "website": "https://www.debian.org/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/debian.webp",
+  "website": "https://www.ui.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ubiquiti-unifi.webp",
   "config_path": "",
-  "description": "Debian Linux is a distribution that emphasizes free software. It supports many hardware platforms",
+  "description": "Unifi OS Server is the operating system that powers Ubiquiti's UniFi line of network devices. It provides a centralized platform for managing and monitoring UniFi access points, switches, and security gateways, offering features such as network configuration, device provisioning, and performance analytics.",
   "install_methods": [
     {
       "type": "default",
       "script": "vm/unifi-os-server-vm.sh",
       "resources": {
         "cpu": 2,
-        "ram": 2048,
-        "hdd": 4,
+        "ram": 4096,
+        "hdd": 32,
         "os": null,
         "version": null
       }
