@@ -673,12 +673,12 @@ msg_info "Configuring Cloud-Init with UniFi OS installation"
 setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" >/dev/null 2>&1
 
 # Inject custom user-data for UniFi OS installation
-qm set "$VMID" --cicustom "user=local:snippets/unifi-os-${VMID}-user-data.yaml" >/dev/null 2>&1 || {
-  # Fallback: Create snippets directory and upload user-data
-  mkdir -p /var/lib/vz/snippets
-  cp user-data.yaml "/var/lib/vz/snippets/unifi-os-${VMID}-user-data.yaml"
-  qm set "$VMID" --cicustom "user=local:snippets/unifi-os-${VMID}-user-data.yaml" >/dev/null
-}
+# First, ensure snippets directory exists and copy user-data file
+mkdir -p /var/lib/vz/snippets
+cp user-data.yaml "/var/lib/vz/snippets/unifi-os-${VMID}-user-data.yaml"
+
+# Now configure VM to use custom user-data
+qm set "$VMID" --cicustom "user=local:snippets/unifi-os-${VMID}-user-data.yaml" >/dev/null 2>&1
 
 msg_ok "Cloud-Init configured with automated UniFi OS installation"
 
