@@ -14,21 +14,20 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y  \
-  default-libmysqlclient-dev  \
-  build-essential  \
+$STD apt install -y \
+  default-libmysqlclient-dev \
+  build-essential \
   pkg-config
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.13" setup_uv
-NODE_VERSION="22" NODE_MODULE="npm@latest" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 PG_VERSION="17" PG_MODULES="postgis,contrib" setup_postgresql
+PG_DB_NAME="enduraindb" PG_DB_USER="endurain" setup_postgresql_db
 
 fetch_and_deploy_gh_release "endurain" "joaovitoriasilva/endurain" "tarball" "latest" "/opt/endurain"
 
 msg_info "Setting up Endurain"
-PG_DB_NAME="enduraindb" PG_DB_USER="endurain" setup_postgresql_db
-
 cd /opt/endurain
 rm -rf \
   /opt/endurain/{docs,example.env,screenshot_01.png} \
@@ -39,7 +38,7 @@ SECRET_KEY=$(openssl rand -hex 32)
 FERNET_KEY=$(openssl rand -base64 32)
 IP=$(hostname -I | awk '{print $1}')
 ENDURAIN_HOST=http://${IP}:8080
-cat <<EOF > /opt/endurain/.env
+cat <<EOF >/opt/endurain/.env
 DB_PASSWORD=${PG_DB_PASS}
 
 SECRET_KEY=${SECRET_KEY}
@@ -78,7 +77,7 @@ msg_info "Building Frontend"
 cd /opt/endurain/frontend/app
 $STD npm ci --prefer-offline
 $STD npm run build
-cat <<EOF > /opt/endurain/frontend/app/dist/env.js
+cat <<EOF >/opt/endurain/frontend/app/dist/env.js
 window.env = {
   ENDURAIN_HOST: "${ENDURAIN_HOST}"
 }
