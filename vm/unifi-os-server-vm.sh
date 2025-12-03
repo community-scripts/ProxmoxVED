@@ -594,40 +594,64 @@ msg_info "Preparing ${OS_DISPLAY} Cloud Image for UniFi OS"
 # Create Cloud-Init user-data for UniFi OS installation
 cat >user-data.yaml <<EOFUSERDATA
 #cloud-config
-# UniFi OS Server Auto-Installation
 
-growpart:
-  mode: auto
-  devices: ['/']
+# Write UniFi OS installation script
+write_files:
+  - path: /root/install-unifi-os.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -x
+      exec > /var/log/unifi-install.log 2>&1
 
-resize_rootfs: true
+      echo "=== UniFi OS Installation Started at \$(date) ==="
 
-timezone: Europe/Berlin
+      # Install required packages
+      echo "Installing required packages..."
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get install -y curl wget ca-certificates podman uidmap slirp4netns iptables
 
-packages:
-  - qemu-guest-agent
-  - curl
-  - wget
-  - ca-certificates
-  - podman
-  - uidmap
-  - slirp4netns
-  - iptables
+      # Configure Podman
+      echo "Configuring Podman..."
+      loginctl enable-linger root
 
+      # Download UniFi OS Server
+      echo "Downloading UniFi OS Server ${UOS_VERSION}..."
+      cd /root
+      curl -fsSL '${UOS_URL}' -o unifi-installer.bin
+      chmod +x unifi-installer.bin
+
+      # Install UniFi OS Server
+      echo "Installing UniFi OS Server (this takes 3-5 minutes)..."
+      ./unifi-installer.bin install
+
+      echo "Waiting for services to start..."
+      sleep 15
+
+      # Start UniFi OS Server
+      if systemctl list-unit-files | grep -q unifi-os-server; then
+        echo "Starting UniFi OS Server service..."
+        systemctl enable unifi-os-server
+        systemctl start unifi-os-server
+        sleep 10
+
+        if systemctl is-active --quiet unifi-os-server; then
+          echo "SUCCESS: UniFi OS Server is running"
+        else
+          echo "WARNING: Checking service status..."
+          systemctl status unifi-os-server --no-pager
+        fi
+      fi
+
+      touch /root/.unifi-installed
+      echo "=== Installation completed at \$(date) ==="
+
+# Run installation on first boot
 runcmd:
-  - systemctl enable qemu-guest-agent
-  - systemctl start qemu-guest-agent
-  - loginctl enable-linger root
-  - cd /root
-  - curl -fsSL '${UOS_URL}' -o unifi-os-server-${UOS_VERSION}.bin
-  - chmod +x unifi-os-server-${UOS_VERSION}.bin
-  - /root/unifi-os-server-${UOS_VERSION}.bin install 2>&1 | tee /var/log/unifi-install.log
-  - sleep 10
-  - systemctl enable unifi-os-server 2>&1 || true
-  - systemctl start unifi-os-server 2>&1 || true
-  - touch /root/.unifi-installed
+  - /root/install-unifi-os.sh
 
-final_message: "UniFi OS Server installation complete!"
+final_message: "UniFi OS installation complete! Check /var/log/unifi-install.log"
 EOFUSERDATA
 
 msg_ok "Created Cloud-Init configuration for UniFi OS installation"
