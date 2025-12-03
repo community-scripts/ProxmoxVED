@@ -592,7 +592,7 @@ msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 msg_info "Preparing ${OS_DISPLAY} Cloud Image for UniFi OS"
 
 # Create Cloud-Init user-data for UniFi OS installation
-cat > user-data.yaml <<EOFUSERDATA
+cat >user-data.yaml <<EOFUSERDATA
 #cloud-config
 # UniFi OS Server Auto-Installation
 
@@ -630,7 +630,9 @@ runcmd:
 final_message: "UniFi OS Server installation complete!"
 EOFUSERDATA
 
-msg_ok "Created Cloud-Init configuration for UniFi OS installation"# Expand root partition to use full disk space
+msg_ok "Created Cloud-Init configuration for UniFi OS installation"
+
+# Expand root partition to use full disk space
 msg_info "Expanding disk image to ${DISK_SIZE}"
 qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
 
@@ -689,7 +691,9 @@ if [ -n "$CLOUDINIT_CRED_FILE" ] && [ -f "$CLOUDINIT_CRED_FILE" ]; then
   echo -e "${TAB}${RD}⚠️  Installation starts automatically on first boot${CL}"
   echo -e "${TAB}${INFO}Monitor: ${BL}tail -f /var/log/cloud-init-output.log${CL}"
   echo ""
-fiDESCRIPTION=$(
+fi
+
+DESCRIPTION=$(
   cat <<EOF
 <div align='center'>
   <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
