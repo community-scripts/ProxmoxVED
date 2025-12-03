@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
+$STD apt-get install -y \
   python3 python3-pip python3-venv \
   libgl1 libglib2.0-0 \
   libsm6 libxext6 libxrender-dev \
@@ -35,7 +35,9 @@ $STD apt install -y \
   libgirepository1.0-dev libcairo2-dev pkg-config \
   libopenblas-dev liblapack-dev \
   libxss1 \
-  libasound2
+  libasound2 \
+  libpq-dev \
+  cmake build-essential
 msg_ok "Installed Dependencies"
 
 mkdir -p ~/.config/pip
@@ -46,15 +48,21 @@ EOF
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Python Environment"
-cd /opt
-python3 -m venv viseron
-source viseron/bin/activate
+python3 -m venv /opt/viseron-venv
+source /opt/viseron-venv/bin/activate
 pip install --upgrade pip setuptools wheel
 msg_ok "Python Environment Setup"
 
 msg_info "Installing Viseron"
 RELEASE=$(curl -fsSL https://api.github.com/repos/roflcoopter/viseron/releases/latest | jq -r '.tag_name')
-pip install viseron==${RELEASE#v}
+curl -fsSL "https://github.com/roflcoopter/viseron/archive/refs/tags/${RELEASE}.tar.gz" -o /tmp/viseron.tar.gz
+mkdir -p /opt/viseron
+tar -xzf /tmp/viseron.tar.gz --strip-components=1 -C /opt/viseron
+rm /tmp/viseron.tar.gz
+cd /opt/viseron
+source /opt/viseron-venv/bin/activate
+pip install -r requirements.txt
+pip install .
 msg_ok "Installed Viseron $RELEASE"
 
 msg_info "Creating Configuration Directory"
@@ -128,8 +136,8 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/viseron
-Environment=PATH=/opt/viseron/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/opt/viseron/bin/viseron --config /config/viseron.yaml
+Environment=PATH=/opt/viseron-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/viseron-venv/bin/python -m viseron --config /config/viseron.yaml
 Restart=always
 RestartSec=10
 
