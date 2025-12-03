@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  if check_gh_release "alexjustesen/speedtest-tracker"; then
+  if check_for_gh_release "speedtest-tracker" "alexjustesen/speedtest-tracker"; then
 
     PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="common,sqlite3,redis" setup_php
     setup_composer
