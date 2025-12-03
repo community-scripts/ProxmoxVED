@@ -76,6 +76,9 @@ CI_FILE=""
 POST_INSTALL=""          # none|docker|podman|portainer
 POST_INSTALL_TIMEOUT=300 # Timeout in seconds for post-install completion
 
+# Interactive Mode
+INTERACTIVE_MODE="no" # yes|no - Enable whiptail interactive mode
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -133,6 +136,167 @@ cleanup_vm() {
     warn "Cleanup: Removing VM $VMID"
     qm destroy "$VMID" &>/dev/null || true
   fi
+}
+
+# ============================================================================
+# INTERACTIVE WHIPTAIL MENUS
+# ============================================================================
+
+interactive_main_menu() {
+  local choice
+  choice=$(whiptail --title "VM Manager" --menu "Choose action:" 20 70 10 \
+    "1" "Create VM Template" \
+    "2" "Deploy VM from Template" \
+    "3" "List Templates" \
+    "4" "List Available OS Images" \
+    "5" "Exit" \
+    3>&1 1>&2 2>&3)
+  
+  case $choice in
+    1) interactive_create_template ;;
+    2) interactive_deploy_vm ;;
+    3) list_templates; read -p "Press Enter to continue..."; interactive_main_menu ;;
+    4) list_os_options; read -p "Press Enter to continue..."; interactive_main_menu ;;
+    5) exit 0 ;;
+    *) exit 0 ;;
+  esac
+}
+
+interactive_select_os() {
+  local menu_items=()
+  local i=1
+  
+  for key in $(echo "${!OS_IMAGES[@]}" | tr ' ' '\n' | sort); do
+    menu_items+=("$key" "${OS_IMAGES[$key]}")
+  done
+  
+  OS_KEY=$(whiptail --title "Select OS" --menu "Choose operating system:" 25 80 15 \
+    "${menu_items[@]}" 3>&1 1>&2 2>&3)
+  
+  [ -z "$OS_KEY" ] && return 1
+  return 0
+}
+
+interactive_create_template() {
+  clear
+  info "Creating VM Template - Interactive Mode"
+  echo ""
+  
+  # Select OS
+  interactive_select_os || { warn "No OS selected"; interactive_main_menu; return; }
+  
+  # VM ID
+  local input_vmid
+  input_vmid=$(whiptail --title "VM ID" --inputbox "Enter VM ID (leave empty for auto):" 10 60 "" 3>&1 1>&2 2>&3)
+  [ -n "$input_vmid" ] && VMID="$input_vmid"
+  
+  # CPU Cores
+  CORES=$(whiptail --title "CPU Cores" --inputbox "Number of CPU cores:" 10 60 "$CORES" 3>&1 1>&2 2>&3) || CORES=2
+  
+  # Memory
+  MEMORY=$(whiptail --title "Memory" --inputbox "Memory in MB:" 10 60 "$MEMORY" 3>&1 1>&2 2>&3) || MEMORY=2048
+  
+  # Disk Size
+  DISK_SIZE=$(whiptail --title "Disk Size" --inputbox "Disk size in GB:" 10 60 "$DISK_SIZE" 3>&1 1>&2 2>&3) || DISK_SIZE=30
+  
+  # Storage
+  local storage_list=()
+  while IFS= read -r stor; do
+    storage_list+=("$stor" "")
+  done < <(list_storage_pools)
+  
+  if [ ${#storage_list[@]} -gt 0 ]; then
+    STORAGE=$(whiptail --title "Storage Pool" --menu "Select storage:" 20 70 10 \
+      "${storage_list[@]}" 3>&1 1>&2 2>&3) || STORAGE=""
+  fi
+  
+  # Cloud-Init
+  if whiptail --title "Cloud-Init" --yesno "Enable Cloud-Init?" 10 60; then
+    ENABLE_CLOUDINIT="yes"
+    
+    # Optional credentials
+    if whiptail --title "Cloud-Init Credentials" --yesno "Configure Cloud-Init credentials now?" 10 60; then
+      CI_USER=$(whiptail --title "Cloud-Init User" --inputbox "Username:" 10 60 "root" 3>&1 1>&2 2>&3) || CI_USER=""
+      CI_PASSWORD=$(whiptail --title "Cloud-Init Password" --passwordbox "Password (optional):" 10 60 3>&1 1>&2 2>&3) || CI_PASSWORD=""
+      CI_SSH_KEY=$(whiptail --title "SSH Public Key" --inputbox "SSH Public Key (optional):" 10 60 "" 3>&1 1>&2 2>&3) || CI_SSH_KEY=""
+    fi
+  else
+    ENABLE_CLOUDINIT="no"
+  fi
+  
+  # Confirm
+  if whiptail --title "Confirm" --yesno "Create template with these settings?\n\nOS: $OS_KEY\nCores: $CORES\nMemory: ${MEMORY}MB\nDisk: ${DISK_SIZE}GB\nCloud-Init: $ENABLE_CLOUDINIT" 15 60; then
+    clear
+    create_template
+    echo ""
+    read -p "Press Enter to continue..."
+  fi
+  
+  interactive_main_menu
+}
+
+interactive_deploy_vm() {
+  clear
+  info "Deploy VM from Template - Interactive Mode"
+  echo ""
+  
+  # Select OS (template must exist)
+  interactive_select_os || { warn "No OS selected"; interactive_main_menu; return; }
+  
+  # Check if template exists
+  local template_name="${TEMPLATE_PREFIX}-${OS_KEY}"
+  local template_id=$(find_template_by_name "$template_name")
+  
+  if [ -z "$template_id" ]; then
+    whiptail --title "Error" --msgbox "Template '$template_name' not found!\n\nCreate it first." 10 60
+    interactive_main_menu
+    return
+  fi
+  
+  # Hostname
+  HOSTNAME=$(whiptail --title "Hostname" --inputbox "Enter hostname:" 10 60 "${OS_KEY}-vm" 3>&1 1>&2 2>&3)
+  [ -z "$HOSTNAME" ] && HOSTNAME="${OS_KEY}-vm"
+  
+  # VM ID
+  local input_vmid
+  input_vmid=$(whiptail --title "VM ID" --inputbox "Enter VM ID (leave empty for auto):" 10 60 "" 3>&1 1>&2 2>&3)
+  [ -n "$input_vmid" ] && VMID="$input_vmid"
+  
+  # Disk Size
+  local template_size=$(qm config "$template_id" | grep "scsi0:" | grep -oP '\d+G' | head -1 | sed 's/G//')
+  DISK_SIZE=$(whiptail --title "Disk Size" --inputbox "Disk size in GB:" 10 60 "${template_size:-30}" 3>&1 1>&2 2>&3) || DISK_SIZE=30
+  
+  # Post-Install
+  local post_choice
+  post_choice=$(whiptail --title "Post-Install" --menu "Install additional software?" 20 70 10 \
+    "none" "No additional software" \
+    "docker" "Install Docker CE" \
+    "podman" "Install Podman" \
+    "portainer" "Install Docker + Portainer" \
+    3>&1 1>&2 2>&3)
+  
+  POST_INSTALL="${post_choice:-none}"
+  
+  # Start VM
+  if whiptail --title "Start VM" --yesno "Start VM after deployment?" 10 60; then
+    START_VM="yes"
+  else
+    START_VM="no"
+  fi
+  
+  # Confirm
+  local confirm_msg="Deploy VM with these settings?\n\nTemplate: $template_name\nHostname: $HOSTNAME\nDisk: ${DISK_SIZE}GB"
+  [ "$POST_INSTALL" != "none" ] && confirm_msg+="\nPost-Install: $POST_INSTALL"
+  [ "$START_VM" = "yes" ] && confirm_msg+="\nAuto-start: Yes"
+  
+  if whiptail --title "Confirm" --yesno "$confirm_msg" 18 60; then
+    clear
+    deploy_from_template
+    echo ""
+    read -p "Press Enter to continue..."
+  fi
+  
+  interactive_main_menu
 }
 
 wait_for_vm_ready() {
@@ -470,9 +634,14 @@ deploy_from_template() {
 
 usage() {
   cat <<EOF
-${BOLD}Usage:${NC} $0 <COMMAND> [OPTIONS]
+${BOLD}Usage:${NC} $0 [COMMAND] [OPTIONS]
 
-${BOLD}Commands:${NC}
+${BOLD}Interactive Mode:${NC}
+    $0                  Start interactive menu (whiptail)
+    $0 --interactive    Start interactive menu
+    $0 -i               Start interactive menu
+
+${BOLD}CLI Commands:${NC}
     create              Create a new VM template
     deploy              Deploy VM from template
     list                List all templates
@@ -536,7 +705,12 @@ EOF
 # ARGUMENT PARSING
 # ============================================================================
 
-[ $# -eq 0 ] && usage
+# Check if run without arguments or with --interactive
+if [ $# -eq 0 ] || [ "${1:-}" = "--interactive" ] || [ "${1:-}" = "-i" ]; then
+  command -v whiptail >/dev/null 2>&1 || error "whiptail not found. Install it or use CLI mode."
+  interactive_main_menu
+  exit 0
+fi
 
 MODE="$1"
 shift
