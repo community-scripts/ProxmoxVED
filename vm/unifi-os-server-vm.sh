@@ -592,22 +592,18 @@ msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 msg_info "Preparing ${OS_DISPLAY} Cloud Image for UniFi OS"
 
 # Create Cloud-Init user-data for UniFi OS installation
-cat > user-data.yaml <<'USERDATA'
+cat > user-data.yaml <<EOFUSERDATA
 #cloud-config
 # UniFi OS Server Auto-Installation
-# This runs automatically on first boot
 
-# Resize root filesystem to use all available space
 growpart:
   mode: auto
   devices: ['/']
 
 resize_rootfs: true
 
-# Set timezone
 timezone: Europe/Berlin
 
-# Install required packages
 packages:
   - qemu-guest-agent
   - curl
@@ -618,49 +614,21 @@ packages:
   - slirp4netns
   - iptables
 
-# Configure system
 runcmd:
-  # Enable and start qemu-guest-agent
   - systemctl enable qemu-guest-agent
   - systemctl start qemu-guest-agent
-
-  # Configure Podman
   - loginctl enable-linger root
+  - cd /root
+  - curl -fsSL '${UOS_URL}' -o unifi-os-server-${UOS_VERSION}.bin
+  - chmod +x unifi-os-server-${UOS_VERSION}.bin
+  - /root/unifi-os-server-${UOS_VERSION}.bin install 2>&1 | tee /var/log/unifi-install.log
+  - sleep 10
+  - systemctl enable unifi-os-server 2>&1 || true
+  - systemctl start unifi-os-server 2>&1 || true
+  - touch /root/.unifi-installed
 
-  # Download and install UniFi OS Server
-  - |
-    set -e
-    cd /root
-    echo "[$(date)] Downloading UniFi OS Server ${UOS_VERSION}"
-    curl -fsSL '${UOS_URL}' -o unifi-os-server-${UOS_VERSION}.bin
-    chmod +x unifi-os-server-${UOS_VERSION}.bin
-
-    echo "[$(date)] Installing UniFi OS Server (this takes 3-5 minutes)"
-    ./unifi-os-server-${UOS_VERSION}.bin install 2>&1 | tee /var/log/unifi-install.log
-
-    echo "[$(date)] Checking for UniFi OS Server service"
-    sleep 10
-
-    if systemctl list-unit-files | grep -q unifi-os-server; then
-      echo "[$(date)] Starting UniFi OS Server service"
-      systemctl enable unifi-os-server
-      systemctl start unifi-os-server
-      sleep 5
-      if systemctl is-active --quiet unifi-os-server; then
-        echo "[$(date)] ✓ UniFi OS Server is running"
-      fi
-    fi
-
-    echo "[$(date)] Installation completed"
-    touch /root/.unifi-installed
-
-final_message: |
-  UniFi OS Server installation complete!
-  Access the web interface at: https://$(hostname -I | awk '{print $1}'):11443
-
-  Installation log: /var/log/unifi-install.log
-  Cloud-Init log: /var/log/cloud-init-output.log
-USERDATA
+final_message: "UniFi OS Server installation complete!"
+EOFUSERDATA
 
 msg_ok "Created Cloud-Init configuration for UniFi OS installation"# Expand root partition to use full disk space
 msg_info "Expanding disk image to ${DISK_SIZE}"
