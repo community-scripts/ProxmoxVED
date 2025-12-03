@@ -28,6 +28,10 @@
 # ==============================================================================
 # These can be overridden before sourcing this library
 
+# Disable 'unbound variable' errors for this library (restored at end)
+_OLD_SET_STATE=$(set +o | grep -E 'set -(e|u|o)')
+set +u
+
 CLOUDINIT_DEFAULT_USER="${CLOUDINIT_DEFAULT_USER:-root}"
 CLOUDINIT_DNS_SERVERS="${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}"
 CLOUDINIT_SEARCH_DOMAIN="${CLOUDINIT_SEARCH_DOMAIN:-local}"
@@ -458,6 +462,11 @@ export -f get_vm_ip 2>/dev/null || true
 export -f wait_for_cloud_init 2>/dev/null || true
 export -f validate_ip_cidr 2>/dev/null || true
 export -f validate_ip 2>/dev/null || true
+
+# Restore previous shell options if they were saved
+if [ -n "${_OLD_SET_STATE:-}" ]; then
+  eval "$_OLD_SET_STATE"
+fi
 
 # ==============================================================================
 # SECTION 7: EXAMPLES & DOCUMENTATION
