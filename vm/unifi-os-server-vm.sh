@@ -87,18 +87,11 @@ function get_valid_nextid() {
   local try_id
   try_id=$(pvesh get /cluster/nextid)
   while true; do
-    # Check if VM config exists
     if [ -f "/etc/pve/qemu-server/${try_id}.conf" ] || [ -f "/etc/pve/lxc/${try_id}.conf" ]; then
       try_id=$((try_id + 1))
       continue
     fi
-    # Check if VM or CT actually exists (running or stopped)
-    if qm status "$try_id" &>/dev/null || pct status "$try_id" &>/dev/null; then
-      try_id=$((try_id + 1))
-      continue
-    fi
-    # Check if LVM volumes with this ID exist
-    if lvs --noheadings -o lv_name 2>/dev/null | grep -qE "(^|[-_])${try_id}($|[-_])"; then
+    if lvs --noheadings -o lv_name | grep -qE "(^|[-_])${try_id}($|[-_])"; then
       try_id=$((try_id + 1))
       continue
     fi
