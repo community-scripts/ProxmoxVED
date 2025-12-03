@@ -770,13 +770,13 @@ SVCEOF" >/dev/null
 
 virt-customize -q -a "${FILE}" --run-command "systemctl enable unifi-firstboot.service" >/dev/null
 
-# Try to install base packages during image customization (faster startup if it works)
-msg_info "Pre-installing base packages (qemu-guest-agent, podman, curl)"
-if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates,podman,uidmap,slirp4netns 2>&1 | grep -q "error"; then
-  msg_info "Pre-installation not possible, packages will install on first boot"
-else
-  msg_ok "Pre-installed base packages (UniFi OS will install on first boot)"
+# Try to pre-install base packages (silently fails if not possible)
+# This speeds up first boot if successful, but installation will work either way
+if virt-customize -a "${FILE}" --install qemu-guest-agent,curl,ca-certificates,podman,uidmap,slirp4netns >/dev/null 2>&1; then
+  msg_info "Pre-installed base packages (faster first boot)"
 fi
+
+msg_ok "UniFi OS Server will be installed on first boot"
 
 # Add auto-login if Cloud-Init is disabled
 if [ "$USE_CLOUD_INIT" != "yes" ]; then
