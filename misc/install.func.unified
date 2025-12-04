@@ -8,18 +8,14 @@
 # INSTALL.FUNC - UNIFIED CONTAINER INSTALLATION & SETUP
 # ==============================================================================
 #
-# All-in-One install.func supporting official Proxmox LXC templates:
+# All-in-One install.func supporting multiple Linux distributions:
 #   - Debian, Ubuntu, Devuan (apt, systemd/sysvinit)
 #   - Alpine (apk, OpenRC)
-#   - Fedora, Rocky, AlmaLinux, CentOS Stream (dnf, systemd)
+#   - Fedora, Rocky, AlmaLinux, CentOS (dnf/yum, systemd)
+#   - Arch Linux (pacman, systemd)
 #   - openSUSE (zypper, systemd)
 #   - Gentoo (emerge, OpenRC)
-#   - openEuler (dnf, systemd)
-#
-# Supported templates (pveam available):
-#   almalinux-9/10, alpine-3.x, centos-9-stream, debian-12/13,
-#   devuan-5, fedora-42, gentoo-current, openeuler-25,
-#   opensuse-15.x, rockylinux-9/10, ubuntu-22.04/24.04/25.04
+#   - NixOS (nix, systemd)
 #
 # Features:
 #   - Automatic OS detection
@@ -36,11 +32,11 @@
 # ==============================================================================
 
 # Global variables for OS detection
-OS_TYPE=""     # debian, ubuntu, devuan, alpine, fedora, rocky, alma, centos, opensuse, gentoo, openeuler
-OS_FAMILY=""   # debian, alpine, rhel, suse, gentoo
-OS_VERSION=""  # Version number
-PKG_MANAGER="" # apt, apk, dnf, yum, pacman, zypper, emerge, nix-env
-INIT_SYSTEM="" # systemd, openrc, runit, sysvinit
+OS_TYPE=""           # debian, ubuntu, alpine, fedora, arch, opensuse, gentoo, nixos, devuan, rocky, alma, centos
+OS_FAMILY=""         # debian, alpine, rhel, arch, suse, gentoo, nixos
+OS_VERSION=""        # Version number
+PKG_MANAGER=""       # apt, apk, dnf, yum, pacman, zypper, emerge, nix-env
+INIT_SYSTEM=""       # systemd, openrc, runit, sysvinit
 
 # ------------------------------------------------------------------------------
 # detect_os()
@@ -76,66 +72,71 @@ detect_os() {
 
   # Normalize OS type and determine family
   case "$OS_TYPE" in
-  debian)
-    OS_FAMILY="debian"
-    PKG_MANAGER="apt"
-    ;;
-  ubuntu)
-    OS_FAMILY="debian"
-    PKG_MANAGER="apt"
-    ;;
-  devuan)
-    OS_FAMILY="debian"
-    PKG_MANAGER="apt"
-    ;;
-  alpine)
-    OS_FAMILY="alpine"
-    PKG_MANAGER="apk"
-    ;;
-  fedora)
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  rocky | rockylinux)
-    OS_TYPE="rocky"
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  alma | almalinux)
-    OS_TYPE="alma"
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  centos)
-    OS_FAMILY="rhel"
-    # CentOS 7 uses yum, 8+ uses dnf
-    if [[ "${OS_VERSION%%.*}" -ge 8 ]]; then
+    debian)
+      OS_FAMILY="debian"
+      PKG_MANAGER="apt"
+      ;;
+    ubuntu)
+      OS_FAMILY="debian"
+      PKG_MANAGER="apt"
+      ;;
+    devuan)
+      OS_FAMILY="debian"
+      PKG_MANAGER="apt"
+      ;;
+    alpine)
+      OS_FAMILY="alpine"
+      PKG_MANAGER="apk"
+      ;;
+    fedora)
+      OS_FAMILY="rhel"
       PKG_MANAGER="dnf"
-    else
-      PKG_MANAGER="yum"
-    fi
-    ;;
-  rhel)
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  openeuler)
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  opensuse* | sles)
-    OS_TYPE="opensuse"
-    OS_FAMILY="suse"
-    PKG_MANAGER="zypper"
-    ;;
-  gentoo)
-    OS_FAMILY="gentoo"
-    PKG_MANAGER="emerge"
-    ;;
-  *)
-    OS_FAMILY="unknown"
-    PKG_MANAGER="unknown"
-    ;;
+      ;;
+    rocky | rockylinux)
+      OS_TYPE="rocky"
+      OS_FAMILY="rhel"
+      PKG_MANAGER="dnf"
+      ;;
+    alma | almalinux)
+      OS_TYPE="alma"
+      OS_FAMILY="rhel"
+      PKG_MANAGER="dnf"
+      ;;
+    centos)
+      OS_FAMILY="rhel"
+      # CentOS 7 uses yum, 8+ uses dnf
+      if [[ "${OS_VERSION%%.*}" -ge 8 ]]; then
+        PKG_MANAGER="dnf"
+      else
+        PKG_MANAGER="yum"
+      fi
+      ;;
+    rhel)
+      OS_FAMILY="rhel"
+      PKG_MANAGER="dnf"
+      ;;
+    arch | archlinux)
+      OS_TYPE="arch"
+      OS_FAMILY="arch"
+      PKG_MANAGER="pacman"
+      ;;
+    opensuse* | sles)
+      OS_TYPE="opensuse"
+      OS_FAMILY="suse"
+      PKG_MANAGER="zypper"
+      ;;
+    gentoo)
+      OS_FAMILY="gentoo"
+      PKG_MANAGER="emerge"
+      ;;
+    nixos)
+      OS_FAMILY="nixos"
+      PKG_MANAGER="nix-env"
+      ;;
+    *)
+      OS_FAMILY="unknown"
+      PKG_MANAGER="unknown"
+      ;;
   esac
 
   # Detect init system
@@ -198,34 +199,34 @@ detect_os
 # ------------------------------------------------------------------------------
 pkg_update() {
   case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get update
-    ;;
-  apk)
-    $STD apk update
-    ;;
-  dnf)
-    $STD dnf makecache
-    ;;
-  yum)
-    $STD yum makecache
-    ;;
-  pacman)
-    $STD pacman -Sy
-    ;;
-  zypper)
-    $STD zypper refresh
-    ;;
-  emerge)
-    $STD emerge --sync
-    ;;
-  nix-env)
-    $STD nix-channel --update
-    ;;
-  *)
-    msg_error "Unknown package manager: $PKG_MANAGER"
-    return 1
-    ;;
+    apt)
+      $STD apt-get update
+      ;;
+    apk)
+      $STD apk update
+      ;;
+    dnf)
+      $STD dnf makecache
+      ;;
+    yum)
+      $STD yum makecache
+      ;;
+    pacman)
+      $STD pacman -Sy
+      ;;
+    zypper)
+      $STD zypper refresh
+      ;;
+    emerge)
+      $STD emerge --sync
+      ;;
+    nix-env)
+      $STD nix-channel --update
+      ;;
+    *)
+      msg_error "Unknown package manager: $PKG_MANAGER"
+      return 1
+      ;;
   esac
 }
 
@@ -236,34 +237,34 @@ pkg_update() {
 # ------------------------------------------------------------------------------
 pkg_upgrade() {
   case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
-    ;;
-  apk)
-    $STD apk -U upgrade
-    ;;
-  dnf)
-    $STD dnf -y upgrade
-    ;;
-  yum)
-    $STD yum -y update
-    ;;
-  pacman)
-    $STD pacman -Syu --noconfirm
-    ;;
-  zypper)
-    $STD zypper -n update
-    ;;
-  emerge)
-    $STD emerge --quiet --update --deep @world
-    ;;
-  nix-env)
-    $STD nix-env -u
-    ;;
-  *)
-    msg_error "Unknown package manager: $PKG_MANAGER"
-    return 1
-    ;;
+    apt)
+      $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
+      ;;
+    apk)
+      $STD apk -U upgrade
+      ;;
+    dnf)
+      $STD dnf -y upgrade
+      ;;
+    yum)
+      $STD yum -y update
+      ;;
+    pacman)
+      $STD pacman -Syu --noconfirm
+      ;;
+    zypper)
+      $STD zypper -n update
+      ;;
+    emerge)
+      $STD emerge --quiet --update --deep @world
+      ;;
+    nix-env)
+      $STD nix-env -u
+      ;;
+    *)
+      msg_error "Unknown package manager: $PKG_MANAGER"
+      return 1
+      ;;
   esac
 }
 
@@ -279,36 +280,36 @@ pkg_install() {
   [[ ${#packages[@]} -eq 0 ]] && return 0
 
   case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get install -y "${packages[@]}"
-    ;;
-  apk)
-    $STD apk add --no-cache "${packages[@]}"
-    ;;
-  dnf)
-    $STD dnf install -y "${packages[@]}"
-    ;;
-  yum)
-    $STD yum install -y "${packages[@]}"
-    ;;
-  pacman)
-    $STD pacman -S --noconfirm "${packages[@]}"
-    ;;
-  zypper)
-    $STD zypper install -y "${packages[@]}"
-    ;;
-  emerge)
-    $STD emerge --quiet "${packages[@]}"
-    ;;
-  nix-env)
-    for pkg in "${packages[@]}"; do
-      $STD nix-env -iA "nixos.$pkg"
-    done
-    ;;
-  *)
-    msg_error "Unknown package manager: $PKG_MANAGER"
-    return 1
-    ;;
+    apt)
+      $STD apt-get install -y "${packages[@]}"
+      ;;
+    apk)
+      $STD apk add --no-cache "${packages[@]}"
+      ;;
+    dnf)
+      $STD dnf install -y "${packages[@]}"
+      ;;
+    yum)
+      $STD yum install -y "${packages[@]}"
+      ;;
+    pacman)
+      $STD pacman -S --noconfirm "${packages[@]}"
+      ;;
+    zypper)
+      $STD zypper install -y "${packages[@]}"
+      ;;
+    emerge)
+      $STD emerge --quiet "${packages[@]}"
+      ;;
+    nix-env)
+      for pkg in "${packages[@]}"; do
+        $STD nix-env -iA "nixos.$pkg"
+      done
+      ;;
+    *)
+      msg_error "Unknown package manager: $PKG_MANAGER"
+      return 1
+      ;;
   esac
 }
 
@@ -322,36 +323,36 @@ pkg_remove() {
   [[ ${#packages[@]} -eq 0 ]] && return 0
 
   case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get remove -y "${packages[@]}"
-    ;;
-  apk)
-    $STD apk del "${packages[@]}"
-    ;;
-  dnf)
-    $STD dnf remove -y "${packages[@]}"
-    ;;
-  yum)
-    $STD yum remove -y "${packages[@]}"
-    ;;
-  pacman)
-    $STD pacman -Rs --noconfirm "${packages[@]}"
-    ;;
-  zypper)
-    $STD zypper remove -y "${packages[@]}"
-    ;;
-  emerge)
-    $STD emerge --quiet --unmerge "${packages[@]}"
-    ;;
-  nix-env)
-    for pkg in "${packages[@]}"; do
-      $STD nix-env -e "$pkg"
-    done
-    ;;
-  *)
-    msg_error "Unknown package manager: $PKG_MANAGER"
-    return 1
-    ;;
+    apt)
+      $STD apt-get remove -y "${packages[@]}"
+      ;;
+    apk)
+      $STD apk del "${packages[@]}"
+      ;;
+    dnf)
+      $STD dnf remove -y "${packages[@]}"
+      ;;
+    yum)
+      $STD yum remove -y "${packages[@]}"
+      ;;
+    pacman)
+      $STD pacman -Rs --noconfirm "${packages[@]}"
+      ;;
+    zypper)
+      $STD zypper remove -y "${packages[@]}"
+      ;;
+    emerge)
+      $STD emerge --quiet --unmerge "${packages[@]}"
+      ;;
+    nix-env)
+      for pkg in "${packages[@]}"; do
+        $STD nix-env -e "$pkg"
+      done
+      ;;
+    *)
+      msg_error "Unknown package manager: $PKG_MANAGER"
+      return 1
+      ;;
   esac
 }
 
@@ -362,35 +363,35 @@ pkg_remove() {
 # ------------------------------------------------------------------------------
 pkg_clean() {
   case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get autoremove -y
-    $STD apt-get autoclean
-    ;;
-  apk)
-    $STD apk cache clean
-    ;;
-  dnf)
-    $STD dnf clean all
-    $STD dnf autoremove -y
-    ;;
-  yum)
-    $STD yum clean all
-    ;;
-  pacman)
-    $STD pacman -Scc --noconfirm
-    ;;
-  zypper)
-    $STD zypper clean
-    ;;
-  emerge)
-    $STD emerge --quiet --depclean
-    ;;
-  nix-env)
-    $STD nix-collect-garbage -d
-    ;;
-  *)
-    return 0
-    ;;
+    apt)
+      $STD apt-get autoremove -y
+      $STD apt-get autoclean
+      ;;
+    apk)
+      $STD apk cache clean
+      ;;
+    dnf)
+      $STD dnf clean all
+      $STD dnf autoremove -y
+      ;;
+    yum)
+      $STD yum clean all
+      ;;
+    pacman)
+      $STD pacman -Scc --noconfirm
+      ;;
+    zypper)
+      $STD zypper clean
+      ;;
+    emerge)
+      $STD emerge --quiet --depclean
+      ;;
+    nix-env)
+      $STD nix-collect-garbage -d
+      ;;
+    *)
+      return 0
+      ;;
   esac
 }
 
@@ -408,26 +409,26 @@ svc_enable() {
   [[ -z "$service" ]] && return 1
 
   case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl enable "$service"
-    ;;
-  openrc)
-    $STD rc-update add "$service" default
-    ;;
-  runit)
-    [[ -d "/etc/sv/$service" ]] && ln -sf "/etc/sv/$service" "/var/service/"
-    ;;
-  sysvinit)
-    if command -v update-rc.d &>/dev/null; then
-      $STD update-rc.d "$service" defaults
-    elif command -v chkconfig &>/dev/null; then
-      $STD chkconfig "$service" on
-    fi
-    ;;
-  *)
-    msg_warn "Unknown init system, cannot enable $service"
-    return 1
-    ;;
+    systemd)
+      $STD systemctl enable "$service"
+      ;;
+    openrc)
+      $STD rc-update add "$service" default
+      ;;
+    runit)
+      [[ -d "/etc/sv/$service" ]] && ln -sf "/etc/sv/$service" "/var/service/"
+      ;;
+    sysvinit)
+      if command -v update-rc.d &>/dev/null; then
+        $STD update-rc.d "$service" defaults
+      elif command -v chkconfig &>/dev/null; then
+        $STD chkconfig "$service" on
+      fi
+      ;;
+    *)
+      msg_warn "Unknown init system, cannot enable $service"
+      return 1
+      ;;
   esac
 }
 
@@ -441,25 +442,25 @@ svc_disable() {
   [[ -z "$service" ]] && return 1
 
   case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl disable "$service"
-    ;;
-  openrc)
-    $STD rc-update del "$service" default 2>/dev/null || true
-    ;;
-  runit)
-    rm -f "/var/service/$service"
-    ;;
-  sysvinit)
-    if command -v update-rc.d &>/dev/null; then
-      $STD update-rc.d "$service" remove
-    elif command -v chkconfig &>/dev/null; then
-      $STD chkconfig "$service" off
-    fi
-    ;;
-  *)
-    return 1
-    ;;
+    systemd)
+      $STD systemctl disable "$service"
+      ;;
+    openrc)
+      $STD rc-update del "$service" default 2>/dev/null || true
+      ;;
+    runit)
+      rm -f "/var/service/$service"
+      ;;
+    sysvinit)
+      if command -v update-rc.d &>/dev/null; then
+        $STD update-rc.d "$service" remove
+      elif command -v chkconfig &>/dev/null; then
+        $STD chkconfig "$service" off
+      fi
+      ;;
+    *)
+      return 1
+      ;;
   esac
 }
 
@@ -473,21 +474,21 @@ svc_start() {
   [[ -z "$service" ]] && return 1
 
   case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl start "$service"
-    ;;
-  openrc)
-    $STD rc-service "$service" start
-    ;;
-  runit)
-    $STD sv start "$service"
-    ;;
-  sysvinit)
-    $STD /etc/init.d/"$service" start
-    ;;
-  *)
-    return 1
-    ;;
+    systemd)
+      $STD systemctl start "$service"
+      ;;
+    openrc)
+      $STD rc-service "$service" start
+      ;;
+    runit)
+      $STD sv start "$service"
+      ;;
+    sysvinit)
+      $STD /etc/init.d/"$service" start
+      ;;
+    *)
+      return 1
+      ;;
   esac
 }
 
@@ -501,21 +502,21 @@ svc_stop() {
   [[ -z "$service" ]] && return 1
 
   case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl stop "$service"
-    ;;
-  openrc)
-    $STD rc-service "$service" stop
-    ;;
-  runit)
-    $STD sv stop "$service"
-    ;;
-  sysvinit)
-    $STD /etc/init.d/"$service" stop
-    ;;
-  *)
-    return 1
-    ;;
+    systemd)
+      $STD systemctl stop "$service"
+      ;;
+    openrc)
+      $STD rc-service "$service" stop
+      ;;
+    runit)
+      $STD sv stop "$service"
+      ;;
+    sysvinit)
+      $STD /etc/init.d/"$service" stop
+      ;;
+    *)
+      return 1
+      ;;
   esac
 }
 
@@ -529,21 +530,21 @@ svc_restart() {
   [[ -z "$service" ]] && return 1
 
   case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl restart "$service"
-    ;;
-  openrc)
-    $STD rc-service "$service" restart
-    ;;
-  runit)
-    $STD sv restart "$service"
-    ;;
-  sysvinit)
-    $STD /etc/init.d/"$service" restart
-    ;;
-  *)
-    return 1
-    ;;
+    systemd)
+      $STD systemctl restart "$service"
+      ;;
+    openrc)
+      $STD rc-service "$service" restart
+      ;;
+    runit)
+      $STD sv restart "$service"
+      ;;
+    sysvinit)
+      $STD /etc/init.d/"$service" restart
+      ;;
+    *)
+      return 1
+      ;;
   esac
 }
 
@@ -557,21 +558,21 @@ svc_status() {
   [[ -z "$service" ]] && return 1
 
   case "$INIT_SYSTEM" in
-  systemd)
-    systemctl is-active --quiet "$service"
-    ;;
-  openrc)
-    rc-service "$service" status &>/dev/null
-    ;;
-  runit)
-    sv status "$service" | grep -q "^run:"
-    ;;
-  sysvinit)
-    /etc/init.d/"$service" status &>/dev/null
-    ;;
-  *)
-    return 1
-    ;;
+    systemd)
+      systemctl is-active --quiet "$service"
+      ;;
+    openrc)
+      rc-service "$service" status &>/dev/null
+      ;;
+    runit)
+      sv status "$service" | grep -q "^run:"
+      ;;
+    sysvinit)
+      /etc/init.d/"$service" status &>/dev/null
+      ;;
+    *)
+      return 1
+      ;;
   esac
 }
 
@@ -582,13 +583,13 @@ svc_status() {
 # ------------------------------------------------------------------------------
 svc_reload_daemon() {
   case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl daemon-reload
-    ;;
-  *)
-    # Other init systems don't need this
-    return 0
-    ;;
+    systemd)
+      $STD systemctl daemon-reload
+      ;;
+    *)
+      # Other init systems don't need this
+      return 0
+      ;;
   esac
 }
 
@@ -683,9 +684,9 @@ setting_up_container() {
 
   # Disable network wait services for faster boot
   case "$INIT_SYSTEM" in
-  systemd)
-    systemctl disable -q --now systemd-networkd-wait-online.service 2>/dev/null || true
-    ;;
+    systemd)
+      systemctl disable -q --now systemd-networkd-wait-online.service 2>/dev/null || true
+      ;;
   esac
 
   msg_ok "Set up Container OS"
@@ -797,12 +798,12 @@ EOF
 
   # Source appropriate tools.func based on OS
   case "$OS_FAMILY" in
-  alpine)
-    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-tools.func)
-    ;;
-  *)
-    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
-    ;;
+    alpine)
+      source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-tools.func)
+      ;;
+    *)
+      source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
+      ;;
   esac
 }
 
@@ -852,16 +853,16 @@ EOF
       sed -i "s/PermitRootLogin prohibit-password/PermitRootLogin yes/g" "$sshd_config"
 
       case "$INIT_SYSTEM" in
-      systemd)
-        svc_restart sshd 2>/dev/null || svc_restart ssh 2>/dev/null || true
-        ;;
-      openrc)
-        svc_enable sshd 2>/dev/null || true
-        svc_start sshd 2>/dev/null || true
-        ;;
-      *)
-        svc_restart sshd 2>/dev/null || true
-        ;;
+        systemd)
+          svc_restart sshd 2>/dev/null || svc_restart ssh 2>/dev/null || true
+          ;;
+        openrc)
+          svc_enable sshd 2>/dev/null || true
+          svc_start sshd 2>/dev/null || true
+          ;;
+        *)
+          svc_restart sshd 2>/dev/null || true
+          ;;
       esac
     fi
   fi
@@ -884,43 +885,43 @@ customize() {
     passwd -d root &>/dev/null || true
 
     case "$INIT_SYSTEM" in
-    systemd)
-      # Configure getty for auto-login
-      local GETTY_OVERRIDE="/etc/systemd/system/container-getty@1.service.d/override.conf"
-      mkdir -p "$(dirname "$GETTY_OVERRIDE")"
-      cat >"$GETTY_OVERRIDE" <<EOF
+      systemd)
+        # Configure getty for auto-login
+        local GETTY_OVERRIDE="/etc/systemd/system/container-getty@1.service.d/override.conf"
+        mkdir -p "$(dirname "$GETTY_OVERRIDE")"
+        cat >"$GETTY_OVERRIDE" <<EOF
 [Service]
 ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
 EOF
-      svc_reload_daemon
-      systemctl restart "$(basename "$(dirname "$GETTY_OVERRIDE")" | sed 's/\.d//')" 2>/dev/null || true
-      ;;
+        svc_reload_daemon
+        systemctl restart "$(basename "$(dirname "$GETTY_OVERRIDE")" | sed 's/\.d//')" 2>/dev/null || true
+        ;;
 
-    openrc)
-      # Alpine/Gentoo: use inittab for auto-login
-      pkg_install util-linux 2>/dev/null || true
+      openrc)
+        # Alpine/Gentoo: use inittab for auto-login
+        pkg_install util-linux 2>/dev/null || true
 
-      # Create persistent autologin boot script
-      mkdir -p /etc/local.d
-      cat <<'EOFSCRIPT' >/etc/local.d/autologin.start
+        # Create persistent autologin boot script
+        mkdir -p /etc/local.d
+        cat <<'EOFSCRIPT' >/etc/local.d/autologin.start
 #!/bin/sh
 sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
 kill -HUP 1
 EOFSCRIPT
-      chmod +x /etc/local.d/autologin.start
-      rc-update add local 2>/dev/null || true
-      /etc/local.d/autologin.start 2>/dev/null || true
-      touch /root/.hushlogin
-      ;;
+        chmod +x /etc/local.d/autologin.start
+        rc-update add local 2>/dev/null || true
+        /etc/local.d/autologin.start 2>/dev/null || true
+        touch /root/.hushlogin
+        ;;
 
-    sysvinit)
-      # Devuan/older systems
-      if [[ -f /etc/inittab ]]; then
-        sed -i 's|^1:2345:respawn:/sbin/getty.*|1:2345:respawn:/sbin/agetty --autologin root tty1 38400 linux|' /etc/inittab
-        telinit q 2>/dev/null || true
-      fi
-      ;;
+      sysvinit)
+        # Devuan/older systems
+        if [[ -f /etc/inittab ]]; then
+          sed -i 's|^1:2345:respawn:/sbin/getty.*|1:2345:respawn:/sbin/agetty --autologin root tty1 38400 linux|' /etc/inittab
+          telinit q 2>/dev/null || true
+        fi
+        ;;
     esac
 
     msg_ok "Customized Container"
@@ -967,9 +968,9 @@ set_timezone() {
 
     # Update tzdata if available
     case "$PKG_MANAGER" in
-    apt)
-      dpkg-reconfigure -f noninteractive tzdata 2>/dev/null || true
-      ;;
+      apt)
+        dpkg-reconfigure -f noninteractive tzdata 2>/dev/null || true
+        ;;
     esac
     msg_ok "Timezone set to $tz"
   else
