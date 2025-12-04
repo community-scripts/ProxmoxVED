@@ -1,0 +1,33 @@
+{
+  "name": "Rocky Linux",
+  "slug": "rockylinux",
+  "categories": [0],
+  "date_created": "2025-12-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://docs.rockylinux.org/",
+  "website": "https://rockylinux.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/rocky-linux.webp",
+  "config_path": "",
+  "description": "Rocky Linux is an enterprise-grade Linux distribution designed to be 100% bug-for-bug compatible with Red Hat Enterprise Linux (RHEL).",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/rockylinux.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "rockylinux",
+        "version": "10"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "root",
+    "password": null
+  },
+  "notes": []
+}

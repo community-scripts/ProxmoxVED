@@ -1,0 +1,33 @@
+{
+  "name": "Alpine Linux",
+  "slug": "alpine",
+  "categories": [0],
+  "date_created": "2025-12-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://wiki.alpinelinux.org/",
+  "website": "https://alpinelinux.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/alpine-linux.webp",
+  "config_path": "",
+  "description": "Alpine Linux is a security-oriented, lightweight Linux distribution based on musl libc and busybox. Perfect for containers due to its minimal footprint.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/alpine.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 1,
+        "os": "alpine",
+        "version": "3.22"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "root",
+    "password": null
+  },
+  "notes": []
+}
