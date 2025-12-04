@@ -13,13 +13,5 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD dnf install -y curl wget ca-certificates
-msg_ok "Installed Dependencies"
-
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD dnf clean all
-msg_ok "Cleaned"

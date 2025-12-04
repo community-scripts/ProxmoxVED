@@ -13,13 +13,5 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD emerge --quiet net-misc/curl net-misc/wget app-misc/ca-certificates
-msg_ok "Installed Dependencies"
-
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD emerge --quiet --depclean
-msg_ok "Cleaned"
