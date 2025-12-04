@@ -2419,11 +2419,9 @@ build_container() {
 
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
-  if [ "$var_os" == "alpine" ]; then
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)"
-  else
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
-  fi
+
+  # Unified install.func automatically detects OS type (debian, alpine, fedora, etc.)
+  export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
 
   # Core exports for install.func
   export DIAGNOSTICS="$DIAGNOSTICS"
@@ -2826,39 +2824,78 @@ EOF
   #   install_gpu_userland "NVIDIA"
   # fi
 
-  # Continue with standard container setup
-  if [ "$var_os" == "alpine" ]; then
-    sleep 3
+  # Continue with standard container setup - install core dependencies based on OS
+  sleep 3
+
+  case "$var_os" in
+  alpine)
     pct exec "$CTID" -- /bin/sh -c 'cat <<EOF >/etc/apk/repositories
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/main
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 EOF'
     pct exec "$CTID" -- ash -c "apk add bash newt curl openssh nano mc ncurses jq >/dev/null"
-  else
-    sleep 3
-    pct exec "$CTID" -- bash -c "sed -i '/$LANG/ s/^# //' /etc/locale.gen"
-    pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
-    echo LANG=\$locale_line >/etc/default/locale && \
-    locale-gen >/dev/null && \
-    export LANG=\$locale_line"
+    ;;
 
+  debian | ubuntu | devuan)
+    # Locale setup for Debian-based
+    pct exec "$CTID" -- bash -c "sed -i '/$LANG/ s/^# //' /etc/locale.gen 2>/dev/null || true"
+    pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen 2>/dev/null | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
+      [[ -n \"\$locale_line\" ]] && echo LANG=\$locale_line >/etc/default/locale && \
+      locale-gen >/dev/null 2>&1 && \
+      export LANG=\$locale_line || true"
+
+    # Timezone setup
     if [[ -z "${tz:-}" ]]; then
       tz=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "Etc/UTC")
     fi
-
     if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
-      # Set timezone using symlink (Debian 13+ compatible)
-      # Create /etc/timezone for backwards compatibility with older scripts
       pct exec "$CTID" -- bash -c "tz='$tz'; ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime && echo \"\$tz\" >/etc/timezone || true"
     else
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
 
+    # Core dependencies
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null" || {
       msg_error "apt-get base packages installation failed"
       exit 1
     }
-  fi
+    ;;
+
+  fedora | rockylinux | almalinux | centos)
+    # RHEL-based: Fedora, Rocky, AlmaLinux, CentOS
+    pct exec "$CTID" -- bash -c "dnf install -y curl sudo mc jq procps-ng >/dev/null 2>&1 || yum install -y curl sudo mc jq procps-ng >/dev/null 2>&1" || {
+      msg_error "dnf/yum base packages installation failed"
+      exit 1
+    }
+    ;;
+
+  opensuse)
+    # openSUSE
+    pct exec "$CTID" -- bash -c "zypper --non-interactive install curl sudo mc jq >/dev/null" || {
+      msg_error "zypper base packages installation failed"
+      exit 1
+    }
+    ;;
+
+  gentoo)
+    # Gentoo - emerge is slow, only install essentials
+    pct exec "$CTID" -- bash -c "emerge --quiet app-misc/jq net-misc/curl app-misc/mc >/dev/null 2>&1" || {
+      msg_warn "Gentoo base packages installation incomplete - may need manual setup"
+    }
+    ;;
+
+  openeuler)
+    # openEuler (RHEL-compatible)
+    pct exec "$CTID" -- bash -c "dnf install -y curl sudo mc jq >/dev/null" || {
+      msg_error "dnf base packages installation failed"
+      exit 1
+    }
+    ;;
+
+  *)
+    msg_warn "Unknown OS '$var_os' - skipping core dependency installation"
+    ;;
+  esac
 
   msg_ok "Customized LXC Container"
 
@@ -3394,11 +3431,15 @@ create_lxc_container() {
 
   # ------------------------------------------------------------------------------
   # Template discovery & validation
+  # Supported OS types (pveam available): alpine, almalinux, centos, debian,
+  #   devuan, fedora, gentoo, openeuler, opensuse, rockylinux, ubuntu
   # ------------------------------------------------------------------------------
   TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
   case "$PCT_OSTYPE" in
-  debian | ubuntu) TEMPLATE_PATTERN="-standard_" ;;
-  alpine | fedora | rocky | centos) TEMPLATE_PATTERN="-default_" ;;
+  debian | ubuntu | devuan) TEMPLATE_PATTERN="-standard_" ;;
+  alpine | fedora | rocky | rockylinux | centos | almalinux | openeuler) TEMPLATE_PATTERN="-default_" ;;
+  gentoo) TEMPLATE_PATTERN="-current_" ;;
+  opensuse) TEMPLATE_PATTERN="-default_" ;;
   *) TEMPLATE_PATTERN="" ;;
   esac
 

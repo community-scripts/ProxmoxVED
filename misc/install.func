@@ -24,7 +24,7 @@
 # Features:
 #   - Automatic OS detection
 #   - Unified package manager abstraction
-#   - Init system abstraction (systemd/OpenRC/runit/sysvinit)
+#   - Init system abstraction (systemd/OpenRC/sysvinit)
 #   - Network connectivity verification
 #   - MOTD and SSH configuration
 #   - Container customization
@@ -39,8 +39,8 @@
 OS_TYPE=""     # debian, ubuntu, devuan, alpine, fedora, rocky, alma, centos, opensuse, gentoo, openeuler
 OS_FAMILY=""   # debian, alpine, rhel, suse, gentoo
 OS_VERSION=""  # Version number
-PKG_MANAGER="" # apt, apk, dnf, yum, pacman, zypper, emerge, nix-env
-INIT_SYSTEM="" # systemd, openrc, runit, sysvinit
+PKG_MANAGER="" # apt, apk, dnf, yum, zypper, emerge
+INIT_SYSTEM="" # systemd, openrc, sysvinit
 
 # ------------------------------------------------------------------------------
 # detect_os()
@@ -143,8 +143,6 @@ detect_os() {
     INIT_SYSTEM="systemd"
   elif command -v rc-service &>/dev/null || [[ -d /etc/init.d && -f /sbin/openrc ]]; then
     INIT_SYSTEM="openrc"
-  elif command -v sv &>/dev/null && [[ -d /etc/sv ]]; then
-    INIT_SYSTEM="runit"
   elif [[ -f /etc/inittab ]]; then
     INIT_SYSTEM="sysvinit"
   else
@@ -167,8 +165,6 @@ _bootstrap() {
       dnf install -y curl &>/dev/null
     elif command -v yum &>/dev/null; then
       yum install -y curl &>/dev/null
-    elif command -v pacman &>/dev/null; then
-      pacman -Sy --noconfirm curl &>/dev/null
     elif command -v zypper &>/dev/null; then
       zypper install -y curl &>/dev/null
     elif command -v emerge &>/dev/null; then
@@ -210,17 +206,11 @@ pkg_update() {
   yum)
     $STD yum makecache
     ;;
-  pacman)
-    $STD pacman -Sy
-    ;;
   zypper)
     $STD zypper refresh
     ;;
   emerge)
     $STD emerge --sync
-    ;;
-  nix-env)
-    $STD nix-channel --update
     ;;
   *)
     msg_error "Unknown package manager: $PKG_MANAGER"
@@ -248,17 +238,11 @@ pkg_upgrade() {
   yum)
     $STD yum -y update
     ;;
-  pacman)
-    $STD pacman -Syu --noconfirm
-    ;;
   zypper)
     $STD zypper -n update
     ;;
   emerge)
     $STD emerge --quiet --update --deep @world
-    ;;
-  nix-env)
-    $STD nix-env -u
     ;;
   *)
     msg_error "Unknown package manager: $PKG_MANAGER"
@@ -291,19 +275,11 @@ pkg_install() {
   yum)
     $STD yum install -y "${packages[@]}"
     ;;
-  pacman)
-    $STD pacman -S --noconfirm "${packages[@]}"
-    ;;
   zypper)
     $STD zypper install -y "${packages[@]}"
     ;;
   emerge)
     $STD emerge --quiet "${packages[@]}"
-    ;;
-  nix-env)
-    for pkg in "${packages[@]}"; do
-      $STD nix-env -iA "nixos.$pkg"
-    done
     ;;
   *)
     msg_error "Unknown package manager: $PKG_MANAGER"
@@ -334,19 +310,11 @@ pkg_remove() {
   yum)
     $STD yum remove -y "${packages[@]}"
     ;;
-  pacman)
-    $STD pacman -Rs --noconfirm "${packages[@]}"
-    ;;
   zypper)
     $STD zypper remove -y "${packages[@]}"
     ;;
   emerge)
     $STD emerge --quiet --unmerge "${packages[@]}"
-    ;;
-  nix-env)
-    for pkg in "${packages[@]}"; do
-      $STD nix-env -e "$pkg"
-    done
     ;;
   *)
     msg_error "Unknown package manager: $PKG_MANAGER"
@@ -376,17 +344,11 @@ pkg_clean() {
   yum)
     $STD yum clean all
     ;;
-  pacman)
-    $STD pacman -Scc --noconfirm
-    ;;
   zypper)
     $STD zypper clean
     ;;
   emerge)
     $STD emerge --quiet --depclean
-    ;;
-  nix-env)
-    $STD nix-collect-garbage -d
     ;;
   *)
     return 0
@@ -413,9 +375,6 @@ svc_enable() {
     ;;
   openrc)
     $STD rc-update add "$service" default
-    ;;
-  runit)
-    [[ -d "/etc/sv/$service" ]] && ln -sf "/etc/sv/$service" "/var/service/"
     ;;
   sysvinit)
     if command -v update-rc.d &>/dev/null; then
@@ -447,9 +406,6 @@ svc_disable() {
   openrc)
     $STD rc-update del "$service" default 2>/dev/null || true
     ;;
-  runit)
-    rm -f "/var/service/$service"
-    ;;
   sysvinit)
     if command -v update-rc.d &>/dev/null; then
       $STD update-rc.d "$service" remove
@@ -479,9 +435,6 @@ svc_start() {
   openrc)
     $STD rc-service "$service" start
     ;;
-  runit)
-    $STD sv start "$service"
-    ;;
   sysvinit)
     $STD /etc/init.d/"$service" start
     ;;
@@ -506,9 +459,6 @@ svc_stop() {
     ;;
   openrc)
     $STD rc-service "$service" stop
-    ;;
-  runit)
-    $STD sv stop "$service"
     ;;
   sysvinit)
     $STD /etc/init.d/"$service" stop
@@ -535,9 +485,6 @@ svc_restart() {
   openrc)
     $STD rc-service "$service" restart
     ;;
-  runit)
-    $STD sv restart "$service"
-    ;;
   sysvinit)
     $STD /etc/init.d/"$service" restart
     ;;
@@ -562,9 +509,6 @@ svc_status() {
     ;;
   openrc)
     rc-service "$service" status &>/dev/null
-    ;;
-  runit)
-    sv status "$service" | grep -q "^run:"
     ;;
   sysvinit)
     /etc/init.d/"$service" status &>/dev/null
@@ -846,6 +790,30 @@ EOF
 
   # Configure SSH root access if requested
   if [[ "${SSH_ROOT:-}" == "yes" ]]; then
+    # Ensure SSH server is installed
+    if [[ ! -f /etc/ssh/sshd_config ]]; then
+      msg_info "Installing SSH server"
+      case "$PKG_MANAGER" in
+      apt)
+        pkg_install openssh-server
+        ;;
+      apk)
+        pkg_install openssh
+        rc-update add sshd default 2>/dev/null || true
+        ;;
+      dnf | yum)
+        pkg_install openssh-server
+        ;;
+      zypper)
+        pkg_install openssh
+        ;;
+      emerge)
+        pkg_install net-misc/openssh
+        ;;
+      esac
+      msg_ok "Installed SSH server"
+    fi
+
     local sshd_config="/etc/ssh/sshd_config"
     if [[ -f "$sshd_config" ]]; then
       sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/g" "$sshd_config"

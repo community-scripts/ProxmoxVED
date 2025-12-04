@@ -15,3 +15,4 @@ update_os
 
 motd_ssh
 customize
+cleanup_lxc

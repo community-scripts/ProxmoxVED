@@ -795,7 +795,6 @@ is_verbose_mode() {
 # ------------------------------------------------------------------------------
 cleanup_lxc() {
   msg_info "Cleaning up"
-
   # OS-specific package manager cleanup
   if is_alpine; then
     $STD apk cache clean 2>/dev/null || true
