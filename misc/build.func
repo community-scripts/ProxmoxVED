@@ -2391,28 +2391,39 @@ build_container() {
   none) ;;
   esac
 
-  # Build FEATURES string based on container type and settings
-  FEATURES="nesting=1"
-
-  # keyctl: required for Docker in unprivileged containers
-  if [ "$CT_TYPE" == "1" ] || [ "${ENABLE_KEYCTL:-0}" == "1" ]; then
-    FEATURES="$FEATURES,keyctl=1"
+  # Build FEATURES string
+  if [ "$CT_TYPE" == "1" ]; then
+    FEATURES="keyctl=1,nesting=1"
+  else
+    FEATURES="nesting=1"
   fi
 
-  # fuse: allow FUSE filesystems
   if [ "$ENABLE_FUSE" == "yes" ]; then
     FEATURES="$FEATURES,fuse=1"
   fi
 
-  # mknod: allow device node creation (kernel 5.3+, experimental)
-  if [ "${ENABLE_MKNOD:-0}" == "1" ]; then
-    FEATURES="$FEATURES,mknod=1"
-  fi
+  #   # Build FEATURES string based on container type and settings
+  #   FEATURES="nesting=1"
 
-  # mount: allow specific filesystem types
-  if [ -n "${MOUNT_FS:-}" ]; then
-    FEATURES="$FEATURES,mount=$MOUNT_FS"
-  fi
+  #   # keyctl: required for Docker in unprivileged containers
+  #   if [ "$CT_TYPE" == "1" ] || [ "${ENABLE_KEYCTL:-0}" == "1" ]; then
+  #     FEATURES="$FEATURES,keyctl=1"
+  #   fi
+
+  #   # fuse: allow FUSE filesystems
+  #   if [ "$ENABLE_FUSE" == "yes" ]; then
+  #     FEATURES="$FEATURES,fuse=1"
+  #   fi
+
+  #   # mknod: allow device node creation (kernel 5.3+, experimental)
+  #   if [ "${ENABLE_MKNOD:-0}" == "1" ]; then
+  #     FEATURES="$FEATURES,mknod=1"
+  #   fi
+
+  #   # mount: allow specific filesystem types
+  #   if [ -n "${MOUNT_FS:-}" ]; then
+  #     FEATURES="$FEATURES,mount=$MOUNT_FS"
+  #   fi
 
   # NEW IMPLEMENTATION (Fixed): Build PCT_OPTIONS properly
   # Key insight: Bash cannot export arrays, so we build the options as a string
