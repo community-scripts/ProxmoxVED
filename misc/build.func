@@ -3336,43 +3336,25 @@ create_lxc_container() {
     fi
 
     msg_info "Validating storage '$CONTAINER_STORAGE'"
-    STORAGE_CONTENT=$(grep -A10 -E "^(dir|nfs|cifs|btrfs|cephfs|lvm|lvmthin|zfspool|rbd|iscsi|iscsidirect|zfs|linstor|pbs): $CONTAINER_STORAGE$" /etc/pve/storage.cfg | grep -m1 content | awk '{$1=""; print $0}' | xargs)
-
-    if [[ -z "$STORAGE_CONTENT" ]]; then
-        if pvesm status -content rootdir 2>/dev/null | awk 'NR>1{print $1}' | grep -qx "$CONTAINER_STORAGE"; then
-            STORAGE_CONTENT="rootdir"
-        fi
-    fi
-
     STORAGE_TYPE=$(grep -E "^[^:]+: $CONTAINER_STORAGE$" /etc/pve/storage.cfg | cut -d: -f1 | head -1)
 
     case "$STORAGE_TYPE" in
-    linstor | rbd | cephfs | iscsi | iscsidirect | nfs | cifs)
-        if ! pvesm status -storage "$CONTAINER_STORAGE" &>/dev/null; then
-            msg_error "Storage '$CONTAINER_STORAGE' ($STORAGE_TYPE) not accessible"
-            exit 217
-        fi
+    iscsidirect) exit 212 ;;
+    iscsi | zfs) exit 213 ;;
+    cephfs) exit 219 ;;
+    pbs) exit 224 ;;
+    linstor | rbd | nfs | cifs)
+        pvesm status -storage "$CONTAINER_STORAGE" &>/dev/null || exit 217
         ;;
     esac
 
-    if ! pvesm status -content rootdir 2>/dev/null | awk 'NR>1{print $1}' | grep -qx "$CONTAINER_STORAGE"; then
-        if ! grep -qw "rootdir" <<<"$STORAGE_CONTENT"; then
-            msg_error "Storage '$CONTAINER_STORAGE' does not support 'rootdir'"
-            exit 217
-        fi
-    fi
+    pvesm status -content rootdir 2>/dev/null | awk 'NR>1{print $1}' | grep -qx "$CONTAINER_STORAGE" || exit 213
     msg_ok "Storage '$CONTAINER_STORAGE' ($STORAGE_TYPE) validated"
 
     msg_info "Validating template storage '$TEMPLATE_STORAGE'"
-    TEMPLATE_CONTENT=$(grep -A10 -E "^(dir|nfs|cifs|btrfs|cephfs|lvm|lvmthin|zfspool|rbd|iscsi|iscsidirect|zfs|linstor|pbs): $TEMPLATE_STORAGE$" /etc/pve/storage.cfg | grep -m1 content | awk '{$1=""; print $0}' | xargs)
-    if [[ -z "$TEMPLATE_CONTENT" ]]; then
-        if pvesm status -content vztmpl 2>/dev/null | awk 'NR>1{print $1}' | grep -qx "$TEMPLATE_STORAGE"; then
-            TEMPLATE_CONTENT="vztmpl"
-        fi
-    fi
     TEMPLATE_TYPE=$(grep -E "^[^:]+: $TEMPLATE_STORAGE$" /etc/pve/storage.cfg | cut -d: -f1)
 
-    if ! grep -qw "vztmpl" <<<"$TEMPLATE_CONTENT"; then
+    if ! pvesm status -content vztmpl 2>/dev/null | awk 'NR>1{print $1}' | grep -qx "$TEMPLATE_STORAGE"; then
         msg_warn "Template storage '$TEMPLATE_STORAGE' may not support 'vztmpl'"
     fi
     msg_ok "Template storage '$TEMPLATE_STORAGE' validated"
