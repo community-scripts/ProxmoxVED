@@ -854,39 +854,40 @@ customize() {
     case "$INIT_SYSTEM" in
     systemd)
       # Configure getty for auto-login
-      local GETTY_OVERRIDE="/etc/systemd/system/container-getty@1.service.d/override.conf"
-      mkdir -p "$(dirname "$GETTY_OVERRIDE")"
-      cat >"$GETTY_OVERRIDE" <<EOF
+      # Just write the config - systemd picks it up on next boot/login
+      # No daemon-reload or restart needed during installation!
+      local GETTY_OVERRIDE=""
+
+      if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
+        GETTY_OVERRIDE="/etc/systemd/system/container-getty@1.service.d/override.conf"
+      elif [[ -f /usr/lib/systemd/system/getty@.service ]]; then
+        GETTY_OVERRIDE="/etc/systemd/system/getty@tty1.service.d/override.conf"
+      elif [[ -f /usr/lib/systemd/system/console-getty.service ]]; then
+        GETTY_OVERRIDE="/etc/systemd/system/console-getty.service.d/override.conf"
+      fi
+
+      if [[ -n "$GETTY_OVERRIDE" ]]; then
+        mkdir -p "$(dirname "$GETTY_OVERRIDE")"
+        cat >"$GETTY_OVERRIDE" <<EOF
 [Service]
 ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
 EOF
-      svc_reload_daemon
-      systemctl restart "$(basename "$(dirname "$GETTY_OVERRIDE")" | sed 's/\.d//')" 2>/dev/null || true
+      fi
       ;;
 
     openrc)
-      # Alpine/Gentoo: use inittab for auto-login
-      pkg_install util-linux 2>/dev/null || true
-
-      # Create persistent autologin boot script
-      mkdir -p /etc/local.d
-      cat <<'EOFSCRIPT' >/etc/local.d/autologin.start
-#!/bin/sh
-sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
-kill -HUP 1
-EOFSCRIPT
-      chmod +x /etc/local.d/autologin.start
-      rc-update add local 2>/dev/null || true
-      /etc/local.d/autologin.start 2>/dev/null || true
+      # Alpine/Gentoo: modify inittab for auto-login
+      if [[ -f /etc/inittab ]]; then
+        sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
+      fi
       touch /root/.hushlogin
       ;;
 
     sysvinit)
-      # Devuan/older systems
+      # Devuan/older systems - just modify inittab, no telinit needed during install
       if [[ -f /etc/inittab ]]; then
         sed -i 's|^1:2345:respawn:/sbin/getty.*|1:2345:respawn:/sbin/agetty --autologin root tty1 38400 linux|' /etc/inittab
-        telinit q 2>/dev/null || true
       fi
       ;;
     esac
