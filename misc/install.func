@@ -853,6 +853,11 @@ customize() {
 
     case "$INIT_SYSTEM" in
     systemd)
+      # Mask services that block boot in LXC containers
+      # systemd-homed-firstboot.service hangs waiting for user input on Fedora
+      systemctl mask systemd-homed-firstboot.service &>/dev/null || true
+      systemctl mask systemd-homed.service &>/dev/null || true
+
       # Configure console-getty for auto-login in LXC containers
       # console-getty.service is THE service that handles /dev/console in LXC
       # It's present on all systemd distros but not enabled by default on Fedora/RHEL
