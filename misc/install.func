@@ -853,25 +853,28 @@ customize() {
 
     case "$INIT_SYSTEM" in
     systemd)
-      # Configure getty for auto-login
-      # Just write the config - systemd picks it up on next boot/login
-      # No daemon-reload or restart needed during installation!
-      local GETTY_OVERRIDE=""
+      # Configure console-getty for auto-login in LXC containers
+      # console-getty.service is THE service that handles /dev/console in LXC
+      # It's present on all systemd distros but not enabled by default on Fedora/RHEL
 
-      if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
-        GETTY_OVERRIDE="/etc/systemd/system/container-getty@1.service.d/override.conf"
-      elif [[ -f /usr/lib/systemd/system/getty@.service ]]; then
-        GETTY_OVERRIDE="/etc/systemd/system/getty@tty1.service.d/override.conf"
-      elif [[ -f /usr/lib/systemd/system/console-getty.service ]]; then
-        GETTY_OVERRIDE="/etc/systemd/system/console-getty.service.d/override.conf"
-      fi
-
-      if [[ -n "$GETTY_OVERRIDE" ]]; then
-        mkdir -p "$(dirname "$GETTY_OVERRIDE")"
-        cat >"$GETTY_OVERRIDE" <<EOF
+      if [[ -f /usr/lib/systemd/system/console-getty.service ]]; then
+        mkdir -p /etc/systemd/system/console-getty.service.d
+        cat >/etc/systemd/system/console-getty.service.d/override.conf <<'EOF'
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 \$TERM
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud 115200,38400,9600 $TERM
+EOF
+        # Enable console-getty for LXC web console (required on Fedora/RHEL)
+        systemctl enable console-getty.service &>/dev/null || true
+      fi
+
+      # Also configure container-getty@1 (Debian/Ubuntu default in LXC)
+      if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
+        mkdir -p /etc/systemd/system/container-getty@1.service.d
+        cat >/etc/systemd/system/container-getty@1.service.d/override.conf <<'EOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 $TERM
 EOF
       fi
       ;;
