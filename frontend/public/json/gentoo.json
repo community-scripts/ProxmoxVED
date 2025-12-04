@@ -1,38 +1,40 @@
 {
-  "name": "Gentoo",
-  "slug": "gentoo",
-  "categories": [0],
-  "date_created": "2025-12-04",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": null,
-  "documentation": "https://wiki.gentoo.org/",
-  "website": "https://www.gentoo.org/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/gentoo.webp",
-  "config_path": "",
-  "description": "Gentoo is a highly customizable source-based Linux distribution. Users compile software optimized for their specific hardware.",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/gentoo.sh",
-      "resources": {
-        "cpu": 2,
-        "ram": 1024,
-        "hdd": 8,
-        "os": "gentoo",
-        "version": "current"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": "root",
-    "password": null
-  },
-  "notes": [
-    {
-      "text": "Gentoo compiles packages from source. Initial setup may take time.",
-      "type": "warning"
-    }
-  ]
+    "name": "Gentoo",
+    "slug": "gentoo",
+    "categories": [
+        0
+    ],
+    "date_created": "2025-12-04",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": null,
+    "documentation": "https://wiki.gentoo.org/",
+    "website": "https://www.gentoo.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/gentoo.webp",
+    "config_path": "",
+    "description": "Gentoo is a highly customizable source-based Linux distribution. Users compile software optimized for their specific hardware.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/gentoo.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 1024,
+                "hdd": 8,
+                "os": "gentoo",
+                "version": "current"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "root",
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Gentoo compiles packages from source. Initial setup may take time.",
+            "type": "warning"
+        }
+    ]
 }

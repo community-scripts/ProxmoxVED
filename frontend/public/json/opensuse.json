@@ -1,33 +1,35 @@
 {
-  "name": "openSUSE",
-  "slug": "opensuse",
-  "categories": [0],
-  "date_created": "2025-12-04",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": null,
-  "documentation": "https://doc.opensuse.org/",
-  "website": "https://www.opensuse.org/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/opensuse.webp",
-  "config_path": "",
-  "description": "openSUSE is a stable, easy-to-use, and complete Linux distribution. Known for its YaST configuration tool and zypper package manager.",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/opensuse.sh",
-      "resources": {
-        "cpu": 1,
-        "ram": 512,
-        "hdd": 4,
-        "os": "opensuse",
-        "version": "15.6"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": "root",
-    "password": null
-  },
-  "notes": []
+    "name": "openSUSE",
+    "slug": "opensuse",
+    "categories": [
+        0
+    ],
+    "date_created": "2025-12-04",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": null,
+    "documentation": "https://doc.opensuse.org/",
+    "website": "https://www.opensuse.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/opensuse.webp",
+    "config_path": "",
+    "description": "openSUSE is a stable, easy-to-use, and complete Linux distribution. Known for its YaST configuration tool and zypper package manager.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/opensuse.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 4,
+                "os": "opensuse",
+                "version": "15.6"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "root",
+        "password": null
+    },
+    "notes": []
 }

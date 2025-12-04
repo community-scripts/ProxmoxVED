@@ -686,7 +686,7 @@ get_header() {
   local app_type=${APP_TYPE:-ct} # Default zu 'ct' falls nicht gesetzt
   local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
-  
+
   mkdir -p "$(dirname "$local_header_path")"
 
   if [ ! -s "$local_header_path" ]; then
@@ -787,7 +787,8 @@ is_verbose_mode() {
 # cleanup_lxc()
 #
 # - Comprehensive cleanup of package managers, caches, and logs
-# - Supports Alpine (apk), Debian/Ubuntu (apt), and language package managers
+# - Supports Alpine (apk), Debian/Ubuntu (apt), Fedora/Rocky/CentOS (dnf/yum),
+#   openSUSE (zypper), Gentoo (emerge), and language package managers
 # - Cleans: Python (pip/uv), Node.js (npm/yarn/pnpm), Go, Rust, Ruby, PHP
 # - Truncates log files and vacuums systemd journal
 # - Run at end of container creation to minimize disk usage
@@ -795,13 +796,30 @@ is_verbose_mode() {
 cleanup_lxc() {
   msg_info "Cleaning up"
 
+  # OS-specific package manager cleanup
   if is_alpine; then
-    $STD apk cache clean || true
+    $STD apk cache clean 2>/dev/null || true
     rm -rf /var/cache/apk/*
-  else
-    $STD apt -y autoremove || true
-    $STD apt -y autoclean || true
-    $STD apt -y clean || true
+  elif command -v apt &>/dev/null; then
+    # Debian/Ubuntu/Devuan
+    $STD apt -y autoremove 2>/dev/null || true
+    $STD apt -y autoclean 2>/dev/null || true
+    $STD apt -y clean 2>/dev/null || true
+  elif command -v dnf &>/dev/null; then
+    # Fedora/Rocky/AlmaLinux/CentOS 8+
+    $STD dnf clean all 2>/dev/null || true
+    $STD dnf autoremove -y 2>/dev/null || true
+  elif command -v yum &>/dev/null; then
+    # CentOS 7/older RHEL
+    $STD yum clean all 2>/dev/null || true
+  elif command -v zypper &>/dev/null; then
+    # openSUSE
+    $STD zypper clean --all 2>/dev/null || true
+  elif command -v emerge &>/dev/null; then
+    # Gentoo
+    $STD emerge --quiet --depclean 2>/dev/null || true
+    $STD eclean-dist -d 2>/dev/null || true
+    $STD eclean-pkg -d 2>/dev/null || true
   fi
 
   # Clear temp artifacts (keep sockets/FIFOs; ignore errors)
@@ -815,22 +833,22 @@ cleanup_lxc() {
   fi
 
   # Node.js npm
-  if command -v npm &>/dev/null; then $STD npm cache clean --force || true; fi
+  if command -v npm &>/dev/null; then $STD npm cache clean --force 2>/dev/null || true; fi
   # Node.js yarn
-  if command -v yarn &>/dev/null; then $STD yarn cache clean || true; fi
+  if command -v yarn &>/dev/null; then $STD yarn cache clean 2>/dev/null || true; fi
   # Node.js pnpm
-  if command -v pnpm &>/dev/null; then $STD pnpm store prune || true; fi
+  if command -v pnpm &>/dev/null; then $STD pnpm store prune 2>/dev/null || true; fi
   # Go
-  if command -v go &>/dev/null; then $STD go clean -cache -modcache || true; fi
+  if command -v go &>/dev/null; then $STD go clean -cache -modcache 2>/dev/null || true; fi
   # Rust cargo
-  if command -v cargo &>/dev/null; then $STD cargo clean || true; fi
+  if command -v cargo &>/dev/null; then $STD cargo clean 2>/dev/null || true; fi
   # Ruby gem
-  if command -v gem &>/dev/null; then $STD gem cleanup || true; fi
+  if command -v gem &>/dev/null; then $STD gem cleanup 2>/dev/null || true; fi
   # Composer (PHP)
-  if command -v composer &>/dev/null; then $STD composer clear-cache || true; fi
+  if command -v composer &>/dev/null; then $STD composer clear-cache 2>/dev/null || true; fi
 
   if command -v journalctl &>/dev/null; then
-    $STD journalctl --vacuum-time=10m || true
+    $STD journalctl --vacuum-time=10m 2>/dev/null || true
   fi
   msg_ok "Cleaned"
 }
