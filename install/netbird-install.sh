@@ -48,6 +48,46 @@ $STD netbird service start 2>/dev/null || true
 $STD systemctl enable netbird
 msg_ok "Enabled NetBird Service"
 
+# NetBird Deployment Type Selection
+echo ""
+echo -e "${BL}NetBird Deployment Type${CL}"
+echo "─────────────────────────────────────────"
+echo "Are you using NetBird Managed or Self-Hosted?"
+echo ""
+echo "  1) NetBird Managed (default) - Use NetBird's managed service"
+echo "  2) Self-Hosted - Use your own NetBird management server"
+echo ""
+
+read -rp "Select deployment type [1]: " DEPLOYMENT_TYPE
+DEPLOYMENT_TYPE="${DEPLOYMENT_TYPE:-1}"
+
+NETBIRD_MGMT_URL=""
+case "$DEPLOYMENT_TYPE" in
+    1)
+        msg_info "Using NetBird Managed service"
+        ;;
+    2)
+        echo ""
+        echo -e "${BL}Self-Hosted Configuration${CL}"
+        echo "─────────────────────────────────────────"
+        echo "Enter your NetBird management server URL."
+        echo "Example: https://management.example.com"
+        echo ""
+        read -rp "Management URL: " NETBIRD_MGMT_URL
+
+        if [[ -z "$NETBIRD_MGMT_URL" ]]; then
+            msg_warn "No management URL provided. Run 'netbird up --management-url <url>' within the container to connect."
+        else
+            # Ensure URL doesn't end with trailing slash
+            NETBIRD_MGMT_URL="${NETBIRD_MGMT_URL%/}"
+            msg_info "Management URL configured: ${GN}${NETBIRD_MGMT_URL}${CL}"
+        fi
+        ;;
+    *)
+        msg_warn "Invalid selection. Using NetBird Managed service."
+        ;;
+esac
+
 # NetBird Connection Setup
 echo ""
 echo -e "${BL}NetBird Connection Setup${CL}"
@@ -72,16 +112,28 @@ case "$AUTH_METHOD" in
         echo ""
 
         if [[ -z "$NETBIRD_SETUP_KEY" ]]; then
-            msg_warn "No setup key provided. Run 'netbird up' within the container to connect."
+            if [[ -n "$NETBIRD_MGMT_URL" ]]; then
+                msg_warn "No setup key provided. Run 'netbird up -k <key> --management-url $NETBIRD_MGMT_URL' within the container to connect."
+            else
+                msg_warn "No setup key provided. Run 'netbird up -k <key>' within the container to connect."
+            fi
         else
             echo -e "Setup key: ${GN}${NETBIRD_SETUP_KEY}${CL}"
             read -rp "Press Enter to continue or Ctrl+C to cancel..."
 
             msg_info "Connecting to NetBird with setup key"
-            if netbird up -k "$NETBIRD_SETUP_KEY"; then
-                msg_ok "Connected to NetBird"
+            if [[ -n "$NETBIRD_MGMT_URL" ]]; then
+                if netbird up -k "$NETBIRD_SETUP_KEY" --management-url "$NETBIRD_MGMT_URL"; then
+                    msg_ok "Connected to NetBird"
+                else
+                    msg_warn "Connection failed. Run 'netbird up -k <key> --management-url $NETBIRD_MGMT_URL' within the container to retry."
+                fi
             else
-                msg_warn "Connection failed. Run 'netbird up -k <key>' within the container to retry."
+                if netbird up -k "$NETBIRD_SETUP_KEY"; then
+                    msg_ok "Connected to NetBird"
+                else
+                    msg_warn "Connection failed. Run 'netbird up -k <key>' within the container to retry."
+                fi
             fi
         fi
         ;;
@@ -95,19 +147,35 @@ case "$AUTH_METHOD" in
         echo ""
 
         msg_info "Starting SSO login"
-        netbird login 2>&1 || true
+        if [[ -n "$NETBIRD_MGMT_URL" ]]; then
+            netbird login --management-url "$NETBIRD_MGMT_URL" 2>&1 || true
+        else
+            netbird login 2>&1 || true
+        fi
         echo ""
 
         msg_info "Connecting to NetBird"
-        if netbird up; then
-            msg_ok "Connected to NetBird"
+        if [[ -n "$NETBIRD_MGMT_URL" ]]; then
+            if netbird up --management-url "$NETBIRD_MGMT_URL"; then
+                msg_ok "Connected to NetBird"
+            else
+                msg_warn "Connection failed. Run 'netbird up --management-url $NETBIRD_MGMT_URL' within the container to retry."
+            fi
         else
-            msg_warn "Connection failed. Run 'netbird up' within the container to retry."
+            if netbird up; then
+                msg_ok "Connected to NetBird"
+            else
+                msg_warn "Connection failed. Run 'netbird up' within the container to retry."
+            fi
         fi
         ;;
     3)
         msg_info "Skipping NetBird connection"
-        msg_ok "Run 'netbird up' within the container to connect."
+        if [[ -n "$NETBIRD_MGMT_URL" ]]; then
+            msg_ok "Run 'netbird up --management-url $NETBIRD_MGMT_URL' within the container to connect."
+        else
+            msg_ok "Run 'netbird up' within the container to connect."
+        fi
         ;;
     *)
         msg_warn "Invalid selection. Run 'netbird up' within the container to connect."
