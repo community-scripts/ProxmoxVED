@@ -56,6 +56,7 @@ function update_script() {
     msg_ok "Setup DiscoPanel"
 
     msg_info "Restoring Data"
+		mkdir -p /opt/discopanel/data
     cp -r /opt/discopanel_backup_last/* /opt/discopanel/data/
     msg_ok "Restored Data"
 
