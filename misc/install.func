@@ -904,7 +904,9 @@ EOF
   fi
 
   # Create update script
-  echo "bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/${app}.sh)\"" >/usr/bin/update
+  # Use var_os for OS-based containers, otherwise use app name
+  local update_script_name="${var_os:-$app}"
+  echo "bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/${update_script_name}.sh)\"" >/usr/bin/update
   chmod +x /usr/bin/update
 
   # Inject SSH authorized keys if provided
