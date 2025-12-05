@@ -736,13 +736,16 @@ fi
 # ==============================================================================
 VM_IP=""
 if [ "$START_VM" == "yes" ]; then
+  # Disable error exit for optional IP retrieval
+  set +e
   for i in {1..5}; do
     VM_IP=$(qm guest cmd "$VMID" network-get-interfaces 2>/dev/null |
       jq -r '.[] | select(.name != "lo") | ."ip-addresses"[]? | select(."ip-address-type" == "ipv4") | ."ip-address"' 2>/dev/null |
-      grep -v "^127\." | head -1)
+      grep -v "^127\." | head -1) || true
     [ -n "$VM_IP" ] && break
     sleep 2
   done
+  set -e
 fi
 
 echo -e "\n${INFO}${BOLD}${GN}VM Configuration Summary:${CL}"
