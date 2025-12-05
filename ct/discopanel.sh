@@ -44,7 +44,7 @@ function update_script() {
 
     rm -rf /opt/discopanel
 
-    CLEAN_INSTALL= 1 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
     msg_info "Setting up DiscoPanel"
     cd /opt/discopanel/web/discopanel
     $STD npm install
