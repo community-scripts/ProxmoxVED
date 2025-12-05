@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/DragoQC/ProxmoxVE/main/misc/build.func)
-
-#source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: DragoQC
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -38,16 +36,12 @@ function update_script() {
 
     msg_info "Creating Backup"
     mkdir -p /opt/discopanel_backup_last
-    backup_items=(
-      "/opt/discopanel/data/discopanel.db"
-      "/opt/discopanel/data/.recovery_key"
-      "/opt/discopanel/data/servers"
-    )
-    for item in "${backup_items[@]}"; do
-      if [[ -e "$item" ]]; then
-          cp -r "$item" /opt/discopanel_backup_last/
-      fi
-    done
+    cp -r /opt/discopanel/data/discopanel.db \
+      /opt/discopanel/data/.recovery_key \
+      /opt/discopanel_backup_last/
+    if [[ -d /opt/discopanel/data/servers ]]; then
+      cp -r /opt/discopanel/data/servers /opt/discopanel_backup_last/
+    fi
     msg_ok "Created Backup"
 
     rm -rf /opt/discopanel
