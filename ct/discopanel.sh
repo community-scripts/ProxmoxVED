@@ -35,12 +35,12 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Creating Backup"
-    mkdir -p /opt/discopanel_backup_last
+    mkdir -p /opt/discopanel_backup_temp
     cp -r /opt/discopanel/data/discopanel.db \
       /opt/discopanel/data/.recovery_key \
-      /opt/discopanel_backup_last/
+      /opt/discopanel_backup_temp/
     if [[ -d /opt/discopanel/data/servers ]]; then
-      cp -r /opt/discopanel/data/servers /opt/discopanel_backup_last/
+      cp -r /opt/discopanel/data/servers /opt/discopanel_backup_temp/
     fi
     msg_ok "Created Backup"
 
@@ -55,7 +55,8 @@ function update_script() {
 
     msg_info "Restoring Data"
     mkdir -p /opt/discopanel/data
-    cp -a /opt/discopanel_backup_last/. /opt/discopanel/data/
+    cp -a /opt/discopanel_backup_temp/. /opt/discopanel/data/
+    rm -rf /opt/discopanel_backup_temp
     msg_ok "Restored Data"
 
     msg_info "Starting Service"
