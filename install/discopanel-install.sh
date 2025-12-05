@@ -19,13 +19,7 @@ msg_ok "Installed Dependencies"
 NODE_VERSION="22" setup_nodejs
 setup_go
 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
-
-msg_info "Installing Docker"
-DOCKER_CONFIG_PATH='/etc/docker/daemon.json'
-mkdir -p $(dirname $DOCKER_CONFIG_PATH)
-echo -e '{\n  "log-driver": "journald"\n}' >/etc/docker/daemon.json
-$STD sh <(curl -fsSL https://get.docker.com)
-msg_ok "Installed Docker"
+setup_docker
 
 msg_info "Setting up DiscoPanel"
 cd /opt/discopanel/web/discopanel

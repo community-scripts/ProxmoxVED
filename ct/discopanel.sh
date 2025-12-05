@@ -29,6 +29,8 @@ function update_script() {
     exit
   fi
 
+  setup_docker
+
   if check_for_gh_release "discopanel" "nickheyer/discopanel"; then
     msg_info "Stopping Service"
     systemctl stop discopanel
@@ -42,9 +44,8 @@ function update_script() {
       /opt/discopanel_backup_last/
     msg_ok "Created Backup"
 
-    rm -rf /opt/discopanel
-
     CLEAN_INSTALL= 1 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
+
     msg_info "Setting up DiscoPanel"
     cd /opt/discopanel/web/discopanel
     $STD npm install
@@ -55,6 +56,7 @@ function update_script() {
 
     msg_info "Restoring Data"
     cp -r /opt/discopanel_backup_last/* /opt/discopanel/data/
+    rm -rf /opt/discopanel_backup_last
     msg_ok "Restored Data"
 
     msg_info "Starting Service"
