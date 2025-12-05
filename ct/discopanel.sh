@@ -36,12 +36,16 @@ function update_script() {
 
     msg_info "Creating Backup"
     mkdir -p /opt/discopanel_backup_last
-    cp -r /opt/discopanel/data/discopanel.db \
-      /opt/discopanel/data/.recovery_key \
-      /opt/discopanel_backup_last/
-    if [[ -d /opt/discopanel/data/servers ]]; then
-      cp -r /opt/discopanel/data/servers /opt/discopanel_backup_last/
-    fi
+    backup_items=(
+      "/opt/discopanel/data/discopanel.db"
+      "/opt/discopanel/data/.recovery_key"
+      "/opt/discopanel/data/servers"
+    )
+    for item in "${backup_items[@]}"; do
+      if [[ -e "$item" ]]; then
+          cp -r "$item" /opt/discopanel_backup_last/
+      fi
+    done
     msg_ok "Created Backup"
 
     rm -rf /opt/discopanel
