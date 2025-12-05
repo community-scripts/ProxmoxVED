@@ -55,7 +55,7 @@ function update_script() {
 
     msg_info "Restoring Data"
     mkdir -p /opt/discopanel/data
-    cp -r /opt/discopanel_backup_last/* /opt/discopanel/data/
+    cp -a /opt/discopanel_backup_last/. /opt/discopanel/data/
     msg_ok "Restored Data"
 
     msg_info "Starting Service"
@@ -65,12 +65,3 @@ function update_script() {
   fi
   exit
 }
-
-start
-build_container
-description
-
-msg_ok "Completed Successfully!\n"
-echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
