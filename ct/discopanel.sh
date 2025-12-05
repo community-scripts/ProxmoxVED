@@ -38,8 +38,10 @@ function update_script() {
     mkdir -p /opt/discopanel_backup_last
     cp -r /opt/discopanel/data/discopanel.db \
       /opt/discopanel/data/.recovery_key \
-      /opt/discopanel/data/servers \
       /opt/discopanel_backup_last/
+    if [[ -d /opt/discopanel/data/servers ]]; then
+      cp -r /opt/discopanel/data/servers /opt/discopanel_backup_last/
+    fi
     msg_ok "Created Backup"
 
     rm -rf /opt/discopanel
