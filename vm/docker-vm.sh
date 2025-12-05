@@ -8,7 +8,7 @@
 # Docker VM - Creates a Docker-ready Virtual Machine with optional Portainer
 # ==============================================================================
 
-source /dev/stdin <<<$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/vm-core.func)
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/cloud-init.func) 2>/dev/null || true
 load_functions
@@ -526,7 +526,6 @@ echo -e "\n Loading..."
 check_root
 arch_check
 pve_check
-ssh_check
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
@@ -543,6 +542,7 @@ post_to_api_vm
 # ==============================================================================
 # STORAGE SELECTION
 # ==============================================================================
+echo ""
 msg_info "Validating Storage"
 while read -r line; do
   TAG=$(echo $line | awk '{print $1}')
