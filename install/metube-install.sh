@@ -43,10 +43,33 @@ cd /opt/metube
 $STD uv sync
 mkdir -p /opt/metube_downloads /opt/metube_downloads/.metube /opt/metube_downloads/music /opt/metube_downloads/videos
 cat <<EOF >/opt/metube/.env
+# Storage & Directories
 DOWNLOAD_DIR=/opt/metube_downloads
+AUDIO_DOWNLOAD_DIR=/opt/metube_downloads/music
 STATE_DIR=/opt/metube_downloads/.metube
 TEMP_DIR=/opt/metube_downloads
-YTDL_OPTIONS={"trim_file_name":10,"extractor_args":{"youtube":{"player_client":["default","-tv_simply"]}}}
+
+# Download Behavior
+DOWNLOAD_MODE=limited
+MAX_CONCURRENT_DOWNLOADS=3
+DELETE_FILE_ON_TRASHCAN=false
+DEFAULT_OPTION_PLAYLIST_STRICT_MODE=false
+DEFAULT_OPTION_PLAYLIST_ITEM_LIMIT=0
+
+# File Naming & yt-dlp
+OUTPUT_TEMPLATE=%(title)s.%(ext)s
+OUTPUT_TEMPLATE_CHAPTER=%(title)s - %(section_number)s %(section_title)s.%(ext)s
+OUTPUT_TEMPLATE_PLAYLIST=%(playlist_title)s/%(title)s.%(ext)s
+YTDL_OPTIONS={"trim_file_name":200,"extractor_args":{"youtube":{"player_client":["default","-tv_simply"]}}}
+
+# Custom Directories
+CUSTOM_DIRS=true
+CREATE_CUSTOM_DIRS=true
+
+# Basic Setup
+DEFAULT_THEME=auto
+LOGLEVEL=INFO
+ENABLE_ACCESSLOG=false
 EOF
 msg_ok "Installed MeTube"
 
