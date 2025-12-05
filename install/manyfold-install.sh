@@ -20,28 +20,10 @@ $STD apt-get install -y \
     libmariadb-dev \
     redis-server \
     nginx \
-    libassimp-dev \
-    libmagickwand-dev \
-    imagemagick \
-    build-essential \
-    libtool \
-    libjpeg-dev \
-    libpng-dev \
-    libtiff-dev \
-    libwebp-dev \
-    libheif-dev \
-    libde265-dev \
-    libopenjp2-7-dev \
-    libxml2-dev \
-    liblcms2-dev \
-    libfreetype6-dev \
-    libraw-dev \
-    libfftw3-dev \
-    liblqr-1-0-dev \
-    libgsl-dev \
-    pkg-config \
-    ghostscript
+    libassimp-dev
 msg_ok "Installed Dependencies"
+
+setup_imagemagick
 
 PG_VERSION="16" setup_postgresql
 
