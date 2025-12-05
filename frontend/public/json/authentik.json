@@ -1,48 +1,56 @@
 {
-  "name": "OpenBao",
-  "slug": "openbao",
-  "categories": [
-    6
-  ],
-  "date_created": "2025-10-27",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": 8200,
-  "documentation": "https://openbao.org/docs",
-  "website": "https://openbao.org/",
-  "logo": "https://avatars.githubusercontent.com/u/149122427?s=200&v=4",
-  "config_path": "/etc/openbao/config.hcl",
-  "description": "OpenBao is an open-source secret management platform that stores, protects, and controls access to sensitive credentials, tokens, and encryption keys with fine-grained policy controls.",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/openbao.sh",
-      "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 10,
-        "os": "debian",
-        "version": "13"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": null,
-    "password": null
-  },
-  "notes": [
-    {
-      "text": "Initialization details, including the unseal key and root token, are written to `~/openbao.creds`. Secure this file immediately after installation.",
-      "type": "warning"
+    "name": "Authentik",
+    "slug": "authentik",
+    "categories": [
+        6
+    ],
+    "date_created": "2025-12-05",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 9000,
+    "documentation": "https://docs.goauthentik.io/",
+    "website": "https://goauthentik.io/",
+    "logo": "https://raw.githubusercontent.com/goauthentik/authentik/main/web/icons/icon.png",
+    "config_path": "/opt/authentik/.env",
+    "description": "Authentik is an open-source Identity Provider (IdP) focused on flexibility and versatility. It supports SAML 2.0, OAuth 2.0, OpenID Connect, LDAP, SCIM, and RADIUS protocols, providing SSO, MFA, and user lifecycle management as a self-hosted alternative to Okta, Auth0, or Entra ID.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/authentik.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
     },
-    {
-      "text": "OpenBao listens on port `8200` without TLS by default. Enable TLS before exposing the service outside trusted networks.",
-      "type": "warning"
-    },
-    {
-      "text": "The file storage backend is configured at `/var/lib/openbao/data`. Back up this directory regularly to retain secrets.",
-      "type": "info"
-    }
-  ]
+    "notes": [
+        {
+            "text": "After installation, navigate to `http://<IP>:9000/if/flow/initial-setup/` to create your admin account (akadmin).",
+            "type": "warning"
+        },
+        {
+            "text": "Database and secret key credentials are stored in `~/authentik.creds`. Secure this file immediately.",
+            "type": "warning"
+        },
+        {
+            "text": "Authentik listens on port `9000` (HTTP) and `9443` (HTTPS). Configure a reverse proxy with TLS for production use.",
+            "type": "warning"
+        },
+        {
+            "text": "The initial build process compiles Go and Node.js components from source, which may take 10-20 minutes depending on system resources.",
+            "type": "info"
+        },
+        {
+            "text": "Authentik 2025.10+ no longer requires Redis; all functionality is handled by PostgreSQL.",
+            "type": "info"
+        }
+    ]
 }
