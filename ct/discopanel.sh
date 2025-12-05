@@ -54,6 +54,7 @@ function update_script() {
 
     msg_info "Restoring Data"
     if [[ -d /opt/discopanel_backup_last ]]; then
+      mkdir -p /opt/discopanel/data
       cp -r /opt/discopanel_backup_last/* /opt/discopanel/data/
       rm -rf /opt/discopanel_backup_last
     fi
