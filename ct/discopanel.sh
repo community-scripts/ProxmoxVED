@@ -44,8 +44,6 @@ function update_script() {
     fi
     msg_ok "Created Backup"
 
-    rm -rf /opt/discopanel
-
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
     msg_info "Setting up DiscoPanel"
     cd /opt/discopanel/web/discopanel
@@ -56,7 +54,7 @@ function update_script() {
     msg_ok "Setup DiscoPanel"
 
     msg_info "Restoring Data"
-		mkdir -p /opt/discopanel/data
+    mkdir -p /opt/discopanel/data
     cp -r /opt/discopanel_backup_last/* /opt/discopanel/data/
     msg_ok "Restored Data"
 
