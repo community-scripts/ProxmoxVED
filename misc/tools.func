@@ -4805,7 +4805,6 @@ function setup_docker() {
 
   # Cleanup old repository configurations
   if [ -f /etc/apt/sources.list.d/docker.list ]; then
-    msg_info "Migrating from old Docker repository format"
     rm -f /etc/apt/sources.list.d/docker.list
     rm -f /etc/apt/keyrings/docker.asc
   fi
@@ -4819,6 +4818,7 @@ function setup_docker() {
     "$(get_os_info codename)" \
     "stable" \
     "$(dpkg --print-architecture)"
+  msg_ok "Set up Docker Repository"
 
   # Install or upgrade Docker
   if [ "$docker_installed" = true ]; then
@@ -4826,7 +4826,8 @@ function setup_docker() {
     DOCKER_LATEST_VERSION=$(apt-cache policy docker-ce | grep Candidate | awk '{print $2}' | cut -d':' -f2 | cut -d'-' -f1)
 
     if [ "$DOCKER_CURRENT_VERSION" != "$DOCKER_LATEST_VERSION" ]; then
-      msg_info "Updating Docker $DOCKER_CURRENT_VERSION → $DOCKER_LATEST_VERSION"
+      msg_ok "Docker update available ($DOCKER_CURRENT_VERSION → $DOCKER_LATEST_VERSION)"
+      msg_info "Updating Docker"
       $STD apt install -y --only-upgrade \
         docker-ce \
         docker-ce-cli \
@@ -4872,7 +4873,8 @@ EOF
       PORTAINER_LATEST=$(curl -fsSL https://registry.hub.docker.com/v2/repositories/portainer/portainer-ce/tags?page_size=100 | grep -oP '"name":"\K[0-9]+\.[0-9]+\.[0-9]+"' | head -1 | tr -d '"')
 
       if [ "$PORTAINER_CURRENT" != "$PORTAINER_LATEST" ]; then
-        read -r -p "${TAB3}Update Portainer $PORTAINER_CURRENT → $PORTAINER_LATEST? <y/N> " prompt
+        msg_ok "Portainer update available ($PORTAINER_CURRENT → $PORTAINER_LATEST)"
+        read -r -p "${TAB3}Update Portainer? <y/N> " prompt
         if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
           msg_info "Updating Portainer"
           docker stop portainer
@@ -4887,6 +4889,8 @@ EOF
             -v portainer_data:/data \
             portainer/portainer-ce:latest
           msg_ok "Updated Portainer to $PORTAINER_LATEST"
+        else
+          msg_ok "Skipped Portainer update"
         fi
       else
         msg_ok "Portainer is up-to-date ($PORTAINER_CURRENT)"
@@ -4934,6 +4938,7 @@ EOF
     done < <(docker ps --format '{{.Names}} {{.Image}}')
 
     if [ ${#containers_with_updates[@]} -gt 0 ]; then
+      msg_ok "Found ${#containers_with_updates[@]} container(s) with updates"
       echo ""
       echo "${TAB3}Container updates available:"
       for info in "${container_info[@]}"; do
@@ -4962,6 +4967,8 @@ EOF
             msg_ok "Stopped and removed $container (please recreate with updated image)"
           fi
         done
+      else
+        msg_ok "Skipped container updates"
       fi
     else
       msg_ok "All containers are up-to-date"
