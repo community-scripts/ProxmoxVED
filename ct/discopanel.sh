@@ -37,11 +37,9 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Creating Backup"
-    mkdir -p /opt/discopanel_backup_last
-    cp -r /opt/discopanel/data/discopanel.db \
-      /opt/discopanel/data/.recovery_key \
-      /opt/discopanel/data/servers \
-      /opt/discopanel_backup_last/
+    if [[ -d /opt/discopanel/data ]]; then
+      cp -r /opt/discopanel/data /opt/discopanel_backup_last
+    fi
     msg_ok "Created Backup"
 
     CLEAN_INSTALL= 1 fetch_and_deploy_gh_release "discopanel" "nickheyer/discopanel" "tarball" "latest" "/opt/discopanel"
@@ -55,8 +53,10 @@ function update_script() {
     msg_ok "Setup DiscoPanel"
 
     msg_info "Restoring Data"
-    cp -r /opt/discopanel_backup_last/* /opt/discopanel/data/
-    rm -rf /opt/discopanel_backup_last
+    if [[ -d /opt/discopanel_backup_last ]]; then
+      cp -r /opt/discopanel_backup_last/* /opt/discopanel/data/
+      rm -rf /opt/discopanel_backup_last
+    fi
     msg_ok "Restored Data"
 
     msg_info "Starting Service"
