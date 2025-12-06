@@ -11,7 +11,7 @@
     "interface_port": 80,
     "documentation": "https://manyfold.app/sysadmin/",
     "website": "https://manyfold.app/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/manyfold.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/manyfold.webp",
     "config_path": "/opt/manyfold/.env",
     "description": "Manyfold is an open source, self-hosted web application for managing a collection of 3d models, particularly focused on 3d printing.",
     "install_methods": [
