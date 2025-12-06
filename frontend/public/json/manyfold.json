@@ -6,7 +6,7 @@
     ],
     "date_created": "2025-03-18",
     "type": "ct",
-    "updateable": false,
+    "updateable": true,
     "privileged": false,
     "interface_port": 80,
     "documentation": "https://manyfold.app/sysadmin/",
