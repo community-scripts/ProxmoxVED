@@ -32,7 +32,7 @@ fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" 
 msg_info "Configuring manyfold environment"
 RUBY_INSTALL_VERSION=$(cat /opt/manyfold/app/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/app/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
-RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+RELEASE=$(get_latest_github_release "manyfold3d/manyfold")
 DB_NAME=manyfold
 DB_USER=manyfold
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)

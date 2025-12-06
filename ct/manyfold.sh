@@ -46,7 +46,7 @@ function update_script() {
         msg_info "Configuring manyfold environment"
         RUBY_INSTALL_VERSION=$(cat /opt/manyfold/app/.ruby-version)
         YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/app/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
-        RELEASE=$(curl -fsSL https://api.github.com/repos/manyfold3d/manyfold/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+        RELEASE=$(get_latest_github_release "manyfold3d/manyfold")
         sed -i "s/^export APP_VERSION=.*/export APP_VERSION=$RELEASE/" "/opt/manyfold/.env"
         cat <<EOF >/opt/manyfold/user_setup.sh
 #!/bin/bash
