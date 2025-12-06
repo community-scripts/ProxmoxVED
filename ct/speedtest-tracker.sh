@@ -40,6 +40,12 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Updating Speedtest CLI"
+    setup_deb822_repo \
+      "speedtest-cli" \
+      "https://packagecloud.io/ookla/speedtest-cli/gpgkey" \
+      "https://packagecloud.io/ookla/speedtest-cli/debian" \
+      "$(get_os_info codename)" \
+      "main"
     $STD apt update
     $STD apt --only-upgrade install -y speedtest
     msg_ok "Updated Speedtest CLI"
@@ -54,6 +60,7 @@ function update_script() {
     cp -r /opt/speedtest-tracker-backup/.env /opt/speedtest-tracker/.env
     cd /opt/speedtest-tracker
     export COMPOSER_ALLOW_SUPERUSER=1
+    export PATH="/usr/local/bin:$PATH"
     $STD composer install --optimize-autoloader --no-dev
     $STD npm ci
     $STD npm run build
