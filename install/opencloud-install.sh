@@ -15,48 +15,45 @@ update_os
 
 read -r -p "Enter the hostname of your OpenCloud server (eg cloud.domain.tld): " oc_host
 if [[ "$oc_host" ]]; then
-    OC_HOST="$oc_host"
+  OC_HOST="$oc_host"
 fi
 read -r -p "Enter the hostname of your Collabora server (eg collabora.domain.tld): " collabora_host
 if [[ "$collabora_host" ]]; then
-    COLLABORA_HOST="$collabora_host"
+  COLLABORA_HOST="$collabora_host"
 fi
 read -r -p "Enter the hostname of your WOPI server (eg wopiserver.domain.tld): " wopi_host
 if [[ "$wopi_host" ]]; then
-    WOPI_HOST="$wopi_host"
+  WOPI_HOST="$wopi_host"
 fi
 
+# Collabora online
+setup_deb822_repo \
+  "collaboraonline" \
+  "https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg" \
+  "https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb" \
+  "all"
+
 msg_info "Installing Collabora Online"
-curl -fsSL https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg -o /etc/apt/keyrings/collaboraonline-release-keyring.gpg
-
-cat <<EOF >/etc/apt/sources.list.d/collaboraonline.sources
-Types: deb
-URIs: https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb
-Suites: ./
-Signed-By: /etc/apt/keyrings/collaboraonline-release-keyring.gpg
-EOF
-
-$STD apt-get update
 $STD apt-get install -y coolwsd code-brand
 systemctl stop coolwsd
 COOLPASS="$(openssl rand -base64 36)"
 $STD sudo -u cool coolconfig set-admin-password --user=admin --password="$COOLPASS"
 msg_ok "Installed Collabora Online"
 
+# OpenCloud
+fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v4.0.0" "/usr/bin" "opencloud-.*linux-amd64"
+
 msg_info "Installing ${APPLICATION}"
-OPENCLOUD=$(curl -s https://api.github.com/repos/opencloud-eu/opencloud/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
 DATA_DIR="/var/lib/opencloud/"
 CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
-curl -fsSL "https://github.com/opencloud-eu/opencloud/releases/download/v${OPENCLOUD}/opencloud-${OPENCLOUD}-linux-amd64" -o /usr/bin/opencloud
-chmod +x /usr/bin/opencloud
 mkdir -p "$DATA_DIR" "$CONFIG_DIR"/assets/apps
 echo "${OPENCLOUD}" >/etc/opencloud/version
 msg_ok "Installed ${APPLICATION}"
 
 msg_info "Configuring ${APPLICATION}"
-curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
-curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
+curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud/refs/heads/main/devtools/deployments/opencloud_full/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
+curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud/refs/heads/main/devtools/deployments/opencloud_full/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
 
 cat <<EOF >"$ENV_FILE"
 OC_URL=https://${OC_HOST}
@@ -181,8 +178,4 @@ msg_ok "Configured ${APPLICATION}"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc
