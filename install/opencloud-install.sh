@@ -31,7 +31,8 @@ setup_deb822_repo \
   "collaboraonline" \
   "https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg" \
   "https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb/Release" \
-  "all"
+  "./" \
+  "main"
 
 msg_info "Installing Collabora Online"
 $STD apt-get install -y coolwsd code-brand
