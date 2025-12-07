@@ -26,15 +26,23 @@ if [[ "$wopi_host" ]]; then
   WOPI_HOST="$wopi_host"
 fi
 
-# Collabora online
-setup_deb822_repo \
-  "collaboraonline" \
-  "https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg" \
-  "https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb/Release" \
-  "./" \
-  "main"
+# Collabora online - this is broken because it adds the Component and apt doesn't like that
+# setup_deb822_repo \
+#   "collaboraonline" \
+#   "https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg" \
+#   "https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb/Release" \
+#   "./" \
+#   "main"
 
 msg_info "Installing Collabora Online"
+curl -fsSL https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg -o /etc/apt/keyrings/collaboraonline-release-keyring.gpg
+cat <<EOF >/etc/apt/sources.list.d/colloboraonline.sources
+Types: deb
+URIs: https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb
+Suites: ./
+Signed-By: /etc/apt/keyrings/collaboraonline-release-keyring.gpg
+EOF
+$STD apt-get update
 $STD apt-get install -y coolwsd code-brand
 systemctl stop coolwsd
 COOLPASS="$(openssl rand -base64 36)"
