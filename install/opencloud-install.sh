@@ -30,7 +30,7 @@ fi
 setup_deb822_repo \
   "collaboraonline" \
   "https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg" \
-  "https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb" \
+  "https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb/Release" \
   "all"
 
 msg_info "Installing Collabora Online"
