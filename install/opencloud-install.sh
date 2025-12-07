@@ -52,15 +52,12 @@ msg_ok "Installed Collabora Online"
 # OpenCloud
 fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v4.0.0" "/usr/bin" "opencloud-*-linux-amd64"
 
-msg_info "Installing ${APPLICATION}"
+msg_info "Configuring OpenCloud"
 DATA_DIR="/var/lib/opencloud/"
 CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
 mkdir -p "$DATA_DIR" "$CONFIG_DIR"/assets/apps
-echo "${OPENCLOUD}" >/etc/opencloud/version
-msg_ok "Installed ${APPLICATION}"
 
-msg_info "Configuring ${APPLICATION}"
 curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud/refs/heads/main/devtools/deployments/opencloud_full/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
 curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud/refs/heads/main/devtools/deployments/opencloud_full/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
 
@@ -182,8 +179,13 @@ chown -R opencloud:opencloud "$CONFIG_DIR" "$DATA_DIR"
 sudo -u opencloud opencloud init --config-path "$CONFIG_DIR" --insecure no
 OPENCLOUD_SECRET="$(sed -n '/jwt/p' "$CONFIG_DIR"/opencloud.yaml | awk '{print $2}')"
 sed -i "s/JWT_SECRET=/&${OPENCLOUD_SECRET//&/\\&}/" "$ENV_FILE"
-systemctl enable -q --now coolwsd opencloud opencloud-wopi
-msg_ok "Configured ${APPLICATION}"
+msg_ok "Configured OpenCloud"
+
+msg_info "Starting services"
+systemctl enable -q --now coolwsd opencloud
+sleep 5
+systemctl enable -q --now opencloud-wopi
+msg_ok "Started services"
 
 motd_ssh
 customize
