@@ -50,7 +50,7 @@ $STD sudo -u cool coolconfig set-admin-password --user=admin --password="$COOLPA
 msg_ok "Installed Collabora Online"
 
 # OpenCloud
-fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v4.0.0" "/usr/bin" "opencloud-.*linux-amd64"
+fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v4.0.0" "/usr/bin" "opencloud-*-linux-amd64"
 
 msg_info "Installing ${APPLICATION}"
 DATA_DIR="/var/lib/opencloud/"
