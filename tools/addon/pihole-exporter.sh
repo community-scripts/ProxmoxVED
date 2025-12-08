@@ -73,6 +73,7 @@ echo -e "${YW}⚠️ pihole-exporter is not installed.${CL}"
 read -erp "Enter the hostname of Pihole, example: (127.0.0.1): " pihole_HOSTNAME
 read -erp "Enter the port of Pihole, default 443: " pihole_PORT
 read -rsp "Enter Pihole password: " pihole_PASSWORD
+printf "\n"
 read -erp "Do you want to skip TLS-Verification (if using a self-signed Certificate on Pi-Hole) [y/N]: " SKIP_TLS
 read -erp "Install qbittorrent-exporter? (y/n): " install_prompt
 if [[ "${SKIP_TLS,,}" =~ ^(y|yes)$ ]]; then
