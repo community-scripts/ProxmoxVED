@@ -17,7 +17,6 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   redis-server \
   ca-certificates \
-  build-essential \
   nginx \
   gettext \
   openssl \
