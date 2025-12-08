@@ -70,25 +70,23 @@ if [[ -d "$INSTALL_PATH" ]]; then
 fi
 
 echo -e "${YW}⚠️ pihole-exporter is not installed.${CL}"
-echo -e "${YW}⚠️ Please provide the following information to connect to your Pi-Hole instance.${CL}"
-echo -e "${YW}⚠️ It's possibly to add multiple Pi-Hole instances, by using a comma-separated list on all parameter, example: 127.0.0.1,192.168.1.100${CL}"
-echo -n "Enter the hostname of Pihole, example: (127.0.0.1): "
+echo -n "Enter the hostname of Pihole, example: (127.0.0.1): ${CL}"
 read -er pihole_HOSTNAME
 
-echo -n "Enter the port of Pihole, default 443: "
+echo -n "Enter the port of Pihole, default 443: ${CL}"
 read -er pihole_PORT
 
-echo -n "Enter Pihole password: "
+echo -n "Enter Pihole password: ${CL}"
 read -rs pihole_PASSWORD
 echo
 
-echo -n "Do you want to skip TLS-Verification (if using a self-signed Certificate on Pi-Hole) [y/N]: "
+echo -n "Do you want to skip TLS-Verification (if using a self-signed Certificate on Pi-Hole) [y/N]: ${CL}"
 read -er SKIP_TLS
 if [[ "${SKIP_TLS,,}" =~ ^(y|yes)$ ]]; then
   pihole_SKIP_TLS="true"
 fi
 
-echo -n "Install qbittorrent-exporter? (y/n): "
+echo -n "Install qbittorrent-exporter? (y/n): ${CL}"
 read -r install_prompt
 if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
