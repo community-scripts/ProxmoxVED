@@ -21,8 +21,8 @@ INSTALL_PATH="/opt/jellystat"
 CONFIG_PATH="/opt/jellystat/.env"
 DEFAULT_PORT=3000
 
-# Initialize STD mode from core.func
-set_std_mode
+# Initialize all core functions (colors, formatting, icons, STD mode)
+load_functions
 
 # ==============================================================================
 # HEADER
