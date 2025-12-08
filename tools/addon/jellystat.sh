@@ -181,9 +181,10 @@ function install() {
   local JWT_SECRET
   JWT_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c32)
 
-  msg_info "Downloading ${APP}"
+  # Force fresh download by removing version cache and setting CLEAN_INSTALL
+  rm -f "$HOME/.jellystat"
+  mkdir -p "$INSTALL_PATH"
   fetch_and_deploy_gh_release "jellystat" "CyferShepard/Jellystat" "tarball" "latest" "$INSTALL_PATH"
-  msg_ok "Downloaded ${APP}"
 
   msg_info "Installing dependencies"
   cd "$INSTALL_PATH"
