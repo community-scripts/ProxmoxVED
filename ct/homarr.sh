@@ -43,6 +43,8 @@ function update_script() {
         echo "REDIS_IS_EXTERNAL='true'" >> /opt/homarr/.env
         sed -i 's|^ExecStart=.*|ExecStart=/opt/homarr/run.sh|' /etc/systemd/system/homarr.service
         sed -i 's|^EnvironmentFile=.*|EnvironmentFile=-/opt/homarr.env|' /etc/systemd/system/homarr.service
+        chown -R redis:redis /appdata/redis
+        chmod 755 /appdata/redis
         # TODO: change in json
         systemctl daemon-reload
         cp /opt/homarr/.env /opt/homarr.env
