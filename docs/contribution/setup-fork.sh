@@ -36,125 +36,131 @@ AUTO_DETECT=true
 ################################################################################
 
 print_header() {
-    echo -e "\n${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║${NC} ProxmoxVED Fork Setup Script"
-    echo -e "${BLUE}║${NC} Configuring for your fork..."
-    echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}\n"
+  echo -e "\n${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${BLUE}║${NC} ProxmoxVED Fork Setup Script"
+  echo -e "${BLUE}║${NC} Configuring for your fork..."
+  echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}\n"
 }
 
 print_info() {
-    echo -e "${BLUE}ℹ${NC}  $1"
+  echo -e "${BLUE}ℹ${NC}  $1"
 }
 
 print_success() {
-    echo -e "${GREEN}✓${NC}  $1"
+  echo -e "${GREEN}✓${NC}  $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠${NC}  $1"
+  echo -e "${YELLOW}⚠${NC}  $1"
 }
 
 print_error() {
-    echo -e "${RED}✗${NC}  $1"
+  echo -e "${RED}✗${NC}  $1"
 }
 
 # Detect username from git remote
 detect_username() {
-    local remote_url
+  local remote_url
 
-    # Try to get from origin
-    if ! remote_url=$(git config --get remote.origin.url 2>/dev/null); then
-        return 1
-    fi
+  # Try to get from origin
+  if ! remote_url=$(git config --get remote.origin.url 2>/dev/null); then
+    return 1
+  fi
 
-    # Extract username from SSH or HTTPS URL
-    if [[ $remote_url =~ git@github.com:([^/]+) ]]; then
-        echo "${BASH_REMATCH[1]}"
-    elif [[ $remote_url =~ github.com/([^/]+) ]]; then
-        echo "${BASH_REMATCH[1]}"
-    else
-        return 1
-    fi
+  # Extract username from SSH or HTTPS URL
+  if [[ $remote_url =~ git@github.com:([^/]+) ]]; then
+    echo "${BASH_REMATCH[1]}"
+  elif [[ $remote_url =~ github.com/([^/]+) ]]; then
+    echo "${BASH_REMATCH[1]}"
+  else
+    return 1
+  fi
 }
 
 # Detect repo name from git remote
 detect_repo_name() {
-    local remote_url
+  local remote_url
 
-    if ! remote_url=$(git config --get remote.origin.url 2>/dev/null); then
-        return 1
-    fi
+  if ! remote_url=$(git config --get remote.origin.url 2>/dev/null); then
+    return 1
+  fi
 
-    # Extract repo name (remove .git if present)
-    if [[ $remote_url =~ /([^/]+?)(.git)?$ ]]; then
-        local repo="${BASH_REMATCH[1]}"
-        echo "${repo%.git}"
-    else
-        return 1
-    fi
+  # Extract repo name (remove .git if present)
+  if [[ $remote_url =~ /([^/]+?)(.git)?$ ]]; then
+    local repo="${BASH_REMATCH[1]}"
+    echo "${repo%.git}"
+  else
+    return 1
+  fi
 }
 
 # Ask user for confirmation
 confirm() {
-    local prompt="$1"
-    local response
+  local prompt="$1"
+  local response
 
-    read -p "$(echo -e ${YELLOW})$prompt (y/n)${NC} " -r response
-    [[ $response =~ ^[Yy]$ ]]
+  read -p "$(echo -e ${YELLOW})$prompt (y/n)${NC} " -r response
+  [[ $response =~ ^[Yy]$ ]]
 }
 
 # Update links in files
 update_links() {
-    local old_repo="community-scripts"
-    local old_name="ProxmoxVED"
-    local new_owner="$1"
-    local new_repo="$2"
-    local files_updated=0
+  local old_repo="community-scripts"
+  local old_name="ProxmoxVED"
+  local new_owner="$1"
+  local new_repo="$2"
+  local files_updated=0
 
-    print_info "Scanning for hardcoded links..."
+  print_info "Scanning for hardcoded links..."
 
-    # Find all markdown and shell files
-    local -a files_to_update=(
-        "docs/DEFAULTS_SYSTEM_GUIDE.md"
-        "docs/alpine-install.func.md"
-        "docs/install.func.md"
-        "docs/APP-install.md"
-        "docs/APP-ct.md"
-        "docs/CONTRIBUTION_GUIDE.md"
-        "docs/INDEX.md"
-        "docs/README.md"
-        "docs/EXIT_CODES.md"
-        "docs/api/README.md"
-    )
+  # Update ALL shell scripts and markdown files that contain the repo URL
+  # This includes ct/, install/, misc/, vm/, tools/, docs/
 
-    echo ""
+  echo ""
 
-    for file in "${files_to_update[@]}"; do
-        if [[ -f "$file" ]]; then
-            # Count occurrences
-            local count=$(grep -c "github.com/$old_repo/$old_name" "$file" 2>/dev/null || echo 0)
+  # Find all .sh files and update them
+  while IFS= read -r -d '' file; do
+    if [[ -f "$file" ]]; then
+      # Count occurrences of the old repo URL
+      local count=$(grep -c "community-scripts/ProxmoxVED" "$file" 2>/dev/null || echo 0)
 
-            if [[ $count -gt 0 ]]; then
-                # Backup original
-                cp "$file" "$file.backup"
+      if [[ $count -gt 0 ]]; then
+        # Replace all variations of the URL
+        sed -i "s|github.com/$old_repo/$old_name|github.com/$new_owner/$new_repo|g" "$file"
+        sed -i "s|raw.githubusercontent.com/$old_repo/$old_name|raw.githubusercontent.com/$new_owner/$new_repo|g" "$file"
 
-                # Replace links
-                sed -i "s|github.com/$old_repo/$old_name|github.com/$new_owner/$new_repo|g" "$file"
+        ((files_updated++))
+        print_success "Updated $file ($count links)"
+      fi
+    fi
+  done < <(find . -type f \( -name "*.sh" -o -name "*.func" \) -not -path "./.git/*" -print0)
 
-                ((files_updated++))
-                print_success "Updated $file ($count links)"
-            fi
-        fi
-    done
+  # Also update markdown docs
+  while IFS= read -r -d '' file; do
+    if [[ -f "$file" ]]; then
+      local count=$(grep -c "community-scripts/ProxmoxVED" "$file" 2>/dev/null || echo 0)
 
-    return $files_updated
+      if [[ $count -gt 0 ]]; then
+        sed -i "s|github.com/$old_repo/$old_name|github.com/$new_owner/$new_repo|g" "$file"
+        sed -i "s|raw.githubusercontent.com/$old_repo/$old_name|raw.githubusercontent.com/$new_owner/$new_repo|g" "$file"
+
+        ((files_updated++))
+        print_success "Updated $file ($count links)"
+      fi
+    fi
+  done < <(find ./docs -type f -name "*.md" -print0 2>/dev/null)
+
+  echo ""
+  echo "Total files updated: $files_updated"
+
+  return $files_updated
 }
 
 # Create user git config setup info
 create_git_setup_info() {
-    local username="$1"
+  local username="$1"
 
-    cat >.git-setup-info <<'EOF'
+  cat >.git-setup-info <<'EOF'
 # Git Configuration for ProxmoxVED Development
 
 ## Recommended Git Configuration
@@ -216,7 +222,7 @@ git merge upstream/main
 For more help, see: docs/CONTRIBUTION_GUIDE.md
 EOF
 
-    print_success "Created .git-setup-info file"
+  print_success "Created .git-setup-info file"
 }
 
 ################################################################################
@@ -227,65 +233,65 @@ print_header
 
 # Parse command line arguments
 if [[ $# -gt 0 ]]; then
-    USERNAME="$1"
-    AUTO_DETECT=false
+  USERNAME="$1"
+  AUTO_DETECT=false
 
-    if [[ $# -gt 1 ]]; then
-        REPO_NAME="$2"
-    fi
+  if [[ $# -gt 1 ]]; then
+    REPO_NAME="$2"
+  fi
 else
-    # Try auto-detection
-    if username=$(detect_username); then
-        USERNAME="$username"
-        print_success "Detected GitHub username: $USERNAME"
-    else
-        print_error "Could not auto-detect GitHub username from git config"
-        echo -e "${YELLOW}Please run:${NC}"
-        echo "  ./setup-fork.sh YOUR_USERNAME"
-        exit 1
-    fi
+  # Try auto-detection
+  if username=$(detect_username); then
+    USERNAME="$username"
+    print_success "Detected GitHub username: $USERNAME"
+  else
+    print_error "Could not auto-detect GitHub username from git config"
+    echo -e "${YELLOW}Please run:${NC}"
+    echo "  ./setup-fork.sh YOUR_USERNAME"
+    exit 1
+  fi
 
-    if repo_name=$(detect_repo_name); then
-        REPO_NAME="$repo_name"
-        if [[ "$REPO_NAME" != "ProxmoxVED" ]]; then
-            print_info "Detected custom repo name: $REPO_NAME"
-        else
-            print_success "Using default repo name: ProxmoxVED"
-        fi
+  if repo_name=$(detect_repo_name); then
+    REPO_NAME="$repo_name"
+    if [[ "$REPO_NAME" != "ProxmoxVED" ]]; then
+      print_info "Detected custom repo name: $REPO_NAME"
+    else
+      print_success "Using default repo name: ProxmoxVED"
     fi
+  fi
 fi
 
 # Validate inputs
 if [[ -z "$USERNAME" ]]; then
-    print_error "Username cannot be empty"
-    exit 1
+  print_error "Username cannot be empty"
+  exit 1
 fi
 
 if [[ -z "$REPO_NAME" ]]; then
-    print_error "Repository name cannot be empty"
-    exit 1
+  print_error "Repository name cannot be empty"
+  exit 1
 fi
 
 # Show what we'll do
 echo -e "${BLUE}Configuration Summary:${NC}"
 echo "  Repository URL: https://github.com/$USERNAME/$REPO_NAME"
-echo "  Files to update: 10 files with documentation"
+echo "  Directories to scan: ct/, install/, misc/, vm/, tools/, docs/"
 echo ""
 
 # Ask for confirmation
 if ! confirm "Apply these changes?"; then
-    print_warning "Setup cancelled"
-    exit 0
+  print_warning "Setup cancelled"
+  exit 0
 fi
 
 echo ""
 
 # Update all links
 if update_links "$USERNAME" "$REPO_NAME"; then
-    links_changed=$?
-    print_success "Updated $links_changed files"
+  links_changed=$?
+  print_success "Updated $links_changed files"
 else
-    print_warning "No links needed updating or some files not found"
+  print_warning "No links needed updating or some files not found"
 fi
 
 # Create git setup info file

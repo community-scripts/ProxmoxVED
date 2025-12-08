@@ -28,9 +28,9 @@ jobs:
         run: |
           TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
           BODY='${{ github.event.issue.body }}'
-          
+
           echo "TITLE=$TITLE" >> $GITHUB_ENV
-          
+
           # Detect script type from issue body
           if echo "$BODY" | grep -qi "CT (LXC Container)"; then
             SCRIPT_TYPE="ct"
@@ -48,7 +48,7 @@ jobs:
               SCRIPT_TYPE="ct"
             fi
           fi
-          
+
           echo "SCRIPT_TYPE=$SCRIPT_TYPE" >> $GITHUB_ENV
           echo "Detected: $TITLE (type: $SCRIPT_TYPE)"
 
@@ -113,11 +113,11 @@ jobs:
           TITLE="${{ env.TITLE }}"
           SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
           branch="delete_files_${TITLE}"
-          
+
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b $branch
-          
+
           # Delete files based on script type
           case "$SCRIPT_TYPE" in
             ct)
@@ -143,16 +143,16 @@ jobs:
               rm -f "tools/pve/${TITLE}.sh"
               ;;
           esac
-          
+
           git add .
           if git diff --staged --quiet; then
             echo "No files to delete. Exiting..."
             exit 0
           fi
-          
+
           git commit -m "Delete ${TITLE} (${SCRIPT_TYPE}) after migration to ProxmoxVE"
           git push origin $branch --force
-          
+
           gh pr create \
             --title "Delete ${TITLE} after Merge to Main" \
             --body "Automated cleanup: Delete ${TITLE} (${SCRIPT_TYPE}) files after successful migration to ProxmoxVE main repo." \
