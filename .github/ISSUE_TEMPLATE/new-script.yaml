@@ -15,6 +15,18 @@ body:
       placeholder: e.g., SnipeIT
     validations:
       required: true
+  - type: dropdown
+    id: script_type
+    attributes:
+      label: Script Type
+      description: What type of script is this?
+      options:
+        - CT (LXC Container)
+        - VM (Virtual Machine)
+        - Addon (tools/addon)
+        - PVE Tool (tools/pve)
+    validations:
+      required: true
   - type: textarea
     id: task_details
     attributes:

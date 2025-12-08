@@ -23,9 +23,34 @@ jobs:
           owner: community-scripts
           repositories: ProxmoxVED
 
-      - name: Extract Issue Title (Lowercase & Underscores)
-        id: extract_title
-        run: echo "TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')" >> $GITHUB_ENV
+      - name: Extract Issue Info and Script Type
+        id: extract_info
+        run: |
+          TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+          BODY='${{ github.event.issue.body }}'
+          
+          echo "TITLE=$TITLE" >> $GITHUB_ENV
+          
+          # Detect script type from issue body
+          if echo "$BODY" | grep -qi "CT (LXC Container)"; then
+            SCRIPT_TYPE="ct"
+          elif echo "$BODY" | grep -qi "VM (Virtual Machine)"; then
+            SCRIPT_TYPE="vm"
+          elif echo "$BODY" | grep -qi "Addon (tools/addon)"; then
+            SCRIPT_TYPE="addon"
+          elif echo "$BODY" | grep -qi "PVE Tool (tools/pve)"; then
+            SCRIPT_TYPE="pve"
+          else
+            # Fallback detection
+            if [[ "$TITLE" == *"-vm"* ]]; then
+              SCRIPT_TYPE="vm"
+            else
+              SCRIPT_TYPE="ct"
+            fi
+          fi
+          
+          echo "SCRIPT_TYPE=$SCRIPT_TYPE" >> $GITHUB_ENV
+          echo "Detected: $TITLE (type: $SCRIPT_TYPE)"
 
       - name: Check if Files Exist in community-scripts/ProxmoxVE
         id: check_files
@@ -34,12 +59,36 @@ jobs:
         run: |
           REPO="community-scripts/ProxmoxVE"
           API_URL="https://api.github.com/repos/$REPO/contents"
+          TITLE="${{ env.TITLE }}"
+          SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
 
-          FILES=(
-            "ct/${TITLE}.sh"
-            "install/${TITLE}-install.sh"
-            "frontend/public/json/${TITLE}.json"
-          )
+          # Define files based on script type
+          case "$SCRIPT_TYPE" in
+            ct)
+              FILES=(
+                "ct/${TITLE}.sh"
+                "install/${TITLE}-install.sh"
+                "frontend/public/json/${TITLE}.json"
+              )
+              ;;
+            vm)
+              FILES=(
+                "vm/${TITLE}.sh"
+                "frontend/public/json/${TITLE}.json"
+              )
+              ;;
+            addon)
+              FILES=(
+                "tools/addon/${TITLE}.sh"
+                "frontend/public/json/${TITLE}.json"
+              )
+              ;;
+            pve)
+              FILES=(
+                "tools/pve/${TITLE}.sh"
+              )
+              ;;
+          esac
 
           EXISTS=false
           for FILE in "${FILES[@]}"; do
@@ -61,46 +110,79 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          branch="delete_files"
+          TITLE="${{ env.TITLE }}"
+          SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
+          branch="delete_files_${TITLE}"
+          
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b $branch
-          rm -f ct/${TITLE}.sh
-          rm -f install/${TITLE}-install.sh
-          rm -f frontend/public/json/${TITLE}.json
+          
+          # Delete files based on script type
+          case "$SCRIPT_TYPE" in
+            ct)
+              rm -f "ct/${TITLE}.sh"
+              rm -f "ct/headers/${TITLE}"
+              rm -f "install/${TITLE}-install.sh"
+              rm -f "frontend/public/json/${TITLE}.json"
+              # Also try alpine variant
+              if [[ "$TITLE" == alpine-* ]]; then
+                stripped="${TITLE#alpine-}"
+                rm -f "frontend/public/json/${stripped}.json"
+              fi
+              ;;
+            vm)
+              rm -f "vm/${TITLE}.sh"
+              rm -f "frontend/public/json/${TITLE}.json"
+              ;;
+            addon)
+              rm -f "tools/addon/${TITLE}.sh"
+              rm -f "frontend/public/json/${TITLE}.json"
+              ;;
+            pve)
+              rm -f "tools/pve/${TITLE}.sh"
+              ;;
+          esac
+          
           git add .
           if git diff --staged --quiet; then
             echo "No files to delete. Exiting..."
             exit 0
           fi
-          git commit -m "Deleted files for issue: ${{ github.event.issue.title }}"
+          
+          git commit -m "Delete ${TITLE} (${SCRIPT_TYPE}) after migration to ProxmoxVE"
           git push origin $branch --force
-          gh pr create --title "Delete Files for ${{ github.event.issue.title }} after Merge to Main" --body "Delete files after merge in main repo." --base main --head $branch
+          
+          gh pr create \
+            --title "Delete ${TITLE} after Merge to Main" \
+            --body "Automated cleanup: Delete ${TITLE} (${SCRIPT_TYPE}) files after successful migration to ProxmoxVE main repo." \
+            --base main \
+            --head $branch
 
-          pr_number=$(gh pr list | grep -m 1 $branch | awk '{print $1}')
-          #gh pr merge $pr_number --squash
-          echo pr_number=$pr_number >> $GITHUB_ENV
+          pr_number=$(gh pr list --head $branch --json number --jq '.[].number')
+          echo "pr_number=$pr_number" >> $GITHUB_ENV
+          echo "branch=$branch" >> $GITHUB_ENV
 
       - name: Approve pull request and merge
-        if: env.changed == 'true'
+        if: env.pr_number != ''
         env:
           GH_TOKEN: ${{ steps.generate-token-merge.outputs.token }}
         run: |
-          git config --global user.name "github-actions-automege[bot]"
-          git config --global user.email "github-actions-automege[bot]@users.noreply.github.com"
-          PR_NUMBER=$(gh pr list --head "${BRANCH_NAME}" --json number --jq '.[].number')
+          git config --global user.name "github-actions-automerge[bot]"
+          git config --global user.email "github-actions-automerge[bot]@users.noreply.github.com"
+          PR_NUMBER="${{ env.pr_number }}"
           if [ -n "$PR_NUMBER" ]; then
             gh pr review $PR_NUMBER --approve
             gh pr merge $PR_NUMBER --squash --admin
           fi
 
       - name: Comment on Issue
+        if: env.pr_number != ''
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issue_number = context.payload.issue.number;
-
             const message = `Files deleted with PR #${process.env.pr_number}`;
             github.rest.issues.createComment({
               owner: context.repo.owner,

@@ -13,23 +13,73 @@ jobs:
     runs-on: ubuntu-latest
     if: contains(github.event.issue.labels.*.name, 'Ready For Testing') && github.repository == 'community-scripts/ProxmoxVED'
     steps:
-      - name: Extract Issue Title (Lowercase & Underscores)
-        id: extract_title
-        run: echo "TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')" >> $GITHUB_ENV
+      - name: Extract Issue Title and Script Type
+        id: extract_info
+        run: |
+          # Extract title (lowercase, spaces to dashes)
+          TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')
+          echo "TITLE=$TITLE" >> $GITHUB_ENV
 
-      - name: Check if Files Exist in community-scripts/ProxmoxVE
+          # Extract script type from issue body
+          BODY='${{ github.event.issue.body }}'
+
+          if echo "$BODY" | grep -qi "CT (LXC Container)"; then
+            SCRIPT_TYPE="ct"
+          elif echo "$BODY" | grep -qi "VM (Virtual Machine)"; then
+            SCRIPT_TYPE="vm"
+          elif echo "$BODY" | grep -qi "Addon (tools/addon)"; then
+            SCRIPT_TYPE="addon"
+          elif echo "$BODY" | grep -qi "PVE Tool (tools/pve)"; then
+            SCRIPT_TYPE="pve"
+          else
+            # Fallback: detect by filename pattern or default to ct
+            if [[ "$TITLE" == *"-vm"* ]]; then
+              SCRIPT_TYPE="vm"
+            else
+              SCRIPT_TYPE="ct"
+            fi
+          fi
+
+          echo "SCRIPT_TYPE=$SCRIPT_TYPE" >> $GITHUB_ENV
+          echo "Detected script type: $SCRIPT_TYPE"
+
+      - name: Check if Files Exist in community-scripts/ProxmoxVED
         id: check_files
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           REPO="community-scripts/ProxmoxVED"
           API_URL="https://api.github.com/repos/$REPO/contents"
+          TITLE="${{ env.TITLE }}"
+          SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
 
-          FILES=(
-            "ct/${{ env.TITLE }}.sh"
-            "install/${{ env.TITLE }}-install.sh"
-            "frontend/public/json/${{ env.TITLE }}.json"
-          )
+          # Define files based on script type
+          case "$SCRIPT_TYPE" in
+            ct)
+              FILES=(
+                "ct/${TITLE}.sh"
+                "install/${TITLE}-install.sh"
+                "frontend/public/json/${TITLE}.json"
+              )
+              ;;
+            vm)
+              FILES=(
+                "vm/${TITLE}.sh"
+                "frontend/public/json/${TITLE}.json"
+              )
+              ;;
+            addon)
+              FILES=(
+                "tools/addon/${TITLE}.sh"
+                "frontend/public/json/${TITLE}.json"
+              )
+              ;;
+            pve)
+              FILES=(
+                "tools/pve/${TITLE}.sh"
+              )
+              ;;
+          esac
 
           EXISTING_FILES=()
 
@@ -42,43 +92,65 @@ jobs:
               echo "$FILE does NOT exist in $REPO"
             fi
           done
-          echo "EXISTING_FILES=${EXISTING_FILES[@]}" >> $GITHUB_ENV
+          echo "EXISTING_FILES=${EXISTING_FILES[*]}" >> $GITHUB_ENV
 
       - name: Create message to send
         id: create_message
         run: |
-          VAR="The ${{ env.TITLE }} script is ready for testing:\n"
-          if [[ "${{ env.TITLE }}" != *"vm"* ]]; then
-          VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${{ env.TITLE }}.sh)\"\`\`\`\n"
-          else
-          VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/vm/${{ env.TITLE }}.sh)\"\`\`\`\n"
-          fi
-          if [[ " ${EXISTING_FILES[@]} " =~ " frontend/public/json/${TITLE}.json " ]]; then
-             JSON=$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/frontend/public/json/${{ env.TITLE }}.json)
-             username=$(echo "$JSON" | jq -r '.default_credentials.username')
-             password=$(echo "$JSON" | jq -r '.default_credentials.password')
-             mapfile -t notes_array < <(echo "$JSON" | jq -r '.notes[].text')
+          TITLE="${{ env.TITLE }}"
+          SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
 
-             if [[ -n "$username" && "$username" != "null" || -n "$password" && "$password" != "null" ]]; then
-               VAR+="Default credentials:\n"
+          VAR="The ${TITLE} script is ready for testing:\n"
 
-               if [[ -n "$username" && "$username" != "null" ]]; then
-                 VAR+="Username: $username\n"
-               fi
+          # Generate correct command based on script type
+          case "$SCRIPT_TYPE" in
+            ct)
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${TITLE}.sh)\"\`\`\`\n"
+              ;;
+            vm)
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/vm/${TITLE}.sh)\"\`\`\`\n"
+              ;;
+            addon)
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/tools/addon/${TITLE}.sh)\"\`\`\`\n"
+              ;;
+            pve)
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/${TITLE}.sh)\"\`\`\`\n"
+              ;;
+          esac
 
-               if [[ -n "$password" && "$password" != "null" ]]; then
-                 VAR+="Password: $password\n"
-               fi
-               VAR+="\n"
-             fi
+          # Try to get JSON info (may not exist for all types)
+          JSON_FILE=""
+          case "$SCRIPT_TYPE" in
+            ct|vm|addon)
+              JSON_FILE="frontend/public/json/${TITLE}.json"
+              ;;
+          esac
 
-            if [ ${#notes_array[@]} -gt 0 ]; then
-              for note in "${notes_array[@]}"; do
-                VAR+="$note\n"
-              done
-              VAR+="\n"
+          if [[ -n "$JSON_FILE" ]]; then
+            JSON=$(curl -fsSL "https://github.com/community-scripts/ProxmoxVED/raw/main/${JSON_FILE}" 2>/dev/null || echo "{}")
+
+            if [[ "$JSON" != "{}" && "$JSON" != "" ]]; then
+              username=$(echo "$JSON" | jq -r '.default_credentials.username // empty')
+              password=$(echo "$JSON" | jq -r '.default_credentials.password // empty')
+
+              if [[ -n "$username" || -n "$password" ]]; then
+                VAR+="Default credentials:\n"
+                [[ -n "$username" ]] && VAR+="Username: $username\n"
+                [[ -n "$password" ]] && VAR+="Password: $password\n"
+                VAR+="\n"
+              fi
+
+              # Get notes
+              mapfile -t notes_array < <(echo "$JSON" | jq -r '.notes[]?.text // empty' 2>/dev/null)
+              if [ ${#notes_array[@]} -gt 0 ]; then
+                for note in "${notes_array[@]}"; do
+                  [[ -n "$note" ]] && VAR+="$note\n"
+                done
+                VAR+="\n"
+              fi
             fi
           fi
+
           VAR+="Note: This is not in the official repo yet—it's just a dev version! After merging into ProxmoxVE, it will need to be recreated.\n\n"
           VAR+="Discussion & issue tracking:\n"
           VAR+="${{ github.event.issue.html_url }}"

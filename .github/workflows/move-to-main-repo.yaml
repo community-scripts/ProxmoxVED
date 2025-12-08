@@ -34,63 +34,128 @@ jobs:
           repository: community-scripts/ProxmoxVED
           token: ${{ secrets.GH_MERGE_PAT }}
 
-      - name: List Issues in Repository
+      - name: List Issues and Extract Script Type
         id: list_issues
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "Filtering Issues with Label Migration To ProxmoxVE"
-          raw_output=$(gh issue list --json title,labels,number)
-          filtered_issues=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "Migration To ProxmoxVE") | .title' | head -n 1)
-          issue_nr=$(echo "$raw_output" | jq -r '.[] | select(.labels[]?.name == "Migration To ProxmoxVE") | .number' | head -n 1)
+          raw_output=$(gh issue list --json title,labels,number,body)
+          filtered_issue=$(echo "$raw_output" | jq -r '[.[] | select(.labels[]?.name == "Migration To ProxmoxVE")][0]')
 
-          if [ -z "$filtered_issues" ]; then
+          if [ "$filtered_issue" == "null" ] || [ -z "$filtered_issue" ]; then
             echo "No issues found with label 'Migration To ProxmoxVE'."
             exit 1
-          else
-            script_name=$(echo "$filtered_issues" | head -n 1) # Nur das erste Issue nehmen
-            script_name_lowercase=$(echo "$script_name" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
-            echo "Script Name: $script_name_lowercase"
-            echo "script_name=$script_name_lowercase" >> $GITHUB_OUTPUT
-            echo "issue_nr=$issue_nr" >> $GITHUB_OUTPUT
           fi
+
+          script_name=$(echo "$filtered_issue" | jq -r '.title' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+          issue_nr=$(echo "$filtered_issue" | jq -r '.number')
+          issue_body=$(echo "$filtered_issue" | jq -r '.body')
+
+          echo "Script Name: $script_name"
+          echo "Issue Number: $issue_nr"
+
+          # Detect script type from issue body
+          if echo "$issue_body" | grep -qi "CT (LXC Container)"; then
+            script_type="ct"
+          elif echo "$issue_body" | grep -qi "VM (Virtual Machine)"; then
+            script_type="vm"
+          elif echo "$issue_body" | grep -qi "Addon (tools/addon)"; then
+            script_type="addon"
+          elif echo "$issue_body" | grep -qi "PVE Tool (tools/pve)"; then
+            script_type="pve"
+          else
+            # Fallback detection by filename pattern
+            if [[ "$script_name" == *"-vm"* ]]; then
+              script_type="vm"
+            else
+              script_type="ct"
+            fi
+          fi
+
+          echo "Script Type: $script_type"
+
+          echo "script_name=$script_name" >> $GITHUB_OUTPUT
+          echo "issue_nr=$issue_nr" >> $GITHUB_OUTPUT
+          echo "script_type=$script_type" >> $GITHUB_OUTPUT
 
       - name: Check if script files exist
         id: check_files
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
-          ct_file="ct/${script_name}.sh"
-          install_file="install/${script_name}-install.sh"
-          json_file="frontend/public/json/${script_name}.json"
+          script_type="${{ steps.list_issues.outputs.script_type }}"
+          files_found="true"
+          missing_files=""
 
-
-          if [[ ! -f "$ct_file" ]]; then
-             echo "ct file not found."
-             echo "files_found=false" >> $GITHUB_OUTPUT
-             echo "missing=$ct_file" >> $GITHUB_OUTPUT
-          fi
-          if [[ ! -f "$install_file" ]]; then
-             echo "install file not found."
-             echo "files_found=false" >> $GITHUB_OUTPUT
-             echo "missing=$install_file" >> $GITHUB_OUTPUT
-          fi
-          if [[ ! -f "$json_file" ]]; then
-            if [[ "$json_file" = *alpine* ]]; then
-              stripped_name="${json_file/frontend\/public\/json\/alpine-/frontend/public/json/}"
-              echo $stripped_name
-              if [[ -f "$stripped_name" ]]; then
-                echo "files_found=true" >> $GITHUB_OUTPUT
-              else
-                echo "json file striped not found."
-                echo "files_found=false" >> $GITHUB_OUTPUT
-                echo "missing=$json_file" >> $GITHUB_OUTPUT
+          # Check files based on script type
+          case "$script_type" in
+            ct)
+              if [[ ! -f "ct/${script_name}.sh" ]]; then
+                echo "ct file not found: ct/${script_name}.sh"
+                files_found="false"
+                missing_files+="ct/${script_name}.sh "
               fi
-            else
-             echo "json file not found."
-             echo "files_found=false" >> $GITHUB_OUTPUT
-             echo "missing=$json_file" >> $GITHUB_OUTPUT
-            fi
-          fi
+              if [[ ! -f "install/${script_name}-install.sh" ]]; then
+                echo "install file not found: install/${script_name}-install.sh"
+                files_found="false"
+                missing_files+="install/${script_name}-install.sh "
+              fi
+              # JSON check with alpine fallback
+              json_file="frontend/public/json/${script_name}.json"
+              if [[ ! -f "$json_file" ]]; then
+                if [[ "$script_name" == alpine-* ]]; then
+                  stripped_name="${script_name#alpine-}"
+                  alt_json="frontend/public/json/${stripped_name}.json"
+                  if [[ -f "$alt_json" ]]; then
+                    echo "Using alpine fallback JSON: $alt_json"
+                    echo "json_fallback=$alt_json" >> $GITHUB_OUTPUT
+                  else
+                    echo "json file not found: $json_file"
+                    files_found="false"
+                    missing_files+="$json_file "
+                  fi
+                else
+                  echo "json file not found: $json_file"
+                  files_found="false"
+                  missing_files+="$json_file "
+                fi
+              fi
+              ;;
+            vm)
+              if [[ ! -f "vm/${script_name}.sh" ]]; then
+                echo "vm file not found: vm/${script_name}.sh"
+                files_found="false"
+                missing_files+="vm/${script_name}.sh "
+              fi
+              # JSON is optional for VMs but check anyway
+              json_file="frontend/public/json/${script_name}.json"
+              if [[ ! -f "$json_file" ]]; then
+                echo "json file not found (optional): $json_file"
+              fi
+              ;;
+            addon)
+              if [[ ! -f "tools/addon/${script_name}.sh" ]]; then
+                echo "addon file not found: tools/addon/${script_name}.sh"
+                files_found="false"
+                missing_files+="tools/addon/${script_name}.sh "
+              fi
+              # JSON is optional for addons
+              json_file="frontend/public/json/${script_name}.json"
+              if [[ ! -f "$json_file" ]]; then
+                echo "json file not found (optional): $json_file"
+              fi
+              ;;
+            pve)
+              if [[ ! -f "tools/pve/${script_name}.sh" ]]; then
+                echo "pve tool file not found: tools/pve/${script_name}.sh"
+                files_found="false"
+                missing_files+="tools/pve/${script_name}.sh "
+              fi
+              ;;
+          esac
+
+          echo "files_found=$files_found" >> $GITHUB_OUTPUT
+          echo "missing=$missing_files" >> $GITHUB_OUTPUT
 
       - name: Comment if not all Files found
         if: steps.check_files.outputs.files_found == 'false'
@@ -98,7 +163,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
-          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "Not all required files were found for $script_name. Please check the files and try again. Missing: ${{ steps.check_files.outputs.missing }}."
+          script_type="${{ steps.list_issues.outputs.script_type }}"
+          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "Not all required files were found for **$script_name** (type: $script_type). Please check the files and try again. Missing: ${{ steps.check_files.outputs.missing }}"
           exit 1
 
       - name: Get GitHub App User ID
@@ -119,45 +185,78 @@ jobs:
           echo "Using branch: $branch_name"
           echo "branch_name=$branch_name" >> $GITHUB_ENV
 
-      - name: Clone ProxmoxVE (Target Repo)
+      - name: Clone ProxmoxVE and Copy Files
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
+          script_type="${{ steps.list_issues.outputs.script_type }}"
+          json_fallback="${{ steps.check_files.outputs.json_fallback }}"
+
           git clone https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
           cd ProxmoxVE
 
-          if [[ -f "ct/${script_name}.sh" ]]; then
-            echo "ct file already exists in ProxmoxVE"
-            exit 1
-          fi
-          if [[ -f "install/${script_name}-install.sh" ]]; then
-            echo "install file already exists in ProxmoxVE"
-            exit 1
-          fi
+          # Check if files already exist in target repo
+          case "$script_type" in
+            ct)
+              [[ -f "ct/${script_name}.sh" ]] && echo "ct file already exists in ProxmoxVE" && exit 1
+              [[ -f "install/${script_name}-install.sh" ]] && echo "install file already exists in ProxmoxVE" && exit 1
+              ;;
+            vm)
+              [[ -f "vm/${script_name}.sh" ]] && echo "vm file already exists in ProxmoxVE" && exit 1
+              ;;
+            addon)
+              [[ -f "tools/addon/${script_name}.sh" ]] && echo "addon file already exists in ProxmoxVE" && exit 1
+              ;;
+            pve)
+              [[ -f "tools/pve/${script_name}.sh" ]] && echo "pve tool file already exists in ProxmoxVE" && exit 1
+              ;;
+          esac
 
           git checkout -b "$branch_name"
 
-          cp ../ct/$script_name.sh ct/.
-          cp ../ct/headers/$script_name ct/headers/. || true
-          cp ../install/$script_name-install.sh install/.
+          # Copy files based on script type
+          case "$script_type" in
+            ct)
+              cp ../ct/${script_name}.sh ct/
+              cp ../ct/headers/${script_name} ct/headers/ 2>/dev/null || true
+              cp ../install/${script_name}-install.sh install/
 
-          json_file="${script_name}.json"
-
-          if [[ ! -f "../frontend/public/json/$json_file" ]]; then
-            if [[ "$json_file" = *alpine* ]]; then
-              stripped_name="${json_file#alpine-}"
-              if [[ -f "../frontend/public/json/$stripped_name" ]]; then
-                cp ../frontend/public/json/$stripped_name frontend/public/json/. || true
+              # Handle JSON with alpine fallback
+              if [[ -n "$json_fallback" ]]; then
+                cp ../${json_fallback} frontend/public/json/ || true
+              else
+                cp ../frontend/public/json/${script_name}.json frontend/public/json/ 2>/dev/null || true
               fi
-            fi
-          else
-            cp ../frontend/public/json/$json_file frontend/public/json/. || true
-          fi
 
-          echo $script_name
-          sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/$script_name.sh
-          sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/$script_name.sh
-          sed -i "s|# License: MIT \| https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE|# License: MIT \| https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE|" ct/$script_name.sh
-          sed -i "s|# License: MIT \| https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE|# License: MIT \| https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE|" install/$script_name-install.sh
+              # Update URLs in ct script
+              sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
+              sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
+              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" ct/${script_name}.sh
+              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" install/${script_name}-install.sh
+              ;;
+            vm)
+              cp ../vm/${script_name}.sh vm/
+              cp ../frontend/public/json/${script_name}.json frontend/public/json/ 2>/dev/null || true
+
+              # Update URLs in vm script
+              sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" vm/${script_name}.sh
+              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" vm/${script_name}.sh
+              ;;
+            addon)
+              mkdir -p tools/addon
+              cp ../tools/addon/${script_name}.sh tools/addon/
+              cp ../frontend/public/json/${script_name}.json frontend/public/json/ 2>/dev/null || true
+
+              # Update URLs in addon script
+              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" tools/addon/${script_name}.sh
+              ;;
+            pve)
+              mkdir -p tools/pve
+              cp ../tools/pve/${script_name}.sh tools/pve/
+
+              # Update URLs in pve script
+              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" tools/pve/${script_name}.sh
+              ;;
+          esac
 
           git add . > /dev/null 2>&1
           if git diff --cached --exit-code; then
@@ -165,7 +264,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "${commit_message:-'Add new script'}"
+          git commit -m "Add ${script_name} (${script_type})"
 
       - name: Push to ProxmoxVE
         run: |
@@ -178,12 +277,13 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
+          script_type="${{ steps.list_issues.outputs.script_type }}"
           gh pr create \
             --repo community-scripts/ProxmoxVE \
             --head "$branch_name" \
             --base main \
-            --title "$script_name" \
-            --body "Automated migration of $script_name from ProxmoxVED to ProxmoxVE."
+            --title "${script_name}" \
+            --body "Automated migration of **${script_name}** (type: ${script_type}) from ProxmoxVED to ProxmoxVE."
           PR_NUMBER=$(gh pr list --repo community-scripts/ProxmoxVE --head "$branch_name" --json number --jq '.[].number')
           echo "PR_NUMBER=$PR_NUMBER"
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
