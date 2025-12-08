@@ -46,6 +46,7 @@ function update_script() {
         # TODO: change in json
         systemctl daemon-reload
         cp /opt/homarr/.env /opt/homarr.env
+        rm /opt/run_homarr.sh
         msg_ok "Fixed old structure"
     fi
 
