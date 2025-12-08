@@ -118,7 +118,7 @@ function update() {
     cp "$CONFIG_PATH" /tmp/jellystat.env.bak 2>/dev/null || true
     msg_ok "Backed up configuration"
 
-    fetch_and_deploy_gh_release "jellystat" "CyferShepard/Jellystat" "tarball" "latest" "$INSTALL_PATH"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "jellystat" "CyferShepard/Jellystat" "tarball" "latest" "$INSTALL_PATH"
 
     msg_info "Restoring configuration"
     cp /tmp/jellystat.env.bak "$CONFIG_PATH" 2>/dev/null || true
@@ -127,20 +127,18 @@ function update() {
 
     msg_info "Installing dependencies"
     cd "$INSTALL_PATH"
-    npm install &>/dev/null
+    $STD npm install
     msg_ok "Installed dependencies"
 
     msg_info "Building ${APP}"
-    npm run build &>/dev/null
+    $STD npm run build
     msg_ok "Built ${APP}"
 
     msg_info "Starting service"
-    systemctl start jellystat.service &>/dev/null
+    systemctl start jellystat
     msg_ok "Started service"
-
-    msg_ok "Updated ${APP} successfully"
-  else
-    msg_ok "${APP} is already up-to-date"
+    msg_ok "Updated successfully"
+    exit
   fi
 }
 
