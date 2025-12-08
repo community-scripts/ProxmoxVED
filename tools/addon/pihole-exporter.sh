@@ -14,7 +14,7 @@ VERBOSE=${var_verbose:-no}
 APP="pihole-exporter"
 APP_TYPE="tools"
 INSTALL_PATH="/opt/pihole-exporter"
-CONFIG_PATH="/opt/pihole.env"
+CONFIG_PATH="/opt/pihole-exporter.env"
 header_info
 ensure_usr_local_bin_persist
 get_current_ip &>/dev/null
@@ -70,10 +70,15 @@ if [[ -d "$INSTALL_PATH" ]]; then
 fi
 
 echo -e "${YW}⚠️ pihole-exporter is not installed.${CL}"
-echo -n "Enter the hostname of pihole, example: (127.0.0.1): "
+echo -e "${YW}⚠️ Please provide the following information to connect to your Pi-Hole instance.${CL}"
+echo -e "${YW}⚠️ It's possibly to add multiple Pi-Hole instances, by using a comma-separated list on all parameter, example: 127.0.0.1,192.168.1.100${CL}"
+echo -n "Enter the hostname of Pihole, example: (127.0.0.1): "
 read -er pihole_HOSTNAME
 
-echo -n "Enter pihole password: "
+echo -n "Enter the port of Pihole, default 443: "
+read -er pihole_PORT
+
+echo -n "Enter Pihole password: "
 read -rs pihole_PASSWORD
 echo
 
@@ -102,7 +107,9 @@ cat <<EOF >"$CONFIG_PATH"
 # https://github.com/eko/pihole-exporter/?tab=readme-ov-file#available-cli-options
 PIHOLE_PASSWORD="${pihole_PASSWORD}"
 PIHOLE_HOSTNAME="${pihole_HOSTNAME}"
+PIHOLE_PORT=${pihole_PORT:-443}"
 SKIP_TLS_VERIFICATION="${pihole_SKIP_TLS}"
+PIHOLE_PROTOCOL="${pihole_SKIP_TLS:-https}"
 EOF
 msg_ok "Created configuration"
 
