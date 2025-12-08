@@ -123,16 +123,10 @@ function install() {
   local ip
   ip=$(get_ip)
 
-  msg_info "Downloading ${APP}"
-  rm -f "$HOME/.adguardhome-sync"
-  mkdir -p "$INSTALL_PATH"
   fetch_and_deploy_gh_release "adguardhome-sync" "bakito/adguardhome-sync" "prebuild" "latest" "$INSTALL_PATH" "adguardhome-sync_*_linux_amd64.tar.gz"
-  chmod +x "$INSTALL_PATH/adguardhome-sync"
-  msg_ok "Downloaded ${APP}"
 
   # Gather configuration from user
   echo ""
-  msg_info "Configuring AdGuard Home instances"
   echo -e "${TAB}Enter details for your AdGuard Home instances."
   echo -e "${TAB}The Origin is your primary instance, Replica will sync from it."
   echo ""
@@ -159,8 +153,7 @@ function install() {
   read -rsp "  Replica Password: " replica_pass
   echo ""
   replica_pass="${replica_pass:-changeme}"
-
-  msg_ok "Configuration gathered"
+  echo ""
 
   msg_info "Creating configuration"
   cat <<EOF >"$CONFIG_PATH"
