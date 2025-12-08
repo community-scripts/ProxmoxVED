@@ -77,8 +77,8 @@ read -rs pihole_PASSWORD
 echo
 
 echo -n "Do you want to skip TLS-Verification (if using a self-signed Certificate on Pi-Hole) [y/N]: "
-read -er pihole_SKIP_TLS
-if ! [[ "${pihole_SKIP_TLS,,}" =~ ^(y|yes)$ ]]; then
+read -er SKIP_TLS
+if ! [[ "${SKIP_TLS,,}" =~ ^(y|yes)$ ]]; then
   pihole_SKIP_TLS="true"
 fi
 
