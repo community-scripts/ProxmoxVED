@@ -71,7 +71,6 @@ fi
 echo -e "${YW}⚠️ pihole-exporter is not installed.${CL}"
 echo -n "Enter the hostname of pihole, example: (127.0.0.1): "
 read -er pihole_HOSTNAME
-echo
 
 echo -n "Enter pihole password: "
 read -rs pihole_PASSWORD
@@ -79,14 +78,12 @@ echo
 
 echo -n "Do you want to skip TLS-Verification (if using a self-signed Certificate on Pi-Hole) [y/N]: "
 read -er pihole_SKIP_TLS
-echo
 if ! [[ "${pihole_SKIP_TLS,,}" =~ ^(y|yes)$ ]]; then
   pihole_SKIP_TLS="true"
 fi
 
 echo -n "Install qbittorrent-exporter? (y/n): "
 read -r install_prompt
-echo
 if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
   exit 0
