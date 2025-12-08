@@ -12,7 +12,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 VERBOSE=${var_verbose:-no}
 APP="pihole-exporter"
 APP_TYPE="tools"
-INSTALL_PATH="/opt/pihole-exporter/pihole-exporter"
+INSTALL_PATH="/opt/pihole-exporter"
 CONFIG_PATH="/opt/pihole.env"
 header_info
 ensure_usr_local_bin_persist
@@ -31,7 +31,7 @@ else
 fi
 
 # Existing installation
-if [[ -f "$INSTALL_PATH" ]]; then
+if [[ -d "$INSTALL_PATH" ]]; then
   echo -e "${YW}⚠️ pihole-exporter is already installed.${CL}"
   echo -n "Uninstall ${APP}? (y/N): "
   read -r uninstall_prompt
