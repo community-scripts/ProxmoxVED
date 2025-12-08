@@ -97,7 +97,7 @@ function update() {
     cp "$CONFIG_PATH" /tmp/adguardhome-sync.yaml.bak 2>/dev/null || true
     msg_ok "Backed up configuration"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "adguardhome-sync" "bakito/adguardhome-sync" "binary" "latest" "$INSTALL_PATH" "adguardhome-sync_linux_amd64.tar.gz"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "adguardhome-sync" "bakito/adguardhome-sync" "prebuild" "latest" "$INSTALL_PATH" "adguardhome-sync_*_linux_amd64.tar.gz"
 
     msg_info "Restoring configuration"
     cp /tmp/adguardhome-sync.yaml.bak "$CONFIG_PATH" 2>/dev/null || true
@@ -126,7 +126,7 @@ function install() {
   msg_info "Downloading ${APP}"
   rm -f "$HOME/.adguardhome-sync"
   mkdir -p "$INSTALL_PATH"
-  fetch_and_deploy_gh_release "adguardhome-sync" "bakito/adguardhome-sync" "binary" "latest" "$INSTALL_PATH" "adguardhome-sync_linux_amd64.tar.gz"
+  fetch_and_deploy_gh_release "adguardhome-sync" "bakito/adguardhome-sync" "prebuild" "latest" "$INSTALL_PATH" "adguardhome-sync_*_linux_amd64.tar.gz"
   chmod +x "$INSTALL_PATH/adguardhome-sync"
   msg_ok "Downloaded ${APP}"
 
