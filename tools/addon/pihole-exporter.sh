@@ -9,6 +9,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
+
 VERBOSE=${var_verbose:-no}
 APP="pihole-exporter"
 APP_TYPE="tools"
@@ -45,8 +46,7 @@ if [[ -d "$INSTALL_PATH" ]]; then
       rc-update del pihole-exporter &>/dev/null
       rm -f "$SERVICE_PATH"
     fi
-    rm -rf "$INSTALL_PATH"
-    rm -f "$CONFIG_PATH" ~/.pihole-exporter
+    rm -rf "$INSTALL_PATH" "$CONFIG_PATH" ~/.pihole-exporter
     msg_ok "${APP} has been uninstalled."
     exit 0
   fi
@@ -79,7 +79,7 @@ echo
 
 echo -n "Do you want to skip TLS-Verification (if using a self-signed Certificate on Pi-Hole) [y/N]: "
 read -er SKIP_TLS
-if ! [[ "${SKIP_TLS,,}" =~ ^(y|yes)$ ]]; then
+if [[ "${SKIP_TLS,,}" =~ ^(y|yes)$ ]]; then
   pihole_SKIP_TLS="true"
 fi
 
@@ -101,7 +101,7 @@ msg_info "Creating configuration"
 cat <<EOF >"$CONFIG_PATH"
 # https://github.com/eko/pihole-exporter/?tab=readme-ov-file#available-cli-options
 PIHOLE_PASSWORD="${pihole_PASSWORD}"
-PIHOLE_hostname="${pihole_HOSTNAME}"
+PIHOLE_HOSTNAME="${pihole_HOSTNAME}"
 SKIP_TLS_VERIFICATION="${pihole_SKIP_TLS}"
 EOF
 msg_ok "Created configuration"
