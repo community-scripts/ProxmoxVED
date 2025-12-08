@@ -46,8 +46,7 @@ if [[ -d "$INSTALL_PATH" ]]; then
       rc-update del pihole-exporter &>/dev/null
       rm -f "$SERVICE_PATH"
     fi
-    rm -rf "$INSTALL_PATH"
-    rm -f "$CONFIG_PATH" ~/.pihole-exporter
+    rm -rf "$INSTALL_PATH" "$CONFIG_PATH" ~/.pihole-exporter
     msg_ok "${APP} has been uninstalled."
     exit 0
   fi
