@@ -71,19 +71,19 @@ fi
 echo -e "${YW}⚠️ qbittorrent-exporter is not installed.${CL}"
 echo -n "Enter URL of qbittorrent, example: (http://127.0.0.1:8080): "
 read -er QBITTORRENT_BASE_URL
-echo .
+echo
 
 echo -n "Enter qbittorrent username: "
 read -er QBITTORRENT_USERNAME
-echo .
+echo
 
 echo -n "Enter qbittorrent password: "
 read -rs QBITTORRENT_PASSWORD
-echo ""
+echo
 
 echo -n "Install qbittorrent-exporter? (y/n): "
 read -r install_prompt
-echo .
+echo
 if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
   exit 0
