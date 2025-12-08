@@ -562,7 +562,7 @@ load_vars_file() {
 
   # Allowed var_* keys
   local VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_keyctl
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_gpu var_keyctl
     var_gateway var_hostname var_ipv6_method var_mac var_mknod var_mount_fs var_mtu
     var_net var_nesting var_ns var_protection var_pw var_ram var_tags var_timezone var_tun var_unprivileged
     var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
@@ -614,7 +614,7 @@ default_var_settings() {
   # Allowed var_* keys (alphabetically sorted)
   # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
   local VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_keyctl
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_gpu var_keyctl
     var_gateway var_hostname var_ipv6_method var_mac var_mknod var_mount_fs var_mtu
     var_net var_nesting var_ns var_protection var_pw var_ram var_tags var_timezone var_tun var_unprivileged
     var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
@@ -776,7 +776,7 @@ get_app_defaults_path() {
 if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
   # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
   declare -ag VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_gpu
     var_gateway var_hostname var_ipv6_method var_mac var_mtu
     var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
     var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
@@ -1120,7 +1120,7 @@ advanced_settings() {
   # Initialize defaults
   TAGS="community-script;${var_tags:-}"
   local STEP=1
-  local MAX_STEP=19
+  local MAX_STEP=20
 
   # Store values for back navigation
   local _ct_type="${CT_TYPE:-1}"
@@ -1145,6 +1145,7 @@ advanced_settings() {
   local _vlan=""
   local _tags="$TAGS"
   local _enable_fuse="no"
+  local _enable_gpu="${var_gpu:-no}"
   local _verbose="no"
   local _enable_keyctl="0"
   local _enable_mknod="0"
@@ -1604,7 +1605,7 @@ advanced_settings() {
     # STEP 17: SSH Settings
     # ═══════════════════════════════════════════════════════════════════════════
     17)
-      configure_ssh_settings
+      configure_ssh_settings "Step $STEP/$MAX_STEP"
       # configure_ssh_settings handles its own flow, always advance
       ((STEP++))
       ;;
@@ -1640,9 +1641,33 @@ advanced_settings() {
       ;;
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # STEP 19: Confirmation
+    # STEP 19: GPU Passthrough
     # ═══════════════════════════════════════════════════════════════════════════
     19)
+      local gpu_default="OFF"
+      [[ "$_enable_gpu" == "yes" ]] && gpu_default="ON"
+
+      if whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
+        --title "GPU PASSTHROUGH" \
+        --ok-button "Next" --cancel-button "Back" \
+        --defaultno \
+        --yesno "\nEnable GPU Passthrough?\n\nAutomatically detects and passes through available GPUs\n(Intel/AMD/NVIDIA) for hardware acceleration.\n\nRecommended for: Media servers, AI/ML, Transcoding" 14 62; then
+        _enable_gpu="yes"
+      else
+        if [ $? -eq 1 ]; then
+          _enable_gpu="no"
+        else
+          ((STEP--))
+          continue
+        fi
+      fi
+      ((STEP++))
+      ;;
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STEP 20: Confirmation
+    # ═══════════════════════════════════════════════════════════════════════════
+    20)
       # Build summary
       local ct_type_desc="Unprivileged"
       [[ "$_ct_type" == "0" ]] && ct_type_desc="Privileged"
@@ -1663,12 +1688,13 @@ Network:
 
 Options:
   FUSE: $_enable_fuse
+  GPU Passthrough: $_enable_gpu
   Verbose: $_verbose"
 
       if whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "CONFIRM SETTINGS" \
         --ok-button "Create LXC" --cancel-button "Back" \
-        --yesno "$summary\n\nCreate ${APP} LXC with these settings?" 26 58; then
+        --yesno "$summary\n\nCreate ${APP} LXC with these settings?" 28 58; then
         ((STEP++))
       else
         ((STEP--))
@@ -1695,7 +1721,11 @@ Options:
   IPV6_GATE="$_ipv6_gate"
   TAGS="$_tags"
   ENABLE_FUSE="$_enable_fuse"
+  ENABLE_GPU="$_enable_gpu"
   VERBOSE="$_verbose"
+
+  # Update var_gpu based on user choice (for is_gpu_app function)
+  var_gpu="$_enable_gpu"
 
   # Format optional values
   [[ -n "$_mtu" ]] && MTU=",mtu=$_mtu" || MTU=""
@@ -2189,6 +2219,10 @@ ssh_discover_default_files() {
 }
 
 configure_ssh_settings() {
+  local step_info="${1:-}"
+  local backtitle="[dev] Proxmox VE Helper Scripts"
+  [[ -n "$step_info" ]] && backtitle="[dev] Proxmox VE Helper Scripts [${step_info}]"
+
   SSH_KEYS_FILE="$(mktemp)"
   : >"$SSH_KEYS_FILE"
 
@@ -2198,14 +2232,14 @@ configure_ssh_settings() {
 
   local ssh_key_mode
   if [[ "$default_key_count" -gt 0 ]]; then
-    ssh_key_mode=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+    ssh_key_mode=$(whiptail --backtitle "$backtitle" --title "SSH KEY SOURCE" --menu \
       "Provision SSH keys for root:" 14 72 4 \
       "found" "Select from detected keys (${default_key_count})" \
       "manual" "Paste a single public key" \
       "folder" "Scan another folder (path or glob)" \
       "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
   else
-    ssh_key_mode=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SSH KEY SOURCE" --menu \
+    ssh_key_mode=$(whiptail --backtitle "$backtitle" --title "SSH KEY SOURCE" --menu \
       "No host keys detected; choose manual/none:" 12 72 2 \
       "manual" "Paste a single public key" \
       "none" "No keys" 3>&1 1>&2 2>&3) || exit_script
@@ -2214,7 +2248,7 @@ configure_ssh_settings() {
   case "$ssh_key_mode" in
   found)
     local selection
-    selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT HOST KEYS" \
+    selection=$(whiptail --backtitle "$backtitle" --title "SELECT HOST KEYS" \
       --checklist "Select one or more keys to import:" 20 140 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
     for tag in $selection; do
       tag="${tag%\"}"
@@ -2225,13 +2259,13 @@ configure_ssh_settings() {
     done
     ;;
   manual)
-    SSH_AUTHORIZED_KEY="$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+    SSH_AUTHORIZED_KEY="$(whiptail --backtitle "$backtitle" \
       --inputbox "Paste one SSH public key line (ssh-ed25519/ssh-rsa/...)" 10 72 --title "SSH Public Key" 3>&1 1>&2 2>&3)"
     [[ -n "$SSH_AUTHORIZED_KEY" ]] && printf '%s\n' "$SSH_AUTHORIZED_KEY" >>"$SSH_KEYS_FILE"
     ;;
   folder)
     local glob_path
-    glob_path=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" \
+    glob_path=$(whiptail --backtitle "$backtitle" \
       --inputbox "Enter a folder or glob to scan (e.g. /root/.ssh/*.pub)" 10 72 --title "Scan Folder/Glob" 3>&1 1>&2 2>&3)
     if [[ -n "$glob_path" ]]; then
       shopt -s nullglob
@@ -2241,7 +2275,7 @@ configure_ssh_settings() {
         ssh_build_choices_from_files "${_scan_files[@]}"
         if [[ "$COUNT" -gt 0 ]]; then
           local folder_selection
-          folder_selection=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "SELECT FOLDER KEYS" \
+          folder_selection=$(whiptail --backtitle "$backtitle" --title "SELECT FOLDER KEYS" \
             --checklist "Select key(s) to import:" 20 78 10 "${CHOICES[@]}" 3>&1 1>&2 2>&3) || exit_script
           for tag in $folder_selection; do
             tag="${tag%\"}"
@@ -2251,10 +2285,10 @@ configure_ssh_settings() {
             [[ -n "$line" ]] && printf '%s\n' "$line" >>"$SSH_KEYS_FILE"
           done
         else
-          whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "No keys found in: $glob_path" 8 60
+          whiptail --backtitle "$backtitle" --msgbox "No keys found in: $glob_path" 8 60
         fi
       else
-        whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --msgbox "Path/glob returned no files." 8 60
+        whiptail --backtitle "$backtitle" --msgbox "Path/glob returned no files." 8 60
       fi
     fi
     ;;
@@ -2268,12 +2302,9 @@ configure_ssh_settings() {
     printf '\n' >>"$SSH_KEYS_FILE"
   fi
 
-  if [[ -s "$SSH_KEYS_FILE" || "$PW" == -password* ]]; then
-    if (whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --defaultno --title "SSH ACCESS" --yesno "Enable root SSH access?" 10 58); then
-      SSH="yes"
-    else
-      SSH="no"
-    fi
+  # Always show SSH access dialog - user should be able to enable SSH even without keys
+  if (whiptail --backtitle "$backtitle" --defaultno --title "SSH ACCESS" --yesno "Enable root SSH access?" 10 58); then
+    SSH="yes"
   else
     SSH="no"
   fi
@@ -2528,21 +2559,15 @@ build_container() {
   # GPU/USB PASSTHROUGH CONFIGURATION
   # ============================================================================
 
-  # List of applications that benefit from GPU acceleration
-  GPU_APPS=(
-    "immich" "channels" "emby" "ersatztv" "frigate"
-    "jellyfin" "plex" "scrypted" "tdarr" "unmanic"
-    "ollama" "fileflows" "open-webui" "tunarr" "debian"
-    "handbrake" "sunshine" "moonlight" "kodi" "stremio"
-    "viseron"
-  )
-
-  # Check if app needs GPU
+  # Check if GPU passthrough is enabled
+  # Returns true only if var_gpu is explicitly set to "yes"
+  # Can be set via:
+  #   - Environment variable: var_gpu=yes bash -c "..."
+  #   - CT script default: var_gpu="${var_gpu:-no}"
+  #   - Advanced settings wizard
+  #   - App defaults file: /usr/local/community-scripts/defaults/<app>.vars
   is_gpu_app() {
-    local app="${1,,}"
-    for gpu_app in "${GPU_APPS[@]}"; do
-      [[ "$app" == "${gpu_app,,}" ]] && return 0
-    done
+    [[ "${var_gpu:-no}" == "yes" ]] && return 0
     return 1
   }
 
@@ -2625,8 +2650,13 @@ EOF
 
   # Configure GPU passthrough
   configure_gpu_passthrough() {
-    # Skip if not a GPU app and not privileged
-    if [[ "$CT_TYPE" != "0" ]] && ! is_gpu_app "$APP"; then
+    # Skip if:
+    # GPU passthrough is enabled when var_gpu="yes":
+    # - Set via environment variable: var_gpu=yes bash -c "..."
+    # - Set in CT script: var_gpu="${var_gpu:-no}"
+    # - Enabled in advanced_settings wizard
+    # - Configured in app defaults file
+    if ! is_gpu_app "$APP"; then
       return 0
     fi
 

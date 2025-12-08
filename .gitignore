@@ -1,1 +1,15 @@
 .vscode/settings.json
+CHANGELOG_MISC.md
+misc/COMPLETION_REPORT.md
+misc/DOCUMENTATION_INDEX.md
+misc/DOCUMENTATION_SUMMARY.md
+misc/live/alpine-install.func
+misc/live/build.func
+misc/live/install.func
+vm/debian-13-vm.sh
+vm/README-vm-manager.md
+vm/vm-manager.sh
+vm/debian-13-vm.sh
+vm/vm-manager.sh
+vm/vm-manager.sh
+vm/debian-13-vm.sh
