@@ -7,6 +7,7 @@
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/error_handler.func)
 
 # Enable error handling
 set -Eeuo pipefail
@@ -79,8 +80,8 @@ function uninstall() {
   if [[ "${db_prompt,,}" =~ ^(y|yes)$ ]]; then
     if command -v psql &>/dev/null; then
       msg_info "Removing PostgreSQL database and user"
-      sudo -u postgres psql -c "DROP DATABASE IF EXISTS jellystat;" &>/dev/null || true
-      sudo -u postgres psql -c "DROP USER IF EXISTS jellystat;" &>/dev/null || true
+      $STD sudo -u postgres psql -c "DROP DATABASE IF EXISTS jellystat;" &>/dev/null || true
+      $STD sudo -u postgres psql -c "DROP USER IF EXISTS jellystat;" &>/dev/null || true
       msg_ok "Removed PostgreSQL database 'jellystat' and user 'jellystat'"
     else
       msg_warn "PostgreSQL not found - database may have been removed already"
@@ -170,29 +171,29 @@ function install() {
     # Check if user exists, create if not
     if sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" 2>/dev/null | grep -q 1; then
       msg_info "User '${DB_USER}' exists, updating password"
-      sudo -u postgres psql -c "ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" || {
+      $STD sudo -u postgres psql -c "ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" || {
         msg_error "Failed to update PostgreSQL user"
         return 1
       }
     else
-      sudo -u postgres psql -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" || {
+      $STD sudo -u postgres psql -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" || {
         msg_error "Failed to create PostgreSQL user"
         return 1
       }
     fi
 
     # Create database (use template0 for UTF8 encoding compatibility)
-    sudo -u postgres psql -c "CREATE DATABASE ${DB_NAME} WITH OWNER ${DB_USER} ENCODING 'UTF8' LC_COLLATE='C' LC_CTYPE='C' TEMPLATE template0;" || {
+    $STD sudo -u postgres psql -c "CREATE DATABASE ${DB_NAME} WITH OWNER ${DB_USER} ENCODING 'UTF8' LC_COLLATE='C' LC_CTYPE='C' TEMPLATE template0;" || {
       msg_error "Failed to create PostgreSQL database"
       return 1
     }
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" || {
+    $STD sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" || {
       msg_error "Failed to grant privileges"
       return 1
     }
 
     # Grant schema permissions (required for PostgreSQL 15+)
-    sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${DB_USER};" || true
+    $STD sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${DB_USER};" || true
 
     # Configure pg_hba.conf for password authentication on localhost
     local PG_HBA
