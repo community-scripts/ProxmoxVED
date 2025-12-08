@@ -133,12 +133,12 @@ function install() {
   # Gather configuration from user
   echo ""
   msg_info "Configuring AdGuard Home instances"
-  echo -e "${INFO}${TAB}Enter details for your AdGuard Home instances.${NC}"
-  echo -e "${INFO}${TAB}The Origin is your primary instance, Replica will sync from it.${NC}"
+  echo -e "${TAB}Enter details for your AdGuard Home instances."
+  echo -e "${TAB}The Origin is your primary instance, Replica will sync from it."
   echo ""
 
   # Origin instance
-  echo -e "${YW}── Origin (Primary) Instance ──${NC}"
+  echo -e "${YW}── Origin (Primary) Instance ──${CL}"
   local origin_url origin_user origin_pass
   read -rp "  Origin URL (e.g., http://192.168.1.1): " origin_url
   origin_url="${origin_url:-http://192.168.1.1}"
@@ -150,7 +150,7 @@ function install() {
 
   # Replica instance
   echo ""
-  echo -e "${YW}── Replica Instance ──${NC}"
+  echo -e "${YW}── Replica Instance ──${CL}"
   local replica_url replica_user replica_pass
   read -rp "  Replica URL (e.g., http://192.168.1.2): " replica_url
   replica_url="${replica_url:-http://192.168.1.2}"
