@@ -58,7 +58,7 @@ if [[ -f "$INSTALL_PATH" ]]; then
       setup_go
       msg_info "Updating qbittorrent-exporter"
       cd /opt/qbittorrent-exporter/src
-      /usr/local/bin/go build -o ./qbittorrent-exporter
+      $STD /usr/local/bin/go build -o ./qbittorrent-exporter
       msg_ok "Updated Successfully!"
     fi
     exit 0
@@ -90,7 +90,7 @@ fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporte
 setup_go
 msg_info "Installing qbittorrent-exporter on ${OS}"
 cd /opt/qbittorrent-exporter/src
-/usr/local/bin/go build -o ./qbittorrent-exporter
+$STD /usr/local/bin/go build -o ./qbittorrent-exporter
 msg_ok "Installed qbittorrent-exporter"
 
 msg_info "Creating configuration"

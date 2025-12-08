@@ -58,7 +58,7 @@ if [[ -f "$INSTALL_PATH" ]]; then
       setup_go
       msg_info "Updating pihole-exporter"
       cd /opt/pihole-exporter/
-      /usr/local/bin/go build -o ./pihole-exporter
+      $STD /usr/local/bin/go build -o ./pihole-exporter
       msg_ok "Updated Successfully!"
     fi
     exit 0
@@ -93,7 +93,7 @@ fetch_and_deploy_gh_release "pihole-exporter" "eko/pihole-exporter" "tarball" "l
 setup_go
 msg_info "Installing pihole-exporter on ${OS}"
 cd /opt/pihole-exporter/
-/usr/local/bin/go build -o ./pihole-exporter
+$STD /usr/local/bin/go build -o ./pihole-exporter
 msg_ok "Installed pihole-exporter"
 
 msg_info "Creating configuration"
