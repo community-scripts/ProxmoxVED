@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-read -r -p "${TAB3]Enter the hostname of your OpenCloud server (eg cloud.domain.tld): " oc_host
+read -r -p "${TAB3}Enter the hostname of your OpenCloud server (eg cloud.domain.tld): " oc_host
 if [[ "$oc_host" ]]; then
   OC_HOST="$oc_host"
 fi
