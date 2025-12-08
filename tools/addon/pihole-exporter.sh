@@ -12,7 +12,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 VERBOSE=${var_verbose:-no}
 APP="pihole-exporter"
 APP_TYPE="tools"
-INSTALL_PATH="/opt/pihole-exporter/"
+INSTALL_PATH="/opt/pihole-exporter/pihole-exporter"
 CONFIG_PATH="/opt/pihole.env"
 header_info
 ensure_usr_local_bin_persist
