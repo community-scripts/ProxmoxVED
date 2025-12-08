@@ -70,6 +70,7 @@ if [[ -d "$INSTALL_PATH" ]]; then
 fi
 
 echo -e "${YW}⚠️ pihole-exporter is not installed.${CL}"
+read -erp "Enter the protocol to use (http/https), default https: " pihole_PROTOCOL
 read -erp "Enter the hostname of Pihole, example: (127.0.0.1): " pihole_HOSTNAME
 read -erp "Enter the port of Pihole, default 443: " pihole_PORT
 read -rsp "Enter Pihole password: " pihole_PASSWORD
@@ -98,7 +99,7 @@ PIHOLE_PASSWORD="${pihole_PASSWORD}"
 PIHOLE_HOSTNAME="${pihole_HOSTNAME}"
 PIHOLE_PORT="${pihole_PORT:-443}"
 SKIP_TLS_VERIFICATION="${pihole_SKIP_TLS:-false}"
-PIHOLE_PROTOCOL="${pihole_SKIP_TLS:-https}"
+PIHOLE_PROTOCOL="${pihole_PROTOCOL:-https}"
 EOF
 msg_ok "Created configuration"
 
