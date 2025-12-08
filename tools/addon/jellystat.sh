@@ -185,14 +185,46 @@ function install() {
     # Check if user exists, create if not
     if sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${DB_USER}'" 2>/dev/null | grep -q 1; then
       msg_info "User '${DB_USER}' exists, updating password"
-      sudo -u postgres psql -c "ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" &>/dev/null
+      sudo -u postgres psql -c "ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" || {
+        msg_error "Failed to update PostgreSQL user"
+        return 1
+      }
     else
-      sudo -u postgres psql -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" &>/dev/null
+      sudo -u postgres psql -c "CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';" || {
+        msg_error "Failed to create PostgreSQL user"
+        return 1
+      }
     fi
 
     # Create database
-    sudo -u postgres psql -c "CREATE DATABASE ${DB_NAME} WITH OWNER ${DB_USER} ENCODING 'UTF8';" &>/dev/null
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" &>/dev/null
+    sudo -u postgres psql -c "CREATE DATABASE ${DB_NAME} WITH OWNER ${DB_USER} ENCODING 'UTF8';" || {
+      msg_error "Failed to create PostgreSQL database"
+      return 1
+    }
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};" || {
+      msg_error "Failed to grant privileges"
+      return 1
+    }
+
+    # Grant schema permissions (required for PostgreSQL 15+)
+    sudo -u postgres psql -d "${DB_NAME}" -c "GRANT ALL ON SCHEMA public TO ${DB_USER};" || true
+
+    # Configure pg_hba.conf for password authentication on localhost
+    local PG_HBA
+    PG_HBA=$(sudo -u postgres psql -tAc "SHOW hba_file;" 2>/dev/null | tr -d ' ')
+    if [[ -n "$PG_HBA" && -f "$PG_HBA" ]]; then
+      # Check if md5/scram-sha-256 auth is already configured for local connections
+      if ! grep -qE "^host\s+${DB_NAME}\s+${DB_USER}\s+127.0.0.1" "$PG_HBA"; then
+        msg_info "Configuring PostgreSQL authentication"
+        # Add password auth for jellystat user on localhost (before the default rules)
+        sed -i "/^# IPv4 local connections:/a host    ${DB_NAME}    ${DB_USER}    127.0.0.1/32    scram-sha-256" "$PG_HBA"
+        sed -i "/^# IPv4 local connections:/a host    ${DB_NAME}    ${DB_USER}    ::1/128         scram-sha-256" "$PG_HBA"
+        # Reload PostgreSQL to apply changes
+        systemctl reload postgresql
+        msg_ok "Configured PostgreSQL authentication"
+      fi
+    fi
+
     msg_ok "Created PostgreSQL database '${DB_NAME}'"
   fi
 
@@ -200,13 +232,16 @@ function install() {
   local JWT_SECRET
   JWT_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c32)
 
-  # Force fresh download by removing version cache and setting CLEAN_INSTALL
+  # Force fresh download by removing version cache
   rm -f "$HOME/.jellystat"
   mkdir -p "$INSTALL_PATH"
   fetch_and_deploy_gh_release "jellystat" "CyferShepard/Jellystat" "tarball" "latest" "$INSTALL_PATH"
 
   msg_info "Installing dependencies"
-  cd "$INSTALL_PATH"
+  cd "$INSTALL_PATH" || {
+    msg_error "Failed to enter ${INSTALL_PATH}"
+    return 1
+  }
   $STD npm install
   msg_ok "Installed dependencies"
 
