@@ -3262,6 +3262,9 @@ EOF'
       exit $install_exit_code
     fi
 
+    # Report failure to API before container cleanup
+    post_update_to_api "failed" "$install_exit_code"
+
     # Prompt user for cleanup with 60s timeout (plain echo - no msg_info to avoid spinner)
     echo ""
     echo -en "${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"

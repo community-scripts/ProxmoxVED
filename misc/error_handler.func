@@ -213,6 +213,11 @@ error_handler() {
 
             # Offer to remove container if it exists (build errors after container creation)
             if [[ -n "${CTID:-}" ]] && command -v pct &>/dev/null && pct status "$CTID" &>/dev/null; then
+                # Report failure to API before container cleanup
+                if declare -f post_update_to_api &>/dev/null; then
+                    post_update_to_api "failed" "$exit_code"
+                fi
+
                 echo ""
                 echo -en "${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"
 
