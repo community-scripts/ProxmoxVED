@@ -136,6 +136,8 @@ function install() {
   local origin_url origin_user origin_pass
   read -rp "  Origin URL (e.g., http://192.168.1.1): " origin_url
   origin_url="${origin_url:-http://192.168.1.1}"
+  # Add http:// if no protocol specified
+  [[ ! "$origin_url" =~ ^https?:// ]] && origin_url="http://${origin_url}"
   read -rp "  Origin Username [admin]: " origin_user
   origin_user="${origin_user:-admin}"
   read -rsp "  Origin Password: " origin_pass
@@ -148,6 +150,8 @@ function install() {
   local replica_url replica_user replica_pass
   read -rp "  Replica URL (e.g., http://192.168.1.2): " replica_url
   replica_url="${replica_url:-http://192.168.1.2}"
+  # Add http:// if no protocol specified
+  [[ ! "$replica_url" =~ ^https?:// ]] && replica_url="http://${replica_url}"
   read -rp "  Replica Username [admin]: " replica_user
   replica_user="${replica_user:-admin}"
   read -rsp "  Replica Password: " replica_pass
