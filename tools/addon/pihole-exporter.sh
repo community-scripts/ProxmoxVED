@@ -12,7 +12,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 VERBOSE=${var_verbose:-no}
 APP="pihole-exporter"
 APP_TYPE="tools"
-INSTALL_PATH="/opt/pihole-exporter/"
+INSTALL_PATH="/opt/pihole-exporter/pihole-exporter"
 CONFIG_PATH="/opt/pihole.env"
 header_info
 ensure_usr_local_bin_persist
@@ -58,7 +58,7 @@ if [[ -f "$INSTALL_PATH" ]]; then
       setup_go
       msg_info "Updating pihole-exporter"
       cd /opt/pihole-exporter/
-      /usr/local/bin/go build -o ./pihole-exporter
+      $STD /usr/local/bin/go build -o ./pihole-exporter
       msg_ok "Updated Successfully!"
     fi
     exit 0
@@ -71,7 +71,6 @@ fi
 echo -e "${YW}⚠️ pihole-exporter is not installed.${CL}"
 echo -n "Enter the hostname of pihole, example: (127.0.0.1): "
 read -er pihole_HOSTNAME
-echo
 
 echo -n "Enter pihole password: "
 read -rs pihole_PASSWORD
@@ -79,14 +78,12 @@ echo
 
 echo -n "Do you want to skip TLS-Verification (if using a self-signed Certificate on Pi-Hole) [y/N]: "
 read -er pihole_SKIP_TLS
-echo
 if ! [[ "${pihole_SKIP_TLS,,}" =~ ^(y|yes)$ ]]; then
   pihole_SKIP_TLS="true"
 fi
 
 echo -n "Install qbittorrent-exporter? (y/n): "
 read -r install_prompt
-echo
 if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
   exit 0
@@ -96,7 +93,7 @@ fetch_and_deploy_gh_release "pihole-exporter" "eko/pihole-exporter" "tarball" "l
 setup_go
 msg_info "Installing pihole-exporter on ${OS}"
 cd /opt/pihole-exporter/
-/usr/local/bin/go build -o ./pihole-exporter
+$STD /usr/local/bin/go build -o ./pihole-exporter
 msg_ok "Installed pihole-exporter"
 
 msg_info "Creating configuration"

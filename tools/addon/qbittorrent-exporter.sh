@@ -58,7 +58,7 @@ if [[ -f "$INSTALL_PATH" ]]; then
       setup_go
       msg_info "Updating qbittorrent-exporter"
       cd /opt/qbittorrent-exporter/src
-      /usr/local/bin/go build -o ./qbittorrent-exporter
+      $STD /usr/local/bin/go build -o ./qbittorrent-exporter
       msg_ok "Updated Successfully!"
     fi
     exit 0
@@ -71,11 +71,9 @@ fi
 echo -e "${YW}⚠️ qbittorrent-exporter is not installed.${CL}"
 echo -n "Enter URL of qbittorrent, example: (http://127.0.0.1:8080): "
 read -er QBITTORRENT_BASE_URL
-echo
 
 echo -n "Enter qbittorrent username: "
 read -er QBITTORRENT_USERNAME
-echo
 
 echo -n "Enter qbittorrent password: "
 read -rs QBITTORRENT_PASSWORD
@@ -83,7 +81,6 @@ echo
 
 echo -n "Install qbittorrent-exporter? (y/n): "
 read -r install_prompt
-echo
 if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   echo -e "${YW}⚠️ Installation skipped. Exiting.${CL}"
   exit 0
@@ -93,7 +90,7 @@ fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporte
 setup_go
 msg_info "Installing qbittorrent-exporter on ${OS}"
 cd /opt/qbittorrent-exporter/src
-/usr/local/bin/go build -o ./qbittorrent-exporter
+$STD /usr/local/bin/go build -o ./qbittorrent-exporter
 msg_ok "Installed qbittorrent-exporter"
 
 msg_info "Creating configuration"
