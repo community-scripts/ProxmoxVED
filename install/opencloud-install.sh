@@ -13,15 +13,15 @@ setting_up_container
 network_check
 update_os
 
-read -r -p "Enter the hostname of your OpenCloud server (eg cloud.domain.tld): " oc_host
+read -r -p "${TAB3]Enter the hostname of your OpenCloud server (eg cloud.domain.tld): " oc_host
 if [[ "$oc_host" ]]; then
   OC_HOST="$oc_host"
 fi
-read -r -p "Enter the hostname of your Collabora server (eg collabora.domain.tld): " collabora_host
+read -r -p "${TAB3}Enter the hostname of your Collabora server (eg collabora.domain.tld): " collabora_host
 if [[ "$collabora_host" ]]; then
   COLLABORA_HOST="$collabora_host"
 fi
-read -r -p "Enter the hostname of your WOPI server (eg wopiserver.domain.tld): " wopi_host
+read -r -p "${TAB3}Enter the hostname of your WOPI server (eg wopiserver.domain.tld): " wopi_host
 if [[ "$wopi_host" ]]; then
   WOPI_HOST="$wopi_host"
 fi
