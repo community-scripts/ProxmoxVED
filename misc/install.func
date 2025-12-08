@@ -882,6 +882,11 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 $TERM
 EOF
       fi
+
+      # Reload systemd and restart getty services to apply auto-login
+      systemctl daemon-reload
+      systemctl restart console-getty.service &>/dev/null || true
+      systemctl restart container-getty@1.service &>/dev/null || true
       ;;
 
     openrc)
