@@ -1743,6 +1743,11 @@ Options:
   export UDHCPC_FIX
   export SSH_KEYS_FILE
 
+  # Exit alternate screen buffer BEFORE displaying summary
+  # so the summary is visible in the main terminal
+  tput rmcup 2>/dev/null || true
+  trap - RETURN # Remove the trap since we already called rmcup
+
   # Display final summary
   echo -e "\n${INFO}${BOLD}${DGN}PVE Version ${PVEVERSION} (Kernel: ${KERNEL_VERSION})${CL}"
   echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}$var_os${CL}"
@@ -1757,6 +1762,7 @@ Options:
   echo -e "${NETWORK}${BOLD}${DGN}IPv4: ${BGN}$NET${CL}"
   echo -e "${NETWORK}${BOLD}${DGN}IPv6: ${BGN}$IPV6_METHOD${CL}"
   echo -e "${FUSE}${BOLD}${DGN}FUSE Support: ${BGN}$ENABLE_FUSE${CL}"
+  echo -e "🎮${BOLD}${DGN} GPU Passthrough: ${BGN}$ENABLE_GPU${CL}"
   echo -e "${SEARCH}${BOLD}${DGN}Verbose Mode: ${BGN}$VERBOSE${CL}"
   echo -e "${CREATING}${BOLD}${RD}Creating a ${APP} LXC using the above advanced settings${CL}"
 }
