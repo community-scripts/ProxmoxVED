@@ -32,12 +32,22 @@ function update_script() {
   if check_for_gh_release "homarr" "homarr-labs/homarr"; then
     msg_info "Stopping Services (Patience)"
     systemctl stop homarr
+    systemctl stop redis-server
     msg_ok "Services Stopped"
 
-    msg_info "Backup Data"
-    mkdir -p /opt/homarr-data-backup
-    cp /opt/homarr/.env /opt/homarr-data-backup/.env
-    msg_ok "Backup Data"
+
+    if ! grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr/.env; then
+        msg_info "Fixing old structure"
+        $STD apt install -y musl-dev
+        ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
+        echo "REDIS_IS_EXTERNAL='true'" >> /opt/homarr/.env
+        sed -i 's|^ExecStart=.*|ExecStart=/opt/homarr/run.sh|' /etc/systemd/system/homarr.service
+        sed -i 's|^EnvironmentFile=.*|EnvironmentFile=-/opt/homarr.env|' /etc/systemd/system/homarr.service
+        # TODO: change in json
+        systemctl daemon-reload
+        cp /opt/homarr/.env /opt/homarr.env
+        msg_ok "Fixed old structure"
+    fi
 
     msg_info "Updating Nodejs"
     $STD apt update
@@ -45,44 +55,26 @@ function update_script() {
     msg_ok "Updated Nodejs"
 
     NODE_VERSION=$(curl -s https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
-    NODE_MODULE="pnpm@$(curl -s https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.packageManager | split("@")[1]')"
     setup_nodejs
 
     rm -rf /opt/homarr
     fetch_and_deploy_gh_release "homarr" "homarr-labs/homarr"
 
-    msg_info "Updating and rebuilding ${APP} (Patience)"
-    mv /opt/homarr-data-backup/.env /opt/homarr/.env
-    cd /opt/homarr
-    $STD pnpm install --recursive --frozen-lockfile --shamefully-hoist
-    $STD pnpm build
-    cp /opt/homarr/apps/nextjs/next.config.ts .
-    cp /opt/homarr/apps/nextjs/package.json .
-    cp -r /opt/homarr/packages/db/migrations /opt/homarr_db/migrations
-    cp -r /opt/homarr/apps/nextjs/.next/standalone/* /opt/homarr
-    mkdir -p /appdata/redis
-    cp /opt/homarr/packages/redis/redis.conf /opt/homarr/redis.conf
+    msg_info "Updating Homarr to v${RELEASE}"
+    cp /opt/homarr/redis.conf /etc/redis/redis.conf
     rm /etc/nginx/nginx.conf
     mkdir -p /etc/nginx/templates
     cp /opt/homarr/nginx.conf /etc/nginx/templates/nginx.conf
-
-    mkdir -p /opt/homarr/apps/cli
-    cp /opt/homarr/packages/cli/cli.cjs /opt/homarr/apps/cli/cli.cjs
     echo $'#!/bin/bash\ncd /opt/homarr/apps/cli && node ./cli.cjs "$@"' >/usr/bin/homarr
     chmod +x /usr/bin/homarr
-
-    mkdir /opt/homarr/build
-    cp ./node_modules/better-sqlite3/build/Release/better_sqlite3.node ./build/better_sqlite3.node
     msg_ok "Updated ${APP}"
 
     msg_info "Starting Services"
+    chmod +x /opt/homarr/run.sh
     systemctl start homarr
+    systemctl start redis-server
     msg_ok "Started Services"
     msg_ok "Updated successfully!"
-    read -p "${TAB3}It's recommended to reboot the LXC after an update, would you like to reboot the LXC now ? (y/n): " choice
-    if [[ "$choice" =~ ^[Yy]$ ]]; then
-      reboot
-    fi
   fi
   exit
 }
