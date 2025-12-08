@@ -3,6 +3,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: CrazyWolf13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Source: https://github.com/martabal/qbittorrent-exporter
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
@@ -53,7 +54,7 @@ if [[ -f "$INSTALL_PATH" ]]; then
   read -r update_prompt
   if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
     if check_for_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"; then
-      fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" 
+      fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter"
       setup_go
       msg_info "Updating qbittorrent-exporter"
       cd /opt/qbittorrent-exporter/src
@@ -66,9 +67,9 @@ if [[ -f "$INSTALL_PATH" ]]; then
     exit 0
   fi
 fi
- 
+
 echo -e "${YW}⚠️ qbittorrent-exporter is not installed.${CL}"
-echo -n "Enter URL of qbittorrent example: (http://192.168.1.10:8080): "
+echo -n "Enter URL of qbittorrent, example: (http://127.0.0.1:8080): "
 read -er QBITTORRENT_BASE_URL
 
 echo -n "Enter qbittorrent username: "
@@ -85,7 +86,7 @@ if ! [[ "${install_prompt,,}" =~ ^(y|yes)$ ]]; then
   exit 0
 fi
 
-fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "tarball" "v1.12.0"
+fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "tarball" "latest"
 setup_go
 msg_info "Installing qbittorrent-exporter on ${OS}"
 cd /opt/qbittorrent-exporter/src
@@ -94,9 +95,10 @@ msg_ok "Installed qbittorrent-exporter"
 
 msg_info "Creating configuration"
 cat <<EOF >"$CONFIG_PATH"
-QBITTORRENT_BASE_URL=${QBITTORRENT_BASE_URL}
-QBITTORRENT_USERNAME=${QBITTORRENT_USERNAME}
-QBITTORRENT_PASSWORD=${QBITTORRENT_PASSWORD}
+# https://github.com/martabal/qbittorrent-exporter?tab=readme-ov-file#parameters
+QBITTORRENT_BASE_URL="${QBITTORRENT_BASE_URL}"
+QBITTORRENT_USERNAME="${QBITTORRENT_USERNAME}"
+QBITTORRENT_PASSWORD="${QBITTORRENT_PASSWORD}"
 EOF
 msg_ok "Created configuration"
 
@@ -117,7 +119,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-  systemctl enable --now qbittorrent-exporter &>/dev/null
+  systemctl enable -q --now qbittorrent-exporter
 else
   cat <<EOF >"$SERVICE_PATH"
 #!/sbin/openrc-run
