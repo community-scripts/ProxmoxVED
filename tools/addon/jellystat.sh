@@ -188,11 +188,11 @@ function install() {
 
   msg_info "Installing dependencies"
   cd "$INSTALL_PATH"
-  npm install &>/dev/null
+  $STD npm install
   msg_ok "Installed dependencies"
 
   msg_info "Building ${APP}"
-  npm run build &>/dev/null
+  $STD npm run build
   msg_ok "Built ${APP}"
 
   msg_info "Creating configuration"
