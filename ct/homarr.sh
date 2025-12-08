@@ -45,6 +45,11 @@ function update_script() {
         sed -i 's|^EnvironmentFile=.*|EnvironmentFile=-/opt/homarr.env|' /etc/systemd/system/homarr.service
         chown -R redis:redis /appdata/redis
         chmod 755 /appdata/redis
+        mkdir -p /etc/systemd/system/redis-server.service.d/
+        cat > /etc/systemd/system/redis-server.service.d/override.conf << 'EOF'
+[Service]
+ReadWritePaths=-/appdata/redis -/var/lib/redis -/var/log/redis -/var/run/redis -/etc/redis
+EOF
         # TODO: change in json
         systemctl daemon-reload
         cp /opt/homarr/.env /opt/homarr.env

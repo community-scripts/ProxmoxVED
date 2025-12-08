@@ -59,6 +59,11 @@ chmod +x /usr/bin/homarr
 msg_ok "Copied config files"
 
 msg_info "Creating Services"
+mkdir -p /etc/systemd/system/redis-server.service.d/
+cat > /etc/systemd/system/redis-server.service.d/override.conf << 'EOF'
+[Service]
+ReadWritePaths=-/appdata/redis -/var/lib/redis -/var/log/redis -/var/run/redis -/etc/redis
+EOF
 cat <<EOF >/etc/systemd/system/homarr.service
 [Unit]
 Description=Homarr Service
@@ -74,6 +79,7 @@ ExecStart=/opt/homarr/run.sh
 WantedBy=multi-user.target
 EOF
 chmod +x /opt/homarr/run.sh
+systemctl daemon-reload
 systemctl enable -q --now redis-server && sleep 5
 systemctl enable -q --now homarr
 msg_ok "Created Services"
