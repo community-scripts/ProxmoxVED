@@ -130,6 +130,38 @@ function install() {
   chmod +x "$INSTALL_PATH/adguardhome-sync"
   msg_ok "Downloaded ${APP}"
 
+  # Gather configuration from user
+  echo ""
+  msg_info "Configuring AdGuard Home instances"
+  echo -e "${INFO}${TAB}Enter details for your AdGuard Home instances.${NC}"
+  echo -e "${INFO}${TAB}The Origin is your primary instance, Replica will sync from it.${NC}"
+  echo ""
+
+  # Origin instance
+  echo -e "${YW}── Origin (Primary) Instance ──${NC}"
+  local origin_url origin_user origin_pass
+  read -rp "  Origin URL (e.g., http://192.168.1.1): " origin_url
+  origin_url="${origin_url:-http://192.168.1.1}"
+  read -rp "  Origin Username [admin]: " origin_user
+  origin_user="${origin_user:-admin}"
+  read -rsp "  Origin Password: " origin_pass
+  echo ""
+  origin_pass="${origin_pass:-changeme}"
+
+  # Replica instance
+  echo ""
+  echo -e "${YW}── Replica Instance ──${NC}"
+  local replica_url replica_user replica_pass
+  read -rp "  Replica URL (e.g., http://192.168.1.2): " replica_url
+  replica_url="${replica_url:-http://192.168.1.2}"
+  read -rp "  Replica Username [admin]: " replica_user
+  replica_user="${replica_user:-admin}"
+  read -rsp "  Replica Password: " replica_pass
+  echo ""
+  replica_pass="${replica_pass:-changeme}"
+
+  msg_ok "Configuration gathered"
+
   msg_info "Creating configuration"
   cat <<EOF >"$CONFIG_PATH"
 # AdGuardHome-Sync Configuration
@@ -146,47 +178,28 @@ continueOnError: false
 
 # Origin AdGuardHome instance (primary)
 origin:
-  url: "http://192.168.1.1:3000"
-  # webURL: ""
-  # apiPath: ""
-  username: "admin"
-  password: "changeme"
-  # cookie: ""
+  url: "${origin_url}"
+  username: "${origin_user}"
+  password: "${origin_pass}"
   insecureSkipVerify: false
-  # autoSetup: false
-  # interfaceName: ""
-  # dhcpServerEnabled: false
 
 # Replica instances (one or more)
 replicas:
-  - url: "http://192.168.1.2:3000"
-    # webURL: ""
-    # apiPath: ""
-    username: "admin"
-    password: "changeme"
-    # cookie: ""
+  - url: "${replica_url}"
+    username: "${replica_user}"
+    password: "${replica_pass}"
     insecureSkipVerify: false
-    # autoSetup: false
-    # interfaceName: ""
-    # dhcpServerEnabled: false
-  # - url: "http://192.168.1.3:3000"
+  # Add more replicas as needed:
+  # - url: "http://192.168.1.3"
   #   username: "admin"
   #   password: "changeme"
 
 # API settings (web UI)
 api:
   port: ${DEFAULT_PORT}
-  # username: ""
-  # password: ""
   darkMode: true
   metrics:
     enabled: false
-    # scrapeInterval: 30
-    # queryLogLimit: 10000
-  # tls:
-  #   certDir: ""
-  #   certName: ""
-  #   keyName: ""
 
 # Sync features (all enabled by default)
 features:
@@ -204,7 +217,6 @@ features:
   services: true
   filters: true
   theme: true
-  # tlsConfig: false
 EOF
   chmod 600 "$CONFIG_PATH"
   msg_ok "Created configuration"
