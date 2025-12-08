@@ -194,8 +194,8 @@ function install() {
       }
     fi
 
-    # Create database
-    sudo -u postgres psql -c "CREATE DATABASE ${DB_NAME} WITH OWNER ${DB_USER} ENCODING 'UTF8';" || {
+    # Create database (use template0 for UTF8 encoding compatibility)
+    sudo -u postgres psql -c "CREATE DATABASE ${DB_NAME} WITH OWNER ${DB_USER} ENCODING 'UTF8' LC_COLLATE='C' LC_CTYPE='C' TEMPLATE template0;" || {
       msg_error "Failed to create PostgreSQL database"
       return 1
     }
