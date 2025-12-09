@@ -15,7 +15,7 @@ setting_up_container
 network_check
 update_os
 
-cat <<'EOF' > /etc/apt/sources.list.d/debian.sources
+cat <<'EOF' >/etc/apt/sources.list.d/debian.sources
 Types: deb deb-src
 URIs: http://deb.debian.org/debian
 Suites: bookworm
@@ -40,16 +40,7 @@ msg_info "Installing system dependencies"
 $STD apt-get install -y jq wget xz-utils python3 python3-dev python3-pip gcc pkg-config libhdf5-dev unzip build-essential automake libtool ccache libusb-1.0-0-dev apt-transport-https cmake git libgtk-3-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libjpeg-dev libpng-dev libtiff-dev gfortran openexr libssl-dev libtbbmalloc2 libtbb-dev libdc1394-dev libopenexr-dev libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev tclsh libopenblas-dev liblapack-dev make moreutils
 msg_ok "System dependencies installed"
 
-msg_info "Installing hardware acceleration drivers"
-$STD apt-get install -y va-driver-all ocl-icd-libopencl1 vainfo intel-gpu-tools
-msg_ok "Hardware acceleration drivers installed"
-
-if [[ -d /dev/dri ]]; then
-  msg_info "Configuring GPU access"
-  chgrp video /dev/dri 2>/dev/null || true
-  chmod 755 /dev/dri 2>/dev/null || true
-  chmod 660 /dev/dri/* 2>/dev/null || true
-fi
+setup_hwaccel
 
 if [[ "$CTTYPE" == "0" ]]; then
   msg_info "Configuring render group for privileged container"
