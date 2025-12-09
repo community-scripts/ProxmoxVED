@@ -38,6 +38,7 @@ function update_script() {
     mkdir -p /tmp/koel_backup
     cp /opt/koel/.env /tmp/koel_backup/
     cp -r /opt/koel/storage /tmp/koel_backup/ 2>/dev/null || true
+    cp -r /opt/koel/public/img /tmp/koel_backup/ 2>/dev/null || true
     msg_ok "Created Backup"
 
     msg_info "Updating ${APP}"
@@ -48,6 +49,7 @@ function update_script() {
     msg_info "Restoring Data"
     cp /tmp/koel_backup/.env /opt/koel/
     cp -r /tmp/koel_backup/storage/* /opt/koel/storage/ 2>/dev/null || true
+    cp -r /tmp/koel_backup/img/* /opt/koel/public/img/ 2>/dev/null || true
     rm -rf /tmp/koel_backup
     msg_ok "Restored Data"
 
