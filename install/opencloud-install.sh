@@ -47,6 +47,7 @@ $STD apt-get install -y coolwsd code-brand
 systemctl stop coolwsd
 COOLPASS="$(openssl rand -base64 36)"
 $STD sudo -u cool coolconfig set-admin-password --user=admin --password="$COOLPASS"
+echo "$COOLPASS" >~/.coolpass
 msg_ok "Installed Collabora Online"
 
 # OpenCloud
@@ -164,7 +165,7 @@ ExecStart=/usr/bin/opencloud collaboration server
 Restart=always
 KillSignal=SIGKILL
 KillMode=mixed
-TimeoutStopSec=120
+TimeoutStopSec=10
 
 [Install]
 WantedBy=multi-user.target
