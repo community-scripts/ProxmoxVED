@@ -41,10 +41,7 @@ function update_script() {
     cp -r /opt/koel/public/img /tmp/koel_backup/ 2>/dev/null || true
     msg_ok "Created Backup"
 
-    msg_info "Updating ${APP}"
-    rm -rf /opt/koel/app /opt/koel/config /opt/koel/resources /opt/koel/routes
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "koel" "koel/koel" "prebuild" "latest" "/opt/koel" "koel-*.tar.gz"
-    msg_ok "Updated ${APP}"
 
     msg_info "Restoring Data"
     cp /tmp/koel_backup/.env /opt/koel/
