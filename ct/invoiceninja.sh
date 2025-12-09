@@ -35,23 +35,29 @@ function update_script() {
     msg_ok "Stopped Services"
 
     msg_info "Creating Backup"
-    cp /opt/invoiceninja/.env /tmp/invoiceninja_env.bak
-    cp -r /opt/invoiceninja/public/storage /tmp/invoiceninja_storage.bak 2>/dev/null || true
+    mkdir -p /tmp/invoiceninja_backup
+    cp /opt/invoiceninja/.env /tmp/invoiceninja_backup/
+    cp -r /opt/invoiceninja/storage /tmp/invoiceninja_backup/ 2>/dev/null || true
+    cp -r /opt/invoiceninja/public/storage /tmp/invoiceninja_backup/public_storage 2>/dev/null || true
     msg_ok "Created Backup"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "invoiceninja" "invoiceninja/invoiceninja" "prebuild" "latest" "/opt/invoiceninja" "invoiceninja.tar.gz"
 
-    msg_info "Restoring Configuration"
-    cp /tmp/invoiceninja_env.bak /opt/invoiceninja/.env
-    cp -r /tmp/invoiceninja_storage.bak/* /opt/invoiceninja/public/storage/ 2>/dev/null || true
-    rm -rf /tmp/invoiceninja_env.bak /tmp/invoiceninja_storage.bak
-    msg_ok "Restored Configuration"
+    msg_info "Restoring Data"
+    cp /tmp/invoiceninja_backup/.env /opt/invoiceninja/
+    cp -r /tmp/invoiceninja_backup/storage/* /opt/invoiceninja/storage/ 2>/dev/null || true
+    cp -r /tmp/invoiceninja_backup/public_storage/* /opt/invoiceninja/public/storage/ 2>/dev/null || true
+    rm -rf /tmp/invoiceninja_backup
+    msg_ok "Restored Data"
 
     msg_info "Running Migrations"
     cd /opt/invoiceninja
     $STD php artisan migrate --force
+    $STD php artisan config:clear
+    $STD php artisan cache:clear
     $STD php artisan optimize
     chown -R www-data:www-data /opt/invoiceninja
+    chmod -R 755 /opt/invoiceninja/storage
     msg_ok "Ran Migrations"
 
     msg_info "Starting Services"
