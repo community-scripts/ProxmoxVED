@@ -28,14 +28,10 @@
         }
     ],
     "default_credentials": {
-        "username": "wallabag",
-        "password": "wallabag"
+        "username": null,
+        "password": null
     },
     "notes": [
-        {
-            "text": "Default login: wallabag / wallabag - change immediately after first login!",
-            "type": "warning"
-        },
         {
             "text": "Database credentials are stored in ~/wallabag.creds",
             "type": "info"
