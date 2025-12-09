@@ -1,35 +1,44 @@
 {
-  "name": "Wallabag",
-  "slug": "wallabag",
-  "categories": [
-    12
-  ],
-  "date_created": "2025-07-02",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "config_path": "/opt/wallabag/.env",
-  "interface_port": 3000,
-  "documentation": "https://wallabag.io/",
-  "website": "https://wallabag.io/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/wallabag.svg",
-  "description": "Wallabag is an open-source self-hosted application.",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/wallabag.sh",
-      "resources": {
-        "cpu": 1,
-        "ram": 1024,
-        "hdd": 2,
-        "os": "Debian",
-        "version": "12"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": null,
-    "password": null
-  },
-  "notes": []
+    "name": "Wallabag",
+    "slug": "wallabag",
+    "categories": [
+        12
+    ],
+    "date_created": "2025-07-02",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "config_path": "/opt/wallabag/app/config/parameters.yml",
+    "interface_port": 8000,
+    "documentation": "https://doc.wallabag.org/",
+    "website": "https://wallabag.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/wallabag.svg",
+    "description": "Wallabag is a self-hosted read-it-later application. Save web articles to read them later, offline, in a clean and distraction-free interface. Features tagging, full-text search, and browser/mobile app integrations.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/wallabag.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 6,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "wallabag",
+        "password": "wallabag"
+    },
+    "notes": [
+        {
+            "text": "Default login: wallabag / wallabag - change immediately after first login!",
+            "type": "warning"
+        },
+        {
+            "text": "Database credentials are stored in ~/wallabag.creds",
+            "type": "info"
+        }
+    ]
 }
