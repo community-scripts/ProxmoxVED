@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2024 communtiy-scripts ORG
-# Author: MickLesk (Canbiz)
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://koel.dev/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -13,135 +13,172 @@ setting_up_container
 network_check
 update_os
 
-PG_VERSION="16" setup_postgresql
-PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" setup_php
-NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" setup_nodejs
-setup_composer
-
-msg_info "Installing Dependencies (Patience)"
+msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    nginx \
-    apt-transport-https \
-    lsb-release \
-    ffmpeg \
-    cron \
-    libapache2-mod-xsendfile \
-    libzip-dev \
-    locales \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libpq-dev \
-    libwebp-dev
+  nginx \
+  ffmpeg \
+  cron \
+  locales
+$STD sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
+$STD locale-gen en_US.UTF-8
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 msg_ok "Installed Dependencies"
 
-# PG_VERSION="16" setup_postgresql
-# PHP_VERSION=8.3 PHP_MODULE="bcmath,bz2,cli,exif,common,curl,fpm,gd,imagick,intl,mbstring,pgsql,sqlite3,xml,xmlrpc,zip" setup_php
-# NODE_VERSION=22 NODE_MODULE="yarn,npm@latest" setup_nodejs
-# setup_composer
+import_local_ip
+PG_VERSION="16" setup_postgresql
+PG_DB_NAME="koel" PG_DB_USER="koel" setup_postgresql_db
+PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="bz2,exif,imagick,pgsql,sqlite3" setup_php
+NODE_VERSION="22" NODE_MODULE="pnpm" setup_nodejs
+setup_composer
 
-msg_info "Setting up PostgreSQL Database"
-DB_NAME=koel_db
-DB_USER=koel
-DB_PASS="$(openssl rand -base64 18 | cut -c1-13)"
-APP_SECRET=$(openssl rand -base64 32)
-$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
-$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
-{
-    echo "Koel-Credentials"
-    echo "Koel Database User: $DB_USER"
-    echo "Koel Database Password: $DB_PASS"
-    echo "Koel Database Name: $DB_NAME"
-} >>~/koel.creds
-msg_ok "Set up PostgreSQL Database"
+fetch_and_deploy_gh_release "koel" "koel/koel" "prebuild" "latest" "/opt/koel" "koel-*.tar.gz"
 
-msg_info "Installing Koel(Patience)"
-RELEASE=$(curl -fsSL https://github.com/koel/koel/releases/latest | grep "title>Release" | cut -d " " -f 4)
-mkdir -p /opt/koel_{media,sync}
-curl -fsSL https://github.com/koel/koel/releases/download/${RELEASE}/koel-${RELEASE}.zip -o /opt/koel.zip
-cd /opt
-unzip koel.zip
+msg_info "Configuring Koel"
+mkdir -p /opt/koel_media /opt/koel_sync
 cd /opt/koel
-mv .env.example .env
-$STD composer install --no-interaction
-sed -i -e "s/DB_CONNECTION=.*/DB_CONNECTION=pgsql/" \
-    -e "s/DB_HOST=.*/DB_HOST=localhost/" \
-    -e "s/DB_DATABASE=.*/DB_DATABASE=$DB_NAME/" \
-    -e "s/DB_PORT=.*/DB_PORT=5432/" \
-    -e "s|APP_KEY=.*|APP_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)|" \
-    -e "s/DB_USERNAME=.*/DB_USERNAME=$DB_USER/" \
-    -e "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" \
-    -e "s|MEDIA_PATH=.*|MEDIA_PATH=/opt/koel_media|" \
-    -e "s|FFMPEG_PATH=/usr/local/bin/ffmpeg|FFMPEG_PATH=/usr/bin/ffmpeg|" /opt/koel/.env
-php artisan koel:init --no-assets
-chown -R :www-data /opt/*
-chmod -R g+r /opt/*
-chmod -R g+rw /opt/*
-chown -R www-data:www-data /opt/*
-chmod -R 755 /opt/*
+APP_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
+cat <<EOF >/opt/koel/.env
+APP_NAME=Koel
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=http://${LOCAL_IP}
+APP_KEY=base64:${APP_KEY}
+
+TRUSTED_HOSTS=
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=${PG_DB_NAME}
+DB_USERNAME=${PG_DB_USER}
+DB_PASSWORD=${PG_DB_PASS}
+
+STORAGE_DRIVER=local
+MEDIA_PATH=/opt/koel_media
+ARTIFACTS_PATH=
+
+IGNORE_DOT_FILES=true
+APP_MAX_SCAN_TIME=600
+MEMORY_LIMIT=
+
+STREAMING_METHOD=php
+SCOUT_DRIVER=tntsearch
+
+USE_MUSICBRAINZ=true
+MUSICBRAINZ_USER_AGENT=
+
+LASTFM_API_KEY=
+LASTFM_API_SECRET=
+
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
+
+YOUTUBE_API_KEY=
+
+CDN_URL=
+
+TRANSCODE_FLAC=false
+FFMPEG_PATH=/usr/bin/ffmpeg
+TRANSCODE_BIT_RATE=128
+
+ALLOW_DOWNLOAD=true
+BACKUP_ON_DELETE=true
+
+MEDIA_BROWSER_ENABLED=false
+
+PROXY_AUTH_ENABLED=false
+
+SYNC_LOG_LEVEL=error
+FORCE_HTTPS=
+
+MAIL_FROM_ADDRESS="noreply@localhost"
+MAIL_FROM_NAME="Koel"
+MAIL_MAILER=log
+MAIL_HOST=null
+MAIL_PORT=null
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+
+BROADCAST_CONNECTION=log
+CACHE_DRIVER=file
+FILESYSTEM_DISK=local
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+EOF
+
+mkdir -p /opt/koel/storage/{app/public,framework/{cache/data,sessions,views},logs}
+chown -R www-data:www-data /opt/koel /opt/koel_media /opt/koel_sync
+chmod -R 775 /opt/koel/storage /opt/koel/bootstrap/cache
+msg_ok "Configured Koel"
+
+msg_info "Installing Koel (Patience)"
+export COMPOSER_ALLOW_SUPERUSER=1
+cd /opt/koel
+$STD composer install --no-interaction --no-dev --optimize-autoloader
+$STD php artisan config:clear
+$STD php artisan cache:clear
+$STD php artisan koel:init --no-assets --no-interaction
+chown -R www-data:www-data /opt/koel
 msg_ok "Installed Koel"
 
-msg_info "Set up web services"
-cat <<EOF >/etc/nginx/sites-available/koel
+msg_info "Configuring Nginx"
+cat <<'EOF' >/etc/nginx/sites-available/koel
 server {
-    listen          *:80;
-    server_name     koel.local;
-    root            /opt/koel/public;
-    index           index.php;
+    listen 80;
+    server_name _;
+    root /opt/koel/public;
+    index index.php;
 
-    gzip            on;
-    gzip_types      text/plain text/css application/x-javascript text/xml application/xml application/xml+rss text/javascript application/json;
+    client_max_body_size 50M;
+    charset utf-8;
+
+    gzip on;
+    gzip_types text/plain text/css application/x-javascript text/xml application/xml application/xml+rss text/javascript application/json;
     gzip_comp_level 9;
 
-    send_timeout    3600;
-    client_max_body_size 200M;
+    send_timeout 3600;
 
     location / {
-        try_files \$uri \$uri/ /index.php?\$args;
+        try_files $uri $uri/ /index.php?$args;
     }
 
     location /media/ {
-        alias /opt/koel_media;
-        autoindex on;
-        access_log /var/log/nginx/koel.access.log;
-        error_log  /var/log/nginx/koel.error.log;
+        internal;
+        alias $upstream_http_x_media_root;
     }
 
     location ~ \.php$ {
-        try_files \$uri \$uri/ /index.php?\$args;
-
-        fastcgi_param PATH_INFO \$fastcgi_path_info;
-        fastcgi_param PATH_TRANSLATED \$document_root\$fastcgi_path_info;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        try_files $uri $uri/ /index.php?$args;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
         fastcgi_index index.php;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_intercept_errors on;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_param PATH_TRANSLATED $document_root$fastcgi_path_info;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
+    }
 
+    location ~ /\.(?!well-known).* {
+        deny all;
     }
 }
 EOF
-ln -s /etc/nginx/sites-available/koel /etc/nginx/sites-enabled/koel
-systemctl restart php8.3-fpm
-systemctl reload nginx
-msg_ok "Created Services"
+rm -f /etc/nginx/sites-enabled/default
+ln -sf /etc/nginx/sites-available/koel /etc/nginx/sites-enabled/koel
+$STD systemctl reload nginx
+msg_ok "Configured Nginx"
 
-msg_info "Adding Cronjob (Daily Midnight)"
-cat <<EOF >/opt/koel_sync/koel_sync.cron
-0 0 * * * cd /opt/koel/ && /usr/bin/php artisan koel:sync >/opt/koel_sync/koel_sync.log 2>&1
+msg_info "Setting up Cron Job"
+cat <<'EOF' >/etc/cron.d/koel
+0 * * * * www-data cd /opt/koel && /usr/bin/php artisan koel:scan >/dev/null 2>&1
 EOF
-crontab /opt/koel_sync/koel_sync.cron
-
-msg_ok "Cronjob successfully added"
+chmod 644 /etc/cron.d/koel
+msg_ok "Set up Cron Job"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-rm -rf /opt/koel.zip
-$STD apt-get autoremove
-$STD apt-get autoclean
-msg_ok "Cleaned"
+cleanup_lxc
