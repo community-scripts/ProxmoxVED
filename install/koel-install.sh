@@ -37,13 +37,13 @@ fetch_and_deploy_gh_release "koel" "koel/koel" "prebuild" "latest" "/opt/koel" "
 msg_info "Configuring Koel"
 mkdir -p /opt/koel_media /opt/koel_sync
 cd /opt/koel
-APP_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
+
 cat <<EOF >/opt/koel/.env
 APP_NAME=Koel
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=http://${LOCAL_IP}
-APP_KEY=base64:${APP_KEY}
+APP_KEY=
 
 TRUSTED_HOSTS=
 
@@ -118,6 +118,7 @@ msg_info "Installing Koel (Patience)"
 export COMPOSER_ALLOW_SUPERUSER=1
 cd /opt/koel
 $STD composer install --no-interaction --no-dev --optimize-autoloader
+$STD php artisan key:generate --force
 $STD php artisan config:clear
 $STD php artisan cache:clear
 $STD php artisan koel:init --no-assets --no-interaction

@@ -28,14 +28,10 @@
         }
     ],
     "default_credentials": {
-        "username": null,
-        "password": null
+        "username": "admin@koel.dev",
+        "password": "KoelIsCool"
     },
     "notes": [
-        {
-            "text": "First visit will prompt you to create an admin account",
-            "type": "info"
-        },
         {
             "text": "Media files should be placed in /opt/koel_media",
             "type": "info"
