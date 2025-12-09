@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   nginx \
   redis-server \
   imagemagick
@@ -22,7 +22,6 @@ msg_ok "Installed Dependencies"
 
 setup_mariadb
 MARIADB_DB_NAME="wallabag" MARIADB_DB_USER="wallabag" setup_mariadb_db
-
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="bcmath,bz2,curl,gd,imagick,intl,mbstring,mysql,redis,tidy,xml,zip" setup_php
 setup_composer
 NODE_VERSION="22" setup_nodejs
@@ -31,12 +30,8 @@ fetch_and_deploy_gh_release "wallabag" "wallabag/wallabag" "prebuild" "latest" "
 
 msg_info "Configuring Wallabag"
 cd /opt/wallabag
-
-useradd -d /opt/wallabag -s /usr/sbin/nologin -M wallabag 2>/dev/null || true
-
 SECRET_KEY="$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)"
 CONTAINER_IP=$(hostname -I | awk '{print $1}')
-
 cat <<EOF >/opt/wallabag/app/config/parameters.yml
 parameters:
     database_driver: pdo_mysql
@@ -59,11 +54,11 @@ parameters:
 
     secret: ${SECRET_KEY}
 
-    twofactor_auth: true
+    twofactor_auth: false
     twofactor_sender: no-reply@wallabag.org
 
     fosuser_registration: true
-    fosuser_confirmation: true
+    fosuser_confirmation: false
 
     fos_oauth_server_access_token_lifetime: 3600
     fos_oauth_server_refresh_token_lifetime: 1209600
@@ -86,8 +81,7 @@ parameters:
 
     sentry_dsn: null
 EOF
-
-chown -R wallabag:wallabag /opt/wallabag
+chown -R www-data:www-data /opt/wallabag
 msg_ok "Configured Wallabag"
 
 msg_info "Installing Wallabag (Patience)"
@@ -96,7 +90,7 @@ export SYMFONY_ENV=prod
 cd /opt/wallabag
 $STD php bin/console wallabag:install --env=prod --no-interaction
 $STD php bin/console cache:clear --env=prod
-chown -R wallabag:wallabag /opt/wallabag
+chown -R www-data:www-data /opt/wallabag
 chmod -R 755 /opt/wallabag/var
 chmod -R 755 /opt/wallabag/web/assets
 msg_ok "Installed Wallabag"
