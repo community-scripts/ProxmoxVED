@@ -115,7 +115,7 @@ icons() {
   BRIDGE="${TAB}🌉${TAB}${CL}"
   NETWORK="${TAB}📡${TAB}${CL}"
   GATEWAY="${TAB}🌐${TAB}${CL}"
-  DISABLEIPV6="${TAB}🚫${TAB}${CL}"
+  ICON_DISABLEIPV6="${TAB}🚫${TAB}${CL}"
   DEFAULT="${TAB}⚙️${TAB}${CL}"
   MACADDRESS="${TAB}🔗${TAB}${CL}"
   VLANTAG="${TAB}🏷️${TAB}${CL}"
