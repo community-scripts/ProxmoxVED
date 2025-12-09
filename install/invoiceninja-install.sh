@@ -68,18 +68,21 @@ PDF_GENERATOR=snappdf
 TRUSTED_PROXIES=*
 INTERNAL_QUEUE_ENABLED=false
 EOF
+
+mkdir -p /opt/invoiceninja/bootstrap/cache
+mkdir -p /opt/invoiceninja/storage/{app/public,framework/{cache/data,sessions,views},logs}
 chown -R www-data:www-data /opt/invoiceninja
-chmod -R 755 /opt/invoiceninja/storage
+chmod -R 775 /opt/invoiceninja/storage /opt/invoiceninja/bootstrap/cache
 msg_ok "Configured InvoiceNinja"
 
 msg_info "Setting up Database"
 cd /opt/invoiceninja
-$STD php artisan migrate --force
-$STD php artisan db:seed --force
 $STD php artisan config:clear
 $STD php artisan cache:clear
 $STD php artisan route:clear
 $STD php artisan view:clear
+$STD php artisan migrate --force
+$STD php artisan db:seed --force
 $STD php artisan optimize
 msg_ok "Set up Database"
 
