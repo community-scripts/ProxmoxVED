@@ -8,8 +8,15 @@
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+load_functions
 
+# Enable error handling
+set -Eeuo pipefail
+trap 'error_handler' ERR
 
+# ==============================================================================
+# CONFIGURATION
+# ==============================================================================
 VERBOSE=${var_verbose:-no}
 APP="pihole-exporter"
 APP_TYPE="tools"
@@ -19,7 +26,9 @@ header_info
 ensure_usr_local_bin_persist
 get_current_ip &>/dev/null
 
-# OS Detection
+# ==============================================================================
+# OS DETECTION
+# ==============================================================================
 if [[ -f "/etc/alpine-release" ]]; then
   OS="Alpine"
   SERVICE_PATH="/etc/init.d/pihole-exporter"
@@ -31,7 +40,9 @@ else
   exit 1
 fi
 
-# Existing installation
+# ==============================================================================
+# UNINSTALL
+# ==============================================================================
 if [[ -d "$INSTALL_PATH" ]]; then
   echo -e "${YW}⚠️ pihole-exporter is already installed.${CL}"
   echo -n "Uninstall ${APP}? (y/N): "
@@ -51,6 +62,10 @@ if [[ -d "$INSTALL_PATH" ]]; then
     exit 0
   fi
 
+# ==============================================================================
+# UPDATE
+# ==============================================================================
+
   echo -n "Update pihole-exporter? (y/N): "
   read -r update_prompt
   if [[ "${update_prompt,,}" =~ ^(y|yes)$ ]]; then
@@ -69,6 +84,9 @@ if [[ -d "$INSTALL_PATH" ]]; then
   fi
 fi
 
+# ==============================================================================
+# INSTALL
+# ==============================================================================
 echo -e "${YW}⚠️ pihole-exporter is not installed.${CL}"
 read -erp "Enter the protocol to use (http/https), default https: " pihole_PROTOCOL
 read -erp "Enter the hostname of Pihole, example: (127.0.0.1): " pihole_HOSTNAME
