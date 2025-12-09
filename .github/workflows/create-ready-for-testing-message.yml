@@ -15,21 +15,21 @@ jobs:
     steps:
       - name: Extract Issue Title and Script Type
         id: extract_info
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
           # Extract title (lowercase, spaces to dashes)
           TITLE=$(echo '${{ github.event.issue.title }}' | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g')
           echo "TITLE=$TITLE" >> $GITHUB_ENV
 
-          # Extract script type from issue body
-          BODY='${{ github.event.issue.body }}'
-
-          if echo "$BODY" | grep -qi "CT (LXC Container)"; then
+          # Extract script type from issue body (using env var to handle special chars)
+          if echo "$ISSUE_BODY" | grep -qi "CT (LXC Container)"; then
             SCRIPT_TYPE="ct"
-          elif echo "$BODY" | grep -qi "VM (Virtual Machine)"; then
+          elif echo "$ISSUE_BODY" | grep -qi "VM (Virtual Machine)"; then
             SCRIPT_TYPE="vm"
-          elif echo "$BODY" | grep -qi "Addon (tools/addon)"; then
+          elif echo "$ISSUE_BODY" | grep -qi "Addon (tools/addon)"; then
             SCRIPT_TYPE="addon"
-          elif echo "$BODY" | grep -qi "PVE Tool (tools/pve)"; then
+          elif echo "$ISSUE_BODY" | grep -qi "PVE Tool (tools/pve)"; then
             SCRIPT_TYPE="pve"
           else
             # Fallback: detect by filename pattern or default to ct
@@ -41,7 +41,7 @@ jobs:
           fi
 
           echo "SCRIPT_TYPE=$SCRIPT_TYPE" >> $GITHUB_ENV
-          echo "Detected script type: $SCRIPT_TYPE"
+          echo "Detected script type: $SCRIPT_TYPE for title: $TITLE"
 
       - name: Check if Files Exist in community-scripts/ProxmoxVED
         id: check_files
