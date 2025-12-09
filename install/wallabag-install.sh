@@ -92,11 +92,10 @@ msg_ok "Configured Wallabag"
 
 msg_info "Installing Wallabag (Patience)"
 export COMPOSER_ALLOW_SUPERUSER=1
-
-$STD sudo -u wallabag composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
-
-$STD sudo -u wallabag php bin/console wallabag:install --env=prod --no-interaction
-
+export SYMFONY_ENV=prod
+cd /opt/wallabag
+$STD php bin/console wallabag:install --env=prod --no-interaction
+$STD php bin/console cache:clear --env=prod
 chown -R wallabag:wallabag /opt/wallabag
 chmod -R 755 /opt/wallabag/var
 chmod -R 755 /opt/wallabag/web/assets
