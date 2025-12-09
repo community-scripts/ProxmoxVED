@@ -76,6 +76,10 @@ msg_info "Setting up Database"
 cd /opt/invoiceninja
 $STD php artisan migrate --force
 $STD php artisan db:seed --force
+$STD php artisan config:clear
+$STD php artisan cache:clear
+$STD php artisan route:clear
+$STD php artisan view:clear
 $STD php artisan optimize
 msg_ok "Set up Database"
 
