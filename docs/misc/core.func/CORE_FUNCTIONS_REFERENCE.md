@@ -111,7 +111,7 @@ echo -e "${RD}Error message${CL}"
 - `BRIDGE`: Bridge icon
 - `NETWORK`: Network icon
 - `GATEWAY`: Gateway icon
-- `DISABLEIPV6`: IPv6 disable icon
+- `ICON_DISABLEIPV6`: IPv6 disable icon
 - `DEFAULT`: Default settings icon
 - `MACADDRESS`: MAC address icon
 - `VLANTAG`: VLAN tag icon
