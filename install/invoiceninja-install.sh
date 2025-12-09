@@ -152,27 +152,8 @@ cat <<'EOF' >/etc/cron.d/invoiceninja
 EOF
 msg_ok "Set up Cron"
 
-msg_info "Creating Service"
-cat <<'EOF' >/etc/systemd/system/invoiceninja-worker.service
-[Unit]
-Description=InvoiceNinja Queue Worker (via Supervisor)
-After=network.target
-
-[Service]
-Type=forking
-ExecStart=/usr/bin/supervisord -c /etc/supervisor/supervisord.conf
-ExecReload=/usr/bin/supervisorctl reload
-ExecStop=/usr/bin/supervisorctl stop all
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl daemon-reload
-msg_ok "Created Service"
-
 msg_info "Enabling Services"
-systemctl enable -q --now php8.4-fpm nginx supervisor invoiceninja-worker
+systemctl enable -q --now php8.4-fpm nginx supervisor
 msg_ok "Enabled Services"
 
 motd_ssh

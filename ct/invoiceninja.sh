@@ -31,7 +31,7 @@ function update_script() {
 
   if check_for_gh_release "invoiceninja" "invoiceninja/invoiceninja"; then
     msg_info "Stopping Services"
-    systemctl stop invoiceninja-worker nginx php8.4-fpm
+    systemctl stop supervisor nginx php8.4-fpm
     msg_ok "Stopped Services"
 
     msg_info "Creating Backup"
@@ -39,7 +39,7 @@ function update_script() {
     cp -r /opt/invoiceninja/public/storage /tmp/invoiceninja_storage.bak 2>/dev/null || true
     msg_ok "Created Backup"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "invoiceninja" "invoiceninja/invoiceninja" "prebuild" "latest" "/opt/invoiceninja" "invoiceninja.tar"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "invoiceninja" "invoiceninja/invoiceninja" "prebuild" "latest" "/opt/invoiceninja" "invoiceninja.tar.gz"
 
     msg_info "Restoring Configuration"
     cp /tmp/invoiceninja_env.bak /opt/invoiceninja/.env
@@ -55,7 +55,7 @@ function update_script() {
     msg_ok "Ran Migrations"
 
     msg_info "Starting Services"
-    systemctl start php8.4-fpm nginx invoiceninja-worker
+    systemctl start php8.4-fpm nginx supervisor
     msg_ok "Started Services"
 
     msg_ok "Updated Successfully"
