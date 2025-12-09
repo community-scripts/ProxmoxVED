@@ -1,0 +1,52 @@
+{
+    "name": "Hoodik",
+    "slug": "hoodik",
+    "categories": [
+        4
+    ],
+    "date_created": "2024-06-15",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 5443,
+    "documentation": "https://github.com/hudikhq/hoodik#readme",
+    "config_path": "/opt/hoodik/.env",
+    "website": "https://github.com/hudikhq/hoodik",
+    "logo": "https://raw.githubusercontent.com/hudikhq/hoodik/main/web/public/logo-small.png",
+    "description": "Hoodik is a lightweight, self-hosted cloud storage solution with end-to-end encryption. Files are encrypted on your device before upload using hybrid RSA/AES encryption, ensuring only you can access your data.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/hoodik.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 2048,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "First visit will prompt you to create an admin account",
+            "type": "info"
+        },
+        {
+            "text": "Installation builds from source and takes 10-15 minutes",
+            "type": "warning"
+        },
+        {
+            "text": "Data is stored in /opt/hoodik_data",
+            "type": "info"
+        },
+        {
+            "text": "SSL is disabled by default - use a reverse proxy for HTTPS",
+            "type": "warning"
+        }
+    ]
+}

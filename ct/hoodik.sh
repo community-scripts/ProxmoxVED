@@ -29,10 +29,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/hudikhq/hoodik/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-  CURRENT_VERSION=$(cat /opt/hoodik_version.txt 2>/dev/null || echo "none")
-
-  if [[ "${RELEASE}" != "${CURRENT_VERSION}" ]]; then
+  if check_for_gh_release "hoodik" "hudikhq/hoodik"; then
     msg_info "Stopping Services"
     systemctl stop hoodik
     msg_ok "Stopped Services"
@@ -41,18 +38,14 @@ function update_script() {
     cp /opt/hoodik/.env /tmp/hoodik.env.bak
     msg_ok "Backed up Configuration"
 
-    msg_info "Updating ${APP} to ${RELEASE} (Patience - this takes 10-15 minutes)"
+    msg_info "Updating ${APP} (Patience - this takes 10-15 minutes)"
     source ~/.cargo/env
-    cd /opt
     rm -rf /opt/hoodik
-    curl -fsSL "https://github.com/hudikhq/hoodik/archive/refs/tags/${RELEASE}.zip" -o "${RELEASE}.zip"
-    unzip -q "${RELEASE}.zip"
-    mv "hoodik-${RELEASE#v}" hoodik
+    fetch_and_deploy_gh_release "hoodik" "hudikhq/hoodik" "tarball" "latest" "/opt/hoodik"
     cd /opt/hoodik
     $STD cargo build --release
     cp /opt/hoodik/target/release/hoodik /usr/local/bin/hoodik
     chmod +x /usr/local/bin/hoodik
-    echo "${RELEASE}" >/opt/hoodik_version.txt
     msg_ok "Updated ${APP}"
 
     msg_info "Restoring Configuration"
@@ -61,7 +54,6 @@ function update_script() {
     msg_ok "Restored Configuration"
 
     msg_info "Cleaning Up"
-    rm -f /opt/${RELEASE}.zip
     rm -rf /opt/hoodik/target
     msg_ok "Cleaned"
 
@@ -70,8 +62,6 @@ function update_script() {
     msg_ok "Started Services"
 
     msg_ok "Updated Successfully"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
   exit
 }

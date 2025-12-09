@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
+$STD apt-get install -y \
   pkg-config \
   libssl-dev \
   libc6-dev \
@@ -26,23 +26,17 @@ $STD apt install -y \
   make
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Rust"
-$STD bash <(curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs) -y
-source ~/.cargo/env
-msg_ok "Installed Rust"
+setup_rust
+fetch_and_deploy_gh_release "hoodik" "hudikhq/hoodik" "tarball" "latest" "/opt/hoodik"
 
-msg_info "Building Hoodik (Patience - this takes 10-15 minutes)"
-RELEASE=$(curl -fsSL https://api.github.com/repos/hudikhq/hoodik/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-cd /opt
-curl -fsSL "https://github.com/hudikhq/hoodik/archive/refs/tags/${RELEASE}.zip" -o "${RELEASE}.zip"
-unzip -q "${RELEASE}.zip"
-mv "hoodik-${RELEASE#v}" hoodik
+msg_info "Building Hoodik"
 cd /opt/hoodik
+source ~/.cargo/env
 $STD cargo build --release
 cp /opt/hoodik/target/release/hoodik /usr/local/bin/hoodik
 chmod +x /usr/local/bin/hoodik
-echo "${RELEASE}" >/opt/hoodik_version.txt
-msg_ok "Built Hoodik ${RELEASE}"
+rm -rf /opt/hoodik/target
+msg_ok "Built Hoodik"
 
 msg_info "Configuring Hoodik"
 mkdir -p /opt/hoodik_data
@@ -82,10 +76,4 @@ msg_ok "Created Service"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-rm -f /opt/${RELEASE}.zip
-rm -rf /opt/hoodik/target
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc

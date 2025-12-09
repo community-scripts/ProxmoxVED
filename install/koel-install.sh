@@ -19,10 +19,6 @@ $STD apt install -y \
   ffmpeg \
   cron \
   locales
-$STD sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
-$STD locale-gen en_US.UTF-8
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
 msg_ok "Installed Dependencies"
 
 import_local_ip
@@ -37,7 +33,6 @@ fetch_and_deploy_gh_release "koel" "koel/koel" "prebuild" "latest" "/opt/koel" "
 msg_info "Configuring Koel"
 mkdir -p /opt/koel_media /opt/koel_sync
 cd /opt/koel
-
 cat <<EOF >/opt/koel/.env
 APP_NAME=Koel
 APP_ENV=production
