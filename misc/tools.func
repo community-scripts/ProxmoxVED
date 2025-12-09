@@ -2629,7 +2629,7 @@ function setup_hwaccel() {
     ;;
   esac
 
-  if [[ "$in_ct" == "0" ]]; then
+  if [[ -d /dev/dri ]]; then
     chgrp video /dev/dri 2>/dev/null || true
     chmod 755 /dev/dri 2>/dev/null || true
     chmod 660 /dev/dri/* 2>/dev/null || true

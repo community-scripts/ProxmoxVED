@@ -44,15 +44,19 @@ msg_info "Installing hardware acceleration drivers"
 $STD apt-get install -y va-driver-all ocl-icd-libopencl1 vainfo intel-gpu-tools
 msg_ok "Hardware acceleration drivers installed"
 
+if [[ -d /dev/dri ]]; then
+  msg_info "Configuring GPU access"
+  chgrp video /dev/dri 2>/dev/null || true
+  chmod 755 /dev/dri 2>/dev/null || true
+  chmod 660 /dev/dri/* 2>/dev/null || true
+fi
+
 if [[ "$CTTYPE" == "0" ]]; then
-  msg_info "Configuring GPU access for privileged container"
-  chgrp video /dev/dri
-  chmod 755 /dev/dri
-  chmod 660 /dev/dri/*
+  msg_info "Configuring render group for privileged container"
   sed -i -e 's/^kvm:x:104:$/render:x:104:root,frigate/' -e 's/^render:x:105:root$/kvm:x:105:/' /etc/group
   msg_ok "Privileged container GPU access configured"
 else
-  msg_info "Configuring GPU access for unprivileged container"
+  msg_info "Configuring render group for unprivileged container"
   sed -i -e 's/^kvm:x:104:$/render:x:104:frigate/' -e 's/^render:x:105:$/kvm:x:105:/' /etc/group
   msg_ok "Unprivileged container GPU access configured"
 fi
