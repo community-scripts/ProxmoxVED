@@ -16,7 +16,6 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   redis-server \
-  ca-certificates \
   nginx \
   gettext \
   openssl \
