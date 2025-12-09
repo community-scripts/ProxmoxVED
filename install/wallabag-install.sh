@@ -20,6 +20,7 @@ $STD apt install -y \
   imagemagick
 msg_ok "Installed Dependencies"
 
+import_local_ip
 setup_mariadb
 MARIADB_DB_NAME="wallabag" MARIADB_DB_USER="wallabag" setup_mariadb_db
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="bcmath,bz2,curl,gd,imagick,intl,mbstring,mysql,redis,tidy,xml,zip" setup_php
@@ -31,7 +32,6 @@ fetch_and_deploy_gh_release "wallabag" "wallabag/wallabag" "prebuild" "latest" "
 msg_info "Configuring Wallabag"
 cd /opt/wallabag
 SECRET_KEY="$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)"
-CONTAINER_IP=$(hostname -I | awk '{print $1}')
 cat <<EOF >/opt/wallabag/app/config/parameters.yml
 parameters:
     database_driver: pdo_mysql
@@ -45,7 +45,7 @@ parameters:
     database_socket: null
     database_charset: utf8mb4
 
-    domain_name: http://${CONTAINER_IP}:8000
+    domain_name: http://${LOCAL_IP}:8000
     server_name: Wallabag
 
     mailer_dsn: null
