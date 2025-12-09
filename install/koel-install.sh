@@ -125,6 +125,15 @@ $STD php artisan koel:init --no-assets --no-interaction
 chown -R www-data:www-data /opt/koel
 msg_ok "Installed Koel"
 
+msg_info "Tuning PHP-FPM"
+PHP_FPM_CONF="/etc/php/8.4/fpm/pool.d/www.conf"
+sed -i 's/^pm.max_children = .*/pm.max_children = 15/' "$PHP_FPM_CONF"
+sed -i 's/^pm.start_servers = .*/pm.start_servers = 4/' "$PHP_FPM_CONF"
+sed -i 's/^pm.min_spare_servers = .*/pm.min_spare_servers = 2/' "$PHP_FPM_CONF"
+sed -i 's/^pm.max_spare_servers = .*/pm.max_spare_servers = 8/' "$PHP_FPM_CONF"
+$STD systemctl restart php8.4-fpm
+msg_ok "Tuned PHP-FPM"
+
 msg_info "Configuring Nginx"
 cat <<'EOF' >/etc/nginx/sites-available/koel
 server {
