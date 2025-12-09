@@ -14,22 +14,20 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y nginx supervisor
+$STD apt install -y \
+  nginx \
+  supervisor
 msg_ok "Installed Dependencies"
 
 setup_mariadb
 MARIADB_DB_NAME="invoiceninja" MARIADB_DB_USER="invoiceninja" setup_mariadb_db
-
 PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="bcmath,curl,gd,gmp,imagick,intl,mbstring,mysql,soap,xml,zip" setup_php
-
+import_local_ip
 fetch_and_deploy_gh_release "invoiceninja" "invoiceninja/invoiceninja" "prebuild" "latest" "/opt/invoiceninja" "invoiceninja.tar"
 
 msg_info "Configuring InvoiceNinja"
 cd /opt/invoiceninja
-
-import_local_ip
 APP_KEY=$(php artisan key:generate --show)
-
 cat <<EOF >/opt/invoiceninja/.env
 APP_NAME="Invoice Ninja"
 APP_ENV=production
@@ -70,7 +68,6 @@ PDF_GENERATOR=snappdf
 TRUSTED_PROXIES=*
 INTERNAL_QUEUE_ENABLED=false
 EOF
-
 chown -R www-data:www-data /opt/invoiceninja
 chmod -R 755 /opt/invoiceninja/storage
 msg_ok "Configured InvoiceNinja"
