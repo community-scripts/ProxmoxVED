@@ -206,12 +206,12 @@ vaapi_select_and_apply() {
       [[ -n "$d" && -e "$d" ]] || continue
       if [[ "$CT_TYPE" == "0" ]]; then
         [[ $DID_MOUNT_DRI -eq 0 && -d /dev/dri ]] && {
-          echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+          echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
           DID_MOUNT_DRI=1
         }
         if mm=$(stat -c '%t:%T' "$d" | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}'); then
           echo "lxc.cgroup2.devices.allow: c $mm rwm" >>"$LXC_CONFIG"
-          echo "lxc.mount.entry: $d $d none bind,optional,create=file" >>"$LXC_CONFIG"
+          echo "lxc.mount.entry: $d ${d#/} none bind,optional,create=file" >>"$LXC_CONFIG"
         fi
       else
         gid=$([[ "$d" =~ renderD ]] && _vaapi_gid render || _vaapi_gid video)
@@ -225,7 +225,7 @@ vaapi_select_and_apply() {
   if [[ "$CT_TYPE" == "0" ]]; then
     cat <<'EOF' >>"$LXC_CONFIG"
 # VAAPI fallback
-lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir
+lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
 lxc.cgroup2.devices.allow: c 226:* rwm
 EOF
   fi
@@ -238,21 +238,36 @@ nvidia_passthrough_to_lxc() {
   local LXC_CONFIG="/etc/pve/lxc/${CT_ID}.conf"
   local found=0
 
+  # Process /dev/nvidia* devices (excluding nvidia-caps directory)
   for dev in /dev/nvidia*; do
     [[ -e "$dev" ]] || continue
+    # Skip directories - they need special handling
+    [[ -d "$dev" ]] && continue
     found=1
     if mm="$(stat -c '%t:%T' "$dev" | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}')"; then
       echo "lxc.cgroup2.devices.allow: c $mm rwm" >>"$LXC_CONFIG"
-      echo "lxc.mount.entry: $dev $dev none bind,optional,create=file" >>"$LXC_CONFIG"
+      echo "lxc.mount.entry: $dev ${dev#/} none bind,optional,create=file" >>"$LXC_CONFIG"
     fi
   done
+
+  # Handle /dev/nvidia-caps directory and its contents separately
+  if [[ -d /dev/nvidia-caps ]]; then
+    echo "lxc.mount.entry: /dev/nvidia-caps dev/nvidia-caps none bind,optional,create=dir" >>"$LXC_CONFIG"
+    for cap_dev in /dev/nvidia-caps/*; do
+      [[ -e "$cap_dev" ]] || continue
+      if mm="$(stat -c '%t:%T' "$cap_dev" | awk -F: '{printf "%d:%d","0x"$1,"0x"$2}')"; then
+        echo "lxc.cgroup2.devices.allow: c $mm rwm" >>"$LXC_CONFIG"
+      fi
+    done
+  fi
+
   ((found == 0)) && {
     msg_warn "No NVIDIA devices found."
     return
   }
 
   if [[ -d /dev/dri && "$CT_TYPE" == "0" ]]; then
-    echo "lxc.mount.entry: /dev/dri /dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
+    echo "lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir" >>"$LXC_CONFIG"
   fi
   msg_ok "NVIDIA devices mapped to CT ${CT_ID}"
 }
