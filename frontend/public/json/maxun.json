@@ -1,0 +1,52 @@
+{
+    "name": "Maxun",
+    "slug": "maxun",
+    "categories": [
+        11
+    ],
+    "date_created": "2024-10-15",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://docs.maxun.dev/",
+    "config_path": "/opt/maxun/.env",
+    "website": "https://www.maxun.dev/",
+    "logo": "https://raw.githubusercontent.com/getmaxun/maxun/master/public/maxun-logo.png",
+    "description": "Maxun is an open-source, no-code web scraping platform that allows you to turn websites into APIs and spreadsheets in minutes. It features visual workflow building, scheduled robots, and AI-powered data extraction without writing code.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/maxun.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 10,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "First visit will prompt you to create an account",
+            "type": "info"
+        },
+        {
+            "text": "MinIO Console available at port 9001",
+            "type": "info"
+        },
+        {
+            "text": "Credentials saved in /root/maxun.creds",
+            "type": "info"
+        },
+        {
+            "text": "Uses PostgreSQL, Redis, and MinIO as backend services",
+            "type": "info"
+        }
+    ]
+}
