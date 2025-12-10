@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: MickLesk (Canbiz)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/getmaxun/maxun
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -15,81 +15,70 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    openssl \
-    redis \
-    libgbm1 \
-    libnss3 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libdrm2 \
-    libxkbcommon0 \
-    libglib2.0-0 \
-    libdbus-1-3 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxi6 \
-    libxtst6 \
-    ca-certificates \
-    libxrandr2 \
-    libasound2 \
-    libxss1 \
-    libxinerama1 \
-    nginx
+  redis-server \
+  nginx \
+  libgbm1 \
+  libnss3 \
+  libatk1.0-0 \
+  libatk-bridge2.0-0 \
+  libdrm2 \
+  libxkbcommon0 \
+  libglib2.0-0 \
+  libdbus-1-3 \
+  libx11-xcb1 \
+  libxcb1 \
+  libxcomposite1 \
+  libxcursor1 \
+  libxdamage1 \
+  libxext6 \
+  libxi6 \
+  libxtst6 \
+  libxrandr2 \
+  libasound2 \
+  libxss1 \
+  libxinerama1
 msg_ok "Installed Dependencies"
 
-PG_VERSION=17 setup_postgresql
-NODE_VERSION="18" setup_nodejs
+PG_VERSION="17" setup_postgresql
+NODE_VERSION="20" setup_nodejs
+PG_DB_NAME="maxun_db" PG_DB_USER="maxun" setup_postgresql_db
+fetch_and_deploy_gh_release "maxun" "getmaxun/maxun" "tarball" "latest" "/opt/maxun"
 
-msg_info "Setup Variables"
-DB_NAME=maxun_db
-DB_USER=maxun_user
-DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
-MINIO_USER=minio_usr
-MINIO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
-JWT_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
-ENCRYPTION_KEY=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
+msg_info "Setting up Variables"
+MINIO_USER="minio_admin"
+MINIO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+JWT_SECRET=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c48)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+SESSION_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c32)
 LOCAL_IP=$(hostname -I | awk '{print $1}')
-SESSION_SECRET=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
-msg_ok "Set up Variables"
+msg_ok "Variables configured"
 
-msg_info "Setup Database"
-$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
-$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER ENCODING 'UTF8' TEMPLATE template0;"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC'"
-{
-    echo "Maxun-Credentials"
-    echo "Maxun Database User: $DB_USER"
-    echo "Maxun Database Password: $DB_PASS"
-    echo "Maxun Database Name: $DB_NAME"
-    echo "Maxun JWT Secret: $JWT_SECRET"
-    echo "Maxun Encryption Key: $ENCRYPTION_KEY"
-    echo "Maxun Session Secret: $SESSION_SECRET"
-} >>~/maxun.creds
-msg_ok "Set up Database"
-
-msg_info "Setup MinIO"
+msg_info "Setting up MinIO"
+mkdir -p /opt/minio_data
 cd /tmp
-wget -q https://dl.min.io/server/minio/release/linux-amd64/minio
-mv minio /usr/local/bin/
-chmod +x /usr/local/bin/minio
-mkdir -p /data
+curl -fsSL https://dl.min.io/server/minio/release/linux-amd64/minio.deb -o minio.deb
+$STD dpkg -i minio.deb
+rm -f /tmp/minio.deb
+
+cat <<EOF >/etc/default/minio
+MINIO_ROOT_USER=${MINIO_USER}
+MINIO_ROOT_PASSWORD=${MINIO_PASS}
+MINIO_VOLUMES="/opt/minio_data"
+MINIO_OPTS="--console-address :9001"
+EOF
+
 cat <<EOF >/etc/systemd/system/minio.service
 [Unit]
-Description=MinIO
+Description=MinIO Object Storage
 Documentation=https://docs.min.io
-Wants=network-online.target
 After=network-online.target
+Wants=network-online.target
 
 [Service]
+Type=simple
 User=root
-EnvironmentFile=-/etc/default/minio
-ExecStart=/usr/local/bin/minio server /data
+EnvironmentFile=/etc/default/minio
+ExecStart=/usr/bin/minio server \$MINIO_VOLUMES \$MINIO_OPTS
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
@@ -97,82 +86,78 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 EOF
-{
-    echo "__________________"
-    echo "MinIO Admin User: $MINIO_USER"
-    echo "MinIO Admin Password: $MINIO_PASS"
-} >>~/maxun.creds
-cat <<EOF >/etc/default/minio
-MINIO_ROOT_USER=${MINIO_USER}
-MINIO_ROOT_PASSWORD=${MINIO_PASS}
-EOF
 systemctl enable -q --now minio
-msg_ok "Setup MinIO"
+msg_ok "MinIO configured"
 
-fetch_and_deploy_gh_release "maxun" "getmaxun/maxun" "source"
+msg_info "Setting up Redis"
+systemctl enable -q --now redis-server
+msg_ok "Redis configured"
 
 msg_info "Installing Maxun (Patience)"
+cd /opt/maxun
 cat <<EOF >/opt/maxun/.env
-NODE_ENV=development
+NODE_ENV=production
 JWT_SECRET=${JWT_SECRET}
-DB_NAME=${DB_NAME}
-DB_USER=${DB_USER}
-DB_PASSWORD=${DB_PASS}
+DB_NAME=${PG_DB_NAME}
+DB_USER=${PG_DB_USER}
+DB_PASSWORD=${PG_DB_PASS}
 DB_HOST=localhost
 DB_PORT=5432
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
+SESSION_SECRET=${SESSION_SECRET}
+
 MINIO_ENDPOINT=localhost
 MINIO_PORT=9000
 MINIO_CONSOLE_PORT=9001
 MINIO_ACCESS_KEY=${MINIO_USER}
 MINIO_SECRET_KEY=${MINIO_PASS}
+
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 
 BACKEND_PORT=8080
 FRONTEND_PORT=5173
 BACKEND_URL=http://${LOCAL_IP}:8080
-PUBLIC_URL=http://${LOCAL_IP}:5173
+PUBLIC_URL=http://${LOCAL_IP}
 VITE_BACKEND_URL=http://${LOCAL_IP}:8080
-VITE_PUBLIC_URL=http://${LOCAL_IP}:5173
+VITE_PUBLIC_URL=http://${LOCAL_IP}
 
 MAXUN_TELEMETRY=false
-SESSION_SECRET=${SESSION_SECRET}
 EOF
-
-cat <<'EOF' >/usr/local/bin/update-env-ip.sh
-env_file="/opt/maxun/.env"
-
-sed -i "s|^BACKEND_URL=.*|BACKEND_URL=http://${LOCAL_IP}:8080|" "$env_file"
-sed -i "s|^PUBLIC_URL=.*|PUBLIC_URL=http://${LOCAL_IP}:5173|" "$env_file"
-sed -i "s|^VITE_BACKEND_URL=.*|VITE_BACKEND_URL=http://${LOCAL_IP}:8080|" "$env_file"
-sed -i "s|^VITE_PUBLIC_URL=.*|VITE_PUBLIC_URL=http://${LOCAL_IP}:5173|" "$env_file"
-EOF
-chmod +x /usr/local/bin/update-env-ip.sh
-cd /opt/maxun
-$STD npm install
+$STD npm install --legacy-peer-deps
 cd /opt/maxun/maxun-core
-$STD npm install
+$STD npm install --legacy-peer-deps
 cd /opt/maxun
-$STD npx playwright install --with-deps chromium
-$STD npx playwright install-deps
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
-msg_ok "Installed Maxun"
+msg_ok "Maxun dependencies installed"
 
-msg_info "Setting up nginx with CORS Proxy"
+msg_info "Installing Playwright/Chromium"
+$STD npm install playwright
+$STD npx playwright install --with-deps chromium
+msg_ok "Playwright/Chromium installed"
+
+msg_info "Building Maxun"
+$STD npm run build:server
+$STD npm run build
+msg_ok "Maxun built"
+
+msg_info "Setting up nginx"
+mkdir -p /var/www/maxun
+cp -r /opt/maxun/dist/* /var/www/maxun/
+
 cat <<'EOF' >/etc/nginx/sites-available/maxun
 server {
     listen 80;
     server_name _;
 
-    # Frontend ausliefern
-    root /usr/share/nginx/html;
+    root /var/www/maxun;
     index index.html;
+
+    # Frontend
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # Backend Proxy
+    # Backend API Proxy
     location ~ ^/(auth|storage|record|workflow|robot|proxy|api-docs|api|webhook)(/|$) {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
@@ -182,67 +167,40 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-        # CORS
-        add_header Access-Control-Allow-Origin "$http_origin" always;
-        add_header Access-Control-Allow-Credentials true always;
-        add_header Access-Control-Allow-Methods GET,POST,PUT,DELETE,OPTIONS always;
-        add_header Access-Control-Allow-Headers Authorization,Content-Type,X-Requested-With always;
-
-        if ($request_method = OPTIONS) {
-            return 204;
-        }
-
         proxy_connect_timeout 60s;
-        proxy_read_timeout 60s;
+        proxy_read_timeout 120s;
         proxy_send_timeout 60s;
-
-        proxy_intercept_errors on;
-        error_page 502 503 504 /50x.html;
     }
 }
 EOF
 ln -sf /etc/nginx/sites-available/maxun /etc/nginx/sites-enabled/maxun
 rm -f /etc/nginx/sites-enabled/default
-msg_ok "nginx with CORS Proxy set up"
+$STD nginx -t
+systemctl enable -q --now nginx
+msg_ok "nginx configured"
 
-msg_info "Creating Services"
-cat <<EOF >/etc/systemd/system/maxun-update-env.service
-[Unit]
-Description=Update .env with dynamic LXC IP
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/update-env-ip.sh
-
-[Install]
-WantedBy=multi-user.target
-EOF
+msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/maxun.service
 [Unit]
-Description=Maxun Service
-After=network.target postgresql.service redis.service minio.service maxun-update-env.service
+Description=Maxun Web Scraping Service
+After=network.target postgresql.service redis-server.service minio.service
 
 [Service]
+Type=simple
+User=root
 WorkingDirectory=/opt/maxun
-ExecStart=/usr/bin/npm run start
-Restart=always
 EnvironmentFile=/opt/maxun/.env
+ExecStart=/usr/bin/node server/dist/server/src/server.js
+Restart=always
+RestartSec=5
+Environment=NODE_OPTIONS=--max-old-space-size=512
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now maxun-update-env
 systemctl enable -q --now maxun
-systemctl enable -q --now nginx
-msg_ok "Created Service"
+msg_ok "Service created"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-rm -rf /opt/v${RELEASE}.zip
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc

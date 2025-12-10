@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: MickLesk (Canbiz)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/getmaxun/maxun
 
 APP="Maxun"
-var_tags="${var_tags:-scraper}"
-var_disk="${var_disk:-7}"
+var_tags="${var_tags:-automation;scraper}"
 var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-3072}"
+var_ram="${var_ram:-4096}"
+var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -20,47 +20,23 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
-    if [[ ! -d /opt/maxun ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-    RELEASE=$(curl -fsSL https://api.github.com/repos/getmaxun/maxun/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-    if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-        msg_info "Stopping Services"
-        systemctl stop maxun minio redis
-        msg_ok "Services Stopped"
+  header_info
+  check_container_storage
+  check_container_resources
 
-        msg_info "Updating ${APP} to v${RELEASE}"
-        mv /opt/maxun /opt/maxun_bak
-        cd /opt
-        curl -fsSL "https://github.com/getmaxun/maxun/archive/refs/tags/v${RELEASE}.zip"
-        unzip -q v${RELEASE}.zip
-        mv maxun-${RELEASE} /opt/maxun
-        mv /opt/maxun_bak/.env /opt/maxun/
-        cd /opt/maxun
-        npm install --legacy-peer-deps
-        cd /opt/maxun/maxun-core
-        npm install --legacy-peer-deps
-        cd /opt/maxun
-        npx playwright install --with-deps chromium
-        npx playwright install-deps
-        "${RELEASE}" >/opt/${APP}_version.txt
-
-        msg_info "Starting Services"
-        systemctl start minio redis maxun
-        msg_ok "Started Services"
-
-        msg_info "Cleaning Up"
-        rm -rf /opt/v${RELEASE}.zip
-        msg_ok "Cleaned"
-        msg_ok "Updated Successfully"
-    else
-        msg_ok "No update required. ${APP} is already at v${RELEASE}"
-    fi
+  if [[ ! -d /opt/maxun ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  # NOTE: Updates temporarily disabled due to upstream TypeScript build errors in v0.0.27+
+  # The mcp-worker.ts file has type instantiation issues that prevent compilation
+  # Pinned to v0.0.26 until upstream fixes the issue
+  # See: https://github.com/getmaxun/maxun/releases
+  msg_warn "Updates are temporarily disabled due to upstream build issues"
+  msg_info "Current pinned version: v0.0.26"
+  msg_info "Check https://github.com/getmaxun/maxun/releases for fixes"
+  exit
 }
 
 start
@@ -70,4 +46,8 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5173${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
+echo -e "${INFO}${YW} MinIO Console:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:9001${CL}"
+echo -e "${INFO}${YW} Credentials saved in:${CL}"
+echo -e "${TAB}/root/maxun.creds"
