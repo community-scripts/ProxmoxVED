@@ -11,7 +11,7 @@
     "interface_port": null,
     "documentation": "https://docs.openeuler.org/",
     "website": "https://www.openeuler.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/openeuler.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openeuler.webp",
     "config_path": "",
     "description": "openEuler is an open-source Linux distribution from Huawei. It's designed for servers and cloud computing with enterprise-grade features.",
     "install_methods": [

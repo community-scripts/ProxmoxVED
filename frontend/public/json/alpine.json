@@ -11,7 +11,7 @@
     "interface_port": null,
     "documentation": "https://wiki.alpinelinux.org/",
     "website": "https://alpinelinux.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/alpine-linux.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/alpine-linux.webp",
     "config_path": "",
     "description": "Alpine Linux is a security-oriented, lightweight Linux distribution based on musl libc and busybox. Perfect for containers due to its minimal footprint.",
     "install_methods": [

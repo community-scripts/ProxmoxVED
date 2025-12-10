@@ -11,7 +11,7 @@
     "interface_port": null,
     "documentation": "https://wiki.gentoo.org/",
     "website": "https://www.gentoo.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/gentoo.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gentoo.webp",
     "config_path": "",
     "description": "Gentoo is a highly customizable source-based Linux distribution. Users compile software optimized for their specific hardware.",
     "install_methods": [

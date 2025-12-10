@@ -11,7 +11,7 @@
     "interface_port": null,
     "documentation": "https://docs.rockylinux.org/",
     "website": "https://rockylinux.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/rocky-linux.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rocky-linux.webp",
     "config_path": "",
     "description": "Rocky Linux is an enterprise-grade Linux distribution designed to be 100% bug-for-bug compatible with Red Hat Enterprise Linux (RHEL).",
     "install_methods": [

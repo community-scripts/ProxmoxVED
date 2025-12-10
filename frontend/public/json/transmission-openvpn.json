@@ -1,40 +1,40 @@
 {
-  "name": "Transmission-Openvpn",
-  "slug": "transmission-openvpn",
-  "categories": [
-    11
-  ],
-  "date_created": "2025-09-04",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": 9091,
-  "documentation": "https://haugene.github.io/docker-transmission-openvpn/",
-  "config_path": "/opt/transmission-openvpn/",
-  "website": "https://github.com/haugene/docker-transmission-openvpn",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/transmission.webp",
-  "description": "This project runs Transmission + OpenVPN natively in an LXC container, using the popular docker-transmission-openvpn image as a base. It ensures all torrent traffic is securely routed through a VPN tunnel, supports a wide range of VPN providers, and offers flexible configuration options",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/transmission-openvpn.sh",
-      "resources": {
-        "cpu": 1,
-        "ram": 512,
-        "hdd": 8,
-        "os": "Debian",
-        "version": "13"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": null,
-    "password": null
-  },
-  "notes": [
-    {
-      "text": "This application requires a VPN provider to work. Please refer to your VPN provider’s documentation for setting up OpenVPN.",
-      "type": "warning"
-    }
-  ]
+    "name": "Transmission-Openvpn",
+    "slug": "transmission-openvpn",
+    "categories": [
+        11
+    ],
+    "date_created": "2025-09-04",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 9091,
+    "documentation": "https://haugene.github.io/docker-transmission-openvpn/",
+    "config_path": "/opt/transmission-openvpn/",
+    "website": "https://github.com/haugene/docker-transmission-openvpn",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/transmission.webp",
+    "description": "This project runs Transmission + OpenVPN natively in an LXC container, using the popular docker-transmission-openvpn image as a base. It ensures all torrent traffic is securely routed through a VPN tunnel, supports a wide range of VPN providers, and offers flexible configuration options",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/transmission-openvpn.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "This application requires a VPN provider to work. Please refer to your VPN provider’s documentation for setting up OpenVPN.",
+            "type": "warning"
+        }
+    ]
 }

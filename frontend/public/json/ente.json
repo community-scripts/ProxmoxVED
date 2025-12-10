@@ -1,48 +1,48 @@
 {
-  "name": "Ente",
-  "slug": "ente",
-  "categories": [
-    13
-  ],
-  "date_created": "2025-11-22",
-  "type": "ct",
-  "updateable": false,
-  "privileged": false,
-  "config_path": "/opt",
-  "interface_port": 3000,
-  "documentation": "https://github.com/ente-io/ente",
-  "website": "https://ente.io/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/ente-photos.svg",
-  "description": "Ente is a service that provides a fully open source, end-to-end encrypted platform for you to store your data in the cloud without needing to trust the service provider. On top of this platform, we have built two apps so far: Ente Photos (an alternative to Apple and Google Photos) and Ente Auth (a 2FA alternative to the deprecated Authy).",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/ente.sh",
-      "resources": {
-        "cpu": 4,
-        "ram": 4096,
-        "hdd": 10,
-        "os": "debian",
-        "version": "12"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": null,
-    "password": null
-  },
-  "notes": [
-    {
-      "text": "Please use `journalctl -u ente-museum.service -n 10` to read logs for the signup verification code",
-      "type": "info"
+    "name": "Ente",
+    "slug": "ente",
+    "categories": [
+        13
+    ],
+    "date_created": "2025-11-22",
+    "type": "ct",
+    "updateable": false,
+    "privileged": false,
+    "config_path": "/opt",
+    "interface_port": 3000,
+    "documentation": "https://github.com/ente-io/ente",
+    "website": "https://ente.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ente-photos.webp",
+    "description": "Ente is a service that provides a fully open source, end-to-end encrypted platform for you to store your data in the cloud without needing to trust the service provider. On top of this platform, we have built two apps so far: Ente Photos (an alternative to Apple and Google Photos) and Ente Auth (a 2FA alternative to the deprecated Authy).",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/ente.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 10,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
     },
-    {
-      "text": "If you want to use the Ente CLI to add/whitelist admins, please follow the instructions at https://ente.io/help/self-hosting/administration/cli",
-      "type": "info"
-    },
-    {
-      "text": "To see Museium config:  `cat /opt/ente/server/museum.yaml`",
-      "type": "info"
-    }
-  ]
+    "notes": [
+        {
+            "text": "Please use `journalctl -u ente-museum.service -n 10` to read logs for the signup verification code",
+            "type": "info"
+        },
+        {
+            "text": "If you want to use the Ente CLI to add/whitelist admins, please follow the instructions at https://ente.io/help/self-hosting/administration/cli",
+            "type": "info"
+        },
+        {
+            "text": "To see Museium config:  `cat /opt/ente/server/museum.yaml`",
+            "type": "info"
+        }
+    ]
 }

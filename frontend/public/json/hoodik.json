@@ -4,7 +4,7 @@
     "categories": [
         4
     ],
-    "date_created": "2024-06-15",
+    "date_created": "2025-12-10",
     "type": "ct",
     "updateable": true,
     "privileged": false,
@@ -12,7 +12,7 @@
     "documentation": "https://github.com/hudikhq/hoodik#readme",
     "config_path": "/opt/hoodik/.env",
     "website": "https://github.com/hudikhq/hoodik",
-    "logo": "https://raw.githubusercontent.com/hudikhq/hoodik/main/web/public/logo-small.png",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/hoodik.webp",
     "description": "Hoodik is a lightweight, self-hosted cloud storage solution with end-to-end encryption. Files are encrypted on your device before upload using hybrid RSA/AES encryption, ensuring only you can access your data.",
     "install_methods": [
         {

@@ -1,35 +1,35 @@
 {
-  "name": "Rybbit",
-  "slug": "rybbit",
-  "categories": [
-    9
-  ],
-  "date_created": "2025-01-15",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": 3000,
-  "documentation": "https://github.com/rybbit-io/rybbit",
-  "website": "https://github.com/rybbit-io/rybbit",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/rybbit.svg",
-  "config_path": "/opt/rybbit",
-  "description": "Rybbit is a privacy-focused, open-source web analytics platform. Track your website visitors without compromising their privacy or using cookies.",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/rybbit.sh",
-      "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 5,
-        "os": "debian",
-        "version": "13"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": null,
-    "password": null
-  },
-  "notes": []
+    "name": "Rybbit",
+    "slug": "rybbit",
+    "categories": [
+        9
+    ],
+    "date_created": "2025-01-15",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://github.com/rybbit-io/rybbit",
+    "website": "https://github.com/rybbit-io/rybbit",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rybbit-light.webp",
+    "config_path": "/opt/rybbit",
+    "description": "Rybbit is a privacy-focused, open-source web analytics platform. Track your website visitors without compromising their privacy or using cookies.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/rybbit.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 5,
+                "os": "debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": []
 }

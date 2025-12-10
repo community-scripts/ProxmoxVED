@@ -11,7 +11,7 @@
     "interface_port": null,
     "documentation": "https://wiki.almalinux.org/",
     "website": "https://almalinux.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/almalinux.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/almalinux.webp",
     "config_path": "",
     "description": "AlmaLinux is an open-source, community-driven Linux distribution, 1:1 binary compatible with RHEL. A free alternative to CentOS.",
     "install_methods": [

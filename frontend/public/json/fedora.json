@@ -11,7 +11,7 @@
     "interface_port": null,
     "documentation": "https://docs.fedoraproject.org/",
     "website": "https://fedoraproject.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/fedora.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/fedora.webp",
     "config_path": "",
     "description": "Fedora is a cutting-edge Linux distribution sponsored by Red Hat. It features the latest software and technologies while maintaining stability.",
     "install_methods": [

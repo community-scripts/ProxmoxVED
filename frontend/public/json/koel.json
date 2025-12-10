@@ -12,7 +12,7 @@
     "documentation": "https://docs.koel.dev/",
     "config_path": "/opt/koel/.env",
     "website": "https://koel.dev/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/koel.svg",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/koel-light.webp",
     "description": "Koel is a simple web-based personal audio streaming service written in Vue and Laravel. It supports multiple users, audio visualization, smart playlists, YouTube integration, and Last.fm scrobbling.",
     "install_methods": [
         {

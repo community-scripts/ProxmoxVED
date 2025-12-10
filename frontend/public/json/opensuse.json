@@ -11,7 +11,7 @@
     "interface_port": null,
     "documentation": "https://doc.opensuse.org/",
     "website": "https://www.opensuse.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/opensuse.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/opensuse.webp",
     "config_path": "",
     "description": "openSUSE is a stable, easy-to-use, and complete Linux distribution. Known for its YaST configuration tool and zypper package manager.",
     "install_methods": [

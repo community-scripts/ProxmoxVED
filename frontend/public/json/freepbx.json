@@ -1,44 +1,44 @@
 {
-  "name": "FreePBX",
-  "slug": "freepbx",
-  "categories": [
-    17
-  ],
-  "date_created": "2025-01-15",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": 80,
-  "documentation": "https://wiki.freepbx.org/",
-  "website": "https://www.freepbx.org/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/svg/freepbx.svg",
-  "config_path": "/etc/freepbx.conf",
-  "description": "FreePBX is a web-based open-source graphical user interface that manages Asterisk, a voice over IP and telephony server. FreePBX provides a complete PBX solution with call routing, voicemail, IVR, and more.",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/freepbx.sh",
-      "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 10,
-        "os": "debian",
-        "version": "12"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": null,
-    "password": null
-  },
-  "notes": [
-    {
-      "text": "Access the web interface to complete initial setup",
-      "type": "info"
+    "name": "FreePBX",
+    "slug": "freepbx",
+    "categories": [
+        17
+    ],
+    "date_created": "2025-01-15",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://wiki.freepbx.org/",
+    "website": "https://www.freepbx.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/freepbx.webp",
+    "config_path": "/etc/freepbx.conf",
+    "description": "FreePBX is a web-based open-source graphical user interface that manages Asterisk, a voice over IP and telephony server. FreePBX provides a complete PBX solution with call routing, voicemail, IVR, and more.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/freepbx.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 10,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
     },
-    {
-      "text": "SIP Port: 5060, IAX2 Port: 4569",
-      "type": "info"
-    }
-  ]
+    "notes": [
+        {
+            "text": "Access the web interface to complete initial setup",
+            "type": "info"
+        },
+        {
+            "text": "SIP Port: 5060, IAX2 Port: 4569",
+            "type": "info"
+        }
+    ]
 }

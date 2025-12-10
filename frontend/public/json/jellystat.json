@@ -11,7 +11,7 @@
     "interface_port": 3000,
     "documentation": "https://github.com/CyferShepard/Jellystat",
     "website": "https://github.com/CyferShepard/Jellystat",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/jellystat.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/jellystat.webp",
     "config_path": "/opt/jellystat/.env",
     "description": "A free and open source statistics app for Jellyfin",
     "install_methods": [

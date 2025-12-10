@@ -11,7 +11,7 @@
     "interface_port": null,
     "documentation": "https://www.devuan.org/os/documentation",
     "website": "https://www.devuan.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/devuan.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/devuan.webp",
     "config_path": "",
     "description": "Devuan is a fork of Debian without systemd. It uses sysvinit and other alternative init systems, providing freedom of choice.",
     "install_methods": [
