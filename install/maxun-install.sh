@@ -54,9 +54,11 @@ LOCAL_IP=$(hostname -I | awk '{print $1}')
 msg_ok "Variables configured"
 
 msg_info "Setting up MinIO"
-mkdir -p /usr/local/bin /opt/minio_data
-curl -fsSL "https://dl.min.io/server/minio/release/linux-amd64/minio" -o /usr/local/bin/minio
-chmod +x /usr/local/bin/minio
+mkdir -p /opt/minio_data
+cd /tmp
+curl -fsSL https://dl.min.io/server/minio/release/linux-amd64/minio.deb -o minio.deb
+$STD dpkg -i minio.deb
+rm -f /tmp/minio.deb
 
 cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=${MINIO_USER}
@@ -76,7 +78,7 @@ Wants=network-online.target
 Type=simple
 User=root
 EnvironmentFile=/etc/default/minio
-ExecStart=/usr/local/bin/minio server \$MINIO_VOLUMES \$MINIO_OPTS
+ExecStart=/usr/bin/minio server \$MINIO_VOLUMES \$MINIO_OPTS
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
@@ -129,6 +131,7 @@ cd /opt/maxun
 msg_ok "Maxun dependencies installed"
 
 msg_info "Installing Playwright/Chromium"
+$STD npm install playwright
 $STD npx playwright install --with-deps chromium
 msg_ok "Playwright/Chromium installed"
 
