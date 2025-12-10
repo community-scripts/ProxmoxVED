@@ -27,16 +27,32 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 setup_rust
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 fetch_and_deploy_gh_release "hoodik" "hudikhq/hoodik" "tarball" "latest" "/opt/hoodik"
 
-msg_info "Building Hoodik"
+msg_info "Installing wasm-pack"
+$STD cargo install wasm-pack
+msg_ok "Installed wasm-pack"
+
+msg_info "Building Hoodik Frontend"
 cd /opt/hoodik
-source ~/.cargo/env
+$STD yarn install --frozen-lockfile
+$STD yarn wasm-pack
+$STD yarn web:build
+msg_ok "Built Hoodik Frontend"
+
+msg_info "Building Hoodik Backend"
+cd /opt/hoodik
 $STD cargo build --release
 cp /opt/hoodik/target/release/hoodik /usr/local/bin/hoodik
 chmod +x /usr/local/bin/hoodik
+msg_ok "Built Hoodik Backend"
+
+msg_info "Cleaning up build artifacts"
 rm -rf /opt/hoodik/target
-msg_ok "Built Hoodik"
+rm -rf /root/.cargo/registry
+rm -rf /opt/hoodik/node_modules
+msg_ok "Cleaned up build artifacts"
 
 msg_info "Configuring Hoodik"
 mkdir -p /opt/hoodik_data
@@ -46,7 +62,7 @@ DATA_DIR=/opt/hoodik_data
 HTTP_PORT=5443
 HTTP_ADDRESS=0.0.0.0
 JWT_SECRET=${JWT_SECRET}
-APP_URL=https://localhost:5443
+APP_URL=http://127.0.0.1:5443
 SSL_DISABLED=true
 MAILER_TYPE=none
 RUST_LOG=hoodik=info,error=info
@@ -62,9 +78,9 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/hoodik
+WorkingDirectory=/opt/hoodik_data
 EnvironmentFile=/opt/hoodik/.env
-ExecStart=/usr/local/bin/hoodik -a 0.0.0.0 -p 5443
+ExecStart=/usr/local/bin/hoodik
 Restart=always
 RestartSec=5
 

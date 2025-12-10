@@ -2854,7 +2854,7 @@ build_container() {
       # Skip directories like /dev/nvidia-caps (they need special handling)
       for d in /dev/nvidia*; do
         [[ -e "$d" ]] || continue
-        [[ -d "$d" ]] && continue  # Skip directories
+        [[ -d "$d" ]] && continue # Skip directories
         NVIDIA_DEVICES+=("$d")
       done
 

@@ -20,8 +20,8 @@
             "script": "ct/hoodik.sh",
             "resources": {
                 "cpu": 4,
-                "ram": 2048,
-                "hdd": 8,
+                "ram": 4096,
+                "hdd": 20,
                 "os": "Debian",
                 "version": "13"
             }
@@ -37,7 +37,11 @@
             "type": "info"
         },
         {
-            "text": "Installation builds from source and takes 10-15 minutes",
+            "text": "Installation builds Rust backend and Vue frontend from source - takes 15-20 minutes",
+            "type": "warning"
+        },
+        {
+            "text": "Requires 4GB RAM and 20GB disk for build process",
             "type": "warning"
         },
         {
