@@ -38,16 +38,17 @@ function update_script() {
     cp /opt/pixelfed/.env /tmp/pixelfed.env.bak
     msg_ok "Configuration backed up"
 
-    msg_info "Updating ${APP}"
-    cd /opt/pixelfed
     fetch_and_deploy_gh_release "pixelfed" "pixelfed/pixelfed" "tarball" "latest" "/opt/pixelfed"
+
+    msg_info "Restoring Configuration"
     cp /tmp/pixelfed.env.bak /opt/pixelfed/.env
     rm -f /tmp/pixelfed.env.bak
+    msg_ok "Configuration restored"
 
+    msg_info "Updating Pixelfed"
     chown -R pixelfed:pixelfed /opt/pixelfed
     chmod -R 755 /opt/pixelfed
     chmod -R 775 /opt/pixelfed/storage /opt/pixelfed/bootstrap/cache
-
     export COMPOSER_ALLOW_SUPERUSER=1
     $STD composer install --no-dev --no-ansi --no-interaction --optimize-autoloader
     $STD sudo -u pixelfed php artisan migrate --force
@@ -55,15 +56,12 @@ function update_script() {
     $STD sudo -u pixelfed php artisan view:cache
     $STD sudo -u pixelfed php artisan config:cache
     $STD sudo -u pixelfed php artisan horizon:publish
-    msg_ok "Updated ${APP}"
+    msg_ok "Updated Pixelfed"
 
     msg_info "Starting Services"
     systemctl start pixelfed-horizon pixelfed-scheduler.timer
     msg_ok "Services started"
-
     msg_ok "Updated Successfully"
-  else
-    msg_ok "No update required. ${APP} is already at the latest version."
   fi
   exit
 }
