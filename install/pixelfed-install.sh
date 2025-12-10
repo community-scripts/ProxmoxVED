@@ -35,14 +35,12 @@ PG_DB_NAME="pixelfed" PG_DB_USER="pixelfed" setup_postgresql_db
 PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="bcmath,ctype,exif,imagick,pgsql,redis,tokenizer" PHP_UPLOAD_MAX_FILESIZE="500M" PHP_POST_MAX_SIZE="500M" PHP_MAX_EXECUTION_TIME="600" setup_php
 setup_composer
 
-msg_info "Configuring Redis Socket"
+msg_info "Configuring Redis"
 REDIS_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-sed -i 's/^port .*/port 0/' /etc/redis/redis.conf
 sed -i "s/^# requirepass foobared/requirepass $REDIS_PASS/" /etc/redis/redis.conf
-sed -i 's|^# unixsocket .*|unixsocket /run/redis/redis.sock|' /etc/redis/redis.conf
-sed -i 's/^# unixsocketperm .*/unixsocketperm 770/' /etc/redis/redis.conf
+sed -i "s/^requirepass .*/requirepass $REDIS_PASS/" /etc/redis/redis.conf
 systemctl restart redis-server
-msg_ok "Redis Socket configured"
+msg_ok "Redis configured"
 
 msg_info "Configuring PHP-FPM Pool"
 mkdir -p /run/php-fpm
@@ -71,10 +69,9 @@ sed -i "s|DB_PORT=.*|DB_PORT=5432|" .env
 sed -i "s|DB_DATABASE=.*|DB_DATABASE=${PG_DB_NAME}|" .env
 sed -i "s|DB_USERNAME=.*|DB_USERNAME=${PG_DB_USER}|" .env
 sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
-sed -i "s|REDIS_SCHEME=.*|REDIS_SCHEME=unix|" .env
-sed -i "s|REDIS_HOST=.*|REDIS_HOST=/run/redis/redis.sock|" .env
-sed -i "s|REDIS_PORT=.*|REDIS_PORT=0|" .env
+sed -i "s|REDIS_HOST=.*|REDIS_HOST=127.0.0.1|" .env
 sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=${REDIS_PASS}|" .env
+sed -i "s|REDIS_PORT=.*|REDIS_PORT=6379|" .env
 sed -i "s|ACTIVITY_PUB=.*|ACTIVITY_PUB=true|" .env
 sed -i "s|AP_REMOTE_FOLLOW=.*|AP_REMOTE_FOLLOW=true|" .env
 sed -i "s|OAUTH_ENABLED=.*|OAUTH_ENABLED=true|" .env
@@ -91,13 +88,12 @@ sudo -u pixelfed php artisan key:generate
 sudo -u pixelfed php artisan storage:link
 $STD sudo -u pixelfed php artisan migrate --force
 $STD sudo -u pixelfed php artisan import:cities
-$STD sudo -u pixelfed php artisan instance:actor
 $STD sudo -u pixelfed php artisan passport:keys
 $STD sudo -u pixelfed php artisan route:cache
 $STD sudo -u pixelfed php artisan view:cache
 $STD sudo -u pixelfed php artisan config:cache
+$STD sudo -u pixelfed php artisan instance:actor
 $STD sudo -u pixelfed php artisan horizon:install
-$STD sudo -u pixelfed php artisan horizon:publish
 msg_ok "Pixelfed installed"
 
 msg_info "Configuring Nginx"
@@ -190,6 +186,25 @@ systemctl daemon-reload
 systemctl enable -q --now pixelfed-horizon
 systemctl enable -q --now pixelfed-scheduler.timer
 msg_ok "Services created"
+
+msg_info "Saving Credentials"
+CREDS_FILE="/root/pixelfed.creds"
+{
+  echo "Pixelfed Credentials"
+  echo ""
+  echo "PostgreSQL"
+  echo "  Database: ${PG_DB_NAME}"
+  echo "  User: ${PG_DB_USER}"
+  echo "  Password: ${PG_DB_PASS}"
+  echo ""
+  echo "Redis"
+  echo "  Host: 127.0.0.1:6379"
+  echo "  Password: ${REDIS_PASS}"
+  echo ""
+  echo "Web Interface: http://${LOCAL_IP}"
+  echo "Config: /opt/pixelfed/.env"
+} >"$CREDS_FILE"
+msg_ok "Credentials saved to ${CREDS_FILE}"
 
 motd_ssh
 customize
