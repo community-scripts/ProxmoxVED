@@ -24,7 +24,7 @@
                 "ram": 2048,
                 "hdd": 8,
                 "os": "Debian",
-                "version": "12"
+                "version": "13"
             }
         }
     ],
@@ -33,10 +33,6 @@
         "password": "See /root/postgresus.creds"
     },
     "notes": [
-        {
-            "text": "Change the default password after first login for security",
-            "type": "warning"
-        },
         {
             "text": "Supports PostgreSQL versions 12-18 with cloud and self-hosted instances",
             "type": "info"
