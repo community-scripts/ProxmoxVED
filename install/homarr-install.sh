@@ -46,6 +46,7 @@ EOF
 msg_ok "Installed Homarr"
 
 msg_info "Copying config files"
+mkdir -p /appdata/redis
 chown -R redis:redis /appdata/redis
 chmod 755 /appdata/redis
 cp /opt/homarr/redis.conf /etc/redis/redis.conf
