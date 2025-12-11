@@ -45,6 +45,12 @@ EOF
 $STD apt-get update
 $STD apt-get install -y coolwsd code-brand
 systemctl stop coolwsd
+mkdir -p /etc/systemd/system/coolwsd.service.d
+cat <<EOF >/etc/systemd/system/coolwsd.service.d/override.conf
+[Unit]
+Before=opencloud-wopi.service
+EOF
+systemctl daemon-reload
 COOLPASS="$(openssl rand -base64 36)"
 $STD sudo -u cool coolconfig set-admin-password --user=admin --password="$COOLPASS"
 echo "$COOLPASS" >~/.coolpass
@@ -59,8 +65,8 @@ CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
 mkdir -p "$DATA_DIR" "$CONFIG_DIR"/assets/apps
 
-curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud/refs/heads/main/devtools/deployments/opencloud_full/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
-curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud/refs/heads/main/devtools/deployments/opencloud_full/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
+curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
+curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
 
 cat <<EOF >"$ENV_FILE"
 OC_URL=https://${OC_HOST}
@@ -153,8 +159,8 @@ EOF
 cat <<EOF >/etc/systemd/system/opencloud-wopi.service
 [Unit]
 Description=OpenCloud WOPI Server
-Requires=coolwsd.service
-After=network.target opencloud.service coolwsd.service
+Wants=coolwsd.service
+After=opencloud.service coolwsd.service
 
 [Service]
 Type=simple
