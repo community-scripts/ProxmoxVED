@@ -31,11 +31,10 @@ $STD npm ci
 $STD npm run build
 cd /opt/postgresus/backend
 $STD go mod download
-$STD go build -o ../postgresus ./cmd/main.go
-cd /opt/postgresus
+$STD go build -o /opt/postgresus/postgresus ./cmd/main.go
 mkdir -p /opt/postgresus/{data,backups,logs}
-cp -r frontend/dist /opt/postgresus/ui
-cp -r backend/migrations /opt/postgresus/
+cp -r /opt/postgresus/frontend/dist /opt/postgresus/ui
+cp -r /opt/postgresus/backend/migrations /opt/postgresus/
 chown -R postgres:postgres /opt/postgresus
 msg_ok "Built Postgresus"
 
