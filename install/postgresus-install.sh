@@ -20,8 +20,8 @@ msg_ok "Installed Dependencies"
 import_local_ip
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="postgresus" PG_DB_USER="postgresus" setup_postgresql_db
-GO_VERSION="1.23" setup_golang
-NODE_VERSION="20" setup_nodejs
+setup_go
+NODE_VERSION="24" setup_nodejs
 
 fetch_and_deploy_gh_release "postgresus" "RostislavDugin/postgresus" "tarball" "latest" "/opt/postgresus"
 
