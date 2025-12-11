@@ -26,12 +26,16 @@ NODE_VERSION="24" setup_nodejs
 fetch_and_deploy_gh_release "postgresus" "RostislavDugin/postgresus" "tarball" "latest" "/opt/postgresus"
 
 msg_info "Building Postgresus (Patience)"
+# Build frontend
 cd /opt/postgresus/frontend
 $STD npm ci
 $STD npm run build
+
+# Build backend
 cd /opt/postgresus/backend
+$STD go mod tidy
 $STD go mod download
-$STD go build -o /opt/postgresus/postgresus ./cmd/main.go
+$STD CGO_ENABLED=0 go build -o /opt/postgresus/postgresus ./cmd/main.go
 mkdir -p /opt/postgresus/{data,backups,logs}
 cp -r /opt/postgresus/frontend/dist /opt/postgresus/ui
 cp -r /opt/postgresus/backend/migrations /opt/postgresus/
