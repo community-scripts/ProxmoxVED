@@ -29,20 +29,24 @@ function update_script() {
     exit 1
   fi
 
-  if [[ -f /etc/apt/sources.list.d/grafana.list ]] || [[ ! -f /etc/apt/sources.list.d/grafana.sources ]]; then
-    setup_deb822_repo \
-      "grafana" \
-      "https://apt.grafana.com/gpg.key" \
-      "https://apt.grafana.com" \
-      "stable" \
-      "main"
-  fi
+  msg_info "Stopping Loki"
+  systemctl stop loki
+  systemctl stop promtail
+  msg_ok "Stopped Loki"
 
-  msg_info "Updating Loki LXC"
+  msg_info "Updating Loki"
   $STD apt update
   $STD apt --only-upgrade install -y loki
   $STD apt --only-upgrade install -y promtail
-  msg_ok "Updated successfully!"
+  msg_ok "Updated Loki"
+
+  msg_info "Starting Loki"
+  systemctl start loki
+  systemctl start promtail
+  msg_ok "Started Loki"
+
+  msg_ok "Update Successful"
+
   exit
 }
 
