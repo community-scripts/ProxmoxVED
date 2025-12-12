@@ -40,7 +40,7 @@ function update_script() {
     $STD apt-get dist-upgrade
     msg_ok "Updated packages"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "${RELEASE}" "/usr/bin" "opencloud-.*linux-amd64"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "${RELEASE}" "/usr/bin" "opencloud-*-linux-amd64"
 
     msg_info "Starting services"
     systemctl start opencloud opencloud-wopi
