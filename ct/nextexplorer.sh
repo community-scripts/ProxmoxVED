@@ -50,7 +50,7 @@ function update_script() {
     unset NODE_ENV
     cd /opt/nextExplorer/
     mv backend/{node_modules,src,package.json} "$APP_DIR"
-    mv frontend/dist/ "$APP_DIR"/public
+    mv frontend/dist/ "$APP_DIR"/src/public
     msg_ok "Updated nextExplorer"
 
     msg_info "Starting nextExplorer"

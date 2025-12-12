@@ -42,7 +42,7 @@ unset NODE_ENV
 
 cd /opt/nextExplorer
 mv backend/{node_modules,src,package.json} "$APP_DIR"
-mv frontend/dist/ "$APP_DIR"/public
+mv frontend/dist/ "$APP_DIR"/src/public
 msg_ok "Built nextExplorer"
 
 msg_info "Configuring nextExplorer"
@@ -113,7 +113,7 @@ chmod 600 /etc/nextExplorer/.env
 msg_ok "Configured nextExplorer"
 
 msg_info "Creating nextExplorer Service"
-cat <<EOF >/etc/systemd/system/nextExplorer.service
+cat <<EOF >/etc/systemd/system/nextexplorer.service
 [Unit]
 Description=nextExplorer Service
 After=network.target
@@ -131,7 +131,7 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-$STD systemctl enable -q --now nextExplorer
+$STD systemctl enable -q --now nextexplorer
 msg_ok "Created nextExplorer Service"
 
 motd_ssh
