@@ -110,6 +110,8 @@ SHARES_ENABLED=true
 # SHARES_ALLOW_ANONYMOUS=true
 EOF
 chmod 600 /etc/nextExplorer/.env
+$STD useradd -U -s /bin/bash -m -d /home/explorer explorer
+chown -R explorer:explorer "$APP_DIR" /etc/nextExplorer
 msg_ok "Configured nextExplorer"
 
 msg_info "Creating nextExplorer Service"

@@ -51,6 +51,7 @@ function update_script() {
     cd /opt/nextExplorer/
     mv backend/{node_modules,src,package.json} "$APP_DIR"
     mv frontend/dist/ "$APP_DIR"/src/public
+    chown -R explorer:explorer "$APP_DIR" /etc/nextExplorer
     msg_ok "Updated nextExplorer"
 
     msg_info "Starting nextExplorer"
