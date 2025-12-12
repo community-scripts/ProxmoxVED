@@ -115,6 +115,7 @@ WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 ## uncomment for OpenID in general
 # OC_EXCLUDE_RUN_SERVICES=idp
 # OC_OIDC_ISSUER=<your auth URL>
+# IDP_DOMAIN=<your auth URL>
 # PROXY_OIDC_ACCESS_TOKEN_VERIFY_METHOD=none
 # PROXY_OIDC_REWRITE_WELLKNOWN=true
 # PROXY_USER_OIDC_CLAIM=preferred_username
