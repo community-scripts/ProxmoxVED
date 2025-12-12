@@ -167,6 +167,7 @@ Type=simple
 User=opencloud
 Group=opencloud
 EnvironmentFile=${ENV_FILE}
+ExecStartPre=/bin/sleep 10
 ExecStart=/usr/bin/opencloud collaboration server
 Restart=always
 KillSignal=SIGKILL
