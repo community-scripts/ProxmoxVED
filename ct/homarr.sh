@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "homarr" "Meierschlumpf/homarr"; then
+  if check_for_gh_release "homarr" "Homarr/homarr"; then
     msg_info "Stopping Services (Patience)"
     systemctl stop homarr
     systemctl stop redis-server
