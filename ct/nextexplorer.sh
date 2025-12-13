@@ -29,6 +29,8 @@ function update_script() {
     exit
   fi
 
+  NODE_VERSION="24" setup_nodejs
+
   if check_for_gh_release "nextExplorer" "vikramsoni2/nextExplorer"; then
     msg_info "Stopping nextExplorer"
     $STD systemctl stop nextexplorer
