@@ -36,11 +36,11 @@ function update_script() {
     msg_ok "Services Stopped"
 
 
-    if ! grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr/.env; then
+    if ! { grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr/.env 2>/dev/null || grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr.env 2>/dev/null; }; then
         msg_info "Fixing old structure"
         $STD apt install -y musl-dev
         ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
-        echo "REDIS_IS_EXTERNAL='true'" >> /opt/homarr/.env
+        echo "REDIS_IS_EXTERNAL='true'" >> /opt/homarr.env
         sed -i 's|^ExecStart=.*|ExecStart=/opt/homarr/run.sh|' /etc/systemd/system/homarr.service
         sed -i 's|^EnvironmentFile=.*|EnvironmentFile=-/opt/homarr.env|' /etc/systemd/system/homarr.service
         chown -R redis:redis /appdata/redis
