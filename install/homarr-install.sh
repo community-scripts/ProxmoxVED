@@ -24,7 +24,7 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION=$(curl -s https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
 setup_nodejs
-fetch_and_deploy_gh_release "homarr" "Homarr/homarr" "prebuild" "latest" "/opt/homarr" "source-amd64.tar.gz"
+fetch_and_deploy_gh_release "homarr" "homarr-labs/homarr" "prebuild" "latest" "/opt/homarr" "source-amd64.tar.gz"
 
 msg_info "Installing Homarr"
 ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
