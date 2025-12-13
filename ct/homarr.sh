@@ -66,7 +66,7 @@ EOF
     setup_nodejs
 
     rm -rf /opt/homarr
-    fetch_and_deploy_gh_release "homarr" "Meierschlumpf/homarr" "prebuild" "latest" "/opt/homarr" "source-amd64.tar"
+    fetch_and_deploy_gh_release "homarr" "Meierschlumpf/homarr" "prebuild" "latest" "/opt/homarr" "build-amd64.tar.gz"
 
     msg_info "Updating Homarr to v${RELEASE}"
     cp /opt/homarr/redis.conf /etc/redis/redis.conf
@@ -75,7 +75,7 @@ EOF
     cp /opt/homarr/nginx.conf /etc/nginx/templates/nginx.conf
     echo $'#!/bin/bash\ncd /opt/homarr/apps/cli && node ./cli.cjs "$@"' >/usr/bin/homarr
     chmod +x /usr/bin/homarr
-    msg_ok "Updated ${APP}"
+    msg_ok "Updated Homarr to v${RELEASE}"
 
     msg_info "Starting Services"
     chmod +x /opt/homarr/run.sh
