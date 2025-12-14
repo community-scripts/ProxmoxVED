@@ -34,13 +34,12 @@ function update_script() {
         systemctl stop kutt
         msg_ok "Stopped services"
 
-
         fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball" "latest"
 
         msg_info "Configuring Kutt"
         cd /opt/kutt
-        npm install
-        npm run migrate
+        $STD npm install
+        $STD npm run migrate
         msg_ok "Configured Kutt"
 
         msg_info "Starting services"

@@ -26,8 +26,8 @@ cd /opt/kutt
 cp .example.env ".env"
 sed -i "s|DEFAULT_DOMAIN=localhost:3000|DEFAULT_DOMAIN=${KUTT_HOST}|g" ".env"
 sed -i "s|JWT_SECRET=|JWT_SECRET=$(openssl rand -base64 32)|g" ".env"
-npm install
-npm run migrate
+$STD npm install
+$STD npm run migrate
 
 cat <<EOF >/etc/systemd/system/kutt.service
 [Unit]
