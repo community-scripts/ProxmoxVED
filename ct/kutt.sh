@@ -34,10 +34,6 @@ function update_script() {
         systemctl stop kutt
         msg_ok "Stopped services"
 
-        msg_info "Updating packages"
-        $STD apt-get update
-        $STD apt-get dist-upgrade
-        msg_ok "Updated packages"
 
         fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball" "latest"
 
