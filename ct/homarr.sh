@@ -66,7 +66,7 @@ EOF
     setup_nodejs
 
     rm -rf /opt/homarr
-    fetch_and_deploy_gh_release "homarr" "homarr-labs/homarr" "prebuild" "latest" "/opt/homarr" "source-amd64.tar.gz"
+    fetch_and_deploy_gh_release "homarr" "homarr-labs/homarr" "prebuild" "latest" "/opt/homarr" "build-amd64.tar.gz"
 
     msg_info "Updating Homarr to v${RELEASE}"
     cp /opt/homarr/redis.conf /etc/redis/redis.conf
