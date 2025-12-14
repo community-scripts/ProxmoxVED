@@ -25,7 +25,7 @@ msg_info "Setting up Heimdall-Dashboard"
 cd /opt/Heimdall
 cp .env.example .env
 $STD php artisan key:generate
-msg_ok "Installed Heimdall Dashboard ${RELEASE}"
+msg_ok "Setup Heimdall-Dashboard"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/heimdall.service
