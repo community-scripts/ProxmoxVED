@@ -28,7 +28,7 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "linuxserver/Heimdall"; then
+  if check_for_gh_release "Heimdall" "linuxserver/Heimdall"; then
     msg_info "Stopping Service"
     systemctl stop heimdall
     sleep 1
