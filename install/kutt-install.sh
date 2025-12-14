@@ -44,7 +44,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now kutt.service
+systemctl enable -q --now kutt
 msg_ok "Configured Kutt"
 
 motd_ssh
