@@ -47,7 +47,8 @@ WantedBy=multi-user.target"
 EOF
 systemctl enable -q --now heimdall
 cd /opt/Heimdall
-COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload &>/dev/null
+export COMPOSER_ALLOW_SUPERUSER=1
+$STD composer dump-autoload
 systemctl restart heimdall.service
 msg_ok "Created Service"
 
