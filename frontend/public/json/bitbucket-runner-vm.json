@@ -1,0 +1,39 @@
+{
+    "name": "Bitbucket Runner",
+    "slug": "bitbucket-runner-vm",
+    "categories": [
+        20
+    ],
+    "date_created": "2025-12-13",
+    "type": "vm",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": null,
+    "documentation": "https://support.atlassian.com/bitbucket-cloud/docs/runners/",
+    "website": "https://bitbucket.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/bitbucket.webp",
+    "config_path": "",
+    "description": "Self-hosted Bitbucket Pipelines Runner. Allows running builds on your own infrastructure with Docker support.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "vm/bitbucket-runner-vm.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 8192,
+                "hdd": 10,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "root"
+    },
+    "notes": [
+        {
+            "text": "The installer will prompt for the required Bitbucket Runner configuration (UUIDs & OAuth) generated from your Workspace or Repository settings.",
+            "type": "info"
+        }
+    ]
+}
