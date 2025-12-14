@@ -19,7 +19,6 @@ if [[ "$kutt_host" ]]; then
 fi
 
 NODE_VERSION="22" setup_nodejs
-
 fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball"
 
 msg_info "Configuring Kutt"
