@@ -12,7 +12,7 @@
     "documentation": "https://github.com/thedevs-network/kutt/",
     "config_path": "/etc/kutt-data/.env",
     "website": "https://kutt.it",
-    "logo": "https://kutt.it/images/favicon-196x196.png",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kutt.webp",
     "description": "Kutt is a modern URL shortener with support for custom domains. Create and edit links, view statistics, manage users, and more.",
     "install_methods": [
         {
