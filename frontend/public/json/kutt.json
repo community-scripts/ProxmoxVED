@@ -33,7 +33,7 @@
     },
     "notes": [
         {
-            "text": "A valid TLS certificate is **REQUIRED**",
+            "text": "A reverse proxy that serves an SSL certificate is required. Otherwise the login will not work.",
             "type": "warning"
         }
     ]
