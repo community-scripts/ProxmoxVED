@@ -36,15 +36,29 @@ $STD go install github.com/swaggo/swag/cmd/swag@latest
 $STD /root/go/bin/swag init -g cmd/main.go -o swagger
 $STD env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o postgresus ./cmd/main.go
 mv /opt/postgresus/backend/postgresus /opt/postgresus/postgresus
-mkdir -p /opt/postgresus/{data,backups,logs}
-cp -r /opt/postgresus/frontend/dist /opt/postgresus/ui
+mkdir -p /opt/postgresus_data/{data,backups,logs}
+mkdir -p /postgresus-data/temp
+mkdir -p /opt/postgresus/ui/build
+cp -r /opt/postgresus/frontend/dist/* /opt/postgresus/ui/build/
 cp -r /opt/postgresus/backend/migrations /opt/postgresus/
 chown -R postgres:postgres /opt/postgresus
+chown -R postgres:postgres /opt/postgresus_data
+chown -R postgres:postgres /postgresus-data
 msg_ok "Built Postgresus"
 
 msg_info "Configuring Postgresus"
 ADMIN_PASS=$(openssl rand -base64 12)
 JWT_SECRET=$(openssl rand -hex 32)
+
+# Create PostgreSQL version symlinks for compatibility
+for v in 12 13 14 15 16 18; do
+  ln -sf /usr/lib/postgresql/17 /usr/lib/postgresql/$v
+done
+
+# Install goose for migrations
+$STD go install github.com/pressly/goose/v3/cmd/goose@latest
+ln -sf /root/go/bin/goose /usr/local/bin/goose
+
 cat <<EOF >/opt/postgresus/.env
 # Environment
 ENV_MODE=production
@@ -54,7 +68,13 @@ SERVER_PORT=4005
 SERVER_HOST=0.0.0.0
 
 # Database (Internal PostgreSQL for app data)
+DATABASE_DSN=host=localhost user=${PG_DB_USER} password=${PG_DB_PASS} dbname=${PG_DB_NAME} port=5432 sslmode=disable
 DATABASE_URL=postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}?sslmode=disable
+
+# Migrations
+GOOSE_DRIVER=postgres
+GOOSE_DBSTRING=postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}?sslmode=disable
+GOOSE_MIGRATION_DIR=/opt/postgresus/migrations
 
 # Security
 JWT_SECRET=${JWT_SECRET}
@@ -65,15 +85,16 @@ ADMIN_EMAIL=admin@localhost
 ADMIN_PASSWORD=${ADMIN_PASS}
 
 # Paths
-DATA_DIR=/opt/postgresus/data
-BACKUP_DIR=/opt/postgresus/backups
-LOG_DIR=/opt/postgresus/logs
+DATA_DIR=/opt/postgresus_data/data
+BACKUP_DIR=/opt/postgresus_data/backups
+LOG_DIR=/opt/postgresus_data/logs
 
 # PostgreSQL Tools (for creating backups)
-PG_DUMP_PATH=/usr/bin/pg_dump
-PG_RESTORE_PATH=/usr/bin/pg_restore
-PSQL_PATH=/usr/bin/psql
+PG_DUMP_PATH=/usr/lib/postgresql/17/bin/pg_dump
+PG_RESTORE_PATH=/usr/lib/postgresql/17/bin/pg_restore
+PSQL_PATH=/usr/lib/postgresql/17/bin/psql
 EOF
+chown postgres:postgres /opt/postgresus/.env
 chmod 600 /opt/postgresus/.env
 msg_ok "Configured Postgresus"
 
@@ -89,6 +110,7 @@ Type=simple
 User=postgres
 Group=postgres
 WorkingDirectory=/opt/postgresus
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
 EnvironmentFile=/opt/postgresus/.env
 ExecStart=/opt/postgresus/postgresus
 Restart=always
@@ -99,6 +121,7 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
+$STD systemctl daemon-reload
 $STD systemctl enable -q --now postgresus
 msg_ok "Created Postgresus Service"
 
