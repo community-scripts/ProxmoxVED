@@ -38,6 +38,7 @@ function update_script() {
 
     if ! { grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr/.env 2>/dev/null || grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr.env 2>/dev/null; }; then
         msg_info "Fixing old structure"
+        systemctl disable -q --now nginx
         $STD apt install -y musl-dev
         # Error: ec 15 21:05:23 homarr run.sh[330]:  ⨯ Error: libc.musl-x86_64.so.1: cannot open shared object file: No such file or di>
         # Dec 15 21:05:23 homarr run.sh[330]:     at ignore-listed frames {
