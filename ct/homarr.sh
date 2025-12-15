@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "homarr" "homarr-labs/homarr"; then
+  if check_for_gh_release "homarr" "Meierschlumpf/homarr"; then
     msg_info "Stopping Services (Patience)"
     systemctl stop homarr
     systemctl stop redis-server
@@ -62,9 +62,9 @@ EOF
     $STD apt upgrade nodejs -y
     msg_ok "Updated Nodejs"
 
-    NODE_VERSION=$(curl -s https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
+    NODE_VERSION=$(curl -s https://raw.githubusercontent.com/Meierschlumpf/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
     setup_nodejs
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homarr" "homarr-labs/homarr" "prebuild" "latest" "/opt/homarr" "build-amd64.tar.gz"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homarr" "Meierschlumpf/homarr" "prebuild" "latest" "/opt/homarr" "source-amd64.tar.gz"
 
     msg_info "Updating Homarr"
     cp /opt/homarr/redis.conf /etc/redis/redis.conf
