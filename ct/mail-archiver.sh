@@ -28,7 +28,7 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "mail-archiver-build" "s1t5/mail-archiver"; then
+  if check_for_gh_release "mail-archiver" "s1t5/mail-archiver"; then
     msg_ok "Updated successfully!"
   fi
   exit

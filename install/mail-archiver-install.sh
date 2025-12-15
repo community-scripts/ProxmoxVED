@@ -27,10 +27,10 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="mailarchiver_db" PG_DB_USER="mailarchiver" setup_postgresql_db
-fetch_and_deploy_gh_release "mail-archiver-build" "s1t5/mail-archiver" "tarball"
+fetch_and_deploy_gh_release "mail-archiver" "s1t5/mail-archiver" "tarball"
 
 msg_info "Setting up Mail-Archiver"
-mkdir -p /opt/mail-archiver
+mv /opt/mail-archiver /opt/mail-archiver-build
 cd /opt/mail-archiver-build
 $STD dotnet restore
 $STD dotnet publish -c Release -o /opt/mail-archiver
