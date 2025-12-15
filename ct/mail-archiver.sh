@@ -29,6 +29,25 @@ function update_script() {
   fi
 
   if check_for_gh_release "mail-archiver" "s1t5/mail-archiver"; then
+    msg_info "Creating Backup"
+    cp /opt/mail-archiver/appsettings.json /opt/mail-archiver/.env /opt/
+    [[ -d /opt/mail-archiver/DataProtection-Keys ]] && cp -r /opt/mail-archiver/DataProtection-Keys /opt
+    msg_ok "Created Backup"
+
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "mail-archiver" "s1t5/mail-archiver" "tarball"
+
+    msg_info "Updating Mail-Archiver"
+    mv /opt/mail-archiver /opt/mail-archiver-build
+    cd /opt/mail-archiver-build
+    $STD dotnet restore
+    $STD dotnet publish -c Release -o /opt/mail-archiver
+    rm -rf /opt/mail-archiver-build
+    msg_ok "Updated Mail-Archiver"
+
+    msg_info "Restoring Backup"
+    cp /opt/appsettings.json /opt/.env /opt/mail-archiver
+    [[ -d /opt/DataProtection-Keys ]] && cp -r /opt/DataProtection-Keys /opt/mail-archiver/
+    msg_ok "Restored Backup"
     msg_ok "Updated successfully!"
   fi
   exit
