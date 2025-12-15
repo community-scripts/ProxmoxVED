@@ -29,6 +29,10 @@ function update_script() {
   fi
 
   if check_for_gh_release "mail-archiver" "s1t5/mail-archiver"; then
+    msg_info "Stopping Mail-Archiver"
+    systemctl stop mail-archiver
+    msg_ok "Stopped Mail-Archiver"
+
     msg_info "Creating Backup"
     cp /opt/mail-archiver/appsettings.json /opt/mail-archiver/.env /opt/
     [[ -d /opt/mail-archiver/DataProtection-Keys ]] && cp -r /opt/mail-archiver/DataProtection-Keys /opt
@@ -48,6 +52,10 @@ function update_script() {
     cp /opt/appsettings.json /opt/.env /opt/mail-archiver
     [[ -d /opt/DataProtection-Keys ]] && cp -r /opt/DataProtection-Keys /opt/mail-archiver/
     msg_ok "Restored Backup"
+
+    msg_info "Starting Mail-Archiver"
+    systemctl start mail-archiver
+    msg_ok "Started Mail-Archiver"
     msg_ok "Updated successfully!"
   fi
   exit
@@ -60,4 +68,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5380${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5000${CL}"
