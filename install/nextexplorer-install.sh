@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: vhsdream
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/vikramsoni2/nextExplorer
+
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
+
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  ripgrep \
+  imagemagick \
+  ffmpeg
+msg_ok "Installed Dependencies"
+
+NODE_VERSION="24" setup_nodejs
+
+fetch_and_deploy_gh_release "nextExplorer" "vikramsoni2/nextExplorer" "tarball" "latest" "/opt/nextExplorer"
+
+msg_info "Building nextExplorer"
+APP_DIR="/opt/nextExplorer/app"
+LOCAL_IP="$(hostname -I | awk '{print $1}')"
+mkdir -p "$APP_DIR"
+mkdir -p /etc/nextExplorer
+cd /opt/nextExplorer/backend
+export NODE_ENV=production
+$STD npm ci
+unset NODE_ENV
+
+cd /opt/nextExplorer/frontend
+export NODE_ENV=development
+$STD npm ci
+$STD npm run build -- --sourcemap false
+unset NODE_ENV
+
+cd /opt/nextExplorer
+mv backend/{node_modules,src,package.json} "$APP_DIR"
+mv frontend/dist/ "$APP_DIR"/src/public
+msg_ok "Built nextExplorer"
+
+msg_info "Configuring nextExplorer"
+SECRET=$(openssl rand -hex 32)
+cat <<EOF >/etc/nextExplorer/.env
+NODE_ENV=production
+PORT=3000
+
+VOLUME_ROOT=/mnt
+CONFIG_DIR=/etc/nextExplorer
+CACHE_DIR=/etc/nextExplorer/cache
+# USER_ROOT=
+
+PUBLIC_URL=${LOCAL_IP}:3000
+# TRUST_PROXY=
+# CORS_ORIGINS=
+
+LOG_LEVEL=info
+DEBUG=false
+ENABLE_HTTP_LOGGING=false
+
+AUTH_ENABLED=true
+AUTH_MODE=both
+SESSION_SECRET="${SECRET}"
+# AUTH_MAX_FAILED=
+# AUTH_LOCK_MINUTES=
+
+# OIDC_ENABLED=
+# OIDC_ISSUER=
+# OIDC_AUTHORIZATION_URL=
+# OIDC_TOKEN_URL=
+# OIDC_USERINFO_URL=
+# OIDC_CLIENT_ID=
+# OIDC_CLIENT_SECRET=
+# OIDC_CALLBACK_URL=
+# OIDC_SCOPES=
+
+# SEARCH_DEEP=
+# SEARCH_RIPGREP=
+# SEARCH_MAX_FILESIZE=
+
+# ONLYOFFICE_URL=
+# ONLYOFFICE_SECRET=
+# ONLYOFFICE_LANG=
+# ONLYOFFICE_FORCE_SAVE=
+# ONLYOFFICE_FILE_EXTENSIONS=
+
+SHOW_VOLUME_USAGE=true
+# USER_DIR_ENABLED=
+# SKIP_HOME=
+
+# EDITOR_EXTENSIONS=
+
+# FFMPEG_PATH=
+# FFPROBE_PATH=
+
+FAVORITES_DEFAULT_ICON=outline.StarIcon
+
+SHARES_ENABLED=true
+# SHARES_TOKEN_LENGTH=10
+# SHARES_MAX_PER_USER=100
+# SHARES_DEFAULT_EXPIRY_DAYS=30
+# SHARES_GUEST_SESSION_HOURS=24
+# SHARES_ALLOW_PASSWORD=true
+# SHARES_ALLOW_ANONYMOUS=true
+EOF
+chmod 600 /etc/nextExplorer/.env
+$STD useradd -U -s /bin/bash -m -d /home/explorer explorer
+chown -R explorer:explorer "$APP_DIR" /etc/nextExplorer
+msg_ok "Configured nextExplorer"
+
+msg_info "Creating nextExplorer Service"
+cat <<EOF >/etc/systemd/system/nextexplorer.service
+[Unit]
+Description=nextExplorer Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/nextExplorer/app
+EnvironmentFile=/etc/nextExplorer/.env
+ExecStart=/usr/bin/node ./src/app.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+$STD systemctl enable -q --now nextexplorer
+msg_ok "Created nextExplorer Service"
+
+motd_ssh
+customize
+cleanup_lxc

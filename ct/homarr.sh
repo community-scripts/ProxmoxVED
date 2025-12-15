@@ -7,8 +7,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 
 APP="homarr"
 var_tags="${var_tags:-arr;dashboard}"
-var_cpu="${var_cpu:-3}"
-var_ram="${var_ram:-6144}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-1024}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -36,11 +36,12 @@ function update_script() {
     msg_ok "Services Stopped"
 
 
-    if ! grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr/.env; then
+    if ! { grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr/.env 2>/dev/null || grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr.env 2>/dev/null; }; then
         msg_info "Fixing old structure"
         $STD apt install -y musl-dev
         ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
-        echo "REDIS_IS_EXTERNAL='true'" >> /opt/homarr/.env
+        cp /opt/homarr/.env /opt/homarr.env
+        echo "REDIS_IS_EXTERNAL='true'" >> /opt/homarr.env
         sed -i 's|^ExecStart=.*|ExecStart=/opt/homarr/run.sh|' /etc/systemd/system/homarr.service
         sed -i 's|^EnvironmentFile=.*|EnvironmentFile=-/opt/homarr.env|' /etc/systemd/system/homarr.service
         chown -R redis:redis /appdata/redis
@@ -52,7 +53,6 @@ ReadWritePaths=-/appdata/redis -/var/lib/redis -/var/log/redis -/var/run/redis -
 EOF
         # TODO: change in json
         systemctl daemon-reload
-        cp /opt/homarr/.env /opt/homarr.env
         rm /opt/run_homarr.sh
         msg_ok "Fixed old structure"
     fi
@@ -64,18 +64,14 @@ EOF
 
     NODE_VERSION=$(curl -s https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
     setup_nodejs
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homarr" "homarr-labs/homarr" "prebuild" "latest" "/opt/homarr" "build-amd64.tar.gz"
 
-    rm -rf /opt/homarr
-    fetch_and_deploy_gh_release "homarr" "homarr-labs/homarr"
-
-    msg_info "Updating Homarr to v${RELEASE}"
+    msg_info "Updating Homarr"
     cp /opt/homarr/redis.conf /etc/redis/redis.conf
     rm /etc/nginx/nginx.conf
     mkdir -p /etc/nginx/templates
     cp /opt/homarr/nginx.conf /etc/nginx/templates/nginx.conf
-    echo $'#!/bin/bash\ncd /opt/homarr/apps/cli && node ./cli.cjs "$@"' >/usr/bin/homarr
-    chmod +x /usr/bin/homarr
-    msg_ok "Updated ${APP}"
+    msg_ok "Updated Homarr"
 
     msg_info "Starting Services"
     chmod +x /opt/homarr/run.sh
