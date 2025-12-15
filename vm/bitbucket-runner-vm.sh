@@ -210,11 +210,11 @@ function get_bitbucket_creds() {
     if ! ACCOUNT_UUID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Enter Account UUID (mandatory)" 10 58 --title "Bitbucket Config" 3>&1 1>&2 2>&3); then exit-script; fi
   fi
   if [ -z "$ACCOUNT_UUID" ]; then msg_error "Account UUID is mandatory"; exit; fi
-  
+
   if [ -z "$REPOSITORY_UUID" ]; then
     if ! REPOSITORY_UUID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Enter Repository UUID (optional, leave empty for workspace runner)" 10 58 --title "Bitbucket Config" 3>&1 1>&2 2>&3); then exit-script; fi
   fi
-  
+
   if [ -z "$RUNNER_UUID" ]; then
     if ! RUNNER_UUID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Enter Runner UUID (mandatory)" 10 58 --title "Bitbucket Config" 3>&1 1>&2 2>&3); then exit-script; fi
   fi
@@ -499,11 +499,11 @@ function advanced_settings() {
       if var_gateway=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Gateway IP" 8 58 --title "GATEWAY" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
         if [ -z "$var_gateway" ]; then msg_error "Gateway is mandatory for Static IP"; exit; fi
       else exit-script; fi
-      
+
       if var_dns=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set DNS Server (optional, leave blank for host default)" 8 58 --title "DNS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
         :
       else exit-script; fi
-      
+
       echo -e "${DEFAULT}${BOLD}${DGN}Network Type: ${BGN}Static${CL}"
       echo -e "${DEFAULT}${BOLD}${DGN}IP Address: ${BGN}$var_ip${CL}"
       echo -e "${DEFAULT}${BOLD}${DGN}Gateway: ${BGN}$var_gateway${CL}"
@@ -545,11 +545,7 @@ function advanced_settings() {
 }
 
 function start_script() {
-  if [ -n "$ACCOUNT_UUID" ]; then
-    header_info
-    echo -e "${DEFAULT}${BOLD}${BL}Using Unattended Settings${CL}"
-    default_settings
-  elif (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button Advanced 10 58); then
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button Advanced 10 58); then
     header_info
     echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings${CL}"
     default_settings
