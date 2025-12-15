@@ -1,0 +1,298 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://www.mailpiler.org/
+
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
+
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  nginx \
+  openssl \
+  libtre5 \
+  catdoc \
+  poppler-utils \
+  unrtf \
+  tnef \
+  clamav \
+  clamav-daemon \
+  memcached \
+  sysstat \
+  python3 \
+  python3-mysqldb
+msg_ok "Installed Dependencies"
+
+import_local_ip
+setup_mariadb
+MARIADB_DB_NAME="piler" MARIADB_DB_USER="piler" setup_mysql_db
+PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="ldap,gd,memcached,pdo,mysql,curl,zip" setup_php
+
+msg_info "Installing Manticore Search"
+curl -fsSL https://repo.manticoresearch.com/manticore-repo.noarch.deb -o /tmp/manticore-repo.deb
+$STD dpkg -i /tmp/manticore-repo.deb
+$STD apt update
+$STD apt install -y manticore manticore-extra
+rm -f /tmp/manticore-repo.deb
+msg_ok "Installed Manticore Search"
+
+msg_info "Installing Piler"
+VERSION="1.4.8"
+cd /tmp
+curl -fsSL "https://github.com/jsuto/piler/releases/download/piler-${VERSION}/piler_${VERSION}-bookworm_amd64.deb" -o piler.deb
+curl -fsSL "https://github.com/jsuto/piler/releases/download/piler-${VERSION}/piler-webui_${VERSION}-bookworm_amd64.deb" -o piler-webui.deb
+
+$STD dpkg -i piler.deb
+$STD apt-get -f install -y
+$STD dpkg -i piler-webui.deb
+$STD apt-get -f install -y
+
+rm -f piler.deb piler-webui.deb
+msg_ok "Installed Piler v${VERSION}"
+
+msg_info "Configuring Piler Database"
+cd /usr/local/share/piler
+mysql -u root "${MARIADB_DB_NAME}" <db-mysql.sql
+msg_ok "Configured Piler Database"
+
+msg_info "Configuring Piler"
+PILER_KEY=$(openssl rand -hex 16)
+
+cat <<EOF >/etc/piler/piler.conf
+hostid=piler.${LOCAL_IP}.nip.io
+update_counters_to_memcached=1
+
+mysql_hostname=localhost
+mysql_database=${MARIADB_DB_NAME}
+mysql_username=${MARIADB_DB_USER}
+mysql_password=${MARIADB_DB_PASS}
+mysql_socket=/var/run/mysqld/mysqld.sock
+
+archive_dir=/var/piler/store
+data_dir=/var/piler
+tmp_dir=/var/piler/tmp
+
+listen_addr=0.0.0.0
+listen_port=25
+
+encrypt_messages=1
+key=${PILER_KEY}
+iv=0123456789ABCDEF
+
+memcached_servers=127.0.0.1
+
+enable_clamav=1
+clamd_socket=/var/run/clamav/clamd.ctl
+
+spam_header_line=X-Spam-Status: Yes
+
+verbosity=1
+EOF
+
+chown piler:piler /etc/piler/piler.conf
+chmod 640 /etc/piler/piler.conf
+chown -R piler:piler /var/piler
+chmod 750 /var/piler
+msg_ok "Configured Piler"
+
+msg_info "Configuring Manticore Search"
+cat <<EOF >/etc/manticoresearch/manticore.conf
+searchd {
+  listen = 9306:mysql
+  listen = 9312
+  listen = 9308:http
+  log = /var/log/manticore/searchd.log
+  query_log = /var/log/manticore/query.log
+  pid_file = /var/run/manticore/searchd.pid
+  binlog_path = /var/lib/manticore/data
+}
+
+source piler1 {
+  type = mysql
+  sql_host = localhost
+  sql_user = ${MARIADB_DB_USER}
+  sql_pass = ${MARIADB_DB_PASS}
+  sql_db = ${MARIADB_DB_NAME}
+  sql_port = 3306
+
+  sql_query = SELECT id, from_addr, to_addr, subject, body, sent FROM metadata
+  sql_attr_timestamp = sent
+}
+
+index piler1 {
+  source = piler1
+  path = /var/piler/manticore/piler1
+  min_word_len = 1
+  charset_table = 0..9, A..Z->a..z, a..z, U+00E1, U+00E9
+}
+
+index tag1 {
+  type = rt
+  path = /var/piler/manticore/tag1
+  rt_field = tag
+  rt_attr_uint = uid
+}
+
+index note1 {
+  type = rt
+  path = /var/piler/manticore/note1
+  rt_field = note
+  rt_attr_uint = uid
+}
+EOF
+
+mkdir -p /var/log/manticore
+chown -R manticore:manticore /var/log/manticore
+chown -R piler:piler /var/piler/manticore
+msg_ok "Configured Manticore Search"
+
+msg_info "Creating Piler Service"
+cat <<EOF >/etc/systemd/system/piler.service
+[Unit]
+Description=Piler Email Archiving
+After=network.target mysql.service manticore.service
+Requires=mysql.service manticore.service
+
+[Service]
+Type=forking
+User=piler
+Group=piler
+ExecStart=/usr/local/sbin/pilerd -c /etc/piler/piler.conf
+PIDFile=/var/piler/pilerd.pid
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+$STD systemctl daemon-reload
+$STD systemctl enable --now manticore
+$STD systemctl enable --now memcached
+$STD systemctl enable --now clamav-daemon
+$STD systemctl enable --now piler
+msg_ok "Created Piler Service"
+
+msg_info "Configuring PHP-FPM Pool"
+cp /etc/php/8.4/fpm/pool.d/www.conf /etc/php/8.4/fpm/pool.d/piler.conf
+sed -i 's/\[www\]/[piler]/' /etc/php/8.4/fpm/pool.d/piler.conf
+sed -i 's/^user = www-data/user = piler/' /etc/php/8.4/fpm/pool.d/piler.conf
+sed -i 's/^group = www-data/group = piler/' /etc/php/8.4/fpm/pool.d/piler.conf
+sed -i 's|^listen = .*|listen = /run/php/php8.4-fpm-piler.sock|' /etc/php/8.4/fpm/pool.d/piler.conf
+$STD systemctl restart php8.4-fpm
+msg_ok "Configured PHP-FPM Pool"
+
+msg_info "Configuring Piler Web GUI"
+cd /var/www/piler
+
+cat <<EOF >/var/www/piler/config-site.php
+<?php
+\$config['SITE_NAME'] = 'Piler Email Archive';
+\$config['SITE_URL'] = 'http://${LOCAL_IP}';
+
+\$config['DB_DRIVER'] = 'mysql';
+\$config['DB_HOSTNAME'] = 'localhost';
+\$config['DB_DATABASE'] = '${MARIADB_DB_NAME}';
+\$config['DB_USERNAME'] = '${MARIADB_DB_USER}';
+\$config['DB_PASSWORD'] = '${MARIADB_DB_PASS}';
+
+\$config['SPHINX_DATABASE'] = 'mysql:host=127.0.0.1;port=9306;charset=utf8mb4';
+
+\$config['ENABLE_SAAS'] = 0;
+\$config['SESSION_NAME'] = 'piler_session';
+\$config['SITE_KEYWORDS'] = 'piler, email archive';
+\$config['SITE_DESCRIPTION'] = 'Piler email archiving';
+
+\$config['SMTP_DOMAIN'] = '${LOCAL_IP}';
+\$config['SMTP_FROMADDR'] = 'no-reply@${LOCAL_IP}';
+
+\$config['ADMIN_EMAIL'] = 'admin@local';
+\$config['ADMIN_PASSWORD'] = '\$1\$PXDhp7Bo\$KlEEURhLLphAEa4w.lj1N0';
+
+\$config['MEMCACHED_ENABLED'] = 1;
+\$config['MEMCACHED_PREFIX'] = 'piler';
+\$config['MEMCACHED_TTL'] = 3600;
+
+\$config['DIR_BASE'] = '/var/www/piler';
+\$config['DIR_ATTACHMENT'] = '/var/piler/store';
+
+\$config['ENCRYPTION_KEY'] = '${PILER_KEY}';
+\$config['ENCRYPTION_IV'] = '0123456789ABCDEF';
+
+\$config['DEFAULT_RETENTION_DAYS'] = 2557;
+\$config['RESTRICTED_AUDITOR'] = 0;
+
+\$config['ENABLE_LDAP_AUTH'] = 0;
+\$config['ENABLE_IMAP_AUTH'] = 0;
+\$config['ENABLE_POP3_AUTH'] = 0;
+\$config['ENABLE_SSO_AUTH'] = 0;
+
+\$config['HEADER_LINE_TO_HIDE'] = 'X-Envelope-To:';
+?>
+EOF
+
+chown -R piler:piler /var/www/piler
+chmod 755 /var/www/piler
+msg_ok "Installed Piler Web GUI"
+
+msg_info "Configuring Nginx"
+cat <<EOF >/etc/nginx/sites-available/piler
+server {
+    listen 80;
+    server_name _;
+    root /var/www/piler;
+    index index.php;
+
+    access_log /var/log/nginx/piler-access.log;
+    error_log /var/log/nginx/piler-error.log;
+
+    charset utf-8;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$args;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/run/php/php8.4-fpm-piler.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~* \.(jpg|jpeg|gif|css|png|js|ico|html|woff|woff2)$ {
+        access_log off;
+        expires max;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+EOF
+
+ln -sf /etc/nginx/sites-available/piler /etc/nginx/sites-enabled/piler
+rm -f /etc/nginx/sites-enabled/default
+$STD nginx -t
+$STD systemctl enable --now nginx
+msg_ok "Configured Nginx"
+
+msg_info "Setting Up Cron Jobs"
+cat <<EOF >/etc/cron.d/piler
+30 6 * * * piler /usr/local/libexec/piler/indexer.delta.sh
+30 7 * * * piler /usr/local/libexec/piler/indexer.main.sh
+*/15 * * * * piler /usr/local/bin/pilerstat
+30 2 * * * piler /usr/local/bin/pilerpurge
+3 * * * * piler /usr/local/bin/pilerconf
+EOF
+msg_ok "Set Up Cron Jobs"
+
+motd_ssh
+customize
+cleanup_lxc
