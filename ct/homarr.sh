@@ -39,6 +39,10 @@ function update_script() {
     if ! { grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr/.env 2>/dev/null || grep -q '^REDIS_IS_EXTERNAL=' /opt/homarr.env 2>/dev/null; }; then
         msg_info "Fixing old structure"
         $STD apt install -y musl-dev
+        # Error: ec 15 21:05:23 homarr run.sh[330]:  ⨯ Error: libc.musl-x86_64.so.1: cannot open shared object file: No such file or di>
+        # Dec 15 21:05:23 homarr run.sh[330]:     at ignore-listed frames {
+        # Dec 15 21:05:23 homarr run.sh[330]:   code: 'ERR_DLOPEN_FAILED'
+        # Dec 15 21:05:23 homarr run.sh[330]: }
         ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
         cp /opt/homarr/.env /opt/homarr.env
         echo "REDIS_IS_EXTERNAL='true'" >> /opt/homarr.env
@@ -51,7 +55,6 @@ function update_script() {
 [Service]
 ReadWritePaths=-/appdata/redis -/var/lib/redis -/var/log/redis -/var/run/redis -/etc/redis
 EOF
-        # TODO: change in json
         systemctl daemon-reload
         rm /opt/run_homarr.sh
         msg_ok "Fixed old structure"
@@ -64,7 +67,7 @@ EOF
 
     NODE_VERSION=$(curl -s https://raw.githubusercontent.com/Meierschlumpf/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
     setup_nodejs
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homarr" "Meierschlumpf/homarr" "prebuild" "v0.9.12" "/opt/homarr" "source-amd64.tar.gz"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homarr" "Meierschlumpf/homarr" "prebuild" "latest" "/opt/homarr" "source-amd64.tar.gz"
 
     msg_info "Updating Homarr"
     cp /opt/homarr/redis.conf /etc/redis/redis.conf
