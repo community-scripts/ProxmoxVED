@@ -32,7 +32,9 @@ $STD npm run build
 cd /opt/postgresus/backend
 $STD go mod tidy
 $STD go mod download
-$STD env CGO_ENABLED=0 go build -o /opt/postgresus/postgresus ./cmd/main.go
+cd /opt/postgresus/backend
+$STD env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o postgresus ./cmd/main.go
+mv /opt/postgresus/backend/postgresus /opt/postgresus/postgresus
 mkdir -p /opt/postgresus/{data,backups,logs}
 cp -r /opt/postgresus/frontend/dist /opt/postgresus/ui
 cp -r /opt/postgresus/backend/migrations /opt/postgresus/
