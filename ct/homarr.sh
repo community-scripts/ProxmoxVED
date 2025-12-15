@@ -64,7 +64,7 @@ EOF
 
     NODE_VERSION=$(curl -s https://raw.githubusercontent.com/Meierschlumpf/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
     setup_nodejs
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homarr" "Meierschlumpf/homarr" "prebuild" "latest" "/opt/homarr" "source-amd64.tar.gz"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "homarr" "Meierschlumpf/homarr" "prebuild" " v0.9.12" "/opt/homarr" "source-amd64.tar.gz"
 
     msg_info "Updating Homarr"
     cp /opt/homarr/redis.conf /etc/redis/redis.conf
