@@ -32,7 +32,8 @@ $STD npm run build
 cd /opt/postgresus/backend
 $STD go mod tidy
 $STD go mod download
-cd /opt/postgresus/backend
+$STD go install github.com/swaggo/swag/cmd/swag@latest
+$STD /root/go/bin/swag init -g cmd/main.go -o swagger
 $STD env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o postgresus ./cmd/main.go
 mv /opt/postgresus/backend/postgresus /opt/postgresus/postgresus
 mkdir -p /opt/postgresus/{data,backups,logs}
