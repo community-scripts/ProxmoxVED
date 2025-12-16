@@ -186,7 +186,7 @@ UPDATEEOF
 
   echo ""
   msg_ok "Pihole-Exporter installed successfully"
-  msg_ok "Metrics: ${BL}http://${CURRENT_IP}:${DEFAULT_PORT}/metrics${CL}"
+  msg_ok "Metrics: ${BL}http://${CURRENT_IP}:9617/metrics${CL}"
   msg_ok "Config: ${BL}${CONFIG_PATH}${CL}"
 }
 
