@@ -62,6 +62,8 @@ ReadWritePaths=-/appdata/redis -/var/lib/redis -/var/log/redis -/var/run/redis -
 EOF
 cat <<EOF >/etc/systemd/system/homarr.service
 [Unit]
+Requires=redis-server.service
+After=redis-server.service
 Description=Homarr Service
 After=network.target
 
