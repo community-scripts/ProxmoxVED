@@ -118,7 +118,7 @@ function install() {
   cat <<EOF >"$CONFIG_PATH"
 # https://github.com/eko/pihole-exporter/?tab=readme-ov-file#available-cli-options
 PIHOLE_PASSWORD="${pihole_PASSWORD}"
-PIHOLE_HOSTNAME="${pihole_HOSTNAME}"
+PIHOLE_HOSTNAME="${pihole_HOSTNAME:-127.0.0.1}"
 PIHOLE_PORT="${pihole_PORT:-443}"
 SKIP_TLS_VERIFICATION="${pihole_SKIP_TLS:-false}"
 PIHOLE_PROTOCOL="${pihole_PROTOCOL:-https}"
