@@ -83,7 +83,7 @@ function update() {
 
     msg_info "Starting service"
     if [[ "$OS" == "Alpine" ]]; then
-      rc-service pihole-exporter start
+      rc-service pihole-exporter start &>/dev/null
     else
       systemctl start pihole-exporter
     fi
@@ -169,8 +169,8 @@ start_pre() {
 }
 EOF
     chmod +x "$SERVICE_PATH"
-    rc-update add pihole-exporter default
-    rc-service pihole-exporter start
+    $STD rc-update add pihole-exporter default
+    $STD rc-service pihole-exporter start
   fi
   msg_ok "Created and started service"
 
