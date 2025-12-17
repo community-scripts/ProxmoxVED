@@ -1,0 +1,35 @@
+{
+    "name": "MintHCM",
+    "slug": "minthcm",
+    "categories": [
+        25
+    ],
+    "date_created": "2025-12-12",
+    "type": "ct",
+    "updateable": false,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://wiki.minthcm.org/",
+    "config_path": "/var/www/MintHCM",
+    "website": "https://minthcm.org/",
+    "logo": "https://minthcm.org/wp-content/uploads/2021/03/minthcm-logo.svg",
+    "description": "MintCHM is a free and open-source tool for Human Capital Management.\n\nMain features:\nrecruitment\ntime management\nonboarding & offboarding\ncalendar\nleave management\nresources booking\ntravel & expenses\nworkplace management\nanalytics\nroles & permissions management\njob descriptions\nemployer branding\nemployee profiles\ncompetences & skills\nemployment history\nemployee evaluations\niOS & Android mobile apps\nMint based on two popular, well-known business applications: SugarCRM Community Edition and SuiteCRM. This is why we often say that MintHCM is CRM reinvented.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/minthcm.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 20,
+                "os": "debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": "minthcm"
+    },
+    "notes": []
+}
