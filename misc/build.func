@@ -540,6 +540,7 @@ base_settings() {
   ENABLE_TUN=${var_tun:-"${1:-no}"}
   ENABLE_KEYCTL=${var_keyctl:-0}
   ENABLE_MKNOD=${var_mknod:-0}
+  # shellcheck disable=SC2034  # MOUNT_FS may be used externally
   MOUNT_FS=${var_mount_fs:-""}
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
@@ -3699,6 +3700,7 @@ create_lxc_container() {
   msg_ok "Storage '$CONTAINER_STORAGE' ($STORAGE_TYPE) validated"
 
   msg_info "Validating template storage '$TEMPLATE_STORAGE'"
+  # shellcheck disable=SC2034  # TEMPLATE_TYPE may be used externally
   TEMPLATE_TYPE=$(grep -E "^[^:]+: $TEMPLATE_STORAGE$" /etc/pve/storage.cfg | cut -d: -f1)
 
   if ! pvesm status -content vztmpl 2>/dev/null | awk 'NR>1{print $1}' | grep -qx "$TEMPLATE_STORAGE"; then
