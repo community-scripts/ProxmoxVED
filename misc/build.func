@@ -3199,7 +3199,9 @@ EOF'
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
 
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
+  # Use REPO_BASE_URL if available, otherwise default to ProxmoxVED/main
+  local install_script_url="${REPO_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/install/${var_install}.sh"
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL "$install_script_url")"
   local lxc_exit=$?
 
   set -Eeuo pipefail       # Re-enable error handling
