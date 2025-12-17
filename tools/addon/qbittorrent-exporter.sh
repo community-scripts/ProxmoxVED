@@ -77,8 +77,8 @@ function update() {
     setup_go
 
     msg_info "Building qBittorrent-Exporter"
-    cd /opt/qbittorrent-exporter/src
-    $STD /usr/local/bin/go build -o ../qbittorrent-exporter
+    cd /opt/qbittorrent-exporter
+    $STD /usr/local/bin/go build -o ./qbittorrent-exporter
     msg_ok "Built qBittorrent-Exporter"
 
     msg_info "Starting service"
@@ -105,8 +105,8 @@ function install() {
   fetch_and_deploy_gh_release "qbittorrent-exporter" "martabal/qbittorrent-exporter" "tarball" "latest"
   setup_go
   msg_info "Building qBittorrent-Exporter on ${OS}"
-  cd /opt/qbittorrent-exporter/src
-  $STD /usr/local/bin/go build -o ../qbittorrent-exporter
+  cd /opt/qbittorrent-exporter
+  $STD /usr/local/bin/go build -o ./qbittorrent-exporter
   msg_ok "Built qBittorrent-Exporter"
 
   msg_info "Creating configuration"
