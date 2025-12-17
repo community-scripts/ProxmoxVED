@@ -788,6 +788,38 @@ EOF
   # Disable default MOTD scripts (Debian/Ubuntu)
   [[ -d /etc/update-motd.d ]] && chmod -x /etc/update-motd.d/* 2>/dev/null || true
 
+  # Configure root password if PASSWORD is provided (regardless of SSH_ROOT setting)
+  if [[ -n "${PASSWORD:-}" ]]; then
+    msg_info "Setting root password"
+    # Ensure passwd package is installed (contains chpasswd)
+    if ! command -v chpasswd >/dev/null 2>&1; then
+      case "$PKG_MANAGER" in
+      apt)
+        apt-get update -qq >/dev/null 2>&1
+        apt-get install -y passwd >/dev/null 2>&1
+        ;;
+      apk)
+        apk add --quiet --no-cache shadow >/dev/null 2>&1
+        ;;
+      dnf | yum)
+        dnf install -y -q passwd >/dev/null 2>&1 || yum install -y -q passwd >/dev/null 2>&1
+        ;;
+      zypper)
+        zypper install -y -q shadow >/dev/null 2>&1
+        ;;
+      emerge)
+        emerge -q shadow >/dev/null 2>&1
+        ;;
+      esac
+    fi
+    # Set password using chpasswd
+    if echo "root:${PASSWORD}" | chpasswd 2>/dev/null; then
+      msg_ok "Root password set"
+    else
+      msg_warn "Failed to set root password using chpasswd"
+    fi
+  fi
+
   # Configure SSH root access if requested
   if [[ "${SSH_ROOT:-}" == "yes" ]]; then
     # Ensure SSH server is installed
