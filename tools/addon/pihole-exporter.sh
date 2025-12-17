@@ -176,6 +176,7 @@ EOF
 
   # Create update script
   msg_info "Creating update script"
+  ensure_usr_local_bin_persist
   cat <<'UPDATEEOF' >/usr/local/bin/update_pihole-exporter
 #!/usr/bin/env bash
 # pihole-exporter Update Script
