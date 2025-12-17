@@ -41,6 +41,7 @@
 variables() {
   NSAPP=$(echo "${APP,,}" | tr -d ' ')              # This function sets the NSAPP variable by converting the value of the APP variable to lowercase and removing any spaces.
   var_install="${NSAPP}-install"                    # sets the var_install variable by appending "-install" to the value of NSAPP.
+  # shellcheck disable=SC2034  # INTEGER is defined but may be used externally or in future
   INTEGER='^[0-9]+([.][0-9]+)?$'                    # it defines the INTEGER regular expression pattern.
   PVEHOST_NAME=$(hostname)                          # gets the Proxmox Hostname and sets it to Uppercase
   DIAGNOSTICS="yes"                                 # sets the DIAGNOSTICS variable to "yes", used for the API call.
@@ -387,6 +388,7 @@ find_host_ssh_keys() {
     fi
   fi
 
+  # shellcheck disable=SC2034  # FOUND_HOST_KEY_COUNT may be used externally
   FOUND_HOST_KEY_COUNT="$total"
   (
     IFS=:
@@ -507,6 +509,7 @@ base_settings() {
   BRG=${var_brg:-"vmbr0"}
   NET=${var_net:-"dhcp"}
   IPV6_METHOD=${var_ipv6_method:-"none"}
+  # shellcheck disable=SC2034  # IPV6_STATIC may be used externally
   IPV6_STATIC=${var_ipv6_static:-""}
   GATE=${var_gateway:-""}
   APT_CACHER=${var_apt_cacher:-""}
