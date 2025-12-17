@@ -39,11 +39,11 @@ PG_CONF=$(find /etc/postgresql/*/main/postgresql.conf 2>/dev/null | head -1)
 if [[ -n "$PG_HBA_CONF" ]]; then
   # Backup pg_hba.conf
   cp "$PG_HBA_CONF" "${PG_HBA_CONF}.bak.$(date +%Y%m%d_%H%M%S)"
-  
+
   # Change all local peer/ident lines to md5 (for Unix sockets if they're used)
   sed -i '/^local\s\+all\s\+all\s\+peer/s/peer$/md5/' "$PG_HBA_CONF"
   sed -i '/^local\s\+all\s\+all\s\+ident/s/ident$/md5/' "$PG_HBA_CONF"
-  
+
   # Ensure there's a local md5 line (before any peer lines)
   if ! grep -qE "^local\s+all\s+all\s+md5" "$PG_HBA_CONF" 2>/dev/null; then
     if grep -q "^# \"local\" is for Unix domain socket connections only" "$PG_HBA_CONF"; then
@@ -52,12 +52,12 @@ if [[ -n "$PG_HBA_CONF" ]]; then
       sed -i '/^local\s\+all\s\+postgres/i local   all             all                                     md5' "$PG_HBA_CONF"
     fi
   fi
-  
+
   # Change TCP/IP connections from scram-sha-256 to md5 for compatibility
   # This ensures password authentication works correctly
   sed -i '/^host\s\+all\s\+all\s\+127\.0\.0\.1\/32/s/scram-sha-256/md5/' "$PG_HBA_CONF"
   sed -i '/^host\s\+all\s\+all\s\+::1\/128/s/scram-sha-256/md5/' "$PG_HBA_CONF"
-  
+
   # Ensure TCP/IP connections use md5 if they don't exist
   if ! grep -qE "^\s*host\s+all\s+all\s+127\.0\.0\.1/32\s+md5" "$PG_HBA_CONF" 2>/dev/null; then
     sed -i '/^# IPv4 local connections:/a host    all             all             127.0.0.1/32            md5' "$PG_HBA_CONF"
@@ -70,7 +70,7 @@ fi
 if [[ -n "$PG_CONF" ]]; then
   # Backup postgresql.conf
   cp "$PG_CONF" "${PG_CONF}.bak.$(date +%Y%m%d_%H%M%S)" 2>/dev/null || true
-  
+
   # Comment out unix_socket_directories to disable Unix sockets
   # Match lines that may have leading spaces
   if grep -qE "^\s*unix_socket_directories" "$PG_CONF" 2>/dev/null; then
