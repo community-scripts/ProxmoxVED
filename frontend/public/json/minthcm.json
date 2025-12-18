@@ -31,5 +31,10 @@
         "username": "admin",
         "password": "minthcm"
     },
-    "notes": []
+    "notes": [
+        {
+            "text": "Database credentials are stored in ~/minthcm.creds",
+            "type": "info"
+        }
+    ]
 }
