@@ -7,13 +7,13 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://netbird.io/
 
 APP="NetBird"
-var_tags="network;vpn"
-var_cpu="1"
-var_ram="512"
-var_disk="4"
-var_os="debian"
-var_version="13"
-var_unprivileged="1"
+var_tags="${var_tags:-network;vpn}"
+var_cpu="${var_cpu:-1}"
+var_ram="${var_ram:-512}"
+var_disk="${var_disk:-4}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-13}"
+var_unprivileged="${var_unprivileged:-1}"
 var_tun="${var_tun:-yes}"
 
 header_info "$APP"
