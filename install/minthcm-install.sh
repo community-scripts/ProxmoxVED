@@ -13,8 +13,6 @@ setting_up_container
 network_check
 update_os
 
-MINT_REPO="https://github.com/minthcm/minthcm.git"
-
 msg_info "Setting up PHP 8.2"
 PHP_APACHE="YES" PHP_VERSION="8.2" PHP_MODULE="mysql,cli,redis" PHP_FPM="YES" setup_php
 msg_ok "Set up PHP 8.2"
