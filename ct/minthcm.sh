@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 minthcm
 # Author: MintHCM
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -18,16 +18,12 @@ header_info "$APP"
 variables
 color
 catch_errors
-
 function update_script() {
-  header_info "$APP"
+  header_info
   check_container_storage
   check_container_resources
-
-  INSTALL_DIR="/var/www/MintHCM"
-
-  if [[ ! -d "${INSTALL_DIR}" ]] || [[ ! -d "${INSTALL_DIR}/.git" ]]; then
-    msg_error "No ${APP} installation found in ${INSTALL_DIR}!"
+  if [[ ! -d /var/www/MintHCM ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
   fi
   msg_error "Currently we don't provide an update function for this ${APP}."
@@ -40,5 +36,5 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL (after DB & installer are completed):${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
