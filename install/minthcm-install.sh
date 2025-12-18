@@ -96,6 +96,9 @@ sed -i 's/^ELASTICSEARCH_HOST=.*/ELASTICSEARCH_HOST=localhost/' /var/www/script/
 } >>~/minthcm.creds
 
 msg_info "Generating MintHCM configuration file (configMint4)"
+set -a
+source /var/www/script/.env
+set +a
 php /var/www/script/generate_config.php || msg_error "Failed to execute generate_config.php"
 
 if [[ ! -f /var/www/MintHCM/configMint4 ]]; then
