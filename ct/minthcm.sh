@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/minthcm/ProxmoxVED/feature/minthcm/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 minthcm
 # Author: MintHCM
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
