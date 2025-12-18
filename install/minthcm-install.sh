@@ -38,7 +38,6 @@ ln -s "/etc/php/8.2/mods-available/php-minthcm.ini" "/etc/php/8.2/apache2/conf.d
 msg_ok "Configured PHP and Apache2 for MintHCM"
 
 msg_info "Setting ownership and permissions for MintHCM directory"
-git config --global --add safe.directory /var/www/MintHCM
 chown -R www-data:www-data /var/www/MintHCM
 find /var/www/MintHCM -type d -exec chmod 755 {} \;
 find /var/www/MintHCM -type f -exec chmod 644 {} \;
@@ -68,7 +67,7 @@ msg_ok "Set up Elasticsearch"
 
 msg_info "Setting up MariaDB"
 setup_mariadb
-$STD mariadb -u root -e "SET GLOBAL sql_mode=''";
+$STD mariadb -u root -e "SET GLOBAL sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'";
 msg_ok "Set up MariaDB"
 
 msg_info "Configuring database for MintHCM"
