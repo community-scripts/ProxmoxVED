@@ -91,7 +91,7 @@ sed -i 's/^ELASTICSEARCH_HOST=.*/ELASTICSEARCH_HOST=localhost/' /var/www/script/
 
 {
   echo "MintHCM DB Credentials"
-  echo "MariaDB User: $DB_USER"
+  echo "MariaDB User: minthcm"
   echo "MariaDB Password: $DB_PASS"
 } >>~/minthcm.creds
 
