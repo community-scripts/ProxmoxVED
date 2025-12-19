@@ -28,26 +28,27 @@ setup_deb822_repo \
 	"any" \
 	"main"
 
-$STD apt-get install -y \
-  git \
-  ratpoison \
-  virtualgl \
-  turbovnc \
-  websockify \
-  libnss3 \
-  libnspr4 \
-  libatk1.0-0 \
-  libatk-bridge2.0-0 \
-  libcups2 \
-  libxkbcommon0 \
-  libatspi2.0-0 \
-  libxcomposite1 \
-  libgbm1 \
-  libpango-1.0-0 \
-  libcairo2 \
-  libasound2 \
-  libxfixes3 \
-  libxdamage1
+install_packages_with_retry \
+  "git" \
+  "ratpoison" \
+  "virtualgl" \
+  "turbovnc" \
+  "websockify" \
+  "libnss3" \
+  "libnspr4" \
+  "libatk1.0-0" \
+  "libatk-bridge2.0-0" \
+  "libcups2" \
+  "libxkbcommon0" \
+  "libatspi2.0-0" \
+  "libxcomposite1" \
+  "libgbm1" \
+  "libpango-1.0-0" \
+  "libcairo2" \
+  "libasound2" \
+  "libxfixes3" \
+  "libxdamage1"
+
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" setup_nodejs
@@ -65,9 +66,10 @@ msg_info "Installing NPM Packages"
 $STD npm install
 $STD npx patchright install chromium --no-shell
 msg_ok "Installed NPM Packages"
+
+# Install noVNC after patchright to avoid conflicts
 msg_info "Install noVNC"
-$STD apt-get install -y novnc
-$STD apt-get autoremove -y
+install_packages_with_retry "novnc"
 msg_ok "Installed noVNC"
 $STD ln -s /usr/share/novnc/vnc_auto.html /usr/share/novnc/index.html
 
