@@ -39,10 +39,6 @@
     {
       "text": "A cron job to update feeds is configured at `/etc/cron.d/tt-rss-update-feeds` (runs every 15 minutes). This can be adjusted as needed.",
       "type": "info"
-    },
-    {
-      "text": "The admin password is automatically generated during installation. Check the credentials file for the password.",
-      "type": "info"
     }
   ]
 }

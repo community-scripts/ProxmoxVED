@@ -1,59 +1,6 @@
 #!/usr/bin/env bash
 
-# Detectar automáticamente la URL base del repositorio (fork o repo principal)
-detect_repo_base_url() {
-  local repo_owner="community-scripts"
-  local repo_name="ProxmoxVED"
-  local branch="main"
-  local remote_url
-  local current_branch
-
-  # Intentar detectar desde git si estamos en un repo local
-  if command -v git &>/dev/null && git rev-parse --git-dir &>/dev/null 2>&1; then
-    if remote_url=$(git config --get remote.origin.url 2>/dev/null); then
-      if [[ $remote_url =~ git@github.com:([^/]+)/([^/]+) ]]; then
-        repo_owner="${BASH_REMATCH[1]}"
-        repo_name="${BASH_REMATCH[2]%.git}"
-      elif [[ $remote_url =~ github.com[:/]([^/]+)/([^/]+) ]]; then
-        repo_owner="${BASH_REMATCH[1]}"
-        repo_name="${BASH_REMATCH[2]%.git}"
-      fi
-      if current_branch=$(git branch --show-current 2>/dev/null); then
-        branch="$current_branch"
-      fi
-    fi
-  fi
-
-  # Permitir override con variables de entorno
-  repo_owner="${GITHUB_REPO_OWNER:-$repo_owner}"
-  repo_name="${GITHUB_REPO_NAME:-$repo_name}"
-  branch="${GITHUB_BRANCH:-$branch}"
-
-  echo "https://raw.githubusercontent.com/${repo_owner}/${repo_name}/${branch}"
-}
-
-# Obtener URL base del repo (se detecta automáticamente en desarrollo, usa defaults en producción)
-# Para este script específico (tinytinyrss.sh), usar el fork del autor por defecto cuando no hay git local
-# Para testing con app defaults, usar upstream para evitar problemas con build.func del fork
-if [[ -n "${USE_UPSTREAM_BUILD_FUNC:-}" ]]; then
-  REPO_BASE_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main"
-else
-  # Si no hay git local y no se especifica REPO_BASE_URL, usar el fork del autor por defecto
-  if [[ -z "${REPO_BASE_URL:-}" ]]; then
-    if ! command -v git &>/dev/null || ! git rev-parse --git-dir &>/dev/null 2>&1; then
-      # No hay git local, usar fork del autor por defecto para este script
-      REPO_BASE_URL="https://raw.githubusercontent.com/maurorosero/ProxmoxVED/feature/tinytinyrss"
-    else
-      # Hay git local, detectar automáticamente
-      REPO_BASE_URL="$(detect_repo_base_url)"
-    fi
-  fi
-fi
-
-# Exportar para que build.func pueda usar esta variable si está disponible
-export REPO_BASE_URL
-
-source <(curl -fsSL "${REPO_BASE_URL}/misc/build.func")
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: mrosero
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -102,7 +49,7 @@ function update_script() {
   $STD cp -r /tmp/tt-rss-main/* /opt/tt-rss/
   rm -rf /tmp/tt-rss-update.tar.gz /tmp/tt-rss-main
   echo "main" >"/opt/TinyTinyRSS_version.txt"
-  msg_ok "Downloaded latest version"
+  msg_ok "Updated ${APP} to latest version"
 
   if [ -f /opt/tt-rss/config.php.backup ]; then
     cp /opt/tt-rss/config.php.backup /opt/tt-rss/config.php
