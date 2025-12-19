@@ -14,11 +14,19 @@ update_os
 
 msg_info "Installing Dependencies"
 
-curl -fsSL https://packagecloud.io/dcommander/turbovnc/gpgkey | gpg --dearmor -o /etc/apt/trusted.gpg.d/TurboVNC.gpg
-curl -fsSL https://packagecloud.io/dcommander/virtualgl/gpgkey | gpg --dearmor -o /etc/apt/trusted.gpg.d/VirtualGL.gpg
-wget -q -O /etc/apt/sources.list.d/TurboVNC.list https://raw.githubusercontent.com/TurboVNC/repo/main/TurboVNC.list
-wget -q -O /etc/apt/sources.list.d/VirtualGL.list https://raw.githubusercontent.com/VirtualGL/repo/main/VirtualGL.list
-$STD apt-get update
+setup_deb822_repo \
+	"TurboVNC" \
+	"https://packagecloud.io/dcommander/turbovnc/gpgkey" \
+	"https://packagecloud.io/dcommander/turbovnc/any/" \
+	"any" \
+	"main"
+
+setup_deb822_repo \
+	"VirtualGL" \
+	"https://packagecloud.io/dcommander/virtualgl/gpgkey" \
+	"https://packagecloud.io/dcommander/virtualgl/any/" \
+	"any" \
+	"main"
 
 $STD apt-get install -y \
   git \
