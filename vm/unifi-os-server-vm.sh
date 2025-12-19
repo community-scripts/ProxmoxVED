@@ -588,96 +588,17 @@ echo -en "\e[1A\e[0K"
 FILE=$(basename $URL)
 msg_ok "Downloaded ${CL}${BL}${FILE}${CL}"
 
-# --- Inject UniFi Installer via Cloud-Init ---
-msg_info "Preparing ${OS_DISPLAY} Cloud Image for UniFi OS"
+msg_ok "Downloaded ${OS_DISPLAY} Cloud Image"
 
-# Install virt-customize if not available
-if ! command -v virt-customize &>/dev/null; then
+# Expand root partition to use full disk space
+msg_info "Expanding disk image to ${DISK_SIZE}"
+
+# Install virt-resize if not available
+if ! command -v virt-resize &>/dev/null; then
   apt-get -qq update >/dev/null
   apt-get -qq install libguestfs-tools -y >/dev/null
 fi
 
-# Create UniFi OS installation script and inject it into the image
-virt-customize -a "${FILE}" --run-command "cat > /root/install-unifi-os.sh << 'INSTALLSCRIPT'
-#!/bin/bash
-set -x
-exec > /var/log/unifi-install.log 2>&1
-
-echo \"=== UniFi OS Installation Started at \$(date) ===\"
-
-# Wait for cloud-init to complete
-if command -v cloud-init >/dev/null 2>&1; then
-  echo \"Waiting for cloud-init to complete...\"
-  cloud-init status --wait 2>/dev/null || true
-fi
-
-# Install required packages
-echo \"Installing required packages...\"
-export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y curl wget ca-certificates podman uidmap slirp4netns iptables
-
-# Configure Podman
-echo \"Configuring Podman...\"
-loginctl enable-linger root
-
-# Download UniFi OS Server
-echo \"Downloading UniFi OS Server ${UOS_VERSION}...\"
-cd /root
-curl -fsSL '${UOS_URL}' -o unifi-installer.bin
-chmod +x unifi-installer.bin
-
-# Install UniFi OS Server
-echo \"Installing UniFi OS Server (this takes 3-5 minutes)...\"
-./unifi-installer.bin install
-
-echo \"Waiting for services to start...\"
-sleep 15
-
-# Start UniFi OS Server
-if systemctl list-unit-files | grep -q unifi-os-server; then
-  echo \"Starting UniFi OS Server service...\"
-  systemctl enable unifi-os-server
-  systemctl start unifi-os-server
-  sleep 10
-
-  if systemctl is-active --quiet unifi-os-server; then
-    echo \"SUCCESS: UniFi OS Server is running\"
-  else
-    echo \"WARNING: Checking service status...\"
-    systemctl status unifi-os-server --no-pager
-  fi
-fi
-
-touch /root/.unifi-installed
-echo \"=== Installation completed at \$(date) ===\"
-INSTALLSCRIPT" >/dev/null 2>&1
-
-virt-customize -a "${FILE}" --chmod 0755:/root/install-unifi-os.sh >/dev/null 2>&1
-
-# Create systemd service for first-boot installation
-virt-customize -a "${FILE}" --run-command "cat > /etc/systemd/system/unifi-firstboot.service << 'SVCFILE'
-[Unit]
-Description=UniFi OS First Boot Installation
-After=cloud-init.service network-online.target
-Wants=network-online.target
-ConditionPathExists=!/root/.unifi-installed
-
-[Service]
-Type=oneshot
-ExecStart=/root/install-unifi-os.sh
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-SVCFILE" >/dev/null 2>&1
-
-virt-customize -a "${FILE}" --run-command "systemctl enable unifi-firstboot.service" >/dev/null 2>&1
-
-msg_ok "Prepared ${OS_DISPLAY} image with UniFi OS installer"
-
-# Expand root partition to use full disk space
-msg_info "Expanding disk image to ${DISK_SIZE}"
 qemu-img create -f qcow2 expanded.qcow2 ${DISK_SIZE} >/dev/null 2>&1
 
 # Detect partition device (sda1 for Ubuntu, vda1 for Debian)
@@ -712,21 +633,10 @@ qm set "$VMID" \
 qm resize "$VMID" scsi0 "$DISK_SIZE" >/dev/null
 qm set "$VMID" --agent enabled=1 >/dev/null
 
-# Add Cloud-Init drive (standard Cloud-Init, no custom user-data)
+# Add Cloud-Init drive
 msg_info "Configuring Cloud-Init"
 setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" >/dev/null 2>&1
-msg_ok "Cloud-Init configured (UniFi OS installs via systemd service on first boot)"
-
-# Display credentials immediately so user can login
-if [ -n "$CLOUDINIT_CRED_FILE" ] && [ -f "$CLOUDINIT_CRED_FILE" ]; then
-  echo ""
-  echo -e "${INFO}${BOLD}${GN}Cloud-Init Credentials (save these now!):${CL}"
-  echo -e "${TAB}${DGN}User:     ${BGN}${CLOUDINIT_USER:-root}${CL}"
-  echo -e "${TAB}${DGN}Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
-  echo -e "${TAB}${RD}⚠️  UniFi OS installation runs automatically on first boot${CL}"
-  echo -e "${TAB}${INFO}Monitor: ${BL}tail -f /var/log/unifi-install.log${CL}"
-  echo ""
-fi
+msg_ok "Cloud-Init configured"
 
 DESCRIPTION=$(
   cat <<EOF
@@ -769,69 +679,139 @@ if [ "$START_VM" == "yes" ]; then
   qm start $VMID
   msg_ok "Started UniFi OS VM"
 
-  msg_info "Waiting for VM to boot (30 seconds)"
-  sleep 30
-  msg_ok "VM should be booting now"
+  msg_info "Waiting for VM to boot and Cloud-Init to complete (60-90 seconds)"
+  sleep 60
+  msg_ok "VM boot complete"
 
-  msg_info "Detecting VM IP address (may take up to 60 seconds)"
+  msg_info "Detecting VM IP address"
   VM_IP=""
   for i in {1..30}; do
     VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[1]["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | grep -v "127.0.0.1" | head -1 || echo "")
 
     if [ -n "$VM_IP" ]; then
-      msg_ok "VM IP Address detected: ${VM_IP}"
+      msg_ok "VM IP Address: ${VM_IP}"
       break
     fi
     sleep 2
   done
 
-  if [ -n "$VM_IP" ]; then
-    msg_info "Waiting for UniFi OS installation (via Cloud-Init, takes 5-8 minutes)"
-
-    WAIT_COUNT=0
-    MAX_WAIT=600 # 10 minutes max for Cloud-Init installation
-    PORT_OPEN=0
-    LAST_MSG_TIME=0
-
-    while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
-      if timeout 2 bash -c ">/dev/tcp/${VM_IP}/11443" 2>/dev/null; then
-        PORT_OPEN=1
-        msg_ok "UniFi OS Server is ready!"
-        break
-      fi
-
-      sleep 10
-      WAIT_COUNT=$((WAIT_COUNT + 10))
-
-      # Update message every 30 seconds
-      if [ $((WAIT_COUNT - LAST_MSG_TIME)) -ge 30 ]; then
-        echo -e "${BFR}${TAB}${YW}${HOLD}Installation in progress... ${WAIT_COUNT}s elapsed${CL}"
-        echo -e "${TAB}${INFO}${YW}Monitor: ${BL}ssh ${CLOUDINIT_USER:-root}@${VM_IP} 'tail -f /var/log/unifi-install.log'${CL}"
-        LAST_MSG_TIME=$WAIT_COUNT
-      fi
-    done
-
-    if [ $PORT_OPEN -eq 1 ]; then
-      echo -e "\n${TAB}${GATEWAY}${BOLD}${GN}✓ UniFi OS Server is ready!${CL}"
-      echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ Access at: ${BGN}https://${VM_IP}:11443${CL}\n"
-    else
-      msg_ok "VM is running, UniFi OS installation in progress"
-      echo -e "${TAB}${INFO}${YW}Installation runs via systemd service on first boot${CL}"
-      echo -e "${TAB}${INFO}${YW}This takes 5-8 minutes${CL}"
-      if [ "$USE_CLOUD_INIT" = "yes" ]; then
-        echo -e "${TAB}${INFO}${YW}SSH: ${BL}ssh ${CLOUDINIT_USER:-root}@${VM_IP}${CL}"
-        echo -e "${TAB}${INFO}${YW}Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
-        echo -e "${TAB}${INFO}${YW}Monitor: ${BL}tail -f /var/log/unifi-install.log${CL}"
-      fi
-      echo -e "${TAB}${INFO}${YW}UniFi OS will be at: ${BGN}https://${VM_IP}:11443${CL}"
-    fi
-  else
-    msg_ok "VM is running (ID: ${VMID})"
-    echo -e "${TAB}${INFO}${YW}Could not auto-detect IP address${CL}"
+  if [ -z "$VM_IP" ]; then
+    msg_error "Could not detect VM IP address"
     echo -e "${TAB}${INFO}${YW}Use Proxmox Console to login with Cloud-Init credentials${CL}"
     echo -e "${TAB}${INFO}${YW}User: ${BGN}${CLOUDINIT_USER:-root}${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
-    echo -e "${TAB}${INFO}${YW}Monitor installation: ${BL}tail -f /var/log/unifi-install.log${CL}"
+    exit 1
   fi
+
+  # Wait for SSH to be ready
+  msg_info "Waiting for SSH to be ready"
+  SSH_READY=0
+  for i in {1..30}; do
+    if timeout 5 sshpass -p "${CLOUDINIT_PASSWORD}" ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+      "${CLOUDINIT_USER:-root}@${VM_IP}" "echo 'SSH Ready'" >/dev/null 2>&1; then
+      SSH_READY=1
+      msg_ok "SSH connection ready"
+      break
+    fi
+    sleep 2
+  done
+
+  if [ $SSH_READY -eq 0 ]; then
+    msg_error "SSH connection failed"
+    echo -e "${TAB}${INFO}${YW}Manual login - User: ${BGN}${CLOUDINIT_USER:-root}${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
+    exit 1
+  fi
+
+  # Check if sshpass is installed
+  if ! command -v sshpass &>/dev/null; then
+    msg_info "Installing sshpass for automated SSH"
+    apt-get update -qq >/dev/null 2>&1
+    apt-get install -y sshpass -qq >/dev/null 2>&1
+  fi
+
+  # Execute UniFi OS installation directly via SSH
+  msg_info "Installing UniFi OS Server ${UOS_VERSION} (takes 4-6 minutes)"
+
+  # Create installation script
+  INSTALL_SCRIPT=$(
+    cat <<'EOFINSTALL'
+#!/bin/bash
+set -e
+export DEBIAN_FRONTEND=noninteractive
+
+echo "[1/5] Updating system packages..."
+apt-get update -qq
+apt-get install -y curl wget ca-certificates podman uidmap slirp4netns iptables -qq
+
+echo "[2/5] Configuring Podman..."
+loginctl enable-linger root
+
+echo "[3/5] Downloading UniFi OS Server installer..."
+cd /root
+curl -fsSL "UNIFI_URL" -o unifi-installer.bin
+chmod +x unifi-installer.bin
+
+echo "[4/5] Installing UniFi OS Server (this takes 3-5 minutes)..."
+./unifi-installer.bin install
+
+echo "[5/5] Starting UniFi OS Server..."
+sleep 15
+
+if systemctl list-unit-files | grep -q unifi-os-server; then
+  systemctl enable unifi-os-server
+  systemctl start unifi-os-server
+  sleep 10
+
+  if systemctl is-active --quiet unifi-os-server; then
+    echo "✓ UniFi OS Server is running"
+  else
+    echo "⚠ Service status:"
+    systemctl status unifi-os-server --no-pager || true
+  fi
+fi
+
+echo "Installation completed!"
+EOFINSTALL
+  )
+
+  # Replace URL placeholder
+  INSTALL_SCRIPT="${INSTALL_SCRIPT//UNIFI_URL/$UOS_URL}"
+
+  # Execute installation via SSH (with output streaming)
+  if sshpass -p "${CLOUDINIT_PASSWORD}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    "${CLOUDINIT_USER:-root}@${VM_IP}" "bash -s" <<<"$INSTALL_SCRIPT" 2>&1 | while IFS= read -r line; do
+    echo -e "${TAB}${DGN}${line}${CL}"
+  done; then
+    msg_ok "UniFi OS Server installed successfully"
+  else
+    msg_error "Installation failed"
+    echo -e "${TAB}${INFO}${YW}Check logs: ${BL}ssh ${CLOUDINIT_USER:-root}@${VM_IP}${CL}"
+    exit 1
+  fi
+
+  # Wait for UniFi OS web interface
+  msg_info "Waiting for UniFi OS web interface (port 11443)"
+  PORT_OPEN=0
+  for i in {1..60}; do
+    if timeout 2 bash -c ">/dev/tcp/${VM_IP}/11443" 2>/dev/null; then
+      PORT_OPEN=1
+      msg_ok "UniFi OS Server web interface is ready"
+      break
+    fi
+    sleep 2
+  done
+
+  echo ""
+  if [ $PORT_OPEN -eq 1 ]; then
+    echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ UniFi OS Server is ready!${CL}"
+    echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ Access at: ${BGN}https://${VM_IP}:11443${CL}"
+  else
+    echo -e "${TAB}${INFO}${YW}UniFi OS is installed but web interface not yet available${CL}"
+    echo -e "${TAB}${INFO}${YW}Access at: ${BGN}https://${VM_IP}:11443${CL} ${YW}(may take 1-2 more minutes)${CL}"
+  fi
+
+  echo -e "${TAB}${INFO}${DGN}SSH Access: ${BL}ssh ${CLOUDINIT_USER:-root}@${VM_IP}${CL}"
+  echo -e "${TAB}${INFO}${DGN}Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
+  echo ""
 fi
 
 post_update_to_api "done" "none"
