@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE="v4.0.0"
+  RELEASE="v4.1.0"
   if check_for_gh_release "opencloud" "opencloud-eu/opencloud" "${RELEASE}"; then
     msg_info "Stopping services"
     systemctl stop opencloud opencloud-wopi

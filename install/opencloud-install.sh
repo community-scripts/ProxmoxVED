@@ -57,7 +57,7 @@ echo "$COOLPASS" >~/.coolpass
 msg_ok "Installed Collabora Online"
 
 # OpenCloud
-fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v4.0.0" "/usr/bin" "opencloud-*-linux-amd64"
+fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v4.1.0" "/usr/bin" "opencloud-*-linux-amd64"
 
 msg_info "Configuring OpenCloud"
 DATA_DIR="/var/lib/opencloud/"
