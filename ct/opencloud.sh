@@ -37,7 +37,7 @@ function update_script() {
 
     msg_info "Updating packages"
     $STD apt-get update
-    $STD apt-get dist-upgrade
+    $STD apt-get dist-upgrade -y
     msg_ok "Updated packages"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "${RELEASE}" "/usr/bin" "opencloud-*-linux-amd64"
