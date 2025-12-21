@@ -7,13 +7,12 @@
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/error_handler.func)
-load_functions
 
 # Enable error handling
 set -Eeuo pipefail
 trap 'error_handler' ERR
+load_functions
 
 # ==============================================================================
 # CONFIGURATION
@@ -25,7 +24,6 @@ INSTALL_PATH="/opt/nextcloud-exporter"
 CONFIG_PATH="/opt/nextcloud-exporter.env"
 header_info
 ensure_usr_local_bin_persist
-get_current_ip &>/dev/null
 
 # ==============================================================================
 # OS DETECTION
@@ -73,7 +71,7 @@ function update() {
     fi
     msg_ok "Stopped service"
 
-    fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuilt" "latest" "nextcloud-exporter_*_amd64.deb"
+    fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "nextcloud-exporter_*_amd64.deb"
     setup_go
 
     msg_info "Starting service"
@@ -93,7 +91,7 @@ function update() {
 # ==============================================================================
 function install() {
   read -erp "Enter URL of Nextcloud, example: (http://127.0.0.1:8080): " NEXTCLOUD_SERVER
-  read -erp "Enter Nextcloud auth token (press Enter to use username/password instead): " NEXTCLOUD_AUTH_TOKEN
+  read -rsp "Enter Nextcloud auth token (press Enter to use username/password instead): " NEXTCLOUD_AUTH_TOKEN
 
   if [[ -z "$NEXTCLOUD_AUTH_TOKEN" ]]; then
     read -erp "Enter Nextcloud username: " NEXTCLOUD_USERNAME
@@ -116,7 +114,7 @@ function install() {
     NEXTCLOUD_TLS_SKIP_VERIFY="true"
   fi
 
-  fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuilt" "latest" "nextcloud-exporter_*_amd64.deb"
+  fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "nextcloud-exporter_*_amd64.deb"
   setup_go
 
   msg_info "Creating configuration"
@@ -204,7 +202,6 @@ UPDATEEOF
 # ==============================================================================
 header_info
 ensure_usr_local_bin_persist
-get_current_ip &>/dev/null
 
 # Handle type=update (called from update script)
 if [[ "${type:-}" == "update" ]]; then
