@@ -21,7 +21,7 @@ Complete guide to contributing to the ProxmoxVED project - from your first fork 
 
 ```bash
 # 1. Fork on GitHub
-# Visit: https://github.com/community-scripts/ProxmoxVED → Fork (top right)
+# Visit: https://github.com/GoldenSpringness/ProxmoxVED → Fork (top right)
 
 # 2. Clone your fork
 git clone https://github.com/YOUR_USERNAME/ProxmoxVED.git
@@ -81,7 +81,7 @@ git config user.name "Your Name"
 git config user.email "your.email@example.com"
 
 # Add upstream remote for syncing
-git remote add upstream https://github.com/community-scripts/ProxmoxVED.git
+git remote add upstream https://github.com/GoldenSpringness/ProxmoxVED.git
 
 # Verify remotes
 git remote -v
@@ -329,9 +329,9 @@ bash docs/contribution/setup-fork.sh
 
 ## 📞 Contact & Support
 
-- **GitHub**: https://github.com/community-scripts/ProxmoxVED
-- **Issues**: https://github.com/community-scripts/ProxmoxVED/issues
-- **Discussions**: https://github.com/community-scripts/ProxmoxVED/discussions
+- **GitHub**: https://github.com/GoldenSpringness/ProxmoxVED
+- **Issues**: https://github.com/GoldenSpringness/ProxmoxVED/issues
+- **Discussions**: https://github.com/GoldenSpringness/ProxmoxVED/discussions
 - **Discord**: [Join Server](https://discord.gg/UHrpNWGwkH)
 
 ---

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: tteck (tteckster) | MickLesk | michelroegl-brunner
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
+# License: MIT | https://github.com/GoldenSpringness/ProxmoxVED/raw/branch/main/LICENSE
 # Revision: 1
 
 # ==============================================================================
@@ -91,7 +91,7 @@ variables() {
 # FUNC_DIR="/usr/local/community-scripts/core"
 # mkdir -p "$FUNC_DIR"
 
-# BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
+# BUILD_URL="https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/misc/build.func"
 # BUILD_REV="$FUNC_DIR/build.rev"
 # DEVMODE="${DEVMODE:-no}"
 
@@ -116,7 +116,7 @@ variables() {
 
 #       update_func_file() {
 #         local file="$1"
-#         local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
+#         local url="https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/misc/$file"
 #         local local_path="$FUNC_DIR/$file"
 
 #         echo "⬇️  Downloading $file ..."
@@ -2041,7 +2041,7 @@ diagnostics_check() {
 DIAGNOSTICS=yes
 
 #This file is used to store the diagnostics settings for the Community-Scripts API.
-#https://github.com/community-scripts/ProxmoxVED/discussions/1836
+#https://github.com/GoldenSpringness/ProxmoxVED/discussions/1836
 #Your diagnostics will be sent to the Community-Scripts API for troubleshooting/statistical purposes.
 #You can review the data at https://community-scripts.github.io/ProxmoxVE/data
 #If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in /usr/local/community-scripts/diagnostics, or use the menue.
@@ -2066,7 +2066,7 @@ EOF
 DIAGNOSTICS=no
 
 #This file is used to store the diagnostics settings for the Community-Scripts API.
-#https://github.com/community-scripts/ProxmoxVED/discussions/1836
+#https://github.com/GoldenSpringness/ProxmoxVED/discussions/1836
 #Your diagnostics will be sent to the Community-Scripts API for troubleshooting/statistical purposes.
 #You can review the data at https://community-scripts.github.io/ProxmoxVE/data
 #If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in /usr/local/community-scripts/diagnostics, or use the menue.
@@ -3199,7 +3199,7 @@ EOF'
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
 
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/install/${var_install}.sh)"
   local lxc_exit=$?
 
   set -Eeuo pipefail       # Re-enable error handling
@@ -3286,7 +3286,7 @@ EOF'
         if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
           echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
           if pct exec "$CTID" -- bash -c "
-            source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
+            source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/misc/install.func)
             declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
           " >/dev/null 2>&1; then
             local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
@@ -4207,15 +4207,15 @@ description() {
 
   <span style='margin: 0 10px;'>
     <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVED' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
+    <a href='https://github.com/GoldenSpringness/ProxmoxVED' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
   </span>
   <span style='margin: 0 10px;'>
     <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVED/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
+    <a href='https://github.com/GoldenSpringness/ProxmoxVED/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
   </span>
   <span style='margin: 0 10px;'>
     <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://github.com/community-scripts/ProxmoxVED/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
+    <a href='https://github.com/GoldenSpringness/ProxmoxVED/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
   </span>
 </div>
 EOF

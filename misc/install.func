@@ -2,7 +2,7 @@
 # Author: tteck (tteckster)
 # Co-Author: MickLesk
 # Co-Author: michelroegl-brunner
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/GoldenSpringness/ProxmoxVED/raw/main/LICENSE
 
 # ==============================================================================
 # INSTALL.FUNC - UNIFIED CONTAINER INSTALLATION & SETUP
@@ -781,7 +781,7 @@ echo -e "${RD:-}WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use 
 echo -e "${YW:-} OS: ${GN:-}${os_name} - Version: ${os_version}${CL:-}"
 echo -e "${YW:-} Hostname: ${GN:-}\$(hostname)${CL:-}"
 echo -e "${YW:-} IP Address: ${GN:-}\$(hostname -I 2>/dev/null | awk '{print \$1}' || ip -4 addr show scope global | grep -oP '(?<=inet\s)\\d+(\\.\\d+){3}' | head -1)${CL:-}"
-echo -e "${YW:-} Repository: ${GN:-}https://github.com/community-scripts/ProxmoxVED${CL:-}"
+echo -e "${YW:-} Repository: ${GN:-}https://github.com/GoldenSpringness/ProxmoxVED${CL:-}"
 echo ""
 EOF
 

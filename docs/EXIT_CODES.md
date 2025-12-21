@@ -285,7 +285,7 @@ Official discussion: [GitHub #8126](https://github.com/community-scripts/Proxmox
 
 Found an undocumented exit code or have a solution to share? Please:
 
-1. Open an issue on [GitHub](https://github.com/community-scripts/ProxmoxVED/issues)
+1. Open an issue on [GitHub](https://github.com/GoldenSpringness/ProxmoxVED/issues)
 2. Include:
    - Exit code number
    - Error message

@@ -5,10 +5,10 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/eko/pihole-exporter/
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/error_handler.func)
+source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/misc/tools.func)
+source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/misc/error_handler.func)
 load_functions
 
 # Enable error handling
@@ -180,7 +180,7 @@ EOF
   cat <<'UPDATEEOF' >/usr/local/bin/update_pihole-exporter
 #!/usr/bin/env bash
 # pihole-exporter Update Script
-type=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/addon/pihole-exporter.sh)"
+type=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/tools/addon/pihole-exporter.sh)"
 UPDATEEOF
   chmod +x /usr/local/bin/update_pihole-exporter
   msg_ok "Created update script (/usr/local/bin/update_pihole-exporter)"

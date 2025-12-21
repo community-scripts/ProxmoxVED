@@ -6,9 +6,9 @@
 #              Only supports PRIVILEGED containers for GPU passthrough.
 # License: MIT
 # Author: MickLesk (CanbiZ)
-# Repo: https://github.com/community-scripts/ProxmoxVED
+# Repo: https://github.com/GoldenSpringness/ProxmoxVED
 #
-# Usage: bash -c "$(wget -qLO - https://github.com/community-scripts/ProxmoxVED/raw/main/misc/hw-acceleration.sh)"
+# Usage: bash -c "$(wget -qLO - https://github.com/GoldenSpringness/ProxmoxVED/raw/main/misc/hw-acceleration.sh)"
 #
 # Requires:
 #   - Proxmox VE 8.1+
@@ -25,16 +25,16 @@
 #   - Interactive menu system via whiptail
 #
 # Proxmox LXC Hardware Passthrough & GPU Acceleration Setup
-# https://github.com/community-scripts/ProxmoxVED
+# https://github.com/GoldenSpringness/ProxmoxVED
 
 set -euo pipefail
 
 TEMP_DIR=$(mktemp -d)
 trap 'rm -rf $TEMP_DIR' EXIT
 
-source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/gpu-nvidia.func)
-source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/gpu-intel.func)
-source <(wget -qO- https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/gpu-amd.func)
+source <(wget -qO- https://github.com/GoldenSpringness/ProxmoxVED/raw/main/tools/pve/gpu-nvidia.func)
+source <(wget -qO- https://github.com/GoldenSpringness/ProxmoxVED/raw/main/tools/pve/gpu-intel.func)
+source <(wget -qO- https://github.com/GoldenSpringness/ProxmoxVED/raw/main/tools/pve/gpu-amd.func)
 
 function header_info() {
     clear

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2025 community-scripts ORG
-# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
+# License: MIT | https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/LICENSE
 
 # ==============================================================================
 # CORE FUNCTIONS - LXC CONTAINER UTILITIES

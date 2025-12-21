@@ -52,7 +52,7 @@ source <(curl -s https://raw.githubusercontent.com/[USER]/[REPO]/refs/heads/[BRA
 Final script:
 
 ```bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -s https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/main/misc/build.func)
 ```
 
 > [!CAUTION]
@@ -67,7 +67,7 @@ Example:
 ```bash
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: [YourUserName]
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/GoldenSpringness/ProxmoxVED/raw/main/LICENSE
 # Source: [SOURCE_URL]
 ```
 

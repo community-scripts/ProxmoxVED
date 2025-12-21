@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: thost96 (thost96) | Co-Author: michelroegl-brunner | Refactored: MickLesk
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/GoldenSpringness/ProxmoxVED/raw/main/LICENSE
 
 # ==============================================================================
 # Docker VM - Creates a Docker-ready Virtual Machine with optional Portainer

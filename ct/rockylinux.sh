@@ -2,7 +2,7 @@
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/GoldenSpringness/ProxmoxVED/raw/main/LICENSE
 # Source: https://rockylinux.org/
 
 APP="Rocky Linux"

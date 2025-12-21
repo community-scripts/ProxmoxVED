@@ -120,7 +120,7 @@ cleanup_lxc
 #!/usr/bin/env bash
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: YourUsername
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/GoldenSpringness/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/application/repo
 
 # Load all available functions (from core.func + tools.func)
