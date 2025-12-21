@@ -37,7 +37,7 @@ cd /opt
 git clone https://github.com/orhun/rustypaste.git
 cd ${APPLICATION}
 git fetch --tags
-git switch ${RELEASE}
+git checkout ${RELEASE}
 
 cargo build --locked --release
 
