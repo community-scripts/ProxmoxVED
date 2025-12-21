@@ -174,7 +174,7 @@ _bootstrap() {
 
   # Source core functions
   source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/misc/core.func)
-  source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/misc/error_handler.func)
+  source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypastemisc/error_handler.func)
   load_functions
   catch_errors
 }

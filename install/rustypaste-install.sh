@@ -23,7 +23,7 @@ $STD apt-get install -y \
   ca-certificates
 msg_ok "Dependencies Installed Successfully"
 
-setup_rust
+RUST_VERSION="1.92.0" setup_rust
 
 msg_info "Setting up ${APPLICATION}"
 # Getting the latest release version
