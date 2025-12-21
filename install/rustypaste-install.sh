@@ -14,25 +14,20 @@ setting_up_container
 network_check
 update_os
 
+
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   curl \
-  wget \
-  sudo \
   git \
-  mc \
   build-essential \
   ca-certificates
 msg_ok "Dependencies Installed Successfully"
 
-msg_info "Installing Rust"
-RUST_VERSION="1.86.0" setup_rust
-msg_ok "Rust Installed Successfully"
+setup_rust
 
 msg_info "Setting up ${APPLICATION}"
+# Getting the latest release version
 RELEASE=$(curl -s https://api.github.com/repos/orhun/rustypaste/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-# mv ${RELEASE}.tar.gz ${APPLICATION}.tar.gz
-# tar -xzf ${APPLICATION}.tar.gz
 cd /opt
 git clone https://github.com/orhun/rustypaste.git
 
@@ -43,19 +38,19 @@ fi
 
 cd ${APPLICATION}
 git fetch --tags
-git checkout ${RELEASE}
+git checkout ${RELEASE} # chekcing out to latest release
 
-sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml
+sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml # changing the ip and port
 
 msg_info "Compiling ${APPLICATION}"
-cargo build --locked --release
+cargo build --locked --release # creating the binary
 
 if [[ ! -f "/opt/${APPLICATION}/target/release/rustypaste" ]]; then
     msg_error "Cargo build failed"
     exit
 fi
 
-echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
+echo "${RELEASE}" >/opt/${APPLICATION}_version.txt # creating version file for the update function
 msg_ok "Setting up ${APPLICATION} is Done!"
 
 # Creating Service (if needed)
@@ -67,12 +62,13 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/rustypaste
-ExecStart=/opt/${APPLICATION}/target/release/rustypastec
+ExecStart=/opt/${APPLICATION}/target/release/rustypaste
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
 systemctl enable -q --now ${APPLICATION}.service
 msg_ok "Created Service"
 
