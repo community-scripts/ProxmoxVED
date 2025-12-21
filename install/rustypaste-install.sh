@@ -35,11 +35,25 @@ RELEASE=$(curl -s https://api.github.com/repos/orhun/rustypaste/releases/latest 
 # tar -xzf ${APPLICATION}.tar.gz
 cd /opt
 git clone https://github.com/orhun/rustypaste.git
+
+if [[ ! -d "/opt/${APPLICATION}" ]]; then
+    msg_error "Git clone has failed"
+    exit
+fi
+
 cd ${APPLICATION}
 git fetch --tags
 git checkout ${RELEASE}
 
+sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml
+
+msg_info "Compiling ${APPLICATION}"
 cargo build --locked --release
+
+if [[ ! -f "/opt/${APPLICATION}/target/release/rustypaste" ]]; then
+    msg_error "Cargo build failed"
+    exit
+fi
 
 echo "${RELEASE}" >/opt/${APPLICATION}_version.txt
 msg_ok "Setting up ${APPLICATION} is Done!"
@@ -52,9 +66,8 @@ Description=${APPLICATION} Service
 After=network.target
 
 [Service]
-Environment="SERVER__ADDRESS=0.0.0.0:8000"
-
-ExecStart=/opt/${APPLICATION}/target/release/rustypaste
+WorkingDirectory=/opt/rustypaste
+ExecStart=/opt/${APPLICATION}/target/release/rustypastec
 Restart=always
 
 [Install]
