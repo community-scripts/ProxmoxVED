@@ -38,7 +38,7 @@ fi
 
 cd ${APPLICATION}
 git fetch --tags
-git checkout ${RELEASE} # chekcing out to latest release
+git switch --detach ${RELEASE} # checking out to latest release
 
 sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml # changing the ip and port
 

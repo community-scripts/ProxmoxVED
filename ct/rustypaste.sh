@@ -49,7 +49,7 @@ function update_script() {
         cd /opt/rustypaste
 
         git fetch --tags
-        git checkout ${RELEASE}
+        git switch --detach ${RELEASE}
 
         cargo build --locked --release
         msg_ok "Updated $APP to ${RELEASE}"
