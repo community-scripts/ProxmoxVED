@@ -9,7 +9,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "interface_port": "80",
+  "interface_port": 80,
   "documentation": "https://www.mailpiler.org/",
   "config_path": "",
   "website": "https://www.mailpiler.org/",
