@@ -41,17 +41,17 @@ function update_script() {
 
         # Creating Backup
         msg_info "Creating Backup"
-        tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" "/opt/${APP}/upload"
+        tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" "/opt/${APP}/upload" # Backing up full project + all bins
         msg_ok "Backup Created"
 
         # Execute Update
         msg_info "Updating $APP to ${RELEASE}"
         cd /opt/rustypaste
 
-        git fetch --tags
+        git fetch --tags # getting newest versions
         git switch --detach ${RELEASE}
 
-        cargo build --locked --release
+        cargo build --locked --release # recreating the binary
         msg_ok "Updated $APP to ${RELEASE}"
 
         # Starting Services

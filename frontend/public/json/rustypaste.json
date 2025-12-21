@@ -31,5 +31,7 @@
         "username": null,
         "password": null
     },
-    "notes": []
+    "notes": [
+        "When updating the script it will backup the whole project, make sure to extract it to a safe location or remove",
+    ]
 }
