@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-source <(curl -s https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -s raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: GoldenSpringness
 # License: MIT | https://github.com/GoldenSpringness/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/orhun/rustypaste
 
-# App Default Values
 APP="rustypaste"
 var_tags="${var_tags:-pastebin;storage}"
 var_cpu="${var_cpu:-1}"
@@ -25,45 +24,37 @@ function update_script() {
     check_container_storage
     check_container_resources
 
-    # Check if installation is present | -f for file, -d for folder
-    if [[ ! -f "/opt/${APP}/target/release/rustypaste" ]]; then
-        msg_error "No ${APP} Installation Found!"
+    if [[ ! -f "/opt/rustypaste/target/release/rustypaste" ]]; then
+        msg_error "No rustypaste Installation Found!"
         exit
     fi
 
-    # Crawling the new version and checking whether an update is required
-    RELEASE=$(curl -s https://api.github.com/repos/orhun/rustypaste/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-    if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
-        # Stopping Services
-        msg_info "Stopping $APP"
-        systemctl stop ${APP}
-        msg_ok "Stopped $APP"
+    if check_for_gh_release "rustypaste" "orhun/rustypaste"; then
 
-        # Creating Backup
+        msg_info "Stopping rustypaste"
+        systemctl stop rustypaste
+        msg_ok "Stopped rustypaste"
+
         msg_info "Creating Backup"
-        tar -czf "/opt/${APP}_backup_$(date +%F).tar.gz" "/opt/${APP}/upload" # Backing up full project + all bins
+        tar -czf "/opt/rustypaste_backup_$(date +%F).tar.gz" "/opt/rustypaste/upload"
         msg_ok "Backup Created"
 
-        # Execute Update
-        msg_info "Updating $APP to ${RELEASE}"
+        msg_info "Updating rustypaste to latest"
         cd /opt/rustypaste
 
-        git fetch --tags # getting newest versions
-        git switch --detach ${RELEASE}
+        CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "tarball" "latest" "/opt/rustypaste"
 
-        cargo build --locked --release # recreating the binary
-        msg_ok "Updated $APP to ${RELEASE}"
+        cargo build --locked --release
 
-        # Starting Services
-        msg_info "Starting $APP"
-        systemctl start ${APP}
-        msg_ok "Started $APP"
+        msg_ok "Updated rustypaste to latest"
 
-        # Last Action
-        echo "${RELEASE}" > /opt/${APP}_version.txt
+        msg_info "Starting rustypaste"
+        systemctl start rustypaste
+        msg_ok "Started rustypaste"
+
         msg_ok "Update Successful"
     else
-        msg_ok "No update required. ${APP} is already at ${RELEASE}"
+        msg_ok "No update required. rustypaste is already at latest"
     fi
     exit
 }
@@ -73,6 +64,6 @@ build_container
 description
 
 msg_ok "Completed Successfully!\n"
-echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${CREATING}${GN}rustypaste setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8000${CL}"
