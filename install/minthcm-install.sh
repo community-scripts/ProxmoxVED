@@ -16,6 +16,7 @@ update_os
 PHP_APACHE="YES" PHP_VERSION="8.2" PHP_MODULE="mysql,cli,redis" PHP_FPM="YES" setup_php
 
 setup_composer
+setup_composer
 
 msg_info "Enabling Apache modules (rewrite, headers)"
 $STD a2enmod rewrite
