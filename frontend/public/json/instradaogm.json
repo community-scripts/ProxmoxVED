@@ -1,0 +1,44 @@
+{
+    "name": "InstradaOGM",
+    "slug": "instradaogm",
+    "categories": [
+        4
+    ],
+    "date_created": "2025-12-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://github.com/rdeangel/InstradaOGM#readme",
+    "website": "https://github.com/rdeangel/InstradaOGM",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/instradaogm.webp",
+    "config_path": "/opt/instrada-ogm/.env.production",
+    "description": "Web-based Open Group Manager for OPNsense Firewalls. Provide self-service and device management portal for users and organizes devices into network groups via API.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/instradaogm.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 1024,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": "admin"
+    },
+    "notes": [
+        {
+            "text": "OPNsense API Key: Must set at `/opt/instrada-ogm/.env.production`",
+            "type": "warning"
+        },
+        {
+            "text": "Restart service after config changes: `pm2 restart instrada-ogm`",
+            "type": "info"
+        }
+    ]
+}
