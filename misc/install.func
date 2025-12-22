@@ -173,8 +173,8 @@ _bootstrap() {
   fi
 
   # Source core functions
-  source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/misc/core.func)
-  source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypastemisc/error_handler.func)
+  source <(curl -fsSL https://https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main//misc/core.func)
+  source <(curl -fsSL https://https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
 }
@@ -911,7 +911,7 @@ EOF
   # Create update script
   # Use var_os for OS-based containers, otherwise use app name
   local update_script_name="${var_os:-$app}"
-  echo "bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/ct/${update_script_name}.sh)\"" >/usr/bin/update
+  echo "bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/${update_script_name}.sh)\"" >/usr/bin/update
   chmod +x /usr/bin/update
 
   # Inject SSH authorized keys if provided
