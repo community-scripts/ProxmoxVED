@@ -173,8 +173,8 @@ _bootstrap() {
   fi
 
   # Source core functions
-  source <(curl -fsSL raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/misc/core.func)
-  source <(curl -fsSL raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/misc/error_handler.func)
+  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+  source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/error_handler.func)
   load_functions
   catch_errors
 }
@@ -742,10 +742,10 @@ EOF
   # Source appropriate tools.func based on OS
   case "$OS_FAMILY" in
   alpine)
-    source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/alpine-tools.func)
+    source <(curl -fsSL https://https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/alpine-tools.func)
     ;;
   *)
-    source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/tools.func)
+    source <(curl -fsSL https://https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools.func)
     ;;
   esac
 }
