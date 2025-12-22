@@ -187,14 +187,14 @@ variables() {
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
-  source <(curl -fsSL https://https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  source <(curl -fsSL https://https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
   #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
-  source <(wget -qO- https://https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  source <(wget -qO- https://https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
   #echo "(build.func) Loaded core.func via wget"
@@ -3199,9 +3199,7 @@ EOF'
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
 
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/${var_install}.sh)"
-  local lxc_exit=$?
-
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
   set -Eeuo pipefail       # Re-enable error handling
   trap 'error_handler' ERR # Restore ERR trap
 
@@ -3286,7 +3284,7 @@ EOF'
         if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
           echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
           if pct exec "$CTID" -- bash -c "
-            source <(curl -fsSL https://https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main//misc/install.func)
+            source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
             declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
           " >/dev/null 2>&1; then
             local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
