@@ -742,10 +742,10 @@ EOF
   # Source appropriate tools.func based on OS
   case "$OS_FAMILY" in
   alpine)
-    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-tools.func)
+    source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/alpine-tools.func)
     ;;
   *)
-    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
+    source <(curl -fsSL https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/rustypaste/tools.func)
     ;;
   esac
 }
