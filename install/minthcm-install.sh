@@ -110,8 +110,7 @@ else
   msg_ok "MintHCM installation completed!"
   msg_info "Configuring cron for MintHCM"
   printf "*    *    *    *    *     cd /var/www/MintHCM/legacy; php -f cron.php > /dev/null 2>&1\n" > /var/spool/cron/crontabs/www-data \
-    || msg_error "Failed to configure cron for www-data"
-  service cron start || msg_error "Failed to start cron service"
+  service cron start
   rm -f /var/www/MintHCM/configMint4
 fi
 
