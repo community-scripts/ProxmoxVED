@@ -16,7 +16,6 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  git \
   build-essential \
   ca-certificates
 msg_ok "Dependencies Installed Successfully"
