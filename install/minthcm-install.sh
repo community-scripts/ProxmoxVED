@@ -24,12 +24,12 @@ msg_ok "Enabled Apache modules (rewrite, headers)"
 fetch_and_deploy_gh_release "MintHCM" "minthcm/minthcm" "tarball" "latest" "/var/www/MintHCM"
 
 msg_info "Configuring MintHCM"
-mkdir -p /etc/php/8.2/mods-available
+mkdir -p /etc/php/${PHP_VERSION}/mods-available
 cp /var/www/MintHCM/docker/config/000-default.conf /etc/apache2/sites-available/000-default.conf
-cp /var/www/MintHCM/docker/config/php-minthcm.ini /etc/php/8.2/mods-available/php-minthcm.ini
-mkdir -p "/etc/php/8.2/cli/conf.d" "/etc/php/8.2/apache2/conf.d"
-ln -s "/etc/php/8.2/mods-available/php-minthcm.ini" "/etc/php/8.2/cli/conf.d/20-minthcm.ini"
-ln -s "/etc/php/8.2/mods-available/php-minthcm.ini" "/etc/php/8.2/apache2/conf.d/20-minthcm.ini"
+cp /var/www/MintHCM/docker/config/php-minthcm.ini /etc/php/${PHP_VERSION}/mods-available/php-minthcm.ini
+mkdir -p "/etc/php/${PHP_VERSION}/cli/conf.d" "/etc/php/${PHP_VERSION}/apache2/conf.d"
+ln -s "/etc/php/${PHP_VERSION}/mods-available/php-minthcm.ini" "/etc/php/${PHP_VERSION}/cli/conf.d/20-minthcm.ini"
+ln -s "/etc/php/${PHP_VERSION}/mods-available/php-minthcm.ini" "/etc/php/${PHP_VERSION}/apache2/conf.d/20-minthcm.ini"
 chown -R www-data:www-data /var/www/MintHCM
 find /var/www/MintHCM -type d -exec chmod 755 {} \;
 find /var/www/MintHCM -type f -exec chmod 644 {} \;
