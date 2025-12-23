@@ -23,20 +23,17 @@ msg_ok "Enabled Apache modules (rewrite, headers)"
 
 fetch_and_deploy_gh_release "MintHCM" "minthcm/minthcm" "tarball" "latest" "/var/www/MintHCM"
 
-msg_info "Configuring PHP and Apache2 for MintHCM"
+msg_info "Configuring MintHCM"
 mkdir -p /etc/php/8.2/mods-available
 cp /var/www/MintHCM/docker/config/000-default.conf /etc/apache2/sites-available/000-default.conf
 cp /var/www/MintHCM/docker/config/php-minthcm.ini /etc/php/8.2/mods-available/php-minthcm.ini
 mkdir -p "/etc/php/8.2/cli/conf.d" "/etc/php/8.2/apache2/conf.d"
 ln -s "/etc/php/8.2/mods-available/php-minthcm.ini" "/etc/php/8.2/cli/conf.d/20-minthcm.ini"
 ln -s "/etc/php/8.2/mods-available/php-minthcm.ini" "/etc/php/8.2/apache2/conf.d/20-minthcm.ini"
-msg_ok "Configured PHP and Apache2 for MintHCM"
-
-msg_info "Setting ownership and permissions for MintHCM directory"
 chown -R www-data:www-data /var/www/MintHCM
 find /var/www/MintHCM -type d -exec chmod 755 {} \;
 find /var/www/MintHCM -type f -exec chmod 644 {} \;
-msg_ok "Set up ownership and permissions for MintHCM directory"
+msg_ok "Configured MintHCM"
 
 msg_info "Restarting Apache2"
 $STD systemctl restart apache2
@@ -53,9 +50,7 @@ $STD apt install -y elasticsearch
 
 echo "-Xms2g" >>/etc/elasticsearch/jvm.options
 echo "-Xmx2g" >>/etc/elasticsearch/jvm.options
-
 $STD /usr/share/elasticsearch/bin/elasticsearch-plugin install ingest-attachment -b
-
 systemctl enable -q --now elasticsearch
 msg_ok "Set up Elasticsearch"
 
