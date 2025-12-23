@@ -13,7 +13,6 @@ setting_up_container
 network_check
 update_os
 
-
 msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
@@ -21,7 +20,6 @@ $STD apt install -y \
 msg_ok "Dependencies Installed Successfully"
 
 RUST_VERSION="1.92.0" setup_rust
-
 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "tarball" "latest" "/opt/rustypaste"
 
 msg_info "Setting up rustypaste"
@@ -44,7 +42,6 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-
 systemctl enable -q --now rustypaste
 msg_ok "Created Service"
 
