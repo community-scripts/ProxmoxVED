@@ -53,9 +53,7 @@ $STD apt install -y elasticsearch
 
 echo "-Xms2g" >>/etc/elasticsearch/jvm.options
 echo "-Xmx2g" >>/etc/elasticsearch/jvm.options
-
 $STD /usr/share/elasticsearch/bin/elasticsearch-plugin install ingest-attachment -b
-
 systemctl enable -q --now elasticsearch
 msg_ok "Set up Elasticsearch"
 
