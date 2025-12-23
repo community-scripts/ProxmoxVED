@@ -94,25 +94,17 @@ set -a
 source /var/www/script/.env
 set +a
 php /var/www/script/generate_config.php || msg_error "Failed to execute generate_config.php"
-
-if [[ ! -f /var/www/MintHCM/configMint4 ]]; then
-  msg_error "Error: Failed to generate configMint4 - please check the configuration"
-  exit 1
-fi
 msg_ok "Generated MintHCM configuration file (configMint4)"
 
 msg_info "Starting MintHCM installation..."
 cd /var/www/MintHCM && su -s /bin/bash -c 'php /var/www/MintHCM/MintCLI install < /var/www/MintHCM/configMint4' www-data
 
-if [[ $? -ne 0 ]]; then
-  msg_error "Error: MintHCM installation failed - please check logs"
-else
-  msg_ok "MintHCM installation completed!"
-  msg_info "Configuring cron for MintHCM"
-  printf "*    *    *    *    *     cd /var/www/MintHCM/legacy; php -f cron.php > /dev/null 2>&1\n" > /var/spool/cron/crontabs/www-data \
-  service cron start
-  rm -f /var/www/MintHCM/configMint4
-fi
+msg_ok "MintHCM installation completed!"
+msg_info "Configuring cron for MintHCM"
+printf "*    *    *    *    *     cd /var/www/MintHCM/legacy; php -f cron.php > /dev/null 2>&1\n" > /var/spool/cron/crontabs/www-data
+service cron start
+rm -f /var/www/MintHCM/configMint4
+
 
 
 motd_ssh
