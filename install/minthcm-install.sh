@@ -93,7 +93,7 @@ msg_info "Generating MintHCM configuration file (configMint4)"
 set -a
 source /var/www/script/.env
 set +a
-php /var/www/script/generate_config.php || msg_error "Failed to execute generate_config.php"
+php /var/www/script/generate_config.php
 msg_ok "Generated MintHCM configuration file (configMint4)"
 
 msg_info "Starting MintHCM installation..."
