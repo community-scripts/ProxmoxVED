@@ -42,7 +42,7 @@ function update_script() {
         cd /opt/rustypaste
         CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "tarball" "latest" "/opt/rustypaste"
         sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml
-        cargo build --locked --release
+        $STD cargo build --locked --release
         msg_ok "Updated rustypaste to latest"
 
         msg_info "Starting rustypaste"

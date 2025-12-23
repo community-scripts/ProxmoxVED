@@ -25,7 +25,7 @@ fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "tarball" "latest" "
 msg_info "Setting up rustypaste"
 cd /opt/rustypaste
 sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml
-cargo build --locked --release
+$STD cargo build --locked --release
 msg_ok "Set up rustypaste"
 
 msg_info "Creating Service"
