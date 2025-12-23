@@ -49,7 +49,6 @@ setup_deb822_repo \
   "https://artifacts.elastic.co/packages/7.x/apt" \
   "stable" \
   "main"
-
 $STD apt install -y elasticsearch
 
 echo "-Xms2g" >>/etc/elasticsearch/jvm.options
