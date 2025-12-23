@@ -15,8 +15,7 @@ update_os
 
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  curl \
+$STD apt install -y \
   git \
   build-essential \
   ca-certificates

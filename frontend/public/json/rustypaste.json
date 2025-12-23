@@ -10,10 +10,10 @@
     "privileged": false,
     "interface_port": 8000,
     "documentation": "https://github.com/orhun/rustypaste",
-    "config_path": "",
+    "config_path": "/opt/rustypaste/config.toml",
     "website": "https://github.com/orhun/rustypaste",
     "logo": "https://github.com/orhun/rustypaste/raw/master/img/rustypaste_logo.png",
-    "description": "/opt/rustypaste/config.toml",
+    "description": "Rustypaste is a minimal file upload/pastebin service.",
     "install_methods": [
         {
             "type": "default",
@@ -32,6 +32,6 @@
         "password": null
     },
     "notes": [
-        "When updating the script it will backup the whole project, make sure to extract it to a safe location or remove",
+        "When updating the script it will backup the whole project including all the uploaded files, make sure to extract it to a safe location or remove",
     ]
 }
