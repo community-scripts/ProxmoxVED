@@ -30,7 +30,6 @@ function update_script() {
     fi
 
     if check_for_gh_release "rustypaste" "orhun/rustypaste"; then
-
         msg_info "Stopping rustypaste"
         systemctl stop rustypaste
         msg_ok "Stopped rustypaste"
@@ -40,15 +39,10 @@ function update_script() {
         msg_ok "Backup Created"
 
         msg_info "Updating rustypaste to latest"
-
         cd /opt/rustypaste
-
         CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "tarball" "latest" "/opt/rustypaste"
-
         sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml
-
         cargo build --locked --release
-
         msg_ok "Updated rustypaste to latest"
 
         msg_info "Starting rustypaste"
@@ -56,8 +50,6 @@ function update_script() {
         msg_ok "Started rustypaste"
 
         msg_ok "Update Successful"
-    else
-        msg_ok "No update required. rustypaste is already at latest"
     fi
     exit
 }

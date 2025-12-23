@@ -24,23 +24,13 @@ msg_ok "Dependencies Installed Successfully"
 
 RUST_VERSION="1.92.0" setup_rust
 
-msg_info "Setting up rustypaste"
-
 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "tarball" "latest" "/opt/rustypaste"
 
+msg_info "Setting up rustypaste"
 cd /opt/rustypaste
-
 sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml
-
-msg_info "Compiling rustypaste"
 cargo build --locked --release
-
-if [[ ! -f "/opt/rustypaste/target/release/rustypaste" ]]; then
-    msg_error "Cargo build failed"
-    exit
-fi
-
-msg_ok "Setting up rustypaste is Done!"
+msg_ok "Set up rustypaste"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/rustypaste.service
@@ -57,15 +47,9 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now rustypaste.service
+systemctl enable -q --now rustypaste
 msg_ok "Created Service"
-
-msg_ok "RustyPaste is Running!"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc
