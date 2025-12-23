@@ -33,6 +33,10 @@ ln -s "/etc/php/${PHP_VERSION}/mods-available/php-minthcm.ini" "/etc/php/${PHP_V
 chown -R www-data:www-data /var/www/MintHCM
 find /var/www/MintHCM -type d -exec chmod 755 {} \;
 find /var/www/MintHCM -type f -exec chmod 644 {} \;
+mkdir -p /var/www/script
+cp /var/www/MintHCM/docker/script/generate_config.php /var/www/script/generate_config.php
+cp /var/www/MintHCM/docker/.env /var/www/script/.env
+chown -R www-data:www-data /var/www/script
 msg_ok "Configured MintHCM"
 
 msg_info "Restarting Apache2"
@@ -60,24 +64,15 @@ $STD mariadb -u root -e "SET GLOBAL sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DAT
 msg_ok "Set up MariaDB"
 
 msg_info "Configuring database for MintHCM"
-
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 $STD mariadb -u root -e "CREATE USER 'minthcm'@'localhost' IDENTIFIED BY '${DB_PASS}';"
 $STD mariadb -u root -e "GRANT ALL ON *.* TO 'minthcm'@'localhost'; FLUSH PRIVILEGES;"
 msg_ok "Configured MariaDB for MintHCM"
 
-msg_info "Downloading generate_config.php script"
-mkdir -p /var/www/script
-cp /var/www/MintHCM/docker/script/generate_config.php /var/www/script/generate_config.php
-chown -R www-data:www-data /var/www/script
-msg_ok "Downloading generate_config.php script"
-
-cp /var/www/MintHCM/docker/.env /var/www/script/.env
 sed -i 's/^DB_HOST=.*/DB_HOST=localhost/' /var/www/script/.env
 sed -i 's/^DB_USER=.*/DB_USER=minthcm/' /var/www/script/.env
 sed -i "s/^DB_PASS=.*/DB_PASS=${DB_PASS}/" /var/www/script/.env
 sed -i 's/^ELASTICSEARCH_HOST=.*/ELASTICSEARCH_HOST=localhost/' /var/www/script/.env
-
 {
   echo "MintHCM DB Credentials"
   echo "MariaDB User: minthcm"
