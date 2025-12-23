@@ -59,8 +59,8 @@ $STD /usr/share/elasticsearch/bin/elasticsearch-plugin install ingest-attachment
 systemctl enable -q --now elasticsearch
 msg_ok "Set up Elasticsearch"
 
-msg_info "Setting up MariaDB"
 setup_mariadb
+msg_info "Setting up MariaDB"
 $STD mariadb -u root -e "SET GLOBAL sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'";
 msg_ok "Set up MariaDB"
 
