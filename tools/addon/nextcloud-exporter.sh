@@ -71,7 +71,7 @@ function update() {
     fi
     msg_ok "Stopped service"
 
-    fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "nextcloud-exporter_*_amd64.deb"
+    fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "/opt/nextcloud-exporter" "nextcloud-exporter_*_amd64.deb"
     setup_go
 
     msg_info "Starting service"
@@ -93,7 +93,7 @@ function install() {
   read -erp "Enter URL of Nextcloud, example: (http://127.0.0.1:8080): " NEXTCLOUD_SERVER
   read -rsp "Enter Nextcloud auth token (press Enter to use username/password instead): " NEXTCLOUD_AUTH_TOKEN
   printf "\n"
-  
+
   if [[ -z "$NEXTCLOUD_AUTH_TOKEN" ]]; then
     read -erp "Enter Nextcloud username: " NEXTCLOUD_USERNAME
     read -rsp "Enter Nextcloud password: " NEXTCLOUD_PASSWORD
@@ -115,7 +115,7 @@ function install() {
     NEXTCLOUD_TLS_SKIP_VERIFY="true"
   fi
 
-  fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "nextcloud-exporter_*_amd64.deb"
+  fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "/opt/nextcloud-exporter" "nextcloud-exporter_*_amd64.deb"
   setup_go
 
   msg_info "Creating configuration"
