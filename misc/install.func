@@ -49,134 +49,134 @@ INIT_SYSTEM="" # systemd, openrc, sysvinit
 #   OS_TYPE, OS_FAMILY, OS_VERSION, PKG_MANAGER, INIT_SYSTEM
 # ------------------------------------------------------------------------------
 detect_os() {
-  if [[ -f /etc/os-release ]]; then
-    # shellcheck disable=SC1091
-    . /etc/os-release
-    OS_TYPE="${ID:-unknown}"
-    OS_VERSION="${VERSION_ID:-unknown}"
-  elif [[ -f /etc/alpine-release ]]; then
-    OS_TYPE="alpine"
-    OS_VERSION=$(cat /etc/alpine-release)
-  elif [[ -f /etc/debian_version ]]; then
-    OS_TYPE="debian"
-    OS_VERSION=$(cat /etc/debian_version)
-  elif [[ -f /etc/redhat-release ]]; then
-    OS_TYPE="centos"
-    OS_VERSION=$(grep -oE '[0-9]+\.[0-9]+' /etc/redhat-release | head -1)
-  elif [[ -f /etc/arch-release ]]; then
-    OS_TYPE="arch"
-    OS_VERSION="rolling"
-  elif [[ -f /etc/gentoo-release ]]; then
-    OS_TYPE="gentoo"
-    OS_VERSION=$(cat /etc/gentoo-release | grep -oE '[0-9.]+')
-  else
-    OS_TYPE="unknown"
-    OS_VERSION="unknown"
-  fi
-
-  # Normalize OS type and determine family
-  case "$OS_TYPE" in
-  debian)
-    OS_FAMILY="debian"
-    PKG_MANAGER="apt"
-    ;;
-  ubuntu)
-    OS_FAMILY="debian"
-    PKG_MANAGER="apt"
-    ;;
-  devuan)
-    OS_FAMILY="debian"
-    PKG_MANAGER="apt"
-    ;;
-  alpine)
-    OS_FAMILY="alpine"
-    PKG_MANAGER="apk"
-    ;;
-  fedora)
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  rocky | rockylinux)
-    OS_TYPE="rocky"
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  alma | almalinux)
-    OS_TYPE="alma"
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  centos)
-    OS_FAMILY="rhel"
-    # CentOS 7 uses yum, 8+ uses dnf
-    if [[ "${OS_VERSION%%.*}" -ge 8 ]]; then
-      PKG_MANAGER="dnf"
+    if [[ -f /etc/os-release ]]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        OS_TYPE="${ID:-unknown}"
+        OS_VERSION="${VERSION_ID:-unknown}"
+    elif [[ -f /etc/alpine-release ]]; then
+        OS_TYPE="alpine"
+        OS_VERSION=$(cat /etc/alpine-release)
+    elif [[ -f /etc/debian_version ]]; then
+        OS_TYPE="debian"
+        OS_VERSION=$(cat /etc/debian_version)
+    elif [[ -f /etc/redhat-release ]]; then
+        OS_TYPE="centos"
+        OS_VERSION=$(grep -oE '[0-9]+\.[0-9]+' /etc/redhat-release | head -1)
+    elif [[ -f /etc/arch-release ]]; then
+        OS_TYPE="arch"
+        OS_VERSION="rolling"
+    elif [[ -f /etc/gentoo-release ]]; then
+        OS_TYPE="gentoo"
+        OS_VERSION=$(cat /etc/gentoo-release | grep -oE '[0-9.]+')
     else
-      PKG_MANAGER="yum"
+        OS_TYPE="unknown"
+        OS_VERSION="unknown"
     fi
-    ;;
-  rhel)
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  openeuler)
-    OS_FAMILY="rhel"
-    PKG_MANAGER="dnf"
-    ;;
-  opensuse* | sles)
-    OS_TYPE="opensuse"
-    OS_FAMILY="suse"
-    PKG_MANAGER="zypper"
-    ;;
-  gentoo)
-    OS_FAMILY="gentoo"
-    PKG_MANAGER="emerge"
-    ;;
-  *)
-    OS_FAMILY="unknown"
-    PKG_MANAGER="unknown"
-    ;;
-  esac
 
-  # Detect init system
-  if command -v systemctl &>/dev/null && [[ -d /run/systemd/system ]]; then
-    INIT_SYSTEM="systemd"
-  elif command -v rc-service &>/dev/null || [[ -d /etc/init.d && -f /sbin/openrc ]]; then
-    INIT_SYSTEM="openrc"
-  elif [[ -f /etc/inittab ]]; then
-    INIT_SYSTEM="sysvinit"
-  else
-    INIT_SYSTEM="unknown"
-  fi
+    # Normalize OS type and determine family
+    case "$OS_TYPE" in
+    debian)
+        OS_FAMILY="debian"
+        PKG_MANAGER="apt"
+        ;;
+    ubuntu)
+        OS_FAMILY="debian"
+        PKG_MANAGER="apt"
+        ;;
+    devuan)
+        OS_FAMILY="debian"
+        PKG_MANAGER="apt"
+        ;;
+    alpine)
+        OS_FAMILY="alpine"
+        PKG_MANAGER="apk"
+        ;;
+    fedora)
+        OS_FAMILY="rhel"
+        PKG_MANAGER="dnf"
+        ;;
+    rocky | rockylinux)
+        OS_TYPE="rocky"
+        OS_FAMILY="rhel"
+        PKG_MANAGER="dnf"
+        ;;
+    alma | almalinux)
+        OS_TYPE="alma"
+        OS_FAMILY="rhel"
+        PKG_MANAGER="dnf"
+        ;;
+    centos)
+        OS_FAMILY="rhel"
+        # CentOS 7 uses yum, 8+ uses dnf
+        if [[ "${OS_VERSION%%.*}" -ge 8 ]]; then
+            PKG_MANAGER="dnf"
+        else
+            PKG_MANAGER="yum"
+        fi
+        ;;
+    rhel)
+        OS_FAMILY="rhel"
+        PKG_MANAGER="dnf"
+        ;;
+    openeuler)
+        OS_FAMILY="rhel"
+        PKG_MANAGER="dnf"
+        ;;
+    opensuse* | sles)
+        OS_TYPE="opensuse"
+        OS_FAMILY="suse"
+        PKG_MANAGER="zypper"
+        ;;
+    gentoo)
+        OS_FAMILY="gentoo"
+        PKG_MANAGER="emerge"
+        ;;
+    *)
+        OS_FAMILY="unknown"
+        PKG_MANAGER="unknown"
+        ;;
+    esac
+
+    # Detect init system
+    if command -v systemctl &>/dev/null && [[ -d /run/systemd/system ]]; then
+        INIT_SYSTEM="systemd"
+    elif command -v rc-service &>/dev/null || [[ -d /etc/init.d && -f /sbin/openrc ]]; then
+        INIT_SYSTEM="openrc"
+    elif [[ -f /etc/inittab ]]; then
+        INIT_SYSTEM="sysvinit"
+    else
+        INIT_SYSTEM="unknown"
+    fi
 }
 
 # ------------------------------------------------------------------------------
 # Bootstrap: Ensure curl is available and source core functions
 # ------------------------------------------------------------------------------
 _bootstrap() {
-  # Minimal bootstrap to get curl installed
-  if ! command -v curl &>/dev/null; then
-    printf "\r\e[2K%b" '\033[93m Setup Source \033[m' >&2
-    if command -v apt-get &>/dev/null; then
-      apt-get update &>/dev/null && apt-get install -y curl &>/dev/null
-    elif command -v apk &>/dev/null; then
-      apk update &>/dev/null && apk add curl &>/dev/null
-    elif command -v dnf &>/dev/null; then
-      dnf install -y curl &>/dev/null
-    elif command -v yum &>/dev/null; then
-      yum install -y curl &>/dev/null
-    elif command -v zypper &>/dev/null; then
-      zypper install -y curl &>/dev/null
-    elif command -v emerge &>/dev/null; then
-      emerge --quiet net-misc/curl &>/dev/null
+    # Minimal bootstrap to get curl installed
+    if ! command -v curl &>/dev/null; then
+        printf "\r\e[2K%b" '\033[93m Setup Source \033[m' >&2
+        if command -v apt-get &>/dev/null; then
+            apt-get update &>/dev/null && apt-get install -y curl &>/dev/null
+        elif command -v apk &>/dev/null; then
+            apk update &>/dev/null && apk add curl &>/dev/null
+        elif command -v dnf &>/dev/null; then
+            dnf install -y curl &>/dev/null
+        elif command -v yum &>/dev/null; then
+            yum install -y curl &>/dev/null
+        elif command -v zypper &>/dev/null; then
+            zypper install -y curl &>/dev/null
+        elif command -v emerge &>/dev/null; then
+            emerge --quiet net-misc/curl &>/dev/null
+        fi
     fi
-  fi
 
-  # Source core functions
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
-  source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
-  load_functions
-  catch_errors
+    # Source core functions
+    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+    load_functions
+    catch_errors
 }
 
 # Run bootstrap and OS detection
@@ -193,30 +193,30 @@ detect_os
 # Updates package manager cache/database
 # ------------------------------------------------------------------------------
 pkg_update() {
-  case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get update
-    ;;
-  apk)
-    $STD apk update
-    ;;
-  dnf)
-    $STD dnf makecache
-    ;;
-  yum)
-    $STD yum makecache
-    ;;
-  zypper)
-    $STD zypper refresh
-    ;;
-  emerge)
-    $STD emerge --sync
-    ;;
-  *)
-    msg_error "Unknown package manager: $PKG_MANAGER"
-    return 1
-    ;;
-  esac
+    case "$PKG_MANAGER" in
+    apt)
+        $STD apt-get update
+        ;;
+    apk)
+        $STD apk update
+        ;;
+    dnf)
+        $STD dnf makecache
+        ;;
+    yum)
+        $STD yum makecache
+        ;;
+    zypper)
+        $STD zypper refresh
+        ;;
+    emerge)
+        $STD emerge --sync
+        ;;
+    *)
+        msg_error "Unknown package manager: $PKG_MANAGER"
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -225,30 +225,30 @@ pkg_update() {
 # Upgrades all installed packages
 # ------------------------------------------------------------------------------
 pkg_upgrade() {
-  case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
-    ;;
-  apk)
-    $STD apk -U upgrade
-    ;;
-  dnf)
-    $STD dnf -y upgrade
-    ;;
-  yum)
-    $STD yum -y update
-    ;;
-  zypper)
-    $STD zypper -n update
-    ;;
-  emerge)
-    $STD emerge --quiet --update --deep @world
-    ;;
-  *)
-    msg_error "Unknown package manager: $PKG_MANAGER"
-    return 1
-    ;;
-  esac
+    case "$PKG_MANAGER" in
+    apt)
+        $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
+        ;;
+    apk)
+        $STD apk -U upgrade
+        ;;
+    dnf)
+        $STD dnf -y upgrade
+        ;;
+    yum)
+        $STD yum -y update
+        ;;
+    zypper)
+        $STD zypper -n update
+        ;;
+    emerge)
+        $STD emerge --quiet --update --deep @world
+        ;;
+    *)
+        msg_error "Unknown package manager: $PKG_MANAGER"
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -259,33 +259,33 @@ pkg_upgrade() {
 #   packages - List of packages to install
 # ------------------------------------------------------------------------------
 pkg_install() {
-  local packages=("$@")
-  [[ ${#packages[@]} -eq 0 ]] && return 0
+    local packages=("$@")
+    [[ ${#packages[@]} -eq 0 ]] && return 0
 
-  case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get install -y "${packages[@]}"
-    ;;
-  apk)
-    $STD apk add --no-cache "${packages[@]}"
-    ;;
-  dnf)
-    $STD dnf install -y "${packages[@]}"
-    ;;
-  yum)
-    $STD yum install -y "${packages[@]}"
-    ;;
-  zypper)
-    $STD zypper install -y "${packages[@]}"
-    ;;
-  emerge)
-    $STD emerge --quiet "${packages[@]}"
-    ;;
-  *)
-    msg_error "Unknown package manager: $PKG_MANAGER"
-    return 1
-    ;;
-  esac
+    case "$PKG_MANAGER" in
+    apt)
+        $STD apt-get install -y "${packages[@]}"
+        ;;
+    apk)
+        $STD apk add --no-cache "${packages[@]}"
+        ;;
+    dnf)
+        $STD dnf install -y "${packages[@]}"
+        ;;
+    yum)
+        $STD yum install -y "${packages[@]}"
+        ;;
+    zypper)
+        $STD zypper install -y "${packages[@]}"
+        ;;
+    emerge)
+        $STD emerge --quiet "${packages[@]}"
+        ;;
+    *)
+        msg_error "Unknown package manager: $PKG_MANAGER"
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -294,33 +294,33 @@ pkg_install() {
 # Removes one or more packages
 # ------------------------------------------------------------------------------
 pkg_remove() {
-  local packages=("$@")
-  [[ ${#packages[@]} -eq 0 ]] && return 0
+    local packages=("$@")
+    [[ ${#packages[@]} -eq 0 ]] && return 0
 
-  case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get remove -y "${packages[@]}"
-    ;;
-  apk)
-    $STD apk del "${packages[@]}"
-    ;;
-  dnf)
-    $STD dnf remove -y "${packages[@]}"
-    ;;
-  yum)
-    $STD yum remove -y "${packages[@]}"
-    ;;
-  zypper)
-    $STD zypper remove -y "${packages[@]}"
-    ;;
-  emerge)
-    $STD emerge --quiet --unmerge "${packages[@]}"
-    ;;
-  *)
-    msg_error "Unknown package manager: $PKG_MANAGER"
-    return 1
-    ;;
-  esac
+    case "$PKG_MANAGER" in
+    apt)
+        $STD apt-get remove -y "${packages[@]}"
+        ;;
+    apk)
+        $STD apk del "${packages[@]}"
+        ;;
+    dnf)
+        $STD dnf remove -y "${packages[@]}"
+        ;;
+    yum)
+        $STD yum remove -y "${packages[@]}"
+        ;;
+    zypper)
+        $STD zypper remove -y "${packages[@]}"
+        ;;
+    emerge)
+        $STD emerge --quiet --unmerge "${packages[@]}"
+        ;;
+    *)
+        msg_error "Unknown package manager: $PKG_MANAGER"
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -329,31 +329,31 @@ pkg_remove() {
 # Cleans package manager cache to free space
 # ------------------------------------------------------------------------------
 pkg_clean() {
-  case "$PKG_MANAGER" in
-  apt)
-    $STD apt-get autoremove -y
-    $STD apt-get autoclean
-    ;;
-  apk)
-    $STD apk cache clean
-    ;;
-  dnf)
-    $STD dnf clean all
-    $STD dnf autoremove -y
-    ;;
-  yum)
-    $STD yum clean all
-    ;;
-  zypper)
-    $STD zypper clean
-    ;;
-  emerge)
-    $STD emerge --quiet --depclean
-    ;;
-  *)
-    return 0
-    ;;
-  esac
+    case "$PKG_MANAGER" in
+    apt)
+        $STD apt-get autoremove -y
+        $STD apt-get autoclean
+        ;;
+    apk)
+        $STD apk cache clean
+        ;;
+    dnf)
+        $STD dnf clean all
+        $STD dnf autoremove -y
+        ;;
+    yum)
+        $STD yum clean all
+        ;;
+    zypper)
+        $STD zypper clean
+        ;;
+    emerge)
+        $STD emerge --quiet --depclean
+        ;;
+    *)
+        return 0
+        ;;
+    esac
 }
 
 # ==============================================================================
@@ -366,28 +366,28 @@ pkg_clean() {
 # Enables a service to start at boot
 # ------------------------------------------------------------------------------
 svc_enable() {
-  local service="$1"
-  [[ -z "$service" ]] && return 1
+    local service="$1"
+    [[ -z "$service" ]] && return 1
 
-  case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl enable "$service"
-    ;;
-  openrc)
-    $STD rc-update add "$service" default
-    ;;
-  sysvinit)
-    if command -v update-rc.d &>/dev/null; then
-      $STD update-rc.d "$service" defaults
-    elif command -v chkconfig &>/dev/null; then
-      $STD chkconfig "$service" on
-    fi
-    ;;
-  *)
-    msg_warn "Unknown init system, cannot enable $service"
-    return 1
-    ;;
-  esac
+    case "$INIT_SYSTEM" in
+    systemd)
+        $STD systemctl enable "$service"
+        ;;
+    openrc)
+        $STD rc-update add "$service" default
+        ;;
+    sysvinit)
+        if command -v update-rc.d &>/dev/null; then
+            $STD update-rc.d "$service" defaults
+        elif command -v chkconfig &>/dev/null; then
+            $STD chkconfig "$service" on
+        fi
+        ;;
+    *)
+        msg_warn "Unknown init system, cannot enable $service"
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -396,27 +396,27 @@ svc_enable() {
 # Disables a service from starting at boot
 # ------------------------------------------------------------------------------
 svc_disable() {
-  local service="$1"
-  [[ -z "$service" ]] && return 1
+    local service="$1"
+    [[ -z "$service" ]] && return 1
 
-  case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl disable "$service"
-    ;;
-  openrc)
-    $STD rc-update del "$service" default 2>/dev/null || true
-    ;;
-  sysvinit)
-    if command -v update-rc.d &>/dev/null; then
-      $STD update-rc.d "$service" remove
-    elif command -v chkconfig &>/dev/null; then
-      $STD chkconfig "$service" off
-    fi
-    ;;
-  *)
-    return 1
-    ;;
-  esac
+    case "$INIT_SYSTEM" in
+    systemd)
+        $STD systemctl disable "$service"
+        ;;
+    openrc)
+        $STD rc-update del "$service" default 2>/dev/null || true
+        ;;
+    sysvinit)
+        if command -v update-rc.d &>/dev/null; then
+            $STD update-rc.d "$service" remove
+        elif command -v chkconfig &>/dev/null; then
+            $STD chkconfig "$service" off
+        fi
+        ;;
+    *)
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -425,23 +425,23 @@ svc_disable() {
 # Starts a service immediately
 # ------------------------------------------------------------------------------
 svc_start() {
-  local service="$1"
-  [[ -z "$service" ]] && return 1
+    local service="$1"
+    [[ -z "$service" ]] && return 1
 
-  case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl start "$service"
-    ;;
-  openrc)
-    $STD rc-service "$service" start
-    ;;
-  sysvinit)
-    $STD /etc/init.d/"$service" start
-    ;;
-  *)
-    return 1
-    ;;
-  esac
+    case "$INIT_SYSTEM" in
+    systemd)
+        $STD systemctl start "$service"
+        ;;
+    openrc)
+        $STD rc-service "$service" start
+        ;;
+    sysvinit)
+        $STD /etc/init.d/"$service" start
+        ;;
+    *)
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -450,23 +450,23 @@ svc_start() {
 # Stops a running service
 # ------------------------------------------------------------------------------
 svc_stop() {
-  local service="$1"
-  [[ -z "$service" ]] && return 1
+    local service="$1"
+    [[ -z "$service" ]] && return 1
 
-  case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl stop "$service"
-    ;;
-  openrc)
-    $STD rc-service "$service" stop
-    ;;
-  sysvinit)
-    $STD /etc/init.d/"$service" stop
-    ;;
-  *)
-    return 1
-    ;;
-  esac
+    case "$INIT_SYSTEM" in
+    systemd)
+        $STD systemctl stop "$service"
+        ;;
+    openrc)
+        $STD rc-service "$service" stop
+        ;;
+    sysvinit)
+        $STD /etc/init.d/"$service" stop
+        ;;
+    *)
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -475,23 +475,23 @@ svc_stop() {
 # Restarts a service
 # ------------------------------------------------------------------------------
 svc_restart() {
-  local service="$1"
-  [[ -z "$service" ]] && return 1
+    local service="$1"
+    [[ -z "$service" ]] && return 1
 
-  case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl restart "$service"
-    ;;
-  openrc)
-    $STD rc-service "$service" restart
-    ;;
-  sysvinit)
-    $STD /etc/init.d/"$service" restart
-    ;;
-  *)
-    return 1
-    ;;
-  esac
+    case "$INIT_SYSTEM" in
+    systemd)
+        $STD systemctl restart "$service"
+        ;;
+    openrc)
+        $STD rc-service "$service" restart
+        ;;
+    sysvinit)
+        $STD /etc/init.d/"$service" restart
+        ;;
+    *)
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -500,23 +500,23 @@ svc_restart() {
 # Gets service status (returns 0 if running)
 # ------------------------------------------------------------------------------
 svc_status() {
-  local service="$1"
-  [[ -z "$service" ]] && return 1
+    local service="$1"
+    [[ -z "$service" ]] && return 1
 
-  case "$INIT_SYSTEM" in
-  systemd)
-    systemctl is-active --quiet "$service"
-    ;;
-  openrc)
-    rc-service "$service" status &>/dev/null
-    ;;
-  sysvinit)
-    /etc/init.d/"$service" status &>/dev/null
-    ;;
-  *)
-    return 1
-    ;;
-  esac
+    case "$INIT_SYSTEM" in
+    systemd)
+        systemctl is-active --quiet "$service"
+        ;;
+    openrc)
+        rc-service "$service" status &>/dev/null
+        ;;
+    sysvinit)
+        /etc/init.d/"$service" status &>/dev/null
+        ;;
+    *)
+        return 1
+        ;;
+    esac
 }
 
 # ------------------------------------------------------------------------------
@@ -525,15 +525,15 @@ svc_status() {
 # Reloads init system daemon configuration (for systemd)
 # ------------------------------------------------------------------------------
 svc_reload_daemon() {
-  case "$INIT_SYSTEM" in
-  systemd)
-    $STD systemctl daemon-reload
-    ;;
-  *)
-    # Other init systems don't need this
-    return 0
-    ;;
-  esac
+    case "$INIT_SYSTEM" in
+    systemd)
+        $STD systemctl daemon-reload
+        ;;
+    *)
+        # Other init systems don't need this
+        return 0
+        ;;
+    esac
 }
 
 # ==============================================================================
@@ -547,24 +547,24 @@ svc_reload_daemon() {
 # Returns: IP address string
 # ------------------------------------------------------------------------------
 get_ip() {
-  local ip=""
+    local ip=""
 
-  # Try hostname -I first (most common)
-  if command -v hostname &>/dev/null; then
-    ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-  fi
+    # Try hostname -I first (most common)
+    if command -v hostname &>/dev/null; then
+        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+    fi
 
-  # Fallback to ip command
-  if [[ -z "$ip" ]] && command -v ip &>/dev/null; then
-    ip=$(ip -4 addr show scope global | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
-  fi
+    # Fallback to ip command
+    if [[ -z "$ip" ]] && command -v ip &>/dev/null; then
+        ip=$(ip -4 addr show scope global | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
+    fi
 
-  # Fallback to ifconfig
-  if [[ -z "$ip" ]] && command -v ifconfig &>/dev/null; then
-    ip=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -1)
-  fi
+    # Fallback to ifconfig
+    if [[ -z "$ip" ]] && command -v ifconfig &>/dev/null; then
+        ip=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | head -1)
+    fi
 
-  echo "$ip"
+    echo "$ip"
 }
 
 # ------------------------------------------------------------------------------
@@ -574,25 +574,25 @@ get_ip() {
 # If IPV6_METHOD=disable: disables IPv6 via sysctl
 # ------------------------------------------------------------------------------
 verb_ip6() {
-  set_std_mode # Set STD mode based on VERBOSE
+    set_std_mode # Set STD mode based on VERBOSE
 
-  if [[ "${IPV6_METHOD:-}" == "disable" ]]; then
-    msg_info "Disabling IPv6 (this may affect some services)"
-    mkdir -p /etc/sysctl.d
-    cat >/etc/sysctl.d/99-disable-ipv6.conf <<EOF
+    if [[ "${IPV6_METHOD:-}" == "disable" ]]; then
+        msg_info "Disabling IPv6 (this may affect some services)"
+        mkdir -p /etc/sysctl.d
+        cat >/etc/sysctl.d/99-disable-ipv6.conf <<EOF
 # Disable IPv6 (set by community-scripts)
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1
 EOF
-    $STD sysctl -p /etc/sysctl.d/99-disable-ipv6.conf
+        $STD sysctl -p /etc/sysctl.d/99-disable-ipv6.conf
 
-    # For OpenRC, ensure sysctl runs at boot
-    if [[ "$INIT_SYSTEM" == "openrc" ]]; then
-      $STD rc-update add sysctl default 2>/dev/null || true
+        # For OpenRC, ensure sysctl runs at boot
+        if [[ "$INIT_SYSTEM" == "openrc" ]]; then
+            $STD rc-update add sysctl default 2>/dev/null || true
+        fi
+        msg_ok "Disabled IPv6"
     fi
-    msg_ok "Disabled IPv6"
-  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -604,36 +604,36 @@ EOF
 #   - Disables network wait services
 # ------------------------------------------------------------------------------
 setting_up_container() {
-  msg_info "Setting up Container OS"
+    msg_info "Setting up Container OS"
 
-  # Wait for network
-  local i
-  for ((i = RETRY_NUM; i > 0; i--)); do
-    if [[ -n "$(get_ip)" ]]; then
-      break
+    # Wait for network
+    local i
+    for ((i = RETRY_NUM; i > 0; i--)); do
+        if [[ -n "$(get_ip)" ]]; then
+            break
+        fi
+        echo 1>&2 -en "${CROSS}${RD} No Network! "
+        sleep "$RETRY_EVERY"
+    done
+
+    if [[ -z "$(get_ip)" ]]; then
+        echo 1>&2 -e "\n${CROSS}${RD} No Network After $RETRY_NUM Tries${CL}"
+        echo -e "${NETWORK}Check Network Settings"
+        exit 1
     fi
-    echo 1>&2 -en "${CROSS}${RD} No Network! "
-    sleep "$RETRY_EVERY"
-  done
 
-  if [[ -z "$(get_ip)" ]]; then
-    echo 1>&2 -e "\n${CROSS}${RD} No Network After $RETRY_NUM Tries${CL}"
-    echo -e "${NETWORK}Check Network Settings"
-    exit 1
-  fi
+    # Remove Python EXTERNALLY-MANAGED restriction (Debian 12+, Ubuntu 23.04+)
+    rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
 
-  # Remove Python EXTERNALLY-MANAGED restriction (Debian 12+, Ubuntu 23.04+)
-  rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
+    # Disable network wait services for faster boot
+    case "$INIT_SYSTEM" in
+    systemd)
+        systemctl disable -q --now systemd-networkd-wait-online.service 2>/dev/null || true
+        ;;
+    esac
 
-  # Disable network wait services for faster boot
-  case "$INIT_SYSTEM" in
-  systemd)
-    systemctl disable -q --now systemd-networkd-wait-online.service 2>/dev/null || true
-    ;;
-  esac
-
-  msg_ok "Set up Container OS"
-  msg_ok "Network Connected: ${BL}$(get_ip)"
+    msg_ok "Set up Container OS"
+    msg_ok "Network Connected: ${BL}$(get_ip)"
 }
 
 # ------------------------------------------------------------------------------
@@ -643,65 +643,65 @@ setting_up_container() {
 # Tests connectivity to DNS servers and verifies DNS resolution
 # ------------------------------------------------------------------------------
 network_check() {
-  set +e
-  trap - ERR
-  local ipv4_connected=false
-  local ipv6_connected=false
-  sleep 1
+    set +e
+    trap - ERR
+    local ipv4_connected=false
+    local ipv6_connected=false
+    sleep 1
 
-  # Check IPv4 connectivity
-  if ping -c 1 -W 1 1.1.1.1 &>/dev/null || ping -c 1 -W 1 8.8.8.8 &>/dev/null || ping -c 1 -W 1 9.9.9.9 &>/dev/null; then
-    msg_ok "IPv4 Internet Connected"
-    ipv4_connected=true
-  else
-    msg_error "IPv4 Internet Not Connected"
-  fi
-
-  # Check IPv6 connectivity (if ping6 exists)
-  if command -v ping6 &>/dev/null; then
-    if ping6 -c 1 -W 1 2606:4700:4700::1111 &>/dev/null || ping6 -c 1 -W 1 2001:4860:4860::8888 &>/dev/null; then
-      msg_ok "IPv6 Internet Connected"
-      ipv6_connected=true
+    # Check IPv4 connectivity
+    if ping -c 1 -W 1 1.1.1.1 &>/dev/null || ping -c 1 -W 1 8.8.8.8 &>/dev/null || ping -c 1 -W 1 9.9.9.9 &>/dev/null; then
+        msg_ok "IPv4 Internet Connected"
+        ipv4_connected=true
     else
-      msg_error "IPv6 Internet Not Connected"
+        msg_error "IPv4 Internet Not Connected"
     fi
-  fi
 
-  # Prompt if both fail
-  if [[ $ipv4_connected == false && $ipv6_connected == false ]]; then
-    read -r -p "No Internet detected, would you like to continue anyway? <y/N> " prompt
-    if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-      echo -e "${INFO}${RD}Expect Issues Without Internet${CL}"
+    # Check IPv6 connectivity (if ping6 exists)
+    if command -v ping6 &>/dev/null; then
+        if ping6 -c 1 -W 1 2606:4700:4700::1111 &>/dev/null || ping6 -c 1 -W 1 2001:4860:4860::8888 &>/dev/null; then
+            msg_ok "IPv6 Internet Connected"
+            ipv6_connected=true
+        else
+            msg_error "IPv6 Internet Not Connected"
+        fi
+    fi
+
+    # Prompt if both fail
+    if [[ $ipv4_connected == false && $ipv6_connected == false ]]; then
+        read -r -p "No Internet detected, would you like to continue anyway? <y/N> " prompt
+        if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
+            echo -e "${INFO}${RD}Expect Issues Without Internet${CL}"
+        else
+            echo -e "${NETWORK}Check Network Settings"
+            exit 1
+        fi
+    fi
+
+    # DNS resolution checks
+    local GIT_HOSTS=("github.com" "raw.githubusercontent.com" "git.community-scripts.org")
+    local GIT_STATUS="Git DNS:"
+    local DNS_FAILED=false
+
+    for HOST in "${GIT_HOSTS[@]}"; do
+        local RESOLVEDIP
+        RESOLVEDIP=$(getent hosts "$HOST" 2>/dev/null | awk '{ print $1 }' | head -n1)
+        if [[ -z "$RESOLVEDIP" ]]; then
+            GIT_STATUS+=" $HOST:(${DNSFAIL:-FAIL})"
+            DNS_FAILED=true
+        else
+            GIT_STATUS+=" $HOST:(${DNSOK:-OK})"
+        fi
+    done
+
+    if [[ "$DNS_FAILED" == true ]]; then
+        fatal "$GIT_STATUS"
     else
-      echo -e "${NETWORK}Check Network Settings"
-      exit 1
+        msg_ok "$GIT_STATUS"
     fi
-  fi
 
-  # DNS resolution checks
-  local GIT_HOSTS=("github.com" "raw.githubusercontent.com" "git.community-scripts.org")
-  local GIT_STATUS="Git DNS:"
-  local DNS_FAILED=false
-
-  for HOST in "${GIT_HOSTS[@]}"; do
-    local RESOLVEDIP
-    RESOLVEDIP=$(getent hosts "$HOST" 2>/dev/null | awk '{ print $1 }' | head -n1)
-    if [[ -z "$RESOLVEDIP" ]]; then
-      GIT_STATUS+=" $HOST:(${DNSFAIL:-FAIL})"
-      DNS_FAILED=true
-    else
-      GIT_STATUS+=" $HOST:(${DNSOK:-OK})"
-    fi
-  done
-
-  if [[ "$DNS_FAILED" == true ]]; then
-    fatal "$GIT_STATUS"
-  else
-    msg_ok "$GIT_STATUS"
-  fi
-
-  set -e
-  trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
+    set -e
+    trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 }
 
 # ==============================================================================
@@ -714,12 +714,12 @@ network_check() {
 # Updates container OS and sources appropriate tools.func
 # ------------------------------------------------------------------------------
 update_os() {
-  msg_info "Updating Container OS"
+    msg_info "Updating Container OS"
 
-  # Configure APT cacher proxy if enabled (Debian/Ubuntu only)
-  if [[ "$PKG_MANAGER" == "apt" && "${CACHER:-}" == "yes" ]]; then
-    echo 'Acquire::http::Proxy-Auto-Detect "/usr/local/bin/apt-proxy-detect.sh";' >/etc/apt/apt.conf.d/00aptproxy
-    cat <<EOF >/usr/local/bin/apt-proxy-detect.sh
+    # Configure APT cacher proxy if enabled (Debian/Ubuntu only)
+    if [[ "$PKG_MANAGER" == "apt" && "${CACHER:-}" == "yes" ]]; then
+        echo 'Acquire::http::Proxy-Auto-Detect "/usr/local/bin/apt-proxy-detect.sh";' >/etc/apt/apt.conf.d/00aptproxy
+        cat <<EOF >/usr/local/bin/apt-proxy-detect.sh
 #!/bin/bash
 if nc -w1 -z "${CACHER_IP}" 3142; then
   echo -n "http://${CACHER_IP}:3142"
@@ -727,27 +727,27 @@ else
   echo -n "DIRECT"
 fi
 EOF
-    chmod +x /usr/local/bin/apt-proxy-detect.sh
-  fi
+        chmod +x /usr/local/bin/apt-proxy-detect.sh
+    fi
 
-  # Update and upgrade
-  pkg_update
-  pkg_upgrade
+    # Update and upgrade
+    pkg_update
+    pkg_upgrade
 
-  # Remove Python EXTERNALLY-MANAGED restriction
-  rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
+    # Remove Python EXTERNALLY-MANAGED restriction
+    rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
 
-  msg_ok "Updated Container OS"
+    msg_ok "Updated Container OS"
 
-  # Source appropriate tools.func based on OS
-  case "$OS_FAMILY" in
-  alpine)
-    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-tools.func)
-    ;;
-  *)
-    source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
-    ;;
-  esac
+    # Source appropriate tools.func based on OS
+    case "$OS_FAMILY" in
+    alpine)
+        source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-tools.func)
+        ;;
+    *)
+        source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
+        ;;
+    esac
 }
 
 # ==============================================================================
@@ -760,21 +760,21 @@ EOF
 # Configures Message of the Day and SSH settings
 # ------------------------------------------------------------------------------
 motd_ssh() {
-  # Set terminal to 256-color mode
-  grep -qxF "export TERM='xterm-256color'" /root/.bashrc 2>/dev/null || echo "export TERM='xterm-256color'" >>/root/.bashrc
+    # Set terminal to 256-color mode
+    grep -qxF "export TERM='xterm-256color'" /root/.bashrc 2>/dev/null || echo "export TERM='xterm-256color'" >>/root/.bashrc
 
-  # Get OS information
-  local os_name="$OS_TYPE"
-  local os_version="$OS_VERSION"
+    # Get OS information
+    local os_name="$OS_TYPE"
+    local os_version="$OS_VERSION"
 
-  if [[ -f /etc/os-release ]]; then
-    os_name=$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '"')
-    os_version=$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
-  fi
+    if [[ -f /etc/os-release ]]; then
+        os_name=$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '"')
+        os_version=$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+    fi
 
-  # Create MOTD profile script
-  local PROFILE_FILE="/etc/profile.d/00_lxc-details.sh"
-  cat >"$PROFILE_FILE" <<EOF
+    # Create MOTD profile script
+    local PROFILE_FILE="/etc/profile.d/00_lxc-details.sh"
+    cat >"$PROFILE_FILE" <<EOF
 echo ""
 echo -e "${BOLD:-}${YW:-}${APPLICATION:-Container} LXC Container - DEV Repository${CL:-}"
 echo -e "${RD:-}WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use in production!${CL:-}"
@@ -785,54 +785,54 @@ echo -e "${YW:-} Repository: ${GN:-}https://github.com/community-scripts/Proxmox
 echo ""
 EOF
 
-  # Disable default MOTD scripts (Debian/Ubuntu)
-  [[ -d /etc/update-motd.d ]] && chmod -x /etc/update-motd.d/* 2>/dev/null || true
+    # Disable default MOTD scripts (Debian/Ubuntu)
+    [[ -d /etc/update-motd.d ]] && chmod -x /etc/update-motd.d/* 2>/dev/null || true
 
-  # Configure SSH root access if requested
-  if [[ "${SSH_ROOT:-}" == "yes" ]]; then
-    # Ensure SSH server is installed
-    if [[ ! -f /etc/ssh/sshd_config ]]; then
-      msg_info "Installing SSH server"
-      case "$PKG_MANAGER" in
-      apt)
-        pkg_install openssh-server
-        ;;
-      apk)
-        pkg_install openssh
-        rc-update add sshd default 2>/dev/null || true
-        ;;
-      dnf | yum)
-        pkg_install openssh-server
-        ;;
-      zypper)
-        pkg_install openssh
-        ;;
-      emerge)
-        pkg_install net-misc/openssh
-        ;;
-      esac
-      msg_ok "Installed SSH server"
+    # Configure SSH root access if requested
+    if [[ "${SSH_ROOT:-}" == "yes" ]]; then
+        # Ensure SSH server is installed
+        if [[ ! -f /etc/ssh/sshd_config ]]; then
+            msg_info "Installing SSH server"
+            case "$PKG_MANAGER" in
+            apt)
+                pkg_install openssh-server
+                ;;
+            apk)
+                pkg_install openssh
+                rc-update add sshd default 2>/dev/null || true
+                ;;
+            dnf | yum)
+                pkg_install openssh-server
+                ;;
+            zypper)
+                pkg_install openssh
+                ;;
+            emerge)
+                pkg_install net-misc/openssh
+                ;;
+            esac
+            msg_ok "Installed SSH server"
+        fi
+
+        local sshd_config="/etc/ssh/sshd_config"
+        if [[ -f "$sshd_config" ]]; then
+            sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/g" "$sshd_config"
+            sed -i "s/PermitRootLogin prohibit-password/PermitRootLogin yes/g" "$sshd_config"
+
+            case "$INIT_SYSTEM" in
+            systemd)
+                svc_restart sshd 2>/dev/null || svc_restart ssh 2>/dev/null || true
+                ;;
+            openrc)
+                svc_enable sshd 2>/dev/null || true
+                svc_start sshd 2>/dev/null || true
+                ;;
+            *)
+                svc_restart sshd 2>/dev/null || true
+                ;;
+            esac
+        fi
     fi
-
-    local sshd_config="/etc/ssh/sshd_config"
-    if [[ -f "$sshd_config" ]]; then
-      sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/g" "$sshd_config"
-      sed -i "s/PermitRootLogin prohibit-password/PermitRootLogin yes/g" "$sshd_config"
-
-      case "$INIT_SYSTEM" in
-      systemd)
-        svc_restart sshd 2>/dev/null || svc_restart ssh 2>/dev/null || true
-        ;;
-      openrc)
-        svc_enable sshd 2>/dev/null || true
-        svc_start sshd 2>/dev/null || true
-        ;;
-      *)
-        svc_restart sshd 2>/dev/null || true
-        ;;
-      esac
-    fi
-  fi
 }
 
 # ==============================================================================
@@ -845,82 +845,83 @@ EOF
 # Customizes container for passwordless login and creates update script
 # ------------------------------------------------------------------------------
 customize() {
-  if [[ "${PASSWORD:-}" == "" ]]; then
-    msg_info "Customizing Container"
+    if [[ "${PASSWORD:-}" == "" ]]; then
+        msg_info "Customizing Container"
 
-    # Remove root password for auto-login
-    passwd -d root &>/dev/null || true
+        # Remove root password for auto-login
+        passwd -d root &>/dev/null || true
 
-    case "$INIT_SYSTEM" in
-    systemd)
-      # Mask services that block boot in LXC containers
-      # systemd-homed-firstboot.service hangs waiting for user input on Fedora
-      systemctl mask systemd-homed-firstboot.service &>/dev/null || true
-      systemctl mask systemd-homed.service &>/dev/null || true
+        case "$INIT_SYSTEM" in
+        systemd)
+            # Mask services that block boot in LXC containers
+            # systemd-homed-firstboot.service hangs waiting for user input on Fedora
+            systemctl mask systemd-homed-firstboot.service &>/dev/null || true
+            systemctl mask systemd-homed.service &>/dev/null || true
 
-      # Configure console-getty for auto-login in LXC containers
-      # console-getty.service is THE service that handles /dev/console in LXC
-      # It's present on all systemd distros but not enabled by default on Fedora/RHEL
+            # Configure console-getty for auto-login in LXC containers
+            # console-getty.service is THE service that handles /dev/console in LXC
+            # It's present on all systemd distros but not enabled by default on Fedora/RHEL
 
-      if [[ -f /usr/lib/systemd/system/console-getty.service ]]; then
-        mkdir -p /etc/systemd/system/console-getty.service.d
-        cat >/etc/systemd/system/console-getty.service.d/override.conf <<'EOF'
+            if [[ -f /usr/lib/systemd/system/console-getty.service ]]; then
+                mkdir -p /etc/systemd/system/console-getty.service.d
+                cat >/etc/systemd/system/console-getty.service.d/override.conf <<'EOF'
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud 115200,38400,9600 $TERM
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud 115200,38400,9600 - $TERM
 EOF
-        # Enable console-getty for LXC web console (required on Fedora/RHEL)
-        systemctl enable console-getty.service &>/dev/null || true
-      fi
+                # Enable console-getty for LXC web console (required on Fedora/RHEL)
+                systemctl enable console-getty.service &>/dev/null || true
+            fi
 
-      # Also configure container-getty@1 (Debian/Ubuntu default in LXC)
-      if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
-        mkdir -p /etc/systemd/system/container-getty@1.service.d
-        cat >/etc/systemd/system/container-getty@1.service.d/override.conf <<'EOF'
+            # Also configure container-getty@1 (Debian/Ubuntu default in LXC)
+            if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
+                mkdir -p /etc/systemd/system/container-getty@1.service.d
+                cat >/etc/systemd/system/container-getty@1.service.d/override.conf <<'EOF'
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 $TERM
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 - $TERM
 EOF
-      fi
+            fi
 
-      # Reload systemd and restart getty services to apply auto-login
-      systemctl daemon-reload
-      systemctl restart console-getty.service &>/dev/null || true
-      systemctl restart container-getty@1.service &>/dev/null || true
-      ;;
+            # Reload systemd and restart getty services to apply auto-login
+            systemctl daemon-reload
+            systemctl restart console-getty.service &>/dev/null || true
+            systemctl restart container-getty@1.service &>/dev/null || true
+            ;;
 
-    openrc)
-      # Alpine/Gentoo: modify inittab for auto-login
-      if [[ -f /etc/inittab ]]; then
-        sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
-      fi
-      touch /root/.hushlogin
-      ;;
+        openrc)
+            # Alpine/Gentoo: modify inittab for auto-login
+            if [[ -f /etc/inittab ]]; then
+                sed -i 's|^tty1::respawn:.*|tty1::respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
+            fi
+            touch /root/.hushlogin
+            ;;
 
-    sysvinit)
-      # Devuan/older systems - just modify inittab, no telinit needed during install
-      if [[ -f /etc/inittab ]]; then
-        sed -i 's|^1:2345:respawn:/sbin/getty.*|1:2345:respawn:/sbin/agetty --autologin root tty1 38400 linux|' /etc/inittab
-      fi
-      ;;
-    esac
+        sysvinit)
+            # Devuan/older systems - modify inittab with flexible runlevel matching
+            if [[ -f /etc/inittab ]]; then
+                # Match various runlevel patterns (23, 2345, 12345, etc.) and both getty/agetty
+                sed -i 's|^1:[0-9]*:respawn:/sbin/a\?getty.*|1:2345:respawn:/sbin/agetty --autologin root tty1 38400 linux|' /etc/inittab
+            fi
+            ;;
+        esac
 
-    msg_ok "Customized Container"
-  fi
+        msg_ok "Customized Container"
+    fi
 
-  # Create update script
-  # Use var_os for OS-based containers, otherwise use app name
-  local update_script_name="${var_os:-$app}"
-  echo "bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/${update_script_name}.sh)\"" >/usr/bin/update
-  chmod +x /usr/bin/update
+    # Create update script
+    # Use var_os for OS-based containers, otherwise use app name
+    local update_script_name="${var_os:-$app}"
+    echo "bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/${update_script_name}.sh)\"" >/usr/bin/update
+    chmod +x /usr/bin/update
 
-  # Inject SSH authorized keys if provided
-  if [[ -n "${SSH_AUTHORIZED_KEY:-}" ]]; then
-    mkdir -p /root/.ssh
-    echo "${SSH_AUTHORIZED_KEY}" >/root/.ssh/authorized_keys
-    chmod 700 /root/.ssh
-    chmod 600 /root/.ssh/authorized_keys
-  fi
+    # Inject SSH authorized keys if provided
+    if [[ -n "${SSH_AUTHORIZED_KEY:-}" ]]; then
+        mkdir -p /root/.ssh
+        echo "${SSH_AUTHORIZED_KEY}" >/root/.ssh/authorized_keys
+        chmod 700 /root/.ssh
+        chmod 600 /root/.ssh/authorized_keys
+    fi
 }
 
 # ==============================================================================
@@ -934,8 +935,8 @@ EOF
 # Returns: 0 if valid, 1 if invalid
 # ------------------------------------------------------------------------------
 validate_tz() {
-  local tz="$1"
-  [[ -f "/usr/share/zoneinfo/$tz" ]]
+    local tz="$1"
+    [[ -f "/usr/share/zoneinfo/$tz" ]]
 }
 
 # ------------------------------------------------------------------------------
@@ -944,21 +945,21 @@ validate_tz() {
 # Sets container timezone
 # ------------------------------------------------------------------------------
 set_timezone() {
-  local tz="$1"
-  if validate_tz "$tz"; then
-    ln -sf "/usr/share/zoneinfo/$tz" /etc/localtime
-    echo "$tz" >/etc/timezone 2>/dev/null || true
+    local tz="$1"
+    if validate_tz "$tz"; then
+        ln -sf "/usr/share/zoneinfo/$tz" /etc/localtime
+        echo "$tz" >/etc/timezone 2>/dev/null || true
 
-    # Update tzdata if available
-    case "$PKG_MANAGER" in
-    apt)
-      dpkg-reconfigure -f noninteractive tzdata 2>/dev/null || true
-      ;;
-    esac
-    msg_ok "Timezone set to $tz"
-  else
-    msg_warn "Invalid timezone: $tz"
-  fi
+        # Update tzdata if available
+        case "$PKG_MANAGER" in
+        apt)
+            dpkg-reconfigure -f noninteractive tzdata 2>/dev/null || true
+            ;;
+        esac
+        msg_ok "Timezone set to $tz"
+    else
+        msg_warn "Invalid timezone: $tz"
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -967,9 +968,9 @@ set_timezone() {
 # Prints detected OS information (for debugging)
 # ------------------------------------------------------------------------------
 os_info() {
-  echo "OS Type:      $OS_TYPE"
-  echo "OS Family:    $OS_FAMILY"
-  echo "OS Version:   $OS_VERSION"
-  echo "Pkg Manager:  $PKG_MANAGER"
-  echo "Init System:  $INIT_SYSTEM"
+    echo "OS Type:      $OS_TYPE"
+    echo "OS Family:    $OS_FAMILY"
+    echo "OS Version:   $OS_VERSION"
+    echo "Pkg Manager:  $PKG_MANAGER"
+    echo "Init System:  $INIT_SYSTEM"
 }
