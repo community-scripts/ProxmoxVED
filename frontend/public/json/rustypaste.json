@@ -32,6 +32,9 @@
         "password": null
     },
     "notes": [
-        "When updating the script it will backup the whole project including all the uploaded files, make sure to extract it to a safe location or remove",
+      {
+        "text": "When updating the script it will backup the whole project including all the uploaded files, make sure to extract it to a safe location or remove",
+        "type": "info"
+      }
     ]
 }
