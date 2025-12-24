@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: GoldenSpringness
-# License: MIT | https://github.com/GoldenSpringness/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/orhun/rustypaste
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
