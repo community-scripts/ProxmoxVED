@@ -22,8 +22,6 @@ APP="nextcloud-exporter"
 APP_TYPE="tools"
 BINARY_PATH="/usr/bin/nextcloud-exporter"
 CONFIG_PATH="/etc/nextcloud-exporter.env"
-header_info
-ensure_usr_local_bin_persist
 
 # ==============================================================================
 # OS DETECTION
@@ -195,7 +193,7 @@ UPDATEEOF
 
   echo ""
   msg_ok "Nextcloud-Exporter installed successfully"
-  msg_ok "Metrics: ${BL}http://${CURRENT_IP}:9205/metrics${CL}"
+  msg_ok "Metrics: ${BL}http://${LOCAL_IP}:9205/metrics${CL}"
   msg_ok "Config: ${BL}${CONFIG_PATH}${CL}"
 }
 
