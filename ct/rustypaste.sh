@@ -2,7 +2,7 @@
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: GoldenSpringness
-# License: MIT | https://github.com/GoldenSpringness/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/orhun/rustypaste
 
 APP="rustypaste"
@@ -38,17 +38,17 @@ function update_script() {
         tar -czf "/opt/rustypaste_backup_$(date +%F).tar.gz" "/opt/rustypaste/upload"
         msg_ok "Backup Created"
 
-        msg_info "Updating rustypaste to latest"
-        cd /opt/rustypaste
         CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "tarball" "latest" "/opt/rustypaste"
+
+        msg_info "Updating rustypaste"
+        cd /opt/rustypaste
         sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml
         $STD cargo build --locked --release
-        msg_ok "Updated rustypaste to latest"
-
+        msg_ok "Updated rustypaste"
+        
         msg_info "Starting rustypaste"
         systemctl start rustypaste
         msg_ok "Started rustypaste"
-
         msg_ok "Update Successful"
     fi
     exit
