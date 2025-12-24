@@ -3728,7 +3728,7 @@ create_lxc_container() {
   case "$PCT_OSTYPE" in
   debian | ubuntu | devuan) TEMPLATE_PATTERN="-standard_" ;;
   alpine | fedora | rocky | rockylinux | centos | almalinux | openeuler) TEMPLATE_PATTERN="-default_" ;;
-  gentoo) TEMPLATE_PATTERN="-current_" ;;
+  gentoo) TEMPLATE_PATTERN="-current-openrc" ;;
   opensuse) TEMPLATE_PATTERN="-default_" ;;
   *) TEMPLATE_PATTERN="" ;;
   esac
