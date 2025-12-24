@@ -20,8 +20,8 @@ load_functions
 VERBOSE=${var_verbose:-no}
 APP="nextcloud-exporter"
 APP_TYPE="tools"
-INSTALL_PATH="/opt/nextcloud-exporter"
-CONFIG_PATH="/opt/nextcloud-exporter.env"
+BINARY_PATH="/usr/bin/nextcloud-exporter"
+CONFIG_PATH="/etc/nextcloud-exporter.env"
 header_info
 ensure_usr_local_bin_persist
 
@@ -52,7 +52,12 @@ function uninstall() {
     systemctl disable -q --now nextcloud-exporter
     rm -f "$SERVICE_PATH"
   fi
-  rm -rf "$INSTALL_PATH" "$CONFIG_PATH"
+
+  if dpkg -l | grep -q nextcloud-exporter; then
+    $STD apt-get remove -y nextcloud-exporter || $STD dpkg -r nextcloud-exporter
+  fi
+
+  rm -f "$CONFIG_PATH"
   rm -f "/usr/local/bin/update_nextcloud-exporter"
   rm -f "$HOME/.nextcloud-exporter"
   msg_ok "Nextcloud-Exporter has been uninstalled"
@@ -71,8 +76,7 @@ function update() {
     fi
     msg_ok "Stopped service"
 
-    fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "/opt/nextcloud-exporter" "nextcloud-exporter_*_amd64.deb"
-    setup_go
+    fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "binary" "latest"
 
     msg_info "Starting service"
     if [[ "$OS" == "Alpine" ]]; then
@@ -115,8 +119,7 @@ function install() {
     NEXTCLOUD_TLS_SKIP_VERIFY="true"
   fi
 
-  fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "/opt/nextcloud-exporter" "nextcloud-exporter_*_amd64.deb"
-  setup_go
+  fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "binary" "latest"
 
   msg_info "Creating configuration"
   cat <<EOF >"$CONFIG_PATH"
@@ -141,9 +144,8 @@ After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/opt/nextcloud-exporter
 EnvironmentFile=$CONFIG_PATH
-ExecStart=/opt/nextcloud-exporter/nextcloud-exporter
+ExecStart=$BINARY_PATH
 Restart=always
 
 [Install]
@@ -157,9 +159,8 @@ EOF
 
 name="nextcloud-exporter"
 description="Nextcloud Exporter for Prometheus"
-command="${INSTALL_PATH}/nextcloud-exporter"
+command="$BINARY_PATH"
 command_background=true
-directory="/opt/nextcloud-exporter"
 pidfile="/run/\${RC_SVCNAME}.pid"
 output_log="/var/log/nextcloud-exporter.log"
 error_log="/var/log/nextcloud-exporter.log"
@@ -206,7 +207,7 @@ ensure_usr_local_bin_persist
 
 # Handle type=update (called from update script)
 if [[ "${type:-}" == "update" ]]; then
-  if [[ -d "$INSTALL_PATH" && -f "$INSTALL_PATH/nextcloud-exporter" ]]; then
+  if [[ -f "$BINARY_PATH" ]]; then
     update
   else
     msg_error "Nextcloud-Exporter is not installed. Nothing to update."
@@ -216,7 +217,7 @@ if [[ "${type:-}" == "update" ]]; then
 fi
 
 # Check if already installed
-if [[ -d "$INSTALL_PATH" && -f "$INSTALL_PATH/nextcloud-exporter" ]]; then
+if [[ -f "$BINARY_PATH" ]]; then
   msg_warn "Nextcloud-Exporter is already installed."
   echo ""
 
