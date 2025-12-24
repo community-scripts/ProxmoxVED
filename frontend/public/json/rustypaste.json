@@ -1,0 +1,40 @@
+{
+    "name": "RustyPaste",
+    "slug": "rustypaste",
+    "categories": [
+        12
+    ],
+    "date_created": "2025-12-22",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8000,
+    "documentation": "https://github.com/orhun/rustypaste",
+    "config_path": "/opt/rustypaste/config.toml",
+    "website": "https://github.com/orhun/rustypaste",
+    "logo": "https://github.com/orhun/rustypaste/raw/master/img/rustypaste_logo.png",
+    "description": "Rustypaste is a minimal file upload/pastebin service.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/rustypaste.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+      {
+        "text": "When updating the script it will backup the whole project including all the uploaded files, make sure to extract it to a safe location or remove",
+        "type": "info"
+      }
+    ]
+}
