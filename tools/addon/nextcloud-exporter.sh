@@ -20,22 +20,15 @@ load_functions
 VERBOSE=${var_verbose:-no}
 APP="nextcloud-exporter"
 APP_TYPE="tools"
-INSTALL_PATH="/opt/nextcloud-exporter"
-CONFIG_PATH="/opt/nextcloud-exporter.env"
-header_info
-ensure_usr_local_bin_persist
+BINARY_PATH="/usr/bin/nextcloud-exporter"
+CONFIG_PATH="/etc/nextcloud-exporter.env"
+SERVICE_PATH="/etc/systemd/system/nextcloud-exporter.service"
 
 # ==============================================================================
 # OS DETECTION
 # ==============================================================================
-if [[ -f "/etc/alpine-release" ]]; then
-  OS="Alpine"
-  SERVICE_PATH="/etc/init.d/nextcloud-exporter"
-elif grep -qE 'ID=debian|ID=ubuntu' /etc/os-release; then
-  OS="Debian"
-  SERVICE_PATH="/etc/systemd/system/nextcloud-exporter.service"
-else
-  echo -e "${CROSS} Unsupported OS detected. Exiting."
+if ! grep -qE 'ID=debian|ID=ubuntu' /etc/os-release 2>/dev/null; then
+  echo -e "${CROSS} Unsupported OS detected. This script only supports Debian and Ubuntu."
   exit 1
 fi
 
@@ -44,15 +37,14 @@ fi
 # ==============================================================================
 function uninstall() {
   msg_info "Uninstalling Nextcloud-Exporter"
-  if [[ "$OS" == "Alpine" ]]; then
-    rc-service nextcloud-exporter stop &>/dev/null
-    rc-update del nextcloud-exporter &>/dev/null
-    rm -f "$SERVICE_PATH"
-  else
-    systemctl disable -q --now nextcloud-exporter
-    rm -f "$SERVICE_PATH"
+  systemctl disable -q --now nextcloud-exporter
+  rm -f "$SERVICE_PATH"
+
+  if dpkg -l | grep -q nextcloud-exporter; then
+    $STD apt-get remove -y nextcloud-exporter || $STD dpkg -r nextcloud-exporter
   fi
-  rm -rf "$INSTALL_PATH" "$CONFIG_PATH"
+
+  rm -f "$CONFIG_PATH"
   rm -f "/usr/local/bin/update_nextcloud-exporter"
   rm -f "$HOME/.nextcloud-exporter"
   msg_ok "Nextcloud-Exporter has been uninstalled"
@@ -64,22 +56,13 @@ function uninstall() {
 function update() {
   if check_for_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter"; then
     msg_info "Stopping service"
-    if [[ "$OS" == "Alpine" ]]; then
-      rc-service nextcloud-exporter stop &>/dev/null
-    else
-      systemctl stop nextcloud-exporter
-    fi
+    systemctl stop nextcloud-exporter
     msg_ok "Stopped service"
 
-    fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "nextcloud-exporter_*_amd64.deb"
-    setup_go
+    fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "binary" "latest"
 
     msg_info "Starting service"
-    if [[ "$OS" == "Alpine" ]]; then
-      rc-service nextcloud-exporter start &>/dev/null
-    else
-      systemctl start nextcloud-exporter
-    fi
+    systemctl start nextcloud-exporter
     msg_ok "Started service"
     msg_ok "Updated successfully"
     exit
@@ -93,7 +76,7 @@ function install() {
   read -erp "Enter URL of Nextcloud, example: (http://127.0.0.1:8080): " NEXTCLOUD_SERVER
   read -rsp "Enter Nextcloud auth token (press Enter to use username/password instead): " NEXTCLOUD_AUTH_TOKEN
   printf "\n"
-  
+
   if [[ -z "$NEXTCLOUD_AUTH_TOKEN" ]]; then
     read -erp "Enter Nextcloud username: " NEXTCLOUD_USERNAME
     read -rsp "Enter Nextcloud password: " NEXTCLOUD_PASSWORD
@@ -115,16 +98,15 @@ function install() {
     NEXTCLOUD_TLS_SKIP_VERIFY="true"
   fi
 
-  fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "prebuild" "latest" "nextcloud-exporter_*_amd64.deb"
-  setup_go
+  fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "binary" "latest"
 
   msg_info "Creating configuration"
   cat <<EOF >"$CONFIG_PATH"
 # https://github.com/xperimental/nextcloud-exporter
 NEXTCLOUD_SERVER="${NEXTCLOUD_SERVER}"
-NEXTCLOUD_AUTH_TOKEN="${NEXTCLOUD_AUTH_TOKEN}"
-NEXTCLOUD_USERNAME="${NEXTCLOUD_USERNAME}"
-NEXTCLOUD_PASSWORD="${NEXTCLOUD_PASSWORD}"
+NEXTCLOUD_AUTH_TOKEN="${NEXTCLOUD_AUTH_TOKEN:-}"
+NEXTCLOUD_USERNAME="${NEXTCLOUD_USERNAME:-}"
+NEXTCLOUD_PASSWORD="${NEXTCLOUD_PASSWORD:-}"
 NEXTCLOUD_INFO_UPDATE=${NEXTCLOUD_INFO_UPDATE:-"true"}
 NEXTCLOUD_INFO_APPS=${NEXTCLOUD_INFO_APPS:-"true"}
 NEXTCLOUD_TLS_SKIP_VERIFY=${NEXTCLOUD_TLS_SKIP_VERIFY:-"false"}
@@ -133,52 +115,22 @@ EOF
   msg_ok "Created configuration"
 
   msg_info "Creating service"
-  if [[ "$OS" == "Debian" ]]; then
-    cat <<EOF >"$SERVICE_PATH"
+  cat <<EOF >"$SERVICE_PATH"
 [Unit]
 Description=nextcloud-exporter
 After=network.target
 
 [Service]
 User=root
-WorkingDirectory=/opt/nextcloud-exporter
 EnvironmentFile=$CONFIG_PATH
-ExecStart=/opt/nextcloud-exporter/nextcloud-exporter
+ExecStart=$BINARY_PATH
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 EOF
-    systemctl daemon-reload
-    systemctl enable -q --now nextcloud-exporter
-  else
-    cat <<EOF >"$SERVICE_PATH"
-#!/sbin/openrc-run
-
-name="nextcloud-exporter"
-description="Nextcloud Exporter for Prometheus"
-command="${INSTALL_PATH}/nextcloud-exporter"
-command_background=true
-directory="/opt/nextcloud-exporter"
-pidfile="/run/\${RC_SVCNAME}.pid"
-output_log="/var/log/nextcloud-exporter.log"
-error_log="/var/log/nextcloud-exporter.log"
-
-depend() {
-    need net
-    after firewall
-}
-
-start_pre() {
-    if [ -f "$CONFIG_PATH" ]; then
-        export \$(grep -v '^#' $CONFIG_PATH | xargs)
-    fi
-}
-EOF
-    chmod +x "$SERVICE_PATH"
-    $STD rc-update add nextcloud-exporter default
-    $STD rc-service nextcloud-exporter start
-  fi
+  systemctl daemon-reload
+  systemctl enable -q --now nextcloud-exporter
   msg_ok "Created and started service"
 
   # Create update script
@@ -194,7 +146,7 @@ UPDATEEOF
 
   echo ""
   msg_ok "Nextcloud-Exporter installed successfully"
-  msg_ok "Metrics: ${BL}http://${CURRENT_IP}:9205/metrics${CL}"
+  msg_ok "Metrics: ${BL}http://${LOCAL_IP}:9205/metrics${CL}"
   msg_ok "Config: ${BL}${CONFIG_PATH}${CL}"
 }
 
@@ -203,10 +155,11 @@ UPDATEEOF
 # ==============================================================================
 header_info
 ensure_usr_local_bin_persist
+import_local_ip
 
 # Handle type=update (called from update script)
 if [[ "${type:-}" == "update" ]]; then
-  if [[ -d "$INSTALL_PATH" && -f "$INSTALL_PATH/nextcloud-exporter" ]]; then
+  if [[ -f "$BINARY_PATH" ]]; then
     update
   else
     msg_error "Nextcloud-Exporter is not installed. Nothing to update."
@@ -216,7 +169,7 @@ if [[ "${type:-}" == "update" ]]; then
 fi
 
 # Check if already installed
-if [[ -d "$INSTALL_PATH" && -f "$INSTALL_PATH/nextcloud-exporter" ]]; then
+if [[ -f "$BINARY_PATH" ]]; then
   msg_warn "Nextcloud-Exporter is already installed."
   echo ""
 
@@ -243,7 +196,7 @@ msg_warn "Nextcloud-Exporter is not installed."
 echo ""
 echo -e "${TAB}${INFO} This will install:"
 echo -e "${TAB}  - Nextcloud Exporter (Go binary)"
-echo -e "${TAB}  - Systemd/OpenRC service"
+echo -e "${TAB}  - Systemd service"
 echo ""
 
 echo -n "${TAB}Install Nextcloud-Exporter? (y/N): "
