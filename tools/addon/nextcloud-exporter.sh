@@ -22,34 +22,15 @@ APP="nextcloud-exporter"
 APP_TYPE="tools"
 BINARY_PATH="/usr/bin/nextcloud-exporter"
 CONFIG_PATH="/etc/nextcloud-exporter.env"
-
-# ==============================================================================
-# OS DETECTION
-# ==============================================================================
-if [[ -f "/etc/alpine-release" ]]; then
-  OS="Alpine"
-  SERVICE_PATH="/etc/init.d/nextcloud-exporter"
-elif grep -qE 'ID=debian|ID=ubuntu' /etc/os-release; then
-  OS="Debian"
-  SERVICE_PATH="/etc/systemd/system/nextcloud-exporter.service"
-else
-  echo -e "${CROSS} Unsupported OS detected. Exiting."
-  exit 1
-fi
+SERVICE_PATH="/etc/systemd/system/nextcloud-exporter.service"
 
 # ==============================================================================
 # UNINSTALL
 # ==============================================================================
 function uninstall() {
   msg_info "Uninstalling Nextcloud-Exporter"
-  if [[ "$OS" == "Alpine" ]]; then
-    rc-service nextcloud-exporter stop &>/dev/null
-    rc-update del nextcloud-exporter &>/dev/null
-    rm -f "$SERVICE_PATH"
-  else
-    systemctl disable -q --now nextcloud-exporter
-    rm -f "$SERVICE_PATH"
-  fi
+  systemctl disable -q --now nextcloud-exporter
+  rm -f "$SERVICE_PATH"
 
   if dpkg -l | grep -q nextcloud-exporter; then
     $STD apt-get remove -y nextcloud-exporter || $STD dpkg -r nextcloud-exporter
@@ -67,21 +48,13 @@ function uninstall() {
 function update() {
   if check_for_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter"; then
     msg_info "Stopping service"
-    if [[ "$OS" == "Alpine" ]]; then
-      rc-service nextcloud-exporter stop &>/dev/null
-    else
-      systemctl stop nextcloud-exporter
-    fi
+    systemctl stop nextcloud-exporter
     msg_ok "Stopped service"
 
     fetch_and_deploy_gh_release "nextcloud-exporter" "xperimental/nextcloud-exporter" "binary" "latest"
 
     msg_info "Starting service"
-    if [[ "$OS" == "Alpine" ]]; then
-      rc-service nextcloud-exporter start &>/dev/null
-    else
-      systemctl start nextcloud-exporter
-    fi
+    systemctl start nextcloud-exporter
     msg_ok "Started service"
     msg_ok "Updated successfully"
     exit
@@ -134,8 +107,7 @@ EOF
   msg_ok "Created configuration"
 
   msg_info "Creating service"
-  if [[ "$OS" == "Debian" ]]; then
-    cat <<EOF >"$SERVICE_PATH"
+  cat <<EOF >"$SERVICE_PATH"
 [Unit]
 Description=nextcloud-exporter
 After=network.target
@@ -149,35 +121,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-    systemctl daemon-reload
-    systemctl enable -q --now nextcloud-exporter
-  else
-    cat <<EOF >"$SERVICE_PATH"
-#!/sbin/openrc-run
-
-name="nextcloud-exporter"
-description="Nextcloud Exporter for Prometheus"
-command="$BINARY_PATH"
-command_background=true
-pidfile="/run/\${RC_SVCNAME}.pid"
-output_log="/var/log/nextcloud-exporter.log"
-error_log="/var/log/nextcloud-exporter.log"
-
-depend() {
-    need net
-    after firewall
-}
-
-start_pre() {
-    if [ -f "$CONFIG_PATH" ]; then
-        export \$(grep -v '^#' $CONFIG_PATH | xargs)
-    fi
-}
-EOF
-    chmod +x "$SERVICE_PATH"
-    $STD rc-update add nextcloud-exporter default
-    $STD rc-service nextcloud-exporter start
-  fi
+  systemctl daemon-reload
+  systemctl enable -q --now nextcloud-exporter
   msg_ok "Created and started service"
 
   # Create update script
@@ -243,7 +188,7 @@ msg_warn "Nextcloud-Exporter is not installed."
 echo ""
 echo -e "${TAB}${INFO} This will install:"
 echo -e "${TAB}  - Nextcloud Exporter (Go binary)"
-echo -e "${TAB}  - Systemd/OpenRC service"
+echo -e "${TAB}  - Systemd service"
 echo ""
 
 echo -n "${TAB}Install Nextcloud-Exporter? (y/N): "
