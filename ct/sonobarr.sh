@@ -34,20 +34,13 @@ function update_script() {
         systemctl stop sonobarr
         msg_ok "Stopped sonobarr"
 
-        msg_info "Creating Backup"
-        tar -czf "/opt/sonobarr_backup_$(date +%F).tar.gz" "/opt/sonobarr/upload"
-        msg_ok "Backup Created"
-
-        CLEAN_INSTALL=1 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
-
         msg_info "Updating sonobarr"
-        cd /opt/sonobarr
+        CLEAN_INSTALL=1 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
         msg_ok "Updated sonobarr"
 
         msg_info "Starting sonobarr"
         systemctl start sonobarr
         msg_ok "Started sonobarr"
-        msg_ok "Update sonobarr"
     fi
     exit
 }
@@ -59,4 +52,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}rustypaste setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8000${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5000${CL}"
