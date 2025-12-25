@@ -25,6 +25,14 @@ CONFIG_PATH="/etc/nextcloud-exporter.env"
 SERVICE_PATH="/etc/systemd/system/nextcloud-exporter.service"
 
 # ==============================================================================
+# OS DETECTION
+# ==============================================================================
+if ! grep -qE 'ID=debian|ID=ubuntu' /etc/os-release 2>/dev/null; then
+  echo -e "${CROSS} Unsupported OS detected. This script only supports Debian and Ubuntu."
+  exit 1
+fi
+
+# ==============================================================================
 # UNINSTALL
 # ==============================================================================
 function uninstall() {
