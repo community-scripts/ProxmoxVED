@@ -34,8 +34,8 @@ function update_script() {
   fi
 
   msg_info "Updating Container OS"
-  $STD apt-get update
-  $STD apt-get -y upgrade
+  $STD apt update
+  $STD apt upgrade -y
   msg_ok "Updated Container OS"
 
   RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
