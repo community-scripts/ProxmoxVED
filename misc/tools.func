@@ -4675,6 +4675,8 @@ function setup_uv() {
   local UVX_BIN="/usr/local/bin/uvx"
   local TMP_DIR=$(mktemp -d)
   local CACHED_VERSION
+  local TARGET_VERSION=""
+  local USE_PINNED_VERSION=false
 
   # trap for TMP Cleanup
   trap "rm -rf '$TMP_DIR'" EXIT
@@ -4710,22 +4712,27 @@ function setup_uv() {
 
   ensure_dependencies jq
 
-  # Fetch latest version
-  local releases_json
-  releases_json=$(curl -fsSL --max-time 15 \
-    "https://api.github.com/repos/astral-sh/uv/releases/latest" 2>/dev/null || echo "")
+  # Check if specific version is requested via UV_VERSION environment variable
+  if [[ -n "${UV_VERSION:-}" ]]; then
+    TARGET_VERSION="${UV_VERSION}"
+    USE_PINNED_VERSION=true
+  else
+    # Fetch latest version from GitHub API
+    local releases_json
+    releases_json=$(curl -fsSL --max-time 15 \
+      "https://api.github.com/repos/astral-sh/uv/releases/latest" 2>/dev/null || echo "")
 
-  if [[ -z "$releases_json" ]]; then
-    msg_error "Could not fetch latest uv version from GitHub API"
-    return 1
-  fi
+    if [[ -z "$releases_json" ]]; then
+      msg_error "Could not fetch latest uv version from GitHub API"
+      return 1
+    fi
 
-  local LATEST_VERSION
-  LATEST_VERSION=$(echo "$releases_json" | jq -r '.tag_name' 2>/dev/null | sed 's/^v//')
+    TARGET_VERSION=$(echo "$releases_json" | jq -r '.tag_name' 2>/dev/null | sed 's/^v//')
 
-  if [[ -z "$LATEST_VERSION" ]]; then
-    msg_error "Could not parse uv version from GitHub API response"
-    return 1
+    if [[ -z "$TARGET_VERSION" ]]; then
+      msg_error "Could not parse uv version from GitHub API response"
+      return 1
+    fi
   fi
 
   # Get currently installed version
@@ -4734,9 +4741,9 @@ function setup_uv() {
     INSTALLED_VERSION=$("$UV_BIN" --version 2>/dev/null | awk '{print $2}')
   fi
 
-  # Scenario 1: Already at latest version
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$LATEST_VERSION" ]]; then
-    cache_installed_version "uv" "$LATEST_VERSION"
+  # Scenario 1: Already at target version
+  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" == "$TARGET_VERSION" ]]; then
+    cache_installed_version "uv" "$TARGET_VERSION"
 
     # Check if uvx is needed and missing
     if [[ "${USE_UVX:-NO}" == "YES" ]] && [[ ! -x "$UVX_BIN" ]]; then
@@ -4748,14 +4755,22 @@ function setup_uv() {
     return 0
   fi
 
-  # Scenario 2: New install or upgrade
-  if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" != "$LATEST_VERSION" ]]; then
-    msg_info "Upgrade uv from $INSTALLED_VERSION to $LATEST_VERSION"
+  # Scenario 2: New install or upgrade/downgrade
+  if [[ -n "$INSTALLED_VERSION" ]]; then
+    if [[ "$USE_PINNED_VERSION" == true ]]; then
+      msg_info "Switching uv from $INSTALLED_VERSION to pinned version $TARGET_VERSION"
+    else
+      msg_info "Upgrade uv from $INSTALLED_VERSION to $TARGET_VERSION"
+    fi
   else
-    msg_info "Setup uv $LATEST_VERSION"
+    if [[ "$USE_PINNED_VERSION" == true ]]; then
+      msg_info "Setup uv $TARGET_VERSION (pinned)"
+    else
+      msg_info "Setup uv $TARGET_VERSION"
+    fi
   fi
 
-  local UV_URL="https://github.com/astral-sh/uv/releases/download/${LATEST_VERSION}/${UV_TAR}"
+  local UV_URL="https://github.com/astral-sh/uv/releases/download/${TARGET_VERSION}/${UV_TAR}"
 
   $STD curl -fsSL "$UV_URL" -o "$TMP_DIR/uv.tar.gz" || {
     msg_error "Failed to download uv from $UV_URL"
@@ -4809,8 +4824,8 @@ function setup_uv() {
     msg_ok "Python $PYTHON_VERSION installed"
   fi
 
-  cache_installed_version "uv" "$LATEST_VERSION"
-  msg_ok "Setup uv $LATEST_VERSION"
+  cache_installed_version "uv" "$TARGET_VERSION"
+  msg_ok "Setup uv $TARGET_VERSION"
 }
 
 # Helper function to install uvx wrapper
