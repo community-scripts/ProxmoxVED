@@ -17,7 +17,7 @@ fetch_and_deploy_gh_release "sportarr" "Sportarr/Sportarr" "prebuild" "latest" "
 
 msg_info "Setting up Sportarr"
 cat <<EOF >/opt/sportarr/.env
-Sportarr__DataPath="/config"
+Sportarr__DataPath="/opt/sportarr/config"
 ASPNETCORE_URLS="http://*:1867"
 ASPNETCORE_ENVIRONMENT="Production"
 DOTNET_CLI_TELEMETRY_OPTOUT=1
