@@ -8,10 +8,10 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "interface_port": 8080,
+    "interface_port": 80,
     "documentation": "https://docs.romm.app/latest/",
     "website": "https://romm.app/",
-    "config_path": "/opt",
+    "config_path": "/opt/romm/.env",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/romm.webp",
     "description": "RomM (ROM Manager) allows you to scan, enrich, browse and play your game collection with a clean and responsive interface. Support for multiple platforms, various naming schemes, and custom tags.",
     "install_methods": [
@@ -22,14 +22,14 @@
                 "cpu": 2,
                 "ram": 4096,
                 "hdd": 20,
-                "os": "ubuntu",
-                "version": "24.04"
+                "os": "debian",
+                "version": "13"
             }
         }
     ],
     "default_credentials": {
-        "username": "romm",
-        "password": "changeme"
+        "username": null,
+        "password": null
     },
     "notes": []
 }
