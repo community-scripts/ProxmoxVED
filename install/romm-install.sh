@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: DevelopmentCats
 # Co-author: AlphaLawless
-# License: MIT | https://github.com/AlphaLawless/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://romm.app
 # Updated: 25/12/2025
 
