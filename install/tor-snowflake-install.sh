@@ -13,14 +13,6 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  ca-certificates \
-  curl \
-  git \
-  jq
-msg_ok "Installed Dependencies"
-
 setup_go
 
 msg_info "Creating snowflake user"
@@ -28,16 +20,15 @@ useradd -r -s /bin/false -d /opt/snowflake snowflake
 msg_ok "Created snowflake user"
 
 msg_info "Building Snowflake Proxy from Source"
-cd /opt || exit
 RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
-$STD git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake.git
-cd snowflake || exit
-git config --global --add safe.directory /opt/snowflake
-$STD git checkout "v${RELEASE}"
+cd /opt
+$STD curl -fsSL "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz" -o snowflake.tar.gz
+$STD tar -xzf snowflake.tar.gz
+mv "snowflake-v${RELEASE}" snowflake
+rm snowflake.tar.gz
 chown -R snowflake:snowflake /opt/snowflake
-cd proxy || exit
+cd /opt/snowflake/proxy
 $STD sudo -u snowflake go build -o snowflake-proxy .
-cd /opt/snowflake || exit
 echo "${RELEASE}" >/opt/tor-snowflake_version.txt
 msg_ok "Built Snowflake Proxy v${RELEASE}"
 
