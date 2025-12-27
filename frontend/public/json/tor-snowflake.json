@@ -1,0 +1,35 @@
+{
+  "name": "Tor Snowflake",
+  "slug": "tor-snowflake",
+  "categories": [
+    4
+  ],
+  "date_created": "2025-12-19",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://community.torproject.org/relay/setup/snowflake/standalone/",
+  "website": "https://snowflake.torproject.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/tor.webp",
+  "config_path": null,
+  "description": "Snowflake is a pluggable transport that proxies traffic through temporary proxies using WebRTC. Snowflake allows users in censored locations to access the open internet by connecting through volunteer-run proxies. Running a Snowflake proxy helps users circumvent internet censorship by forwarding their traffic through your server.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/tor-snowflake.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
