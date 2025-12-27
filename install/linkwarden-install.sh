@@ -21,7 +21,8 @@ NODE_VERSION="22" setup_nodejs
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="linkwardendb" PG_DB_USER="linkwarden" setup_postgresql_db
 RUST_CRATES="monolith" setup_rust
-fetch_and_deploy_gh_release "linkwarden" "linkwarden/linkwarden"\import_local_ip
+fetch_and_deploy_gh_release "linkwarden" "linkwarden/linkwarden"
+import_local_ip
 
 read -r -p "${TAB3}Would you like to add Adminer? <y/N> " prompt
 if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
