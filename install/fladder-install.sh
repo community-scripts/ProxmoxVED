@@ -21,17 +21,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing ${APPLICATION}"
-
-# Get latest version from GitHub
-RELEASE=$(get_latest_github_release "DonutWare/Fladder")
-
-cd /opt
-$STD wget -q "https://github.com/DonutWare/Fladder/releases/download/${RELEASE}/Fladder-Web-${RELEASE#v}.zip"
-$STD unzip -o "Fladder-Web-${RELEASE#v}.zip" -d fladder
-
-rm -f "Fladder-Web-${RELEASE#v}.zip"
-echo "${RELEASE}" > ~/.fladder
-msg_ok "Installed ${APPLICATION}"
+fetch_and_deploy_gh_release "Fladder" "DonutWare/Fladder" "prebuild" "latest" "/opt/fladder" "Fladder-Web-*.zip"
 
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/conf.d/fladder.conf
