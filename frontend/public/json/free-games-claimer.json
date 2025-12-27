@@ -1,0 +1,35 @@
+{
+  "name": "free-games-claimer",
+  "slug": "free-games-claimer",
+  "categories": [
+    16
+  ],
+  "date_created": "2025-12-18",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 6080,
+  "documentation": "https://github.com/vogler/free-games-claimer",
+  "website": "https://github.com/vogler/free-games-claimer",
+  "logo": "https://user-images.githubusercontent.com/493741/214588518-a4c89998-127e-4a8c-9b1e-ee4a9d075715.png",
+  "config_path": "/opt/free-games-claimer/data/config.env",
+  "description": "Automatically claims free games and DLCs on the Epic Games Store, Amazon Prime Gaming and GOG.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/free-games-claimer.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 512,
+        "hdd": 4,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
