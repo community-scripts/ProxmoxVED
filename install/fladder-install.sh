@@ -15,8 +15,6 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  wget \
-  unzip \
   nginx
 msg_ok "Installed Dependencies"
 
