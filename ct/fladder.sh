@@ -24,11 +24,6 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f ~/.fladder ]]; then
-    msg_error "No ${APP} Installation Found!"
-    exit
-  fi
-
   if check_for_gh_release "Fladder" "DonutWare/Fladder"; then
     msg_info "Stopping Service"
     systemctl stop nginx
