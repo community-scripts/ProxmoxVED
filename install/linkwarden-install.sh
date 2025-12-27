@@ -37,8 +37,8 @@ corepack enable
 SECRET_KEY="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)"
 cd /opt/linkwarden
 $STD yarn workspaces focus linkwarden @linkwarden/web @linkwarden/worker
-$STD npx playwright install-deps
-$STD yarn playwright install
+# $STD npx playwright install-deps
+# $STD yarn playwright install
 
 cat <<EOF >/opt/linkwarden/.env
 NEXTAUTH_SECRET=${SECRET_KEY}
