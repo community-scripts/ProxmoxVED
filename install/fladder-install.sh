@@ -20,7 +20,6 @@ $STD apt install -y \
   nginx
 msg_ok "Installed Dependencies"
 
-msg_info "Installing ${APPLICATION}"
 fetch_and_deploy_gh_release "Fladder" "DonutWare/Fladder" "prebuild" "latest" "/opt/fladder" "Fladder-Web-*.zip"
 
 msg_info "Configuring Nginx"
