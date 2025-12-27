@@ -24,55 +24,49 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /opt/fladder ]]; then
+  if [[ ! -f ~/.fladder ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+
   # Get latest version from GitHub
-  RELEASE=$(curl -fsSL https://api.github.com/repos/DonutWare/Fladder/releases/latest | \
-    grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+  RELEASE=$(get_latest_github_release "DonutWare/Fladder")
   if [[ -z "$RELEASE" ]]; then
     msg_error "Failed to fetch latest release version from GitHub"
     exit 1
   fi
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-    msg_info "Stopping Service"
-    systemctl stop nginx
-    msg_ok "Stopped Service"
 
-    msg_info "Backing up configuration"
-    if [[ -f /opt/fladder/assets/config/config.json ]]; then
-      cp /opt/fladder/assets/config/config.json /tmp/fladder_config.json.bak
-      msg_ok "Configuration backed up"
-    elif [[ -f /opt/fladder/data/flutter_assets/config/config.json ]]; then
-      cp /opt/fladder/data/flutter_assets/config/config.json /tmp/fladder_config.json.bak
-      msg_ok "Configuration backed up"
-    fi
+  msg_info "Stopping Service"
+  systemctl stop nginx
+  msg_ok "Stopped Service"
 
-    msg_info "Updating ${APP} to ${RELEASE}"
-    cd /opt
-    wget -q "https://github.com/DonutWare/Fladder/releases/download/${RELEASE}/Fladder-Web-${RELEASE#v}.zip"
-    rm -rf /opt/fladder
-    unzip -q "Fladder-Web-${RELEASE#v}.zip" -d fladder
-    rm -f "Fladder-Web-${RELEASE#v}.zip"
-    echo "${RELEASE}" >/opt/${APP}_version.txt
-    msg_ok "Updated ${APP} to ${RELEASE}"
-
-    msg_info "Restoring configuration"
-    if [[ -f /tmp/fladder_config.json.bak ]]; then
-      mkdir -p /opt/fladder/assets/config
-      cp /tmp/fladder_config.json.bak /opt/fladder/assets/config/config.json
-      rm -f /tmp/fladder_config.json.bak
-      msg_ok "Configuration restored"
-    fi
-
-    msg_info "Starting Service"
-    systemctl start nginx
-    msg_ok "Started Service"
-    msg_ok "Updated successfully!"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+  msg_info "Backing up configuration"
+  if [[ -f /opt/fladder/assets/config/config.json ]]; then
+    cp /opt/fladder/assets/config/config.json /tmp/fladder_config.json.bak
+    msg_ok "Configuration backed up"
   fi
+
+  msg_info "Updating ${APP} to ${RELEASE}"
+  cd /opt
+  wget -q "https://github.com/DonutWare/Fladder/releases/download/${RELEASE}/Fladder-Web-${RELEASE#v}.zip"
+  rm -rf /opt/fladder
+  unzip -q "Fladder-Web-${RELEASE#v}.zip" -d fladder
+  rm -f "Fladder-Web-${RELEASE#v}.zip"
+  echo "${RELEASE}" > ~/.fladder
+  msg_ok "Updated ${APP} to ${RELEASE}"
+
+  msg_info "Restoring configuration"
+  if [[ -f /tmp/fladder_config.json.bak ]]; then
+    mkdir -p /opt/fladder/assets/config
+    cp /tmp/fladder_config.json.bak /opt/fladder/assets/config/config.json
+    rm -f /tmp/fladder_config.json.bak
+    msg_ok "Configuration restored"
+  fi
+
+  msg_info "Starting Service"
+  systemctl start nginx
+  msg_ok "Started Service"
+  msg_ok "Updated successfully!"
   exit
 }
 

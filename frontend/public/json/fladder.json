@@ -11,7 +11,7 @@
     "interface_port": 80,
     "documentation": "https://github.com/DonutWare/Fladder/blob/develop/INSTALL.md#ubuntudebian",
     "website": "https://github.com/DonutWare/Fladder",
-    "logo": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/webp/fladder.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/fladder.webp",
     "config_path": "/opt/fladder/assets/config/config.json",
     "description": "Fladder is a simple Jellyfin frontend built on top of Flutter. It provides a modern interface to stream and sync content locally, manage libraries, support multiple profiles, and offers direct, transcode and offline playback with media segments skipping.",
     "install_methods": [
