@@ -28,14 +28,12 @@ function update_script() {
     exit
   fi
 
-  NODE_VERSION="22" NODE_MODULE="pnpm@10.24.0" setup_nodejs
-
   if check_for_gh_release "tracearr" "connorgallopo/Tracearr"; then
     msg_info "Stopping Services"
-    systemctl stop tracearr
-    systemctl stop postgresql
-    systemctl stop redis
+    systemctl stop tracearr postgresql redis
     msg_ok "Stopped Services"
+
+    NODE_VERSION="22" NODE_MODULE="pnpm@10.24.0" setup_nodejs
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "tracearr" "connorgallopo/Tracearr" "tarball" "latest" "/opt/tracearr.build"
 
@@ -82,8 +80,28 @@ function update_script() {
       echo "$COOKIE_SECRET" > /data/tracearr/.cookie_secret
       chmod 600 /data/tracearr/.cookie_secret
     fi
+    if [ ! -f /root/tracearr.creds ]; then
+      if [ -f /data/tracearr/.env ]; then
+        PG_DB_NAME=$(grep 'DATABASE_URL=' /data/tracearr/.env | cut -d'/' -f4)
+        PG_DB_USER=$(grep 'DATABASE_URL=' /data/tracearr/.env | cut -d'/' -f3 | cut -d':' -f1)
+        PG_DB_PASS=$(grep 'DATABASE_URL=' /data/tracearr/.env | cut -d':' -f3 | cut -d'@' -f1)
+        { echo "PostgreSQL Credentials"
+          echo "Database: $PG_DB_NAME"
+          echo "User: $PG_DB_USER"
+          echo "Password: $PG_DB_PASS"
+        } >/root/tracearr.creds
+        msg_ok "Recreated tracearr.creds file from existing .env"
+      else
+        msg_error "No existing tracearr.creds or .env file found. Cannot configure database connection!"
+        exit 1
+      fi
+    else
+      PG_DB_NAME=$(grep 'Database:' /root/tracearr.creds | awk '{print $2}')
+      PG_DB_USER=$(grep 'User:' /root/tracearr.creds | awk '{print $2}')
+      PG_DB_PASS=$(grep 'Password:' /root/tracearr.creds | awk '{print $2}')
+    fi
     cat <<EOF >/data/tracearr/.env
-DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@127.0.0.1:5432/${DB_NAME}
+DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
 REDIS_URL=redis://127.0.0.1:6379
 PORT=3000
 HOST=0.0.0.0
@@ -101,9 +119,7 @@ EOF
     msg_ok "Configured Tracearr"
 
     msg_info "Starting Services"
-    systemctl start postgresql
-    systemctl start redis
-    systemctl start tracearr
+    systemctl start postgresql redis tracearr
     msg_ok "Started Services"
     msg_ok "Updated successfully!"
   fi
