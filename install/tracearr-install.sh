@@ -17,7 +17,8 @@ msg_info "Installing Dependencies"
 $STD apt install -y redis-server
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22"  NODE_MODULE="pnpm@10.24.0" setup_nodejs
+PNPM_VERSION="$(curl -fsSL "https://raw.githubusercontent.com/connorgallopo/Tracearr/refs/heads/main/package.json" | jq -r '.packageManager | split("@")[1]')"
+NODE_VERSION="22" NODE_MODULE="pnpm@${PNPM_VERSION}" setup_nodejs
 PG_VERSION="18" setup_postgresql
 
 msg_info "Installing TimescaleDB"
