@@ -32,6 +32,7 @@ function update_script() {
 
   RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
   if [[ ! -f "/home/snowflake/.${APP}_version" ]] || [[ "${RELEASE}" != "$(cat "/home/snowflake/.${APP}_version")" ]]; then
+    msg_info "Stopping Service"
     systemctl stop snowflake-proxy
     msg_ok "Stopped Service"
 
