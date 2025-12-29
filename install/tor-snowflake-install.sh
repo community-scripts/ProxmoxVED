@@ -13,8 +13,6 @@ setting_up_container
 network_check
 update_os
 
-APP="tor-snowflake"
-
 setup_go
 
 msg_info "Creating snowflake user"
@@ -23,12 +21,13 @@ msg_ok "Created snowflake user"
 
 msg_info "Building Snowflake"
 RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
-$STD sudo -H -u snowflake bash -c "cd ~ && curl -fsSL 'https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz' -o snowflake.tar.gz"
-$STD sudo -H -u snowflake bash -c "cd ~ && tar -xzf snowflake.tar.gz"
-$STD sudo -H -u snowflake bash -c "cd ~ && rm snowflake.tar.gz"
-$STD sudo -H -u snowflake bash -c "cd ~ && mv snowflake-v${RELEASE} .${APP}"
-$STD sudo -H -u snowflake bash -c "cd ~/.${APP}/proxy && go build -o snowflake-proxy ."
-echo "${RELEASE}" | sudo -H -u snowflake bash -c "cd ~ && tee .${APP}_version >/dev/null"
+$STD bash -c "cd /opt && curl -fsSL 'https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz' -o snowflake.tar.gz"
+$STD bash -c "cd /opt && tar -xzf snowflake.tar.gz"
+$STD rm -rf /opt/snowflake.tar.gz
+$STD mv /opt/snowflake-v${RELEASE} /opt/tor-snowflake
+$STD chown -R snowflake:snowflake /opt/tor-snowflake
+$STD sudo -H -u snowflake bash -c "cd /opt/tor-snowflake/proxy && go build -o snowflake-proxy ."
+echo "${RELEASE}" >/opt/tor-snowflake/version
 msg_ok "Built Snowflake Proxy v${RELEASE}"
 
 msg_info "Creating Service"
@@ -43,8 +42,8 @@ Wants=network-online.target
 Type=simple
 User=snowflake
 Group=snowflake
-WorkingDirectory=/home/snowflake/.${APP}
-ExecStart=/home/snowflake/.${APP}/proxy/snowflake-proxy -verbose -unsafe-logging
+WorkingDirectory=/opt/tor-snowflake/proxy
+ExecStart=/opt/tor-snowflake/proxy/snowflake-proxy -verbose -unsafe-logging
 Restart=always
 RestartSec=10
 
