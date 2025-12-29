@@ -33,19 +33,7 @@ function update_script() {
     systemctl stop sportarr
     msg_ok "Stopped Sportarr Service"
 
-    msg_info "Creating Backup"
-
-    msg_ok "Created Backup"
-
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "sportarr" "Sportarr/Sportarr" "prebuild" "latest" "/opt/sportarr" "Sportarr-linux-x64-*.tar.gz"
-
-    msg_info "Updating sportarr"
-
-    msg_ok "Updated sportarr"
-
-    msg_info "Restoring Backup"
-
-    msg_ok "Restored Backup"
+    fetch_and_deploy_gh_release "sportarr" "Sportarr/Sportarr" "prebuild" "latest" "/opt/sportarr" "Sportarr-linux-x64-*.tar.gz"
 
     msg_info "Starting Sportarr Service"
     systemctl start sportarr

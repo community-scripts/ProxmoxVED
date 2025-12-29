@@ -13,11 +13,15 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Installing Dependencies"
+$STD apt install -y ffmpeg
+msg_ok "Installed Dependencies"
+
 fetch_and_deploy_gh_release "sportarr" "Sportarr/Sportarr" "prebuild" "latest" "/opt/sportarr" "Sportarr-linux-x64-*.tar.gz"
 
 msg_info "Setting up Sportarr"
 cat <<EOF >/opt/sportarr/.env
-Sportarr__DataPath="/opt/sportarr/config"
+Sportarr__DataPath="/opt/sportarr-data/config"
 ASPNETCORE_URLS="http://*:1867"
 ASPNETCORE_ENVIRONMENT="Production"
 DOTNET_CLI_TELEMETRY_OPTOUT=1
