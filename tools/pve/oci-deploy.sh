@@ -271,7 +271,7 @@ fi
 # Create container
 msg_info "Creating container $VMID"
 
-PCT_CMD="pct create $VMID oci://$FULL_IMAGE"
+PCT_CMD="pct create $VMID --ostemplate oci://$FULL_IMAGE"
 PCT_CMD+=" --hostname $CT_NAME"
 PCT_CMD+=" --cores $CORES"
 PCT_CMD+=" --memory $MEMORY"
