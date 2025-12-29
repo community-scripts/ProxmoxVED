@@ -40,7 +40,7 @@ echo " 1) NetBird Managed (default) - Use NetBird's managed service"
 echo " 2) Self-Hosted - Use your own NetBird management server"
 echo ""
 
-read -r -p "Select deployment type [1]: " DEPLOYMENT_TYPE
+read -r -p "${TAB3}Select deployment type [1]: " DEPLOYMENT_TYPE
 DEPLOYMENT_TYPE="${DEPLOYMENT_TYPE:-1}"
 
 NETBIRD_MGMT_URL=""
