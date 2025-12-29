@@ -33,7 +33,7 @@ echo "${RELEASE}" | sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && tee .${APP}_ver
 msg_ok "Built Snowflake Proxy v${RELEASE}"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/${APP}.service
+cat <<EOF >/etc/systemd/system/snowflake-proxy.service
 [Unit]
 Description=Snowflake Proxy Service
 Documentation=https://snowflake.torproject.org/
@@ -52,7 +52,7 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now ${APP}
+systemctl enable -q --now snowflake-proxy
 msg_ok "Created Service"
 
 motd_ssh
