@@ -5,8 +5,8 @@
 # Source: https://www.proxmox.com/
 
 function header_info {
-    clear
-    cat <<"EOF"
+  clear
+  cat <<"EOF"
    ____  ________   ______            __        _                
   / __ \/ ____/ /  / ____/___  ____  / /_____ _(_)___  ___  _____
  / / / / /   / /  / /   / __ \/ __ \/ __/ __ `/ / __ \/ _ \/ ___/
@@ -30,18 +30,18 @@ APP="OCI-Container"
 header_info
 
 function msg_info() {
-    local msg="$1"
-    echo -e "${INFO} ${YW}${msg}...${CL}"
+  local msg="$1"
+  echo -e "${INFO} ${YW}${msg}...${CL}"
 }
 
 function msg_ok() {
-    local msg="$1"
-    echo -e "${CM} ${GN}${msg}${CL}"
+  local msg="$1"
+  echo -e "${CM} ${GN}${msg}${CL}"
 }
 
 function msg_error() {
-    local msg="$1"
-    echo -e "${CROSS} ${RD}${msg}${CL}"
+  local msg="$1"
+  echo -e "${CROSS} ${RD}${msg}${CL}"
 }
 
 # Check Proxmox version
@@ -87,23 +87,26 @@ if [[ -z "${OCI_IMAGE:-}" ]]; then
   echo -e "  ${BL}6)${CL} Custom image"
   echo -e "${YW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${CL}"
   echo ""
-  
+
   read -r -p "Select option (1-6): " IMAGE_CHOICE
-  
+
   case $IMAGE_CHOICE in
-    1) OCI_IMAGE="nginx:alpine" ;;
-    2) OCI_IMAGE="postgres:16-alpine" ;;
-    3) OCI_IMAGE="redis:alpine" ;;
-    4) OCI_IMAGE="mariadb:latest" ;;
-    5) OCI_IMAGE="ghcr.io/linkwarden/linkwarden:latest" ;;
-    6)
-      read -r -p "Enter OCI image (e.g., ghcr.io/user/repo:tag): " OCI_IMAGE
-      [[ -z "$OCI_IMAGE" ]] && { msg_error "No image specified"; exit 1; }
-      ;;
-    *)
-      msg_error "Invalid choice"
+  1) OCI_IMAGE="nginx:alpine" ;;
+  2) OCI_IMAGE="postgres:16-alpine" ;;
+  3) OCI_IMAGE="redis:alpine" ;;
+  4) OCI_IMAGE="mariadb:latest" ;;
+  5) OCI_IMAGE="ghcr.io/linkwarden/linkwarden:latest" ;;
+  6)
+    read -r -p "Enter OCI image (e.g., ghcr.io/user/repo:tag): " OCI_IMAGE
+    [[ -z "$OCI_IMAGE" ]] && {
+      msg_error "No image specified"
       exit 1
-      ;;
+    }
+    ;;
+  *)
+    msg_error "Invalid choice"
+    exit 1
+    ;;
   esac
 fi
 
@@ -168,55 +171,55 @@ fi
 declare -a ENV_VARS=()
 
 case "$OCI_IMAGE" in
-  postgres*|postgresql*)
+postgres* | postgresql*)
+  echo ""
+  msg_info "PostgreSQL requires environment variables"
+  read -r -p "PostgreSQL password: " -s PG_PASS
+  echo ""
+  ENV_VARS+=("POSTGRES_PASSWORD=$PG_PASS")
+
+  read -r -p "Create database (optional): " PG_DB
+  [[ -n "$PG_DB" ]] && ENV_VARS+=("POSTGRES_DB=$PG_DB")
+
+  read -r -p "PostgreSQL user (optional): " PG_USER
+  [[ -n "$PG_USER" ]] && ENV_VARS+=("POSTGRES_USER=$PG_USER")
+  ;;
+
+mariadb* | mysql*)
+  echo ""
+  msg_info "MariaDB/MySQL requires environment variables"
+  read -r -p "Root password: " -s MYSQL_PASS
+  echo ""
+  ENV_VARS+=("MYSQL_ROOT_PASSWORD=$MYSQL_PASS")
+
+  read -r -p "Create database (optional): " MYSQL_DB
+  [[ -n "$MYSQL_DB" ]] && ENV_VARS+=("MYSQL_DATABASE=$MYSQL_DB")
+
+  read -r -p "Create user (optional): " MYSQL_USER
+  if [[ -n "$MYSQL_USER" ]]; then
+    ENV_VARS+=("MYSQL_USER=$MYSQL_USER")
+    read -r -p "User password: " -s MYSQL_USER_PASS
     echo ""
-    msg_info "PostgreSQL requires environment variables"
-    read -r -p "PostgreSQL password: " -s PG_PASS
-    echo ""
-    ENV_VARS+=("POSTGRES_PASSWORD=$PG_PASS")
-    
-    read -r -p "Create database (optional): " PG_DB
-    [[ -n "$PG_DB" ]] && ENV_VARS+=("POSTGRES_DB=$PG_DB")
-    
-    read -r -p "PostgreSQL user (optional): " PG_USER
-    [[ -n "$PG_USER" ]] && ENV_VARS+=("POSTGRES_USER=$PG_USER")
-    ;;
-  
-  mariadb*|mysql*)
-    echo ""
-    msg_info "MariaDB/MySQL requires environment variables"
-    read -r -p "Root password: " -s MYSQL_PASS
-    echo ""
-    ENV_VARS+=("MYSQL_ROOT_PASSWORD=$MYSQL_PASS")
-    
-    read -r -p "Create database (optional): " MYSQL_DB
-    [[ -n "$MYSQL_DB" ]] && ENV_VARS+=("MYSQL_DATABASE=$MYSQL_DB")
-    
-    read -r -p "Create user (optional): " MYSQL_USER
-    if [[ -n "$MYSQL_USER" ]]; then
-      ENV_VARS+=("MYSQL_USER=$MYSQL_USER")
-      read -r -p "User password: " -s MYSQL_USER_PASS
-      echo ""
-      ENV_VARS+=("MYSQL_PASSWORD=$MYSQL_USER_PASS")
-    fi
-    ;;
-    
-  *linkwarden*)
-    echo ""
-    msg_info "Linkwarden configuration"
-    read -r -p "NEXTAUTH_SECRET (press Enter to generate): " NEXTAUTH_SECRET
-    if [[ -z "$NEXTAUTH_SECRET" ]]; then
-      NEXTAUTH_SECRET=$(openssl rand -base64 32)
-    fi
-    ENV_VARS+=("NEXTAUTH_SECRET=$NEXTAUTH_SECRET")
-    
-    read -r -p "NEXTAUTH_URL [http://localhost:3000]: " NEXTAUTH_URL
-    NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
-    ENV_VARS+=("NEXTAUTH_URL=$NEXTAUTH_URL")
-    
-    read -r -p "DATABASE_URL (PostgreSQL connection string): " DATABASE_URL
-    [[ -n "$DATABASE_URL" ]] && ENV_VARS+=("DATABASE_URL=$DATABASE_URL")
-    ;;
+    ENV_VARS+=("MYSQL_PASSWORD=$MYSQL_USER_PASS")
+  fi
+  ;;
+
+*linkwarden*)
+  echo ""
+  msg_info "Linkwarden configuration"
+  read -r -p "NEXTAUTH_SECRET (press Enter to generate): " NEXTAUTH_SECRET
+  if [[ -z "$NEXTAUTH_SECRET" ]]; then
+    NEXTAUTH_SECRET=$(openssl rand -base64 32)
+  fi
+  ENV_VARS+=("NEXTAUTH_SECRET=$NEXTAUTH_SECRET")
+
+  read -r -p "NEXTAUTH_URL [http://localhost:3000]: " NEXTAUTH_URL
+  NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+  ENV_VARS+=("NEXTAUTH_URL=$NEXTAUTH_URL")
+
+  read -r -p "DATABASE_URL (PostgreSQL connection string): " DATABASE_URL
+  [[ -n "$DATABASE_URL" ]] && ENV_VARS+=("DATABASE_URL=$DATABASE_URL")
+  ;;
 esac
 
 # Additional env vars
@@ -271,11 +274,12 @@ fi
 # Create container
 msg_info "Creating container $VMID"
 
-PCT_CMD="pct create $VMID --ostemplate oci://$FULL_IMAGE"
+# Build pct create command
+PCT_CMD="pct create $VMID"
 PCT_CMD+=" --hostname $CT_NAME"
 PCT_CMD+=" --cores $CORES"
 PCT_CMD+=" --memory $MEMORY"
-PCT_CMD+=" --rootfs ${STORAGE}:${DISK}"
+PCT_CMD+=" --rootfs ${STORAGE}:${DISK},oci=${FULL_IMAGE}"
 PCT_CMD+=" --unprivileged $UNPRIVILEGED"
 
 if [[ "$IP_MODE" == "static" && -n "$STATIC_IP" ]]; then
@@ -310,11 +314,11 @@ if [[ "$START_AFTER" == "yes" ]]; then
   msg_info "Starting container"
   if pct start "$VMID" 2>&1; then
     msg_ok "Container started"
-    
+
     # Wait for network
     sleep 3
     CT_IP=$(pct exec "$VMID" -- hostname -I 2>/dev/null | awk '{print $1}' || echo "N/A")
-    
+
     echo ""
     echo -e "${GN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${CL}"
     echo -e "${BL}Container Information:${CL}"
