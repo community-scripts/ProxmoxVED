@@ -35,8 +35,9 @@ function update_script() {
   RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
   VERSION_FILE="/home/${SNOWFLAKEUSER}/.${APP}_version"
   if [[ ! -f "${VERSION_FILE}" ]] || [[ "${RELEASE}" != "$(cat "${VERSION_FILE}")" ]]; then
-    systemctl stop snowflake-proxy
-    msg_ok "Stopped Service"
+    msg_info "Stopping ${APP} Service"
+    systemctl stop ${APP}
+    msg_ok "Stopped ${APP} Service"
 
     setup_go
 
@@ -50,9 +51,9 @@ function update_script() {
     echo "${RELEASE}" | sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && tee .${APP}_version >/dev/null"
     msg_ok "Updated ${APP} to v${RELEASE}"
 
-    msg_info "Starting Service"
-    systemctl start snowflake-proxy
-    msg_ok "Started Service"
+    msg_info "Starting ${APP} Service"
+    systemctl start ${APP}
+    msg_ok "Started ${APP} Service"
     msg_ok "Updated successfully!"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}."
