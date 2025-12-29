@@ -15,8 +15,6 @@ var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 var_nesting="${var_nesting:-0}"
 
-SNOWFLAKEUSER="snowflake"
-
 header_info "$APP"
 variables
 color
@@ -33,29 +31,28 @@ function update_script() {
   msg_ok "Updated Container OS"
 
   RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
-  VERSION_FILE="/home/${SNOWFLAKEUSER}/.${APP}_version"
-  if [[ ! -f "${VERSION_FILE}" ]] || [[ "${RELEASE}" != "$(cat "${VERSION_FILE}")" ]]; then
+  if [[ ! -f "/home/snowflake/.${APP}_version" ]] || [[ "${RELEASE}" != "$(cat "/home/snowflake/.${APP}_version")" ]]; then
     systemctl stop snowflake-proxy
     msg_ok "Stopped Service"
 
     setup_go
 
-    msg_info "Updating ${APP} to v${RELEASE}"
-    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && curl -fsSL 'https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz' -o snowflake.tar.gz"
-    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && tar -xzf snowflake.tar.gz"
-    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && rm snowflake.tar.gz"
-    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && rm -rf .${APP}"
-    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && mv snowflake-v${RELEASE} .${APP}"
-    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~/.${APP}/proxy && go build -o snowflake-proxy ."
-    echo "${RELEASE}" | sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && tee .${APP}_version >/dev/null"
-    msg_ok "Updated ${APP} to v${RELEASE}"
+    msg_info "Updating Snowflake"
+    $STD sudo -H -u snowflake bash -c "cd ~ && curl -fsSL 'https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz' -o snowflake.tar.gz"
+    $STD sudo -H -u snowflake bash -c "cd ~ && tar -xzf snowflake.tar.gz"
+    $STD sudo -H -u snowflake bash -c "cd ~ && rm snowflake.tar.gz"
+    $STD sudo -H -u snowflake bash -c "cd ~ && rm -rf .${APP}"
+    $STD sudo -H -u snowflake bash -c "cd ~ && mv snowflake-v${RELEASE} .${APP}"
+    $STD sudo -H -u snowflake bash -c "cd ~/.${APP}/proxy && go build -o snowflake-proxy ."
+    echo "${RELEASE}" | sudo -H -u snowflake bash -c "cd ~ && tee .${APP}_version >/dev/null"
+    msg_ok "Updated Snowflake to v${RELEASE}"
 
     msg_info "Starting Service"
     systemctl start snowflake-proxy
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
   else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}."
+    msg_ok "No update required. Snowflake is already at v${RELEASE}."
   fi
   exit
 }
