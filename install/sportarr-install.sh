@@ -12,9 +12,13 @@ catch_errors
 setting_up_container
 network_check
 update_os
+setup_hwaccel
 
 msg_info "Installing Dependencies"
-$STD apt install -y ffmpeg
+$STD apt install -y \
+  ffmpeg \
+  gosu \
+  sqlite3
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "sportarr" "Sportarr/Sportarr" "prebuild" "latest" "/opt/sportarr" "Sportarr-linux-x64-*.tar.gz"
@@ -26,6 +30,7 @@ ASPNETCORE_URLS="http://*:1867"
 ASPNETCORE_ENVIRONMENT="Production"
 DOTNET_CLI_TELEMETRY_OPTOUT=1
 DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+LIBVA_DRIVER_NAME=iHD
 EOF
 msg_ok "Setup Sportarr"
 
