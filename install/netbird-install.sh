@@ -14,12 +14,6 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  curl \
-  ca-certificates \
-  gnupg
-msg_ok "Installed Dependencies"
 
 msg_info "Setting up NetBird Repository"
 curl -sSL https://pkgs.netbird.io/debian/public.key | gpg --dearmor -o /usr/share/keyrings/netbird-archive-keyring.gpg
