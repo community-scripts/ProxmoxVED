@@ -1,0 +1,33 @@
+{
+  "name": "Wishlist",
+  "slug": "wishlist",
+  "categories": [0],
+  "date_created": "2025-12-29",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3280,
+  "documentation": null,
+  "config_path": "/opt/wishlist/.env",
+  "website": "https://github.com/cmintey/wishlist",
+  "logo": "https://github.com/cmintey/wishlist/blob/main/static/android-chrome-512x512.png?raw=true",
+  "description": "Wishlist is a self-hosted wishlist application that you can share with your friends and family. You no longer have to wonder what to get your family for the holidays, simply check their wishlist and claim any available item!",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/wishlist.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 5,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
