@@ -6,7 +6,6 @@
 # Source: https://netbird.io/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
-app="netbird"
 color
 verb_ip6
 catch_errors
