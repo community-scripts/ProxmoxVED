@@ -15,6 +15,8 @@ var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 var_nesting="${var_nesting:-0}"
 
+SNOWFLAKEUSER="snowflake"
+
 header_info "$APP"
 variables
 color
@@ -31,24 +33,21 @@ function update_script() {
   msg_ok "Updated Container OS"
 
   RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-    msg_info "Stopping Service"
+  VERSION_FILE="/home/${SNOWFLAKEUSER}/.${APP}_version"
+  if [[ ! -f "${VERSION_FILE}" ]] || [[ "${RELEASE}" != "$(cat "${VERSION_FILE}")" ]]; then
     systemctl stop snowflake-proxy
     msg_ok "Stopped Service"
 
     setup_go
 
     msg_info "Updating ${APP} to v${RELEASE}"
-    cd /opt
-    $STD curl -fsSL "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz" -o snowflake.tar.gz
-    $STD tar -xzf snowflake.tar.gz
-    rm -rf snowflake
-    mv "snowflake-v${RELEASE}" snowflake
-    rm snowflake.tar.gz
-    chown -R snowflake:snowflake /opt/snowflake
-    cd /opt/snowflake/proxy
-    $STD sudo -u snowflake go build -o snowflake-proxy .
-    echo "${RELEASE}" >/opt/${APP}_version.txt
+    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && curl -fsSL 'https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz' -o snowflake.tar.gz"
+    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && tar -xzf snowflake.tar.gz"
+    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && rm snowflake.tar.gz"
+    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && rm -rf .${APP}"
+    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && mv snowflake-v${RELEASE} .${APP}"
+    $STD sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~/.${APP}/proxy && go build -o snowflake-proxy ."
+    echo "${RELEASE}" | sudo -H -u ${SNOWFLAKEUSER} bash -c "cd ~ && tee .${APP}_version >/dev/null"
     msg_ok "Updated ${APP} to v${RELEASE}"
 
     msg_info "Starting Service"
