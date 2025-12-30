@@ -39,8 +39,8 @@ function update_script() {
     setup_go
 
     msg_info "Updating Snowflake"
-    $STD bash -c "cd /opt && curl -fsSL 'https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz' -o snowflake.tar.gz"
-    $STD bash -c "cd /opt && tar -xzf snowflake.tar.gz"
+    $STD curl -fsSL "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz" -o /opt/snowflake.tar.gz
+    $STD tar -xzf /opt/snowflake.tar.gz -C /opt
     $STD rm -rf /opt/snowflake.tar.gz
     $STD rm -rf /opt/tor-snowflake
     $STD mv /opt/snowflake-v${RELEASE} /opt/tor-snowflake

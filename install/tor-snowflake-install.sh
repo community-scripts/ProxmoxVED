@@ -21,8 +21,8 @@ msg_ok "Created snowflake user"
 
 msg_info "Building Snowflake"
 RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
-$STD bash -c "cd /opt && curl -fsSL 'https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz' -o snowflake.tar.gz"
-$STD bash -c "cd /opt && tar -xzf snowflake.tar.gz"
+$STD curl -fsSL "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz" -o /opt/snowflake.tar.gz
+$STD tar -xzf /opt/snowflake.tar.gz -C /opt
 $STD rm -rf /opt/snowflake.tar.gz
 $STD mv /opt/snowflake-v${RELEASE} /opt/tor-snowflake
 $STD chown -R snowflake:snowflake /opt/tor-snowflake
