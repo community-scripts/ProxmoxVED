@@ -25,8 +25,8 @@ NODE_VERSION="24" setup_nodejs
 
 msg_info "Cloning Papra Repository"
 cd /opt
-RELEASE=$(curl -s https://api.github.com/repos/CorentinTh/papra/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-$STD git clone --depth=1 --branch ${RELEASE} https://github.com/CorentinTh/papra.git
+RELEASE=$(curl -s https://api.github.com/repos/papra-hq/papra/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
+$STD git clone --depth=1 --branch ${RELEASE} https://github.com/papra-hq/papra.git
 cd papra
 msg_ok "Cloned Papra Repository"
 
