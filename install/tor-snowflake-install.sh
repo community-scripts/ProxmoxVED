@@ -27,7 +27,7 @@ $STD rm -rf /opt/snowflake.tar.gz
 $STD mv /opt/snowflake-v${RELEASE} /opt/tor-snowflake
 $STD chown -R snowflake:snowflake /opt/tor-snowflake
 $STD sudo -H -u snowflake bash -c "cd /opt/tor-snowflake/proxy && go build -o snowflake-proxy ."
-echo "${RELEASE}" >/opt/tor-snowflake/version
+echo "${RELEASE}" >/opt/tor-snowflake_version.txt
 msg_ok "Built Snowflake Proxy v${RELEASE}"
 
 msg_info "Creating Service"

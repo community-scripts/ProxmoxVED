@@ -31,7 +31,7 @@ function update_script() {
   msg_ok "Updated Container OS"
 
   RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
-  if [[ ! -f "/opt/tor-snowflake/version" ]] || [[ "${RELEASE}" != "$(cat "/opt/tor-snowflake/version")" ]]; then
+  if [[ ! -f "/opt/tor-snowflake_version.txt" ]] || [[ "${RELEASE}" != "$(cat "/opt/tor-snowflake_version.txt")" ]]; then
     msg_info "Stopping Service"
     systemctl stop snowflake-proxy
     msg_ok "Stopped Service"
@@ -46,7 +46,7 @@ function update_script() {
     $STD mv /opt/snowflake-v${RELEASE} /opt/tor-snowflake
     $STD chown -R snowflake:snowflake /opt/tor-snowflake
     $STD sudo -H -u snowflake bash -c "cd /opt/tor-snowflake/proxy && go build -o snowflake-proxy ."
-    echo "${RELEASE}" >/opt/tor-snowflake/version
+    echo "${RELEASE}" >/opt/tor-snowflake_version.txt
     msg_ok "Updated Snowflake to v${RELEASE}"
 
     msg_info "Starting Service"
