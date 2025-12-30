@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/Dunky13/ProxmoxVE/refs/heads/feature/wishlist/misc/build.func)
 # Copyright (c) 2021-2025 tteck
 # Author: Dunky13
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -27,34 +27,33 @@ function update_script() {
     exit
   fi
 
-  NODE_VERSION="24" NODE_MODULE="pnpm" setup_nodejs
-
   if check_for_gh_release "wishlist" "cmintey/wishlist"; then
+    NODE_VERSION="24" NODE_MODULE="pnpm" setup_nodejs
+
     msg_info "Stopping Service"
     systemctl stop wishlist
-    msg_ok "Service Stopped"
+    msg_ok "Stopped Service"
 
-    cp /opt/wishlist/.env /opt/
+    cp /opt/wishlist/.env /opt/wishlist.env
     cp -R /opt/wishlist/uploads /opt/
     cp -R /opt/wishlist/data /opt/
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wishlist" "cmintey/wishlist" "tarball"
     LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist")
 
-
     msg_info "Updating ${APP}"
-    cd /opt/wishlist || exit
+    cd /opt/wishlist
 
     $STD pnpm install
     $STD pnpm svelte-kit sync
     $STD pnpm prisma generate
-    $STD sed -i 's|/usr/src/app/|/opt/wishlist/|g' $(grep -rl '/usr/src/app/' /opt/wishlist)
+    sed -i 's|/usr/src/app/|/opt/wishlist/|g' $(grep -rl '/usr/src/app/' /opt/wishlist)
     export VERSION="${LATEST_APP_VERSION}"
     export SHA="${LATEST_APP_VERSION}"
     $STD pnpm run build
     $STD pnpm prune --prod
-    $STD chmod +x /opt/wishlist/entrypoint.sh
+    chmod +x /opt/wishlist/entrypoint.sh
 
-    mv /opt/.env /opt/wishlist/.env
+    mv /opt/wishlist.env /opt/wishlist/.env
     mv /opt/uploads /opt/wishlist/uploads
     mv /opt/data /opt/wishlist/data
 

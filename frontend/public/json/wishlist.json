@@ -7,10 +7,10 @@
   "updateable": true,
   "privileged": false,
   "interface_port": 3280,
-  "documentation": null,
+  "documentation": "https://github.com/cmintey/wishlist/blob/main/README.md#getting-started",
   "config_path": "/opt/wishlist/.env",
   "website": "https://github.com/cmintey/wishlist",
-  "logo": "https://github.com/cmintey/wishlist/blob/main/static/android-chrome-512x512.png?raw=true",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/cmintey-wishlist.png",
   "description": "Wishlist is a self-hosted wishlist application that you can share with your friends and family. You no longer have to wonder what to get your family for the holidays, simply check their wishlist and claim any available item!",
   "install_methods": [
     {
@@ -29,5 +29,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Edit /opt/wishlist/.env in the LXC container to customize settings. Restart the container after making changes.",
+      "type": "info"
+    }
+  ]
 }

@@ -22,7 +22,8 @@ fetch_and_deploy_gh_release "wishlist" "cmintey/wishlist" "tarball"
 LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist")
 
 msg_info "Installing Wishlist"
-cd /opt/wishlist || exit
+cd /opt/wishlist
+
 cat <<EOF >/opt/wishlist/.env
   NODE_ENV=production
   BODY_SIZE_LIMIT=5000000
@@ -31,19 +32,21 @@ cat <<EOF >/opt/wishlist/.env
   DEFAULT_CURRENCY=EUR
   MAX_IMAGE_SIZE=5000000 # 5 megabytes
 EOF
+
 $STD pnpm install
 $STD pnpm svelte-kit sync
 $STD pnpm prisma generate
-$STD sed -i 's|/usr/src/app/|/opt/wishlist/|g' $(grep -rl '/usr/src/app/' /opt/wishlist)
-export VERSION="${LATEST_APP_VERSION}" 
-export SHA="${LATEST_APP_VERSION}" 
+sed -i 's|/usr/src/app/|/opt/wishlist/|g' $(grep -rl '/usr/src/app/' /opt/wishlist)
+
+export VERSION="${LATEST_APP_VERSION}"
+export SHA="${LATEST_APP_VERSION}"
 $STD pnpm run build
 $STD pnpm prune --prod
-$STD chmod +x /opt/wishlist/entrypoint.sh
-msg_ok "Installed Wishlist"
+chmod +x /opt/wishlist/entrypoint.sh
 
 mkdir -p /opt/wishlist/uploads
 mkdir -p /opt/wishlist/data
+msg_ok "Installed Wishlist"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/wishlist.service
