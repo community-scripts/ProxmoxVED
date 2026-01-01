@@ -28,14 +28,8 @@ LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist")
 
 msg_info "Installing Wishlist"
 cd /opt/wishlist
-cat <<EOF >/opt/wishlist/.env
-NODE_ENV=production
-BODY_SIZE_LIMIT=5000000
-ORIGIN="http://0.0.0.0:3280" # The URL your users will be connecting to
-TOKEN_TIME=72 # hours until signup and password reset tokens expire
-DEFAULT_CURRENCY=EUR
-MAX_IMAGE_SIZE=5000000 # 5 megabytes
-EOF
+cp .env.example .env
+echo "NODE_ENV=production" >> /opt/wishlist/.env
 $STD pnpm install
 $STD pnpm svelte-kit sync
 $STD pnpm prisma generate
@@ -58,7 +52,8 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/wishlist
-ExecStart=/usr/bin/env bash -c '[ -f /opt/wishlist/.env ] && { set -a; . /opt/wishlist/.env || true; set +a;}; ./entrypoint.sh'
+EnvironmentFile=/opt/wishlist/.env
+ExecStart=/usr/bin/env sh -c './entrypoint.sh'
 Restart=on-failure
 
 [Install]
