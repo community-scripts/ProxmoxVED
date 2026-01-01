@@ -10,7 +10,7 @@
   "documentation": "https://github.com/cmintey/wishlist/blob/main/README.md#getting-started",
   "config_path": "/opt/wishlist/.env",
   "website": "https://github.com/cmintey/wishlist",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/cmintey-wishlist.png",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/cmintey-wishlist.webp",
   "description": "Wishlist is a self-hosted wishlist application that you can share with your friends and family. You no longer have to wonder what to get your family for the holidays, simply check their wishlist and claim any available item!",
   "install_methods": [
     {
