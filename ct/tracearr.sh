@@ -56,9 +56,10 @@ function update_script() {
     cp -rf packages/shared/dist /opt/tracearr/packages/shared/dist
     cp -rf apps/server/src/db/migrations /opt/tracearr/apps/server/src/db/migrations
     cp -rf data /opt/tracearr/data
+    mkdir -p /opt/tracearr/data/image-cache
     rm -rf /opt/tracearr.build
     cd /opt/tracearr
-    $STD pnpm install --prod --frozen-lockfile
+    $STD pnpm install --prod --frozen-lockfile --ignore-scripts
     $STD chown -R tracearr:tracearr /opt/tracearr
     msg_ok "Built Tracearr"
 
@@ -87,9 +88,9 @@ function update_script() {
         PG_DB_USER=$(grep 'DATABASE_URL=' /data/tracearr/.env | cut -d'/' -f3 | cut -d':' -f1)
         PG_DB_PASS=$(grep 'DATABASE_URL=' /data/tracearr/.env | cut -d':' -f3 | cut -d'@' -f1)
         { echo "PostgreSQL Credentials"
-          echo "Database: $PG_DB_NAME"
-          echo "User: $PG_DB_USER"
-          echo "Password: $PG_DB_PASS"
+          echo "Database Name: $PG_DB_NAME"
+          echo "Database User: $PG_DB_USER"
+          echo "Database Password: $PG_DB_PASS"
         } >/root/tracearr.creds
         msg_ok "Recreated tracearr.creds file from existing .env"
       else
@@ -97,9 +98,9 @@ function update_script() {
         exit 1
       fi
     else
-      PG_DB_NAME=$(grep 'Database:' /root/tracearr.creds | awk '{print $2}')
-      PG_DB_USER=$(grep 'User:' /root/tracearr.creds | awk '{print $2}')
-      PG_DB_PASS=$(grep 'Password:' /root/tracearr.creds | awk '{print $2}')
+      PG_DB_NAME=$(grep 'Database Name:' /root/tracearr.creds | awk '{print $3}')
+      PG_DB_USER=$(grep 'Database User:' /root/tracearr.creds | awk '{print $3}')
+      PG_DB_PASS=$(grep 'Database Password:' /root/tracearr.creds | awk '{print $3}')
     fi
     cat <<EOF >/data/tracearr/.env
 DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}

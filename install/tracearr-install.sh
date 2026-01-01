@@ -64,9 +64,10 @@ cp -rf packages/shared/package.json /opt/tracearr/packages/shared/
 cp -rf packages/shared/dist /opt/tracearr/packages/shared/dist
 cp -rf apps/server/src/db/migrations /opt/tracearr/apps/server/src/db/migrations
 cp -rf data /opt/tracearr/data
+mkdir -p /opt/tracearr/data/image-cache
 rm -rf /opt/tracearr.build
 cd /opt/tracearr
-$STD pnpm install --prod --frozen-lockfile
+$STD pnpm install --prod --frozen-lockfile --ignore-scripts
 msg_ok "Built Tracearr"
 
 msg_info "Configuring Tracearr"
