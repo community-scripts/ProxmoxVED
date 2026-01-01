@@ -64,58 +64,6 @@ function update_script() {
     msg_ok "Built Tracearr"
 
     msg_info "Configuring Tracearr"
-    if [ ! -d /data/tracearr ]; then
-      install -d -m 750 -o tracearr -g tracearr /data/tracearr
-    fi
-
-    if [ -f /data/tracearr/.jwt_secret ]; then
-      export JWT_SECRET=$(cat /data/tracearr/.jwt_secret)
-    else
-      export JWT_SECRET=$(openssl rand -hex 32)
-      echo "$JWT_SECRET" > /data/tracearr/.jwt_secret
-      chmod 600 /data/tracearr/.jwt_secret
-    fi
-    if [ -f /data/tracearr/.cookie_secret ]; then
-      export COOKIE_SECRET=$(cat /data/tracearr/.cookie_secret)
-    else
-      export COOKIE_SECRET=$(openssl rand -hex 32)
-      echo "$COOKIE_SECRET" > /data/tracearr/.cookie_secret
-      chmod 600 /data/tracearr/.cookie_secret
-    fi
-    if [ ! -f /root/tracearr.creds ]; then
-      if [ -f /data/tracearr/.env ]; then
-        PG_DB_NAME=$(grep 'DATABASE_URL=' /data/tracearr/.env | cut -d'/' -f4)
-        PG_DB_USER=$(grep 'DATABASE_URL=' /data/tracearr/.env | cut -d'/' -f3 | cut -d':' -f1)
-        PG_DB_PASS=$(grep 'DATABASE_URL=' /data/tracearr/.env | cut -d':' -f3 | cut -d'@' -f1)
-        { echo "PostgreSQL Credentials"
-          echo "Database Name: $PG_DB_NAME"
-          echo "Database User: $PG_DB_USER"
-          echo "Database Password: $PG_DB_PASS"
-        } >/root/tracearr.creds
-        msg_ok "Recreated tracearr.creds file from existing .env"
-      else
-        msg_error "No existing tracearr.creds or .env file found. Cannot configure database connection!"
-        exit 1
-      fi
-    else
-      PG_DB_NAME=$(grep 'Database Name:' /root/tracearr.creds | awk '{print $3}')
-      PG_DB_USER=$(grep 'Database User:' /root/tracearr.creds | awk '{print $3}')
-      PG_DB_PASS=$(grep 'Database Password:' /root/tracearr.creds | awk '{print $3}')
-    fi
-    cat <<EOF >/data/tracearr/.env
-DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
-REDIS_URL=redis://127.0.0.1:6379
-PORT=3000
-HOST=0.0.0.0
-NODE_ENV=production
-TZ=${TZ}
-LOG_LEVEL=info
-JWT_SECRET=$JWT_SECRET
-COOKIE_SECRET=$COOKIE_SECRET
-APP_VERSION=$(cat /root/.tracearr)
-#CORS_ORIGIN=http://localhost:5173
-#MOBILE_BETA_MODE=true
-EOF
     chmod 600 /data/tracearr/.env
     chown -R tracearr:tracearr /data/tracearr
     msg_ok "Configured Tracearr"

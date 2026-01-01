@@ -74,21 +74,8 @@ msg_info "Configuring Tracearr"
 $STD useradd -r -s /bin/false -U tracearr
 $STD chown -R tracearr:tracearr /opt/tracearr
 install -d -m 750 -o tracearr -g tracearr /data/tracearr
-if [ -f /data/tracearr/.jwt_secret ]; then
-  export JWT_SECRET=$(cat /data/tracearr/.jwt_secret)
-else
-  export JWT_SECRET=$(openssl rand -hex 32)
-  echo "$JWT_SECRET" > /data/tracearr/.jwt_secret
-  chmod 600 /data/tracearr/.jwt_secret
-fi
-
-if [ -f /data/tracearr/.cookie_secret ]; then
-  export COOKIE_SECRET=$(cat /data/tracearr/.cookie_secret)
-else
-  export COOKIE_SECRET=$(openssl rand -hex 32)
-  echo "$COOKIE_SECRET" > /data/tracearr/.cookie_secret
-  chmod 600 /data/tracearr/.cookie_secret
-fi
+export JWT_SECRET=$(openssl rand -hex 32)
+export COOKIE_SECRET=$(openssl rand -hex 32)
 cat <<EOF >/data/tracearr/.env
 DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
 REDIS_URL=redis://127.0.0.1:6379
