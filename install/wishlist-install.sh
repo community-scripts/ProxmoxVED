@@ -18,7 +18,6 @@ $STD apt install -y \
   build-essential \
   python3 \
   openssl \
-  git \
   caddy
 msg_ok "Installed dependencies"
 

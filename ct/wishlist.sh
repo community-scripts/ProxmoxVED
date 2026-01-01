@@ -55,9 +55,9 @@ function update_script() {
     $STD pnpm prune --prod
     chmod +x /opt/wishlist/entrypoint.sh
 
-    mv /opt/wishlist-backup/.env /opt/wishlist/.env
-    mv /opt/wishlist-backup/uploads /opt/wishlist/uploads
-    mv /opt/wishlist-backup/data /opt/wishlist/data
+    cp /opt/wishlist-backup/.env /opt/wishlist/.env
+    cp -R /opt/wishlist-backup/uploads /opt/wishlist/uploads
+    cp -R /opt/wishlist-backup/data /opt/wishlist/data
 
     msg_ok "Updated ${APP}"
 
