@@ -42,7 +42,7 @@ function update_script() {
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wishlist" "cmintey/wishlist" "tarball"
     LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist")
 
-    msg_info "Updating ${APP}"
+    msg_info "Updating Wishlist"
     cd /opt/wishlist
 
     $STD pnpm install
@@ -54,13 +54,10 @@ function update_script() {
     $STD pnpm run build
     $STD pnpm prune --prod
     chmod +x /opt/wishlist/entrypoint.sh
-
     cp /opt/wishlist-backup/.env /opt/wishlist/.env
     cp -R /opt/wishlist-backup/uploads /opt/wishlist/uploads
     cp -R /opt/wishlist-backup/data /opt/wishlist/data
-
-    msg_ok "Updated ${APP}"
-
+    msg_ok "Updated Wishlist"
     msg_info "Starting Service"
     systemctl start wishlist
     msg_ok "Started Service"

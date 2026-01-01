@@ -38,7 +38,6 @@ export SHA="${LATEST_APP_VERSION}"
 $STD pnpm run build
 $STD pnpm prune --prod
 chmod +x /opt/wishlist/entrypoint.sh
-
 mkdir -p /opt/wishlist/uploads
 mkdir -p /opt/wishlist/data
 msg_ok "Installed Wishlist"
