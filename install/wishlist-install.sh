@@ -56,7 +56,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/wishlist
-ExecStart=/usr/bin/env sh -c './entrypoint.sh'
+ExecStart=/usr/bin/env bash -c '[ -f /opt/wishlist/.env ] && { set -a; . /opt/wishlist/.env || true; set +a;}; ./entrypoint.sh'
 Restart=on-failure
 
 [Install]
