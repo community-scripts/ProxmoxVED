@@ -33,11 +33,9 @@ NODE_VERSION="22" setup_nodejs
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="investbrain" PG_DB_USER="investbrain" setup_postgresql_db
 
-msg_info "Setting up Investbrain"
-RELEASE=$(curl -fsSL https://api.github.com/repos/investbrainapp/investbrain/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
+msg_info "Installing Investbrain"
 mkdir -p /opt/investbrain
-cd /opt/investbrain
-curl -fsSL "https://github.com/investbrainapp/investbrain/archive/refs/tags/v${RELEASE}.tar.gz" | tar -xz --strip-components=1
+fetch_and_deploy_gh_release "Investbrain" "investbrainapp/investbrain" "tarball" "latest" "/opt/investbrain"
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 APP_KEY=$(openssl rand -base64 32)
 
@@ -126,7 +124,6 @@ $STD php artisan event:clear
 $STD php artisan route:cache
 chown -R www-data:www-data /opt/investbrain
 chmod -R 755 /opt/investbrain/bootstrap/cache
-echo "${RELEASE}" >/opt/investbrain_version.txt
 msg_ok "Cleared and Cached"
 
 msg_info "Configuring Nginx"
