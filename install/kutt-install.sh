@@ -13,6 +13,10 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Installing Dependencies"
+$STD apt-get install -y caddy
+msg_ok "Installed Dependencies"
+
 NODE_VERSION="22" setup_nodejs
 fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball"
 
@@ -22,7 +26,19 @@ cp .example.env ".env"
 sed -i "s|JWT_SECRET=|JWT_SECRET=$(openssl rand -base64 32)|g" ".env"
 $STD npm install
 $STD npm run migrate
+msg_ok "Configured Kutt"
 
+msg_info "Configuring SSL"
+LXCIP=$(hostname -I | awk '{print $1}')
+cat <<EOF >/etc/caddy/Caddyfile
+$LXCIP {
+	reverse_proxy localhost:3000
+}
+EOF
+$STD systemctl restart caddy
+msg_ok "Configured SSL"
+
+msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/kutt.service
 [Unit]
 Description=Kutt server
@@ -37,8 +53,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now kutt
-msg_ok "Configured Kutt"
+$STD systemctl enable -q --now kutt
+msg_ok "Created Services"
 
 motd_ssh
 customize
