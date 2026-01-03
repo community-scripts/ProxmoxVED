@@ -34,7 +34,21 @@ function update_script() {
     systemctl stop kutt
     msg_ok "Stopped services"
 
-    fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball" "latest"
+    msg_info "Backing up data"
+    mkdir -p /opt/kutt-backup
+    [ -d /opt/kutt/custom ] && cp -r /opt/kutt/custom /opt/kutt-backup/
+    [ -d /opt/kutt/db ] && cp -r /opt/kutt/db /opt/kutt-backup/
+    cp /opt/kutt/.env /opt/kutt-backup/
+    msg_ok "Backed up data"
+
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball" "latest"
+
+    msg_info "Restoring data"
+    [ -d /opt/kutt-backup/custom ] && cp -r /opt/kutt-backup/custom /opt/kutt/
+    [ -d /opt/kutt-backup/db ] && cp -r /opt/kutt-backup/db /opt/kutt/
+    [ -f /opt/kutt-backup/.env ] && cp /opt/kutt-backup/.env /opt/kutt/
+    rm -rf /opt/kutt-backup
+    msg_ok "Restored data"
 
     msg_info "Configuring Kutt"
     cd /opt/kutt
@@ -57,4 +71,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}https://${IP}${CL}"
