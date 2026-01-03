@@ -17,7 +17,7 @@ fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
 cd /opt/sonobarr
 
 msg_info "Setting up sonobarr"
-apt install python3.13-venv
+apt install python3.13-venv -y
 python3 -m venv venv
 source venv/bin/activate
 pip install --no-cache-dir -r requirements.txt
