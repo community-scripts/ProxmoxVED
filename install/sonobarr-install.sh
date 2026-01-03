@@ -24,7 +24,7 @@ pip install --no-cache-dir -r requirements.txt
 msg_ok "Set up sonobarr"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/sonobarr
+cat <<EOF >/etc/systemd/system/sonobarr.service
 [Unit]
 Description=sonobarr Service
 After=network.target
