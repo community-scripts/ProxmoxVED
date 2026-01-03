@@ -13,7 +13,6 @@ setting_up_container
 network_check
 update_os
 
-setup_python
 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
 
 msg_info "Setting up sonobarr"
