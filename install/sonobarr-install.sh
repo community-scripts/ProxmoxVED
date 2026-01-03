@@ -16,7 +16,13 @@ update_os
 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
 
 msg_info "Setting up sonobarr"
+
 cd /opt/sonobarr
+
+python3 -m venv venv
+
+source venv/bin/activate
+
 pip install --no-cache-dir -r requirements.txt
 msg_ok "Set up sonobarr"
 
