@@ -29,9 +29,9 @@ $STD npm run migrate
 msg_ok "Configured Kutt"
 
 msg_info "Configuring SSL"
-LXCIP=$(hostname -I | awk '{print $1}')
+import_local_ip
 cat <<EOF >/etc/caddy/Caddyfile
-$LXCIP {
+$LOCAL_IP {
 	reverse_proxy localhost:3000
 }
 EOF
