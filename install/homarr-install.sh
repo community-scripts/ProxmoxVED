@@ -18,16 +18,14 @@ $STD apt install -y \
   redis-server \
   nginx \
   gettext \
-  openssl \
-  musl-dev
+  openssl
 msg_ok "Installed Dependencies"
 
-NODE_VERSION=$(curl -s https://raw.githubusercontent.com/homarr-labs/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
+NODE_VERSION=$(curl -s https://raw.githubusercontent.com/Meierschlumpf/homarr/dev/package.json | jq -r '.engines.node | split(">=")[1] | split(".")[0]')
 setup_nodejs
-fetch_and_deploy_gh_release "homarr" "homarr-labs/homarr" "prebuild" "latest" "/opt/homarr" "build-amd64.tar.gz"
+fetch_and_deploy_gh_release "homarr" "Meierschlumpf/homarr" "prebuild" "latest" "/opt/homarr" "source-debian-amd64.tar.gz"
 
 msg_info "Installing Homarr"
-ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
 mkdir -p /opt/homarr_db
 touch /opt/homarr_db/db.sqlite
 SECRET_ENCRYPTION_KEY="$(openssl rand -hex 32)"
@@ -47,7 +45,7 @@ msg_ok "Installed Homarr"
 msg_info "Copying config files"
 mkdir -p /appdata/redis
 chown -R redis:redis /appdata/redis
-chmod 755 /appdata/redis
+chmod 744 /appdata/redis
 cp /opt/homarr/redis.conf /etc/redis/redis.conf
 rm /etc/nginx/nginx.conf
 mkdir -p /etc/nginx/templates
@@ -64,6 +62,8 @@ ReadWritePaths=-/appdata/redis -/var/lib/redis -/var/log/redis -/var/run/redis -
 EOF
 cat <<EOF >/etc/systemd/system/homarr.service
 [Unit]
+Requires=redis-server.service
+After=redis-server.service
 Description=Homarr Service
 After=network.target
 
@@ -80,6 +80,7 @@ chmod +x /opt/homarr/run.sh
 systemctl daemon-reload
 systemctl enable -q --now redis-server && sleep 5
 systemctl enable -q --now homarr
+systemctl disable -q --now nginx
 msg_ok "Created Services"
 
 motd_ssh

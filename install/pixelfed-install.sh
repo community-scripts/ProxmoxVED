@@ -43,13 +43,12 @@ systemctl restart redis-server
 msg_ok "Redis configured"
 
 msg_info "Configuring PHP-FPM Pool"
-mkdir -p /run/php-fpm
 cp /etc/php/8.4/fpm/pool.d/www.conf /etc/php/8.4/fpm/pool.d/pixelfed.conf
 sed -i 's/\[www\]/[pixelfed]/' /etc/php/8.4/fpm/pool.d/pixelfed.conf
 sed -i 's/^user = www-data/user = pixelfed/' /etc/php/8.4/fpm/pool.d/pixelfed.conf
 sed -i 's/^group = www-data/group = pixelfed/' /etc/php/8.4/fpm/pool.d/pixelfed.conf
-sed -i 's|^listen = .*|listen = /run/php-fpm/pixelfed.sock|' /etc/php/8.4/fpm/pool.d/pixelfed.conf
-sed -i 's/^listen.owner = .*/listen.owner = pixelfed/' /etc/php/8.4/fpm/pool.d/pixelfed.conf
+sed -i 's|^listen = .*|listen = /run/php/php8.4-fpm-pixelfed.sock|' /etc/php/8.4/fpm/pool.d/pixelfed.conf
+sed -i 's/^listen.owner = .*/listen.owner = www-data/' /etc/php/8.4/fpm/pool.d/pixelfed.conf
 sed -i 's/^listen.group = .*/listen.group = www-data/' /etc/php/8.4/fpm/pool.d/pixelfed.conf
 systemctl restart php8.4-fpm
 msg_ok "PHP-FPM Pool configured"
@@ -75,6 +74,7 @@ sed -i "s|REDIS_PORT=.*|REDIS_PORT=6379|" .env
 sed -i "s|ACTIVITY_PUB=.*|ACTIVITY_PUB=true|" .env
 sed -i "s|AP_REMOTE_FOLLOW=.*|AP_REMOTE_FOLLOW=true|" .env
 sed -i "s|OAUTH_ENABLED=.*|OAUTH_ENABLED=true|" .env
+echo "SESSION_SECURE_COOKIE=false" >>.env
 
 chown -R pixelfed:pixelfed /opt/pixelfed
 chmod -R 755 /opt/pixelfed
@@ -122,7 +122,7 @@ server {
 
     location ~ \.php$ {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass unix:/run/php-fpm/pixelfed.sock;
+        fastcgi_pass unix:/run/php/php8.4-fpm-pixelfed.sock;
         fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;

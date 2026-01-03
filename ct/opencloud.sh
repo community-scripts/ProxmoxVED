@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE="v4.0.0"
+  RELEASE="v4.1.0"
   if check_for_gh_release "opencloud" "opencloud-eu/opencloud" "${RELEASE}"; then
     msg_info "Stopping services"
     systemctl stop opencloud opencloud-wopi
@@ -37,7 +37,7 @@ function update_script() {
 
     msg_info "Updating packages"
     $STD apt-get update
-    $STD apt-get dist-upgrade
+    $STD apt-get dist-upgrade -y
     msg_ok "Updated packages"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "${RELEASE}" "/usr/bin" "opencloud-*-linux-amd64"

@@ -31,13 +31,13 @@ _CORE_FUNC_LOADED=1
 # - Must be called at start of any script using these utilities
 # ------------------------------------------------------------------------------
 load_functions() {
-  [[ -n "${__FUNCTIONS_LOADED:-}" ]] && return
-  __FUNCTIONS_LOADED=1
-  color
-  formatting
-  icons
-  default_vars
-  set_std_mode
+    [[ -n "${__FUNCTIONS_LOADED:-}" ]] && return
+    __FUNCTIONS_LOADED=1
+    color
+    formatting
+    icons
+    default_vars
+    set_std_mode
 }
 
 # ------------------------------------------------------------------------------
@@ -48,14 +48,14 @@ load_functions() {
 #             GN (green), DGN (dark green), BGN (background green), CL (clear)
 # ------------------------------------------------------------------------------
 color() {
-  YW=$(echo "\033[33m")
-  YWB=$'\e[93m'
-  BL=$(echo "\033[36m")
-  RD=$(echo "\033[01;31m")
-  BGN=$(echo "\033[4;92m")
-  GN=$(echo "\033[1;92m")
-  DGN=$(echo "\033[32m")
-  CL=$(echo "\033[m")
+    YW=$(echo "\033[33m")
+    YWB=$'\e[93m'
+    BL=$(echo "\033[36m")
+    RD=$(echo "\033[01;31m")
+    BGN=$(echo "\033[4;92m")
+    GN=$(echo "\033[1;92m")
+    DGN=$(echo "\033[32m")
+    CL=$(echo "\033[m")
 }
 
 # ------------------------------------------------------------------------------
@@ -67,9 +67,9 @@ color() {
 # - Used by spinner() function to avoid color conflicts
 # ------------------------------------------------------------------------------
 color_spinner() {
-  CS_YW=$'\033[33m'
-  CS_YWB=$'\033[93m'
-  CS_CL=$'\033[m'
+    CS_YW=$'\033[33m'
+    CS_YWB=$'\033[93m'
+    CS_CL=$'\033[m'
 }
 
 # ------------------------------------------------------------------------------
@@ -81,11 +81,11 @@ color_spinner() {
 # - TAB/TAB3: Indentation spacing
 # ------------------------------------------------------------------------------
 formatting() {
-  BFR="\\r\\033[K"
-  BOLD=$(echo "\033[1m")
-  HOLD=" "
-  TAB="  "
-  TAB3="      "
+    BFR="\\r\\033[K"
+    BOLD=$(echo "\033[1m")
+    HOLD=" "
+    TAB="  "
+    TAB3="      "
 }
 
 # ------------------------------------------------------------------------------
@@ -96,34 +96,34 @@ formatting() {
 # - Icons: CM (checkmark), CROSS (error), INFO (info), HOURGLASS (wait), etc.
 # ------------------------------------------------------------------------------
 icons() {
-  CM="${TAB}✔️${TAB}"
-  CROSS="${TAB}✖️${TAB}"
-  DNSOK="✔️ "
-  DNSFAIL="${TAB}✖️${TAB}"
-  INFO="${TAB}💡${TAB}${CL}"
-  OS="${TAB}🖥️${TAB}${CL}"
-  OSVERSION="${TAB}🌟${TAB}${CL}"
-  CONTAINERTYPE="${TAB}📦${TAB}${CL}"
-  DISKSIZE="${TAB}💾${TAB}${CL}"
-  CPUCORE="${TAB}🧠${TAB}${CL}"
-  RAMSIZE="${TAB}🛠️${TAB}${CL}"
-  SEARCH="${TAB}🔍${TAB}${CL}"
-  VERBOSE_CROPPED="🔍${TAB}"
-  VERIFYPW="${TAB}🔐${TAB}${CL}"
-  CONTAINERID="${TAB}🆔${TAB}${CL}"
-  HOSTNAME="${TAB}🏠${TAB}${CL}"
-  BRIDGE="${TAB}🌉${TAB}${CL}"
-  NETWORK="${TAB}📡${TAB}${CL}"
-  GATEWAY="${TAB}🌐${TAB}${CL}"
-  ICON_DISABLEIPV6="${TAB}🚫${TAB}${CL}"
-  DEFAULT="${TAB}⚙️${TAB}${CL}"
-  MACADDRESS="${TAB}🔗${TAB}${CL}"
-  VLANTAG="${TAB}🏷️${TAB}${CL}"
-  ROOTSSH="${TAB}🔑${TAB}${CL}"
-  CREATING="${TAB}🚀${TAB}${CL}"
-  ADVANCED="${TAB}🧩${TAB}${CL}"
-  FUSE="${TAB}🗂️${TAB}${CL}"
-  HOURGLASS="${TAB}⏳${TAB}"
+    CM="${TAB}✔️${TAB}"
+    CROSS="${TAB}✖️${TAB}"
+    DNSOK="✔️ "
+    DNSFAIL="${TAB}✖️${TAB}"
+    INFO="${TAB}💡${TAB}${CL}"
+    OS="${TAB}🖥️${TAB}${CL}"
+    OSVERSION="${TAB}🌟${TAB}${CL}"
+    CONTAINERTYPE="${TAB}📦${TAB}${CL}"
+    DISKSIZE="${TAB}💾${TAB}${CL}"
+    CPUCORE="${TAB}🧠${TAB}${CL}"
+    RAMSIZE="${TAB}🛠️${TAB}${CL}"
+    SEARCH="${TAB}🔍${TAB}${CL}"
+    VERBOSE_CROPPED="🔍${TAB}"
+    VERIFYPW="${TAB}🔐${TAB}${CL}"
+    CONTAINERID="${TAB}🆔${TAB}${CL}"
+    HOSTNAME="${TAB}🏠${TAB}${CL}"
+    BRIDGE="${TAB}🌉${TAB}${CL}"
+    NETWORK="${TAB}📡${TAB}${CL}"
+    GATEWAY="${TAB}🌐${TAB}${CL}"
+    ICON_DISABLEIPV6="${TAB}🚫${TAB}${CL}"
+    DEFAULT="${TAB}⚙️${TAB}${CL}"
+    MACADDRESS="${TAB}🔗${TAB}${CL}"
+    VLANTAG="${TAB}🏷️${TAB}${CL}"
+    ROOTSSH="${TAB}🔑${TAB}${CL}"
+    CREATING="${TAB}🚀${TAB}${CL}"
+    ADVANCED="${TAB}🧩${TAB}${CL}"
+    FUSE="${TAB}🗂️${TAB}${CL}"
+    HOURGLASS="${TAB}⏳${TAB}"
 }
 
 # ------------------------------------------------------------------------------
@@ -135,9 +135,9 @@ icons() {
 # - i: Counter variable initialized to RETRY_NUM
 # ------------------------------------------------------------------------------
 default_vars() {
-  RETRY_NUM=10
-  RETRY_EVERY=3
-  i=$RETRY_NUM
+    RETRY_NUM=10
+    RETRY_EVERY=3
+    i=$RETRY_NUM
 }
 
 # ------------------------------------------------------------------------------
@@ -149,17 +149,17 @@ default_vars() {
 # - If DEV_MODE_TRACE=true: Enables bash tracing (set -x)
 # ------------------------------------------------------------------------------
 set_std_mode() {
-  if [ "${VERBOSE:-no}" = "yes" ]; then
-    STD=""
-  else
-    STD="silent"
-  fi
+    if [ "${VERBOSE:-no}" = "yes" ]; then
+        STD=""
+    else
+        STD="silent"
+    fi
 
-  # Enable bash tracing if trace mode active
-  if [[ "${DEV_MODE_TRACE:-false}" == "true" ]]; then
-    set -x
-    export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
-  fi
+    # Enable bash tracing if trace mode active
+    if [[ "${DEV_MODE_TRACE:-false}" == "true" ]]; then
+        set -x
+        export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -177,57 +177,57 @@ set_std_mode() {
 # - Call this early in script execution
 # ------------------------------------------------------------------------------
 parse_dev_mode() {
-  local mode
-  # Initialize all flags to false
-  export DEV_MODE_MOTD=false
-  export DEV_MODE_KEEP=false
-  export DEV_MODE_TRACE=false
-  export DEV_MODE_PAUSE=false
-  export DEV_MODE_BREAKPOINT=false
-  export DEV_MODE_LOGS=false
-  export DEV_MODE_DRYRUN=false
+    local mode
+    # Initialize all flags to false
+    export DEV_MODE_MOTD=false
+    export DEV_MODE_KEEP=false
+    export DEV_MODE_TRACE=false
+    export DEV_MODE_PAUSE=false
+    export DEV_MODE_BREAKPOINT=false
+    export DEV_MODE_LOGS=false
+    export DEV_MODE_DRYRUN=false
 
-  # Parse comma-separated modes
-  if [[ -n "${dev_mode:-}" ]]; then
-    IFS=',' read -ra MODES <<<"$dev_mode"
-    for mode in "${MODES[@]}"; do
-      mode="$(echo "$mode" | xargs)" # Trim whitespace
-      case "$mode" in
-      motd) export DEV_MODE_MOTD=true ;;
-      keep) export DEV_MODE_KEEP=true ;;
-      trace) export DEV_MODE_TRACE=true ;;
-      pause) export DEV_MODE_PAUSE=true ;;
-      breakpoint) export DEV_MODE_BREAKPOINT=true ;;
-      logs) export DEV_MODE_LOGS=true ;;
-      dryrun) export DEV_MODE_DRYRUN=true ;;
-      *)
-        if declare -f msg_warn >/dev/null 2>&1; then
-          msg_warn "Unknown dev_mode: '$mode' (ignored)"
-        else
-          echo "[WARN] Unknown dev_mode: '$mode' (ignored)" >&2
+    # Parse comma-separated modes
+    if [[ -n "${dev_mode:-}" ]]; then
+        IFS=',' read -ra MODES <<<"$dev_mode"
+        for mode in "${MODES[@]}"; do
+            mode="$(echo "$mode" | xargs)" # Trim whitespace
+            case "$mode" in
+            motd) export DEV_MODE_MOTD=true ;;
+            keep) export DEV_MODE_KEEP=true ;;
+            trace) export DEV_MODE_TRACE=true ;;
+            pause) export DEV_MODE_PAUSE=true ;;
+            breakpoint) export DEV_MODE_BREAKPOINT=true ;;
+            logs) export DEV_MODE_LOGS=true ;;
+            dryrun) export DEV_MODE_DRYRUN=true ;;
+            *)
+                if declare -f msg_warn >/dev/null 2>&1; then
+                    msg_warn "Unknown dev_mode: '$mode' (ignored)"
+                else
+                    echo "[WARN] Unknown dev_mode: '$mode' (ignored)" >&2
+                fi
+                ;;
+            esac
+        done
+
+        # Show active dev modes
+        local active_modes=()
+        [[ $DEV_MODE_MOTD == true ]] && active_modes+=("motd")
+        [[ $DEV_MODE_KEEP == true ]] && active_modes+=("keep")
+        [[ $DEV_MODE_TRACE == true ]] && active_modes+=("trace")
+        [[ $DEV_MODE_PAUSE == true ]] && active_modes+=("pause")
+        [[ $DEV_MODE_BREAKPOINT == true ]] && active_modes+=("breakpoint")
+        [[ $DEV_MODE_LOGS == true ]] && active_modes+=("logs")
+        [[ $DEV_MODE_DRYRUN == true ]] && active_modes+=("dryrun")
+
+        if [[ ${#active_modes[@]} -gt 0 ]]; then
+            if declare -f msg_custom >/dev/null 2>&1; then
+                msg_custom "🔧" "${YWB}" "Dev modes active: ${active_modes[*]}"
+            else
+                echo "[DEV] Active modes: ${active_modes[*]}" >&2
+            fi
         fi
-        ;;
-      esac
-    done
-
-    # Show active dev modes
-    local active_modes=()
-    [[ $DEV_MODE_MOTD == true ]] && active_modes+=("motd")
-    [[ $DEV_MODE_KEEP == true ]] && active_modes+=("keep")
-    [[ $DEV_MODE_TRACE == true ]] && active_modes+=("trace")
-    [[ $DEV_MODE_PAUSE == true ]] && active_modes+=("pause")
-    [[ $DEV_MODE_BREAKPOINT == true ]] && active_modes+=("breakpoint")
-    [[ $DEV_MODE_LOGS == true ]] && active_modes+=("logs")
-    [[ $DEV_MODE_DRYRUN == true ]] && active_modes+=("dryrun")
-
-    if [[ ${#active_modes[@]} -gt 0 ]]; then
-      if declare -f msg_custom >/dev/null 2>&1; then
-        msg_custom "🔧" "${YWB}" "Dev modes active: ${active_modes[*]}"
-      else
-        echo "[DEV] Active modes: ${active_modes[*]}" >&2
-      fi
     fi
-  fi
 }
 
 # ==============================================================================
@@ -242,13 +242,13 @@ parse_dev_mode() {
 # - Required because scripts use Bash-specific features
 # ------------------------------------------------------------------------------
 shell_check() {
-  if [[ "$(ps -p $$ -o comm=)" != "bash" ]]; then
-    clear
-    msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
-    echo -e "\nExiting..."
-    sleep 2
-    exit
-  fi
+    if [[ "$(ps -p $$ -o comm=)" != "bash" ]]; then
+        clear
+        msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
+        echo -e "\nExiting..."
+        sleep 2
+        exit
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -259,13 +259,13 @@ shell_check() {
 # - Exits with error if not running as root directly
 # ------------------------------------------------------------------------------
 root_check() {
-  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
-    clear
-    msg_error "Please run this script as root."
-    echo -e "\nExiting..."
-    sleep 2
-    exit
-  fi
+    if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
+        clear
+        msg_error "Please run this script as root."
+        echo -e "\nExiting..."
+        sleep 2
+        exit
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -276,35 +276,35 @@ root_check() {
 # - Exits with error message if unsupported version detected
 # ------------------------------------------------------------------------------
 pve_check() {
-  local PVE_VER
-  PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
+    local PVE_VER
+    PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
 
-  # Check for Proxmox VE 8.x: allow 8.0–8.9
-  if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
-    local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR < 0 || MINOR > 9)); then
-      msg_error "This version of Proxmox VE is not supported."
-      msg_error "Supported: Proxmox VE version 8.0 – 8.9"
-      exit 1
+    # Check for Proxmox VE 8.x: allow 8.0–8.9
+    if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
+        local MINOR="${BASH_REMATCH[1]}"
+        if ((MINOR < 0 || MINOR > 9)); then
+            msg_error "This version of Proxmox VE is not supported."
+            msg_error "Supported: Proxmox VE version 8.0 – 8.9"
+            exit 1
+        fi
+        return 0
     fi
-    return 0
-  fi
 
-  # Check for Proxmox VE 9.x: allow 9.0–9.1
-  if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
-    local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR < 0 || MINOR > 1)); then
-      msg_error "This version of Proxmox VE is not yet supported."
-      msg_error "Supported: Proxmox VE version 9.0 – 9.1"
-      exit 1
+    # Check for Proxmox VE 9.x: allow 9.0–9.1
+    if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
+        local MINOR="${BASH_REMATCH[1]}"
+        if ((MINOR < 0 || MINOR > 1)); then
+            msg_error "This version of Proxmox VE is not yet supported."
+            msg_error "Supported: Proxmox VE version 9.0 – 9.1"
+            exit 1
+        fi
+        return 0
     fi
-    return 0
-  fi
 
-  # All other unsupported versions
-  msg_error "This version of Proxmox VE is not supported."
-  msg_error "Supported versions: Proxmox VE 8.0 – 8.9 or 9.0 – 9.1"
-  exit 1
+    # All other unsupported versions
+    msg_error "This version of Proxmox VE is not supported."
+    msg_error "Supported versions: Proxmox VE 8.0 – 8.9 or 9.0 – 9.1"
+    exit 1
 }
 
 # ------------------------------------------------------------------------------
@@ -315,13 +315,13 @@ pve_check() {
 # - Provides link to ARM64-compatible scripts
 # ------------------------------------------------------------------------------
 arch_check() {
-  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
-    echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
-    echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
-    echo -e "Exiting..."
-    sleep 2
-    exit
-  fi
+    if [ "$(dpkg --print-architecture)" != "amd64" ]; then
+        echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
+        echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
+        echo -e "Exiting..."
+        sleep 2
+        exit
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -333,29 +333,29 @@ arch_check() {
 # - Does not abort execution, only warns
 # ------------------------------------------------------------------------------
 ssh_check() {
-  if [ -n "$SSH_CLIENT" ]; then
-    local client_ip=$(awk '{print $1}' <<<"$SSH_CLIENT")
-    local host_ip=$(hostname -I | awk '{print $1}')
+    if [ -n "$SSH_CLIENT" ]; then
+        local client_ip=$(awk '{print $1}' <<<"$SSH_CLIENT")
+        local host_ip=$(hostname -I | awk '{print $1}')
 
-    # Check if connection is local (Proxmox WebUI or same machine)
-    # - localhost (127.0.0.1, ::1)
-    # - same IP as host
-    # - local network range (10.x, 172.16-31.x, 192.168.x)
-    if [[ "$client_ip" == "127.0.0.1" || "$client_ip" == "::1" || "$client_ip" == "$host_ip" ]]; then
-      return
+        # Check if connection is local (Proxmox WebUI or same machine)
+        # - localhost (127.0.0.1, ::1)
+        # - same IP as host
+        # - local network range (10.x, 172.16-31.x, 192.168.x)
+        if [[ "$client_ip" == "127.0.0.1" || "$client_ip" == "::1" || "$client_ip" == "$host_ip" ]]; then
+            return
+        fi
+
+        # Check if client is in same local network (optional, safer approach)
+        local host_subnet=$(echo "$host_ip" | cut -d. -f1-3)
+        local client_subnet=$(echo "$client_ip" | cut -d. -f1-3)
+        if [[ "$host_subnet" == "$client_subnet" ]]; then
+            return
+        fi
+
+        # Only warn for truly external connections
+        msg_warn "Running via external SSH (client: $client_ip)."
+        msg_warn "For better stability, consider using the Proxmox Shell (Console) instead."
     fi
-
-    # Check if client is in same local network (optional, safer approach)
-    local host_subnet=$(echo "$host_ip" | cut -d. -f1-3)
-    local client_subnet=$(echo "$client_ip" | cut -d. -f1-3)
-    if [[ "$host_subnet" == "$client_subnet" ]]; then
-      return
-    fi
-
-    # Only warn for truly external connections
-    msg_warn "Running via external SSH (client: $client_ip)."
-    msg_warn "For better stability, consider using the Proxmox Shell (Console) instead."
-  fi
 }
 
 # ==============================================================================
@@ -371,14 +371,14 @@ ssh_check() {
 # - Fallback to BUILD_LOG if neither is set
 # ------------------------------------------------------------------------------
 get_active_logfile() {
-  if [[ -n "${INSTALL_LOG:-}" ]]; then
-    echo "$INSTALL_LOG"
-  elif [[ -n "${BUILD_LOG:-}" ]]; then
-    echo "$BUILD_LOG"
-  else
-    # Fallback for legacy scripts
-    echo "/tmp/build-$(date +%Y%m%d_%H%M%S).log"
-  fi
+    if [[ -n "${INSTALL_LOG:-}" ]]; then
+        echo "$INSTALL_LOG"
+    elif [[ -n "${BUILD_LOG:-}" ]]; then
+        echo "$BUILD_LOG"
+    else
+        # Fallback for legacy scripts
+        echo "/tmp/build-$(date +%Y%m%d_%H%M%S).log"
+    fi
 }
 
 # Legacy compatibility: SILENT_LOGFILE points to active log
@@ -393,56 +393,56 @@ SILENT_LOGFILE="$(get_active_logfile)"
 # - Sources explain_exit_code() for detailed error messages
 # ------------------------------------------------------------------------------
 silent() {
-  local cmd="$*"
-  local caller_line="${BASH_LINENO[0]:-unknown}"
-  local logfile="$(get_active_logfile)"
+    local cmd="$*"
+    local caller_line="${BASH_LINENO[0]:-unknown}"
+    local logfile="$(get_active_logfile)"
 
-  # Dryrun mode: Show command without executing
-  if [[ "${DEV_MODE_DRYRUN:-false}" == "true" ]]; then
-    if declare -f msg_custom >/dev/null 2>&1; then
-      msg_custom "🔍" "${BL}" "[DRYRUN] $cmd"
-    else
-      echo "[DRYRUN] $cmd" >&2
-    fi
-    return 0
-  fi
-
-  set +Eeuo pipefail
-  trap - ERR
-
-  "$@" >>"$logfile" 2>&1
-  local rc=$?
-
-  set -Eeuo pipefail
-  trap 'error_handler' ERR
-
-  if [[ $rc -ne 0 ]]; then
-    # Source explain_exit_code if needed
-    if ! declare -f explain_exit_code >/dev/null 2>&1; then
-      source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+    # Dryrun mode: Show command without executing
+    if [[ "${DEV_MODE_DRYRUN:-false}" == "true" ]]; then
+        if declare -f msg_custom >/dev/null 2>&1; then
+            msg_custom "🔍" "${BL}" "[DRYRUN] $cmd"
+        else
+            echo "[DRYRUN] $cmd" >&2
+        fi
+        return 0
     fi
 
-    local explanation
-    explanation="$(explain_exit_code "$rc")"
+    set +Eeuo pipefail
+    trap - ERR
 
-    printf "\e[?25h"
-    msg_error "in line ${caller_line}: exit code ${rc} (${explanation})"
-    msg_custom "→" "${YWB}" "${cmd}"
+    "$@" >>"$logfile" 2>&1
+    local rc=$?
 
-    if [[ -s "$logfile" ]]; then
-      local log_lines=$(wc -l <"$logfile")
-      echo "--- Last 10 lines of silent log ---"
-      tail -n 10 "$logfile"
-      echo "-----------------------------------"
+    set -Eeuo pipefail
+    trap 'error_handler' ERR
 
-      # Show how to view full log if there are more lines
-      if [[ $log_lines -gt 10 ]]; then
-        msg_custom "📋" "${YW}" "View full log (${log_lines} lines): ${logfile}"
-      fi
+    if [[ $rc -ne 0 ]]; then
+        # Source explain_exit_code if needed
+        if ! declare -f explain_exit_code >/dev/null 2>&1; then
+            source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
+        fi
+
+        local explanation
+        explanation="$(explain_exit_code "$rc")"
+
+        printf "\e[?25h"
+        msg_error "in line ${caller_line}: exit code ${rc} (${explanation})"
+        msg_custom "→" "${YWB}" "${cmd}"
+
+        if [[ -s "$logfile" ]]; then
+            local log_lines=$(wc -l <"$logfile")
+            echo "--- Last 10 lines of silent log ---"
+            tail -n 10 "$logfile"
+            echo "-----------------------------------"
+
+            # Show how to view full log if there are more lines
+            if [[ $log_lines -gt 10 ]]; then
+                msg_custom "📋" "${YW}" "View full log (${log_lines} lines): ${logfile}"
+            fi
+        fi
+
+        exit "$rc"
     fi
-
-    exit "$rc"
-  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -454,14 +454,14 @@ silent() {
 # - Uses color_spinner() colors for output
 # ------------------------------------------------------------------------------
 spinner() {
-  local chars=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
-  local msg="${SPINNER_MSG:-Processing...}"
-  local i=0
-  while true; do
-    local index=$((i++ % ${#chars[@]}))
-    printf "\r\033[2K%s %b" "${CS_YWB}${chars[$index]}${CS_CL}" "${CS_YWB}${msg}${CS_CL}"
-    sleep 0.1
-  done
+    local chars=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+    local msg="${SPINNER_MSG:-Processing...}"
+    local i=0
+    while true; do
+        local index=$((i++ % ${#chars[@]}))
+        printf "\r\033[2K%s %b" "${CS_YWB}${chars[$index]}${CS_CL}" "${CS_YWB}${msg}${CS_CL}"
+        sleep 0.1
+    done
 }
 
 # ------------------------------------------------------------------------------
@@ -473,8 +473,8 @@ spinner() {
 # - Fallback to ANSI codes if tput not available
 # ------------------------------------------------------------------------------
 clear_line() {
-  tput cr 2>/dev/null || echo -en "\r"
-  tput el 2>/dev/null || echo -en "\033[K"
+    tput cr 2>/dev/null || echo -en "\r"
+    tput el 2>/dev/null || echo -en "\033[K"
 }
 
 # ------------------------------------------------------------------------------
@@ -487,20 +487,20 @@ clear_line() {
 # - Unsets SPINNER_PID and SPINNER_MSG variables
 # ------------------------------------------------------------------------------
 stop_spinner() {
-  local pid="${SPINNER_PID:-}"
-  [[ -z "$pid" && -f /tmp/.spinner.pid ]] && pid=$(</tmp/.spinner.pid)
+    local pid="${SPINNER_PID:-}"
+    [[ -z "$pid" && -f /tmp/.spinner.pid ]] && pid=$(</tmp/.spinner.pid)
 
-  if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
-    if kill "$pid" 2>/dev/null; then
-      sleep 0.05
-      kill -9 "$pid" 2>/dev/null || true
-      wait "$pid" 2>/dev/null || true
+    if [[ -n "$pid" && "$pid" =~ ^[0-9]+$ ]]; then
+        if kill "$pid" 2>/dev/null; then
+            sleep 0.05
+            kill -9 "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+        fi
+        rm -f /tmp/.spinner.pid
     fi
-    rm -f /tmp/.spinner.pid
-  fi
 
-  unset SPINNER_PID SPINNER_MSG
-  stty sane 2>/dev/null || true
+    unset SPINNER_PID SPINNER_MSG
+    stty sane 2>/dev/null || true
 }
 
 # ==============================================================================
@@ -517,42 +517,45 @@ stop_spinner() {
 # - Backgrounds spinner process and stores PID for later cleanup
 # ------------------------------------------------------------------------------
 msg_info() {
-  local msg="$1"
-  [[ -z "$msg" ]] && return
+    local msg="$1"
+    [[ -z "$msg" ]] && return
 
-  if ! declare -p MSG_INFO_SHOWN &>/dev/null || ! declare -A MSG_INFO_SHOWN &>/dev/null; then
-    declare -gA MSG_INFO_SHOWN=()
-  fi
-  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$msg"]=1
-
-  stop_spinner
-  SPINNER_MSG="$msg"
-
-  if is_verbose_mode || is_alpine; then
-    local HOURGLASS="${TAB}⏳${TAB}"
-    printf "\r\e[2K%s %b" "$HOURGLASS" "${YW}${msg}${CL}" >&2
-
-    # Pause mode: Wait for Enter after each step
-    if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
-      echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
-      read -r
+    if ! declare -p MSG_INFO_SHOWN &>/dev/null || ! declare -A MSG_INFO_SHOWN &>/dev/null; then
+        declare -gA MSG_INFO_SHOWN=()
     fi
-    return
-  fi
+    # Sanitize message for use as associative array key (remove ANSI codes)
+    local sanitized_msg
+    sanitized_msg=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g')
+    [[ -n "${MSG_INFO_SHOWN["$sanitized_msg"]+x}" ]] && return
+    MSG_INFO_SHOWN["$sanitized_msg"]=1
 
-  color_spinner
-  spinner &
-  SPINNER_PID=$!
-  echo "$SPINNER_PID" >/tmp/.spinner.pid
-  disown "$SPINNER_PID" 2>/dev/null || true
-
-  # Pause mode: Stop spinner and wait
-  if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
     stop_spinner
-    echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
-    read -r
-  fi
+    SPINNER_MSG="$msg"
+
+    if is_verbose_mode || is_alpine; then
+        local HOURGLASS="${TAB}⏳${TAB}"
+        printf "\r\e[2K%s %b" "$HOURGLASS" "${YW}${msg}${CL}" >&2
+
+        # Pause mode: Wait for Enter after each step
+        if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
+            echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
+            read -r
+        fi
+        return
+    fi
+
+    color_spinner
+    spinner &
+    SPINNER_PID=$!
+    echo "$SPINNER_PID" >/tmp/.spinner.pid
+    disown "$SPINNER_PID" 2>/dev/null || true
+
+    # Pause mode: Stop spinner and wait
+    if [[ "${DEV_MODE_PAUSE:-false}" == "true" ]]; then
+        stop_spinner
+        echo -en "\n${YWB}[PAUSE]${CL} Press Enter to continue..." >&2
+        read -r
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -564,12 +567,15 @@ msg_info() {
 # - Uses green color for success indication
 # ------------------------------------------------------------------------------
 msg_ok() {
-  local msg="$1"
-  [[ -z "$msg" ]] && return
-  stop_spinner
-  clear_line
-  echo -e "$CM ${GN}${msg}${CL}"
-  unset MSG_INFO_SHOWN["$msg"]
+    local msg="$1"
+    [[ -z "$msg" ]] && return
+    stop_spinner
+    clear_line
+    echo -e "$CM ${GN}${msg}${CL}"
+    # Sanitize message for use as associative array key (remove ANSI codes)
+    local sanitized_msg
+    sanitized_msg=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g')
+    unset MSG_INFO_SHOWN["$sanitized_msg"]
 }
 
 # ------------------------------------------------------------------------------
@@ -581,9 +587,9 @@ msg_ok() {
 # - Outputs to stderr
 # ------------------------------------------------------------------------------
 msg_error() {
-  stop_spinner
-  local msg="$1"
-  echo -e "${BFR:-}${CROSS:-✖️} ${RD}${msg}${CL}" >&2
+    stop_spinner
+    local msg="$1"
+    echo -e "${BFR:-}${CROSS:-✖️} ${RD}${msg}${CL}" >&2
 }
 
 # ------------------------------------------------------------------------------
@@ -595,9 +601,9 @@ msg_error() {
 # - Outputs to stderr
 # ------------------------------------------------------------------------------
 msg_warn() {
-  stop_spinner
-  local msg="$1"
-  echo -e "${BFR:-}${INFO:-ℹ️} ${YWB}${msg}${CL}" >&2
+    stop_spinner
+    local msg="$1"
+    echo -e "${BFR:-}${INFO:-ℹ️} ${YWB}${msg}${CL}" >&2
 }
 
 # ------------------------------------------------------------------------------
@@ -609,12 +615,12 @@ msg_warn() {
 # - Useful for specialized status messages
 # ------------------------------------------------------------------------------
 msg_custom() {
-  local symbol="${1:-"[*]"}"
-  local color="${2:-"\e[36m"}"
-  local msg="${3:-}"
-  [[ -z "$msg" ]] && return
-  stop_spinner
-  echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
+    local symbol="${1:-"[*]"}"
+    local color="${2:-"\e[36m"}"
+    local msg="${3:-}"
+    [[ -z "$msg" ]] && return
+    stop_spinner
+    echo -e "${BFR:-} ${symbol} ${color}${msg}${CL:-\e[0m}"
 }
 
 # ------------------------------------------------------------------------------
@@ -626,10 +632,10 @@ msg_custom() {
 # - Uses bright yellow color for debug output
 # ------------------------------------------------------------------------------
 msg_debug() {
-  if [[ "${var_full_verbose:-0}" == "1" ]]; then
-    [[ "${var_verbose:-0}" != "1" ]] && var_verbose=1
-    echo -e "${YWB}[$(date '+%F %T')] [DEBUG]${CL} $*"
-  fi
+    if [[ "${var_full_verbose:-0}" == "1" ]]; then
+        [[ "${var_verbose:-0}" != "1" ]] && var_verbose=1
+        echo -e "${YWB}[$(date '+%F %T')] [DEBUG]${CL} $*"
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -642,9 +648,9 @@ msg_debug() {
 # - Usage: msg_dev "Container ready for debugging"
 # ------------------------------------------------------------------------------
 msg_dev() {
-  if [[ -n "${dev_mode:-}" ]]; then
-    echo -e "${SEARCH}${BOLD}${DGN}🔧 [DEV]${CL} $*"
-  fi
+    if [[ -n "${dev_mode:-}" ]]; then
+        echo -e "${SEARCH}${BOLD}${DGN}🔧 [DEV]${CL} $*"
+    fi
 }
 #
 # - Displays error message and immediately terminates script
@@ -652,8 +658,8 @@ msg_dev() {
 # - Use for unrecoverable errors that require immediate exit
 # ------------------------------------------------------------------------------
 fatal() {
-  msg_error "$1"
-  kill -INT $$
+    msg_error "$1"
+    kill -INT $$
 }
 
 # ==============================================================================
@@ -668,9 +674,9 @@ fatal() {
 # - Exits with default exit code
 # ------------------------------------------------------------------------------
 exit_script() {
-  clear
-  echo -e "\n${CROSS}${RD}User exited script${CL}\n"
-  exit
+    clear
+    echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+    exit
 }
 
 # ------------------------------------------------------------------------------
@@ -682,20 +688,20 @@ exit_script() {
 # - Returns header content or empty string on failure
 # ------------------------------------------------------------------------------
 get_header() {
-  local app_name=$(echo "${APP,,}" | tr -d ' ')
-  local app_type=${APP_TYPE:-ct} # Default zu 'ct' falls nicht gesetzt
-  local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
-  local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
+    local app_name=$(echo "${APP,,}" | tr -d ' ')
+    local app_type=${APP_TYPE:-ct} # Default zu 'ct' falls nicht gesetzt
+    local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
+    local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
 
-  mkdir -p "$(dirname "$local_header_path")"
+    mkdir -p "$(dirname "$local_header_path")"
 
-  if [ ! -s "$local_header_path" ]; then
-    if ! curl -fsSL "$header_url" -o "$local_header_path"; then
-      return 1
+    if [ ! -s "$local_header_path" ]; then
+        if ! curl -fsSL "$header_url" -o "$local_header_path"; then
+            return 1
+        fi
     fi
-  fi
 
-  cat "$local_header_path" 2>/dev/null || true
+    cat "$local_header_path" 2>/dev/null || true
 }
 
 # ------------------------------------------------------------------------------
@@ -707,18 +713,18 @@ get_header() {
 # - Returns silently if header not available
 # ------------------------------------------------------------------------------
 header_info() {
-  local app_name=$(echo "${APP,,}" | tr -d ' ')
-  local header_content
+    local app_name=$(echo "${APP,,}" | tr -d ' ')
+    local header_content
 
-  header_content=$(get_header "$app_name") || header_content=""
+    header_content=$(get_header "$app_name") || header_content=""
 
-  clear
-  local term_width
-  term_width=$(tput cols 2>/dev/null || echo 120)
+    clear
+    local term_width
+    term_width=$(tput cols 2>/dev/null || echo 120)
 
-  if [ -n "$header_content" ]; then
-    echo "$header_content"
-  fi
+    if [ -n "$header_content" ]; then
+        echo "$header_content"
+    fi
 }
 
 # ------------------------------------------------------------------------------
@@ -729,14 +735,14 @@ header_info() {
 # - Required for clear_line() and terminal width detection
 # ------------------------------------------------------------------------------
 ensure_tput() {
-  if ! command -v tput >/dev/null 2>&1; then
-    if grep -qi 'alpine' /etc/os-release; then
-      apk add --no-cache ncurses >/dev/null 2>&1
-    elif command -v apt-get >/dev/null 2>&1; then
-      apt-get update -qq >/dev/null
-      apt-get install -y -qq ncurses-bin >/dev/null 2>&1
+    if ! command -v tput >/dev/null 2>&1; then
+        if grep -qi 'alpine' /etc/os-release; then
+            apk add --no-cache ncurses >/dev/null 2>&1
+        elif command -v apt-get >/dev/null 2>&1; then
+            apt-get update -qq >/dev/null
+            apt-get install -y -qq ncurses-bin >/dev/null 2>&1
+        fi
     fi
-  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -748,16 +754,16 @@ ensure_tput() {
 # - Used to adjust behavior for Alpine-specific commands
 # ------------------------------------------------------------------------------
 is_alpine() {
-  local os_id="${var_os:-${PCT_OSTYPE:-}}"
+    local os_id="${var_os:-${PCT_OSTYPE:-}}"
 
-  if [[ -z "$os_id" && -f /etc/os-release ]]; then
-    os_id="$(
-      . /etc/os-release 2>/dev/null
-      echo "${ID:-}"
-    )"
-  fi
+    if [[ -z "$os_id" && -f /etc/os-release ]]; then
+        os_id="$(
+            . /etc/os-release 2>/dev/null
+            echo "${ID:-}"
+        )"
+    fi
 
-  [[ "$os_id" == "alpine" ]]
+    [[ "$os_id" == "alpine" ]]
 }
 
 # ------------------------------------------------------------------------------
@@ -769,14 +775,14 @@ is_alpine() {
 # - Used by msg_info() to decide between spinner and static output
 # ------------------------------------------------------------------------------
 is_verbose_mode() {
-  local verbose="${VERBOSE:-${var_verbose:-no}}"
-  local tty_status
-  if [[ -t 2 ]]; then
-    tty_status="interactive"
-  else
-    tty_status="not-a-tty"
-  fi
-  [[ "$verbose" != "no" || ! -t 2 ]]
+    local verbose="${VERBOSE:-${var_verbose:-no}}"
+    local tty_status
+    if [[ -t 2 ]]; then
+        tty_status="interactive"
+    else
+        tty_status="not-a-tty"
+    fi
+    [[ "$verbose" != "no" || ! -t 2 ]]
 }
 
 # ==============================================================================
@@ -794,62 +800,62 @@ is_verbose_mode() {
 # - Run at end of container creation to minimize disk usage
 # ------------------------------------------------------------------------------
 cleanup_lxc() {
-  msg_info "Cleaning up"
-  # OS-specific package manager cleanup
-  if is_alpine; then
-    $STD apk cache clean 2>/dev/null || true
-    rm -rf /var/cache/apk/*
-  elif command -v apt &>/dev/null; then
-    # Debian/Ubuntu/Devuan
-    $STD apt -y autoremove 2>/dev/null || true
-    $STD apt -y autoclean 2>/dev/null || true
-    $STD apt -y clean 2>/dev/null || true
-  elif command -v dnf &>/dev/null; then
-    # Fedora/Rocky/AlmaLinux/CentOS 8+
-    $STD dnf clean all 2>/dev/null || true
-    $STD dnf autoremove -y 2>/dev/null || true
-  elif command -v yum &>/dev/null; then
-    # CentOS 7/older RHEL
-    $STD yum clean all 2>/dev/null || true
-  elif command -v zypper &>/dev/null; then
-    # openSUSE
-    $STD zypper clean --all 2>/dev/null || true
-  elif command -v emerge &>/dev/null; then
-    # Gentoo
-    $STD emerge --quiet --depclean 2>/dev/null || true
-    $STD eclean-dist -d 2>/dev/null || true
-    $STD eclean-pkg -d 2>/dev/null || true
-  fi
+    msg_info "Cleaning up"
+    # OS-specific package manager cleanup
+    if is_alpine; then
+        $STD apk cache clean 2>/dev/null || true
+        rm -rf /var/cache/apk/*
+    elif command -v apt &>/dev/null; then
+        # Debian/Ubuntu/Devuan
+        $STD apt -y autoremove 2>/dev/null || true
+        $STD apt -y autoclean 2>/dev/null || true
+        $STD apt -y clean 2>/dev/null || true
+    elif command -v dnf &>/dev/null; then
+        # Fedora/Rocky/AlmaLinux/CentOS 8+
+        $STD dnf clean all 2>/dev/null || true
+        $STD dnf autoremove -y 2>/dev/null || true
+    elif command -v yum &>/dev/null; then
+        # CentOS 7/older RHEL
+        $STD yum clean all 2>/dev/null || true
+    elif command -v zypper &>/dev/null; then
+        # openSUSE
+        $STD zypper clean --all 2>/dev/null || true
+    elif command -v emerge &>/dev/null; then
+        # Gentoo
+        $STD emerge --quiet --depclean 2>/dev/null || true
+        $STD eclean-dist -d 2>/dev/null || true
+        $STD eclean-pkg -d 2>/dev/null || true
+    fi
 
-  # Clear temp artifacts (keep sockets/FIFOs; ignore errors)
-  find /tmp /var/tmp -type f -name 'tmp*' -delete 2>/dev/null || true
-  find /tmp /var/tmp -type f -name 'tempfile*' -delete 2>/dev/null || true
+    # Clear temp artifacts (keep sockets/FIFOs; ignore errors)
+    find /tmp /var/tmp -type f -name 'tmp*' -delete 2>/dev/null || true
+    find /tmp /var/tmp -type f -name 'tempfile*' -delete 2>/dev/null || true
 
-  # Truncate writable log files silently (permission errors ignored)
-  if command -v truncate >/dev/null 2>&1; then
-    find /var/log -type f -writable -print0 2>/dev/null |
-      xargs -0 -n1 truncate -s 0 2>/dev/null || true
-  fi
+    # Truncate writable log files silently (permission errors ignored)
+    if command -v truncate >/dev/null 2>&1; then
+        find /var/log -type f -writable -print0 2>/dev/null |
+            xargs -0 -n1 truncate -s 0 2>/dev/null || true
+    fi
 
-  # Node.js npm
-  if command -v npm &>/dev/null; then $STD npm cache clean --force 2>/dev/null || true; fi
-  # Node.js yarn
-  if command -v yarn &>/dev/null; then $STD yarn cache clean 2>/dev/null || true; fi
-  # Node.js pnpm
-  if command -v pnpm &>/dev/null; then $STD pnpm store prune 2>/dev/null || true; fi
-  # Go
-  if command -v go &>/dev/null; then $STD go clean -cache -modcache 2>/dev/null || true; fi
-  # Rust cargo
-  if command -v cargo &>/dev/null; then $STD cargo clean 2>/dev/null || true; fi
-  # Ruby gem
-  if command -v gem &>/dev/null; then $STD gem cleanup 2>/dev/null || true; fi
-  # Composer (PHP)
-  if command -v composer &>/dev/null; then $STD composer clear-cache 2>/dev/null || true; fi
+    # Node.js npm
+    if command -v npm &>/dev/null; then $STD npm cache clean --force 2>/dev/null || true; fi
+    # Node.js yarn
+    if command -v yarn &>/dev/null; then $STD yarn cache clean 2>/dev/null || true; fi
+    # Node.js pnpm
+    if command -v pnpm &>/dev/null; then $STD pnpm store prune 2>/dev/null || true; fi
+    # Go
+    if command -v go &>/dev/null; then $STD go clean -cache -modcache 2>/dev/null || true; fi
+    # Rust cargo
+    if command -v cargo &>/dev/null; then $STD cargo clean 2>/dev/null || true; fi
+    # Ruby gem
+    if command -v gem &>/dev/null; then $STD gem cleanup 2>/dev/null || true; fi
+    # Composer (PHP)
+    if command -v composer &>/dev/null; then $STD composer clear-cache 2>/dev/null || true; fi
 
-  if command -v journalctl &>/dev/null; then
-    $STD journalctl --vacuum-time=10m 2>/dev/null || true
-  fi
-  msg_ok "Cleaned"
+    if command -v journalctl &>/dev/null; then
+        $STD journalctl --vacuum-time=10m 2>/dev/null || true
+    fi
+    msg_ok "Cleaned"
 }
 
 # ------------------------------------------------------------------------------
@@ -863,41 +869,41 @@ cleanup_lxc() {
 # - Returns 0 if swap active or successfully created, 1 if declined/failed
 # ------------------------------------------------------------------------------
 check_or_create_swap() {
-  msg_info "Checking for active swap"
+    msg_info "Checking for active swap"
 
-  if swapon --noheadings --show | grep -q 'swap'; then
-    msg_ok "Swap is active"
-    return 0
-  fi
+    if swapon --noheadings --show | grep -q 'swap'; then
+        msg_ok "Swap is active"
+        return 0
+    fi
 
-  msg_error "No active swap detected"
+    msg_error "No active swap detected"
 
-  read -p "Do you want to create a swap file? [y/N]: " create_swap
-  create_swap="${create_swap,,}" # to lowercase
+    read -p "Do you want to create a swap file? [y/N]: " create_swap
+    create_swap="${create_swap,,}" # to lowercase
 
-  if [[ "$create_swap" != "y" && "$create_swap" != "yes" ]]; then
-    msg_info "Skipping swap file creation"
-    return 1
-  fi
+    if [[ "$create_swap" != "y" && "$create_swap" != "yes" ]]; then
+        msg_info "Skipping swap file creation"
+        return 1
+    fi
 
-  read -p "Enter swap size in MB (e.g., 2048 for 2GB): " swap_size_mb
-  if ! [[ "$swap_size_mb" =~ ^[0-9]+$ ]]; then
-    msg_error "Invalid size input. Aborting."
-    return 1
-  fi
+    read -p "Enter swap size in MB (e.g., 2048 for 2GB): " swap_size_mb
+    if ! [[ "$swap_size_mb" =~ ^[0-9]+$ ]]; then
+        msg_error "Invalid size input. Aborting."
+        return 1
+    fi
 
-  local swap_file="/swapfile"
+    local swap_file="/swapfile"
 
-  msg_info "Creating ${swap_size_mb}MB swap file at $swap_file"
-  if dd if=/dev/zero of="$swap_file" bs=1M count="$swap_size_mb" status=progress &&
-    chmod 600 "$swap_file" &&
-    mkswap "$swap_file" &&
-    swapon "$swap_file"; then
-    msg_ok "Swap file created and activated successfully"
-  else
-    msg_error "Failed to create or activate swap"
-    return 1
-  fi
+    msg_info "Creating ${swap_size_mb}MB swap file at $swap_file"
+    if dd if=/dev/zero of="$swap_file" bs=1M count="$swap_size_mb" status=progress &&
+        chmod 600 "$swap_file" &&
+        mkswap "$swap_file" &&
+        swapon "$swap_file"; then
+        msg_ok "Swap file created and activated successfully"
+    else
+        msg_error "Failed to create or activate swap"
+        return 1
+    fi
 }
 
 # ==============================================================================

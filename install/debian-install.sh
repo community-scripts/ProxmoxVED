@@ -13,6 +13,8 @@ setting_up_container
 network_check
 update_os
 
+setup_hwaccel
+
 msg_info "Installing Base Dependencies"
 $STD apt-get install -y curl wget ca-certificates
 msg_ok "Installed Base Dependencies"
