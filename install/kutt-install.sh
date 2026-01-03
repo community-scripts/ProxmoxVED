@@ -13,18 +13,12 @@ setting_up_container
 network_check
 update_os
 
-read -r -p "${TAB3}Enter the hostname of your Kutt instance (eg kutt.domain.tld): " kutt_host
-if [[ "$kutt_host" ]]; then
-  KUTT_HOST="$kutt_host"
-fi
-
 NODE_VERSION="22" setup_nodejs
 fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball"
 
 msg_info "Configuring Kutt"
 cd /opt/kutt
 cp .example.env ".env"
-sed -i "s|DEFAULT_DOMAIN=localhost:3000|DEFAULT_DOMAIN=${KUTT_HOST}|g" ".env"
 sed -i "s|JWT_SECRET=|JWT_SECRET=$(openssl rand -base64 32)|g" ".env"
 $STD npm install
 $STD npm run migrate
