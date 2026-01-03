@@ -20,34 +20,34 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
+  header_info
+  check_container_storage
+  check_container_resources
 
-    if [[ ! -d $APP_DIR ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit
-    fi
-
-    if check_for_gh_release "kutt" "thedevs-network/kutt"; then
-        msg_info "Stopping services"
-        systemctl stop kutt
-        msg_ok "Stopped services"
-
-        fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball" "latest"
-
-        msg_info "Configuring Kutt"
-        cd /opt/kutt
-        $STD npm install
-        $STD npm run migrate
-        msg_ok "Configured Kutt"
-
-        msg_info "Starting services"
-        systemctl start kutt
-        msg_ok "Started services"
-        msg_ok "Updated successfully"
-    fi
+  if [[ ! -d /opt/kutt ]]; then
+    msg_error "No ${APP} Installation Found!"
     exit
+  fi
+
+  if check_for_gh_release "kutt" "thedevs-network/kutt"; then
+    msg_info "Stopping services"
+    systemctl stop kutt
+    msg_ok "Stopped services"
+
+    fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball" "latest"
+
+    msg_info "Configuring Kutt"
+    cd /opt/kutt
+    $STD npm install
+    $STD npm run migrate
+    msg_ok "Configured Kutt"
+
+    msg_info "Starting services"
+    systemctl start kutt
+    msg_ok "Started services"
+    msg_ok "Updated successfully"
+  fi
+  exit
 }
 
 start
