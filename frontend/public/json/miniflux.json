@@ -1,0 +1,44 @@
+{
+  "name": "Miniflux (Alpine)",
+  "slug": "alpine-miniflux",
+  "categories": [
+    12
+  ],
+  "date_created": "2025-10-23",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://miniflux.app/docs/alpine.html",
+  "website": "https://miniflux.app/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/miniflux.webp",
+  "config_path": "cat /etc/miniflux.conf",
+  "description": "Miniflux is a minimalist and opinionated RSS reader. This Alpine-based LXC installs Miniflux and PostgreSQL with OpenRC.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/alpine-miniflux.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 2,
+        "os": "alpine",
+        "version": "3.22"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Database credentials: `cat ~/miniflux-db.creds`",
+      "type": "info"
+    },
+    {
+      "text": "Admin credentials: `cat ~/miniflux-admin.creds`",
+      "type": "info"
+    }
+  ]
+}
