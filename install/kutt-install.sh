@@ -25,6 +25,7 @@ msg_info "Configuring Kutt"
 cd /opt/kutt
 cp .example.env ".env"
 sed -i "s|JWT_SECRET=|JWT_SECRET=$(openssl rand -base64 32)|g" ".env"
+sed -i "s|DEFAULT_DOMAIN=.*|DEFAULT_DOMAIN=https://$LOCAL_IP|g" ".env"
 $STD npm install
 $STD npm run migrate
 
@@ -45,7 +46,7 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/kutt
-ExecStart=/usr/bin/node server/server.js  --production
+ExecStart=/usr/bin/npm start
 Restart=always
 
 [Install]
