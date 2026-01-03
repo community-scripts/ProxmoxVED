@@ -6,7 +6,6 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://ubuntu.com/
 
-echo -e "Loading..."
 APP="Ubuntu"
 var_tags="${var_tags:-os}"
 var_cpu="${var_cpu:-1}"
