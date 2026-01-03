@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y caddy
+$STD apt install -y caddy
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" setup_nodejs
@@ -27,16 +27,14 @@ cp .example.env ".env"
 sed -i "s|JWT_SECRET=|JWT_SECRET=$(openssl rand -base64 32)|g" ".env"
 $STD npm install
 $STD npm run migrate
-msg_ok "Configured Kutt"
 
-msg_info "Configuring SSL"
 cat <<EOF >/etc/caddy/Caddyfile
 $LOCAL_IP {
 	reverse_proxy localhost:3000
 }
 EOF
-$STD systemctl restart caddy
-msg_ok "Configured SSL"
+systemctl restart caddy
+msg_ok "Configured Kutt"
 
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/kutt.service
@@ -53,7 +51,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-$STD systemctl enable -q --now kutt
+systemctl enable -q --now kutt
 msg_ok "Created Services"
 
 motd_ssh
