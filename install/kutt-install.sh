@@ -19,6 +19,7 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" setup_nodejs
 fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball"
+import_local_ip
 
 msg_info "Configuring Kutt"
 cd /opt/kutt
@@ -29,7 +30,6 @@ $STD npm run migrate
 msg_ok "Configured Kutt"
 
 msg_info "Configuring SSL"
-import_local_ip
 cat <<EOF >/etc/caddy/Caddyfile
 $LOCAL_IP {
 	reverse_proxy localhost:3000
