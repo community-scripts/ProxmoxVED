@@ -31,9 +31,9 @@ function update_script() {
     fi
 
     if check_for_gh_release "romm" "rommapp/romm"; then
-        msg_info "Stopping ${APP} services"
+        msg_info "Stopping Services"
         systemctl stop romm-backend romm-worker romm-scheduler romm-watcher
-        msg_ok "Stopped ${APP} services"
+        msg_ok "Stopped Services"
 
         msg_info "Backing up configuration"
         cp /opt/romm/.env /opt/romm/.env.backup
@@ -62,11 +62,10 @@ function update_script() {
         ln -sfn /var/lib/romm/assets /opt/romm/frontend/dist/assets/romm/assets
         msg_ok "Updated ${APP}"
 
-        msg_info "Starting ${APP} services"
+        msg_info "Starting Services"
         systemctl start romm-backend romm-worker romm-scheduler romm-watcher
-        msg_ok "Started ${APP} services"
-
-        msg_ok "Update Successful"
+        msg_ok "Started Services"
+        msg_ok "Updated successfully"
     fi
     exit
 }
