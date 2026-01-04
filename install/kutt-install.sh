@@ -13,28 +13,43 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt install -y caddy
-msg_ok "Installed Dependencies"
+echo "${TAB3}How would you like to handle SSL termination?"
+echo "${TAB3}[i]-Internal (self-signed SSL Certificate)   [e]-External (use your own reverse proxy)"
+read -rp "${TAB3}Enter your choice <i/e> (default: i): " ssl_choice
+ssl_choice=${ssl_choice:-i}
+case "${ssl_choice,,}" in
+i)
+  import_local_ip
+  DEFAULT_HOST="$LOCAL_IP:3000"
+
+  msg_info "Confiuring Caddy"
+  $STD apt install -y caddy
+  cat <<EOF >/etc/caddy/Caddyfile
+:3000 {
+	reverse_proxy localhost:3000
+}
+EOF
+  systemctl restart caddy
+  msg_ok "Installed Caddy"
+  ;;
+e)
+  read -r -p "${TAB3}Enter the hostname you want to use for Kutt (eg. kutt.example.com)" custom_host
+  if [[ "$custom_host" ]]; then
+    DEFAULT_HOST="$custom_host"
+  fi
+  ;;
+esac
 
 NODE_VERSION="22" setup_nodejs
 fetch_and_deploy_gh_release "kutt" "thedevs-network/kutt" "tarball"
-import_local_ip
 
 msg_info "Configuring Kutt"
 cd /opt/kutt
 cp .example.env ".env"
 sed -i "s|JWT_SECRET=|JWT_SECRET=$(openssl rand -base64 32)|g" ".env"
-sed -i "s|DEFAULT_DOMAIN=.*|DEFAULT_DOMAIN=https://$LOCAL_IP|g" ".env"
+sed -i "s|DEFAULT_HOST=.*|DEFAULT_HOST=https://$DEFAULT_HOST|g" ".env"
 $STD npm install
 $STD npm run migrate
-
-cat <<EOF >/etc/caddy/Caddyfile
-$LOCAL_IP {
-	reverse_proxy localhost:3000
-}
-EOF
-systemctl restart caddy
 msg_ok "Configured Kutt"
 
 msg_info "Creating Services"
