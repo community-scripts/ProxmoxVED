@@ -20,17 +20,17 @@ ssl_choice=${ssl_choice:-i}
 case "${ssl_choice,,}" in
 i)
   import_local_ip
-  DEFAULT_HOST="$LOCAL_IP:3000"
+  DEFAULT_HOST="$LOCAL_IP:443"
 
   msg_info "Confiuring Caddy"
   $STD apt install -y caddy
   cat <<EOF >/etc/caddy/Caddyfile
-:3000 {
+:443 {
 	reverse_proxy localhost:3000
 }
 EOF
   systemctl restart caddy
-  msg_ok "Installed Caddy"
+  msg_ok "Configured Caddy"
   ;;
 e)
   read -r -p "${TAB3}Enter the hostname you want to use for Kutt (eg. kutt.example.com)" custom_host
