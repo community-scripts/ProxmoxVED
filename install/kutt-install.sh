@@ -25,8 +25,8 @@ i)
   msg_info "Configuring Caddy"
   $STD apt install -y caddy
   cat <<EOF >/etc/caddy/Caddyfile
-:443 {
-	reverse_proxy localhost:3000
+$LOCAL_IP {
+    reverse_proxy localhost:3000
 }
 EOF
   systemctl restart caddy
