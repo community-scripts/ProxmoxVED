@@ -22,7 +22,7 @@ i)
   import_local_ip
   DEFAULT_HOST="$LOCAL_IP:443"
 
-  msg_info "Confiuring Caddy"
+  msg_info "Configuring Caddy"
   $STD apt install -y caddy
   cat <<EOF >/etc/caddy/Caddyfile
 :443 {
@@ -33,7 +33,7 @@ EOF
   msg_ok "Configured Caddy"
   ;;
 e)
-  read -r -p "${TAB3}Enter the hostname you want to use for Kutt (eg. kutt.example.com)" custom_host
+  read -r -p "${TAB3}Enter the hostname you want to use for Kutt (eg. kutt.example.com): " custom_host
   if [[ "$custom_host" ]]; then
     DEFAULT_HOST="$custom_host"
   fi
@@ -47,7 +47,7 @@ msg_info "Configuring Kutt"
 cd /opt/kutt
 cp .example.env ".env"
 sed -i "s|JWT_SECRET=|JWT_SECRET=$(openssl rand -base64 32)|g" ".env"
-sed -i "s|DEFAULT_HOST=.*|DEFAULT_HOST=https://$DEFAULT_HOST|g" ".env"
+sed -i "s|DEFAULT_DOMAIN=.*|DEFAULT_DOMAIN=https://$DEFAULT_HOST|g" ".env"
 $STD npm install
 $STD npm run migrate
 msg_ok "Configured Kutt"
