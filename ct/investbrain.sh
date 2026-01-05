@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -30,12 +30,13 @@ function update_script() {
   fi
 
   if check_for_gh_release "Investbrain" "investbrainapp/investbrain"; then
+    PHP_VERSION="8.4"
     msg_info "Stopping Services"
-    systemctl stop nginx php8.4-fpm
+    systemctl stop nginx php${PHP_VERSION}-fpm
     supervisorctl stop all
     msg_ok "Services Stopped"
 
-    PHP_VERSION="8.4" PHP_FPM=YES PHP_MODULE="gd,zip,intl,pdo,pgsql,pdo-pgsql,bcmath,opcache,mbstring,redis" setup_php
+    PHP_FPM=YES PHP_MODULE="gd,zip,intl,pdo,pgsql,pdo-pgsql,bcmath,opcache,mbstring,redis" setup_php
     setup_composer
     NODE_VERSION="22" setup_nodejs
     PG_VERSION="17" setup_postgresql
@@ -72,7 +73,7 @@ function update_script() {
     msg_ok "Updated Investbrain"
 
     msg_info "Starting Services"
-    systemctl start php8.4-fpm nginx
+    systemctl start php${PHP_VERSION}-fpm nginx
     supervisorctl start all
     msg_ok "Services Started"
 
