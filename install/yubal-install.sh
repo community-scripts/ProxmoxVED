@@ -32,7 +32,7 @@ msg_ok "Installed Bun"
 UV_VERSION="0.7.19" PYTHON_VERSION="3.12" setup_uv
 
 msg_info "Installing Deno"
-curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
+$STD curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 msg_ok "Installed Deno"
 
 msg_info "Creating directories"
