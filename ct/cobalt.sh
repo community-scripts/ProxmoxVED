@@ -31,8 +31,7 @@ function update_script() {
   NODE_VERSION="24" setup_nodejs
   
   msg_info "Stopping Cobalt Services"
-  systemctl stop cobalt-api.service
-  systemctl stop nginx
+  systemctl stop cobalt
   msg_ok "Stopped Services"
   
   msg_info "Updating Cobalt"
@@ -44,8 +43,7 @@ function update_script() {
   msg_ok "Updated Cobalt"
   
   msg_info "Starting Cobalt Services"
-  systemctl start cobalt-api.service
-  systemctl start nginx
+  systemctl start cobal
   msg_ok "Started Services"
   
   msg_ok "Updated successfully!"
