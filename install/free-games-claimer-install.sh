@@ -12,7 +12,8 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
+NODE_VERSION="22" setup_nodejs
+PYTHON_VERSION="3.12" setup_uv
 
 setup_deb822_repo \
 	"TurboVNC" \
@@ -20,7 +21,6 @@ setup_deb822_repo \
 	"https://packagecloud.io/dcommander/turbovnc/any/" \
 	"any" \
 	"main"
-
 setup_deb822_repo \
 	"VirtualGL" \
 	"https://packagecloud.io/dcommander/virtualgl/gpgkey" \
@@ -28,40 +28,33 @@ setup_deb822_repo \
 	"any" \
 	"main"
 
-install_packages_with_retry \
-  "git" \
-  "ratpoison" \
-  "virtualgl" \
-  "turbovnc" \
-  "websockify" \
-  "libnss3" \
-  "libnspr4" \
-  "libatk1.0-0" \
-  "libatk-bridge2.0-0" \
-  "libcups2" \
-  "libxkbcommon0" \
-  "libatspi2.0-0" \
-  "libxcomposite1" \
-  "libgbm1" \
-  "libpango-1.0-0" \
-  "libcairo2" \
-  "libasound2" \
-  "libxfixes3" \
-  "libxdamage1"
-
-msg_ok "Installed Dependencies"
-
-NODE_VERSION="22" setup_nodejs
-PYTHON_VERSION="3.12" setup_uv
-
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  ratpoison \
+  virtualgl \
+  turbovnc \
+  websockify \
+  libnss3 \
+  libnspr4 \
+  libatk1.0-0 \
+  libatk-bridge2.0-0 \
+  libcups2 \
+  libxkbcommon0 \
+  libatspi2.0-0 \
+  libxcomposite1 \
+  libgbm1 \
+  libpango-1.0-0 \
+  libcairo2 \
+  libasound2 \
+  libxfixes3 \
+  libxdamage1
 $STD uv python update-shell
 $STD uv pip install apprise --system
+msg_ok "Installed Dependencies"
 
 msg_info "Installing free-games-claimer"
-msg_info "Cloning Repository"
-$STD git clone -b dev https://github.com/vogler/free-games-claimer.git /opt/free-games-claimer
-cd /opt/free-games-claimer || exit
-msg_ok "Cloned Repository"
+fetch_and_deploy_gh_release "free-games-claimer" "vogler/free-games-claimer" "tarball"
+msg_ok "Installed free-games-claimer"
 msg_info "Installing NPM Packages"
 $STD npm install
 $STD npx patchright install chromium --no-shell
@@ -74,7 +67,7 @@ msg_ok "Installed noVNC"
 $STD ln -s /usr/share/novnc/vnc_auto.html /usr/share/novnc/index.html
 
 mkdir -p /opt/free-games-claimer/data
-cat <<'EOF' >/opt/free-games-claimer/data/config.env
+cat <<EOF >/opt/free-games-claimer/data/config.env
 # For more information on configuration options, please visit:
 # https://github.com/vogler/free-games-claimer#configuration--options
 
@@ -107,12 +100,12 @@ EOF
 
 msg_ok "Installed free-games-claimer"
 
-msg_info "Creating VNC Service"
-vnc_service_path="/etc/systemd/system/free-games-claimer-vnc.service"
-cat <<'EOF' >"$vnc_service_path"
+msg_info "Creating Services"
+vnc_service_path="/etc/systemd/system/free-games-claimer-vnc"
+cat <<EOF >"$vnc_service_path"
 [Unit]
 Description=free-games-claimer VNC Display Server
-Before=free-games-claimer.service
+Before=free-games-claimer
 
 [Service]
 Type=oneshot
@@ -128,16 +121,14 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable -q --now free-games-claimer-vnc.service
-msg_ok "Created VNC Service"
+systemctl enable -q --now free-games-claimer-vnc
 
-msg_info "Creating Service"
-service_path="/etc/systemd/system/free-games-claimer.service"
-cat <<'EOF' >"$service_path"
+service_path="/etc/systemd/system/free-games-claimer"
+cat <<EOF >"$service_path"
 [Unit]
 Description=free-games-claimer
-After=syslog.target network.target free-games-claimer-vnc.service
-Requires=free-games-claimer-vnc.service
+After=syslog.target network.target free-games-claimer-vnc
+Requires=free-games-claimer-vnc
 
 [Service]
 Type=simple
@@ -162,14 +153,11 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable -q free-games-claimer.service
-msg_ok "Created Service"
+systemctl enable -q free-games-claimer
+msg_ok "Created Services"
 
 msg_info "Creating Cron Job"
-crontab -l 2>/dev/null | grep -v "free-games-claimer" > /tmp/crontab.tmp || true
-echo "30 18 * * * systemctl start free-games-claimer.service" >> /tmp/crontab.tmp
-crontab /tmp/crontab.tmp
-rm -f /tmp/crontab.tmp
+echo "30 18 * * * root systemctl start free-games-claimer" >>/etc/crontab
 msg_ok "Created Cron Job (daily at 18:30)"
 
 motd_ssh
