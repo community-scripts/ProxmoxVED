@@ -1,0 +1,48 @@
+{
+    "name": "Yubal",
+    "slug": "yubal",
+    "categories": [
+        13
+    ],
+    "date_created": "2026-01-05",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8000,
+    "documentation": "https://github.com/guillevc/yubal/blob/master/README.md",
+    "website": "https://github.com/guillevc/yubal",
+    "config_path": "/opt/yubal.env",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/yubal.webp",
+    "description": "Yubal is a self-hosted music management application that helps you organize, tag, and stream your music collection. Features music library organization with Beets, YouTube music downloads, and a modern web interface.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/yubal.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 15,
+                "os": "debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "First visit will prompt you to set up your music library",
+            "type": "info"
+        },
+        {
+            "text": "Music files should be stored in /opt/yubal/data",
+            "type": "info"
+        },
+        {
+            "text": "Configuration can be modified in /opt/yubal.env",
+            "type": "info"
+        }
+    ]
+}
