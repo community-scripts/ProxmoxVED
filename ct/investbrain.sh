@@ -47,20 +47,13 @@ function update_script() {
     cp -r /opt/investbrain/storage /opt/investbrain_backup
     msg_ok "Created Backup"
 
-    rm -rf /opt/investbrain-new
-    mkdir -p /opt/investbrain-new
-    fetch_and_deploy_gh_release "Investbrain" "investbrainapp/investbrain" "tarball" "latest" "/opt/investbrain-new"
+    fetch_and_deploy_gh_release "Investbrain" "investbrainapp/investbrain" "tarball" "latest" "/opt/investbrain"
 
     msg_info "Updating Investbrain"
     cd /opt/investbrain
-    cp -r /opt/investbrain-new/* /opt/investbrain/
     rm -rf /opt/investbrain/storage
-    rm -rf /opt/investbrain-new
-
     cp /opt/.env.backup /opt/investbrain/.env
     cp -r /opt/investbrain_backup/ /opt/investbrain/storage
-    mkdir -p /opt/investbrain/storage/{framework/cache,framework/sessions,framework/views,app,logs}
-
     export COMPOSER_ALLOW_SUPERUSER=1
     $STD composer install --no-interaction --no-dev --optimize-autoloader
     $STD npm install
@@ -73,10 +66,8 @@ function update_script() {
     $STD php artisan event:clear
     $STD php artisan route:cache
     $STD php artisan event:cache
-
     chown -R www-data:www-data /opt/investbrain
     chmod -R 775 /opt/investbrain/storage /opt/investbrain/bootstrap/cache
-
     rm -rf /opt/.env.backup /opt/investbrain_backup
     msg_ok "Updated Investbrain"
 

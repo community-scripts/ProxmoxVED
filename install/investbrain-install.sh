@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get update && apt-get install -y \
+$STD apt install -y \
   nginx \
   supervisor \
   redis-server \
@@ -33,12 +33,11 @@ NODE_VERSION="22" setup_nodejs
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="investbrain" PG_DB_USER="investbrain" setup_postgresql_db
 
-mkdir -p /opt/investbrain
 fetch_and_deploy_gh_release "Investbrain" "investbrainapp/investbrain" "tarball" "latest" "/opt/investbrain"
-LOCAL_IP=$(hostname -I | awk '{print $1}')
-APP_KEY=$(openssl rand -base64 32)
+import_local_ip
 
 msg_info "Installing Investbrain (Patience)"
+APP_KEY=$(openssl rand -base64 32)
 cd /opt/investbrain
 cat <<EOF >/opt/investbrain/.env
 APP_KEY=base64:${APP_KEY}
