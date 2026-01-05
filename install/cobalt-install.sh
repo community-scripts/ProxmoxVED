@@ -13,42 +13,17 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  curl \
-  wget \
-  git \
-  ca-certificates \
-  gnupg \
-  python3 \
-  build-essential
-msg_ok "Installed Dependencies"
+msg_info "Setup Cobalt"
+$STD apt install -y git
+NODE_VERSION="24" NODE_MODULE="pnpm" setup_nodejs
 
-NODE_VERSION="24" setup_nodejs
-
-msg_info "Installing pnpm"
-$STD npm install -g pnpm
-msg_ok "Installed pnpm"
-
-msg_info "Cloning Cobalt Repository"
 $STD git clone https://github.com/imputnet/cobalt.git /opt/cobalt
 cd /opt/cobalt
-msg_ok "Cloned Cobalt Repository"
-
-msg_info "Installing Cobalt Dependencies"
 $STD pnpm install --frozen-lockfile
-msg_ok "Installed Cobalt Dependencies"
-
-msg_info "Building Cobalt API"
 $STD pnpm --filter=@imput/cobalt-api build
-msg_ok "Built Cobalt API"
-
-msg_info "Building Cobalt Web"
 $STD pnpm --filter=@imput/cobalt-web build
-msg_ok "Built Cobalt Web"
 
-msg_info "Creating Cobalt API Service"
-cat <<EOF >/etc/systemd/system/cobalt-api.service
+cat <<EOF >/etc/systemd/system/cobalt.service
 [Unit]
 Description=Cobalt API
 After=network.target
@@ -66,11 +41,9 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-$STD systemctl enable --now cobalt-api.service
-msg_ok "Created Cobalt API Service"
+$STD systemctl enable --now cobalt
 
-msg_info "Installing and Configuring Nginx"
-$STD apt-get install -y nginx
+$STD apt install -y nginx
 cat <<EOF >/etc/nginx/sites-available/cobalt
 server {
     listen 8000;
@@ -95,12 +68,9 @@ EOF
 ln -sf /etc/nginx/sites-available/cobalt /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
-msg_ok "Installed and Configured Nginx"
+msg_ok "Setup Cobalt"
 
 motd_ssh
 customize
 
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc
