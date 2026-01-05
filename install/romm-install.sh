@@ -17,35 +17,32 @@ update_os
 
 msg_info "Installing dependencies"
 $STD apt-get install -y \
-    acl \
-    build-essential \
-    gcc \
-    g++ \
-    make \
-    git \
-    curl \
-    libssl-dev \
-    libffi-dev \
-    libmagic-dev \
-    python3-dev \
-    python3-pip \
-    python3-venv \
-    libmariadb3 \
-    libmariadb-dev \
-    libpq-dev \
-    libbz2-dev \
-    libreadline-dev \
-    libsqlite3-dev \
-    zlib1g-dev \
-    liblzma-dev \
-    libncurses5-dev \
-    libncursesw5-dev \
-    redis-server \
-    redis-tools \
-    p7zip-full \
-    tzdata \
-    jq \
-    nginx
+  acl \
+  build-essential \
+  gcc \
+  g++ \
+  make \
+  libssl-dev \
+  libffi-dev \
+  libmagic-dev \
+  python3-dev \
+  python3-pip \
+  python3-venv \
+  libmariadb3 \
+  libmariadb-dev \
+  libpq-dev \
+  libbz2-dev \
+  libreadline-dev \
+  libsqlite3-dev \
+  zlib1g-dev \
+  liblzma-dev \
+  libncurses5-dev \
+  libncursesw5-dev \
+  redis-server \
+  redis-tools \
+  p7zip-full \
+  tzdata \
+  nginx
 msg_ok "Installed dependencies"
 
 UV_VERSION="0.7.19" PYTHON_VERSION="3.13" setup_uv
@@ -55,11 +52,11 @@ MARIADB_DB_NAME="romm" MARIADB_DB_USER="romm" setup_mariadb_db
 
 msg_info "Creating directories"
 mkdir -p /opt/romm \
-    /var/lib/romm/config \
-    /var/lib/romm/resources \
-    /var/lib/romm/assets/{saves,states,screenshots} \
-    /var/lib/romm/library/roms \
-    /var/lib/romm/library/bios
+  /var/lib/romm/config \
+  /var/lib/romm/resources \
+  /var/lib/romm/assets/{saves,states,screenshots} \
+  /var/lib/romm/library/roms \
+  /var/lib/romm/library/bios
 msg_ok "Created directories"
 
 msg_info "Creating configuration file"
@@ -123,16 +120,15 @@ CONFIGEOF
 chmod 644 /var/lib/romm/config/config.yml
 msg_ok "Created configuration file"
 
+fetch_and_deploy_gh_release "RetroAchievements" "RetroAchievements/RALibretro" "prebuild" "latest" "/opt/RALibretro" "RAHasher-x64-Linux.zip"
+
 msg_info "Building RAHasher (RetroAchievements)"
-RAHASHER_VERSION="1.8.1"
-cd /tmp
-git clone --recursive --branch "$RAHASHER_VERSION" --depth 1 https://github.com/RetroAchievements/RALibretro.git
-cd RALibretro
+cd /opt/RALibretro
 sed -i '22a #include <ctime>' ./src/Util.h
 sed -i '6a #include <unistd.h>' \
-    ./src/libchdr/deps/zlib-1.3.1/gzlib.c \
-    ./src/libchdr/deps/zlib-1.3.1/gzread.c \
-    ./src/libchdr/deps/zlib-1.3.1/gzwrite.c
+  ./src/libchdr/deps/zlib-1.3.1/gzlib.c \
+  ./src/libchdr/deps/zlib-1.3.1/gzread.c \
+  ./src/libchdr/deps/zlib-1.3.1/gzwrite.c
 $STD make HAVE_CHD=1 -f ./Makefile.RAHasher
 cp ./bin64/RAHasher /usr/bin/RAHasher
 chmod +x /usr/bin/RAHasher
@@ -180,27 +176,22 @@ EOF
 chmod 600 /opt/romm/.env
 msg_ok "Created environment file"
 
-msg_info "Installing backend"
+msg_info "Setup Romm backend"
 cd /opt/romm
-
-# Limit concurrent downloads to avoid DNS resolution failures in LXC containers
-# See: https://github.com/astral-sh/uv/issues/12054
 export UV_CONCURRENT_DOWNLOADS=1
 $STD uv sync --all-extras
 cd /opt/romm/backend
 $STD uv run alembic upgrade head
 msg_ok "Installed backend"
 
-msg_info "Installing frontend"
+msg_info "Setup Romm frontend"
 cd /opt/romm/frontend
 $STD npm install
 $STD npm run build
-
 mkdir -p /opt/romm/frontend/dist/assets/romm
 ln -sfn /var/lib/romm/resources /opt/romm/frontend/dist/assets/romm/resources
 ln -sfn /var/lib/romm/assets /opt/romm/frontend/dist/assets/romm/assets
-msg_ok "Installed frontend"
-
+msg_ok "Setup Romm frontend"
 msg_info "Configuring nginx"
 cat >/etc/nginx/sites-available/romm <<'EOF'
 upstream romm_backend {
