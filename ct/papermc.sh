@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Dmytro (vorotech)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -44,7 +44,7 @@ function update_script() {
   msg_info "Updating $APP to v${LATEST_VERSION}-${LATEST_BUILD}"
   cp -r /opt/minecraft/ /opt/minecraft-backup
   download_with_progress ${DOWNLOAD_URL} /opt/minecraft/server.jar
-  
+
   cd /opt/minecraft
   ACTUAL_SHA=$(sha256sum server.jar | awk '{print $1}')
   if [[ -n "$EXPECTED_SHA" && "$EXPECTED_SHA" != "null" ]]; then
@@ -56,9 +56,9 @@ function update_script() {
   else
     msg_warn "No upstream SHA provided; computed: ${ACTUAL_SHA}"
   fi
- 
+
   chown -R minecraft:minecraft /opt/minecraft
-  
+
   msg_info "Starting Services"
   systemctl start mc-backup.timer
   systemctl start minecraft
