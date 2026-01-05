@@ -28,26 +28,28 @@ function update_script() {
     exit
   fi
 
-  msg_info "Stopping Services"
-  cd /opt/cobalt
-  docker compose down
+  NODE_VERSION="24" setup_nodejs
+  
+  msg_info "Stopping Cobalt Services"
+  systemctl stop cobalt-api.service
+  systemctl stop nginx
   msg_ok "Stopped Services"
-
-  msg_info "Pulling Latest Images"
-  docker compose pull
-  msg_ok "Pulled Latest Images"
-
-  msg_info "Starting Services"
-  docker compose up -d
+  
+  msg_info "Updating Cobalt"
+  cd /opt/cobalt
+  $STD git pull
+  $STD pnpm install --frozen-lockfile
+  $STD pnpm --filter=@imput/cobalt-api build
+  $STD pnpm --filter=@imput/cobalt-web build
+  msg_ok "Updated Cobalt"
+  
+  msg_info "Starting Cobalt Services"
+  systemctl start cobalt-api.service
+  systemctl start nginx
   msg_ok "Started Services"
-
-  msg_info "Reloading Nginx"
-  nginx -t && systemctl reload nginx
-  msg_ok "Reloaded Nginx"
-
+  
   msg_ok "Updated successfully!"
   exit
-}
 
 start
 build_container
@@ -55,8 +57,4 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access ${APP} using:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8000${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}API: http://${IP}:9000${CL}"
-echo -e "${INFO}${YW}Edit config:${CL}"
-echo -e "${TAB}cd /opt/cobalt && nano docker-compose.yml && docker compose up -d"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
