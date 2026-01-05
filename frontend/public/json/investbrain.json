@@ -1,58 +1,40 @@
 {
-  "name": "Investbrain",
-  "slug": "investbrain",
-  "categories": [23],
-  "date_created": "2025-12-26",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": 8000,
-  "documentation": "https://github.com/investbrainapp/investbrain",
-  "website": "https://investbra.in",
-  "logo": "https://raw.githubusercontent.com/investbrainapp/investbrain/main/investbrain-logo.png",
-  "config_path": "/opt/investbrain/.env",
-  "description": "Investbrain is a smart open-source investment tracker that helps you manage, track, and make informed decisions about your investments.",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/investbrain.sh",
-      "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 4,
-        "os": "debian",
-        "version": "12"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": null,
-    "password": null
-  },
-  "notes": [
-    {
-      "text": "Access the UI via http://<host-ip>:8000/register to create the first user.",
-      "type": "info"
+    "name": "Investbrain",
+    "slug": "investbrain",
+    "categories": [
+        23
+    ],
+    "date_created": "2025-12-26",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8000,
+    "documentation": "https://github.com/investbrainapp/investbrain",
+    "website": "https://investbra.in",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/investbrain.webp",
+    "config_path": "/opt/investbrain/.env",
+    "description": "Investbrain is a smart open-source investment tracker that helps you manage, track, and make informed decisions about your investments.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/investbrain.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
     },
-    {
-      "text": "Default market data provider is Yahoo Finance. Configure others in `.env` with `MARKET_DATA_PROVIDER=yahoo,alphavantage`",
-      "type": "info"
-    },
-    {
-      "text": "Refresh market data: `cd /opt/investbrain && php artisan refresh:market-data`",
-      "type": "info"
-    },
-    {
-      "text": "Enable AI chat by setting `AI_CHAT_ENABLED=true` and `OPENAI_API_KEY` in `.env`",
-      "type": "info"
-    },
-    {
-      "text": "View logs: `ls /opt/investbrain/storage/logs/` (daily rotation: laravel-YYYY-MM-DD.log)",
-      "type": "info"
-    },
-    {
-      "text": "Database credentials: `cat ~/investbrain.creds`",
-      "type": "info"
-    }
-  ]
+    "notes": [
+        {
+            "text": "Database credentials: `cat ~/investbrain.creds`",
+            "type": "info"
+        }
+    ]
 }
