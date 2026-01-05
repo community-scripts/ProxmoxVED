@@ -43,7 +43,7 @@ function update_script() {
   msg_ok "Updated Cobalt"
   
   msg_info "Starting Cobalt Services"
-  systemctl start cobal
+  systemctl start cobalt
   msg_ok "Started Services"
   
   msg_ok "Updated successfully!"
