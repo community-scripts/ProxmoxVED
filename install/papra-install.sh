@@ -23,8 +23,7 @@ msg_ok "Installed Dependencies"
 NODE_VERSION="24" setup_nodejs
 
 RELEASE=$(curl -fsSL https://api.github.com/repos/papra-hq/papra/releases | grep -oP '"tag_name":\s*"\K@papra/docker@[^"]+' | head -n1)
-RELEASE_ENCODED=$(printf '%s' "$RELEASE" | jq -sRr @uri)
-fetch_and_deploy_gh_release "papra" "papra-hq/papra" "tarball" "${RELEASE_ENCODED}" "/opt/papra"
+fetch_and_deploy_gh_release "papra" "papra-hq/papra" "tarball" "${RELEASE}" "/opt/papra"
 
 msg_info "Setup Papra"
 cd /opt/papra
