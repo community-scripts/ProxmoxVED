@@ -132,7 +132,7 @@ install() {
   $STD apt-get update
   $STD apt-get install -y netdata
   msg_ok "Installed Netdata"
-  msg_ok "Completed Successfully!\n"
+  msg_ok "Completed successfully!\n"
   echo -e "\n Netdata should be reachable at${BL} http://$(hostname -I | awk '{print $1}'):19999 ${CL}\n"
 }
 
@@ -150,7 +150,7 @@ uninstall() {
   $STD apt autoremove -y
   $STD userdel netdata || true
   msg_ok "Uninstalled Netdata"
-  msg_ok "Completed Successfully!\n"
+  msg_ok "Completed successfully!\n"
 }
 
 header_info

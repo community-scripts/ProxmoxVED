@@ -27,10 +27,11 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP LXC"
+  msg_info "Updating Rybbit LXC"
   $STD apt-get update
   $STD apt-get -y upgrade
-  msg_ok "Updated $APP LXC"
+  msg_ok "Updated Rybbit LXC"
+  msg_ok "Updated successfully!"
   exit
 }
 
@@ -38,5 +39,5 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!"
+msg_ok "Completed successfully!\n"
 msg_custom "🚀" "${GN}" "${APP} setup has been successfully initialized!"

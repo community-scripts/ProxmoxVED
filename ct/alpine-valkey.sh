@@ -42,6 +42,7 @@ function update_script() {
       msg_info "Updating Valkey"
       apk update && apk upgrade valkey
       rc-service valkey restart
+      msg_ok "Updated Valkey"
       msg_ok "Updated successfully!"
       exit
       ;;
@@ -67,6 +68,6 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${APP} should be reachable on port 6379.
          ${BL}valkey-cli -h ${IP} -p 6379${CL} \n"

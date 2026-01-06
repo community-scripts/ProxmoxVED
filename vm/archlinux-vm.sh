@@ -525,4 +525,4 @@ if [ "$START_VM" == "yes" ]; then
 fi
 post_update_to_api "done" "none"
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"

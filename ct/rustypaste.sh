@@ -30,9 +30,9 @@ function update_script() {
     fi
 
     if check_for_gh_release "rustypaste" "orhun/rustypaste"; then
-        msg_info "Stopping rustypaste"
+        msg_info "Stopping Services"
         systemctl stop rustypaste
-        msg_ok "Stopped rustypaste"
+        msg_ok "Stopped Services"
 
         msg_info "Creating Backup"
         tar -czf "/opt/rustypaste_backup_$(date +%F).tar.gz" "/opt/rustypaste/upload"
@@ -46,10 +46,10 @@ function update_script() {
         $STD cargo build --locked --release
         msg_ok "Updated rustypaste"
 
-        msg_info "Starting rustypaste"
+        msg_info "Starting Services"
         systemctl start rustypaste
-        msg_ok "Started rustypaste"
-        msg_ok "Update Successful"
+        msg_ok "Started Services"
+        msg_ok "Updated successfully!"
     fi
     exit
 }
@@ -58,7 +58,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}rustypaste setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8000${CL}"

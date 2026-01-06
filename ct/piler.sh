@@ -67,11 +67,11 @@ function update_script() {
     chown piler:piler /etc/piler/piler.conf
     msg_ok "Restored Configuration"
 
-    msg_info "Starting Piler Services"
+    msg_info "Starting Services"
     $STD systemctl start manticore
     $STD systemctl start piler
-    msg_ok "Started Piler Services"
-    msg_ok "Updated Successfully to v${RELEASE_NEW}"
+    msg_ok "Started Services"
+    msg_ok "Updated successfully!"
   else
     msg_ok "No update available (current: v${RELEASE_OLD})"
   fi
@@ -82,7 +82,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"

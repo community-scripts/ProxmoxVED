@@ -26,12 +26,13 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP"
-  systemctl stop petio.service
+  msg_info "Updating Pepito"
+  systemctl stop petio
   curl -fsSL https://petio.tv/releases/latest -o petio-latest.zip
   $STD unzip petio-latest.zip -d /opt/Petio
-  systemctl start petio.service
-  msg_ok "Updated $APP"
+  systemctl start petio
+  msg_ok "Updated Pepito"
+  msg_ok "Updated successfully!"
   exit
 }
 
@@ -39,7 +40,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:7777${CL}"
