@@ -1763,7 +1763,9 @@ function fetch_and_deploy_gh_release() {
     local tag_encoded
     tag_encoded=$(printf '%s' "$tag_name" | jq -sRr @uri)
     local direct_tarball_url="https://github.com/$repo/archive/refs/tags/$tag_encoded.tar.gz"
-    filename="${app_lc}-${version}.tar.gz"
+    # Sanitize version for filename (replace / with -)
+    local version_safe="${version//\//-}"
+    filename="${app_lc}-${version_safe}.tar.gz"
 
     curl $download_timeout -fsSL -o "$tmpdir/$filename" "$direct_tarball_url" || {
       msg_error "Download failed: $direct_tarball_url"
