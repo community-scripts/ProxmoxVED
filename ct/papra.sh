@@ -3,7 +3,7 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/CorentinTh/papra
+# Source: https://github.com/papra-hq/papra
 
 APP="Papra"
 var_tags="${var_tags:-document-management}"
@@ -27,17 +27,28 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating Papra LXC"
-  systemctl stop papra
-  cd /opt/papra
-  git fetch
-  git pull
-  $STD pnpm install --frozen-lockfile
-  $STD pnpm --filter "@papra/app-client..." run build
-  $STD pnpm --filter "@papra/app-server..." run build
-  systemctl start papra
-  msg_ok "Updated Papra LXC"
-  msg_ok "Updated successfully!"
+  RELEASE=$(curl -fsSL https://api.github.com/repos/papra-hq/papra/releases | grep -oP '"tag_name":\s*"\K@papra/docker@[^"]+' | head -n1)
+  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
+    msg_info "Stopping Service"
+    systemctl stop papra
+    msg_ok "Stopped Service"
+
+    msg_info "Updating ${APP} to ${RELEASE}"
+    cd /opt/papra
+    fetch_and_deploy_gh_release "papra" "papra-hq/papra" "tarball" "${RELEASE}" "/opt/papra"
+    $STD pnpm install --frozen-lockfile
+    $STD pnpm --filter "@papra/app-client..." run build
+    $STD pnpm --filter "@papra/app-server..." run build
+    echo "${RELEASE}" >/opt/${APP}_version.txt
+    msg_ok "Updated ${APP} to ${RELEASE}"
+
+    msg_info "Starting Service"
+    systemctl start papra
+    msg_ok "Started Service"
+    msg_ok "Updated successfully!"
+  else
+    msg_ok "No update required. ${APP} is already at ${RELEASE}"
+  fi
   exit
 }
 
@@ -46,4 +57,6 @@ build_container
 description
 
 msg_ok "Completed successfully!\n"
-msg_custom "🚀" "${GN}" "${APP} setup has been successfully initialized!"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:1221${CL}"

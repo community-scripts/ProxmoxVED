@@ -30,7 +30,7 @@ cd /opt/papra
 export COREPACK_ENABLE_NETWORK=1
 $STD corepack enable
 $STD corepack prepare pnpm@10.19.0 --activate
-$STD pnpm install --frozen-lockfile --ignore-scripts
+$STD pnpm install --frozen-lockfile
 $STD pnpm --filter "@papra/app-client..." run build
 $STD pnpm --filter "@papra/app-server..." run build
 msg_ok "Set up Papra"
@@ -94,6 +94,7 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable -q --now papra
+echo "${RELEASE}" >/opt/Papra_version.txt
 msg_ok "Created and Started Papra Service"
 
 motd_ssh
