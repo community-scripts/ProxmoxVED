@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/CorentinTh/papra
+# Source: https://github.com/papra-hq/papra
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -15,7 +15,6 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  git \
   build-essential \
   tesseract-ocr \
   tesseract-ocr-all
@@ -23,14 +22,11 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
 
-msg_info "Cloning Papra Repository"
-cd /opt
-RELEASE=$(curl -s https://api.github.com/repos/papra-hq/papra/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-$STD git clone --depth=1 --branch ${RELEASE} https://github.com/papra-hq/papra.git
-cd papra
-msg_ok "Cloned Papra Repository"
+RELEASE=$(curl -fsSL https://api.github.com/repos/papra-hq/papra/releases | grep -oP '"tag_name":\s*"\K@papra/docker@[^"]+' | head -n1)
+fetch_and_deploy_gh_release "papra" "papra-hq/papra" "tarball" "${RELEASE}" "/opt/papra"
 
 msg_info "Setup Papra"
+cd /opt/papra
 export COREPACK_ENABLE_NETWORK=1
 $STD corepack enable
 $STD corepack prepare pnpm@10.19.0 --activate
