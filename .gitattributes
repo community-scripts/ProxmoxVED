@@ -1,0 +1,4 @@
+# Enforce LF for shell-related files only
+*.sh   text eol=lf
+*.func text eol=lf
+*.md   text eol=lf

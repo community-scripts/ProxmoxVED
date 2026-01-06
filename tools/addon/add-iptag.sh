@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (Canbiz) && Desert_Gamer
 # License: MIT
 # Source: https://github.com/gitsang/iptag
@@ -200,7 +200,7 @@ ip_in_cidrs() {
 is_valid_ipv4() {
     local ip="$1"
     [[ "$ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || return 1
-    
+
     local IFS='.' parts
     read -ra parts <<< "$ip"
     for part in "${parts[@]}"; do
@@ -340,14 +340,14 @@ check_status() {
 update_all() {
     local type="$1" list_cmd="pct" vmids count=0
     [[ "$type" == "vm" ]] && list_cmd="qm"
-    
+
     vmids=$($list_cmd list 2>/dev/null | grep -v VMID | awk '{print $1}')
     for vmid in $vmids; do ((count++)); done
-    
+
     echo "Found ${count} running ${type}s"
     [[ $count -eq 0 ]] && return
 
-    for vmid in $vmids; do 
+    for vmid in $vmids; do
         update_tags "$type" "$vmid"
     done
 }
@@ -361,7 +361,7 @@ check() {
         local interval_var="${type^^}_STATUS_CHECK_INTERVAL"
         local last_check_var="last_${type}_check_time"
         local last_update_var="last_update_${type}_time"
-        
+
         if [[ "${!interval_var}" -gt 0 ]] && (( current_time - ${!last_check_var} >= ${!interval_var} )); then
             echo "Checking ${type^^} status..."
             eval "${last_check_var}=\$current_time"

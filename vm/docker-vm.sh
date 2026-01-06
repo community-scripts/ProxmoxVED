@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: thost96 (thost96) | Co-Author: michelroegl-brunner | Refactored: MickLesk
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/freepbx/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: Arian Nasr (arian-nasr)
 # Updated by: Javier Pastor (vsc55)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE

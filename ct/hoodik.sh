@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/hudikhq/hoodik
@@ -43,13 +43,13 @@ function update_script() {
     rm -rf /opt/hoodik
     fetch_and_deploy_gh_release "hoodik" "hudikhq/hoodik" "tarball" "latest" "/opt/hoodik"
     cd /opt/hoodik
-    
+
     msg_info "Building Frontend"
     $STD yarn install --frozen-lockfile
     $STD yarn wasm-pack
     $STD yarn web:build
     msg_ok "Built Frontend"
-    
+
     msg_info "Building Backend"
     $STD cargo build --release
     cp /opt/hoodik/target/release/hoodik /usr/local/bin/hoodik

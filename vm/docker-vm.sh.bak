@@ -4,7 +4,7 @@
 # PVE 8: direct inject via virt-customize
 # PVE 9: Cloud-Init (user-data via local:snippets)
 #
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: thost96 (thost96) | Co-Author: michelroegl-brunner
 # Refactor (q35 + PVE9 cloud-init + Robustheit): MickLesk
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE

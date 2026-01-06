@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: GoldenSpringness
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/orhun/rustypaste
@@ -45,7 +45,7 @@ function update_script() {
         sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' config.toml
         $STD cargo build --locked --release
         msg_ok "Updated rustypaste"
-        
+
         msg_info "Starting rustypaste"
         systemctl start rustypaste
         msg_ok "Started rustypaste"

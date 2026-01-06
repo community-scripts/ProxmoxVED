@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://www.proxmox.com/
 
 function header_info {
   clear
   cat <<"EOF"
-   ____  ________   ______            __        _                
+   ____  ________   ______            __        _
   / __ \/ ____/ /  / ____/___  ____  / /_____ _(_)___  ___  _____
  / / / / /   / /  / /   / __ \/ __ \/ __/ __ `/ / __ \/ _ \/ ___/
-/ /_/ / /___/ /  / /___/ /_/ / / / / /_/ /_/ / / / / /  __/ /    
-\____/\____/_/   \____/\____/_/ /_/\__/\__,_/_/_/ /_/\___/_/     
-                                                                  
+/ /_/ / /___/ /  / /___/ /_/ / / / / /_/ /_/ / / / / /  __/ /
+\____/\____/_/   \____/\____/_/ /_/\__/\__,_/_/_/ /_/\___/_/
+
 EOF
 }
 
