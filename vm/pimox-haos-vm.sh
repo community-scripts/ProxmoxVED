@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -9,16 +9,16 @@ source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-sc
 
 function header_info {
   cat <<"EOF"
-                                      ____  _ __  ___                                        
-                                    / __ \(_)  |/  /___  _  __                              
-                                   / /_/ / / /|_/ / __ \| |/_/                              
-                                  / ____/ / /  / / /_/ />  <                                
+                                      ____  _ __  ___
+                                    / __ \(_)  |/  /___  _  __
+                                   / /_/ / / /|_/ / __ \| |/_/
+                                  / ____/ / /  / / /_/ />  <
     __  __                       /_/_  /_/_/  /_/\____/_/|_|              __     ____  _____
    / / / /___  ____ ___  ___     /   |  __________(_)____/ /_____ _____  / /_   / __ \/ ___/
-  / /_/ / __ \/ __ `__ \/ _ \   / /| | / ___/ ___/ / ___/ __/ __ `/ __ \/ __/  / / / /\__ \ 
- / __  / /_/ / / / / / /  __/  / ___ |(__  |__  ) (__  ) /_/ /_/ / / / / /_   / /_/ /___/ / 
-/_/ /_/\____/_/ /_/ /_/\___/  /_/  |_/____/____/_/____/\__/\__,_/_/ /_/\__/   \____//____/  
-                                                                                            
+  / /_/ / __ \/ __ `__ \/ _ \   / /| | / ___/ ___/ / ___/ __/ __ `/ __ \/ __/  / / / /\__ \
+ / __  / /_/ / / / / / /  __/  / ___ |(__  |__  ) (__  ) /_/ /_/ / / / / /_   / /_/ /___/ /
+/_/ /_/\____/_/ /_/ /_/\___/  /_/  |_/____/____/_/____/\__/\__,_/_/ /_/\__/   \____//____/
+
 EOF
 }
 clear
@@ -357,7 +357,7 @@ DESCRIPTION=$(
       <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
     </a>
   </p>
-  
+
   <span style='margin: 0 10px;'>
     <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
     <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>

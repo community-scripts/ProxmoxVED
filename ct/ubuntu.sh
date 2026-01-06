@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/github.func)
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://ubuntu.com/
