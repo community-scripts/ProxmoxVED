@@ -83,8 +83,9 @@ Type=simple
 User=root
 WorkingDirectory=/opt/papra/apps/papra-server
 EnvironmentFile=/opt/papra/.env
-ExecStartPre=/usr/bin/pnpm --silent run migration:apply
-ExecStart=/usr/bin/pnpm --silent run start
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStartPre=/usr/bin/corepack pnpm --silent run migration:apply
+ExecStart=/usr/bin/corepack pnpm --silent run start
 Restart=on-failure
 RestartSec=10
 
