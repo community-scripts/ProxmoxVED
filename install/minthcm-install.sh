@@ -77,21 +77,19 @@ msg_ok "Configured MariaDB"
   echo "MariaDB Password: $DB_PASS"
 } >>~/minthcm.creds
 
-msg_info "Generating MintHCM configuration file (configMint4)"
+msg_info "Generating configuration file"
 set -a
 source /var/www/script/.env
 set +a
 php /var/www/script/generate_config.php
-msg_ok "Generated MintHCM configuration file (configMint4)"
+msg_ok "Generated configuration file"
 
-msg_info "Starting MintHCM installation..."
+msg_info "Installing MintHCM"
 cd /var/www/MintHCM && su -s /bin/bash -c 'php /var/www/MintHCM/MintCLI install < /var/www/MintHCM/configMint4' www-data
-
-msg_ok "MintHCM installation completed!"
-msg_info "Configuring cron for MintHCM"
 printf "*    *    *    *    *     cd /var/www/MintHCM/legacy; php -f cron.php > /dev/null 2>&1\n" > /var/spool/cron/crontabs/www-data
 service cron start
 rm -f /var/www/MintHCM/configMint4
+msg_ok "Installed MintHCM"
 
 motd_ssh
 customize
