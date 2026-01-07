@@ -12,8 +12,8 @@
   "documentation": "https://documentation.grandstream.com/article-categories/gwn-mgmt/",
   "website": "https://www.grandstream.com/products/networking-solutions/wi-fi-management/product/gwn-manager",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gwn-manager.webp",
-  "config_path": "",
-  "description": "GWN Manager is a web-based management interface for GrandStream GWN series devices.",
+  "config_path": "/gwn/conf/gwn.conf",
+  "description": "GWN Manager is a free on-premise enterprise-grade, management platform for Grandstream GWN series devices. Typically deployed on a customer’s private network, this flexible, scalable solution offers simplified configuration and management.",
   "install_methods": [
     {
       "type": "default",
@@ -33,8 +33,8 @@
   },
   "notes": [
     {
-      "text": "Gentoo compiles packages from source. Initial setup may take time.",
-      "type": "warning"
+      "text": "Installation package is pulled from GrandStream website. Installation may take a while.",
+      "type": "info"
     }
   ]
 }

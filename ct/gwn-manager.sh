@@ -28,7 +28,7 @@ function update_script() {
     exit
   fi
 
-  msg_info "Application is updated via the web interface!"
+  msg_ok "Application is updated via the web interface!"
   exit
 }
 
