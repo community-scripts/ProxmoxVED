@@ -40,7 +40,7 @@ function update_script() {
     cd /opt/yubal/web
     $STD bun install --frozen-lockfile
     VERSION=$(get_latest_github_release "guillevc/yubal")
-    $STD VITE_VERSION=$VERSION VITE_COMMIT_SHA=$VERSION VITE_IS_RELEASE=true bun run build
+    VITE_VERSION=$VERSION VITE_COMMIT_SHA=$VERSION VITE_IS_RELEASE=true $STD bun run build
     msg_ok "Built Frontend"
 
     msg_info "Installing Python Dependencies"
