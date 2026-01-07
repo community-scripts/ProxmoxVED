@@ -31,5 +31,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Gentoo compiles packages from source. Initial setup may take time.",
+      "type": "warning"
+    }
+  ]
 }

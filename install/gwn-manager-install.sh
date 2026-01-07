@@ -19,10 +19,10 @@ $STD apt install -y \
     fontconfig
 msg_ok "Installed Dependencies"
 
-msg_info "Setting up GWN Manager"
+msg_info "Setting up GWN Manager (Patience)"
 RELEASE=$(curl -s https://www.grandstream.com/support/tools#gwntools \
   | grep -oP 'https://firmware\.grandstream\.com/GWN_Manager-[^"]+-Ubuntu\.tar\.gz')
-download_with_progress "$RELEASE" "/tmp/gwnmanager.tar.gz"
+download_file "$RELEASE" "/tmp/gwnmanager.tar.gz"
 cd /tmp
 tar -xzf gwnmanager.tar.gz --strip-components=1
 $STD ./install
@@ -33,6 +33,7 @@ cat <<EOF >/etc/systemd/system/gwnmanager.service
 [Unit]
 Description=GWN Manager
 After=network.target
+Requires=network.target
 
 [Service]
 Type=simple
@@ -44,7 +45,7 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now gwnmanager
+systemctl enable -q gwnmanager
 msg_ok "Created Service"
 
 motd_ssh
