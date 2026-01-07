@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://www.grandstream.com/products/networking-solutions/wi-fi-management/product/gwn-manager
 
-APP="GWN Manager"
+APP="GWN-Manager"
 var_tags="${var_tags:-network;management}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-6144}"

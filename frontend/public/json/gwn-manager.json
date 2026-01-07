@@ -1,0 +1,35 @@
+{
+  "name": "GWN Manager",
+  "slug": "gwn-manager",
+  "categories": [
+    9
+  ],
+  "date_created": "2025-12-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8443,
+  "documentation": "https://documentation.grandstream.com/article-categories/gwn-mgmt/",
+  "website": "https://www.grandstream.com/products/networking-solutions/wi-fi-management/product/gwn-manager",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gwn-manager.webp",
+  "config_path": "",
+  "description": "GWN Manager is a web-based management interface for GrandStream GWN series devices.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/gwn-manager.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 6144,
+        "hdd": 8,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
