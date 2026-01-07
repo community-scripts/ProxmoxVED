@@ -95,8 +95,6 @@ printf "*    *    *    *    *     cd /var/www/MintHCM/legacy; php -f cron.php > 
 service cron start
 rm -f /var/www/MintHCM/configMint4
 
-
-
 motd_ssh
 customize
 cleanup_lxc
