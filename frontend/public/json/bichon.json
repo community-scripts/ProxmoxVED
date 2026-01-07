@@ -1,0 +1,40 @@
+{
+    "name": "Bichon",
+    "slug": "bichon",
+    "categories": [
+        7
+    ],
+    "date_created": "2026-01-07",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 15630,
+    "documentation": "https://github.com/rustmailer/bichon",
+    "config_path": "/opt/bichon/.env",
+    "website": "https://github.com/rustmailer/bichon",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/bichon.webp",
+    "description": "A lightweight, high-performance Rust email archiver with WebUI",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/bichon.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 1024,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Data directory is: `/opt/bichon-data`. If you have a lot of email, you might consider mounting external storage to this directory.",
+            "type": "info"
+        }
+    ]
+}
