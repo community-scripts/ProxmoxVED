@@ -787,11 +787,20 @@ if [ "$START_VM" == "yes" ]; then
   sleep 300
   msg_ok "UniFi OS Server installed"
 
-  # Step 4: Get IP address for final message
+  # Step 4: Start Guest Agent for IP detection
+  msg_info "Starting QEMU Guest Agent"
+  send_line_to_vm "systemctl start qemu-guest-agent"
+  sleep 3
+  msg_ok "Guest Agent started"
+
+  # Logout from VM console
+  send_line_to_vm "exit"
+  sleep 2
+
+  # Get IP from outside via Guest Agent
   msg_info "Detecting VM IP address"
-  sleep 5
   VM_IP=""
-  for i in {1..30}; do
+  for i in {1..15}; do
     VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[] | select(.name != "lo") | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | head -1 || echo "")
     if [ -n "$VM_IP" ]; then
       break
@@ -802,8 +811,7 @@ if [ "$START_VM" == "yes" ]; then
   if [ -n "$VM_IP" ]; then
     msg_ok "VM IP Address: ${VM_IP}"
   else
-    msg_info "IP address will be shown in VM console"
-    send_line_to_vm "ip -4 addr show | grep inet | grep -v 127.0.0.1"
+    msg_info "Could not detect IP - check VM console"
   fi
 
   echo ""
