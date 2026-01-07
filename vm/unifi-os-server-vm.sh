@@ -341,7 +341,7 @@ function default_settings() {
   HN="unifi-server-os"
   CPU_TYPE=" -cpu host"
   CORE_COUNT="2"
-  RAM_SIZE="4096"
+  RAM_SIZE="6144"
   BRG="vmbr0"
   MAC="$GEN_MAC"
   VLAN=""
