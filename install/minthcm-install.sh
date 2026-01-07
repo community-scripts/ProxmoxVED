@@ -62,16 +62,15 @@ msg_info "Setting up MariaDB"
 $STD mariadb -u root -e "SET GLOBAL sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'";
 msg_ok "Set up MariaDB"
 
-msg_info "Configuring database for MintHCM"
+msg_info "Configuring Database"
 DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 $STD mariadb -u root -e "CREATE USER 'minthcm'@'localhost' IDENTIFIED BY '${DB_PASS}';"
 $STD mariadb -u root -e "GRANT ALL ON *.* TO 'minthcm'@'localhost'; FLUSH PRIVILEGES;"
-msg_ok "Configured MariaDB for MintHCM"
-
 sed -i 's/^DB_HOST=.*/DB_HOST=localhost/' /var/www/script/.env
 sed -i 's/^DB_USER=.*/DB_USER=minthcm/' /var/www/script/.env
 sed -i "s/^DB_PASS=.*/DB_PASS=${DB_PASS}/" /var/www/script/.env
 sed -i 's/^ELASTICSEARCH_HOST=.*/ELASTICSEARCH_HOST=localhost/' /var/www/script/.env
+msg_ok "Configured MariaDB"
 {
   echo "MintHCM DB Credentials"
   echo "MariaDB User: minthcm"
