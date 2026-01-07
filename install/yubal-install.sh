@@ -37,7 +37,7 @@ msg_ok "Installed Deno"
 
 msg_info "Creating directories"
 mkdir -p /opt/yubal \
-  /opt/yubal/data \
+  /opt/yubal_data \
   /opt/yubal/ytdlp
 msg_ok "Created directories"
 
@@ -60,14 +60,14 @@ msg_info "Creating Service"
 cat <<EOF >/opt/yubal.env
 YUBAL_HOST=0.0.0.0
 YUBAL_PORT=8000
-YUBAL_DATA_DIR=/opt/yubal/data
+YUBAL_DATA_DIR=/opt/yubal_data
 YUBAL_BEETS_DIR=/opt/yubal/beets
 YUBAL_YTDLP_DIR=/opt/yubal/ytdlp
 PYTHONUNBUFFERED=1
 EOF
 cat <<EOF >/etc/systemd/system/yubal.service
 [Unit]
-Description=Yubal Music Management
+Description=Yubal
 After=network.target
 
 [Service]
