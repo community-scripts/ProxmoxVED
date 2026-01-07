@@ -34,7 +34,15 @@ function update_script() {
     systemctl stop yubal
     msg_ok "Stopped Services"
 
+    msg_info "Backing up"
+    cp /opt/yubal/.env /opt/yubal.env
+    msg_ok "Backed up"
+
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "yubal" "guillevc/yubal" "tarball" "latest" "/opt/yubal"
+
+    msg_info "Restoring Backup"
+    mv /opt/yubal.env /opt/yubal/.env
+    msg_ok "Restored Backup"
 
     msg_info "Building Frontend"
     cd /opt/yubal/web

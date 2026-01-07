@@ -57,7 +57,7 @@ $STD uv sync --no-dev --frozen
 msg_ok "Installed Python Dependencies"
 
 msg_info "Creating Service"
-cat <<EOF >/opt/yubal.env
+cat <<EOF >/opt/yubal/.env
 YUBAL_HOST=0.0.0.0
 YUBAL_PORT=8000
 YUBAL_DATA_DIR=/opt/yubal_data
@@ -74,7 +74,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/yubal
-EnvironmentFile=/opt/yubal.env
+EnvironmentFile=/opt/yubal/.env
 Environment="PATH=/opt/yubal/.venv/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=/opt/yubal/.venv/bin/python -m yubal
 Restart=always
