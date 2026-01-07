@@ -23,7 +23,7 @@ msg_ok "Installed dependencies"
 
 NODE_VERSION="24" NODE_MODULE="pnpm" setup_nodejs
 fetch_and_deploy_gh_release "wishlist" "cmintey/wishlist" "tarball"
-LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist")
+LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist" false)
 
 msg_info "Installing Wishlist"
 cd /opt/wishlist
@@ -33,8 +33,8 @@ $STD pnpm install
 $STD pnpm svelte-kit sync
 $STD pnpm prisma generate
 sed -i 's|/usr/src/app/|/opt/wishlist/|g' $(grep -rl '/usr/src/app/' /opt/wishlist)
-export VERSION="${LATEST_APP_VERSION}"
-export SHA="${LATEST_APP_VERSION}"
+export VERSION="v${LATEST_APP_VERSION}"
+export SHA="v${LATEST_APP_VERSION}"
 $STD pnpm run build
 $STD pnpm prune --prod
 chmod +x /opt/wishlist/entrypoint.sh

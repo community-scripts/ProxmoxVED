@@ -40,7 +40,7 @@ function update_script() {
     cp -R /opt/wishlist/data /opt/wishlist-backup/data
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wishlist" "cmintey/wishlist" "tarball"
-    LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist")
+    LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist" false)
 
     msg_info "Updating Wishlist"
     cd /opt/wishlist
