@@ -109,7 +109,6 @@ function cleanup_vmid() {
 
 function send_line_to_vm() {
   local line="$1"
-  echo -e "${DGN}Sending: ${YW}${line}${CL}"
   for ((i = 0; i < ${#line}; i++)); do
     character=${line:i:1}
     case $character in
