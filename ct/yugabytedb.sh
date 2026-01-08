@@ -12,9 +12,9 @@ source <(curl -fsSL https://raw.githubusercontent.com/bandogora/ProxmoxVED/featu
 # App Default Values
 APP="YugabyteDB"
 var_tags="${var_tags:-database}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-2048}"
-var_disk="${var_disk:-10}"
+var_cpu="${var_cpu:-4}"
+var_ram="${var_ram:-8192}"
+var_disk="${var_disk:-64}"
 var_os="${var_os:-almalinux}"
 var_version="${var_version:-9}"
 var_unprivileged="${var_unprivileged:-1}"

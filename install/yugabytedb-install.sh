@@ -121,9 +121,9 @@ tar -xzf share/ybc-*.tar.gz
 rm -rf ybc-*/conf/
 
 # Strip unneeded symbols from object files in $YB_HOME
-for a in $(find . -exec file {} \; | grep -i elf | cut -f1 -d:); do
-  strip --strip-unneeded "$a" || true
-done
+# for a in $(find . -exec file {} \; | grep -i elf | cut -f1 -d:); do
+#   strip --strip-unneeded "$a" || true
+# done
 
 # Add yugabyte supported languages to localedef
 languages=("en_US" "de_DE" "es_ES" "fr_FR" "it_IT" "ja_JP"
@@ -133,25 +133,33 @@ for lang in "${languages[@]}"; do
 done
 
 # Link yugabyte bins to /usr/local/bin/
-for a in ysqlsh ycqlsh yugabyted yb-admin yb-tsi-cli; do
-  ln -s "$YB_HOME"/bin/$a /usr/local/bin/$a
+for a in ysqlsh ycqlsh yugabyted yb-admin yb-ts-cli; do
+  ln -s "$YB_HOME/bin/$a" "/usr/local/bin/$a"
 done
 
 # In the normal EE flows, we expect /home/yugabyte/{master,tserver} to exist and have both links
 # to all the components in the unpacked tar.gz, as well as an extra link to the log path for the
 # respective server
-shopt -s extglob
-mkdir -p "$YB_HOME"/{master,tserver} \
-  $DATA_DIR/yb-data/{master,tserver}/logs
-# Link all YB pieces
-for dir in !(^ybc-*); do ln -s "$YB_HOME"/"$dir" "$YB_HOME"/master/"$dir"; done
-for dir in !(^ybc-*); do ln -s "$YB_HOME"/"$dir" "$YB_HOME"/tserver/"$dir"; done
-# Link the logs
-ln -s $DATA_DIR/yb-data/master/logs "$YB_HOME"/master/logs
-ln -s $DATA_DIR/yb-data/tserver/logs "$YB_HOME"/tserver/logs
+# shopt -s extglob
+# mkdir -p "$YB_HOME/{master,tserver}" "$DATA_DIR/yb-data/{master,tserver}/logs"
+# # Link all YB pieces
+# for dir in !(^ybc-*); do ln -s "$YB_HOME/$dir" "$YB_HOME/master/$dir"; done
+# for dir in !(^ybc-*); do ln -s "$YB_HOME/$dir" "$YB_HOME/tserver/$dir"; done
+# # Link the logs
 
-mkdir -p "$YB_HOME"/controller \
-  $DATA_DIR/ybc-data/controller/logs
+export dirs=$(ls /home/yugabyte | grep -v "^ybc-")
+mkdir "$YB_HOME"/{master,tserver}
+# Link all YB pieces.
+for dir in $dirs; do ln -s "$YB_HOME/$dir" "$YB_HOME/master/$dir"; done
+for dir in $dirs; do ln -s "$YB_HOME/$dir" "$YB_HOME/tserver/$dir"; done
+# Link the logs.
+ln -s "$DATA_DIR/yb-data/master/logs" "$YB_HOME/master/logs"
+ln -s "$DATA_DIR/yb-data/tserver/logs" "$YB_HOME/tserver/logs"
+# Create and link the cores.
+mkdir -p "$DATA_DIR/cores"
+ln -s "$DATA_DIR/cores" "$YB_HOME/cores"
+
+mkdir -p "$YB_HOME/controller" "$DATA_DIR/ybc-data/controller/logs"
 # Find ybc-* directory
 YBC_DIR=$(find "$YB_HOME" -maxdepth 1 -type d -name 'ybc-*')
 # Link bin directory
@@ -171,55 +179,56 @@ msg_ok "Copied licenses"
 
 # Install azcopy to support Microsoft Azure integration
 msg_info "Installing azcopy"
-curl -fsSL -O https://packages.microsoft.com/keys/microsoft.asc
-rpm --import microsoft.asc
-curl -fsSL -O https://packages.microsoft.com/config/alma/9/packages-microsoft-prod.rpm
-# Make sure packages-microsoft-prod.rpm is properly signed before install
-if rpm --quiet -K packages-microsoft-prod.rpm; then
-  rpm -i packages-microsoft-prod.rpm
-else
-  msg_error "digests SIGNATURES NOT OK"
-fi
-$STD dnf upgrade -y
-$STD dnf install -y azcopy
-rm -f microsoft.asc packages-microsoft-prod.rpm
+# curl -fsSL -O https://packages.microsoft.com/keys/microsoft.asc
+# rpm --import microsoft.asc
+# curl -fsSL -O https://packages.microsoft.com/config/alma/9/packages-microsoft-prod.rpm
+# # Make sure packages-microsoft-prod.rpm is properly signed before install
+# if rpm --quiet -K packages-microsoft-prod.rpm; then
+#   rpm -i packages-microsoft-prod.rpm
+# else
+#   msg_error "digests SIGNATURES NOT OK"
+# fi
+# $STD dnf upgrade -y
+# $STD dnf install -y azcopy
+# rm -f microsoft.asc packages-microsoft-prod.rpm
 
-# AZV=10.30.1
-# [[ "$(uname -m)" == "aarch64" ]] && arch='arm64' || arch='amd64'
-# pkg_name="azcopy_linux_${arch}_${AZV}"
-# mkdir /tmp/az
-# curl -o "/tmp/az/${pkg_name}.tar.gz" \
-#   "https://downloads.yugabyte.com/mirror/azcopy/${pkg_name}.tar.gz"
-# tar -xzf "/tmp/az/${pkg_name}.tar.gz" \
-#   --strip-components=1 \
-#   -C /usr/bin \
-#   "${pkg_name}/azcopy"
-# rm -rf /tmp/az
+AZV=10.30.1
+[[ "$(uname -m)" == "aarch64" ]] && arch='arm64' || arch='amd64'
+pkg_name="azcopy_linux_${arch}_${AZV}"
+mkdir /tmp/az
+curl -o "/tmp/az/${pkg_name}.tar.gz" \
+  "https://downloads.yugabyte.com/mirror/azcopy/${pkg_name}.tar.gz"
+tar -xzf "/tmp/az/${pkg_name}.tar.gz" \
+  --strip-components=1 \
+  -C /usr/bin \
+  "${pkg_name}/azcopy"
+rm -rf /tmp/az
 
 mkdir -m 777 /tmp/azcopy
 msg_ok "Installed azcopy"
 
 # Install gsutil to support Google Cloud Platform wintegration
-msg_info "Installing gsutil"
-sudo tee -a /etc/yum.repos.d/google-cloud-sdk.repo <<EOM
-[google-cloud-cli]
-name=Google Cloud CLI
-baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el9-x86_64
-enabled=1
-gpgcheck=1
-repo_gpgcheck=0
-gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM
-$STD dnf upgrade -y
-$STD dnf install -y libxcrypt-compat.x86_64 google-cloud-cli
+# msg_info "Installing gsutil"
+# sudo tee -a /etc/yum.repos.d/google-cloud-sdk.repo <<EOM
+# [google-cloud-cli]
+# name=Google Cloud CLI
+# baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el9-x86_64
+# enabled=1
+# gpgcheck=1
+# repo_gpgcheck=0
+# gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+# EOM
+# $STD dnf upgrade -y
+# $STD dnf install -y libxcrypt-compat.x86_64 google-cloud-cli
+# ln -s "$(which gsutil)" /usr/local/gsutil
 
-# GSV=4.60
-# mkdir /tmp/gsutils
-# curl -o "/tmp/gsutils/gsutil_${GSV}.tar.gz" \
-#   "https://storage.googleapis.com/pub/gsutil_${GSV}.tar.gz"
-# tar --no-same-owner -xzf "/tmp/gsutils/gsutil_${GSV}.tar.gz" -C /usr/local/
-# chown :root -R /usr/local/gsutil
-# rm -rf /tmp/gsutils
+GSV=4.60
+mkdir /tmp/gsutils
+curl -o "/tmp/gsutils/gsutil_${GSV}.tar.gz" \
+  "https://storage.googleapis.com/pub/gsutil_${GSV}.tar.gz"
+tar --no-same-owner -xzf "/tmp/gsutils/gsutil_${GSV}.tar.gz" -C /usr/local/
+chown :root -R /usr/local/gsutil
+rm -rf /tmp/gsutils
 
 # Configure gsutil
 mkdir "$YB_HOME"/.boto
