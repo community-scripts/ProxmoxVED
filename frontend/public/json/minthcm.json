@@ -12,8 +12,8 @@
     "documentation": "https://wiki.minthcm.org/",
     "config_path": "/var/www/MintHCM",
     "website": "https://minthcm.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/svg/minthcm.svg",
-    "description": "MintCHM is a free and open-source tool for Human Capital Management. Main features: recruitment, time management, onboarding & offboarding, calendar, leave management, resources booking, travel & expenses, workplace management, analytics, roles & permissions management, job descriptions, employer branding, employee profiles, competences & skills, employment history, employee evaluations, iOS & Android mobile apps. Mint based on two popular, well-known business applications: SugarCRM Community Edition and SuiteCRM. This is why we often say that MintHCM is CRM reinvented.",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/minthcm.webp",
+    "description": "MintCHM is a free and open-source tool for Human Capital Management. Main features: recruitment, time management, onboarding & offboarding, calendar, leave management, resources booking, travel & expenses, workplace management, analytics, roles & permissions management, job descriptions, employer branding, employee profiles, competences & skills, employment history, employee evaluations.",
     "install_methods": [
         {
             "type": "default",
