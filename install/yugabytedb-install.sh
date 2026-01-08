@@ -121,7 +121,7 @@ rm -rf ybc-*/conf/
 # yugabyted expects yb-controller-server file in ybc/bin
 mv ybc-* ybc
 
-Strip unneeded symbols from object files in $YB_HOME
+# Strip unneeded symbols from object files in $YB_HOME
 for a in $(find . -exec file {} \; | grep -i elf | cut -f1 -d:); do
   strip --strip-unneeded "$a" || true
 done
@@ -236,7 +236,7 @@ cat <<EOF >/etc/security/limits.conf
 *                -       nproc           12000
 *                -       locks           unlimited
 EOF
-msg_info "Set default ulimits"
+msg_ok "Set default ulimits"
 
 tserver_flags=""
 enable_ysql_conn_mgr=true
@@ -297,19 +297,6 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-
-# systemctl enable -q "${app}".service
-# # Enable systemd service
-# systemctl enable -q --now "${app}".service
-
-# # Verify service is running
-# if systemctl is-active --quiet "${app}".service; then
-#   msg_ok "Service running successfully"
-# else
-#   msg_error "Service failed to start"
-#   journalctl -u "${app}".service -n 20
-#   exit 1
-# fi
 msg_ok "Created Service"
 
 motd_ssh
@@ -319,7 +306,6 @@ customize
 msg_info "Cleaning up"
 $STD dnf autoremove -y
 $STD dnf clean all
-# rm -rf /usr/share/python3-wheels/*
 rm -rf \
   ~/.cache \
   "$YB_HOME/.cache" \
