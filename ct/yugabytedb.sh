@@ -172,19 +172,19 @@ done
 # Remove backup
 rm "/etc/pve/lxc/${CTID}.conf.backup"
 
-# # Start and enable the service
-# msg_info "Starting ${app}.service"
-# pct exec "$CTID" -- systemctl enable -q --now "${app}".service
-# # Verify service is running
-# pct exec "$CTID" -- /bin/sh -c "
-# if systemctl is-active --quiet ${app}.service; then
-#   msg_ok \"Started ${app}.service\"
-# else
-#   msg_error "Service failed to start"
-#   journalctl -u ${app}.service -n 20
-#   exit 1
-# fi
-# "
+# Start and enable the service
+msg_info "Starting ${app}.service"
+pct exec "$CTID" -- systemctl enable --now "${app}".service
+# Verify service is running
+pct exec "$CTID" -- /bin/sh -c "
+if systemctl is-active --quiet ${app}.service; then
+  msg_ok \"Started ${app}.service\"
+else
+  msg_error "Service failed to start"
+  journalctl -u ${app}.service -n 20
+  exit 1
+fi
+"
 
 description
 
