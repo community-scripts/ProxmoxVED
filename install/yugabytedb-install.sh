@@ -140,24 +140,32 @@ done
 # In the normal EE flows, we expect /home/yugabyte/{master,tserver} to exist and have both links
 # to all the components in the unpacked tar.gz, as well as an extra link to the log path for the
 # respective server
-# shopt -s extglob
-# mkdir -p "$YB_HOME/{master,tserver}" "$DATA_DIR/yb-data/{master,tserver}/logs"
-# # Link all YB pieces
-# for dir in !(^ybc-*); do ln -s "$YB_HOME/$dir" "$YB_HOME/master/$dir"; done
-# for dir in !(^ybc-*); do ln -s "$YB_HOME/$dir" "$YB_HOME/tserver/$dir"; done
-# # Link the logs
-
-export dirs=$(ls /home/yugabyte | grep -v "^ybc-")
-mkdir "$YB_HOME"/{master,tserver}
-# Link all YB pieces.
-for dir in $dirs; do ln -s "$YB_HOME/$dir" "$YB_HOME/master/$dir"; done
-for dir in $dirs; do ln -s "$YB_HOME/$dir" "$YB_HOME/tserver/$dir"; done
-# Link the logs.
+shopt -s extglob
+mkdir -p "$YB_HOME"/{master,tserver} "$DATA_DIR"/yb-data/{master,tserver}/logs
+# Link all YB pieces
+for dir in !(^ybc-*); do
+  ln -s "$YB_HOME/$dir" "$YB_HOME/master/$dir"
+  ln -s "$YB_HOME/$dir" "$YB_HOME/tserver/$dir"
+done
+shopt -u extglob
+# Link the logs
 ln -s "$DATA_DIR/yb-data/master/logs" "$YB_HOME/master/logs"
 ln -s "$DATA_DIR/yb-data/tserver/logs" "$YB_HOME/tserver/logs"
 # Create and link the cores.
 mkdir -p "$DATA_DIR/cores"
 ln -s "$DATA_DIR/cores" "$YB_HOME/cores"
+
+# export dirs=$(ls /home/yugabyte | grep -v "^ybc-")
+# mkdir "$YB_HOME"/{master,tserver}
+# # Link all YB pieces.
+# for dir in $dirs; do ln -s "$YB_HOME/$dir" "$YB_HOME/master/$dir"; done
+# for dir in $dirs; do ln -s "$YB_HOME/$dir" "$YB_HOME/tserver/$dir"; done
+# # Link the logs.
+# ln -s "$DATA_DIR/yb-data/master/logs" "$YB_HOME/master/logs"
+# ln -s "$DATA_DIR/yb-data/tserver/logs" "$YB_HOME/tserver/logs"
+# # Create and link the cores.
+# mkdir -p "$DATA_DIR/cores"
+# ln -s "$DATA_DIR/cores" "$YB_HOME/cores"
 
 mkdir -p "$YB_HOME/controller" "$DATA_DIR/ybc-data/controller/logs"
 # Find ybc-* directory
