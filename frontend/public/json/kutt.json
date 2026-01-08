@@ -10,7 +10,7 @@
     "privileged": false,
     "interface_port": 443,
     "documentation": "https://github.com/thedevs-network/kutt/",
-    "config_path": "/etc/kutt-data/.env",
+    "config_path": "/opt/kutt/.env",
     "website": "https://kutt.it",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kutt.webp",
     "description": "Kutt is a modern URL shortener with support for custom domains. Create and edit links, view statistics, manage users, and more.",
