@@ -129,20 +129,14 @@ jobs:
                   .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
                   .join(' ');
 
-                const issueBody = `# 🛠️ **New Script**
-Create an Issue when you want to merge a new Script. The name of the Issue must be the same as your APP.sh file. (Example: SnipeIT, snipeit.sh; Alpine-Docker, alpine-docker.sh)
-
-### Name of the Script
-
-${formattedName}
-
-### Script Type
-
-${scriptType}
-
-### 📋 Script Details
-
-This script has been merged and is ready for testing. ${message}`;
+                const issueBody = '# 🛠️ **New Script**\n' +
+                  'Create an Issue when you want to merge a new Script. The name of the Issue must be the same as your APP.sh file. (Example: SnipeIT, snipeit.sh; Alpine-Docker, alpine-docker.sh)\n\n' +
+                  '### Name of the Script\n\n' +
+                  formattedName + '\n\n' +
+                  '### Script Type\n\n' +
+                  scriptType + '\n\n' +
+                  '### 📋 Script Details\n\n' +
+                  'This script has been merged and is ready for testing. ' + message;
 
                 const { data: newIssue } = await github.rest.issues.create({
                   owner: context.repo.owner,
