@@ -83,7 +83,7 @@ msg_ok "Installed uv and Python Dependencies"
 
 msg_info "Setting ENV variables"
 DATA_DIR="$YB_HOME/var/data"
-TEMP_DIR=/tmp/yugabyted
+TEMP_DIR="$YB_HOME/var/tmp"
 YB_MANAGED_DEVOPS_USE_PYTHON3=1
 YB_DEVOPS_USE_PYTHON3=1
 BOTO_PATH=$YB_HOME/.boto/config
@@ -113,7 +113,7 @@ msg_ok "Created yugabyte user"
 
 msg_info "Setup ${APP}"
 # Create data dirs from ENV vars
-mkdir -p "$DATA_DIR"
+mkdir -p "$DATA_DIR" "$TEMP_DIR"
 
 # Get latest version and build number for our series
 read -r VERSION RELEASE < <(
@@ -163,8 +163,8 @@ shopt -u extglob
 ln -s "$DATA_DIR/yb-data/master/logs" "$YB_HOME/master/logs"
 ln -s "$DATA_DIR/yb-data/tserver/logs" "$YB_HOME/tserver/logs"
 # Create and link the cores.
-mkdir -p "$DATA_DIR/cores"
-ln -s "$DATA_DIR/cores" "$YB_HOME/cores"
+# mkdir -p "$DATA_DIR/cores"
+# ln -s "$DATA_DIR/cores" "$YB_HOME/cores"
 
 mkdir -p "$YB_HOME/controller" "$DATA_DIR/ybc-data/controller/logs"
 # Find ybc-* directory
@@ -220,8 +220,8 @@ $STD dnf install -y libxcrypt-compat.x86_64 google-cloud-cli
 
 # Configure gsutil
 mkdir "$YB_HOME"/.boto
-echo -e "[GSUtil]\nstate_dir=/tmp/gsutil" >"$YB_HOME"/.boto/config
 mkdir -m 777 /tmp/gsutil
+echo -e "[GSUtil]\nstate_dir=/tmp/gsutil" >"$YB_HOME"/.boto/config
 msg_ok "Installed gsutil"
 
 msg_info "Setting default ulimits in /etc/security/limits.conf"
