@@ -176,38 +176,38 @@ cp -r apps/accounts/out /var/www/ente/apps/accounts
 cp -r apps/auth/out /var/www/ente/apps/auth
 cp -r apps/cast/out /var/www/ente/apps/cast
 
-cat <<REBUILD_EOF >/opt/ente/rebuild-frontend.sh
+cat <<'EOF' >/opt/ente/rebuild-frontend.sh
 #!/usr/bin/env bash
 # Rebuild Ente frontend
 # Prompt for backend URL
 read -r -p "Enter the public URL for Ente backend (e.g., https://api.ente.yourdomain.com or http://192.168.1.100:8080) leave empty to use container IP: " backend_url
-if [[ -z "\$backend_url" ]]; then
+if [[ -z "$backend_url" ]]; then
     LOCAL_IP=$(hostname -I | awk '{print $1}')
-    ENTE_BACKEND_URL="http://\$LOCAL_IP:8080"
-    echo "No URL provided, using local IP: \$ENTE_BACKEND_URL\n"
+    ENTE_BACKEND_URL="http://$LOCAL_IP:8080"
+    echo "No URL provided, using local IP: $ENTE_BACKEND_URL"
 else
-    ENTE_BACKEND_URL="\$backend_url"
-    echo "Using provided URL: \$ENTE_BACKEND_URL\n"
+    ENTE_BACKEND_URL="$backend_url"
+    echo "Using provided URL: $ENTE_BACKEND_URL"
 fi
 
 # Prompt for albums URL
 read -r -p "Enter the public URL for Ente albums (e.g., https://albums.ente.yourdomain.com or http://192.168.1.100:3002) leave empty to use container IP: " albums_url
-if [[ -z "\$albums_url" ]]; then
-    LOCAL_IP=\$(hostname -I | awk '{print $1}')
-    ENTE_ALBUMS_URL="http://\$LOCAL_IP:3002"
-    echo "No URL provided, using local IP: \$ENTE_ALBUMS_URL\n"
+if [[ -z "$albums_url" ]]; then
+    LOCAL_IP=$(hostname -I | awk '{print $1}')
+    ENTE_ALBUMS_URL="http://$LOCAL_IP:3002"
+    echo "No URL provided, using local IP: $ENTE_ALBUMS_URL"
 else
-    ENTE_ALBUMS_URL="\$albums_url"
-    echo "Using provided URL: \$ENTE_ALBUMS_URL\n"
+    ENTE_ALBUMS_URL="$albums_url"
+    echo "Using provided URL: $ENTE_ALBUMS_URL"
 fi
 
-export NEXT_PUBLIC_ENTE_ENDPOINT=\$ENTE_BACKEND_URL
-export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=\$ENTE_ALBUMS_URL
+export NEXT_PUBLIC_ENTE_ENDPOINT=$ENTE_BACKEND_URL
+export NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=$ENTE_ALBUMS_URL
 
-echo "Building Web Applications\n"
+echo "Building Web Applications..."
 
 # Ensure Rust/wasm-pack is available for WASM build
-source "\$HOME/.cargo/env"
+source "$HOME/.cargo/env"
 cd /opt/ente/web
 yarn build
 yarn build:accounts
@@ -220,7 +220,7 @@ cp -r apps/auth/out /var/www/ente/apps/auth
 cp -r apps/cast/out /var/www/ente/apps/cast
 systemctl reload caddy
 echo "Frontend rebuilt successfully!"
-REBUILD_EOF
+EOF
 chmod +x /opt/ente/rebuild-frontend.sh
 msg_ok "Built Web Applications"
 
