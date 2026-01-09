@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
-# Copyright (c) 2026
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: Simon Friedrich
-# License: MIT
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://forgejo.org/
 
 APP="Forgejo Runner"
@@ -14,10 +14,9 @@ var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 
-# REQUIRED for Podman-in-LXC
-var_unprivileged="1"
-var_nesting="1"
-var_keyctl="1"
+var_unprivileged="${var_unprivileged:-1}"
+var_nesting="${var_nesting:-1}"
+var_keyctl="${var_keyctl:-1}"
 
 # -------------------------------------------------
 # Framework setup
@@ -27,28 +26,6 @@ variables
 color
 catch_errors
 
-# -------------------------------------------------
-# Description
-# -------------------------------------------------
-function description() {
-  cat <<EOF
-Forgejo Actions Runner using Podman (unprivileged LXC)
-
-Required inputs:
-- Forgejo Instance URL
-- Forgejo Runner Registration Token
-
-Requirements:
-- unprivileged container
-- nesting enabled
-- keyctl enabled
-- unconfined AppArmor profile
-EOF
-}
-
-# -------------------------------------------------
-# Update logic
-# -------------------------------------------------
 function update_script() {
   header_info
   check_container_storage
@@ -84,9 +61,6 @@ function update_script() {
   exit
 }
 
-# -------------------------------------------------
-# Install
-# -------------------------------------------------
 start
 build_container
 description
