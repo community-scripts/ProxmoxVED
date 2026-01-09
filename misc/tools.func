@@ -218,6 +218,7 @@ upgrade_packages_with_retry() {
       -o Dpkg::Options::="--force-confdef" \
       -o Dpkg::Options::="--force-confold" \
       "${packages[@]}" 2>/dev/null; then
+      return 0
     fi
 
     retry=$((retry + 1))
