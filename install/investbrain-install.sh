@@ -27,7 +27,8 @@ $STD apt install -y \
   libpq-dev
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.4" PHP_FPM=YES PHP_MODULE="gd,zip,intl,pdo,pgsql,pdo-pgsql,bcmath,opcache,mbstring,redis" setup_php
+export PHP_VERSION="8.4"
+PHP_FPM=YES PHP_MODULE="gd,zip,intl,pdo,pgsql,pdo-pgsql,bcmath,opcache,mbstring,redis" setup_php
 setup_composer
 NODE_VERSION="22" setup_nodejs
 PG_VERSION="17" setup_postgresql
