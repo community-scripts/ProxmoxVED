@@ -308,9 +308,9 @@ motd_ssh
 customize
 
 msg_info "Setting permissions"
-mkdir -m 777 "$TEMP_DIR"
-chown -R yugabyte:yugabyte "$YB_HOME" "$DATA_DIR"
+chown -R yugabyte:yugabyte "$YB_HOME" "$DATA_DIR" "$TEMP_DIR"
 chmod -R 775 "$YB_HOME" "$DATA_DIR"
+chmod -R 777 "$TEMP_DIR"
 msg_ok "Permissions set"
 
 # Cleanup
