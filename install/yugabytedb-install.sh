@@ -60,19 +60,24 @@ else
   exit 1
 fi
 
-msg_info "Installing Python3 Dependencies"
+msg_info "Installing uv and Python Dependencies"
 # Make sure python 3.11 is used when calling python or python3
 alternatives --install /usr/bin/python python /usr/bin/python3.11 99
 alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 99
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
 # Install required packages globally
-$STD python3 -m pip install --upgrade pip --root-user-action=ignore
-$STD python3 -m pip install --upgrade lxml --root-user-action=ignore
-$STD python3 -m pip install --upgrade s3cmd --root-user-action=ignore
-$STD python3 -m pip install --upgrade psutil --root-user-action=ignore
-msg_ok "Installed Python3 Dependencies"
+$STD uv pip install --upgrade pip --system
+$STD uv pip install --upgrade lxml --system
+$STD uv pip install --upgrade s3cmd --system
+$STD uv pip install --upgrade psutil --system
+# Create venv
+$STD uv venv --python --system-site-packages
+msg_ok "Installed uv and Python Dependencies"
 
 msg_info "Setting ENV variables"
 DATA_DIR="$YB_HOME/var/data"
+TEMP_DIR=/tmp/yugabyted
 YB_MANAGED_DEVOPS_USE_PYTHON3=1
 YB_DEVOPS_USE_PYTHON3=1
 BOTO_PATH=$YB_HOME/.boto/config
@@ -83,6 +88,7 @@ cat >/etc/environment <<EOF
 YB_SERIES=$YB_SERIES
 YB_HOME=$YB_HOME
 DATA_DIR=$DATA_DIR
+TEMP_DIR=$TEMP_DIR
 YB_MANAGED_DEVOPS_USE_PYTHON3=$YB_MANAGED_DEVOPS_USE_PYTHON3
 YB_DEVOPS_USE_PYTHON3=$YB_DEVOPS_USE_PYTHON3
 BOTO_PATH=$BOTO_PATH
@@ -217,14 +223,6 @@ echo -e "[GSUtil]\nstate_dir=/tmp/gsutil" >"$YB_HOME"/.boto/config
 mkdir -m 777 /tmp/gsutil
 msg_ok "Installed gsutil"
 
-msg_info "Setting permissions"
-mkdir -m 777 /tmp/yb-port-locks
-mkdir -m 777 /tmp/yb-controller-tmp
-chown -R yugabyte:yugabyte "$YB_HOME"
-chown -R yugabyte:yugabyte "$DATA_DIR"
-chmod 775 "$YB_HOME" "$DATA_DIR"
-msg_ok "Permissions set"
-
 msg_info "Setting default ulimits in /etc/security/limits.conf"
 cat <<EOF >/etc/security/limits.conf
 *                -       core            unlimited
@@ -242,7 +240,7 @@ cat <<EOF >/etc/security/limits.conf
 EOF
 msg_ok "Set default ulimits"
 
-tserver_flags=""
+tserver_flags="tmp_dir=$TEMP_DIR,"
 enable_ysql_conn_mgr=true
 durable_wal_write=true
 
@@ -251,7 +249,7 @@ if [ "$enable_ysql_conn_mgr" = true ]; then
 fi
 
 if [ "$enable_ysql_conn_mgr" = true ]; then
-  tserver_flags+="durable_wal_write=true,"
+  tserver_flags+="durable_wal_write=true"
 fi
 
 # "none, zone, region, cloud"
@@ -282,6 +280,7 @@ ExecStart=/bin/bash -c '/usr/local/bin/yugabyted start --secure \
 
 Environment="YB_HOME=$YB_HOME"
 Environment="DATA_DIR=$DATA_DIR"
+Environment="TEMP_DIR=$TEMP_DIR"
 Environment="YB_MANAGED_DEVOPS_USE_PYTHON3=$YB_MANAGED_DEVOPS_USE_PYTHON3"
 Environment="YB_DEVOPS_USE_PYTHON3=$YB_DEVOPS_USE_PYTHON3"
 Environment="BOTO_PATH=$BOTO_PATH"
@@ -305,6 +304,12 @@ msg_ok "Created Service"
 
 motd_ssh
 customize
+
+msg_info "Setting permissions"
+mkdir -m 777 "$TEMP_DIR"
+chown -R yugabyte:yugabyte "$YB_HOME" "$DATA_DIR"
+chmod -R 775 "$YB_HOME" "$DATA_DIR"
+msg_ok "Permissions set"
 
 # Cleanup
 msg_info "Cleaning up"
