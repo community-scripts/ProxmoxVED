@@ -175,9 +175,7 @@ rm "/etc/pve/lxc/${CTID}.conf.backup"
 
 # # Start and enable the service
 # msg_info "Starting ${NSAPP}.service"
-# pct exec "$CTID" -- systemctl enable --now "${NSAPP}".service
-# # Verify service is running
-# pct exec "$CTID" -- /bin/sh -c "
+# cat exec "$CTID" -- <<EOF >pct
 # if systemctl is-active --quiet ${NSAPP}.service; then
 #   msg_ok \"Started ${NSAPP}.service\"
 # else
@@ -185,7 +183,7 @@ rm "/etc/pve/lxc/${CTID}.conf.backup"
 #   journalctl -u ${NSAPP}.service -n 20
 #   exit 1
 # fi
-# "
+# EOF
 
 description
 

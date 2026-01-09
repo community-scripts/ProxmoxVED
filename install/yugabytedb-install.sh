@@ -61,19 +61,24 @@ else
 fi
 
 msg_info "Installing uv and Python Dependencies"
+mkdir -p "$YB_HOME"
+# Set working dir
+cd "$YB_HOME" || exit
 # Make sure python 3.11 is used when calling python or python3
 alternatives --install /usr/bin/python python /usr/bin/python3.11 99
 alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 99
 # Install uv
+export UV_INSTALL_DIR="/usr/local/bin"
 curl -LsSf https://astral.sh/uv/install.sh | sh
+source "$UV_INSTALL_DIR/env"
 # Install required packages globally
 $STD uv pip install --upgrade pip --system
 $STD uv pip install --upgrade lxml --system
 $STD uv pip install --upgrade s3cmd --system
 $STD uv pip install --upgrade psutil --system
 # Create venv
-$STD uv venv --system-site-packages
-$STD source .venv/bin/activate
+$STD uv venv --python 3.11 --system-site-packages
+source .venv/bin/activate
 msg_ok "Installed uv and Python Dependencies"
 
 msg_info "Setting ENV variables"
@@ -99,7 +104,6 @@ EOF
 msg_ok "Set ENV variables"
 
 msg_info "Creating yugabyte user"
-mkdir -p "$YB_HOME"
 useradd --home-dir "$YB_HOME" \
   --uid 10001 \
   --no-create-home \
@@ -110,9 +114,6 @@ msg_ok "Created yugabyte user"
 msg_info "Setup ${APP}"
 # Create data dirs from ENV vars
 mkdir -p "$DATA_DIR"
-
-# Set working dir
-cd "$YB_HOME" || exit
 
 # Get latest version and build number for our series
 read -r VERSION RELEASE < <(
@@ -317,6 +318,7 @@ msg_ok "Permissions set"
 msg_info "Cleaning up"
 $STD dnf autoremove -y
 $STD dnf clean all
+$STD uv cache clean
 rm -rf \
   ~/.cache \
   "$YB_HOME/.cache" \
