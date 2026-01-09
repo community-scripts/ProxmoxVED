@@ -32,9 +32,6 @@ $STD apt install -y \
     timescaledb-2-postgresql-18 \
     timescaledb-tools \
     timescaledb-toolkit-postgresql-18
-# give timescaledb-tune 50% of total ram in MB
-# we need to leave the rest for redis and the webserver.
-# We cant use $RAM_SIZE or $var_ram here, which is annoying.
 total_ram_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
 ram_for_tsdb=$((total_ram_kb / 1024 / 2))
 $STD timescaledb-tune -yes -memory "$ram_for_tsdb"MB
