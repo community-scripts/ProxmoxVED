@@ -120,7 +120,7 @@ CONFIGEOF
 chmod 644 /var/lib/romm/config/config.yml
 msg_ok "Created configuration file"
 
-fetch_and_deploy_gh_release "RetroAchievements" "RetroAchievements/RALibretro" "prebuild" "latest" "/opt/RALibretro" "RAHasher-x64-Linux.zip"
+fetch_and_deploy_gh_release "RetroAchievements" "RetroAchievements/RALibretro" "prebuild" "latest" "/opt/RALibretro" "RAHasher-x64-Linux-*.zip"
 
 msg_info "Building RAHasher (RetroAchievements)"
 cd /opt/RALibretro

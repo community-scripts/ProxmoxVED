@@ -107,6 +107,76 @@ function cleanup_vmid() {
   fi
 }
 
+function send_line_to_vm() {
+  local line="$1"
+  for ((i = 0; i < ${#line}; i++)); do
+    character=${line:i:1}
+    case $character in
+    " ") character="spc" ;;
+    "-") character="minus" ;;
+    "=") character="equal" ;;
+    ",") character="comma" ;;
+    ".") character="dot" ;;
+    "/") character="slash" ;;
+    "'") character="apostrophe" ;;
+    ";") character="semicolon" ;;
+    '\') character="backslash" ;;
+    '\`') character="grave_accent" ;;
+    "[") character="bracket_left" ;;
+    "]") character="bracket_right" ;;
+    "_") character="shift-minus" ;;
+    "+") character="shift-equal" ;;
+    "?") character="shift-slash" ;;
+    "<") character="shift-comma" ;;
+    ">") character="shift-dot" ;;
+    '"') character="shift-apostrophe" ;;
+    ":") character="shift-semicolon" ;;
+    "|") character="shift-backslash" ;;
+    "~") character="shift-grave_accent" ;;
+    "{") character="shift-bracket_left" ;;
+    "}") character="shift-bracket_right" ;;
+    "A") character="shift-a" ;;
+    "B") character="shift-b" ;;
+    "C") character="shift-c" ;;
+    "D") character="shift-d" ;;
+    "E") character="shift-e" ;;
+    "F") character="shift-f" ;;
+    "G") character="shift-g" ;;
+    "H") character="shift-h" ;;
+    "I") character="shift-i" ;;
+    "J") character="shift-j" ;;
+    "K") character="shift-k" ;;
+    "L") character="shift-l" ;;
+    "M") character="shift-m" ;;
+    "N") character="shift-n" ;;
+    "O") character="shift-o" ;;
+    "P") character="shift-p" ;;
+    "Q") character="shift-q" ;;
+    "R") character="shift-r" ;;
+    "S") character="shift-s" ;;
+    "T") character="shift-t" ;;
+    "U") character="shift-u" ;;
+    "V") character="shift-v" ;;
+    "W") character="shift-w" ;;
+    "X") character="shift-x" ;;
+    "Y") character="shift-y" ;;
+    "Z") character="shift-z" ;;
+    "!") character="shift-1" ;;
+    "@") character="shift-2" ;;
+    "#") character="shift-3" ;;
+    '$') character="shift-4" ;;
+    "%") character="shift-5" ;;
+    "^") character="shift-6" ;;
+    "&") character="shift-7" ;;
+    "*") character="shift-8" ;;
+    "(") character="shift-9" ;;
+    ")") character="shift-0" ;;
+    esac
+    qm sendkey $VMID "$character"
+  done
+  qm sendkey $VMID ret
+}
+
 function cleanup() {
   popd >/dev/null
   post_update_to_api "done" "none"
@@ -229,7 +299,7 @@ function select_os() {
       OS_DISPLAY="Ubuntu 24.04 LTS"
       ;;
     esac
-    echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}${OS_DISPLAY}${CL}"
+    #echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}${OS_DISPLAY}${CL}"
   else
     exit-script
   fi
@@ -238,14 +308,14 @@ function select_os() {
 function select_cloud_init() {
   # UniFi OS Server ALWAYS requires Cloud-Init for automated installation
   USE_CLOUD_INIT="yes"
-  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes (required for UniFi OS)${CL}"
+  #echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes (required for UniFi OS)${CL}"
 }
 
 function get_image_url() {
   local arch=$(dpkg --print-architecture)
   case $OS_TYPE in
   debian)
-    # Always use generic (Cloud-Init) variant for UniFi OS
+    # Always use <ic (Cloud-Init) variant for UniFi OS
     echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-generic-${arch}.qcow2"
     ;;
   ubuntu)
@@ -271,7 +341,7 @@ function default_settings() {
   HN="unifi-server-os"
   CPU_TYPE=" -cpu host"
   CORE_COUNT="2"
-  RAM_SIZE="4096"
+  RAM_SIZE="6144"
   BRG="vmbr0"
   MAC="$GEN_MAC"
   VLAN=""
@@ -679,138 +749,80 @@ if [ "$START_VM" == "yes" ]; then
   qm start $VMID
   msg_ok "Started UniFi OS VM"
 
-  msg_info "Waiting for VM to boot and Cloud-Init to complete (60-90 seconds)"
-  sleep 60
+  msg_info "Waiting for VM to boot and Cloud-Init to complete (this takes ~90 seconds)"
+  sleep 90
   msg_ok "VM boot complete"
 
+  # Login via serial console
+  msg_info "Logging into VM via serial console"
+  send_line_to_vm "root"
+  sleep 2
+  send_line_to_vm "${CLOUDINIT_PASSWORD}"
+  sleep 3
+  msg_ok "Logged into VM"
+
+  # Step 1: Update and install Podman
+  msg_info "Installing Podman and dependencies (this takes 2-3 minutes)"
+  send_line_to_vm "export DEBIAN_FRONTEND=noninteractive"
+  sleep 1
+  send_line_to_vm "apt-get update -qq"
+  sleep 30
+  send_line_to_vm "apt-get install -y podman uidmap slirp4netns curl wget -qq"
+  sleep 120
+  msg_ok "Podman installed"
+
+  # Step 2: Download UniFi OS Server installer
+  msg_info "Downloading UniFi OS Server ${UOS_VERSION}"
+  send_line_to_vm "cd /opt"
+  sleep 1
+  send_line_to_vm "wget -q ${UOS_URL} -O unifi-os-server.bin"
+  sleep 60
+  send_line_to_vm "chmod +x unifi-os-server.bin"
+  sleep 2
+  msg_ok "Downloaded UniFi OS Server installer"
+
+  # Step 3: Install UniFi OS Server (with auto-yes)
+  msg_info "Installing UniFi OS Server (this takes 3-5 minutes)"
+  send_line_to_vm "echo y | ./unifi-os-server.bin"
+  sleep 300
+  msg_ok "UniFi OS Server installed"
+
+  # Step 4: Start Guest Agent for IP detection
+  msg_info "Starting QEMU Guest Agent"
+  send_line_to_vm "systemctl start qemu-guest-agent"
+  sleep 3
+  msg_ok "Guest Agent started"
+
+  # Logout from VM console
+  send_line_to_vm "exit"
+  sleep 2
+
+  # Get IP from outside via Guest Agent
   msg_info "Detecting VM IP address"
   VM_IP=""
-  for i in {1..30}; do
-    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[1]["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | grep -v "127.0.0.1" | head -1 || echo "")
-
+  for i in {1..15}; do
+    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[] | select(.name != "lo") | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | head -1 || echo "")
     if [ -n "$VM_IP" ]; then
-      msg_ok "VM IP Address: ${VM_IP}"
       break
     fi
     sleep 2
   done
 
-  if [ -z "$VM_IP" ]; then
-    msg_error "Could not detect VM IP address"
-    echo -e "${TAB}${INFO}${YW}Use Proxmox Console to login with Cloud-Init credentials${CL}"
-    echo -e "${TAB}${INFO}${YW}User: ${BGN}${CLOUDINIT_USER:-root}${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
-    exit 1
-  fi
-
-  # Wait for SSH to be ready
-  msg_info "Waiting for SSH to be ready"
-  SSH_READY=0
-  for i in {1..30}; do
-    if timeout 5 sshpass -p "${CLOUDINIT_PASSWORD}" ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-      "${CLOUDINIT_USER:-root}@${VM_IP}" "echo 'SSH Ready'" >/dev/null 2>&1; then
-      SSH_READY=1
-      msg_ok "SSH connection ready"
-      break
-    fi
-    sleep 2
-  done
-
-  if [ $SSH_READY -eq 0 ]; then
-    msg_error "SSH connection failed"
-    echo -e "${TAB}${INFO}${YW}Manual login - User: ${BGN}${CLOUDINIT_USER:-root}${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
-    exit 1
-  fi
-
-  # Check if sshpass is installed
-  if ! command -v sshpass &>/dev/null; then
-    msg_info "Installing sshpass for automated SSH"
-    apt-get update -qq >/dev/null 2>&1
-    apt-get install -y sshpass -qq >/dev/null 2>&1
-  fi
-
-  # Execute UniFi OS installation directly via SSH
-  msg_info "Installing UniFi OS Server ${UOS_VERSION} (takes 4-6 minutes)"
-
-  # Create installation script
-  INSTALL_SCRIPT=$(
-    cat <<'EOFINSTALL'
-#!/bin/bash
-set -e
-export DEBIAN_FRONTEND=noninteractive
-
-echo "[1/5] Updating system packages..."
-apt-get update -qq
-apt-get install -y curl wget ca-certificates podman uidmap slirp4netns iptables -qq
-
-echo "[2/5] Configuring Podman..."
-loginctl enable-linger root
-
-echo "[3/5] Downloading UniFi OS Server installer..."
-cd /root
-curl -fsSL "UNIFI_URL" -o unifi-installer.bin
-chmod +x unifi-installer.bin
-
-echo "[4/5] Installing UniFi OS Server (this takes 3-5 minutes)..."
-./unifi-installer.bin install
-
-echo "[5/5] Starting UniFi OS Server..."
-sleep 15
-
-if systemctl list-unit-files | grep -q unifi-os-server; then
-  systemctl enable unifi-os-server
-  systemctl start unifi-os-server
-  sleep 10
-
-  if systemctl is-active --quiet unifi-os-server; then
-    echo "✓ UniFi OS Server is running"
+  if [ -n "$VM_IP" ]; then
+    msg_ok "VM IP Address: ${VM_IP}"
   else
-    echo "⚠ Service status:"
-    systemctl status unifi-os-server --no-pager || true
+    msg_info "Could not detect IP - check VM console"
   fi
-fi
-
-echo "Installation completed!"
-EOFINSTALL
-  )
-
-  # Replace URL placeholder
-  INSTALL_SCRIPT="${INSTALL_SCRIPT//UNIFI_URL/$UOS_URL}"
-
-  # Execute installation via SSH (with output streaming)
-  if sshpass -p "${CLOUDINIT_PASSWORD}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-    "${CLOUDINIT_USER:-root}@${VM_IP}" "bash -s" <<<"$INSTALL_SCRIPT" 2>&1 | while IFS= read -r line; do
-    echo -e "${TAB}${DGN}${line}${CL}"
-  done; then
-    msg_ok "UniFi OS Server installed successfully"
-  else
-    msg_error "Installation failed"
-    echo -e "${TAB}${INFO}${YW}Check logs: ${BL}ssh ${CLOUDINIT_USER:-root}@${VM_IP}${CL}"
-    exit 1
-  fi
-
-  # Wait for UniFi OS web interface
-  msg_info "Waiting for UniFi OS web interface (port 11443)"
-  PORT_OPEN=0
-  for i in {1..60}; do
-    if timeout 2 bash -c ">/dev/tcp/${VM_IP}/11443" 2>/dev/null; then
-      PORT_OPEN=1
-      msg_ok "UniFi OS Server web interface is ready"
-      break
-    fi
-    sleep 2
-  done
 
   echo ""
-  if [ $PORT_OPEN -eq 1 ]; then
-    echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ UniFi OS Server is ready!${CL}"
+  echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ UniFi OS Server installation complete!${CL}"
+  if [ -n "$VM_IP" ]; then
     echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ Access at: ${BGN}https://${VM_IP}:11443${CL}"
   else
-    echo -e "${TAB}${INFO}${YW}UniFi OS is installed but web interface not yet available${CL}"
-    echo -e "${TAB}${INFO}${YW}Access at: ${BGN}https://${VM_IP}:11443${CL} ${YW}(may take 1-2 more minutes)${CL}"
+    echo -e "${TAB}${INFO}${YW}Access via: ${BGN}https://<VM-IP>:11443${CL}"
   fi
-
-  echo -e "${TAB}${INFO}${DGN}SSH Access: ${BL}ssh ${CLOUDINIT_USER:-root}@${VM_IP}${CL}"
-  echo -e "${TAB}${INFO}${DGN}Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
+  echo -e "${TAB}${INFO}${DGN}Console login - User: ${BGN}root${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
+  echo -e "${TAB}${INFO}${YW}Note: UniFi OS may take 1-2 more minutes to fully start${CL}"
   echo ""
 fi
 
