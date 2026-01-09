@@ -12,7 +12,7 @@ catch_errors
 setting_up_container
 network_check
 update_os
-
+PHP_VERSION="8.2"
 PHP_APACHE="YES" PHP_VERSION="8.2" PHP_MODULE="mysql,cli,redis" PHP_FPM="YES" setup_php
 setup_composer
 
