@@ -47,7 +47,7 @@ msg_info "Configuring Kutt"
 cd /opt/kutt
 cp .example.env ".env"
 sed -i "s|JWT_SECRET=|JWT_SECRET=$(openssl rand -base64 32)|g" ".env"
-sed -i "s|DEFAULT_DOMAIN=.*|DEFAULT_DOMAIN=https://$DEFAULT_HOST|g" ".env"
+sed -i "s|DEFAULT_DOMAIN=.*|DEFAULT_DOMAIN=$DEFAULT_HOST|g" ".env"
 $STD npm install
 $STD npm run migrate
 msg_ok "Configured Kutt"
