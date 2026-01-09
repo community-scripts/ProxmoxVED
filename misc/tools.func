@@ -184,7 +184,10 @@ install_packages_with_retry() {
   local retry=0
 
   while [[ $retry -le $max_retries ]]; do
-    if $STD apt install -y "${packages[@]}" 2>/dev/null; then
+    if DEBIAN_FRONTEND=noninteractive $STD apt install -y \
+      -o Dpkg::Options::="--force-confdef" \
+      -o Dpkg::Options::="--force-confold" \
+      "${packages[@]}" 2>/dev/null; then
       return 0
     fi
 
@@ -211,8 +214,10 @@ upgrade_packages_with_retry() {
   local retry=0
 
   while [[ $retry -le $max_retries ]]; do
-    if $STD apt install --only-upgrade -y "${packages[@]}" 2>/dev/null; then
-      return 0
+    if DEBIAN_FRONTEND=noninteractive $STD apt install --only-upgrade -y \
+      -o Dpkg::Options::="--force-confdef" \
+      -o Dpkg::Options::="--force-confold" \
+      "${packages[@]}" 2>/dev/null; then
     fi
 
     retry=$((retry + 1))
