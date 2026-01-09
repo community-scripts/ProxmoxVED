@@ -70,15 +70,15 @@ alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 99
 # Install uv
 export UV_INSTALL_DIR="/usr/local/bin"
 curl -LsSf https://astral.sh/uv/install.sh | sh
-source "$UV_INSTALL_DIR/env"
-# Install required packages globally
-$STD uv pip install --upgrade pip --system
-$STD uv pip install --upgrade lxml --system
-$STD uv pip install --upgrade s3cmd --system
-$STD uv pip install --upgrade psutil --system
+export PATH="/usr/local/bin:$PATH"
 # Create venv
-$STD uv venv --python 3.11 --system-site-packages
+$STD uv venv --python 3.11
 source .venv/bin/activate
+# Install required packages globally
+$STD uv pip install --upgrade pip
+$STD uv pip install --upgrade lxml
+$STD uv pip install --upgrade s3cmd
+$STD uv pip install --upgrade psutil
 msg_ok "Installed uv and Python Dependencies"
 
 msg_info "Setting ENV variables"
