@@ -29,10 +29,5 @@
     "username": null,
     "password": null
   },
-  "notes": [
-    {
-      "text": "Edit /opt/wishlist/.env in the LXC container to customize settings. Restart the container after making changes.",
-      "type": "info"
-    }
-  ]
+  "notes": []
 }
