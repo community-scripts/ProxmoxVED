@@ -35,7 +35,6 @@ function update_script() {
 
     PNPM_VERSION="$(curl -fsSL "https://raw.githubusercontent.com/connorgallopo/Tracearr/refs/heads/main/package.json" | jq -r '.packageManager | split("@")[1]')"
     NODE_VERSION="22" NODE_MODULE="pnpm@${PNPM_VERSION}" setup_nodejs
-
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "tracearr" "connorgallopo/Tracearr" "tarball" "latest" "/opt/tracearr.build"
 
     msg_info "Building Tracearr"
@@ -80,7 +79,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"
