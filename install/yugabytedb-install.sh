@@ -215,7 +215,6 @@ repo_gpgcheck=0
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Google-Cloud-SDK
 sslverify=1
 EOM
-ln -s "$(which gsutil)" /usr/local/gsutil
 $STD dnf upgrade -y
 $STD dnf install -y libxcrypt-compat.x86_64 google-cloud-cli
 
