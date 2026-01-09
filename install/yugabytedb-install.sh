@@ -95,6 +95,8 @@ msg_info "Creating yugabyte user"
 mkdir -p "$YB_HOME"
 useradd --home-dir "$YB_HOME" \
   --uid 10001 \
+  --no-create-home \
+  --shell /sbin/nologin \
   yugabyte
 msg_ok "Created yugabyte user"
 
