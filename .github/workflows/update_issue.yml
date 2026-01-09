@@ -136,14 +136,14 @@ jobs:
                   '### Script Type\n\n' +
                   scriptType + '\n\n' +
                   '### 📋 Script Details\n\n' +
-                  'This script has been merged and is ready for testing. ' + message;
+                  'This script has been merged and is ready for testing. ';
 
                 const { data: newIssue } = await github.rest.issues.create({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   title: scriptName,
                   body: issueBody,
-                  labels: ['task', labelName]
+                  labels: [labelName]
                 });
 
                 console.log(`Created new issue #${newIssue.number}: ${newIssue.title}`);
