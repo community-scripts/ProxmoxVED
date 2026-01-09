@@ -47,7 +47,7 @@ jobs:
             exit 0
           fi
 
-          JSON_NAMES=$(printf '%s\n' "${SCRIPT_NAMES[@]}" | jq -R . | jq -s .)
+          JSON_NAMES=$(printf '%s\n' "${SCRIPT_NAMES[@]}" | jq -R . | jq -s -c .)
           echo "script_names=$JSON_NAMES" >> $GITHUB_OUTPUT
           echo "Found script names: ${SCRIPT_NAMES[*]}"
 
