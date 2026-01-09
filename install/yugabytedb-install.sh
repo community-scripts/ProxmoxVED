@@ -220,6 +220,7 @@ mkdir -m 777 /tmp/yb-port-locks
 mkdir -m 777 /tmp/yb-controller-tmp
 chown -R yugabyte:yugabyte "$YB_HOME"
 chown -R yugabyte:yugabyte "$DATA_DIR"
+chmod 775 "$YB_HOME" "$DATA_DIR"
 msg_ok "Permissions set"
 
 msg_info "Setting default ulimits in /etc/security/limits.conf"
@@ -258,7 +259,7 @@ backup_daemon=true
 
 # Creating Service
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/"${app}.service"
+cat <<EOF >/etc/systemd/system/"${NSAPP}.service"
 [Unit]
 Description=${APPLICATION} Service
 Wants=network-online.target

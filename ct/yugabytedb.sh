@@ -25,6 +25,7 @@ var_lxc_prlimit_config=(
   "lxc.prlimit.nofile = 1048576"
   "lxc.prlimit.sigpending = 119934"
 )
+export NSAPP
 
 header_info "$APP"
 variables
@@ -51,13 +52,13 @@ function update_script() {
   if [[ "${RELEASE}" != "$(sed -rn 's/.*"version_number"[[:space:]]*:[[:space:]]*"([^"]*)".*"build_number"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1-\2/p' ${YB_HOME}/version_metadata.json)" ]]; then
     # Stopping Services
     msg_info "Stopping $APP"
-    systemctl stop "${app}".service
+    systemctl stop "${NSAPP}".service
     pkill yb-master
     msg_ok "Stopped $APP"
 
     # Creating Backup
     # msg_info "Creating Backup"
-    # tar -czf "/opt/${app}_backup_$(date +%F).tar.gz" [IMPORTANT_PATHS]
+    # tar -czf "/opt/${NSAPP}_backup_$(date +%F).tar.gz" [IMPORTANT_PATHS]
     # msg_ok "Backup Created"
 
     msg_info "Updating Dependencies"
@@ -85,14 +86,14 @@ function update_script() {
     msg_ok "Updated $APP to v${RELEASE}"
 
     # Starting Services
-    msg_info "Starting ${app}.service"
-    systemctl start "${app}".service
+    msg_info "Starting ${NSAPP}.service"
+    systemctl start "${NSAPP}".service
     # Verify service is running
-    if systemctl is-active --quiet "${app}".service; then
-      msg_ok "Started ${app}.service"
+    if systemctl is-active --quiet "${NSAPP}".service; then
+      msg_ok "Started ${NSAPP}.service"
     else
       msg_error "Service failed to start"
-      journalctl -u "${app}".service -n 20
+      journalctl -u "${NSAPP}".service -n 20
       exit 1
     fi
 
@@ -173,15 +174,15 @@ done
 rm "/etc/pve/lxc/${CTID}.conf.backup"
 
 # # Start and enable the service
-# msg_info "Starting ${app}.service"
-# pct exec "$CTID" -- systemctl enable --now "${app}".service
+# msg_info "Starting ${NSAPP}.service"
+# pct exec "$CTID" -- systemctl enable --now "${NSAPP}".service
 # # Verify service is running
 # pct exec "$CTID" -- /bin/sh -c "
-# if systemctl is-active --quiet ${app}.service; then
-#   msg_ok \"Started ${app}.service\"
+# if systemctl is-active --quiet ${NSAPP}.service; then
+#   msg_ok \"Started ${NSAPP}.service\"
 # else
 #   msg_error "Service failed to start"
-#   journalctl -u ${app}.service -n 20
+#   journalctl -u ${NSAPP}.service -n 20
 #   exit 1
 # fi
 # "
