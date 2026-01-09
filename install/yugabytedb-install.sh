@@ -72,7 +72,8 @@ $STD uv pip install --upgrade lxml --system
 $STD uv pip install --upgrade s3cmd --system
 $STD uv pip install --upgrade psutil --system
 # Create venv
-$STD uv venv --python --system-site-packages
+$STD uv venv --system-site-packages
+$STD source .venv/bin/activate
 msg_ok "Installed uv and Python Dependencies"
 
 msg_info "Setting ENV variables"
@@ -269,7 +270,8 @@ After=network-online.target
 Type=forking
 RestartForceExitStatus=SIGPIPE
 StartLimitInterval=0
-ExecStart=/bin/bash -c '/usr/local/bin/yugabyted start --secure \
+ExecStart=/bin/bash -c 'source $YB_HOME/.venv/bin/activate && \
+/usr/local/bin/yugabyted start --secure \
 --backup_daemon=$backup_daemon \
 --fault_tolerance=$fault_tolerance \
 --advertise_address=$(hostname -I | awk '{print $1}') \
