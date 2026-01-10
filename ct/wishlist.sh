@@ -57,6 +57,7 @@ function update_script() {
     cp /opt/wishlist-backup/.env /opt/wishlist/.env
     cp -a /opt/wishlist-backup/uploads /opt/wishlist
     cp -a /opt/wishlist-backup/data /opt/wishlist
+    rm -rf /opt/wishlist-backup
     msg_ok "Updated Wishlist"
     msg_info "Starting Service"
     systemctl start wishlist
