@@ -51,6 +51,54 @@ variables
 color
 catch_errors
 
+config_yugabytedb() {
+  TSERVER_FLAGS=""
+  BACKUP_DAEMON=true
+  FAULT_TOLERANCE="zone"
+
+  CLOUD_LOCATION=$(whiptail --title "YugabyteDB Setup" \
+    --inputbox "Set your cloud location." 8 60 "cloudprovider.region.zone" 3>&1 1>&2 2>&3)
+
+  if single_zone=$(whiptail --title "YugabyteDB Setup" --yesno "Single availability zone (AZ) deployment?" 8 60); then
+    TSERVER_FLAGS+="durable_wal_write=true"
+  fi
+
+  # if [[ $single_zone -eq 0 ]]; then
+  #   whiptail --title "Radio list example" --radiolist \
+  #     "Specify the fault tolerance for the universe." 20 78 4 \
+  #     "none" "Allow connections to other hosts" ON \
+  #     "zone" "Allow connections from other hosts" OFF \
+  #     "region" "Allow mounting of local devices" OFF \
+  #     "cloud" "Allow mounting of remote devices" OFF
+  # fi
+
+  # "none, zone, region, cloud"
+  FAULT_TOLERANCE="zone"
+
+  if whiptail --title "YugabyteDB Setup" --yesno "Is this a single zone setup?" 8 60; then
+    # In single AZ deployments, you need to set the yb-tserver flag --durable_wal_write=true
+    # to not lose data if the whole data center goes down (for example, power failure).
+    TSERVER_FLAGS+="durable_wal_write=true"
+  fi
+
+  if ! whiptail --title "YugabyteDB Setup" \
+    --yesno "Do want to use YSQL Connection Manager for connection pooling?" 8 60; then
+    TSERVER_FLAGS+="enable_ysql_conn_mgr=true,"
+  fi
+
+  if whiptail --title "YugabyteDB Setup" \
+    --yesno "Do want to use memory defaults optimized for YSQL?" 8 60 --defaultno; then
+    TSERVER_FLAGS+="use_memory_defaults_optimized_for_ysql=true,"
+  fi
+
+  if ! whiptail --title "YugabyteDB Setup" \
+    --yesno "Enable the backup/restore agent? (Enables yugabyted backup command)" 8 60; then
+    BACKUP_DAEMON=false
+  fi
+
+  export TSERVER_FLAGS CLOUD_LOCATION BACKUP_DAEMON FAULT_TOLERANCE
+}
+
 function update_script() {
   header_info
   check_container_storage
@@ -139,6 +187,7 @@ function update_script() {
 }
 
 start
+config_yugabytedb
 build_container
 
 msg_info "Stopping $CTID to apply config changes"
@@ -196,10 +245,13 @@ for i in {1..10}; do
 done
 
 # Remove backup
+msg_info "Removing backup /etc/pve/lxc/${CTID}.conf.backup"
 rm "/etc/pve/lxc/${CTID}.conf.backup"
+msg_info "Removed backup /etc/pve/lxc/${CTID}.conf.backup"
 
-# Enable yugabytedb script
-pct exec "$CTID" -- systemctl enable "${NSAPP}".service
+msg_info "Enable ${NSAPP}.service"
+pct exec "$CTID" -- systemctl enable --quiet "${NSAPP}".service
+msg_info "Enabled ${NSAPP}.service"
 
 description
 

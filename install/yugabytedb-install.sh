@@ -140,7 +140,7 @@ curl -OfsSL "https://software.yugabyte.com/releases/${VERSION}/yugabyte-${RELEAS
 tar -xzf "yugabyte-${RELEASE}-linux-$(uname -m).tar.gz" --strip 1
 rm -rf "yugabyte-${RELEASE}-linux-$(uname -m).tar.gz"
 # Run post install
-./bin/post_install.sh
+$STD ./bin/post_install.sh
 tar -xzf share/ybc-*.tar.gz
 rm -rf ybc-*/conf/
 # yugabyted expects yb-controller-server file in ybc/bin
@@ -148,7 +148,7 @@ mv ybc-* ybc
 
 # Strip unneeded symbols from object files in $YB_HOME
 for a in $(find . -exec file {} \; | grep -i elf | cut -f1 -d:); do
-  strip --strip-unneeded "$a" || true
+  $STD strip --strip-unneeded "$a" || true
 done
 
 # Add yugabyte supported languages to localedef
@@ -256,27 +256,7 @@ cat <<EOF >/etc/security/limits.conf
 EOF
 msg_ok "Set default ulimits"
 
-tserver_flags="tmp_dir=$TEMP_DIR,"
-enable_ysql_conn_mgr=true
-durable_wal_write=true
-memory_defaults_optimized_for_ysql=false
-
-if [ "$memory_defaults_optimized_for_ysql" = true ]; then
-  tserver_flags+="use_memory_defaults_optimized_for_ysql=true,"
-fi
-
-if [ "$enable_ysql_conn_mgr" = true ]; then
-  tserver_flags+="enable_ysql_conn_mgr=true,"
-fi
-
-if [ "$enable_ysql_conn_mgr" = true ]; then
-  tserver_flags+="durable_wal_write=true"
-fi
-
-# "none, zone, region, cloud"
-fault_tolerance="zone"
-cloud_location="cloudprovider.region.zone"
-backup_daemon=true
+TSERVER_FLAGS+="tmp_dir=$TEMP_DIR"
 
 # Creating Service
 msg_info "Creating Service"
@@ -292,12 +272,12 @@ RestartForceExitStatus=SIGPIPE
 StartLimitInterval=0
 ExecStart=/bin/bash -c 'source $YB_HOME/.venv/bin/activate && \
 /usr/local/bin/yugabyted start --secure \
---backup_daemon=$backup_daemon \
---fault_tolerance=$fault_tolerance \
+--backup_daemon=$BACKUP_DAEMON \
+--fault_tolerance=$FAULT_TOLERANCE \
 --advertise_address=$(hostname -I | awk '{print $1}') \
---tserver_flags="$tserver_flags" \
+--tserver_flags="$TSERVER_FLAGS" \
 --data_dir=$DATA_DIR \
---cloud_location=$cloud_location \
+--cloud_location=$CLOUD_LOCATION \
 --callhome=false'
 
 Environment="YB_HOME=$YB_HOME"
