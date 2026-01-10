@@ -9,6 +9,18 @@
 source <(curl -fsSL https://raw.githubusercontent.com/bandogora/ProxmoxVED/feature/yugabytedb/misc/build.func)
 # source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
+# ====================================================================================
+# YOU MUST SET THE CORRECT ULIMITS AND ENABLE TRANSPARENT HUGEPAGES ON YOUR SYSTEM
+# ====================================================================================
+#
+# https://docs.yugabyte.com/stable/deploy/manual-deployment/system-config/#set-ulimits
+#
+#  - XFS is the recommended filesystem.
+#  - ZFS and NFS are not currently supported.
+#  - SSDs (solid state disks) are required.
+#  - Do not use RAID across multiple disks.
+# ====================================================================================
+
 # App Default Values
 APP="YugabyteDB"
 var_tags="${var_tags:-database}"
@@ -21,15 +33,18 @@ var_unprivileged="${var_unprivileged:-1}"
 
 # Select most recent series
 export YB_SERIES="v2025.2"
+
 # Set yugabyte's home directory
 export YB_HOME="/home/yugabyte"
-prlimit settings to set in the lxc config to match yugabyte requirements
-var_lxc_prlimit_config=(
+
+# Make available to install script
+export NSAPP
+
+# prlimit settings for lxc config to match yugabyte requirements
+lxc_prlimit_config=(
   "lxc.prlimit.nofile = 1048576"
   "lxc.prlimit.sigpending = 119934"
 )
-# Make available to install script
-export NSAPP
 
 header_info "$APP"
 variables
@@ -154,8 +169,8 @@ fi
 
 msg_info "Updating $CTID config to match YugabyteDB guidelines"
 # Append prlimit lxc config options to conf file
-if [ -n "${var_lxc_prlimit_config[*]}" ]; then
-  printf "%s\n" "${var_lxc_prlimit_config[@]}" >>"/etc/pve/lxc/${CTID}.conf"
+if [ -n "${lxc_prlimit_config[*]}" ]; then
+  printf "%s\n" "${lxc_prlimit_config[@]}" >>"/etc/pve/lxc/${CTID}.conf"
 fi
 
 # Appends ,mountoptions=noatime to rootfs config if it's not already present

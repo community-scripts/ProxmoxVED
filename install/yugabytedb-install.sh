@@ -5,6 +5,21 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.yugabyte.com/yugabytedb/
 
+# This setup mainly follows the yugabyte-db Docker file:
+# https://github.com/yugabyte/yugabyte-db/blob/8e7706cc10db22bd421deaf4dce2ba7c196c9781/docker/images/yugabyte/Dockerfile
+# These are the main differences:
+#   - Almalinux 9 instead of 8
+#   - Use uv/venv instead of system python
+#   - Use chronyd in the container rather than at system level
+#   - Fixed ybc dir naming (required for ysql_conn_mgr)
+#   - Default data and temp dirs are under $YB_HOME to avoid permissions conflicts
+#   - packages-microsoft-prod.repo and google-cloud-sdk.repo added to /etc/yum.repos.d
+#     - RPM-GPG-KEY-Microsoft and RPM-GPG-KEY-Google-Cloud-SDK saved to /etc/pki/rpm-gpg
+#     - azcopy and gsutil are install from source so version isn't pinned (allow updates)
+#   - yugabytedb recommended ulimits set in /etc/security/limits.conf
+#   - Save ENV variables /etc/environment
+#   - Create a default service
+
 # Import Functions und Setup
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -60,20 +75,20 @@ else
   exit 1
 fi
 
-msg_info "Installing uv and Python Dependencies"
 mkdir -p "$YB_HOME"
 # Set working dir
 cd "$YB_HOME" || exit
+
+msg_info "Installing uv and Python Dependencies"
 # Make sure python 3.11 is used when calling python or python3
 alternatives --install /usr/bin/python python /usr/bin/python3.11 99
 alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 99
-# Install uv
-export UV_INSTALL_DIR="/usr/local/bin"
-curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH="/usr/local/bin:$PATH"
+
+setup_uv
+
 # Create venv
-$STD uv venv --python 3.11
-source .venv/bin/activate
+$STD uv venv --python 3.11 "$YB_HOME/.venv"
+source "$YB_HOME/.venv/bin/activate"
 # Install required packages globally
 $STD uv pip install --upgrade pip
 $STD uv pip install --upgrade lxml
@@ -244,6 +259,11 @@ msg_ok "Set default ulimits"
 tserver_flags="tmp_dir=$TEMP_DIR,"
 enable_ysql_conn_mgr=true
 durable_wal_write=true
+memory_defaults_optimized_for_ysql=false
+
+if [ "$memory_defaults_optimized_for_ysql" = true ]; then
+  tserver_flags+="use_memory_defaults_optimized_for_ysql=true,"
+fi
 
 if [ "$enable_ysql_conn_mgr" = true ]; then
   tserver_flags+="enable_ysql_conn_mgr=true,"
