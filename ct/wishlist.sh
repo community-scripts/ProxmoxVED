@@ -36,8 +36,8 @@ function update_script() {
 
     mkdir -p /opt/wishlist-backup
     cp /opt/wishlist/.env /opt/wishlist-backup/.env
-    cp -R /opt/wishlist/uploads /opt/wishlist-backup/uploads
-    cp -R /opt/wishlist/data /opt/wishlist-backup/data
+    cp -a /opt/wishlist/uploads /opt/wishlist-backup
+    cp -a /opt/wishlist/data /opt/wishlist-backup
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wishlist" "cmintey/wishlist" "tarball"
     LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist" false)
@@ -55,8 +55,9 @@ function update_script() {
     $STD pnpm prune --prod
     chmod +x /opt/wishlist/entrypoint.sh
     cp /opt/wishlist-backup/.env /opt/wishlist/.env
-    cp -R /opt/wishlist-backup/uploads /opt/wishlist/uploads
-    cp -R /opt/wishlist-backup/data /opt/wishlist/data
+    cp -a /opt/wishlist-backup/uploads /opt/wishlist
+    cp -a /opt/wishlist-backup/data /opt/wishlist
+    rm -rf /opt/wishlist-backup
     msg_ok "Updated Wishlist"
     msg_info "Starting Service"
     systemctl start wishlist
