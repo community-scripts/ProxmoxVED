@@ -54,31 +54,51 @@ catch_errors
 config_yugabytedb() {
   TSERVER_FLAGS=""
   BACKUP_DAEMON=true
-  FAULT_TOLERANCE="zone"
+  FAULT_TOLERANCE="none"
 
-  CLOUD_LOCATION=$(whiptail --title "YugabyteDB Setup" \
-    --inputbox "Set your cloud location." 8 60 "cloudprovider.region.zone" 3>&1 1>&2 2>&3)
+  prompt() {
+    whiptail --title "YugabyteDB Setup" \
+      --inputbox "Set your cloud location (e.g., aws.us-east-1.a):\n  💡 For on-premises deployments, consider racks as zones to treat them\n    as fault domains." \
+      10 80 3>&1 1>&2 2>&3
+  }
+
+  validate() {
+    local v="$1"
+    [[ $v =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$ ]]
+  }
+
+  while true; do
+    CLOUD_LOCATION=$(prompt)
+    rc=$?
+    if [ $rc -ne 0 ]; then
+      echo "CANCELLED"
+      exit 1
+    fi
+
+    if validate "$CLOUD_LOCATION"; then
+      break
+    else
+      whiptail --title "YugabyteDB Setup" --msgbox "Invalid format. Use cloudprovider.region.zone (e.g., aws.us-east-1.a)." 8 60
+    fi
+  done
 
   if single_zone=$(whiptail --title "YugabyteDB Setup" --yesno "Single availability zone (AZ) deployment?" 8 60); then
     TSERVER_FLAGS+="durable_wal_write=true"
   fi
 
-  # if [[ $single_zone -eq 0 ]]; then
-  #   whiptail --title "Radio list example" --radiolist \
-  #     "Specify the fault tolerance for the universe." 20 78 4 \
-  #     "none" "Allow connections to other hosts" ON \
-  #     "zone" "Allow connections from other hosts" OFF \
-  #     "region" "Allow mounting of local devices" OFF \
-  #     "cloud" "Allow mounting of remote devices" OFF
-  # fi
-
-  # "none, zone, region, cloud"
-  FAULT_TOLERANCE="zone"
+  if [[ $single_zone -eq 0 ]]; then
+    whiptail --title "Radio list example" --radiolist \
+      "Specify the fault tolerance for the universe." 6 80 4 \
+      "none" "" OFF \
+      "zone" "" ON \
+      "region" "" OFF \
+      "cloud" "" OFF
+  fi
 
   if whiptail --title "YugabyteDB Setup" --yesno "Is this a single zone setup?" 8 60; then
     # In single AZ deployments, you need to set the yb-tserver flag --durable_wal_write=true
     # to not lose data if the whole data center goes down (for example, power failure).
-    TSERVER_FLAGS+="durable_wal_write=true"
+    TSERVER_FLAGS+="durable_wal_write=true,"
   fi
 
   if ! whiptail --title "YugabyteDB Setup" \
@@ -247,11 +267,11 @@ done
 # Remove backup
 msg_info "Removing backup /etc/pve/lxc/${CTID}.conf.backup"
 rm "/etc/pve/lxc/${CTID}.conf.backup"
-msg_info "Removed backup /etc/pve/lxc/${CTID}.conf.backup"
+msg_ok "Removed backup /etc/pve/lxc/${CTID}.conf.backup"
 
 msg_info "Enable ${NSAPP}.service"
 pct exec "$CTID" -- systemctl enable --quiet "${NSAPP}".service
-msg_info "Enabled ${NSAPP}.service"
+msg_ok "Enabled ${NSAPP}.service"
 
 description
 
@@ -259,3 +279,4 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:15433${CL}"
+echo -e "${BOLD}${INFO}${YWB}You must restart proxmox to fix the shmem mount permissions preventing YugabyteDB from starting${CL}"
