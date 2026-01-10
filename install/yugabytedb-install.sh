@@ -163,8 +163,8 @@ shopt -u extglob
 ln -s "$DATA_DIR/yb-data/master/logs" "$YB_HOME/master/logs"
 ln -s "$DATA_DIR/yb-data/tserver/logs" "$YB_HOME/tserver/logs"
 # Create and link the cores.
-# mkdir -p "$DATA_DIR/cores"
-# ln -s "$DATA_DIR/cores" "$YB_HOME/cores"
+mkdir -p "$DATA_DIR/cores"
+ln -s "$DATA_DIR/cores" "$YB_HOME/cores"
 
 mkdir -p "$YB_HOME/controller" "$DATA_DIR/ybc-data/controller/logs"
 # Find ybc-* directory

@@ -12,19 +12,23 @@ source <(curl -fsSL https://raw.githubusercontent.com/bandogora/ProxmoxVED/featu
 # App Default Values
 APP="YugabyteDB"
 var_tags="${var_tags:-database}"
-var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-8192}"
-var_disk="${var_disk:-64}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-10}"
 var_os="${var_os:-almalinux}"
 var_version="${var_version:-9}"
 var_unprivileged="${var_unprivileged:-1}"
 
+# Select most recent series
 export YB_SERIES="v2025.2"
+# Set yugabyte's home directory
 export YB_HOME="/home/yugabyte"
+prlimit settings to set in the lxc config to match yugabyte requirements
 var_lxc_prlimit_config=(
   "lxc.prlimit.nofile = 1048576"
   "lxc.prlimit.sigpending = 119934"
 )
+# Make available to install script
 export NSAPP
 
 header_info "$APP"
@@ -65,10 +69,14 @@ function update_script() {
     $STD dnf -y upgrade
     alternatives --install /usr/bin/python python /usr/bin/python3.11 99
     alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 99
-    $STD python3 -m pip install --upgrade pip --root-user-action=ignore
-    $STD python3 -m pip install --upgrade lxml --root-user-action=ignore
-    $STD python3 -m pip install --upgrade s3cmd --root-user-action=ignore
-    $STD python3 -m pip install --upgrade psutil --root-user-action=ignore
+    # Set working dir
+    cd "$YB_HOME" || exit
+    source .venv/bin/activate
+    $STD uv self update
+    $STD uv pip install --upgrade pip
+    $STD uv pip install --upgrade lxml
+    $STD uv pip install --upgrade s3cmd
+    $STD uv pip install --upgrade psutil
     msg_ok "Updated Dependencies"
 
     # Execute Update
@@ -99,13 +107,15 @@ function update_script() {
 
     # Cleaning up
     msg_info "Cleaning Up"
-    rm -rf ~/.cache
     $STD dnf autoremove -y
     $STD dnf clean all
-    rm -rf /usr/share/python3-wheels/*
-    rm -rf /var/cache/yum /var/cache/dnf
+    $STD uv cache clean
+    rm -rf \
+      ~/.cache \
+      "$YB_HOME/.cache" \
+      /var/cache/yum \
+      /var/cache/dnf
     msg_ok "Cleanup Completed"
-
     msg_ok "Update Successful"
   else
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
@@ -143,7 +153,7 @@ else
 fi
 
 msg_info "Updating $CTID config to match YugabyteDB guidelines"
-# Append prlimit lxc config options to file conf file
+# Append prlimit lxc config options to conf file
 if [ -n "${var_lxc_prlimit_config[*]}" ]; then
   printf "%s\n" "${var_lxc_prlimit_config[@]}" >>"/etc/pve/lxc/${CTID}.conf"
 fi
@@ -173,17 +183,8 @@ done
 # Remove backup
 rm "/etc/pve/lxc/${CTID}.conf.backup"
 
-# # Start and enable the service
-# msg_info "Starting ${NSAPP}.service"
-# cat exec "$CTID" -- <<EOF >pct
-# if systemctl is-active --quiet ${NSAPP}.service; then
-#   msg_ok \"Started ${NSAPP}.service\"
-# else
-#   msg_error "Service failed to start"
-#   journalctl -u ${NSAPP}.service -n 20
-#   exit 1
-# fi
-# EOF
+# Enable yugabytedb script
+pct exec "$CTID" -- systemctl enable "${NSAPP}".service
 
 description
 
