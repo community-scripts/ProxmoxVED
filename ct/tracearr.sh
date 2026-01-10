@@ -63,6 +63,7 @@ function update_script() {
     msg_ok "Built Tracearr"
 
     msg_info "Configuring Tracearr"
+    sed -i "s/^APP_VERSION=.*/APP_VERSION=$(cat /root/.tracearr)/" /data/tracearr/.env
     chmod 600 /data/tracearr/.env
     chown -R tracearr:tracearr /data/tracearr
     msg_ok "Configured Tracearr"
