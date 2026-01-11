@@ -37,10 +37,6 @@
             "type": "info"
         },
         {
-            "text": "Security: Repository is pinned to release v1.0.0 (commit 5f4fc02) for integrity verification",
-            "type": "info"
-        },
-        {
             "text": "LXCFS Configuration Required: Ensure /lib/systemd/system/lxcfs.service has the -l flag: ExecStart=/usr/bin/lxcfs /var/lib/lxcfs -l",
             "type": "warning"
         }

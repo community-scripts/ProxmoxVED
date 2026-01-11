@@ -37,10 +37,6 @@
             "type": "info"
         },
         {
-            "text": "Security: Repository is pinned to release v1.2.0 (commit faaefbb) for integrity verification",
-            "type": "info"
-        },
-        {
             "text": "VM Requirements: Enable NUMA (VM > Hardware > Processors) and Hotplug (VM > Options > Hotplug > CPU/Memory) for live scaling",
             "type": "warning"
         },
