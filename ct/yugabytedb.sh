@@ -63,7 +63,7 @@ config_yugabytedb() {
   }
 
   local STEP=1
-  local MAX_STEP=5
+  local MAX_STEP=6
   while [ $STEP -le $MAX_STEP ]; do
     case $STEP in
     # ═══════════════════════════════════════════════════════════════════════════
@@ -93,14 +93,14 @@ config_yugabytedb() {
       if result=$(whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
         --title "Deployment Strategy" \
         --ok-button "Next" --cancel-button "Back" \
-        --menu "\nSelect Deployment Strategy:" 12 80 2 \
+        --menu "\nSelect Deployment Strategy:" 12 82 2 \
         "Single-DC deployment" "| Deploy YugabyteDB in a single region or private data center" \
-        "Multi-DC deployment" "|  Deploy YugabyteDB across multiple data centers (DC)" \
+        "Multi-DC deployment" "| Deploy YugabyteDB across multiple data centers (DC)" \
         3>&1 1>&2 2>&3); then
 
         if [[ "$result" == "Multi-DC deployment" ]]; then
           FAULT_TOLERANCE=$(whiptail --title "Radio list example" --radiolist \
-            "Specify the fault tolerance for the universe." 12 80 4 \
+            "Specify the fault tolerance for the universe." 12 100 4 \
             "none" "Use when you run a single-node development instance or accept total data loss during outages. Not for production." OFF \
             "zone" "Recommended for intra-datacenter HA across multiple racks/availability zones within a single region. Survives a single AZ/rack failure with low cross-node latency. Use when you need high availability, low write latency, and all replicas are in one region." ON \
             "region" "Recommended for cross-region deployments where you need survivability against an entire AZ/region outage. Survives a full region failure (with appropriate replica placement) but increases write latency and cross-region bandwidth cost. Use when geo-redundancy and disaster recovery are required." OFF \
@@ -124,7 +124,9 @@ config_yugabytedb() {
         --yesno "Do want to use YSQL Connection Manager for connection pooling?" 8 80; then
         TSERVER_FLAGS+="enable_ysql_conn_mgr=true,"
       else
-        if [ $? -eq 0 ]; then
+        if [ $? -eq 1 ]; then
+          true
+        else
           ((STEP--))
           continue
         fi
@@ -141,7 +143,9 @@ config_yugabytedb() {
         --yesno "Do want to use memory defaults optimized for YSQL?" 8 80; then
         TSERVER_FLAGS+="use_memory_defaults_optimized_for_ysql=true,"
       else
-        if [ $? -eq 0 ]; then
+        if [ $? -eq 1 ]; then
+          true
+        else
           ((STEP--))
           continue
         fi
@@ -165,6 +169,34 @@ config_yugabytedb() {
         fi
       fi
       ((STEP++))
+      ;;
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STEP 6: Confirmation
+    # ═══════════════════════════════════════════════════════════════════════════
+    6)
+      # Build summary
+      local tserver_flags="${TSERVER_FLAGS//,/\n}"
+      local summary="
+cloud_location:
+  $CLOUD_LOCATION
+
+backup_daemon:
+  $BACKUP_DAEMON
+
+fault_tolerance:
+  $FAULT_TOLERANCE
+
+tserver_flags:
+  $tserver_flags"
+
+      if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
+        --title "CONFIRM SETTINGS" \
+        --cancel-button "Back" \
+        --yesno "$summary\nCreate ${APP} with these settings?" 32 80; then
+        ((STEP++))
+      else
+        ((STEP--))
+      fi
       ;;
     esac
   done
