@@ -1,0 +1,64 @@
+{
+    "name": "VM AutoScale",
+    "slug": "proxmox-vm-autoscale",
+    "categories": [
+        1
+    ],
+    "date_created": "2026-01-11",
+    "type": "pve",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": null,
+    "documentation": "https://github.com/fabriziosalmi/proxmox-vm-autoscale/blob/main/README.md",
+    "website": "https://github.com/fabriziosalmi/proxmox-vm-autoscale",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proxmox.webp",
+    "config_path": "/opt/vm_autoscale/config.yaml",
+    "description": "VM AutoScale is a dynamic scaling service that automatically adjusts virtual machine (VM) resources (CPU cores and RAM) on Proxmox VE based on real-time metrics and user-defined thresholds. Supports multiple Proxmox hosts via SSH, auto-configuration of hotplug/NUMA, Gotify notifications, and billing tracking for web hosters.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "tools/pve/proxmox-vm-autoscale.sh",
+            "resources": {
+                "cpu": null,
+                "ram": null,
+                "hdd": null,
+                "os": null,
+                "version": null
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Execute within the Proxmox shell",
+            "type": "info"
+        },
+        {
+            "text": "Security: Repository is pinned to release v1.2.0 (commit faaefbb) for integrity verification",
+            "type": "info"
+        },
+        {
+            "text": "VM Requirements: Enable NUMA (VM > Hardware > Processors) and Hotplug (VM > Options > Hotplug > CPU/Memory) for live scaling",
+            "type": "warning"
+        },
+        {
+            "text": "Auto-configure hotplug: Set auto_configure_hotplug: true in config.yaml to auto-enable hotplug on managed VMs",
+            "type": "info"
+        },
+        {
+            "text": "Edit configuration at /opt/vm_autoscale/config.yaml before starting the service",
+            "type": "info"
+        },
+        {
+            "text": "Service commands: systemctl start/stop/status vm_autoscale",
+            "type": "info"
+        },
+        {
+            "text": "Billing feature available for web hosters: Track resource usage and generate CSV reports",
+            "type": "info"
+        }
+    ]
+}

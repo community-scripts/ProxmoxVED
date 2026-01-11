@@ -1,0 +1,60 @@
+{
+    "name": "LXC AutoScale",
+    "slug": "proxmox-lxc-autoscale",
+    "categories": [
+        1
+    ],
+    "date_created": "2026-01-11",
+    "type": "pve",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": null,
+    "documentation": "https://github.com/fabriziosalmi/proxmox-lxc-autoscale/blob/main/README.md",
+    "website": "https://github.com/fabriziosalmi/proxmox-lxc-autoscale",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proxmox.webp",
+    "config_path": "/opt/lxc_autoscale/lxc_autoscale/lxc_autoscale.yaml",
+    "description": "LXC AutoScale is a resource management daemon that automatically adjusts CPU and memory allocations for LXC containers on Proxmox hosts based on real-time usage metrics and predefined thresholds. It supports automatic horizontal scaling (cloning), container prioritization, energy efficiency mode, and push notifications.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "tools/pve/proxmox-lxc-autoscale.sh",
+            "resources": {
+                "cpu": null,
+                "ram": null,
+                "hdd": null,
+                "os": null,
+                "version": null
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Execute within the Proxmox shell",
+            "type": "info"
+        },
+        {
+            "text": "Security: Repository is pinned to release v1.0.0 (commit 5f4fc02) for integrity verification",
+            "type": "info"
+        },
+        {
+            "text": "LXCFS Configuration Required: Ensure /lib/systemd/system/lxcfs.service has the -l flag: ExecStart=/usr/bin/lxcfs /var/lib/lxcfs -l",
+            "type": "warning"
+        },
+        {
+            "text": "After modifying lxcfs.service, run: systemctl daemon-reload && systemctl restart lxcfs",
+            "type": "info"
+        },
+        {
+            "text": "Edit configuration at /opt/lxc_autoscale/lxc_autoscale/lxc_autoscale.yaml before starting the service",
+            "type": "info"
+        },
+        {
+            "text": "Service commands: systemctl start/stop/status lxc_autoscale",
+            "type": "info"
+        }
+    ]
+}
