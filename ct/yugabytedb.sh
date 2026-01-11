@@ -53,9 +53,135 @@ catch_errors
 
 config_yugabytedb() {
   TSERVER_FLAGS=""
-  BACKUP_DAEMON=true
-  FAULT_TOLERANCE="zone"
-  CLOUD_LOCATION=""
+
+  exit_script() {
+    clear
+    printf "\e[?25h"
+    echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+    kill 0
+    exit 1
+  }
+
+  local STEP=1
+  local MAX_STEP=5
+  while [ $STEP -le $MAX_STEP ]; do
+    case $STEP in
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STEP 1: Get CLOUD_LOCATION
+    # ═══════════════════════════════════════════════════════════════════════════
+    1)
+      if CLOUD_LOCATION=$(
+        whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
+          --title "Cloud Location" \
+          --ok-button "Next" --cancel-button "Exit" \
+          --inputbox "Set your cloud location (e.g., aws.us-east-1.a):\n  💡 For on-premises deployments, consider racks as zones to treat them\n    as fault domains." \
+          8 80 "" 3>&1 1>&2 2>&3
+      ); then
+        if [[ "$CLOUD_LOCATION" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$ ]]; then
+          ((STEP++))
+        else
+          whiptail --msgbox "Invalid format. Use cloudprovider.region.zone (e.g., aws.us-east-1.a)." 8 60
+        fi
+      else
+        exit_script
+      fi
+      ;;
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STEP 2: Check if single AZ deployment
+    # ═══════════════════════════════════════════════════════════════════════════
+    2)
+      if result=$(whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
+        --title "Deployment Strategy" \
+        --ok-button "Next" --cancel-button "Back" \
+        --menu "\nSelect Deployment Strategy:" 12 80 2 \
+        "Single-DC deployment" "| Deploy YugabyteDB in a single region or private data center" \
+        "Multi-DC deployment" "|  Deploy YugabyteDB across multiple data centers (DC)" \
+        3>&1 1>&2 2>&3); then
+
+        if [[ "$result" == "Multi-DC deployment" ]]; then
+          FAULT_TOLERANCE=$(whiptail --title "Radio list example" --radiolist \
+            "Specify the fault tolerance for the universe." 12 80 4 \
+            "none" "Use when you run a single-node development instance or accept total data loss during outages. Not for production." OFF \
+            "zone" "Recommended for intra-datacenter HA across multiple racks/availability zones within a single region. Survives a single AZ/rack failure with low cross-node latency. Use when you need high availability, low write latency, and all replicas are in one region." ON \
+            "region" "Recommended for cross-region deployments where you need survivability against an entire AZ/region outage. Survives a full region failure (with appropriate replica placement) but increases write latency and cross-region bandwidth cost. Use when geo-redundancy and disaster recovery are required." OFF \
+            "cloud" "Use when you want provider-managed multi-region/multi-cloud fault tolerance via cloud-level replication (e.g., cloud-managed clusters across providers or availability domains). Use if you prefer offloading replication/failover complexity to cloud services or need resilience across cloud providers." OFF 3>&1 1>&2 2>&3)
+          ((STEP++))
+        else
+          TSERVER_FLAGS+="durable_wal_write=true,"
+          FAULT_TOLERANCE="zone"
+          ((STEP++))
+        fi
+      else
+        ((STEP--))
+      fi
+      ;;
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STEP 3: YSQL Connection Manager
+    # ═══════════════════════════════════════════════════════════════════════════
+    3)
+      if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
+        --title "YSQL Connection Manager" \
+        --yesno "Do want to use YSQL Connection Manager for connection pooling?" 8 80; then
+        TSERVER_FLAGS+="enable_ysql_conn_mgr=true,"
+      else
+        if [ $? -eq 0 ]; then
+          ((STEP--))
+          continue
+        fi
+      fi
+      ((STEP++))
+      ;;
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STEP 4: Memory Defaults Optimized for YSQL
+    # ═══════════════════════════════════════════════════════════════════════════
+    4)
+      if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
+        --title "Memory Defaults Optimized for YSQL" \
+        --defaultno \
+        --yesno "Do want to use memory defaults optimized for YSQL?" 8 80; then
+        TSERVER_FLAGS+="use_memory_defaults_optimized_for_ysql=true,"
+      else
+        if [ $? -eq 0 ]; then
+          ((STEP--))
+          continue
+        fi
+      fi
+      ((STEP++))
+      ;;
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STEP 5: Backup/Restore Daemon
+    # ═══════════════════════════════════════════════════════════════════════════
+    5)
+      if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
+        --title "Backup/Restore" \
+        --yesno "Enable the backup/restore agent? (Enables yugabyted backup command)" 8 80; then
+        BACKUP_DAEMON=true
+      else
+        if [ $? -eq 1 ]; then
+          BACKUP_DAEMON=false
+        else
+          ((STEP--))
+          continue
+        fi
+      fi
+      ((STEP++))
+      ;;
+    esac
+  done
+
+  # 3)
+  # if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
+  #   --title "Single AZ deployment" \
+  #   --yesno "Single availability zone (AZ) deployment?" 8 80; then
+  #   TSERVER_FLAGS+="durable_wal_write=true"
+  # else
+  #   if [ $? -eq 0 ]; then
+  #     ((STEP--))
+  #     continue
+  #   fi
+  # fi
+  # ((STEP++))
+  # ;;
 
   # prompt() {
   #   local out rc
@@ -67,24 +193,6 @@ config_yugabytedb() {
   #   # Normalize: treat cancel as handled here (do not let non‑zero escape)
   #   return 0
   # }
-
-  # Get CLOUD_LOCATION
-  while true; do
-    if CLOUD_LOCATION=$(whiptail --title "YugabyteDB Setup" \
-      --ok-button "Next" \
-      --inputbox "Set your cloud location (e.g., aws.us-east-1.a):\n  💡 For on-premises deployments, consider racks as zones to treat them\n    as fault domains." \
-      12 80 "" \
-      3>&1 1>&2 2>&3); then
-      if [[ "$CLOUD_LOCATION" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$ ]]; then
-        break
-      else
-        whiptail --msgbox "Invalid format. Use cloudprovider.region.zone (e.g., aws.us-east-1.a)." 8 60
-      fi
-    else
-      echo "${CROSS}Script aborted: You must set your cloud location"
-      exit 0
-    fi
-  done
 
   # prompt() {
   #   local out rc
@@ -115,40 +223,40 @@ config_yugabytedb() {
   #     --msgbox "Invalid format. Use cloudprovider.region.zone (e.g., aws.us-east-1.a)." 8 60
   # done
 
-  if single_zone=$(whiptail --title "YugabyteDB Setup" \
-    --yesno "Single availability zone (AZ) deployment?" 8 80); then
-    TSERVER_FLAGS+="durable_wal_write=true"
-  fi
+  # if single_zone=$(whiptail --title "YugabyteDB Setup" \
+  #   --yesno "Single availability zone (AZ) deployment?" 8 80); then
+  #   TSERVER_FLAGS+="durable_wal_write=true"
+  # fi
 
-  if [[ $single_zone -eq 0 ]]; then
-    FAULT_TOLERANCE=$(whiptail --title "Radio list example" --radiolist \
-      "Specify the fault tolerance for the universe." 6 80 4 \
-      "none" "Use when you run a single-node development instance or accept total data loss during outages. Not for production." OFF \
-      "zone" "Recommended for intra-datacenter HA across multiple racks/availability zones within a single region. Survives a single AZ/rack failure with low cross-node latency. Use when you need high availability, low write latency, and all replicas are in one region." ON \
-      "region" "Recommended for cross-region deployments where you need survivability against an entire AZ/region outage. Survives a full region failure (with appropriate replica placement) but increases write latency and cross-region bandwidth cost. Use when geo-redundancy and disaster recovery are required." OFF \
-      "cloud" "Use when you want provider-managed multi-region/multi-cloud fault tolerance via cloud-level replication (e.g., cloud-managed clusters across providers or availability domains). Use if you prefer offloading replication/failover complexity to cloud services or need resilience across cloud providers." OFF 3>&1 1>&2 2>&3)
-  fi
+  # if [[ $single_zone -eq 0 ]]; then
+  #   FAULT_TOLERANCE=$(whiptail --title "Radio list example" --radiolist \
+  #     "Specify the fault tolerance for the universe." 6 80 4 \
+  #     "none" "Use when you run a single-node development instance or accept total data loss during outages. Not for production." OFF \
+  #     "zone" "Recommended for intra-datacenter HA across multiple racks/availability zones within a single region. Survives a single AZ/rack failure with low cross-node latency. Use when you need high availability, low write latency, and all replicas are in one region." ON \
+  #     "region" "Recommended for cross-region deployments where you need survivability against an entire AZ/region outage. Survives a full region failure (with appropriate replica placement) but increases write latency and cross-region bandwidth cost. Use when geo-redundancy and disaster recovery are required." OFF \
+  #     "cloud" "Use when you want provider-managed multi-region/multi-cloud fault tolerance via cloud-level replication (e.g., cloud-managed clusters across providers or availability domains). Use if you prefer offloading replication/failover complexity to cloud services or need resilience across cloud providers." OFF 3>&1 1>&2 2>&3)
+  # fi
 
-  if whiptail --title "YugabyteDB Setup" --yesno "Is this a single zone setup?" 8 80; then
-    # In single AZ deployments, you need to set the yb-tserver flag --durable_wal_write=true
-    # to not lose data if the whole data center goes down (for example, power failure).
-    TSERVER_FLAGS+="durable_wal_write=true,"
-  fi
+  # if whiptail --title "YugabyteDB Setup" --yesno "Is this a single zone setup?" 8 80; then
+  #   # In single AZ deployments, you need to set the yb-tserver flag --durable_wal_write=true
+  #   # to not lose data if the whole data center goes down (for example, power failure).
+  #   TSERVER_FLAGS+="durable_wal_write=true,"
+  # fi
 
-  if ! whiptail --title "YugabyteDB Setup" \
-    --yesno "Do want to use YSQL Connection Manager for connection pooling?" 8 80; then
-    TSERVER_FLAGS+="enable_ysql_conn_mgr=true,"
-  fi
+  # if ! whiptail --title "YugabyteDB Setup" \
+  #   --yesno "Do want to use YSQL Connection Manager for connection pooling?" 8 80; then
+  #   TSERVER_FLAGS+="enable_ysql_conn_mgr=true,"
+  # fi
 
-  if whiptail --title "YugabyteDB Setup" \
-    --yesno "Do want to use memory defaults optimized for YSQL?" 8 80 --defaultno; then
-    TSERVER_FLAGS+="use_memory_defaults_optimized_for_ysql=true,"
-  fi
+  # if whiptail --title "YugabyteDB Setup" \
+  #   --yesno "Do want to use memory defaults optimized for YSQL?" 8 80 --defaultno; then
+  #   TSERVER_FLAGS+="use_memory_defaults_optimized_for_ysql=true,"
+  # fi
 
-  if ! whiptail --title "YugabyteDB Setup" \
-    --yesno "Enable the backup/restore agent? (Enables yugabyted backup command)" 8 80; then
-    BACKUP_DAEMON=false
-  fi
+  # if ! whiptail --title "YugabyteDB Setup" \
+  #   --yesno "Enable the backup/restore agent? (Enables yugabyted backup command)" 8 80; then
+  #   BACKUP_DAEMON=false
+  # fi
 
   export TSERVER_FLAGS CLOUD_LOCATION BACKUP_DAEMON FAULT_TOLERANCE
 }
