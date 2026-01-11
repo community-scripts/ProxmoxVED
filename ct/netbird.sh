@@ -22,27 +22,27 @@ color
 catch_errors
 
 function update_script() {
-header_info
-check_container_storage
-check_container_resources
+  header_info
+  check_container_storage
+  check_container_resources
 
-if [[ ! -f /etc/netbird/config.json ]]; then
-msg_error "No ${APP} Installation Found!"
-exit
-fi
+  if [[ ! -f /etc/netbird/config.json ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit
+  fi
 
-msg_info "Updating ${APP}"
-$STD apt update
-$STD apt upgrade -y
-msg_ok "Updated Successfully"
-exit
+  msg_info "Updating Netbird"
+  $STD apt update
+  $STD apt upgrade -y
+  msg_ok "Updated successfully!"
+  exit
 }
 
 start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access NetBird by entering the container and running:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}netbird up${CL}"
