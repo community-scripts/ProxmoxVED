@@ -201,8 +201,7 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-  systemctl daemon-reload
-  systemctl enable ${SERVICE_NAME}.service
+  systemctl enable -q --now ${SERVICE_NAME}.service
   msg_ok "Systemd service created and enabled"
 
   # Save version info
