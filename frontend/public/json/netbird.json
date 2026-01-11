@@ -9,7 +9,7 @@
   "interface_port": null,
   "documentation": "https://docs.netbird.io/",
   "website": "https://netbird.io/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@master/webp/netbird.webp",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/netbird.webp",
   "config_path": "/etc/netbird/config.json",
   "description": "NetBird is an open source VPN management platform that creates secure peer-to-peer networks using WireGuard. It enables secure connectivity between devices anywhere in the world without complex firewall configurations or port forwarding. NetBird offers features like zero-configuration networking, SSO integration, access control policies, and a centralized management dashboard. It's designed to be simple to deploy and manage, making it ideal for connecting remote teams, securing IoT devices, or building secure infrastructure networks.",
   "install_methods": [
