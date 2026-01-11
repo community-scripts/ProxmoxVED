@@ -286,14 +286,8 @@ update_lxc_autoscale() {
   echo -e "${YW}Current version:${CL} ${current_version}"
   echo -e "${YW}New version:${CL} ${RELEASE_VERSION}"
 
-  while true; do
-    read -p "Proceed with update? (y/n) " yn
-    case $yn in
-      [Yy]*) break ;;
-      [Nn]*) echo "Update cancelled."; exit 0 ;;
-      *) echo "Please answer yes or no." ;;
-    esac
-  done
+  # Proceed to reinstall; user confirmation is handled inside install_lxc_autoscale
+  # (avoids double prompting here and in the installer).
 
   # Reinstall (backup/restore handled inside)
   install_lxc_autoscale
