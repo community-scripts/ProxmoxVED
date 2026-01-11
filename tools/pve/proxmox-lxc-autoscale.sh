@@ -8,8 +8,11 @@
 
 # Security: Pinned to specific release for reproducibility and integrity
 RELEASE_VERSION="v1.0.0"
-RELEASE_COMMIT="5f4fc02e4c198859e168ea6c4739986e9c55bcc7"
-REPO_URL="https://github.com/fabriziosalmi/proxmox-lxc-autoscale"
+REPO_OWNER="fabriziosalmi"
+REPO_NAME="proxmox-lxc-autoscale"
+TARBALL_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/archive/refs/tags/${RELEASE_VERSION}.tar.gz"
+# SHA256 hash of the tarball for integrity verification
+TARBALL_SHA256="7182d30e7d338537e46488d5ebee6f0060e2bbd1f531c900c93e52e204136a4e"
 INSTALL_DIR="/opt/lxc_autoscale"
 SERVICE_NAME="lxc_autoscale"
 
@@ -72,20 +75,20 @@ check_pve() {
   fi
 }
 
-verify_commit() {
-  local dir="$1"
-  local expected_commit="$2"
-  local actual_commit
+verify_tarball_sha256() {
+  local file="$1"
+  local expected_sha256="$2"
+  local actual_sha256
 
-  actual_commit=$(git -C "$dir" rev-parse HEAD 2>/dev/null || echo "unknown")
+  actual_sha256=$(sha256sum "$file" | cut -d' ' -f1)
 
-  if [[ "$actual_commit" != "$expected_commit" ]]; then
-    msg_error "Commit verification failed!"
-    msg_error "Expected: ${expected_commit}"
-    msg_error "Got: ${actual_commit}"
+  if [[ "$actual_sha256" != "$expected_sha256" ]]; then
+    msg_error "SHA256 verification failed!"
+    msg_error "Expected: ${expected_sha256}"
+    msg_error "Got: ${actual_sha256}"
     exit 1
   fi
-  msg_ok "Commit verification passed"
+  msg_ok "SHA256 verification passed"
 }
 
 install_dependencies() {
@@ -95,7 +98,6 @@ install_dependencies() {
     python3 \
     python3-venv \
     python3-pip \
-    git \
     curl \
     sudo &>/dev/null
   msg_ok "Installed system dependencies"
@@ -123,8 +125,8 @@ restore_config() {
 install_lxc_autoscale() {
   header_info
   echo -e "\nThis script will install LXC AutoScale ${RELEASE_VERSION}.\n"
-  echo -e "${YW}Source:${CL} ${REPO_URL}"
-  echo -e "${YW}Pinned Commit:${CL} ${RELEASE_COMMIT}\n"
+  echo -e "${YW}Source:${CL} https://github.com/${REPO_OWNER}/${REPO_NAME}"
+  echo -e "${YW}SHA256:${CL} ${TARBALL_SHA256}\n"
 
   while true; do
     read -p "Start the LXC AutoScale installation (y/n)? " yn
@@ -151,14 +153,34 @@ install_lxc_autoscale() {
     msg_ok "Removed existing installation"
   fi
 
-  # Clone repository at specific tag
-  msg_info "Cloning LXC AutoScale repository (${RELEASE_VERSION})"
-  git clone --depth 1 --branch "${RELEASE_VERSION}" -q "$REPO_URL" "$INSTALL_DIR"
-  msg_ok "Repository cloned to ${INSTALL_DIR}"
+  # Download release tarball
+  local TMPDIR
+  TMPDIR=$(mktemp -d)
+  local TARBALL="${TMPDIR}/${REPO_NAME}-${RELEASE_VERSION}.tar.gz"
 
-  # Verify the commit hash for security
-  msg_info "Verifying repository integrity"
-  verify_commit "$INSTALL_DIR" "$RELEASE_COMMIT"
+  msg_info "Downloading LXC AutoScale release (${RELEASE_VERSION})"
+  curl \
+    --fail \
+    --silent \
+    --show-error \
+    --location \
+    --output "$TARBALL" \
+    "$TARBALL_URL"
+  msg_ok "Downloaded release tarball"
+
+  # Verify SHA256 hash for security
+  msg_info "Verifying tarball integrity"
+  verify_tarball_sha256 "$TARBALL" "$TARBALL_SHA256"
+
+  # Extract tarball
+  msg_info "Extracting release to ${INSTALL_DIR}"
+  mkdir -p "$INSTALL_DIR"
+  tar --no-same-owner -xzf "$TARBALL" -C "$TMPDIR"
+  # GitHub tarballs extract to repo-version directory
+  local EXTRACTED_DIR="${TMPDIR}/${REPO_NAME}-${RELEASE_VERSION#v}"
+  cp -r "$EXTRACTED_DIR"/* "$INSTALL_DIR/"
+  rm -rf "$TMPDIR"
+  msg_ok "Extracted to ${INSTALL_DIR}"
 
   # Setup Python virtual environment
   msg_info "Setting up Python virtual environment"
@@ -206,7 +228,7 @@ EOF
 
   # Save version info
   echo "${RELEASE_VERSION}" > "${INSTALL_DIR}/version.txt"
-  echo "${RELEASE_COMMIT}" > "${INSTALL_DIR}/commit.txt"
+  echo "${TARBALL_SHA256}" > "${INSTALL_DIR}/sha256.txt"
 
   msg_ok "LXC AutoScale ${RELEASE_VERSION} installed successfully!"
 
