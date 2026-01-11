@@ -27,7 +27,7 @@ $STD apt install -y netbird
 msg_ok "Installed NetBird"
 
 msg_info "Enabling NetBird Service"
-$STD systemctl enable --now netbird
+$STD systemctl enable -q --now netbird
 msg_ok "Enabled NetBird Service"
 
 # NetBird Deployment Type Selection
