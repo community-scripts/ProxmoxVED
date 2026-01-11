@@ -90,8 +90,8 @@ verify_commit() {
 
 install_dependencies() {
   msg_info "Installing system dependencies"
-  apt-get update -qq
-  apt-get install -y -qq \
+  apt update -qq
+  apt install -y -qq \
     python3 \
     python3-venv \
     python3-pip \
