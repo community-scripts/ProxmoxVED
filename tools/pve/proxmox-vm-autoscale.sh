@@ -5,20 +5,15 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/fabriziosalmi/proxmox-vm-autoscale
 
-# Source standard functions
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 
-# Configuration
+APP="VM AutoScale"
 RELEASE_VERSION="v1.2.0"
 REPO="fabriziosalmi/proxmox-vm-autoscale"
 INSTALL_DIR="/opt/vm_autoscale"
 SERVICE_NAME="vm_autoscale"
-
-# Pinned Python dependencies
-REQUIREMENTS_CONTENT='paramiko==3.4.0
-PyYAML==6.0.1
-requests==2.31.0'
+CONFIG_FILE="${INSTALL_DIR}/config.yaml"
 
 header_info() {
   clear
@@ -32,37 +27,49 @@ header_info() {
 EOF
 }
 
-check_root() {
-  if [[ $EUID -ne 0 ]]; then
-    msg_error "This script must be run as root"
-    exit 1
-  fi
-}
+install_vm_autoscale() {
+  header_info
+  echo -e "\nInstalling ${APP} ${RELEASE_VERSION}\n"
 
-check_pve() {
-  if ! command -v pveversion &>/dev/null; then
-    msg_error "This script must be run on a Proxmox VE host"
-    exit 1
-  fi
-}
+  read -p "Start installation (y/n)? " -n 1 -r
+  echo
+  [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Cancelled."; exit 0; }
 
-setup_python_env() {
-  msg_info "Setting up Python virtual environment"
+  [[ $EUID -ne 0 ]] && { msg_error "Run as root"; exit 1; }
+  command -v pveversion &>/dev/null || { msg_error "Proxmox VE required"; exit 1; }
+
+  # Backup existing config
+  [[ -f "$CONFIG_FILE" ]] && cp "$CONFIG_FILE" "/tmp/vm_autoscale_config.yaml.bak.$(date +%F_%H%M%S)"
+
+  # Stop existing service
+  if [[ -d "$INSTALL_DIR" ]]; then
+    msg_info "Stopping existing service"
+    systemctl stop ${SERVICE_NAME}.service 2>/dev/null || true
+    systemctl disable ${SERVICE_NAME}.service 2>/dev/null || true
+    rm -rf "$INSTALL_DIR"
+    msg_ok "Stopped existing service"
+  fi
+
+  msg_info "Installing dependencies"
+  ensure_dependencies curl sudo
+  msg_ok "Installed dependencies"
+
+  msg_info "Downloading ${APP} ${RELEASE_VERSION}"
+  fetch_and_deploy_gh_release "vm_autoscale" "$REPO" "tarball" "$RELEASE_VERSION" "$INSTALL_DIR"
+  msg_ok "Downloaded ${APP}"
+
+  msg_info "Setting up Python environment"
+  UV_VERSION="0.7.19" PYTHON_VERSION="3.12" setup_uv
   cd "$INSTALL_DIR"
-  python3 -m venv venv
-  source venv/bin/activate
+  $STD uv venv
+  $STD uv pip install paramiko==3.4.0 PyYAML==6.0.1 requests==2.31.0
+  msg_ok "Setup Python environment"
 
-  msg_info "Installing Python dependencies"
-  pip install --quiet --upgrade pip
-  echo "${REQUIREMENTS_CONTENT}" > "${INSTALL_DIR}/requirements-pinned.txt"
-  pip install --quiet -r "${INSTALL_DIR}/requirements-pinned.txt"
+  # Restore config if backup exists
+  local latest_backup=$(ls -t /tmp/vm_autoscale_config.yaml.bak.* 2>/dev/null | head -1 || true)
+  [[ -n "$latest_backup" && -f "$latest_backup" ]] && cp "$latest_backup" "$CONFIG_FILE"
 
-  deactivate
-  msg_ok "Python environment configured"
-}
-
-create_service() {
-  msg_info "Creating systemd service"
+  msg_info "Creating service"
   cat <<EOF >/etc/systemd/system/${SERVICE_NAME}.service
 [Unit]
 Description=VM AutoScale - Automatic VM resource scaling for Proxmox
@@ -72,7 +79,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=${INSTALL_DIR}
-ExecStart=${INSTALL_DIR}/venv/bin/python3 ${INSTALL_DIR}/autoscale.py
+ExecStart=/usr/local/bin/uv run python3 ${INSTALL_DIR}/autoscale.py
 Restart=always
 RestartSec=30
 StandardOutput=journal
@@ -81,142 +88,90 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-
   systemctl enable -q --now ${SERVICE_NAME}.service
-  msg_ok "Service created and enabled"
-}
+  msg_ok "Created service"
 
-backup_config() {
-  if [[ -f "${INSTALL_DIR}/config.yaml" ]]; then
-    msg_info "Backing up configuration"
-    cp "${INSTALL_DIR}/config.yaml" "/tmp/vm_autoscale_config.yaml.bak.$(date +%F_%H%M%S)"
-    msg_ok "Configuration backed up"
-  fi
-}
-
-restore_config() {
-  local latest_backup
-  latest_backup=$(ls -t /tmp/vm_autoscale_config.yaml.bak.* 2>/dev/null | head -1 || true)
-
-  if [[ -n "$latest_backup" && -f "$latest_backup" ]]; then
-    msg_info "Restoring configuration"
-    cp "$latest_backup" "${INSTALL_DIR}/config.yaml"
-    msg_ok "Configuration restored"
-  fi
-}
-
-install_vm_autoscale() {
-  header_info
-  echo -e "\nInstalling VM AutoScale ${RELEASE_VERSION}\n"
-
-  while true; do
-    read -p "Start installation (y/n)? " yn
-    case $yn in
-      [Yy]*) break ;;
-      [Nn]*) echo "Cancelled."; exit 0 ;;
-      *) echo "Please answer yes or no." ;;
-    esac
-  done
-
-  check_root
-  check_pve
-
-  msg_info "Installing dependencies"
-  ensure_dependencies python3 python3-venv python3-pip curl sudo
-  msg_ok "Dependencies installed"
-
-  backup_config
-
-  # Stop and remove existing installation
-  if [[ -d "$INSTALL_DIR" ]]; then
-    systemctl stop ${SERVICE_NAME}.service 2>/dev/null || true
-    systemctl disable ${SERVICE_NAME}.service 2>/dev/null || true
-    rm -rf "$INSTALL_DIR"
-  fi
-
-  # Download and deploy using standard function
-  msg_info "Downloading release ${RELEASE_VERSION}"
-  fetch_and_deploy_gh_release "vm_autoscale" "$REPO" "tarball" "$RELEASE_VERSION" "$INSTALL_DIR"
-  msg_ok "Release deployed"
-
-  setup_python_env
-  restore_config
-  create_service
-
-  msg_ok "VM AutoScale ${RELEASE_VERSION} installed successfully!"
-  echo ""
-  echo -e "Configuration: ${INSTALL_DIR}/config.yaml"
+  msg_ok "${APP} ${RELEASE_VERSION} installed"
+  echo -e "\nConfiguration: ${CONFIG_FILE}"
   echo -e "Service: systemctl status ${SERVICE_NAME}"
+}
+
+update_vm_autoscale() {
+  header_info
+  echo -e "\nUpdating ${APP} to ${RELEASE_VERSION}\n"
+
+  [[ ! -d "$INSTALL_DIR" ]] && { msg_error "Not installed"; exit 1; }
+
+  local current_version=$(cat "${INSTALL_DIR}/version.txt" 2>/dev/null || echo "unknown")
+  [[ "$current_version" == "$RELEASE_VERSION" ]] && { msg_ok "Already at ${RELEASE_VERSION}"; exit 0; }
+
+  echo -e "Current: ${current_version} -> New: ${RELEASE_VERSION}\n"
+
+  # Backup config
+  [[ -f "$CONFIG_FILE" ]] && cp "$CONFIG_FILE" "/tmp/vm_autoscale_config.yaml.bak.$(date +%F_%H%M%S)"
+
+  msg_info "Stopping service"
+  systemctl stop ${SERVICE_NAME}.service 2>/dev/null || true
+  msg_ok "Stopped service"
+
+  msg_info "Downloading ${APP} ${RELEASE_VERSION}"
+  rm -rf "$INSTALL_DIR"
+  fetch_and_deploy_gh_release "vm_autoscale" "$REPO" "tarball" "$RELEASE_VERSION" "$INSTALL_DIR"
+  msg_ok "Downloaded ${APP}"
+
+  msg_info "Setting up Python environment"
+  cd "$INSTALL_DIR"
+  $STD uv venv
+  $STD uv pip install paramiko==3.4.0 PyYAML==6.0.1 requests==2.31.0
+  msg_ok "Setup Python environment"
+
+  # Restore config
+  local latest_backup=$(ls -t /tmp/vm_autoscale_config.yaml.bak.* 2>/dev/null | head -1 || true)
+  [[ -n "$latest_backup" && -f "$latest_backup" ]] && cp "$latest_backup" "$CONFIG_FILE"
+
+  msg_info "Starting service"
+  systemctl start ${SERVICE_NAME}.service
+  msg_ok "Started service"
+
+  msg_ok "${APP} updated to ${RELEASE_VERSION}"
 }
 
 uninstall_vm_autoscale() {
   header_info
-  echo -e "\nUninstalling VM AutoScale\n"
+  echo -e "\nUninstalling ${APP}\n"
 
-  while true; do
-    read -p "Are you sure (y/n)? " yn
-    case $yn in
-      [Yy]*) break ;;
-      [Nn]*) echo "Cancelled."; exit 0 ;;
-      *) echo "Please answer yes or no." ;;
-    esac
-  done
+  read -p "Are you sure (y/n)? " -n 1 -r
+  echo
+  [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Cancelled."; exit 0; }
 
-  check_root
+  [[ $EUID -ne 0 ]] && { msg_error "Run as root"; exit 1; }
 
   msg_info "Stopping service"
   systemctl stop ${SERVICE_NAME}.service 2>/dev/null || true
   systemctl disable ${SERVICE_NAME}.service 2>/dev/null || true
-  msg_ok "Service stopped"
+  msg_ok "Stopped service"
 
   msg_info "Removing files"
   rm -f /etc/systemd/system/${SERVICE_NAME}.service
   systemctl daemon-reload
   rm -rf "$INSTALL_DIR"
-  msg_ok "Uninstalled"
+  msg_ok "Removed files"
+
+  msg_ok "${APP} uninstalled"
 }
 
-update_vm_autoscale() {
-  header_info
-  echo -e "\nUpdating to ${RELEASE_VERSION}\n"
+header_info
+echo -e "\n${APP} Installer - ${RELEASE_VERSION}\n"
+echo -e "  1) Install"
+echo -e "  2) Update"
+echo -e "  3) Uninstall"
+echo -e "  4) Exit\n"
 
-  if [[ ! -d "$INSTALL_DIR" ]]; then
-    msg_error "Not installed. Use install option."
-    exit 1
-  fi
-
-  local current_version
-  current_version=$(cat "${INSTALL_DIR}/version.txt" 2>/dev/null || echo "unknown")
-
-  if [[ "$current_version" == "$RELEASE_VERSION" ]]; then
-    msg_ok "Already at version ${RELEASE_VERSION}"
-    exit 0
-  fi
-
-  echo -e "Current: ${current_version} → New: ${RELEASE_VERSION}"
-  install_vm_autoscale
-}
-
-main() {
-  header_info
-
-  echo -e "\nVM AutoScale Installer - ${RELEASE_VERSION}\n"
-  echo -e "Select an option:\n"
-  echo -e "  1) Install"
-  echo -e "  2) Update"
-  echo -e "  3) Uninstall"
-  echo -e "  4) Exit"
-  echo ""
-
-  read -p "Enter choice [1-4]: " choice
-
-  case $choice in
-    1) install_vm_autoscale ;;
-    2) update_vm_autoscale ;;
-    3) uninstall_vm_autoscale ;;
-    4) exit 0 ;;
-    *) echo "Invalid option"; exit 1 ;;
-  esac
-}
-
-main
+read -p "Enter choice [1-4]: " choice
+case $choice in
+  1) install_vm_autoscale ;;
+  2) update_vm_autoscale ;;
+  3) uninstall_vm_autoscale ;;
+  4) exit 0 ;;
+  *) echo "Invalid option"; exit 1 ;;
+esac
