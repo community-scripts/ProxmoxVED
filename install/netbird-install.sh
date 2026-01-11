@@ -69,7 +69,7 @@ case "$DEPLOYMENT_TYPE" in
     ;;
 esac
 
-# NetBird Connection Setup
+echo ""
 echo ""
 echo -e "${BL}NetBird Connection Setup${CL}"
 echo "─────────────────────────────────────────"
