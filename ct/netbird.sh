@@ -33,7 +33,7 @@ fi
 
 msg_info "Updating ${APP}"
 $STD apt update
-$STD apt -y upgrade
+$STD apt upgrade -y
 msg_ok "Updated Successfully"
 exit
 }
