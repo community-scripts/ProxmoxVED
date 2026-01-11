@@ -284,16 +284,7 @@ update_vm_autoscale() {
   echo -e "${YW}Current version:${CL} ${current_version}"
   echo -e "${YW}New version:${CL} ${RELEASE_VERSION}"
 
-  while true; do
-    read -p "Proceed with update? (y/n) " yn
-    case $yn in
-      [Yy]*) break ;;
-      [Nn]*) echo "Update cancelled."; exit 0 ;;
-      *) echo "Please answer yes or no." ;;
-    esac
-  done
-
-  # Reinstall (backup/restore handled inside)
+  # Reinstall (backup/restore handled inside). install_vm_autoscale will handle confirmation.
   install_vm_autoscale
 }
 
