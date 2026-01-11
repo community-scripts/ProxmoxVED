@@ -23,7 +23,7 @@ setup_deb882_repo \
 msg_ok "Set up NetBird Repository"
 
 msg_info "Installing NetBird"
-$STD apt-get install -y netbird
+$STD apt install -y netbird
 msg_ok "Installed NetBird"
 
 msg_info "Enabling NetBird Service"
