@@ -54,65 +54,99 @@ catch_errors
 config_yugabytedb() {
   TSERVER_FLAGS=""
   BACKUP_DAEMON=true
-  FAULT_TOLERANCE="none"
+  FAULT_TOLERANCE="zone"
+  CLOUD_LOCATION=""
 
-  prompt() {
-    whiptail --title "YugabyteDB Setup" \
-      --inputbox "Set your cloud location (e.g., aws.us-east-1.a):\n  💡 For on-premises deployments, consider racks as zones to treat them\n    as fault domains." \
-      10 80 3>&1 1>&2 2>&3
-  }
+  # prompt() {
+  #   local out rc
+  #   out=$(whiptail --title "YugabyteDB Setup" --inputbox \
+  #     "Set your cloud location (e.g., aws.us-east-1.a):\n  💡 For on-premises deployments, consider racks as zones to treat them\n    as fault domains." \
+  #     10 80 3>&1 1>&2 2>&3)
+  #   # If user cancelled, emit nothing and set CLOUD_LOCATION empty, but return 0
+  #   CLOUD_LOCATION="$out"
+  #   # Normalize: treat cancel as handled here (do not let non‑zero escape)
+  #   return 0
+  # }
 
-  validate() {
-    local v="$1"
-    [[ $v =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$ ]]
-  }
-
+  # Get CLOUD_LOCATION
   while true; do
-    CLOUD_LOCATION=$(prompt)
-    rc=$?
-    if [ $rc -ne 0 ]; then
-      echo "CANCELLED"
-      exit 1
-    fi
-
-    if validate "$CLOUD_LOCATION"; then
-      break
+    if CLOUD_LOCATION=$(whiptail --title "YugabyteDB Setup" \
+      --ok-button "Next" \
+      --inputbox "Set your cloud location (e.g., aws.us-east-1.a):\n  💡 For on-premises deployments, consider racks as zones to treat them\n    as fault domains." \
+      12 80 "" \
+      3>&1 1>&2 2>&3); then
+      if [[ "$CLOUD_LOCATION" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$ ]]; then
+        break
+      else
+        whiptail --msgbox "Invalid format. Use cloudprovider.region.zone (e.g., aws.us-east-1.a)." 8 60
+      fi
     else
-      whiptail --title "YugabyteDB Setup" --msgbox "Invalid format. Use cloudprovider.region.zone (e.g., aws.us-east-1.a)." 8 60
+      echo "${CROSS}Script aborted: You must set your cloud location"
+      exit 0
     fi
   done
 
-  if single_zone=$(whiptail --title "YugabyteDB Setup" --yesno "Single availability zone (AZ) deployment?" 8 60); then
+  # prompt() {
+  #   local out rc
+  #   # Capture whiptail stdout via a pipe, keep /dev/tty for terminal I/O
+  #   out=$({ whiptail --title "YugabyteDB Setup" \
+  #     --inputbox "Set your cloud location (e.g., aws.us-east-1.a):\n  💡 For on-premises deployments, consider racks as zones to treat them\n    as fault domains." \
+  #     10 80; } </dev/tty 2>&1) || rc=$?
+  #   # Whiptail writes selection to stdout (captured), and prints control sequences to tty
+  #   CLOUD_LOCATION=$out
+  #   # Drain any bytes from /dev/tty (non-blocking) to remove leftover newline/control seqs
+  #   while read -r -t 0.01 -n 1 _ </dev/tty 2>/dev/null; do :; done
+  #   return ${rc:-0}
+  # }
+
+  # validate() {
+  #   local v="$1"
+  #   [[ $v =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$ ]]
+  # }
+
+  # while true; do
+  #   prompt
+  #   if [ -z "$CLOUD_LOCATION" ]; then
+  #     echo "${CROSS}Script aborted: You must set your cloud location"
+  #     exit 0
+  #   fi
+  #   if validate "$CLOUD_LOCATION"; then break; fi
+  #   whiptail --title "YugabyteDB Setup" \
+  #     --msgbox "Invalid format. Use cloudprovider.region.zone (e.g., aws.us-east-1.a)." 8 60
+  # done
+
+  if single_zone=$(whiptail --title "YugabyteDB Setup" \
+    --yesno "Single availability zone (AZ) deployment?" 8 80); then
     TSERVER_FLAGS+="durable_wal_write=true"
   fi
 
   if [[ $single_zone -eq 0 ]]; then
-    whiptail --title "Radio list example" --radiolist \
+    FAULT_TOLERANCE=$(whiptail --title "Radio list example" --radiolist \
       "Specify the fault tolerance for the universe." 6 80 4 \
-      "none" "" OFF \
-      "zone" "" ON \
-      "region" "" OFF \
-      "cloud" "" OFF
+      "none" "Use when you run a single-node development instance or accept total data loss during outages. Not for production." OFF \
+      "zone" "Recommended for intra-datacenter HA across multiple racks/availability zones within a single region. Survives a single AZ/rack failure with low cross-node latency. Use when you need high availability, low write latency, and all replicas are in one region." ON \
+      "region" "Recommended for cross-region deployments where you need survivability against an entire AZ/region outage. Survives a full region failure (with appropriate replica placement) but increases write latency and cross-region bandwidth cost. Use when geo-redundancy and disaster recovery are required." OFF \
+      "cloud" "Use when you want provider-managed multi-region/multi-cloud fault tolerance via cloud-level replication (e.g., cloud-managed clusters across providers or availability domains). Use if you prefer offloading replication/failover complexity to cloud services or need resilience across cloud providers." OFF 3>&1 1>&2 2>&3)
   fi
 
-  if whiptail --title "YugabyteDB Setup" --yesno "Is this a single zone setup?" 8 60; then
+  if whiptail --title "YugabyteDB Setup" --yesno "Is this a single zone setup?" 8 80; then
     # In single AZ deployments, you need to set the yb-tserver flag --durable_wal_write=true
     # to not lose data if the whole data center goes down (for example, power failure).
     TSERVER_FLAGS+="durable_wal_write=true,"
   fi
 
   if ! whiptail --title "YugabyteDB Setup" \
-    --yesno "Do want to use YSQL Connection Manager for connection pooling?" 8 60; then
+    --yesno "Do want to use YSQL Connection Manager for connection pooling?" 8 80; then
     TSERVER_FLAGS+="enable_ysql_conn_mgr=true,"
   fi
 
   if whiptail --title "YugabyteDB Setup" \
-    --yesno "Do want to use memory defaults optimized for YSQL?" 8 60 --defaultno; then
+    --yesno "Do want to use memory defaults optimized for YSQL?" 8 80 --defaultno; then
     TSERVER_FLAGS+="use_memory_defaults_optimized_for_ysql=true,"
   fi
 
   if ! whiptail --title "YugabyteDB Setup" \
-    --yesno "Enable the backup/restore agent? (Enables yugabyted backup command)" 8 60; then
+    --yesno "Enable the backup/restore agent? (Enables yugabyted backup command)" 8 80; then
     BACKUP_DAEMON=false
   fi
 
