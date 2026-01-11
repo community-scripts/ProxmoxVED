@@ -30,7 +30,7 @@ msg_info "Enabling NetBird Service"
 $STD systemctl enable -q --now netbird
 msg_ok "Enabled NetBird Service"
 
-# NetBird Deployment Type Selection
+echo ""
 echo ""
 echo -e "${BL}NetBird Deployment Type${CL}"
 echo "─────────────────────────────────────────"
