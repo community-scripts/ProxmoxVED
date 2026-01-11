@@ -43,18 +43,6 @@
         {
             "text": "LXCFS Configuration Required: Ensure /lib/systemd/system/lxcfs.service has the -l flag: ExecStart=/usr/bin/lxcfs /var/lib/lxcfs -l",
             "type": "warning"
-        },
-        {
-            "text": "After modifying lxcfs.service, run: systemctl daemon-reload && systemctl restart lxcfs",
-            "type": "info"
-        },
-        {
-            "text": "Edit configuration at /opt/lxc_autoscale/lxc_autoscale/lxc_autoscale.yaml before starting the service",
-            "type": "info"
-        },
-        {
-            "text": "Service commands: systemctl start/stop/status lxc_autoscale",
-            "type": "info"
         }
     ]
 }

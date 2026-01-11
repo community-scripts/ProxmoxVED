@@ -47,18 +47,6 @@
         {
             "text": "Auto-configure hotplug: Set auto_configure_hotplug: true in config.yaml to auto-enable hotplug on managed VMs",
             "type": "info"
-        },
-        {
-            "text": "Edit configuration at /opt/vm_autoscale/config.yaml before starting the service",
-            "type": "info"
-        },
-        {
-            "text": "Service commands: systemctl start/stop/status vm_autoscale",
-            "type": "info"
-        },
-        {
-            "text": "Billing feature available for web hosters: Track resource usage and generate CSV reports",
-            "type": "info"
         }
     ]
 }

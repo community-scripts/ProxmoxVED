@@ -2,22 +2,20 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: fabriziosalmi
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/fabriziosalmi/proxmox-lxc-autoscale
 
-# Security: Pinned to specific release for reproducibility and integrity
+# Source standard functions
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+
+# Configuration
 RELEASE_VERSION="v1.0.0"
-REPO_OWNER="fabriziosalmi"
-REPO_NAME="proxmox-lxc-autoscale"
-TARBALL_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/archive/refs/tags/${RELEASE_VERSION}.tar.gz"
-# SHA256 hash of the tarball for integrity verification
-TARBALL_SHA256="7182d30e7d338537e46488d5ebee6f0060e2bbd1f531c900c93e52e204136a4e"
+REPO="fabriziosalmi/proxmox-lxc-autoscale"
 INSTALL_DIR="/opt/lxc_autoscale"
 SERVICE_NAME="lxc_autoscale"
 
-# Pinned Python dependencies with exact versions
-# To regenerate with hashes: pip download <package>==<version> && pip hash <file>.whl
+# Pinned Python dependencies
 REQUIREMENTS_CONTENT='paramiko==3.4.0
 PyYAML==6.0.1
 requests==2.31.0'
@@ -34,33 +32,6 @@ header_info() {
 EOF
 }
 
-RD=$(echo "\033[01;31m")
-YW=$(echo "\033[33m")
-GN=$(echo "\033[1;92m")
-CL=$(echo "\033[m")
-BFR="\\r\\033[K"
-HOLD="-"
-CM="${GN}✓${CL}"
-CROSS="${RD}✗${CL}"
-
-set -euo pipefail
-shopt -s inherit_errexit nullglob
-
-msg_info() {
-  local msg="$1"
-  echo -ne " ${HOLD} ${YW}${msg}..."
-}
-
-msg_ok() {
-  local msg="$1"
-  echo -e "${BFR} ${CM} ${GN}${msg}${CL}"
-}
-
-msg_error() {
-  local msg="$1"
-  echo -e "${BFR} ${CROSS} ${RD}${msg}${CL}"
-}
-
 check_root() {
   if [[ $EUID -ne 0 ]]; then
     msg_error "This script must be run as root"
@@ -75,134 +46,22 @@ check_pve() {
   fi
 }
 
-verify_tarball_sha256() {
-  local file="$1"
-  local expected_sha256="$2"
-  local actual_sha256
-
-  actual_sha256=$(sha256sum "$file" | cut -d' ' -f1)
-
-  if [[ "$actual_sha256" != "$expected_sha256" ]]; then
-    msg_error "SHA256 verification failed!"
-    msg_error "Expected: ${expected_sha256}"
-    msg_error "Got: ${actual_sha256}"
-    exit 1
-  fi
-  msg_ok "SHA256 verification passed"
-}
-
-install_dependencies() {
-  msg_info "Installing system dependencies"
-  apt update -qq
-  apt install -y -qq \
-    python3 \
-    python3-venv \
-    python3-pip \
-    curl \
-    sudo &>/dev/null
-  msg_ok "Installed system dependencies"
-}
-
-backup_config() {
-  if [[ -f "${INSTALL_DIR}/lxc_autoscale/lxc_autoscale.yaml" ]]; then
-    msg_info "Backing up existing configuration"
-    cp "${INSTALL_DIR}/lxc_autoscale/lxc_autoscale.yaml" "/tmp/lxc_autoscale.yaml.bak.$(date +%F_%H%M%S)"
-    msg_ok "Configuration backed up"
-  fi
-}
-
-restore_config() {
-  local latest_backup
-  latest_backup=$(ls -t /tmp/lxc_autoscale.yaml.bak.* 2>/dev/null | head -1 || true)
-
-  if [[ -n "$latest_backup" && -f "$latest_backup" ]]; then
-    msg_info "Restoring previous configuration"
-    cp "$latest_backup" "${INSTALL_DIR}/lxc_autoscale/lxc_autoscale.yaml"
-    msg_ok "Configuration restored"
-  fi
-}
-
-install_lxc_autoscale() {
-  header_info
-  echo -e "\nThis script will install LXC AutoScale ${RELEASE_VERSION}.\n"
-  echo -e "${YW}Source:${CL} https://github.com/${REPO_OWNER}/${REPO_NAME}"
-  echo -e "${YW}SHA256:${CL} ${TARBALL_SHA256}\n"
-
-  while true; do
-    read -p "Start the LXC AutoScale installation (y/n)? " yn
-    case $yn in
-      [Yy]*) break ;;
-      [Nn]*) echo "Installation cancelled."; exit 0 ;;
-      *) echo "Please answer yes or no." ;;
-    esac
-  done
-
-  check_root
-  check_pve
-  install_dependencies
-
-  # Backup existing config if updating
-  backup_config
-
-  # Remove existing installation if present
-  if [[ -d "$INSTALL_DIR" ]]; then
-    msg_info "Removing existing installation"
-    systemctl stop ${SERVICE_NAME}.service 2>/dev/null || true
-    systemctl disable ${SERVICE_NAME}.service 2>/dev/null || true
-    rm -rf "$INSTALL_DIR"
-    msg_ok "Removed existing installation"
-  fi
-
-  # Download release tarball
-  local TMPDIR
-  TMPDIR=$(mktemp -d)
-  local TARBALL="${TMPDIR}/${REPO_NAME}-${RELEASE_VERSION}.tar.gz"
-
-  msg_info "Downloading LXC AutoScale release (${RELEASE_VERSION})"
-  curl \
-    --fail \
-    --silent \
-    --show-error \
-    --location \
-    --output "$TARBALL" \
-    "$TARBALL_URL"
-  msg_ok "Downloaded release tarball"
-
-  # Verify SHA256 hash for security
-  msg_info "Verifying tarball integrity"
-  verify_tarball_sha256 "$TARBALL" "$TARBALL_SHA256"
-
-  # Extract tarball
-  msg_info "Extracting release to ${INSTALL_DIR}"
-  mkdir -p "$INSTALL_DIR"
-  tar --no-same-owner -xzf "$TARBALL" -C "$TMPDIR"
-  # GitHub tarballs extract to repo-version directory
-  local EXTRACTED_DIR="${TMPDIR}/${REPO_NAME}-${RELEASE_VERSION#v}"
-  cp -r "$EXTRACTED_DIR"/* "$INSTALL_DIR/"
-  rm -rf "$TMPDIR"
-  msg_ok "Extracted to ${INSTALL_DIR}"
-
-  # Setup Python virtual environment
+setup_python_env() {
   msg_info "Setting up Python virtual environment"
   cd "$INSTALL_DIR"
   python3 -m venv venv
   source venv/bin/activate
 
-  # Install Python dependencies with pinned versions
-  msg_info "Installing Python dependencies (pinned versions)"
+  msg_info "Installing Python dependencies"
   pip install --quiet --upgrade pip
-
-  # Create secure requirements file with pinned versions
   echo "${REQUIREMENTS_CONTENT}" > "${INSTALL_DIR}/requirements-pinned.txt"
   pip install --quiet -r "${INSTALL_DIR}/requirements-pinned.txt"
 
   deactivate
   msg_ok "Python environment configured"
+}
 
-  # Restore previous configuration if available
-  restore_config
-
-  # Create systemd service
+create_service() {
   msg_info "Creating systemd service"
   cat <<EOF >/etc/systemd/system/${SERVICE_NAME}.service
 [Unit]
@@ -224,46 +83,81 @@ WantedBy=multi-user.target
 EOF
 
   systemctl enable -q --now ${SERVICE_NAME}.service
-  msg_ok "Systemd service created and enabled"
+  msg_ok "Service created and enabled"
+}
 
-  # Save version info
-  echo "${RELEASE_VERSION}" > "${INSTALL_DIR}/version.txt"
-  echo "${TARBALL_SHA256}" > "${INSTALL_DIR}/sha256.txt"
+backup_config() {
+  if [[ -f "${INSTALL_DIR}/lxc_autoscale/lxc_autoscale.yaml" ]]; then
+    msg_info "Backing up configuration"
+    cp "${INSTALL_DIR}/lxc_autoscale/lxc_autoscale.yaml" "/tmp/lxc_autoscale.yaml.bak.$(date +%F_%H%M%S)"
+    msg_ok "Configuration backed up"
+  fi
+}
+
+restore_config() {
+  local latest_backup
+  latest_backup=$(ls -t /tmp/lxc_autoscale.yaml.bak.* 2>/dev/null | head -1 || true)
+
+  if [[ -n "$latest_backup" && -f "$latest_backup" ]]; then
+    msg_info "Restoring configuration"
+    cp "$latest_backup" "${INSTALL_DIR}/lxc_autoscale/lxc_autoscale.yaml"
+    msg_ok "Configuration restored"
+  fi
+}
+
+install_lxc_autoscale() {
+  header_info
+  echo -e "\nInstalling LXC AutoScale ${RELEASE_VERSION}\n"
+
+  while true; do
+    read -p "Start installation (y/n)? " yn
+    case $yn in
+      [Yy]*) break ;;
+      [Nn]*) echo "Cancelled."; exit 0 ;;
+      *) echo "Please answer yes or no." ;;
+    esac
+  done
+
+  check_root
+  check_pve
+
+  msg_info "Installing dependencies"
+  ensure_dependencies python3 python3-venv python3-pip curl sudo
+  msg_ok "Dependencies installed"
+
+  backup_config
+
+  # Stop and remove existing installation
+  if [[ -d "$INSTALL_DIR" ]]; then
+    systemctl stop ${SERVICE_NAME}.service 2>/dev/null || true
+    systemctl disable ${SERVICE_NAME}.service 2>/dev/null || true
+    rm -rf "$INSTALL_DIR"
+  fi
+
+  # Download and deploy using standard function
+  msg_info "Downloading release ${RELEASE_VERSION}"
+  fetch_and_deploy_gh_release "lxc_autoscale" "$REPO" "tarball" "$RELEASE_VERSION" "$INSTALL_DIR"
+  msg_ok "Release deployed"
+
+  setup_python_env
+  restore_config
+  create_service
 
   msg_ok "LXC AutoScale ${RELEASE_VERSION} installed successfully!"
-
   echo ""
-  echo -e "${GN}Installation Complete!${CL}"
-  echo ""
-  echo -e "${YW}Configuration:${CL}"
-  echo -e "  Edit: ${GN}${INSTALL_DIR}/lxc_autoscale/lxc_autoscale.yaml${CL}"
-  echo ""
-  echo -e "${YW}LXCFS Configuration (Important):${CL}"
-  echo -e "  Ensure ${GN}/lib/systemd/system/lxcfs.service${CL} has the ${GN}-l${CL} flag:"
-  echo -e "  ${GN}ExecStart=/usr/bin/lxcfs /var/lib/lxcfs -l${CL}"
-  echo -e "  Then run: ${GN}systemctl daemon-reload && systemctl restart lxcfs${CL}"
-  echo ""
-  echo -e "${YW}Service Management:${CL}"
-  echo -e "  Start:   ${GN}systemctl start ${SERVICE_NAME}${CL}"
-  echo -e "  Stop:    ${GN}systemctl stop ${SERVICE_NAME}${CL}"
-  echo -e "  Status:  ${GN}systemctl status ${SERVICE_NAME}${CL}"
-  echo -e "  Logs:    ${GN}journalctl -u ${SERVICE_NAME} -f${CL}"
-  echo ""
-  echo -e "${YW}Auto-config (optional):${CL}"
-  echo -e "  To generate configuration for all LXC containers, run:"
-  echo -e "  ${GN}${INSTALL_DIR}/venv/bin/python3 ${INSTALL_DIR}/lxc_autoscale/lxc_autoscale_autoconf.py${CL}"
-  echo ""
+  echo -e "Configuration: ${INSTALL_DIR}/lxc_autoscale/lxc_autoscale.yaml"
+  echo -e "Service: systemctl status ${SERVICE_NAME}"
 }
 
 uninstall_lxc_autoscale() {
   header_info
-  echo -e "\nThis will uninstall LXC AutoScale.\n"
+  echo -e "\nUninstalling LXC AutoScale\n"
 
   while true; do
-    read -p "Are you sure you want to uninstall? (y/n) " yn
+    read -p "Are you sure (y/n)? " yn
     case $yn in
       [Yy]*) break ;;
-      [Nn]*) echo "Uninstall cancelled."; exit 0 ;;
+      [Nn]*) echo "Cancelled."; exit 0 ;;
       *) echo "Please answer yes or no." ;;
     esac
   done
@@ -275,28 +169,22 @@ uninstall_lxc_autoscale() {
   systemctl disable ${SERVICE_NAME}.service 2>/dev/null || true
   msg_ok "Service stopped"
 
-  msg_info "Removing service file"
+  msg_info "Removing files"
   rm -f /etc/systemd/system/${SERVICE_NAME}.service
   systemctl daemon-reload
-  msg_ok "Service file removed"
-
-  msg_info "Removing installation directory"
   rm -rf "$INSTALL_DIR"
-  msg_ok "Installation directory removed"
-
-  msg_ok "LXC AutoScale uninstalled successfully!"
+  msg_ok "Uninstalled"
 }
 
 update_lxc_autoscale() {
   header_info
-  echo -e "\nThis will update LXC AutoScale to ${RELEASE_VERSION}.\n"
+  echo -e "\nUpdating to ${RELEASE_VERSION}\n"
 
   if [[ ! -d "$INSTALL_DIR" ]]; then
-    msg_error "LXC AutoScale is not installed. Please install first."
+    msg_error "Not installed. Use install option."
     exit 1
   fi
 
-  # Check current version
   local current_version
   current_version=$(cat "${INSTALL_DIR}/version.txt" 2>/dev/null || echo "unknown")
 
@@ -305,21 +193,14 @@ update_lxc_autoscale() {
     exit 0
   fi
 
-  echo -e "${YW}Current version:${CL} ${current_version}"
-  echo -e "${YW}New version:${CL} ${RELEASE_VERSION}"
-
-  # Proceed to reinstall; user confirmation is handled inside install_lxc_autoscale
-  # (avoids double prompting here and in the installer).
-
-  # Reinstall (backup/restore handled inside)
+  echo -e "Current: ${current_version} → New: ${RELEASE_VERSION}"
   install_lxc_autoscale
 }
 
 main() {
   header_info
 
-  echo -e "\n${GN}LXC AutoScale Installer${CL} - Version ${RELEASE_VERSION}\n"
-  echo -e "Automatically scale LXC container resources on Proxmox hosts\n"
+  echo -e "\nLXC AutoScale Installer - ${RELEASE_VERSION}\n"
   echo -e "Select an option:\n"
   echo -e "  1) Install"
   echo -e "  2) Update"
