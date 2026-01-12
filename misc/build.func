@@ -3246,6 +3246,9 @@ EOF'
     ;;
 
   debian | ubuntu | devuan)
+    # First install locales package (required for locale-gen on minimal templates)
+    pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y locales >/dev/null 2>&1 || true"
+
     # Locale setup for Debian-based
     pct exec "$CTID" -- bash -c "sed -i '/$LANG/ s/^# //' /etc/locale.gen 2>/dev/null || true"
     pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen 2>/dev/null | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
@@ -3272,18 +3275,33 @@ EOF'
 
   fedora | rockylinux | almalinux | centos)
     # RHEL-based: Fedora, Rocky, AlmaLinux, CentOS
-    pct exec "$CTID" -- bash -c "dnf install -y curl sudo mc jq procps-ng >/dev/null 2>&1 || yum install -y curl sudo mc jq procps-ng >/dev/null 2>&1" || {
+    # Install base packages including glibc-langpack for locale support
+    pct exec "$CTID" -- bash -c "dnf install -y curl sudo mc jq procps-ng glibc-langpack-en >/dev/null 2>&1 || yum install -y curl sudo mc jq procps-ng >/dev/null 2>&1" || {
       msg_error "dnf/yum base packages installation failed"
       exit 1
     }
+
+    # Set locale for RHEL-based systems
+    pct exec "$CTID" -- bash -c "localectl set-locale LANG=en_US.UTF-8 2>/dev/null || echo 'LANG=en_US.UTF-8' > /etc/locale.conf" || true
+
+    # Timezone setup for RHEL
+    if [[ -z "${tz:-}" ]]; then
+      tz=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "Etc/UTC")
+    fi
+    [[ "${tz:-}" == Etc/* ]] && tz="UTC"
+    if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
+      pct exec "$CTID" -- bash -c "timedatectl set-timezone '$tz' 2>/dev/null || ln -sf '/usr/share/zoneinfo/$tz' /etc/localtime" || true
+    fi
     ;;
 
   opensuse)
-    # openSUSE
-    pct exec "$CTID" -- bash -c "zypper --non-interactive install curl sudo mc jq >/dev/null" || {
+    # openSUSE - add locale package and setup
+    pct exec "$CTID" -- bash -c "zypper --non-interactive install curl sudo mc jq glibc-locale >/dev/null" || {
       msg_error "zypper base packages installation failed"
       exit 1
     }
+    # Set locale for openSUSE
+    pct exec "$CTID" -- bash -c "localectl set-locale LANG=en_US.UTF-8 2>/dev/null || echo 'LANG=en_US.UTF-8' > /etc/locale.conf" || true
     ;;
 
   gentoo)
@@ -3295,10 +3313,23 @@ EOF'
 
   openeuler)
     # openEuler (RHEL-compatible)
-    pct exec "$CTID" -- bash -c "dnf install -y curl sudo mc jq >/dev/null" || {
+    # Note: openEuler may fail pct create due to missing /etc/redhat-release - this is a PVE limitation
+    pct exec "$CTID" -- bash -c "dnf install -y curl sudo mc jq glibc-langpack-en >/dev/null" || {
       msg_error "dnf base packages installation failed"
       exit 1
     }
+    # Set locale
+    pct exec "$CTID" -- bash -c "echo 'LANG=en_US.UTF-8' > /etc/locale.conf" || true
+    ;;
+
+  opensuse)
+    # openSUSE - add locale package and setup
+    pct exec "$CTID" -- bash -c "zypper --non-interactive install curl sudo mc jq glibc-locale >/dev/null" || {
+      msg_error "zypper base packages installation failed"
+      exit 1
+    }
+    # Set locale for openSUSE
+    pct exec "$CTID" -- bash -c "localectl set-locale LANG=en_US.UTF-8 2>/dev/null || echo 'LANG=en_US.UTF-8' > /etc/locale.conf" || true
     ;;
 
   *)
@@ -3845,12 +3876,19 @@ create_lxc_container() {
   # Template discovery & validation
   # Supported OS types (pveam available): alpine, almalinux, centos, debian,
   #   devuan, fedora, gentoo, openeuler, opensuse, rockylinux, ubuntu
+  # Template naming conventions:
+  #   - Debian/Ubuntu/Devuan: <os>-<version>-standard_<date>_<arch>.tar.zst
+  #   - Alpine/Fedora/Rocky/CentOS/AlmaLinux/openEuler: <os>-<version>-default_<date>_<arch>.tar.xz
+  #   - Gentoo: gentoo-current-openrc-<date>_<arch>.tar.xz (version IS 'current')
+  #   - openSUSE: opensuse-<version>-default_<date>_<arch>.tar.xz
+  #   - CentOS: centos-<version>-stream-default_<date>_<arch>.tar.xz (note: stream in name)
   # ------------------------------------------------------------------------------
   TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
   case "$PCT_OSTYPE" in
   debian | ubuntu | devuan) TEMPLATE_PATTERN="-standard_" ;;
-  alpine | fedora | rocky | rockylinux | centos | almalinux | openeuler) TEMPLATE_PATTERN="-default_" ;;
-  gentoo) TEMPLATE_PATTERN="-current-openrc" ;;
+  alpine | fedora | rockylinux | almalinux | openeuler) TEMPLATE_PATTERN="-default_" ;;
+  centos) TEMPLATE_PATTERN="-stream-default_" ;;
+  gentoo) TEMPLATE_PATTERN="-openrc-" ;; # Pattern after gentoo-current
   opensuse) TEMPLATE_PATTERN="-default_" ;;
   *) TEMPLATE_PATTERN="" ;;
   esac
