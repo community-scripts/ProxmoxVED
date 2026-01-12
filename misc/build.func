@@ -693,12 +693,22 @@ load_vars_file() {
       [[ "$var_key" != var_* ]] && continue
       _is_whitelisted "$var_key" || continue
 
+      # Strip inline comments (everything after unquoted #)
+      # Handle: var=value # comment OR var="value" # comment
+      if [[ ! "$var_val" =~ ^[\"\'] ]]; then
+        # Unquoted value: strip from first #
+        var_val="${var_val%%#*}"
+      fi
+
       # Strip quotes
       if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
         var_val="${BASH_REMATCH[1]}"
       elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
         var_val="${BASH_REMATCH[1]}"
       fi
+
+      # Trim trailing whitespace
+      var_val="${var_val%"${var_val##*[![:space:]]}"}"
 
       # Set only if not already exported
       [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
@@ -802,12 +812,18 @@ var_fuse=no
 var_tun=no
 
 # Advanced Settings (Proxmox-official features)
-var_nesting=1          # Allow nesting (required for Docker/LXC in CT)
-var_keyctl=0           # Allow keyctl() - needed for Docker (systemd-networkd workaround)
-var_mknod=0            # Allow device node creation (requires kernel 5.3+, experimental)
-var_mount_fs=          # Allow specific filesystems: nfs,fuse,ext4,etc (leave empty for defaults)
-var_protection=no      # Prevent accidental deletion of container
-var_timezone=          # Container timezone (e.g. Europe/Berlin, leave empty for host timezone)
+# var_nesting: Allow nesting (required for Docker/LXC in CT)
+var_nesting=1
+# var_keyctl: Allow keyctl() - needed for Docker (systemd-networkd workaround)
+var_keyctl=0
+# var_mknod: Allow device node creation (requires kernel 5.3+, experimental)
+var_mknod=0
+# var_mount_fs: Allow specific filesystems: nfs,fuse,ext4,etc (leave empty for defaults)
+var_mount_fs=
+# var_protection: Prevent accidental deletion of container
+var_protection=no
+# var_timezone: Container timezone (e.g. Europe/Berlin, leave empty for host timezone)
+var_timezone=
 var_tags=community-script
 var_verbose=no
 
