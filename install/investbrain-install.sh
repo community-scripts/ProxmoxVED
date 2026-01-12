@@ -27,7 +27,8 @@ $STD apt install -y \
   libpq-dev
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.4" PHP_FPM=YES PHP_MODULE="gd,zip,intl,pdo,pgsql,pdo-pgsql,bcmath,opcache,mbstring,redis" setup_php
+export PHP_VERSION="8.4"
+PHP_FPM=YES PHP_MODULE="gd,zip,intl,pdo,pgsql,pdo-pgsql,bcmath,opcache,mbstring,redis" setup_php
 setup_composer
 NODE_VERSION="22" setup_nodejs
 PG_VERSION="17" setup_postgresql
@@ -92,7 +93,7 @@ MAIL_FROM_ADDRESS="investbrain@${LOCAL_IP}"
 VITE_APP_NAME=Investbrain
 EOF
 export COMPOSER_ALLOW_SUPERUSER=1
-$STD composer install --no-interaction --no-dev --optimize-autoloader
+$STD /usr/local/bin/composer install --no-interaction --no-dev --optimize-autoloader
 $STD npm install
 $STD npm run build
 mkdir -p /opt/investbrain/storage/{framework/cache,framework/sessions,framework/views,app,logs}

@@ -46,5 +46,5 @@ Link: #
 > PRs that do not meet these requirements may be closed without review.
 - [ ] The application is **at least 6 months old**
 - [ ] The application is **actively maintained**
-- [ ] The application has **200+ GitHub stars**
+- [ ] The application has **600+ GitHub stars**
 - [ ] Official **release tarballs** are published

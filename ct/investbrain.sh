@@ -33,7 +33,7 @@ function update_script() {
     PHP_VERSION="8.4"
     msg_info "Stopping Services"
     systemctl stop nginx php${PHP_VERSION}-fpm
-    supervisorctl stop all
+    $STD supervisorctl stop all
     msg_ok "Services Stopped"
 
     PHP_FPM=YES PHP_MODULE="gd,zip,intl,pdo,pgsql,pdo-pgsql,bcmath,opcache,mbstring,redis" setup_php
@@ -56,7 +56,7 @@ function update_script() {
     cp /opt/.env.backup /opt/investbrain/.env
     cp -r /opt/investbrain_backup/ /opt/investbrain/storage
     export COMPOSER_ALLOW_SUPERUSER=1
-    $STD composer install --no-interaction --no-dev --optimize-autoloader
+    $STD /usr/local/bin/composer install --no-interaction --no-dev --optimize-autoloader
     $STD npm install
     $STD npm run build
     $STD php artisan storage:link
@@ -74,7 +74,7 @@ function update_script() {
 
     msg_info "Starting Services"
     systemctl start php${PHP_VERSION}-fpm nginx
-    supervisorctl start all
+    $STD supervisorctl start all
     msg_ok "Services Started"
     msg_ok "Updated Successfully!"
   fi

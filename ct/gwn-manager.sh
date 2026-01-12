@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://www.debian.org/
+# Author: Slaviša Arežina (tremor021)
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Source: https://www.grandstream.com/products/networking-solutions/wi-fi-management/product/gwn-manager
 
-APP="Ente"
-var_tags="${var_tags:-photos}"
-var_cpu="${var_cpu:-4}"
+APP="GWN-Manager"
+var_tags="${var_tags:-network;management}"
+var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-6144}"
-var_disk="${var_disk:-20}"
+var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -23,14 +23,12 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /var ]]; then
+  if [[ ! -d /gwn ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating Ente LXC"
-  $STD apt-get update
-  $STD apt-get -y upgrade
-  msg_ok "Updated Ente LXC"
+
+  msg_ok "Application is updated via the web interface!"
   exit
 }
 
@@ -41,4 +39,4 @@ description
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:8443${CL}"
