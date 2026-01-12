@@ -108,8 +108,8 @@ config_yugabytedb() {
             "none" "For single-node development, not production. Total data loss during outages" OFF \
             "zone" "Survives a single AZ/rack failure. Use when all replicas are in one region" ON \
             "region" "Use when geo-redundancy and disaster recovery are required" OFF \
-            "cloud" "Provider-managed fault tolerance via cloud-level replication" OFF 3>&1 1>&2 2>&3)
-          if [ "$FAULT_TOLERANCE" -eq 1 ]; then
+            "cloud" "Provider-managed fault tolerance via cloud-level replication" OFF 3>&1 1>&2 2>&3) || result=$?
+          if [ "$result" -ne 0 ]; then
             continue
           fi
           single_zone=false
@@ -129,7 +129,7 @@ config_yugabytedb() {
     3)
       if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
         --title "YSQL Connection Manager" \
-        --yesno "Do want to use YSQL Connection Manager for connection pooling?" 7 66; then
+        --yesno "Do want to use YSQL Connection Manager for connection pooling?\n  💡 Can take up to 200MB of RAM on each database node." 8 66; then
         enable_ysql_conn_mgr=true
       else
         if [ $? -eq 1 ]; then
@@ -148,7 +148,7 @@ config_yugabytedb() {
       if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
         --title "Memory Defaults Optimized for YSQL" \
         --defaultno \
-        --yesno "Do want to use memory defaults optimized for YSQL?" 7 54; then
+        --yesno "Do want to use memory defaults optimized for YSQL?\nSelect No to prioritize YCQL or if not using YSQL." 8 54; then
         mem_opt_for_ysql=true
       else
         if [ $? -eq 1 ]; then
