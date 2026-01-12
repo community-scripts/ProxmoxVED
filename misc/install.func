@@ -900,26 +900,24 @@ EOF
         sysvinit)
             # Devuan/older systems - modify inittab for auto-login
             # Devuan 5 (daedalus) uses SysVinit with various inittab formats
+            # CRITICAL: LXC uses /dev/console, NOT tty1! pct console connects to console device
             if [[ -f /etc/inittab ]]; then
                 # Backup original inittab
                 cp /etc/inittab /etc/inittab.bak 2>/dev/null || true
 
-                # Try multiple patterns to catch different inittab formats
-                # Pattern 1: Standard format "1:2345:respawn:/sbin/getty..."
+                # First, enable autologin on tty1 (for direct access)
                 sed -i 's|^1:[0-9]*:respawn:.*/\(a\?getty\).*|1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
 
-                # Pattern 2: With console instead of tty1
-                sed -i 's|^c1:[0-9]*:respawn:.*/\(a\?getty\).*console.*|c1:2345:respawn:/sbin/agetty --autologin root --noclear console 38400 linux|' /etc/inittab
-
-                # Pattern 3: Devuan specific "co:2345:respawn:/sbin/getty..."
-                sed -i 's|^co:[0-9]*:respawn:.*/\(a\?getty\).*|co:2345:respawn:/sbin/agetty --autologin root --noclear console 38400 linux|' /etc/inittab
-
-                # Pattern 4: LXC console pattern
-                if ! grep -q 'autologin root' /etc/inittab; then
-                    # If no autologin was set, add a new console entry
-                    if ! grep -qE '^c[o1]:.*autologin' /etc/inittab; then
-                        echo "co:2345:respawn:/sbin/agetty --autologin root --noclear console 38400 linux" >>/etc/inittab
-                    fi
+                # CRITICAL: Add console entry for LXC - this is what pct console uses!
+                # Check if there's already a console getty entry
+                if ! grep -qE '^[^#].*respawn.*console' /etc/inittab; then
+                    # Add new console entry for LXC
+                    echo "" >> /etc/inittab
+                    echo "# LXC console autologin (added by community-scripts)" >> /etc/inittab
+                    echo "co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200,38400,9600 linux" >> /etc/inittab
+                else
+                    # Enable autologin on existing console entry
+                    sed -i 's|^[^#]*:[0-9]*:respawn:.*/\(a\?getty\).*console.*|co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200,38400,9600 linux|' /etc/inittab
                 fi
 
                 # Force a reload of inittab - try multiple methods
