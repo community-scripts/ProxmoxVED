@@ -18,9 +18,6 @@ var_unprivileged="${var_unprivileged:-1}"
 var_nesting="${var_nesting:-1}"
 var_keyctl="${var_keyctl:-1}"
 
-# -------------------------------------------------
-# Framework setup
-# -------------------------------------------------
 header_info "$APP"
 variables
 color
@@ -41,20 +38,31 @@ function update_script() {
   msg_ok "Stopped Forgejo Runner"
 
   msg_info "Fetching latest Forgejo Runner version"
-  RELEASE=$(curl -fsSL https://code.forgejo.org/api/v1/repos/forgejo/runner/releases/latest \
+  OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+  ARCH=$(uname -m)
+
+  case "$ARCH" in
+    x86_64) ARCH="amd64" ;;
+    aarch64|arm64) ARCH="arm64" ;;
+    armv7l) ARCH="armv7" ;;
+    *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+  esac
+
+  RELEASE=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest \
     | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
 
   msg_info "Updating Forgejo Runner to v${RELEASE}"
+
   curl -fsSL \
-    "https://code.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-linux-amd64" \
-    -o /usr/local/bin/forgejo-runner
+    "https://data.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-${OS}-${ARCH}" \
+    -o forgejo-runner
+
 
   chmod +x /usr/local/bin/forgejo-runner
   msg_ok "Updated Forgejo Runner"
 
   msg_info "Starting Forgejo Runner"
-  systemctl daemon-reload
-  systemctl start forgejo-runner
+  systemctl enable -q --now forgejo-runner
   msg_ok "Started Forgejo Runner"
 
   msg_ok "Update completed successfully!"
@@ -65,5 +73,7 @@ start
 build_container
 description
 
-msg_ok "Completed successfully!"
-echo -e "${INFO}${YW}Forgejo Runner is now online and ready.${CL}"
+msg_ok "Completed successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
