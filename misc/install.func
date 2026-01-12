@@ -912,9 +912,9 @@ EOF
                 # Check if there's already a console getty entry
                 if ! grep -qE '^[^#].*respawn.*console' /etc/inittab; then
                     # Add new console entry for LXC
-                    echo "" >> /etc/inittab
-                    echo "# LXC console autologin (added by community-scripts)" >> /etc/inittab
-                    echo "co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200,38400,9600 linux" >> /etc/inittab
+                    echo "" >>/etc/inittab
+                    echo "# LXC console autologin (added by community-scripts)" >>/etc/inittab
+                    echo "co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200,38400,9600 linux" >>/etc/inittab
                 else
                     # Enable autologin on existing console entry
                     sed -i 's|^[^#]*:[0-9]*:respawn:.*/\(a\?getty\).*console.*|co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200,38400,9600 linux|' /etc/inittab
