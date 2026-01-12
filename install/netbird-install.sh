@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Setting up NetBird Repository"
-setup_deb882_repo \
+setup_deb822_repo \
 	"netbird" \
 	"https://pkgs.netbird.io/debian/public.key" \
 	"https://pkgs.netbird.io/debian" \
