@@ -906,13 +906,13 @@ EOF
 
                 # Try multiple patterns to catch different inittab formats
                 # Pattern 1: Standard format "1:2345:respawn:/sbin/getty..."
-                sed -i -E 's|^1:[0-9]*:respawn:[^ ]*(getty|agetty)[^$]*$|1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
+                sed -i 's|^1:[0-9]*:respawn:.*/\(a\?getty\).*|1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
 
                 # Pattern 2: With console instead of tty1
-                sed -i -E 's|^c1:[0-9]*:respawn:[^ ]*(getty|agetty).*console.*$|c1:2345:respawn:/sbin/agetty --autologin root --noclear console 38400 linux|' /etc/inittab
+                sed -i 's|^c1:[0-9]*:respawn:.*/\(a\?getty\).*console.*|c1:2345:respawn:/sbin/agetty --autologin root --noclear console 38400 linux|' /etc/inittab
 
                 # Pattern 3: Devuan specific "co:2345:respawn:/sbin/getty..."
-                sed -i -E 's|^co:[0-9]*:respawn:[^ ]*(getty|agetty).*$|co:2345:respawn:/sbin/agetty --autologin root --noclear console 38400 linux|' /etc/inittab
+                sed -i 's|^co:[0-9]*:respawn:.*/\(a\?getty\).*|co:2345:respawn:/sbin/agetty --autologin root --noclear console 38400 linux|' /etc/inittab
 
                 # Pattern 4: LXC console pattern
                 if ! grep -q 'autologin root' /etc/inittab; then
