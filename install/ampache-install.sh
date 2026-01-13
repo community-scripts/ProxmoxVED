@@ -42,17 +42,17 @@ cp /opt/ampache/config/ampache.cfg.php.dist /opt/ampache/config/ampache.cfg.php
 chmod 664 /opt/ampache/public/rest/.htaccess /opt/ampache/public/play/.htaccess
 msg_ok "Set up Ampache"
 
-# msg_info "Configuring Database Connection"
-# sed -i 's|^database_hostname = .*|database_hostname = "localhost"|' /opt/ampache/config/ampache.cfg.php
-# sed -i 's|^database_name = .*|database_name = "ampache"|' /opt/ampache/config/ampache.cfg.php
-# sed -i 's|^database_username = .*|database_username = "ampache"|' /opt/ampache/config/ampache.cfg.php
-# sed -i "s|^database_password = .*|database_password = \"${MARIADB_DB_PASS}\"|" /opt/ampache/config/ampache.cfg.php
-# chown -R www-data:www-data /opt/ampache
-# msg_ok "Configured Database Connection"
+msg_info "Configuring Database Connection"
+sed -i 's|^database_hostname = .*|database_hostname = "localhost"|' /opt/ampache/config/ampache.cfg.php
+sed -i 's|^database_name = .*|database_name = "ampache"|' /opt/ampache/config/ampache.cfg.php
+sed -i 's|^database_username = .*|database_username = "ampache"|' /opt/ampache/config/ampache.cfg.php
+sed -i "s|^database_password = .*|database_password = \"${MARIADB_DB_PASS}\"|" /opt/ampache/config/ampache.cfg.php
+chown -R www-data:www-data /opt/ampache
+msg_ok "Configured Database Connection"
 
-# msg_info "Importing Database Schema"
-# mariadb -u ampache -p"${MARIADB_DB_PASS}" ampache < /opt/ampache/resources/sql/ampache.sql
-# msg_ok "Imported Database Schema"
+msg_info "Importing Database Schema"
+mariadb -u ampache -p"${MARIADB_DB_PASS}" ampache </opt/ampache/resources/sql/ampache.sql
+msg_ok "Imported Database Schema"
 
 msg_info "Configuring PHP"
 sed -i 's/upload_max_filesize = .*/upload_max_filesize = 100M/' /etc/php/8.4/apache2/php.ini
