@@ -1,0 +1,35 @@
+{
+  "name": "Forgejo Runner",
+  "slug": "forgejo-runner",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-01-12",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://forgejo.org/docs/latest/admin/actions/runner-installation/",
+  "config_path": "/root/.runner",
+  "website": "https://forgejo.org/docs/latest/admin/actions/runner-installation/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/forgejo.webp",
+  "description": "Forgejo Runner is a lightweight service that executes CI/CD jobs for Forgejo, enabling automated builds, tests, and deployments.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/forgejo-runner.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
