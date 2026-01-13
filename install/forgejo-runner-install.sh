@@ -40,23 +40,17 @@ systemctl enable --now podman.socket
 msg_ok "Enabled Podman socket"
 
 msg_info "Fetching latest Forgejo Runner release"
-RUNNER_VERSION=$(
-  curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest |
-  jq -r .name | sed 's/^v//'
-)
-
+RUNNER_VERSION=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | jq -r .name | sed 's/^v//')
 msg_ok "Forgejo Runner v${RUNNER_VERSION}"
 
+msg_info "Installing Forgejo Runner"
 FORGEJO_URL="https://code.forgejo.org/forgejo/runner/releases/download/v${RUNNER_VERSION}/forgejo-runner-${RUNNER_VERSION}-linux-${ARCH}"
-
-msg_info "Downloading Forgejo Runner"
 curl -fsSL "$FORGEJO_URL" -o /usr/local/bin/forgejo-runner
 chmod +x /usr/local/bin/forgejo-runner
-msg_ok "Runner installed"
+msg_ok "Installed Forgejo Runner"
 
 msg_info "Registering Forgejo Runner"
 export DOCKER_HOST="unix:///run/podman/podman.sock"
-
 forgejo-runner register \
   --instance "$FORGEJO_INSTANCE" \
   --token "$FORGEJO_RUNNER_TOKEN" \

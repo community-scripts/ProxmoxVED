@@ -38,13 +38,9 @@ function update_script() {
   msg_ok "Stopped Services"
 
   msg_info "Fetching latest Forgejo Runner version"
-  OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-  ARCH=$(uname -m)
-
   RELEASE=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
   msg_info "Updating Forgejo Runner to v${RELEASE}"
-  curl -fsSL "https://data.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-${OS}-${ARCH}" -o forgejo-runner
-
+  curl -fsSL "https://data.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-linux-amd64" -o forgejo-runner
   chmod +x /usr/local/bin/forgejo-runner
   msg_ok "Updated Forgejo Runner"
 
@@ -61,5 +57,3 @@ description
 
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
