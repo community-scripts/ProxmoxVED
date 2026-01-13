@@ -2,8 +2,7 @@
     "name": "Postgresus",
     "slug": "postgresus",
     "categories": [
-        6,
-        11
+        7
     ],
     "date_created": "2025-12-11",
     "type": "ct",
