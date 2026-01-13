@@ -41,7 +41,7 @@ msg_ok "Enabled Podman socket"
 
 msg_info "Installing Forgejo Runner"
 RUNNER_VERSION=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | jq -r .name | sed 's/^v//')
-curl -fsSL "https://code.forgejo.org/forgejo/runner/releases/download/v${RUNNER_VERSION}/forgejo-runner-${RUNNER_VERSION}-linux-${ARCH}" -o /usr/local/bin/forgejo-runner
+curl -fsSL "https://code.forgejo.org/forgejo/runner/releases/download/v${RUNNER_VERSION}/forgejo-runner-${RUNNER_VERSION}-linux-amd64" -o /usr/local/bin/forgejo-runner
 chmod +x /usr/local/bin/forgejo-runner
 msg_ok "Installed Forgejo Runner"
 
@@ -51,7 +51,7 @@ forgejo-runner register \
   --instance "$FORGEJO_INSTANCE" \
   --token "$FORGEJO_RUNNER_TOKEN" \
   --name "$HOSTNAME" \
-  --labels "linux-${ARCH}:docker://node:20-bookworm" \
+  --labels "linux-amd64:docker://node:20-bookworm" \
   --no-interactive
 msg_ok "Registered Forgejo Runner"
 
