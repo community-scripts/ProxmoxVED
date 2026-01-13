@@ -29,7 +29,7 @@ msg_ok "Installed Dependencies"
 
 PHP_VERSION=8.4 PHP_MODULE=bcmath,bz2,curl,gd,imagick,intl,mbstring,mysql,sqlite3,xml,xmlrpc,zip PHP_APACHE=YES setup_php
 setup_mariadb
-DB_NAME=ampache DB_USER=ampache setup_mariadb_db
+MARIADB_DB_USER=ampache MARIADB_DB_NAME=ampache setup_mariadb_db
 
 fetch_and_deploy_gh_release "Ampache" "ampache/ampache" "release" "latest" "/opt/ampache" "ampache-*_all_php8.4.zip"
 
