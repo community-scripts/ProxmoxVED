@@ -51,13 +51,17 @@ function update_script() {
     cp /tmp/ampache_play.htaccess.backup /opt/ampache/public/play/.htaccess
     chmod 664 /opt/ampache/public/rest/.htaccess /opt/ampache/public/play/.htaccess
     chown -R www-data:www-data /opt/ampache
-    rm -f /tmp/ampache*.backup
     msg_ok "Restored Configuration"
+
+    msg_info "Cleaning up"
+    rm -f /tmp/ampache*.backup
+    msg_ok "Cleaned up"
 
     msg_info "Starting Apache"
     systemctl start apache2
     msg_ok "Started Apache"
     msg_ok "Updated successfully!"
+    msg_custom "⚠️" "${YW}" "Complete database update by visiting: http://${IP}/update.php"
   fi
   exit
 }
