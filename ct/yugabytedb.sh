@@ -249,9 +249,15 @@ config_yugabytedb() {
       [[ "$enable_ysql_conn_mgr" == true ]] && TSERVER_FLAGS+="enable_ysql_conn_mgr=true,"
       [[ "$mem_opt_for_ysql" == true ]] && TSERVER_FLAGS+="use_memory_defaults_optimized_for_ysql=true,"
 
-      local join_cluster=$([ -z "${JOIN_CLUSTER:-}" ] && printf 'false' || printf "true\n  %s" "cluster_ip: $cluster_ip")
+      local join_cluster=$(
+        [ -z "${JOIN_CLUSTER:-}" ] && printf 'false' || printf "true\n  %s" "cluster_ip: $cluster_ip"
+      )
+
       local tserver_flags="${TSERVER_FLAGS//,/$'\n'  }"
-      local summary="cloud_location:
+      local summary="When joining a cluster you must manually copy certificates between VMs, see:
+https://docs.yugabyte.com/stable/deploy/manual-deployment/start-yugabyted
+
+cloud_location:
   $CLOUD_LOCATION
 
 join_cluster: $join_cluster
@@ -268,7 +274,7 @@ tserver_flags:
       if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
         --title "CONFIRM SETTINGS" \
         --ok-button "OK" --cancel-button "Back" \
-        --yesno "$summary\n\nCreate ${APP} with these settings?" 23 80; then
+        --yesno "$summary\n\nCreate ${APP} with these settings?" 25 80; then
         ((STEP++))
       else
         ((STEP--))
