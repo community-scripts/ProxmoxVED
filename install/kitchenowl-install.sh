@@ -22,11 +22,11 @@ $STD apt install -y \
   libssl-dev
 msg_ok "Installed Dependencies"
 
-PYTHON_VERSION="3.12" setup_uv
-
-CLEAN_INSTALL=1 fetch_and_deploy_gh_release "kitchenowl" "TomBursch/kitchenowl" "tarball" "latest" "/opt/kitchenowl"
+PYTHON_VERSION="3.13" setup_uv
+import_local_ip
+fetch_and_deploy_gh_release "kitchenowl" "TomBursch/kitchenowl" "tarball" "latest" "/opt/kitchenowl"
 rm -rf /opt/kitchenowl/web
-CLEAN_INSTALL=1 fetch_and_deploy_gh_release "kitchenowl-web" "TomBursch/kitchenowl" "prebuild" "latest" "/opt/kitchenowl/web" "kitchenowl_Web.tar.gz"
+fetch_and_deploy_gh_release "kitchenowl-web" "TomBursch/kitchenowl" "prebuild" "latest" "/opt/kitchenowl/web" "kitchenowl_Web.tar.gz"
 
 msg_info "Setting up KitchenOwl"
 cd /opt/kitchenowl/backend
@@ -35,7 +35,6 @@ sed -i 's/default=True/default=False/' /opt/kitchenowl/backend/wsgi.py
 mkdir -p /nltk_data
 $STD uv run python -m nltk.downloader -d /nltk_data averaged_perceptron_tagger_eng punkt_tab
 JWT_SECRET=$(openssl rand -hex 32)
-import_local_ip
 mkdir -p /opt/kitchenowl/data
 cat <<EOF >/opt/kitchenowl/kitchenowl.env
 STORAGE_PATH=/opt/kitchenowl/data
@@ -122,6 +121,7 @@ server {
 }
 EOF
 ln -sf /etc/nginx/sites-available/kitchenowl.conf /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
 msg_ok "Configured Nginx"
 

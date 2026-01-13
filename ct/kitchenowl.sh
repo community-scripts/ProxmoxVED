@@ -34,44 +34,38 @@ function update_script() {
     systemctl stop kitchenowl
     msg_ok "Stopped Service"
 
-    if [[ -d /opt/kitchenowl_backup/data ]]; then
-      msg_ok "Using existing backup from previous update attempt"
-    else
-      msg_info "Backing up KitchenOwl"
-      mkdir -p /opt/kitchenowl_backup
-      cp -r /opt/kitchenowl/data /opt/kitchenowl_backup/
-      cp -f /opt/kitchenowl/kitchenowl.env /opt/kitchenowl_backup/
-      msg_ok "Backed up KitchenOwl"
-    fi
+    msg_info "Backing up KitchenOwl"
+    mkdir -p /opt/kitchenowl_backup
+    cp -r /opt/kitchenowl/data /opt/kitchenowl_backup/
+    cp -f /opt/kitchenowl/kitchenowl.env /opt/kitchenowl_backup/
+    msg_ok "Backed up KitchenOwl"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "kitchenowl" "TomBursch/kitchenowl" "tarball" "latest" "/opt/kitchenowl"
-    sed -i 's/default=True/default=False/' /opt/kitchenowl/backend/wsgi.py
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "kitchenowl-web" "TomBursch/kitchenowl" "prebuild" "latest" "/opt/kitchenowl/web" "kitchenowl_Web.tar.gz"
 
     msg_info "Restoring KitchenOwl data"
+    sed -i 's/default=True/default=False/' /opt/kitchenowl/backend/wsgi.py
     cp -r /opt/kitchenowl_backup/data /opt/kitchenowl/
     cp -f /opt/kitchenowl_backup/kitchenowl.env /opt/kitchenowl/
     rm -rf /opt/kitchenowl_backup
     msg_ok "Restored KitchenOwl data"
 
-    msg_info "Installing Dependencies"
+    msg_info "Updating KitchenOwl"
     cd /opt/kitchenowl/backend
     $STD uv sync --frozen
-    msg_ok "Dependencies installed"
-
-    msg_info "Running Database Migrations"
     cd /opt/kitchenowl/backend
     set -a
     source /opt/kitchenowl/kitchenowl.env
     set +a
     $STD uv run flask db upgrade
-    msg_ok "Database Migrations Complete"
+    msg_ok "Updated KitchenOwl"
 
     msg_info "Starting Service"
     systemctl start kitchenowl
     msg_ok "Started Service"
-    msg_ok "Updated Successfully"
+    msg_ok "Updated successfully!"
   fi
+  exit
 }
 
 start
