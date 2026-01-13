@@ -278,7 +278,8 @@ ExecStart=/bin/bash -c 'source $YB_HOME/.venv/bin/activate && \
 --tserver_flags="$TSERVER_FLAGS" \
 --data_dir=$DATA_DIR \
 --cloud_location=$CLOUD_LOCATION \
---callhome=false'
+--callhome=false \
+$JOIN_CLUSTER'
 
 Environment="YB_HOME=$YB_HOME"
 Environment="DATA_DIR=$DATA_DIR"

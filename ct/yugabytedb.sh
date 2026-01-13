@@ -63,7 +63,7 @@ config_yugabytedb() {
   }
 
   local STEP=1
-  local MAX_STEP=6
+  local MAX_STEP=7
   while [ $STEP -le $MAX_STEP ]; do
     case $STEP in
     # ═══════════════════════════════════════════════════════════════════════════
@@ -75,7 +75,7 @@ config_yugabytedb() {
           --title "Cloud Location" \
           --ok-button "Next" --cancel-button "Exit" \
           --inputbox "Set your cloud location (e.g., aws.us-east-1.a):\n  💡 For on-premises, consider racks as zones to treat them as fault domains." \
-          8 72 "" 3>&1 1>&2 2>&3
+          8 72 "$CLOUD_LOCATION" 3>&1 1>&2 2>&3
       ); then
         if [[ "$CLOUD_LOCATION" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$ ]]; then
           ((STEP++))
@@ -89,9 +89,46 @@ config_yugabytedb() {
       fi
       ;;
     # ═══════════════════════════════════════════════════════════════════════════
-    # STEP 2: Check if single AZ deployment
+    # STEP 2: Join Cluster
     # ═══════════════════════════════════════════════════════════════════════════
     2)
+      if
+        whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
+          --title "Join Cluster" \
+          --defaultno \
+          --yesno "Do want to join an existing cluster?" 7 40
+      then
+        # Get static IP
+        local cluster_ip
+        if cluster_ip=$(whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
+          --title "IPv4 ADDRESS" \
+          --ok-button "Next" --cancel-button "Back" \
+          --inputbox "Enter IPv4 Address (e.g. 192.168.1.100)" 7 43 "" \
+          3>&1 1>&2 2>&3); then
+          if [[ "$cluster_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            JOIN_CLUSTER="--join=${cluster_ip}"
+            ((STEP++))
+          else
+            whiptail --msgbox "Invalid IPv4 format. Example: 192.168.1.100" 7 47
+          fi
+        else
+          continue
+        fi
+      else
+        if [ $? -eq 1 ]; then
+          JOIN_CLUSTER=""
+          ((STEP++))
+        else
+          ((STEP--))
+          continue
+        fi
+      fi
+      ;;
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STEP 3: Check if single AZ deployment
+    # ═══════════════════════════════════════════════════════════════════════════
+    3)
+      local result
       if result=$(
         whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
           --title "Deployment Strategy" \
@@ -124,12 +161,13 @@ config_yugabytedb() {
       fi
       ;;
     # ═══════════════════════════════════════════════════════════════════════════
-    # STEP 3: YSQL Connection Manager
+    # STEP 4: YSQL Connection Manager
     # ═══════════════════════════════════════════════════════════════════════════
-    3)
+    4)
       if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
         --title "YSQL Connection Manager" \
-        --yesno "Do want to use YSQL Connection Manager for connection pooling?\n  💡 Can take up to 200MB of RAM on each database node." 8 66; then
+        --yesno "Do want to use YSQL Connection Manager for connection pooling?\n  💡 Can take up to 200MB of RAM on each database node." \
+        8 66; then
         enable_ysql_conn_mgr=true
       else
         if [ $? -eq 1 ]; then
@@ -142,9 +180,9 @@ config_yugabytedb() {
       ((STEP++))
       ;;
     # ═══════════════════════════════════════════════════════════════════════════
-    # STEP 4: Memory Defaults Optimized for YSQL
+    # STEP 5: Memory Defaults Optimized for YSQL
     # ═══════════════════════════════════════════════════════════════════════════
-    4)
+    5)
       if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
         --title "Memory Defaults Optimized for YSQL" \
         --defaultno \
@@ -161,9 +199,9 @@ config_yugabytedb() {
       ((STEP++))
       ;;
     # ═══════════════════════════════════════════════════════════════════════════
-    # STEP 5: Backup/Restore Daemon
+    # STEP 6: Backup/Restore Daemon
     # ═══════════════════════════════════════════════════════════════════════════
-    5)
+    6)
       if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
         --title "Backup/Restore" \
         --yesno "Enable the backup/restore agent? (Enables yugabyted backup command)" 7 71; then
@@ -179,18 +217,21 @@ config_yugabytedb() {
       ((STEP++))
       ;;
     # ═══════════════════════════════════════════════════════════════════════════
-    # STEP 6: Confirmation
+    # STEP 7: Confirmation
     # ═══════════════════════════════════════════════════════════════════════════
-    6)
+    7)
       # Build summary
       TSERVER_FLAGS=""
       [[ "$single_zone" == true ]] && TSERVER_FLAGS+="durable_wal_write=true,"
       [[ "$enable_ysql_conn_mgr" == true ]] && TSERVER_FLAGS+="enable_ysql_conn_mgr=true,"
       [[ "$mem_opt_for_ysql" == true ]] && TSERVER_FLAGS+="use_memory_defaults_optimized_for_ysql=true,"
 
+      local join_cluster=$([ -z "${JOIN_CLUSTER:-}" ] && printf 'false' || printf "true\n  %s" "cluster_ip: $cluster_ip")
       local tserver_flags="${TSERVER_FLAGS//,/$'\n'  }"
       local summary="cloud_location:
   $CLOUD_LOCATION
+
+join_cluster: $join_cluster
 
 backup_daemon:
   $BACKUP_DAEMON
@@ -213,7 +254,7 @@ tserver_flags:
     esac
   done
 
-  export TSERVER_FLAGS CLOUD_LOCATION BACKUP_DAEMON FAULT_TOLERANCE
+  export TSERVER_FLAGS CLOUD_LOCATION BACKUP_DAEMON FAULT_TOLERANCE JOIN_CLUSTER
 }
 
 function update_script() {
