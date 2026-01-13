@@ -31,17 +31,13 @@ export FORGEJO_RUNNER_TOKEN="$var_forgejo_runner_token"
 
 msg_info "Installing dependencies"
 $STD apt install -y \
-  jq git \
+  git \
   podman podman-docker
 msg_ok "Dependencies installed"
 
 msg_info "Enabling Podman socket"
 systemctl enable --now podman.socket
-msg_ok "Podman socket enabled"
-
-RAW_ARCH=$(uname -m)
-ARCH=$(echo "$RAW_ARCH" | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-msg_info "Detected architecture: $ARCH"
+msg_ok "Enabled Podman socket"
 
 msg_info "Fetching latest Forgejo Runner release"
 RUNNER_VERSION=$(
@@ -49,22 +45,16 @@ RUNNER_VERSION=$(
   jq -r .name | sed 's/^v//'
 )
 
-[[ -z "$RUNNER_VERSION" ]] && {
-  msg_error "Unable to determine Forgejo Runner version"
-  exit 1
-}
-
 msg_ok "Forgejo Runner v${RUNNER_VERSION}"
 
 FORGEJO_URL="https://code.forgejo.org/forgejo/runner/releases/download/v${RUNNER_VERSION}/forgejo-runner-${RUNNER_VERSION}-linux-${ARCH}"
 
 msg_info "Downloading Forgejo Runner"
-wget -q -O /usr/local/bin/forgejo-runner "$FORGEJO_URL"
+curl -fsSL "$FORGEJO_URL" -o /usr/local/bin/forgejo-runner
 chmod +x /usr/local/bin/forgejo-runner
 msg_ok "Runner installed"
 
 msg_info "Registering Forgejo Runner"
-
 export DOCKER_HOST="unix:///run/podman/podman.sock"
 
 forgejo-runner register \
@@ -73,11 +63,9 @@ forgejo-runner register \
   --name "$HOSTNAME" \
   --labels "linux-${ARCH}:docker://node:20-bookworm" \
   --no-interactive
-
 msg_ok "Runner registered"
 
-msg_info "Creating systemd service"
-
+msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/forgejo-runner.service
 [Unit]
 Description=Forgejo Runner
@@ -97,9 +85,8 @@ TimeoutSec=0
 [Install]
 WantedBy=multi-user.target
 EOF
-
 systemctl enable -q --now forgejo-runner
-msg_ok "Forgejo Runner service enabled"
+msg_ok "Created Services"
 
 motd_ssh
 customize

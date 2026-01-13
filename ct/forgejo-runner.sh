@@ -33,38 +33,24 @@ function update_script() {
     exit 1
   fi
 
-  msg_info "Stopping Forgejo Runner"
+  msg_info "Stopping Services"
   systemctl stop forgejo-runner
-  msg_ok "Stopped Forgejo Runner"
+  msg_ok "Stopped Services"
 
   msg_info "Fetching latest Forgejo Runner version"
   OS=$(uname -s | tr '[:upper:]' '[:lower:]')
   ARCH=$(uname -m)
 
-  case "$ARCH" in
-    x86_64) ARCH="amd64" ;;
-    aarch64|arm64) ARCH="arm64" ;;
-    armv7l) ARCH="armv7" ;;
-    *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
-  esac
-
-  RELEASE=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest \
-    | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
-
+  RELEASE=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
   msg_info "Updating Forgejo Runner to v${RELEASE}"
-
-  curl -fsSL \
-    "https://data.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-${OS}-${ARCH}" \
-    -o forgejo-runner
-
+  curl -fsSL "https://data.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-${OS}-${ARCH}" -o forgejo-runner
 
   chmod +x /usr/local/bin/forgejo-runner
   msg_ok "Updated Forgejo Runner"
 
-  msg_info "Starting Forgejo Runner"
-  systemctl enable -q --now forgejo-runner
-  msg_ok "Started Forgejo Runner"
-
+  msg_info "Starting Services"
+  systemctl start forgejo-runner
+  msg_ok "Started Services"
   msg_ok "Update completed successfully!"
   exit
 }
