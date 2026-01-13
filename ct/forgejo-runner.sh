@@ -37,7 +37,6 @@ function update_script() {
   systemctl stop forgejo-runner
   msg_ok "Stopped Services"
 
-  msg_info "Fetching latest Forgejo Runner version"
   RELEASE=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
   msg_info "Updating Forgejo Runner to v${RELEASE}"
   curl -fsSL "https://data.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-linux-amd64" -o forgejo-runner
@@ -47,7 +46,7 @@ function update_script() {
   msg_info "Starting Services"
   systemctl start forgejo-runner
   msg_ok "Started Services"
-  msg_ok "Update completed successfully!"
+  msg_ok "Updated successfully!"
   exit
 }
 
