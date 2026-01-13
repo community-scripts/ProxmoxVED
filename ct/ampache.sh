@@ -36,7 +36,6 @@ function update_script() {
     cp /opt/ampache/config/ampache.cfg.php /tmp/ampache.cfg.php.backup
     cp /opt/ampache/public/rest/.htaccess /tmp/ampache_rest.htaccess.backup
     cp /opt/ampache/public/play/.htaccess /tmp/ampache_play.htaccess.backup
-    cp /opt/ampache/public/channel/.htaccess /tmp/ampache_channel.htaccess.backup
     msg_ok "Backed up Configuration"
 
     msg_info "Backup Ampache Folder"
@@ -50,8 +49,7 @@ function update_script() {
     cp /tmp/ampache.cfg.php.backup /opt/ampache/config/ampache.cfg.php
     cp /tmp/ampache_rest.htaccess.backup /opt/ampache/public/rest/.htaccess
     cp /tmp/ampache_play.htaccess.backup /opt/ampache/public/play/.htaccess
-    cp /tmp/ampache_channel.htaccess.backup /opt/ampache/public/channel/.htaccess
-    chmod 664 /opt/ampache/public/rest/.htaccess /opt/ampache/public/play/.htaccess /opt/ampache/public/channel/.htaccess
+    chmod 664 /opt/ampache/public/rest/.htaccess /opt/ampache/public/play/.htaccess
     chown -R www-data:www-data /opt/ampache
     rm -f /tmp/ampache*.backup
     msg_ok "Restored Configuration"
