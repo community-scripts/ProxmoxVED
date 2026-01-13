@@ -23,11 +23,13 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
+
   if [[ ! -d /opt/ampache ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
   if check_for_gh_release "Ampache" "ampache/ampache"; then
+    import_local_ip
     msg_info "Stopping Apache"
     systemctl stop apache2
     msg_ok "Stopped Apache"
@@ -61,7 +63,7 @@ function update_script() {
     systemctl start apache2
     msg_ok "Started Apache"
     msg_ok "Updated successfully!"
-    msg_custom "⚠️" "${YW}" "Complete database update by visiting: http://${IP}/update.php"
+    msg_custom "⚠️" "${YW}" "Complete database update by visiting: http://${LOCAL_IP}/update.php"
   fi
   exit
 }
