@@ -344,6 +344,11 @@ remove_old_tool_version() {
         npm uninstall -g "$module" >/dev/null 2>&1 || true
       done || true
     fi
+    # Remove tarball installation if exists
+    if [[ -d "/usr/local/lib/nodejs" ]]; then
+      rm -rf /usr/local/lib/nodejs
+      rm -f /usr/local/bin/node /usr/local/bin/npm /usr/local/bin/npx
+    fi
     cleanup_legacy_install "nodejs"
     cleanup_tool_keyrings "nodesource"
     ;;
@@ -4093,20 +4098,127 @@ EOF
 }
 
 # ------------------------------------------------------------------------------
+# Installs Node.js from official prebuilt binaries (alternative to NodeSource repo).
+#
+# Description:
+#   - Downloads official Node.js prebuilt binaries from nodejs.org
+#   - Extracts to /usr/local and creates symlinks
+#   - No package manager dependencies, no GPG issues
+#
+# Arguments:
+#   $1 - Node.js major version (e.g. 22, 24)
+#
+# Returns:
+#   0 on success, 1 on failure
+# ------------------------------------------------------------------------------
+
+function install_nodejs_from_binary() {
+  local NODE_VERSION="$1"
+  local ARCH
+
+  # Determine system architecture
+  ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m)
+  case "$ARCH" in
+  amd64 | x86_64) ARCH="x64" ;;
+  arm64 | aarch64) ARCH="arm64" ;;
+  armv7l | armhf) ARCH="armv7l" ;;
+  ppc64le) ARCH="ppc64le" ;;
+  s390x) ARCH="s390x" ;;
+  *)
+    msg_error "Unsupported architecture: $ARCH"
+    return 1
+    ;;
+  esac
+
+  msg_info "Fetching Node.js v${NODE_VERSION}.x binary metadata"
+
+  # Fetch latest version info from nodejs.org
+  local LATEST_URL="https://nodejs.org/dist/latest-v${NODE_VERSION}.x/"
+  local VERSION_INFO
+  VERSION_INFO=$(curl -fsSL "$LATEST_URL" 2>/dev/null | grep -oP "node-v${NODE_VERSION}\.[0-9]+\.[0-9]+-linux-${ARCH}\.tar\.xz" | head -n1)
+
+  if [[ -z "$VERSION_INFO" ]]; then
+    msg_error "Could not find Node.js v${NODE_VERSION}.x binary for linux-${ARCH}"
+    return 1
+  fi
+
+  local FULL_VERSION
+  FULL_VERSION=$(echo "$VERSION_INFO" | grep -oP "v${NODE_VERSION}\.[0-9]+\.[0-9]+")
+  local TARBALL_NAME="node-${FULL_VERSION}-linux-${ARCH}.tar.xz"
+  local TARBALL_URL="${LATEST_URL}${TARBALL_NAME}"
+  local CHECKSUM_URL="${LATEST_URL}SHASUMS256.txt"
+
+  msg_info "Downloading Node.js ${FULL_VERSION} for linux-${ARCH}"
+
+  # Download tarball and checksum
+  local TEMP_DIR
+  TEMP_DIR=$(mktemp -d)
+  trap "rm -rf '$TEMP_DIR'" EXIT
+
+  if ! curl -fsSL -o "${TEMP_DIR}/${TARBALL_NAME}" "$TARBALL_URL"; then
+    msg_error "Failed to download Node.js binary from $TARBALL_URL"
+    return 1
+  fi
+
+  if ! curl -fsSL -o "${TEMP_DIR}/SHASUMS256.txt" "$CHECKSUM_URL"; then
+    msg_warn "Could not download checksum file - skipping verification"
+  else
+    # Verify checksum
+    msg_info "Verifying checksum"
+    cd "$TEMP_DIR" || return 1
+    if ! grep "$TARBALL_NAME" SHASUMS256.txt | sha256sum -c - >/dev/null 2>&1; then
+      msg_error "Checksum verification failed for $TARBALL_NAME"
+      return 1
+    fi
+    msg_ok "Checksum verified"
+  fi
+
+  # Remove old Node.js installation if exists
+  if [[ -d "/usr/local/lib/nodejs" ]]; then
+    msg_info "Removing old Node.js installation"
+    rm -rf /usr/local/lib/nodejs
+  fi
+
+  # Extract tarball
+  msg_info "Installing Node.js ${FULL_VERSION}"
+  mkdir -p /usr/local/lib/nodejs
+  tar -xJf "${TEMP_DIR}/${TARBALL_NAME}" -C /usr/local/lib/nodejs --strip-components=1
+
+  # Create symlinks
+  ln -sf /usr/local/lib/nodejs/bin/node /usr/local/bin/node
+  ln -sf /usr/local/lib/nodejs/bin/npm /usr/local/bin/npm
+  ln -sf /usr/local/lib/nodejs/bin/npx /usr/local/bin/npx
+
+  # Verify installation
+  if ! /usr/local/bin/node --version >/dev/null 2>&1; then
+    msg_error "Node.js installation verification failed"
+    return 1
+  fi
+
+  local INSTALLED_VERSION
+  INSTALLED_VERSION=$(/usr/local/bin/node --version 2>/dev/null)
+  msg_ok "Installed Node.js ${INSTALLED_VERSION}"
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
 # Installs Node.js and optional global modules.
 #
 # Description:
-#   - Installs specified Node.js version using NodeSource APT repo
+#   - Installs specified Node.js version using NodeSource APT repo OR official binaries
 #   - Optionally installs or updates global npm modules
 #
 # Variables:
-#   NODE_VERSION   - Node.js version to install (default: 24 LTS)
-#   NODE_MODULE    - Comma-separated list of global modules (e.g. "yarn,@vue/cli@5.0.0")
+#   NODE_VERSION         - Node.js version to install (default: 24 LTS)
+#   NODE_MODULE          - Comma-separated list of global modules (e.g. "yarn,@vue/cli@5.0.0")
+#   NODE_INSTALL_METHOD  - Installation method: "nodesource" (default) or "binary"
 # ------------------------------------------------------------------------------
 
 function setup_nodejs() {
   local NODE_VERSION="${NODE_VERSION:-24}"
   local NODE_MODULE="${NODE_MODULE:-}"
+  local NODE_INSTALL_METHOD="${NODE_INSTALL_METHOD:-nodesource}"
 
   # ALWAYS clean up legacy installations first (nvm, etc.) to prevent conflicts
   cleanup_legacy_install "nodejs"
@@ -4128,7 +4240,17 @@ function setup_nodejs() {
   if [[ -n "$CURRENT_NODE_VERSION" && "$CURRENT_NODE_VERSION" == "$NODE_VERSION" ]]; then
     msg_info "Update Node.js $NODE_VERSION"
 
-    ensure_apt_working || return 1
+    # For binary method, check if there's a newer patch version available
+    if [[ "$NODE_INSTALL_METHOD" == "binary" ]]; then
+      local CURRENT_FULL_VERSION
+      CURRENT_FULL_VERSION=$(node -v 2>/dev/null)
+      msg_info "Current version: $CURRENT_FULL_VERSION - checking for updates"
+
+      # Try to install latest patch version
+      install_nodejs_from_binary "$NODE_VERSION" || {
+        msg_warn "Failed to check for Node.js updates, keeping current version"
+      }
+    fi
 
     # Just update npm to latest
     $STD npm install -g npm@latest 2>/dev/null || true
@@ -4141,7 +4263,7 @@ function setup_nodejs() {
       msg_info "Upgrade Node.js from $CURRENT_NODE_VERSION to $NODE_VERSION"
       remove_old_tool_version "nodejs"
     else
-      msg_info "Setup Node.js $NODE_VERSION"
+      msg_info "Setup Node.js $NODE_VERSION (method: $NODE_INSTALL_METHOD)"
     fi
 
     # Remove ALL Debian nodejs packages BEFORE adding NodeSource repo
@@ -4155,27 +4277,42 @@ function setup_nodejs() {
     # Remove any APT pinning (not needed)
     rm -f /etc/apt/preferences.d/nodesource 2>/dev/null || true
 
-    # Prepare repository (cleanup + validation)
-    prepare_repository_setup "nodesource" || {
-      msg_error "Failed to prepare Node.js repository"
-      return 1
-    }
+    # Choose installation method
+    if [[ "$NODE_INSTALL_METHOD" == "binary" ]]; then
+      # Method 1: Install from official nodejs.org prebuilt binaries (no repo needed)
+      msg_info "Installing Node.js from official binaries"
+      ensure_dependencies curl ca-certificates
 
-    # Setup NodeSource repository
-    manage_tool_repository "nodejs" "$NODE_VERSION" "https://deb.nodesource.com/node_${NODE_VERSION}.x" "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key" || {
-      msg_error "Failed to setup Node.js repository"
-      return 1
-    }
+      install_nodejs_from_binary "$NODE_VERSION" || {
+        msg_error "Failed to install Node.js from binary"
+        return 1
+      }
+    else
+      # Method 2: Install from NodeSource APT repository (traditional method)
+      msg_info "Installing Node.js from NodeSource repository"
 
-    # Force APT cache refresh after repository setup
-    $STD apt update
+      # Prepare repository (cleanup + validation)
+      prepare_repository_setup "nodesource" || {
+        msg_error "Failed to prepare Node.js repository"
+        return 1
+      }
 
-    ensure_dependencies curl ca-certificates gnupg
+      # Setup NodeSource repository
+      manage_tool_repository "nodejs" "$NODE_VERSION" "https://deb.nodesource.com/node_${NODE_VERSION}.x" "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key" || {
+        msg_error "Failed to setup Node.js repository"
+        return 1
+      }
 
-    install_packages_with_retry "nodejs" || {
-      msg_error "Failed to install Node.js ${NODE_VERSION} from NodeSource"
-      return 1
-    }
+      # Force APT cache refresh after repository setup
+      $STD apt update
+
+      ensure_dependencies curl ca-certificates gnupg
+
+      install_packages_with_retry "nodejs" || {
+        msg_error "Failed to install Node.js ${NODE_VERSION} from NodeSource"
+        return 1
+      }
+    fi
 
     # Verify Node.js was installed correctly
     if ! command -v node >/dev/null 2>&1; then
