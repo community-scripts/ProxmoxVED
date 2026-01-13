@@ -51,6 +51,27 @@ variables
 color
 catch_errors
 
+valid_ip() {
+  python3 -c "import ipaddress; ipaddress.ip_address('$1')" 2>/dev/null
+}
+
+valid_dns_label() {
+  local l="$1"
+  # Total length + DNS syntax check
+  [[ ${#l} -ge 1 && ${#l} -le 63 && $l =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]
+}
+
+valid_dns_name() {
+  local name="$1"
+  # Total length check (visible chars, no trailing dot)
+  [[ ${#name} -ge 1 && ${#name} -le 253 ]] || return 1
+  [[ $name != .* && $name != *. ]] || return 1
+  IFS='.' read -ra parts <<<"$name"
+  local p
+  for p in "${parts[@]}"; do valid_dns_label "$p" || return 1; done
+  return 0
+}
+
 config_yugabytedb() {
   TSERVER_FLAGS=""
 
@@ -101,15 +122,17 @@ config_yugabytedb() {
         # Get static IP
         local cluster_ip
         if cluster_ip=$(whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
-          --title "IPv4 ADDRESS" \
+          --title "Cluster Address" \
           --ok-button "Next" --cancel-button "Back" \
-          --inputbox "Enter IPv4 Address (e.g. 192.168.1.100)" 7 43 "" \
+          --inputbox "Enter Cluster Address; A single IP address (v4 or v6) or DNS name" 7 69 "" \
           3>&1 1>&2 2>&3); then
-          if [[ "$cluster_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+          if valid_ip "$cluster_ip" || valid_dns_name "$cluster_ip"; then
             JOIN_CLUSTER="--join=${cluster_ip}"
             ((STEP++))
           else
-            whiptail --msgbox "Invalid IPv4 format. Example: 192.168.1.100" 7 47
+            if whiptail --msgbox "Invalid Address. Examples: 192.168.1.100, 2001:0:0:0:0:0:0:1, example.com" 7 77; then
+              continue
+            fi
           fi
         else
           continue
@@ -245,7 +268,7 @@ tserver_flags:
       if whiptail --backtitle "YugabyteDB Setup [Step $STEP/$MAX_STEP]" \
         --title "CONFIRM SETTINGS" \
         --ok-button "OK" --cancel-button "Back" \
-        --yesno "$summary\n\nCreate ${APP} with these settings?" 20 49; then
+        --yesno "$summary\n\nCreate ${APP} with these settings?" 23 80; then
         ((STEP++))
       else
         ((STEP--))
