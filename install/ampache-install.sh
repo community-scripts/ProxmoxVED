@@ -31,7 +31,7 @@ PHP_VERSION=8.4 PHP_MODULE=bcmath,bz2,curl,gd,imagick,intl,mbstring,mysql,sqlite
 setup_mariadb
 MARIADB_DB_USER=ampache MARIADB_DB_NAME=ampache setup_mariadb_db
 
-fetch_and_deploy_gh_release "Ampache" "ampache/ampache" "release" "latest" "/opt/ampache" "ampache-*_all_php8.4.zip"
+fetch_and_deploy_gh_release "ampache" "ampache/ampache" "prebuild" "latest" "/opt/ampache" "ampache-*_all_php8.4.zip"
 
 msg_info "Setup Ampache"
 rm -rf /var/www/html
