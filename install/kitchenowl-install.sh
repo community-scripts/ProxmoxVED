@@ -22,7 +22,7 @@ $STD apt install -y \
   libssl-dev
 msg_ok "Installed Dependencies"
 
-PYTHON_VERSION="3.13" setup_uv
+PYTHON_VERSION="3.12" setup_uv
 import_local_ip
 fetch_and_deploy_gh_release "kitchenowl" "TomBursch/kitchenowl" "tarball" "latest" "/opt/kitchenowl"
 rm -rf /opt/kitchenowl/web
