@@ -37,11 +37,11 @@
             "type": "info"
         },
         {
-            "text": "Database credentials are stored in ~/ampache.creds",
+            "text": "Database credentials are stored in `~/ampache.creds` - use only the MySQL username and password from this file",
             "type": "info"
         },
         {
-            "text": "Supports multiple music formats with transcoding capabilities",
+            "text": "During installation, only check 'Create Tables' - leave 'Create Database' and 'Create Database User' unchecked",
             "type": "info"
         }
     ]
