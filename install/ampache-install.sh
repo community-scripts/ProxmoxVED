@@ -36,11 +36,11 @@ fetch_and_deploy_gh_release "ampache" "ampache/ampache" "prebuild" "latest" "/op
 msg_info "Setup Ampache"
 rm -rf /var/www/html
 ln -s /opt/ampache/public /var/www/html
-mv /opt/ampache/rest/.htaccess.dist /opt/ampache/rest/.htaccess
-mv /opt/ampache/play/.htaccess.dist /opt/ampache/play/.htaccess
-mv /opt/ampache/channel/.htaccess.dist /opt/ampache/channel/.htaccess
+mv /opt/ampache/public/rest/.htaccess.dist /opt/ampache/public/rest/.htaccess
+mv /opt/ampache/public/play/.htaccess.dist /opt/ampache/public/play/.htaccess
+mv /opt/ampache/public/channel/.htaccess.dist /opt/ampache/public/channel/.htaccess
 cp /opt/ampache/config/ampache.cfg.php.dist /opt/ampache/config/ampache.cfg.php
-chmod 664 /opt/ampache/rest/.htaccess /opt/ampache/play/.htaccess /opt/ampache/channel/.htaccess
+chmod 664 /opt/ampache/public/rest/.htaccess /opt/ampache/public/play/.htaccess /opt/ampache/public/channel/.htaccess
 chown -R www-data:www-data /opt/ampache
 msg_ok "Set up Ampache"
 
