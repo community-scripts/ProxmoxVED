@@ -74,87 +74,109 @@ echo -e "${BL}NetBird Connection Setup${CL}"
 echo "─────────────────────────────────────────"
 echo "Choose how to connect to your NetBird network:"
 echo ""
-echo " 1) Setup Key (default) - Use a pre-generated setup key"
-echo " 2) SSO Login - Authenticate via browser with your identity provider"
-echo " 3) Skip - Configure later with 'netbird up'"
+if [[ "$DEPLOYMENT_TYPE" == "1" ]]; then
+  echo " 1) Setup Key (default) - Use a pre-generated setup key"
+  echo " 2) SSO Login - Authenticate via browser with your identity provider"
+  echo " 3) Skip - Configure later with 'netbird up'"
+else
+  echo " 1) Setup Key (default) - Use a pre-generated setup key"
+  echo " 2) Skip - Configure later with 'netbird up'"
+fi
 echo ""
 
 read -r -p "Select authentication method [1]: " AUTH_METHOD
 AUTH_METHOD="${AUTH_METHOD:-1}"
 
-case "$AUTH_METHOD" in
-  1)
-    echo ""
-    echo "Enter your NetBird setup key from the NetBird dashboard."
-    echo ""
-    read -r -p "Setup key: " NETBIRD_SETUP_KEY
-    echo ""
+if [[ "$DEPLOYMENT_TYPE" == "1" ]]; then
+  case "$AUTH_METHOD" in
+    1)
+      echo ""
+      echo "Enter your NetBird setup key from the NetBird dashboard."
+      echo ""
+      read -r -p "Setup key: " NETBIRD_SETUP_KEY
+      echo ""
 
-    if [[ -z "$NETBIRD_SETUP_KEY" ]]; then
-      if [[ -n "$NETBIRD_MGMT_URL" ]]; then
-        msg_warn "No setup key provided. Run 'netbird up -k <key> --management-url $NETBIRD_MGMT_URL' to connect."
-      else
+      if [[ -z "$NETBIRD_SETUP_KEY" ]]; then
         msg_warn "No setup key provided. Run 'netbird up -k <key>' to connect."
-      fi
-    else
-      msg_info "Connecting to NetBird with setup key"
-      if [[ -n "$NETBIRD_MGMT_URL" ]]; then
-        if $STD netbird up -k "$NETBIRD_SETUP_KEY" --management-url "$NETBIRD_MGMT_URL"; then
-          msg_ok "Connected to NetBird"
-        else
-          msg_warn "Connection failed. Run 'netbird up -k <key> --management-url $NETBIRD_MGMT_URL' to retry."
-        fi
       else
+        msg_info "Connecting to NetBird with setup key"
         if $STD netbird up -k "$NETBIRD_SETUP_KEY"; then
           msg_ok "Connected to NetBird"
         else
           msg_warn "Connection failed. Run 'netbird up -k <key>' to retry."
         fi
       fi
-    fi
-    ;;
-  2)
-    echo ""
-    echo -e "${BL}SSO Authentication${CL}"
-    echo "─────────────────────────────────────────"
-    echo "A login URL will appear below."
-    echo "Copy the URL and open it in your browser to authenticate."
-    echo ""
+      ;;
+    2)
+      echo ""
+      echo -e "${BL}SSO Authentication${CL}"
+      echo "─────────────────────────────────────────"
+      echo "A login URL will appear below."
+      echo "Copy the URL and open it in your browser to authenticate."
+      echo ""
 
-    msg_info "Starting SSO login"
-    if [[ -n "$NETBIRD_MGMT_URL" ]]; then
-      netbird login --management-url "$NETBIRD_MGMT_URL" 2>&1 || true
-    else
+      msg_info "Starting SSO login"
       netbird login 2>&1 || true
-    fi
-    echo ""
+      echo ""
 
-    msg_info "Connecting to NetBird"
-    if [[ -n "$NETBIRD_MGMT_URL" ]]; then
-      if $STD netbird up --management-url "$NETBIRD_MGMT_URL"; then
-        msg_ok "Connected to NetBird"
-      else
-        msg_warn "Connection failed. Run 'netbird up --management-url $NETBIRD_MGMT_URL' to retry."
-      fi
-    else
+      msg_info "Connecting to NetBird"
       if $STD netbird up; then
         msg_ok "Connected to NetBird"
       else
         msg_warn "Connection failed. Run 'netbird up' to retry."
       fi
-    fi
-    ;;
-  3)
-    if [[ -n "$NETBIRD_MGMT_URL" ]]; then
-      msg_ok "Skipped. Run 'netbird up --management-url $NETBIRD_MGMT_URL' to connect."
-    else
+      ;;
+    3)
       msg_ok "Skipped. Run 'netbird up' to connect."
-    fi
-    ;;
-  *)
-    msg_warn "Invalid selection. Run 'netbird up' to connect."
-    ;;
-esac
+      ;;
+    *)
+      msg_warn "Invalid selection. Run 'netbird up' to connect."
+      ;;
+  esac
+else
+  case "$AUTH_METHOD" in
+    1)
+      echo ""
+      echo "Enter your NetBird setup key from the NetBird dashboard."
+      echo ""
+      read -r -p "Setup key: " NETBIRD_SETUP_KEY
+      echo ""
+
+      if [[ -z "$NETBIRD_SETUP_KEY" ]]; then
+        if [[ -z "$NETBIRD_MGMT_URL" ]]; then
+          msg_warn "No setup key provided. Run 'netbird up -k <key> --management-url <url>' to connect."
+        else
+          msg_warn "No setup key provided. Run 'netbird up -k <key> --management-url $NETBIRD_MGMT_URL' to connect."
+        fi
+      else
+        if [[ -z "$NETBIRD_MGMT_URL" ]]; then
+          msg_error "Management URL is required for self-hosted deployments. Please configure it first."
+        else
+          msg_info "Connecting to NetBird with setup key"
+          if $STD netbird up -k "$NETBIRD_SETUP_KEY" --management-url "$NETBIRD_MGMT_URL"; then
+            msg_ok "Connected to NetBird"
+          else
+            msg_warn "Connection failed. Run 'netbird up -k <key> --management-url $NETBIRD_MGMT_URL' to retry."
+          fi
+        fi
+      fi
+      ;;
+    2)
+      if [[ -z "$NETBIRD_MGMT_URL" ]]; then
+        msg_ok "Skipped. Run 'netbird up --management-url <url>' to connect."
+      else
+        msg_ok "Skipped. Run 'netbird up --management-url $NETBIRD_MGMT_URL' to connect."
+      fi
+      ;;
+    *)
+      if [[ -z "$NETBIRD_MGMT_URL" ]]; then
+        msg_warn "Invalid selection. Run 'netbird up --management-url <url>' to connect."
+      else
+        msg_warn "Invalid selection. Run 'netbird up --management-url $NETBIRD_MGMT_URL' to connect."
+      fi
+      ;;
+  esac
+fi
 
 motd_ssh
 customize
