@@ -39,7 +39,7 @@ function Generate-Headers {
                 $FigletOutput = & figlet -w 500 -f slant $AppName 2>&1
 
                 if ($LASTEXITCODE -eq 0 -and $FigletOutput) {
-                    $FigletOutput | Out-File -FilePath $OutputFile -Encoding utf8 -NoNewline
+                    $FigletOutput | Out-File -FilePath $OutputFile -Encoding utf8
                     Write-Host "Generated: $OutputFile" -ForegroundColor Green
                 }
                 else {
