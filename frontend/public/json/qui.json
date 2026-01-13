@@ -31,18 +31,5 @@
         "username": null,
         "password": null
     },
-    "notes": [
-        {
-            "text": "After installation, create a user account by entering the container and running `qui create-user`.",
-            "type": "info"
-        },
-        {
-            "text": "Configuration file is located at /root/.config/qui/config.toml",
-            "type": "info"
-        },
-        {
-            "text": "Database is located at /root/.config/qui/qui.db",
-            "type": "info"
-        }
-    ]
+    "notes": []
 }
