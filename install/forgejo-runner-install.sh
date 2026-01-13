@@ -33,19 +33,15 @@ msg_info "Installing dependencies"
 $STD apt install -y \
   git \
   podman podman-docker
-msg_ok "Dependencies installed"
+msg_ok "Installed dependencies"
 
 msg_info "Enabling Podman socket"
 systemctl enable --now podman.socket
 msg_ok "Enabled Podman socket"
 
-msg_info "Fetching latest Forgejo Runner release"
-RUNNER_VERSION=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | jq -r .name | sed 's/^v//')
-msg_ok "Forgejo Runner v${RUNNER_VERSION}"
-
 msg_info "Installing Forgejo Runner"
-FORGEJO_URL="https://code.forgejo.org/forgejo/runner/releases/download/v${RUNNER_VERSION}/forgejo-runner-${RUNNER_VERSION}-linux-${ARCH}"
-curl -fsSL "$FORGEJO_URL" -o /usr/local/bin/forgejo-runner
+RUNNER_VERSION=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | jq -r .name | sed 's/^v//')
+curl -fsSL "https://code.forgejo.org/forgejo/runner/releases/download/v${RUNNER_VERSION}/forgejo-runner-${RUNNER_VERSION}-linux-${ARCH}" -o /usr/local/bin/forgejo-runner
 chmod +x /usr/local/bin/forgejo-runner
 msg_ok "Installed Forgejo Runner"
 
@@ -57,7 +53,7 @@ forgejo-runner register \
   --name "$HOSTNAME" \
   --labels "linux-${ARCH}:docker://node:20-bookworm" \
   --no-interactive
-msg_ok "Runner registered"
+msg_ok "Registered Forgejo Runner"
 
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/forgejo-runner.service
