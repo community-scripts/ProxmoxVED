@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/RostislavDugin/postgresus
+# Source: https://github.com/databasus/databasus
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -19,34 +19,34 @@ msg_ok "Installed Dependencies"
 
 import_local_ip
 PG_VERSION="17" setup_postgresql
-PG_DB_NAME="postgresus" PG_DB_USER="postgresus" setup_postgresql_db
+PG_DB_NAME="databasus" PG_DB_USER="databasus" setup_postgresql_db
 setup_go
 NODE_VERSION="24" setup_nodejs
 
-fetch_and_deploy_gh_release "postgresus" "RostislavDugin/postgresus" "tarball" "latest" "/opt/postgresus"
+fetch_and_deploy_gh_release "databasus" "databasus/databasus" "tarball" "latest" "/opt/databasus"
 
-msg_info "Building Postgresus (Patience)"
-cd /opt/postgresus/frontend
+msg_info "Building Databasus (Patience)"
+cd /opt/databasus/frontend
 $STD npm ci
 $STD npm run build
-cd /opt/postgresus/backend
+cd /opt/databasus/backend
 $STD go mod tidy
 $STD go mod download
 $STD go install github.com/swaggo/swag/cmd/swag@latest
 $STD /root/go/bin/swag init -g cmd/main.go -o swagger
-$STD env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o postgresus ./cmd/main.go
-mv /opt/postgresus/backend/postgresus /opt/postgresus/postgresus
-mkdir -p /opt/postgresus_data/{data,backups,logs}
-mkdir -p /postgresus-data/temp
-mkdir -p /opt/postgresus/ui/build
-cp -r /opt/postgresus/frontend/dist/* /opt/postgresus/ui/build/
-cp -r /opt/postgresus/backend/migrations /opt/postgresus/
-chown -R postgres:postgres /opt/postgresus
-chown -R postgres:postgres /opt/postgresus_data
-chown -R postgres:postgres /postgresus-data
-msg_ok "Built Postgresus"
+$STD env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o databasus ./cmd/main.go
+mv /opt/databasus/backend/databasus /opt/databasus/databasus
+mkdir -p /opt/databasus_data/{data,backups,logs}
+mkdir -p /databasus-data/temp
+mkdir -p /opt/databasus/ui/build
+cp -r /opt/databasus/frontend/dist/* /opt/databasus/ui/build/
+cp -r /opt/databasus/backend/migrations /opt/databasus/
+chown -R postgres:postgres /opt/databasus
+chown -R postgres:postgres /opt/databasus_data
+chown -R postgres:postgres /databasus-data
+msg_ok "Built Databasus"
 
-msg_info "Configuring Postgresus"
+msg_info "Configuring Databasus"
 ADMIN_PASS=$(openssl rand -base64 12)
 JWT_SECRET=$(openssl rand -hex 32)
 
@@ -59,7 +59,7 @@ done
 $STD go install github.com/pressly/goose/v3/cmd/goose@latest
 ln -sf /root/go/bin/goose /usr/local/bin/goose
 
-cat <<EOF >/opt/postgresus/.env
+cat <<EOF >/opt/databasus/.env
 # Environment
 ENV_MODE=production
 
@@ -74,7 +74,7 @@ DATABASE_URL=postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}
 # Migrations
 GOOSE_DRIVER=postgres
 GOOSE_DBSTRING=postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}?sslmode=disable
-GOOSE_MIGRATION_DIR=/opt/postgresus/migrations
+GOOSE_MIGRATION_DIR=/opt/databasus/migrations
 
 # Security
 JWT_SECRET=${JWT_SECRET}
@@ -85,23 +85,23 @@ ADMIN_EMAIL=admin@localhost
 ADMIN_PASSWORD=${ADMIN_PASS}
 
 # Paths
-DATA_DIR=/opt/postgresus_data/data
-BACKUP_DIR=/opt/postgresus_data/backups
-LOG_DIR=/opt/postgresus_data/logs
+DATA_DIR=/opt/databasus_data/data
+BACKUP_DIR=/opt/databasus_data/backups
+LOG_DIR=/opt/databasus_data/logs
 
 # PostgreSQL Tools (for creating backups)
 PG_DUMP_PATH=/usr/lib/postgresql/17/bin/pg_dump
 PG_RESTORE_PATH=/usr/lib/postgresql/17/bin/pg_restore
 PSQL_PATH=/usr/lib/postgresql/17/bin/psql
 EOF
-chown postgres:postgres /opt/postgresus/.env
-chmod 600 /opt/postgresus/.env
-msg_ok "Configured Postgresus"
+chown postgres:postgres /opt/databasus/.env
+chmod 600 /opt/databasus/.env
+msg_ok "Configured Databasus"
 
-msg_info "Creating Postgresus Service"
-cat <<EOF >/etc/systemd/system/postgresus.service
+msg_info "Creating Databasus Service"
+cat <<EOF >/etc/systemd/system/databasus.service
 [Unit]
-Description=Postgresus - PostgreSQL Backup Management
+Description=Databasus - PostgreSQL Backup Management
 After=network.target postgresql.service
 Requires=postgresql.service
 
@@ -109,10 +109,10 @@ Requires=postgresql.service
 Type=simple
 User=postgres
 Group=postgres
-WorkingDirectory=/opt/postgresus
+WorkingDirectory=/opt/databasus
 Environment="PATH=/usr/local/bin:/usr/bin:/bin"
-EnvironmentFile=/opt/postgresus/.env
-ExecStart=/opt/postgresus/postgresus
+EnvironmentFile=/opt/databasus/.env
+ExecStart=/opt/databasus/databasus
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -122,11 +122,11 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 $STD systemctl daemon-reload
-$STD systemctl enable -q --now postgresus
-msg_ok "Created Postgresus Service"
+$STD systemctl enable -q --now databasus
+msg_ok "Created Databasus Service"
 
 msg_info "Configuring Nginx"
-cat <<EOF >/etc/nginx/sites-available/postgresus
+cat <<EOF >/etc/nginx/sites-available/databasus
 server {
     listen 80;
     server_name _;
