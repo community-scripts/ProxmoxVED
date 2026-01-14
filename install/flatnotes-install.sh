@@ -53,6 +53,7 @@ EnvironmentFile=/opt/flatnotes/.env
 ExecStart=/opt/flatnotes/.venv/bin/python -m uvicorn main:app --app-dir server --host 0.0.0.0 --port 8080 --proxy-headers
 Restart=on-failure
 RestartSec=10
+ExecStopPost=/bin/bash -c "rm -f /opt/flatnotes/uv.lock 2>/dev/null || true"
 
 [Install]
 WantedBy=multi-user.target
