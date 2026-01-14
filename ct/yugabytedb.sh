@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2026 bandogora
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: bandogora
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.yugabyte.com/yugabytedb/
@@ -27,8 +27,8 @@ var_tags="${var_tags:-database}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-10}"
-var_os="${var_os:-almalinux}"
-var_version="${var_version:-9}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 # Select most recent series
@@ -316,9 +316,7 @@ function update_script() {
     # msg_ok "Backup Created"
 
     msg_info "Updating Dependencies"
-    $STD dnf -y upgrade
-    alternatives --install /usr/bin/python python /usr/bin/python3.11 99
-    alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 99
+    $STD apt -y upgrade
     # Set working dir
     cd "$YB_HOME" || exit
     source .venv/bin/activate
@@ -357,14 +355,12 @@ function update_script() {
 
     # Cleaning up
     msg_info "Cleaning Up"
-    $STD dnf autoremove -y
-    $STD dnf clean all
+    $STD apt -y autoremove
+    $STD apt -y autoclean
     $STD uv cache clean
     rm -rf \
       ~/.cache \
-      "$YB_HOME/.cache" \
-      /var/cache/yum \
-      /var/cache/dnf
+      "$YB_HOME/.cache"
     msg_ok "Cleanup Completed"
     msg_ok "Update Successful"
   else

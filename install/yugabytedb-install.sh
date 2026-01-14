@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2026 bandogora
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: bandogora
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.yugabyte.com/yugabytedb/
@@ -31,36 +31,32 @@ update_os
 
 # Installing Dependencies with the 3 core dependencies (curl;sudo;mc)
 msg_info "Installing Dependencies"
-$STD dnf install -y \
-  curl \
-  sudo \
-  mc \
+$STD apt install -y \
   file \
   jq \
-  bind-utils \
   diffutils \
   gettext \
-  glibc-all-langpacks \
-  glibc-langpack-en \
-  glibc-locale-source \
+  locales-all \
   iotop \
   less \
-  ncurses-devel \
+  libncurses-dev \
   net-tools \
   openssl \
-  openssl-devel \
-  redhat-rpm-config \
+  libssl-dev \
   rsync \
   procps \
-  python3.11 \
-  python3.11-devel \
-  python3.11-pip \
+  python3 \
+  python3-dev \
+  python3-pip \
   sysstat \
   tcpdump \
-  which \
+  gnu-which \
   binutils \
   tar \
-  chrony
+  chrony \
+  apt-transport-https \
+  ca-certificates \
+  gnupg
 msg_ok "Installed Dependencies"
 
 msg_info "Restarting chronyd in container mode"
@@ -80,11 +76,7 @@ mkdir -p "$YB_HOME"
 cd "$YB_HOME" || exit
 
 msg_info "Installing uv and Python Dependencies"
-# Make sure python 3.11 is used when calling python or python3
-alternatives --install /usr/bin/python python /usr/bin/python3.11 99
-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 99
-
-setup_uv
+PYTHON_VERSION=3.11 setup_uv
 
 # Create venv
 $STD uv venv --python 3.11 "$YB_HOME/.venv"
@@ -151,12 +143,12 @@ for a in $(find . -exec file {} \; | grep -i elf | cut -f1 -d:); do
   $STD strip --strip-unneeded "$a" || true
 done
 
-# Add yugabyte supported languages to localedef
-languages=("en_US" "de_DE" "es_ES" "fr_FR" "it_IT" "ja_JP"
-  "ko_KR" "pl_PL" "ru_RU" "sv_SE" "tr_TR" "zh_CN")
-for lang in "${languages[@]}"; do
-  localedef --quiet --force --inputfile="${lang}" --charmap=UTF-8 "${lang}.UTF-8"
-done
+# # Add yugabyte supported languages to localedef
+# languages=("en_US" "de_DE" "es_ES" "fr_FR" "it_IT" "ja_JP"
+#   "ko_KR" "pl_PL" "ru_RU" "sv_SE" "tr_TR" "zh_CN")
+# for lang in "${languages[@]}"; do
+#   localedef --quiet --force --inputfile="${lang}" --charmap=UTF-8 "${lang}.UTF-8"
+# done
 
 # Link yugabyte bins to /usr/local/bin/
 for a in ysqlsh ycqlsh yugabyted yb-admin yb-ts-cli; do
@@ -199,39 +191,33 @@ curl ${ghr_url}/licenses/POLYFORM-FREE-TRIAL-LICENSE-1.0.0.txt \
   -o /licenses/POLYFORM-FREE-TRIAL-LICENSE-1.0.0.txt
 msg_ok "Copied licenses"
 
-# Install azcopy to support Microsoft Azure integration
 msg_info "Installing azcopy"
-curl -fsSL -o /etc/pki/rpm-gpg/RPM-GPG-KEY-Microsoft https://packages.microsoft.com/keys/microsoft.asc
-sudo tee -a /etc/yum.repos.d/packages-microsoft-prod.repo <<EOM
-[packages-microsoft-com-prod]
-name=Microsoft Production
-baseurl=https://packages.microsoft.com/alma/9/prod/
-enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Microsoft
-sslverify=1
+curl -fsSL https://packages.microsoft.com/keys/microsoft.asc |
+  gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+sudo tee -a /etc/apt/sources.list.d/microsoft.sources <<EOM
+Types: deb
+URIs: https://packages.microsoft.com/debian/12/prod/
+Suites: bookworm
+Components: main
+Signed-By: /usr/share/keyrings/microsoft-prod.gpg
 EOM
-$STD dnf upgrade -y
-$STD dnf install -y azcopy
+$STD apt update -y
+$STD apt install -y azcopy
 mkdir -m 777 /tmp/azcopy
 msg_ok "Installed azcopy"
 
-# Install gsutil to support Google Cloud Platform wintegration
 msg_info "Installing gsutil"
-curl -fsSL -o /etc/pki/rpm-gpg/RPM-GPG-KEY-Google-Cloud-SDK https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-sudo tee -a /etc/yum.repos.d/google-cloud-sdk.repo <<EOM
-[google-cloud-cli]
-name=Google Cloud CLI
-baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el9-x86_64
-enabled=1
-gpgcheck=1
-repo_gpgcheck=0
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Google-Cloud-SDK
-sslverify=1
+curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg |
+  gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.sources <<EOM
+Types: deb
+URIs: https://packages.cloud.google.com/apt/
+Suites: cloud-sdk
+Components: main
+Signed-By: /usr/share/keyrings/cloud.google.gpg
 EOM
-$STD dnf upgrade -y
-$STD dnf install -y libxcrypt-compat.x86_64 google-cloud-cli
+$STD apt update -y
+$STD apt install -y google-cloud-cli
 
 # Configure gsutil
 mkdir "$YB_HOME"/.boto
@@ -316,12 +302,9 @@ msg_ok "Permissions set"
 
 # Cleanup
 msg_info "Cleaning up"
-$STD dnf autoremove -y
-$STD dnf clean all
 $STD uv cache clean
+cleanup_lxc
 rm -rf \
   ~/.cache \
-  "$YB_HOME/.cache" \
-  /var/cache/yum \
-  /var/cache/dnf
+  "$YB_HOME/.cache"
 msg_ok "Cleaned"
