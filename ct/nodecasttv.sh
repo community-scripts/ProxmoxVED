@@ -35,6 +35,11 @@ function update_script() {
 
     fetch_and_deploy_gh_release "nodecast-tv" "technomancer702/nodecast-tv"
 
+    msg_info "Updating Modules"
+    cd /opt/nodecast-tv
+    $STD npm install
+    msg_ok "Updated Modules"
+
     msg_info "Starting Service"
     systemctl start nodecast-tv
     msg_ok "Started Service"
