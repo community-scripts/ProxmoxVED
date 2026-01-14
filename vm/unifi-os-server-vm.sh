@@ -373,7 +373,7 @@ function advanced_settings() {
   # Cloud-Init Selection - ALWAYS ask
   select_cloud_init
 
-  [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
+  VMID=$(get_valid_nextid)
   while true; do
     if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
       if [ -z "$VMID" ]; then
@@ -391,21 +391,23 @@ function advanced_settings() {
     fi
   done
 
-  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Machine Type" 10 58 2 \
+  MACH="q35"
+  if MACH_RESULT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Machine Type" 10 58 2 \
     "q35" "Q35 (Modern, PCIe, UEFI)" ON \
     "i440fx" "i440fx (Legacy)" OFF \
     3>&1 1>&2 2>&3); then
-    if [ "$MACH" = "q35" ]; then
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
-      FORMAT=""
-      MACHINE=" -machine q35"
-    else
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx (Legacy)${CL}"
-      FORMAT=",efitype=4m"
-      MACHINE=""
-    fi
+    MACH="$MACH_RESULT"
   else
     exit-script
+  fi
+  if [ "$MACH" = "q35" ]; then
+    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
+    FORMAT=""
+    MACHINE=" -machine q35"
+  else
+    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx (Legacy)${CL}"
+    FORMAT=",efitype=4m"
+    MACHINE=""
   fi
 
   if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -575,13 +577,15 @@ start_script
 post_to_api_vm
 
 msg_info "Validating Storage"
+STORAGE_MENU=()
+MSG_MAX_LENGTH=0
 while read -r line; do
   TAG=$(echo $line | awk '{print $1}')
   TYPE=$(echo $line | awk '{printf "%-10s", $2}')
-  FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
+  FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f 2>/dev/null || echo "N/A" | awk '{printf( "%9sB", $6)}')
   ITEM="  Type: $TYPE Free: $FREE "
   OFFSET=2
-  if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
+  if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-0} ]]; then
     MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
   fi
   STORAGE_MENU+=("$TAG" "$ITEM" "OFF")
@@ -771,6 +775,20 @@ if [ "$START_VM" == "yes" ]; then
   sleep 120
   msg_ok "Podman installed"
 
+  # Setup swap file (1GB for better stability)
+  msg_info "Setting up swap file"
+  send_line_to_vm "fallocate -l 1G /swapfile"
+  sleep 2
+  send_line_to_vm "chmod 600 /swapfile"
+  sleep 1
+  send_line_to_vm "mkswap /swapfile"
+  sleep 2
+  send_line_to_vm "swapon /swapfile"
+  sleep 1
+  send_line_to_vm "echo '/swapfile none swap sw 0 0' >> /etc/fstab"
+  sleep 1
+  msg_ok "Swap file created"
+
   # Step 2: Download UniFi OS Server installer
   msg_info "Downloading UniFi OS Server ${UOS_VERSION}"
   send_line_to_vm "cd /opt"
@@ -800,12 +818,12 @@ if [ "$START_VM" == "yes" ]; then
   # Get IP from outside via Guest Agent
   msg_info "Detecting VM IP address"
   VM_IP=""
-  for i in {1..15}; do
+  for i in {1..30}; do
     VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[] | select(.name != "lo") | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | head -1 || echo "")
     if [ -n "$VM_IP" ]; then
       break
     fi
-    sleep 2
+    sleep 1
   done
 
   if [ -n "$VM_IP" ]; then
