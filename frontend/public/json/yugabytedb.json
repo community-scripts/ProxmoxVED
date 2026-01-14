@@ -1,0 +1,48 @@
+{
+  "name": "YugabyteDB",
+  "slug": "yugabytedb",
+  "categories": [
+    8
+  ],
+  "date_created": "2026-01-14",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 15433,
+  "documentation": "https://docs.yugabyte.com",
+  "config_path": "/home/yugabyte/var/conf/yugabyted.conf",
+  "website": "https://www.yugabyte.com/yugabytedb",
+  "logo": "https://raw.githubusercontent.com/yugabyte/yugabyte-db/refs/heads/master/docs/static/icons/yugabyte.svg",
+  "description": "YugabyteDB is a cloud-native distributed PostgreSQL-compatible database that combines strong consistency with ultra-resilience, seamless scalability, geo-distribution, and highly flexible data locality to deliver business-critical, transactional applications.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/yugabytedb.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "You must set the correct ulimits and enable transparent hugepages on your system: https://docs.yugabyte.com/stable/deploy/manual-deployment/system-config/#set-ulimits",
+      "type": "warning"
+    },
+    {
+      "text": "Do not use RAID across multiple disks, ZFS and NFS are not currently supported.",
+      "type": "warning"
+    },
+    {
+      "text": "XFS is the recommended filesystem, SSDs (solid state disks) are required.",
+      "type": "info"
+    }
+  ]
+}
