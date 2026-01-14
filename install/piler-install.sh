@@ -49,8 +49,7 @@ msg_ok "Installed Manticore Search"
 fetch_and_deploy_gh_release "piler" "jsuto/piler" "binary" "latest" "/tmp" "piler_*-noble-*_amd64.deb"
 
 msg_info "Configuring Piler Database"
-cd /usr/local/share/piler
-mysql -u root "${MARIADB_DB_NAME}" <db-mysql.sql
+$STD mariadb -u root "${MARIADB_DB_NAME}" </usr/share/piler/db-mysql.sql 2>/dev/null || true
 msg_ok "Configured Piler Database"
 
 msg_info "Configuring Piler"
@@ -77,9 +76,6 @@ key=${PILER_KEY}
 iv=0123456789ABCDEF
 
 memcached_servers=127.0.0.1
-
-enable_clamav=1
-clamd_socket=/var/run/clamav/clamd.ctl
 
 spam_header_line=X-Spam-Status: Yes
 
@@ -147,8 +143,8 @@ msg_info "Creating Piler Service"
 cat <<EOF >/etc/systemd/system/piler.service
 [Unit]
 Description=Piler Email Archiving
-After=network.target mysql.service manticore.service
-Requires=mysql.service manticore.service
+After=network.target mysql.service manticore.service memcached.service
+Requires=mysql.service
 
 [Service]
 Type=forking
@@ -166,7 +162,6 @@ EOF
 $STD systemctl daemon-reload
 $STD systemctl enable --now manticore
 $STD systemctl enable --now memcached
-$STD systemctl enable --now clamav-daemon
 $STD systemctl enable --now piler
 msg_ok "Created Piler Service"
 
