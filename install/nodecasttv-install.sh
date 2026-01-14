@@ -15,6 +15,10 @@ update_os
 
 fetch_and_deploy_gh_release "nodecast-tv" "technomancer702/nodecast-tv"
 setup_nodejs
+msg_info "Installing Modules"
+cd /opt/nodecast-tv
+$STD npm install
+msg_ok "Installed Modules"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/nodecast-tv.service
@@ -26,7 +30,7 @@ Wants=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/nodecast-tv
-ExecStart=/bin/bash -c 'exec /bin/npm install && /bin/npm run dev'
+ExecStart=/bin/npm run dev
 Restart=on-failure
 RestartSec=10
 
