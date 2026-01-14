@@ -104,7 +104,6 @@ function cleanup_vmid() {
   if qm status $VMID &>/dev/null; then
     qm stop $VMID &>/dev/null
     qm destroy $VMID &>/dev/null
-  fi
 }
 
 function send_line_to_vm() {
@@ -213,7 +212,6 @@ function check_root() {
     echo -e "\nExiting..."
     sleep 2
     exit
-  fi
 }
 
 # This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
@@ -230,8 +228,6 @@ pve_check() {
       msg_error "Supported: Proxmox VE version 8.0 – 8.9"
       exit 1
     fi
-    return 0
-  fi
 
   # Check for Proxmox VE 9.x: allow 9.0–9.1
   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
@@ -241,8 +237,6 @@ pve_check() {
       msg_error "Supported: Proxmox VE version 9.0 – 9.1"
       exit 1
     fi
-    return 0
-  fi
 
   # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
@@ -257,7 +251,6 @@ function arch_check() {
     echo -e "Exiting..."
     sleep 2
     exit
-  fi
 }
 
 function ssh_check() {
@@ -270,7 +263,6 @@ function ssh_check() {
         exit
       fi
     fi
-  fi
 }
 
 function exit-script() {
@@ -302,7 +294,6 @@ function select_os() {
     #echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}${OS_DISPLAY}${CL}"
   else
     exit-script
-  fi
 }
 
 function select_cloud_init() {
@@ -399,7 +390,6 @@ function advanced_settings() {
     MACH="$MACH_RESULT"
   else
     exit-script
-  fi
   if [ "$MACH" = "q35" ]; then
     echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
     FORMAT=""
@@ -408,7 +398,6 @@ function advanced_settings() {
     echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx (Legacy)${CL}"
     FORMAT=",efitype=4m"
     MACHINE=""
-  fi
 
   if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
@@ -423,7 +412,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
     "0" "None (Default)" ON \
@@ -438,7 +426,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 unifi-os-server --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
@@ -450,7 +437,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose CPU Model" --cancel-button Exit-Script 10 58 2 \
     "Host" "Host (Faster, recommended)" ON \
@@ -468,7 +454,6 @@ function advanced_settings() {
     esac
   else
     exit-script
-  fi
 
   if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $CORE_COUNT ]; then
@@ -479,7 +464,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 2048 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $RAM_SIZE ]; then
@@ -490,7 +474,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $BRG ]; then
@@ -501,7 +484,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $MAC1 ]; then
@@ -513,7 +495,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for default)" 8 58 --title "VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VLAN1 ]; then
@@ -526,7 +507,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $MTU1 ]; then
@@ -539,7 +519,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
     echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
@@ -547,7 +526,6 @@ function advanced_settings() {
   else
     echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}no${CL}"
     START_VM="no"
-  fi
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Unifi OS VM?" --no-button Do-Over 10 58); then
     echo -e "${CREATING}${BOLD}${DGN}Creating a Unifi OS VM using the above advanced settings${CL}"
@@ -555,7 +533,6 @@ function advanced_settings() {
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
     advanced_settings
-  fi
 }
 
 function start_script() {
@@ -567,14 +544,38 @@ function start_script() {
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
     advanced_settings
-  fi
 }
 check_root
 arch_check
 pve_check
 ssh_check
+
 start_script
 post_to_api_vm
+
+msg_info "Checking system resources"
+SYSTEM_RAM_GB=$(grep MemTotal /proc/meminfo | awk '{printf "%.0f", $2 / 1024 / 1024}')
+SYSTEM_SWAP_GB=$(grep SwapTotal /proc/meminfo | awk '{printf "%.0f", $2 / 1024 / 1024}')
+SYSTEM_FREE_DISK_GB=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
+if [[ ${SYSTEM_RAM_GB} -lt 4 ]]; then
+  msg_error "Warning: Less than 4GB RAM detected (${SYSTEM_RAM_GB}GB). Install may be slow."
+  sleep 3
+fi
+if [[ ${SYSTEM_FREE_DISK_GB} -lt 10 ]]; then
+  msg_error "Warning: Less than 10GB free disk detected. Install may fail."
+  sleep 3
+fi
+msg_ok "System resources: ${SYSTEM_RAM_GB}GB RAM, ${SYSTEM_FREE_DISK_GB}GB free disk"
+
+if command -v ufw &>/dev/null; then
+  if ufw status verbose | grep -q "Status: active"; then
+    msg_info "Setting up firewall rules for UniFi OS Server ports"
+    ufw allow 11443/tcp 2>/dev/null
+    ufw allow 8080/tcp 2>/dev/null
+    ufw allow 3478/tcp 2>/dev/null
+    ufw allow 3478/udp 2>/dev/null
+    msg_ok "Firewall rules configured"
+fi
 
 msg_info "Validating Storage"
 STORAGE_MENU=()
@@ -587,7 +588,6 @@ while read -r line; do
   OFFSET=2
   if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-0} ]]; then
     MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
-  fi
   STORAGE_MENU+=("$TAG" "$ITEM" "OFF")
 done < <(pvesm status -content images | awk 'NR>1')
 VALID=$(pvesm status -content images | awk 'NR>1')
@@ -775,9 +775,11 @@ if [ "$START_VM" == "yes" ]; then
   sleep 120
   msg_ok "Podman installed"
 
-  # Setup swap file (1GB for better stability)
+  # Setup dynamic swap file based on available disk space
   msg_info "Setting up swap file"
-  send_line_to_vm "fallocate -l 1G /swapfile"
+  send_line_to_vm "export FREE_DISK_GB=\$(df -BG / | awk 'NR==2 {print \$4}' | sed 's/G//'); if [[ \${FREE_DISK_GB} -ge 20 ]]; then SWAP_SIZE=2048; elif [[ \${FREE_DISK_GB} -ge 10 ]]; then SWAP_SIZE=1024; elif [[ \${FREE_DISK_GB} -ge 5 ]]; then SWAP_SIZE=512; else SWAP_SIZE=256; fi; echo \"Creating swap file: \${SWAP_SIZE}MB\""
+  sleep 1
+  send_line_to_vm "fallocate -l \${SWAP_SIZE}M /swapfile"
   sleep 2
   send_line_to_vm "chmod 600 /swapfile"
   sleep 1
@@ -787,7 +789,7 @@ if [ "$START_VM" == "yes" ]; then
   sleep 1
   send_line_to_vm "echo '/swapfile none swap sw 0 0' >> /etc/fstab"
   sleep 1
-  msg_ok "Swap file created"
+  msg_ok "Swap file created (size based on available disk space)"
 
   # Step 2: Download UniFi OS Server installer
   msg_info "Downloading UniFi OS Server ${UOS_VERSION}"
@@ -830,7 +832,6 @@ if [ "$START_VM" == "yes" ]; then
     msg_ok "VM IP Address: ${VM_IP}"
   else
     msg_info "Could not detect IP - check VM console"
-  fi
 
   echo ""
   echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ UniFi OS Server installation complete!${CL}"
@@ -838,7 +839,6 @@ if [ "$START_VM" == "yes" ]; then
     echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ Access at: ${BGN}https://${VM_IP}:11443${CL}"
   else
     echo -e "${TAB}${INFO}${YW}Access via: ${BGN}https://<VM-IP>:11443${CL}"
-  fi
   echo -e "${TAB}${INFO}${DGN}Console login - User: ${BGN}root${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
   echo -e "${TAB}${INFO}${YW}Note: UniFi OS may take 1-2 more minutes to fully start${CL}"
   echo ""
@@ -846,3 +846,5 @@ fi
 
 post_update_to_api "done" "none"
 msg_ok "Completed successfully!\n"
+
+
