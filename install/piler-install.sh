@@ -33,7 +33,7 @@ msg_ok "Installed Dependencies"
 import_local_ip
 setup_mariadb
 MARIADB_DB_NAME="piler" MARIADB_DB_USER="piler" setup_mariadb_db
-PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="ldap,gd,memcached,pdo,mysql,curl,zip" setup_php
+PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="ldap,gd,memcached,pdo,mysql,curl,zip" setup_php
 
 msg_info "Installing Manticore Search"
 cd /tmp
@@ -171,12 +171,12 @@ $STD systemctl enable --now piler
 msg_ok "Created Piler Service"
 
 msg_info "Configuring PHP-FPM Pool"
-cp /etc/php/8.4/fpm/pool.d/www.conf /etc/php/8.4/fpm/pool.d/piler.conf
-sed -i 's/\[www\]/[piler]/' /etc/php/8.4/fpm/pool.d/piler.conf
-sed -i 's/^user = www-data/user = piler/' /etc/php/8.4/fpm/pool.d/piler.conf
-sed -i 's/^group = www-data/group = piler/' /etc/php/8.4/fpm/pool.d/piler.conf
-sed -i 's|^listen = .*|listen = /run/php/php8.4-fpm-piler.sock|' /etc/php/8.4/fpm/pool.d/piler.conf
-$STD systemctl restart php8.4-fpm
+cp /etc/php/8.3/fpm/pool.d/www.conf /etc/php/8.3/fpm/pool.d/piler.conf
+sed -i 's/\[www\]/[piler]/' /etc/php/8.3/fpm/pool.d/piler.conf
+sed -i 's/^user = www-data/user = piler/' /etc/php/8.3/fpm/pool.d/piler.conf
+sed -i 's/^group = www-data/group = piler/' /etc/php/8.3/fpm/pool.d/piler.conf
+sed -i 's|^listen = .*|listen = /run/php/php8.3-fpm-piler.sock|' /etc/php/8.3/fpm/pool.d/piler.conf
+$STD systemctl restart php8.3-fpm
 msg_ok "Configured PHP-FPM Pool"
 
 msg_info "Configuring Piler Web GUI"
@@ -250,7 +250,7 @@ server {
     }
 
     location ~ \.php$ {
-        fastcgi_pass unix:/run/php/php8.4-fpm-piler.sock;
+        fastcgi_pass unix:/run/php/php8.3-fpm-piler.sock;
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
         include fastcgi_params;

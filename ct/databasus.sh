@@ -3,7 +3,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/RostislavDugin/postgresus
+# Source: https://github.com/databasus/databasus
 
 APP="Databasus"
 var_tags="${var_tags:-backup;postgresql;database}"
@@ -24,12 +24,12 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/postgresus/postgresus ]]; then
+  if [[ ! -f /opt/databasus/databasus ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  if check_for_gh_release "Databasus" "Databasus"; then
+  if check_for_gh_release "databasus" "databasus/databasus"; then
     msg_info "Stopping Databasus"
     $STD systemctl stop databasus
     msg_ok "Stopped Databasus"
@@ -38,23 +38,28 @@ function update_script() {
     cp /opt/databasus/.env /tmp/databasus.env.bak
     msg_ok "Backed up Configuration"
 
+    msg_info "Updating Databasus"
     fetch_and_deploy_gh_release "databasus" "databasus/databasus" "tarball" "latest" "/opt/databasus"
 
-    msg_info "Updating Databasus"
     cd /opt/databasus/frontend
     $STD npm ci
     $STD npm run build
+
     cd /opt/databasus/backend
     $STD go mod download
-    $STD go build -o ../databasus ./cmd/main.go
-    cd /opt/databasus/
-    cp -r frontend/dist ui
-    cp -r backend/migrations .
+    $STD /root/go/bin/swag init -g cmd/main.go -o swagger
+    $STD env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o databasus ./cmd/main.go
+    mv /opt/databasus/backend/databasus /opt/databasus/databasus
+
+    cp -r /opt/databasus/frontend/dist/* /opt/databasus/ui/build/
+    cp -r /opt/databasus/backend/migrations /opt/databasus/
+    chown -R postgres:postgres /opt/databasus
     msg_ok "Updated Databasus"
 
     msg_info "Restoring Configuration"
     cp /tmp/databasus.env.bak /opt/databasus/.env
     rm -f /tmp/databasus.env.bak
+    chown postgres:postgres /opt/databasus/.env
     msg_ok "Restored Configuration"
 
     msg_info "Starting Databasus"
