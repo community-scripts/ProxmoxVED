@@ -61,8 +61,8 @@ msg_ok "Installed Dependencies"
 
 msg_info "Restarting chronyd in container mode"
 # Start chronyd with the -x option to disable the control of the system clock
-sed -i 's/^\(OPTIONS=".*\)"/\1 -x"/' /etc/sysconfig/chronyd
-
+sed -i 's|^ExecStart=!/usr/sbin/chronyd|ExecStart=!/usr/sbin/chronyd -x|' /usr/lib/systemd/system/chrony.service
+systemctl daemon-reload
 if systemctl restart chronyd; then
   msg_ok "chronyd running correctly"
 else
