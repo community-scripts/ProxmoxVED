@@ -22,12 +22,12 @@ $STD apt install -y \
   poppler-utils \
   unrtf \
   tnef \
-  clamav \
-  clamav-daemon \
   memcached \
   sysstat \
   python3 \
-  python3-mysqldb
+  python3-mysqldb \
+  ca-certificates \
+  gnupg
 msg_ok "Installed Dependencies"
 
 import_local_ip
@@ -36,26 +36,17 @@ MARIADB_DB_NAME="piler" MARIADB_DB_USER="piler" setup_mysql_db
 PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="ldap,gd,memcached,pdo,mysql,curl,zip" setup_php
 
 msg_info "Installing Manticore Search"
-curl -fsSL https://repo.manticoresearch.com/manticore-repo.noarch.deb -o /tmp/manticore-repo.deb
-$STD dpkg -i /tmp/manticore-repo.deb
+cd /tmp
+wget -q https://repo.manticoresearch.com/manticore-repo.noarch.deb
+$STD dpkg -i /tmp/manticore-repo.noarch.deb
 $STD apt update
-$STD apt install -y manticore manticore-extra
-rm -f /tmp/manticore-repo.deb
+$STD apt install -y manticore manticore-columnar-lib manticore-extra
+rm -f /tmp/manticore-repo.noarch.deb
+$STD systemctl stop manticore
+$STD systemctl disable manticore
 msg_ok "Installed Manticore Search"
 
-msg_info "Installing Piler"
-VERSION="1.4.8"
-cd /tmp
-curl -fsSL "https://github.com/jsuto/piler/releases/download/piler-${VERSION}/piler_${VERSION}-bookworm_amd64.deb" -o piler.deb
-curl -fsSL "https://github.com/jsuto/piler/releases/download/piler-${VERSION}/piler-webui_${VERSION}-bookworm_amd64.deb" -o piler-webui.deb
-
-$STD dpkg -i piler.deb
-$STD apt-get -f install -y
-$STD dpkg -i piler-webui.deb
-$STD apt-get -f install -y
-
-rm -f piler.deb piler-webui.deb
-msg_ok "Installed Piler v${VERSION}"
+fetch_and_deploy_gh_release "piler" "jsuto/piler" "binary" "latest" "/tmp" "piler_*-noble-*_amd64.deb"
 
 msg_info "Configuring Piler Database"
 cd /usr/local/share/piler
@@ -64,7 +55,6 @@ msg_ok "Configured Piler Database"
 
 msg_info "Configuring Piler"
 PILER_KEY=$(openssl rand -hex 16)
-
 cat <<EOF >/etc/piler/piler.conf
 hostid=piler.${LOCAL_IP}.nip.io
 update_counters_to_memcached=1
