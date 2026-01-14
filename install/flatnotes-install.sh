@@ -14,9 +14,21 @@ network_check
 update_os
 
 fetch_and_deploy_gh_release "flatnotes" "dullage/flatnotes"
-setup_uv
+USE_UVX=YES setup_uv
 setup_nodejs
 
+msg_info "Installing Backend"
+cd /opt/flatnotes
+$STD /usr/local/bin/uv sync
+$STD source .venv/bin/activate
+$STD deactivate
+msg_ok "Installed Backend"
+
+msg_info "Installing Frontend"
+cd /opt/flatnotes/client
+$STD npm install
+$STD npm run build
+msg_ok "Installed Frontend"
 
 motd_ssh
 customize
