@@ -3,9 +3,9 @@ source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/he
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: luismco
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/BlessedRebuS/Krawl
+# Source: https://github.com/technomancer702/nodecast-tv
 
-APP="Nodecasttv"
+APP="Nodecast-tv"
 var_tags="${var_tags:-proxy}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
