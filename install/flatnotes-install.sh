@@ -19,9 +19,9 @@ setup_nodejs
 
 msg_info "Installing Backend"
 cd /opt/flatnotes
+$STD /usr/local/bin/uvx migrate-to-uv
 $STD /usr/local/bin/uv sync
-$STD source .venv/bin/activate
-$STD deactivate
+mkdir data
 msg_ok "Installed Backend"
 
 msg_info "Installing Frontend"
@@ -30,6 +30,40 @@ $STD npm install
 $STD npm run build
 msg_ok "Installed Frontend"
 
+msg_info "Configuring Variables"
+cat <<EOF >/opt/flatnotes/.env
+FLATNOTES_AUTH_TYPE='none'
+FLATNOTES_PATH='/opt/flatnotes/data/'
+#FLATNOTES_USERNAME='username'
+#FLATNOTES_PASSWORD='password'
+#FLATNOTES_SECRET_KEY='secret-key'
+EOF
+msg_ok "Configured Variables"
+
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/flatnotes.service
+[Unit]
+Description=Flatnotes
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/flatnotes
+EnvironmentFile=/opt/flatnotes/.env
+ExecStart=/opt/flatnotes/.venv/bin/python -m uvicorn main:app --app-dir server --host 0.0.0.0 --port 8080 --proxy-headers
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now flatnotes
+msg_ok "Created Service"
+
 motd_ssh
 customize
 cleanup_lxc
+
+
+$STD source .venv/bin/activate
+$STD deactivate
