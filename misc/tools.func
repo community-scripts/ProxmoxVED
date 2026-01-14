@@ -1770,7 +1770,9 @@ function fetch_and_deploy_gh_release() {
   if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
     # GitHub API's tarball_url/zipball_url can return HTTP 300 Multiple Choices
     # when a branch and tag share the same name. Use explicit refs/tags/ URL instead.
-    local direct_tarball_url="https://github.com/$repo/archive/refs/tags/$tag_name.tar.gz"
+    # URL-encode @ symbols in tag names
+    local encoded_tag_name="${tag_name//@/%40}"
+    local direct_tarball_url="https://github.com/$repo/archive/refs/tags/$encoded_tag_name.tar.gz"
     filename="${app_lc}-${version}.tar.gz"
 
     curl $download_timeout -fsSL -o "$tmpdir/$filename" "$direct_tarball_url" || {

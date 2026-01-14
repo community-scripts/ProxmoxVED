@@ -15,9 +15,9 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-    build-essential \
-    tesseract-ocr \
-    tesseract-ocr-all
+  build-essential \
+  tesseract-ocr \
+  tesseract-ocr-all
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
