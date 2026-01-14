@@ -29,10 +29,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE_NEW=$(curl -fsSL https://www.mailpiler.org/download.php | grep -oP 'piler-\K[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-  RELEASE_OLD=$(pilerd -v 2>/dev/null | grep -oP 'version \K[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
-
-  if [[ "${RELEASE_NEW}" != "${RELEASE_OLD}" ]]; then
+  if check_for_gh_release "piler" "jsuto/piler"; then
     msg_info "Stopping Piler Services"
     $STD systemctl stop piler
     $STD systemctl stop manticore
@@ -40,31 +37,22 @@ function update_script() {
 
     msg_info "Backing up Configuration"
     cp /etc/piler/piler.conf /tmp/piler.conf.bak
+    cp /var/www/piler/config-site.php /tmp/config-site.php.bak 2>/dev/null || true
     msg_ok "Backed up Configuration"
 
-    msg_info "Updating to v${RELEASE_NEW}"
+    msg_info "Updating ${APP}"
     cd /tmp
-    curl -fsSL "https://bitbucket.org/jsuto/piler/downloads/piler-${RELEASE_NEW}.tar.gz" -o piler.tar.gz
-    tar -xzf piler.tar.gz
-    cd "piler-${RELEASE_NEW}"
-
-    $STD ./configure \
-      --localstatedir=/var \
-      --with-database=mysql \
-      --sysconfdir=/etc/piler \
-      --enable-memcached
-
-    $STD make
-    $STD make install
-    $STD ldconfig
-
-    cd /tmp && rm -rf "piler-${RELEASE_NEW}" piler.tar.gz
-    msg_ok "Updated to v${RELEASE_NEW}"
+    fetch_and_deploy_gh_release "piler" "jsuto/piler" "binary" "latest" "/tmp" "piler_*-noble-*_amd64.deb"
+    fetch_and_deploy_gh_release "piler-webui" "jsuto/piler" "binary" "latest" "/tmp" "piler-webui_*-noble-*_amd64.deb"
+    $STD apt-get -f install -y
+    msg_ok "Updated ${APP}"
 
     msg_info "Restoring Configuration"
     cp /tmp/piler.conf.bak /etc/piler/piler.conf
-    rm -f /tmp/piler.conf.bak
+    [[ -f /tmp/config-site.php.bak ]] && cp /tmp/config-site.php.bak /var/www/piler/config-site.php
+    rm -f /tmp/piler.conf.bak /tmp/config-site.php.bak
     chown piler:piler /etc/piler/piler.conf
+    chown -R piler:piler /var/www/piler 2>/dev/null || true
     msg_ok "Restored Configuration"
 
     msg_info "Starting Services"
@@ -72,8 +60,6 @@ function update_script() {
     $STD systemctl start piler
     msg_ok "Started Services"
     msg_ok "Updated successfully!"
-  else
-    msg_ok "No update available (current: v${RELEASE_OLD})"
   fi
   exit
 }
