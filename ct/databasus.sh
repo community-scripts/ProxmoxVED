@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/RostislavDugin/postgresus
 
-APP="Postgresus"
+APP="Databasus"
 var_tags="${var_tags:-backup;postgresql;database}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
@@ -29,37 +29,37 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "RostislavDugin" "postgresus"; then
-    msg_info "Stopping Postgresus"
-    $STD systemctl stop postgresus
-    msg_ok "Stopped Postgresus"
+  if check_for_gh_release "Databasus" "Databasus"; then
+    msg_info "Stopping Databasus"
+    $STD systemctl stop databasus
+    msg_ok "Stopped Databasus"
 
     msg_info "Backing up Configuration"
-    cp /opt/postgresus/.env /tmp/postgresus.env.bak
+    cp /opt/databasus/.env /tmp/databasus.env.bak
     msg_ok "Backed up Configuration"
 
-    fetch_and_deploy_gh_release "postgresus" "RostislavDugin/postgresus" "tarball" "v${RELEASE}" "/opt/postgresus"
+    fetch_and_deploy_gh_release "databasus" "databasus/databasus" "tarball" "latest" "/opt/databasus"
 
-    msg_info "Updating Postgresus"
-    cd /opt/postgresus/frontend
+    msg_info "Updating Databasus"
+    cd /opt/databasus/frontend
     $STD npm ci
     $STD npm run build
-    cd /opt/postgresus/backend
+    cd /opt/databasus/backend
     $STD go mod download
-    $STD go build -o ../postgresus ./cmd/main.go
-    cd /opt/postgresus/
+    $STD go build -o ../databasus ./cmd/main.go
+    cd /opt/databasus/
     cp -r frontend/dist ui
     cp -r backend/migrations .
-    msg_ok "Updated Postgresus"
+    msg_ok "Updated Databasus"
 
     msg_info "Restoring Configuration"
-    cp /tmp/postgresus.env.bak /opt/postgresus/.env
-    rm -f /tmp/postgresus.env.bak
+    cp /tmp/databasus.env.bak /opt/databasus/.env
+    rm -f /tmp/databasus.env.bak
     msg_ok "Restored Configuration"
 
-    msg_info "Starting Postgresus"
-    $STD systemctl start postgresus
-    msg_ok "Started Postgresus"
+    msg_info "Starting Databasus"
+    $STD systemctl start databasus
+    msg_ok "Started Databasus"
     msg_ok "Updated successfully!"
   fi
   exit
