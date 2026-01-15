@@ -3,12 +3,12 @@ source <(curl -fsSL https://raw.githubusercontent.com/luismco/ProxmoxVED/refs/he
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: luismco
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/technomancer702/nodecast-tv
+# Source: https://github.com/dullage/flatnotes
 
 APP="Flatnotes"
-var_tags="${var_tags:-media}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-2048}"
+var_tags="${var_tags:-notes}"
+var_cpu="${var_cpu:-1}"
+var_ram="${var_ram:-1024}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -34,8 +34,8 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Backing up Configuration and Data"
-    cp /opt/flatnotes/.env /tmp/flatnotes.env.bak
-    cp -r /opt/flatnotes/data /tmp/flatnotes/
+    cp /opt/flatnotes/.env /opt/.env.bak
+    cp -r /opt/flatnotes/data /opt/data_backup
     msg_ok "Backed up Configuration and Data"
 
     fetch_and_deploy_gh_release "flatnotes" "dullage/flatnotes"
@@ -54,10 +54,10 @@ function update_script() {
     msg_ok "Updated Backend"
 
     msg_info "Restoring Configuration and Data"
-    cp /tmp/flatnotes.env.bak /opt/flatnotes/.env
-    cp -r /tmp/flatnotes/data /opt/flatnotes
-    rm -f /tmp/flatnotes.env.bak
-    rm -rf /tmp/flatnotes/data
+    cp /opt/.env.bak /opt/flatnotes/.env
+    cp -r /opt/data_backup /opt/flatnotes/data
+    rm -f /opt/.env.bak
+    rm -rf /opt/flatnotes/data_backup
     msg_ok "Restored Configuration and Data"
 
     msg_info "Starting Service"
