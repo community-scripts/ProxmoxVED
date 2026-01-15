@@ -3,6 +3,20 @@
 
 # Erwartet vorhandene msg_* und optional $STD aus deinem Framework.
 
+# Fallbacks, wenn core.func nicht geladen wurde (Alpine/ash-safe)
+if ! command -v msg_info >/dev/null 2>&1; then
+  msg_info() { echo "[INFO] $*"; }
+fi
+if ! command -v msg_ok >/dev/null 2>&1; then
+  msg_ok() { echo "[OK] $*"; }
+fi
+if ! command -v msg_warn >/dev/null 2>&1; then
+  msg_warn() { echo "[WARN] $*"; }
+fi
+if ! command -v msg_error >/dev/null 2>&1; then
+  msg_error() { echo "[ERROR] $*" >&2; }
+fi
+
 # ------------------------------
 # helpers
 # ------------------------------
