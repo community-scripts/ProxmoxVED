@@ -34,8 +34,8 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Backing up Configuration and Data"
-    cp /opt/flatnotes/.env /opt/.env.bak
-    cp -r /opt/flatnotes/data /opt/data_backup
+    cp /opt/flatnotes/.env /opt/flatnotes.env
+    cp -r /opt/flatnotes/data /opt/flatnotes_data_backup
     msg_ok "Backed up Configuration and Data"
 
     fetch_and_deploy_gh_release "flatnotes" "dullage/flatnotes"
@@ -54,10 +54,10 @@ function update_script() {
     msg_ok "Updated Backend"
 
     msg_info "Restoring Configuration and Data"
-    cp /opt/.env.bak /opt/flatnotes/.env
-    cp -r /opt/data_backup/. /opt/flatnotes/data
-    rm -f /opt/.env.bak
-    rm -r /opt/data_backup
+    cp /opt/flatnotes.env /opt/flatnotes/.env
+    cp -r /opt/flatnotes_data_backup/. /opt/flatnotes/data
+    rm -f /opt/flatnotes.env
+    rm -r /opt/flatnotes_data_backup
     msg_ok "Restored Configuration and Data"
 
     msg_info "Starting Service"
