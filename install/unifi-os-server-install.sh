@@ -26,7 +26,12 @@ if [[ ! -e /dev/net/tun ]]; then
 fi
 
 msg_info "Installing dependencies"
-$STD apt-get install -y ca-certificates curl jq podman uidmap slirp4netns wget
+$STD apt install -y \
+  ca-certificates \
+  jq \
+  podman \
+  uidmap \
+  slirp4netns
 msg_ok "Installed dependencies"
 
 msg_info "Installing sysctl wrapper (ignore non-critical errors)"
@@ -47,7 +52,6 @@ if ! curl -fsSL "$API_URL" -o "$TEMP_JSON"; then
   msg_error "Failed to fetch data from Ubiquiti API"
   exit 1
 fi
-
 LATEST=$(jq -r '
   ._embedded.firmware
   | map(select(.product == "unifi-os-server"))
@@ -55,11 +59,9 @@ LATEST=$(jq -r '
   | sort_by(.version_major, .version_minor, .version_patch)
   | last
 ' "$TEMP_JSON")
-
 UOS_VERSION=$(echo "$LATEST" | jq -r '.version' | sed 's/^v//')
 UOS_URL=$(echo "$LATEST" | jq -r '._links.data.href')
 rm -f "$TEMP_JSON"
-
 if [[ -z "$UOS_URL" || -z "$UOS_VERSION" || "$UOS_URL" == "null" ]]; then
   msg_error "Failed to parse UniFi OS Server version or download URL"
   exit 1
@@ -73,7 +75,7 @@ chmod +x /usr/local/sbin/unifi-os-server.bin
 msg_ok "Downloaded UniFi OS Server installer"
 
 msg_info "Installing UniFi OS Server (this takes a few minutes)"
-echo y | /usr/local/sbin/unifi-os-server.bin
+$STD /usr/local/sbin/unifi-os-server.bin <<<"y"
 msg_ok "UniFi OS Server installed"
 
 motd_ssh
