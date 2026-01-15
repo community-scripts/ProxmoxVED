@@ -20,7 +20,7 @@
             "script": "ct/rustypaste.sh",
             "resources": {
                 "cpu": 1,
-                "ram": 512,
+                "ram": 1024,
                 "hdd": 20,
                 "os": "Debian",
                 "version": "13"
@@ -32,9 +32,9 @@
         "password": null
     },
     "notes": [
-      {
-        "text": "When updating the script it will backup the whole project including all the uploaded files, make sure to extract it to a safe location or remove",
-        "type": "info"
-      }
+        {
+            "text": "When updating the script it will backup the whole project including all the uploaded files, make sure to extract it to a safe location or remove",
+            "type": "info"
+        }
     ]
 }

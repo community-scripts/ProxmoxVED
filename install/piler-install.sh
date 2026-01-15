@@ -46,7 +46,10 @@ $STD systemctl stop manticore
 $STD systemctl disable manticore
 msg_ok "Installed Manticore Search"
 
+msg_info "Installing Piler"
 fetch_and_deploy_gh_release "piler" "jsuto/piler" "binary" "latest" "/tmp" "piler_*-noble-*_amd64.deb"
+fetch_and_deploy_gh_release "piler-webui" "jsuto/piler" "binary" "latest" "/tmp" "piler-webui_*-noble-*_amd64.deb"
+msg_ok "Installed Piler"
 
 msg_info "Configuring Piler Database"
 $STD mariadb -u root "${MARIADB_DB_NAME}" </usr/share/piler/db-mysql.sql 2>/dev/null || true
@@ -175,9 +178,9 @@ $STD systemctl restart php8.3-fpm
 msg_ok "Configured PHP-FPM Pool"
 
 msg_info "Configuring Piler Web GUI"
-cd /var/www/piler
-
-cat <<EOF >/var/www/piler/config-site.php
+# Check if config-site.php already exists (created by .deb package)
+if [ ! -f /var/www/piler/config-site.php ]; then
+  cat <<EOF >/var/www/piler/config-site.php
 <?php
 \$config['SITE_NAME'] = 'Piler Email Archive';
 \$config['SITE_URL'] = 'http://${LOCAL_IP}';
@@ -222,6 +225,7 @@ cat <<EOF >/var/www/piler/config-site.php
 \$config['HEADER_LINE_TO_HIDE'] = 'X-Envelope-To:';
 ?>
 EOF
+fi
 
 chown -R piler:piler /var/www/piler
 chmod 755 /var/www/piler
