@@ -42,8 +42,18 @@ export NSAPP
 
 # prlimit settings for lxc config to match yugabyte requirements
 lxc_prlimit_config=(
-  "lxc.prlimit.nofile = 1048576"
-  "lxc.prlimit.sigpending = 119934"
+  "lxc.prlimit.core: unlimited"
+  "lxc.prlimit.data: unlimited"
+  "lxc.prlimit.fsize: unlimited"
+  "lxc.prlimit.sigpending: 119934"
+  "lxc.prlimit.memlock: 64"
+  "lxc.prlimit.rss: unlimited"
+  "lxc.prlimit.nofile: 1048576"
+  "lxc.prlimit.msgqueue: 819200"
+  "lxc.prlimit.stack: 8192"
+  "lxc.prlimit.cpu: unlimited"
+  "lxc.prlimit.nproc: 12000"
+  "lxc.prlimit.locks: unlimited"
 )
 
 header_info "$APP"

@@ -240,6 +240,8 @@ cat <<EOF >/etc/security/limits.conf
 *                -       nproc           12000
 *                -       locks           unlimited
 EOF
+sed -i 's/^#DefaultLimitCORE=/DefaultLimitCORE=infinity/' /etc/systemd/user.conf
+sed -i 's/^#DefaultLimitCORE=/DefaultLimitCORE=infinity/' /etc/systemd/system.conf
 msg_ok "Set default ulimits"
 
 TSERVER_FLAGS+="tmp_dir=$TEMP_DIR"
