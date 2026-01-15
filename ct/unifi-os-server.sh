@@ -5,7 +5,7 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://ui.com/
 
-APP="UniFi OS Server"
+APP="UniFi-OS-Server"
 var_tags="${var_tags:-network}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-4096}"
