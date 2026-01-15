@@ -256,8 +256,7 @@ After=network-online.target
 Type=forking
 RestartForceExitStatus=SIGPIPE
 StartLimitInterval=0
-ExecStart=/bin/bash -c 'source $YB_HOME/.venv/bin/activate && \
-/usr/local/bin/yugabyted start --secure \
+ExecStart=/bin/bash -c '/usr/local/bin/yugabyted start --secure \
 --backup_daemon=$BACKUP_DAEMON \
 --fault_tolerance=$FAULT_TOLERANCE \
 --advertise_address=$(hostname -I | awk '{print $1}') \
@@ -267,6 +266,7 @@ ExecStart=/bin/bash -c 'source $YB_HOME/.venv/bin/activate && \
 --callhome=false \
 $JOIN_CLUSTER'
 
+Environment="PATH=$YB_HOME/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 Environment="YB_HOME=$YB_HOME"
 Environment="DATA_DIR=$DATA_DIR"
 Environment="TEMP_DIR=$TEMP_DIR"
