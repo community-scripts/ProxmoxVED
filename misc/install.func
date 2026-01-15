@@ -551,7 +551,7 @@ get_ip() {
 
   # Try hostname -I first (most common)
   if command -v hostname &>/dev/null; then
-    ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+    ip=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
   fi
 
   # Fallback to ip command
