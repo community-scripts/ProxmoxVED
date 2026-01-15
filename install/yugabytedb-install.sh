@@ -143,12 +143,12 @@ for a in $(find . -exec file {} \; | grep -i elf | cut -f1 -d:); do
   $STD strip --strip-unneeded "$a" || true
 done
 
-# # Add yugabyte supported languages to localedef
-# languages=("en_US" "de_DE" "es_ES" "fr_FR" "it_IT" "ja_JP"
-#   "ko_KR" "pl_PL" "ru_RU" "sv_SE" "tr_TR" "zh_CN")
-# for lang in "${languages[@]}"; do
-#   localedef --quiet --force --inputfile="${lang}" --charmap=UTF-8 "${lang}.UTF-8"
-# done
+# Add yugabyte supported languages to localedef
+languages=("en_US" "de_DE" "es_ES" "fr_FR" "it_IT" "ja_JP"
+  "ko_KR" "pl_PL" "ru_RU" "sv_SE" "tr_TR" "zh_CN")
+for lang in "${languages[@]}"; do
+  localedef --quiet --force --inputfile="${lang}" --charmap=UTF-8 "${lang}.UTF-8"
+done
 
 # Link yugabyte bins to /usr/local/bin/
 for a in ysqlsh ycqlsh yugabyted yb-admin yb-ts-cli; do
@@ -240,8 +240,6 @@ cat <<EOF >/etc/security/limits.conf
 *                -       nproc           12000
 *                -       locks           unlimited
 EOF
-sed -i 's/^#DefaultLimitCORE=/DefaultLimitCORE=infinity/' /etc/systemd/user.conf
-sed -i 's/^#DefaultLimitCORE=/DefaultLimitCORE=infinity/' /etc/systemd/system.conf
 msg_ok "Set default ulimits"
 
 TSERVER_FLAGS+="tmp_dir=$TEMP_DIR"

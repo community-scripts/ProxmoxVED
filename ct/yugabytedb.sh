@@ -50,7 +50,6 @@ lxc_prlimit_config=(
   "lxc.prlimit.rss: unlimited"
   "lxc.prlimit.nofile: 1048576"
   "lxc.prlimit.msgqueue: 819200"
-  "lxc.prlimit.stack: 8192"
   "lxc.prlimit.cpu: unlimited"
   "lxc.prlimit.nproc: 12000"
   "lxc.prlimit.locks: unlimited"
