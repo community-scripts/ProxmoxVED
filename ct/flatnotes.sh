@@ -48,6 +48,7 @@ function update_script() {
 
     msg_info "Updating Backend"
     cd /opt/flatnotes
+    rm -f uv.lock
     $STD /usr/local/bin/uvx migrate-to-uv
     $STD /usr/local/bin/uv sync
     msg_ok "Updated Backend"
