@@ -6,13 +6,13 @@
   ],
   "date_created": "2026-01-14",
   "type": "ct",
-  "updateable": true,
+  "updateable": false,
   "privileged": false,
   "interface_port": 15433,
   "documentation": "https://docs.yugabyte.com",
   "config_path": "/home/yugabyte/var/conf/yugabyted.conf",
   "website": "https://www.yugabyte.com/yugabytedb",
-  "logo": "https://raw.githubusercontent.com/yugabyte/yugabyte-db/refs/heads/master/docs/static/icons/yugabyte.svg",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/yugabytedb.webp",
   "description": "YugabyteDB is a cloud-native distributed PostgreSQL-compatible database that combines strong consistency with ultra-resilience, seamless scalability, geo-distribution, and highly flexible data locality to deliver business-critical, transactional applications.",
   "install_methods": [
     {
