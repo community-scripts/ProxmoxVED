@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
 # ==============================================================================
@@ -523,8 +523,11 @@ msg_info() {
   if ! declare -p MSG_INFO_SHOWN &>/dev/null || ! declare -A MSG_INFO_SHOWN &>/dev/null; then
     declare -gA MSG_INFO_SHOWN=()
   fi
-  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$msg"]=1
+  # Sanitize message for use as associative array key (remove ANSI codes and special chars)
+  local sanitized_msg
+  sanitized_msg=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
+  [[ -n "${MSG_INFO_SHOWN["$sanitized_msg"]+x}" ]] && return
+  MSG_INFO_SHOWN["$sanitized_msg"]=1
 
   stop_spinner
   SPINNER_MSG="$msg"
@@ -569,7 +572,10 @@ msg_ok() {
   stop_spinner
   clear_line
   echo -e "$CM ${GN}${msg}${CL}"
-  unset MSG_INFO_SHOWN["$msg"]
+  # Sanitize message for use as associative array key (remove ANSI codes and special chars)
+  local sanitized_msg
+  sanitized_msg=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
+  unset 'MSG_INFO_SHOWN['"$sanitized_msg"']' 2>/dev/null || true
 }
 
 # ------------------------------------------------------------------------------

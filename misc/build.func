@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: tteck (tteckster) | MickLesk | michelroegl-brunner
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
 # Revision: 1
@@ -311,7 +311,10 @@ update_motd_ip() {
 # - Falls back to warning if no keys provided
 # ------------------------------------------------------------------------------
 install_ssh_keys_into_ct() {
-  [[ "$SSH" != "yes" ]] && return 0
+  [[ "${SSH:-no}" != "yes" ]] && return 0
+
+  # Ensure SSH_KEYS_FILE is defined (may not be set if advanced_settings was skipped)
+  : "${SSH_KEYS_FILE:=}"
 
   if [[ -n "$SSH_KEYS_FILE" && -s "$SSH_KEYS_FILE" ]]; then
     msg_info "Installing selected SSH keys into CT ${CTID}"
@@ -392,6 +395,90 @@ find_host_ssh_keys() {
     IFS=:
     echo "${files[*]}"
   )
+}
+
+# ==============================================================================
+# SECTION 3B: IP RANGE SCANNING
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# ip_to_int() / int_to_ip()
+#
+# - Converts IP address to integer and vice versa for range iteration
+# ------------------------------------------------------------------------------
+ip_to_int() {
+  local IFS=.
+  read -r i1 i2 i3 i4 <<<"$1"
+  echo $(((i1 << 24) + (i2 << 16) + (i3 << 8) + i4))
+}
+
+int_to_ip() {
+  local ip=$1
+  echo "$(((ip >> 24) & 0xFF)).$(((ip >> 16) & 0xFF)).$(((ip >> 8) & 0xFF)).$((ip & 0xFF))"
+}
+
+# ------------------------------------------------------------------------------
+# resolve_ip_from_range()
+#
+# - Takes an IP range in format "10.0.0.1/24-10.0.0.10/24"
+# - Pings each IP in the range to find the first available one
+# - Returns the first free IP with CIDR notation
+# - Sets NET_RESOLVED to the resolved IP or empty on failure
+# ------------------------------------------------------------------------------
+resolve_ip_from_range() {
+  local range="$1"
+  local ip_cidr_regex='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/([0-9]{1,2})$'
+  local ip_start ip_end
+
+  # Parse range: "10.0.0.1/24-10.0.0.10/24"
+  ip_start="${range%%-*}"
+  ip_end="${range##*-}"
+
+  if [[ ! "$ip_start" =~ $ip_cidr_regex ]] || [[ ! "$ip_end" =~ $ip_cidr_regex ]]; then
+    NET_RESOLVED=""
+    return 1
+  fi
+
+  local ip1="${ip_start%%/*}"
+  local ip2="${ip_end%%/*}"
+  local cidr="${ip_start##*/}"
+
+  local start_int=$(ip_to_int "$ip1")
+  local end_int=$(ip_to_int "$ip2")
+
+  for ((ip_int = start_int; ip_int <= end_int; ip_int++)); do
+    local ip=$(int_to_ip $ip_int)
+    msg_info "Checking IP: $ip"
+    if ! ping -c 1 -W 1 "$ip" >/dev/null 2>&1; then
+      NET_RESOLVED="$ip/$cidr"
+      msg_ok "Found free IP: ${BGN}$NET_RESOLVED${CL}"
+      return 0
+    fi
+  done
+
+  NET_RESOLVED=""
+  msg_error "No free IP found in range $range"
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# is_ip_range()
+#
+# - Checks if a string is an IP range (contains - and looks like IP/CIDR)
+# - Returns 0 if it's a range, 1 otherwise
+# ------------------------------------------------------------------------------
+is_ip_range() {
+  local value="$1"
+  local ip_start ip_end
+  if [[ "$value" == *-* ]] && [[ "$value" != "dhcp" ]]; then
+    local ip_cidr_regex='^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/([0-9]{1,2})$'
+    ip_start="${value%%-*}"
+    ip_end="${value##*-}"
+    if [[ "$ip_start" =~ $ip_cidr_regex ]] && [[ "$ip_end" =~ $ip_cidr_regex ]]; then
+      return 0
+    fi
+  fi
+  return 1
 }
 
 # ==============================================================================
@@ -506,6 +593,18 @@ base_settings() {
   HN=${var_hostname:-$NSAPP}
   BRG=${var_brg:-"vmbr0"}
   NET=${var_net:-"dhcp"}
+
+  # Resolve IP range if NET contains a range (e.g., 192.168.1.100/24-192.168.1.200/24)
+  if is_ip_range "$NET"; then
+    msg_info "Scanning IP range: $NET"
+    if resolve_ip_from_range "$NET"; then
+      NET="$NET_RESOLVED"
+    else
+      msg_error "Could not find free IP in range. Falling back to DHCP."
+      NET="dhcp"
+    fi
+  fi
+
   IPV6_METHOD=${var_ipv6_method:-"none"}
   IPV6_STATIC=${var_ipv6_static:-""}
   GATE=${var_gateway:-""}
@@ -535,9 +634,16 @@ base_settings() {
   TAGS="community-script,${var_tags:-}"
   ENABLE_FUSE=${var_fuse:-"${1:-no}"}
   ENABLE_TUN=${var_tun:-"${1:-no}"}
-  ENABLE_KEYCTL=${var_keyctl:-0}
-  ENABLE_MKNOD=${var_mknod:-0}
+
+  # Additional settings that may be skipped if advanced_settings is not run (e.g., App Defaults)
+  ENABLE_GPU=${var_gpu:-"no"}
+  ENABLE_NESTING=${var_nesting:-"1"}
+  ENABLE_KEYCTL=${var_keyctl:-"0"}
+  ENABLE_MKNOD=${var_mknod:-"0"}
   MOUNT_FS=${var_mount_fs:-""}
+  PROTECT_CT=${var_protection:-"no"}
+  CT_TIMEZONE=${var_timezone:-"$timezone"}
+  [[ "${CT_TIMEZONE:-}" == Etc/* ]] && CT_TIMEZONE="host" # pct doesn't accept Etc/* zones
 
   # Since these 2 are only defined outside of default_settings function, we add a temporary fallback. TODO: To align everything, we should add these as constant variables (e.g. OSTYPE and OSVERSION), but that would currently require updating the default_settings function for all existing scripts
   if [ -z "$var_os" ]; then
@@ -587,12 +693,22 @@ load_vars_file() {
       [[ "$var_key" != var_* ]] && continue
       _is_whitelisted "$var_key" || continue
 
+      # Strip inline comments (everything after unquoted #)
+      # Handle: var=value # comment OR var="value" # comment
+      if [[ ! "$var_val" =~ ^[\"\'] ]]; then
+        # Unquoted value: strip from first #
+        var_val="${var_val%%#*}"
+      fi
+
       # Strip quotes
       if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
         var_val="${BASH_REMATCH[1]}"
       elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
         var_val="${BASH_REMATCH[1]}"
       fi
+
+      # Trim trailing whitespace
+      var_val="${var_val%"${var_val##*[![:space:]]}"}"
 
       # Set only if not already exported
       [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
@@ -696,12 +812,18 @@ var_fuse=no
 var_tun=no
 
 # Advanced Settings (Proxmox-official features)
+# var_nesting: Allow nesting (required for Docker/LXC in CT)
 var_nesting=1
+# var_keyctl: Allow keyctl() - needed for Docker (systemd-networkd workaround)
 var_keyctl=0
+# var_mknod: Allow device node creation (requires kernel 5.3+, experimental)
 var_mknod=0
-var_mount_fs=""
+# var_mount_fs: Allow specific filesystems: nfs,fuse,ext4,etc (leave empty for defaults)
+var_mount_fs=
+# var_protection: Prevent accidental deletion of container
 var_protection=no
-var_timezone=""
+# var_timezone: Container timezone (e.g. Europe/Berlin, leave empty for host timezone)
+var_timezone=
 var_tags=community-script
 var_verbose=no
 
@@ -3124,6 +3246,9 @@ EOF'
     ;;
 
   debian | ubuntu | devuan)
+    # First install locales package (required for locale-gen on minimal templates)
+    pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y locales >/dev/null 2>&1 || true"
+
     # Locale setup for Debian-based
     pct exec "$CTID" -- bash -c "sed -i '/$LANG/ s/^# //' /etc/locale.gen 2>/dev/null || true"
     pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen 2>/dev/null | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
@@ -3150,33 +3275,128 @@ EOF'
 
   fedora | rockylinux | almalinux | centos)
     # RHEL-based: Fedora, Rocky, AlmaLinux, CentOS
-    pct exec "$CTID" -- bash -c "dnf install -y curl sudo mc jq procps-ng >/dev/null 2>&1 || yum install -y curl sudo mc jq procps-ng >/dev/null 2>&1" || {
-      msg_error "dnf/yum base packages installation failed"
-      exit 1
-    }
+    # Detect OS major version for EL10+ compatibility (DNF 5, different packages)
+    local rhel_version
+    rhel_version=$(pct exec "$CTID" -- bash -c "grep -oP '(?<=VERSION_ID=\")[0-9]+' /etc/os-release 2>/dev/null || echo 9")
+
+    # First run makecache to ensure repos are ready (critical for fresh templates)
+    msg_info "Initializing package manager (this may take a moment)..."
+    if ! pct exec "$CTID" -- bash -c "dnf makecache --refresh 2>&1 || yum makecache 2>&1" >/dev/null 2>&1; then
+      msg_warn "Package cache update had issues, continuing anyway..."
+    fi
+
+    # Build package list - EL10+ may not have glibc-langpack-en in same form
+    local rhel_packages="curl sudo mc jq procps-ng ncurses"
+    if [[ "$rhel_version" -lt 10 ]]; then
+      rhel_packages="$rhel_packages glibc-langpack-en"
+    else
+      # EL10 uses glibc-all-langpacks or langpacks-en
+      rhel_packages="$rhel_packages langpacks-en glibc-all-langpacks"
+    fi
+
+    # Install base packages with better error handling
+    local install_log="/tmp/dnf_install_${CTID}.log"
+    if ! pct exec "$CTID" -- bash -c "dnf install -y $rhel_packages 2>&1 | tee $install_log; exit \${PIPESTATUS[0]}" >/dev/null 2>&1; then
+      # Check if it's just missing optional packages
+      if pct exec "$CTID" -- bash -c "rpm -q curl sudo mc jq procps-ng" >/dev/null 2>&1; then
+        msg_warn "Some optional packages may have failed, but core packages installed"
+      else
+        # Real failure - try minimal install
+        msg_warn "Full package install failed, trying minimal set..."
+        if ! pct exec "$CTID" -- bash -c "dnf install -y curl sudo jq 2>&1" >/dev/null 2>&1; then
+          msg_error "dnf/yum base packages installation failed"
+          pct exec "$CTID" -- bash -c "cat $install_log 2>/dev/null" || true
+          exit 1
+        fi
+      fi
+    fi
+
+    # Set locale for RHEL-based systems
+    pct exec "$CTID" -- bash -c "localectl set-locale LANG=en_US.UTF-8 2>/dev/null || echo 'LANG=en_US.UTF-8' > /etc/locale.conf" || true
+
+    # Timezone setup for RHEL
+    if [[ -z "${tz:-}" ]]; then
+      tz=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "Etc/UTC")
+    fi
+    [[ "${tz:-}" == Etc/* ]] && tz="UTC"
+    if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
+      pct exec "$CTID" -- bash -c "timedatectl set-timezone '$tz' 2>/dev/null || ln -sf '/usr/share/zoneinfo/$tz' /etc/localtime" || true
+    fi
     ;;
 
   opensuse)
-    # openSUSE
-    pct exec "$CTID" -- bash -c "zypper --non-interactive install curl sudo mc jq >/dev/null" || {
-      msg_error "zypper base packages installation failed"
-      exit 1
-    }
+    # openSUSE - special handling for terminal/locale issues
+    # Use --gpg-auto-import-keys to avoid interactive prompts that cause hangs
+    msg_info "Initializing package manager for openSUSE..."
+    pct exec "$CTID" -- bash -c "zypper --gpg-auto-import-keys --non-interactive refresh 2>&1" >/dev/null 2>&1 || true
+
+    # Install packages - ncurses and terminfo are CRITICAL for terminal to work
+    if ! pct exec "$CTID" -- bash -c "zypper --gpg-auto-import-keys --non-interactive install -y curl sudo mc jq glibc-locale ncurses terminfo-base 2>&1" >/dev/null 2>&1; then
+      # Try without glibc-locale
+      if ! pct exec "$CTID" -- bash -c "zypper --gpg-auto-import-keys --non-interactive install -y curl sudo mc jq ncurses terminfo-base 2>&1" >/dev/null 2>&1; then
+        msg_error "zypper base packages installation failed"
+        exit 1
+      fi
+    fi
+
+    # Fix 'unknown terminal type' error - set TERM in multiple places
+    pct exec "$CTID" -- bash -c "localectl set-locale LANG=en_US.UTF-8 2>/dev/null || echo 'LANG=en_US.UTF-8' > /etc/locale.conf" || true
+
+    # Set TERM globally for all users
+    pct exec "$CTID" -- bash -c "cat > /etc/profile.d/term.sh << 'EOFTERM'
+# Fix terminal type for LXC containers
+if [ -z \"\$TERM\" ] || [ \"\$TERM\" = \"dumb\" ] || [ \"\$TERM\" = \"-\" ]; then
+    export TERM=xterm-256color
+fi
+EOFTERM
+chmod +x /etc/profile.d/term.sh" || true
+
+    # Also set in /etc/environment for non-login shells
+    pct exec "$CTID" -- bash -c "grep -q '^TERM=' /etc/environment 2>/dev/null || echo 'TERM=xterm-256color' >> /etc/environment" || true
     ;;
 
   gentoo)
-    # Gentoo - emerge is slow, only install essentials
-    pct exec "$CTID" -- bash -c "emerge --quiet app-misc/jq net-misc/curl app-misc/mc >/dev/null 2>&1" || {
-      msg_warn "Gentoo base packages installation incomplete - may need manual setup"
+    # Gentoo - OpenRC based, emerge is slow
+    # Use emerge-webrsync (faster, uses http instead of rsync)
+    msg_info "Syncing Gentoo portage via webrsync (faster than rsync)..."
+    pct exec "$CTID" -- bash -c "emerge-webrsync 2>&1" >/dev/null 2>&1 || {
+      msg_warn "emerge-webrsync failed, trying emerge --sync..."
+      pct exec "$CTID" -- bash -c "emerge --sync 2>&1" >/dev/null 2>&1 || true
     }
+
+    # Install curl FIRST - it's required for install.func to work
+    msg_info "Installing essential packages for Gentoo..."
+    if ! pct exec "$CTID" -- bash -c "emerge --quiet --noreplace net-misc/curl 2>&1" >/dev/null 2>&1; then
+      msg_error "Failed to install curl on Gentoo - this is required"
+      exit 1
+    fi
+
+    # Install remaining packages
+    pct exec "$CTID" -- bash -c "emerge --quiet --noreplace app-misc/jq app-misc/mc sys-libs/ncurses 2>&1" >/dev/null 2>&1 || {
+      msg_warn "Some Gentoo packages may need manual setup"
+    }
+
+    # Set TERM for Gentoo
+    pct exec "$CTID" -- bash -c "echo 'export TERM=xterm-256color' >> /etc/profile.d/term.sh && chmod +x /etc/profile.d/term.sh" || true
     ;;
 
   openeuler)
-    # openEuler (RHEL-compatible)
-    pct exec "$CTID" -- bash -c "dnf install -y curl sudo mc jq >/dev/null" || {
-      msg_error "dnf base packages installation failed"
-      exit 1
-    }
+    # openEuler (RHEL-compatible, uses DNF)
+    # Note: Template was patched with /etc/redhat-release in create_container
+    msg_info "Initializing package manager for openEuler..."
+    pct exec "$CTID" -- bash -c "dnf makecache --refresh 2>&1" >/dev/null 2>&1 || true
+
+    # openEuler package names may differ from RHEL
+    local euler_packages="curl sudo mc jq procps-ng ncurses"
+    if ! pct exec "$CTID" -- bash -c "dnf install -y $euler_packages 2>&1" >/dev/null 2>&1; then
+      # Try without procps-ng (might be just 'procps' in openEuler)
+      if ! pct exec "$CTID" -- bash -c "dnf install -y curl sudo mc jq ncurses 2>&1" >/dev/null 2>&1; then
+        msg_error "dnf base packages installation failed"
+        exit 1
+      fi
+    fi
+    # Set locale
+    pct exec "$CTID" -- bash -c "echo 'LANG=en_US.UTF-8' > /etc/locale.conf" || true
     ;;
 
   *)
@@ -3199,7 +3419,7 @@ EOF'
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
 
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/${var_install}.sh)"
   local lxc_exit=$?
 
   set -Eeuo pipefail       # Re-enable error handling
@@ -3286,7 +3506,7 @@ EOF'
         if [[ "${DEV_MODE_MOTD:-false}" == "true" ]]; then
           echo -e "${TAB}${HOLD}${DGN}Setting up MOTD and SSH for debugging...${CL}"
           if pct exec "$CTID" -- bash -c "
-            source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/install.func)
+            source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)
             declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
           " >/dev/null 2>&1; then
             local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
@@ -3723,12 +3943,19 @@ create_lxc_container() {
   # Template discovery & validation
   # Supported OS types (pveam available): alpine, almalinux, centos, debian,
   #   devuan, fedora, gentoo, openeuler, opensuse, rockylinux, ubuntu
+  # Template naming conventions:
+  #   - Debian/Ubuntu/Devuan: <os>-<version>-standard_<date>_<arch>.tar.zst
+  #   - Alpine/Fedora/Rocky/CentOS/AlmaLinux/openEuler: <os>-<version>-default_<date>_<arch>.tar.xz
+  #   - Gentoo: gentoo-current-openrc_<date>_<arch>.tar.xz (note: underscore before date!)
+  #   - openSUSE: opensuse-<version>-default_<date>_<arch>.tar.xz
+  #   - CentOS: centos-<version>-stream-default_<date>_<arch>.tar.xz (note: stream in name)
   # ------------------------------------------------------------------------------
   TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
   case "$PCT_OSTYPE" in
   debian | ubuntu | devuan) TEMPLATE_PATTERN="-standard_" ;;
-  alpine | fedora | rocky | rockylinux | centos | almalinux | openeuler) TEMPLATE_PATTERN="-default_" ;;
-  gentoo) TEMPLATE_PATTERN="-current_" ;;
+  alpine | fedora | rockylinux | almalinux | openeuler) TEMPLATE_PATTERN="-default_" ;;
+  centos) TEMPLATE_PATTERN="-stream-default_" ;;
+  gentoo) TEMPLATE_PATTERN="-openrc_" ;; # Pattern: gentoo-current-openrc_<date> (underscore!)
   opensuse) TEMPLATE_PATTERN="-default_" ;;
   *) TEMPLATE_PATTERN="" ;;
   esac
@@ -3790,14 +4017,27 @@ create_lxc_container() {
     echo "[DEBUG] No template found for ${PCT_OSTYPE} ${PCT_OSVERSION}, searching for alternatives..."
 
     # Get all available versions for this OS type
-    mapfile -t AVAILABLE_VERSIONS < <(
-      pveam available -section system 2>/dev/null |
-        grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
-        awk -F'\t' '{print $1}' |
-        grep "^${PCT_OSTYPE}-" |
-        sed -E "s/.*${PCT_OSTYPE}-([0-9]+(\.[0-9]+)?).*/\1/" |
-        sort -u -V 2>/dev/null
-    )
+    # Special handling for Gentoo which uses 'current' instead of numeric version
+    if [[ "$PCT_OSTYPE" == "gentoo" ]]; then
+      mapfile -t AVAILABLE_VERSIONS < <(
+        pveam available -section system 2>/dev/null |
+          grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
+          awk '{print $2}' |
+          grep "^gentoo-" |
+          sed -E 's/gentoo-([^-]+)-.*/\1/' |
+          sort -u 2>/dev/null || sort -u
+      )
+    else
+      mapfile -t AVAILABLE_VERSIONS < <(
+        pveam available -section system 2>/dev/null |
+          grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
+          awk '{print $2}' |
+          grep "^${PCT_OSTYPE}-" |
+          sed -E "s/${PCT_OSTYPE}-([0-9]+(\.[0-9]+)?).*/\1/" |
+          grep -E '^[0-9]' |
+          sort -u -V 2>/dev/null || sort -u
+      )
+    fi
 
     if [[ ${#AVAILABLE_VERSIONS[@]} -gt 0 ]]; then
       echo ""
@@ -4042,6 +4282,43 @@ create_lxc_container() {
   }
 
   LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
+
+  # ------------------------------------------------------------------------------
+  # openEuler Template Patch: Create /etc/redhat-release inside template
+  # PVE's post_create_hook expects this file for RHEL-family OS detection
+  # Without it, container creation fails with "error in setup task"
+  # ------------------------------------------------------------------------------
+  if [[ "${var_os:-}" == "openeuler" ]]; then
+    msg_info "Patching openEuler template for PVE compatibility..."
+    local TEMP_EXTRACT_DIR="/tmp/openeuler_template_patch_$$"
+    local PATCHED_TEMPLATE="${TEMPLATE_PATH%.tar.xz}_patched.tar.xz"
+
+    # Only patch if not already patched
+    if [[ ! -f "$PATCHED_TEMPLATE" ]]; then
+      mkdir -p "$TEMP_EXTRACT_DIR"
+
+      # Extract template
+      if tar -xf "$TEMPLATE_PATH" -C "$TEMP_EXTRACT_DIR" 2>/dev/null; then
+        # Create /etc/redhat-release if it doesn't exist
+        if [[ ! -f "$TEMP_EXTRACT_DIR/etc/redhat-release" ]]; then
+          echo "openEuler release ${var_version:-25.03}" >"$TEMP_EXTRACT_DIR/etc/redhat-release"
+        fi
+
+        # Repack template
+        if tar -cJf "$PATCHED_TEMPLATE" -C "$TEMP_EXTRACT_DIR" . 2>/dev/null; then
+          # Replace original with patched version
+          mv "$PATCHED_TEMPLATE" "$TEMPLATE_PATH"
+          msg_ok "openEuler template patched successfully"
+        else
+          msg_warn "Failed to repack template, trying without patch..."
+        fi
+      else
+        msg_warn "Failed to extract template for patching, trying without patch..."
+      fi
+
+      rm -rf "$TEMP_EXTRACT_DIR"
+    fi
+  fi
 
   # # DEBUG: Show the actual command that will be executed
   # echo "[DEBUG] ===== PCT CREATE COMMAND DETAILS ====="

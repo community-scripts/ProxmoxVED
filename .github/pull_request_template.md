@@ -37,3 +37,14 @@ Link: #
 
 ## 📋 Additional Information (optional)  
 <!-- Add any extra context, screenshots, or references. -->  
+
+---
+
+## 📦 Application Requirements (for new scripts)
+
+> Required for **🆕 New script** submissions.  
+> PRs that do not meet these requirements may be closed without review.
+- [ ] The application is **at least 6 months old**
+- [ ] The application is **actively maintained**
+- [ ] The application has **600+ GitHub stars**
+- [ ] Official **release tarballs** are published

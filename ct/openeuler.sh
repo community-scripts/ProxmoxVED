@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.openeuler.org/
+
+# NOTE: openEuler has a PVE compatibility issue
+# PVE's post_create_hook expects /etc/redhat-release which openEuler doesn't have by default
+# We handle this in build.func by creating the file after container creation
 
 APP="openEuler"
 var_tags="${var_tags:-os}"
@@ -27,9 +31,10 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP LXC"
+  msg_info "Updating OpenEuler LXC"
   $STD dnf -y upgrade
-  msg_ok "Updated $APP LXC"
+  msg_ok "Updated OpenEuler LXC"
+  msg_ok "Updated successfully!"
   exit
 }
 
@@ -37,5 +42,5 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!"
+msg_ok "Completed successfully!\n"
 msg_custom "🚀" "${GN}" "${APP} setup has been successfully initialized!"

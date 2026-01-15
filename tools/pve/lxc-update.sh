@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: BvdBerg01
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 function header_info {
   clear
   cat <<"EOF"
-    __   _  ________   __  __          __      __     
-   / /  | |/ / ____/  / / / /___  ____/ /___ _/ /____ 
+    __   _  ________   __  __          __      __
+   / /  | |/ / ____/  / / / /___  ____/ /___ _/ /____
   / /   |   / /      / / / / __ \/ __  / __ `/ __/ _ \
  / /___/   / /___   / /_/ / /_/ / /_/ / /_/ / /_/  __/
-/_____/_/|_\____/   \____/ .___/\__,_/\__,_/\__/\___/ 
-                        /_/                           
+/_____/_/|_\____/   \____/ .___/\__,_/\__,_/\__/\___/
+                        /_/
 EOF
 }
 
@@ -149,7 +149,7 @@ fi
 
 header_info
 if(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Do you want to create a backup from your container?" 10 58); then
-  
+
   STORAGES=$(awk '/^(\S+):/ {storage=$2} /content.*backup/ {print storage}' /etc/pve/storage.cfg)
 
   if [ -z "$STORAGES" ]; then
@@ -200,5 +200,5 @@ else
   else
   msg_error "Restored LXC from backup failed"
   fi
-  
+
 fi

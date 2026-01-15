@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -60,7 +60,7 @@ git clone https://github.com/pyenv/pyenv.git ~/.pyenv &>/dev/null
 set +e
 echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
 echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n eval "$(pyenv init --path)"\nfi' >> ~/.bashrc  
+echo -e 'if command -v pyenv 1>/dev/null 2>&1; then\n eval "$(pyenv init --path)"\nfi' >> ~/.bashrc
 msg_ok "Installed pyenv"
 . ~/.bashrc
 set -e
@@ -110,7 +110,7 @@ pip3 install --pre esphome &>/dev/null
 cat <<EOF >/srv/esphome/start.sh
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -149,8 +149,8 @@ libgirepository1.0-dev \
 libpango1.0-dev \
 libgif-dev \
 g++ &>/dev/null
-python3 -m pip install wheel 
-pip3 install --upgrade pip 
+python3 -m pip install wheel
+pip3 install --upgrade pip
 pip install python-matter-server[server]
 msg_ok "Installed Matter Server"
 echo -e "Start server > python -m matter_server.server"

@@ -1,37 +1,41 @@
 {
-    "name": "nextExplorer",
-    "slug": "nextexplorer",
-    "categories": [
-        11,
-        12
-    ],
-    "date_created": "2025-12-11",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 3000,
-    "documentation": "https://explorer.nxz.ai",
-    "website": "https://github.com/vikramsoni2/nextExplorer",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nextexplorer.webp",
-    "config_path": "/etc/nextExplorer/.env",
-    "description": "",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/nextexplorer.sh",
-            "resources": {
-                "cpu": 2,
-                "ram": 3072,
-                "hdd": 8,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "notes": [
-        {
-            "text": "Bind mount your volume(s) in the `/mnt` directory",
-            "type": "info"
-        }
-    ]
+  "name": "nextExplorer",
+  "slug": "nextexplorer",
+  "categories": [
+    11,
+    12
+  ],
+  "date_created": "2025-12-11",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://explorer.nxz.ai",
+  "website": "https://github.com/vikramsoni2/nextExplorer",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nextexplorer.webp",
+  "config_path": "/etc/nextExplorer/.env",
+  "description": "Self-hosted file access for teams, homelabs, and agencies with a refined interface.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/nextexplorer.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 3072,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Bind mount your volume(s) in the `/mnt` directory",
+      "type": "info"
+    }
+  ]
 }

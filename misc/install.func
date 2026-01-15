@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: tteck (tteckster)
 # Co-Author: MickLesk
 # Co-Author: michelroegl-brunner
@@ -551,12 +551,12 @@ get_ip() {
 
   # Try hostname -I first (most common)
   if command -v hostname &>/dev/null; then
-    ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+    ip=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
   fi
 
   # Fallback to ip command
   if [[ -z "$ip" ]] && command -v ip &>/dev/null; then
-    ip=$(ip -4 addr show scope global | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
+    ip=$(ip -4 addr show scope global | awk '/inet /{print $2}' | cut -d/ -f1 | head -1)
   fi
 
   # Fallback to ifconfig
@@ -780,7 +780,7 @@ echo -e "${BOLD:-}${YW:-}${APPLICATION:-Container} LXC Container - DEV Repositor
 echo -e "${RD:-}WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use in production!${CL:-}"
 echo -e "${YW:-} OS: ${GN:-}${os_name} - Version: ${os_version}${CL:-}"
 echo -e "${YW:-} Hostname: ${GN:-}\$(hostname)${CL:-}"
-echo -e "${YW:-} IP Address: ${GN:-}\$(hostname -I 2>/dev/null | awk '{print \$1}' || ip -4 addr show scope global | grep -oP '(?<=inet\s)\\d+(\\.\\d+){3}' | head -1)${CL:-}"
+echo -e "${YW:-} IP Address: ${GN:-}\$(hostname -I 2>/dev/null | awk '{print \$1}' || ip -4 addr show scope global | awk '/inet /{print \$2}' | cut -d/ -f1 | head -1)${CL:-}"
 echo -e "${YW:-} Repository: ${GN:-}https://github.com/community-scripts/ProxmoxVED${CL:-}"
 echo ""
 EOF
@@ -867,7 +867,7 @@ customize() {
         cat >/etc/systemd/system/console-getty.service.d/override.conf <<'EOF'
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud 115200,38400,9600 $TERM
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud 115200,38400,9600 - $TERM
 EOF
         # Enable console-getty for LXC web console (required on Fedora/RHEL)
         systemctl enable console-getty.service &>/dev/null || true
@@ -879,7 +879,7 @@ EOF
         cat >/etc/systemd/system/container-getty@1.service.d/override.conf <<'EOF'
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 $TERM
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 - $TERM
 EOF
       fi
 
@@ -898,10 +898,32 @@ EOF
       ;;
 
     sysvinit)
-      # Devuan/older systems - just modify inittab, no telinit needed during install
+      # Devuan/older systems - modify inittab for auto-login
+      # Devuan 5 (daedalus) uses SysVinit with various inittab formats
+      # CRITICAL: LXC uses /dev/console, NOT tty1! pct console connects to console device
       if [[ -f /etc/inittab ]]; then
-        sed -i 's|^1:2345:respawn:/sbin/getty.*|1:2345:respawn:/sbin/agetty --autologin root tty1 38400 linux|' /etc/inittab
+        # Backup original inittab
+        cp /etc/inittab /etc/inittab.bak 2>/dev/null || true
+
+        # First, enable autologin on tty1 (for direct access)
+        sed -i 's|^1:[0-9]*:respawn:.*/\(a\?getty\).*|1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
+
+        # CRITICAL: Add console entry for LXC - this is what pct console uses!
+        # Check if there's already a console getty entry
+        if ! grep -qE '^[^#].*respawn.*console' /etc/inittab; then
+          # Add new console entry for LXC
+          echo "" >>/etc/inittab
+          echo "# LXC console autologin (added by community-scripts)" >>/etc/inittab
+          echo "co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200,38400,9600 linux" >>/etc/inittab
+        else
+          # Enable autologin on existing console entry
+          sed -i 's|^[^#]*:[0-9]*:respawn:.*/\(a\?getty\).*console.*|co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200,38400,9600 linux|' /etc/inittab
+        fi
+
+        # Force a reload of inittab - try multiple methods
+        telinit q &>/dev/null || init q &>/dev/null || kill -1 1 &>/dev/null || true
       fi
+      touch /root/.hushlogin
       ;;
     esac
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: vhsdream
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/vikramsoni2/nextExplorer
@@ -69,6 +69,8 @@ AUTH_MODE=both
 SESSION_SECRET="${SECRET}"
 # AUTH_MAX_FAILED=
 # AUTH_LOCK_MINUTES=
+# AUTH_USER_EMAIL=
+# AUTH_USER_PASSWORD=
 
 # OIDC_ENABLED=
 # OIDC_ISSUER=
@@ -79,6 +81,7 @@ SESSION_SECRET="${SECRET}"
 # OIDC_CLIENT_SECRET=
 # OIDC_CALLBACK_URL=
 # OIDC_SCOPES=
+# OIDC_AUTO_CREATE_USERS=true
 
 # SEARCH_DEEP=
 # SEARCH_RIPGREP=
@@ -89,6 +92,12 @@ SESSION_SECRET="${SECRET}"
 # ONLYOFFICE_LANG=
 # ONLYOFFICE_FORCE_SAVE=
 # ONLYOFFICE_FILE_EXTENSIONS=
+
+# COLLABORA_URL=
+# COLLABORA_DISCOVERY_URL=
+# COLLABORA_SECRET=
+# COLLABORA_LANG=
+# COLLABORA_FILE_EXTENSIONS=
 
 SHOW_VOLUME_USAGE=true
 # USER_DIR_ENABLED=

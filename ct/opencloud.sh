@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: vhsdream
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://opencloud.eu
@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE="v4.0.0"
+  RELEASE="v4.1.0"
   if check_for_gh_release "opencloud" "opencloud-eu/opencloud" "${RELEASE}"; then
     msg_info "Stopping services"
     systemctl stop opencloud opencloud-wopi
@@ -37,7 +37,7 @@ function update_script() {
 
     msg_info "Updating packages"
     $STD apt-get update
-    $STD apt-get dist-upgrade
+    $STD apt-get dist-upgrade -y
     msg_ok "Updated packages"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "${RELEASE}" "/usr/bin" "opencloud-*-linux-amd64"
@@ -54,7 +54,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}https://<your-OpenCloud-domain>${CL}"
