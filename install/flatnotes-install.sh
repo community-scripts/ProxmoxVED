@@ -21,7 +21,7 @@ msg_info "Installing Backend"
 cd /opt/flatnotes
 $STD /usr/local/bin/uvx migrate-to-uv
 $STD /usr/local/bin/uv sync
-mkdir data
+mkdir /opt/flatnotes/data
 msg_ok "Installed Backend"
 
 msg_info "Installing Frontend"
@@ -30,7 +30,8 @@ $STD npm install
 $STD npm run build
 msg_ok "Installed Frontend"
 
-msg_info "Configuring Variables"
+
+msg_info "Creating Service"
 cat <<EOF >/opt/flatnotes/.env
 FLATNOTES_AUTH_TYPE='none'
 FLATNOTES_PATH='/opt/flatnotes/data/'
@@ -38,9 +39,6 @@ FLATNOTES_PATH='/opt/flatnotes/data/'
 #FLATNOTES_PASSWORD='password'
 #FLATNOTES_SECRET_KEY='secret-key'
 EOF
-msg_ok "Configured Variables"
-
-msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/flatnotes.service
 [Unit]
 Description=Flatnotes
