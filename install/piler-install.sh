@@ -225,6 +225,7 @@ if [ ! -f /var/www/piler/config-site.php ]; then
 \$config['HEADER_LINE_TO_HIDE'] = 'X-Envelope-To:';
 ?>
 EOF
+fi
 
 chown -R piler:piler /var/www/piler
 chmod 755 /var/www/piler
