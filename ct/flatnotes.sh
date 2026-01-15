@@ -55,9 +55,9 @@ function update_script() {
 
     msg_info "Restoring Configuration and Data"
     cp /opt/.env.bak /opt/flatnotes/.env
-    cp -r /opt/data_backup /opt/flatnotes/data
+    cp -r /opt/data_backup/. /opt/flatnotes/data
     rm -f /opt/.env.bak
-    rm -rf /opt/flatnotes/data_backup
+    rm -r /opt/data_backup
     msg_ok "Restored Configuration and Data"
 
     msg_info "Starting Service"
