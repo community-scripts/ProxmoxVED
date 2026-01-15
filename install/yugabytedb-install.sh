@@ -45,9 +45,6 @@ $STD apt install -y \
   libssl-dev \
   rsync \
   procps \
-  python3 \
-  python3-dev \
-  python3-pip \
   sysstat \
   tcpdump \
   gnu-which \
@@ -71,23 +68,6 @@ else
   exit 1
 fi
 
-mkdir -p "$YB_HOME"
-# Set working dir
-cd "$YB_HOME" || exit
-
-msg_info "Installing uv and Python Dependencies"
-PYTHON_VERSION=3.11 setup_uv
-
-# Create venv
-$STD uv venv --python 3.11 "$YB_HOME/.venv"
-source "$YB_HOME/.venv/bin/activate"
-# Install required packages globally
-$STD uv pip install --upgrade pip
-$STD uv pip install --upgrade lxml
-$STD uv pip install --upgrade s3cmd
-$STD uv pip install --upgrade psutil
-msg_ok "Installed uv and Python Dependencies"
-
 msg_info "Setting ENV variables"
 DATA_DIR="$YB_HOME/var/data"
 TEMP_DIR="$YB_HOME/var/tmp"
@@ -110,18 +90,36 @@ AZCOPY_LOG_LOCATION=$AZCOPY_LOG_LOCATION
 EOF
 msg_ok "Set ENV variables"
 
+msg_info "Creating working dirs"
+# Create data dirs from ENV vars
+mkdir -p "$YB_HOME" "$DATA_DIR" "$TEMP_DIR"
+# Set working dir
+cd "$YB_HOME" || exit
+msg_ok "Created and set working dir"
+
 msg_info "Creating yugabyte user"
 useradd --home-dir "$YB_HOME" \
   --uid 10001 \
   --no-create-home \
   --shell /sbin/nologin \
   yugabyte
+chown -R yugabyte:yugabyte "$YB_HOME" "$DATA_DIR" "$TEMP_DIR"
 msg_ok "Created yugabyte user"
 
-msg_info "Setup ${APP}"
-# Create data dirs from ENV vars
-mkdir -p "$DATA_DIR" "$TEMP_DIR"
+msg_info "Installing uv and Python Dependencies"
+PYTHON_VERSION=3.11 setup_uv
 
+# Create venv
+$STD sudo -u yugabyte uv venv --python 3.11 "$YB_HOME/.venv"
+source "$YB_HOME/.venv/bin/activate"
+# Install required packages globally
+$STD uv pip install --upgrade pip
+$STD uv pip install --upgrade lxml
+$STD uv pip install --upgrade s3cmd
+$STD uv pip install --upgrade psutil
+msg_ok "Installed uv and Python Dependencies"
+
+msg_info "Setup ${APP}"
 # Get latest version and build number for our series
 read -r VERSION RELEASE < <(
   curl -fsSL https://github.com/yugabyte/yugabyte-db/raw/refs/heads/master/docs/data/currentVersions.json |
@@ -256,7 +254,7 @@ After=network-online.target
 Type=forking
 RestartForceExitStatus=SIGPIPE
 StartLimitInterval=0
-ExecStart=/bin/bash -c '/usr/local/bin/yugabyted start --secure \
+ExecStart=/usr/local/bin/yugabyted start --secure \
 --backup_daemon=$BACKUP_DAEMON \
 --fault_tolerance=$FAULT_TOLERANCE \
 --advertise_address=$(hostname -I | awk '{print $1}') \
@@ -264,7 +262,7 @@ ExecStart=/bin/bash -c '/usr/local/bin/yugabyted start --secure \
 --data_dir=$DATA_DIR \
 --cloud_location=$CLOUD_LOCATION \
 --callhome=false \
-$JOIN_CLUSTER'
+$JOIN_CLUSTER
 
 Environment="PATH=$YB_HOME/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 Environment="YB_HOME=$YB_HOME"
