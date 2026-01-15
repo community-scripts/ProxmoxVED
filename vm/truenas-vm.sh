@@ -582,6 +582,8 @@ EOF
 )
 qm set "$VMID" -description "$DESCRIPTION" >/dev/null
 
+sleep 5
+
 msg_ok "Created a TrueNAS VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then
   msg_info "Starting TrueNAS VM"
