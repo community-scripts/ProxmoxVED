@@ -296,7 +296,6 @@ function advanced_settings() {
     fi
   done
 
-  msg_info "Fetching iso list from https://download.truenas.com/"
   ISOARRAY=()
   while read -r ISOPATH; do
     FILENAME=$(basename "$ISOPATH")
