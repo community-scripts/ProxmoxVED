@@ -39,6 +39,7 @@ function update_script() {
     cd /opt/trip/src
     $STD npm install
     $STD npm run build
+    mkdir -p /opt/trip/frontend
     cp -r /opt/trip/src/dist/trip/browser/* /opt/trip/frontend/
     msg_ok "Updated Frontend"
 
