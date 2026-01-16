@@ -7,7 +7,7 @@ TMP_FILE="releases_tmp.json"
 if [ -f "$OUTPUT_FILE" ]; then
   cp "$OUTPUT_FILE" "$TMP_FILE"
 else
-  echo "[]" > "$TMP_FILE"
+  echo "[]" >"$TMP_FILE"
 fi
 
 while IFS= read -r repo; do
@@ -26,14 +26,15 @@ while IFS= read -r repo; do
 
   if [[ "$existing_version" != "$tag" ]]; then
     echo "New release for $repo: $tag"
-    jq --arg name "$repo" 'del(.[] | select(.name == $name))' "$TMP_FILE" > "$TMP_FILE.tmp" && mv "$TMP_FILE.tmp" "$TMP_FILE"
+    jq --arg name "$repo" 'del(.[] | select(.name == $name))' "$TMP_FILE" >"$TMP_FILE.tmp" && mv "$TMP_FILE.tmp" "$TMP_FILE"
 
     jq --arg name "$repo" --arg version "$tag" --arg date "$date" \
-      '. += [{"name": $name, "version": $version, "date": $date}]' "$TMP_FILE" > "$TMP_FILE.tmp" && mv "$TMP_FILE.tmp" "$TMP_FILE"
+      '. += [{"name": $name, "version": $version, "date": $date}]' "$TMP_FILE" >"$TMP_FILE.tmp" && mv "$TMP_FILE.tmp" "$TMP_FILE"
   else
     echo "No change for $repo"
   fi
 
-done < "$INPUT_FILE"
+done <"$INPUT_FILE"
 
-#mv "$TMP_FILE" "$OUTPUT_FILE"
+mv "$TMP_FILE" "$OUTPUT_FILE"
+echo "Updated $OUTPUT_FILE"
