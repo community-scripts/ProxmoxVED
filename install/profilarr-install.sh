@@ -18,7 +18,7 @@ $STD apt-get install -y \
   build-essential \
   python3-dev \
   libffi-dev \
-  libssl-dev 
+  libssl-dev
 msg_ok "Installed Dependencies"
 
 UV_VERSION="0.7.19" PYTHON_VERSION="3.12" setup_uv
