@@ -21,6 +21,7 @@
 #   - Create a default service
 
 # Import Functions und Setup
+# shellcheck source=/dev/null
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -33,7 +34,6 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   file \
-  jq \
   diffutils \
   gettext \
   locales-all \
@@ -52,7 +52,6 @@ $STD apt install -y \
   tar \
   chrony \
   apt-transport-https \
-  ca-certificates \
   gnupg
 msg_ok "Installed Dependencies"
 
@@ -190,30 +189,28 @@ curl ${ghr_url}/licenses/POLYFORM-FREE-TRIAL-LICENSE-1.0.0.txt \
 msg_ok "Copied licenses"
 
 msg_info "Installing azcopy"
-curl -fsSL https://packages.microsoft.com/keys/microsoft.asc |
-  gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
-sudo tee -a /etc/apt/sources.list.d/microsoft.sources <<EOM
-Types: deb
-URIs: https://packages.microsoft.com/debian/12/prod/
-Suites: bookworm
-Components: main
-Signed-By: /usr/share/keyrings/microsoft-prod.gpg
-EOM
+setup_deb822_repo \
+  "microsoft-prod" \
+  "https://packages.microsoft.com/keys/microsoft.asc" \
+  "https://packages.microsoft.com/debian/12/prod/" \
+  "bookworm" \
+  "main" \
+  "amd64,arm64,armhf" \
+  "true"
 $STD apt update -y
 $STD apt install -y azcopy
 mkdir -m 777 /tmp/azcopy
 msg_ok "Installed azcopy"
 
 msg_info "Installing gsutil"
-curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg |
-  gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.sources <<EOM
-Types: deb
-URIs: https://packages.cloud.google.com/apt/
-Suites: cloud-sdk
-Components: main
-Signed-By: /usr/share/keyrings/cloud.google.gpg
-EOM
+setup_deb822_repo \
+  "cloud.google" \
+  "https://packages.cloud.google.com/apt/doc/apt-key.gpg" \
+  "https://packages.cloud.google.com/apt/" \
+  "cloud-sdk" \
+  "main" \
+  "" \
+  "true"
 $STD apt update -y
 $STD apt install -y google-cloud-cli
 
