@@ -71,12 +71,13 @@ source /root/.profile
 export PATH="/root/.rbenv/shims:/root/.rbenv/bin:$PATH"
 eval "$(/root/.rbenv/bin/rbenv init - bash)"
 
+set -a && source /opt/dawarich/.env && set +a
+
 $STD gem install bundler
 $STD bundle config set --local deployment 'true'
 $STD bundle config set --local without 'development test'
 $STD bundle install
-SECRET_KEY_BASE_DUMMY=1 $STD bundle exec rake assets:precompile
-set -a && source /opt/dawarich/.env && set +a
+$STD bundle exec rake assets:precompile
 $STD bundle exec rails db:prepare
 $STD bundle exec rake data:migrate
 msg_ok "Installed Dawarich"
