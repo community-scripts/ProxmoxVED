@@ -8,7 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "interface_port": 8080,
+    "interface_port": 80,
     "documentation": "https://docs.termix.site/",
     "website": "https://termix.site/",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/termix.webp",

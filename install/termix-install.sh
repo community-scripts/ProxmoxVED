@@ -64,7 +64,6 @@ msg_ok "Set up Directories"
 
 msg_info "Configuring Nginx"
 cat <<'EOF' >/etc/nginx/sites-available/termix.conf
-pid /opt/termix/nginx/nginx.pid;
 error_log /opt/termix/nginx/logs/error.log warn;
 
 events {
@@ -84,7 +83,7 @@ http {
     client_header_timeout 300s;
 
     server {
-        listen 8080;
+        listen 80;
         server_name _;
 
         add_header X-Content-Type-Options nosniff always;
@@ -245,7 +244,6 @@ User=root
 WorkingDirectory=/opt/termix
 Environment=NODE_ENV=production
 Environment=DATA_DIR=/opt/termix/data
-Environment=PORT=8080
 ExecStart=/usr/bin/node /opt/termix/dist/backend/backend/starter.js
 Restart=on-failure
 RestartSec=5
