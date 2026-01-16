@@ -10,7 +10,7 @@
   "privileged": false,
   "interface_port": 15433,
   "documentation": "https://docs.yugabyte.com",
-  "config_path": "/home/yugabyte/var/conf/yugabyted.conf",
+  "config_path": "/opt/yugabyte/var/conf/yugabyted.conf",
   "website": "https://www.yugabyte.com/yugabytedb",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/yugabytedb.webp",
   "description": "YugabyteDB is a cloud-native distributed PostgreSQL-compatible database that combines strong consistency with ultra-resilience, seamless scalability, geo-distribution, and highly flexible data locality to deliver business-critical, transactional applications.",
