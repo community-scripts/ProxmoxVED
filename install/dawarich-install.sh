@@ -77,6 +77,13 @@ $STD gem install bundler
 $STD bundle config set --local deployment 'true'
 $STD bundle config set --local without 'development test'
 $STD bundle install
+
+if [[ -f /opt/dawarich/package.json ]]; then
+  cd /opt/dawarich
+  $STD npm install
+  cd /opt/dawarich/app
+fi
+
 $STD bundle exec rake assets:precompile
 $STD bundle exec rails db:prepare
 $STD bundle exec rake data:migrate
