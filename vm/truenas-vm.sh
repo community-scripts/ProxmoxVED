@@ -296,7 +296,7 @@ function advanced_settings() {
     fi
   done
 
-  # ISO lookup
+  msg_info "Fetching iso list from https://download.truenas.com/"
   ISOARRAY=()
   while read -r ISOPATH; do
     FILENAME=$(basename "$ISOPATH")
@@ -591,4 +591,4 @@ if [ "$START_VM" == "yes" ]; then
   msg_ok "Started TrueNAS VM"
 fi
 
-msg_ok "Completed Successfully! Go to VM console and start installation process.\n"
+msg_ok "Completed Successfully!\n"
