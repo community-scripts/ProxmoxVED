@@ -33,12 +33,7 @@ function update_script() {
     systemctl stop trip
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Configuration"
-    cp /opt/trip.env /opt/trip.env.bak
-    cp -r /opt/trip_storage /opt/trip_storage_backup
-    msg_ok "Backed up Configuration"
-
-    fetch_and_deploy_gh_release "trip" "itskovacs/TRIP"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "trip" "itskovacs/TRIP"
 
     msg_info "Updating Frontend"
     cd /opt/trip/src
@@ -51,13 +46,6 @@ function update_script() {
     cd /opt/trip/backend
     $STD uv pip install --python /opt/trip/.venv/bin/python -r trip/requirements.txt
     msg_ok "Updated Backend"
-
-    msg_info "Restoring Configuration"
-    cp /opt/trip.env.bak /opt/trip.env
-    cp -r /opt/trip_storage_backup/. /opt/trip_storage
-    rm -f /opt/trip.env.bak
-    rm -rf /opt/trip_storage_backup
-    msg_ok "Restored Configuration"
 
     msg_info "Starting Service"
     systemctl start trip
