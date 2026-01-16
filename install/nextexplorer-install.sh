@@ -119,8 +119,9 @@ SHARES_ENABLED=true
 # SHARES_ALLOW_ANONYMOUS=true
 EOF
 chmod 600 /etc/nextExplorer/.env
-$STD useradd -U -s /bin/bash -m -d /home/explorer explorer
+$STD useradd -U -s /usr/sbin/nologin -m -d /home/explorer explorer
 chown -R explorer:explorer "$APP_DIR" /etc/nextExplorer
+sed -i "\|version|s|$(jq -cr '.version' ${APP_DIR}/package.json)|$(cat ~/.nextexplorer)|" "$APP_DIR"/package.json
 msg_ok "Configured nextExplorer"
 
 msg_info "Creating nextExplorer Service"
@@ -131,6 +132,8 @@ After=network.target
 
 [Service]
 Type=simple
+User=explorer
+Group=explorer
 WorkingDirectory=/opt/nextExplorer/app
 EnvironmentFile=/etc/nextExplorer/.env
 ExecStart=/usr/bin/node ./src/app.js
