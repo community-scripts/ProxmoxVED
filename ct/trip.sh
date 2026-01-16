@@ -49,7 +49,7 @@ function update_script() {
 
     msg_info "Updating Backend"
     cd /opt/trip/backend
-    $STD /opt/trip/.venv/bin/pip install --no-cache-dir -r trip/requirements.txt
+    $STD uv pip install --python /opt/trip/.venv/bin/python -r trip/requirements.txt
     msg_ok "Updated Backend"
 
     msg_info "Restoring Configuration"

@@ -31,7 +31,7 @@ msg_ok "Built Frontend"
 msg_info "Setting up Backend"
 cd /opt/trip/backend
 $STD uv venv /opt/trip/.venv
-$STD /opt/trip/.venv/bin/pip install --no-cache-dir -r trip/requirements.txt
+$STD uv pip install --python /opt/trip/.venv/bin/python -r trip/requirements.txt
 msg_ok "Set up Backend"
 
 msg_info "Configuring Application"
