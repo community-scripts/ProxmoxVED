@@ -34,8 +34,8 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Backing up Configuration"
-    cp -r /opt/trip/.env /opt/trip.env.bak 2>/dev/null || true
-    cp -r /opt/trip/data /opt/trip_data_backup 2>/dev/null || true
+    cp /opt/trip.env /opt/trip.env.bak
+    cp -r /opt/trip_storage /opt/trip_storage_backup
     msg_ok "Backed up Configuration"
 
     fetch_and_deploy_gh_release "trip" "itskovacs/TRIP"
@@ -49,14 +49,14 @@ function update_script() {
 
     msg_info "Updating Backend"
     cd /opt/trip/backend
-    $STD /opt/trip/.venv/bin/pip install --no-cache-dir -r trip/requirements.txt
+    $STD uv pip install --python /opt/trip/.venv/bin/python -r trip/requirements.txt
     msg_ok "Updated Backend"
 
     msg_info "Restoring Configuration"
-    cp /opt/trip.env.bak /opt/trip/.env 2>/dev/null || true
-    cp -r /opt/trip_data_backup/. /opt/trip/data 2>/dev/null || true
+    cp /opt/trip.env.bak /opt/trip.env
+    cp -r /opt/trip_storage_backup/. /opt/trip_storage
     rm -f /opt/trip.env.bak
-    rm -rf /opt/trip_data_backup
+    rm -rf /opt/trip_storage_backup
     msg_ok "Restored Configuration"
 
     msg_info "Starting Service"

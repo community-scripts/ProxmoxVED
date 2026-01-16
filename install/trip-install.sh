@@ -31,13 +31,23 @@ msg_ok "Built Frontend"
 msg_info "Setting up Backend"
 cd /opt/trip/backend
 $STD uv venv /opt/trip/.venv
-$STD /opt/trip/.venv/bin/pip install --no-cache-dir -r trip/requirements.txt
+$STD uv pip install --python /opt/trip/.venv/bin/python -r trip/requirements.txt
 msg_ok "Set up Backend"
 
 msg_info "Configuring Application"
 mkdir -p /opt/trip/frontend
 cp -r /opt/trip/src/dist/trip/browser/* /opt/trip/frontend/
-mkdir -p /opt/trip/data
+mkdir -p /opt/trip_storage/{attachments,backups,assets}
+
+cat <<EOF >/opt/trip.env
+# TRIP Configuration
+# https://itskovacs.github.io/trip/docs/getting-started/configuration/
+ATTACHMENTS_FOLDER=/opt/trip_storage/attachments
+BACKUPS_FOLDER=/opt/trip_storage/backups
+ASSETS_FOLDER=/opt/trip_storage/assets
+FRONTEND_FOLDER=/opt/trip/frontend
+SQLITE_FILE=/opt/trip_storage/trip.sqlite
+EOF
 msg_ok "Configured Application"
 
 msg_info "Creating Service"
@@ -49,7 +59,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/trip/backend
-Environment="PYTHONPATH=/opt/trip/backend"
+EnvironmentFile=/opt/trip.env
 ExecStart=/opt/trip/.venv/bin/fastapi run /opt/trip/backend/trip/main.py --host 0.0.0.0 --port 8000
 Restart=on-failure
 RestartSec=5
