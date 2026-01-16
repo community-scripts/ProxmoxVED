@@ -73,6 +73,9 @@ function error_handler() {
   cleanup_vmid
 }
 
+# Scrapes the TrueNAS download portal for ISO paths from the current and previous year,
+# filtering out nightlies/alphas and returning the latest stable releases for each major
+# version along with any beta or RC pre-releases.
 function truenas_iso_lookup() {
   local BASE_URL="https://download.truenas.com"
   local current_year=$(date +%y)
@@ -296,6 +299,7 @@ function advanced_settings() {
     fi
   done
 
+  # Fetching iso list from TrueNAS downloads for whiptail radiolist
   ISOARRAY=()
   while read -r ISOPATH; do
     FILENAME=$(basename "$ISOPATH")
@@ -531,6 +535,7 @@ qm create "$VMID" -machine q35 -bios ovmf -agent enabled=1 -tablet 0 -localtime 
   -scsihw virtio-scsi-single -cdrom local:iso/$ISO_NAME -vga virtio >/dev/null
 msg_ok "Created VM shell"
 
+# Optional step to import onboard disks
 if [ "$IMPORT_DISKS" == "yes" ]; then
   msg_info "Importing onboard disks"
   DISKARRAY=()
