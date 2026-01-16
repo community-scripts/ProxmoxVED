@@ -59,27 +59,7 @@ variables
 color
 catch_errors
 
-valid_ip() {
-  python3 -c "import ipaddress; ipaddress.ip_address('$1')" 2>/dev/null
-}
-
-valid_dns_label() {
-  local l="$1"
-  # Total length + DNS syntax check
-  [[ ${#l} -ge 1 && ${#l} -le 63 && $l =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]
-}
-
-valid_dns_name() {
-  local name="$1"
-  # Total length check (visible chars, no trailing dot)
-  [[ ${#name} -ge 1 && ${#name} -le 253 ]] || return 1
-  [[ $name != .* && $name != *. ]] || return 1
-  IFS='.' read -ra parts <<<"$name"
-  local p
-  for p in "${parts[@]}"; do valid_dns_label "$p" || return 1; done
-  return 0
-}
-
+# Get user input for configuring YugabyteDB
 config_yugabytedb() {
   TSERVER_FLAGS=""
 
@@ -89,6 +69,28 @@ config_yugabytedb() {
     echo -e "\n${CROSS}${RD}User exited script${CL}\n"
     kill 0
     exit 1
+  }
+
+  # Validation functions for user input when joining cluster
+  valid_ip() {
+    python3 -c "import ipaddress; ipaddress.ip_address('$1')" 2>/dev/null
+  }
+
+  valid_dns_label() {
+    local l="$1"
+    # Total length + DNS syntax check
+    [[ ${#l} -ge 1 && ${#l} -le 63 && $l =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]
+  }
+
+  valid_dns_name() {
+    local name="$1"
+    # Total length check (visible chars, no trailing dot)
+    [[ ${#name} -ge 1 && ${#name} -le 253 ]] || return 1
+    [[ $name != .* && $name != *. ]] || return 1
+    IFS='.' read -ra parts <<<"$name"
+    local p
+    for p in "${parts[@]}"; do valid_dns_label "$p" || return 1; done
+    return 0
   }
 
   local STEP=1
