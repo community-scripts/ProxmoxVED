@@ -317,6 +317,44 @@ apt install -y nginx
 $STD apt install -y nginx
 ```
 
+### 8. Wrapping `tools.func` Functions in msg Blocks
+```bash
+# ❌ WRONG - tools.func functions have their own msg_info/msg_ok!
+msg_info "Installing Node.js"
+NODE_VERSION="22" setup_nodejs
+msg_ok "Installed Node.js"
+
+msg_info "Updating Application"
+CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
+msg_ok "Updated Application"
+
+# ✅ CORRECT - call directly without msg wrapper
+NODE_VERSION="22" setup_nodejs
+
+CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
+```
+
+**Functions with built-in messages (NEVER wrap in msg blocks):**
+- `fetch_and_deploy_gh_release`
+- `check_for_gh_release`
+- `setup_nodejs`
+- `setup_postgresql` / `setup_postgresql_db`
+- `setup_mariadb` / `setup_mariadb_db`
+- `setup_mongodb`
+- `setup_mysql`
+- `setup_ruby`
+- `setup_go`
+- `setup_java`
+- `setup_php`
+- `setup_uv`
+- `setup_rust`
+- `setup_composer`
+- `setup_ffmpeg`
+- `setup_imagemagick`
+- `setup_gs`
+- `setup_adminer`
+- `setup_hwaccel`
+
 ---
 
 ## 📝 Important Rules
@@ -423,14 +461,16 @@ cleanup_lxc
 - [ ] `fetch_and_deploy_gh_release` used for GitHub releases
 - [ ] `check_for_gh_release` used for update checks
 - [ ] `setup_*` functions used for runtimes (nodejs, postgresql, etc.)
+- [ ] **`tools.func` functions NOT wrapped in msg_info/msg_ok blocks**
 - [ ] No redundant variables
 - [ ] `$STD` before all apt/npm/build commands
-- [ ] `msg_info`/`msg_ok`/`msg_error` for logging
+- [ ] `msg_info`/`msg_ok`/`msg_error` for logging (only for custom code)
 - [ ] Correct script structure followed
 - [ ] Update function present and functional
 - [ ] Data backup implemented in update function
 - [ ] `motd_ssh`, `customize`, `cleanup_lxc` at the end
 - [ ] No custom download/version-check logic
+- [ ] JSON metadata file created in `frontend/public/json/<appname>.json`
 
 ---
 
@@ -450,7 +490,131 @@ cleanup_lxc
 
 ---
 
-## 💡 Tips for AI Assistants
+## � JSON Metadata Files
+
+Every application requires a JSON metadata file in `frontend/public/json/<appname>.json`.
+
+### JSON Structure
+
+```json
+{
+    "name": "AppName",
+    "slug": "appname",
+    "categories": [1],
+    "date_created": "2026-01-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://docs.appname.com/",
+    "website": "https://appname.com/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/appname.webp",
+    "config_path": "/opt/appname/.env",
+    "description": "Short description of the application and its purpose.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/appname.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": []
+}
+```
+
+### Required Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Display name of the application |
+| `slug` | string | Lowercase, no spaces, used for filenames |
+| `categories` | array | Category ID(s) - see category list below |
+| `date_created` | string | Creation date (YYYY-MM-DD) |
+| `type` | string | `ct` for container, `vm` for virtual machine |
+| `updateable` | boolean | Whether update_script is implemented |
+| `privileged` | boolean | Whether container needs privileged mode |
+| `interface_port` | number | Primary web interface port (or `null`) |
+| `documentation` | string | Link to official docs |
+| `website` | string | Link to official website |
+| `logo` | string | URL to application logo (preferably selfhst icons) |
+| `config_path` | string | Path to main config file (or empty string) |
+| `description` | string | Brief description of the application |
+| `install_methods` | array | Installation configurations |
+| `default_credentials` | object | Default username/password (or null) |
+| `notes` | array | Additional notes/warnings |
+
+### Categories
+
+| ID | Category |
+|----|----------|
+| 1 | Automation |
+| 2 | Cloud |
+| 3 | Dashboard |
+| 4 | Database |
+| 5 | Development |
+| 6 | Management |
+| 7 | Media |
+| 8 | Monitoring |
+| 9 | Network |
+| 10 | Productivity |
+| 11 | Security |
+| 12 | Storage |
+| 13 | Communication |
+| 14 | Gaming |
+| 15 | Finance |
+| 16 | Download |
+| 17 | Home Automation |
+| 18 | GPS/Location |
+| 19 | Analytics |
+| 20 | Other |
+
+### Notes Format
+
+```json
+"notes": [
+    {
+        "text": "Change the default password after first login!",
+        "type": "warning"
+    },
+    {
+        "text": "Requires at least 4GB RAM for optimal performance.",
+        "type": "info"
+    }
+]
+```
+
+**Note types:** `info`, `warning`, `error`
+
+### Examples with Credentials
+
+```json
+"default_credentials": {
+    "username": "admin",
+    "password": "admin"
+}
+```
+
+Or no credentials:
+```json
+"default_credentials": {
+    "username": null,
+    "password": null
+}
+```
+
+---
+
+## �💡 Tips for AI Assistants
 
 1. **Search `tools.func` first** before implementing custom solutions
 2. **Use existing scripts as reference** (e.g., `linkwarden-install.sh`, `homarr-install.sh`)
