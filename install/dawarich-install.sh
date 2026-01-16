@@ -16,6 +16,7 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   build-essential \
+  git \
   libpq-dev \
   libgeos-dev \
   libyaml-dev \
