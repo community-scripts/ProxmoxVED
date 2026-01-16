@@ -557,26 +557,32 @@ Every application requires a JSON metadata file in `frontend/public/json/<appnam
 
 | ID | Category |
 |----|----------|
-| 1 | Automation |
-| 2 | Cloud |
-| 3 | Dashboard |
-| 4 | Database |
-| 5 | Development |
-| 6 | Management |
-| 7 | Media |
-| 8 | Monitoring |
-| 9 | Network |
-| 10 | Productivity |
-| 11 | Security |
-| 12 | Storage |
-| 13 | Communication |
-| 14 | Gaming |
-| 15 | Finance |
-| 16 | Download |
-| 17 | Home Automation |
-| 18 | GPS/Location |
-| 19 | Analytics |
-| 20 | Other |
+| 0 | Miscellaneous |
+| 1 | Proxmox & Virtualization |
+| 2 | Operating Systems |
+| 3 | Containers & Docker |
+| 4 | Network & Firewall |
+| 5 | Adblock & DNS |
+| 6 | Authentication & Security |
+| 7 | Backup & Recovery |
+| 8 | Databases |
+| 9 | Monitoring & Analytics |
+| 10 | Dashboards & Frontends |
+| 11 | Files & Downloads |
+| 12 | Documents & Notes |
+| 13 | Media & Streaming |
+| 14 | *Arr Suite |
+| 15 | NVR & Cameras |
+| 16 | IoT & Smart Home |
+| 17 | ZigBee, Z-Wave & Matter |
+| 18 | MQTT & Messaging |
+| 19 | Automation & Scheduling |
+| 20 | AI / Coding & Dev-Tools |
+| 21 | Webservers & Proxies |
+| 22 | Bots & ChatOps |
+| 23 | Finance & Budgeting |
+| 24 | Gaming & Leisure |
+| 25 | Business & ERP |
 
 ### Notes Format
 
