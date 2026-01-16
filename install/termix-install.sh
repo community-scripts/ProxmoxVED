@@ -27,28 +27,26 @@ msg_ok "Installed Dependencies"
 NODE_VERSION="22" setup_nodejs
 fetch_and_deploy_gh_release "termix" "Termix-SSH/Termix"
 
-msg_info "Building ${APPLICATION} Frontend (Patience)"
+msg_info "Building Frontend"
 cd /opt/termix
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-
 find public/fonts -name "*.ttf" ! -name "*Regular.ttf" ! -name "*Bold.ttf" ! -name "*Italic.ttf" -delete 2>/dev/null || true
-
 $STD npm install --ignore-scripts --force
 $STD npm cache clean --force
 $STD npm run build
-msg_ok "Built ${APPLICATION} Frontend"
+msg_ok "Built Frontend"
 
-msg_info "Building ${APPLICATION} Backend"
+msg_info "Building Backend"
 $STD npm rebuild better-sqlite3 --force
 $STD npm run build:backend
-msg_ok "Built ${APPLICATION} Backend"
+msg_ok "Built Backend"
 
-msg_info "Setting up Production Dependencies"
+msg_info "Setting up Node Dependencies"
 cd /opt/termix
 $STD npm ci --only=production --ignore-scripts --force
 $STD npm rebuild better-sqlite3 bcryptjs --force
 $STD npm cache clean --force
-msg_ok "Set up Production Dependencies"
+msg_ok "Set up Node Dependencies"
 
 msg_info "Setting up Directories"
 mkdir -p /opt/termix/data \
@@ -65,7 +63,7 @@ cp -r /opt/termix/public/fonts /opt/termix/html/fonts 2>/dev/null || true
 msg_ok "Set up Directories"
 
 msg_info "Configuring Nginx"
-cat <<'NGINXEOF' >/etc/nginx/sites-available/termix.conf
+cat <<'EOF' >/etc/nginx/sites-available/termix.conf
 pid /opt/termix/nginx/nginx.pid;
 error_log /opt/termix/nginx/logs/error.log warn;
 
@@ -229,7 +227,7 @@ http {
         }
     }
 }
-NGINXEOF
+EOF
 rm -f /etc/nginx/sites-enabled/default
 rm -f /etc/nginx/nginx.conf
 ln -sf /etc/nginx/sites-available/termix.conf /etc/nginx/nginx.conf
@@ -248,7 +246,7 @@ WorkingDirectory=/opt/termix
 Environment=NODE_ENV=production
 Environment=DATA_DIR=/opt/termix/data
 Environment=PORT=8080
-ExecStart=/usr/bin/node /opt/termix/dist/backend/index.js
+ExecStart=/usr/bin/node /opt/termix/dist/backend/backend/starter.js
 Restart=on-failure
 RestartSec=5
 

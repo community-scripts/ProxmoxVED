@@ -30,32 +30,51 @@ function update_script() {
   fi
 
   if check_for_gh_release "termix" "Termix-SSH/Termix"; then
-    msg_info "Stopping ${APP}"
+    msg_info "Stopping Service"
     systemctl stop termix
-    msg_ok "Stopped ${APP}"
+    msg_ok "Stopped Service"
 
     msg_info "Backing up Data"
     cp -r /opt/termix/data /opt/termix_data_backup
     msg_ok "Backed up Data"
 
-    fetch_and_deploy_gh_release "termix" "Termix-SSH/Termix"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "termix" "Termix-SSH/Termix"
+
+    msg_info "Building Frontend"
+    cd /opt/termix
+    export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+    find public/fonts -name "*.ttf" ! -name "*Regular.ttf" ! -name "*Bold.ttf" ! -name "*Italic.ttf" -delete 2>/dev/null || true
+    $STD npm install --ignore-scripts --force
+    $STD npm run build
+    msg_ok "Built Frontend"
+
+    msg_info "Building Backend"
+    $STD npm rebuild better-sqlite3 --force
+    $STD npm run build:backend
+    msg_ok "Built Backend"
+
+    msg_info "Setting up Production Dependencies"
+    $STD npm ci --only=production --ignore-scripts --force
+    $STD npm rebuild better-sqlite3 bcryptjs --force
+    $STD npm cache clean --force
+    msg_ok "Set up Production Dependencies"
 
     msg_info "Restoring Data"
+    mkdir -p /opt/termix/data
     cp -r /opt/termix_data_backup/. /opt/termix/data
     rm -rf /opt/termix_data_backup
     msg_ok "Restored Data"
 
-    msg_info "Rebuilding ${APP}"
-    cd /opt/termix
-    $STD npm install --ignore-scripts --force
-    $STD npm rebuild better-sqlite3 --force
-    $STD npm run build
-    $STD npm run build:backend
-    msg_ok "Rebuilt ${APP}"
+    msg_info "Updating Frontend Files"
+    rm -rf /opt/termix/html/*
+    cp -r /opt/termix/dist/* /opt/termix/html/ 2>/dev/null || true
+    cp -r /opt/termix/src/locales /opt/termix/html/locales 2>/dev/null || true
+    cp -r /opt/termix/public/fonts /opt/termix/html/fonts 2>/dev/null || true
+    msg_ok "Updated Frontend Files"
 
-    msg_info "Starting ${APP}"
+    msg_info "Starting Service"
     systemctl start termix
-    msg_ok "Started ${APP}"
+    msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi
   exit
