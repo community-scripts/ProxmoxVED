@@ -230,6 +230,7 @@ EOF
 rm -f /etc/nginx/sites-enabled/default
 rm -f /etc/nginx/nginx.conf
 ln -sf /etc/nginx/sites-available/termix.conf /etc/nginx/nginx.conf
+systemctl reload nginx
 msg_ok "Configured Nginx"
 
 msg_info "Creating Service"
@@ -251,7 +252,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now termix nginx
+systemctl enable -q --now termix
 msg_ok "Created Service"
 
 motd_ssh
