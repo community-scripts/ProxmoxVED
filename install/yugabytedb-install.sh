@@ -57,7 +57,8 @@ msg_ok "Installed Dependencies"
 
 msg_info "Restarting chronyd in container mode"
 # Start chronyd with the -x option to disable the control of the system clock
-sed -i 's|^ExecStart=!/usr/sbin/chronyd|ExecStart=!/usr/sbin/chronyd -x|' /usr/lib/systemd/system/chrony.service
+sed -i 's|^ExecStart=!/usr/sbin/chronyd|ExecStart=!/usr/sbin/chronyd -x|' \
+  /usr/lib/systemd/system/chrony.service
 systemctl daemon-reload
 if systemctl restart chronyd; then
   msg_ok "chronyd running correctly"
@@ -100,9 +101,10 @@ msg_info "Creating yugabyte user"
 useradd --home-dir "$YB_HOME" \
   --uid 10001 \
   --no-create-home \
+  --no-user-group \
   --shell /sbin/nologin \
   yugabyte
-chown -R yugabyte:yugabyte "$YB_HOME" "$DATA_DIR" "$TEMP_DIR"
+chown -R yugabyte "$YB_HOME" "$DATA_DIR" "$TEMP_DIR"
 msg_ok "Created yugabyte user"
 
 msg_info "Installing uv and Python Dependencies"
@@ -111,7 +113,7 @@ PYTHON_VERSION=3.11 setup_uv
 # Create venv
 $STD sudo -u yugabyte uv venv --python 3.11 "$YB_HOME/.venv"
 source "$YB_HOME/.venv/bin/activate"
-# Install required packages globally
+# Install required packages
 $STD uv pip install --upgrade pip
 $STD uv pip install --upgrade lxml
 $STD uv pip install --upgrade s3cmd
@@ -147,9 +149,9 @@ msg_ok "Setup ${APP}"
 msg_info "Copying licenses"
 ghr_url=https://raw.githubusercontent.com/yugabyte/yugabyte-db/master
 mkdir /licenses
-curl ${ghr_url}/LICENSE.md -o /licenses/LICENSE.md
-curl ${ghr_url}/licenses/APACHE-LICENSE-2.0.txt -o /licenses/APACHE-LICENSE-2.0.txt
-curl ${ghr_url}/licenses/POLYFORM-FREE-TRIAL-LICENSE-1.0.0.txt \
+curl -fsSL ${ghr_url}/LICENSE.md -o /licenses/LICENSE.md
+curl -fsSL ${ghr_url}/licenses/APACHE-LICENSE-2.0.txt -o /licenses/APACHE-LICENSE-2.0.txt
+curl -fsSL ${ghr_url}/licenses/POLYFORM-FREE-TRIAL-LICENSE-1.0.0.txt \
   -o /licenses/POLYFORM-FREE-TRIAL-LICENSE-1.0.0.txt
 msg_ok "Copied licenses"
 
@@ -253,9 +255,8 @@ motd_ssh
 customize
 
 msg_info "Setting permissions"
-chown -R yugabyte:yugabyte "$YB_HOME" "$DATA_DIR" "$TEMP_DIR"
-chmod -R 775 "$YB_HOME" "$DATA_DIR"
-chmod -R 777 "$TEMP_DIR"
+chown -R yugabyte "$YB_HOME" "$DATA_DIR" "$TEMP_DIR"
+chmod -R 755 "$YB_HOME" "$DATA_DIR" "$TEMP_DIR"
 msg_ok "Permissions set"
 
 # Cleanup
