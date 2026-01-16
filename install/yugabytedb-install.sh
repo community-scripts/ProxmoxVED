@@ -128,8 +128,6 @@ curl -OfsSL "https://software.yugabyte.com/releases/${VERSION}/yugabyte-${RELEAS
 
 tar -xzf "yugabyte-${RELEASE}-linux-$(uname -m).tar.gz" --strip 1
 rm -rf "yugabyte-${RELEASE}-linux-$(uname -m).tar.gz"
-# Run post install
-$STD ./bin/post_install.sh
 tar -xzf share/ybc-*.tar.gz
 rm -rf ybc-*/conf/
 # yugabyted expects yb-controller-server file in ybc/bin
@@ -140,43 +138,10 @@ for a in $(find . -exec file {} \; | grep -i elf | cut -f1 -d:); do
   $STD strip --strip-unneeded "$a" || true
 done
 
-# Add yugabyte supported languages to localedef
-languages=("en_US" "de_DE" "es_ES" "fr_FR" "it_IT" "ja_JP"
-  "ko_KR" "pl_PL" "ru_RU" "sv_SE" "tr_TR" "zh_CN")
-for lang in "${languages[@]}"; do
-  localedef --quiet --force --inputfile="${lang}" --charmap=UTF-8 "${lang}.UTF-8"
-done
-
 # Link yugabyte bins to /usr/local/bin/
 for a in ysqlsh ycqlsh yugabyted yb-admin yb-ts-cli; do
   ln -s "$YB_HOME/bin/$a" "/usr/local/bin/$a"
 done
-
-# In the normal EE flows, we expect /home/yugabyte/{master,tserver} to exist and have both links
-# to all the components in the unpacked tar.gz, as well as an extra link to the log path for the
-# respective server
-shopt -s extglob
-mkdir -p "$YB_HOME"/{master,tserver} "$DATA_DIR"/yb-data/{master,tserver}/logs
-# Link all YB pieces
-for dir in !(^ybc-*); do
-  ln -s "$YB_HOME/$dir" "$YB_HOME/master/$dir"
-  ln -s "$YB_HOME/$dir" "$YB_HOME/tserver/$dir"
-done
-shopt -u extglob
-# Link the logs
-ln -s "$DATA_DIR/yb-data/master/logs" "$YB_HOME/master/logs"
-ln -s "$DATA_DIR/yb-data/tserver/logs" "$YB_HOME/tserver/logs"
-# Create and link the cores.
-mkdir -p "$DATA_DIR/cores"
-ln -s "$DATA_DIR/cores" "$YB_HOME/cores"
-
-mkdir -p "$YB_HOME/controller" "$DATA_DIR/ybc-data/controller/logs"
-# Find ybc-* directory
-YBC_DIR=$(find "$YB_HOME" -maxdepth 1 -type d -name 'ybc-*')
-# Link bin directory
-ln -s "${YBC_DIR}"/bin "$YB_HOME"/controller/bin
-# Link the logs
-ln -s "$DATA_DIR/ybc-data/controller/logs" "$YB_HOME"/controller/logs
 msg_ok "Setup ${APP}"
 
 msg_info "Copying licenses"
@@ -263,8 +228,6 @@ $JOIN_CLUSTER
 
 Environment="PATH=$YB_HOME/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 Environment="YB_HOME=$YB_HOME"
-Environment="DATA_DIR=$DATA_DIR"
-Environment="TEMP_DIR=$TEMP_DIR"
 Environment="YB_MANAGED_DEVOPS_USE_PYTHON3=$YB_MANAGED_DEVOPS_USE_PYTHON3"
 Environment="YB_DEVOPS_USE_PYTHON3=$YB_DEVOPS_USE_PYTHON3"
 Environment="BOTO_PATH=$BOTO_PATH"
