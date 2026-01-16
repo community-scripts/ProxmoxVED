@@ -355,6 +355,128 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
 - `setup_adminer`
 - `setup_hwaccel`
 
+### 9. Creating Unnecessary System Users
+```bash
+# ❌ WRONG - LXC containers run as root, no separate user needed
+useradd -m -s /usr/bin/bash appuser
+chown -R appuser:appuser /opt/appname
+sudo -u appuser npm install
+
+# ✅ CORRECT - run directly as root
+cd /opt/appname
+$STD npm install
+```
+
+### 10. Using `export` in .env Files
+```bash
+# ❌ WRONG - export is unnecessary in .env files
+cat <<EOF >/opt/appname/.env
+export DATABASE_URL=postgres://...
+export SECRET_KEY=abc123
+export NODE_ENV=production
+EOF
+
+# ✅ CORRECT - simple KEY=VALUE format (files are sourced with set -a)
+cat <<EOF >/opt/appname/.env
+DATABASE_URL=postgres://...
+SECRET_KEY=abc123
+NODE_ENV=production
+EOF
+```
+
+### 11. Using External Shell Scripts
+```bash
+# ❌ WRONG - external script that gets executed
+cat <<'EOF' >/opt/appname/install_script.sh
+#!/bin/bash
+cd /opt/appname
+npm install
+npm run build
+EOF
+chmod +x /opt/appname/install_script.sh
+$STD bash /opt/appname/install_script.sh
+rm -f /opt/appname/install_script.sh
+
+# ✅ CORRECT - run commands directly
+cd /opt/appname
+$STD npm install
+$STD npm run build
+```
+
+### 12. Using `sudo` in LXC Containers
+```bash
+# ❌ WRONG - sudo is unnecessary in LXC (already root)
+sudo -u postgres psql -c "CREATE DATABASE mydb;"
+sudo -u appuser npm install
+
+# ✅ CORRECT - use functions or run directly as root
+PG_DB_NAME="mydb" PG_DB_USER="myuser" setup_postgresql_db
+
+cd /opt/appname
+$STD npm install
+```
+
+### 13. Unnecessary `systemctl daemon-reload`
+```bash
+# ❌ WRONG - daemon-reload is only needed when MODIFYING existing services
+cat <<EOF >/etc/systemd/system/appname.service
+# ... service config ...
+EOF
+systemctl daemon-reload  # Unnecessary for new services!
+systemctl enable -q --now appname
+
+# ✅ CORRECT - new services don't need daemon-reload
+cat <<EOF >/etc/systemd/system/appname.service
+# ... service config ...
+EOF
+systemctl enable -q --now appname
+```
+
+### 14. Creating Custom Credentials Files
+```bash
+# ❌ WRONG - custom credentials file is not part of the standard template
+msg_info "Saving Credentials"
+cat <<EOF >~/appname.creds
+Database User: ${DB_USER}
+Database Pass: ${DB_PASS}
+EOF
+msg_ok "Saved Credentials"
+
+# ✅ CORRECT - credentials are stored in .env or shown in final message only
+# The .env file contains credentials, no need for separate file
+```
+
+### 15. Wrong Footer Pattern
+```bash
+# ❌ WRONG - old cleanup pattern with msg blocks
+motd_ssh
+customize
+
+msg_info "Cleaning up"
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
+msg_ok "Cleaned"
+
+# ✅ CORRECT - use cleanup_lxc function
+motd_ssh
+customize
+cleanup_lxc
+```
+
+### 16. Manual Database Creation Instead of Functions
+```bash
+# ❌ WRONG - manual database creation
+DB_USER="myuser"
+DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
+$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
+$STD sudo -u postgres psql -c "CREATE DATABASE mydb WITH OWNER $DB_USER;"
+$STD sudo -u postgres psql -d mydb -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+# ✅ CORRECT - use setup_postgresql_db function
+# This sets PG_DB_USER, PG_DB_PASS, PG_DB_NAME automatically
+PG_DB_NAME="mydb" PG_DB_USER="myuser" PG_DB_EXTENSIONS="postgis" setup_postgresql_db
+```
+
 ---
 
 ## 📝 Important Rules
