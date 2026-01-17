@@ -35,8 +35,8 @@ function update_script() {
     msg_ok "Updating Node.js Repository"
 
     msg_info "Updating Packages"
-    $STD apt-get update
-    $STD apt-get -y upgrade
+    $STD apt update
+    $STD apt -y upgrade
     msg_ok "Updating Packages"
   fi
 
