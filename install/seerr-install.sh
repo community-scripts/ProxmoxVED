@@ -21,7 +21,7 @@ msg_ok "Installed Dependencies"
 
 git clone -q https://github.com/seerr-team/seerr.git /opt/seerr
 cd /opt/seerr
-$STD git checkout main
+$STD git checkout develop
 
 pnpm_desired=$(grep -Po '"pnpm":\s*"\K[^"]+' /opt/seerr/package.json)
 NODE_VERSION="22" NODE_MODULE="pnpm@$pnpm_desired" setup_nodejs
