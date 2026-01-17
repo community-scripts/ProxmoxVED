@@ -88,7 +88,6 @@ ExecStart=/usr/bin/node dist/index.js
 WantedBy=multi-user.target
 EOF
 
-  systemctl daemon-reload
   systemctl start seerr
   msg_ok "Updated Seerr"
   msg_ok "Updated successfully!"
