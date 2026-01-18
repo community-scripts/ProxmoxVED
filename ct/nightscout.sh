@@ -29,7 +29,7 @@ function update_script() {
     fi
     msg_info "Updating ${APP}"
     systemctl stop nightscout
-    cd /opt/nightscout || exit
+    cd /opt/nightscout
     git pull
     npm install
     systemctl start nightscout
