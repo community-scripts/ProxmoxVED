@@ -20,7 +20,7 @@ MONGO_VERSION="8.0" setup_mongodb
 NODE_VERSION="22" setup_nodejs
 
 msg_info "Installing Nightscout (Patience)"
-cd /opt || exit
+cd /opt
 git clone https://github.com/nightscout/cgm-remote-monitor.git nightscout
 cd nightscout
 $STD npm install
