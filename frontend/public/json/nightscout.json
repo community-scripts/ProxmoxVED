@@ -37,8 +37,12 @@
       "type": "info"
     },
     {
+      "text": "Edit `/opt/nightscout/my.env` to configure your CGM source (Dexcom/CareLink). Then run: `systemctl restart nightscout`",
+      "type": "info"
+    },
+    {
       "text": "Official Configuration Guide: [Nightscout Documentation](https://nightscout.github.io/nightscout/setup_variables/)",
-      "type": "link"
+      "type": "info"
     },
     {
       "text": "Nightscout requires HTTPS for many features (security, tokens, PWA). Usage of a reverse proxy (e.g. Nginx Proxy Manager) is highly recommended.",

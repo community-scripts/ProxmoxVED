@@ -13,14 +13,18 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y git build-essential libssl-dev
+$STD apt install -y \
+  git \
+  build-essential \
+  libssl-dev
 msg_ok "Installed Dependencies"
 
 MONGO_VERSION="8.0" setup_mongodb
 NODE_VERSION="22" setup_nodejs
 
-msg_info "Installing Nightscout (Patience)"
 fetch_and_deploy_gh_release "nightscout" "nightscout/cgm-remote-monitor" "source"
+
+msg_info "Installing Nightscout"
 $STD npm install --prefix /opt/nightscout
 msg_ok "Installed Nightscout"
 
@@ -28,7 +32,7 @@ msg_info "Creating Service"
 useradd -s /bin/bash -m nightscout
 chown -R nightscout:nightscout /opt/nightscout
 
-cat > /opt/nightscout/my.env <<EOF
+cat <<EOF >/opt/nightscout/my.env
 MONGO_CONNECTION=mongodb://127.0.0.1:27017/nightscout
 BASE_URL=http://localhost:1337
 API_SECRET=yoursecret123
@@ -38,7 +42,7 @@ INSECURE_USE_HTTP=true
 EOF
 chown nightscout:nightscout /opt/nightscout/my.env
 
-cat > /etc/systemd/system/nightscout.service <<EOF
+cat <<EOF >/etc/systemd/system/nightscout.service
 [Unit]
 Description=Nightscout CGM Service
 After=network.target mongodb.service
