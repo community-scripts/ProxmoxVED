@@ -22,7 +22,7 @@ NODE_VERSION="22" setup_nodejs
 msg_info "Installing Nightscout (Patience)"
 cd /opt || exit
 git clone https://github.com/nightscout/cgm-remote-monitor.git nightscout
-cd nightscout || exit
+cd nightscout
 $STD npm install
 msg_ok "Installed Nightscout"
 
