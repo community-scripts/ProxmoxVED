@@ -13,7 +13,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y git curl build-essential libssl-dev
+$STD apt install -y git build-essential libssl-dev
 msg_ok "Installed Dependencies"
 
 MONGO_VERSION="8.0" setup_mongodb
