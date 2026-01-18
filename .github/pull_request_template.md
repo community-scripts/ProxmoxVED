@@ -12,7 +12,7 @@ Link: #
 - [ ] **Self-review completed** – Code follows project standards.  
 - [ ] **Tested thoroughly** – Changes work as expected.  
 - [ ] **No breaking changes** – Existing functionality remains intact.  
-- [ ] **No security risks** – No hard coded secrets, unnecessary privilege escalations, or permission issues.  
+- [ ] **No security risks** – No hardcoded secrets, unnecessary privilege escalations, or permission issues.  
 
 ---
 
@@ -32,7 +32,7 @@ Link: #
 
 - [ ] **Follows `Code_Audit.md` & `CONTRIBUTING.md` guidelines**  
 - [ ] **Uses correct script structure (`AppName.sh`, `AppName-install.sh`, `AppName.json`)**  
-- [ ] **No hard coded credentials**  
+- [ ] **No hardcoded credentials**  
 
 
 ## 📋 Additional Information (optional)  
