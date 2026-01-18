@@ -20,36 +20,25 @@ MONGO_VERSION="8.0" setup_mongodb
 NODE_VERSION="22" setup_nodejs
 
 msg_info "Installing Nightscout (Patience)"
-cd /opt
-git clone https://github.com/nightscout/cgm-remote-monitor.git nightscout
-cd nightscout
-$STD npm install
+fetch_and_deploy_gh_release "nightscout" "nightscout/cgm-remote-monitor" "source"
+$STD npm install --prefix /opt/nightscout
 msg_ok "Installed Nightscout"
 
 msg_info "Creating Service"
 useradd -s /bin/bash -m nightscout
 chown -R nightscout:nightscout /opt/nightscout
 
-# Create a default my.env file if it doesn't exist, to prevent crash on start if user doesn't configure it immediately?
-# Nightscout needs env vars to run. We will create a template.
-cat <<EOF > /opt/nightscout/my.env
-# DB connection string. 
-# MongoDB is installed locally on port 27017. 
-# You should create a DB and user in Mongo, or trust localhost auth.
-# For simplicity in this script we assume localhost with no auth for local binding or the user must configure it.
-# However, the installation guide recommends creating a user.
-# For now, we point to localhost test DB.
+cat > /opt/nightscout/my.env <<EOF
 MONGO_CONNECTION=mongodb://127.0.0.1:27017/nightscout
 BASE_URL=http://localhost:1337
 API_SECRET=yoursecret123
 DISPLAY_UNITS=mg/dl
 ENABLE=careportal boluscalc food bwp cage sage iage iob cob basal ar2 rawbg pushover bgi pump openaps pvb linear custom
-# Allow HTTP (avoids redirect loops with reverse proxies)
 INSECURE_USE_HTTP=true
 EOF
 chown nightscout:nightscout /opt/nightscout/my.env
 
-cat <<EOF >/etc/systemd/system/nightscout.service
+cat > /etc/systemd/system/nightscout.service <<EOF
 [Unit]
 Description=Nightscout CGM Service
 After=network.target mongodb.service
@@ -59,7 +48,6 @@ Type=simple
 User=nightscout
 WorkingDirectory=/opt/nightscout
 EnvironmentFile=/opt/nightscout/my.env
-ExecStart=/usr/bin/npm start
 ExecStart=/usr/bin/npm start
 Restart=always
 
