@@ -45,7 +45,7 @@
       "type": "info"
     },
     {
-      "text": "Nightscout requires HTTPS for many features (security, tokens, PWA). Usage of a reverse proxy (e.g. Nginx Proxy Manager) is highly recommended.",
+      "text": "Nightscout requires HTTPS for many features (security, tokens, PWA). Usage of a reverse proxy (e.g. Nginx Proxy Manager, Traefik, Caddy) is highly recommended.",
       "type": "warning"
     }
   ]
