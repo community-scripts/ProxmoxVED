@@ -61,7 +61,9 @@ export PATH="/root/.cargo/bin:$PATH"
 set -a && source /opt/affine/.env && set +a
 
 $STD corepack enable
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 $STD corepack prepare yarn@stable --activate
+$STD yarn config set enableTelemetry 0
 $STD yarn install
 $STD yarn build
 msg_ok "Built AFFiNE"
