@@ -41,33 +41,33 @@ function update_script() {
     msg_ok "Backed up Data"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "dawarich" "Freika/dawarich" "tarball" "latest" "/opt/dawarich/app"
-    RUBY_VERSION=$(cat /opt/dawarich/app/.ruby-version 2>/dev/null || echo "3.4.6")
-    RUBY_VERSION=${RUBY_VERSION} RUBY_INSTALL_RAILS="false" HOME=/home/dawarich setup_ruby
 
-    source /opt/dawarich/.env
-    export PATH="/home/dawarich/.rbenv/shims:/home/dawarich/.rbenv/bin:$PATH"
-    eval "$(/home/dawarich/.rbenv/bin/rbenv init - bash)"
-    cd /opt/dawarich/app
-    chown -R dawarich:dawarich /home/dawarich/.rbenv
-    chown -R dawarich:dawarich /opt/dawarich
+    RUBY_VERSION=$(cat /opt/dawarich/app/.ruby-version 2>/dev/null || echo "3.4.6")
+    RUBY_VERSION=${RUBY_VERSION} RUBY_INSTALL_RAILS="false" setup_ruby
 
     msg_info "Running Migrations"
-    cat <<'EOF' >/opt/dawarich/update_script.sh
-#!/bin/bash
-source /opt/dawarich/.env
-export PATH="/home/dawarich/.rbenv/shims:/home/dawarich/.rbenv/bin:$PATH"
-eval "$(/home/dawarich/.rbenv/bin/rbenv init - bash)"
-cd /opt/dawarich/app
-bundle config set --local deployment 'true'
-bundle config set --local without 'development test'
-bundle install
-SECRET_KEY_BASE_DUMMY=1 bundle exec rake assets:precompile
-bundle exec rails db:migrate
-bundle exec rake data:migrate
-EOF
-    chmod +x /opt/dawarich/update_script.sh
-    $STD sudo -u dawarich bash /opt/dawarich/update_script.sh
-    rm -f /opt/dawarich/update_script.sh
+    cd /opt/dawarich/app
+    source /root/.profile
+    export PATH="/root/.rbenv/shims:/root/.rbenv/bin:$PATH"
+    eval "$(/root/.rbenv/bin/rbenv init - bash)"
+
+    set -a && source /opt/dawarich/.env && set +a
+
+    $STD bundle config set --local deployment 'true'
+    $STD bundle config set --local without 'development test'
+    $STD bundle install
+
+    if [[ -f /opt/dawarich/package.json ]]; then
+      cd /opt/dawarich
+      $STD npm install
+      cd /opt/dawarich/app
+    elif [[ -f /opt/dawarich/app/package.json ]]; then
+      $STD npm install
+    fi
+
+    $STD bundle exec rake assets:precompile
+    $STD bundle exec rails db:migrate
+    $STD bundle exec rake data:migrate
     msg_ok "Ran Migrations"
 
     msg_info "Restoring Data"
@@ -75,13 +75,12 @@ EOF
     cp /opt/dawarich_master.key /opt/dawarich/app/config/master.key 2>/dev/null || true
     cp /opt/dawarich_credentials.yml.enc /opt/dawarich/app/config/credentials.yml.enc 2>/dev/null || true
     rm -rf /opt/dawarich_storage_backup /opt/dawarich_master.key /opt/dawarich_credentials.yml.enc
-    chown -R dawarich:dawarich /opt/dawarich
     msg_ok "Restored Data"
 
     msg_info "Starting Services"
     systemctl start dawarich-web dawarich-worker
     msg_ok "Started Services"
-    msg_ok "Updated Successfully!"
+    msg_ok "Updated successfully!"
   fi
   exit
 }
