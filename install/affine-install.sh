@@ -65,8 +65,8 @@ $STD corepack prepare yarn@stable --activate
 $STD yarn install
 $STD yarn affine @affine/native build
 $STD yarn affine @affine/server-native build
-$STD yarn nx build @affine/web
-$STD yarn nx build @affine/server
+$STD yarn run nx -- build @affine/web
+$STD yarn run nx -- build @affine/server
 msg_ok "Built AFFiNE"
 
 msg_info "Running Initial Migration"
