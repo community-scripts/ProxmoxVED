@@ -477,6 +477,24 @@ $STD sudo -u postgres psql -d mydb -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 PG_DB_NAME="mydb" PG_DB_USER="myuser" PG_DB_EXTENSIONS="postgis" setup_postgresql_db
 ```
 
+### 17. Writing Files Without Heredocs
+```bash
+# ❌ WRONG - echo / printf / tee
+echo "# Config" > /opt/app/config.yml
+echo "port: 3000" >> /opt/app/config.yml
+
+printf "# Config\nport: 3000\n" > /opt/app/config.yml
+cat config.yml | tee /opt/app/config.yml
+```
+
+```bash
+# ✅ CORRECT - always use a single heredoc
+cat <<EOF >/opt/app/config.yml
+# Config
+port: 3000
+EOF
+```
+
 ---
 
 ## 📝 Important Rules
