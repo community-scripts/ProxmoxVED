@@ -65,7 +65,7 @@ export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 $STD corepack prepare yarn@stable --activate
 $STD yarn config set enableTelemetry 0
 $STD yarn install
-$STD yarn build
+$STD yarn affine build
 msg_ok "Built AFFiNE"
 
 msg_info "Running Initial Migration"
