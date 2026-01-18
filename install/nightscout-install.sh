@@ -54,7 +54,6 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-
 systemctl enable -q --now nightscout
 msg_ok "Created Service"
 
