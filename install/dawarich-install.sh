@@ -43,6 +43,7 @@ msg_ok "Set up Directories"
 msg_info "Configuring Environment"
 SECRET_KEY_BASE=$(openssl rand -hex 64)
 RELEASE=$(get_latest_github_release "Freika/dawarich")
+import_local_ip
 cat <<EOF >/opt/dawarich/.env
 RAILS_ENV=production
 SECRET_KEY_BASE=${SECRET_KEY_BASE}
@@ -52,8 +53,8 @@ DATABASE_PASSWORD=${PG_DB_PASS}
 DATABASE_NAME=${PG_DB_NAME}
 REDIS_URL=redis://127.0.0.1:6379/0
 BACKGROUND_PROCESSING_CONCURRENCY=10
-APPLICATION_HOST=localhost
-APPLICATION_HOSTS=localhost
+APPLICATION_HOST=${LOCAL_IP}
+APPLICATION_HOSTS=${LOCAL_IP},localhost
 TIME_ZONE=UTC
 DISABLE_TELEMETRY=true
 APP_VERSION=${RELEASE}
