@@ -4,7 +4,7 @@
     "categories": [
         4
     ],
-    "date_created": "2025-12-22",
+    "date_created": "2026-01-18",
     "type": "ct",
     "updateable": true,
     "privileged": false,
@@ -13,14 +13,14 @@
     "website": "https://github.com/rdeangel/InstradaOGM",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/instradaogm.webp",
     "config_path": "/opt/instradaogm/.env",
-    "description": "Web-based management portal for OPNsense Firewalls that combines user self-service and device management through API-driven network group orchestration.",
+    "description": "Web-based Open Group Manager for OPNsense Firewalls. Provide self-service and device management portal for users and organizes devices into network groups via API.",
     "install_methods": [
         {
             "type": "default",
             "script": "ct/instradaogm.sh",
             "resources": {
                 "cpu": 2,
-                "ram": 3072,
+                "ram": 1024,
                 "hdd": 7,
                 "os": "Debian",
                 "version": "13"
@@ -37,11 +37,7 @@
             "type": "warning"
         },
         {
-            "text": "Restart service after config changes: `pm2 restart instrada-ogm`",
-            "type": "info"
-        },
-        {
-            "text": "LXC has 3GB or RAM for build stage (Required for initial install and upgrades), 1GB or 512MB are otherwise enough.",
+            "text": "Restart service after config changes: `systemctl restart instradaogm`",
             "type": "info"
         }
     ]
