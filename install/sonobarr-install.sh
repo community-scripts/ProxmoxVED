@@ -31,7 +31,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/sonobarr
-ExecStart=/bin/bash -c 'gunicorn src.Sonobarr:app -c gunicorn_config.py'
+ExecStart=/opt/sonobarr/venv/bin/gunicorn src.Sonobarr:app -c gunicorn_config.py
 Restart=always
 
 [Install]
