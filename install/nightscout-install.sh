@@ -59,7 +59,7 @@ Type=simple
 User=nightscout
 WorkingDirectory=/opt/nightscout
 EnvironmentFile=/opt/nightscout/my.env
-# Some deployments use 'npm start', others 'node server.js'. npm start is safer.
+ExecStart=/usr/bin/npm start
 ExecStart=/usr/bin/npm start
 Restart=always
 
