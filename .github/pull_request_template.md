@@ -1,4 +1,4 @@
-## **Scripts wich are clearly AI generated and not further revied by the Author of this PR (in terms of Coding Standards and Script Layout) may be closed without review.**
+## **Scripts which are clearly AI generated and not further revised by the Author of this PR (in terms of Coding Standards and Script Layout) may be closed without review.**
 
 ## ✍️ Description  
 <!-- Briefly describe your changes. -->  
@@ -12,7 +12,7 @@ Link: #
 - [ ] **Self-review completed** – Code follows project standards.  
 - [ ] **Tested thoroughly** – Changes work as expected.  
 - [ ] **No breaking changes** – Existing functionality remains intact.  
-- [ ] **No security risks** – No hardcoded secrets, unnecessary privilege escalations, or permission issues.  
+- [ ] **No security risks** – No hard coded secrets, unnecessary privilege escalations, or permission issues.  
 
 ---
 
@@ -32,7 +32,7 @@ Link: #
 
 - [ ] **Follows `Code_Audit.md` & `CONTRIBUTING.md` guidelines**  
 - [ ] **Uses correct script structure (`AppName.sh`, `AppName-install.sh`, `AppName.json`)**  
-- [ ] **No hardcoded credentials**  
+- [ ] **No hard coded credentials**  
 
 
 ## 📋 Additional Information (optional)  
@@ -43,7 +43,7 @@ Link: #
 ## 📦 Application Requirements (for new scripts)
 
 > Required for **🆕 New script** submissions.  
-> PRs that do not meet these requirements may be closed without review.
+> Pull requests that do not meet these requirements may be closed without review.
 - [ ] The application is **at least 6 months old**
 - [ ] The application is **actively maintained**
 - [ ] The application has **600+ GitHub stars**
