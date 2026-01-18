@@ -51,10 +51,7 @@ function update_script() {
     $STD corepack enable
     $STD corepack prepare yarn@stable --activate
     $STD yarn install
-    $STD yarn affine @affine/native build
-    $STD yarn affine @affine/server-native build
-    $STD yarn run nx -- build @affine/web
-    $STD yarn run nx -- build @affine/server
+    $STD yarn build
     msg_ok "Rebuilt Application"
 
     msg_info "Running Migrations"
