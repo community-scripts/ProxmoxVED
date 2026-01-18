@@ -837,6 +837,10 @@ cleanup_lxc() {
       xargs -0 -n1 truncate -s 0 2>/dev/null || true
   fi
 
+  # Python uv
+  if command -v uv &>/dev/null; then $STD uv cache clean 2>/dev/null || true; fi
+  # Python pip
+  if command -v pip &>/dev/null; then $STD pip cache purge 2>/dev/null || true; fi
   # Node.js npm
   if command -v npm &>/dev/null; then $STD npm cache clean --force 2>/dev/null || true; fi
   # Node.js yarn
