@@ -39,7 +39,7 @@ function update_script() {
     cp -r /root/.affine/config /root/.affine_config_backup 2>/dev/null || true
     msg_ok "Backed up Data"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "affine" "toeverything/AFFiNE" "tarball" "latest" "/opt/affine"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "affine_app" "toeverything/AFFiNE" "tarball" "latest" "/opt/affine"
 
     msg_info "Rebuilding Application"
     cd /opt/affine
