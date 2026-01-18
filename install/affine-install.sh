@@ -30,9 +30,10 @@ NODE_VERSION="22" setup_nodejs
 setup_rust
 import_local_ip
 
-fetch_and_deploy_gh_release "affine" "toeverything/AFFiNE" "tarball" "latest" "/opt/affine"
+fetch_and_deploy_gh_release "affine_app" "toeverything/AFFiNE" "tarball" "latest" "/opt/affine"
 
 msg_info "Setting up Directories"
+rm -rf /root/.affine
 mkdir -p /root/.affine/{storage,config}
 msg_ok "Set up Directories"
 
