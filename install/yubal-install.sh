@@ -62,6 +62,7 @@ YUBAL_HOST=0.0.0.0
 YUBAL_PORT=8001
 YUBAL_DATA=/opt/yubal_data
 YUBAL_CONFIG=/opt/yubal_config
+YUBAL_ROOT=/opt/yubal
 PYTHONUNBUFFERED=1
 EOF
 cat <<EOF >/etc/systemd/system/yubal.service
