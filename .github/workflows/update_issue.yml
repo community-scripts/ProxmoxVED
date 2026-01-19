@@ -130,7 +130,7 @@ jobs:
                   .join(' ');
 
                 const issueBody = '# 🛠️ **New Script**\n' +
-                  'Create an Issue when you want to merge a new Script. The name of the Issue must be the same as your APP.sh file. (Example: SnipeIT, snipeit.sh; Alpine-Docker, alpine-docker.sh)\n\n' +
+                  'Created by Github Action Bot\n\n' +
                   '### Name of the Script\n\n' +
                   formattedName + '\n\n' +
                   '### Script Type\n\n' +
