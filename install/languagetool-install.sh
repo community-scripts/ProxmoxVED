@@ -34,14 +34,14 @@ echo "${RELEASE}" >~/.languagetool
 msg_ok "Setup LanguageTool"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/language-tool.service
+cat <<'EOF' >/etc/systemd/system/language-tool.service
 [Unit]
 Description=LanguageTool Service
 After=network.target
 
 [Service]
 WorkingDirectory=/opt/LanguageTool
-ExecStart=java -cp languagetool-server.jar org.languagetool.server.HTTPServer --config server.properties --public --allow-origin \\"*\\"
+ExecStart=java -cp languagetool-server.jar org.languagetool.server.HTTPServer --config server.properties --public --allow-origin "*"
 Restart=always
 
 [Install]
