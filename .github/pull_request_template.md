@@ -1,4 +1,4 @@
-## **Scripts wich are clearly AI generated and not further revied by the Author of this PR (in terms of Coding Standards and Script Layout) may be closed without review.**
+## **Scripts which are clearly AI generated and not further revised by the Author of this PR (in terms of Coding Standards and Script Layout) may be closed without review.**
 
 ## ✍️ Description  
 <!-- Briefly describe your changes. -->  
@@ -43,7 +43,7 @@ Link: #
 ## 📦 Application Requirements (for new scripts)
 
 > Required for **🆕 New script** submissions.  
-> PRs that do not meet these requirements may be closed without review.
+> Pull requests that do not meet these requirements may be closed without review.
 - [ ] The application is **at least 6 months old**
 - [ ] The application is **actively maintained**
 - [ ] The application has **600+ GitHub stars**

@@ -38,7 +38,7 @@ msg_ok "Installed Deno"
 msg_info "Creating directories"
 mkdir -p /opt/yubal \
   /opt/yubal_data \
-  /opt/yubal/ytdlp
+  /opt/yubal_config
 msg_ok "Created directories"
 
 fetch_and_deploy_gh_release "yubal" "guillevc/yubal" "tarball" "latest" "/opt/yubal"
@@ -53,16 +53,16 @@ msg_ok "Built Frontend"
 msg_info "Installing Python Dependencies"
 cd /opt/yubal
 export UV_CONCURRENT_DOWNLOADS=1
-$STD uv sync --no-dev --frozen
+$STD uv sync --package yubal-api --no-dev --frozen
 msg_ok "Installed Python Dependencies"
 
 msg_info "Creating Service"
 cat <<EOF >/opt/yubal.env
 YUBAL_HOST=0.0.0.0
 YUBAL_PORT=8001
-YUBAL_DATA_DIR=/opt/yubal_data
-YUBAL_BEETS_DIR=/opt/yubal/beets
-YUBAL_YTDLP_DIR=/opt/yubal/ytdlp
+YUBAL_DATA=/opt/yubal_data
+YUBAL_CONFIG=/opt/yubal_config
+YUBAL_ROOT=/opt/yubal
 PYTHONUNBUFFERED=1
 EOF
 cat <<EOF >/etc/systemd/system/yubal.service

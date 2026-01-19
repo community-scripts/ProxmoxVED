@@ -3286,7 +3286,7 @@ EOF'
     fi
 
     # Build package list - EL10+ may not have glibc-langpack-en in same form
-    local rhel_packages="curl sudo mc jq procps-ng ncurses"
+    local rhel_packages="curl sudo mc jq which tar procps-ng ncurses"
     if [[ "$rhel_version" -lt 10 ]]; then
       rhel_packages="$rhel_packages glibc-langpack-en"
     else
@@ -3298,12 +3298,12 @@ EOF'
     local install_log="/tmp/dnf_install_${CTID}.log"
     if ! pct exec "$CTID" -- bash -c "dnf install -y $rhel_packages 2>&1 | tee $install_log; exit \${PIPESTATUS[0]}" >/dev/null 2>&1; then
       # Check if it's just missing optional packages
-      if pct exec "$CTID" -- bash -c "rpm -q curl sudo mc jq procps-ng" >/dev/null 2>&1; then
+      if pct exec "$CTID" -- bash -c "rpm -q curl sudo mc jq which tar procps-ng" >/dev/null 2>&1; then
         msg_warn "Some optional packages may have failed, but core packages installed"
       else
         # Real failure - try minimal install
         msg_warn "Full package install failed, trying minimal set..."
-        if ! pct exec "$CTID" -- bash -c "dnf install -y curl sudo jq 2>&1" >/dev/null 2>&1; then
+        if ! pct exec "$CTID" -- bash -c "dnf install -y curl sudo jq which tar 2>&1" >/dev/null 2>&1; then
           msg_error "dnf/yum base packages installation failed"
           pct exec "$CTID" -- bash -c "cat $install_log 2>/dev/null" || true
           exit 1
