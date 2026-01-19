@@ -41,7 +41,7 @@ function update_script() {
     msg_info "Updating LanguageTool"
     rm -rf /opt/LanguageTool
     download_file "https://languagetool.org/download/LanguageTool-stable.zip" /tmp/LanguageTool-stable.zip
-    unzip /tmp/LanguageTool-stable.zip -d /opt
+    unzip -q /tmp/LanguageTool-stable.zip -d /opt
     mv /opt/LanguageTool-*/ /opt/LanguageTool/
     mv /opt/server.properties /opt/LanguageTool/server.properties
     echo "${RELEASE}" >~/.languagetool

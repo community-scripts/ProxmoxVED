@@ -20,7 +20,7 @@ msg_ok "Installed dependencies"
 msg_info "Setting up LanguageTool"
 RELEASE=$(curl -fsSL https://languagetool.org/download/ | grep -oP 'LanguageTool-\K[0-9]+\.[0-9]+(\.[0-9]+)?(?=\.zip)' | sort -V | tail -n1)
 download_file "https://languagetool.org/download/LanguageTool-stable.zip" /tmp/LanguageTool-stable.zip
-unzip /tmp/LanguageTool-stable.zip -d /opt
+unzip -q /tmp/LanguageTool-stable.zip -d /opt
 mv /opt/LanguageTool-*/ /opt/LanguageTool/
 download_file "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin" /opt/lid.176.bin
 
