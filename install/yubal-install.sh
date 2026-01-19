@@ -53,7 +53,7 @@ msg_ok "Built Frontend"
 msg_info "Installing Python Dependencies"
 cd /opt/yubal
 export UV_CONCURRENT_DOWNLOADS=1
-$STD uv sync --no-dev --frozen
+$STD uv sync --package yubal-api --no-dev --frozen
 msg_ok "Installed Python Dependencies"
 
 msg_info "Creating Service"
