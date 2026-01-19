@@ -17,6 +17,8 @@ msg_info "Installing dependencies"
 $STD apt install -y fasttext
 msg_ok "Installed dependencies"
 
+JAVA_VERSION="21" setup_java
+
 msg_info "Setting up LanguageTool"
 RELEASE=$(curl -fsSL https://languagetool.org/download/ | grep -oP 'LanguageTool-\K[0-9]+\.[0-9]+(\.[0-9]+)?(?=\.zip)' | sort -V | tail -n1)
 download_file "https://languagetool.org/download/LanguageTool-stable.zip" /tmp/LanguageTool-stable.zip
@@ -39,7 +41,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/LanguageTool
-ExecStart=java -cp languagetool-server.jar org.languagetool.server.HTTPServer --config server.properties --public --allow-origin "*"
+ExecStart=java -cp languagetool-server.jar org.languagetool.server.HTTPServer --config server.properties --public --allow-origin \\"*\\"
 Restart=always
 
 [Install]
