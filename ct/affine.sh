@@ -51,16 +51,66 @@ function update_script() {
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
     export VITE_CORE_COMMIT_SHA=$(get_latest_github_release "toeverything/AFFiNE")
 
+    # Initialize git repo (required for build process)
+    git init -q
+    git config user.email "build@local"
+    git config user.name "Build"
+    git add -A
+    git commit -q -m "update"
+
+    # Force Turbo to run sequentially
+    mkdir -p /opt/affine/.turbo
+    cat <<TURBO >/opt/affine/.turbo/config.json
+{
+  "concurrency": 1
+}
+TURBO
+
     $STD corepack enable
-    $STD corepack prepare yarn@stable --activate
+    $STD corepack prepare yarn@4.12.0 --activate
     $STD yarn config set enableTelemetry 0
+
+    export NODE_OPTIONS="--max-old-space-size=2048"
     $STD yarn install
+    $STD npm install -g typescript
+
+    $STD yarn affine @affine/native build
+    $STD yarn affine @affine/server-native build
+
+    # Create architecture-specific symlinks
+    ln -sf /opt/affine/packages/backend/native/server-native.node \
+      /opt/affine/packages/backend/native/server-native.x64.node
+    ln -sf /opt/affine/packages/backend/native/server-native.node \
+      /opt/affine/packages/backend/native/server-native.arm64.node
+    ln -sf /opt/affine/packages/backend/native/server-native.node \
+      /opt/affine/packages/backend/native/server-native.armv7.node
+
     $STD yarn affine init
-    $STD yarn affine build -p @affine/server-native
-    $STD yarn affine build -p @affine/reader --deps
-    $STD yarn affine build -p @affine/server --deps
-    export NODE_OPTIONS=--max-old-space-size=6144
-    $STD yarn affine build -p @affine/web --deps
+    $STD yarn affine build -p @affine/reader
+    $STD yarn affine build -p @affine/server
+
+    export NODE_OPTIONS="--max-old-space-size=4096"
+    $STD yarn affine build -p @affine/web
+
+    # Copy web assets
+    mkdir -p /opt/affine/packages/backend/server/static
+    cp -r /opt/affine/packages/frontend/apps/web/dist/* /opt/affine/packages/backend/server/static/
+
+    # Mobile manifest placeholder
+    mkdir -p /opt/affine/packages/backend/server/static/mobile
+    echo '{"publicPath":"/","js":[],"css":[],"gitHash":"","description":""}' \
+      >/opt/affine/packages/backend/server/static/mobile/assets-manifest.json
+
+    # Admin selfhost.html
+    mkdir -p /opt/affine/packages/backend/server/static/admin
+    cp /opt/affine/packages/backend/server/static/selfhost.html \
+      /opt/affine/packages/backend/server/static/admin/selfhost.html
+
+    # Run migrations
+    cd /opt/affine/packages/backend/server
+    set -a && source /opt/affine/.env && set +a
+    $STD node ./scripts/self-host-predeploy.js
+
     msg_info "Restoring Data"
     cp -r /root/.affine_storage_backup/. /root/.affine/storage/ 2>/dev/null || true
     cp -r /root/.affine_config_backup/. /root/.affine/config/ 2>/dev/null || true
