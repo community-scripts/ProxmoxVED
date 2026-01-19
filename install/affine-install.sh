@@ -48,7 +48,7 @@ DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAM
 REDIS_SERVER_HOST=localhost
 REDIS_SERVER_PORT=6379
 AFFINE_INDEXER_ENABLED=false
-NODE_OPTIONS=--max-old-space-size=4096
+NODE_OPTIONS=--max-old-space-size=6144
 SECRET_KEY=${SECRET_KEY}
 EOF
 msg_ok "Configured Environment"
@@ -60,12 +60,19 @@ export PATH="/root/.cargo/bin:$PATH"
 
 set -a && source /opt/affine/.env && set +a
 
-$STD corepack enable
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+export VITE_CORE_COMMIT_SHA="v0.25.7"
+
+$STD corepack enable
 $STD corepack prepare yarn@stable --activate
 $STD yarn config set enableTelemetry 0
 $STD yarn install
-$STD yarn affine build
+$STD yarn affine init
+$STD yarn affine build -p @affine/server-native
+$STD yarn affine build -p @affine/reader --deps
+$STD yarn affine build -p @affine/server --deps
+export NODE_OPTIONS=--max-old-space-size=6144
+$STD yarn affine build -p @affine/web --deps
 msg_ok "Built AFFiNE"
 
 msg_info "Running Initial Migration"

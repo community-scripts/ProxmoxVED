@@ -8,7 +8,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="AFFiNE"
 var_tags="${var_tags:-knowledge;notes;workspace}"
 var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-8192}"
+var_ram="${var_ram:-12288}"
 var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -48,19 +48,19 @@ function update_script() {
 
     set -a && source /opt/affine/.env && set +a
 
-    $STD corepack enable
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+    export VITE_CORE_COMMIT_SHA=$(get_latest_github_release "toeverything/AFFiNE")
+
+    $STD corepack enable
     $STD corepack prepare yarn@stable --activate
     $STD yarn config set enableTelemetry 0
     $STD yarn install
-    $STD yarn affine build
-    msg_ok "Rebuilt Application"
-
-    msg_info "Running Migrations"
-    cd /opt/affine/packages/backend/server
-    $STD node ./scripts/self-host-predeploy.js
-    msg_ok "Ran Migrations"
-
+    $STD yarn affine init
+    $STD yarn affine build -p @affine/server-native
+    $STD yarn affine build -p @affine/reader --deps
+    $STD yarn affine build -p @affine/server --deps
+    export NODE_OPTIONS=--max-old-space-size=6144
+    $STD yarn affine build -p @affine/web --deps
     msg_info "Restoring Data"
     cp -r /root/.affine_storage_backup/. /root/.affine/storage/ 2>/dev/null || true
     cp -r /root/.affine_config_backup/. /root/.affine/config/ 2>/dev/null || true
