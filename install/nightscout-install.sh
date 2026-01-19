@@ -39,7 +39,6 @@ ENABLE=careportal boluscalc food bwp cage sage iage iob cob basal ar2 rawbg push
 INSECURE_USE_HTTP=true
 EOF
 chown nightscout:nightscout /opt/nightscout/my.env
-
 cat <<EOF >/etc/systemd/system/nightscout.service
 [Unit]
 Description=Nightscout CGM Service
