@@ -61,7 +61,7 @@ fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v
 
 msg_info "Configuring OpenCloud"
 DATA_DIR="/var/lib/opencloud/"
-CONFIG_DIR="${CONFIG_DIR}"
+CONFIG_DIR="/etc/opencloud"
 ENV_FILE="${CONFIG_DIR}/opencloud.env"
 mkdir -p "$DATA_DIR" "$CONFIG_DIR"/assets/apps
 
