@@ -80,9 +80,7 @@ TURBO
 $STD corepack enable
 $STD corepack prepare yarn@4.12.0 --activate
 $STD yarn config set enableTelemetry 0
-
-# Limit TypeScript memory per process
-export NODE_OPTIONS="--max-old-space-size=2048"
+export NODE_OPTIONS="--max-old-space-size=4096"
 export TSC_COMPILE_ON_ERROR=true
 
 $STD yarn install
