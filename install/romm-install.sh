@@ -120,21 +120,11 @@ CONFIGEOF
 chmod 644 /var/lib/romm/config/config.yml
 msg_ok "Created configuration file"
 
+msg_info "Installing RAHasher (RetroAchievements)"
 fetch_and_deploy_gh_release "RetroAchievements" "RetroAchievements/RALibretro" "prebuild" "latest" "/opt/RALibretro" "RAHasher-x64-Linux-*.zip"
-
-msg_info "Building RAHasher (RetroAchievements)"
-cd /opt/RALibretro
-sed -i '22a #include <ctime>' ./src/Util.h
-sed -i '6a #include <unistd.h>' \
-  ./src/libchdr/deps/zlib-1.3.1/gzlib.c \
-  ./src/libchdr/deps/zlib-1.3.1/gzread.c \
-  ./src/libchdr/deps/zlib-1.3.1/gzwrite.c
-$STD make HAVE_CHD=1 -f ./Makefile.RAHasher
-cp ./bin64/RAHasher /usr/bin/RAHasher
+cp /opt/RALibretro/RAHasher /usr/bin/RAHasher
 chmod +x /usr/bin/RAHasher
-cd /tmp
-rm -rf /tmp/RALibretro
-msg_ok "Built RAHasher"
+msg_ok "Installed RAHasher"
 
 fetch_and_deploy_gh_release "romm" "rommapp/romm"
 
