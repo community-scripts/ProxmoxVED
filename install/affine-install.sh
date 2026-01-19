@@ -62,13 +62,22 @@ set -a && source /opt/affine/.env && set +a
 
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 export VITE_CORE_COMMIT_SHA="v0.25.7"
+export TURBO_CONCURRENCY="${TURBO_CONCURRENCY:-2}"
+
+msg_info "Cleaning legacy Yarn config"
+sed -i '/^parallelism:/d' /root/.yarnrc.yml 2>/dev/null || true
+sed -i '/^parallelism=/d' /root/.yarnrc 2>/dev/null || true
+sed -i '/^parallelism:/d' /opt/affine/.yarnrc.yml 2>/dev/null || true
+msg_ok "Yarn config cleaned"
 
 $STD corepack enable
-$STD corepack prepare yarn@stable --activate
+$STD corepack prepare yarn@4.12.0 --activate
 $STD yarn config set enableTelemetry 0
 $STD yarn install
+$STD yarn add -D typescript --workspace-root
+$STD yarn affine @affine/native build
+$STD yarn affine @affine/server-native build
 $STD yarn affine init
-$STD yarn affine build -p @affine/server-native
 $STD yarn affine build -p @affine/reader --deps
 $STD yarn affine build -p @affine/server --deps
 export NODE_OPTIONS=--max-old-space-size=6144
