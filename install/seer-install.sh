@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y build-essential
 msg_ok "Installed Dependencies"
 
-fetch_and_deploy_gh_release "seer" "seerr-team/seerr"
+fetch_and_deploy_gh_release "seer" "seerr-team/seerr" "tarball" "latest"
 
 pnpm_desired=$(grep -Po '"pnpm":\s*"\K[^"]+' /opt/seer/package.json)
 NODE_VERSION="22" NODE_MODULE="pnpm@$pnpm_desired" setup_nodejs

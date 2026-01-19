@@ -37,7 +37,7 @@ function update_script() {
     pnpm_desired=$(grep -Po '"pnpm":\s*"\K[^"]+' /opt/seer/package.json)
     NODE_VERSION="22" NODE_MODULE="pnpm@$pnpm_desired" setup_nodejs
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "seer" "seerr-team/seerr"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "seer" "seerr-team/seerr" "tarball" "latest"
 
     cd /opt/seer
     export CYPRESS_INSTALL_BINARY=0
