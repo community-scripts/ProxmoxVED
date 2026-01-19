@@ -30,7 +30,6 @@ msg_ok "Installed Nightscout"
 msg_info "Creating Service"
 useradd -s /bin/bash -m nightscout
 chown -R nightscout:nightscout /opt/nightscout
-
 cat <<EOF >/opt/nightscout/my.env
 MONGO_CONNECTION=mongodb://127.0.0.1:27017/nightscout
 BASE_URL=http://localhost:1337
