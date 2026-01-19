@@ -14,9 +14,9 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  git \
   build-essential \
-  libssl-dev
+  libssl-dev \
+  openssl
 msg_ok "Installed Dependencies"
 
 MONGO_VERSION="8.0" setup_mongodb
@@ -30,10 +30,11 @@ msg_ok "Installed Nightscout"
 msg_info "Creating Service"
 useradd -s /bin/bash -m nightscout
 chown -R nightscout:nightscout /opt/nightscout
+API_SECRET=$(openssl rand -hex 16)
 cat <<EOF >/opt/nightscout/my.env
 MONGO_CONNECTION=mongodb://127.0.0.1:27017/nightscout
 BASE_URL=http://localhost:1337
-API_SECRET=yoursecret123
+API_SECRET=${API_SECRET}
 DISPLAY_UNITS=mg/dl
 ENABLE=careportal boluscalc food bwp cage sage iage iob cob basal ar2 rawbg pushover bgi pump openaps pvb linear custom
 INSECURE_USE_HTTP=true
@@ -57,6 +58,11 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now nightscout
 msg_ok "Created Service"
+
+{
+  echo "Nightscout Credentials"
+  echo "API_SECRET: ${API_SECRET}"
+} >> ~/nightscout.creds
 
 motd_ssh
 customize

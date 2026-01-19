@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "Nightscout requires configuring `my.env` with your Mongo connection string and API_SECRET. Default API_SECRET is `yoursecret123`.",
+      "text": "Nightscout requires configuring `my.env` with your Mongo connection string. API_SECRET has been generated and saved to `~/nightscout.creds`.",
       "type": "info"
     },
     {
@@ -41,7 +41,7 @@
       "type": "info"
     },
     {
-      "text": "Official Configuration Guide: [Nightscout Documentation](https://nightscout.github.io/nightscout/setup_variables/)",
+      "text": "Official Configuration Guide: https://nightscout.github.io/nightscout/setup_variables/",
       "type": "info"
     },
     {
