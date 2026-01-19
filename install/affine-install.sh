@@ -173,6 +173,30 @@ EOF
 systemctl enable -q --now redis-server affine-web affine-worker
 msg_ok "Created Services"
 
+msg_info "Creating Admin User"
+ADMIN_PASS=$(openssl rand -base64 12)
+for i in {1..30}; do
+  if curl -s http://localhost:3010/info >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+# Create admin via API
+ADMIN_RESPONSE=$(curl -s -X POST http://localhost:3010/api/setup/create-admin-user \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"admin@affine.local\",\"password\":\"${ADMIN_PASS}\"}")
+if echo "$ADMIN_RESPONSE" | grep -q '"id"'; then
+  {
+    echo "AFFiNE Credentials"
+    echo "=================="
+    echo "Email: admin@affine.local"
+    echo "Password: ${ADMIN_PASS}"
+  } >~/affine.creds
+  msg_ok "Created Admin User"
+else
+  msg_warn "Admin creation skipped (may already exist)"
+fi
+
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/sites-available/affine.conf
 upstream affine_backend {
