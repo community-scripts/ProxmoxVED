@@ -1,8 +1,8 @@
-name: Cleanup merged branches
+name: Cleanup Branches (Merged or Closed)
 
 on:
   schedule:
-    - cron: "0 3 * * *"   # täglich um 03:00 UTC
+    - cron: "0 3 * * *"   # daily at 03:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Delete merged or closed branches older than 7 days
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
