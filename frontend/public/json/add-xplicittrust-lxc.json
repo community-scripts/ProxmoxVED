@@ -1,0 +1,52 @@
+{
+  "name": "XplicitTrust",
+  "slug": "add-xplicittrust-lxc",
+  "categories": [
+    1
+  ],
+  "date_created": "2026-01-20",
+  "type": "addon",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://docs.xplicittrust.com/",
+  "website": "https://xplicittrust.com/",
+  "logo": "https://xplicittrust.com/assets/img/logo-xplicittrust.png",
+  "config_path": "",
+  "description": "XplicitTrust is a Zero Trust Network Access (ZTNA) solution designed to securely control and protect access to infrastructure and workloads. The XplicitTrust Proxmox community script enables seamless integration of Proxmox environments into a Zero Trust architecture, allowing administrators to expose services securely without relying on traditional VPNs or network-level trust. It enforces identity-based, application-specific access policies and ensures that only authenticated and authorized users or systems can reach defined resources. By integrating XplicitTrust with Proxmox, users can securely manage access to virtual machines, containers, and management interfaces while reducing attack surface and simplifying secure remote access.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "tools/addon/add-xplicittrust-lxc.sh",
+      "resources": {
+        "cpu": null,
+        "ram": null,
+        "hdd": null,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "You need a valid XplicitTrust tenant domain and asset creation token.",
+      "type": "info"
+    },
+    {
+      "text": "You can either create a new container or install into an existing one. When installing into an existing container, the script will let you select the container.",
+      "type": "info"
+    },
+    {
+      "text": "Execute within the Proxmox main shell",
+      "type": "info"
+    },
+    {
+      "text": "The script only works in Debian/Ubuntu, not in Alpine!",
+      "type": "warning"
+    }
+  ]
+}
