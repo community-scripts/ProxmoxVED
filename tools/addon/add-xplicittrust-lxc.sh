@@ -96,7 +96,8 @@ function install_xplicittrust() {
 
       echo "[LXC] Waiting for DNS..."
       for i in {1..15}; do
-        getent hosts dl.xplicittrust.com >/dev/null && break || sleep 1
+        getent hosts dl.xplicittrust.com >/dev/null && break
+        sleep 1
       done
 
       apt-get update -qq
