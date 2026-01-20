@@ -24,36 +24,39 @@ jobs:
           set -euo pipefail
 
           CUTOFF_DATE=$(date -u -d "7 days ago" +%s)
-
           echo "Cutoff timestamp: $CUTOFF_DATE"
 
-          gh pr list \
+          # Get all existing branches (except protected ones)
+          echo "Fetching existing branches..."
+          EXISTING_BRANCHES=$(gh api repos/${{ github.repository }}/git/matching-refs/heads \
+            --jq '.[].ref | ltrimstr("refs/heads/")' | grep -vE '^(main|master|develop)$' || true)
+
+          if [ -z "$EXISTING_BRANCHES" ]; then
+            echo "No branches to check."
+            exit 0
+          fi
+
+          echo "Found $(echo "$EXISTING_BRANCHES" | wc -l) branches to check."
+
+          # Get branches from old merged/closed PRs
+          echo "Fetching closed/merged PRs older than 7 days..."
+          OLD_PR_BRANCHES=$(gh pr list \
             --state all \
             --base main \
-            --json number,state,mergedAt,closedAt,headRefName \
+            --json state,mergedAt,closedAt,headRefName \
             --limit 500 |
           jq -r --arg cutoff "$CUTOFF_DATE" '.[] |
             select(.state == "MERGED" or .state == "CLOSED") |
             select(((.mergedAt // .closedAt) | fromdateiso8601) < ($cutoff | tonumber)) |
-            .headRefName' |
-          sort -u |
-          while read -r branch; do
-            # Schutz
-            case "$branch" in
-              main|master|develop)
-                echo "Skipping protected branch: $branch"
-                continue
-                ;;
-            esac
+            .headRefName' | sort -u)
 
-            echo "Checking if branch still exists: $branch"
-            if gh api -X GET repos/${{ github.repository }}/git/refs/heads/$branch 2>/dev/null; then
+          # Delete only branches that exist AND are from old PRs
+          for branch in $EXISTING_BRANCHES; do
+            if echo "$OLD_PR_BRANCHES" | grep -qx "$branch"; then
               echo "Deleting branch: $branch"
-              gh api \
-                -X DELETE \
-                repos/${{ github.repository }}/git/refs/heads/$branch \
+              gh api -X DELETE repos/${{ github.repository }}/git/refs/heads/$branch \
                 || echo "Failed to delete branch $branch"
-            else
-              echo "Branch $branch does not exist (already deleted)"
             fi
           done
+
+          echo "Cleanup complete."
