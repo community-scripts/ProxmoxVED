@@ -65,7 +65,7 @@ export TRANSFORMERS_NO_ADVISORY_WARNINGS=1
 export OPENCV_FFMPEG_LOGLEVEL=8
 export HAILORT_LOGGER_PATH=NONE
 
-fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "latest" "/opt/frigate"
+fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "0.16.3-tensorrt" "/opt/frigate"
 
 msg_info "Building Nginx with custom modules"
 #sed -i 's|if.*"$VERSION_ID" == "12".*|if [[ "$VERSION_ID" =~ ^(12|13)$ ]]; then|g' /opt/frigate/docker/main/build_nginx.sh
