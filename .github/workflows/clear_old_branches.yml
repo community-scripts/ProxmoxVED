@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Delete merged branches older than 7 days
+      - name: Delete merged or closed branches older than 7 days
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -25,12 +25,12 @@ jobs:
           echo "Cutoff timestamp: $CUTOFF_DATE"
 
           gh pr list \
-            --state merged \
+            --state all \
             --base main \
-            --json number,mergedAt,headRefName \
+            --json number,state,mergedAt,closedAt,headRefName \
             --limit 500 |
-          jq -r '.[] | "\(.mergedAt) \(.headRefName)"' |
-          while read -r mergedAt branch; do
+          jq -r '.[] | select(.state == "MERGED" or .state == "CLOSED") | "\(.state) \(.mergedAt // .closedAt) \(.headRefName)"' |
+          while read -r state closedOrMergedAt branch; do
             # Schutz
             case "$branch" in
               main|master|develop)
@@ -39,15 +39,15 @@ jobs:
                 ;;
             esac
 
-            MERGED_TS=$(date -d "$mergedAt" +%s)
+            CLOSED_OR_MERGED_TS=$(date -d "$closedOrMergedAt" +%s)
 
-            if [ "$MERGED_TS" -lt "$CUTOFF_DATE" ]; then
-              echo "Deleting branch: $branch (merged at $mergedAt)"
+            if [ "$CLOSED_OR_MERGED_TS" -lt "$CUTOFF_DATE" ]; then
+              echo "Deleting branch: $branch ($state at $closedOrMergedAt)"
               gh api \
                 -X DELETE \
                 repos/${{ github.repository }}/git/refs/heads/$branch \
                 || echo "Branch $branch already deleted"
             else
-              echo "Keeping branch: $branch (recent merge)"
+              echo "Keeping branch: $branch (recent $state)"
             fi
           done
