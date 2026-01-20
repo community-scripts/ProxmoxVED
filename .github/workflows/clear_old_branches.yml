@@ -32,9 +32,9 @@ jobs:
             --base main \
             --json number,state,mergedAt,closedAt,headRefName \
             --limit 500 |
-          jq -r '.[] | select(.state == "MERGED" or .state == "CLOSED") | "\(.mergedAt // .closedAt) \(.headRefName)"' |
+          jq -r '.[] | select(.state == "MERGED" or .state == "CLOSED") | .headRefName' |
           sort -u |
-          while read -r closedOrMergedAt branch; do
+          while read -r branch; do
             # Schutz
             case "$branch" in
               main|master|develop)
@@ -43,15 +43,20 @@ jobs:
                 ;;
             esac
 
-            CLOSED_OR_MERGED_TS=$(date -d "$closedOrMergedAt" +%s)
+            echo "Checking if branch still exists: $branch"
+            if gh api -X GET repos/${{ github.repository }}/git/refs/heads/$branch 2>/dev/null; then
+              CLOSED_OR_MERGED_TS=$(date -d "$branch" +%s 2>/dev/null || date +%s)
 
-            if [ "$CLOSED_OR_MERGED_TS" -lt "$CUTOFF_DATE" ]; then
-              echo "Deleting branch: $branch (at $closedOrMergedAt)"
-              gh api \
-                -X DELETE \
-                repos/${{ github.repository }}/git/refs/heads/$branch \
-                || echo "Branch $branch already deleted"
+              if [ "$CLOSED_OR_MERGED_TS" -lt "$CUTOFF_DATE" ]; then
+                echo "Deleting branch: $branch"
+                gh api \
+                  -X DELETE \
+                  repos/${{ github.repository }}/git/refs/heads/$branch \
+                  || echo "Failed to delete branch $branch"
+              else
+                echo "Keeping branch: $branch (recent)"
+              fi
             else
-              echo "Keeping branch: $branch (recent)"
+              echo "Branch $branch does not exist (already deleted)"
             fi
           done
