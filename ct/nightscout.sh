@@ -35,10 +35,10 @@ function update_script() {
 
     fetch_and_deploy_gh_release "nightscout" "nightscout/cgm-remote-monitor" "source"
 
-    msg_info "Updating ${APP}"
+    msg_info "Updating Nightscout"
     cd /opt/nightscout
     $STD npm install
-    msg_ok "Updated ${APP}"
+    msg_ok "Updated Nightscout"
 
     msg_info "Starting Service"
     systemctl start nightscout
