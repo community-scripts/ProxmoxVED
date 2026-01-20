@@ -32,8 +32,9 @@ jobs:
             --base main \
             --json number,state,mergedAt,closedAt,headRefName \
             --limit 500 |
-          jq -r '.[] | select(.state == "MERGED" or .state == "CLOSED") | "\(.state) \(.mergedAt // .closedAt) \(.headRefName)"' |
-          while read -r state closedOrMergedAt branch; do
+          jq -r '.[] | select(.state == "MERGED" or .state == "CLOSED") | "\(.mergedAt // .closedAt) \(.headRefName)"' |
+          sort -u |
+          while read -r closedOrMergedAt branch; do
             # Schutz
             case "$branch" in
               main|master|develop)
@@ -45,12 +46,12 @@ jobs:
             CLOSED_OR_MERGED_TS=$(date -d "$closedOrMergedAt" +%s)
 
             if [ "$CLOSED_OR_MERGED_TS" -lt "$CUTOFF_DATE" ]; then
-              echo "Deleting branch: $branch ($state at $closedOrMergedAt)"
+              echo "Deleting branch: $branch (at $closedOrMergedAt)"
               gh api \
                 -X DELETE \
                 repos/${{ github.repository }}/git/refs/heads/$branch \
                 || echo "Branch $branch already deleted"
             else
-              echo "Keeping branch: $branch (recent $state)"
+              echo "Keeping branch: $branch (recent)"
             fi
           done
