@@ -1,0 +1,53 @@
+name: Cleanup merged branches
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # täglich um 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete merged branches older than 7 days
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          CUTOFF_DATE=$(date -u -d "7 days ago" +%s)
+
+          echo "Cutoff timestamp: $CUTOFF_DATE"
+
+          gh pr list \
+            --state merged \
+            --base main \
+            --json number,mergedAt,headRefName \
+            --limit 500 |
+          jq -r '.[] | "\(.mergedAt) \(.headRefName)"' |
+          while read -r mergedAt branch; do
+            # Schutz
+            case "$branch" in
+              main|master|develop)
+                echo "Skipping protected branch: $branch"
+                continue
+                ;;
+            esac
+
+            MERGED_TS=$(date -d "$mergedAt" +%s)
+
+            if [ "$MERGED_TS" -lt "$CUTOFF_DATE" ]; then
+              echo "Deleting branch: $branch (merged at $mergedAt)"
+              gh api \
+                -X DELETE \
+                repos/${{ github.repository }}/git/refs/heads/$branch \
+                || echo "Branch $branch already deleted"
+            else
+              echo "Keeping branch: $branch (recent merge)"
+            fi
+          done
