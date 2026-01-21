@@ -1768,7 +1768,10 @@ function fetch_and_deploy_gh_release() {
 
   ### Tarball Mode ###
   if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
-    filename="${app_lc}-${version}.tar.gz"
+    # Sanitize version for filename (remove/replace special chars)
+    local safe_version="${version//@/_}"
+    safe_version="${safe_version//\//_}"
+    filename="${app_lc}-${safe_version}.tar.gz"
     local download_success=false
 
     # For tags with special characters (@, /), use codeload.github.com directly
