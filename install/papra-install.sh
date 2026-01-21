@@ -36,15 +36,21 @@ $STD pnpm --filter "@papra/app-server..." run build
 msg_ok "Set up Papra"
 
 msg_info "Configuring Papra"
-AUTH_SECRET=$(openssl rand -hex 32)
+DATA_DIR="/opt/papra_data"
 
-# Create data directories in server folder (where WorkingDirectory points)
-mkdir -p /opt/papra/apps/papra-server/app-data/db
-mkdir -p /opt/papra/apps/papra-server/app-data/documents
-mkdir -p /opt/papra/apps/papra-server/ingestion
+# Create persistent data directories (survive updates/CLEAN_INSTALL)
+mkdir -p "${DATA_DIR}/db"
+mkdir -p "${DATA_DIR}/documents"
+mkdir -p "${DATA_DIR}/ingestion"
 
 # Link client build to server public dir
 ln -sf /opt/papra/apps/papra-client/dist /opt/papra/apps/papra-server/public
+
+# Generate secret only on first install, preserve on updates
+if [[ ! -f "${DATA_DIR}/.auth_secret" ]]; then
+  openssl rand -hex 32 > "${DATA_DIR}/.auth_secret"
+fi
+AUTH_SECRET=$(cat "${DATA_DIR}/.auth_secret")
 
 cat >/opt/papra/apps/papra-server/.env <<EOF
 NODE_ENV=production
@@ -52,11 +58,11 @@ SERVER_SERVE_PUBLIC_DIR=true
 PORT=1221
 
 # Database Configuration
-DATABASE_URL=file:./app-data/db/db.sqlite
+DATABASE_URL=file:${DATA_DIR}/db/db.sqlite
 
 # Storage Configuration
-DOCUMENT_STORAGE_FILESYSTEM_ROOT=./app-data/documents
-PAPRA_CONFIG_DIR=./app-data
+DOCUMENT_STORAGE_FILESYSTEM_ROOT=${DATA_DIR}/documents
+PAPRA_CONFIG_DIR=${DATA_DIR}
 
 # Authentication
 AUTH_SECRET=${AUTH_SECRET}
@@ -70,7 +76,7 @@ CLIENT_BASE_URL=http://${LOCAL_IP}:1221
 EMAILS_DRY_RUN=true
 
 # Ingestion Folder
-INGESTION_FOLDER_ROOT=./ingestion
+INGESTION_FOLDER_ROOT=${DATA_DIR}/ingestion
 EOF
 
 chown -R root:root /opt/papra
