@@ -49,7 +49,7 @@ variables() {
 # FUNC_DIR="/usr/local/community-scripts/core"
 # mkdir -p "$FUNC_DIR"
 
-# BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
+# BUILD_URL="https://raw.githubusercontent.com/aBat001795/ProxmoxVED/refs/heads/main/misc/build.func"
 # BUILD_REV="$FUNC_DIR/build.rev"
 # DEVMODE="${DEVMODE:-no}"
 
@@ -74,7 +74,7 @@ variables() {
 
 #       update_func_file() {
 #         local file="$1"
-#         local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
+#         local url="https://raw.githubusercontent.com/aBat001795/ProxmoxVED/refs/heads/main/misc/$file"
 #         local local_path="$FUNC_DIR/$file"
 
 #         echo "⬇️  Downloading $file ..."
@@ -2527,7 +2527,7 @@ EOF'
   install_ssh_keys_into_ct
 
   # Run application installer
-  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh)"; then
+  if ! lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/aBat001795/ProxmoxVED/refs/heads/main/install/${var_install}.sh)"; then
     exit $?
   fi
 }

@@ -9,8 +9,8 @@
 # ADDON TEMPLATE - Use this as starting point for new addon scripts
 # ==============================================================================
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+source <(curl -fsSL https://raw.githubusercontent.com/aBat001795/ProxmoxVED/refs/heads/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/aBat001795/ProxmoxVED/refs/heads/main/misc/tools.func)
 
 # ==============================================================================
 # CONFIGURATION
@@ -291,7 +291,7 @@ echo -e "\${BL}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Source tools.func for update functions
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func) 2>/dev/null || {
+source <(curl -fsSL https://raw.githubusercontent.com/aBat001795/ProxmoxVED/refs/heads/main/misc/tools.func) 2>/dev/null || {
   echo -e "\${RD}Failed to load tools.func\${CL}"
   exit 1
 }

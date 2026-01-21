@@ -12,7 +12,7 @@
 set -euo pipefail
 
 # ---- API-Funktionen laden ----------------------------------------------------
-source /dev/stdin <<<"$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)"
+source /dev/stdin <<<"$(curl -fsSL https://raw.githubusercontent.com/aBat001795/ProxmoxVED/refs/heads/main/misc/api.func)"
 
 # ---- UI / Farben -------------------------------------------------------------
 YW=$'\033[33m'; BL=$'\033[36m'; RD=$'\033[01;31m'; GN=$'\033[1;92m'; DGN=$'\033[32m'; CL=$'\033[m'

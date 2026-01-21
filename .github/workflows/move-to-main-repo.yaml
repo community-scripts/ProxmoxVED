@@ -235,7 +235,7 @@ jobs:
               fi
 
               # Update URLs in ct script
-              sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
+              sed -i "s|https://raw.githubusercontent.com/aBat001795/ProxmoxVED/refs/heads/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
               sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
               sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" ct/${script_name}.sh
               sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" install/${script_name}-install.sh
@@ -245,7 +245,7 @@ jobs:
               cp ../frontend/public/json/${script_name}.json frontend/public/json/ 2>/dev/null || true
 
               # Update URLs in vm script
-              sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" vm/${script_name}.sh
+              sed -i "s|https://raw.githubusercontent.com/aBat001795/ProxmoxVED/refs/heads/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" vm/${script_name}.sh
               sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" vm/${script_name}.sh
               ;;
             addon)
