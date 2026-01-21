@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/hudikhq/hoodik
@@ -38,23 +38,23 @@ function update_script() {
     cp /opt/hoodik/.env /tmp/hoodik.env.bak
     msg_ok "Backed up Configuration"
 
-    msg_info "Updating ${APP} (Patience - this takes 15-20 minutes)"
+    msg_info "Updating Hoodik (Patience - this takes 15-20 minutes)"
     source ~/.cargo/env
     rm -rf /opt/hoodik
     fetch_and_deploy_gh_release "hoodik" "hudikhq/hoodik" "tarball" "latest" "/opt/hoodik"
     cd /opt/hoodik
-    
+
     msg_info "Building Frontend"
     $STD yarn install --frozen-lockfile
     $STD yarn wasm-pack
     $STD yarn web:build
     msg_ok "Built Frontend"
-    
+
     msg_info "Building Backend"
     $STD cargo build --release
     cp /opt/hoodik/target/release/hoodik /usr/local/bin/hoodik
     chmod +x /usr/local/bin/hoodik
-    msg_ok "Updated ${APP}"
+    msg_ok "Updated Hoodik"
 
     msg_info "Restoring Configuration"
     cp /tmp/hoodik.env.bak /opt/hoodik/.env
@@ -70,7 +70,6 @@ function update_script() {
     msg_info "Starting Services"
     systemctl start hoodik
     msg_ok "Started Services"
-
     msg_ok "Updated Successfully"
   fi
   exit
@@ -80,7 +79,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5443${CL}"

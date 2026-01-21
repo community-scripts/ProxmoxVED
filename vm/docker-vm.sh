@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: thost96 (thost96) | Co-Author: michelroegl-brunner | Refactored: MickLesk
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
@@ -777,4 +777,4 @@ if [ "$USE_CLOUD_INIT" = "yes" ]; then
 fi
 
 post_update_to_api "done" "none"
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"

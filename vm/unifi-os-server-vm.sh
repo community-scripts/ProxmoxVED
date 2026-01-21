@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
@@ -104,7 +104,76 @@ function cleanup_vmid() {
   if qm status $VMID &>/dev/null; then
     qm stop $VMID &>/dev/null
     qm destroy $VMID &>/dev/null
-  fi
+}
+
+function send_line_to_vm() {
+  local line="$1"
+  for ((i = 0; i < ${#line}; i++)); do
+    character=${line:i:1}
+    case $character in
+    " ") character="spc" ;;
+    "-") character="minus" ;;
+    "=") character="equal" ;;
+    ",") character="comma" ;;
+    ".") character="dot" ;;
+    "/") character="slash" ;;
+    "'") character="apostrophe" ;;
+    ";") character="semicolon" ;;
+    '\') character="backslash" ;;
+    '\`') character="grave_accent" ;;
+    "[") character="bracket_left" ;;
+    "]") character="bracket_right" ;;
+    "_") character="shift-minus" ;;
+    "+") character="shift-equal" ;;
+    "?") character="shift-slash" ;;
+    "<") character="shift-comma" ;;
+    ">") character="shift-dot" ;;
+    '"') character="shift-apostrophe" ;;
+    ":") character="shift-semicolon" ;;
+    "|") character="shift-backslash" ;;
+    "~") character="shift-grave_accent" ;;
+    "{") character="shift-bracket_left" ;;
+    "}") character="shift-bracket_right" ;;
+    "A") character="shift-a" ;;
+    "B") character="shift-b" ;;
+    "C") character="shift-c" ;;
+    "D") character="shift-d" ;;
+    "E") character="shift-e" ;;
+    "F") character="shift-f" ;;
+    "G") character="shift-g" ;;
+    "H") character="shift-h" ;;
+    "I") character="shift-i" ;;
+    "J") character="shift-j" ;;
+    "K") character="shift-k" ;;
+    "L") character="shift-l" ;;
+    "M") character="shift-m" ;;
+    "N") character="shift-n" ;;
+    "O") character="shift-o" ;;
+    "P") character="shift-p" ;;
+    "Q") character="shift-q" ;;
+    "R") character="shift-r" ;;
+    "S") character="shift-s" ;;
+    "T") character="shift-t" ;;
+    "U") character="shift-u" ;;
+    "V") character="shift-v" ;;
+    "W") character="shift-w" ;;
+    "X") character="shift-x" ;;
+    "Y") character="shift-y" ;;
+    "Z") character="shift-z" ;;
+    "!") character="shift-1" ;;
+    "@") character="shift-2" ;;
+    "#") character="shift-3" ;;
+    '$') character="shift-4" ;;
+    "%") character="shift-5" ;;
+    "^") character="shift-6" ;;
+    "&") character="shift-7" ;;
+    "*") character="shift-8" ;;
+    "(") character="shift-9" ;;
+    ")") character="shift-0" ;;
+    esac
+    qm sendkey $VMID "$character"
+  done
+  qm sendkey $VMID ret
 }
 
 function cleanup() {
@@ -143,7 +212,6 @@ function check_root() {
     echo -e "\nExiting..."
     sleep 2
     exit
-  fi
 }
 
 # This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
@@ -160,8 +228,6 @@ pve_check() {
       msg_error "Supported: Proxmox VE version 8.0 – 8.9"
       exit 1
     fi
-    return 0
-  fi
 
   # Check for Proxmox VE 9.x: allow 9.0–9.1
   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
@@ -171,8 +237,6 @@ pve_check() {
       msg_error "Supported: Proxmox VE version 9.0 – 9.1"
       exit 1
     fi
-    return 0
-  fi
 
   # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
@@ -187,7 +251,6 @@ function arch_check() {
     echo -e "Exiting..."
     sleep 2
     exit
-  fi
 }
 
 function ssh_check() {
@@ -200,7 +263,6 @@ function ssh_check() {
         exit
       fi
     fi
-  fi
 }
 
 function exit-script() {
@@ -229,23 +291,22 @@ function select_os() {
       OS_DISPLAY="Ubuntu 24.04 LTS"
       ;;
     esac
-    echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}${OS_DISPLAY}${CL}"
+    #echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}${OS_DISPLAY}${CL}"
   else
     exit-script
-  fi
 }
 
 function select_cloud_init() {
   # UniFi OS Server ALWAYS requires Cloud-Init for automated installation
   USE_CLOUD_INIT="yes"
-  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes (required for UniFi OS)${CL}"
+  #echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}yes (required for UniFi OS)${CL}"
 }
 
 function get_image_url() {
   local arch=$(dpkg --print-architecture)
   case $OS_TYPE in
   debian)
-    # Always use generic (Cloud-Init) variant for UniFi OS
+    # Always use <ic (Cloud-Init) variant for UniFi OS
     echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-generic-${arch}.qcow2"
     ;;
   ubuntu)
@@ -271,7 +332,7 @@ function default_settings() {
   HN="unifi-server-os"
   CPU_TYPE=" -cpu host"
   CORE_COUNT="2"
-  RAM_SIZE="4096"
+  RAM_SIZE="6144"
   BRG="vmbr0"
   MAC="$GEN_MAC"
   VLAN=""
@@ -303,7 +364,7 @@ function advanced_settings() {
   # Cloud-Init Selection - ALWAYS ask
   select_cloud_init
 
-  [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
+  VMID=$(get_valid_nextid)
   while true; do
     if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 $VMID --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
       if [ -z "$VMID" ]; then
@@ -321,22 +382,22 @@ function advanced_settings() {
     fi
   done
 
-  if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Machine Type" 10 58 2 \
+  MACH="q35"
+  if MACH_RESULT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Machine Type" 10 58 2 \
     "q35" "Q35 (Modern, PCIe, UEFI)" ON \
     "i440fx" "i440fx (Legacy)" OFF \
     3>&1 1>&2 2>&3); then
-    if [ "$MACH" = "q35" ]; then
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
-      FORMAT=""
-      MACHINE=" -machine q35"
-    else
-      echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx (Legacy)${CL}"
-      FORMAT=",efitype=4m"
-      MACHINE=""
-    fi
+    MACH="$MACH_RESULT"
   else
     exit-script
-  fi
+  if [ "$MACH" = "q35" ]; then
+    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
+    FORMAT=""
+    MACHINE=" -machine q35"
+  else
+    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx (Legacy)${CL}"
+    FORMAT=",efitype=4m"
+    MACHINE=""
 
   if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
@@ -351,7 +412,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if DISK_CACHE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DISK CACHE" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
     "0" "None (Default)" ON \
@@ -366,7 +426,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 unifi-os-server --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
@@ -378,7 +437,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose CPU Model" --cancel-button Exit-Script 10 58 2 \
     "Host" "Host (Faster, recommended)" ON \
@@ -396,7 +454,6 @@ function advanced_settings() {
     esac
   else
     exit-script
-  fi
 
   if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $CORE_COUNT ]; then
@@ -407,7 +464,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 2048 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $RAM_SIZE ]; then
@@ -418,7 +474,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $BRG ]; then
@@ -429,7 +484,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if MAC1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a MAC Address" 8 58 $GEN_MAC --title "MAC ADDRESS" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $MAC1 ]; then
@@ -441,7 +495,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if VLAN1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Vlan(leave blank for default)" 8 58 --title "VLAN" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VLAN1 ]; then
@@ -454,7 +507,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if MTU1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Interface MTU Size (leave blank for default)" 8 58 --title "MTU SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $MTU1 ]; then
@@ -467,7 +519,6 @@ function advanced_settings() {
     fi
   else
     exit-script
-  fi
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "START VIRTUAL MACHINE" --yesno "Start VM when completed?" 10 58); then
     echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
@@ -475,7 +526,6 @@ function advanced_settings() {
   else
     echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}no${CL}"
     START_VM="no"
-  fi
 
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Unifi OS VM?" --no-button Do-Over 10 58); then
     echo -e "${CREATING}${BOLD}${DGN}Creating a Unifi OS VM using the above advanced settings${CL}"
@@ -483,7 +533,6 @@ function advanced_settings() {
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
     advanced_settings
-  fi
 }
 
 function start_script() {
@@ -495,25 +544,50 @@ function start_script() {
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
     advanced_settings
-  fi
 }
 check_root
 arch_check
 pve_check
 ssh_check
+
 start_script
 post_to_api_vm
 
+msg_info "Checking system resources"
+SYSTEM_RAM_GB=$(grep MemTotal /proc/meminfo | awk '{printf "%.0f", $2 / 1024 / 1024}')
+SYSTEM_SWAP_GB=$(grep SwapTotal /proc/meminfo | awk '{printf "%.0f", $2 / 1024 / 1024}')
+SYSTEM_FREE_DISK_GB=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
+if [[ ${SYSTEM_RAM_GB} -lt 4 ]]; then
+  msg_error "Warning: Less than 4GB RAM detected (${SYSTEM_RAM_GB}GB). Install may be slow."
+  sleep 3
+fi
+if [[ ${SYSTEM_FREE_DISK_GB} -lt 10 ]]; then
+  msg_error "Warning: Less than 10GB free disk detected. Install may fail."
+  sleep 3
+fi
+msg_ok "System resources: ${SYSTEM_RAM_GB}GB RAM, ${SYSTEM_FREE_DISK_GB}GB free disk"
+
+if command -v ufw &>/dev/null; then
+  if ufw status verbose | grep -q "Status: active"; then
+    msg_info "Setting up firewall rules for UniFi OS Server ports"
+    ufw allow 11443/tcp 2>/dev/null
+    ufw allow 8080/tcp 2>/dev/null
+    ufw allow 3478/tcp 2>/dev/null
+    ufw allow 3478/udp 2>/dev/null
+    msg_ok "Firewall rules configured"
+fi
+
 msg_info "Validating Storage"
+STORAGE_MENU=()
+MSG_MAX_LENGTH=0
 while read -r line; do
   TAG=$(echo $line | awk '{print $1}')
   TYPE=$(echo $line | awk '{printf "%-10s", $2}')
-  FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f | awk '{printf( "%9sB", $6)}')
+  FREE=$(echo $line | numfmt --field 4-6 --from-unit=K --to=iec --format %.2f 2>/dev/null || echo "N/A" | awk '{printf( "%9sB", $6)}')
   ITEM="  Type: $TYPE Free: $FREE "
   OFFSET=2
-  if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-} ]]; then
+  if [[ $((${#ITEM} + $OFFSET)) -gt ${MSG_MAX_LENGTH:-0} ]]; then
     MSG_MAX_LENGTH=$((${#ITEM} + $OFFSET))
-  fi
   STORAGE_MENU+=("$TAG" "$ITEM" "OFF")
 done < <(pvesm status -content images | awk 'NR>1')
 VALID=$(pvesm status -content images | awk 'NR>1')
@@ -679,140 +753,98 @@ if [ "$START_VM" == "yes" ]; then
   qm start $VMID
   msg_ok "Started UniFi OS VM"
 
-  msg_info "Waiting for VM to boot and Cloud-Init to complete (60-90 seconds)"
-  sleep 60
+  msg_info "Waiting for VM to boot and Cloud-Init to complete (this takes ~90 seconds)"
+  sleep 90
   msg_ok "VM boot complete"
 
+  # Login via serial console
+  msg_info "Logging into VM via serial console"
+  send_line_to_vm "root"
+  sleep 2
+  send_line_to_vm "${CLOUDINIT_PASSWORD}"
+  sleep 3
+  msg_ok "Logged into VM"
+
+  # Step 1: Update and install Podman
+  msg_info "Installing Podman and dependencies (this takes 2-3 minutes)"
+  send_line_to_vm "export DEBIAN_FRONTEND=noninteractive"
+  sleep 1
+  send_line_to_vm "apt-get update -qq"
+  sleep 30
+  send_line_to_vm "apt-get install -y podman uidmap slirp4netns curl wget -qq"
+  sleep 120
+  msg_ok "Podman installed"
+
+  # Setup dynamic swap file based on available disk space
+  msg_info "Setting up swap file"
+  send_line_to_vm "export FREE_DISK_GB=\$(df -BG / | awk 'NR==2 {print \$4}' | sed 's/G//'); if [[ \${FREE_DISK_GB} -ge 20 ]]; then SWAP_SIZE=2048; elif [[ \${FREE_DISK_GB} -ge 10 ]]; then SWAP_SIZE=1024; elif [[ \${FREE_DISK_GB} -ge 5 ]]; then SWAP_SIZE=512; else SWAP_SIZE=256; fi; echo \"Creating swap file: \${SWAP_SIZE}MB\""
+  sleep 1
+  send_line_to_vm "fallocate -l \${SWAP_SIZE}M /swapfile"
+  sleep 2
+  send_line_to_vm "chmod 600 /swapfile"
+  sleep 1
+  send_line_to_vm "mkswap /swapfile"
+  sleep 2
+  send_line_to_vm "swapon /swapfile"
+  sleep 1
+  send_line_to_vm "echo '/swapfile none swap sw 0 0' >> /etc/fstab"
+  sleep 1
+  msg_ok "Swap file created (size based on available disk space)"
+
+  # Step 2: Download UniFi OS Server installer
+  msg_info "Downloading UniFi OS Server ${UOS_VERSION}"
+  send_line_to_vm "cd /opt"
+  sleep 1
+  send_line_to_vm "wget -q ${UOS_URL} -O unifi-os-server.bin"
+  sleep 60
+  send_line_to_vm "chmod +x unifi-os-server.bin"
+  sleep 2
+  msg_ok "Downloaded UniFi OS Server installer"
+
+  # Step 3: Install UniFi OS Server (with auto-yes)
+  msg_info "Installing UniFi OS Server (this takes 3-5 minutes)"
+  send_line_to_vm "echo y | ./unifi-os-server.bin"
+  sleep 300
+  msg_ok "UniFi OS Server installed"
+
+  # Step 4: Start Guest Agent for IP detection
+  msg_info "Starting QEMU Guest Agent"
+  send_line_to_vm "systemctl start qemu-guest-agent"
+  sleep 3
+  msg_ok "Guest Agent started"
+
+  # Logout from VM console
+  send_line_to_vm "exit"
+  sleep 2
+
+  # Get IP from outside via Guest Agent
   msg_info "Detecting VM IP address"
   VM_IP=""
   for i in {1..30}; do
-    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[1]["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | grep -v "127.0.0.1" | head -1 || echo "")
-
+    VM_IP=$(qm guest cmd $VMID network-get-interfaces 2>/dev/null | jq -r '.[] | select(.name != "lo") | .["ip-addresses"][]? | select(.["ip-address-type"] == "ipv4") | .["ip-address"]' 2>/dev/null | head -1 || echo "")
     if [ -n "$VM_IP" ]; then
-      msg_ok "VM IP Address: ${VM_IP}"
       break
     fi
-    sleep 2
+    sleep 1
   done
 
-  if [ -z "$VM_IP" ]; then
-    msg_error "Could not detect VM IP address"
-    echo -e "${TAB}${INFO}${YW}Use Proxmox Console to login with Cloud-Init credentials${CL}"
-    echo -e "${TAB}${INFO}${YW}User: ${BGN}${CLOUDINIT_USER:-root}${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
-    exit 1
-  fi
-
-  # Wait for SSH to be ready
-  msg_info "Waiting for SSH to be ready"
-  SSH_READY=0
-  for i in {1..30}; do
-    if timeout 5 sshpass -p "${CLOUDINIT_PASSWORD}" ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-      "${CLOUDINIT_USER:-root}@${VM_IP}" "echo 'SSH Ready'" >/dev/null 2>&1; then
-      SSH_READY=1
-      msg_ok "SSH connection ready"
-      break
-    fi
-    sleep 2
-  done
-
-  if [ $SSH_READY -eq 0 ]; then
-    msg_error "SSH connection failed"
-    echo -e "${TAB}${INFO}${YW}Manual login - User: ${BGN}${CLOUDINIT_USER:-root}${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
-    exit 1
-  fi
-
-  # Check if sshpass is installed
-  if ! command -v sshpass &>/dev/null; then
-    msg_info "Installing sshpass for automated SSH"
-    apt-get update -qq >/dev/null 2>&1
-    apt-get install -y sshpass -qq >/dev/null 2>&1
-  fi
-
-  # Execute UniFi OS installation directly via SSH
-  msg_info "Installing UniFi OS Server ${UOS_VERSION} (takes 4-6 minutes)"
-
-  # Create installation script
-  INSTALL_SCRIPT=$(
-    cat <<'EOFINSTALL'
-#!/bin/bash
-set -e
-export DEBIAN_FRONTEND=noninteractive
-
-echo "[1/5] Updating system packages..."
-apt-get update -qq
-apt-get install -y curl wget ca-certificates podman uidmap slirp4netns iptables -qq
-
-echo "[2/5] Configuring Podman..."
-loginctl enable-linger root
-
-echo "[3/5] Downloading UniFi OS Server installer..."
-cd /root
-curl -fsSL "UNIFI_URL" -o unifi-installer.bin
-chmod +x unifi-installer.bin
-
-echo "[4/5] Installing UniFi OS Server (this takes 3-5 minutes)..."
-./unifi-installer.bin install
-
-echo "[5/5] Starting UniFi OS Server..."
-sleep 15
-
-if systemctl list-unit-files | grep -q unifi-os-server; then
-  systemctl enable unifi-os-server
-  systemctl start unifi-os-server
-  sleep 10
-
-  if systemctl is-active --quiet unifi-os-server; then
-    echo "✓ UniFi OS Server is running"
+  if [ -n "$VM_IP" ]; then
+    msg_ok "VM IP Address: ${VM_IP}"
   else
-    echo "⚠ Service status:"
-    systemctl status unifi-os-server --no-pager || true
-  fi
-fi
-
-echo "Installation completed!"
-EOFINSTALL
-  )
-
-  # Replace URL placeholder
-  INSTALL_SCRIPT="${INSTALL_SCRIPT//UNIFI_URL/$UOS_URL}"
-
-  # Execute installation via SSH (with output streaming)
-  if sshpass -p "${CLOUDINIT_PASSWORD}" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-    "${CLOUDINIT_USER:-root}@${VM_IP}" "bash -s" <<<"$INSTALL_SCRIPT" 2>&1 | while IFS= read -r line; do
-    echo -e "${TAB}${DGN}${line}${CL}"
-  done; then
-    msg_ok "UniFi OS Server installed successfully"
-  else
-    msg_error "Installation failed"
-    echo -e "${TAB}${INFO}${YW}Check logs: ${BL}ssh ${CLOUDINIT_USER:-root}@${VM_IP}${CL}"
-    exit 1
-  fi
-
-  # Wait for UniFi OS web interface
-  msg_info "Waiting for UniFi OS web interface (port 11443)"
-  PORT_OPEN=0
-  for i in {1..60}; do
-    if timeout 2 bash -c ">/dev/tcp/${VM_IP}/11443" 2>/dev/null; then
-      PORT_OPEN=1
-      msg_ok "UniFi OS Server web interface is ready"
-      break
-    fi
-    sleep 2
-  done
+    msg_info "Could not detect IP - check VM console"
 
   echo ""
-  if [ $PORT_OPEN -eq 1 ]; then
-    echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ UniFi OS Server is ready!${CL}"
+  echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ UniFi OS Server installation complete!${CL}"
+  if [ -n "$VM_IP" ]; then
     echo -e "${TAB}${GATEWAY}${BOLD}${GN}✓ Access at: ${BGN}https://${VM_IP}:11443${CL}"
   else
-    echo -e "${TAB}${INFO}${YW}UniFi OS is installed but web interface not yet available${CL}"
-    echo -e "${TAB}${INFO}${YW}Access at: ${BGN}https://${VM_IP}:11443${CL} ${YW}(may take 1-2 more minutes)${CL}"
-  fi
-
-  echo -e "${TAB}${INFO}${DGN}SSH Access: ${BL}ssh ${CLOUDINIT_USER:-root}@${VM_IP}${CL}"
-  echo -e "${TAB}${INFO}${DGN}Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
+    echo -e "${TAB}${INFO}${YW}Access via: ${BGN}https://<VM-IP>:11443${CL}"
+  echo -e "${TAB}${INFO}${DGN}Console login - User: ${BGN}root${CL} / Password: ${BGN}${CLOUDINIT_PASSWORD}${CL}"
+  echo -e "${TAB}${INFO}${YW}Note: UniFi OS may take 1-2 more minutes to fully start${CL}"
   echo ""
 fi
 
 post_update_to_api "done" "none"
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
+
+

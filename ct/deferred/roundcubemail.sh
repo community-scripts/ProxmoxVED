@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source:
@@ -59,6 +59,6 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${APP} should be reachable by going to the following URL.
          ${BL}http://${IP}/installer ${CL} \n"

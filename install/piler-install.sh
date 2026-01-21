@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.mailpiler.org/
@@ -22,49 +22,41 @@ $STD apt install -y \
   poppler-utils \
   unrtf \
   tnef \
-  clamav \
-  clamav-daemon \
   memcached \
   sysstat \
   python3 \
-  python3-mysqldb
+  python3-mysqldb \
+  ca-certificates \
+  gnupg
 msg_ok "Installed Dependencies"
 
 import_local_ip
 setup_mariadb
-MARIADB_DB_NAME="piler" MARIADB_DB_USER="piler" setup_mysql_db
-PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="ldap,gd,memcached,pdo,mysql,curl,zip" setup_php
+MARIADB_DB_NAME="piler" MARIADB_DB_USER="piler" setup_mariadb_db
+PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="ldap,gd,memcached,pdo,mysql,curl,zip" setup_php
 
 msg_info "Installing Manticore Search"
-curl -fsSL https://repo.manticoresearch.com/manticore-repo.noarch.deb -o /tmp/manticore-repo.deb
-$STD dpkg -i /tmp/manticore-repo.deb
+cd /tmp
+wget -q https://repo.manticoresearch.com/manticore-repo.noarch.deb
+$STD dpkg -i /tmp/manticore-repo.noarch.deb
 $STD apt update
-$STD apt install -y manticore manticore-extra
-rm -f /tmp/manticore-repo.deb
+$STD apt install -y manticore manticore-columnar-lib manticore-extra
+rm -f /tmp/manticore-repo.noarch.deb
+$STD systemctl stop manticore
+$STD systemctl disable manticore
 msg_ok "Installed Manticore Search"
 
 msg_info "Installing Piler"
-VERSION="1.4.8"
-cd /tmp
-curl -fsSL "https://github.com/jsuto/piler/releases/download/piler-${VERSION}/piler_${VERSION}-bookworm_amd64.deb" -o piler.deb
-curl -fsSL "https://github.com/jsuto/piler/releases/download/piler-${VERSION}/piler-webui_${VERSION}-bookworm_amd64.deb" -o piler-webui.deb
-
-$STD dpkg -i piler.deb
-$STD apt-get -f install -y
-$STD dpkg -i piler-webui.deb
-$STD apt-get -f install -y
-
-rm -f piler.deb piler-webui.deb
-msg_ok "Installed Piler v${VERSION}"
+fetch_and_deploy_gh_release "piler" "jsuto/piler" "binary" "latest" "/tmp" "piler_*-noble-*_amd64.deb"
+fetch_and_deploy_gh_release "piler-webui" "jsuto/piler" "binary" "latest" "/tmp" "piler-webui_*-noble-*_amd64.deb"
+msg_ok "Installed Piler"
 
 msg_info "Configuring Piler Database"
-cd /usr/local/share/piler
-mysql -u root "${MARIADB_DB_NAME}" <db-mysql.sql
+$STD mariadb -u root "${MARIADB_DB_NAME}" </usr/share/piler/db-mysql.sql 2>/dev/null || true
 msg_ok "Configured Piler Database"
 
 msg_info "Configuring Piler"
 PILER_KEY=$(openssl rand -hex 16)
-
 cat <<EOF >/etc/piler/piler.conf
 hostid=piler.${LOCAL_IP}.nip.io
 update_counters_to_memcached=1
@@ -87,9 +79,6 @@ key=${PILER_KEY}
 iv=0123456789ABCDEF
 
 memcached_servers=127.0.0.1
-
-enable_clamav=1
-clamd_socket=/var/run/clamav/clamd.ctl
 
 spam_header_line=X-Spam-Status: Yes
 
@@ -157,8 +146,8 @@ msg_info "Creating Piler Service"
 cat <<EOF >/etc/systemd/system/piler.service
 [Unit]
 Description=Piler Email Archiving
-After=network.target mysql.service manticore.service
-Requires=mysql.service manticore.service
+After=network.target mysql.service manticore.service memcached.service
+Requires=mysql.service
 
 [Service]
 Type=forking
@@ -176,23 +165,22 @@ EOF
 $STD systemctl daemon-reload
 $STD systemctl enable --now manticore
 $STD systemctl enable --now memcached
-$STD systemctl enable --now clamav-daemon
 $STD systemctl enable --now piler
 msg_ok "Created Piler Service"
 
 msg_info "Configuring PHP-FPM Pool"
-cp /etc/php/8.4/fpm/pool.d/www.conf /etc/php/8.4/fpm/pool.d/piler.conf
-sed -i 's/\[www\]/[piler]/' /etc/php/8.4/fpm/pool.d/piler.conf
-sed -i 's/^user = www-data/user = piler/' /etc/php/8.4/fpm/pool.d/piler.conf
-sed -i 's/^group = www-data/group = piler/' /etc/php/8.4/fpm/pool.d/piler.conf
-sed -i 's|^listen = .*|listen = /run/php/php8.4-fpm-piler.sock|' /etc/php/8.4/fpm/pool.d/piler.conf
-$STD systemctl restart php8.4-fpm
+cp /etc/php/8.3/fpm/pool.d/www.conf /etc/php/8.3/fpm/pool.d/piler.conf
+sed -i 's/\[www\]/[piler]/' /etc/php/8.3/fpm/pool.d/piler.conf
+sed -i 's/^user = www-data/user = piler/' /etc/php/8.3/fpm/pool.d/piler.conf
+sed -i 's/^group = www-data/group = piler/' /etc/php/8.3/fpm/pool.d/piler.conf
+sed -i 's|^listen = .*|listen = /run/php/php8.3-fpm-piler.sock|' /etc/php/8.3/fpm/pool.d/piler.conf
+$STD systemctl restart php8.3-fpm
 msg_ok "Configured PHP-FPM Pool"
 
 msg_info "Configuring Piler Web GUI"
-cd /var/www/piler
-
-cat <<EOF >/var/www/piler/config-site.php
+# Check if config-site.php already exists (created by .deb package)
+if [ ! -f /var/www/piler/config-site.php ]; then
+  cat <<EOF >/var/www/piler/config-site.php
 <?php
 \$config['SITE_NAME'] = 'Piler Email Archive';
 \$config['SITE_URL'] = 'http://${LOCAL_IP}';
@@ -237,6 +225,7 @@ cat <<EOF >/var/www/piler/config-site.php
 \$config['HEADER_LINE_TO_HIDE'] = 'X-Envelope-To:';
 ?>
 EOF
+fi
 
 chown -R piler:piler /var/www/piler
 chmod 755 /var/www/piler
@@ -260,7 +249,7 @@ server {
     }
 
     location ~ \.php$ {
-        fastcgi_pass unix:/run/php/php8.4-fpm-piler.sock;
+        fastcgi_pass unix:/run/php/php8.3-fpm-piler.sock;
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
         include fastcgi_params;

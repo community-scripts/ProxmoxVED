@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: vhsdream
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://opencloud.eu
@@ -77,6 +77,18 @@ OC_CONFIG_DIR=${CONFIG_DIR}
 OC_BASE_DATA_PATH=${DATA_DIR}
 STORAGE_SYSTEM_OC_ROOT=${DATA_DIR}/storage/metadata
 
+## Web
+WEB_ASSET_CORE_PATH=${CONFIG_DIR}/web/assets
+WEB_ASSET_APPS_PATH=${CONFIG_DIR}/web/assets/apps
+WEB_UI_CONFIG_FILE=${CONFIG_DIR}/web/config.json
+# WEB_ASSET_THEMES_PATH=${CONFIG_DIR}/web/assets/themes
+# WEB_UI_THEME_PATH=
+
+## Frontend
+FRONTEND_DISABLE_RADICALE=true
+FRONTEND_GROUPWARE_ENABLED=false
+GRAPH_INCLUDE_OCM_SHAREES=true
+
 ## Proxy
 PROXY_TLS=false
 PROXY_CSP_CONFIG_FILE_LOCATION=${CONFIG_DIR}/csp.yaml
@@ -90,9 +102,6 @@ COLLABORATION_APP_INSECURE=false
 COLLABORATION_HTTP_ADDR=0.0.0.0:9300
 COLLABORATION_WOPI_SRC=https://${WOPI_HOST}
 COLLABORATION_JWT_SECRET=
-
-## Applications
-WEB_ASSET_APPS_PATH=${CONFIG_DIR}/assets/apps
 
 ## Notifications - Email settings
 # NOTIFICATIONS_SMTP_HOST=

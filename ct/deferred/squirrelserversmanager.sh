@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (Canbiz)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source:
@@ -52,6 +52,6 @@ msg_info "Setting Container to Normal Resources"
 pct set $CTID -memory 1024
 pct set $CTID -cores 1
 msg_ok "Set Container to Normal Resources"
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${APP} should be reachable by going to the following URL.
          ${BL}http://${IP}:80${CL} \n"

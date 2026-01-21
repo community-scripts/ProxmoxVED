@@ -1,0 +1,44 @@
+{
+    "name": "AFFiNE",
+    "slug": "affine",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-01-18",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3010,
+    "documentation": "https://affine.pro/docs",
+    "website": "https://affine.pro/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/affine.webp",
+    "config_path": "/opt/affine/.env",
+    "description": "Open-source, privacy-first workspace for notes, docs, and knowledge management with offline-first design and end-to-end encryption.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/affine.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 12288,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Initial build takes 20-30 minutes due to native module compilation.",
+            "type": "info"
+        },
+        {
+            "text": "Requires at least 8GB RAM for building and 4GB for runtime.",
+            "type": "warning"
+        }
+    ]
+}

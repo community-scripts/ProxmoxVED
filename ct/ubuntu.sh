@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 # source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/github.func)
-# Copyright (c) 2021-2025 tteck
+# Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://ubuntu.com/
 
-echo -e "Loading..."
 APP="Ubuntu"
 var_tags="${var_tags:-os}"
 var_cpu="${var_cpu:-1}"
@@ -29,10 +28,11 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-    msg_info "Updating ${APP} LXC"
+    msg_info "Updating Ubuntu LXC"
     $STD apt-get update
     $STD apt-get -y upgrade
-    msg_ok "Updated ${APP} LXC"
+    msg_ok "Updated Ubuntu LXC"
+    msg_ok "Updated successfully!"
     exit
 }
 
@@ -40,5 +40,5 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"

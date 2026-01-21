@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: vhsdream
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/vikramsoni2/nextExplorer
@@ -69,6 +69,8 @@ AUTH_MODE=both
 SESSION_SECRET="${SECRET}"
 # AUTH_MAX_FAILED=
 # AUTH_LOCK_MINUTES=
+# AUTH_USER_EMAIL=
+# AUTH_USER_PASSWORD=
 
 # OIDC_ENABLED=
 # OIDC_ISSUER=
@@ -91,6 +93,12 @@ SESSION_SECRET="${SECRET}"
 # ONLYOFFICE_FORCE_SAVE=
 # ONLYOFFICE_FILE_EXTENSIONS=
 
+# COLLABORA_URL=
+# COLLABORA_DISCOVERY_URL=
+# COLLABORA_SECRET=
+# COLLABORA_LANG=
+# COLLABORA_FILE_EXTENSIONS=
+
 SHOW_VOLUME_USAGE=true
 # USER_DIR_ENABLED=
 # SKIP_HOME=
@@ -111,8 +119,9 @@ SHARES_ENABLED=true
 # SHARES_ALLOW_ANONYMOUS=true
 EOF
 chmod 600 /etc/nextExplorer/.env
-$STD useradd -U -s /bin/bash -m -d /home/explorer explorer
+$STD useradd -U -s /usr/sbin/nologin -m -d /home/explorer explorer
 chown -R explorer:explorer "$APP_DIR" /etc/nextExplorer
+sed -i "\|version|s|$(jq -cr '.version' ${APP_DIR}/package.json)|$(cat ~/.nextexplorer)|" "$APP_DIR"/package.json
 msg_ok "Configured nextExplorer"
 
 msg_info "Creating nextExplorer Service"
@@ -123,6 +132,8 @@ After=network.target
 
 [Service]
 Type=simple
+User=explorer
+Group=explorer
 WorkingDirectory=/opt/nextExplorer/app
 EnvironmentFile=/etc/nextExplorer/.env
 ExecStart=/usr/bin/node ./src/app.js

@@ -1,0 +1,82 @@
+name: Cleanup Branches (Merged or Closed)
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # daily at 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Delete merged or closed branches older than 7 days
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          CUTOFF_DATE=$(date -u -d "7 days ago" +%s)
+          echo "Cutoff timestamp: $CUTOFF_DATE"
+
+          # Get all existing branches (except protected ones)
+          echo "Fetching existing branches..."
+          EXISTING_BRANCHES=$(gh api repos/${{ github.repository }}/git/matching-refs/heads \
+            --jq '.[].ref | ltrimstr("refs/heads/")' | grep -vE '^(main|master|develop)$' || true)
+
+          if [ -z "$EXISTING_BRANCHES" ]; then
+            echo "No branches to check."
+            exit 0
+          fi
+
+          echo "Found $(echo "$EXISTING_BRANCHES" | wc -l) branches to check."
+
+          # Get branches from merged/closed PRs older than 7 days
+          echo "Fetching closed/merged PRs older than 7 days..."
+          OLD_CLOSED_PR_BRANCHES=$(gh pr list \
+            --state all \
+            --base main \
+            --json state,mergedAt,closedAt,headRefName \
+            --limit 500 |
+          jq -r --arg cutoff "$CUTOFF_DATE" '.[] |
+            select(.state == "MERGED" or .state == "CLOSED") |
+            select(((.mergedAt // .closedAt) | fromdateiso8601) < ($cutoff | tonumber)) |
+            .headRefName' | sort -u)
+
+          # Get branches with open PRs (never delete these)
+          echo "Fetching branches with open PRs..."
+          OPEN_PR_BRANCHES=$(gh pr list \
+            --state open \
+            --base main \
+            --json headRefName \
+            --limit 500 |
+          jq -r '.[].headRefName' | sort -u)
+
+          # Delete only branches that:
+          # 1. Exist in repo
+          # 2. Have a merged/closed PR older than 7 days
+          # 3. Do NOT have an open PR
+          for branch in $EXISTING_BRANCHES; do
+            # Skip if branch has an open PR
+            if echo "$OPEN_PR_BRANCHES" | grep -qx "$branch"; then
+              echo "Skipping (open PR): $branch"
+              continue
+            fi
+            # Only delete if branch has a closed/merged PR
+            if echo "$OLD_CLOSED_PR_BRANCHES" | grep -qx "$branch"; then
+              echo "Deleting branch: $branch (PR was merged/closed >7 days ago)"
+              gh api -X DELETE repos/${{ github.repository }}/git/refs/heads/$branch \
+                || echo "Failed to delete branch $branch"
+            else
+              echo "Skipping (no closed PR found): $branch"
+            fi
+          done
+
+          echo "Cleanup complete."

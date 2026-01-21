@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/freepbx/misc/build.func)
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: Arian Nasr (arian-nasr)
 # Updated by: Javier Pastor (vsc55)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -30,16 +30,16 @@ function update_script() {
         exit
     fi
 
-    msg_info "Updating $APP LXC"
+    msg_info "Updating FreePBX LXC"
     $STD apt-get update
     $STD apt-get -y upgrade
-    msg_ok "Updated $APP LXC"
+    msg_ok "Updated FreePBX LXC"
 
-    msg_info "Updating $APP Modules"
+    msg_info "Updating FreePBX Modules"
     $STD fwconsole ma updateall
     $STD fwconsole reload
-    msg_ok "Updated $APP Modules"
-
+    msg_ok "Updated FreePBX Modules"
+    msg_ok "Updated successfully!"
     exit
 }
 
@@ -61,7 +61,7 @@ fi
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"

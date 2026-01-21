@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: jeroenzwart
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -10,10 +10,10 @@ function header_info() {
   cat <<"EOF"
      ______                     __          __   _  ________
    / ____/  _____  _______  __/ /____     / /  | |/ / ____/
-  / __/ | |/_/ _ \/ ___/ / / / __/ _ \   / /   |   / /     
- / /____>  </  __/ /__/ /_/ / /_/  __/  / /___/   / /___   
-/_____/_/|_|\___/\___/\__,_/\__/\___/  /_____/_/|_\____/   
-                                                           
+  / __/ | |/_/ _ \/ ___/ / / / __/ _ \   / /   |   / /
+ / /____>  </  __/ /__/ /_/ / /_/  __/  / /___/   / /___
+/_____/_/|_|\___/\___/\__,_/\__/\___/  /_____/_/|_\____/
+
 EOF
 }
 set -eEuo pipefail
