@@ -36,15 +36,10 @@ $STD pnpm --filter "@papra/app-server..." run build
 msg_ok "Set up Papra"
 
 msg_info "Configuring Papra"
-CONTAINER_IP=$(hostname -I | awk '{print $1}')
 AUTH_SECRET=$(openssl rand -hex 32)
-
 mkdir -p /opt/papra/app-data/db
 mkdir -p /opt/papra/app-data/documents
-
-# Link client build to server public dir
 ln -sf /opt/papra/apps/papra-client/dist /opt/papra/apps/papra-server/public
-
 cat >/opt/papra/.env <<EOF
 NODE_ENV=production
 SERVER_SERVE_PUBLIC_DIR=true
@@ -63,7 +58,7 @@ BETTER_AUTH_SECRET=${AUTH_SECRET}
 BETTER_AUTH_TELEMETRY=0
 
 # Application Configuration
-CLIENT_BASE_URL=http://${CONTAINER_IP}:1221
+CLIENT_BASE_URL=http://${LOCAL_IP}:1221
 
 # Email Configuration (dry-run mode)
 EMAILS_DRY_RUN=true
@@ -98,7 +93,6 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable -q --now papra
-echo "${RELEASE}" >/opt/Papra_version.txt
 msg_ok "Created and Started Papra Service"
 
 motd_ssh
