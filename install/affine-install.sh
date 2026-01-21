@@ -54,40 +54,32 @@ SECRET_KEY=${SECRET_KEY}
 EOF
 msg_ok "Configured Environment"
 
-msg_info "Building AFFiNE (this will take 20-30 minutes)"
+msg_info "Building AFFiNE"
 cd /opt/affine
 source /root/.profile
 export PATH="/root/.cargo/bin:$PATH"
 set -a && source /opt/affine/.env && set +a
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 export VITE_CORE_COMMIT_SHA="v0.25.7"
-
-# Initialize git repo (required for build process)
-git init -q
-git config user.email "build@local"
-git config user.name "Build"
-git add -A
-git commit -q -m "initial"
-
-# Force Turbo to run sequentially
+# # Initialize git repo (required for build process)
+# git init -q
+# git config user.email "build@local"
+# git config user.name "Build"
+# git add -A
+# git commit -q -m "initial"
 mkdir -p /opt/affine/.turbo
 cat <<TURBO >/opt/affine/.turbo/config.json
 {
   "concurrency": 1
 }
 TURBO
-
 $STD corepack enable
 $STD corepack prepare yarn@4.12.0 --activate
 $STD yarn config set enableTelemetry 0
 export NODE_OPTIONS="--max-old-space-size=4096"
 export TSC_COMPILE_ON_ERROR=true
-
 $STD yarn install
-
-# Make TypeScript available via npx/yarn exec
 $STD npm install -g typescript
-
 $STD yarn affine @affine/native build
 $STD yarn affine @affine/server-native build
 
@@ -100,25 +92,17 @@ ln -sf /opt/affine/packages/backend/native/server-native.node \
   /opt/affine/packages/backend/native/server-native.armv7.node
 
 $STD yarn affine init
-
-msg_info "Building packages sequentially (this takes a while)"
 $STD yarn affine build -p @affine/reader
 $STD yarn affine build -p @affine/server
-
-# Web build needs more memory
 export NODE_OPTIONS="--max-old-space-size=4096"
 $STD yarn affine build -p @affine/web
-
-# Copy web assets to server static directory
 mkdir -p /opt/affine/packages/backend/server/static
 cp -r /opt/affine/packages/frontend/apps/web/dist/* /opt/affine/packages/backend/server/static/
-
 # Create empty mobile manifest (server expects it but we don't build mobile)
 mkdir -p /opt/affine/packages/backend/server/static/mobile
 cat <<'MANIFEST' >/opt/affine/packages/backend/server/static/mobile/assets-manifest.json
 {"publicPath":"/","js":[],"css":[],"gitHash":"","description":""}
 MANIFEST
-
 # Copy selfhost.html to admin directory
 mkdir -p /opt/affine/packages/backend/server/static/admin
 cp /opt/affine/packages/backend/server/static/selfhost.html \
