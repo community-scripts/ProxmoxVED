@@ -1778,8 +1778,9 @@ function fetch_and_deploy_gh_release() {
 
     # Try primary URL first, fallback to codeload.github.com for complex tag names
     if ! curl $download_timeout -fsSL -o "$tmpdir/$filename" "$direct_tarball_url" 2>/dev/null; then
-      # Fallback: codeload.github.com handles special chars like @scope/package@version better
-      local codeload_url="https://codeload.github.com/$repo/tar.gz/refs/tags/$encoded_tag_name"
+      # Fallback: codeload.github.com - only encode @ not / in tag names
+      local codeload_encoded="${tag_name//@/%40}"
+      local codeload_url="https://codeload.github.com/$repo/tar.gz/refs/tags/$codeload_encoded"
       curl $download_timeout -fsSL -o "$tmpdir/$filename" "$codeload_url" || {
         msg_error "Download failed: $direct_tarball_url (and fallback $codeload_url)"
         rm -rf "$tmpdir"
