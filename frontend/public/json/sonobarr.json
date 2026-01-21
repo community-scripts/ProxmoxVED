@@ -12,7 +12,7 @@
     "documentation": "https://github.com/Dodelidoo-Labs/sonobarr",
     "config_path": "gunicorn_config.py",
     "website": "https://github.com/Dodelidoo-Labs/sonobarr",
-    "logo": "https://camo.githubusercontent.com/cc3f9cb9e157fbdee667130c50ba431fffc407a3d5c6cdf415574d652dd8484f/68747470733a2f2f696e756265732e6170702f617070732f66696c65735f73686172696e672f7075626c6963707265766965772f356a36574a597243476342696a646f3f66696c653d2f2666696c6549643d323731323226783d3338343026793d3231363026613d7472756526657461673d6535393833393032393962643532643062393863663835613464376161636565",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/sonobarr.webp",
     "description": "Sonobarr marries your existing Lidarr library with Last.fm’s discovery graph to surface artists you'll actually like. It runs as a Flask + Socket.IO application, ships with a polished Bootstrap UI, and includes admin tooling so folks can share a single instance safely.",
     "install_methods": [
         {
@@ -40,6 +40,5 @@
             "text": "Change the default admin credentials",
             "type": "info"
         }
-
     ]
 }

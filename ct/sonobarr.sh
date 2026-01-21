@@ -34,15 +34,18 @@ function update_script() {
         systemctl stop sonobarr
         msg_ok "Stopped sonobarr"
 
-        msg_info "Updating sonobarr"
         cp "/opt/sonobarr/.env" "/opt/.sonobarr-env"
         CLEAN_INSTALL=1 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
+
+        msg_info "Updating sonobarr"
         cp "/opt/.sonobarr-env" "/opt/sonobarr/.env"
         msg_ok "Updated sonobarr"
 
         msg_info "Starting sonobarr"
         systemctl start sonobarr
         msg_ok "Started sonobarr"
+
+        msg_ok "Updated successfully!"
     fi
     exit
 }
