@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2021-2025 community-scripts ORG
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: GoldenSpringness
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/Dodelidoo-Labs/sonobarr
@@ -14,7 +14,6 @@ network_check
 update_os
 
 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
-msg_info "Setting up sonobarr"
 
 msg_info "Setting up sonobarr"
 $STD apt-get install -y python3.13-venv
