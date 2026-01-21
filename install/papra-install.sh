@@ -37,10 +37,16 @@ msg_ok "Set up Papra"
 
 msg_info "Configuring Papra"
 AUTH_SECRET=$(openssl rand -hex 32)
-mkdir -p /opt/papra/app-data/db
-mkdir -p /opt/papra/app-data/documents
+
+# Create data directories in server folder (where WorkingDirectory points)
+mkdir -p /opt/papra/apps/papra-server/app-data/db
+mkdir -p /opt/papra/apps/papra-server/app-data/documents
+mkdir -p /opt/papra/apps/papra-server/ingestion
+
+# Link client build to server public dir
 ln -sf /opt/papra/apps/papra-client/dist /opt/papra/apps/papra-server/public
-cat >/opt/papra/.env <<EOF
+
+cat >/opt/papra/apps/papra-server/.env <<EOF
 NODE_ENV=production
 SERVER_SERVE_PUBLIC_DIR=true
 PORT=1221
@@ -67,7 +73,6 @@ EMAILS_DRY_RUN=true
 INGESTION_FOLDER_ROOT=./ingestion
 EOF
 
-mkdir -p /opt/papra/ingestion
 chown -R root:root /opt/papra
 msg_ok "Configured Papra"
 
@@ -81,9 +86,9 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/papra/apps/papra-server
-EnvironmentFile=/opt/papra/.env
+EnvironmentFile=/opt/papra/apps/papra-server/.env
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStartPre=/usr/bin/corepack pnpm --silent run migration:apply
+ExecStartPre=/usr/bin/corepack pnpm --silent run migrate:up
 ExecStart=/usr/bin/corepack pnpm --silent run start
 Restart=on-failure
 RestartSec=10
@@ -93,6 +98,7 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable -q --now papra
+echo "${RELEASE}" >/opt/papra_version.txt
 msg_ok "Created and Started Papra Service"
 
 motd_ssh
