@@ -14,98 +14,64 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
+$STD apt-get install -y \
   build-essential \
   tesseract-ocr \
   tesseract-ocr-all
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="24" setup_nodejs
-
 RELEASE=$(curl -fsSL https://api.github.com/repos/papra-hq/papra/releases | grep -oP '"tag_name":\s*"\K@papra/docker@[^"]+' | head -n1)
 fetch_and_deploy_gh_release "papra" "papra-hq/papra" "tarball" "${RELEASE}" "/opt/papra"
 
-msg_info "Setup Papra"
+pnpm_version=$(grep -Po '"pnpm":\s*"\K[^"]+' /opt/papra/package.json)
+NODE_VERSION="24" NODE_MODULE="pnpm@$pnpm_version" setup_nodejs
+
+msg_info "Installing Papra (Patience)"
 cd /opt/papra
-export COREPACK_ENABLE_NETWORK=1
-$STD corepack enable
-$STD corepack prepare pnpm@10.19.0 --activate
 $STD pnpm install --frozen-lockfile
 $STD pnpm --filter "@papra/app-client..." run build
 $STD pnpm --filter "@papra/app-server..." run build
-msg_ok "Set up Papra"
+ln -sf /opt/papra/apps/papra-client/dist /opt/papra/apps/papra-server/public
+msg_ok "Installed Papra"
 
 msg_info "Configuring Papra"
-DATA_DIR="/opt/papra_data"
-
-# Create persistent data directories (survive updates/CLEAN_INSTALL)
-mkdir -p "${DATA_DIR}/db"
-mkdir -p "${DATA_DIR}/documents"
-mkdir -p "${DATA_DIR}/ingestion"
-
-# Link client build to server public dir
-ln -sf /opt/papra/apps/papra-client/dist /opt/papra/apps/papra-server/public
-
-# Generate secret only on first install, preserve on updates
-if [[ ! -f "${DATA_DIR}/.auth_secret" ]]; then
-  openssl rand -hex 32 > "${DATA_DIR}/.auth_secret"
-fi
-AUTH_SECRET=$(cat "${DATA_DIR}/.auth_secret")
-
-cat >/opt/papra/apps/papra-server/.env <<EOF
+mkdir -p /opt/papra_data/{db,documents,ingestion}
+[[ ! -f /opt/papra_data/.secret ]] && openssl rand -hex 32 >/opt/papra_data/.secret
+cat <<EOF >/opt/papra/apps/papra-server/.env
 NODE_ENV=production
 SERVER_SERVE_PUBLIC_DIR=true
 PORT=1221
-
-# Database Configuration
-DATABASE_URL=file:${DATA_DIR}/db/db.sqlite
-
-# Storage Configuration
-DOCUMENT_STORAGE_FILESYSTEM_ROOT=${DATA_DIR}/documents
-PAPRA_CONFIG_DIR=${DATA_DIR}
-
-# Authentication
-AUTH_SECRET=${AUTH_SECRET}
-BETTER_AUTH_SECRET=${AUTH_SECRET}
+DATABASE_URL=file:/opt/papra_data/db/db.sqlite
+DOCUMENT_STORAGE_FILESYSTEM_ROOT=/opt/papra_data/documents
+PAPRA_CONFIG_DIR=/opt/papra_data
+AUTH_SECRET=$(cat /opt/papra_data/.secret)
+BETTER_AUTH_SECRET=$(cat /opt/papra_data/.secret)
 BETTER_AUTH_TELEMETRY=0
-
-# Application Configuration
 CLIENT_BASE_URL=http://${LOCAL_IP}:1221
-
-# Email Configuration (dry-run mode)
 EMAILS_DRY_RUN=true
-
-# Ingestion Folder
-INGESTION_FOLDER_ROOT=${DATA_DIR}/ingestion
+INGESTION_FOLDER_ROOT=/opt/papra_data/ingestion
 EOF
-
-chown -R root:root /opt/papra
 msg_ok "Configured Papra"
 
-msg_info "Creating Papra Service"
-cat >/etc/systemd/system/papra.service <<EOF
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/papra.service
 [Unit]
 Description=Papra Document Management
 After=network.target
 
 [Service]
 Type=simple
-User=root
 WorkingDirectory=/opt/papra/apps/papra-server
 EnvironmentFile=/opt/papra/apps/papra-server/.env
-Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStartPre=/usr/bin/corepack pnpm --silent run migrate:up
-ExecStart=/usr/bin/corepack pnpm --silent run start
-Restart=on-failure
-RestartSec=10
+ExecStartPre=/usr/bin/pnpm run migrate:up
+ExecStart=/usr/bin/node dist/index.js
 
 [Install]
 WantedBy=multi-user.target
 EOF
-
 systemctl enable -q --now papra
 echo "${RELEASE}" >/opt/papra_version.txt
-msg_ok "Created and Started Papra Service"
+msg_ok "Created Service"
 
 motd_ssh
 customize
