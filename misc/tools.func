@@ -1776,11 +1776,16 @@ function fetch_and_deploy_gh_release() {
     local direct_tarball_url="https://github.com/$repo/archive/refs/tags/$encoded_tag_name.tar.gz"
     filename="${app_lc}-${version}.tar.gz"
 
-    curl $download_timeout -fsSL -o "$tmpdir/$filename" "$direct_tarball_url" || {
-      msg_error "Download failed: $direct_tarball_url"
-      rm -rf "$tmpdir"
-      return 1
-    }
+    # Try primary URL first, fallback to codeload.github.com for complex tag names
+    if ! curl $download_timeout -fsSL -o "$tmpdir/$filename" "$direct_tarball_url" 2>/dev/null; then
+      # Fallback: codeload.github.com handles special chars like @scope/package@version better
+      local codeload_url="https://codeload.github.com/$repo/tar.gz/refs/tags/$encoded_tag_name"
+      curl $download_timeout -fsSL -o "$tmpdir/$filename" "$codeload_url" || {
+        msg_error "Download failed: $direct_tarball_url (and fallback $codeload_url)"
+        rm -rf "$tmpdir"
+        return 1
+      }
+    fi
 
     mkdir -p "$target"
     if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then

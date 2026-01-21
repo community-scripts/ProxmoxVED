@@ -1789,7 +1789,10 @@ advanced_settings() {
   elif [ -f /etc/timezone ]; then
     _host_timezone=$(cat /etc/timezone 2>/dev/null || echo "")
   fi
+  # pct doesn't accept Etc/* zones - map to 'host' instead
+  [[ "${_host_timezone:-}" == Etc/* ]] && _host_timezone="host"
   local _ct_timezone="${var_timezone:-$_host_timezone}"
+  [[ "${_ct_timezone:-}" == Etc/* ]] && _ct_timezone="host"
 
   # Helper to show current progress
   show_progress() {
@@ -1882,24 +1885,33 @@ advanced_settings() {
           ((STEP++))
         elif [[ "$PW1" == *" "* ]]; then
           whiptail --msgbox "Password cannot contain spaces." 8 58
-        elif ((${#PW1} < 5)); then
-          whiptail --msgbox "Password must be at least 5 characters." 8 58
         else
-          # Verify password
-          if PW2=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
-            --title "PASSWORD VERIFICATION" \
-            --ok-button "Confirm" --cancel-button "Back" \
-            --passwordbox "\nVerify Root Password" 10 58 \
-            3>&1 1>&2 2>&3); then
-            if [[ "$PW1" == "$PW2" ]]; then
-              _pw="-password $PW1"
-              _pw_display="********"
-              ((STEP++))
-            else
-              whiptail --msgbox "Passwords do not match. Please try again." 8 58
-            fi
+          # Clean up leading dashes from password
+          local _pw1_clean="$PW1"
+          while [[ "$_pw1_clean" == -* ]]; do
+            _pw1_clean="${_pw1_clean#-}"
+          done
+          if [[ -z "$_pw1_clean" ]]; then
+            whiptail --msgbox "Password cannot be only '-' characters." 8 58
+          elif ((${#_pw1_clean} < 5)); then
+            whiptail --msgbox "Password must be at least 5 characters (after removing leading '-')." 8 70
           else
-            ((STEP--))
+            # Verify password
+            if PW2=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
+              --title "PASSWORD VERIFICATION" \
+              --ok-button "Confirm" --cancel-button "Back" \
+              --passwordbox "\nVerify Root Password" 10 58 \
+              3>&1 1>&2 2>&3); then
+              if [[ "$PW1" == "$PW2" ]]; then
+                _pw="--password $_pw1_clean"
+                _pw_display="********"
+                ((STEP++))
+              else
+                whiptail --msgbox "Passwords do not match. Please try again." 8 58
+              fi
+            else
+              ((STEP--))
+            fi
           fi
         fi
       else
@@ -1916,8 +1928,23 @@ advanced_settings() {
         --ok-button "Next" --cancel-button "Back" \
         --inputbox "\nSet Container ID" 10 58 "$_ct_id" \
         3>&1 1>&2 2>&3); then
-        _ct_id="${result:-$NEXTID}"
-        ((STEP++))
+        local input_id="${result:-$NEXTID}"
+        # Validate container ID is numeric
+        if ! [[ "$input_id" =~ ^[0-9]+$ ]]; then
+          whiptail --msgbox "Container ID must be numeric." 8 58
+          continue
+        fi
+        # Validate container ID is available
+        if ! validate_container_id "$input_id"; then
+          if whiptail --yesno "Container/VM ID $input_id is already in use.\n\nWould you like to use the next available ID: $(get_valid_container_id "$input_id")?" 10 58; then
+            _ct_id=$(get_valid_container_id "$input_id")
+            ((STEP++))
+          fi
+          # else stay on this step
+        else
+          _ct_id="$input_id"
+          ((STEP++))
+        fi
       else
         ((STEP--))
       fi
@@ -2803,6 +2830,8 @@ install_script() {
   else
     timezone="UTC"
   fi
+  # pct doesn't accept Etc/* zones - map to 'host' instead
+  [[ "${timezone:-}" == Etc/* ]] && timezone="host"
 
   # Show APP Header
   header_info
@@ -3374,10 +3403,37 @@ build_container() {
   export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
   export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
 
+  # Validate storage space before container creation
+  if [[ -n "$CONTAINER_STORAGE" ]]; then
+    msg_info "Validating storage space"
+    if ! validate_storage_space "$CONTAINER_STORAGE" "$DISK_SIZE" "no"; then
+      local free_space
+      free_space=$(pvesm status 2>/dev/null | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
+      local free_fmt
+      free_fmt=$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$free_space" 2>/dev/null || echo "${free_space}KB")
+      msg_error "Not enough space on '$CONTAINER_STORAGE'. Required: ${DISK_SIZE}GB, Available: ${free_fmt}"
+      exit 214
+    fi
+    msg_ok "Storage space validated"
+  fi
+
   # Build PCT_OPTIONS as multi-line string
-  PCT_OPTIONS_STRING="  -features $FEATURES
-  -hostname $HN
+  PCT_OPTIONS_STRING=""
+
+  # Add features if set
+  if [ -n "$FEATURES" ]; then
+    PCT_OPTIONS_STRING="  -features $FEATURES"
+  fi
+
+  # Add hostname
+  PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
+  -hostname $HN"
+
+  # Add tags if set
+  if [ -n "$TAGS" ]; then
+    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
   -tags $TAGS"
+  fi
 
   # Add storage if specified
   if [ -n "$SD" ]; then
@@ -4234,6 +4290,11 @@ select_storage() {
   if [[ $((${#MENU[@]} / 3)) -eq 1 ]]; then
     STORAGE_RESULT="${STORAGE_MAP[${MENU[0]}]}"
     STORAGE_INFO="${MENU[1]}"
+
+    # Validate storage space for auto-picked container storage
+    if [[ "$CLASS" == "container" && -n "${DISK_SIZE:-}" ]]; then
+      validate_storage_space "$STORAGE_RESULT" "$DISK_SIZE" "yes"
+    fi
     return 0
   fi
 
@@ -4257,6 +4318,11 @@ select_storage() {
         break
       fi
     done
+
+    # Validate storage space for container storage
+    if [[ "$CLASS" == "container" && -n "${DISK_SIZE:-}" ]]; then
+      validate_storage_space "$STORAGE_RESULT" "$DISK_SIZE" "yes"
+    fi
     return 0
   done
 }
@@ -4848,14 +4914,35 @@ create_lxc_container() {
 
   # Lock by template file (avoid concurrent downloads/creates)
   lockfile="/tmp/template.${TEMPLATE}.lock"
+
+  # Cleanup stale lock files (older than 1 hour - likely from crashed processes)
+  if [[ -f "$lockfile" ]]; then
+    local lock_age=$(($(date +%s) - $(stat -c %Y "$lockfile" 2>/dev/null || echo 0)))
+    if [[ $lock_age -gt 3600 ]]; then
+      msg_warn "Removing stale template lock file (age: ${lock_age}s)"
+      rm -f "$lockfile"
+    fi
+  fi
+
   exec 9>"$lockfile" || {
     msg_error "Failed to create lock file '$lockfile'."
     exit 200
   }
-  flock -w 60 9 || {
-    msg_error "Timeout while waiting for template lock."
-    exit 211
-  }
+
+  # Retry logic for template lock (another container creation may be running)
+  local lock_attempts=0
+  local max_lock_attempts=10
+  local lock_wait_time=30
+
+  while ! flock -w "$lock_wait_time" 9; do
+    lock_attempts=$((lock_attempts + 1))
+    if [[ $lock_attempts -ge $max_lock_attempts ]]; then
+      msg_error "Timeout while waiting for template lock after ${max_lock_attempts} attempts."
+      msg_custom "💡" "${YW}" "Another container creation may be stuck. Check running processes or remove: $lockfile"
+      exit 211
+    fi
+    msg_custom "⏳" "${YW}" "Another container is being created with this template. Waiting... (attempt ${lock_attempts}/${max_lock_attempts})"
+  done
 
   LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
 
