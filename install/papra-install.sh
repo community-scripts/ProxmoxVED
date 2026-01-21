@@ -23,7 +23,7 @@ msg_ok "Installed Dependencies"
 RELEASE=$(curl -fsSL https://api.github.com/repos/papra-hq/papra/releases | grep -oP '"tag_name":\s*"\K@papra/docker@[^"]+' | head -n1)
 fetch_and_deploy_gh_release "papra" "papra-hq/papra" "tarball" "${RELEASE}" "/opt/papra"
 
-pnpm_version=$(grep -Po '"pnpm":\s*"\K[^"]+' /opt/papra/package.json)
+pnpm_version=$(grep -oP '"packageManager":\s*"pnpm@\K[^"]+' /opt/papra/package.json)
 NODE_VERSION="24" NODE_MODULE="pnpm@$pnpm_version" setup_nodejs
 
 msg_info "Installing Papra (Patience)"
@@ -70,7 +70,6 @@ ExecStart=/usr/bin/node dist/index.js
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now papra
-echo "${RELEASE}" >/opt/papra_version.txt
 msg_ok "Created Service"
 
 motd_ssh
