@@ -62,11 +62,11 @@ set -a && source /opt/affine/.env && set +a
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 export VITE_CORE_COMMIT_SHA="v0.25.7"
 # # Initialize git repo (required for build process)
-# git init -q
-# git config user.email "build@local"
-# git config user.name "Build"
-# git add -A
-# git commit -q -m "initial"
+$STD git init -q
+$STD git config user.email "build@local"
+$STD git config user.name "Build"
+$STD git add -A
+$STD git commit -q -m "initial"
 mkdir -p /opt/affine/.turbo
 cat <<TURBO >/opt/affine/.turbo/config.json
 {
