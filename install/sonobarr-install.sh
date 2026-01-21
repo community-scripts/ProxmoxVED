@@ -21,6 +21,8 @@ apt install python3.13-venv -y
 python3 -m venv venv
 source venv/bin/activate
 pip install --no-cache-dir -r requirements.txt
+mv ".sample-env" ".env"
+sed -i "s/^secret_key=.*/secret_key=$(openssl rand -hex 16)/" .env
 msg_ok "Set up sonobarr"
 
 msg_info "Creating Service"
@@ -31,8 +33,9 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/sonobarr/src
+EnvironmentFile=/opt/sonobarr/.env
 Environment="PATH=/opt/sonobarr/venv/bin"
-ExecStart=/bin/bash -c 'gunicorn src.Sonobarr:app -c gunicorn_config.py'
+ExecStart=/bin/bash -c 'gunicorn Sonobarr:app -c ../gunicorn_config.py'
 Restart=always
 
 [Install]
