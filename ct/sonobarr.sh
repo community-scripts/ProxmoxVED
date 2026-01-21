@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/GoldenSpringness/ProxmoxVED/refs/heads/feature/sonobarr/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: GoldenSpringness
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -24,7 +24,7 @@ function update_script() {
     check_container_storage
     check_container_resources
 
-    if [[ ! -f "/opt/sonobarr" ]]; then
+    if [[ ! -d "/opt/sonobarr" ]]; then
         msg_error "No sonobarr Installation Found!"
         exit
     fi

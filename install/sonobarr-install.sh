@@ -14,19 +14,19 @@ network_check
 update_os
 
 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
-cd /opt/sonobarr
+msg_info "Setting up sonobarr"
 
 msg_info "Setting up sonobarr"
-apt install python3.13-venv -y
-python3 -m venv venv
-source venv/bin/activate
-pip install --no-cache-dir -r requirements.txt
+$STD apt-get install -y python3.13-venv
+$STD python3 -m venv /opt/sonobarr/venv
+source /opt/sonobarr/venv/bin/activate
+$STD pip install --no-cache-dir -r /opt/sonobarr/requirements.txt
 mv ".sample-env" ".env"
 sed -i "s/^secret_key=.*/secret_key=$(openssl rand -hex 16)/" .env
 msg_ok "Set up sonobarr"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/sonobarr.service
+cat <<EOF>/etc/systemd/system/sonobarr.service
 [Unit]
 Description=sonobarr Service
 After=network.target
