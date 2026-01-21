@@ -37,10 +37,13 @@ msg_ok "Set up Papra"
 
 msg_info "Configuring Papra"
 CONTAINER_IP=$(hostname -I | awk '{print $1}')
-BETTER_AUTH_SECRET=$(openssl rand -hex 32)
+AUTH_SECRET=$(openssl rand -hex 32)
 
 mkdir -p /opt/papra/app-data/db
 mkdir -p /opt/papra/app-data/documents
+
+# Link client build to server public dir
+ln -sf /opt/papra/apps/papra-client/dist /opt/papra/apps/papra-server/public
 
 cat >/opt/papra/.env <<EOF
 NODE_ENV=production
@@ -55,7 +58,8 @@ DOCUMENT_STORAGE_FILESYSTEM_ROOT=./app-data/documents
 PAPRA_CONFIG_DIR=./app-data
 
 # Authentication
-BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+AUTH_SECRET=${AUTH_SECRET}
+BETTER_AUTH_SECRET=${AUTH_SECRET}
 BETTER_AUTH_TELEMETRY=0
 
 # Application Configuration
@@ -93,13 +97,9 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q papra
-if ! systemctl start papra; then
-  msg_warn "Service failed to start, checking logs..."
-  journalctl -u papra --no-pager -n 20 || true
-fi
+systemctl enable -q --now papra
 echo "${RELEASE}" >/opt/Papra_version.txt
-msg_ok "Created Papra Service"
+msg_ok "Created and Started Papra Service"
 
 motd_ssh
 customize
