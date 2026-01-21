@@ -93,9 +93,13 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now papra
+systemctl enable -q papra
+if ! systemctl start papra; then
+  msg_warn "Service failed to start, checking logs..."
+  journalctl -u papra --no-pager -n 20 || true
+fi
 echo "${RELEASE}" >/opt/Papra_version.txt
-msg_ok "Created and Started Papra Service"
+msg_ok "Created Papra Service"
 
 motd_ssh
 customize
