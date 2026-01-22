@@ -127,6 +127,34 @@ icons() {
 }
 
 # ------------------------------------------------------------------------------
+# ensure_profile_loaded()
+#
+# - Sources /etc/profile.d/*.sh scripts if not already loaded
+# - Fixes PATH issues when running via pct enter/exec (non-login shells)
+# - Safe to call multiple times (uses guard variable)
+# - Should be called in update_script() or any script running inside LXC
+# ------------------------------------------------------------------------------
+ensure_profile_loaded() {
+  # Skip if already loaded or running on Proxmox host
+  [[ -n "${_PROFILE_LOADED:-}" ]] && return
+  command -v pveversion &>/dev/null && return
+
+  # Source all profile.d scripts to ensure PATH is complete
+  if [[ -d /etc/profile.d ]]; then
+    for script in /etc/profile.d/*.sh; do
+      [[ -r "$script" ]] && source "$script"
+    done
+  fi
+
+  # Also ensure /usr/local/bin is in PATH (common install location)
+  if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+    export PATH="/usr/local/bin:$PATH"
+  fi
+
+  export _PROFILE_LOADED=1
+}
+
+# ------------------------------------------------------------------------------
 # default_vars()
 #
 # - Sets default retry and wait variables used for system actions
@@ -838,7 +866,7 @@ cleanup_lxc() {
   fi
 
   # Node.js npm
-if command -v npm &>/dev/null; then
+  if command -v npm &>/dev/null; then
     rm -rf /root/.npm/_cacache /root/.npm/_logs 2>/dev/null || true
   fi
   # Node.js yarn
@@ -968,7 +996,6 @@ function get_lxc_ip() {
 
   export LOCAL_IP
 }
-
 
 # ==============================================================================
 # SIGNAL TRAPS
