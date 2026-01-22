@@ -37,7 +37,7 @@ function update_script() {
     msg_info "Backing up Data"
     cp -r /opt/wger/db /opt/wger_db_backup
     cp -r /opt/wger/media /opt/wger_media_backup
-    cp -r /opt/wger/settings /opt/wger_settings_backup
+    cp /opt/wger/.env /opt/wger_env_backup
     msg_ok "Backed up Data"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wger" "wger-project/wger" "tarball" "latest" "/opt/wger"
@@ -45,15 +45,16 @@ function update_script() {
     msg_info "Restoring Data"
     cp -r /opt/wger_db_backup/. /opt/wger/db
     cp -r /opt/wger_media_backup/. /opt/wger/media
-    cp -r /opt/wger_settings_backup/. /opt/wger/settings
-    rm -rf /opt/wger_db_backup /opt/wger_media_backup /opt/wger_settings_backup
+    cp /opt/wger_env_backup /opt/wger/.env
+    rm -rf /opt/wger_db_backup /opt/wger_media_backup /opt/wger_env_backup
     msg_ok "Restored Data"
 
     msg_info "Updating wger"
     cd /opt/wger
-    $STD uv pip install .
+    source /opt/wger/.env
     export DJANGO_SETTINGS_MODULE=settings.main
-    export PYTHONPATH=/opt/wger
+    export DJANGO_DB_DATABASE DJANGO_MEDIA_ROOT DJANGO_STATIC_ROOT SECRET_KEY
+    $STD uv pip install .
     $STD uv run python manage.py migrate
     $STD uv run python manage.py collectstatic --no-input
     msg_ok "Updated wger"

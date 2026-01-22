@@ -33,23 +33,18 @@ chmod o+w /opt/wger/media
 cd /opt/wger
 $STD uv venv
 $STD uv pip install .
-mkdir -p /opt/wger/settings
-cat <<EOF >/opt/wger/settings/main.py
-from wger.settings_global import *
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/opt/wger/db/database.sqlite',
-    }
-}
-
-MEDIA_ROOT = '/opt/wger/media'
-STATIC_ROOT = '/opt/wger/static'
+SECRET_KEY=$(openssl rand -base64 40)
+cat <<EOF >/opt/wger/.env
+DJANGO_DB_DATABASE=/opt/wger/db/database.sqlite
+DJANGO_MEDIA_ROOT=/opt/wger/media
+DJANGO_STATIC_ROOT=/opt/wger/static
+SECRET_KEY=${SECRET_KEY}
 EOF
-touch /opt/wger/settings/__init__.py
 export DJANGO_SETTINGS_MODULE=settings.main
-export PYTHONPATH=/opt/wger
+export DJANGO_DB_DATABASE=/opt/wger/db/database.sqlite
+export DJANGO_MEDIA_ROOT=/opt/wger/media
+export DJANGO_STATIC_ROOT=/opt/wger/static
+export SECRET_KEY="${SECRET_KEY}"
 $STD uv run python manage.py migrate
 $STD uv run python manage.py collectstatic --no-input
 msg_ok "Set up wger"
@@ -69,7 +64,10 @@ cat <<EOF >/etc/apache2/sites-available/wger.conf
     WSGIScriptAlias / /opt/wger/wger/wsgi.py
     WSGIPassAuthorization On
     SetEnv DJANGO_SETTINGS_MODULE settings.main
-    SetEnv PYTHONPATH /opt/wger
+    SetEnv DJANGO_DB_DATABASE /opt/wger/db/database.sqlite
+    SetEnv DJANGO_MEDIA_ROOT /opt/wger/media
+    SetEnv DJANGO_STATIC_ROOT /opt/wger/static
+    SetEnv SECRET_KEY ${SECRET_KEY}
 
     Alias /static/ /opt/wger/static/
     <Directory /opt/wger/static>
