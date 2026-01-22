@@ -21,22 +21,22 @@ tar -xzf /tmp/jotty.tar.gz -C /opt/jotty
 
 msg_info "Setup jotty"
 cd /opt/jotty
-unset NODE_OPTIONS
-export NODE_OPTIONS="--max-old-space-size=3072"
-# $STD yarn --frozen-lockfiled
-# $STD yarn next telemetry disable
-# $STD yarn build
+# unset NODE_OPTIONS
+# export NODE_OPTIONS="--max-old-space-size=3072"
+# # $STD yarn --frozen-lockfiled
+# # $STD yarn next telemetry disable
+# # $STD yarn build
 
-[ -d "public" ] && cp -r public .next/standalone/
-[ -d "howto" ] && cp -r howto .next/standalone/
-mkdir -p .next/standalone/.next
-cp -r .next/static .next/standalone/.next/
+# [ -d "public" ] && cp -r public .next/standalone/
+# [ -d "howto" ] && cp -r howto .next/standalone/
+# mkdir -p .next/standalone/.next
+# cp -r .next/static .next/standalone/.next/
 
-mv .next/standalone /tmp/jotty_standalone
-rm -rf ./* .next .git .gitignore .yarn
-mv /tmp/jotty_standalone/* .
-mv /tmp/jotty_standalone/.[!.]* . 2>/dev/null || true
-rm -rf /tmp/jotty_standalone
+# mv .next/standalone /tmp/jotty_standalone
+# rm -rf ./* .next .git .gitignore .yarn
+# mv /tmp/jotty_standalone/* .
+# mv /tmp/jotty_standalone/.[!.]* . 2>/dev/null || true
+# rm -rf /tmp/jotty_standalone
 
 mkdir -p data/{users,checklists,notes}
 
