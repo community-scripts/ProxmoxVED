@@ -15,7 +15,7 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing dependencies"
+msg_info "Installing Dependencies"
 $STD apt-get install -y \
   acl \
   build-essential \
@@ -43,9 +43,9 @@ $STD apt-get install -y \
   p7zip-full \
   tzdata \
   nginx
-msg_ok "Installed dependencies"
+msg_ok "Installed Dependencies"
 
-UV_VERSION="0.7.19" PYTHON_VERSION="3.13" setup_uv
+PYTHON_VERSION="3.13" setup_uv
 NODE_VERSION="22" setup_nodejs
 setup_mariadb
 MARIADB_DB_NAME="romm" MARIADB_DB_USER="romm" setup_mariadb_db
@@ -120,11 +120,9 @@ CONFIGEOF
 chmod 644 /var/lib/romm/config/config.yml
 msg_ok "Created configuration file"
 
-msg_info "Installing RAHasher (RetroAchievements)"
-fetch_and_deploy_gh_release "RetroAchievements" "RetroAchievements/RALibretro" "prebuild" "latest" "/opt/RALibretro" "RAHasher-x64-Linux-*.zip"
+fetch_and_deploy_gh_release "RAHasher" "RetroAchievements/RALibretro" "prebuild" "latest" "/opt/RALibretro" "RAHasher-x64-Linux-*.zip"
 cp /opt/RALibretro/RAHasher /usr/bin/RAHasher
 chmod +x /usr/bin/RAHasher
-msg_ok "Installed RAHasher"
 
 fetch_and_deploy_gh_release "romm" "rommapp/romm"
 
@@ -166,23 +164,24 @@ EOF
 chmod 600 /opt/romm/.env
 msg_ok "Created environment file"
 
-msg_info "Setup Romm backend"
+msg_info "Setting up RomM Backend"
 cd /opt/romm
 export UV_CONCURRENT_DOWNLOADS=1
 $STD uv sync --all-extras
 cd /opt/romm/backend
 $STD uv run alembic upgrade head
-msg_ok "Installed backend"
+msg_ok "Set up RomM Backend"
 
-msg_info "Setup Romm frontend"
+msg_info "Setting up RomM Frontend"
 cd /opt/romm/frontend
 $STD npm install
 $STD npm run build
 mkdir -p /opt/romm/frontend/dist/assets/romm
 ln -sfn /var/lib/romm/resources /opt/romm/frontend/dist/assets/romm/resources
 ln -sfn /var/lib/romm/assets /opt/romm/frontend/dist/assets/romm/assets
-msg_ok "Setup Romm frontend"
-msg_info "Configuring nginx"
+msg_ok "Set up RomM Frontend"
+
+msg_info "Configuring Nginx"
 cat >/etc/nginx/sites-available/romm <<'EOF'
 upstream romm_backend {
     server 127.0.0.1:5000;
@@ -250,9 +249,9 @@ ln -sf /etc/nginx/sites-available/romm /etc/nginx/sites-enabled/romm
 $STD nginx -t
 systemctl restart nginx
 systemctl enable -q nginx
-msg_ok "Configured nginx"
+msg_ok "Configured Nginx"
 
-msg_info "Creating services"
+msg_info "Creating Services"
 cat >/etc/systemd/system/romm-backend.service <<EOF
 [Unit]
 Description=RomM Backend
@@ -331,9 +330,8 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reload
 systemctl enable -q --now romm-backend romm-worker romm-scheduler romm-watcher
-msg_ok "Created services"
+msg_ok "Created Services"
 
 motd_ssh
 customize
