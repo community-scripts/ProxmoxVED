@@ -15,6 +15,7 @@ update_os
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 #fetch_and_deploy_gh_release "jotty" "fccview/jotty" "tarball" "latest" "/opt/jotty"
+mkdir -p /opt/jotty
 wget -q https://github.com/fccview/jotty/releases/download/develop/jotty-prebuild-develop.tar.gz -O /tmp/jotty.tar.gz
 tar -xzf /tmp/jotty.tar.gz -C /opt/jotty --strip-components=1
 
@@ -22,7 +23,7 @@ msg_info "Setup jotty"
 cd /opt/jotty
 unset NODE_OPTIONS
 export NODE_OPTIONS="--max-old-space-size=3072"
-$STD yarn --frozen-lockfile
+$STD yarn --frozen-lockfiled
 $STD yarn next telemetry disable
 $STD yarn build
 

@@ -35,7 +35,6 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Backing up Data"
-    cp -r /opt/wger/db /opt/wger_db_backup
     cp -r /opt/wger/media /opt/wger_media_backup
     cp /opt/wger/.env /opt/wger_env_backup
     msg_ok "Backed up Data"
@@ -43,17 +42,15 @@ function update_script() {
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wger" "wger-project/wger" "tarball" "latest" "/opt/wger"
 
     msg_info "Restoring Data"
-    cp -r /opt/wger_db_backup/. /opt/wger/db
     cp -r /opt/wger_media_backup/. /opt/wger/media
     cp /opt/wger_env_backup /opt/wger/.env
-    rm -rf /opt/wger_db_backup /opt/wger_media_backup /opt/wger_env_backup
+    rm -rf /opt/wger_media_backup /opt/wger_env_backup
     msg_ok "Restored Data"
 
     msg_info "Updating wger"
     cd /opt/wger
-    source /opt/wger/.env
+    set -a && source /opt/wger/.env && set +a
     export DJANGO_SETTINGS_MODULE=settings.main
-    export DJANGO_DB_DATABASE DJANGO_MEDIA_ROOT DJANGO_STATIC_ROOT SECRET_KEY
     $STD uv pip install .
     $STD uv run python manage.py migrate
     $STD uv run python manage.py collectstatic --no-input
