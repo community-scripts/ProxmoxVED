@@ -16,12 +16,10 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   acl \
+  git \
   build-essential \
-  gcc \
-  g++ \
-  make \
   libssl-dev \
   libffi-dev \
   libmagic-dev \
