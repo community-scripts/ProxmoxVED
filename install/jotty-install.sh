@@ -18,7 +18,7 @@ NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 msg_info "Setup jotty"
 mkdir -p /opt/jotty
 wget -q https://github.com/fccview/jotty/releases/download/develop/jotty-prebuild-develop.tar.gz -O /opt/jotty.tar.gz
-cd /opt/jotty
+cd /opt
 tar -xzf jotty.tar.gz
 
 cd /opt/jotty
