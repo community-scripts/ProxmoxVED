@@ -67,6 +67,10 @@ WSGI
 set -a && source /opt/wger/.env && set +a
 export DJANGO_SETTINGS_MODULE=settings.main
 $STD uv run python manage.py migrate
+$STD uv run python manage.py loaddata languages
+$STD uv run python manage.py loaddata gym_config
+$STD uv run python manage.py loaddata groups
+$STD uv run python manage.py loaddata site
 $STD uv run python manage.py collectstatic --no-input
 msg_ok "Set up wger"
 
