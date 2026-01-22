@@ -72,6 +72,14 @@ $STD uv run python manage.py loaddata gym_config
 $STD uv run python manage.py loaddata groups
 $STD uv run python manage.py loaddata site
 $STD uv run python manage.py collectstatic --no-input
+cat <<EOF | uv run python manage.py shell
+from django.contrib.auth import get_user_model
+UserModel = get_user_model()
+user = UserModel.objects.create_user('admin', email='admin@localhost', password='${PG_DB_PASS}')
+user.is_superuser = True
+user.is_staff = True
+user.save()
+EOF
 msg_ok "Set up wger"
 
 msg_info "Creating Service"
