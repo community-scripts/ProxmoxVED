@@ -201,6 +201,14 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # Static assets
+    location /assets {
+        alias /opt/romm/frontend/dist/assets;
+        try_files $uri $uri/ =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
     # EmulatorJS player - requires COOP/COEP headers for SharedArrayBuffer
     location ~ ^/rom/.*/ejs$ {
         add_header Cross-Origin-Embedder-Policy "require-corp";
