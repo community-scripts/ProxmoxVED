@@ -58,7 +58,7 @@ mkdir -p /opt/romm \
 msg_ok "Created directories"
 
 msg_info "Creating configuration file"
-cat >/var/lib/romm/config/config.yml <<'CONFIGEOF'
+cat <<'EOF' >/var/lib/romm/config/config.yml
 # RomM Configuration File
 # Documentation: https://docs.romm.app/latest/Getting-Started/Configuration-File/
 # Only uncomment the lines you want to use/modify
@@ -114,7 +114,7 @@ cat >/var/lib/romm/config/config.yml <<'CONFIGEOF'
 # emulatorjs:
 #   debug: false
 #   cache_limit: null
-CONFIGEOF
+EOF
 chmod 644 /var/lib/romm/config/config.yml
 msg_ok "Created configuration file"
 
@@ -130,7 +130,7 @@ systemctl restart redis-server
 systemctl enable -q --now redis-server
 AUTH_SECRET_KEY=$(openssl rand -hex 32)
 
-cat >/opt/romm/.env <<EOF
+cat <<EOF >/opt/romm/.env
 ROMM_BASE_PATH=/var/lib/romm
 ROMM_CONFIG_PATH=/var/lib/romm/config/config.yml
 WEB_CONCURRENCY=4
@@ -180,7 +180,7 @@ ln -sfn /var/lib/romm/assets /opt/romm/frontend/dist/assets/romm/assets
 msg_ok "Set up RomM Frontend"
 
 msg_info "Configuring Nginx"
-cat >/etc/nginx/sites-available/romm <<'EOF'
+cat <<'EOF' >/etc/nginx/sites-available/romm
 upstream romm_backend {
     server 127.0.0.1:5000;
 }
@@ -244,13 +244,12 @@ EOF
 
 rm -f /etc/nginx/sites-enabled/default
 ln -sf /etc/nginx/sites-available/romm /etc/nginx/sites-enabled/romm
-$STD nginx -t
 systemctl restart nginx
-systemctl enable -q nginx
+systemctl enable -q --now nginx
 msg_ok "Configured Nginx"
 
 msg_info "Creating Services"
-cat >/etc/systemd/system/romm-backend.service <<EOF
+cat <<EOF >/etc/systemd/system/romm-backend.service
 [Unit]
 Description=RomM Backend
 After=network.target mariadb.service redis-server.service
@@ -269,7 +268,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat >/etc/systemd/system/romm-worker.service <<EOF
+cat <<EOF >/etc/systemd/system/romm-worker.service
 [Unit]
 Description=RomM RQ Worker
 After=network.target mariadb.service redis-server.service romm-backend.service
@@ -288,7 +287,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat >/etc/systemd/system/romm-scheduler.service <<EOF
+cat <<EOF >/etc/systemd/system/romm-scheduler.service
 [Unit]
 Description=RomM RQ Scheduler
 After=network.target mariadb.service redis-server.service romm-backend.service
@@ -309,7 +308,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat >/etc/systemd/system/romm-watcher.service <<EOF
+cat <<EOF >/etc/systemd/system/romm-watcher.service
 [Unit]
 Description=RomM Filesystem Watcher
 After=network.target romm-backend.service
