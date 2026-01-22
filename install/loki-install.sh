@@ -26,7 +26,7 @@ msg_info "Installing Loki"
 $STD apt install -y loki
 
 mkdir -p /var/lib/loki/{chunks,boltdb-shipper-active,boltdb-shipper-cache}
-chown -R loki:loki /var/lib/loki
+chown -R loki /var/lib/loki
 
 cat <<EOF >/etc/loki/config.yml
 auth_enabled: false
@@ -71,7 +71,7 @@ ruler:
   alertmanager_url: http://localhost:9093
 EOF
 
-chown loki:loki /etc/loki/config.yml
+chown loki /etc/loki/config.yml
 systemctl enable -q --now loki
 msg_ok "Installed Loki"
 
