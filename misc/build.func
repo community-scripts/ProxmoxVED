@@ -4155,9 +4155,9 @@ resolve_storage_preselect() {
     free="$(awk '{print $6}' <<<"$line")"
     local total_h used_h free_h
     if command -v numfmt >/dev/null 2>&1; then
-      total_h="$(numfmt --to=iec --suffix=B --format %.1f "$total" 2>/dev/null || echo "$total")"
-      used_h="$(numfmt --to=iec --suffix=B --format %.1f "$used" 2>/dev/null || echo "$used")"
-      free_h="$(numfmt --to=iec --suffix=B --format %.1f "$free" 2>/dev/null || echo "$free")"
+      total_h="$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$total" 2>/dev/null || echo "$total")"
+      used_h="$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$used" 2>/dev/null || echo "$used")"
+      free_h="$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$free" 2>/dev/null || echo "$free")"
       STORAGE_INFO="Free: ${free_h}  Used: ${used_h}"
     else
       STORAGE_INFO="Free: ${free}  Used: ${used}"
@@ -4274,8 +4274,8 @@ select_storage() {
   while read -r TAG TYPE _ TOTAL USED FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
     local DISPLAY="${TAG} (${TYPE})"
-    local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
-    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
+    local USED_FMT=$(numfmt --to=iec --from-unit=1024 --format %.1f <<<"$USED")
+    local FREE_FMT=$(numfmt --to=iec --from-unit=1024 --format %.1f <<<"$FREE")
     local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
     STORAGE_MAP["$DISPLAY"]="$TAG"
     MENU+=("$DISPLAY" "$INFO" "OFF")
