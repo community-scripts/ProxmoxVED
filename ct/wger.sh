@@ -2,14 +2,14 @@
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Slaviša Arežina (tremor021)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/wger-project/wger
 
 APP="wger"
 var_tags="${var_tags:-management;fitness}"
-var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-1024}"
-var_disk="${var_disk:-6}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -23,38 +23,45 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /home/wger ]]; then
+
+  if [[ ! -d /opt/wger ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  RELEASE=$(curl -fsSL https://api.github.com/repos/wger-project/wger/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3)}')
-  if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
+
+  if check_for_gh_release "wger" "wger-project/wger"; then
     msg_info "Stopping Service"
-    systemctl stop wger
+    systemctl stop apache2
     msg_ok "Stopped Service"
 
-    msg_info "Updating $APP to v${RELEASE}"
-    temp_file=$(mktemp)
-    curl -fsSL "https://github.com/wger-project/wger/archive/refs/tags/$RELEASE.tar.gz" -o "$temp_file"
-    tar xzf "$temp_file"
-    cp -rf wger-"$RELEASE"/* /home/wger/src
-    cd /home/wger/src
-    $STD pip install -r requirements_prod.txt --ignore-installed
-    $STD pip install -e .
-    $STD python3 manage.py migrate
-    $STD python3 manage.py collectstatic --no-input
-    $STD yarn install
-    $STD yarn build:css:sass
-    rm -rf "$temp_file"
-    echo "${RELEASE}" >/opt/${APP}_version.txt
-    msg_ok "Updated $APP to v${RELEASE}"
+    msg_info "Backing up Data"
+    cp -r /opt/wger/db /opt/wger_db_backup
+    cp -r /opt/wger/media /opt/wger_media_backup
+    cp -r /opt/wger/settings /opt/wger_settings_backup
+    msg_ok "Backed up Data"
+
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wger" "wger-project/wger" "tarball" "latest" "/opt/wger"
+
+    msg_info "Restoring Data"
+    cp -r /opt/wger_db_backup/. /opt/wger/db
+    cp -r /opt/wger_media_backup/. /opt/wger/media
+    cp -r /opt/wger_settings_backup/. /opt/wger/settings
+    rm -rf /opt/wger_db_backup /opt/wger_media_backup /opt/wger_settings_backup
+    msg_ok "Restored Data"
+
+    msg_info "Updating wger"
+    cd /opt/wger
+    $STD uv sync --no-dev
+    export DJANGO_SETTINGS_MODULE=settings.main
+    export PYTHONPATH=/opt/wger
+    $STD uv run python manage.py migrate
+    $STD uv run python manage.py collectstatic --no-input
+    msg_ok "Updated wger"
 
     msg_info "Starting Service"
-    systemctl start wger
+    systemctl start apache2
     msg_ok "Started Service"
-    msg_ok "Updated successfully!"
-  else
-    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+    msg_ok "Updated Successfully"
   fi
   exit
 }
@@ -63,7 +70,7 @@ start
 build_container
 description
 
-msg_ok "Completed successfully!\n"
+msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
