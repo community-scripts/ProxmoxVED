@@ -29,29 +29,65 @@ function update_script() {
     exit 1
   fi
 
-  msg_info "Stopping Loki"
-  systemctl stop loki
-  if systemctl is-active --quiet promtail 2>/dev/null || dpkg -s promtail >/dev/null 2>&1; then
-    systemctl stop promtail
-  fi
-  msg_ok "Stopped Loki"
+  LXCIP=$(hostname -I | awk '{print $1}')
+  while true; do
+    CHOICE=$(
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "SUPPORT" --menu "Select option" 11 58 3 \
+        "1" "Update Loki & Promtail" \
+        "2" "Allow 0.0.0.0 for listening" \
+        "3" "Allow only ${LXCIP} for listening" 3>&2 2>&1 1>&3
+    )
+    exit_status=$?
+    if [ $exit_status == 1 ]; then
+      clear
+      exit-script
+    fi
+    header_info
+    case $CHOICE in
+    1)
+      msg_info "Stopping Loki"
+      systemctl stop loki
+      if systemctl is-active --quiet promtail 2>/dev/null || dpkg -s promtail >/dev/null 2>&1; then
+        systemctl stop promtail
+      fi
+      msg_ok "Stopped Loki"
 
-  msg_info "Updating Loki"
-  $STD apt-get update
-  $STD apt-get --only-upgrade install -y loki
-  if dpkg -s promtail >/dev/null 2>&1; then
-    $STD apt-get --only-upgrade install -y promtail
-  fi
-  msg_ok "Updated Loki"
+      msg_info "Updating Loki"
+      $STD apt-get update
+      $STD apt-get --only-upgrade install -y loki
+      if dpkg -s promtail >/dev/null 2>&1; then
+        $STD apt-get --only-upgrade install -y promtail
+      fi
+      msg_ok "Updated Loki"
 
-  msg_info "Starting Loki"
-  systemctl start loki
-  if dpkg -s promtail >/dev/null 2>&1; then
-    systemctl start promtail
-  fi
-  msg_ok "Started Loki"
-  msg_ok "Updated successfully!"
-  exit
+      msg_info "Starting Loki"
+      systemctl start loki
+      if dpkg -s promtail >/dev/null 2>&1; then
+        systemctl start promtail
+      fi
+      msg_ok "Started Loki"
+      msg_ok "Updated successfully!"
+      exit
+      ;;
+    2)
+      msg_info "Configuring Loki to listen on 0.0.0.0"
+      sed -i 's/http_listen_address:.*/http_listen_address: 0.0.0.0/' /etc/loki/config.yml
+      sed -i 's/http_listen_port:.*/http_listen_port: 3100/' /etc/loki/config.yml
+      systemctl restart loki
+      msg_ok "Allowed listening on all interfaces!"
+      exit
+      ;;
+    3)
+      msg_info "Configuring Loki to listen on ${LXCIP}"
+      sed -i "s/http_listen_address:.*/http_listen_address: $LXCIP/" /etc/loki/config.yml
+      sed -i 's/http_listen_port:.*/http_listen_port: 3100/' /etc/loki/config.yml
+      systemctl restart loki
+      msg_ok "Allowed listening only on ${LXCIP}!"
+      exit
+      ;;
+    esac
+  done
+  exit 0
 }
 
 start
