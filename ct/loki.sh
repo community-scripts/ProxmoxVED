@@ -31,18 +31,24 @@ function update_script() {
 
   msg_info "Stopping Loki"
   systemctl stop loki
-  systemctl stop promtail
+  if systemctl is-active --quiet promtail 2>/dev/null || dpkg -s promtail >/dev/null 2>&1; then
+    systemctl stop promtail
+  fi
   msg_ok "Stopped Loki"
 
   msg_info "Updating Loki"
-  $STD apt update
-  $STD apt --only-upgrade install -y loki
-  $STD apt --only-upgrade install -y promtail
+  $STD apt-get update
+  $STD apt-get --only-upgrade install -y loki
+  if dpkg -s promtail >/dev/null 2>&1; then
+    $STD apt-get --only-upgrade install -y promtail
+  fi
   msg_ok "Updated Loki"
 
   msg_info "Starting Loki"
   systemctl start loki
-  systemctl start promtail
+  if dpkg -s promtail >/dev/null 2>&1; then
+    systemctl start promtail
+  fi
   msg_ok "Started Loki"
   msg_ok "Updated successfully!"
   exit
