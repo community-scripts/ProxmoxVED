@@ -23,9 +23,9 @@ msg_info "Setup jotty"
 cd /opt/jotty
 unset NODE_OPTIONS
 export NODE_OPTIONS="--max-old-space-size=3072"
-$STD yarn --frozen-lockfiled
-$STD yarn next telemetry disable
-$STD yarn build
+# $STD yarn --frozen-lockfiled
+# $STD yarn next telemetry disable
+# $STD yarn build
 
 [ -d "public" ] && cp -r public .next/standalone/
 [ -d "howto" ] && cp -r howto .next/standalone/
