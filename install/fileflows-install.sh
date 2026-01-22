@@ -32,7 +32,7 @@ msg_info "Installing ASP.NET Core Runtime"
 $STD apt install -y aspnetcore-runtime-8.0
 msg_ok "Installed ASP.NET Core Runtime"
 
-msg_info "Setup FileFlows"
+msg_info "Setting up FileFlows"
 $STD ln -svf /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 $STD ln -svf /usr/bin/ffprobe /usr/local/bin/ffprobe
 cd /opt/fileflows/Server
