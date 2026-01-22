@@ -31,8 +31,8 @@ chown :www-data -R /opt/wger/db
 chmod g+w /opt/wger/db /opt/wger/db/database.sqlite
 chmod o+w /opt/wger/media
 cd /opt/wger
-$STD uv sync --no-dev
-$STD uv pip install -e .
+$STD uv venv
+$STD uv pip install .
 mkdir -p /opt/wger/settings
 cat <<EOF >/opt/wger/settings/main.py
 from wger.settings_global import *

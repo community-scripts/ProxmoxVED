@@ -51,8 +51,7 @@ function update_script() {
 
     msg_info "Updating wger"
     cd /opt/wger
-    $STD uv sync --no-dev
-    $STD uv pip install -e .
+    $STD uv pip install .
     export DJANGO_SETTINGS_MODULE=settings.main
     export PYTHONPATH=/opt/wger
     $STD uv run python manage.py migrate
