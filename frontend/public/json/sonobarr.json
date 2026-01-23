@@ -20,7 +20,7 @@
             "script": "ct/sonobarr.sh",
             "resources": {
                 "cpu": 1,
-                "ram": 1,
+                "ram": 1024,
                 "hdd": 20,
                 "os": "Debian",
                 "version": "13"
