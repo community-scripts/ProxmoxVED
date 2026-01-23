@@ -33,8 +33,12 @@ function update_script() {
     systemctl stop tracearr postgresql redis
     msg_ok "Stopped Services"
 
-    PNPM_VERSION="$(curl -fsSL "https://raw.githubusercontent.com/connorgallopo/Tracearr/refs/heads/main/package.json" | jq -r '.packageManager | split("@")[1]')"
-    NODE_VERSION="22" NODE_MODULE="pnpm@${PNPM_VERSION}" setup_nodejs
+    msg_info "Updating pnpm"
+    PNPM_VERSION="$(curl -fsSL "https://raw.githubusercontent.com/connorgallopo/Tracearr/refs/heads/main/package.json" | jq -r '.packageManager | split("@")[1]' | cut -d'+' -f1)"
+    export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+    $STD corepack prepare pnpm@${PNPM_VERSION} --activate
+    msg_ok "Updated pnpm"
+
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "tracearr" "connorgallopo/Tracearr" "tarball" "latest" "/opt/tracearr.build"
 
     msg_info "Building Tracearr"

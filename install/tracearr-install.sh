@@ -17,9 +17,15 @@ msg_info "Installing Dependencies"
 $STD apt install -y redis-server
 msg_ok "Installed Dependencies"
 
-PNPM_VERSION="$(curl -fsSL "https://raw.githubusercontent.com/connorgallopo/Tracearr/refs/heads/main/package.json" | jq -r '.packageManager | split("@")[1]')"
-NODE_VERSION="22" NODE_MODULE="pnpm@${PNPM_VERSION}" setup_nodejs
+NODE_VERSION="22" setup_nodejs
 PG_VERSION="18" setup_postgresql
+
+msg_info "Installing pnpm"
+PNPM_VERSION="$(curl -fsSL "https://raw.githubusercontent.com/connorgallopo/Tracearr/refs/heads/main/package.json" | jq -r '.packageManager | split("@")[1]' | cut -d'+' -f1)"
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+$STD corepack enable pnpm
+$STD corepack prepare pnpm@${PNPM_VERSION} --activate
+msg_ok "Installed pnpm"
 
 msg_info "Installing TimescaleDB"
 setup_deb822_repo \
