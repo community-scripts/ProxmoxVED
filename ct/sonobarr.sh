@@ -39,7 +39,10 @@ PYTHON_VERSION="3.12" setup_uv
         CLEAN_INSTALL=1 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
 
         msg_info "Updating sonobarr"
-        cp "/opt/.sonobarr-env" "/opt/sonobarr/.env"
+        $STD uv venv -c /opt/sonobarr/venv
+        $STD source /opt/sonobarr/venv/bin/activate
+        $STD uv pip install --no-cache-dir -r /opt/sonobarr/requirements.txt
+        sed -i "/release_version/s/=.*/=$(cat ~/.sonobarr)/" /etc/sonobarr/.env
         msg_ok "Updated sonobarr"
 
         msg_info "Starting sonobarr"
