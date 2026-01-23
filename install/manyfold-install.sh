@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
     libarchive-dev \
     git \
     libmariadb-dev \
@@ -24,23 +24,14 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 setup_imagemagick
-
 PG_VERSION="16" setup_postgresql
-
+PG_DB_NAME="manyfold" PG_DB_USER="manyfold" setup_postgresql_db
 fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold/app"
 
-msg_info "Configuring manyfold environment"
+msg_info "Configuring Manyfold"
 RUBY_INSTALL_VERSION=$(cat /opt/manyfold/app/.ruby-version)
 YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/app/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
 RELEASE=$(get_latest_github_release "manyfold3d/manyfold")
-DB_NAME=manyfold
-DB_USER=manyfold
-DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
-$STD sudo -u postgres psql -c "CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASS';"
-$STD sudo -u postgres psql -c "CREATE DATABASE $DB_NAME WITH OWNER $DB_USER TEMPLATE template0;"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET client_encoding TO 'utf8';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET default_transaction_isolation TO 'read committed';"
-$STD sudo -u postgres psql -c "ALTER ROLE $DB_USER SET timezone TO 'UTC';"
 useradd -m -s /usr/bin/bash manyfold
 cat <<EOF >/opt/manyfold/.env
 export APP_VERSION=${RELEASE}
@@ -50,9 +41,9 @@ export PUBLIC_PORT=5000
 export REDIS_URL=redis://127.0.0.1:6379/1
 export DATABASE_ADAPTER=postgresql
 export DATABASE_HOST=127.0.0.1
-export DATABASE_USER=${DB_USER}
-export DATABASE_PASSWORD=${DB_PASS}
-export DATABASE_NAME=${DB_NAME}
+export DATABASE_USER=${PG_DB_USER}
+export DATABASE_PASSWORD=${PG_DB_PASS}
+export DATABASE_NAME=${PG_DB_NAME}
 export DATABASE_CONNECTION_POOL=16
 export MULTIUSER=enabled
 export HTTPS_ONLY=false
@@ -79,8 +70,8 @@ bin/rails credentials:edit
 bin/rails db:migrate
 bin/rails assets:precompile
 EOF
-$STD mkdir -p /opt/manyfold/data
-msg_ok "Configured manyfold environment"
+$STD mkdir -p /opt/manyfold_data
+msg_ok "Configured Manyfold"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" HOME=/home/manyfold setup_ruby
@@ -92,7 +83,7 @@ chmod +x /opt/manyfold/user_setup.sh
 npm install --global corepack
 $STD sudo -u manyfold bash /opt/manyfold/user_setup.sh
 rm -f /opt/manyfold/user_setup.sh
-msg_ok "Installed manyfold"
+msg_ok "Installed Manyfold"
 
 msg_info "Creating Services"
 source /opt/manyfold/.env
