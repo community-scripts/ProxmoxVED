@@ -33,10 +33,6 @@
     },
     "notes": [
         {
-            "text": "secret_key in env is randomly generated at installation, feel free to change it",
-            "type": "info"
-        },
-        {
             "text": "Change the default admin credentials",
             "type": "info"
         }
