@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: GoldenSpringness
+# Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/orhun/rustypaste
 
-APP="rustypaste"
-var_tags="${var_tags:-pastebin;storage}"
+APP="Alpine-RustyPaste"
+var_tags="${var_tags:-alpine;pastebin;storage}"
 var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-1024}"
-var_disk="${var_disk:-20}"
-var_os="${var_os:-debian}"
-var_version="${var_version:-13}"
+var_ram="${var_ram:-256}"
+var_disk="${var_disk:-4}"
+var_os="${var_os:-alpine}"
+var_version="${var_version:-3.23}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -31,7 +31,7 @@ function update_script() {
 
   if check_for_gh_release "rustypaste" "orhun/rustypaste"; then
     msg_info "Stopping Services"
-    systemctl stop rustypaste
+    rc-service rustypaste stop
     msg_ok "Stopped Services"
 
     msg_info "Creating Backup"
@@ -39,22 +39,24 @@ function update_script() {
     cp /opt/rustypaste/config.toml /tmp/rustypaste_config.toml.bak
     msg_ok "Backup Created"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "prebuild" "latest" "/opt/rustypaste" "*x86_64-unknown-linux-gnu.tar.gz"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "prebuild" "latest" "/opt/rustypaste" "*x86_64-unknown-linux-musl.tar.gz"
 
-    msg_info "Restoring Data"
+
+    msg_info "Updating RustyPaste"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "prebuild" "latest" "/opt/rustypaste" "*x86_64-unknown-linux-musl.tar.gz"
     mv /tmp/rustypaste_config.toml.bak /opt/rustypaste/config.toml
-    tar -xzf "/opt/rustypaste_backup_$(date +%F).tar.gz" -C /opt/rustypaste/upload 2>/dev/null || true
-    rm -rf /opt/rustypaste_backup_$(date +%F).tar.gz
-    msg_ok "Restored Data"
+    msg_ok "Updated RustyPaste"
 
     msg_info "Starting Services"
-    systemctl start rustypaste
+    rc-service rustypaste start
     msg_ok "Started Services"
     msg_ok "Updated successfully!"
   fi
 
   if check_for_gh_release "rustypaste-cli" "orhun/rustypaste-cli"; then
-    fetch_and_deploy_gh_release "rustypaste-cli" "orhun/rustypaste-cli" "prebuild" "latest" "/usr/local/bin" "*x86_64-unknown-linux-gnu.tar.gz"
+    msg_info "Updating RustyPaste CLI"
+    fetch_and_deploy_gh_release "rustypaste-cli" "orhun/rustypaste-cli" "prebuild" "latest" "/usr/local/bin" "*x86_64-unknown-linux-musl.tar.gz"
+    msg_ok "Updated RustyPaste CLI"
   fi
   exit
 }
@@ -64,6 +66,6 @@ build_container
 description
 
 msg_ok "Completed successfully!\n"
-echo -e "${CREATING}${GN}rustypaste setup has been successfully initialized!${CL}"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8000${CL}"
