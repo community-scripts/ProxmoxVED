@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   build-essential \
   git \
   libpq-dev \
@@ -32,7 +32,7 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" PG_MODULES="postgis-3" setup_postgresql
-PG_DB_NAME="dawarich_production" PG_DB_USER="dawarich" PG_DB_EXTENSIONS="postgis" setup_postgresql_db
+PG_DB_NAME="dawarich_db" PG_DB_USER="dawarich" PG_DB_EXTENSIONS="postgis" setup_postgresql_db
 
 fetch_and_deploy_gh_release "dawarich" "Freika/dawarich" "tarball" "latest" "/opt/dawarich/app"
 
@@ -43,7 +43,6 @@ msg_ok "Set up Directories"
 msg_info "Configuring Environment"
 SECRET_KEY_BASE=$(openssl rand -hex 64)
 RELEASE=$(get_latest_github_release "Freika/dawarich")
-import_local_ip
 cat <<EOF >/opt/dawarich/.env
 RAILS_ENV=production
 SECRET_KEY_BASE=${SECRET_KEY_BASE}
@@ -62,7 +61,6 @@ EOF
 msg_ok "Configured Environment"
 
 NODE_VERSION="22" setup_nodejs
-
 RUBY_VERSION=$(cat /opt/dawarich/app/.ruby-version 2>/dev/null || echo "3.4.6")
 RUBY_VERSION=${RUBY_VERSION} RUBY_INSTALL_RAILS="false" setup_ruby
 
@@ -71,14 +69,11 @@ cd /opt/dawarich/app
 source /root/.profile
 export PATH="/root/.rbenv/shims:/root/.rbenv/bin:$PATH"
 eval "$(/root/.rbenv/bin/rbenv init - bash)"
-
 set -a && source /opt/dawarich/.env && set +a
-
 $STD gem install bundler
 $STD bundle config set --local deployment 'true'
 $STD bundle config set --local without 'development test'
 $STD bundle install
-
 if [[ -f /opt/dawarich/package.json ]]; then
   cd /opt/dawarich
   $STD npm install
@@ -86,7 +81,6 @@ if [[ -f /opt/dawarich/package.json ]]; then
 elif [[ -f /opt/dawarich/app/package.json ]]; then
   $STD npm install
 fi
-
 $STD bundle exec rake assets:precompile
 $STD bundle exec rails db:prepare
 $STD bundle exec rake data:migrate
