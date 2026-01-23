@@ -38,10 +38,7 @@ $STD timescaledb-tune -yes -memory "$ram_for_tsdb"MB
 $STD systemctl restart postgresql
 msg_ok "Installed TimescaleDB"
 
-msg_info "Creating PostgreSQL Database"
-PG_DB_NAME="tracearr" PG_DB_USER="tracearr" PG_DB_EXTENSIONS="timescaledb,timescaledb_toolkit" setup_postgresql_db
-msg_ok "Created PostgreSQL Database"
-
+PG_DB_NAME="tracearr_db" PG_DB_USER="tracearr" PG_DB_EXTENSIONS="timescaledb,timescaledb_toolkit" setup_postgresql_db
 fetch_and_deploy_gh_release "tracearr" "connorgallopo/Tracearr" "tarball" "latest" "/opt/tracearr.build"
 
 msg_info "Building Tracearr"
@@ -141,9 +138,7 @@ User=tracearr
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now postgresql
-systemctl enable -q --now redis-server
-systemctl enable -q --now tracearr
+systemctl enable -q --now postgresql redis-server tracearr
 msg_ok "Created Services"
 
 motd_ssh
