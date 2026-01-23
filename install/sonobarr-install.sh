@@ -20,8 +20,11 @@ msg_info "Setting up sonobarr"
 $STD python3 -m venv /opt/sonobarr/venv
 source /opt/sonobarr/venv/bin/activate
 $STD uv pip install --no-cache-dir -r /opt/sonobarr/requirements.txt
-mv ".sample-env" ".env"
-sed -i "s/^secret_key=.*/secret_key=$(openssl rand -hex 16)/" .env
+mkdir -p /etc/sonobarr
+mv /opt/sonobarr/.sample-env /etc/sonobarr/.env
+sed -i "s/^secret_key=.*/secret_key=$(openssl rand -hex 16)/" /etc/sonobarr/.env
+echo "release_version=$(cat ~/.sonobarr)" >>/etc/sonobarr/.env
+echo "sonobarr_config_dir=/etc/sonobarr" >>/etc/sonobarr.env
 msg_ok "Set up sonobarr"
 
 msg_info "Creating Service"
