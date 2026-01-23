@@ -15,13 +15,11 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing dependencies"
-$STD apt-get install -y \
+msg_info "Installing Dependencies"
+$STD apt install -y \
   acl \
+  git \
   build-essential \
-  gcc \
-  g++ \
-  make \
   libssl-dev \
   libffi-dev \
   libmagic-dev \
@@ -43,9 +41,9 @@ $STD apt-get install -y \
   p7zip-full \
   tzdata \
   nginx
-msg_ok "Installed dependencies"
+msg_ok "Installed Dependencies"
 
-UV_VERSION="0.7.19" PYTHON_VERSION="3.13" setup_uv
+PYTHON_VERSION="3.13" setup_uv
 NODE_VERSION="22" setup_nodejs
 setup_mariadb
 MARIADB_DB_NAME="romm" MARIADB_DB_USER="romm" setup_mariadb_db
@@ -60,7 +58,7 @@ mkdir -p /opt/romm \
 msg_ok "Created directories"
 
 msg_info "Creating configuration file"
-cat >/var/lib/romm/config/config.yml <<'CONFIGEOF'
+cat <<'EOF' >/var/lib/romm/config/config.yml
 # RomM Configuration File
 # Documentation: https://docs.romm.app/latest/Getting-Started/Configuration-File/
 # Only uncomment the lines you want to use/modify
@@ -116,15 +114,13 @@ cat >/var/lib/romm/config/config.yml <<'CONFIGEOF'
 # emulatorjs:
 #   debug: false
 #   cache_limit: null
-CONFIGEOF
+EOF
 chmod 644 /var/lib/romm/config/config.yml
 msg_ok "Created configuration file"
 
-msg_info "Installing RAHasher (RetroAchievements)"
-fetch_and_deploy_gh_release "RetroAchievements" "RetroAchievements/RALibretro" "prebuild" "latest" "/opt/RALibretro" "RAHasher-x64-Linux-*.zip"
+fetch_and_deploy_gh_release "RAHasher" "RetroAchievements/RALibretro" "prebuild" "latest" "/opt/RALibretro" "RAHasher-x64-Linux-*.zip"
 cp /opt/RALibretro/RAHasher /usr/bin/RAHasher
 chmod +x /usr/bin/RAHasher
-msg_ok "Installed RAHasher"
 
 fetch_and_deploy_gh_release "romm" "rommapp/romm"
 
@@ -134,7 +130,7 @@ systemctl restart redis-server
 systemctl enable -q --now redis-server
 AUTH_SECRET_KEY=$(openssl rand -hex 32)
 
-cat >/opt/romm/.env <<EOF
+cat <<EOF >/opt/romm/.env
 ROMM_BASE_PATH=/var/lib/romm
 ROMM_CONFIG_PATH=/var/lib/romm/config/config.yml
 WEB_CONCURRENCY=4
@@ -166,24 +162,25 @@ EOF
 chmod 600 /opt/romm/.env
 msg_ok "Created environment file"
 
-msg_info "Setup Romm backend"
+msg_info "Setting up RomM Backend"
 cd /opt/romm
 export UV_CONCURRENT_DOWNLOADS=1
 $STD uv sync --all-extras
 cd /opt/romm/backend
 $STD uv run alembic upgrade head
-msg_ok "Installed backend"
+msg_ok "Set up RomM Backend"
 
-msg_info "Setup Romm frontend"
+msg_info "Setting up RomM Frontend"
 cd /opt/romm/frontend
 $STD npm install
 $STD npm run build
 mkdir -p /opt/romm/frontend/dist/assets/romm
 ln -sfn /var/lib/romm/resources /opt/romm/frontend/dist/assets/romm/resources
 ln -sfn /var/lib/romm/assets /opt/romm/frontend/dist/assets/romm/assets
-msg_ok "Setup Romm frontend"
-msg_info "Configuring nginx"
-cat >/etc/nginx/sites-available/romm <<'EOF'
+msg_ok "Set up RomM Frontend"
+
+msg_info "Configuring Nginx"
+cat <<'EOF' >/etc/nginx/sites-available/romm
 upstream romm_backend {
     server 127.0.0.1:5000;
 }
@@ -202,6 +199,14 @@ server {
     # Frontend SPA
     location / {
         try_files $uri $uri/ /index.html;
+    }
+
+    # Static assets
+    location /assets {
+        alias /opt/romm/frontend/dist/assets;
+        try_files $uri $uri/ =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
     }
 
     # EmulatorJS player - requires COOP/COEP headers for SharedArrayBuffer
@@ -247,13 +252,12 @@ EOF
 
 rm -f /etc/nginx/sites-enabled/default
 ln -sf /etc/nginx/sites-available/romm /etc/nginx/sites-enabled/romm
-$STD nginx -t
 systemctl restart nginx
-systemctl enable -q nginx
-msg_ok "Configured nginx"
+systemctl enable -q --now nginx
+msg_ok "Configured Nginx"
 
-msg_info "Creating services"
-cat >/etc/systemd/system/romm-backend.service <<EOF
+msg_info "Creating Services"
+cat <<EOF >/etc/systemd/system/romm-backend.service
 [Unit]
 Description=RomM Backend
 After=network.target mariadb.service redis-server.service
@@ -272,7 +276,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat >/etc/systemd/system/romm-worker.service <<EOF
+cat <<EOF >/etc/systemd/system/romm-worker.service
 [Unit]
 Description=RomM RQ Worker
 After=network.target mariadb.service redis-server.service romm-backend.service
@@ -291,7 +295,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat >/etc/systemd/system/romm-scheduler.service <<EOF
+cat <<EOF >/etc/systemd/system/romm-scheduler.service
 [Unit]
 Description=RomM RQ Scheduler
 After=network.target mariadb.service redis-server.service romm-backend.service
@@ -312,7 +316,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat >/etc/systemd/system/romm-watcher.service <<EOF
+cat <<EOF >/etc/systemd/system/romm-watcher.service
 [Unit]
 Description=RomM Filesystem Watcher
 After=network.target romm-backend.service
@@ -331,9 +335,8 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reload
 systemctl enable -q --now romm-backend romm-worker romm-scheduler romm-watcher
-msg_ok "Created services"
+msg_ok "Created Services"
 
 motd_ssh
 customize
