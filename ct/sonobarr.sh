@@ -48,7 +48,6 @@ PYTHON_VERSION="3.12" setup_uv
         msg_info "Starting sonobarr"
         systemctl start sonobarr
         msg_ok "Started sonobarr"
-
         msg_ok "Updated successfully!"
     fi
     exit
