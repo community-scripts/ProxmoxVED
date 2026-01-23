@@ -5925,15 +5925,17 @@ EOF
 
 # ------------------------------------------------------------------------------
 # Fetch and deploy archive from URL
-# Downloads an archive (zip or tar.gz) from a URL and extracts it to a directory
+# Downloads an archive (zip, tar.gz, or .deb) from a URL and extracts/installs it
 #
 # Usage: fetch_and_deploy_archive "url" "directory"
-#   url       - URL to the archive (zip or tar.gz)
+#   url       - URL to the archive (zip, tar.gz, or .deb)
 #   directory - Destination path where the archive will be extracted
+#               (not used for .deb packages)
 #
 # Examples:
 #   fetch_and_deploy_archive "https://example.com/app.tar.gz" "/opt/myapp"
 #   fetch_and_deploy_archive "https://example.com/app.zip" "/opt/myapp"
+#   fetch_and_deploy_archive "https://example.com/package.deb" ""
 # ------------------------------------------------------------------------------
 function fetch_and_deploy_archive() {
   local url="$1"
@@ -5944,19 +5946,16 @@ function fetch_and_deploy_archive() {
     return 1
   fi
 
-  if [[ -z "$directory" ]]; then
-    msg_error "Directory parameter is required"
-    return 1
-  fi
-
   local filename="${url##*/}"
 
   local archive_type="zip"
   if [[ "$filename" == *.tar.gz || "$filename" == *.tgz ]]; then
     archive_type="tar"
+  elif [[ "$filename" == *.deb ]]; then
+    archive_type="deb"
   fi
 
-  msg_info "Downloading archive from $url"
+  msg_info "Downloading from $url"
 
   local tmpdir
   tmpdir=$(mktemp -d) || {
@@ -5969,6 +5968,29 @@ function fetch_and_deploy_archive() {
     rm -rf "$tmpdir"
     return 1
   }
+
+  if [[ "$archive_type" == "deb" ]]; then
+    msg_info "Installing .deb package"
+
+    chmod 644 "$tmpdir/$filename"
+    $STD apt install -y "$tmpdir/$filename" || {
+      $STD dpkg -i "$tmpdir/$filename" || {
+        msg_error "Both apt and dpkg installation failed"
+        rm -rf "$tmpdir"
+        return 1
+      }
+    }
+
+    rm -rf "$tmpdir"
+    msg_ok "Successfully installed .deb package"
+    return 0
+  fi
+
+  if [[ -z "$directory" ]]; then
+    msg_error "Directory parameter is required for archive extraction"
+    rm -rf "$tmpdir"
+    return 1
+  fi
 
   msg_info "Extracting archive to $directory"
 
