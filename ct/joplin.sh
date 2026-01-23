@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://joplinapp.org/
 
-APP="Joplin-Server"
+APP="Joplin"
 var_tags="${var_tags:-notes}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-6144}"
@@ -44,7 +44,10 @@ function update_script() {
     sed -i "/onenote-converter/d" packages/lib/package.json
     $STD yarn config set --home enableTelemetry 0
     export BUILD_SEQUENCIAL=1
-    $STD yarn install --inline-builds
+    $STD yarn workspaces focus @joplin/server
+    cd packages/server
+    $STD yarn run build
+    $STD yarn run tsc
     msg_ok "Updated Joplin-Server"
 
     msg_info "Starting Services"

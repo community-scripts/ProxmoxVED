@@ -28,16 +28,17 @@ $STD pm2 install pm2-logrotate
 $STD pm2 set pm2-logrotate:max_size 100MB
 $STD pm2 set pm2-logrotate:retain 5
 $STD pm2 set pm2-logrotate:compress tr
+
 fetch_and_deploy_gh_release "joplin-server" "laurent22/joplin" "tarball"
-import_local_ip
 
 msg_info "Setting up Joplin Server (Patience)"
-cd /opt/joplin-server/packages/server
-sed -i "/onenote-converter/d" /opt/joplin-server/packages/lib/package.json
+cd /opt/joplin-server
+sed -i "/onenote-converter/d" packages/lib/package.json
 $STD yarn config set --home enableTelemetry 0
-$STD yarn install
-$STD yarn build
-
+export BUILD_SEQUENCIAL=1
+$STD yarn workspaces focus @joplin/server
+$STD yarn workspaces foreach -R --topological-dev --from @joplin/server run build
+$STD yarn workspaces foreach -R --topological-dev --from @joplin/server run tsc
 cat <<EOF >/opt/joplin-server/.env
 PM2_HOME=/opt/pm2
 NODE_ENV=production
@@ -46,6 +47,7 @@ APP_PORT=22300
 DB_CLIENT=pg
 POSTGRES_PASSWORD=$PG_DB_PASS
 POSTGRES_DATABASE=$PG_DB_NAME
+POSTGRES_USER=$PG_DB_USER
 POSTGRES_PORT=5432
 POSTGRES_HOST=localhost
 EOF

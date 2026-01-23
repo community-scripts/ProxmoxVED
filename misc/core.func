@@ -127,6 +127,34 @@ icons() {
 }
 
 # ------------------------------------------------------------------------------
+# ensure_profile_loaded()
+#
+# - Sources /etc/profile.d/*.sh scripts if not already loaded
+# - Fixes PATH issues when running via pct enter/exec (non-login shells)
+# - Safe to call multiple times (uses guard variable)
+# - Should be called in update_script() or any script running inside LXC
+# ------------------------------------------------------------------------------
+ensure_profile_loaded() {
+  # Skip if already loaded or running on Proxmox host
+  [[ -n "${_PROFILE_LOADED:-}" ]] && return
+  command -v pveversion &>/dev/null && return
+
+  # Source all profile.d scripts to ensure PATH is complete
+  if [[ -d /etc/profile.d ]]; then
+    for script in /etc/profile.d/*.sh; do
+      [[ -r "$script" ]] && source "$script"
+    done
+  fi
+
+  # Also ensure /usr/local/bin is in PATH (common install location)
+  if [[ ":$PATH:" != *":/usr/local/bin:"* ]]; then
+    export PATH="/usr/local/bin:$PATH"
+  fi
+
+  export _PROFILE_LOADED=1
+}
+
+# ------------------------------------------------------------------------------
 # default_vars()
 #
 # - Sets default retry and wait variables used for system actions
@@ -838,9 +866,11 @@ cleanup_lxc() {
   fi
 
   # Node.js npm
-  if command -v npm &>/dev/null; then $STD npm cache clean --force 2>/dev/null || true; fi
+  if command -v npm &>/dev/null; then
+    rm -rf /root/.npm/_cacache /root/.npm/_logs 2>/dev/null || true
+  fi
   # Node.js yarn
-  if command -v yarn &>/dev/null; then $STD yarn cache clean 2>/dev/null || true; fi
+  #if command -v yarn &>/dev/null; then $STD yarn cache clean 2>/dev/null || true; fi
   # Node.js pnpm
   if command -v pnpm &>/dev/null; then $STD pnpm store prune 2>/dev/null || true; fi
   # Go
@@ -904,6 +934,67 @@ check_or_create_swap() {
     msg_error "Failed to create or activate swap"
     return 1
   fi
+}
+
+# ------------------------------------------------------------------------------
+# Loads LOCAL_IP from persistent store or detects if missing.
+#
+# Description:
+#   - Loads from /run/local-ip.env or performs runtime lookup
+# ------------------------------------------------------------------------------
+
+function get_lxc_ip() {
+  local IP_FILE="/run/local-ip.env"
+  if [[ -f "$IP_FILE" ]]; then
+    # shellcheck disable=SC1090
+    source "$IP_FILE"
+  fi
+
+  if [[ -z "${LOCAL_IP:-}" ]]; then
+    get_current_ip() {
+      local ip
+
+      # Try direct interface lookup for eth0 FIRST (most reliable for LXC)
+      ip=$(ip -4 addr show eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
+      if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$ip"
+        return 0
+      fi
+
+      # Fallback: Try hostname -I
+      if command -v hostname >/dev/null 2>&1; then
+        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "$ip"
+          return 0
+        fi
+      fi
+
+      # Last resort: Use routing table
+      local targets=("8.8.8.8" "1.1.1.1" "default")
+      for target in "${targets[@]}"; do
+        if [[ "$target" == "default" ]]; then
+          ip=$(ip route get 1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+        else
+          ip=$(ip route get "$target" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+        fi
+        if [[ -n "$ip" ]]; then
+          echo "$ip"
+          return 0
+        fi
+      done
+
+      return 1
+    }
+
+    LOCAL_IP="$(get_current_ip || true)"
+    if [[ -z "$LOCAL_IP" ]]; then
+      msg_error "Could not determine LOCAL_IP"
+      return 1
+    fi
+  fi
+
+  export LOCAL_IP
 }
 
 # ==============================================================================

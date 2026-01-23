@@ -338,6 +338,347 @@ install_ssh_keys_into_ct() {
 }
 
 # ------------------------------------------------------------------------------
+# validate_container_id()
+#
+# - Validates if a container ID is available for use
+# - Checks if ID is already used by VM or LXC container
+# - Checks if ID is used in LVM logical volumes
+# - Returns 0 if ID is available, 1 if already in use
+# ------------------------------------------------------------------------------
+validate_container_id() {
+  local ctid="$1"
+
+  # Check if ID is numeric
+  if ! [[ "$ctid" =~ ^[0-9]+$ ]]; then
+    return 1
+  fi
+
+  # Check if config file exists for VM or LXC
+  if [[ -f "/etc/pve/qemu-server/${ctid}.conf" ]] || [[ -f "/etc/pve/lxc/${ctid}.conf" ]]; then
+    return 1
+  fi
+
+  # Check if ID is used in LVM logical volumes
+  if lvs --noheadings -o lv_name 2>/dev/null | grep -qE "(^|[-_])${ctid}($|[-_])"; then
+    return 1
+  fi
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# get_valid_container_id()
+#
+# - Returns a valid, unused container ID
+# - If provided ID is valid, returns it
+# - Otherwise increments from suggested ID until a free one is found
+# - Calls validate_container_id() to check availability
+# ------------------------------------------------------------------------------
+get_valid_container_id() {
+  local suggested_id="${1:-$(pvesh get /cluster/nextid)}"
+
+  while ! validate_container_id "$suggested_id"; do
+    suggested_id=$((suggested_id + 1))
+  done
+
+  echo "$suggested_id"
+}
+
+# ------------------------------------------------------------------------------
+# validate_hostname()
+#
+# - Validates hostname/FQDN according to RFC 1123/952
+# - Checks total length (max 253 characters for FQDN)
+# - Validates each label (max 63 chars, alphanumeric + hyphens)
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_hostname() {
+  local hostname="$1"
+
+  # Check total length (max 253 for FQDN)
+  if [[ ${#hostname} -gt 253 ]] || [[ -z "$hostname" ]]; then
+    return 1
+  fi
+
+  # Split by dots and validate each label
+  local IFS='.'
+  read -ra labels <<<"$hostname"
+  for label in "${labels[@]}"; do
+    # Each label: 1-63 chars, alphanumeric, hyphens allowed (not at start/end)
+    if [[ -z "$label" ]] || [[ ${#label} -gt 63 ]]; then
+      return 1
+    fi
+    if [[ ! "$label" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]] && [[ ! "$label" =~ ^[a-z0-9]$ ]]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_mac_address()
+#
+# - Validates MAC address format (XX:XX:XX:XX:XX:XX)
+# - Empty value is allowed (auto-generated)
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_mac_address() {
+  local mac="$1"
+  [[ -z "$mac" ]] && return 0
+  if [[ ! "$mac" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]]; then
+    return 1
+  fi
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_vlan_tag()
+#
+# - Validates VLAN tag (1-4094)
+# - Empty value is allowed (no VLAN)
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_vlan_tag() {
+  local vlan="$1"
+  [[ -z "$vlan" ]] && return 0
+  if ! [[ "$vlan" =~ ^[0-9]+$ ]] || ((vlan < 1 || vlan > 4094)); then
+    return 1
+  fi
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_mtu()
+#
+# - Validates MTU size (576-65535, common values: 1500, 9000)
+# - Empty value is allowed (default 1500)
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_mtu() {
+  local mtu="$1"
+  [[ -z "$mtu" ]] && return 0
+  if ! [[ "$mtu" =~ ^[0-9]+$ ]] || ((mtu < 576 || mtu > 65535)); then
+    return 1
+  fi
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_ipv6_address()
+#
+# - Validates IPv6 address with optional CIDR notation
+# - Supports compressed (::) and full notation
+# - Empty value is allowed
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_ipv6_address() {
+  local ipv6="$1"
+  [[ -z "$ipv6" ]] && return 0
+
+  # Extract address and CIDR
+  local addr="${ipv6%%/*}"
+  local cidr="${ipv6##*/}"
+
+  # Validate CIDR if present (1-128)
+  if [[ "$ipv6" == */* ]]; then
+    if ! [[ "$cidr" =~ ^[0-9]+$ ]] || ((cidr < 1 || cidr > 128)); then
+      return 1
+    fi
+  fi
+
+  # Basic IPv6 validation - check for valid characters and structure
+  # Must contain only hex digits and colons
+  if [[ ! "$addr" =~ ^[0-9a-fA-F:]+$ ]]; then
+    return 1
+  fi
+
+  # Must contain at least one colon
+  if [[ ! "$addr" == *:* ]]; then
+    return 1
+  fi
+
+  # Check for valid double-colon usage (only one :: allowed)
+  if [[ "$addr" == *::*::* ]]; then
+    return 1
+  fi
+
+  # Check that no segment exceeds 4 hex chars
+  local IFS=':'
+  local -a segments
+  read -ra segments <<<"$addr"
+  for seg in "${segments[@]}"; do
+    if [[ ${#seg} -gt 4 ]]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_bridge()
+#
+# - Validates that network bridge exists and is active
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_bridge() {
+  local bridge="$1"
+  [[ -z "$bridge" ]] && return 1
+
+  # Check if bridge interface exists
+  if ! ip link show "$bridge" &>/dev/null; then
+    return 1
+  fi
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_gateway_in_subnet()
+#
+# - Validates that gateway IP is in the same subnet as static IP
+# - Arguments: static_ip (with CIDR), gateway_ip
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_gateway_in_subnet() {
+  local static_ip="$1"
+  local gateway="$2"
+
+  [[ -z "$static_ip" || -z "$gateway" ]] && return 0
+
+  # Extract IP and CIDR
+  local ip="${static_ip%%/*}"
+  local cidr="${static_ip##*/}"
+
+  # Convert CIDR to netmask bits
+  local mask=$((0xFFFFFFFF << (32 - cidr) & 0xFFFFFFFF))
+
+  # Convert IPs to integers
+  local IFS='.'
+  read -r i1 i2 i3 i4 <<<"$ip"
+  read -r g1 g2 g3 g4 <<<"$gateway"
+
+  local ip_int=$(((i1 << 24) + (i2 << 16) + (i3 << 8) + i4))
+  local gw_int=$(((g1 << 24) + (g2 << 16) + (g3 << 8) + g4))
+
+  # Check if both are in same network
+  if (((ip_int & mask) != (gw_int & mask))); then
+    return 1
+  fi
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_ip_address()
+#
+# - Validates IPv4 address with CIDR notation
+# - Checks each octet is 0-255
+# - Checks CIDR is 1-32
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_ip_address() {
+  local ip="$1"
+  [[ -z "$ip" ]] && return 1
+
+  # Check format with CIDR
+  if [[ ! "$ip" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})/([0-9]{1,2})$ ]]; then
+    return 1
+  fi
+
+  local o1="${BASH_REMATCH[1]}"
+  local o2="${BASH_REMATCH[2]}"
+  local o3="${BASH_REMATCH[3]}"
+  local o4="${BASH_REMATCH[4]}"
+  local cidr="${BASH_REMATCH[5]}"
+
+  # Validate octets (0-255)
+  for octet in "$o1" "$o2" "$o3" "$o4"; do
+    if ((octet > 255)); then
+      return 1
+    fi
+  done
+
+  # Validate CIDR (1-32)
+  if ((cidr < 1 || cidr > 32)); then
+    return 1
+  fi
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_gateway_ip()
+#
+# - Validates gateway IPv4 address (without CIDR)
+# - Checks each octet is 0-255
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_gateway_ip() {
+  local ip="$1"
+  [[ -z "$ip" ]] && return 0
+
+  # Check format without CIDR
+  if [[ ! "$ip" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]]; then
+    return 1
+  fi
+
+  local o1="${BASH_REMATCH[1]}"
+  local o2="${BASH_REMATCH[2]}"
+  local o3="${BASH_REMATCH[3]}"
+  local o4="${BASH_REMATCH[4]}"
+
+  # Validate octets (0-255)
+  for octet in "$o1" "$o2" "$o3" "$o4"; do
+    if ((octet > 255)); then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_timezone()
+#
+# - Validates timezone string against system zoneinfo
+# - Empty value or "host" is allowed
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_timezone() {
+  local tz="$1"
+  [[ -z "$tz" || "$tz" == "host" ]] && return 0
+
+  # Check if timezone file exists
+  if [[ ! -f "/usr/share/zoneinfo/$tz" ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# validate_tags()
+#
+# - Validates Proxmox tags format
+# - Only alphanumeric, hyphens, underscores, and semicolons allowed
+# - Empty value is allowed
+# - Returns 0 if valid, 1 if invalid
+# ------------------------------------------------------------------------------
+validate_tags() {
+  local tags="$1"
+  [[ -z "$tags" ]] && return 0
+
+  # Tags can only contain alphanumeric, -, _, and ; (separator)
+  if [[ ! "$tags" =~ ^[a-zA-Z0-9_\;-]+$ ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
+# ------------------------------------------------------------------------------
 # find_host_ssh_keys()
 #
 # - Scans system for available SSH keys
@@ -523,6 +864,12 @@ choose_and_set_storage_for_file() {
   if [[ "$count" -eq 1 ]]; then
     STORAGE_RESULT=$(pvesm status -content "$content" | awk 'NR>1{print $1; exit}')
     STORAGE_INFO=""
+
+    # Validate storage space for auto-picked container storage
+    if [[ "$class" == "container" && -n "${DISK_SIZE:-}" ]]; then
+      validate_storage_space "$STORAGE_RESULT" "$DISK_SIZE" "yes"
+      # Continue even if validation fails - user was warned
+    fi
   else
     # If the current value is preselectable, we could show it, but per your requirement we always offer selection
     select_storage "$class" || return 1
@@ -588,9 +935,47 @@ base_settings() {
   CORE_COUNT="${final_cpu}"
   RAM_SIZE="${final_ram}"
   VERBOSE=${var_verbose:-"${1:-no}"}
-  PW=${var_pw:-""}
-  CT_ID=${var_ctid:-$NEXTID}
-  HN=${var_hostname:-$NSAPP}
+
+  # Password sanitization - clean up dashes and format properly
+  PW=""
+  if [[ -n "${var_pw:-}" ]]; then
+    local _pw_raw="${var_pw}"
+    case "$_pw_raw" in
+    --password\ *) _pw_raw="${_pw_raw#--password }" ;;
+    -password\ *) _pw_raw="${_pw_raw#-password }" ;;
+    esac
+    while [[ "$_pw_raw" == -* ]]; do
+      _pw_raw="${_pw_raw#-}"
+    done
+    if [[ -z "$_pw_raw" ]]; then
+      msg_warn "Password was only dashes after cleanup; leaving empty."
+    else
+      PW="--password $_pw_raw"
+    fi
+  fi
+
+  # Validate and set Container ID
+  local requested_id="${var_ctid:-$NEXTID}"
+  if ! validate_container_id "$requested_id"; then
+    # Only show warning if user manually specified an ID (not auto-assigned)
+    if [[ -n "${var_ctid:-}" ]]; then
+      msg_warn "Container ID $requested_id is already in use. Using next available ID: $(get_valid_container_id "$requested_id")"
+    fi
+    requested_id=$(get_valid_container_id "$requested_id")
+  fi
+  CT_ID="$requested_id"
+
+  # Validate and set Hostname/FQDN
+  local requested_hostname="${var_hostname:-$NSAPP}"
+  requested_hostname=$(echo "${requested_hostname,,}" | tr -d ' ')
+  if ! validate_hostname "$requested_hostname"; then
+    if [[ -n "${var_hostname:-}" ]]; then
+      msg_warn "Invalid hostname '$requested_hostname'. Using default: $NSAPP"
+    fi
+    requested_hostname="$NSAPP"
+  fi
+  HN="$requested_hostname"
+
   BRG=${var_brg:-"vmbr0"}
   NET=${var_net:-"dhcp"}
 
@@ -660,9 +1045,11 @@ base_settings() {
 # - Safe parser for KEY=VALUE lines from vars files
 # - Used by default_var_settings and app defaults loading
 # - Only loads whitelisted var_* keys
+# - Optional force parameter to override existing values (for app defaults)
 # ------------------------------------------------------------------------------
 load_vars_file() {
   local file="$1"
+  local force="${2:-no}" # If "yes", override existing variables
   [ -f "$file" ] || return 0
   msg_info "Loading defaults from ${file}"
 
@@ -693,10 +1080,9 @@ load_vars_file() {
       [[ "$var_key" != var_* ]] && continue
       _is_whitelisted "$var_key" || continue
 
-      # Strip inline comments (everything after unquoted #)
-      # Handle: var=value # comment OR var="value" # comment
+      # Strip inline comments (anything after unquoted #)
+      # Only strip if not inside quotes
       if [[ ! "$var_val" =~ ^[\"\'] ]]; then
-        # Unquoted value: strip from first #
         var_val="${var_val%%#*}"
       fi
 
@@ -710,8 +1096,125 @@ load_vars_file() {
       # Trim trailing whitespace
       var_val="${var_val%"${var_val##*[![:space:]]}"}"
 
-      # Set only if not already exported
-      [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
+      # Validate values before setting (skip empty values - they use defaults)
+      if [[ -n "$var_val" ]]; then
+        case "$var_key" in
+        var_mac)
+          if ! validate_mac_address "$var_val"; then
+            msg_warn "Invalid MAC address '$var_val' in $file, ignoring"
+            continue
+          fi
+          ;;
+        var_vlan)
+          if ! validate_vlan_tag "$var_val"; then
+            msg_warn "Invalid VLAN tag '$var_val' in $file (must be 1-4094), ignoring"
+            continue
+          fi
+          ;;
+        var_mtu)
+          if ! validate_mtu "$var_val"; then
+            msg_warn "Invalid MTU '$var_val' in $file (must be 576-65535), ignoring"
+            continue
+          fi
+          ;;
+        var_tags)
+          if ! validate_tags "$var_val"; then
+            msg_warn "Invalid tags '$var_val' in $file (alphanumeric, -, _, ; only), ignoring"
+            continue
+          fi
+          ;;
+        var_timezone)
+          if ! validate_timezone "$var_val"; then
+            msg_warn "Invalid timezone '$var_val' in $file, ignoring"
+            continue
+          fi
+          ;;
+        var_brg)
+          if ! validate_bridge "$var_val"; then
+            msg_warn "Bridge '$var_val' not found in $file, ignoring"
+            continue
+          fi
+          ;;
+        var_gateway)
+          if ! validate_gateway_ip "$var_val"; then
+            msg_warn "Invalid gateway IP '$var_val' in $file, ignoring"
+            continue
+          fi
+          ;;
+        var_hostname)
+          if ! validate_hostname "$var_val"; then
+            msg_warn "Invalid hostname '$var_val' in $file, ignoring"
+            continue
+          fi
+          ;;
+        var_cpu)
+          if ! [[ "$var_val" =~ ^[0-9]+$ ]] || ((var_val < 1 || var_val > 128)); then
+            msg_warn "Invalid CPU count '$var_val' in $file (must be 1-128), ignoring"
+            continue
+          fi
+          ;;
+        var_ram)
+          if ! [[ "$var_val" =~ ^[0-9]+$ ]] || ((var_val < 256)); then
+            msg_warn "Invalid RAM '$var_val' in $file (must be >= 256 MiB), ignoring"
+            continue
+          fi
+          ;;
+        var_disk)
+          if ! [[ "$var_val" =~ ^[0-9]+$ ]] || ((var_val < 1)); then
+            msg_warn "Invalid disk size '$var_val' in $file (must be >= 1 GB), ignoring"
+            continue
+          fi
+          ;;
+        var_unprivileged)
+          if [[ "$var_val" != "0" && "$var_val" != "1" ]]; then
+            msg_warn "Invalid unprivileged value '$var_val' in $file (must be 0 or 1), ignoring"
+            continue
+          fi
+          ;;
+        var_nesting)
+          if [[ "$var_val" != "0" && "$var_val" != "1" ]]; then
+            msg_warn "Invalid nesting value '$var_val' in $file (must be 0 or 1), ignoring"
+            continue
+          fi
+          ;;
+        var_keyctl)
+          if [[ "$var_val" != "0" && "$var_val" != "1" ]]; then
+            msg_warn "Invalid keyctl value '$var_val' in $file (must be 0 or 1), ignoring"
+            continue
+          fi
+          ;;
+        var_net)
+          # var_net can be: dhcp, static IP/CIDR, or IP range
+          if [[ "$var_val" != "dhcp" ]]; then
+            if is_ip_range "$var_val"; then
+              : # IP range is valid, will be resolved at runtime
+            elif ! validate_ip_address "$var_val"; then
+              msg_warn "Invalid network '$var_val' in $file (must be dhcp or IP/CIDR), ignoring"
+              continue
+            fi
+          fi
+          ;;
+        var_fuse | var_tun | var_gpu | var_ssh | var_verbose | var_protection)
+          if [[ "$var_val" != "yes" && "$var_val" != "no" ]]; then
+            msg_warn "Invalid boolean '$var_val' for $var_key in $file (must be yes/no), ignoring"
+            continue
+          fi
+          ;;
+        var_ipv6_method)
+          if [[ "$var_val" != "auto" && "$var_val" != "dhcp" && "$var_val" != "static" && "$var_val" != "none" ]]; then
+            msg_warn "Invalid IPv6 method '$var_val' in $file (must be auto/dhcp/static/none), ignoring"
+            continue
+          fi
+          ;;
+        esac
+      fi
+
+      # Set variable: force mode overrides existing, otherwise only set if empty
+      if [[ "$force" == "yes" ]]; then
+        export "${var_key}=${var_val}"
+      else
+        [[ -z "${!var_key+x}" ]] && export "${var_key}=${var_val}"
+      fi
     fi
   done <"$file"
   msg_ok "Loaded ${file}"
@@ -1047,6 +1550,7 @@ _build_current_app_vars_tmp() {
   _apt_cacher_ip="${APT_CACHER_IP:-}"
   _fuse="${ENABLE_FUSE:-no}"
   _tun="${ENABLE_TUN:-no}"
+  _gpu="${ENABLE_GPU:-no}"
   _nesting="${ENABLE_NESTING:-1}"
   _keyctl="${ENABLE_KEYCTL:-0}"
   _mknod="${ENABLE_MKNOD:-0}"
@@ -1096,6 +1600,7 @@ _build_current_app_vars_tmp() {
 
     [ -n "$_fuse" ] && echo "var_fuse=$(_sanitize_value "$_fuse")"
     [ -n "$_tun" ] && echo "var_tun=$(_sanitize_value "$_tun")"
+    [ -n "$_gpu" ] && echo "var_gpu=$(_sanitize_value "$_gpu")"
     [ -n "$_nesting" ] && echo "var_nesting=$(_sanitize_value "$_nesting")"
     [ -n "$_keyctl" ] && echo "var_keyctl=$(_sanitize_value "$_keyctl")"
     [ -n "$_mknod" ] && echo "var_mknod=$(_sanitize_value "$_mknod")"
@@ -1284,7 +1789,10 @@ advanced_settings() {
   elif [ -f /etc/timezone ]; then
     _host_timezone=$(cat /etc/timezone 2>/dev/null || echo "")
   fi
+  # pct doesn't accept Etc/* zones - map to 'host' instead
+  [[ "${_host_timezone:-}" == Etc/* ]] && _host_timezone="host"
   local _ct_timezone="${var_timezone:-$_host_timezone}"
+  [[ "${_ct_timezone:-}" == Etc/* ]] && _ct_timezone="host"
 
   # Helper to show current progress
   show_progress() {
@@ -1377,24 +1885,33 @@ advanced_settings() {
           ((STEP++))
         elif [[ "$PW1" == *" "* ]]; then
           whiptail --msgbox "Password cannot contain spaces." 8 58
-        elif ((${#PW1} < 5)); then
-          whiptail --msgbox "Password must be at least 5 characters." 8 58
         else
-          # Verify password
-          if PW2=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
-            --title "PASSWORD VERIFICATION" \
-            --ok-button "Confirm" --cancel-button "Back" \
-            --passwordbox "\nVerify Root Password" 10 58 \
-            3>&1 1>&2 2>&3); then
-            if [[ "$PW1" == "$PW2" ]]; then
-              _pw="-password $PW1"
-              _pw_display="********"
-              ((STEP++))
-            else
-              whiptail --msgbox "Passwords do not match. Please try again." 8 58
-            fi
+          # Clean up leading dashes from password
+          local _pw1_clean="$PW1"
+          while [[ "$_pw1_clean" == -* ]]; do
+            _pw1_clean="${_pw1_clean#-}"
+          done
+          if [[ -z "$_pw1_clean" ]]; then
+            whiptail --msgbox "Password cannot be only '-' characters." 8 58
+          elif ((${#_pw1_clean} < 5)); then
+            whiptail --msgbox "Password must be at least 5 characters (after removing leading '-')." 8 70
           else
-            ((STEP--))
+            # Verify password
+            if PW2=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
+              --title "PASSWORD VERIFICATION" \
+              --ok-button "Confirm" --cancel-button "Back" \
+              --passwordbox "\nVerify Root Password" 10 58 \
+              3>&1 1>&2 2>&3); then
+              if [[ "$PW1" == "$PW2" ]]; then
+                _pw="--password $_pw1_clean"
+                _pw_display="********"
+                ((STEP++))
+              else
+                whiptail --msgbox "Passwords do not match. Please try again." 8 58
+              fi
+            else
+              ((STEP--))
+            fi
           fi
         fi
       else
@@ -1411,8 +1928,23 @@ advanced_settings() {
         --ok-button "Next" --cancel-button "Back" \
         --inputbox "\nSet Container ID" 10 58 "$_ct_id" \
         3>&1 1>&2 2>&3); then
-        _ct_id="${result:-$NEXTID}"
-        ((STEP++))
+        local input_id="${result:-$NEXTID}"
+        # Validate container ID is numeric
+        if ! [[ "$input_id" =~ ^[0-9]+$ ]]; then
+          whiptail --msgbox "Container ID must be numeric." 8 58
+          continue
+        fi
+        # Validate container ID is available
+        if ! validate_container_id "$input_id"; then
+          if whiptail --yesno "Container/VM ID $input_id is already in use.\n\nWould you like to use the next available ID: $(get_valid_container_id "$input_id")?" 10 58; then
+            _ct_id=$(get_valid_container_id "$input_id")
+            ((STEP++))
+          fi
+          # else stay on this step
+        else
+          _ct_id="$input_id"
+          ((STEP++))
+        fi
       else
         ((STEP--))
       fi
@@ -2298,6 +2830,8 @@ install_script() {
   else
     timezone="UTC"
   fi
+  # pct doesn't accept Etc/* zones - map to 'host' instead
+  [[ "${timezone:-}" == Etc/* ]] && timezone="host"
 
   # Show APP Header
   header_info
@@ -2695,8 +3229,8 @@ configure_ssh_settings() {
 #
 # - Entry point of script
 # - On Proxmox host: calls install_script
-# - In silent mode: runs update_script
-# - Otherwise: shows update/setting menu
+# - In silent mode: runs update_script with automatic cleanup
+# - Otherwise: shows update/setting menu and runs update_script with cleanup
 # ------------------------------------------------------------------------------
 start() {
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
@@ -2706,7 +3240,9 @@ start() {
   elif [ ! -z ${PHS_SILENT+x} ] && [[ "${PHS_SILENT}" == "1" ]]; then
     VERBOSE="no"
     set_std_mode
+    ensure_profile_loaded
     update_script
+    cleanup_lxc
   else
     CHOICE=$(whiptail --backtitle "[dev] Proxmox VE Helper Scripts" --title "${APP} LXC Update/Setting" --menu \
       "Support/Update functions for ${APP} LXC. Choose an option:" \
@@ -2730,7 +3266,9 @@ start() {
       exit
       ;;
     esac
+    ensure_profile_loaded
     update_script
+    cleanup_lxc
   fi
 }
 
@@ -2847,6 +3385,8 @@ build_container() {
   export CTTYPE="$CT_TYPE"
   export ENABLE_FUSE="$ENABLE_FUSE"
   export ENABLE_TUN="$ENABLE_TUN"
+  export ENABLE_GPU="$ENABLE_GPU"
+  export IPV6_METHOD="$IPV6_METHOD"
   export PCT_OSTYPE="$var_os"
   export PCT_OSVERSION="$var_version"
   export PCT_DISK_SIZE="$DISK_SIZE"
@@ -2863,10 +3403,37 @@ build_container() {
   export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
   export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
 
+  # Validate storage space before container creation
+  if [[ -n "$CONTAINER_STORAGE" ]]; then
+    msg_info "Validating storage space"
+    if ! validate_storage_space "$CONTAINER_STORAGE" "$DISK_SIZE" "no"; then
+      local free_space
+      free_space=$(pvesm status 2>/dev/null | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
+      local free_fmt
+      free_fmt=$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$free_space" 2>/dev/null || echo "${free_space}KB")
+      msg_error "Not enough space on '$CONTAINER_STORAGE'. Required: ${DISK_SIZE}GB, Available: ${free_fmt}"
+      exit 214
+    fi
+    msg_ok "Storage space validated"
+  fi
+
   # Build PCT_OPTIONS as multi-line string
-  PCT_OPTIONS_STRING="  -features $FEATURES
-  -hostname $HN
+  PCT_OPTIONS_STRING=""
+
+  # Add features if set
+  if [ -n "$FEATURES" ]; then
+    PCT_OPTIONS_STRING="  -features $FEATURES"
+  fi
+
+  # Add hostname
+  PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
+  -hostname $HN"
+
+  # Add tags if set
+  if [ -n "$TAGS" ]; then
+    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
   -tags $TAGS"
+  fi
 
   # Add storage if specified
   if [ -n "$SD" ]; then
@@ -3588,9 +4155,9 @@ resolve_storage_preselect() {
     free="$(awk '{print $6}' <<<"$line")"
     local total_h used_h free_h
     if command -v numfmt >/dev/null 2>&1; then
-      total_h="$(numfmt --to=iec --suffix=B --format %.1f "$total" 2>/dev/null || echo "$total")"
-      used_h="$(numfmt --to=iec --suffix=B --format %.1f "$used" 2>/dev/null || echo "$used")"
-      free_h="$(numfmt --to=iec --suffix=B --format %.1f "$free" 2>/dev/null || echo "$free")"
+      total_h="$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$total" 2>/dev/null || echo "$total")"
+      used_h="$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$used" 2>/dev/null || echo "$used")"
+      free_h="$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$free" 2>/dev/null || echo "$free")"
       STORAGE_INFO="Free: ${free_h}  Used: ${used_h}"
     else
       STORAGE_INFO="Free: ${free}  Used: ${used}"
@@ -3707,8 +4274,8 @@ select_storage() {
   while read -r TAG TYPE _ TOTAL USED FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
     local DISPLAY="${TAG} (${TYPE})"
-    local USED_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$USED")
-    local FREE_FMT=$(numfmt --to=iec --from-unit=K --format %.1f <<<"$FREE")
+    local USED_FMT=$(numfmt --to=iec --from-unit=1024 --format %.1f <<<"$USED")
+    local FREE_FMT=$(numfmt --to=iec --from-unit=1024 --format %.1f <<<"$FREE")
     local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
     STORAGE_MAP["$DISPLAY"]="$TAG"
     MENU+=("$DISPLAY" "$INFO" "OFF")
@@ -3723,6 +4290,11 @@ select_storage() {
   if [[ $((${#MENU[@]} / 3)) -eq 1 ]]; then
     STORAGE_RESULT="${STORAGE_MAP[${MENU[0]}]}"
     STORAGE_INFO="${MENU[1]}"
+
+    # Validate storage space for auto-picked container storage
+    if [[ "$CLASS" == "container" && -n "${DISK_SIZE:-}" ]]; then
+      validate_storage_space "$STORAGE_RESULT" "$DISK_SIZE" "yes"
+    fi
     return 0
   fi
 
@@ -3746,8 +4318,71 @@ select_storage() {
         break
       fi
     done
+
+    # Validate storage space for container storage
+    if [[ "$CLASS" == "container" && -n "${DISK_SIZE:-}" ]]; then
+      validate_storage_space "$STORAGE_RESULT" "$DISK_SIZE" "yes"
+    fi
     return 0
   done
+}
+
+# ------------------------------------------------------------------------------
+# validate_storage_space()
+#
+# - Validates if storage has enough free space for container
+# - Takes storage name and required size in GB
+# - Returns 0 if enough space, 1 if not enough, 2 if storage unavailable
+# - Can optionally show whiptail warning
+# - Handles all storage types: dir, lvm, lvmthin, zfs, nfs, cifs, etc.
+# ------------------------------------------------------------------------------
+validate_storage_space() {
+  local storage="$1"
+  local required_gb="${2:-8}"
+  local show_dialog="${3:-no}"
+
+  # Get full storage line from pvesm status
+  local storage_line
+  storage_line=$(pvesm status 2>/dev/null | awk -v s="$storage" '$1 == s {print $0}')
+
+  # Check if storage exists and is active
+  if [[ -z "$storage_line" ]]; then
+    [[ "$show_dialog" == "yes" ]] && whiptail --msgbox "⚠️  Warning: Storage '$storage' not found!\n\nThe storage may be unavailable or disabled." 10 60
+    return 2
+  fi
+
+  # Check storage status (column 3)
+  local status
+  status=$(awk '{print $3}' <<<"$storage_line")
+  if [[ "$status" == "disabled" ]]; then
+    [[ "$show_dialog" == "yes" ]] && whiptail --msgbox "⚠️  Warning: Storage '$storage' is disabled!\n\nPlease enable the storage first." 10 60
+    return 2
+  fi
+
+  # Get storage type and free space (column 6)
+  local storage_type storage_free
+  storage_type=$(awk '{print $2}' <<<"$storage_line")
+  storage_free=$(awk '{print $6}' <<<"$storage_line")
+
+  # Some storage types (like PBS, iSCSI) don't report size info
+  # In these cases, skip space validation
+  if [[ -z "$storage_free" || "$storage_free" == "0" ]]; then
+    # Silent pass for storages without size info
+    return 0
+  fi
+
+  local required_kb=$((required_gb * 1024 * 1024))
+  local free_gb_fmt
+  free_gb_fmt=$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$storage_free" 2>/dev/null || echo "${storage_free}KB")
+
+  if [[ "$storage_free" -lt "$required_kb" ]]; then
+    if [[ "$show_dialog" == "yes" ]]; then
+      whiptail --msgbox "⚠️  Warning: Storage '$storage' may not have enough space!\n\nStorage Type: ${storage_type}\nRequired: ${required_gb}GB\nAvailable: ${free_gb_fmt}\n\nYou can continue, but creation might fail." 14 70
+    fi
+    return 1
+  fi
+
+  return 0
 }
 
 create_lxc_container() {
@@ -3975,7 +4610,14 @@ create_lxc_container() {
       sed 's|.*/||' | sort -t - -k 2 -V
   )
 
-  pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
+  # Update template catalog with timeout to prevent hangs on slow networks
+  if command -v timeout &>/dev/null; then
+    if ! timeout 30 pveam update >/dev/null 2>&1; then
+      msg_warn "Template catalog update timed out or failed (continuing with cached data)"
+    fi
+  else
+    pveam update >/dev/null 2>&1 || msg_warn "Could not update template catalog (pveam update failed)."
+  fi
 
   msg_ok "Template search completed"
 
@@ -4272,14 +4914,35 @@ create_lxc_container() {
 
   # Lock by template file (avoid concurrent downloads/creates)
   lockfile="/tmp/template.${TEMPLATE}.lock"
+
+  # Cleanup stale lock files (older than 1 hour - likely from crashed processes)
+  if [[ -f "$lockfile" ]]; then
+    local lock_age=$(($(date +%s) - $(stat -c %Y "$lockfile" 2>/dev/null || echo 0)))
+    if [[ $lock_age -gt 3600 ]]; then
+      msg_warn "Removing stale template lock file (age: ${lock_age}s)"
+      rm -f "$lockfile"
+    fi
+  fi
+
   exec 9>"$lockfile" || {
     msg_error "Failed to create lock file '$lockfile'."
     exit 200
   }
-  flock -w 60 9 || {
-    msg_error "Timeout while waiting for template lock."
-    exit 211
-  }
+
+  # Retry logic for template lock (another container creation may be running)
+  local lock_attempts=0
+  local max_lock_attempts=10
+  local lock_wait_time=30
+
+  while ! flock -w "$lock_wait_time" 9; do
+    lock_attempts=$((lock_attempts + 1))
+    if [[ $lock_attempts -ge $max_lock_attempts ]]; then
+      msg_error "Timeout while waiting for template lock after ${max_lock_attempts} attempts."
+      msg_custom "💡" "${YW}" "Another container creation may be stuck. Check running processes or remove: $lockfile"
+      exit 211
+    fi
+    msg_custom "⏳" "${YW}" "Another container is being created with this template. Waiting... (attempt ${lock_attempts}/${max_lock_attempts})"
+  done
 
   LOGFILE="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
 

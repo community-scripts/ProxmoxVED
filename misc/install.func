@@ -177,6 +177,8 @@ _bootstrap() {
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
+
+  get_lxc_ip
 }
 
 # Run bootstrap and OS detection

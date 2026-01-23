@@ -26,10 +26,39 @@ unzip -q /tmp/LanguageTool-stable.zip -d /opt
 mv /opt/LanguageTool-*/ /opt/LanguageTool/
 download_file "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin" /opt/lid.176.bin
 
+read -r -p "${TAB3}Enter language code (en, de, es, fr, nl) to download ngrams or press ENTER to skip: " lang_code
+ngram_dir=""
+if [[ -n "$lang_code" ]]; then
+  if [[ "$lang_code" =~ ^(en|de|es|fr|nl)$ ]]; then
+    msg_info "Searching for $lang_code ngrams..."
+    filename=$(curl -fsSL https://languagetool.org/download/ngram-data/ | grep -oP "ngrams-${lang_code}-[0-9]+\.zip" | sort -uV | tail -n1)
+
+    if [[ -n "$filename" ]]; then
+      msg_info "Downloading $filename"
+      download_file "https://languagetool.org/download/ngram-data/${filename}" "/tmp/${filename}"
+
+      mkdir -p /opt/ngrams
+      msg_info "Extracting $lang_code ngrams to /opt/ngrams"
+      unzip -q "/tmp/${filename}" -d /opt/ngrams
+      rm "/tmp/${filename}"
+
+      ngram_dir="/opt/ngrams"
+      msg_ok "Installed $lang_code ngrams"
+    else
+      msg_info "No ngram file found for ${lang_code}"
+    fi
+  else
+    msg_error "Invalid language code: $lang_code"
+  fi
+fi
+
 cat <<EOF >/opt/LanguageTool/server.properties
 fasttextModel=/opt/lid.176.bin
 fasttextBinary=/usr/bin/fasttext
 EOF
+if [[ -n "$ngram_dir" ]]; then
+  echo "languageModel=/opt/ngrams" >> /opt/LanguageTool/server.properties
+fi
 echo "${RELEASE}" >~/.languagetool
 msg_ok "Setup LanguageTool"
 

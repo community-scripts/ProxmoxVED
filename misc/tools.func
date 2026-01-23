@@ -1768,19 +1768,34 @@ function fetch_and_deploy_gh_release() {
 
   ### Tarball Mode ###
   if [[ "$mode" == "tarball" || "$mode" == "source" ]]; then
-    # GitHub API's tarball_url/zipball_url can return HTTP 300 Multiple Choices
-    # when a branch and tag share the same name. Use explicit refs/tags/ URL instead.
-    # URL-encode special characters in tag names (@ and /)
-    local encoded_tag_name="${tag_name//@/%40}"
-    encoded_tag_name="${encoded_tag_name//\//%2F}"
-    local direct_tarball_url="https://github.com/$repo/archive/refs/tags/$encoded_tag_name.tar.gz"
-    filename="${app_lc}-${version}.tar.gz"
+    # Sanitize version for filename (remove/replace special chars)
+    local safe_version="${version//@/_}"
+    safe_version="${safe_version//\//_}"
+    filename="${app_lc}-${safe_version}.tar.gz"
+    local download_success=false
 
-    curl $download_timeout -fsSL -o "$tmpdir/$filename" "$direct_tarball_url" || {
-      msg_error "Download failed: $direct_tarball_url"
+    # For tags with special characters (@, /), use codeload.github.com directly
+    # as github.com/archive/refs/tags/ doesn't handle them well
+    if [[ "$tag_name" =~ [@/] ]]; then
+      # codeload.github.com - only encode @ not / in tag names
+      local codeload_encoded="${tag_name//@/%40}"
+      local codeload_url="https://codeload.github.com/$repo/tar.gz/refs/tags/$codeload_encoded"
+      if curl $download_timeout -fsSL -o "$tmpdir/$filename" "$codeload_url"; then
+        download_success=true
+      fi
+    else
+      # Standard tags: use github.com/archive/refs/tags/
+      local direct_tarball_url="https://github.com/$repo/archive/refs/tags/${tag_name}.tar.gz"
+      if curl $download_timeout -fsSL -o "$tmpdir/$filename" "$direct_tarball_url"; then
+        download_success=true
+      fi
+    fi
+
+    if [[ "$download_success" != "true" ]]; then
+      msg_error "Download failed for $app ($tag_name)"
       rm -rf "$tmpdir"
       return 1
-    }
+    fi
 
     mkdir -p "$target"
     if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
@@ -2691,7 +2706,7 @@ function setup_hwaccel() {
   else
     # Multiple GPUs - show selection menu
     echo ""
-    msg_info "Multiple GPUs detected:"
+    msg_custom "⚠" "${YW}" "Multiple GPUs detected:"
     echo ""
     for i in "${!GPU_LIST[@]}"; do
       local type_display="${GPU_TYPES[$i]}"
@@ -3010,16 +3025,24 @@ _setup_nvidia_gpu() {
 
   msg_info "Installing NVIDIA GPU drivers"
 
+  # Prevent interactive dialogs (e.g., "Mismatching nvidia kernel module" whiptail)
+  export DEBIAN_FRONTEND=noninteractive
+  export NEEDRESTART_MODE=a
+
   # Detect host driver version (passed through via /proc)
+  # Format varies by driver type:
+  #   Proprietary: "NVRM version: NVIDIA UNIX x86_64 Kernel Module  550.54.14  Thu..."
+  #   Open:        "NVRM version: NVIDIA UNIX Open Kernel Module for x86_64  590.48.01  Release..."
+  # Use regex to extract version number (###.##.## pattern)
   local nvidia_host_version=""
   if [[ -f /proc/driver/nvidia/version ]]; then
-    nvidia_host_version=$(grep "NVRM version:" /proc/driver/nvidia/version 2>/dev/null | awk '{print $8}')
+    nvidia_host_version=$(grep -oP '\d{3,}\.\d+\.\d+' /proc/driver/nvidia/version 2>/dev/null | head -1)
   fi
 
   if [[ -z "$nvidia_host_version" ]]; then
     msg_warn "NVIDIA host driver version not found in /proc/driver/nvidia/version"
     msg_warn "Ensure NVIDIA drivers are installed on host and GPU passthrough is enabled"
-    $STD apt -y install va-driver-all vainfo 2>/dev/null || true
+    $STD apt-get -y install va-driver-all vainfo 2>/dev/null || true
     return 0
   fi
 
@@ -3032,53 +3055,115 @@ _setup_nvidia_gpu() {
         sed -i -E 's/Components: (.*)$/Components: \1 contrib non-free non-free-firmware/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true
       fi
     fi
+    $STD apt-get -y update 2>/dev/null || msg_warn "apt update failed - continuing anyway"
 
-    # Determine CUDA repository
-    local cuda_repo="debian12"
-    case "$os_codename" in
-    bullseye) cuda_repo="debian11" ;;
-    bookworm) cuda_repo="debian12" ;;
-    trixie | sid) cuda_repo="debian12" ;; # Forward compatible
-    esac
+    # For Debian 13 Trixie/Sid: Use Debian's own nvidia packages first (better compatibility)
+    # NVIDIA's CUDA repo targets Debian 12 and may not have amd64 packages for Trixie
+    if [[ "$os_codename" == "trixie" || "$os_codename" == "sid" ]]; then
+      msg_info "Debian ${os_codename}: Using Debian's NVIDIA packages"
 
-    # Add NVIDIA CUDA repository
-    if [[ ! -f /usr/share/keyrings/cuda-archive-keyring.gpg ]]; then
-      msg_info "Adding NVIDIA CUDA repository (${cuda_repo})"
-      local cuda_keyring
-      cuda_keyring="$(mktemp)"
-      if curl -fsSL -o "$cuda_keyring" "https://developer.download.nvidia.com/compute/cuda/repos/${cuda_repo}/x86_64/cuda-keyring_1.1-1_all.deb" 2>/dev/null; then
-        $STD dpkg -i "$cuda_keyring" 2>/dev/null || true
+      # Extract major version for flexible matching (580.126.09 -> 580)
+      local nvidia_major_version="${nvidia_host_version%%.*}"
+
+      # Check what versions are actually available
+      local available_version=""
+      available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | grep -E "^${nvidia_major_version}\." | head -1 || true)
+
+      if [[ -n "$available_version" ]]; then
+        msg_info "Found available NVIDIA version: ${available_version}"
+        local nvidia_pkgs="libcuda1=${available_version} libnvcuvid1=${available_version} libnvidia-encode1=${available_version} libnvidia-ml1=${available_version}"
+        if $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends $nvidia_pkgs 2>/dev/null; then
+          msg_ok "Installed NVIDIA libraries (${available_version})"
+        else
+          msg_warn "Failed to install NVIDIA ${available_version} - trying unversioned"
+          $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends libcuda1 libnvcuvid1 libnvidia-encode1 libnvidia-ml1 2>/dev/null || true
+        fi
       else
-        msg_warn "Failed to download NVIDIA CUDA keyring"
+        # No matching major version - try latest available or unversioned
+        msg_warn "No NVIDIA packages for version ${nvidia_major_version}.x found in repos"
+        available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | head -1 || true)
+        if [[ -n "$available_version" ]]; then
+          msg_info "Trying latest available: ${available_version} (may cause version mismatch)"
+          $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends \
+            libcuda1="${available_version}" libnvcuvid1="${available_version}" \
+            libnvidia-encode1="${available_version}" libnvidia-ml1="${available_version}" 2>/dev/null ||
+            $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends \
+              libcuda1 libnvcuvid1 libnvidia-encode1 libnvidia-ml1 2>/dev/null ||
+            msg_warn "NVIDIA library installation failed - GPU compute may not work"
+        else
+          msg_warn "No NVIDIA packages available in Debian repos - GPU support disabled"
+        fi
       fi
-      rm -f "$cuda_keyring"
-    fi
+      $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends nvidia-smi 2>/dev/null || true
 
-    # Pin NVIDIA repo for version matching
-    cat <<'NVIDIA_PIN' >/etc/apt/preferences.d/nvidia-cuda-pin
+    else
+      # Debian 11/12: Use NVIDIA CUDA repository for version matching
+      local cuda_repo="debian12"
+      case "$os_codename" in
+      bullseye) cuda_repo="debian11" ;;
+      bookworm) cuda_repo="debian12" ;;
+      esac
+
+      # Add NVIDIA CUDA repository
+      if [[ ! -f /usr/share/keyrings/cuda-archive-keyring.gpg ]]; then
+        msg_info "Adding NVIDIA CUDA repository (${cuda_repo})"
+        local cuda_keyring
+        cuda_keyring="$(mktemp)"
+        if curl -fsSL -o "$cuda_keyring" "https://developer.download.nvidia.com/compute/cuda/repos/${cuda_repo}/x86_64/cuda-keyring_1.1-1_all.deb" 2>/dev/null; then
+          $STD dpkg -i "$cuda_keyring" 2>/dev/null || true
+        else
+          msg_warn "Failed to download NVIDIA CUDA keyring"
+        fi
+        rm -f "$cuda_keyring"
+      fi
+
+      # Pin NVIDIA repo for version matching
+      cat <<'NVIDIA_PIN' >/etc/apt/preferences.d/nvidia-cuda-pin
 Package: *
 Pin: origin developer.download.nvidia.com
 Pin-Priority: 1001
 NVIDIA_PIN
 
-    $STD apt -y update
+      $STD apt-get -y update 2>/dev/null || msg_warn "apt update failed - continuing anyway"
 
-    # Install version-matched NVIDIA libraries
-    local nvidia_pkgs="libcuda1=${nvidia_host_version}* libnvcuvid1=${nvidia_host_version}* libnvidia-encode1=${nvidia_host_version}* libnvidia-ml1=${nvidia_host_version}*"
+      # Extract major version for flexible matching (580.126.09 -> 580)
+      local nvidia_major_version="${nvidia_host_version%%.*}"
 
-    msg_info "Installing NVIDIA libraries (version ${nvidia_host_version})"
-    if $STD apt -y install --no-install-recommends $nvidia_pkgs 2>/dev/null; then
-      msg_ok "Installed version-matched NVIDIA libraries"
-    else
-      msg_warn "Version-pinned install failed - trying unpinned"
-      if $STD apt -y install --no-install-recommends libcuda1 libnvcuvid1 libnvidia-encode1 libnvidia-ml1 2>/dev/null; then
-        msg_warn "Installed NVIDIA libraries (unpinned) - version mismatch may occur"
+      # Check what versions are actually available in CUDA repo
+      local available_version=""
+      available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | grep -E "^${nvidia_major_version}\." | head -1 || true)
+
+      if [[ -n "$available_version" ]]; then
+        msg_info "Installing NVIDIA libraries (version ${available_version})"
+        local nvidia_pkgs="libcuda1=${available_version} libnvcuvid1=${available_version} libnvidia-encode1=${available_version} libnvidia-ml1=${available_version}"
+        if $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends $nvidia_pkgs 2>/dev/null; then
+          msg_ok "Installed version-matched NVIDIA libraries"
+        else
+          msg_warn "Version-pinned install failed - trying unpinned"
+          $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends libcuda1 libnvcuvid1 libnvidia-encode1 libnvidia-ml1 2>/dev/null ||
+            msg_warn "NVIDIA library installation failed"
+        fi
       else
-        msg_warn "NVIDIA library installation failed"
+        msg_warn "No NVIDIA packages for version ${nvidia_major_version}.x in CUDA repo (host: ${nvidia_host_version})"
+        # Try latest available version
+        available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | head -1 || true)
+        if [[ -n "$available_version" ]]; then
+          msg_info "Trying latest available: ${available_version} (version mismatch warning)"
+          if $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends \
+            libcuda1="${available_version}" libnvcuvid1="${available_version}" \
+            libnvidia-encode1="${available_version}" libnvidia-ml1="${available_version}" 2>/dev/null; then
+            msg_ok "Installed NVIDIA libraries (${available_version}) - version differs from host"
+          else
+            $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends libcuda1 libnvcuvid1 libnvidia-encode1 libnvidia-ml1 2>/dev/null ||
+              msg_warn "NVIDIA library installation failed"
+          fi
+        else
+          msg_warn "No NVIDIA packages available in CUDA repo - GPU support disabled"
+        fi
       fi
-    fi
 
-    $STD apt -y install --no-install-recommends nvidia-smi 2>/dev/null || true
+      $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends nvidia-smi 2>/dev/null || true
+    fi
 
   elif [[ "$os_id" == "ubuntu" ]]; then
     # Ubuntu versioning
@@ -3102,20 +3187,33 @@ NVIDIA_PIN
       rm -f "$cuda_keyring"
     fi
 
-    $STD apt -y update
+    $STD apt-get -y update 2>/dev/null || msg_warn "apt update failed - continuing anyway"
 
-    # Try version-matched install
-    local nvidia_pkgs="libcuda1=${nvidia_host_version}* libnvcuvid1=${nvidia_host_version}* libnvidia-encode1=${nvidia_host_version}* libnvidia-ml1=${nvidia_host_version}*"
-    if $STD apt -y install --no-install-recommends $nvidia_pkgs 2>/dev/null; then
-      msg_ok "Installed version-matched NVIDIA libraries"
+    # Extract major version for flexible matching
+    local nvidia_major_version="${nvidia_host_version%%.*}"
+
+    # Check what versions are available
+    local available_version=""
+    available_version=$(apt-cache madison libcuda1 2>/dev/null | awk '{print $3}' | grep -E "^${nvidia_major_version}\." | head -1 || true)
+
+    if [[ -n "$available_version" ]]; then
+      msg_info "Installing NVIDIA libraries (version ${available_version})"
+      local nvidia_pkgs="libcuda1=${available_version} libnvcuvid1=${available_version} libnvidia-encode1=${available_version} libnvidia-ml1=${available_version}"
+      if $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends $nvidia_pkgs 2>/dev/null; then
+        msg_ok "Installed version-matched NVIDIA libraries"
+      else
+        # Fallback to Ubuntu repo packages
+        $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends libnvidia-decode libnvidia-encode nvidia-utils 2>/dev/null || msg_warn "NVIDIA installation failed"
+      fi
     else
+      msg_warn "No NVIDIA packages for version ${nvidia_major_version}.x in CUDA repo"
       # Fallback to Ubuntu repo packages
-      $STD apt -y install --no-install-recommends libnvidia-decode libnvidia-encode nvidia-utils 2>/dev/null || msg_warn "NVIDIA installation failed"
+      $STD apt-get -y -o Dpkg::Options::="--force-confold" install --no-install-recommends libnvidia-decode libnvidia-encode nvidia-utils 2>/dev/null || msg_warn "NVIDIA installation failed"
     fi
   fi
 
   # VA-API for hybrid setups (Intel + NVIDIA)
-  $STD apt -y install va-driver-all vainfo 2>/dev/null || true
+  $STD apt-get -y install va-driver-all vainfo 2>/dev/null || true
 
   msg_ok "NVIDIA GPU configured"
 }
@@ -3214,6 +3312,10 @@ EOF
   esac
   $STD apt -y update
 }
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Helper: Setup GPU device permissions
+# ══════════════════════════════════════════════════════════════════════════════
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Helper: Setup GPU device permissions
@@ -5820,3 +5922,138 @@ EOF
 
   msg_ok "Docker setup completed"
 }
+
+# ------------------------------------------------------------------------------
+# Fetch and deploy archive from URL
+# Downloads an archive (zip, tar.gz, or .deb) from a URL and extracts/installs it
+#
+# Usage: fetch_and_deploy_archive "url" "directory"
+#   url       - URL to the archive (zip, tar.gz, or .deb)
+#   directory - Destination path where the archive will be extracted
+#               (not used for .deb packages)
+#
+# Examples:
+#   fetch_and_deploy_archive "https://example.com/app.tar.gz" "/opt/myapp"
+#   fetch_and_deploy_archive "https://example.com/app.zip" "/opt/myapp"
+#   fetch_and_deploy_archive "https://example.com/package.deb" ""
+# ------------------------------------------------------------------------------
+function fetch_and_deploy_archive() {
+  local url="$1"
+  local directory="$2"
+
+  if [[ -z "$url" ]]; then
+    msg_error "URL parameter is required"
+    return 1
+  fi
+
+  local filename="${url##*/}"
+
+  local archive_type="zip"
+  if [[ "$filename" == *.tar.gz || "$filename" == *.tgz ]]; then
+    archive_type="tar"
+  elif [[ "$filename" == *.deb ]]; then
+    archive_type="deb"
+  fi
+
+  msg_info "Downloading from $url"
+
+  local tmpdir
+  tmpdir=$(mktemp -d) || {
+    msg_error "Failed to create temporary directory"
+    return 1
+  }
+
+  curl -fsSL -o "$tmpdir/$filename" "$url" || {
+    msg_error "Download failed: $url"
+    rm -rf "$tmpdir"
+    return 1
+  }
+
+  if [[ "$archive_type" == "deb" ]]; then
+    msg_info "Installing .deb package"
+
+    chmod 644 "$tmpdir/$filename"
+    $STD apt install -y "$tmpdir/$filename" || {
+      $STD dpkg -i "$tmpdir/$filename" || {
+        msg_error "Both apt and dpkg installation failed"
+        rm -rf "$tmpdir"
+        return 1
+      }
+    }
+
+    rm -rf "$tmpdir"
+    msg_ok "Successfully installed .deb package"
+    return 0
+  fi
+
+  if [[ -z "$directory" ]]; then
+    msg_error "Directory parameter is required for archive extraction"
+    rm -rf "$tmpdir"
+    return 1
+  fi
+
+  msg_info "Extracting archive to $directory"
+
+  mkdir -p "$directory"
+
+  if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+    rm -rf "${directory:?}/"*
+  fi
+
+  local unpack_tmp
+  unpack_tmp=$(mktemp -d)
+
+  if [[ "$archive_type" == "zip" ]]; then
+    ensure_dependencies unzip
+    unzip -q "$tmpdir/$filename" -d "$unpack_tmp" || {
+      msg_error "Failed to extract ZIP archive"
+      rm -rf "$tmpdir" "$unpack_tmp"
+      return 1
+    }
+  elif [[ "$archive_type" == "tar" ]]; then
+    tar --no-same-owner -xf "$tmpdir/$filename" -C "$unpack_tmp" || {
+      msg_error "Failed to extract TAR archive"
+      rm -rf "$tmpdir" "$unpack_tmp"
+      return 1
+    }
+  fi
+
+  local top_entries
+  top_entries=$(find "$unpack_tmp" -mindepth 1 -maxdepth 1)
+
+  if [[ "$(echo "$top_entries" | wc -l)" -eq 1 && -d "$top_entries" ]]; then
+    local inner_dir="$top_entries"
+    shopt -s dotglob nullglob
+    if compgen -G "$inner_dir/*" >/dev/null; then
+      cp -r "$inner_dir"/* "$directory/" || {
+        msg_error "Failed to copy contents from $inner_dir to $directory"
+        rm -rf "$tmpdir" "$unpack_tmp"
+        return 1
+      }
+    else
+      msg_error "Inner directory is empty: $inner_dir"
+      rm -rf "$tmpdir" "$unpack_tmp"
+      return 1
+    fi
+    shopt -u dotglob nullglob
+  else
+    shopt -s dotglob nullglob
+    if compgen -G "$unpack_tmp/*" >/dev/null; then
+      cp -r "$unpack_tmp"/* "$directory/" || {
+        msg_error "Failed to copy contents to $directory"
+        rm -rf "$tmpdir" "$unpack_tmp"
+        return 1
+      }
+    else
+      msg_error "Unpacked archive is empty"
+      rm -rf "$tmpdir" "$unpack_tmp"
+      return 1
+    fi
+    shopt -u dotglob nullglob
+  fi
+
+  rm -rf "$tmpdir" "$unpack_tmp"
+  msg_ok "Successfully deployed archive to $directory"
+  return 0
+}
+

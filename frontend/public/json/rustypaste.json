@@ -25,6 +25,17 @@
                 "os": "Debian",
                 "version": "13"
             }
+        },
+        {
+            "type": "alpine",
+            "script": "ct/alpine-rustypaste.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 256,
+                "hdd": 4,
+                "os": "Alpine",
+                "version": "3.22"
+            }
         }
     ],
     "default_credentials": {
