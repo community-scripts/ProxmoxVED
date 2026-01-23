@@ -19,7 +19,7 @@ PYTHON_VERSION="3.12" setup_uv
 msg_info "Setting up sonobarr"
 $STD python3 -m venv /opt/sonobarr/venv
 source /opt/sonobarr/venv/bin/activate
-$STD pip install --no-cache-dir -r /opt/sonobarr/requirements.txt
+$STD uv pip install --no-cache-dir -r /opt/sonobarr/requirements.txt
 mv ".sample-env" ".env"
 sed -i "s/^secret_key=.*/secret_key=$(openssl rand -hex 16)/" .env
 msg_ok "Set up sonobarr"
