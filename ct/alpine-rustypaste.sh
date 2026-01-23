@@ -31,7 +31,7 @@ function update_script() {
 
   msg_info "Updating RustyPaste"
   $STD apk update
-  $STD apk upgrade rustypaste rustypaste-cli --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
+  $STD apk upgrade rustypaste --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
   msg_ok "Updated RustyPaste"
 
   msg_info "Restarting Services"

@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing RustyPaste"
-$STD apk add --no-cache rustypaste rustypaste-openrc rustypaste-cli --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
+$STD apk add --no-cache rustypaste --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
 msg_ok "Installed RustyPaste"
 
 msg_info "Configuring RustyPaste"
