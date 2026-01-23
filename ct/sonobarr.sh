@@ -36,7 +36,6 @@ PYTHON_VERSION="3.12" setup_uv
         systemctl stop sonobarr
         msg_ok "Stopped sonobarr"
 
-        cp "/opt/sonobarr/.env" "/opt/.sonobarr-env"
         CLEAN_INSTALL=1 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
 
         msg_info "Updating sonobarr"
