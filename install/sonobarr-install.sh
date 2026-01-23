@@ -28,7 +28,7 @@ echo "sonobarr_config_dir=/etc/sonobarr" >>/etc/sonobarr.env
 msg_ok "Set up sonobarr"
 
 msg_info "Creating Service"
-cat <<EOF>/etc/systemd/system/sonobarr.service
+cat <<EOF >/etc/systemd/system/sonobarr.service
 [Unit]
 Description=sonobarr Service
 After=network.target
