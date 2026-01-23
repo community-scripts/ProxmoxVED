@@ -30,66 +30,69 @@ function update_script() {
     fi
 
     if check_for_gh_release "manyfold" "manyfold3d/manyfold"; then
-        msg_info "Stopping Service"
+        msg_info "Stopping Services"
         systemctl stop manyfold.target manyfold-rails.1 manyfold-default_worker.1 manyfold-performance_worker.1
-        msg_ok "Stopped Service"
+        msg_ok "Stopped Services"
 
-        msg_info "Backing up data"
-        source /opt/manyfold/.env
-        mv /opt/manyfold/app/storage /opt/manyfold/app/tmp /opt/manyfold/app/config/credentials.yml.enc /opt/manyfold/app/config/master.key ~/
-        $STD tar -cvzf "/opt/manyfold_${APP_VERSION}_backup.tar.gz" /opt/manyfold/app/
-        rm -rf /opt/manyfold/app/
-        msg_ok "Backed-up data"
+        msg_info "Backing up Data"
+        CURRENT_VERSION=$(grep -oP 'APP_VERSION=\K[^ ]+' /opt/manyfold/.env || echo "unknown")
+        cp -r /opt/manyfold/app/storage /opt/manyfold_storage_backup 2>/dev/null || true
+        cp -r /opt/manyfold/app/tmp /opt/manyfold_tmp_backup 2>/dev/null || true
+        cp /opt/manyfold/app/config/credentials.yml.enc /opt/manyfold_credentials.yml.enc 2>/dev/null || true
+        cp /opt/manyfold/app/config/master.key /opt/manyfold_master.key 2>/dev/null || true
+        $STD tar -czf "/opt/manyfold_${CURRENT_VERSION}_backup.tar.gz" -C /opt/manyfold app
+        msg_ok "Backed up Data"
 
-        fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold/app"
+        CLEAN_INSTALL=1 fetch_and_deploy_gh_release "manyfold" "manyfold3d/manyfold" "tarball" "latest" "/opt/manyfold/app"
 
-        msg_info "Configuring manyfold environment"
+        msg_info "Configuring Manyfold"
         RUBY_INSTALL_VERSION=$(cat /opt/manyfold/app/.ruby-version)
         YARN_VERSION=$(grep '"packageManager":' /opt/manyfold/app/package.json | sed -E 's/.*"(yarn@[0-9\.]+)".*/\1/')
         RELEASE=$(get_latest_github_release "manyfold3d/manyfold")
         sed -i "s/^export APP_VERSION=.*/export APP_VERSION=$RELEASE/" "/opt/manyfold/.env"
-        cat <<EOF >/opt/manyfold/user_setup.sh
-#!/bin/bash
-
-source /opt/manyfold/.env
-export PATH="/home/manyfold/.rbenv/bin:\$PATH"
-eval "\$(/home/manyfold/.rbenv/bin/rbenv init - bash)"
-cd /opt/manyfold/app
-rbenv global $RUBY_INSTALL_VERSION
-gem install bundler
-bundle install
-gem install sidekiq
-gem install foreman
-corepack enable yarn
-corepack prepare $YARN_VERSION --activate
-corepack use $YARN_VERSION
-bin/rails db:migrate
-bin/rails assets:precompile
-EOF
-        msg_ok "Configured manyfold environment"
+        msg_ok "Configured Manyfold"
 
         RUBY_VERSION=${RUBY_INSTALL_VERSION} RUBY_INSTALL_RAILS="true" HOME=/home/manyfold setup_ruby
 
         msg_info "Installing Manyfold"
         chown -R manyfold:manyfold /home/manyfold/.rbenv
-        rm -rf /opt/manyfold/app/storage /opt/manyfold/app/tmp /opt/manyfold/app/config/credentials.yml.enc
-        mv ~/storage ~/tmp /opt/manyfold/app/
-        mv ~/credentials.yml.enc ~/master.key /opt/manyfold/app/config/
         chown -R manyfold:manyfold /opt/manyfold
-        chmod +x /opt/manyfold/user_setup.sh
-        $STD sudo -u manyfold bash /opt/manyfold/user_setup.sh
-        rm -f /opt/manyfold/user_setup.sh
-        msg_ok "Installed manyfold"
 
-        msg_info "Restoring Service"
+        sudo -u manyfold bash -c '
+            source /opt/manyfold/.env
+            export PATH="/home/manyfold/.rbenv/bin:$PATH"
+            eval "$(/home/manyfold/.rbenv/bin/rbenv init - bash)"
+            cd /opt/manyfold/app
+            gem install bundler sidekiq foreman
+            bundle install
+            corepack enable yarn
+            corepack prepare '"$YARN_VERSION"' --activate
+            corepack use '"$YARN_VERSION"'
+            bin/rails db:migrate
+            bin/rails assets:precompile
+        '
+        msg_ok "Installed Manyfold"
+
+        msg_info "Restoring Data"
+        rm -rf /opt/manyfold/app/storage /opt/manyfold/app/tmp /opt/manyfold/app/config/credentials.yml.enc /opt/manyfold/app/config/master.key
+        cp -r /opt/manyfold_storage_backup /opt/manyfold/app/storage 2>/dev/null || true
+        cp -r /opt/manyfold_tmp_backup /opt/manyfold/app/tmp 2>/dev/null || true
+        cp /opt/manyfold_credentials.yml.enc /opt/manyfold/app/config/credentials.yml.enc 2>/dev/null || true
+        cp /opt/manyfold_master.key /opt/manyfold/app/config/master.key 2>/dev/null || true
+        chown -R manyfold:manyfold /opt/manyfold/app/storage /opt/manyfold/app/tmp /opt/manyfold/app/config
+        rm -rf /opt/manyfold_storage_backup /opt/manyfold_tmp_backup /opt/manyfold_credentials.yml.enc /opt/manyfold_master.key
+        msg_ok "Restored Data"
+
+        msg_info "Restarting Services"
         source /opt/manyfold/.env
         export PATH="/home/manyfold/.rbenv/shims:/home/manyfold/.rbenv/bin:$PATH"
         $STD foreman export systemd /etc/systemd/system -a manyfold -u manyfold -f /opt/manyfold/app/Procfile
         for f in /etc/systemd/system/manyfold-*.service; do
             sed -i "s|/bin/bash -lc '|/bin/bash -lc 'source /opt/manyfold/.env \&\& |" "$f"
         done
+        systemctl daemon-reload
         systemctl enable -q --now manyfold.target manyfold-rails.1 manyfold-default_worker.1 manyfold-performance_worker.1
-        msg_ok "Restored Service"
+        msg_ok "Restarted Services"
         msg_ok "Updated successfully!"
     fi
     exit
