@@ -29,6 +29,8 @@ function update_script() {
         exit
     fi
 
+PYTHON_VERSION="3.12" setup_uv
+
     if check_for_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr"; then
         msg_info "Stopping sonobarr"
         systemctl stop sonobarr
