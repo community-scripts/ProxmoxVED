@@ -26,7 +26,7 @@ unzip -q /tmp/LanguageTool-stable.zip -d /opt
 mv /opt/LanguageTool-*/ /opt/LanguageTool/
 download_file "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin" /opt/lid.176.bin
 
-read -r -p "Enter language code (en, de, es, fr, nl) to download ngrams or press ENTER to skip: " lang_code
+read -r -p "${TAB3}Enter language code (en, de, es, fr, nl) to download ngrams or press ENTER to skip: " lang_code
 ngram_dir=""
 if [[ -n "$lang_code" ]]; then
   if [[ "$lang_code" =~ ^(en|de|es|fr|nl)$ ]]; then
