@@ -35,7 +35,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=/opt/sonobarr/src
-EnvironmentFile=/opt/sonobarr/.env
+EnvironmentFile=/etc/sonobarr/.env
 Environment="PATH=/opt/sonobarr/venv/bin"
 ExecStart=/bin/bash -c 'gunicorn Sonobarr:app -c ../gunicorn_config.py'
 Restart=always
