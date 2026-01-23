@@ -11,7 +11,7 @@
   "interface_port": null,
   "documentation": "https://docs.xplicittrust.com/",
   "website": "https://xplicittrust.com/",
-  "logo": "https://xplicittrust.com/assets/img/logo-xplicittrust.png",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/xplicittrust.webp",
   "config_path": "",
   "description": "XplicitTrust is a Zero Trust Network Access (ZTNA) solution designed to securely control and protect access to infrastructure and workloads. The XplicitTrust Proxmox community script enables seamless integration of Proxmox environments into a Zero Trust architecture, allowing administrators to expose services securely without relying on traditional VPNs or network-level trust. It enforces identity-based, application-specific access policies and ensures that only authenticated and authorized users or systems can reach defined resources. By integrating XplicitTrust with Proxmox, users can securely manage access to virtual machines, containers, and management interfaces while reducing attack surface and simplifying secure remote access.",
   "install_methods": [
