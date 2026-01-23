@@ -24,40 +24,20 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/rustypaste/rustypaste ]]; then
+  if ! apk info -e rustypaste >/dev/null 2>&1; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  if check_for_gh_release "rustypaste" "orhun/rustypaste"; then
-    msg_info "Stopping Services"
-    rc-service rustypaste stop
-    msg_ok "Stopped Services"
+  msg_info "Updating RustyPaste"
+  $STD apk update
+  $STD apk upgrade rustypaste rustypaste-cli --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
+  msg_ok "Updated RustyPaste"
 
-    msg_info "Creating Backup"
-    tar -czf "/opt/rustypaste_backup_$(date +%F).tar.gz" /opt/rustypaste/upload 2>/dev/null || true
-    cp /opt/rustypaste/config.toml /tmp/rustypaste_config.toml.bak
-    msg_ok "Backup Created"
-
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "prebuild" "latest" "/opt/rustypaste" "*x86_64-unknown-linux-musl.tar.gz"
-
-
-    msg_info "Updating RustyPaste"
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustypaste" "orhun/rustypaste" "prebuild" "latest" "/opt/rustypaste" "*x86_64-unknown-linux-musl.tar.gz"
-    mv /tmp/rustypaste_config.toml.bak /opt/rustypaste/config.toml
-    msg_ok "Updated RustyPaste"
-
-    msg_info "Starting Services"
-    rc-service rustypaste start
-    msg_ok "Started Services"
-    msg_ok "Updated successfully!"
-  fi
-
-  if check_for_gh_release "rustypaste-cli" "orhun/rustypaste-cli"; then
-    msg_info "Updating RustyPaste CLI"
-    fetch_and_deploy_gh_release "rustypaste-cli" "orhun/rustypaste-cli" "prebuild" "latest" "/usr/local/bin" "*x86_64-unknown-linux-musl.tar.gz"
-    msg_ok "Updated RustyPaste CLI"
-  fi
+  msg_info "Restarting Services"
+  $STD rc-service rustypaste restart
+  msg_ok "Restarted Services"
+  msg_ok "Updated successfully!"
   exit
 }
 
