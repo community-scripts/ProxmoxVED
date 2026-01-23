@@ -14,6 +14,7 @@ network_check
 update_os
 
 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
+PYTHON_VERSION="3.12" setup_uv
 
 msg_info "Setting up sonobarr"
 $STD apt-get install -y python3.13-venv
