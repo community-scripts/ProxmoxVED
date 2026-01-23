@@ -80,7 +80,7 @@ msg_info "Installing Manyfold"
 chown -R manyfold:manyfold /home/manyfold/.rbenv
 chown -R manyfold:manyfold /opt/manyfold
 chmod +x /opt/manyfold/user_setup.sh
-npm install --global corepack
+$STD npm install --global corepack
 $STD sudo -u manyfold bash /opt/manyfold/user_setup.sh
 rm -f /opt/manyfold/user_setup.sh
 msg_ok "Installed Manyfold"
