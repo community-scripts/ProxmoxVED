@@ -20,10 +20,11 @@
             "type": "default",
             "script": "ct/openfamily.sh",
             "resources": {
-                "cpu": "2",
-                "ram": "2048",
-                "hdd": "6",
-                "swap": "512"
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 6,
+                "os": "debian",
+                "version": "12"
             }
         }
     ],
