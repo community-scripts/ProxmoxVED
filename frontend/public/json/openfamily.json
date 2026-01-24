@@ -29,7 +29,8 @@
         }
     ],
     "default_credentials": {
-        "username": "See /root/openfamily.creds",
-        "password": "See /root/openfamily.creds"
-    }
+        "username": null,
+        "password": null
+    },
+    "notes": []
 }
