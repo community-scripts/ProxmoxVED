@@ -1,0 +1,34 @@
+{
+    "name": "OpenFamily",
+    "slug": "openfamily",
+    "categories": [
+        3,
+        10
+    ],
+    "date_created": "2026-01-24",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://github.com/NexaFlowFrance/OpenFamily#readme",
+    "website": "https://nexaflow.fr/portfolios/openfamily/",
+    "logo": "https://raw.githubusercontent.com/NexaFlowFrance/OpenFamily/main/logo.png",
+    "config_path": "/opt/openfamily/server/.env",
+    "description": "OpenFamily is a family organization platform for managing tasks, shopping lists, recipes, appointments, and budget tracking.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/openfamily.sh",
+            "resources": {
+                "cpu": "2",
+                "ram": "2048",
+                "hdd": "6",
+                "swap": "512"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "See /root/openfamily.creds",
+        "password": "See /root/openfamily.creds"
+    }
+}
