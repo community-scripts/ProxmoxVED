@@ -17,7 +17,11 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   ripgrep \
   imagemagick \
-  ffmpeg
+  ffmpeg \
+  libva-drm2 \
+  libva2 \
+  mesa-va-drivers \
+  vainfo
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
@@ -107,6 +111,11 @@ SHOW_VOLUME_USAGE=true
 
 # FFMPEG_PATH=
 # FFPROBE_PATH=
+
+## Hardware acceleration
+# FFMPEG_HWACCEL=vaapi
+# FFMPEG_HWACCEL_DEVICE=/dev/dri/renderD128
+# FFMPEG_HWACCEL_OUTPUT_FORMAT=nv12
 
 FAVORITES_DEFAULT_ICON=outline.StarIcon
 
