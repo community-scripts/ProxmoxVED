@@ -44,6 +44,7 @@ function update_script() {
     cd /opt/shelfmark/src/frontend
     $STD npm ci
     $STD npm run build
+    mv /opt/shelfmark/src/frontend/dist /opt/shelfmark/frontend-dist
     cd /opt/shelfmark
     $STD uv venv -c ./venv
     $STD uv pip install -r requirements-base.txt

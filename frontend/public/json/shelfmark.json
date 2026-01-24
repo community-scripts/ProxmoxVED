@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "Check `https://github.com/calibrain/shelfmark/blob/main/docs/environment-variables.md` for more configuration options you can add to `/etc/shelfmark/.env`",
+      "text": "The configuration at `/etc/shelfmark/.env` is for bootstrapping the initial install. Customize the configuration via the Shelfmark UI.",
       "type": "info"
     }
   ]

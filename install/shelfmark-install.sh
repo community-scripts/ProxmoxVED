@@ -27,6 +27,7 @@ msg_info "Building Shelfmark frontend"
 cd /opt/shelfmark/src/frontend
 $STD npm ci
 $STD npm run build
+mv /opt/shelfmark/src/frontend/dist /opt/shelfmark/frontend-dist
 msg_ok "Built Shelfmark frontend"
 
 msg_info "Configuring Shelfmark"
@@ -44,8 +45,8 @@ FLASK_HOST=0.0.0.0
 FLASK_PORT=8084
 # SESSION_COOKIES_SECURE=true
 # CWA_DB_PATH=
-USE_CF_BYPASS=true
-USING_EXTERNAL_BYPASSER=true
+# USE_CF_BYPASS=true
+# USING_EXTERNAL_BYPASSER=true
 # EXT_BYPASSER_URL=
 # EXT_BYPASSER_PATH=
 EOF
@@ -74,7 +75,7 @@ cat <<EOF >/opt/shelfmark/start.sh
 
 source /opt/shelfmark/venv/bin/activate
 set -a
-source /opt/shelfmark/.env
+source /etc/shelfmark/.env
 set +a
 
 gunicorn --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker --workers 1 -t 300 -b 0.0.0.0:8084 shelfmark.main:app
