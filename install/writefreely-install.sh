@@ -14,23 +14,16 @@ setting_up_container
 network_check
 update_os
 
-# =============================================================================
-# DEPENDENCIES
-# =============================================================================
-# Only install what's actually needed - curl/sudo/mc are already in the base image
-
 msg_info "Installing Dependencies"
 $STD apt install -y \
   crudini
 msg_ok "Installed Dependencies"
 
-# --- Setup database ---
 setup_mariadb
 MARIADB_DB_NAME="writefreely" MARIADB_DB_USER="writefreely" setup_mariadb_db
 
 get_lxc_ip
 
-# --- Download and install app ---
 fetch_and_deploy_gh_release "writefreely" "writefreely/writefreely" "prebuild" "latest" "/opt/writefreely" "writefreely_*_linux_amd64.tar.gz"
 
 msg_info "Setting up WriteFreely"
@@ -38,10 +31,6 @@ cd /opt/writefreely
 $STD ./writefreely config generate
 $STD ./writefreely keys generate
 msg_ok "Setup WriteFreely"
-
-# =============================================================================
-# CONFIGURATION
-# =============================================================================
 
 msg_info "Configuring WriteFreely"
 $STD crudini --set config.ini server port 80
@@ -55,10 +44,6 @@ $STD crudini --set config.ini app host http://$LOCAL_IP:80
 
 $STD ./writefreely db init
 msg_ok "Configured WriteFreely"
-
-# =============================================================================
-# SERVICE CREATION
-# =============================================================================
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/writefreely.service
@@ -80,11 +65,6 @@ EOF
 systemctl enable -q --now writefreely
 msg_ok "Created Service"
 
-# =============================================================================
-# CLEANUP & FINALIZATION
-# =============================================================================
-
-
 msg_info "Cleaning up"
 $STD rm ~/writefreely.creds
 msg_ok "Cleaned up"
@@ -92,5 +72,4 @@ msg_ok "Cleaned up"
 motd_ssh
 customize
 
-# cleanup_lxc handles: apt autoremove, autoclean, temp files, bash history
 cleanup_lxc
