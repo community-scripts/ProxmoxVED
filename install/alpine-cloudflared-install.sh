@@ -42,7 +42,16 @@ output_log="/var/log/\$name.log"
 error_log="/var/log/\$name.err"
 
 command="/usr/bin/cloudflared"
-command_args="tunnel run --token $TOKEN"
+EOF
+
+if [ -z "$TOKEN" ]; then
+  cloudflared tunnel create proxmoxve
+  echo command_args="tunnel run --config /usr/local/etc/cloudflared/config.yml" >>/etc/init.d/cloudflared
+else
+  echo command_args="tunnel run --token $TOKEN" >>/etc/init.d/cloudflared
+fi
+
+cat <<EOF >/etc/init.d/cloudflared
 command_user="cloudflare"
 command_background="yes"
 
@@ -51,6 +60,7 @@ start_pre() {
   checkpath -f -m 0644 -o "\$command_user:\$command_user" "/var/log/\$name.err"
 }
 EOF
+
 msg_ok "Created Service"
 
 motd_ssh
