@@ -22,6 +22,7 @@ NODE_VERSION="22" setup_nodejs
 PYTHON_VERSION="3.12" setup_uv
 
 fetch_and_deploy_gh_release "shelfmark" "calibrain/shelfmark" "tarball" "latest" "/opt/shelfmark"
+RELEASE_VERSION=$(cat "$HOME/.shelfmark")
 
 msg_info "Building Shelfmark frontend"
 cd /opt/shelfmark/src/frontend
@@ -43,6 +44,7 @@ TMP_DIR=/tmp/shelfmark
 ENABLE_LOGGING=true
 FLASK_HOST=0.0.0.0
 FLASK_PORT=8084
+RELEASE_VERSION=$RELEASE_VERSION
 # SESSION_COOKIES_SECURE=true
 # CWA_DB_PATH=
 # USE_CF_BYPASS=true

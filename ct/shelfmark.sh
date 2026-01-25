@@ -39,8 +39,10 @@ function update_script() {
 
     cp /opt/shelfmark/start.sh /opt/start.sh.bak
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "shelfmark" "calibrain/shelfmark" "tarball" "latest" "/opt/shelfmark"
+    RELEASE_VERSION=$(cat "$HOME/.shelfmark")
 
     msg_info "Updating Shelfmark"
+    sed -i "s/^RELEASE_VERSION=.*/RELEASE_VERSION=$RELEASE_VERSION/" /etc/shelfmark/.env
     cd /opt/shelfmark/src/frontend
     $STD npm ci
     $STD npm run build
