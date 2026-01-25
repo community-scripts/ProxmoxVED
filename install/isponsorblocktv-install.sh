@@ -17,7 +17,7 @@ INSTALL_DIR="/opt/isponsorblocktv"
 DATA_DIR="/var/lib/isponsorblocktv"
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   python3 \
   python3-venv \
   python3-pip
