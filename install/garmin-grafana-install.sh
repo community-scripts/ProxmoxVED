@@ -28,8 +28,8 @@ setup_uv
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up InfluxDB Repository"
-curl -fsSL "https://repos.influxdata.com/influxdata-archive_compat.key" | gpg --dearmor >/etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg
-echo "deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg] https://repos.influxdata.com/debian stable main" >/etc/apt/sources.list.d/influxdata.list
+curl -fsSL "https://repos.influxdata.com/influxdata-archive.key" | gpg --dearmor >/etc/apt/trusted.gpg.d/influxdata-archive.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.gpg] https://repos.influxdata.com/debian stable main" >/etc/apt/sources.list.d/influxdata.list
 msg_ok "Set up InfluxDB Repository"
 
 # garmin-grafana recommends influxdb v1
