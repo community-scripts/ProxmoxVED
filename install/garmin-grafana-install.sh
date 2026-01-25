@@ -17,13 +17,13 @@ update_os
 # Installing Dependencies
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    apt-transport-https \
-    software-properties-common \
-    lsb-base \
-    lsb-release \
-    python3 \
-    python3-requests \
-    python3-dotenv
+  apt-transport-https \
+  software-properties-common \
+  lsb-base \
+  lsb-release \
+  python3 \
+  python3-requests \
+  python3-dotenv
 setup_uv
 msg_ok "Installed Dependencies"
 
@@ -37,8 +37,8 @@ msg_ok "Set up InfluxDB Repository"
 msg_info "Installing InfluxDB"
 $STD apt-get update
 $STD apt-get install -y influxdb
-curl -fsSL "https://dl.influxdata.com/chronograf/releases/chronograf_1.10.7_amd64.deb" -o "$(basename "https://dl.influxdata.com/chronograf/releases/chronograf_1.10.7_amd64.deb")"
-$STD dpkg -i chronograf_1.10.7_amd64.deb
+curl -fsSL "https://dl.influxdata.com/chronograf/releases/chronograf_1.10.9_amd64.deb" -o "$(basename "https://dl.influxdata.com/chronograf/releases/chronograf_1.10.9_amd64.deb")"
+$STD dpkg -i chronograf_1.10.9_amd64.deb
 msg_ok "Installed InfluxDB"
 
 msg_info "Setting up InfluxDB"
@@ -77,9 +77,9 @@ $STD grafana-cli plugins install marcusolsson-hourly-heatmap-panel
 $STD systemctl restart grafana-server
 # Output credentials to file
 {
-    echo "Grafana Credentials"
-    echo "Grafana User: ${GRAFANA_USER}"
-    echo "Grafana Password: ${GRAFANA_PASS}"
+  echo "Grafana Credentials"
+  echo "Grafana User: ${GRAFANA_USER}"
+  echo "Grafana Password: ${GRAFANA_PASS}"
 } >>~/garmin-grafana.creds
 msg_ok "Set up Grafana"
 
@@ -90,7 +90,7 @@ curl -fsSL -o "${RELEASE}.zip" "https://github.com/arpanghosh8453/garmin-grafana
 unzip -q "${RELEASE}.zip"
 # Remove the v prefix to RELEASE if it exists
 if [[ "${RELEASE}" == v* ]]; then
-    RELEASE="${RELEASE:1}"
+  RELEASE="${RELEASE:1}"
 fi
 mv "garmin-grafana-${RELEASE}/" "/opt/garmin-grafana"
 mkdir -p /opt/garmin-grafana/.garminconnect
@@ -112,9 +112,9 @@ msg_info "Setting up garmin-grafana"
 # Check if using Chinese garmin servers
 read -rp "Are you using Garmin in mainland China? (y/N): " prompt
 if [[ "${prompt,,}" =~ ^(y|yes|Y)$ ]]; then
-    GARMIN_CN="True"
+  GARMIN_CN="True"
 else
-    GARMIN_CN="False"
+  GARMIN_CN="False"
 fi
 
 cat <<EOF >/opt/garmin-grafana/.env
@@ -131,24 +131,24 @@ EOF
 # garmin-grafana usually prompts the user for email and password (and MFA) on first run,
 # then stores a refreshable token. We try to avoid storing user credentials in the env vars
 if [ -z "$(ls -A /opt/garmin-grafana/.garminconnect)" ]; then
-    read -r -p "Please enter your Garmin Connect Email: " GARMIN_EMAIL
-    read -r -p "Please enter your Garmin Connect Password (this is used to generate a token and NOT stored): " GARMIN_PASSWORD
-    read -r -p "Please enter your MFA Code (if applicable, leave blank if not): " GARMIN_MFA
-    # Run the script once to prompt for credential
-    msg_info "Creating Garmin credentials, this will timeout in 60 seconds"
-    timeout 60s uv run --env-file /opt/garmin-grafana/.env --project /opt/garmin-grafana/ /opt/garmin-grafana/src/garmin_grafana/garmin_fetch.py <<EOF
+  read -r -p "Please enter your Garmin Connect Email: " GARMIN_EMAIL
+  read -r -p "Please enter your Garmin Connect Password (this is used to generate a token and NOT stored): " GARMIN_PASSWORD
+  read -r -p "Please enter your MFA Code (if applicable, leave blank if not): " GARMIN_MFA
+  # Run the script once to prompt for credential
+  msg_info "Creating Garmin credentials, this will timeout in 60 seconds"
+  timeout 60s uv run --env-file /opt/garmin-grafana/.env --project /opt/garmin-grafana/ /opt/garmin-grafana/src/garmin_grafana/garmin_fetch.py <<EOF
 ${GARMIN_EMAIL}
 ${GARMIN_PASSWORD}
 ${GARMIN_MFA}
 EOF
-    unset GARMIN_EMAIL
-    unset GARMIN_PASSWORD
-    unset GARMIN_MFA
-    # Check if there is anything in the token dir now
-    if [ -z "$(ls -A /opt/garmin-grafana/.garminconnect)" ]; then
-        msg_error "Failed to create a token"
-        exit
-    fi
+  unset GARMIN_EMAIL
+  unset GARMIN_PASSWORD
+  unset GARMIN_MFA
+  # Check if there is anything in the token dir now
+  if [ -z "$(ls -A /opt/garmin-grafana/.garminconnect)" ]; then
+    msg_error "Failed to create a token"
+    exit
+  fi
 fi
 
 $STD systemctl restart grafana-server
