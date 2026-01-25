@@ -20,12 +20,6 @@ color
 catch_errors
 
 user_configuration() {
-
-  sanitize_token() {
-    local token="$1"
-    echo "$token" | tr -cd '[:print:]'
-  }
-
   while true; do
     local type
     if type=$(
@@ -37,20 +31,26 @@ user_configuration() {
     ); then
       if [[ "$type" == "remotely-managed" ]]; then
         local token
-        if token=$(whiptail --title "Tunnel Token" \
-          --textbox "Enter Tunnel Token" 10 80 "" \
-          3>&1 1>&2 2>&3); then
-          token=$(sanitize_token "$token")
-          if [[ "$token" =~ [^[:alnum:]] ]]; then
-            export TOKEN=$token
-            break
-          else
-            whiptail --msgbox "Invalid token: contains special characters" 7 46
-          fi
+        token=$(whiptail --title "Tunnel Token" \
+          --inputbox "Enter Tunnel Token" 10 80 "" \
+          3>&1 1>&2 2>&3)
+        token=$(echo "$token" | tr -cd '[:print:]')
+        if [[ "$token" =~ ^[[:alnum:]]+$ ]]; then
+          export TOKEN=$token
+          break
+        else
+          whiptail --msgbox "Invalid token: contains special characters" 7 46
+          continue
         fi
       else
         break
       fi
+    else
+      clear
+      printf "\e[?25h"
+      echo -e "\n${CROSS}${RD}User exited script${CL}\n"
+      kill 0
+      exit 1
     fi
   done
 }
