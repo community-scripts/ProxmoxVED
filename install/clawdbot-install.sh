@@ -24,6 +24,14 @@ fetch_and_deploy_gh_release "clawdbot" "clawdbot/clawdbot"
 pnpm_version=$(grep -oP '"packageManager":\s*"pnpm@\K[^"]+' /opt/clawdbot/package.json 2>/dev/null || echo "latest")
 NODE_VERSION="24" NODE_MODULE="pnpm@${pnpm_version}" setup_nodejs
 
+msg_info "Setting up pnpm"
+$STD pnpm setup
+export PNPM_HOME="$HOME/.local/share/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> ~/.bashrc
+echo 'export PATH="$PNPM_HOME:$PATH"' >> ~/.bashrc
+msg_ok "Set up pnpm"
+
 msg_info "Installing Clawdbot"
 $STD pnpm add -g clawdbot@latest
 msg_ok "Installed Clawdbot"
