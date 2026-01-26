@@ -154,6 +154,7 @@ EnvironmentFile=/etc/shelfmark/.env
 ExecStart=/usr/bin/bash /opt/shelfmark/start.sh
 Restart=always
 RestartSec=10
+KillMode=mixed
 
 [Install]
 WantedBy=multi-user.target
