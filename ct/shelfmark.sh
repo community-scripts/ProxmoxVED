@@ -54,7 +54,7 @@ function update_script() {
     if [[ $(sed -n '/_BYPASS=/s/[^=]*=//p' /etc/shelfmark/.env) == "true" ]] && [[ $(sed -n '/BYPASSER=/s/[^=]*=//p' /etc/shelfmark/.env) == "false" ]]; then
       $STD uv pip install -r ./requirements-shelfmark.txt
     fi
-    mv /opt/start.sh.bak /opt/start.sh
+    mv /opt/start.sh.bak /opt/shelfmark/start.sh
     msg_ok "Updated Shelfmark"
 
     msg_info "Starting Service"
