@@ -19,15 +19,8 @@ $STD apt-get install -y \
   git
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="24" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="clawdbot@latest" setup_nodejs
 import_local_ip
-
-fetch_and_deploy_gh_release "clawdbot" "clawdbot/clawdbot"
-
-msg_info "Installing Clawdbot"
-cd /opt/clawdbot
-$STD npm install
-msg_ok "Installed Clawdbot"
 
 msg_info "Configuring Clawdbot"
 mkdir -p /opt/clawdbot/data
@@ -49,7 +42,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/clawdbot
 EnvironmentFile=/opt/clawdbot/.env
-ExecStart=/usr/bin/npm start
+ExecStart=/usr/bin/clawdbot
 Restart=on-failure
 RestartSec=5
 
