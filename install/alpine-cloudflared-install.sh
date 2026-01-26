@@ -52,9 +52,9 @@ if [ -z "$TOKEN" ]; then
   # Create empty config file so permissions are correct and users can find it
   touch "$CONFIG_PATH/config.yml"
   chown -R cloudflared:cloudflared "$CONFIG_PATH"
-  echo command_args="tunnel run --config $CONFIG_PATH/config.yml" >>/etc/init.d/cloudflared
+  echo "command_args=\"tunnel run --config $CONFIG_PATH/config.yml\"" >>/etc/init.d/cloudflared
 else
-  echo command_args="tunnel run --token $TOKEN" >>/etc/init.d/cloudflared
+  echo "command_args=\"tunnel run --token $TOKEN\"" >>/etc/init.d/cloudflared
 fi
 
 cat <<EOF >>/etc/init.d/cloudflared

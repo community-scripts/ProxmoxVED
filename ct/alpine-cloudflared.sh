@@ -13,8 +13,10 @@ var_disk="${var_disk:-2}"
 var_os="${var_os:-alpine}"
 var_version="${var_version:-3.23}"
 var_unprivileged="${var_unprivileged:-1}"
+var_config_path="${var_config_path:-/usr/local/etc/cloudflared}"
 
-export CONFIG_PATH="${CONFIG_PATH:-'/usr/local/etc/cloudflared'}"
+# Make available in install script
+export CONFIG_PATH=$var_config_path
 
 header_info "$APP"
 variables
@@ -104,7 +106,7 @@ description
 
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-if [ -n "$TOKEN" ]; then
+if [ -z "$TOKEN" ]; then
   echo -e "${INFO}${YW} Edit the config file at:${CL}"
   echo -e "${TAB}${ADVANCED}${GN} ${CONFIG_PATH}/config.yml${CL}"
   echo -e "${INFO}${BGN}Run \"rc-service cloudflared start\" to start!${CL}"
