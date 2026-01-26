@@ -29,7 +29,7 @@ msg_ok "Created Cloudflare User"
 
 msg_info "Installing Cloudflared"
 get_system_arch
-fetch_and_deploy_gh_release cloudflared cloudflare binary latest /usr/bin "cloudflared-linux-$(get_system_arch)"
+fetch_and_deploy_gh_release cloudflared cloudflare/cloudflared singlefile latest /usr/bin "cloudflared-linux-$(get_system_arch)"
 msg_ok "Installed Cloudflared"
 
 msg_info "Creating Service"
