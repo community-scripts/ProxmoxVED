@@ -16,6 +16,7 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   unrar-free
+ln -sf /usr/bin/unrar-free /usr/bin/unrar
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" setup_nodejs
