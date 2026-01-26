@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   build-essential \
   git
 msg_ok "Installed Dependencies"
@@ -22,10 +22,7 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" NODE_MODULE="pnpm@latest" setup_nodejs
 
-msg_info "Installing Clawdbot"
 curl -fsSL https://clawd.bot/install.sh | bash
-msg_ok "Installed Clawdbot"
-
 
 
 motd_ssh
