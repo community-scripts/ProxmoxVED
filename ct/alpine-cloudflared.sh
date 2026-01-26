@@ -5,7 +5,7 @@ source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.cloudflare.com/
 
-APP="Cloudflared"
+APP="Alpine-Cloudflared"
 var_tags="${var_tags:-network;cloudflare}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
