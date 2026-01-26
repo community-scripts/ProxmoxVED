@@ -13,15 +13,12 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Setting up ebusd Repository"
 setup_deb822_repo \
   "ebusd" \
   "https://raw.githubusercontent.com/john30/ebusd-debian/master/ebusd.gpg" \
   "https://repo.ebusd.eu/apt/default/bookworm/" \
   "bookworm" \
   "main"
-$STD apt update
-msg_ok "ebusd Repository setup successfully"
 
 msg_info "Installing ebusd"
 $STD apt install -y ebusd
