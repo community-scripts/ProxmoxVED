@@ -1,0 +1,52 @@
+{
+  "name": "ebusd",
+  "slug": "ebusd",
+  "categories": [
+    16
+  ],
+  "date_created": "2026-01-26",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://github.com/john30/ebusd/wiki",
+  "website": "https://github.com/john30/ebusd",
+  "logo": "",
+  "config_path": "/etc/default/ebusd",
+  "description": "ebusd is a daemon for handling communication with eBUS devices connected to a 2-wire bus system ("energy bus" used by numerous heating systems).",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/ebusd.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 2,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Instructions: \
+            1. Edit `/etc/default/ebusd` if necessary (especially if your device is not `/dev/ttyUSB0`) \
+            2. Start the daemon with `systemctl start ebusd` \
+            3. Check the log file `/var/log/ebusd.log` \
+            4. Make the daemon autostart with `systemctl enable ebusd`",
+      "type": "info"
+    },
+    {
+      "text": "Working `/etc/default/ebusd` options for `ebus adapter shield v5`: EBUSD_OPTS='--pidfile=/run/ebusd.pid --latency=100 --scanconfig --configpath=https://ebus.github.io/ --accesslevel=* --pollinterval=30 --device=ens:x.x.x.x:9999 --mqtthost=x.x.x.x --mqttport=1883 --mqttuser=ha-mqtt --mqttpass=xxxxxxxx! --mqttint=/etc/ebusd/mqtt-hassio.cfg --mqttjson --mqttlog --mqttretain --mqtttopic=ebusd --log=all:notice --log=main:notice --log=bus:notice --log=update:notice --log=network:notice --log=other:notice'",
+      "type": "info"
+    },
+    {
+      "text": "Only tested with `ebusd-25.1_amd64-bookworm.deb`!",
+      "type": "warning"
+    }
+  ]
+}
