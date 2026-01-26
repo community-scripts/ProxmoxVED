@@ -13,38 +13,44 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Installing Dependencies"
+$STD apt-get install -y \
+  build-essential \
+  git \
+  nginx
+msg_ok "Installed Dependencies"
+
 NODE_VERSION="24" NODE_MODULE="clawdbot@latest" setup_nodejs
 import_local_ip
 
-msg_info "Configuring Clawdbot"
-mkdir -p /opt/clawdbot/data
-cat <<EOF >/opt/clawdbot/.env
-NODE_ENV=production
-GATEWAY_PORT=18791
-GATEWAY_HOST=0.0.0.0
+
+msg_info "Configuring Nginx"
+cat <<EOF >/etc/nginx/sites-available/clawdbot
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:18791;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_buffering off;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+}
 EOF
-msg_ok "Configured Clawdbot"
-
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/clawdbot.service
-[Unit]
-Description=Clawdbot Service
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/clawdbot
-EnvironmentFile=/opt/clawdbot/.env
-ExecStart=/usr/bin/clawdbot
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable -q --now clawdbot
-msg_ok "Created Service"
+ln -sf /etc/nginx/sites-available/clawdbot /etc/nginx/sites-enabled/clawdbot
+rm -f /etc/nginx/sites-enabled/default
+$STD nginx -t
+$STD systemctl enable -q --now nginx
+msg_ok "Configured Nginx"
 
 motd_ssh
 customize
