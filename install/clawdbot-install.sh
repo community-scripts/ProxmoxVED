@@ -19,27 +19,14 @@ $STD apt-get install -y \
   git
 msg_ok "Installed Dependencies"
 
-fetch_and_deploy_gh_release "clawdbot" "clawdbot/clawdbot"
 
-pnpm_version=$(grep -oP '"packageManager":\s*"pnpm@\K[^"]+' /opt/clawdbot/package.json 2>/dev/null || echo "latest")
-NODE_VERSION="24" NODE_MODULE="pnpm@${pnpm_version}" setup_nodejs
-
-msg_info "Setting up pnpm"
-$STD pnpm setup
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
-echo 'export PNPM_HOME="$HOME/.local/share/pnpm"' >> ~/.bashrc
-echo 'export PATH="$PNPM_HOME:$PATH"' >> ~/.bashrc
-msg_ok "Set up pnpm"
+NODE_VERSION="24" NODE_MODULE="pnpm@latest" setup_nodejs
 
 msg_info "Installing Clawdbot"
-$STD pnpm add -g clawdbot@latest
+curl -fsSL https://clawd.bot/install.sh | bash
 msg_ok "Installed Clawdbot"
 
 
-msg_info "Building Clawdbot UI"
-$STD pnpm ui:build
-msg_ok "Built Clawdbot UI"
 
 motd_ssh
 customize
