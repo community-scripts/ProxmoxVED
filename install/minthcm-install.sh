@@ -17,7 +17,6 @@ PHP_VERSION="8.2"
 PHP_APACHE="YES" PHP_MODULE="mysql,redis" PHP_FPM="YES" setup_php
 setup_composer
 setup_mariadb
-MARIADB_DB_NAME="minthcm" MARIADB_DB_USER="minthcm" setup_mariadb_db
 $STD mariadb -u root -e "SET GLOBAL sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'";
 
 fetch_and_deploy_gh_release "MintHCM" "minthcm/minthcm" "tarball" "latest" "/var/www/MintHCM"
@@ -55,9 +54,12 @@ systemctl enable -q --now elasticsearch
 msg_ok "Set up Elasticsearch"
 
 msg_info "Configuring Database"
+DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+$STD mariadb -u root -e "CREATE USER 'minthcm'@'localhost' IDENTIFIED BY '${DB_PASS}';"
+$STD mariadb -u root -e "GRANT ALL ON *.* TO 'minthcm'@'localhost'; FLUSH PRIVILEGES;"
 sed -i "s/^DB_HOST=.*/DB_HOST=localhost/" /var/www/script/.env
-sed -i "s/^DB_USER=.*/DB_USER=$MARIADB_DB_USER/" /var/www/script/.env
-sed -i "s/^DB_PASS=.*/DB_PASS=$MARIADB_DB_PASS/" /var/www/script/.env
+sed -i "s/^DB_USER=.*/DB_USER=minthcm/" /var/www/script/.env
+sed -i "s/^DB_PASS=.*/DB_PASS=$DB_PASS/" /var/www/script/.env
 sed -i "s/^ELASTICSEARCH_HOST=.*/ELASTICSEARCH_HOST=localhost/" /var/www/script/.env
 msg_ok "Configured Database"
 
