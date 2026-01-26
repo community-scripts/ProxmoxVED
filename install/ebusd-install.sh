@@ -21,7 +21,7 @@ setup_deb822_repo \
   "bookworm" \
   "main"
 $STD apt update
-msg_ok "ebusd Repository setup sucessfully"
+msg_ok "ebusd Repository setup successfully"
 
 msg_info "Installing ebusd"
 $STD apt install -y ebusd
