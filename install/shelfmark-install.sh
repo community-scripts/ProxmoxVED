@@ -124,7 +124,7 @@ elif [[ "$DEPLOYMENT_TYPE" == "4" ]]; then
 else
   msg_info "Installing internal bypasser dependencies"
   $STD apt install -y --no-install-recommends \
-    xfvb \
+    xvfb \
     ffmpeg \
     chromium-common=143.0.7499.169-1~deb13u1 \
     chromium=143.0.7499.169-1~deb13u1 \
