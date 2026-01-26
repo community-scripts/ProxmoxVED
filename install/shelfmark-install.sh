@@ -19,16 +19,72 @@ $STD apt install -y \
 ln -sf /usr/bin/unrar-free /usr/bin/unrar
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" setup_nodejs
-PYTHON_VERSION="3.12" setup_uv
+mkdir -p /etc/shelfmark
+cat <<EOF >/etc/shelfmark/.env
+DOCKERMODE=false
+CONFIG_DIR=/etc/shelfmark
+TMP_DIR=/tmp/shelfmark
+ENABLE_LOGGING=true
+FLASK_HOST=0.0.0.0
+FLASK_PORT=8084
+# SESSION_COOKIES_SECURE=true
+# CWA_DB_PATH=
+USE_CF_BYPASS=true
+USING_EXTERNAL_BYPASSER=false
+# EXT_BYPASSER_URL=
+# EXT_BYPASSER_PATH=/v1
+EOF
 
-fetch_and_deploy_gh_release "shelfmark" "calibrain/shelfmark" "tarball" "latest" "/opt/shelfmark"
-RELEASE_VERSION=$(cat "$HOME/.shelfmark")
+echo ""
+echo ""
+echo -e "${BL}Shelfmark Deployment Type${CL}"
+echo "─────────────────────────────────────────"
+echo "Please choose your deployment type:"
+echo ""
+echo " 1) Use Shelfmark's internal captcha bypasser (default)"
+echo " 2) Install FlareSolverr in this LXC"
+echo " 3) Use an existing Flaresolverr LXC"
+echo " 4) Disable captcha bypassing altogether (not recommended)"
+echo ""
 
-read -r -p "${TAB3}Install FlareSolverr? Choose N|n if you have an external instance y/N " fs
-if [[ ${fs,,} =~ ^(y|Y|yes)$ ]]; then
+read -r -p "${TAB3}Select deployment type [1]: " DEPLOYMENT_TYPE
+DEPLOYMENT_TYPE="${DEPLOYMENT_TYPE:-1}"
+
+case "$DEPLOYMENT_TYPE" in
+1)
+  msg_ok "Using Shelfmark's internal captcha bypasser"
+  ;;
+2)
+  msg_ok "Proceeding with FlareSolverr installation"
+  ;;
+3)
+  echo ""
+  echo -e "${BL}Use existing FlareSolverr LXC${CL}"
+  echo "─────────────────────────────────────────"
+  echo "Enter the URL/IP address with port of your Flaresolverr instance"
+  echo "Example: http://flaresoverr.homelab.lan:8191 or"
+  echo "http://192.168.10.99:8191"
+  echo ""
+  read -r -p "FlareSolverr URL: " FLARESOLVERR_URL
+
+  if [[ -z "$FLARESOLVERR_URL" ]]; then
+    msg_warn "No Flaresolverr URL provided. Falling back to Shelfmark's internal bypasser."
+  else
+    FLARESOLVERR_URL="${FLARESOLVERR_URL%/}"
+    msg_ok "FlareSolverr URL: ${FLARESOLVERR_URL}"
+  fi
+  ;;
+4)
+  msg_warn "Disabling captcha bypass. This may cause the majority of searches and downloads to fail."
+  ;;
+*)
+  msg_warn "Invalid selection. Reverting to default (internal bypasser)!"
+  ;;
+esac
+
+if [[ "$DEPLOYMENT_TYPE" == "2" ]]; then
   fetch_and_deploy_gh_release "flaresolverr" "FlareSolverr/FlareSolverr" "prebuild" "latest" "/opt/flaresolverr" "flaresolverr_linux_x64.tar.gz"
-  msg_info "Installing FlareSolverr"
+  msg_info "Installing FlareSolverr (please wait)"
   $STD apt install -y xvfb
   setup_deb822_repo \
     "google-chrome" \
@@ -39,7 +95,7 @@ if [[ ${fs,,} =~ ^(y|Y|yes)$ ]]; then
   $STD apt install -y google-chrome-stable
   # remove google-chrome.list added by google-chrome-stable
   rm /etc/apt/sources.list.d/google-chrome.list
-
+  sed -i '/BYPASSER=/s/false/true' /etc/shelfmark/.env
   cat <<EOF >/etc/systemd/system/flaresolverr.service
 [Unit]
 Description=FlareSolverr
@@ -59,7 +115,28 @@ WantedBy=multi-user.target
 EOF
   systemctl enable -q --now flaresolverr
   msg_ok "Installed FlareSolverr"
+elif [[ "$DEPLOYMENT_TYPE" == "3" ]]; then
+  sed -i -e '/BYPASSER=/s/false/true/' \
+    -e '/^# EXT_/EXT_/' \
+    -e "s\|_URL=.*|${FLARESOLVERR_URL}|" /etc/shelfmark/.env
+elif [[ "$DEPLOYMENT_TYPE" == "4" ]]; then
+  sed -i '/_BYPASS=/s/true/false' /etc/shelfmark/.env
+else
+  msg_info "Installing internal bypasser dependencies"
+  $STD apt install -y \
+    xfvb \
+    ffmpeg \
+    chromium=143.0.7499.169-1~deb13u1 \
+    chromium-driver=143.0.7499.169-1~deb13u1 \
+    python3-tk
+  msg_ok "Installed internal bypasser dependencies"
 fi
+
+NODE_VERSION="22" setup_nodejs
+PYTHON_VERSION="3.12" setup_uv
+
+fetch_and_deploy_gh_release "shelfmark" "calibrain/shelfmark" "tarball" "latest" "/opt/shelfmark"
+RELEASE_VERSION=$(cat "$HOME/.shelfmark")
 
 msg_info "Building Shelfmark frontend"
 cd /opt/shelfmark/src/frontend
@@ -72,23 +149,10 @@ msg_info "Configuring Shelfmark"
 cd /opt/shelfmark
 $STD uv venv ./venv
 $STD source ./venv/bin/activate
-$STD uv pip install -r requirements-base.txt
-mkdir -p {/var/log/shelfmark,/tmp/shelfmark,/etc/shelfmark}
-cat <<EOF >/etc/shelfmark/.env
-DOCKERMODE=false
-CONFIG_DIR=/etc/shelfmark
-TMP_DIR=/tmp/shelfmark
-ENABLE_LOGGING=true
-FLASK_HOST=0.0.0.0
-FLASK_PORT=8084
-RELEASE_VERSION=$RELEASE_VERSION
-# SESSION_COOKIES_SECURE=true
-# CWA_DB_PATH=
-# USE_CF_BYPASS=true
-# USING_EXTERNAL_BYPASSER=true
-# EXT_BYPASSER_URL=
-# EXT_BYPASSER_PATH=
-EOF
+$STD uv pip install -r ./requirements-base.txt
+[[ "$DEPLOYMENT_TYPE" == "1" ]] && $STD uv pip install -r ./requirements-shelfmark.txt
+mkdir -p {/var/log/shelfmark,/tmp/shelfmark}
+echo "$RELEASE_VERSION" >>/etc/shelfmark/.env
 msg_ok "Configured Shelfmark"
 
 msg_info "Creating Service and start script"

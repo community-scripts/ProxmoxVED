@@ -50,7 +50,10 @@ function update_script() {
     cd /opt/shelfmark
     $STD uv venv -c ./venv
     $STD source ./venv/bin/activate
-    $STD uv pip install -r requirements-base.txt
+    $STD uv pip install -r ./requirements-base.txt
+    if [[ $(sed -n '/_BYPASS=/s/[^=]*=//p' /etc/shelfmark/.env) == "true" ]] && [[ $(sed -n '/BYPASSER=/s/[^=]*=//p' /etc/shelfmark/.env) == "false" ]]; then
+      $STD uv pip install -r ./requirements-shelfmark.txt
+    fi
     mv /opt/start.sh.bak /opt/start.sh
     msg_ok "Updated Shelfmark"
 
