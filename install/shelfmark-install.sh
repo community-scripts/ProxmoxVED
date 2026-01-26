@@ -95,25 +95,7 @@ if [[ "$DEPLOYMENT_TYPE" == "2" ]]; then
   $STD apt install -y google-chrome-stable
   # remove google-chrome.list added by google-chrome-stable
   rm /etc/apt/sources.list.d/google-chrome.list
-  sed -i '/BYPASSER=/s/false/true' /etc/shelfmark/.env
-  cat <<EOF >/etc/systemd/system/flaresolverr.service
-[Unit]
-Description=FlareSolverr
-After=network.target
-[Service]
-SyslogIdentifier=flaresolverr
-Restart=always
-RestartSec=5
-Type=simple
-Environment="LOG_LEVEL=info"
-Environment="CAPTCHA_SOLVER=none"
-WorkingDirectory=/opt/flaresolverr
-ExecStart=/opt/flaresolverr/flaresolverr
-TimeoutStopSec=30
-[Install]
-WantedBy=multi-user.target
-EOF
-  systemctl enable -q --now flaresolverr
+  sed -i '/BYPASSER=/s/false/true/' /etc/shelfmark/.env
   msg_ok "Installed FlareSolverr"
 elif [[ "$DEPLOYMENT_TYPE" == "3" ]]; then
   sed -i -e '/BYPASSER=/s/false/true/' \
@@ -190,6 +172,26 @@ Restart=always
 WantedBy=multi-user.target
 EOF
   systemctl enable -q --now chromium
+fi
+if [[ "$DEPLOYMENT_TYPE" == "2" ]]; then
+  cat <<EOF >/etc/systemd/system/flaresolverr.service
+[Unit]
+Description=FlareSolverr
+After=network.target
+[Service]
+SyslogIdentifier=flaresolverr
+Restart=always
+RestartSec=5
+Type=simple
+Environment="LOG_LEVEL=info"
+Environment="CAPTCHA_SOLVER=none"
+WorkingDirectory=/opt/flaresolverr
+ExecStart=/opt/flaresolverr/flaresolverr
+TimeoutStopSec=30
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl enable -q --now flaresolverr
 fi
 
 cat <<EOF >/opt/shelfmark/start.sh
