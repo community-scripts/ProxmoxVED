@@ -196,11 +196,19 @@ ensure_usr_local_bin_persist() {
 
 download_with_progress() {
   # $1 url, $2 dest
-  local url="$1" out="$2" cl
+  local url="$1" out="$2" content_length
   need_tool curl pv || return 1
-  cl=$(curl -fsSLI "$url" 2>/dev/null | awk 'tolower($0) ~ /^content-length:/ {print $2}' | tr -d '\r')
-  if [ -n "$cl" ]; then
-    curl -fsSL "$url" | pv -s "$cl" >"$out" || {
+
+  content_length=$(
+    curl -fsSLI "$url" 2>/dev/null |
+      # May return multiple values on redirect. i.e., 0 and content-length
+      # Cast $2 to int by adding 0 to it
+      awk '(tolower($1) ~ /^content-length:/) && ($2 + 0 > 0) {print $2+0}' |
+      tr -cd '[:digit:]' || true
+  )
+
+  if [ -n "$content_length" ]; then
+    curl -fsSL "$url" | pv -s "$content_length" >"$out" || {
       msg_error "Download failed: $url"
       return 1
     }
