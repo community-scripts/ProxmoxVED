@@ -30,9 +30,6 @@ function update_script() {
   fi
 
   if check_for_gh_release "clawdbot" "clawdbot/clawdbot"; then
-    msg_info "Stopping Service"
-    systemctl stop clawdbot
-    msg_ok "Stopped Service"
 
     msg_info "Backing up Data"
     cp -r /opt/clawdbot/data /opt/clawdbot_data_backup 2>/dev/null || true
@@ -53,9 +50,6 @@ function update_script() {
     rm -rf /opt/clawdbot_data_backup /root/.clawdbot_backup
     msg_ok "Restored Data"
 
-    msg_info "Starting Service"
-    systemctl start clawdbot
-    msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi
   exit
