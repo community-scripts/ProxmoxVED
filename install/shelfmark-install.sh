@@ -123,9 +123,10 @@ elif [[ "$DEPLOYMENT_TYPE" == "4" ]]; then
   sed -i '/_BYPASS=/s/true/false' /etc/shelfmark/.env
 else
   msg_info "Installing internal bypasser dependencies"
-  $STD apt install -y \
+  $STD apt install -y --no-install-recommends \
     xfvb \
     ffmpeg \
+    chromium-common=143.0.7499.169-1~deb13u1 \
     chromium=143.0.7499.169-1~deb13u1 \
     chromium-driver=143.0.7499.169-1~deb13u1 \
     python3-tk
