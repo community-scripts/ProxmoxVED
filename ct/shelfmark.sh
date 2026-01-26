@@ -49,6 +49,7 @@ function update_script() {
     mv /opt/shelfmark/src/frontend/dist /opt/shelfmark/frontend-dist
     cd /opt/shelfmark
     $STD uv venv -c ./venv
+    $STD source ./venv/bin/activate
     $STD uv pip install -r requirements-base.txt
     mv /opt/start.sh.bak /opt/start.sh
     msg_ok "Updated Shelfmark"
