@@ -22,7 +22,12 @@ msg_ok "Installed Dependencies"
 fetch_and_deploy_gh_release "clawdbot" "clawdbot/clawdbot"
 
 pnpm_version=$(grep -oP '"packageManager":\s*"pnpm@\K[^"]+' /opt/clawdbot/package.json 2>/dev/null || echo "latest")
-NODE_VERSION="24" NODE_MODULE="pnpm@${pnpm_version},clawdbot@latest" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="pnpm@${pnpm_version}" setup_nodejs
+
+msg_info "Installing Clawdbot"
+$STD pnpm add -g clawdbot@latest
+msg_ok "Installed Clawdbot"
+
 
 msg_info "Building Clawdbot UI"
 $STD pnpm ui:build
