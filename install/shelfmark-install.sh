@@ -25,6 +25,42 @@ PYTHON_VERSION="3.12" setup_uv
 fetch_and_deploy_gh_release "shelfmark" "calibrain/shelfmark" "tarball" "latest" "/opt/shelfmark"
 RELEASE_VERSION=$(cat "$HOME/.shelfmark")
 
+read -r -p "${TAB3}Install FlareSolverr? Choose N|n if you have an external instance y/N " fs
+if [[ ${fs,,} =~ ^(y|Y|yes)$ ]]; then
+  fetch_and_deploy_gh_release "flaresolverr" "FlareSolverr/FlareSolverr" "prebuild" "latest" "/opt/flaresolverr" "flaresolverr_linux_x64.tar.gz"
+  msg_info "Installing FlareSolverr"
+  $STD apt install -y xvfb
+  setup_deb822_repo \
+    "google-chrome" \
+    "https://dl.google.com/linux/linux_signing_key.pub" \
+    "https://dl.google.com/linux/chrome/deb/" \
+    "stable"
+  $STD apt update
+  $STD apt install -y google-chrome-stable
+  # remove google-chrome.list added by google-chrome-stable
+  rm /etc/apt/sources.list.d/google-chrome.list
+
+  cat <<EOF >/etc/systemd/system/flaresolverr.service
+[Unit]
+Description=FlareSolverr
+After=network.target
+[Service]
+SyslogIdentifier=flaresolverr
+Restart=always
+RestartSec=5
+Type=simple
+Environment="LOG_LEVEL=info"
+Environment="CAPTCHA_SOLVER=none"
+WorkingDirectory=/opt/flaresolverr
+ExecStart=/opt/flaresolverr/flaresolverr
+TimeoutStopSec=30
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl enable -q --now flaresolverr
+  msg_ok "Installed FlareSolverr"
+fi
+
 msg_info "Building Shelfmark frontend"
 cd /opt/shelfmark/src/frontend
 $STD npm ci
