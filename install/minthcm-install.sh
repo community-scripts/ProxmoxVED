@@ -69,7 +69,8 @@ $STD php /var/www/script/generate_config.php
 msg_ok "Generated configuration file"
 
 msg_info "Installing MintHCM"
-$STD sudo -u www-data php /var/www/MintHCM/MintCLI install < /var/www/MintHCM/configMint4
+cd /var/www/MintHCM
+$STD sudo -u www-data php MintCLI install < /var/www/MintHCM/configMint4
 printf "*    *    *    *    *     cd /var/www/MintHCM/legacy; php -f cron.php > /dev/null 2>&1\n" > /var/spool/cron/crontabs/www-data
 service cron start
 rm -f /var/www/MintHCM/configMint4
