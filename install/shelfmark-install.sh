@@ -126,7 +126,7 @@ RELEASE_VERSION=$(cat "$HOME/.shelfmark")
 
 msg_info "Building Shelfmark frontend"
 cd /opt/shelfmark/src/frontend
-echo "RELEASE_VERION=${RELEASE_VERSION}" >>/etc/shelfmark/.env
+echo "RELEASE_VERSION=${RELEASE_VERSION}" >>/etc/shelfmark/.env
 $STD npm ci
 $STD npm run build
 mv /opt/shelfmark/src/frontend/dist /opt/shelfmark/frontend-dist
