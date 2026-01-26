@@ -35,6 +35,7 @@ function update_script() {
   if check_for_gh_release "shelfmark" "calibrain/shelfmark"; then
     msg_info "Stopping Service"
     systemctl stop shelfmark
+    [[ -f /etc/systemd/system/chromium.service ]] && systemctl stop chromium
     msg_ok "Stopped Service"
 
     cp /opt/shelfmark/start.sh /opt/start.sh.bak
@@ -51,7 +52,7 @@ function update_script() {
     $STD uv venv -c ./venv
     $STD source ./venv/bin/activate
     $STD uv pip install -r ./requirements-base.txt
-    if [[ $(sed -n '/_BYPASS=/s/[^=]*=//p' /etc/shelfmark/.env) == "true" ]] && [[ $(sed -n '/BYPASSER=/s/[^=]*=//p' /etc/shelfmark/.env) == "false" ]]; then
+    if [[ $(sed -n '/_BYPASS=/s/[^=]*=//p' /etc/shelfmark/.env) == "true" ]] && [[ $(sed -n '/BYPASSER=/s/[^=]*=//p' /etc/shelfmark/.env == "false") ]]; then
       $STD uv pip install -r ./requirements-shelfmark.txt
     fi
     mv /opt/start.sh.bak /opt/shelfmark/start.sh
@@ -59,6 +60,7 @@ function update_script() {
 
     msg_info "Starting Service"
     systemctl start shelfmark
+    [[ -f /etc/systemd/system/chromium.service ]] && systemctl start chromium
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi

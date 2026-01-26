@@ -122,6 +122,7 @@ elif [[ "$DEPLOYMENT_TYPE" == "3" ]]; then
 elif [[ "$DEPLOYMENT_TYPE" == "4" ]]; then
   sed -i '/_BYPASS=/s/true/false' /etc/shelfmark/.env
 else
+  DEPLOYMENT_TYPE="1"
   msg_info "Installing internal bypasser dependencies"
   $STD apt install -y --no-install-recommends \
     xvfb \
@@ -141,6 +142,7 @@ RELEASE_VERSION=$(cat "$HOME/.shelfmark")
 
 msg_info "Building Shelfmark frontend"
 cd /opt/shelfmark/src/frontend
+echo "$RELEASE_VERSION" >>/etc/shelfmark/.env
 $STD npm ci
 $STD npm run build
 mv /opt/shelfmark/src/frontend/dist /opt/shelfmark/frontend-dist
@@ -153,10 +155,9 @@ $STD source ./venv/bin/activate
 $STD uv pip install -r ./requirements-base.txt
 [[ "$DEPLOYMENT_TYPE" == "1" ]] && $STD uv pip install -r ./requirements-shelfmark.txt
 mkdir -p {/var/log/shelfmark,/tmp/shelfmark}
-echo "$RELEASE_VERSION" >>/etc/shelfmark/.env
 msg_ok "Configured Shelfmark"
 
-msg_info "Creating Service and start script"
+msg_info "Creating Services and start script"
 cat <<EOF >/etc/systemd/system/shelfmark.service
 [Unit]
 Description=Shelfmark server
@@ -173,6 +174,23 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
+
+if [[ "$DEPLOYMENT_TYPE" == "1" ]]; then
+  cat <<EOF >/etc/systemd/system/chromium.service
+[Unit]
+Description=karakeep Headless Browser
+After=network.target
+
+[Service]
+User=root
+ExecStart=/usr/bin/chromium --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --hide-scrollbars
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl enable -q --now chromium
+fi
 
 cat <<EOF >/opt/shelfmark/start.sh
 #!/usr/bin/env bash
