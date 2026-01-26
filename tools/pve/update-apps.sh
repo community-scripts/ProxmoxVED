@@ -64,9 +64,10 @@ END {
 }
 
 header_info
-msg_info "Loading all possible LXC containers from Proxmox VE. This may take a few seconds..."
+
 whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "This will update LXC container. Proceed?" 10 58 || exit
 
+msg_info "Loading all possible LXC containers from Proxmox VE. This may take a few seconds..."
 NODE=$(hostname)
 containers=$(pct list | tail -n +2 | awk '{print $0 " " $4}')
 
