@@ -14,6 +14,8 @@ var_os="${var_os:-alpine}"
 var_version="${var_version:-3.23}"
 var_unprivileged="${var_unprivileged:-1}"
 
+export CONFIG_PATH="${CONFIG_PATH:-'/usr/local/etc/cloudflared'}"
+
 header_info "$APP"
 variables
 color
@@ -102,5 +104,8 @@ description
 
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:[PORT]${CL}"
+if [ -n "$TOKEN" ]; then
+  echo -e "${INFO}${YW} Edit the config file at:${CL}"
+  echo -e "${TAB}${ADVANCED}${GN} ${CONFIG_PATH}/config.yml${CL}"
+  echo -e "${INFO}${BGN}Run \"rc-service cloudflared start\" to start!${CL}"
+fi

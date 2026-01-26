@@ -13,22 +13,24 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Creating Cloudflare User"
+msg_info "Creating Cloudflared User"
 
-# Enable sysctl service
+# Enable sysctl service so conf is applied on start
 $STD rc-update add sysctl
+# Increase ping_group_range by one to create space for cloudflared group
 cat <<EOF >/etc/sysctl.d/90-cloudflared.conf
 # Increse ICMP ping_group_range
 net.ipv4.ping_group_range = 65534 65535
 EOF
 
+# Apply 90-cloudflared.conf now
 $STD sysctl -p /etc/sysctl.d/90-cloudflared.conf
-addgroup -g 65535 cloudflare
-adduser -DH -s /sbin/nologin -G cloudflare cloudflare
-msg_ok "Created Cloudflare User"
+# Create cloudflared group in ping_group_range
+addgroup -g 65535 cloudflared
+adduser -DH -s /sbin/nologin -G cloudflared cloudflared
+msg_ok "Created Cloudflared User"
 
 msg_info "Installing Cloudflared"
-get_system_arch
 fetch_and_deploy_gh_release cloudflared cloudflare/cloudflared singlefile latest /usr/bin "cloudflared-linux-$(get_system_arch)"
 msg_ok "Installed Cloudflared"
 
@@ -46,13 +48,17 @@ EOF
 
 if [ -z "$TOKEN" ]; then
   cloudflared tunnel create proxmoxve
-  echo command_args="tunnel run --config /usr/local/etc/cloudflared/config.yml" >>/etc/init.d/cloudflared
+  mkdir -p "$CONFIG_PATH"
+  # Create empty config file so permissions are correct and users can find it
+  touch "$CONFIG_PATH/config.yml"
+  chown -R cloudflared:cloudflared "$CONFIG_PATH"
+  echo command_args="tunnel run --config $CONFIG_PATH/config.yml" >>/etc/init.d/cloudflared
 else
   echo command_args="tunnel run --token $TOKEN" >>/etc/init.d/cloudflared
 fi
 
-cat <<EOF >/etc/init.d/cloudflared
-command_user="cloudflare"
+cat <<EOF >>/etc/init.d/cloudflared
+command_user="cloudflared"
 command_background="yes"
 
 start_pre() {
@@ -61,7 +67,28 @@ start_pre() {
 }
 EOF
 
+chmod +x /etc/init.d/cloudflared
 msg_ok "Created Service"
+
+msg_info "Enabling $APP service"
+if $STD rc-update add cloudflared; then
+  msg_ok "Enabled $APP service"
+else
+  msg_error "Failed to enable $APP service"
+  exit 1
+fi
+
+# Start service now if externally managed, otherwise user needs to setup config first.
+if [ -n "$TOKEN" ]; then
+  msg_info "Starting $APP service"
+  if $STD rc-service cloudflared start; then
+    msg_ok "$APP service Running"
+  else
+    msg_error "Failed to start $APP service"
+    cat /var/log/cloudflared.err
+    exit 1
+  fi
+fi
 
 motd_ssh
 customize
