@@ -97,12 +97,12 @@ if [[ "$DEPLOYMENT_TYPE" == "2" ]]; then
   rm /etc/apt/sources.list.d/google-chrome.list
   sed -i -e '/BYPASSER=/s/false/true/' \
     -e 's/^# EXT_/EXT_/' \
-    -e "s|_URL=.*|http://localhost:8191|" /etc/shelfmark/.env
+    -e "s|_URL=.*|_URL=http://localhost:8191|" /etc/shelfmark/.env
   msg_ok "Installed FlareSolverr"
 elif [[ "$DEPLOYMENT_TYPE" == "3" ]]; then
   sed -i -e '/BYPASSER=/s/false/true/' \
     -e 's/^# EXT_/EXT_/' \
-    -e "s|_URL=.*|${FLARESOLVERR_URL}|" /etc/shelfmark/.env
+    -e "s|_URL=.*|_URL=${FLARESOLVERR_URL}|" /etc/shelfmark/.env
 elif [[ "$DEPLOYMENT_TYPE" == "4" ]]; then
   sed -i '/_BYPASS=/s/true/false/' /etc/shelfmark/.env
 else
@@ -126,7 +126,7 @@ RELEASE_VERSION=$(cat "$HOME/.shelfmark")
 
 msg_info "Building Shelfmark frontend"
 cd /opt/shelfmark/src/frontend
-echo "$RELEASE_VERSION" >>/etc/shelfmark/.env
+echo "RELEASE_VERION=${RELEASE_VERSION}" >>/etc/shelfmark/.env
 $STD npm ci
 $STD npm run build
 mv /opt/shelfmark/src/frontend/dist /opt/shelfmark/frontend-dist
