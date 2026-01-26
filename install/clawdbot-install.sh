@@ -13,12 +13,6 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  build-essential \
-  git
-msg_ok "Installed Dependencies"
-
 NODE_VERSION="24" NODE_MODULE="clawdbot@latest" setup_nodejs
 import_local_ip
 
