@@ -17,13 +17,28 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   nginx \
   build-essential \
+  gfortran \
+  pkg-config \
+  ninja-build \
+  autoconf \
+  automake \
   libpq-dev \
   libffi-dev \
-  libssl-dev
+  libssl-dev \
+  libpcre2-dev \
+  libre2-dev \
+  libxml2-dev \
+  libxslt-dev \
+  libopenblas-dev \
+  liblapack-dev \
+  zlib1g-dev \
+  libjpeg62-turbo-dev \
+  libsqlite3-dev \
+  libexpat1-dev \
+  libicu-dev
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.14" setup_uv
-import_local_ip
 fetch_and_deploy_gh_release "kitchenowl" "TomBursch/kitchenowl" "tarball" "latest" "/opt/kitchenowl"
 rm -rf /opt/kitchenowl/web
 fetch_and_deploy_gh_release "kitchenowl-web" "TomBursch/kitchenowl" "prebuild" "latest" "/opt/kitchenowl/web" "kitchenowl_Web.tar.gz"
