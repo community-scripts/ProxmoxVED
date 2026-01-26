@@ -24,34 +24,40 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if ! command -v clawdbot >/dev/null 2>&1; then
+  if [[ ! -d /opt/clawdbot ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  msg_info "Stopping Service"
-  systemctl stop clawdbot
-  msg_ok "Stopped Service"
+  if check_for_gh_release "clawdbot" "clawdbot/clawdbot"; then
+    msg_info "Stopping Service"
+    systemctl stop clawdbot
+    msg_ok "Stopped Service"
 
-  msg_info "Backing up Data"
-  cp -r /opt/clawdbot/data /opt/clawdbot_data_backup 2>/dev/null || true
-  cp -r /root/.clawdbot /root/.clawdbot_backup 2>/dev/null || true
-  msg_ok "Backed up Data"
+    msg_info "Backing up Data"
+    cp -r /opt/clawdbot/data /opt/clawdbot_data_backup 2>/dev/null || true
+    cp -r /root/.clawdbot /root/.clawdbot_backup 2>/dev/null || true
+    msg_ok "Backed up Data"
 
-  msg_info "Updating Clawdbot"
-  $STD npm install -g clawdbot@latest
-  msg_ok "Updated Clawdbot"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "clawdbot" "clawdbot/clawdbot"
 
-  msg_info "Restoring Data"
-  cp -r /opt/clawdbot_data_backup/. /opt/clawdbot/data 2>/dev/null || true
-  cp -r /root/.clawdbot_backup/. /root/.clawdbot 2>/dev/null || true
-  rm -rf /opt/clawdbot_data_backup /root/.clawdbot_backup
-  msg_ok "Restored Data"
+    msg_info "Rebuilding Clawdbot"
+    cd /opt/clawdbot
+    $STD pnpm install --frozen-lockfile
+    $STD pnpm ui:build
+    msg_ok "Rebuilt Clawdbot"
 
-  msg_info "Starting Service"
-  systemctl start clawdbot
-  msg_ok "Started Service"
-  msg_ok "Updated successfully!"
+    msg_info "Restoring Data"
+    cp -r /opt/clawdbot_data_backup/. /opt/clawdbot/data 2>/dev/null || true
+    cp -r /root/.clawdbot_backup/. /root/.clawdbot 2>/dev/null || true
+    rm -rf /opt/clawdbot_data_backup /root/.clawdbot_backup
+    msg_ok "Restored Data"
+
+    msg_info "Starting Service"
+    systemctl start clawdbot
+    msg_ok "Started Service"
+    msg_ok "Updated successfully!"
+  fi
   exit
 }
 
@@ -62,5 +68,5 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:80${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:18791${CL}"
 

@@ -16,41 +16,22 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   build-essential \
-  git \
-  nginx
+  git
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="24" NODE_MODULE="clawdbot@latest" setup_nodejs
-import_local_ip
+fetch_and_deploy_gh_release "clawdbot" "clawdbot/clawdbot"
 
+pnpm_version=$(grep -oP '"packageManager":\s*"pnpm@\K[^"]+' /opt/clawdbot/package.json 2>/dev/null || echo "latest")
+NODE_VERSION="24" NODE_MODULE="pnpm@${pnpm_version}" setup_nodejs
 
-msg_info "Configuring Nginx"
-cat <<EOF >/etc/nginx/sites-available/clawdbot
-server {
-    listen 80;
-    server_name _;
+msg_info "Installing Clawdbot Dependencies"
+cd /opt/clawdbot
+$STD pnpm install --frozen-lockfile
+msg_ok "Installed Dependencies"
 
-    location / {
-        proxy_pass http://127.0.0.1:18791;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-        proxy_buffering off;
-        proxy_read_timeout 86400s;
-        proxy_send_timeout 86400s;
-    }
-}
-EOF
-ln -sf /etc/nginx/sites-available/clawdbot /etc/nginx/sites-enabled/clawdbot
-rm -f /etc/nginx/sites-enabled/default
-$STD nginx -t
-$STD systemctl enable -q --now nginx
-msg_ok "Configured Nginx"
+msg_info "Building Clawdbot UI"
+$STD pnpm ui:build
+msg_ok "Built Clawdbot UI"
 
 motd_ssh
 customize
