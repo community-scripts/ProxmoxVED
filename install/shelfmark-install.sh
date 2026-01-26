@@ -43,7 +43,7 @@ echo "Please choose your deployment type:"
 echo ""
 echo " 1) Use Shelfmark's internal captcha bypasser (default)"
 echo " 2) Install FlareSolverr in this LXC"
-echo " 3) Use an existing Flaresolverr LXC"
+echo " 3) Use an existing Flaresolverr/Byparr LXC"
 echo " 4) Disable captcha bypassing altogether (not recommended)"
 echo ""
 
@@ -95,14 +95,16 @@ if [[ "$DEPLOYMENT_TYPE" == "2" ]]; then
   $STD apt install -y google-chrome-stable
   # remove google-chrome.list added by google-chrome-stable
   rm /etc/apt/sources.list.d/google-chrome.list
-  sed -i '/BYPASSER=/s/false/true/' /etc/shelfmark/.env
+  sed -i -e '/BYPASSER=/s/false/true/' \
+    -e 's/^# EXT_/EXT_/' \
+    -e "s|_URL=.*|http://localhost:8191|" /etc/shelfmark/.env
   msg_ok "Installed FlareSolverr"
 elif [[ "$DEPLOYMENT_TYPE" == "3" ]]; then
   sed -i -e '/BYPASSER=/s/false/true/' \
-    -e '/^# EXT_/EXT_/' \
-    -e "s\|_URL=.*|${FLARESOLVERR_URL}|" /etc/shelfmark/.env
+    -e 's/^# EXT_/EXT_/' \
+    -e "s|_URL=.*|${FLARESOLVERR_URL}|" /etc/shelfmark/.env
 elif [[ "$DEPLOYMENT_TYPE" == "4" ]]; then
-  sed -i '/_BYPASS=/s/true/false' /etc/shelfmark/.env
+  sed -i '/_BYPASS=/s/true/false/' /etc/shelfmark/.env
 else
   DEPLOYMENT_TYPE="1"
   msg_info "Installing internal bypasser dependencies"
