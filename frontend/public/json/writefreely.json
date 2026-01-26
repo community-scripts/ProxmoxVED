@@ -12,7 +12,7 @@
     "documentation": "https://writefreely.org/docs",
     "config_path": "/opt/writefreely/config.ini",
     "website": "https://writefreely.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/writefreely-light.png",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/writefreely-light.webp",
     "description": "WriteFreely is free and open source software for easily publishing writing on the web with support for the ActivityPub protocol. Use it to start a personal blog — or an entire community.",
     "install_methods": [
         {

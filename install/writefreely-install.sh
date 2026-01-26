@@ -15,8 +15,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
-  crudini
+$STD apt install -y crudini
 msg_ok "Installed Dependencies"
 
 setup_mariadb
@@ -35,13 +34,10 @@ msg_ok "Setup WriteFreely"
 msg_info "Configuring WriteFreely"
 $STD crudini --set config.ini server port 80
 $STD crudini --set config.ini server bind $LOCAL_IP
-
 $STD crudini --set config.ini database username $MARIADB_DB_USER
 $STD crudini --set config.ini database password $MARIADB_DB_PASS
 $STD crudini --set config.ini database database $MARIADB_DB_NAME
-
 $STD crudini --set config.ini app host http://$LOCAL_IP:80
-
 $STD ./writefreely db init
 msg_ok "Configured WriteFreely"
 

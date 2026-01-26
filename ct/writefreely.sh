@@ -57,7 +57,6 @@ function update_script() {
     msg_info "Starting Services"
     systemctl start writefreely
     msg_ok "Started Services"
-
     msg_ok "Updated successfully!"
   fi
   exit
