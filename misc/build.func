@@ -4639,29 +4639,25 @@ create_lxc_container() {
       local selected_version
       selected_version=$(prompt_select "Select ${PCT_OSTYPE} version:" 1 60 "${AVAILABLE_VERSIONS[@]}")
 
-      if [[ -n "$selected_version" ]]; then
-        PCT_OSVERSION="$selected_version"
-        TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION}"
+      # prompt_select always returns a value (uses default in unattended mode)
+      PCT_OSVERSION="$selected_version"
+      TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION}"
 
-        ONLINE_TEMPLATES=()
-        mapfile -t ONLINE_TEMPLATES < <(
-          pveam available -section system 2>/dev/null |
-            grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
-            awk '{print $2}' |
-            grep -E "^${TEMPLATE_SEARCH}-.*${TEMPLATE_PATTERN}" |
-            sort -t - -k 2 -V 2>/dev/null || true
-        )
+      ONLINE_TEMPLATES=()
+      mapfile -t ONLINE_TEMPLATES < <(
+        pveam available -section system 2>/dev/null |
+          grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
+          awk '{print $2}' |
+          grep -E "^${TEMPLATE_SEARCH}-.*${TEMPLATE_PATTERN}" |
+          sort -t - -k 2 -V 2>/dev/null || true
+      )
 
-        if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
-          TEMPLATE="${ONLINE_TEMPLATES[-1]}"
-          TEMPLATE_SOURCE="online"
-        else
-          msg_error "No templates available for ${PCT_OSTYPE} ${PCT_OSVERSION}"
-          exit 225
-        fi
+      if [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]]; then
+        TEMPLATE="${ONLINE_TEMPLATES[-1]}"
+        TEMPLATE_SOURCE="online"
       else
-        msg_custom "🚫" "${YW}" "Installation cancelled"
-        exit 0
+        msg_error "No templates available for ${PCT_OSTYPE} ${PCT_OSVERSION}"
+        exit 225
       fi
     else
       msg_error "No ${PCT_OSTYPE} templates available at all"
@@ -4698,53 +4694,52 @@ create_lxc_container() {
         local selected_version
         selected_version=$(prompt_select "Select ${PCT_OSTYPE} version:" 1 60 "${AVAILABLE_VERSIONS[@]}")
 
-        if [[ -n "$selected_version" ]]; then
-          export var_version="$selected_version"
-          export PCT_OSVERSION="$var_version"
-          msg_ok "Switched to ${PCT_OSTYPE} ${var_version}"
+        # prompt_select always returns a value (uses default in unattended mode)
+        export var_version="$selected_version"
+        export PCT_OSVERSION="$var_version"
+        msg_ok "Switched to ${PCT_OSTYPE} ${var_version}"
 
-          # Retry template search with new version
-          TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
+        # Retry template search with new version
+        TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION:-}"
 
-          mapfile -t LOCAL_TEMPLATES < <(
-            pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
-              awk -v search="${TEMPLATE_SEARCH}-" -v pattern="${TEMPLATE_PATTERN}" '$1 ~ search && $1 ~ pattern {print $1}' |
-              sed 's|.*/||' | sort -t - -k 2 -V
-          )
-          mapfile -t ONLINE_TEMPLATES < <(
-            pveam available -section system 2>/dev/null |
-              grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
-              awk '{print $2}' |
-              grep -E "^${TEMPLATE_SEARCH}-.*${TEMPLATE_PATTERN}" |
-              sort -t - -k 2 -V 2>/dev/null || true
-          )
-          ONLINE_TEMPLATE=""
-          [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
+        mapfile -t LOCAL_TEMPLATES < <(
+          pveam list "$TEMPLATE_STORAGE" 2>/dev/null |
+            awk -v search="${TEMPLATE_SEARCH}-" -v pattern="${TEMPLATE_PATTERN}" '$1 ~ search && $1 ~ pattern {print $1}' |
+            sed 's|.*/||' | sort -t - -k 2 -V
+        )
+        mapfile -t ONLINE_TEMPLATES < <(
+          pveam available -section system 2>/dev/null |
+            grep -E '\.(tar\.zst|tar\.xz|tar\.gz)$' |
+            awk '{print $2}' |
+            grep -E "^${TEMPLATE_SEARCH}-.*${TEMPLATE_PATTERN}" |
+            sort -t - -k 2 -V 2>/dev/null || true
+        )
+        ONLINE_TEMPLATE=""
+        [[ ${#ONLINE_TEMPLATES[@]} -gt 0 ]] && ONLINE_TEMPLATE="${ONLINE_TEMPLATES[-1]}"
 
-          if [[ ${#LOCAL_TEMPLATES[@]} -gt 0 ]]; then
-            TEMPLATE="${LOCAL_TEMPLATES[-1]}"
-            TEMPLATE_SOURCE="local"
-          else
-            TEMPLATE="$ONLINE_TEMPLATE"
-            TEMPLATE_SOURCE="online"
-          fi
-
-          TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
-          if [[ -z "$TEMPLATE_PATH" ]]; then
-            TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
-            [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
-          fi
-
-          # If we still don't have a path but have a valid template name, construct it
-          if [[ -z "$TEMPLATE_PATH" && -n "$TEMPLATE" ]]; then
-            TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
-          fi
-
-          [[ -n "$TEMPLATE_PATH" ]] || {
-            msg_error "Template still not found after version change"
-            exit 220
-          }
+        if [[ ${#LOCAL_TEMPLATES[@]} -gt 0 ]]; then
+          TEMPLATE="${LOCAL_TEMPLATES[-1]}"
+          TEMPLATE_SOURCE="local"
+        else
+          TEMPLATE="$ONLINE_TEMPLATE"
+          TEMPLATE_SOURCE="online"
         fi
+
+        TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
+        if [[ -z "$TEMPLATE_PATH" ]]; then
+          TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
+          [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
+        fi
+
+        # If we still don't have a path but have a valid template name, construct it
+        if [[ -z "$TEMPLATE_PATH" && -n "$TEMPLATE" ]]; then
+          TEMPLATE_PATH="/var/lib/vz/template/cache/$TEMPLATE"
+        fi
+
+        [[ -n "$TEMPLATE_PATH" ]] || {
+          msg_error "Template still not found after version change"
+          exit 220
+        }
       else
         msg_error "No ${PCT_OSTYPE} templates available"
         exit 220
