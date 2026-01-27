@@ -75,7 +75,7 @@ msg_ok "Installed Apache and configured Icinga Web 2 redirect"
 systemctl reload apache2 || { msg_error "Failed to reload Apache"; exit 1; }
 
 # Enable and start services
-systemctl enable icinga2 apache2 mariadb --now &>/dev/null || { msg_error "Failed to enable and start services"; exit 1; }
+systemctl enable -q --now icinga2 apache2 mariadb || { msg_error "Failed to enable and start services"; exit 1; }
 msg_info "Started and enabled Services"
 
 
