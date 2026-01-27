@@ -47,7 +47,6 @@ command="/usr/bin/cloudflared"
 EOF
 
 if [ -z "$TOKEN" ]; then
-  cloudflared tunnel create proxmoxve
   mkdir -p "$CONFIG_PATH"
   # Create empty config file so permissions are correct and users can find it
   touch "$CONFIG_PATH/config.yml"
