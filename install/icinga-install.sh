@@ -52,10 +52,9 @@ msg_ok "Set up Linuxfabrik plugins repository"
 
 pkg_update
 setup_mariadb
-setup_apache
 msg_info "Installing Icinga"
 pkg_install \
-  icinga2 icingaweb2 icingadb icingadb-redis imagemagick php-imagick openssh-server \
+  icinga2 icingaweb2 icingadb icingadb-redis imagemagick php-imagick openssh-server apache2 \
   icingadb-web icinga-director icinga-businessprocess icinga-cube icinga-notifications-web icinga-notifications icinga-x509 icingaweb2-module-reporting \
   icingaweb2-module-perfdatagraphs-influxdbv1 icingaweb2-module-perfdatagraphs-influxdbv2 icingaweb2-module-perfdatagraphs \
   linuxfabrik-monitoring-plugins vim git redis-tools pwgen || { msg_error "Failed to install Icinga packages"; exit 1; }
@@ -88,8 +87,9 @@ DIRECTOR_DB_PW="${DIRECTOR_DB_PW:-$(pwgen -s 20 1)}"
 X509_DB_PW="${X509_DB_PW:-$(pwgen -s 20 1)}"
 REPORTING_DB_PW="${REPORTING_DB_PW:-$(pwgen -s 20 1)}"
 ICINGAWEB_ADMIN_PW="${ICINGAWEB_ADMIN_PW:-$(pwgen -s 12 1)}"
+ICINGAWEB_ADMIN_USER="${ICINGAWEB_ADMIN_USER:-icingaadmin}"
 
-cat <<EOF | mysql || { msg_error "Failed to create databases"; exit 1; }
+cat <<EOF | mariadb || { msg_error "Failed to create databases"; exit 1; }
 CREATE DATABASE IF NOT EXISTS icingadb;
 CREATE DATABASE IF NOT EXISTS icingaweb;
 CREATE DATABASE IF NOT EXISTS notifications;
@@ -111,12 +111,12 @@ GRANT ALL PRIVILEGES ON reporting.* TO 'reporting'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 msg_ok "Configured MariaDB databases and users"
-mysql icingadb </usr/share/icingadb/schema/mysql/schema.sql || { msg_error "Failed to import IcingaDB schema"; exit 1; }
+mariadb icingadb </usr/share/icingadb/schema/mysql/schema.sql || { msg_error "Failed to import IcingaDB schema"; exit 1; }
 msg_ok "Imported IcingaDB schema"
 
 sed -i "s/password: CHANGEME/password: ${ICINGA_DB_PW}/g" /etc/icingadb/config.yml || { msg_error "Failed to configure IcingaDB password"; exit 1; }
 systemctl enable icingadb-redis icingadb --now || { msg_error "Failed to enable IcingaDB services"; exit 1; }
-msg_ok "Configured IcingaDB daemon connection to mysql database"
+msg_ok "Configured IcingaDB daemon connection to mariadb database"
 
 icinga2 node setup --master --disable-confd > /dev/null || { msg_error "Failed to setup Icinga2 node"; exit 1; }
 icinga2 feature enable icingadb > /dev/null || { msg_error "Failed to enable Icinga2 IcingaDB feature"; exit 1; }
@@ -153,7 +153,7 @@ resource = "icingaweb_db"
 EOF
 cat <<EOF >/etc/icingaweb2/roles.ini
 [Administrators]
-users = "icingaadmin"
+users = "$ICINGAWEB_ADMIN_USER"
 permissions = "*"
 groups = "Administrators"
 EOF
@@ -277,11 +277,11 @@ resource = "reporting_db"
 EOF
 chown -R root:icingaweb2 /etc/icingaweb2/modules/reporting || { msg_error "Failed to set reporting permissions"; exit 1; }
 chmod 660 /etc/icingaweb2/modules/reporting/config.ini || { msg_error "Failed to set reporting file permissions"; exit 1; }
-mysql reporting < /usr/share/icingaweb2/modules/reporting/schema/mysql.schema.sql || { msg_error "Failed to import reporting schema"; exit 1; }
+mariadb reporting < /usr/share/icingaweb2/modules/reporting/schema/mysql.schema.sql || { msg_error "Failed to import reporting schema"; exit 1; }
 msg_ok "Configured Reporting module"
 
 msg_info "Configuring x509 module"
-mysql x509 < /usr/share/icingaweb2/modules/x509/schema/mysql.schema.sql || { msg_error "Failed to import x509 schema"; exit 1; }
+mariadb x509 < /usr/share/icingaweb2/modules/x509/schema/mysql.schema.sql || { msg_error "Failed to import x509 schema"; exit 1; }
 mkdir -p /etc/icingaweb2/modules/x509 || { msg_error "Failed to create x509 module directory"; exit 1; }
 cat <<EOF > /etc/icingaweb2/modules/x509/config.ini || { msg_error "Failed to create x509 config"; exit 1; }
 [backend]
@@ -307,7 +307,6 @@ while true; do
                 echo "Error: '$X509_LAN_CIDR' is not a valid CIDR format."
                 echo "Error: aaa.bbb.ccc.ddd/xy expected."
             fi
-            break
         done
 
         X509_START_SCHEDULE=$(TZ="Europe/Paris" date -d "+1 minutes" +"%Y-%m-%dT%H:%M:%S.000000") || { msg_error "Failed to calculate X509 start schedule"; exit 1; }
@@ -323,15 +322,16 @@ EOF
         systemctl restart icinga-x509.service || { msg_error "Failed to restart icinga-x509 service"; exit 1; }
         icingacli x509 import --file /etc/ssl/certs/ca-certificates.crt > /dev/null || { msg_error "Failed to import CA certificates"; exit 1; }
         icingacli x509 scan --job LAN --full || { msg_error "Failed to start x509 scan job"; exit 1; }
+        msg_ok "Set up x509 scan job"
         break
     elif [[ "$X509_LAN_CIDR" == "n" ]]; then
+	msg_ok "It's up to you set up x509 certificate scan jobs"
         break
     fi
 done
-msg_ok "Set up x509 scan job"
 
 msg_info "Configuring Notifications module"
-mysql notifications < /usr/share/icinga-notifications/schema/mysql/schema.sql || { msg_error "Failed to import notifications schema"; exit 1; }
+mariadb notifications < /usr/share/icinga-notifications/schema/mysql/schema.sql || { msg_error "Failed to import notifications schema"; exit 1; }
 mkdir -p /etc/icingaweb2/modules/notifications || { msg_error "Failed to create notifications module directory"; exit 1; }
 cat <<EOF >/etc/icingaweb2/modules/notifications/config.ini || { msg_error "Failed to create notifications config"; exit 1; }
 [database]
@@ -346,13 +346,13 @@ msg_ok "Configured notifications modules"
 
 msg_info "Creating Icinga Web 2 initial admin user"
 ICINGAWEB_ADMIN_PW_HASH=$(php -r "echo password_hash('$ICINGAWEB_ADMIN_PW', PASSWORD_DEFAULT);") || { msg_error "Failed to generate password hash"; exit 1; }
-mysql -D icingaweb < /usr/share/icingaweb2/schema/mysql.schema.sql || { msg_error "Failed to import Icinga Web schema"; exit 1; }
-mysql icingaweb -e "INSERT INTO icingaweb_user (name, active, password_hash)
-          VALUES ('icingaadmin', 1, '$ICINGAWEB_ADMIN_PW_HASH');" || { msg_error "Failed to create Icinga Web admin user"; exit 1; }
+mariadb -D icingaweb < /usr/share/icingaweb2/schema/mysql.schema.sql || { msg_error "Failed to import Icinga Web schema"; exit 1; }
+mariadb icingaweb -e "INSERT INTO icingaweb_user (name, active, password_hash)
+          VALUES ('$ICINGAWEB_ADMIN_USER', 1, '$ICINGAWEB_ADMIN_PW_HASH');" || { msg_error "Failed to create Icinga Web admin user"; exit 1; }
 msg_ok "Configured Icingaweb initial user"
 
 msg_info "Importing Icinga Director Linuxfabrik monitoring basket"
-$STD git clone https://github.com/Linuxfabrik/monitoring-plugins.git /opt/monitoring-plugins || { msg_error "Failed to clone Linuxfabrik monitoring plugins"; exit 1; }
+fetch_and_deploy_gh_release "monitoring-plugins" "Linuxfabrik/monitoring-plugins"
 cd /opt/monitoring-plugins || { msg_error "Failed to change to monitoring plugins directory"; exit 1; }
 #git checkout v2.2.1 || { msg_error "Failed to checkout monitoring plugins version"; exit 1; }
 tools/basket-join > /dev/null || { msg_error "Failed to join basket"; exit 1; }
@@ -370,7 +370,7 @@ icingacli director host create "$FQDN" --json "{
             \"Icinga Top Flapping Services\": {
                 \"icinga_topflap_services_password\": \"$ICINGAWEB_ADMIN_PW\",
                 \"icinga_topflap_services_url\": \"http://localhost/icingaweb2/icingadb/history?limit=250\",
-                \"icinga_topflap_services_username\": \"icingaadmin\"
+                \"icinga_topflap_services_username\": \"$ICINGAWEB_ADMIN_USER\"
             },
             \"Redis Status\": {
                 \"redis_status_port\": \"6380\"
@@ -431,18 +431,19 @@ icingacli director config deploy > /dev/null || { msg_error "Failed to deploy Ic
 msg_ok "Deployed Icinga Director configuration"
 
 msg_info "Installing Icinga Proxmox VE tools"
-$STD git clone https://github.com/nbuchwitz/icingaweb2-module-pve /usr/share/icingaweb2/modules/pve || { msg_error "Failed to clone Proxmox VE module"; exit 1; }
-$STD wget  https://raw.githubusercontent.com/nbuchwitz/check_pve/refs/heads/main/check_pve.py -O /usr/lib64/nagios/plugins/check_pve.py || { msg_error "Failed to download check_pve.py"; exit 1; }
-chmod +x /usr/lib64/nagios/plugins/check_pve.py || { msg_error "Failed to set check_pve.py executable"; exit 1; }
+fetch_and_deploy_gh_release "pve" "nbuchwitz/icingaweb2-module-pve" "tarball" "latest" "/usr/share/icingaweb2/modules/pve"
+fetch_and_deploy_gh_release "check_pve" "nbuchwitz/check_pve"
+ln -s /opt/check_pve/check_pve.py /usr/lib64/nagios/plugins/check_pve.py || { msg_error "Failed to create symlink for check_pve.py"; exit 1; }
 mkdir -p /etc/icinga2/zones.d/global-templates || { msg_error "Failed to create Icinga2 templates directory"; exit 1; }
-$STD wget https://raw.githubusercontent.com/nbuchwitz/check_pve/refs/heads/main/icinga2/command.conf -O /etc/icinga2/zones.d/global-templates/commands-pve.conf || { msg_error "Failed to download Proxmox VE commands"; exit 1; }
+ln -s /opt/check_pve/icinga2/command.conf /etc/icinga2/zones.d/global-templates/commands-pve.conf || { msg_error "Failed to create symlink for commands-pve.conf"; exit 1; }
+chmod +x /usr/lib64/nagios/plugins/check_pve.py || { msg_error "Failed to set check_pve.py executable"; exit 1; }
 icingacli module enable pve > /dev/null || { msg_error "Failed to enable PVE module"; exit 1; }
-systemctl reload icinga2 || { msg_error "Failed to reload Icinga2"; exit 1; }
+systemctl restart icinga2 || { msg_error "Failed to reload Icinga2"; exit 1; }
 icingacli director kickstart run || { msg_error "Failed to run director kickstart"; exit 1; }
 msg_ok "Installed and enabled nbuchwitz's Proxmox VE module and plugin"
 
 msg_info "Installing Icinga Web 2 map module"
-$STD git clone https://github.com/nbuchwitz/icingaweb2-module-map.git /usr/share/icingaweb2/modules/map || { msg_error "Failed to clone Maps module"; exit 1; }
+fetch_and_deploy_gh_release "map" "nbuchwitz/icingaweb2-module-map" "tarball" "latest" "/usr/share/icingaweb2/modules/map"
 icingacli module enable map || { msg_error "Failed to enable maps module"; exit 1; }
 msg_ok "Installed and enabled nbuchwitz's map module"
 
@@ -617,7 +618,7 @@ echo "Reporting DB name:    reporting"
 echo "Reporting user: reporting"
 echo "Reporting password: $REPORTING_DB_PW"
 echo "--- Web credentials ---"
-echo "Icingaweb initial user: icingaadmin"
+echo "Icingaweb initial user: $ICINGAWEB_ADMIN_USER"
 echo "Icingaweb initial password: $ICINGAWEB_ADMIN_PW"
 
 msg_ok "Configured Icinga"
