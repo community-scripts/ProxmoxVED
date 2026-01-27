@@ -1157,7 +1157,7 @@ prompt_input_required() {
   # Interactive prompt - loop until non-empty input or use fallback on timeout
   local attempts=0
   while [[ -z "$response" ]]; do
-    ((attempts++))
+    attempts=$((attempts + 1))
 
     if [[ $attempts -gt 3 ]]; then
       echo -e "${YW}Too many empty inputs - using fallback: ${fallback}${CL}" >&2
