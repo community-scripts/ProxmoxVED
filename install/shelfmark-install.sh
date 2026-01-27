@@ -59,19 +59,19 @@ case "$DEPLOYMENT_TYPE" in
   ;;
 3)
   echo ""
-  echo -e "${BL}Use existing FlareSolverr LXC${CL}"
+  echo -e "${BL}Use an existing FlareSolverr/Byparr LXC${CL}"
   echo "─────────────────────────────────────────"
-  echo "Enter the URL/IP address with port of your Flaresolverr instance"
+  echo "Enter the URL/IP address with port of your Flaresolverr/Byparr instance"
   echo "Example: http://flaresoverr.homelab.lan:8191 or"
   echo "http://192.168.10.99:8191"
   echo ""
-  read -r -p "FlareSolverr URL: " FLARESOLVERR_URL
+  read -r -p "FlareSolverr/Byparr URL: " BYPASSER_URL
 
-  if [[ -z "$FLARESOLVERR_URL" ]]; then
-    msg_warn "No Flaresolverr URL provided. Falling back to Shelfmark's internal bypasser."
+  if [[ -z "$BYPASSER_URL" ]]; then
+    msg_warn "No Flaresolverr/Byparr URL provided. Falling back to Shelfmark's internal bypasser."
   else
-    FLARESOLVERR_URL="${FLARESOLVERR_URL%/}"
-    msg_ok "FlareSolverr URL: ${FLARESOLVERR_URL}"
+    BYPASSER_URL="${BYPASSER_URL%/}"
+    msg_ok "FlareSolverr/Byparr URL: ${BYPASSER_URL}"
   fi
   ;;
 4)
@@ -102,7 +102,7 @@ if [[ "$DEPLOYMENT_TYPE" == "2" ]]; then
 elif [[ "$DEPLOYMENT_TYPE" == "3" ]]; then
   sed -i -e '/BYPASSER=/s/false/true/' \
     -e 's/^# EXT_/EXT_/' \
-    -e "s|_URL=.*|_URL=${FLARESOLVERR_URL}|" /etc/shelfmark/.env
+    -e "s|_URL=.*|_URL=${BYPASSER_URL}|" /etc/shelfmark/.env
 elif [[ "$DEPLOYMENT_TYPE" == "4" ]]; then
   sed -i '/_BYPASS=/s/true/false/' /etc/shelfmark/.env
 else
