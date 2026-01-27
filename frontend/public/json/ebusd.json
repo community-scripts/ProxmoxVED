@@ -13,7 +13,7 @@
   "website": "https://github.com/john30/ebusd",
   "logo": "",
   "config_path": "/etc/default/ebusd",
-  "description": "ebusd is a daemon for handling communication with eBUS devices connected to a 2-wire bus system ("energy bus" used by numerous heating systems).",
+  "description": "ebusd is a daemon for handling communication with eBUS devices connected to a 2-wire `energy bus` used by numerous heating systems.",
   "install_methods": [
     {
       "type": "default",
