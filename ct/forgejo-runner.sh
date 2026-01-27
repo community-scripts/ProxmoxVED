@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://forgejo.org/
 
-APP="Forgejo Runner"
+APP="Forgejo-Runner"
 var_tags="${var_tags:-ci}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"

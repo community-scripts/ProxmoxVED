@@ -813,15 +813,60 @@ is_verbose_mode() {
 # ------------------------------------------------------------------------------
 # is_unattended()
 #
-# - Detects if script is running in unattended/silent mode
-# - Checks PHS_SILENT, var_unattended, and UNATTENDED variables
+# - Detects if script is running in unattended/non-interactive mode
+# - Checks MODE variable first (primary method)
+# - Falls back to legacy flags (PHS_SILENT, var_unattended)
 # - Returns 0 (true) if unattended, 1 (false) otherwise
 # - Used by prompt functions to auto-apply defaults
+#
+# Modes that are unattended:
+#   - default (1)      : Use script defaults, no prompts
+#   - mydefaults (3)   : Use user's default.vars, no prompts
+#   - appdefaults (4)  : Use app-specific defaults, no prompts
+#
+# Modes that are interactive:
+#   - advanced (2)     : Full wizard with all options
+#
+# Note: Even in advanced mode, install scripts run unattended because
+#       all values are already collected during the wizard phase.
 # ------------------------------------------------------------------------------
 is_unattended() {
+  # Primary: Check MODE variable (case-insensitive)
+  local mode="${MODE:-${mode:-}}"
+  mode="${mode,,}"  # lowercase
+  
+  case "$mode" in
+    default|1)
+      return 0
+      ;;
+    mydefaults|userdefaults|3)
+      return 0
+      ;;
+    appdefaults|4)
+      return 0
+      ;;
+    advanced|2)
+      # Advanced mode is interactive ONLY during wizard
+      # Inside container (install scripts), it should be unattended
+      # Check if we're inside a container (no pveversion command)
+      if ! command -v pveversion &>/dev/null; then
+        # We're inside the container - all values already collected
+        return 0
+      fi
+      # On host during wizard - interactive
+      return 1
+      ;;
+  esac
+  
+  # Legacy fallbacks for compatibility
   [[ "${PHS_SILENT:-0}" == "1" ]] && return 0
   [[ "${var_unattended:-}" =~ ^(yes|true|1)$ ]] && return 0
   [[ "${UNATTENDED:-}" =~ ^(yes|true|1)$ ]] && return 0
+  
+  # No TTY available = unattended
+  [[ ! -t 0 ]] && return 0
+  
+  # Default: interactive
   return 1
 }
 
