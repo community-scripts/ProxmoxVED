@@ -90,26 +90,17 @@ ICINGAWEB_ADMIN_PW="${ICINGAWEB_ADMIN_PW:-$(pwgen -s 12 1)}"
 ICINGAWEB_ADMIN_USER="${ICINGAWEB_ADMIN_USER:-icingaadmin}"
 
 cat <<EOF | mariadb || { msg_error "Failed to create databases"; exit 1; }
-CREATE DATABASE IF NOT EXISTS icingadb;
-CREATE DATABASE IF NOT EXISTS icingaweb;
-CREATE DATABASE IF NOT EXISTS notifications;
 CREATE DATABASE IF NOT EXISTS director CHARACTER SET 'utf8';
-CREATE DATABASE IF NOT EXISTS x509;
-CREATE DATABASE IF NOT EXISTS reporting;
-CREATE USER IF NOT EXISTS 'icingadb'@'localhost' IDENTIFIED BY '${ICINGA_DB_PW}';
-CREATE USER IF NOT EXISTS 'icingaweb'@'localhost' IDENTIFIED BY '${ICINGAWEB_DB_PW}';
-CREATE USER IF NOT EXISTS 'notifications'@'localhost' IDENTIFIED BY '${NOTIFICATIONS_DB_PW}';
 CREATE USER IF NOT EXISTS 'director'@'localhost' IDENTIFIED BY '${DIRECTOR_DB_PW}';
-CREATE USER IF NOT EXISTS 'x509'@'localhost' IDENTIFIED BY '${X509_DB_PW}';
-CREATE USER IF NOT EXISTS 'reporting'@'localhost' IDENTIFIED BY '${REPORTING_DB_PW}';
-GRANT ALL PRIVILEGES ON icingadb.* TO 'icingadb'@'localhost';
-GRANT ALL PRIVILEGES ON icingaweb.* TO 'icingaweb'@'localhost';
-GRANT ALL PRIVILEGES ON notifications.* TO 'notifications'@'localhost';
 GRANT ALL PRIVILEGES ON director.* TO 'director'@'localhost';
-GRANT ALL PRIVILEGES ON x509.* TO 'x509'@'localhost';
-GRANT ALL PRIVILEGES ON reporting.* TO 'reporting'@'localhost';
 FLUSH PRIVILEGES;
 EOF
+MARIADB_DB_NAME="icingadb" MARIADB_DB_USER="icingadb" setup_mariadb_db
+MARIADB_DB_NAME="icingaweb" MARIADB_DB_USER="icingaweb" setup_mariadb_db
+MARIADB_DB_NAME="notifications" MARIADB_DB_USER="notifications" setup_mariadb_db
+MARIADB_DB_NAME="x509" MARIADB_DB_USER="x509" setup_mariadb_db
+MARIADB_DB_NAME="reporting" MARIADB_DB_USER="reporting" setup_mariadb_db
+
 msg_ok "Configured MariaDB databases and users"
 mariadb icingadb </usr/share/icingadb/schema/mysql/schema.sql || { msg_error "Failed to import IcingaDB schema"; exit 1; }
 msg_ok "Imported IcingaDB schema"
