@@ -35,6 +35,7 @@ function update_script() {
   if check_for_gh_release "shelfmark" "calibrain/shelfmark"; then
     msg_info "Stopping Service"
     systemctl stop shelfmark
+    [[ -f /etc/systemd/system/chromium.service ]] && systemctl stop chromium
     msg_ok "Stopped Service"
 
     cp /opt/shelfmark/start.sh /opt/start.sh.bak
@@ -59,6 +60,7 @@ function update_script() {
 
     msg_info "Starting Service"
     systemctl start shelfmark
+    [[ -f /etc/systemd/system/chromium.service ]] && systemctl start chromium
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi

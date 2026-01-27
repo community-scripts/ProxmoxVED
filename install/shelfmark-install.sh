@@ -43,7 +43,7 @@ echo "Please choose your deployment type:"
 echo ""
 echo " 1) Use Shelfmark's internal captcha bypasser (default)"
 echo " 2) Install FlareSolverr in this LXC"
-echo " 3) Use an existing Flaresolverr LXC"
+echo " 3) Use an existing Flaresolverr/Byparr LXC"
 echo " 4) Disable captcha bypassing altogether (not recommended)"
 echo ""
 
@@ -59,19 +59,19 @@ case "$DEPLOYMENT_TYPE" in
   ;;
 3)
   echo ""
-  echo -e "${BL}Use existing FlareSolverr LXC${CL}"
+  echo -e "${BL}Use an existing FlareSolverr/Byparr LXC${CL}"
   echo "─────────────────────────────────────────"
-  echo "Enter the URL/IP address with port of your Flaresolverr instance"
+  echo "Enter the URL/IP address with port of your Flaresolverr/Byparr instance"
   echo "Example: http://flaresoverr.homelab.lan:8191 or"
   echo "http://192.168.10.99:8191"
   echo ""
-  read -r -p "FlareSolverr URL: " FLARESOLVERR_URL
+  read -r -p "FlareSolverr/Byparr URL: " BYPASSER_URL
 
-  if [[ -z "$FLARESOLVERR_URL" ]]; then
-    msg_warn "No Flaresolverr URL provided. Falling back to Shelfmark's internal bypasser."
+  if [[ -z "$BYPASSER_URL" ]]; then
+    msg_warn "No Flaresolverr/Byparr URL provided. Falling back to Shelfmark's internal bypasser."
   else
-    FLARESOLVERR_URL="${FLARESOLVERR_URL%/}"
-    msg_ok "FlareSolverr URL: ${FLARESOLVERR_URL}"
+    BYPASSER_URL="${BYPASSER_URL%/}"
+    msg_ok "FlareSolverr/Byparr URL: ${BYPASSER_URL}"
   fi
   ;;
 4)
@@ -95,33 +95,18 @@ if [[ "$DEPLOYMENT_TYPE" == "2" ]]; then
   $STD apt install -y google-chrome-stable
   # remove google-chrome.list added by google-chrome-stable
   rm /etc/apt/sources.list.d/google-chrome.list
-  sed -i '/BYPASSER=/s/false/true' /etc/shelfmark/.env
-  cat <<EOF >/etc/systemd/system/flaresolverr.service
-[Unit]
-Description=FlareSolverr
-After=network.target
-[Service]
-SyslogIdentifier=flaresolverr
-Restart=always
-RestartSec=5
-Type=simple
-Environment="LOG_LEVEL=info"
-Environment="CAPTCHA_SOLVER=none"
-WorkingDirectory=/opt/flaresolverr
-ExecStart=/opt/flaresolverr/flaresolverr
-TimeoutStopSec=30
-[Install]
-WantedBy=multi-user.target
-EOF
-  systemctl enable -q --now flaresolverr
+  sed -i -e '/BYPASSER=/s/false/true/' \
+    -e 's/^# EXT_/EXT_/' \
+    -e "s|_URL=.*|_URL=http://localhost:8191|" /etc/shelfmark/.env
   msg_ok "Installed FlareSolverr"
 elif [[ "$DEPLOYMENT_TYPE" == "3" ]]; then
   sed -i -e '/BYPASSER=/s/false/true/' \
-    -e '/^# EXT_/EXT_/' \
-    -e "s\|_URL=.*|${FLARESOLVERR_URL}|" /etc/shelfmark/.env
+    -e 's/^# EXT_/EXT_/' \
+    -e "s|_URL=.*|_URL=${BYPASSER_URL}|" /etc/shelfmark/.env
 elif [[ "$DEPLOYMENT_TYPE" == "4" ]]; then
-  sed -i '/_BYPASS=/s/true/false' /etc/shelfmark/.env
+  sed -i '/_BYPASS=/s/true/false/' /etc/shelfmark/.env
 else
+  DEPLOYMENT_TYPE="1"
   msg_info "Installing internal bypasser dependencies"
   $STD apt install -y --no-install-recommends \
     xvfb \
@@ -141,6 +126,7 @@ RELEASE_VERSION=$(cat "$HOME/.shelfmark")
 
 msg_info "Building Shelfmark frontend"
 cd /opt/shelfmark/src/frontend
+echo "RELEASE_VERSION=${RELEASE_VERSION}" >>/etc/shelfmark/.env
 $STD npm ci
 $STD npm run build
 mv /opt/shelfmark/src/frontend/dist /opt/shelfmark/frontend-dist
@@ -153,10 +139,9 @@ $STD source ./venv/bin/activate
 $STD uv pip install -r ./requirements-base.txt
 [[ "$DEPLOYMENT_TYPE" == "1" ]] && $STD uv pip install -r ./requirements-shelfmark.txt
 mkdir -p {/var/log/shelfmark,/tmp/shelfmark}
-echo "$RELEASE_VERSION" >>/etc/shelfmark/.env
 msg_ok "Configured Shelfmark"
 
-msg_info "Creating Service and start script"
+msg_info "Creating Services and start script"
 cat <<EOF >/etc/systemd/system/shelfmark.service
 [Unit]
 Description=Shelfmark server
@@ -169,10 +154,48 @@ EnvironmentFile=/etc/shelfmark/.env
 ExecStart=/usr/bin/bash /opt/shelfmark/start.sh
 Restart=always
 RestartSec=10
+KillMode=mixed
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
+if [[ "$DEPLOYMENT_TYPE" == "1" ]]; then
+  cat <<EOF >/etc/systemd/system/chromium.service
+[Unit]
+Description=karakeep Headless Browser
+After=network.target
+
+[Service]
+User=root
+ExecStart=/usr/bin/chromium --headless --no-sandbox --disable-gpu --disable-dev-shm-usage --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --hide-scrollbars
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl enable -q --now chromium
+fi
+if [[ "$DEPLOYMENT_TYPE" == "2" ]]; then
+  cat <<EOF >/etc/systemd/system/flaresolverr.service
+[Unit]
+Description=FlareSolverr
+After=network.target
+[Service]
+SyslogIdentifier=flaresolverr
+Restart=always
+RestartSec=5
+Type=simple
+Environment="LOG_LEVEL=info"
+Environment="CAPTCHA_SOLVER=none"
+WorkingDirectory=/opt/flaresolverr
+ExecStart=/opt/flaresolverr/flaresolverr
+TimeoutStopSec=30
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl enable -q --now flaresolverr
+fi
 
 cat <<EOF >/opt/shelfmark/start.sh
 #!/usr/bin/env bash
