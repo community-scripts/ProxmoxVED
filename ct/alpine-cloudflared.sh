@@ -13,10 +13,8 @@ var_disk="${var_disk:-2}"
 var_os="${var_os:-alpine}"
 var_version="${var_version:-3.23}"
 var_unprivileged="${var_unprivileged:-1}"
+var_token="${var_token:-}"
 var_config_path="${var_config_path:-/usr/local/etc/cloudflared}"
-
-# Make available in install script
-export CONFIG_PATH=$var_config_path
 
 header_info "$APP"
 variables
@@ -24,6 +22,24 @@ color
 catch_errors
 
 user_configuration() {
+  token_valid() {
+    local token="$1"
+
+    # Sanitize token of unprintable chars
+    token=$(echo "$token" | tr -cd '[:print:]')
+
+    # Validate token is present and alphanumeric (should be Base64)
+    if [ -z "$token" ] || ! [[ "$token" =~ ^[[:alnum:]]+$ ]]; then
+      return 1
+    fi
+
+    # export for use in install script
+    export TOKEN=$token
+  }
+
+  # If user supplied $var_token and it's valid skip menu
+  token_valid "$var_token" && return 0
+
   while true; do
     local type
     if type=$(
@@ -33,20 +49,28 @@ user_configuration() {
         "locally-managed" "Uses a local configuration file" \
         3>&1 1>&2 2>&3
     ); then
+      # if "remotely-managed" get token from user
       if [[ "$type" == "remotely-managed" ]]; then
         local token
-        token=$(whiptail --title "Tunnel Token" \
-          --inputbox "Enter Tunnel Token" 10 80 "" \
-          3>&1 1>&2 2>&3)
-        token=$(echo "$token" | tr -cd '[:print:]')
-        if [[ "$token" =~ ^[[:alnum:]]+$ ]]; then
-          export TOKEN=$token
-          break
+        if token=$(
+          whiptail --title "Tunnel Token" \
+            --inputbox "Enter Tunnel Token" 10 80 "" \
+            3>&1 1>&2 2>&3
+        ); then
+          if token_valid "$token"; then
+            # break to continue script
+            break
+          else
+            # || true to prevent failure on escape key
+            whiptail --msgbox "Invalid token: contains special characters" 7 46 || true
+          fi
         else
-          whiptail --msgbox "Invalid token: contains special characters" 7 46
+          # continue to prevent failure on escape key
           continue
         fi
       else
+        # export for use in install script and break to continue script
+        export CONFIG_PATH=$var_config_path
         break
       fi
     else
