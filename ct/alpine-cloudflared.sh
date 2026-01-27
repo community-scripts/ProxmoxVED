@@ -44,7 +44,7 @@ user_configuration() {
     local type
     if type=$(
       whiptail --title "Tunnel Type" \
-        --menu "Select Tunnel Type:" 9 53 2 \
+        --menu "Select Tunnel Type:" 9 52 2 \
         "remotely-managed" "Uses a token (Recommended)" \
         "locally-managed" "Uses a local configuration file" \
         3>&1 1>&2 2>&3

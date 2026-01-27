@@ -69,21 +69,21 @@ EOF
 chmod +x /etc/init.d/cloudflared
 msg_ok "Created Service"
 
-msg_info "Enabling $APP service"
+msg_info "Enabling $APPLICATION service"
 if $STD rc-update add cloudflared; then
-  msg_ok "Enabled $APP service"
+  msg_ok "Enabled $APPLICATION service"
 else
-  msg_error "Failed to enable $APP service"
+  msg_error "Failed to enable $APPLICATION service"
   exit 1
 fi
 
 # Start service now if externally managed, otherwise user needs to setup config first.
 if [ -n "$TOKEN" ]; then
-  msg_info "Starting $APP service"
+  msg_info "Starting $APPLICATION service"
   if $STD rc-service cloudflared start; then
-    msg_ok "$APP service Running"
+    msg_ok "$APPLICATION service Running"
   else
-    msg_error "Failed to start $APP service"
+    msg_error "Failed to start $APPLICATION service"
     cat /var/log/cloudflared.err
     exit 1
   fi
