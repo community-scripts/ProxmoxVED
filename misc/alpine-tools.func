@@ -277,7 +277,7 @@ fetch_and_deploy_gh_release() {
   # $1 app, $2 repo, [$3 mode], [$4 version], [$5 target], [$6 asset_pattern
   local app="$1" repo="$2" mode="${3:-tarball}" version="${4:-latest}" target="${5:-/opt/$1}" pattern="${6:-}"
   local app_lc
-  app_lc="$(lower "$app" | tr -d ' ')"
+  app_lc=$(lower "$app" | tr -d ' ')
   local vfile="$HOME/.${app_lc}"
   local json url filename tmpd unpack
 
@@ -288,7 +288,7 @@ fetch_and_deploy_gh_release() {
   need_tool curl jq tar || return 1
   [ "$mode" = "prebuild" ] || [ "$mode" = "singlefile" ] && need_tool unzip >/dev/null 2>&1 || true
 
-  tmpd="$(mktemp -d)" || return 1
+  tmpd=$(mktemp -d) || return 1
   mkdir -p "$target"
 
   # Release JSON (with token/rate-limit handling)
@@ -305,10 +305,10 @@ fetch_and_deploy_gh_release() {
       return 1
     }
   fi
-  json="$(cat "$tmpd/release.json")"
+  json=$(cat "$tmpd/release.json")
 
   # correct Version
-  version="$(printf '%s' "$json" | jq -r '.tag_name // empty')"
+  version=$(printf '%s' "$json" | jq -r '.tag_name // empty')
   version="${version#v}"
 
   [ -z "$version" ] && {
@@ -337,7 +337,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    unpack="$(find "$tmpd" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+    unpack=$(find "$tmpd" -mindepth 1 -maxdepth 1 -type d | head -n1)
     [ "${CLEAN_INSTALL:-0}" = "1" ] && rm -rf "${target:?}/"*
     # copy content of unpack to target
     (cd "$unpack" && tar -cf - .) | (cd "$target" && tar -xf -) || {
@@ -414,7 +414,7 @@ fetch_and_deploy_gh_release() {
     [ "${CLEAN_INSTALL:-0}" = "1" ] && rm -rf "${target:?}/"*
     # top-level folder strippen
     if [ "$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ] && [ -z "$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type f | head -n1)" ]; then
-      unpack="$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d)"
+      unpack=$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d)
       (cd "$unpack" && tar -cf - .) | (cd "$target" && tar -xf -) || {
         msg_error "copy failed"
         rm -rf "$tmpd"
