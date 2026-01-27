@@ -437,13 +437,13 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
             "uuid": "fcf7dad8-091b-4c1d-998d-2f077d97fcf4",
             "vars": {
                 "criticality": "B",
-                "icingacli_x509_host": "$host.name$"
+                "icingacli_x509_host": "\$host.name\$"
             }
         }
     },
     "ServiceSet": {
         "Certificate x509 Module": {
-            "assign_filter": "\"x509-certs\"=host.vars.tags",
+            "assign_filter": "\\"x509-certs\\"=host.vars.tags",
             "description": "checks the certificate state agains the internal database, using icingacli",
             "object_name": "Certificate x509 Module",
             "object_type": "template",
@@ -453,7 +453,7 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
                     "imports": [
                         "tpl-service-x509-cert"
                     ],
-                    "object_name": "tpl-service-x509-cert",
+                    "object_name": "x509-cert",
                     "object_type": "object",
                     "uuid": "5efa4136-a59c-4c28-9d18-035fb6f9d7c8"
                 }
@@ -468,9 +468,9 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
                 {
                     "priority": "1",
                     "property_name": "host_address",
-                    "provider_class": "Icinga\\Module\\Director\\PropertyModifier\\PropertyModifierRegexReplace",
+                    "provider_class": "Icinga\\\\Module\\\\Director\\\\PropertyModifier\\\\PropertyModifierRegexReplace",
                     "settings": {
-                        "pattern": "/^.*$/",
+                        "pattern": "/^.*\$/",
                         "replacement": "x509-certs",
                         "string": "*",
                         "when_not_matched": "keep"
@@ -480,7 +480,7 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
                 {
                     "priority": "2",
                     "property_name": "tags",
-                    "provider_class": "Icinga\\Module\\Director\\PropertyModifier\\PropertyModifierSplit",
+                    "provider_class": "Icinga\\\\Module\\\\Director\\\\PropertyModifier\\\\PropertyModifierSplit",
                     "settings": {
                         "delimiter": ",",
                         "when_empty": "empty_array"
@@ -488,7 +488,7 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
                     "target_property": "tags"
                 }
             ],
-            "provider_class": "Icinga\\Module\\X509\\ProvidedHook\\HostsImportSource",
+            "provider_class": "Icinga\\\\Module\\\\X509\\\\ProvidedHook\\\\HostsImportSource",
             "settings": {},
             "source_name": "x509-hosts"
         }
@@ -503,7 +503,7 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
                     "merge_policy": "override",
                     "priority": "1",
                     "source": "x509-hosts",
-                    "source_expression": "${host_name_or_ip}"
+                    "source_expression": "\${host_name_or_ip}"
                 },
                 {
                     "destination_field": "import",
@@ -519,7 +519,7 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
                     "merge_policy": "merge",
                     "priority": "3",
                     "source": "x509-hosts",
-                    "source_expression": "${tags}"
+                    "source_expression": "\${tags}"
                 }
             ],
             "purge_action": "delete",
@@ -531,7 +531,7 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
     "DirectorJob": {
         "10: Import x509 Hosts": {
             "disabled": "n",
-            "job_class": "Icinga\\Module\\Director\\Job\\ImportJob",
+            "job_class": "Icinga\\\\Module\\\\Director\\\\Job\\\\ImportJob",
             "job_name": "10: Import x509 Hosts",
             "run_interval": "900",
             "settings": {
@@ -542,7 +542,7 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
         },
         "20: Sync x509 data to Host Objects": {
             "disabled": "n",
-            "job_class": "Icinga\\Module\\Director\\Job\\SyncJob",
+            "job_class": "Icinga\\\\Module\\\\Director\\\\Job\\\\SyncJob",
             "job_name": "20: Sync x509 data to Host Objects",
             "run_interval": "900",
             "settings": {
@@ -553,7 +553,7 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
         },
         "30: Deploy Config": {
             "disabled": "n",
-            "job_class": "Icinga\\Module\\Director\\Job\\ConfigJob",
+            "job_class": "Icinga\\\\Module\\\\Director\\\\Job\\\\ConfigJob",
             "job_name": "30: Deploy Config",
             "run_interval": "900",
             "settings": {
@@ -570,7 +570,7 @@ $STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore 
             "varname": "icingacli_x509_host",
             "caption": "icingacli_x509_host",
             "description": "A hosts name",
-            "datatype": "Icinga\\Module\\Director\\DataType\\DataTypeString",
+            "datatype": "Icinga\\\\Module\\\\Director\\\\DataType\\\\DataTypeString",
             "format": null,
             "settings": {},
             "category": null
