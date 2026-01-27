@@ -60,7 +60,7 @@ $STD apt-get install -y \
   linuxfabrik-monitoring-plugins vim git redis-tools pwgen || { msg_error "Failed to install Icinga packages"; exit 1; }
 msg_ok "Installed Icinga"
 
-msg_info "Disable Apache default site and redirect / to /icingaweb2"
+msg_info "Configure apache httpd"
 $STD a2dissite 000-default.conf || msg_error "Warning: Failed to disable default Apache site"
 cat <<EOF >/etc/apache2/sites-available/icingaweb2-redirect.conf || { msg_error "Failed to create Apache configuration"; exit 1; }
 <VirtualHost *:80>
@@ -70,7 +70,7 @@ cat <<EOF >/etc/apache2/sites-available/icingaweb2-redirect.conf || { msg_error 
 </VirtualHost>
 EOF
 $STD a2ensite icingaweb2-redirect.conf || { msg_error "Failed to enable Apache site"; exit 1; }
-msg_ok "Installed Apache and configured Icinga Web 2 redirect"
+msg_ok "Configured Icinga Web 2 redirect"
 systemctl reload apache2 || { msg_error "Failed to reload Apache"; exit 1; }
 
 # Enable and start services
@@ -80,26 +80,29 @@ msg_info "Started and enabled Services"
 
 msg_info "Create Local Databases and Users for Icinga"
 # Generate random passwords if not preset
-DIRECTOR_DB_PW="${DIRECTOR_DB_PW:-$(pwgen -s 20 1)}"
 ICINGAWEB_ADMIN_PW="${ICINGAWEB_ADMIN_PW:-$(pwgen -s 12 1)}"
 ICINGAWEB_ADMIN_USER="${ICINGAWEB_ADMIN_USER:-icingaadmin}"
 
-cat <<EOF | mariadb || { msg_error "Failed to create databases"; exit 1; }
-CREATE DATABASE IF NOT EXISTS director CHARACTER SET 'utf8';
-CREATE USER IF NOT EXISTS 'director'@'localhost' IDENTIFIED BY '${DIRECTOR_DB_PW}';
-GRANT ALL PRIVILEGES ON director.* TO 'director'@'localhost';
-FLUSH PRIVILEGES;
-EOF
+MARIADB_DB_NAME="director" MARIADB_DB_USER="director" setup_mariadb_db
+DIRECTOR_DB_PW=$MARIADB_DB_PASS
 MARIADB_DB_NAME="icingadb" MARIADB_DB_USER="icingadb" setup_mariadb_db
+ICINGA_DB_PW=$MARIADB_DB_PASS
 MARIADB_DB_NAME="icingaweb" MARIADB_DB_USER="icingaweb" setup_mariadb_db
+ICINGAWEB_DB_PW=$MARIADB_DB_PASS
 MARIADB_DB_NAME="notifications" MARIADB_DB_USER="notifications" setup_mariadb_db
+NOTIFICATIONS_DB_PW=$MARIADB_DB_PASS
 MARIADB_DB_NAME="x509" MARIADB_DB_USER="x509" setup_mariadb_db
+X509_DB_PW=$MARIADB_DB_PASS
 MARIADB_DB_NAME="reporting" MARIADB_DB_USER="reporting" setup_mariadb_db
-
+REPORTING_DB_PW=$MARIADB_DB_PASS
+cat <<EOF | mariadb || { msg_error "Failed to alter databases"; exit 1; }
+ALTER DATABASE director CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+EOF
 msg_ok "Configured MariaDB databases and users"
 mariadb icingadb </usr/share/icingadb/schema/mysql/schema.sql || { msg_error "Failed to import IcingaDB schema"; exit 1; }
 msg_ok "Imported IcingaDB schema"
 
+msg_info "Configure Icingadb backend"
 sed -i "s/password: CHANGEME/password: ${ICINGA_DB_PW}/g" /etc/icingadb/config.yml || { msg_error "Failed to configure IcingaDB password"; exit 1; }
 systemctl enable icingadb-redis icingadb --now || { msg_error "Failed to enable IcingaDB services"; exit 1; }
 msg_ok "Configured IcingaDB daemon connection to mariadb database"
@@ -376,34 +379,34 @@ icingacli director host create "$FQDN" --json "{
 }" > /dev/null || { msg_error "Failed to create Icinga Director host"; exit 1; }
 msg_ok "Created Icinga Director host for local container"
 msg_info "Importing Icinga Director x509 monitoring basket"
-cat <<EOF | icingacli director basket restore > /dev/null || { msg_error "Failed to restore x509 basket"; exit 1; }
+$STD icingacli director basket restore <<EOF  || { msg_error "Failed to restore x509 basket"; exit 1; }
 {
     "ExternalCommand": {
         "icingacli-x509": {
             "arguments": {
                 "--allow-self-signed": {
                     "description": "Ignore if a certificate or its issuer has been self-signed",
-                    "set_if": "$icingacli_x509_allow_self_signed$"
+                    "set_if": "\$icingacli_x509_allow_self_signed\$"
                 },
                 "--critical": {
                     "description": "Less remaining time results in state CRITICAL",
-                    "value": "$icingacli_x509_critical$"
+                    "value": "\$icingacli_x509_critical\$"
                 },
                 "--host": {
                     "description": "A hosts name",
-                    "value": "$icingacli_x509_host$"
+                    "value": "\$icingacli_x509_host\$"
                 },
                 "--ip": {
                     "description": "A hosts IP address",
-                    "value": "$icingacli_x509_ip$"
+                    "value": "\$icingacli_x509_ip\$"
                 },
                 "--port": {
                     "description": "The port to check in particular",
-                    "value": "$icingacli_x509_port$"
+                    "value": "\$icingacli_x509_port\$"
                 },
                 "--warning": {
                     "description": "Less remaining time results in state WARNING",
-                    "value": "$icingacli_x509_warning$"
+                    "value": "\$icingacli_x509_warning\$"
                 }
             },
             "command": "/usr/bin/icingacli x509 check host",
@@ -427,6 +430,153 @@ cat <<EOF | icingacli director basket restore > /dev/null || { msg_error "Failed
             "fields": [],
             "imports": [
                 "tpl-service-generic"
+            ],
+            "object_name": "tpl-service-x509-cert",
+            "object_type": "template",
+            "use_agent": false,
+            "uuid": "fcf7dad8-091b-4c1d-998d-2f077d97fcf4",
+            "vars": {
+                "criticality": "B",
+                "icingacli_x509_host": "$host.name$"
+            }
+        }
+    },
+    "ServiceSet": {
+        "Certificate x509 Module": {
+            "assign_filter": "\"x509-certs\"=host.vars.tags",
+            "description": "checks the certificate state agains the internal database, using icingacli",
+            "object_name": "Certificate x509 Module",
+            "object_type": "template",
+            "services": [
+                {
+                    "fields": [],
+                    "imports": [
+                        "tpl-service-x509-cert"
+                    ],
+                    "object_name": "tpl-service-x509-cert",
+                    "object_type": "object",
+                    "uuid": "5efa4136-a59c-4c28-9d18-035fb6f9d7c8"
+                }
+            ],
+            "uuid": "03280e01-08fa-45cb-aad6-a035856ec56a"
+        }
+    },
+    "ImportSource": {
+        "x509-hosts": {
+            "key_column": "host_name",
+            "modifiers": [
+                {
+                    "priority": "1",
+                    "property_name": "host_address",
+                    "provider_class": "Icinga\\Module\\Director\\PropertyModifier\\PropertyModifierRegexReplace",
+                    "settings": {
+                        "pattern": "/^.*$/",
+                        "replacement": "x509-certs",
+                        "string": "*",
+                        "when_not_matched": "keep"
+                    },
+                    "target_property": "tags"
+                },
+                {
+                    "priority": "2",
+                    "property_name": "tags",
+                    "provider_class": "Icinga\\Module\\Director\\PropertyModifier\\PropertyModifierSplit",
+                    "settings": {
+                        "delimiter": ",",
+                        "when_empty": "empty_array"
+                    },
+                    "target_property": "tags"
+                }
+            ],
+            "provider_class": "Icinga\\Module\\X509\\ProvidedHook\\HostsImportSource",
+            "settings": {},
+            "source_name": "x509-hosts"
+        }
+    },
+    "SyncRule": {
+        "sync-x509-hosts": {
+            "object_type": "host",
+            "properties": [
+                {
+                    "destination_field": "object_name",
+                    "filter_expression": null,
+                    "merge_policy": "override",
+                    "priority": "1",
+                    "source": "x509-hosts",
+                    "source_expression": "${host_name_or_ip}"
+                },
+                {
+                    "destination_field": "import",
+                    "filter_expression": null,
+                    "merge_policy": "override",
+                    "priority": "2",
+                    "source": "x509-hosts",
+                    "source_expression": "tpl-host-without-ping"
+                },
+                {
+                    "destination_field": "vars.tags",
+                    "filter_expression": null,
+                    "merge_policy": "merge",
+                    "priority": "3",
+                    "source": "x509-hosts",
+                    "source_expression": "${tags}"
+                }
+            ],
+            "purge_action": "delete",
+            "purge_existing": true,
+            "rule_name": "sync-x509-hosts",
+            "update_policy": "merge"
+        }
+    },
+    "DirectorJob": {
+        "10: Import x509 Hosts": {
+            "disabled": "n",
+            "job_class": "Icinga\\Module\\Director\\Job\\ImportJob",
+            "job_name": "10: Import x509 Hosts",
+            "run_interval": "900",
+            "settings": {
+                "run_import": "y",
+                "source": "x509-hosts"
+            },
+            "timeperiod": "7x24"
+        },
+        "20: Sync x509 data to Host Objects": {
+            "disabled": "n",
+            "job_class": "Icinga\\Module\\Director\\Job\\SyncJob",
+            "job_name": "20: Sync x509 data to Host Objects",
+            "run_interval": "900",
+            "settings": {
+                "apply_changes": true,
+                "rule": "sync-x509-hosts"
+            },
+            "timeperiod": "7x24"
+        },
+        "30: Deploy Config": {
+            "disabled": "n",
+            "job_class": "Icinga\\Module\\Director\\Job\\ConfigJob",
+            "job_name": "30: Deploy Config",
+            "run_interval": "900",
+            "settings": {
+                "deploy_when_changed": "y",
+                "force_generate": "n",
+                "grace_period": "600"
+            },
+            "timeperiod": "7x24"
+        }
+    },
+    "Datafield": {
+        "1881": {
+            "uuid": "e89e3cc3-1771-4df0-b492-ff8bd652c236",
+            "varname": "icingacli_x509_host",
+            "caption": "icingacli_x509_host",
+            "description": "A hosts name",
+            "datatype": "Icinga\\Module\\Director\\DataType\\DataTypeString",
+            "format": null,
+            "settings": {},
+            "category": null
+        }
+    }
+}
 EOF
 msg_ok "Imported Icinga Director x509 monitoring basket"
 
