@@ -753,14 +753,11 @@ icingacli module enable apocalypse > /dev/null || { msg_error "Failed to enable 
 chown www-data:icingaweb2 /etc/icingaweb2/modules/* || { msg_error "Failed to set permissions on modules"; exit 1; }
 msg_ok "Added some extra themes"
 
-
-echo "--- Database credentials ---"
-echo "Director DB name:    director"
-echo "Director user: director"
-echo "Director password: $DIRECTOR_DB_PW"
-echo "--- Web credentials ---"
-echo "Icingaweb initial user: $ICINGAWEB_ADMIN_USER"
-echo "Icingaweb initial password: $ICINGAWEB_ADMIN_PW"
+{
+  echo "Icingweb2-Credentials"
+  echo "Username: $ICINGAWEB_ADMIN_USER"
+  echo "Password: $ICINGAWEB_ADMIN_PW"
+} >>~/icinga.creds
 
 msg_ok "Configured Icinga"
 

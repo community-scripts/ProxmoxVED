@@ -37,7 +37,7 @@
       "type": "info"
     },
     {
-      "text": "Default user: icingaadmin (password is shown after install)",
+      "text": "Show password: `cat ~/icinga.creds`",
       "type": "info"
     },
     {
