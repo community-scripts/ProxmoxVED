@@ -50,10 +50,10 @@ setup_deb822_repo \
 msg_ok "Set up Linuxfabrik plugins repository"
 
 
-pkg_update
+$STD apt-get update -y
 setup_mariadb
 msg_info "Installing Icinga"
-pkg_install \
+$STD apt-get install -y \
   icinga2 icingaweb2 icingadb icingadb-redis imagemagick php-imagick openssh-server apache2 \
   icingadb-web icinga-director icinga-businessprocess icinga-cube icinga-notifications-web icinga-notifications icinga-x509 icingaweb2-module-reporting \
   icingaweb2-module-perfdatagraphs-influxdbv1 icingaweb2-module-perfdatagraphs-influxdbv2 icingaweb2-module-perfdatagraphs \
@@ -80,12 +80,7 @@ msg_info "Started and enabled Services"
 
 msg_info "Create Local Databases and Users for Icinga"
 # Generate random passwords if not preset
-ICINGA_DB_PW="${ICINGA_DB_PW:-$(pwgen -s 20 1)}"
-ICINGAWEB_DB_PW="${ICINGAWEB_DB_PW:-$(pwgen -s 20 1)}"
-NOTIFICATIONS_DB_PW="${NOTIFICATIONS_DB_PW:-$(pwgen -s 20 1)}"
 DIRECTOR_DB_PW="${DIRECTOR_DB_PW:-$(pwgen -s 20 1)}"
-X509_DB_PW="${X509_DB_PW:-$(pwgen -s 20 1)}"
-REPORTING_DB_PW="${REPORTING_DB_PW:-$(pwgen -s 20 1)}"
 ICINGAWEB_ADMIN_PW="${ICINGAWEB_ADMIN_PW:-$(pwgen -s 12 1)}"
 ICINGAWEB_ADMIN_USER="${ICINGAWEB_ADMIN_USER:-icingaadmin}"
 
@@ -610,24 +605,9 @@ msg_ok "Added some extra themes"
 
 
 echo "--- Database credentials ---"
-echo "IcingaDB name:    icingadb"
-echo "IcingaDB user:     icingadb"
-echo "IcingaDB password: $ICINGA_DB_PW"
-echo "IcingaWeb2 DB name:    icingaweb"
-echo "IcingaWeb2 user:   icingaweb"
-echo "IcingaWeb2 password: $ICINGAWEB_DB_PW"
-echo "Notifications DB name:    notifications"
-echo "Notifications user: notifications"
-echo "Notifications password: $NOTIFICATIONS_DB_PW"
 echo "Director DB name:    director"
 echo "Director user: director"
 echo "Director password: $DIRECTOR_DB_PW"
-echo "x509 DB name:    x509"
-echo "x509 user: x509"
-echo "x509 password: $X509_DB_PW"
-echo "Reporting DB name:    reporting"
-echo "Reporting user: reporting"
-echo "Reporting password: $REPORTING_DB_PW"
 echo "--- Web credentials ---"
 echo "Icingaweb initial user: $ICINGAWEB_ADMIN_USER"
 echo "Icingaweb initial password: $ICINGAWEB_ADMIN_PW"
