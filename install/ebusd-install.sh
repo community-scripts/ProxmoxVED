@@ -22,14 +22,8 @@ setup_deb822_repo \
 
 msg_info "Installing ebusd"
 $STD apt install -y ebusd
+$STD systemctl enable ebusd
 msg_ok "Installed ebusd"
-
-msg_info "Follow below instructions to make the daemon autostart:"
-msg_info "1. Edit '/etc/default/ebusd' if necessary (especially if your device is not '/dev/ttyUSB0')"
-msg_info "2. Start the daemon with 'systemctl start ebusd'"
-msg_info "3. Check the daemon status with 'systemctl status ebusd'"
-msg_info "4. Check the log file '/var/log/ebusd.log'"
-msg_info "5. Make the daemon autostart with 'systemctl enable ebusd'"
 
 motd_ssh
 customize
