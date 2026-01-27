@@ -110,8 +110,7 @@ msg_ok "Installed garmin-grafana"
 
 msg_info "Setting up garmin-grafana"
 # Check if using Chinese garmin servers
-read -rp "Are you using Garmin in mainland China? (y/N): " prompt
-if [[ "${prompt,,}" =~ ^(y|yes|Y)$ ]]; then
+if prompt_confirm "Are you using Garmin in mainland China?" "n" 60; then
     GARMIN_CN="True"
 else
     GARMIN_CN="False"
@@ -131,9 +130,9 @@ EOF
 # garmin-grafana usually prompts the user for email and password (and MFA) on first run,
 # then stores a refreshable token. We try to avoid storing user credentials in the env vars
 if [ -z "$(ls -A /opt/garmin-grafana/.garminconnect)" ]; then
-    read -r -p "Please enter your Garmin Connect Email: " GARMIN_EMAIL
-    read -r -p "Please enter your Garmin Connect Password (this is used to generate a token and NOT stored): " GARMIN_PASSWORD
-    read -r -p "Please enter your MFA Code (if applicable, leave blank if not): " GARMIN_MFA
+    GARMIN_EMAIL=$(prompt_input "Please enter your Garmin Connect Email:" "" 120)
+    GARMIN_PASSWORD=$(prompt_password "Please enter your Garmin Connect Password (used to generate token, NOT stored):" "" 120)
+    GARMIN_MFA=$(prompt_input "Please enter your MFA Code (leave blank if not applicable):" "" 60)
     # Run the script once to prompt for credential
     msg_info "Creating Garmin credentials, this will timeout in 60 seconds"
     timeout 60s uv run --env-file /opt/garmin-grafana/.env --project /opt/garmin-grafana/ /opt/garmin-grafana/src/garmin_grafana/garmin_fetch.py <<EOF

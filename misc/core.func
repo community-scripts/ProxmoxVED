@@ -810,6 +810,517 @@ is_verbose_mode() {
   [[ "$verbose" != "no" || ! -t 2 ]]
 }
 
+# ------------------------------------------------------------------------------
+# is_unattended()
+#
+# - Detects if script is running in unattended/silent mode
+# - Checks PHS_SILENT, var_unattended, and UNATTENDED variables
+# - Returns 0 (true) if unattended, 1 (false) otherwise
+# - Used by prompt functions to auto-apply defaults
+# ------------------------------------------------------------------------------
+is_unattended() {
+  [[ "${PHS_SILENT:-0}" == "1" ]] && return 0
+  [[ "${var_unattended:-}" =~ ^(yes|true|1)$ ]] && return 0
+  [[ "${UNATTENDED:-}" =~ ^(yes|true|1)$ ]] && return 0
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# show_missing_values_warning()
+#
+# - Displays a summary of required values that used fallback defaults
+# - Should be called at the end of install scripts
+# - Only shows warning if MISSING_REQUIRED_VALUES array has entries
+# - Provides clear guidance on what needs manual configuration
+#
+# Global:
+#   MISSING_REQUIRED_VALUES - Array of variable names that need configuration
+#
+# Example:
+#   # At end of install script:
+#   show_missing_values_warning
+# ------------------------------------------------------------------------------
+show_missing_values_warning() {
+  if [[ ${#MISSING_REQUIRED_VALUES[@]} -gt 0 ]]; then
+    echo ""
+    echo -e "${YW}╔════════════════════════════════════════════════════════════╗${CL}"
+    echo -e "${YW}║  ⚠️  MANUAL CONFIGURATION REQUIRED                          ║${CL}"
+    echo -e "${YW}╠════════════════════════════════════════════════════════════╣${CL}"
+    echo -e "${YW}║  The following values were not provided and need to be     ║${CL}"
+    echo -e "${YW}║  configured manually for the service to work properly:     ║${CL}"
+    echo -e "${YW}╟────────────────────────────────────────────────────────────╢${CL}"
+    for val in "${MISSING_REQUIRED_VALUES[@]}"; do
+      printf "${YW}║${CL}  • %-56s ${YW}║${CL}\n" "$val"
+    done
+    echo -e "${YW}╟────────────────────────────────────────────────────────────╢${CL}"
+    echo -e "${YW}║  Check the service configuration files or environment      ║${CL}"
+    echo -e "${YW}║  variables and update the placeholder values.              ║${CL}"
+    echo -e "${YW}╚════════════════════════════════════════════════════════════╝${CL}"
+    echo ""
+    return 1
+  fi
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# prompt_confirm()
+#
+# - Prompts user for yes/no confirmation with timeout and unattended support
+# - In unattended mode: immediately returns default value
+# - In interactive mode: waits for user input with configurable timeout
+# - After timeout: auto-applies default value
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Default value: "y" or "n" (optional, default: "n")
+#   $3 - Timeout in seconds (optional, default: 60)
+#
+# Returns:
+#   0 - User confirmed (yes)
+#   1 - User declined (no) or timeout with default "n"
+#
+# Example:
+#   if prompt_confirm "Proceed with installation?" "y" 30; then
+#     echo "Installing..."
+#   fi
+#
+#   # Unattended: prompt_confirm will use default without waiting
+#   var_unattended=yes
+#   prompt_confirm "Delete files?" "n" && echo "Deleting" || echo "Skipped"
+# ------------------------------------------------------------------------------
+prompt_confirm() {
+  local message="${1:-Confirm?}"
+  local default="${2:-n}"
+  local timeout="${3:-60}"
+  local response
+
+  # Normalize default to lowercase
+  default="${default,,}"
+  [[ "$default" != "y" ]] && default="n"
+
+  # Build prompt hint
+  local hint
+  if [[ "$default" == "y" ]]; then
+    hint="[Y/n]"
+  else
+    hint="[y/N]"
+  fi
+
+  # Unattended mode: apply default immediately
+  if is_unattended; then
+    if [[ "$default" == "y" ]]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    # Not a TTY, use default
+    if [[ "$default" == "y" ]]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+
+  # Interactive prompt with timeout
+  echo -en "${YW}${message} ${hint} (auto-${default} in ${timeout}s): ${CL}"
+
+  if read -t "$timeout" -r response; then
+    # User provided input
+    response="${response,,}" # lowercase
+    case "$response" in
+      y|yes)
+        return 0
+        ;;
+      n|no)
+        return 1
+        ;;
+      "")
+        # Empty response, use default
+        if [[ "$default" == "y" ]]; then
+          return 0
+        else
+          return 1
+        fi
+        ;;
+      *)
+        # Invalid input, use default
+        echo -e "${YW}Invalid response, using default: ${default}${CL}"
+        if [[ "$default" == "y" ]]; then
+          return 0
+        else
+          return 1
+        fi
+        ;;
+    esac
+  else
+    # Timeout occurred
+    echo "" # Newline after timeout
+    echo -e "${YW}Timeout - auto-selecting: ${default}${CL}"
+    if [[ "$default" == "y" ]]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# prompt_input()
+#
+# - Prompts user for text input with timeout and unattended support
+# - In unattended mode: immediately returns default value
+# - In interactive mode: waits for user input with configurable timeout
+# - After timeout: auto-applies default value
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Default value (optional, default: "")
+#   $3 - Timeout in seconds (optional, default: 60)
+#
+# Output:
+#   Prints the user input or default value to stdout
+#
+# Example:
+#   username=$(prompt_input "Enter username:" "admin" 30)
+#   echo "Using username: $username"
+#
+#   # With validation
+#   while true; do
+#     port=$(prompt_input "Enter port:" "8080" 30)
+#     [[ "$port" =~ ^[0-9]+$ ]] && break
+#     echo "Invalid port number"
+#   done
+# ------------------------------------------------------------------------------
+prompt_input() {
+  local message="${1:-Enter value:}"
+  local default="${2:-}"
+  local timeout="${3:-60}"
+  local response
+
+  # Build display default hint
+  local hint=""
+  [[ -n "$default" ]] && hint=" (default: ${default})"
+
+  # Unattended mode: return default immediately
+  if is_unattended; then
+    echo "$default"
+    return 0
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    # Not a TTY, use default
+    echo "$default"
+    return 0
+  fi
+
+  # Interactive prompt with timeout
+  echo -en "${YW}${message}${hint} (auto-default in ${timeout}s): ${CL}" >&2
+
+  if read -t "$timeout" -r response; then
+    # User provided input (or pressed Enter for empty)
+    if [[ -n "$response" ]]; then
+      echo "$response"
+    else
+      echo "$default"
+    fi
+  else
+    # Timeout occurred
+    echo "" >&2 # Newline after timeout
+    echo -e "${YW}Timeout - using default: ${default}${CL}" >&2
+    echo "$default"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# prompt_input_required()
+#
+# - Prompts user for REQUIRED text input with fallback support
+# - In unattended mode: Uses fallback value if no env var set (with warning)
+# - In interactive mode: loops until user provides non-empty input
+# - Tracks missing required values for end-of-script summary
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Fallback/example value for unattended mode (optional)
+#   $3 - Timeout in seconds (optional, default: 120)
+#   $4 - Environment variable name hint for error messages (optional)
+#
+# Output:
+#   Prints the user input or fallback value to stdout
+#
+# Returns:
+#   0 - Success (value provided or fallback used)
+#   1 - Failed (interactive timeout without input)
+#
+# Global:
+#   MISSING_REQUIRED_VALUES - Array tracking fields that used fallbacks
+#
+# Example:
+#   # With fallback - script continues even in unattended mode
+#   token=$(prompt_input_required "Enter API Token:" "YOUR_TOKEN_HERE" 60 "var_api_token")
+#
+#   # Check at end of script if any values need manual configuration
+#   if [[ ${#MISSING_REQUIRED_VALUES[@]} -gt 0 ]]; then
+#     msg_warn "Please configure: ${MISSING_REQUIRED_VALUES[*]}"
+#   fi
+# ------------------------------------------------------------------------------
+# Global array to track missing required values
+declare -g -a MISSING_REQUIRED_VALUES=()
+
+prompt_input_required() {
+  local message="${1:-Enter required value:}"
+  local fallback="${2:-CHANGE_ME}"
+  local timeout="${3:-120}"
+  local env_var_hint="${4:-}"
+  local response=""
+
+  # Check if value is already set via environment variable (if hint provided)
+  if [[ -n "$env_var_hint" ]]; then
+    local env_value="${!env_var_hint:-}"
+    if [[ -n "$env_value" ]]; then
+      echo "$env_value"
+      return 0
+    fi
+  fi
+
+  # Unattended mode: use fallback with warning
+  if is_unattended; then
+    if [[ -n "$env_var_hint" ]]; then
+      echo -e "${YW}⚠ Required value '${env_var_hint}' not set - using fallback: ${fallback}${CL}" >&2
+      MISSING_REQUIRED_VALUES+=("$env_var_hint")
+    else
+      echo -e "${YW}⚠ Required value not provided - using fallback: ${fallback}${CL}" >&2
+      MISSING_REQUIRED_VALUES+=("(unnamed)")
+    fi
+    echo "$fallback"
+    return 0
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    echo -e "${YW}⚠ Not interactive - using fallback: ${fallback}${CL}" >&2
+    MISSING_REQUIRED_VALUES+=("${env_var_hint:-unnamed}")
+    echo "$fallback"
+    return 0
+  fi
+
+  # Interactive prompt - loop until non-empty input or use fallback on timeout
+  local attempts=0
+  while [[ -z "$response" ]]; do
+    ((attempts++))
+
+    if [[ $attempts -gt 3 ]]; then
+      echo -e "${YW}Too many empty inputs - using fallback: ${fallback}${CL}" >&2
+      MISSING_REQUIRED_VALUES+=("${env_var_hint:-manual_input}")
+      echo "$fallback"
+      return 0
+    fi
+
+    echo -en "${YW}${message} (required, timeout ${timeout}s): ${CL}" >&2
+
+    if read -t "$timeout" -r response; then
+      if [[ -z "$response" ]]; then
+        echo -e "${YW}This field is required. Please enter a value. (attempt ${attempts}/3)${CL}" >&2
+      fi
+    else
+      # Timeout occurred - use fallback
+      echo "" >&2
+      echo -e "${YW}Timeout - using fallback value: ${fallback}${CL}" >&2
+      MISSING_REQUIRED_VALUES+=("${env_var_hint:-timeout}")
+      echo "$fallback"
+      return 0
+    fi
+  done
+
+  echo "$response"
+}
+
+# ------------------------------------------------------------------------------
+# prompt_select()
+#
+# - Prompts user to select from a list of options with timeout support
+# - In unattended mode: immediately returns default selection
+# - In interactive mode: displays numbered menu and waits for choice
+# - After timeout: auto-applies default selection
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Default option number, 1-based (optional, default: 1)
+#   $3 - Timeout in seconds (optional, default: 60)
+#   $4+ - Options to display (required, at least 2)
+#
+# Output:
+#   Prints the selected option value to stdout
+#
+# Returns:
+#   0 - Success
+#   1 - No options provided or invalid state
+#
+# Example:
+#   choice=$(prompt_select "Select database:" 1 30 "PostgreSQL" "MySQL" "SQLite")
+#   echo "Selected: $choice"
+#
+#   # With array
+#   options=("Option A" "Option B" "Option C")
+#   selected=$(prompt_select "Choose:" 2 60 "${options[@]}")
+# ------------------------------------------------------------------------------
+prompt_select() {
+  local message="${1:-Select option:}"
+  local default="${2:-1}"
+  local timeout="${3:-60}"
+  shift 3
+
+  local options=("$@")
+  local num_options=${#options[@]}
+
+  # Validate options
+  if [[ $num_options -eq 0 ]]; then
+    echo "" >&2
+    return 1
+  fi
+
+  # Validate default
+  if [[ ! "$default" =~ ^[0-9]+$ ]] || [[ "$default" -lt 1 ]] || [[ "$default" -gt "$num_options" ]]; then
+    default=1
+  fi
+
+  # Unattended mode: return default immediately
+  if is_unattended; then
+    echo "${options[$((default - 1))]}"
+    return 0
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    echo "${options[$((default - 1))]}"
+    return 0
+  fi
+
+  # Display menu
+  echo -e "${YW}${message}${CL}" >&2
+  local i
+  for i in "${!options[@]}"; do
+    local num=$((i + 1))
+    if [[ $num -eq $default ]]; then
+      echo -e "  ${GN}${num})${CL} ${options[$i]} ${YW}(default)${CL}" >&2
+    else
+      echo -e "  ${GN}${num})${CL} ${options[$i]}" >&2
+    fi
+  done
+
+  # Interactive prompt with timeout
+  echo -en "${YW}Select [1-${num_options}] (auto-select ${default} in ${timeout}s): ${CL}" >&2
+
+  local response
+  if read -t "$timeout" -r response; then
+    if [[ -z "$response" ]]; then
+      # Empty response, use default
+      echo "${options[$((default - 1))]}"
+    elif [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 1 ]] && [[ "$response" -le "$num_options" ]]; then
+      # Valid selection
+      echo "${options[$((response - 1))]}"
+    else
+      # Invalid input, use default
+      echo -e "${YW}Invalid selection, using default: ${options[$((default - 1))]}${CL}" >&2
+      echo "${options[$((default - 1))]}"
+    fi
+  else
+    # Timeout occurred
+    echo "" >&2 # Newline after timeout
+    echo -e "${YW}Timeout - auto-selecting: ${options[$((default - 1))]}${CL}" >&2
+    echo "${options[$((default - 1))]}"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# prompt_password()
+#
+# - Prompts user for password input with hidden characters
+# - In unattended mode: returns default or generates random password
+# - Supports auto-generation of secure passwords
+# - After timeout: generates random password if allowed
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Default value or "generate" for auto-generation (optional)
+#   $3 - Timeout in seconds (optional, default: 60)
+#   $4 - Minimum length for validation (optional, default: 0 = no minimum)
+#
+# Output:
+#   Prints the password to stdout
+#
+# Example:
+#   password=$(prompt_password "Enter password:" "generate" 30 8)
+#   echo "Password set"
+#
+#   # Require user input (no default)
+#   db_pass=$(prompt_password "Database password:" "" 60 12)
+# ------------------------------------------------------------------------------
+prompt_password() {
+  local message="${1:-Enter password:}"
+  local default="${2:-}"
+  local timeout="${3:-60}"
+  local min_length="${4:-0}"
+  local response
+
+  # Generate random password if requested
+  local generated=""
+  if [[ "$default" == "generate" ]]; then
+    generated=$(openssl rand -base64 16 2>/dev/null | tr -dc 'a-zA-Z0-9' | head -c 16)
+    [[ -z "$generated" ]] && generated=$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 16)
+    default="$generated"
+  fi
+
+  # Unattended mode: return default immediately
+  if is_unattended; then
+    echo "$default"
+    return 0
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    echo "$default"
+    return 0
+  fi
+
+  # Build hint
+  local hint=""
+  if [[ -n "$generated" ]]; then
+    hint=" (Enter for auto-generated)"
+  elif [[ -n "$default" ]]; then
+    hint=" (Enter for default)"
+  fi
+  [[ "$min_length" -gt 0 ]] && hint="${hint} [min ${min_length} chars]"
+
+  # Interactive prompt with timeout (silent input)
+  echo -en "${YW}${message}${hint} (timeout ${timeout}s): ${CL}" >&2
+
+  if read -t "$timeout" -rs response; then
+    echo "" >&2 # Newline after hidden input
+    if [[ -n "$response" ]]; then
+      # Validate minimum length
+      if [[ "$min_length" -gt 0 ]] && [[ ${#response} -lt "$min_length" ]]; then
+        echo -e "${YW}Password too short (min ${min_length}), using default${CL}" >&2
+        echo "$default"
+      else
+        echo "$response"
+      fi
+    else
+      echo "$default"
+    fi
+  else
+    # Timeout occurred
+    echo "" >&2 # Newline after timeout
+    echo -e "${YW}Timeout - using generated password${CL}" >&2
+    echo "$default"
+  fi
+}
+
 # ==============================================================================
 # SECTION 6: CLEANUP & MAINTENANCE
 # ==============================================================================
@@ -898,15 +1409,13 @@ check_or_create_swap() {
 
   msg_error "No active swap detected"
 
-  read -p "Do you want to create a swap file? [y/N]: " create_swap
-  create_swap="${create_swap,,}" # to lowercase
-
-  if [[ "$create_swap" != "y" && "$create_swap" != "yes" ]]; then
+  if ! prompt_confirm "Do you want to create a swap file?" "n" 60; then
     msg_info "Skipping swap file creation"
     return 1
   fi
 
-  read -p "Enter swap size in MB (e.g., 2048 for 2GB): " swap_size_mb
+  local swap_size_mb
+  swap_size_mb=$(prompt_input "Enter swap size in MB (e.g., 2048 for 2GB):" "2048" 60)
   if ! [[ "$swap_size_mb" =~ ^[0-9]+$ ]]; then
     msg_error "Invalid size input. Aborting."
     return 1

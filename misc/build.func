@@ -3685,12 +3685,8 @@ EOF
       selected_gpu="${available_gpus[0]}"
       msg_ok "Automatically configuring ${selected_gpu} GPU passthrough"
     else
-      # Multiple GPUs - ask user
-      echo -e "\n${INFO} Multiple GPU types detected:"
-      for gpu in "${available_gpus[@]}"; do
-        echo "  - $gpu"
-      done
-      read -rp "Which GPU type to passthrough? (${available_gpus[*]}): " selected_gpu
+      # Multiple GPUs - ask user (use first as default in unattended mode)
+      selected_gpu=$(prompt_select "Which GPU type to passthrough?" 1 60 "${available_gpus[@]}")
       selected_gpu="${selected_gpu^^}"
 
       # Validate selection
@@ -4113,29 +4109,16 @@ destroy_lxc() {
   # Abort on Ctrl-C / Ctrl-D / ESC
   trap 'echo; msg_error "Aborted by user (SIGINT/SIGQUIT)"; return 130' INT QUIT
 
-  local prompt
-  if ! read -rp "Remove this Container? <y/N> " prompt; then
-    # read returns non-zero on Ctrl-D/ESC
-    msg_error "Aborted input (Ctrl-D/ESC)"
-    return 130
-  fi
-
-  case "${prompt,,}" in
-  y | yes)
+  if prompt_confirm "Remove this Container?" "n" 60; then
     if pct stop "$CT_ID" &>/dev/null && pct destroy "$CT_ID" &>/dev/null; then
       msg_ok "Removed Container $CT_ID"
     else
       msg_error "Failed to remove Container $CT_ID"
       return 1
     fi
-    ;;
-  "" | n | no)
+  else
     msg_custom "ℹ️" "${BL}" "Container was not removed."
-    ;;
-  *)
-    msg_warn "Invalid response. Container was not removed."
-    ;;
-  esac
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -4452,9 +4435,7 @@ create_lxc_container() {
     echo "  pve-container: installed=${_pvec_i:-n/a}  candidate=${_pvec_c:-n/a}"
     echo "  lxc-pve     : installed=${_lxcp_i:-n/a}  candidate=${_lxcp_c:-n/a}"
     echo
-    read -rp "Do you want to upgrade now? [y/N] " _ans
-    case "${_ans,,}" in
-    y | yes)
+    if prompt_confirm "Do you want to upgrade now?" "n" 60; then
       msg_info "Upgrading Proxmox LXC stack (pve-container, lxc-pve)"
       if $STD apt-get update && $STD apt-get install -y --only-upgrade pve-container lxc-pve; then
         msg_ok "LXC stack upgraded."
@@ -4473,9 +4454,9 @@ create_lxc_container() {
         msg_error "Upgrade failed. Please check APT output."
         return 3
       fi
-      ;;
-    *) return 2 ;;
-    esac
+    else
+      return 2
+    fi
   }
 
   # ------------------------------------------------------------------------------
@@ -4650,16 +4631,12 @@ create_lxc_container() {
     )
 
     if [[ ${#AVAILABLE_VERSIONS[@]} -gt 0 ]]; then
-      echo ""
-      echo "${BL}Available ${PCT_OSTYPE} versions:${CL}"
-      for i in "${!AVAILABLE_VERSIONS[@]}"; do
-        echo "  [$((i + 1))] ${AVAILABLE_VERSIONS[$i]}"
-      done
-      echo ""
-      read -p "Select version [1-${#AVAILABLE_VERSIONS[@]}] or press Enter to cancel: " choice
+      # Use prompt_select for version selection (supports unattended mode)
+      local selected_version
+      selected_version=$(prompt_select "Select ${PCT_OSTYPE} version:" 1 60 "${AVAILABLE_VERSIONS[@]}")
 
-      if [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le ${#AVAILABLE_VERSIONS[@]} ]]; then
-        PCT_OSVERSION="${AVAILABLE_VERSIONS[$((choice - 1))]}"
+      if [[ -n "$selected_version" ]]; then
+        PCT_OSVERSION="$selected_version"
         TEMPLATE_SEARCH="${PCT_OSTYPE}-${PCT_OSVERSION}"
 
         ONLINE_TEMPLATES=()
@@ -4713,16 +4690,12 @@ create_lxc_container() {
       )
 
       if [[ ${#AVAILABLE_VERSIONS[@]} -gt 0 ]]; then
-        echo -e "\n${BL}Available versions:${CL}"
-        for i in "${!AVAILABLE_VERSIONS[@]}"; do
-          echo "  [$((i + 1))] ${AVAILABLE_VERSIONS[$i]}"
-        done
+        # Use prompt_select for version selection (supports unattended mode)
+        local selected_version
+        selected_version=$(prompt_select "Select ${PCT_OSTYPE} version:" 1 60 "${AVAILABLE_VERSIONS[@]}")
 
-        echo ""
-        read -p "Select version [1-${#AVAILABLE_VERSIONS[@]}] or Enter to exit: " choice
-
-        if [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le ${#AVAILABLE_VERSIONS[@]} ]]; then
-          export var_version="${AVAILABLE_VERSIONS[$((choice - 1))]}"
+        if [[ -n "$selected_version" ]]; then
+          export var_version="$selected_version"
           export PCT_OSVERSION="$var_version"
           msg_ok "Switched to ${PCT_OSTYPE} ${var_version}"
 
@@ -4767,10 +4740,6 @@ create_lxc_container() {
             msg_error "Template still not found after version change"
             exit 220
           }
-        else
-          msg_custom "🚫" "${YW}" "Installation cancelled"
-          exit 1
-        fi
       else
         msg_error "No ${PCT_OSTYPE} templates available"
         exit 220

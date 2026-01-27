@@ -634,4 +634,224 @@ silent()
 - `SILENT_LOGFILE`: Silent execution log file path
 - `SPINNER_PID`: Spinner process ID
 - `SPINNER_MSG`: Spinner message text
-- `MSG_INFO_SHOWN`: Tracks shown info messages
+- `MSG_INFO_SHOWN`: Tracks shown info messages- `PHS_SILENT`: Unattended mode flag (1 = silent)
+- `var_unattended`: Unattended mode variable (yes/no)
+- `UNATTENDED`: Alternative unattended mode variable
+
+## Unattended/Interactive Prompt Functions
+
+These functions provide a unified way to handle user prompts in both interactive and unattended modes. They automatically detect the execution context and either prompt the user (with timeout) or use default values silently.
+
+### `is_unattended()`
+**Purpose**: Detect if script is running in unattended/silent mode
+**Parameters**: None
+**Returns**:
+- `0` (true): Running unattended
+- `1` (false): Running interactively
+**Side Effects**: None
+**Dependencies**: None
+**Environment Variables Used**: `PHS_SILENT`, `var_unattended`, `UNATTENDED`
+
+**Usage Example**:
+```bash
+if is_unattended; then
+  echo "Running in unattended mode"
+else
+  echo "Running interactively"
+fi
+```
+
+### `prompt_confirm()`
+**Purpose**: Prompt user for yes/no confirmation with timeout and unattended support
+**Parameters**:
+- `$1` - Prompt message (required)
+- `$2` - Default value: "y" or "n" (optional, default: "n")
+- `$3` - Timeout in seconds (optional, default: 60)
+**Returns**:
+- `0`: User confirmed (yes)
+- `1`: User declined (no) or timeout with default "n"
+**Side Effects**: Displays prompt to terminal
+**Dependencies**: `is_unattended()`
+**Environment Variables Used**: Color variables (`YW`, `CL`)
+
+**Behavior**:
+- **Unattended mode**: Immediately returns default value
+- **Non-TTY**: Immediately returns default value
+- **Interactive**: Displays prompt with timeout countdown
+- **Timeout**: Auto-applies default value after specified seconds
+
+**Usage Examples**:
+```bash
+# Basic confirmation (default: no)
+if prompt_confirm "Proceed with installation?"; then
+  install_package
+fi
+
+# Default to yes, 30 second timeout
+if prompt_confirm "Continue?" "y" 30; then
+  continue_operation
+fi
+
+# In unattended mode (will use default immediately)
+var_unattended=yes
+prompt_confirm "Delete files?" "n" && echo "Deleting" || echo "Skipped"
+```
+
+### `prompt_input()`
+**Purpose**: Prompt user for text input with timeout and unattended support
+**Parameters**:
+- `$1` - Prompt message (required)
+- `$2` - Default value (optional, default: "")
+- `$3` - Timeout in seconds (optional, default: 60)
+**Output**: Prints the user input or default value to stdout
+**Returns**: `0` always
+**Side Effects**: Displays prompt to stderr (keeps stdout clean for value)
+**Dependencies**: `is_unattended()`
+**Environment Variables Used**: Color variables (`YW`, `CL`)
+
+**Behavior**:
+- **Unattended mode**: Returns default value immediately
+- **Non-TTY**: Returns default value immediately
+- **Interactive**: Waits for user input with timeout
+- **Empty input**: Returns default value
+- **Timeout**: Returns default value
+
+**Usage Examples**:
+```bash
+# Get username with default
+username=$(prompt_input "Enter username:" "admin" 30)
+echo "Using username: $username"
+
+# With validation loop
+while true; do
+  port=$(prompt_input "Enter port:" "8080" 30)
+  [[ "$port" =~ ^[0-9]+$ ]] && break
+  echo "Invalid port number"
+done
+
+# Capture value in unattended mode
+var_unattended=yes
+db_name=$(prompt_input "Database name:" "myapp_db")
+```
+
+### `prompt_select()`
+**Purpose**: Prompt user to select from a list of options with timeout support
+**Parameters**:
+- `$1` - Prompt message (required)
+- `$2` - Default option number, 1-based (optional, default: 1)
+- `$3` - Timeout in seconds (optional, default: 60)
+- `$4+` - Options to display (required, at least 1)
+**Output**: Prints the selected option value to stdout
+**Returns**:
+- `0`: Success
+- `1`: No options provided
+**Side Effects**: Displays numbered menu to stderr
+**Dependencies**: `is_unattended()`
+**Environment Variables Used**: Color variables (`YW`, `GN`, `CL`)
+
+**Behavior**:
+- **Unattended mode**: Returns default selection immediately
+- **Non-TTY**: Returns default selection immediately
+- **Interactive**: Displays numbered menu with timeout
+- **Invalid selection**: Uses default
+- **Timeout**: Auto-selects default
+
+**Usage Examples**:
+```bash
+# Simple selection
+choice=$(prompt_select "Select database:" 1 30 "PostgreSQL" "MySQL" "SQLite")
+echo "Selected: $choice"
+
+# Using array
+options=("Production" "Staging" "Development")
+env=$(prompt_select "Select environment:" 2 60 "${options[@]}")
+
+# In automation scripts
+var_unattended=yes
+db=$(prompt_select "Database:" 1 30 "postgres" "mysql" "sqlite")
+# Returns "postgres" immediately without menu
+```
+
+### `prompt_password()`
+**Purpose**: Prompt user for password input with hidden characters and auto-generation
+**Parameters**:
+- `$1` - Prompt message (required)
+- `$2` - Default value or "generate" for auto-generation (optional)
+- `$3` - Timeout in seconds (optional, default: 60)
+- `$4` - Minimum length for validation (optional, default: 0)
+**Output**: Prints the password to stdout
+**Returns**: `0` always
+**Side Effects**: Displays prompt to stderr with hidden input
+**Dependencies**: `is_unattended()`, `openssl` (for generation)
+**Environment Variables Used**: Color variables (`YW`, `CL`)
+
+**Behavior**:
+- **"generate" default**: Creates random 16-character password
+- **Unattended mode**: Returns default/generated password immediately
+- **Non-TTY**: Returns default/generated password immediately
+- **Interactive**: Hidden input with timeout
+- **Min length validation**: Falls back to default if too short
+- **Timeout**: Returns default/generated password
+
+**Usage Examples**:
+```bash
+# Auto-generate password if user doesn't provide one
+password=$(prompt_password "Enter password:" "generate" 30)
+echo "Password has been set"
+
+# Require minimum length
+db_pass=$(prompt_password "Database password:" "" 60 12)
+
+# With default password
+admin_pass=$(prompt_password "Admin password:" "changeme123" 30)
+
+# In unattended mode with auto-generation
+var_unattended=yes
+password=$(prompt_password "Password:" "generate")
+# Returns randomly generated password
+```
+
+## Prompt Function Decision Flow
+
+```
+prompt_confirm() / prompt_input() / prompt_select() / prompt_password()
+│
+├── is_unattended()? ─────────────────────┐
+│   └── PHS_SILENT=1?                     │
+│   └── var_unattended=yes?               ├── YES → Return default immediately
+│   └── UNATTENDED=yes?                   │
+│                                         │
+├── TTY available? ─────────────── NO ────┘
+│
+└── Interactive Mode
+    ├── Display prompt with timeout hint
+    ├── read -t $timeout
+    │   ├── User input received → Validate and return
+    │   ├── Empty input → Return default
+    │   └── Timeout → Return default with message
+    └── Return value
+```
+
+## Migration Guide: Converting read Commands
+
+To make existing scripts unattended-compatible, replace `read` commands with the appropriate prompt function:
+
+### Before (blocking):
+```bash
+read -rp "Continue? [y/N]: " confirm
+[[ "$confirm" =~ ^[Yy]$ ]] && do_something
+
+read -p "Enter port: " port
+port="${port:-8080}"
+
+read -p "Select (1-3): " choice
+```
+
+### After (unattended-safe):
+```bash
+prompt_confirm "Continue?" "n" && do_something
+
+port=$(prompt_input "Enter port:" "8080")
+
+choice=$(prompt_select "Select option:" 1 60 "Option 1" "Option 2" "Option 3")
+```
