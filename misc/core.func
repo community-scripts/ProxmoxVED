@@ -834,7 +834,7 @@ is_unattended() {
   # Primary: Check MODE variable (case-insensitive)
   local mode="${MODE:-${mode:-}}"
   mode="${mode,,}"  # lowercase
-  
+
   case "$mode" in
     default|1)
       return 0
@@ -857,15 +857,15 @@ is_unattended() {
       return 1
       ;;
   esac
-  
+
   # Legacy fallbacks for compatibility
   [[ "${PHS_SILENT:-0}" == "1" ]] && return 0
   [[ "${var_unattended:-}" =~ ^(yes|true|1)$ ]] && return 0
   [[ "${UNATTENDED:-}" =~ ^(yes|true|1)$ ]] && return 0
-  
+
   # No TTY available = unattended
   [[ ! -t 0 ]] && return 0
-  
+
   # Default: interactive
   return 1
 }

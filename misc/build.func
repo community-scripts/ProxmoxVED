@@ -4744,6 +4744,7 @@ create_lxc_container() {
             msg_error "Template still not found after version change"
             exit 220
           }
+        fi
       else
         msg_error "No ${PCT_OSTYPE} templates available"
         exit 220
