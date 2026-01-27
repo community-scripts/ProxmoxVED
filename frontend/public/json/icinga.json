@@ -43,6 +43,10 @@
     {
       "text": "Director, Reporting, x509, Notifications and Linuxfabrik plugins are pre-installed.",
       "type": "info"
+    },
+    {
+      "text": "The icinga2 Core API ist on port 5665",
+      "type": "info"
     }
   ]
 }
