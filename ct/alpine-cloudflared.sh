@@ -125,6 +125,12 @@ function update_script() {
 
 start
 user_configuration
+if [ -z "$TOKEN" ]; then
+  echo -e "${TAB}📝${TAB}${BOLD}${DGN}Tunnel Config: ${BGN}${CONFIG_PATH}/config.yml${CL}"
+else
+  echo -e "${TAB}🪪${TAB}${BOLD}${DGN}Tunnel Token: ${BGN}${TOKEN:0:33}...${CL}"
+fi
+
 build_container
 description
 
