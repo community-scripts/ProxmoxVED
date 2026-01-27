@@ -1,0 +1,48 @@
+{
+  "name": "Icinga2 Monitoring",
+  "slug": "icinga2",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-01-16",
+  "type": "ct",
+  "updateable": true,
+  "privileged": true,
+  "interface_port": 80,
+  "documentation": "https://icinga.com/docs/",
+  "website": "https://icinga.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/icinga.webp",
+  "config_path": "",
+  "description": "Icinga2 is a powerful open-source monitoring system for infrastructure and services. It provides comprehensive monitoring, alerting, and visualization for hosts, services, and applications. Icinga2 features a modern web interface (Icinga Web 2), supports distributed setups, and integrates with many notification and reporting modules. This container includes Icinga2 Core, Icinga Web 2, MariaDB, Director, Reporting, x509, Notification, and Linuxfabrik plugins for advanced monitoring scenarios.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/icinga.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "icingaadmin",
+    "password": "(see install output)"
+  },
+  "notes": [
+    {
+      "text": "Web interface: http://<container-ip>/icingaweb2",
+      "type": "info"
+    },
+    {
+      "text": "Default user: icingaadmin (password is shown after install)",
+      "type": "info"
+    },
+    {
+      "text": "Director, Reporting, x509, Notifications and Linuxfabrik plugins are pre-installed.",
+      "type": "info"
+    }
+  ]
+}
