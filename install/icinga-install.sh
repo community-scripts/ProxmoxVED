@@ -50,13 +50,12 @@ setup_deb822_repo \
 msg_ok "Set up Linuxfabrik plugins repository"
 
 
-# pkg_update ## pkg_upgrade disabled because it's an illusion?!
-$STD apt-get upgrade -y
+pkg_update
 setup_mariadb
-# setup_apache ## another docs illusion
+setup_apache
 msg_info "Installing Icinga"
-#pkg_install ## will be used later
-$STD apt-get install -y icinga2 icingaweb2 icingadb icingadb-redis imagemagick php-imagick openssh-server apache2 \
+pkg_install \
+  icinga2 icingaweb2 icingadb icingadb-redis imagemagick php-imagick openssh-server \
   icingadb-web icinga-director icinga-businessprocess icinga-cube icinga-notifications-web icinga-notifications icinga-x509 icingaweb2-module-reporting \
   icingaweb2-module-perfdatagraphs-influxdbv1 icingaweb2-module-perfdatagraphs-influxdbv2 icingaweb2-module-perfdatagraphs \
   linuxfabrik-monitoring-plugins vim git redis-tools pwgen || { msg_error "Failed to install Icinga packages"; exit 1; }
