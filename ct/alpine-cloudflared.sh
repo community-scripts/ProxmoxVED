@@ -51,13 +51,12 @@ user_configuration() {
     ); then
       # if "remotely-managed" get token from user
       if [[ "$type" == "remotely-managed" ]]; then
-        local token
-        if token=$(
+        if var_token=$(
           whiptail --title "Tunnel Token" \
             --inputbox "Enter Tunnel Token" 10 80 "" \
             3>&1 1>&2 2>&3
         ); then
-          if token_valid "$token"; then
+          if token_valid "$var_token"; then
             # break to continue script
             break
           else
@@ -125,7 +124,7 @@ function update_script() {
 
 start
 user_configuration
-if [ -z "$TOKEN" ]; then
+if [ -z "$var_token" ]; then
   echo -e "${TAB}📝${TAB}${BOLD}${DGN}Tunnel Config: ${BGN}${CONFIG_PATH}/config.yml${CL}"
 else
   echo -e "${TAB}🪪${TAB}${BOLD}${DGN}Tunnel Token: ${BGN}${TOKEN:0:33}...${CL}"
@@ -136,7 +135,7 @@ description
 
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-if [ -z "$TOKEN" ]; then
+if [ -z "$var_token" ]; then
   echo -e "${INFO}${YW} Edit the config file at:${CL}"
   echo -e "${TAB}${ADVANCED}${GN} ${var_config_path}/config.yml${CL}"
   echo -e "${INFO}${BGN}Run \"rc-service cloudflared start\" to start!${CL}"
