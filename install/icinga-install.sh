@@ -381,37 +381,57 @@ icingacli director host create "$FQDN" --json "{
 }" > /dev/null || { msg_error "Failed to create Icinga Director host"; exit 1; }
 msg_ok "Created Icinga Director host for local container"
 msg_info "Importing Icinga Director x509 monitoring basket"
-base64 -d <<'EOF' | gunzip -c | icingacli director basket restore > /dev/null || { msg_error "Failed to restore x509 basket"; exit 1; }
-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
-K9+8ev4Ps1OGN+0bAAA=
+cat <<EOF | icingacli director basket restore > /dev/null || { msg_error "Failed to restore x509 basket"; exit 1; }
+{
+    "ExternalCommand": {
+        "icingacli-x509": {
+            "arguments": {
+                "--allow-self-signed": {
+                    "description": "Ignore if a certificate or its issuer has been self-signed",
+                    "set_if": "$icingacli_x509_allow_self_signed$"
+                },
+                "--critical": {
+                    "description": "Less remaining time results in state CRITICAL",
+                    "value": "$icingacli_x509_critical$"
+                },
+                "--host": {
+                    "description": "A hosts name",
+                    "value": "$icingacli_x509_host$"
+                },
+                "--ip": {
+                    "description": "A hosts IP address",
+                    "value": "$icingacli_x509_ip$"
+                },
+                "--port": {
+                    "description": "The port to check in particular",
+                    "value": "$icingacli_x509_port$"
+                },
+                "--warning": {
+                    "description": "Less remaining time results in state WARNING",
+                    "value": "$icingacli_x509_warning$"
+                }
+            },
+            "command": "/usr/bin/icingacli x509 check host",
+            "fields": [
+                {
+                    "datafield_id": 1881,
+                    "is_required": "n",
+                    "var_filter": null
+                }
+            ],
+            "methods_execute": "PluginCheck",
+            "object_name": "icingacli-x509",
+            "object_type": "external_object",
+            "timeout": 60,
+            "uuid": "4c11d751-9a59-4b8c-88d9-3357c64fe57e"
+        }
+    },
+    "ServiceTemplate": {
+        "tpl-service-x509-cert": {
+            "check_command": "icingacli-x509",
+            "fields": [],
+            "imports": [
+                "tpl-service-generic"
 EOF
 msg_ok "Imported Icinga Director x509 monitoring basket"
 
