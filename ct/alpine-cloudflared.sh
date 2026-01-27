@@ -138,6 +138,6 @@ msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 if [ -z "$TOKEN" ]; then
   echo -e "${INFO}${YW} Edit the config file at:${CL}"
-  echo -e "${TAB}${ADVANCED}${GN} ${CONFIG_PATH}/config.yml${CL}"
+  echo -e "${TAB}${ADVANCED}${GN} ${var_config_path}/config.yml${CL}"
   echo -e "${INFO}${BGN}Run \"rc-service cloudflared start\" to start!${CL}"
 fi

@@ -49,9 +49,9 @@ EOF
 if [ -z "$TOKEN" ]; then
   mkdir -p "$CONFIG_PATH"
   # Create empty config file so permissions are correct and users can find it
-  touch "$CONFIG_PATH/config.yml"
+  echo "tunnel: proxmoxve" >"$CONFIG_PATH/config.yml"
   chown -R cloudflared:cloudflared "$CONFIG_PATH"
-  echo "command_args=\"tunnel run --config $CONFIG_PATH/config.yml\"" >>/etc/init.d/cloudflared
+  echo "command_args=\"tunnel --config $CONFIG_PATH/config.yml run proxmoxve\"" >>/etc/init.d/cloudflared
 else
   echo "command_args=\"tunnel run --token $TOKEN\"" >>/etc/init.d/cloudflared
 fi
