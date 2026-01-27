@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: tteck (tteckster) | MickLesk | michelroegl-brunner
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
-# Revision: 1
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/branch/main/LICENSE
 
 # ==============================================================================
 # BUILD.FUNC - LXC CONTAINER BUILD & CONFIGURATION
@@ -81,109 +80,6 @@ variables() {
   fi
 }
 
-# -----------------------------------------------------------------------------
-# Community-Scripts bootstrap loader
-# - Always sources build.func from remote
-# - Updates local core files only if build.func changed
-# - Local cache: /usr/local/community-scripts/core
-# -----------------------------------------------------------------------------
-
-# FUNC_DIR="/usr/local/community-scripts/core"
-# mkdir -p "$FUNC_DIR"
-
-# BUILD_URL="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func"
-# BUILD_REV="$FUNC_DIR/build.rev"
-# DEVMODE="${DEVMODE:-no}"
-
-# # --- Step 1: fetch build.func content once, compute hash ---
-# build_content="$(curl -fsSL "$BUILD_URL")" || {
-#   echo "❌ Failed to fetch build.func"
-#   exit 1
-# }
-
-# newhash=$(printf "%s" "$build_content" | sha256sum | awk '{print $1}')
-# oldhash=$(cat "$BUILD_REV" 2>/dev/null || echo "")
-
-# # --- Step 2: if build.func changed, offer update for core files ---
-# if [ "$newhash" != "$oldhash" ]; then
-#   echo "⚠️  build.func changed!"
-
-#   while true; do
-#     read -rp "Refresh local core files? [y/N/diff]: " ans
-#     case "$ans" in
-#     [Yy]*)
-#       echo "$newhash" >"$BUILD_REV"
-
-#       update_func_file() {
-#         local file="$1"
-#         local url="https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/$file"
-#         local local_path="$FUNC_DIR/$file"
-
-#         echo "⬇️  Downloading $file ..."
-#         curl -fsSL "$url" -o "$local_path" || {
-#           echo "❌ Failed to fetch $file"
-#           exit 1
-#         }
-#         echo "✔️  Updated $file"
-#       }
-
-#       update_func_file core.func
-#       update_func_file error_handler.func
-#       update_func_file tools.func
-#       break
-#       ;;
-#     [Dd]*)
-#       for file in core.func error_handler.func tools.func; do
-#         local_path="$FUNC_DIR/$file"
-#         url="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/$file"
-#         remote_tmp="$(mktemp)"
-
-#         curl -fsSL "$url" -o "$remote_tmp" || continue
-
-#         if [ -f "$local_path" ]; then
-#           echo "🔍 Diff for $file:"
-#           diff -u "$local_path" "$remote_tmp" || echo "(no differences)"
-#         else
-#           echo "📦 New file $file will be installed"
-#         fi
-
-#         rm -f "$remote_tmp"
-#       done
-#       ;;
-#     *)
-#       echo "❌ Skipped updating local core files"
-#       break
-#       ;;
-#     esac
-#   done
-# else
-#   if [ "$DEVMODE" != "yes" ]; then
-#     echo "✔️  build.func unchanged → using existing local core files"
-#   fi
-# fi
-
-# if [ -n "${_COMMUNITY_SCRIPTS_LOADER:-}" ]; then
-#   return 0 2>/dev/null || exit 0
-# fi
-# _COMMUNITY_SCRIPTS_LOADER=1
-
-# # --- Step 3: always source local versions of the core files ---
-# source "$FUNC_DIR/core.func"
-# source "$FUNC_DIR/error_handler.func"
-# source "$FUNC_DIR/tools.func"
-
-# # --- Step 4: finally, source build.func directly from memory ---
-# # (no tmp file needed)
-# source <(printf "%s" "$build_content")
-
-# ------------------------------------------------------------------------------
-# Load core + error handler functions from community-scripts repo
-#
-# - Prefer curl if available, fallback to wget
-# - Load: core.func, error_handler.func, api.func
-# - Initialize error traps after loading
-# ------------------------------------------------------------------------------
-
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
@@ -191,13 +87,11 @@ if command -v curl >/dev/null 2>&1; then
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
-  #echo "(build.func) Loaded core.func via curl"
 elif command -v wget >/dev/null 2>&1; then
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
-  #echo "(build.func) Loaded core.func via wget"
 fi
 
 # ==============================================================================
@@ -266,17 +160,29 @@ maxkeys_check() {
 #
 # - Returns current container IP depending on OS type
 # - Debian/Ubuntu: uses `hostname -I`
-# - Alpine: parses eth0 via `ip -4 addr`
+# - Alpine: parses eth0 via `ip -4 addr` or `ip -6 addr`
+# - Supports IPv6-only environments as fallback
 # - Returns "Unknown" if OS type cannot be determined
 # ------------------------------------------------------------------------------
 get_current_ip() {
+  CURRENT_IP=""
   if [ -f /etc/os-release ]; then
     # Check for Debian/Ubuntu (uses hostname -I)
     if grep -qE 'ID=debian|ID=ubuntu' /etc/os-release; then
-      CURRENT_IP=$(hostname -I | awk '{print $1}')
+      # Try IPv4 first
+      CURRENT_IP=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -n1)
+      # Fallback to IPv6 if no IPv4
+      if [[ -z "$CURRENT_IP" ]]; then
+        CURRENT_IP=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E ':' | head -n1)
+      fi
     # Check for Alpine (uses ip command)
     elif grep -q 'ID=alpine' /etc/os-release; then
-      CURRENT_IP=$(ip -4 addr show eth0 | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
+      # Try IPv4 first
+      CURRENT_IP=$(ip -4 addr show eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1)
+      # Fallback to IPv6 if no IPv4
+      if [[ -z "$CURRENT_IP" ]]; then
+        CURRENT_IP=$(ip -6 addr show eth0 scope global 2>/dev/null | awk '/inet6 / {print $2}' | cut -d/ -f1 | head -n 1)
+      fi
     else
       CURRENT_IP="Unknown"
     fi
@@ -308,6 +214,7 @@ update_motd_ip() {
 #
 # - Installs SSH keys into container root account if SSH is enabled
 # - Uses pct push or direct input to authorized_keys
+# - Supports both SSH_KEYS_FILE (from advanced settings) and SSH_AUTHORIZED_KEY (from user defaults)
 # - Falls back to warning if no keys provided
 # ------------------------------------------------------------------------------
 install_ssh_keys_into_ct() {
@@ -315,6 +222,13 @@ install_ssh_keys_into_ct() {
 
   # Ensure SSH_KEYS_FILE is defined (may not be set if advanced_settings was skipped)
   : "${SSH_KEYS_FILE:=}"
+
+  # If SSH_KEYS_FILE doesn't exist but SSH_AUTHORIZED_KEY is set (from user defaults),
+  # create a temporary SSH_KEYS_FILE with the key
+  if [[ -z "$SSH_KEYS_FILE" || ! -s "$SSH_KEYS_FILE" ]] && [[ -n "${SSH_AUTHORIZED_KEY:-}" ]]; then
+    SSH_KEYS_FILE="$(mktemp)"
+    printf '%s\n' "$SSH_AUTHORIZED_KEY" >"$SSH_KEYS_FILE"
+  fi
 
   if [[ -n "$SSH_KEYS_FILE" && -s "$SSH_KEYS_FILE" ]]; then
     msg_info "Installing selected SSH keys into CT ${CTID}"
@@ -1025,7 +939,6 @@ base_settings() {
   ENABLE_NESTING=${var_nesting:-"1"}
   ENABLE_KEYCTL=${var_keyctl:-"0"}
   ENABLE_MKNOD=${var_mknod:-"0"}
-  MOUNT_FS=${var_mount_fs:-""}
   PROTECT_CT=${var_protection:-"no"}
   CT_TIMEZONE=${var_timezone:-"$timezone"}
   [[ "${CT_TIMEZONE:-}" == Etc/* ]] && CT_TIMEZONE="host" # pct doesn't accept Etc/* zones
