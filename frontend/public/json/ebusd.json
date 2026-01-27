@@ -44,9 +44,5 @@
       "text": "Working `/etc/default/ebusd` options for `ebus adapter shield v5`: EBUSD_OPTS='--pidfile=/run/ebusd.pid --latency=100 --scanconfig --configpath=https://ebus.github.io/ --accesslevel=* --pollinterval=30 --device=ens:x.x.x.x:9999 --mqtthost=x.x.x.x --mqttport=1883 --mqttuser=ha-mqtt --mqttpass=xxxxxxxx! --mqttint=/etc/ebusd/mqtt-hassio.cfg --mqttjson --mqttlog --mqttretain --mqtttopic=ebusd --log=all:notice --log=main:notice --log=bus:notice --log=update:notice --log=network:notice --log=other:notice'",
       "type": "info"
     },
-    {
-      "text": "Only tested with `ebusd-25.1_amd64-bookworm.deb`!",
-      "type": "warning"
-    }
   ]
 }
