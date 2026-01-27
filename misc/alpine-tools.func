@@ -317,9 +317,15 @@ fetch_and_deploy_gh_release() {
     return 1
   }
 
+  # The command is the same for all cases other than tarball/source
+  get_url() { # $1 pattern
+    printf '%s' "$json" | jq -r '.assets[].browser_download_url' |
+      awk -v p="$1" 'BEGIN{IGNORECASE=1} $0 ~ p {print; exit}'
+  }
+
   case "$mode" in
   tarball | source)
-    url="$(printf '%s' "$json" | jq -r '.tarball_url // empty')"
+    url=$(printf '%s' "$json" | jq -r '.tarball_url // empty')
     [ -z "$url" ] && url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
     filename="${app_lc}-${version}.tar.gz"
     download_with_progress "$url" "$tmpd/$filename" || {
@@ -342,7 +348,7 @@ fetch_and_deploy_gh_release() {
     ;;
   binary)
     [ -n "$pattern" ] || pattern="*.apk"
-    url="$(printf '%s' "$json" | jq -r '.assets[].browser_download_url' | awk -v p="$pattern" 'BEGIN{IGNORECASE=1} $0 ~ p {print; exit}')"
+    url=$(get_url "$pattern")
     [ -z "$url" ] && {
       msg_error "binary asset not found for pattern: $pattern"
       rm -rf "$tmpd"
@@ -374,10 +380,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    url="$(printf '%s' "$json" | jq -r '.assets[].browser_download_url' | awk -v p="$pattern" '
-        BEGIN{IGNORECASE=1}
-        $0 ~ p {print; exit}
-      ')"
+    url=$(get_url "$pattern")
     [ -z "$url" ] && {
       msg_error "asset not found for pattern: $pattern"
       rm -rf "$tmpd"
@@ -431,10 +434,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    url="$(printf '%s' "$json" | jq -r '.assets[].browser_download_url' | awk -v p="$pattern" '
-        BEGIN{IGNORECASE=1}
-        $0 ~ p {print; exit}
-      ')"
+    url=$(get_url "$pattern")
     [ -z "$url" ] && {
       msg_error "asset not found for pattern: $pattern"
       rm -rf "$tmpd"
