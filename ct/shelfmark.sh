@@ -52,7 +52,7 @@ function update_script() {
     $STD uv venv -c ./venv
     $STD source ./venv/bin/activate
     $STD uv pip install -r ./requirements-base.txt
-    if [[ $(sed -n '/_BYPASS=/s/[^=]*=//p' /etc/shelfmark/.env) == "true" ]] && [[ $(sed -n '/BYPASSER=/s/[^=]*=//p' /etc/shelfmark/.env == "false") ]]; then
+    if [[ $(sed -n '/_BYPASS=/s/[^=]*=//p' /etc/shelfmark/.env) == "true" ]] && [[ $(sed -n '/BYPASSER=/s/[^=]*=//p' /etc/shelfmark/.env) == "false" ]]; then
       $STD uv pip install -r ./requirements-shelfmark.txt
     fi
     mv /opt/start.sh.bak /opt/shelfmark/start.sh
