@@ -22,7 +22,7 @@ setup_deb822_repo \
 
 msg_info "Installing ebusd"
 $STD apt install -y ebusd
-$STD systemctl enable ebusd
+systemctl enable -q --now ebusd
 msg_ok "Installed ebusd"
 
 cat <<EOF >~/ebusd-configuation-instructions.txt
