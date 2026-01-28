@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-fetch_and_deploy_gh_release "vikunja" "go-vikunja/vikunja" "binary" "latest" 
+fetch_and_deploy_gh_release "vikunja" "go-vikunja/vikunja" "binary" 
 
 msg_info "Setting up Vikunja"
 sed -i -E 's/^# cors:/cors:/; s/^[[:space:]]*# enable:[[:space:]]*true/  enable: false/' /etc/vikunja/config.yml
