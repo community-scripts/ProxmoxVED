@@ -3086,21 +3086,32 @@ check_container_resources() {
 # ------------------------------------------------------------------------------
 # check_container_storage()
 #
-# - Checks /boot partition usage
+# - Checks root (/) partition usage
 # - Warns if usage >80% and asks user confirmation before proceeding
 # ------------------------------------------------------------------------------
 check_container_storage() {
-  total_size=$(df /boot --output=size | tail -n 1)
-  local used_size=$(df /boot --output=used | tail -n 1)
-  usage=$((100 * used_size / total_size))
-  if ((usage > 80)); then
+  usage=$(df / -P | awk 'NR==2 {print $5}' | tr -d '%')
+
+  # shellcheck disable=SC2181
+  if [ $? -ne 0 ]; then
+    echo "Error: Failed to check disk usage."
+    exit 1
+  fi
+
+  if [ "$usage" -gt 80 ]; then
     echo -e "${INFO}${HOLD} ${YWB}Warning: Storage is dangerously low (${usage}%).${CL}"
-    echo -ne "Continue anyway? <y/N>  "
+    printf "Continue anyway? <y/N>  "
     read -r prompt
-    if [[ ! ${prompt,,} =~ ^(y|yes)$ ]]; then
+
+    case "$prompt" in
+    [yY][eE][sS] | [yY])
+      # User input is "yes" or "y"; continue
+      ;;
+    *)
       echo -e "${CROSS}${HOLD}${YWB}Exiting based on user input.${CL}"
       exit 1
-    fi
+      ;;
+    esac
   fi
 }
 
