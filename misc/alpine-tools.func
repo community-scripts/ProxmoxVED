@@ -201,8 +201,6 @@ download_with_progress() {
 
   content_length=$(
     curl -fsSLI "$url" 2>/dev/null |
-      # May return multiple values on redirect. i.e., 0 and actual content-length value
-      # Cast $2 to int by adding 0 to it
       awk '(tolower($1) ~ /^content-length:/) && ($2 + 0 > 0) {print $2+0}' |
       tail -1 | tr -cd '[:digit:]' || true
   )
