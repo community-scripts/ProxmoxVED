@@ -317,7 +317,6 @@ fetch_and_deploy_gh_release() {
     return 1
   }
 
-  # The command is the same for all cases other than tarball/source
   get_url() {
     printf '%s' "$json" | jq -r '.assets[].browser_download_url' |
       awk -v p="$pattern" 'BEGIN{IGNORECASE=1} $0 ~ p {print; exit}' |
