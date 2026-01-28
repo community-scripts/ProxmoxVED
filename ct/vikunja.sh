@@ -45,7 +45,7 @@ function update_script() {
     [[ "$CONFIRM2" =~ ^[yY]$ ]] || exit 0
   fi
 
-  if check_for_gh_release "vikunja" "go-vikunja/vikunja" "latest"; then
+  if check_for_gh_release "vikunja" "go-vikunja/vikunja"; then
     msg_info "Stopping Service"
     systemctl stop vikunja
     msg_ok "Stopped Service"
