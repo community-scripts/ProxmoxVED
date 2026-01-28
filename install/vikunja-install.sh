@@ -16,10 +16,9 @@ update_os
 fetch_and_deploy_gh_release "vikunja" "go-vikunja/vikunja" "binary" 
 
 msg_info "Setting up Vikunja"
-sed -i -E 's/^# cors:/cors:/; s/^[[:space:]]*# enable:[[:space:]]*true/  enable: false/' /etc/vikunja/config.yml
-sed -i 's|^  timezone: .*|  timezone: UTC|' /etc/vikunja/config.yml
-sed -i 's|"./vikunja.db"|"/etc/vikunja/vikunja.db"|' /etc/vikunja/config.yml
-sed -i 's|./files|/etc/vikunja/files|' /etc/vikunja/config.yml
+sed -i 's|^# \(service:\)|\1|' /etc/vikunja/config.yml
+sed -i "s|^  # \(publicurl: \).*|  \1\"http://$LOCAL_IP\"|" /etc/vikunja/config.yml
+sed -i "0,/^  # \(timezone: \).*/s||  \1${tz}|" /etc/vikunja/config.yml
 systemctl enable -q --now vikunja
 msg_ok "Set up Vikunja"
 
