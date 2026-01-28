@@ -25,13 +25,6 @@ jobs:
         with:
           ref: main
 
-      - name: Generate GitHub App Token
-        id: generate-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
       - name: Extract version sources from install scripts
         run: |
           set -euo pipefail
@@ -330,7 +323,7 @@ jobs:
 
       - name: Fetch versions for all sources
         env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -453,7 +446,7 @@ jobs:
       - name: Create Pull Request
         if: steps.check-changes.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH_NAME="automated/update-versions-$(date +%Y%m%d)"
 
