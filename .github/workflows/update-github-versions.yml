@@ -57,10 +57,10 @@ jobs:
           # Get list of slugs from JSON files
           echo ""
           echo "=== Scanning JSON files for slugs ==="
-          
+
           for json_file in frontend/public/json/*.json; do
             [[ ! -f "$json_file" ]] && continue
-            
+
             # Skip non-app JSON files
             basename_file=$(basename "$json_file")
             case "$basename_file" in
