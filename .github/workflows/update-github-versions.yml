@@ -15,7 +15,7 @@ env:
 
 jobs:
   update-github-versions:
-    if: github.repository == 'community-scripts/ProxmoxVE'
+    if: github.repository == 'community-scripts/ProxmoxVED'
     runs-on: ubuntu-latest
 
     steps:
