@@ -77,8 +77,6 @@ jobs:
             install_script="install/${slug}-install.sh"
             [[ ! -f "$install_script" ]] && continue
 
-            echo -n "[$slug] "
-
             # Look for fetch_and_deploy_gh_release calls
             # Pattern: fetch_and_deploy_gh_release "app" "owner/repo" ["mode"] ["version"]
             while IFS= read -r line; do
@@ -98,7 +96,6 @@ jobs:
                 if [[ -n "$pinned_version" && "$pinned_version" != "latest" ]]; then
                   is_pinned=true
                   target_version="$pinned_version"
-                  echo -n "(pinned: $pinned_version) "
                 fi
 
                 # Fetch version from GitHub
@@ -109,10 +106,9 @@ jobs:
                     version=$(echo "$response" | jq -r '.tag_name')
                     date=$(echo "$response" | jq -r '.published_at // empty')
                     add_version "$slug" "$repo" "$version" "true" "$date"
-                    echo "✓ $version (pinned)"
+                    echo "[$slug] ✓ $version (pinned)"
                   else
-                    # Pinned version not found, skip
-                    echo "⚠ pinned version $target_version not found"
+                    echo "[$slug] ⚠ pinned version $target_version not found"
                   fi
                 else
                   # Fetch latest release
@@ -121,15 +117,15 @@ jobs:
                     version=$(echo "$response" | jq -r '.tag_name')
                     date=$(echo "$response" | jq -r '.published_at // empty')
                     add_version "$slug" "$repo" "$version" "false" "$date"
-                    echo "✓ $version"
+                    echo "[$slug] ✓ $version"
                   else
                     # Try tags as fallback
                     version=$(gh api "repos/${repo}/tags" --jq '.[0].name // empty' 2>/dev/null || echo "")
                     if [[ -n "$version" ]]; then
                       add_version "$slug" "$repo" "$version" "false" ""
-                      echo "✓ $version (from tags)"
+                      echo "[$slug] ✓ $version (from tags)"
                     else
-                      echo "⚠ no version found"
+                      echo "[$slug] ⚠ no version found"
                     fi
                   fi
                 fi
@@ -219,15 +215,4 @@ jobs:
               --base main \
               --head "$BRANCH_NAME" \
               --label "automated pr"
-          fi
-
-      - name: Auto-approve PR
-        if: steps.check-changes.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          BRANCH_NAME="automated/update-github-versions-$(date +%Y%m%d)"
-          pr_number=$(gh pr list --head "$BRANCH_NAME" --state open --json number --jq '.[0].number')
-          if [[ -n "$pr_number" ]]; then
-            gh pr review "$pr_number" --approve
           fi
