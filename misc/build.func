@@ -3844,6 +3844,24 @@ EOF
 
   fix_gpu_gids
 
+  # Fix Debian 13 LXC template bug where / is owned by nobody:nogroup
+  # This causes systemd-tmpfiles to fail with "unsafe path transition" errors
+  # We need to fix this from the host before any package installation
+  if [[ "$var_os" == "debian" && "$var_version" == "13" ]]; then
+    # Stop container, fix ownership, restart
+    pct stop "$CTID" >/dev/null 2>&1 || true
+    sleep 1
+    # Get the actual rootfs path from pct mount
+    local rootfs_path
+    rootfs_path=$(pct mount "$CTID" 2>/dev/null | grep -oP 'mounted at \K.*' || echo "")
+    if [[ -n "$rootfs_path" && -d "$rootfs_path" ]]; then
+      chown root:root "$rootfs_path" 2>/dev/null || true
+    fi
+    pct unmount "$CTID" >/dev/null 2>&1 || true
+    pct start "$CTID" >/dev/null 2>&1
+    sleep 3
+  fi
+
   # Continue with standard container setup
   msg_info "Customizing LXC Container"
 
