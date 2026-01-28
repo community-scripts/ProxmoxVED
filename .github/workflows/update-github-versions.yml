@@ -153,7 +153,15 @@ jobs:
       - name: Check for changes
         id: check-changes
         run: |
-          if git diff --quiet "$VERSIONS_FILE" 2>/dev/null; then
+          # Check if file is new (untracked) or has changes
+          if [[ ! -f "$VERSIONS_FILE" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Versions file was not created"
+          elif ! git ls-files --error-unmatch "$VERSIONS_FILE" &>/dev/null; then
+            # File exists but is not tracked - it's new
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "New file created: $VERSIONS_FILE"
+          elif git diff --quiet "$VERSIONS_FILE" 2>/dev/null; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "No changes detected"
           else
