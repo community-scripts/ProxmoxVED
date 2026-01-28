@@ -1623,8 +1623,6 @@ function download_with_progress() {
   local content_length
   content_length=$(
     curl -fsSLI "$url" 2>/dev/null |
-      # May return multiple values on redirect. i.e., 0 and actual content-length value
-      # Add 0 to $2 to cast it to int
       awk '(tolower($1) ~ /^content-length:/) && ($2 + 0 > 0) {print $2+0}' |
       tail -1 | tr -cd '[:digit:]' || true
   )
