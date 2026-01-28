@@ -28,6 +28,23 @@ function update_script() {
     exit
   fi
 
+  RELEASE="$(cat /opt/Vikunja_version 2>/dev/null || true)"
+  if [[ "$RELEASE" == "unstable" ]] || dpkg --compare-versions "$RELEASE" lt "1.0.0"; then
+    msg_warn "You are upgrading from Vikunja '$RELEASE'."
+    msg_warn "This requires MANUAL config changes in /etc/vikunja/config.yml."
+    msg_warn "See: https://vikunja.io/changelog/whats-new-in-vikunja-1.0.0/#config-changes"
+
+    read -rp "Continue with update? (y/yes to proceed): " -t 30 CONFIRM1 || exit 1
+    [[ "$CONFIRM1" =~ ^([yY]|[yY][eE][sS])$ ]] || exit 0
+
+    echo
+    msg_warn "Vikunja may not start after the update until you manually adjust the config."
+    msg_warn "Details: https://vikunja.io/changelog/whats-new-in-vikunja-1.0.0/#config-changes"
+
+    read -rp "Acknowledge and continue? (y/yes): " -t 30 CONFIRM2 || exit 1
+    [[ "$CONFIRM2" =~ ^([yY]|[yY][eE][sS])$ ]] || exit 0
+  fi
+
   if check_for_gh_release "vikunja" "go-vikunja/vikunja" "latest"; then
     msg_info "Stopping Service"
     systemctl stop vikunja
