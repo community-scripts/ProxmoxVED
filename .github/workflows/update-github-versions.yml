@@ -1,4 +1,4 @@
-name: Update GitHub Versions
+name: Update GitHub Versions (New)
 
 on:
   workflow_dispatch:
