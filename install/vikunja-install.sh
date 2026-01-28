@@ -13,13 +13,10 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-# $STD apt install -y make
-msg_ok "Installed Dependencies"
-
 fetch_and_deploy_gh_release "vikunja" "go-vikunja/vikunja" "binary" "latest" 
 
 msg_info "Setup Vikunja"
+sed -i -E 's/^# cors:/cors:/; s/^[[:space:]]*# enable:[[:space:]]*true/  enable: false/' /etc/vikunja/config.yml
 sed -i 's|^  timezone: .*|  timezone: UTC|' /etc/vikunja/config.yml
 sed -i 's|"./vikunja.db"|"/etc/vikunja/vikunja.db"|' /etc/vikunja/config.yml
 sed -i 's|./files|/etc/vikunja/files|' /etc/vikunja/config.yml
