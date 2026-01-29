@@ -27,9 +27,10 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+  
   msg_info "Updating ebusd"
   $STD apt update
-  $STD apt -y --upgrade ebusd
+  $STD apt --upgrade -y ebusd
   msg_ok "Updated ebusd"
   msg_ok "Updated successfully!"
   exit
