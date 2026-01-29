@@ -33,24 +33,8 @@
   },
   "notes": [
     {
-      "text": "The default install uses the latest stable release. Please use advanced install for more options.",
+      "text": "Once the script finishes, proceed with the OS installation via the console. For more details, please refer to this discussion: `https://github.com/community-scripts/ProxmoxVE/discussions/11344`",
       "type": "info"
-    },
-    {
-      "text": "8 GB of RAM is the minimum requirement, but 16 GB+ is recommended for optimal performance.",
-      "type": "info"
-    },
-    {
-      "text": "After installation, you will be prompted to unmount the media. To do this: Go to the VM's Hardware tab > select the CD/DVD Drive > Edit > select 'Do not use any media'",
-      "type": "info"
-    },
-    {
-      "text": "While you can import onboard disks during install, it is highly recommended to use an HBA to pass through disks for production environments.",
-      "type": "warning"
-    },
-    {
-      "text": "ECC RAM is strongly recommended to ensure data integrity, as ZFS checksumming can be compromised by bad data in RAM before the data is written to the pool.",
-      "type": "warning"
     }
   ]
 }
