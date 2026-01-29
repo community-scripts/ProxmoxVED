@@ -17,11 +17,18 @@ msg_info "Installing Dependencies"
 $STD apt install -y nginx
 msg_ok "Installed Dependencies"
 
-import_local_ip
 PG_VERSION="17" setup_postgresql
-PG_DB_NAME="databasus" PG_DB_USER="databasus" setup_postgresql_db
 setup_go
 NODE_VERSION="24" setup_nodejs
+
+msg_info "Installing Valkey"
+setup_deb822_repo "valkey" \
+  "https://greensec.github.io/valkey-debian/public.key" \
+  "https://greensec.github.io/valkey-debian/repo" \
+  "$(lsb_release -cs)" \
+  "main"
+$STD apt-get install -y valkey
+msg_ok "Installed Valkey"
 
 fetch_and_deploy_gh_release "databasus" "databasus/databasus" "tarball" "latest" "/opt/databasus"
 
@@ -36,19 +43,17 @@ $STD go install github.com/swaggo/swag/cmd/swag@latest
 $STD /root/go/bin/swag init -g cmd/main.go -o swagger
 $STD env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o databasus ./cmd/main.go
 mv /opt/databasus/backend/databasus /opt/databasus/databasus
-mkdir -p /opt/databasus_data/{data,backups,logs}
-mkdir -p /databasus-data/temp
+mkdir -p /databasus-data/{pgdata,temp,backups,data,logs}
 mkdir -p /opt/databasus/ui/build
+mkdir -p /opt/databasus/migrations
 cp -r /opt/databasus/frontend/dist/* /opt/databasus/ui/build/
-cp -r /opt/databasus/backend/migrations /opt/databasus/
-chown -R postgres:postgres /opt/databasus
-chown -R postgres:postgres /opt/databasus_data
+cp -r /opt/databasus/backend/migrations/* /opt/databasus/migrations/
 chown -R postgres:postgres /databasus-data
 msg_ok "Built Databasus"
 
 msg_info "Configuring Databasus"
-ADMIN_PASS=$(openssl rand -base64 12)
 JWT_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
 
 # Create PostgreSQL version symlinks for compatibility
 for v in 12 13 14 15 16 18; do
@@ -67,50 +72,54 @@ ENV_MODE=production
 SERVER_PORT=4005
 SERVER_HOST=0.0.0.0
 
-# Database (Internal PostgreSQL for app data)
-DATABASE_DSN=host=localhost user=${PG_DB_USER} password=${PG_DB_PASS} dbname=${PG_DB_NAME} port=5432 sslmode=disable
-DATABASE_URL=postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}?sslmode=disable
+# Database
+DATABASE_DSN=host=localhost user=postgres password=postgres dbname=databasus port=5432 sslmode=disable
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/databasus?sslmode=disable
 
 # Migrations
 GOOSE_DRIVER=postgres
-GOOSE_DBSTRING=postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}?sslmode=disable
+GOOSE_DBSTRING=postgres://postgres:postgres@localhost:5432/databasus?sslmode=disable
 GOOSE_MIGRATION_DIR=/opt/databasus/migrations
 
 # Security
 JWT_SECRET=${JWT_SECRET}
-ENCRYPTION_KEY=$(openssl rand -hex 32)
-
-# Admin User
-ADMIN_EMAIL=admin@localhost
-ADMIN_PASSWORD=${ADMIN_PASS}
+ENCRYPTION_KEY=${ENCRYPTION_KEY}
 
 # Paths
-DATA_DIR=/opt/databasus_data/data
-BACKUP_DIR=/opt/databasus_data/backups
-LOG_DIR=/opt/databasus_data/logs
-
-# PostgreSQL Tools (for creating backups)
-PG_DUMP_PATH=/usr/lib/postgresql/17/bin/pg_dump
-PG_RESTORE_PATH=/usr/lib/postgresql/17/bin/pg_restore
-PSQL_PATH=/usr/lib/postgresql/17/bin/psql
+DATA_DIR=/databasus-data/data
+BACKUP_DIR=/databasus-data/backups
+LOG_DIR=/databasus-data/logs
 EOF
 chown postgres:postgres /opt/databasus/.env
 chmod 600 /opt/databasus/.env
 msg_ok "Configured Databasus"
 
+msg_info "Configuring Valkey"
+cat >/etc/valkey/valkey.conf <<EOF
+port 6379
+bind 127.0.0.1
+protected-mode yes
+save ""
+maxmemory 256mb
+maxmemory-policy allkeys-lru
+EOF
+$STD systemctl enable -q --now valkey
+msg_ok "Configured Valkey"
+
+msg_info "Creating Database"
+$STD sudo -u postgres psql -c "CREATE DATABASE databasus;" 2>/dev/null || true
+msg_ok "Created Database"
+
 msg_info "Creating Databasus Service"
 cat <<EOF >/etc/systemd/system/databasus.service
 [Unit]
-Description=Databasus - PostgreSQL Backup Management
-After=network.target postgresql.service
-Requires=postgresql.service
+Description=Databasus - Database Backup Management
+After=network.target postgresql.service valkey.service
+Requires=postgresql.service valkey.service
 
 [Service]
 Type=simple
-User=postgres
-Group=postgres
 WorkingDirectory=/opt/databasus
-Environment="PATH=/usr/local/bin:/usr/bin:/bin"
 EnvironmentFile=/opt/databasus/.env
 ExecStart=/opt/databasus/databasus
 Restart=always
