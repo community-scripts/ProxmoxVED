@@ -73,9 +73,6 @@ function error_handler() {
   cleanup_vmid
 }
 
-# Scrapes the TrueNAS download portal for ISO paths from the current and previous year,
-# filtering out nightlies/alphas and returning the latest stable releases for each major
-# version along with any beta or RC pre-releases.
 function truenas_iso_lookup() {
   local BASE_URL="https://download.truenas.com"
   local current_year=$(date +%y)
@@ -184,13 +181,10 @@ function check_root() {
   fi
 }
 
-# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-# Supported: Proxmox VE 8.0.x – 8.9.x and 9.0 – 9.1
 pve_check() {
   local PVE_VER
   PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
 
-  # Check for Proxmox VE 8.x: allow 8.0–8.9
   if [[ "$PVE_VER" =~ ^8\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
     if ((MINOR < 0 || MINOR > 9)); then
@@ -201,7 +195,6 @@ pve_check() {
     return 0
   fi
 
-  # Check for Proxmox VE 9.x: allow 9.0–9.1
   if [[ "$PVE_VER" =~ ^9\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
     if ((MINOR < 0 || MINOR > 1)); then
@@ -212,7 +205,6 @@ pve_check() {
     return 0
   fi
 
-  # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
   msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0 – 9.1"
   exit 1
@@ -299,7 +291,6 @@ function advanced_settings() {
     fi
   done
 
-  # Fetching iso list from TrueNAS downloads for whiptail radiolist
   ISOARRAY=()
   while read -r ISOPATH; do
     FILENAME=$(basename "$ISOPATH")
@@ -504,7 +495,6 @@ msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
 
 if [ -z "${SELECTED_ISO:-}" ]; then
-  # Fallback: Find the latest stable release only (excluding RC/BETA for safety)
   SELECTED_ISO=$(truenas_iso_lookup | grep -vE 'RC|BETA' | sort -V | tail -n 1)
 
   if [ -z "$SELECTED_ISO" ]; then
@@ -535,7 +525,6 @@ qm create "$VMID" -machine q35 -bios ovmf -agent enabled=1 -tablet 0 -localtime 
   -scsihw virtio-scsi-single -cdrom local:iso/$ISO_NAME -vga virtio >/dev/null
 msg_ok "Created VM shell"
 
-# Optional step to import onboard disks
 if [ "$IMPORT_DISKS" == "yes" ]; then
   msg_info "Importing onboard disks"
   DISKARRAY=()
