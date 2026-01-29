@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-29T02:41:18Z",
+  "generated": "2026-01-29T06:59:25Z",
   "versions": [
     {
       "slug": "affine",
@@ -81,9 +81,9 @@
     {
       "slug": "opencloud",
       "repo": "opencloud-eu/opencloud",
-      "version": "v5.0.0",
+      "version": "v5.0.1",
       "pinned": true,
-      "date": "2026-01-26T15:58:00Z"
+      "date": "2026-01-28T15:08:23Z"
     },
     {
       "slug": "piler",
