@@ -13,17 +13,17 @@
     "website": "https://anytype.io/",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/anytype.webp",
     "config_path": "/opt/anytype/.env",
-    "description": "Anytype is a local-first, privacy-focused alternative to Notion. This script deploys the any-sync-bundle which provides a self-hosted sync server for Anytype clients with embedded MongoDB and Redis.",
+    "description": "Anytype is a local-first, privacy-focused alternative to Notion. This script deploys the any-sync-bundle which provides a self-hosted sync server for Anytype clients with external MongoDB and Redis Stack.",
     "install_methods": [
         {
             "type": "default",
             "script": "ct/anytype.sh",
             "resources": {
                 "cpu": 2,
-                "ram": 2048,
-                "hdd": 10,
-                "os": "Debian",
-                "version": "13"
+                "ram": 4096,
+                "hdd": 16,
+                "os": "Ubuntu",
+                "version": "24.04"
             }
         }
     ],
