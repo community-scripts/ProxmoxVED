@@ -5,6 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.cloudflare.com/
 
+# shellcheck disable=SC1091
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
