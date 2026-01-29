@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-28T18:48:06Z",
+  "generated": "2026-01-29T02:41:18Z",
   "versions": [
     {
       "slug": "affine",
@@ -32,9 +32,9 @@
     {
       "slug": "frigate",
       "repo": "blakeblackshear/frigate",
-      "version": "v0.16.3",
+      "version": "v0.16.4",
       "pinned": false,
-      "date": "2025-12-06T18:15:00Z"
+      "date": "2026-01-29T00:42:14Z"
     },
     {
       "slug": "hoodik",
