@@ -46,7 +46,8 @@ error_log="/var/log/\$name.err"
 command="/usr/bin/cloudflared"
 EOF
 
-if [ -z "$TOKEN" ]; then
+
+if [ -z "${TOKEN:-}" ]; then
   mkdir -p "$CONFIG_PATH"
   # Create empty config file so permissions are correct and users can find it
   echo "tunnel: proxmoxve" >"$CONFIG_PATH/config.yml"
@@ -78,7 +79,7 @@ else
 fi
 
 # Start service now if externally managed, otherwise user needs to setup config first.
-if [ -n "$TOKEN" ]; then
+if [ -n "${TOKEN:-}" ]; then
   msg_info "Starting $APPLICATION service"
   if $STD rc-service cloudflared start; then
     msg_ok "$APPLICATION service Running"
