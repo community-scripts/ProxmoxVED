@@ -14,21 +14,14 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y nginx
+$STD apt install -y \
+    nginx \
+    valkey
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
 setup_go
 NODE_VERSION="24" setup_nodejs
-
-msg_info "Installing Valkey"
-setup_deb822_repo "valkey" \
-  "https://greensec.github.io/valkey-debian/public.key" \
-  "https://greensec.github.io/valkey-debian/repo" \
-  "$(lsb_release -cs)" \
-  "main"
-$STD apt-get install -y valkey
-msg_ok "Installed Valkey"
 
 fetch_and_deploy_gh_release "databasus" "databasus/databasus" "tarball" "latest" "/opt/databasus"
 
