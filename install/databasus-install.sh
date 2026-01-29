@@ -74,6 +74,10 @@ GOOSE_DRIVER=postgres
 GOOSE_DBSTRING=postgres://postgres:postgres@localhost:5432/databasus?sslmode=disable
 GOOSE_MIGRATION_DIR=/opt/databasus/migrations
 
+# Valkey (Redis-compatible cache)
+VALKEY_HOST=localhost
+VALKEY_PORT=6379
+
 # Security
 JWT_SECRET=${JWT_SECRET}
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
@@ -101,6 +105,13 @@ systemctl restart valkey-server
 msg_ok "Configured Valkey"
 
 msg_info "Creating Database"
+# Configure PostgreSQL to allow local password auth for databasus
+PG_HBA="/etc/postgresql/17/main/pg_hba.conf"
+if ! grep -q "databasus" "$PG_HBA"; then
+  sed -i '/^local\s*all\s*all/i local   databasus   postgres                                trust' "$PG_HBA"
+  sed -i '/^host\s*all\s*all\s*127/i host    databasus   postgres        127.0.0.1/32            trust' "$PG_HBA"
+  systemctl reload postgresql
+fi
 $STD sudo -u postgres psql -c "CREATE DATABASE databasus;" 2>/dev/null || true
 msg_ok "Created Database"
 
