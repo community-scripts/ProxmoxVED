@@ -224,9 +224,9 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
 
 ### Helper Utilities
 
-| Function | Description | Example |
-|----------|-------------|----------|
-| `import_local_ip` | Sets `$LOCAL_IP` variable | `import_local_ip` |
+| Function/Variable | Description | Example |
+|-------------------|-------------|----------|
+| `$LOCAL_IP` | Always available - contains the container's IP address | `echo "Access: http://${LOCAL_IP}:3000"` |
 | `ensure_dependencies` | Checks/installs dependencies | `ensure_dependencies curl jq` |
 | `install_packages_with_retry` | APT install with retry | `install_packages_with_retry nginx redis` |
 
