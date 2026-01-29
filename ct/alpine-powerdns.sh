@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
-# Source: https://github.com/orhun/rustypaste
+# Author: Slaviša Arežina (tremor021)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://www.powerdns.com/
 
 APP="Alpine-PowerDNS"
 var_tags="${var_tags:-os;alpine;dns}"
