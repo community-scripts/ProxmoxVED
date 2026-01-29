@@ -40,8 +40,15 @@ if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
   read -r -p "${TAB3}Use TLS-only mode (disable TCP port 6379)? [y/N]: " tls_only
   msg_info "Configuring TLS for Valkey..."
 
-  create_self_signed_cert "Valkey"
   TLS_DIR="/etc/ssl/valkey"
+  mkdir -p "$TLS_DIR"
+  $STD openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 \
+    -subj "/CN=Valkey" \
+    -addext "subjectAltName=DNS:Valkey" \
+    -keyout "$TLS_DIR/valkey.key" \
+    -out "$TLS_DIR/valkey.crt"
+  chmod 600 "$TLS_DIR/valkey.key"
+  chmod 644 "$TLS_DIR/valkey.crt"
   chown valkey:valkey "$TLS_DIR/valkey.crt" "$TLS_DIR/valkey.key"
 
   if [[ ${tls_only,,} =~ ^(y|yes)$ ]]; then
