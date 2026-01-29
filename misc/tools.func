@@ -1564,6 +1564,77 @@ check_for_gh_release() {
 }
 
 # ------------------------------------------------------------------------------
+# Checks if a pinned GitHub tag exists and compares to local version.
+#
+# Description:
+#   - For tags that are NOT releases (e.g., hotfix tags)
+#   - Checks if the specified tag exists via Git refs API
+#   - Compares to local cached version (~/.<app>)
+#   - If newer, sets global CHECK_UPDATE_RELEASE and returns 0
+#
+# Usage:
+#     if check_for_gh_tag "immich" "immich-app/immich" "v2.5.2"; then
+#       # trigger update...
+#     fi
+#
+# Notes:
+#   - Requires explicit tag (no 'latest' support - use check_for_gh_release for that)
+#   - Sets CHECK_UPDATE_RELEASE to the tag name if update is needed
+# ------------------------------------------------------------------------------
+check_for_gh_tag() {
+  local app="$1"
+  local source="$2"
+  local pinned_tag="$3"
+  local app_lc="${app,,}"
+  local current_file="$HOME/.${app_lc}"
+
+  if [[ -z "$pinned_tag" ]]; then
+    msg_error "check_for_gh_tag requires a pinned tag version"
+    return 1
+  fi
+
+  msg_info "Checking for update: ${app} (tag: ${pinned_tag})"
+
+  # DNS check
+  if ! getent hosts api.github.com >/dev/null 2>&1; then
+    msg_error "Network error: cannot resolve api.github.com"
+    return 1
+  fi
+
+  ensure_dependencies jq
+
+  # Check if tag exists via Git refs API
+  local tag_check
+  tag_check=$(curl -fsSL --max-time 20 \
+    -H 'Accept: application/vnd.github+json' \
+    -H 'X-GitHub-Api-Version: 2022-11-28' \
+    "https://api.github.com/repos/${source}/git/refs/tags/${pinned_tag}" 2>/dev/null)
+
+  if [[ $? -ne 0 ]] || [[ -z "$tag_check" ]] || echo "$tag_check" | jq -e '.message' &>/dev/null; then
+    msg_error "Tag ${pinned_tag} not found in ${source}"
+    return 1
+  fi
+
+  local pin_clean="${pinned_tag#v}"
+
+  # Current installed version
+  local current=""
+  if [[ -f "$current_file" ]]; then
+    current="$(<"$current_file")"
+  fi
+  current="${current#v}"
+
+  if [[ "$current" != "$pin_clean" ]]; then
+    CHECK_UPDATE_RELEASE="$pinned_tag"
+    msg_ok "Update available: ${app} ${current:-not installed} → ${pin_clean}"
+    return 0
+  fi
+
+  msg_ok "No update available: ${app} is already on version (${current})"
+  return 1
+}
+
+# ------------------------------------------------------------------------------
 # Creates and installs self-signed certificates.
 #
 # Description:
@@ -1694,12 +1765,15 @@ function ensure_usr_local_bin_persist() {
 #
 #   # 4. Single binary (chmod +x) like Argus, Promtail etc.
 #   fetch_and_deploy_gh_release "argus" "release-argus/Argus" "singlefile" "0.26.3" "/opt/argus" "Argus-.*linux-amd64"
+#
+#   # 5. Git tag (not a release) - bypasses Release API, fetches tarball directly from tag
+#   fetch_and_deploy_gh_release "immich" "immich-app/immich" "tag" "v2.5.2" "/opt/immich/source"
 # ------------------------------------------------------------------------------
 
 function fetch_and_deploy_gh_release() {
   local app="$1"
   local repo="$2"
-  local mode="${3:-tarball}" # tarball | binary | prebuild | singlefile
+  local mode="${3:-tarball}" # tarball | binary | prebuild | singlefile | tag
   local version="${4:-latest}"
   local target="${5:-/opt/$app}"
   local asset_pattern="${6:-}"
@@ -1714,6 +1788,81 @@ function fetch_and_deploy_gh_release() {
   [[ -f "$version_file" ]] && current_version=$(<"$version_file")
 
   ensure_dependencies jq
+
+  ### Tag Mode (bypass Release API) ###
+  if [[ "$mode" == "tag" ]]; then
+    if [[ "$version" == "latest" ]]; then
+      msg_error "Mode 'tag' requires explicit version (not 'latest')"
+      return 1
+    fi
+
+    local tag_name="$version"
+    [[ "$tag_name" =~ ^v ]] && version="${tag_name:1}" || version="$tag_name"
+
+    if [[ "$current_version" == "$version" ]]; then
+      $STD msg_ok "$app is already up-to-date (v$version)"
+      return 0
+    fi
+
+    # DNS check
+    if ! getent hosts "github.com" &>/dev/null; then
+      msg_error "DNS resolution failed for github.com – check /etc/resolv.conf or networking"
+      return 1
+    fi
+
+    local tmpdir
+    tmpdir=$(mktemp -d) || return 1
+
+    msg_info "Fetching GitHub tag: $app ($tag_name)"
+
+    local safe_version="${version//@/_}"
+    safe_version="${safe_version//\//_}"
+    local filename="${app_lc}-${safe_version}.tar.gz"
+    local download_success=false
+
+    # For tags with special characters (@, /), use codeload.github.com
+    if [[ "$tag_name" =~ [@/] ]]; then
+      local codeload_encoded="${tag_name//@/%40}"
+      local codeload_url="https://codeload.github.com/$repo/tar.gz/refs/tags/$codeload_encoded"
+      if curl $download_timeout -fsSL -o "$tmpdir/$filename" "$codeload_url"; then
+        download_success=true
+      fi
+    else
+      local direct_tarball_url="https://github.com/$repo/archive/refs/tags/${tag_name}.tar.gz"
+      if curl $download_timeout -fsSL -o "$tmpdir/$filename" "$direct_tarball_url"; then
+        download_success=true
+      fi
+    fi
+
+    if [[ "$download_success" != "true" ]]; then
+      msg_error "Download failed for $app ($tag_name)"
+      rm -rf "$tmpdir"
+      return 1
+    fi
+
+    mkdir -p "$target"
+    if [[ "${CLEAN_INSTALL:-0}" == "1" ]]; then
+      rm -rf "${target:?}/"*
+    fi
+
+    tar --no-same-owner -xzf "$tmpdir/$filename" -C "$tmpdir" || {
+      msg_error "Failed to extract tarball"
+      rm -rf "$tmpdir"
+      return 1
+    }
+
+    local unpack_dir
+    unpack_dir=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -n1)
+
+    shopt -s dotglob nullglob
+    cp -r "$unpack_dir"/* "$target/"
+    shopt -u dotglob nullglob
+
+    echo "$version" >"$version_file"
+    msg_ok "Deployed: $app ($version)"
+    rm -rf "$tmpdir"
+    return 0
+  fi
 
   local api_url="https://api.github.com/repos/$repo/releases"
   [[ "$version" != "latest" ]] && api_url="$api_url/tags/$version" || api_url="$api_url/latest"

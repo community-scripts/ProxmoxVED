@@ -112,8 +112,8 @@ EOF
     msg_ok "Image-processing libraries up to date"
   fi
 
-  RELEASE="2.5.0"
-  if check_for_gh_release "immich" "immich-app/immich" "${RELEASE}"; then
+  RELEASE="v2.5.2"
+  if check_for_gh_tag "immich" "immich-app/immich" "${RELEASE}"; then
     msg_info "Stopping Services"
     systemctl stop immich-web
     systemctl stop immich-ml
@@ -165,7 +165,7 @@ EOF
       rm -rf "${APP_DIR:?}"/*
     )
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "immich" "immich-app/immich" "tarball" "v${RELEASE}" "$SRC_DIR"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "immich" "immich-app/immich" "tag" "${RELEASE}" "$SRC_DIR"
 
     msg_info "Updating Immich web and microservices"
     cd "$SRC_DIR"/server
