@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-29T02:41:18Z",
+  "generated": "2026-01-29T13:15:05Z",
   "versions": [
     {
       "slug": "affine",
@@ -14,6 +14,13 @@
       "version": "7.8.0",
       "pinned": false,
       "date": "2025-12-22T04:23:45Z"
+    },
+    {
+      "slug": "anytype",
+      "repo": "grishy/any-sync-bundle",
+      "version": "v1.2.1-2025-12-10",
+      "pinned": false,
+      "date": "2025-12-24T20:40:15Z"
     },
     {
       "slug": "databasus",
@@ -81,9 +88,9 @@
     {
       "slug": "opencloud",
       "repo": "opencloud-eu/opencloud",
-      "version": "v5.0.0",
+      "version": "v5.0.1",
       "pinned": true,
-      "date": "2026-01-26T15:58:00Z"
+      "date": "2026-01-28T15:08:23Z"
     },
     {
       "slug": "piler",
