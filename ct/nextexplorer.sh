@@ -54,6 +54,7 @@ function update_script() {
     mv backend/{node_modules,src,package.json} "$APP_DIR"
     mv frontend/dist/ "$APP_DIR"/src/public
     chown -R explorer:explorer "$APP_DIR" /etc/nextExplorer
+    sed -i "\|version|s|$(jq -cr '.version' ${APP_DIR}/package.json)|$(cat ~/.nextexplorer)|" "$APP_DIR"/package.json
     msg_ok "Updated nextExplorer"
 
     msg_info "Starting nextExplorer"
