@@ -96,7 +96,8 @@ save ""
 maxmemory 256mb
 maxmemory-policy allkeys-lru
 EOF
-$STD systemctl enable -q --now valkey
+systemctl enable -q --now valkey-server
+systemctl restart valkey-server
 msg_ok "Configured Valkey"
 
 msg_info "Creating Database"
