@@ -24,7 +24,7 @@ msg_ok "Installed dependencies"
 NODE_VERSION="24" NODE_MODULE="pnpm" setup_nodejs
 fetch_and_deploy_gh_release "wishlist" "cmintey/wishlist" "tarball"
 LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist" false)
-import_local_ip
+
 
 msg_info "Installing Wishlist"
 cd /opt/wishlist

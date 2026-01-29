@@ -14,7 +14,7 @@ update_os
 
 msg_info "Setup Functions"
 setup_local_ip_helper
-import_local_ip
+
 msg_ok "Setup Functions"
 
 msg_info "Installing Dependencies (Patience)"
