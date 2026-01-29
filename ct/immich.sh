@@ -217,9 +217,16 @@ EOF
     export VIRTUAL_ENV="${ML_DIR}"/ml-venv
     if [[ -f ~/.openvino ]]; then
       msg_info "Updating HW-accelerated machine-learning"
-      $STD uv add --no-sync --optional openvino onnxruntime-openvino==1.20.0 --active -n -p python3.12 --managed-python
-      $STD sudo --preserve-env=VIRTUAL_ENV -nu immich uv sync --extra openvino --no-dev --active --link-mode copy -n -p python3.12 --managed-python
-      patchelf --clear-execstack "${VIRTUAL_ENV}/lib/python3.12/site-packages/onnxruntime/capi/onnxruntime_pybind11_state.cpython-312-x86_64-linux-gnu.so"
+      # Remove old venv if Python version changed (3.12 -> 3.13)
+      if [[ -d "${VIRTUAL_ENV}" ]] && ! "${VIRTUAL_ENV}/bin/python3" --version 2>/dev/null | grep -q "3.13"; then
+        rm -rf "${VIRTUAL_ENV}"
+      fi
+      $STD sudo --preserve-env=VIRTUAL_ENV -nu immich uv sync --extra openvino --no-dev --active --link-mode copy -n -p python3.13 --managed-python
+      patchelf --clear-execstack "${VIRTUAL_ENV}/lib/python3.13/site-packages/onnxruntime/capi/onnxruntime_pybind11_state.cpython-313-x86_64-linux-gnu.so"
+      # Add workaround for onnxruntime-openvino 1.23.x crash if not present
+      if ! grep -q "MACHINE_LEARNING_OPENVINO_NUM_THREADS" "$INSTALL_DIR/.env" 2>/dev/null; then
+        sed -i '/MACHINE_LEARNING_CACHE_FOLDER/a ## - For OpenVINO only - workaround for onnxruntime-openvino 1.23.x crash\n## - See: https://github.com/immich-app/immich/pull/11240\nMACHINE_LEARNING_OPENVINO_NUM_THREADS=$(nproc)' "$INSTALL_DIR/.env"
+      fi
       msg_ok "Updated HW-accelerated machine-learning"
     else
       msg_info "Updating machine-learning"
