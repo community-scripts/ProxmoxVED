@@ -17,7 +17,7 @@ msg_info "Installing Valkey"
 $STD apk add valkey valkey-openrc valkey-cli
 sed -i 's/^bind .*/bind 0.0.0.0/' /etc/valkey/valkey.conf
 
-PASS="$(tr -dc 'a-zA-Z0-9' </dev/urandom | head -c32)"
+PASS="$(head -c 100 /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c32)"
 echo "requirepass $PASS" >>/etc/valkey/valkey.conf
 echo "$PASS" >~/valkey.creds
 chmod 600 ~/valkey.creds
