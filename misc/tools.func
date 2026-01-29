@@ -1692,7 +1692,11 @@ function download_with_progress() {
 
   # Content-Length aus HTTP-Header holen
   local content_length
-  content_length=$(curl -fsSLI "$url" | awk '/Content-Length/ {print $2}' | tr -d '\r' || true)
+  content_length=$(
+    curl -fsSLI "$url" 2>/dev/null |
+      awk '(tolower($1) ~ /^content-length:/) && ($2 + 0 > 0) {print $2+0}' |
+      tail -1 | tr -cd '[:digit:]' || true
+  )
 
   if [[ -z "$content_length" ]]; then
     if ! curl -fL# -o "$output" "$url"; then
@@ -6205,4 +6209,3 @@ function fetch_and_deploy_archive() {
   msg_ok "Successfully deployed archive to $directory"
   return 0
 }
-
