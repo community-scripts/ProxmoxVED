@@ -13,48 +13,48 @@ setting_up_container
 network_check
 update_os
 
-echo -e "${TAB3}${INFO}${YW} Leave empty to use IP-based localhost mode (no Collabora)${CL}"
 read -r -p "${TAB3}Enter the hostname of your OpenCloud server (eg cloud.domain.tld): " oc_host
-
-if [[ -z "$oc_host" ]]; then
-  # Localhost/IP mode - no TLS, no Collabora
-  OC_HOST="${LOCAL_IP}"
-  LOCALHOST_MODE=true
-  msg_info "Using localhost mode with IP: ${LOCAL_IP}"
-  msg_warn "Collabora requires TLS and will be skipped in localhost mode"
-else
+if [[ "$oc_host" ]]; then
   OC_HOST="$oc_host"
-  LOCALHOST_MODE=false
-  read -r -p "${TAB3}Enter the hostname of your Collabora server [collabora.${OC_HOST#*.}]: " collabora_host
-  COLLABORA_HOST="${collabora_host:-collabora.${OC_HOST#*.}}"
-  read -r -p "${TAB3}Enter the hostname of your WOPI server [wopiserver.${OC_HOST#*.}]: " wopi_host
-  WOPI_HOST="${wopi_host:-wopiserver.${OC_HOST#*.}}"
+fi
+read -r -p "${TAB3}Enter the hostname of your Collabora server (eg collabora.domain.tld): " collabora_host
+if [[ "$collabora_host" ]]; then
+  COLLABORA_HOST="$collabora_host"
+fi
+read -r -p "${TAB3}Enter the hostname of your WOPI server (eg wopiserver.domain.tld): " wopi_host
+if [[ "$wopi_host" ]]; then
+  WOPI_HOST="$wopi_host"
 fi
 
-# Collabora Online - only install if not in localhost mode (requires TLS)
-if [[ "$LOCALHOST_MODE" != true ]]; then
-  msg_info "Installing Collabora Online"
-  curl -fsSL https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg -o /etc/apt/keyrings/collaboraonline-release-keyring.gpg
-  cat <<EOF >/etc/apt/sources.list.d/collaboraonline.sources
+# Collabora online - this is broken because it adds the Component and apt doesn't like that
+# setup_deb822_repo \
+#   "collaboraonline" \
+#   "https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg" \
+#   "https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb/Release" \
+#   "./" \
+#   "main"
+
+msg_info "Installing Collabora Online"
+curl -fsSL https://collaboraoffice.com/downloads/gpg/collaboraonline-release-keyring.gpg -o /etc/apt/keyrings/collaboraonline-release-keyring.gpg
+cat <<EOF >/etc/apt/sources.list.d/colloboraonline.sources
 Types: deb
 URIs: https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-deb
 Suites: ./
 Signed-By: /etc/apt/keyrings/collaboraonline-release-keyring.gpg
 EOF
-  $STD apt-get update
-  $STD apt-get install -y coolwsd code-brand
-  systemctl stop coolwsd
-  mkdir -p /etc/systemd/system/coolwsd.service.d
-  cat <<EOF >/etc/systemd/system/coolwsd.service.d/override.conf
+$STD apt-get update
+$STD apt-get install -y coolwsd code-brand
+systemctl stop coolwsd
+mkdir -p /etc/systemd/system/coolwsd.service.d
+cat <<EOF >/etc/systemd/system/coolwsd.service.d/override.conf
 [Unit]
 Before=opencloud-wopi.service
 EOF
-  systemctl daemon-reload
-  COOLPASS="$(openssl rand -base64 36)"
-  $STD runuser -u cool -- coolconfig set-admin-password --user=admin --password="$COOLPASS"
-  echo "$COOLPASS" >~/.coolpass
-  msg_ok "Installed Collabora Online"
-fi
+systemctl daemon-reload
+COOLPASS="$(openssl rand -base64 36)"
+$STD sudo -u cool coolconfig set-admin-password --user=admin --password="$COOLPASS"
+echo "$COOLPASS" >~/.coolpass
+msg_ok "Installed Collabora Online"
 
 # OpenCloud
 fetch_and_deploy_gh_release "opencloud" "opencloud-eu/opencloud" "singlefile" "v5.0.1" "/usr/bin" "opencloud-*-linux-amd64"
@@ -68,17 +68,9 @@ mkdir -p "$DATA_DIR" "$CONFIG_DIR"/assets/apps
 curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/csp.yaml -o "$CONFIG_DIR"/csp.yaml
 curl -fsSL https://raw.githubusercontent.com/opencloud-eu/opencloud-compose/refs/heads/main/config/opencloud/proxy.yaml -o "$CONFIG_DIR"/proxy.yaml.bak
 
-if [[ "$LOCALHOST_MODE" == true ]]; then
-  OC_URL="http://${OC_HOST}:9200"
-  OC_INSECURE="true"
-else
-  OC_URL="https://${OC_HOST}"
-  OC_INSECURE="false"
-fi
-
 cat <<EOF >"$ENV_FILE"
-OC_URL=${OC_URL}
-OC_INSECURE=${OC_INSECURE}
+OC_URL=https://${OC_HOST}
+OC_INSECURE=false
 IDM_CREATE_DEMO_USERS=false
 OC_LOG_LEVEL=warning
 OC_CONFIG_DIR=${CONFIG_DIR}
@@ -101,15 +93,15 @@ GRAPH_INCLUDE_OCM_SHAREES=true
 PROXY_TLS=false
 PROXY_CSP_CONFIG_FILE_LOCATION=${CONFIG_DIR}/csp.yaml
 
-## Collaboration - requires VALID TLS (disabled in localhost mode)
-# COLLABORA_DOMAIN=
-# COLLABORATION_APP_NAME="CollaboraOnline"
-# COLLABORATION_APP_PRODUCT="Collabora"
-# COLLABORATION_APP_ADDR=
-# COLLABORATION_APP_INSECURE=false
-# COLLABORATION_HTTP_ADDR=0.0.0.0:9300
-# COLLABORATION_WOPI_SRC=
-# COLLABORATION_JWT_SECRET=
+## Collaboration - requires VALID TLS
+COLLABORA_DOMAIN=${COLLABORA_HOST}
+COLLABORATION_APP_NAME="CollaboraOnline"
+COLLABORATION_APP_PRODUCT="Collabora"
+COLLABORATION_APP_ADDR=https://${COLLABORA_HOST}
+COLLABORATION_APP_INSECURE=false
+COLLABORATION_HTTP_ADDR=0.0.0.0:9300
+COLLABORATION_WOPI_SRC=https://${WOPI_HOST}
+COLLABORATION_JWT_SECRET=
 
 ## Notifications - Email settings
 # NOTIFICATIONS_SMTP_HOST=
@@ -174,8 +166,7 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
-if [[ "$LOCALHOST_MODE" != true ]]; then
-  cat <<EOF >/etc/systemd/system/opencloud-wopi.service
+cat <<EOF >/etc/systemd/system/opencloud-wopi.service
 [Unit]
 Description=OpenCloud WOPI Server
 Wants=coolwsd.service
@@ -197,49 +188,21 @@ TimeoutStopSec=10
 WantedBy=multi-user.target
 EOF
 
-  # Append active Collabora config to env file
-  cat <<EOF >>"$ENV_FILE"
-
-## Collaboration - active configuration
-COLLABORA_DOMAIN=${COLLABORA_HOST}
-COLLABORATION_APP_NAME="CollaboraOnline"
-COLLABORATION_APP_PRODUCT="Collabora"
-COLLABORATION_APP_ADDR=https://${COLLABORA_HOST}
-COLLABORATION_APP_INSECURE=false
-COLLABORATION_HTTP_ADDR=0.0.0.0:9300
-COLLABORATION_WOPI_SRC=https://${WOPI_HOST}
-COLLABORATION_JWT_SECRET=
-EOF
-
-  $STD runuser -u cool -- coolconfig set ssl.enable false
-  $STD runuser -u cool -- coolconfig set ssl.termination true
-  $STD runuser -u cool -- coolconfig set ssl.ssl_verification true
-  sed -i "s|CSP2\"/>|CSP2\">frame-ancestors https://${OC_HOST}</content_security_policy>|" /etc/coolwsd/coolwsd.xml
-fi
-
+$STD sudo -u cool coolconfig set ssl.enable false
+$STD sudo -u cool coolconfig set ssl.termination true
+$STD sudo -u cool coolconfig set ssl.ssl_verification true
+sed -i "s|CSP2\"/>|CSP2\">frame-ancestors https://${OC_HOST}</content_security_policy>|" /etc/coolwsd/coolwsd.xml
 useradd -r -M -s /usr/sbin/nologin opencloud
 chown -R opencloud:opencloud "$CONFIG_DIR" "$DATA_DIR"
-
-if [[ "$LOCALHOST_MODE" == true ]]; then
-  $STD runuser -u opencloud -- opencloud init --config-path "$CONFIG_DIR" --insecure yes
-else
-  $STD runuser -u opencloud -- opencloud init --config-path "$CONFIG_DIR" --insecure no
-fi
-
+sudo -u opencloud opencloud init --config-path "$CONFIG_DIR" --insecure no
 OPENCLOUD_SECRET="$(sed -n '/jwt/p' "$CONFIG_DIR"/opencloud.yaml | awk '{print $2}')"
-if [[ "$LOCALHOST_MODE" != true ]]; then
-  sed -i "s/COLLABORATION_JWT_SECRET=/&${OPENCLOUD_SECRET//&/\\&}/" "$ENV_FILE"
-fi
+sed -i "s/JWT_SECRET=/&${OPENCLOUD_SECRET//&/\\&}/" "$ENV_FILE"
 msg_ok "Configured OpenCloud"
 
 msg_info "Starting services"
-if [[ "$LOCALHOST_MODE" == true ]]; then
-  systemctl enable -q --now opencloud
-else
-  systemctl enable -q --now coolwsd opencloud
-  sleep 5
-  systemctl enable -q --now opencloud-wopi
-fi
+systemctl enable -q --now coolwsd opencloud
+sleep 5
+systemctl enable -q --now opencloud-wopi
 msg_ok "Started services"
 
 motd_ssh
