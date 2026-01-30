@@ -522,7 +522,7 @@ msg_info "Creating TrueNAS VM shell"
 qm create "$VMID" -machine q35 -bios ovmf -agent enabled=1 -tablet 0 -localtime 1 -cpu "$CPU_TYPE" \
   -cores "$CORE_COUNT" -memory "$RAM_SIZE" -balloon 0 -name "$HN" -tags community-script \
   -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 \
-  -efidisk0 $STORAGE:1,efitype=4m,pre-enrolled-keys=0 -scsi0 $STORAGE:$DISK_SIZE,ssd=1,iothread=on \
+  -efidisk0 $STORAGE:1,efitype=4m,pre-enrolled-keys=0 -sata0 $STORAGE:$DISK_SIZE,ssd=1 \
   -scsihw virtio-scsi-single -cdrom local:iso/$ISO_NAME -vga virtio >/dev/null
 msg_ok "Created VM shell"
 
@@ -539,7 +539,11 @@ if [ "$IMPORT_DISKS" == "yes" ]; then
 
   for SELECTION in $SELECTIONS; do
     ((++SCSI_NR))
-    qm set $VMID --scsi$SCSI_NR /dev/disk/by-id/$SELECTION
+
+    ID_SERIAL=$(echo "$SELECTION" | rev | cut -d'_' -f1 | rev)
+    ID_SERIAL=${ID_SERIAL:0:20}
+
+    qm set $VMID --scsi$SCSI_NR /dev/disk/by-id/$SELECTION,serial=$ID_SERIAL
   done
   msg_ok "Disks imported successfully"
 fi
