@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-29T02:41:18Z",
+  "generated": "2026-01-30T07:00:55Z",
   "versions": [
     {
       "slug": "affine",
@@ -16,6 +16,13 @@
       "date": "2025-12-22T04:23:45Z"
     },
     {
+      "slug": "anytype",
+      "repo": "grishy/any-sync-bundle",
+      "version": "v1.2.1-2025-12-10",
+      "pinned": false,
+      "date": "2025-12-24T20:40:15Z"
+    },
+    {
       "slug": "databasus",
       "repo": "databasus/databasus",
       "version": "v3.7.0",
@@ -25,9 +32,9 @@
     {
       "slug": "ente",
       "repo": "ente-io/ente",
-      "version": "photos-v1.3.0",
+      "version": "photos-v1.3.7",
       "pinned": false,
-      "date": "2026-01-12T06:33:12Z"
+      "date": "2026-01-29T17:20:41Z"
     },
     {
       "slug": "frigate",
@@ -81,9 +88,9 @@
     {
       "slug": "opencloud",
       "repo": "opencloud-eu/opencloud",
-      "version": "v5.0.0",
+      "version": "v5.0.1",
       "pinned": true,
-      "date": "2026-01-26T15:58:00Z"
+      "date": "2026-01-28T15:08:23Z"
     },
     {
       "slug": "piler",
