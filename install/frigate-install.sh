@@ -15,38 +15,34 @@ network_check
 update_os
 
 source /etc/os-release
-if [[ "$VERSION_ID" == "12" ]]; then
-  DEBIAN_SUITE="bookworm"
-elif [[ "$VERSION_ID" == "13" ]]; then
-  DEBIAN_SUITE="trixie"
-else
-  msg_error "Unsupported Debian version: $VERSION_ID"
+if [[ "$VERSION_ID" != "12" ]]; then
+  msg_error "Frigate requires Debian 12 (Bookworm) due to Python 3.11 dependencies"
   exit 1
 fi
 
-msg_info "Configuring Debian $VERSION_ID ($DEBIAN_SUITE) Sources"
+msg_info "Configuring Debian Sources"
 rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list
 cat <<EOF >/etc/apt/sources.list.d/debian.sources
 Types: deb deb-src
 URIs: http://deb.debian.org/debian
-Suites: ${DEBIAN_SUITE}
+Suites: bookworm
 Components: main contrib non-free non-free-firmware
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 
 Types: deb deb-src
 URIs: http://deb.debian.org/debian
-Suites: ${DEBIAN_SUITE}-updates
+Suites: bookworm-updates
 Components: main contrib non-free non-free-firmware
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 
 Types: deb deb-src
 URIs: http://security.debian.org
-Suites: ${DEBIAN_SUITE}-security
+Suites: bookworm-security
 Components: main contrib non-free non-free-firmware
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
 $STD apt-get update
-msg_ok "Configured Debian $VERSION_ID Sources"
+msg_ok "Configured Debian Sources"
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
@@ -119,13 +115,6 @@ export HAILORT_LOGGER_PATH=NONE
 fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "latest" "/opt/frigate"
 
 msg_info "Building Nginx"
-# Patch build scripts for Debian 13 compatibility
-if [[ "$VERSION_ID" == "13" ]]; then
-  sed -i 's/\[[ "$VERSION_ID" == "12" \]\]/[[ "$VERSION_ID" =~ ^(12|13)$ ]]/g' /opt/frigate/docker/main/build_nginx.sh
-  sed -i 's/\[[ "$VERSION_ID" == "12" \]\]/[[ "$VERSION_ID" =~ ^(12|13)$ ]]/g' /opt/frigate/docker/main/build_sqlite_vec.sh
-  # Create empty sources.list if build scripts expect it
-  touch /etc/apt/sources.list
-fi
 $STD bash /opt/frigate/docker/main/build_nginx.sh
 sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
 ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
@@ -166,25 +155,12 @@ msg_ok "Installed Python Dependencies"
 
 msg_info "Building Python Wheels (Patience)"
 mkdir -p /wheels
-if [[ "$VERSION_ID" == "13" ]]; then
-  # Debian 13 (Python 3.12+): Use pre-built pysqlite3-binary instead of building from source
-  $STD pip3 install pysqlite3-binary
-  # Filter out incompatible wheels for Python 3.12
-  grep -v 'tflite_runtime' /opt/frigate/docker/main/requirements-wheels.txt > /tmp/requirements-wheels-filtered.txt
-  for i in {1..3}; do
-    $STD pip3 wheel --wheel-dir=/wheels -r /tmp/requirements-wheels-filtered.txt --default-timeout=300 --retries=3 && break
-    [[ $i -lt 3 ]] && sleep 10
-  done
-  # Install tflite-runtime from pip for Python 3.12
-  $STD pip3 install tflite-runtime || $STD pip3 install ai-edge-litert || true
-else
-  sed -i 's|^SQLITE3_VERSION=.*|SQLITE3_VERSION="version-3.46.0"|g' /opt/frigate/docker/main/build_pysqlite3.sh
-  $STD bash /opt/frigate/docker/main/build_pysqlite3.sh
-  for i in {1..3}; do
-    $STD pip3 wheel --wheel-dir=/wheels -r /opt/frigate/docker/main/requirements-wheels.txt --default-timeout=300 --retries=3 && break
-    [[ $i -lt 3 ]] && sleep 10
-  done
-fi
+sed -i 's|^SQLITE3_VERSION=.*|SQLITE3_VERSION="version-3.46.0"|g' /opt/frigate/docker/main/build_pysqlite3.sh
+$STD bash /opt/frigate/docker/main/build_pysqlite3.sh
+for i in {1..3}; do
+  $STD pip3 wheel --wheel-dir=/wheels -r /opt/frigate/docker/main/requirements-wheels.txt --default-timeout=300 --retries=3 && break
+  [[ $i -lt 3 ]] && sleep 10
+done
 msg_ok "Built Python Wheels"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
