@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "Show configuration instructions: `cat ~/ebusd-configuation-instructions.txt`",
+      "text": "For required post installation actions, checkout: `https://github.com/community-scripts/ProxmoxVE/discussions/11352`", 
       "type": "info"
     }
   ]
