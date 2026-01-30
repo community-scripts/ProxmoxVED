@@ -539,7 +539,10 @@ if [ "$IMPORT_DISKS" == "yes" ]; then
 
   for SELECTION in $SELECTIONS; do
     ((++SCSI_NR))
-    qm set $VMID --scsi$SCSI_NR /dev/disk/by-id/$SELECTION
+
+    ID_SERIAL=$(echo "$SELECTION" | rev | cut -d'_' -f1 | rev)
+
+    qm set $VMID --scsi$SCSI_NR /dev/disk/by-id/$SELECTION,serial=$ID_SERIAL
   done
   msg_ok "Disks imported successfully"
 fi
