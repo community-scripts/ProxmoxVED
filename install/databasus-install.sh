@@ -113,6 +113,7 @@ if ! grep -q "databasus" "$PG_HBA"; then
   systemctl reload postgresql
 fi
 $STD sudo -u postgres psql -c "CREATE DATABASE databasus;" 2>/dev/null || true
+$STD sudo -u postgres psql -c "ALTER USER postgres WITH SUPERUSER CREATEROLE CREATEDB;" 2>/dev/null || true
 msg_ok "Created Database"
 
 msg_info "Creating Databasus Service"

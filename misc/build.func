@@ -3870,18 +3870,7 @@ EOF
     sleep 3
   fi
 
-  # Continue with standard container setup
   msg_info "Customizing LXC Container"
-
-  # # Install GPU userland if configured
-  # if [[ "${ENABLE_VAAPI:-0}" == "1" ]]; then
-  #   install_gpu_userland "VAAPI"
-  # fi
-
-  # if [[ "${ENABLE_NVIDIA:-0}" == "1" ]]; then
-  #   install_gpu_userland "NVIDIA"
-  # fi
-
   # Continue with standard container setup
   if [ "$var_os" == "alpine" ]; then
     sleep 3
@@ -3893,11 +3882,20 @@ EOF'
   else
     sleep 3
     LANG=${LANG:-en_US.UTF-8}
-    pct exec "$CTID" -- bash -c "sed -i \"/$LANG/ s/^# //\" /etc/locale.gen"
-    pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
-    echo LANG=\$locale_line >/etc/default/locale && \
-    locale-gen >/dev/null && \
-    export LANG=\$locale_line"
+
+    # Devuan templates don't include locales package by default - install it first
+    if [ "$var_os" == "devuan" ]; then
+      pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y locales >/dev/null" || true
+    fi
+
+    # Only configure locale if locale.gen exists (some minimal templates don't have it)
+    if pct exec "$CTID" -- test -f /etc/locale.gen 2>/dev/null; then
+      pct exec "$CTID" -- bash -c "sed -i \"/$LANG/ s/^# //\" /etc/locale.gen"
+      pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
+      echo LANG=\$locale_line >/etc/default/locale && \
+      locale-gen >/dev/null && \
+      export LANG=\$locale_line"
+    fi
 
     if [[ -z "${tz:-}" ]]; then
       tz=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "UTC")
