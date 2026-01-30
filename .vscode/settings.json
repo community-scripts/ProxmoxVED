@@ -6,7 +6,7 @@
     "editor.defaultFormatter": "mkhl.shfmt"
   },
   "editor.codeActionsOnSave": {
-    "source.fixAll": "never",
+    "source.fixAll": "never"
   },
   "shellcheck.useWorkspaceRootAsCwd": true,
 }
