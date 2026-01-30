@@ -21,7 +21,8 @@ $STD apt-get install -y \
   jpegoptim \
   optipng \
   pngquant \
-  gifsicle
+  gifsicle \
+  libvips42
 msg_ok "Installed Dependencies"
 
 msg_info "Creating Pixelfed User"
@@ -32,7 +33,7 @@ msg_ok "Created Pixelfed User"
 
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="pixelfed" PG_DB_USER="pixelfed" setup_postgresql_db
-PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="bcmath,ctype,exif,imagick,pgsql,redis,tokenizer" PHP_UPLOAD_MAX_FILESIZE="500M" PHP_POST_MAX_SIZE="500M" PHP_MAX_EXECUTION_TIME="600" setup_php
+PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="bcmath,ctype,curl,exif,gd,imagick,intl,mbstring,pgsql,redis,xml,zip" PHP_UPLOAD_MAX_FILESIZE="500M" PHP_POST_MAX_SIZE="500M" PHP_MAX_EXECUTION_TIME="600" setup_php
 setup_composer
 
 msg_info "Configuring Redis"
@@ -40,7 +41,7 @@ REDIS_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 sed -i "s/^# requirepass foobared/requirepass $REDIS_PASS/" /etc/redis/redis.conf
 sed -i "s/^requirepass .*/requirepass $REDIS_PASS/" /etc/redis/redis.conf
 systemctl restart redis-server
-msg_ok "Redis configured"
+msg_ok "Configured Redis"
 
 msg_info "Configuring PHP-FPM Pool"
 cp /etc/php/8.4/fpm/pool.d/www.conf /etc/php/8.4/fpm/pool.d/pixelfed.conf
@@ -51,37 +52,82 @@ sed -i 's|^listen = .*|listen = /run/php/php8.4-fpm-pixelfed.sock|' /etc/php/8.4
 sed -i 's/^listen.owner = .*/listen.owner = www-data/' /etc/php/8.4/fpm/pool.d/pixelfed.conf
 sed -i 's/^listen.group = .*/listen.group = www-data/' /etc/php/8.4/fpm/pool.d/pixelfed.conf
 systemctl restart php8.4-fpm
-msg_ok "PHP-FPM Pool configured"
+msg_ok "Configured PHP-FPM Pool"
 
 fetch_and_deploy_gh_release "pixelfed" "pixelfed/pixelfed" "tarball" "latest" "/opt/pixelfed"
 
 msg_info "Installing Pixelfed (Patience)"
 cd /opt/pixelfed
-cp .env.example .env
-sed -i "s|APP_URL=.*|APP_URL=http://${LOCAL_IP}|" .env
-sed -i "s|APP_DOMAIN=.*|APP_DOMAIN=${LOCAL_IP}|" .env
-sed -i "s|ADMIN_DOMAIN=.*|ADMIN_DOMAIN=${LOCAL_IP}|" .env
-sed -i "s|SESSION_DOMAIN=.*|SESSION_DOMAIN=${LOCAL_IP}|" .env
-sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=pgsql|" .env
-sed -i "s|DB_HOST=.*|DB_HOST=127.0.0.1|" .env
-sed -i "s|DB_PORT=.*|DB_PORT=5432|" .env
-sed -i "s|DB_DATABASE=.*|DB_DATABASE=${PG_DB_NAME}|" .env
-sed -i "s|DB_USERNAME=.*|DB_USERNAME=${PG_DB_USER}|" .env
-sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
-sed -i "s|REDIS_HOST=.*|REDIS_HOST=127.0.0.1|" .env
-sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=${REDIS_PASS}|" .env
-sed -i "s|REDIS_PORT=.*|REDIS_PORT=6379|" .env
-sed -i "s|ACTIVITY_PUB=.*|ACTIVITY_PUB=true|" .env
-sed -i "s|AP_REMOTE_FOLLOW=.*|AP_REMOTE_FOLLOW=true|" .env
-sed -i "s|OAUTH_ENABLED=.*|OAUTH_ENABLED=true|" .env
-echo "SESSION_SECURE_COOKIE=false" >>.env
+cat <<EOF >/opt/pixelfed/.env
+APP_NAME="Pixelfed"
+APP_ENV="production"
+APP_DEBUG="false"
+APP_URL=http://${LOCAL_IP}
+APP_DOMAIN=${LOCAL_IP}
+ADMIN_DOMAIN=${LOCAL_IP}
+SESSION_DOMAIN=${LOCAL_IP}
+TRUST_PROXIES="*"
+
+OPEN_REGISTRATION="false"
+ENFORCE_EMAIL_VERIFICATION="false"
+PF_MAX_USERS="1000"
+OAUTH_ENABLED="true"
+ENABLE_CONFIG_CACHE="true"
+INSTANCE_DISCOVER_PUBLIC="true"
+
+PF_OPTIMIZE_IMAGES="true"
+IMAGE_QUALITY="80"
+MAX_PHOTO_SIZE="15000"
+MAX_CAPTION_LENGTH="500"
+MAX_ALBUM_LENGTH="4"
+
+DB_CONNECTION="pgsql"
+DB_HOST="127.0.0.1"
+DB_PORT="5432"
+DB_DATABASE="${PG_DB_NAME}"
+DB_USERNAME="${PG_DB_USER}"
+DB_PASSWORD="${PG_DB_PASS}"
+
+REDIS_CLIENT="predis"
+REDIS_SCHEME="tcp"
+REDIS_HOST="127.0.0.1"
+REDIS_PASSWORD="${REDIS_PASS}"
+REDIS_PORT="6379"
+
+SESSION_DRIVER="database"
+CACHE_DRIVER="redis"
+QUEUE_DRIVER="redis"
+BROADCAST_DRIVER="log"
+LOG_CHANNEL="stack"
+HORIZON_PREFIX="horizon-"
+
+ACTIVITY_PUB="true"
+AP_REMOTE_FOLLOW="true"
+AP_INBOX="true"
+AP_OUTBOX="true"
+AP_SHAREDINBOX="true"
+
+EXP_EMC="true"
+
+MAIL_DRIVER="log"
+MAIL_HOST="smtp.mailtrap.io"
+MAIL_PORT="2525"
+MAIL_USERNAME="null"
+MAIL_PASSWORD="null"
+MAIL_ENCRYPTION="null"
+MAIL_FROM_ADDRESS="pixelfed@example.com"
+MAIL_FROM_NAME="Pixelfed"
+
+PF_ENABLE_CLOUD="false"
+FILESYSTEM_CLOUD="s3"
+SESSION_SECURE_COOKIE="false"
+EOF
 
 chown -R pixelfed:pixelfed /opt/pixelfed
 chmod -R 755 /opt/pixelfed
 chmod -R 775 /opt/pixelfed/storage /opt/pixelfed/bootstrap/cache
 
 export COMPOSER_ALLOW_SUPERUSER=1
-cd /opt/pixelfed
 $STD composer install --no-dev --no-ansi --no-interaction --optimize-autoloader
 
 sudo -u pixelfed php artisan key:generate
@@ -94,7 +140,7 @@ $STD sudo -u pixelfed php artisan view:cache
 $STD sudo -u pixelfed php artisan config:cache
 $STD sudo -u pixelfed php artisan instance:actor
 $STD sudo -u pixelfed php artisan horizon:install
-msg_ok "Pixelfed installed"
+msg_ok "Installed Pixelfed"
 
 msg_info "Configuring Nginx"
 cat <<'EOF' >/etc/nginx/sites-available/pixelfed
@@ -137,7 +183,7 @@ ln -sf /etc/nginx/sites-available/pixelfed /etc/nginx/sites-enabled/pixelfed
 rm -f /etc/nginx/sites-enabled/default
 $STD nginx -t
 systemctl enable -q --now nginx
-msg_ok "Nginx configured"
+msg_ok "Configured Nginx"
 
 msg_info "Creating Services"
 cat <<'EOF' >/etc/systemd/system/pixelfed-horizon.service
@@ -182,29 +228,10 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
-systemctl daemon-reload
 systemctl enable -q --now pixelfed-horizon
 systemctl enable -q --now pixelfed-scheduler.timer
-msg_ok "Services created"
+msg_ok "Created Services"
 
-msg_info "Saving Credentials"
-CREDS_FILE="/root/pixelfed.creds"
-{
-  echo "Pixelfed Credentials"
-  echo ""
-  echo "PostgreSQL"
-  echo "  Database: ${PG_DB_NAME}"
-  echo "  User: ${PG_DB_USER}"
-  echo "  Password: ${PG_DB_PASS}"
-  echo ""
-  echo "Redis"
-  echo "  Host: 127.0.0.1:6379"
-  echo "  Password: ${REDIS_PASS}"
-  echo ""
-  echo "Web Interface: http://${LOCAL_IP}"
-  echo "Config: /opt/pixelfed/.env"
-} >"$CREDS_FILE"
-msg_ok "Credentials saved to ${CREDS_FILE}"
 
 motd_ssh
 customize
