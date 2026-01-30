@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   nginx \
   redis-server \
   ffmpeg \
@@ -126,23 +126,24 @@ SESSION_SECURE_COOKIE="false"
 HTTPS="false"
 EOF
 
-chown -R pixelfed:pixelfed /opt/pixelfed
 chmod -R 755 /opt/pixelfed
 chmod -R 775 /opt/pixelfed/storage /opt/pixelfed/bootstrap/cache
 
 export COMPOSER_ALLOW_SUPERUSER=1
 $STD composer install --no-dev --no-ansi --no-interaction --optimize-autoloader
 
-$STD sudo -u pixelfed php artisan key:generate --force
-$STD sudo -u pixelfed php artisan storage:link
-$STD sudo -u pixelfed php artisan migrate --force
-$STD sudo -u pixelfed php artisan import:cities
-$STD sudo -u pixelfed php artisan passport:keys
-$STD sudo -u pixelfed php artisan route:cache
-$STD sudo -u pixelfed php artisan view:cache
-$STD sudo -u pixelfed php artisan config:cache
-$STD sudo -u pixelfed php artisan instance:actor
-$STD sudo -u pixelfed php artisan horizon:install
+$STD php artisan key:generate --force
+$STD php artisan storage:link
+$STD php artisan migrate --force
+$STD php artisan import:cities
+$STD php artisan passport:keys
+$STD php artisan route:cache
+$STD php artisan view:cache
+$STD php artisan config:cache
+$STD php artisan instance:actor
+$STD php artisan horizon:install
+
+chown -R pixelfed:pixelfed /opt/pixelfed
 msg_ok "Installed Pixelfed"
 
 msg_info "Configuring Nginx"
@@ -230,9 +231,7 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 EOF
-
-systemctl enable -q --now pixelfed-horizon
-systemctl enable -q --now pixelfed-scheduler.timer
+systemctl enable -q --now pixelfed-horizon pixelfed-scheduler.timer
 msg_ok "Created Services"
 
 
