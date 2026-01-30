@@ -308,7 +308,7 @@ function advanced_settings() {
     exit-script
   fi
 
-  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if DISK_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Disk Size in GiB (e.g., 10, 20)" 8 58 16 "$DISK_SIZE" --title "DISK SIZE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     DISK_SIZE=$(echo "$DISK_SIZE" | tr -d ' ')
     if [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
       echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}$DISK_SIZE${CL}"
@@ -522,7 +522,7 @@ msg_info "Creating TrueNAS VM shell"
 qm create "$VMID" -machine q35 -bios ovmf -agent enabled=1 -tablet 0 -localtime 1 -cpu "$CPU_TYPE" \
   -cores "$CORE_COUNT" -memory "$RAM_SIZE" -balloon 0 -name "$HN" -tags community-script \
   -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 \
-  -efidisk0 $STORAGE:1,efitype=4m,pre-enrolled-keys=0 -scsi0 $STORAGE:$DISK_SIZE,ssd=1,iothread=on \
+  -efidisk0 $STORAGE:1,efitype=4m,pre-enrolled-keys=0 -sata0 $STORAGE:$DISK_SIZE,ssd=1,iothread=on \
   -scsihw virtio-scsi-single -cdrom local:iso/$ISO_NAME -vga virtio >/dev/null
 msg_ok "Created VM shell"
 
