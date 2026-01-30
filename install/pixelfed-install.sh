@@ -61,12 +61,14 @@ cd /opt/pixelfed
 cat <<EOF >/opt/pixelfed/.env
 APP_NAME="Pixelfed"
 APP_ENV="production"
+APP_KEY=
 APP_DEBUG="false"
 APP_URL=http://${LOCAL_IP}
 APP_DOMAIN=${LOCAL_IP}
 ADMIN_DOMAIN=${LOCAL_IP}
 SESSION_DOMAIN=${LOCAL_IP}
 TRUST_PROXIES="*"
+FORCE_HTTPS_URLS="false"
 
 OPEN_REGISTRATION="false"
 ENFORCE_EMAIL_VERIFICATION="false"
@@ -121,6 +123,7 @@ MAIL_FROM_NAME="Pixelfed"
 PF_ENABLE_CLOUD="false"
 FILESYSTEM_CLOUD="s3"
 SESSION_SECURE_COOKIE="false"
+HTTPS="false"
 EOF
 
 chown -R pixelfed:pixelfed /opt/pixelfed
@@ -130,8 +133,8 @@ chmod -R 775 /opt/pixelfed/storage /opt/pixelfed/bootstrap/cache
 export COMPOSER_ALLOW_SUPERUSER=1
 $STD composer install --no-dev --no-ansi --no-interaction --optimize-autoloader
 
-sudo -u pixelfed php artisan key:generate
-sudo -u pixelfed php artisan storage:link
+$STD sudo -u pixelfed php artisan key:generate --force
+$STD sudo -u pixelfed php artisan storage:link
 $STD sudo -u pixelfed php artisan migrate --force
 $STD sudo -u pixelfed php artisan import:cities
 $STD sudo -u pixelfed php artisan passport:keys
