@@ -22,6 +22,7 @@ $STD uv pip install --no-cache-dir -r /opt/sonobarr/requirements.txt
 mkdir -p /etc/sonobarr
 mv /opt/sonobarr/.sample-env /etc/sonobarr/.env
 sed -i "s/^secret_key=.*/secret_key=$(openssl rand -hex 16)/" /etc/sonobarr/.env
+sed -i "s/^sonobarr_superadmin_password=.*/secret_key=$(openssl rand -hex 16)/" /etc/sonobarr/.env
 echo "release_version=$(cat ~/.sonobarr)" >>/etc/sonobarr/.env
 echo "sonobarr_config_dir=/etc/sonobarr" >>/etc/sonobarr.env
 msg_ok "Set up sonobarr"

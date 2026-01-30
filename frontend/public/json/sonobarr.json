@@ -33,7 +33,7 @@
     },
     "notes": [
         {
-            "text": "Change the default admin credentials",
+            "text": "Default generated admin password is in the env file (sonobarr_superadmin_password)",
             "type": "info"
         }
     ]
