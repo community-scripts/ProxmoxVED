@@ -907,23 +907,27 @@ EOF
         # Backup original inittab
         cp /etc/inittab /etc/inittab.bak 2>/dev/null || true
 
-        # First, enable autologin on tty1 (for direct access)
-        sed -i 's|^1:[0-9]*:respawn:.*/\(a\?getty\).*|1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
+        # Enable autologin on tty1 (for direct access) - handle various formats
+        # Devuan uses format: 1:2345:respawn:/sbin/getty 38400 tty1
+        sed -i 's|^\(1:[0-9]*:respawn:\).*getty.*tty1.*|1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
 
-        # CRITICAL: Add console entry for LXC - this is what pct console uses!
-        # Check if there's already a console getty entry
-        if ! grep -qE '^[^#].*respawn.*console' /etc/inittab; then
-          # Add new console entry for LXC
-          echo "" >>/etc/inittab
-          echo "# LXC console autologin (added by community-scripts)" >>/etc/inittab
-          echo "co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200,38400,9600 linux" >>/etc/inittab
-        else
-          # Enable autologin on existing console entry
-          sed -i 's|^[^#]*:[0-9]*:respawn:.*/\(a\?getty\).*console.*|co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200,38400,9600 linux|' /etc/inittab
-        fi
+        # CRITICAL: Add/replace console entry for LXC - this is what pct console uses!
+        # Remove any existing console entries first (commented or not)
+        sed -i '/^[^#]*:.*:respawn:.*getty.*console/d' /etc/inittab
+        sed -i '/^# LXC console autologin/d' /etc/inittab
 
-        # Force a reload of inittab - try multiple methods
-        telinit q &>/dev/null || init q &>/dev/null || kill -1 1 &>/dev/null || true
+        # Add new console entry for LXC at the end
+        echo "" >>/etc/inittab
+        echo "# LXC console autologin (added by community-scripts)" >>/etc/inittab
+        echo "co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200 linux" >>/etc/inittab
+
+        # Force a reload of inittab and respawn console getty
+        # Kill existing getty on console to force respawn with new settings
+        pkill -9 -f 'getty.*console' &>/dev/null || true
+        pkill -9 -f 'agetty.*console' &>/dev/null || true
+
+        # Reload inittab - try multiple methods
+        telinit q &>/dev/null || init q &>/dev/null || kill -HUP 1 &>/dev/null || true
       fi
       touch /root/.hushlogin
       ;;
