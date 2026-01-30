@@ -165,9 +165,14 @@ $STD pip3 install -r /opt/frigate/docker/main/requirements.txt
 msg_ok "Installed Python Dependencies"
 
 msg_info "Building Python Wheels (Patience)"
-sed -i 's|^SQLITE3_VERSION=.*|SQLITE3_VERSION="version-3.46.0"|g' /opt/frigate/docker/main/build_pysqlite3.sh
-$STD bash /opt/frigate/docker/main/build_pysqlite3.sh
 mkdir -p /wheels
+if [[ "$VERSION_ID" == "13" ]]; then
+  # Debian 13 (Python 3.12+): Use pre-built pysqlite3-binary instead of building from source
+  $STD pip3 install pysqlite3-binary
+else
+  sed -i 's|^SQLITE3_VERSION=.*|SQLITE3_VERSION="version-3.46.0"|g' /opt/frigate/docker/main/build_pysqlite3.sh
+  $STD bash /opt/frigate/docker/main/build_pysqlite3.sh
+fi
 for i in {1..3}; do
   $STD pip3 wheel --wheel-dir=/wheels -r /opt/frigate/docker/main/requirements-wheels.txt --default-timeout=300 --retries=3 && break
   [[ $i -lt 3 ]] && sleep 10
