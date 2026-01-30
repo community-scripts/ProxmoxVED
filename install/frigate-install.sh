@@ -119,6 +119,13 @@ export HAILORT_LOGGER_PATH=NONE
 fetch_and_deploy_gh_release "frigate" "blakeblackshear/frigate" "tarball" "latest" "/opt/frigate"
 
 msg_info "Building Nginx"
+# Patch build scripts for Debian 13 compatibility
+if [[ "$VERSION_ID" == "13" ]]; then
+  sed -i 's/\[[ "$VERSION_ID" == "12" \]\]/[[ "$VERSION_ID" =~ ^(12|13)$ ]]/g' /opt/frigate/docker/main/build_nginx.sh
+  sed -i 's/\[[ "$VERSION_ID" == "12" \]\]/[[ "$VERSION_ID" =~ ^(12|13)$ ]]/g' /opt/frigate/docker/main/build_sqlite_vec.sh
+  # Create empty sources.list if build scripts expect it
+  touch /etc/apt/sources.list
+fi
 $STD bash /opt/frigate/docker/main/build_nginx.sh
 sed -e '/s6-notifyoncheck/ s/^#*/#/' -i /opt/frigate/docker/main/rootfs/etc/s6-overlay/s6-rc.d/nginx/run
 ln -sf /usr/local/nginx/sbin/nginx /usr/local/bin/nginx
