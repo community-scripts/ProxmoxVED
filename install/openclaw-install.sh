@@ -49,7 +49,7 @@ Environment=PATH=/usr/bin:/usr/local/bin:/bin
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q openclaw
+systemctl enable -q --now openclaw
 msg_ok "Created Service"
 
 motd_ssh
