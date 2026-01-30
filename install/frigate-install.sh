@@ -66,7 +66,15 @@ $STD apt-get install -y \
   moreutils
 msg_ok "Installed Dependencies"
 
-setup_hwaccel
+msg_info "Setting Up Hardware Acceleration"
+# Use Debian 12 native packages instead of setup_hwaccel (Intel Arc latest drivers require Debian 13)
+$STD apt-get install -y \
+  vainfo \
+  intel-media-va-driver-non-free \
+  intel-gpu-tools \
+  mesa-va-drivers \
+  mesa-vulkan-drivers || true
+msg_ok "Set Up Hardware Acceleration"
 
 msg_info "Configuring GPU Access"
 if [[ "$CTTYPE" == "0" ]]; then
