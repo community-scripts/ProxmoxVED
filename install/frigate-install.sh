@@ -20,30 +20,6 @@ if [[ "$VERSION_ID" != "12" ]]; then
   exit 1
 fi
 
-msg_info "Configuring Debian Sources"
-rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list
-cat <<EOF >/etc/apt/sources.list.d/debian.sources
-Types: deb deb-src
-URIs: http://deb.debian.org/debian
-Suites: bookworm
-Components: main contrib non-free non-free-firmware
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-
-Types: deb deb-src
-URIs: http://deb.debian.org/debian
-Suites: bookworm-updates
-Components: main contrib non-free non-free-firmware
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-
-Types: deb deb-src
-URIs: http://security.debian.org
-Suites: bookworm-security
-Components: main contrib non-free non-free-firmware
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-EOF
-$STD apt-get update
-msg_ok "Configured Debian Sources"
-
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   jq \
