@@ -902,7 +902,7 @@ EOF
     sysvinit)
       # Devuan/older systems - modify inittab for auto-login
       # Devuan 5 (daedalus) uses SysVinit with various inittab formats
-      # CRITICAL: LXC uses /dev/console, NOT tty1! pct console connects to console device
+      # LXC can use /dev/console OR /dev/tty1 depending on how pct console connects
       if [[ -f /etc/inittab ]]; then
         # Backup original inittab
         cp /etc/inittab /etc/inittab.bak 2>/dev/null || true
@@ -921,10 +921,12 @@ EOF
         echo "# LXC console autologin (added by community-scripts)" >>/etc/inittab
         echo "co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200 linux" >>/etc/inittab
 
-        # Force a reload of inittab and respawn console getty
-        # Kill existing getty on console to force respawn with new settings
-        pkill -9 -f 'getty.*console' &>/dev/null || true
-        pkill -9 -f 'agetty.*console' &>/dev/null || true
+        # Force a reload of inittab and respawn ALL getty processes
+        # Kill ALL getty processes to force respawn with new autologin settings
+        pkill -9 -f '[ag]etty' &>/dev/null || true
+
+        # Small delay to let init notice the dead processes
+        sleep 1
 
         # Reload inittab - try multiple methods
         telinit q &>/dev/null || init q &>/dev/null || kill -HUP 1 &>/dev/null || true
