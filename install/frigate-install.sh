@@ -25,6 +25,7 @@ else
 fi
 
 msg_info "Configuring Debian $VERSION_ID ($DEBIAN_SUITE) Sources"
+rm -f /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list
 cat <<EOF >/etc/apt/sources.list.d/debian.sources
 Types: deb deb-src
 URIs: http://deb.debian.org/debian
@@ -44,7 +45,6 @@ Suites: ${DEBIAN_SUITE}-security
 Components: main contrib non-free non-free-firmware
 Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
 EOF
-rm -f /etc/apt/sources.list
 $STD apt-get update
 msg_ok "Configured Debian $VERSION_ID Sources"
 
