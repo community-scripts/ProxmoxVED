@@ -3,7 +3,7 @@
     "*.func": "shellscript"
   },
   "[shellscript]": {
-    "editor.defaultFormatter": "mkhl.shfmt",
+    "editor.defaultFormatter": "mkhl.shfmt"
   },
   "editor.codeActionsOnSave": {
     "source.fixAll": "never",
