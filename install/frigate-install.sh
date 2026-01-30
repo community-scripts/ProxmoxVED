@@ -169,14 +169,22 @@ mkdir -p /wheels
 if [[ "$VERSION_ID" == "13" ]]; then
   # Debian 13 (Python 3.12+): Use pre-built pysqlite3-binary instead of building from source
   $STD pip3 install pysqlite3-binary
+  # Filter out incompatible wheels for Python 3.12
+  grep -v 'tflite_runtime' /opt/frigate/docker/main/requirements-wheels.txt > /tmp/requirements-wheels-filtered.txt
+  for i in {1..3}; do
+    $STD pip3 wheel --wheel-dir=/wheels -r /tmp/requirements-wheels-filtered.txt --default-timeout=300 --retries=3 && break
+    [[ $i -lt 3 ]] && sleep 10
+  done
+  # Install tflite-runtime from pip for Python 3.12
+  $STD pip3 install tflite-runtime || $STD pip3 install ai-edge-litert || true
 else
   sed -i 's|^SQLITE3_VERSION=.*|SQLITE3_VERSION="version-3.46.0"|g' /opt/frigate/docker/main/build_pysqlite3.sh
   $STD bash /opt/frigate/docker/main/build_pysqlite3.sh
+  for i in {1..3}; do
+    $STD pip3 wheel --wheel-dir=/wheels -r /opt/frigate/docker/main/requirements-wheels.txt --default-timeout=300 --retries=3 && break
+    [[ $i -lt 3 ]] && sleep 10
+  done
 fi
-for i in {1..3}; do
-  $STD pip3 wheel --wheel-dir=/wheels -r /opt/frigate/docker/main/requirements-wheels.txt --default-timeout=300 --retries=3 && break
-  [[ $i -lt 3 ]] && sleep 10
-done
 msg_ok "Built Python Wheels"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
