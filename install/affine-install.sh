@@ -29,7 +29,7 @@ PG_VERSION="16" PG_MODULES="pgvector" setup_postgresql
 PG_DB_NAME="affine" PG_DB_USER="affine" setup_postgresql_db
 NODE_VERSION="22" setup_nodejs
 setup_rust
-import_local_ip
+
 
 fetch_and_deploy_gh_release "affine_app" "toeverything/AFFiNE" "tarball" "latest" "/opt/affine"
 

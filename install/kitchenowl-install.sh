@@ -17,13 +17,28 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   nginx \
   build-essential \
+  gfortran \
+  pkg-config \
+  ninja-build \
+  autoconf \
+  automake \
   libpq-dev \
   libffi-dev \
-  libssl-dev
+  libssl-dev \
+  libpcre2-dev \
+  libre2-dev \
+  libxml2-dev \
+  libxslt-dev \
+  libopenblas-dev \
+  liblapack-dev \
+  zlib1g-dev \
+  libjpeg62-turbo-dev \
+  libsqlite3-dev \
+  libexpat1-dev \
+  libicu-dev
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.14" setup_uv
-import_local_ip
 fetch_and_deploy_gh_release "kitchenowl" "TomBursch/kitchenowl" "tarball" "latest" "/opt/kitchenowl"
 rm -rf /opt/kitchenowl/web
 fetch_and_deploy_gh_release "kitchenowl-web" "TomBursch/kitchenowl" "prebuild" "latest" "/opt/kitchenowl/web" "kitchenowl_Web.tar.gz"
@@ -31,10 +46,10 @@ fetch_and_deploy_gh_release "kitchenowl-web" "TomBursch/kitchenowl" "prebuild" "
 msg_info "Setting up KitchenOwl"
 cd /opt/kitchenowl/backend
 #rm -f uv.lock
-$STD uv sync --frozen
+$STD uv sync --no-dev
 sed -i 's/default=True/default=False/' /opt/kitchenowl/backend/wsgi.py
 mkdir -p /nltk_data
-$STD uv run python -m nltk.downloader -d /nltk_data averaged_perceptron_tagger_eng punkt_tab
+$STD uv run python -m nltk.downloader -d /nltk_data averaged_perceptron_tagger_eng
 JWT_SECRET=$(openssl rand -hex 32)
 mkdir -p /opt/kitchenowl/data
 cat <<EOF >/opt/kitchenowl/kitchenowl.env

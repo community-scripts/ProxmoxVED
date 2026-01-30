@@ -30,7 +30,7 @@ $STD apt install -y \
   gnupg
 msg_ok "Installed Dependencies"
 
-import_local_ip
+
 setup_mariadb
 MARIADB_DB_NAME="piler" MARIADB_DB_USER="piler" setup_mariadb_db
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="ldap,gd,memcached,pdo,mysql,curl,zip" setup_php

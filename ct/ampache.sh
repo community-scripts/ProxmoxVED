@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
   if check_for_gh_release "Ampache" "ampache/ampache"; then
-    import_local_ip
+
     msg_info "Stopping Apache"
     systemctl stop apache2
     msg_ok "Stopped Apache"

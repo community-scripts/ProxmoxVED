@@ -29,7 +29,7 @@ useradd -rU -s /bin/bash pixelfed
 usermod -aG redis pixelfed
 msg_ok "Created Pixelfed User"
 
-import_local_ip
+
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="pixelfed" PG_DB_USER="pixelfed" setup_postgresql_db
 PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULE="bcmath,ctype,exif,imagick,pgsql,redis,tokenizer" PHP_UPLOAD_MAX_FILESIZE="500M" PHP_POST_MAX_SIZE="500M" PHP_MAX_EXECUTION_TIME="600" setup_php

@@ -1,0 +1,48 @@
+{
+    "name": "Anytype",
+    "slug": "anytype",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-01-29",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 33010,
+    "documentation": "https://doc.anytype.io/",
+    "website": "https://anytype.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/anytype.webp",
+    "config_path": "/opt/anytype/.env",
+    "description": "Anytype is a local-first, privacy-focused alternative to Notion. This script deploys the any-sync-bundle which provides a self-hosted sync server for Anytype clients with external MongoDB and Redis Stack.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/anytype.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 16,
+                "os": "Ubuntu",
+                "version": "24.04"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "After installation, import /opt/anytype/data/client-config.yml into your Anytype apps.",
+            "type": "info"
+        },
+        {
+            "text": "This uses the community any-sync-bundle by grishy, not the official Anytype deployment.",
+            "type": "warning"
+        },
+        {
+            "text": "Firewall: Open TCP 33010 (DRPC) and UDP 33020 (QUIC) for external access.",
+            "type": "info"
+        }
+    ]
+}

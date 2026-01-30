@@ -28,7 +28,7 @@ setup_go
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 RUST_CRATES="wasm-pack" setup_rust
 $STD rustup target add wasm32-unknown-unknown
-import_local_ip
+
 
 ENTE_CLI_VERSION=$(curl -s https://api.github.com/repos/ente-io/ente/releases | jq -r '[.[] | select(.tag_name | startswith("cli-v"))][0].tag_name')
 fetch_and_deploy_gh_release "ente-server" "ente-io/ente" "tarball" "latest" "/opt/ente"

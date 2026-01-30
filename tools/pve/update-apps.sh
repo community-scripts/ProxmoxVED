@@ -6,6 +6,105 @@
 
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/refs/heads/main/misc/core.func)
 
+# =============================================================================
+# CONFIGURATION VARIABLES
+# Set these variables to skip interactive prompts (Whiptail dialogs)
+# =============================================================================
+# var_backup: Enable/disable backup before update
+#   Options: "yes" | "no" | "" (empty = interactive prompt)
+var_backup="${var_backup:-}"
+
+# var_backup_storage: Storage location for backups (only used if var_backup=yes)
+#   Options: Storage name from /etc/pve/storage.cfg (e.g., "local", "nas-backup")
+#   Leave empty for interactive selection
+var_backup_storage="${var_backup_storage:-}"
+
+# var_container: Which containers to update
+#   Options:
+#     - "all"         : All containers with community-scripts tags
+#     - "all_running" : Only running containers with community-scripts tags
+#     - "all_stopped" : Only stopped containers with community-scripts tags
+#     - "101,102,109" : Comma-separated list of specific container IDs
+#     - ""            : Interactive selection via Whiptail
+var_container="${var_container:-}"
+
+# var_unattended: Run updates without user interaction inside containers
+#   Options: "yes" | "no" | "" (empty = interactive prompt)
+var_unattended="${var_unattended:-}"
+
+# var_skip_confirm: Skip initial confirmation dialog
+#   Options: "yes" | "no" (default: no)
+var_skip_confirm="${var_skip_confirm:-no}"
+
+# var_auto_reboot: Automatically reboot containers that require it after update
+#   Options: "yes" | "no" | "" (empty = interactive prompt)
+var_auto_reboot="${var_auto_reboot:-}"
+
+# =============================================================================
+# JSON CONFIG EXPORT
+# Run with --export-config to output current configuration as JSON
+# =============================================================================
+
+function export_config_json() {
+  cat <<EOF
+{
+  "var_backup": "${var_backup}",
+  "var_backup_storage": "${var_backup_storage}",
+  "var_container": "${var_container}",
+  "var_unattended": "${var_unattended}",
+  "var_skip_confirm": "${var_skip_confirm}",
+  "var_auto_reboot": "${var_auto_reboot}"
+}
+EOF
+}
+
+function print_usage() {
+  cat <<EOF
+Usage: $(basename "$0") [OPTIONS]
+
+Update LXC containers created with community-scripts.
+
+Options:
+  --help              Show this help message
+  --export-config     Export current configuration as JSON
+
+Environment Variables:
+  var_backup          Enable backup before update (yes/no)
+  var_backup_storage  Storage location for backups
+  var_container       Container selection (all/all_running/all_stopped/101,102,...)
+  var_unattended      Run updates unattended (yes/no)
+  var_skip_confirm    Skip initial confirmation (yes/no)
+  var_auto_reboot     Auto-reboot containers if required (yes/no)
+
+Examples:
+  # Run interactively
+  $(basename "$0")
+
+  # Update all running containers unattended with backup
+  var_backup=yes var_backup_storage=local var_container=all_running var_unattended=yes var_skip_confirm=yes $(basename "$0")
+
+  # Update specific containers without backup
+  var_backup=no var_container=101,102,105 var_unattended=yes var_skip_confirm=yes $(basename "$0")
+
+  # Export current configuration
+  $(basename "$0") --export-config
+EOF
+}
+
+# Handle command line arguments
+case "${1:-}" in
+  --help|-h)
+    print_usage
+    exit 0
+    ;;
+  --export-config)
+    export_config_json
+    exit 0
+    ;;
+esac
+
+# =============================================================================
+
 function header_info {
   clear
   cat <<"EOF"
@@ -64,9 +163,13 @@ END {
 }
 
 header_info
-msg_info "Loading all possible LXC containers from Proxmox VE. This may take a few seconds..."
-whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "This will update LXC container. Proceed?" 10 58 || exit
 
+# Skip confirmation if var_skip_confirm is set to yes
+if [[ "$var_skip_confirm" != "yes" ]]; then
+  whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "This will update LXC container. Proceed?" 10 58 || exit
+fi
+
+msg_info "Loading all possible LXC containers from Proxmox VE. This may take a few seconds..."
 NODE=$(hostname)
 containers=$(pct list | tail -n +2 | awk '{print $0 " " $4}')
 
@@ -90,46 +193,115 @@ while read -r container; do
 done <<<"$containers"
 msg_ok "Loaded ${#menu_items[@]} containers"
 
-CHOICE=$(whiptail --title "LXC Container Update" \
-  --checklist "Select LXC containers to update:" 25 60 13 \
-  "${menu_items[@]}" 3>&2 2>&1 1>&3 | tr -d '"')
+# Determine container selection based on var_container
+if [[ -n "$var_container" ]]; then
+  case "$var_container" in
+    all)
+      # Select all containers with matching tags
+      CHOICE=""
+      for ((i=0; i<${#menu_items[@]}; i+=3)); do
+        CHOICE="$CHOICE ${menu_items[$i]}"
+      done
+      CHOICE=$(echo "$CHOICE" | xargs)
+      ;;
+    all_running)
+      # Select only running containers with matching tags
+      CHOICE=""
+      for ((i=0; i<${#menu_items[@]}; i+=3)); do
+        cid="${menu_items[$i]}"
+        if pct status "$cid" 2>/dev/null | grep -q "running"; then
+          CHOICE="$CHOICE $cid"
+        fi
+      done
+      CHOICE=$(echo "$CHOICE" | xargs)
+      ;;
+    all_stopped)
+      # Select only stopped containers with matching tags
+      CHOICE=""
+      for ((i=0; i<${#menu_items[@]}; i+=3)); do
+        cid="${menu_items[$i]}"
+        if pct status "$cid" 2>/dev/null | grep -q "stopped"; then
+          CHOICE="$CHOICE $cid"
+        fi
+      done
+      CHOICE=$(echo "$CHOICE" | xargs)
+      ;;
+    *)
+      # Assume comma-separated list of container IDs
+      CHOICE=$(echo "$var_container" | tr ',' ' ')
+      ;;
+  esac
 
-if [ -z "$CHOICE" ]; then
-  whiptail --title "LXC Container Update" \
-    --msgbox "No containers selected!" 10 60
-  exit 1
+  if [[ -z "$CHOICE" ]]; then
+    msg_error "No containers matched the selection criteria: $var_container"
+    exit 1
+  fi
+  msg_ok "Selected containers: $CHOICE"
+else
+  CHOICE=$(whiptail --title "LXC Container Update" \
+    --checklist "Select LXC containers to update:" 25 60 13 \
+    "${menu_items[@]}" 3>&2 2>&1 1>&3 | tr -d '"')
+
+  if [ -z "$CHOICE" ]; then
+    whiptail --title "LXC Container Update" \
+      --msgbox "No containers selected!" 10 60
+    exit 1
+  fi
 fi
 
 header_info
-BACKUP_CHOICE="no"
-if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Do you want to backup your containers before update?" 10 58); then
-  BACKUP_CHOICE="yes"
+
+# Determine backup choice based on var_backup
+if [[ -n "$var_backup" ]]; then
+  BACKUP_CHOICE="$var_backup"
+else
+  BACKUP_CHOICE="no"
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Do you want to backup your containers before update?" 10 58); then
+    BACKUP_CHOICE="yes"
+  fi
 fi
 
-UNATTENDED_UPDATE="no"
-if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Run updates unattended?" 10 58); then
-  UNATTENDED_UPDATE="yes"
+# Determine unattended update based on var_unattended
+if [[ -n "$var_unattended" ]]; then
+  UNATTENDED_UPDATE="$var_unattended"
+else
+  UNATTENDED_UPDATE="no"
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "LXC Container Update" --yesno "Run updates unattended?" 10 58); then
+    UNATTENDED_UPDATE="yes"
+  fi
 fi
 
 if [ "$BACKUP_CHOICE" == "yes" ]; then
-  #STORAGES=$(awk '/^(\S+):/ {storage=$2} /content.*backup/ {print storage}' /etc/pve/storage.cfg)
   get_backup_storages
 
   if [ -z "$STORAGES" ]; then
-    whiptail --msgbox "No storage with 'backup' found!" 8 40
+    msg_error "No storage with 'backup' support found!"
     exit 1
   fi
 
-  MENU_ITEMS=()
-  for STORAGE in $STORAGES; do
-    MENU_ITEMS+=("$STORAGE" "")
-  done
+  # Determine storage based on var_backup_storage
+  if [[ -n "$var_backup_storage" ]]; then
+    # Validate that the specified storage exists and supports backups
+    if echo "$STORAGES" | grep -qw "$var_backup_storage"; then
+      STORAGE_CHOICE="$var_backup_storage"
+      msg_ok "Using backup storage: $STORAGE_CHOICE"
+    else
+      msg_error "Specified backup storage '$var_backup_storage' not found or doesn't support backups!"
+      msg_info "Available storages: $(echo $STORAGES | tr '\n' ' ')"
+      exit 1
+    fi
+  else
+    MENU_ITEMS=()
+    for STORAGE in $STORAGES; do
+      MENU_ITEMS+=("$STORAGE" "")
+    done
 
-  STORAGE_CHOICE=$(whiptail --title "Select storage device" --menu "Select a storage device (Only storage devices with 'backup' support are listed):" 15 50 5 "${MENU_ITEMS[@]}" 3>&1 1>&2 2>&3)
+    STORAGE_CHOICE=$(whiptail --title "Select storage device" --menu "Select a storage device (Only storage devices with 'backup' support are listed):" 15 50 5 "${MENU_ITEMS[@]}" 3>&1 1>&2 2>&3)
 
-  if [ -z "$STORAGE_CHOICE" ]; then
-    msg_error "No storage selected!"
-    exit 1
+    if [ -z "$STORAGE_CHOICE" ]; then
+      msg_error "No storage selected!"
+      exit 1
+    fi
   fi
 fi
 
@@ -270,9 +442,20 @@ if [ "${#containers_needing_reboot[@]}" -gt 0 ]; then
   for container_name in "${containers_needing_reboot[@]}"; do
     echo "$container_name"
   done
-  echo -ne "${INFO} Do you wish to reboot these containers? <yes/No>  "
-  read -r prompt
-  if [[ ${prompt,,} =~ ^(yes)$ ]]; then
+
+  # Determine reboot choice based on var_auto_reboot
+  REBOOT_CHOICE="no"
+  if [[ -n "$var_auto_reboot" ]]; then
+    REBOOT_CHOICE="$var_auto_reboot"
+  else
+    echo -ne "${INFO} Do you wish to reboot these containers? <yes/No>  "
+    read -r prompt
+    if [[ ${prompt,,} =~ ^(yes)$ ]]; then
+      REBOOT_CHOICE="yes"
+    fi
+  fi
+
+  if [[ "$REBOOT_CHOICE" == "yes" ]]; then
     echo -e "${CROSS}${HOLD} ${YWB}Rebooting containers.${CL}"
     for container_name in "${containers_needing_reboot[@]}"; do
       container=$(echo $container_name | cut -d " " -f 1)

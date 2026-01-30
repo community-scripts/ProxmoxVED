@@ -12,19 +12,19 @@ setting_up_container
 network_check
 update_os
 
-if [[ -z "$var_forgejo_instance" ]]; then
-  read -rp "Forgejo Instance URL (e.g. https://code.forgejo.org): " var_forgejo_instance
-fi
+# Get required configuration with sensible fallbacks for unattended mode
+# These will show a warning if defaults are used
+var_forgejo_instance=$(prompt_input_required \
+  "Forgejo Instance URL:" \
+  "${var_forgejo_instance:-https://codeberg.org}" \
+  120 \
+  "var_forgejo_instance")
 
-if [[ -z "$var_forgejo_runner_token" ]]; then
-  read -rp "Forgejo Runner Registration Token: " var_forgejo_runner_token
-  echo
-fi
-
-if [[ -z "$var_forgejo_instance" || -z "$var_forgejo_runner_token" ]]; then
-  echo "❌ Forgejo instance URL and runner token are required."
-  exit 1
-fi
+var_forgejo_runner_token=$(prompt_input_required \
+  "Forgejo Runner Registration Token:" \
+  "${var_forgejo_runner_token:-REPLACE_WITH_YOUR_TOKEN}" \
+  120 \
+  "var_forgejo_runner_token")
 
 export FORGEJO_INSTANCE="$var_forgejo_instance"
 export FORGEJO_RUNNER_TOKEN="$var_forgejo_runner_token"
@@ -77,6 +77,9 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now forgejo-runner
 msg_ok "Created Services"
+
+# Show warning if any required values used fallbacks
+show_missing_values_warning
 
 motd_ssh
 customize
