@@ -125,13 +125,10 @@ FILESYSTEM_CLOUD="s3"
 SESSION_SECURE_COOKIE="false"
 HTTPS="false"
 EOF
-
 chmod -R 755 /opt/pixelfed
 chmod -R 775 /opt/pixelfed/storage /opt/pixelfed/bootstrap/cache
-
 export COMPOSER_ALLOW_SUPERUSER=1
 $STD composer install --no-dev --no-ansi --no-interaction --optimize-autoloader
-
 $STD php artisan key:generate --force
 $STD php artisan storage:link
 $STD php artisan migrate --force
@@ -142,7 +139,6 @@ $STD php artisan view:cache
 $STD php artisan config:cache
 $STD php artisan instance:actor
 $STD php artisan horizon:install
-
 chown -R pixelfed:pixelfed /opt/pixelfed
 msg_ok "Installed Pixelfed"
 
@@ -186,7 +182,7 @@ EOF
 ln -sf /etc/nginx/sites-available/pixelfed /etc/nginx/sites-enabled/pixelfed
 rm -f /etc/nginx/sites-enabled/default
 $STD nginx -t
-systemctl enable -q --now nginx
+systemctl reload nginx
 msg_ok "Configured Nginx"
 
 msg_info "Creating Services"
