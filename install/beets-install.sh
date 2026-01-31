@@ -29,7 +29,7 @@ mkdir -p /opt/beets
 python3 -m venv /opt/beets/venv
 source /opt/beets/venv/bin/activate
 $STD pip install --upgrade pip
-$STD pip install beets pyacoustid pylast requests beautifulsoup4 flask
+$STD pip install beets pyacoustid pylast requests beautifulsoup4 flask langdetect
 deactivate
 msg_ok "Set up Beets"
 
