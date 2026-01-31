@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-30T18:55:55Z",
+  "generated": "2026-01-31T02:36:50Z",
   "versions": [
     {
       "slug": "affine",
@@ -7,13 +7,6 @@
       "version": "v0.25.7",
       "pinned": false,
       "date": "2025-12-09T04:34:14Z"
-    },
-    {
-      "slug": "ampache",
-      "repo": "ampache/ampache",
-      "version": "7.8.0",
-      "pinned": false,
-      "date": "2025-12-22T04:23:45Z"
     },
     {
       "slug": "anytype",
@@ -74,9 +67,9 @@
     {
       "slug": "nextexplorer",
       "repo": "vikramsoni2/nextExplorer",
-      "version": "v2.1.1",
+      "version": "v2.1.2a",
       "pinned": false,
-      "date": "2026-01-24T21:22:09Z"
+      "date": "2026-01-31T00:09:18Z"
     },
     {
       "slug": "nightscout",
