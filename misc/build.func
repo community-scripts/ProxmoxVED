@@ -3926,7 +3926,7 @@ EOF'
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
 
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/JaredVititoe/ProxmoxVED/refs/heads/add-beets-script/install/${var_install}.sh)"
+  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/${var_install}.sh)"
   local lxc_exit=$?
 
   set -Eeuo pipefail       # Re-enable error handling
