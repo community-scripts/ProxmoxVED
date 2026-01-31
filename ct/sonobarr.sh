@@ -32,9 +32,9 @@ function update_script() {
     PYTHON_VERSION="3.12" setup_uv
 
     if check_for_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr"; then
-        msg_info "Stopping sonobarr"
+        msg_info "Stopping Service"
         systemctl stop sonobarr
-        msg_ok "Stopped sonobarr"
+        msg_ok "Stopped Service"
 
         CLEAN_INSTALL=1 fetch_and_deploy_gh_release "sonobarr" "Dodelidoo-Labs/sonobarr" "tarball"
 
@@ -45,9 +45,9 @@ function update_script() {
         sed -i "/release_version/s/=.*/=$(cat ~/.sonobarr)/" /etc/sonobarr/.env
         msg_ok "Updated sonobarr"
 
-        msg_info "Starting sonobarr"
+        msg_info "Starting Service"
         systemctl start sonobarr
-        msg_ok "Started sonobarr"
+        msg_ok "Started Service"
         msg_ok "Updated successfully!"
     fi
     exit
