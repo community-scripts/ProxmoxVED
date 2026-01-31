@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/JaredVititoe/ProxmoxVED/refs/heads/add-beets-script/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: JaredVititoe (JaredVititoe)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
