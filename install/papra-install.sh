@@ -48,8 +48,10 @@ AUTH_SECRET=$(cat /opt/papra_data/.secret)
 BETTER_AUTH_SECRET=$(cat /opt/papra_data/.secret)
 BETTER_AUTH_TELEMETRY=0
 CLIENT_BASE_URL=http://${LOCAL_IP}:1221
+SERVER_BASE_URL=http://${LOCAL_IP}:1221
 EMAILS_DRY_RUN=true
-INGESTION_FOLDER_ROOT=/opt/papra_data/ingestion
+INGESTION_FOLDER_IS_ENABLED=true
+INGESTION_FOLDER_ROOT_PATH=/opt/papra_data/ingestion
 EOF
 msg_ok "Configured Papra"
 
