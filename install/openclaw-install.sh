@@ -22,7 +22,7 @@ msg_ok "Installed Dependencies"
 msg_info "Installing OpenClaw"
 $STD npm install -g openclaw@latest
 mkdir -p /root/.openclaw
-cat <<'CONF' >/root/.openclaw/openclaw.json
+cat <<CONF >/root/.openclaw/openclaw.json
 {
   "gateway": {
     "bind": "lan",
@@ -33,7 +33,7 @@ CONF
 msg_ok "Installed OpenClaw"
 
 msg_info "Creating Service"
-cat <<'EOF' >/etc/systemd/system/openclaw.service
+cat <<EOF >/etc/systemd/system/openclaw.service
 [Unit]
 Description=OpenClaw Gateway
 After=network.target
