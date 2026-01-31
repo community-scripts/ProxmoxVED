@@ -1,9 +1,7 @@
 {
     "name": "Beets",
     "slug": "beets",
-    "categories": [
-        8
-    ],
+    "categories": [13],
     "date_created": "2026-01-31",
     "type": "ct",
     "updateable": true,
@@ -11,9 +9,9 @@
     "interface_port": 8337,
     "documentation": "https://beets.readthedocs.io/",
     "website": "https://beets.io/",
-    "logo": "https://raw.githubusercontent.com/beetbox/beets/master/docs/_static/beets_logo.png",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/beets.webp",
     "config_path": "/opt/beets/config.yaml",
-    "description": "Beets is a music library manager and MusicBrainz tagger. It catalogs your collection, automatically improving metadata, fetching album art, lyrics, and organizing files with a customizable naming scheme. Includes acoustic fingerprinting via Chromaprint for identifying unknown tracks.",
+    "description": "Beets is a music library manager and MusicBrainz tagger that catalogs your collection, automatically improving metadata, fetching album art, lyrics, and organizing files. Includes acoustic fingerprinting via Chromaprint.",
     "install_methods": [
         {
             "type": "default",
@@ -33,19 +31,11 @@
     },
     "notes": [
         {
-            "text": "Beets is primarily a CLI tool. Run 'beet --help' for commands.",
-            "type": "info"
-        },
-        {
             "text": "Mount your music library to /media/music or edit /opt/beets/config.yaml",
             "type": "info"
         },
         {
-            "text": "Enable web UI with: systemctl enable --now beets-web",
-            "type": "info"
-        },
-        {
-            "text": "Import music with: beet import /path/to/music",
+            "text": "CLI usage: beet import /path/to/music",
             "type": "info"
         }
     ]

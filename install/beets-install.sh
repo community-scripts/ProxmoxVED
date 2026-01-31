@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: JaredVititoe
+# Author: JaredVititoe (JaredVititoe)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://beets.io/
 
@@ -15,17 +15,13 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    curl \
-    sudo \
-    mc \
-    python3 \
-    python3-pip \
-    python3-venv \
-    ffmpeg \
-    libchromaprint-tools \
-    imagemagick \
-    mp3val \
-    flac
+  python3 \
+  python3-pip \
+  python3-venv \
+  ffmpeg \
+  libchromaprint-tools \
+  imagemagick \
+  flac
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up Beets"
@@ -37,83 +33,71 @@ $STD pip install beets pyacoustid pylast requests beautifulsoup4 flask
 deactivate
 msg_ok "Set up Beets"
 
-msg_info "Creating Beets Configuration"
+msg_info "Creating Configuration"
 mkdir -p /var/lib/beets
-mkdir -p /opt/beets/config
-
 cat <<'EOF' >/opt/beets/config.yaml
-# Beets Configuration
-# Documentation: https://beets.readthedocs.io/
-
 directory: /media/music
 library: /var/lib/beets/library.db
 
 import:
-    move: no
-    copy: yes
-    write: yes
-    log: /var/lib/beets/import.log
+  move: no
+  copy: yes
+  write: yes
+  log: /var/lib/beets/import.log
 
 paths:
-    default: $albumartist/$album%aunique{}/$track - $title
-    singleton: Singles/$artist - $title
-    comp: Compilations/$album%aunique{}/$track - $title
+  default: $albumartist/$album%aunique{}/$track - $title
+  singleton: Singles/$artist - $title
+  comp: Compilations/$album%aunique{}/$track - $title
 
 plugins:
-    - chroma
-    - lyrics
-    - fetchart
-    - embedart
-    - lastgenre
-    - scrub
-    - duplicates
-    - missing
-    - info
-    - edit
-    - web
+  - chroma
+  - lyrics
+  - fetchart
+  - embedart
+  - lastgenre
+  - scrub
+  - duplicates
+  - missing
+  - info
+  - edit
+  - web
 
-# Web plugin for UI access
 web:
-    host: 0.0.0.0
-    port: 8337
+  host: 0.0.0.0
+  port: 8337
 
-# Chromaprint/AcoustID for fingerprinting
 chroma:
-    auto: yes
+  auto: yes
 
-# Lyrics fetching
 lyrics:
-    auto: yes
-    fallback: ''
-    sources:
-        - genius
-        - lyricwiki
-        - google
+  auto: yes
+  fallback: ''
+  sources:
+    - genius
+    - google
 
-# Album art
 fetchart:
-    auto: yes
-    sources:
-        - filesystem
-        - coverart
-        - itunes
-        - amazon
-        - albumart
+  auto: yes
+  sources:
+    - filesystem
+    - coverart
+    - itunes
+    - amazon
+    - albumart
 
 embedart:
-    auto: yes
-    remove_art_file: no
+  auto: yes
+  remove_art_file: no
 
-# Genre from Last.fm
 lastgenre:
-    auto: yes
-    source: album
+  auto: yes
+  source: album
 
-# Clean metadata
 scrub:
-    auto: yes
+  auto: yes
 EOF
-msg_ok "Created Beets Configuration"
+msg_ok "Created Configuration"
 
 msg_info "Creating Shell Wrapper"
 cat <<'EOF' >/usr/local/bin/beet
@@ -124,7 +108,7 @@ EOF
 chmod +x /usr/local/bin/beet
 msg_ok "Created Shell Wrapper"
 
-msg_info "Creating Web Service (Optional)"
+msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/beets-web.service
 [Unit]
 Description=Beets Web Interface
@@ -140,17 +124,9 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Created Web Service (disabled by default)"
-
-msg_info "Setting Permissions"
-chmod -R 755 /opt/beets
-chmod -R 755 /var/lib/beets
-msg_ok "Set Permissions"
+systemctl enable -q --now beets-web
+msg_ok "Created Service"
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc
