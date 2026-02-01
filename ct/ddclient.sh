@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
-# Copyright (c) 2021-2026 mitchscobell
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: mitchscobell
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://ddclient.net/
