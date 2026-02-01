@@ -38,7 +38,9 @@ systemctl enable -q --now ddclient
 msg_ok "ddclient service enabled and started"
 
 motd_ssh
-echo -e "echo -e \"  🔧 \\\\033[1;33m Configuration: \\\\033[1;32m/etc/ddclient.conf\\\\033[0m\"" >>/etc/profile.d/00_lxc-details.sh
-echo "echo \"\"" >>/etc/profile.d/00_lxc-details.sh
+cat <<'EOF' >>/etc/profile.d/00_lxc-details.sh
+echo -e "  🔧 \033[1;33m Configuration: \033[1;32m/etc/ddclient.conf\033[0m"
+echo ""
+EOF
 customize
 cleanup_lxc
