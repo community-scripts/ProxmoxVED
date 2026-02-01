@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2026 mitchscobell
+# Copyright (c) 2021-2026 mitchscobell
 # Author: mitchscobell
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://ddclient.net/
