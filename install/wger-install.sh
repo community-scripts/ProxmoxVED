@@ -199,7 +199,6 @@ EOF
 
 msg_ok "Nginx configured"
 
-systemctl daemon-reexec
 systemctl enable --now redis-server nginx wger celery celery-beat
 
 $STD rm -f /etc/nginx/sites-enabled/default
