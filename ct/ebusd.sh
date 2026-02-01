@@ -30,7 +30,7 @@ function update_script() {
   
   msg_info "Updating ebusd"
   $STD apt update
-  $STD apt --upgrade -y ebusd
+  $STD apt upgrade -y ebusd
   msg_ok "Updated ebusd"
   msg_ok "Updated successfully!"
   exit
