@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-31T18:42:49Z",
+  "generated": "2026-02-01T13:06:30Z",
   "versions": [
     {
       "slug": "affine",
@@ -119,13 +119,6 @@
       "version": "v2.7.3",
       "pinned": false,
       "date": "2025-08-14T20:43:46Z"
-    },
-    {
-      "slug": "shelfmark",
-      "repo": "FlareSolverr/FlareSolverr",
-      "version": "v3.4.6",
-      "pinned": false,
-      "date": "2025-11-29T02:43:00Z"
     },
     {
       "slug": "sonobarr",
