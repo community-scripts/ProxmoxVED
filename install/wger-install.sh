@@ -44,7 +44,7 @@ $STD npm run build:css:sass
 
 $STD uv venv
 $STD uv pip install .
-$STD uv pip install gunicorn celery django-redis psycopg2-binary
+$STD uv pip install gunicorn psycopg2-binary
 
 SECRET_KEY=$(openssl rand -base64 40)
 
