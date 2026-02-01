@@ -17,9 +17,8 @@ msg_info "Installing ddclient"
 DEBIAN_FRONTEND=noninteractive $STD apt -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y ddclient
 msg_ok "Installed ddclient"
 
-if [[ ! -f /etc/ddclient.conf ]]; then
-  msg_info "Creating sample ddclient configuration"
-  cat << 'EOF' >/etc/ddclient.conf
+msg_info "Creating ddclient service"
+cat << EOF >/etc/ddclient.conf
 protocol=namecheap
 use=web, web=dynamicdns.park-your-domain.com/getip
 protocol=namecheap
@@ -29,13 +28,9 @@ login=yourdomain.com
 password='your-ddns-password'
 @,www
 EOF
-  chmod 600 /etc/ddclient.conf
-  msg_ok "Sample /etc/ddclient.conf created"
-fi
-
-msg_info "Enabling ddclient service"
+chmod 600 /etc/ddclient.conf
 systemctl enable -q --now ddclient
-msg_ok "ddclient service enabled and started"
+msg_ok "Created ddclient service"
 
 motd_ssh
 customize
