@@ -28,8 +28,8 @@ function update_script() {
     exit
   fi
   msg_info "Updating ${APP}"
-  $STD apt-get update
-  $STD apt-get install --only-upgrade -y ddclient
+  $STD apt update
+  $STD apt install --only-upgrade -y ddclient
   $STD systemctl restart ddclient
   msg_ok "Updated ${APP}"
   msg_ok "Updated successfully!"

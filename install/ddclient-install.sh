@@ -2,7 +2,7 @@
 
 # Copyright (c) 2026 mitchscobell
 # Author: mitchscobell
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://ddclient.net/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -14,14 +14,14 @@ network_check
 update_os
 
 msg_info "Installing ddclient"
-DEBIAN_FRONTEND=noninteractive $STD apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y ddclient
+DEBIAN_FRONTEND=noninteractive $STD apt -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y ddclient
 msg_ok "Installed ddclient"
 
 if [[ ! -f /etc/ddclient.conf ]]; then
   msg_info "Creating sample ddclient configuration"
   cat << 'EOF' >/etc/ddclient.conf
-# Sample ddclient.conf
-# Replace with your actual settings
+protocol=namecheap
+use=web, web=dynamicdns.park-your-domain.com/getip
 protocol=namecheap
 use=web, web=dynamicdns.park-your-domain.com/getip
 server=dynamicdns.park-your-domain.com
