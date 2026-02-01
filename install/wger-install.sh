@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   build-essential \
   nginx \
   redis-server \
@@ -200,7 +200,6 @@ EOF
 msg_ok "Nginx configured"
 
 systemctl daemon-reexec
-systemctl daemon-reload
 systemctl enable --now redis-server nginx wger celery celery-beat
 
 $STD rm -f /etc/nginx/sites-enabled/default
