@@ -22,7 +22,7 @@ setup_deb822_repo \
 
 msg_info "Installing ebusd"
 $STD apt install -y ebusd
-systemctl enable -q --now ebusd
+systemctl enable -q ebusd
 msg_ok "Installed ebusd"
 
 motd_ssh

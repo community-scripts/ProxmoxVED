@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: Joerg Heinemann (heinemannj)
+# Author: Slaviša Arežina (tremor021)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/john30/ebusd
+# Source: https://www.powerdns.com/
 
-APP="ebusd"
-var_tags="${var_tags:-automation}"
+APP="PowerDNS"
+var_tags="${var_tags:-dns}"
 var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-512}"
-var_disk="${var_disk:-2}"
+var_ram="${var_ram:-1024}"
+var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -23,16 +23,16 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -f /etc/apt/sources.list.d/ebusd.sources ]]; then
+  if [[ ! -d /opt/poweradmin ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  
-  msg_info "Updating ebusd"
+
+  msg_info "Updating Debian LXC"
   $STD apt update
-  $STD apt upgrade -y ebusd
-  msg_ok "Updated ebusd"
-  msg_ok "Updated successfully!"
+  $STD apt upgrade -y
+  msg_ok "Updated Debian LXC"
+  cleanup_lxc
   exit
 }
 
@@ -40,5 +40,7 @@ start
 build_container
 description
 
-msg_ok "Completed successfully!\n"
+msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"

@@ -20,6 +20,32 @@ if [[ "$VERSION_ID" != "12" ]]; then
   exit 1
 fi
 
+msg_info "Converting APT sources to DEB822 format"
+if [ -f /etc/apt/sources.list ]; then
+  cat > /etc/apt/sources.list.d/debian.sources <<'EOF'
+Types: deb
+URIs: http://deb.debian.org/debian
+Suites: bookworm
+Components: main contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://deb.debian.org/debian
+Suites: bookworm-updates
+Components: main contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://security.debian.org
+Suites: bookworm-security
+Components: main contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
+  mv /etc/apt/sources.list /etc/apt/sources.list.bak
+  $STD apt-get update
+fi
+msg_ok "Converted APT sources"
+
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   jq \
@@ -67,10 +93,11 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Setting Up Hardware Acceleration"
-# Use Debian 12 native packages instead of setup_hwaccel (Intel Arc latest drivers require Debian 13)
+# Use native packages for hardware acceleration
+# intel-media-va-driver-non-free was renamed to intel-media-va-driver in newer releases
 $STD apt-get install -y \
   vainfo \
-  intel-media-va-driver-non-free \
+  intel-media-va-driver \
   intel-gpu-tools \
   mesa-va-drivers \
   mesa-vulkan-drivers || true

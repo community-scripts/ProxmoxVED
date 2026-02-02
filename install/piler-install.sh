@@ -42,21 +42,20 @@ $STD dpkg -i /tmp/manticore-repo.noarch.deb
 $STD apt update
 $STD apt install -y manticore manticore-columnar-lib manticore-extra
 rm -f /tmp/manticore-repo.noarch.deb
+mkdir -p /var/run/manticore
+chown manticore:manticore /var/run/manticore
 $STD systemctl stop manticore
 $STD systemctl disable manticore
 msg_ok "Installed Manticore Search"
 
-msg_info "Installing Piler"
 fetch_and_deploy_gh_release "piler" "jsuto/piler" "binary" "latest" "/tmp" "piler_*-noble-*_amd64.deb"
 fetch_and_deploy_gh_release "piler-webui" "jsuto/piler" "binary" "latest" "/tmp" "piler-webui_*-noble-*_amd64.deb"
-msg_ok "Installed Piler"
 
 msg_info "Configuring Piler Database"
 $STD mariadb -u root "${MARIADB_DB_NAME}" </usr/share/piler/db-mysql.sql 2>/dev/null || true
 msg_ok "Configured Piler Database"
 
 msg_info "Configuring Piler"
-PILER_KEY=$(openssl rand -hex 16)
 cat <<EOF >/etc/piler/piler.conf
 hostid=piler.${LOCAL_IP}.nip.io
 update_counters_to_memcached=1
@@ -68,15 +67,9 @@ mysql_password=${MARIADB_DB_PASS}
 mysql_socket=/var/run/mysqld/mysqld.sock
 
 archive_dir=/var/piler/store
-data_dir=/var/piler
-tmp_dir=/var/piler/tmp
 
 listen_addr=0.0.0.0
 listen_port=25
-
-encrypt_messages=1
-key=${PILER_KEY}
-iv=0123456789ABCDEF
 
 memcached_servers=127.0.0.1
 
@@ -87,8 +80,11 @@ EOF
 
 chown piler:piler /etc/piler/piler.conf
 chmod 640 /etc/piler/piler.conf
+mkdir -p /var/piler/store /var/piler/tmp
 chown -R piler:piler /var/piler
 chmod 750 /var/piler
+# Create symlink for MySQL socket compatibility
+ln -sf /var/run/mysqld/mysqld.sock /tmp/mysql.sock 2>/dev/null || true
 msg_ok "Configured Piler"
 
 msg_info "Configuring Manticore Search"
@@ -99,7 +95,7 @@ searchd {
   listen = 9308:http
   log = /var/log/manticore/searchd.log
   query_log = /var/log/manticore/query.log
-  pid_file = /var/run/manticore/searchd.pid
+  pid_file = /run/manticore/searchd.pid
   binlog_path = /var/lib/manticore/data
 }
 
@@ -111,7 +107,7 @@ source piler1 {
   sql_db = ${MARIADB_DB_NAME}
   sql_port = 3306
 
-  sql_query = SELECT id, from_addr, to_addr, subject, body, sent FROM metadata
+  sql_query = SELECT id, \\\`from\\\` as from_addr, subject, CAST(sent AS UNSIGNED) as sent FROM metadata WHERE deleted=0
   sql_attr_timestamp = sent
 }
 
@@ -137,10 +133,23 @@ index note1 {
 }
 EOF
 
+cat > /etc/tmpfiles.d/manticore.conf <<'TMPEOF'
+d /run/manticore 0755 manticore manticore -
+TMPEOF
+
 mkdir -p /var/log/manticore
-chown -R manticore:manticore /var/log/manticore
-chown -R piler:piler /var/piler/manticore
+mkdir -p /var/lib/manticore/data
+chown -R manticore:manticore /var/log/manticore /var/lib/manticore
+chmod 775 /var/piler/manticore
+chown piler:manticore /var/piler/manticore
 msg_ok "Configured Manticore Search"
+
+msg_info "Building Manticore Search Indexes"
+$STD systemctl start manticore
+sleep 2
+$STD indexer --config /etc/manticoresearch/manticore.conf piler1
+$STD systemctl restart manticore
+msg_ok "Built Manticore Search Indexes"
 
 msg_info "Creating Piler Service"
 cat <<EOF >/etc/systemd/system/piler.service
@@ -148,13 +157,14 @@ cat <<EOF >/etc/systemd/system/piler.service
 Description=Piler Email Archiving
 After=network.target mysql.service manticore.service memcached.service
 Requires=mysql.service
+Wants=manticore.service
 
 [Service]
-Type=forking
+Type=simple
 User=piler
 Group=piler
-ExecStart=/usr/local/sbin/pilerd -c /etc/piler/piler.conf
-PIDFile=/var/piler/pilerd.pid
+RuntimeDirectory=piler
+ExecStart=/usr/sbin/piler -c /etc/piler/piler.conf -d
 Restart=always
 RestartSec=5
 
@@ -178,9 +188,17 @@ $STD systemctl restart php8.3-fpm
 msg_ok "Configured PHP-FPM Pool"
 
 msg_info "Configuring Piler Web GUI"
-# Check if config-site.php already exists (created by .deb package)
-if [ ! -f /var/www/piler/config-site.php ]; then
-  cat <<EOF >/var/www/piler/config-site.php
+# Ensure MariaDB user has correct password before writing config
+$STD mariadb -u root -e "ALTER USER '$MARIADB_DB_USER'@'localhost' IDENTIFIED BY '$MARIADB_DB_PASS';"
+$STD mariadb -u root -e "GRANT ALL ON \`$MARIADB_DB_NAME\`.* TO '$MARIADB_DB_USER'@'localhost';"
+$STD mariadb -u root -e "FLUSH PRIVILEGES;"
+
+# Always ensure config-site.php matches generated credentials
+if [ -f /var/piler/www/config-site.php ]; then
+  cp -f /var/piler/www/config-site.php /var/piler/www/config-site.php.bak
+fi
+
+cat <<EOF >/var/piler/www/config-site.php
 <?php
 \$config['SITE_NAME'] = 'Piler Email Archive';
 \$config['SITE_URL'] = 'http://${LOCAL_IP}';
@@ -208,11 +226,8 @@ if [ ! -f /var/www/piler/config-site.php ]; then
 \$config['MEMCACHED_PREFIX'] = 'piler';
 \$config['MEMCACHED_TTL'] = 3600;
 
-\$config['DIR_BASE'] = '/var/www/piler';
+\$config['DIR_BASE'] = '/var/piler/www';
 \$config['DIR_ATTACHMENT'] = '/var/piler/store';
-
-\$config['ENCRYPTION_KEY'] = '${PILER_KEY}';
-\$config['ENCRYPTION_IV'] = '0123456789ABCDEF';
 
 \$config['DEFAULT_RETENTION_DAYS'] = 2557;
 \$config['RESTRICTED_AUDITOR'] = 0;
@@ -225,18 +240,20 @@ if [ ! -f /var/www/piler/config-site.php ]; then
 \$config['HEADER_LINE_TO_HIDE'] = 'X-Envelope-To:';
 ?>
 EOF
-fi
 
-chown -R piler:piler /var/www/piler
-chmod 755 /var/www/piler
-msg_ok "Installed Piler Web GUI"
+chown -R piler:piler /var/piler/www
+chmod 755 /var/piler
+chmod 755 /var/piler/www
+find /var/piler/www -type d -exec chmod 755 {} \;
+find /var/piler/www -type f -exec chmod 644 {} \;
+msg_ok "Configured Piler Web GUI"
 
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/sites-available/piler
 server {
-    listen 80;
+  listen 80 default_server;
     server_name _;
-    root /var/www/piler;
+    root /var/piler/www;
     index index.php;
 
     access_log /var/log/nginx/piler-access.log;
@@ -268,6 +285,7 @@ EOF
 
 ln -sf /etc/nginx/sites-available/piler /etc/nginx/sites-enabled/piler
 rm -f /etc/nginx/sites-enabled/default
+rm -f /etc/nginx/conf.d/default.conf
 $STD nginx -t
 $STD systemctl enable --now nginx
 msg_ok "Configured Nginx"
