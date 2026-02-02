@@ -31,31 +31,37 @@ function update_script() {
 
   if check_for_gh_release "checkmate" "bluewave-labs/Checkmate"; then
     msg_info "Stopping Services"
-    systemctl stop checkmate-server checkmate-client
+    systemctl stop checkmate-server checkmate-client nginx
     msg_ok "Stopped Services"
 
     msg_info "Backing up Data"
     cp /opt/checkmate/server/.env /opt/checkmate_server.env.bak
-    cp /opt/checkmate/client/.env /opt/checkmate_client.env.bak
+    [ -f /opt/checkmate/client/.env.local ] && cp /opt/checkmate/client/.env.local /opt/checkmate_client.env.local.bak
     msg_ok "Backed up Data"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "checkmate" "bluewave-labs/Checkmate"
 
-    msg_info "Updating Checkmate"
+    msg_info "Updating Checkmate Server"
     cd /opt/checkmate/server
     $STD npm install
+    if [ -f package.json ]; then
+      grep -q '"build"' package.json && $STD npm run build || true
+    fi
+    msg_ok "Updated Checkmate Server"
+
+    msg_info "Updating Checkmate Client"
     cd /opt/checkmate/client
     $STD npm install
     $STD npm run build
-    msg_ok "Updated Checkmate"
+    msg_ok "Updated Checkmate Client"
 
     msg_info "Restoring Data"
     mv /opt/checkmate_server.env.bak /opt/checkmate/server/.env
-    mv /opt/checkmate_client.env.bak /opt/checkmate/client/.env
+    [ -f /opt/checkmate_client.env.local.bak ] && mv /opt/checkmate_client.env.local.bak /opt/checkmate/client/.env.local
     msg_ok "Restored Data"
 
     msg_info "Starting Services"
-    systemctl start checkmate-server checkmate-client
+    systemctl start checkmate-server checkmate-client nginx
     msg_ok "Started Services"
     msg_ok "Updated successfully!"
   fi
@@ -69,4 +75,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:5173${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
