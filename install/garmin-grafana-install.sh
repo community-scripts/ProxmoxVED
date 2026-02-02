@@ -30,10 +30,12 @@ setup_deb822_repo "influxdb" \
 
 msg_info "Installing InfluxDB"
 $STD apt-get install -y influxdb
-curl -fsSL "https://dl.influxdata.com/chronograf/releases/chronograf_1.10.9_amd64.deb" -o /tmp/chronograf.deb
-$STD dpkg -i /tmp/chronograf.deb
-rm -f /tmp/chronograf.deb
 msg_ok "Installed InfluxDB"
+
+msg_info "Installing Chronograf"
+CHRONOGRAF_VERSION=$(get_latest_github_release "influxdata/chronograf")
+fetch_and_deploy_archive "https://dl.influxdata.com/chronograf/releases/chronograf_${CHRONOGRAF_VERSION}_amd64.deb"
+msg_ok "Installed Chronograf"
 
 msg_info "Configuring InfluxDB"
 sed -i 's/# index-version = "inmem"/index-version = "tsi1"/' /etc/influxdb/influxdb.conf
@@ -53,7 +55,7 @@ setup_deb822_repo "grafana" \
   "main"
 
 msg_info "Installing Grafana"
-$STD apt-get install -y grafana
+$STD apt install -y grafana
 $STD systemctl enable --now grafana-server
 sleep 20
 msg_ok "Installed Grafana"
