@@ -179,8 +179,8 @@ msg_ok "Configured PHP-FPM Pool"
 
 msg_info "Configuring Piler Web GUI"
 # Check if config-site.php already exists (created by .deb package)
-if [ ! -f /var/www/piler/config-site.php ]; then
-  cat <<EOF >/var/www/piler/config-site.php
+if [ ! -f /var/piler/www/config-site.php ]; then
+  cat <<EOF >/var/piler/www/config-site.php
 <?php
 \$config['SITE_NAME'] = 'Piler Email Archive';
 \$config['SITE_URL'] = 'http://${LOCAL_IP}';
@@ -208,7 +208,7 @@ if [ ! -f /var/www/piler/config-site.php ]; then
 \$config['MEMCACHED_PREFIX'] = 'piler';
 \$config['MEMCACHED_TTL'] = 3600;
 
-\$config['DIR_BASE'] = '/var/www/piler';
+\$config['DIR_BASE'] = '/var/piler/www';
 \$config['DIR_ATTACHMENT'] = '/var/piler/store';
 
 \$config['ENCRYPTION_KEY'] = '${PILER_KEY}';
@@ -227,16 +227,16 @@ if [ ! -f /var/www/piler/config-site.php ]; then
 EOF
 fi
 
-chown -R piler:piler /var/www/piler
-chmod 755 /var/www/piler
-msg_ok "Installed Piler Web GUI"
+chown -R piler:piler /var/piler/www
+chmod 755 /var/piler/www
+msg_ok "Configured Piler Web GUI"
 
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/sites-available/piler
 server {
     listen 80;
     server_name _;
-    root /var/www/piler;
+    root /var/piler/www;
     index index.php;
 
     access_log /var/log/nginx/piler-access.log;
