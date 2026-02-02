@@ -33,6 +33,12 @@ msg_ok "Installed Dependencies"
 
 setup_mariadb
 MARIADB_DB_NAME="piler" MARIADB_DB_USER="piler" setup_mariadb_db
+msg_info "Syncing MariaDB Credentials"
+$STD mariadb -u root -e "CREATE USER IF NOT EXISTS '$MARIADB_DB_USER'@'localhost';"
+$STD mariadb -u root -e "ALTER USER '$MARIADB_DB_USER'@'localhost' IDENTIFIED BY '$MARIADB_DB_PASS';"
+$STD mariadb -u root -e "GRANT ALL ON \`$MARIADB_DB_NAME\`.* TO '$MARIADB_DB_USER'@'localhost';"
+$STD mariadb -u root -e "FLUSH PRIVILEGES;"
+msg_ok "Synced MariaDB Credentials"
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="ldap,gd,memcached,pdo,mysql,curl,zip" setup_php
 
 msg_info "Installing Manticore Search"
@@ -46,10 +52,8 @@ $STD systemctl stop manticore
 $STD systemctl disable manticore
 msg_ok "Installed Manticore Search"
 
-msg_info "Installing Piler"
 fetch_and_deploy_gh_release "piler" "jsuto/piler" "binary" "latest" "/tmp" "piler_*-noble-*_amd64.deb"
 fetch_and_deploy_gh_release "piler-webui" "jsuto/piler" "binary" "latest" "/tmp" "piler-webui_*-noble-*_amd64.deb"
-msg_ok "Installed Piler"
 
 msg_info "Configuring Piler Database"
 $STD mariadb -u root "${MARIADB_DB_NAME}" </usr/share/piler/db-mysql.sql 2>/dev/null || true
@@ -178,9 +182,12 @@ $STD systemctl restart php8.3-fpm
 msg_ok "Configured PHP-FPM Pool"
 
 msg_info "Configuring Piler Web GUI"
-# Check if config-site.php already exists (created by .deb package)
-if [ ! -f /var/piler/www/config-site.php ]; then
-  cat <<EOF >/var/piler/www/config-site.php
+# Always ensure config-site.php matches generated credentials
+if [ -f /var/piler/www/config-site.php ]; then
+  cp -f /var/piler/www/config-site.php /var/piler/www/config-site.php.bak
+fi
+
+cat <<EOF >/var/piler/www/config-site.php
 <?php
 \$config['SITE_NAME'] = 'Piler Email Archive';
 \$config['SITE_URL'] = 'http://${LOCAL_IP}';
@@ -225,7 +232,6 @@ if [ ! -f /var/piler/www/config-site.php ]; then
 \$config['HEADER_LINE_TO_HIDE'] = 'X-Envelope-To:';
 ?>
 EOF
-fi
 
 chown -R piler:piler /var/piler/www
 chmod 755 /var/piler/www
@@ -234,7 +240,7 @@ msg_ok "Configured Piler Web GUI"
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/sites-available/piler
 server {
-    listen 80;
+  listen 80 default_server;
     server_name _;
     root /var/piler/www;
     index index.php;
@@ -268,6 +274,7 @@ EOF
 
 ln -sf /etc/nginx/sites-available/piler /etc/nginx/sites-enabled/piler
 rm -f /etc/nginx/sites-enabled/default
+rm -f /etc/nginx/conf.d/default.conf
 $STD nginx -t
 $STD systemctl enable --now nginx
 msg_ok "Configured Nginx"
