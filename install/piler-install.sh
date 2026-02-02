@@ -33,12 +33,6 @@ msg_ok "Installed Dependencies"
 
 setup_mariadb
 MARIADB_DB_NAME="piler" MARIADB_DB_USER="piler" setup_mariadb_db
-msg_info "Syncing MariaDB Credentials"
-$STD mariadb -u root -e "CREATE USER IF NOT EXISTS '$MARIADB_DB_USER'@'localhost';"
-$STD mariadb -u root -e "ALTER USER '$MARIADB_DB_USER'@'localhost' IDENTIFIED BY '$MARIADB_DB_PASS';"
-$STD mariadb -u root -e "GRANT ALL ON \`$MARIADB_DB_NAME\`.* TO '$MARIADB_DB_USER'@'localhost';"
-$STD mariadb -u root -e "FLUSH PRIVILEGES;"
-msg_ok "Synced MariaDB Credentials"
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULE="ldap,gd,memcached,pdo,mysql,curl,zip" setup_php
 
 msg_info "Installing Manticore Search"
@@ -157,8 +151,8 @@ Requires=mysql.service
 Type=forking
 User=piler
 Group=piler
-ExecStart=/usr/local/sbin/pilerd -c /etc/piler/piler.conf
-PIDFile=/var/piler/pilerd.pid
+ExecStart=/usr/sbin/piler -c /etc/piler/piler.conf
+PIDFile=/var/piler/piler.pid
 Restart=always
 RestartSec=5
 
@@ -182,6 +176,11 @@ $STD systemctl restart php8.3-fpm
 msg_ok "Configured PHP-FPM Pool"
 
 msg_info "Configuring Piler Web GUI"
+# Ensure MariaDB user has correct password before writing config
+$STD mariadb -u root -e "ALTER USER '$MARIADB_DB_USER'@'localhost' IDENTIFIED BY '$MARIADB_DB_PASS';"
+$STD mariadb -u root -e "GRANT ALL ON \`$MARIADB_DB_NAME\`.* TO '$MARIADB_DB_USER'@'localhost';"
+$STD mariadb -u root -e "FLUSH PRIVILEGES;"
+
 # Always ensure config-site.php matches generated credentials
 if [ -f /var/piler/www/config-site.php ]; then
   cp -f /var/piler/www/config-site.php /var/piler/www/config-site.php.bak
@@ -234,7 +233,10 @@ cat <<EOF >/var/piler/www/config-site.php
 EOF
 
 chown -R piler:piler /var/piler/www
+chmod 755 /var/piler
 chmod 755 /var/piler/www
+find /var/piler/www -type d -exec chmod 755 {} \;
+find /var/piler/www -type f -exec chmod 644 {} \;
 msg_ok "Configured Piler Web GUI"
 
 msg_info "Configuring Nginx"
