@@ -23,6 +23,29 @@ sed -i 's|^address = ".*"|address = "0.0.0.0:8000"|' /etc/rustypaste/config.toml
 msg_ok "Configured RustyPaste"
 
 msg_info "Creating Service"
+cat <<'EOF' >/etc/init.d/rustypaste
+#!/sbin/openrc-run
+
+name="rustypaste"
+description="RustyPaste - A minimal file upload/pastebin service"
+command="/usr/bin/rustypaste"
+command_args=""
+command_user="root"
+command_background=true
+pidfile="/run/${RC_SVCNAME}.pid"
+directory="/var/lib/rustypaste"
+
+depend() {
+    need net
+    after firewall
+}
+
+start_pre() {
+    export CONFIG=/etc/rustypaste/config.toml
+    checkpath --directory --owner root:root --mode 0755 /var/lib/rustypaste
+}
+EOF
+chmod +x /etc/init.d/rustypaste
 $STD rc-update add rustypaste default
 $STD rc-service rustypaste start
 msg_ok "Created Service"
