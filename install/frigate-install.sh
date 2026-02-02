@@ -21,11 +21,28 @@ if [[ "$VERSION_ID" != "12" ]]; then
 fi
 
 msg_info "Converting APT sources to DEB822 format"
-if [ -f /etc/apt/sources.list ] && [ ! -f /etc/apt/sources.list.d/debian.sources ]; then
-  apt-get update 2>/dev/null || true
-  echo "# Generated from /etc/apt/sources.list" > /etc/apt/sources.list.d/debian.sources
-  grep -E "^deb " /etc/apt/sources.list | sed 's/^deb /Types: deb\nURIs: /' >> /etc/apt/sources.list.d/debian.sources 2>/dev/null || true
+if [ -f /etc/apt/sources.list ]; then
+  cat > /etc/apt/sources.list.d/debian.sources <<'EOF'
+Types: deb
+URIs: http://deb.debian.org/debian
+Suites: bookworm
+Components: main contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://deb.debian.org/debian
+Suites: bookworm-updates
+Components: main contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://security.debian.org
+Suites: bookworm-security
+Components: main contrib
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+EOF
   mv /etc/apt/sources.list /etc/apt/sources.list.bak
+  $STD apt-get update
 fi
 msg_ok "Converted APT sources"
 
