@@ -67,16 +67,11 @@ $STD apt-get install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Setting Up Hardware Acceleration"
-# Ensure non-free-firmware repository is available for Intel drivers
-if ! grep -q "non-free-firmware" /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null; then
-  echo "deb http://deb.debian.org/debian bookworm non-free-firmware" >> /etc/apt/sources.list
-  $STD apt-get update
-fi
-
-# Use Debian 12 native packages instead of setup_hwaccel (Intel Arc latest drivers require Debian 13)
+# Use native packages for hardware acceleration
+# intel-media-va-driver-non-free was renamed to intel-media-va-driver in newer releases
 $STD apt-get install -y \
   vainfo \
-  intel-media-va-driver-non-free \
+  intel-media-va-driver \
   intel-gpu-tools \
   mesa-va-drivers \
   mesa-vulkan-drivers || true
