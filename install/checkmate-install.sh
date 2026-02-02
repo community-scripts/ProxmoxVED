@@ -14,9 +14,10 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   build-essential \
-  openssl
+  openssl \
+  nginx
 msg_ok "Installed Dependencies"
 
 MONGO_VERSION="8.0" setup_mongodb
@@ -26,16 +27,18 @@ fetch_and_deploy_gh_release "checkmate" "bluewave-labs/Checkmate"
 msg_info "Configuring Checkmate"
 JWT_SECRET="$(openssl rand -hex 32)"
 cat <<EOF >/opt/checkmate/server/.env
-CLIENT_HOST="http://${LOCAL_IP}:5173"
+CLIENT_HOST="http://${LOCAL_IP}"
 JWT_SECRET="${JWT_SECRET}"
 DB_CONNECTION_STRING="mongodb://localhost:27017/checkmate_db"
 TOKEN_TTL="99d"
 ORIGIN="${LOCAL_IP}"
 LOG_LEVEL="info"
+PORT=52345
 EOF
 
-cat <<EOF >/opt/checkmate/client/.env
-VITE_APP_API_BASE_URL="http://${LOCAL_IP}:52345/api/v1"
+cat <<EOF >/opt/checkmate/client/.env.local
+VITE_APP_API_BASE_URL="/api/v1"
+UPTIME_APP_API_BASE_URL="/api/v1"
 VITE_APP_LOG_LEVEL="warn"
 EOF
 msg_ok "Configured Checkmate"
@@ -43,6 +46,7 @@ msg_ok "Configured Checkmate"
 msg_info "Installing Checkmate Server"
 cd /opt/checkmate/server
 $STD npm install
+$STD npm run build
 msg_ok "Installed Checkmate Server"
 
 msg_info "Installing Checkmate Client"
@@ -59,6 +63,7 @@ After=network.target mongod.service
 
 [Service]
 Type=simple
+User=root
 WorkingDirectory=/opt/checkmate/server
 EnvironmentFile=/opt/checkmate/server/.env
 ExecStart=/usr/bin/npm start
@@ -72,12 +77,12 @@ EOF
 cat <<EOF >/etc/systemd/system/checkmate-client.service
 [Unit]
 Description=Checkmate Client
-After=network.target checkmate-server.service
+After=network.target
 
 [Service]
 Type=simple
+User=root
 WorkingDirectory=/opt/checkmate/client
-EnvironmentFile=/opt/checkmate/client/.env
 ExecStart=/usr/bin/npm run preview -- --host 0.0.0.0 --port 5173
 Restart=on-failure
 RestartSec=5
@@ -87,6 +92,41 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now checkmate-server checkmate-client
 msg_ok "Created Services"
+
+msg_info "Configuring Nginx Reverse Proxy"
+cat <<EOF >/etc/nginx/sites-available/checkmate
+server {
+  listen 80 default_server;
+  server_name _;
+  
+  client_max_body_size 100M;
+
+  # Client UI
+  location / {
+    proxy_pass http://127.0.0.1:5173;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+  }
+
+  # API Server
+  location /api/v1/ {
+    proxy_pass http://127.0.0.1:52345/api/v1/;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+  }
+}
+EOF
+
+ln -sf /etc/nginx/sites-available/checkmate /etc/nginx/sites-enabled/checkmate
+rm -f /etc/nginx/sites-enabled/default
+$STD systemctl reload nginx
+msg_ok "Configured Nginx Reverse Proxy"
 
 motd_ssh
 customize
