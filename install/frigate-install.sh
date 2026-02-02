@@ -20,6 +20,15 @@ if [[ "$VERSION_ID" != "12" ]]; then
   exit 1
 fi
 
+msg_info "Converting APT sources to DEB822 format"
+if [ -f /etc/apt/sources.list ] && [ ! -f /etc/apt/sources.list.d/debian.sources ]; then
+  apt-get update 2>/dev/null || true
+  echo "# Generated from /etc/apt/sources.list" > /etc/apt/sources.list.d/debian.sources
+  grep -E "^deb " /etc/apt/sources.list | sed 's/^deb /Types: deb\nURIs: /' >> /etc/apt/sources.list.d/debian.sources 2>/dev/null || true
+  mv /etc/apt/sources.list /etc/apt/sources.list.bak
+fi
+msg_ok "Converted APT sources"
+
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
   jq \
