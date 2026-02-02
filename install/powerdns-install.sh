@@ -18,7 +18,7 @@ msg_info "Installing Dependencies"
 $STD apt install -y sqlite3
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.3" PHP_APACHE="YES" PHP_FPM="YES" PHP_MODULE="gettext,openssl,tokenizer,sqlite3,ldap" setup_php
+PHP_VERSION="8.3" PHP_APACHE="YES" PHP_FPM="YES" PHP_MODULE="gettext,tokenizer,sqlite3,ldap" setup_php
 setup_deb822_repo \
   "pdns" \
   "https://repo.powerdns.com/FD380FBB-pub.asc" \
