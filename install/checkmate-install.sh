@@ -33,7 +33,8 @@ DB_CONNECTION_STRING="mongodb://localhost:27017/checkmate_db"
 TOKEN_TTL="99d"
 ORIGIN="${LOCAL_IP}"
 LOG_LEVEL="info"
-PORT=52345
+SERVER_HOST=0.0.0.0
+SERVER_PORT=52345
 EOF
 
 cat <<EOF >/opt/checkmate/client/.env.local
@@ -52,7 +53,7 @@ msg_ok "Installed Checkmate Server"
 msg_info "Installing Checkmate Client"
 cd /opt/checkmate/client
 $STD npm install
-$STD npm run build
+VITE_APP_API_BASE_URL="/api/v1" UPTIME_APP_API_BASE_URL="/api/v1" VITE_APP_LOG_LEVEL="warn" $STD npm run build
 msg_ok "Installed Checkmate Client"
 
 msg_info "Creating Services"
@@ -90,9 +91,8 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reload
-$STD systemctl enable --now checkmate-server
-$STD systemctl enable --now checkmate-client
+$STD systemctl enable -q --now checkmate-server
+$STD systemctl enable -q --now checkmate-client
 msg_ok "Created Services"
 
 msg_info "Configuring Nginx Reverse Proxy"
@@ -128,7 +128,7 @@ EOF
 ln -sf /etc/nginx/sites-available/checkmate /etc/nginx/sites-enabled/checkmate
 rm -f /etc/nginx/sites-enabled/default
 $STD nginx -t
-$STD systemctl enable --now nginx
+$STD systemctl reload nginx
 msg_ok "Configured Nginx Reverse Proxy"
 
 motd_ssh

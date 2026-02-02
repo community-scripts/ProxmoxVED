@@ -52,7 +52,7 @@ function update_script() {
     msg_info "Updating Checkmate Client"
     cd /opt/checkmate/client
     $STD npm install
-    $STD npm run build
+    VITE_APP_API_BASE_URL="/api/v1" UPTIME_APP_API_BASE_URL="/api/v1" VITE_APP_LOG_LEVEL="warn" $STD npm run build
     msg_ok "Updated Checkmate Client"
 
     msg_info "Restoring Data"
