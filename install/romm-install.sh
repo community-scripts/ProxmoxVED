@@ -175,7 +175,6 @@ cd /opt/romm/frontend
 $STD npm install
 $STD npm run build
 
-msg_info "Merge static assets into dist folder"
 cp -rf /opt/romm/frontend/assets/* /opt/romm/frontend/dist/assets/
 
 mkdir -p /opt/romm/frontend/dist/assets/romm
