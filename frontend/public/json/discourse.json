@@ -1,0 +1,48 @@
+{
+    "name": "Discourse",
+    "slug": "discourse",
+    "categories": [
+        23
+    ],
+    "date_created": "2026-02-02",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://www.discourse.org/",
+    "website": "https://www.discourse.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/discourse.webp",
+    "config_path": "/opt/discourse/.env",
+    "description": "Discourse is the civilized discussion platform. Use it as a mailing list, discussion forum, or long-form chat room.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/discourse.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Minimum 4GB RAM and 4 CPU cores recommended for production use.",
+            "type": "warning"
+        },
+        {
+            "text": "Admin user is created with username 'admin'. Set password in first login.",
+            "type": "info"
+        },
+        {
+            "text": "Configure SMTP settings in admin panel for email notifications.",
+            "type": "info"
+        }
+    ]
+}
