@@ -34,11 +34,11 @@ msg_ok "Built Vaultwarden"
 
 $STD addgroup --system vaultwarden
 $STD adduser --system --home /opt/vaultwarden --shell /usr/sbin/nologin --no-create-home --gecos 'vaultwarden' --ingroup vaultwarden --disabled-login --disabled-password vaultwarden
-mkdir -p /opt/vaultwarden/{bin,data}
+mkdir -p /opt/vaultwarden/{bin,data,web-vault}
 cp target/release/vaultwarden /opt/vaultwarden/bin/
 cd ~ && rm -rf /tmp/vaultwarden-src
 
-fetch_and_deploy_gh_release "vaultwarden_webvault" "dani-garcia/bw_web_builds" "prebuild" "latest" "/opt/vaultwarden" "bw_web_*.tar.gz"
+fetch_and_deploy_gh_release "vaultwarden_webvault" "dani-garcia/bw_web_builds" "prebuild" "latest" "/opt/vaultwarden/web-vault" "bw_web_*.tar.gz"
 
 cat <<EOF >/opt/vaultwarden/.env
 ADMIN_TOKEN=''
