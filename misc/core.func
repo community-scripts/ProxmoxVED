@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2026 community-scripts ORG
-# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
+# License: MIT | https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
 
 # ==============================================================================
 # CORE FUNCTIONS - LXC CONTAINER UTILITIES
@@ -123,6 +123,7 @@ icons() {
   CREATING="${TAB}🚀${TAB}${CL}"
   ADVANCED="${TAB}🧩${TAB}${CL}"
   FUSE="${TAB}🗂️${TAB}${CL}"
+  GPU="${TAB}🎮${TAB}${CL}"
   HOURGLASS="${TAB}⏳${TAB}"
 }
 
@@ -551,11 +552,8 @@ msg_info() {
   if ! declare -p MSG_INFO_SHOWN &>/dev/null || ! declare -A MSG_INFO_SHOWN &>/dev/null; then
     declare -gA MSG_INFO_SHOWN=()
   fi
-  # Sanitize message for use as associative array key (remove ANSI codes and special chars)
-  local sanitized_msg
-  sanitized_msg=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
-  [[ -n "${MSG_INFO_SHOWN["$sanitized_msg"]+x}" ]] && return
-  MSG_INFO_SHOWN["$sanitized_msg"]=1
+  [[ -n "${MSG_INFO_SHOWN["$msg"]+x}" ]] && return
+  MSG_INFO_SHOWN["$msg"]=1
 
   stop_spinner
   SPINNER_MSG="$msg"
@@ -600,7 +598,6 @@ msg_ok() {
   stop_spinner
   clear_line
   echo -e "$CM ${GN}${msg}${CL}"
-  # Sanitize message for use as associative array key (remove ANSI codes and special chars)
   local sanitized_msg
   sanitized_msg=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
   unset 'MSG_INFO_SHOWN['"$sanitized_msg"']' 2>/dev/null || true
@@ -717,7 +714,7 @@ exit_script() {
 # ------------------------------------------------------------------------------
 get_header() {
   local app_name=$(echo "${APP,,}" | tr -d ' ')
-  local app_type=${APP_TYPE:-ct} # Default zu 'ct' falls nicht gesetzt
+  local app_type=${APP_TYPE:-ct} # Default to 'ct' if not set
   local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
 
@@ -813,6 +810,562 @@ is_verbose_mode() {
   [[ "$verbose" != "no" || ! -t 2 ]]
 }
 
+# ------------------------------------------------------------------------------
+# is_unattended()
+#
+# - Detects if script is running in unattended/non-interactive mode
+# - Checks MODE variable first (primary method)
+# - Falls back to legacy flags (PHS_SILENT, var_unattended)
+# - Returns 0 (true) if unattended, 1 (false) otherwise
+# - Used by prompt functions to auto-apply defaults
+#
+# Modes that are unattended:
+#   - default (1)      : Use script defaults, no prompts
+#   - mydefaults (3)   : Use user's default.vars, no prompts
+#   - appdefaults (4)  : Use app-specific defaults, no prompts
+#
+# Modes that are interactive:
+#   - advanced (2)     : Full wizard with all options
+#
+# Note: Even in advanced mode, install scripts run unattended because
+#       all values are already collected during the wizard phase.
+# ------------------------------------------------------------------------------
+is_unattended() {
+  # Primary: Check MODE variable (case-insensitive)
+  local mode="${MODE:-${mode:-}}"
+  mode="${mode,,}"  # lowercase
+
+  case "$mode" in
+    default|1)
+      return 0
+      ;;
+    mydefaults|userdefaults|3)
+      return 0
+      ;;
+    appdefaults|4)
+      return 0
+      ;;
+    advanced|2)
+      # Advanced mode is interactive ONLY during wizard
+      # Inside container (install scripts), it should be unattended
+      # Check if we're inside a container (no pveversion command)
+      if ! command -v pveversion &>/dev/null; then
+        # We're inside the container - all values already collected
+        return 0
+      fi
+      # On host during wizard - interactive
+      return 1
+      ;;
+  esac
+
+  # Legacy fallbacks for compatibility
+  [[ "${PHS_SILENT:-0}" == "1" ]] && return 0
+  [[ "${var_unattended:-}" =~ ^(yes|true|1)$ ]] && return 0
+  [[ "${UNATTENDED:-}" =~ ^(yes|true|1)$ ]] && return 0
+
+  # No TTY available = unattended
+  [[ ! -t 0 ]] && return 0
+
+  # Default: interactive
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# show_missing_values_warning()
+#
+# - Displays a summary of required values that used fallback defaults
+# - Should be called at the end of install scripts
+# - Only shows warning if MISSING_REQUIRED_VALUES array has entries
+# - Provides clear guidance on what needs manual configuration
+#
+# Global:
+#   MISSING_REQUIRED_VALUES - Array of variable names that need configuration
+#
+# Example:
+#   # At end of install script:
+#   show_missing_values_warning
+# ------------------------------------------------------------------------------
+show_missing_values_warning() {
+  if [[ ${#MISSING_REQUIRED_VALUES[@]} -gt 0 ]]; then
+    echo ""
+    echo -e "${YW}╔════════════════════════════════════════════════════════════╗${CL}"
+    echo -e "${YW}║  ⚠️  MANUAL CONFIGURATION REQUIRED                          ║${CL}"
+    echo -e "${YW}╠════════════════════════════════════════════════════════════╣${CL}"
+    echo -e "${YW}║  The following values were not provided and need to be     ║${CL}"
+    echo -e "${YW}║  configured manually for the service to work properly:     ║${CL}"
+    echo -e "${YW}╟────────────────────────────────────────────────────────────╢${CL}"
+    for val in "${MISSING_REQUIRED_VALUES[@]}"; do
+      printf "${YW}║${CL}  • %-56s ${YW}║${CL}\n" "$val"
+    done
+    echo -e "${YW}╟────────────────────────────────────────────────────────────╢${CL}"
+    echo -e "${YW}║  Check the service configuration files or environment      ║${CL}"
+    echo -e "${YW}║  variables and update the placeholder values.              ║${CL}"
+    echo -e "${YW}╚════════════════════════════════════════════════════════════╝${CL}"
+    echo ""
+    return 1
+  fi
+  return 0
+}
+
+# ------------------------------------------------------------------------------
+# prompt_confirm()
+#
+# - Prompts user for yes/no confirmation with timeout and unattended support
+# - In unattended mode: immediately returns default value
+# - In interactive mode: waits for user input with configurable timeout
+# - After timeout: auto-applies default value
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Default value: "y" or "n" (optional, default: "n")
+#   $3 - Timeout in seconds (optional, default: 60)
+#
+# Returns:
+#   0 - User confirmed (yes)
+#   1 - User declined (no) or timeout with default "n"
+#
+# Example:
+#   if prompt_confirm "Proceed with installation?" "y" 30; then
+#     echo "Installing..."
+#   fi
+#
+#   # Unattended: prompt_confirm will use default without waiting
+#   var_unattended=yes
+#   prompt_confirm "Delete files?" "n" && echo "Deleting" || echo "Skipped"
+# ------------------------------------------------------------------------------
+prompt_confirm() {
+  local message="${1:-Confirm?}"
+  local default="${2:-n}"
+  local timeout="${3:-60}"
+  local response
+
+  # Normalize default to lowercase
+  default="${default,,}"
+  [[ "$default" != "y" ]] && default="n"
+
+  # Build prompt hint
+  local hint
+  if [[ "$default" == "y" ]]; then
+    hint="[Y/n]"
+  else
+    hint="[y/N]"
+  fi
+
+  # Unattended mode: apply default immediately
+  if is_unattended; then
+    if [[ "$default" == "y" ]]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    # Not a TTY, use default
+    if [[ "$default" == "y" ]]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+
+  # Interactive prompt with timeout
+  echo -en "${YW}${message} ${hint} (auto-${default} in ${timeout}s): ${CL}"
+
+  if read -t "$timeout" -r response; then
+    # User provided input
+    response="${response,,}" # lowercase
+    case "$response" in
+      y|yes)
+        return 0
+        ;;
+      n|no)
+        return 1
+        ;;
+      "")
+        # Empty response, use default
+        if [[ "$default" == "y" ]]; then
+          return 0
+        else
+          return 1
+        fi
+        ;;
+      *)
+        # Invalid input, use default
+        echo -e "${YW}Invalid response, using default: ${default}${CL}"
+        if [[ "$default" == "y" ]]; then
+          return 0
+        else
+          return 1
+        fi
+        ;;
+    esac
+  else
+    # Timeout occurred
+    echo "" # Newline after timeout
+    echo -e "${YW}Timeout - auto-selecting: ${default}${CL}"
+    if [[ "$default" == "y" ]]; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# prompt_input()
+#
+# - Prompts user for text input with timeout and unattended support
+# - In unattended mode: immediately returns default value
+# - In interactive mode: waits for user input with configurable timeout
+# - After timeout: auto-applies default value
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Default value (optional, default: "")
+#   $3 - Timeout in seconds (optional, default: 60)
+#
+# Output:
+#   Prints the user input or default value to stdout
+#
+# Example:
+#   username=$(prompt_input "Enter username:" "admin" 30)
+#   echo "Using username: $username"
+#
+#   # With validation
+#   while true; do
+#     port=$(prompt_input "Enter port:" "8080" 30)
+#     [[ "$port" =~ ^[0-9]+$ ]] && break
+#     echo "Invalid port number"
+#   done
+# ------------------------------------------------------------------------------
+prompt_input() {
+  local message="${1:-Enter value:}"
+  local default="${2:-}"
+  local timeout="${3:-60}"
+  local response
+
+  # Build display default hint
+  local hint=""
+  [[ -n "$default" ]] && hint=" (default: ${default})"
+
+  # Unattended mode: return default immediately
+  if is_unattended; then
+    echo "$default"
+    return 0
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    # Not a TTY, use default
+    echo "$default"
+    return 0
+  fi
+
+  # Interactive prompt with timeout
+  echo -en "${YW}${message}${hint} (auto-default in ${timeout}s): ${CL}" >&2
+
+  if read -t "$timeout" -r response; then
+    # User provided input (or pressed Enter for empty)
+    if [[ -n "$response" ]]; then
+      echo "$response"
+    else
+      echo "$default"
+    fi
+  else
+    # Timeout occurred
+    echo "" >&2 # Newline after timeout
+    echo -e "${YW}Timeout - using default: ${default}${CL}" >&2
+    echo "$default"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# prompt_input_required()
+#
+# - Prompts user for REQUIRED text input with fallback support
+# - In unattended mode: Uses fallback value if no env var set (with warning)
+# - In interactive mode: loops until user provides non-empty input
+# - Tracks missing required values for end-of-script summary
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Fallback/example value for unattended mode (optional)
+#   $3 - Timeout in seconds (optional, default: 120)
+#   $4 - Environment variable name hint for error messages (optional)
+#
+# Output:
+#   Prints the user input or fallback value to stdout
+#
+# Returns:
+#   0 - Success (value provided or fallback used)
+#   1 - Failed (interactive timeout without input)
+#
+# Global:
+#   MISSING_REQUIRED_VALUES - Array tracking fields that used fallbacks
+#
+# Example:
+#   # With fallback - script continues even in unattended mode
+#   token=$(prompt_input_required "Enter API Token:" "YOUR_TOKEN_HERE" 60 "var_api_token")
+#
+#   # Check at end of script if any values need manual configuration
+#   if [[ ${#MISSING_REQUIRED_VALUES[@]} -gt 0 ]]; then
+#     msg_warn "Please configure: ${MISSING_REQUIRED_VALUES[*]}"
+#   fi
+# ------------------------------------------------------------------------------
+# Global array to track missing required values
+declare -g -a MISSING_REQUIRED_VALUES=()
+
+prompt_input_required() {
+  local message="${1:-Enter required value:}"
+  local fallback="${2:-CHANGE_ME}"
+  local timeout="${3:-120}"
+  local env_var_hint="${4:-}"
+  local response=""
+
+  # Check if value is already set via environment variable (if hint provided)
+  if [[ -n "$env_var_hint" ]]; then
+    local env_value="${!env_var_hint:-}"
+    if [[ -n "$env_value" ]]; then
+      echo "$env_value"
+      return 0
+    fi
+  fi
+
+  # Unattended mode: use fallback with warning
+  if is_unattended; then
+    if [[ -n "$env_var_hint" ]]; then
+      echo -e "${YW}⚠ Required value '${env_var_hint}' not set - using fallback: ${fallback}${CL}" >&2
+      MISSING_REQUIRED_VALUES+=("$env_var_hint")
+    else
+      echo -e "${YW}⚠ Required value not provided - using fallback: ${fallback}${CL}" >&2
+      MISSING_REQUIRED_VALUES+=("(unnamed)")
+    fi
+    echo "$fallback"
+    return 0
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    echo -e "${YW}⚠ Not interactive - using fallback: ${fallback}${CL}" >&2
+    MISSING_REQUIRED_VALUES+=("${env_var_hint:-unnamed}")
+    echo "$fallback"
+    return 0
+  fi
+
+  # Interactive prompt - loop until non-empty input or use fallback on timeout
+  local attempts=0
+  while [[ -z "$response" ]]; do
+    attempts=$((attempts + 1))
+
+    if [[ $attempts -gt 3 ]]; then
+      echo -e "${YW}Too many empty inputs - using fallback: ${fallback}${CL}" >&2
+      MISSING_REQUIRED_VALUES+=("${env_var_hint:-manual_input}")
+      echo "$fallback"
+      return 0
+    fi
+
+    echo -en "${YW}${message} (required, timeout ${timeout}s): ${CL}" >&2
+
+    if read -t "$timeout" -r response; then
+      if [[ -z "$response" ]]; then
+        echo -e "${YW}This field is required. Please enter a value. (attempt ${attempts}/3)${CL}" >&2
+      fi
+    else
+      # Timeout occurred - use fallback
+      echo "" >&2
+      echo -e "${YW}Timeout - using fallback value: ${fallback}${CL}" >&2
+      MISSING_REQUIRED_VALUES+=("${env_var_hint:-timeout}")
+      echo "$fallback"
+      return 0
+    fi
+  done
+
+  echo "$response"
+}
+
+# ------------------------------------------------------------------------------
+# prompt_select()
+#
+# - Prompts user to select from a list of options with timeout support
+# - In unattended mode: immediately returns default selection
+# - In interactive mode: displays numbered menu and waits for choice
+# - After timeout: auto-applies default selection
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Default option number, 1-based (optional, default: 1)
+#   $3 - Timeout in seconds (optional, default: 60)
+#   $4+ - Options to display (required, at least 2)
+#
+# Output:
+#   Prints the selected option value to stdout
+#
+# Returns:
+#   0 - Success
+#   1 - No options provided or invalid state
+#
+# Example:
+#   choice=$(prompt_select "Select database:" 1 30 "PostgreSQL" "MySQL" "SQLite")
+#   echo "Selected: $choice"
+#
+#   # With array
+#   options=("Option A" "Option B" "Option C")
+#   selected=$(prompt_select "Choose:" 2 60 "${options[@]}")
+# ------------------------------------------------------------------------------
+prompt_select() {
+  local message="${1:-Select option:}"
+  local default="${2:-1}"
+  local timeout="${3:-60}"
+  shift 3
+
+  local options=("$@")
+  local num_options=${#options[@]}
+
+  # Validate options
+  if [[ $num_options -eq 0 ]]; then
+    echo "" >&2
+    return 1
+  fi
+
+  # Validate default
+  if [[ ! "$default" =~ ^[0-9]+$ ]] || [[ "$default" -lt 1 ]] || [[ "$default" -gt "$num_options" ]]; then
+    default=1
+  fi
+
+  # Unattended mode: return default immediately
+  if is_unattended; then
+    echo "${options[$((default - 1))]}"
+    return 0
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    echo "${options[$((default - 1))]}"
+    return 0
+  fi
+
+  # Display menu
+  echo -e "${YW}${message}${CL}" >&2
+  local i
+  for i in "${!options[@]}"; do
+    local num=$((i + 1))
+    if [[ $num -eq $default ]]; then
+      echo -e "  ${GN}${num})${CL} ${options[$i]} ${YW}(default)${CL}" >&2
+    else
+      echo -e "  ${GN}${num})${CL} ${options[$i]}" >&2
+    fi
+  done
+
+  # Interactive prompt with timeout
+  echo -en "${YW}Select [1-${num_options}] (auto-select ${default} in ${timeout}s): ${CL}" >&2
+
+  local response
+  if read -t "$timeout" -r response; then
+    if [[ -z "$response" ]]; then
+      # Empty response, use default
+      echo "${options[$((default - 1))]}"
+    elif [[ "$response" =~ ^[0-9]+$ ]] && [[ "$response" -ge 1 ]] && [[ "$response" -le "$num_options" ]]; then
+      # Valid selection
+      echo "${options[$((response - 1))]}"
+    else
+      # Invalid input, use default
+      echo -e "${YW}Invalid selection, using default: ${options[$((default - 1))]}${CL}" >&2
+      echo "${options[$((default - 1))]}"
+    fi
+  else
+    # Timeout occurred
+    echo "" >&2 # Newline after timeout
+    echo -e "${YW}Timeout - auto-selecting: ${options[$((default - 1))]}${CL}" >&2
+    echo "${options[$((default - 1))]}"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# prompt_password()
+#
+# - Prompts user for password input with hidden characters
+# - In unattended mode: returns default or generates random password
+# - Supports auto-generation of secure passwords
+# - After timeout: generates random password if allowed
+#
+# Arguments:
+#   $1 - Prompt message (required)
+#   $2 - Default value or "generate" for auto-generation (optional)
+#   $3 - Timeout in seconds (optional, default: 60)
+#   $4 - Minimum length for validation (optional, default: 0 = no minimum)
+#
+# Output:
+#   Prints the password to stdout
+#
+# Example:
+#   password=$(prompt_password "Enter password:" "generate" 30 8)
+#   echo "Password set"
+#
+#   # Require user input (no default)
+#   db_pass=$(prompt_password "Database password:" "" 60 12)
+# ------------------------------------------------------------------------------
+prompt_password() {
+  local message="${1:-Enter password:}"
+  local default="${2:-}"
+  local timeout="${3:-60}"
+  local min_length="${4:-0}"
+  local response
+
+  # Generate random password if requested
+  local generated=""
+  if [[ "$default" == "generate" ]]; then
+    generated=$(openssl rand -base64 16 2>/dev/null | tr -dc 'a-zA-Z0-9' | head -c 16)
+    [[ -z "$generated" ]] && generated=$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 16)
+    default="$generated"
+  fi
+
+  # Unattended mode: return default immediately
+  if is_unattended; then
+    echo "$default"
+    return 0
+  fi
+
+  # Check if running in a TTY
+  if [[ ! -t 0 ]]; then
+    echo "$default"
+    return 0
+  fi
+
+  # Build hint
+  local hint=""
+  if [[ -n "$generated" ]]; then
+    hint=" (Enter for auto-generated)"
+  elif [[ -n "$default" ]]; then
+    hint=" (Enter for default)"
+  fi
+  [[ "$min_length" -gt 0 ]] && hint="${hint} [min ${min_length} chars]"
+
+  # Interactive prompt with timeout (silent input)
+  echo -en "${YW}${message}${hint} (timeout ${timeout}s): ${CL}" >&2
+
+  if read -t "$timeout" -rs response; then
+    echo "" >&2 # Newline after hidden input
+    if [[ -n "$response" ]]; then
+      # Validate minimum length
+      if [[ "$min_length" -gt 0 ]] && [[ ${#response} -lt "$min_length" ]]; then
+        echo -e "${YW}Password too short (min ${min_length}), using default${CL}" >&2
+        echo "$default"
+      else
+        echo "$response"
+      fi
+    else
+      echo "$default"
+    fi
+  else
+    # Timeout occurred
+    echo "" >&2 # Newline after timeout
+    echo -e "${YW}Timeout - using generated password${CL}" >&2
+    echo "$default"
+  fi
+}
+
 # ==============================================================================
 # SECTION 6: CLEANUP & MAINTENANCE
 # ==============================================================================
@@ -820,71 +1373,64 @@ is_verbose_mode() {
 # ------------------------------------------------------------------------------
 # cleanup_lxc()
 #
-# - Comprehensive cleanup of package managers, caches, and logs
-# - Supports Alpine (apk), Debian/Ubuntu (apt), Fedora/Rocky/CentOS (dnf/yum),
-#   openSUSE (zypper), Gentoo (emerge), and language package managers
-# - Cleans: Python (pip/uv), Node.js (npm/yarn/pnpm), Go, Rust, Ruby, PHP
-# - Truncates log files and vacuums systemd journal
-# - Run at end of container creation to minimize disk usage
+# - Cleans package manager and language caches (safe for installs AND updates)
+# - Supports Alpine (apk), Debian/Ubuntu (apt), Python, Node.js, Go, Rust, Ruby, PHP
+# - Uses fallback error handling to prevent cleanup failures from breaking installs
 # ------------------------------------------------------------------------------
 cleanup_lxc() {
   msg_info "Cleaning up"
-  # OS-specific package manager cleanup
+
   if is_alpine; then
-    $STD apk cache clean 2>/dev/null || true
+    $STD apk cache clean || true
     rm -rf /var/cache/apk/*
-  elif command -v apt &>/dev/null; then
-    # Debian/Ubuntu/Devuan
-    $STD apt -y autoremove 2>/dev/null || true
-    $STD apt -y autoclean 2>/dev/null || true
-    $STD apt -y clean 2>/dev/null || true
-  elif command -v dnf &>/dev/null; then
-    # Fedora/Rocky/AlmaLinux/CentOS 8+
-    $STD dnf clean all 2>/dev/null || true
-    $STD dnf autoremove -y 2>/dev/null || true
-  elif command -v yum &>/dev/null; then
-    # CentOS 7/older RHEL
-    $STD yum clean all 2>/dev/null || true
-  elif command -v zypper &>/dev/null; then
-    # openSUSE
-    $STD zypper clean --all 2>/dev/null || true
-  elif command -v emerge &>/dev/null; then
-    # Gentoo
-    $STD emerge --quiet --depclean 2>/dev/null || true
-    $STD eclean-dist -d 2>/dev/null || true
-    $STD eclean-pkg -d 2>/dev/null || true
+  else
+    $STD apt -y autoremove 2>/dev/null || msg_warn "apt autoremove failed (non-critical)"
+    $STD apt -y autoclean 2>/dev/null || msg_warn "apt autoclean failed (non-critical)"
+    $STD apt -y clean 2>/dev/null || msg_warn "apt clean failed (non-critical)"
   fi
 
-  # Clear temp artifacts (keep sockets/FIFOs; ignore errors)
   find /tmp /var/tmp -type f -name 'tmp*' -delete 2>/dev/null || true
   find /tmp /var/tmp -type f -name 'tempfile*' -delete 2>/dev/null || true
 
-  # Truncate writable log files silently (permission errors ignored)
-  if command -v truncate >/dev/null 2>&1; then
-    find /var/log -type f -writable -print0 2>/dev/null |
-      xargs -0 -n1 truncate -s 0 2>/dev/null || true
+  # Python
+  if command -v pip &>/dev/null; then
+    rm -rf /root/.cache/pip 2>/dev/null || true
+  fi
+  if command -v uv &>/dev/null; then
+    rm -rf /root/.cache/uv 2>/dev/null || true
   fi
 
-  # Node.js npm
+  # Node.js
   if command -v npm &>/dev/null; then
     rm -rf /root/.npm/_cacache /root/.npm/_logs 2>/dev/null || true
   fi
-  # Node.js yarn
-  #if command -v yarn &>/dev/null; then $STD yarn cache clean 2>/dev/null || true; fi
-  # Node.js pnpm
-  if command -v pnpm &>/dev/null; then $STD pnpm store prune 2>/dev/null || true; fi
-  # Go
-  if command -v go &>/dev/null; then $STD go clean -cache -modcache 2>/dev/null || true; fi
-  # Rust cargo
-  if command -v cargo &>/dev/null; then $STD cargo clean 2>/dev/null || true; fi
-  # Ruby gem
-  if command -v gem &>/dev/null; then $STD gem cleanup 2>/dev/null || true; fi
-  # Composer (PHP)
-  if command -v composer &>/dev/null; then $STD composer clear-cache 2>/dev/null || true; fi
-
-  if command -v journalctl &>/dev/null; then
-    $STD journalctl --vacuum-time=10m 2>/dev/null || true
+  if command -v yarn &>/dev/null; then
+    rm -rf /root/.cache/yarn /root/.yarn/cache 2>/dev/null || true
   fi
+  if command -v pnpm &>/dev/null; then
+    pnpm store prune &>/dev/null || true
+  fi
+
+  # Go (only build cache, not modules)
+  if command -v go &>/dev/null; then
+    $STD go clean -cache 2>/dev/null || true
+  fi
+
+  # Rust (only registry cache, not build artifacts)
+  if command -v cargo &>/dev/null; then
+    rm -rf /root/.cargo/registry/cache /root/.cargo/.package-cache 2>/dev/null || true
+  fi
+
+  # Ruby
+  if command -v gem &>/dev/null; then
+    rm -rf /root/.gem/cache 2>/dev/null || true
+  fi
+
+  # PHP
+  if command -v composer &>/dev/null; then
+    rm -rf /root/.composer/cache 2>/dev/null || true
+  fi
+
   msg_ok "Cleaned"
 }
 
@@ -908,15 +1454,13 @@ check_or_create_swap() {
 
   msg_error "No active swap detected"
 
-  read -p "Do you want to create a swap file? [y/N]: " create_swap
-  create_swap="${create_swap,,}" # to lowercase
-
-  if [[ "$create_swap" != "y" && "$create_swap" != "yes" ]]; then
+  if ! prompt_confirm "Do you want to create a swap file?" "n" 60; then
     msg_info "Skipping swap file creation"
     return 1
   fi
 
-  read -p "Enter swap size in MB (e.g., 2048 for 2GB): " swap_size_mb
+  local swap_size_mb
+  swap_size_mb=$(prompt_input "Enter swap size in MB (e.g., 2048 for 2GB):" "2048" 60)
   if ! [[ "$swap_size_mb" =~ ^[0-9]+$ ]]; then
     msg_error "Invalid size input. Aborting."
     return 1
@@ -954,14 +1498,14 @@ function get_lxc_ip() {
     get_current_ip() {
       local ip
 
-      # Try direct interface lookup for eth0 FIRST (most reliable for LXC)
+      # Try direct interface lookup for eth0 FIRST (most reliable for LXC) - IPv4
       ip=$(ip -4 addr show eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
       if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo "$ip"
         return 0
       fi
 
-      # Fallback: Try hostname -I
+      # Fallback: Try hostname -I (returns IPv4 first if available)
       if command -v hostname >/dev/null 2>&1; then
         ip=$(hostname -I 2>/dev/null | awk '{print $1}')
         if [[ -n "$ip" && "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -970,15 +1514,41 @@ function get_lxc_ip() {
         fi
       fi
 
-      # Last resort: Use routing table
-      local targets=("8.8.8.8" "1.1.1.1" "default")
-      for target in "${targets[@]}"; do
+      # Try routing table with IPv4 targets
+      local ipv4_targets=("8.8.8.8" "1.1.1.1" "default")
+      for target in "${ipv4_targets[@]}"; do
         if [[ "$target" == "default" ]]; then
           ip=$(ip route get 1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
         else
           ip=$(ip route get "$target" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
         fi
         if [[ -n "$ip" ]]; then
+          echo "$ip"
+          return 0
+        fi
+      done
+
+      # IPv6 fallback: Try direct interface lookup for eth0
+      ip=$(ip -6 addr show eth0 scope global 2>/dev/null | awk '/inet6 / {print $2}' | cut -d/ -f1 | head -n1)
+      if [[ -n "$ip" && "$ip" =~ : ]]; then
+        echo "$ip"
+        return 0
+      fi
+
+      # IPv6 fallback: Try hostname -I for IPv6
+      if command -v hostname >/dev/null 2>&1; then
+        ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E ':' | head -n1)
+        if [[ -n "$ip" && "$ip" =~ : ]]; then
+          echo "$ip"
+          return 0
+        fi
+      fi
+
+      # IPv6 fallback: Use routing table with IPv6 targets
+      local ipv6_targets=("2001:4860:4860::8888" "2606:4700:4700::1111")
+      for target in "${ipv6_targets[@]}"; do
+        ip=$(ip -6 route get "$target" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+        if [[ -n "$ip" && "$ip" =~ : ]]; then
           echo "$ip"
           return 0
         fi

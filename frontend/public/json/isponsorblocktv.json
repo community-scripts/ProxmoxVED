@@ -1,0 +1,44 @@
+{
+  "name": "iSponsorBlockTV",
+  "slug": "isponsorblocktv",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-01-25",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://github.com/dmunozv04/iSponsorBlockTV/wiki",
+  "website": "https://github.com/dmunozv04/iSponsorBlockTV",
+  "logo": "https://raw.githubusercontent.com/ajayyy/SponsorBlock/master/public/icons/IconSponsorBlocker512px.png",
+  "config_path": "/var/lib/isponsorblocktv/config.json",
+  "description": "iSponsorBlockTV connects to YouTube TV clients and automatically skips SponsorBlock segments, mutes ads, and presses the Skip Ad button when available.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/isponsorblocktv.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "No web UI; run `iSponsorBlockTV setup` inside the container to configure.",
+      "type": "info"
+    },
+    {
+      "text": "SSDP auto-discovery requires multicast on your bridge; manual pairing works without it.",
+      "type": "info"
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+name: Update GitHub Versions (New)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Runs 4x daily: 00:00, 06:00, 12:00, 18:00 UTC
+    - cron: "0 0,6,12,18 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  VERSIONS_FILE: frontend/public/json/github-versions.json
+
+jobs:
+  update-github-versions:
+    if: github.repository == 'community-scripts/ProxmoxVED'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Extract GitHub versions from install scripts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "========================================="
+          echo "  Extracting GitHub versions from scripts"
+          echo "========================================="
+
+          # Initialize versions array
+          versions_json="[]"
+
+          # Function to add a version entry
+          add_version() {
+            local slug="$1"
+            local repo="$2"
+            local version="$3"
+            local pinned="$4"
+            local date="$5"
+
+            versions_json=$(echo "$versions_json" | jq \
+              --arg slug "$slug" \
+              --arg repo "$repo" \
+              --arg version "$version" \
+              --argjson pinned "$pinned" \
+              --arg date "$date" \
+              '. += [{"slug": $slug, "repo": $repo, "version": $version, "pinned": $pinned, "date": $date}]')
+          }
+
+          # Get list of slugs from JSON files
+          echo ""
+          echo "=== Scanning JSON files for slugs ==="
+
+          for json_file in frontend/public/json/*.json; do
+            [[ ! -f "$json_file" ]] && continue
+
+            # Skip non-app JSON files
+            basename_file=$(basename "$json_file")
+            case "$basename_file" in
+              metadata.json|versions.json|github-versions.json|dependency-check.json|update-apps.json)
+                continue
+                ;;
+            esac
+
+            # Extract slug from JSON
+            slug=$(jq -r '.slug // empty' "$json_file" 2>/dev/null)
+            [[ -z "$slug" ]] && continue
+
+            # Find corresponding install script
+            install_script="install/${slug}-install.sh"
+            [[ ! -f "$install_script" ]] && continue
+
+            # Look for fetch_and_deploy_gh_release calls
+            # Pattern: fetch_and_deploy_gh_release "app" "owner/repo" ["mode"] ["version"]
+            while IFS= read -r line; do
+              # Skip commented lines
+              [[ "$line" =~ ^[[:space:]]*# ]] && continue
+
+              # Extract repo and version from fetch_and_deploy_gh_release
+              if [[ "$line" =~ fetch_and_deploy_gh_release[[:space:]]+\"[^\"]*\"[[:space:]]+\"([^\"]+)\"([[:space:]]+\"([^\"]+)\")?([[:space:]]+\"([^\"]+)\")? ]]; then
+                repo="${BASH_REMATCH[1]}"
+                mode="${BASH_REMATCH[3]:-tarball}"
+                pinned_version="${BASH_REMATCH[5]:-latest}"
+
+                # Check if version is pinned (not "latest" and not empty)
+                is_pinned=false
+                target_version=""
+
+                if [[ -n "$pinned_version" && "$pinned_version" != "latest" ]]; then
+                  is_pinned=true
+                  target_version="$pinned_version"
+                fi
+
+                # Fetch version from GitHub
+                if [[ "$is_pinned" == "true" ]]; then
+                  # For pinned versions, verify it exists and get date
+                  response=$(gh api "repos/${repo}/releases/tags/${target_version}" 2>/dev/null || echo '{}')
+                  if echo "$response" | jq -e '.tag_name' > /dev/null 2>&1; then
+                    version=$(echo "$response" | jq -r '.tag_name')
+                    date=$(echo "$response" | jq -r '.published_at // empty')
+                    add_version "$slug" "$repo" "$version" "true" "$date"
+                    echo "[$slug] ✓ $version (pinned)"
+                  else
+                    echo "[$slug] ⚠ pinned version $target_version not found"
+                  fi
+                else
+                  # Fetch latest release
+                  response=$(gh api "repos/${repo}/releases/latest" 2>/dev/null || echo '{}')
+                  if echo "$response" | jq -e '.tag_name' > /dev/null 2>&1; then
+                    version=$(echo "$response" | jq -r '.tag_name')
+                    date=$(echo "$response" | jq -r '.published_at // empty')
+                    add_version "$slug" "$repo" "$version" "false" "$date"
+                    echo "[$slug] ✓ $version"
+                  else
+                    # Try tags as fallback
+                    version=$(gh api "repos/${repo}/tags" --jq '.[0].name // empty' 2>/dev/null || echo "")
+                    if [[ -n "$version" ]]; then
+                      add_version "$slug" "$repo" "$version" "false" ""
+                      echo "[$slug] ✓ $version (from tags)"
+                    else
+                      echo "[$slug] ⚠ no version found"
+                    fi
+                  fi
+                fi
+
+                break  # Only first match per script
+              fi
+            done < <(grep 'fetch_and_deploy_gh_release' "$install_script" 2>/dev/null || true)
+
+          done
+
+          # Save versions file
+          echo "$versions_json" | jq --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{generated: $date, versions: (. | sort_by(.slug))}' > "$VERSIONS_FILE"
+
+          total=$(echo "$versions_json" | jq 'length')
+          echo ""
+          echo "========================================="
+          echo "  Total versions extracted: $total"
+          echo "========================================="
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          # Check if file is new (untracked) or has changes
+          if [[ ! -f "$VERSIONS_FILE" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Versions file was not created"
+          elif ! git ls-files --error-unmatch "$VERSIONS_FILE" &>/dev/null; then
+            # File exists but is not tracked - it's new
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "New file created: $VERSIONS_FILE"
+          elif git diff --quiet "$VERSIONS_FILE" 2>/dev/null; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes detected"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected:"
+            git diff --stat "$VERSIONS_FILE" 2>/dev/null || true
+          fi
+
+      - name: Create Pull Request
+        if: steps.check-changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="automated/update-github-versions-$(date +%Y%m%d)"
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions[bot]"
+
+          # Check if branch exists and delete it
+          git push origin --delete "$BRANCH_NAME" 2>/dev/null || true
+
+          git checkout -b "$BRANCH_NAME"
+          git add "$VERSIONS_FILE"
+          git commit -m "chore: update github-versions.json
+
+          Total versions: $(jq '.versions | length' "$VERSIONS_FILE")
+          Pinned versions: $(jq '[.versions[] | select(.pinned == true)] | length' "$VERSIONS_FILE")
+          Generated: $(jq -r '.generated' "$VERSIONS_FILE")"
+
+          git push origin "$BRANCH_NAME" --force
+
+          # Check if PR already exists
+          existing_pr=$(gh pr list --head "$BRANCH_NAME" --state open --json number --jq '.[0].number // empty')
+
+          if [[ -n "$existing_pr" ]]; then
+            echo "PR #$existing_pr already exists, updating..."
+          else
+            gh pr create \
+              --title "[Automated] Update GitHub versions" \
+              --body "This PR updates version information from GitHub releases.
+
+          ## How it works
+          1. Scans all JSON files in \`frontend/public/json/\` for slugs
+          2. Finds corresponding \`install/{slug}-install.sh\` scripts
+          3. Extracts \`fetch_and_deploy_gh_release\` calls
+          4. Fetches latest (or pinned) version from GitHub
+
+          ## Stats
+          - Total versions: $(jq '.versions | length' "$VERSIONS_FILE")
+          - Pinned versions: $(jq '[.versions[] | select(.pinned == true)] | length' "$VERSIONS_FILE")
+          - Latest versions: $(jq '[.versions[] | select(.pinned == false)] | length' "$VERSIONS_FILE")
+
+          ---
+          *Automatically generated from install scripts*" \
+              --base main \
+              --head "$BRANCH_NAME" \
+              --label "automated pr"
+          fi

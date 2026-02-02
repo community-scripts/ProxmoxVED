@@ -51,6 +51,30 @@
         {
             "text": "At the end of the update, containers requiring a reboot will be listed, and you may choose to reboot them directly.",
             "type": "info"
+        },
+        {
+            "text": "Use `var_backup=yes|no` to enable/disable backup (skip prompt).",
+            "type": "info"
+        },
+        {
+            "text": "Use `var_backup_storage=<name>` to set backup storage location.",
+            "type": "info"
+        },
+        {
+            "text": "Use `var_container=all|all_running|all_stopped|101,102,...` to select containers.",
+            "type": "info"
+        },
+        {
+            "text": "Use `var_unattended=yes|no` to run updates without interaction.",
+            "type": "info"
+        },
+        {
+            "text": "Use `var_skip_confirm=yes` to skip initial confirmation dialog.",
+            "type": "info"
+        },
+        {
+            "text": "Use `var_auto_reboot=yes|no` to auto-reboot containers after update.",
+            "type": "info"
         }
     ]
 }

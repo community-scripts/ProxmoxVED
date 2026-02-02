@@ -7,16 +7,17 @@ console.log('Current directory: ' + process.cwd());
 const jsonDir = "public/json";
 const metadataFileName = "metadata.json";
 const versionsFileName = "versions.json";
+const githubVersionsFileName = "github-versions.json";
 const encoding = "utf-8";
 
 const fileNames = (await fs.readdir(jsonDir))
-  .filter((fileName) => fileName !== metadataFileName && fileName !== versionsFileName);
+  .filter((fileName) => fileName !== metadataFileName && fileName !== versionsFileName && fileName !== githubVersionsFileName);
 
 describe.each(fileNames)("%s", async (fileName) => {
   let script: Script;
 
   beforeAll(async () => {
-    const filePath =  path.resolve(jsonDir, fileName);
+    const filePath = path.resolve(jsonDir, fileName);
     const fileContent = await fs.readFile(filePath, encoding)
     script = JSON.parse(fileContent);
   })
@@ -40,7 +41,7 @@ describe(`${metadataFileName}`, async () => {
   let metadata: Metadata;
 
   beforeAll(async () => {
-    const filePath =  path.resolve(jsonDir, metadataFileName);
+    const filePath = path.resolve(jsonDir, metadataFileName);
     const fileContent = await fs.readFile(filePath, encoding)
     metadata = JSON.parse(fileContent);
   })
@@ -48,9 +49,9 @@ describe(`${metadataFileName}`, async () => {
     // TODO: create zod schema for metadata. Move zod schemas to /lib/types.ts
     assert(metadata.categories.length > 0);
     metadata.categories.forEach((category) => {
-        assert.isString(category.name)
-        assert.isNumber(category.id)
-        assert.isNumber(category.sort_order)
+      assert.isString(category.name)
+      assert.isNumber(category.id)
+      assert.isNumber(category.sort_order)
     });
   });
 })

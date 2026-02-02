@@ -196,11 +196,17 @@ ensure_usr_local_bin_persist() {
 
 download_with_progress() {
   # $1 url, $2 dest
-  local url="$1" out="$2" cl
+  local url="$1" out="$2" content_length
   need_tool curl pv || return 1
-  cl=$(curl -fsSLI "$url" 2>/dev/null | awk 'tolower($0) ~ /^content-length:/ {print $2}' | tr -d '\r')
-  if [ -n "$cl" ]; then
-    curl -fsSL "$url" | pv -s "$cl" >"$out" || {
+
+  content_length=$(
+    curl -fsSLI "$url" 2>/dev/null |
+      awk '(tolower($1) ~ /^content-length:/) && ($2 + 0 > 0) {print $2+0}' |
+      tail -1 | tr -cd '[:digit:]' || true
+  )
+
+  if [ -n "$content_length" ]; then
+    curl -fsSL "$url" | pv -s "$content_length" >"$out" || {
       msg_error "Download failed: $url"
       return 1
     }
@@ -277,7 +283,7 @@ fetch_and_deploy_gh_release() {
   # $1 app, $2 repo, [$3 mode], [$4 version], [$5 target], [$6 asset_pattern
   local app="$1" repo="$2" mode="${3:-tarball}" version="${4:-latest}" target="${5:-/opt/$1}" pattern="${6:-}"
   local app_lc
-  app_lc="$(lower "$app" | tr -d ' ')"
+  app_lc=$(lower "$app" | tr -d ' ')
   local vfile="$HOME/.${app_lc}"
   local json url filename tmpd unpack
 
@@ -288,7 +294,7 @@ fetch_and_deploy_gh_release() {
   need_tool curl jq tar || return 1
   [ "$mode" = "prebuild" ] || [ "$mode" = "singlefile" ] && need_tool unzip >/dev/null 2>&1 || true
 
-  tmpd="$(mktemp -d)" || return 1
+  tmpd=$(mktemp -d) || return 1
   mkdir -p "$target"
 
   # Release JSON (with token/rate-limit handling)
@@ -305,10 +311,10 @@ fetch_and_deploy_gh_release() {
       return 1
     }
   fi
-  json="$(cat "$tmpd/release.json")"
+  json=$(cat "$tmpd/release.json")
 
   # correct Version
-  version="$(printf '%s' "$json" | jq -r '.tag_name // empty')"
+  version=$(printf '%s' "$json" | jq -r '.tag_name // empty')
   version="${version#v}"
 
   [ -z "$version" ] && {
@@ -317,9 +323,15 @@ fetch_and_deploy_gh_release() {
     return 1
   }
 
+  get_url() {
+    printf '%s' "$json" | jq -r '.assets[].browser_download_url' |
+      awk -v p="$pattern" 'BEGIN{IGNORECASE=1} $0 ~ p {print; exit}' |
+      tr -d '[:cntrl:]'
+  }
+
   case "$mode" in
   tarball | source)
-    url="$(printf '%s' "$json" | jq -r '.tarball_url // empty')"
+    url=$(printf '%s' "$json" | jq -r '.tarball_url // empty')
     [ -z "$url" ] && url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
     filename="${app_lc}-${version}.tar.gz"
     download_with_progress "$url" "$tmpd/$filename" || {
@@ -331,7 +343,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    unpack="$(find "$tmpd" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+    unpack=$(find "$tmpd" -mindepth 1 -maxdepth 1 -type d | head -n1)
     [ "${CLEAN_INSTALL:-0}" = "1" ] && rm -rf "${target:?}/"*
     # copy content of unpack to target
     (cd "$unpack" && tar -cf - .) | (cd "$target" && tar -xf -) || {
@@ -342,7 +354,7 @@ fetch_and_deploy_gh_release() {
     ;;
   binary)
     [ -n "$pattern" ] || pattern="*.apk"
-    url="$(printf '%s' "$json" | jq -r '.assets[].browser_download_url' | awk -v p="$pattern" 'BEGIN{IGNORECASE=1} $0 ~ p {print; exit}')"
+    url=$(get_url)
     [ -z "$url" ] && {
       msg_error "binary asset not found for pattern: $pattern"
       rm -rf "$tmpd"
@@ -374,10 +386,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    url="$(printf '%s' "$json" | jq -r '.assets[].browser_download_url' | awk -v p="$pattern" '
-        BEGIN{IGNORECASE=1}
-        $0 ~ p {print; exit}
-      ')"
+    url=$(get_url)
     [ -z "$url" ] && {
       msg_error "asset not found for pattern: $pattern"
       rm -rf "$tmpd"
@@ -411,7 +420,7 @@ fetch_and_deploy_gh_release() {
     [ "${CLEAN_INSTALL:-0}" = "1" ] && rm -rf "${target:?}/"*
     # top-level folder strippen
     if [ "$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ] && [ -z "$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type f | head -n1)" ]; then
-      unpack="$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d)"
+      unpack=$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d)
       (cd "$unpack" && tar -cf - .) | (cd "$target" && tar -xf -) || {
         msg_error "copy failed"
         rm -rf "$tmpd"
@@ -431,10 +440,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    url="$(printf '%s' "$json" | jq -r '.assets[].browser_download_url' | awk -v p="$pattern" '
-        BEGIN{IGNORECASE=1}
-        $0 ~ p {print; exit}
-      ')"
+    url=$(get_url)
     [ -z "$url" ] && {
       msg_error "asset not found for pattern: $pattern"
       rm -rf "$tmpd"
