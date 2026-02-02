@@ -42,6 +42,8 @@ $STD dpkg -i /tmp/manticore-repo.noarch.deb
 $STD apt update
 $STD apt install -y manticore manticore-columnar-lib manticore-extra
 rm -f /tmp/manticore-repo.noarch.deb
+mkdir -p /var/run/manticore
+chown manticore:manticore /var/run/manticore
 $STD systemctl stop manticore
 $STD systemctl disable manticore
 msg_ok "Installed Manticore Search"
@@ -97,7 +99,7 @@ searchd {
   listen = 9308:http
   log = /var/log/manticore/searchd.log
   query_log = /var/log/manticore/query.log
-  pid_file = /var/run/manticore/searchd.pid
+  pid_file = /run/manticore/searchd.pid
   binlog_path = /var/lib/manticore/data
 }
 
@@ -109,7 +111,7 @@ source piler1 {
   sql_db = ${MARIADB_DB_NAME}
   sql_port = 3306
 
-  sql_query = SELECT id, from_addr, to_addr, subject, body, sent FROM metadata
+  sql_query = SELECT id, \\\`from\\\` as from_addr, subject, CAST(sent AS UNSIGNED) as sent FROM metadata WHERE deleted=0
   sql_attr_timestamp = sent
 }
 
@@ -135,10 +137,23 @@ index note1 {
 }
 EOF
 
+cat > /etc/tmpfiles.d/manticore.conf <<'TMPEOF'
+d /run/manticore 0755 manticore manticore -
+TMPEOF
+
 mkdir -p /var/log/manticore
-chown -R manticore:manticore /var/log/manticore
-chown -R piler:piler /var/piler/manticore
+mkdir -p /var/lib/manticore/data
+chown -R manticore:manticore /var/log/manticore /var/lib/manticore
+chmod 775 /var/piler/manticore
+chown piler:manticore /var/piler/manticore
 msg_ok "Configured Manticore Search"
+
+msg_info "Building Manticore Search Indexes"
+$STD systemctl start manticore
+sleep 2
+$STD indexer --config /etc/manticoresearch/manticore.conf piler1
+$STD systemctl restart manticore
+msg_ok "Built Manticore Search Indexes"
 
 msg_info "Creating Piler Service"
 cat <<EOF >/etc/systemd/system/piler.service
@@ -146,13 +161,14 @@ cat <<EOF >/etc/systemd/system/piler.service
 Description=Piler Email Archiving
 After=network.target mysql.service manticore.service memcached.service
 Requires=mysql.service
+Wants=manticore.service
 
 [Service]
-Type=forking
+Type=simple
 User=piler
 Group=piler
-ExecStart=/usr/sbin/piler -c /etc/piler/piler.conf
-PIDFile=/var/piler/piler.pid
+RuntimeDirectory=piler
+ExecStart=/usr/sbin/piler -c /etc/piler/piler.conf -d
 Restart=always
 RestartSec=5
 
