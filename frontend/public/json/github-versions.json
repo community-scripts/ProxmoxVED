@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-31T18:42:49Z",
+  "generated": "2026-02-02T02:51:50Z",
   "versions": [
     {
       "slug": "affine",
@@ -11,16 +11,16 @@
     {
       "slug": "anytype",
       "repo": "grishy/any-sync-bundle",
-      "version": "v1.2.1-2025-12-10",
+      "version": "v1.3.0-2026-01-31",
       "pinned": false,
-      "date": "2025-12-24T20:40:15Z"
+      "date": "2026-02-01T17:27:12Z"
     },
     {
       "slug": "databasus",
       "repo": "databasus/databasus",
-      "version": "v3.7.0",
+      "version": "v3.7.3",
       "pinned": false,
-      "date": "2026-01-28T14:46:28Z"
+      "date": "2026-02-01T17:31:51Z"
     },
     {
       "slug": "ente",
@@ -119,13 +119,6 @@
       "version": "v2.7.3",
       "pinned": false,
       "date": "2025-08-14T20:43:46Z"
-    },
-    {
-      "slug": "shelfmark",
-      "repo": "FlareSolverr/FlareSolverr",
-      "version": "v3.4.6",
-      "pinned": false,
-      "date": "2025-11-29T02:43:00Z"
     },
     {
       "slug": "sonobarr",
