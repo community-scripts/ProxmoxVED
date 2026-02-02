@@ -56,7 +56,6 @@ $STD mariadb -u root "${MARIADB_DB_NAME}" </usr/share/piler/db-mysql.sql 2>/dev/
 msg_ok "Configured Piler Database"
 
 msg_info "Configuring Piler"
-PILER_KEY=$(openssl rand -hex 16)
 cat <<EOF >/etc/piler/piler.conf
 hostid=piler.${LOCAL_IP}.nip.io
 update_counters_to_memcached=1
@@ -68,15 +67,9 @@ mysql_password=${MARIADB_DB_PASS}
 mysql_socket=/var/run/mysqld/mysqld.sock
 
 archive_dir=/var/piler/store
-data_dir=/var/piler
-tmp_dir=/var/piler/tmp
 
 listen_addr=0.0.0.0
 listen_port=25
-
-encrypt_messages=1
-key=${PILER_KEY}
-iv=0123456789ABCDEF
 
 memcached_servers=127.0.0.1
 
@@ -87,8 +80,11 @@ EOF
 
 chown piler:piler /etc/piler/piler.conf
 chmod 640 /etc/piler/piler.conf
+mkdir -p /var/piler/store /var/piler/tmp
 chown -R piler:piler /var/piler
 chmod 750 /var/piler
+# Create symlink for MySQL socket compatibility
+ln -sf /var/run/mysqld/mysqld.sock /tmp/mysql.sock 2>/dev/null || true
 msg_ok "Configured Piler"
 
 msg_info "Configuring Manticore Search"
@@ -232,9 +228,6 @@ cat <<EOF >/var/piler/www/config-site.php
 
 \$config['DIR_BASE'] = '/var/piler/www';
 \$config['DIR_ATTACHMENT'] = '/var/piler/store';
-
-\$config['ENCRYPTION_KEY'] = '${PILER_KEY}';
-\$config['ENCRYPTION_IV'] = '0123456789ABCDEF';
 
 \$config['DEFAULT_RETENTION_DAYS'] = 2557;
 \$config['RESTRICTED_AUDITOR'] = 0;
