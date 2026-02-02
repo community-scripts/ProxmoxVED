@@ -83,14 +83,16 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/checkmate/client
-ExecStart=/usr/bin/npm run preview -- --host 0.0.0.0 --port 5173
+ExecStart=/usr/bin/npm run preview -- --host 127.0.0.1 --port 5173
 Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now checkmate-server checkmate-client
+systemctl daemon-reload
+$STD systemctl enable --now checkmate-server
+$STD systemctl enable --now checkmate-client
 msg_ok "Created Services"
 
 msg_info "Configuring Nginx Reverse Proxy"
@@ -125,7 +127,8 @@ EOF
 
 ln -sf /etc/nginx/sites-available/checkmate /etc/nginx/sites-enabled/checkmate
 rm -f /etc/nginx/sites-enabled/default
-$STD systemctl reload nginx
+$STD nginx -t
+$STD systemctl enable --now nginx
 msg_ok "Configured Nginx Reverse Proxy"
 
 motd_ssh
