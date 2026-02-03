@@ -172,12 +172,11 @@ server {
     }
 }
 EOF
-msg_ok "Created Config and Services"
-
 $STD rm -f /etc/nginx/sites-enabled/default
 $STD ln -sf /etc/nginx/sites-available/wger /etc/nginx/sites-enabled/wger
 systemctl enable -q --now redis-server nginx wger celery celery-beat
 systemctl restart nginx
+msg_ok "Created Config and Services"
 
 motd_ssh
 customize
