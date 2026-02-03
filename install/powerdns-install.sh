@@ -31,6 +31,10 @@ Pin: origin repo.powerdns.com
 Pin-Priority: 600
 EOF
 
+escape_sql() {
+    printf '%s' "$1" | sed "s/'/''/g"
+}
+
 msg_info "Setting up PowerDNS"
 $STD apt install -y pdns-server \
   pdns-backend-sqlite3
