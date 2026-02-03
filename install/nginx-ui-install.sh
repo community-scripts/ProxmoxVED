@@ -79,10 +79,14 @@ systemctl daemon-reload
 msg_ok "Created Service"
 
 msg_info "Creating Initial Admin User"
+systemctl start nginx-ui
+sleep 3
+systemctl stop nginx-ui
+sleep 1
 RESET_OUTPUT=$(/usr/local/bin/nginx-ui reset-password --config /usr/local/etc/nginx-ui/app.ini 2>&1)
-ADMIN_PASS=$(echo "$RESET_OUTPUT" | grep -oP 'Password: \K.*' | tail -1)
+ADMIN_PASS=$(echo "$RESET_OUTPUT" | grep -oP 'Password: \K\S+' | tail -1)
 if [[ -z "$ADMIN_PASS" ]]; then
-  ADMIN_PASS="admin"
+  ADMIN_PASS="Check ~/nginx-ui.creds after manual reset"
 fi
 {
   echo "Nginx-UI Credentials"
