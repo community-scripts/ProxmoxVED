@@ -32,7 +32,7 @@ Pin-Priority: 600
 EOF
 
 msg_info "Setting up PowerDNS"
-$STD apt install -y pdns \
+$STD apt install -y pdns-server \
   pdns-backend-sqlite3
 msg_ok "Setup PowerDNS"
 
