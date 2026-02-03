@@ -53,7 +53,6 @@ function update_script() {
     set -a && source /opt/wger/.env && set +a
     export DJANGO_SETTINGS_MODULE=settings.main
     $STD uv pip install .
-    $STD uv pip install gunicorn psycopg2-binary
     $STD uv run python manage.py migrate
     $STD uv run python manage.py collectstatic --no-input
     msg_ok "Updated wger"

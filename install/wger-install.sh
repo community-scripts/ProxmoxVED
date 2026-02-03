@@ -13,8 +13,6 @@ setting_up_container
 network_check
 update_os
 
-import_local_ip
-
 msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
@@ -23,12 +21,11 @@ $STD apt install -y \
   libpq-dev
 msg_ok "Installed Dependencies"
 
+import_local_ip
 NODE_VERSION="22" NODE_MODULE="sass" setup_nodejs
 setup_uv
-
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="wger" PG_DB_USER="wger" setup_postgresql_db
-
 fetch_and_deploy_gh_release "wger" "wger-project/wger" "tarball" "latest" "/opt/wger"
 
 msg_info "Setting up wger"
@@ -40,10 +37,7 @@ $STD npm install
 $STD npm run build:css:sass
 $STD uv venv
 $STD uv pip install . --group docker
-# $STD uv pip install psycopg2-binary
-
 SECRET_KEY=$(openssl rand -base64 40)
-
 cat <<EOF >/opt/wger/.env
 DJANGO_SETTINGS_MODULE=settings.main
 PYTHONPATH=/opt/wger
@@ -79,9 +73,7 @@ CELERY_BACKEND=redis://127.0.0.1:6379/2
 SITE_URL=http://${LOCAL_IP}:3000
 SECRET_KEY=${SECRET_KEY}
 EOF
-
 set -a && source /opt/wger/.env && set +a
-
 $STD uv run wger bootstrap
 $STD uv run python manage.py collectstatic --no-input
 cat <<EOF | uv run python manage.py shell
@@ -99,7 +91,6 @@ if created:
     user.is_staff = True
     user.save()
 EOF
-
 msg_ok "Set up wger"
 
 msg_info "Creating Config and Services"
@@ -123,7 +114,6 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-
 cat <<EOF >/etc/systemd/system/celery.service
 [Unit]
 Description=wger Celery Worker
@@ -140,6 +130,8 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
+mkdir -p /var/lib/wger/celery
+chmod 700 /var/lib/wger/celery
 cat <<EOF >/etc/systemd/system/celery-beat.service
 [Unit]
 Description=wger Celery Beat
@@ -156,8 +148,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-
-    cat <<'EOF' >/etc/nginx/sites-available/wger
+cat <<'EOF' >/etc/nginx/sites-available/wger
 server {
     listen 3000;
     server_name _;
@@ -182,13 +173,11 @@ server {
     }
 }
 EOF
-
 msg_ok "Created Config and Services"
 
 $STD rm -f /etc/nginx/sites-enabled/default
 $STD ln -sf /etc/nginx/sites-available/wger /etc/nginx/sites-enabled/wger
 systemctl enable -q --now redis-server nginx wger celery celery-beat
-
 systemctl restart nginx
 
 motd_ssh
