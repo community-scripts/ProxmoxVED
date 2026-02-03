@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-
-# Copyright (c) 2026 DigitallyRefined
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+# Copyright (c) 2021-2026 community-scripts ORG
 # Author: DigitallyRefined
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://digitallyrefined.github.io/guides/PVE-unprivileged-LXC-rootless-containers
 
 function header_info {
   clear
@@ -38,7 +38,7 @@ msg_error() { echo -e "${BFR} ${CROSS} ${RD}$1${CL}"; }
 
 set -euo pipefail
 
-# Exit if not running as root
+if [[ $EUID -ne 0 ]]; then
 if [[ $EUID -ne 0 ]]; then
   msg_error "This script must be run as root"
   exit 1
@@ -50,7 +50,7 @@ LINE_DEV_DRI='lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir'
 
 shopt -s nullglob
 
-# Globals set during runtime
+declare -a conf_files
 declare -a conf_files
 declare -A GPU_ENABLED_FOR_CT
 declare -A GPU_REMOVE_FOR_CT
@@ -151,7 +151,7 @@ detect_gpu_and_build_selection() {
       fi
     done
 
-    # Build whiptail checklist arguments
+    CHECK_ARGS=()
     CHECK_ARGS=()
     for ctid in "${CTID_LIST[@]}"; do
       file="$CONF_DIR/$ctid.conf"
@@ -173,7 +173,7 @@ detect_gpu_and_build_selection() {
       return
     fi
 
-    # Compute diffs
+    for ctid in "${CTID_LIST[@]}"; do
     for ctid in "${CTID_LIST[@]}"; do
       if echo "$SELECTED" | grep -qw "\b$ctid\b"; then
         if [[ ${CURRENT_GPU_STATUS[$ctid]} -eq 0 ]]; then
@@ -186,7 +186,7 @@ detect_gpu_and_build_selection() {
       fi
     done
 
-    # Summary
+    enabled_list=()
     enabled_list=()
     removed_list=()
 
@@ -311,19 +311,20 @@ add_namespace_mappings() {
     grep -qxF "$ENTRY" "$FILE" || echo "$ENTRY" >> "$FILE"
   done
 
-  # Add the unprivileged flag if missing
+  ENTRY="root:$NEW_BASE:$OFFSET"
+  for FILE in /etc/subuid /etc/subgid; do
+    grep -qxF "$ENTRY" "$FILE" || echo "$ENTRY" >> "$FILE"
+  done
+
   LINE_UNPRIVILEGED="unprivileged: 1"
   grep -qxF "$LINE_UNPRIVILEGED" "/etc/pve/lxc/$CTID.conf" || echo "$LINE_UNPRIVILEGED" >> "/etc/pve/lxc/$CTID.conf"
 
-  # Add /dev/net/tun if missing
   LINE_DEV0="dev0: /dev/net/tun"
   grep -qxF "$LINE_DEV0" "/etc/pve/lxc/$CTID.conf" || echo "$LINE_DEV0" >> "/etc/pve/lxc/$CTID.conf"
 
-  # Add the user id map if missing
   LINE_USER_ID_MAP="lxc.idmap: u 0 $NEW_BASE $OFFSET"
   grep -qxF "$LINE_USER_ID_MAP" "/etc/pve/lxc/$CTID.conf" || echo "$LINE_USER_ID_MAP" >> "/etc/pve/lxc/$CTID.conf"
 
-  # Add the group id map if missing
   LINE_GROUP_ID_MAP="lxc.idmap: g 0 $NEW_BASE $OFFSET"
   grep -qxF "$LINE_GROUP_ID_MAP" "/etc/pve/lxc/$CTID.conf" || echo "$LINE_GROUP_ID_MAP" >> "/etc/pve/lxc/$CTID.conf"
 }
