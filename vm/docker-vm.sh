@@ -622,20 +622,11 @@ rm -f "$WORK_FILE"
 # ==============================================================================
 msg_info "Attaching EFI and root disk"
 
-if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  qm set "$VMID" \
-    --efidisk0 "${STORAGE}:0,efitype=4m" \
-    --scsi0 "${DISK_REF_IMPORTED},${DISK_CACHE}${THIN%,}" \
-    --scsi1 "${STORAGE}:cloudinit" \
-    --boot order=scsi0 \
-    --serial0 socket >/dev/null
-else
-  qm set "$VMID" \
-    --efidisk0 "${STORAGE}:0,efitype=4m" \
-    --scsi0 "${DISK_REF_IMPORTED},${DISK_CACHE}${THIN%,}" \
-    --boot order=scsi0 \
-    --serial0 socket >/dev/null
-fi
+qm set "$VMID" \
+  --efidisk0 "${STORAGE}:0,efitype=4m" \
+  --scsi0 "${DISK_REF_IMPORTED},${DISK_CACHE}${THIN%,}" \
+  --boot order=scsi0 \
+  --serial0 socket >/dev/null
 
 qm set $VMID --agent enabled=1 >/dev/null
 
@@ -647,7 +638,7 @@ set_description
 # Cloud-Init configuration
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   msg_info "Configuring Cloud-Init"
-  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" >/dev/null 2>&1
+  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
   msg_ok "Cloud-Init configured"
 fi
 
