@@ -209,7 +209,6 @@ detect_gpu_and_build_selection() {
     fi
 
   else
-    # Force mode => enable GPU for all containers
     for file in "${conf_files[@]}"; do
       ctid="$(basename "$file" .conf)"
       GPU_ENABLED_FOR_CT[$ctid]=1
@@ -280,7 +279,6 @@ def shift_path(path):
 print(f'Starting deep shift on {root_path}...')
 count = 0
 
-# 1. Handle the root directory itself (os.walk skips the top-level path's contents but doesn't yield the root path itself in the loop)
 if shift_path(root_path):
     count += 1
 
