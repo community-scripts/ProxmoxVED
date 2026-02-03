@@ -488,12 +488,16 @@ export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 DOCKER_PREINSTALLED="no"
 
 # Install qemu-guest-agent and Docker during image customization
+msg_info "Installing base packages in image"
 if virt-customize -a "$WORK_FILE" --install qemu-guest-agent,curl,ca-certificates >/dev/null 2>&1; then
   msg_ok "Installed base packages"
 
+  msg_info "Installing Docker (this may take 2-5 minutes)"
   if virt-customize -q -a "$WORK_FILE" --run-command "curl -fsSL https://get.docker.com | sh" >/dev/null 2>&1 &&
     virt-customize -q -a "$WORK_FILE" --run-command "systemctl enable docker" >/dev/null 2>&1; then
+    msg_ok "Installed Docker"
 
+    msg_info "Configuring Docker daemon"
     # Optimize Docker daemon configuration
     virt-customize -q -a "$WORK_FILE" --run-command "mkdir -p /etc/docker" >/dev/null 2>&1
     virt-customize -q -a "$WORK_FILE" --run-command 'cat > /etc/docker/daemon.json << EOF
@@ -507,7 +511,7 @@ if virt-customize -a "$WORK_FILE" --install qemu-guest-agent,curl,ca-certificate
 }
 EOF' >/dev/null 2>&1
     DOCKER_PREINSTALLED="yes"
-    msg_ok "Installed Docker"
+    msg_ok "Configured Docker daemon"
   else
     msg_ok "Docker will be installed on first boot"
   fi
@@ -515,6 +519,7 @@ else
   msg_ok "Packages will be installed on first boot"
 fi
 
+msg_info "Finalizing image (hostname, SSH config)"
 # Set hostname and prepare for unique machine-id
 virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1
 virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1
@@ -524,7 +529,22 @@ virt-customize -q -a "$WORK_FILE" --run-command "rm -f /var/lib/dbus/machine-id"
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
   virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
+else
+  # Configure auto-login for nocloud images (no Cloud-Init)
+  virt-customize -q -a "$WORK_FILE" --run-command "mkdir -p /etc/systemd/system/serial-getty@ttyS0.service.d" >/dev/null 2>&1 || true
+  virt-customize -q -a "$WORK_FILE" --run-command 'cat > /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
+EOF' >/dev/null 2>&1 || true
+  virt-customize -q -a "$WORK_FILE" --run-command "mkdir -p /etc/systemd/system/getty@tty1.service.d" >/dev/null 2>&1 || true
+  virt-customize -q -a "$WORK_FILE" --run-command 'cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
+EOF' >/dev/null 2>&1 || true
 fi
+msg_ok "Finalized image"
 
 # Create first-boot Docker install script (fallback if virt-customize failed)
 if [ "$DOCKER_PREINSTALLED" = "no" ]; then
