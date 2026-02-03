@@ -174,6 +174,9 @@ msg_info "Setting up RomM Frontend"
 cd /opt/romm/frontend
 $STD npm install
 $STD npm run build
+
+cp -rf /opt/romm/frontend/assets/* /opt/romm/frontend/dist/assets/
+
 mkdir -p /opt/romm/frontend/dist/assets/romm
 ln -sfn /var/lib/romm/resources /opt/romm/frontend/dist/assets/romm/resources
 ln -sfn /var/lib/romm/assets /opt/romm/frontend/dist/assets/romm/assets
