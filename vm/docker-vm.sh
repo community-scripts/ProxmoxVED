@@ -8,8 +8,8 @@
 # Docker VM - Creates a Docker-ready Virtual Machine
 # ==============================================================================
 
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/vm-core.func)
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func) 2>/dev/null
+source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/vm-core.func) 2>/dev/null
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/cloud-init.func) 2>/dev/null || true
 load_functions
 
@@ -371,7 +371,6 @@ function start_script() {
 # MAIN EXECUTION
 # ==============================================================================
 header_info
-echo -e "\n Loading..."
 
 check_root
 arch_check
