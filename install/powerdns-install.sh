@@ -39,7 +39,22 @@ msg_ok "Setup PowerDNS"
 fetch_and_deploy_gh_release "poweradmin" "poweradmin/poweradmin" "tarball"
 
 msg_info "Setting up Poweradmin"
-sqlite3 /opt/poweradmin/powerdns.db < /usr/share/doc/pdns-backend-sqlite3/schema.sqlite3.sql
+sqlite3 /opt/poweradmin/powerdns.db < /opt/poweradmin/sql/poweradmin-sqlite-db-structure.sql
+PA_ADMIN_USERNAME="admin"
+PA_ADMIN_EMAIL="admin@example.com"
+PA_ADMIN_FULLNAME="Administrator"
+PA_ADMIN_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+PA_SESSION_KEY=$(openssl rand -base64 75 | tr -dc 'A-Za-z0-9^@#!(){}[]%_\-+=~' | head -c 50)
+PASSWORD_HASH=$(php -r "echo password_hash(\$argv[1], PASSWORD_DEFAULT);" -- "${PA_ADMIN_PASSWORD}" 2>/dev/null)
+sqlite3 /opt/poweradmin/powerdns.db "INSERT INTO users (username, password, fullname, email, description, perm_templ, active, use_ldap) \
+  VALUES ('$(escape_sql "${PA_ADMIN_USERNAME}")', '$(escape_sql "${PASSWORD_HASH}")', '$(escape_sql "${PA_ADMIN_FULLNAME}")', \
+  '$(escape_sql "${PA_ADMIN_EMAIL}")', 'System Administrator', 1, 1, 0);"
+
+cat <<EOF >~/poweradmin.creds
+Admin Username: ${PA_ADMIN_USERNAME}
+Admin Password: ${PA_ADMIN_PASSWORD}
+EOF
+
 cat <<EOF >/opt/poweradmin/config/settings.php
 <?php
 
@@ -62,7 +77,7 @@ return [
      * Security Settings
      */
     'security' => [
-        'session_key' => '5c\$^vK#l!*@mj4Id(WWzsosruN\$fkhaqLQo@i-s6ZBV)8C',
+        'session_key' => '${PA_SESSION_KEY}',
     ],
 
     /**
@@ -82,13 +97,14 @@ return [
     ]
 ];
 EOF
+rm -rf /opt/poweradmin/install
 msg_ok "Setup Poweradmin"
 
 msg_info "Creating Service"
 rm /etc/apache2/sites-enabled/000-default.conf
 cat <<EOF >/etc/apache2/sites-enabled/poweradmin.conf
 <VirtualHost *:80>
-    ServerName $HOSTNAME
+    ServerName localhost
     DocumentRoot /opt/poweradmin
 
     <Directory /opt/poweradmin>
