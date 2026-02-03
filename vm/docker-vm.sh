@@ -625,14 +625,14 @@ msg_info "Attaching EFI and root disk"
 if [ "$USE_CLOUD_INIT" = "yes" ]; then
   qm set "$VMID" \
     --efidisk0 "${STORAGE}:0,efitype=4m" \
-    --scsi0 "${DISK_REF_IMPORTED},${DISK_CACHE}${THIN}ssd=1,discard=on" \
+    --scsi0 "${DISK_REF_IMPORTED},${DISK_CACHE}${THIN%,}" \
     --scsi1 "${STORAGE}:cloudinit" \
     --boot order=scsi0 \
     --serial0 socket >/dev/null
 else
   qm set "$VMID" \
     --efidisk0 "${STORAGE}:0,efitype=4m" \
-    --scsi0 "${DISK_REF_IMPORTED},${DISK_CACHE}${THIN}ssd=1,discard=on" \
+    --scsi0 "${DISK_REF_IMPORTED},${DISK_CACHE}${THIN%,}" \
     --boot order=scsi0 \
     --serial0 socket >/dev/null
 fi
