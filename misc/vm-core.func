@@ -20,14 +20,15 @@ load_functions() {
   color
   formatting
   icons
+  default_vars
   set_std_mode
+  shell_check
   get_valid_nextid
   cleanup_vmid
   cleanup
   check_root
   pve_check
   arch_check
-  # add more
 }
 
 # Function to download & save header files
@@ -85,6 +86,7 @@ formatting() {
   BOLD=$(echo "\033[1m")
   HOLD=" "
   TAB="  "
+  TAB3="      "
 }
 
 # ------------------------------------------------------------------------------
@@ -111,6 +113,7 @@ icons() {
   NETWORK="${TAB}📡${TAB}${CL}"
   GATEWAY="${TAB}🌐${TAB}${CL}"
   DISABLEIPV6="${TAB}🚫${TAB}${CL}"
+  ICON_DISABLEIPV6="${TAB}🚫${TAB}${CL}"
   DEFAULT="${TAB}⚙️${TAB}${CL}"
   MACADDRESS="${TAB}🔗${TAB}${CL}"
   VLANTAG="${TAB}🏷️${TAB}${CL}"
@@ -131,6 +134,19 @@ set_std_mode() {
   else
     STD="silent"
   fi
+}
+
+# ------------------------------------------------------------------------------
+# default_vars()
+#
+# - Sets default retry and wait variables used for system actions
+# - RETRY_NUM: Maximum number of retry attempts (default: 10)
+# - RETRY_EVERY: Seconds to wait between retries (default: 3)
+# ------------------------------------------------------------------------------
+default_vars() {
+  RETRY_NUM=10
+  RETRY_EVERY=3
+  i=$RETRY_NUM
 }
 
 # ------------------------------------------------------------------------------
@@ -309,6 +325,46 @@ __curl_err_handler() {
   exit 1
 }
 
+# ------------------------------------------------------------------------------
+# shell_check()
+#
+# - Verifies that the script is running under Bash shell
+# - Exits with error message if different shell is detected
+# ------------------------------------------------------------------------------
+shell_check() {
+  if [[ "$(ps -p $$ -o comm=)" != "bash" ]]; then
+    clear
+    msg_error "Your default shell is currently not set to Bash. To use these scripts, please switch to the Bash shell."
+    echo -e "\nExiting..."
+    sleep 2
+    exit
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# clear_line()
+#
+# - Clears current terminal line using tput or ANSI escape codes
+# - Moves cursor to beginning of line (carriage return)
+# - Fallback to ANSI codes if tput not available
+# ------------------------------------------------------------------------------
+clear_line() {
+  tput cr 2>/dev/null || echo -en "\r"
+  tput el 2>/dev/null || echo -en "\033[K"
+}
+
+# ------------------------------------------------------------------------------
+# is_verbose_mode()
+#
+# - Determines if script should run in verbose mode
+# - Checks VERBOSE and var_verbose variables
+# - Also returns true if not running in TTY (pipe/redirect scenario)
+# ------------------------------------------------------------------------------
+is_verbose_mode() {
+  local verbose="${VERBOSE:-${var_verbose:-no}}"
+  [[ "$verbose" != "no" || ! -t 2 ]]
+}
+
 ### dev spinner ###
 SPINNER_ACTIVE=0
 SPINNER_PID=""
@@ -429,6 +485,20 @@ msg_custom() {
   [[ -z "$msg" ]] && return
   stop_spinner
   printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL}" >&2
+}
+
+# ------------------------------------------------------------------------------
+# msg_debug()
+#
+# - Displays debug message with timestamp when var_full_verbose=1
+# - Automatically enables var_verbose if not already set
+# - Uses bright yellow color for debug output
+# ------------------------------------------------------------------------------
+msg_debug() {
+  if [[ "${var_full_verbose:-0}" == "1" ]]; then
+    [[ "${var_verbose:-0}" != "1" ]] && var_verbose=1
+    echo -e "${YWB}[$(date '+%F %T')] [DEBUG]${CL} $*"
+  fi
 }
 
 # Displays error message and immediately terminates script
