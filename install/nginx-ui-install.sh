@@ -75,25 +75,25 @@ KillMode=mixed
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now nginx-ui
+systemctl daemon-reload
 msg_ok "Created Service"
 
 msg_info "Creating Initial Admin User"
-ADMIN_USER="admin"
-ADMIN_PASS="$(openssl rand -base64 12)"
-until systemctl is-active --quiet nginx-ui; do
-  sleep 1
-done
-sleep 2
-/usr/local/bin/nginx-ui --config /usr/local/etc/nginx-ui/app.ini add user --username "$ADMIN_USER" --password "$ADMIN_PASS" 2>/dev/null || {
-  echo "admin" >/root/nginx-ui-credentials.txt
-  echo "admin" >>/root/nginx-ui-credentials.txt
-  ADMIN_USER="admin"
+RESET_OUTPUT=$(/usr/local/bin/nginx-ui reset-password --config /usr/local/etc/nginx-ui/app.ini 2>&1)
+ADMIN_PASS=$(echo "$RESET_OUTPUT" | grep -oP 'Password: \K.*' | tail -1)
+if [[ -z "$ADMIN_PASS" ]]; then
   ADMIN_PASS="admin"
-}
-echo "$ADMIN_USER" >/root/nginx-ui-credentials.txt
-echo "$ADMIN_PASS" >>/root/nginx-ui-credentials.txt
+fi
+{
+  echo "Nginx-UI Credentials"
+  echo "Username: admin"
+  echo "Password: $ADMIN_PASS"
+} >~/nginx-ui.creds
 msg_ok "Created Initial Admin User"
+
+msg_info "Starting Service"
+systemctl enable -q --now nginx-ui
+msg_ok "Started Service"
 
 motd_ssh
 customize
