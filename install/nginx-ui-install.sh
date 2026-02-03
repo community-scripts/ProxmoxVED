@@ -59,17 +59,18 @@ msg_ok "Configured Nginx UI"
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/nginx-ui.service
 [Unit]
-Description=Nginx UI - Web-based Nginx Management
+Description=Yet another WebUI for Nginx
 Documentation=https://nginxui.com
 After=network.target nginx.service
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=/usr/local/etc/nginx-ui
 ExecStart=/usr/local/bin/nginx-ui --config /usr/local/etc/nginx-ui/app.ini
+RuntimeDirectory=nginx-ui
+WorkingDirectory=/var/run/nginx-ui
 Restart=on-failure
-RestartSec=5
+TimeoutStopSec=5
+KillMode=mixed
 
 [Install]
 WantedBy=multi-user.target
