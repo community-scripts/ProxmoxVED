@@ -59,7 +59,7 @@ msg_ok "Configured Nginx UI"
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/nginx-ui.service
 [Unit]
-Description=Yet another WebUI for Nginx
+Description=Another WebUI for Nginx
 Documentation=https://nginxui.com
 After=network.target nginx.service
 
