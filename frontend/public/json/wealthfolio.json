@@ -9,7 +9,7 @@
     "updateable": true,
     "privileged": false,
     "interface_port": 8080,
-    "documentation": "https://wealthfolio.app/docs/self-hosting/",
+    "documentation": "https://wealthfolio.app/docs/introduction/",
     "config_path": "/opt/wealthfolio/.env",
     "website": "https://wealthfolio.app/",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/wealthfolio.webp",
