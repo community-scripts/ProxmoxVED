@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://nginxui.com
 
-APP="Nginx UI"
+APP="Nginx-UI"
 var_tags="${var_tags:-webserver;nginx;proxy}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
