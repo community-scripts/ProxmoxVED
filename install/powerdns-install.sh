@@ -99,8 +99,8 @@ cat <<EOF >/etc/apache2/sites-enabled/poweradmin.conf
 
     # For DDNS update functionality
     RewriteEngine On
-    RewriteRule ^/update(.*)$ /dynamic_update.php [L]
-    RewriteRule ^/nic/update(.*)$ /dynamic_update.php [L]
+    RewriteRule ^/update(.*)\$ /dynamic_update.php [L]
+    RewriteRule ^/nic/update(.*)\$ /dynamic_update.php [L]
 </VirtualHost>
 EOF
 $STD a2enmod rewrite headers
