@@ -357,7 +357,6 @@ process_container() {
   local BASE_START=100000
   local OFFSET=231072
 
-  # Validate CTID to avoid negative or overlapping namespace ranges
   if ! [[ "$CTID" =~ ^[0-9]+$ ]]; then
     msg_error "Invalid CTID '$CTID'. CTID must be a numeric value."
     return 1
@@ -367,7 +366,7 @@ process_container() {
     msg_error "CTID $CTID is not supported by this script. CTID must be >= 100 to ensure non-overlapping namespace ranges."
     return 1
   fi
-  
+
   local NEW_BASE=$(( BASE_START + (CTID - 100) * OFFSET ))
   local NAMESPACE_SHIFT=$(( NEW_BASE - BASE_START ))
 
