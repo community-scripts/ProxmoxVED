@@ -39,7 +39,7 @@ msg_error() { echo -e "${BFR} ${CROSS} ${RD}$1${CL}"; }
 set -euo pipefail
 
 if [[ $EUID -ne 0 ]]; then
-if [[ $EUID -ne 0 ]]; then
+
   msg_error "This script must be run as root"
   exit 1
 fi
@@ -51,7 +51,7 @@ LINE_DEV_DRI='lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir'
 shopt -s nullglob
 
 declare -a conf_files
-declare -a conf_files
+
 declare -A GPU_ENABLED_FOR_CT
 declare -A GPU_REMOVE_FOR_CT
 GPU_AVAILABLE=0
@@ -152,7 +152,7 @@ detect_gpu_and_build_selection() {
     done
 
     CHECK_ARGS=()
-    CHECK_ARGS=()
+
     for ctid in "${CTID_LIST[@]}"; do
       file="$CONF_DIR/$ctid.conf"
       hostname="$(awk -F': *' '$1 == "hostname" {print $2}' "$file")"
@@ -174,8 +174,8 @@ detect_gpu_and_build_selection() {
     fi
 
     for ctid in "${CTID_LIST[@]}"; do
-    for ctid in "${CTID_LIST[@]}"; do
-      if echo "$SELECTED" | grep -qw "\b$ctid\b"; then
+
+      if echo "$SELECTED" | grep -qw -- "$ctid"; then
         if [[ ${CURRENT_GPU_STATUS[$ctid]} -eq 0 ]]; then
           GPU_ENABLED_FOR_CT[$ctid]=1
         fi
@@ -187,7 +187,7 @@ detect_gpu_and_build_selection() {
     done
 
     enabled_list=()
-    enabled_list=()
+
     removed_list=()
 
     for ctid in "${!GPU_ENABLED_FOR_CT[@]}"; do
@@ -238,7 +238,12 @@ shift_filesystem() {
   local NAMESPACE_SHIFT="$3"
 
   msg_info "Mounting filesystem..."
-  MOUNT_RAW=$(pct mount "$CTID")
+  MOUNT_RAW=$(pct mount "$CTID" 2>&1)
+  MOUNT_EXIT=$?
+  if [ "$MOUNT_EXIT" -ne 0 ]; then
+    msg_error "Error: Failed to mount container $CTID (exit code $MOUNT_EXIT). Output was: $MOUNT_RAW"
+    return 1
+  fi
   MOUNT_PATH=$(echo "$MOUNT_RAW" | sed -n "s/.*'\(.*\)'.*/\1/p")
 
   if [ -z "$MOUNT_PATH" ] || [ ! -d "$MOUNT_PATH" ]; then
@@ -309,10 +314,6 @@ add_namespace_mappings() {
     grep -qxF "$ENTRY" "$FILE" || echo "$ENTRY" >> "$FILE"
   done
 
-  ENTRY="root:$NEW_BASE:$OFFSET"
-  for FILE in /etc/subuid /etc/subgid; do
-    grep -qxF "$ENTRY" "$FILE" || echo "$ENTRY" >> "$FILE"
-  done
 
   LINE_UNPRIVILEGED="unprivileged: 1"
   grep -qxF "$LINE_UNPRIVILEGED" "/etc/pve/lxc/$CTID.conf" || echo "$LINE_UNPRIVILEGED" >> "/etc/pve/lxc/$CTID.conf"
@@ -331,9 +332,17 @@ apply_gpu_changes_to_lxc() {
   local CTID="$1"
 
   if [[ ${GPU_REMOVE_FOR_CT[$CTID]+_} ]]; then
-    if grep -qF "$LINE_DEV_DRI" "/etc/pve/lxc/$CTID.conf"; then
-      sed -i "\|$LINE_DEV_DRI|d" "/etc/pve/lxc/$CTID.conf" || sed -e "/\$LINE_DEV_DRI/d" -i "/etc/pve/lxc/$CTID.conf"
-      msg_ok "GPU passthrough removed from LXC $CTID."
+    local CONF_FILE="/etc/pve/lxc/$CTID.conf"
+    if grep -qF "$LINE_DEV_DRI" "$CONF_FILE"; then
+      local TMP_FILE
+      TMP_FILE="$(mktemp)" || return 1
+      if grep -F -v -- "$LINE_DEV_DRI" "$CONF_FILE" > "$TMP_FILE"; then
+        mv "$TMP_FILE" "$CONF_FILE"
+        msg_ok "GPU passthrough removed from LXC $CTID."
+      else
+        rm -f "$TMP_FILE"
+        return 1
+      fi
     else
       msg_info "GPU passthrough not configured for LXC $CTID. Nothing to remove."
     fi
@@ -352,6 +361,17 @@ process_container() {
   local CTID="$1"
   local BASE_START=100000
   local OFFSET=231072
+
+  # Validate CTID to avoid negative or overlapping namespace ranges
+  if ! [[ "$CTID" =~ ^[0-9]+$ ]]; then
+    msg_error "Invalid CTID '$CTID'. CTID must be a numeric value."
+    return 1
+  fi
+
+  if [ "$CTID" -lt 100 ]; then
+    msg_error "CTID $CTID is not supported by this script. CTID must be >= 100 to ensure non-overlapping namespace ranges."
+    return 1
+  fi
   local NEW_BASE=$(( BASE_START + (CTID - 100) * OFFSET ))
   local NAMESPACE_SHIFT=$(( NEW_BASE - BASE_START ))
 
@@ -365,6 +385,18 @@ process_container() {
     WAS_RUNNING=1
     msg_info "Shutting down CT $CTID..."
     pct shutdown --timeout 120 "$CTID"
+    SHUTDOWN_RC=$?
+    if [ "$SHUTDOWN_RC" -ne 0 ]; then
+      msg_error "Failed to shut down CT $CTID (exit code: $SHUTDOWN_RC). Skipping further processing for this container."
+      return
+    fi
+
+    # Verify the container is actually stopped before proceeding
+    STATUS=$(pct status "$CTID")
+    if echo "$STATUS" | grep -q "running"; then
+      msg_error "CT $CTID is still running after shutdown attempt. Skipping further processing for this container."
+      return
+    fi
   fi
 
   if ! shift_filesystem "$CTID" "$NEW_BASE" "$NAMESPACE_SHIFT"; then
@@ -373,7 +405,10 @@ process_container() {
   fi
 
   msg_info "Unmounting LXC $CTID..."
-  pct unmount "$CTID"
+  if ! pct unmount "$CTID"; then
+    msg_error "Failed to unmount LXC $CTID. Skipping further processing for this container."
+    return
+  fi
 
   add_namespace_mappings "$CTID" "$NEW_BASE" "$OFFSET"
 
@@ -381,7 +416,10 @@ process_container() {
 
   if [ "$WAS_RUNNING" -eq 1 ]; then
     msg_info "Restarting container $CTID..."
-    pct start "$CTID"
+    if ! pct start "$CTID"; then
+      msg_error "Failed to start container $CTID."
+      return 1
+    fi
   fi
 
   msg_ok "Finished processing $CTID."
