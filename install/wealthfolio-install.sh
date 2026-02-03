@@ -24,7 +24,7 @@ msg_ok "Installed Dependencies"
 
 setup_rust
 NODE_MODULE="pnpm" setup_nodejs
-fetch_and_deploy_gh_release "wealthfolio" "afadil/wealthfolio"
+fetch_and_deploy_gh_release "wealthfolio" "afadil/wealthfolio" "tarball"
 
 msg_info "Building Frontend (patience)"
 cd /opt/wealthfolio

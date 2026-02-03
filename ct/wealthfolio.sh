@@ -39,7 +39,7 @@ function update_script() {
     cp /opt/wealthfolio/.env /opt/wealthfolio_env_backup
     msg_ok "Backed up Data"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wealthfolio" "afadil/wealthfolio"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wealthfolio" "afadil/wealthfolio" "tarball"
 
     msg_info "Building Frontend (patience)"
     cd /opt/wealthfolio
