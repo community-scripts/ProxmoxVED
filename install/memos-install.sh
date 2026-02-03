@@ -21,7 +21,7 @@ fetch_and_deploy_gh_release "memos" "usememos/memos" "tarball"
 msg_info "Building Memos (patience)"
 cd /opt/memos/web
 $STD pnpm install --frozen-lockfile
-$STD pnpm build
+$STD pnpm release
 cd /opt/memos
 $STD go build -o memos ./cmd/memos
 mkdir -p /opt/memos_data
