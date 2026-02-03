@@ -12,7 +12,7 @@
     "documentation": "https://www.mailpiler.org/",
     "config_path": "",
     "website": "https://www.mailpiler.org/",
-    "logo": "https://www.mailpiler.org/piler-logo.png",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/piler.webp",
     "description": "Piler is a feature rich open source email archiving solution with support for legal hold, deduplication, full text search, and many more features.",
     "install_methods": [
         {
