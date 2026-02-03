@@ -77,6 +77,23 @@ EOF
 systemctl enable -q --now nginx-ui
 msg_ok "Created Service"
 
+msg_info "Creating Initial Admin User"
+ADMIN_USER="admin"
+ADMIN_PASS="$(openssl rand -base64 12)"
+until systemctl is-active --quiet nginx-ui; do
+  sleep 1
+done
+sleep 2
+/usr/local/bin/nginx-ui --config /usr/local/etc/nginx-ui/app.ini add user --username "$ADMIN_USER" --password "$ADMIN_PASS" 2>/dev/null || {
+  echo "admin" >/root/nginx-ui-credentials.txt
+  echo "admin" >>/root/nginx-ui-credentials.txt
+  ADMIN_USER="admin"
+  ADMIN_PASS="admin"
+}
+echo "$ADMIN_USER" >/root/nginx-ui-credentials.txt
+echo "$ADMIN_PASS" >>/root/nginx-ui-credentials.txt
+msg_ok "Created Initial Admin User"
+
 motd_ssh
 customize
 cleanup_lxc
