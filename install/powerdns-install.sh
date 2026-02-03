@@ -43,7 +43,7 @@ msg_ok "Setup PowerDNS"
 fetch_and_deploy_gh_release "poweradmin" "poweradmin/poweradmin" "tarball"
 
 msg_info "Setting up Poweradmin"
-sqlite3 /opt/poweradmin/powerdns.db < /opt/poweradmin/sql/poweradmin-sqlite-db-structure.sql
+sqlite3 /opt/poweradmin/powerdns.db < /opt/poweradmin/sql/pdns/49/schema.sqlite3.sql
 PA_ADMIN_USERNAME="admin"
 PA_ADMIN_EMAIL="admin@example.com"
 PA_ADMIN_FULLNAME="Administrator"
