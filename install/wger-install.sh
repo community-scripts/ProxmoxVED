@@ -13,6 +13,8 @@ setting_up_container
 network_check
 update_os
 
+import_local_ip
+
 msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
@@ -29,22 +31,16 @@ PG_DB_NAME="wger" PG_DB_USER="wger" setup_postgresql_db
 
 fetch_and_deploy_gh_release "wger" "wger-project/wger" "tarball" "latest" "/opt/wger"
 
-WG_IP="$(hostname -I | awk '{print $1}')"
-WG_PORT="3000"
-WG_URL="http://${WG_IP}:${WG_PORT}"
-
 msg_info "Setting up wger"
 mkdir -p /opt/wger/{static,media}
 chmod o+w /opt/wger/media
 cd /opt/wger
-
 $STD corepack enable
 $STD npm install
 $STD npm run build:css:sass
-
 $STD uv venv
-$STD uv pip install .
-$STD uv pip install gunicorn psycopg2-binary
+$STD uv pip install . --group docker
+# $STD uv pip install psycopg2-binary
 
 SECRET_KEY=$(openssl rand -base64 40)
 
@@ -64,8 +60,8 @@ DJANGO_MEDIA_ROOT=/opt/wger/media
 DJANGO_STATIC_ROOT=/opt/wger/static
 DJANGO_STATIC_URL=/static/
 
-ALLOWED_HOSTS=${WG_IP},localhost,127.0.0.1
-CSRF_TRUSTED_ORIGINS=${WG_URL}
+ALLOWED_HOSTS=${LOCAL_IP},localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=http://${LOCAL_IP}:3000
 
 USE_X_FORWARDED_HOST=True
 SECURE_PROXY_SSL_HEADER=HTTP_X_FORWARDED_PROTO,http
@@ -80,7 +76,7 @@ USE_CELERY=True
 CELERY_BROKER=redis://127.0.0.1:6379/2
 CELERY_BACKEND=redis://127.0.0.1:6379/2
 
-SITE_URL=${WG_URL}
+SITE_URL=http://${LOCAL_IP}:3000
 SECRET_KEY=${SECRET_KEY}
 EOF
 
@@ -88,7 +84,6 @@ set -a && source /opt/wger/.env && set +a
 
 $STD uv run wger bootstrap
 $STD uv run python manage.py collectstatic --no-input
-
 cat <<EOF | uv run python manage.py shell
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -105,9 +100,9 @@ if created:
     user.save()
 EOF
 
-msg_ok "wger configured"
+msg_ok "Set up wger"
 
-msg_info "Creating Gunicorn service"
+msg_info "Creating Config and Services"
 cat <<EOF >/etc/systemd/system/wger.service
 [Unit]
 Description=wger Gunicorn
@@ -128,9 +123,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Gunicorn service created"
 
-msg_info "Creating Celery worker service"
 cat <<EOF >/etc/systemd/system/celery.service
 [Unit]
 Description=wger Celery Worker
@@ -146,11 +139,6 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Celery worker service created"
-
-msg_info "Creating Celery beat service"
-mkdir -p /var/lib/wger/celery
-chmod 700 /var/lib/wger/celery
 
 cat <<EOF >/etc/systemd/system/celery-beat.service
 [Unit]
@@ -168,9 +156,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-msg_ok "Celery beat service created"
 
-msg_info "Configuring Nginx"
     cat <<'EOF' >/etc/nginx/sites-available/wger
 server {
     listen 3000;
@@ -197,12 +183,11 @@ server {
 }
 EOF
 
-msg_ok "Nginx configured"
-
-systemctl enable --now redis-server nginx wger celery celery-beat
+msg_ok "Created Config and Services"
 
 $STD rm -f /etc/nginx/sites-enabled/default
 $STD ln -sf /etc/nginx/sites-available/wger /etc/nginx/sites-enabled/wger
+systemctl enable -q --now redis-server nginx wger celery celery-beat
 
 systemctl restart nginx
 

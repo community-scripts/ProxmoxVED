@@ -9,7 +9,7 @@
     "updateable": true,
     "privileged": false,
     "interface_port": 3000,
-    "documentation": "https://wger.readthedocs.io/en/latest/index.html#",
+    "documentation": "https://wger.readthedocs.io/en/latest/index.html",
     "website": "https://wger.de",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/wger.webp",
     "config_path": "/opt/wger/wger.env",
