@@ -39,7 +39,6 @@ msg_error() { echo -e "${BFR} ${CROSS} ${RD}$1${CL}"; }
 set -euo pipefail
 
 if [[ $EUID -ne 0 ]]; then
-
   msg_error "This script must be run as root"
   exit 1
 fi
@@ -51,7 +50,6 @@ LINE_DEV_DRI='lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir'
 shopt -s nullglob
 
 declare -a conf_files
-
 declare -A GPU_ENABLED_FOR_CT
 declare -A GPU_REMOVE_FOR_CT
 GPU_AVAILABLE=0
@@ -174,7 +172,6 @@ detect_gpu_and_build_selection() {
     fi
 
     for ctid in "${CTID_LIST[@]}"; do
-
       if echo "$SELECTED" | grep -qw -- "$ctid"; then
         if [[ ${CURRENT_GPU_STATUS[$ctid]} -eq 0 ]]; then
           GPU_ENABLED_FOR_CT[$ctid]=1
@@ -187,7 +184,6 @@ detect_gpu_and_build_selection() {
     done
 
     enabled_list=()
-
     removed_list=()
 
     for ctid in "${!GPU_ENABLED_FOR_CT[@]}"; do
@@ -314,7 +310,6 @@ add_namespace_mappings() {
     grep -qxF "$ENTRY" "$FILE" || echo "$ENTRY" >> "$FILE"
   done
 
-
   LINE_UNPRIVILEGED="unprivileged: 1"
   grep -qxF "$LINE_UNPRIVILEGED" "/etc/pve/lxc/$CTID.conf" || echo "$LINE_UNPRIVILEGED" >> "/etc/pve/lxc/$CTID.conf"
 
@@ -372,6 +367,7 @@ process_container() {
     msg_error "CTID $CTID is not supported by this script. CTID must be >= 100 to ensure non-overlapping namespace ranges."
     return 1
   fi
+  
   local NEW_BASE=$(( BASE_START + (CTID - 100) * OFFSET ))
   local NAMESPACE_SHIFT=$(( NEW_BASE - BASE_START ))
 
@@ -391,7 +387,6 @@ process_container() {
       return
     fi
 
-    # Verify the container is actually stopped before proceeding
     STATUS=$(pct status "$CTID")
     if echo "$STATUS" | grep -q "running"; then
       msg_error "CT $CTID is still running after shutdown attempt. Skipping further processing for this container."
@@ -411,7 +406,6 @@ process_container() {
   fi
 
   add_namespace_mappings "$CTID" "$NEW_BASE" "$OFFSET"
-
   apply_gpu_changes_to_lxc "$CTID"
 
   if [ "$WAS_RUNNING" -eq 1 ]; then
@@ -433,7 +427,6 @@ update_udev_rules_if_needed() {
       LINE_RULE='KERNEL=="renderD*", SUBSYSTEM=="drm", ACTION=="add", MODE="0666"'
       echo "$LINE_RULE" > "$UDEV_FILE"
       msg_ok "Created $UDEV_FILE and added GPU permission rule."
-
       msg_info "Reloading udev rules..."
       udevadm control --reload-rules
       udevadm trigger
