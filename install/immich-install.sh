@@ -149,12 +149,7 @@ NODE_VERSION="24" NODE_MODULE="pnpm@${PNPM_VERSION}" setup_nodejs
 PG_VERSION="16" PG_MODULES="pgvector" setup_postgresql
 
 VCHORD_RELEASE="0.5.3"
-msg_info "Installing Vectorchord v${VCHORD_RELEASE}"
-curl -fsSL "https://github.com/tensorchord/VectorChord/releases/download/${VCHORD_RELEASE}/postgresql-16-vchord_${VCHORD_RELEASE}-1_amd64.deb" -o vchord.deb
-$STD apt install -y ./vchord.deb
-rm vchord.deb
-echo "$VCHORD_RELEASE" >~/.vchord_version
-msg_ok "Installed Vectorchord v${VCHORD_RELEASE}"
+fetch_and_deploy_gh_release "VectorChord" "tensorchord/VectorChord" "binary" "${VCHORD_RELEASE}" "/tmp" "postgresql-16-vchord_*_amd64.deb"
 
 sed -i -e "/^#shared_preload/s/^#//;/^shared_preload/s/''/'vchord.so'/" /etc/postgresql/16/main/postgresql.conf
 systemctl restart postgresql.service
@@ -228,7 +223,7 @@ $STD cmake --preset=release-noplugins \
   -DWITH_X265=OFF \
   -DWITH_EXAMPLES=OFF \
   ..
-$STD make install -j "$(nproc)"
+$STD make install -j"$(nproc)"
 ldconfig /usr/local/lib
 $STD make clean
 cd "$STAGING_DIR"
@@ -293,10 +288,9 @@ APP_DIR="${INSTALL_DIR}/app"
 PLUGIN_DIR="${APP_DIR}/corePlugin"
 ML_DIR="${APP_DIR}/machine-learning"
 GEO_DIR="${INSTALL_DIR}/geodata"
-mkdir -p "$INSTALL_DIR"
 mkdir -p {"${APP_DIR}","${UPLOAD_DIR}","${GEO_DIR}","${INSTALL_DIR}"/cache}
 
-fetch_and_deploy_gh_release "immich" "immich-app/immich" "tag" "v2.5.2" "$SRC_DIR"
+fetch_and_deploy_gh_release "immich" "immich-app/immich" "tarball" "v2.5.2" "$SRC_DIR"
 
 msg_info "Installing Immich (patience)"
 
@@ -312,7 +306,7 @@ unset SHARP_IGNORE_GLOBAL_LIBVIPS
 export SHARP_FORCE_GLOBAL_LIBVIPS=true
 $STD pnpm --filter immich --frozen-lockfile --prod --no-optional deploy "$APP_DIR"
 cp "$APP_DIR"/package.json "$APP_DIR"/bin
-sed -i 's|^start|./start|' "$APP_DIR"/bin/immich-admin
+sed -i "s|^start|${APP_DIR}/bin/start|" "$APP_DIR"/bin/immich-admin
 
 # openapi & web build
 cd "$SRC_DIR"
@@ -347,8 +341,9 @@ mkdir -p "$ML_DIR" && chown -R immich:immich "$INSTALL_DIR"
 export VIRTUAL_ENV="${ML_DIR}/ml-venv"
 if [[ -f ~/.openvino ]]; then
   msg_info "Installing HW-accelerated machine-learning"
-  $STD sudo --preserve-env=VIRTUAL_ENV -nu immich uv sync --extra openvino --no-dev --active --link-mode copy -n -p python3.13 --managed-python
-  patchelf --clear-execstack "${VIRTUAL_ENV}/lib/python3.13/site-packages/onnxruntime/capi/onnxruntime_pybind11_state.cpython-313-x86_64-linux-gnu.so"
+  $STD uv add --no-sync --optional openvino onnxruntime-openvino==1.20.0 --active -n -p python3.12 --managed-python
+  $STD sudo --preserve-env=VIRTUAL_ENV -nu immich uv sync --extra openvino --no-dev --active --link-mode copy -n -p python3.12 --managed-python
+  patchelf --clear-execstack "${VIRTUAL_ENV}/lib/python3.12/site-packages/onnxruntime/capi/onnxruntime_pybind11_state.cpython-312-x86_64-linux-gnu.so"
   msg_ok "Installed HW-accelerated machine-learning"
 else
   msg_info "Installing machine-learning"
@@ -357,9 +352,7 @@ else
 fi
 cd "$SRC_DIR"
 cp -a machine-learning/{ann,immich_ml} "$ML_DIR"
-if [[ -f ~/.openvino ]]; then
-  sed -i "/intra_op/s/int = 0/int = os.cpu_count() or 0/" "$ML_DIR"/immich_ml/config.py
-fi
+[[ -f ~/.openvino ]] && sed -i "/intra_op/s/int = 0/int = os.cpu_count() or 0/" "$ML_DIR"/immich_ml/config.py
 ln -sf "$APP_DIR"/resources "$INSTALL_DIR"
 
 cd "$APP_DIR"
@@ -404,10 +397,9 @@ DB_VECTOR_EXTENSION=vectorchord
 REDIS_HOSTNAME=127.0.0.1
 IMMICH_MACHINE_LEARNING_URL=http://127.0.0.1:3003
 MACHINE_LEARNING_CACHE_FOLDER=${INSTALL_DIR}/cache
-## - For OpenVINO only - workaround for onnxruntime-openvino 1.23.x crash
-## - See: https://github.com/immich-app/immich/pull/11240
-MACHINE_LEARNING_OPENVINO_NUM_THREADS=$(nproc)
-## - Uncomment below to increase inference speed while reducing accuracy
+## - For OpenVINO only - uncomment below to increase
+## - inference speed while reducing accuracy
+## - Default is FP32
 # MACHINE_LEARNING_OPENVINO_PRECISION=FP16
 
 IMMICH_MEDIA_LOCATION=${UPLOAD_DIR}
@@ -434,9 +426,11 @@ set +a
 /usr/bin/node ${APP_DIR}/dist/main.js "\$@"
 EOF
 chmod +x "$ML_DIR"/ml_start.sh "$APP_DIR"/bin/start.sh
-cat <<EOF >/etc/systemd/system/"${APPLICATION}"-web.service
+ln -sf "$APP_DIR"/cli/bin/immich /usr/bin/immich
+ln -sf "$APP_DIR"/bin/immich-admin /usr/bin/immich-admin
+cat <<EOF >/etc/systemd/system/immich-web.service
 [Unit]
-Description=${APPLICATION} Web Service
+Description=Immich Web Service
 After=network.target
 Requires=redis-server.service
 Requires=postgresql.service
@@ -458,9 +452,9 @@ StandardError=append:/var/log/immich/web.log
 [Install]
 WantedBy=multi-user.target
 EOF
-cat <<EOF >/etc/systemd/system/"${APPLICATION}"-ml.service
+cat <<EOF >/etc/systemd/system/immich-ml.service
 [Unit]
-Description=${APPLICATION} Machine-Learning
+Description=Immich Machine-Learning
 After=network.target
 
 [Service]
@@ -480,7 +474,7 @@ StandardError=append:/var/log/immich/ml.log
 WantedBy=multi-user.target
 EOF
 chown -R immich:immich "$INSTALL_DIR" /var/log/immich
-systemctl enable -q --now "$APPLICATION"-ml.service "$APPLICATION"-web.service
+systemctl enable -q --now immich-ml.service immich-web.service
 msg_ok "Modified user, created env file, scripts and services"
 
 motd_ssh
