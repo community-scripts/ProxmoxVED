@@ -91,6 +91,7 @@ msg_ok "Created Initial Admin User"
 
 msg_info "Starting Service"
 systemctl enable -q --now nginx-ui
+rm -rf /etc/nginx/sites-enabled/default
 msg_ok "Started Service"
 
 motd_ssh
