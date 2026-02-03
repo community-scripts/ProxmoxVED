@@ -93,6 +93,8 @@ formatting() {
 icons() {
   CM="${TAB}✔️${TAB}"
   CROSS="${TAB}✖️${TAB}"
+  DNSOK="✔️ "
+  DNSFAIL="${TAB}✖️${TAB}"
   INFO="${TAB}💡${TAB}${CL}"
   OS="${TAB}🖥️${TAB}${CL}"
   OSVERSION="${TAB}🌟${TAB}${CL}"
@@ -115,6 +117,9 @@ icons() {
   ROOTSSH="${TAB}🔑${TAB}${CL}"
   CREATING="${TAB}🚀${TAB}${CL}"
   ADVANCED="${TAB}🧩${TAB}${CL}"
+  FUSE="${TAB}🗂️${TAB}${CL}"
+  GPU="${TAB}🎮${TAB}${CL}"
+  HOURGLASS="${TAB}⏳${TAB}"
 }
 
 # ------------------------------------------------------------------------------
@@ -128,9 +133,77 @@ set_std_mode() {
   fi
 }
 
-# Silent execution function
+# ------------------------------------------------------------------------------
+# get_active_logfile()
+#
+# - Returns the appropriate log file based on execution context
+# - BUILD_LOG: Host operations (VM creation)
+# - Fallback to /tmp/build-<timestamp>.log if not set
+# ------------------------------------------------------------------------------
+get_active_logfile() {
+  if [[ -n "${BUILD_LOG:-}" ]]; then
+    echo "$BUILD_LOG"
+  else
+    # Fallback for legacy scripts
+    echo "/tmp/build-$(date +%Y%m%d_%H%M%S).log"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# silent()
+#
+# - Executes command with output redirected to active log file
+# - On error: displays last 10 lines of log and exits with original exit code
+# - Temporarily disables error trap to capture exit code correctly
+# - Sources explain_exit_code() for detailed error messages
+# ------------------------------------------------------------------------------
 silent() {
-  "$@" >/dev/null 2>&1
+  local cmd="$*"
+  local caller_line="${BASH_LINENO[0]:-unknown}"
+  local logfile="$(get_active_logfile)"
+
+  set +Eeuo pipefail
+  trap - ERR
+
+  "$@" >>"$logfile" 2>&1
+  local rc=$?
+
+  set -Eeuo pipefail
+  trap 'error_handler' ERR
+
+  if [[ $rc -ne 0 ]]; then
+    # Source explain_exit_code if needed
+    if ! declare -f explain_exit_code >/dev/null 2>&1; then
+      source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func) 2>/dev/null || true
+    fi
+
+    local explanation=""
+    if declare -f explain_exit_code >/dev/null 2>&1; then
+      explanation="$(explain_exit_code "$rc")"
+    fi
+
+    printf "\e[?25h"
+    if [[ -n "$explanation" ]]; then
+      msg_error "in line ${caller_line}: exit code ${rc} (${explanation})"
+    else
+      msg_error "in line ${caller_line}: exit code ${rc}"
+    fi
+    msg_custom "→" "${YWB}" "${cmd}"
+
+    if [[ -s "$logfile" ]]; then
+      local log_lines=$(wc -l <"$logfile")
+      echo "--- Last 10 lines of log ---"
+      tail -n 10 "$logfile"
+      echo "----------------------------"
+
+      # Show how to view full log if there are more lines
+      if [[ $log_lines -gt 10 ]]; then
+        msg_custom "📋" "${YW}" "View full log (${log_lines} lines): ${logfile}"
+      fi
+    fi
+
+    exit "$rc"
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -331,7 +404,9 @@ msg_ok() {
   printf "\r\e[2K%s %b\n" "${CM}" "${GN}${msg}${CL}" >&2
 
   # Remove from shown messages to allow it to be shown again
-  unset MSG_INFO_SHOWN["$msg"]
+  local sanitized_msg
+  sanitized_msg=$(printf '%s' "$msg" | sed 's/\x1b\[[0-9;]*m//g; s/[^a-zA-Z0-9_]/_/g')
+  unset 'MSG_INFO_SHOWN['"$sanitized_msg"']' 2>/dev/null || true
 }
 
 msg_error() {
@@ -340,13 +415,26 @@ msg_error() {
   printf "\r\e[2K%s %b\n" "${CROSS}" "${RD}${msg}${CL}" >&2
 }
 
+msg_warn() {
+  stop_spinner
+  local msg="$1"
+  echo -e "${BFR:-}${INFO:-ℹ️} ${YWB}${msg}${CL}" >&2
+}
+
 # Helper function to display a message with custom symbol and color
 msg_custom() {
   local symbol="${1:-*}"
   local color="${2:-$CL}"
   local msg="${3:-Custom message}"
+  [[ -z "$msg" ]] && return
   stop_spinner
   printf "\r\e[2K%s %b\n" "$symbol" "${color}${msg}${CL}" >&2
+}
+
+# Displays error message and immediately terminates script
+fatal() {
+  msg_error "$1"
+  kill -INT $$
 }
 
 get_valid_nextid() {
