@@ -1,0 +1,48 @@
+{
+  "name": "PVE LXC Unprivileged Rootless Docker",
+  "slug": "lxc-unprivileged-rootless-containers",
+  "categories": [
+    1
+  ],
+  "date_created": "2026-02-03",
+  "type": "pve",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://digitallyrefined.github.io/guides/PVE-unprivileged-LXC-rootless-containers",
+  "website": null,
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proxmox.webp",
+  "config_path": "",
+  "description": "This script allows users to run rootless Docker/Podman inside unprivileged LXC containers. Allowing nesting namespaces three levels deep: Proxmox Host → Unprivileged LXC → Rootless Docker/Podman → Docker in Docker (DinD). It also facilitates GPU passthrough to these containers, enabling hardware acceleration for applications like AI and video transcoding.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "tools/pve/lxc-unprivileged-rootless-containers.sh",
+      "resources": {
+        "cpu": null,
+        "ram": null,
+        "hdd": null,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Execute within the Proxmox shell.",
+      "type": "info"
+    },
+    {
+      "text": "This script needs to be run after creating new LXC containers. Failure to do so will result in overlapping user namespaces, which could pose a security risk.",
+      "type": "warning"
+    },
+    {
+      "text": "Running containers will be stopped temporarily while applying namespace changes.",
+      "type": "warning"
+    }
+  ]
+}
