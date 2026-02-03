@@ -92,7 +92,6 @@ if created:
     user.save()
 EOF
 msg_ok "Set up wger"
-
 msg_info "Creating Config and Services"
 cat <<EOF >/etc/systemd/system/wger.service
 [Unit]
