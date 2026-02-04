@@ -20,9 +20,6 @@ msg_ok "Installed Dependencies"
 
 setup_mariadb
 MARIADB_DB_NAME="writefreely" MARIADB_DB_USER="writefreely" setup_mariadb_db
-
-get_lxc_ip
-
 fetch_and_deploy_gh_release "writefreely" "writefreely/writefreely" "prebuild" "latest" "/opt/writefreely" "writefreely_*_linux_amd64.tar.gz"
 
 msg_info "Setting up WriteFreely"
@@ -39,6 +36,7 @@ $STD crudini --set config.ini database password $MARIADB_DB_PASS
 $STD crudini --set config.ini database database $MARIADB_DB_NAME
 $STD crudini --set config.ini app host http://$LOCAL_IP:80
 $STD ./writefreely db init
+ln -s /opt/writefreely/writefreely /usr/local/bin/writefreely
 msg_ok "Configured WriteFreely"
 
 msg_info "Creating Service"
