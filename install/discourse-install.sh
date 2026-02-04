@@ -31,7 +31,7 @@ msg_ok "Installed Dependencies"
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="discourse" PG_DB_USER="discourse" setup_postgresql_db
 NODE_VERSION="22" setup_nodejs
-RUBY_VERSION="3.3" setup_ruby
+RUBY_VERSION="3.3.6" setup_ruby
 
 msg_info "Configuring Discourse"
 DISCOURSE_SECRET_KEY=$(openssl rand -hex 32)
