@@ -35,10 +35,135 @@ set +u
 CLOUDINIT_DEFAULT_USER="${CLOUDINIT_DEFAULT_USER:-root}"
 CLOUDINIT_DNS_SERVERS="${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}"
 CLOUDINIT_SEARCH_DOMAIN="${CLOUDINIT_SEARCH_DOMAIN:-local}"
-CLOUDINIT_SSH_KEYS="${CLOUDINIT_SSH_KEYS:-/root/.ssh/authorized_keys}"
+CLOUDINIT_SSH_KEYS="${CLOUDINIT_SSH_KEYS:-}" # Empty by default - user must explicitly provide keys
 
 # ==============================================================================
-# SECTION 2: HELPER FUNCTIONS
+# SECTION 2: SSH KEY DISCOVERY AND SELECTION
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# _ci_ssh_extract_keys_from_file - Extracts valid SSH public keys from a file
+# ------------------------------------------------------------------------------
+function _ci_ssh_extract_keys_from_file() {
+  local file="$1"
+  [[ -f "$file" && -r "$file" ]] || return 0
+  grep -E '^(ssh-(rsa|ed25519|dss|ecdsa)|ecdsa-sha2-)' "$file" 2>/dev/null || true
+}
+
+# ------------------------------------------------------------------------------
+# _ci_ssh_discover_files - Scans standard paths for SSH keys
+# ------------------------------------------------------------------------------
+function _ci_ssh_discover_files() {
+  local -a cand=()
+  shopt -s nullglob
+  cand+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
+  cand+=(/root/.ssh/*.pub)
+  cand+=(/etc/ssh/authorized_keys /etc/ssh/authorized_keys.d/*)
+  shopt -u nullglob
+  printf '%s\n' "${cand[@]}"
+}
+
+# ------------------------------------------------------------------------------
+# _ci_ssh_count_keys - Counts available SSH keys on the system
+# ------------------------------------------------------------------------------
+function _ci_ssh_count_keys() {
+  local count=0
+  while IFS= read -r file; do
+    [[ -f "$file" && -r "$file" ]] || continue
+    local keys=$(_ci_ssh_extract_keys_from_file "$file" | wc -l)
+    count=$((count + keys))
+  done < <(_ci_ssh_discover_files)
+  echo "$count"
+}
+
+# ------------------------------------------------------------------------------
+# configure_cloudinit_ssh_keys - Interactive SSH key selection for Cloud-Init
+#
+# Usage: configure_cloudinit_ssh_keys
+# Sets: CLOUDINIT_SSH_KEYS (path to temporary file with selected keys)
+# ------------------------------------------------------------------------------
+function configure_cloudinit_ssh_keys() {
+  local backtitle="Proxmox VE Helper Scripts"
+  local default_key_count=$(_ci_ssh_count_keys)
+  local ssh_key_mode
+
+  # Create temp file for selected keys
+  CLOUDINIT_SSH_KEYS_TEMP="$(mktemp)"
+
+  if [[ "$default_key_count" -gt 0 ]]; then
+    ssh_key_mode=$(whiptail --backtitle "$backtitle" --title "SSH KEY SOURCE" --menu \
+      "Provision SSH keys for Cloud-Init VM:" 14 72 4 \
+      "host" "Import all keys from host ($default_key_count found)" \
+      "manual" "Paste a single public key" \
+      "file" "Specify path to authorized_keys file" \
+      "none" "No SSH keys (password auth only)" 3>&1 1>&2 2>&3) || return 1
+  else
+    ssh_key_mode=$(whiptail --backtitle "$backtitle" --title "SSH KEY SOURCE" --menu \
+      "No host keys detected. Choose:" 12 72 3 \
+      "manual" "Paste a single public key" \
+      "file" "Specify path to authorized_keys file" \
+      "none" "No SSH keys (password auth only)" 3>&1 1>&2 2>&3) || return 1
+  fi
+
+  case "$ssh_key_mode" in
+  host)
+    # Import all keys from host
+    while IFS= read -r file; do
+      _ci_ssh_extract_keys_from_file "$file" >>"$CLOUDINIT_SSH_KEYS_TEMP"
+    done < <(_ci_ssh_discover_files)
+    local imported=$(wc -l <"$CLOUDINIT_SSH_KEYS_TEMP")
+    echo -e "${ROOTSSH:-  🔑  }${BOLD}${DGN}SSH Keys: ${BGN}${imported} keys imported from host${CL}"
+    ;;
+  manual)
+    local pubkey
+    pubkey=$(whiptail --backtitle "$backtitle" --title "PASTE SSH PUBLIC KEY" \
+      --inputbox "Paste your SSH public key (ssh-rsa, ssh-ed25519, etc.):" 10 76 3>&1 1>&2 2>&3) || return 1
+    if [[ -n "$pubkey" ]]; then
+      echo "$pubkey" >"$CLOUDINIT_SSH_KEYS_TEMP"
+      echo -e "${ROOTSSH:-  🔑  }${BOLD}${DGN}SSH Keys: ${BGN}1 key added manually${CL}"
+    else
+      echo -e "${ROOTSSH:-  🔑  }${BOLD}${DGN}SSH Keys: ${BGN}none (empty input)${CL}"
+      CLOUDINIT_SSH_KEYS=""
+      rm -f "$CLOUDINIT_SSH_KEYS_TEMP"
+      return 0
+    fi
+    ;;
+  file)
+    local keyfile
+    keyfile=$(whiptail --backtitle "$backtitle" --title "SSH KEY FILE" \
+      --inputbox "Enter path to authorized_keys file:" 10 60 "/root/.ssh/authorized_keys" 3>&1 1>&2 2>&3) || return 1
+    if [[ -f "$keyfile" ]]; then
+      _ci_ssh_extract_keys_from_file "$keyfile" >"$CLOUDINIT_SSH_KEYS_TEMP"
+      local imported=$(wc -l <"$CLOUDINIT_SSH_KEYS_TEMP")
+      echo -e "${ROOTSSH:-  🔑  }${BOLD}${DGN}SSH Keys: ${BGN}${imported} keys from ${keyfile}${CL}"
+    else
+      echo -e "${ROOTSSH:-  🔑  }${BOLD}${RD}File not found: ${keyfile}${CL}"
+      CLOUDINIT_SSH_KEYS=""
+      rm -f "$CLOUDINIT_SSH_KEYS_TEMP"
+      return 1
+    fi
+    ;;
+  none | *)
+    echo -e "${ROOTSSH:-  🔑  }${BOLD}${DGN}SSH Keys: ${BGN}none (password auth only)${CL}"
+    CLOUDINIT_SSH_KEYS=""
+    rm -f "$CLOUDINIT_SSH_KEYS_TEMP"
+    return 0
+    ;;
+  esac
+
+  # Set the variable for setup_cloud_init to use
+  if [[ -s "$CLOUDINIT_SSH_KEYS_TEMP" ]]; then
+    CLOUDINIT_SSH_KEYS="$CLOUDINIT_SSH_KEYS_TEMP"
+  else
+    CLOUDINIT_SSH_KEYS=""
+    rm -f "$CLOUDINIT_SSH_KEYS_TEMP"
+  fi
+
+  return 0
+}
+
+# ==============================================================================
+# SECTION 3: HELPER FUNCTIONS
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -148,9 +273,10 @@ function setup_cloud_init() {
   local cipassword=$(openssl rand -base64 16)
   qm set "$vmid" --cipassword "$cipassword" >/dev/null
 
-  # Add SSH keys if available
-  if [ -f "$CLOUDINIT_SSH_KEYS" ]; then
+  # Add SSH keys only if explicitly provided (not auto-imported from host)
+  if [ -n "${CLOUDINIT_SSH_KEYS:-}" ] && [ -f "$CLOUDINIT_SSH_KEYS" ]; then
     qm set "$vmid" --sshkeys "$CLOUDINIT_SSH_KEYS" >/dev/null 2>&1 || true
+    _ci_msg_info "SSH keys imported from: $CLOUDINIT_SSH_KEYS"
   fi
 
   # Configure network

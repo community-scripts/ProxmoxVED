@@ -169,6 +169,11 @@ function advanced_settings() {
   select_os
   select_cloud_init
 
+  # SSH Key selection for Cloud-Init VMs
+  if [ "$USE_CLOUD_INIT" = "yes" ]; then
+    configure_cloudinit_ssh_keys || true
+  fi
+
   METHOD="advanced"
   [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
 
