@@ -31,7 +31,7 @@ function update_script() {
 
   if check_for_gh_release "wger" "wger-project/wger"; then
     msg_info "Stopping Service"
-    systemctl stop apache2
+    systemctl stop redis-server nginx celery celery-beat wger
     msg_ok "Stopped Service"
 
     msg_info "Backing up Data"
@@ -45,6 +45,7 @@ function update_script() {
     cp -r /opt/wger_media_backup/. /opt/wger/media
     cp /opt/wger_env_backup /opt/wger/.env
     rm -rf /opt/wger_media_backup /opt/wger_env_backup
+
     msg_ok "Restored Data"
 
     msg_info "Updating wger"
@@ -56,9 +57,9 @@ function update_script() {
     $STD uv run python manage.py collectstatic --no-input
     msg_ok "Updated wger"
 
-    msg_info "Starting Service"
-    systemctl start apache2
-    msg_ok "Started Service"
+    msg_info "Starting Services"
+    systemctl start redis-server nginx celery celery-beat wger
+    msg_ok "Started Services"
     msg_ok "Updated Successfully"
   fi
   exit
@@ -71,4 +72,4 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"
