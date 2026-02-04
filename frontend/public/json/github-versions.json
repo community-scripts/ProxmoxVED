@@ -1,5 +1,5 @@
 {
-  "generated": "2026-02-04T07:03:37Z",
+  "generated": "2026-02-04T13:17:54Z",
   "versions": [
     {
       "slug": "affine",
@@ -100,13 +100,6 @@
       "date": "2026-01-28T15:08:23Z"
     },
     {
-      "slug": "piler",
-      "repo": "jsuto/piler",
-      "version": "piler-1.4.8",
-      "pinned": false,
-      "date": "2025-09-24T06:51:38Z"
-    },
-    {
       "slug": "pixelfed",
       "repo": "pixelfed/pixelfed",
       "version": "v0.12.6",
@@ -135,18 +128,11 @@
       "date": "2026-01-21T19:07:21Z"
     },
     {
-      "slug": "wishlist",
-      "repo": "cmintey/wishlist",
-      "version": "v0.59.0",
+      "slug": "wger",
+      "repo": "wger-project/wger",
+      "version": "2.4",
       "pinned": false,
-      "date": "2026-01-19T16:42:14Z"
-    },
-    {
-      "slug": "writefreely",
-      "repo": "writefreely/writefreely",
-      "version": "v0.16.0",
-      "pinned": false,
-      "date": "2025-08-29T19:30:02Z"
+      "date": "2026-01-18T12:12:02Z"
     }
   ]
 }
