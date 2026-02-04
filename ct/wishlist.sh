@@ -40,7 +40,7 @@ function update_script() {
     cp -a /opt/wishlist/data /opt/wishlist-backup
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "wishlist" "cmintey/wishlist" "tarball"
-    LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist" false)
+    LATEST_APP_VERSION=$(get_latest_github_release "cmintey/wishlist")
 
     msg_info "Updating Wishlist"
     cd /opt/wishlist
@@ -48,8 +48,8 @@ function update_script() {
     $STD pnpm svelte-kit sync
     $STD pnpm prisma generate
     sed -i 's|/usr/src/app/|/opt/wishlist/|g' $(grep -rl '/usr/src/app/' /opt/wishlist)
-    export VERSION="${LATEST_APP_VERSION}"
-    export SHA="${LATEST_APP_VERSION}"
+    export VERSION="v${LATEST_APP_VERSION}"
+    export SHA="v${LATEST_APP_VERSION}"
     $STD pnpm run build
     $STD pnpm prune --prod
     chmod +x /opt/wishlist/entrypoint.sh
