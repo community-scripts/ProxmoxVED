@@ -29,13 +29,21 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
-PG_DB_NAME="discourse" PG_DB_USER="discourse" setup_postgresql_db
 NODE_VERSION="22" setup_nodejs
 RUBY_VERSION="3.3.6" setup_ruby
 
+msg_info "Configuring PostgreSQL for Discourse"
+DISCOURSE_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+# Configure pg_hba.conf for md5 authentication
+PG_HBA="/etc/postgresql/16/main/pg_hba.conf"
+sed -i 's/^local\s\+all\s\+all\s\+peer$/local   all             all                                     md5/' "$PG_HBA"
+$STD systemctl restart postgresql
+# Create user with CREATEDB permission - Rails will create the database
+$STD sudo -u postgres psql -c "CREATE ROLE discourse WITH LOGIN PASSWORD '$DISCOURSE_DB_PASS' CREATEDB;"
+msg_ok "Configured PostgreSQL for Discourse"
+
 msg_info "Configuring Discourse"
-DISCOURSE_SECRET_KEY=$(openssl rand -hex 32)
-DISCOURSE_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
+DISCOURSE_SECRET_KEY=$(openssl rand -hex 64)
 
 git clone --depth 1 https://github.com/discourse/discourse.git /opt/discourse
 cd /opt/discourse
@@ -45,7 +53,7 @@ RAILS_ENV=production
 RAILS_LOG_TO_STDOUT=true
 RAILS_SERVE_STATIC_FILES=true
 SECRET_KEY_BASE=${DISCOURSE_SECRET_KEY}
-DISCOURSE_DB_HOST=localhost
+DISCOURSE_DB_HOST=/var/run/postgresql
 DISCOURSE_DB_PORT=5432
 DISCOURSE_DB_NAME=discourse
 DISCOURSE_DB_USERNAME=discourse
@@ -64,26 +72,42 @@ chmod 755 /opt/discourse
 msg_ok "Configured Discourse"
 
 msg_info "Installing Discourse Dependencies"
+$STD systemctl enable --now redis-server
 cd /opt/discourse
-$STD bundle install --deployment --without test development
-$STD yarn install
+export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
+eval "$(rbenv init - bash)" 2>/dev/null || true
+export RAILS_ENV=production
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+$STD corepack enable
+$STD bundle config set --local deployment true
+$STD bundle config set --local without 'test development'
+$STD bundle install
+$STD pnpm install
 msg_ok "Installed Discourse Dependencies"
-
-msg_info "Building Discourse Assets"
-cd /opt/discourse
-$STD bundle exec rails assets:precompile
-msg_ok "Built Discourse Assets"
 
 msg_info "Setting Up Database"
 cd /opt/discourse
+export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
+eval "$(rbenv init - bash)" 2>/dev/null || true
+export RAILS_ENV=production
+$STD bundle exec rails db:create
 $STD bundle exec rails db:migrate
-$STD systemctl enable --now redis-server
-$STD systemctl enable --now postgresql
 msg_ok "Set Up Database"
+
+msg_info "Building Discourse Assets"
+cd /opt/discourse
+export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
+eval "$(rbenv init - bash)" 2>/dev/null || true
+export RAILS_ENV=production
+$STD bundle exec rails assets:precompile
+msg_ok "Built Discourse Assets"
 
 msg_info "Creating Discourse Admin User"
 cd /opt/discourse
-$STD bundle exec rails runner -e production "User.create!(email: 'admin@local', username: 'admin', password: '${DISCOURSE_DB_PASS}', admin: true)" || true
+export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
+eval "$(rbenv init - bash)" 2>/dev/null || true
+export RAILS_ENV=production
+$STD bundle exec rails runner "User.create!(email: 'admin@local', username: 'admin', password: '${DISCOURSE_DB_PASS}', admin: true)" || true
 msg_ok "Created Discourse Admin User"
 
 msg_info "Creating Service"
