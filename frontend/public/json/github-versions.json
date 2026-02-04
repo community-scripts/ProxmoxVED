@@ -1,5 +1,5 @@
 {
-  "generated": "2026-02-03T19:05:52Z",
+  "generated": "2026-02-04T07:03:37Z",
   "versions": [
     {
       "slug": "affine",
@@ -133,13 +133,6 @@
       "version": "0.11.0",
       "pinned": false,
       "date": "2026-01-21T19:07:21Z"
-    },
-    {
-      "slug": "wealthfolio",
-      "repo": "afadil/wealthfolio",
-      "version": "v2.1.0",
-      "pinned": false,
-      "date": "2025-12-01T21:57:36Z"
     },
     {
       "slug": "wishlist",
