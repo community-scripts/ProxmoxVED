@@ -194,9 +194,7 @@ BINARY="/opt/nebula-sync/nebula-sync"
 # Load environment variables from .env file
 if [[ -f "$ENV_FILE" ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
-    # Skip empty lines and comments
     [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-    # Only process lines that look like KEY=VALUE
     if [[ "$line" =~ ^[A-Z_][A-Z0-9_]*= ]]; then
       key="${line%%=*}"
       value="${line#*=}"
@@ -205,7 +203,6 @@ if [[ -f "$ENV_FILE" ]]; then
   done < "$ENV_FILE"
 fi
 
-# Execute nebula-sync
 exec "$BINARY" run
 EOFWRAPPER
 chmod +x "${INSTALL_PATH}/nebula-sync-wrapper.sh"
@@ -233,18 +230,12 @@ EOF
 
 msg_info "Verifying service configuration"
 if [[ -f "$ENV_PATH" ]]; then
-  set +u
-  set -a
-  source "$ENV_PATH" 2>/dev/null || true
-  set +a
-  if [[ -z "${PRIMARY:-}" ]] || [[ -z "${REPLICAS:-}" ]]; then
-    msg_warn "Environment variables not loading correctly from $ENV_PATH"
-    msg_info "File contents:"
-    head -5 "$ENV_PATH"
-  else
+  if grep -q "^PRIMARY=" "$ENV_PATH" && grep -q "^REPLICAS=" "$ENV_PATH"; then
     msg_ok "Environment variables verified"
+  else
+    msg_error "Required environment variables (PRIMARY, REPLICAS) not found in $ENV_PATH"
+    exit 1
   fi
-  set -u
 else
   msg_error ".env file not found at $ENV_PATH"
   exit 1
@@ -270,12 +261,18 @@ if [[ ! -f "$INSTALL_PATH/nebula-sync" ]]; then
 fi
 
 msg_info "Stopping service"
-systemctl stop nebula-sync.service &>/dev/null || true
+if systemctl is-active --quiet nebula-sync.service 2>/dev/null; then
+  systemctl stop nebula-sync.service
+fi
 msg_ok "Stopped service"
 
 msg_info "Backing up configuration"
-cp "$ENV_PATH" /tmp/nebula-sync.env.bak 2>/dev/null || true
-msg_ok "Backed up configuration"
+if [[ -f "$ENV_PATH" ]]; then
+  cp "$ENV_PATH" /tmp/nebula-sync.env.bak
+  msg_ok "Backed up configuration"
+else
+  msg_warn "Configuration file not found, skipping backup"
+fi
 
 msg_info "Detecting latest Nebula-Sync release"
 LATEST_RELEASE=$(curl -fsSL https://api.github.com/repos/lovelaze/nebula-sync/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
@@ -302,9 +299,13 @@ chmod +x nebula-sync
 msg_ok "Downloaded Nebula-Sync"
 
 msg_info "Restoring configuration"
-cp /tmp/nebula-sync.env.bak "$ENV_PATH" 2>/dev/null || true
-rm -f /tmp/nebula-sync.env.bak
-msg_ok "Restored configuration"
+if [[ -f /tmp/nebula-sync.env.bak ]]; then
+  cp /tmp/nebula-sync.env.bak "$ENV_PATH"
+  rm -f /tmp/nebula-sync.env.bak
+  msg_ok "Restored configuration"
+else
+  msg_warn "Backup file not found, keeping existing configuration"
+fi
 
 msg_info "Saving version"
 echo "${LATEST_RELEASE}" > "/opt/nebula-sync_version.txt"
