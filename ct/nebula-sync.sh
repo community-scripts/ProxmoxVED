@@ -29,7 +29,7 @@ function update_script() {
   fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/lovelaze/nebula-sync/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
   if [[ ! -f /opt/nebula-sync_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/nebula-sync_version.txt)" ]]; then
-    msg_info "Updating Nebula-Sync to v${RELEASE}"
+    msg_info "Updating Nebula-Sync to ${RELEASE}"
     if [[ -f /usr/local/bin/update_nebula-sync ]]; then
       /usr/local/bin/update_nebula-sync
     else
@@ -38,7 +38,7 @@ function update_script() {
     fi
     msg_ok "Updated Nebula-Sync"
   else
-    msg_ok "No update required. Nebula-Sync is already at v${RELEASE}."
+    msg_ok "No update required. Nebula-Sync is already at ${RELEASE}."
   fi
   msg_ok "Updated successfully!"
   exit
