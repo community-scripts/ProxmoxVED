@@ -23,19 +23,14 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -f /usr/local/bin/update_nebula-sync ]] && [[ ! -f /opt/nebula-sync_version.txt ]]; then
+  if [[ ! -f /usr/local/bin/update_nebula-sync ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
   RELEASE=$(curl -fsSL https://api.github.com/repos/lovelaze/nebula-sync/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
   if [[ ! -f /opt/nebula-sync_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/nebula-sync_version.txt)" ]]; then
     msg_info "Updating Nebula-Sync to ${RELEASE}"
-    if [[ -f /usr/local/bin/update_nebula-sync ]]; then
-      /usr/local/bin/update_nebula-sync
-    else
-      msg_error "Update script not found!"
-      exit
-    fi
+    /usr/local/bin/update_nebula-sync
     msg_ok "Updated Nebula-Sync"
   else
     msg_ok "No update required. Nebula-Sync is already at ${RELEASE}."

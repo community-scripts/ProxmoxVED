@@ -17,6 +17,8 @@ INSTALL_PATH="/opt/nebula-sync"
 ENV_PATH="/opt/nebula-sync/.env"
 SERVICE_PATH="/etc/systemd/system/nebula-sync.service"
 
+mkdir -p "$INSTALL_PATH"
+
 msg_info "Installing Nebula-Sync"
 fetch_and_deploy_gh_release "nebula-sync" "lovelaze/nebula-sync" "prebuild" "latest" "/opt/nebula-sync" "nebula-sync_.*_linux_.*\.tar\.gz"
 msg_ok "Installed Nebula-Sync"
@@ -154,7 +156,7 @@ fi
 } > "$ENV_PATH"
 
 if [[ "$FULL_SYNC" == "false" ]]; then
-  cat <<EOF>>"$ENV_PATH"
+  cat <<EOF >>"$ENV_PATH"
 SYNC_CONFIG_DNS=${SYNC_CONFIG_DNS}
 SYNC_CONFIG_DHCP=${SYNC_CONFIG_DHCP}
 SYNC_CONFIG_NTP=${SYNC_CONFIG_NTP}
@@ -193,7 +195,7 @@ BINARY="/opt/nebula-sync/nebula-sync"
 
 if [[ -f "$ENV_FILE" ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "$line" ]] && continue
     if [[ "$line" =~ ^[A-Z_][A-Z0-9_]*= ]]; then
       key="${line%%=*}"
       value="${line#*=}"
@@ -202,6 +204,10 @@ if [[ -f "$ENV_FILE" ]]; then
   done < "$ENV_FILE"
 fi
 
+if [[ ! -f "$BINARY" ]] || [[ ! -x "$BINARY" ]]; then
+  echo "Nebula-Sync binary not found or not executable: $BINARY. Install or update may have failed." >&2
+  exit 1
+fi
 exec "$BINARY" run
 EOFWRAPPER
 chmod +x "${INSTALL_PATH}/nebula-sync-wrapper.sh"
@@ -293,7 +299,9 @@ fi
 
 msg_info "Saving version"
 LATEST_RELEASE=$(curl -fsSL https://api.github.com/repos/lovelaze/nebula-sync/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
-echo "$LATEST_RELEASE" > /opt/nebula-sync_version.txt
+if [[ -n "$LATEST_RELEASE" ]]; then
+  echo "$LATEST_RELEASE" > /opt/nebula-sync_version.txt
+fi
 msg_ok "Saved version"
 
 msg_info "Starting service"
@@ -305,7 +313,9 @@ UPDATEEOF
 chmod +x /usr/local/bin/update_nebula-sync
 msg_ok "Created update script"
 
-echo "$LATEST_RELEASE" > "/opt/nebula-sync_version.txt"
+if [[ -n "$LATEST_RELEASE" ]]; then
+  echo "$LATEST_RELEASE" > "/opt/nebula-sync_version.txt"
+fi
 
 motd_ssh
 customize
