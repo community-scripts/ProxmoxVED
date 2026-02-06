@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: gabriel403
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/lovelaze/nebula-sync
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -20,7 +20,7 @@ SERVICE_PATH="/etc/systemd/system/nebula-sync.service"
 msg_info "Installing Nebula-Sync"
 fetch_and_deploy_gh_release "nebula-sync" "lovelaze/nebula-sync" "prebuild" "latest" "/opt/nebula-sync" "nebula-sync_.*_linux_.*\.tar\.gz"
 msg_ok "Installed Nebula-Sync"
-LATEST_RELEASE="v$(cat "$HOME/.nebula-sync" 2>/dev/null || echo '0.0.0')"
+LATEST_RELEASE=$(curl -fsSL https://api.github.com/repos/lovelaze/nebula-sync/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
 
 echo ""
 echo -e "${BL}Nebula-Sync Configuration${CL}"
@@ -191,7 +191,6 @@ set -e
 ENV_FILE="/opt/nebula-sync/.env"
 BINARY="/opt/nebula-sync/nebula-sync"
 
-# Load environment variables from .env file
 if [[ -f "$ENV_FILE" ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
     [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
@@ -228,6 +227,12 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
+if [[ ! -f "$SERVICE_PATH" ]] || [[ ! -s "$SERVICE_PATH" ]]; then
+  msg_error "Failed to create unit file at $SERVICE_PATH"
+  exit 1
+fi
+msg_ok "Created service"
+
 msg_info "Verifying service configuration"
 if [[ -f "$ENV_PATH" ]]; then
   if grep -q "^PRIMARY=" "$ENV_PATH" && grep -q "^REPLICAS=" "$ENV_PATH"; then
@@ -247,7 +252,6 @@ msg_ok "Created and started service"
 msg_info "Creating update script"
 cat <<'UPDATEEOF' >/usr/local/bin/update_nebula-sync
 #!/usr/bin/env bash
-# Nebula-Sync Update Script
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 load_functions
@@ -255,7 +259,7 @@ load_functions
 INSTALL_PATH="/opt/nebula-sync"
 ENV_PATH="/opt/nebula-sync/.env"
 
-if [[ ! -f "$INSTALL_PATH/nebula-sync" ]]; then
+if [[ ! -d "$INSTALL_PATH" ]] && [[ ! -f "$ENV_PATH" ]]; then
   msg_error "Nebula-Sync installation not found!"
   exit 1
 fi
@@ -274,29 +278,9 @@ else
   msg_warn "Configuration file not found, skipping backup"
 fi
 
-msg_info "Detecting latest Nebula-Sync release"
-LATEST_RELEASE=$(curl -fsSL https://api.github.com/repos/lovelaze/nebula-sync/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
-ARCH=$(uname -m)
-case "$ARCH" in
-  x86_64) ARCH="amd64" ;;
-  aarch64) ARCH="arm64" ;;
-  armv7l) ARCH="armv7" ;;
-  *) msg_error "Unsupported architecture: $ARCH"; exit 1 ;;
-esac
-msg_ok "Detected Nebula-Sync ${LATEST_RELEASE}"
-
-msg_info "Downloading Nebula-Sync"
-cd "$INSTALL_PATH"
-VERSION_NO_V="${LATEST_RELEASE#v}"
-BINARY_URL="https://github.com/lovelaze/nebula-sync/releases/download/${LATEST_RELEASE}/nebula-sync_${VERSION_NO_V}_linux_${ARCH}.tar.gz"
-curl -fSL -o nebula-sync.tar.gz "$BINARY_URL" || {
-  msg_error "Failed to download Nebula-Sync binary from ${BINARY_URL}"
-  exit 1
-}
-tar -xzf nebula-sync.tar.gz
-rm nebula-sync.tar.gz
-chmod +x nebula-sync
-msg_ok "Downloaded Nebula-Sync"
+msg_info "Updating Nebula-Sync"
+fetch_and_deploy_gh_release "nebula-sync" "lovelaze/nebula-sync" "prebuild" "latest" "/opt/nebula-sync" "nebula-sync_.*_linux_.*\.tar\.gz"
+msg_ok "Updated Nebula-Sync"
 
 msg_info "Restoring configuration"
 if [[ -f /tmp/nebula-sync.env.bak ]]; then
@@ -308,7 +292,8 @@ else
 fi
 
 msg_info "Saving version"
-echo "${LATEST_RELEASE}" > "/opt/nebula-sync_version.txt"
+LATEST_RELEASE=$(curl -fsSL https://api.github.com/repos/lovelaze/nebula-sync/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
+echo "$LATEST_RELEASE" > /opt/nebula-sync_version.txt
 msg_ok "Saved version"
 
 msg_info "Starting service"

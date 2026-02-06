@@ -2,7 +2,7 @@
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: gabriel403
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/lovelaze/nebula-sync
 
 APP="Nebula-Sync"
@@ -23,7 +23,7 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -f /opt/nebula-sync/nebula-sync ]]; then
+  if [[ ! -f /usr/local/bin/update_nebula-sync ]] && [[ ! -f /opt/nebula-sync_version.txt ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
