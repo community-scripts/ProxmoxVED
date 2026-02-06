@@ -197,7 +197,7 @@ if [[ -f "$ENV_FILE" ]]; then
     if [[ "$line" =~ ^[A-Z_][A-Z0-9_]*= ]]; then
       key="${line%%=*}"
       value="${line#*=}"
-      export "$key"="$value"
+      export "${key}=${value}"
     fi
   done < "$ENV_FILE"
 fi
