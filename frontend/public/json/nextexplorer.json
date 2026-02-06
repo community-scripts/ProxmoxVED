@@ -11,7 +11,7 @@
   "privileged": false,
   "interface_port": 3000,
   "documentation": "https://explorer.nxz.ai",
-  "website": "https://github.com/vikramsoni2/nextExplorer",
+  "website": "https://github.com/nxzai/nextExplorer",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nextexplorer.webp",
   "config_path": "/etc/nextExplorer/.env",
   "description": "Self-hosted file access for teams, homelabs, and agencies with a refined interface.",

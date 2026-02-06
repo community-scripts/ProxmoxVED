@@ -3,7 +3,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: vhsdream
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/vikramsoni2/nextExplorer
+# Source: https://github.com/nxzai/nextExplorer
 
 APP="nextExplorer"
 var_tags="${var_tags:-files;documents}"
@@ -31,12 +31,12 @@ function update_script() {
 
   NODE_VERSION="24" setup_nodejs
 
-  if check_for_gh_release "nextExplorer" "vikramsoni2/nextExplorer"; then
+  if check_for_gh_release "nextExplorer" "nxzai/nextExplorer"; then
     msg_info "Stopping nextExplorer"
     $STD systemctl stop nextexplorer
     msg_ok "Stopped nextExplorer"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "nextExplorer" "vikramsoni2/nextExplorer" "tarball" "latest" "/opt/nextExplorer"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "nextExplorer" "nxzai/nextExplorer" "tarball" "latest" "/opt/nextExplorer"
 
     msg_info "Updating nextExplorer"
     APP_DIR="/opt/nextExplorer/app"

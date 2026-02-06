@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: vhsdream
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/vikramsoni2/nextExplorer
+# Source: https://github.com/nxzai/nextExplorer
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -26,7 +26,7 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
 
-fetch_and_deploy_gh_release "nextExplorer" "vikramsoni2/nextExplorer" "tarball" "latest" "/opt/nextExplorer"
+fetch_and_deploy_gh_release "nextExplorer" "nxzai/nextExplorer" "tarball" "latest" "/opt/nextExplorer"
 
 msg_info "Building nextExplorer"
 APP_DIR="/opt/nextExplorer/app"
