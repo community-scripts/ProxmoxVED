@@ -186,7 +186,7 @@ msg_ok "Created configuration"
 
 msg_info "Creating wrapper script"
 cat <<'EOFWRAPPER' >"${INSTALL_PATH}/nebula-sync-wrapper.sh"
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 ENV_FILE="/opt/nebula-sync/.env"
 BINARY="/opt/nebula-sync/nebula-sync"
