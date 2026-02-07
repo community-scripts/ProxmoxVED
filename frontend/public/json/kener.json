@@ -1,0 +1,48 @@
+{
+    "name": "Kener",
+    "slug": "kener",
+    "categories": [
+        9
+    ],
+    "date_created": "2026-02-07",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://kener.ing/docs/home",
+    "website": "https://kener.ing",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kener.webp",
+    "config_path": "/opt/kener/docker-compose.yaml",
+    "description": "Kener is a lightweight and flexible monitoring platform designed to track the status, performance, and availability of services and applications in real-time. It provides transparent reporting of incidents, planned maintenance, and uptime history, making it easier for administrators and users to stay informed about system health. With a modern interface and support for notifications, Kener helps teams quickly identify issues, reduce downtime, and maintain reliable operations across their infrastructure.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/kener.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 1024,
+                "hdd": 16,
+                "os": "debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "To register the first user, open /manage/setup on your domain or IP address (e.g., https://example.com/manage/setup or http://192.168.1.100:3000/manage/setup).",
+            "type": "info"
+        },
+        {
+            "text": "Kener runs in Docker, and all configuration is managed through the docker-compose.yaml file and the .env file.",
+            "type": "info"
+        },
+        {
+            "text": "Once running, the Kener web UI is accessible at the ORIGIN URL defined in .env.",
+            "type": "info"
+        }
+    ]
+}
