@@ -16,7 +16,7 @@ update_os
 
 msg_info "Installing base dependencies"
 $STD apt update
-$STD apt install -y ca-certificates curl git openssl lsb-release gnupg
+$STD apt install -y git openssl lsb-release gnupg
 msg_ok "Dependencies installed"
 
 msg_info "Setting up Docker APT repository"
