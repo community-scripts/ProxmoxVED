@@ -64,7 +64,7 @@ services:
     container_name: kener
     environment:
       ORIGIN: http://${HOST_IP}:3000
-      TZ: Europe/Prague
+      TZ: UTC
       KENER_SECRET_KEY: \${KENER_SECRET_KEY}
       DATABASE_URL: postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/\${POSTGRES_DB}
     ports:
