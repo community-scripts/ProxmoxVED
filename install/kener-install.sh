@@ -2,7 +2,7 @@
 # Kener install script for ProxmoxVE container (Bare Metal, No Docker)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: danynocz
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://kener.ing
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
