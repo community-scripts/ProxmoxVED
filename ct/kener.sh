@@ -34,7 +34,7 @@ function update_script() {
   msg_info "Updating ${APP} from GitHub"
   cd "$INSTALL_DIR"
 
-  $STD git pull >/tmp/kener_update.log 2>&1
+  fetch_and_deploy_gh_release "Kener" "rajnandan1/kener" "tarball" "latest" "$INSTALL_DIR"
 
   $STD npm install --quiet >/tmp/kener_update.log 2>&1
 
