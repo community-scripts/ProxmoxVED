@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Kener install script for ProxmoxVE container
+# Kener install script for ProxmoxVE container (Bare Metal, No Docker)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: danynocz
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://kener.ing
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -16,92 +16,72 @@ update_os
 
 msg_info "Installing base dependencies"
 $STD apt update
-$STD apt install -y git openssl lsb-release gnupg
+$STD apt install -y \
+  git \
+  curl \
+  ca-certificates \
+  openssl \
+  sqlite3 \
+  build-essential
+msg_ok "Base dependencies installed"
+
+msg_info "Installing Node.js 20 (NodeSource) quietly"
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -s -- -q >/tmp/nodesource.log 2>&1
+$STD apt install -y nodejs >/tmp/nodesource.log 2>&1
+msg_ok "Node.js installed"
+
+msg_info "Verifying Node.js & npm"
+node -v >/dev/null 2>&1
+npm -v >/dev/null 2>&1
+msg_ok "Node.js & npm verified"
+
+msg_info "Cloning Kener repository"
+git clone https://github.com/rajnandan1/kener.git /opt/kener >/tmp/kener_clone.log 2>&1
+cd /opt/kener
+msg_ok "Repository cloned"
+
+msg_info "Installing Node dependencies quietly"
+$STD npm install >/tmp/kener_npm.log 2>&1
 msg_ok "Dependencies installed"
 
-msg_info "Setting up Docker APT repository"
-$STD install -m 0755 -d /etc/apt/keyrings
-$STD curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
-$STD chmod a+r /etc/apt/keyrings/docker.asc
-
-cat <<EOF > /etc/apt/sources.list.d/docker.sources
-Types: deb
-URIs: https://download.docker.com/linux/debian
-Suites: bookworm
-Components: stable
-Signed-By: /etc/apt/keyrings/docker.asc
-EOF
-msg_ok "Docker repository added"
-
-msg_info "Installing Docker Engine"
-$STD apt update
-$STD apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-msg_ok "Docker installed"
-
-msg_info "Creating Kener directory structure"
-mkdir -p /opt/kener/uploads
-chown -R root:root /opt/kener
-msg_ok "Directory structure ready"
-
 msg_info "Creating .env file"
-cat <<EOF > /opt/kener/.env
+cat <<EOF >/opt/kener/.env
+HOST=0.0.0.0
+PORT=3000
+ORIGIN=http://localhost:3000
 KENER_SECRET_KEY=$(openssl rand -hex 32)
-POSTGRES_USER=kener
-POSTGRES_PASSWORD=$(openssl rand -hex 16)
-POSTGRES_DB=kener
 EOF
 msg_ok ".env file created"
 
-HOST_IP=$(hostname -I | awk '{print $1}')
+msg_info "Preparing SQLite database quietly"
+$STD npm exec knex migrate:latest >/tmp/kener_db.log 2>&1
+$STD npm exec knex seed:run >/tmp/kener_db.log 2>&1
+msg_ok "Database initialized"
 
-msg_info "Creating Docker Compose file"
-cat <<EOF > /opt/kener/docker-compose.yaml
-version: "3.8"
+msg_info "Creating systemd service"
+cat <<EOF >/etc/systemd/system/kener.service
+[Unit]
+Description=Kener Status Page
+After=network.target
 
-services:
-  kener:
-    image: rajnandan1/kener:latest
-    container_name: kener
-    environment:
-      ORIGIN: http://${HOST_IP}:3000
-      TZ: UTC
-      KENER_SECRET_KEY: \${KENER_SECRET_KEY}
-      DATABASE_URL: postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/\${POSTGRES_DB}
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./uploads:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
+[Service]
+Type=simple
+WorkingDirectory=/opt/kener
+ExecStart=/usr/bin/npm exec vite dev -- --host 0.0.0.0 --port 3000
+Restart=always
+Environment=NODE_ENV=production
 
-  postgres:
-    image: postgres:alpine
-    container_name: postgres
-    environment:
-      POSTGRES_USER: \${POSTGRES_USER}
-      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}
-      POSTGRES_DB: \${POSTGRES_DB}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \${POSTGRES_USER} -d \${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-    name: kener_postgres
+[Install]
+WantedBy=multi-user.target
 EOF
-msg_ok "Docker Compose file created"
 
-msg_info "Starting Kener containers"
-cd /opt/kener
-$STD docker compose up -d
-msg_ok "Kener is running"
+$STD systemctl daemon-reexec
+$STD systemctl daemon-reload
+$STD systemctl enable kener
+$STD systemctl start kener
+msg_ok "Kener service started"
+
+msg_ok "Kener is running on port 3000"
 
 motd_ssh
 customize
