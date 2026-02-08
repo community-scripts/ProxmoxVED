@@ -19,7 +19,6 @@ $STD apt update
 $STD apt install -y \
   git \
   curl \
-  ca-certificates \
   openssl \
   sqlite3 \
   build-essential
