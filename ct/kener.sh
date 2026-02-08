@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: danynocz
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -27,15 +27,21 @@ function update_script() {
   check_container_resources
 
   if [[ ! -d $INSTALL_DIR ]]; then
-    msg_error "No ${APP} Installation Found!"
-    exit
+    msg_error "No ${APP} installation found!"
+    exit 1
   fi
 
-  msg_info "Updating Docker images"
-  cd $INSTALL_DIR
-  $STD docker compose pull
-  $STD docker compose up -d
-  msg_ok "Updated containers"
+  msg_info "Updating ${APP} from GitHub"
+  cd "$INSTALL_DIR"
+
+  $STD git pull >/tmp/kener_update.log 2>&1
+
+  $STD npm install --quiet >/tmp/kener_update.log 2>&1
+
+  msg_info "Restarting ${APP} service"
+  $STD systemctl restart ${SERVICE}
+
+  msg_ok "${APP} updated successfully"
   exit
 }
 
