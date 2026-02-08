@@ -35,9 +35,9 @@ node -v >/dev/null 2>&1
 npm -v >/dev/null 2>&1
 msg_ok "Node.js & npm verified"
 
-msg_info "Cloning Kener repository"
-git clone https://github.com/rajnandan1/kener.git /opt/kener >/tmp/kener_clone.log 2>&1
-cd /opt/kener || exit 1
+msg_info "Fetching Kener from GitHub"
+fetch_and_deploy_gh_release "kener" "rajnandan1/kener" "tarball" "latest" "/opt/kener"
+msg_ok "Kener fetched"
 msg_ok "Repository cloned"
 
 msg_info "Installing Node dependencies"
