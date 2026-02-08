@@ -75,10 +75,7 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 EOF
 
-$STD systemctl daemon-reexec
-$STD systemctl daemon-reload
-$STD systemctl enable kener
-$STD systemctl start kener
+systemctl enable -q --now kener
 msg_ok "Kener service started"
 
 motd_ssh
