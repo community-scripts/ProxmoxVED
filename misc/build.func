@@ -4628,7 +4628,7 @@ create_lxc_container() {
         msg_ok "LXC stack upgraded."
         if [[ "$do_retry" == "yes" ]]; then
           msg_info "Retrying container creation after upgrade"
-          if pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "$PCT_OPTIONS" >>"$LOGFILE" 2>&1; then
+          if pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
             msg_ok "Container created successfully after upgrade."
             return 0
           else
@@ -5019,7 +5019,7 @@ create_lxc_container() {
 
   # PCT_OPTIONS is now a string (exported from build_container)
   # Add rootfs if not already specified
-  if [[ ! "$PCT_OPTIONS" =~ "-rootfs" ]]; then
+  if [[ ! $PCT_OPTIONS =~ "-rootfs" ]]; then
     PCT_OPTIONS="$PCT_OPTIONS
   -rootfs $CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}"
   fi
@@ -5082,7 +5082,7 @@ create_lxc_container() {
   msg_debug "Logfile: $LOGFILE"
 
   # First attempt (PCT_OPTIONS is a multi-line string, use it directly)
-  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "$PCT_OPTIONS" >"$LOGFILE" 2>&1; then
+  if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >"$LOGFILE" 2>&1; then
     msg_debug "Container creation failed on ${TEMPLATE_STORAGE}. Checking error..."
 
     # Check if template issue - retry with fresh download
@@ -5094,7 +5094,7 @@ create_lxc_container() {
     fi
 
     # Retry after repair
-    if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" "$PCT_OPTIONS" >>"$LOGFILE" 2>&1; then
+    if ! pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
       # Fallback to local storage if not already on local
       if [[ "$TEMPLATE_STORAGE" != "local" ]]; then
         msg_info "Retrying container creation with fallback to local storage"
@@ -5107,7 +5107,7 @@ create_lxc_container() {
         else
           msg_ok "Trying local storage fallback"
         fi
-        if ! pct create "$CTID" "local:vztmpl/${TEMPLATE}" "$PCT_OPTIONS" >>"$LOGFILE" 2>&1; then
+        if ! pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS >>"$LOGFILE" 2>&1; then
           # Local fallback also failed - check for LXC stack version issue
           if grep -qiE 'unsupported .* version' "$LOGFILE"; then
             echo
@@ -5131,7 +5131,7 @@ create_lxc_container() {
             msg_error "Container creation failed. See $LOGFILE"
             if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
               set -x
-              pct create "$CTID" "local:vztmpl/${TEMPLATE}" "$PCT_OPTIONS" 2>&1 | tee -a "$LOGFILE"
+              pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS 2>&1 | tee -a "$LOGFILE"
               set +x
             fi
             exit 209
@@ -5163,7 +5163,7 @@ create_lxc_container() {
           msg_error "Container creation failed. See $LOGFILE"
           if whiptail --yesno "pct create failed.\nDo you want to enable verbose debug mode and view detailed logs?" 12 70; then
             set -x
-            pct create "$CTID" "local:vztmpl/${TEMPLATE}" "$PCT_OPTIONS" 2>&1 | tee -a "$LOGFILE"
+            pct create "$CTID" "local:vztmpl/${TEMPLATE}" $PCT_OPTIONS 2>&1 | tee -a "$LOGFILE"
             set +x
           fi
           exit 209
