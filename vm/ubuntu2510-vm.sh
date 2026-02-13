@@ -3,6 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: HLTRP (bwhille)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Source: https://ubuntu.com/
 
 source /dev/stdin <<<$(curl -fsSL "https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func")
 
@@ -32,8 +33,6 @@ RD=$(echo "\033[01;31m")
 BGN=$(echo "\033[4;92m")
 GN=$(echo "\033[1;92m")
 DGN=$(echo "\033[32m")
-CL=$(echo "\033[m")
-
 CL=$(echo "\033[m")
 BOLD=$(echo "\033[1m")
 BFR='\r\033[K'
@@ -136,13 +135,10 @@ function check_root() {
   fi
 }
 
-# This function checks the version of Proxmox Virtual Environment (PVE) and exits if the version is not supported.
-# Supported: Proxmox VE 8.0.x – 8.9.x, 9.0 and 9.1
 pve_check() {
   local PVE_VER
   PVE_VER="$(pveversion | awk -F'/' '{print $2}' | awk -F'-' '{print $1}')"
 
-  # Check for Proxmox VE 8.x: allow 8.0–8.9
   if [[ ${PVE_VER} =~ ^8\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
     if ((MINOR < 0 || MINOR > 9)); then
@@ -153,7 +149,6 @@ pve_check() {
     return 0
   fi
 
-  # Check for Proxmox VE 9.x: allow 9.0 and 9.1
   if [[ ${PVE_VER} =~ ^9\.([0-9]+) ]]; then
     local MINOR="${BASH_REMATCH[1]}"
     if ((MINOR < 0 || MINOR > 1)); then
@@ -164,7 +159,6 @@ pve_check() {
     return 0
   fi
 
-  # All other unsupported versions
   msg_error "This version of Proxmox VE is not supported."
   msg_error "Supported versions: Proxmox VE 8.0 – 8.x or 9.0 – 9.1"
   exit 1
@@ -227,7 +221,7 @@ function default_settings() {
   echo -e "${MACADDRESS}${BOLD}${DGN}MAC Address: ${BGN}${MAC}${CL}"
   echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
-  echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
+  echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}no${CL}"
   echo -e "${CREATING}${BOLD}${DGN}Creating a Ubuntu 25.10 VM using the above default settings${CL}"
 }
 
