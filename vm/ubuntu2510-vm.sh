@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: HLTRP
+# Author: HLTRP (bwhille)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
 source /dev/stdin <<<$(curl -fsSL "https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func")
@@ -11,10 +11,10 @@ function header_info {
   cat <<"EOF"
    __  ____                __           ___   ______ _______     _    ____  ___
   / / / / /_  __  ______  / /___  __   |__ \ / ____/<  / __ \   | |  / /  |/  /
- / / / / __ \/ / / / __ \/ __/ / / /   __/ //___ \  / / / / /   | | / / /|_/ / 
-/ /_/ / /_/ / /_/ / / / / /_/ /_/ /   / __/____/ / / / /_/ /    | |/ / /  / /  
+ / / / / __ \/ / / / __ \/ __/ / / /   __/ //___ \  / / / / /   | | / / /|_/ /
+/ /_/ / /_/ / /_/ / / / / /_/ /_/ /   / __/____/ / / / /_/ /    | |/ / /  / /
 \____/_.___/\__,_/_/ /_/\__/\__,_/   /____/_____(_)_/\____/     |___/_/  /_/   (Questing Quokka)
-                                                                                  
+
 EOF
 }
 header_info
@@ -520,7 +520,7 @@ DESCRIPTION=$(
       <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />
     </a>
   </p>
-  
+
   <span style='margin: 0 10px;'>
     <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
     <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>
