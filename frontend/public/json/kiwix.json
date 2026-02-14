@@ -1,0 +1,44 @@
+{
+  "name": "Kiwix",
+  "slug": "kiwix",
+  "categories": [
+    0
+  ],
+  "date_created": "2026-02-11",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://wiki.kiwix.org",
+  "website": "https://www.kiwix.org",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kiwix.webp",
+  "description": "Offline content browser serving Wikipedia, Project Gutenberg, and more from ZIM archives",
+  "config_path": "",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/kiwix.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Requires a bind-mounted directory with ZIM archives. Download some from https://library.kiwix.org to /your/zims. The installation command is then: `ZIM_DATA=/your/zims bash -c \"$(curl .../ct/kiwix.sh)\"`.",
+      "type": "info"
+    },
+    {
+      "text": "Ensure ZIM files are world-readable: chmod -R a+rX /your/zims",
+      "type": "warning"
+    }
+  ]
+}
