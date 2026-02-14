@@ -3544,9 +3544,9 @@ build_container() {
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
   if [ "$var_os" == "alpine" ]; then
-    FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)"
+    FUNCTIONS_FILE_PATH=$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)
   else
-    FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
+    FUNCTIONS_FILE_PATH=$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)
   fi
   export FUNCTIONS_FILE_PATH
 
