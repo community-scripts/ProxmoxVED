@@ -20,7 +20,7 @@ $STD apt-get install -y \
   tesseract-ocr-all
 msg_ok "Installed Dependencies"
 
-RELEASE=$(curl -fsSL https://api.github.com/repos/papra-hq/papra/releases | grep -oP '"tag_name":\s*"\K@papra/docker@[^"]+' | head -n1)
+RELEASE=$(curl -fsSL https://api.github.com/repos/papra-hq/papra/releases | grep -oP '"tag_name":\s*"\K@papra/app@[^"]+' | head -n1)
 fetch_and_deploy_gh_release "papra" "papra-hq/papra" "tarball" "${RELEASE}" "/opt/papra"
 
 pnpm_version=$(grep -oP '"packageManager":\s*"pnpm@\K[^"]+' /opt/papra/package.json)
