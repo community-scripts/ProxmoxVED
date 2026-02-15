@@ -273,6 +273,12 @@ function default_settings() {
 }
 
 function advanced_settings() {
+  DISK_SIZE="16"
+  HN="truenas"
+  CORE_COUNT="2"
+  RAM_SIZE="8192"
+  BRG="vmbr0"
+
   METHOD="advanced"
   [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
   while true; do
@@ -293,16 +299,39 @@ function advanced_settings() {
   done
 
   ISOARRAY=()
-  while read -r ISOPATH; do
-    FILENAME=$(basename "$ISOPATH")
-    ISOARRAY+=("$ISOPATH" "$FILENAME" "OFF")
-  done < <(truenas_iso_lookup | sort -V)
-  if [ ${#ISOARRAY[@]} -eq 0 ]; then
+  mapfile -t ALL_ISOS < <(truenas_iso_lookup | sort -V)
+  ISO_COUNT=${#ALL_ISOS[@]}
+
+  if [ $ISO_COUNT -eq 0 ]; then
     echo "No ISOs found."
     exit 1
   fi
 
-  if SELECTED_ISO=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT ISO TO INSTALL" --notags --radiolist "\nSelect version (BETA/RC + Latest stables):" 20 58 12 "${ISOARRAY[@]}" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  # Identify the index of the last stable release
+  LAST_STABLE_INDEX=-1
+  for i in "${!ALL_ISOS[@]}"; do
+    if [[ ! "${ALL_ISOS[$i]}" =~ (BETA|RC) ]]; then
+      LAST_STABLE_INDEX=$i
+    fi
+  done
+
+  # Build the whiptail array
+  for i in "${!ALL_ISOS[@]}"; do
+    ISOPATH="${ALL_ISOS[$i]}"
+    FILENAME=$(basename "$ISOPATH")
+
+    # Select ON if it's the last stable found, OR fallback to last item if no stable exists
+    if [[ "$i" -eq "$LAST_STABLE_INDEX" ]]; then
+      ISOARRAY+=("$ISOPATH" "$FILENAME" "ON")
+    elif [[ "$LAST_STABLE_INDEX" -eq -1 && "$i" -eq "$((ISO_COUNT - 1))" ]]; then
+      # Fallback: if somehow no stable is found, select the very last item
+      ISOARRAY+=("$ISOPATH" "$FILENAME" "ON")
+    else
+      ISOARRAY+=("$ISOPATH" "$FILENAME" "OFF")
+    fi
+  done
+
+  if SELECTED_ISO=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT ISO TO INSTALL" --notags --radiolist "\nSelect version (BETA/RC/Latest stable):" 20 58 12 "${ISOARRAY[@]}" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     echo -e "${ISO}${BOLD}${DGN}ISO Chosen: ${BGN}$(basename "$SELECTED_ISO")${CL}"
   else
     exit-script
@@ -320,9 +349,8 @@ function advanced_settings() {
     exit-script
   fi
 
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 truenas --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 "$HN" --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="truenas"
       echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo ${VM_NAME,,} | tr -d ' ')
@@ -350,7 +378,7 @@ function advanced_settings() {
     exit-script
   fi
 
-  if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 2 --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if CORE_COUNT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate CPU Cores" 8 58 "$CORE_COUNT" --title "CORE COUNT" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $CORE_COUNT ]; then
       CORE_COUNT="2"
       echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}$CORE_COUNT${CL}"
@@ -361,7 +389,7 @@ function advanced_settings() {
     exit-script
   fi
 
-  if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 8192 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 "$RAM_SIZE" --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $RAM_SIZE ]; then
       RAM_SIZE="8192"
       echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}$RAM_SIZE${CL}"
@@ -372,7 +400,7 @@ function advanced_settings() {
     exit-script
   fi
 
-  if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 vmbr0 --title "BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if BRG=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set a Bridge" 8 58 "$BRG" --title "BRIDGE" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $BRG ]; then
       BRG="vmbr0"
       echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}$BRG${CL}"
@@ -540,7 +568,7 @@ if [ "$IMPORT_DISKS" == "yes" ]; then
   for SELECTION in $SELECTIONS; do
     ((++SCSI_NR))
 
-    ID_SERIAL=$(echo "$SELECTION" | rev | cut -d'_' -f1 | rev)
+    ID_SERIAL=$(udevadm info --query=property --value --property=ID_SERIAL_SHORT "/dev/disk/by-id/$SELECTION")
     ID_SERIAL=${ID_SERIAL:0:20}
 
     qm set $VMID --scsi$SCSI_NR /dev/disk/by-id/$SELECTION,serial=$ID_SERIAL

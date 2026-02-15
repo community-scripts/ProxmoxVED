@@ -6,7 +6,7 @@
   ],
   "date_created": "2026-01-16",
   "type": "vm",
-  "updateable": true,
+  "updateable": false,
   "privileged": false,
   "interface_port": null,
   "documentation": "https://www.truenas.com/docs/",
@@ -22,7 +22,7 @@
         "cpu": 2,
         "ram": 8192,
         "hdd": 16,
-        "os": null,
+        "os": "Debian",
         "version": null
       }
     }
