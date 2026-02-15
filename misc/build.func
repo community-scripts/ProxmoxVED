@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: tteck (tteckster) | MickLesk | michelroegl-brunner
+# Co-Author: bandogora
 # License: MIT | https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
 
 # ==============================================================================
@@ -82,15 +83,20 @@ variables() {
   fi
 }
 
+# shellcheck source=misc/api.func
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/api.func)
 
 if command -v curl >/dev/null 2>&1; then
+  # shellcheck source=misc/core.func
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  # shellcheck source=misc/error_handler.func
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
 elif command -v wget >/dev/null 2>&1; then
+  # shellcheck source=misc/core.func
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/core.func)
+  # shellcheck source=misc/error_handler.func
   source <(wget -qO- https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func)
   load_functions
   catch_errors
@@ -657,7 +663,7 @@ find_host_ssh_keys() {
 
   shopt -s nullglob
   if [[ -n "$g" ]]; then
-    for pat in $g; do cand+=($pat); done
+    for pat in $g; do cand+=("$pat"); done
   else
     cand+=(/root/.ssh/authorized_keys /root/.ssh/authorized_keys2)
     cand+=(/root/.ssh/*.pub)
@@ -674,11 +680,11 @@ find_host_ssh_keys() {
     esac
 
     # CRLF safe check for host keys
-    c=$(tr -d '\r' <"$f" | awk '
-      /^[[:space:]]*#/ {next}
-      /^[[:space:]]*$/ {next}
-      {print}
-    ' | grep -E -c '"$re"' || true)
+    c=$(
+      tr -d '\r' <"$f" |
+        awk '/^[[:space:]]*#/ {next} /^[[:space:]]*$/ {next} {print}' |
+        grep -E -c "$re" || true
+    )
 
     if ((c > 0)); then
       files+=("$f")
@@ -747,11 +753,13 @@ resolve_ip_from_range() {
   local ip2="${ip_end%%/*}"
   local cidr="${ip_start##*/}"
 
-  local start_int=$(ip_to_int "$ip1")
-  local end_int=$(ip_to_int "$ip2")
+  local start_int end_int
+  start_int=$(ip_to_int "$ip1")
+  end_int=$(ip_to_int "$ip2")
 
   for ((ip_int = start_int; ip_int <= end_int; ip_int++)); do
-    local ip=$(int_to_ip $ip_int)
+    local ip
+    ip=$(int_to_ip $ip_int)
     msg_info "Checking IP: $ip"
     if ! ping -c 1 -W 1 "$ip" >/dev/null 2>&1; then
       NET_RESOLVED="$ip/$cidr"
@@ -1284,7 +1292,7 @@ var_timezone=          # Container timezone (e.g. Europe/Berlin, leave empty for
 var_tags=community-script
 var_verbose=no
 
-# Security (root PW) – empty => autologin
+# Security (root PW) - empty => autologin
 # var_pw=
 EOF
 
@@ -1373,7 +1381,7 @@ _is_whitelisted_key() {
 _sanitize_value() {
   # Disallow Command-Substitution / Shell-Meta
   case "$1" in
-  *'$('* | *'`'* | *';'* | *'&'* | *'<('*)
+  *\$\(* | *\`* | *\;* | *\&* | *\<\(*)
     echo ""
     return 0
     ;;
@@ -1455,7 +1463,7 @@ _build_vars_diff() {
 
 # Build a temporary <app>.vars file from current advanced settings
 _build_current_app_vars_tmp() {
-  tmpf="$(mktemp /tmp/${NSAPP:-app}.vars.new.XXXXXX)"
+  tmpf=$(mktemp "/tmp/${NSAPP:-app}.vars.new.XXXXXX")
 
   # NET/GW
   _net="${NET:-}"
@@ -1618,7 +1626,7 @@ maybe_offer_save_app_defaults() {
   while true; do
     local sel
     sel="$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-      --title "APP DEFAULTS – ${APP}" \
+      --title "APP DEFAULTS - ${APP}" \
       --menu "Differences detected. What do you want to do?" 20 78 10 \
       "Update Defaults" "Write new values to ${app_vars_file}" \
       "Keep Current" "Keep existing defaults (no changes)" \
@@ -1639,7 +1647,7 @@ maybe_offer_save_app_defaults() {
       ;;
     "View Diff")
       whiptail --backtitle "Proxmox VE Helper Scripts" \
-        --title "Diff – ${APP}" \
+        --title "Diff - ${APP}" \
         --scrolltext --textbox "$diff_tmp" 25 100
       ;;
     "Cancel" | *)
@@ -1771,14 +1779,17 @@ advanced_settings() {
     local OLD_IFS=$IFS
     IFS=$'\n'
     for iface_filepath in ${IFACE_FILEPATH_LIST}; do
-      local iface_indexes_tmpfile=$(mktemp -q -u '.iface-XXXX')
+      local iface_indexes_tmpfile
+      iface_indexes_tmpfile=$(mktemp -q -u '.iface-XXXX')
       (grep -Pn '^\s*iface' "${iface_filepath}" 2>/dev/null | cut -d':' -f1 && wc -l "${iface_filepath}" 2>/dev/null | cut -d' ' -f1) | awk 'FNR==1 {line=$0; next} {print line":"$0-1; line=$0}' >"${iface_indexes_tmpfile}" 2>/dev/null || true
       if [ -f "${iface_indexes_tmpfile}" ]; then
         while read -r pair; do
-          local start=$(echo "${pair}" | cut -d':' -f1)
-          local end=$(echo "${pair}" | cut -d':' -f2)
+          local start end
+          start=$(echo "${pair}" | cut -d':' -f1)
+          end=$(echo "${pair}" | cut -d':' -f2)
           if awk "NR >= ${start} && NR <= ${end}" "${iface_filepath}" 2>/dev/null | grep -qP '^\s*(bridge[-_](ports|stp|fd|vlan-aware|vids)|ovs_type\s+OVSBridge)\b'; then
-            local iface_name=$(sed "${start}q;d" "${iface_filepath}" | awk '{print $2}')
+            local iface_name
+            iface_name=$(sed "${start}q;d" "${iface_filepath}" | awk '{print $2}')
             BRIDGES="${iface_name}"$'\n'"${BRIDGES}"
           fi
         done <"${iface_indexes_tmpfile}"
@@ -1793,7 +1804,8 @@ advanced_settings() {
     if [[ -n "$BRIDGES" ]]; then
       while IFS= read -r bridge; do
         if [[ -n "$bridge" ]]; then
-          local description=$(grep -A 10 "iface $bridge" /etc/network/interfaces 2>/dev/null | grep '^#' | head -n1 | sed 's/^#\s*//')
+          local description
+          description=$(grep -A 10 "iface $bridge" /etc/network/interfaces 2>/dev/null | grep '^#' | head -n1 | sed 's/^#\s*//')
           BRIDGE_MENU_OPTIONS+=("$bridge" "${description:- }")
         fi
       done <<<"$BRIDGES"
@@ -1805,9 +1817,9 @@ advanced_settings() {
   while [ $STEP -le $MAX_STEP ]; do
     case $STEP in
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 1: Container Type
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     1)
       local default_on="ON"
       local default_off="OFF"
@@ -1830,9 +1842,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 2: Root Password
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     2)
       if PW1=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "ROOT PASSWORD" \
@@ -1884,9 +1896,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 3: Container ID
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     3)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "CONTAINER ID" \
@@ -1918,9 +1930,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 4: Hostname
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     4)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "HOSTNAME" \
@@ -1941,9 +1953,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 5: Disk Size
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     5)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "DISK SIZE" \
@@ -1962,9 +1974,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 6: CPU Cores
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     6)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "CPU CORES" \
@@ -1983,9 +1995,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 7: RAM Size
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     7)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "RAM SIZE" \
@@ -2004,9 +2016,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 8: Network Bridge
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     8)
       if [[ ${#BRIDGE_MENU_OPTIONS[@]} -eq 0 ]]; then
         # Validate default bridge exists
@@ -2037,9 +2049,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 9: IPv4 Configuration
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     9)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "IPv4 CONFIGURATION" \
@@ -2134,9 +2146,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 10: IPv6 Configuration
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     10)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "IPv6 CONFIGURATION" \
@@ -2209,9 +2221,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 11: MTU Size
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     11)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "MTU SIZE" \
@@ -2229,9 +2241,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 12: DNS Search Domain
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     12)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "DNS SEARCH DOMAIN" \
@@ -2245,9 +2257,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 13: DNS Server
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     13)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "DNS SERVER" \
@@ -2261,9 +2273,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 14: MAC Address
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     14)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "MAC ADDRESS" \
@@ -2281,9 +2293,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 15: VLAN Tag
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     15)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "VLAN TAG" \
@@ -2301,9 +2313,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 16: Tags
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     16)
       if result=$(whiptail --backtitle "Proxmox VE Helper Scripts [Step $STEP/$MAX_STEP]" \
         --title "CONTAINER TAGS" \
@@ -2323,18 +2335,18 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 17: SSH Settings
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     17)
       configure_ssh_settings "Step $STEP/$MAX_STEP"
       # configure_ssh_settings handles its own flow, always advance
       ((STEP++))
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 18: FUSE Support
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     18)
       local fuse_default_flag="--defaultno"
       [[ "$_enable_fuse" == "yes" || "$_enable_fuse" == "1" ]] && fuse_default_flag=""
@@ -2356,9 +2368,9 @@ advanced_settings() {
       ((STEP++))
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 19: TUN/TAP Support
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     19)
       local tun_default_flag="--defaultno"
       [[ "$_enable_tun" == "yes" || "$_enable_tun" == "1" ]] && tun_default_flag=""
@@ -2380,9 +2392,9 @@ advanced_settings() {
       ((STEP++))
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 20: Nesting Support
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     20)
       local nesting_default_flag=""
       [[ "$_enable_nesting" == "0" || "$_enable_nesting" == "no" ]] && nesting_default_flag="--defaultno"
@@ -2404,9 +2416,9 @@ advanced_settings() {
       ((STEP++))
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 21: GPU Passthrough
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     21)
       local gpu_default_flag="--defaultno"
       [[ "$_enable_gpu" == "yes" ]] && gpu_default_flag=""
@@ -2428,9 +2440,9 @@ advanced_settings() {
       ((STEP++))
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 22: Keyctl Support (Docker/systemd)
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     22)
       local keyctl_default_flag="--defaultno"
       [[ "$_enable_keyctl" == "1" ]] && keyctl_default_flag=""
@@ -2452,9 +2464,9 @@ advanced_settings() {
       ((STEP++))
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 23: APT Cacher Proxy
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     23)
       local apt_cacher_default_flag="--defaultno"
       [[ "$_apt_cacher" == "yes" ]] && apt_cacher_default_flag=""
@@ -2484,9 +2496,9 @@ advanced_settings() {
       ((STEP++))
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 24: Container Timezone
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     24)
       local tz_hint="$_ct_timezone"
       [[ -z "$tz_hint" ]] && tz_hint="(empty - will use host timezone)"
@@ -2509,9 +2521,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 25: Container Protection
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     25)
       local protect_default_flag="--defaultno"
       [[ "$_protect_ct" == "yes" || "$_protect_ct" == "1" ]] && protect_default_flag=""
@@ -2533,9 +2545,9 @@ advanced_settings() {
       ((STEP++))
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 26: Device Node Creation (mknod)
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     26)
       local mknod_default_flag="--defaultno"
       [[ "$_enable_mknod" == "1" ]] && mknod_default_flag=""
@@ -2557,9 +2569,9 @@ advanced_settings() {
       ((STEP++))
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 27: Mount Filesystems
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     27)
       local mount_hint=""
       [[ -n "$_mount_fs" ]] && mount_hint="$_mount_fs" || mount_hint="(none)"
@@ -2576,9 +2588,9 @@ advanced_settings() {
       fi
       ;;
 
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     # STEP 28: Verbose Mode & Confirmation
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ===========================================================================
     28)
       local verbose_default_flag="--defaultno"
       [[ "$_verbose" == "yes" ]] && verbose_default_flag=""
@@ -2644,9 +2656,9 @@ Advanced:
     esac
   done
 
-  # ═══════════════════════════════════════════════════════════════════════════
+  # ===========================================================================
   # Apply all collected values to global variables
-  # ═══════════════════════════════════════════════════════════════════════════
+  # ===========================================================================
   CT_TYPE="$_ct_type"
   PW="$_pw"
   CT_ID="$_ct_id"
@@ -2772,7 +2784,12 @@ diagnostics_check() {
   fi
 
   if ! [ -f "/usr/local/community-scripts/diagnostics" ]; then
-    if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "DIAGNOSTICS" --yesno "Send Diagnostics of LXC Installation?\n\n(This only transmits data without user data, just RAM, CPU, LXC name, ...)" 10 58); then
+    if (
+      whiptail --backtitle "Proxmox VE Helper Scripts" \
+        --title "DIAGNOSTICS" \
+        --yesno "Send Diagnostics of LXC Installation?\n\n(This only transmits data without user data, just RAM, CPU, LXC name, ...)" \
+        10 58
+    ); then
       cat <<EOF >/usr/local/community-scripts/diagnostics
 DIAGNOSTICS=yes
 
@@ -3396,6 +3413,7 @@ configure_ssh_settings() {
 # - Otherwise: shows update/setting menu and runs update_script with cleanup
 # ------------------------------------------------------------------------------
 start() {
+  # shellcheck source=misc/tools.func
   source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/tools.func)
   if command -v pveversion >/dev/null 2>&1; then
     install_script || return 0
@@ -3526,10 +3544,11 @@ build_container() {
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
   if [ "$var_os" == "alpine" ]; then
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)"
+    FUNCTIONS_FILE_PATH=$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/alpine-install.func)
   else
-    export FUNCTIONS_FILE_PATH="$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)"
+    FUNCTIONS_FILE_PATH=$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)
   fi
+  export FUNCTIONS_FILE_PATH
 
   # Core exports for install.func
   export DIAGNOSTICS="$DIAGNOSTICS"
@@ -3676,7 +3695,8 @@ $PCT_OPTIONS_STRING"
     NVIDIA_DEVICES=()
 
     # Store PCI info to avoid multiple calls
-    local pci_vga_info=$(lspci -nn 2>/dev/null | grep -E "VGA|Display|3D")
+    local pci_vga_info
+    pci_vga_info=$(lspci -nn 2>/dev/null | grep -E "VGA|Display|3D")
 
     # Check for Intel GPU - look for Intel vendor ID [8086]
     if echo "$pci_vga_info" | grep -q "\[8086:"; then
@@ -3946,8 +3966,9 @@ EOF
   fi
   # Function to get correct GID inside container
   get_container_gid() {
-    local group="$1"
-    local gid=$(pct exec "$CTID" -- getent group "$group" 2>/dev/null | cut -d: -f3)
+    local group gid
+    group="$1"
+    gid=$(pct exec "$CTID" -- getent group "$group" 2>/dev/null | cut -d: -f3)
     echo "${gid:-44}" # Default to 44 if not found
   }
 
@@ -4008,7 +4029,7 @@ EOF'
       # Create /etc/timezone for backwards compatibility with older scripts
       pct exec "$CTID" -- bash -c "tz='$tz'; ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime && echo \"\$tz\" >/etc/timezone || true"
     else
-      msg_warn "Skipping timezone setup – zone '$tz' not found in container"
+      msg_warn "Skipping timezone setup - zone '$tz' not found in container"
     fi
 
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null" || {
@@ -4030,7 +4051,7 @@ EOF'
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
 
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/${var_install}.sh)"
+  lxc-attach -n "$CTID" -- bash -c "curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/install/${var_install}.sh"
   local lxc_exit=$?
 
   set -Eeuo pipefail       # Re-enable error handling
@@ -4122,7 +4143,7 @@ EOF'
       else
         msg_dev "Container ${CTID} kept for debugging"
       fi
-      exit $install_exit_code
+      exit "$install_exit_code"
     fi
 
     # Prompt user for cleanup with 60s timeout (plain echo - no msg_info to avoid spinner)
@@ -4178,11 +4199,12 @@ EOF'
               source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/install.func)
               declare -f motd_ssh >/dev/null 2>&1 && motd_ssh || true
             " >/dev/null 2>&1; then
-            local ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
+            local ct_ip
+            ct_ip=$(pct exec "$CTID" ip a s dev eth0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1)
             echo -e "${BFR}${CM}${GN}MOTD/SSH ready - SSH into container: ssh root@${ct_ip}${CL}"
           fi
         fi
-        exit $install_exit_code
+        exit "$install_exit_code"
         ;;
       3)
         # Retry with verbose mode
@@ -4193,7 +4215,8 @@ EOF'
         echo ""
         # Get new container ID
         local old_ctid="$CTID"
-        export CTID=$(get_valid_container_id "$CTID")
+        CTID=$(get_valid_container_id "$CTID")
+        export CTID
         export VERBOSE="yes"
         export var_verbose="yes"
 
@@ -4221,7 +4244,8 @@ EOF'
           local old_ctid="$CTID"
           local old_ram="$RAM_SIZE"
           local old_cpu="$CORE_COUNT"
-          export CTID=$(get_valid_container_id "$CTID")
+          CTID=$(get_valid_container_id "$CTID")
+          export CTID
           export RAM_SIZE=$((RAM_SIZE * 3 / 2))
           export CORE_COUNT=$((CORE_COUNT + 1))
           export var_ram="$RAM_SIZE"
@@ -4240,12 +4264,12 @@ EOF'
           return $?
         else
           echo -e "\n${TAB}${YW}Invalid option. Container ${CTID} kept.${CL}"
-          exit $install_exit_code
+          exit "$install_exit_code"
         fi
         ;;
       *)
         echo -e "\n${TAB}${YW}Invalid option. Container ${CTID} kept.${CL}"
-        exit $install_exit_code
+        exit "$install_exit_code"
         ;;
       esac
     else
@@ -4257,7 +4281,7 @@ EOF'
       echo -e "${BFR}${CM}${GN}Container ${CTID} removed${CL}"
     fi
 
-    exit $install_exit_code
+    exit "$install_exit_code"
   fi
 }
 
@@ -4328,8 +4352,9 @@ fix_gpu_gids() {
   msg_info "Detecting and setting correct GPU group IDs"
 
   # Get actual GIDs from container
-  local video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
-  local render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
+  local video_gid render_gid
+  video_gid=$(pct exec "$CTID" -- sh -c "getent group video 2>/dev/null | cut -d: -f3")
+  render_gid=$(pct exec "$CTID" -- sh -c "getent group render 2>/dev/null | cut -d: -f3")
 
   # Create groups if they don't exist
   if [[ -z "$video_gid" ]]; then
@@ -4425,10 +4450,11 @@ select_storage() {
 
   while read -r TAG TYPE _ TOTAL USED FREE _; do
     [[ -n "$TAG" && -n "$TYPE" ]] || continue
-    local DISPLAY="${TAG} (${TYPE})"
-    local USED_FMT=$(numfmt --to=iec --from-unit=1024 --format %.1f <<<"$USED")
-    local FREE_FMT=$(numfmt --to=iec --from-unit=1024 --format %.1f <<<"$FREE")
-    local INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
+    local DISPLAY USED_FMT FREE_FMT INFO
+    DISPLAY="${TAG} (${TYPE})"
+    USED_FMT=$(numfmt --to=iec --from-unit=1024 --format %.1f <<<"$USED")
+    FREE_FMT=$(numfmt --to=iec --from-unit=1024 --format %.1f <<<"$FREE")
+    INFO="Free: ${FREE_FMT}B  Used: ${USED_FMT}B"
     STORAGE_MAP["$DISPLAY"]="$TAG"
     MENU+=("$DISPLAY" "$INFO" "OFF")
     ((${#DISPLAY} > COL_WIDTH)) && COL_WIDTH=${#DISPLAY}
@@ -4822,7 +4848,7 @@ create_lxc_container() {
     fi
   fi
 
-  TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
+  TEMPLATE_PATH=$(pvesm path "$TEMPLATE_STORAGE:vztmpl/$TEMPLATE" 2>/dev/null || true)
   if [[ -z "$TEMPLATE_PATH" ]]; then
     TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
     [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
@@ -4882,7 +4908,7 @@ create_lxc_container() {
           TEMPLATE_SOURCE="online"
         fi
 
-        TEMPLATE_PATH="$(pvesm path $TEMPLATE_STORAGE:vztmpl/$TEMPLATE 2>/dev/null || true)"
+        TEMPLATE_PATH=$(pvesm path "$TEMPLATE_STORAGE:vztmpl/$TEMPLATE" 2>/dev/null || true)
         if [[ -z "$TEMPLATE_PATH" ]]; then
           TEMPLATE_BASE=$(awk -v s="$TEMPLATE_STORAGE" '$1==s {f=1} f && /path/ {print $2; exit}' /etc/pve/storage.cfg)
           [[ -n "$TEMPLATE_BASE" ]] && TEMPLATE_PATH="$TEMPLATE_BASE/template/cache/$TEMPLATE"
@@ -4918,21 +4944,21 @@ create_lxc_container() {
 
   NEED_DOWNLOAD=0
   if [[ ! -f "$TEMPLATE_PATH" ]]; then
-    msg_info "Template not present locally – will download."
+    msg_info "Template not present locally - will download."
     NEED_DOWNLOAD=1
   elif [[ ! -r "$TEMPLATE_PATH" ]]; then
-    msg_error "Template file exists but is not readable – check permissions."
+    msg_error "Template file exists but is not readable - check permissions."
     exit 221
   elif [[ "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]]; then
     if [[ -n "$ONLINE_TEMPLATE" ]]; then
-      msg_warn "Template file too small (<1MB) – re-downloading."
+      msg_warn "Template file too small (<1MB) - re-downloading."
       NEED_DOWNLOAD=1
     else
       msg_warn "Template looks too small, but no online version exists. Keeping local file."
     fi
   elif ! tar -tf "$TEMPLATE_PATH" &>/dev/null; then
     if [[ -n "$ONLINE_TEMPLATE" ]]; then
-      msg_warn "Template appears corrupted – re-downloading."
+      msg_warn "Template appears corrupted - re-downloading."
       NEED_DOWNLOAD=1
     else
       msg_warn "Template appears corrupted, but no online version exists. Keeping local file."
@@ -4993,7 +5019,7 @@ create_lxc_container() {
 
   # PCT_OPTIONS is now a string (exported from build_container)
   # Add rootfs if not already specified
-  if [[ ! "$PCT_OPTIONS" =~ "-rootfs" ]]; then
+  if [[ ! $PCT_OPTIONS =~ "-rootfs" ]]; then
     PCT_OPTIONS="$PCT_OPTIONS
   -rootfs $CONTAINER_STORAGE:${PCT_DISK_SIZE:-8}"
   fi
@@ -5034,13 +5060,13 @@ create_lxc_container() {
 
   # Validate template before pct create (while holding lock)
   if [[ ! -s "$TEMPLATE_PATH" || "$(stat -c%s "$TEMPLATE_PATH" 2>/dev/null || echo 0)" -lt 1000000 ]]; then
-    msg_info "Template file missing or too small – downloading"
+    msg_info "Template file missing or too small - downloading"
     rm -f "$TEMPLATE_PATH"
     pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
     msg_ok "Template downloaded"
   elif ! tar -tf "$TEMPLATE_PATH" &>/dev/null; then
     if [[ -n "$ONLINE_TEMPLATE" ]]; then
-      msg_info "Template appears corrupted – re-downloading"
+      msg_info "Template appears corrupted - re-downloading"
       rm -f "$TEMPLATE_PATH"
       pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
       msg_ok "Template re-downloaded"
@@ -5061,7 +5087,7 @@ create_lxc_container() {
 
     # Check if template issue - retry with fresh download
     if grep -qiE 'unable to open|corrupt|invalid' "$LOGFILE"; then
-      msg_info "Template may be corrupted – re-downloading"
+      msg_info "Template may be corrupted - re-downloading"
       rm -f "$TEMPLATE_PATH"
       pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >/dev/null 2>&1
       msg_ok "Template re-downloaded"
@@ -5085,7 +5111,7 @@ create_lxc_container() {
           # Local fallback also failed - check for LXC stack version issue
           if grep -qiE 'unsupported .* version' "$LOGFILE"; then
             echo
-            echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
+            echo "pct reported 'unsupported ... version' - your LXC stack might be too old for this template."
             echo "We can try to upgrade 'pve-container' and 'lxc-pve' now and retry automatically."
             offer_lxc_stack_upgrade_and_maybe_retry "yes"
             rc=$?
@@ -5117,7 +5143,7 @@ create_lxc_container() {
         # Already on local storage and still failed - check LXC stack version
         if grep -qiE 'unsupported .* version' "$LOGFILE"; then
           echo
-          echo "pct reported 'unsupported ... version' – your LXC stack might be too old for this template."
+          echo "pct reported 'unsupported ... version' - your LXC stack might be too old for this template."
           echo "We can try to upgrade 'pve-container' and 'lxc-pve' now and retry automatically."
           offer_lxc_stack_upgrade_and_maybe_retry "yes"
           rc=$?
