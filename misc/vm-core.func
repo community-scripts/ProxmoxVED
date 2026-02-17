@@ -35,7 +35,7 @@ load_functions() {
 get_header() {
   local app_name=$(echo "${APP,,}" | tr ' ' '-')
   local app_type=${APP_TYPE:-vm}
-  local header_url=""${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"/${app_type}/headers/${app_name}"
+  local header_url="${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/${app_type}/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
 
   mkdir -p "$(dirname "$local_header_path")"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL "${PVE_SCRIPT_BASE_URL:-"${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"}"/misc/build.func)
+source <(curl -fsSL "${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"/misc/build.func)
 # source <(curl -fsSL "${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"/misc/github.func)
 # Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
