@@ -1,5 +1,5 @@
 # Copyright (c) 2021-2026 community-scripts ORG
-# License: MIT | https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
+# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
 
 set -euo pipefail
 SPINNER_PID=""
@@ -35,7 +35,7 @@ load_functions() {
 get_header() {
   local app_name=$(echo "${APP,,}" | tr ' ' '-')
   local app_type=${APP_TYPE:-vm}
-  local header_url="https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/${app_type}/headers/${app_name}"
+  local header_url="${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/${app_type}/headers/${app_name}"
   local local_header_path="/usr/local/community-scripts/headers/${app_type}/${app_name}"
 
   mkdir -p "$(dirname "$local_header_path")"
@@ -190,7 +190,7 @@ silent() {
   if [[ $rc -ne 0 ]]; then
     # Source explain_exit_code if needed
     if ! declare -f explain_exit_code >/dev/null 2>&1; then
-      source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/error_handler.func) 2>/dev/null || true
+      source <(curl -fsSL "${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"/misc/error_handler.func) 2>/dev/null || true
     fi
 
     local explanation=""

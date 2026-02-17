@@ -20,7 +20,7 @@ $STD apt-get install -y curl wget ca-certificates
 msg_ok "Installed Base Dependencies"
 
 # msg_info "Downloading and executing tools.func test suite"
-# bash <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/test-tools-func.sh)
+# bash <(curl -fsSL "${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"/misc/test-tools-func.sh)
 # msg_ok "Test suite completed"
 
 motd_ssh

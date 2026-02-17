@@ -79,20 +79,37 @@ git clone https://github.com/yourUserName/ForkName
 git switch -c your-feature-branch
 ```
 
-### 4. Change paths in build.func install.func and AppName.sh
-To be able to develop from your own branch you need to change `https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main` to `https://raw.githubusercontent.com/[USER]/[REPOSITORY]/refs/heads/[BRANCH]`. You need to make this change atleast in misc/build.func misc/install.func and in your ct/AppName.sh. This change is only for testing. Before opening a Pull Request you should change this line change all this back to point to `https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main`.
+### 4. Testing Scripts From Your Fork (Development)
+To test scripts from your own fork or branch, you no longer need to edit any files. The recommended method is to set the `PVE_SCRIPT_BASE_URL` environment variable and then run the script using the `curl | bash` method, pointing to your fork.
 
-### 4. Commit changes (without build.func and install.func!)
+**Example:**
+```bash
+# 1. Set the base URL to your feature branch
+export PVE_SCRIPT_BASE_URL="https://raw.githubusercontent.com/YOUR_USER/ProxmoxVED/YOUR_BRANCH"
+
+# 2. Run the script from your branch using curl
+bash -c "$(curl -fsSL ${PVE_SCRIPT_BASE_URL}/ct/myapp.sh)"
+```
+This method ensures that both the entrypoint script (`myapp.sh`) and all its dependencies (`build.func`, `myapp-install.sh`, etc.) are fetched from your specified branch.
+
+If the `PVE_SCRIPT_BASE_URL` variable is not set, the scripts will default to the main `community-scripts/ProxmoxVED` repository.
+
+**To return to the default behavior, unset the variable:**
+```bash
+unset PVE_SCRIPT_BASE_URL
+```
+
+### 5. Commit changes
 ```bash
 git commit -m "Your commit message"
 ```
 
-### 5. Push to your fork
+### 6. Push to your fork
 ```bash
 git push origin your-feature-branch
 ```
 
-### 6. Create a Pull Request
+### 7. Create a Pull Request
 Open a Pull Request from your feature branch to the main repository branch. You must only include your **$AppName.sh**, **$AppName-install.sh** and **$AppName.json** files in the pull request.
 
 ---
@@ -102,5 +119,3 @@ Open a Pull Request from your feature branch to the main repository branch. You 
 - [CT Template: AppName.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/ct/AppName.sh)
 - [Install Template: AppName-install.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/install/AppName-install.sh)
 - [JSON Template: AppName.json](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/json/AppName.json)
-
-
