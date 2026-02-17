@@ -79,10 +79,23 @@ git clone https://github.com/yourUserName/ForkName
 git switch -c your-feature-branch
 ```
 
-### 4. Change paths in build.func install.func and AppName.sh
-To be able to develop from your own branch you need to change `https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main` to `https://raw.githubusercontent.com/[USER]/[REPOSITORY]/refs/heads/[BRANCH]`. You need to make this change atleast in misc/build.func misc/install.func and in your ct/AppName.sh. This change is only for testing. Before opening a Pull Request you should change this line change all this back to point to `https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main`.
+### 4. Testing Scripts From Your Fork (Development)
+To test scripts from your own fork or branch, you no longer need to edit any files. Simply set the `PVE_SCRIPT_BASE_URL` environment variable before running the script.
 
-### 4. Commit changes (without build.func and install.func!)
+**Example:**
+```bash
+# 1. Export the variable pointing to your branch
+export PVE_SCRIPT_BASE_URL="https://raw.githubusercontent.com/YOUR_USER/ProxmoxVED/YOUR_BRANCH"
+
+# 2. Run the container creation script
+bash ct/myapp.sh
+
+# 3. To return to the default behavior, simply close the terminal or unset the variable
+unset PVE_SCRIPT_BASE_URL
+```
+If the variable is not set, the system will default to the main `community-scripts/ProxmoxVED` repository.
+
+### 5. Commit changes
 ```bash
 git commit -m "Your commit message"
 ```

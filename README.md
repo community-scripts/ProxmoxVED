@@ -1,22 +1,46 @@
-# 🚧 ProxmoxVED Helper-Scripts (Development Repository)
+<div align="center">
+  <img src="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png" height="120px" alt="Proxmox VE Helper-Scripts Logo" />
+  
+  <h1>ProxmoxVED Helper-Scripts</h1>
+  <p><em>(Development Repository)</em></p>
 
-**Warning: This repository is under active development and is not intended for production use. Changes may occur at any time!**
-
-
+  <p>
+    <a href="https://github.com/community-scripts/ProxmoxVED/blob/main/docs/contribution/CONTRIBUTING.md">
+      <img src="https://img.shields.io/badge/🤝_Contribute-Guidelines-ff4785?style=for-the-badge&labelColor=2d3748" alt="Contribute" />
+    </a>
+    <a href="https://discord.gg/UHrpNWGwkH">
+      <img src="https://img.shields.io/badge/💬_Discord-Join-7289da?style=for-the-badge&labelColor=2d3748" alt="Discord" />
+    </a>
+    <a href="https://github.com/community-scripts/ProxmoxVED/blob/main/LICENSE">
+      <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&labelColor=2d3748" alt="License" />
+    </a>
+  </p>
+</div>
 
 ---
 
-## 🔧 What is this?
+## 👋 Welcome, Developer!
 
-This repository contains a collection of scripts for managing and automating Proxmox Virtual Environment (Proxmox VE). Originally created by [tteck](https://github.com/tteck), the project is now community-driven and continues to evolve.
+**This is the active development repository for the Proxmox VE Helper-Scripts.**
+
+This is where new features, scripts, and fixes are created and tested before being moved to the [production repository](https://github.com/community-scripts/ProxmoxVE).
+
+- **⚠️ Warning:** This environment is unstable. Features may be incomplete or change at any time. **Do not use in production.**
+- **📢 Community-Driven:** All contributions and feedback are welcome!
+- **🔄 Frequent Updates:** Active development means rapid iterations and fixes.
 
 ---
 
-## 🚀 Development Status
+## 🚀 How to Contribute
 
-- **⚠️ Unstable**: Features may be incomplete or subject to change.
-- **📢 Community-driven**: Contributions and feedback are welcome.
-- **🔄 Frequent updates**: Active development means rapid iterations and fixes.
+The best way to get started is by reading our contribution guide. It contains everything you need to know about the workflow, coding standards, and how to submit your changes.
+
+<div align="center">
+  <br />
+  
+  👉 **[Read the Full Contribution Guide](./docs/contribution/CONTRIBUTING.md)**
+  
+</div>
 
 ---
 

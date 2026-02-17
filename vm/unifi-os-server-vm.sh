@@ -4,9 +4,9 @@
 # Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/api.func)
+source /dev/stdin <<<$(curl -fsSL "${PVE_SCRIPT_BASE_URL:-"${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"}"/misc/api.func)
 # Load Cloud-Init library for VM configuration
-source /dev/stdin <<<$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/cloud-init.func) 2>/dev/null || true
+source /dev/stdin <<<$(curl -fsSL "${PVE_SCRIPT_BASE_URL:-"${PVE_SCRIPT_BASE_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"}"/misc/cloud-init.func) 2>/dev/null || true
 
 function header_info() {
   clear
@@ -846,5 +846,3 @@ fi
 
 post_update_to_api "done" "none"
 msg_ok "Completed successfully!\n"
-
-
