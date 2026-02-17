@@ -80,32 +80,36 @@ git switch -c your-feature-branch
 ```
 
 ### 4. Testing Scripts From Your Fork (Development)
-To test scripts from your own fork or branch, you no longer need to edit any files. Simply set the `PVE_SCRIPT_BASE_URL` environment variable before running the script.
+To test scripts from your own fork or branch, you no longer need to edit any files. The recommended method is to set the `PVE_SCRIPT_BASE_URL` environment variable and then run the script using the `curl | bash` method, pointing to your fork.
 
 **Example:**
 ```bash
-# 1. Export the variable pointing to your branch
+# 1. Set the base URL to your feature branch
 export PVE_SCRIPT_BASE_URL="https://raw.githubusercontent.com/YOUR_USER/ProxmoxVED/YOUR_BRANCH"
 
-# 2. Run the container creation script
-bash ct/myapp.sh
+# 2. Run the script from your branch using curl
+bash -c "$(curl -fsSL ${PVE_SCRIPT_BASE_URL}/ct/myapp.sh)"
+```
+This method ensures that both the entrypoint script (`myapp.sh`) and all its dependencies (`build.func`, `myapp-install.sh`, etc.) are fetched from your specified branch.
 
-# 3. To return to the default behavior, simply close the terminal or unset the variable
+If the `PVE_SCRIPT_BASE_URL` variable is not set, the scripts will default to the main `community-scripts/ProxmoxVED` repository.
+
+**To return to the default behavior, unset the variable:**
+```bash
 unset PVE_SCRIPT_BASE_URL
 ```
-If the variable is not set, the system will default to the main `community-scripts/ProxmoxVED` repository.
 
 ### 5. Commit changes
 ```bash
 git commit -m "Your commit message"
 ```
 
-### 5. Push to your fork
+### 6. Push to your fork
 ```bash
 git push origin your-feature-branch
 ```
 
-### 6. Create a Pull Request
+### 7. Create a Pull Request
 Open a Pull Request from your feature branch to the main repository branch. You must only include your **$AppName.sh**, **$AppName-install.sh** and **$AppName.json** files in the pull request.
 
 ---
@@ -115,5 +119,3 @@ Open a Pull Request from your feature branch to the main repository branch. You 
 - [CT Template: AppName.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/ct/AppName.sh)
 - [Install Template: AppName-install.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/install/AppName-install.sh)
 - [JSON Template: AppName.json](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/json/AppName.json)
-
-
