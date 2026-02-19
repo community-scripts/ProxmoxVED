@@ -1,0 +1,52 @@
+{
+  "name": "Postiz",
+  "slug": "postiz",
+  "categories": [
+    19
+  ],
+  "date_created": "2026-02-19",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 4007,
+  "documentation": "https://docs.postiz.com/self-hosting/docker-compose",
+  "website": "https://postiz.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/postiz.webp",
+  "config_path": "/opt/postiz/docker-compose.override.yaml",
+  "description": "Postiz is an open-source social media scheduling platform for planning and publishing content across multiple channels.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/postiz.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "No default credentials are created. Open the web UI and register your first account.",
+      "type": "info"
+    },
+    {
+      "text": "Main stack files are stored in `/opt/postiz`.",
+      "type": "info"
+    },
+    {
+      "text": "First startup can take several minutes while all Postiz containers initialize.",
+      "type": "info"
+    },
+    {
+      "text": "Temporal UI and Spotlight are disabled by default in `docker-compose.override.yaml` to avoid extra open ports. Remove their `profiles` entries to enable them.",
+      "type": "warning"
+    }
+  ]
+}
