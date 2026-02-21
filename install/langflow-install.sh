@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Yamon
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.langflow.org/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -16,9 +16,7 @@ update_os
 msg_info "Installing Dependencies"
 if ! install_packages_with_retry \
   build-essential \
-  python3-dev \
-  curl \
-  git; then
+  python3-dev; then
   msg_error "Failed to install dependencies"
   exit 1
 fi
@@ -128,7 +126,6 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF2
-systemctl daemon-reload
 systemctl enable -q --now langflow
 msg_ok "Created Service"
 
