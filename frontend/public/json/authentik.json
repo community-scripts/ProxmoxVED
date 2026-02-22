@@ -1,0 +1,42 @@
+{
+    "name": "authentik",
+    "slug": "authentik",
+    "categories": [6],
+    "date_created": "2026-02-21",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 9000,
+    "documentation": "https://docs.goauthentik.io/",
+    "website": "https://goauthentik.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/authentik.webp",
+    "config_path": "/etc/authentik/config.yml",
+    "description": "authentik is an IdP (Identity Provider) and SSO (Single Sign On) platform.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/authentik.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 10,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+"notes": [
+    {
+        "text": "You will get a Not Found error if initial setup URL doesn't include the trailing forward slash /. Make sure you use the complete url (http://<your server's IP or hostname>:9000/if/flow/initial-setup/) including the trailing forward slash.",
+        "type": "info"
+    },
+    {
+        "text": "If you want automatic GeoIP updates, create a free account at https://www.maxmind.com/en/geolite2/signup, then edit the /usr/local/etc/GeoIP.conf file with your credentials and remove the # in front of the geoipupdate line in the crontab.",
+        "type": "info"
+    }
+]
+}
