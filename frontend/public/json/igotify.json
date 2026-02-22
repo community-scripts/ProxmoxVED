@@ -1,0 +1,40 @@
+{
+    "name": "iGotify",
+    "slug": "igotify",
+    "categories": [
+        19
+    ],
+    "date_created": "2026-02-18",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://github.com/androidseb25/iGotify-Notification-Assistent",
+    "website": "https://github.com/androidseb25/iGotify-Notification-Assistent",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gotify.webp",
+    "config_path": "/opt/igotify/.env",
+    "description": "Companion service to Gotify that forwards notifications to iOS devices via Apple Push Notification service (APNs).",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/igotify.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Requires a running Gotify instance. Configure the Gotify server URL and client token in the iGotify web interface after setup.",
+            "type": "info"
+        }
+    ]
+}
