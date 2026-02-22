@@ -1,0 +1,40 @@
+{
+  "name": "step-ca",
+  "slug": "step-ca",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-02-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 443,
+  "documentation": "https://smallstep.com/docs/step-ca/",
+  "website": "https://github.com/smallstep/certificates",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/step-ca.webp",
+  "config_path": "/etc/step-ca",
+  "description": "A private certificate authority (X.509 & SSH) & ACME server for secure automated certificate management, so you can use TLS everywhere & SSO for SSH.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/step-ca.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 2,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "root",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "For required post installation actions, checkout: `https://github.com/community-scripts/ProxmoxVE/discussions/11504`",
+      "type": "info"
+    }
+  ]
+}
