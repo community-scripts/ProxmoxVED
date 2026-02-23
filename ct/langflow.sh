@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
+source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Yamon
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -40,15 +41,19 @@ function update_script() {
 
   msg_info "Preparing Backup"
   mkdir -p "${BACKUP_DIR}"
-  cp -a /opt/langflow/.env "${BACKUP_DIR}/.env" 2>/dev/null || true
-  cp -a /opt/langflow/data/langflow.db* "${BACKUP_DIR}/" 2>/dev/null || true
+  if [[ -f /opt/langflow/.env ]]; then
+    cp -a /opt/langflow/.env "${BACKUP_DIR}/.env"
+  fi
+  if compgen -G "/opt/langflow/data/langflow.db*" >/dev/null; then
+    cp -a /opt/langflow/data/langflow.db* "${BACKUP_DIR}/"
+  fi
   msg_ok "Backup saved to ${BACKUP_DIR}"
 
   msg_info "Stopping Service"
   systemctl stop langflow
   msg_ok "Stopped Service"
 
-  PYTHON_VERSION="3.12" setup_uv
+  UV_PYTHON="3.12" setup_uv
   UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS:-2}"
   UV_CONCURRENT_BUILDS="${UV_CONCURRENT_BUILDS:-1}"
   UV_CONCURRENT_INSTALLS="${UV_CONCURRENT_INSTALLS:-1}"
@@ -87,11 +92,17 @@ function update_script() {
           UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS}" \
           UV_CONCURRENT_BUILDS="${UV_CONCURRENT_BUILDS}" \
           UV_CONCURRENT_INSTALLS="${UV_CONCURRENT_INSTALLS}" \
-          uv pip install --python /opt/langflow/.venv/bin/python "${UV_CACHE_ARGS[@]}" "langflow==${OLD_VERSION}" || true
+          uv pip install --python /opt/langflow/.venv/bin/python "${UV_CACHE_ARGS[@]}" "langflow==${OLD_VERSION}"
       fi
-      cp -a "${BACKUP_DIR}/.env" /opt/langflow/.env 2>/dev/null || true
-      cp -a "${BACKUP_DIR}/langflow.db"* /opt/langflow/data/ 2>/dev/null || true
-      systemctl start langflow || true
+      if [[ -f "${BACKUP_DIR}/.env" ]]; then
+        cp -a "${BACKUP_DIR}/.env" /opt/langflow/.env
+      fi
+      if compgen -G "${BACKUP_DIR}/langflow.db*" >/dev/null; then
+        cp -a "${BACKUP_DIR}/langflow.db"* /opt/langflow/data/
+      fi
+      if ! systemctl start langflow; then
+        msg_error "Failed to start service after rollback"
+      fi
       exit 1
     fi
   else
@@ -107,11 +118,17 @@ function update_script() {
           UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS}" \
           UV_CONCURRENT_BUILDS="${UV_CONCURRENT_BUILDS}" \
           UV_CONCURRENT_INSTALLS="${UV_CONCURRENT_INSTALLS}" \
-          uv pip install --python /opt/langflow/.venv/bin/python "${UV_CACHE_ARGS[@]}" "langflow==${OLD_VERSION}" || true
+          uv pip install --python /opt/langflow/.venv/bin/python "${UV_CACHE_ARGS[@]}" "langflow==${OLD_VERSION}"
       fi
-      cp -a "${BACKUP_DIR}/.env" /opt/langflow/.env 2>/dev/null || true
-      cp -a "${BACKUP_DIR}/langflow.db"* /opt/langflow/data/ 2>/dev/null || true
-      systemctl start langflow || true
+      if [[ -f "${BACKUP_DIR}/.env" ]]; then
+        cp -a "${BACKUP_DIR}/.env" /opt/langflow/.env
+      fi
+      if compgen -G "${BACKUP_DIR}/langflow.db*" >/dev/null; then
+        cp -a "${BACKUP_DIR}/langflow.db"* /opt/langflow/data/
+      fi
+      if ! systemctl start langflow; then
+        msg_error "Failed to start service after rollback"
+      fi
       exit 1
     fi
   fi
@@ -128,16 +145,22 @@ function update_script() {
         UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS}" \
         UV_CONCURRENT_BUILDS="${UV_CONCURRENT_BUILDS}" \
         UV_CONCURRENT_INSTALLS="${UV_CONCURRENT_INSTALLS}" \
-        uv pip install --python /opt/langflow/.venv/bin/python "${UV_CACHE_ARGS[@]}" "langflow==${OLD_VERSION}" || true
-      cp -a "${BACKUP_DIR}/.env" /opt/langflow/.env 2>/dev/null || true
-      cp -a "${BACKUP_DIR}/langflow.db"* /opt/langflow/data/ 2>/dev/null || true
-      systemctl restart langflow || true
+        uv pip install --python /opt/langflow/.venv/bin/python "${UV_CACHE_ARGS[@]}" "langflow==${OLD_VERSION}"
+      if [[ -f "${BACKUP_DIR}/.env" ]]; then
+        cp -a "${BACKUP_DIR}/.env" /opt/langflow/.env
+      fi
+      if compgen -G "${BACKUP_DIR}/langflow.db*" >/dev/null; then
+        cp -a "${BACKUP_DIR}/langflow.db"* /opt/langflow/data/
+      fi
+      if ! systemctl restart langflow; then
+        msg_error "Failed to restart service after rollback"
+      fi
     fi
     exit 1
   fi
 
   msg_info "Running Health Check"
-  ensure_dependencies curl || true
+  ensure_dependencies curl
   if command -v curl >/dev/null 2>&1; then
     for _ in {1..30}; do
       if curl -fsS http://127.0.0.1:7860/ >/dev/null 2>&1; then
@@ -166,3 +189,5 @@ msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:7860${CL}"
+echo -e "${INFO}${YW} Post-install credential location:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}/opt/langflow/.env${CL}"

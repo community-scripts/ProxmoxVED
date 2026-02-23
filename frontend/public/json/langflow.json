@@ -22,7 +22,7 @@
         "cpu": 2,
         "ram": 12288,
         "hdd": 16,
-        "os": "debian",
+        "os": "Debian",
         "version": "13"
       }
     }
@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "Use `cat ~/langflow.creds` to view generated admin credentials and access URL.",
+      "text": "Admin credentials are generated during install and stored in `/opt/langflow/.env`.",
       "type": "info"
     },
     {

@@ -22,9 +22,8 @@ if ! install_packages_with_retry \
 fi
 msg_ok "Installed Dependencies"
 
-PYTHON_VERSION="3.12" setup_uv
+UV_PYTHON="3.12" setup_uv
 LANGFLOW_VERSION="${LANGFLOW_VERSION:-1.7.3}"
-APPLICATION="Langflow"
 UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS:-2}"
 UV_CONCURRENT_BUILDS="${UV_CONCURRENT_BUILDS:-1}"
 UV_CONCURRENT_INSTALLS="${UV_CONCURRENT_INSTALLS:-1}"
@@ -36,12 +35,10 @@ fi
 
 msg_info "Installing Langflow"
 mkdir -p /opt/langflow/data
-cd /opt/langflow
+cd /opt/langflow || exit
 $STD uv venv --clear /opt/langflow/.venv
 $STD /opt/langflow/.venv/bin/python -m ensurepip --upgrade
 $STD /opt/langflow/.venv/bin/python -m pip install --upgrade pip
-PYTHON_VENV_VERSION="$("/opt/langflow/.venv/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
-verify_tool_version "python" "3.12" "${PYTHON_VENV_VERSION}" || true
 $STD env \
   UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS}" \
   UV_CONCURRENT_BUILDS="${UV_CONCURRENT_BUILDS}" \
@@ -59,9 +56,6 @@ $STD env \
 msg_ok "Installed Langflow"
 
 msg_info "Configuring Langflow"
-get_lxc_ip
-LOCAL_IP="${LOCAL_IP:-$IP}"
-APP_NAME="Langflow"
 ADMIN_USER="admin"
 ADMIN_PASS="$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 20)"
 if [[ ${#ADMIN_PASS} -lt 12 ]]; then
@@ -98,16 +92,10 @@ LANGFLOW_HEALTH_CHECK_MAX_RETRIES=5
 LANGFLOW_LAZY_LOAD_COMPONENTS=false
 EOF2
 chmod 600 /opt/langflow/.env
-{
-  echo "${APP_NAME} Credentials"
-  echo "Default Admin User: ${ADMIN_USER}"
-  echo "Username: ${ADMIN_USER}"
-  echo "Password: ${ADMIN_PASS}"
-  echo "Exposed Port: 7860"
-  echo "URL: http://${LOCAL_IP}:7860"
-} >~/langflow.creds
-chmod 600 ~/langflow.creds
 msg_ok "Configured Langflow"
+msg_warn "Admin credentials are stored in /opt/langflow/.env"
+msg_warn "Default admin user: ${ADMIN_USER}"
+msg_warn "Generated admin password: ${ADMIN_PASS}"
 
 msg_info "Creating Service"
 cat <<'EOF2' >/etc/systemd/system/langflow.service
