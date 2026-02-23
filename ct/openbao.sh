@@ -87,7 +87,7 @@ function update_script() {
     HEALTH_URL="http://127.0.0.1:${LISTENER_PORT:-8200}/v1/sys/health"
     HEALTH_CODE=""
     for _ in {1..30}; do
-      if ! HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}")"; then
+      if ! HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}" 2>/dev/null)"; then
         HEALTH_CODE="000"
       fi
       case "${HEALTH_CODE}" in

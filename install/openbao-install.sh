@@ -159,7 +159,7 @@ msg_ok "Created Service"
 msg_info "Running Health Check"
 HEALTH_URL="http://127.0.0.1:${OPENBAO_PORT}/v1/sys/health"
 for _ in {1..30}; do
-  if ! HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}")"; then
+  if ! HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}" 2>/dev/null)"; then
     HEALTH_CODE="000"
   fi
   case "${HEALTH_CODE}" in
