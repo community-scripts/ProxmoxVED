@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "OpenBao is installed but intentionally not auto-initialized. Run `cat ~/openbao.creds` for secure next steps.",
+      "text": "OpenBao is installed but intentionally not auto-initialized. Follow the final install message to run `bao operator init` and `bao operator unseal`.",
       "type": "warning"
     },
     {

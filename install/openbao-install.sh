@@ -35,26 +35,20 @@ arm64)
   ;;
 esac
 
-RELEASE="$(curl -fsSL https://api.github.com/repos/openbao/openbao/releases/latest | jq -r '.tag_name' | sed 's/^v//')"
 fetch_and_deploy_gh_release "openbao" "openbao/openbao" "prebuild" "latest" "/tmp/openbao" "${OPENBAO_ASSET}"
 install -m 755 /tmp/openbao/bao /usr/local/bin/bao
 rm -rf /tmp/openbao
+RELEASE="$(cat ~/.openbao 2>/dev/null || echo "unknown")"
 msg_ok "Installed OpenBao v${RELEASE}"
 
-msg_info "Creating OpenBao User and Directories"
-if ! id -u openbao >/dev/null 2>&1; then
-  useradd --system --home /var/lib/openbao --shell /usr/sbin/nologin openbao
-fi
+msg_info "Creating OpenBao Directories"
 mkdir -p /etc/openbao.d /var/lib/openbao /var/log/openbao /opt/openbao
 touch /var/log/openbao/openbao.log
-chown -R openbao:openbao /etc/openbao.d /var/lib/openbao /var/log/openbao
 chmod 750 /etc/openbao.d /var/lib/openbao /var/log/openbao
 echo "${RELEASE}" >/opt/openbao/VERSION
-msg_ok "Created OpenBao User and Directories"
+msg_ok "Created OpenBao Directories"
 
 msg_info "Creating OpenBao Configuration"
-get_lxc_ip
-LOCAL_IP="${LOCAL_IP:-$IP}"
 OPENBAO_BIND_ADDRESS="${OPENBAO_BIND_ADDRESS:-0.0.0.0}"
 OPENBAO_PORT="${OPENBAO_PORT:-8200}"
 OPENBAO_CLUSTER_BIND_ADDRESS="${OPENBAO_CLUSTER_BIND_ADDRESS:-0.0.0.0}"
@@ -79,7 +73,6 @@ storage "raft" {
 api_addr = "${OPENBAO_PUBLIC_ADDR}"
 cluster_addr = "${OPENBAO_PUBLIC_CLUSTER_ADDR}"
 EOF
-chown openbao:openbao /etc/openbao.d/openbao.hcl
 chmod 640 /etc/openbao.d/openbao.hcl
 msg_ok "Created OpenBao Configuration"
 
@@ -134,8 +127,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=openbao
-Group=openbao
+User=root
+Group=root
 ExecStart=/usr/local/bin/bao server -config=/etc/openbao.d/openbao.hcl
 ExecReload=/bin/kill --signal HUP $MAINPID
 Restart=on-failure
@@ -177,29 +170,7 @@ esac
 msg_warn "Current state is expected: Initialized=false, Sealed=true."
 msg_warn "Complete setup manually with 'bao operator init' and 'bao operator unseal'."
 msg_warn "If container IP changes, update api_addr/cluster_addr in /etc/openbao.d/openbao.hcl."
-
-{
-  echo "OpenBao Access"
-  echo "URL: http://${LOCAL_IP}:${OPENBAO_PORT}"
-  echo "Service: systemctl status openbao"
-  echo "Status: BAO_ADDR=http://127.0.0.1:${OPENBAO_PORT} bao status"
-  echo ""
-  echo "Manual Initialization (one-time):"
-  echo "  export BAO_ADDR=http://127.0.0.1:${OPENBAO_PORT}"
-  echo "  bao operator init"
-  echo ""
-  echo "Manual Unseal (on each restart unless auto-unseal configured):"
-  echo "  bao operator unseal"
-  echo ""
-  echo "Security Notes:"
-  echo "  - This script does not store unseal keys or root token."
-  echo "  - HTTP is enabled by default (tls_disable=true). Configure TLS before production use."
-  echo "  - Release checksum/signature verification is not automated in this helper script."
-  echo "  - If IP changes, update api_addr/cluster_addr in /etc/openbao.d/openbao.hcl."
-  echo "  - You can customize bind/public addresses by setting OPENBAO_* env vars before reinstall."
-  echo "  - Login reminders are enabled via /etc/profile.d/openbao-reminder.sh."
-} >~/openbao.creds
-chmod 600 ~/openbao.creds
+msg_warn "This script does not auto-store unseal keys or root token. Save init output securely."
 
 motd_ssh
 customize

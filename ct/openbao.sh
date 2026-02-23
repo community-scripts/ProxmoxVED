@@ -35,7 +35,7 @@ function update_script() {
   $STD apt upgrade -y
   msg_ok "Updated Debian LXC"
 
-  local ARCH RELEASE INSTALLED TMP_DIR TS BACKUP_BIN BACKUP_VER LISTENER_PORT HEALTH_URL OPENBAO_ASSET
+  local ARCH RELEASE TMP_DIR TS BACKUP_BIN BACKUP_VER LISTENER_PORT HEALTH_URL OPENBAO_ASSET
   ARCH="$(dpkg --print-architecture)"
   case "${ARCH}" in
   amd64)
@@ -52,17 +52,11 @@ function update_script() {
     ;;
   esac
 
-  RELEASE="$(get_latest_github_release "openbao/openbao")"
-  INSTALLED="$(/usr/local/bin/bao version 2>/dev/null | awk '/^OpenBao v/ {print $2}' | sed 's/^v//')"
-  msg_info "Installed Version: ${INSTALLED:-unknown} | Latest Upstream: ${RELEASE}"
-
-  if [[ "${INSTALLED}" == "${RELEASE}" ]]; then
-    msg_ok "OpenBao is already up to date"
-  else
+  if check_for_gh_release "openbao" "openbao/openbao"; then
     TMP_DIR="$(mktemp -d)"
     TS="$(date +%Y%m%d-%H%M%S)"
     BACKUP_BIN="/opt/openbao/backups/bao-${TS}"
-    BACKUP_VER="${INSTALLED:-unknown}"
+    BACKUP_VER="$(cat /opt/openbao/VERSION 2>/dev/null || echo "unknown")"
     mkdir -p /opt/openbao/backups
     cp -a /usr/local/bin/bao "${BACKUP_BIN}"
 
@@ -70,15 +64,16 @@ function update_script() {
     systemctl stop openbao
     msg_ok "Stopped Service"
 
-    msg_info "Updating OpenBao to ${RELEASE}"
+    msg_info "Updating OpenBao"
     if ! CLEAN_INSTALL=1 fetch_and_deploy_gh_release "openbao" "openbao/openbao" "prebuild" "latest" "${TMP_DIR}" "${OPENBAO_ASSET}"; then
-      msg_error "Failed downloading/deploying OpenBao ${RELEASE}"
+      msg_error "Failed downloading/deploying OpenBao"
       rm -rf "${TMP_DIR}"
       if ! systemctl start openbao; then
         msg_error "Failed to restart previous OpenBao service state"
       fi
       exit 1
     fi
+    RELEASE="$(cat ~/.openbao 2>/dev/null || echo "unknown")"
     install -m 755 "${TMP_DIR}/bao" /usr/local/bin/bao
     echo "${RELEASE}" >/opt/openbao/VERSION
     rm -rf "${TMP_DIR}"
@@ -114,6 +109,8 @@ function update_script() {
       exit 1
       ;;
     esac
+  else
+    msg_ok "OpenBao is already up to date"
   fi
 
   LISTENER_PORT="$(awk -F'"' '/^[[:space:]]*address[[:space:]]*=/{print $2; exit}' /etc/openbao.d/openbao.hcl | awk -F: '{print $NF}')"
@@ -132,6 +129,8 @@ echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8200${CL}"
 echo -e "${INFO}${YW} Post-install setup instructions:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}cat ~/openbao.creds${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}export BAO_ADDR=http://127.0.0.1:8200${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}bao operator init${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}bao operator unseal${CL}"
 echo -e "${INFO}${YW} Security warning:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}HTTP is enabled by default (tls_disable=true). Configure TLS before production use.${CL}"
