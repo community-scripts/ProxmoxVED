@@ -13,6 +13,7 @@ setting_up_container
 network_check
 update_os
 
+# shellcheck disable=SC2034
 APP="openbao"
 app="${app:-openbao}"
 SSH_ROOT="${SSH_ROOT:-no}"
