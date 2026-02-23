@@ -18,15 +18,17 @@ APP="openbao"
 app="${app:-openbao}"
 SSH_ROOT="${SSH_ROOT:-no}"
 
-msg_info "Installing Dependencies"
-$STD apt install -y curl jq ca-certificates tar
-msg_ok "Installed Dependencies"
-
 msg_info "Installing OpenBao"
 ARCH="$(dpkg --print-architecture)"
 case "${ARCH}" in
-amd64) ARCH="x86_64" ;;
-arm64) ARCH="arm64" ;;
+amd64)
+  ARCH="x86_64"
+  OPENBAO_ASSET="bao_*_Linux_x86_64.tar.gz"
+  ;;
+arm64)
+  ARCH="arm64"
+  OPENBAO_ASSET="bao_*_Linux_arm64.tar.gz"
+  ;;
 *)
   msg_error "Unsupported architecture: ${ARCH}"
   exit 1
@@ -34,11 +36,9 @@ arm64) ARCH="arm64" ;;
 esac
 
 RELEASE="$(curl -fsSL https://api.github.com/repos/openbao/openbao/releases/latest | jq -r '.tag_name' | sed 's/^v//')"
-TMP_DIR="$(mktemp -d)"
-$STD curl -fsSL "https://github.com/openbao/openbao/releases/download/v${RELEASE}/bao_${RELEASE}_Linux_${ARCH}.tar.gz" -o "${TMP_DIR}/openbao.tar.gz"
-$STD tar -xzf "${TMP_DIR}/openbao.tar.gz" -C "${TMP_DIR}"
-install -m 755 "${TMP_DIR}/bao" /usr/local/bin/bao
-rm -rf "${TMP_DIR}"
+fetch_and_deploy_gh_release "openbao" "openbao/openbao" "prebuild" "latest" "/tmp/openbao" "${OPENBAO_ASSET}"
+install -m 755 /tmp/openbao/bao /usr/local/bin/bao
+rm -rf /tmp/openbao
 msg_ok "Installed OpenBao v${RELEASE}"
 
 msg_info "Creating OpenBao User and Directories"
@@ -83,7 +83,7 @@ chown openbao:openbao /etc/openbao.d/openbao.hcl
 chmod 640 /etc/openbao.d/openbao.hcl
 msg_ok "Created OpenBao Configuration"
 
-msg_warn "OpenBao is configured with HTTP (tls_disable=true) on port 8200."
+msg_warn "OpenBao is configured with HTTP (tls_disable=true) on port ${OPENBAO_PORT}."
 msg_warn "Use only trusted internal networks until TLS is configured."
 msg_warn "Production requires TLS certificates and hardened listener settings."
 
@@ -103,7 +103,10 @@ if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
   return
 fi
 
-HEALTH_JSON="$(curl -fsS --max-time 2 http://127.0.0.1:8200/v1/sys/health 2>/dev/null || true)"
+HEALTH_JSON="$(curl -fsS --max-time 2 __BAO_HEALTH_URL__ 2>/dev/null)"
+if [[ $? -ne 0 ]]; then
+  HEALTH_JSON=""
+fi
 [[ -z "${HEALTH_JSON}" ]] && return
 
 INITIALIZED="$(echo "${HEALTH_JSON}" | jq -r '.initialized // "unknown"' 2>/dev/null)"
@@ -111,12 +114,14 @@ SEALED="$(echo "${HEALTH_JSON}" | jq -r '.sealed // "unknown"' 2>/dev/null)"
 
 if [[ "${INITIALIZED}" != "true" ]]; then
   echo "[OpenBao] Initialization required."
-  echo "[OpenBao] Run: BAO_ADDR=http://127.0.0.1:8200 bao operator init"
+  echo "[OpenBao] Run: BAO_ADDR=__BAO_ADDR__ bao operator init"
 elif [[ "${SEALED}" == "true" ]]; then
   echo "[OpenBao] OpenBao is initialized but sealed."
-  echo "[OpenBao] Run: BAO_ADDR=http://127.0.0.1:8200 bao operator unseal"
+  echo "[OpenBao] Run: BAO_ADDR=__BAO_ADDR__ bao operator unseal"
 fi
 EOF
+sed -i "s|__BAO_ADDR__|http://127.0.0.1:${OPENBAO_PORT}|g" /etc/profile.d/openbao-reminder.sh
+sed -i "s|__BAO_HEALTH_URL__|http://127.0.0.1:${OPENBAO_PORT}/v1/sys/health|g" /etc/profile.d/openbao-reminder.sh
 chmod 644 /etc/profile.d/openbao-reminder.sh
 
 msg_info "Creating Service"
@@ -150,7 +155,9 @@ msg_ok "Created Service"
 msg_info "Running Health Check"
 HEALTH_URL="http://127.0.0.1:${OPENBAO_PORT}/v1/sys/health"
 for _ in {1..30}; do
-  HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}" || true)"
+  if ! HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}")"; then
+    HEALTH_CODE="000"
+  fi
   case "${HEALTH_CODE}" in
   200 | 429 | 472 | 473 | 501)
     break

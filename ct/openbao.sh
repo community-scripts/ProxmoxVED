@@ -35,11 +35,17 @@ function update_script() {
   $STD apt upgrade -y
   msg_ok "Updated Debian LXC"
 
-  local ARCH RELEASE INSTALLED TMP_DIR TS BACKUP_BIN BACKUP_VER LISTENER_PORT HEALTH_URL
+  local ARCH RELEASE INSTALLED TMP_DIR TS BACKUP_BIN BACKUP_VER LISTENER_PORT HEALTH_URL OPENBAO_ASSET
   ARCH="$(dpkg --print-architecture)"
   case "${ARCH}" in
-  amd64) ARCH="x86_64" ;;
-  arm64) ARCH="arm64" ;;
+  amd64)
+    ARCH="x86_64"
+    OPENBAO_ASSET="bao_*_Linux_x86_64.tar.gz"
+    ;;
+  arm64)
+    ARCH="arm64"
+    OPENBAO_ASSET="bao_*_Linux_arm64.tar.gz"
+    ;;
   *)
     msg_error "Unsupported architecture: ${ARCH}"
     exit 1
@@ -65,10 +71,12 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Updating OpenBao to ${RELEASE}"
-    if ! $STD curl -fsSL "https://github.com/openbao/openbao/releases/download/v${RELEASE}/bao_${RELEASE}_Linux_${ARCH}.tar.gz" -o "${TMP_DIR}/openbao.tar.gz" || ! $STD tar -xzf "${TMP_DIR}/openbao.tar.gz" -C "${TMP_DIR}"; then
-      msg_error "Failed downloading/extracting OpenBao ${RELEASE}"
+    if ! CLEAN_INSTALL=1 fetch_and_deploy_gh_release "openbao" "openbao/openbao" "prebuild" "latest" "${TMP_DIR}" "${OPENBAO_ASSET}"; then
+      msg_error "Failed downloading/deploying OpenBao ${RELEASE}"
       rm -rf "${TMP_DIR}"
-      systemctl start openbao || true
+      if ! systemctl start openbao; then
+        msg_error "Failed to restart previous OpenBao service state"
+      fi
       exit 1
     fi
     install -m 755 "${TMP_DIR}/bao" /usr/local/bin/bao
@@ -84,7 +92,9 @@ function update_script() {
     HEALTH_URL="http://127.0.0.1:${LISTENER_PORT:-8200}/v1/sys/health"
     HEALTH_CODE=""
     for _ in {1..30}; do
-      HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}" || true)"
+      if ! HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}")"; then
+        HEALTH_CODE="000"
+      fi
       case "${HEALTH_CODE}" in
       200 | 429 | 472 | 473 | 501) break ;;
       esac
@@ -98,7 +108,9 @@ function update_script() {
       msg_error "Update health check failed (HTTP ${HEALTH_CODE:-000}), rolling back to ${BACKUP_VER}"
       install -m 755 "${BACKUP_BIN}" /usr/local/bin/bao
       [[ "${BACKUP_VER}" != "unknown" ]] && echo "${BACKUP_VER}" >/opt/openbao/VERSION
-      systemctl restart openbao || true
+      if ! systemctl restart openbao; then
+        msg_error "Rollback restart failed. Manual recovery required."
+      fi
       exit 1
       ;;
     esac
