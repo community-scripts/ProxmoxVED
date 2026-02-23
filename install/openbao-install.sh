@@ -76,6 +76,10 @@ chown openbao:openbao /etc/openbao.d/openbao.hcl
 chmod 640 /etc/openbao.d/openbao.hcl
 msg_ok "Created OpenBao Configuration"
 
+msg_warn "OpenBao is configured with HTTP (tls_disable=true) on port 8200."
+msg_warn "Use only trusted internal networks until TLS is configured."
+msg_warn "Production requires TLS certificates and hardened listener settings."
+
 cat <<'EOF' >/etc/profile.d/openbao.sh
 export BAO_ADDR=http://127.0.0.1:8200
 EOF
@@ -128,6 +132,10 @@ case "${HEALTH_CODE}" in
   ;;
 esac
 
+msg_warn "Current state is expected: Initialized=false, Sealed=true."
+msg_warn "Complete setup manually with 'bao operator init' and 'bao operator unseal'."
+msg_warn "If container IP changes, update api_addr/cluster_addr in /etc/openbao.d/openbao.hcl."
+
 {
   echo "OpenBao Access"
   echo "URL: http://${LOCAL_IP}:8200"
@@ -141,7 +149,11 @@ esac
   echo "Manual Unseal (on each restart unless auto-unseal configured):"
   echo "  bao operator unseal"
   echo ""
-  echo "Security Note: This script does not store unseal keys or root token."
+  echo "Security Notes:"
+  echo "  - This script does not store unseal keys or root token."
+  echo "  - HTTP is enabled by default (tls_disable=true). Configure TLS before production use."
+  echo "  - Release checksum/signature verification is not automated in this helper script."
+  echo "  - If IP changes, update api_addr/cluster_addr in /etc/openbao.d/openbao.hcl."
 } >~/openbao.creds
 chmod 600 ~/openbao.creds
 

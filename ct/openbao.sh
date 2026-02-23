@@ -72,6 +72,7 @@ function update_script() {
   fi
 
   msg_warn "OpenBao may require unseal after restart. Verify with: BAO_ADDR=http://127.0.0.1:8200 bao status"
+  msg_warn "This helper installs OpenBao quickly, but production hardening (TLS, policy, audit, backup) is still required."
   msg_ok "Updated successfully!"
   exit
 }
@@ -86,3 +87,5 @@ echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8200${CL}"
 echo -e "${INFO}${YW} Post-install setup instructions:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}cat ~/openbao.creds${CL}"
+echo -e "${INFO}${YW} Security warning:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}HTTP is enabled by default (tls_disable=true). Configure TLS before production use.${CL}"

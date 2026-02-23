@@ -39,6 +39,14 @@
     {
       "text": "This script does not store unseal keys or root token to disk.",
       "type": "info"
+    },
+    {
+      "text": "Default install uses HTTP (`tls_disable=true`). Configure TLS in `/etc/openbao.d/openbao.hcl` before production use.",
+      "type": "warning"
+    },
+    {
+      "text": "Release checksum/signature verification is not automated by this helper script.",
+      "type": "warning"
     }
   ]
 }
