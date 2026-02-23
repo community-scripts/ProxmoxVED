@@ -1,0 +1,44 @@
+{
+  "name": "OpenBao",
+  "slug": "openbao",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-02-23",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8200,
+  "documentation": "https://openbao.org/docs/",
+  "website": "https://www.openbao.org/",
+  "logo": "https://raw.githubusercontent.com/openbao/artwork/main/color/openbao-color.svg",
+  "config_path": "/etc/openbao.d/openbao.hcl",
+  "description": "OpenBao is an open source secrets management platform for securely storing, accessing, and controlling sensitive data such as API keys, credentials, and encryption keys.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/openbao.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "OpenBao is installed but intentionally not auto-initialized. Run `cat ~/openbao.creds` for secure next steps.",
+      "type": "warning"
+    },
+    {
+      "text": "This script does not store unseal keys or root token to disk.",
+      "type": "info"
+    }
+  ]
+}

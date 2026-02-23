@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
+source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/build.func")
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: Yamon
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://www.openbao.org/
+
+APP="openbao"
+var_tags="${var_tags:-security;secrets;vault}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-8}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-13}"
+var_unprivileged="${var_unprivileged:-1}"
+
+header_info "$APP"
+variables
+color
+catch_errors
+
+function update_script() {
+  header_info
+  check_container_storage
+  check_container_resources
+
+  if [[ ! -x /usr/local/bin/bao || ! -f /etc/systemd/system/openbao.service || ! -f /etc/openbao.d/openbao.hcl ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit
+  fi
+
+  msg_info "Updating Debian LXC"
+  $STD apt update
+  $STD apt upgrade -y
+  msg_ok "Updated Debian LXC"
+
+  local ARCH RELEASE INSTALLED TMP_DIR
+  ARCH="$(dpkg --print-architecture)"
+  case "${ARCH}" in
+  amd64) ARCH="x86_64" ;;
+  arm64) ARCH="arm64" ;;
+  *)
+    msg_error "Unsupported architecture: ${ARCH}"
+    exit 1
+    ;;
+  esac
+
+  RELEASE="$(get_latest_github_release "openbao/openbao")"
+  INSTALLED="$(/usr/local/bin/bao version 2>/dev/null | awk '/^OpenBao v/ {print $2}' | sed 's/^v//')"
+  msg_info "Installed Version: ${INSTALLED:-unknown} | Latest Upstream: ${RELEASE}"
+
+  if [[ "${INSTALLED}" == "${RELEASE}" ]]; then
+    msg_ok "OpenBao is already up to date"
+  else
+    TMP_DIR="$(mktemp -d)"
+    msg_info "Stopping Service"
+    systemctl stop openbao
+    msg_ok "Stopped Service"
+
+    msg_info "Updating OpenBao to ${RELEASE}"
+    $STD curl -fsSL "https://github.com/openbao/openbao/releases/download/v${RELEASE}/bao_${RELEASE}_Linux_${ARCH}.tar.gz" -o "${TMP_DIR}/openbao.tar.gz"
+    $STD tar -xzf "${TMP_DIR}/openbao.tar.gz" -C "${TMP_DIR}"
+    install -m 755 "${TMP_DIR}/bao" /usr/local/bin/bao
+    echo "${RELEASE}" >/opt/openbao/VERSION
+    rm -rf "${TMP_DIR}"
+    msg_ok "Updated OpenBao"
+
+    msg_info "Starting Service"
+    systemctl start openbao
+    msg_ok "Started Service"
+  fi
+
+  msg_warn "OpenBao may require unseal after restart. Verify with: BAO_ADDR=http://127.0.0.1:8200 bao status"
+  msg_ok "Updated successfully!"
+  exit
+}
+
+start
+build_container
+description
+
+msg_ok "Completed successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8200${CL}"
+echo -e "${INFO}${YW} Post-install setup instructions:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}cat ~/openbao.creds${CL}"
