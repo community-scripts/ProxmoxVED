@@ -13,6 +13,11 @@ setting_up_container
 network_check
 update_os
 
+# shellcheck disable=SC2034
+APP="langflow"
+app="${app:-langflow}"
+SSH_ROOT="${SSH_ROOT:-no}"
+
 msg_info "Installing Dependencies"
 if ! install_packages_with_retry \
   build-essential \
@@ -37,8 +42,6 @@ msg_info "Installing Langflow"
 mkdir -p /opt/langflow/data
 cd /opt/langflow || exit
 $STD uv venv --clear /opt/langflow/.venv
-$STD /opt/langflow/.venv/bin/python -m ensurepip --upgrade
-$STD /opt/langflow/.venv/bin/python -m pip install --upgrade pip
 $STD env \
   UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS}" \
   UV_CONCURRENT_BUILDS="${UV_CONCURRENT_BUILDS}" \
