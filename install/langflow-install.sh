@@ -28,7 +28,6 @@ fi
 msg_ok "Installed Dependencies"
 
 UV_PYTHON="3.12" setup_uv
-LANGFLOW_VERSION="${LANGFLOW_VERSION:-1.7.3}"
 UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS:-2}"
 UV_CONCURRENT_BUILDS="${UV_CONCURRENT_BUILDS:-1}"
 UV_CONCURRENT_INSTALLS="${UV_CONCURRENT_INSTALLS:-1}"
@@ -55,7 +54,7 @@ $STD env \
   UV_CONCURRENT_DOWNLOADS="${UV_CONCURRENT_DOWNLOADS}" \
   UV_CONCURRENT_BUILDS="${UV_CONCURRENT_BUILDS}" \
   UV_CONCURRENT_INSTALLS="${UV_CONCURRENT_INSTALLS}" \
-  uv pip install --python /opt/langflow/.venv/bin/python "${UV_CACHE_ARGS[@]}" "langflow==${LANGFLOW_VERSION}"
+  uv pip install --python /opt/langflow/.venv/bin/python "${UV_CACHE_ARGS[@]}" "langflow${LANGFLOW_VERSION:+==${LANGFLOW_VERSION}}"
 msg_ok "Installed Langflow"
 
 msg_info "Configuring Langflow"

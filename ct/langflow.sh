@@ -35,9 +35,11 @@ function update_script() {
   BACKUP_DIR="/opt/langflow/backups/${TS}"
   TARGET_VERSION="${LANGFLOW_TARGET_VERSION:-latest}"
   OLD_VERSION="$([ -x /opt/langflow/.venv/bin/python ] && /opt/langflow/.venv/bin/python -m pip show langflow 2>/dev/null | awk '/^Version:/ {print $2}')"
-  LATEST_VERSION="$(get_latest_github_release "langflow-ai/langflow" 2>/dev/null || echo "unknown")"
-
-  msg_info "Installed Version: ${OLD_VERSION:-unknown} | Latest Upstream: ${LATEST_VERSION}"
+  msg_info "Installed Version: ${OLD_VERSION:-unknown}"
+  if [[ "${TARGET_VERSION}" == "latest" ]] && ! check_for_gh_release "langflow" "langflow-ai/langflow"; then
+    msg_ok "Langflow is already up to date"
+    exit
+  fi
 
   msg_info "Preparing Backup"
   mkdir -p "${BACKUP_DIR}"
