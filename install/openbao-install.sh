@@ -96,6 +96,15 @@ if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
   return
 fi
 
+#!/usr/bin/env bash
+
+# Show OpenBao initialization/unseal reminders for interactive shells only.
+[[ $- != *i* ]] && return
+
+if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+  return
+fi
+
 if ! HEALTH_JSON="$(curl -sS --max-time 2 __BAO_HEALTH_URL__ 2>/dev/null)"; then
   HEALTH_JSON=""
 fi
@@ -123,9 +132,6 @@ elif [[ "${SEALED}" == "true" ]]; then
   echo "  bao status"
   echo "============================================================"
 fi
-EOF
-sed -i "s|__BAO_ADDR__|http://127.0.0.1:${OPENBAO_PORT}|g" /etc/profile.d/openbao-reminder.sh
-sed -i "s|__BAO_HEALTH_URL__|http://127.0.0.1:${OPENBAO_PORT}/v1/sys/health|g" /etc/profile.d/openbao-reminder.sh
 chmod 644 /etc/profile.d/openbao-reminder.sh
 
 msg_info "Creating Service"
