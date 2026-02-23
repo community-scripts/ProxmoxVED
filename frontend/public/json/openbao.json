@@ -11,7 +11,7 @@
   "interface_port": 8200,
   "documentation": "https://openbao.org/docs/",
   "website": "https://www.openbao.org/",
-  "logo": "https://raw.githubusercontent.com/openbao/artwork/main/color/openbao-color.svg",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openbao.webp",
   "config_path": "/etc/openbao.d/openbao.hcl",
   "description": "OpenBao is an open source secrets management platform for securely storing, accessing, and controlling sensitive data such as API keys, credentials, and encryption keys.",
   "install_methods": [
