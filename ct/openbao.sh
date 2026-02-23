@@ -35,7 +35,7 @@ function update_script() {
   $STD apt upgrade -y
   msg_ok "Updated Debian LXC"
 
-  local ARCH RELEASE INSTALLED TMP_DIR
+  local ARCH RELEASE INSTALLED TMP_DIR TS BACKUP_BIN BACKUP_VER
   ARCH="$(dpkg --print-architecture)"
   case "${ARCH}" in
   amd64) ARCH="x86_64" ;;
@@ -54,13 +54,23 @@ function update_script() {
     msg_ok "OpenBao is already up to date"
   else
     TMP_DIR="$(mktemp -d)"
+    TS="$(date +%Y%m%d-%H%M%S)"
+    BACKUP_BIN="/opt/openbao/backups/bao-${TS}"
+    BACKUP_VER="${INSTALLED:-unknown}"
+    mkdir -p /opt/openbao/backups
+    cp -a /usr/local/bin/bao "${BACKUP_BIN}"
+
     msg_info "Stopping Service"
     systemctl stop openbao
     msg_ok "Stopped Service"
 
     msg_info "Updating OpenBao to ${RELEASE}"
-    $STD curl -fsSL "https://github.com/openbao/openbao/releases/download/v${RELEASE}/bao_${RELEASE}_Linux_${ARCH}.tar.gz" -o "${TMP_DIR}/openbao.tar.gz"
-    $STD tar -xzf "${TMP_DIR}/openbao.tar.gz" -C "${TMP_DIR}"
+    if ! $STD curl -fsSL "https://github.com/openbao/openbao/releases/download/v${RELEASE}/bao_${RELEASE}_Linux_${ARCH}.tar.gz" -o "${TMP_DIR}/openbao.tar.gz" || ! $STD tar -xzf "${TMP_DIR}/openbao.tar.gz" -C "${TMP_DIR}"; then
+      msg_error "Failed downloading/extracting OpenBao ${RELEASE}"
+      rm -rf "${TMP_DIR}"
+      systemctl start openbao || true
+      exit 1
+    fi
     install -m 755 "${TMP_DIR}/bao" /usr/local/bin/bao
     echo "${RELEASE}" >/opt/openbao/VERSION
     rm -rf "${TMP_DIR}"
@@ -68,7 +78,28 @@ function update_script() {
 
     msg_info "Starting Service"
     systemctl start openbao
-    msg_ok "Started Service"
+
+    msg_info "Running Health Check"
+    HEALTH_CODE=""
+    for _ in {1..30}; do
+      HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:8200/v1/sys/health || true)"
+      case "${HEALTH_CODE}" in
+      200 | 429 | 472 | 473 | 501) break ;;
+      esac
+      sleep 2
+    done
+    case "${HEALTH_CODE}" in
+    200 | 429 | 472 | 473 | 501)
+      msg_ok "Started Service (HTTP ${HEALTH_CODE})"
+      ;;
+    *)
+      msg_error "Update health check failed (HTTP ${HEALTH_CODE:-000}), rolling back to ${BACKUP_VER}"
+      install -m 755 "${BACKUP_BIN}" /usr/local/bin/bao
+      [[ "${BACKUP_VER}" != "unknown" ]] && echo "${BACKUP_VER}" >/opt/openbao/VERSION
+      systemctl restart openbao || true
+      exit 1
+      ;;
+    esac
   fi
 
   msg_warn "OpenBao may require unseal after restart. Verify with: BAO_ADDR=http://127.0.0.1:8200 bao status"
