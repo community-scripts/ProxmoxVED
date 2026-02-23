@@ -54,13 +54,19 @@ msg_ok "Created OpenBao User and Directories"
 msg_info "Creating OpenBao Configuration"
 get_lxc_ip
 LOCAL_IP="${LOCAL_IP:-$IP}"
+OPENBAO_BIND_ADDRESS="${OPENBAO_BIND_ADDRESS:-0.0.0.0}"
+OPENBAO_PORT="${OPENBAO_PORT:-8200}"
+OPENBAO_CLUSTER_BIND_ADDRESS="${OPENBAO_CLUSTER_BIND_ADDRESS:-0.0.0.0}"
+OPENBAO_CLUSTER_PORT="${OPENBAO_CLUSTER_PORT:-8201}"
+OPENBAO_PUBLIC_ADDR="${OPENBAO_PUBLIC_ADDR:-http://$(hostname -f):${OPENBAO_PORT}}"
+OPENBAO_PUBLIC_CLUSTER_ADDR="${OPENBAO_PUBLIC_CLUSTER_ADDR:-http://$(hostname -f):${OPENBAO_CLUSTER_PORT}}"
 cat <<EOF >/etc/openbao.d/openbao.hcl
 ui = true
 disable_mlock = true
 
 listener "tcp" {
-  address     = "0.0.0.0:8200"
-  cluster_address = "0.0.0.0:8201"
+  address     = "${OPENBAO_BIND_ADDRESS}:${OPENBAO_PORT}"
+  cluster_address = "${OPENBAO_CLUSTER_BIND_ADDRESS}:${OPENBAO_CLUSTER_PORT}"
   tls_disable = "true"
 }
 
@@ -69,8 +75,8 @@ storage "raft" {
   node_id = "openbao-1"
 }
 
-api_addr = "http://${LOCAL_IP}:8200"
-cluster_addr = "http://${LOCAL_IP}:8201"
+api_addr = "${OPENBAO_PUBLIC_ADDR}"
+cluster_addr = "${OPENBAO_PUBLIC_CLUSTER_ADDR}"
 EOF
 chown openbao:openbao /etc/openbao.d/openbao.hcl
 chmod 640 /etc/openbao.d/openbao.hcl
@@ -81,9 +87,36 @@ msg_warn "Use only trusted internal networks until TLS is configured."
 msg_warn "Production requires TLS certificates and hardened listener settings."
 
 cat <<'EOF' >/etc/profile.d/openbao.sh
-export BAO_ADDR=http://127.0.0.1:8200
+export BAO_ADDR=__BAO_ADDR__
 EOF
+sed -i "s|__BAO_ADDR__|http://127.0.0.1:${OPENBAO_PORT}|g" /etc/profile.d/openbao.sh
 chmod 644 /etc/profile.d/openbao.sh
+
+cat <<'EOF' >/etc/profile.d/openbao-reminder.sh
+#!/usr/bin/env bash
+
+# Show OpenBao initialization/unseal reminders for interactive shells only.
+[[ $- != *i* ]] && return
+
+if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+  return
+fi
+
+HEALTH_JSON="$(curl -fsS --max-time 2 http://127.0.0.1:8200/v1/sys/health 2>/dev/null || true)"
+[[ -z "${HEALTH_JSON}" ]] && return
+
+INITIALIZED="$(echo "${HEALTH_JSON}" | jq -r '.initialized // "unknown"' 2>/dev/null)"
+SEALED="$(echo "${HEALTH_JSON}" | jq -r '.sealed // "unknown"' 2>/dev/null)"
+
+if [[ "${INITIALIZED}" != "true" ]]; then
+  echo "[OpenBao] Initialization required."
+  echo "[OpenBao] Run: BAO_ADDR=http://127.0.0.1:8200 bao operator init"
+elif [[ "${SEALED}" == "true" ]]; then
+  echo "[OpenBao] OpenBao is initialized but sealed."
+  echo "[OpenBao] Run: BAO_ADDR=http://127.0.0.1:8200 bao operator unseal"
+fi
+EOF
+chmod 644 /etc/profile.d/openbao-reminder.sh
 
 msg_info "Creating Service"
 cat <<'EOF' >/etc/systemd/system/openbao.service
@@ -114,8 +147,9 @@ systemctl enable -q --now openbao
 msg_ok "Created Service"
 
 msg_info "Running Health Check"
+HEALTH_URL="http://127.0.0.1:${OPENBAO_PORT}/v1/sys/health"
 for _ in {1..30}; do
-  HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:8200/v1/sys/health || true)"
+  HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}" || true)"
   case "${HEALTH_CODE}" in
   200 | 429 | 472 | 473 | 501)
     break
@@ -138,12 +172,12 @@ msg_warn "If container IP changes, update api_addr/cluster_addr in /etc/openbao.
 
 {
   echo "OpenBao Access"
-  echo "URL: http://${LOCAL_IP}:8200"
+  echo "URL: http://${LOCAL_IP}:${OPENBAO_PORT}"
   echo "Service: systemctl status openbao"
-  echo "Status: BAO_ADDR=http://127.0.0.1:8200 bao status"
+  echo "Status: BAO_ADDR=http://127.0.0.1:${OPENBAO_PORT} bao status"
   echo ""
   echo "Manual Initialization (one-time):"
-  echo "  export BAO_ADDR=http://127.0.0.1:8200"
+  echo "  export BAO_ADDR=http://127.0.0.1:${OPENBAO_PORT}"
   echo "  bao operator init"
   echo ""
   echo "Manual Unseal (on each restart unless auto-unseal configured):"
@@ -154,6 +188,8 @@ msg_warn "If container IP changes, update api_addr/cluster_addr in /etc/openbao.
   echo "  - HTTP is enabled by default (tls_disable=true). Configure TLS before production use."
   echo "  - Release checksum/signature verification is not automated in this helper script."
   echo "  - If IP changes, update api_addr/cluster_addr in /etc/openbao.d/openbao.hcl."
+  echo "  - You can customize bind/public addresses by setting OPENBAO_* env vars before reinstall."
+  echo "  - Login reminders are enabled via /etc/profile.d/openbao-reminder.sh."
 } >~/openbao.creds
 chmod 600 ~/openbao.creds
 

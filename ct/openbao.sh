@@ -35,7 +35,7 @@ function update_script() {
   $STD apt upgrade -y
   msg_ok "Updated Debian LXC"
 
-  local ARCH RELEASE INSTALLED TMP_DIR TS BACKUP_BIN BACKUP_VER
+  local ARCH RELEASE INSTALLED TMP_DIR TS BACKUP_BIN BACKUP_VER LISTENER_PORT HEALTH_URL
   ARCH="$(dpkg --print-architecture)"
   case "${ARCH}" in
   amd64) ARCH="x86_64" ;;
@@ -80,9 +80,11 @@ function update_script() {
     systemctl start openbao
 
     msg_info "Running Health Check"
+    LISTENER_PORT="$(awk -F'"' '/^[[:space:]]*address[[:space:]]*=/{print $2; exit}' /etc/openbao.d/openbao.hcl | awk -F: '{print $NF}')"
+    HEALTH_URL="http://127.0.0.1:${LISTENER_PORT:-8200}/v1/sys/health"
     HEALTH_CODE=""
     for _ in {1..30}; do
-      HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:8200/v1/sys/health || true)"
+      HEALTH_CODE="$(curl -sS -o /dev/null -w "%{http_code}" "${HEALTH_URL}" || true)"
       case "${HEALTH_CODE}" in
       200 | 429 | 472 | 473 | 501) break ;;
       esac
@@ -102,7 +104,8 @@ function update_script() {
     esac
   fi
 
-  msg_warn "OpenBao may require unseal after restart. Verify with: BAO_ADDR=http://127.0.0.1:8200 bao status"
+  LISTENER_PORT="$(awk -F'"' '/^[[:space:]]*address[[:space:]]*=/{print $2; exit}' /etc/openbao.d/openbao.hcl | awk -F: '{print $NF}')"
+  msg_warn "OpenBao may require unseal after restart. Verify with: BAO_ADDR=http://127.0.0.1:${LISTENER_PORT:-8200} bao status"
   msg_warn "This helper installs OpenBao quickly, but production hardening (TLS, policy, audit, backup) is still required."
   msg_ok "Updated successfully!"
   exit
