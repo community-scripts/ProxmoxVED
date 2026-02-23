@@ -96,8 +96,7 @@ if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
   return
 fi
 
-HEALTH_JSON="$(curl -fsS --max-time 2 __BAO_HEALTH_URL__ 2>/dev/null)"
-if [[ $? -ne 0 ]]; then
+if ! HEALTH_JSON="$(curl -sS --max-time 2 __BAO_HEALTH_URL__ 2>/dev/null)"; then
   HEALTH_JSON=""
 fi
 [[ -z "${HEALTH_JSON}" ]] && return
@@ -106,11 +105,23 @@ INITIALIZED="$(echo "${HEALTH_JSON}" | jq -r '.initialized // "unknown"' 2>/dev/
 SEALED="$(echo "${HEALTH_JSON}" | jq -r '.sealed // "unknown"' 2>/dev/null)"
 
 if [[ "${INITIALIZED}" != "true" ]]; then
-  echo "[OpenBao] Initialization required."
-  echo "[OpenBao] Run: BAO_ADDR=__BAO_ADDR__ bao operator init"
+  echo "============================================================"
+  echo "[OpenBao] Action required: initialize and unseal before use."
+  echo "[OpenBao] Status: initialized=${INITIALIZED}, sealed=${SEALED}"
+  echo "[OpenBao] Run:"
+  echo "  export BAO_ADDR=__BAO_ADDR__"
+  echo "  bao operator init"
+  echo "  bao operator unseal"
+  echo "  bao status"
+  echo "============================================================"
 elif [[ "${SEALED}" == "true" ]]; then
-  echo "[OpenBao] OpenBao is initialized but sealed."
-  echo "[OpenBao] Run: BAO_ADDR=__BAO_ADDR__ bao operator unseal"
+  echo "============================================================"
+  echo "[OpenBao] Action required: OpenBao is initialized but sealed."
+  echo "[OpenBao] Run:"
+  echo "  export BAO_ADDR=__BAO_ADDR__"
+  echo "  bao operator unseal"
+  echo "  bao status"
+  echo "============================================================"
 fi
 EOF
 sed -i "s|__BAO_ADDR__|http://127.0.0.1:${OPENBAO_PORT}|g" /etc/profile.d/openbao-reminder.sh
