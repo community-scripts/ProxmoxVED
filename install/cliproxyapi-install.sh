@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   openssl
 msg_ok "Installed Dependencies"
 
@@ -68,7 +68,6 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reload
 systemctl enable -q --now cliproxyapi
 msg_ok "Created Service"
 
