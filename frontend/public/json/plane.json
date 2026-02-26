@@ -1,0 +1,44 @@
+{
+    "name": "Plane",
+    "slug": "plane",
+    "categories": [
+        25
+    ],
+    "date_created": "2026-02-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://developers.plane.so/self-hosting/overview",
+    "website": "https://plane.so",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/plane.webp",
+    "config_path": "/opt/plane/apps/api/.env",
+    "description": "Open-source project tracking tool that helps teams plan, track, and manage their software projects with issues, cycles, and modules.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/plane.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 8192,
+                "hdd": 30,
+                "os": "debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "First user to sign up becomes the instance admin. Initial build takes 10-15 minutes.",
+            "type": "info"
+        },
+        {
+            "text": "Configuration file is at: `/opt/plane/apps/api/.env`. Credentials are saved to `~/plane.creds`.",
+            "type": "info"
+        }
+    ]
+}
