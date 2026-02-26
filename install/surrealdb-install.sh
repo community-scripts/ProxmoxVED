@@ -13,13 +13,9 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt install -y \
-  mc
-msg_ok "Installed Dependencies"
-
 msg_info "Installing SurrealDB"
-$STD bash <(curl -sSf https://install.surrealdb.com)
+fetch_and_deploy_gh_release "surrealdb" "surrealdb/surrealdb" "prebuild" "latest" "/usr/local/bin" "surreal-v*.linux-amd64.tgz"
+chmod +x /usr/local/bin/surreal
 msg_ok "Installed SurrealDB"
 
 msg_info "Configuring SurrealDB"
@@ -53,9 +49,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now surrealdb
 msg_ok "Created Service"
-
-RELEASE=$(curl -fsSL https://api.github.com/repos/surrealdb/surrealdb/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-echo "${RELEASE}" >/opt/SurrealDB_version.txt
 
 motd_ssh
 customize

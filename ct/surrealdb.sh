@@ -26,56 +26,23 @@ function update_script() {
   check_container_resources
 
   if [[ ! -f /usr/local/bin/surreal ]]; then
-    msg_error "No SurrealDB Installation Found!"
+    msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  UPD=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "${APP} Management" \
-    --menu "Select an option:" 12 58 3 \
-    "1" "Update SurrealDB" \
-    "2" "Switch to Memory Storage" \
-    "3" "Switch to Disk Storage (RocksDB)" \
-    3>&1 1>&2 2>&3) || exit
+  if check_for_gh_release "surrealdb" "surrealdb/surrealdb"; then
+    msg_info "Stopping Service"
+    systemctl stop surrealdb
+    msg_ok "Stopped Service"
 
-  case "$UPD" in
-  1)
-    RELEASE=$(curl -fsSL https://api.github.com/repos/surrealdb/surrealdb/releases/latest | grep "tag_name" | awk '{print substr($2, 3, length($2)-4) }')
-    if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt 2>/dev/null)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
-      msg_info "Stopping ${APP}"
-      systemctl stop surrealdb
-      msg_ok "Stopped ${APP}"
+    fetch_and_deploy_gh_release "surrealdb" "surrealdb/surrealdb" "prebuild" "latest" "/usr/local/bin" "surreal-v*.linux-amd64.tgz"
+    chmod +x /usr/local/bin/surreal
 
-      msg_info "Updating ${APP} to v${RELEASE}"
-      $STD bash <(curl -sSf https://install.surrealdb.com)
-      echo "${RELEASE}" >/opt/${APP}_version.txt
-      msg_ok "Updated ${APP} to v${RELEASE}"
-
-      msg_info "Starting ${APP}"
-      systemctl start surrealdb
-      msg_ok "Started ${APP}"
-
-      msg_ok "Update Successful"
-    else
-      msg_ok "No update required. ${APP} is already at v${RELEASE}"
-    fi
-    ;;
-  2)
-    msg_info "Switching to Memory Storage"
-    sed -i 's|^ExecStart=.*|ExecStart=/usr/local/bin/surreal start --bind 0.0.0.0:8000 --user root --pass ${SURREALDB_PASS} memory|' /etc/systemd/system/surrealdb.service
-    systemctl daemon-reload
-    systemctl restart surrealdb
-    msg_ok "Switched to Memory Storage"
-    msg_ok "Warning: Data will not persist across restarts"
-    ;;
-  3)
-    msg_info "Switching to Disk Storage (RocksDB)"
-    mkdir -p /opt/surrealdb/data
-    sed -i 's|^ExecStart=.*|ExecStart=/usr/local/bin/surreal start --bind 0.0.0.0:8000 --user root --pass ${SURREALDB_PASS} rocksdb:///opt/surrealdb/data/srdb.db|' /etc/systemd/system/surrealdb.service
-    systemctl daemon-reload
-    systemctl restart surrealdb
-    msg_ok "Switched to Disk Storage (RocksDB)"
-    ;;
-  esac
+    msg_info "Starting Service"
+    systemctl start surrealdb
+    msg_ok "Started Service"
+    msg_ok "Updated successfully!"
+  fi
   exit
 }
 
