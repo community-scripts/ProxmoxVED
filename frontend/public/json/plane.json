@@ -37,7 +37,11 @@
             "type": "info"
         },
         {
-            "text": "Configuration file is at: `/opt/plane/apps/api/.env`. Credentials are saved to `~/plane.creds`.",
+            "text": "Admin panel (God Mode) is available at `/god-mode/` for instance configuration.",
+            "type": "info"
+        },
+        {
+            "text": "Credentials are saved to `~/plane.creds`.",
             "type": "info"
         }
     ]
