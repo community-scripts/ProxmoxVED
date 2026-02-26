@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/onionrings29/ProxmoxVE/feat/add-plane/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: onionrings29
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -31,11 +31,15 @@ function update_script() {
 
   if check_for_gh_release "plane" "makeplane/plane"; then
     msg_info "Stopping Services"
-    systemctl stop plane-api plane-worker plane-beat plane-live
+    systemctl stop plane-api plane-worker plane-beat plane-live plane-space
     msg_ok "Stopped Services"
 
     msg_info "Backing up Data"
-    cp /opt/plane/apps/api/.env /opt/plane-env.bak
+    cp /opt/plane/apps/api/.env /opt/plane-api-env.bak
+    cp /opt/plane/.env /opt/plane-live-env.bak
+    cp /opt/plane/apps/web/.env /opt/plane-web-env.bak
+    cp /opt/plane/apps/admin/.env /opt/plane-admin-env.bak
+    cp /opt/plane/apps/space/.env /opt/plane-space-env.bak
     msg_ok "Backed up Data"
 
     msg_info "Downloading Update"
@@ -53,8 +57,12 @@ function update_script() {
     msg_ok "Downloaded Update"
 
     msg_info "Restoring Config"
-    cp /opt/plane-env.bak /opt/plane/apps/api/.env
-    rm /opt/plane-env.bak
+    cp /opt/plane-api-env.bak /opt/plane/apps/api/.env
+    cp /opt/plane-live-env.bak /opt/plane/.env
+    cp /opt/plane-web-env.bak /opt/plane/apps/web/.env
+    cp /opt/plane-admin-env.bak /opt/plane/apps/admin/.env
+    cp /opt/plane-space-env.bak /opt/plane/apps/space/.env
+    rm -f /opt/plane-api-env.bak /opt/plane-live-env.bak /opt/plane-web-env.bak /opt/plane-admin-env.bak /opt/plane-space-env.bak
     msg_ok "Restored Config"
 
     msg_info "Rebuilding Frontend (Patience)"
@@ -78,12 +86,13 @@ function update_script() {
     set +a
     $STD /opt/plane-venv/bin/python manage.py migrate
     $STD /opt/plane-venv/bin/python manage.py collectstatic --noinput
+    $STD /opt/plane-venv/bin/python manage.py configure_instance
     msg_ok "Ran Migrations"
 
     echo "${RELEASE}" >/opt/plane_version.txt
 
     msg_info "Starting Services"
-    systemctl start plane-api plane-worker plane-beat plane-live
+    systemctl start plane-api plane-worker plane-beat plane-live plane-space
     msg_ok "Started Services"
 
     msg_ok "Updated successfully!"

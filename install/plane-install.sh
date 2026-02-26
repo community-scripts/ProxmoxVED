@@ -262,11 +262,28 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/plane
-EnvironmentFile=/opt/plane/apps/api/.env
+EnvironmentFile=/opt/plane/.env
 ExecStart=/usr/bin/node apps/live/dist/start.mjs
 Restart=on-failure
 RestartSec=5
-Environment=PORT=3100
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat <<EOF >/etc/systemd/system/plane-space.service
+[Unit]
+Description=Plane Space Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/plane/apps/space
+Environment=PORT=3002
+Environment=NODE_ENV=production
+ExecStart=/opt/plane/apps/space/node_modules/.bin/react-router-serve ./build/server/index.js
+Restart=on-failure
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
@@ -276,6 +293,7 @@ systemctl enable -q --now plane-api
 systemctl enable -q --now plane-worker
 systemctl enable -q --now plane-beat
 systemctl enable -q --now plane-live
+systemctl enable -q --now plane-space
 msg_ok "Created Services"
 
 msg_info "Configuring Nginx"
@@ -286,6 +304,10 @@ upstream plane-api {
 
 upstream plane-live {
     server 127.0.0.1:3100;
+}
+
+upstream plane-space {
+    server 127.0.0.1:3002;
 }
 
 upstream plane-minio {
@@ -314,7 +336,7 @@ server {
     }
 
     location /static/ {
-        alias /opt/plane/apps/api/static/;
+        alias /opt/plane/apps/api/plane/static-assets/collected-static/;
     }
 
     location /live/ {
@@ -336,8 +358,11 @@ server {
     }
 
     location /spaces/ {
-        alias /opt/plane/apps/space/build/client/;
-        try_files $uri $uri/ /spaces/index.html;
+        proxy_pass http://plane-space;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     location /spaces {
