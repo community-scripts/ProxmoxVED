@@ -61,7 +61,7 @@ function update_script() {
     ;;
   2)
     msg_info "Switching to Memory Storage"
-    sed -i 's|^ExecStart=.*|ExecStart=/usr/local/bin/surreal start --bind 0.0.0.0:8000 memory|' /etc/systemd/system/surrealdb.service
+    sed -i 's|^ExecStart=.*|ExecStart=/usr/local/bin/surreal start --bind 0.0.0.0:8000 --user root --pass ${SURREALDB_PASS} memory|' /etc/systemd/system/surrealdb.service
     systemctl daemon-reload
     systemctl restart surrealdb
     msg_ok "Switched to Memory Storage"
