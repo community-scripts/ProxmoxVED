@@ -14,9 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  curl \
-  sudo \
+$STD apt install -y \
   mc
 msg_ok "Installed Dependencies"
 
