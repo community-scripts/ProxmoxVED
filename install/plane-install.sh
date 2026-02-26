@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: onionrings29
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://plane.so
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -15,6 +15,9 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
+  curl \
+  sudo \
+  mc \
   jq \
   nginx \
   build-essential \
