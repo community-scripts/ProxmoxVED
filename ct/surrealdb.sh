@@ -70,7 +70,7 @@ function update_script() {
   3)
     msg_info "Switching to Disk Storage (RocksDB)"
     mkdir -p /opt/surrealdb/data
-    sed -i 's|^ExecStart=.*|ExecStart=/usr/local/bin/surreal start --bind 0.0.0.0:8000 rocksdb:///opt/surrealdb/data/srdb.db|' /etc/systemd/system/surrealdb.service
+    sed -i 's|^ExecStart=.*|ExecStart=/usr/local/bin/surreal start --bind 0.0.0.0:8000 --user root --pass ${SURREALDB_PASS} rocksdb:///opt/surrealdb/data/srdb.db|' /etc/systemd/system/surrealdb.service
     systemctl daemon-reload
     systemctl restart surrealdb
     msg_ok "Switched to Disk Storage (RocksDB)"
