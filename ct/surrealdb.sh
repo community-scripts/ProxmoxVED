@@ -26,7 +26,7 @@ function update_script() {
   check_container_resources
 
   if [[ ! -f /usr/local/bin/surreal ]]; then
-    msg_error "No ${APP} Installation Found!"
+    msg_error "No SurrealDB Installation Found!"
     exit
   fi
 
