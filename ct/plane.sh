@@ -44,7 +44,7 @@ function update_script() {
     msg_ok "Backed up Data"
 
     msg_info "Updating Plane"
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "plane" "makeplane/plane"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "plane" "makeplane/plane" "tarball"
     msg_ok "Updated Plane"
 
     msg_info "Restoring Config"
@@ -67,7 +67,7 @@ function update_script() {
 
     msg_info "Updating Python Dependencies"
     cd /opt/plane/apps/api
-    $STD /opt/plane-venv/bin/pip install --upgrade -r requirements/production.txt
+    $STD uv pip install --upgrade -r requirements/production.txt
     msg_ok "Updated Python Dependencies"
 
     msg_info "Running Migrations"
