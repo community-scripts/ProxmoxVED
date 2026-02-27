@@ -35,7 +35,6 @@ msg_ok "Installed Dependencies"
 NODE_VERSION="22" setup_nodejs
 PG_VERSION="16" setup_postgresql
 APPLICATION="Plane" PG_DB_NAME="plane" PG_DB_USER="plane" setup_postgresql_db
-get_lxc_ip
 
 msg_info "Configuring RabbitMQ"
 RABBITMQ_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c16)
@@ -87,9 +86,10 @@ VITE_SPACE_BASE_URL=http://${LOCAL_IP}
 VITE_SPACE_BASE_PATH=/spaces
 VITE_LIVE_BASE_URL=http://${LOCAL_IP}
 VITE_LIVE_BASE_PATH=/live"
-echo "$FRONTEND_ENV" >/opt/plane/apps/web/.env
-echo "$FRONTEND_ENV" >/opt/plane/apps/admin/.env
-echo "$FRONTEND_ENV" >/opt/plane/apps/space/.env
+# Each Vite app needs its own .env for the build
+for app in web admin space; do
+  echo "$FRONTEND_ENV" >/opt/plane/apps/${app}/.env
+done
 export NODE_OPTIONS="--max-old-space-size=4096"
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 $STD corepack enable pnpm
@@ -100,7 +100,8 @@ msg_ok "Built Frontend Apps"
 msg_info "Setting up Python API"
 setup_uv
 $STD uv venv /opt/plane-venv
-$STD uv pip install --python /opt/plane-venv/bin/python -r /opt/plane/apps/api/requirements/production.txt
+export VIRTUAL_ENV=/opt/plane-venv
+$STD uv pip install -r /opt/plane/apps/api/requirements/production.txt
 msg_ok "Set up Python API"
 
 msg_info "Configuring Plane"
@@ -271,7 +272,15 @@ WantedBy=multi-user.target
 EOF
 
 systemctl enable -q --now plane-api plane-worker plane-beat plane-live plane-space
-msg_ok "Created Services"
+{
+    echo "RabbitMQ User: plane"
+    echo "RabbitMQ Password: ${RABBITMQ_PASS}"
+    echo "MinIO Access Key: ${MINIO_ACCESS_KEY}"
+    echo "MinIO Secret Key: ${MINIO_SECRET_KEY}"
+    echo "Secret Key: ${SECRET_KEY}"
+    echo "Config: /opt/plane/apps/api/.env"
+} >>~/plane.creds
+msg_ok "Created Services and MinIO Bucket"
 
 msg_info "Configuring Nginx"
 cat <<'NGINXEOF' >/etc/nginx/sites-available/plane.conf
@@ -365,17 +374,6 @@ ln -sf /etc/nginx/sites-available/plane.conf /etc/nginx/sites-enabled/plane.conf
 rm -f /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
 msg_ok "Configured Nginx"
-
-msg_info "Saving Credentials"
-{
-    echo "RabbitMQ User: plane"
-    echo "RabbitMQ Password: ${RABBITMQ_PASS}"
-    echo "MinIO Access Key: ${MINIO_ACCESS_KEY}"
-    echo "MinIO Secret Key: ${MINIO_SECRET_KEY}"
-    echo "Secret Key: ${SECRET_KEY}"
-    echo "Config: /opt/plane/apps/api/.env"
-} >>~/plane.creds
-msg_ok "Saved Credentials"
 
 motd_ssh
 customize
