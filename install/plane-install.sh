@@ -34,7 +34,7 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" setup_nodejs
 PG_VERSION="16" setup_postgresql
-PG_DB_NAME="plane" PG_DB_USER="plane" setup_postgresql_db
+APPLICATION="Plane" PG_DB_NAME="plane" PG_DB_USER="plane" setup_postgresql_db
 get_lxc_ip
 
 msg_info "Configuring RabbitMQ"
@@ -369,17 +369,13 @@ msg_ok "Configured Nginx"
 
 msg_info "Saving Credentials"
 {
-    echo "Plane Credentials"
-    echo "================================"
-    echo "Database User: ${PG_DB_USER}"
-    echo "Database Password: ${PG_DB_PASS}"
     echo "RabbitMQ User: plane"
     echo "RabbitMQ Password: ${RABBITMQ_PASS}"
     echo "MinIO Access Key: ${MINIO_ACCESS_KEY}"
     echo "MinIO Secret Key: ${MINIO_SECRET_KEY}"
     echo "Secret Key: ${SECRET_KEY}"
     echo "Config: /opt/plane/apps/api/.env"
-} >~/plane.creds
+} >>~/plane.creds
 msg_ok "Saved Credentials"
 
 motd_ssh
