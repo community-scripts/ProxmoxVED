@@ -100,7 +100,6 @@ msg_ok "Built Frontend Apps"
 msg_info "Setting up Python API"
 setup_uv
 $STD uv venv /opt/plane-venv
-$STD uv pip install --upgrade pip
 $STD uv pip install -r /opt/plane/apps/api/requirements/production.txt
 msg_ok "Set up Python API"
 
