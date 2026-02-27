@@ -50,12 +50,12 @@ chmod +x /usr/local/bin/minio
 mkdir -p /opt/minio/data
 MINIO_ACCESS_KEY=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c16)
 MINIO_SECRET_KEY=$(openssl rand -base64 36 | tr -dc 'a-zA-Z0-9' | head -c32)
-cat <<EOF >/etc/default/minio
+cat <<EOF>/etc/default/minio
 MINIO_ROOT_USER="${MINIO_ACCESS_KEY}"
 MINIO_ROOT_PASSWORD="${MINIO_SECRET_KEY}"
 MINIO_VOLUMES="/opt/minio/data"
 EOF
-cat <<EOF >/etc/systemd/system/minio.service
+cat <<EOF>/etc/systemd/system/minio.service
 [Unit]
 Description=MinIO Object Storage
 After=network.target
@@ -108,7 +108,7 @@ msg_info "Configuring Plane"
 SECRET_KEY=$(openssl rand -hex 32)
 MACHINE_SIG=$(echo -n "$(hostname)-$(date +%s)" | sha256sum | head -c64)
 LIVE_SECRET=$(openssl rand -hex 16)
-cat <<EOF >/opt/plane/apps/api/.env
+cat <<EOF>/opt/plane/apps/api/.env
 DEBUG=0
 CORS_ALLOWED_ORIGINS=http://${LOCAL_IP}
 
@@ -156,7 +156,7 @@ GUNICORN_WORKERS=2
 LIVE_SERVER_SECRET_KEY=${LIVE_SECRET}
 API_KEY_RATE_LIMIT=60/minute
 EOF
-cat <<EOF >/opt/plane/.env
+cat <<EOF>/opt/plane/.env
 API_BASE_URL=http://localhost:8000
 LIVE_SERVER_SECRET_KEY=${LIVE_SECRET}
 REDIS_HOST=localhost
@@ -183,7 +183,7 @@ chmod +x /usr/local/bin/mcli
 $STD /usr/local/bin/mcli alias set plane http://localhost:9000 "${MINIO_ACCESS_KEY}" "${MINIO_SECRET_KEY}"
 $STD /usr/local/bin/mcli mb plane/uploads --ignore-existing
 
-cat <<EOF >/etc/systemd/system/plane-api.service
+cat <<EOF>/etc/systemd/system/plane-api.service
 [Unit]
 Description=Plane API
 After=network.target postgresql.service redis-server.service rabbitmq-server.service minio.service
@@ -200,7 +200,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF >/etc/systemd/system/plane-worker.service
+cat <<EOF>/etc/systemd/system/plane-worker.service
 [Unit]
 Description=Plane Celery Worker
 After=plane-api.service
@@ -218,7 +218,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF >/etc/systemd/system/plane-beat.service
+cat <<EOF>/etc/systemd/system/plane-beat.service
 [Unit]
 Description=Plane Celery Beat
 After=plane-api.service
@@ -236,7 +236,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF >/etc/systemd/system/plane-live.service
+cat <<EOF>/etc/systemd/system/plane-live.service
 [Unit]
 Description=Plane Live Server
 After=network.target
@@ -253,7 +253,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF >/etc/systemd/system/plane-space.service
+cat <<EOF>/etc/systemd/system/plane-space.service
 [Unit]
 Description=Plane Space Server
 After=network.target
