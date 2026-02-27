@@ -4,7 +4,7 @@ source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: onionrings29
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://plane.so
+# Source: https://plane.so | GitHub: https://github.com/makeplane/plane
 
 APP="Plane"
 var_tags="${var_tags:-project-management}"
@@ -26,7 +26,7 @@ function update_script() {
   check_container_resources
 
   if [[ ! -d /opt/plane ]]; then
-    msg_error "No ${APP} Installation Found!"
+    msg_error "No Plane Installation Found!"
     exit
   fi
 
@@ -43,9 +43,9 @@ function update_script() {
     cp /opt/plane/apps/space/.env /opt/plane-space-env.bak
     msg_ok "Backed up Data"
 
-    msg_info "Updating ${APP}"
+    msg_info "Updating Plane"
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "plane" "makeplane/plane"
-    msg_ok "Updated ${APP}"
+    msg_ok "Updated Plane"
 
     msg_info "Restoring Config"
     cp /opt/plane-api-env.bak /opt/plane/apps/api/.env

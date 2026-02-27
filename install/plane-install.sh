@@ -45,7 +45,7 @@ $STD rabbitmqctl set_permissions -p plane plane ".*" ".*" ".*"
 msg_ok "Configured RabbitMQ"
 
 msg_info "Installing MinIO"
-curl -fsSL https://dl.min.io/server/minio/release/linux-amd64/minio -o /usr/local/bin/minio
+fetch_and_deploy_from_url "https://dl.min.io/server/minio/release/linux-amd64/minio" ""
 chmod +x /usr/local/bin/minio
 mkdir -p /opt/minio/data
 MINIO_ACCESS_KEY=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c16)
@@ -74,7 +74,7 @@ systemctl enable -q --now minio
 msg_ok "Installed MinIO"
 
 msg_info "Downloading Plane (Patience)"
-fetch_and_deploy_gh_release "plane" "makeplane/plane"
+fetch_and_deploy_gh_release "plane" "makeplane/plane" "tarball"
 msg_ok "Downloaded Plane"
 
 msg_info "Building Frontend Apps (Patience)"
@@ -98,9 +98,10 @@ $STD pnpm turbo run build --filter=web --filter=admin --filter=space --filter=li
 msg_ok "Built Frontend Apps"
 
 msg_info "Setting up Python API"
-python3 -m venv /opt/plane-venv
-$STD /opt/plane-venv/bin/pip install --upgrade pip
-$STD /opt/plane-venv/bin/pip install -r /opt/plane/apps/api/requirements/production.txt
+setup_uv
+$STD uv venv /opt/plane-venv
+$STD /opt/plane-venv/bin/uv pip install --upgrade pip
+$STD /opt/plane-venv/bin/uv pip install -r /opt/plane/apps/api/requirements/production.txt
 msg_ok "Set up Python API"
 
 msg_info "Configuring Plane"
@@ -176,14 +177,12 @@ $STD /opt/plane-venv/bin/python manage.py configure_instance
 $STD /opt/plane-venv/bin/python manage.py register_instance "${MACHINE_SIG}"
 msg_ok "Ran Database Migrations"
 
-msg_info "Creating MinIO Bucket"
+msg_info "Creating Services and MinIO Bucket"
 curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mcli
 chmod +x /usr/local/bin/mcli
 $STD /usr/local/bin/mcli alias set plane http://localhost:9000 "${MINIO_ACCESS_KEY}" "${MINIO_SECRET_KEY}"
 $STD /usr/local/bin/mcli mb plane/uploads --ignore-existing
-msg_ok "Created MinIO Bucket"
 
-msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/plane-api.service
 [Unit]
 Description=Plane API
@@ -272,11 +271,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now plane-api
-systemctl enable -q --now plane-worker
-systemctl enable -q --now plane-beat
-systemctl enable -q --now plane-live
-systemctl enable -q --now plane-space
+systemctl enable -q --now plane-api plane-worker plane-beat plane-live plane-space
 msg_ok "Created Services"
 
 msg_info "Configuring Nginx"
@@ -376,7 +371,7 @@ msg_info "Saving Credentials"
 {
     echo "Plane Credentials"
     echo "================================"
-    echo "Database User: plane"
+    echo "Database User: ${PG_DB_USER}"
     echo "Database Password: ${PG_DB_PASS}"
     echo "RabbitMQ User: plane"
     echo "RabbitMQ Password: ${RABBITMQ_PASS}"
