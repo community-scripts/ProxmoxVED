@@ -45,7 +45,7 @@ $STD rabbitmqctl set_permissions -p plane plane ".*" ".*" ".*"
 msg_ok "Configured RabbitMQ"
 
 msg_info "Installing MinIO"
-fetch_and_deploy_from_url "https://dl.min.io/server/minio/release/linux-amd64/minio" ""
+curl -fsSL https://dl.min.io/server/minio/release/linux-amd64/minio -o /usr/local/bin/minio
 chmod +x /usr/local/bin/minio
 mkdir -p /opt/minio/data
 MINIO_ACCESS_KEY=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c16)
