@@ -100,6 +100,8 @@ msg_ok "Built Frontend Apps"
 msg_info "Setting up Python API"
 setup_uv
 $STD uv venv /opt/plane-venv
+export VIRTUAL_ENV=/opt/plane-venv
+export PATH="/opt/plane-venv/bin:$PATH"
 $STD uv pip install -r /opt/plane/apps/api/requirements/production.txt
 msg_ok "Set up Python API"
 
