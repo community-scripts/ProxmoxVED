@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -s https://raw.githubusercontent.com/thieneret/ProxmoxVED/update/authentik/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Thieneret
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -24,7 +24,7 @@ function update_script() {
     check_container_storage
     check_container_resources
 
-    AUTHENTIK_VERSION="version/2025.12.4"
+    AUTHENTIK_VERSION="version/2026.2.0"
     NODE_VERSION="24"
 
     if [[ ! -d /opt/authentik ]]; then
