@@ -14,11 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
-  jq \
+$STD apt install -y \
   nginx \
   build-essential \
   libpq-dev \
@@ -31,22 +27,8 @@ $STD apt-get install -y \
   python3-venv \
   redis-server \
   erlang-base \
-  erlang-asn1 \
-  erlang-crypto \
-  erlang-eldap \
-  erlang-ftp \
-  erlang-inets \
-  erlang-mnesia \
-  erlang-os-mon \
-  erlang-parsetools \
-  erlang-public-key \
-  erlang-runtime-tools \
-  erlang-snmp \
-  erlang-ssl \
-  erlang-syntax-tools \
-  erlang-tftp \
-  erlang-tools \
-  erlang-xmerl \
+  erlang-{asn1,crypto,eldap,ftp,inets,mnesia,os-mon,parsetools} \
+  erlang-{public-key,runtime-tools,snmp,ssl,syntax-tools,tftp,tools,xmerl} \
   rabbitmq-server
 msg_ok "Installed Dependencies"
 
@@ -56,8 +38,9 @@ PG_DB_NAME="plane" PG_DB_USER="plane" setup_postgresql_db
 get_lxc_ip
 
 msg_info "Configuring RabbitMQ"
+RABBITMQ_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c16)
 $STD rabbitmqctl add_vhost plane
-$STD rabbitmqctl add_user plane plane
+$STD rabbitmqctl add_user plane "${RABBITMQ_PASS}"
 $STD rabbitmqctl set_permissions -p plane plane ".*" ".*" ".*"
 msg_ok "Configured RabbitMQ"
 
@@ -91,12 +74,7 @@ systemctl enable -q --now minio
 msg_ok "Installed MinIO"
 
 msg_info "Downloading Plane (Patience)"
-RELEASE=$(get_latest_github_release "makeplane/plane")
-curl -fsSL "https://github.com/makeplane/plane/archive/refs/tags/v${RELEASE}.tar.gz" -o /tmp/plane.tar.gz
-tar -xzf /tmp/plane.tar.gz -C /tmp
-mv /tmp/plane-*/ /opt/plane
-rm -f /tmp/plane.tar.gz
-echo "${RELEASE}" >/opt/plane_version.txt
+fetch_and_deploy_gh_release "plane" "makeplane/plane"
 msg_ok "Downloaded Plane"
 
 msg_info "Building Frontend Apps (Patience)"
@@ -147,9 +125,9 @@ REDIS_URL=redis://localhost:6379/
 RABBITMQ_HOST=localhost
 RABBITMQ_PORT=5672
 RABBITMQ_USER=plane
-RABBITMQ_PASSWORD=plane
+RABBITMQ_PASSWORD=${RABBITMQ_PASS}
 RABBITMQ_VHOST=plane
-AMQP_URL=amqp://plane:plane@localhost:5672/plane
+AMQP_URL=amqp://plane:${RABBITMQ_PASS}@localhost:5672/plane
 
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
@@ -199,10 +177,10 @@ $STD /opt/plane-venv/bin/python manage.py register_instance "${MACHINE_SIG}"
 msg_ok "Ran Database Migrations"
 
 msg_info "Creating MinIO Bucket"
-curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
-chmod +x /usr/local/bin/mc
-$STD /usr/local/bin/mc alias set plane http://localhost:9000 "${MINIO_ACCESS_KEY}" "${MINIO_SECRET_KEY}"
-$STD /usr/local/bin/mc mb plane/uploads --ignore-existing
+curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mcli
+chmod +x /usr/local/bin/mcli
+$STD /usr/local/bin/mcli alias set plane http://localhost:9000 "${MINIO_ACCESS_KEY}" "${MINIO_SECRET_KEY}"
+$STD /usr/local/bin/mcli mb plane/uploads --ignore-existing
 msg_ok "Created MinIO Bucket"
 
 msg_info "Creating Services"
@@ -227,6 +205,7 @@ cat <<EOF >/etc/systemd/system/plane-worker.service
 [Unit]
 Description=Plane Celery Worker
 After=plane-api.service
+Requires=plane-api.service
 
 [Service]
 Type=simple
@@ -244,6 +223,7 @@ cat <<EOF >/etc/systemd/system/plane-beat.service
 [Unit]
 Description=Plane Celery Beat
 After=plane-api.service
+Requires=plane-api.service
 
 [Service]
 Type=simple
@@ -300,7 +280,7 @@ systemctl enable -q --now plane-space
 msg_ok "Created Services"
 
 msg_info "Configuring Nginx"
-cat <<'NGINXEOF' >/etc/nginx/conf.d/plane.conf
+cat <<'NGINXEOF' >/etc/nginx/sites-available/plane.conf
 upstream plane-api {
     server 127.0.0.1:8000;
 }
@@ -387,6 +367,7 @@ server {
     }
 }
 NGINXEOF
+ln -sf /etc/nginx/sites-available/plane.conf /etc/nginx/sites-enabled/plane.conf
 rm -f /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
 msg_ok "Configured Nginx"
@@ -397,6 +378,8 @@ msg_info "Saving Credentials"
     echo "================================"
     echo "Database User: plane"
     echo "Database Password: ${PG_DB_PASS}"
+    echo "RabbitMQ User: plane"
+    echo "RabbitMQ Password: ${RABBITMQ_PASS}"
     echo "MinIO Access Key: ${MINIO_ACCESS_KEY}"
     echo "MinIO Secret Key: ${MINIO_SECRET_KEY}"
     echo "Secret Key: ${SECRET_KEY}"

@@ -42,19 +42,9 @@ function update_script() {
     cp /opt/plane/apps/space/.env /opt/plane-space-env.bak
     msg_ok "Backed up Data"
 
-    msg_info "Downloading Update"
-    RELEASE=$(get_latest_github_release "makeplane/plane")
-    curl -fsSL "https://github.com/makeplane/plane/archive/refs/tags/v${RELEASE}.tar.gz" -o /tmp/plane.tar.gz
-    tar -xzf /tmp/plane.tar.gz -C /tmp
-    rm -rf /opt/plane/apps /opt/plane/packages /opt/plane/package.json /opt/plane/pnpm-lock.yaml /opt/plane/pnpm-workspace.yaml /opt/plane/turbo.json
-    cp -r /tmp/plane-*/apps /opt/plane/
-    cp -r /tmp/plane-*/packages /opt/plane/
-    cp /tmp/plane-*/package.json /opt/plane/
-    cp /tmp/plane-*/pnpm-lock.yaml /opt/plane/
-    cp /tmp/plane-*/pnpm-workspace.yaml /opt/plane/
-    cp /tmp/plane-*/turbo.json /opt/plane/
-    rm -rf /tmp/plane.tar.gz /tmp/plane-*
-    msg_ok "Downloaded Update"
+    msg_info "Updating ${APP}"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "plane" "makeplane/plane"
+    msg_ok "Updated ${APP}"
 
     msg_info "Restoring Config"
     cp /opt/plane-api-env.bak /opt/plane/apps/api/.env
@@ -88,8 +78,6 @@ function update_script() {
     $STD /opt/plane-venv/bin/python manage.py collectstatic --noinput
     $STD /opt/plane-venv/bin/python manage.py configure_instance
     msg_ok "Ran Migrations"
-
-    echo "${RELEASE}" >/opt/plane_version.txt
 
     msg_info "Starting Services"
     systemctl start plane-api plane-worker plane-beat plane-live plane-space
