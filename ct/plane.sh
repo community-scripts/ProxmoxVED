@@ -67,9 +67,7 @@ function update_script() {
 
     msg_info "Updating Python Dependencies"
     cd /opt/plane/apps/api
-    export VIRTUAL_ENV=/opt/plane-venv
-    export PATH="/opt/plane-venv/bin:$PATH"
-    $STD uv pip install --upgrade -r requirements/production.txt
+    $STD uv pip install --python /opt/plane-venv/bin/python --upgrade -r requirements/production.txt
     msg_ok "Updated Python Dependencies"
 
     msg_info "Running Migrations"
