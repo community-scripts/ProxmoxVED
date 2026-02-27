@@ -43,6 +43,10 @@
         {
             "text": "Credentials are saved to `~/plane.creds`.",
             "type": "info"
+        },
+        {
+            "text": "If the container IP changes, rebuild the frontend apps or run the update script to apply the new URL.",
+            "type": "warning"
         }
     ]
 }
