@@ -25,8 +25,8 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /usr/local/bin/surreal ]]; then
-    msg_error "No ${APP} Installation Found!"
+  if [[ ! -f /opt/surrealdb/surreal ]]; then
+    msg_error "No SurrealDB Installation Found!"
     exit
   fi
 
@@ -35,8 +35,8 @@ function update_script() {
     systemctl stop surrealdb
     msg_ok "Stopped Service"
 
-    fetch_and_deploy_gh_release "surrealdb" "surrealdb/surrealdb" "prebuild" "latest" "/usr/local/bin" "surreal-v*.linux-amd64.tgz"
-    chmod +x /usr/local/bin/surreal
+    fetch_and_deploy_gh_release "surrealdb" "surrealdb/surrealdb" "prebuild" "latest" "/opt/surrealdb" "surreal-v*.linux-amd64.tgz"
+    chmod +x /opt/surrealdb/surreal
 
     msg_info "Starting Service"
     systemctl start surrealdb
@@ -50,7 +50,7 @@ start
 build_container
 description
 
-msg_ok "Completed successfully!\n"
+msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8000${CL}"

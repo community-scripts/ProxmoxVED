@@ -14,8 +14,9 @@ network_check
 update_os
 
 msg_info "Installing SurrealDB"
-fetch_and_deploy_gh_release "surrealdb" "surrealdb/surrealdb" "prebuild" "latest" "/usr/local/bin" "surreal-v*.linux-amd64.tgz"
-chmod +x /usr/local/bin/surreal
+fetch_and_deploy_gh_release "surrealdb" "surrealdb/surrealdb" "prebuild" "latest" "/opt/surrealdb" "surreal-v*.linux-amd64.tgz"
+chmod +x /opt/surrealdb/surreal
+ln -sf /opt/surrealdb/surreal /usr/local/bin/surreal
 msg_ok "Installed SurrealDB"
 
 msg_info "Configuring SurrealDB"
@@ -40,7 +41,7 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile=/opt/surrealdb/.env
-ExecStart=/usr/local/bin/surreal start --bind 0.0.0.0:8000 --user root --pass \${SURREALDB_PASS} rocksdb:///opt/surrealdb/data/srdb.db
+ExecStart=/opt/surrealdb/surreal start --bind 0.0.0.0:8000 --user root --pass \${SURREALDB_PASS} rocksdb:///opt/surrealdb/data/srdb.db
 Restart=on-failure
 RestartSec=5
 
