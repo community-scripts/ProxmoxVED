@@ -202,7 +202,7 @@ EOF
       fi
 
       local roctx_files
-      roctx_files="$(find /opt/rocm/lib /opt/rocm/lib64 /usr/lib /usr/local/lib -maxdepth 2 -type f -name 'libroctx64.so*' 2>/dev/null | tr '\n' ' ')"
+      roctx_files="$(find /opt/rocm/lib /opt/rocm/lib64 /usr/lib /usr/local/lib -maxdepth 2 -type f -name 'libroctx64.so*' 2>/dev/null | paste -sd ' ' - || true)"
       if [[ -n "${roctx_files}" ]]; then
         msg_info "ROCm libraries found: ${roctx_files}"
       else
