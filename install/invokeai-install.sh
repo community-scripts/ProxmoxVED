@@ -60,8 +60,8 @@ ROCM72_TORCHAUDIO_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torch
 
 install_rocm72_wheels() {
   msg_info "Installing ROCm 7.2 PyTorch wheels"
-  uv pip uninstall --python .venv/bin/python torch torchvision triton torchaudio || true
-  uv pip install --python .venv/bin/python \
+  $STD uv pip uninstall --python .venv/bin/python torch torchvision triton torchaudio || true
+  $STD uv pip install --python .venv/bin/python \
     "${ROCM72_TORCH_WHL}" \
     "${ROCM72_TORCHVISION_WHL}" \
     "${ROCM72_TORCHAUDIO_WHL}" \
@@ -103,13 +103,13 @@ Pin-Priority: 600
 EOF
 
   msg_info "Updating apt repositories for ROCm"
-  if ! apt update; then
+  if ! $STD apt update; then
     msg_warn "ROCm apt repository update failed"
     return 1
   fi
 
   msg_info "Installing ROCm runtime apt packages"
-  if ! apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib; then
+  if ! $STD apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib; then
     msg_warn "ROCm runtime package installation failed"
     return 1
   fi
@@ -182,7 +182,7 @@ msg_info "Using torch backend: ${TORCH_BACKEND}"
 if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
   install_rocm_runtime_debian || true
   msg_info "Installing InvokeAI package (ROCm path, this can take several minutes)"
-  uv pip install --python .venv/bin/python --upgrade invokeai
+  $STD uv pip install --python .venv/bin/python --upgrade invokeai
   install_rocm72_wheels
   repair_rocm_runtime_libs
   validate_torch_import
