@@ -23,7 +23,7 @@ function update_script() {
 
   if [[ ! -f /etc/systemd/system/mcphub.service ]]; then
     msg_error "No ${APP} Installation Found!"
-    exit
+    exit 1
   fi
 
   NODE_VERSION="22" setup_nodejs
