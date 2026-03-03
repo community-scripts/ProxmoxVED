@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-SCRIPT_REPO="${SCRIPT_REPO:-BillyOutlast/ProxmoxVE}"
-export SCRIPT_REPO
-source <(curl -fsSL "https://raw.githubusercontent.com/${SCRIPT_REPO}/main/misc/build.func")
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: ChatGPT
+# Author: BillyOutlast
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/samanhappy/mcphub | Docs: https://docs.mcphubx.com/
 
@@ -15,11 +13,6 @@ var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
-var_ssh="${var_ssh:-yes}"
-
-if [[ -z "${var_ssh_authorized_key:-}" ]] && [[ -r /root/.ssh/authorized_keys ]]; then
-  var_ssh_authorized_key="$(grep -m1 -E '^(ssh-(rsa|ed25519)|ecdsa-sha2-nistp256|sk-(ssh-ed25519|ecdsa-sha2-nistp256))[[:space:]]+' /root/.ssh/authorized_keys || true)"
-fi
 
 header_info "$APP"
 variables
@@ -43,7 +36,6 @@ function update_script() {
   $STD npm update -g @samanhappy/mcphub
   systemctl start mcphub
   msg_ok "Updated MCPHub"
-  msg_ok "Updated successfully!"
   exit
 }
 
