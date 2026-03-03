@@ -45,7 +45,7 @@ function update_script() {
       msg_ok "Backed up invalid invokeai.yaml; InvokeAI will regenerate defaults"
     fi
 
-    if grep -qE -- '--host|--port' /etc/systemd/system/invokeai.service || ! grep -q '^Environment=INVOKEAI_HOST=0.0.0.0' /etc/systemd/system/invokeai.service; then
+    if grep -qE -- '--host|--port' /etc/systemd/system/invokeai.service || ! grep -q '^Environment=INVOKEAI_HOST=0.0.0.0' /etc/systemd/system/invokeai.service || ! grep -q '^Environment=LD_LIBRARY_PATH=' /etc/systemd/system/invokeai.service; then
       msg_info "Repairing InvokeAI Service"
       cat <<EOF >/etc/systemd/system/invokeai.service
 [Unit]
@@ -57,6 +57,7 @@ Type=simple
 WorkingDirectory=/opt/invokeai
 Environment=INVOKEAI_HOST=0.0.0.0
 Environment=INVOKEAI_PORT=9090
+Environment=LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/usr/lib:/usr/lib64
 ExecStart=/opt/invokeai/.venv/bin/invokeai-web --root /opt/invokeai/root
 Restart=on-failure
 RestartSec=5
@@ -106,6 +107,102 @@ EOF
       msg_ok "Installed ROCm 7.2 wheels"
     }
 
+    install_rocm_runtime_debian() {
+      if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+      fi
+
+      local rocm_suite=""
+      case "${VERSION_ID:-}" in
+      13*) rocm_suite="noble" ;;
+      12*) rocm_suite="jammy" ;;
+      *)
+        msg_warn "Unsupported Debian version for automatic ROCm repo setup"
+        return 1
+        ;;
+      esac
+
+      msg_info "Installing ROCm runtime packages (${rocm_suite})"
+      mkdir -p /etc/apt/keyrings
+      if ! curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg; then
+        msg_warn "Failed to add ROCm apt signing key"
+        return 1
+      fi
+
+      cat <<EOF >/etc/apt/sources.list.d/rocm.list
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.2 ${rocm_suite} main
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/7.2/ubuntu ${rocm_suite} main
+EOF
+
+      cat <<EOF >/etc/apt/preferences.d/rocm-pin-600
+Package: *
+Pin: release o=repo.radeon.com
+Pin-Priority: 600
+EOF
+
+      if ! apt update >/dev/null 2>&1; then
+        msg_warn "ROCm apt repository update failed"
+        return 1
+      fi
+
+      if ! apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib >/dev/null 2>&1; then
+        msg_warn "ROCm runtime package installation failed"
+        return 1
+      fi
+
+      ldconfig || true
+      msg_ok "Installed ROCm runtime packages"
+      return 0
+    }
+
+    validate_torch_import() {
+      local import_log
+      import_log="$(/opt/invokeai/.venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
+      local rc=$?
+      if [[ $rc -eq 0 ]]; then
+        return 0
+      fi
+
+      if echo "${import_log}" | grep -q 'libroctx64.so.4'; then
+        msg_warn "ROCm runtime library libroctx64.so.4 is missing in this container"
+        msg_warn "Falling back to CPU backend to keep InvokeAI operational"
+        return 2
+      fi
+
+      msg_error "Torch import failed: ${import_log}"
+      return 1
+    }
+
+    repair_rocm_runtime_libs() {
+      local roctx_candidate=""
+      if ldconfig -p 2>/dev/null | grep -q 'libroctx64\.so\.4'; then
+        msg_ok "Detected libroctx64.so.4 in linker cache"
+        return 0
+      fi
+
+      roctx_candidate="$(ldconfig -p 2>/dev/null | awk '/libroctx64\.so(\.[0-9]+)?/{print $NF; exit}')"
+      if [[ -z "${roctx_candidate}" ]]; then
+        roctx_candidate="$(find /opt/rocm /usr/lib /usr/local/lib -type f -name 'libroctx64.so*' 2>/dev/null | head -n1)"
+      fi
+
+      if [[ -n "${roctx_candidate}" ]]; then
+        local roctx_dir
+        roctx_dir="$(dirname "${roctx_candidate}")"
+        if [[ ! -e "${roctx_dir}/libroctx64.so.4" ]]; then
+          ln -sf "$(basename "${roctx_candidate}")" "${roctx_dir}/libroctx64.so.4" || true
+          ldconfig || true
+        fi
+      fi
+
+      local roctx_files
+      roctx_files="$(find /opt/rocm/lib /opt/rocm/lib64 /usr/lib /usr/local/lib -maxdepth 2 -type f -name 'libroctx64.so*' 2>/dev/null | tr '\n' ' ')"
+      if [[ -n "${roctx_files}" ]]; then
+        msg_info "ROCm libraries found: ${roctx_files}"
+      else
+        msg_warn "No libroctx64.so* files found under /opt/rocm or standard lib paths"
+      fi
+    }
+
     install_cu128_pytorch() {
       msg_info "Installing NVIDIA CUDA 12.8 PyTorch packages"
       $STD uv pip install --python /opt/invokeai/.venv/bin/python torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
@@ -118,6 +215,7 @@ EOF
 
     msg_info "Updating InvokeAI (${TORCH_BACKEND})"
     if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
+      install_rocm_runtime_debian || true
       if ! $STD uv pip install --python /opt/invokeai/.venv/bin/python --upgrade invokeai; then
         systemctl start invokeai || true
         msg_error "Failed to update InvokeAI"
@@ -128,6 +226,23 @@ EOF
         msg_error "Failed to install ROCm 7.2 wheels"
         exit 1
       fi
+      repair_rocm_runtime_libs
+      validate_torch_import
+      case $? in
+      0) ;;
+      2)
+        TORCH_BACKEND="cpu"
+        if ! $STD uv pip install --python /opt/invokeai/.venv/bin/python --torch-backend=cpu --upgrade invokeai; then
+          systemctl start invokeai || true
+          msg_error "Failed to fall back to CPU backend"
+          exit 1
+        fi
+        ;;
+      *)
+        systemctl start invokeai || true
+        exit 1
+        ;;
+      esac
     elif [[ "${TORCH_BACKEND}" == "cu128" ]]; then
       if ! $STD uv pip install --python /opt/invokeai/.venv/bin/python --upgrade invokeai; then
         systemctl start invokeai || true
