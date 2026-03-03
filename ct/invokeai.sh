@@ -98,8 +98,8 @@ EOF
 
     install_rocm72_wheels() {
       msg_info "Installing ROCm 7.2 PyTorch wheels"
-      $STD uv pip uninstall --python /opt/invokeai/.venv/bin/python torch torchvision triton torchaudio || true
-      $STD uv pip install --python /opt/invokeai/.venv/bin/python \
+      uv pip uninstall --python /opt/invokeai/.venv/bin/python torch torchvision triton torchaudio || true
+      uv pip install --python /opt/invokeai/.venv/bin/python \
         "${ROCM72_TORCH_WHL}" \
         "${ROCM72_TORCHVISION_WHL}" \
         "${ROCM72_TORCHAUDIO_WHL}" \
@@ -140,12 +140,14 @@ Pin: release o=repo.radeon.com
 Pin-Priority: 600
 EOF
 
-      if ! apt update >/dev/null 2>&1; then
+      msg_info "Updating apt repositories for ROCm"
+      if ! apt update; then
         msg_warn "ROCm apt repository update failed"
         return 1
       fi
 
-      if ! apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib >/dev/null 2>&1; then
+      msg_info "Installing ROCm runtime apt packages"
+      if ! apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib; then
         msg_warn "ROCm runtime package installation failed"
         return 1
       fi
@@ -157,10 +159,15 @@ EOF
 
     validate_torch_import() {
       local import_log
-      import_log="$(/opt/invokeai/.venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
+      import_log="$(timeout 45 /opt/invokeai/.venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
       local rc=$?
       if [[ $rc -eq 0 ]]; then
         return 0
+      fi
+
+      if [[ $rc -eq 124 ]]; then
+        msg_warn "Torch import timed out after 45 seconds"
+        return 2
       fi
 
       if echo "${import_log}" | grep -q 'libroctx64.so.4'; then
@@ -216,7 +223,8 @@ EOF
     msg_info "Updating InvokeAI (${TORCH_BACKEND})"
     if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
       install_rocm_runtime_debian || true
-      if ! $STD uv pip install --python /opt/invokeai/.venv/bin/python --upgrade invokeai; then
+      msg_info "Installing InvokeAI package (ROCm path, this can take several minutes)"
+      if ! uv pip install --python /opt/invokeai/.venv/bin/python --upgrade invokeai; then
         systemctl start invokeai || true
         msg_error "Failed to update InvokeAI"
         exit 1
