@@ -29,7 +29,23 @@ function update_script() {
   fi
 
   if check_for_gh_release "invokeai" "invoke-ai/InvokeAI"; then
-    if grep -qE -- '--host|--port' /etc/systemd/system/invokeai.service; then
+    msg_info "Configuring InvokeAI Bind Address"
+    INVOKEAI_CONFIG="/opt/invokeai/root/invokeai.yaml"
+    mkdir -p /opt/invokeai/root
+    touch "${INVOKEAI_CONFIG}"
+    if grep -qE '^[[:space:]]*host:' "${INVOKEAI_CONFIG}"; then
+      sed -i -E 's|^[[:space:]]*host:.*|host: 0.0.0.0|' "${INVOKEAI_CONFIG}"
+    else
+      echo "host: 0.0.0.0" >>"${INVOKEAI_CONFIG}"
+    fi
+    if grep -qE '^[[:space:]]*port:' "${INVOKEAI_CONFIG}"; then
+      sed -i -E 's|^[[:space:]]*port:.*|port: 9090|' "${INVOKEAI_CONFIG}"
+    else
+      echo "port: 9090" >>"${INVOKEAI_CONFIG}"
+    fi
+    msg_ok "Configured InvokeAI Bind Address"
+
+    if grep -qE -- '--host|--port' /etc/systemd/system/invokeai.service || ! grep -q '^Environment=INVOKEAI_HOST=0.0.0.0' /etc/systemd/system/invokeai.service; then
       msg_info "Repairing InvokeAI Service"
       cat <<EOF >/etc/systemd/system/invokeai.service
 [Unit]
@@ -39,6 +55,8 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/invokeai
+Environment=INVOKEAI_HOST=0.0.0.0
+Environment=INVOKEAI_PORT=9090
 ExecStart=/opt/invokeai/.venv/bin/invokeai-web --root /opt/invokeai/root
 Restart=on-failure
 RestartSec=5
