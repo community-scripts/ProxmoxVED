@@ -72,6 +72,19 @@ EOF
 systemctl enable -q --now invokeai
 msg_ok "Created Service"
 
+msg_info "Detecting Runtime Backend"
+RUNTIME_BACKEND="$(${INSTALL_DIR}/.venv/bin/python -c "import torch; import sys; backend='cpu';
+if hasattr(torch, 'cuda') and torch.cuda.is_available():
+    backend='cuda'
+elif getattr(torch.version, 'hip', None):
+    backend='rocm'
+sys.stdout.write(backend)" 2>/dev/null || true)"
+if [[ -n "${RUNTIME_BACKEND}" ]]; then
+  msg_ok "Runtime Backend: ${RUNTIME_BACKEND}"
+else
+  msg_warn "Runtime backend could not be detected"
+fi
+
 motd_ssh
 customize
 cleanup_lxc

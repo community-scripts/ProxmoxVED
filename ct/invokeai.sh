@@ -69,6 +69,19 @@ function update_script() {
       exit 1
     fi
 
+    msg_info "Detecting Runtime Backend"
+    RUNTIME_BACKEND="$(/opt/invokeai/.venv/bin/python -c "import torch; import sys; backend='cpu';
+if hasattr(torch, 'cuda') and torch.cuda.is_available():
+    backend='cuda'
+elif getattr(torch.version, 'hip', None):
+    backend='rocm'
+sys.stdout.write(backend)" 2>/dev/null || true)"
+    if [[ -n "${RUNTIME_BACKEND}" ]]; then
+      msg_ok "Runtime Backend: ${RUNTIME_BACKEND}"
+    else
+      msg_warn "Runtime backend could not be detected"
+    fi
+
     INVOKEAI_VERSION="$(/opt/invokeai/.venv/bin/python -c "import importlib.metadata as m; print(m.version('invokeai'))")"
     echo "${INVOKEAI_VERSION}" >"$HOME/.invokeai"
     msg_ok "Updated successfully to v${INVOKEAI_VERSION}"
