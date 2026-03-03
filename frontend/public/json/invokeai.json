@@ -37,7 +37,11 @@
       "type": "info"
     },
     {
-      "text": "Use `var_torch_backend=cpu|cu128|rocm7.2` to force a specific backend during install/update.",
+      "text": "Use `var_torch_backend=cpu|cu128|rocm7.2` to force a specific backend during install/update (`cu128` installs `torch`, `torchvision`, and `torchaudio`).",
+      "type": "info"
+    },
+    {
+      "text": "`rocm7.2` uses pinned AMD ROCm wheel URLs for `torch`, `torchvision`, `torchaudio`, and `triton` to keep compatibility predictable.",
       "type": "info"
     },
     {
