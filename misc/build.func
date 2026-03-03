@@ -4613,8 +4613,14 @@ EOF'
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
 
-  lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/install/${var_install}.sh")"
-  local lxc_exit=$?
+  local install_script_content=""
+  if ! install_script_content="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/install/${var_install}.sh")"; then
+    msg_error "Failed to fetch installer script: $COMMUNITY_SCRIPTS_URL/install/${var_install}.sh"
+    local lxc_exit=127
+  else
+    lxc-attach -n "$CTID" -- bash -c "$install_script_content"
+    local lxc_exit=$?
+  fi
 
   set -Eeuo pipefail       # Re-enable error handling
   trap 'error_handler' ERR # Restore ERR trap
