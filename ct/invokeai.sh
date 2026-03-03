@@ -37,21 +37,12 @@ function update_script() {
   fi
 
   if check_for_gh_release "invokeai" "invoke-ai/InvokeAI"; then
-    msg_info "Configuring InvokeAI Bind Address"
     INVOKEAI_CONFIG="/opt/invokeai/root/invokeai.yaml"
-    mkdir -p /opt/invokeai/root
-    touch "${INVOKEAI_CONFIG}"
-    if grep -qE '^[[:space:]]*host:' "${INVOKEAI_CONFIG}"; then
-      sed -i -E 's|^[[:space:]]*host:.*|host: 0.0.0.0|' "${INVOKEAI_CONFIG}"
-    else
-      echo "host: 0.0.0.0" >>"${INVOKEAI_CONFIG}"
+    if [[ -f "${INVOKEAI_CONFIG}" ]] && ! grep -qE '^[[:space:]]*schema_version:' "${INVOKEAI_CONFIG}"; then
+      msg_warn "Detected invalid invokeai.yaml (missing schema_version)"
+      mv "${INVOKEAI_CONFIG}" "${INVOKEAI_CONFIG}.broken.$(date +%s)"
+      msg_ok "Backed up invalid invokeai.yaml; InvokeAI will regenerate defaults"
     fi
-    if grep -qE '^[[:space:]]*port:' "${INVOKEAI_CONFIG}"; then
-      sed -i -E 's|^[[:space:]]*port:.*|port: 9090|' "${INVOKEAI_CONFIG}"
-    else
-      echo "port: 9090" >>"${INVOKEAI_CONFIG}"
-    fi
-    msg_ok "Configured InvokeAI Bind Address"
 
     if grep -qE -- '--host|--port' /etc/systemd/system/invokeai.service || ! grep -q '^Environment=INVOKEAI_HOST=0.0.0.0' /etc/systemd/system/invokeai.service; then
       msg_info "Repairing InvokeAI Service"

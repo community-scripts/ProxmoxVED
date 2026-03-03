@@ -89,22 +89,6 @@ INVOKEAI_VERSION="$(.venv/bin/python -c "import importlib.metadata as m; print(m
 echo "${INVOKEAI_VERSION}" >"$HOME/.invokeai"
 msg_ok "Installed InvokeAI v${INVOKEAI_VERSION}"
 
-msg_info "Configuring InvokeAI Bind Address"
-INVOKEAI_CONFIG="${INVOKEAI_ROOT}/invokeai.yaml"
-mkdir -p "${INVOKEAI_ROOT}"
-touch "${INVOKEAI_CONFIG}"
-if grep -qE '^[[:space:]]*host:' "${INVOKEAI_CONFIG}"; then
-  sed -i -E 's|^[[:space:]]*host:.*|host: 0.0.0.0|' "${INVOKEAI_CONFIG}"
-else
-  echo "host: 0.0.0.0" >>"${INVOKEAI_CONFIG}"
-fi
-if grep -qE '^[[:space:]]*port:' "${INVOKEAI_CONFIG}"; then
-  sed -i -E 's|^[[:space:]]*port:.*|port: 9090|' "${INVOKEAI_CONFIG}"
-else
-  echo "port: 9090" >>"${INVOKEAI_CONFIG}"
-fi
-msg_ok "Configured InvokeAI Bind Address"
-
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/invokeai.service
 [Unit]
