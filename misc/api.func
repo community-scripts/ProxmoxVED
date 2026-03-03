@@ -12,6 +12,7 @@
 # Features:
 #   - Container/VM creation statistics
 #   - Installation success/failure tracking
+#   - Pre-flight abort tracking ("aborted" status)
 #   - Error code mapping and reporting
 #   - Privacy-respecting anonymous telemetry
 #
@@ -188,6 +189,16 @@ explain_exit_code() {
   100) echo "APT: Package manager error (broken packages / dependency problems)" ;;
   101) echo "APT: Configuration error (bad sources.list, malformed config)" ;;
   102) echo "APT: Lock held by another process (dpkg/apt still running)" ;;
+
+  # --- Validation / Preflight (103-108) ---
+  103) echo "Validation: Shell is not Bash" ;;
+  104) echo "Validation: Not running as root (or invoked via sudo)" ;;
+  105) echo "Validation: Proxmox VE version not supported" ;;
+  106) echo "Validation: Architecture not supported (ARM / PiMox)" ;;
+  107) echo "Validation: Kernel key parameters unreadable" ;;
+  108) echo "Validation: Kernel key limits exceeded" ;;
+  109) echo "Proxmox: No available container ID after max attempts" ;;
+  110) echo "Proxmox: Failed to apply default.vars" ;;
 
   # --- BSD sysexits.h (64-78) ---
   64) echo "Usage error (wrong arguments)" ;;
@@ -769,6 +780,76 @@ post_progress_to_api() {
 }
 
 # ------------------------------------------------------------------------------
+# post_preflight_to_api()
+#
+# - Reports preflight failure to telemetry with "aborted" status
+# - Uses PREFLIGHT_FAILURES array from build.func for error details
+# - Sends error_category "preflight" for analytics grouping
+# - Fire-and-forget: never blocks or fails script execution
+# ------------------------------------------------------------------------------
+post_preflight_to_api() {
+  # Silent fail - telemetry should never break scripts
+  command -v curl &>/dev/null || return 0
+  [[ "${DIAGNOSTICS:-no}" == "no" ]] && return 0
+  [[ -z "${RANDOM_UUID:-}" ]] && return 0
+
+  # Set type for telemetry
+  TELEMETRY_TYPE="lxc"
+
+  local pve_version=""
+  if command -v pveversion &>/dev/null; then
+    pve_version=$(pveversion 2>/dev/null | awk -F'[/ ]' '{print $2}') || true
+  fi
+
+  # Build error summary from preflight failures
+  local error_summary=""
+  for failure in "${PREFLIGHT_FAILURES[@]}"; do
+    local code="${failure%%|*}"
+    local msg="${failure#*|}"
+    if [[ -n "$error_summary" ]]; then
+      error_summary="${error_summary}\n"
+    fi
+    error_summary="${error_summary}[${code}] ${msg}"
+  done
+  error_summary=$(json_escape "$error_summary")
+
+  local exit_code="${PREFLIGHT_EXIT_CODE:-1}"
+  local short_error
+  short_error=$(json_escape "$(explain_exit_code "$exit_code")")
+  local error_category="preflight"
+
+  local JSON_PAYLOAD
+  JSON_PAYLOAD=$(
+    cat <<EOF
+{
+    "random_id": "${RANDOM_UUID}",
+    "execution_id": "${EXECUTION_ID:-${RANDOM_UUID}}",
+    "type": "lxc",
+    "nsapp": "${NSAPP:-unknown}",
+    "status": "aborted",
+    "ct_type": ${CT_TYPE:-1},
+    "disk_size": ${DISK_SIZE:-0},
+    "core_count": ${CORE_COUNT:-0},
+    "ram_size": ${RAM_SIZE:-0},
+    "os_type": "${var_os:-}",
+    "os_version": "${var_version:-}",
+    "pve_version": "${pve_version}",
+    "method": "${METHOD:-default}",
+    "exit_code": ${exit_code},
+    "error": "${error_summary}",
+    "error_category": "${error_category}",
+    "repo_source": "${REPO_SOURCE}"
+}
+EOF
+  )
+
+  # Fire-and-forget with short timeout
+  curl -fsS -m "${TELEMETRY_TIMEOUT}" -X POST "${TELEMETRY_URL}" \
+    -H "Content-Type: application/json" \
+    -d "$JSON_PAYLOAD" &>/dev/null || true
+}
+
+# ------------------------------------------------------------------------------
 # post_update_to_api()
 #
 # - Reports installation completion status to telemetry ingest service
@@ -815,7 +896,7 @@ post_update_to_api() {
   # Get RAM info (if detected)
   local ram_speed="${RAM_SPEED:-}"
 
-  # Map status to telemetry values: installing, success, failed, unknown
+  # Map status to telemetry values: installing, success, failed, aborted, unknown
   case "$status" in
   done | success)
     pb_status="success"
@@ -826,14 +907,17 @@ post_update_to_api() {
   failed)
     pb_status="failed"
     ;;
+  aborted)
+    pb_status="aborted"
+    ;;
   *)
     pb_status="unknown"
     ;;
   esac
 
-  # For failed/unknown status, resolve exit code and error description
+  # For failed/aborted/unknown status, resolve exit code and error description
   local short_error=""
-  if [[ "$pb_status" == "failed" ]] || [[ "$pb_status" == "unknown" ]]; then
+  if [[ "$pb_status" == "failed" ]] || [[ "$pb_status" == "aborted" ]] || [[ "$pb_status" == "unknown" ]]; then
     if [[ "$raw_exit_code" =~ ^[0-9]+$ ]]; then
       exit_code="$raw_exit_code"
     else
@@ -994,7 +1078,7 @@ EOF
 # categorize_error()
 #
 # - Maps exit codes to error categories for better analytics
-# - Categories: network, storage, dependency, permission, timeout, config, resource, unknown
+# - Categories: network, storage, dependency, permission, timeout, config, resource, preflight, unknown
 # - Used to group errors in dashboard
 # ------------------------------------------------------------------------------
 categorize_error() {
@@ -1017,6 +1101,9 @@ categorize_error() {
 
   # Permission errors
   126 | 152) echo "permission" ;;
+
+  # Validation / Preflight errors
+  103 | 104 | 105 | 106 | 107 | 108) echo "preflight" ;;
 
   # Configuration errors (Proxmox config, invalid args)
   128 | 203 | 204 | 205 | 206 | 207 | 208) echo "config" ;;
@@ -1318,13 +1405,16 @@ post_update_to_api_extended() {
   failed)
     pb_status="failed"
     ;;
+  aborted)
+    pb_status="aborted"
+    ;;
   *)
     pb_status="unknown"
     ;;
   esac
 
-  # For failed/unknown status, resolve exit code and error description
-  if [[ "$pb_status" == "failed" ]] || [[ "$pb_status" == "unknown" ]]; then
+  # For failed/aborted/unknown status, resolve exit code and error description
+  if [[ "$pb_status" == "failed" ]] || [[ "$pb_status" == "aborted" ]] || [[ "$pb_status" == "unknown" ]]; then
     if [[ "$raw_exit_code" =~ ^[0-9]+$ ]]; then
       exit_code="$raw_exit_code"
     else
