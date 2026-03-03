@@ -122,25 +122,13 @@ EOF
 validate_torch_import() {
   local import_log
   local rc=0
-  if command -v timeout >/dev/null 2>&1; then
-    set +e
-    import_log="$(timeout 45 .venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
-    rc=$?
-    set -e
-  else
-    set +e
-    import_log="$(.venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
-    rc=$?
-    set -e
-  fi
+  set +e
+  import_log="$(.venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
+  rc=$?
+  set -e
 
   if [[ $rc -eq 0 ]]; then
     return 0
-  fi
-
-  if [[ $rc -eq 124 ]]; then
-    msg_warn "Torch import timed out after 45 seconds"
-    return 2
   fi
 
   if echo "${import_log}" | grep -q 'libroctx64.so.4'; then
