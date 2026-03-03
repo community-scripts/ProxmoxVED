@@ -84,7 +84,7 @@ EOF
 
     install_cu128_pytorch() {
       msg_info "Installing NVIDIA CUDA 12.8 PyTorch packages"
-      $STD uv pip install --python /opt/invokeai/.venv/bin/python torch torchvision --index-url https://download.pytorch.org/whl/cu128
+      $STD uv pip install --python /opt/invokeai/.venv/bin/python torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
       msg_ok "Installed NVIDIA CUDA 12.8 PyTorch packages"
     }
 
