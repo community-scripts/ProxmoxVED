@@ -119,28 +119,6 @@ EOF
   return 0
 }
 
-validate_torch_import() {
-  local import_log
-  local rc=0
-  set +e
-  import_log="$(.venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
-  rc=$?
-  set -e
-
-  if [[ $rc -eq 0 ]]; then
-    return 0
-  fi
-
-  if echo "${import_log}" | grep -q 'libroctx64.so.4'; then
-    msg_warn "ROCm runtime library libroctx64.so.4 is missing in this container"
-    msg_warn "Falling back to CPU backend to keep InvokeAI operational"
-    return 2
-  fi
-
-  msg_error "Torch import failed: ${import_log}"
-  return 1
-}
-
 repair_rocm_runtime_libs() {
   local roctx_candidate=""
   if ldconfig -p 2>/dev/null | grep -q 'libroctx64\.so\.4'; then
@@ -184,17 +162,6 @@ if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
   $STD uv pip install --python .venv/bin/python --upgrade invokeai
   install_rocm72_wheels
   repair_rocm_runtime_libs
-  validate_torch_import
-  case $? in
-  0) ;;
-  2)
-    TORCH_BACKEND="cpu"
-    $STD uv pip install --python .venv/bin/python --torch-backend=cpu --upgrade invokeai
-    ;;
-  *)
-    exit 1
-    ;;
-  esac
 elif [[ "${TORCH_BACKEND}" == "cu128" ]]; then
   $STD uv pip install --python .venv/bin/python --upgrade invokeai
   install_cu128_pytorch
