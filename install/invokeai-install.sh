@@ -31,7 +31,24 @@ msg_info "Installing InvokeAI"
 mkdir -p "${INSTALL_DIR}" "${INVOKEAI_ROOT}"
 cd "${INSTALL_DIR}" || exit
 $STD uv venv --python 3.12 .venv
-$STD uv pip install --python .venv/bin/python --torch-backend=cpu --upgrade invokeai
+TORCH_BACKEND="cpu"
+case "${var_torch_backend:-}" in
+cpu | cu128 | rocm6.3)
+  TORCH_BACKEND="${var_torch_backend}"
+  ;;
+*)
+  if [[ "${var_gpu:-no}" == "yes" ]]; then
+    if [[ -e /dev/nvidia0 || -e /dev/nvidiactl ]]; then
+      TORCH_BACKEND="cu128"
+    elif lspci 2>/dev/null | grep -qiE 'AMD|Radeon'; then
+      TORCH_BACKEND="rocm6.3"
+    fi
+  fi
+  ;;
+esac
+
+msg_info "Using torch backend: ${TORCH_BACKEND}"
+$STD uv pip install --python .venv/bin/python --torch-backend="${TORCH_BACKEND}" --upgrade invokeai
 INVOKEAI_VERSION="$(.venv/bin/python -c "import importlib.metadata as m; print(m.version('invokeai'))")"
 echo "${INVOKEAI_VERSION}" >"$HOME/.invokeai"
 msg_ok "Installed InvokeAI v${INVOKEAI_VERSION}"

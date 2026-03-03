@@ -11,6 +11,7 @@ var_tags="${var_tags:-ai;image-generation}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-8192}"
 var_disk="${var_disk:-30}"
+var_gpu="${var_gpu:-yes}"
 
 header_info "$APP"
 variables
@@ -28,12 +29,28 @@ function update_script() {
   fi
 
   if check_for_gh_release "invokeai" "invoke-ai/InvokeAI"; then
+    TORCH_BACKEND="cpu"
+    case "${var_torch_backend:-}" in
+    cpu | cu128 | rocm6.3)
+      TORCH_BACKEND="${var_torch_backend}"
+      ;;
+    *)
+      if [[ "${var_gpu:-no}" == "yes" ]]; then
+        if [[ -e /dev/nvidia0 || -e /dev/nvidiactl ]]; then
+          TORCH_BACKEND="cu128"
+        elif lspci 2>/dev/null | grep -qiE 'AMD|Radeon'; then
+          TORCH_BACKEND="rocm6.3"
+        fi
+      fi
+      ;;
+    esac
+
     msg_info "Stopping Service"
     systemctl stop invokeai
     msg_ok "Stopped Service"
 
-    msg_info "Updating InvokeAI"
-    if ! $STD uv pip install --python /opt/invokeai/.venv/bin/python --torch-backend=cpu --upgrade invokeai; then
+    msg_info "Updating InvokeAI (${TORCH_BACKEND})"
+    if ! $STD uv pip install --python /opt/invokeai/.venv/bin/python --torch-backend="${TORCH_BACKEND}" --upgrade invokeai; then
       systemctl start invokeai || true
       msg_error "Failed to update InvokeAI"
       exit 1

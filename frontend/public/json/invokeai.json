@@ -33,7 +33,11 @@
   },
   "notes": [
     {
-      "text": "This installer uses a CPU-only torch backend by default; GPU passthrough requires manual post-install adjustments.",
+      "text": "Torch backend auto-selects from available GPU devices (`cu128` for NVIDIA, `rocm6.3` for AMD) and falls back to CPU.",
+      "type": "info"
+    },
+    {
+      "text": "Use `var_torch_backend=cpu|cu128|rocm6.3` to force a specific backend during install/update.",
       "type": "info"
     },
     {
