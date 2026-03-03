@@ -84,8 +84,9 @@ variables() {
 }
 
 # Configurable base URL for development — override with COMMUNITY_SCRIPTS_URL
+# Backward compatible with legacy COMMUNITY_SCRIPT_URL
 # See docs/DEV_MODE.md for details
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-${COMMUNITY_SCRIPT_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}}"
 
 source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/api.func")
 
