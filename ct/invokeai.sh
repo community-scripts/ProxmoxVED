@@ -29,6 +29,27 @@ function update_script() {
   fi
 
   if check_for_gh_release "invokeai" "invoke-ai/InvokeAI"; then
+    if grep -qE -- '--host|--port' /etc/systemd/system/invokeai.service; then
+      msg_info "Repairing InvokeAI Service"
+      cat <<EOF >/etc/systemd/system/invokeai.service
+[Unit]
+Description=InvokeAI Web Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/invokeai
+ExecStart=/opt/invokeai/.venv/bin/invokeai-web --root /opt/invokeai/root
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+      systemctl daemon-reload
+      msg_ok "Repaired InvokeAI Service"
+    fi
+
     TORCH_BACKEND="cpu"
     case "${var_torch_backend:-}" in
     cpu | cu128 | rocm6.3)

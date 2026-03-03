@@ -62,7 +62,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=${INSTALL_DIR}
-ExecStart=${INSTALL_DIR}/.venv/bin/invokeai-web --root ${INVOKEAI_ROOT} --host 0.0.0.0 --port 9090
+ExecStart=${INSTALL_DIR}/.venv/bin/invokeai-web --root ${INVOKEAI_ROOT}
 Restart=on-failure
 RestartSec=5
 
