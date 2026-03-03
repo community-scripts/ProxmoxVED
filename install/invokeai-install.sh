@@ -33,7 +33,7 @@ cd "${INSTALL_DIR}" || exit
 $STD uv venv --python 3.12 .venv
 TORCH_BACKEND="cpu"
 case "${var_torch_backend:-}" in
-cpu | cu128 | rocm6.3)
+cpu | cu128 | rocm7.2)
   TORCH_BACKEND="${var_torch_backend}"
   ;;
 *)
@@ -41,14 +41,35 @@ cpu | cu128 | rocm6.3)
     if [[ -e /dev/nvidia0 || -e /dev/nvidiactl ]]; then
       TORCH_BACKEND="cu128"
     elif lspci 2>/dev/null | grep -qiE 'AMD|Radeon'; then
-      TORCH_BACKEND="rocm6.3"
+      TORCH_BACKEND="rocm7.2"
     fi
   fi
   ;;
 esac
 
+ROCM72_TORCH_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torch-2.9.1%2Brocm7.2.0.lw.git7e1940d4-cp312-cp312-linux_x86_64.whl"
+ROCM72_TORCHVISION_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torchvision-0.24.0%2Brocm7.2.0.gitb919bd0c-cp312-cp312-linux_x86_64.whl"
+ROCM72_TRITON_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/triton-3.5.1%2Brocm7.2.0.gita272dfa8-cp312-cp312-linux_x86_64.whl"
+ROCM72_TORCHAUDIO_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torchaudio-2.9.0%2Brocm7.2.0.gite3c6ee2b-cp312-cp312-linux_x86_64.whl"
+
+install_rocm72_wheels() {
+  msg_info "Installing ROCm 7.2 PyTorch wheels"
+  $STD uv pip uninstall --python .venv/bin/python -y torch torchvision triton torchaudio || true
+  $STD uv pip install --python .venv/bin/python \
+    "${ROCM72_TORCH_WHL}" \
+    "${ROCM72_TORCHVISION_WHL}" \
+    "${ROCM72_TORCHAUDIO_WHL}" \
+    "${ROCM72_TRITON_WHL}"
+  msg_ok "Installed ROCm 7.2 wheels"
+}
+
 msg_info "Using torch backend: ${TORCH_BACKEND}"
-$STD uv pip install --python .venv/bin/python --torch-backend="${TORCH_BACKEND}" --upgrade invokeai
+if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
+  $STD uv pip install --python .venv/bin/python --upgrade invokeai
+  install_rocm72_wheels
+else
+  $STD uv pip install --python .venv/bin/python --torch-backend="${TORCH_BACKEND}" --upgrade invokeai
+fi
 INVOKEAI_VERSION="$(.venv/bin/python -c "import importlib.metadata as m; print(m.version('invokeai'))")"
 echo "${INVOKEAI_VERSION}" >"$HOME/.invokeai"
 msg_ok "Installed InvokeAI v${INVOKEAI_VERSION}"

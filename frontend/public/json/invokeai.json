@@ -33,11 +33,11 @@
   },
   "notes": [
     {
-      "text": "Torch backend auto-selects from available GPU devices (`cu128` for NVIDIA, `rocm6.3` for AMD) and falls back to CPU.",
+      "text": "Torch backend auto-selects from available GPU devices (`cu128` for NVIDIA, `rocm7.2` for AMD) and falls back to CPU.",
       "type": "info"
     },
     {
-      "text": "Use `var_torch_backend=cpu|cu128|rocm6.3` to force a specific backend during install/update.",
+      "text": "Use `var_torch_backend=cpu|cu128|rocm7.2` to force a specific backend during install/update.",
       "type": "info"
     },
     {
