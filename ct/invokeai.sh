@@ -82,6 +82,12 @@ EOF
       msg_ok "Installed ROCm 7.2 wheels"
     }
 
+    install_cu128_pytorch() {
+      msg_info "Installing NVIDIA CUDA 12.8 PyTorch packages"
+      $STD uv pip install --python /opt/invokeai/.venv/bin/python torch torchvision --index-url https://download.pytorch.org/whl/cu128
+      msg_ok "Installed NVIDIA CUDA 12.8 PyTorch packages"
+    }
+
     msg_info "Stopping Service"
     systemctl stop invokeai
     msg_ok "Stopped Service"
@@ -96,6 +102,17 @@ EOF
       if ! install_rocm72_wheels; then
         systemctl start invokeai || true
         msg_error "Failed to install ROCm 7.2 wheels"
+        exit 1
+      fi
+    elif [[ "${TORCH_BACKEND}" == "cu128" ]]; then
+      if ! $STD uv pip install --python /opt/invokeai/.venv/bin/python --upgrade invokeai; then
+        systemctl start invokeai || true
+        msg_error "Failed to update InvokeAI"
+        exit 1
+      fi
+      if ! install_cu128_pytorch; then
+        systemctl start invokeai || true
+        msg_error "Failed to install NVIDIA CUDA 12.8 PyTorch packages"
         exit 1
       fi
     elif ! $STD uv pip install --python /opt/invokeai/.venv/bin/python --torch-backend="${TORCH_BACKEND}" --upgrade invokeai; then

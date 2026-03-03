@@ -63,10 +63,19 @@ install_rocm72_wheels() {
   msg_ok "Installed ROCm 7.2 wheels"
 }
 
+install_cu128_pytorch() {
+  msg_info "Installing NVIDIA CUDA 12.8 PyTorch packages"
+  $STD uv pip install --python .venv/bin/python torch torchvision --index-url https://download.pytorch.org/whl/cu128
+  msg_ok "Installed NVIDIA CUDA 12.8 PyTorch packages"
+}
+
 msg_info "Using torch backend: ${TORCH_BACKEND}"
 if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
   $STD uv pip install --python .venv/bin/python --upgrade invokeai
   install_rocm72_wheels
+elif [[ "${TORCH_BACKEND}" == "cu128" ]]; then
+  $STD uv pip install --python .venv/bin/python --upgrade invokeai
+  install_cu128_pytorch
 else
   $STD uv pip install --python .venv/bin/python --torch-backend="${TORCH_BACKEND}" --upgrade invokeai
 fi
