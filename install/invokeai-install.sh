@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: BillyOutlast
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/invoke-ai/InvokeAI
+
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
+
+INSTALL_DIR="/opt/invokeai"
+INVOKEAI_ROOT="${INSTALL_DIR}/root"
+
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  build-essential \
+  git \
+  libgl1 \
+  libglib2.0-0 \
+  ffmpeg
+msg_ok "Installed Dependencies"
+
+PYTHON_VERSION="3.12" setup_uv
+
+msg_info "Installing InvokeAI"
+mkdir -p "${INSTALL_DIR}" "${INVOKEAI_ROOT}"
+cd "${INSTALL_DIR}" || exit
+$STD uv venv --python 3.12 .venv
+$STD uv pip install --python .venv/bin/python --torch-backend=cpu --upgrade invokeai
+INVOKEAI_VERSION="$(.venv/bin/python -c "import importlib.metadata as m; print(m.version('invokeai'))")"
+echo "${INVOKEAI_VERSION}" >"$HOME/.invokeai"
+msg_ok "Installed InvokeAI v${INVOKEAI_VERSION}"
+
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/invokeai.service
+[Unit]
+Description=InvokeAI Web Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${INSTALL_DIR}
+ExecStart=${INSTALL_DIR}/.venv/bin/invokeai-web --root ${INVOKEAI_ROOT} --host 0.0.0.0 --port 9090
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now invokeai
+msg_ok "Created Service"
+
+motd_ssh
+customize
+cleanup_lxc

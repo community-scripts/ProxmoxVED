@@ -1,0 +1,44 @@
+{
+  "name": "InvokeAI",
+  "slug": "invokeai",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-03-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 9090,
+  "documentation": "https://invoke-ai.github.io/InvokeAI/installation/quick_start/",
+  "website": "https://github.com/invoke-ai/InvokeAI",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/invokeai.webp",
+  "config_path": "/opt/invokeai/root/invokeai.yaml",
+  "description": "InvokeAI is an open-source AI image generation platform with a web UI, workflows, and model management for local inference.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/invokeai.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 30,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This installer uses a CPU-only torch backend by default; GPU passthrough requires manual post-install adjustments.",
+      "type": "info"
+    },
+    {
+      "text": "Open the web UI and use the built-in model manager to download or import models after first start.",
+      "type": "info"
+    }
+  ]
+}
