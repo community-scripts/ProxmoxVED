@@ -97,7 +97,7 @@ EOF
 
     install_rocm72_wheels() {
       msg_info "Installing ROCm 7.2 PyTorch wheels"
-      $STD uv pip uninstall --python /opt/invokeai/.venv/bin/python -y torch torchvision triton torchaudio || true
+      $STD uv pip uninstall --python /opt/invokeai/.venv/bin/python torch torchvision triton torchaudio || true
       $STD uv pip install --python /opt/invokeai/.venv/bin/python \
         "${ROCM72_TORCH_WHL}" \
         "${ROCM72_TORCHVISION_WHL}" \
