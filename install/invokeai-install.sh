@@ -89,6 +89,13 @@ INVOKEAI_VERSION="$(.venv/bin/python -c "import importlib.metadata as m; print(m
 echo "${INVOKEAI_VERSION}" >"$HOME/.invokeai"
 msg_ok "Installed InvokeAI v${INVOKEAI_VERSION}"
 
+INVOKEAI_CONFIG="${INVOKEAI_ROOT}/invokeai.yaml"
+if [[ -f "${INVOKEAI_CONFIG}" ]] && ! grep -qE '^[[:space:]]*schema_version:' "${INVOKEAI_CONFIG}"; then
+  msg_warn "Detected invalid invokeai.yaml (missing schema_version)"
+  mv "${INVOKEAI_CONFIG}" "${INVOKEAI_CONFIG}.broken.$(date +%s)"
+  msg_ok "Backed up invalid invokeai.yaml; InvokeAI will regenerate defaults"
+fi
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/invokeai.service
 [Unit]

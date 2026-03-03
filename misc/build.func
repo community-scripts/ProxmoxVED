@@ -4133,6 +4133,8 @@ build_container() {
   export PCT_DISK_SIZE="$DISK_SIZE"
   export IPV6_METHOD="$IPV6_METHOD"
   export ENABLE_GPU="$ENABLE_GPU"
+  export var_gpu="${var_gpu:-no}"
+  export var_torch_backend="${var_torch_backend:-}"
   export APPLICATION_VERSION="${var_appversion:-}"
 
   # DEV_MODE exports (optional, for debugging)

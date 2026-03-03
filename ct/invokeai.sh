@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-${COMMUNITY_SCRIPT_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}}"
+source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/build.func")
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: BillyOutlast
