@@ -30,8 +30,25 @@ function update_script() {
 
   msg_info "Updating MCPHub"
   systemctl stop mcphub
-  $STD npm update -g @samanhappy/mcphub
-  systemctl start mcphub
+  if ! $STD npm update -g @samanhappy/mcphub; then
+    if systemctl start mcphub; then
+      msg_error "Failed to update MCPHub. Service restart succeeded."
+    else
+      msg_error "Failed to update MCPHub and failed to restart service."
+    fi
+    exit 1
+  fi
+
+  if ! systemctl start mcphub; then
+    msg_error "MCPHub updated, but failed to start service."
+    exit 1
+  fi
+
+  if ! systemctl is-active -q mcphub; then
+    msg_error "MCPHub updated, but service is not running."
+    exit 1
+  fi
+
   msg_ok "Updated MCPHub"
   exit
 }
