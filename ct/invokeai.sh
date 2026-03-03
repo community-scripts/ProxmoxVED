@@ -61,6 +61,8 @@ EOF
           TORCH_BACKEND="cu128"
         elif lspci 2>/dev/null | grep -qiE 'AMD|Radeon'; then
           TORCH_BACKEND="rocm7.2"
+        elif grep -qEi '0x1002|0x1022' /sys/class/drm/renderD*/device/vendor /sys/class/drm/card*/device/vendor 2>/dev/null; then
+          TORCH_BACKEND="rocm7.2"
         fi
       fi
       ;;
