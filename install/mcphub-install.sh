@@ -34,6 +34,8 @@ EOF
 msg_ok "Created Default Configuration"
 
 msg_info "Creating Service"
+NPM_GLOBAL_BIN="$(npm prefix -g)/bin"
+MCPHUB_BIN="${NPM_GLOBAL_BIN}/mcphub"
 cat <<EOF >/etc/systemd/system/mcphub.service
 [Unit]
 Description=MCPHub
@@ -45,7 +47,7 @@ WorkingDirectory=/opt/mcphub
 Environment=NODE_ENV=production
 Environment=PORT=3000
 Environment=MCPHUB_SETTING_PATH=/opt/mcphub/mcp_settings.json
-ExecStart=mcphub
+ExecStart=${MCPHUB_BIN}
 Restart=always
 RestartSec=5
 
