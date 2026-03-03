@@ -29,7 +29,12 @@
   ],
   "default_credentials": {
     "username": "admin",
-    "password": "admin123"
+    "password": "CHANGE_ME"
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Sign in to the MCPHub web UI and change the admin password immediately after installation.",
+      "type": "warning"
+    }
+  ]
 }
