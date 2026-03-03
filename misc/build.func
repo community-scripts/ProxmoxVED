@@ -4416,6 +4416,11 @@ EOF
         dev_index=$((dev_index + 1))
       done
 
+      if [[ "$selected_gpu" == "AMD" && -e /dev/kfd ]]; then
+        echo "dev${dev_index}: /dev/kfd,gid=104" >>"$LXC_CONFIG"
+        dev_index=$((dev_index + 1))
+      fi
+
       export GPU_TYPE="$selected_gpu"
       msg_ok "${selected_gpu} GPU passthrough configured (${#devices[@]} devices)"
       ;;
@@ -5164,6 +5169,7 @@ fix_gpu_gids() {
   # Update dev entries with correct GIDs
   sed -i.bak -E "s|(dev[0-9]+: /dev/dri/renderD[0-9]+),gid=[0-9]+|\1,gid=${render_gid}|g" "$LXC_CONFIG"
   sed -i -E "s|(dev[0-9]+: /dev/dri/card[0-9]+),gid=[0-9]+|\1,gid=${video_gid}|g" "$LXC_CONFIG"
+  sed -i -E "s|(dev[0-9]+: /dev/kfd),gid=[0-9]+|\1,gid=${render_gid}|g" "$LXC_CONFIG"
 
   # Restart container
   pct start "$CTID" >/dev/null 2>&1

@@ -13,6 +13,14 @@ var_ram="${var_ram:-8192}"
 var_disk="${var_disk:-30}"
 var_gpu="${var_gpu:-yes}"
 
+if [[ -z "${var_torch_backend:-}" && "${var_gpu:-no}" == "yes" ]]; then
+  if [[ -e /dev/nvidia0 || -e /dev/nvidiactl ]] || lspci 2>/dev/null | grep -qi 'NVIDIA'; then
+    var_torch_backend="cu128"
+  elif [[ -e /dev/kfd ]] || lspci 2>/dev/null | grep -qiE 'AMD|Radeon'; then
+    var_torch_backend="rocm7.2"
+  fi
+fi
+
 header_info "$APP"
 variables
 color
@@ -85,6 +93,10 @@ EOF
       fi
       ;;
     esac
+
+    if [[ "${var_gpu:-no}" == "yes" && "${TORCH_BACKEND}" == "cpu" && -e /dev/kfd ]]; then
+      TORCH_BACKEND="rocm7.2"
+    fi
 
     ROCM72_TORCH_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torch-2.9.1%2Brocm7.2.0.lw.git7e1940d4-cp312-cp312-linux_x86_64.whl"
     ROCM72_TORCHVISION_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torchvision-0.24.0%2Brocm7.2.0.gitb919bd0c-cp312-cp312-linux_x86_64.whl"
