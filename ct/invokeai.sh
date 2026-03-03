@@ -159,8 +159,19 @@ EOF
 
     validate_torch_import() {
       local import_log
-      import_log="$(timeout 45 /opt/invokeai/.venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
-      local rc=$?
+      local rc=0
+      if command -v timeout >/dev/null 2>&1; then
+        set +e
+        import_log="$(timeout 45 /opt/invokeai/.venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
+        rc=$?
+        set -e
+      else
+        set +e
+        import_log="$(/opt/invokeai/.venv/bin/python -c "import torch; print(getattr(torch.version, 'hip', None) or 'ok')" 2>&1)"
+        rc=$?
+        set -e
+      fi
+
       if [[ $rc -eq 0 ]]; then
         return 0
       fi
