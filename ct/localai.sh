@@ -23,6 +23,8 @@ variables
 color
 catch_errors
 
+KFD_PASSTHROUGH_ADDED=0
+
 function ensure_kfd_passthrough() {
   if ! command -v lspci >/dev/null 2>&1; then
     return 0
@@ -54,6 +56,7 @@ function ensure_kfd_passthrough() {
   msg_info "Configuring /dev/kfd passthrough"
   echo "dev${next_dev}: /dev/kfd,gid=44" >>"$lxc_config"
   echo "lxc.cgroup2.devices.allow: c 235:* rwm" >>"$lxc_config"
+  KFD_PASSTHROUGH_ADDED=1
   msg_ok "Configured /dev/kfd passthrough"
 
   if pct status "$CTID" | grep -q "running"; then
@@ -64,6 +67,44 @@ function ensure_kfd_passthrough() {
     }
     msg_ok "Restarted container"
   fi
+}
+
+function install_rocm_if_kfd() {
+  if [[ "$KFD_PASSTHROUGH_ADDED" != "1" ]]; then
+    return 0
+  fi
+
+  msg_info "Installing ROCm after /dev/kfd passthrough"
+  pct exec "$CTID" -- bash -lc '
+    set -e
+    if ! test -e /dev/kfd; then
+      exit 0
+    fi
+    if command -v rocminfo >/dev/null 2>&1; then
+      exit 0
+    fi
+
+    apt-get update -y
+    apt-get install -y curl gpg ca-certificates
+    mkdir -p /etc/apt/keyrings
+    curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
+    chmod 644 /etc/apt/keyrings/rocm.gpg
+
+    cat <<EOF >/etc/apt/sources.list.d/rocm.list
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.2 noble main
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/7.2/ubuntu noble main
+EOF
+
+    cat <<EOF >/etc/apt/preferences.d/rocm-pin-600
+Package: *
+Pin: release o=repo.radeon.com
+Pin-Priority: 600
+EOF
+
+    apt-get update -y
+    apt-get install -y rocm
+  '
+  msg_ok "Installed ROCm"
 }
 
 function update_script() {
@@ -121,9 +162,26 @@ function update_script() {
 start
 build_container
 ensure_kfd_passthrough
+install_rocm_if_kfd
 description
 
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
+
+if [[ -z "${IP:-}" ]]; then
+  IP=$(pct exec "$CTID" -- sh -c "hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.' | head -n1")
+fi
+if [[ -z "${IP:-}" ]]; then
+  IP=$(pct exec "$CTID" -- sh -c "hostname -I 2>/dev/null | tr ' ' '\n' | grep -E ':' | head -n1")
+fi
+
+URL_HOST="${IP:-}"
+if [[ -n "${URL_HOST}" && "${URL_HOST}" == *:* ]]; then
+  URL_HOST="[${URL_HOST}]"
+fi
+if [[ -z "${URL_HOST}" ]]; then
+  echo -e "${TAB}${GATEWAY}${BGN}http://<container-ip>:8080${CL}"
+else
+  echo -e "${TAB}${GATEWAY}${BGN}http://${URL_HOST}:8080${CL}"
+fi
