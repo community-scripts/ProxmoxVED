@@ -22,20 +22,19 @@ $STD apt install -y \
   pciutils
 msg_ok "Installed Dependencies"
 
-msg_info "Installing LocalAI"
-release_json="$(curl -fsSL https://api.github.com/repos/mudler/LocalAI/releases/latest)"
-release_tag="$(echo "$release_json" | jq -r '.tag_name')"
-asset_url="$(echo "$release_json" | jq -r '.assets[] | select(.name | test("^local-ai-v.*-linux-amd64$")) | .browser_download_url' | head -n1)"
-if [[ -z "$asset_url" || "$asset_url" == "null" ]]; then
-  msg_error "Unable to resolve LocalAI linux-amd64 release asset"
+fetch_and_deploy_gh_release "localai" "mudler/LocalAI" "singlefile" "latest" "/opt/localai-bin" "local-ai-v*-linux-amd64"
+
+msg_info "Installing LocalAI Binary"
+localai_binary="$(find /opt/localai-bin -maxdepth 1 -type f -name 'local-ai-v*-linux-amd64' | sort | tail -n1)"
+if [[ -z "$localai_binary" ]]; then
+  msg_error "Unable to locate downloaded LocalAI linux-amd64 binary"
   exit 1
 fi
-$STD curl -fsSL "$asset_url" -o /usr/local/bin/local-ai
-chmod 755 /usr/local/bin/local-ai
-if [[ -n "$release_tag" && "$release_tag" != "null" ]]; then
-  echo "${release_tag#v}" >/opt/localai_version.txt
+install -m 755 "$localai_binary" /usr/local/bin/local-ai
+if [[ -f ~/.localai ]]; then
+  tr -d '\n' <~/.localai >/opt/localai_version.txt
 fi
-msg_ok "Installed LocalAI"
+msg_ok "Installed LocalAI Binary"
 
 if [[ -e /dev/kfd ]] || lspci -nn 2>/dev/null | grep -qE '\[1002:|\[1022:'; then
   msg_info "Installing ROCm"

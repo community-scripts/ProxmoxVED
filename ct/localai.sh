@@ -170,23 +170,22 @@ function update_script() {
     pct exec "$CTID" -- systemctl stop localai || true
     msg_ok "Stopped LocalAI Service"
 
-    msg_info "Updating LocalAI"
+    fetch_and_deploy_gh_release "localai" "mudler/LocalAI" "singlefile" "latest" "/opt/localai-bin" "local-ai-v*-linux-amd64"
+
+    msg_info "Updating LocalAI Binary"
     pct exec "$CTID" -- bash -lc '
       set -e
-      release_json="$(curl -fsSL https://api.github.com/repos/mudler/LocalAI/releases/latest)"
-      release_tag="$(echo "$release_json" | jq -r '.tag_name')"
-      asset_url="$(echo "$release_json" | jq -r '\'' .assets[] | select(.name | test("^local-ai-v.*-linux-amd64$")) | .browser_download_url '\'' | head -n1)"
-      if [[ -z "$asset_url" || "$asset_url" == "null" ]]; then
-        echo "Unable to resolve LocalAI linux-amd64 release asset" >&2
+      localai_binary="$(find /opt/localai-bin -maxdepth 1 -type f -name "local-ai-v*-linux-amd64" | sort | tail -n1)"
+      if [[ -z "$localai_binary" ]]; then
+        echo "Unable to locate downloaded LocalAI linux-amd64 binary" >&2
         exit 1
       fi
-      curl -fsSL "$asset_url" -o /usr/local/bin/local-ai
-      chmod 755 /usr/local/bin/local-ai
-      if [[ -n "$release_tag" && "$release_tag" != "null" ]]; then
-        echo "${release_tag#v}" >/opt/localai_version.txt
+      install -m 755 "$localai_binary" /usr/local/bin/local-ai
+      if [[ -f ~/.localai ]]; then
+        tr -d "\n" <~/.localai >/opt/localai_version.txt
       fi
     '
-    msg_ok "Updated LocalAI"
+    msg_ok "Updated LocalAI Binary"
 
     msg_info "Starting LocalAI Service"
     pct exec "$CTID" -- systemctl restart localai || {
