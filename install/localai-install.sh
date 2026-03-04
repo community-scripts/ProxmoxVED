@@ -22,6 +22,31 @@ $STD apt install -y \
   pciutils
 msg_ok "Installed Dependencies"
 
+msg_info "Installing Docker"
+docker_conflicts="$(dpkg --get-selections docker.io docker-compose docker-doc podman-docker containerd runc 2>/dev/null | awk '{print $1}')"
+if [[ -n "$docker_conflicts" ]]; then
+  $STD apt remove -y $docker_conflicts
+fi
+
+$STD apt update
+$STD apt install -y ca-certificates curl
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+cat <<EOF >/etc/apt/sources.list.d/docker.sources
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+Components: stable
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+$STD apt update
+$STD apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl enable -q --now docker
+msg_ok "Installed Docker"
+
 fetch_and_deploy_gh_release "localai" "mudler/LocalAI" "singlefile" "latest" "/opt/localai-bin" "local-ai-v*-linux-amd64"
 
 msg_info "Installing LocalAI Binary"
