@@ -17,7 +17,6 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 var_gpu="${var_gpu:-yes}"
-var_require_rocm="${var_require_rocm:-yes}"
 
 header_info "$APP"
 variables
