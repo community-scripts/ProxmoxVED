@@ -149,6 +149,16 @@ repair_rocm_runtime_libs() {
   fi
 }
 
+rocm_runtime_available() {
+  if ldconfig -p 2>/dev/null | grep -q 'libroctx64\.so\.4'; then
+    return 0
+  fi
+  if find /opt/rocm /usr/lib /usr/local/lib -type f -name 'libroctx64.so*' 2>/dev/null | grep -q .; then
+    return 0
+  fi
+  return 1
+}
+
 install_cu128_pytorch() {
   msg_info "Installing NVIDIA CUDA 12.8 PyTorch packages"
   $STD uv pip install --python .venv/bin/python torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
@@ -162,6 +172,11 @@ if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
   $STD uv pip install --python .venv/bin/python --upgrade invokeai
   install_rocm72_wheels
   repair_rocm_runtime_libs
+  if ! rocm_runtime_available; then
+    msg_warn "ROCm runtime libraries are unavailable; switching to CPU backend"
+    TORCH_BACKEND="cpu"
+    $STD uv pip install --python .venv/bin/python --torch-backend=cpu --upgrade invokeai
+  fi
 elif [[ "${TORCH_BACKEND}" == "cu128" ]]; then
   $STD uv pip install --python .venv/bin/python --upgrade invokeai
   install_cu128_pytorch
