@@ -31,7 +31,7 @@ function amd_gpu_detected() {
   if ! command -v lspci >/dev/null 2>&1; then
     return 1
   fi
-  lspci -nn 2>/dev/null | grep -qE '\[1002:|\[1022:'
+  lspci -nn 2>/dev/null | grep -qE '(VGA|3D controller).*\[(1002|1022):'
 }
 
 function ensure_kfd_passthrough() {
