@@ -11,7 +11,7 @@ APP="InvokeAI"
 var_tags="${var_tags:-ai;image-generation}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-8192}"
-var_disk="${var_disk:-30}"
+var_disk="${var_disk:-60}"
 var_gpu="${var_gpu:-yes}"
 
 if [[ -z "${var_torch_backend:-}" && "${var_gpu:-no}" == "yes" ]]; then
