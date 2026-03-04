@@ -40,6 +40,23 @@ msg_ok "Installed LocalAI"
 
 if [[ -e /dev/kfd ]] || lspci -nn 2>/dev/null | grep -qE '\[1002:|\[1022:'; then
   msg_info "Installing ROCm"
+  export DEBIAN_FRONTEND=noninteractive
+
+  apt_get_retry_install() {
+    local args="$*"
+    local attempt
+    for attempt in 1 2 3; do
+      apt-get -o Acquire::Retries=5 -o Acquire::http::No-Cache=true -o Acquire::https::No-Cache=true update && \
+        apt-get -o Acquire::Retries=5 install -y $args && return 0
+      apt-get clean || true
+      rm -rf /var/lib/apt/lists/* || true
+      if [[ "$attempt" -lt 3 ]]; then
+        sleep 5
+      fi
+    done
+    return 1
+  }
+
   mkdir -p /etc/apt/keyrings
   curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
   chmod 644 /etc/apt/keyrings/rocm.gpg
@@ -55,8 +72,7 @@ Pin: release o=repo.radeon.com
 Pin-Priority: 600
 EOF
 
-  $STD apt update
-  $STD apt install -y rocm
+  apt_get_retry_install --fix-missing --no-install-recommends rocm
   msg_ok "Installed ROCm"
   if [[ ! -e /dev/kfd ]]; then
     msg_warn "ROCm installed without /dev/kfd; add /dev/kfd passthrough and restart container for GPU acceleration"

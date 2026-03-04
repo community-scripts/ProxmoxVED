@@ -12,7 +12,7 @@ APP="LocalAI"
 var_tags="${var_tags:-ai;llm}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-8192}"
-var_disk="${var_disk:-30}"
+var_disk="${var_disk:-64}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
@@ -107,8 +107,24 @@ function install_rocm_if_kfd() {
   msg_info "Installing ROCm"
   pct exec "$CTID" -- bash -lc '
     set -e
-    apt-get update -y
-    apt-get install -y curl gpg ca-certificates
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt_get_retry_install() {
+      local args="$*"
+      local attempt
+      for attempt in 1 2 3; do
+        apt-get -o Acquire::Retries=5 -o Acquire::http::No-Cache=true -o Acquire::https::No-Cache=true update && \
+          apt-get -o Acquire::Retries=5 install -y $args && return 0
+        apt-get clean || true
+        rm -rf /var/lib/apt/lists/* || true
+        if [[ "$attempt" -lt 3 ]]; then
+          sleep 5
+        fi
+      done
+      return 1
+    }
+
+    apt_get_retry_install --no-install-recommends curl gpg ca-certificates
     mkdir -p /etc/apt/keyrings
     curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
     chmod 644 /etc/apt/keyrings/rocm.gpg
@@ -124,8 +140,7 @@ Pin: release o=repo.radeon.com
 Pin-Priority: 600
 EOF
 
-    apt-get update -y
-    apt-get install -y rocm
+  apt_get_retry_install --fix-missing --no-install-recommends rocm
   '
   msg_ok "Installed ROCm"
   if [[ "$container_has_kfd" -ne 1 ]]; then
