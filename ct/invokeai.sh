@@ -185,7 +185,7 @@ EOF
         return 0
       fi
 
-      roctx_candidate="$(ldconfig -p 2>/dev/null | awk '/libroctx64\.so(\.[0-9]+)?/{print $NF; exit}')"
+      roctx_candidate="$(ldconfig -p 2>/dev/null | awk '/libroctx64\.so(\.[0-9]+)?/ && first=="" {first=$NF} END{if(first!="") print first}')"
       if [[ -z "${roctx_candidate}" ]]; then
         roctx_candidate="$(find /opt/rocm /usr/lib /usr/local/lib -type f -name 'libroctx64.so*' 2>/dev/null | head -n1)"
       fi
