@@ -98,8 +98,7 @@ EOF
 
     install_rocm72_wheels() {
       msg_info "Installing ROCm 7.2 PyTorch wheels"
-      $STD uv pip uninstall --python /opt/invokeai/.venv/bin/python torch torchvision triton torchaudio || true
-      $STD uv pip install --python /opt/invokeai/.venv/bin/python \
+      $STD uv pip install --python /opt/invokeai/.venv/bin/python --upgrade \
         "${ROCM72_TORCH_WHL}" \
         "${ROCM72_TORCHVISION_WHL}" \
         "${ROCM72_TORCHAUDIO_WHL}" \
@@ -232,15 +231,15 @@ EOF
     msg_info "Updating InvokeAI (${TORCH_BACKEND})"
     if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
       install_rocm_runtime_debian || true
+      if ! install_rocm72_wheels; then
+        systemctl start invokeai || true
+        msg_error "Failed to install ROCm 7.2 wheels"
+        exit 1
+      fi
       msg_info "Installing InvokeAI package (ROCm path, this can take several minutes)"
       if ! $STD uv pip install --python /opt/invokeai/.venv/bin/python --upgrade invokeai; then
         systemctl start invokeai || true
         msg_error "Failed to update InvokeAI"
-        exit 1
-      fi
-      if ! install_rocm72_wheels; then
-        systemctl start invokeai || true
-        msg_error "Failed to install ROCm 7.2 wheels"
         exit 1
       fi
       repair_rocm_runtime_libs

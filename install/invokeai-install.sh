@@ -77,8 +77,7 @@ ROCM72_TORCHAUDIO_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torch
 
 install_rocm72_wheels() {
   msg_info "Installing ROCm 7.2 PyTorch wheels"
-  $STD uv pip uninstall --python .venv/bin/python torch torchvision triton torchaudio || true
-  $STD uv pip install --python .venv/bin/python \
+  $STD uv pip install --python .venv/bin/python --upgrade \
     "${ROCM72_TORCH_WHL}" \
     "${ROCM72_TORCHVISION_WHL}" \
     "${ROCM72_TORCHAUDIO_WHL}" \
@@ -207,9 +206,9 @@ install_cu128_pytorch() {
 msg_info "Using torch backend: ${TORCH_BACKEND}"
 if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
   install_rocm_runtime_debian || true
+  install_rocm72_wheels
   msg_info "Installing InvokeAI package (ROCm path, this can take several minutes)"
   $STD uv pip install --python .venv/bin/python --upgrade invokeai
-  install_rocm72_wheels
   repair_rocm_runtime_libs
   if ! rocm_runtime_available; then
     msg_warn "ROCm runtime libraries are unavailable; switching to CPU backend"
@@ -217,8 +216,8 @@ if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
     $STD uv pip install --python .venv/bin/python --torch-backend=cpu --upgrade invokeai
   fi
 elif [[ "${TORCH_BACKEND}" == "cu128" ]]; then
-  $STD uv pip install --python .venv/bin/python --upgrade invokeai
   install_cu128_pytorch
+  $STD uv pip install --python .venv/bin/python --upgrade invokeai
 else
   $STD uv pip install --python .venv/bin/python --torch-backend="${TORCH_BACKEND}" --upgrade invokeai
 fi
