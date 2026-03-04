@@ -24,14 +24,11 @@ color
 catch_errors
 
 function ensure_kfd_passthrough() {
-  if ! command -v lspci >/dev/null 2>&1; then
-    return 0
-  fi
-  if ! lspci -nn 2>/dev/null | grep -qE '\[1002:|\[1022:'; then
+  if [[ "${var_gpu:-yes}" != "yes" ]]; then
     return 0
   fi
   if [[ ! -e /dev/kfd ]]; then
-    msg_warn "AMD GPU detected but /dev/kfd is missing on host"
+    msg_warn "Skipping /dev/kfd passthrough: /dev/kfd is missing on host"
     return 0
   fi
 
@@ -39,21 +36,21 @@ function ensure_kfd_passthrough() {
   if [[ ! -f "$lxc_config" ]]; then
     return 0
   fi
-  if grep -qE '^dev[0-9]+:\s*/dev/kfd' "$lxc_config"; then
+
+  local changed=0
+  if ! grep -qE '^lxc\.mount\.entry:\s*/dev/kfd\s+dev/kfd\s+none\s+bind,optional,create=file' "$lxc_config"; then
+    msg_info "Configuring /dev/kfd mount entry"
+    echo "lxc.mount.entry: /dev/kfd dev/kfd none bind,optional,create=file" >>"$lxc_config"
+    changed=1
+  fi
+  if ! grep -qE '^lxc\.cgroup2\.devices\.allow:\s*c\s+235:\*\s+rwm' "$lxc_config"; then
+    msg_info "Configuring /dev/kfd cgroup permissions"
+    echo "lxc.cgroup2.devices.allow: c 235:* rwm" >>"$lxc_config"
+    changed=1
+  fi
+  if [[ "$changed" -eq 0 ]]; then
     return 0
   fi
-
-  local next_dev
-  next_dev="$(grep -oE '^dev[0-9]+:' "$lxc_config" | sed -E 's/^dev([0-9]+):$/\1/' | sort -n | tail -n1)"
-  if [[ -z "$next_dev" ]]; then
-    next_dev=0
-  else
-    next_dev=$((next_dev + 1))
-  fi
-
-  msg_info "Configuring /dev/kfd passthrough"
-  echo "dev${next_dev}: /dev/kfd,gid=44" >>"$lxc_config"
-  echo "lxc.cgroup2.devices.allow: c 235:* rwm" >>"$lxc_config"
   msg_ok "Configured /dev/kfd passthrough"
 
   if pct status "$CTID" | grep -q "running"; then
@@ -63,6 +60,12 @@ function ensure_kfd_passthrough() {
       pct start "$CTID"
     }
     msg_ok "Restarted container"
+  fi
+
+  if pct exec "$CTID" -- test -e /dev/kfd; then
+    msg_ok "/dev/kfd is available in container"
+  else
+    msg_warn "/dev/kfd still missing in container after passthrough configuration"
   fi
 }
 
