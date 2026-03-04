@@ -213,6 +213,7 @@ msg_info "Using torch backend: ${TORCH_BACKEND}"
 if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
   install_rocm_runtime_debian || true
   msg_info "Installing InvokeAI package (ROCm path, this can take several minutes)"
+  install_rocm72_wheels
   $STD uv pip install --python .venv/bin/python --upgrade invokeai
   install_rocm72_wheels
   repair_rocm_runtime_libs
