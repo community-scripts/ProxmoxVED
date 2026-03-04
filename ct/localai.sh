@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+export COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/BillyOutlast/ProxmoxVED/LocalAI}"
 source <(curl -fsSL https://raw.githubusercontent.com/BillyOutlast/ProxmoxVED/LocalAI/misc/build.func)
 
 
