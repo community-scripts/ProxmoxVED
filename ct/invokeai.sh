@@ -129,6 +129,14 @@ EOF
         curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
       }
 
+      run_rocm_apt_update() {
+        $STD apt update
+      }
+
+      run_rocm_apt_install() {
+        $STD apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib
+      }
+
       if [[ -f /etc/os-release ]]; then
         . /etc/os-release
       fi
@@ -162,13 +170,13 @@ Pin-Priority: 600
 EOF
 
       msg_info "Updating apt repositories for ROCm"
-      if ! retry_cmd 3 5 env STD="$STD" bash -lc '$STD apt update'; then
+      if ! retry_cmd 3 5 run_rocm_apt_update; then
         msg_warn "ROCm apt repository update failed"
         return 1
       fi
 
       msg_info "Installing ROCm runtime apt packages"
-      if ! retry_cmd 3 10 env STD="$STD" bash -lc '$STD apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib'; then
+      if ! retry_cmd 3 10 run_rocm_apt_install; then
         msg_warn "ROCm runtime package installation failed"
         return 1
       fi
