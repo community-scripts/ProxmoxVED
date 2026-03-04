@@ -122,6 +122,7 @@ function update_script() {
   fi
 
   ensure_kfd_passthrough
+  install_rocm_if_kfd
 
   if check_for_gh_release "localai" "mudler/LocalAI"; then
     msg_info "Stopping LocalAI Service"
