@@ -17,17 +17,32 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 var_gpu="${var_gpu:-yes}"
+var_require_rocm="${var_require_rocm:-yes}"
 
 header_info "$APP"
 variables
 color
 catch_errors
 
+function amd_gpu_detected() {
+  if ! command -v lspci >/dev/null 2>&1; then
+    return 1
+  fi
+  lspci -nn 2>/dev/null | grep -qE '\[1002:|\[1022:'
+}
+
 function ensure_kfd_passthrough() {
   if [[ "${var_gpu:-yes}" != "yes" ]]; then
     return 0
   fi
+  if ! amd_gpu_detected; then
+    return 0
+  fi
   if [[ ! -e /dev/kfd ]]; then
+    if [[ "${var_require_rocm:-yes}" == "yes" ]]; then
+      msg_error "AMD detected but /dev/kfd is missing on host; cannot continue with required ROCm setup"
+      exit 1
+    fi
     msg_warn "Skipping /dev/kfd passthrough: /dev/kfd is missing on host"
     return 0
   fi
@@ -48,12 +63,11 @@ function ensure_kfd_passthrough() {
     echo "lxc.cgroup2.devices.allow: c 235:* rwm" >>"$lxc_config"
     changed=1
   fi
-  if [[ "$changed" -eq 0 ]]; then
-    return 0
+  if [[ "$changed" -ne 0 ]]; then
+    msg_ok "Configured /dev/kfd passthrough"
   fi
-  msg_ok "Configured /dev/kfd passthrough"
 
-  if pct status "$CTID" | grep -q "running"; then
+  if [[ "$changed" -ne 0 ]] && pct status "$CTID" | grep -q "running"; then
     msg_info "Restarting container to apply /dev/kfd passthrough"
     pct reboot "$CTID" >/dev/null 2>&1 || {
       pct stop "$CTID"
@@ -64,6 +78,12 @@ function ensure_kfd_passthrough() {
 
   if pct exec "$CTID" -- test -e /dev/kfd; then
     msg_ok "/dev/kfd is available in container"
+    return 0
+  fi
+
+  if [[ "${var_require_rocm:-yes}" == "yes" ]]; then
+    msg_error "/dev/kfd is not available in container after passthrough configuration; cannot continue with required ROCm setup"
+    exit 1
   else
     msg_warn "/dev/kfd still missing in container after passthrough configuration"
   fi
@@ -71,6 +91,10 @@ function ensure_kfd_passthrough() {
 
 function install_rocm_if_kfd() {
   if ! pct exec "$CTID" -- test -e /dev/kfd; then
+    if [[ "${var_require_rocm:-yes}" == "yes" ]] && amd_gpu_detected; then
+      msg_error "ROCm is required for AMD, but /dev/kfd is not present in container"
+      exit 1
+    fi
     msg_warn "Skipping ROCm install: /dev/kfd not present in container"
     return 0
   fi
