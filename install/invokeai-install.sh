@@ -109,7 +109,7 @@ EOF
   fi
 
   msg_info "Installing ROCm runtime apt packages"
-  if ! $STD apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib; then
+  if ! $STD apt install -y rocm rocm-hip-runtime rocm-language-runtime amdgpu-lib; then
     msg_warn "ROCm runtime package installation failed"
     return 1
   fi
