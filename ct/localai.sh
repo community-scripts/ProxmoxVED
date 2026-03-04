@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 source <(curl -fsSL https://raw.githubusercontent.com/BillyOutlast/ProxmoxVED/LocalAI/misc/build.func)
 
 
@@ -44,7 +43,7 @@ function ensure_kfd_passthrough() {
   fi
 
   local next_dev
-  next_dev="$(grep -oE '^dev[0-9]+:' "$lxc_config" | sed -E 's/^dev([0-9]+):$/\\1/' | sort -n | tail -n1)"
+  next_dev="$(grep -oE '^dev[0-9]+:' "$lxc_config" | sed -E 's/^dev([0-9]+):$/\1/' | sort -n | tail -n1)"
   if [[ -z "$next_dev" ]]; then
     next_dev=0
   else
@@ -76,6 +75,11 @@ function update_script() {
     exit 1
   fi
 
+  if ! pct exec "$CTID" -- test -x /usr/local/bin/local-ai; then
+    msg_error "No ${APP} Installation Found!"
+    exit 1
+  fi
+
   ensure_kfd_passthrough
 
   if check_for_gh_release "localai" "mudler/LocalAI"; then
@@ -87,6 +91,7 @@ function update_script() {
     pct exec "$CTID" -- bash -lc '
       set -e
       release_json="$(curl -fsSL https://api.github.com/repos/mudler/LocalAI/releases/latest)"
+      release_tag="$(echo "$release_json" | jq -r '.tag_name')"
       asset_url="$(echo "$release_json" | jq -r '\'' .assets[] | select(.name | test("^local-ai-v.*-linux-amd64$")) | .browser_download_url '\'' | head -n1)"
       if [[ -z "$asset_url" || "$asset_url" == "null" ]]; then
         echo "Unable to resolve LocalAI linux-amd64 release asset" >&2
@@ -94,6 +99,9 @@ function update_script() {
       fi
       curl -fsSL "$asset_url" -o /usr/local/bin/local-ai
       chmod 755 /usr/local/bin/local-ai
+      if [[ -n "$release_tag" && "$release_tag" != "null" ]]; then
+        echo "${release_tag#v}" >/opt/localai_version.txt
+      fi
     '
     msg_ok "Updated LocalAI"
 

@@ -25,6 +25,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Installing LocalAI"
 release_json="$(curl -fsSL https://api.github.com/repos/mudler/LocalAI/releases/latest)"
+release_tag="$(echo "$release_json" | jq -r '.tag_name')"
 asset_url="$(echo "$release_json" | jq -r '.assets[] | select(.name | test("^local-ai-v.*-linux-amd64$")) | .browser_download_url' | head -n1)"
 if [[ -z "$asset_url" || "$asset_url" == "null" ]]; then
   msg_error "Unable to resolve LocalAI linux-amd64 release asset"
@@ -32,6 +33,9 @@ if [[ -z "$asset_url" || "$asset_url" == "null" ]]; then
 fi
 $STD curl -fsSL "$asset_url" -o /usr/local/bin/local-ai
 chmod 755 /usr/local/bin/local-ai
+if [[ -n "$release_tag" && "$release_tag" != "null" ]]; then
+  echo "${release_tag#v}" >/opt/localai_version.txt
+fi
 msg_ok "Installed LocalAI"
 
 if [[ -e /dev/kfd ]] || lspci -nn 2>/dev/null | grep -qE '\[1002:|\[1022:'; then
