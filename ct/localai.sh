@@ -32,6 +32,7 @@ function amd_gpu_detected() {
 }
 
 function ensure_kfd_passthrough() {
+  local reboot_mode="${1:-if-changed}"
   if [[ "${var_gpu:-yes}" != "yes" ]]; then
     return 0
   fi
@@ -63,7 +64,7 @@ function ensure_kfd_passthrough() {
     msg_ok "Configured /dev/kfd passthrough"
   fi
 
-  if [[ "$changed" -ne 0 ]] && pct status "$CTID" | grep -q "running"; then
+  if pct status "$CTID" | grep -q "running" && { [[ "$changed" -ne 0 ]] || [[ "$reboot_mode" == "always" ]]; }; then
     msg_info "Restarting container to apply /dev/kfd passthrough"
     pct reboot "$CTID" >/dev/null 2>&1 || {
       pct stop "$CTID"
@@ -183,9 +184,9 @@ function update_script() {
 
 start
 build_container
-ensure_kfd_passthrough
 install_rocm_if_kfd
 description
+ensure_kfd_passthrough "always"
 
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
@@ -207,5 +208,3 @@ if [[ -z "${URL_HOST}" ]]; then
 else
   echo -e "${TAB}${GATEWAY}${BGN}http://${URL_HOST}:8080${CL}"
 fi
-echo -e "${INFO}${YW} After you add/fix /dev/kfd passthrough, restart CT:${CL}"
-echo -e "${TAB}${BGN}pct reboot ${CTID}${CL}"
