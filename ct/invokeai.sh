@@ -108,6 +108,28 @@ EOF
     }
 
     install_rocm_runtime_debian() {
+      retry_cmd() {
+        local max_attempts="$1"
+        local base_delay="$2"
+        shift 2
+        local attempt=1
+        while [[ $attempt -le $max_attempts ]]; do
+          if "$@"; then
+            return 0
+          fi
+          if [[ $attempt -lt $max_attempts ]]; then
+            msg_warn "Command failed (attempt ${attempt}/${max_attempts}): $*"
+            sleep $((base_delay * attempt))
+          fi
+          attempt=$((attempt + 1))
+        done
+        return 1
+      }
+
+      fetch_rocm_key() {
+        curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
+      }
+
       if [[ -f /etc/os-release ]]; then
         . /etc/os-release
       fi
@@ -124,7 +146,7 @@ EOF
 
       msg_info "Installing ROCm runtime packages (${rocm_suite})"
       mkdir -p /etc/apt/keyrings
-      if ! curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg; then
+      if ! retry_cmd 3 5 fetch_rocm_key; then
         msg_warn "Failed to add ROCm apt signing key"
         return 1
       fi
@@ -141,13 +163,13 @@ Pin-Priority: 600
 EOF
 
       msg_info "Updating apt repositories for ROCm"
-      if ! $STD apt update; then
+      if ! retry_cmd 3 5 env STD="$STD" bash -lc '$STD apt update'; then
         msg_warn "ROCm apt repository update failed"
         return 1
       fi
 
       msg_info "Installing ROCm runtime apt packages"
-      if ! $STD apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib; then
+      if ! retry_cmd 3 10 env STD="$STD" bash -lc '$STD apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib'; then
         msg_warn "ROCm runtime package installation failed"
         return 1
       fi
