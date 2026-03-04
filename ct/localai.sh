@@ -23,8 +23,6 @@ variables
 color
 catch_errors
 
-KFD_PASSTHROUGH_ADDED=0
-
 function ensure_kfd_passthrough() {
   if ! command -v lspci >/dev/null 2>&1; then
     return 0
@@ -56,7 +54,6 @@ function ensure_kfd_passthrough() {
   msg_info "Configuring /dev/kfd passthrough"
   echo "dev${next_dev}: /dev/kfd,gid=44" >>"$lxc_config"
   echo "lxc.cgroup2.devices.allow: c 235:* rwm" >>"$lxc_config"
-  KFD_PASSTHROUGH_ADDED=1
   msg_ok "Configured /dev/kfd passthrough"
 
   if pct status "$CTID" | grep -q "running"; then
@@ -70,20 +67,19 @@ function ensure_kfd_passthrough() {
 }
 
 function install_rocm_if_kfd() {
-  if [[ "$KFD_PASSTHROUGH_ADDED" != "1" ]]; then
+  if ! pct exec "$CTID" -- test -e /dev/kfd; then
+    msg_warn "Skipping ROCm install: /dev/kfd not present in container"
     return 0
   fi
 
-  msg_info "Installing ROCm after /dev/kfd passthrough"
+  if pct exec "$CTID" -- dpkg -s rocm >/dev/null 2>&1; then
+    msg_ok "ROCm already installed"
+    return 0
+  fi
+
+  msg_info "Installing ROCm"
   pct exec "$CTID" -- bash -lc '
     set -e
-    if ! test -e /dev/kfd; then
-      exit 0
-    fi
-    if command -v rocminfo >/dev/null 2>&1; then
-      exit 0
-    fi
-
     apt-get update -y
     apt-get install -y curl gpg ca-certificates
     mkdir -p /etc/apt/keyrings
