@@ -46,8 +46,8 @@ if [[ -e /dev/kfd ]] || lspci -nn 2>/dev/null | grep -qE '\[1002:|\[1022:'; then
     local args="$*"
     local attempt
     for attempt in 1 2 3; do
-      apt-get -o Acquire::Retries=5 -o Acquire::http::No-Cache=true -o Acquire::https::No-Cache=true update && \
-        apt-get -o Acquire::Retries=5 install -y $args && return 0
+      apt-get -qq -o Dpkg::Use-Pty=0 -o Acquire::Retries=5 -o Acquire::http::No-Cache=true -o Acquire::https::No-Cache=true update >/dev/null 2>&1 && \
+        apt-get -qq -o Dpkg::Use-Pty=0 -o Acquire::Retries=5 install -y $args >/dev/null 2>&1 && return 0
       apt-get clean || true
       rm -rf /var/lib/apt/lists/* || true
       if [[ "$attempt" -lt 3 ]]; then
