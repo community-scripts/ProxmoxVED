@@ -212,9 +212,9 @@ install_cu128_pytorch() {
 msg_info "Using torch backend: ${TORCH_BACKEND}"
 if [[ "${TORCH_BACKEND}" == "rocm7.2" ]]; then
   install_rocm_runtime_debian || true
-  install_rocm72_wheels
   msg_info "Installing InvokeAI package (ROCm path, this can take several minutes)"
   $STD uv pip install --python .venv/bin/python --upgrade invokeai
+  install_rocm72_wheels
   repair_rocm_runtime_libs
   if ! rocm_runtime_available; then
     msg_warn "ROCm runtime libraries are unavailable; switching to CPU backend"
