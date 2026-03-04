@@ -108,7 +108,7 @@ install_rocm_runtime_debian() {
   }
 
   run_rocm_apt_install() {
-    $STD apt install -y rocm rocm-hip-runtime rocm-language-runtime amdgpu-lib
+    $STD apt install -y rocm-hip-runtime rocm-language-runtime amdgpu-lib
   }
 
   if [[ -f /etc/os-release ]]; then
