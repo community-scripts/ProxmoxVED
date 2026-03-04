@@ -57,7 +57,7 @@ if [[ -f ~/.localai ]]; then
 fi
 msg_ok "Installed LocalAI Binary"
 
-if [[ -e /dev/kfd ]] || lspci -nn 2>/dev/null | grep -qE '\[1002:|\[1022:'; then
+if [[ -e /dev/kfd ]] || lspci -nn 2>/dev/null | grep -qE '(VGA|3D controller|Display controller).*\[1002:'; then
   msg_info "Installing ROCm"
   export DEBIAN_FRONTEND=noninteractive
 
