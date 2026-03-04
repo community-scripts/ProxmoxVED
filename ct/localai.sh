@@ -25,6 +25,9 @@ color
 catch_errors
 
 function amd_gpu_detected() {
+  if [[ "${GPU_TYPE:-}" == "AMD" ]]; then
+    return 0
+  fi
   if ! command -v lspci >/dev/null 2>&1; then
     return 1
   fi
@@ -34,9 +37,6 @@ function amd_gpu_detected() {
 function ensure_kfd_passthrough() {
   local reboot_mode="${1:-if-changed}"
   if [[ "${var_gpu:-yes}" != "yes" ]]; then
-    return 0
-  fi
-  if ! amd_gpu_detected; then
     return 0
   fi
   if [[ ! -e /dev/kfd ]]; then
@@ -83,11 +83,15 @@ function ensure_kfd_passthrough() {
 
 function install_rocm_if_kfd() {
   local container_has_kfd=0
+  local want_rocm=0
   if pct exec "$CTID" -- test -e /dev/kfd; then
     container_has_kfd=1
   fi
+  if [[ "$container_has_kfd" -eq 1 ]] || [[ "${GPU_TYPE:-}" == "AMD" ]] || amd_gpu_detected; then
+    want_rocm=1
+  fi
 
-  if [[ "$container_has_kfd" -ne 1 ]] && ! amd_gpu_detected; then
+  if [[ "$want_rocm" -ne 1 ]]; then
     msg_warn "Skipping ROCm install: no AMD GPU detected and /dev/kfd not present in container"
     return 0
   fi
