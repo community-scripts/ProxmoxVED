@@ -11,7 +11,7 @@
   "interface_port": 8080,
   "documentation": "https://localai.io/installation/",
   "website": "https://localai.io/",
-  "logo": "https://raw.githubusercontent.com/mudler/LocalAI/master/core/http/static/logo.png",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/localai.webp",
   "config_path": "/etc/localai/localai.env",
   "description": "LocalAI is a self-hosted OpenAI-compatible API server for running LLM, image, and audio models locally.",
   "install_methods": [
