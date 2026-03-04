@@ -6,7 +6,6 @@
 # Source: https://github.com/mudler/LocalAI
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
-APP="LocalAI"
 color
 verb_ip6
 catch_errors
