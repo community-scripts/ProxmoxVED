@@ -57,7 +57,7 @@ cpu | cu128 | rocm7.2)
   if [[ "${var_gpu:-no}" == "yes" ]]; then
     if [[ -e /dev/nvidia0 || -e /dev/nvidiactl ]]; then
       TORCH_BACKEND="cu128"
-    elif lspci 2>/dev/null | grep -qiE 'AMD|Radeon'; then
+    elif lspci -nn 2>/dev/null | grep -Ei 'VGA|3D|Display' | grep -qiE 'AMD|Radeon'; then
       TORCH_BACKEND="rocm7.2"
     elif grep -qEi '0x1002|0x1022' /sys/class/drm/renderD*/device/vendor /sys/class/drm/card*/device/vendor 2>/dev/null; then
       TORCH_BACKEND="rocm7.2"
