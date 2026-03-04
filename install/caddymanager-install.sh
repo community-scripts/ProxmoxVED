@@ -32,6 +32,7 @@ $STD npm run build
 
 cat <<EOF >/opt/caddymanager/caddymanager.env
 PORT=3000
+APP_NAME=Caddy Manager
 DB_ENGINE=sqlite
 SQLITE_DB_PATH=/opt/caddymanager/caddymanager.sqlite
 CORS_ORIGIN=${LOCAL_IP}:80

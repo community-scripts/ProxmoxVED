@@ -1,0 +1,48 @@
+{
+  "name": "GitHub Runner",
+  "slug": "github-runner",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-03-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners",
+  "config_path": "/opt/actions-runner",
+  "website": "https://github.com/actions/runner",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/github.webp",
+  "description": "GitHub Actions self-hosted runner executes workflows for your repository or organization, enabling CI/CD, builds, and deployments.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/github-runner.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Get your token: repo Settings → Actions → Runners → New self-hosted runner → copy the token.",
+      "type": "info"
+    },
+    {
+      "text": "Then run: cd /opt/actions-runner && sudo -u runner ./config.sh --url https://github.com/your-username/your-repo --token <YOUR_TOKEN>",
+      "type": "info"
+    },
+    {
+      "text": "Start the runner: systemctl start actions-runner",
+      "type": "info"
+    }
+  ]
+}
