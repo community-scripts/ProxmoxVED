@@ -39,28 +39,27 @@ fi
 msg_ok "Installed LocalAI"
 
 if [[ -e /dev/kfd ]] || lspci -nn 2>/dev/null | grep -qE '\[1002:|\[1022:'; then
-  if [[ -e /dev/kfd ]]; then
-    msg_info "Installing ROCm"
-    mkdir -p /etc/apt/keyrings
-    curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
-    chmod 644 /etc/apt/keyrings/rocm.gpg
+  msg_info "Installing ROCm"
+  mkdir -p /etc/apt/keyrings
+  curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
+  chmod 644 /etc/apt/keyrings/rocm.gpg
 
-    cat <<EOF >/etc/apt/sources.list.d/rocm.list
+  cat <<EOF >/etc/apt/sources.list.d/rocm.list
 deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/7.2 noble main
 deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/7.2/ubuntu noble main
 EOF
 
-    cat <<EOF >/etc/apt/preferences.d/rocm-pin-600
+  cat <<EOF >/etc/apt/preferences.d/rocm-pin-600
 Package: *
 Pin: release o=repo.radeon.com
 Pin-Priority: 600
 EOF
 
-    $STD apt update
-    $STD apt install -y rocm
-    msg_ok "Installed ROCm"
-  else
-    msg_warn "AMD GPU detected but /dev/kfd not present in container; skipping ROCm install"
+  $STD apt update
+  $STD apt install -y rocm
+  msg_ok "Installed ROCm"
+  if [[ ! -e /dev/kfd ]]; then
+    msg_warn "ROCm installed without /dev/kfd; add /dev/kfd passthrough and restart container for GPU acceleration"
   fi
 fi
 

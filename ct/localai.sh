@@ -39,10 +39,6 @@ function ensure_kfd_passthrough() {
     return 0
   fi
   if [[ ! -e /dev/kfd ]]; then
-    if [[ "${var_require_rocm:-yes}" == "yes" ]]; then
-      msg_error "AMD detected but /dev/kfd is missing on host; cannot continue with required ROCm setup"
-      exit 1
-    fi
     msg_warn "Skipping /dev/kfd passthrough: /dev/kfd is missing on host"
     return 0
   fi
@@ -81,26 +77,25 @@ function ensure_kfd_passthrough() {
     return 0
   fi
 
-  if [[ "${var_require_rocm:-yes}" == "yes" ]]; then
-    msg_error "/dev/kfd is not available in container after passthrough configuration; cannot continue with required ROCm setup"
-    exit 1
-  else
-    msg_warn "/dev/kfd still missing in container after passthrough configuration"
-  fi
+  msg_warn "/dev/kfd still missing in container after passthrough configuration"
 }
 
 function install_rocm_if_kfd() {
-  if ! pct exec "$CTID" -- test -e /dev/kfd; then
-    if [[ "${var_require_rocm:-yes}" == "yes" ]] && amd_gpu_detected; then
-      msg_error "ROCm is required for AMD, but /dev/kfd is not present in container"
-      exit 1
-    fi
-    msg_warn "Skipping ROCm install: /dev/kfd not present in container"
+  local container_has_kfd=0
+  if pct exec "$CTID" -- test -e /dev/kfd; then
+    container_has_kfd=1
+  fi
+
+  if [[ "$container_has_kfd" -ne 1 ]] && ! amd_gpu_detected; then
+    msg_warn "Skipping ROCm install: no AMD GPU detected and /dev/kfd not present in container"
     return 0
   fi
 
   if pct exec "$CTID" -- dpkg -s rocm >/dev/null 2>&1; then
     msg_ok "ROCm already installed"
+    if [[ "$container_has_kfd" -ne 1 ]]; then
+      msg_warn "ROCm is installed, but /dev/kfd is not present in container yet"
+    fi
     return 0
   fi
 
@@ -128,6 +123,9 @@ EOF
     apt-get install -y rocm
   '
   msg_ok "Installed ROCm"
+  if [[ "$container_has_kfd" -ne 1 ]]; then
+    msg_warn "ROCm installed without /dev/kfd; add /dev/kfd passthrough and restart container for GPU acceleration"
+  fi
 }
 
 function update_script() {
@@ -209,3 +207,5 @@ if [[ -z "${URL_HOST}" ]]; then
 else
   echo -e "${TAB}${GATEWAY}${BGN}http://${URL_HOST}:8080${CL}"
 fi
+echo -e "${INFO}${YW} After you add/fix /dev/kfd passthrough, restart CT:${CL}"
+echo -e "${TAB}${BGN}pct reboot ${CTID}${CL}"
