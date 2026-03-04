@@ -41,7 +41,7 @@
       "type": "info"
     },
     {
-      "text": "`rocm7.2` uses pinned AMD ROCm wheel URLs for `torch`, `torchvision`, `torchaudio`, and `triton` to keep compatibility predictable.",
+      "text": "`rocm7.2` installs `torch`, `torchvision`, `torchaudio`, and `triton` from `https://download.pytorch.org/whl/test/rocm7.2`.",
       "type": "info"
     },
     {

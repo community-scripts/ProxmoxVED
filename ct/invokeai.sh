@@ -91,19 +91,14 @@ EOF
       TORCH_BACKEND="rocm7.2"
     fi
 
-    ROCM72_TORCH_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torch-2.9.1%2Brocm7.2.0.lw.git7e1940d4-cp312-cp312-linux_x86_64.whl"
-    ROCM72_TORCHVISION_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torchvision-0.24.0%2Brocm7.2.0.gitb919bd0c-cp312-cp312-linux_x86_64.whl"
-    ROCM72_TRITON_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/triton-3.5.1%2Brocm7.2.0.gita272dfa8-cp312-cp312-linux_x86_64.whl"
-    ROCM72_TORCHAUDIO_WHL="https://repo.radeon.com/rocm/manylinux/rocm-rel-7.2/torchaudio-2.9.0%2Brocm7.2.0.gite3c6ee2b-cp312-cp312-linux_x86_64.whl"
+    ROCM72_INDEX_URL="https://download.pytorch.org/whl/test/rocm7.2"
 
     install_rocm72_wheels() {
-      msg_info "Installing ROCm 7.2 PyTorch wheels"
+      msg_info "Installing ROCm 7.2 PyTorch packages from PyTorch test index"
       $STD uv pip install --python /opt/invokeai/.venv/bin/python --upgrade \
-        "${ROCM72_TORCH_WHL}" \
-        "${ROCM72_TORCHVISION_WHL}" \
-        "${ROCM72_TORCHAUDIO_WHL}" \
-        "${ROCM72_TRITON_WHL}"
-      msg_ok "Installed ROCm 7.2 wheels"
+        torch torchvision torchaudio triton \
+        --index-url "${ROCM72_INDEX_URL}"
+      msg_ok "Installed ROCm 7.2 PyTorch packages"
     }
 
     install_rocm_runtime_debian() {
