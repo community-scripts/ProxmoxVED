@@ -23,10 +23,6 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Docker"
-docker_conflicts="$(dpkg --get-selections docker.io docker-compose docker-doc podman-docker containerd runc 2>/dev/null | awk '{print $1}')"
-if [[ -n "$docker_conflicts" ]]; then
-  $STD apt remove -y $docker_conflicts
-fi
 
 $STD apt update
 $STD apt install -y ca-certificates curl
