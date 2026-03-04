@@ -128,8 +128,12 @@ EOF
         $STD apt update
       }
 
-      run_rocm_apt_install() {
+      run_rocm_apt_install_full() {
         $STD apt install -y roctracer rocm-hip-runtime rocm-language-runtime amdgpu-lib
+      }
+
+      run_rocm_apt_install_minimal() {
+        $STD apt install -y roctracer amdgpu-lib
       }
 
       if [[ -f /etc/os-release ]]; then
@@ -171,9 +175,13 @@ EOF
       fi
 
       msg_info "Installing ROCm runtime apt packages"
-      if ! retry_cmd 3 10 run_rocm_apt_install; then
-        msg_warn "ROCm runtime package installation failed"
-        return 1
+      if ! retry_cmd 3 10 run_rocm_apt_install_full; then
+        msg_warn "Full ROCm runtime package install failed; trying minimal ROCm libraries"
+        if ! retry_cmd 3 10 run_rocm_apt_install_minimal; then
+          msg_warn "Minimal ROCm runtime package installation failed"
+          return 1
+        fi
+        msg_warn "Installed minimal ROCm runtime packages (roctracer + amdgpu-lib)"
       fi
 
       ldconfig || true
