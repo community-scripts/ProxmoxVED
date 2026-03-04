@@ -169,7 +169,7 @@ repair_rocm_runtime_libs() {
 
   roctx_candidate="$(ldconfig -p 2>/dev/null | awk '/libroctx64\.so(\.[0-9]+)?/ && first=="" {first=$NF} END{if(first!="") print first}')"
   if [[ -z "${roctx_candidate}" ]]; then
-    roctx_candidate="$(find /opt/rocm /usr/lib /usr/local/lib -type f -name 'libroctx64.so*' 2>/dev/null | head -n1)"
+    roctx_candidate="$(find /opt/rocm /usr/lib /usr/local/lib \( -type f -o -type l \) -name 'libroctx64.so*' 2>/dev/null | head -n1)"
   fi
 
   if [[ -n "${roctx_candidate}" ]]; then
@@ -182,7 +182,7 @@ repair_rocm_runtime_libs() {
   fi
 
   local roctx_files
-  roctx_files="$(find /opt/rocm/lib /opt/rocm/lib64 /usr/lib /usr/local/lib -maxdepth 2 -type f -name 'libroctx64.so*' 2>/dev/null | paste -sd ' ' - || true)"
+  roctx_files="$(find /opt/rocm/lib /opt/rocm/lib64 /usr/lib /usr/local/lib \( -type f -o -type l \) -name 'libroctx64.so*' 2>/dev/null | paste -sd ' ' - || true)"
   if [[ -n "${roctx_files}" ]]; then
     msg_info "ROCm libraries found: ${roctx_files}"
   else
@@ -194,7 +194,10 @@ rocm_runtime_available() {
   if ldconfig -p 2>/dev/null | grep -q 'libroctx64\.so\.4'; then
     return 0
   fi
-  if find /opt/rocm /usr/lib /usr/local/lib -type f -name 'libroctx64.so*' 2>/dev/null | grep -q .; then
+  if [[ -e /opt/rocm/lib/libroctx64.so.4 || -e /opt/rocm/lib/libroctx64.so || -e /opt/rocm/lib64/libroctx64.so.4 || -e /opt/rocm/lib64/libroctx64.so ]]; then
+    return 0
+  fi
+  if find /opt/rocm /usr/lib /usr/local/lib \( -type f -o -type l \) -name 'libroctx64.so*' 2>/dev/null | grep -q .; then
     return 0
   fi
   return 1
