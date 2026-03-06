@@ -13,7 +13,7 @@
     "website": "https://maintainerr.info/",
     "logo": "https://raw.githubusercontent.com/Maintainerr/Maintainerr/main/apps/ui/public/logo_black.svg",
     "config_path": "/etc/maintainerr/maintainerr.conf",
-    "description": "Media retention and cleanup automation for Plex and Jellyfin ecosystems.",
+    "description": "Maintainerr is a tool that automatically cleans up media libraries on servers like Plex or Jellyfin. It analyzes your library and related apps (such as Sonarr, Radarr, Seerr, or Tautulli) to find movies or TV shows that are unwatched, old, or no longer wanted",
     "install_methods": [
         {
             "type": "default",
