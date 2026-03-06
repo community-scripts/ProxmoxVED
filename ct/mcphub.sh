@@ -26,7 +26,7 @@ function update_script() {
 
   if [[ ! -f /etc/systemd/system/mcphub.service ]]; then
     msg_error "No ${APP} Installation Found!"
-    exit
+    exit 1
   fi
 
   if check_for_gh_release "mcphub" "samanhappy/mcphub"; then
