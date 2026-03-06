@@ -35,16 +35,7 @@ function update_script() {
     	fi
     	msg_ok "Backed up Configuration"
 
-	if ! CLEAN_INSTALL=1 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"; then
-    	msg_error "Update failed, attempting service recovery"
-    	if [[ -f /opt/lemonade.env.bak ]]; then
-        	mkdir -p /opt/lemonade
-        	cp /opt/lemonade.env.bak /opt/lemonade/.env
-    	fi
-       systemctl start lemonade-server || true
-       exit 1
-    fi
-    msg_ok "Updated Lemonade Server"
+	CLEAN_INSTALL=1 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"
 
     msg_info "Restoring Configuration"
     if [[ -f /opt/lemonade.env.bak ]]; then
