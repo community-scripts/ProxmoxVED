@@ -45,11 +45,11 @@
       "type": "warning"
     },
     {
-      "text": "GPU passthrough requires adding to /etc/pve/lxc/<CTID>.conf: lxc.cgroup2.devices.allow: c 226:* rwm and lxc.cgroup2.devices.allow: c 243:* rwm",
+      "text": "GPU passthrough: Add to /etc/pve/lxc/<CTID>.conf: lxc.cgroup2.devices.allow: c 226:* rwm (DRI) and lxc.cgroup2.devices.allow: c 243:* rwm (kfd)",
       "type": "warning"
     },
     {
-      "text": "Also add: lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir",
+      "text": "Also add: lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir and lxc.mount.entry: /dev/kfd dev/kfd none bind,optional,create=file",
       "type": "warning"
     },
     {
