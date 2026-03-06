@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# ==============================================================================
+# SOURCE TOOLS FUNC
+# ==============================================================================
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: BillyOutlast
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
