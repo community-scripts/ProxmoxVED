@@ -32,12 +32,14 @@ mv target/release/oxicloud /usr/bin/oxicloud && chmod +x /usr/bin/oxicloud
 msg_ok "Built OxiCloud"
 
 msg_info "Configuring OxiCloud"
-mkdir -p {/mnt/oxicloud,/etc/oxicloud/static}
+mkdir -p {/mnt/oxicloud,/etc/oxicloud}
 sed -e 's|_STORAGE_PATH=.*|_STORAGE_PATH=/mnt/oxicloud|' \
-  -e 's|_STATIC_PATH=.*|_STATIC_PATH=/etc/oxicloud/static|' \
   -e 's|_SERVER_HOST=.*|_SERVER_HOST=0.0.0.0|' \
+  -e "s|^#OXICLOUD_BASE_URL=.*|OXICLOUD_BASE_URL=${LOCAL_IP}:8086|" \
   -e "s|_STRING=.*|_STRING=${DATABASE_URL}|" \
   -e "s|DATABASE_URL=.*|DATABASE_URL=${DATABASE_URL}|" \
+  -e "s|^#OXICLOUD_JWT_SECRET=.*|OXICLOUD_JWT_SECRET=$(openssl rand -hex 32)|" \
+  -e 's|^#OXICLOUD_ENABLE|OXICLOUD_ENABLE|g' \
   /opt/oxicloud/example.env >/etc/oxicloud/.env
 chmod 600 /etc/oxicloud/.env
 $STD useradd -U -s /usr/sbin/nologin -M -d /opt/oxicloud oxicloud
