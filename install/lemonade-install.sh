@@ -17,12 +17,13 @@ update_os
 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"
 
 msg_info "Configuring Lemonade Server"
-mkdir -p /opt/lemonade
+install -d -m 0750 /opt/lemonade
 cat <<EOF >/opt/lemonade/.env
 LEMONADE_HOST=0.0.0.0
 LEMONADE_PORT=8000
 LEMONADE_LOG_LEVEL=info
 EOF
+chmod 600 /opt/lemonade/.env
 msg_ok "Configured Lemonade Server"
 
 msg_info "Enabling Service"
