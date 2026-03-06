@@ -45,11 +45,15 @@
       "type": "warning"
     },
     {
-      "text": "GPU passthrough: Add to /etc/pve/lxc/<CTID>.conf: lxc.cgroup2.devices.allow: c 226:* rwm (DRI) and lxc.cgroup2.devices.allow: c 243:* rwm (kfd)",
+      "text": "GPU passthrough: Find the GID from 'ls -la /dev/dri/renderD128' on host, then add to /etc/pve/lxc/<CTID>.conf: lxc.mount.entry: /dev/kfd dev/kfd none bind,optional,create=file,gid=<GID>",
       "type": "warning"
     },
     {
-      "text": "Also add kfd to the system with gid for example: dev3: /dev/dri/kfd,gid=992",
+      "text": "Also add: lxc.cgroup2.devices.allow: c 226:* rwm and lxc.cgroup2.devices.allow: c 243:* rwm",
+      "type": "warning"
+    },
+    {
+      "text": "Also add: lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir",
       "type": "warning"
     },
     {
