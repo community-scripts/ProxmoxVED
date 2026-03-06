@@ -31,17 +31,17 @@ function update_script() {
 
     msg_info "Backing up Configuration"
     if [[ -f /opt/lemonade/.env ]]; then
-      cp /opt/lemonade/.env /tmp/lemonade.env.bak
+      cp /opt/lemonade/.env /opt/lemonade.env.bak
     fi
     msg_ok "Backed up Configuration"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"
 
     msg_info "Restoring Configuration"
-    if [[ -f /tmp/lemonade.env.bak ]]; then
+    if [[ -f /opt/lemonade.env.bak ]]; then
       mkdir -p /opt/lemonade
-      cp /tmp/lemonade.env.bak /opt/lemonade/.env
-      rm -f /tmp/lemonade.env.bak
+      cp /opt/lemonade.env.bak /opt/lemonade/.env
+      rm -f /opt/lemonade.env.bak
     fi
     msg_ok "Restored Configuration"
 
