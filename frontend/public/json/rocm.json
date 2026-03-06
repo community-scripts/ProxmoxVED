@@ -45,7 +45,11 @@
       "type": "warning"
     },
     {
-      "text": "For GPU passthrough, add to container config: lxc.cgroup2.devices.allow: c 226:* rwm and lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir",
+      "text": "GPU passthrough requires adding to /etc/pve/lxc/<CTID>.conf: lxc.cgroup2.devices.allow: c 226:* rwm and lxc.cgroup2.devices.allow: c 243:* rwm",
+      "type": "warning"
+    },
+    {
+      "text": "Also add: lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir",
       "type": "warning"
     },
     {
@@ -55,6 +59,10 @@
     {
       "text": "Verify installation with: rocminfo and rocm-smi commands",
       "type": "info"
+    },
+    {
+      "text": "If rocminfo shows 'Unable to open /dev/kfd', GPU passthrough is not configured correctly",
+      "type": "warning"
     }
   ]
 }
