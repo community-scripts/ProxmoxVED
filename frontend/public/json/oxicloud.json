@@ -1,0 +1,36 @@
+{
+  "name": "OxiCloud",
+  "slug": "oxicloud",
+  "categories": [
+    11,
+    12
+  ],
+  "date_created": "2026-03-11",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8086,
+  "documentation": "https://github.com/DioCrafts/OxiCloud/tree/main/doc",
+  "website": "https://github.com/DioCrafts/OxiCloud",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/oxicloud.webp",
+  "config_path": "/etc/oxicloud/.env",
+  "description": "Ultra-fast, secure & lightweight self-hosted cloud storage — your files, photos, calendars & contacts, all in one place. Built in Rust.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/oxicloud.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 3072,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
+}
