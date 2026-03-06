@@ -158,11 +158,11 @@ EOF
   msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
-  apt update >/dev/null 2>&1
+  DEBIAN_FRONTEND=noninteractive apt-get -qq update
   msg_ok "Updated package lists"
 
   msg_info "Installing ROCm packages"
-  apt install -y rocm >/dev/null 2>&1
+  DEBIAN_FRONTEND=noninteractive apt-get -qq -y install rocm
   msg_ok "Installed ROCm packages"
 
   msg_info "Adding user to render and video groups"
@@ -205,11 +205,11 @@ EOF
   msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
-  apt update >/dev/null 2>&1
+  DEBIAN_FRONTEND=noninteractive apt-get -qq update
   msg_ok "Updated package lists"
 
   msg_info "Installing ROCm packages"
-  apt install -y rocm >/dev/null 2>&1
+  DEBIAN_FRONTEND=noninteractive apt-get -qq -y install rocm
   msg_ok "Installed ROCm packages"
 
   msg_info "Adding user to render and video groups"
@@ -234,15 +234,15 @@ function uninstall_rocm() {
   msg_info "Uninstalling ROCm"
 
   msg_info "Removing ROCm packages"
-  apt remove -y rocm >/dev/null 2>&1
-  apt autoremove -y >/dev/null 2>&1
+  DEBIAN_FRONTEND=noninteractive apt-get -qq -y remove rocm
+  DEBIAN_FRONTEND=noninteractive apt-get -qq -y autoremove
   msg_ok "Removed ROCm packages"
 
   msg_info "Removing ROCm repository"
   rm -f /etc/apt/sources.list.d/rocm.list
   rm -f /etc/apt/keyrings/rocm.gpg
   rm -f /etc/apt/preferences.d/rocm-pin-600
-  apt update >/dev/null 2>&1
+  DEBIAN_FRONTEND=noninteractive apt-get -qq update
   msg_ok "Removed ROCm repository"
 
   msg_info "Removing environment configuration"
@@ -262,7 +262,7 @@ function update_rocm() {
   fi
 
   msg_info "Checking for ROCm updates"
-  apt update >/dev/null 2>&1
+  DEBIAN_FRONTEND=noninteractive apt-get -qq update
 
   local updates
   updates=$(apt list --upgradable 2>/dev/null | grep -c "rocm" || true)
@@ -270,7 +270,7 @@ function update_rocm() {
   if [[ "$updates" -gt 0 ]]; then
     msg_ok "Found ${updates} ROCm package update(s)"
     msg_info "Upgrading ROCm packages"
-    apt upgrade -y rocm >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get -qq -y upgrade rocm
     msg_ok "Updated ROCm packages"
   else
     msg_ok "ROCm is already up-to-date"
