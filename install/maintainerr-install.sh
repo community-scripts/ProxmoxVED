@@ -40,7 +40,7 @@ ln -sfnT /opt/maintainerr /opt/app
 msg_ok "Prepared Build Runtime"
 
 msg_info "Building Maintainerr (Patience)"
-cd /opt/maintainerr
+cd /opt/maintainerr || { msg_error "Failed to change to /opt/maintainerr"; exit 1; }
 cat <<'EOF' >/opt/maintainerr/apps/ui/.env
 VITE_BASE_PATH=/__PATH_PREFIX__
 EOF
@@ -59,15 +59,30 @@ set -euo pipefail
 
 BASE_PATH_REPLACE="${BASE_PATH:-}"
 UI_DIST_DIR="/opt/maintainerr/apps/server/dist/ui"
+BASE_PATH_MARKER="/opt/maintainerr/.base-path-applied"
 
 if [[ ! -d "$UI_DIST_DIR" ]]; then
   echo "Missing UI build directory: $UI_DIST_DIR" >&2
   exit 1
 fi
 
-if ! find "$UI_DIST_DIR" -type f -not -path '*/node_modules/*' -print0 | xargs -0 sed -i "s,/__PATH_PREFIX__,$BASE_PATH_REPLACE,g"; then
-  echo "Failed to rewrite UI base paths under $UI_DIST_DIR" >&2
-  exit 1
+if grep -R -q -- '/__PATH_PREFIX__' "$UI_DIST_DIR"; then
+  ESCAPED_BASE_PATH="${BASE_PATH_REPLACE//\\/\\\\}"
+  ESCAPED_BASE_PATH="${ESCAPED_BASE_PATH//&/\\&}"
+  if ! find "$UI_DIST_DIR" -type f -not -path '*/node_modules/*' -print0 | xargs -0 sed -i "s,/__PATH_PREFIX__,$ESCAPED_BASE_PATH,g"; then
+    echo "Failed to rewrite UI base paths under $UI_DIST_DIR" >&2
+    exit 1
+  fi
+  printf '%s' "$BASE_PATH_REPLACE" >"$BASE_PATH_MARKER"
+elif [[ -f "$BASE_PATH_MARKER" ]]; then
+  APPLIED_BASE_PATH="$(cat "$BASE_PATH_MARKER")"
+  if [[ "$APPLIED_BASE_PATH" != "$BASE_PATH_REPLACE" ]]; then
+    echo "BASE_PATH changed from '$APPLIED_BASE_PATH' to '$BASE_PATH_REPLACE', but UI assets were already rewritten. Rebuild Maintainerr to apply a new BASE_PATH." >&2
+    exit 1
+  fi
+else
+  # Compatibility path for installs created before marker tracking existed.
+  printf '%s' "$BASE_PATH_REPLACE" >"$BASE_PATH_MARKER"
 fi
 
 exec npm run --prefix /opt/maintainerr/apps/server start

@@ -37,7 +37,7 @@ function build_maintainerr() {
   msg_ok "Prepared Build Runtime"
 
   msg_info "Building Maintainerr (Patience)"
-  cd /opt/maintainerr
+  cd /opt/maintainerr || { msg_error "Failed to change to /opt/maintainerr"; return 1; }
   cat <<'EOF' >/opt/maintainerr/apps/ui/.env
 VITE_BASE_PATH=/__PATH_PREFIX__
 EOF
@@ -58,7 +58,7 @@ function update_script() {
 
   if [[ ! -d /opt/maintainerr ]]; then
     msg_error "No ${APP} Installation Found!"
-    exit
+    exit 1
   fi
 
   if check_for_gh_release "maintainerr" "Maintainerr/Maintainerr"; then
