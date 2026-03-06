@@ -158,18 +158,18 @@ EOF
   msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
-  $STD apt update 2>/dev/null || true
+  $STD apt update
   msg_ok "Updated package lists"
 
   msg_info "Installing ROCm packages"
-  $STD apt install -y rocm 2>/dev/null || true
+  $STD apt install -y rocm
   msg_ok "Installed ROCm packages"
 
   msg_info "Adding user to render and video groups"
-  usermod -aG render,video root 2>/dev/null || true
+  usermod -aG render,video root
   for user_home in /home/*/; do
     user=$(basename "$user_home")
-    usermod -aG render,video "$user" 2>/dev/null || true
+    usermod -aG render,video "$user"
   done
   msg_ok "Added users to render and video groups"
 
@@ -205,18 +205,18 @@ EOF
   msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
-  $STD apt update 2>/dev/null || true
+  $STD apt update
   msg_ok "Updated package lists"
 
   msg_info "Installing ROCm packages"
-  $STD apt install -y rocm 2>/dev/null || true
+  $STD apt install -y rocm
   msg_ok "Installed ROCm packages"
 
   msg_info "Adding user to render and video groups"
-  usermod -aG render,video root 2>/dev/null || true
+  usermod -aG render,video root
   for user_home in /home/*/; do
     user=$(basename "$user_home")
-    usermod -aG render,video "$user" 2>/dev/null || true
+    usermod -aG render,video "$user"
   done
   msg_ok "Added users to render and video groups"
 
@@ -234,15 +234,15 @@ function uninstall_rocm() {
   msg_info "Uninstalling ROCm"
 
   msg_info "Removing ROCm packages"
-  $STD apt remove -y rocm 2>/dev/null || true
-  $STD apt autoremove -y 2>/dev/null || true
+  $STD apt remove -y rocm
+  $STD apt autoremove -y
   msg_ok "Removed ROCm packages"
 
   msg_info "Removing ROCm repository"
   rm -f /etc/apt/sources.list.d/rocm.list
   rm -f /etc/apt/keyrings/rocm.gpg
   rm -f /etc/apt/preferences.d/rocm-pin-600
-  $STD apt update 2>/dev/null || true
+  $STD apt update
   msg_ok "Removed ROCm repository"
 
   msg_info "Removing environment configuration"
@@ -262,7 +262,7 @@ function update_rocm() {
   fi
 
   msg_info "Checking for ROCm updates"
-  $STD apt update 2>/dev/null || true
+  $STD apt update
 
   local updates
   updates=$(apt list --upgradable 2>/dev/null | grep -c "rocm" || true)
@@ -270,7 +270,7 @@ function update_rocm() {
   if [[ "$updates" -gt 0 ]]; then
     msg_ok "Found ${updates} ROCm package update(s)"
     msg_info "Upgrading ROCm packages"
-    $STD apt upgrade -y rocm 2>/dev/null || true
+    $STD apt upgrade -y rocm
     msg_ok "Updated ROCm packages"
   else
     msg_ok "ROCm is already up-to-date"
