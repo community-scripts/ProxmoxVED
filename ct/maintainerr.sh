@@ -19,38 +19,6 @@ variables
 color
 catch_errors
 
-function build_maintainerr() {
-  NODE_VERSION="24" setup_nodejs
-  msg_info "Preparing Build Runtime"
-  export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-  $STD corepack enable
-  if [[ -f /opt/maintainerr/package.json ]]; then
-    if command -v jq >/dev/null 2>&1; then
-      yarn_spec=$(jq -r '.packageManager // empty' /opt/maintainerr/package.json 2>/dev/null || true)
-      if [[ -n "$yarn_spec" && "$yarn_spec" == yarn@* ]]; then
-        yarn_ver="${yarn_spec#yarn@}"
-        yarn_ver="${yarn_ver%%+*}"
-        $STD corepack prepare "yarn@${yarn_ver}" --activate || true
-      fi
-    fi
-  fi
-  msg_ok "Prepared Build Runtime"
-
-  msg_info "Building Maintainerr (Patience)"
-  cd /opt/maintainerr || { msg_error "Failed to change to /opt/maintainerr"; return 1; }
-  cat <<'EOF' >/opt/maintainerr/apps/ui/.env
-VITE_BASE_PATH=/__PATH_PREFIX__
-EOF
-  export NODE_OPTIONS="--max-old-space-size=4096"
-  $STD yarn install --immutable --network-timeout 99999999
-  $STD yarn turbo build
-  $STD yarn workspaces focus --all --production
-  mkdir -p /opt/maintainerr/apps/server/dist/ui
-  cp -a /opt/maintainerr/apps/ui/dist/. /opt/maintainerr/apps/server/dist/ui/
-  ln -sfnT /opt/maintainerr /opt/app
-  msg_ok "Built Maintainerr"
-}
-
 function update_script() {
   header_info
   check_container_storage
@@ -66,11 +34,39 @@ function update_script() {
     systemctl stop maintainerr
     msg_ok "Stopped Service"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "maintainerr" "Maintainerr/Maintainerr" "tarball" "latest" "/opt/maintainerr"
-    build_maintainerr
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "maintainerr" "Maintainerr/Maintainerr" "tarball"
+
+    NODE_VERSION="24" setup_nodejs
+    msg_info "Preparing Build Runtime"
+    export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+    $STD corepack enable
+    if [[ -f /opt/maintainerr/package.json ]]; then
+      if command -v jq >/dev/null 2>&1; then
+        yarn_spec=$(jq -r '.packageManager // empty' /opt/maintainerr/package.json 2>/dev/null || true)
+        if [[ -n "$yarn_spec" && "$yarn_spec" == yarn@* ]]; then
+          yarn_ver="${yarn_spec#yarn@}"
+          yarn_ver="${yarn_ver%%+*}"
+          $STD corepack prepare "yarn@${yarn_ver}" --activate || true
+        fi
+      fi
+    fi
+    msg_ok "Prepared Build Runtime"
+
+    msg_info "Building Maintainerr (Patience)"
+    cd /opt/maintainerr || { msg_error "Failed to change to /opt/maintainerr"; exit 1; }
+    cat <<EOF >/opt/maintainerr/apps/ui/.env
+VITE_BASE_PATH=/__PATH_PREFIX__
+EOF
+    export NODE_OPTIONS="--max-old-space-size=4096"
+    $STD yarn install --immutable --network-timeout 99999999
+    $STD yarn turbo build
+    $STD yarn workspaces focus --all --production
+    mkdir -p /opt/maintainerr/apps/server/dist/ui
+    cp -a /opt/maintainerr/apps/ui/dist/. /opt/maintainerr/apps/server/dist/ui/
+    ln -sfnT /opt/maintainerr /opt/app
+    msg_ok "Built Maintainerr"
 
     msg_info "Starting Service"
-    systemctl daemon-reload
     systemctl start maintainerr
     msg_ok "Started Service"
     msg_ok "Updated successfully!"

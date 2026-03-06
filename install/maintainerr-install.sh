@@ -14,12 +14,12 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y \
+$STD apt install -y \
   build-essential \
   python3
 msg_ok "Installed Dependencies"
 
-fetch_and_deploy_gh_release "maintainerr" "Maintainerr/Maintainerr" "tarball" "latest" "/opt/maintainerr"
+fetch_and_deploy_gh_release "maintainerr" "Maintainerr/Maintainerr" "tarball"
 
 NODE_VERSION="24" setup_nodejs
 msg_info "Preparing Build Runtime"
@@ -40,8 +40,8 @@ ln -sfnT /opt/maintainerr /opt/app
 msg_ok "Prepared Build Runtime"
 
 msg_info "Building Maintainerr (Patience)"
-cd /opt/maintainerr || { msg_error "Failed to change to /opt/maintainerr"; exit 1; }
-cat <<'EOF' >/opt/maintainerr/apps/ui/.env
+cd /opt/maintainerr
+cat <<EOF >/opt/maintainerr/apps/ui/.env
 VITE_BASE_PATH=/__PATH_PREFIX__
 EOF
 export NODE_OPTIONS="--max-old-space-size=4096"
@@ -59,7 +59,6 @@ set -euo pipefail
 
 BASE_PATH_REPLACE="${BASE_PATH:-}"
 UI_DIST_DIR="/opt/maintainerr/apps/server/dist/ui"
-BASE_PATH_MARKER="/opt/maintainerr/.base-path-applied"
 
 if [[ ! -d "$UI_DIST_DIR" ]]; then
   echo "Missing UI build directory: $UI_DIST_DIR" >&2
@@ -73,16 +72,6 @@ if grep -R -q -- '/__PATH_PREFIX__' "$UI_DIST_DIR"; then
     echo "Failed to rewrite UI base paths under $UI_DIST_DIR" >&2
     exit 1
   fi
-  printf '%s' "$BASE_PATH_REPLACE" >"$BASE_PATH_MARKER"
-elif [[ -f "$BASE_PATH_MARKER" ]]; then
-  APPLIED_BASE_PATH="$(cat "$BASE_PATH_MARKER")"
-  if [[ "$APPLIED_BASE_PATH" != "$BASE_PATH_REPLACE" ]]; then
-    echo "BASE_PATH changed from '$APPLIED_BASE_PATH' to '$BASE_PATH_REPLACE', but UI assets were already rewritten. Rebuild Maintainerr to apply a new BASE_PATH." >&2
-    exit 1
-  fi
-else
-  # Compatibility path for installs created before marker tracking existed.
-  printf '%s' "$BASE_PATH_REPLACE" >"$BASE_PATH_MARKER"
 fi
 
 exec npm run --prefix /opt/maintainerr/apps/server start
@@ -91,7 +80,7 @@ chmod +x /opt/maintainerr/start.sh
 msg_ok "Created Start Script"
 
 msg_info "Configuring Maintainerr"
-cat <<'EOF' >/etc/maintainerr/maintainerr.conf
+cat <<EOF >/etc/maintainerr/maintainerr.conf
 UI_PORT=6246
 UI_HOSTNAME=0.0.0.0
 VERSION_TAG=stable
@@ -101,7 +90,7 @@ EOF
 msg_ok "Configured Maintainerr"
 
 msg_info "Creating Service"
-cat <<'EOF' >/etc/systemd/system/maintainerr.service
+cat <<EOF >/etc/systemd/system/maintainerr.service
 [Unit]
 Description=Maintainerr Service
 Wants=network-online.target
@@ -119,7 +108,6 @@ ExecStart=/opt/maintainerr/start.sh
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reload
 systemctl enable -q --now maintainerr
 msg_ok "Created Service"
 
