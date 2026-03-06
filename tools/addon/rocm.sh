@@ -55,13 +55,20 @@ function detect_os() {
   OS_ID="${ID}"
   OS_VERSION_ID="${VERSION_ID}"
   OS_VERSION_CODENAME="${VERSION_CODENAME:-unknown}"
+  ROCM_VERSION="7.2"
 
   case "${OS_ID}" in
     debian)
       OS="Debian"
       case "${OS_VERSION_ID}" in
-        12) OS_CODENAME="bookworm" ;;
-        13) OS_CODENAME="trixie" ;;
+        12)
+          OS_CODENAME="bookworm"
+          ROCM_REPO_CODENAME="jammy"
+          ;;
+        13)
+          OS_CODENAME="trixie"
+          ROCM_REPO_CODENAME="noble"
+          ;;
         *)
           msg_error "Unsupported Debian version: ${OS_VERSION_ID}"
           msg_info "Supported versions: Debian 12, Debian 13"
@@ -72,8 +79,14 @@ function detect_os() {
     ubuntu)
       OS="Ubuntu"
       case "${OS_VERSION_ID}" in
-        22.04) OS_CODENAME="jammy" ;;
-        24.04) OS_CODENAME="noble" ;;
+        22.04)
+          OS_CODENAME="jammy"
+          ROCM_REPO_CODENAME="jammy"
+          ;;
+        24.04)
+          OS_CODENAME="noble"
+          ROCM_REPO_CODENAME="noble"
+          ;;
         *)
           msg_error "Unsupported Ubuntu version: ${OS_VERSION_ID}"
           msg_info "Supported versions: Ubuntu 22.04, Ubuntu 24.04"
