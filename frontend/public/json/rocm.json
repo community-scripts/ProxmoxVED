@@ -49,7 +49,7 @@
       "type": "warning"
     },
     {
-      "text": "Also add: dev1: /dev/dri/kfd,gid=992",
+      "text": "Also add kfd to the system with gid for example: dev3: /dev/dri/kfd,gid=992",
       "type": "warning"
     },
     {
