@@ -1,0 +1,42 @@
+{
+    "name": "ARM",
+    "slug": "arm",
+    "categories": [13],
+    "date_created": "2026-03-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": true,
+    "interface_port": 8080,
+    "documentation": "https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki",
+    "website": "https://github.com/automatic-ripping-machine/automatic-ripping-machine",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/arm.webp",
+    "config_path": "/opt/arm/arm.yaml",
+    "description": "Automatic Ripping Machine (ARM) automatically detects and rips Blu-rays, DVDs, and CDs. It identifies disc type, retrieves metadata, and handles transcoding with MakeMKV and HandBrake.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/arm.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 16,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": "password"
+    },
+    "notes": [
+        {
+            "text": "Optical drive passthrough to the LXC container is required. Configure device mappings in the Proxmox container settings.",
+            "type": "warning"
+        },
+        {
+            "text": "Navigate to http://IP:8080/setup on first launch to complete initial setup. Default credentials: admin / password.",
+            "type": "info"
+        }
+    ]
+}
