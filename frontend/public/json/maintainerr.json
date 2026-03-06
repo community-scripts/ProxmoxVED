@@ -1,0 +1,44 @@
+{
+    "name": "Maintainerr",
+    "slug": "maintainerr",
+    "categories": [
+        13
+    ],
+    "date_created": "2026-03-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 6246,
+    "documentation": "https://docs.maintainerr.info/latest/Installation/",
+    "website": "https://maintainerr.info/",
+    "logo": "https://raw.githubusercontent.com/Maintainerr/Maintainerr/main/apps/ui/public/logo_black.svg",
+    "config_path": "/etc/maintainerr/maintainerr.conf",
+    "description": "Media retention and cleanup automation for Plex and Jellyfin ecosystems.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/maintainerr.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 18,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Initial install and updates build from source and may take several minutes.",
+            "type": "warning"
+        },
+        {
+            "text": "Data is persisted in /opt/data.",
+            "type": "info"
+        }
+    ]
+}
