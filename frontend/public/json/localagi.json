@@ -1,0 +1,52 @@
+{
+  "name": "LocalAGI",
+  "slug": "localagi",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-03-03",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://github.com/mudler/LocalAGI#installation-options",
+  "website": "https://github.com/mudler/LocalAGI",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/localagi.webp",
+  "config_path": "/opt/localagi/.env",
+  "description": "LocalAGI is a self-hostable AI agent platform with a web UI, OpenAI-compatible APIs, and local-first model orchestration.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/localagi.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This script builds LocalAGI from source (Go + Bun) and runs it as a systemd service.",
+      "type": "info"
+    },
+    {
+      "text": "This Proxmox script runs LocalAGI in external-backend mode and does not provision local ROCm/NVIDIA runtimes.",
+      "type": "info"
+    },
+    {
+      "text": "By default, LocalAGI is configured to call an OpenAI-compatible backend at `http://127.0.0.1:11434/v1` (Ollama-compatible) via `LOCALAGI_LLM_API_URL`.",
+      "type": "info"
+    },
+    {
+      "text": "To use an external Ollama host, edit `/opt/localagi/.env` and set `LOCALAGI_LLM_API_URL=http://<ollama-host>:11434/v1`, then restart LocalAGI with `systemctl restart localagi`.",
+      "type": "info"
+    }
+  ]
+}

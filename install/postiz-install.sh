@@ -45,6 +45,7 @@ MAIN_URL=http://${LOCAL_IP}
 FRONTEND_URL=http://${LOCAL_IP}
 NEXT_PUBLIC_BACKEND_URL=http://${LOCAL_IP}/api
 BACKEND_INTERNAL_URL=http://localhost:3000
+NOT_SECURED=true
 TEMPORAL_ADDRESS=localhost:7233
 IS_GENERAL=true
 STORAGE_PROVIDER=local
@@ -159,6 +160,9 @@ server {
 
   client_max_body_size 100M;
 
+  gzip on;
+  gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
   location /api/ {
     proxy_pass http://127.0.0.1:3000/;
     proxy_http_version 1.1;
@@ -168,14 +172,21 @@ server {
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header Reload \$http_reload;
+    proxy_set_header Onboarding \$http_onboarding;
+    proxy_set_header Activate \$http_activate;
+    proxy_set_header Auth \$http_auth;
+    proxy_set_header Showorg \$http_showorg;
+    proxy_set_header Impersonate \$http_impersonate;
+    proxy_set_header Accept-Language \$http_accept_language;
   }
 
-  location /uploads {
-    alias /opt/postiz/uploads;
+  location /uploads/ {
+    alias /opt/postiz/uploads/;
   }
 
   location / {
-    proxy_pass http://127.0.0.1:4200;
+    proxy_pass http://127.0.0.1:4200/;
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection "upgrade";
@@ -183,13 +194,22 @@ server {
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header Reload \$http_reload;
+    proxy_set_header Onboarding \$http_onboarding;
+    proxy_set_header Activate \$http_activate;
+    proxy_set_header Auth \$http_auth;
+    proxy_set_header Showorg \$http_showorg;
+    proxy_set_header Impersonate \$http_impersonate;
+    proxy_set_header Accept-Language \$http_accept_language;
+    proxy_set_header i18next \$http_i18next;
   }
 }
 EOF
 ln -sf /etc/nginx/sites-available/postiz /etc/nginx/sites-enabled/postiz
 rm -f /etc/nginx/sites-enabled/default
 $STD nginx -t
-$STD systemctl enable --now nginx
+systemctl enable -q nginx
+systemctl reload -q nginx
 msg_ok "Configured Nginx"
 
 motd_ssh
