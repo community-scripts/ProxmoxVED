@@ -20,51 +20,46 @@ color
 catch_errors
 
 function update_script() {
-  header_info
-  check_container_storage
-  check_container_resources
+   header_info
+   check_container_storage
+   check_container_resources
 
-  if check_for_gh_release "lemonade" "lemonade-sdk/lemonade"; then
-    msg_info "Stopping Service"
-    systemctl stop lemonade-server
-    msg_ok "Stopped Service"
+	if check_for_gh_release "lemonade" "lemonade-sdk/lemonade"; then
+		msg_info "Stopping Service"
+		systemctl stop lemonade-server
+		msg_ok "Stopped Service"
 
-    msg_info "Backing up Configuration"
-    if [[ -f /opt/lemonade/.env ]]; then
-      cp /opt/lemonade/.env /opt/lemonade.env.bak
+    	msg_info "Backing up Configuration"
+    	if [[ -f /opt/lemonade/.env ]]; then
+    		cp /opt/lemonade/.env /opt/lemonade.env.bak
+    	fi
+    	msg_ok "Backed up Configuration"
+
+	if ! CLEAN_INSTALL=1 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"; then
+    	msg_error "Update failed, attempting service recovery"
+    	if [[ -f /opt/lemonade.env.bak ]]; then
+        	mkdir -p /opt/lemonade
+        	cp /opt/lemonade.env.bak /opt/lemonade/.env
+    	fi
+       systemctl start lemonade-server || true
+       exit 1
     fi
-    msg_ok "Backed up Configuration"
+    msg_ok "Updated Lemonade Server"
 
-   if check_for_gh_release "lemonade" "lemonade-sdk/lemonade"; then
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"
-    if ! CLEAN_INSTALL=1 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"; then
-      msg_error "Update failed, attempting service recovery"
-      if [[ -f /opt/lemonade.env.bak ]]; then
-        mkdir -p /opt/lemonade
-        cp /opt/lemonade.env.bak /opt/lemonade/.env
-      fi
-      systemctl start lemonade-server || true
-      exit 1
-    fi
-	msg_ok "Updated Lemonade Server"
-
-    msg_info "Starting Service"
-    systemctl start lemonade-server
     msg_info "Restoring Configuration"
     if [[ -f /opt/lemonade.env.bak ]]; then
-      mkdir -p /opt/lemonade
-      cp /opt/lemonade.env.bak /opt/lemonade/.env
-      rm -f /opt/lemonade.env.bak
+    	mkdir -p /opt/lemonade
+    	cp /opt/lemonade.env.bak /opt/lemonade/.env
+    	rm -f /opt/lemonade.env.bak
     fi
     msg_ok "Restored Configuration"
 
     msg_info "Starting Service"
     systemctl start lemonade-server
     msg_ok "Started Service"
-    msg_ok "Updated successfully!"
-  fi
-  exit
-}
+	fi
+	exit 0
+ }
 
 start
 build_container
