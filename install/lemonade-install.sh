@@ -22,8 +22,6 @@ cat <<EOF >/opt/lemonade/.env
 LEMONADE_HOST=0.0.0.0
 LEMONADE_PORT=8000
 LEMONADE_LOG_LEVEL=info
-LEMONADE_CTX_SIZE=4096
-LEMONADE_MAX_LOADED_MODELS=1
 EOF
 msg_ok "Configured Lemonade Server"
 
