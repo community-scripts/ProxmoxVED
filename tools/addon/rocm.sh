@@ -128,15 +128,28 @@ function check_lxc() {
 # INSTALL FUNCTIONS
 # ==============================================================================
 function install_rocm_debian() {
+  msg_info "Creating keyrings directory"
+  mkdir -p /etc/apt/keyrings
+  msg_ok "Created keyrings directory"
+
   msg_info "Adding ROCm repository GPG key"
-  curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /usr/share/keyrings/rocm-archive-keyring.gpg
+  curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
   msg_ok "Added ROCm GPG key"
 
-  msg_info "Adding ROCm repository"
+  msg_info "Adding ROCm repository (using ${ROCM_REPO_CODENAME} for ${OS} ${OS_VERSION_ID})"
   cat <<EOF >/etc/apt/sources.list.d/rocm.list
-deb [arch=amd64 signed-by=/usr/share/keyrings/rocm-archive-keyring.gpg] https://repo.radeon.com/rocm/apt/${OS_CODENAME} rocm main
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/${ROCM_VERSION} ${ROCM_REPO_CODENAME} main
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/${ROCM_VERSION}/ubuntu ${ROCM_REPO_CODENAME} main
 EOF
   msg_ok "Added ROCm repository"
+
+  msg_info "Setting package pin preferences"
+  cat <<EOF >/etc/apt/preferences.d/rocm-pin-600
+Package: *
+Pin: release o=repo.radeon.com
+Pin-Priority: 600
+EOF
+  msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
   $STD apt update
@@ -162,15 +175,28 @@ EOF
 }
 
 function install_rocm_ubuntu() {
+  msg_info "Creating keyrings directory"
+  mkdir -p /etc/apt/keyrings
+  msg_ok "Created keyrings directory"
+
   msg_info "Adding ROCm repository GPG key"
-  curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /usr/share/keyrings/rocm-archive-keyring.gpg
+  curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
   msg_ok "Added ROCm GPG key"
 
   msg_info "Adding ROCm repository"
   cat <<EOF >/etc/apt/sources.list.d/rocm.list
-deb [arch=amd64 signed-by=/usr/share/keyrings/rocm-archive-keyring.gpg] https://repo.radeon.com/rocm/apt/${OS_CODENAME} rocm main
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/${ROCM_VERSION} ${ROCM_REPO_CODENAME} main
+deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/${ROCM_VERSION}/ubuntu ${ROCM_REPO_CODENAME} main
 EOF
   msg_ok "Added ROCm repository"
+
+  msg_info "Setting package pin preferences"
+  cat <<EOF >/etc/apt/preferences.d/rocm-pin-600
+Package: *
+Pin: release o=repo.radeon.com
+Pin-Priority: 600
+EOF
+  msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
   $STD apt update
