@@ -25,26 +25,9 @@ LEMONADE_LOG_LEVEL=info
 EOF
 msg_ok "Configured Lemonade Server"
 
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/lemonade-server.service
-[Unit]
-Description=Lemonade Server - LLM Inference Server
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/lemonade
-EnvironmentFile=/opt/lemonade/.env
-ExecStart=/usr/bin/lemonade-server serve
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
+msg_info "Enabling Service"
 systemctl enable -q --now lemonade-server
-msg_ok "Created Service"
+msg_ok "Enabled Service"
 
 motd_ssh
 customize
