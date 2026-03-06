@@ -36,7 +36,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/lemonade
 EnvironmentFile=/opt/lemonade/.env
-ExecStart=/usr/bin/lemonade-server
+ExecStart=/usr/bin/lemonade-server serve
 Restart=on-failure
 RestartSec=5
 
