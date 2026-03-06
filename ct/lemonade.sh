@@ -24,11 +24,6 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /usr/bin/lemonade-server ]]; then
-    msg_error "No ${APP} Installation Found!"
-    exit
-  fi
-
   msg_info "Checking for Updates for ${APP}"
   if check_for_gh_release "lemonade" "lemonade-sdk/lemonade"; then
     msg_info "Stopping Service"
