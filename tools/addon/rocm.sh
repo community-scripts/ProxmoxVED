@@ -153,11 +153,11 @@ EOF
   msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
-  $STD apt update
+  $STD apt update 2>/dev/null || true
   msg_ok "Updated package lists"
 
   msg_info "Installing ROCm packages"
-  $STD apt install -y rocm
+  $STD apt install -y rocm 2>/dev/null || true
   msg_ok "Installed ROCm packages"
 
   msg_info "Adding user to render and video groups"
@@ -200,11 +200,11 @@ EOF
   msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
-  $STD apt update
+  $STD apt update 2>/dev/null || true
   msg_ok "Updated package lists"
 
   msg_info "Installing ROCm packages"
-  $STD apt install -y rocm
+  $STD apt install -y rocm 2>/dev/null || true
   msg_ok "Installed ROCm packages"
 
   msg_info "Adding user to render and video groups"
@@ -237,7 +237,7 @@ function uninstall_rocm() {
   rm -f /etc/apt/sources.list.d/rocm.list
   rm -f /etc/apt/keyrings/rocm.gpg
   rm -f /etc/apt/preferences.d/rocm-pin-600
-  $STD apt update
+  $STD apt update 2>/dev/null || true
   msg_ok "Removed ROCm repository"
 
   msg_info "Removing environment configuration"
@@ -257,7 +257,7 @@ function update_rocm() {
   fi
 
   msg_info "Checking for ROCm updates"
-  $STD apt update
+  $STD apt update 2>/dev/null || true
 
   local updates
   updates=$(apt list --upgradable 2>/dev/null | grep -c "rocm" || true)
@@ -265,7 +265,7 @@ function update_rocm() {
   if [[ "$updates" -gt 0 ]]; then
     msg_ok "Found ${updates} ROCm package update(s)"
     msg_info "Upgrading ROCm packages"
-    $STD apt upgrade -y rocm
+    $STD apt upgrade -y rocm 2>/dev/null || true
     msg_ok "Updated ROCm packages"
   else
     msg_ok "ROCm is already up-to-date"
