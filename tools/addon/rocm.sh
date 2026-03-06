@@ -170,6 +170,14 @@ EOF
   done
   msg_ok "Added users to render and video groups"
 
+  msg_info "Configuring /dev/kfd permissions"
+  if [[ -e /dev/kfd ]]; then
+    chmod 666 /dev/kfd
+    msg_ok "Configured /dev/kfd permissions"
+  else
+    msg_warn "/dev/kfd not found - GPU passthrough may not be configured"
+  fi
+
   msg_info "Configuring environment"
   echo "export PATH=\$PATH:/opt/rocm/bin" >/etc/profile.d/rocm.sh
   echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/lib" >>/etc/profile.d/rocm.sh
@@ -216,6 +224,14 @@ EOF
     usermod -aG render,video "$user"
   done
   msg_ok "Added users to render and video groups"
+
+  msg_info "Configuring /dev/kfd permissions"
+  if [[ -e /dev/kfd ]]; then
+    chmod 666 /dev/kfd
+    msg_ok "Configured /dev/kfd permissions"
+  else
+    msg_warn "/dev/kfd not found - GPU passthrough may not be configured"
+  fi
 
   msg_info "Configuring environment"
   echo "export PATH=\$PATH:/opt/rocm/bin" >/etc/profile.d/rocm.sh
