@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 
-# ==============================================================================
-# SOURCE TOOLS FUNC
-# ==============================================================================
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
-
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: BillyOutlast
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -14,6 +9,11 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # ROCm ADDON - AMD ROCm Installation for Debian/Ubuntu LXC Containers
 # Supports: Debian 12, Debian 13, Ubuntu 22.04, Ubuntu 24.04
 # ==============================================================================
+
+
+# Telemetry
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
+declare -f init_tool_telemetry &>/dev/null && init_tool_telemetry "add-rocm-lxc" "addon"
 
 function header_info {
   clear
@@ -158,11 +158,11 @@ EOF
   msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
-  $STD apt update
+  apt update >/dev/null 2>&1
   msg_ok "Updated package lists"
 
   msg_info "Installing ROCm packages"
-  $STD apt install -y rocm
+  apt install -y rocm >/dev/null 2>&1
   msg_ok "Installed ROCm packages"
 
   msg_info "Adding user to render and video groups"
@@ -205,11 +205,11 @@ EOF
   msg_ok "Set package pin preferences"
 
   msg_info "Updating package lists"
-  $STD apt update
+  apt update >/dev/null 2>&1
   msg_ok "Updated package lists"
 
   msg_info "Installing ROCm packages"
-  $STD apt install -y rocm
+  apt install -y rocm >/dev/null 2>&1
   msg_ok "Installed ROCm packages"
 
   msg_info "Adding user to render and video groups"
@@ -234,15 +234,15 @@ function uninstall_rocm() {
   msg_info "Uninstalling ROCm"
 
   msg_info "Removing ROCm packages"
-  $STD apt remove -y rocm
-  $STD apt autoremove -y
+  apt remove -y rocm >/dev/null 2>&1
+  apt autoremove -y >/dev/null 2>&1
   msg_ok "Removed ROCm packages"
 
   msg_info "Removing ROCm repository"
   rm -f /etc/apt/sources.list.d/rocm.list
   rm -f /etc/apt/keyrings/rocm.gpg
   rm -f /etc/apt/preferences.d/rocm-pin-600
-  $STD apt update
+  apt update >/dev/null 2>&1
   msg_ok "Removed ROCm repository"
 
   msg_info "Removing environment configuration"
@@ -262,7 +262,7 @@ function update_rocm() {
   fi
 
   msg_info "Checking for ROCm updates"
-  $STD apt update
+  apt update >/dev/null 2>&1
 
   local updates
   updates=$(apt list --upgradable 2>/dev/null | grep -c "rocm" || true)
@@ -270,7 +270,7 @@ function update_rocm() {
   if [[ "$updates" -gt 0 ]]; then
     msg_ok "Found ${updates} ROCm package update(s)"
     msg_info "Upgrading ROCm packages"
-    $STD apt upgrade -y rocm
+    apt upgrade -y rocm >/dev/null 2>&1
     msg_ok "Updated ROCm packages"
   else
     msg_ok "ROCm is already up-to-date"
