@@ -13,13 +13,12 @@
 function header_info {
   clear
   cat <<"EOF"
-    ____  __  _________
-   / __ \/  |/  /  _/ /
-  / /_/ / /|_/ / // /  
- / _, _/ /  / / // /   
-/_/ |_/_/  /_/___/_/   
-                       
-AMD ROCm Installation
+    ____  ____  ________  ___
+   / __ \/ __ \/ ____/  |/  /
+  / /_/ / / / / /   / /|_/ / 
+ / _, _/ /_/ / /___/ /  / /  
+/_/ |_|\____/\____/_/  /_/                       
+ROCM Installer for Proxmox LXC Containers
 EOF
 }
 
@@ -234,7 +233,8 @@ function uninstall_rocm() {
 
   msg_info "Removing ROCm repository"
   rm -f /etc/apt/sources.list.d/rocm.list
-  rm -f /usr/share/keyrings/rocm-archive-keyring.gpg
+  rm -f /etc/apt/keyrings/rocm.gpg
+  rm -f /etc/apt/preferences.d/rocm-pin-600
   $STD apt update
   msg_ok "Removed ROCm repository"
 
@@ -249,7 +249,7 @@ function uninstall_rocm() {
 # UPDATE
 # ==============================================================================
 function update_rocm() {
-  if [[ ! -f /usr/share/keyrings/rocm-archive-keyring.gpg ]]; then
+  if [[ ! -f /etc/apt/keyrings/rocm.gpg ]]; then
     msg_error "ROCm is not installed"
     exit 1
   fi
@@ -310,7 +310,7 @@ if ! check_lxc; then
 fi
 
 # Check for existing installation
-if [[ -f /usr/share/keyrings/rocm-archive-keyring.gpg ]]; then
+if [[ -f /etc/apt/keyrings/rocm.gpg ]]; then
   msg_warn "ROCm is already installed."
   echo ""
 
