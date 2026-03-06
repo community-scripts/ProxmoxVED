@@ -41,7 +41,7 @@
       "type": "info"
     },
     {
-      "text": "Supports multiple backends: CPU, Vulkan, and ROCm for AMD GPUs.",
+      "text": "Supports CPU and Vulkan backends currently; ROCm support for AMD GPUs is planned.",
       "type": "info"
     }
   ]
