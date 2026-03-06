@@ -17,8 +17,10 @@ function header_info {
    / __ \/ __ \/ ____/  |/  /
   / /_/ / / / / /   / /|_/ / 
  / _, _/ /_/ / /___/ /  / /  
-/_/ |_|\____/\____/_/  /_/                       
+/_/ |_|\____/\____/_/  /_/         
+
 ROCM Installer for Proxmox LXC Containers
+
 EOF
 }
 
