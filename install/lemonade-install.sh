@@ -16,6 +16,16 @@ update_os
 
 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"
 
+msg_info "Configuring Service"
+mkdir -p /etc/systemd/system/lemonade-server.service.d
+cat > /etc/systemd/system/lemonade-server.service.d/override.conf << 'EOF'
+[Service]
+ExecStart=
+ExecStart=/usr/bin/lemonade-server serve --host 0.0.0.0 --port 8000
+EOF
+systemctl daemon-reload
+msg_ok "Configured Service"
+
 msg_info "Enabling Service"
 systemctl enable -q --now lemonade-server
 msg_ok "Enabled Service"
