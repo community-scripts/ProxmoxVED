@@ -284,7 +284,7 @@ function update_rocm() {
   if [[ "$updates" -gt 0 ]]; then
     msg_ok "Found ${updates} ROCm package update(s)"
     msg_info "Upgrading ROCm packages"
-    $STD apt upgrade -y rocm
+    $STD apt-get install --only-upgrade rocm
     msg_ok "Updated ROCm packages"
   else
     msg_ok "ROCm is already up-to-date"
