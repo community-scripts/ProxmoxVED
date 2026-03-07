@@ -24,6 +24,8 @@ cat > /etc/systemd/system/lemonade-server.service.d/override.conf << 'EOF'
 [Service]
 User=root
 Group=root
+# Allow writing to /root/.cache for binary downloads
+ReadWritePaths=/root/.cache
 EOF
 systemctl daemon-reload
 msg_ok "Configured Service"
