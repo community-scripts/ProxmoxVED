@@ -172,7 +172,8 @@ EOF
 
   msg_info "Configuring /dev/kfd permissions"
   if [[ -e /dev/kfd ]]; then
-    chmod 666 /dev/kfd
+    chgrp render /dev/kfd 2>/dev/null || true
+	chmod 660 /dev/kfd
     msg_ok "Configured /dev/kfd permissions"
   else
     msg_warn "/dev/kfd not found - GPU passthrough may not be configured"
