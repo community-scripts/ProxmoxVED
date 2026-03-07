@@ -29,20 +29,7 @@ function update_script() {
 		systemctl stop lemonade-server
 		msg_ok "Stopped Service"
 
-    	if [[ -f /opt/lemonade/.env ]]; then
-		    msg_info "Backing up Configuration"
-    		cp /opt/lemonade/.env /opt/lemonade.env.bak
-			msg_ok "Backed up Configuration"
-    	fi
-
 	CLEAN_INSTALL=1 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"
-
-    if [[ -f /opt/lemonade.env.bak ]]; then
-	    msg_info "Restoring Configuration"
-    	cp /opt/lemonade.env.bak /opt/lemonade/.env
-    	rm -f /opt/lemonade.env.bak
-		msg_ok "Restored Configuration"
-    fi
 
     msg_info "Starting Service"
     systemctl start lemonade-server
