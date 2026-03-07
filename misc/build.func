@@ -4096,6 +4096,9 @@ EOF'
     # that sends "configuring" status AFTER the host already reported "failed"
     export CONTAINER_INSTALLING=true
 
+    if [[ "$ARCH" == "arm64" ]]; then
+      lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/arm/${var_install}.sh)"
+    fi
     lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/${var_install}.sh)"
     local lxc_exit=$?
 
@@ -4474,6 +4477,9 @@ EOF'
           # Re-run install script in existing container (don't destroy/recreate)
           set +Eeuo pipefail
           trap - ERR
+          if [[ "$ARCH" == "arm64" ]]; then
+            lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/arm/${var_install}.sh)"
+          fi
           lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/${var_install}.sh)"
           local apt_retry_exit=$?
           set -Eeuo pipefail
