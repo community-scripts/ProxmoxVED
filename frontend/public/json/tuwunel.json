@@ -1,0 +1,56 @@
+{
+  "name": "Tuwunel",
+  "slug": "tuwunel",
+  "categories": [
+    18
+  ],
+  "date_created": "2026-02-22",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8008,
+  "documentation": "https://matrix-construct.github.io/tuwunel/",
+  "website": "https://tuwunel.chat/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/matrix-dark.webp",
+  "config_path": "/etc/tuwunel/tuwunel.toml",
+  "description": "High Performance Matrix Homeserver in Rust! Like Signal E2E encrypted messaging, but federated and open-source.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/tuwunel.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "<your-username>",
+    "password": "first registered account gets admin rights"
+  },
+  "notes": [
+    {
+      "text": "Valid TLS certs and domain name behind a reverse proxy (like Traefik) required for port Tuwunel (port 8008), optional for federation (port 8448)",
+      "type": "warning"
+    },
+    {
+      "text": "Registration token for new users is stored at `/etc/tuwunel/.reg_token`. You need this to register the first user. After that, use admin commands for new users.",
+      "type": "info"
+    },
+    {
+      "text": "Tuwunel is a Matrix server, with no web UI. The first registered user will be given admin rights. Admins can send commands to a special group chat for adding users, moderation, and server administration. See Tuwunel docs for a list of commands.",
+      "type": "info"
+    },
+    {
+      "text": "Federation must be configured so other users/servers can find you. If your username is `user@example.com`, others look for you at `example.com/.well-known/matrix` or `example.com:8448`. If you want Tuwunel on a subdomain, like `matrix.example.com`, you either need to forward `example.com:8448` to `matrix.example.com:8448`, or `matrix.example.com/.well-known/matrix` to `example.com/.well-known/matrix`. See Matrix docs for details: https://matrix-org.github.io/synapse/latest/federate.html",
+      "type": "warning"
+    },
+    {
+      "text": "FluffyChat is a great Matrix client, similar in culture and implementation to Tuwunel. Unfortunately it doesn't support registration on a homeserver yet. Use another client for registration, then log into FluffyChat.",
+      "type": "info"
+    }
+  ]
+}
