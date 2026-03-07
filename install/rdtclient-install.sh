@@ -13,7 +13,7 @@ if ! declare -F install_dotnet_runtime >/dev/null; then
       "https://packages.microsoft.com/keys/microsoft-2025.asc" \
       "https://packages.microsoft.com/debian/13/prod/" \
       "trixie"
-    $STD apt-get install -y aspnetcore-runtime-9.0 unzip
+    $STD apt-get install -y aspnetcore-runtime-10.0 unzip
     msg_ok "Installed Dependencies"
   }
 fi
