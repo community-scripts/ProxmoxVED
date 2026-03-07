@@ -10,39 +10,28 @@
 # Supports: Debian 12, Debian 13, Ubuntu 22.04, Ubuntu 24.04
 # ==============================================================================
 
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+
+# Enable error handling
+set -Eeuo pipefail
+trap 'error_handler' ERR
+load_functions
+init_tool_telemetry "" "addon"
 
 function header_info {
   clear
   cat <<"EOF"
     ____  ____  ________  ___
    / __ \/ __ \/ ____/  |/  /
-  / /_/ / / / / /   / /|_/ / 
- / _, _/ /_/ / /___/ /  / /  
-/_/ |_|\____/\____/_/  /_/                       
-                       
+  / /_/ / / / / /   / /|_/ /
+ / _, _/ /_/ / /___/ /  / /
+/_/ |_|\____/\____/_/  /_/
+                        
 ROCM Installer for Proxmox LXC Containers
-                       
+                        
 EOF
 }
-
-# ==============================================================================
-# COLORS & FORMATTING
-# ==============================================================================
-YW=$(echo "\033[33m")
-GN=$(echo "\033[1;92m")
-RD=$(echo "\033[01;31m")
-BL=$(echo "\033[36m")
-CL=$(echo "\033[m")
-CM="${GN}✔️${CL}"
-CROSS="${RD}✖️${CL}"
-INFO="${BL}ℹ️${CL}"
-TAB="  "
-
-function msg_info() { echo -e "${INFO} ${YW}${1}...${CL}"; }
-function msg_ok() { echo -e "${CM} ${GN}${1}${CL}"; }
-function msg_error() { echo -e "${CROSS} ${RD}${1}${CL}"; }
-function msg_warn() { echo -e "⚠️  ${YW}${1}${CL}"; }
 
 # ==============================================================================
 # OS DETECTION
