@@ -1,166 +1,13 @@
 #!/bin/ash
 # shellcheck shell=ash
 
-# Erwartet vorhandene msg_* und optional $STD aus deinem Framework.
-
-# Fallbacks, wenn core.func nicht geladen wurde (Alpine/ash-safe)
-if ! command -v msg_info >/dev/null 2>&1; then
-  msg_info() { echo "[INFO] $*"; }
-fi
-if ! command -v msg_ok >/dev/null 2>&1; then
-  msg_ok() { echo "[OK] $*"; }
-fi
-if ! command -v msg_warn >/dev/null 2>&1; then
-  msg_warn() { echo "[WARN] $*"; }
-fi
-if ! command -v msg_error >/dev/null 2>&1; then
-  msg_error() { echo "[ERROR] $*" >&2; }
-fi
+# Expects existing msg_* functions and optional $STD from the framework.
 
 # ------------------------------
 # helpers
 # ------------------------------
 lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 has() { command -v "$1" >/dev/null 2>&1; }
-
-# tools.func compatibility helpers (Alpine-safe)
-cache_installed_version() {
-  local app="$1" version="$2"
-  mkdir -p /var/cache/app-versions
-  echo "$version" >"/var/cache/app-versions/${app}_version.txt"
-}
-
-get_cached_version() {
-  local app="$1"
-  mkdir -p /var/cache/app-versions
-  if [ -f "/var/cache/app-versions/${app}_version.txt" ]; then
-    cat "/var/cache/app-versions/${app}_version.txt"
-    return 0
-  fi
-  return 0
-}
-
-version_gt() {
-  # returns 0 if $1 > $2
-  # BusyBox-safe version compare
-  awk -v a="$1" -v b="$2" '
-  function splitver(v, arr) { n=split(v, arr, /\./); return n }
-  BEGIN {
-    na=splitver(a, A); nb=splitver(b, B);
-    n=(na>nb?na:nb);
-    for (i=1;i<=n;i++) {
-      va=(A[i]==""?0:A[i]); vb=(B[i]==""?0:B[i]);
-      if (va+0 > vb+0) exit 0;
-      if (va+0 < vb+0) exit 1;
-    }
-    exit 1;
-  }'
-}
-
-get_system_arch() {
-  local arch
-  arch=$(uname -m 2>/dev/null || echo "")
-  [ "$arch" = "x86_64" ] && arch="amd64"
-  [ "$arch" = "aarch64" ] && arch="arm64"
-  echo "$arch"
-}
-
-create_temp_dir() {
-  mktemp -d
-}
-
-get_os_info() {
-  local field="${1:-all}"
-  [ -z "${_OS_ID:-}" ] && _OS_ID=$(awk -F= '/^ID=/{gsub(/"/,"",$2); print $2}' /etc/os-release 2>/dev/null)
-  [ -z "${_OS_CODENAME:-}" ] && _OS_CODENAME=$(awk -F= '/^VERSION_CODENAME=/{gsub(/"/,"",$2); print $2}' /etc/os-release 2>/dev/null)
-  [ -z "${_OS_VERSION:-}" ] && _OS_VERSION=$(awk -F= '/^VERSION_ID=/{gsub(/"/,"",$2); print $2}' /etc/os-release 2>/dev/null)
-  case "$field" in
-  id) echo "$_OS_ID" ;;
-  codename) echo "$_OS_CODENAME" ;;
-  version | version_id) echo "$_OS_VERSION" ;;
-  all) echo "ID=$_OS_ID CODENAME=$_OS_CODENAME VERSION=$_OS_VERSION" ;;
-  *) echo "$_OS_ID" ;;
-  esac
-}
-
-is_alpine() { [ "$(get_os_info id)" = "alpine" ]; }
-
-get_os_version_major() {
-  local v
-  v=$(get_os_info version)
-  echo "${v%%.*}"
-}
-
-ensure_dependencies() {
-  need_tool "$@"
-}
-
-download_file() {
-  local url="$1" output="$2" max_retries="${3:-3}" show_progress="${4:-false}"
-  local i=1 curl_opts="-fsSL"
-  [ "$show_progress" = "true" ] && curl_opts="-fL#"
-  while [ $i -le "$max_retries" ]; do
-    if curl $curl_opts -o "$output" "$url"; then
-      return 0
-    fi
-    i=$((i + 1))
-    [ $i -le "$max_retries" ] && sleep 2
-  done
-  msg_error "Failed to download: $url"
-  return 1
-}
-
-github_api_call() {
-  local url="$1" output_file="${2:-/dev/stdout}"
-  local max_retries=3 retry_delay=2 attempt=1
-  local header=""
-  [ -n "${GITHUB_TOKEN:-}" ] && header="-H Authorization:Bearer\ ${GITHUB_TOKEN}"
-  while [ $attempt -le $max_retries ]; do
-    http_code=$(curl -fsSL -w "%{http_code}" -o "$output_file" \
-      -H "Accept: application/vnd.github+json" \
-      -H "X-GitHub-Api-Version: 2022-11-28" \
-      $header "$url" 2>/dev/null || echo 000)
-    case "$http_code" in
-    200) return 0 ;;
-    403) [ $attempt -lt $max_retries ] && sleep "$retry_delay" || {
-      msg_error "GitHub API rate limit exceeded"
-      return 1
-    } ;;
-    404)
-      msg_error "GitHub API endpoint not found: $url"
-      return 1
-      ;;
-    *) [ $attempt -lt $max_retries ] && sleep "$retry_delay" || {
-      msg_error "GitHub API call failed with HTTP $http_code"
-      return 1
-    } ;;
-    esac
-    retry_delay=$((retry_delay * 2))
-    attempt=$((attempt + 1))
-  done
-  return 1
-}
-
-extract_version_from_json() {
-  local json="$1" field="${2:-tag_name}" strip_v="${3:-true}" version
-  need_tool jq || return 1
-  version=$(printf '%s' "$json" | jq -r ".${field} // empty")
-  [ -z "$version" ] && return 1
-  [ "$strip_v" = "true" ] && printf '%s' "${version#v}" || printf '%s' "$version"
-}
-
-get_latest_github_release() {
-  local repo="$1" strip_v="${2:-true}" tmp
-  tmp=$(mktemp) || return 1
-  github_api_call "https://api.github.com/repos/${repo}/releases/latest" "$tmp" || {
-    rm -f "$tmp"
-    return 1
-  }
-  extract_version_from_json "$(cat "$tmp")" "tag_name" "$strip_v"
-  rc=$?
-  rm -f "$tmp"
-  return $rc
-}
 
 need_tool() {
   # usage: need_tool curl jq unzip ...
@@ -187,26 +34,28 @@ net_resolves() {
 }
 
 ensure_usr_local_bin_persist() {
+  # Login shells: /etc/profile.d/
   local PROFILE_FILE="/etc/profile.d/10-localbin.sh"
   if [ ! -f "$PROFILE_FILE" ]; then
     echo 'case ":$PATH:" in *:/usr/local/bin:*) ;; *) export PATH="/usr/local/bin:$PATH";; esac' >"$PROFILE_FILE"
     chmod +x "$PROFILE_FILE"
   fi
+
+  # Non-login shells (pct enter): /root/.profile and /root/.bashrc
+  for rc_file in /root/.profile /root/.bashrc; do
+    if [ -f "$rc_file" ] && ! grep -q '/usr/local/bin' "$rc_file"; then
+      echo 'export PATH="/usr/local/bin:$PATH"' >>"$rc_file"
+    fi
+  done
 }
 
 download_with_progress() {
   # $1 url, $2 dest
-  local url="$1" out="$2" content_length
+  local url="$1" out="$2" cl
   need_tool curl pv || return 1
-
-  content_length=$(
-    curl -fsSLI "$url" 2>/dev/null |
-      awk '(tolower($1) ~ /^content-length:/) && ($2 + 0 > 0) {print $2+0}' |
-      tail -1 | tr -cd '[:digit:]' || true
-  )
-
-  if [ -n "$content_length" ]; then
-    curl -fsSL "$url" | pv -s "$content_length" >"$out" || {
+  cl=$(curl -fsSLI "$url" 2>/dev/null | awk 'tolower($0) ~ /^content-length:/ {print $2}' | tr -d '\r')
+  if [ -n "$cl" ]; then
+    curl -fsSL "$url" | pv -s "$cl" >"$out" || {
       msg_error "Download failed: $url"
       return 1
     }
@@ -237,12 +86,7 @@ check_for_gh_release() {
   }
   need_tool curl jq || return 1
 
-  github_api_call "https://api.github.com/repos/${source}/releases/latest" "/tmp/${app_lc}-release.json" || {
-    msg_error "Unable to fetch latest tag for $app"
-    return 1
-  }
-  tag=$(cat "/tmp/${app_lc}-release.json" | jq -r '.tag_name // empty')
-  rm -f "/tmp/${app_lc}-release.json"
+  tag=$(curl -fsSL "https://api.github.com/repos/${source}/releases/latest" | jq -r '.tag_name // empty')
   [ -z "$tag" ] && {
     msg_error "Unable to fetch latest tag for $app"
     return 1
@@ -276,14 +120,14 @@ check_for_gh_release() {
 }
 
 # ------------------------------
-# GitHub: get Release  & deployen (Alpine)
+# GitHub: get Release  & deploy (Alpine)
 # modes: tarball | prebuild | singlefile
 # ------------------------------
-fetch_and_deploy_gh_release() {
+fetch_and_deploy_gh() {
   # $1 app, $2 repo, [$3 mode], [$4 version], [$5 target], [$6 asset_pattern
   local app="$1" repo="$2" mode="${3:-tarball}" version="${4:-latest}" target="${5:-/opt/$1}" pattern="${6:-}"
   local app_lc
-  app_lc=$(lower "$app" | tr -d ' ')
+  app_lc="$(lower "$app" | tr -d ' ')"
   local vfile="$HOME/.${app_lc}"
   local json url filename tmpd unpack
 
@@ -294,27 +138,26 @@ fetch_and_deploy_gh_release() {
   need_tool curl jq tar || return 1
   [ "$mode" = "prebuild" ] || [ "$mode" = "singlefile" ] && need_tool unzip >/dev/null 2>&1 || true
 
-  tmpd=$(mktemp -d) || return 1
+  tmpd="$(mktemp -d)" || return 1
   mkdir -p "$target"
 
-  # Release JSON (with token/rate-limit handling)
+  # Release JSON
   if [ "$version" = "latest" ]; then
-    github_api_call "https://api.github.com/repos/$repo/releases/latest" "$tmpd/release.json" || {
+    json="$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest")" || {
       msg_error "GitHub API failed"
       rm -rf "$tmpd"
       return 1
     }
   else
-    github_api_call "https://api.github.com/repos/$repo/releases/tags/$version" "$tmpd/release.json" || {
+    json="$(curl -fsSL "https://api.github.com/repos/$repo/releases/tags/$version")" || {
       msg_error "GitHub API failed"
       rm -rf "$tmpd"
       return 1
     }
   fi
-  json=$(cat "$tmpd/release.json")
 
   # correct Version
-  version=$(printf '%s' "$json" | jq -r '.tag_name // empty')
+  version="$(printf '%s' "$json" | jq -r '.tag_name // empty')"
   version="${version#v}"
 
   [ -z "$version" ] && {
@@ -323,15 +166,9 @@ fetch_and_deploy_gh_release() {
     return 1
   }
 
-  get_url() {
-    printf '%s' "$json" | jq -r '.assets[].browser_download_url' |
-      awk -v p="$pattern" 'BEGIN{IGNORECASE=1} $0 ~ p {print; exit}' |
-      tr -d '[:cntrl:]'
-  }
-
   case "$mode" in
   tarball | source)
-    url=$(printf '%s' "$json" | jq -r '.tarball_url // empty')
+    url="$(printf '%s' "$json" | jq -r '.tarball_url // empty')"
     [ -z "$url" ] && url="https://github.com/$repo/archive/refs/tags/v$version.tar.gz"
     filename="${app_lc}-${version}.tar.gz"
     download_with_progress "$url" "$tmpd/$filename" || {
@@ -343,8 +180,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    unpack=$(find "$tmpd" -mindepth 1 -maxdepth 1 -type d | head -n1)
-    [ "${CLEAN_INSTALL:-0}" = "1" ] && rm -rf "${target:?}/"*
+    unpack="$(find "$tmpd" -mindepth 1 -maxdepth 1 -type d | head -n1)"
     # copy content of unpack to target
     (cd "$unpack" && tar -cf - .) | (cd "$target" && tar -xf -) || {
       msg_error "copy failed"
@@ -352,41 +188,16 @@ fetch_and_deploy_gh_release() {
       return 1
     }
     ;;
-  binary)
-    [ -n "$pattern" ] || pattern="*.apk"
-    url=$(get_url)
-    [ -z "$url" ] && {
-      msg_error "binary asset not found for pattern: $pattern"
-      rm -rf "$tmpd"
-      return 1
-    }
-    filename="${url##*/}"
-    download_with_progress "$url" "$tmpd/$filename" || {
-      rm -rf "$tmpd"
-      return 1
-    }
-    case "$filename" in
-    *.apk)
-      apk add --no-cache --allow-untrusted "$tmpd/$filename" >/dev/null 2>&1 || {
-        msg_error "apk install failed: $filename"
-        rm -rf "$tmpd"
-        return 1
-      }
-      ;;
-    *)
-      msg_error "Unsupported binary asset on Alpine: $filename"
-      rm -rf "$tmpd"
-      return 1
-      ;;
-    esac
-    ;;
   prebuild)
     [ -n "$pattern" ] || {
       msg_error "prebuild requires asset pattern"
       rm -rf "$tmpd"
       return 1
     }
-    url=$(get_url)
+    url="$(printf '%s' "$json" | jq -r '.assets[].browser_download_url' | awk -v p="$pattern" '
+        BEGIN{IGNORECASE=1}
+        $0 ~ p {print; exit}
+      ')"
     [ -z "$url" ] && {
       msg_error "asset not found for pattern: $pattern"
       rm -rf "$tmpd"
@@ -417,10 +228,9 @@ fetch_and_deploy_gh_release() {
       return 1
       ;;
     esac
-    [ "${CLEAN_INSTALL:-0}" = "1" ] && rm -rf "${target:?}/"*
     # top-level folder strippen
     if [ "$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ] && [ -z "$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type f | head -n1)" ]; then
-      unpack=$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d)
+      unpack="$(find "$tmpd/unp" -mindepth 1 -maxdepth 1 -type d)"
       (cd "$unpack" && tar -cf - .) | (cd "$target" && tar -xf -) || {
         msg_error "copy failed"
         rm -rf "$tmpd"
@@ -440,20 +250,21 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    url=$(get_url)
+    url="$(printf '%s' "$json" | jq -r '.assets[].browser_download_url' | awk -v p="$pattern" '
+        BEGIN{IGNORECASE=1}
+        $0 ~ p {print; exit}
+      ')"
     [ -z "$url" ] && {
       msg_error "asset not found for pattern: $pattern"
       rm -rf "$tmpd"
       return 1
     }
     filename="${url##*/}"
-    local target_file="$app"
-    [ "${USE_ORIGINAL_FILENAME:-false}" = "true" ] && target_file="$filename"
-    download_with_progress "$url" "$target/$target_file" || {
+    download_with_progress "$url" "$target/$app" || {
       rm -rf "$tmpd"
       return 1
     }
-    chmod +x "$target/$target_file"
+    chmod +x "$target/$app"
     ;;
   *)
     msg_error "Unknown mode: $mode"
@@ -466,11 +277,6 @@ fetch_and_deploy_gh_release() {
   ensure_usr_local_bin_persist
   rm -rf "$tmpd"
   msg_ok "Deployed $app ($version) → $target"
-}
-
-# tools.func compatibility alias
-fetch_and_deploy_gh() {
-  fetch_and_deploy_gh_release "$@"
 }
 
 # ------------------------------

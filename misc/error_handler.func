@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------------
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/arm64-dev-build/LICENSE
 # ------------------------------------------------------------------------------
 #
 # Provides comprehensive error handling and signal management for all scripts.
@@ -94,6 +94,29 @@ if ! declare -f explain_exit_code &>/dev/null; then
     100) echo "APT: Package manager error (broken packages / dependency problems)" ;;
     101) echo "APT: Configuration error (bad sources.list, malformed config)" ;;
     102) echo "APT: Lock held by another process (dpkg/apt still running)" ;;
+
+    # --- Script Validation & Setup (103-123) ---
+    103) echo "Validation: Shell is not Bash" ;;
+    104) echo "Validation: Not running as root (or invoked via sudo)" ;;
+    105) echo "Validation: Proxmox VE version not supported" ;;
+    106) echo "Validation: Architecture not supported (ARM / PiMox)" ;;
+    107) echo "Validation: Kernel key parameters unreadable" ;;
+    108) echo "Validation: Kernel key limits exceeded" ;;
+    109) echo "Proxmox: No available container ID after max attempts" ;;
+    110) echo "Proxmox: Failed to apply default.vars" ;;
+    111) echo "Proxmox: App defaults file not available" ;;
+    112) echo "Proxmox: Invalid install menu option" ;;
+    113) echo "LXC: Under-provisioned — user aborted update" ;;
+    114) echo "LXC: Storage too low — user aborted update" ;;
+    115) echo "Download: install.func download failed or incomplete" ;;
+    116) echo "Proxmox: Default bridge vmbr0 not found" ;;
+    117) echo "LXC: Container did not reach running state" ;;
+    118) echo "LXC: No IP assigned to container after timeout" ;;
+    119) echo "Proxmox: No valid storage for rootdir content" ;;
+    120) echo "Proxmox: No valid storage for vztmpl content" ;;
+    121) echo "LXC: Container network not ready (no IP after retries)" ;;
+    122) echo "LXC: No internet connectivity — user declined to continue" ;;
+    123) echo "LXC: Local IP detection failed" ;;
     124) echo "Command timed out (timeout command)" ;;
     125) echo "Command failed to start (Docker daemon or execution error)" ;;
     126) echo "Command invoked cannot execute (permission problem?)" ;;
@@ -155,6 +178,16 @@ if ! declare -f explain_exit_code &>/dev/null; then
     224) echo "Proxmox: PBS storage is for backups only" ;;
     225) echo "Proxmox: No template available for OS/Version" ;;
     231) echo "Proxmox: LXC stack upgrade failed" ;;
+
+    # --- Tools & Addon Scripts (232-238) ---
+    232) echo "Tools: Wrong execution environment (run on PVE host, not inside LXC)" ;;
+    233) echo "Tools: Application not installed (update prerequisite missing)" ;;
+    234) echo "Tools: No LXC containers found or available" ;;
+    235) echo "Tools: Backup or restore operation failed" ;;
+    236) echo "Tools: Required hardware not detected" ;;
+    237) echo "Tools: Dependency package installation failed" ;;
+    238) echo "Tools: OS or distribution not supported for this addon" ;;
+
     239) echo "npm/Node.js: Unexpected runtime error or dependency failure" ;;
     243) echo "Node.js: Out of memory (JavaScript heap out of memory)" ;;
     245) echo "Node.js: Invalid command-line option" ;;
@@ -162,6 +195,14 @@ if ! declare -f explain_exit_code &>/dev/null; then
     247) echo "Node.js: Fatal internal error" ;;
     248) echo "Node.js: Invalid C++ addon / N-API failure" ;;
     249) echo "npm/pnpm/yarn: Unknown fatal error" ;;
+
+    # --- Application Install/Update Errors (250-254) ---
+    250) echo "App: Download failed or version not determined" ;;
+    251) echo "App: File extraction failed (corrupt or incomplete archive)" ;;
+    252) echo "App: Required file or resource not found" ;;
+    253) echo "App: Data migration required — update aborted" ;;
+    254) echo "App: User declined prompt or input timed out" ;;
+
     255) echo "DPKG: Fatal internal error" ;;
     *) echo "Unknown error" ;;
     esac
@@ -199,10 +240,15 @@ error_handler() {
     return 0
   fi
 
+  # Stop spinner and restore cursor FIRST — before any output
+  # This prevents spinner text overlapping with error messages
+  if declare -f stop_spinner >/dev/null 2>&1; then
+    stop_spinner 2>/dev/null || true
+  fi
+  printf "\e[?25h"
+
   local explanation
   explanation="$(explain_exit_code "$exit_code")"
-
-  printf "\e[?25h"
 
   # ALWAYS report failure to API immediately - don't wait for container checks
   # This ensures we capture failures that occur before/after container exists
@@ -281,6 +327,8 @@ error_handler() {
         echo -en "${YW}Remove broken container ${CTID}? (Y/n) [auto-remove in 60s]: ${CL}"
       fi
 
+      # Read user response
+      local response=""
       if read -t 60 -r response; then
         if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
           echo ""
@@ -359,9 +407,65 @@ _send_abort_telemetry() {
   command -v curl &>/dev/null || return 0
   [[ "${DIAGNOSTICS:-no}" == "no" ]] && return 0
   [[ -z "${RANDOM_UUID:-}" ]] && return 0
-  curl -fsS -m 5 -X POST "${TELEMETRY_URL:-https://telemetry.community-scripts.org/telemetry}" \
-    -H "Content-Type: application/json" \
-    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"${TELEMETRY_TYPE:-lxc}\",\"nsapp\":\"${NSAPP:-${app:-unknown}}\",\"status\":\"failed\",\"exit_code\":${exit_code}}" &>/dev/null || true
+
+  # Collect last 200 log lines for error diagnosis (best-effort)
+  # Container context has no get_full_log(), so we gather as much as possible
+  local error_text=""
+  local logfile=""
+  if [[ -n "${INSTALL_LOG:-}" && -s "${INSTALL_LOG}" ]]; then
+    logfile="${INSTALL_LOG}"
+  elif [[ -n "${SILENT_LOGFILE:-}" && -s "${SILENT_LOGFILE}" ]]; then
+    logfile="${SILENT_LOGFILE}"
+  fi
+
+  if [[ -n "$logfile" ]]; then
+    error_text=$(tail -n 200 "$logfile" 2>/dev/null | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g; s/\\/\\\\/g; s/"/\\"/g; s/\r//g' | tr '\n' '|' | sed 's/|$//' | head -c 16384 | tr -d '\000-\010\013\014\016-\037\177') || true
+  fi
+
+  # Prepend exit code explanation header (like build_error_string does on host)
+  local explanation=""
+  if declare -f explain_exit_code &>/dev/null; then
+    explanation=$(explain_exit_code "$exit_code" 2>/dev/null) || true
+  fi
+  if [[ -n "$explanation" && -n "$error_text" ]]; then
+    error_text="exit_code=${exit_code} | ${explanation}|---|${error_text}"
+  elif [[ -n "$explanation" && -z "$error_text" ]]; then
+    error_text="exit_code=${exit_code} | ${explanation}"
+  fi
+
+  # Calculate duration if start time is available
+  local duration=""
+  if [[ -n "${DIAGNOSTICS_START_TIME:-}" ]]; then
+    duration=$(($(date +%s) - DIAGNOSTICS_START_TIME))
+  fi
+
+  # Categorize error if function is available (may not be in minimal container context)
+  local error_category=""
+  if declare -f categorize_error &>/dev/null; then
+    error_category=$(categorize_error "$exit_code" 2>/dev/null) || true
+  fi
+
+  # Build JSON payload with error context
+  local payload
+  payload="{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"${TELEMETRY_TYPE:-lxc}\",\"nsapp\":\"${NSAPP:-${app:-unknown}}\",\"status\":\"failed\",\"exit_code\":${exit_code}"
+  [[ -n "$error_text" ]] && payload="${payload},\"error\":\"${error_text}\""
+  [[ -n "$error_category" ]] && payload="${payload},\"error_category\":\"${error_category}\""
+  [[ -n "$duration" ]] && payload="${payload},\"duration\":${duration}"
+  payload="${payload}}"
+
+  local api_url="${TELEMETRY_URL:-https://telemetry.community-scripts.org/telemetry}"
+
+  # 2 attempts (retry once on failure) — original had no retry
+  local attempt
+  for attempt in 1 2; do
+    if curl -fsS -m 5 -X POST "$api_url" \
+      -H "Content-Type: application/json" \
+      -d "$payload" &>/dev/null; then
+      return 0
+    fi
+    [[ $attempt -eq 1 ]] && sleep 1
+  done
+  return 0
 }
 
 # ------------------------------------------------------------------------------
@@ -437,6 +541,12 @@ on_exit() {
 # - Exits with code 130 (128 + SIGINT=2)
 # ------------------------------------------------------------------------------
 on_interrupt() {
+  # Stop spinner and restore cursor before any output
+  if declare -f stop_spinner >/dev/null 2>&1; then
+    stop_spinner 2>/dev/null || true
+  fi
+  printf "\e[?25h" 2>/dev/null || true
+
   _send_abort_telemetry "130"
   _stop_container_if_installing
   if declare -f msg_error >/dev/null 2>&1; then
@@ -456,6 +566,12 @@ on_interrupt() {
 # - Exits with code 143 (128 + SIGTERM=15)
 # ------------------------------------------------------------------------------
 on_terminate() {
+  # Stop spinner and restore cursor before any output
+  if declare -f stop_spinner >/dev/null 2>&1; then
+    stop_spinner 2>/dev/null || true
+  fi
+  printf "\e[?25h" 2>/dev/null || true
+
   _send_abort_telemetry "143"
   _stop_container_if_installing
   if declare -f msg_error >/dev/null 2>&1; then
@@ -478,6 +594,11 @@ on_terminate() {
 # - Exits with code 129 (128 + SIGHUP=1)
 # ------------------------------------------------------------------------------
 on_hangup() {
+  # Stop spinner (no cursor restore needed — terminal is already gone)
+  if declare -f stop_spinner >/dev/null 2>&1; then
+    stop_spinner 2>/dev/null || true
+  fi
+
   _send_abort_telemetry "129"
   _stop_container_if_installing
   exit 129
