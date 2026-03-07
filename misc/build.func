@@ -4102,10 +4102,16 @@ EOF'
     # that sends "configuring" status AFTER the host already reported "failed"
     export CONTAINER_INSTALLING=true
 
+    local _install_script
+    _install_script="$(curl -fsSL "https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/${var_install}.sh")"
     if [[ "$ARCH" == "arm64" ]]; then
-      lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/arm/${var_install}.sh)"
+      local _arm_script
+      _arm_script="$(curl -fsSL "https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/arm/${var_install}.sh" 2>/dev/null || true)"
+      if [[ -n "$_arm_script" ]]; then
+        _install_script="${_arm_script}"$'\n'"${_install_script}"
+      fi
     fi
-    lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/${var_install}.sh)"
+    lxc-attach -n "$CTID" -- bash -c "$_install_script"
     local lxc_exit=$?
 
     unset CONTAINER_INSTALLING
@@ -4483,10 +4489,16 @@ EOF'
           # Re-run install script in existing container (don't destroy/recreate)
           set +Eeuo pipefail
           trap - ERR
+          local _install_script
+          _install_script="$(curl -fsSL "https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/${var_install}.sh")"
           if [[ "$ARCH" == "arm64" ]]; then
-            lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/arm/${var_install}.sh)"
+            local _arm_script
+            _arm_script="$(curl -fsSL "https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/arm/${var_install}.sh" 2>/dev/null || true)"
+            if [[ -n "$_arm_script" ]]; then
+              _install_script="${_arm_script}"$'\n'"${_install_script}"
+            fi
           fi
-          lxc-attach -n "$CTID" -- bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/install/${var_install}.sh)"
+          lxc-attach -n "$CTID" -- bash -c "$_install_script"
           local apt_retry_exit=$?
           set -Eeuo pipefail
           trap 'error_handler' ERR
