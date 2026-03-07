@@ -16,6 +16,17 @@ update_os
 
 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"
 
+msg_info "Configuring Lemonade Server"
+mkdir -p /etc/lemonade
+cat <<EOF >/etc/lemonade/lemonade.conf
+# Lemonade Server Configuration
+# See: https://lemonade-server.ai/server/server_integration.html
+
+# Listen on all interfaces (local IP accessible from network)
+host = "0.0.0.0"
+port = 8000
+EOF
+msg_ok "Configured Lemonade Server"
 
 msg_info "Enabling Service"
 systemctl enable -q --now lemonade-server
