@@ -16,6 +16,11 @@ update_os
 
 fetch_and_deploy_gh_release "lemonade" "lemonade-sdk/lemonade" "binary"
 
+msg_info "Configuring Service"
+sed -i -e "s/^#LEMONADE_HOST=.*/LEMONADE_HOST=${IP}/" \
+       -e "s/^#LEMONADE_PORT=.*/LEMONADE_PORT=8000/" \
+       /etc/lemonade/lemonade.conf
+msg_ok "Configured Service"
 
 msg_info "Enabling Service"
 systemctl enable -q --now lemonade-server
