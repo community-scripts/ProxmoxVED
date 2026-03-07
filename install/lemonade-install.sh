@@ -20,6 +20,13 @@ msg_info "Configuring Service"
 sed -i -e "s/^#LEMONADE_HOST=.*/LEMONADE_HOST=${IP}/" \
        -e "s/^#LEMONADE_PORT=.*/LEMONADE_PORT=8000/" \
        /etc/lemonade/lemonade.conf
+mkdir -p /etc/systemd/system/lemonade-server.service.d
+cat > /etc/systemd/system/lemonade-server.service.d/override.conf << 'EOF'
+[Service]
+User=root
+Group=root
+EOF
+systemctl daemon-reload
 msg_ok "Configured Service"
 
 msg_info "Enabling Service"

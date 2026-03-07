@@ -37,7 +37,7 @@
       "type": "info"
     },
     {
-      "text": "Server listens on local IP (0.0.0.0) by default - accessible from your network.",
+      "text": "Server listens on local IP by default - accessible from your network.",
       "type": "info"
     },
     {
