@@ -6,13 +6,12 @@ source <(curl -sSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE
 # Source: https://lemonade-server.ai
 
 APP="Lemonade"
-var_tags="${var_tags:-ai;llm}"
+var_tags="${var_tags:-ai}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-var_unprivileged="${var_unprivileged:-1}"
 var_gpu="${var_gpu:-yes}"
 
 header_info "$APP"
