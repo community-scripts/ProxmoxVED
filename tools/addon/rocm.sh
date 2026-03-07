@@ -136,7 +136,10 @@ function install_rocm_debian() {
   msg_ok "Created keyrings directory"
 
   msg_info "Adding ROCm repository GPG key"
-  curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
+  if ! curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg; then
+    msg_error "Failed to download or import ROCm GPG key"
+    exit 1
+  fi
   msg_ok "Added ROCm GPG key"
 
   msg_info "Adding ROCm repository (using ${ROCM_REPO_CODENAME} for ${OS} ${OS_VERSION_ID})"
