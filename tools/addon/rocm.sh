@@ -168,8 +168,9 @@ EOF
   msg_info "Adding user to render and video groups"
   usermod -aG render,video root
   for user_home in /home/*/; do
+    [[ -d "$user_home" ]] || continue
     user=$(basename "$user_home")
-    usermod -aG render,video "$user"
+    usermod -aG render,video "$user" 2>/dev/null || true
   done
   msg_ok "Added users to render and video groups"
 
