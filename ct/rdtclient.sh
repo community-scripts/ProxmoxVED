@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/arm64-dev-build/misc/build.func)
 # Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
@@ -51,6 +51,32 @@ function update_script() {
     msg_ok "Updated successfully!"
   fi
   exit
+}
+
+function update_script_arm64() {
+  header_info
+  check_container_storage
+  check_container_resources
+  if [[ ! -d /opt/rdtc/ ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit
+  fi
+  if check_for_gh_release "rdt-client" "rogerfar/rdt-client"; then
+    msg_info "Stopping Service"
+    systemctl stop rdtc
+    msg_ok "Stopped Service"
+
+    msg_info "Updating .NET Runtime"
+    rm -rf /usr/share/dotnet /usr/bin/dotnet
+    $STD apt-get install -y libc6 libgcc-s1 libgssapi-krb5-2 liblttng-ust1 libssl3 libstdc++6 zlib1g
+    $STD apt-get install -y libicu72 || $STD apt-get install -y libicu76
+    curl -fsSL -o /tmp/dotnet.tar.gz "https://download.visualstudio.microsoft.com/download/pr/6f79d99b-dc38-4c44-a549-32329419bb9f/a411ec38fb374e3a4676647b236ba021/dotnet-sdk-9.0.100-linux-arm64.tar.gz"
+    mkdir -p /usr/share/dotnet
+    tar -zxf /tmp/dotnet.tar.gz -C /usr/share/dotnet
+    ln -sf /usr/share/dotnet/dotnet /usr/bin/dotnet
+    rm -f /tmp/dotnet.tar.gz
+    msg_ok "Updated .NET Runtime"
+  fi
 }
 
 start
