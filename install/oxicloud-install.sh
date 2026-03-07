@@ -42,8 +42,6 @@ sed -e 's|_STORAGE_PATH=.*|_STORAGE_PATH=/mnt/oxicloud|' \
   -e 's|^#OXICLOUD_ENABLE|OXICLOUD_ENABLE|g' \
   /opt/oxicloud/example.env >/etc/oxicloud/.env
 chmod 600 /etc/oxicloud/.env
-$STD useradd -U -s /usr/sbin/nologin -M -d /opt/oxicloud oxicloud
-chown -R oxicloud:oxicloud /opt/oxicloud /etc/oxicloud /mnt/oxicloud
 msg_ok "Configured OxiCloud"
 
 msg_info "Creating OxiCloud Service"
@@ -54,8 +52,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=oxicloud
-Group=oxicloud
+User=root
 EnvironmentFile=/etc/oxicloud/.env
 ExecStart=/usr/bin/oxicloud
 Restart=always
