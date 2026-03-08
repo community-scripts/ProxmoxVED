@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: [YourUserName]
-# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: [SOURCE_URL]
 
 # Import Functions und Setup

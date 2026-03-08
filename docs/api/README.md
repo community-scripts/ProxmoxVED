@@ -137,7 +137,7 @@ If API calls fail:
 2. Verify PocketBase endpoint: `curl -s http://db.community-scripts.org/api/health`
 3. Review error codes in [EXIT_CODES.md](../EXIT_CODES.md)
 4. Check that `DIAGNOSTICS=yes` in `/usr/local/community-scripts/diagnostics`
-5. Report issues on [GitHub](https://git.community-scripts.org/community-unscripted/ProxmoxVED/issues)
+5. Report issues on [GitHub](https://git.community-scripts.org/community-scripts/ProxmoxVED/issues)
 
 ---
 

@@ -2,9 +2,9 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-unscripted/ProxmoxVED/raw/branch/main}"
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
 source /dev/stdin <<<$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/api.func")
 source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/vm-core.func")
 load_functions
@@ -378,4 +378,4 @@ if [ "$START_VM" == "yes" ]; then
 fi
 
 msg_ok "Completed successfully!\n"
-msg_custom "More Info at https://github.com/community-unscripted/ProxmoxVED/discussions/836"
+msg_custom "More Info at https://github.com/community-scripts/ProxmoxVED/discussions/836"

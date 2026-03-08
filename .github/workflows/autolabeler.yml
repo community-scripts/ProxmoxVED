@@ -7,7 +7,7 @@ on:
 
 jobs:
   autolabeler:
-    if: github.repository == 'community-unscripted/ProxmoxVED'
+    if: github.repository == 'community-scripts/ProxmoxVED'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write

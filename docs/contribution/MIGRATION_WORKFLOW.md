@@ -419,8 +419,8 @@ The workflow requires a GitHub App with the following setup:
 **URL Updates Applied**:
 ```bash
 # Old URLs (ProxmoxVED)
-https://raw.githubusercontent.com/community-unscripted/ProxmoxVED/main/misc/build.func
-https://git.community-scripts.org/community-unscripted/ProxmoxVED/raw/branch/main/misc/build.func
+https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func
+https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func
 
 # New URLs (ProxmoxVE)
 https://raw.githubusercontent.com/community-unscripted/ProxmoxVE/main/misc/build.func

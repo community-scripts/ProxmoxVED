@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source:
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -20,7 +20,7 @@ $STD apt-get install -y curl wget ca-certificates
 msg_ok "Installed Base Dependencies"
 
 # msg_info "Downloading and executing tools.func test suite"
-# bash <(curl -fsSL https://git.community-scripts.org/community-unscripted/ProxmoxVED/raw/branch/main/misc/test-tools-func.sh)
+# bash <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/test-tools-func.sh)
 # msg_ok "Test suite completed"
 
 motd_ssh

@@ -122,7 +122,7 @@ update_links() {
   while IFS= read -r -d '' file; do
     if [[ -f "$file" ]]; then
       # Count occurrences of the old repo URL
-      local count=$(grep -c "community-unscripted/ProxmoxVED" "$file" 2>/dev/null || echo 0)
+      local count=$(grep -c "community-scripts/ProxmoxVED" "$file" 2>/dev/null || echo 0)
 
       if [[ $count -gt 0 ]]; then
         # Replace all variations of the URL
@@ -138,7 +138,7 @@ update_links() {
   # Also update markdown docs
   while IFS= read -r -d '' file; do
     if [[ -f "$file" ]]; then
-      local count=$(grep -c "community-unscripted/ProxmoxVED" "$file" 2>/dev/null || echo 0)
+      local count=$(grep -c "community-scripts/ProxmoxVED" "$file" 2>/dev/null || echo 0)
 
       if [[ $count -gt 0 ]]; then
         sed -i "s|github.com/$old_repo/$old_name|github.com/$new_owner/$new_repo|g" "$file"
@@ -172,15 +172,15 @@ create_git_setup_info() {
 git remote -v
 
 # If you don't have 'upstream' configured, add it:
-git remote add upstream https://github.com/community-unscripted/ProxmoxVED.git
+git remote add upstream https://github.com/community-scripts/ProxmoxVED.git
 
 # Verify both remotes exist:
 git remote -v
 # Should show:
 # origin     https://github.com/YOUR_USERNAME/ProxmoxVED.git (fetch)
 # origin     https://github.com/YOUR_USERNAME/ProxmoxVED.git (push)
-# upstream   https://github.com/community-unscripted/ProxmoxVED.git (fetch)
-# upstream   https://github.com/community-unscripted/ProxmoxVED.git (push)
+# upstream   https://github.com/community-scripts/ProxmoxVED.git (fetch)
+# upstream   https://github.com/community-scripts/ProxmoxVED.git (push)
 ```
 
 ### Configure Git User (if not done globally)
@@ -306,7 +306,7 @@ echo ""
 
 print_success "All documentation links updated to point to your fork"
 print_info "Your fork: https://github.com/$USERNAME/$REPO_NAME"
-print_info "Upstream: https://github.com/community-unscripted/ProxmoxVED"
+print_info "Upstream: https://github.com/community-scripts/ProxmoxVED"
 echo ""
 
 echo -e "${BLUE}Next Steps:${NC}"
