@@ -7,7 +7,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://github.com/mcmonkeyprojects/SwarmUI
 
 APP="SwarmUI"
-var_tags="${var_tags:-ai;stable-diffusion;image-generation}"
+var_tags="${var_tags:-ai}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-8192}"
 var_disk="${var_disk:-50}"
