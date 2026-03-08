@@ -9,7 +9,7 @@
   "interface_port": 7801,
   "documentation": "https://github.com/mcmonkeyprojects/SwarmUI/blob/master/README.md",
   "website": "https://github.com/mcmonkeyprojects/SwarmUI",
-  "logo": "https://raw.githubusercontent.com/mcmonkeyprojects/SwarmUI/master/docs/logo.png",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/swarmui.webp",
   "config_path": "/opt/swarmui/Data/Settings.yaml",
   "description": "SwarmUI is a powerful Stable Diffusion WebUI with built-in ComfyUI integration for AI image generation. It provides a modern web interface for generating images using various AI models.",
   "install_methods": [
