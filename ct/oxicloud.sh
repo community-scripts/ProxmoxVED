@@ -44,7 +44,6 @@ function update_script() {
     export DATABASE_URL="postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost/${PG_DB_NAME}"
     $STD cargo build --release
     mv target/release/oxicloud /usr/bin/oxicloud && chmod +x /usr/bin/oxicloud
-    chown -R oxicloud:oxicloud /mnt/oxicloud /opt/oxicloud /etc/oxicloud
     msg_ok "Updated OxiCloud"
 
     msg_info "Starting OxiCloud"
