@@ -21,6 +21,7 @@ setup_deb822_repo \
   "trixie" \
   "main"
 $STD apt install -y \
+  git \
   libicu-dev \
   libssl-dev \
   dotnet-sdk-8.0 \
