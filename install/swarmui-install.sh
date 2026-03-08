@@ -59,8 +59,8 @@ elif [[ -d /dev/dri ]] && ls /dev/dri/render* &>/dev/null; then
 else
   msg_info "No GPU detected - installing PyTorch CPU version"
 fi
-pip install torch torchvision torchaudio --index-url "$PYTORCH_INDEX"
-pip install -r requirements.txt
+$STD pip install torch torchvision torchaudio --index-url "$PYTORCH_INDEX"
+$STD pip install -r requirements.txt
 deactivate
 msg_ok "Set up ComfyUI Backend"
 
