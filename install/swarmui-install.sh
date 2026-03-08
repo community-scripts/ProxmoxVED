@@ -103,7 +103,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/swarmui
-ExecStart=/usr/bin/dotnet /opt/swarmui/bin/SwarmUI.dll --launch_mode none
+ExecStart=/usr/bin/dotnet /opt/swarmui/bin/SwarmUI.dll --launch_mode none --host 0.0.0.0
 Environment=ASPNETCORE_URLS=http://0.0.0.0:7801
 Environment=DOTNET_CONTENTROOT=/opt/swarmui
 Restart=on-failure
