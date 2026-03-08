@@ -11,7 +11,7 @@ permissions:
 jobs:
   post_to_discord:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'Ready For Testing') && github.repository == 'community-scripts/ProxmoxVED'
+    if: contains(github.event.issue.labels.*.name, 'Ready For Testing') && github.repository == 'community-unscripted/ProxmoxVED'
     steps:
       - name: Extract Issue Title and Script Type
         id: extract_info
@@ -43,12 +43,12 @@ jobs:
           echo "SCRIPT_TYPE=$SCRIPT_TYPE" >> $GITHUB_ENV
           echo "Detected script type: $SCRIPT_TYPE for title: $TITLE"
 
-      - name: Check if Files Exist in community-scripts/ProxmoxVED
+      - name: Check if Files Exist in community-unscripted/ProxmoxVED
         id: check_files
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          REPO="community-scripts/ProxmoxVED"
+          REPO="community-unscripted/ProxmoxVED"
           API_URL="https://api.github.com/repos/$REPO/contents"
           TITLE="${{ env.TITLE }}"
           SCRIPT_TYPE="${{ env.SCRIPT_TYPE }}"
@@ -105,16 +105,16 @@ jobs:
           # Generate correct command based on script type
           case "$SCRIPT_TYPE" in
             ct)
-              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/ct/${TITLE}.sh)\"\`\`\`\n"
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-unscripted/ProxmoxVED/raw/main/ct/${TITLE}.sh)\"\`\`\`\n"
               ;;
             vm)
-              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/vm/${TITLE}.sh)\"\`\`\`\n"
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-unscripted/ProxmoxVED/raw/main/vm/${TITLE}.sh)\"\`\`\`\n"
               ;;
             addon)
-              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/tools/addon/${TITLE}.sh)\"\`\`\`\n"
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-unscripted/ProxmoxVED/raw/main/tools/addon/${TITLE}.sh)\"\`\`\`\n"
               ;;
             pve)
-              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-scripts/ProxmoxVED/raw/main/tools/pve/${TITLE}.sh)\"\`\`\`\n"
+              VAR+="\`\`\`bash -c \"\$(curl -fsSL https://github.com/community-unscripted/ProxmoxVED/raw/main/tools/pve/${TITLE}.sh)\"\`\`\`\n"
               ;;
           esac
 
@@ -127,7 +127,7 @@ jobs:
           esac
 
           if [[ -n "$JSON_FILE" ]]; then
-            JSON=$(curl -fsSL "https://github.com/community-scripts/ProxmoxVED/raw/main/${JSON_FILE}" 2>/dev/null || echo "{}")
+            JSON=$(curl -fsSL "https://github.com/community-unscripted/ProxmoxVED/raw/main/${JSON_FILE}" 2>/dev/null || echo "{}")
 
             if [[ "$JSON" != "{}" && "$JSON" != "" ]]; then
               username=$(echo "$JSON" | jq -r '.default_credentials.username // empty')

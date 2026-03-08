@@ -2,7 +2,7 @@
 # Author: tteck (tteckster)
 # Co-Author: MickLesk
 # Co-Author: michelroegl-brunner
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
 
 # ==============================================================================
 # INSTALL.FUNC - UNIFIED CONTAINER INSTALLATION & SETUP
@@ -173,7 +173,7 @@ _bootstrap() {
   fi
 
   # Configurable base URL for development — override with COMMUNITY_SCRIPTS_URL
-  COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
+  COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-unscripted/ProxmoxVED/raw/branch/main}"
 
   # Source core functions
   source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/core.func")
@@ -786,7 +786,7 @@ echo -e "${RD:-}WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use 
 echo -e "${YW:-} OS: ${GN:-}${os_name} - Version: ${os_version}${CL:-}"
 echo -e "${YW:-} Hostname: ${GN:-}\$(hostname)${CL:-}"
 echo -e "${YW:-} IP Address: ${GN:-}\$(hostname -I 2>/dev/null | awk '{print \$1}' || ip -4 addr show scope global | awk '/inet /{print \$2}' | cut -d/ -f1 | head -1)${CL:-}"
-echo -e "${YW:-} Repository: ${GN:-}https://github.com/community-scripts/ProxmoxVED${CL:-}"
+echo -e "${YW:-} Repository: ${GN:-}https://github.com/community-unscripted/ProxmoxVED${CL:-}"
 echo ""
 EOF
 
@@ -944,7 +944,7 @@ EOF
   # Create update script
   # Use var_os for OS-based containers, otherwise use app name
   local update_script_name="${var_os:-$app}"
-  echo "bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/ct/${update_script_name}.sh)\"" >/usr/bin/update
+  echo "bash -c \"\$(curl -fsSL https://git.community-scripts.org/community-unscripted/ProxmoxVED/raw/branch/main/ct/${update_script_name}.sh)\"" >/usr/bin/update
   chmod +x /usr/bin/update
 
   # Inject SSH authorized keys if provided

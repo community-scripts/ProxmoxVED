@@ -25,7 +25,7 @@ This repository contains a collection of scripts for managing and automating Pro
 Join the discussion, contribute code, or report issues:
 
 - **Discord**: [Join the Proxmox Helper Scripts Discord server](https://discord.gg/UHrpNWGwkH)
-- **GitHub Issues**: [Report bugs or request features](https://github.com/community-scripts/ProxmoxVED/issues)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/community-unscripted/ProxmoxVED/issues)
 
 ## 📜 License
 

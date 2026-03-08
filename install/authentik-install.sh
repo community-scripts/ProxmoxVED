@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Thieneret
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/goauthentik/authentik
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"

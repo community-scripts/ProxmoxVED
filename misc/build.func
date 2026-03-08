@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: tteck (tteckster) | MickLesk | michelroegl-brunner
-# License: MIT | https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/LICENSE
+# License: MIT | https://git.community-scripts.org/community-unscripted/ProxmoxVED/raw/branch/main/LICENSE
 
 # ==============================================================================
 # BUILD.FUNC - LXC CONTAINER BUILD & CONFIGURATION
@@ -85,7 +85,7 @@ variables() {
 
 # Configurable base URL for development — override with COMMUNITY_SCRIPTS_URL
 # See docs/DEV_MODE.md for details
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-unscripted/ProxmoxVED/raw/branch/main}"
 
 source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/api.func")
 
@@ -3292,7 +3292,7 @@ diagnostics_check() {
 DIAGNOSTICS=yes
 
 #This file is used to store the diagnostics settings for the Community-Scripts API.
-#https://git.community-scripts.org/community-scripts/ProxmoxVED/discussions/1836
+#https://git.community-scripts.org/community-unscripted/ProxmoxVED/discussions/1836
 #Your diagnostics will be sent to the Community-Scripts API for troubleshooting/statistical purposes.
 #You can review the data at https://community-scripts.github.io/ProxmoxVE/data
 #If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in /usr/local/community-scripts/diagnostics, or use the menue.
@@ -3317,7 +3317,7 @@ EOF
 DIAGNOSTICS=no
 
 #This file is used to store the diagnostics settings for the Community-Scripts API.
-#https://git.community-scripts.org/community-scripts/ProxmoxVED/discussions/1836
+#https://git.community-scripts.org/community-unscripted/ProxmoxVED/discussions/1836
 #Your diagnostics will be sent to the Community-Scripts API for troubleshooting/statistical purposes.
 #You can review the data at https://community-scripts.github.io/ProxmoxVE/data
 #If you do not wish to send diagnostics, please set the variable 'DIAGNOSTICS' to "no" in /usr/local/community-scripts/diagnostics, or use the menue.
@@ -6006,7 +6006,7 @@ description() {
     cat <<EOF
 <div align='center'>
   <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>
-    <img src='https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
+    <img src='https://git.community-scripts.org/community-unscripted/ProxmoxVED/raw/branch/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>
   </a>
 
   <h2 style='font-size: 24px; margin: 20px 0;'>${APP} LXC</h2>
@@ -6019,15 +6019,15 @@ description() {
 
   <span style='margin: 0 10px;'>
     <i class="fa fa-github fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://git.community-scripts.org/community-scripts/ProxmoxVED' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Git</a>
+    <a href='https://git.community-scripts.org/community-unscripted/ProxmoxVED' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Git</a>
   </span>
   <span style='margin: 0 10px;'>
     <i class="fa fa-comments fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://git.community-scripts.org/community-scripts/ProxmoxVED/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
+    <a href='https://git.community-scripts.org/community-unscripted/ProxmoxVED/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>
   </span>
   <span style='margin: 0 10px;'>
     <i class="fa fa-exclamation-circle fa-fw" style="color: #f5f5f5;"></i>
-    <a href='https://git.community-scripts.org/community-scripts/ProxmoxVED/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
+    <a href='https://git.community-scripts.org/community-unscripted/ProxmoxVED/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>
   </span>
 </div>
 EOF

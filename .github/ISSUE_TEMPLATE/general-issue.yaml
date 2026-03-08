@@ -9,7 +9,7 @@ body:
         Thank you for taking the time to report an issue! Please provide as much detail as possible to help us address the problem efficiently.  
 
         ## ⚠️ **IMPORTANT - READ FIRST**  
-        - 🔍 **Search first:** Before submitting, check if the issue has already been reported or resolved in [closed issues](https://github.com/community-scripts/ProxmoxVED/issues?q=is%3Aissue+is%3Aclosed). If found, comment on that issue instead of creating a new one.
+        - 🔍 **Search first:** Before submitting, check if the issue has already been reported or resolved in [closed issues](https://github.com/community-unscripted/ProxmoxVED/issues?q=is%3Aissue+is%3Aclosed). If found, comment on that issue instead of creating a new one.
         - 🛠️ **Supported environments only:** Ensure you are using a default Linux distribution. Custom setups may not be supported.  
         - 💡 For general questions, feature requests, or suggestions, use the [Discussions section](https://github.com/community-scripts/ProxmoxVE/discussions) in the Main Repository.  
         

@@ -7,7 +7,7 @@ on:
 
 jobs:
   sync:
-    if: github.repository == 'community-scripts/ProxmoxVED'
+    if: github.repository == 'community-unscripted/ProxmoxVED'
     runs-on: ubuntu-latest
 
     steps:
@@ -20,7 +20,7 @@ jobs:
         git config --global user.name "Push From Github"
         git config --global user.email "actions@github.com"
      - name: Add Gitea remote
-       run: git remote add gitea https://$GITEA_USER:$GITEA_TOKEN@git.community-scripts.org/community-scripts/ProxmoxVED.git
+       run: git remote add gitea https://$GITEA_USER:$GITEA_TOKEN@git.community-scripts.org/community-unscripted/ProxmoxVED.git
        env:
          GITEA_USER: ${{ secrets.GITEA_USERNAME }}
          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}

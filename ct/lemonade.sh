@@ -2,7 +2,7 @@
 source <(curl -sSL https://raw.githubusercontent.com/community-unscripted/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: community-scripts
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
 # Source: https://lemonade-server.ai
 
 APP="Lemonade"

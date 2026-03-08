@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/automatic-ripping-machine/automatic-ripping-machine
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"

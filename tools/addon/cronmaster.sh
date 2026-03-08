@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/fccview/cronmaster
 
 if ! command -v curl &>/dev/null; then
@@ -10,9 +10,9 @@ if ! command -v curl &>/dev/null; then
   apt-get update >/dev/null 2>&1
   apt-get install -y curl >/dev/null 2>&1
 fi
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/error_handler.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-unscripted/ProxmoxVED/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-unscripted/ProxmoxVED/main/misc/tools.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-unscripted/ProxmoxVED/main/misc/error_handler.func)
 
 # Enable error handling
 set -Eeuo pipefail
@@ -155,7 +155,7 @@ EOF
   cat <<'UPDATEEOF' >/usr/local/bin/update_cronmaster
 #!/usr/bin/env bash
 # CronMaster Update Script
-type=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/addon/cronmaster.sh)"
+type=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-unscripted/ProxmoxVED/main/tools/addon/cronmaster.sh)"
 UPDATEEOF
   chmod +x /usr/local/bin/update_cronmaster
   msg_ok "Created update script (/usr/local/bin/update_cronmaster)"

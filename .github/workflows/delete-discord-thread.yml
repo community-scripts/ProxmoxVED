@@ -7,7 +7,7 @@ on:
 
 jobs:
   close_discord_thread:
-    if: github.repository == 'community-scripts/ProxmoxVED'
+    if: github.repository == 'community-unscripted/ProxmoxVED'
     runs-on: ubuntu-latest
     env:
       ISSUE_TITLE: ${{ github.event.issue.title }}

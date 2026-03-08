@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2026 community-scripts ORG
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
 # Source: https://docs.github.com/en/actions/hosting-your-own-runners
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"

@@ -2,13 +2,13 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: thost96 (thost96) | Co-Author: michelroegl-brunner | Refactored: MickLesk
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-unscripted/ProxmoxVED/raw/main/LICENSE
 
 # ==============================================================================
 # Docker VM - Creates a Docker-ready Virtual Machine
 # ==============================================================================
 
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-unscripted/ProxmoxVED/raw/branch/main}"
 source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/api.func") 2>/dev/null
 source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/vm-core.func") 2>/dev/null
 source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/cloud-init.func") 2>/dev/null || true

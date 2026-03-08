@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   update_issues:
-    if: github.event.pull_request.merged == true && github.repository == 'community-scripts/ProxmoxVED'
+    if: github.event.pull_request.merged == true && github.repository == 'community-unscripted/ProxmoxVED'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
