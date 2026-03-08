@@ -284,7 +284,7 @@ systemctl enable -q --now plane-api plane-worker plane-beat plane-live plane-spa
 msg_ok "Created Services and MinIO Bucket"
 
 msg_info "Configuring Nginx"
-cat <<'NGINXEOF' >/etc/nginx/sites-available/plane.conf
+cat <<'EOF' >/etc/nginx/sites-available/plane.conf
 upstream plane-api {
     server 127.0.0.1:8000;
 }
