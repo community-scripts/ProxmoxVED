@@ -26,8 +26,7 @@ $STD apt install -y \
   libssl-dev \
   dotnet-sdk-8.0 \
   aspnetcore-runtime-8.0 \
-  python3.11 \
-  python3.11-venv \
+  python3.12-full \
   python3-pip
 msg_ok "Installed Dependencies"
 
