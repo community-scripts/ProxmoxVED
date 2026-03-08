@@ -106,7 +106,7 @@ msg_info "Configuring Plane"
 SECRET_KEY=$(openssl rand -hex 32)
 MACHINE_SIG=$(echo -n "$(hostname)-$(date +%s)" | sha256sum | head -c64)
 LIVE_SECRET=$(openssl rand -hex 16)
-cat <<EOF>/opt/plane/apps/api/.env
+cat <<EOF >/opt/plane/apps/api/.env
 DEBUG=0
 CORS_ALLOWED_ORIGINS=http://${LOCAL_IP}
 
@@ -181,7 +181,7 @@ chmod +x /usr/local/bin/mcli
 $STD /usr/local/bin/mcli alias set plane http://localhost:9000 "${MINIO_ACCESS_KEY}" "${MINIO_SECRET_KEY}"
 $STD /usr/local/bin/mcli mb plane/uploads --ignore-existing
 
-cat <<EOF>/etc/systemd/system/plane-api.service
+cat <<EOF >/etc/systemd/system/plane-api.service
 [Unit]
 Description=Plane API
 After=network.target postgresql.service redis-server.service rabbitmq-server.service minio.service
@@ -198,7 +198,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF>/etc/systemd/system/plane-worker.service
+cat <<EOF >/etc/systemd/system/plane-worker.service
 [Unit]
 Description=Plane Celery Worker
 After=plane-api.service
@@ -216,7 +216,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF>/etc/systemd/system/plane-beat.service
+cat <<EOF >/etc/systemd/system/plane-beat.service
 [Unit]
 Description=Plane Celery Beat
 After=plane-api.service
@@ -234,7 +234,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF>/etc/systemd/system/plane-live.service
+cat <<EOF >/etc/systemd/system/plane-live.service
 [Unit]
 Description=Plane Live Server
 After=network.target
