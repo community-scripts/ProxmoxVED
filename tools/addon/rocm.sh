@@ -115,12 +115,8 @@ function check_lxc() {
 # INSTALL FUNCTIONS
 # ==============================================================================
 function install_rocm_debian() {
-  msg_info "Creating keyrings directory"
-  mkdir -p /etc/apt/keyrings
-  msg_ok "Created keyrings directory"
-
   msg_info "Adding ROCm repository GPG key"
-  if ! curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg; then
+  if ! download_gpg_key "https://repo.radeon.com/rocm/rocm.gpg.key" "/etc/apt/keyrings/rocm.gpg" "dearmor"; then
     msg_error "Failed to download or import ROCm GPG key"
     exit 1
   fi
@@ -161,7 +157,7 @@ EOF
   msg_info "Configuring /dev/kfd permissions"
   if [[ -e /dev/kfd ]]; then
     chgrp render /dev/kfd 2>/dev/null || true
-	chmod 660 /dev/kfd
+    chmod 660 /dev/kfd
     msg_ok "Configured /dev/kfd permissions"
   else
     msg_warn "/dev/kfd not found - GPU passthrough may not be configured"
@@ -175,12 +171,11 @@ EOF
 }
 
 function install_rocm_ubuntu() {
-  msg_info "Creating keyrings directory"
-  mkdir -p /etc/apt/keyrings
-  msg_ok "Created keyrings directory"
-
   msg_info "Adding ROCm repository GPG key"
-  curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/keyrings/rocm.gpg
+  if ! download_gpg_key "https://repo.radeon.com/rocm/rocm.gpg.key" "/etc/apt/keyrings/rocm.gpg" "dearmor"; then
+    msg_error "Failed to download or import ROCm GPG key"
+    exit 1
+  fi
   msg_ok "Added ROCm GPG key"
 
   msg_info "Adding ROCm repository"
@@ -240,10 +235,10 @@ function uninstall_rocm() {
   $STD apt autoremove -y
   msg_ok "Removed ROCm packages"
 
-  msg_info "Removing ROCm repository"
+  msg_info "Removing ROCm repository and keyring"
   rm -f /etc/apt/sources.list.d/rocm.list
-  rm -f /etc/apt/keyrings/rocm.gpg
   rm -f /etc/apt/preferences.d/rocm-pin-600
+  cleanup_tool_keyrings "rocm"
   $STD apt update
   msg_ok "Removed ROCm repository"
 
