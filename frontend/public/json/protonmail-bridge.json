@@ -1,0 +1,48 @@
+{
+  "name": "Proton Mail Bridge",
+  "slug": "protonmail-bridge",
+  "categories": [
+    18
+  ],
+  "date_created": "2026-02-22",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://proton.me/support/bridge-cli-guide",
+  "website": "https://proton.me/mail/bridge",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/proton-mail.webp",
+  "config_path": "",
+  "description": "Proton Mail Bridge runs a local IMAP/SMTP service that lets traditional mail clients access a Proton mailbox. This LXC runs Bridge headless and forwards IMAP/SMTP to the LAN using systemd socket activation (systemd-socket-proxyd).",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/protonmail-bridge.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 768,
+        "hdd": 8,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "After install, run protonmailbridge-init inside the container to create a pass keychain and log in via the Bridge CLI.",
+      "type": "info"
+    },
+    {
+      "text": "LAN forwarding (container IP): IMAP 143 -> 127.0.0.1:1143, SMTP 587 -> 127.0.0.1:1025.",
+      "type": "info"
+    },
+    {
+      "text": "Use protonmailbridge-configure to temporarily stop the service and enter the Bridge CLI without running a second instance.",
+      "type": "info"
+    }
+  ]
+}
