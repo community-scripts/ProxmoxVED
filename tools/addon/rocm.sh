@@ -225,14 +225,16 @@ EOF
   msg_info "Adding user to render and video groups"
   usermod -aG render,video root
   for user_home in /home/*/; do
+    [[ -d "$user_home" ]] || continue
     user=$(basename "$user_home")
-    usermod -aG render,video "$user"
+    usermod -aG render,video "$user" 2>/dev/null || true
   done
   msg_ok "Added users to render and video groups"
 
   msg_info "Configuring /dev/kfd permissions"
   if [[ -e /dev/kfd ]]; then
-    chmod 666 /dev/kfd
+    chgrp render /dev/kfd 2>/dev/null || true
+    chmod 660 /dev/kfd
     msg_ok "Configured /dev/kfd permissions"
   else
     msg_warn "/dev/kfd not found - GPU passthrough may not be configured"
