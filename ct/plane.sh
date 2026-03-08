@@ -26,7 +26,7 @@ function update_script() {
 
   if [[ ! -d /opt/plane ]]; then
     msg_error "No Plane Installation Found!"
-    exit
+    exit 1
   fi
 
   if check_for_gh_release "plane" "makeplane/plane"; then
