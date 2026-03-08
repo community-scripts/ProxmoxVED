@@ -83,7 +83,6 @@ function update_script() {
     msg_info "Starting Services"
     systemctl start plane-api plane-worker plane-beat plane-live plane-space
     msg_ok "Started Services"
-
     msg_ok "Updated successfully!"
   fi
   exit
