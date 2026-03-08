@@ -19,6 +19,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/error_handler.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/api.func) 2>/dev/null || true
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/install.func)
 
 # Enable error handling
 set -Eeuo pipefail
@@ -34,32 +35,26 @@ function header_info {
   / /_/ / / / / /   / /|_/ /
  / _, _/ /_/ / /___/ /  / /
 /_/ |_|\____/\____/_/  /_/
-                        
+
 ROCM Installer for Proxmox LXC Containers
-                        
+
 EOF
 }
 
 # ==============================================================================
-# OS DETECTION
+# ROCm REPOSITORY MAPPING
 # ==============================================================================
-function detect_os() {
-  if [[ ! -f "/etc/os-release" ]]; then
-    msg_error "Cannot detect OS. /etc/os-release not found."
-    exit 1
-  fi
-
-  source /etc/os-release
-
-  OS_ID="${ID}"
-  OS_VERSION_ID="${VERSION_ID}"
-  OS_VERSION_CODENAME="${VERSION_CODENAME:-unknown}"
+# Sets ROCm-specific variables based on OS detection from install.func
+# Variables set: OS, OS_CODENAME, ROCM_REPO_CODENAME, ROCM_VERSION
+# Requires: OS_TYPE and OS_VERSION from detect_os() in install.func
+# ==============================================================================
+function setup_rocm_repo_mapping() {
   ROCM_VERSION="7.2"
 
-  case "${OS_ID}" in
+  case "${OS_TYPE}" in
     debian)
       OS="Debian"
-      case "${OS_VERSION_ID}" in
+      case "${OS_VERSION}" in
         12)
           OS_CODENAME="bookworm"
           ROCM_REPO_CODENAME="jammy"
@@ -69,7 +64,7 @@ function detect_os() {
           ROCM_REPO_CODENAME="noble"
           ;;
         *)
-          msg_error "Unsupported Debian version: ${OS_VERSION_ID}"
+          msg_error "Unsupported Debian version: ${OS_VERSION}"
           msg_info "Supported versions: Debian 12, Debian 13"
           exit 1
           ;;
@@ -77,7 +72,7 @@ function detect_os() {
       ;;
     ubuntu)
       OS="Ubuntu"
-      case "${OS_VERSION_ID}" in
+      case "${OS_VERSION}" in
         22.04)
           OS_CODENAME="jammy"
           ROCM_REPO_CODENAME="jammy"
@@ -87,32 +82,25 @@ function detect_os() {
           ROCM_REPO_CODENAME="noble"
           ;;
         *)
-          msg_error "Unsupported Ubuntu version: ${OS_VERSION_ID}"
+          msg_error "Unsupported Ubuntu version: ${OS_VERSION}"
           msg_info "Supported versions: Ubuntu 22.04, Ubuntu 24.04"
           exit 1
           ;;
       esac
       ;;
     *)
-      msg_error "Unsupported OS: ${OS_ID}"
+      msg_error "Unsupported OS: ${OS_TYPE}"
       msg_info "Supported OS: Debian 12, Debian 13, Ubuntu 22.04, Ubuntu 24.04"
       exit 1
       ;;
   esac
 
-  msg_ok "Detected: ${OS} ${OS_VERSION_ID} (${OS_CODENAME})"
+  msg_ok "Detected: ${OS} ${OS_VERSION} (${OS_CODENAME})"
 }
 
 # ==============================================================================
 # HELPER FUNCTIONS
 # ==============================================================================
-function get_local_ip() {
-  local ip
-  ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-  [[ -z "$ip" ]] && ip="127.0.0.1"
-  echo "$ip"
-}
-
 function check_lxc() {
   if [[ -f "/proc/1/cgroup" ]] && grep -q "lxc" /proc/1/cgroup 2>/dev/null; then
     return 0
@@ -138,7 +126,7 @@ function install_rocm_debian() {
   fi
   msg_ok "Added ROCm GPG key"
 
-  msg_info "Adding ROCm repository (using ${ROCM_REPO_CODENAME} for ${OS} ${OS_VERSION_ID})"
+  msg_info "Adding ROCm repository (using ${ROCM_REPO_CODENAME} for ${OS} ${OS_VERSION})"
   cat <<EOF >/etc/apt/sources.list.d/rocm.list
 deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/${ROCM_VERSION} ${ROCM_REPO_CODENAME} main
 deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/${ROCM_VERSION}/ubuntu ${ROCM_REPO_CODENAME} main
@@ -319,9 +307,15 @@ function verify_installation() {
 # MAIN
 # ==============================================================================
 header_info
+
+# Use detect_os from install.func (sets OS_TYPE, OS_VERSION, OS_FAMILY, etc.)
 detect_os
 
-IP=$(get_local_ip)
+# Set up ROCm-specific variables based on OS detection
+setup_rocm_repo_mapping
+
+# Use get_lxc_ip from core.func (sets LOCAL_IP environment variable)
+get_lxc_ip
 
 # Check if running in LXC container
 if ! check_lxc; then
@@ -357,7 +351,7 @@ fi
 msg_warn "ROCm is not installed."
 echo ""
 
-echo -e "${TAB}${BL}This will install AMD ROCm on ${OS} ${OS_VERSION_ID}${CL}"
+echo -e "${TAB}${BL}This will install AMD ROCm on ${OS} ${OS_VERSION}${CL}"
 echo -e "${TAB}${BL}Supported GPUs: AMD Radeon Instinct, Radeon Pro, and some consumer GPUs${CL}"
 echo ""
 
