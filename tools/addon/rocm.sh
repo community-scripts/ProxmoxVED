@@ -173,8 +173,10 @@ EOF
   fi
 
   msg_info "Configuring environment"
-  echo "export PATH=\$PATH:/opt/rocm/bin" >/etc/profile.d/rocm.sh
-  echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/lib" >>/etc/profile.d/rocm.sh
+  cat <<EOF >/etc/profile.d/rocm.sh
+export PATH=\$PATH:/opt/rocm/bin
+export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/lib
+EOF
   chmod +x /etc/profile.d/rocm.sh
   msg_ok "Configured environment"
 }
@@ -241,8 +243,10 @@ EOF
   fi
 
   msg_info "Configuring environment"
-  echo "export PATH=\$PATH:/opt/rocm/bin" >/etc/profile.d/rocm.sh
-  echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/lib" >>/etc/profile.d/rocm.sh
+  cat <<EOF >/etc/profile.d/rocm.sh
+export PATH=\$PATH:/opt/rocm/bin
+export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/lib
+EOF
   chmod +x /etc/profile.d/rocm.sh
   msg_ok "Configured environment"
 }
