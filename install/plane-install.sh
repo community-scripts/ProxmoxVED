@@ -253,7 +253,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF>/etc/systemd/system/plane-space.service
+cat <<EOF >/etc/systemd/system/plane-space.service
 [Unit]
 Description=Plane Space Server
 After=network.target
