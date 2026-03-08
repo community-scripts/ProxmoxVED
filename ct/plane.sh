@@ -42,9 +42,7 @@ function update_script() {
     cp /opt/plane/apps/space/.env /opt/plane-space-env.bak
     msg_ok "Backed up Data"
 
-    msg_info "Updating Plane"
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "plane" "makeplane/plane" "tarball"
-    msg_ok "Updated Plane"
 
     msg_info "Restoring Config"
     cp /opt/plane-api-env.bak /opt/plane/apps/api/.env
