@@ -14,7 +14,7 @@ permissions:
 jobs:
   move-to-main-repo:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'Migration To ProxmoxVE' && github.repository == 'community-unscripted/ProxmoxVED'
+    if: (github.event_name == 'workflow_dispatch' || github.event.label.name == 'Migration To ProxmoxVE') && github.repository == 'community-unscripted/ProxmoxVED'
     steps:
       - name: Generate a token
         id: app-token
