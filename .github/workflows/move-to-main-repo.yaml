@@ -32,7 +32,7 @@ jobs:
         with:
           ref: main
           repository: community-unscripted/ProxmoxVED
-          token: ${{ secrets.GH_MERGE_PAT }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: List Issues and Extract Script Type
         id: list_issues
