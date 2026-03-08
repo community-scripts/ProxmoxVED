@@ -54,7 +54,7 @@ MINIO_ROOT_USER="${MINIO_ACCESS_KEY}"
 MINIO_ROOT_PASSWORD="${MINIO_SECRET_KEY}"
 MINIO_VOLUMES="/opt/minio/data"
 EOF
-cat <<EOF>/etc/systemd/system/minio.service
+cat <<EOF >/etc/systemd/system/minio.service
 [Unit]
 Description=MinIO Object Storage
 After=network.target
