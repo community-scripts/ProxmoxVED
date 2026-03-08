@@ -9,12 +9,174 @@
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Workflow File](#workflow-file)
-3. [Prerequisites](#prerequisites)
-4. [How It Works](#how-it-works)
-5. [Workflow Steps](#workflow-steps)
-6. [GitHub App Setup](#github-app-setup)
-7. [Troubleshooting](#troubleshooting)
+2. [Creating a Migration Issue](#creating-a-migration-issue)
+3. [Workflow File](#workflow-file)
+4. [Prerequisites](#prerequisites)
+5. [How It Works](#how-it-works)
+6. [Workflow Steps](#workflow-steps)
+7. [GitHub App Setup](#github-app-setup)
+8. [Troubleshooting](#troubleshooting)
+
+---
+
+## Overview
+
+The `move-to-main-repo.yaml` workflow automates the process of migrating scripts from the development repository (`ProxmoxVED`) to the main repository (`ProxmoxVE`). When a script is ready for production, maintainers can trigger this workflow to:
+
+1. Copy script files from ProxmoxVED to ProxmoxVE
+2. Update repository URLs in the scripts
+3. Create a pull request in ProxmoxVE for review
+4. Update the issue status automatically
+
+---
+
+## Creating a Migration Issue
+
+To trigger the migration workflow, you need to create an issue with specific formatting.
+
+### Issue Title Format
+
+The issue title should be the **script name** (lowercase, no spaces):
+
+```
+<script-name>
+```
+
+**Examples**:
+- `pihole` - for PiHole container script
+- `ubuntu-vm` - for Ubuntu VM script
+- `filebrowser` - for Filebrowser addon
+- `netdata` - for Netdata addon
+
+### Issue Body Format
+
+The issue body must contain the **script type** in one of these formats:
+
+| Script Type | Required Text in Body |
+|-------------|------------------------|
+| CT (LXC Container) | `CT (LXC Container)` |
+| VM (Virtual Machine) | `VM (Virtual Machine)` |
+| Addon (tools/addon) | `Addon (tools/addon)` |
+| PVE Tool (tools/pve) | `PVE Tool (tools/pve)` |
+
+### Required Label
+
+Add the label: **`Migration To ProxmoxVE`**
+
+### Complete Issue Template
+
+```markdown
+---
+name: Migration Request
+about: Request migration of a script to ProxmoxVE
+title: '<script-name>'
+labels: ['Migration To ProxmoxVE']
+assignees: ''
+---
+
+## Script Information
+
+**Script Name:** <script-name>
+
+**Script Type:**
+- [ ] CT (LXC Container)
+- [ ] VM (Virtual Machine)
+- [ ] Addon (tools/addon)
+- [ ] PVE Tool (tools/pve)
+
+## Checklist
+
+- [ ] Script exists in ProxmoxVED repository
+- [ ] Script has been tested
+- [ ] All required files are present:
+  - For CT: `ct/<name>.sh`, `install/<name>-install.sh`, `frontend/public/json/<name>.json`
+  - For VM: `vm/<name>-vm.sh`
+  - For Addon: `tools/addon/<name>.sh`
+  - For PVE Tool: `tools/pve/<name>.sh`
+
+## Additional Notes
+
+<Any additional information about the migration>
+```
+
+### Example Issues
+
+#### Container Script Migration
+
+```markdown
+**Script Name:** pihole
+
+**Script Type:**
+- [x] CT (LXC Container)
+
+**Checklist:**
+- [x] Script exists in ProxmoxVED repository
+- [x] Script has been tested
+- [x] All required files are present
+```
+
+#### VM Script Migration
+
+```markdown
+**Script Name:** ubuntu-vm
+
+**Script Type:**
+- [x] VM (Virtual Machine)
+
+**Checklist:**
+- [x] Script exists in ProxmoxVED repository
+- [x] Script has been tested
+```
+
+#### Addon Migration
+
+```markdown
+**Script Name:** filebrowser
+
+**Script Type:**
+- [x] Addon (tools/addon)
+
+**Checklist:**
+- [x] Script exists in ProxmoxVED repository
+- [x] Script has been tested
+```
+
+### How the Workflow Extracts Information
+
+1. **Script Name**: Extracted from the issue title
+   - Converted to lowercase
+   - Spaces removed
+   - Example: `My App` → `myapp`
+
+2. **Script Type**: Detected by searching the issue body for specific patterns:
+   ```bash
+   # Detection patterns (case-insensitive)
+   "CT (LXC Container)"  → script_type="ct"
+   "VM (Virtual Machine)" → script_type="vm"
+   "Addon (tools/addon)"  → script_type="addon"
+   "PVE Tool (tools/pve)" → script_type="pve"
+   ```
+
+3. **Fallback Detection**: If no type is found in the body, the workflow checks if the script name contains `-vm`:
+   ```bash
+   # Fallback
+   if [[ "$script_name" == *"-vm"* ]]; then
+     script_type="vm"
+   else
+     script_type="ct"  # Default to container
+   fi
+   ```
+
+### Triggering the Workflow
+
+After creating the issue:
+
+1. **Automatic Trigger**: Add the `Migration To ProxmoxVE` label
+   - The workflow will automatically start
+   - It will find the issue with this label and process it
+
+2. **Manual Trigger**: Go to Actions → "Move new Scripts to Main Repository" → Run workflow
+   - Requires an issue with the label to exist
 
 ---
 
