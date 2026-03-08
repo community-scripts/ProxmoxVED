@@ -370,7 +370,7 @@ server {
         try_files $uri $uri/ /index.html;
     }
 }
-NGINXEOF
+EOF
 ln -sf /etc/nginx/sites-available/plane.conf /etc/nginx/sites-enabled/plane.conf
 rm -f /etc/nginx/sites-enabled/default
 $STD systemctl reload nginx
