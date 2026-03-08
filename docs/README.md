@@ -12,6 +12,9 @@ Complete guide to all ProxmoxVED documentation - quickly find what you need.
 → Start with: [contribution/README.md](contribution/README.md)
 → Then: [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) + [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
 
+**Migrate a script to main repository**
+→ Read: [contribution/MIGRATION_WORKFLOW.md](contribution/MIGRATION_WORKFLOW.md)
+
 **Understand the architecture**
 → Read: [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)
 → Then: [misc/README.md](misc/README.md)
