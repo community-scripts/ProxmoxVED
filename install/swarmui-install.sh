@@ -46,19 +46,20 @@ $STD uv venv /opt/swarmui/dlbackend/comfy/venv
 source /opt/swarmui/dlbackend/comfy/venv/bin/activate
 
 PYTORCH_INDEX="https://download.pytorch.org/whl/cpu"
-if nvidia_check_driver_installed && nvidia-smi &>/dev/null; then
-    PYTORCH_INDEX="https://download.pytorch.org/whl/cu128"
-    msg_info "NVIDIA GPU detected - installing PyTorch with CUDA 12.8 support"
-elif amd_gpu_available; then
-    PYTORCH_INDEX="https://download.pytorch.org/whl/rocm7.1"
-    msg_info "AMD GPU detected - installing PyTorch with ROCm 7.1 support"
+if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
+  PYTORCH_INDEX="https://download.pytorch.org/whl/cu128"
+  msg_info "NVIDIA GPU detected - installing PyTorch with CUDA 12.8 support"
+elif lspci 2>/dev/null | grep -qi 'VGA.*AMD' && [[ -e /dev/kfd ]]; then
+  PYTORCH_INDEX="https://download.pytorch.org/whl/rocm7.1"
+  msg_info "AMD GPU detected - installing PyTorch with ROCm 7.1 support"
 else
-    msg_info "No GPU detected - installing PyTorch CPU version"
+  msg_info "No GPU detected - installing PyTorch CPU version"
 fi
 $STD uv pip install torch torchvision torchaudio --index-url "$PYTORCH_INDEX"
 $STD uv pip install -r requirements.txt
 deactivate
 msg_ok "Set up ComfyUI Backend"
+
 
 msg_info "Creating Directories"
 mkdir -p /opt/swarmui/Data
