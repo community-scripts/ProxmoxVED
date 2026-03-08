@@ -40,8 +40,9 @@ function update_script() {
     RUST_TOOLCHAIN=$TOOLCHAIN setup_rust
 
     msg_info "Updating OxiCloud"
+    PG_DB_PASS="$(sed -n '/Password:/s/[^:]*:[[:space:]]//p' ~/oxicloud.creds)"
     cd /opt/oxicloud
-    export DATABASE_URL="postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost/${PG_DB_NAME}"
+    export DATABASE_URL="postgres://oxicloud:${PG_DB_PASS}@localhost/oxicloud"
     $STD cargo build --release
     mv target/release/oxicloud /usr/bin/oxicloud && chmod +x /usr/bin/oxicloud
     msg_ok "Updated OxiCloud"

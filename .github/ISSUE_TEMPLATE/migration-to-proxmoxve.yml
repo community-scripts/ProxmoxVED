@@ -1,0 +1,135 @@
+name: Migration to ProxmoxVE
+description: Request migration of a script from ProxmoxVED to ProxmoxVE
+title: '<script-name>'
+labels: ['Migration To ProxmoxVE']
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Migration Request
+
+        This form creates a request to migrate a script from ProxmoxVED (development) to ProxmoxVE (main repository).
+
+        The workflow will automatically:
+        1. Copy script files to ProxmoxVE
+        2. Update repository URLs
+        3. Create a pull request for review
+        4. Link the PR to this issue
+
+  - type: input
+    id: script_name
+    attributes:
+      label: Script Name
+      description: |
+        The name of the script to migrate (lowercase, no spaces).
+        This should match the filename without extension.
+        Example: `pihole`, `ubuntu-vm`, `filebrowser`
+      placeholder: 'e.g., pihole'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: script_type
+    attributes:
+      label: Script Type
+      description: |
+        Select the type of script being migrated.
+        This determines which files will be copied.
+      options:
+        - CT (LXC Container)
+        - VM (Virtual Machine)
+        - Addon (tools/addon)
+        - PVE Tool (tools/pve)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: required_files_ct
+    attributes:
+      label: Required Files (CT Scripts)
+      description: |
+        For CT (LXC Container) scripts, verify these files exist:
+      options:
+        - label: '`ct/<name>.sh` exists'
+        - label: '`install/<name>-install.sh` exists'
+        - label: '`frontend/public/json/<name>.json` exists (or alpine fallback)'
+        - label: '`ct/headers/<name>` exists (if applicable)'
+
+  - type: checkboxes
+    id: required_files_vm
+    attributes:
+      label: Required Files (VM Scripts)
+      description: |
+        For VM (Virtual Machine) scripts, verify these files exist:
+      options:
+        - label: '`vm/<name>-vm.sh` exists'
+        - label: '`vm/headers/<name>-vm` exists (if applicable)'
+        - label: '`frontend/public/json/<name>.json` exists (optional)'
+
+  - type: checkboxes
+    id: required_files_addon
+    attributes:
+      label: Required Files (Addon Scripts)
+      description: |
+        For Addon scripts, verify these files exist:
+      options:
+        - label: '`tools/addon/<name>.sh` exists'
+        - label: '`tools/headers/<name>` exists (if applicable)'
+        - label: '`frontend/public/json/<name>.json` exists (optional)'
+
+  - type: checkboxes
+    id: required_files_pve
+    attributes:
+      label: Required Files (PVE Tool Scripts)
+      description: |
+        For PVE Tool scripts, verify these files exist:
+      options:
+        - label: '`tools/pve/<name>.sh` exists'
+        - label: '`tools/headers/<name>` exists (if applicable)'
+
+  - type: checkboxes
+    id: testing_checklist
+    attributes:
+      label: Testing Checklist
+      description: Verify the script has been tested before migration
+      options:
+        - label: 'Script has been tested in ProxmoxVED'
+        - label: 'Update script function works correctly (if applicable)'
+        - label: 'No critical bugs or issues pending'
+        - label: 'Documentation is up to date'
+
+  - type: textarea
+    id: additional_notes
+    attributes:
+      label: Additional Notes
+      description: |
+        Any additional information about the migration (breaking changes,
+        special requirements, dependencies, etc.)
+      placeholder: 'e.g., Requires new dependencies, has breaking changes from previous version...'
+
+  - type: checkboxes
+    id: final_checklist
+    attributes:
+      label: Final Checklist
+      description: Confirm before submitting
+      options:
+        - label: 'I have verified all required files exist in ProxmoxVED'
+        - label: 'I have tested the script and it works correctly'
+        - label: 'The script name matches the filename (lowercase, no spaces)'
+        - label: 'I have selected the correct script type'
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+        **What happens next?**
+
+        1. Add the `Migration To ProxmoxVE` label to this issue
+        2. The workflow will automatically process the migration
+        3. A pull request will be created in ProxmoxVE
+        4. The PR link will be added as a comment here
+        5. The label will be updated to `Started Migration To ProxmoxVE`
+
+        If the workflow fails, check the [Migration Workflow Documentation](../docs/contribution/MIGRATION_WORKFLOW.md) for troubleshooting.

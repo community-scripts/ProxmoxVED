@@ -14,7 +14,7 @@ permissions:
 jobs:
   move-to-main-repo:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'Migration To ProxmoxVE' && github.repository == 'community-scripts/ProxmoxVED'
+    if: (github.event_name == 'workflow_dispatch' || github.event.label.name == 'Migration To ProxmoxVE') && github.repository == 'community-unscripted/ProxmoxVED'
     steps:
       - name: Generate a token
         id: app-token
@@ -22,7 +22,7 @@ jobs:
         with:
           app-id: ${{ vars.PUSH_MAIN_APP_ID }}
           private-key: ${{ secrets.PUSH_MAIN_APP_SECRET }}
-          owner: community-scripts
+          owner: community-unscripted
           repositories: |
             ProxmoxVE
             ProxmoxVED
@@ -31,8 +31,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-          repository: community-scripts/ProxmoxVED
-          token: ${{ secrets.GH_MERGE_PAT }}
+          repository: community-unscripted/ProxmoxVED
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: List Issues and Extract Script Type
         id: list_issues
@@ -192,7 +192,7 @@ jobs:
           script_type="${{ steps.list_issues.outputs.script_type }}"
           json_fallback="${{ steps.check_files.outputs.json_fallback }}"
 
-          git clone https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
+          git clone https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/community-unscripted/ProxmoxVE.git ProxmoxVE
           cd ProxmoxVE
 
           # Check if branch already exists remotely and delete it
@@ -235,18 +235,18 @@ jobs:
               fi
 
               # Update URLs in ct script
-              sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
-              sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
-              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" ct/${script_name}.sh
-              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" install/${script_name}-install.sh
+              sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-unscripted/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
+              sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-unscripted/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
+              sed -i "s|community-scripts/ProxmoxVED|community-unscripted/ProxmoxVE|g" ct/${script_name}.sh
+              sed -i "s|community-scripts/ProxmoxVED|community-unscripted/ProxmoxVE|g" install/${script_name}-install.sh
               ;;
             vm)
               cp ../vm/${script_name}.sh vm/
               cp ../frontend/public/json/${script_name}.json frontend/public/json/ 2>/dev/null || true
 
               # Update URLs in vm script
-              sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" vm/${script_name}.sh
-              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" vm/${script_name}.sh
+              sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-unscripted/ProxmoxVE/main/misc/build.func|" vm/${script_name}.sh
+              sed -i "s|community-scripts/ProxmoxVED|community-unscripted/ProxmoxVE|g" vm/${script_name}.sh
               ;;
             addon)
               mkdir -p tools/addon
@@ -254,14 +254,14 @@ jobs:
               cp ../frontend/public/json/${script_name}.json frontend/public/json/ 2>/dev/null || true
 
               # Update URLs in addon script
-              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" tools/addon/${script_name}.sh
+              sed -i "s|community-scripts/ProxmoxVED|community-unscripted/ProxmoxVE|g" tools/addon/${script_name}.sh
               ;;
             pve)
               mkdir -p tools/pve
               cp ../tools/pve/${script_name}.sh tools/pve/
 
               # Update URLs in pve script
-              sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" tools/pve/${script_name}.sh
+              sed -i "s|community-scripts/ProxmoxVED|community-unscripted/ProxmoxVE|g" tools/pve/${script_name}.sh
               ;;
           esac
 
@@ -286,12 +286,12 @@ jobs:
           script_name="${{ steps.list_issues.outputs.script_name }}"
           script_type="${{ steps.list_issues.outputs.script_type }}"
           gh pr create \
-            --repo community-scripts/ProxmoxVE \
+            --repo community-unscripted/ProxmoxVE \
             --head "$branch_name" \
             --base main \
             --title "${script_name}" \
             --body "Automated migration of **${script_name}** (type: ${script_type}) from ProxmoxVED to ProxmoxVE."
-          PR_NUMBER=$(gh pr list --repo community-scripts/ProxmoxVE --head "$branch_name" --json number --jq '.[].number')
+          PR_NUMBER=$(gh pr list --repo community-unscripted/ProxmoxVE --head "$branch_name" --json number --jq '.[].number')
           echo "PR_NUMBER=$PR_NUMBER"
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
@@ -300,5 +300,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "A PR has been created for ${{ steps.list_issues.outputs.script_name }}: community-scripts/ProxmoxVE#${{ steps.create_pull_request.outputs.pr_number }}"
-          gh issue edit ${{ steps.list_issues.outputs.issue_nr }} --remove-label "Migration To ProxmoxVE" --add-label "Started Migration To ProxmoxVE"
+          gh issue comment ${{ steps.list_issues.outputs.issue_nr }} --body "A PR has been created for ${{ steps.list_issues.outputs.script_name }}: community-unscripted/ProxmoxVE#${{ steps.create_pull_request.outputs.pr_number }}"
+          # Remove the migration label (ignore error if label doesn't exist)
+          gh issue edit ${{ steps.list_issues.outputs.issue_nr }} --remove-label "Migration To ProxmoxVE" || true
+          # Add the started label (create it if it doesn't exist)
+          gh label create "Started Migration To ProxmoxVE" --description "Migration to ProxmoxVE has been started" --color "0E8A16" 2>/dev/null || true
+          gh issue edit ${{ steps.list_issues.outputs.issue_nr }} --add-label "Started Migration To ProxmoxVE" || true
