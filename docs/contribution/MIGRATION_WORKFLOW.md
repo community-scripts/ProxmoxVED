@@ -167,6 +167,17 @@ assignees: ''
    fi
    ```
 
+### Required Labels
+
+The workflow uses two labels:
+
+| Label | Purpose | Color |
+|-------|---------|-------|
+| `Migration To ProxmoxVE` | Triggers the workflow | Any color |
+| `Started Migration To ProxmoxVE` | Marks migration in progress | Green (#0E8A16) |
+
+**Note**: The `Started Migration To ProxmoxVE` label is automatically created by the workflow if it doesn't exist.
+
 ### Triggering the Workflow
 
 After creating the issue:
