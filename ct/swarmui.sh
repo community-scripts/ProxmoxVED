@@ -14,6 +14,7 @@ var_disk="${var_disk:-50}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
+var_gpu="${var_gpu:-yes}"
 
 header_info "$APP"
 variables
@@ -67,12 +68,7 @@ start
 build_container
 description
 
-msg_ok "Completed Successfully!\n"
+msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:7801${CL}"
-echo -e "${INFO}${YW} Configuration file location:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}/opt/swarmui/Data/Settings.yaml${CL}"
-echo -e "${INFO}${YW} Models directory:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}/opt/swarmui/Models${CL}"
-echo -e "${INFO}${YW} Note: GPU passthrough must be enabled in Proxmox for image generation.${CL}"
