@@ -53,7 +53,7 @@ PYTORCH_INDEX="https://download.pytorch.org/whl/cpu"
 if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
   PYTORCH_INDEX="https://download.pytorch.org/whl/cu128"
   msg_info "NVIDIA GPU detected - installing PyTorch with CUDA 12.8 support"
-elif lspci 2>/dev/null | grep -qi 'VGA.*AMD'; then
+elif [[ -d /dev/dri ]] && ls /dev/dri/render* &>/dev/null; then
   PYTORCH_INDEX="https://download.pytorch.org/whl/rocm7.1"
   msg_info "AMD GPU detected - installing PyTorch with ROCm 7.1 support"
 else
