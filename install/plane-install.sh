@@ -49,7 +49,7 @@ chmod +x /usr/local/bin/minio
 mkdir -p /opt/minio/data
 MINIO_ACCESS_KEY=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c16)
 MINIO_SECRET_KEY=$(openssl rand -base64 36 | tr -dc 'a-zA-Z0-9' | head -c32)
-cat <<EOF>/etc/default/minio
+cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER="${MINIO_ACCESS_KEY}"
 MINIO_ROOT_PASSWORD="${MINIO_SECRET_KEY}"
 MINIO_VOLUMES="/opt/minio/data"
