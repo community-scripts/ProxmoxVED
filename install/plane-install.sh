@@ -271,6 +271,7 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
+systemctl daemon-reload
 systemctl enable -q --now plane-api plane-worker plane-beat plane-live plane-space
 {
     echo "RabbitMQ User: plane"
