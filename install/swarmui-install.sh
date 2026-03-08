@@ -26,8 +26,9 @@ $STD apt install -y \
   libssl-dev \
   dotnet-sdk-8.0 \
   aspnetcore-runtime-8.0 \
-  python3.12-full \
-  python3-pip
+  python3-full \
+  python3-pip \
+  python3-venv
 msg_ok "Installed Dependencies"
 
 msg_info "Cloning SwarmUI"
@@ -45,7 +46,7 @@ mkdir -p /opt/swarmui/dlbackend
 cd /opt/swarmui/dlbackend
 $STD git clone https://github.com/comfyanonymous/ComfyUI.git comfy
 cd comfy
-$STD python3.11 -m venv /opt/swarmui/dlbackend/comfy/venv
+$STD python3 -m venv /opt/swarmui/dlbackend/comfy/venv
 source /opt/swarmui/dlbackend/comfy/venv/bin/activate
 
 PYTORCH_INDEX="https://download.pytorch.org/whl/cpu"
