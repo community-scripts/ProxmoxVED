@@ -123,9 +123,21 @@ function install_rocm_debian() {
   msg_ok "Added ROCm GPG key"
 
   msg_info "Adding ROCm repository (using ${ROCM_REPO_CODENAME} for ${OS} ${OS_VERSION})"
-  cat <<EOF >/etc/apt/sources.list.d/rocm.list
-deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/${ROCM_VERSION} ${ROCM_REPO_CODENAME} main
-deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/${ROCM_VERSION}/ubuntu ${ROCM_REPO_CODENAME} main
+  # Use deb822 format (new standard, replaces deprecated .list format)
+  cat <<EOF >/etc/apt/sources.list.d/rocm.sources
+Types: deb
+URIs: https://repo.radeon.com/rocm/apt/${ROCM_VERSION}
+Suites: ${ROCM_REPO_CODENAME}
+Components: main
+Architectures: amd64
+Signed-By: /etc/apt/keyrings/rocm.gpg
+
+Types: deb
+URIs: https://repo.radeon.com/graphics/${ROCM_VERSION}/ubuntu
+Suites: ${ROCM_REPO_CODENAME}
+Components: main
+Architectures: amd64
+Signed-By: /etc/apt/keyrings/rocm.gpg
 EOF
   msg_ok "Added ROCm repository"
 
@@ -179,9 +191,21 @@ function install_rocm_ubuntu() {
   msg_ok "Added ROCm GPG key"
 
   msg_info "Adding ROCm repository"
-  cat <<EOF >/etc/apt/sources.list.d/rocm.list
-deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/${ROCM_VERSION} ${ROCM_REPO_CODENAME} main
-deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/graphics/${ROCM_VERSION}/ubuntu ${ROCM_REPO_CODENAME} main
+  # Use deb822 format (new standard, replaces deprecated .list format)
+  cat <<EOF >/etc/apt/sources.list.d/rocm.sources
+Types: deb
+URIs: https://repo.radeon.com/rocm/apt/${ROCM_VERSION}
+Suites: ${ROCM_REPO_CODENAME}
+Components: main
+Architectures: amd64
+Signed-By: /etc/apt/keyrings/rocm.gpg
+
+Types: deb
+URIs: https://repo.radeon.com/graphics/${ROCM_VERSION}/ubuntu
+Suites: ${ROCM_REPO_CODENAME}
+Components: main
+Architectures: amd64
+Signed-By: /etc/apt/keyrings/rocm.gpg
 EOF
   msg_ok "Added ROCm repository"
 
@@ -236,7 +260,9 @@ function uninstall_rocm() {
   msg_ok "Removed ROCm packages"
 
   msg_info "Removing ROCm repository and keyring"
+  # Remove both old .list and new .sources formats
   rm -f /etc/apt/sources.list.d/rocm.list
+  rm -f /etc/apt/sources.list.d/rocm.sources
   rm -f /etc/apt/preferences.d/rocm-pin-600
   cleanup_tool_keyrings "rocm"
   $STD apt update
