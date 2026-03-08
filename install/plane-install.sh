@@ -72,9 +72,7 @@ EOF
 systemctl enable -q --now minio
 msg_ok "Installed MinIO"
 
-msg_info "Downloading Plane (Patience)"
 fetch_and_deploy_gh_release "plane" "makeplane/plane" "tarball"
-msg_ok "Downloaded Plane"
 
 msg_info "Building Frontend Apps (Patience)"
 cd /opt/plane
