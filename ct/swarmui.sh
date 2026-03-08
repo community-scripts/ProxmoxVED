@@ -31,7 +31,11 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "swarmui" "mcmonkeyprojects/SwarmUI"; then
+  cd /opt/swarmui
+  LOCAL_VERSION=$(git rev-parse HEAD)
+  REMOTE_VERSION=$(git ls-remote origin HEAD | awk '{print $1}')
+
+  if [[ "$LOCAL_VERSION" != "$REMOTE_VERSION" ]]; then
     msg_info "Stopping Service"
     systemctl stop swarmui
     msg_ok "Stopped Service"
@@ -42,10 +46,12 @@ function update_script() {
     cp -r /opt/swarmui/Output /opt/swarmui_output_backup 2>/dev/null || true
     msg_ok "Backed up Data"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "swarmui" "mcmonkeyprojects/SwarmUI" "tarball" "latest" "/opt/swarmui"
+    msg_info "Updating SwarmUI"
+    $STD git fetch origin
+    $STD git reset --hard origin/main
+    msg_ok "Updated SwarmUI"
 
     msg_info "Rebuilding SwarmUI"
-    cd /opt/swarmui
     $STD dotnet build src/SwarmUI.csproj --configuration Release -o ./bin
     msg_ok "Rebuilt SwarmUI"
 
@@ -60,6 +66,8 @@ function update_script() {
     systemctl start swarmui
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
+  else
+    msg_info "No update required. SwarmUI is already up to date."
   fi
   exit
 }

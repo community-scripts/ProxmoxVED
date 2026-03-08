@@ -25,15 +25,19 @@ $STD apt install -y \
   libicu-dev \
   libssl-dev \
   dotnet-sdk-8.0 \
-  aspnetcore-runtime-8.0
+  aspnetcore-runtime-8.0 \
+  python3.11 \
+  python3.11-venv \
+  python3-pip
 msg_ok "Installed Dependencies"
 
-UV_PYTHON="3.11" setup_uv
-
-fetch_and_deploy_gh_release "swarmui" "mcmonkeyprojects/SwarmUI" "tarball" "latest" "/opt/swarmui"
+msg_info "Cloning SwarmUI"
+mkdir -p /opt/swarmui
+$STD git clone https://github.com/mcmonkeyprojects/SwarmUI.git /opt/swarmui
+cd /opt/swarmui
+msg_ok "Cloned SwarmUI"
 
 msg_info "Building SwarmUI"
-cd /opt/swarmui
 $STD dotnet build src/SwarmUI.csproj --configuration Release -o ./bin
 msg_ok "Built SwarmUI"
 
@@ -42,7 +46,7 @@ mkdir -p /opt/swarmui/dlbackend
 cd /opt/swarmui/dlbackend
 $STD git clone https://github.com/comfyanonymous/ComfyUI.git comfy
 cd comfy
-$STD uv venv /opt/swarmui/dlbackend/comfy/venv
+$STD python3.11 -m venv /opt/swarmui/dlbackend/comfy/venv
 source /opt/swarmui/dlbackend/comfy/venv/bin/activate
 
 PYTORCH_INDEX="https://download.pytorch.org/whl/cpu"
@@ -55,11 +59,10 @@ elif lspci 2>/dev/null | grep -qi 'VGA.*AMD' && [[ -e /dev/kfd ]]; then
 else
   msg_info "No GPU detected - installing PyTorch CPU version"
 fi
-$STD uv pip install torch torchvision torchaudio --index-url "$PYTORCH_INDEX"
-$STD uv pip install -r requirements.txt
+$STD pip install torch torchvision torchaudio --index-url "$PYTORCH_INDEX"
+$STD pip install -r requirements.txt
 deactivate
 msg_ok "Set up ComfyUI Backend"
-
 
 msg_info "Creating Directories"
 mkdir -p /opt/swarmui/Data
@@ -103,7 +106,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/swarmui
-ExecStart=/usr/bin/dotnet /opt/swarmui/bin/SwarmUI.dll --launch_mode none --host 0.0.0.0
+ExecStart=/usr/bin/dotnet /opt/swarmui/bin/SwarmUI.dll --launch_mode none
 Environment=ASPNETCORE_URLS=http://0.0.0.0:7801
 Environment=DOTNET_CONTENTROOT=/opt/swarmui
 Restart=on-failure
