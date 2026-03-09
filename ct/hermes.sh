@@ -8,7 +8,7 @@ source <(curl -fsSL ${COMMUNITY_SCRIPTS_URL}/misc/build.func)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/NousResearch/hermes-agent
 
-APP="Hermes Agent"
+APP="Hermes"
 var_tags="${var_tags:-ai;agent;llm;automation}"
 var_cpu="${var_cpu:-8}"
 var_ram="${var_ram:-16384}"

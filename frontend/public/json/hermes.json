@@ -1,6 +1,6 @@
 {
-    "name": "Hermes Agent",
-    "slug": "hermes-agent",
+    "name": "Hermes",
+    "slug": "hermes",
     "categories": [20],
     "date_created": "2026-03-09",
     "type": "ct",
