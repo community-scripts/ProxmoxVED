@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+# Set the base URL for development/fork - must be set before sourcing build.func
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-unscripted/ProxmoxVED/Hermes-Agent}"
+source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/build.func")
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: community-scripts
@@ -58,7 +60,7 @@ function update_script() {
   systemctl start hermes-agent
   msg_ok "Started Service"
   msg_ok "Updated successfully!"
-  
+
   exit
 }
 
