@@ -19,8 +19,10 @@ $STD apt-get install -y curl sudo mc wget unzip
 msg_ok "Installed Base Dependencies"
 
 msg_info "Installing Alcopac (Non-interactive)"
-# Використовуємо пряму команду для тихого встановлення
-$STD bash -c "curl -fsSL https://dev.alcopa.cc/install | bash -s install"
+TEMP_INSTALL=$(mktemp)
+$STD curl -fsSL https://dev.alcopa.cc/install -o "$TEMP_INSTALL"
+$STD bash "$TEMP_INSTALL" install
+rm -f "$TEMP_INSTALL"
 msg_ok "Installed Alcopac"
 
 motd_ssh
