@@ -31,7 +31,7 @@
     },
     "notes": [
         {
-            "text": "Run 'hermes setup' after installation to configure your LLM provider.",
+            "text": "Run '/opt/hermes-agent/.venv/bin/hermes setup' after installation to configure your LLM provider.",
             "type": "info"
         },
         {
