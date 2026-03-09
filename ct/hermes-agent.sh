@@ -33,35 +33,40 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "hermes-agent" "NousResearch/hermes-agent"; then
-    msg_info "Stopping Service"
-    systemctl stop hermes-agent
-    msg_ok "Stopped Service"
-
-    msg_info "Backing up Configuration"
-    cp -r /root/.hermes /opt/hermes_backup 2>/dev/null || true
-    cp /opt/hermes-agent/.env /opt/hermes_env.bak 2>/dev/null || true
-    msg_ok "Backed up Configuration"
-
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "hermes-agent" "NousResearch/hermes-agent" "tarball"
-
-    msg_info "Installing Python Dependencies"
-    cd /opt/hermes-agent
-    $STD uv venv .venv --python 3.12
-    $STD uv pip install -e ".[all]"
-    msg_ok "Installed Python Dependencies"
-
-    msg_info "Restoring Configuration"
-    cp -r /opt/hermes_backup/. /root/.hermes 2>/dev/null || true
-    cp /opt/hermes_env.bak /opt/hermes-agent/.env 2>/dev/null || true
-    rm -rf /opt/hermes_backup /opt/hermes_env.bak
-    msg_ok "Restored Configuration"
-
-    msg_info "Starting Service"
-    systemctl start hermes-agent
-    msg_ok "Started Service"
-    msg_ok "Updated successfully!"
+  # Check if hermes command is available
+  if [[ ! -x /opt/hermes-agent/.venv/bin/hermes ]]; then
+    msg_error "Hermes executable not found!"
+    exit
   fi
+
+  msg_info "Stopping Service"
+  systemctl stop hermes-agent
+  msg_ok "Stopped Service"
+
+  msg_info "Backing up Configuration"
+  cp -r /root/.hermes /opt/hermes_backup 2>/dev/null || true
+  cp /root/.hermes/.env /opt/hermes_env.bak 2>/dev/null || true
+  msg_ok "Backed up Configuration"
+
+  msg_info "Updating Hermes Agent (using hermes update)"
+  cd /opt/hermes-agent
+  export VIRTUAL_ENV="/opt/hermes-agent/.venv"
+  
+  # Run hermes update which handles git pull and dependency updates
+  $STD /opt/hermes-agent/.venv/bin/hermes update
+  msg_ok "Updated Hermes Agent"
+
+  msg_info "Restoring Configuration"
+  cp -r /opt/hermes_backup/. /root/.hermes 2>/dev/null || true
+  cp /opt/hermes_env.bak /root/.hermes/.env 2>/dev/null || true
+  rm -rf /opt/hermes_backup /opt/hermes_env.bak
+  msg_ok "Restored Configuration"
+
+  msg_info "Starting Service"
+  systemctl start hermes-agent
+  msg_ok "Started Service"
+  msg_ok "Updated successfully!"
+  
   exit
 }
 
