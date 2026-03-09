@@ -27,6 +27,7 @@ RUST_TOOLCHAIN=$TOOLCHAIN setup_rust
 msg_info "Building OxiCloud"
 cd /opt/oxicloud
 export DATABASE_URL="postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost/${PG_DB_NAME}"
+export RUSTFLAGS="-C target-cpu=native"
 $STD cargo build --release
 mv target/release/oxicloud /usr/bin/oxicloud && chmod +x /usr/bin/oxicloud
 msg_ok "Built OxiCloud"
