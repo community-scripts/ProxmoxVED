@@ -25,6 +25,8 @@ msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.11" setup_uv
 
+NODE_VERSION="22" setup_nodejs
+
 msg_info "Cloning Hermes Agent Repository"
 cd /opt
 $STD git clone --recurse-submodules https://github.com/NousResearch/hermes-agent.git hermes-agent
@@ -37,10 +39,10 @@ export VIRTUAL_ENV="/opt/hermes-agent/.venv"
 $STD uv pip install -e ".[all]"
 
 msg_info "Installing Submodules"
-if [ -d "mini-swe-agent" ] && [ -f "mini-swe-agent/pyproject.toml" ]; then
+if [[ -d "mini-swe-agent" && -f "mini-swe-agent/pyproject.toml" ]]; then
   $STD uv pip install -e "./mini-swe-agent"
 fi
-if [ -d "tinker-atropos" ] && [ -f "tinker-atropos/pyproject.toml" ]; then
+if [[ -d "tinker-atropos" && -f "tinker-atropos/pyproject.toml" ]]; then
   $STD uv pip install -e "./tinker-atropos"
 fi
 msg_ok "Installed Python Dependencies"
@@ -50,7 +52,7 @@ mkdir -p /root/.hermes/{cron,sessions,logs,pairing,hooks,image_cache,audio_cache
 msg_ok "Created Configuration Directory"
 
 msg_info "Creating Environment File"
-if [ -f "/opt/hermes-agent/.env.example" ]; then
+if [[ -f "/opt/hermes-agent/.env.example" ]]; then
   cp /opt/hermes-agent/.env.example /root/.hermes/.env
 else
   cat <<EOF >/root/.hermes/.env
@@ -74,7 +76,7 @@ fi
 msg_ok "Created Environment File"
 
 msg_info "Creating Config File"
-if [ -f "/opt/hermes-agent/cli-config.yaml.example" ]; then
+if [[ -f "/opt/hermes-agent/cli-config.yaml.example" ]]; then
   cp /opt/hermes-agent/cli-config.yaml.example /root/.hermes/config.yaml
 fi
 msg_ok "Created Config File"
@@ -105,28 +107,21 @@ ln -sf /opt/hermes-agent/.venv/bin/hermes /root/.local/bin/hermes
 msg_ok "Created Symlink"
 
 msg_info "Syncing Bundled Skills"
-if [ -d "/opt/hermes-agent/skills" ]; then
+if [[ -d "/opt/hermes-agent/skills" ]]; then
   $STD /opt/hermes-agent/.venv/bin/python /opt/hermes-agent/tools/skills_sync.py 2>/dev/null || \
     cp -r /opt/hermes-agent/skills/* /root/.hermes/skills/ 2>/dev/null || true
 fi
 msg_ok "Synced Skills"
 
 msg_info "Installing Node.js Dependencies (for browser tools)"
-if command -v node &> /dev/null; then
-  HAS_NODE=true
-else
-  $STD apt install -y nodejs npm
-  HAS_NODE=true
-fi
-
-if [ "$HAS_NODE" = true ] && [ -f "/opt/hermes-agent/package.json" ]; then
+if [[ -f "/opt/hermes-agent/package.json" ]]; then
   cd /opt/hermes-agent
   $STD npm install --silent 2>/dev/null || true
   msg_info "Installing Playwright Browser"
   $STD npx playwright install chromium 2>/dev/null || true
 fi
 
-if [ -f "/opt/hermes-agent/scripts/whatsapp-bridge/package.json" ]; then
+if [[ -f "/opt/hermes-agent/scripts/whatsapp-bridge/package.json" ]]; then
   cd /opt/hermes-agent/scripts/whatsapp-bridge
   $STD npm install --silent 2>/dev/null || true
 fi
@@ -142,7 +137,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/hermes-agent
-Environment="PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=/root/.hermes/.env
 ExecStart=/opt/hermes-agent/.venv/bin/hermes gateway
 Restart=on-failure

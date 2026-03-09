@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-unscripted/ProxmoxVED/refs/heads/Hermes-Agent}"
-source <(curl -fsSL ${COMMUNITY_SCRIPTS_URL}/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: community-scripts
@@ -15,8 +14,6 @@ var_disk="${var_disk:-50}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
-var_gpu="${var_gpu:-yes}"
-
 
 header_info "$APP"
 variables
@@ -33,7 +30,6 @@ function update_script() {
     exit
   fi
 
-  # Check if hermes command is available
   if [[ ! -x /opt/hermes-agent/.venv/bin/hermes ]]; then
     msg_error "Hermes executable not found!"
     exit
@@ -45,21 +41,17 @@ function update_script() {
 
   msg_info "Backing up Configuration"
   cp -r /root/.hermes /opt/hermes_backup 2>/dev/null || true
-  cp /root/.hermes/.env /opt/hermes_env.bak 2>/dev/null || true
   msg_ok "Backed up Configuration"
 
-  msg_info "Updating Hermes Agent (using hermes update)"
+  msg_info "Updating Hermes Agent"
   cd /opt/hermes-agent
   export VIRTUAL_ENV="/opt/hermes-agent/.venv"
-  
-  # Run hermes update which handles git pull and dependency updates
   $STD /opt/hermes-agent/.venv/bin/hermes update
   msg_ok "Updated Hermes Agent"
 
   msg_info "Restoring Configuration"
   cp -r /opt/hermes_backup/. /root/.hermes 2>/dev/null || true
-  cp /opt/hermes_env.bak /root/.hermes/.env 2>/dev/null || true
-  rm -rf /opt/hermes_backup /opt/hermes_env.bak
+  rm -rf /opt/hermes_backup
   msg_ok "Restored Configuration"
 
   msg_info "Starting Service"
