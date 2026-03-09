@@ -118,7 +118,7 @@ if [[ -f "/opt/hermes-agent/package.json" ]]; then
   cd /opt/hermes-agent
   $STD npm install --silent 2>/dev/null || true
   msg_info "Installing Playwright Browser"
-  $STD npx playwright install chromium 2>/dev/null || true
+  $STD npx --yes playwright install chromium 2>/dev/null || true
 fi
 
 if [[ -f "/opt/hermes-agent/scripts/whatsapp-bridge/package.json" ]]; then
