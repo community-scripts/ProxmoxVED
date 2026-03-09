@@ -4,7 +4,19 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://dev.alcopa.cc/
-
+function header_info {
+clear
+cat <<"EOF"
+   __                               
+  / /   ____ _____ ___  ____  ____ 
+ / /   / __ `/ __ `__ \/ __ \/ __ `/ 
+/ /___/ /_/ / / / / / / /_/ / /_/ /  
+\____/\__,_/_/ /_/ /_/ .___/\__,_/   
+                    /_/                  
+EOF
+}
+header_info
+echo -e "Loading..."
 APP="Alcopac"
 var_tags="media"
 var_cpu="2"
