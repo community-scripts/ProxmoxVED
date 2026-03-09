@@ -15,11 +15,11 @@
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/hermes-agent.sh",
+            "script": "ct/hermes.sh",
             "resources": {
-                "cpu": 2,
-                "ram": 4096,
-                "hdd": 10,
+                "cpu": 8,
+                "ram": 16384,
+                "hdd": 50,
                 "os": "Debian",
                 "version": "13"
             }
