@@ -37,26 +37,25 @@
 
 ### 1.2 **Import Functions**
 
-- Import the build.func file.
-- When developing your own script, change the URL to your own repository.
-
-> [!IMPORTANT]
-> You also need to change all apperances of this URL in `misc/build.func` and `misc/install.func`
+- Import the build.func file via `$COMMUNITY_SCRIPTS_URL`.
+- When developing your own script, export `COMMUNITY_SCRIPTS_URL` pointing to your fork — no file edits needed.
 
 Example for development:
 
 ```bash
-source <(curl -s https://raw.githubusercontent.com/[USER]/[REPO]/refs/heads/[BRANCH]/misc/build.func)
+export COMMUNITY_SCRIPTS_URL="https://git.community-scripts.org/[USER]/ProxmoxVED/raw/branch/[BRANCH]"
+bash -c "$(curl -fsSL $COMMUNITY_SCRIPTS_URL/ct/myapp.sh)"
 ```
 
-Final script:
+Final script entry point:
 
 ```bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
+source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/build.func")
 ```
 
 > [!CAUTION]
-> Before opening a Pull Request, change the URLs to point to the community-scripts repo.
+> Before opening a Pull Request, ensure `COMMUNITY_SCRIPTS_URL` is not exported and the default points to the community-scripts repo.
 
 ### 1.3 **Metadata**
 

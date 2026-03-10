@@ -79,10 +79,15 @@ git clone https://github.com/yourUserName/ForkName
 git switch -c your-feature-branch
 ```
 
-### 4. Change paths in build.func install.func and AppName.sh
-To be able to develop from your own branch you need to change `https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main` to `https://raw.githubusercontent.com/[USER]/[REPOSITORY]/refs/heads/[BRANCH]`. You need to make this change atleast in misc/build.func misc/install.func and in your ct/AppName.sh. This change is only for testing. Before opening a Pull Request you should change this line change all this back to point to `https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main`.
+### 4. Test from your fork using COMMUNITY_SCRIPTS_URL
+To develop from your own fork, export `COMMUNITY_SCRIPTS_URL` pointing to your branch — no file edits required:
+```bash
+export COMMUNITY_SCRIPTS_URL="https://git.community-scripts.org/[USER]/ProxmoxVED/raw/branch/[BRANCH]"
+bash -c "$(curl -fsSL $COMMUNITY_SCRIPTS_URL/ct/AppName.sh)"
+```
+This variable propagates into `build.func`, `install.func`, and all sourced scripts automatically. Before opening a Pull Request, ensure `COMMUNITY_SCRIPTS_URL` is not exported in any committed file.
 
-### 4. Commit changes (without build.func and install.func!)
+### 5. Commit changes
 ```bash
 git commit -m "Your commit message"
 ```

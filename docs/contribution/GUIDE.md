@@ -204,17 +204,11 @@ git push origin feat/add-myapp
 # 1. SSH into Proxmox host
 ssh root@192.168.1.100
 
-# 2. Download your script
-curl -O https://raw.githubusercontent.com/YOUR_USERNAME/ProxmoxVED/feat/myapp/ct/myapp.sh
+# 2. Set your fork URL (no file edits needed)
+export COMMUNITY_SCRIPTS_URL="https://git.community-scripts.org/YOUR_USERNAME/ProxmoxVED/raw/branch/feat/myapp"
 
-# 3. Make it executable
-chmod +x myapp.sh
-
-# 4. Update URLs to your fork
-# Edit: curl -s https://raw.githubusercontent.com/YOUR_USERNAME/ProxmoxVED/feat/myapp/...
-
-# 5. Run and test
-bash myapp.sh
+# 3. Run your script directly from your fork
+bash -c "$(curl -fsSL $COMMUNITY_SCRIPTS_URL/ct/myapp.sh)"
 
 # 6. If container created successfully, script is working!
 ```
@@ -264,7 +258,8 @@ cp ct/docker.sh ct/myapp.sh           # Use Docker container
 
 ```bash
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/ProxmoxVED/feat/myapp/misc/build.func)
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
+source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/build.func")
 
 # Update these:
 APP="MyAwesomeApp"                    # Display name
@@ -656,17 +651,9 @@ shellcheck install/myapp-install.sh
 # 1. SSH into Proxmox host
 ssh root@YOUR_PROXMOX_IP
 
-# 2. Download your script
-curl -O https://raw.githubusercontent.com/YOUR_USER/ProxmoxVED/feat/myapp/ct/myapp.sh
-
-# 3. Make executable
-chmod +x myapp.sh
-
-# 4. UPDATE URLS IN SCRIPT to point to your fork
-sed -i 's|community-scripts|YOUR_USER|g' myapp.sh
-
-# 5. Run script
-bash myapp.sh
+# 2. Set your fork URL and run directly
+export COMMUNITY_SCRIPTS_URL="https://git.community-scripts.org/YOUR_USER/ProxmoxVED/raw/branch/feat/myapp"
+bash -c "$(curl -fsSL $COMMUNITY_SCRIPTS_URL/ct/myapp.sh)"
 
 # 6. Test interaction:
 #    - Select installation mode
