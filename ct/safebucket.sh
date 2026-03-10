@@ -50,11 +50,12 @@ function update_script() {
         exit 1
         ;;
     esac
-    
+
     fetch_and_deploy_gh_release "safebucket" "safebucket/safebucket" "singlefile" "latest" "/opt/safebucket" "safebucket-linux-${ARCH}"
     chmod +x /opt/safebucket/safebucket
 
     msg_info "Restoring Data"
+    mkdir -p /opt/safebucket/data
     cp -r /opt/safebucket_data_backup/. /opt/safebucket/data/ 2>/dev/null || true
     cp /opt/safebucket_config_backup.yaml /opt/safebucket/config.yaml 2>/dev/null || true
     rm -rf /opt/safebucket_data_backup /opt/safebucket_config_backup.yaml
