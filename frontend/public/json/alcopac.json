@@ -1,10 +1,28 @@
 {
   "name": "Alcopac",
-  "description": "Alcopac media server (Lampac fork)",
-  "script": "ct/alcopac.sh",
+  "slug": "alcopac",
   "categories": [
     "media"
   ],
-  "author": "Hlushok",
-  "date": "2026-03-09"
+  "date_created": "2026-03-10",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 18118,
+  "documentation": "https://dev.alcopa.cc/",
+  "config_path": "/opt/lampac/config.json",
+  "website": "https://dev.alcopa.cc/",
+  "logo": "https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/frontend/public/images/lampac.png",
+  "description": "Alcopac media server (Lampac fork)",
+  "install_methods": [
+    {
+      "name": "Alcopac",
+      "script": "ct/alcopac.sh"
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
 }
