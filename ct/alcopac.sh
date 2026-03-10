@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-GITHUB_USER="Hlushok"
-GITHUB_REPO="ProxmoxVED"
-GITHUB_BRANCH="feature/alcopac"
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 
 # Copyright (c) 2021-2026 tteck
