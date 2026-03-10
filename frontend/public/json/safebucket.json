@@ -1,0 +1,44 @@
+{
+  "name": "Safebucket",
+  "slug": "safebucket",
+  "categories": [
+    11
+  ],
+  "date_created": "2026-03-08",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://github.com/safebucket/safebucket",
+  "website": "https://github.com/safebucket/safebucket",
+  "logo": "https://raw.githubusercontent.com/safebucket/safebucket/main/web/public/logo512.png",
+  "config_path": "/opt/safebucket/config.yaml",
+  "description": "An open-source file sharing platform where files never touch your server. Uploads and downloads go directly to S3-compatible storage via presigned URLs.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/safebucket.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin@safebucket.io",
+    "password": "ChangeMePlease"
+  },
+  "notes": [
+    {
+      "text": "Change the default admin password after first login!",
+      "type": "warning"
+    },
+    {
+      "text": "MinIO console available at port 9001 with credentials from /etc/default/minio",
+      "type": "info"
+    }
+  ]
+}
