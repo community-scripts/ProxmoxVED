@@ -19,9 +19,11 @@ $STD apt-get install -y curl sudo mc wget unzip
 msg_ok "Installed Base Dependencies"
 
 msg_info "Installing Alcopac (Non-interactive)"
-TEMP_INSTALL=$(mktemp)
+TEMP_INSTALL="$(mktemp)"
+trap 'rm -f "$TEMP_INSTALL"' EXIT
 $STD curl -fsSL https://dev.alcopa.cc/install -o "$TEMP_INSTALL"
 $STD bash "$TEMP_INSTALL" install
+trap - EXIT
 rm -f "$TEMP_INSTALL"
 msg_ok "Installed Alcopac"
 
