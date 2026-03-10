@@ -49,3 +49,5 @@ Link: #
 - [ ] The application has **600+ GitHub stars**
 - [ ] Official **release tarballs** are published
 - [ ] I understand that not all scripts will be accepted due to various reasons and criteria by the community-scripts ORG
+
+test
