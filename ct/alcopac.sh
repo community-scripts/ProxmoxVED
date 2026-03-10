@@ -3,21 +3,24 @@ GITHUB_USER="Hlushok"
 GITHUB_REPO="ProxmoxVED"
 GITHUB_BRANCH="feature/alcopac"
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+
 # Copyright (c) 2021-2026 tteck
 # Author: tteck (tteckster)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://dev.alcopa.cc/
+
 function header_info {
 clear
 cat <<"EOF"
-   __                               
-  / /   ____ _____ ___  ____  ____ 
- / /   / __ `/ __ `__ \/ __ \/ __ `/ 
-/ /___/ /_/ / / / / / / /_/ / /_/ /  
-\____/\__,_/_/ /_/ /_/ .___/\__,_/   
-                    /_/                  
+   ___    __                             
+  /   |  / /________  ____  ____ ______
+ / /| | / / ___/ __ \/ __ \/ __ `/ ___/
+/ ___ |/ / /__/ /_/ / /_/ / /_/ / /__  
+/_/  |_/_/\___/\____/ .___/\__,_/\___/  
+                   /_/                  
 EOF
 }
+
 header_info
 echo -e "Loading..."
 APP="Alcopac"
@@ -40,7 +43,7 @@ function update_script() {
   check_container_resources
   if [[ ! -d /opt/lampac ]]; then
     msg_error "No ${APP} Installation Found!"
-    exit
+    exit 1
   fi
   msg_info "Updating $APP LXC"
   $STD apt update
