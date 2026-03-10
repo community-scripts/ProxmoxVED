@@ -22,7 +22,7 @@ EOF
 }
 header_info
 echo -e "Loading..."
-APP="Alcopac"
+APP="alcopac"
 var_tags="media"
 var_cpu="2"
 var_ram="2048"
