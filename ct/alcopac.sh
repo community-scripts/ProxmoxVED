@@ -20,7 +20,6 @@ cat <<"EOF"
                    /_/                  
 EOF
 }
-
 header_info
 echo -e "Loading..."
 APP="Alcopac"
