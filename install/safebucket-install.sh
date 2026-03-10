@@ -20,7 +20,9 @@ ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m)
 msg_info "Installing MinIO"
 curl -fsSL https://dl.min.io/server/minio/release/linux-${ARCH}/minio -o /usr/local/bin/minio
 chmod +x /usr/local/bin/minio
+useradd --system --no-create-home --shell /bin/false minio
 mkdir -p /opt/minio/data
+chown -R minio:minio /opt/minio
 MINIO_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-16)
 cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=minioadmin
@@ -28,6 +30,7 @@ MINIO_ROOT_PASSWORD=${MINIO_PASS}
 MINIO_VOLUMES=/opt/minio/data
 MINIO_OPTS="--address :9000 --console-address :9001"
 EOF
+chmod 600 /etc/default/minio
 cat <<EOF >/etc/systemd/system/minio.service
 [Unit]
 Description=MinIO Object Storage
@@ -36,7 +39,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
+User=minio
+Group=minio
 EnvironmentFile=/etc/default/minio
 ExecStart=/usr/local/bin/minio server \$MINIO_VOLUMES \$MINIO_OPTS
 Restart=on-failure
@@ -68,9 +72,11 @@ chmod +x /opt/safebucket/safebucket
 msg_ok "Installed Safebucket"
 
 msg_info "Configuring Safebucket"
+useradd --system --no-create-home --shell /bin/false safebucket
 mkdir -p /opt/safebucket/data/{notifications,activity}
 JWT_SECRET=$(openssl rand -base64 32)
 MFA_KEY=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-32)
+ADMIN_PASSWORD=$(openssl rand -hex 12)
 get_lxc_ip
 cat <<EOF >/opt/safebucket/config.yaml
 app:
@@ -84,7 +90,7 @@ app:
   mfa_encryption_key: "${MFA_KEY}"
   mfa_required: false
   admin_email: admin@safebucket.io
-  admin_password: ChangeMePlease
+  admin_password: "${ADMIN_PASSWORD}"
   trash_retention_days: 7
   max_upload_size: 53687091200
   trusted_proxies:
@@ -142,6 +148,8 @@ auth:
         allowed: true
         domains: []
 EOF
+chmod 600 /opt/safebucket/config.yaml
+chown -R safebucket:safebucket /opt/safebucket
 msg_ok "Configured Safebucket"
 
 msg_info "Creating Service"
@@ -153,7 +161,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
+User=safebucket
+Group=safebucket
 WorkingDirectory=/opt/safebucket
 ExecStart=/opt/safebucket/safebucket
 Restart=on-failure

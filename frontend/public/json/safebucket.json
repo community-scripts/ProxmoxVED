@@ -13,7 +13,7 @@
   "website": "https://github.com/safebucket/safebucket",
   "logo": "https://raw.githubusercontent.com/safebucket/safebucket/main/web/public/logo512.png",
   "config_path": "/opt/safebucket/config.yaml",
-  "description": "An open-source file sharing platform where files never touch your server. Uploads and downloads go directly to S3-compatible storage via presigned URLs.",
+  "description": "An open-source file sharing platform with local MinIO storage. Uploads and downloads go directly to S3-compatible storage via presigned URLs.",
   "install_methods": [
     {
       "type": "default",
@@ -29,11 +29,11 @@
   ],
   "default_credentials": {
     "username": "admin@safebucket.io",
-    "password": "ChangeMePlease"
+    "password": null
   },
   "notes": [
     {
-      "text": "Change the default admin password after first login!",
+      "text": "Admin credentials are in /opt/safebucket/config.yaml",
       "type": "warning"
     },
     {

@@ -26,7 +26,7 @@ function update_script() {
 
   if [[ ! -f /opt/safebucket/safebucket ]]; then
     msg_error "No ${APP} Installation Found!"
-    exit
+    exit 1
   fi
 
   if check_for_gh_release "safebucket" "safebucket/safebucket"; then
@@ -50,6 +50,7 @@ function update_script() {
     cp -r /opt/safebucket_data_backup/. /opt/safebucket/data/ 2>/dev/null || true
     cp /opt/safebucket_config_backup.yaml /opt/safebucket/config.yaml 2>/dev/null || true
     rm -rf /opt/safebucket_data_backup /opt/safebucket_config_backup.yaml
+    chown -R safebucket:safebucket /opt/safebucket
     msg_ok "Restored Data"
 
     msg_info "Starting Service"
