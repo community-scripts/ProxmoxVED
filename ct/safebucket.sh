@@ -35,13 +35,21 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Backing up Data"
+    rm -rf /opt/safebucket_data_backup
     cp -r /opt/safebucket/data /opt/safebucket_data_backup 2>/dev/null || true
     cp /opt/safebucket/config.yaml /opt/safebucket_config_backup.yaml 2>/dev/null || true
     msg_ok "Backed up Data"
 
-    local ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m)
-    [[ "$ARCH" == "x86_64" ]] && ARCH="amd64"
-    [[ "$ARCH" == "aarch64" ]] && ARCH="arm64"
+    local ARCH
+    ARCH=$(dpkg --print-architecture 2>/dev/null || uname -m)
+    case "$ARCH" in
+      amd64|x86_64) ARCH="amd64" ;;
+      arm64|aarch64) ARCH="arm64" ;;
+      *)
+        msg_error "Unsupported architecture: ${ARCH}"
+        exit 1
+        ;;
+    esac
     
     fetch_and_deploy_gh_release "safebucket" "safebucket/safebucket" "singlefile" "latest" "/opt/safebucket" "safebucket-linux-${ARCH}"
     chmod +x /opt/safebucket/safebucket

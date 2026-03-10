@@ -158,6 +158,7 @@ cat <<EOF >/etc/systemd/system/safebucket.service
 Description=Safebucket File Sharing Platform
 After=network-online.target minio.service
 Wants=network-online.target
+Requires=minio.service
 
 [Service]
 Type=simple
