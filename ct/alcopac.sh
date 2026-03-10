@@ -20,13 +20,13 @@ EOF
 header_info
 echo -e "Loading..."
 APP="alcopac"
-var_tags="media"
-var_cpu="2"
-var_ram="2048"
-var_disk="8"
-var_os="debian"
-var_version="13"
-var_unprivileged="1"
+var_tags="${var_tags:-media}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-2048}"
+var_disk="${var_disk:-8}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-13}"
+var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
 variables
@@ -42,10 +42,15 @@ function update_script() {
     exit 1
   fi
   msg_info "Updating $APP LXC"
-  $STD apt update
-  $STD apt -y upgrade
+  $STD apt-get update
+  $STD apt-get -y upgrade
+  msg_info "Updating Alcopac application"
+  TEMP_INSTALL="$(mktemp)"
+  trap 'rm -f "$TEMP_INSTALL"' EXIT
+  $STD curl -fsSL https://dev.alcopa.cc/install -o "$TEMP_INSTALL"
+  $STD bash "$TEMP_INSTALL" update
   msg_ok "Updated successfully!"
-  exit
+  exit 0
 }
 
 start
