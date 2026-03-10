@@ -17,8 +17,7 @@ cat <<"EOF"
                    /_/                  
 EOF
 }
-header_info
-echo -e "Loading..."
+
 APP="alcopac"
 var_tags="${var_tags:-media}"
 var_cpu="${var_cpu:-2}"
@@ -28,7 +27,7 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
-header_info "$APP"
+header_info
 variables
 color
 catch_errors
@@ -41,10 +40,7 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
-  msg_info "Updating $APP LXC"
-  $STD apt-get update
-  $STD apt-get -y upgrade
-  msg_info "Updating Alcopac application"
+  msg_info "Updating $APP"
   TEMP_INSTALL="$(mktemp)"
   trap 'rm -f "$TEMP_INSTALL"' EXIT
   $STD curl -fsSL https://dev.alcopa.cc/install -o "$TEMP_INSTALL"
