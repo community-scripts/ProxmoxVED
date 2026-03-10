@@ -1,0 +1,99 @@
+name: PR Script Requirements Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  validate-script-requirements:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate new script requirements
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+            const lines = body.split("\n");
+
+            function checkboxChecked(line) {
+              return /\[\s*x\s*\]/i.test(line);
+            }
+
+            function findLine(text) {
+              return lines.find(l => l.includes(text));
+            }
+
+            // check if PR is marked as "New script"
+            const newScriptLine = findLine("🆕 **New script**");
+            if (!newScriptLine || !checkboxChecked(newScriptLine)) {
+              console.log("Not a new script PR — skipping requirement check.");
+              return;
+            }
+
+            const requirements = [
+              "The application is **at least 6 months old**",
+              "The application is **actively maintained**",
+              "The application has **600+ GitHub stars**",
+              "Official **release tarballs** are published",
+              "I understand that not all scripts will be accepted"
+            ];
+
+            const missing = [];
+
+            for (const req of requirements) {
+              const line = findLine(req);
+
+              if (!line || !checkboxChecked(line)) {
+                missing.push(req);
+              }
+            }
+
+            if (missing.length > 0) {
+
+              const message = `
+❌ **Pull Request Closed – Application Requirements Not Met**
+
+This pull request is marked as **🆕 New script**, but the required application criteria were not confirmed.
+
+The following requirement confirmations are missing:
+
+${missing.map(m => `- ${m}`).join("\n")}
+
+New application submissions must meet the project requirements before being considered.
+
+Please wait until the application satisfies the criteria (e.g. project age, activity, community adoption) before submitting a new PR.
+
+---
+
+⚠ **Maintainer note**
+
+The team periodically reviews closed submissions.  
+If a project is still considered valuable to the ecosystem, maintainers may reopen the PR even if it does not fully meet the listed thresholds.
+
+Please **do not ping or repeatedly contact maintainers to reopen PRs**.  
+Doing so will not speed up the process.
+
+Thank you for your understanding and for contributing.
+`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: message
+              });
+
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                state: "closed"
+              });
+
+              core.setFailed("Application requirements checklist incomplete.");
+            }
