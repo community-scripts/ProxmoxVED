@@ -1,33 +1,21 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 
-# Copyright (c) 2021-2026 tteck
-# Author: tteck (tteckster)
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: Hlushok
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://dev.alcopa.cc/
 
-function header_info {
-clear
-cat <<"EOF"
-   ___    __                             
-  /   |  / /________  ____  ____ ______
- / /| | / / ___/ __ \/ __ \/ __ `/ ___/
-/ ___ |/ / /__/ /_/ / /_/ / /_/ / /__  
-/_/  |_/_/\___/\____/ .___/\__,_/\___/  
-                   /_/                  
-EOF
-}
+APP="Alcopac"
+var_tags="media"
+var_cpu="2"
+var_ram="2048"
+var_disk="8"
+var_os="debian"
+var_version="13"
+var_unprivileged="1"
 
-APP="alcopac"
-var_tags="${var_tags:-media}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-2048}"
-var_disk="${var_disk:-8}"
-var_os="${var_os:-debian}"
-var_version="${var_version:-13}"
-var_unprivileged="${var_unprivileged:-1}"
-
-header_info
+header_info "$APP"
 variables
 color
 catch_errors
@@ -41,10 +29,7 @@ function update_script() {
     exit 1
   fi
   msg_info "Updating $APP"
-  TEMP_INSTALL="$(mktemp)"
-  trap 'rm -f "$TEMP_INSTALL"' EXIT
-  $STD curl -fsSL https://dev.alcopa.cc/install -o "$TEMP_INSTALL"
-  $STD bash "$TEMP_INSTALL" update
+  $STD bash <(curl -fsSL https://dev.alcopa.cc/install) update
   msg_ok "Updated successfully!"
   exit 0
 }
