@@ -24,5 +24,7 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    "This script installs Alcopac using a third-party installer from dev.alcopa.cc."
+  ]
 }
