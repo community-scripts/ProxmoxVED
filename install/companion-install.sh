@@ -18,13 +18,28 @@ $STD apt-get install -y \
   curl \
   sudo \
   mc \
+  python3 \
   libusb-1.0-0
 msg_ok "Installed Dependencies"
 
 msg_info "Fetching Latest Bitfocus Companion Release"
 RELEASE_JSON=$(curl -fsSL "https://api.bitfocus.io/v1/product/companion/packages?limit=20")
-RELEASE=$(echo "$RELEASE_JSON" | grep -o '"version":"[^"]*","target":"linux-tgz"' | head -1 | awk -F'"' '{print $4}')
-ASSET_URL=$(echo "$RELEASE_JSON" | grep -o '"uri":"[^"]*linux-x64[^"]*"' | head -1 | awk -F'"' '{print $4}')
+RELEASE=$(echo "$RELEASE_JSON" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for pkg in data.get('packages', data if isinstance(data, list) else []):
+    if pkg.get('target') == 'linux-tgz':
+        print(pkg.get('version', ''))
+        break
+")
+ASSET_URL=$(echo "$RELEASE_JSON" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for pkg in data.get('packages', data if isinstance(data, list) else []):
+    if pkg.get('target') == 'linux-tgz':
+        print(pkg.get('uri', ''))
+        break
+")
 
 if [[ -z "$ASSET_URL" ]]; then
   msg_error "Could not locate a Linux x64 release from the Bitfocus API."
