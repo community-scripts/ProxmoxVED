@@ -34,18 +34,31 @@ function update_script() {
 
   if [[ ! -f /opt/companion/companion_headless.sh ]]; then
     msg_error "No ${APP} Installation Found!"
-    exit
+    exit 1
   fi
 
   RELEASE_JSON=$(curl -fsSL "https://api.bitfocus.io/v1/product/companion/packages?limit=20")
-  RELEASE=$(echo "$RELEASE_JSON" | grep -o '"version":"[^"]*","target":"linux-tgz"' | head -1 | awk -F'"' '{print $4}')
+  RELEASE=$(echo "$RELEASE_JSON" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for pkg in data.get('packages', data if isinstance(data, list) else []):
+    if pkg.get('target') == 'linux-tgz':
+        print(pkg.get('version', ''))
+        break
+")
+  ASSET_URL=$(echo "$RELEASE_JSON" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for pkg in data.get('packages', data if isinstance(data, list) else []):
+    if pkg.get('target') == 'linux-tgz':
+        print(pkg.get('uri', ''))
+        break
+")
 
   if [[ "${RELEASE}" == "$(cat /opt/companion_version.txt 2>/dev/null)" ]]; then
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
     exit
   fi
-
-  ASSET_URL=$(echo "$RELEASE_JSON" | grep -o '"uri":"[^"]*linux-x64[^"]*"' | head -1 | awk -F'"' '{print $4}')
 
   msg_info "Stopping ${APP}"
   systemctl stop companion
