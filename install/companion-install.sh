@@ -15,6 +15,9 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
+  curl \
+  sudo \
+  mc \
   libusb-1.0-0
 msg_ok "Installed Dependencies"
 
@@ -27,14 +30,14 @@ if [[ -z "$ASSET_URL" ]]; then
   msg_error "Could not locate a Linux x64 release from the Bitfocus API."
   exit 1
 fi
-msg_ok "Found Companion ${RELEASE}"
+msg_ok "Found Companion v${RELEASE}"
 
-msg_info "Downloading Bitfocus Companion ${RELEASE}"
+msg_info "Downloading Bitfocus Companion v${RELEASE}"
 mkdir -p /opt/companion
 curl -fsSL "$ASSET_URL" -o /tmp/companion.tar.gz
 $STD tar -xzf /tmp/companion.tar.gz -C /opt/companion --strip-components=1
 rm -f /tmp/companion.tar.gz
-msg_ok "Downloaded and Extracted Bitfocus Companion ${RELEASE}"
+msg_ok "Downloaded and Extracted Bitfocus Companion v${RELEASE}"
 
 msg_info "Installing udev Rules"
 [[ -f /opt/companion/50-companion-headless.rules ]] && cp /opt/companion/50-companion-headless.rules /etc/udev/rules.d/
@@ -72,8 +75,12 @@ EOF
 systemctl enable -q --now companion
 msg_ok "Created Service"
 
-echo "${RELEASE}" >/opt/companion-config/version.txt
+echo "${RELEASE}" >/opt/companion_version.txt
 
 motd_ssh
 customize
-cleanup_lxc
+
+msg_info "Cleaning up"
+$STD apt-get -y autoremove
+$STD apt-get -y autoclean
+msg_ok "Cleaned"
