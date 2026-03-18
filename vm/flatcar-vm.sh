@@ -482,26 +482,66 @@ function select_vm_storage() {
   fi
   msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 }
-
 # ==============================================================================
 # IMPORT & ATTACH DISK
 # ==============================================================================
 # Import the Flatcar disk image and attach it as the VM boot disk.
 function import_and_attach_disk() {
   msg_info "Importing Flatcar disk image to $STORAGE"
-  qm importdisk "$VMID" "$TEMPLATE_IMG" "$STORAGE" 2>/dev/null
+  local STORAGE_TYPE
+  local IMPORT_OUT
+  local DISK_REF
+  local -a IMPORT_CMD
+  local -a DISK_CANDIDATES
+  if qm disk import --help >/dev/null 2>&1; then
+    IMPORT_CMD=(qm disk import)
+  else
+    IMPORT_CMD=(qm importdisk)
+  fi
+  IMPORT_OUT="$("${IMPORT_CMD[@]}" "$VMID" "$TEMPLATE_IMG" "$STORAGE" 2>&1 || true)"
   echo -en "\e[1A\e[0K"
 
-  UNUSED_DISK=$(qm config "$VMID" 2>/dev/null | grep "^unused" | head -1 | awk '{print $2}')
-  if [[ -n "$UNUSED_DISK" ]]; then
-    qm set "$VMID" --scsi0 "$UNUSED_DISK" >/dev/null
-  else
+  DISK_REF="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p" | tr -d "\r\"'")"
+  [[ -z "$DISK_REF" ]] && DISK_REF="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$5 ~ ("vm-"id"-disk-") {print $1":"$5}' | sort | tail -n1)"
+  [[ -z "$DISK_REF" ]] && DISK_REF="$(qm config "$VMID" 2>/dev/null | grep "^unused" | head -1 | awk '{print $2}')"
+
+  if [[ -z "$DISK_REF" ]]; then
     STORAGE_TYPE=$(pvesm status -storage "$STORAGE" | awk 'NR>1 {print $2}')
     case $STORAGE_TYPE in
-      lvm|lvmthin|zfspool) qm set "$VMID" --scsi0 "$STORAGE:vm-$VMID-disk-0" >/dev/null ;;
-      *) qm set "$VMID" --scsi0 "$STORAGE:$VMID/vm-$VMID-disk-0.raw" >/dev/null ;;
+      lvm|lvmthin|zfspool)
+        DISK_CANDIDATES=("$STORAGE:vm-$VMID-disk-0")
+        ;;
+      dir|nfs|cifs|btrfs)
+        DISK_CANDIDATES=(
+          "$STORAGE:$VMID/vm-$VMID-disk-0.raw"
+          "$STORAGE:$VMID/vm-$VMID-disk-0.qcow2"
+        )
+        ;;
+      *)
+        DISK_CANDIDATES=(
+          "$STORAGE:vm-$VMID-disk-0"
+          "$STORAGE:$VMID/vm-$VMID-disk-0.raw"
+          "$STORAGE:$VMID/vm-$VMID-disk-0.qcow2"
+        )
+        ;;
     esac
+
+    for candidate in "${DISK_CANDIDATES[@]}"; do
+      if qm set "$VMID" --scsi0 "$candidate" >/dev/null 2>&1; then
+        DISK_REF="$candidate"
+        break
+      fi
+    done
+  else
+    qm set "$VMID" --scsi0 "$DISK_REF" >/dev/null
   fi
+
+  if [[ -z "$DISK_REF" ]]; then
+    msg_error "Unable to determine imported disk reference."
+    echo "$IMPORT_OUT"
+    exit 1
+  fi
+
   qm set "$VMID" --boot order=scsi0 >/dev/null
   msg_ok "Imported and attached disk"
 }
@@ -660,8 +700,7 @@ function advanced_settings() {
 
 # Let the user choose between default and advanced VM configuration paths.
 function start_script() {
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Hardware Virtual Machine Default Settings?\n\n  VM ID:       Auto (next available)\n  Hostname:    flatcar\n  CPU Cores:   2\n
-RAM:         2048 MiB\n  Disk:        Image default\n  Bridge:      vmbr0\n  VLAN:        None\n  MTU:         Default\n  Start VM:    Yes" --no-button Advanced 20 58); then
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Hardware Virtual Machine Default Settings?\n\n  VM ID:       Auto (next available)\n  Hostname:    flatcar\n  CPU Cores:   2\n  RAM:         2048 MiB\n  Disk:        Image default\n  Bridge:      vmbr0\n  VLAN:        None\n  MTU:         Default\n  Start VM:    Yes" --no-button Advanced 20 58); then
     header_info
     echo -e "${DEFAULT}${BOLD}${BL}Using Default Settings${CL}"
     default_settings
