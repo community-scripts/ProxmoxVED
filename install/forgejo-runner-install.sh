@@ -12,19 +12,10 @@ setting_up_container
 network_check
 update_os
 
-# Get required configuration with sensible fallbacks for unattended mode
-# These will show a warning if defaults are used
-var_forgejo_instance=$(prompt_input_required \
-  "Forgejo Instance URL:" \
-  "${var_forgejo_instance:-https://codeberg.org}" \
-  120 \
-  "var_forgejo_instance")
-
-var_forgejo_runner_token=$(prompt_input_required \
-  "Forgejo Runner Registration Token:" \
-  "${var_forgejo_runner_token:-REPLACE_WITH_YOUR_TOKEN}" \
-  120 \
-  "var_forgejo_runner_token")
+if [[ -z "$var_forgejo_instance" || -z "$var_forgejo_runner_token" ]]; then
+  echo "❌ Forgejo instance URL and runner token are required."
+  exit 1
+fi
 
 export FORGEJO_INSTANCE="$var_forgejo_instance"
 export FORGEJO_RUNNER_TOKEN="$var_forgejo_runner_token"
@@ -32,7 +23,8 @@ export FORGEJO_RUNNER_TOKEN="$var_forgejo_runner_token"
 msg_info "Installing dependencies"
 $STD apt install -y \
   git \
-  podman podman-docker
+  podman podman-docker \
+  jq
 msg_ok "Installed dependencies"
 
 msg_info "Enabling Podman socket"
@@ -77,9 +69,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now forgejo-runner
 msg_ok "Created Services"
-
-# Show warning if any required values used fallbacks
-show_missing_values_warning
 
 motd_ssh
 customize

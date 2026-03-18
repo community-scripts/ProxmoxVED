@@ -18,6 +18,9 @@ var_unprivileged="${var_unprivileged:-1}"
 var_nesting="${var_nesting:-1}"
 var_keyctl="${var_keyctl:-1}"
 
+var_forgejo_instance="${var_forgejo_instance:-https://codeberg.org}"
+var_forgejo_runner_token="${var_forgejo_runner_token:-}"
+
 header_info "$APP"
 variables
 color
@@ -48,6 +51,40 @@ function update_script() {
   msg_ok "Started Services"
   msg_ok "Updated successfully!"
   exit
+}
+
+advanced_settings() {
+  default_settings
+
+  if result=$(whiptail --title "Forgejo Instance" \
+    --inputbox "Enter Forgejo Instance URL:" 10 70 "$var_forgejo_instance" \
+    3>&1 1>&2 2>&3); then
+
+    if [[ -z "$result" ]]; then
+      whiptail --msgbox "Instance URL is required!" 8 40
+      advanced_settings
+      return
+    fi
+
+    var_forgejo_instance="$result"
+  else
+    return
+  fi
+
+  if result=$(whiptail --title "Forgejo Runner Token" \
+    --passwordbox "Enter Runner Registration Token:" 10 70 "" \
+    3>&1 1>&2 2>&3); then
+
+    if [[ -z "$result" ]]; then
+      whiptail --msgbox "Token is required!" 8 40
+      advanced_settings
+      return
+    fi
+
+    var_forgejo_runner_token="$result"
+  else
+    return
+  fi
 }
 
 start
