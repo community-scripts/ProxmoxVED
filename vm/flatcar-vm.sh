@@ -7,6 +7,7 @@
 # Auto-detects flatcar.yaml, import storage, image versions
 # Ignition configs stored in /etc/pve/ignition/ (pmxcfs - shared across cluster)
 
+# Display the Flatcar Container Linux banner and clear the terminal.
 function header_info {
   clear
   cat <<"EOF"
@@ -71,6 +72,7 @@ set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
 
+# Report the failing line, exit code, and command when an error trap fires.
 function error_handler() {
   local exit_code="$?"
   local line_number="$1"
@@ -79,6 +81,7 @@ function error_handler() {
   echo -e "\n$error_message\n"
 }
 
+# Restore the original shell state and remove the temporary workspace.
 function cleanup() {
   popd >/dev/null 2>&1 || true
   rm -rf "${TEMP_DIR:-}" 2>/dev/null || true
@@ -88,21 +91,25 @@ ORIG_DIR="$(pwd)"
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
 
+# Print an in-progress status message without a trailing newline.
 function msg_info() {
   local msg="$1"
   echo -ne "${TAB}${YW}${HOLD}${msg}${HOLD}"
 }
 
+# Print a success status message.
 function msg_ok() {
   local msg="$1"
   echo -e "${BFR}${CM}${GN}${msg}${CL}"
 }
 
+# Print an error status message.
 function msg_error() {
   local msg="$1"
   echo -e "${BFR}${CROSS}${RD}${msg}${CL}"
 }
 
+# Warn that Ignition is only applied on the first boot of a fresh system disk.
 function ignition_notice() {
   echo -e "\n  ${RD}⚠️  IMPORTANT:${CL} Ignition config is only applied on the FIRST boot of a new"
   echo -e "  system disk. Subsequent reboots will NOT re-read the ignition file."
@@ -112,6 +119,7 @@ function ignition_notice() {
   echo -e "  all critical data there (Docker volumes, configs, databases, etc.).\n"
 }
 
+# Exit the script after clearing the terminal and showing a user-facing message.
 function exit-script() {
   clear
   echo -e "\n${CROSS}${RD}User exited script${CL}\n"
@@ -121,6 +129,7 @@ function exit-script() {
 # ==============================================================================
 # PREFLIGHT CHECKS
 # ==============================================================================
+# Ensure the script runs directly as root and not through sudo.
 function check_root() {
   if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
     clear
@@ -131,6 +140,7 @@ function check_root() {
   fi
 }
 
+# Verify the current host is a Proxmox VE system.
 function pve_check() {
   if ! command -v pveversion &>/dev/null; then
     msg_error "This script must be run on a Proxmox VE host."
@@ -138,6 +148,7 @@ function pve_check() {
   fi
 }
 
+# Verify the host architecture is supported by Flatcar.
 function arch_check() {
   if [ "$(dpkg --print-architecture)" != "amd64" ]; then
     msg_error "Flatcar Container Linux only supports amd64 architecture."
@@ -145,6 +156,7 @@ function arch_check() {
   fi
 }
 
+# Warn when the script is executed over SSH and let the user opt out.
 function ssh_check() {
   if command -v pveversion >/dev/null 2>&1; then
     if [ -n "${SSH_CLIENT:+x}" ]; then
@@ -158,6 +170,7 @@ function ssh_check() {
   fi
 }
 
+# Install the Butane transpiler if Ignition support is required and it is missing.
 function check_butane() {
   if ! command -v butane &>/dev/null; then
     if whiptail --backtitle "Proxmox VE Helper Scripts" --title "BUTANE NOT FOUND" --yesno "Butane transpiler is required but not installed.\n\nInstall it now?" 10 58; then
@@ -172,6 +185,7 @@ function check_butane() {
   fi
 }
 
+# Return the next unused VM or container ID from the cluster.
 function get_valid_nextid() {
   local try_id
   try_id=$(pvesh get /cluster/nextid)
@@ -188,6 +202,7 @@ function get_valid_nextid() {
 # ==============================================================================
 # FLATCAR.YAML DETECTION
 # ==============================================================================
+# Locate the Flatcar Butane configuration file in the supported search paths.
 function find_config_yaml() {
   CONFIG_YAML=""
 
@@ -222,6 +237,7 @@ function find_config_yaml() {
 # ==============================================================================
 # IMPORT STORAGE DETECTION
 # ==============================================================================
+# Build the list of active import-capable storages and their import directories.
 function find_import_storage() {
   declare -g -a IMPORT_STORAGES=()
   declare -g -a IMPORT_PATHS=()
@@ -264,6 +280,7 @@ function find_import_storage() {
 # ==============================================================================
 # COMPILE & DEPLOY IGNITION (cluster-shared via /etc/pve/ignition/)
 # ==============================================================================
+# Compile the Butane YAML into a cluster-shared Ignition file for the target VM.
 function setup_ignition() {
   IGN_FILENAME="vm-${VMID}.ign"
   CONFIG_IGN="${IGN_DIR}/${IGN_FILENAME}"
@@ -276,6 +293,7 @@ function setup_ignition() {
   msg_ok "Ignition saved: ${CL}${BL}${CONFIG_IGN}${CL} ${GN}(cluster-shared)"
 }
 
+# Attach Cloud-Init and-or Ignition settings to a newly created VM.
 function attach_ignition() {
   if [[ "$USE_IGNITION" != "true" ]]; then
     msg_info "Setting up Cloud-Init (no ignition)"
@@ -300,6 +318,7 @@ function attach_ignition() {
   fi
 }
 
+# Reattach the existing Ignition and Cloud-Init configuration after a rebuild.
 function reattach_ignition() {
   if [[ "$USE_IGNITION" != "true" ]]; then
     return
@@ -326,6 +345,7 @@ function reattach_ignition() {
 # ==============================================================================
 # IMAGE VERSION CHECK
 # ==============================================================================
+# Ensure the selected Flatcar image exists locally and matches the latest remote digest.
 function check_and_update_image() {
   local IMG_FILE="$1"
   local IMPORT_PATH="$2"
@@ -402,6 +422,7 @@ function check_and_update_image() {
 # ==============================================================================
 # VM DISK STORAGE SELECTION
 # ==============================================================================
+# Prompt for and validate the target storage pool used for the VM system disk.
 function select_vm_storage() {
   local LABEL="${1:-Hard Drive (scsi0)}"
 
@@ -439,6 +460,7 @@ function select_vm_storage() {
 # ==============================================================================
 # IMPORT & ATTACH DISK
 # ==============================================================================
+# Import the Flatcar disk image and attach it as the VM boot disk.
 function import_and_attach_disk() {
   msg_info "Importing Flatcar disk image to $STORAGE"
   qm importdisk "$VMID" "$TEMPLATE_IMG" "$STORAGE" 2>/dev/null
@@ -461,6 +483,7 @@ function import_and_attach_disk() {
 # ==============================================================================
 # SETTINGS
 # ==============================================================================
+# Apply the default VM settings and display the selected values.
 function default_settings() {
   VMID=$(get_valid_nextid)
   DISK_SIZE=""
@@ -488,6 +511,7 @@ function default_settings() {
   echo -e "${CREATING}${BOLD}${DGN}Creating a Flatcar Container Linux VM using the above default settings${CL}"
 }
 
+# Collect customized VM settings interactively through whiptail prompts.
 function advanced_settings() {
   METHOD="advanced"
 
@@ -608,6 +632,7 @@ function advanced_settings() {
   fi
 }
 
+# Let the user choose between default and advanced VM configuration paths.
 function start_script() {
   if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "SETTINGS" --yesno "Use Hardware Virtual Machine Default Settings?\n\n  VM ID:       Auto (next available)\n  Hostname:    flatcar\n  CPU Cores:   2\n
 RAM:         2048 MiB\n  Disk:        Image default\n  Bridge:      vmbr0\n  VLAN:        None\n  MTU:         Default\n  Start VM:    Yes" --no-button Advanced 20 58); then
