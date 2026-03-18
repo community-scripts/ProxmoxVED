@@ -175,8 +175,36 @@ function check_butane() {
   if ! command -v butane &>/dev/null; then
     if whiptail --backtitle "Proxmox VE Helper Scripts" --title "BUTANE NOT FOUND" --yesno "Butane transpiler is required but not installed.\n\nInstall it now?" 10 58; then
       msg_info "Installing butane"
-      wget -qO /usr/local/bin/butane https://github.com/coreos/butane/releases/latest/download/butane-x86_64-unknown-linux-gnu
-      chmod +x /usr/local/bin/butane
+      local butane_asset="butane-x86_64-unknown-linux-gnu"
+      local butane_path="/usr/local/bin/butane"
+      local release_json
+      local butane_tag
+      local expected_sha256
+      local actual_sha256
+      release_json=$(wget -qO- "https://api.github.com/repos/coreos/butane/releases/latest") || {
+        msg_error "Failed to fetch Butane release metadata."
+        rm -f "$butane_path"
+        exit 1
+      }
+      butane_tag=$(printf '%s' "$release_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("tag_name", ""))')
+      expected_sha256=$(printf '%s' "$release_json" | python3 -c 'import json,sys; asset_name=sys.argv[1]; release=json.load(sys.stdin); print(next((asset.get("digest", "").replace("sha256:", "") for asset in release.get("assets", []) if asset.get("name") == asset_name and asset.get("digest", "").startswith("sha256:")), ""))' "$butane_asset")
+      if [[ -z "$butane_tag" || -z "$expected_sha256" ]]; then
+        msg_error "Failed to determine the expected Butane checksum."
+        rm -f "$butane_path"
+        exit 1
+      fi
+      wget -qO "$butane_path" "https://github.com/coreos/butane/releases/download/${butane_tag}/${butane_asset}" || {
+        msg_error "Failed to download Butane ${butane_tag}."
+        rm -f "$butane_path"
+        exit 1
+      }
+      actual_sha256=$(sha256sum "$butane_path" | awk '{print $1}')
+      if [[ "$actual_sha256" != "$expected_sha256" ]]; then
+        msg_error "Butane checksum verification failed."
+        rm -f "$butane_path"
+        exit 1
+      fi
+      chmod +x "$butane_path"
       msg_ok "Installed butane"
     else
       msg_error "Butane is required. Cannot continue."
