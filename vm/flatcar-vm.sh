@@ -921,8 +921,8 @@ else
 
   # Create VM
   msg_info "Creating Flatcar Container Linux VM"
-  qm create $VMID -agent 1 -tablet 0 -localtime 1 -cores $CORE_COUNT -memory $RAM_SIZE \
-    -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU \
+  qm create "$VMID" -agent 1 -tablet 0 -localtime 1 -cores "$CORE_COUNT" -memory "$RAM_SIZE" \
+    -name "$HN" -tags community-script -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" \
     -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
   msg_ok "Created VM shell"
 
