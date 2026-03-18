@@ -25,8 +25,6 @@ echo -e "\n Loading..."
 
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 METHOD=""
-NSAPP="flatcar-vm"
-var_os="flatcar"
 
 BASE_URL="https://stable.release.flatcar-linux.net/amd64-usr/current"
 PROXMOXVE_IMG="flatcar_production_proxmoxve_image.img"
