@@ -1,0 +1,40 @@
+{
+  "name": "Plex Auto Languages",
+  "slug": "plex-auto-languages",
+  "categories": [
+    13
+  ],
+  "date_created": "2025-03-18",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://github.com/RemiRigal/Plex-Auto-Languages",
+  "website": "https://github.com/RemiRigal/Plex-Auto-Languages",
+  "logo": "https://raw.githubusercontent.com/selfhst/icons/refs/heads/main/svg/plex.svg",
+  "config_path": "/opt/plex-auto-languages/config/config.yaml",
+  "description": "Plex Auto Languages automatically updates the language of your Plex TV Show episodes based on your current language selection, providing a Netflix-like experience without messing with your existing preferences.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/plex-auto-languages.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "After installation, edit `/opt/plex-auto-languages/config/config.yaml` to set your Plex URL and Token.",
+      "type": "warning"
+    }
+  ]
+}
