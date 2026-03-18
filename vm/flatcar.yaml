@@ -14,25 +14,12 @@ passwd:
 
 storage:
   files:
-    - path: /opt/bin/htop
-      mode: 0755
-      contents:
-        source: https://github.com/azdolinski/binaries/raw/refs/heads/main/binaries/htop.latest
-
-    - path: /opt/bin/nano
-      mode: 0755
-      contents:
-        source: https://github.com/azdolinski/binaries/raw/refs/heads/main/binaries/nano.latest
-
-    - path: /opt/bin/lazydocker
-      mode: 0755
-      contents:
-        source: https://github.com/azdolinski/binaries/raw/refs/heads/main/binaries/lazydocker.latest
-
     - path: /opt/bin/docker-compose
       mode: 0755
       contents:
-        source: https://github.com/azdolinski/binaries/raw/refs/heads/main/binaries/docker-compose.latest
+        source: https://github.com/azdolinski/binaries/raw/[...]/docker-compose.latest
+        verification:
+          hash: sha512-<replace-with-actual-docker-compose-sha512>
 
     - path: /etc/bash/bashrc.d/aliases.sh
       mode: 0644
