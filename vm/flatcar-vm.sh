@@ -140,8 +140,11 @@ function check_root() {
 
 # Verify the current host is a Proxmox VE system.
 function pve_check() {
-  if ! command -v pveversion &>/dev/null; then
-    msg_error "This script must be run on a Proxmox VE host."
+  if ! pveversion | grep -Eq "pve-manager/(8\.[1-4]|9\.[0-1])(\.[0-9]+)*"; then
+    msg_error "This version of Proxmox Virtual Environment is not supported"
+    echo -e "Requires Proxmox Virtual Environment Version 8.1 - 8.4 or 9.0 - 9.1."
+    echo -e "Exiting..."
+    sleep 2
     exit 1
   fi
 }
