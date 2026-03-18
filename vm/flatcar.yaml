@@ -1,0 +1,113 @@
+# Example of ignition file
+# https://www.flatcar.org/docs/latest/provisioning/
+variant: flatcar
+version: 1.0.0
+
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - ssh-ed25519 AAAAC3NzaC1lZD....
+      groups:
+        - docker
+        - sudo
+
+storage:
+  files:
+    - path: /opt/bin/htop
+      mode: 0755
+      contents:
+        source: https://github.com/azdolinski/binaries/raw/refs/heads/main/binaries/htop.latest
+
+    - path: /opt/bin/nano
+      mode: 0755
+      contents:
+        source: https://github.com/azdolinski/binaries/raw/refs/heads/main/binaries/nano.latest
+
+    - path: /opt/bin/lazydocker
+      mode: 0755
+      contents:
+        source: https://github.com/azdolinski/binaries/raw/refs/heads/main/binaries/lazydocker.latest
+
+    - path: /opt/bin/docker-compose
+      mode: 0755
+      contents:
+        source: https://github.com/azdolinski/binaries/raw/refs/heads/main/binaries/docker-compose.latest
+
+    - path: /etc/bash/bashrc.d/aliases.sh
+      mode: 0644
+      contents:
+        inline: |
+          alias ll='ls -la'
+          alias la='ls -A'
+          alias l='ls -CF'
+          alias lzd='/opt/bin/lazydocker'
+
+systemd:
+  units:
+    # Disable AutoLogin Console
+    - name: getty@tty1.service
+      dropins:
+        - name: noautologin.conf
+          contents: |
+            [Service]
+            ExecStart=
+            ExecStart=-/sbin/agetty --noclear %I $TERM
+
+    # Disable AutoLogin on Serial
+    - name: serial-getty@ttyS0.service
+      dropins:
+        - name: noautologin.conf
+          contents: |
+            [Service]
+            ExecStart=
+            ExecStart=-/sbin/agetty --keep-baud 115200,57600,38400,9600 %I $TERM
+
+    # Enable Docker Service
+    - name: docker.service
+      enabled: true
+
+    # Enable Quemu Agent Service
+    - name: qemu-guest-agent.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=QEMU Guest Agent
+        ConditionPathExists=/dev/virtio-ports/org.qemu.guest_agent.0
+        [Service]
+        Restart=always
+        RestartSec=5
+        ExecStart=/usr/bin/qemu-ga --method=virtio-serial --path=/dev/virtio-ports/org.qemu.guest_agent.0
+        [Install]
+        WantedBy=multi-user.target
+
+    # Init /dev/sdb if we map 2nd disk
+    - name: init-data-disk.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Initialize data disk if empty
+        Before=mnt-data.mount
+        ConditionPathExists=/dev/sdb
+        ConditionPathExists=!/dev/disk/by-partlabel/data
+        [Service]
+        Type=oneshot
+        ExecStart=/bin/bash -c 'parted -s /dev/sdb mklabel gpt mkpart data ext4 0%% 100%% && udevadm settle && mkfs.ext4 -F -L data /dev/disk/by-partlabel/data'
+        [Install]
+        WantedBy=multi-user.target
+
+    # Mount /dev/sdb if exist
+    - name: mnt-data.mount
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Mount data disk
+        After=init-data-disk.service
+        Before=docker.service
+        ConditionPathExists=/dev/sdb
+        [Mount]
+        What=/dev/disk/by-partlabel/data
+        Where=/mnt/data
+        Type=ext4
+        [Install]
+        WantedBy=multi-user.target
