@@ -49,8 +49,6 @@ TAB="  "
 CM="${TAB}✔️${TAB}${CL}"
 CROSS="${TAB}✖️${TAB}${CL}"
 INFO="${TAB}💡${TAB}${CL}"
-OS="${TAB}🖥️${TAB}${CL}"
-CONTAINERTYPE="${TAB}📦${TAB}${CL}"
 DISKSIZE="${TAB}💾${TAB}${CL}"
 CPUCORE="${TAB}🧠${TAB}${CL}"
 RAMSIZE="${TAB}🛠️${TAB}${CL}"
@@ -65,7 +63,6 @@ CREATING="${TAB}🚀${TAB}${CL}"
 ADVANCED="${TAB}🧩${TAB}${CL}"
 CLOUD="${TAB}☁️${TAB}${CL}"
 
-THIN="discard=on,ssd=1,"
 set -e
 trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
 trap cleanup EXIT
@@ -87,7 +84,7 @@ function cleanup() {
 
 ORIG_DIR="$(pwd)"
 TEMP_DIR=$(mktemp -d)
-pushd $TEMP_DIR >/dev/null
+pushd "$TEMP_DIR" >/dev/null
 
 # Print an in-progress status message without a trailing newline.
 function msg_info() {
@@ -140,9 +137,16 @@ function check_root() {
 
 # Verify the current host is a Proxmox VE system.
 function pve_check() {
-  if ! pveversion | grep -Eq "pve-manager/(8\.[1-4]|9\.[0-1])(\.[0-9]+)*"; then
+  local pve_manager_version
+  local pve_major
+  local pve_minor
+  pve_manager_version=$(pveversion | awk -F/ '/pve-manager/ {print $2}' | cut -d- -f1)
+  pve_major=$(echo "$pve_manager_version" | cut -d. -f1)
+  pve_minor=$(echo "$pve_manager_version" | cut -d. -f2)
+
+  if [[ -z "$pve_major" || -z "$pve_minor" ]] || (( pve_major < 8 || (pve_major == 8 && pve_minor < 1) )); then
     msg_error "This version of Proxmox Virtual Environment is not supported"
-    echo -e "Requires Proxmox Virtual Environment Version 8.1 - 8.4 or 9.0 - 9.1."
+    echo -e "Requires Proxmox Virtual Environment Version 8.1 or later."
     echo -e "Exiting..."
     sleep 2
     exit 1
@@ -313,12 +317,26 @@ function find_import_storage() {
 function setup_ignition() {
   IGN_FILENAME="vm-${VMID}.ign"
   CONFIG_IGN="${IGN_DIR}/${IGN_FILENAME}"
-
+  local TMP_CONFIG_IGN
+  local BUTANE_ERROR_LOG
+ 
   # Ensure shared ignition directory exists (pmxcfs - replicated to all nodes)
   mkdir -p "$IGN_DIR"
+ 
+  TMP_CONFIG_IGN=$(mktemp "${TEMP_DIR}/butane-${VMID}-XXXXXX.ign")
+  BUTANE_ERROR_LOG=$(mktemp "${TEMP_DIR}/butane-${VMID}-XXXXXX.err")
 
   msg_info "Generating ignition config (${IGN_FILENAME})"
-  butane --pretty --strict < "$CONFIG_YAML" > "$CONFIG_IGN"
+  if ! butane --pretty --strict < "$CONFIG_YAML" > "$TMP_CONFIG_IGN" 2>"$BUTANE_ERROR_LOG"; then
+    rm -f "$TMP_CONFIG_IGN" "$BUTANE_ERROR_LOG" "$CONFIG_IGN"
+    msg_error "Failed to transpile Butane YAML. Check syntax in $CONFIG_YAML"
+    if [[ -s "$BUTANE_ERROR_LOG" ]]; then
+      cat "$BUTANE_ERROR_LOG"
+    fi
+    exit 1
+  fi
+  mv "$TMP_CONFIG_IGN" "$CONFIG_IGN"
+  rm -f "$BUTANE_ERROR_LOG"
   msg_ok "Ignition saved: ${CL}${BL}${CONFIG_IGN}${CL} ${GN}(cluster-shared)"
 }
 
@@ -956,7 +974,7 @@ EOF
 
   if [ "$START_VM" == "yes" ]; then
     msg_info "Starting Flatcar Container Linux VM"
-    qm start $VMID
+    qm start "$VMID"
     msg_ok "Started Flatcar Container Linux VM"
   fi
 

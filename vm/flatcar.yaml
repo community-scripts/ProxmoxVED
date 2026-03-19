@@ -7,7 +7,7 @@ passwd:
   users:
     - name: core
       ssh_authorized_keys:
-        - ssh-ed25519 AAAAC3NzaC1lZD....
+        - <REPLACE_WITH_SSH_PUBLIC_KEY>
       groups:
         - docker
         - sudo
@@ -19,7 +19,7 @@ storage:
       contents:
         source: https://github.com/azdolinski/binaries/raw/[...]/docker-compose.latest
         verification:
-          hash: sha512-<replace-with-actual-docker-compose-sha512>
+          hash: SHA512-<REPLACE-WITH-ACTUAL-DOCKER-COMPOSE-SHA512>
 
     - path: /etc/bash/bashrc.d/aliases.sh
       mode: 0644
