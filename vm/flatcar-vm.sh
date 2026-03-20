@@ -327,11 +327,12 @@ function setup_ignition() {
 
   msg_info "Generating ignition config (${IGN_FILENAME})"
   if ! butane --pretty --strict < "$CONFIG_YAML" > "$TMP_CONFIG_IGN" 2>"$BUTANE_ERROR_LOG"; then
-    rm -f "$TMP_CONFIG_IGN" "$BUTANE_ERROR_LOG" "$CONFIG_IGN"
+    rm -f "$TMP_CONFIG_IGN" "$CONFIG_IGN"
     msg_error "Failed to transpile Butane YAML. Check syntax in $CONFIG_YAML"
     if [[ -s "$BUTANE_ERROR_LOG" ]]; then
       cat "$BUTANE_ERROR_LOG"
     fi
+    rm -f "$BUTANE_ERROR_LOG"
     exit 1
   fi
   mv "$TMP_CONFIG_IGN" "$CONFIG_IGN"
