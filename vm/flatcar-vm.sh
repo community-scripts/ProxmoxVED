@@ -24,11 +24,10 @@ header_info
 echo -e "\n Loading..."
 
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
-METHOD=""
 
 BASE_URL="https://stable.release.flatcar-linux.net/amd64-usr/current"
-PROXMOXVE_IMG="flatcar_production_proxmoxve_image.img"
-QEMU_IMG="flatcar_production_qemu_image.img"
+LOCAL_PROXMOXVE_IMG="flatcar_production_proxmoxve_image.qcow2"
+LOCAL_QEMU_IMG="flatcar_production_qemu_image.qcow2"
 
 # Shared ignition config directory (pmxcfs - accessible on all cluster nodes)
 IGN_DIR="/etc/pve/ignition"
@@ -126,7 +125,7 @@ function exit-script() {
 # ==============================================================================
 # Ensure the script runs directly as root and not through sudo.
 function check_root() {
-  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p $PPID) == "sudo" ]]; then
+  if [[ "$(id -u)" -ne 0 || $(ps -o comm= -p "$PPID") == "sudo" ]]; then
     clear
     msg_error "Please run this script as root."
     echo -e "\nExiting..."
@@ -394,15 +393,16 @@ function reattach_ignition() {
 # ==============================================================================
 # Ensure the selected Flatcar image exists locally and matches the latest remote digest.
 function check_and_update_image() {
-  local IMG_FILE="$1"
+  local LOCAL_IMG_FILE="$1"
   local IMPORT_PATH="$2"
+  local REMOTE_IMG_FILE="${LOCAL_IMG_FILE%.qcow2}.img"
 
-  local TEMPLATE_IMG="$IMPORT_PATH/$IMG_FILE"
-  local LOCAL_DIGESTS="$IMPORT_PATH/$IMG_FILE.DIGESTS"
-  local REMOTE_URL="$BASE_URL/$IMG_FILE"
-  local REMOTE_DIGESTS_URL="$BASE_URL/$IMG_FILE.DIGESTS"
+  local TEMPLATE_IMG="$IMPORT_PATH/$LOCAL_IMG_FILE"
+  local LOCAL_DIGESTS="$IMPORT_PATH/$LOCAL_IMG_FILE.DIGESTS"
+  local REMOTE_URL="$BASE_URL/$REMOTE_IMG_FILE"
+  local REMOTE_DIGESTS_URL="$BASE_URL/$REMOTE_IMG_FILE.DIGESTS"
 
-  msg_info "Checking image version for $IMG_FILE"
+  msg_info "Checking image version for $LOCAL_IMG_FILE"
   local REMOTE_DIGESTS REMOTE_MD5
   REMOTE_DIGESTS=$(wget -qO- "$REMOTE_DIGESTS_URL" 2>/dev/null) || { msg_error "Failed to fetch DIGESTS"; return 1; }
   REMOTE_MD5=$(echo "$REMOTE_DIGESTS" | grep -A1 "MD5" | tail -1 | awk '{print $1}')
@@ -439,8 +439,8 @@ function check_and_update_image() {
   fi
 
   if [[ "$NEED_DOWNLOAD" == true ]]; then
-    if whiptail --backtitle "Proxmox VE Helper Scripts" --title "IMAGE UPDATE" --yesno "A new version of $IMG_FILE is available (or image is missing).\n\nDownload now?\n\nDestination: $IMPORT_PATH" 14 68; then
-      msg_info "Downloading $IMG_FILE"
+    if whiptail --backtitle "Proxmox VE Helper Scripts" --title "IMAGE UPDATE" --yesno "A new version of $LOCAL_IMG_FILE is available (or image is missing).\n\nDownload now?\n\nDestination: $IMPORT_PATH" 14 68; then
+      msg_info "Downloading $REMOTE_IMG_FILE"
       mkdir -p "$IMPORT_PATH"
       wget --show-progress -O "$TEMPLATE_IMG.tmp" "$REMOTE_URL" || { msg_error "Download failed"; return 1; }
       echo -en "\e[1A\e[0K"
@@ -455,7 +455,7 @@ function check_and_update_image() {
       fi
       mv "$TEMPLATE_IMG.tmp" "$TEMPLATE_IMG"
       echo "$REMOTE_DIGESTS" > "$LOCAL_DIGESTS"
-      msg_ok "Downloaded and verified $IMG_FILE"
+      msg_ok "Downloaded and verified $LOCAL_IMG_FILE"
     else
       if [[ ! -f "$TEMPLATE_IMG" ]]; then
         msg_error "No local image available. Cannot continue."
@@ -503,6 +503,7 @@ function select_vm_storage() {
   fi
   msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 }
+
 # ==============================================================================
 # IMPORT & ATTACH DISK
 # ==============================================================================
@@ -582,7 +583,6 @@ function default_settings() {
   VLAN=""
   MTU=""
   START_VM="yes"
-  METHOD="default"
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}Auto (image default)${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
@@ -600,8 +600,6 @@ function default_settings() {
 
 # Collect customized VM settings interactively through whiptail prompts.
 function advanced_settings() {
-  METHOD="advanced"
-
   [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
   while true; do
     if VMID=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Virtual Machine ID" 8 58 "$VMID" --title "VIRTUAL MACHINE ID" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
@@ -794,12 +792,12 @@ msg_ok "Import storage: ${CL}${BL}$IMPORT_STORAGE_NAME${CL} ${GN}($IMPORT_PATH)"
 # ==============================================================================
 PROXMOXVE_STATUS="NOT DOWNLOADED"
 QEMU_STATUS="NOT DOWNLOADED"
-if [[ -f "$IMPORT_PATH/$PROXMOXVE_IMG" && -f "$IMPORT_PATH/$PROXMOXVE_IMG.DIGESTS" ]]; then
-  PVE_MD5=$(grep -A1 "MD5" "$IMPORT_PATH/$PROXMOXVE_IMG.DIGESTS" | tail -1 | awk '{print substr($1,length($1)-6)}')
+if [[ -f "$IMPORT_PATH/$LOCAL_PROXMOXVE_IMG" && -f "$IMPORT_PATH/$LOCAL_PROXMOXVE_IMG.DIGESTS" ]]; then
+  PVE_MD5=$(grep -A1 "MD5" "$IMPORT_PATH/$LOCAL_PROXMOXVE_IMG.DIGESTS" | tail -1 | awk '{print substr($1,length($1)-6)}')
   PROXMOXVE_STATUS="EXIST md5:...${PVE_MD5}"
 fi
-if [[ -f "$IMPORT_PATH/$QEMU_IMG" && -f "$IMPORT_PATH/$QEMU_IMG.DIGESTS" ]]; then
-  QEMU_MD5=$(grep -A1 "MD5" "$IMPORT_PATH/$QEMU_IMG.DIGESTS" | tail -1 | awk '{print substr($1,length($1)-6)}')
+if [[ -f "$IMPORT_PATH/$LOCAL_QEMU_IMG" && -f "$IMPORT_PATH/$LOCAL_QEMU_IMG.DIGESTS" ]]; then
+  QEMU_MD5=$(grep -A1 "MD5" "$IMPORT_PATH/$LOCAL_QEMU_IMG.DIGESTS" | tail -1 | awk '{print substr($1,length($1)-6)}')
   QEMU_STATUS="EXIST md5:...${QEMU_MD5}"
 fi
 
@@ -811,11 +809,11 @@ IMG_TYPE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "FLATCAR IMA
   3>&1 1>&2 2>&3) || exit-script
 
 if [[ "$IMG_TYPE" == "proxmoxve" ]]; then
-  IMG_FILE="$PROXMOXVE_IMG"
+  LOCAL_IMG_FILE="$LOCAL_PROXMOXVE_IMG"
 else
-  IMG_FILE="$QEMU_IMG"
+  LOCAL_IMG_FILE="$LOCAL_QEMU_IMG"
 fi
-TEMPLATE_IMG="$IMPORT_PATH/$IMG_FILE"
+TEMPLATE_IMG="$IMPORT_PATH/$LOCAL_IMG_FILE"
 msg_ok "Image type: ${CL}${BL}$IMG_TYPE${CL}"
 
 # ==============================================================================
@@ -851,7 +849,7 @@ fi
 # ==============================================================================
 # CHECK IMAGE VERSION
 # ==============================================================================
-check_and_update_image "$IMG_FILE" "$IMPORT_PATH"
+check_and_update_image "$LOCAL_IMG_FILE" "$IMPORT_PATH"
 
 # ==============================================================================
 # CREATE NEW vs REBUILD EXISTING
