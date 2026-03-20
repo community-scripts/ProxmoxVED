@@ -1,111 +1,142 @@
-
 # Community Scripts Contribution Guide
 
-## **Welcome to the communty-scripts Repository!** 
+## Welcome to the community-scripts repository
 
-📜 These documents outline the essential coding standards for all our scripts and JSON files. Adhering to these standards ensures that our codebase remains consistent, readable, and maintainable. By following these guidelines, we can improve collaboration, reduce errors, and enhance the overall quality of our project.
+These documents outline the coding standards and contribution flow for the ProxmoxVED repository.
 
-### Why Coding Standards Matter
+The important reality check is simple:
 
-Coding standards are crucial for several reasons:
+- contributors primarily submit shell scripts
+- website metadata is **not** contributed as repo JSON files
+- metadata changes belong to the website / maintainer workflow
 
-1. **Consistency**: Consistent code is easier to read, understand, and maintain. It helps new team members quickly get up to speed and reduces the learning curve.
-2. **Readability**: Clear and well-structured code is easier to debug and extend. It allows developers to quickly identify and fix issues.
-3. **Maintainability**: Code that follows a standard structure is easier to refactor and update. It ensures that changes can be made with minimal risk of introducing new bugs.
-4. **Collaboration**: When everyone follows the same standards, it becomes easier to collaborate on code. It reduces friction and misunderstandings during code reviews and merges.
+## Scope of these documents
 
-### Scope of These Documents
+This contribution guide covers:
 
-These documents cover the coding standards for the following types of files in our project:
+- `ct/$AppName.sh` scripts for container creation and update entrypoints
+- `install/$AppName-install.sh` scripts for in-container installation logic
+- the supporting workflow for testing from your fork before opening a PR
 
-- **`install/$AppName-install.sh` Scripts**: These scripts are responsible for the installation of applications.
-- **`ct/$AppName.sh` Scripts**: These scripts handle the creation and updating of containers.
-- **`json/$AppName.json`**: These files store structured data and are used for the website.
+## Getting started
 
-Each section provides detailed guidelines on various aspects of coding, including shebang usage, comments, variable naming, function naming, indentation, error handling, command substitution, quoting, script structure, and logging. Additionally, examples are provided to illustrate the application of these standards.
+Before contributing, set up:
 
-By following the coding standards outlined in this document, we ensure that our scripts and JSON files are of high quality, making our project more robust and easier to manage. Please refer to this guide whenever you create or update scripts and JSON files to maintain a high standard of code quality across the project. 📚🔍
+1. Visual Studio Code or another editor with ShellCheck support
+2. a fork of `community-scripts/ProxmoxVED`
+3. a local clone of your fork
 
-Let's work together to keep our codebase clean, efficient, and maintainable! 💪🚀
+### Recommended extensions
 
+- [Shell Syntax](https://marketplace.visualstudio.com/items?itemName=bmalehorn.shell-syntax)
+- [ShellCheck](https://marketplace.visualstudio.com/items?itemName=timonwong.shellcheck)
+- [Shell Format](https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format)
 
-## Getting Started
+### Templates
 
-Before contributing, please ensure that you have the following setup:
+Use these templates as your starting point:
 
-1. **Visual Studio Code** (recommended for script development)
-2. **Recommended VS Code Extensions:**
-   - [Shell Syntax](https://marketplace.visualstudio.com/items?itemName=bmalehorn.shell-syntax)
-   - [ShellCheck](https://marketplace.visualstudio.com/items?itemName=timonwong.shellcheck)
-   - [Shell Format](https://marketplace.visualstudio.com/items?itemName=foxundermoon.shell-format)
+- [CT template: `AppName.sh`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/ct/AppName.sh)
+- [Install template: `AppName-install.sh`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/install/AppName-install.sh)
 
-### Important Notes
-- Use [AppName.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/ct/AppName.sh) and [AppName-install.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/install/AppName-install.sh) as templates when creating new scripts.
+## Script types
 
----
+### Application script: `ct/AppName.sh`
 
-# 🚀 The Application Script (ct/AppName.sh)
+Reference guide:
 
-- You can find all coding standards, as well as the structure for this file [here](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/ct/AppName.md).
-- These scripts are responsible for container creation, setting the necessary variables and handling the update of the application once installed.
+- [CT coding guide for `AppName.sh`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/ct/AppName.md)
 
----
+This script is responsible for:
 
-# 🛠 The Installation Script (install/AppName-install.sh)
+- host-side container orchestration
+- app variables and defaults
+- update wiring for the installed app
 
-- You can find all coding standards, as well as the structure for this file [here](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/install/AppName-install.md).
-- These scripts are responsible for the installation of the application.
+### Installation script: `install/AppName-install.sh`
 
----
+Reference guide:
 
-## 🚀 Building Your Own Scripts
+- [Install coding guide for `AppName-install.sh`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/install/AppName-install.md)
 
-Start with the [template script](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/install/AppName-install.sh)
+This script is responsible for:
 
----
+- container-internal installation logic
+- package/runtime setup
+- final application configuration
 
-## 🤝 Contribution Process
+## Contribution process
 
 ### 1. Fork the repository
-Fork to your GitHub account
 
-### 2. Clone your fork on your local environment 
+Fork `community-scripts/ProxmoxVED` to your GitHub account.
+
+### 2. Clone your fork
+
 ```bash
 git clone https://github.com/yourUserName/ForkName
 ```
 
-### 3. Create a new branch
+### 3. Create a branch
+
 ```bash
 git switch -c your-feature-branch
 ```
 
-### 4. Test from your fork using COMMUNITY_SCRIPTS_URL
-To develop from your own fork, export `COMMUNITY_SCRIPTS_URL` pointing to your branch — no file edits required:
-```bash
-export COMMUNITY_SCRIPTS_URL="https://git.community-scripts.org/[USER]/ProxmoxVED/raw/branch/[BRANCH]"
-bash -c "$(curl -fsSL $COMMUNITY_SCRIPTS_URL/ct/AppName.sh)"
-```
-This variable propagates into `build.func`, `install.func`, and all sourced scripts automatically. Before opening a Pull Request, ensure `COMMUNITY_SCRIPTS_URL` is not exported in any committed file.
+### 4. Configure your fork for testing
 
-### 5. Commit changes
+Use the helper script:
+
+```bash
+bash docs/contribution/setup-fork.sh --full
+```
+
+This prepares the raw GitHub URLs in your working copy so you can test against your own fork instead of the upstream repository.
+
+### 5. Build and test from your fork
+
+Use the curl/bash execution model that matches real user behavior, for example:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/<USER>/<REPO>/refs/heads/<BRANCH>/ct/myapp.sh)"
+```
+
+Do **not** document or optimize only for local manual execution if the real path is curl-based execution.
+
+### 6. Commit only your intended contribution
+
 ```bash
 git commit -m "Your commit message"
 ```
 
-### 5. Push to your fork
+### 7. Push your branch
+
 ```bash
 git push origin your-feature-branch
 ```
 
-### 6. Create a Pull Request
-Open a Pull Request from your feature branch to the main repository branch. You must only include your **$AppName.sh**, **$AppName-install.sh** and **$AppName.json** files in the pull request.
+### 8. Open a pull request
 
----
+Open a PR from your branch to `community-scripts/ProxmoxVED/main`.
 
-## 📚 Pages
+Your PR should contain only the files that belong to the script contribution itself, typically:
+
+- `ct/myapp.sh`
+- `install/myapp-install.sh`
+
+## Website metadata
+
+Website metadata is maintained outside this repository's script contribution flow.
+
+That means:
+
+- do not add repo JSON metadata files as part of the normal contribution path
+- do not assume a `frontend/public/json/...` workflow exists for the live site
+- route metadata creation or metadata changes through the website / maintainer workflow
+
+## Pages
 
 - [CT Template: AppName.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/ct/AppName.sh)
 - [Install Template: AppName-install.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/install/AppName-install.sh)
-- [JSON Template: AppName.json](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/json/AppName.json)
-
-
+- [Fork setup guide](./FORK_SETUP.md)
+- [Contribution README](./README.md)

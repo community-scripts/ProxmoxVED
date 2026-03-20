@@ -11,8 +11,8 @@ permissions:
   pull-requests: write
 
 env:
-  SOURCES_FILE: frontend/public/json/version-sources.json
-  VERSIONS_FILE: frontend/public/json/versions.json
+  SOURCES_FILE: json/version-sources.json
+  VERSIONS_FILE: json/versions.json
 
 jobs:
   update-versions:

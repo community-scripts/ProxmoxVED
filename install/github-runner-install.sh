@@ -12,6 +12,11 @@ network_check
 update_os
 
 
+msg_info "Install Dependencies"
+apt install -y \
+  git \
+  gh
+msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" setup_nodejs
 

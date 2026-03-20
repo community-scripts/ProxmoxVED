@@ -1,15 +1,25 @@
 # Misc Documentation
 
-This directory contains comprehensive documentation for all function libraries and components of the Proxmox Community Scripts project. Each section is organized as a dedicated subdirectory with detailed references, examples, and integration guides.
+This directory documents the shared Bash function libraries under `misc/`.
+
+The important implementation detail is that these libraries are **not independent islands**:
+
+- `build.func` orchestrates host-side CT creation.
+- `api.func` is the canonical source of telemetry and exit-code explanations.
+- `error_handler.func` wraps trap handling and falls back to `explain_exit_code()` if `api.func` was not loaded yet.
+- `install.func` runs inside the container and bootstraps `core.func` + `error_handler.func` first, then downloads `tools.func` after the OS update stage.
+- `tools.func` is the large Debian/Ubuntu helper toolbox for repository management, retries, releases, services, language runtimes, databases, GPU helpers, and update workflows.
 
 ---
 
 ## 🏗️ **Core Function Libraries**
 
 ### 📁 [build.func/](./build.func/)
+
 **Core LXC Container Orchestration** - Main orchestrator for Proxmox LXC container creation
 
 **Contents:**
+
 - BUILD_FUNC_FLOWCHART.md - Visual execution flows and decision trees
 - BUILD_FUNC_ARCHITECTURE.md - System architecture and design
 - BUILD_FUNC_ENVIRONMENT_VARIABLES.md - Complete environment variable reference
@@ -23,9 +33,11 @@ This directory contains comprehensive documentation for all function libraries a
 ---
 
 ### 📁 [core.func/](./core.func/)
-**System Utilities & Foundation** - Essential utility functions and system checks
+
+**System Utilities & Foundation** - Shared runtime foundation for logging, prompts, validation, and execution control
 
 **Contents:**
+
 - CORE_FLOWCHART.md - Visual execution flows
 - CORE_FUNCTIONS_REFERENCE.md - Complete function reference
 - CORE_INTEGRATION.md - Integration points
@@ -37,9 +49,11 @@ This directory contains comprehensive documentation for all function libraries a
 ---
 
 ### 📁 [error_handler.func/](./error_handler.func/)
-**Error Handling & Signal Management** - Comprehensive error handling and signal trapping
+
+**Error Handling & Signal Management** - Trap orchestration, cleanup, and abort telemetry
 
 **Contents:**
+
 - ERROR_HANDLER_FLOWCHART.md - Visual error handling flows
 - ERROR_HANDLER_FUNCTIONS_REFERENCE.md - Function reference
 - ERROR_HANDLER_INTEGRATION.md - Integration with other components
@@ -51,39 +65,45 @@ This directory contains comprehensive documentation for all function libraries a
 ---
 
 ### 📁 [api.func/](./api.func/)
-**Proxmox API Integration** - API communication and diagnostic reporting
+
+**Telemetry & Diagnostics Runtime** - Anonymous telemetry reporting, progress tracking, and canonical exit-code mapping
 
 **Contents:**
+
 - API_FLOWCHART.md - API communication flows
 - API_FUNCTIONS_REFERENCE.md - Function reference
 - API_INTEGRATION.md - Integration points
 - API_USAGE_EXAMPLES.md - Practical examples
 - README.md - Overview and quick reference
 
-**Key Functions**: `post_to_api()`, `post_update_to_api()`, `get_error_description()`
+**Key Functions**: `post_to_api()`, `post_to_api_vm()`, `post_progress_to_api()`, `post_update_to_api()`, `explain_exit_code()`
 
 ---
 
 ## 📦 **Installation & Setup Function Libraries**
 
 ### 📁 [install.func/](./install.func/)
-**Container Installation Workflow** - Installation orchestration for container-internal setup
+
+**Container Installation Workflow** - Container bootstrap inside the LXC
 
 **Contents:**
+
 - INSTALL_FUNC_FLOWCHART.md - Installation workflow diagrams
 - INSTALL_FUNC_FUNCTIONS_REFERENCE.md - Complete function reference
 - INSTALL_FUNC_INTEGRATION.md - Integration with build and tools
 - INSTALL_FUNC_USAGE_EXAMPLES.md - Practical examples
 - README.md - Overview and quick reference
 
-**Key Functions**: `setting_up_container()`, `network_check()`, `update_os()`, `motd_ssh()`, `cleanup_lxc()`
+**Key Functions**: `setting_up_container()`, `network_check()`, `update_os()`, `motd_ssh()`, `customize()`
 
 ---
 
 ### 📁 [tools.func/](./tools.func/)
-**Package & Tool Installation** - Robust package management and 30+ tool installation functions
+
+**Package & Tool Installation** - Repository, package, release, runtime, and service toolbox
 
 **Contents:**
+
 - TOOLS_FUNC_FLOWCHART.md - Package management flows
 - TOOLS_FUNC_FUNCTIONS_REFERENCE.md - 30+ function reference
 - TOOLS_FUNC_INTEGRATION.md - Integration with install workflows
@@ -91,14 +111,16 @@ This directory contains comprehensive documentation for all function libraries a
 - TOOLS_FUNC_ENVIRONMENT_VARIABLES.md - Configuration reference
 - README.md - Overview and quick reference
 
-**Key Functions**: `setup_nodejs()`, `setup_php()`, `setup_mariadb()`, `setup_docker()`, `setup_deb822_repo()`, `pkg_install()`, `pkg_update()`
+**Key Functions**: `curl_with_retry()`, `setup_deb822_repo()`, `install_packages_with_retry()`, `setup_mariadb()`, `setup_postgresql()`, `get_latest_github_release()`
 
 ---
 
 ### 📁 [alpine-install.func/](./alpine-install.func/)
+
 **Alpine Container Setup** - Alpine Linux-specific installation functions
 
 **Contents:**
+
 - ALPINE_INSTALL_FUNC_FLOWCHART.md - Alpine setup flows
 - ALPINE_INSTALL_FUNC_FUNCTIONS_REFERENCE.md - Function reference
 - ALPINE_INSTALL_FUNC_INTEGRATION.md - Integration points
@@ -110,9 +132,11 @@ This directory contains comprehensive documentation for all function libraries a
 ---
 
 ### 📁 [alpine-tools.func/](./alpine-tools.func/)
+
 **Alpine Tool Installation** - Alpine-specific package and tool installation
 
 **Contents:**
+
 - ALPINE_TOOLS_FUNC_FLOWCHART.md - Alpine package flows
 - ALPINE_TOOLS_FUNC_FUNCTIONS_REFERENCE.md - Function reference
 - ALPINE_TOOLS_FUNC_INTEGRATION.md - Integration with Alpine workflows
@@ -124,9 +148,11 @@ This directory contains comprehensive documentation for all function libraries a
 ---
 
 ### 📁 [cloud-init.func/](./cloud-init.func/)
+
 **VM Cloud-Init Configuration** - Cloud-init and VM provisioning functions
 
 **Contents:**
+
 - CLOUD_INIT_FUNC_FLOWCHART.md - Cloud-init flows
 - CLOUD_INIT_FUNC_FUNCTIONS_REFERENCE.md - Function reference
 - CLOUD_INIT_FUNC_INTEGRATION.md - Integration points
@@ -145,18 +171,24 @@ This directory contains comprehensive documentation for all function libraries a
 ├─────────────────────────────────────────────┤
 │                                             │
 │  ct/AppName.sh                              │
-│      ↓ (sources)                            │
+│      ↓ sources                              │
 │  build.func                                 │
-│      ├─ variables()                         │
-│      ├─ build_container()                   │
-│      └─ advanced_settings()                 │
-│      ↓ (calls pct create with)              │
+│      ├─ sources api.func                    │
+│      ├─ sources core.func                   │
+│      ├─ sources error_handler.func          │
+│      ├─ loads variables/settings/prompts    │
+│      └─ creates container + launch phase    │
+│      ↓ pct exec / lxc-attach                │
 │  install/appname-install.sh                 │
-│      ↓ (sources)                            │
-│      ├─ core.func      (colors, messaging)  │
-│      ├─ error_handler.func (error trapping) │
-│      ├─ install.func   (setup/network)      │
-│      └─ tools.func     (packages/tools)     │
+│      ↓ sources install.func                 │
+│      ├─ sources core.func                   │
+│      ├─ sources error_handler.func          │
+│      ├─ load_functions()                    │
+│      ├─ catch_errors()                      │
+│      ├─ network_check()                     │
+│      ├─ update_os()                         │
+│      │   └─ downloads + sources tools.func  │
+│      └─ app install uses tools.func         │
 │                                             │
 └─────────────────────────────────────────────┘
 
@@ -191,17 +223,17 @@ This directory contains comprehensive documentation for all function libraries a
 
 ## 📊 **Documentation Quick Stats**
 
-| Library | Files | Functions | Status |
-|---------|:---:|:---:|:---:|
-| build.func | 7 | 50+ | ✅ Complete |
-| core.func | 5 | 20+ | ✅ Complete |
-| error_handler.func | 5 | 10+ | ✅ Complete |
-| api.func | 5 | 5+ | ✅ Complete |
-| install.func | 5 | 8+ | ✅ Complete |
-| tools.func | 6 | 30+ | ✅ Complete |
-| alpine-install.func | 5 | 6+ | ✅ Complete |
-| alpine-tools.func | 5 | 15+ | ✅ Complete |
-| cloud-init.func | 5 | 12+ | ✅ Complete |
+| Library             | Files | Functions |   Status    |
+| ------------------- | :---: | :-------: | :---------: |
+| build.func          |   7   |    50+    | ✅ Complete |
+| core.func           |   5   |    20+    | ✅ Complete |
+| error_handler.func  |   5   |    10+    | ✅ Complete |
+| api.func            |   5   |    5+     | ✅ Complete |
+| install.func        |   5   |    8+     | ✅ Complete |
+| tools.func          |   6   |    30+    | ✅ Complete |
+| alpine-install.func |   5   |    6+     | ✅ Complete |
+| alpine-tools.func   |   5   |    15+    | ✅ Complete |
+| cloud-init.func     |   5   |    12+    | ✅ Complete |
 
 **Total**: 9 function libraries, 48 documentation files, 150+ functions
 
@@ -210,16 +242,20 @@ This directory contains comprehensive documentation for all function libraries a
 ## 🚀 **Getting Started**
 
 ### For Container Creation Scripts
-Start with: **[build.func/](./build.func/)** → **[tools.func/](./tools.func/)** → **[install.func/](./install.func/)**
+
+Start with: **[build.func/](./build.func/)** → **[core.func/](./core.func/)** → **[error_handler.func/](./error_handler.func/)** → **[api.func/](./api.func/)** → **[install.func/](./install.func/)** → **[tools.func/](./tools.func/)**
 
 ### For Alpine Containers
+
 Start with: **[alpine-install.func/](./alpine-install.func/)** → **[alpine-tools.func/](./alpine-tools.func/)**
 
 ### For VM Provisioning
+
 Start with: **[cloud-init.func/](./cloud-init.func/)**
 
 ### For Troubleshooting
-Start with: **[error_handler.func/](./error_handler.func/)** → **[EXIT_CODES.md](../EXIT_CODES.md)**
+
+Start with: **[error_handler.func/](./error_handler.func/)** → **[api.func/](./api.func/)**
 
 ---
 
@@ -251,6 +287,7 @@ function-library/
 ```
 
 **Advantages**:
+
 - ✅ Consistent navigation across all libraries
 - ✅ Quick reference sections in each README
 - ✅ Visual flowcharts for understanding
@@ -273,11 +310,12 @@ All documentation follows these standards:
 
 ---
 
-## ✅ **Last Updated**: December 2025
+## ✅ **Last Updated**: Based on live `misc/*` code verification
+
 **Maintainers**: community-scripts team
 **License**: MIT
-**Status**: All 9 libraries fully documented and standardized
+**Status**: Canonical overviews aligned to live code; deeper generated subpages may still require occasional drift cleanup
 
 ---
 
-*This directory contains specialized documentation for specific components of the Proxmox Community Scripts project.*
+_When documentation conflicts with the live shell implementation, prefer the files under `ProxmoxVE` / `ProxmoxVED` `misc/`._

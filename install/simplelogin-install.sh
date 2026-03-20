@@ -23,7 +23,6 @@ $STD apt install -y \
   libpq-dev \
   cmake \
   pkg-config \
-  git \
   redis-server \
   nginx \
   postfix \
@@ -31,7 +30,7 @@ $STD apt install -y \
   opendkim-tools
 msg_ok "Installed Dependencies"
 
-PG_VERSION="16" setup_postgresql
+PG_VERSION="17" setup_postgresql
 APPLICATION="simplelogin" PG_DB_NAME="simplelogin" PG_DB_USER="simplelogin" setup_postgresql_db
 PYTHON_VERSION="3.12" setup_uv
 NODE_VERSION="22" setup_nodejs
@@ -72,26 +71,46 @@ $STD openssl rsa -in /opt/simplelogin/openid-rsa.key -pubout -out /opt/simplelog
 mkdir -p /opt/simplelogin/uploads /opt/simplelogin/.gnupg
 chmod 700 /opt/simplelogin/.gnupg
 
-cat <<EOF >/opt/simplelogin/.env
-URL=http://${LOCAL_IP}
-EMAIL_DOMAIN=example.com
-SUPPORT_EMAIL=support@example.com
-DB_URI=postgresql://${PG_DB_USER}:${PG_DB_PASS}@localhost/${PG_DB_NAME}
-FLASK_SECRET=${FLASK_SECRET}
-DKIM_PRIVATE_KEY_PATH=/opt/simplelogin/dkim/dkim.private
-GNUPGHOME=/opt/simplelogin/.gnupg
-LOCAL_FILE_UPLOAD=true
-UPLOAD_DIR=/opt/simplelogin/uploads
-DISABLE_ALIAS_SUFFIX=1
-WORDS_FILE_PATH=/opt/simplelogin/local_data/words.txt
-NAMESERVERS=1.1.1.1
-MEM_STORE_URI=redis://localhost:6379/1
-OPENID_PRIVATE_KEY_PATH=/opt/simplelogin/openid-rsa.key
-OPENID_PUBLIC_KEY_PATH=/opt/simplelogin/openid-rsa.pub
-EOF
+{
+  echo "URL=http://${LOCAL_IP}"
+  echo "EMAIL_DOMAIN=example.com"
+  echo "SUPPORT_EMAIL=support@example.com"
+  echo 'EMAIL_SERVERS_WITH_PRIORITY=[(10, "localhost.")]'
+  echo "POSTFIX_SERVER=localhost"
+  echo "DB_URI=postgresql://${PG_DB_USER}:${PG_DB_PASS}@localhost/${PG_DB_NAME}"
+  echo "FLASK_SECRET=${FLASK_SECRET}"
+  echo "DKIM_PRIVATE_KEY_PATH=/opt/simplelogin/dkim/dkim.private"
+  echo "GNUPGHOME=/opt/simplelogin/.gnupg"
+  echo "LOCAL_FILE_UPLOAD=true"
+  echo "UPLOAD_DIR=/opt/simplelogin/uploads"
+  echo "DISABLE_ALIAS_SUFFIX=1"
+  echo "WORDS_FILE_PATH=/opt/simplelogin/local_data/words.txt"
+  echo "NAMESERVERS=1.1.1.1"
+  echo "MEM_STORE_URI=redis://localhost:6379/1"
+  echo "OPENID_PRIVATE_KEY_PATH=/opt/simplelogin/openid-rsa.key"
+  echo "OPENID_PUBLIC_KEY_PATH=/opt/simplelogin/openid-rsa.pub"
+} >/opt/simplelogin/.env
 
 cd /opt/simplelogin
-$STD .venv/bin/flask db upgrade
+export FLASK_APP=server
+export URL="http://${LOCAL_IP}"
+export EMAIL_DOMAIN="example.com"
+export SUPPORT_EMAIL="support@example.com"
+export EMAIL_SERVERS_WITH_PRIORITY='[(10, "localhost.")]'
+export POSTFIX_SERVER="localhost"
+export DB_URI="postgresql://${PG_DB_USER}:${PG_DB_PASS}@localhost/${PG_DB_NAME}"
+export FLASK_SECRET="${FLASK_SECRET}"
+export DKIM_PRIVATE_KEY_PATH="/opt/simplelogin/dkim/dkim.private"
+export GNUPGHOME="/opt/simplelogin/.gnupg"
+export LOCAL_FILE_UPLOAD="true"
+export UPLOAD_DIR="/opt/simplelogin/uploads"
+export DISABLE_ALIAS_SUFFIX="1"
+export WORDS_FILE_PATH="/opt/simplelogin/local_data/words.txt"
+export NAMESERVERS="1.1.1.1"
+export MEM_STORE_URI="redis://localhost:6379/1"
+export OPENID_PRIVATE_KEY_PATH="/opt/simplelogin/openid-rsa.key"
+export OPENID_PUBLIC_KEY_PATH="/opt/simplelogin/openid-rsa.pub"
+$STD .venv/bin/alembic upgrade head
 $STD .venv/bin/python init_app.py
 msg_ok "Configured SimpleLogin"
 
@@ -135,6 +154,7 @@ Requires=postgresql.service redis-server.service
 [Service]
 Type=simple
 WorkingDirectory=/opt/simplelogin
+EnvironmentFile=/opt/simplelogin/.env
 ExecStart=/opt/simplelogin/.venv/bin/gunicorn wsgi:app -b 127.0.0.1:7777 -w 2 --timeout 120
 Restart=always
 RestartSec=5
@@ -152,6 +172,7 @@ Requires=postgresql.service redis-server.service
 [Service]
 Type=simple
 WorkingDirectory=/opt/simplelogin
+EnvironmentFile=/opt/simplelogin/.env
 ExecStart=/opt/simplelogin/.venv/bin/python email_handler.py
 Restart=always
 RestartSec=5
@@ -169,6 +190,7 @@ Requires=postgresql.service redis-server.service
 [Service]
 Type=simple
 WorkingDirectory=/opt/simplelogin
+EnvironmentFile=/opt/simplelogin/.env
 ExecStart=/opt/simplelogin/.venv/bin/python job_runner.py
 Restart=always
 RestartSec=5
@@ -202,6 +224,7 @@ ln -sf /etc/nginx/sites-available/simplelogin.conf /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 $STD nginx -t
 $STD systemctl enable --now nginx
+$STD systemctl reload nginx
 msg_ok "Configured Nginx"
 
 motd_ssh

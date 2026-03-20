@@ -1,0 +1,52 @@
+{
+    "name": "LibreChat",
+    "slug": "librechat",
+    "categories": [
+        20
+    ],
+    "date_created": "2026-03-18",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3080,
+    "documentation": "https://www.librechat.ai/docs",
+    "website": "https://www.librechat.ai/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/librechat.webp",
+    "config_path": "/opt/librechat/.env",
+    "description": "LibreChat is an open-source AI chat platform that supports multiple AI providers including OpenAI, Anthropic, Google, and more. It features conversation history, multi-modal support, custom endpoints, and a plugin system.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/librechat.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 6144,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Register the first account via the web interface — it becomes the admin account.",
+            "type": "info"
+        },
+        {
+            "text": "Add your AI provider API keys to /opt/librechat/.env (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.) and restart librechat. OpenAI, Anthropic, Google and Agents endpoints are pre-enabled via ENDPOINTS.",
+            "type": "info"
+        },
+        {
+            "text": "RAG API is included and running on port 8000. Set RAG_OPENAI_API_KEY in /opt/rag-api/.env to enable document Q&A.",
+            "type": "info"
+        },
+        {
+            "text": "For local embeddings without an API key, set EMBEDDINGS_PROVIDER=ollama and OLLAMA_BASE_URL=http://<ollama-host>:11434 in /opt/rag-api/.env and restart rag-api.",
+            "type": "info"
+        }
+    ]
+}

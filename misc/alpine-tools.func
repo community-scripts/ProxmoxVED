@@ -211,7 +211,7 @@ download_with_progress() {
       return 1
     }
   else
-    curl -fL# -o "$out" "$url" || {
+    curl -fsSL -o "$out" "$url" || {
       msg_error "Download failed: $url"
       return 1
     }

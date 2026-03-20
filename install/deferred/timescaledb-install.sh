@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -14,12 +14,12 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    curl \
-    sudo \
-    mc \
-    gnupg \
-    apt-transport-https \
-    lsb-release
+  curl \
+  sudo \
+  mc \
+  gnupg \
+  apt-transport-https \
+  lsb-release
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up PostgreSQL Repository"
@@ -146,11 +146,11 @@ msg_ok "Setup TimescaleDB"
 
 read -r -p "Would you like to add Adminer? <y/N> " prompt
 if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
-    msg_info "Installing Adminer"
-    $STD apt install -y adminer
-    $STD a2enconf adminer
-    systemctl reload apache2
-    msg_ok "Installed Adminer"
+  msg_info "Installing Adminer"
+  $STD apt install -y adminer
+  $STD a2enconf adminer
+  systemctl reload apache2
+  msg_ok "Installed Adminer"
 fi
 
 motd_ssh

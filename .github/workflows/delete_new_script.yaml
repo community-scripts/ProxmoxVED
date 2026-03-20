@@ -124,20 +124,20 @@ jobs:
               rm -f "ct/${TITLE}.sh"
               rm -f "ct/headers/${TITLE}"
               rm -f "install/${TITLE}-install.sh"
-              rm -f "frontend/public/json/${TITLE}.json"
+              rm -f "json/${TITLE}.json"
               # Also try alpine variant
               if [[ "$TITLE" == alpine-* ]]; then
                 stripped="${TITLE#alpine-}"
-                rm -f "frontend/public/json/${stripped}.json"
+                rm -f "json/${stripped}.json"
               fi
               ;;
             vm)
               rm -f "vm/${TITLE}.sh"
-              rm -f "frontend/public/json/${TITLE}.json"
+              rm -f "json/${TITLE}.json"
               ;;
             addon)
               rm -f "tools/addon/${TITLE}.sh"
-              rm -f "frontend/public/json/${TITLE}.json"
+              rm -f "json/${TITLE}.json"
               ;;
             pve)
               rm -f "tools/pve/${TITLE}.sh"

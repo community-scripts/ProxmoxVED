@@ -39,11 +39,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "Filtering Issues with Label Migration To ProxmoxVE"
-          raw_output=$(gh issue list --json title,labels,number,body)
-          filtered_issue=$(echo "$raw_output" | jq -r '[.[] | select(.labels[]?.name == "Migration To ProxmoxVE")][0]')
+          echo "Resolving issue with label Migration To ProxmoxVE"
 
-          if [ "$filtered_issue" == "null" ] || [ -z "$filtered_issue" ]; then
+          if [[ "${{ github.event_name }}" == "issues" ]]; then
+            # For labeled issue events, use the exact issue from event payload.
+            filtered_issue='${{ toJson(github.event.issue) }}'
+          else
+            # Fallback for workflow_dispatch: query explicitly by label and raise limit.
+            raw_output=$(gh issue list \
+              --label "Migration To ProxmoxVE" \
+              --state open \
+              --limit 500 \
+              --json title,labels,number,body)
+            filtered_issue=$(echo "$raw_output" | jq -c '.[0]')
+          fi
+
+          if [[ "$filtered_issue" == "null" ]] || [[ -z "$filtered_issue" ]]; then
             echo "No issues found with label 'Migration To ProxmoxVE'."
             exit 1
           fi
@@ -100,26 +111,6 @@ jobs:
                 files_found="false"
                 missing_files+="install/${script_name}-install.sh "
               fi
-              # JSON check with alpine fallback
-              json_file="frontend/public/json/${script_name}.json"
-              if [[ ! -f "$json_file" ]]; then
-                if [[ "$script_name" == alpine-* ]]; then
-                  stripped_name="${script_name#alpine-}"
-                  alt_json="frontend/public/json/${stripped_name}.json"
-                  if [[ -f "$alt_json" ]]; then
-                    echo "Using alpine fallback JSON: $alt_json"
-                    echo "json_fallback=$alt_json" >> $GITHUB_OUTPUT
-                  else
-                    echo "json file not found: $json_file"
-                    files_found="false"
-                    missing_files+="$json_file "
-                  fi
-                else
-                  echo "json file not found: $json_file"
-                  files_found="false"
-                  missing_files+="$json_file "
-                fi
-              fi
               ;;
             vm)
               if [[ ! -f "vm/${script_name}.sh" ]]; then
@@ -127,22 +118,12 @@ jobs:
                 files_found="false"
                 missing_files+="vm/${script_name}.sh "
               fi
-              # JSON is optional for VMs but check anyway
-              json_file="frontend/public/json/${script_name}.json"
-              if [[ ! -f "$json_file" ]]; then
-                echo "json file not found (optional): $json_file"
-              fi
               ;;
             addon)
               if [[ ! -f "tools/addon/${script_name}.sh" ]]; then
                 echo "addon file not found: tools/addon/${script_name}.sh"
                 files_found="false"
                 missing_files+="tools/addon/${script_name}.sh "
-              fi
-              # JSON is optional for addons
-              json_file="frontend/public/json/${script_name}.json"
-              if [[ ! -f "$json_file" ]]; then
-                echo "json file not found (optional): $json_file"
               fi
               ;;
             pve)
@@ -190,7 +171,6 @@ jobs:
         run: |
           script_name="${{ steps.list_issues.outputs.script_name }}"
           script_type="${{ steps.list_issues.outputs.script_type }}"
-          json_fallback="${{ steps.check_files.outputs.json_fallback }}"
 
           git clone https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/community-scripts/ProxmoxVE.git ProxmoxVE
           cd ProxmoxVE
@@ -227,13 +207,6 @@ jobs:
               cp ../ct/headers/${script_name} ct/headers/ 2>/dev/null || true
               cp ../install/${script_name}-install.sh install/
 
-              # Handle JSON with alpine fallback
-              if [[ -n "$json_fallback" ]]; then
-                cp ../${json_fallback} frontend/public/json/ || true
-              else
-                cp ../frontend/public/json/${script_name}.json frontend/public/json/ 2>/dev/null || true
-              fi
-
               # Update URLs in ct script
               sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
               sed -i "s|https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" ct/${script_name}.sh
@@ -242,7 +215,6 @@ jobs:
               ;;
             vm)
               cp ../vm/${script_name}.sh vm/
-              cp ../frontend/public/json/${script_name}.json frontend/public/json/ 2>/dev/null || true
 
               # Update URLs in vm script
               sed -i "s|https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func|https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func|" vm/${script_name}.sh
@@ -251,7 +223,6 @@ jobs:
             addon)
               mkdir -p tools/addon
               cp ../tools/addon/${script_name}.sh tools/addon/
-              cp ../frontend/public/json/${script_name}.json frontend/public/json/ 2>/dev/null || true
 
               # Update URLs in addon script
               sed -i "s|community-scripts/ProxmoxVED|community-scripts/ProxmoxVE|g" tools/addon/${script_name}.sh

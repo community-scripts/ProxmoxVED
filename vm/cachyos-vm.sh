@@ -6,7 +6,7 @@
 
 # ==============================================================================
 # CachyOS VM - Creates a CachyOS Virtual Machine
-# CachyOS is a performance-focused Arch Linux distribution with optimized 
+# CachyOS is a performance-focused Arch Linux distribution with optimized
 # packages, custom kernels, and various desktop environment options.
 # ==============================================================================
 

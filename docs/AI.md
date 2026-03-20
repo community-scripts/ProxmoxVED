@@ -705,7 +705,7 @@ cleanup_lxc
 - [ ] `motd_ssh`, `customize`, `cleanup_lxc` at the end
 - [ ] No custom download/version-check logic
 - [ ] No default `(Patience)` text in msg_info labels
-- [ ] JSON metadata file created in `frontend/public/json/<appname>.json`
+- [ ] JSON metadata file created in `json/<appname>.json`
 
 ---
 
@@ -727,7 +727,7 @@ cleanup_lxc
 
 ## � JSON Metadata Files
 
-Every application requires a JSON metadata file in `frontend/public/json/<appname>.json`.
+Every application requires a JSON metadata file in `json/<appname>.json`.
 
 ### JSON Structure
 

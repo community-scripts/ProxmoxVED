@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INPUT_FILE=".github/workflows/scripts/repos.txt"
-OUTPUT_FILE="frontend/public/json/versions.json"
+OUTPUT_FILE="json/versions.json"
 TMP_FILE="releases_tmp.json"
 
 if [ -f "$OUTPUT_FILE" ]; then

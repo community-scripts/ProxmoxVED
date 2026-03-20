@@ -97,7 +97,7 @@
         {
             "fileStatus": "modified",
             "includeGlobs": [
-                "frontend/public/json/**"
+                "json/**"
             ],
             "excludeGlobs": []
         }

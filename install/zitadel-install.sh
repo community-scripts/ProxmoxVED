@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: dave-yap (dave-yap) | Co-Author: remz1337
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://zitadel.com/
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -55,12 +55,12 @@ msg_ok "Configured PostgreSQL"
 msg_info "Installing Zitadel"
 cd "${ZITADEL_DIR}"
 mkdir -p ${CONFIG_DIR}
-echo -n "${MASTERKEY}" > ${CONFIG_DIR}/.masterkey
+echo -n "${MASTERKEY}" >${CONFIG_DIR}/.masterkey
 chmod 600 "${CONFIG_DIR}/.masterkey"
 chown "${ZITADEL_USER}:${ZITADEL_GROUP}" "${CONFIG_DIR}/.masterkey"
 
 # Update config.yaml for network access
-cat > "${CONFIG_DIR}/config.yaml" <<EOF
+cat >"${CONFIG_DIR}/config.yaml" <<EOF
 ExternalSecure: false
 ExternalDomain: ${SERVER_IP}
 ExternalPort: ${API_PORT}
@@ -134,7 +134,7 @@ $STD sudo -u ${ZITADEL_USER} ./zitadel setup --config ${CONFIG_DIR}/config.yaml 
 CLIENT_PAT=$(cat ${ZITADEL_DIR}/login-client.pat)
 
 # Update Login V2 login.env file
-cat > "${CONFIG_DIR}/login.env" <<EOF
+cat >"${CONFIG_DIR}/login.env" <<EOF
 NEXT_PUBLIC_BASE_PATH=/ui/v2/login
 EMAIL_VERIFICATION=false
 ZITADEL_API_URL=http://${SERVER_IP}:${API_PORT}
@@ -144,7 +144,7 @@ EOF
 chown "${ZITADEL_USER}:${ZITADEL_GROUP}" "${CONFIG_DIR}/login.env"
 
 # Create api.env file
-cat > "${CONFIG_DIR}/api.env" <<EOF
+cat >"${CONFIG_DIR}/api.env" <<EOF
 ZITADEL_MASTERKEY=${MASTERKEY}
 ZITADEL_DATABASE_POSTGRES_HOST=localhost
 ZITADEL_DATABASE_POSTGRES_PORT=5432
@@ -165,7 +165,7 @@ msg_ok "Installed Zitadel"
 
 msg_info "Creating Services"
 # Create API service
-cat > /etc/systemd/system/zitadel-api.service <<EOF
+cat >/etc/systemd/system/zitadel-api.service <<EOF
 [Unit]
 Description=ZITADEL API Server
 After=network.target postgresql.service
@@ -187,7 +187,7 @@ WantedBy=multi-user.target
 EOF
 
 # Create Login V2 service
-cat > /etc/systemd/system/zitadel-login.service <<EOF
+cat >/etc/systemd/system/zitadel-login.service <<EOF
 [Unit]
 Description=ZITADEL Login V2 Service
 After=network.target zitadel-api.service
@@ -221,7 +221,7 @@ msg_ok "Created Services"
 
 msg_info "Saving Credentials"
 # Create credentials file
-cat > "${CONFIG_DIR}/INSTALLATION_INFO.txt" <<EOF
+cat >"${CONFIG_DIR}/INSTALLATION_INFO.txt" <<EOF
 ################################################################################
 # ZITADEL Installation Information
 # Generated: $(date)

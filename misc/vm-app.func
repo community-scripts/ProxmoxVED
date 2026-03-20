@@ -1,0 +1,606 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: MickLesk (CanbiZ)
+# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
+
+# ==============================================================================
+# VM-APP.FUNC - DEPLOY LXC APPLICATIONS INSIDE VIRTUAL MACHINES
+# ==============================================================================
+#
+# This library enables deploying applications that are normally installed in
+# LXC containers into full Virtual Machines instead. It bridges the gap between
+# CT install scripts (install/*.sh) and VM infrastructure.
+#
+# How it works:
+#   1. Creates a VM with a cloud image (Debian 12/13, Ubuntu 22.04/24.04)
+#   2. Uses virt-customize to inject dependencies and run the install script LIVE
+#   3. For updates: run the CT script URL directly inside the VM
+#
+# Key Functions:
+#   select_app()              - Interactive app selection from install/*.sh
+#   get_app_metadata()        - Extract app defaults from ct/*.sh
+#   get_image_url()           - Cloud image URL for selected OS
+#   download_and_cache_image()- Download with caching
+#   customize_vm_image()      - Inject app install script into image
+#   build_app_vm()            - Main orchestrator
+#
+# Usage:
+#   source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/vm-app.func")
+#   APP_INSTALL_SCRIPT="yamtrack"
+#   build_app_vm
+#
+# ==============================================================================
+
+# ==============================================================================
+# SECTION 1: APP DISCOVERY & SELECTION
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# list_available_apps()
+#
+# Scans the install/ directory for available app install scripts.
+# Returns a sorted list of app names (without -install.sh suffix).
+# Excludes base OS install scripts (debian, ubuntu, alpine, etc.)
+# ------------------------------------------------------------------------------
+list_available_apps() {
+  local exclude_pattern="^(debian|ubuntu|alpine|devuan|fedora|centos|rockylinux|almalinux|opensuse|openeuler|gentoo|arm|openeuler)-install\.sh$"
+
+  # Method 1: Local repo checkout
+  if [[ -d "/tmp/proxmoxved-repo/install" ]]; then
+    find /tmp/proxmoxved-repo/install -name '*-install.sh' -printf '%f\n' |
+      grep -vE "$exclude_pattern" |
+      sed 's/-install\.sh$//' |
+      sort
+    return 0
+  fi
+
+  # Method 2: Gitea API (returns JSON array of files)
+  local api_url="https://git.community-scripts.org/api/v1/repos/community-scripts/ProxmoxVED/contents/install"
+  local api_response
+  api_response=$(curl -fsSL --connect-timeout 10 --max-time 30 "$api_url" 2>/dev/null) || true
+
+  if [[ -n "$api_response" ]]; then
+    echo "$api_response" |
+      jq -r '.[].name' 2>/dev/null |
+      grep -E '^[a-z0-9_-]+-install\.sh$' |
+      grep -vE "$exclude_pattern" |
+      sed 's/-install\.sh$//' |
+      sort
+    return 0
+  fi
+
+  # Method 3: GitHub API fallback
+  local gh_api_url="https://api.github.com/repos/community-scripts/ProxmoxVED/contents/install"
+  api_response=$(curl -fsSL --connect-timeout 10 --max-time 30 "$gh_api_url" 2>/dev/null) || true
+
+  if [[ -n "$api_response" ]]; then
+    echo "$api_response" |
+      jq -r '.[].name' 2>/dev/null |
+      grep -E '^[a-z0-9_-]+-install\.sh$' |
+      grep -vE "$exclude_pattern" |
+      sed 's/-install\.sh$//' |
+      sort
+    return 0
+  fi
+
+  # All methods failed
+  return 1
+}
+
+# ------------------------------------------------------------------------------
+# select_app()
+#
+# Interactive app selection using whiptail.
+# Sets: APP_INSTALL_SCRIPT (app name, e.g. "yamtrack")
+# If called with $1, uses that as pre-selected app (non-interactive).
+# ------------------------------------------------------------------------------
+select_app() {
+  if [[ -n "${1:-}" ]]; then
+    APP_INSTALL_SCRIPT="$1"
+    # Validate the install script exists
+    if curl -fsSL --head --connect-timeout 5 "$COMMUNITY_SCRIPTS_URL/install/${APP_INSTALL_SCRIPT}-install.sh" >/dev/null 2>&1; then
+      echo -e "${INFO}${BOLD}${DGN}Application: ${BGN}${APP_INSTALL_SCRIPT}${CL}"
+      return 0
+    else
+      msg_error "Install script not found: ${APP_INSTALL_SCRIPT}-install.sh"
+      exit 1
+    fi
+  fi
+
+  local apps=()
+  local app_list
+
+  msg_info "Discovering available applications"
+
+  # Build app list for whiptail
+  app_list=$(list_available_apps)
+  if [[ -z "$app_list" ]]; then
+    msg_error "Could not retrieve application list"
+    exit 1
+  fi
+
+  local count=0
+  while IFS= read -r app; do
+    [[ -z "$app" ]] && continue
+    apps+=("$app" "$app" "OFF")
+    count=$((count + 1))
+  done <<<"$app_list"
+
+  msg_ok "Found ${count} available applications"
+
+  if [[ $count -eq 0 ]]; then
+    msg_error "No applications found"
+    exit 1
+  fi
+
+  # Calculate display height
+  local menu_height=$((count > 20 ? 20 : count))
+  local box_height=$((menu_height + 8))
+
+  stop_spinner 2>/dev/null || true
+  if APP_INSTALL_SCRIPT=$(whiptail --backtitle "Proxmox VE Helper Scripts" \
+    --title "SELECT APPLICATION" \
+    --radiolist "Choose an application to deploy in the VM.\nUse Space to select, Enter to confirm." \
+    "$box_height" 68 "$menu_height" \
+    "${apps[@]}" 3>&1 1>&2 2>&3); then
+    if [[ -z "$APP_INSTALL_SCRIPT" ]]; then
+      msg_error "No application selected"
+      exit 1
+    fi
+    echo -e "${INFO}${BOLD}${DGN}Application: ${BGN}${APP_INSTALL_SCRIPT}${CL}"
+  else
+    exit_script
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# get_app_metadata()
+#
+# Extracts metadata from the CT script (ct/<app>.sh) for the selected app.
+# This gives us the app's recommended CPU, RAM, disk, OS requirements.
+# Sets: APP_NAME, APP_CPU, APP_RAM, APP_DISK, APP_OS, APP_VERSION
+# ------------------------------------------------------------------------------
+get_app_metadata() {
+  local app="${APP_INSTALL_SCRIPT}"
+  local ct_script_url="${COMMUNITY_SCRIPTS_URL}/ct/${app}.sh"
+  local ct_content
+
+  ct_content=$(curl -fsSL "$ct_script_url" 2>/dev/null) || {
+    # No CT script found - use sensible defaults
+    APP_NAME="${app^}"
+    APP_CPU="2"
+    APP_RAM="2048"
+    APP_DISK="10"
+    APP_OS="${OS_TYPE:-debian}"
+    APP_VERSION="${OS_VERSION:-13}"
+    return 0
+  }
+
+  # Extract metadata from CT script using grep (safe - no eval/source)
+  APP_NAME=$(echo "$ct_content" | grep -oP '^APP="\K[^"]+' | head -1)
+  APP_CPU=$(echo "$ct_content" | grep -oP '^var_cpu="\$\{var_cpu:-\K[0-9]+' | head -1)
+  APP_RAM=$(echo "$ct_content" | grep -oP '^var_ram="\$\{var_ram:-\K[0-9]+' | head -1)
+  APP_DISK=$(echo "$ct_content" | grep -oP '^var_disk="\$\{var_disk:-\K[0-9]+' | head -1)
+  APP_OS=$(echo "$ct_content" | grep -oP '^var_os="\$\{var_os:-\K[^}]+' | head -1)
+  APP_VERSION=$(echo "$ct_content" | grep -oP '^var_version="\$\{var_version:-\K[^}]+' | head -1)
+
+  # Fallbacks
+  APP_NAME="${APP_NAME:-${app^}}"
+  APP_CPU="${APP_CPU:-2}"
+  APP_RAM="${APP_RAM:-2048}"
+  APP_DISK="${APP_DISK:-10}"
+  APP_OS="${APP_OS:-debian}"
+  APP_VERSION="${APP_VERSION:-13}"
+}
+
+# ==============================================================================
+# SECTION 2: OS SELECTION & IMAGE MANAGEMENT
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# select_vm_os()
+#
+# Interactive OS selection for the VM. Users can choose:
+#   - Debian 12 (Bookworm)
+#   - Debian 13 (Trixie)
+#   - Ubuntu 22.04 LTS (Jammy)
+#   - Ubuntu 24.04 LTS (Noble)
+#
+# Sets: OS_TYPE, OS_VERSION, OS_CODENAME, OS_DISPLAY
+# ------------------------------------------------------------------------------
+select_vm_os() {
+  # Default to the app's recommended OS
+  local default_choice="debian13"
+  case "${APP_OS:-debian}" in
+  ubuntu)
+    case "${APP_VERSION:-24.04}" in
+    22.04) default_choice="ubuntu2204" ;;
+    *) default_choice="ubuntu2404" ;;
+    esac
+    ;;
+  debian)
+    case "${APP_VERSION:-13}" in
+    12) default_choice="debian12" ;;
+    *) default_choice="debian13" ;;
+    esac
+    ;;
+  esac
+
+  stop_spinner 2>/dev/null || true
+  if OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
+    "Choose Operating System for ${APP_NAME} VM\n(App recommends: ${APP_OS} ${APP_VERSION})" 16 68 4 \
+    "debian13" "Debian 13 (Trixie) - Latest" $([[ "$default_choice" == "debian13" ]] && echo "ON" || echo "OFF") \
+    "debian12" "Debian 12 (Bookworm) - Stable" $([[ "$default_choice" == "debian12" ]] && echo "ON" || echo "OFF") \
+    "ubuntu2404" "Ubuntu 24.04 LTS (Noble)" $([[ "$default_choice" == "ubuntu2404" ]] && echo "ON" || echo "OFF") \
+    "ubuntu2204" "Ubuntu 22.04 LTS (Jammy)" $([[ "$default_choice" == "ubuntu2204" ]] && echo "ON" || echo "OFF") \
+    3>&1 1>&2 2>&3); then
+    case $OS_CHOICE in
+    debian13)
+      OS_TYPE="debian"
+      OS_VERSION="13"
+      OS_CODENAME="trixie"
+      OS_DISPLAY="Debian 13 (Trixie)"
+      ;;
+    debian12)
+      OS_TYPE="debian"
+      OS_VERSION="12"
+      OS_CODENAME="bookworm"
+      OS_DISPLAY="Debian 12 (Bookworm)"
+      ;;
+    ubuntu2404)
+      OS_TYPE="ubuntu"
+      OS_VERSION="24.04"
+      OS_CODENAME="noble"
+      OS_DISPLAY="Ubuntu 24.04 LTS"
+      ;;
+    ubuntu2204)
+      OS_TYPE="ubuntu"
+      OS_VERSION="22.04"
+      OS_CODENAME="jammy"
+      OS_DISPLAY="Ubuntu 22.04 LTS"
+      ;;
+    esac
+    echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}${OS_DISPLAY}${CL}"
+  else
+    exit_script
+  fi
+
+  # Ubuntu always needs Cloud-Init
+  if [ "$OS_TYPE" = "ubuntu" ]; then
+    USE_CLOUD_INIT="yes"
+  else
+    USE_CLOUD_INIT="no"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# get_image_url()
+#
+# Returns the cloud image download URL for the selected OS.
+# Uses genericcloud (Cloud-Init) or nocloud variants as appropriate.
+# ------------------------------------------------------------------------------
+get_image_url() {
+  local arch
+  arch=$(dpkg --print-architecture)
+
+  case $OS_TYPE in
+  debian)
+    if [ "$USE_CLOUD_INIT" = "yes" ]; then
+      echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-generic-${arch}.qcow2"
+    else
+      echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-nocloud-${arch}.qcow2"
+    fi
+    ;;
+  ubuntu)
+    echo "https://cloud-images.ubuntu.com/${OS_CODENAME}/current/${OS_CODENAME}-server-cloudimg-${arch}.img"
+    ;;
+  esac
+}
+
+# ------------------------------------------------------------------------------
+# download_and_cache_image()
+#
+# Downloads the cloud image with caching support.
+# Sets: CACHE_FILE (path to the cached/downloaded image)
+# ------------------------------------------------------------------------------
+download_and_cache_image() {
+  msg_info "Retrieving the URL for the ${OS_DISPLAY} Qcow2 Disk Image"
+  URL=$(get_image_url)
+  CACHE_DIR="/var/lib/vz/template/cache"
+  CACHE_FILE="$CACHE_DIR/$(basename "$URL")"
+  mkdir -p "$CACHE_DIR"
+  msg_ok "${CL}${BL}${URL}${CL}"
+
+  if [[ ! -s "$CACHE_FILE" ]]; then
+    curl -f#SL -o "$CACHE_FILE" "$URL"
+    echo -en "\e[1A\e[0K"
+    msg_ok "Downloaded ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
+  else
+    msg_ok "Using cached image ${CL}${BL}$(basename "$CACHE_FILE")${CL}"
+  fi
+}
+
+# ==============================================================================
+# SECTION 3: IMAGE CUSTOMIZATION
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# ensure_virt_customize()
+#
+# Ensures virt-customize (libguestfs-tools) is installed on the Proxmox host.
+# ------------------------------------------------------------------------------
+ensure_virt_customize() {
+  if ! command -v virt-customize &>/dev/null; then
+    msg_info "Installing libguestfs-tools"
+    apt-get -qq update >/dev/null
+    apt-get -qq install libguestfs-tools -y >/dev/null
+    msg_ok "Installed libguestfs-tools"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# customize_vm_image()
+#
+# Main image customization function. Uses virt-customize to:
+#   1. Install base packages (qemu-guest-agent, curl, sudo, etc.)
+#   2. Inject install.func and tools.func as files
+#   3. Run the application install script LIVE inside the image
+#   4. Configure hostname, SSH, auto-login
+#
+# Parameters: None (uses global variables)
+# Sets: WORK_FILE (path to the customized image)
+# ------------------------------------------------------------------------------
+customize_vm_image() {
+  local app="${APP_INSTALL_SCRIPT}"
+
+  WORK_FILE=$(mktemp --suffix=.qcow2)
+  cp "$CACHE_FILE" "$WORK_FILE"
+
+  export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
+
+  # --- Step 1: Install base packages ---
+  msg_info "Installing base packages in image"
+  if virt-customize -a "$WORK_FILE" --install qemu-guest-agent,curl,sudo,ca-certificates,gnupg2,jq,mc >/dev/null 2>&1; then
+    msg_ok "Installed base packages"
+  else
+    msg_error "Failed to install base packages in image"
+    exit 1
+  fi
+
+  # --- Step 2: Inject function libraries ---
+  msg_info "Injecting function libraries into image"
+
+  local tmp_install_func tmp_tools_func
+  tmp_install_func=$(mktemp)
+  tmp_tools_func=$(mktemp)
+  curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/install.func" >"$tmp_install_func"
+  curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/tools.func" >"$tmp_tools_func"
+
+  virt-customize -q -a "$WORK_FILE" \
+    --mkdir /opt/community-scripts \
+    --upload "$tmp_install_func:/opt/community-scripts/install.func" \
+    --upload "$tmp_tools_func:/opt/community-scripts/tools.func" >/dev/null 2>&1
+
+  rm -f "$tmp_install_func" "$tmp_tools_func"
+  msg_ok "Injected function libraries"
+
+  # --- Step 3: Create and run install wrapper LIVE ---
+  msg_info "Installing ${APP_NAME} in image (this may take several minutes)"
+
+  local tmp_wrapper
+  tmp_wrapper=$(mktemp)
+  cat >"$tmp_wrapper" <<WRAPPER_EOF
+#!/bin/bash
+set -euo pipefail
+
+# Set environment variables (same as build_container provides)
+export FUNCTIONS_FILE_PATH="\$(cat /opt/community-scripts/install.func)"
+export APPLICATION="${APP_NAME}"
+export app="${app}"
+export VERBOSE="no"
+export SSH_ROOT="yes"
+export CTTYPE="1"
+export PCT_OSTYPE="${OS_TYPE}"
+export PCT_OSVERSION="${OS_VERSION}"
+export COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL}"
+export DEPLOY_TARGET="vm"
+
+# Download and run the install script
+curl -fsSL "${COMMUNITY_SCRIPTS_URL}/install/${app}-install.sh" | bash
+WRAPPER_EOF
+
+  # virt-customize --run executes the script with network inside the image
+  if virt-customize -a "$WORK_FILE" --run "$tmp_wrapper" 2>&1 | tee /tmp/vm-app-install.log; then
+    msg_ok "Installed ${APP_NAME}"
+  else
+    msg_error "${APP_NAME} installation failed! Check /tmp/vm-app-install.log"
+    rm -f "$tmp_wrapper"
+    exit 1
+  fi
+
+  rm -f "$tmp_wrapper"
+
+  # --- Step 4: Configure hostname and SSH ---
+  msg_info "Finalizing image (hostname, SSH config)"
+
+  virt-customize -q -a "$WORK_FILE" --hostname "${HN}" >/dev/null 2>&1
+  virt-customize -q -a "$WORK_FILE" --run-command "truncate -s 0 /etc/machine-id" >/dev/null 2>&1
+  virt-customize -q -a "$WORK_FILE" --run-command "rm -f /var/lib/dbus/machine-id" >/dev/null 2>&1
+
+  if [ "$USE_CLOUD_INIT" = "yes" ]; then
+    virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
+    virt-customize -q -a "$WORK_FILE" --run-command "sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config" >/dev/null 2>&1 || true
+  else
+    # Configure auto-login for nocloud images
+    virt-customize -q -a "$WORK_FILE" --run-command "mkdir -p /etc/systemd/system/serial-getty@ttyS0.service.d" >/dev/null 2>&1 || true
+    virt-customize -q -a "$WORK_FILE" --run-command 'cat > /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
+EOF' >/dev/null 2>&1 || true
+    virt-customize -q -a "$WORK_FILE" --run-command "mkdir -p /etc/systemd/system/getty@tty1.service.d" >/dev/null 2>&1 || true
+    virt-customize -q -a "$WORK_FILE" --run-command 'cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
+EOF' >/dev/null 2>&1 || true
+  fi
+
+  msg_ok "Finalized image"
+
+  # --- Step 5: Resize disk ---
+  msg_info "Resizing disk image to ${DISK_SIZE}"
+  qemu-img resize "$WORK_FILE" "${DISK_SIZE}" >/dev/null 2>&1
+  msg_ok "Resized disk image"
+}
+
+# ==============================================================================
+# SECTION 4: VM CREATION & ORCHESTRATION
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# create_app_vm()
+#
+# Creates the QEMU VM, imports the customized disk, attaches EFI + scsi,
+# configures Cloud-Init if needed, and starts the VM.
+# ------------------------------------------------------------------------------
+create_app_vm() {
+  msg_info "Creating ${APP_NAME} VM shell"
+
+  qm create "$VMID" -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} \
+    -cores "$CORE_COUNT" -memory "$RAM_SIZE" -name "$HN" -tags "community-script;app-deployer;${APP_INSTALL_SCRIPT}" \
+    -net0 "virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU" -onboot 1 -ostype l26 -scsihw virtio-scsi-pci >/dev/null
+
+  msg_ok "Created VM shell"
+
+  # Import disk
+  msg_info "Importing disk into storage ($STORAGE)"
+  if qm disk import --help >/dev/null 2>&1; then
+    IMPORT_CMD=(qm disk import)
+  else
+    IMPORT_CMD=(qm importdisk)
+  fi
+
+  IMPORT_OUT="$("${IMPORT_CMD[@]}" "$VMID" "$WORK_FILE" "$STORAGE" ${DISK_IMPORT:-} 2>&1 || true)"
+  DISK_REF_IMPORTED="$(printf '%s\n' "$IMPORT_OUT" | sed -n "s/.*successfully imported disk '\([^']\+\)'.*/\1/p" | tr -d "\r\"'")"
+  [[ -z "$DISK_REF_IMPORTED" ]] && DISK_REF_IMPORTED="$(pvesm list "$STORAGE" | awk -v id="$VMID" '$5 ~ ("vm-"id"-disk-") {print $1":"$5}' | sort | tail -n1)"
+  [[ -z "$DISK_REF_IMPORTED" ]] && {
+    msg_error "Unable to determine imported disk reference."
+    echo "$IMPORT_OUT"
+    exit 1
+  }
+  msg_ok "Imported disk (${CL}${BL}${DISK_REF_IMPORTED}${CL})"
+
+  # Clean up work file
+  rm -f "$WORK_FILE"
+
+  # Attach disks
+  msg_info "Attaching EFI and root disk"
+  if [ "$USE_CLOUD_INIT" = "yes" ]; then
+    qm set "$VMID" \
+      --efidisk0 "${STORAGE}:0,efitype=4m" \
+      --scsi0 "${DISK_REF_IMPORTED},${DISK_CACHE}${THIN%,}" \
+      --scsi1 "${STORAGE}:cloudinit" \
+      --boot order=scsi0 \
+      --serial0 socket >/dev/null
+  else
+    qm set "$VMID" \
+      --efidisk0 "${STORAGE}:0,efitype=4m" \
+      --scsi0 "${DISK_REF_IMPORTED},${DISK_CACHE}${THIN%,}" \
+      --boot order=scsi0 \
+      --serial0 socket >/dev/null
+  fi
+
+  qm set "$VMID" --agent enabled=1 >/dev/null
+  msg_ok "Attached EFI and root disk"
+
+  # Set VM description
+  set_description
+
+  # Cloud-Init configuration
+  if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f setup_cloud_init >/dev/null 2>&1; then
+    msg_info "Configuring Cloud-Init"
+    setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
+    msg_ok "Cloud-Init configured"
+  fi
+
+  # Start VM
+  if [ "$START_VM" == "yes" ]; then
+    msg_info "Starting ${APP_NAME} VM"
+    qm start "$VMID" >/dev/null 2>&1
+    msg_ok "Started ${APP_NAME} VM"
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# wait_for_vm_ip()
+#
+# Waits for the VM to obtain an IP address via qemu-guest-agent.
+# Sets: VM_IP
+# ------------------------------------------------------------------------------
+wait_for_vm_ip() {
+  VM_IP=""
+  if [ "$START_VM" != "yes" ]; then
+    return 0
+  fi
+
+  set +e
+  for i in {1..20}; do
+    VM_IP=$(qm guest cmd "$VMID" network-get-interfaces 2>/dev/null |
+      jq -r '.[] | select(.name != "lo") | ."ip-addresses"[]? | select(."ip-address-type" == "ipv4") | ."ip-address"' 2>/dev/null |
+      grep -v "^127\." | head -1) || true
+    [ -n "$VM_IP" ] && break
+    sleep 3
+  done
+  set -e
+}
+
+# ------------------------------------------------------------------------------
+# show_app_vm_summary()
+#
+# Displays the final summary with VM details and access information.
+# ------------------------------------------------------------------------------
+show_app_vm_summary() {
+  local app="${APP_INSTALL_SCRIPT}"
+  echo ""
+  echo -e "${INFO}${BOLD}${GN}${APP_NAME} VM Configuration Summary:${CL}"
+  echo -e "${TAB}${DGN}VM ID: ${BGN}${VMID}${CL}"
+  echo -e "${TAB}${DGN}Hostname: ${BGN}${HN}${CL}"
+  echo -e "${TAB}${DGN}OS: ${BGN}${OS_DISPLAY}${CL}"
+  echo -e "${TAB}${DGN}Application: ${BGN}${APP_NAME} (pre-installed)${CL}"
+  echo -e "${TAB}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
+  echo -e "${TAB}${DGN}RAM: ${BGN}${RAM_SIZE} MiB${CL}"
+  echo -e "${TAB}${DGN}Disk: ${BGN}${DISK_SIZE}${CL}"
+  [ -n "${VM_IP:-}" ] && echo -e "${TAB}${DGN}IP Address: ${BGN}${VM_IP}${CL}"
+  echo ""
+  echo -e "${TAB}${DGN}Update ${APP_NAME} inside the VM:${CL}"
+  echo -e "${TAB}${BGN}  bash -c \"\$(curl -fsSL ${COMMUNITY_SCRIPTS_URL}/ct/${app}.sh)\"${CL}"
+  echo ""
+
+  if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f display_cloud_init_info >/dev/null 2>&1; then
+    display_cloud_init_info "$VMID" "$HN" 2>/dev/null || true
+  fi
+}
+
+# ------------------------------------------------------------------------------
+# build_app_vm()
+#
+# Main orchestration function. Executes the complete VM app deployment:
+#   1. Ensure prerequisites (libguestfs-tools)
+#   2. Download and cache cloud image
+#   3. Customize image with app install script
+#   4. Create and configure VM
+#   5. Start VM and show summary
+# ------------------------------------------------------------------------------
+build_app_vm() {
+  ensure_virt_customize
+  download_and_cache_image
+  customize_vm_image
+  create_app_vm
+  wait_for_vm_ip
+  show_app_vm_summary
+
+  post_update_to_api "done" "none"
+  msg_ok "Completed successfully!\n"
+}

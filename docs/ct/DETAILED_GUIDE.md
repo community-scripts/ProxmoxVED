@@ -172,6 +172,7 @@ var_unprivileged="1"           # 1=unprivileged (secure), 0=privileged (rarely n
 ```
 
 **Variable Naming Convention**:
+
 - Variables exposed to user: `var_*` (e.g., `var_cpu`, `var_hostname`, `var_ssh`)
 - Internal variables: lowercase (e.g., `container_id`, `app_version`)
 
@@ -273,6 +274,7 @@ echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
 **Triggered by**: Called automatically at script start
 
 **Behavior**:
+
 1. Parse command-line arguments (if any)
 2. Generate random UUID for session tracking
 3. Load container storage from Proxmox
@@ -284,6 +286,7 @@ echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
 **Purpose**: Launch the container creation menu with 5 installation modes
 
 **Menu Options**:
+
 ```
 1. Default Installation (Quick setup, predefined settings)
 2. Advanced Installation (19-step wizard with full control)
@@ -297,6 +300,7 @@ echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
 **Purpose**: Main orchestrator for LXC container creation
 
 **Operations**:
+
 1. Validates all variables
 2. Creates LXC container via `pct create`
 3. Executes `install/AppName-install.sh` inside container
@@ -398,6 +402,7 @@ msg_ok "Completed successfully!\n"
 **Symptom**: `pct create` exits with error code 209
 
 **Solution**:
+
 ```bash
 # Check existing containers
 pct list | grep CTID
@@ -411,6 +416,7 @@ pct destroy CTID
 ### Update Function Doesn't Detect New Version
 
 **Debug**:
+
 ```bash
 # Check version file
 cat /opt/AppName_version.txt
@@ -426,6 +432,7 @@ curl -fsSL https://api.github.com/repos/user/repo/releases/latest | grep tag_nam
 Before submitting a PR:
 
 ### Script Structure
+
 - [ ] Shebang is `#!/usr/bin/env bash`
 - [ ] Imports `build.func` from community-scripts repo
 - [ ] Copyright header with author and source URL
@@ -433,17 +440,20 @@ Before submitting a PR:
 - [ ] `var_tags` are semicolon-separated (no spaces)
 
 ### Default Values
+
 - [ ] `var_cpu` set appropriately (2-4 for most apps)
 - [ ] `var_ram` set appropriately (1024-4096 MB minimum)
 - [ ] `var_disk` sufficient for app + data (5-20 GB)
 - [ ] `var_os` is realistic
 
 ### Functions
+
 - [ ] `update_script()` implemented
 - [ ] Update function checks if app installed
 - [ ] Proper error handling with `msg_error`
 
 ### Testing
+
 - [ ] Script tested with default installation
 - [ ] Script tested with advanced (19-step) installation
 - [ ] Update function tested on existing installation

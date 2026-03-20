@@ -7,6 +7,7 @@ on:
 
 permissions:
   issues: write
+  actions: write
 
 jobs:
   post_to_discord:
@@ -59,19 +60,19 @@ jobs:
               FILES=(
                 "ct/${TITLE}.sh"
                 "install/${TITLE}-install.sh"
-                "frontend/public/json/${TITLE}.json"
+                "json/${TITLE}.json"
               )
               ;;
             vm)
               FILES=(
                 "vm/${TITLE}.sh"
-                "frontend/public/json/${TITLE}.json"
+                "json/${TITLE}.json"
               )
               ;;
             addon)
               FILES=(
                 "tools/addon/${TITLE}.sh"
-                "frontend/public/json/${TITLE}.json"
+                "json/${TITLE}.json"
               )
               ;;
             pve)
@@ -122,7 +123,7 @@ jobs:
           JSON_FILE=""
           case "$SCRIPT_TYPE" in
             ct|vm|addon)
-              JSON_FILE="frontend/public/json/${TITLE}.json"
+              JSON_FILE="json/${TITLE}.json"
               ;;
           esac
 
@@ -217,3 +218,10 @@ jobs:
           echo -e "$MESSAGE" > comment.txt
           sed -i '/Discussion & issue tracking:/,$d' comment.txt
           gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body-file comment.txt
+
+      - name: Push script JSON to PocketBase
+        if: env.SCRIPT_TYPE == 'ct' || env.SCRIPT_TYPE == 'vm' || env.SCRIPT_TYPE == 'addon'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run push_json_to_pocketbase.yml --repo ${{ github.repository }} -f script_slug=${{ env.TITLE }}

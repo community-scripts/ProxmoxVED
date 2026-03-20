@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2025 minthcm
 # Author: MintHCM
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/minthcm/minthcm
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 
@@ -17,7 +17,7 @@ PHP_VERSION="8.2"
 PHP_APACHE="YES" PHP_MODULE="mysql,redis" PHP_FPM="YES" setup_php
 setup_composer
 setup_mariadb
-$STD mariadb -u root -e "SET GLOBAL sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'";
+$STD mariadb -u root -e "SET GLOBAL sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'"
 
 fetch_and_deploy_gh_release "MintHCM" "minthcm/minthcm" "tarball" "latest" "/var/www/MintHCM"
 
@@ -72,8 +72,8 @@ msg_ok "Generated configuration file"
 
 msg_info "Installing MintHCM"
 cd /var/www/MintHCM
-$STD sudo -u www-data php MintCLI install < /var/www/MintHCM/configMint4
-printf "*    *    *    *    *     cd /var/www/MintHCM/legacy; php -f cron.php > /dev/null 2>&1\n" > /var/spool/cron/crontabs/www-data
+$STD sudo -u www-data php MintCLI install </var/www/MintHCM/configMint4
+printf "*    *    *    *    *     cd /var/www/MintHCM/legacy; php -f cron.php > /dev/null 2>&1\n" >/var/spool/cron/crontabs/www-data
 service cron start
 rm -f /var/www/MintHCM/configMint4
 msg_ok "Installed MintHCM"

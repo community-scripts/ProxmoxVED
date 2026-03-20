@@ -5,7 +5,13 @@ on:
     branches:
       - main
     paths:
-      - "frontend/public/json/**"
+      - "json/*.json"
+  workflow_dispatch:
+    inputs:
+      script_slug:
+        description: "Script slug (e.g. my-app)"
+        required: true
+        type: string
 
 jobs:
   push-json:
@@ -16,23 +22,55 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get changed JSON files with slug
+      - name: Get JSON file for script
         id: changed
         run: |
-          changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" -- frontend/public/json/ | grep '\.json$' || true)
-          with_slug=""
-          for f in $changed; do
-            [[ -f "$f" ]] || continue
-            jq -e '.slug' "$f" >/dev/null 2>&1 && with_slug="$with_slug $f"
-          done
-          with_slug=$(echo $with_slug | xargs -n1)
-          if [[ -z "$with_slug" ]]; then
-            echo "No app JSON files changed (or no files with slug)."
+          : > changed_app_jsons.txt
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            script_slug="${{ github.event.inputs.script_slug }}"
+            file="json/${script_slug}.json"
+            if [[ ! -f "$file" ]]; then
+              echo "No JSON file at $file."
+              echo "count=0" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if ! jq -e '.slug' "$file" >/dev/null 2>&1; then
+              echo "File $file has no .slug."
+              echo "count=0" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "$file" > changed_app_jsons.txt
+            echo "count=1" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" -- json/*.json || true)
+          if [[ -z "$changed" ]]; then
+            echo "No JSON files changed under json/*.json."
             echo "count=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          echo "$with_slug" > changed_app_jsons.txt
-          echo "count=$(echo "$with_slug" | wc -w)" >> "$GITHUB_OUTPUT"
+
+          count=0
+          for file in $changed; do
+            [[ -f "$file" ]] || continue
+            if [[ "$file" == "json/metadata.json" || "$file" == "json/update-apps.json" || "$file" == "json/versions.json" ]]; then
+              continue
+            fi
+            if jq -e '.slug' "$file" >/dev/null 2>&1; then
+              echo "$file" >> changed_app_jsons.txt
+              count=$((count + 1))
+            fi
+          done
+
+          if [[ $count -eq 0 ]]; then
+            echo "No app JSON files with .slug found in this push."
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "count=$count" >> "$GITHUB_OUTPUT"
 
       - name: Push to PocketBase
         if: steps.changed.outputs.count != '0'
@@ -48,7 +86,8 @@ jobs:
           const https = require('https');
           const http = require('http');
           const url = require('url');
-          function request(fullUrl, opts) {
+          function request(fullUrl, opts, redirectCount) {
+            redirectCount = redirectCount || 0;
             return new Promise(function(resolve, reject) {
               const u = url.parse(fullUrl);
               const isHttps = u.protocol === 'https:';
@@ -63,6 +102,13 @@ jobs:
               if (body) options.headers['Content-Length'] = Buffer.byteLength(body);
               const lib = isHttps ? https : http;
               const req = lib.request(options, function(res) {
+                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                  if (redirectCount >= 5) return reject(new Error('Too many redirects from ' + fullUrl));
+                  const redirectUrl = url.resolve(fullUrl, res.headers.location);
+                  res.resume();
+                  resolve(request(redirectUrl, opts, redirectCount + 1));
+                  return;
+                }
                 let data = '';
                 res.on('data', function(chunk) { data += chunk; });
                 res.on('end', function() {
@@ -96,7 +142,7 @@ jobs:
           const recordsUrl = apiBase + '/collections/' + encodeURIComponent(coll) + '/records';
           let categoryIdToName = {};
           try {
-            const metadata = JSON.parse(fs.readFileSync('frontend/public/json/metadata.json', 'utf8'));
+            const metadata = JSON.parse(fs.readFileSync('json/metadata.json', 'utf8'));
             (metadata.categories || []).forEach(function(cat) { categoryIdToName[cat.id] = cat.name; });
           } catch (e) { console.warn('Could not load metadata.json:', e.message); }
           let typeValueToId = {};
@@ -125,22 +171,32 @@ jobs:
           var osVersionToId = {};
           try {
             const res = await request(apiBase + '/collections/z_ref_note_types/records?perPage=500', { headers: { 'Authorization': token } });
-            if (res.ok) JSON.parse(res.body).items?.forEach(function(item) { if (item.type != null) noteTypeToId[item.type] = item.id; });
+            if (res.ok) JSON.parse(res.body).items?.forEach(function(item) {
+              if (item.type != null) { noteTypeToId[item.type] = item.id; noteTypeToId[item.type.toLowerCase()] = item.id; }
+            });
           } catch (e) { console.warn('z_ref_note_types:', e.message); }
           try {
             const res = await request(apiBase + '/collections/z_ref_install_method_types/records?perPage=500', { headers: { 'Authorization': token } });
-            if (res.ok) JSON.parse(res.body).items?.forEach(function(item) { if (item.type != null) installMethodTypeToId[item.type] = item.id; });
+            if (res.ok) JSON.parse(res.body).items?.forEach(function(item) {
+              if (item.type != null) { installMethodTypeToId[item.type] = item.id; installMethodTypeToId[item.type.toLowerCase()] = item.id; }
+            });
           } catch (e) { console.warn('z_ref_install_method_types:', e.message); }
           try {
             const res = await request(apiBase + '/collections/z_ref_os/records?perPage=500', { headers: { 'Authorization': token } });
-            if (res.ok) JSON.parse(res.body).items?.forEach(function(item) { if (item.os != null) osToId[item.os] = item.id; });
+            if (res.ok) JSON.parse(res.body).items?.forEach(function(item) {
+              if (item.os != null) { osToId[item.os] = item.id; osToId[item.os.toLowerCase()] = item.id; }
+            });
           } catch (e) { console.warn('z_ref_os:', e.message); }
           try {
             const res = await request(apiBase + '/collections/z_ref_os_version/records?perPage=500&expand=os', { headers: { 'Authorization': token } });
             if (res.ok) {
               (JSON.parse(res.body).items || []).forEach(function(item) {
                 var osName = item.expand && item.expand.os && item.expand.os.os != null ? item.expand.os.os : null;
-                if (osName != null && item.version != null) osVersionToId[osName + '|' + item.version] = item.id;
+                if (osName != null && item.version != null) {
+                  var key = osName + '|' + item.version;
+                  osVersionToId[key] = item.id;
+                  osVersionToId[osName.toLowerCase() + '|' + item.version] = item.id;
+                }
               });
             }
           } catch (e) { console.warn('z_ref_os_version:', e.message); }
@@ -150,11 +206,40 @@ jobs:
             if (!fs.existsSync(file)) continue;
             const data = JSON.parse(fs.readFileSync(file, 'utf8'));
             if (!data.slug) { console.log('Skipping', file, '(no slug)'); continue; }
+            // execute_in: map type to canonical value
+            var executeInMap = { ct: 'lxc', lxc: 'lxc', turnkey: 'turnkey', pve: 'pve', addon: 'addon', vm: 'vm' };
+            var executeIn = data.type ? (executeInMap[data.type.toLowerCase()] || data.type.toLowerCase()) : null;
+            // github: extract owner/repo from full GitHub URL
+            var githubField = null;
+            var projectUrl = data.github || null;
+            if (data.github) {
+              var ghMatch = data.github.match(/github\.com\/([^/]+\/[^/?#]+)/);
+              if (ghMatch) githubField = ghMatch[1].replace(/\.git$/, '');
+            }
+            // last_update_commit: last commit touching the actual script files (ct/slug.sh, install/slug-install.sh, vm/slug.sh, etc.)
+            var lastCommit = null;
+            try {
+              var cp = require('child_process');
+              var scriptFiles = [];
+              // primary script from install_methods[].script (e.g. "ct/teleport.sh", "vm/teleport.sh")
+              (data.install_methods || []).forEach(function(im) {
+                if (im.script) scriptFiles.push(im.script);
+              });
+              // derive install script from slug (install/slug-install.sh)
+              scriptFiles.push('install/' + data.slug + '-install.sh');
+              // filter to only files that actually exist in git
+              var existingFiles = scriptFiles.filter(function(f) {
+                try { cp.execSync('git ls-files --error-unmatch ' + f, { stdio: 'ignore' }); return true; } catch(e) { return false; }
+              });
+              if (existingFiles.length > 0) {
+                lastCommit = cp.execSync('git log -1 --format=%H -- ' + existingFiles.join(' ')).toString().trim() || null;
+              }
+            } catch(e) { console.warn('Could not get last commit:', e.message); }
             var payload = {
               name: data.name,
               slug: data.slug,
               script_created: data.date_created || data.script_created,
-              script_updated: data.date_created || data.script_updated,
+              script_updated: new Date().toISOString().split('T')[0],
               updateable: data.updateable,
               privileged: data.privileged,
               port: data.interface_port != null ? data.interface_port : data.port,
@@ -163,10 +248,16 @@ jobs:
               logo: data.logo,
               description: data.description,
               config_path: data.config_path,
-              default_user: (data.default_credentials && data.default_credentials.username) || data.default_user,
-              default_passwd: (data.default_credentials && data.default_credentials.password) || data.default_passwd,
+              default_user: (data.default_credentials && data.default_credentials.username) || data.default_user || null,
+              default_passwd: (data.default_credentials && data.default_credentials.password) || data.default_passwd || null,
+              notes_json: JSON.stringify(data.notes || []),
+              install_methods_json: JSON.stringify(data.install_methods || []),
               is_dev: true
             };
+            if (executeIn) payload.execute_in = executeIn;
+            if (githubField) payload.github = githubField;
+            if (projectUrl) payload.project_url = projectUrl;
+            if (lastCommit) payload.last_update_commit = lastCommit;
             var resolvedType = typeValueToId[data.type];
             if (resolvedType == null && data.type === 'ct') resolvedType = typeValueToId['lxc'];
             if (resolvedType) payload.type = resolvedType;
@@ -185,23 +276,27 @@ jobs:
               var noteIds = [];
               for (var i = 0; i < (data.notes || []).length; i++) {
                 var note = data.notes[i];
-                var typeId = noteTypeToId[note.type];
-                if (typeId == null) continue;
+                var typeId = noteTypeToId[note.type] || (note.type && noteTypeToId[note.type.toLowerCase()]);
+                if (typeId == null) {
+                  console.warn('Note type not in z_ref_note_types:', note.type);
+                  continue;
+                }
                 var postRes = await request(notesCollUrl, {
                   method: 'POST',
                   headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ text: note.text || '', type: typeId })
+                  body: JSON.stringify({ text: note.text || '', type: typeId, script: scriptId })
                 });
                 if (postRes.ok) noteIds.push(JSON.parse(postRes.body).id);
+                else console.error('script_notes POST failed:', postRes.statusCode, postRes.body);
               }
               var installMethodIds = [];
               for (var j = 0; j < (data.install_methods || []).length; j++) {
                 var im = data.install_methods[j];
-                var typeId = installMethodTypeToId[im.type];
+                var typeId = installMethodTypeToId[im.type] || (im.type && installMethodTypeToId[im.type.toLowerCase()]);
                 var res = im.resources || {};
-                var osId = osToId[res.os];
+                var osId = osToId[res.os] || (res.os && osToId[res.os.toLowerCase()]);
                 var osVersionKey = (res.os != null && res.version != null) ? res.os + '|' + res.version : null;
-                var osVersionId = osVersionKey ? osVersionToId[osVersionKey] : null;
+                var osVersionId = osVersionKey ? (osVersionToId[osVersionKey] || osVersionToId[res.os.toLowerCase() + '|' + res.version]) : null;
                 var imBody = {
                   script: scriptId,
                   resources_cpu: res.cpu != null ? res.cpu : 0,
@@ -217,6 +312,7 @@ jobs:
                   body: JSON.stringify(imBody)
                 });
                 if (imPostRes.ok) installMethodIds.push(JSON.parse(imPostRes.body).id);
+                else console.error('script_install_methods POST failed:', imPostRes.statusCode, imPostRes.body);
               }
               return { noteIds: noteIds, installMethodIds: installMethodIds };
             }
@@ -225,6 +321,7 @@ jobs:
               payload.notes = resolved.noteIds;
               payload.install_methods = resolved.installMethodIds;
               console.log('Updating', file, '(slug=' + data.slug + ')');
+              console.log('Created', resolved.noteIds.length, 'notes,', resolved.installMethodIds.length, 'install_methods for slug=' + data.slug);
               const r = await request(recordsUrl + '/' + existingId, {
                 method: 'PATCH',
                 headers: { 'Authorization': token, 'Content-Type': 'application/json' },
@@ -241,12 +338,19 @@ jobs:
               if (!r.ok) throw new Error('POST failed: ' + r.body);
               var scriptId = JSON.parse(r.body).id;
               var resolved = await resolveNotesAndInstallMethods(scriptId);
+              console.log('Created', resolved.noteIds.length, 'notes,', resolved.installMethodIds.length, 'install_methods for slug=' + data.slug);
+              var patchPayload = {};
+              for (var k in payload) patchPayload[k] = payload[k];
+              patchPayload.notes = resolved.noteIds;
+              patchPayload.install_methods = resolved.installMethodIds;
               var patchRes = await request(recordsUrl + '/' + scriptId, {
                 method: 'PATCH',
                 headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ install_methods: resolved.installMethodIds, notes: resolved.noteIds })
+                body: JSON.stringify(patchPayload)
               });
               if (!patchRes.ok) throw new Error('PATCH relations failed: ' + patchRes.body);
+              var patched = JSON.parse(patchRes.body);
+              console.log('Script linked: notes=' + (patched.notes && patched.notes.length) + ', install_methods=' + (patched.install_methods && patched.install_methods.length));
             }
           }
           console.log('Done.');

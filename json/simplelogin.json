@@ -1,0 +1,52 @@
+{
+    "name": "SimpleLogin",
+    "slug": "simplelogin",
+    "categories": [
+        6
+    ],
+    "date_created": "2026-02-22",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://github.com/simple-login/app/blob/master/docs/",
+    "website": "https://simplelogin.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/simplelogin.webp",
+    "config_path": "/opt/simplelogin/.env",
+    "description": "SimpleLogin is an open-source email alias solution that lets you create anonymous email aliases to protect your real email address from spam, trackers and data breaches.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/simplelogin.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 10,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "After installation, update EMAIL_DOMAIN and URL in /opt/simplelogin/.env with your actual domain and configure DNS (MX, SPF, DKIM) accordingly.",
+            "type": "warning"
+        },
+        {
+            "text": "A working SMTP setup (Postfix + valid domain/DNS) is required. Registration sends an activation email that must be delivered.",
+            "type": "warning"
+        },
+        {
+            "text": "DKIM keys are generated at /opt/simplelogin/dkim/. Add the public key as a TXT record: dkim._domainkey.yourdomain.com",
+            "type": "info"
+        },
+        {
+            "text": "Create your first admin account by visiting the web interface and registering.",
+            "type": "info"
+        }
+    ]
+}

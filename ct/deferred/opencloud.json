@@ -53,7 +53,7 @@
             "type": "info"
         },
         {
-            "text": "**Optional Full-text Search with Apache Tika**: requires your own Tika LXC. See `https://community-scripts.github.io/ProxmoxVE/scripts?id=apache-tika`",
+            "text": "**Optional Full-text Search with Apache Tika**: requires your own Tika LXC. See `https://community-scripts.github.io/ProxmoxVED/scripts?id=apache-tika`",
             "type": "info"
         },
         {

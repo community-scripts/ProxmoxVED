@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (Canbiz)
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/agersant/polaris
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -15,13 +15,13 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    make \
-    git \
-    build-essential \
-    binutils \
-    pkg-config \
-    libsqlite3-dev \
-    libssl-dev
+  make \
+  git \
+  build-essential \
+  binutils \
+  pkg-config \
+  libsqlite3-dev \
+  libssl-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Rust"

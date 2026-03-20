@@ -53,7 +53,7 @@ function update_script() {
     msg_info "Running Database Migrations"
     cd /opt/simplelogin
     cp /opt/simplelogin_env.bak /opt/simplelogin/.env
-    $STD .venv/bin/flask db upgrade
+    $STD .venv/bin/alembic upgrade head
     msg_ok "Ran Database Migrations"
 
     msg_info "Restoring Data"

@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/ente-io/ente
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -28,7 +28,6 @@ setup_go
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 RUST_CRATES="wasm-pack" setup_rust
 $STD rustup target add wasm32-unknown-unknown
-
 
 fetch_and_deploy_gh_release "ente-server" "ente-io/ente" "tarball" "latest" "/opt/ente"
 

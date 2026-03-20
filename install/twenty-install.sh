@@ -31,7 +31,7 @@ export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 $STD corepack enable
 $STD corepack prepare yarn@4.9.2 --activate
 $STD yarn install --immutable || $STD yarn install
-export NODE_OPTIONS="--max-old-space-size=3072"
+export NODE_OPTIONS="--max-old-space-size=4096"
 $STD npx nx run twenty-server:build
 $STD npx nx build twenty-front
 cp -r /opt/twenty/packages/twenty-front/build /opt/twenty/packages/twenty-server/dist/front
