@@ -34,7 +34,7 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" setup_nodejs
 PG_VERSION="16" setup_postgresql
-APPLICATION="Plane" PG_DB_NAME="plane" PG_DB_USER="plane" setup_postgresql_db
+PG_DB_NAME="plane" PG_DB_USER="plane" setup_postgresql_db
 
 msg_info "Configuring RabbitMQ"
 RABBITMQ_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c16)
