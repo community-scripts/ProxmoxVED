@@ -65,9 +65,9 @@ function update_script() {
     fi
     msg_ok "Restored Data"
 
-    msg_info "Starting Services"
+    msg_info "Starting Service"
     systemctl start quickstart
-    msg_ok "Started Services"
+    msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi
   exit
