@@ -21,7 +21,7 @@ PYTHON_VERSION="3.13" setup_uv
 fetch_and_deploy_gh_release "quickstart" "Kometa-Team/Quickstart" "tarball"
 
 msg_info "Setup Quickstart"
-cd /opt/quickstart || exit
+cd /opt/quickstart
 $STD uv venv /opt/quickstart/config/.venv
 source /opt/quickstart/config/.venv/bin/activate
 $STD uv pip install --upgrade pip

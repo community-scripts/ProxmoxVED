@@ -35,10 +35,10 @@ function update_script() {
 
     msg_info "Backing up data"
     mkdir -p /opt/quickstart_backup/config
-    cp /opt/quickstart/config/* /opt/quickstart_backup/config/ 2>/dev/null || true
+    cp /opt/quickstart/config/* /opt/quickstart_backup/config/
     if [[ -d "/opt/quickstart/config/kometa/config" ]]; then
       mkdir -p /opt/kometa_backup/config
-      cp /opt/quickstart/config/kometa/config/* /opt/kometa_backup/config/ 2>/dev/null || true
+      cp /opt/quickstart/config/kometa/config/* /opt/kometa_backup/config/
     fi
     msg_ok "Backup completed"
 
@@ -46,7 +46,7 @@ function update_script() {
     fetch_and_deploy_gh_release "quickstart" "Kometa-Team/Quickstart" "tarball"
 
     msg_info "Updating Quickstart"
-    cd /opt/quickstart || exit
+    cd /opt/quickstart
     if [[ -d "/opt/quickstart/config/.venv" ]]; then
       rm -rf /opt/quickstart/config/.venv
     fi
@@ -57,10 +57,10 @@ function update_script() {
     msg_ok "Updated Quickstart"
 
     msg_info "Restoring Data"
-    cp /opt/quickstart_backup/config/* /opt/quickstart/config/ 2>/dev/null || true
+    cp /opt/quickstart_backup/config/* /opt/quickstart/config/
     rm -rf /opt/quickstart_backup
     if [[ -d "/opt/kometa_backup/config" ]]; then
-      cp /opt/kometa_backup/config/* /opt/quickstart/config/kometa/config/ 2>/dev/null || true
+      cp /opt/kometa_backup/config/* /opt/quickstart/config/kometa/config/
       rm -rf /opt/kometa_backup
     fi
     msg_ok "Restored Data"
@@ -79,5 +79,5 @@ description
 
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Access the LXC at following IP address:${CL}"
+echo -e "${INFO}${YW} Access the LXC at following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:7171${CL}"
