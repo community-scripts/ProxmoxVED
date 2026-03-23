@@ -1,26 +1,18 @@
 #!/usr/bin/env bash
-source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: glabutis
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/bitfocus/companion
 
-# App Default Values
 APP="Companion"
 var_tags="${var_tags:-automation;media}"
-# Tags for Proxmox VE (max 2, no spaces, semicolon-separated)
 var_cpu="${var_cpu:-2}"
-# Number of cores (default: 2)
 var_ram="${var_ram:-512}"
-# RAM in MB (default: 512)
 var_disk="${var_disk:-8}"
-# Disk space in GB (default: 8)
 var_os="${var_os:-debian}"
-# Default OS
 var_version="${var_version:-12}"
-# Default OS version
 var_unprivileged="${var_unprivileged:-1}"
-# 1 = unprivileged container, 0 = privileged
 
 header_info "$APP"
 variables
@@ -38,24 +30,15 @@ function update_script() {
   fi
 
   RELEASE_JSON=$(curl -fsSL "https://api.bitfocus.io/v1/product/companion/packages?limit=20")
-  RELEASE=$(echo "$RELEASE_JSON" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for pkg in data.get('packages', data if isinstance(data, list) else []):
-    if pkg.get('target') == 'linux-tgz':
-        print(pkg.get('version', ''))
-        break
-")
-  ASSET_URL=$(echo "$RELEASE_JSON" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for pkg in data.get('packages', data if isinstance(data, list) else []):
-    if pkg.get('target') == 'linux-tgz':
-        print(pkg.get('uri', ''))
-        break
-")
+  PACKAGE_JSON=$(echo "$RELEASE_JSON" | jq -c '(if type == "array" then . else .packages end) | [.[] | select(.target=="linux-tgz" and (.uri | contains("linux-x64")))] | first')
+  RELEASE=$(echo "$PACKAGE_JSON" | jq -r '.version // empty')
+  ASSET_URL=$(echo "$PACKAGE_JSON" | jq -r '.uri // empty')
+  if [[ -z "$RELEASE" || -z "$ASSET_URL" ]]; then
+    msg_error "Could not resolve a matching Linux x64 Companion package from the Bitfocus API."
+    exit 1
+  fi
 
-  if [[ "${RELEASE}" == "$(cat /opt/companion_version.txt 2>/dev/null)" ]]; then
+  if [[ "${RELEASE}" == "$(cat ~/.companion 2>/dev/null)" ]]; then
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
     exit
   fi
@@ -65,23 +48,15 @@ for pkg in data.get('packages', data if isinstance(data, list) else []):
   msg_ok "Stopped ${APP}"
 
   msg_info "Updating ${APP} to v${RELEASE}"
-  rm -rf /opt/companion
-  mkdir -p /opt/companion
-  curl -fsSL "$ASSET_URL" -o /tmp/companion.tar.gz
-  tar -xzf /tmp/companion.tar.gz -C /opt/companion --strip-components=1
-  rm -f /tmp/companion.tar.gz
+  CLEAN_INSTALL=1 fetch_and_deploy_from_url "$ASSET_URL" "/opt/companion"
   chown -R companion:companion /opt/companion
+  echo "${RELEASE}" >~/.companion
   msg_ok "Updated ${APP} to v${RELEASE}"
 
   msg_info "Starting ${APP}"
   systemctl start companion
   msg_ok "Started ${APP}"
 
-  msg_info "Cleaning Up"
-  rm -f /tmp/companion.tar.gz
-  msg_ok "Cleanup Completed"
-
-  echo "${RELEASE}" >/opt/companion_version.txt
   msg_ok "Update Successful"
   exit
 }

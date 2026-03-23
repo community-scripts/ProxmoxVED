@@ -15,47 +15,31 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
-  python3 \
+  jq \
   libusb-1.0-0
 msg_ok "Installed Dependencies"
 
 msg_info "Fetching Latest Bitfocus Companion Release"
 RELEASE_JSON=$(curl -fsSL "https://api.bitfocus.io/v1/product/companion/packages?limit=20")
-RELEASE=$(echo "$RELEASE_JSON" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for pkg in data.get('packages', data if isinstance(data, list) else []):
-    if pkg.get('target') == 'linux-tgz':
-        print(pkg.get('version', ''))
-        break
-")
-ASSET_URL=$(echo "$RELEASE_JSON" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for pkg in data.get('packages', data if isinstance(data, list) else []):
-    if pkg.get('target') == 'linux-tgz':
-        print(pkg.get('uri', ''))
-        break
-")
-
-if [[ -z "$ASSET_URL" ]]; then
-  msg_error "Could not locate a Linux x64 release from the Bitfocus API."
+PACKAGE_JSON=$(echo "$RELEASE_JSON" | jq -c '(if type == "array" then . else .packages end) | [.[] | select(.target=="linux-tgz" and (.uri | contains("linux-x64")))] | first')
+RELEASE=$(echo "$PACKAGE_JSON" | jq -r '.version // empty')
+ASSET_URL=$(echo "$PACKAGE_JSON" | jq -r '.uri // empty')
+if [[ -z "$RELEASE" || -z "$ASSET_URL" ]]; then
+  msg_error "Could not resolve a matching Linux x64 Companion package from the Bitfocus API."
   exit 1
 fi
 msg_ok "Found Companion v${RELEASE}"
 
 msg_info "Downloading Bitfocus Companion v${RELEASE}"
-mkdir -p /opt/companion
-curl -fsSL "$ASSET_URL" -o /tmp/companion.tar.gz
-$STD tar -xzf /tmp/companion.tar.gz -C /opt/companion --strip-components=1
-rm -f /tmp/companion.tar.gz
+fetch_and_deploy_from_url "$ASSET_URL" "/opt/companion"
 msg_ok "Downloaded and Extracted Bitfocus Companion v${RELEASE}"
 
 msg_info "Installing udev Rules"
-[[ -f /opt/companion/50-companion-headless.rules ]] && cp /opt/companion/50-companion-headless.rules /etc/udev/rules.d/
+if [[ -f /opt/companion/50-companion-headless.rules ]]; then
+  cp /opt/companion/50-companion-headless.rules /etc/udev/rules.d/
+  udevadm control --reload-rules
+  udevadm trigger
+fi
 msg_ok "Installed udev Rules"
 
 msg_info "Creating companion User"
@@ -90,12 +74,8 @@ EOF
 systemctl enable -q --now companion
 msg_ok "Created Service"
 
-echo "${RELEASE}" >/opt/companion_version.txt
+echo "${RELEASE}" >~/.companion
 
 motd_ssh
 customize
-
-msg_info "Cleaning up"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned"
+cleanup_lxc
