@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/SystemIdleProcess/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: SystemIdleProcess
-# License: MIT | https://github.com/SystemIdleProcess/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/Kometa-Team/Quickstart
 
 APP="Kometa-Quickstart"
@@ -34,22 +34,24 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Backing up data"
+    mkdir -p /opt/quickstart_backup/config
     cp /opt/quickstart/config/* /opt/quickstart_backup/config/ 2>/dev/null || true
     if [[ -d "/opt/quickstart/config/kometa/config" ]]; then
+      mkdir -p /opt/kometa_backup/config
       cp /opt/quickstart/config/kometa/config/* /opt/kometa_backup/config/ 2>/dev/null || true
     fi
     msg_ok "Backup completed"
 
     PYTHON_VERSION="3.13" setup_uv
-    fetch_and_deploy_gh_release "kometa-quickstart" "Kometa-Team/Quickstart" "tarball"
+    fetch_and_deploy_gh_release "quickstart" "Kometa-Team/Quickstart" "tarball"
 
     msg_info "Updating Quickstart"
     cd /opt/quickstart || exit
-    if [[ ! -d "/opt/quickstart/config/.venv" ]]; then
+    if [[ -d "/opt/quickstart/config/.venv" ]]; then
       rm -rf /opt/quickstart/config/.venv
     fi
     $STD uv venv /opt/quickstart/config/.venv
-    $STD source /opt/quickstart/config/.venv/bin/activate
+    source /opt/quickstart/config/.venv/bin/activate
     $STD uv pip install --upgrade pip
     $STD uv pip install -r requirements.txt
     msg_ok "Updated Quickstart"

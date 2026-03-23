@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: SystemIdleProcess
-# License: MIT | https://github.com/SystemIdleProcess/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/Kometa-Team/Quickstart
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -23,7 +23,7 @@ fetch_and_deploy_gh_release "quickstart" "Kometa-Team/Quickstart" "tarball"
 msg_info "Setup Quickstart"
 cd /opt/quickstart || exit
 $STD uv venv /opt/quickstart/config/.venv
-$STD source /opt/quickstart/config/.venv/bin/activate
+source /opt/quickstart/config/.venv/bin/activate
 $STD uv pip install --upgrade pip
 $STD uv pip install -r requirements.txt
 msg_ok "Setup Quickstart"
