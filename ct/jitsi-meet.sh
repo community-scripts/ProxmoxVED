@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://jitsi.org/
 
-APP="Jitsi Meet"
+APP="Jitsi-Meet"
 var_tags="${var_tags:-video;conference;communication}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-4096}"
