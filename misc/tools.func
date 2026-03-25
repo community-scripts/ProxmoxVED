@@ -3919,9 +3919,15 @@ function setup_ffmpeg() {
     DEPS+=(
       libx264-dev libx265-dev libvpx-dev libmp3lame-dev
       libfreetype6-dev libass-dev libopus-dev libvorbis-dev
-      libdav1d-dev libsvtav1-dev zlib1g-dev libnuma-dev
+      libdav1d-dev zlib1g-dev libnuma-dev
       libva-dev libdrm-dev
     )
+    # libsvtav1-dev was renamed to libsvtav1enc-dev in Debian 13+
+    if apt-cache show libsvtav1enc-dev &>/dev/null; then
+      DEPS+=(libsvtav1enc-dev)
+    elif apt-cache show libsvtav1-dev &>/dev/null; then
+      DEPS+=(libsvtav1-dev)
+    fi
     ;;
   *)
     msg_error "Invalid FFMPEG_TYPE: $TYPE"
