@@ -24,13 +24,8 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
 
-msg_info "Installing Readium"
-READIUM_VERSION="0.6.5"
-mkdir -p /opt/readium
-$STD curl -fsSL "https://github.com/readium/go-toolkit/releases/download/${READIUM_VERSION}/readium-x86_64-linux" -o /opt/readium/readium
-chmod +x /opt/readium/readium
-ln -sf /opt/readium /usr/local/bin/readium
-msg_ok "Installed Readium"
+fetch_and_deploy_gh_release "readium" "readium/cli" "prebuild" "latest" "/opt/readium" "readium_linux_x86_64.tar.gz"
+ln -sf /opt/readium/readium /usr/local/bin/readium
 
 fetch_and_deploy_gl_release "storyteller" "storyteller-platform/storyteller" "tarball" "latest" "/opt/storyteller"
 

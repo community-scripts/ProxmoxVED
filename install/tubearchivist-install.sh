@@ -33,7 +33,7 @@ fetch_and_deploy_gh_release "deno" "denoland/deno" "prebuild" "latest" "/usr/loc
 
 msg_info "Installing ElasticSearch"
 setup_deb822_repo "elastic-8.x" "https://artifacts.elastic.co/GPG-KEY-elasticsearch" "https://artifacts.elastic.co/packages/8.x/apt" "stable" "main"
-$STD apt install -y elasticsearch
+ES_JAVA_OPTS="-Xms1g -Xmx1g" $STD apt install -y elasticsearch
 msg_ok "Installed ElasticSearch"
 
 msg_info "Configuring ElasticSearch"
@@ -44,6 +44,8 @@ path.logs: /var/log/elasticsearch
 path.repo: ["/var/lib/elasticsearch/snapshot"]
 network.host: 127.0.0.1
 xpack.security.enabled: false
+xpack.security.transport.ssl.enabled: false
+xpack.security.http.ssl.enabled: false
 EOF
 mkdir -p /var/lib/elasticsearch/snapshot
 chown -R elasticsearch:elasticsearch /var/lib/elasticsearch/snapshot
