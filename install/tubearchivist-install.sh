@@ -17,7 +17,6 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
   git \
-  nginx \
   redis-server \
   atomicparsley \
   python3-dev \
@@ -85,7 +84,7 @@ cat <<EOF >/opt/tubearchivist/.env
 TA_HOST=http://${LOCAL_IP}:8000
 TA_USERNAME=admin
 TA_PASSWORD=${TA_PASSWORD}
-TA_PORT=8100
+TA_PORT=8000
 ELASTIC_PASSWORD=${ES_PASSWORD}
 REDIS_CON=redis://localhost:6379
 ES_URL=http://localhost:9200
@@ -95,33 +94,6 @@ YTDLP_PLUGIN_DIRS=/opt/yt_plugins
 EOF
 $STD systemctl enable --now redis-server
 msg_ok "Set up Tube Archivist"
-
-msg_info "Configuring Nginx"
-cat <<'EOF' >/etc/nginx/sites-available/tubearchivist
-server {
-    listen 8000;
-    server_name _;
-
-    client_max_body_size 5G;
-
-    location /static/ {
-        alias /opt/tubearchivist/backend/static/;
-        expires 1y;
-    }
-
-    location / {
-        proxy_pass http://127.0.0.1:8100;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_read_timeout 1800;
-    }
-}
-EOF
-ln -sf /etc/nginx/sites-available/tubearchivist /etc/nginx/sites-enabled/tubearchivist
-rm -f /etc/nginx/sites-enabled/default
-$STD systemctl restart nginx
-msg_ok "Configured Nginx"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/tubearchivist.service
