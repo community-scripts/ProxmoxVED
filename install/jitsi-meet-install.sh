@@ -26,14 +26,6 @@ echo "jitsi-meet-web-config jitsi-meet/cert-choice select Generate a new self-si
 DEBIAN_FRONTEND=noninteractive $STD apt install -y jitsi-meet
 msg_ok "Installed Jitsi Meet"
 
-msg_info "Configuring Network"
-cat <<EOF >/etc/sysctl.d/99-jitsi.conf
-net.core.rmem_max=10485760
-net.core.netdev_max_backlog=100000
-EOF
-$STD sysctl -p /etc/sysctl.d/99-jitsi.conf
-msg_ok "Configured Network"
-
 motd_ssh
 customize
 cleanup_lxc
