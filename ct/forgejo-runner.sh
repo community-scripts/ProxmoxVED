@@ -39,7 +39,7 @@ function update_script() {
 
   RELEASE=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
   msg_info "Updating Forgejo Runner to v${RELEASE}"
-  curl -fsSL "https://code.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-linux-amd64" -o /usr/local/bin/forgejo-runner
+  curl -fsSL "https://code.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-${RELEASE}-linux-amd64" -o /usr/local/bin/forgejo-runner
   chmod +x /usr/local/bin/forgejo-runner
   msg_ok "Updated Forgejo Runner"
 
