@@ -31,8 +31,7 @@ function update_script() {
   fi
 
   msg_info "Updating ERPNext"
-  cd /opt/frappe-bench
-  $STD bench update --reset
+  $STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; cd /opt/frappe-bench && bench update --reset'
   msg_ok "Updated ERPNext"
   exit
 }
@@ -44,7 +43,7 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8000${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
 echo -e "${INFO}${YW} Credentials:${CL}"
 echo -e "${TAB}${BGN}Username: Administrator${CL}"
 echo -e "${TAB}${BGN}Password: see /opt/frappe-bench/.env${CL}"

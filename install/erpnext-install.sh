@@ -22,6 +22,8 @@ $STD apt install -y \
   libffi-dev \
   libssl-dev \
   redis-server \
+  nginx \
+  supervisor \
   xvfb \
   libfontconfig1 \
   libxrender1 \
@@ -79,28 +81,9 @@ $STD systemctl enable --now redis-server
 msg_ok "Configured ERPNext"
 
 msg_info "Setting up Production"
-$STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; cd /opt/frappe-bench && bench setup production frappe --yes'
+$STD bash -c 'export PATH="/home/frappe/.local/bin:$PATH"; cd /opt/frappe-bench && bench setup production frappe --yes'
+$STD systemctl enable --now supervisor
 msg_ok "Set up Production"
-
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/erpnext.service
-[Unit]
-Description=ERPNext (Frappe Bench)
-After=network.target mariadb.service redis-server.service
-
-[Service]
-Type=simple
-User=frappe
-WorkingDirectory=/opt/frappe-bench
-ExecStart=/opt/frappe-bench/env/bin/gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 frappe.app:application
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable -q --now erpnext
-msg_ok "Created Service"
 
 motd_ssh
 customize
