@@ -61,6 +61,7 @@ BACKEND_CACHE_SQLITE_URI=sqlite:///opt/teable/.assets/.cache.db
 NEXTJS_DIR=apps/nextjs-app
 EOF
 ln -sf /opt/teable /app
+ln -sf /opt/teable/apps/nestjs-backend/static /opt/teable/static
 msg_ok "Configured Teable"
 
 msg_info "Creating Service"
