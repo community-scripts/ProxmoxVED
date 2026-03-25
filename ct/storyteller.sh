@@ -9,7 +9,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="Storyteller"
 var_tags="${var_tags:-media;ebook;audiobook}"
 var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-8192}"
+var_ram="${var_ram:-10240}"
 var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -40,15 +40,28 @@ function update_script() {
 
   CLEAN_INSTALL=1 fetch_and_deploy_gl_release "storyteller" "storyteller-platform/storyteller" "tarball" "latest" "/opt/storyteller"
 
-  msg_info "Rebuilding Storyteller"
-  cd /opt/storyteller
-  $STD yarn install
-  $STD yarn workspaces foreach -Rpt --from @storyteller-platform/web --exclude @storyteller-platform/eslint run build
-  msg_ok "Rebuilt Storyteller"
-
   msg_info "Restoring Configuration"
   mv /opt/storyteller_env.bak /opt/storyteller/.env
   msg_ok "Restored Configuration"
+
+  msg_info "Rebuilding Storyteller"
+  cd /opt/storyteller
+  export NODE_OPTIONS="--max-old-space-size=4096"
+  $STD yarn install --network-timeout 600000
+  $STD gcc -g -fPIC -rdynamic -shared web/sqlite/uuid.c -o web/sqlite/uuid.c.so
+  export CI=1
+  export NODE_ENV=production
+  export NEXT_TELEMETRY_DISABLED=1
+  export SQLITE_NATIVE_BINDING=/opt/storyteller/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+  $STD yarn workspaces foreach -Rpt --from @storyteller-platform/web --exclude @storyteller-platform/eslint run build
+  cp -r /opt/storyteller/web/.next/static /opt/storyteller/web/.next/standalone/web/.next/static
+  if [[ -d /opt/storyteller/web/public ]]; then
+    cp -r /opt/storyteller/web/public /opt/storyteller/web/.next/standalone/web/public
+  fi
+  cp -r /opt/storyteller/web/migrations /opt/storyteller/web/.next/standalone/web/migrations
+  cp -r /opt/storyteller/web/sqlite /opt/storyteller/web/.next/standalone/web/sqlite
+  ln -sf /opt/storyteller/.env /opt/storyteller/web/.next/standalone/web/.env
+  msg_ok "Rebuilt Storyteller"
 
   msg_info "Starting Service"
   systemctl start storyteller
