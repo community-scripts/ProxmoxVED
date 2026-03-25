@@ -1,0 +1,44 @@
+{
+    "name": "Teable",
+    "slug": "teable",
+    "categories": [
+        8
+    ],
+    "date_created": "2026-03-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://help.teable.io/",
+    "website": "https://teable.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/teable.webp",
+    "config_path": "/opt/teable/.env",
+    "description": "Teable is a super-fast, open-source no-code database built on PostgreSQL with a spreadsheet-like interface for building applications.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/teable.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 10240,
+                "hdd": 25,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Minimum 10GB RAM recommended. The build process is very resource-intensive.",
+            "type": "warning"
+        },
+        {
+            "text": "Configuration is stored in `/opt/teable/.env`.",
+            "type": "info"
+        }
+    ]
+}
