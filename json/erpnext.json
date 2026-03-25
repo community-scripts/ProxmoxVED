@@ -11,7 +11,7 @@
     "interface_port": 80,
     "documentation": "https://docs.erpnext.com/",
     "website": "https://erpnext.com/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/erpnext.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/frappe-erpnext.webp",
     "config_path": "/opt/frappe-bench/.env",
     "description": "ERPNext is a powerful, intuitive and open-source ERP system for managing accounting, inventory, manufacturing, CRM, projects, HR and more.",
     "install_methods": [
