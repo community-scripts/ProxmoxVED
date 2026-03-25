@@ -180,7 +180,8 @@ server {
     }
 }
 EOF
-systemctl enable -q --now nginx
+systemctl enable -q nginx
+systemctl restart nginx
 msg_ok "Configured Nginx"
 
 msg_info "Creating Services"
