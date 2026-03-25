@@ -31,9 +31,9 @@ function update_script() {
   fi
 
   if check_for_gh_release "tubearchivist" "tubearchivist/tubearchivist"; then
-    msg_info "Stopping Service"
-    systemctl stop tubearchivist
-    msg_ok "Stopped Service"
+    msg_info "Stopping Services"
+    systemctl stop tubearchivist tubearchivist-celery tubearchivist-beat
+    msg_ok "Stopped Services"
 
     msg_info "Backing up Data"
     cp /opt/tubearchivist/.env /opt/tubearchivist_env.bak
@@ -59,9 +59,19 @@ function update_script() {
     mv /opt/tubearchivist_env.bak /opt/tubearchivist/.env
     msg_ok "Restored Configuration"
 
-    msg_info "Starting Service"
-    systemctl start tubearchivist
-    msg_ok "Started Service"
+    msg_info "Running Migrations"
+    set -a
+    source /opt/tubearchivist/.env
+    set +a
+    cd /opt/tubearchivist/backend
+    $STD /opt/tubearchivist/.venv/bin/python manage.py migrate
+    $STD /opt/tubearchivist/.venv/bin/python manage.py collectstatic --noinput -c
+    msg_ok "Ran Migrations"
+
+    msg_info "Starting Services"
+    systemctl start tubearchivist tubearchivist-celery tubearchivist-beat
+    systemctl reload nginx
+    msg_ok "Started Services"
     msg_ok "Updated successfully!"
   fi
   exit
@@ -74,7 +84,7 @@ description
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8000${CL}"
 echo -e "${INFO}${YW} Credentials:${CL}"
 echo -e "${TAB}${BGN}Username: admin${CL}"
 echo -e "${TAB}${BGN}Password: see ~/tubearchivist.creds${CL}"

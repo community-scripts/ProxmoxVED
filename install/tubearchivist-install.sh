@@ -17,6 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
   git \
+  nginx \
   redis-server \
   atomicparsley \
   python3-dev \
@@ -80,11 +81,15 @@ if [[ -f /opt/tubearchivist/backend/requirements.plugins.txt ]]; then
 fi
 TA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 ES_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+mkdir -p /opt/tubearchivist/{cache,media}
 cat <<EOF >/opt/tubearchivist/.env
-TA_HOST=http://${LOCAL_IP}:8080
+TA_HOST=http://${LOCAL_IP}:8000
 TA_USERNAME=admin
 TA_PASSWORD=${TA_PASSWORD}
 TA_BACKEND_PORT=8080
+TA_APP_DIR=/opt/tubearchivist
+TA_CACHE_DIR=/opt/tubearchivist/cache
+TA_MEDIA_DIR=/opt/tubearchivist/media
 ELASTIC_PASSWORD=${ES_PASSWORD}
 REDIS_CON=redis://localhost:6379
 ES_URL=http://localhost:9200
@@ -102,10 +107,97 @@ EOF
 $STD systemctl enable --now redis-server
 msg_ok "Set up Tube Archivist"
 
-msg_info "Creating Service"
+msg_info "Configuring Nginx"
+sed -i 's/^user www-data;$/user root;/' /etc/nginx/nginx.conf
+cat <<'EOF' >/etc/nginx/sites-available/default
+server {
+    listen 8000;
+
+    location /cache/videos/ {
+        auth_request /api/ping/;
+        alias /opt/tubearchivist/cache/videos/;
+    }
+
+    location /cache/channels/ {
+        auth_request /api/ping/;
+        alias /opt/tubearchivist/cache/channels/;
+    }
+
+    location /cache/playlists/ {
+        auth_request /api/ping/;
+        alias /opt/tubearchivist/cache/playlists/;
+    }
+
+    location /media/ {
+        auth_request /api/ping/;
+        alias /opt/tubearchivist/media/;
+        types {
+            text/vtt vtt;
+        }
+    }
+
+    location /youtube/ {
+        auth_request /api/ping/;
+        alias /opt/tubearchivist/media/;
+        types {
+            video/mp4 mp4;
+        }
+    }
+
+    location /api {
+        include proxy_params;
+        proxy_pass http://localhost:8080;
+    }
+
+    location /admin {
+        include proxy_params;
+        proxy_pass http://localhost:8080;
+    }
+
+    location /static/ {
+        alias /opt/tubearchivist/backend/staticfiles/;
+    }
+
+    root /opt/tubearchivist/backend/static;
+    index index.html;
+
+    location ~* ^/(?!static/|cache/).*\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        try_files $uri $uri/ /index.html =404;
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+    }
+
+    location / {
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+        try_files $uri $uri/ /index.html =404;
+    }
+}
+EOF
+systemctl enable -q --now nginx
+msg_ok "Configured Nginx"
+
+msg_info "Initializing Application"
+set -a
+source /opt/tubearchivist/.env
+set +a
+cd /opt/tubearchivist/backend
+$STD /opt/tubearchivist/.venv/bin/python manage.py migrate
+$STD /opt/tubearchivist/.venv/bin/python manage.py collectstatic --noinput -c
+$STD /opt/tubearchivist/.venv/bin/python manage.py ta_envcheck
+$STD /opt/tubearchivist/.venv/bin/python manage.py ta_connection
+$STD /opt/tubearchivist/.venv/bin/python manage.py ta_startup
+msg_ok "Initialized Application"
+
+msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/tubearchivist.service
 [Unit]
-Description=Tube Archivist
+Description=Tube Archivist Backend
 After=network.target elasticsearch.service redis-server.service
 
 [Service]
@@ -121,8 +213,45 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now tubearchivist
-msg_ok "Created Service"
+cat <<EOF >/etc/systemd/system/tubearchivist-celery.service
+[Unit]
+Description=Tube Archivist Celery Worker
+After=tubearchivist.service redis-server.service elasticsearch.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/tubearchivist/backend
+EnvironmentFile=/opt/tubearchivist/.env
+Environment=PATH=/opt/tubearchivist/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/tubearchivist/.venv/bin/celery -A task worker --loglevel=error --concurrency=4 --max-tasks-per-child=5 --max-memory-per-child=150000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+cat <<EOF >/etc/systemd/system/tubearchivist-beat.service
+[Unit]
+Description=Tube Archivist Celery Beat
+After=tubearchivist.service redis-server.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/tubearchivist/backend
+EnvironmentFile=/opt/tubearchivist/.env
+Environment=PATH=/opt/tubearchivist/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/tubearchivist/.venv/bin/celery -A task beat --loglevel=error --scheduler django_celery_beat.schedulers:DatabaseScheduler
+Restart=always
+RestartSec=5
+RuntimeMaxSec=3600
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now tubearchivist tubearchivist-celery tubearchivist-beat
+msg_ok "Created Services"
 
 motd_ssh
 customize
