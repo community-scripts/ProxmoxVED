@@ -47,6 +47,7 @@ PRISMA_DATABASE_URL="postgresql://teable:${PG_DB_PASS}@localhost:5432/teable?sch
 msg_ok "Ran Database Migrations"
 
 msg_info "Configuring Teable"
+mkdir -p /opt/teable/.assets /opt/teable/.temporary
 SECRET_KEY=$(openssl rand -base64 32)
 cat <<EOF >/opt/teable/.env
 PRISMA_DATABASE_URL=postgresql://teable:${PG_DB_PASS}@localhost:5432/teable?schema=public&statement_cache_size=1
@@ -55,6 +56,9 @@ SECRET_KEY=${SECRET_KEY}
 PORT=3000
 NODE_ENV=production
 NEXT_TELEMETRY_DISABLED=1
+BACKEND_CACHE_PROVIDER=sqlite
+BACKEND_CACHE_SQLITE_URI=sqlite:///opt/teable/.assets/.cache.db
+NEXTJS_DIR=apps/nextjs-app
 EOF
 ln -sf /opt/teable /app
 msg_ok "Configured Teable"
