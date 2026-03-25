@@ -90,6 +90,7 @@ TA_BACKEND_PORT=8080
 TA_APP_DIR=/opt/tubearchivist
 TA_CACHE_DIR=/opt/tubearchivist/cache
 TA_MEDIA_DIR=/opt/tubearchivist/media
+ES_SNAPSHOT_DIR=/var/lib/elasticsearch/snapshot
 ELASTIC_PASSWORD=${ES_PASSWORD}
 REDIS_CON=redis://localhost:6379
 ES_URL=http://localhost:9200
