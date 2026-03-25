@@ -11,7 +11,7 @@
     "interface_port": 443,
     "documentation": "https://jitsi.github.io/handbook/",
     "website": "https://jitsi.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/jitsi.webp",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/jitsi-meet.webp",
     "config_path": "/etc/jitsi",
     "description": "Jitsi Meet is a set of open-source projects for secure, simple and scalable video conferences with state-of-the-art video quality and features.",
     "install_methods": [
