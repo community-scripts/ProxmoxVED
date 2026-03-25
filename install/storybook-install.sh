@@ -20,7 +20,7 @@ mkdir -p /opt/storybook
 cd /opt/storybook
 msg_ok "Important: Interactive configuration will start now."
 
-npx -y storybook@latest init --yes
+npx -y storybook@latest init --yes --no-dev
 PROJECT_PATH=$(find /opt/storybook -maxdepth 2 -name ".storybook" -type d 2>/dev/null | head -n1 | xargs dirname)
 
 if [[ -z "$PROJECT_PATH" ]]; then
