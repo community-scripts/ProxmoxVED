@@ -17,8 +17,6 @@ msg_info "Installing Dependencies"
 $STD apt install -y nginx
 msg_ok "Installed Dependencies"
 
-JAVA_VERSION=17 setup_java
-
 source /etc/os-release
 setup_deb822_repo "prosody" "https://prosody.im/files/prosody-debian-packages.key" "http://packages.prosody.im/debian" "${VERSION_CODENAME}" "main"
 setup_deb822_repo "jitsi" "https://download.jitsi.org/jitsi-key.gpg.key" "https://download.jitsi.org/stable" "./"
