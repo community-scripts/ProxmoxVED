@@ -87,6 +87,9 @@ $STD curl -fsSL https://bootstrap.pypa.io/get-pip.py | "${BENCH_VENV}/bin/python
 $STD "${BENCH_VENV}/bin/python" -m pip install ansible
 ln -sf "${BENCH_VENV}"/bin/ansible* /usr/local/bin/
 $STD bash -c 'export PATH="/home/frappe/.local/bin:$PATH"; cd /opt/frappe-bench && bench setup production frappe --yes'
+ln -sf /opt/frappe-bench/config/supervisor.conf /etc/supervisor/conf.d/frappe-bench.conf
+$STD supervisorctl reread
+$STD supervisorctl update
 $STD systemctl enable --now supervisor
 msg_ok "Set up Production"
 
