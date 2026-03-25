@@ -27,6 +27,12 @@ UV_PYTHON="3.12" setup_uv
 
 msg_info "Setting up Matter Server"
 mkdir -p /opt/matter-server/data/credentials
+if [ -L /data ]; then
+  rm -f /data
+fi
+if [ ! -e /data ]; then
+  ln -s /opt/matter-server/data /data
+fi
 $STD uv venv /opt/matter-server/.venv
 MATTER_VERSION=$(get_latest_github_release "matter-js/python-matter-server")
 $STD uv pip install --python /opt/matter-server/.venv/bin/python "python-matter-server[server]==${MATTER_VERSION}"
@@ -51,7 +57,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/opt/matter-server/.venv/bin/matter-server --storage-path /opt/matter-server/data --paa-root-cert-dir /opt/matter-server/data/credentials
+ExecStart=/opt/matter-server/.venv/bin/matter-server --storage-path /data --paa-root-cert-dir /data/credentials
 Restart=on-failure
 RestartSec=5
 
