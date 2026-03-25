@@ -56,12 +56,16 @@ export NODE_ENV=production
 export NEXT_TELEMETRY_DISABLED=1
 export SQLITE_NATIVE_BINDING=/opt/storyteller/node_modules/better-sqlite3/build/Release/better_sqlite3.node
 $STD yarn workspaces foreach -Rpt --from @storyteller-platform/web --exclude @storyteller-platform/eslint run build
-cp -r /opt/storyteller/web/.next/static /opt/storyteller/web/.next/standalone/web/.next/static
+mkdir -p /opt/storyteller/web/.next/standalone/web/.next/static
+cp -rT /opt/storyteller/web/.next/static /opt/storyteller/web/.next/standalone/web/.next/static
 if [[ -d /opt/storyteller/web/public ]]; then
-  cp -r /opt/storyteller/web/public /opt/storyteller/web/.next/standalone/web/public
+  mkdir -p /opt/storyteller/web/.next/standalone/web/public
+  cp -rT /opt/storyteller/web/public /opt/storyteller/web/.next/standalone/web/public
 fi
-cp -r /opt/storyteller/web/migrations /opt/storyteller/web/.next/standalone/web/migrations
-cp -r /opt/storyteller/web/sqlite /opt/storyteller/web/.next/standalone/web/sqlite
+mkdir -p /opt/storyteller/web/.next/standalone/web/migrations
+cp -rT /opt/storyteller/web/migrations /opt/storyteller/web/.next/standalone/web/migrations
+mkdir -p /opt/storyteller/web/.next/standalone/web/sqlite
+cp -rT /opt/storyteller/web/sqlite /opt/storyteller/web/.next/standalone/web/sqlite
 ln -sf /opt/storyteller/.env /opt/storyteller/web/.next/standalone/web/.env
 msg_ok "Built Storyteller"
 
