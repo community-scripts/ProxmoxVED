@@ -18,11 +18,11 @@ $STD apt install -y \
   build-essential \
   git \
   libsqlite3-dev \
-  python3
+  python3 \
+  ffmpeg
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
-setup_ffmpeg
 
 msg_info "Installing Readium"
 READIUM_VERSION="0.6.5"

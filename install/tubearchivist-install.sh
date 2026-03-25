@@ -22,12 +22,12 @@ $STD apt install -y \
   atomicparsley \
   libldap2-dev \
   libsasl2-dev \
-  libssl-dev
+  libssl-dev \
+  ffmpeg
 msg_ok "Installed Dependencies"
 
 UV_PYTHON="3.13" setup_uv
 NODE_VERSION="22" setup_nodejs
-setup_ffmpeg
 
 fetch_and_deploy_gh_release "deno" "denoland/deno" "prebuild" "latest" "/usr/local/bin" "deno-x86_64-unknown-linux-gnu.zip"
 
