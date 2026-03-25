@@ -187,6 +187,9 @@ cat <<'RUNEOF' >/opt/tubearchivist/backend/run.sh
 #!/bin/bash
 set -e
 cd /opt/tubearchivist/backend
+set -a
+source /opt/tubearchivist/.env
+set +a
 PYTHON=/opt/tubearchivist/.venv/bin/python
 
 echo "Waiting for ElasticSearch..."
@@ -206,6 +209,7 @@ $PYTHON manage.py ta_startup
 exec $PYTHON backend_start.py
 RUNEOF
 chmod +x /opt/tubearchivist/backend/run.sh
+ln -sf /opt/tubearchivist/.env /opt/tubearchivist/backend/.env
 cat <<EOF >/etc/systemd/system/tubearchivist.service
 [Unit]
 Description=Tube Archivist Backend
