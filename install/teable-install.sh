@@ -67,6 +67,14 @@ if [ -d "/opt/teable/apps/nestjs-backend/static/static" ]; then
 else
   ln -sf /opt/teable/apps/nestjs-backend/static /opt/teable/static
 fi
+{
+  echo "Teable Credentials"
+  echo "=================="
+  echo "Database User: teable"
+  echo "Database Password: ${PG_DB_PASS}"
+  echo "Database Name: teable"
+  echo "Secret Key: ${SECRET_KEY}"
+} >~/teable.creds
 msg_ok "Configured Teable"
 
 msg_info "Creating Service"

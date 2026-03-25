@@ -92,6 +92,13 @@ TZ=UTC
 PYTHONUNBUFFERED=1
 YTDLP_PLUGIN_DIRS=/opt/yt_plugins
 EOF
+{
+  echo "Tube Archivist Credentials"
+  echo "=========================="
+  echo "Username: admin"
+  echo "Password: ${TA_PASSWORD}"
+  echo "Elasticsearch Password: ${ES_PASSWORD}"
+} >~/tubearchivist.creds
 $STD systemctl enable --now redis-server
 msg_ok "Set up Tube Archivist"
 

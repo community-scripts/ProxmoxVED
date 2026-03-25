@@ -48,6 +48,11 @@ NODE_ENV=production
 NEXT_TELEMETRY_DISABLED=1
 EOF
 mkdir -p /opt/storyteller/data
+{
+  echo "Storyteller Credentials"
+  echo "======================="
+  echo "Secret Key: ${STORYTELLER_SECRET_KEY}"
+} >~/storyteller.creds
 msg_ok "Set up Storyteller"
 
 msg_info "Building Storyteller"

@@ -78,6 +78,14 @@ ADMIN_PASSWORD=${ADMIN_PASS}
 DB_ROOT_PASSWORD=${DB_ROOT_PASS}
 SITE_NAME=site1.local
 EOF
+{
+  echo "ERPNext Credentials"
+  echo "=================="
+  echo "Admin Username: Administrator"
+  echo "Admin Password: ${ADMIN_PASS}"
+  echo "DB Root Password: ${DB_ROOT_PASS}"
+  echo "Site Name: site1.local"
+} >~/erpnext.creds
 $STD systemctl enable --now redis-server
 msg_ok "Configured ERPNext"
 
