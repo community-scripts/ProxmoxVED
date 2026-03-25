@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: community-scripts
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/tphakala/birdnet-go
+
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
+
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  libasound2 \
+  sox \
+  alsa-utils
+msg_ok "Installed Dependencies"
+
+setup_ffmpeg
+
+fetch_and_deploy_gh_release "birdnet-go" "tphakala/birdnet-go" "prebuild" "latest" "/opt/birdnet-go" "birdnet-go-linux-amd64.tar.gz"
+
+msg_info "Setting up BirdNET-Go"
+cp /opt/birdnet-go/birdnet-go /usr/local/bin/birdnet-go
+chmod +x /usr/local/bin/birdnet-go
+mkdir -p /opt/birdnet-go/data/clips
+msg_ok "Set up BirdNET-Go"
+
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/birdnet-go.service
+[Unit]
+Description=BirdNET-Go
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/birdnet-go/data
+ExecStart=/usr/local/bin/birdnet-go realtime
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now birdnet-go
+msg_ok "Created Service"
+
+motd_ssh
+customize
+cleanup_lxc

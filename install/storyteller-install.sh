@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: community-scripts
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://gitlab.com/storyteller-platform/storyteller
+
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
+
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  build-essential \
+  git \
+  libsqlite3-dev \
+  python3
+msg_ok "Installed Dependencies"
+
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+setup_ffmpeg
+
+msg_info "Installing Readium"
+READIUM_VERSION="0.6.5"
+mkdir -p /opt/readium
+$STD curl -fsSL "https://github.com/readium/go-toolkit/releases/download/${READIUM_VERSION}/readium-x86_64-linux" -o /opt/readium/readium
+chmod +x /opt/readium/readium
+ln -sf /opt/readium /usr/local/bin/readium
+msg_ok "Installed Readium"
+
+fetch_and_deploy_gl_release "storyteller" "storyteller-platform/storyteller" "tarball" "latest" "/opt/storyteller"
+
+msg_info "Setting up Storyteller"
+cd /opt/storyteller
+$STD yarn install
+$STD gcc -g -fPIC -rdynamic -shared web/sqlite/uuid.c -o web/sqlite/uuid.c.so
+STORYTELLER_SECRET_KEY=$(openssl rand -base64 32)
+cat <<EOF >/opt/storyteller/.env
+STORYTELLER_SECRET_KEY=${STORYTELLER_SECRET_KEY}
+STORYTELLER_DATA_DIR=/opt/storyteller/data
+PORT=8001
+HOSTNAME=0.0.0.0
+READIUM_PORT=9000
+NODE_ENV=production
+NEXT_TELEMETRY_DISABLED=1
+EOF
+mkdir -p /opt/storyteller/data
+msg_ok "Set up Storyteller"
+
+msg_info "Building Storyteller"
+cd /opt/storyteller
+export NODE_ENV=production
+export NEXT_TELEMETRY_DISABLED=1
+export SQLITE_NATIVE_BINDING=/opt/storyteller/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+$STD yarn workspaces foreach -Rpt --from @storyteller-platform/web --exclude @storyteller-platform/eslint run build
+msg_ok "Built Storyteller"
+
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/storyteller.service
+[Unit]
+Description=Storyteller
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/storyteller/.next/standalone/web
+EnvironmentFile=/opt/storyteller/.env
+ExecStart=/usr/bin/node --enable-source-maps server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now storyteller
+msg_ok "Created Service"
+
+motd_ssh
+customize
+cleanup_lxc

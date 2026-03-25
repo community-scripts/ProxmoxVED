@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: community-scripts
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/frappe/erpnext
+
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+verb_ip6
+catch_errors
+setting_up_container
+network_check
+update_os
+
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  git \
+  build-essential \
+  libffi-dev \
+  libssl-dev \
+  redis-server \
+  xvfb \
+  libfontconfig1 \
+  libxrender1 \
+  fontconfig \
+  libjpeg-dev \
+  libmariadb-dev
+msg_ok "Installed Dependencies"
+
+NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+UV_PYTHON="3.13" setup_uv
+
+setup_mariadb
+
+msg_info "Configuring MariaDB for ERPNext"
+cat <<EOF >/etc/mysql/mariadb.conf.d/50-erpnext.cnf
+[mysqld]
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+[client]
+default-character-set=utf8mb4
+EOF
+$STD systemctl restart mariadb
+msg_ok "Configured MariaDB for ERPNext"
+
+msg_info "Installing wkhtmltopdf"
+WKHTMLTOPDF_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb"
+$STD curl -fsSL -o /tmp/wkhtmltox.deb "$WKHTMLTOPDF_URL"
+$STD apt install -y /tmp/wkhtmltox.deb
+rm -f /tmp/wkhtmltox.deb
+msg_ok "Installed wkhtmltopdf"
+
+msg_info "Installing Frappe Bench"
+$STD uv tool install frappe-bench
+msg_ok "Installed Frappe Bench"
+
+msg_info "Initializing Frappe Bench"
+ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+cd /opt
+$STD bench init --frappe-branch version-15 frappe-bench
+cd /opt/frappe-bench
+$STD bench get-app erpnext --branch version-15
+$STD bench new-site site1.local \
+  --db-root-username root \
+  --admin-password "$ADMIN_PASS" \
+  --install-app erpnext \
+  --set-default
+msg_ok "Initialized Frappe Bench"
+
+msg_info "Configuring ERPNext"
+cat <<EOF >/opt/frappe-bench/.env
+ADMIN_PASSWORD=${ADMIN_PASS}
+SITE_NAME=site1.local
+EOF
+$STD systemctl enable --now redis-server
+msg_ok "Configured ERPNext"
+
+msg_info "Setting up Production"
+$STD bench setup production root --yes
+msg_ok "Set up Production"
+
+msg_info "Creating Service"
+cat <<EOF >/etc/systemd/system/erpnext.service
+[Unit]
+Description=ERPNext (Frappe Bench)
+After=network.target mariadb.service redis-server.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/frappe-bench
+ExecStart=/opt/frappe-bench/env/bin/gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 frappe.app:application
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now erpnext
+msg_ok "Created Service"
+
+motd_ssh
+customize
+cleanup_lxc

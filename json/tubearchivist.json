@@ -1,0 +1,52 @@
+{
+    "name": "Tube Archivist",
+    "slug": "tubearchivist",
+    "categories": [
+        13
+    ],
+    "date_created": "2026-03-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8000,
+    "documentation": "https://docs.tubearchivist.com/",
+    "website": "https://github.com/tubearchivist/tubearchivist",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/tube-archivist.webp",
+    "config_path": "/opt/tubearchivist/.env",
+    "description": "Tube Archivist is a self-hosted YouTube media collection manager that indexes your video collection with metadata for organizing, searching, and playing archived YouTube videos offline.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/tubearchivist.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 6144,
+                "hdd": 30,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Requires `vm.max_map_count=262144` on the Proxmox host. Run `sysctl -w vm.max_map_count=262144` on the host and add it to `/etc/sysctl.conf` for persistence.",
+            "type": "warning"
+        },
+        {
+            "text": "ElasticSearch is configured with 1GB heap. Adjust `/etc/elasticsearch/jvm.options.d/heap.options` for larger collections.",
+            "type": "info"
+        },
+        {
+            "text": "Admin password is stored in `/opt/tubearchivist/.env`.",
+            "type": "info"
+        },
+        {
+            "text": "Minimum 6GB RAM recommended. ElasticSearch alone requires 2GB+.",
+            "type": "warning"
+        }
+    ]
+}

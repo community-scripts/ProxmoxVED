@@ -1,0 +1,48 @@
+{
+    "name": "Jitsi Meet",
+    "slug": "jitsi",
+    "categories": [
+        0
+    ],
+    "date_created": "2026-03-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 443,
+    "documentation": "https://jitsi.github.io/handbook/",
+    "website": "https://jitsi.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/jitsi.webp",
+    "config_path": "/etc/jitsi",
+    "description": "Jitsi Meet is a set of open-source projects for secure, simple and scalable video conferences with state-of-the-art video quality and features.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/jitsi.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 12,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Uses a self-signed certificate by default. Your browser will show a security warning.",
+            "type": "info"
+        },
+        {
+            "text": "Port 10000/UDP must be forwarded to the container for video/audio to work properly.",
+            "type": "warning"
+        },
+        {
+            "text": "Configuration files are located in `/etc/jitsi/`.",
+            "type": "info"
+        }
+    ]
+}
