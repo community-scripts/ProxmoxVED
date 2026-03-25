@@ -59,6 +59,7 @@ msg_ok "Installed wkhtmltopdf"
 msg_info "Installing Frappe Bench"
 useradd -m -s /bin/bash frappe
 chown frappe:frappe /opt
+echo "frappe ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/frappe
 $STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; uv tool install frappe-bench'
 msg_ok "Installed Frappe Bench"
 
