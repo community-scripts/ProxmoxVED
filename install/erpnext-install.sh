@@ -16,6 +16,7 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   git \
+  sudo \
   build-essential \
   libffi-dev \
   libssl-dev \
@@ -53,23 +54,16 @@ rm -f /tmp/wkhtmltox.deb
 msg_ok "Installed wkhtmltopdf"
 
 msg_info "Installing Frappe Bench"
-$STD uv tool install frappe-bench
-export PATH="$HOME/.local/bin:$PATH"
+useradd -m -s /bin/bash frappe
+chown frappe:frappe /opt
+$STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; uv tool install frappe-bench'
 msg_ok "Installed Frappe Bench"
 
 msg_info "Initializing Frappe Bench"
 ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
-cd /opt
-export CI=1
-export FRAPPE_ALLOW_SUPERUSER=1
-$STD bench init --frappe-branch version-15 frappe-bench
-cd /opt/frappe-bench
-$STD bench get-app erpnext --branch version-15
-$STD bench new-site site1.local \
-  --db-root-username root \
-  --admin-password "$ADMIN_PASS" \
-  --install-app erpnext \
-  --set-default
+$STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; cd /opt && bench init --frappe-branch version-15 frappe-bench'
+$STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; cd /opt/frappe-bench && bench get-app erpnext --branch version-15'
+$STD sudo -u frappe bash -c "export PATH=\"\$HOME/.local/bin:\$PATH\"; cd /opt/frappe-bench && bench new-site site1.local --db-root-username root --admin-password \"$ADMIN_PASS\" --install-app erpnext --set-default"
 msg_ok "Initialized Frappe Bench"
 
 msg_info "Configuring ERPNext"
@@ -81,7 +75,7 @@ $STD systemctl enable --now redis-server
 msg_ok "Configured ERPNext"
 
 msg_info "Setting up Production"
-$STD bench setup production root --yes
+$STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; cd /opt/frappe-bench && bench setup production frappe --yes'
 msg_ok "Set up Production"
 
 msg_info "Creating Service"
@@ -92,7 +86,7 @@ After=network.target mariadb.service redis-server.service
 
 [Service]
 Type=simple
-User=root
+User=frappe
 WorkingDirectory=/opt/frappe-bench
 ExecStart=/opt/frappe-bench/env/bin/gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 frappe.app:application
 Restart=on-failure
