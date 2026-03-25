@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: community-scripts
+# Author: MickLesk (CanbiZ)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://gitlab.com/storyteller-platform/storyteller
 
@@ -19,12 +19,13 @@ $STD apt install -y \
   git \
   pkg-config \
   libsqlite3-dev \
+  sqlite3 \
   python3 \
   python3-setuptools \
   ffmpeg
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 
 fetch_and_deploy_gh_release "readium" "readium/cli" "prebuild" "latest" "/opt/readium" "readium_linux_x86_64.tar.gz"
 ln -sf /opt/readium/readium /usr/local/bin/readium
