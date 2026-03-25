@@ -60,6 +60,7 @@ msg_ok "Installed Frappe Bench"
 msg_info "Initializing Frappe Bench"
 ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 cd /opt
+export BENCH_ALLOW_SUPERUSER=1
 $STD bench init --frappe-branch version-15 frappe-bench
 cd /opt/frappe-bench
 $STD bench get-app erpnext --branch version-15

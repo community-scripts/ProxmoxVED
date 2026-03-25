@@ -17,8 +17,10 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
   git \
+  pkg-config \
   libsqlite3-dev \
   python3 \
+  python3-setuptools \
   ffmpeg
 msg_ok "Installed Dependencies"
 

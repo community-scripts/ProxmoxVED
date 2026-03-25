@@ -20,6 +20,7 @@ $STD apt install -y \
   nginx \
   redis-server \
   atomicparsley \
+  python3-dev \
   libldap2-dev \
   libsasl2-dev \
   libssl-dev \
