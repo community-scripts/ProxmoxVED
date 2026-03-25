@@ -61,6 +61,7 @@ BACKEND_CACHE_SQLITE_URI=sqlite:///opt/teable/.assets/.cache.db
 NEXTJS_DIR=apps/nextjs-app
 EOF
 ln -sf /opt/teable /app
+rm -rf /opt/teable/static
 if [ -d "/opt/teable/apps/nestjs-backend/static/static" ]; then
   ln -sf /opt/teable/apps/nestjs-backend/static/static /opt/teable/static
 else
