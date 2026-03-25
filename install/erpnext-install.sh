@@ -18,6 +18,7 @@ $STD apt install -y \
   git \
   sudo \
   build-essential \
+  python3-dev \
   libffi-dev \
   libssl-dev \
   redis-server \
