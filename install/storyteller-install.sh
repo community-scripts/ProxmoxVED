@@ -50,10 +50,15 @@ msg_ok "Set up Storyteller"
 
 msg_info "Building Storyteller"
 cd /opt/storyteller
+export CI=1
 export NODE_ENV=production
 export NEXT_TELEMETRY_DISABLED=1
 export SQLITE_NATIVE_BINDING=/opt/storyteller/node_modules/better-sqlite3/build/Release/better_sqlite3.node
 $STD yarn workspaces foreach -Rpt --from @storyteller-platform/web --exclude @storyteller-platform/eslint run build
+cp -r /opt/storyteller/web/.next/static /opt/storyteller/web/.next/standalone/web/.next/static
+if [[ -d /opt/storyteller/web/public ]]; then
+  cp -r /opt/storyteller/web/public /opt/storyteller/web/.next/standalone/web/public
+fi
 msg_ok "Built Storyteller"
 
 msg_info "Creating Service"
@@ -65,7 +70,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/storyteller/.next/standalone/web
+WorkingDirectory=/opt/storyteller/web/.next/standalone/web
 EnvironmentFile=/opt/storyteller/.env
 ExecStart=/usr/bin/node --enable-source-maps server.js
 Restart=on-failure
