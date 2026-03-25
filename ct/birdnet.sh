@@ -40,6 +40,8 @@ function update_script() {
     msg_info "Deploying Binary"
     cp /opt/birdnet/birdnet-go /usr/local/bin/birdnet-go
     chmod +x /usr/local/bin/birdnet-go
+    cp -r /opt/birdnet/libtensorflowlite_c.so /usr/local/lib/ || true
+    ldconfig
     msg_ok "Deployed Binary"
 
     msg_info "Starting Service"

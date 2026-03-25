@@ -26,6 +26,8 @@ fetch_and_deploy_gh_release "birdnet" "tphakala/birdnet-go" "prebuild" "latest" 
 msg_info "Setting up BirdNET"
 cp /opt/birdnet/birdnet-go /usr/local/bin/birdnet-go
 chmod +x /usr/local/bin/birdnet-go
+cp -r /opt/birdnet/libtensorflowlite_c.so /usr/local/lib/ || true
+ldconfig
 mkdir -p /opt/birdnet/data/clips
 msg_ok "Set up BirdNET"
 
