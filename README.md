@@ -12,6 +12,12 @@ This repository contains a collection of scripts for managing and automating Pro
 
 ---
 
+## Want to help?
+
+Follow [here](https://community-scripts.org/docs) to see our Documentations.
+
+---
+
 ## 🚀 Development Status
 
 - **⚠️ Unstable**: Features may be incomplete or subject to change.
