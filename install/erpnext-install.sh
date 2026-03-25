@@ -62,14 +62,17 @@ msg_ok "Installed Frappe Bench"
 
 msg_info "Initializing Frappe Bench"
 ADMIN_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+DB_ROOT_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASS}'; FLUSH PRIVILEGES;"
 $STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; cd /opt && bench init --frappe-branch version-15 frappe-bench'
 $STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; cd /opt/frappe-bench && bench get-app erpnext --branch version-15'
-$STD sudo -u frappe bash -c "export PATH=\"\$HOME/.local/bin:\$PATH\"; cd /opt/frappe-bench && bench new-site site1.local --db-root-username root --admin-password \"$ADMIN_PASS\" --install-app erpnext --set-default"
+$STD sudo -u frappe bash -c "export PATH=\"\$HOME/.local/bin:\$PATH\"; cd /opt/frappe-bench && bench new-site site1.local --db-root-username root --db-root-password \"$DB_ROOT_PASS\" --admin-password \"$ADMIN_PASS\" --install-app erpnext --set-default"
 msg_ok "Initialized Frappe Bench"
 
 msg_info "Configuring ERPNext"
 cat <<EOF >/opt/frappe-bench/.env
 ADMIN_PASSWORD=${ADMIN_PASS}
+DB_ROOT_PASSWORD=${DB_ROOT_PASS}
 SITE_NAME=site1.local
 EOF
 $STD systemctl enable --now redis-server
