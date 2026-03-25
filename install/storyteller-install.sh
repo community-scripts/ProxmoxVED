@@ -33,8 +33,8 @@ fetch_and_deploy_gl_release "storyteller" "storyteller-platform/storyteller" "ta
 
 msg_info "Setting up Storyteller"
 cd /opt/storyteller
-$STD yarn install
-$STD gcc -g -fPIC -rdynamic -shared web/sqlite/uuid.c -o web/sqlite/uuid.c.so
+yarn install
+gcc -g -fPIC -rdynamic -shared web/sqlite/uuid.c -o web/sqlite/uuid.c.so
 STORYTELLER_SECRET_KEY=$(openssl rand -base64 32)
 cat <<EOF >/opt/storyteller/.env
 STORYTELLER_SECRET_KEY=${STORYTELLER_SECRET_KEY}
@@ -54,7 +54,7 @@ export CI=1
 export NODE_ENV=production
 export NEXT_TELEMETRY_DISABLED=1
 export SQLITE_NATIVE_BINDING=/opt/storyteller/node_modules/better-sqlite3/build/Release/better_sqlite3.node
-$STD yarn workspaces foreach -Rpt --from @storyteller-platform/web --exclude @storyteller-platform/eslint run build
+yarn workspaces foreach -Rpt --from @storyteller-platform/web --exclude @storyteller-platform/eslint run build
 cp -r /opt/storyteller/web/.next/static /opt/storyteller/web/.next/standalone/web/.next/static
 if [[ -d /opt/storyteller/web/public ]]; then
   cp -r /opt/storyteller/web/public /opt/storyteller/web/.next/standalone/web/public
