@@ -182,19 +182,30 @@ EOF
 systemctl enable -q --now nginx
 msg_ok "Configured Nginx"
 
-msg_info "Initializing Application"
-set -a
-source /opt/tubearchivist/.env
-set +a
-cd /opt/tubearchivist/backend
-$STD /opt/tubearchivist/.venv/bin/python manage.py migrate
-$STD /opt/tubearchivist/.venv/bin/python manage.py collectstatic --noinput -c
-$STD /opt/tubearchivist/.venv/bin/python manage.py ta_envcheck
-$STD /opt/tubearchivist/.venv/bin/python manage.py ta_connection
-$STD /opt/tubearchivist/.venv/bin/python manage.py ta_startup
-msg_ok "Initialized Application"
-
 msg_info "Creating Services"
+cat <<'RUNEOF' >/opt/tubearchivist/backend/run.sh
+#!/bin/bash
+set -e
+cd /opt/tubearchivist/backend
+PYTHON=/opt/tubearchivist/.venv/bin/python
+
+echo "Waiting for ElasticSearch..."
+for i in $(seq 1 30); do
+  if curl -sf http://localhost:9200/_cluster/health >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+
+$PYTHON manage.py migrate
+$PYTHON manage.py collectstatic --noinput -c
+$PYTHON manage.py ta_envcheck
+$PYTHON manage.py ta_connection
+$PYTHON manage.py ta_startup
+
+exec $PYTHON backend_start.py
+RUNEOF
+chmod +x /opt/tubearchivist/backend/run.sh
 cat <<EOF >/etc/systemd/system/tubearchivist.service
 [Unit]
 Description=Tube Archivist Backend
@@ -206,9 +217,9 @@ User=root
 WorkingDirectory=/opt/tubearchivist/backend
 EnvironmentFile=/opt/tubearchivist/.env
 Environment=PATH=/opt/tubearchivist/.venv/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/opt/tubearchivist/.venv/bin/python backend_start.py
+ExecStart=/opt/tubearchivist/backend/run.sh
 Restart=on-failure
-RestartSec=5
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target

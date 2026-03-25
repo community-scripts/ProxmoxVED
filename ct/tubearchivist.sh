@@ -59,15 +59,6 @@ function update_script() {
     mv /opt/tubearchivist_env.bak /opt/tubearchivist/.env
     msg_ok "Restored Configuration"
 
-    msg_info "Running Migrations"
-    set -a
-    source /opt/tubearchivist/.env
-    set +a
-    cd /opt/tubearchivist/backend
-    $STD /opt/tubearchivist/.venv/bin/python manage.py migrate
-    $STD /opt/tubearchivist/.venv/bin/python manage.py collectstatic --noinput -c
-    msg_ok "Ran Migrations"
-
     msg_info "Starting Services"
     systemctl start tubearchivist tubearchivist-celery tubearchivist-beat
     systemctl reload nginx
