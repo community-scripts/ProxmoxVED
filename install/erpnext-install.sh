@@ -54,6 +54,7 @@ msg_ok "Installed wkhtmltopdf"
 
 msg_info "Installing Frappe Bench"
 $STD uv tool install frappe-bench
+export PATH="$HOME/.local/bin:$PATH"
 msg_ok "Installed Frappe Bench"
 
 msg_info "Initializing Frappe Bench"
