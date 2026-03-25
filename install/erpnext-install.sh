@@ -83,7 +83,7 @@ msg_ok "Configured ERPNext"
 
 msg_info "Setting up Production"
 BENCH_VENV="/home/frappe/.local/share/uv/tools/frappe-bench"
-$STD "${BENCH_VENV}/bin/python" -m ensurepip
+$STD curl -fsSL https://bootstrap.pypa.io/get-pip.py | "${BENCH_VENV}/bin/python"
 $STD "${BENCH_VENV}/bin/python" -m pip install ansible
 $STD bash -c 'export PATH="/home/frappe/.local/bin:$PATH"; cd /opt/frappe-bench && bench setup production frappe --yes'
 $STD systemctl enable --now supervisor
