@@ -60,6 +60,9 @@ cp -r /opt/storyteller/web/.next/static /opt/storyteller/web/.next/standalone/we
 if [[ -d /opt/storyteller/web/public ]]; then
   cp -r /opt/storyteller/web/public /opt/storyteller/web/.next/standalone/web/public
 fi
+cp -r /opt/storyteller/web/migrations /opt/storyteller/web/.next/standalone/web/migrations
+cp -r /opt/storyteller/web/sqlite /opt/storyteller/web/.next/standalone/web/sqlite
+ln -sf /opt/storyteller/.env /opt/storyteller/web/.next/standalone/web/.env
 msg_ok "Built Storyteller"
 
 msg_info "Creating Service"
