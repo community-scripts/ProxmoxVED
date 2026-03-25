@@ -19,8 +19,8 @@
       "type": "default",
       "script": "ct/plane.sh",
       "resources": {
-        "cpu": 2,
-        "ram": 4096,
+        "cpu": 4,
+        "ram": 6144,
         "hdd": 8,
         "os": "Debian",
         "version": "13"
