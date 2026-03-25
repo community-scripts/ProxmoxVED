@@ -17,10 +17,9 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   libasound2 \
   sox \
-  alsa-utils
+  alsa-utils \
+  ffmpeg
 msg_ok "Installed Dependencies"
-
-setup_ffmpeg
 
 fetch_and_deploy_gh_release "birdnet" "tphakala/birdnet-go" "prebuild" "latest" "/opt/birdnet" "birdnet-go-linux-amd64.tar.gz"
 
