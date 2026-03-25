@@ -81,10 +81,10 @@ fi
 TA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 ES_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 cat <<EOF >/opt/tubearchivist/.env
-TA_HOST=http://${LOCAL_IP}:8000
+TA_HOST=http://${LOCAL_IP}:8080
 TA_USERNAME=admin
 TA_PASSWORD=${TA_PASSWORD}
-TA_PORT=8000
+TA_BACKEND_PORT=8080
 ELASTIC_PASSWORD=${ES_PASSWORD}
 REDIS_CON=redis://localhost:6379
 ES_URL=http://localhost:9200
