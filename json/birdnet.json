@@ -1,6 +1,6 @@
 {
-    "name": "BirdNET-Go",
-    "slug": "birdnet-go",
+    "name": "BirdNET",
+    "slug": "birdnet",
     "categories": [
         9
     ],
@@ -12,12 +12,12 @@
     "documentation": "https://github.com/tphakala/birdnet-go/wiki",
     "website": "https://github.com/tphakala/birdnet-go",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/birdnet-go.webp",
-    "config_path": "/opt/birdnet-go/data",
+    "config_path": "/opt/birdnet/data",
     "description": "BirdNET-Go is an AI-powered solution for continuous avian monitoring and identification, providing 24/7 realtime bird song analysis.",
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/birdnet-go.sh",
+            "script": "ct/birdnet.sh",
             "resources": {
                 "cpu": 4,
                 "ram": 2048,
@@ -37,7 +37,7 @@
             "type": "warning"
         },
         {
-            "text": "Data and recordings are stored in `/opt/birdnet-go/data`.",
+            "text": "Data and recordings are stored in `/opt/birdnet/data`.",
             "type": "info"
         },
         {

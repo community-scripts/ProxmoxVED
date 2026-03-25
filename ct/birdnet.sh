@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/tphakala/birdnet-go
 
-APP="BirdNET-Go"
+APP="BirdNET"
 var_tags="${var_tags:-monitoring;ai;nature}"
 var_cpu="${var_cpu:-4}"
 var_ram="${var_ram:-2048}"
@@ -30,20 +30,20 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "birdnet-go" "tphakala/birdnet-go"; then
+  if check_for_gh_release "birdnet" "tphakala/birdnet-go"; then
     msg_info "Stopping Service"
-    systemctl stop birdnet-go
+    systemctl stop birdnet
     msg_ok "Stopped Service"
 
-    fetch_and_deploy_gh_release "birdnet-go" "tphakala/birdnet-go" "prebuild" "latest" "/opt/birdnet-go" "birdnet-go-linux-amd64.tar.gz"
+    fetch_and_deploy_gh_release "birdnet" "tphakala/birdnet-go" "prebuild" "latest" "/opt/birdnet" "birdnet-go-linux-amd64.tar.gz"
 
     msg_info "Deploying Binary"
-    cp /opt/birdnet-go/birdnet-go /usr/local/bin/birdnet-go
+    cp /opt/birdnet/birdnet-go /usr/local/bin/birdnet-go
     chmod +x /usr/local/bin/birdnet-go
     msg_ok "Deployed Binary"
 
     msg_info "Starting Service"
-    systemctl start birdnet-go
+    systemctl start birdnet
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi

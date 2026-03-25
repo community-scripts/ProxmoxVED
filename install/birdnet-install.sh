@@ -22,24 +22,24 @@ msg_ok "Installed Dependencies"
 
 setup_ffmpeg
 
-fetch_and_deploy_gh_release "birdnet-go" "tphakala/birdnet-go" "prebuild" "latest" "/opt/birdnet-go" "birdnet-go-linux-amd64.tar.gz"
+fetch_and_deploy_gh_release "birdnet" "tphakala/birdnet-go" "prebuild" "latest" "/opt/birdnet" "birdnet-go-linux-amd64.tar.gz"
 
-msg_info "Setting up BirdNET-Go"
-cp /opt/birdnet-go/birdnet-go /usr/local/bin/birdnet-go
+msg_info "Setting up BirdNET"
+cp /opt/birdnet/birdnet-go /usr/local/bin/birdnet-go
 chmod +x /usr/local/bin/birdnet-go
-mkdir -p /opt/birdnet-go/data/clips
-msg_ok "Set up BirdNET-Go"
+mkdir -p /opt/birdnet/data/clips
+msg_ok "Set up BirdNET"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/birdnet-go.service
+cat <<EOF >/etc/systemd/system/birdnet.service
 [Unit]
-Description=BirdNET-Go
+Description=BirdNET
 After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/birdnet-go/data
+WorkingDirectory=/opt/birdnet/data
 ExecStart=/usr/local/bin/birdnet-go realtime
 Restart=on-failure
 RestartSec=5
@@ -47,7 +47,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now birdnet-go
+systemctl enable -q --now birdnet
 msg_ok "Created Service"
 
 motd_ssh
