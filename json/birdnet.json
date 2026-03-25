@@ -37,11 +37,11 @@
             "type": "warning"
         },
         {
-            "text": "Data and recordings are stored in `/opt/birdnet/data`.",
+            "text": "For GPU acceleration, set `var_gpu=yes` before running the script.",
             "type": "info"
         },
         {
-            "text": "GPU acceleration is not available in the LXC version. CPU-based transcription is used.",
+            "text": "Data and recordings are stored in `/opt/birdnet/data`.",
             "type": "info"
         }
     ]
