@@ -2,8 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: MickLesk (CanbiZ)
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 #
 # This script manages a local cron job for automatic LXC container OS updates.
 # The update script is downloaded once, displayed for review, and installed
@@ -191,19 +190,88 @@ view_script() {
   echo ""
 }
 
+show_status() {
+  echo ""
+  if [[ -f "$LOCAL_SCRIPT" ]]; then
+    local hash
+    hash=$(sha256sum "$LOCAL_SCRIPT" | awk '{print $1}')
+    ok "Script installed: ${LOCAL_SCRIPT}"
+    echo -e "   \e[36mSHA256:\e[0m    ${hash}"
+    echo -e "   \e[36mInstalled:\e[0m $(stat -c '%y' "$LOCAL_SCRIPT" 2>/dev/null | cut -d. -f1)"
+  else
+    err "Script not installed"
+  fi
+
+  if crontab -l -u root 2>/dev/null | grep -q "${LOCAL_SCRIPT}"; then
+    local schedule
+    schedule=$(crontab -l -u root 2>/dev/null | grep "${LOCAL_SCRIPT}" | awk '{print $1,$2,$3,$4,$5}')
+    ok "Cron active: ${schedule}"
+  else
+    err "Cron not configured"
+  fi
+
+  if [[ -f "$CONF_FILE" ]]; then
+    local excludes
+    excludes=$(grep -oP '^\s*EXCLUDE\s*=\s*\K.*' "$CONF_FILE" 2>/dev/null || echo "(none)")
+    echo -e "   \e[36mExcluded:\e[0m  ${excludes:-"(none)"}"
+  fi
+
+  if [[ -f "$LOG_FILE" ]]; then
+    local log_size last_run
+    log_size=$(du -h "$LOG_FILE" | awk '{print $1}')
+    last_run=$(grep -oP '^\s+\K\w.*' "$LOG_FILE" | tail -1)
+    echo -e "   \e[36mLog file:\e[0m  ${LOG_FILE} (${log_size})"
+    [[ -n "${last_run:-}" ]] && echo -e "   \e[36mLast run:\e[0m  ${last_run}"
+  else
+    echo -e "   \e[36mLog file:\e[0m  (no runs yet)"
+  fi
+  echo ""
+}
+
+run_now() {
+  if [[ ! -f "$LOCAL_SCRIPT" ]]; then
+    err "No local script found at ${LOCAL_SCRIPT}. Use 'Add' first."
+    exit 1
+  fi
+  info "Running update script now..."
+  bash "$LOCAL_SCRIPT" | tee -a "$LOG_FILE"
+  ok "Run completed. Log appended to ${LOG_FILE}"
+}
+
+rotate_log() {
+  if [[ ! -f "$LOG_FILE" ]]; then
+    info "No log file to rotate."
+    return
+  fi
+  local log_size
+  log_size=$(stat -c '%s' "$LOG_FILE" 2>/dev/null || echo 0)
+  local log_size_h
+  log_size_h=$(du -h "$LOG_FILE" | awk '{print $1}')
+  if confirm "Rotate log file? (current size: ${log_size_h})"; then
+    mv "$LOG_FILE" "${LOG_FILE}.old"
+    ok "Rotated: ${LOG_FILE} → ${LOG_FILE}.old"
+  fi
+}
+
 OPTIONS=(
   Add "Download, review & install cron schedule"
   Remove "Remove cron schedule & local script"
   Update "Update local script from repository"
+  Status "Show installation status & last run"
+  Run "Run update script now (manual trigger)"
   View "View currently installed script"
+  Rotate "Rotate log file"
 )
 
-CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Cron Update LXCs" --menu "Select an option:" 12 68 4 \
+CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Cron Update LXCs" --menu "Select an option:" 16 68 7 \
   "${OPTIONS[@]}" 3>&1 1>&2 2>&3) || exit 0
 
 case $CHOICE in
 "Add") add ;;
 "Remove") remove ;;
 "Update") update_script ;;
+"Status") show_status ;;
+"Run") run_now ;;
 "View") view_script ;;
+"Rotate") rotate_log ;;
 esac
