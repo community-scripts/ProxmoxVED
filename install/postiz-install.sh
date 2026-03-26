@@ -23,7 +23,7 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="postiz" PG_DB_USER="postiz" setup_postgresql_db
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 
 msg_info "Installing pnpm"
 $STD npm install -g pnpm@10.6.1

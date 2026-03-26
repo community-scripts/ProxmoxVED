@@ -17,7 +17,7 @@ $STD apt install -y \
   gh
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 
 msg_info "Creating runner user (no sudo)"
 if ! getent passwd runner >/dev/null 2>&1; then

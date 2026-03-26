@@ -32,7 +32,7 @@ $STD apt install -y \
   libmariadb-dev
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 UV_PYTHON="3.13" setup_uv
 
 setup_mariadb

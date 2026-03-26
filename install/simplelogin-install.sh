@@ -33,7 +33,7 @@ msg_ok "Installed Dependencies"
 PG_VERSION="17" setup_postgresql
 APPLICATION="simplelogin" PG_DB_NAME="simplelogin" PG_DB_USER="simplelogin" setup_postgresql_db
 PYTHON_VERSION="3.12" setup_uv
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 
 fetch_and_deploy_gh_release "simplelogin" "simple-login/app"
 

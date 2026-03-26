@@ -28,7 +28,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 UV_PYTHON="3.13" setup_uv
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 
 fetch_and_deploy_gh_release "deno" "denoland/deno" "prebuild" "latest" "/usr/local/bin" "deno-x86_64-unknown-linux-gnu.zip"
 

@@ -32,7 +32,7 @@ $STD apt install -y \
   rabbitmq-server
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="plane" PG_DB_USER="plane" setup_postgresql_db
 
@@ -154,7 +154,7 @@ GUNICORN_WORKERS=2
 LIVE_SERVER_SECRET_KEY=${LIVE_SECRET}
 API_KEY_RATE_LIMIT=60/minute
 EOF
-cat <<EOF>/opt/plane/.env
+cat <<EOF >/opt/plane/.env
 API_BASE_URL=http://localhost:8000
 LIVE_SERVER_SECRET_KEY=${LIVE_SECRET}
 REDIS_HOST=localhost
@@ -271,12 +271,12 @@ EOF
 systemctl daemon-reload
 systemctl enable -q --now plane-api plane-worker plane-beat plane-live plane-space
 {
-    echo "RabbitMQ User: plane"
-    echo "RabbitMQ Password: ${RABBITMQ_PASS}"
-    echo "MinIO Access Key: ${MINIO_ACCESS_KEY}"
-    echo "MinIO Secret Key: ${MINIO_SECRET_KEY}"
-    echo "Secret Key: ${SECRET_KEY}"
-    echo "Config: /opt/plane/apps/api/.env"
+  echo "RabbitMQ User: plane"
+  echo "RabbitMQ Password: ${RABBITMQ_PASS}"
+  echo "MinIO Access Key: ${MINIO_ACCESS_KEY}"
+  echo "MinIO Secret Key: ${MINIO_SECRET_KEY}"
+  echo "Secret Key: ${SECRET_KEY}"
+  echo "Config: /opt/plane/apps/api/.env"
 } >>~/plane.creds
 msg_ok "Created Services and MinIO Bucket"
 
