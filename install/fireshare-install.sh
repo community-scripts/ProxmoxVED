@@ -40,6 +40,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 NODE_VERSION=24 setup_nodejs
+PYTHON_VERSION=3.14 setup_uv
 
 msg_info "Compiling SVT-AV1 (Patience)"
 cd /tmp
