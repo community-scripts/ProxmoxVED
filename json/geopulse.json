@@ -9,7 +9,7 @@
     "updateable": true,
     "privileged": false,
     "interface_port": 80,
-    "documentation": "https://github.com/tess1o/geopulse/wiki",
+    "documentation": "https://tess1o.github.io/geopulse/docs/getting-started/introduction",
     "website": "https://github.com/tess1o/geopulse",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/geopulse.webp",
     "config_path": "/etc/geopulse/geopulse.env",
@@ -33,7 +33,7 @@
     },
     "notes": [
         {
-            "text": "To gain admin privileges, add GEOPULSE_ADMIN_EMAIL=your@email.com to /etc/geopulse/geopulse.env and restart the service, then register with that email.",
+            "text": "To create an admin account: `echo 'GEOPULSE_ADMIN_EMAIL=you@example.com' >> /etc/geopulse/geopulse.env && systemctl restart geopulse-backend` — then register with that email in the UI.",
             "type": "info"
         }
     ]
