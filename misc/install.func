@@ -265,17 +265,17 @@ pkg_update() {
 
       local apt_ok=false
 
-      # Phase 1: Scan regional mirrors, pick 3 random, try them
-      msg_info "Scanning regional mirrors..."
-      local regional_ok
-      regional_ok=$(_scan_reachable "$regional")
-      local regional_pick
-      regional_pick=$(printf '%s\n' $regional_ok | shuf | head -3 | xargs)
-      local r_count
-      r_count=$(echo "$regional_pick" | wc -w)
-      msg_info "Found ${r_count} regional mirrors to try"
+      # Phase 1: Scan global mirrors first (independent of local CDN issues)
+      msg_info "Scanning global mirrors..."
+      local others_ok
+      others_ok=$(_scan_reachable "$others")
+      local others_pick
+      others_pick=$(printf '%s\n' $others_ok | shuf | head -3 | xargs)
+      local o_count
+      o_count=$(echo "$others_pick" | wc -w)
+      msg_info "Found ${o_count} global mirrors to try"
 
-      for mirror in $regional_pick; do
+      for mirror in $others_pick; do
         msg_info "Trying mirror: ${mirror}"
         if _try_apt_mirror "$mirror"; then
           apt_ok=true
@@ -293,18 +293,18 @@ pkg_update() {
         fi
       fi
 
-      # Phase 3: Scan rest-of-world mirrors, pick 3 random, try them
+      # Phase 3: Fall back to regional mirrors
       if [[ "$apt_ok" != true ]]; then
-        msg_info "Scanning global mirrors..."
-        local others_ok
-        others_ok=$(_scan_reachable "$others")
-        local others_pick
-        others_pick=$(printf '%s\n' $others_ok | shuf | head -3 | xargs)
-        local o_count
-        o_count=$(echo "$others_pick" | wc -w)
-        msg_info "Found ${o_count} global mirrors to try"
+        msg_info "Scanning regional mirrors..."
+        local regional_ok
+        regional_ok=$(_scan_reachable "$regional")
+        local regional_pick
+        regional_pick=$(printf '%s\n' $regional_ok | shuf | head -3 | xargs)
+        local r_count
+        r_count=$(echo "$regional_pick" | wc -w)
+        msg_info "Found ${r_count} regional mirrors to try"
 
-        for mirror in $others_pick; do
+        for mirror in $regional_pick; do
           msg_info "Trying mirror: ${mirror}"
           if _try_apt_mirror "$mirror"; then
             apt_ok=true

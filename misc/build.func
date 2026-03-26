@@ -4655,14 +4655,14 @@ EOF'
           echo "$result" | xargs
         }
 
-        # Phase 1: Scan regional mirrors, pick 3 random, try them
-        echo "  [scan] Checking regional mirrors..."
-        REGIONAL_OK=$(scan_reachable "$REGIONAL")
-        REGIONAL_PICK=$(printf "%s\n" $REGIONAL_OK | shuf | head -3 | xargs)
-        R_COUNT=$(echo $REGIONAL_PICK | wc -w)
-        echo "  [scan] $R_COUNT regional mirrors reachable (of $(echo $REGIONAL | wc -w))"
+        # Phase 1: Scan global mirrors first (independent of local CDN issues)
+        echo "  [scan] Checking global mirrors..."
+        OTHERS_OK=$(scan_reachable "$OTHERS")
+        OTHERS_PICK=$(printf "%s\n" $OTHERS_OK | shuf | head -3 | xargs)
+        O_COUNT=$(echo $OTHERS_PICK | wc -w)
+        echo "  [scan] $O_COUNT global mirrors reachable (of $(echo $OTHERS | wc -w))"
 
-        for mirror in $REGIONAL_PICK; do
+        for mirror in $OTHERS_PICK; do
           echo "  [try] $mirror ..."
           try_mirrors "$mirror" && exit 0
         done
@@ -4673,14 +4673,14 @@ EOF'
           try_mirrors "ftp.debian.org" && exit 0
         fi
 
-        # Phase 3: Scan rest-of-world mirrors, pick 3 random, try them
-        echo "  [scan] Checking global mirrors..."
-        OTHERS_OK=$(scan_reachable "$OTHERS")
-        OTHERS_PICK=$(printf "%s\n" $OTHERS_OK | shuf | head -3 | xargs)
-        O_COUNT=$(echo $OTHERS_PICK | wc -w)
-        echo "  [scan] $O_COUNT global mirrors reachable (of $(echo $OTHERS | wc -w))"
+        # Phase 3: Fall back to regional mirrors
+        echo "  [scan] Checking regional mirrors..."
+        REGIONAL_OK=$(scan_reachable "$REGIONAL")
+        REGIONAL_PICK=$(printf "%s\n" $REGIONAL_OK | shuf | head -3 | xargs)
+        R_COUNT=$(echo $REGIONAL_PICK | wc -w)
+        echo "  [scan] $R_COUNT regional mirrors reachable (of $(echo $REGIONAL | wc -w))"
 
-        for mirror in $OTHERS_PICK; do
+        for mirror in $REGIONAL_PICK; do
           echo "  [try] $mirror ..."
           try_mirrors "$mirror" && exit 0
         done
