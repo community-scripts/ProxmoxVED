@@ -56,8 +56,14 @@ NODE_ENV=production
 EOF
 msg_ok "Configured Application"
 
+msg_info "Setting Up Standalone"
+cp /opt/lobehub/scripts/migrateServerDB/docker.cjs /opt/lobehub/.next/standalone/docker.cjs
+cp /opt/lobehub/scripts/serverLauncher/startServer.js /opt/lobehub/.next/standalone/startServer.js
+cp -r /opt/lobehub/packages/database/migrations /opt/lobehub/.next/standalone/migrations
+msg_ok "Set Up Standalone"
+
 msg_info "Running Database Migrations"
-cd /opt/lobehub
+cd /opt/lobehub/.next/standalone
 set -a && source /opt/lobehub/.env && set +a
 $STD node /opt/lobehub/.next/standalone/docker.cjs
 msg_ok "Ran Database Migrations"
@@ -74,7 +80,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/lobehub/.next/standalone
 EnvironmentFile=/opt/lobehub/.env
-ExecStart=/usr/bin/node /opt/lobehub/.next/standalone/server.js
+ExecStart=/usr/bin/node /opt/lobehub/.next/standalone/startServer.js
 Restart=on-failure
 RestartSec=5
 
