@@ -4601,7 +4601,9 @@ EOF'
     fi
 
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1" || {
-      msg_warn "apt-get update failed, trying alternate mirrors..."
+      local failed_mirror
+      failed_mirror=$(pct exec "$CTID" -- bash -c "grep -m1 -oP '(?<=URIs: https?://)[^/]+' /etc/apt/sources.list.d/debian.sources 2>/dev/null || grep -m1 -oP '(?<=deb https?://)[^/]+' /etc/apt/sources.list 2>/dev/null" 2>/dev/null || echo "unknown")
+      msg_warn "apt-get update failed on ${failed_mirror}, trying alternate mirrors..."
       local mirror_exit=0
       pct exec "$CTID" -- bash -c '
         APT_BASE="sudo curl mc gnupg2 jq"
