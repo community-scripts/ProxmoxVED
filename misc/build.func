@@ -4601,20 +4601,47 @@ EOF'
     fi
 
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1" || {
-      msg_warn "apt-get update failed, bypassing hash verification (Debian repo desync)..."
+      msg_warn "apt-get update failed, trying alternate mirrors..."
       pct exec "$CTID" -- bash -c '
         APT_BASE="sudo curl mc gnupg2 jq"
+        MIRRORS="
+          ftp.debian.org
+          ftp.us.debian.org
+          ftp.de.debian.org
+          ftp.fr.debian.org
+          ftp.nl.debian.org
+          ftp.uk.debian.org
+          ftp.ch.debian.org
+          ftp.se.debian.org
+          ftp.it.debian.org
+          ftp.au.debian.org
+          ftp.jp.debian.org
+          ftp.ca.debian.org
+          debian.csail.mit.edu
+          mirrors.ocf.berkeley.edu
+          mirrors.wikimedia.org
+          debian.osuosl.org
+          mirror.cogentco.com
+          ftp.fau.de
+          ftp.halifax.rwth-aachen.de
+          debian.mirror.lrz.de
+          mirror.init7.net
+          debian.ethz.ch
+          mirrors.dotsrc.org
+          debian.mirrors.ovh.net
+          mirror.aarnet.edu.au
+        "
         echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
-        echo "Acquire::AllowInsecureRepositories \"true\";" >>/etc/apt/apt.conf.d/99no-by-hash
-        rm -rf /var/lib/apt/lists/*
-        apt-get update --allow-insecure-repositories >/dev/null 2>&1 && \
-          apt-get install -y --allow-unauthenticated $APT_BASE >/dev/null 2>&1
-        ret=$?
-        # Restore secure settings
-        echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
-        rm -rf /var/lib/apt/lists/*
-        apt-get update >/dev/null 2>&1 || true
-        exit $ret
+        for mirror in $MIRRORS; do
+          for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
+            [ -f "$src" ] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${mirror}/|g; s|deb http[s]*://[^/]*/|deb https://${mirror}/|g" "$src"
+          done
+          rm -rf /var/lib/apt/lists/*
+          if apt-get update >/dev/null 2>&1 && apt-get install -y $APT_BASE >/dev/null 2>&1; then
+            exit 0
+          fi
+        done
+        exit 1
       ' || {
         msg_error "apt-get base packages installation failed"
         exit 1
