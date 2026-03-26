@@ -45,7 +45,7 @@ msg_info "Compiling SVT-AV1 (Patience)"
 cd /tmp
 $STD git clone --depth 1 --branch v1.8.0 https://gitlab.com/AOMediaCodec/SVT-AV1.git
 cd SVT-AV1/Build
-cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+$STD cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
 $STD make -j$(nproc)
 $STD make install
 msg_ok "Compiled SVT-AV1"
