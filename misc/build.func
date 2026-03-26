@@ -4562,7 +4562,33 @@ EOF
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/main
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 EOF'
-    pct exec "$CTID" -- ash -c "apk add bash newt curl openssh nano mc ncurses jq >/dev/null"
+    pct exec "$CTID" -- ash -c "apk add bash newt curl openssh nano mc ncurses jq >/dev/null" || {
+      msg_warn "apk install failed (dl-cdn.alpinelinux.org), trying alternate mirrors..."
+      local alpine_exit=0
+      pct exec "$CTID" -- ash -c '
+        ALPINE_MIRRORS="mirror.init7.net ftp.halifax.rwth-aachen.de mirrors.edge.kernel.org alpine.mirror.wearetriple.com mirror.leaseweb.com uk.alpinelinux.org dl-2.alpinelinux.org dl-4.alpinelinux.org"
+        for m in $(printf "%s\n" $ALPINE_MIRRORS | shuf); do
+          if wget -q --spider --timeout=2 "http://$m/alpine/latest-stable/main/" 2>/dev/null; then
+            echo "  Attempting mirror: $m"
+            cat <<EOF >/etc/apk/repositories
+http://$m/alpine/latest-stable/main
+http://$m/alpine/latest-stable/community
+EOF
+            if apk update >/dev/null 2>&1 && apk add bash newt curl openssh nano mc ncurses jq >/dev/null 2>&1; then
+              echo "  CDN set to $m: tests passed"
+              exit 0
+            else
+              echo "  Mirror $m failed"
+            fi
+          fi
+        done
+        exit 2
+      ' && alpine_exit=0 || alpine_exit=$?
+      if [[ $alpine_exit -ne 0 ]]; then
+        msg_error "apk base packages installation failed"
+        exit 1
+      fi
+    }
   else
     sleep 3
     LANG=${LANG:-en_US.UTF-8}
@@ -4607,9 +4633,17 @@ EOF'
       local mirror_exit=0
       pct exec "$CTID" -- bash -c '
         APT_BASE="sudo curl mc gnupg2 jq"
-        EU_MIRRORS="ftp.de.debian.org ftp.fr.debian.org ftp.nl.debian.org ftp.uk.debian.org ftp.ch.debian.org ftp.se.debian.org ftp.it.debian.org ftp.fau.de ftp.halifax.rwth-aachen.de debian.mirror.lrz.de mirror.init7.net debian.ethz.ch mirrors.dotsrc.org debian.mirrors.ovh.net"
-        US_MIRRORS="ftp.us.debian.org ftp.ca.debian.org debian.csail.mit.edu mirrors.ocf.berkeley.edu mirrors.wikimedia.org debian.osuosl.org mirror.cogentco.com"
-        AP_MIRRORS="ftp.au.debian.org ftp.jp.debian.org ftp.tw.debian.org ftp.kr.debian.org ftp.hk.debian.org ftp.sg.debian.org mirror.aarnet.edu.au mirror.nitc.ac.in"
+        DISTRO=$(. /etc/os-release 2>/dev/null && echo "$ID" || echo "debian")
+
+        if [ "$DISTRO" = "ubuntu" ]; then
+          EU_MIRRORS="de.archive.ubuntu.com fr.archive.ubuntu.com se.archive.ubuntu.com nl.archive.ubuntu.com it.archive.ubuntu.com ch.archive.ubuntu.com mirrors.xtom.de"
+          US_MIRRORS="us.archive.ubuntu.com archive.ubuntu.com mirrors.edge.kernel.org mirror.csclub.uwaterloo.ca mirrors.ocf.berkeley.edu mirror.math.princeton.edu"
+          AP_MIRRORS="au.archive.ubuntu.com jp.archive.ubuntu.com kr.archive.ubuntu.com tw.archive.ubuntu.com mirror.aarnet.edu.au"
+        else
+          EU_MIRRORS="ftp.de.debian.org ftp.fr.debian.org ftp.nl.debian.org ftp.uk.debian.org ftp.ch.debian.org ftp.se.debian.org ftp.it.debian.org ftp.fau.de ftp.halifax.rwth-aachen.de debian.mirror.lrz.de mirror.init7.net debian.ethz.ch mirrors.dotsrc.org debian.mirrors.ovh.net"
+          US_MIRRORS="ftp.us.debian.org ftp.ca.debian.org debian.csail.mit.edu mirrors.ocf.berkeley.edu mirrors.wikimedia.org debian.osuosl.org mirror.cogentco.com"
+          AP_MIRRORS="ftp.au.debian.org ftp.jp.debian.org ftp.tw.debian.org ftp.kr.debian.org ftp.hk.debian.org ftp.sg.debian.org mirror.aarnet.edu.au mirror.nitc.ac.in"
+        fi
 
         TZ=$(cat /etc/timezone 2>/dev/null || echo "UTC")
         case "$TZ" in
@@ -4665,10 +4699,15 @@ EOF'
           try_mirrors "$mirror" && exit 0
         done
 
-        # Phase 2: Try ftp.debian.org
-        if timeout 2 bash -c "echo >/dev/tcp/ftp.debian.org/80" 2>/dev/null; then
-          echo "  Attempting mirror: ftp.debian.org"
-          try_mirrors "ftp.debian.org" && exit 0
+        # Phase 2: Try primary mirror
+        if [ "$DISTRO" = "ubuntu" ]; then
+          PRIMARY="archive.ubuntu.com"
+        else
+          PRIMARY="ftp.debian.org"
+        fi
+        if timeout 2 bash -c "echo >/dev/tcp/$PRIMARY/80" 2>/dev/null; then
+          echo "  Attempting mirror: $PRIMARY"
+          try_mirrors "$PRIMARY" && exit 0
         fi
 
         # Phase 3: Fall back to regional mirrors
@@ -4684,10 +4723,14 @@ EOF'
       ' && mirror_exit=0 || mirror_exit=$?
       if [[ $mirror_exit -eq 2 ]]; then
         msg_warn "Multiple mirrors failed (possible CDN synchronization issue)."
-        msg_info "Find Debian mirrors at: https://www.debian.org/mirror/list"
+        if [[ "$var_os" == "ubuntu" ]]; then
+          msg_info "Find Ubuntu mirrors at: https://launchpad.net/ubuntu/+archivemirrors"
+        else
+          msg_info "Find Debian mirrors at: https://www.debian.org/mirror/list"
+        fi
         local custom_mirror=""
         while true; do
-          read -rp "  Enter a Debian mirror hostname (or 'skip' to abort): " custom_mirror </dev/tty
+          read -rp "  Enter a mirror hostname (or 'skip' to abort): " custom_mirror </dev/tty
           [[ -z "$custom_mirror" ]] && continue
           [[ "$custom_mirror" == "skip" ]] && break
           [[ ! "$custom_mirror" =~ ^[a-zA-Z0-9._-]+$ ]] && {
