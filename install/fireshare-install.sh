@@ -88,7 +88,6 @@ $STD ldconfig
 msg_ok "Compiled ffmpeg"
 
 msg_info "Configuring Fireshare (Patience)"
-mkdir -p /opt/fireshare-data
 cd /opt
 $STD git clone https://github.com/ShaneIsrael/fireshare.git
 cd /opt/fireshare
@@ -141,7 +140,7 @@ Description=Fireshare Service
 After=network.target
 
 [Service]
-WorkingDirectory=/opt/fireshare
+WorkingDirectory=/opt/fireshare/app/server
 ExecStart=/opt/fireshare/.venv/bin/gunicorn --bind=127.0.0.1:5000 "fireshare:create_app(init_schedule=True)" --workers 3 --threads 3 --preload
 Restart=always
 EnvironmentFile=/opt/fireshare/fireshare.env
