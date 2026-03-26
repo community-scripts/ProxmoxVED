@@ -20,7 +20,7 @@
       "script": "ct/foldergram.sh",
       "resources": {
         "cpu": 1,
-        "ram": 1536,
+        "ram": 2048,
         "hdd": 4,
         "os": "Debian",
         "version": "13"
