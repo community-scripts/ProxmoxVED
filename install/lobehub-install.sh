@@ -18,8 +18,8 @@ $STD apt install -y \
   build-essential
 msg_ok "Installed Dependencies"
 
-PG_VERSION="16" setup_postgresql
-PG_DB_NAME="lobehub" PG_DB_USER="lobehub" setup_postgresql_db
+PG_VERSION="17" PG_MODULES="pgvector" setup_postgresql
+PG_DB_NAME="lobehub" PG_DB_USER="lobehub" PG_DB_EXTENSIONS="vector" setup_postgresql_db
 NODE_VERSION="24" setup_nodejs
 
 msg_info "Installing pnpm"
