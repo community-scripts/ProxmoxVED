@@ -4603,7 +4603,7 @@ EOF'
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1" || {
       local failed_mirror
       failed_mirror=$(pct exec "$CTID" -- bash -c "grep -m1 -oP '(?<=URIs: https?://)[^/]+' /etc/apt/sources.list.d/debian.sources 2>/dev/null || grep -m1 -oP '(?<=deb https?://)[^/]+' /etc/apt/sources.list 2>/dev/null" 2>/dev/null || echo "unknown")
-      msg_warn "apt-get update failed on ${failed_mirror}, trying alternate mirrors..."
+      msg_warn "apt-get update failed (${failed_mirror}), trying alternate mirrors..."
       local mirror_exit=0
       pct exec "$CTID" -- bash -c '
         APT_BASE="sudo curl mc gnupg2 jq"
@@ -4629,19 +4629,19 @@ EOF'
           APT_OUT=$(apt-get update 2>&1)
           APT_RC=$?
           if echo "$APT_OUT" | grep -qi "hashsum\|hash sum"; then
-            echo "  Mirror $1: hash mismatch"
+            echo "  Mirror $1 failed (hash mismatch)"
             return 1
           elif echo "$APT_OUT" | grep -qi "SSL\|certificate"; then
-            echo "  Mirror $1: SSL/certificate error"
+            echo "  Mirror $1 failed (SSL/certificate error)"
             return 1
           elif [ $APT_RC -ne 0 ]; then
-            echo "  Mirror $1: apt-get update failed"
+            echo "  Mirror $1 failed (apt-get update error)"
             return 1
           elif apt-get install -y $APT_BASE >/dev/null 2>&1; then
-            echo "  Using mirror: $1"
+            echo "  CDN set to $1: tests passed"
             return 0
           else
-            echo "  Mirror $1: package install failed"
+            echo "  Mirror $1 failed (package install error)"
             return 1
           fi
         }
@@ -4661,11 +4661,13 @@ EOF'
         OTHERS_PICK=$(printf "%s\n" $OTHERS_OK | shuf | head -3 | xargs)
 
         for mirror in $OTHERS_PICK; do
+          echo "  Attempting mirror: $mirror"
           try_mirrors "$mirror" && exit 0
         done
 
         # Phase 2: Try ftp.debian.org
         if timeout 2 bash -c "echo >/dev/tcp/ftp.debian.org/80" 2>/dev/null; then
+          echo "  Attempting mirror: ftp.debian.org"
           try_mirrors "ftp.debian.org" && exit 0
         fi
 
@@ -4674,6 +4676,7 @@ EOF'
         REGIONAL_PICK=$(printf "%s\n" $REGIONAL_OK | shuf | head -3 | xargs)
 
         for mirror in $REGIONAL_PICK; do
+          echo "  Attempting mirror: $mirror"
           try_mirrors "$mirror" && exit 0
         done
 
