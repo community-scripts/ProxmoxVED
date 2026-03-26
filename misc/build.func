@@ -4600,7 +4600,7 @@ EOF'
       pct exec "$CTID" -- bash -c "echo -e 'nameserver 8.8.8.8\nnameserver 1.1.1.1' >/etc/resolv.conf"
     fi
 
-    pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null" || {
+    pct exec "$CTID" -- bash -c "apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1" || {
       msg_warn "apt-get base packages failed, retrying with by-hash bypass and alternate mirror..."
       pct exec "$CTID" -- bash -c '
         APT_BASE="sudo curl mc gnupg2 jq"
