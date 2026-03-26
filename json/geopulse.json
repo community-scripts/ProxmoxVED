@@ -1,0 +1,40 @@
+{
+    "name": "GeoPulse",
+    "slug": "geopulse",
+    "categories": [
+        9
+    ],
+    "date_created": "2026-03-26",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://github.com/tess1o/geopulse/wiki",
+    "website": "https://github.com/tess1o/geopulse",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/geopulse.webp",
+    "config_path": "/etc/geopulse/geopulse.env",
+    "description": "Self-hosted location tracking and visualization platform with GPS history, trip detection, and AI-powered insights, backed by PostgreSQL with PostGIS.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/geopulse.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 1024,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "To gain admin privileges, add GEOPULSE_ADMIN_EMAIL=your@email.com to /etc/geopulse/geopulse.env and restart the service, then register with that email.",
+            "type": "info"
+        }
+    ]
+}
