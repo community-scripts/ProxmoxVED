@@ -202,42 +202,80 @@ pkg_update() {
   apt)
     if ! $STD apt-get update; then
       msg_warn "apt-get update failed, trying alternate mirrors..."
-      local mirrors="
-        ftp.debian.org
-        ftp.us.debian.org
-        ftp.de.debian.org
-        ftp.fr.debian.org
-        ftp.nl.debian.org
-        ftp.uk.debian.org
-        ftp.ch.debian.org
-        ftp.se.debian.org
-        ftp.it.debian.org
-        ftp.au.debian.org
-        ftp.jp.debian.org
-        ftp.ca.debian.org
-        debian.csail.mit.edu
-        mirrors.ocf.berkeley.edu
-        mirrors.wikimedia.org
-        debian.osuosl.org
-        mirror.cogentco.com
-        ftp.fau.de
-        ftp.halifax.rwth-aachen.de
-        debian.mirror.lrz.de
-        mirror.init7.net
-        debian.ethz.ch
-        mirrors.dotsrc.org
-        debian.mirrors.ovh.net
-        mirror.aarnet.edu.au
-      "
+      local eu_mirrors="ftp.de.debian.org ftp.fr.debian.org ftp.nl.debian.org ftp.uk.debian.org ftp.ch.debian.org ftp.se.debian.org ftp.it.debian.org ftp.fau.de ftp.halifax.rwth-aachen.de debian.mirror.lrz.de mirror.init7.net debian.ethz.ch mirrors.dotsrc.org debian.mirrors.ovh.net"
+      local us_mirrors="ftp.us.debian.org ftp.ca.debian.org debian.csail.mit.edu mirrors.ocf.berkeley.edu mirrors.wikimedia.org debian.osuosl.org mirror.cogentco.com"
+      local ap_mirrors="ftp.au.debian.org ftp.jp.debian.org ftp.tw.debian.org ftp.kr.debian.org ftp.in.debian.org ftp.hk.debian.org ftp.sg.debian.org mirror.aarnet.edu.au mirror.nitc.ac.in"
+
+      local tz regional others
+      tz=$(cat /etc/timezone 2>/dev/null || echo "UTC")
+      case "$tz" in
+      Europe/* | Arctic/*)
+        regional="$eu_mirrors"
+        others="$us_mirrors $ap_mirrors"
+        ;;
+      America/*)
+        regional="$us_mirrors"
+        others="$eu_mirrors $ap_mirrors"
+        ;;
+      Asia/* | Australia/* | Pacific/*)
+        regional="$ap_mirrors"
+        others="$eu_mirrors $us_mirrors"
+        ;;
+      *)
+        regional=""
+        others="$eu_mirrors $us_mirrors $ap_mirrors"
+        ;;
+      esac
+      local mirrors
+      mirrors="$(printf '%s\n' $regional | shuf) ftp.debian.org $(printf '%s\n' $others | shuf)"
+
       echo 'Acquire::By-Hash "no";' >/etc/apt/apt.conf.d/99no-by-hash
       local apt_ok=false
+      local fail_count=0
       for mirror in $mirrors; do
+        timeout 2 bash -c "echo >/dev/tcp/$mirror/80" 2>/dev/null || {
+          msg_info "Mirror skip: ${mirror} (unreachable)"
+          continue
+        }
+        msg_info "Trying mirror: ${mirror}"
         for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
           [[ -f "$src" ]] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${mirror}/|g; s|deb http[s]*://[^/]*/|deb https://${mirror}/|g" "$src"
         done
         rm -rf /var/lib/apt/lists/*
-        if $STD apt-get update; then
+        local apt_out
+        apt_out=$(apt-get update 2>&1)
+        if echo "$apt_out" | grep -qi "hashsum\|hash sum"; then
+          msg_warn "Mirror failed: ${mirror} (hash mismatch)"
+          echo "$apt_out" | grep -i "hash" | head -3 | sed 's/^/         /'
+        elif echo "$apt_out" | grep -q "^E:"; then
+          msg_warn "Mirror failed: ${mirror}"
+        else
+          msg_ok "Using mirror: ${mirror}"
           apt_ok=true
+          break
+        fi
+        fail_count=$((fail_count + 1))
+        if [[ $fail_count -ge 3 ]]; then
+          msg_warn "Multiple mirrors failed (possible CDN synchronization issue)."
+          msg_info "Find Debian mirrors at: https://www.debian.org/mirror/list"
+          while true; do
+            read -rp "  Enter a Debian mirror hostname (or 'skip' to abort): " custom_mirror </dev/tty
+            [[ -z "$custom_mirror" ]] && continue
+            [[ "$custom_mirror" == "skip" ]] && break
+            [[ ! "$custom_mirror" =~ ^[a-zA-Z0-9._-]+$ ]] && {
+              msg_warn "Invalid hostname format."
+              continue
+            }
+            for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
+              [[ -f "$src" ]] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${custom_mirror}/|g; s|deb http[s]*://[^/]*/|deb https://${custom_mirror}/|g" "$src"
+            done
+            rm -rf /var/lib/apt/lists/*
+            if $STD apt-get update; then
+              apt_ok=true
+              break 2
+            fi
+            msg_warn "Mirror '${custom_mirror}' also failed. Try another or type 'skip'."
+          done
           break
         fi
       done
