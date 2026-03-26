@@ -57,7 +57,7 @@ EOF
 msg_ok "Configured Application"
 
 msg_info "Setting Up Standalone"
-cp /opt/lobehub/scripts/migrateServerDB/docker.cjs /opt/lobehub/.next/standalone/docker.cjs
+cp -r /opt/lobehub/scripts/migrateServerDB/* /opt/lobehub/.next/standalone/
 cp /opt/lobehub/scripts/serverLauncher/startServer.js /opt/lobehub/.next/standalone/startServer.js
 cp -r /opt/lobehub/packages/database/migrations /opt/lobehub/.next/standalone/migrations
 msg_ok "Set Up Standalone"

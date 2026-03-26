@@ -59,7 +59,8 @@ function update_script() {
     msg_info "Running Migrations"
     cd /opt/baserow/backend
     set -a && source /opt/baserow/.env && set +a
-    $STD /opt/baserow/backend/.venv/bin/python -m baserow migrate
+    export PYTHONPATH="/opt/baserow/backend/src:/opt/baserow/premium/backend/src:/opt/baserow/enterprise/backend/src"
+    $STD /opt/baserow/backend/.venv/bin/python src/baserow/manage.py migrate
     msg_ok "Ran Migrations"
 
     msg_info "Starting Services"
