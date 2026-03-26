@@ -25,7 +25,7 @@ msg_info "Configuring Foldergram"
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 $STD corepack enable
 cd /opt/foldergram
-$STD pnpm install --frozen-lockfile
+$STD pnpm install
 $STD pnpm run build
 cat <<EOF >/opt/foldergram/foldergram.env
 NODE_ENV=production
