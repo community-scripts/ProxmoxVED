@@ -65,7 +65,7 @@ msg_ok "Set Up Standalone"
 msg_info "Running Database Migrations"
 cd /opt/lobehub/.next/standalone
 set -a && source /opt/lobehub/.env && set +a
-$STD node /opt/lobehub/.next/standalone/docker.cjs
+#$STD node /opt/lobehub/.next/standalone/docker.cjs
 msg_ok "Ran Database Migrations"
 
 msg_info "Creating Service"
