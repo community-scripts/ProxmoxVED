@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y ffmpeg
+$STD apt install -y --no-install-recommends ffmpeg
 msg_ok "Installed Dependencies"
 
 NODE_VERSION=22 setup_nodejs
