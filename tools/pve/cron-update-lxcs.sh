@@ -71,7 +71,7 @@ review_script() {
 
 remove_legacy_cron() {
   if crontab -l -u root 2>/dev/null | grep -q "update-lxcs-cron.sh"; then
-    (crontab -l -u root 2>/dev/null | grep -v "update-lxcs-cron.sh") | crontab -u root -
+    (crontab -l -u root 2>/dev/null | grep -v "update-lxcs-cron.sh" || true) | crontab -u root -
     ok "Removed legacy curl-based cron entry"
   fi
 }
@@ -121,7 +121,7 @@ CONF
   fi
 
   (
-    crontab -l -u root 2>/dev/null | grep -v "${LOCAL_SCRIPT}"
+    crontab -l -u root 2>/dev/null | grep -v "${LOCAL_SCRIPT}" || true
     echo "${CRON_ENTRY}"
   ) | crontab -u root -
   ok "Added cron schedule: Every Sunday at midnight"
@@ -134,7 +134,7 @@ CONF
 
 remove() {
   if crontab -l -u root 2>/dev/null | grep -q "${LOCAL_SCRIPT}"; then
-    (crontab -l -u root 2>/dev/null | grep -v "${LOCAL_SCRIPT}") | crontab -u root -
+    (crontab -l -u root 2>/dev/null | grep -v "${LOCAL_SCRIPT}" || true) | crontab -u root -
     ok "Removed cron schedule"
   fi
   remove_legacy_cron
