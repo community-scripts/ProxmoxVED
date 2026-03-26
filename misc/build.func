@@ -4627,22 +4627,19 @@ EOF'
           APT_OUT=$(apt-get update 2>&1)
           APT_RC=$?
           if echo "$APT_OUT" | grep -qi "hashsum\|hash sum"; then
-            echo "  [fail] $1 (hash mismatch)"
-            echo "$APT_OUT" | grep -i "hash" | head -3 | sed "s/^/         /"
+            echo "  Mirror $1: hash mismatch"
             return 1
           elif echo "$APT_OUT" | grep -qi "SSL\|certificate"; then
-            echo "  [fail] $1 (SSL error)"
-            echo "$APT_OUT" | grep -i "SSL\|certificate" | head -3 | sed "s/^/         /"
+            echo "  Mirror $1: SSL/certificate error"
             return 1
           elif [ $APT_RC -ne 0 ]; then
-            echo "  [fail] $1 (apt-get update error)"
-            echo "$APT_OUT" | grep "^E:" | head -3 | sed "s/^/         /"
+            echo "  Mirror $1: apt-get update failed"
             return 1
           elif apt-get install -y $APT_BASE >/dev/null 2>&1; then
-            echo "  [ok] $1"
+            echo "  Using mirror: $1"
             return 0
           else
-            echo "  [fail] $1 (package install error)"
+            echo "  Mirror $1: package install failed"
             return 1
           fi
         }
@@ -4652,40 +4649,29 @@ EOF'
           for m in $1; do
             if timeout 2 bash -c "echo >/dev/tcp/$m/80" 2>/dev/null; then
               result="$result $m"
-            else
-              echo "  [skip] $m (unreachable)"
             fi
           done
           echo "$result" | xargs
         }
 
         # Phase 1: Scan global mirrors first (independent of local CDN issues)
-        echo "  [scan] Checking global mirrors..."
         OTHERS_OK=$(scan_reachable "$OTHERS")
         OTHERS_PICK=$(printf "%s\n" $OTHERS_OK | shuf | head -3 | xargs)
-        O_COUNT=$(echo $OTHERS_PICK | wc -w)
-        echo "  [scan] $O_COUNT global mirrors reachable (of $(echo $OTHERS | wc -w))"
 
         for mirror in $OTHERS_PICK; do
-          echo "  [try] $mirror ..."
           try_mirrors "$mirror" && exit 0
         done
 
         # Phase 2: Try ftp.debian.org
         if timeout 2 bash -c "echo >/dev/tcp/ftp.debian.org/80" 2>/dev/null; then
-          echo "  [try] ftp.debian.org ..."
           try_mirrors "ftp.debian.org" && exit 0
         fi
 
         # Phase 3: Fall back to regional mirrors
-        echo "  [scan] Checking regional mirrors..."
         REGIONAL_OK=$(scan_reachable "$REGIONAL")
         REGIONAL_PICK=$(printf "%s\n" $REGIONAL_OK | shuf | head -3 | xargs)
-        R_COUNT=$(echo $REGIONAL_PICK | wc -w)
-        echo "  [scan] $R_COUNT regional mirrors reachable (of $(echo $REGIONAL | wc -w))"
 
         for mirror in $REGIONAL_PICK; do
-          echo "  [try] $mirror ..."
           try_mirrors "$mirror" && exit 0
         done
 
@@ -4705,7 +4691,7 @@ EOF'
           }
           pct exec "$CTID" -- bash -c "
             for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-              [ -f \"\$src\" ] && sed -i \"s|URIs: http[s]*://[^/]*/|URIs: https://${custom_mirror}/|g; s|deb http[s]*://[^/]*/|deb https://${custom_mirror}/|g\" \"\$src\"
+              [ -f \"\$src\" ] && sed -i \"s|URIs: http[s]*://[^/]*/|URIs: http://${custom_mirror}/|g; s|deb http[s]*://[^/]*/|deb http://${custom_mirror}/|g\" \"\$src\"
             done
             rm -rf /var/lib/apt/lists/*
             apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1
