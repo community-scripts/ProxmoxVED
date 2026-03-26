@@ -29,7 +29,7 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "geopulse" "tess1o/geopulse"; then
+  if check_for_gh_release "geopulse-backend" "tess1o/geopulse"; then
     msg_info "Stopping Service"
     systemctl stop geopulse-backend
     msg_ok "Stopped Service"
