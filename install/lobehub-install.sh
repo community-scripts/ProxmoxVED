@@ -61,15 +61,16 @@ EOF
 msg_ok "Configured Application"
 
 msg_info "Setting Up Standalone"
+cp -r /opt/lobehub/.next/static /opt/lobehub/.next/standalone/.next/static
+cp -r /opt/lobehub/public /opt/lobehub/.next/standalone/public
 cp -r /opt/lobehub/scripts/migrateServerDB/* /opt/lobehub/.next/standalone/
-cp /opt/lobehub/scripts/serverLauncher/startServer.js /opt/lobehub/.next/standalone/startServer.js
 cp -r /opt/lobehub/packages/database/migrations /opt/lobehub/.next/standalone/migrations
 msg_ok "Set Up Standalone"
 
 msg_info "Running Database Migrations"
 cd /opt/lobehub/.next/standalone
 set -a && source /opt/lobehub/.env && set +a
-#$STD node /opt/lobehub/.next/standalone/docker.cjs
+$STD node /opt/lobehub/.next/standalone/docker.cjs
 msg_ok "Ran Database Migrations"
 
 msg_info "Creating Service"
@@ -84,7 +85,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/lobehub/.next/standalone
 EnvironmentFile=/opt/lobehub/.env
-ExecStart=/usr/bin/node /opt/lobehub/.next/standalone/startServer.js
+ExecStart=/usr/bin/node /opt/lobehub/.next/standalone/server.js
 Restart=on-failure
 RestartSec=5
 
