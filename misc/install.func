@@ -201,39 +201,15 @@ pkg_update() {
   case "$PKG_MANAGER" in
   apt)
     if ! $STD apt-get update; then
-      msg_warn "apt-get update failed, retrying with by-hash bypass and alternate mirror..."
+      msg_warn "apt-get update failed, bypassing hash verification (Debian repo desync)..."
+      echo 'Acquire::By-Hash "no";' >/etc/apt/apt.conf.d/99no-by-hash
+      echo 'Acquire::AllowInsecureRepositories "true";' >>/etc/apt/apt.conf.d/99no-by-hash
+      rm -rf /var/lib/apt/lists/*
+      $STD apt-get update --allow-insecure-repositories
+      # Restore secure settings
       echo 'Acquire::By-Hash "no";' >/etc/apt/apt.conf.d/99no-by-hash
       rm -rf /var/lib/apt/lists/*
-      if ! $STD apt-get update; then
-        # Retry with country mirror
-        for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-          [[ -f "$src" ]] && sed -i 's|deb.debian.org|ftp.de.debian.org|g' "$src"
-        done
-        rm -rf /var/lib/apt/lists/*
-        if ! $STD apt-get update; then
-          # Wait for mirror sync, try original
-          sleep 30
-          for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-            [[ -f "$src" ]] && sed -i 's|ftp.de.debian.org|deb.debian.org|g' "$src"
-          done
-          rm -rf /var/lib/apt/lists/*
-          if ! $STD apt-get update; then
-            # Last resort: temporarily allow insecure repos
-            msg_warn "All mirrors have hash mismatch, temporarily relaxing APT verification..."
-            echo 'Acquire::AllowInsecureRepositories "true";' >>/etc/apt/apt.conf.d/99no-by-hash
-            for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-              [[ -f "$src" ]] && sed -i 's|deb.debian.org|ftp.debian.org|g' "$src"
-            done
-            rm -rf /var/lib/apt/lists/*
-            $STD apt-get update --allow-insecure-repositories
-            # Restore secure settings immediately
-            echo 'Acquire::By-Hash "no";' >/etc/apt/apt.conf.d/99no-by-hash
-            for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-              [[ -f "$src" ]] && sed -i 's|ftp.debian.org|deb.debian.org|g' "$src"
-            done
-          fi
-        fi
-      fi
+      $STD apt-get update || true
     fi
     ;;
   apk)

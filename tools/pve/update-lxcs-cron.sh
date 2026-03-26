@@ -36,40 +36,15 @@ function update_container() {
   archlinux) pct exec "$container" -- bash -c "pacman -Syyu --noconfirm" ;;
   fedora | rocky | centos | alma) pct exec "$container" -- bash -c "dnf -y update && dnf -y upgrade" ;;
   ubuntu | debian | devuan) pct exec "$container" -- bash -c '
-    apt_update_ok=false
-    apt-get update && apt_update_ok=true
-    if [ "$apt_update_ok" = false ]; then
+    apt-get update || {
       echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
-      rm -rf /var/lib/apt/lists/*
-      apt-get update && apt_update_ok=true
-    fi
-    if [ "$apt_update_ok" = false ]; then
-      for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-        [ -f "$src" ] && sed -i "s|deb.debian.org|ftp.de.debian.org|g" "$src"
-      done
-      rm -rf /var/lib/apt/lists/*
-      apt-get update && apt_update_ok=true
-    fi
-    if [ "$apt_update_ok" = false ]; then
-      sleep 30
-      for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-        [ -f "$src" ] && sed -i "s|ftp.de.debian.org|deb.debian.org|g" "$src"
-      done
-      rm -rf /var/lib/apt/lists/*
-      apt-get update && apt_update_ok=true
-    fi
-    if [ "$apt_update_ok" = false ]; then
       echo "Acquire::AllowInsecureRepositories \"true\";" >>/etc/apt/apt.conf.d/99no-by-hash
-      for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-        [ -f "$src" ] && sed -i "s|deb.debian.org|ftp.debian.org|g" "$src"
-      done
       rm -rf /var/lib/apt/lists/*
       apt-get update --allow-insecure-repositories
       echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
-      for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-        [ -f "$src" ] && sed -i "s|ftp.debian.org|deb.debian.org|g" "$src"
-      done
-    fi
+      rm -rf /var/lib/apt/lists/*
+      apt-get update || true
+    }
     DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confold" dist-upgrade -y
     rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED' ;;
   opensuse) pct exec "$container" -- bash -c "zypper ref && zypper --non-interactive dup" ;;
