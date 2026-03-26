@@ -64,8 +64,11 @@ REDIS_PORT=6379
 REDIS_PASSWORD=
 REDIS_PROTOCOL=redis
 BASEROW_PUBLIC_URL=http://${LOCAL_IP}
+PUBLIC_BACKEND_URL=http://${LOCAL_IP}:8000
+PUBLIC_WEB_FRONTEND_URL=http://${LOCAL_IP}:3000
 PRIVATE_BACKEND_URL=http://localhost:8000
 PRIVATE_WEB_FRONTEND_URL=http://localhost:3000
+BASEROW_DISABLE_PUBLIC_URL_CHECK=true
 DJANGO_SETTINGS_MODULE=baserow.config.settings.base
 BASEROW_AMOUNT_OF_WORKERS=2
 MEDIA_ROOT=/opt/baserow/media
@@ -77,8 +80,8 @@ msg_info "Running Migrations"
 cd /opt/baserow/backend
 set -a && source /opt/baserow/.env && set +a
 export PYTHONPATH="/opt/baserow/backend/src:/opt/baserow/premium/backend/src:/opt/baserow/enterprise/backend/src"
-$STD /opt/baserow/backend/.venv/bin/python -m baserow migrate
-$STD /opt/baserow/backend/.venv/bin/python -m baserow sync_templates
+$STD /opt/baserow/backend/.venv/bin/python src/baserow/manage.py migrate
+$STD /opt/baserow/backend/.venv/bin/python src/baserow/manage.py sync_templates
 msg_ok "Ran Migrations"
 
 msg_info "Creating Services"
@@ -175,7 +178,7 @@ WorkingDirectory=/opt/baserow/web-frontend
 EnvironmentFile=/opt/baserow/.env
 Environment=HOST=0.0.0.0
 Environment=PORT=3000
-ExecStart=/usr/bin/node node_modules/nuxt/bin/nuxt.mjs start
+ExecStart=/usr/bin/node --import ./env-remap.mjs .output/server/index.mjs
 Restart=on-failure
 RestartSec=5
 
