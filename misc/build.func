@@ -4602,20 +4602,52 @@ EOF'
 
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null" || {
       msg_warn "apt-get base packages failed, retrying with by-hash bypass and alternate mirror..."
-      pct exec "$CTID" -- bash -c "
-        echo 'Acquire::By-Hash \"no\";' >/etc/apt/apt.conf.d/99no-by-hash
+      pct exec "$CTID" -- bash -c '
+        APT_BASE="sudo curl mc gnupg2 jq"
+        apt_retry() {
+          rm -rf /var/lib/apt/lists/*
+          apt-get update >/dev/null 2>&1 && apt-get install -y $APT_BASE >/dev/null 2>&1
+        }
+
+        # Retry 1: Disable by-hash (stale CDN by-hash index)
+        echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
+        apt_retry && exit 0
+
+        # Retry 2: Switch to country mirror (may lag behind primary)
+        for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
+          [ -f "$src" ] && sed -i "s|deb.debian.org|ftp.de.debian.org|g" "$src"
+        done
+        apt_retry && exit 0
+
+        # Retry 3: Wait 30s for mirror sync, try original mirror
+        sleep 30
+        for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
+          [ -f "$src" ] && sed -i "s|ftp.de.debian.org|deb.debian.org|g" "$src"
+        done
+        apt_retry && exit 0
+
+        # Retry 4: Temporarily allow hash mismatch (Release/Packages desync)
+        echo "Acquire::AllowInsecureRepositories \"true\";" >>/etc/apt/apt.conf.d/99no-by-hash
+        for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
+          [ -f "$src" ] && sed -i "s|deb.debian.org|ftp.debian.org|g" "$src"
+        done
         rm -rf /var/lib/apt/lists/*
-        if apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1; then
-          exit 0
+        if apt-get update --allow-insecure-repositories >/dev/null 2>&1; then
+          apt-get install -y --allow-unauthenticated $APT_BASE >/dev/null 2>&1
+          ret=$?
+          # Restore secure settings immediately
+          echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
+          for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
+            [ -f "$src" ] && sed -i "s|ftp.debian.org|deb.debian.org|g" "$src"
+          done
+          rm -rf /var/lib/apt/lists/*
+          apt-get update >/dev/null 2>&1 || true
+          [ $ret -eq 0 ] && exit 0
         fi
-        if [ -f /etc/apt/sources.list.d/debian.sources ]; then
-          sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list.d/debian.sources
-        elif [ -f /etc/apt/sources.list ]; then
-          sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list
-        fi
-        rm -rf /var/lib/apt/lists/*
-        apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null
-      " || {
+        # Cleanup on failure
+        echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
+        exit 1
+      ' || {
         msg_error "apt-get base packages installation failed"
         exit 1
       }
