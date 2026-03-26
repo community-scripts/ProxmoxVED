@@ -77,13 +77,28 @@ remove_legacy_cron() {
 }
 
 add() {
-  info "Downloading update script for review..."
+  info "Downloading update script..."
   local tmp
   tmp=$(download_script) || exit 1
 
-  review_script "$tmp"
+  local hash
+  hash=$(sha256sum "$tmp" | awk '{print $1}')
+  echo ""
+  echo -e " \e[1;33m─── Installation Summary ─────────────────────────────────────\e[0m"
+  echo -e " \e[36mSource:\e[0m       ${SCRIPT_URL}"
+  echo -e " \e[36mSHA256:\e[0m       ${hash}"
+  echo -e " \e[36mInstall to:\e[0m   ${LOCAL_SCRIPT}"
+  echo -e " \e[36mConfig:\e[0m       ${CONF_FILE}"
+  echo -e " \e[36mLog file:\e[0m     ${LOG_FILE}"
+  echo -e " \e[36mCron schedule:\e[0m Every Sunday at midnight (0 0 * * 0)"
+  echo -e " \e[1;33m──────────────────────────────────────────────────────────────\e[0m"
+  echo ""
 
-  if ! confirm "Install this script to ${LOCAL_SCRIPT} and add cron schedule?"; then
+  if confirm "Review script content before installing?"; then
+    review_script "$tmp"
+  fi
+
+  if ! confirm "Install this script and activate cron schedule?"; then
     rm -f "$tmp"
     echo " Aborted."
     exit 0
@@ -179,6 +194,21 @@ view_script() {
     exit 1
   fi
 
+  local view_choice
+  view_choice=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "View Script" --menu "What do you want to view?" 12 60 3 \
+    "Worker" "Installed update script (${LOCAL_SCRIPT##*/})" \
+    "Cron" "Cron schedule & configuration" \
+    "Both" "Show everything" \
+    3>&1 1>&2 2>&3) || return 0
+
+  case "$view_choice" in
+  "Worker") view_worker_script ;;
+  "Cron") view_cron_config ;;
+  "Both") view_cron_config && echo "" && view_worker_script ;;
+  esac
+}
+
+view_worker_script() {
   local hash
   hash=$(sha256sum "$LOCAL_SCRIPT" | awk '{print $1}')
   echo ""
@@ -188,6 +218,49 @@ view_script() {
   echo -e " \e[36mSHA256:\e[0m    ${hash}"
   echo -e " \e[36mInstalled:\e[0m $(stat -c '%y' "$LOCAL_SCRIPT" 2>/dev/null | cut -d. -f1)"
   echo ""
+}
+
+view_cron_config() {
+  echo ""
+  echo -e " \e[1;33m─── Cron Configuration ───────────────────────────────────────\e[0m"
+  if crontab -l -u root 2>/dev/null | grep -q "${LOCAL_SCRIPT}"; then
+    local entry
+    entry=$(crontab -l -u root 2>/dev/null | grep "${LOCAL_SCRIPT}")
+    echo -e " \e[36mCron entry:\e[0m  ${entry}"
+    local schedule
+    schedule=$(echo "$entry" | awk '{print $1,$2,$3,$4,$5}')
+    echo -e " \e[36mSchedule:\e[0m    ${schedule} ($(cron_to_human "$schedule"))"
+  else
+    echo -e " \e[31mCron:\e[0m        Not configured"
+  fi
+  if [[ -f "$CONF_FILE" ]]; then
+    echo -e " \e[36mConfig file:\e[0m ${CONF_FILE}"
+    local excludes
+    excludes=$(grep -oP '^\s*EXCLUDE\s*=\s*\K.*' "$CONF_FILE" 2>/dev/null || true)
+    echo -e " \e[36mExcluded:\e[0m    ${excludes:-(none)}"
+    echo ""
+    echo -e " \e[90m--- ${CONF_FILE} ---\e[0m"
+    cat "$CONF_FILE"
+  else
+    echo -e " \e[36mConfig file:\e[0m (not created yet)"
+  fi
+  if [[ -f "$LOG_FILE" ]]; then
+    local log_size
+    log_size=$(du -h "$LOG_FILE" | awk '{print $1}')
+    echo -e " \e[36mLog file:\e[0m    ${LOG_FILE} (${log_size})"
+  fi
+  echo -e " \e[1;33m──────────────────────────────────────────────────────────────\e[0m"
+  echo ""
+}
+
+cron_to_human() {
+  local schedule="$1"
+  case "$schedule" in
+  "0 0 * * 0") echo "Every Sunday at midnight" ;;
+  "0 0 * * *") echo "Daily at midnight" ;;
+  "0 * * * *") echo "Every hour" ;;
+  *) echo "Custom schedule" ;;
+  esac
 }
 
 show_status() {
@@ -259,7 +332,7 @@ OPTIONS=(
   Update "Update local script from repository"
   Status "Show installation status & last run"
   Run "Run update script now (manual trigger)"
-  View "View currently installed script"
+  View "View cron config & installed script"
   Rotate "Rotate log file"
 )
 
