@@ -181,6 +181,7 @@ EOF
 ln -sf /etc/nginx/sites-available/geopulse.conf /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 systemctl enable -q --now nginx
+systemctl reload nginx
 msg_ok "Configured Nginx"
 
 motd_ssh
