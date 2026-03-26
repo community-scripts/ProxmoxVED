@@ -20,7 +20,7 @@
             "script": "ct/baserow.sh",
             "resources": {
                 "cpu": 4,
-                "ram": 4096,
+                "ram": 8192,
                 "hdd": 15,
                 "os": "Debian",
                 "version": "13"
