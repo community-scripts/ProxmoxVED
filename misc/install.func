@@ -204,7 +204,7 @@ pkg_update() {
       msg_warn "apt-get update failed, trying alternate mirrors..."
       local eu_mirrors="ftp.de.debian.org ftp.fr.debian.org ftp.nl.debian.org ftp.uk.debian.org ftp.ch.debian.org ftp.se.debian.org ftp.it.debian.org ftp.fau.de ftp.halifax.rwth-aachen.de debian.mirror.lrz.de mirror.init7.net debian.ethz.ch mirrors.dotsrc.org debian.mirrors.ovh.net"
       local us_mirrors="ftp.us.debian.org ftp.ca.debian.org debian.csail.mit.edu mirrors.ocf.berkeley.edu mirrors.wikimedia.org debian.osuosl.org mirror.cogentco.com"
-      local ap_mirrors="ftp.au.debian.org ftp.jp.debian.org ftp.tw.debian.org ftp.kr.debian.org ftp.in.debian.org ftp.hk.debian.org ftp.sg.debian.org mirror.aarnet.edu.au mirror.nitc.ac.in"
+      local ap_mirrors="ftp.au.debian.org ftp.jp.debian.org ftp.tw.debian.org ftp.kr.debian.org ftp.hk.debian.org ftp.sg.debian.org mirror.aarnet.edu.au mirror.nitc.ac.in"
 
       local tz regional others
       tz=$(cat /etc/timezone 2>/dev/null || echo "UTC")
@@ -232,7 +232,7 @@ pkg_update() {
       _try_apt_mirror() {
         local m=$1
         for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-          [[ -f "$src" ]] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${m}/|g; s|deb http[s]*://[^/]*/|deb https://${m}/|g" "$src"
+          [[ -f "$src" ]] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: http://${m}/|g; s|deb http[s]*://[^/]*/|deb http://${m}/|g" "$src"
         done
         rm -rf /var/lib/apt/lists/*
         local out
@@ -240,6 +240,10 @@ pkg_update() {
         if echo "$out" | grep -qi "hashsum\|hash sum"; then
           msg_warn "Mirror failed: ${m} (hash mismatch)"
           echo "$out" | grep -i "hash" | head -3 | sed 's/^/         /'
+          return 1
+        elif echo "$out" | grep -qi "SSL\|certificate"; then
+          msg_warn "Mirror failed: ${m} (SSL error)"
+          echo "$out" | grep -i "SSL\|certificate" | head -3 | sed 's/^/         /'
           return 1
         elif echo "$out" | grep -q "^E:"; then
           msg_warn "Mirror failed: ${m} (apt-get update error)"

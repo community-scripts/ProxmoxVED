@@ -4607,7 +4607,7 @@ EOF'
         APT_BASE="sudo curl mc gnupg2 jq"
         EU_MIRRORS="ftp.de.debian.org ftp.fr.debian.org ftp.nl.debian.org ftp.uk.debian.org ftp.ch.debian.org ftp.se.debian.org ftp.it.debian.org ftp.fau.de ftp.halifax.rwth-aachen.de debian.mirror.lrz.de mirror.init7.net debian.ethz.ch mirrors.dotsrc.org debian.mirrors.ovh.net"
         US_MIRRORS="ftp.us.debian.org ftp.ca.debian.org debian.csail.mit.edu mirrors.ocf.berkeley.edu mirrors.wikimedia.org debian.osuosl.org mirror.cogentco.com"
-        AP_MIRRORS="ftp.au.debian.org ftp.jp.debian.org ftp.tw.debian.org ftp.kr.debian.org ftp.in.debian.org ftp.hk.debian.org ftp.sg.debian.org mirror.aarnet.edu.au mirror.nitc.ac.in"
+        AP_MIRRORS="ftp.au.debian.org ftp.jp.debian.org ftp.tw.debian.org ftp.kr.debian.org ftp.hk.debian.org ftp.sg.debian.org mirror.aarnet.edu.au mirror.nitc.ac.in"
 
         TZ=$(cat /etc/timezone 2>/dev/null || echo "UTC")
         case "$TZ" in
@@ -4621,7 +4621,7 @@ EOF'
 
         try_mirrors() {
           for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-            [ -f "$src" ] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${1}/|g; s|deb http[s]*://[^/]*/|deb https://${1}/|g" "$src"
+            [ -f "$src" ] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: http://${1}/|g; s|deb http[s]*://[^/]*/|deb http://${1}/|g" "$src"
           done
           rm -rf /var/lib/apt/lists/*
           APT_OUT=$(apt-get update 2>&1)
@@ -4629,6 +4629,10 @@ EOF'
           if echo "$APT_OUT" | grep -qi "hashsum\|hash sum"; then
             echo "  [fail] $1 (hash mismatch)"
             echo "$APT_OUT" | grep -i "hash" | head -3 | sed "s/^/         /"
+            return 1
+          elif echo "$APT_OUT" | grep -qi "SSL\|certificate"; then
+            echo "  [fail] $1 (SSL error)"
+            echo "$APT_OUT" | grep -i "SSL\|certificate" | head -3 | sed "s/^/         /"
             return 1
           elif [ $APT_RC -ne 0 ]; then
             echo "  [fail] $1 (apt-get update error)"
