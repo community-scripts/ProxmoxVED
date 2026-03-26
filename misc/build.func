@@ -4601,8 +4601,13 @@ EOF'
     fi
 
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null" || {
-      msg_warn "apt-get base packages failed, retrying with CDN bypass..."
+      msg_warn "apt-get base packages failed, retrying with by-hash bypass and alternate mirror..."
       pct exec "$CTID" -- bash -c "
+        echo 'Acquire::By-Hash \"no\";' >/etc/apt/apt.conf.d/99no-by-hash
+        rm -rf /var/lib/apt/lists/*
+        if apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1; then
+          exit 0
+        fi
         if [ -f /etc/apt/sources.list.d/debian.sources ]; then
           sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list.d/debian.sources
         elif [ -f /etc/apt/sources.list ]; then

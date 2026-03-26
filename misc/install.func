@@ -201,14 +201,18 @@ pkg_update() {
   case "$PKG_MANAGER" in
   apt)
     if ! $STD apt-get update; then
-      msg_warn "apt-get update failed, retrying with CDN bypass..."
-      if [[ -f /etc/apt/sources.list.d/debian.sources ]]; then
-        sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list.d/debian.sources
-      elif [[ -f /etc/apt/sources.list ]]; then
-        sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list
-      fi
+      msg_warn "apt-get update failed, retrying with by-hash bypass and alternate mirror..."
+      echo 'Acquire::By-Hash "no";' >/etc/apt/apt.conf.d/99no-by-hash
       rm -rf /var/lib/apt/lists/*
-      $STD apt-get update
+      if ! $STD apt-get update; then
+        if [[ -f /etc/apt/sources.list.d/debian.sources ]]; then
+          sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list.d/debian.sources
+        elif [[ -f /etc/apt/sources.list ]]; then
+          sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list
+        fi
+        rm -rf /var/lib/apt/lists/*
+        $STD apt-get update
+      fi
     fi
     ;;
   apk)
