@@ -4595,8 +4595,19 @@ EOF'
     fi
 
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null" || {
-      msg_error "apt-get base packages installation failed"
-      exit 1
+      msg_warn "apt-get base packages failed, retrying with CDN bypass..."
+      pct exec "$CTID" -- bash -c "
+        if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+          sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list.d/debian.sources
+        elif [ -f /etc/apt/sources.list ]; then
+          sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list
+        fi
+        rm -rf /var/lib/apt/lists/*
+        apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null
+      " || {
+        msg_error "apt-get base packages installation failed"
+        exit 1
+      }
     }
   fi
 
