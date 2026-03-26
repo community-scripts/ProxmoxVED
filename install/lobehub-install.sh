@@ -18,8 +18,12 @@ $STD apt install -y \
   build-essential
 msg_ok "Installed Dependencies"
 
-PG_VERSION="17" PG_MODULES="pgvector" setup_postgresql
-PG_DB_NAME="lobehub" PG_DB_USER="lobehub" PG_DB_EXTENSIONS="vector" setup_postgresql_db
+msg_info "Adding ParadeDB Repository"
+curl -fsSL https://packagecloud.io/install/repositories/paradedb/paradedb/script.deb.sh | $STD bash
+msg_ok "Added ParadeDB Repository"
+
+PG_VERSION="17" PG_MODULES="pgvector,pg-search" setup_postgresql
+PG_DB_NAME="lobehub" PG_DB_USER="lobehub" PG_DB_EXTENSIONS="vector,pg_search" setup_postgresql_db
 NODE_VERSION="24" setup_nodejs
 
 msg_info "Installing pnpm"
