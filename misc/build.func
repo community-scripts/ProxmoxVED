@@ -4594,6 +4594,12 @@ EOF'
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
 
+    # Detect broken DNS resolver (e.g. Tailscale MagicDNS) and inject public DNS
+    if ! pct exec "$CTID" -- bash -c "getent hosts deb.debian.org >/dev/null 2>&1 && getent hosts archive.ubuntu.com >/dev/null 2>&1"; then
+      msg_warn "APT repository DNS resolution failed in container, injecting public DNS servers"
+      pct exec "$CTID" -- bash -c "echo -e 'nameserver 8.8.8.8\nnameserver 1.1.1.1' >/etc/resolv.conf"
+    fi
+
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y sudo curl mc gnupg2 jq >/dev/null" || {
       msg_warn "apt-get base packages failed, retrying with CDN bypass..."
       pct exec "$CTID" -- bash -c "
