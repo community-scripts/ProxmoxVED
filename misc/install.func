@@ -200,7 +200,16 @@ detect_os
 pkg_update() {
   case "$PKG_MANAGER" in
   apt)
-    $STD apt-get update
+    if ! $STD apt-get update; then
+      msg_warn "apt-get update failed, retrying with CDN bypass..."
+      if [[ -f /etc/apt/sources.list.d/debian.sources ]]; then
+        sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list.d/debian.sources
+      elif [[ -f /etc/apt/sources.list ]]; then
+        sed -i 's|deb.debian.org|ftp.debian.org|g' /etc/apt/sources.list
+      fi
+      rm -rf /var/lib/apt/lists/*
+      $STD apt-get update
+    fi
     ;;
   apk)
     $STD apk update
@@ -703,6 +712,21 @@ network_check() {
     fatal "$GIT_STATUS"
   else
     msg_ok "$GIT_STATUS"
+  fi
+
+  # Verify APT repository DNS resolution (detect Tailscale MagicDNS / broken resolver)
+  if command -v apt-get &>/dev/null; then
+    local APT_DNS_OK=true
+    for REPO_HOST in "deb.debian.org" "archive.ubuntu.com"; do
+      if ! getent hosts "$REPO_HOST" &>/dev/null; then
+        APT_DNS_OK=false
+        break
+      fi
+    done
+    if [[ "$APT_DNS_OK" == false ]]; then
+      msg_warn "APT repository DNS resolution failed, injecting public DNS servers"
+      echo -e "nameserver 8.8.8.8\nnameserver 1.1.1.1" >/etc/resolv.conf
+    fi
   fi
 
   set -e
