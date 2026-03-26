@@ -105,6 +105,10 @@ echo "/usr/local/nvidia/lib" >>/etc/ld.so.conf.d/nvidia.conf
 echo "/usr/local/nvidia/lib64" >>/etc/ld.so.conf.d/nvidia.conf
 ldconfig
 $STD .venv/bin/python -m pip install --no-cache-dir --break-system-packages --ignore-installed app/server
+export FLASK_APP="/opt/fireshare/app/server/fireshare:create_app()"
+export DATA_DIRECTORY=/data
+export VIDEO_DIRECTORY=/videos
+export PROCESSED_DIRECTORY=/processed
 $STD uv run flask db upgrade
 
 cat <<'EOF' >/opt/fireshare/fireshare.env
