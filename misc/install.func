@@ -226,59 +226,113 @@ pkg_update() {
         others="$eu_mirrors $us_mirrors $ap_mirrors"
         ;;
       esac
-      local mirrors
-      mirrors="$(printf '%s\n' $regional | shuf) ftp.debian.org $(printf '%s\n' $others | shuf)"
 
       echo 'Acquire::By-Hash "no";' >/etc/apt/apt.conf.d/99no-by-hash
-      local apt_ok=false
-      local fail_count=0
-      for mirror in $mirrors; do
-        timeout 2 bash -c "echo >/dev/tcp/$mirror/80" 2>/dev/null || {
-          msg_info "Mirror skip: ${mirror} (unreachable)"
-          continue
-        }
-        msg_info "Trying mirror: ${mirror}"
+
+      _try_apt_mirror() {
+        local m=$1
         for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-          [[ -f "$src" ]] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${mirror}/|g; s|deb http[s]*://[^/]*/|deb https://${mirror}/|g" "$src"
+          [[ -f "$src" ]] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${m}/|g; s|deb http[s]*://[^/]*/|deb https://${m}/|g" "$src"
         done
         rm -rf /var/lib/apt/lists/*
-        local apt_out
-        apt_out=$(apt-get update 2>&1)
-        if echo "$apt_out" | grep -qi "hashsum\|hash sum"; then
-          msg_warn "Mirror failed: ${mirror} (hash mismatch)"
-          echo "$apt_out" | grep -i "hash" | head -3 | sed 's/^/         /'
-        elif echo "$apt_out" | grep -q "^E:"; then
-          msg_warn "Mirror failed: ${mirror}"
+        local out
+        out=$(apt-get update 2>&1)
+        if echo "$out" | grep -qi "hashsum\|hash sum"; then
+          msg_warn "Mirror failed: ${m} (hash mismatch)"
+          echo "$out" | grep -i "hash" | head -3 | sed 's/^/         /'
+          return 1
+        elif echo "$out" | grep -q "^E:"; then
+          msg_warn "Mirror failed: ${m} (apt-get update error)"
+          echo "$out" | grep "^E:" | head -3 | sed 's/^/         /'
+          return 1
         else
-          msg_ok "Using mirror: ${mirror}"
+          msg_ok "Using mirror: ${m}"
+          return 0
+        fi
+      }
+
+      _scan_reachable() {
+        local result=""
+        for m in $1; do
+          if timeout 2 bash -c "echo >/dev/tcp/$m/80" 2>/dev/null; then
+            result="$result $m"
+          else
+            msg_info "Mirror skip: ${m} (unreachable)"
+          fi
+        done
+        echo "$result" | xargs
+      }
+
+      local apt_ok=false
+
+      # Phase 1: Scan regional mirrors, pick 3 random, try them
+      msg_info "Scanning regional mirrors..."
+      local regional_ok
+      regional_ok=$(_scan_reachable "$regional")
+      local regional_pick
+      regional_pick=$(printf '%s\n' $regional_ok | shuf | head -3 | xargs)
+      local r_count
+      r_count=$(echo "$regional_pick" | wc -w)
+      msg_info "Found ${r_count} regional mirrors to try"
+
+      for mirror in $regional_pick; do
+        msg_info "Trying mirror: ${mirror}"
+        if _try_apt_mirror "$mirror"; then
           apt_ok=true
           break
         fi
-        fail_count=$((fail_count + 1))
-        if [[ $fail_count -ge 3 ]]; then
-          msg_warn "Multiple mirrors failed (possible CDN synchronization issue)."
-          msg_info "Find Debian mirrors at: https://www.debian.org/mirror/list"
-          while true; do
-            read -rp "  Enter a Debian mirror hostname (or 'skip' to abort): " custom_mirror </dev/tty
-            [[ -z "$custom_mirror" ]] && continue
-            [[ "$custom_mirror" == "skip" ]] && break
-            [[ ! "$custom_mirror" =~ ^[a-zA-Z0-9._-]+$ ]] && {
-              msg_warn "Invalid hostname format."
-              continue
-            }
-            for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-              [[ -f "$src" ]] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${custom_mirror}/|g; s|deb http[s]*://[^/]*/|deb https://${custom_mirror}/|g" "$src"
-            done
-            rm -rf /var/lib/apt/lists/*
-            if $STD apt-get update; then
-              apt_ok=true
-              break 2
-            fi
-            msg_warn "Mirror '${custom_mirror}' also failed. Try another or type 'skip'."
-          done
-          break
-        fi
       done
+
+      # Phase 2: Try ftp.debian.org
+      if [[ "$apt_ok" != true ]]; then
+        if timeout 2 bash -c "echo >/dev/tcp/ftp.debian.org/80" 2>/dev/null; then
+          msg_info "Trying mirror: ftp.debian.org"
+          if _try_apt_mirror "ftp.debian.org"; then
+            apt_ok=true
+          fi
+        fi
+      fi
+
+      # Phase 3: Scan rest-of-world mirrors, pick 3 random, try them
+      if [[ "$apt_ok" != true ]]; then
+        msg_info "Scanning global mirrors..."
+        local others_ok
+        others_ok=$(_scan_reachable "$others")
+        local others_pick
+        others_pick=$(printf '%s\n' $others_ok | shuf | head -3 | xargs)
+        local o_count
+        o_count=$(echo "$others_pick" | wc -w)
+        msg_info "Found ${o_count} global mirrors to try"
+
+        for mirror in $others_pick; do
+          msg_info "Trying mirror: ${mirror}"
+          if _try_apt_mirror "$mirror"; then
+            apt_ok=true
+            break
+          fi
+        done
+      fi
+
+      # Phase 4: All auto mirrors failed, prompt user
+      if [[ "$apt_ok" != true ]]; then
+        msg_warn "Multiple mirrors failed (possible CDN synchronization issue)."
+        msg_info "Find Debian mirrors at: https://www.debian.org/mirror/list"
+        while true; do
+          read -rp "  Enter a Debian mirror hostname (or 'skip' to abort): " custom_mirror </dev/tty
+          [[ -z "$custom_mirror" ]] && continue
+          [[ "$custom_mirror" == "skip" ]] && break
+          [[ ! "$custom_mirror" =~ ^[a-zA-Z0-9._-]+$ ]] && {
+            msg_warn "Invalid hostname format."
+            continue
+          }
+          if _try_apt_mirror "$custom_mirror"; then
+            apt_ok=true
+            break
+          fi
+          msg_warn "Mirror '${custom_mirror}' also failed. Try another or type 'skip'."
+        done
+      fi
+
       if [[ "$apt_ok" != true ]]; then
         msg_error "All mirrors failed. Check network or try again later."
         return 1

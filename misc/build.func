@@ -4602,6 +4602,7 @@ EOF'
 
     pct exec "$CTID" -- bash -c "apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1" || {
       msg_warn "apt-get update failed, trying alternate mirrors..."
+      local mirror_exit=0
       pct exec "$CTID" -- bash -c '
         APT_BASE="sudo curl mc gnupg2 jq"
         EU_MIRRORS="ftp.de.debian.org ftp.fr.debian.org ftp.nl.debian.org ftp.uk.debian.org ftp.ch.debian.org ftp.se.debian.org ftp.it.debian.org ftp.fau.de ftp.halifax.rwth-aachen.de debian.mirror.lrz.de mirror.init7.net debian.ethz.ch mirrors.dotsrc.org debian.mirrors.ovh.net"
@@ -4615,33 +4616,77 @@ EOF'
           Asia/*|Australia/*|Pacific/*) REGIONAL="$AP_MIRRORS"; OTHERS="$EU_MIRRORS $US_MIRRORS" ;;
           *) REGIONAL=""; OTHERS="$EU_MIRRORS $US_MIRRORS $AP_MIRRORS" ;;
         esac
-        MIRRORS="$(printf "%s\n" $REGIONAL | shuf) ftp.debian.org $(printf "%s\n" $OTHERS | shuf)"
 
         echo "Acquire::By-Hash \"no\";" >/etc/apt/apt.conf.d/99no-by-hash
-        FAIL_COUNT=0
-        for mirror in $MIRRORS; do
-          timeout 2 bash -c "echo >/dev/tcp/$mirror/80" 2>/dev/null || { echo "  [skip] $mirror (unreachable)"; continue; }
-          echo "  [try] $mirror ..."
+
+        try_mirrors() {
           for src in /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list; do
-            [ -f "$src" ] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${mirror}/|g; s|deb http[s]*://[^/]*/|deb https://${mirror}/|g" "$src"
+            [ -f "$src" ] && sed -i "s|URIs: http[s]*://[^/]*/|URIs: https://${1}/|g; s|deb http[s]*://[^/]*/|deb https://${1}/|g" "$src"
           done
           rm -rf /var/lib/apt/lists/*
           APT_OUT=$(apt-get update 2>&1)
+          APT_RC=$?
           if echo "$APT_OUT" | grep -qi "hashsum\|hash sum"; then
-            echo "  [fail] $mirror (hash mismatch)"
+            echo "  [fail] $1 (hash mismatch)"
             echo "$APT_OUT" | grep -i "hash" | head -3 | sed "s/^/         /"
+            return 1
+          elif [ $APT_RC -ne 0 ]; then
+            echo "  [fail] $1 (apt-get update error)"
+            echo "$APT_OUT" | grep "^E:" | head -3 | sed "s/^/         /"
+            return 1
           elif apt-get install -y $APT_BASE >/dev/null 2>&1; then
-            echo "  [ok] $mirror"
-            exit 0
+            echo "  [ok] $1"
+            return 0
           else
-            echo "  [fail] $mirror"
+            echo "  [fail] $1 (package install error)"
+            return 1
           fi
-          FAIL_COUNT=$((FAIL_COUNT + 1))
-          [ "$FAIL_COUNT" -ge 3 ] && exit 2
+        }
+
+        scan_reachable() {
+          local result=""
+          for m in $1; do
+            if timeout 2 bash -c "echo >/dev/tcp/$m/80" 2>/dev/null; then
+              result="$result $m"
+            else
+              echo "  [skip] $m (unreachable)"
+            fi
+          done
+          echo "$result" | xargs
+        }
+
+        # Phase 1: Scan regional mirrors, pick 3 random, try them
+        echo "  [scan] Checking regional mirrors..."
+        REGIONAL_OK=$(scan_reachable "$REGIONAL")
+        REGIONAL_PICK=$(printf "%s\n" $REGIONAL_OK | shuf | head -3 | xargs)
+        R_COUNT=$(echo $REGIONAL_PICK | wc -w)
+        echo "  [scan] $R_COUNT regional mirrors reachable (of $(echo $REGIONAL | wc -w))"
+
+        for mirror in $REGIONAL_PICK; do
+          echo "  [try] $mirror ..."
+          try_mirrors "$mirror" && exit 0
         done
-        exit 1
-      '
-      mirror_exit=$?
+
+        # Phase 2: Try ftp.debian.org
+        if timeout 2 bash -c "echo >/dev/tcp/ftp.debian.org/80" 2>/dev/null; then
+          echo "  [try] ftp.debian.org ..."
+          try_mirrors "ftp.debian.org" && exit 0
+        fi
+
+        # Phase 3: Scan rest-of-world mirrors, pick 3 random, try them
+        echo "  [scan] Checking global mirrors..."
+        OTHERS_OK=$(scan_reachable "$OTHERS")
+        OTHERS_PICK=$(printf "%s\n" $OTHERS_OK | shuf | head -3 | xargs)
+        O_COUNT=$(echo $OTHERS_PICK | wc -w)
+        echo "  [scan] $O_COUNT global mirrors reachable (of $(echo $OTHERS | wc -w))"
+
+        for mirror in $OTHERS_PICK; do
+          echo "  [try] $mirror ..."
+          try_mirrors "$mirror" && exit 0
+        done
+
+        exit 2
+      ' && mirror_exit=0 || mirror_exit=$?
       if [[ $mirror_exit -eq 2 ]]; then
         msg_warn "Multiple mirrors failed (possible CDN synchronization issue)."
         msg_info "Find Debian mirrors at: https://www.debian.org/mirror/list"
