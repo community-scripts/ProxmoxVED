@@ -33,7 +33,7 @@
     },
     "notes": [
         {
-            "text": "To create an admin account: `echo 'GEOPULSE_ADMIN_EMAIL=you@example.com' >> /etc/geopulse/geopulse.env && systemctl restart geopulse-backend` — then register with that email in the UI.",
+            "text": "To create an admin account, run `/usr/local/bin/create-geopulse-admin` inside the container, then register with that email in the GeoPulse UI.",
             "type": "info"
         }
     ]

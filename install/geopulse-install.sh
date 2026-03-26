@@ -184,6 +184,22 @@ systemctl enable -q --now nginx
 systemctl reload nginx
 msg_ok "Configured Nginx"
 
+msg_info "Creating Admin Helper"
+cat <<'EOF' >/usr/local/bin/create-geopulse-admin
+#!/usr/bin/env bash
+read -rp "Enter admin email address: " ADMIN_EMAIL
+if [[ -z "$ADMIN_EMAIL" ]]; then
+  echo "No email provided. Aborting."
+  exit 1
+fi
+sed -i '/^GEOPULSE_ADMIN_EMAIL=/d' /etc/geopulse/geopulse.env
+echo "GEOPULSE_ADMIN_EMAIL=${ADMIN_EMAIL}" >>/etc/geopulse/geopulse.env
+systemctl restart geopulse-backend
+echo "Admin email set to '${ADMIN_EMAIL}'. Register with this email in the GeoPulse UI to receive admin privileges."
+EOF
+chmod +x /usr/local/bin/create-geopulse-admin
+msg_ok "Created Admin Helper"
+
 motd_ssh
 customize
 cleanup_lxc
