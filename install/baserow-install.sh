@@ -30,9 +30,9 @@ $STD apt install -y \
   python3-dev
 msg_ok "Installed Dependencies"
 
-PG_VERSION="15" PG_MODULES="pgvector" setup_postgresql
+PG_VERSION="16" PG_MODULES="pgvector" setup_postgresql
 PG_DB_NAME="baserow" PG_DB_USER="baserow" setup_postgresql_db
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 setup_uv
 
 fetch_and_deploy_gh_release "baserow" "baserow/baserow" "tarball"

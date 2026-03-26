@@ -1,7 +1,9 @@
 {
     "name": "LabCA",
     "slug": "labca",
-    "categories": [6],
+    "categories": [
+        6
+    ],
     "date_created": "2026-03-25",
     "type": "ct",
     "updateable": true,

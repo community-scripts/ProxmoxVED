@@ -1,7 +1,9 @@
 {
     "name": "Baserow",
     "slug": "baserow",
-    "categories": [8],
+    "categories": [
+        8
+    ],
     "date_created": "2026-03-25",
     "type": "ct",
     "updateable": true,

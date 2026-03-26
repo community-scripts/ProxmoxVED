@@ -1,7 +1,9 @@
 {
     "name": "LobeHub",
     "slug": "lobehub",
-    "categories": [20],
+    "categories": [
+        20
+    ],
     "date_created": "2026-03-25",
     "type": "ct",
     "updateable": true,
