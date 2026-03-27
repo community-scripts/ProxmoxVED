@@ -41,8 +41,8 @@
             "type": "warning"
         },
         {
-            "text": "First-Start: Add your email as admin in museum.yaml: under `internal: admins:` add your email, then `systemctl restart ente-museum`",
-            "type": "warning"
+            "text": "First-Start: The first registered user automatically becomes admin",
+            "type": "info"
         },
         {
             "text": "First-Start: Add your account to the CLI: `ente account add` (export dir: any path, e.g. /photos)",

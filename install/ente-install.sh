@@ -106,9 +106,6 @@ key:
 jwt:
   secret: $SECRET_JWT
 
-internal:
-  admins: []
-
 # SMTP not configured - verification codes will appear in logs
 # To configure SMTP, add:
 # smtp:
