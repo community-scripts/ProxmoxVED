@@ -309,7 +309,22 @@ if [ -z "$1" ]; then
     exit 1
 fi
 EMAIL="$1"
-echo "Upgrading subscription for: $EMAIL"
+DB_NAME="$(grep -A1 '^db:' /opt/ente/server/museum.yaml | awk '/name:/{print $2}')"
+DB_USER="$(grep -A2 '^db:' /opt/ente/server/museum.yaml | awk '/user:/{print $2}')"
+USER_ID=$(psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT user_id FROM users WHERE email='$EMAIL' LIMIT 1;")
+if [ -z "$USER_ID" ]; then
+    echo "Error: No user found with email $EMAIL"
+    exit 1
+fi
+echo "Found user ID: $USER_ID for $EMAIL"
+if ! grep -q "^internal:" /opt/ente/server/museum.yaml; then
+    printf '\ninternal:\n  admin: %s\n' "$USER_ID" >> /opt/ente/server/museum.yaml
+    echo "Added admin entry to museum.yaml"
+    systemctl restart ente-museum
+    sleep 2
+else
+    echo "internal: section already exists in museum.yaml — verify admin is set"
+fi
 ente admin update-subscription -a "$EMAIL" -u "$EMAIL" --no-limit True
 EOF
 chmod +x /usr/local/bin/ente-upgrade-subscription

@@ -41,15 +41,11 @@
             "type": "warning"
         },
         {
-            "text": "First-Start: The first registered user automatically becomes admin",
-            "type": "info"
-        },
-        {
-            "text": "First-Start: Add your account to the CLI: `ente account add` (export dir: any path, e.g. /photos)",
+            "text": "First-Start: Add your account to the CLI first: `ente account add` (export dir: any path, e.g. /photos)",
             "type": "warning"
         },
         {
-            "text": "First-Start: Remove the subscription limit: `ente admin update-subscription -a <email> -u <email> --no-limit True`",
+            "text": "First-Start: Whitelist admin and remove subscription limit: `ente-upgrade-subscription <email>`",
             "type": "warning"
         },
         {
