@@ -33,15 +33,23 @@
     },
     "notes": [
         {
-            "text": "Please use `journalctl -u ente-museum.service -n 10` to read logs for the signup verification code",
+            "text": "First-Start: Create your first user account via the web UI at port 3000",
+            "type": "warning"
+        },
+        {
+            "text": "First-Start: Check museum logs for the email verification code: `journalctl -u ente-museum -n 100 | grep -i 'verification'`",
+            "type": "warning"
+        },
+        {
+            "text": "First-Start: After verifying, remove the subscription limit: `ente admin update-subscription -a <email> -u <email> --no-limit`",
+            "type": "warning"
+        },
+        {
+            "text": "To use the Ente CLI to add/whitelist admins, follow the instructions at https://ente.io/help/self-hosting/administration/cli",
             "type": "info"
         },
         {
-            "text": "If you want to use the Ente CLI to add/whitelist admins, please follow the instructions at https://ente.io/help/self-hosting/administration/cli",
-            "type": "info"
-        },
-        {
-            "text": "To see Museium config:  `cat /opt/ente/server/museum.yaml`",
+            "text": "Museum config: `cat /opt/ente/server/museum.yaml`",
             "type": "info"
         }
     ]
