@@ -37,13 +37,16 @@ function update_script() {
 
     msg_info "Backing up Configuration"
     cp /opt/pixelfed/.env /opt/pixelfed.env.bak
+    cp -r /opt/pixelfed/storage /opt/pixelfed-storage.bak
     msg_ok "Configuration backed up"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "pixelfed" "pixelfed/pixelfed" "tarball" "latest" "/opt/pixelfed"
 
     msg_info "Restoring Configuration"
     cp /opt/pixelfed.env.bak /opt/pixelfed/.env
+    cp -r /opt/pixelfed-storage.bak /opt/pixelfed/storage
     rm -f /opt/pixelfed.env.bak
+    rm -rf /opt/pixelfed-storage.bak
     msg_ok "Configuration restored"
 
     msg_info "Updating Pixelfed"
@@ -52,6 +55,7 @@ function update_script() {
     chmod -R 775 /opt/pixelfed/storage /opt/pixelfed/bootstrap/cache
     export COMPOSER_ALLOW_SUPERUSER=1
     $STD composer install --no-dev --no-ansi --no-interaction --optimize-autoloader
+    $STD sudo -u pixelfed php artisan storage:link
     $STD sudo -u pixelfed php artisan migrate --force
     $STD sudo -u pixelfed php artisan route:cache
     $STD sudo -u pixelfed php artisan view:cache

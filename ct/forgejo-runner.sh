@@ -33,14 +33,20 @@ function update_script() {
     exit 1
   fi
 
+  RELEASE=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
+  if [[ "${RELEASE}" == "$(cat ~/.forgejo-runner 2>/dev/null)" ]]; then
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
+    exit
+  fi
+
   msg_info "Stopping Services"
   systemctl stop forgejo-runner
   msg_ok "Stopped Services"
 
-  RELEASE=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+' | sed 's/^v//')
   msg_info "Updating Forgejo Runner to v${RELEASE}"
   curl -fsSL "https://code.forgejo.org/forgejo/runner/releases/download/v${RELEASE}/forgejo-runner-${RELEASE}-linux-amd64" -o /usr/local/bin/forgejo-runner
   chmod +x /usr/local/bin/forgejo-runner
+  echo "${RELEASE}" >~/.forgejo-runner
   msg_ok "Updated Forgejo Runner"
 
   msg_info "Starting Services"

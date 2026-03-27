@@ -43,6 +43,7 @@ msg_info "Installing Forgejo Runner"
 RUNNER_VERSION=$(curl -fsSL https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | jq -r .name | sed 's/^v//')
 curl -fsSL "https://code.forgejo.org/forgejo/runner/releases/download/v${RUNNER_VERSION}/forgejo-runner-${RUNNER_VERSION}-linux-amd64" -o /usr/local/bin/forgejo-runner
 chmod +x /usr/local/bin/forgejo-runner
+echo "${RUNNER_VERSION}" >~/.forgejo-runner
 msg_ok "Installed Forgejo Runner"
 
 msg_info "Registering Forgejo Runner"
