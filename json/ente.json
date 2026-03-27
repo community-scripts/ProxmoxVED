@@ -41,11 +41,15 @@
             "type": "warning"
         },
         {
-            "text": "First-Start: After verifying, remove the subscription limit: `ente admin update-subscription -a <email> -u <email> --no-limit`",
+            "text": "First-Start: Add your account to the CLI: `ente account add` (server URL: http://localhost:8080)",
             "type": "warning"
         },
         {
-            "text": "To use the Ente CLI to add/whitelist admins, follow the instructions at https://ente.io/help/self-hosting/administration/cli",
+            "text": "First-Start: Remove the subscription limit: `ente admin update-subscription -a <email> -u <email> --no-limit True`",
+            "type": "warning"
+        },
+        {
+            "text": "For CLI admin docs see https://ente.io/help/self-hosting/administration/cli",
             "type": "info"
         },
         {
