@@ -1,6 +1,6 @@
 {
     "name": "Bitfocus Companion",
-    "slug": "companion",
+    "slug": "bitfocus-companion",
     "categories": [
         19
     ],
@@ -12,11 +12,11 @@
     "documentation": "https://user.bitfocus.io/docs",
     "website": "https://bitfocus.io/companion",
     "logo": "https://raw.githubusercontent.com/bitfocus/companion/main/assets/icon.png",
-    "description": "Bitfocus Companion enables the Elgato Stream Deck and other controllers to trigger actions in broadcast software. Installs headless with a dedicated system user and systemd service, fetching the latest release via the Bitfocus API.",
+    "description": "Bitfocus Companion enables the Elgato Stream Deck and other controllers to trigger actions in broadcast software. Installs headless with systemd service, fetching the latest release via the Bitfocus API.",
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/companion.sh",
+            "script": "ct/bitfocus-companion.sh",
             "resources": {
                 "cpu": 2,
                 "ram": 512,

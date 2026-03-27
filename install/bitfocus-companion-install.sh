@@ -29,26 +29,21 @@ fi
 msg_ok "Found Companion v${RELEASE}"
 
 msg_info "Downloading Bitfocus Companion v${RELEASE}"
-fetch_and_deploy_from_url "$ASSET_URL" "/opt/companion"
+fetch_and_deploy_from_url "$ASSET_URL" "/opt/bitfocus-companion"
 msg_ok "Downloaded and Extracted Bitfocus Companion v${RELEASE}"
 
 msg_info "Installing udev Rules"
-if [[ -f /opt/companion/50-companion-headless.rules ]]; then
-  cp /opt/companion/50-companion-headless.rules /etc/udev/rules.d/
+if [[ -f /opt/bitfocus-companion/50-companion-headless.rules ]]; then
+  cp /opt/bitfocus-companion/50-companion-headless.rules /etc/udev/rules.d/
   udevadm control --reload-rules
   udevadm trigger
 fi
 msg_ok "Installed udev Rules"
 
-msg_info "Creating companion User"
-useradd --system --no-create-home --shell /usr/sbin/nologin companion 2>/dev/null || true
-mkdir -p /opt/companion-config
-chown -R companion:companion /opt/companion-config
-chown -R companion:companion /opt/companion
-msg_ok "Created companion User"
+mkdir -p /opt/bitfocus-companion-config
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/companion.service
+cat <<EOF >/etc/systemd/system/bitfocus-companion.service
 [Unit]
 Description=Bitfocus Companion
 After=network.target
@@ -56,23 +51,19 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=companion
-ExecStart=/opt/companion/companion_headless.sh --config-dir /opt/companion-config
-WorkingDirectory=/opt/companion
+ExecStart=/opt/bitfocus-companion/companion_headless.sh --config-dir /opt/bitfocus-companion-config
+WorkingDirectory=/opt/bitfocus-companion
 Restart=on-failure
 RestartSec=5
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=companion
 Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now companion
+systemctl enable -q --now bitfocus-companion
 msg_ok "Created Service"
 
-echo "${RELEASE}" >~/.companion
+echo "${RELEASE}" >~/.bitfocus-companion
 
 motd_ssh
 customize

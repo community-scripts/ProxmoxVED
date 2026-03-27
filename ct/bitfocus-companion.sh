@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/bitfocus/companion
 
-APP="Companion"
+APP="Bitfocus Companion"
 var_tags="${var_tags:-automation;media}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-512}"
@@ -24,7 +24,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f /opt/companion/companion_headless.sh ]]; then
+  if [[ ! -f /opt/bitfocus-companion/companion_headless.sh ]]; then
     msg_error "No ${APP} Installation Found!"
     exit 1
   fi
@@ -38,23 +38,22 @@ function update_script() {
     exit 1
   fi
 
-  if [[ "${RELEASE}" == "$(cat ~/.companion 2>/dev/null)" ]]; then
+  if [[ "${RELEASE}" == "$(cat ~/.bitfocus-companion 2>/dev/null)" ]]; then
     msg_ok "No update required. ${APP} is already at v${RELEASE}"
     exit
   fi
 
   msg_info "Stopping ${APP}"
-  systemctl stop companion
+  systemctl stop bitfocus-companion
   msg_ok "Stopped ${APP}"
 
   msg_info "Updating ${APP} to v${RELEASE}"
-  CLEAN_INSTALL=1 fetch_and_deploy_from_url "$ASSET_URL" "/opt/companion"
-  chown -R companion:companion /opt/companion
-  echo "${RELEASE}" >~/.companion
+  CLEAN_INSTALL=1 fetch_and_deploy_from_url "$ASSET_URL" "/opt/bitfocus-companion"
+  echo "${RELEASE}" >~/.bitfocus-companion
   msg_ok "Updated ${APP} to v${RELEASE}"
 
   msg_info "Starting ${APP}"
-  systemctl start companion
+  systemctl start bitfocus-companion
   msg_ok "Started ${APP}"
 
   msg_ok "Update Successful"
