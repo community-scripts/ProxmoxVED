@@ -35,7 +35,7 @@ msg_info "Configuring IronClaw"
 mkdir -p /root/.ironclaw
 GATEWAY_TOKEN=$(openssl rand -hex 32)
 cat <<EOF >/root/.ironclaw/.env
-DATABASE_URL=postgresql://ironclaw:${PG_PASS}@localhost:5432/ironclaw
+DATABASE_URL=postgresql://ironclaw:${PG_PASS}@localhost:5432/ironclaw?sslmode=disable
 GATEWAY_ENABLED=true
 GATEWAY_HOST=0.0.0.0
 GATEWAY_PORT=3000
