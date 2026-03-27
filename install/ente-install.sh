@@ -106,6 +106,9 @@ key:
 jwt:
   secret: $SECRET_JWT
 
+internal:
+  admins: []
+
 # SMTP not configured - verification codes will appear in logs
 # To configure SMTP, add:
 # smtp:
@@ -310,7 +313,7 @@ if [ -z "$1" ]; then
 fi
 EMAIL="$1"
 echo "Upgrading subscription for: $EMAIL"
-ente admin update-subscription -a "$EMAIL" -u "$EMAIL" --no-limit
+ente admin update-subscription -a "$EMAIL" -u "$EMAIL" --no-limit True
 EOF
 chmod +x /usr/local/bin/ente-upgrade-subscription
 
