@@ -62,7 +62,7 @@ $STD su - postgres -c "psql -d ${PG_DB_NAME} -c '
   CREATE EXTENSION IF NOT EXISTS unaccent;
   CREATE OR REPLACE FUNCTION public.unaccent_immutable(input text)
     RETURNS text LANGUAGE sql IMMUTABLE
-    AS \$\$SELECT public.unaccent(\$\$public.unaccent\$\$::regdictionary, input)\$\$;
+    AS \$func\$SELECT public.unaccent(\$\$public.unaccent\$\$::regdictionary, input)\$func\$;
 '"
 $STD npx -y typeorm migration:run -d dist/database/typeorm/core/core.datasource
 msg_ok "Ran Database Migrations"
