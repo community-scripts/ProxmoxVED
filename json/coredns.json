@@ -25,6 +25,17 @@
                 "os": "Debian",
                 "version": "13"
             }
+        },
+        {
+            "type": "alpine",
+            "script": "ct/alpine-coredns.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 256,
+                "hdd": 1,
+                "os": "Alpine",
+                "version": "3.23"
+            }
         }
     ],
     "default_credentials": {
