@@ -24,6 +24,7 @@ $STD apt install -y \
   redis-server \
   nginx \
   supervisor \
+  fail2ban \
   xvfb \
   libfontconfig1 \
   libxrender1 \
