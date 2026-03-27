@@ -19,8 +19,8 @@ msg_ok "Installed Dependencies"
 
 msg_info "Installing PostgreSQL"
 $STD apk add postgresql17 postgresql17-openrc postgresql-pgvector postgresql-common
-rc-service postgresql setup >/dev/null 2>&1
-rc-update add postgresql default >/dev/null 2>&1
+$STD rc-service postgresql setup
+$STD rc-update add postgresql default
 $STD rc-service postgresql start
 msg_ok "Installed PostgreSQL"
 
@@ -68,8 +68,8 @@ depend() {
 }
 EOF
 chmod +x /etc/init.d/ironclaw
-rc-update add ironclaw default >/dev/null 2>&1
-rc-service ironclaw start >/dev/null 2>&1
+$STD rc-update add ironclaw default
+$STD rc-service ironclaw start
 msg_ok "Created Service"
 
 motd_ssh
