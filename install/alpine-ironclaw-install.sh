@@ -69,7 +69,6 @@ depend() {
 EOF
 chmod +x /etc/init.d/ironclaw
 $STD rc-update add ironclaw default
-$STD rc-service ironclaw start
 msg_ok "Created Service"
 
 motd_ssh

@@ -53,7 +53,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now ironclaw
+systemctl enable -q ironclaw
 msg_ok "Created Service"
 
 motd_ssh
