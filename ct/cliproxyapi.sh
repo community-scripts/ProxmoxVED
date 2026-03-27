@@ -35,9 +35,7 @@ function update_script() {
     systemctl stop cliproxyapi
     msg_ok "Stopped CLIProxyAPI"
 
-    msg_info "Updating CLIProxyAPI"
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "cliproxyapi" "router-for-me/CLIProxyAPI" "prebuild" "latest" "/opt/cliproxyapi" "CLIProxyAPI_*_linux_amd64.tar.gz"
-    msg_ok "Updated CLIProxyAPI"
 
     msg_info "Starting CLIProxyAPI"
     systemctl start cliproxyapi

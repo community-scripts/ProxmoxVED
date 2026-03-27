@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "Generated credentials (API Key, Management Password) are saved to `/root/cliproxyapi.creds` inside the LXC.",
+      "text": "Generated credentials (API Key, Management Password) are stored in `/opt/cliproxyapi/config.yaml` inside the LXC.",
       "type": "info"
     },
     {

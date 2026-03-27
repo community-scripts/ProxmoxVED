@@ -40,13 +40,6 @@ routing:
   strategy: "round-robin"
 EOF
 
-{
-  echo "CLIProxyAPI Credentials"
-  echo "======================="
-  echo "API Key:              ${API_KEY}"
-  echo "Management Password:  ${MANAGEMENT_PASSWORD}"
-} >~/cliproxyapi.creds
-chmod 600 ~/cliproxyapi.creds
 msg_ok "Configured CLIProxyAPI"
 
 msg_info "Creating Service"
