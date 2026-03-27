@@ -88,7 +88,6 @@ $STD ldconfig
 msg_ok "Compiled ffmpeg"
 
 msg_info "Configuring Fireshare (Patience)"
-mkdir -p /opt/fireshare-data
 cd /opt
 $STD git clone https://github.com/ShaneIsrael/fireshare.git
 cd /opt/fireshare
@@ -105,6 +104,7 @@ echo "/usr/local/nvidia/lib" >>/etc/ld.so.conf.d/nvidia.conf
 echo "/usr/local/nvidia/lib64" >>/etc/ld.so.conf.d/nvidia.conf
 ldconfig
 $STD .venv/bin/python -m pip install --no-cache-dir --break-system-packages --ignore-installed app/server
+cp .venv/bin/fireshare /usr/local/bin/fireshare
 export FLASK_APP="/opt/fireshare/app/server/fireshare:create_app()"
 export DATA_DIRECTORY=/data
 export VIDEO_DIRECTORY=/videos
@@ -131,6 +131,7 @@ systemctl stop nginx
 cp /opt/fireshare/app/nginx/prod.conf /etc/nginx/nginx.conf
 sed -i 's/^user[[:space:]]\+nginx;/user  root;/' /etc/nginx/nginx.conf
 sed -i 's|root[[:space:]]\+/app/build;|root /opt/fireshare/app/client/build;|' /etc/nginx/nginx.conf
+systemctl start nginx
 msg_ok "Configured Fireshare"
 
 msg_info "Creating services"
@@ -140,7 +141,7 @@ Description=Fireshare Service
 After=network.target
 
 [Service]
-WorkingDirectory=/opt/fireshare
+WorkingDirectory=/opt/fireshare/app/server
 ExecStart=/opt/fireshare/.venv/bin/gunicorn --bind=127.0.0.1:5000 "fireshare:create_app(init_schedule=True)" --workers 3 --threads 3 --preload
 Restart=always
 EnvironmentFile=/opt/fireshare/fireshare.env
