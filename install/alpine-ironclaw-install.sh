@@ -13,6 +13,10 @@ setting_up_container
 network_check
 update_os
 
+msg_info "Installing Dependencies"
+$STD apk add openssl
+msg_ok "Installed Dependencies"
+
 msg_info "Installing PostgreSQL"
 $STD apk add postgresql17 postgresql17-openrc postgresql-pgvector postgresql-common
 rc-service postgresql setup >/dev/null 2>&1
