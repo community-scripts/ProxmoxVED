@@ -1,7 +1,9 @@
 {
     "name": "CoreDNS",
     "slug": "coredns",
-    "categories": [5],
+    "categories": [
+        5
+    ],
     "date_created": "2026-03-27",
     "type": "ct",
     "updateable": true,
