@@ -17,7 +17,7 @@ ARCH=$(uname -m)
 [[ "$ARCH" == "x86_64" ]] && ARCH="amd64"
 [[ "$ARCH" == "aarch64" ]] && ARCH="arm64"
 fetch_and_deploy_gh_release "coredns" "coredns/coredns" "prebuild" "latest" "/usr/local/bin" \
-  "coredns_*_linux_${ARCH}.tgz"
+  "coredns_.*_linux_${ARCH}\.tgz"
 chmod +x /usr/local/bin/coredns
 
 msg_info "Configuring CoreDNS"
