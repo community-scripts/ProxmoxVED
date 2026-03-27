@@ -91,10 +91,8 @@ $STD systemctl enable --now redis-server
 msg_ok "Configured ERPNext"
 
 msg_info "Setting up Production"
-BENCH_VENV="/home/frappe/.local/share/uv/tools/frappe-bench"
-$STD curl -fsSL https://bootstrap.pypa.io/get-pip.py | "${BENCH_VENV}/bin/python"
-$STD "${BENCH_VENV}/bin/python" -m pip install ansible
-ln -sf "${BENCH_VENV}"/bin/ansible* /usr/local/bin/
+$STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; uv tool install ansible'
+ln -sf /home/frappe/.local/bin/ansible* /usr/local/bin/
 $STD bash -c 'export PATH="/home/frappe/.local/bin:$PATH"; cd /opt/frappe-bench && bench setup production frappe --yes'
 ln -sf /opt/frappe-bench/config/supervisor.conf /etc/supervisor/conf.d/frappe-bench.conf
 $STD supervisorctl reread
