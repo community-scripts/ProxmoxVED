@@ -75,6 +75,42 @@ SECRET_HASH=$(go run tools/gen-random-keys/main.go 2>/dev/null | grep "hash" | a
 SECRET_JWT=$(go run tools/gen-random-keys/main.go 2>/dev/null | grep "jwt" | awk '{print $2}')
 msg_ok "Generated Secrets"
 
+msg_info "Installing MinIO"
+MINIO_PASS=$(openssl rand -base64 18)
+curl -fsSL https://dl.min.io/server/minio/release/linux-amd64/minio -o /usr/local/bin/minio
+chmod +x /usr/local/bin/minio
+curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
+chmod +x /usr/local/bin/mc
+mkdir -p /opt/minio/data
+cat <<EOF >/etc/default/minio
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=${MINIO_PASS}
+MINIO_VOLUMES=/opt/minio/data
+MINIO_OPTS="--address :3200 --console-address :3201"
+EOF
+cat <<'EOF' >/etc/systemd/system/minio.service
+[Unit]
+Description=MinIO Object Storage
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/minio
+ExecStart=/usr/local/bin/minio server $MINIO_VOLUMES $MINIO_OPTS
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable -q --now minio
+sleep 3
+$STD mc alias set local http://localhost:3200 minioadmin "${MINIO_PASS}"
+$STD mc mb --ignore-existing local/b2-eu-cen
+$STD mc mb --ignore-existing local/wasabi-eu-central-2-v3
+$STD mc mb --ignore-existing local/scw-eu-fr-v3
+msg_ok "Installed MinIO"
+
 msg_info "Creating museum.yaml"
 cat <<EOF >/opt/ente/server/museum.yaml
 db:
@@ -87,12 +123,25 @@ db:
 s3:
   are_local_buckets: true
   use_path_style_urls: true
-  local-dev:
-    key: dummy
-    secret: dummy
+  b2-eu-cen:
+    key: minioadmin
+    secret: $MINIO_PASS
     endpoint: localhost:3200
     region: eu-central-2
-    bucket: ente-dev
+    bucket: b2-eu-cen
+  wasabi-eu-central-2-v3:
+    key: minioadmin
+    secret: $MINIO_PASS
+    endpoint: localhost:3200
+    region: eu-central-2
+    bucket: wasabi-eu-central-2-v3
+    compliance: false
+  scw-eu-fr-v3:
+    key: minioadmin
+    secret: $MINIO_PASS
+    endpoint: localhost:3200
+    region: eu-central-2
+    bucket: scw-eu-fr-v3
 
 apps:
   public-albums: http://${LOCAL_IP}:3002
