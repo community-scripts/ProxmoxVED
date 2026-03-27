@@ -106,14 +106,10 @@ key:
 jwt:
   secret: $SECRET_JWT
 
-# SMTP not configured - verification codes will appear in logs
-# To configure SMTP, add:
-# smtp:
-#   host: your-smtp-server
-#   port: 587
-#   username: your-username
-#   password: your-password
-#   email: noreply@yourdomain.com
+internal:
+  hardcoded-ott:
+    local-domain-suffix: "@"
+    local-domain-value: 123456
 EOF
 msg_ok "Created museum.yaml"
 
@@ -294,40 +290,59 @@ systemctl reload caddy
 msg_ok "Configured Caddy"
 
 msg_info "Creating helper scripts"
-cat <<'EOF' >/usr/local/bin/ente-get-verification
+cat <<'EOF' >/usr/local/bin/ente-setup
 #!/usr/bin/env bash
-echo "Searching for verification codes in museum logs..."
-journalctl -u ente-museum --no-pager | grep -i "verification\|verify\|code" | tail -20
-EOF
-chmod +x /usr/local/bin/ente-get-verification
+set -e
 
-cat <<'EOF' >/usr/local/bin/ente-upgrade-subscription
-#!/usr/bin/env bash
-if [ -z "$1" ]; then
-    echo "Usage: ente-upgrade-subscription <email>"
-    echo "Example: ente-upgrade-subscription user@example.com"
+echo "=== Ente First-Time Setup ==="
+echo ""
+echo "Prerequisites:"
+echo "  1. Create your account via the web UI (port 3000)"
+echo "  2. Use verification code: 123456"
+echo ""
+read -r -p "Enter your account email: " EMAIL
+if [ -z "$EMAIL" ]; then
+    echo "Error: Email is required"
     exit 1
 fi
-EMAIL="$1"
-DB_NAME="$(grep -A1 '^db:' /opt/ente/server/museum.yaml | awk '/name:/{print $2}')"
-DB_USER="$(grep -A2 '^db:' /opt/ente/server/museum.yaml | awk '/user:/{print $2}')"
+
+DB_NAME="$(grep -A4 '^db:' /opt/ente/server/museum.yaml | awk '/name:/{print $2}')"
+DB_USER="$(grep -A4 '^db:' /opt/ente/server/museum.yaml | awk '/user:/{print $2}')"
 USER_ID=$(psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT user_id FROM users WHERE email='$EMAIL' LIMIT 1;")
 if [ -z "$USER_ID" ]; then
     echo "Error: No user found with email $EMAIL"
+    echo "Make sure you created and verified the account via the web UI first."
     exit 1
 fi
-echo "Found user ID: $USER_ID for $EMAIL"
-if ! grep -q "^internal:" /opt/ente/server/museum.yaml; then
-    printf '\ninternal:\n  admin: %s\n' "$USER_ID" >> /opt/ente/server/museum.yaml
-    echo "Added admin entry to museum.yaml"
-    systemctl restart ente-museum
-    sleep 2
+echo "Found user ID: $USER_ID"
+
+echo ""
+echo "Step 1/3: Whitelisting admin in museum.yaml..."
+if grep -q "^internal:" /opt/ente/server/museum.yaml; then
+    sed -i "/^internal:/,/^[^ ]/{/^  admin:/d}" /opt/ente/server/museum.yaml
+    sed -i "/^internal:/a\\  admin: $USER_ID" /opt/ente/server/museum.yaml
 else
-    echo "internal: section already exists in museum.yaml — verify admin is set"
+    printf '\ninternal:\n  admin: %s\n' "$USER_ID" >> /opt/ente/server/museum.yaml
 fi
+systemctl restart ente-museum
+sleep 2
+echo "Done."
+
+echo ""
+echo "Step 2/3: Adding account to Ente CLI..."
+mkdir -p /photos
+export ENTE_CLI_SECRETS_PATH=/opt/ente/cli-config/secrets.txt
+ente account add
+echo "Done."
+
+echo ""
+echo "Step 3/3: Upgrading subscription (unlimited storage)..."
 ente admin update-subscription -a "$EMAIL" -u "$EMAIL" --no-limit True
+echo ""
+echo "=== Setup Complete ==="
+echo "You can now use Ente Photos/Auth with unlimited storage."
 EOF
-chmod +x /usr/local/bin/ente-upgrade-subscription
+chmod +x /usr/local/bin/ente-setup
 
 msg_ok "Created helper scripts"
 

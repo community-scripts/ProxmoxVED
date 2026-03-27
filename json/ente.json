@@ -33,19 +33,7 @@
     },
     "notes": [
         {
-            "text": "First-Start: Create your first user account via the web UI at port 3000",
-            "type": "warning"
-        },
-        {
-            "text": "First-Start: Check museum logs for the email verification code: `journalctl -u ente-museum -n 100 | grep -i 'verification'`",
-            "type": "warning"
-        },
-        {
-            "text": "First-Start: Add your account to the CLI first: `ente account add` (export dir: any path, e.g. /photos)",
-            "type": "warning"
-        },
-        {
-            "text": "First-Start: Whitelist admin and remove subscription limit: `ente-upgrade-subscription <email>`",
+            "text": "First-Start: Create your account via the web UI (port 3000), use verification code `123456`, then run `ente-setup`",
             "type": "warning"
         },
         {
