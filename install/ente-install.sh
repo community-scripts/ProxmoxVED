@@ -289,16 +289,6 @@ cat <<EOF >/etc/caddy/Caddyfile
     }
 }
 
-# Museum API Proxy
-:8080 {
-    reverse_proxy localhost:8080
-
-    header {
-        Access-Control-Allow-Origin *
-        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-        Access-Control-Allow-Headers *
-    }
-}
 EOF
 systemctl reload caddy
 msg_ok "Configured Caddy"

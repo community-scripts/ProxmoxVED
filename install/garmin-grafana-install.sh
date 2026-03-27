@@ -102,13 +102,16 @@ if [[ -z "$(ls -A /opt/garmin-grafana/.garminconnect)" ]]; then
   read -r -p "Please enter your Garmin Connect Email: " GARMIN_EMAIL
   read -r -p "Please enter your Garmin Connect Password (used to generate token, NOT stored): " GARMIN_PASSWORD
   read -r -p "Please enter your MFA Code (leave blank if not applicable): " GARMIN_MFA
+  GARMIN_BASE64_PASSWORD=$(echo -n "${GARMIN_PASSWORD}" | base64 -w0)
   msg_info "Creating Garmin credentials (timeout 60s)"
-  timeout 60s uv run --env-file /opt/garmin-grafana/.env --project /opt/garmin-grafana/ /opt/garmin-grafana/src/garmin_grafana/garmin_fetch.py <<EOF
-${GARMIN_EMAIL}
-${GARMIN_PASSWORD}
-${GARMIN_MFA}
-EOF
-  unset GARMIN_EMAIL GARMIN_PASSWORD GARMIN_MFA
+  if [[ -n "${GARMIN_MFA}" ]]; then
+    echo "${GARMIN_MFA}" | GARMINCONNECT_EMAIL="${GARMIN_EMAIL}" GARMINCONNECT_BASE64_PASSWORD="${GARMIN_BASE64_PASSWORD}" \
+      timeout 60s uv run --env-file /opt/garmin-grafana/.env --project /opt/garmin-grafana/ /opt/garmin-grafana/src/garmin_grafana/garmin_fetch.py
+  else
+    GARMINCONNECT_EMAIL="${GARMIN_EMAIL}" GARMINCONNECT_BASE64_PASSWORD="${GARMIN_BASE64_PASSWORD}" \
+      timeout 60s uv run --env-file /opt/garmin-grafana/.env --project /opt/garmin-grafana/ /opt/garmin-grafana/src/garmin_grafana/garmin_fetch.py </dev/null
+  fi
+  unset GARMIN_EMAIL GARMIN_PASSWORD GARMIN_MFA GARMIN_BASE64_PASSWORD
   if [[ -z "$(ls -A /opt/garmin-grafana/.garminconnect)" ]]; then
     msg_error "Failed to create token"
     exit 1
