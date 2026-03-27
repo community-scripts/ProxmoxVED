@@ -13,11 +13,9 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing SurrealDB"
 fetch_and_deploy_gh_release "surrealdb" "surrealdb/surrealdb" "prebuild" "latest" "/opt/surrealdb" "surreal-v*.linux-amd64.tgz"
 chmod +x /opt/surrealdb/surreal
 ln -sf /opt/surrealdb/surreal /usr/local/bin/surreal
-msg_ok "Installed SurrealDB"
 
 msg_info "Configuring SurrealDB"
 mkdir -p /opt/surrealdb/data
@@ -25,11 +23,6 @@ SURREALDB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 cat <<EOF >/opt/surrealdb/.env
 SURREALDB_PASS=${SURREALDB_PASS}
 EOF
-{
-  echo "SurrealDB Credentials"
-  echo "Username: root"
-  echo "Password: ${SURREALDB_PASS}"
-} >>~/surrealdb.creds
 msg_ok "Configured SurrealDB"
 
 msg_info "Creating Service"
