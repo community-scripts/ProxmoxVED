@@ -1,0 +1,52 @@
+{
+  "name": "Gitea Act Runner",
+  "slug": "act-runner",
+  "categories": [
+    "Developer Tools"
+  ],
+  "date_created": "2026-03-27",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://gitea.com/gitea/act_runner",
+  "config_path": "/opt/act_runner/config.yaml",
+  "website": "https://gitea.com/gitea/act_runner",
+  "logo": "https://gitea.com/assets/img/logo.svg",
+  "description": "Gitea Act Runner is the official self-hosted runner for Gitea Actions. It registers with your Gitea instance and executes CI/CD workflow jobs, with full compatibility with GitHub Actions workflow syntax.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/gitea-act-runner-linux.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "During installation you will be prompted for your Gitea instance URL, registration token, runner name, and labels.",
+      "type": "info"
+    },
+    {
+      "text": "To get a registration token, go to your Gitea instance → Settings → Actions → Runners → Create Runner Token.",
+      "type": "info"
+    },
+    {
+      "text": "View runner logs with: journalctl -u act_runner -f",
+      "type": "info"
+    },
+    {
+      "text": "The runner config is stored at /opt/act_runner/config.yaml and can be edited to customise job concurrency, cache settings, and more.",
+      "type": "info"
+    }
+  ]
+}
