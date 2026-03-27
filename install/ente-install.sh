@@ -356,8 +356,8 @@ if [ -z "$EMAIL" ]; then
 fi
 
 DB_NAME="$(grep -A4 '^db:' /opt/ente/server/museum.yaml | awk '/name:/{print $2}')"
-DB_USER="$(grep -A4 '^db:' /opt/ente/server/museum.yaml | awk '/user:/{print $2}')"
-USER_ID=$(psql -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT user_id FROM users WHERE email='$EMAIL' LIMIT 1;")
+DB_PASS="$(grep -A5 '^db:' /opt/ente/server/museum.yaml | awk '/password:/{print $2}')"
+USER_ID=$(PGPASSWORD="$DB_PASS" psql -h 127.0.0.1 -U ente -d "$DB_NAME" -tAc "SELECT user_id FROM users WHERE email='$EMAIL' LIMIT 1;")
 if [ -z "$USER_ID" ]; then
     echo "Error: No user found with email $EMAIL"
     echo "Make sure you created and verified the account via the web UI first."
