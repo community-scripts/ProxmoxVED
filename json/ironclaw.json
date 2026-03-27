@@ -1,0 +1,44 @@
+{
+    "name": "IronClaw",
+    "slug": "ironclaw",
+    "categories": [
+        20
+    ],
+    "date_created": "2026-03-27",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://github.com/nearai/ironclaw/tree/staging/docs",
+    "website": "https://github.com/nearai/ironclaw",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ironclaw.webp",
+    "config_path": "/root/.ironclaw/.env",
+    "description": "IronClaw is a secure, self-hosted AI agent with a web browser interface, multi-LLM support, hybrid memory search, and WASM-sandboxed tool execution — all data stays on your server.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/ironclaw.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "The gateway auth token is auto-generated and stored in /root/.ironclaw/.env.",
+            "type": "info"
+        },
+        {
+            "text": "Configure your LLM provider after installation by running: ironclaw onboard",
+            "type": "info"
+        }
+    ]
+}
