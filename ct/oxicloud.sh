@@ -32,7 +32,7 @@ function update_script() {
 
   if check_for_gh_release "OxiCloud" "DioCrafts/OxiCloud"; then
     msg_info "Stopping OxiCloud"
-    $STD systemctl stop oxicloud
+    systemctl stop oxicloud
     msg_ok "Stopped OxiCloud"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "OxiCloud" "DioCrafts/OxiCloud" "tarball" "latest" "/opt/oxicloud"
@@ -40,9 +40,9 @@ function update_script() {
     RUST_TOOLCHAIN=$TOOLCHAIN setup_rust
 
     msg_info "Updating OxiCloud"
-    PG_DB_PASS="$(sed -n '/Password:/s/[^:]*:[[:space:]]//p' ~/oxicloud.creds)"
+    source /etc/oxicloud/.env
     cd /opt/oxicloud
-    export DATABASE_URL="postgres://oxicloud:${PG_DB_PASS}@localhost/oxicloud"
+    export DATABASE_URL
     export RUSTFLAGS="-C target-cpu=native"
     $STD cargo build --release
     mv target/release/oxicloud /usr/bin/oxicloud && chmod +x /usr/bin/oxicloud

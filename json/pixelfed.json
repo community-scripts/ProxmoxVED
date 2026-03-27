@@ -37,7 +37,7 @@
             "type": "warning"
         },
         {
-            "text": "Credentials saved in /root/pixelfed.creds",
+            "text": "Credentials are stored in /opt/pixelfed/.env",
             "type": "info"
         },
         {

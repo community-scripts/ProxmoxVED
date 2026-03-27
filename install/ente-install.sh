@@ -51,28 +51,6 @@ endpoint:
 EOF
 msg_ok "Configured Ente CLI"
 
-msg_info "Saving Ente Credentials"
-{
-  echo "Important Configuration Notes:"
-  echo "- Frontend is built with IP: $LOCAL_IP"
-  echo "- If IP changes, run: /opt/ente/rebuild-frontend.sh"
-  echo "- Museum API: http://$LOCAL_IP:8080"
-  echo "- Photos UI: http://$LOCAL_IP:3000"
-  echo "- Accounts UI: http://$LOCAL_IP:3001"
-  echo "- Auth UI: http://$LOCAL_IP:3003"
-  echo ""
-  echo "Post-Installation Steps Required:"
-  echo "1. Create your first user account via the web UI"
-  echo "2. Check museum logs for email verification code:"
-  echo "   journalctl -u ente-museum -n 100 | grep -i 'verification'"
-  echo "3. Use verification code to complete account setup"
-  echo "4. Remove subscription limit (replace <email> with your account):"
-  echo "   ente admin update-subscription -a <email> -u <email> --no-limit"
-  echo ""
-  echo "Note: Email verification requires manual intervention since SMTP is not configured"
-} >>~/ente.creds
-msg_ok "Saved Ente Credentials"
-
 msg_info "Building Museum (server)"
 cd /opt/ente/server
 $STD corepack enable

@@ -27,7 +27,7 @@ msg_ok "Installed InfluxDB"
 
 msg_info "Installing Chronograf"
 CHRONOGRAF_VERSION=$(get_latest_github_release "influxdata/chronograf")
-fetch_and_deploy_from_url "https://dl.influxdata.com/chronograf/releases/chronograf_${CHRONOGRAF_VERSION}_amd64.deb"
+fetch_and_deploy_from_url "https://dl.influxdata.com/chronograf/releases/chronograf_${CHRONOGRAF_VERSION}_amd64.deb" ""
 msg_ok "Installed Chronograf"
 
 msg_info "Configuring InfluxDB"

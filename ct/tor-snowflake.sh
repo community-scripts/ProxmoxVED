@@ -32,7 +32,7 @@ function update_script() {
   msg_ok "Updated Container OS"
 
   RELEASE=$(curl -fsSL https://gitlab.torproject.org/api/v4/projects/tpo%2Fanti-censorship%2Fpluggable-transports%2Fsnowflake/releases | jq -r '.[0].tag_name' | sed 's/^v//')
-  if [[ ! -f "~/.tor-snowflake" ]] || [[ "${RELEASE}" != "$(cat "~/.tor-snowflake")" ]]; then
+  if [[ ! -f ~/.tor-snowflake ]] || [[ "${RELEASE}" != "$(cat ~/.tor-snowflake)" ]]; then
     msg_info "Stopping Service"
     systemctl stop snowflake-proxy
     msg_ok "Stopped Service"
@@ -41,12 +41,12 @@ function update_script() {
 
     msg_info "Updating Snowflake"
     $STD curl -fsSL "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz" -o /opt/snowflake.tar.gz
-    $STD tar -xzf /opt/snowflake.tar.gz -C /opt
-    $STD rm -rf /opt/snowflake.tar.gz
-    $STD rm -rf /opt/tor-snowflake
-    $STD mv /opt/snowflake-v${RELEASE} /opt/tor-snowflake
-    $STD chown -R snowflake:snowflake /opt/tor-snowflake
-    $STD sudo -H -u snowflake bash -c "cd /opt/tor-snowflake/proxy && go build -o snowflake-proxy ."
+    tar -xzf /opt/snowflake.tar.gz -C /opt
+    rm -rf /opt/snowflake.tar.gz
+    rm -rf /opt/tor-snowflake
+    mv /opt/snowflake-v${RELEASE} /opt/tor-snowflake
+    cd /opt/tor-snowflake/proxy
+    $STD go build -o snowflake-proxy .
     echo "${RELEASE}" >~/.tor-snowflake
     msg_ok "Updated Snowflake to v${RELEASE}"
 

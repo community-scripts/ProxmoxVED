@@ -64,7 +64,7 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-$STD systemctl enable -q --now oxicloud
+systemctl enable -q --now oxicloud
 msg_ok "Created OxiCloud Service"
 
 motd_ssh
