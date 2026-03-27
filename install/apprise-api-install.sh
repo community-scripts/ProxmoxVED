@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: SystemIdleProcess
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/caronc/apprise-api
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -19,7 +19,7 @@ fetch_and_deploy_gh_release "apprise" "caronc/apprise-api" "tarball"
 msg_info "Setup Apprise-API"
 cd /opt/apprise
 cp ./requirements.txt /etc/requirements.txt
-$STD apt install -y nginx curl sed git
+$STD apt install -y nginx git
 $STD uv pip install -r requirements.txt gunicorn supervisor --system
 cp -fr apprise_api/static /usr/share/nginx/html/s/
 mv apprise_api/ webapp

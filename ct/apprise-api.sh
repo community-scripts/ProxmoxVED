@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: SystemIdleProcess
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/caronc/apprise-api
 
 APP="Apprise-API"
@@ -39,7 +39,7 @@ function update_script() {
     msg_info "Updating Apprise-API"
     cd /opt/apprise
     cp ./requirements.txt /etc/requirements.txt
-    $STD apt install -y nginx curl sed git
+    $STD apt install -y nginx git
     $STD uv pip install -r requirements.txt gunicorn supervisor --system
     cp -fr apprise_api/static /usr/share/nginx/html/s/
     mv apprise_api/ webapp
