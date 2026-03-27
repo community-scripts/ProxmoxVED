@@ -29,7 +29,8 @@ $STD apt install -y \
   libxrender1 \
   fontconfig \
   libjpeg-dev \
-  libmariadb-dev
+  libmariadb-dev \
+  python3-pip 
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
