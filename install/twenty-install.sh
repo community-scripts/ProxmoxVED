@@ -67,6 +67,7 @@ $STD su - postgres -c "psql -d ${PG_DB_NAME} -c '
     RETURNS text LANGUAGE sql IMMUTABLE
     AS \$func\$SELECT public.unaccent(\$\$public.unaccent\$\$::regdictionary, input)\$func\$;
 '"
+$STD npx ts-node ./scripts/setup-db.ts
 $STD npx -y typeorm migration:run -d dist/database/typeorm/core/core.datasource
 msg_ok "Ran Database Migrations"
 
