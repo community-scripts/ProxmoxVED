@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Adrian-RDA
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/maziggy/bambuddy
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y libglib2.0-0
+$STD apt install -y libglib2.0-0
 msg_ok "Installed Dependencies"
 
 PYTHON_VERSION="3.13" setup_uv
