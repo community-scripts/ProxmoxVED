@@ -88,6 +88,15 @@ function update() {
     rm -f /tmp/cronmaster.env.bak
     msg_ok "Restored configuration"
 
+    msg_info "Updating update script"
+    cat <<'UPDATEEOF' >/usr/local/bin/update_cronmaster
+#!/usr/bin/env bash
+# CronMaster Update Script
+CRONMASTER_ACTION=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/addon/cronmaster.sh)"
+UPDATEEOF
+    chmod +x /usr/local/bin/update_cronmaster
+    msg_ok "Updated update script"
+
     msg_info "Starting service"
     systemctl start cronmaster
     msg_ok "Started service"
@@ -146,12 +155,11 @@ EOF
 
   # Create update script
   msg_info "Creating update script"
-  ensure_usr_local_bin_persist
-  cat <<EOF >/usr/local/bin/update_cronmaster
+  cat <<'UPDATEEOF' >/usr/local/bin/update_cronmaster
 #!/usr/bin/env bash
 # CronMaster Update Script
-type=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/tools/addon/cronmaster.sh)"
-EOF
+CRONMASTER_ACTION=update bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/addon/cronmaster.sh)"
+UPDATEEOF
   chmod +x /usr/local/bin/update_cronmaster
   msg_ok "Created update script (/usr/local/bin/update_cronmaster)"
 
@@ -177,8 +185,8 @@ header_info
 ensure_usr_local_bin_persist
 get_lxc_ip
 
-# Handle type=update (called from update script)
-if [[ "${type:-}" == "update" ]]; then
+# Handle CRONMASTER_ACTION=update (called from update script)
+if [[ "${CRONMASTER_ACTION:-}" == "update" ]]; then
   if [[ -d "$INSTALL_PATH" ]]; then
     update
   else
