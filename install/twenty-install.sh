@@ -20,7 +20,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
-PG_DB_NAME="twenty_db" PG_DB_USER="twenty" setup_postgresql_db
+PG_DB_NAME="twenty_db" PG_DB_USER="twenty" PG_DB_SCHEMA_PERMS="true" setup_postgresql_db
 NODE_VERSION="24" setup_nodejs
 
 fetch_and_deploy_gh_release "twenty" "twentyhq/twenty" "tarball"
@@ -58,6 +58,9 @@ set -a && source /opt/twenty/.env && set +a
 $STD su - postgres -c "psql -d ${PG_DB_NAME} -c '
   CREATE SCHEMA IF NOT EXISTS public;
   CREATE SCHEMA IF NOT EXISTS core;
+  ALTER SCHEMA core OWNER TO ${PG_DB_USER};
+  GRANT USAGE, CREATE ON SCHEMA public TO ${PG_DB_USER};
+  GRANT USAGE, CREATE ON SCHEMA core TO ${PG_DB_USER};
   CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
   CREATE EXTENSION IF NOT EXISTS unaccent;
   CREATE OR REPLACE FUNCTION public.unaccent_immutable(input text)
