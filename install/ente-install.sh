@@ -154,11 +154,6 @@ key:
 
 jwt:
   secret: $SECRET_JWT
-
-internal:
-  hardcoded-ott:
-    local-domain-suffix: "@"
-    local-domain-value: 123456
 EOF
 msg_ok "Created museum.yaml"
 
@@ -339,36 +334,57 @@ systemctl reload caddy
 msg_ok "Configured Caddy"
 
 msg_info "Creating helper scripts"
-cat <<'EOF' >/usr/local/bin/ente-setup
+cat <<'SETUP' >/usr/local/bin/ente-setup
 #!/usr/bin/env bash
 set -e
 
+LOCAL_IP=$(hostname -I | awk '{print $1}')
 echo "=== Ente First-Time Setup ==="
 echo ""
-echo "Prerequisites:"
-echo "  1. Create your account via the web UI (port 3000)"
-echo "  2. Use verification code: 123456"
-echo ""
 read -r -p "Enter your account email: " EMAIL
-if [ -z "$EMAIL" ]; then
-    echo "Error: Email is required"
-    exit 1
+if [ -z "$EMAIL" ]; then echo "Error: Email is required"; exit 1; fi
+
+echo ""
+echo "Step 1/4: Register your account"
+echo "  Open the web UI: http://${LOCAL_IP}:3000"
+echo "  Create an account with: $EMAIL"
+echo ""
+read -r -p "Press ENTER after you submitted the signup form..."
+
+echo ""
+echo "Step 2/4: Getting verification code from logs..."
+for i in $(seq 1 10); do
+    OTT=$(journalctl -u ente-museum --no-pager -n 100 2>/dev/null | grep -oP "Skipping sending email to ${EMAIL}.*Verification code: \K[0-9]+" | tail -1)
+    if [ -n "$OTT" ]; then break; fi
+    sleep 1
+done
+if [ -z "$OTT" ]; then
+    echo "Could not auto-detect code. Searching all recent codes..."
+    journalctl -u ente-museum --no-pager -n 200 | grep "Verification code" | tail -5
+    echo ""
+    echo "Enter the code shown above in the web UI, then press ENTER."
+    read -r -p "Press ENTER after verification..."
+else
+    echo "  Your verification code: $OTT"
+    echo "  Enter this code in the web UI to complete registration."
+    echo ""
+    read -r -p "Press ENTER after you verified the code..."
 fi
 
 DB_NAME="$(grep -A4 '^db:' /opt/ente/server/museum.yaml | awk '/name:/{print $2}')"
 DB_PASS="$(grep -A5 '^db:' /opt/ente/server/museum.yaml | awk '/password:/{print $2}')"
 USER_ID=$(PGPASSWORD="$DB_PASS" psql -h 127.0.0.1 -U ente -d "$DB_NAME" -tAc "SELECT user_id FROM users ORDER BY user_id LIMIT 1;")
 if [ -z "$USER_ID" ]; then
-    echo "Error: No users found in database."
-    echo "Make sure you created and verified the account via the web UI first."
+    echo "Error: No verified users found in database."
+    echo "Make sure you completed the verification step in the web UI."
     exit 1
 fi
 echo "Found user ID: $USER_ID"
 
 echo ""
-echo "Step 1/3: Whitelisting admin in museum.yaml..."
+echo "Step 3/4: Whitelisting admin in museum.yaml..."
 if grep -q "^internal:" /opt/ente/server/museum.yaml; then
-    sed -i "/^internal:/,/^[^ ]/{/^  admin:/d}" /opt/ente/server/museum.yaml
+    sed -i "/^  admin:/d" /opt/ente/server/museum.yaml
     sed -i "/^internal:/a\\  admin: $USER_ID" /opt/ente/server/museum.yaml
 else
     printf '\ninternal:\n  admin: %s\n' "$USER_ID" >> /opt/ente/server/museum.yaml
@@ -378,19 +394,15 @@ sleep 2
 echo "Done."
 
 echo ""
-echo "Step 2/3: Adding account to Ente CLI..."
+echo "Step 4/4: Adding account to Ente CLI & upgrading subscription..."
 mkdir -p /photos
 export ENTE_CLI_SECRETS_PATH=/opt/ente/cli-config/secrets.txt
 ente account add
-echo "Done."
-
-echo ""
-echo "Step 3/3: Upgrading subscription (unlimited storage)..."
 ente admin update-subscription -a "$EMAIL" -u "$EMAIL" --no-limit True
 echo ""
 echo "=== Setup Complete ==="
 echo "You can now use Ente Photos/Auth with unlimited storage."
-EOF
+SETUP
 chmod +x /usr/local/bin/ente-setup
 
 msg_ok "Created helper scripts"

@@ -33,7 +33,7 @@
     },
     "notes": [
         {
-            "text": "First-Start: Create your account via the web UI (port 3000), use verification code `123456`, then run `ente-setup`",
+            "text": "First-Start: Run `ente-setup` — it guides you through account creation, verification, and admin configuration",
             "type": "warning"
         },
         {
