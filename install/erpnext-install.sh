@@ -92,8 +92,7 @@ msg_ok "Configured ERPNext"
 
 msg_info "Setting up Production"
 BENCH_PY="/home/frappe/.local/share/uv/tools/frappe-bench/bin/python"
-$STD sudo -u frappe "${BENCH_PY}" -m ensurepip --upgrade || \
-  $STD sudo -u frappe bash -c "curl -fsSL https://bootstrap.pypa.io/get-pip.py | \"${BENCH_PY}\""
+$STD sudo -u frappe bash -c "curl -fsSL https://bootstrap.pypa.io/get-pip.py | \"${BENCH_PY}\""
 $STD sudo -u frappe bash -c 'export PATH="$HOME/.local/bin:$PATH"; uv tool install ansible'
 ln -sf /home/frappe/.local/bin/ansible* /usr/local/bin/
 $STD bash -c 'export PATH="/home/frappe/.local/bin:$PATH"; cd /opt/frappe-bench && bench setup production frappe --yes'
