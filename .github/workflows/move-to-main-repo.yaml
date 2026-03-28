@@ -38,12 +38,13 @@ jobs:
         id: list_issues
         env:
           GH_TOKEN: ${{ github.token }}
+          ISSUE_JSON: ${{ toJson(github.event.issue) }}
         run: |
           echo "Resolving issue with label Migration To ProxmoxVE"
 
           if [[ "${{ github.event_name }}" == "issues" ]]; then
             # For labeled issue events, use the exact issue from event payload.
-            filtered_issue='${{ toJson(github.event.issue) }}'
+            filtered_issue="$ISSUE_JSON"
           else
             # Fallback for workflow_dispatch: query explicitly by label and raise limit.
             raw_output=$(gh issue list \
