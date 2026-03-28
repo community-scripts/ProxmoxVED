@@ -35,23 +35,23 @@ fetch_and_deploy_from_url "https://fileflows.com/downloads/zip" "/opt/fileflows"
 
 $STD ln -svf /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 $STD ln -svf /usr/bin/ffprobe /usr/local/bin/ffprobe
-CHOICE=$(msg_menu "FileFlows Setup Options" \
-  "1" "Install FileFlows Server" \
-  "2" "Install FileFlows Node")
 
-case $CHOICE in
-1)
+read -r -p "Do you want to install FileFlows Server or Node? (S/N): " install_server
+
+if [[ "$install_server" =~ ^[Ss]$ ]]; then
+  msg_info "Installing FileFlows Server"
   cd /opt/fileflows/Server
   $STD dotnet FileFlows.Server.dll --systemd install --root true
   systemctl enable -q --now fileflows
-  ;;
-2)
+  msg_ok "Installed FileFlows Server"
+else
+  msg_info "Installing FileFlows Node"
   cd /opt/fileflows/Node
   $STD dotnet FileFlows.Node.dll
   $STD dotnet FileFlows.Node.dll --systemd install --root true
   systemctl enable -q --now fileflows-node
-  ;;
-esac
+  msg_ok "Installed FileFlows Node"
+fi
 
 motd_ssh
 customize
