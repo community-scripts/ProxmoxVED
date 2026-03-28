@@ -15,12 +15,8 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
-  ffmpeg \
-  imagemagick
+$STD apt install -y ffmpeg
 msg_ok "Installed Dependencies"
-
-setup_hwaccel
 
 msg_info "Installing ASP.NET Core Runtime"
 setup_deb822_repo \
