@@ -206,9 +206,9 @@ jobs:
             if (!fs.existsSync(file)) continue;
             const data = JSON.parse(fs.readFileSync(file, 'utf8'));
             if (!data.slug) { console.log('Skipping', file, '(no slug)'); continue; }
-            // execute_in: map type to canonical value
-            var executeInMap = { ct: 'lxc', lxc: 'lxc', turnkey: 'turnkey', pve: 'pve', addon: 'addon', vm: 'vm' };
-            var executeIn = data.type ? (executeInMap[data.type.toLowerCase()] || data.type.toLowerCase()) : null;
+            // execute_in: map type to canonical value (addon runs on both lxc and vm)
+            var executeInMap = { ct: 'lxc', lxc: 'lxc', turnkey: 'turnkey', pve: 'pve', vm: 'vm', addon: ['lxc', 'vm'] };
+            var executeIn = data.type ? (executeInMap[data.type.toLowerCase()] || null) : null;
             // github: extract owner/repo from full GitHub URL
             var githubField = null;
             var projectUrl = data.github || null;
