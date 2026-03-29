@@ -17,7 +17,7 @@
     "install_methods": [
         {
             "type": "default",
-            "script": "addon/garmin-grafana.sh",
+            "script": "/tools/addon/garmin-grafana.sh",
             "resources": {
                 "cpu": null,
                 "ram": null,
