@@ -13,7 +13,7 @@
     "website": "https://github.com/CodeWithCJ/SparkyFitness",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/sparkyfitness.webp",
     "config_path": "/etc/sparkyfitness-garmin/.env",
-    "description": "Microservice that acts as a bridge between the Garmin API and the main SparkyFitness application. It is required if users want to sync their Garmin data with SparkyFitness.",
+    "description": "Microservice that acts as a bridge between the Garmin API and the main SparkyFitness application. It's required if users want to sync their Garmin data with SparkyFitness.",
     "install_methods": [
         {
             "type": "default",
