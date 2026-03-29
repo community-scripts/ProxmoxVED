@@ -5,7 +5,7 @@
         9
     ],
     "date_created": "2025-05-08",
-    "type": "ct",
+    "type": "addon",
     "updateable": true,
     "privileged": false,
     "interface_port": 3000,
