@@ -17,13 +17,13 @@
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/garmin-grafana.sh",
+            "script": "addon/garmin-grafana.sh",
             "resources": {
-                "cpu": 2,
-                "ram": 2048,
-                "hdd": 8,
-                "os": "Debian",
-                "version": "13"
+                "cpu": null,
+                "ram": null,
+                "hdd": null,
+                "os": null,
+                "version": null
             }
         }
     ],
