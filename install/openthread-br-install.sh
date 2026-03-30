@@ -39,6 +39,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 msg_info "Cloning OpenThread Border Router"
+# git clone is needed to fetch submodules, fetch_and_deploy_gh_release doesn't support this. We use --depth 1 to minimize the amount of data cloned, but it still may take a while.
 $STD git clone --depth 1 https://github.com/openthread/ot-br-posix /opt/ot-br-posix
 cd /opt/ot-br-posix
 $STD git submodule update --depth 1 --init --recursive
