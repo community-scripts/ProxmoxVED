@@ -63,7 +63,7 @@ export DOCKER_HOST="unix:///run/podman/podman.sock"
 forgejo-runner register \
   --instance "$FORGEJO_INSTANCE" \
   --token "$FORGEJO_RUNNER_TOKEN" \
-  --name "$HOSTNAME" \
+  --name "$(hostname)" \
   --labels "$RUNNER_LABELS" \
   --no-interactive
 msg_ok "Registered Forgejo Runner"
