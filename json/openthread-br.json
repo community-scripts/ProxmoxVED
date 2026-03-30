@@ -1,0 +1,48 @@
+{
+    "name": "OpenThread Border Router",
+    "slug": "openthread-br",
+    "categories": [
+        17
+    ],
+    "date_created": "2026-03-30",
+    "type": "ct",
+    "updateable": true,
+    "privileged": true,
+    "interface_port": 80,
+    "documentation": "https://openthread.io/guides/border-router",
+    "website": "https://openthread.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openthread.webp",
+    "config_path": "/etc/default/otbr-agent",
+    "description": "OpenThread Border Router (OTBR) connects a Thread network to other IP-based networks such as Wi-Fi or Ethernet, providing bidirectional connectivity, mDNS/SRP service discovery, NAT64, and external Thread commissioning.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/openthread-br.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Requires a Thread Radio Co-Processor (RCP) USB device passed through to the LXC container (e.g. /dev/ttyACM0). Edit /etc/default/otbr-agent to configure the RCP device path.",
+            "type": "warning"
+        },
+        {
+            "text": "This container runs in privileged mode for network administration (iptables, ipset, tun device access).",
+            "type": "info"
+        },
+        {
+            "text": "Services are not started automatically on first boot. Connect your RCP device, configure /etc/default/otbr-agent, then run: systemctl start otbr-agent && systemctl start otbr-web",
+            "type": "info"
+        }
+    ]
+}
