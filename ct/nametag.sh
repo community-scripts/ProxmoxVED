@@ -44,8 +44,13 @@ function update_script() {
     msg_info "Rebuilding Application"
     cd /opt/nametag
     $STD npm ci
+    set -a
+    source /opt/nametag/.env
+    set +a
     $STD npx prisma generate
     $STD npm run build
+    cp -r /opt/nametag/.next/static /opt/nametag/.next/standalone/.next/static
+    cp -r /opt/nametag/public /opt/nametag/.next/standalone/public
     msg_ok "Rebuilt Application"
 
     msg_info "Restoring Data"
