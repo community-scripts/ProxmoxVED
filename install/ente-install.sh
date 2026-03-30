@@ -395,9 +395,9 @@ echo "Done."
 
 echo ""
 echo "Step 4/4: Adding account to Ente CLI & upgrading subscription..."
-mkdir -p /photos
+mkdir -p /opt/ente_data/photos
 export ENTE_CLI_SECRETS_PATH=/opt/ente/cli-config/secrets.txt
-ente account add
+printf 'photos\n/opt/ente_data/photos\n' | ente account add
 ente admin update-subscription -a "$EMAIL" -u "$EMAIL" --no-limit True
 echo ""
 echo "=== Setup Complete ==="
