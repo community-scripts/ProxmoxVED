@@ -63,8 +63,9 @@ function update_script() {
 }
 
 # Fail early if running unattended without required values
-# Only check when there's no TTY (truly non-interactive, e.g. piped or scripted)
-if [[ -n "${mode:-}" && ! -t 0 ]]; then
+# mode is only set when the user explicitly passes it (automating);
+# bare "bash -c $(curl ...)" leaves mode empty and shows the whiptail menu
+if [[ -n "${mode:-}" ]]; then
   if [[ -z "${var_forgejo_instance:-}" ]]; then
     msg_error "var_forgejo_instance is required for unattended installs."
     exit 1
