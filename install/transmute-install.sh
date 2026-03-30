@@ -13,6 +13,11 @@ setting_up_container
 network_check
 update_os
 
+UV_PYTHON="3.13" setup_uv
+NODE_VERSION="22" setup_nodejs
+setup_ffmpeg
+setup_gs
+
 msg_info "Installing Dependencies"
 $STD apt install -y \
   inkscape \
@@ -33,11 +38,6 @@ $STD apt install -y \
   python3-tinycss2 \
   python3-cssselect
 msg_ok "Installed Dependencies"
-
-UV_PYTHON="3.13" setup_uv
-NODE_VERSION="20" setup_nodejs
-setup_ffmpeg
-setup_gs
 
 msg_info "Installing Pandoc"
 PANDOC_VERSION=$(get_latest_github_release "jgm/pandoc")
