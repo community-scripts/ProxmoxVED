@@ -88,6 +88,7 @@ $STD ldconfig
 msg_ok "Compiled ffmpeg"
 
 msg_info "Configuring Fireshare (Patience)"
+mkdir -p /opt/fireshare-{data,videos,processed}
 cd /opt
 $STD git clone https://github.com/ShaneIsrael/fireshare.git
 cd /opt/fireshare
@@ -106,17 +107,17 @@ ldconfig
 $STD .venv/bin/python -m pip install --no-cache-dir --break-system-packages --ignore-installed app/server
 cp .venv/bin/fireshare /usr/local/bin/fireshare
 export FLASK_APP="/opt/fireshare/app/server/fireshare:create_app()"
-export DATA_DIRECTORY=/data
-export VIDEO_DIRECTORY=/videos
-export PROCESSED_DIRECTORY=/processed
+export DATA_DIRECTORY=/opt/fireshare-data
+export VIDEO_DIRECTORY=/opt/fireshare-videos
+export PROCESSED_DIRECTORY=/opt/fireshare-processed
 $STD uv run flask db upgrade
 
 cat <<'EOF' >/opt/fireshare/fireshare.env
 FLASK_APP="/opt/fireshare/app/server/fireshare:create_app()"
 ENVIRONMENT=production
-DATA_DIRECTORY=/data
-VIDEO_DIRECTORY=/videos
-PROCESSED_DIRECTORY=/processed
+DATA_DIRECTORY=/opt/fireshare-data
+VIDEO_DIRECTORY=/opt/fireshare-videos
+PROCESSED_DIRECTORY=/opt/fireshare-processed
 TEMPLATE_PATH=/opt/fireshare/app/server/fireshare/templates
 ADMIN_PASSWORD=admin
 TZ=UTC
@@ -129,6 +130,7 @@ $STD npm install
 $STD npm run build
 systemctl stop nginx
 cp /opt/fireshare/app/nginx/prod.conf /etc/nginx/nginx.conf
+sed -i 's|root /processed/|root /opt/fireshare-processed|g' /etc/nginx/nginx.conf
 sed -i 's/^user[[:space:]]\+nginx;/user  root;/' /etc/nginx/nginx.conf
 sed -i 's|root[[:space:]]\+/app/build;|root /opt/fireshare/app/client/build;|' /etc/nginx/nginx.conf
 systemctl start nginx
