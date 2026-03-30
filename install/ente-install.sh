@@ -126,20 +126,20 @@ s3:
   b2-eu-cen:
     key: minioadmin
     secret: $MINIO_PASS
-    endpoint: localhost:3200
+    endpoint: ${LOCAL_IP}:3200
     region: eu-central-2
     bucket: b2-eu-cen
   wasabi-eu-central-2-v3:
     key: minioadmin
     secret: $MINIO_PASS
-    endpoint: localhost:3200
+    endpoint: ${LOCAL_IP}:3200
     region: eu-central-2
     bucket: wasabi-eu-central-2-v3
     compliance: false
   scw-eu-fr-v3:
     key: minioadmin
     secret: $MINIO_PASS
-    endpoint: localhost:3200
+    endpoint: ${LOCAL_IP}:3200
     region: eu-central-2
     bucket: scw-eu-fr-v3
 
