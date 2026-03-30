@@ -6,7 +6,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://openthread.io/guides/border-router
 
-APP="OpenThread Border Router"
+APP="OpenThread-BR"
 var_tags="${var_tags:-thread;iot;border-router;matter}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
