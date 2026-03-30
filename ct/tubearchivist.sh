@@ -58,6 +58,10 @@ function update_script() {
     msg_info "Restoring Configuration"
     mv /opt/tubearchivist_env.bak /opt/tubearchivist/.env
     sed -i 's|^TA_APP_DIR=/opt/tubearchivist$|TA_APP_DIR=/opt/tubearchivist/backend|' /opt/tubearchivist/.env
+    sed -i 's|^TA_CACHE_DIR=/opt/tubearchivist/cache$|TA_CACHE_DIR=/cache|' /opt/tubearchivist/.env
+    sed -i 's|^TA_MEDIA_DIR=/opt/tubearchivist/media$|TA_MEDIA_DIR=/youtube|' /opt/tubearchivist/.env
+    ln -sf /opt/tubearchivist/cache /cache
+    ln -sf /opt/tubearchivist/media /youtube
     ln -sf /opt/tubearchivist/.env /opt/tubearchivist/backend/.env
     msg_ok "Restored Configuration"
 

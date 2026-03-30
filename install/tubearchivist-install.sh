@@ -83,14 +83,16 @@ fi
 TA_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 ES_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 mkdir -p /opt/tubearchivist/{cache,media}
+ln -sf /opt/tubearchivist/cache /cache
+ln -sf /opt/tubearchivist/media /youtube
 cat <<EOF >/opt/tubearchivist/.env
 TA_HOST=http://${LOCAL_IP}:8000
 TA_USERNAME=admin
 TA_PASSWORD=${TA_PASSWORD}
 TA_BACKEND_PORT=8080
 TA_APP_DIR=/opt/tubearchivist/backend
-TA_CACHE_DIR=/opt/tubearchivist/cache
-TA_MEDIA_DIR=/opt/tubearchivist/media
+TA_CACHE_DIR=/cache
+TA_MEDIA_DIR=/youtube
 ES_SNAPSHOT_DIR=/var/lib/elasticsearch/snapshot
 ELASTIC_PASSWORD=${ES_PASSWORD}
 REDIS_CON=redis://localhost:6379
@@ -127,22 +129,22 @@ server {
 
     location /cache/videos/ {
         auth_request /_auth;
-        alias /opt/tubearchivist/cache/videos/;
+        alias /cache/videos/;
     }
 
     location /cache/channels/ {
         auth_request /_auth;
-        alias /opt/tubearchivist/cache/channels/;
+        alias /cache/channels/;
     }
 
     location /cache/playlists/ {
         auth_request /_auth;
-        alias /opt/tubearchivist/cache/playlists/;
+        alias /cache/playlists/;
     }
 
     location /media/ {
         auth_request /_auth;
-        alias /opt/tubearchivist/media/;
+        alias /youtube/;
         types {
             text/vtt vtt;
         }
@@ -150,7 +152,7 @@ server {
 
     location /youtube/ {
         auth_request /_auth;
-        alias /opt/tubearchivist/media/;
+        alias /youtube/;
         types {
             video/mp4 mp4;
         }
@@ -270,7 +272,7 @@ User=root
 WorkingDirectory=/opt/tubearchivist/backend
 EnvironmentFile=/opt/tubearchivist/.env
 Environment=PATH=/opt/tubearchivist/.venv/bin:/usr/local/bin:/usr/bin:/bin
-ExecStartPre=/bin/bash -c 'for i in \$(seq 1 60); do sqlite3 /opt/tubearchivist/cache/db.sqlite3 "SELECT 1 FROM django_celery_beat_crontabschedule LIMIT 1" 2>/dev/null && exit 0; sleep 2; done; exit 1'
+ExecStartPre=/bin/bash -c 'for i in \$(seq 1 60); do sqlite3 /cache/db.sqlite3 "SELECT 1 FROM django_celery_beat_crontabschedule LIMIT 1" 2>/dev/null && exit 0; sleep 2; done; exit 1'
 ExecStart=/opt/tubearchivist/.venv/bin/celery -A task beat --loglevel=error --scheduler django_celery_beat.schedulers:DatabaseScheduler
 Restart=always
 RestartSec=5
