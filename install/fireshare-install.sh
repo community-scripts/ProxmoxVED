@@ -12,6 +12,7 @@ catch_errors
 setting_up_container
 network_check
 update_os
+setup_hwaccel
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
@@ -88,6 +89,8 @@ $STD ldconfig
 msg_ok "Compiled ffmpeg"
 
 msg_info "Configuring Fireshare (Patience)"
+ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+SECRET=$(openssl rand -base64 48)
 mkdir -p /opt/fireshare-{data,videos,processed}
 cd /opt
 $STD git clone https://github.com/ShaneIsrael/fireshare.git
@@ -112,17 +115,22 @@ export VIDEO_DIRECTORY=/opt/fireshare-videos
 export PROCESSED_DIRECTORY=/opt/fireshare-processed
 $STD uv run flask db upgrade
 
-cat <<'EOF' >/opt/fireshare/fireshare.env
+cat <<EOF >/opt/fireshare/fireshare.env
 FLASK_APP="/opt/fireshare/app/server/fireshare:create_app()"
+DOMAIN=
 ENVIRONMENT=production
 DATA_DIRECTORY=/opt/fireshare-data
 VIDEO_DIRECTORY=/opt/fireshare-videos
 PROCESSED_DIRECTORY=/opt/fireshare-processed
 TEMPLATE_PATH=/opt/fireshare/app/server/fireshare/templates
-ADMIN_PASSWORD=admin
+SECRET_KEY=${SECRET}
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
 TZ=UTC
-LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/lib:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/lib:/usr/local/cuda/lib64:\$LD_LIBRARY_PATH
 PATH=/usr/local/bin:$PATH
+ENABLE_TRANSCODING=
+TRANSCODE_GPU=
+NVIDIA_DRIVER_CAPABILITIES=
 EOF
 
 cd /opt/fireshare/app/client
@@ -134,6 +142,13 @@ sed -i 's|root /processed/|root /opt/fireshare-processed|g' /etc/nginx/nginx.con
 sed -i 's/^user[[:space:]]\+nginx;/user  root;/' /etc/nginx/nginx.conf
 sed -i 's|root[[:space:]]\+/app/build;|root /opt/fireshare/app/client/build;|' /etc/nginx/nginx.conf
 systemctl start nginx
+
+cat <<EOF >~/fireshare.creds
+Fireshare Admin Credentials
+========================
+Username: admin
+Password: ${ADMIN_PASSWORD}
+EOF
 msg_ok "Configured Fireshare"
 
 msg_info "Creating services"
