@@ -18,6 +18,12 @@ var_unprivileged="${var_unprivileged:-1}"
 var_nesting="${var_nesting:-1}"
 var_keyctl="${var_keyctl:-1}"
 
+# App-specific variables (not in build.func whitelist)
+# Export so they survive lxc-attach into the container
+export var_forgejo_instance="${var_forgejo_instance:-}"
+export var_forgejo_runner_token="${var_forgejo_runner_token:-}"
+export var_runner_labels="${var_runner_labels:-}"
+
 header_info "$APP"
 variables
 color
