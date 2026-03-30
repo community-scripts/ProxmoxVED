@@ -138,7 +138,7 @@ $STD npm install
 $STD npm run build
 systemctl stop nginx
 cp /opt/fireshare/app/nginx/prod.conf /etc/nginx/nginx.conf
-sed -i 's|root /processed/|root /opt/fireshare-processed|g' /etc/nginx/nginx.conf
+sed -i 's|root /processed/|root /opt/fireshare-processed/|g' /etc/nginx/nginx.conf
 sed -i 's/^user[[:space:]]\+nginx;/user  root;/' /etc/nginx/nginx.conf
 sed -i 's|root[[:space:]]\+/app/build;|root /opt/fireshare/app/client/build;|' /etc/nginx/nginx.conf
 systemctl start nginx
