@@ -1,0 +1,33 @@
+{
+    "name": "DrawDB",
+    "slug": "drawdb",
+    "categories": [20],
+    "date_created": "2026-03-30",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://github.com/drawdb-io/drawdb",
+    "website": "https://drawdb.vercel.app",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/drawdb.webp",
+    "config_path": "",
+    "description": "DrawDB is a free, simple, and intuitive database entity relationship (DBER) editor right in your browser. Build diagrams with a few clicks, export SQL scripts, and customize your editor.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/drawdb.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": []
+}
