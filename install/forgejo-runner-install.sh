@@ -60,6 +60,7 @@ msg_ok "Installed Forgejo Runner"
 
 msg_info "Registering Forgejo Runner"
 export DOCKER_HOST="unix:///run/podman/podman.sock"
+cd /root
 forgejo-runner register \
   --instance "$FORGEJO_INSTANCE" \
   --token "$FORGEJO_RUNNER_TOKEN" \
