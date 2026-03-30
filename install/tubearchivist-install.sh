@@ -115,23 +115,33 @@ cat <<'EOF' >/etc/nginx/sites-available/default
 server {
     listen 8000;
 
+    location = /_auth {
+        internal;
+        proxy_pass http://localhost:8080/api/ping/;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Host $http_host;
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
     location /cache/videos/ {
-        auth_request /api/ping/;
+        auth_request /_auth;
         alias /opt/tubearchivist/cache/videos/;
     }
 
     location /cache/channels/ {
-        auth_request /api/ping/;
+        auth_request /_auth;
         alias /opt/tubearchivist/cache/channels/;
     }
 
     location /cache/playlists/ {
-        auth_request /api/ping/;
+        auth_request /_auth;
         alias /opt/tubearchivist/cache/playlists/;
     }
 
     location /media/ {
-        auth_request /api/ping/;
+        auth_request /_auth;
         alias /opt/tubearchivist/media/;
         types {
             text/vtt vtt;
@@ -139,7 +149,7 @@ server {
     }
 
     location /youtube/ {
-        auth_request /api/ping/;
+        auth_request /_auth;
         alias /opt/tubearchivist/media/;
         types {
             video/mp4 mp4;
