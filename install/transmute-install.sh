@@ -48,14 +48,8 @@ chmod +x /usr/local/bin/pandoc
 rm -rf /tmp/pandoc*
 msg_ok "Installed Pandoc"
 
-msg_info "Installing Calibre"
-CALIBRE_VERSION=$(get_latest_github_release "kovidgoyal/calibre")
-curl -fsSL "https://github.com/kovidgoyal/calibre/releases/download/${CALIBRE_VERSION}/calibre-${CALIBRE_VERSION#v}-x86_64.txz" -o /tmp/calibre.txz
-mkdir -p /opt/calibre
-tar -xJf /tmp/calibre.txz -C /opt/calibre
+fetch_and_deploy_gh_release "calibre" "kovidgoyal/calibre" "prebuild" "latest" "/opt/calibre" "calibre-*-x86_64.txz"
 ln -sf /opt/calibre/ebook-convert /usr/bin/ebook-convert
-rm -f /tmp/calibre.txz
-msg_ok "Installed Calibre"
 
 fetch_and_deploy_gh_release "transmute" "transmute-app/transmute" "tarball" "latest" "/opt/transmute"
 

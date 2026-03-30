@@ -33,10 +33,10 @@ $STD apt install -y \
   libnetfilter-queue1 \
   libnetfilter-queue-dev \
   libprotobuf-dev \
-  protobuf-compiler
+  protobuf-compiler \
+  nodejs \
+  npm
 msg_ok "Installed Dependencies"
-
-NODE_VERSION="20" setup_nodejs
 
 msg_info "Cloning OpenThread Border Router"
 $STD git clone --depth 1 https://github.com/openthread/ot-br-posix /opt/ot-br-posix
@@ -74,8 +74,7 @@ msg_info "Configuring Services"
 cat <<EOF >/etc/default/otbr-agent
 OTBR_AGENT_OPTS="-I wpan0 -B eth0 spinel+hdlc+uart:///dev/ttyACM0"
 EOF
-systemctl enable -q --now otbr-agent
-systemctl enable -q otbr-web
+systemctl enable -q --now otbr-agent otbr-web
 msg_ok "Configured Services"
 
 motd_ssh
