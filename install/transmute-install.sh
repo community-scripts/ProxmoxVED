@@ -87,9 +87,7 @@ After=network.target
 Type=simple
 WorkingDirectory=/opt/transmute
 EnvironmentFile=/opt/transmute/backend/.env
-Environment=DISPLAY=:99
-ExecStartPre=/usr/bin/Xvfb :99 -screen 0 1024x768x24 -nolisten tcp
-ExecStart=/opt/transmute/.venv/bin/python backend/main.py
+ExecStart=/usr/bin/xvfb-run -a -s "-screen 0 1024x768x24 -nolisten tcp" /opt/transmute/.venv/bin/python backend/main.py
 Restart=on-failure
 RestartSec=5
 
