@@ -24,6 +24,7 @@ $STD apt install -y \
   libldap2-dev \
   libsasl2-dev \
   libssl-dev \
+  sqlite3 \
   ffmpeg
 msg_ok "Installed Dependencies"
 
@@ -259,6 +260,7 @@ User=root
 WorkingDirectory=/opt/tubearchivist/backend
 EnvironmentFile=/opt/tubearchivist/.env
 Environment=PATH=/opt/tubearchivist/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/bin/bash -c 'for i in \$(seq 1 60); do sqlite3 /opt/tubearchivist/cache/db.sqlite3 "SELECT 1 FROM django_celery_beat_crontabschedule LIMIT 1" 2>/dev/null && exit 0; sleep 2; done; exit 1'
 ExecStart=/opt/tubearchivist/.venv/bin/celery -A task beat --loglevel=error --scheduler django_celery_beat.schedulers:DatabaseScheduler
 Restart=always
 RestartSec=5
