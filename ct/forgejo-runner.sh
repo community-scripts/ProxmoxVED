@@ -62,10 +62,16 @@ function update_script() {
   exit
 }
 
-# Fail early if running unattended without a runner token
-if [[ -n "${mode:-}" && -z "${var_forgejo_runner_token:-}" ]]; then
-  msg_error "var_forgejo_runner_token is required for unattended installs."
-  exit 1
+# Fail early if running unattended without required values
+if [[ -n "${mode:-}" ]]; then
+  if [[ -z "${var_forgejo_instance:-}" ]]; then
+    msg_error "var_forgejo_instance is required for unattended installs."
+    exit 1
+  fi
+  if [[ -z "${var_forgejo_runner_token:-}" ]]; then
+    msg_error "var_forgejo_runner_token is required for unattended installs."
+    exit 1
+  fi
 fi
 
 start
