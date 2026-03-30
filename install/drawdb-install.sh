@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y caddy
+$STD apt install -y nginx
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="20" setup_nodejs
@@ -26,16 +26,26 @@ $STD npm ci
 NODE_OPTIONS="--max-old-space-size=4096" $STD npm run build
 msg_ok "Built Frontend"
 
-msg_info "Configuring Caddy"
-cat <<EOF >/etc/caddy/Caddyfile
-:3000 {
-    root * /opt/drawdb/dist
-    file_server
-    try_files {path} /index.html
+msg_info "Applying crypto.randomUUID Polyfill"
+sed -i '/<head>/a <script>if(!crypto.randomUUID){crypto.randomUUID=function(){return([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,function(c){return(c^(crypto.getRandomValues(new Uint8Array(1))[0]&(15>>c/4))).toString(16)})}};</script>' /opt/drawdb/dist/index.html
+msg_ok "Applied Polyfill"
+
+msg_info "Configuring Nginx"
+cat <<EOF >/etc/nginx/conf.d/drawdb.conf
+server {
+    listen 3000;
+    server_name _;
+    root /opt/drawdb/dist;
+
+    location / {
+        try_files \$uri /index.html;
+    }
 }
 EOF
-systemctl reload caddy
-msg_ok "Configured Caddy"
+rm -f /etc/nginx/sites-enabled/default
+systemctl enable -q --now nginx
+systemctl reload nginx
+msg_ok "Configured Nginx"
 
 motd_ssh
 customize
