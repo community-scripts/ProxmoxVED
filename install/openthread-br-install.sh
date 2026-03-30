@@ -33,10 +33,10 @@ $STD apt install -y \
   libnetfilter-queue1 \
   libnetfilter-queue-dev \
   libprotobuf-dev \
-  protobuf-compiler \
-  nodejs \
-  npm
+  protobuf-compiler
 msg_ok "Installed Dependencies"
+
+setup_nodejs
 
 msg_info "Cloning OpenThread Border Router"
 # git clone is needed to fetch submodules, fetch_and_deploy_gh_release doesn't support this. We use --depth 1 to minimize the amount of data cloned, but it still may take a while.
