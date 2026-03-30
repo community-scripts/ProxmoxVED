@@ -62,6 +62,12 @@ function update_script() {
   exit
 }
 
+# Fail early if running unattended without a runner token
+if [[ -n "${mode:-}" && -z "${var_forgejo_runner_token:-}" ]]; then
+  msg_error "var_forgejo_runner_token is required for unattended installs."
+  exit 1
+fi
+
 start
 build_container
 description
