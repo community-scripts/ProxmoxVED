@@ -57,6 +57,8 @@ function update_script() {
 
     msg_info "Restoring Configuration"
     mv /opt/tubearchivist_env.bak /opt/tubearchivist/.env
+    sed -i 's|^TA_APP_DIR=/opt/tubearchivist$|TA_APP_DIR=/opt/tubearchivist/backend|' /opt/tubearchivist/.env
+    ln -sf /opt/tubearchivist/.env /opt/tubearchivist/backend/.env
     msg_ok "Restored Configuration"
 
     msg_info "Starting Services"
