@@ -1,0 +1,38 @@
+{
+    "name": "CinePlete",
+    "slug": "cineplete",
+    "categories": [13],
+    "date_created": "2026-03-31",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 7474,
+    "documentation": "https://github.com/sdblepas/CinePlete",
+    "website": "https://github.com/sdblepas/CinePlete",
+    "logo": "https://raw.githubusercontent.com/sdblepas/CinePlete/main/assets/icon.png",
+    "config_path": "/config/config.yml",
+    "description": "Scans your Plex or Jellyfin library and shows missing movies from franchises, directors, actors, and classics.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/cineplete.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 512,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "A TMDB API key is required. Configure it from the web UI after install.",
+            "type": "info"
+        }
+    ]
+}
