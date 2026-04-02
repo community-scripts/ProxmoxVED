@@ -16,6 +16,8 @@ var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
 variables
+NSAPP="netboot-xyz"
+var_install="${NSAPP}-install"
 color
 catch_errors
 
