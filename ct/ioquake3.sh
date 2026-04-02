@@ -4,7 +4,6 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Author: geedoes
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
-# --- Variables ---
 APP="ioquake3"
 var_tags="${var_tags:-game;server}"
 var_cpu="${var_cpu:-2}"
@@ -14,7 +13,6 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
 var_unprivileged="${var_unprivileged:-1}"
 
-# --- Functions ---
 header_info "$APP"
 variables
 color
@@ -38,14 +36,11 @@ start
 build_container
 description
 
-# --- Post-Install Configuration ---
-# This part triggers your internal install script inside the new CT
 msg_info "Running internal Quake 3 installation..."
 pct exec $CTID -- bash -c "$(curl -s https://raw.githubusercontent.com/geedoes/ProxmoxVED/refs/heads/main/install/ioquake3-install.sh)"
 
 msg_ok "Completed Successfully!\n"
 
-# --- Style-matching Status Output ---
 echo -e "${INFO}${YW} IMPORTANT: Manual File Deployment Required ${CL}"
 echo -e "${TAB}${BGN}1.${CL} Upload your 'pak0.pk3' to Proxmox ISO storage, renamed as ${BL}pak0.iso${CL}"
 echo -e "${TAB}${BGN}2.${CL} Run the following command on your Proxmox Host to deploy it:"
