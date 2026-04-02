@@ -41,6 +41,7 @@ cat <<EOF >/opt/trek/server/.env
 NODE_ENV=production
 PORT=3000
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
+COOKIE_SECURE=false
 TZ=UTC
 EOF
 msg_ok "Set up Server"
