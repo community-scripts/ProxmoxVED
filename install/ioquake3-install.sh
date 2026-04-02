@@ -60,7 +60,6 @@ msg_ok "ioquake3 compiled successfully"
 msg_info "Downloading ioquake3 latest patch pk3s"
 wget -qO /tmp/patch.zip "https://files.ioquake3.org/quake3-latest-pk3s.zip"
 unzip -q /tmp/patch.zip -d /tmp/patch_unzip
-# Copies the baseq3 and missionpack folders directly into the install dir
 cp -a /tmp/patch_unzip/quake3-latest-pk3s/* /opt/ioquake3/
 rm -rf /tmp/patch.zip /tmp/patch_unzip
 msg_ok "Patch pk3s extracted"
