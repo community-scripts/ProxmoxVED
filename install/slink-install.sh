@@ -41,7 +41,7 @@ cd /opt/slink/services/api
 APP_SECRET=$(openssl rand -hex 16)
 sed -i "s|^APP_SECRET=.*|APP_SECRET=${APP_SECRET}|" .env
 sed -i "s|^APP_ENV=.*|APP_ENV=prod|" .env
-$STD composer install --no-dev --optimize-autoloader --no-interaction
+APP_ENV=prod $STD composer install --no-dev --optimize-autoloader --no-interaction
 mkdir -p /opt/slink/{data,images}
 $STD php bin/console cache:warm --no-optional-warmers 2>/dev/null || true
 msg_ok "Set up API"
