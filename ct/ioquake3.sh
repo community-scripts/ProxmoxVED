@@ -20,13 +20,6 @@ header_info
 echo -e "Loading..."
 
 APP="ioquake3"
-
-# --- DEVELOPER OVERRIDES: FORCES PROXMOX TO USE YOUR REPO ---
-export GITHUB_USER="geedoes"
-export GITHUB_REPO="ProxmoxVE-ioquake3-beta"
-export GITHUB_BRANCH="main"
-# ------------------------------------------------------------
-
 var_disk="5"
 var_cpu="2"
 var_ram="1024"
