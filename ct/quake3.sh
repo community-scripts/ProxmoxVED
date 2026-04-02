@@ -76,7 +76,7 @@ description
 # 1. Run the internal setup script FIRST
 # This creates the /opt/ioquake3 directory and the 'quake3' user
 msg_info "Running internal Quake 3 installation..."
-pct exec $CTID -- bash -c "$(curl -s https://raw.githubusercontent.com/geedoes/ProxmoxVE-ioquake3-beta/main/install/ioquake3-install.sh)"
+pct exec $CTID -- bash -c "$(curl -s https://raw.githubusercontent.com/geedoes/ProxmoxVED/refs/heads/main/install/ioquake3-install.sh)"
 
 # 2. Check for the pak0.iso file
 msg_info "Checking for pak0.iso in Proxmox ISO storage..."
