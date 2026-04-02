@@ -23,7 +23,6 @@ function msg_ok() {
 
 msg_info "Installing Dependencies"
 $STD apt-get update
-# Added unzip for the pk3 patch extraction
 $STD apt-get install -y curl wget git unzip build-essential cmake libsdl2-dev libcurl4-openssl-dev zlib1g-dev pkg-config ca-certificates
 msg_ok "Installed Dependencies"
 
@@ -41,13 +40,10 @@ cd /opt/ioq3-src
 mkdir -p build
 cd build
 
-# Configure build with CMake (Server only, no client)
 $STD cmake -DBUILD_CLIENT=OFF -DBUILD_SERVER=ON ..
 
-# Compile it!
 $STD make -j$(nproc)
 
-# Locate the compiled binary (CMake names can vary slightly by OS/Arch)
 SERVER_BIN=$(find . -maxdepth 2 -type f -name "ioq3ded*" -executable | head -n 1)
 
 if [ -z "$SERVER_BIN" ]; then
@@ -55,7 +51,6 @@ if [ -z "$SERVER_BIN" ]; then
     exit 1
 fi
 
-# Move binary and clean up compile directory
 cp "$SERVER_BIN" /opt/ioquake3/ioq3ded
 cd /opt/ioquake3
 rm -rf /opt/ioq3-src
@@ -90,7 +85,6 @@ seta g_forcerespawn 0
 seta g_log "games.log"
 seta logfile 1
 seta rconpassword "changeme"
-// Critical Fix for Retail Client compatibility
 seta com_legacyprotocol 68
 map q3dm17
 EOF
