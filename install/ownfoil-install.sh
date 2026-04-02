@@ -13,19 +13,11 @@ setting_up_container
 network_check
 update_os
 
-# =============================================================================
-# 1. DEPENDENCIES - Only add app-specific dependencies here!
-# =============================================================================
-
 msg_info "Installing Dependencies"
 $STD apt install -y \
   git
 msg_ok "Installed Dependencies"
 
-
-# =============================================================================
-# 2: Python Application with uv
-# ------------------------------------
 setup_uv
 
 fetch_and_deploy_gh_release "ownfoil" "a1ex4/ownfoil" "tarball" "latest" "/opt/ownfoil"
@@ -36,10 +28,6 @@ $STD uv venv .venv
 $STD source .venv/bin/activate
 $STD uv pip install -r requirements.txt 
 msg_ok "Setup ownfoil"
-
-# =============================================================================
-# 3. CREATE SYSTEMD SERVICE
-# =============================================================================
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/ownfoil.service
@@ -60,10 +48,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now ownfoil
 msg_ok "Created Service"
-
-# =============================================================================
-# 4. CLEANUP & FINALIZATION
-# =============================================================================
 
 motd_ssh
 customize
