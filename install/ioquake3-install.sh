@@ -8,6 +8,9 @@
 source /dev/stdin <<< "$FUNCTIONS_FILE_PATH"
 color
 catch_errors
+setting_up_container
+network_check
+update_os
 
 function msg_info() {
     local msg="$1"
@@ -19,30 +22,30 @@ function msg_ok() {
 }
 
 msg_info "Installing Dependencies"
-apt-get update &>/dev/null
+$STD apt-get update
 # Added unzip for the pk3 patch extraction
-apt-get install -y curl wget git unzip build-essential cmake libsdl2-dev libcurl4-openssl-dev zlib1g-dev pkg-config ca-certificates &>/dev/null
+$STD apt-get install -y curl wget git unzip build-essential cmake libsdl2-dev libcurl4-openssl-dev zlib1g-dev pkg-config ca-certificates
 msg_ok "Installed Dependencies"
 
 msg_info "Setting up environment"
-id -u quake3 &>/dev/null || useradd -r -m -d /opt/ioquake3 -s /usr/sbin/nologin quake3
+$STD useradd -r -m -d /opt/ioquake3 -s /usr/sbin/nologin quake3
 mkdir -p /opt/ioquake3/baseq3
 msg_ok "Environment setup complete"
 
 echo -e " \033[1;33mCompiling ioquake3 dedicated server via CMake (This takes a minute)\033[0m"
 
 rm -rf /opt/ioq3-src
-git clone --depth 1 https://github.com/ioquake/ioq3.git /opt/ioq3-src &>/dev/null
+$STD git clone --depth 1 https://github.com/ioquake/ioq3.git /opt/ioq3-src
 
 cd /opt/ioq3-src
 mkdir -p build
 cd build
 
 # Configure build with CMake (Server only, no client)
-cmake -DBUILD_CLIENT=OFF -DBUILD_SERVER=ON .. &>/dev/null
+$STD cmake -DBUILD_CLIENT=OFF -DBUILD_SERVER=ON ..
 
 # Compile it!
-make -j$(nproc) &>/dev/null
+$STD make -j$(nproc)
 
 # Locate the compiled binary (CMake names can vary slightly by OS/Arch)
 SERVER_BIN=$(find . -maxdepth 2 -type f -name "ioq3ded*" -executable | head -n 1)
