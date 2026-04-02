@@ -14,6 +14,7 @@ var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-0}"
+var_tun="${var_tun:-yes}"
 
 header_info "$APP"
 variables
