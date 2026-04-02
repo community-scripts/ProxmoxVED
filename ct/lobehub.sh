@@ -7,8 +7,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 
 APP="LobeHub"
 var_tags="${var_tags:-ai;chat}"
-var_cpu="${var_cpu:-4}"
-var_ram="${var_ram:-8192}"
+var_cpu="${var_cpu:-6}"
+var_ram="${var_ram:-10240}"
 var_disk="${var_disk:-15}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
