@@ -69,6 +69,28 @@ EOF
 systemctl enable -q --now trek
 msg_ok "Created Service"
 
+msg_info "Waiting for initial setup"
+for i in $(seq 1 15); do
+  if journalctl -u trek --no-pager -q 2>/dev/null | grep -q "Admin Account Created"; then
+    TREK_PW=$(journalctl -u trek --no-pager -q 2>/dev/null | grep "Password:" | tail -1 | sed 's/.*Password: *//;s/ *║.*//')
+    TREK_EMAIL=$(journalctl -u trek --no-pager -q 2>/dev/null | grep "Email:" | tail -1 | sed 's/.*Email: *//;s/ *║.*//')
+    break
+  fi
+  sleep 1
+done
+msg_ok "Initial setup complete"
+
+if [[ -n "${TREK_PW:-}" ]]; then
+  {
+    echo ""
+    echo "TREK Admin Credentials"
+    echo "Email:    ${TREK_EMAIL}"
+    echo "Password: ${TREK_PW}"
+    echo "(Change password after first login)"
+    echo ""
+  } >>~/trek.creds
+fi
+
 motd_ssh
 customize
 cleanup_lxc
