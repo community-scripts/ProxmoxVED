@@ -37,7 +37,7 @@
             "type": "warning"
         },
         {
-            "text": "NEXT_PUBLIC_* variables are baked at build time. If you change the IP/URL, rebuild with: cd /opt/postiz && pnpm run build",
+            "text": "NEXT_PUBLIC_* variables are baked at build time. If you change the IP/URL or add social provider keys, rebuild with: postiz-rebuild",
             "type": "info"
         }
     ]

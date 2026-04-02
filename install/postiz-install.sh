@@ -152,6 +152,39 @@ EOF
 systemctl enable -q --now redis-server postiz-temporal postiz-backend postiz-frontend postiz-orchestrator
 msg_ok "Created Services"
 
+msg_info "Creating Helper Scripts"
+cat <<'EOF' >/usr/local/bin/postiz-rebuild
+#!/usr/bin/env bash
+echo "=== Postiz Rebuild ==="
+echo "Stopping services..."
+systemctl stop postiz-orchestrator postiz-frontend postiz-backend
+
+cd /opt/postiz
+set -a && source /opt/postiz/.env && set +a
+export NODE_OPTIONS="--max-old-space-size=4096"
+
+echo "Building application (this may take a while)..."
+pnpm run build
+BUILD_RC=$?
+unset NODE_OPTIONS
+
+if [[ $BUILD_RC -ne 0 ]]; then
+  echo "ERROR: Build failed! Check the output above."
+  echo "Starting services with previous build..."
+  systemctl start postiz-backend postiz-frontend postiz-orchestrator
+  exit 1
+fi
+
+echo "Running database migrations..."
+pnpm run prisma-db-push
+
+echo "Starting services..."
+systemctl start postiz-backend postiz-frontend postiz-orchestrator
+echo "=== Rebuild complete ==="
+EOF
+chmod +x /usr/local/bin/postiz-rebuild
+msg_ok "Created Helper Scripts"
+
 msg_info "Configuring Nginx"
 cat <<EOF >/etc/nginx/sites-available/postiz
 server {

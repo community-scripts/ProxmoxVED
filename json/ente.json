@@ -37,6 +37,10 @@
             "type": "warning"
         },
         {
+            "text": "To upgrade subscription later: `ente-upgrade-subscription user@example.com`",
+            "type": "info"
+        },
+        {
             "text": "For CLI admin docs see https://ente.io/help/self-hosting/administration/cli",
             "type": "info"
         },

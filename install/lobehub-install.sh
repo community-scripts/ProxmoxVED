@@ -18,11 +18,20 @@ $STD apt install -y \
   build-essential
 msg_ok "Installed Dependencies"
 
-msg_info "Adding ParadeDB Repository"
-curl -fsSL https://packagecloud.io/install/repositories/paradedb/paradedb/script.deb.sh | $STD bash
-msg_ok "Added ParadeDB Repository"
+PG_VERSION="17" PG_MODULES="pgvector" setup_postgresql
 
-PG_VERSION="17" PG_MODULES="pgvector,pg-search" setup_postgresql
+msg_info "Installing pg_search from ParadeDB"
+ARCH=$(dpkg --print-architecture)
+CODENAME=$(. /etc/os-release && echo "${VERSION_CODENAME:-bookworm}")
+PDB_VERSION=$(curl -fsSL "https://api.github.com/repos/paradedb/paradedb/releases/latest" | grep -oP '"tag_name":\s*"\K[^"]+')
+PDB_VERSION_NUM="${PDB_VERSION#v}"
+DEB_NAME="postgresql-17-pg-search_${PDB_VERSION_NUM}-1PARADEDB-${CODENAME}_${ARCH}.deb"
+DEB_URL="https://github.com/paradedb/paradedb/releases/download/${PDB_VERSION}/${DEB_NAME}"
+curl -fsSL -o "/tmp/${DEB_NAME}" "$DEB_URL"
+$STD dpkg -i "/tmp/${DEB_NAME}" || $STD apt install -f -y
+rm -f "/tmp/${DEB_NAME}"
+msg_ok "Installed pg_search from ParadeDB"
+
 PG_DB_NAME="lobehub" PG_DB_USER="lobehub" PG_DB_EXTENSIONS="vector,pg_search" setup_postgresql_db
 NODE_VERSION="24" setup_nodejs
 
