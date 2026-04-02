@@ -33,12 +33,9 @@
     },
     "notes": [
         {
+<<<<<<< HEAD
             "text": "First-Start: Run `ente-setup` — it guides you through account creation, verification, and admin configuration",
             "type": "warning"
-        },
-        {
-            "text": "To upgrade subscription later: `ente-upgrade-subscription user@example.com`",
-            "type": "info"
         },
         {
             "text": "For CLI admin docs see https://ente.io/help/self-hosting/administration/cli",
@@ -46,6 +43,17 @@
         },
         {
             "text": "Museum config: `cat /opt/ente/server/museum.yaml`",
+=======
+            "text": "First-Start: Run `ente-setup` — it guides you through account creation, verification, and admin configuration.",
+            "type": "info"
+        },
+        {
+            "text": "To upgrade subscription later: `ente-upgrade-subscription user@example.com`",
+            "type": "info"
+        },
+        {
+            "text": "To see Museum config: `cat /opt/ente/server/museum.yaml`",
+>>>>>>> bb7e2e03 (fix(postiz,ente,lobehub): address testing feedback)
             "type": "info"
         }
     ]
