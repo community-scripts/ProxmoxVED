@@ -22,7 +22,7 @@ msg_info "Updating system and installing dependencies"
 apt-get update &>/dev/null
 # Added unzip for the pk3 patch extraction
 apt-get install -y curl wget git unzip build-essential cmake libsdl2-dev libcurl4-openssl-dev zlib1g-dev pkg-config ca-certificates &>/dev/null
-msg_ok "Dependencies installed"
+msg_ok "Installed Dependencies"
 
 msg_info "Setting up environment"
 id -u quake3 &>/dev/null || useradd -r -m -d /opt/ioquake3 -s /usr/sbin/nologin quake3
