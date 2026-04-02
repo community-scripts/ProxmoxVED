@@ -23,7 +23,7 @@ PHP_VERSION="8.3" PHP_MODULES="redis,gd,intl,zip,sqlite3,xml,curl,exif,imagick" 
 
 setup_composer
 
-NODE_VERSION="22" NODE_MODULE="yarn" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 
 fetch_and_deploy_gh_release "slink" "andrii-kryvoviaz/slink" "tarball"
 
