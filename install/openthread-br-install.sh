@@ -73,9 +73,11 @@ msg_ok "Configured Network"
 
 msg_info "Configuring Services"
 cat <<EOF >/etc/default/otbr-agent
+# USB example:   spinel+hdlc+uart:///dev/ttyACM0
+# TCP example:   spinel+hdlc+uart://192.168.1.100:9999
 OTBR_AGENT_OPTS="-I wpan0 -B eth0 spinel+hdlc+uart:///dev/ttyACM0"
 EOF
-systemctl enable -q --now otbr-agent otbr-web
+systemctl enable -q otbr-agent otbr-web
 msg_ok "Configured Services"
 
 motd_ssh

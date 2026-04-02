@@ -7,7 +7,7 @@
     "date_created": "2026-03-30",
     "type": "ct",
     "updateable": true,
-    "privileged": false,
+    "privileged": true,
     "interface_port": 80,
     "documentation": "https://openthread.io/guides/border-router",
     "website": "https://openthread.io/",
@@ -33,15 +33,11 @@
     },
     "notes": [
         {
-            "text": "Requires a Thread Radio Co-Processor (RCP) USB device passed through to the LXC container (e.g. /dev/ttyACM0). Edit /etc/default/otbr-agent to configure the RCP device path.",
+            "text": "Requires a Thread Radio Co-Processor (RCP) device. USB: pass through to LXC (e.g. /dev/ttyACM0). TCP: use `spinel+hdlc+uart://IP:PORT` format.",
             "type": "warning"
         },
         {
-            "text": "This container runs in privileged mode for network administration (iptables, ipset, tun device access).",
-            "type": "info"
-        },
-        {
-            "text": "Services are not started automatically on first boot. Connect your RCP device, configure /etc/default/otbr-agent, then run: systemctl start otbr-agent && systemctl start otbr-web",
+            "text": "Services are enabled but not started at install. Configure `/etc/default/otbr-agent` with your RCP device, then run: `systemctl start otbr-agent && systemctl start otbr-web`",
             "type": "info"
         }
     ]
