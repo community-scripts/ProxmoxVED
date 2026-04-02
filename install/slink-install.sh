@@ -16,7 +16,8 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   caddy \
-  redis-server
+  redis-server \
+  git
 msg_ok "Installed Dependencies"
 
 PHP_VERSION="8.3" PHP_MODULES="redis,gd,intl,zip,sqlite3,xml,curl,exif,imagick" setup_php
