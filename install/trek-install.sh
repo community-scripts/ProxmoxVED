@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y build-essential
+$STD apt install -y build-essential python3
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
@@ -29,7 +29,7 @@ msg_ok "Built Client"
 
 msg_info "Setting up Server"
 cd /opt/trek/server
-$STD npm ci --production
+$STD npm ci
 mkdir -p /opt/trek/server/public
 cp -r /opt/trek/client/dist/* /opt/trek/server/public/
 cp -r /opt/trek/client/public/fonts /opt/trek/server/public/fonts 2>/dev/null || true
@@ -42,6 +42,8 @@ NODE_ENV=production
 PORT=3000
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
 COOKIE_SECURE=false
+FORCE_HTTPS=false
+LOG_LEVEL=info
 TZ=UTC
 EOF
 msg_ok "Set up Server"
