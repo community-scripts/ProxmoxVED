@@ -1,0 +1,64 @@
+{
+  "name": "ioquake3",
+  "description": "A Quake 3 Arena dedicated server powered by ioquake3. Compiled natively from source.",
+  "version": "git",
+  "slug": "ioquake3",
+  "type": "lxc",
+  "tags": [
+    "Games",
+    "LAN"
+  ],
+  "bg_color": "#E53935",
+  "app_url": "https://ioquake3.org"
+}
+
+
+
+{
+    "name": "ioquake3",
+    "slug": "ioquake3",
+    "categories": [
+        8
+    ],
+    "date_created": "2026-04-01",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 27960,
+    "documentation": "https://github.com/ioquake/ioq3/blob/master/README.md",
+    "website": "https://ioquake3.org/",
+    "logo": "https://i0.wp.com/ioquake3.org/wp-content/uploads/2021/01/quake3.png",
+    "config_path": "/opt/ioquake3/baseq3/server.cfg",
+    "description": "ioquake3 is a modernized game engine for Quake III Arena, focused on bug fixes, improved performance, and enhanced security for dedicated servers.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/ioquake3.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 1024,
+                "hdd": 5,
+                "os": "Debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "quake3",
+        "password": "rconpassword: changeme"
+    },
+    "notes": [
+        {
+            "text": "Legal Requirement: You must upload your retail pak0.pk3 file to /opt/ioquake3/baseq3/ to play.",
+            "type": "warning"
+        },
+        {
+            "text": "The server uses UDP port 27960 by default. Ensure this is open in your firewall.",
+            "type": "info"
+        },
+        {
+            "text": "Compilation from source occurs during install; while it only uses ~1GB RAM.",
+            "type": "info"
+        }
+    ]
+}
