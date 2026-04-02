@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
-# Copyright (c) 2021-2024 tteck
-# Author: community-scripts
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: geedoes
 # License: MIT
-# https://github.com/geedoes/ProxmoxVE
+# https://github.com/community-scripts/ProxmoxVE
 
 function header_info {
 clear
