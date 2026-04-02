@@ -16,6 +16,11 @@ update_os
 fetch_and_deploy_gh_release "labca-gui" "hakwerk/labca" "binary"
 
 mkdir -p /etc/labca
+cat <<EOF >/etc/labca/config.json
+{
+    "standalone": true
+}
+EOF
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/labca.service
@@ -28,8 +33,7 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-WorkingDirectory=/etc/labca
-ExecStart=/usr/bin/labca-gui -config /etc/labca/config.json -port 3000
+ExecStart=/usr/bin/labca-gui --init -config /etc/labca/config.json -port 3000
 Restart=on-failure
 RestartSec=5
 
