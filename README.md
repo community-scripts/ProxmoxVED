@@ -32,7 +32,7 @@ Due to legal requirements, this script **does not** include proprietary game dat
 Run the following command in your **Proxmox Host Shell**:
 
 ```bash
-bash -c "$(wget -qLO - https://raw.githubusercontent.com/geedoes/ProxmoxVE-ioquake3-beta/main/ct/quake3.sh)"
+bash -c "$(wget -qLO - https://raw.githubusercontent.com/geedoes/ProxmoxVED/refs/heads/main/ct/ioquake3.sh)"
 ```
 ---
 
