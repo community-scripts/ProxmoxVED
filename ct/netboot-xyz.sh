@@ -6,7 +6,6 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://netboot.xyz
 
 APP="netboot.xyz"
-NSAPP="netboot-xyz"
 var_tags="${var_tags:-network;pxe;boot}"
 var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
@@ -17,6 +16,8 @@ var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
 variables
+NSAPP="netboot-xyz"
+var_install="${NSAPP}-install"
 color
 catch_errors
 
