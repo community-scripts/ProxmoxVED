@@ -2,96 +2,53 @@
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: geedoes
-# License: MIT
-# https://github.com/community-scripts/ProxmoxVE
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
-function header_info {
-clear
-cat <<"EOF"
-  _                               _    _____ 
- (_) ___   __ _ _   _ __ _| | _____|___ / 
- | |/ _ \ / _` | | | / _` | |/ / _ \ |_ \ 
- | | (_) | (_| | |_| | (_| |   <  __/___) |
- |_|\___/ \__, |\__,_|\__,_|_|\_\___|____/ 
-             |_|                           
-EOF
-}
-header_info
-echo -e "Loading..."
-
+# --- Variables ---
 APP="ioquake3"
-var_disk="5"
-var_cpu="2"
-var_ram="1024"
-var_os="debian"
-var_version="12"
+var_tags="${var_tags:-game;server}"
+var_cpu="${var_cpu:-2}"
+var_ram="${var_ram:-1024}"
+var_disk="${var_disk:-5}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-12}"
+var_unprivileged="${var_unprivileged:-1}"
+
+# --- Functions ---
+header_info "$APP"
 variables
 color
 catch_errors
 
-function default_settings() {
-  CT_TYPE="1"
-  PW=""
-  CT_ID=$NEXTID
-  HN=$RN
-  DISK_SIZE="$var_disk"
-  CORE_COUNT="$var_cpu"
-  RAM_SIZE="$var_ram"
-  BRG="vmbr0"
-  NET="dhcp"
-  GATE=""
-  APT_CACHER=""
-  APT_CACHER_IP=""
-  DISABLEIP6="no"
-  MTU=""
-  SD=""
-  NS=""
-  MAC=""
-  VLAN=""
-  SSH="no"
-  VERB="no"
-  echo_default
-}
-
 function update_script() {
-header_info
-check_container_storage
-check_container_resources
-if [[ ! -d /opt/ioquake3 ]]; then msg_error "No ${APP} Installation Found!"; exit; fi
-msg_error "There is currently no auto-update path available for ioquake3."
-exit
+    header_info
+    check_container_storage
+    check_container_resources
+    if [[ ! -d /opt/ioquake3 ]]; then 
+        msg_error "No ${APP} Installation Found!"
+        exit
+    fi
+    msg_info "Updating ${APP} Service"
+    # Add update logic here if available in the future
+    msg_error "There is currently no auto-update path available for ioquake3."
+    exit
 }
 
 start
 build_container
 description
 
-# 1. Run the internal setup script FIRST
-# This creates the /opt/ioquake3 directory and the 'quake3' user
+# --- Post-Install Configuration ---
+# This part triggers your internal install script inside the new CT
 msg_info "Running internal Quake 3 installation..."
 pct exec $CTID -- bash -c "$(curl -s https://raw.githubusercontent.com/geedoes/ProxmoxVED/refs/heads/main/install/ioquake3-install.sh)"
 
-# 2. Check for the pak0.iso file
-msg_info "Checking for pak0.iso in Proxmox ISO storage..."
-HOST_ISO_PATH="/var/lib/vz/template/iso/pak0.iso"
-DEST_PATH="/opt/ioquake3/baseq3/pak0.pk3"
-
-if [ ! -f "$HOST_ISO_PATH" ]; then
-  msg_warn "pak0.iso not found!"
-  echo -e "  Please upload your pak0.pk3 file but rename it to **pak0.iso**"
-  echo -e "  so the Proxmox UI allows the upload."
-  
-  while [ ! -f "$HOST_ISO_PATH" ]; do
-    sleep 5
-  done
-  msg_ok "Found pak0.iso!"
-fi
-
-# 3. Deploy file and restart service
-# Now that step 1 is done, these paths and users actually exist
-msg_info "Deploying game files to Container..."
-pct push $CTID "$HOST_ISO_PATH" "$DEST_PATH"
-pct exec $CTID -- bash -c "chown -R quake3:quake3 /opt/ioquake3/ && systemctl restart ioquake3"
-
-msg_ok "pak0.pk3 deployed and service restarted."
 msg_ok "Completed Successfully!\n"
+
+# --- Style-matching Status Output ---
+echo -e "${INFO}${YW} IMPORTANT: Manual File Deployment Required ${CL}"
+echo -e "${TAB}${BGN}1.${CL} Upload your 'pak0.pk3' to Proxmox ISO storage, renamed as ${BL}pak0.iso${CL}"
+echo -e "${TAB}${BGN}2.${CL} Run the following command on your Proxmox Host to deploy it:"
+echo -e "${TAB}${TAB}${GN}pct push $CTID /var/lib/vz/template/iso/pak0.iso /opt/ioquake3/baseq3/pak0.pk3${CL}"
+echo -e "${TAB}${BGN}3.${CL} Fix permissions and restart:"
+echo -e "${TAB}${TAB}${GN}pct exec $CTID -- bash -c \"chown -R quake3:quake3 /opt/ioquake3/ && systemctl restart ioquake3\"${CL}"
