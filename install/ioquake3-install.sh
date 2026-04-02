@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2024 tteck
-# Author: community-scripts
+# Author: geedoes
 # License: MIT
 # https://github.com/community-scripts/ProxmoxVE
 
