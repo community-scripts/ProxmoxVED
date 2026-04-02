@@ -18,12 +18,11 @@ $STD apt install -y \
   gcc \
   libffi-dev \
   libssl-dev \
-  libchromaprint-tools
+  libchromaprint-tools \
+  ffmpeg
 msg_ok "Installed Dependencies"
 
 UV_PYTHON="3.11" setup_uv
-
-setup_ffmpeg
 
 fetch_and_deploy_gh_release "soulsync" "Nezreka/SoulSync" "tarball"
 
