@@ -37,6 +37,7 @@ mkdir -p /opt/trek/{data/logs,uploads/{files,covers,avatars,photos}}
 ln -sf /opt/trek/data /opt/trek/server/data
 ln -sf /opt/trek/uploads /opt/trek/server/uploads
 ENCRYPTION_KEY=$(openssl rand -hex 32)
+ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -dc 'A-Za-z0-9' | head -c 16)
 cat <<EOF >/opt/trek/server/.env
 NODE_ENV=production
 PORT=3000
@@ -45,7 +46,17 @@ COOKIE_SECURE=false
 FORCE_HTTPS=false
 LOG_LEVEL=info
 TZ=UTC
+ADMIN_EMAIL=admin@trek.local
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
 EOF
+{
+  echo ""
+  echo "TREK Admin Credentials"
+  echo "Email:    admin@trek.local"
+  echo "Password: ${ADMIN_PASSWORD}"
+  echo "(Change password after first login)"
+  echo ""
+} >>~/trek.creds
 msg_ok "Set up Server"
 
 msg_info "Creating Service"
@@ -68,28 +79,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now trek
 msg_ok "Created Service"
-
-msg_info "Waiting for initial setup"
-for i in $(seq 1 15); do
-  if journalctl -u trek --no-pager -q 2>/dev/null | grep -q "Admin Account Created"; then
-    TREK_PW=$(journalctl -u trek --no-pager -q 2>/dev/null | grep "Password:" | tail -1 | sed 's/.*Password: *//;s/ *║.*//')
-    TREK_EMAIL=$(journalctl -u trek --no-pager -q 2>/dev/null | grep "Email:" | tail -1 | sed 's/.*Email: *//;s/ *║.*//')
-    break
-  fi
-  sleep 1
-done
-msg_ok "Initial setup complete"
-
-if [[ -n "${TREK_PW:-}" ]]; then
-  {
-    echo ""
-    echo "TREK Admin Credentials"
-    echo "Email:    ${TREK_EMAIL}"
-    echo "Password: ${TREK_PW}"
-    echo "(Change password after first login)"
-    echo ""
-  } >>~/trek.creds
-fi
 
 motd_ssh
 customize
