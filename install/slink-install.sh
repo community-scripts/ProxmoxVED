@@ -20,7 +20,7 @@ $STD apt install -y \
   git
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.5" setup_php
+PHP_VERSION="8.5" PHP_FPM="YES" setup_php
 
 setup_composer
 
