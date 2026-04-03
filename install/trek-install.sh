@@ -46,17 +46,7 @@ COOKIE_SECURE=false
 FORCE_HTTPS=false
 LOG_LEVEL=info
 TZ=UTC
-ADMIN_EMAIL=admin@trek.local
-ADMIN_PASSWORD=${ADMIN_PASSWORD}
 EOF
-{
-  echo ""
-  echo "TREK Admin Credentials"
-  echo "Email:    admin@trek.local"
-  echo "Password: ${ADMIN_PASSWORD}"
-  echo "(Change password after first login)"
-  echo ""
-} >>~/trek.creds
 msg_ok "Set up Server"
 
 msg_info "Creating Service"
@@ -78,6 +68,32 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now trek
+msg_ok "Created Service"
+
+msg_info "Waiting for TREK to initialize"
+for i in $(seq 1 30); do
+  if curl -sf http://localhost:3000/api/health >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+cd /opt/trek/server
+$STD node -e "
+const Database = require('better-sqlite3');
+const bcrypt = require('bcryptjs');
+const db = new Database('./data/travel.db');
+const hash = bcrypt.hashSync('${ADMIN_PASSWORD}', 12);
+db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE email = ?').run(hash, 'admin@trek.local');
+db.close();
+"
+{
+  echo ""
+  echo "TREK Admin Credentials"
+  echo "Email:    admin@trek.local"
+  echo "Password: ${ADMIN_PASSWORD}"
+  echo ""
+} >>~/trek.creds
+msg_ok "TREK initialized"
 msg_ok "Created Service"
 
 motd_ssh
