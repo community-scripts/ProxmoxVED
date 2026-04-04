@@ -1,0 +1,44 @@
+{
+    "name": "Fleet",
+    "slug": "fleet",
+    "categories": [
+        9
+    ],
+    "date_created": "2026-04-04",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8080,
+    "documentation": "https://fleetdm.com/docs",
+    "website": "https://fleetdm.com/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/fleet.webp",
+    "config_path": "/opt/fleet/.env",
+    "description": "Fleet is an open-source device management platform for IT and security teams to manage and monitor servers, laptops, and other devices with osquery.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/fleet.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Create your admin account on first login via the web interface.",
+            "type": "info"
+        },
+        {
+            "text": "TLS is disabled by default. Configure TLS in /opt/fleet/.env for production use.",
+            "type": "warning"
+        }
+    ]
+}

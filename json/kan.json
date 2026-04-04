@@ -1,0 +1,44 @@
+{
+    "name": "Kan",
+    "slug": "kan",
+    "categories": [
+        25
+    ],
+    "date_created": "2026-04-04",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://github.com/kanbn/kan#readme",
+    "website": "https://kan.bn/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/kan.webp",
+    "config_path": "/opt/kan/.env",
+    "description": "Kan is an open-source Kanban board and project management tool built with Next.js and PostgreSQL.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/kan.sh",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 12,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Building from source requires significant resources and may take several minutes.",
+            "type": "warning"
+        },
+        {
+            "text": "Update NEXT_PUBLIC_BASE_URL in /opt/kan/.env if accessing from a different hostname.",
+            "type": "info"
+        }
+    ]
+}
