@@ -47,7 +47,7 @@ function update_script() {
 
     msg_info "Building Application"
     cd /opt/lobehub
-    export NODE_OPTIONS="--max-old-space-size=4096"
+    export NODE_OPTIONS="--max-old-space-size=8192"
     $STD pnpm install
     $STD pnpm run build:docker
     unset NODE_OPTIONS

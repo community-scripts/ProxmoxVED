@@ -77,7 +77,8 @@ cat <<EOF >/etc/default/otbr-agent
 # TCP example:   spinel+hdlc+uart://192.168.1.100:9999
 OTBR_AGENT_OPTS="-I wpan0 -B eth0 spinel+hdlc+uart:///dev/ttyACM0"
 EOF
-systemctl enable -q dbus rsyslog bind9 otbr-agent otbr-web
+systemctl enable -q dbus rsyslog otbr-agent otbr-web
+systemctl enable -q bind9 2>/dev/null || systemctl enable -q named 2>/dev/null || true
 systemctl start -q dbus rsyslog bind9
 msg_ok "Configured Services"
 

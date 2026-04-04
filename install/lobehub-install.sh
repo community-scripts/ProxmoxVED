@@ -43,7 +43,7 @@ fetch_and_deploy_gh_release "lobehub" "lobehub/lobehub" "tarball"
 
 msg_info "Building Application"
 cd /opt/lobehub
-export NODE_OPTIONS="--max-old-space-size=4096"
+export NODE_OPTIONS="--max-old-space-size=8192"
 export DATABASE_URL="postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}"
 export DATABASE_DRIVER="node"
 export KEY_VAULTS_SECRET="$(openssl rand -base64 32)"
