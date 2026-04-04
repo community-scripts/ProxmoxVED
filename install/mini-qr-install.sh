@@ -21,16 +21,14 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="20" setup_nodejs
-
 fetch_and_deploy_gh_release "mini-qr" "lyqht/mini-qr" "tarball" "latest" "/opt/mini-qr"
 
 msg_info "Building MiniQR"
 
-cd /opt/mini-qr || exit
+cd /opt/mini-qr
 
 $STD npm install
 $STD npm run build
-
 msg_ok "Built MiniQR"
 
 msg_info "Configuring Caddy"
@@ -57,9 +55,7 @@ cat <<EOF >/etc/caddy/Caddyfile
 EOF
 systemctl enable -q --now caddy
 
-msg_info "Reloading Caddy"
 systemctl reload caddy
-msg_ok "Reloaded Caddy"
 
 msg_ok "Configured Caddy"
 
