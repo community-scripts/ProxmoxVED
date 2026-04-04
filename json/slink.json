@@ -28,12 +28,16 @@
         }
     ],
     "default_credentials": {
-        "username": null,
-        "password": null
+        "username": "admin@localhost",
+        "password": "auto-generated"
     },
     "notes": [
         {
             "text": "API runs on Caddy+PHP-FPM (port 8080), client on Node.js (port 3000).",
+            "type": "info"
+        },
+        {
+            "text": "Credentials are saved to `~/slink.creds`.",
             "type": "info"
         },
         {

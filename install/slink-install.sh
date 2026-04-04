@@ -39,11 +39,21 @@ msg_info "Setting up API"
 cd /opt/slink/services/api
 [[ -f .env.example ]] && cp .env.example .env
 APP_SECRET=$(openssl rand -hex 16)
+ADMIN_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c12)
+JWT_PASS=$(openssl rand -hex 16)
 sed -i "s|^APP_SECRET=.*|APP_SECRET=${APP_SECRET}|" .env
 sed -i "s|^APP_ENV=.*|APP_ENV=prod|" .env
+sed -i "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=admin@localhost|" .env
+sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASS}|" .env
+sed -i "s|^JWT_PASSPHRASE=.*|JWT_PASSPHRASE=${JWT_PASS}|" .env
 export APP_ENV=prod
+mkdir -p /opt/slink/services/api/config/jwt
+openssl genpkey -algorithm RSA -out /opt/slink/services/api/config/jwt/private.pem -aes256 -pass "pass:${JWT_PASS}" 2>/dev/null
+openssl pkey -in /opt/slink/services/api/config/jwt/private.pem -out /opt/slink/services/api/config/jwt/public.pem -pubout -passin "pass:${JWT_PASS}" 2>/dev/null
 $STD composer install --no-dev --optimize-autoloader --no-interaction
 mkdir -p /opt/slink/{data,images}
+$STD php bin/console lexik:jwt:generate-keypair --skip-if-exists 2>/dev/null || true
+$STD php bin/console doctrine:migrations:migrate --no-interaction 2>/dev/null || true
 $STD php bin/console cache:warm --no-optional-warmers 2>/dev/null || true
 msg_ok "Set up API"
 
@@ -78,6 +88,11 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now redis-server php${PHP_VER}-fpm caddy slink-client
+{
+  echo "Slink Credentials"
+  echo "Admin Email: admin@localhost"
+  echo "Admin Password: ${ADMIN_PASS}"
+} >>~/slink.creds
 msg_ok "Created Services"
 
 motd_ssh
