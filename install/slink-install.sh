@@ -46,7 +46,9 @@ sed -i "s|^APP_ENV=.*|APP_ENV=prod|" .env
 sed -i "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=admin@localhost|" .env
 sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASS}|" .env
 sed -i "s|^JWT_PASSPHRASE=.*|JWT_PASSPHRASE=${JWT_PASS}|" .env
+sed -i "s|sqlite:////app/var/data|sqlite:////opt/slink/services/api/var/data|g" .env
 export APP_ENV=prod
+mkdir -p /opt/slink/services/api/var/data
 mkdir -p /opt/slink/services/api/config/jwt
 openssl genpkey -algorithm RSA -out /opt/slink/services/api/config/jwt/private.pem -aes256 -pass "pass:${JWT_PASS}" 2>/dev/null
 openssl pkey -in /opt/slink/services/api/config/jwt/private.pem -out /opt/slink/services/api/config/jwt/public.pem -pubout -passin "pass:${JWT_PASS}" 2>/dev/null
