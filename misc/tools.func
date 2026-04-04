@@ -6114,44 +6114,21 @@ function setup_mysql() {
     return 1
   }
 
-  # Debian 13+ Fix: MySQL 8.0 incompatible with libaio1t64, use 8.4 LTS
+  # Debian 13+ Fix: MySQL repo has expired GPG key and no trixie packages, use MariaDB from distro
   if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-    msg_info "Debian ${DISTRO_CODENAME} detected → using MySQL 8.4 LTS (libaio1t64 compatible)"
+    msg_info "Debian ${DISTRO_CODENAME} detected → using MariaDB from distro repository"
 
-    if ! download_gpg_key "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023" "/etc/apt/keyrings/mysql.gpg" "dearmor"; then
-      msg_error "Failed to import MySQL GPG key"
-      return 1
-    fi
+    ensure_apt_working || return 1
 
-    cat >/etc/apt/sources.list.d/mysql.sources <<EOF
-Types: deb
-URIs: https://repo.mysql.com/apt/debian/
-Suites: bookworm
-Components: mysql-8.4-lts
-Architectures: $(dpkg --print-architecture)
-Signed-By: /etc/apt/keyrings/mysql.gpg
-EOF
-
-    $STD apt update || {
-      msg_error "Failed to update APT for MySQL 8.4 LTS"
+    install_packages_with_retry "mariadb-server" "mariadb-client" || {
+      msg_error "Failed to install MariaDB from distro repository"
       return 1
     }
 
-    # Install with retry logic
-    if ! install_packages_with_retry "mysql-community-server" "mysql-community-client"; then
-      msg_warn "MySQL 8.4 LTS installation failed – falling back to MariaDB"
-      cleanup_old_repo_files "mysql"
-      $STD apt update
-      install_packages_with_retry "mariadb-server" "mariadb-client" || {
-        msg_error "Failed to install database engine (MySQL/MariaDB fallback)"
-        return 1
-      }
-      msg_ok "Setup Database Engine (MariaDB fallback on Debian ${DISTRO_CODENAME})"
-      return 0
-    fi
-
-    cache_installed_version "mysql" "8.4"
-    msg_ok "Setup MySQL 8.4 LTS (Debian ${DISTRO_CODENAME})"
+    local INSTALLED_VERSION=""
+    INSTALLED_VERSION=$(mariadb --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+' | head -1) || true
+    cache_installed_version "mysql" "${INSTALLED_VERSION:-mariadb}"
+    msg_ok "Setup MariaDB ${INSTALLED_VERSION:-} (Debian ${DISTRO_CODENAME})"
     return 0
   fi
 
