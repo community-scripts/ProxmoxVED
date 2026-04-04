@@ -28,7 +28,7 @@ PDB_VERSION_NUM="${PDB_VERSION#v}"
 DEB_NAME="postgresql-17-pg-search_${PDB_VERSION_NUM}-1PARADEDB-${CODENAME}_${ARCH}.deb"
 DEB_URL="https://github.com/paradedb/paradedb/releases/download/${PDB_VERSION}/${DEB_NAME}"
 curl -fsSL -o "/tmp/${DEB_NAME}" "$DEB_URL"
-$STD dpkg -i "/tmp/${DEB_NAME}" || $STD apt install -f -y
+dpkg -i "/tmp/${DEB_NAME}" >/dev/null 2>&1 || $STD apt install -f -y
 rm -f "/tmp/${DEB_NAME}"
 msg_ok "Installed pg_search from ParadeDB"
 

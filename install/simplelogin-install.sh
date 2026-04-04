@@ -54,7 +54,7 @@ STUB
 
 if [[ -f /opt/simplelogin/static/package.json ]]; then
   cd /opt/simplelogin/static
-  $STD npm ci || $STD npm install
+  npm ci >/dev/null 2>&1 || $STD npm install
 fi
 msg_ok "Installed SimpleLogin"
 
