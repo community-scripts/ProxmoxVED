@@ -55,9 +55,9 @@ openssl genpkey -algorithm RSA -out /opt/slink/services/api/config/jwt/private.p
 openssl pkey -in /opt/slink/services/api/config/jwt/private.pem -out /opt/slink/services/api/config/jwt/public.pem -pubout -passin "pass:${JWT_PASS}" 2>/dev/null
 $STD composer install --no-dev --optimize-autoloader --no-interaction
 mkdir -p /opt/slink/{data,images}
-$STD php bin/console lexik:jwt:generate-keypair --skip-if-exists 2>/dev/null || true
-$STD php bin/console doctrine:migrations:migrate --no-interaction 2>/dev/null || true
-$STD php bin/console cache:warm --no-optional-warmers 2>/dev/null || true
+php bin/console lexik:jwt:generate-keypair --skip-if-exists >/dev/null 2>&1 || true
+php bin/console doctrine:migrations:migrate --no-interaction >/dev/null 2>&1 || true
+php bin/console cache:warm --no-optional-warmers >/dev/null 2>&1 || true
 msg_ok "Set up API"
 
 msg_info "Configuring Caddy"
@@ -73,7 +73,14 @@ EOF
 msg_ok "Configured Caddy"
 
 msg_info "Creating Services"
-cat <<EOF >/etc/systemd/system/slink-client.service
+LOCAL_IP="$(hostname -I | awk '{print $1}')"
+cat <<EOF >/etc/default/slink-client
+PORT=3000
+NODE_ENV=production
+BODY_SIZE_LIMIT=Infinity
+ORIGIN=http://${LOCAL_IP}:3000
+EOF
+cat <<'EOF' >/etc/systemd/system/slink-client.service
 [Unit]
 Description=Slink Client
 After=network.target
@@ -83,7 +90,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/slink/services/client
 ExecStart=/usr/bin/node build/index.js
-Environment=PORT=3000 NODE_ENV=production BODY_SIZE_LIMIT=Infinity
+EnvironmentFile=/etc/default/slink-client
 Restart=on-failure
 RestartSec=5
 

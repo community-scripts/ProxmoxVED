@@ -36,6 +36,15 @@ msg_info "Creating Directories"
 mkdir -p /etc/puter /var/puter
 msg_ok "Created Directories"
 
+msg_info "Configuring Application"
+cat <<EOF >/etc/puter/config.json
+{
+  "config_name": "proxmox",
+  "allow_nipio_domains": true
+}
+EOF
+msg_ok "Configured Application"
+
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/puter.service
 [Unit]
