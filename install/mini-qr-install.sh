@@ -24,9 +24,7 @@ NODE_VERSION="20" setup_nodejs
 fetch_and_deploy_gh_release "mini-qr" "lyqht/mini-qr" "tarball" "latest" "/opt/mini-qr"
 
 msg_info "Building MiniQR"
-
 cd /opt/mini-qr
-
 $STD npm install
 $STD npm run build
 msg_ok "Built MiniQR"
@@ -54,9 +52,7 @@ cat <<EOF >/etc/caddy/Caddyfile
 }
 EOF
 systemctl enable -q --now caddy
-
 systemctl reload caddy
-
 msg_ok "Configured Caddy"
 
 motd_ssh
