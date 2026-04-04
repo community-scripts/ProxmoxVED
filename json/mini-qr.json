@@ -6,8 +6,8 @@
   "privileged": false,
   "documentation": "https://github.com/lyqht/mini-qr",
   "website": "https://mini-qr-code-generator.vercel.app/",
-  "logo": "https://raw.githubusercontent.com/lyqht/mini-qr/refs/heads/main/public/favicon.svg",
-  "config_path": "",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/mini-qr.webp",
+  "config_path": "/etc/caddy/Caddyfile",
   "install_methods_json": [
     {
       "type": "default",
