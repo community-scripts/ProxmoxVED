@@ -30,7 +30,6 @@ function update_script() {
   fi
 
   if check_for_gh_release "mini-qr" "lyqht/mini-qr"; then
-
     msg_info "Stopping Service"
     systemctl stop caddy
     msg_ok "Stopped Service"
@@ -38,7 +37,7 @@ function update_script() {
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "mini-qr" "lyqht/mini-qr" "tarball" "latest" "/opt/mini-qr"
 
     msg_info "Installing Dependencies"
-    cd /opt/mini-qr || exit
+    cd /opt/mini-qr
     $STD npm install
     msg_ok "Installed Dependencies"
 
