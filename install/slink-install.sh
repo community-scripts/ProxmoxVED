@@ -58,10 +58,15 @@ openssl genpkey -algorithm RSA -out /opt/slink/services/api/config/jwt/private.p
 openssl pkey -in /opt/slink/services/api/config/jwt/private.pem -out /opt/slink/services/api/config/jwt/public.pem -pubout -passin "pass:${JWT_PASS}" 2>/dev/null
 $STD composer install --no-dev --optimize-autoloader --no-interaction
 mkdir -p /opt/slink/{data,images}
+sed -i "s|'/services/api/|'/opt/slink/services/api/|" config/migrations/event_store.yaml
 php bin/console lexik:jwt:generate-keypair --skip-if-exists >/dev/null 2>&1 || true
-php bin/console doctrine:migrations:migrate --no-interaction >/dev/null 2>&1 || true
-php bin/console slink:admin:init >/dev/null 2>&1 || true
-php bin/console cache:warm --no-optional-warmers >/dev/null 2>&1 || true
+$STD php bin/console doctrine:database:create --connection=event_store --if-not-exists --no-interaction
+$STD php bin/console doctrine:database:create --connection=read_model --if-not-exists --no-interaction
+$STD php bin/console doctrine:migrations:migrate --no-interaction --em=read_model
+$STD php bin/console doctrine:migrations:migrate --no-interaction --configuration=config/migrations/event_store.yaml --em=event_store
+$STD php bin/console messenger:setup-transports --no-interaction
+$STD php bin/console slink:admin:init --no-interaction
+$STD php bin/console cache:warm --no-optional-warmers
 msg_ok "Set up API"
 
 msg_info "Configuring Caddy"
@@ -104,7 +109,7 @@ EOF
 systemctl enable -q --now redis-server php${PHP_VER}-fpm caddy slink-client
 {
   echo "Slink Credentials"
-  echo "Admin Email: admin@localhost"
+  echo "Admin Email: admin@slink.local"
   echo "Admin Password: ${ADMIN_PASS}"
 } >>~/slink.creds
 msg_ok "Created Services"
