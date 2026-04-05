@@ -77,7 +77,7 @@ cat <<'EOF' >/etc/default/otbr-agent
 # USB example:
 #   OTBR_AGENT_OPTS="-I wpan0 -B eth0 --vendor-name OpenThread --model-name BorderRouter --rest-listen-address 0.0.0.0 --rest-listen-port 8081 spinel+hdlc+uart:///dev/ttyACM0"
 # TCP via socat (for network-attached RCP like SLZB-06/SLZB-MR3):
-#   OTBR_AGENT_OPTS="-I wpan0 -B eth0 --vendor-name OpenThread --model-name BorderRouter --rest-listen-address 0.0.0.0 --rest-listen-port 8081 'spinel+hdlc+forkpty:///usr/bin/socat?forkpty-arg=-,rawer&forkpty-arg=tcp:IP:PORT' trel://eth0"
+#   OTBR_AGENT_OPTS="-I wpan0 -B eth0 --vendor-name OpenThread --model-name BorderRouter --rest-listen-address 0.0.0.0 --rest-listen-port 8081 spinel+hdlc+forkpty:///usr/bin/socat?forkpty-arg=-,rawer&forkpty-arg=tcp:IP:PORT trel://eth0"
 OTBR_AGENT_OPTS="-I wpan0 -B eth0 --vendor-name OpenThread --model-name BorderRouter --rest-listen-address 0.0.0.0 --rest-listen-port 8081 spinel+hdlc+uart:///dev/ttyACM0"
 EOF
 cat <<'EOF' >/etc/default/otbr-web
