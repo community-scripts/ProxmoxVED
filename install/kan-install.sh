@@ -21,11 +21,7 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="kan" PG_DB_USER="kan" setup_postgresql_db
-NODE_VERSION="20" setup_nodejs
-
-msg_info "Installing pnpm"
-$STD npm install -g pnpm
-msg_ok "Installed pnpm"
+NODE_VERSION="20" NODE_MODULES="pnpm" setup_nodejs
 
 fetch_and_deploy_gh_tag "kan" "kanbn/kan"
 
@@ -35,6 +31,7 @@ cat <<EOF >/opt/kan/.env
 NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:3000
 BETTER_AUTH_SECRET=${AUTH_SECRET}
 POSTGRES_URL=postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}
+NEXT_PUBLIC_ALLOW_CREDENTIALS=true
 HOSTNAME=0.0.0.0
 PORT=3000
 NODE_ENV=production
@@ -44,7 +41,7 @@ msg_ok "Configured Application"
 msg_info "Building Application"
 cd /opt/kan
 source /opt/kan/.env
-export NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true NEXT_PUBLIC_BASE_URL BETTER_AUTH_SECRET
+export NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true NEXT_PUBLIC_BASE_URL NEXT_PUBLIC_ALLOW_CREDENTIALS BETTER_AUTH_SECRET
 export CI=true
 $STD pnpm install
 $STD pnpm build --filter=@kan/web
