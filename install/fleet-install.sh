@@ -15,6 +15,11 @@ update_os
 
 setup_mysql
 
+msg_info "Installing Dependencies"
+$STD apt install -y \
+  redis-server
+msg_ok "Installed Dependencies"
+
 msg_info "Setting up Database"
 FLEET_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c 13)
 $STD mysql -u root <<EOSQL
@@ -38,6 +43,7 @@ FLEET_MYSQL_PASSWORD=${FLEET_DB_PASS}
 FLEET_SERVER_ADDRESS=0.0.0.0:8080
 FLEET_SERVER_TLS=false
 FLEET_AUTH_JWT_KEY=${JWT_KEY}
+FLEET_REDIS_ADDRESS=127.0.0.1:6379
 FLEET_LOGGING_JSON=true
 EOF
 msg_ok "Configured Application"
@@ -51,8 +57,8 @@ msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/fleet.service
 [Unit]
 Description=Fleet
-After=network.target mysql.service
-Requires=mysql.service
+After=network.target mysql.service redis-server.service
+Requires=mysql.service redis-server.service
 
 [Service]
 Type=simple
@@ -66,7 +72,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now fleet
+systemctl enable -q --now fleet redis-server
 msg_ok "Created Service"
 
 motd_ssh
