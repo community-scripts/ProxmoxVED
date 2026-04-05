@@ -42,7 +42,13 @@ cat <<EOF >/etc/puter/config.json
   "config_name": "proxmox",
   "domain": "${LOCAL_IP}",
   "http_port": 4100,
-  "experimental_no_subdomain": true
+  "experimental_no_subdomain": true,
+  "services": {
+    "database": {
+      "engine": "sqlite",
+      "path": "puter-database.sqlite"
+    }
+  }
 }
 EOF
 msg_ok "Configured Application"
