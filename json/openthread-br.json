@@ -33,11 +33,15 @@
     },
     "notes": [
         {
-            "text": "Requires a Thread Radio Co-Processor (RCP) device. USB: pass through to LXC (e.g. /dev/ttyACM0). TCP: use `spinel+hdlc+uart://IP:PORT` format.",
+            "text": "Requires a Thread Radio Co-Processor (RCP) device. USB: pass through to LXC (e.g. /dev/ttyACM0). TCP: use socat forkpty pattern (see `/etc/default/otbr-agent` for examples).",
             "type": "warning"
         },
         {
-            "text": "Services are enabled but not started at install. Configure `/etc/default/otbr-agent` with your RCP device, then run: `systemctl start otbr-agent && systemctl start otbr-web`",
+            "text": "Services are enabled but not started at install. Configure `/etc/default/otbr-agent` with your RCP device, then run: `systemctl restart otbr-agent otbr-web`",
+            "type": "info"
+        },
+        {
+            "text": "Home Assistant: Add 'OpenThread Border Router' integration with URL `http://<IP>:8081`. Web UI is on port 80.",
             "type": "info"
         }
     ]

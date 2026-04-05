@@ -6114,29 +6114,11 @@ function setup_mysql() {
     return 1
   }
 
-  # Debian 13+ Fix: MySQL repo has expired GPG key and no trixie packages, use MariaDB from distro
-  if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-    msg_info "Debian ${DISTRO_CODENAME} detected → using MariaDB from distro repository"
-
-    ensure_apt_working || return 1
-
-    install_packages_with_retry "mariadb-server" "mariadb-client" || {
-      msg_error "Failed to install MariaDB from distro repository"
-      return 1
-    }
-
-    local INSTALLED_VERSION=""
-    INSTALLED_VERSION=$(mariadb --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+' | head -1) || true
-    cache_installed_version "mysql" "${INSTALLED_VERSION:-mariadb}"
-    msg_ok "Setup MariaDB ${INSTALLED_VERSION:-} (Debian ${DISTRO_CODENAME})"
-    return 0
-  fi
-
   # Standard setup for other distributions
   local SUITE
   if [[ "$DISTRO_ID" == "debian" ]]; then
     case "$DISTRO_CODENAME" in
-    bookworm | bullseye) SUITE="$DISTRO_CODENAME" ;;
+    trixie | bookworm | bullseye) SUITE="$DISTRO_CODENAME" ;;
     *) SUITE="bookworm" ;;
     esac
   else
@@ -6145,7 +6127,7 @@ function setup_mysql() {
 
   # Setup repository
   manage_tool_repository "mysql" "$MYSQL_VERSION" "https://repo.mysql.com/apt/${DISTRO_ID}" \
-    "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023" || {
+    "https://repo.mysql.com/RPM-GPG-KEY-mysql-2025" || {
     msg_error "Failed to setup MySQL repository"
     return 1
   }
