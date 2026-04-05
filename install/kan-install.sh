@@ -44,10 +44,11 @@ msg_ok "Configured Application"
 msg_info "Building Application"
 cd /opt/kan
 source /opt/kan/.env
-export NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true NEXT_PUBLIC_BASE_URL BETTER_AUTH_SECRET POSTGRES_URL
+export NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true NEXT_PUBLIC_BASE_URL BETTER_AUTH_SECRET
+export CI=true
 $STD pnpm install
 $STD pnpm build --filter=@kan/web
-unset NEXT_PUBLIC_USE_STANDALONE_OUTPUT
+unset NEXT_PUBLIC_USE_STANDALONE_OUTPUT CI
 msg_ok "Built Application"
 
 msg_info "Setting up Standalone"
