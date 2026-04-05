@@ -60,6 +60,7 @@ $STD composer install --no-dev --optimize-autoloader --no-interaction
 mkdir -p /opt/slink/{data,images}
 php bin/console lexik:jwt:generate-keypair --skip-if-exists >/dev/null 2>&1 || true
 php bin/console doctrine:migrations:migrate --no-interaction >/dev/null 2>&1 || true
+php bin/console slink:admin:init >/dev/null 2>&1 || true
 php bin/console cache:warm --no-optional-warmers >/dev/null 2>&1 || true
 msg_ok "Set up API"
 
