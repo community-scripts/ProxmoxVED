@@ -41,12 +41,15 @@ cd /opt/slink/services/api
 APP_SECRET=$(openssl rand -hex 16)
 ADMIN_PASS=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c12)
 JWT_PASS=$(openssl rand -hex 16)
-sed -i "s|^APP_SECRET=.*|APP_SECRET=${APP_SECRET}|" .env
-sed -i "s|^APP_ENV=.*|APP_ENV=prod|" .env
+{
+  echo ""
+  echo "APP_ENV=prod"
+  echo "APP_SECRET=${APP_SECRET}"
+} >>".env"
 sed -i "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=admin@localhost|" .env
 sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASS}|" .env
 sed -i "s|^JWT_PASSPHRASE=.*|JWT_PASSPHRASE=${JWT_PASS}|" .env
-sed -i "s|^CORS_ALLOW_ORIGIN=.*|CORS_ALLOW_ORIGIN='^https?://.*$'|" .env
+sed -i "s|^CORS_ALLOW_ORIGIN=.*|CORS_ALLOW_ORIGIN='^https?://.*\$'|" .env
 sed -i "s|sqlite:////app/var/data|sqlite:////opt/slink/services/api/var/data|g" .env
 export APP_ENV=prod
 mkdir -p /opt/slink/services/api/var/data
