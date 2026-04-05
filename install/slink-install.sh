@@ -46,7 +46,7 @@ JWT_PASS=$(openssl rand -hex 16)
   echo "APP_ENV=prod"
   echo "APP_SECRET=${APP_SECRET}"
 } >>".env"
-sed -i "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=admin@localhost|" .env
+sed -i "s|^ADMIN_EMAIL=.*|ADMIN_EMAIL=admin@slink.local|" .env
 sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASS}|" .env
 sed -i "s|^JWT_PASSPHRASE=.*|JWT_PASSPHRASE=${JWT_PASS}|" .env
 sed -i "s|^CORS_ALLOW_ORIGIN=.*|CORS_ALLOW_ORIGIN='^https?://.*\$'|" .env
