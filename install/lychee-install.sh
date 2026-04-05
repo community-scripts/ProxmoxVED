@@ -42,7 +42,7 @@ sed -i "s|^APP_URL=.*|APP_URL=http://${LOCAL_IP}|" .env
 sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=pgsql|" .env
 sed -i "s|^DB_HOST=.*|DB_HOST=127.0.0.1|" .env
 sed -i "s|^DB_PORT=.*|DB_PORT=5432|" .env
-sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${PG_DB_NAME}|" .env
+sed -i "s|^#\?DB_DATABASE=.*|DB_DATABASE=${PG_DB_NAME}|" .env
 sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${PG_DB_USER}|" .env
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache public/dist
