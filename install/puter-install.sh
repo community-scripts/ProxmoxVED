@@ -41,6 +41,7 @@ cat <<EOF >/etc/puter/config.json
 {
   "config_name": "proxmox",
   "domain": "${LOCAL_IP}",
+  "protocol": "http",
   "http_port": 4100,
   "experimental_no_subdomain": true,
   "services": {
