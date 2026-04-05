@@ -898,6 +898,41 @@ EOF
     return 0
     ;;
 
+  mysql)
+    if [[ -z "$repo_url" || -z "$gpg_key_url" ]]; then
+      msg_error "MySQL repository requires repo_url and gpg_key_url"
+      return 1
+    fi
+
+    cleanup_old_repo_files "mysql"
+
+    if ! download_gpg_key "$gpg_key_url" "/etc/apt/keyrings/mysql.gpg" "dearmor"; then
+      msg_error "Failed to import MySQL GPG key"
+      return 1
+    fi
+
+    local distro_codename
+    distro_codename=$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)
+
+    local mysql_suite="$distro_codename"
+    if [[ "$distro_id" == "debian" ]]; then
+      case "$distro_codename" in
+      trixie | bookworm | bullseye) mysql_suite="$distro_codename" ;;
+      *) mysql_suite="bookworm" ;;
+      esac
+    fi
+
+    cat <<EOF >/etc/apt/sources.list.d/mysql.sources
+Types: deb
+URIs: $repo_url
+Suites: $mysql_suite
+Components: mysql-$version mysql-tools
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/mysql.gpg
+EOF
+    return 0
+    ;;
+
   *)
     msg_error "Unknown tool repository: $tool_name"
     return 1
@@ -4464,7 +4499,7 @@ function setup_hwaccel() {
     msg_info "Configuring: ${gpu_name}"
 
     case "$gpu_type" in
-    # ─────────────────────────────────────────────────────────────────────────
+    # ──────────��──────────────────────────────────────────────────────────────
     # Intel Arc GPUs (DG1, DG2, Arc A-series)
     # ─────────────────────────────────────────────────────────────────────────
     INTEL_ARC)

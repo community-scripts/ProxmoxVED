@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-setup_mysql
+setup_mariadb
 
 msg_info "Setting up Database"
 FLEET_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c 13)
