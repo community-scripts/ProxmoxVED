@@ -40,7 +40,9 @@ msg_info "Configuring Application"
 cat <<EOF >/etc/puter/config.json
 {
   "config_name": "proxmox",
-  "allow_nipio_domains": true
+  "domain": "${LOCAL_IP}",
+  "http_port": 4100,
+  "experimental_no_subdomain": true
 }
 EOF
 msg_ok "Configured Application"

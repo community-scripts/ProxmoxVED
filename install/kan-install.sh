@@ -29,16 +29,25 @@ msg_ok "Installed pnpm"
 
 fetch_and_deploy_gh_tag "kan" "kanbn/kan"
 
+msg_info "Configuring Application"
+AUTH_SECRET=$(openssl rand -base64 32)
+cat <<EOF >/opt/kan/.env
+NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:3000
+BETTER_AUTH_SECRET=${AUTH_SECRET}
+POSTGRES_URL=postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}
+HOSTNAME=0.0.0.0
+PORT=3000
+NODE_ENV=production
+EOF
+msg_ok "Configured Application"
+
 msg_info "Building Application"
 cd /opt/kan
-AUTH_SECRET=$(openssl rand -base64 32)
-export NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true
-export NEXT_PUBLIC_BASE_URL="http://${LOCAL_IP}:3000"
-export BETTER_AUTH_SECRET="${AUTH_SECRET}"
-export POSTGRES_URL="postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}"
+source /opt/kan/.env
+export NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true NEXT_PUBLIC_BASE_URL BETTER_AUTH_SECRET POSTGRES_URL
 $STD pnpm install
 $STD pnpm build --filter=@kan/web
-unset NEXT_PUBLIC_USE_STANDALONE_OUTPUT NEXT_PUBLIC_BASE_URL BETTER_AUTH_SECRET POSTGRES_URL
+unset NEXT_PUBLIC_USE_STANDALONE_OUTPUT
 msg_ok "Built Application"
 
 msg_info "Setting up Standalone"
@@ -51,17 +60,6 @@ msg_info "Running Database Migrations"
 cd /opt/kan/packages/db
 POSTGRES_URL="postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}" $STD pnpm exec drizzle-kit migrate
 msg_ok "Ran Database Migrations"
-
-msg_info "Configuring Application"
-cat <<EOF >/opt/kan/.env
-NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:3000
-BETTER_AUTH_SECRET=${AUTH_SECRET}
-POSTGRES_URL=postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}
-HOSTNAME=0.0.0.0
-PORT=3000
-NODE_ENV=production
-EOF
-msg_ok "Configured Application"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/kan.service
