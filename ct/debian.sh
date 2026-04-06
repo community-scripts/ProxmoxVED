@@ -35,7 +35,7 @@ function update_script() {
   $STD apt update
   $STD apt upgrade -y
 
-  echo ${LOCAL_IP}
+  echo ip: ${LOCAL_IP}
   
   msg_ok "Updated Debian LXC"
   cleanup_lxc
