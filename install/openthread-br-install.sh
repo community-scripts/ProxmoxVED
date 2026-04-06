@@ -33,7 +33,8 @@ $STD apt install -y \
   libnetfilter-queue1 \
   libnetfilter-queue-dev \
   libprotobuf-dev \
-  protobuf-compiler
+  protobuf-compiler \
+  socat
 msg_ok "Installed Dependencies"
 
 setup_nodejs
@@ -72,10 +73,20 @@ $STD sysctl -p /etc/sysctl.d/99-otbr.conf
 msg_ok "Configured Network"
 
 msg_info "Configuring Services"
-cat <<EOF >/etc/default/otbr-agent
-OTBR_AGENT_OPTS="-I wpan0 -B eth0 spinel+hdlc+uart:///dev/ttyACM0"
+cat <<'EOF' >/etc/default/otbr-agent
+# USB example:
+#   OTBR_AGENT_OPTS="-I wpan0 -B eth0 --vendor-name OpenThread --model-name BorderRouter --rest-listen-address 0.0.0.0 --rest-listen-port 8081 spinel+hdlc+uart:///dev/ttyACM0"
+# TCP via socat (for network-attached RCP like SLZB-06/SLZB-MR3):
+
+#   OTBR_AGENT_OPTS="-I wpan0 -B eth0 --vendor-name OpenThread --model-name BorderRouter --rest-listen-address 0.0.0.0 --rest-listen-port 8081 spinel+hdlc+forkpty:///usr/bin/socat?forkpty-arg=-,rawer&forkpty-arg=tcp:IP:PORT trel://eth0"
+OTBR_AGENT_OPTS="-I wpan0 -B eth0 --vendor-name OpenThread --model-name BorderRouter --rest-listen-address 0.0.0.0 --rest-listen-port 8081 spinel+hdlc+uart:///dev/ttyACM0"
 EOF
-systemctl enable -q --now otbr-agent otbr-web
+cat <<'EOF' >/etc/default/otbr-web
+OTBR_WEB_OPTS="-I wpan0 -a 0.0.0.0 -p 80"
+EOF
+systemctl enable -q dbus rsyslog otbr-agent otbr-web
+systemctl enable -q bind9 2>/dev/null || systemctl enable -q named 2>/dev/null || true
+systemctl start -q dbus rsyslog bind9
 msg_ok "Configured Services"
 
 motd_ssh

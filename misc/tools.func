@@ -898,6 +898,41 @@ EOF
     return 0
     ;;
 
+  mysql)
+    if [[ -z "$repo_url" || -z "$gpg_key_url" ]]; then
+      msg_error "MySQL repository requires repo_url and gpg_key_url"
+      return 1
+    fi
+
+    cleanup_old_repo_files "mysql"
+
+    if ! download_gpg_key "$gpg_key_url" "/etc/apt/keyrings/mysql.gpg" "dearmor"; then
+      msg_error "Failed to import MySQL GPG key"
+      return 1
+    fi
+
+    local distro_codename
+    distro_codename=$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)
+
+    local mysql_suite="$distro_codename"
+    if [[ "$distro_id" == "debian" ]]; then
+      case "$distro_codename" in
+      trixie | bookworm | bullseye) mysql_suite="$distro_codename" ;;
+      *) mysql_suite="bookworm" ;;
+      esac
+    fi
+
+    cat <<EOF >/etc/apt/sources.list.d/mysql.sources
+Types: deb
+URIs: $repo_url
+Suites: $mysql_suite
+Components: mysql-$version mysql-tools
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/mysql.gpg
+EOF
+    return 0
+    ;;
+
   *)
     msg_error "Unknown tool repository: $tool_name"
     return 1
@@ -4464,7 +4499,7 @@ function setup_hwaccel() {
     msg_info "Configuring: ${gpu_name}"
 
     case "$gpu_type" in
-    # ─────────────────────────────────────────────────────────────────────────
+    # ──────────��──────────────────────────────────────────────────────────────
     # Intel Arc GPUs (DG1, DG2, Arc A-series)
     # ─────────────────────────────────────────────────────────────────────────
     INTEL_ARC)
@@ -6114,52 +6149,11 @@ function setup_mysql() {
     return 1
   }
 
-  # Debian 13+ Fix: MySQL 8.0 incompatible with libaio1t64, use 8.4 LTS
-  if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-    msg_info "Debian ${DISTRO_CODENAME} detected → using MySQL 8.4 LTS (libaio1t64 compatible)"
-
-    if ! download_gpg_key "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023" "/etc/apt/keyrings/mysql.gpg" "dearmor"; then
-      msg_error "Failed to import MySQL GPG key"
-      return 1
-    fi
-
-    cat >/etc/apt/sources.list.d/mysql.sources <<EOF
-Types: deb
-URIs: https://repo.mysql.com/apt/debian/
-Suites: bookworm
-Components: mysql-8.4-lts
-Architectures: $(dpkg --print-architecture)
-Signed-By: /etc/apt/keyrings/mysql.gpg
-EOF
-
-    $STD apt update || {
-      msg_error "Failed to update APT for MySQL 8.4 LTS"
-      return 1
-    }
-
-    # Install with retry logic
-    if ! install_packages_with_retry "mysql-community-server" "mysql-community-client"; then
-      msg_warn "MySQL 8.4 LTS installation failed – falling back to MariaDB"
-      cleanup_old_repo_files "mysql"
-      $STD apt update
-      install_packages_with_retry "mariadb-server" "mariadb-client" || {
-        msg_error "Failed to install database engine (MySQL/MariaDB fallback)"
-        return 1
-      }
-      msg_ok "Setup Database Engine (MariaDB fallback on Debian ${DISTRO_CODENAME})"
-      return 0
-    fi
-
-    cache_installed_version "mysql" "8.4"
-    msg_ok "Setup MySQL 8.4 LTS (Debian ${DISTRO_CODENAME})"
-    return 0
-  fi
-
   # Standard setup for other distributions
   local SUITE
   if [[ "$DISTRO_ID" == "debian" ]]; then
     case "$DISTRO_CODENAME" in
-    bookworm | bullseye) SUITE="$DISTRO_CODENAME" ;;
+    trixie | bookworm | bullseye) SUITE="$DISTRO_CODENAME" ;;
     *) SUITE="bookworm" ;;
     esac
   else
@@ -6168,7 +6162,7 @@ EOF
 
   # Setup repository
   manage_tool_repository "mysql" "$MYSQL_VERSION" "https://repo.mysql.com/apt/${DISTRO_ID}" \
-    "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023" || {
+    "https://repo.mysql.com/RPM-GPG-KEY-mysql-2025" || {
     msg_error "Failed to setup MySQL repository"
     return 1
   }
@@ -6246,7 +6240,7 @@ function setup_nodejs() {
     ensure_apt_working || return 1
 
     # Just update npm to latest
-    $STD npm install -g npm@latest 2>/dev/null || true
+    npm install -g npm@latest >/dev/null 2>&1 || true
 
     cache_installed_version "nodejs" "$NODE_VERSION"
     msg_ok "Update Node.js $NODE_VERSION"
@@ -6314,7 +6308,7 @@ function setup_nodejs() {
     local NPM_VERSION
     NPM_VERSION=$(npm -v 2>/dev/null || echo "0")
     if [[ "$NPM_VERSION" != "0" ]]; then
-      $STD npm install -g npm@latest 2>/dev/null || {
+      npm install -g npm@latest >/dev/null 2>&1 || {
         msg_warn "Failed to update npm to latest version (continuing with bundled npm $NPM_VERSION)"
       }
     fi
