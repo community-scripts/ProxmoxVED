@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: geedoes
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
@@ -22,13 +22,12 @@ function update_script() {
     header_info
     check_container_storage
     check_container_resources
-    if [[ ! -d /opt/ioquake3 ]]; then 
+    # Check if installation is present | -f for file, -d for folder
+    if [[ ! -d /opt/ioquake3 ]]; then
         msg_error "No ${APP} Installation Found!"
         exit
     fi
-    msg_info "Updating ${APP} Service"
-    # Add update logic here if available in the future
-    msg_error "There is currently no auto-update path available for ioquake3."
+    msg_ok "No update required. ${APP} does not currently support auto-updates."
     exit
 }
 
@@ -38,10 +37,9 @@ description
 
 msg_info "Running internal Quake 3 installation..."
 pct exec $CTID -- bash -c "$(curl -s https://raw.githubusercontent.com/geedoes/ProxmoxVED/refs/heads/main/install/ioquake3-install.sh)"
-
-msg_ok "Completed Successfully!\n"
-
-echo -e "${INFO}${YW} IMPORTANT: Manual File Deployment Required ${CL}"
+msg_ok "Completed successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} IMPORTANT: Manual File Deployment Required${CL}"
 echo -e "${TAB}${BGN}1.${CL} Upload your 'pak0.pk3' to Proxmox ISO storage, renamed as ${BL}pak0.iso${CL}"
 echo -e "${TAB}${BGN}2.${CL} Run the following command on your Proxmox Host to deploy it:"
 echo -e "${TAB}${TAB}${GN}pct push $CTID /var/lib/vz/template/iso/pak0.iso /opt/ioquake3/baseq3/pak0.pk3${CL}"
