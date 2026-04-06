@@ -16,7 +16,8 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
-  git
+  git \
+  python3
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
@@ -25,7 +26,9 @@ fetch_and_deploy_gh_release "puter" "HeyPuter/puter" "tarball"
 
 msg_info "Building Application"
 cd /opt/puter
-$STD npm ci
+node -e "const f=require('fs'),p=JSON.parse(f.readFileSync('package.json'));p.overrides={'better-sqlite3':'>=12.0.0'};f.writeFileSync('package.json',JSON.stringify(p,null,2))"
+rm -f package-lock.json
+$STD npm install
 cd /opt/puter/src/gui
 $STD npm run build
 cd /opt/puter
