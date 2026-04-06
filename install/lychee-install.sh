@@ -20,7 +20,7 @@ $STD apt install -y \
   jpegoptim
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULES="bcmath,exif,gd,intl,imagick,redis,zip,pdo_pgsql,pcntl,ldap" setup_php
+PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULES="bcmath,ldap,exif,gd,intl,imagick,redis,zip,pdo_pgsql,pcntl,ldap" setup_php
 
 setup_ffmpeg
 setup_imagemagick
@@ -45,9 +45,10 @@ sed -i "s|^DB_PORT=.*|DB_PORT=5432|" .env
 sed -i "s|^#\?DB_DATABASE=.*|DB_DATABASE=${PG_DB_NAME}|" .env
 sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${PG_DB_USER}|" .env
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
-mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache public/dist
+mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache public/dist public/uploads public/sym
 touch public/dist/user.css public/dist/custom.js
-chmod -R 775 storage bootstrap/cache public/dist
+chown -R www-data:www-data /opt/lychee
+chmod -R 775 storage bootstrap/cache public/dist public/uploads public/sym
 msg_ok "Configured Application"
 
 msg_info "Running Database Migrations"
@@ -65,9 +66,11 @@ cat <<EOF >/etc/caddy/Caddyfile
     encode gzip
 }
 EOF
+usermod -aG www-data caddy
 msg_ok "Configured Caddy"
 
-systemctl enable -q --now php${PHP_VER}-fpm caddy
+systemctl enable -q --now php${PHP_VER}-fpm
+systemctl restart caddy
 
 motd_ssh
 customize

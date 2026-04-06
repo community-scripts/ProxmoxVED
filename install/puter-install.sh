@@ -19,7 +19,7 @@ $STD apt install -y \
   git
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="24" setup_nodejs
 
 fetch_and_deploy_gh_release "puter" "HeyPuter/puter" "tarball"
 
