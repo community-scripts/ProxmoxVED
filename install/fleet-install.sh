@@ -26,6 +26,8 @@ $STD mysql -u root <<EOSQL
 CREATE DATABASE fleet;
 CREATE USER 'fleet'@'localhost' IDENTIFIED BY '${FLEET_DB_PASS}';
 GRANT ALL PRIVILEGES ON fleet.* TO 'fleet'@'localhost';
+CREATE USER 'fleet'@'127.0.0.1' IDENTIFIED BY '${FLEET_DB_PASS}';
+GRANT ALL PRIVILEGES ON fleet.* TO 'fleet'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EOSQL
 msg_ok "Set up Database"
@@ -34,8 +36,7 @@ fetch_and_deploy_gh_release "fleet" "fleetdm/fleet" "prebuild" "latest" "/opt/fl
 
 msg_info "Configuring Application"
 chmod +x /opt/fleet/fleet
-JWT_KEY=$(openssl rand -base64 32)
-PRIVATE_KEY=$(openssl rand -base64 32)
+PRIVATE_KEY=$(openssl rand -hex 32)
 cat <<EOF >/opt/fleet/.env
 FLEET_MYSQL_ADDRESS=127.0.0.1:3306
 FLEET_MYSQL_DATABASE=fleet
@@ -44,7 +45,6 @@ FLEET_MYSQL_PASSWORD=${FLEET_DB_PASS}
 FLEET_SERVER_ADDRESS=0.0.0.0:8080
 FLEET_SERVER_TLS=false
 FLEET_SERVER_PRIVATE_KEY=${PRIVATE_KEY}
-FLEET_AUTH_JWT_KEY=${JWT_KEY}
 FLEET_REDIS_ADDRESS=127.0.0.1:6379
 FLEET_LOGGING_JSON=true
 EOF
