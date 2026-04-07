@@ -33,6 +33,7 @@ Link: #
 - [ ] **Follows `Code_Audit.md` & `CONTRIBUTING.md` guidelines**  
 - [ ] **Uses correct script structure (`AppName.sh`, `AppName-install.sh`, `AppName.json`)**  
 - [ ] **No hardcoded credentials**  
+- [ ] **Shell quality gates pass** – `shell-gates` CI check is green ([checklist](docs/contribution/SCRIPT_COMPLIANCE_CHECKLIST.md))  
 
 
 ## ðŸ“‹ Additional Information (optional)  
