@@ -2,13 +2,6 @@ name: Shell Quality Gates
 
 on:
   pull_request:
-    paths:
-      - "**/*.sh"
-      - "**/*.func"
-      - ".github/workflows/shell-quality.yml"
-      - ".github/workflows/scripts/**"
-      - "tests/**"
-      - "docs/contribution/**"
   workflow_dispatch:
 
 jobs:

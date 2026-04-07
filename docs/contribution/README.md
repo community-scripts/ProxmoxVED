@@ -65,6 +65,7 @@ bash docs/contribution/setup-fork.sh
 ```
 
 This will:
+
 - Auto-detect your GitHub username
 - Update all documentation links to point to your fork
 - Create `.git-setup-info` with recommended git workflows
@@ -126,6 +127,10 @@ Use the full checklist here:
 
 - [SCRIPT_COMPLIANCE_CHECKLIST.md](SCRIPT_COMPLIANCE_CHECKLIST.md)
 
+Maintainers: to enforce this via GitHub branch protection, see:
+
+- [BRANCH_PROTECTION_REQUIRED_CHECKS.md](BRANCH_PROTECTION_REQUIRED_CHECKS.md)
+
 ---
 
 ## 🔍 Code Audit
@@ -135,6 +140,7 @@ Before submitting a pull request, ensure your code passes our audit:
 **See**: [CODE_AUDIT.md](CODE_AUDIT.md) for complete audit checklist
 
 Key points:
+
 - Code consistency with existing scripts
 - Proper error handling
 - Correct variable naming
@@ -159,6 +165,7 @@ Key points:
 ### Community Guides
 
 See [USER_SUBMITTED_GUIDES.md](USER_SUBMITTED_GUIDES.md) for excellent community-written guides:
+
 - Home Assistant installation and configuration
 - Frigate setup on Proxmox
 - Docker and Portainer installation
@@ -216,12 +223,14 @@ git push origin feature/my-feature
 ### Before Submitting PR
 
 1. **Sync with upstream**
+
    ```bash
    git fetch upstream
    git rebase upstream/main
    ```
 
 2. **Test your changes**
+
    ```bash
    bash ct/my-app.sh
    # Follow prompts and test the container
