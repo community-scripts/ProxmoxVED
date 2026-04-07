@@ -151,11 +151,9 @@ if is_installed; then
   *) msg_error "Invalid input" ;;
   esac
 else
-  echo -e "${TAB}Enter MongoDB connection URL (default: mongodb://localhost:27017): "
-  read -r MONGO_URL_INPUT
+  read -r -p "Enter MongoDB connection URL (default: mongodb://localhost:27017): " MONGO_URL_INPUT
   MONGO_URL="${MONGO_URL_INPUT:-mongodb://localhost:27017}"
-  echo -e "${TAB}Enter port number (default: ${DEFAULT_PORT}): "
-  read -r PORT_INPUT
+  read -r -p "Enter port number (default: ${DEFAULT_PORT}): " PORT_INPUT
   PORT="${PORT_INPUT:-$DEFAULT_PORT}"
   read -r -p "Install ${APP}? (y/n): " answer
   answer="${answer//[[:space:]]/}"

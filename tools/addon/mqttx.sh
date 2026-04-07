@@ -46,7 +46,7 @@ function install_mqttx() {
 
   msg_info "Building ${APP}"
   cd "$APP_DIR/web"
-  $STD yarn install --frozen-lockfile
+  $STD yarn install --frozen-lockfile --ignore-engines
   $STD yarn build
   msg_ok "Built ${APP}"
 
@@ -108,7 +108,7 @@ function update_mqttx() {
     msg_info "Updating ${APP}"
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "mqttx" "$REPO" "tarball" "latest" "$APP_DIR"
     cd "$APP_DIR/web"
-    $STD yarn install --frozen-lockfile
+    $STD yarn install --frozen-lockfile --ignore-engines
     $STD yarn build
     systemctl reload nginx
     msg_ok "${APP} updated"
@@ -127,8 +127,7 @@ if is_installed; then
   *) msg_error "Invalid input" ;;
   esac
 else
-  echo -e "${TAB}Enter port number (default: ${DEFAULT_PORT}): "
-  read -r PORT_INPUT
+  read -r -p "Enter port number (default: ${DEFAULT_PORT}): " PORT_INPUT
   PORT="${PORT_INPUT:-$DEFAULT_PORT}"
   read -r -p "Install ${APP}? (y/n): " answer
   answer="${answer//[[:space:]]/}"
