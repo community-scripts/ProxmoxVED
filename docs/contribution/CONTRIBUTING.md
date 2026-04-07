@@ -138,5 +138,6 @@ That means:
 
 - [CT Template: AppName.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/ct/AppName.sh)
 - [Install Template: AppName-install.sh](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/CONTRIBUTOR_AND_GUIDES/install/AppName-install.sh)
+- [Shell Script Compliance Checklist](./SCRIPT_COMPLIANCE_CHECKLIST.md)
 - [Fork setup guide](./FORK_SETUP.md)
 - [Contribution README](./README.md)

@@ -1,0 +1,89 @@
+name: Shell Quality Gates
+
+on:
+  pull_request:
+    paths:
+      - "**/*.sh"
+      - "**/*.func"
+      - ".github/workflows/shell-quality.yml"
+      - ".github/workflows/scripts/**"
+      - "tests/**"
+      - "docs/contribution/**"
+  workflow_dispatch:
+
+jobs:
+  shell-gates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install tooling
+        run: |
+          sudo apt update
+          sudo apt install -y shellcheck python3
+
+      - name: Collect changed shell/function files
+        id: changed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            git fetch origin main
+            BASE_SHA="$(git merge-base HEAD origin/main)"
+          fi
+
+          CHANGED_FILE_LIST="/tmp/changed-shell-files.txt"
+          git diff --name-only "${BASE_SHA}"...HEAD | grep -E '\.(sh|func)$' > "${CHANGED_FILE_LIST}" || true
+
+          COUNT="$(wc -l < "${CHANGED_FILE_LIST}" | tr -d ' ')"
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+
+          echo "Changed shell/function files (${COUNT}):"
+          cat "${CHANGED_FILE_LIST}" || true
+
+      - name: Bash syntax checks
+        if: steps.changed.outputs.count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            [[ -z "${file}" ]] && continue
+            bash -n "${file}"
+          done < /tmp/changed-shell-files.txt
+
+      - name: ShellCheck (changed files)
+        if: steps.changed.outputs.count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            [[ -z "${file}" ]] && continue
+            shellcheck -x -e SC1090,SC1091 "${file}"
+          done < /tmp/changed-shell-files.txt
+
+      - name: Validate source/include references
+        if: steps.changed.outputs.count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/workflows/scripts/check_source_refs.py --file-list /tmp/changed-shell-files.txt
+
+      - name: Enforce shell security policies (changed files)
+        if: steps.changed.outputs.count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/workflows/scripts/check_security_policies.py --file-list /tmp/changed-shell-files.txt
+
+      - name: Run core misc test pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tests/misc/run_core_func_tests.sh

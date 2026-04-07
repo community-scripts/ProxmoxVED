@@ -112,6 +112,20 @@ All scripts and configurations must follow our coding standards to ensure consis
 - ✅ Test before submitting PR
 - ✅ Update documentation if needed
 
+### Shell Script Definition of Done (DoD)
+
+Before submitting a PR with shell changes, the following should be true:
+
+- ✅ `bash -n` passes for changed `*.sh` / `*.func`
+- ✅ `shellcheck` passes for changed files
+- ✅ No security-policy violations (`sshpass -p`, `curl|bash`, `chmod 777`, unsafe `eval`)
+- ✅ Source/include references are valid
+- ✅ Core misc test pack passes: `bash tests/misc/run_core_func_tests.sh`
+
+Use the full checklist here:
+
+- [SCRIPT_COMPLIANCE_CHECKLIST.md](SCRIPT_COMPLIANCE_CHECKLIST.md)
+
 ---
 
 ## 🔍 Code Audit

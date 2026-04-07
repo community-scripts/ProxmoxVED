@@ -88,69 +88,81 @@ ProxmoxVED/
 
 ### Core Documentation
 
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| [contribution/README.md](contribution/README.md) | How to contribute | Contributors |
-| [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) | Create ct scripts | Container developers |
-| [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md) | Create install scripts | Installation developers |
-| [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) | Architecture deep-dive | Architects, advanced users |
-| [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md) | Configuration system | Operators, power users |
-| [EXIT_CODES.md](EXIT_CODES.md) | Exit code reference | Troubleshooters |
-| [DEV_MODE.md](DEV_MODE.md) | Debugging tools | Developers |
+| Document                                               | Purpose                | Audience                   |
+| ------------------------------------------------------ | ---------------------- | -------------------------- |
+| [contribution/README.md](contribution/README.md)       | How to contribute      | Contributors               |
+| [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md)           | Create ct scripts      | Container developers       |
+| [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md) | Create install scripts | Installation developers    |
+| [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)       | Architecture deep-dive | Architects, advanced users |
+| [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md)   | Configuration system   | Operators, power users     |
+| [EXIT_CODES.md](EXIT_CODES.md)                         | Exit code reference    | Troubleshooters            |
+| [DEV_MODE.md](DEV_MODE.md)                             | Debugging tools        | Developers                 |
 
 ---
 
 ## 📂 **Directory Guide**
 
 ### [ct/](ct/) - Container Scripts
+
 Documentation for `/ct` - Container creation scripts that run on the Proxmox host.
 
 **Includes**:
+
 - Overview of container creation process
 - Deep dive: [DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) - Complete reference with examples
 - Reference to [misc/build.func/](misc/build.func/)
 - Quick start for creating new containers
 
 ### [install/](install/) - Installation Scripts
+
 Documentation for `/install` - Scripts that run inside containers to install applications.
 
 **Includes**:
+
 - Overview of 10-phase installation pattern
 - Deep dive: [DETAILED_GUIDE.md](install/DETAILED_GUIDE.md) - Complete reference with examples
 - Reference to [misc/tools.func/](misc/tools.func/)
 - Alpine vs Debian differences
 
 ### [vm/](vm/) - Virtual Machine Scripts
+
 Documentation for `/vm` - VM creation scripts using cloud-init provisioning.
 
 **Includes**:
+
 - Overview of VM provisioning
 - Link to [misc/cloud-init.func/](misc/cloud-init.func/)
 - VM vs Container comparison
 - Cloud-init examples
 
 ### [tools/](tools/) - Tools & Utilities
+
 Documentation for `/tools` - Management tools and add-ons.
 
 **Includes**:
+
 - Overview of tools structure
 - Integration points
 - Contributing new tools
 - Common operations
 
 ### [api/](api/) - API Integration
+
 Documentation for `/api` - Telemetry and API backend.
 
 **Includes**:
+
 - API overview
 - Integration methods
 - API endpoints
 - Privacy information
 
 ### [misc/](misc/) - Function Libraries
+
 Documentation for `/misc` - 9 core function libraries with complete references.
 
 **Contains**:
+
 - **build.func/** - Container orchestration (7 files)
 - **core.func/** - Utilities and messaging (5 files)
 - **error_handler.func/** - Error handling (5 files)
@@ -205,35 +217,37 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 
 ## 📊 **By the Numbers**
 
-| Metric | Count |
-|--------|:---:|
-| **Documentation Files** | 63 |
-| **Total Lines** | 15,000+ |
-| **Function Libraries** | 9 |
-| **Functions Documented** | 150+ |
-| **Code Examples** | 50+ |
-| **Flowcharts** | 15+ |
-| **Do/Don't Sections** | 20+ |
-| **Real-World Examples** | 30+ |
+| Metric                   |  Count  |
+| ------------------------ | :-----: |
+| **Documentation Files**  |   63    |
+| **Total Lines**          | 15,000+ |
+| **Function Libraries**   |    9    |
+| **Functions Documented** |  150+   |
+| **Code Examples**        |   50+   |
+| **Flowcharts**           |   15+   |
+| **Do/Don't Sections**    |   20+   |
+| **Real-World Examples**  |   30+   |
 
 ---
 
 ## 🔍 **Find It Fast**
 
 ### By Feature
+
 - **How do I create a container?** → [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md)
 - **How do I create an install script?** → [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
 - **How do I create a VM?** → [vm/README.md](vm/README.md)
 - **How do I install Node.js?** → [misc/tools.func/](misc/tools.func/)
 - **How do I debug?** → [DEV_MODE.md](DEV_MODE.md)
-- **How do we adopt best practices from other Proxmox repos?** → [guides/proxmoxscripts-adoption-plan.md](guides/proxmoxscripts-adoption-plan.md)
 
 ### By Error
+
 - **Exit code 206?** → [EXIT_CODES.md](EXIT_CODES.md)
 - **Network failed?** → [misc/install.func/](misc/install.func/)
 - **Package error?** → [misc/tools.func/](misc/tools.func/)
 
 ### By Role
+
 - **Contributor** → [contribution/README.md](contribution/README.md)
 - **Operator** → [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md)
 - **Developer** → [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)
