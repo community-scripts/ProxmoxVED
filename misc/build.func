@@ -3600,6 +3600,15 @@ install_script() {
       header_info
       CHOICE=""
       ;;
+    "$GENERATED_OPTION" | generated | GENERATED)
+      header_info
+      echo -e "${DEFAULT}${BOLD}${BL}Using Generated Settings on node $PVEHOST_NAME${CL}"
+      VERBOSE="no"
+      METHOD="generated"
+      base_settings "$VERBOSE"
+      echo_default
+      break
+      ;; 
     *)
       echo -e "${CROSS}${RD}Invalid option: $CHOICE${CL}"
       exit 1
