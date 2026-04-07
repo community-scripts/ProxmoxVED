@@ -5,18 +5,23 @@
 ## 🎯 Core Principles
 
 ### 1. **Maximum Use of `tools.func` Functions**
+
 We have an extensive library of helper functions. **NEVER** implement your own solutions when a function already exists!
 
 ### 2. **No Pointless Variables**
+
 Only create variables when they:
+
 - Are used multiple times
 - Improve readability
 - Are intended for configuration
 
 ### 3. **Consistent Script Structure**
+
 All scripts follow an identical structure. Deviations are not acceptable.
 
 ### 4. **Bare-Metal Installation**
+
 We do **NOT use Docker** for our installation scripts. All applications are installed directly on the system.
 
 ---
@@ -163,13 +168,14 @@ cleanup_lxc
 
 ### Release Management
 
-| Function | Description | Example |
-|----------|-------------|----------|
-| `fetch_and_deploy_gh_release` | Fetches and installs GitHub Release | `fetch_and_deploy_gh_release "app" "owner/repo" "tarball"` |
-| `check_for_gh_release` | Checks for new version | `if check_for_gh_release "app" "owner/repo"; then` |
-| `get_latest_github_release` | Returns latest release version string | `VERSION=$(get_latest_github_release "owner/repo")` |
+| Function                      | Description                           | Example                                                    |
+| ----------------------------- | ------------------------------------- | ---------------------------------------------------------- |
+| `fetch_and_deploy_gh_release` | Fetches and installs GitHub Release   | `fetch_and_deploy_gh_release "app" "owner/repo" "tarball"` |
+| `check_for_gh_release`        | Checks for new version                | `if check_for_gh_release "app" "owner/repo"; then`         |
+| `get_latest_github_release`   | Returns latest release version string | `VERSION=$(get_latest_github_release "owner/repo")`        |
 
 **Modes for `fetch_and_deploy_gh_release`:**
+
 ```bash
 # Tarball/Source (Standard) - always specify "tarball" explicitly
 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
@@ -185,6 +191,7 @@ fetch_and_deploy_gh_release "appname" "owner/repo" "singlefile" "latest" "/opt/a
 ```
 
 **Clean Install Flag:**
+
 ```bash
 CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 ```
@@ -193,51 +200,52 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo" "tarball"
 
 ### Runtime/Language Setup
 
-| Function | Variable(s) | Example |
-|----------|-------------|----------|
-| `setup_nodejs` | `NODE_VERSION`, `NODE_MODULE` | `NODE_VERSION="22" setup_nodejs` |
-| `setup_uv` | `UV_PYTHON` | `UV_PYTHON="3.12" setup_uv` |
-| `setup_go` | `GO_VERSION` | `GO_VERSION="1.22" setup_go` |
-| `setup_rust` | `RUST_VERSION`, `RUST_CRATES` | `RUST_CRATES="monolith" setup_rust` |
-| `setup_ruby` | `RUBY_VERSION` | `RUBY_VERSION="3.3" setup_ruby` |
-| `setup_java` | `JAVA_VERSION` | `JAVA_VERSION="21" setup_java` |
-| `setup_php` | `PHP_VERSION`, `PHP_MODULES` | `PHP_VERSION="8.3" PHP_MODULES="redis,gd" setup_php` |
+| Function       | Variable(s)                   | Example                                              |
+| -------------- | ----------------------------- | ---------------------------------------------------- |
+| `setup_nodejs` | `NODE_VERSION`, `NODE_MODULE` | `NODE_VERSION="22" setup_nodejs`                     |
+| `setup_uv`     | `UV_PYTHON`                   | `UV_PYTHON="3.12" setup_uv`                          |
+| `setup_go`     | `GO_VERSION`                  | `GO_VERSION="1.22" setup_go`                         |
+| `setup_rust`   | `RUST_VERSION`, `RUST_CRATES` | `RUST_CRATES="monolith" setup_rust`                  |
+| `setup_ruby`   | `RUBY_VERSION`                | `RUBY_VERSION="3.3" setup_ruby`                      |
+| `setup_java`   | `JAVA_VERSION`                | `JAVA_VERSION="21" setup_java`                       |
+| `setup_php`    | `PHP_VERSION`, `PHP_MODULES`  | `PHP_VERSION="8.3" PHP_MODULES="redis,gd" setup_php` |
 
 ### Database Setup
 
-| Function | Variable(s) | Example |
-|----------|-------------|----------|
-| `setup_postgresql` | `PG_VERSION`, `PG_MODULES` | `PG_VERSION="16" setup_postgresql` |
-| `setup_postgresql_db` | `PG_DB_NAME`, `PG_DB_USER` | `PG_DB_NAME="mydb" PG_DB_USER="myuser" setup_postgresql_db` |
-| `setup_mariadb_db` | `MARIADB_DB_NAME`, `MARIADB_DB_USER` | `MARIADB_DB_NAME="mydb" setup_mariadb_db` |
-| `setup_mysql` | `MYSQL_VERSION` | `setup_mysql` |
-| `setup_mongodb` | `MONGO_VERSION` | `setup_mongodb` |
-| `setup_clickhouse` | - | `setup_clickhouse` |
+| Function              | Variable(s)                          | Example                                                     |
+| --------------------- | ------------------------------------ | ----------------------------------------------------------- |
+| `setup_postgresql`    | `PG_VERSION`, `PG_MODULES`           | `PG_VERSION="16" setup_postgresql`                          |
+| `setup_postgresql_db` | `PG_DB_NAME`, `PG_DB_USER`           | `PG_DB_NAME="mydb" PG_DB_USER="myuser" setup_postgresql_db` |
+| `setup_mariadb_db`    | `MARIADB_DB_NAME`, `MARIADB_DB_USER` | `MARIADB_DB_NAME="mydb" setup_mariadb_db`                   |
+| `setup_mysql`         | `MYSQL_VERSION`                      | `setup_mysql`                                               |
+| `setup_mongodb`       | `MONGO_VERSION`                      | `setup_mongodb`                                             |
+| `setup_clickhouse`    | -                                    | `setup_clickhouse`                                          |
 
 ### Tools & Utilities
 
-| Function | Description |
-|----------|-------------|
-| `setup_adminer` | Installs Adminer for DB management |
-| `setup_composer` | Install PHP Composer |
-| `setup_ffmpeg` | Install FFmpeg |
-| `setup_imagemagick` | Install ImageMagick |
-| `setup_gs` | Install Ghostscript |
-| `setup_hwaccel` | Configure hardware acceleration |
+| Function            | Description                        |
+| ------------------- | ---------------------------------- |
+| `setup_adminer`     | Installs Adminer for DB management |
+| `setup_composer`    | Install PHP Composer               |
+| `setup_ffmpeg`      | Install FFmpeg                     |
+| `setup_imagemagick` | Install ImageMagick                |
+| `setup_gs`          | Install Ghostscript                |
+| `setup_hwaccel`     | Configure hardware acceleration    |
 
 ### Helper Utilities
 
-| Function/Variable | Description | Example |
-|-------------------|-------------|----------|
-| `$LOCAL_IP` | Always available - contains the container's IP address | `echo "Access: http://${LOCAL_IP}:3000"` |
-| `ensure_dependencies` | Checks/installs dependencies | `ensure_dependencies curl jq` |
-| `install_packages_with_retry` | APT install with retry | `install_packages_with_retry nginx redis` |
+| Function/Variable             | Description                                            | Example                                   |
+| ----------------------------- | ------------------------------------------------------ | ----------------------------------------- |
+| `$LOCAL_IP`                   | Always available - contains the container's IP address | `echo "Access: http://${LOCAL_IP}:3000"`  |
+| `ensure_dependencies`         | Checks/installs dependencies                           | `ensure_dependencies curl jq`             |
+| `install_packages_with_retry` | APT install with retry                                 | `install_packages_with_retry nginx redis` |
 
 ---
 
 ## ❌ Anti-Patterns (NEVER use!)
 
 ### 1. Pointless Variables
+
 ```bash
 # ❌ WRONG - unnecessary variables
 APP_NAME="myapp"
@@ -251,6 +259,7 @@ cd /opt/myapp
 ```
 
 ### 2. Custom Download Logic
+
 ```bash
 # ❌ WRONG - custom wget/curl logic
 RELEASE=$(curl -s https://api.github.com/repos/owner/repo/releases/latest | jq -r '.tag_name')
@@ -263,6 +272,7 @@ fetch_and_deploy_gh_release "myapp" "owner/repo"
 ```
 
 ### 3. Custom Version-Check Logic
+
 ```bash
 # ❌ WRONG - custom version check
 CURRENT=$(cat /opt/myapp/version.txt)
@@ -278,6 +288,7 @@ fi
 ```
 
 ### 4. Docker-based Installation
+
 ```bash
 # ❌ WRONG - using Docker
 docker pull myapp/myapp:latest
@@ -289,6 +300,7 @@ npm install && npm run build
 ```
 
 ### 5. Custom Runtime Installation
+
 ```bash
 # ❌ WRONG - custom Node.js installation
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
@@ -299,6 +311,7 @@ NODE_VERSION="22" setup_nodejs
 ```
 
 ### 6. Redundant echo Statements
+
 ```bash
 # ❌ WRONG - custom logging messages
 echo "Installing dependencies..."
@@ -312,6 +325,7 @@ msg_ok "Installed Dependencies"
 ```
 
 ### 7. Missing $STD Usage
+
 ```bash
 # ❌ WRONG - apt without $STD
 apt install -y nginx
@@ -321,6 +335,7 @@ $STD apt install -y nginx
 ```
 
 ### 8. Wrapping `tools.func` Functions in msg Blocks
+
 ```bash
 # ❌ WRONG - tools.func functions have their own msg_info/msg_ok!
 msg_info "Installing Node.js"
@@ -338,6 +353,7 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
 ```
 
 **Functions with built-in messages (NEVER wrap in msg blocks):**
+
 - `fetch_and_deploy_gh_release`
 - `check_for_gh_release`
 - `setup_nodejs`
@@ -359,6 +375,7 @@ CLEAN_INSTALL=1 fetch_and_deploy_gh_release "appname" "owner/repo"
 - `setup_hwaccel`
 
 ### 9. Creating Unnecessary System Users
+
 ```bash
 # ❌ WRONG - LXC containers run as root, no separate user needed
 useradd -m -s /usr/bin/bash appuser
@@ -371,6 +388,7 @@ $STD npm install
 ```
 
 ### 10. Using `export` in .env Files
+
 ```bash
 # ❌ WRONG - export is unnecessary in .env files
 cat <<EOF >/opt/appname/.env
@@ -388,6 +406,7 @@ EOF
 ```
 
 ### 11. Using External Shell Scripts
+
 ```bash
 # ❌ WRONG - external script that gets executed
 cat <<'EOF' >/opt/appname/install_script.sh
@@ -407,6 +426,7 @@ $STD npm run build
 ```
 
 ### 12. Using `sudo` in LXC Containers
+
 ```bash
 # ❌ WRONG - sudo is unnecessary in LXC (already root)
 sudo -u postgres psql -c "CREATE DATABASE mydb;"
@@ -420,6 +440,7 @@ $STD npm install
 ```
 
 ### 13. Unnecessary `systemctl daemon-reload`
+
 ```bash
 # ❌ WRONG - daemon-reload is only needed when MODIFYING existing services
 cat <<EOF >/etc/systemd/system/appname.service
@@ -436,6 +457,7 @@ systemctl enable -q --now appname
 ```
 
 ### 14. Creating Custom Credentials Files
+
 ```bash
 # ❌ WRONG - custom credentials file is not part of the standard template
 msg_info "Saving Credentials"
@@ -450,6 +472,7 @@ msg_ok "Saved Credentials"
 ```
 
 ### 15. Wrong Footer Pattern
+
 ```bash
 # ❌ WRONG - old cleanup pattern with msg blocks
 motd_ssh
@@ -467,6 +490,7 @@ cleanup_lxc
 ```
 
 ### 16. Manual Database Creation Instead of Functions
+
 ```bash
 # ❌ WRONG - manual database creation
 DB_USER="myuser"
@@ -481,6 +505,7 @@ PG_DB_NAME="mydb" PG_DB_USER="myuser" PG_DB_EXTENSIONS="postgis" setup_postgresq
 ```
 
 ### 18. Hardcoded Versions for External Tools
+
 ```bash
 # ❌ WRONG - hardcoded versions that will become outdated
 RESTIC_VERSION="0.18.1"
@@ -497,6 +522,7 @@ VERSION=$(get_latest_github_release "restic/restic")
 ```
 
 ### 19. Backing Up to /tmp in Update Scripts
+
 ```bash
 # ❌ WRONG - /tmp can be cleared by the system
 msg_info "Backing up Configuration"
@@ -515,6 +541,7 @@ rm -f /opt/appname.env.bak
 ```
 
 ### 20. Using "(Patience)" in msg_info by Default
+
 ```bash
 # ❌ WRONG - "(Patience)" should not be a default label
 msg_info "Building Application (Patience)"
@@ -528,6 +555,7 @@ msg_ok "Built Application"
 ```
 
 ### 21. Writing Files Without Heredocs
+
 ```bash
 # ❌ WRONG - echo / printf / tee
 echo "# Config" > /opt/app/config.yml
@@ -546,6 +574,7 @@ EOF
 ```
 
 ### 22. Using `apt-get` Instead of `apt`
+
 ```bash
 # ❌ WRONG - apt-get is not the project convention
 $STD apt-get install -y nginx
@@ -557,6 +586,7 @@ $STD apt update
 ```
 
 ### 23. Listing Core/Pre-installed Packages as Dependencies
+
 ```bash
 # ❌ WRONG - curl is already installed by _bootstrap() in install.func
 # sudo is already available in LXC, mc is not a dependency
@@ -575,6 +605,7 @@ msg_ok "Installed Dependencies"
 ```
 
 **Packages that must NOT be listed as dependencies (already available):**
+
 - `curl` — installed by `_bootstrap()` in `install.func`
 - `sudo` — base LXC package (and scripts run as root anyway)
 - `wget` — base Debian LXC package
@@ -591,6 +622,7 @@ msg_ok "Installed Dependencies"
 ## 📝 Important Rules
 
 ### Variable Declarations (CT Script)
+
 ```bash
 # Standard declarations (ALWAYS present)
 APP="AppName"
@@ -604,6 +636,7 @@ var_unprivileged="${var_unprivileged:-1}"
 ```
 
 ### Update-Script Pattern
+
 ```bash
 function update_script() {
   header_info
@@ -653,6 +686,7 @@ function update_script() {
 ```
 
 ### Systemd Service Pattern
+
 ```bash
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/appname.service
@@ -677,6 +711,7 @@ msg_ok "Created Service"
 ```
 
 ### Installation Script Footer
+
 ```bash
 # ALWAYS at the end of the install script:
 motd_ssh
@@ -712,12 +747,14 @@ cleanup_lxc
 ## 📖 Reference: Good Example (Termix)
 
 ### CT Script: [ct/termix.sh](ct/termix.sh)
+
 - Uses `check_for_gh_release` for version checking
 - Uses `CLEAN_INSTALL=1 fetch_and_deploy_gh_release` for clean updates
 - Backup/restore of `/opt/termix/data`
 - Correct structure with all required variables
 
 ### Install Script: [install/termix-install.sh](install/termix-install.sh)
+
 - `NODE_VERSION="22" setup_nodejs` instead of manual installation
 - `fetch_and_deploy_gh_release "termix" "Termix-SSH/Termix"` instead of wget/curl
 - Clean service configuration
@@ -733,91 +770,91 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
 
 ```json
 {
-    "name": "AppName",
-    "slug": "appname",
-    "categories": [1],
-    "date_created": "2026-01-16",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 3000,
-    "documentation": "https://docs.appname.com/",
-    "website": "https://appname.com/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/appname.webp",
-    "config_path": "/opt/appname/.env",
-    "description": "Short description of the application and its purpose.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/appname.sh",
-            "resources": {
-                "cpu": 2,
-                "ram": 2048,
-                "hdd": 8,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
-    },
-    "notes": []
+  "name": "AppName",
+  "slug": "appname",
+  "categories": [1],
+  "date_created": "2026-01-16",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://docs.appname.com/",
+  "website": "https://appname.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/appname.webp",
+  "config_path": "/opt/appname/.env",
+  "description": "Short description of the application and its purpose.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/appname.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
 }
 ```
 
 ### Required Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Display name of the application |
-| `slug` | string | Lowercase, no spaces, used for filenames |
-| `categories` | array | Category ID(s) - see category list below |
-| `date_created` | string | Creation date (YYYY-MM-DD) |
-| `type` | string | `ct` for container, `vm` for virtual machine |
-| `updateable` | boolean | Whether update_script is implemented |
-| `privileged` | boolean | Whether container needs privileged mode |
-| `interface_port` | number | Primary web interface port (or `null`) |
-| `documentation` | string | Link to official docs |
-| `website` | string | Link to official website |
-| `logo` | string | URL to application logo (preferably selfhst icons) |
-| `config_path` | string | Path to main config file (or empty string) |
-| `description` | string | Brief description of the application |
-| `install_methods` | array | Installation configurations |
-| `default_credentials` | object | Default username/password (or null) |
-| `notes` | array | Additional notes/warnings |
+| Field                 | Type    | Description                                        |
+| --------------------- | ------- | -------------------------------------------------- |
+| `name`                | string  | Display name of the application                    |
+| `slug`                | string  | Lowercase, no spaces, used for filenames           |
+| `categories`          | array   | Category ID(s) - see category list below           |
+| `date_created`        | string  | Creation date (YYYY-MM-DD)                         |
+| `type`                | string  | `ct` for container, `vm` for virtual machine       |
+| `updateable`          | boolean | Whether update_script is implemented               |
+| `privileged`          | boolean | Whether container needs privileged mode            |
+| `interface_port`      | number  | Primary web interface port (or `null`)             |
+| `documentation`       | string  | Link to official docs                              |
+| `website`             | string  | Link to official website                           |
+| `logo`                | string  | URL to application logo (preferably selfhst icons) |
+| `config_path`         | string  | Path to main config file (or empty string)         |
+| `description`         | string  | Brief description of the application               |
+| `install_methods`     | array   | Installation configurations                        |
+| `default_credentials` | object  | Default username/password (or null)                |
+| `notes`               | array   | Additional notes/warnings                          |
 
 ### Categories
 
-| ID | Category |
-|----|----------|
-| 0 | Miscellaneous |
-| 1 | Proxmox & Virtualization |
-| 2 | Operating Systems |
-| 3 | Containers & Docker |
-| 4 | Network & Firewall |
-| 5 | Adblock & DNS |
-| 6 | Authentication & Security |
-| 7 | Backup & Recovery |
-| 8 | Databases |
-| 9 | Monitoring & Analytics |
-| 10 | Dashboards & Frontends |
-| 11 | Files & Downloads |
-| 12 | Documents & Notes |
-| 13 | Media & Streaming |
-| 14 | *Arr Suite |
-| 15 | NVR & Cameras |
-| 16 | IoT & Smart Home |
-| 17 | ZigBee, Z-Wave & Matter |
-| 18 | MQTT & Messaging |
-| 19 | Automation & Scheduling |
-| 20 | AI / Coding & Dev-Tools |
-| 21 | Webservers & Proxies |
-| 22 | Bots & ChatOps |
-| 23 | Finance & Budgeting |
-| 24 | Gaming & Leisure |
-| 25 | Business & ERP |
+| ID  | Category                  |
+| --- | ------------------------- |
+| 0   | Miscellaneous             |
+| 1   | Proxmox & Virtualization  |
+| 2   | Operating Systems         |
+| 3   | Containers & Docker       |
+| 4   | Network & Firewall        |
+| 5   | Adblock & DNS             |
+| 6   | Authentication & Security |
+| 7   | Backup & Recovery         |
+| 8   | Databases                 |
+| 9   | Monitoring & Analytics    |
+| 10  | Dashboards & Frontends    |
+| 11  | Files & Downloads         |
+| 12  | Documents & Notes         |
+| 13  | Media & Streaming         |
+| 14  | \*Arr Suite               |
+| 15  | NVR & Cameras             |
+| 16  | IoT & Smart Home          |
+| 17  | ZigBee, Z-Wave & Matter   |
+| 18  | MQTT & Messaging          |
+| 19  | Automation & Scheduling   |
+| 20  | AI / Coding & Dev-Tools   |
+| 21  | Webservers & Proxies      |
+| 22  | Bots & ChatOps            |
+| 23  | Finance & Budgeting       |
+| 24  | Gaming & Leisure          |
+| 25  | Business & ERP            |
 
 ### Notes Format
 
@@ -846,6 +883,7 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
 ```
 
 Or no credentials:
+
 ```json
 "default_credentials": {
     "username": null,
