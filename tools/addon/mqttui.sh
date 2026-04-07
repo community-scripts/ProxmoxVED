@@ -48,8 +48,7 @@ function install_mqttui() {
   msg_info "Setting up ${APP}"
   cd "$APP_DIR"
   $STD uv venv /opt/mqttui/.venv
-  $STD /opt/mqttui/.venv/bin/python -m ensurepip
-  $STD /opt/mqttui/.venv/bin/pip install -r requirements.txt
+  $STD uv pip install -r requirements.txt
   mkdir -p /opt/mqttui/data
   msg_ok "Set up ${APP}"
 
@@ -120,7 +119,7 @@ function update_mqttui() {
 
     msg_info "Updating ${APP}"
     cd "$APP_DIR"
-    $STD /opt/mqttui/.venv/bin/pip install -r requirements.txt
+    $STD uv pip install -r requirements.txt
     msg_ok "Updated ${APP}"
 
     msg_info "Restoring Data"
