@@ -1,0 +1,40 @@
+{
+    "name": "MQTTX Web",
+    "slug": "mqttx",
+    "categories": [
+        18
+    ],
+    "date_created": "2026-04-07",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://mqttx.app/docs/web",
+    "website": "https://mqttx.app/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/mqttx.webp",
+    "config_path": "",
+    "description": "MQTTX Web is an open source MQTT 5.0 browser client tool. It uses WebSocket to connect to MQTT brokers directly from the browser, making it easy to test and debug MQTT services without local installation.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/mqttx.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 1024,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "MQTTX Web connects to MQTT brokers via WebSocket directly from the browser. No credentials are required for the web UI itself.",
+            "type": "info"
+        }
+    ]
+}
