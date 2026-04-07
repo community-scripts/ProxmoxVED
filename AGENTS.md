@@ -711,13 +711,13 @@ cleanup_lxc
 
 ## 📖 Reference: Good Example (Termix)
 
-### CT Script: [ct/termix.sh](../ct/termix.sh)
+### CT Script: [ct/termix.sh](ct/termix.sh)
 - Uses `check_for_gh_release` for version checking
 - Uses `CLEAN_INSTALL=1 fetch_and_deploy_gh_release` for clean updates
 - Backup/restore of `/opt/termix/data`
 - Correct structure with all required variables
 
-### Install Script: [install/termix-install.sh](../install/termix-install.sh)
+### Install Script: [install/termix-install.sh](install/termix-install.sh)
 - `NODE_VERSION="22" setup_nodejs` instead of manual installation
 - `fetch_and_deploy_gh_release "termix" "Termix-SSH/Termix"` instead of wget/curl
 - Clean service configuration
@@ -867,7 +867,7 @@ Or no credentials:
 
 ## 📚 Further Documentation
 
-- [CONTRIBUTING.md](contribution/CONTRIBUTING.md) - General contribution guidelines
-- [GUIDE.md](contribution/GUIDE.md) - Detailed developer documentation
-- [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) - Technical details
-- [EXIT_CODES.md](EXIT_CODES.md) - Exit code reference
+- [CONTRIBUTING.md](docs/contribution/CONTRIBUTING.md) - General contribution guidelines
+- [GUIDE.md](docs/contribution/GUIDE.md) - Detailed developer documentation
+- [TECHNICAL_REFERENCE.md](docs/TECHNICAL_REFERENCE.md) - Technical details
+- [EXIT_CODES.md](docs/EXIT_CODES.md) - Exit code reference
