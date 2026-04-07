@@ -226,6 +226,7 @@ Documentation for `/misc` - 9 core function libraries with complete references.
 - **How do I create a VM?** → [vm/README.md](vm/README.md)
 - **How do I install Node.js?** → [misc/tools.func/](misc/tools.func/)
 - **How do I debug?** → [DEV_MODE.md](DEV_MODE.md)
+- **How do we adopt best practices from other Proxmox repos?** → [guides/proxmoxscripts-adoption-plan.md](guides/proxmoxscripts-adoption-plan.md)
 
 ### By Error
 - **Exit code 206?** → [EXIT_CODES.md](EXIT_CODES.md)
