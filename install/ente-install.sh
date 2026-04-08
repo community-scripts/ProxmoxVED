@@ -86,7 +86,7 @@ cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=${MINIO_PASS}
 MINIO_VOLUMES=/opt/minio/data
-MINIO_OPTS="--address :3200 --console-address :3201"
+lMINIO_OPTS="--address :3200 --console-address :3201"
 EOF
 cat <<'EOF' >/etc/systemd/system/minio.service
 [Unit]
@@ -157,7 +157,7 @@ jwt:
 EOF
 msg_ok "Created museum.yaml"
 
-read -r -p "Enter the public URL for Ente backend (e.g., https://api.ente.yourdomain.com or http://192.168.1.100:8080) leave empty to use container IP: " backend_url
+read -r -p "${TAB3}Enter the public URL for Ente backend (e.g., https://api.ente.yourdomain.com or http://192.168.1.100:8080) leave empty to use container IP: " backend_url
 if [[ -z "$backend_url" ]]; then
   ENTE_BACKEND_URL="http://$LOCAL_IP:8080"
   msg_info "No URL provided"
@@ -168,7 +168,7 @@ else
   msg_ok "Using provided URL: $ENTE_BACKEND_URL\n"
 fi
 
-read -r -p "Enter the public URL for Ente albums (e.g., https://albums.ente.yourdomain.com or http://192.168.1.100:3002) leave empty to use container IP: " albums_url
+read -r -p "${TAB3}Enter the public URL for Ente albums (e.g., https://albums.ente.yourdomain.com or http://192.168.1.100:3002) leave empty to use container IP: " albums_url
 if [[ -z "$albums_url" ]]; then
   ENTE_ALBUMS_URL="http://$LOCAL_IP:3002"
   msg_info "No URL provided"
