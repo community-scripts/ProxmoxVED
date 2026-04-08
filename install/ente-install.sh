@@ -334,17 +334,8 @@ systemctl reload caddy
 msg_ok "Configured Caddy"
 
 msg_info "Creating helper scripts"
-cat <<'SETUP' >/usr/local/bin/ente-setup
+cat <<'EOF' >/usr/local/bin/ente-get-verification
 #!/usr/bin/env bash
-<<<<<<< HEAD
-set -e
-
-LOCAL_IP=$(hostname -I | awk '{print $1}')
-echo "=== Ente First-Time Setup ==="
-echo ""
-read -r -p "Enter your account email: " EMAIL
-if [ -z "$EMAIL" ]; then echo "Error: Email is required"; exit 1; fi
-=======
 echo "Searching for verification codes in museum logs..."
 journalctl -u ente-museum --no-pager | grep -oP 'SendEmailOTT.*ott:\s*\K\d+' | tail -5
 if [[ $? -ne 0 ]] || [[ -z "$(journalctl -u ente-museum --no-pager | grep -oP 'ott:\s*\K\d+' | tail -1)" ]]; then
@@ -358,7 +349,6 @@ cat <<'SETUPEOF' >/usr/local/bin/ente-setup
 #!/usr/bin/env bash
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 DB_NAME="ente_db"
-DB_USER="ente"
 
 echo "=== Ente First-Time Setup ==="
 echo ""
@@ -368,74 +358,16 @@ if [[ -z "$EMAIL" ]]; then
   echo "Error: Email is required."
   exit 1
 fi
->>>>>>> bb7e2e03 (fix(postiz,ente,lobehub): address testing feedback)
 
 echo ""
 echo "Step 1/4: Register your account"
 echo "  Open the web UI: http://${LOCAL_IP}:3000"
-<<<<<<< HEAD
-echo "  Create an account with: $EMAIL"
-=======
 echo "  Create an account with: ${EMAIL}"
->>>>>>> bb7e2e03 (fix(postiz,ente,lobehub): address testing feedback)
 echo ""
 read -r -p "Press ENTER after you submitted the signup form..."
 
 echo ""
 echo "Step 2/4: Getting verification code from logs..."
-<<<<<<< HEAD
-for i in $(seq 1 10); do
-    OTT=$(journalctl -u ente-museum --no-pager -n 100 2>/dev/null | grep -oP "Skipping sending email to ${EMAIL}.*Verification code: \K[0-9]+" | tail -1)
-    if [ -n "$OTT" ]; then break; fi
-    sleep 1
-done
-if [ -z "$OTT" ]; then
-    echo "Could not auto-detect code. Searching all recent codes..."
-    journalctl -u ente-museum --no-pager -n 200 | grep "Verification code" | tail -5
-    echo ""
-    echo "Enter the code shown above in the web UI, then press ENTER."
-    read -r -p "Press ENTER after verification..."
-else
-    echo "  Your verification code: $OTT"
-    echo "  Enter this code in the web UI to complete registration."
-    echo ""
-    read -r -p "Press ENTER after you verified the code..."
-fi
-
-DB_NAME="$(grep -A4 '^db:' /opt/ente/server/museum.yaml | awk '/name:/{print $2}')"
-DB_PASS="$(grep -A5 '^db:' /opt/ente/server/museum.yaml | awk '/password:/{print $2}')"
-USER_ID=$(PGPASSWORD="$DB_PASS" psql -h 127.0.0.1 -U ente -d "$DB_NAME" -tAc "SELECT user_id FROM users ORDER BY user_id LIMIT 1;")
-if [ -z "$USER_ID" ]; then
-    echo "Error: No verified users found in database."
-    echo "Make sure you completed the verification step in the web UI."
-    exit 1
-fi
-echo "Found user ID: $USER_ID"
-
-echo ""
-echo "Step 3/4: Whitelisting admin in museum.yaml..."
-if grep -q "^internal:" /opt/ente/server/museum.yaml; then
-    sed -i "/^  admin:/d" /opt/ente/server/museum.yaml
-    sed -i "/^internal:/a\\  admin: $USER_ID" /opt/ente/server/museum.yaml
-else
-    printf '\ninternal:\n  admin: %s\n' "$USER_ID" >> /opt/ente/server/museum.yaml
-fi
-systemctl restart ente-museum
-sleep 2
-echo "Done."
-
-echo ""
-echo "Step 4/4: Adding account to Ente CLI & upgrading subscription..."
-mkdir -p /opt/ente_data/photos
-export ENTE_CLI_SECRETS_PATH=/opt/ente/cli-config/secrets.txt
-printf 'photos\n/opt/ente_data/photos\n' | ente account add
-ente admin update-subscription -a "$EMAIL" -u "$EMAIL" --no-limit True
-echo ""
-echo "=== Setup Complete ==="
-echo "You can now use Ente Photos/Auth with unlimited storage."
-SETUP
-chmod +x /usr/local/bin/ente-setup
-=======
 sleep 3
 CODE=$(journalctl -u ente-museum --no-pager -n 100 | grep -oP 'ott:\s*\K\d+' | tail -1)
 if [[ -n "$CODE" ]]; then
@@ -448,7 +380,7 @@ fi
 echo ""
 read -r -p "Press ENTER after you verified the code..."
 
-USER_ID=$(su -c "psql -t -d ${DB_NAME} -c \"SELECT user_id FROM users WHERE email = '$(echo "$EMAIL" | sed "s/'/''/g")';\"" postgres 2>/dev/null | xargs)
+USER_ID=$(su -c "psql -t -d ${DB_NAME} -c \"SELECT user_id FROM users WHERE email = '$(echo "$EMAIL" | sed "s/'/''/g')';\"" postgres 2>/dev/null | xargs)
 echo "Found user ID: ${USER_ID}"
 
 echo ""
@@ -498,7 +430,7 @@ fi
 EMAIL="$1"
 DB_NAME="ente_db"
 echo "Upgrading subscription for: $EMAIL"
-USER_ID=$(su -c "psql -t -d ${DB_NAME} -c \"SELECT user_id FROM users WHERE email = '$(echo "$EMAIL" | sed "s/'/''/g")';\"" postgres 2>/dev/null | xargs)
+USER_ID=$(su -c "psql -t -d ${DB_NAME} -c \"SELECT user_id FROM users WHERE email = '$(echo "$EMAIL" | sed "s/'/''/g')';\"" postgres 2>/dev/null | xargs)
 if [[ -z "$USER_ID" ]]; then
   echo "Error: User not found in database."
   exit 1
@@ -511,7 +443,6 @@ fi
 echo "Done. Subscription upgraded to unlimited storage for: $EMAIL"
 EOF
 chmod +x /usr/local/bin/ente-upgrade-subscription
->>>>>>> bb7e2e03 (fix(postiz,ente,lobehub): address testing feedback)
 
 msg_ok "Created helper scripts"
 
