@@ -24,8 +24,9 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  AUTHENTIK_VERSION="version/2026.2.0"
+  AUTHENTIK_VERSION="version/2026.2.2"
   NODE_VERSION="24"
+  XMLSEC_VERSION="1.3.9"
 
   if [[ ! -d /opt/authentik ]]; then
     msg_error "No authentik Installation Found!"
@@ -48,7 +49,7 @@ function update_script() {
 
   if check_for_gh_release "xmlsec" "lsh123/xmlsec"; then
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "xmlsec" "lsh123/xmlsec" "tarball" "latest" "/opt/xmlsec"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "xmlsec" "lsh123/xmlsec" "tarball" "${XMLSEC_VERSION}" "/opt/xmlsec"
 
     msg_info "Update xmlsec"
     cd /opt/xmlsec

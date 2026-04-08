@@ -47,10 +47,11 @@ $STD apt install -y \
   git
 msg_ok "Installed Dependencies"
 
-AUTHENTIK_VERSION="version/2026.2.0"
+AUTHENTIK_VERSION="version/2026.2.2"
 NODE_VERSION="24"
+XMLSEC_VERSION="1.3.9"
 
-fetch_and_deploy_gh_release "xmlsec" "lsh123/xmlsec" "tarball" "latest" "/opt/xmlsec"
+fetch_and_deploy_gh_release "xmlsec" "lsh123/xmlsec" "tarball" "${XMLSEC_VERSION}" "/opt/xmlsec"
 
 msg_info "Setup xmlsec"
 cd /opt/xmlsec
