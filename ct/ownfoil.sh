@@ -6,19 +6,19 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://github.com/a1ex4/ownfoil 
 
 APP="ownfoil"
-var_tags="${var_tags:-gaming}" # Max 2 tags, semicolon-separated
-var_cpu="${var_cpu:-1}"                         # CPU cores: 1-4 typical
-var_ram="${var_ram:-1024}"                      # RAM in MB: 512, 1024, 2048, etc.
-var_disk="${var_disk:-4}"                       # Disk in GB: 6, 8, 10, 20 typical
-var_os="${var_os:-debian}"                      # OS: debian, ubuntu, alpine
-var_version="${var_version:-13}"                # OS Version: 13 (Debian), 24.04 (Ubuntu), 3.21 (Alpine)
-var_unprivileged="${var_unprivileged:-1}"       # 1=unprivileged (secure), 0=privileged (for Docker/Podman)
+var_tags="${var_tags:-gaming}"
+var_cpu="${var_cpu:-1}"                      
+var_ram="${var_ram:-1024}"
+var_disk="${var_disk:-4}"                
+var_os="${var_os:-debian}"
+var_version="${var_version:-13}"
+var_unprivileged="${var_unprivileged:-1}"
 
 
-header_info "$APP" # Display app name and setup header
-variables          # Initialize build.func variables
-color              # Load color variables for output
-catch_errors       # Enable error handling with automatic exit on failure
+header_info "$APP"
+variables
+color
+catch_errors
 
 
 function update_script() {
@@ -40,7 +40,7 @@ function update_script() {
     cp -r /opt/ownfoil/app/config /opt/ownfoil_data_backup 2>/dev/null || true
     msg_ok "Backed up Data"
 
-    fetch_and_deploy_gh_release "ownfoil" "a1ex4/ownfoil" "tarball" "latest" "/opt/ownfoil"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "ownfoil" "a1ex4/ownfoil" "tarball" "latest" "/opt/ownfoil"
 
     msg_info "Installing Dependencies"
     cd /opt/ownfoil
@@ -59,22 +59,6 @@ function update_script() {
     msg_ok "Updated successfully!"
   fi
   exit
-}
-
-function health_check() {
-  header_info
-
-  if [[ ! -d /opt/ownfoil ]]; then
-    msg_error "Application not found!"
-    exit 1
-  fi
-
-  if ! systemctl is-active --quiet ownfoil; then
-    msg_error "Application service not running"
-    exit 1
-  fi
-
-  msg_ok "Health check passed"
 }
 
 start
