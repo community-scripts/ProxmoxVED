@@ -1,0 +1,48 @@
+{
+  "name": "ProxMigrate",
+  "slug": "proxmigrate",
+  "categories": [
+    1
+  ],
+  "date_created": "2026-04-09",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8443,
+  "documentation": "https://github.com/backupassure/proxmigrate#readme",
+  "website": "https://github.com/backupassure/proxmigrate",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/virtual-machine.webp",
+  "config_path": "/opt/proxmigrate/.env",
+  "description": "Self-hosted web UI for Proxmox VE — import disk images, create and manage VMs and LXC containers, deploy community scripts, and more.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/proxmigrate.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "Password!"
+  },
+  "notes": [
+    {
+      "text": "Default credentials are admin / Password! — you are forced to change the password on first login.",
+      "type": "info"
+    },
+    {
+      "text": "Access the web UI at https://<container-ip>:8443 (self-signed certificate — accept the browser warning).",
+      "type": "info"
+    },
+    {
+      "text": "After login, the setup wizard guides you through connecting to your Proxmox host via API token and SSH key.",
+      "type": "info"
+    }
+  ]
+}
