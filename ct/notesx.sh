@@ -42,11 +42,11 @@ function update_script() {
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "notesx" "note-sx/server" "tarball" "latest" "/opt/notesx"
 
-    msg_info "Rebuilding ${APP}"
+    msg_info "Rebuilding NoteSX"
     cd /opt/notesx/app
     $STD npm install --omit=dev
     $STD npx tsc --noCheck
-    msg_ok "Rebuilt ${APP}"
+    msg_ok "Rebuilt NoteSX"
 
     msg_info "Restoring Data"
     cp /opt/notesx_env_backup /opt/notesx/app/.env
