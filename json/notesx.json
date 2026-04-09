@@ -11,7 +11,7 @@
     "interface_port": 3000,
     "documentation": "https://github.com/note-sx/server",
     "website": "https://note.sx",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/notesx.webp",
+    "logo": "",
     "config_path": "/opt/notesx/app/.env",
     "description": "Self-hosted backend for the Obsidian Share Note plugin, enabling encrypted note sharing without relying on external services.",
     "install_methods": [
