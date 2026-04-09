@@ -297,7 +297,13 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now redis-server proxmigrate-gunicorn proxmigrate-celery proxmigrate-daphne nginx
+systemctl enable -q redis-server nginx proxmigrate-gunicorn proxmigrate-celery proxmigrate-daphne
+systemctl restart redis-server
+systemctl restart nginx
+systemctl restart proxmigrate-gunicorn
+systemctl restart proxmigrate-celery
+sleep 2
+systemctl restart proxmigrate-daphne
 msg_ok "Created Services"
 
 motd_ssh
