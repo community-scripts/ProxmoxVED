@@ -1,0 +1,40 @@
+{
+    "name": "NoteSX",
+    "slug": "notesx",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-04-09",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://github.com/note-sx/server",
+    "website": "https://note.sx",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/notesx.webp",
+    "config_path": "/opt/notesx/app/.env",
+    "description": "Self-hosted backend for the Obsidian Share Note plugin, enabling encrypted note sharing without relying on external services.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/notesx.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Update BASE_WEB_URL in /opt/notesx/app/.env to your public domain after installation.",
+            "type": "info"
+        }
+    ]
+}
