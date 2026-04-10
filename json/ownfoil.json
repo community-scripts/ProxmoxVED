@@ -16,6 +16,7 @@
    "install_methods_json":[
       {
          "type":"default",
+         "script":"ct/ownfoil.sh",
          "resources":{
             "cpu":1,
             "ram":1024,
@@ -25,6 +26,10 @@
          }
       }
    ],
+   "default_credentials":{
+      "username":null,
+      "password":null
+   },
    "notes_json":[
       {
          "text":"Ownfoil requires an admin user to be created to enable Authentication. Go to the Settings tab to create a first user that will have admin rights.",
