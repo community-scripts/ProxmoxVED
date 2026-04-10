@@ -9,7 +9,7 @@
    "privileged":false,
    "updateable":true,
    "interface_port":8465,
-   "documentation":null,
+   "documentation":"https://github.com/a1ex4/ownfoil",
    "website":"https://github.com/a1ex4/ownfoil",
    "logo":null,
    "config_path":"/opt/ownfoil/app/config/settings.yaml",
@@ -26,7 +26,11 @@
          }
       }
    ],
-   "notes_json":[
+   "default_credentials":{
+      "username":null,
+      "password":null
+   },
+   "notes":[
       {
          "text":"Ownfoil requires an admin user to be created to enable Authentication. Go to the Settings tab to create a first user that will have admin rights.",
          "type":"warning"
