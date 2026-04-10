@@ -123,16 +123,11 @@ Your PR should contain only the files that belong to the script contribution its
 
 - `ct/myapp.sh`
 - `install/myapp-install.sh`
+- `json/myapp.json`
 
 ## Website metadata
 
-Website metadata is maintained outside this repository's script contribution flow.
-
-That means:
-
-- do not add repo JSON metadata files as part of the normal contribution path
-- do not assume a `frontend/public/json/...` workflow exists for the live site
-- route metadata creation or metadata changes through the website / maintainer workflow
+Add a Json file with all Metadata for the App. [DOCS](https://community-scripts.org/docs/contribution/templates_json/appname)
 
 ## Pages
 
