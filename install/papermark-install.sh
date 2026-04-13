@@ -19,7 +19,7 @@ PG_DB_NAME="papermark" PG_DB_USER="papermark" setup_postgresql_db
 
 fetch_and_deploy_gh_release "papermark" "mfts/papermark" "tarball"
 
-msg_info "Setting up ${APP}"
+msg_info "Setting up Papermark"
 cd /opt/papermark
 cat <<EOF >/opt/papermark/.env
 DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
@@ -32,7 +32,7 @@ $STD npm install
 $STD npx prisma generate
 $STD npx prisma migrate deploy
 $STD npm run build
-msg_ok "Set up ${APP}"
+msg_ok "Set up Papermark"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/papermark.service

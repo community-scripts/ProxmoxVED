@@ -27,7 +27,7 @@ PG_DB_NAME="blinko" PG_DB_USER="blinko" setup_postgresql_db
 
 fetch_and_deploy_gh_release "blinko" "blinkospace/blinko" "tarball"
 
-msg_info "Setting up ${APP}"
+msg_info "Setting up Blinko"
 cd /opt/blinko
 cat <<EOF >/opt/blinko/.env
 NODE_ENV=production
@@ -40,7 +40,7 @@ $STD bun install
 $STD bunx prisma generate
 $STD bunx prisma migrate deploy
 $STD bun run build
-msg_ok "Set up ${APP}"
+msg_ok "Set up Blinko"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/blinko.service

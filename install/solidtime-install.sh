@@ -25,7 +25,7 @@ PG_DB_NAME="solidtime" PG_DB_USER="solidtime" setup_postgresql_db
 
 fetch_and_deploy_gh_release "solidtime" "solidtime-io/solidtime" "tarball"
 
-msg_info "Setting up ${APP}"
+msg_info "Setting up SolidTime"
 cd /opt/solidtime
 cp .env.example .env
 APP_KEY=$($STD php artisan key:generate --show)
@@ -46,7 +46,7 @@ mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chown -R www-data:www-data /opt/solidtime
 chmod -R 775 storage bootstrap/cache
 $STD php artisan migrate --force
-msg_ok "Set up ${APP}"
+msg_ok "Set up SolidTime"
 
 msg_info "Configuring Caddy"
 PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')

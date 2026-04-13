@@ -19,9 +19,9 @@ msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "gogs" "gogs/gogs" "prebuild" "latest" "/opt/gogs" "gogs_*_linux_amd64.tar.gz"
 
-msg_info "Setting up ${APP}"
+msg_info "Setting up Gogs"
 mkdir -p /opt/gogs/{custom/conf,data,log}
-msg_ok "Set up ${APP}"
+msg_ok "Set up Gogs"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/gogs.service

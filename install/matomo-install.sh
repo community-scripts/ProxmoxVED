@@ -22,11 +22,11 @@ MARIADB_DB_NAME="matomo" MARIADB_DB_USER="matomo" setup_mariadb_db
 
 fetch_and_deploy_gh_release "matomo" "matomo-org/matomo" "prebuild" "latest" "/opt/matomo" "matomo-*.zip"
 
-msg_info "Setting up ${APP}"
+msg_info "Setting up Matomo"
 mkdir -p /opt/matomo/tmp
 chown -R www-data:www-data /opt/matomo
 chmod -R 755 /opt/matomo/tmp
-msg_ok "Set up ${APP}"
+msg_ok "Set up Matomo"
 
 msg_info "Configuring Caddy"
 PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')

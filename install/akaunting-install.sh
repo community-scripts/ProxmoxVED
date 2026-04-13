@@ -24,7 +24,7 @@ MARIADB_DB_NAME="akaunting" MARIADB_DB_USER="akaunting" setup_mariadb_db
 
 fetch_and_deploy_gh_release "akaunting" "akaunting/akaunting" "tarball"
 
-msg_info "Setting up ${APP}"
+msg_info "Setting up Akaunting"
 cd /opt/akaunting
 $STD composer install --no-dev --optimize-autoloader
 $STD npm install
@@ -51,7 +51,7 @@ mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chown -R www-data:www-data /opt/akaunting
 chmod -R 775 storage bootstrap/cache
 $STD php artisan migrate --force --seed
-msg_ok "Set up ${APP}"
+msg_ok "Set up Akaunting"
 
 msg_info "Configuring Caddy"
 PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')

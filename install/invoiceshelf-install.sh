@@ -25,7 +25,7 @@ PG_DB_NAME="invoiceshelf" PG_DB_USER="invoiceshelf" setup_postgresql_db
 
 fetch_and_deploy_gh_release "invoiceshelf" "InvoiceShelf/InvoiceShelf" "tarball"
 
-msg_info "Setting up ${APP}"
+msg_info "Setting up InvoiceShelf"
 cd /opt/invoiceshelf
 cp .env.example .env
 APP_KEY=$($STD php artisan key:generate --show)
@@ -47,7 +47,7 @@ chown -R www-data:www-data /opt/invoiceshelf
 chmod -R 775 storage bootstrap/cache
 $STD php artisan migrate --force
 $STD php artisan storage:link
-msg_ok "Set up ${APP}"
+msg_ok "Set up InvoiceShelf"
 
 msg_info "Configuring Caddy"
 PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')

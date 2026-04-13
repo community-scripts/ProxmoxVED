@@ -15,9 +15,9 @@ update_os
 
 fetch_and_deploy_gh_release "dagu" "dagucloud/dagu" "prebuild" "latest" "/opt/dagu" "dagu_*_linux_amd64.tar.gz"
 
-msg_info "Setting up ${APP}"
+msg_info "Setting up Dagu"
 mkdir -p /opt/dagu/data
-msg_ok "Set up ${APP}"
+msg_ok "Set up Dagu"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/dagu.service

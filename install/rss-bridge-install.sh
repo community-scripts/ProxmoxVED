@@ -22,12 +22,12 @@ setup_composer
 
 fetch_and_deploy_gh_release "rss-bridge" "RSS-Bridge/rss-bridge" "tarball"
 
-msg_info "Setting up ${APP}"
+msg_info "Setting up RSS-Bridge"
 cd /opt/rss-bridge
 $STD composer install --no-dev --optimize-autoloader
 cp config.default.ini.php config.ini.php
 chown -R www-data:www-data /opt/rss-bridge
-msg_ok "Set up ${APP}"
+msg_ok "Set up RSS-Bridge"
 
 msg_info "Configuring Caddy"
 PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
