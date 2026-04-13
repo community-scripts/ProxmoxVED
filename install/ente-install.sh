@@ -86,7 +86,7 @@ cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=${MINIO_PASS}
 MINIO_VOLUMES=/opt/minio/data
-lMINIO_OPTS="--address :3200 --console-address :3201"
+MINIO_OPTS="--address :3200 --console-address :3201"
 EOF
 cat <<'EOF' >/etc/systemd/system/minio.service
 [Unit]
