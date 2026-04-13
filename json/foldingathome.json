@@ -1,0 +1,52 @@
+{
+  "name": "Folding@Home",
+  "slug": "foldingathome",
+  "categories": [
+    0
+  ],
+  "date_created": "2026-04-14",
+  "type": "ct",
+  "privileged": false,
+  "updateable": true,
+  "interface_port": 7396,
+  "documentation": "https://foldingathome.org/guides/v8-5-client-guide/",
+  "website": "https://foldingathome.org/",
+  "logo": null,
+  "config_path": "/etc/fah-client/config.xml",
+  "description": "Folding@Home is a distributed computing platform for protein-folding and disease research. This script installs the official v8.5 client in a Debian 13 LXC with optional account linking, CPU folding enabled by default, and GPU support through the existing Proxmox GPU passthrough framework.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/foldingathome.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The client package is downloaded from Folding@Home's official package server at download.foldingathome.org, not from GitHub releases.",
+      "type": "info"
+    },
+    {
+      "text": "CPU folding is configured by default and the script sets Folding@Home to use all CPUs visible inside the LXC.",
+      "type": "info"
+    },
+    {
+      "text": "If GPU passthrough is enabled during container creation, the script enables GPU folding configuration and adds a GPU slot automatically.",
+      "type": "info"
+    },
+    {
+      "text": "Use Folding@Home Web Control at https://v8-5.foldingathome.org/ to view and manage linked machines after installation.",
+      "type": "info"
+    }
+  ]
+}
