@@ -53,6 +53,7 @@ function update_script() {
     mkdir -p /opt/blinko/server/public
     cp -r /opt/blinko/dist/public/. /opt/blinko/server/public/ 2>/dev/null || true
     $STD bunx prisma migrate deploy
+    $STD bun /opt/blinko/dist/seed.js
     msg_ok "Updated Application"
 
     msg_info "Starting Service"
