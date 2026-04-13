@@ -1,0 +1,40 @@
+{
+    "name": "Blinko",
+    "slug": "blinko",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-07-13",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 1111,
+    "documentation": "https://docs.blinko.space/",
+    "website": "https://blinko.space/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/blinko.webp",
+    "config_path": "/opt/blinko/.env",
+    "description": "Blinko is an AI-powered card note-taking tool designed for capturing and organizing fleeting thoughts with natural language search powered by RAG technology.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/blinko.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Create your account on first access via the web interface.",
+            "type": "info"
+        }
+    ]
+}

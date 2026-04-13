@@ -1,0 +1,40 @@
+{
+    "name": "InvoiceShelf",
+    "slug": "invoiceshelf",
+    "categories": [
+        23
+    ],
+    "date_created": "2026-07-13",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://docs.invoiceshelf.com/",
+    "website": "https://invoiceshelf.com/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/invoiceshelf.webp",
+    "config_path": "/opt/invoiceshelf/.env",
+    "description": "InvoiceShelf is an open-source web and mobile app that helps you track expenses, payments and create professional invoices and estimates.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/invoiceshelf.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 1024,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Complete the initial setup wizard via the web interface on first access.",
+            "type": "info"
+        }
+    ]
+}
