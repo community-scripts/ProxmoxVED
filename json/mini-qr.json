@@ -1,0 +1,24 @@
+{
+  "name": "Mini QR",
+  "slug": "mini-qr",
+  "description": "Create & scan cute qr codes easily 👾",
+  "type": "ct",
+  "privileged": false,
+  "documentation": "https://github.com/lyqht/mini-qr",
+  "website": "https://mini-qr-code-generator.vercel.app/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/mini-qr.webp",
+  "config_path": "/etc/caddy/Caddyfile",
+  "install_methods_json": [
+    {
+      "type": "default",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 6,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "notes_json": []
+}
