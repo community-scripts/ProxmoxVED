@@ -27,6 +27,7 @@ $STD apt install -y \
   libmagic1 \
   xvfb \
   libpango-1.0-0 \
+  libopengl0 \
   libpangocairo-1.0-0 \
   libgdk-pixbuf-2.0-0 \
   libffi-dev \
@@ -57,6 +58,7 @@ msg_info "Setting up Python Backend"
 cd /opt/transmute
 $STD uv venv /opt/transmute/.venv
 $STD uv pip install --python /opt/transmute/.venv/bin/python -r requirements.txt
+ln -sf /opt/transmute/.venv/bin/weasyprint /usr/bin/weasyprint
 msg_ok "Set up Python Backend"
 
 msg_info "Configuring Transmute"
@@ -67,6 +69,7 @@ HOST=0.0.0.0
 PORT=3313
 DATA_DIR=/opt/transmute/data
 WEB_DIR=/opt/transmute/frontend/dist
+QT_QPA_PLATFORM=offscreen
 EOF
 mkdir -p /opt/transmute/data
 msg_ok "Configured Transmute"
