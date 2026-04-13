@@ -47,9 +47,9 @@ function update_script() {
 
     msg_info "Updating Application"
     cd /opt/blinko
-    $STD npm install
-    $STD npx prisma migrate deploy
-    $STD npm run build
+    $STD bun install
+    $STD bunx prisma migrate deploy
+    $STD bun run build
     msg_ok "Updated Application"
 
     msg_info "Starting Service"

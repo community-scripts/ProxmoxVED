@@ -14,6 +14,14 @@ network_check
 update_os
 
 NODE_VERSION="22" setup_nodejs
+
+msg_info "Installing Bun"
+export BUN_INSTALL="/root/.bun"
+curl -fsSL https://bun.sh/install | $STD bash
+ln -sf /root/.bun/bin/bun /usr/local/bin/bun
+ln -sf /root/.bun/bin/bunx /usr/local/bin/bunx
+msg_ok "Installed Bun"
+
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="blinko" PG_DB_USER="blinko" setup_postgresql_db
 
@@ -28,10 +36,10 @@ NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:1111
 NEXTAUTH_URL=http://${LOCAL_IP}:1111
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 EOF
-$STD npm install
-$STD npx prisma generate
-$STD npx prisma migrate deploy
-$STD npm run build
+$STD bun install
+$STD bunx prisma generate
+$STD bunx prisma migrate deploy
+$STD bun run build
 msg_ok "Set up ${APP}"
 
 msg_info "Creating Service"
