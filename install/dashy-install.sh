@@ -13,7 +13,7 @@ setting_up_container
 network_check
 update_os
 
-NODE_VERSION="18" NODE_MODULE="yarn" setup_nodejs
+NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
 fetch_and_deploy_gh_release "dashy" "CrazyWolf13/dashy" "prebuild" "latest" "/opt/dashy" "dashy-*.tar.gz"
 
 msg_info "Installing Dashy"
