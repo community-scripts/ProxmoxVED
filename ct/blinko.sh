@@ -47,9 +47,12 @@ function update_script() {
 
     msg_info "Updating Application"
     cd /opt/blinko
-    $STD bun install
+    $STD bun install --unsafe-perm
+    $STD bun run build:web
+    $STD bun run build:seed
+    mkdir -p /opt/blinko/server/public
+    cp -r /opt/blinko/dist/public/. /opt/blinko/server/public/ 2>/dev/null || true
     $STD bunx prisma migrate deploy
-    $STD bun run build
     msg_ok "Updated Application"
 
     msg_info "Starting Service"

@@ -28,7 +28,7 @@ msg_info "Setting up Akaunting"
 cd /opt/akaunting
 $STD composer install --no-dev --optimize-autoloader
 $STD npm install
-$STD npm run dev
+$STD npm run production
 cat <<EOF >/opt/akaunting/.env
 APP_NAME=Akaunting
 APP_ENV=production

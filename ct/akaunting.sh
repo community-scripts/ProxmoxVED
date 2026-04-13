@@ -52,7 +52,7 @@ function update_script() {
     cd /opt/akaunting
     $STD composer install --no-dev --optimize-autoloader
     $STD npm install
-    $STD npm run dev
+    $STD npm run production
     $STD php artisan migrate --force
     $STD php artisan optimize:clear
     chown -R www-data:www-data /opt/akaunting

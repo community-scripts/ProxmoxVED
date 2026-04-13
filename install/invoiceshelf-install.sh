@@ -28,8 +28,6 @@ fetch_and_deploy_gh_release "invoiceshelf" "InvoiceShelf/InvoiceShelf" "tarball"
 msg_info "Setting up InvoiceShelf"
 cd /opt/invoiceshelf
 cp .env.example .env
-APP_KEY=$($STD php artisan key:generate --show)
-sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
 sed -i "s|^APP_ENV=.*|APP_ENV=production|" .env
 sed -i "s|^APP_DEBUG=.*|APP_DEBUG=false|" .env
 sed -i "s|^APP_URL=.*|APP_URL=http://${LOCAL_IP}|" .env
@@ -40,6 +38,7 @@ sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${PG_DB_NAME}|" .env
 sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${PG_DB_USER}|" .env
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
 $STD composer install --no-dev --optimize-autoloader
+$STD php artisan key:generate
 $STD yarn install
 $STD yarn build
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache

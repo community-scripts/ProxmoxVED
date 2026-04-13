@@ -28,8 +28,6 @@ fetch_and_deploy_gh_release "solidtime" "solidtime-io/solidtime" "tarball"
 msg_info "Setting up SolidTime"
 cd /opt/solidtime
 cp .env.example .env
-APP_KEY=$($STD php artisan key:generate --show)
-sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
 sed -i "s|^APP_ENV=.*|APP_ENV=production|" .env
 sed -i "s|^APP_DEBUG=.*|APP_DEBUG=false|" .env
 sed -i "s|^APP_URL=.*|APP_URL=http://${LOCAL_IP}|" .env
@@ -40,11 +38,13 @@ sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${PG_DB_NAME}|" .env
 sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${PG_DB_USER}|" .env
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
 $STD composer install --no-dev --optimize-autoloader
+$STD php artisan key:generate
 $STD npm install
 $STD npm run build
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chown -R www-data:www-data /opt/solidtime
 chmod -R 775 storage bootstrap/cache
+$STD php artisan storage:link
 $STD php artisan migrate --force
 msg_ok "Set up SolidTime"
 
