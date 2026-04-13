@@ -79,6 +79,10 @@ chown neko /tmp/.X11-unix /var/log/neko /tmp/runtime-neko
 chown -R neko:neko /home/neko
 
 cp /opt/neko/runtime/xorg.conf /etc/neko/xorg.conf
+# Remove the dummy_touchscreen InputDevice section (requires custom "neko" Xorg driver not available bare-metal)
+sed -i '/Section "InputDevice"/{N;/dummy_touchscreen/{:l;N;/EndSection/!bl;d}}' /etc/neko/xorg.conf
+sed -i '/dummy_touchscreen/d' /etc/neko/xorg.conf
+sed -i 's/InputDevice  "dummy_mouse"/InputDevice  "dummy_mouse" "CorePointer"/' /etc/neko/xorg.conf
 cp /opt/neko/runtime/default.pa /etc/pulse/default.pa
 
 cat <<EOF >/etc/neko/supervisord.conf
@@ -94,35 +98,35 @@ loglevel=debug
 files=/etc/neko/supervisord/*.conf
 
 [program:x-server]
-environment=HOME="/home/%(ENV_USER)s",USER="%(ENV_USER)s"
-command=/usr/bin/X %(ENV_DISPLAY)s -config /etc/neko/xorg.conf -noreset -nolisten tcp
+environment=HOME="/home/neko",USER="neko"
+command=/usr/bin/X :99.0 -config /etc/neko/xorg.conf -noreset -nolisten tcp
 autorestart=true
 priority=300
-user=%(ENV_USER)s
+user=neko
 stdout_logfile=/var/log/neko/xorg.log
 stdout_logfile_maxbytes=100MB
 stdout_logfile_backups=10
 redirect_stderr=true
 
 [program:pulseaudio]
-environment=HOME="/home/%(ENV_USER)s",USER="%(ENV_USER)s",DISPLAY="%(ENV_DISPLAY)s"
+environment=HOME="/home/neko",USER="neko",DISPLAY=":99.0"
 command=/usr/bin/pulseaudio --log-level=error --disallow-module-loading --disallow-exit --exit-idle-time=-1
 autorestart=true
 priority=300
-user=%(ENV_USER)s
+user=neko
 stdout_logfile=/var/log/neko/pulseaudio.log
 stdout_logfile_maxbytes=100MB
 stdout_logfile_backups=10
 redirect_stderr=true
 
 [program:neko]
-environment=HOME="/home/%(ENV_USER)s",USER="%(ENV_USER)s",DISPLAY="%(ENV_DISPLAY)s"
+environment=HOME="/home/neko",USER="neko",DISPLAY=":99.0"
 command=/usr/bin/neko serve --server.static "/var/www"
 stopsignal=INT
 stopwaitsecs=3
 autorestart=true
 priority=800
-user=%(ENV_USER)s
+user=neko
 stdout_logfile=/var/log/neko/neko.log
 stdout_logfile_maxbytes=100MB
 stdout_logfile_backups=10
@@ -142,23 +146,23 @@ EOF
 
 cat <<EOF >/etc/neko/supervisord/firefox.conf
 [program:firefox]
-environment=HOME="/home/%(ENV_USER)s",USER="%(ENV_USER)s",DISPLAY="%(ENV_DISPLAY)s"
-command=/usr/bin/firefox-esr --no-remote --display=%(ENV_DISPLAY)s -width 1280 -height 720
+environment=HOME="/home/neko",USER="neko",DISPLAY=":99.0"
+command=/usr/bin/firefox-esr --no-remote --display=:99.0 -width 1280 -height 720
 stopsignal=INT
 autorestart=true
 priority=800
-user=%(ENV_USER)s
+user=neko
 stdout_logfile=/var/log/neko/firefox.log
 stdout_logfile_maxbytes=100MB
 stdout_logfile_backups=10
 redirect_stderr=true
 
 [program:openbox]
-environment=HOME="/home/%(ENV_USER)s",USER="%(ENV_USER)s",DISPLAY="%(ENV_DISPLAY)s"
+environment=HOME="/home/neko",USER="neko",DISPLAY=":99.0"
 command=/usr/bin/openbox --config-file /etc/neko/openbox.xml
 autorestart=true
 priority=300
-user=%(ENV_USER)s
+user=neko
 stdout_logfile=/var/log/neko/openbox.log
 stdout_logfile_maxbytes=100MB
 stdout_logfile_backups=10
@@ -200,6 +204,17 @@ cat <<EOF >/etc/neko/neko.yaml
 server:
   bind: "0.0.0.0:8080"
   static: "/var/www"
+session:
+  cookie:
+    enabled: false
+webrtc:
+  icelite: true
+  nat1to1:
+    - "${LOCAL_IP}"
+  epr: "59000-59100"
+desktop:
+  input:
+    enabled: false
 member:
   provider: "multiuser"
   multiuser:

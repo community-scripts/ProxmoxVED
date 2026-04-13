@@ -28,12 +28,12 @@
         }
     ],
     "default_credentials": {
-        "username": "admin",
+        "username": null,
         "password": "admin"
     },
     "notes": [
         {
-            "text": "Regular user password is 'neko'. Change both passwords in /etc/neko/neko.yaml after first login.",
+            "text": "Login is password-only: 'admin' for admin, 'neko' for regular user. Change both in /etc/neko/neko.yaml.",
             "type": "warning"
         },
         {
