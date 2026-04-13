@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: pajjski
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE 
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/a1ex4/ownfoil
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -14,19 +14,17 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
-  git
+$STD apt install -y git
 msg_ok "Installed Dependencies"
 
 setup_uv
-
 fetch_and_deploy_gh_release "ownfoil" "a1ex4/ownfoil" "tarball" "latest" "/opt/ownfoil"
 
 msg_info "Setting up Ownfoil"
 cd /opt/ownfoil
 $STD uv venv .venv
 $STD source .venv/bin/activate
-$STD uv pip install -r requirements.txt 
+$STD uv pip install -r requirements.txt
 msg_ok "Setup ownfoil"
 
 msg_info "Creating Service"
