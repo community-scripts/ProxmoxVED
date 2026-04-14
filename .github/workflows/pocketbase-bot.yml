@@ -31,6 +31,8 @@ jobs:
           ACTOR: ${{ github.event.comment.user.login }}
           ACTOR_ASSOCIATION: ${{ github.event.comment.author_association }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
         run: |
           node << 'ENDSCRIPT'
           (async function () {
@@ -113,7 +115,6 @@ jobs:
             }
 
             // ── Permission check ───────────────────────────────────────────────
-            // author_association: OWNER = repo/org owner, MEMBER = org member (includes Contributors team)
             const association = process.env.ACTOR_ASSOCIATION;
             if (association !== 'OWNER' && association !== 'MEMBER') {
               await addReaction('-1');
@@ -128,18 +129,11 @@ jobs:
             await addReaction('eyes');
 
             // ── Parse command ──────────────────────────────────────────────────
-            // Formats (first line of comment):
-            //   /pocketbase <slug> field=value [field=value ...]    ← field updates (simple values)
-            //   /pocketbase <slug> set <field>                       ← value from code block below
-            //   /pocketbase <slug> note list|add|edit|remove ...     ← note management
-            //   /pocketbase <slug> method list                        ← list install methods
-            //   /pocketbase <slug> method <type> cpu=N ram=N hdd=N   ← edit install method resources
             const commentBody = process.env.COMMENT_BODY || '';
             const lines = commentBody.trim().split('\n');
             const firstLine = lines[0].trim();
             const withoutCmd = firstLine.replace(/^\/pocketbase\s+/, '').trim();
 
-            // Extract code block content from comment body (```...``` or ```lang\n...```)
             function extractCodeBlock(body) {
               const m = body.match(/```[^\n]*\n([\s\S]*?)```/);
               return m ? m[1].trim() : null;
@@ -147,6 +141,8 @@ jobs:
             const codeBlockValue = extractCodeBlock(commentBody);
 
             const HELP_TEXT =
+              '**Show current state:**\n' +
+              '```\n/pocketbase <slug> info\n```\n\n' +
               '**Field update (simple):** `/pocketbase <slug> field=value [field=value ...]`\n\n' +
               '**Field update (HTML/multiline) — value from code block:**\n' +
               '````\n' +
@@ -162,14 +158,18 @@ jobs:
               '/pocketbase <slug> note edit <type> "<old text>" "<new text>"\n' +
               '/pocketbase <slug> note remove <type> "<text>"\n' +
               '```\n\n' +
-              '**Install method resources:**\n' +
+              '**Install method management:**\n' +
               '```\n' +
               '/pocketbase <slug> method list\n' +
-              '/pocketbase <slug> method <type> hdd=10\n' +
               '/pocketbase <slug> method <type> cpu=4 ram=2048 hdd=20\n' +
-              '```\n\n' +
+              '/pocketbase <slug> method <type> config_path="/opt/app/.env"\n' +
+              '/pocketbase <slug> method <type> os=debian version=13\n' +
+              '/pocketbase <slug> method add <type> cpu=2 ram=2048 hdd=8 os=debian version=13\n' +
+              '/pocketbase <slug> method remove <type>\n' +
+              '```\n' +
+              'Method fields: `cpu` `ram` `hdd` `os` `version` `config_path` `script`\n\n' +
               '**Editable fields:** `name` `description` `logo` `documentation` `website` `github` ' +
-              '`config_path` `port` `default_user` `default_passwd` ' +
+              '`port` `default_user` `default_passwd` ' +
               '`updateable` `privileged` `has_arm` `is_dev` ' +
               '`is_disabled` `disable_message` `is_deleted` `deleted_message`';
 
@@ -189,8 +189,7 @@ jobs:
               process.exit(0);
             }
 
-            // ── Allowed fields and their types ─────────────────────────────────
-            // ── PocketBase: authenticate (shared by all paths) ─────────────────
+            // ── PocketBase: authenticate ───────────────────────────────────────
             const raw = process.env.POCKETBASE_URL.replace(/\/$/, '');
             const apiBase = /\/api$/i.test(raw) ? raw : raw + '/api';
             const coll = process.env.POCKETBASE_COLLECTION;
@@ -210,7 +209,7 @@ jobs:
             }
             const token = JSON.parse(authRes.body).token;
 
-            // ── PocketBase: find record by slug (shared by all paths) ──────────
+            // ── PocketBase: find record by slug ────────────────────────────────
             const recordsUrl = apiBase + '/collections/' + encodeURIComponent(coll) + '/records';
             const filter = "(slug='" + slug.replace(/'/g, "''") + "')";
             const listRes = await request(recordsUrl + '?filter=' + encodeURIComponent(filter) + '&perPage=1', {
@@ -228,57 +227,163 @@ jobs:
               process.exit(0);
             }
 
+            // ── Shared helpers ─────────────────────────────────────────────────
+
+            // Key=value parser: handles unquoted and "quoted" values
+            function parseKVPairs(str) {
+              const fields = {};
+              let pos = 0;
+              while (pos < str.length) {
+                while (pos < str.length && /\s/.test(str[pos])) pos++;
+                if (pos >= str.length) break;
+                let keyStart = pos;
+                while (pos < str.length && str[pos] !== '=' && !/\s/.test(str[pos])) pos++;
+                const key = str.substring(keyStart, pos).trim();
+                if (!key || pos >= str.length || str[pos] !== '=') { pos++; continue; }
+                pos++;
+                let value;
+                if (pos < str.length && str[pos] === '"') {
+                  pos++;
+                  let valStart = pos;
+                  while (pos < str.length && str[pos] !== '"') {
+                    if (str[pos] === '\\') pos++;
+                    pos++;
+                  }
+                  value = str.substring(valStart, pos).replace(/\\"/g, '"');
+                  if (pos < str.length) pos++;
+                } else {
+                  let valStart = pos;
+                  while (pos < str.length && !/\s/.test(str[pos])) pos++;
+                  value = str.substring(valStart, pos);
+                }
+                fields[key] = value;
+              }
+              return fields;
+            }
+
+            // Token parser for note commands: unquoted-word OR "quoted string"
+            function parseTokens(str) {
+              const tokens = [];
+              let pos = 0;
+              while (pos < str.length) {
+                while (pos < str.length && /\s/.test(str[pos])) pos++;
+                if (pos >= str.length) break;
+                if (str[pos] === '"') {
+                  pos++;
+                  let start = pos;
+                  while (pos < str.length && str[pos] !== '"') {
+                    if (str[pos] === '\\') pos++;
+                    pos++;
+                  }
+                  tokens.push(str.substring(start, pos).replace(/\\"/g, '"'));
+                  if (pos < str.length) pos++;
+                } else {
+                  let start = pos;
+                  while (pos < str.length && !/\s/.test(str[pos])) pos++;
+                  tokens.push(str.substring(start, pos));
+                }
+              }
+              return tokens;
+            }
+
+            // Read JSON blob from record (handles parsed objects and strings)
+            function readJsonBlob(val) {
+              if (Array.isArray(val)) return val;
+              try { return JSON.parse(val || '[]'); } catch (e) { return []; }
+            }
+
+            // Frontend cache revalidation (silent, best-effort)
+            async function revalidate(s) {
+              const frontendUrl = process.env.FRONTEND_URL;
+              const secret = process.env.REVALIDATE_SECRET;
+              if (!frontendUrl || !secret) return;
+              try {
+                await request(frontendUrl.replace(/\/$/, '') + '/api/revalidate', {
+                  method: 'POST',
+                  headers: { 'Authorization': 'Bearer ' + secret, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ tags: ['scripts', 'script-' + s] })
+                });
+              } catch (e) { console.warn('Revalidation skipped:', e.message); }
+            }
+
+            // Format notes list for display
+            function formatNotesList(arr) {
+              if (arr.length === 0) return '*None*';
+              return arr.map(function (n, i) {
+                return (i + 1) + '. **`' + (n.type || '?') + '`**: ' + (n.text || '');
+              }).join('\n');
+            }
+
+            // Format install methods list for display
+            function formatMethodsList(arr) {
+              if (arr.length === 0) return '*None*';
+              return arr.map(function (im, i) {
+                const r = im.resources || {};
+                const parts = [
+                  (r.os || '?') + ' ' + (r.version || '?'),
+                  (r.cpu != null ? r.cpu : '?') + 'C / ' + (r.ram != null ? r.ram : '?') + ' MB / ' + (r.hdd != null ? r.hdd : '?') + ' GB'
+                ];
+                if (im.config_path) parts.push('config: `' + im.config_path + '`');
+                if (im.script) parts.push('script: `' + im.script + '`');
+                return (i + 1) + '. **`' + (im.type || '?') + '`** — ' + parts.join(', ');
+              }).join('\n');
+            }
+
             // ── Route: dispatch to subcommand handler ──────────────────────────
+            const infoMatch   = rest.match(/^info$/i);
             const noteMatch   = rest.match(/^note\s+(list|add|edit|remove)\b/i);
             const methodMatch = rest.match(/^method\b/i);
             const setMatch    = rest.match(/^set\s+(\S+)/i);
 
-            if (noteMatch) {
-              // ── NOTE SUBCOMMAND (reads/writes notes on script record) ────
+            if (infoMatch) {
+              // ── INFO SUBCOMMAND ──────────────────────────────────────────────
+              const notesArr   = readJsonBlob(record.notes);
+              const methodsArr = readJsonBlob(record.install_methods);
+
+              const out = [];
+              out.push('ℹ️ **PocketBase Bot**: Info for **`' + slug + '`**\n');
+
+              out.push('**Basic info:**');
+              out.push('- **Name:** ' + (record.name || '—'));
+              out.push('- **Slug:** `' + slug + '`');
+              out.push('- **Port:** ' + (record.port != null ? '`' + record.port + '`' : '—'));
+              out.push('- **Updateable:** ' + (record.updateable ? 'Yes' : 'No'));
+              out.push('- **Privileged:** ' + (record.privileged ? 'Yes' : 'No'));
+              out.push('- **ARM:** ' + (record.has_arm ? 'Yes' : 'No'));
+              if (record.is_dev) out.push('- **Dev:** Yes');
+              if (record.is_disabled) out.push('- **Disabled:** Yes' + (record.disable_message ? ' — ' + record.disable_message : ''));
+              if (record.is_deleted) out.push('- **Deleted:** Yes' + (record.deleted_message ? ' — ' + record.deleted_message : ''));
+              out.push('');
+
+              out.push('**Links:**');
+              out.push('- **Website:** ' + (record.website || '—'));
+              out.push('- **Docs:** ' + (record.documentation || '—'));
+              out.push('- **Logo:** ' + (record.logo ? '[link](' + record.logo + ')' : '—'));
+              out.push('- **GitHub:** ' + (record.github || '—'));
+              out.push('');
+
+              out.push('**Credentials:**');
+              out.push('- **User:** ' + (record.default_user || '—'));
+              out.push('- **Password:** ' + (record.default_passwd ? '*(set)*' : '—'));
+              out.push('');
+
+              out.push('**Install methods** (' + methodsArr.length + '):');
+              out.push(formatMethodsList(methodsArr));
+              out.push('');
+
+              out.push('**Notes** (' + notesArr.length + '):');
+              out.push(formatNotesList(notesArr));
+
+              await addReaction('+1');
+              await postComment(out.join('\n'));
+
+            } else if (noteMatch) {
+              // ── NOTE SUBCOMMAND ──────────────────────────────────────────────
               const noteAction  = noteMatch[1].toLowerCase();
               const noteArgsStr = rest.substring(noteMatch[0].length).trim();
+              let notesArr = readJsonBlob(record.notes);
 
-              // Parse notes from the already-fetched script record
-              // PocketBase may return JSON fields as already-parsed objects
-              let notesArr = [];
-              try {
-                const rawNotes = record.notes;
-                notesArr = Array.isArray(rawNotes) ? rawNotes : JSON.parse(rawNotes || '[]');
-              } catch (e) { notesArr = []; }
-
-              // Token parser: unquoted-word OR "quoted string" (supports \" escapes)
-              function parseNoteTokens(str) {
-                const tokens = [];
-                let pos = 0;
-                while (pos < str.length) {
-                  while (pos < str.length && /\s/.test(str[pos])) pos++;
-                  if (pos >= str.length) break;
-                  if (str[pos] === '"') {
-                    pos++;
-                    let start = pos;
-                    while (pos < str.length && str[pos] !== '"') {
-                      if (str[pos] === '\\') pos++;
-                      pos++;
-                    }
-                    tokens.push(str.substring(start, pos).replace(/\\"/g, '"'));
-                    if (pos < str.length) pos++;
-                  } else {
-                    let start = pos;
-                    while (pos < str.length && !/\s/.test(str[pos])) pos++;
-                    tokens.push(str.substring(start, pos));
-                  }
-                }
-                return tokens;
-              }
-
-              function formatNotesList(arr) {
-                if (arr.length === 0) return '*None*';
-                return arr.map(function (n, i) {
-                  return (i + 1) + '. **`' + (n.type || '?') + '`**: ' + (n.text || '');
-                }).join('\n');
-              }
-
-              async function patchNotesJson(arr) {
+              async function patchNotes(arr) {
                 const res = await request(recordsUrl + '/' + record.id, {
                   method: 'PATCH',
                   headers: { 'Authorization': token, 'Content-Type': 'application/json' },
@@ -286,7 +391,7 @@ jobs:
                 });
                 if (!res.ok) {
                   await addReaction('-1');
-                  await postComment('❌ **PocketBase Bot**: Failed to update `notes`:\n```\n' + res.body + '\n```');
+                  await postComment('❌ **PocketBase Bot**: Failed to update notes:\n```\n' + res.body + '\n```');
                   process.exit(1);
                 }
               }
@@ -299,7 +404,7 @@ jobs:
                 );
 
               } else if (noteAction === 'add') {
-                const tokens = parseNoteTokens(noteArgsStr);
+                const tokens = parseTokens(noteArgsStr);
                 if (tokens.length < 2) {
                   await addReaction('-1');
                   await postComment(
@@ -311,7 +416,8 @@ jobs:
                 const noteType = tokens[0].toLowerCase();
                 const noteText = tokens.slice(1).join(' ');
                 notesArr.push({ type: noteType, text: noteText });
-                await patchNotesJson(notesArr);
+                await patchNotes(notesArr);
+                await revalidate(slug);
                 await addReaction('+1');
                 await postComment(
                   '✅ **PocketBase Bot**: Added note to **`' + slug + '`**\n\n' +
@@ -321,7 +427,7 @@ jobs:
                 );
 
               } else if (noteAction === 'edit') {
-                const tokens = parseNoteTokens(noteArgsStr);
+                const tokens = parseTokens(noteArgsStr);
                 if (tokens.length < 3) {
                   await addReaction('-1');
                   await postComment(
@@ -346,7 +452,8 @@ jobs:
                   process.exit(0);
                 }
                 notesArr[idx].text = newText;
-                await patchNotesJson(notesArr);
+                await patchNotes(notesArr);
+                await revalidate(slug);
                 await addReaction('+1');
                 await postComment(
                   '✅ **PocketBase Bot**: Edited note in **`' + slug + '`**\n\n' +
@@ -357,7 +464,7 @@ jobs:
                 );
 
               } else if (noteAction === 'remove') {
-                const tokens = parseNoteTokens(noteArgsStr);
+                const tokens = parseTokens(noteArgsStr);
                 if (tokens.length < 2) {
                   await addReaction('-1');
                   await postComment(
@@ -381,7 +488,8 @@ jobs:
                   );
                   process.exit(0);
                 }
-                await patchNotesJson(notesArr);
+                await patchNotes(notesArr);
+                await revalidate(slug);
                 await addReaction('+1');
                 await postComment(
                   '✅ **PocketBase Bot**: Removed note from **`' + slug + '`**\n\n' +
@@ -392,28 +500,28 @@ jobs:
               }
 
             } else if (methodMatch) {
-              // ── METHOD SUBCOMMAND (reads/writes install_methods on script record) ──
+              // ── METHOD SUBCOMMAND ────────────────────────────────────────────
               const methodArgs     = rest.replace(/^method\s*/i, '').trim();
               const methodListMode = !methodArgs || methodArgs.toLowerCase() === 'list';
+              let methodsArr = readJsonBlob(record.install_methods);
 
-              // Parse install_methods from the already-fetched script record
-              // PocketBase may return JSON fields as already-parsed objects
-              let methodsArr = [];
-              try {
-                const rawMethods = record.install_methods;
-                methodsArr = Array.isArray(rawMethods) ? rawMethods : JSON.parse(rawMethods || '[]');
-              } catch (e) { methodsArr = []; }
+              // Method field classification
+              const RESOURCE_KEYS = { cpu: 'number', ram: 'number', hdd: 'number', os: 'string', version: 'string' };
+              const METHOD_KEYS   = { config_path: 'string', script: 'string' };
+              const ALL_METHOD_KEYS = Object.assign({}, RESOURCE_KEYS, METHOD_KEYS);
 
-              function formatMethodsList(arr) {
-                if (arr.length === 0) return '*None*';
-                return arr.map(function (im, i) {
-                  const r = im.resources || {};
-                  return (i + 1) + '. **`' + (im.type || '?') + '`** — CPU: `' + (r.cpu != null ? r.cpu : '?') +
-                    '` · RAM: `' + (r.ram != null ? r.ram : '?') + ' MB` · HDD: `' + (r.hdd != null ? r.hdd : '?') + ' GB`';
-                }).join('\n');
+              function applyMethodChanges(method, parsed) {
+                if (!method.resources) method.resources = {};
+                for (const [k, v] of Object.entries(parsed)) {
+                  if (RESOURCE_KEYS[k]) {
+                    method.resources[k] = RESOURCE_KEYS[k] === 'number' ? parseInt(v, 10) : v;
+                  } else if (METHOD_KEYS[k]) {
+                    method[k] = v === '' ? null : v;
+                  }
+                }
               }
 
-              async function patchInstallMethodsJson(arr) {
+              async function patchMethods(arr) {
                 const res = await request(recordsUrl + '/' + record.id, {
                   method: 'PATCH',
                   headers: { 'Authorization': token, 'Content-Type': 'application/json' },
@@ -421,7 +529,7 @@ jobs:
                 });
                 if (!res.ok) {
                   await addReaction('-1');
-                  await postComment('❌ **PocketBase Bot**: Failed to update `install_methods`:\n```\n' + res.body + '\n```');
+                  await postComment('❌ **PocketBase Bot**: Failed to update install methods:\n```\n' + res.body + '\n```');
                   process.exit(1);
                 }
               }
@@ -432,75 +540,127 @@ jobs:
                   'ℹ️ **PocketBase Bot**: Install methods for **`' + slug + '`** (' + methodsArr.length + ' total)\n\n' +
                   formatMethodsList(methodsArr)
                 );
+
               } else {
-                // Parse: <type> cpu=N ram=N hdd=N
-                const methodParts = methodArgs.match(/^(\S+)\s+(.+)$/);
-                if (!methodParts) {
-                  await addReaction('-1');
+                // Check for add / remove sub-actions
+                const addMatch    = methodArgs.match(/^add\s+(\S+)(?:\s+(.+))?$/i);
+                const removeMatch = methodArgs.match(/^remove\s+(\S+)$/i);
+
+                if (addMatch) {
+                  // ── METHOD ADD ───────────────────────────────────────────────
+                  const newType = addMatch[1];
+                  if (methodsArr.some(function (im) { return (im.type || '').toLowerCase() === newType.toLowerCase(); })) {
+                    await addReaction('-1');
+                    await postComment('❌ **PocketBase Bot**: Install method `' + newType + '` already exists for `' + slug + '`.\n\nUse `/pocketbase ' + slug + ' method list` to see all methods.');
+                    process.exit(0);
+                  }
+                  const newMethod = { type: newType, resources: { cpu: 1, ram: 512, hdd: 4, os: 'debian', version: '13' } };
+                  if (addMatch[2]) {
+                    const parsed = parseKVPairs(addMatch[2]);
+                    const unknown = Object.keys(parsed).filter(function (k) { return !ALL_METHOD_KEYS[k]; });
+                    if (unknown.length > 0) {
+                      await addReaction('-1');
+                      await postComment('❌ **PocketBase Bot**: Unknown method field(s): `' + unknown.join('`, `') + '`\n\n**Allowed:** `' + Object.keys(ALL_METHOD_KEYS).join('`, `') + '`');
+                      process.exit(0);
+                    }
+                    applyMethodChanges(newMethod, parsed);
+                  }
+                  methodsArr.push(newMethod);
+                  await patchMethods(methodsArr);
+                  await revalidate(slug);
+                  await addReaction('+1');
                   await postComment(
-                    '❌ **PocketBase Bot**: Invalid `method` syntax.\n\n' +
-                    '**Usage:**\n```\n/pocketbase ' + slug + ' method list\n/pocketbase ' + slug + ' method <type> hdd=10\n/pocketbase ' + slug + ' method <type> cpu=4 ram=2048 hdd=20\n```'
+                    '✅ **PocketBase Bot**: Added install method **`' + newType + '`** to **`' + slug + '`**\n\n' +
+                    formatMethodsList([newMethod]) + '\n\n' +
+                    '*Executed by @' + actor + '*'
                   );
-                  process.exit(0);
-                }
-                const targetType   = methodParts[1].toLowerCase();
-                const resourcesStr = methodParts[2];
 
-                // Parse resource fields (only cpu/ram/hdd allowed)
-                const RESOURCE_FIELDS = { cpu: true, ram: true, hdd: true };
-                const resourceChanges = {};
-                const rePairs = /([a-z]+)=(\d+)/gi;
-                let m;
-                while ((m = rePairs.exec(resourcesStr)) !== null) {
-                  const key = m[1].toLowerCase();
-                  if (RESOURCE_FIELDS[key]) resourceChanges[key] = parseInt(m[2], 10);
-                }
-                if (Object.keys(resourceChanges).length === 0) {
-                  await addReaction('-1');
-                  await postComment('❌ **PocketBase Bot**: No valid resource fields found. Use `cpu=N`, `ram=N`, `hdd=N`.');
-                  process.exit(0);
-                }
-
-                // Find matching method by type name (case-insensitive)
-                const idx = methodsArr.findIndex(function (im) {
-                  return (im.type || '').toLowerCase() === targetType;
-                });
-                if (idx === -1) {
-                  await addReaction('-1');
-                  const availableTypes = methodsArr.map(function (im) { return im.type || '?'; });
+                } else if (removeMatch) {
+                  // ── METHOD REMOVE ────────────────────────────────────────────
+                  const removeType = removeMatch[1].toLowerCase();
+                  const removed = methodsArr.filter(function (im) { return (im.type || '').toLowerCase() === removeType; });
+                  if (removed.length === 0) {
+                    await addReaction('-1');
+                    const available = methodsArr.map(function (im) { return im.type || '?'; });
+                    await postComment('❌ **PocketBase Bot**: No install method `' + removeType + '` found.\n\n**Available:** `' + (available.length ? available.join('`, `') : '(none)') + '`');
+                    process.exit(0);
+                  }
+                  methodsArr = methodsArr.filter(function (im) { return (im.type || '').toLowerCase() !== removeType; });
+                  await patchMethods(methodsArr);
+                  await revalidate(slug);
+                  await addReaction('+1');
                   await postComment(
-                    '❌ **PocketBase Bot**: No install method with type `' + targetType + '` found for `' + slug + '`.\n\n' +
-                    '**Available types:** `' + (availableTypes.length ? availableTypes.join('`, `') : '(none)') + '`\n\n' +
-                    'Use `/pocketbase ' + slug + ' method list` to see all methods.'
+                    '✅ **PocketBase Bot**: Removed install method **`' + removed[0].type + '`** from **`' + slug + '`**\n\n' +
+                    '*Executed by @' + actor + '*'
                   );
-                  process.exit(0);
+
+                } else {
+                  // ── METHOD EDIT ──────────────────────────────────────────────
+                  const editParts = methodArgs.match(/^(\S+)\s+(.+)$/);
+                  if (!editParts) {
+                    await addReaction('-1');
+                    await postComment(
+                      '❌ **PocketBase Bot**: Invalid `method` syntax.\n\n' +
+                      '**Usage:**\n```\n/pocketbase ' + slug + ' method list\n' +
+                      '/pocketbase ' + slug + ' method <type> cpu=4 ram=2048 hdd=20\n' +
+                      '/pocketbase ' + slug + ' method <type> config_path="/opt/app/.env"\n' +
+                      '/pocketbase ' + slug + ' method add <type> cpu=2 ram=2048 hdd=8\n' +
+                      '/pocketbase ' + slug + ' method remove <type>\n```'
+                    );
+                    process.exit(0);
+                  }
+                  const targetType = editParts[1].toLowerCase();
+                  const parsed = parseKVPairs(editParts[2]);
+
+                  const unknown = Object.keys(parsed).filter(function (k) { return !ALL_METHOD_KEYS[k]; });
+                  if (unknown.length > 0) {
+                    await addReaction('-1');
+                    await postComment('❌ **PocketBase Bot**: Unknown method field(s): `' + unknown.join('`, `') + '`\n\n**Allowed:** `' + Object.keys(ALL_METHOD_KEYS).join('`, `') + '`');
+                    process.exit(0);
+                  }
+                  if (Object.keys(parsed).length === 0) {
+                    await addReaction('-1');
+                    await postComment('❌ **PocketBase Bot**: No valid `key=value` pairs found.\n\n**Allowed:** `' + Object.keys(ALL_METHOD_KEYS).join('`, `') + '`');
+                    process.exit(0);
+                  }
+
+                  const idx = methodsArr.findIndex(function (im) { return (im.type || '').toLowerCase() === targetType; });
+                  if (idx === -1) {
+                    await addReaction('-1');
+                    const available = methodsArr.map(function (im) { return im.type || '?'; });
+                    await postComment(
+                      '❌ **PocketBase Bot**: No install method `' + targetType + '` found for `' + slug + '`.\n\n' +
+                      '**Available:** `' + (available.length ? available.join('`, `') : '(none)') + '`\n\n' +
+                      'Use `/pocketbase ' + slug + ' method list` to see all methods.'
+                    );
+                    process.exit(0);
+                  }
+
+                  applyMethodChanges(methodsArr[idx], parsed);
+                  await patchMethods(methodsArr);
+                  await revalidate(slug);
+
+                  const changesLines = Object.entries(parsed)
+                    .map(function ([k, v]) {
+                      const unit = k === 'ram' ? ' MB' : k === 'hdd' ? ' GB' : '';
+                      return '- `' + k + '` → `' + v + unit + '`';
+                    }).join('\n');
+                  await addReaction('+1');
+                  await postComment(
+                    '✅ **PocketBase Bot**: Updated install method **`' + methodsArr[idx].type + '`** for **`' + slug + '`**\n\n' +
+                    '**Changes applied:**\n' + changesLines + '\n\n' +
+                    '*Executed by @' + actor + '*'
+                  );
                 }
-
-                if (!methodsArr[idx].resources) methodsArr[idx].resources = {};
-                if (resourceChanges.cpu != null) methodsArr[idx].resources.cpu = resourceChanges.cpu;
-                if (resourceChanges.ram != null) methodsArr[idx].resources.ram = resourceChanges.ram;
-                if (resourceChanges.hdd != null) methodsArr[idx].resources.hdd = resourceChanges.hdd;
-
-                await patchInstallMethodsJson(methodsArr);
-
-                const changesLines = Object.entries(resourceChanges)
-                  .map(function ([k, v]) { return '- `' + k + '` → `' + v + (k === 'ram' ? ' MB' : k === 'hdd' ? ' GB' : '') + '`'; })
-                  .join('\n');
-                await addReaction('+1');
-                await postComment(
-                  '✅ **PocketBase Bot**: Updated install method **`' + methodsArr[idx].type + '`** for **`' + slug + '`**\n\n' +
-                  '**Changes applied:**\n' + changesLines + '\n\n' +
-                  '*Executed by @' + actor + '*'
-                );
               }
 
             } else if (setMatch) {
-              // ── SET SUBCOMMAND (multi-line / HTML / special chars via code block) ──
+              // ── SET SUBCOMMAND (value from code block) ───────────────────────
               const fieldName = setMatch[1].toLowerCase();
               const SET_ALLOWED = {
                 name: 'string', description: 'string', logo: 'string',
                 documentation: 'string', website: 'string', github: 'string',
-                config_path: 'string', disable_message: 'string', deleted_message: 'string'
+                disable_message: 'string', deleted_message: 'string'
               };
               if (!SET_ALLOWED[fieldName]) {
                 await addReaction('-1');
@@ -531,6 +691,7 @@ jobs:
                 await postComment('❌ **PocketBase Bot**: PATCH failed for `' + slug + '`:\n```\n' + setPatchRes.body + '\n```');
                 process.exit(1);
               }
+              await revalidate(slug);
               const preview = codeBlockValue.length > 300 ? codeBlockValue.substring(0, 300) + '…' : codeBlockValue;
               await addReaction('+1');
               await postComment(
@@ -541,10 +702,6 @@ jobs:
 
             } else {
               // ── FIELD=VALUE PATH ─────────────────────────────────────────────
-              const fieldsStr = rest;
-
-              // Skipped: slug, script_created/updated, created (auto), categories/
-              // type (relation), github_data (auto-generated), execute_in (select), last_update_commit (auto)
               const ALLOWED_FIELDS = {
                 name:             'string',
                 description:      'string',
@@ -552,7 +709,6 @@ jobs:
                 documentation:    'string',
                 website:          'string',
                 github:           'string',
-                config_path:      'string',
                 port:             'number',
                 default_user:     'nullable_string',
                 default_passwd:   'nullable_string',
@@ -567,39 +723,7 @@ jobs:
                 version:          'string',
               };
 
-              // Field=value parser (handles quoted values and empty=null)
-              function parseFields(str) {
-                const fields = {};
-                let pos = 0;
-                while (pos < str.length) {
-                  while (pos < str.length && /\s/.test(str[pos])) pos++;
-                  if (pos >= str.length) break;
-                  let keyStart = pos;
-                  while (pos < str.length && str[pos] !== '=' && !/\s/.test(str[pos])) pos++;
-                  const key = str.substring(keyStart, pos).trim();
-                  if (!key || pos >= str.length || str[pos] !== '=') { pos++; continue; }
-                  pos++;
-                  let value;
-                  if (str[pos] === '"') {
-                    pos++;
-                    let valStart = pos;
-                    while (pos < str.length && str[pos] !== '"') {
-                      if (str[pos] === '\\') pos++;
-                      pos++;
-                    }
-                    value = str.substring(valStart, pos).replace(/\\"/g, '"');
-                    if (pos < str.length) pos++;
-                  } else {
-                    let valStart = pos;
-                    while (pos < str.length && !/\s/.test(str[pos])) pos++;
-                    value = str.substring(valStart, pos);
-                  }
-                  fields[key] = value;
-                }
-                return fields;
-              }
-
-              const parsedFields = parseFields(fieldsStr);
+              const parsedFields = parseKVPairs(rest);
 
               const unknownFields = Object.keys(parsedFields).filter(function (f) { return !ALLOWED_FIELDS[f]; });
               if (unknownFields.length > 0) {
@@ -654,6 +778,7 @@ jobs:
                 await postComment('❌ **PocketBase Bot**: PATCH failed for `' + slug + '`:\n```\n' + patchRes.body + '\n```');
                 process.exit(1);
               }
+              await revalidate(slug);
               await addReaction('+1');
               const changesLines = Object.entries(payload)
                 .map(function ([k, v]) { return '- `' + k + '` → `' + JSON.stringify(v) + '`'; })
