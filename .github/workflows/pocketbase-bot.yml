@@ -168,7 +168,7 @@ jobs:
               '/pocketbase <slug> method <type> hdd=10\n' +
               '/pocketbase <slug> method <type> cpu=4 ram=2048 hdd=20\n' +
               '```\n\n' +
-              '**Editable fields:** `name` `description` `logo` `documentation` `website` `project_url` `github` ' +
+              '**Editable fields:** `name` `description` `logo` `documentation` `website` `github` ' +
               '`config_path` `port` `default_user` `default_passwd` ' +
               '`updateable` `privileged` `has_arm` `is_dev` ' +
               '`is_disabled` `disable_message` `is_deleted` `deleted_message`';
@@ -234,15 +234,15 @@ jobs:
             const setMatch    = rest.match(/^set\s+(\S+)/i);
 
             if (noteMatch) {
-              // ── NOTE SUBCOMMAND (reads/writes notes_json on script record) ────
+              // ── NOTE SUBCOMMAND (reads/writes notes on script record) ────
               const noteAction  = noteMatch[1].toLowerCase();
               const noteArgsStr = rest.substring(noteMatch[0].length).trim();
 
-              // Parse notes_json from the already-fetched script record
+              // Parse notes from the already-fetched script record
               // PocketBase may return JSON fields as already-parsed objects
               let notesArr = [];
               try {
-                const rawNotes = record.notes_json;
+                const rawNotes = record.notes;
                 notesArr = Array.isArray(rawNotes) ? rawNotes : JSON.parse(rawNotes || '[]');
               } catch (e) { notesArr = []; }
 
@@ -282,11 +282,11 @@ jobs:
                 const res = await request(recordsUrl + '/' + record.id, {
                   method: 'PATCH',
                   headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ notes_json: JSON.stringify(arr) })
+                  body: JSON.stringify({ notes: arr })
                 });
                 if (!res.ok) {
                   await addReaction('-1');
-                  await postComment('❌ **PocketBase Bot**: Failed to update `notes_json`:\n```\n' + res.body + '\n```');
+                  await postComment('❌ **PocketBase Bot**: Failed to update `notes`:\n```\n' + res.body + '\n```');
                   process.exit(1);
                 }
               }
@@ -392,15 +392,15 @@ jobs:
               }
 
             } else if (methodMatch) {
-              // ── METHOD SUBCOMMAND (reads/writes install_methods_json on script record) ──
+              // ── METHOD SUBCOMMAND (reads/writes install_methods on script record) ──
               const methodArgs     = rest.replace(/^method\s*/i, '').trim();
               const methodListMode = !methodArgs || methodArgs.toLowerCase() === 'list';
 
-              // Parse install_methods_json from the already-fetched script record
+              // Parse install_methods from the already-fetched script record
               // PocketBase may return JSON fields as already-parsed objects
               let methodsArr = [];
               try {
-                const rawMethods = record.install_methods_json;
+                const rawMethods = record.install_methods;
                 methodsArr = Array.isArray(rawMethods) ? rawMethods : JSON.parse(rawMethods || '[]');
               } catch (e) { methodsArr = []; }
 
@@ -417,11 +417,11 @@ jobs:
                 const res = await request(recordsUrl + '/' + record.id, {
                   method: 'PATCH',
                   headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ install_methods_json: JSON.stringify(arr) })
+                  body: JSON.stringify({ install_methods: arr })
                 });
                 if (!res.ok) {
                   await addReaction('-1');
-                  await postComment('❌ **PocketBase Bot**: Failed to update `install_methods_json`:\n```\n' + res.body + '\n```');
+                  await postComment('❌ **PocketBase Bot**: Failed to update `install_methods`:\n```\n' + res.body + '\n```');
                   process.exit(1);
                 }
               }
@@ -499,7 +499,7 @@ jobs:
               const fieldName = setMatch[1].toLowerCase();
               const SET_ALLOWED = {
                 name: 'string', description: 'string', logo: 'string',
-                documentation: 'string', website: 'string', project_url: 'string', github: 'string',
+                documentation: 'string', website: 'string', github: 'string',
                 config_path: 'string', disable_message: 'string', deleted_message: 'string'
               };
               if (!SET_ALLOWED[fieldName]) {
@@ -544,15 +544,13 @@ jobs:
               const fieldsStr = rest;
 
               // Skipped: slug, script_created/updated, created (auto), categories/
-              // install_methods/notes/type (relations), github_data/install_methods_json/
-              // notes_json (auto-generated), execute_in (select relation), last_update_commit (auto)
+              // type (relation), github_data (auto-generated), execute_in (select), last_update_commit (auto)
               const ALLOWED_FIELDS = {
                 name:             'string',
                 description:      'string',
                 logo:             'string',
                 documentation:    'string',
                 website:          'string',
-                project_url:      'string',
                 github:           'string',
                 config_path:      'string',
                 port:             'number',
