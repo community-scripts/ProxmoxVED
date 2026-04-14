@@ -72,7 +72,8 @@ msg_ok "Installed Dependencies"
 
 msg_info "Preparing Authentication"
 touch /etc/squid/passwords
-chmod 600 /etc/squid/passwords
+chown proxy:proxy /etc/squid/passwords
+chmod 640 /etc/squid/passwords
 msg_ok "Initialized Password File"
 
 msg_info "Validating Squid Configuration"
