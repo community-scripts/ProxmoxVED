@@ -67,7 +67,7 @@ EOF
 msg_ok "Configured Squid"
 
 msg_info "Installing Dependencies"
-$STD apt install -y squid apache2-utils
+install_packages_with_retry squid apache2-utils
 msg_ok "Installed Dependencies"
 
 msg_info "Preparing Authentication"
