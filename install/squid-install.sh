@@ -70,20 +70,10 @@ request_header_access X-Forwarded-For deny all
 EOF
 msg_ok "Configured Squid"
 
-msg_info "Generating Proxy Credentials"
-SQUID_USER="proxy"
-SQUID_PASS="$(dd if=/dev/urandom bs=32 count=1 status=none | base64 | tr -dc 'A-Za-z0-9' | cut -c1-16)"
-$STD htpasswd -cb /etc/squid/passwords "$SQUID_USER" "$SQUID_PASS"
-cat <<EOF >/root/squid.creds
-Proxy endpoint: $(hostname -I | awk '{print $1}'):3128
-Proxy type: HTTP Forward Proxy
-Username: ${SQUID_USER}
-Password: ${SQUID_PASS}
-EOF
-chmod 600 /root/squid.creds
-msg_ok "Generated Proxy Credentials"
-msg_ok "Username: ${SQUID_USER}"
-msg_ok "Password: ${SQUID_PASS}"
+msg_info "Preparing Authentication"
+touch /etc/squid/passwords
+chmod 600 /etc/squid/passwords
+msg_ok "Initialized Password File"
 
 msg_info "Validating Squid Configuration"
 $STD squid -k parse
@@ -100,14 +90,13 @@ echo ""
 echo -e "${BOLD}  Squid Proxy${CL}"
 echo -e "    Type: ${GN}HTTP Forward Proxy${CL}"
 echo -e "    Port: ${GN}3128${CL}"
-echo -e "    Default user: ${GN}${SQUID_USER}${CL}"
-echo -e "    Initial password: ${GN}${SQUID_PASS}${CL}"
 echo ""
-echo -e "${BOLD}  Manage users:${CL}"
-echo -e "    Reset password:  ${GN}htpasswd /etc/squid/passwords proxy${CL}"
-echo -e "    Add user:        ${GN}htpasswd /etc/squid/passwords <username>${CL}"
-echo -e "    Remove user:     ${GN}htpasswd -D /etc/squid/passwords <username>${CL}"
+echo -e "${BOLD}  Configure Authentication:${CL}"
+echo -e "    Add user: ${GN}htpasswd /etc/squid/passwords <username>${CL}"
 EOF
+
+msg_info "Configure Proxy Authentication"
+echo -e "${TAB}${BGN}Run inside the container: htpasswd /etc/squid/passwords <username>${CL}"
 
 customize
 cleanup_lxc

@@ -28,8 +28,8 @@ function update_script() {
     exit
   fi
   msg_info "Updating ${APP}"
-  $STD apt-get update
-  $STD apt-get -y upgrade
+  $STD apt update
+  $STD apt upgrade -y
   msg_info "Validating Squid Configuration"
   $STD squid -k parse
   msg_ok "Validated Squid Configuration"
@@ -45,22 +45,9 @@ start
 build_container
 description
 
-SQUID_USER=""
-SQUID_PASS=""
-if pct exec "$CTID" -- test -f /root/squid.creds 2>/dev/null; then
-  SQUID_USER=$(pct exec "$CTID" -- awk -F': ' '/^Username:/ {print $2}' /root/squid.creds 2>/dev/null | tr -d '\r')
-  SQUID_PASS=$(pct exec "$CTID" -- awk -F': ' '/^Password:/ {print $2}' /root/squid.creds 2>/dev/null | tr -d '\r')
-fi
-
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Proxy endpoint:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}${IP}:3128${CL}"
-if [[ -n "$SQUID_USER" && -n "$SQUID_PASS" ]]; then
-  echo -e "${INFO}${YW} Credentials:${CL}"
-  echo -e "${TAB}${BGN}Username: ${SQUID_USER}${CL}"
-  echo -e "${TAB}${BGN}Password: ${SQUID_PASS}${CL}"
-else
-  echo -e "${INFO}${YW} Credentials are stored in the container at /root/squid.creds.${CL}"
-fi
-echo -e "${INFO}${YW} These details are also available in the container MOTD.${CL}"
+echo -e "${INFO}${YW} Add a proxy user inside the container with:${CL}"
+echo -e "${TAB}${BGN}htpasswd /etc/squid/passwords <username>${CL}"

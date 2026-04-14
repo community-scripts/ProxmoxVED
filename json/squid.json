@@ -28,17 +28,13 @@
     }
   ],
   "default_credentials": {
-    "username": "proxy",
+    "username": null,
     "password": null
   },
   "notes": [
     {
       "type": "info",
-      "text": "Initial generated credentials are shown in the completion output, written to `/root/squid.creds`, and displayed in the container MOTD."
-    },
-    {
-      "type": "info",
-      "text": "Manage proxy users with `htpasswd /etc/squid/passwords <username>` and remove users with `htpasswd -D /etc/squid/passwords <username>`."
+      "text": "Create a proxy user after installation with `htpasswd /etc/squid/passwords <username>`."
     }
   ]
 }
