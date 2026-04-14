@@ -55,7 +55,7 @@ $STD php artisan key:generate --force
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chown -R www-data:www-data /opt/akaunting
 chmod -R 775 storage bootstrap/cache
-$STD php artisan migrate --force --seed
+$STD php artisan migrate --force
 msg_ok "Set up Akaunting"
 
 msg_info "Configuring Caddy"
