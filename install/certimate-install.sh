@@ -16,7 +16,7 @@ update_os
 fetch_and_deploy_gh_release "certimate" "certimate-go/certimate" "prebuild" "latest" "/opt/certimate" "certimate_*_linux_amd64.zip"
 
 msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/certimate.service
+cat <<'EOF' >/etc/systemd/system/certimate.service
 [Unit]
 Description=Certimate SSL Certificate Manager
 After=network.target
@@ -25,7 +25,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/certimate
-ExecStart=/opt/certimate/certimate serve
+ExecStart=/opt/certimate/certimate serve --http "0.0.0.0:8090"
 Restart=on-failure
 RestartSec=5
 
