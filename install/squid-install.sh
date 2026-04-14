@@ -13,12 +13,8 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt install -y squid apache2-utils
-msg_ok "Installed Dependencies"
-
 msg_info "Configuring Squid"
-rm -f /etc/squid/conf.d/*
+mkdir -p /etc/squid
 cat <<EOF >/etc/squid/squid.conf
 acl localnet src 0.0.0.1-0.255.255.255
 acl localnet src 10.0.0.0/8
@@ -70,6 +66,10 @@ request_header_access X-Forwarded-For deny all
 EOF
 msg_ok "Configured Squid"
 
+msg_info "Installing Dependencies"
+$STD apt install -y squid apache2-utils
+msg_ok "Installed Dependencies"
+
 msg_info "Preparing Authentication"
 touch /etc/squid/passwords
 chmod 600 /etc/squid/passwords
@@ -80,8 +80,7 @@ $STD squid -k parse
 msg_ok "Validated Squid Configuration"
 
 msg_info "Starting Service"
-systemctl enable -q squid
-systemctl restart squid
+systemctl enable -q --now squid
 msg_ok "Started Service"
 
 motd_ssh
