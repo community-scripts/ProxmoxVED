@@ -14,7 +14,7 @@ Simple key=value pairs. Multiple in one line.
 ```
 
 **Boolean fields** (`true`/`false`): `updateable` `privileged` `has_arm` `is_dev` `is_disabled` `is_deleted`
-**Text fields**: `name` `description` `logo` `documentation` `website` `github` `config_path` `disable_message` `deleted_message`
+**Text fields**: `name` `description` `logo` `documentation` `website` `github` `disable_message` `deleted_message`
 **Number**: `port`
 **Nullable**: `default_user` `default_passwd` _(empty value = null: `default_passwd=`)_
 
@@ -40,7 +40,7 @@ Your content here — HTML tags, links, quotes, all fine
 ```
 ````
 
-**Allowed fields:** `name` `description` `logo` `documentation` `website` `github` `config_path` `disable_message` `deleted_message`
+**Allowed fields:** `name` `description` `logo` `documentation` `website` `github` `disable_message` `deleted_message`
 
 ---
 
