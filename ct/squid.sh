@@ -34,7 +34,7 @@ function update_script() {
   $STD squid -k parse
   msg_ok "Validated Squid Configuration"
   msg_info "Restarting Squid"
-  systemctl restart squid
+  safe_service_restart "squid"
   msg_ok "Restarted Squid"
   msg_ok "Updated ${APP}"
   msg_ok "Updated successfully!"
