@@ -50,7 +50,7 @@ CACHE_DRIVER=file
 SESSION_DRIVER=file
 QUEUE_CONNECTION=sync
 EOF
-$STD php artisan key:generate
+$STD php artisan key:generate --force
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chown -R www-data:www-data /opt/akaunting
 chmod -R 775 storage bootstrap/cache
