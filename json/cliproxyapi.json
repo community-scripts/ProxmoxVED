@@ -12,12 +12,12 @@
   "documentation": "https://help.router-for.me/",
   "website": "https://github.com/router-for-me/CLIProxyAPI",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openai.webp",
-  "config_path": "/opt/cliproxyapi/config.yaml",
   "description": "CLIProxyAPI is a proxy server that provides OpenAI-compatible API endpoints for multiple AI CLI tools including Claude Code, Gemini CLI, OpenAI Codex, and more. It enables leveraging free-tier AI subscriptions through a unified API with features like credential routing, quota management, and request retrying.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/cliproxyapi.sh",
+      "config_path": "/opt/cliproxyapi/config.yaml",
       "resources": {
         "cpu": 1,
         "ram": 512,

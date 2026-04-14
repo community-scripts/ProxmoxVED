@@ -1,48 +1,48 @@
 {
-    "name": "ERPNext",
-    "slug": "erpnext",
-    "categories": [
-        25
-    ],
-    "date_created": "2026-03-25",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 80,
-    "documentation": "https://docs.erpnext.com/",
-    "website": "https://erpnext.com/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/frappe-erpnext.webp",
-    "config_path": "/opt/frappe-bench/.env",
-    "description": "ERPNext is a powerful, intuitive and open-source ERP system for managing accounting, inventory, manufacturing, CRM, projects, HR and more.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/erpnext.sh",
-            "resources": {
-                "cpu": 4,
-                "ram": 4096,
-                "hdd": 20,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": "Administrator",
-        "password": null
+  "name": "ERPNext",
+  "slug": "erpnext",
+  "categories": [
+    25
+  ],
+  "date_created": "2026-03-25",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://docs.erpnext.com/",
+  "website": "https://erpnext.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/frappe-erpnext.webp",
+  "description": "ERPNext is a powerful, intuitive and open-source ERP system for managing accounting, inventory, manufacturing, CRM, projects, HR and more.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/erpnext.sh",
+      "config_path": "/opt/frappe-bench/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "Administrator",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Admin password is stored in `/opt/frappe-bench/.env`.",
+      "type": "info"
     },
-    "notes": [
-        {
-            "text": "Admin password is stored in `/opt/frappe-bench/.env`.",
-            "type": "info"
-        },
-        {
-            "text": "The default site name is `site1.local`. Configure your domain in Frappe settings.",
-            "type": "info"
-        },
-        {
-            "text": "Run `bench update` from `/opt/frappe-bench` to update ERPNext manually.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "The default site name is `site1.local`. Configure your domain in Frappe settings.",
+      "type": "info"
+    },
+    {
+      "text": "Run `bench update` from `/opt/frappe-bench` to update ERPNext manually.",
+      "type": "info"
+    }
+  ]
 }

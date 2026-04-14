@@ -12,12 +12,12 @@
   "documentation": "https://wiki.almalinux.org/",
   "website": "https://almalinux.org/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/almalinux.webp",
-  "config_path": "",
   "description": "AlmaLinux 10 (Heliotrope Lion) is a community-driven, RHEL-compatible enterprise Linux distribution. It provides a stable, production-ready platform with long-term support, making it ideal for servers, workloads, and cloud deployments.",
   "install_methods": [
     {
       "type": "default",
       "script": "vm/almalinux-10-vm.sh",
+      "config_path": "",
       "resources": {
         "cpu": 2,
         "ram": 2048,

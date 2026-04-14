@@ -12,12 +12,12 @@
   "documentation": "https:/docs.invidious.io",
   "website": "https://invidious.io",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/invidious.webp",
-  "config_path": "/opt/invidious/config",
   "description": "A self-hosted alternative frontend for YouTube",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/invidious.sh",
+      "config_path": "/opt/invidious/config",
       "resources": {
         "cpu": 2,
         "ram": 2048,

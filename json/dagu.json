@@ -1,35 +1,35 @@
 {
-    "name": "Dagu",
-    "slug": "dagu",
-    "categories": [
-        19
-    ],
-    "date_created": "2026-07-13",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 8080,
-    "documentation": "https://docs.dagu.sh/",
-    "website": "https://dagu.sh/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/dagu.webp",
-    "config_path": "",
-    "description": "Dagu is a powerful, developer-friendly workflow engine that allows you to define DAGs (Directed Acyclic Graphs) in a simple YAML format for scheduling and running complex job dependencies.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/dagu.sh",
-            "resources": {
-                "cpu": 1,
-                "ram": 512,
-                "hdd": 4,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
-    },
-    "notes": []
+  "name": "Dagu",
+  "slug": "dagu",
+  "categories": [
+    19
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://docs.dagu.sh/",
+  "website": "https://dagu.sh/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/dagu.webp",
+  "description": "Dagu is a powerful, developer-friendly workflow engine that allows you to define DAGs (Directed Acyclic Graphs) in a simple YAML format for scheduling and running complex job dependencies.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/dagu.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
 }

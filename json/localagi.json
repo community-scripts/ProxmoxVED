@@ -12,12 +12,12 @@
   "documentation": "https://github.com/mudler/LocalAGI#installation-options",
   "website": "https://github.com/mudler/LocalAGI",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/localagi.webp",
-  "config_path": "/opt/localagi/.env",
   "description": "LocalAGI is a self-hostable AI agent platform with a web UI, OpenAI-compatible APIs, and local-first model orchestration.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/localagi.sh",
+      "config_path": "/opt/localagi/.env",
       "resources": {
         "cpu": 2,
         "ram": 4096,

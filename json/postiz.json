@@ -1,44 +1,44 @@
 {
-    "name": "Postiz",
-    "slug": "postiz",
-    "categories": [
-        19
-    ],
-    "date_created": "2026-02-22",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 80,
-    "documentation": "https://docs.postiz.com/",
-    "website": "https://postiz.com/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/postiz.webp",
-    "config_path": "/opt/postiz/.env",
-    "description": "Postiz is an AI-powered social media scheduling tool for managing posts, building audiences, and growing your business across platforms like X, LinkedIn, Instagram, TikTok, Reddit, and more.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/postiz.sh",
-            "resources": {
-                "cpu": 4,
-                "ram": 8192,
-                "hdd": 20,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
+  "name": "Postiz",
+  "slug": "postiz",
+  "categories": [
+    19
+  ],
+  "date_created": "2026-02-22",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://docs.postiz.com/",
+  "website": "https://postiz.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/postiz.webp",
+  "description": "Postiz is an AI-powered social media scheduling tool for managing posts, building audiences, and growing your business across platforms like X, LinkedIn, Instagram, TikTok, Reddit, and more.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/postiz.sh",
+      "config_path": "/opt/postiz/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The build process requires significant RAM (4GB+). Do not reduce container RAM below 4GB.",
+      "type": "warning"
     },
-    "notes": [
-        {
-            "text": "The build process requires significant RAM (4GB+). Do not reduce container RAM below 4GB.",
-            "type": "warning"
-        },
-        {
-            "text": "NEXT_PUBLIC_* variables are baked at build time. If you change the IP/URL or add social provider keys, rebuild with: postiz-rebuild",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "NEXT_PUBLIC_* variables are baked at build time. If you change the IP/URL or add social provider keys, rebuild with: postiz-rebuild",
+      "type": "info"
+    }
+  ]
 }

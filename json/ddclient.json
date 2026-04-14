@@ -1,4 +1,3 @@
-
 {
   "name": "ddclient",
   "slug": "ddclient",
@@ -13,12 +12,12 @@
   "documentation": "https://ddclient.net/",
   "website": "https://ddclient.net/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ddclient.webp",
-  "config_path": "/etc/ddclient.conf",
   "description": "ddclient is a Perl client used to update dynamic DNS entries for accounts on a wide range of dynamic DNS service providers. It supports multiple protocols and providers, allowing automatic IP address updates for your domain names.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/ddclient.sh",
+      "config_path": "/etc/ddclient.conf",
       "resources": {
         "cpu": 1,
         "ram": 512,
@@ -40,6 +39,6 @@
     {
       "type": "info",
       "text": "Sample configuration is created for Namecheap but can be modified for other providers"
-    },
+    }
   ]
 }

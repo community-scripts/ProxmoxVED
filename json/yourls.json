@@ -1,44 +1,44 @@
 {
-    "name": "YOURLS",
-    "slug": "yourls",
-    "categories": [
-        0
-    ],
-    "date_created": "2026-03-24",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 80,
-    "documentation": "https://yourls.org/",
-    "website": "https://yourls.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/yourls.webp",
-    "config_path": "/opt/yourls/user/config.php",
-    "description": "YOURLS (Your Own URL Shortener) is a set of PHP scripts that allows you to run your own URL shortener with full control over data, detailed stats, analytics, and plugin support.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/yourls.sh",
-            "resources": {
-                "cpu": 1,
-                "ram": 512,
-                "hdd": 4,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": "admin",
-        "password": "Generated during install"
+  "name": "YOURLS",
+  "slug": "yourls",
+  "categories": [
+    0
+  ],
+  "date_created": "2026-03-24",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://yourls.org/",
+  "website": "https://yourls.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/yourls.webp",
+  "description": "YOURLS (Your Own URL Shortener) is a set of PHP scripts that allows you to run your own URL shortener with full control over data, detailed stats, analytics, and plugin support.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/yourls.sh",
+      "config_path": "/opt/yourls/user/config.php",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": "Generated during install"
+  },
+  "notes": [
+    {
+      "text": "After installation, visit /admin/install.php once to initialize the database and complete setup.",
+      "type": "info"
     },
-    "notes": [
-        {
-            "text": "After installation, visit /admin/install.php once to initialize the database and complete setup.",
-            "type": "info"
-        },
-        {
-            "text": "The admin password is shown at the end of the installation log.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "The admin password is shown at the end of the installation log.",
+      "type": "info"
+    }
+  ]
 }

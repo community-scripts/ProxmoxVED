@@ -1,35 +1,35 @@
 {
-    "name": "RSS-Bridge",
-    "slug": "rss-bridge",
-    "categories": [
-        0
-    ],
-    "date_created": "2026-07-13",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 80,
-    "documentation": "https://rss-bridge.github.io/rss-bridge/",
-    "website": "https://rss-bridge.org/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rss-bridge.webp",
-    "config_path": "/opt/rss-bridge/config.ini.php",
-    "description": "RSS-Bridge is a PHP web application that generates web feeds for websites that don't have one, supporting over 400 bridges for various platforms and services.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/rss-bridge.sh",
-            "resources": {
-                "cpu": 1,
-                "ram": 512,
-                "hdd": 2,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
-    },
-    "notes": []
+  "name": "RSS-Bridge",
+  "slug": "rss-bridge",
+  "categories": [
+    0
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://rss-bridge.github.io/rss-bridge/",
+  "website": "https://rss-bridge.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rss-bridge.webp",
+  "description": "RSS-Bridge is a PHP web application that generates web feeds for websites that don't have one, supporting over 400 bridges for various platforms and services.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/rss-bridge.sh",
+      "config_path": "/opt/rss-bridge/config.ini.php",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": []
 }

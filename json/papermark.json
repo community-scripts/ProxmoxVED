@@ -1,40 +1,40 @@
 {
-    "name": "Papermark",
-    "slug": "papermark",
-    "categories": [
-        12
-    ],
-    "date_created": "2026-07-13",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 3000,
-    "documentation": "https://www.papermark.com/docs",
-    "website": "https://www.papermark.com/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/papermark.webp",
-    "config_path": "/opt/papermark/.env",
-    "description": "Papermark is an open-source document sharing alternative to DocSend with built-in analytics, custom domains, and secure shareable links.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/papermark.sh",
-            "resources": {
-                "cpu": 2,
-                "ram": 2048,
-                "hdd": 8,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
-    },
-    "notes": [
-        {
-            "text": "Requires external blob storage (S3 or compatible) and email service (Resend) configured in .env for full functionality.",
-            "type": "warning"
-        }
-    ]
+  "name": "Papermark",
+  "slug": "papermark",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://www.papermark.com/docs",
+  "website": "https://www.papermark.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/papermark.webp",
+  "description": "Papermark is an open-source document sharing alternative to DocSend with built-in analytics, custom domains, and secure shareable links.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/papermark.sh",
+      "config_path": "/opt/papermark/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Requires external blob storage (S3 or compatible) and email service (Resend) configured in .env for full functionality.",
+      "type": "warning"
+    }
+  ]
 }

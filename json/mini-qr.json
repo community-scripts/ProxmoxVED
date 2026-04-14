@@ -12,12 +12,12 @@
   "documentation": "https://github.com/lyqht/mini-qr",
   "website": "https://mini-qr-code-generator.vercel.app/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/mini-qr.webp",
-  "config_path": "/etc/caddy/Caddyfile",
   "description": "Create & scan cute qr codes easily.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/mini-qr.sh",
+      "config_path": "/etc/caddy/Caddyfile",
       "resources": {
         "cpu": 2,
         "ram": 2048,

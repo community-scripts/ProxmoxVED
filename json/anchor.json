@@ -1,44 +1,44 @@
 {
-    "name": "Anchor",
-    "slug": "anchor",
-    "categories": [
-        12
-    ],
-    "date_created": "2026-04-02",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 3000,
-    "documentation": "https://github.com/ZhFahim/anchor#readme",
-    "website": "https://github.com/ZhFahim/anchor",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/anchor.webp",
-    "config_path": "/opt/anchor/.env",
-    "description": "Anchor is an offline-first, self-hosted note-taking application with rich text editing, real-time sync across devices, note sharing, tags, attachments, OIDC authentication, and admin panel.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/anchor.sh",
-            "resources": {
-                "cpu": 2,
-                "ram": 2048,
-                "hdd": 10,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
+  "name": "Anchor",
+  "slug": "anchor",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-04-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://github.com/ZhFahim/anchor#readme",
+  "website": "https://github.com/ZhFahim/anchor",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/anchor.webp",
+  "description": "Anchor is an offline-first, self-hosted note-taking application with rich text editing, real-time sync across devices, note sharing, tags, attachments, OIDC authentication, and admin panel.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/anchor.sh",
+      "config_path": "/opt/anchor/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The first user to register becomes the admin.",
+      "type": "info"
     },
-    "notes": [
-        {
-            "text": "The first user to register becomes the admin.",
-            "type": "info"
-        },
-        {
-            "text": "OIDC can be configured via environment variables in `/opt/anchor/.env` or the admin panel.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "OIDC can be configured via environment variables in `/opt/anchor/.env` or the admin panel.",
+      "type": "info"
+    }
+  ]
 }

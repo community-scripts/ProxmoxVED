@@ -1,44 +1,44 @@
 {
-    "name": "Neko",
-    "slug": "neko",
-    "categories": [
-        13
-    ],
-    "date_created": "2026-04-13",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 8080,
-    "documentation": "https://neko.m1k1o.net/docs/v3/configuration",
-    "website": "https://neko.m1k1o.net/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/neko.webp",
-    "config_path": "/etc/neko/neko.yaml",
-    "description": "A self-hosted virtual browser that uses WebRTC to stream a desktop environment to multiple users for watch parties, collaborative browsing, and interactive presentations.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/neko.sh",
-            "resources": {
-                "cpu": 4,
-                "ram": 4096,
-                "hdd": 12,
-                "os": "Debian",
-                "version": "12"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": "admin"
+  "name": "Neko",
+  "slug": "neko",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-04-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://neko.m1k1o.net/docs/v3/configuration",
+  "website": "https://neko.m1k1o.net/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/neko.webp",
+  "description": "A self-hosted virtual browser that uses WebRTC to stream a desktop environment to multiple users for watch parties, collaborative browsing, and interactive presentations.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/neko.sh",
+      "config_path": "/etc/neko/neko.yaml",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 12,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": "admin"
+  },
+  "notes": [
+    {
+      "text": "Login is password-only: 'admin' for admin, 'neko' for regular user. Change both in /etc/neko/neko.yaml.",
+      "type": "warning"
     },
-    "notes": [
-        {
-            "text": "Login is password-only: 'admin' for admin, 'neko' for regular user. Change both in /etc/neko/neko.yaml.",
-            "type": "warning"
-        },
-        {
-            "text": "Firefox ESR is installed as the default browser. The virtual display runs at 1280x720.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "Firefox ESR is installed as the default browser. The virtual display runs at 1280x720.",
+      "type": "info"
+    }
+  ]
 }

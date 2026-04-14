@@ -781,12 +781,12 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
   "documentation": "https://docs.appname.com/",
   "website": "https://appname.com/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/appname.webp",
-  "config_path": "/opt/appname/.env",
   "description": "Short description of the application and its purpose.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/appname.sh",
+      "config_path": "/opt/appname/.env",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -819,7 +819,6 @@ Every application requires a JSON metadata file in `json/<appname>.json`.
 | `documentation`       | string  | Link to official docs                              |
 | `website`             | string  | Link to official website                           |
 | `logo`                | string  | URL to application logo (preferably selfhst icons) |
-| `config_path`         | string  | Path to main config file (or empty string)         |
 | `description`         | string  | Brief description of the application               |
 | `install_methods`     | array   | Installation configurations                        |
 | `default_credentials` | object  | Default username/password (or null)                |

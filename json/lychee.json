@@ -1,44 +1,44 @@
 {
-    "name": "Lychee",
-    "slug": "lychee",
-    "categories": [
-        13
-    ],
-    "date_created": "2026-04-04",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 80,
-    "documentation": "https://lycheeorg.dev/docs",
-    "website": "https://lycheeorg.github.io/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/lychee.webp",
-    "config_path": "/opt/lychee/.env",
-    "description": "Lychee is a free, self-hosted photo management tool that allows you to upload, manage, and share photos with a beautiful web interface.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/lychee.sh",
-            "resources": {
-                "cpu": 2,
-                "ram": 2048,
-                "hdd": 8,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
+  "name": "Lychee",
+  "slug": "lychee",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-04-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://lycheeorg.dev/docs",
+  "website": "https://lycheeorg.github.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/lychee.webp",
+  "description": "Lychee is a free, self-hosted photo management tool that allows you to upload, manage, and share photos with a beautiful web interface.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/lychee.sh",
+      "config_path": "/opt/lychee/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Create your admin account on first login via the web interface.",
+      "type": "info"
     },
-    "notes": [
-        {
-            "text": "Create your admin account on first login via the web interface.",
-            "type": "info"
-        },
-        {
-            "text": "Photo storage uses disk space under /opt/lychee/storage. Plan disk size accordingly.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "Photo storage uses disk space under /opt/lychee/storage. Plan disk size accordingly.",
+      "type": "info"
+    }
+  ]
 }

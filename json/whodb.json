@@ -1,40 +1,40 @@
 {
-    "name": "WhoDB",
-    "slug": "whodb",
-    "categories": [
-        8
-    ],
-    "date_created": "2026-04-13",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 8080,
-    "documentation": "https://docs.whodb.com/",
-    "website": "https://whodb.com/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/whodb.webp",
-    "config_path": "",
-    "description": "WhoDB is a lightweight next-gen database management tool built with Go and React, supporting PostgreSQL, MySQL, SQLite, MongoDB, Redis, MariaDB, ElasticSearch, and ClickHouse with AI-powered natural language queries.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/whodb.sh",
-            "resources": {
-                "cpu": 1,
-                "ram": 512,
-                "hdd": 2,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
-    },
-    "notes": [
-        {
-            "text": "WhoDB connects to external databases — enter your database credentials on the login page.",
-            "type": "info"
-        }
-    ]
+  "name": "WhoDB",
+  "slug": "whodb",
+  "categories": [
+    8
+  ],
+  "date_created": "2026-04-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://docs.whodb.com/",
+  "website": "https://whodb.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/whodb.webp",
+  "description": "WhoDB is a lightweight next-gen database management tool built with Go and React, supporting PostgreSQL, MySQL, SQLite, MongoDB, Redis, MariaDB, ElasticSearch, and ClickHouse with AI-powered natural language queries.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/whodb.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "WhoDB connects to external databases — enter your database credentials on the login page.",
+      "type": "info"
+    }
+  ]
 }

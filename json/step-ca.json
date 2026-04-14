@@ -12,12 +12,12 @@
   "documentation": "https://smallstep.com/docs/step-ca/",
   "website": "https://github.com/smallstep/certificates",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/step-ca.webp",
-  "config_path": "/etc/step-ca",
   "description": "A private certificate authority (X.509 & SSH) & ACME server for secure automated certificate management, so you can use TLS everywhere & SSO for SSH.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/step-ca.sh",
+      "config_path": "/etc/step-ca",
       "resources": {
         "cpu": 1,
         "ram": 512,
