@@ -37,6 +37,7 @@ cat <<EOF >/opt/akaunting/.env
 APP_NAME=Akaunting
 APP_ENV=production
 APP_DEBUG=false
+APP_KEY=
 APP_URL=http://${LOCAL_IP}
 
 DB_CONNECTION=mysql
