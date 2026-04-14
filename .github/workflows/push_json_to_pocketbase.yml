@@ -204,7 +204,6 @@ jobs:
               website: data.website,
               logo: data.logo,
               description: data.description,
-              config_path: data.config_path,
               default_user: (data.default_credentials && data.default_credentials.username) || data.default_user || null,
               default_passwd: (data.default_credentials && data.default_credentials.password) || data.default_passwd || null,
               notes: data.notes || [],
@@ -250,3 +249,22 @@ jobs:
           })().catch(e => { console.error(e); process.exit(1); });
           ENDSCRIPT
         shell: bash
+
+      - name: Revalidate Frontend Cache
+        if: steps.changed.outputs.count != '0'
+        env:
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+        run: |
+          if [[ -z "$FRONTEND_URL" || -z "$REVALIDATE_SECRET" ]]; then
+            echo "FRONTEND_URL or REVALIDATE_SECRET not set, skipping revalidation."
+            exit 0
+          fi
+          SLUGS=$(cat changed_app_jsons.txt | xargs -I{} basename {} .json | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "Revalidating tags: scripts, categories — slugs: $SLUGS"
+          curl -sf -X POST "${FRONTEND_URL}/api/revalidate" \
+            -H "Authorization: Bearer ${REVALIDATE_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "{\"tags\":[\"scripts\",\"categories\"],\"slugs\":${SLUGS}}" \
+            && echo "Cache revalidated." \
+            || echo "Warning: revalidation failed (non-critical)."
