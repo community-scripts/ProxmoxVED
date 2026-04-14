@@ -63,6 +63,8 @@ PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
 cat <<EOF >/etc/caddy/Caddyfile
 :80 {
     root * /opt/akaunting/public
+    @public path /public/*
+    uri @public strip_prefix /public
     php_fastcgi unix//run/php/php${PHP_VER}-fpm.sock
     file_server
     encode gzip
