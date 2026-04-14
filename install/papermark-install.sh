@@ -14,15 +14,18 @@ network_check
 update_os
 
 NODE_VERSION="22" setup_nodejs
-PG_VERSION="16" setup_postgresql
+PG_VERSION="17" setup_postgresql
 PG_DB_NAME="papermark" PG_DB_USER="papermark" setup_postgresql_db
 
 fetch_and_deploy_gh_release "papermark" "mfts/papermark" "tarball"
 
 msg_info "Setting up Papermark"
 cd /opt/papermark
+DB_URL="postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}"
 cat <<EOF >/opt/papermark/.env
-DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
+DATABASE_URL=${DB_URL}
+POSTGRES_PRISMA_URL=${DB_URL}
+POSTGRES_PRISMA_URL_NON_POOLING=${DB_URL}
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 NEXTAUTH_URL=http://${LOCAL_IP}:3000
 NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:3000
