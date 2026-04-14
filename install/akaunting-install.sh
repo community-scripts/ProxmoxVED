@@ -16,13 +16,14 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   caddy \
-  build-essential
+  build-essential \
+  python3
 msg_ok "Installed Dependencies"
 
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULES="bcmath,gd,intl,xml,zip,pdo_mysql,mbstring,curl" setup_php
 setup_composer
 setup_mariadb
-NODE_VERSION="22" setup_nodejs
+NODE_VERSION="20" setup_nodejs
 MARIADB_DB_NAME="akaunting" MARIADB_DB_USER="akaunting" setup_mariadb_db
 
 fetch_and_deploy_gh_release "akaunting" "akaunting/akaunting" "tarball"
