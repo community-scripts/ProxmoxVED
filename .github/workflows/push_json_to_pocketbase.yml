@@ -30,6 +30,18 @@ jobs:
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             script_slug="${{ github.event.inputs.script_slug }}"
+            if [[ "$script_slug" == "*" || "$script_slug" == "all" ]]; then
+              count=0
+              for f in json/*.json; do
+                [[ -f "$f" ]] || continue
+                jq -e '.slug' "$f" >/dev/null 2>&1 || continue
+                echo "$f" >> changed_app_jsons.txt
+                count=$((count + 1))
+              done
+              echo "count=${count}" >> "$GITHUB_OUTPUT"
+              echo "Queued ${count} JSON files for push."
+              exit 0
+            fi
             file="json/${script_slug}.json"
             if [[ ! -f "$file" ]]; then
               echo "No JSON file at $file."
