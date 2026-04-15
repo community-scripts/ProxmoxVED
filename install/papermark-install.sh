@@ -34,7 +34,7 @@ EOF
 $STD npm install
 $STD npx prisma generate
 $STD npx prisma migrate deploy
-sed -i -E 's/\{\s*type:\s*"host"\s*\}/{ type: "host", value: ".*" }/g' /opt/papermark/next.config.* 2>/dev/null || true
+node -e "['next.config.js','next.config.mjs','next.config.ts'].forEach(n=>{try{const fp='/opt/papermark/'+n,fs=require('fs');let c=fs.readFileSync(fp,'utf8');c=c.replace(/\{(\s*)type(\s*):(\s*)['\"]host['\"](\s*)\}/g,'{type:\"host\",value:\".*\"}');fs.writeFileSync(fp,c)}catch(e){}})" 2>/dev/null || true
 $STD npm run build
 msg_ok "Set up Papermark"
 
