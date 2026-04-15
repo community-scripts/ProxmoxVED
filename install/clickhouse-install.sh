@@ -24,7 +24,7 @@ EOF
 systemctl restart clickhouse-server
 msg_ok "Configured ClickHouse"
 
-if [[ "$CLICKSTACK" == "yes" ]]; then
+if [[ "${CLICKSTACK:-}" == "yes" ]]; then
   msg_info "Installing Dependencies"
   $STD apt install -y \
     build-essential \
