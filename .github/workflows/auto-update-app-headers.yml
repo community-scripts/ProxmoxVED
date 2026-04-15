@@ -25,8 +25,6 @@ jobs:
         with:
           client-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: community-scripts
-          repositories: ProxmoxVED
 
       - name: Checkout repository
         uses: actions/checkout@v4
