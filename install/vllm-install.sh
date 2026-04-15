@@ -16,8 +16,6 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   python3 \
-  python3-pip \
-  python3-venv \
   python3-dev \
   build-essential \
   pkg-config \
@@ -26,26 +24,22 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 setup_hwaccel "vllm"
+setup_uv
 
-msg_info "Creating Python virtual environment"
-$STD python3 -m venv /opt/vllm
-source /opt/vllm/bin/activate
-msg_ok "Created virtual environment at /opt/vllm"
+msg_info "Setting up Python Environment"
+$STD uv venv /opt/vllm/.venv
+msg_ok "Set up Python Environment"
 
 RELEASE=$(curl -fsSL https://api.github.com/repos/vllm-project/vllm/releases/latest | grep "tag_name" | awk -F '"' '{print $4}')
 VLLM_VERSION="${RELEASE#v}"
 
-msg_info "Upgrading pip"
-$STD pip install --upgrade pip
-msg_ok "Upgraded pip"
-
 msg_info "Installing ${APP} ${RELEASE} (Patience — this takes 5-15 minutes)"
 if nvidia-smi &>/dev/null; then
   msg_info "GPU detected — installing vLLM with CUDA support"
-  $STD pip install "vllm==${VLLM_VERSION}"
+  $STD uv pip install --python /opt/vllm/.venv/bin/python "vllm==${VLLM_VERSION}"
 else
   msg_info "No GPU detected — installing vLLM with CPU/OpenVINO backend"
-  $STD pip install "vllm==${VLLM_VERSION}" --extra-index-url https://download.pytorch.org/whl/cpu
+  $STD uv pip install --python /opt/vllm/.venv/bin/python "vllm==${VLLM_VERSION}" --extra-index-url https://download.pytorch.org/whl/cpu
 fi
 echo "${RELEASE}" >/opt/vLLM_version.txt
 msg_ok "Installed ${APP} ${RELEASE}"
@@ -77,7 +71,7 @@ EXTRA_ARGS=()
 [[ -n "${MAX_MODEL_LEN}" && "${MAX_MODEL_LEN}" != "0" ]] && EXTRA_ARGS+=(--max-model-len "${MAX_MODEL_LEN}")
 [[ -n "${HF_TOKEN}" ]] && export HUGGING_FACE_HUB_TOKEN="${HF_TOKEN}"
 
-exec /opt/vllm/bin/python -m vllm.entrypoints.openai.api_server \
+exec /opt/vllm/.venv/bin/python -m vllm.entrypoints.openai.api_server \
   --model "${MODEL}" \
   --host "${HOST}" \
   --port "${PORT}" \
@@ -128,8 +122,7 @@ case "$1" in
   logs) journalctl -u vllm -f --no-pager ;;
   config) "${EDITOR:-nano}" /etc/vllm/vllm.env ;;
   models)
-    source /opt/vllm/bin/activate
-    python3 -c "
+    /opt/vllm/.venv/bin/python -c "
 import os, pathlib
 hf_home = os.environ.get('HF_HOME', '/opt/vllm-models')
 models = [d for d in pathlib.Path(hf_home).glob('models--*') if d.is_dir()]
@@ -142,8 +135,7 @@ else:
 "
     ;;
   version)
-    source /opt/vllm/bin/activate
-    python3 -c "import vllm; print('vLLM', vllm.__version__)"
+    /opt/vllm/.venv/bin/python -c "import vllm; print('vLLM', vllm.__version__)"
     ;;
   *) echo "Usage: vllm-cli {start|stop|restart|status|logs|config|models|version}" ;;
 esac

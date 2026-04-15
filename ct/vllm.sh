@@ -41,8 +41,7 @@ function update_script() {
     msg_ok "Stopped Service"
 
     msg_info "Updating ${APP} to ${RELEASE}"
-    source /opt/vllm/bin/activate
-    $STD pip install --upgrade "vllm==${RELEASE#v}"
+    $STD uv pip install --python /opt/vllm/.venv/bin/python --upgrade "vllm==${RELEASE#v}"
     echo "${RELEASE}" >/opt/vLLM_version.txt
     msg_ok "Updated ${APP} to ${RELEASE}"
 
