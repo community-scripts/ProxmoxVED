@@ -19,11 +19,20 @@ jobs:
       contents: write
 
     steps:
+      - name: Generate app token
+        id: generate-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: community-scripts
+          repositories: ProxmoxVED
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.generate-token.outputs.token }}
 
       - name: Set up Git
         run: |
@@ -51,6 +60,8 @@ jobs:
 
       - name: Commit and push changes
         if: steps.check_changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           git commit -m "chore: update app headers [skip ci]"
           git pull --rebase origin main
