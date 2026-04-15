@@ -53,6 +53,7 @@ jobs:
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git commit -m "chore: update app headers [skip ci]"
+          git pull --rebase origin main
           git push origin main
 
       - name: No changes detected
