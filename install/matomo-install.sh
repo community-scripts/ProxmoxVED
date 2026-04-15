@@ -18,6 +18,7 @@ $STD apt install -y caddy
 msg_ok "Installed Dependencies"
 
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULES="pdo_mysql,gd,mbstring,xml,curl,intl,zip,ldap" setup_php
+setup_mariadb
 MARIADB_DB_NAME="matomo" MARIADB_DB_USER="matomo" setup_mariadb_db
 
 fetch_and_deploy_gh_release "matomo" "matomo-org/matomo" "prebuild" "latest" "/opt/matomo" "matomo-*.zip"

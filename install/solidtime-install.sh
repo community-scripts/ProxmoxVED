@@ -31,21 +31,35 @@ cp .env.example .env
 sed -i "s|^APP_ENV=.*|APP_ENV=production|" .env
 sed -i "s|^APP_DEBUG=.*|APP_DEBUG=false|" .env
 sed -i "s|^APP_URL=.*|APP_URL=http://${LOCAL_IP}|" .env
+sed -i "s|^APP_ENABLE_REGISTRATION=.*|APP_ENABLE_REGISTRATION=true|" .env
 sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=pgsql|" .env
 sed -i "s|^DB_HOST=.*|DB_HOST=127.0.0.1|" .env
 sed -i "s|^DB_PORT=.*|DB_PORT=5432|" .env
 sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${PG_DB_NAME}|" .env
 sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${PG_DB_USER}|" .env
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
+sed -i "s|^FILESYSTEM_DISK=.*|FILESYSTEM_DISK=local|" .env
+sed -i "s|^PUBLIC_FILESYSTEM_DISK=.*|PUBLIC_FILESYSTEM_DISK=public|" .env
+sed -i "s|^MAIL_MAILER=.*|MAIL_MAILER=log|" .env
 $STD composer install --no-dev --optimize-autoloader
-$STD php artisan key:generate
+php artisan self-host:generate-keys >/tmp/solidtime.keys 2>/dev/null
+while IFS= read -r line; do
+  KEY="${line%%=*}"
+  [[ -z "$KEY" || "${KEY:0:1}" == "#" ]] && continue
+  sed -i "/^${KEY}=/d" .env
+  echo "$line" >>.env
+done </tmp/solidtime.keys
+rm -f /tmp/solidtime.keys
 $STD npm install
 $STD npm run build
+rm -rf node_modules
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chown -R www-data:www-data /opt/solidtime
 chmod -R 775 storage bootstrap/cache
 $STD php artisan storage:link
 $STD php artisan migrate --force
+$STD php artisan passport:client --personal --name="API" -n
+$STD php artisan optimize
 msg_ok "Set up SolidTime"
 
 msg_info "Configuring Caddy"
