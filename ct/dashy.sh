@@ -40,12 +40,11 @@ function update_script() {
     fi
     msg_ok "Backed up conf.yml"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "dashy" "Lissy93/dashy" "tarball"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "dashy" "Lissy93/dashy" "prebuild" "latest" "/opt/dashy" "dashy-*.tar.gz"
 
     msg_info "Updating Dashy"
     cd /opt/dashy
-    npm install
-    npm run build
+    $STD yarn install --production --ignore-engines --network-timeout 300000
     msg_ok "Updated Dashy"
 
     msg_info "Restoring conf.yml"
