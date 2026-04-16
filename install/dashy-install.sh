@@ -18,7 +18,7 @@ fetch_and_deploy_gh_release "dashy" "Lissy93/dashy" "prebuild" "latest" "/opt/da
 
 msg_info "Installing Dashy"
 cd /opt/dashy
-$STD yarn install --production --ignore-engines --network-timeout 300000
+$STD yarn install --ignore-engines --network-timeout 300000
 msg_ok "Installed Dashy"
 
 msg_info "Creating Service"
@@ -29,6 +29,7 @@ Description=dashy
 [Service]
 Type=simple
 WorkingDirectory=/opt/dashy
+Environment=NODE_OPTIONS=--openssl-legacy-provider
 ExecStart=/usr/bin/node server.js
 [Install]
 WantedBy=multi-user.target
