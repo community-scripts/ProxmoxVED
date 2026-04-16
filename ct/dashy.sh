@@ -44,7 +44,7 @@ function update_script() {
 
     msg_info "Updating Dashy"
     cd /opt/dashy
-    $STD yarn install --production --ignore-engines --network-timeout 300000
+    $STD yarn install --ignore-engines --network-timeout 300000
     msg_ok "Updated Dashy"
 
     msg_info "Restoring conf.yml"
