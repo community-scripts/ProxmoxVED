@@ -28,7 +28,7 @@
     }
   ],
   "default_credentials": {
-    "username": "admin@localhost",
+    "username": "admin@slink.local",
     "password": "auto-generated"
   },
   "notes": [

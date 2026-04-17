@@ -62,8 +62,8 @@ chmod 644 /opt/slink/services/api/config/jwt/private.pem
 touch /opt/slink/services/api/var/data/slink_store.db
 touch /opt/slink/services/api/var/data/slink.db
 $STD php bin/console doctrine:migrations:migrate --no-interaction --em=read_model
-$STD php bin/console doctrine:migrations:migrate --no-interaction --configuration=config/migrations/event_store.yaml --em=event_store
 $STD php bin/console messenger:setup-transports --no-interaction
+$STD php bin/console doctrine:schema:update --force --em=event_store
 $STD php bin/console slink:admin:init --no-interaction
 $STD php bin/console cache:warm --no-optional-warmers
 msg_ok "Set up API"
