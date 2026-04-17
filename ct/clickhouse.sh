@@ -33,7 +33,7 @@ function update_script() {
 
   if [[ -f /opt/clickstack/.env ]]; then
     CURRENT_HDX_VERSION=$(cat ~/.clickstack 2>/dev/null || echo "none")
-    LATEST_HDX_VERSION=$(curl -fsSL "https://api.github.com/repos/hyperdxio/hyperdx/tags?per_page=1" | grep -oP '"name": "hyperdx@\K[^"]+' | head -1)
+    LATEST_HDX_VERSION=$(curl -fsSL "https://api.github.com/repos/hyperdxio/hyperdx/releases" | grep -oP '"tag_name": "@hyperdx/app@\K[^"]+' | head -1)
 
     if [[ "$CURRENT_HDX_VERSION" != "$LATEST_HDX_VERSION" ]]; then
       msg_info "Stopping ClickStack Services"
@@ -44,16 +44,21 @@ function update_script() {
       cp /opt/clickstack/.env /opt/clickstack.env.bak
       msg_ok "Backed up Data"
 
+      msg_info "Updating HyperDX"
+      rm -rf /opt/clickstack
+      $STD git clone --depth 1 --branch "@hyperdx/app@${LATEST_HDX_VERSION}" https://github.com/hyperdxio/hyperdx.git /opt/clickstack
+      msg_ok "Updated HyperDX Source"
+
       cd /opt/clickstack
-      $STD git fetch --all --tags
-      $STD git checkout "hyperdx@${LATEST_HDX_VERSION}"
+      $STD corepack enable
+      YARN_SPEC=$(node -e "const p=require('./package.json');process.stdout.write(p.packageManager||'yarn@stable')" 2>/dev/null || echo "yarn@stable")
+      $STD corepack prepare "${YARN_SPEC}" --activate
 
       msg_info "Building HyperDX"
-      node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('packages/app/package.json','utf8'));delete p.devDependencies['@types/hyperdx__lucene'];fs.writeFileSync('packages/app/package.json',JSON.stringify(p,null,2));"
       $STD yarn install
       $STD yarn workspace @hyperdx/common-utils run build
       $STD yarn workspace @hyperdx/api run build
-      NEXT_OUTPUT_STANDALONE=true $STD yarn workspace @hyperdx/app run build
+      $STD yarn workspace @hyperdx/app run build
       msg_ok "Built HyperDX"
 
       msg_info "Restoring Data"

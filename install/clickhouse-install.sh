@@ -197,8 +197,8 @@ EOF
   msg_ok "Configured OTel Collector"
 
   msg_info "Cloning HyperDX"
-  HDX_VERSION=$(curl -fsSL "https://api.github.com/repos/hyperdxio/hyperdx/tags?per_page=1" | grep -oP '"name": "hyperdx@\K[^"]+' | head -1)
-  $STD git clone --depth 1 --branch "hyperdx@${HDX_VERSION}" https://github.com/hyperdxio/hyperdx.git /opt/clickstack
+  HDX_VERSION=$(curl -fsSL "https://api.github.com/repos/hyperdxio/hyperdx/releases" | grep -oP '"tag_name": "@hyperdx/app@\K[^"]+' | head -1)
+  $STD git clone --depth 1 --branch "@hyperdx/app@${HDX_VERSION}" https://github.com/hyperdxio/hyperdx.git /opt/clickstack
   echo "${HDX_VERSION}" >~/.clickstack
   msg_ok "Cloned HyperDX v${HDX_VERSION}"
 
@@ -210,13 +210,10 @@ EOF
   msg_ok "Enabled Corepack"
 
   msg_info "Building HyperDX"
-  # Remove broken devDependency (@types/lucene does not exist on npm)
-  node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('packages/app/package.json','utf8'));delete p.devDependencies['@types/hyperdx__lucene'];fs.writeFileSync('packages/app/package.json',JSON.stringify(p,null,2));"
-  rm -f yarn.lock .yarn/install-state.gz
   $STD yarn install
   $STD yarn workspace @hyperdx/common-utils run build
   $STD yarn workspace @hyperdx/api run build
-  NEXT_OUTPUT_STANDALONE=true $STD yarn workspace @hyperdx/app run build
+  $STD yarn workspace @hyperdx/app run build
   msg_ok "Built HyperDX"
 
   msg_info "Configuring ClickStack"
@@ -231,11 +228,15 @@ HYPERDX_APP_URL=http://${LOCAL_IP}
 HYPERDX_LOG_LEVEL=info
 MONGO_URI=mongodb://127.0.0.1:27017/hyperdx
 SERVER_URL=http://127.0.0.1:8000
+PORT=8000
 OPAMP_PORT=4320
 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
 OTEL_SERVICE_NAME=hdx-oss-app
 NODE_ENV=production
+IS_LOCAL_APP_MODE=DANGEROUSLY_is_local_app_mode💀
+NEXT_PUBLIC_IS_LOCAL_MODE=true
 DEFAULT_CONNECTIONS=[{"name":"Local ClickHouse","host":"http://127.0.0.1:8123","username":"default","password":""}]
+DEFAULT_SOURCES=[{"name":"Logs","kind":"log","connection":"Local ClickHouse","from":"otel_logs","timestampValueExpression":"Timestamp","defaultTableSelectExpression":"*","serviceNameExpression":"ServiceName","bodyExpression":"Body","severityTextExpression":"SeverityText","traceIdExpression":"TraceId","spanIdExpression":"SpanId","traceSourceId":"Traces","sessionSourceId":"Sessions"},{"name":"Traces","kind":"trace","connection":"Local ClickHouse","from":"otel_traces","timestampValueExpression":"Timestamp","defaultTableSelectExpression":"*","serviceNameExpression":"ServiceName","bodyExpression":"SpanName","durationExpression":"Duration / 1000000","traceIdExpression":"TraceId","spanIdExpression":"SpanId","parentSpanIdExpression":"ParentSpanId","statusCodeExpression":"StatusCode","statusMessageExpression":"StatusMessage","logSourceId":"Logs","sessionSourceId":"Sessions"},{"name":"Sessions","kind":"session","connection":"Local ClickHouse","from":"hyperdx_sessions","timestampValueExpression":"Timestamp","defaultTableSelectExpression":"*","serviceNameExpression":"ServiceName","bodyExpression":"Body","severityTextExpression":"SeverityText","traceIdExpression":"TraceId","spanIdExpression":"SpanId","logSourceId":"Logs","traceSourceId":"Traces"}]
 EOF
   msg_ok "Configured ClickStack"
 
@@ -267,7 +268,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/clickstack/packages/api
 EnvironmentFile=/opt/clickstack/.env
-ExecStart=/usr/bin/node /opt/clickstack/packages/api/dist/index.js
+ExecStart=/usr/bin/node /opt/clickstack/packages/api/build/index.js
 Restart=on-failure
 RestartSec=5
 
@@ -287,7 +288,7 @@ WorkingDirectory=/opt/clickstack/packages/app
 EnvironmentFile=/opt/clickstack/.env
 Environment=PORT=8080
 Environment=HOSTNAME=0.0.0.0
-ExecStart=/usr/bin/node /opt/clickstack/packages/app/.next/standalone/server.js
+ExecStart=/usr/bin/node /opt/clickstack/node_modules/next/dist/bin/next start
 Restart=on-failure
 RestartSec=5
 
