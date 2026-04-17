@@ -104,8 +104,8 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now minio
-sleep 3
-$STD mc alias set local http://localhost:3200 minioadmin "${MINIO_PASS}"
+sleep 5
+$STD mc alias set local http://127.0.0.1:3200 minioadmin "${MINIO_PASS}"
 $STD mc mb --ignore-existing local/b2-eu-cen
 $STD mc mb --ignore-existing local/wasabi-eu-central-2-v3
 $STD mc mb --ignore-existing local/scw-eu-fr-v3

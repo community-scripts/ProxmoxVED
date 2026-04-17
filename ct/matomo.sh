@@ -19,6 +19,18 @@ variables
 color
 catch_errors
 
+function flatten_matomo_layout() {
+  if [[ -d /opt/matomo/matomo ]]; then
+    msg_info "Migrating Legacy Layout"
+    rm -rf /opt/matomo/tmp "/opt/matomo/How to install Matomo.html"
+    find /opt/matomo/matomo -mindepth 1 -maxdepth 1 -exec mv -t /opt/matomo {} +
+    rm -rf /opt/matomo/matomo
+    msg_ok "Migrated Legacy Layout"
+  fi
+
+  rm -rf /opt/matomo/node_modules /opt/matomo/tests
+}
+
 function update_script() {
   header_info
   check_container_storage
@@ -34,19 +46,43 @@ function update_script() {
     systemctl stop caddy
     msg_ok "Stopped Services"
 
+    flatten_matomo_layout
+
     msg_info "Backing up Data"
-    cp /opt/matomo/config/config.ini.php /opt/matomo_config.bak
-    cp -r /opt/matomo/misc/user /opt/matomo_user_backup 2>/dev/null
+    [[ -f /opt/matomo/config/config.ini.php ]] && cp /opt/matomo/config/config.ini.php /opt/matomo_config.bak
+    [[ -d /opt/matomo/misc/user ]] && cp -r /opt/matomo/misc/user /opt/matomo_user_backup
+    if [[ -f /opt/matomo/.mariadb-creds ]]; then
+      cp /opt/matomo/.mariadb-creds /opt/matomo_db_creds.bak
+    elif [[ -f /root/matomo.creds ]]; then
+      cp /root/matomo.creds /opt/matomo_db_creds.bak
+    fi
     msg_ok "Backed up Data"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "matomo" "matomo-org/matomo" "prebuild" "latest" "/opt/matomo" "matomo-*.zip"
 
+    flatten_matomo_layout
+
     msg_info "Restoring Data"
-    cp /opt/matomo_config.bak /opt/matomo/config/config.ini.php
-    cp -r /opt/matomo_user_backup/. /opt/matomo/misc/user 2>/dev/null
+    if [[ -f /opt/matomo_config.bak ]]; then
+      mkdir -p /opt/matomo/config
+      cp /opt/matomo_config.bak /opt/matomo/config/config.ini.php
+    fi
+    if [[ -d /opt/matomo_user_backup ]]; then
+      mkdir -p /opt/matomo/misc/user
+      cp -r /opt/matomo_user_backup/. /opt/matomo/misc/user
+    fi
+    if [[ -f /opt/matomo_db_creds.bak ]]; then
+      cp /opt/matomo_db_creds.bak /opt/matomo/.mariadb-creds
+    fi
     rm -f /opt/matomo_config.bak
+    rm -f /opt/matomo_db_creds.bak
     rm -rf /opt/matomo_user_backup
     chown -R www-data:www-data /opt/matomo
+    if [[ -f /opt/matomo/.mariadb-creds ]]; then
+      chown root:root /opt/matomo/.mariadb-creds
+      chmod 600 /opt/matomo/.mariadb-creds
+    fi
+    rm -f /root/matomo.creds
     msg_ok "Restored Data"
 
     msg_info "Starting Services"

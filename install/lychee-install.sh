@@ -47,7 +47,6 @@ sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${PG_DB_USER}|" .env
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache public/dist public/uploads public/sym
 touch public/dist/user.css public/dist/custom.js
-chown -R www-data:www-data /opt/lychee
 chmod -R 775 storage bootstrap/cache public/dist public/uploads public/sym
 msg_ok "Configured Application"
 
@@ -55,6 +54,8 @@ msg_info "Running Database Migrations"
 cd /opt/lychee
 $STD php artisan migrate --force
 msg_ok "Ran Database Migrations"
+
+chown -R www-data:www-data /opt/lychee
 
 msg_info "Configuring Caddy"
 PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')

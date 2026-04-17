@@ -204,8 +204,8 @@ EOF
 
   msg_info "Enabling Corepack"
   $STD corepack enable
+  $STD corepack prepare yarn@stable --activate
   cd /opt/clickstack
-  $STD corepack prepare --activate
   msg_ok "Enabled Corepack"
 
   msg_info "Building HyperDX"

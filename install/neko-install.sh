@@ -32,6 +32,7 @@ $STD apt install -y \
   fonts-noto-color-emoji \
   fonts-wqy-zenhei
 msg_ok "Installed Dependencies"
+systemctl disable -q --now supervisor
 
 msg_info "Installing Build Dependencies"
 $STD apt install -y \

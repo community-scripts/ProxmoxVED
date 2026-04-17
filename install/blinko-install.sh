@@ -36,13 +36,12 @@ NEXTAUTH_URL=http://${LOCAL_IP}:1111
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:1111
 EOF
-$STD bun install --unsafe-perm
+$STD bun install
 $STD bun run build:web
 $STD bun run build:seed
-mkdir -p /opt/blinko/server/public
-cp -r /opt/blinko/dist/public/. /opt/blinko/server/public/ 2>/dev/null || true
-$STD bunx prisma migrate deploy
-$STD bun /opt/blinko/dist/seed.js
+$STD bun run prisma:generate
+$STD bun run prisma:migrate:deploy
+$STD bun run seed
 msg_ok "Set up Blinko"
 
 msg_info "Creating Service"
@@ -54,7 +53,8 @@ After=network.target postgresql.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/blinko/server
+WorkingDirectory=/opt/blinko
+ExecStartPre=/bin/bash -c "mkdir -p /opt/blinko/server/public && cp -r /opt/blinko/dist/public/. /opt/blinko/server/public/"
 ExecStart=/usr/local/bin/bun --env-file /opt/blinko/.env /opt/blinko/dist/index.js
 Restart=on-failure
 RestartSec=5

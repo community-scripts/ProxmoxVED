@@ -8,7 +8,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 APP="Blinko"
 var_tags="${var_tags:-notes;ai;knowledge}"
 var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-2048}"
+var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -47,14 +47,34 @@ function update_script() {
 
     msg_info "Updating Application"
     cd /opt/blinko
-    $STD bun install --unsafe-perm
+    $STD bun install
     $STD bun run build:web
     $STD bun run build:seed
-    mkdir -p /opt/blinko/server/public
-    cp -r /opt/blinko/dist/public/. /opt/blinko/server/public/ 2>/dev/null || true
-    $STD bunx prisma migrate deploy
-    $STD bun /opt/blinko/dist/seed.js
+    $STD bun run prisma:generate
+    $STD bun run prisma:migrate:deploy
+    $STD bun run seed
     msg_ok "Updated Application"
+
+    msg_info "Updating Service"
+    cat <<EOF >/etc/systemd/system/blinko.service
+[Unit]
+Description=Blinko Note-Taking App
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/blinko
+ExecStartPre=/bin/bash -c "mkdir -p /opt/blinko/server/public && cp -r /opt/blinko/dist/public/. /opt/blinko/server/public/"
+ExecStart=/usr/local/bin/bun --env-file /opt/blinko/.env /opt/blinko/dist/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    msg_ok "Updated Service"
 
     msg_info "Starting Service"
     systemctl start blinko
