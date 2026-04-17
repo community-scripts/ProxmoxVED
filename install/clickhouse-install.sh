@@ -210,7 +210,9 @@ EOF
   msg_ok "Enabled Corepack"
 
   msg_info "Building HyperDX"
-  $STD yarn install --immutable
+  # Remove broken devDependency (@types/lucene does not exist on npm)
+  node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('packages/app/package.json','utf8'));delete p.devDependencies['@types/hyperdx__lucene'];fs.writeFileSync('packages/app/package.json',JSON.stringify(p,null,2));"
+  $STD yarn install
   $STD yarn workspace @hyperdx/common-utils run build
   $STD yarn workspace @hyperdx/api run build
   NEXT_OUTPUT_STANDALONE=true $STD yarn workspace @hyperdx/app run build
