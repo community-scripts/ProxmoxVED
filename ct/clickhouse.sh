@@ -32,10 +32,7 @@ function update_script() {
   setup_clickhouse
 
   if [[ -f /opt/clickstack/.env ]]; then
-    CURRENT_HDX_VERSION=$(cat ~/.clickstack 2>/dev/null || echo "none")
-    LATEST_HDX_VERSION=$(curl -fsSL "https://api.github.com/repos/hyperdxio/hyperdx/releases" | grep -oP '"tag_name": "@hyperdx/app@\K[^"]+' | head -1)
-
-    if [[ "$CURRENT_HDX_VERSION" != "$LATEST_HDX_VERSION" ]]; then
+    if check_for_gh_release "clickstack" "hyperdxio/hyperdx"; then
       msg_info "Stopping ClickStack Services"
       systemctl stop clickstack-app clickstack-api
       msg_ok "Stopped ClickStack Services"
@@ -44,10 +41,7 @@ function update_script() {
       cp /opt/clickstack/.env /opt/clickstack.env.bak
       msg_ok "Backed up Data"
 
-      msg_info "Updating HyperDX"
-      rm -rf /opt/clickstack
-      $STD git clone --depth 1 --branch "@hyperdx/app@${LATEST_HDX_VERSION}" https://github.com/hyperdxio/hyperdx.git /opt/clickstack
-      msg_ok "Updated HyperDX Source"
+      CLEAN_INSTALL=1 fetch_and_deploy_gh_release "clickstack" "hyperdxio/hyperdx" "tarball" "latest" "/opt/clickstack"
 
       cd /opt/clickstack
       $STD corepack enable
@@ -69,11 +63,7 @@ function update_script() {
       msg_info "Starting ClickStack Services"
       systemctl start clickstack-api clickstack-app
       msg_ok "Started ClickStack Services"
-
-      echo "${LATEST_HDX_VERSION}" >~/.clickstack
-      msg_ok "Updated HyperDX to v${LATEST_HDX_VERSION}"
-    else
-      msg_ok "HyperDX is already up to date (v${CURRENT_HDX_VERSION})"
+      msg_ok "Updated successfully!"
     fi
 
     if check_for_gh_release "otelcol" "open-telemetry/opentelemetry-collector-releases"; then

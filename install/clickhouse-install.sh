@@ -28,7 +28,6 @@ if [[ "${CLICKSTACK:-}" == "yes" ]]; then
   msg_info "Installing Dependencies"
   $STD apt install -y \
     build-essential \
-    git \
     python3
   msg_ok "Installed Dependencies"
 
@@ -196,11 +195,7 @@ service:
 EOF
   msg_ok "Configured OTel Collector"
 
-  msg_info "Cloning HyperDX"
-  HDX_VERSION=$(curl -fsSL "https://api.github.com/repos/hyperdxio/hyperdx/releases" | grep -oP '"tag_name": "@hyperdx/app@\K[^"]+' | head -1)
-  $STD git clone --depth 1 --branch "@hyperdx/app@${HDX_VERSION}" https://github.com/hyperdxio/hyperdx.git /opt/clickstack
-  echo "${HDX_VERSION}" >~/.clickstack
-  msg_ok "Cloned HyperDX v${HDX_VERSION}"
+  fetch_and_deploy_gh_release "clickstack" "hyperdxio/hyperdx" "tarball" "latest" "/opt/clickstack"
 
   msg_info "Enabling Corepack"
   cd /opt/clickstack
