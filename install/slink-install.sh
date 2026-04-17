@@ -54,12 +54,11 @@ sed -i "s|sqlite:////app/var/data|sqlite:////opt/slink/services/api/var/data|g" 
 export APP_ENV=prod
 mkdir -p /opt/slink/services/api/var/data
 mkdir -p /opt/slink/services/api/config/jwt
-openssl genpkey -algorithm RSA -out /opt/slink/services/api/config/jwt/private.pem -aes256 -pass "pass:${JWT_PASS}" 2>/dev/null
-openssl pkey -in /opt/slink/services/api/config/jwt/private.pem -out /opt/slink/services/api/config/jwt/public.pem -pubout -passin "pass:${JWT_PASS}" 2>/dev/null
 $STD composer install --no-dev --optimize-autoloader --no-interaction
 mkdir -p /opt/slink/{data,images}
 sed -i "s|'/services/api/|'/opt/slink/services/api/|" config/migrations/event_store.yaml
-php bin/console lexik:jwt:generate-keypair --skip-if-exists >/dev/null 2>&1 || true
+$STD php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction
+chmod 644 /opt/slink/services/api/config/jwt/private.pem
 touch /opt/slink/services/api/var/data/slink_store.db
 touch /opt/slink/services/api/var/data/slink.db
 $STD php bin/console doctrine:migrations:migrate --no-interaction --em=read_model
