@@ -211,8 +211,10 @@ EOF
 
   msg_info "Building HyperDX"
   # Remove broken devDependency (@types/lucene does not exist on npm)
-  node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('packages/app/package.json','utf8'));delete p.devDependencies['@types/hyperdx__lucene'];fs.writeFileSync('packages/app/package.json',JSON.stringify(p,null,2));"
+  node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('packages/app/package.json','utf8'));delete p.devDependencies['@types/hyperdx__lucene'];if(p.resolutions) delete p.resolutions['@types/hyperdx__lucene'];fs.writeFileSync('packages/app/package.json',JSON.stringify(p,null,2));"
   sed -i '/@types\/hyperdx__lucene/d' yarn.lock
+  sed -i '/@types\/lucene/d' yarn.lock
+  rm -f .yarn/install-state.gz
   $STD yarn install
   $STD yarn workspace @hyperdx/common-utils run build
   $STD yarn workspace @hyperdx/api run build
