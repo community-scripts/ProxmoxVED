@@ -38,6 +38,7 @@ SLACK_CLIENT_ID=placeholder
 SLACK_CLIENT_SECRET=placeholder
 NEXT_PRIVATE_DOCUMENT_PASSWORD_KEY=$(openssl rand -hex 32)
 NEXT_PRIVATE_VERIFICATION_SECRET=$(openssl rand -hex 32)
+RESEND_API_KEY=
 NODE_ENV=production
 EOF
 $STD npm install
