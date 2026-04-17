@@ -88,6 +88,7 @@ PORT=3000
 NODE_ENV=production
 BODY_SIZE_LIMIT=Infinity
 ORIGIN=http://${LOCAL_IP}:3000
+API_URL=http://127.0.0.1:8080
 EOF
 cat <<'EOF' >/etc/systemd/system/slink-client.service
 [Unit]
@@ -106,7 +107,8 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now redis-server php${PHP_VER}-fpm caddy slink-client
+systemctl enable -q --now redis-server php${PHP_VER}-fpm slink-client
+systemctl restart caddy
 {
   echo "Slink Credentials"
   echo "Admin Email: admin@slink.local"
