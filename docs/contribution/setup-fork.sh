@@ -124,6 +124,11 @@ update_links() {
       # Count occurrences of the old repo URL
       local count=$(grep -c "community-scripts/ProxmoxVED" "$file" 2>/dev/null || echo 0)
 
+      # Set to 0 if count is non numeric
+      if ! [[ "$count" =~ ^[0-9]+$ ]]; then
+          count=0
+      fi
+
       if [[ $count -gt 0 ]]; then
         # Replace all variations of the URL
         sed -i "s|github.com/$old_repo/$old_name|github.com/$new_owner/$new_repo|g" "$file"
@@ -140,6 +145,11 @@ update_links() {
     if [[ -f "$file" ]]; then
       local count=$(grep -c "community-scripts/ProxmoxVED" "$file" 2>/dev/null || echo 0)
 
+      # Set to 0 if count is non numeric
+      if ! [[ "$count" =~ ^[0-9]+$ ]]; then
+          count=0
+      fi
+      
       if [[ $count -gt 0 ]]; then
         sed -i "s|github.com/$old_repo/$old_name|github.com/$new_owner/$new_repo|g" "$file"
         sed -i "s|raw.githubusercontent.com/$old_repo/$old_name|raw.githubusercontent.com/$new_owner/$new_repo|g" "$file"
