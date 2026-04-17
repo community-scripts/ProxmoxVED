@@ -37,7 +37,7 @@ sed -i "s|^DB_PORT=.*|DB_PORT=5432|" .env
 sed -i "s|^DB_DATABASE=.*|DB_DATABASE=${PG_DB_NAME}|" .env
 sed -i "s|^DB_USERNAME=.*|DB_USERNAME=${PG_DB_USER}|" .env
 sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
-$STD composer install --no-dev --optimize-autoloader
+COMPOSER_ALLOW_SUPERUSER=1 $STD composer install --no-dev --optimize-autoloader --no-interaction
 $STD php artisan key:generate
 $STD yarn install
 $STD yarn build

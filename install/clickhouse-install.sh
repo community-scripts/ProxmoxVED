@@ -203,9 +203,10 @@ EOF
   msg_ok "Cloned HyperDX v${HDX_VERSION}"
 
   msg_info "Enabling Corepack"
-  $STD corepack enable
-  $STD corepack prepare yarn@stable --activate
   cd /opt/clickstack
+  $STD corepack enable
+  YARN_SPEC=$(node -e "const p=require('./package.json');process.stdout.write(p.packageManager||'yarn@stable')" 2>/dev/null || echo "yarn@stable")
+  $STD corepack prepare "${YARN_SPEC}" --activate
   msg_ok "Enabled Corepack"
 
   msg_info "Building HyperDX"
