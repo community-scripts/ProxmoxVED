@@ -43,6 +43,17 @@ EOF
 $STD npm install
 $STD npx prisma generate
 $STD npx prisma migrate deploy
+# Patch middleware to treat IP addresses as app host (not custom domains)
+# Without this, accessing via IP redirects to https://www.papermark.com
+node -e "
+const fs = require('fs');
+let c = fs.readFileSync('middleware.ts', 'utf8');
+c = c.replace(
+  'host?.endsWith(\".vercel.app\")',
+  'host?.endsWith(\".vercel.app\") || /^[\\\\d.:]+\$/.test(host || \"\")'
+);
+fs.writeFileSync('middleware.ts', c);
+"
 NODE_OPTIONS="--max-old-space-size=3584" $STD npm run build
 msg_ok "Set up Papermark"
 
