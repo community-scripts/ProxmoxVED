@@ -31,12 +31,17 @@ NEXTAUTH_URL=http://${LOCAL_IP}:3000
 NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:3000
 NEXT_PUBLIC_APP_BASE_HOST=app.example.local
 NEXT_PUBLIC_WEBHOOK_BASE_HOST=webhooks.example.local
+HANKO_API_KEY=placeholder
+NEXT_PUBLIC_HANKO_TENANT_ID=placeholder
+QSTASH_TOKEN=placeholder
+NEXT_PRIVATE_DOCUMENT_PASSWORD_KEY=$(openssl rand -hex 32)
+NEXT_PRIVATE_VERIFICATION_SECRET=$(openssl rand -hex 32)
 NODE_ENV=production
 EOF
 $STD npm install
 $STD npx prisma generate
 $STD npx prisma migrate deploy
-$STD npm run build
+NODE_OPTIONS="--max-old-space-size=3584" $STD npm run build
 msg_ok "Set up Papermark"
 
 msg_info "Creating Service"

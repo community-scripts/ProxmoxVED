@@ -20,7 +20,7 @@
       "config_path": "/opt/papermark/.env",
       "resources": {
         "cpu": 2,
-        "ram": 2048,
+        "ram": 4096,
         "hdd": 8,
         "os": "Debian",
         "version": "13"
