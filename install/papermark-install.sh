@@ -29,14 +29,13 @@ POSTGRES_PRISMA_URL_NON_POOLING=${DB_URL}
 NEXTAUTH_SECRET=$(openssl rand -base64 32)
 NEXTAUTH_URL=http://${LOCAL_IP}:3000
 NEXT_PUBLIC_BASE_URL=http://${LOCAL_IP}:3000
+NEXT_PUBLIC_APP_BASE_HOST=app.example.local
+NEXT_PUBLIC_WEBHOOK_BASE_HOST=webhooks.example.local
 NODE_ENV=production
 EOF
 $STD npm install
 $STD npx prisma generate
 $STD npx prisma migrate deploy
-for f in next.config.js next.config.mjs next.config.ts; do
-  [[ -f "/opt/papermark/$f" ]] && sed -i 's/{"type":"host"}/{"type":"host","value":".*"}/g' "/opt/papermark/$f"
-done
 $STD npm run build
 msg_ok "Set up Papermark"
 

@@ -28,7 +28,6 @@ function flatten_matomo_layout() {
     msg_ok "Migrated Legacy Layout"
   fi
 
-  rm -rf /opt/matomo/tests
 }
 
 function update_script() {
@@ -51,11 +50,7 @@ function update_script() {
     msg_info "Backing up Data"
     [[ -f /opt/matomo/config/config.ini.php ]] && cp /opt/matomo/config/config.ini.php /opt/matomo_config.bak
     [[ -d /opt/matomo/misc/user ]] && cp -r /opt/matomo/misc/user /opt/matomo_user_backup
-    if [[ -f /opt/matomo/.mariadb-creds ]]; then
-      cp /opt/matomo/.mariadb-creds /opt/matomo_db_creds.bak
-    elif [[ -f /root/matomo.creds ]]; then
-      cp /root/matomo.creds /opt/matomo_db_creds.bak
-    fi
+    [[ -f /root/matomo.creds ]] && cp /root/matomo.creds /opt/matomo_db_creds.bak
     msg_ok "Backed up Data"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "matomo" "matomo-org/matomo" "prebuild" "latest" "/opt/matomo" "matomo-*.zip"
@@ -71,18 +66,10 @@ function update_script() {
       mkdir -p /opt/matomo/misc/user
       cp -r /opt/matomo_user_backup/. /opt/matomo/misc/user
     fi
-    if [[ -f /opt/matomo_db_creds.bak ]]; then
-      cp /opt/matomo_db_creds.bak /opt/matomo/.mariadb-creds
-    fi
-    rm -f /opt/matomo_config.bak
-    rm -f /opt/matomo_db_creds.bak
+    [[ -f /opt/matomo_db_creds.bak ]] && cp /opt/matomo_db_creds.bak /root/matomo.creds
+    rm -f /opt/matomo_config.bak /opt/matomo_db_creds.bak
     rm -rf /opt/matomo_user_backup
     chown -R www-data:www-data /opt/matomo
-    if [[ -f /opt/matomo/.mariadb-creds ]]; then
-      chown root:root /opt/matomo/.mariadb-creds
-      chmod 600 /opt/matomo/.mariadb-creds
-    fi
-    rm -f /root/matomo.creds
     msg_ok "Restored Data"
 
     msg_info "Starting Services"

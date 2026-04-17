@@ -60,8 +60,8 @@ $STD composer install --no-dev --optimize-autoloader --no-interaction
 mkdir -p /opt/slink/{data,images}
 sed -i "s|'/services/api/|'/opt/slink/services/api/|" config/migrations/event_store.yaml
 php bin/console lexik:jwt:generate-keypair --skip-if-exists >/dev/null 2>&1 || true
-$STD php bin/console doctrine:database:create --connection=event_store --no-interaction
-$STD php bin/console doctrine:database:create --connection=read_model --no-interaction
+touch /opt/slink/services/api/var/data/slink_store.db
+touch /opt/slink/services/api/var/data/slink.db
 $STD php bin/console doctrine:migrations:migrate --no-interaction --em=read_model
 $STD php bin/console doctrine:migrations:migrate --no-interaction --configuration=config/migrations/event_store.yaml --em=event_store
 $STD php bin/console messenger:setup-transports --no-interaction

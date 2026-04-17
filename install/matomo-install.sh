@@ -21,7 +21,7 @@ mkdir -p /opt/matomo
 
 PHP_VERSION="8.3" PHP_FPM="YES" PHP_MODULES="pdo_mysql,gd,mbstring,xml,curl,intl,zip,ldap" setup_php
 setup_mariadb
-MARIADB_DB_CREDS_FILE="/opt/matomo/.mariadb-creds" MARIADB_DB_NAME="matomo" MARIADB_DB_USER="matomo" setup_mariadb_db
+MARIADB_DB_NAME="matomo" MARIADB_DB_USER="matomo" setup_mariadb_db
 
 msg_info "Allowing Local TCP Database Access"
 $STD mariadb -u root -e "CREATE USER IF NOT EXISTS '$MARIADB_DB_USER'@'127.0.0.1' IDENTIFIED BY '$MARIADB_DB_PASS';"
@@ -38,14 +38,9 @@ if [[ -d /opt/matomo/matomo ]]; then
   find /opt/matomo/matomo -mindepth 1 -maxdepth 1 -exec mv -t /opt/matomo {} +
   rm -rf /opt/matomo/matomo
 fi
-rm -rf /opt/matomo/tests
 mkdir -p /opt/matomo/tmp
 chown -R www-data:www-data /opt/matomo
 chmod -R 755 /opt/matomo/tmp
-if [[ -f /opt/matomo/.mariadb-creds ]]; then
-  chown root:root /opt/matomo/.mariadb-creds
-  chmod 600 /opt/matomo/.mariadb-creds
-fi
 msg_ok "Set up Matomo"
 
 msg_info "Configuring Caddy"
@@ -53,7 +48,7 @@ PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
 cat <<EOF >/etc/caddy/Caddyfile
 :80 {
     root * /opt/matomo
-    @blocked path /config /config/* /tmp /tmp/*
+    @blocked path /config /config/* /tmp /tmp/* /.* /.*/*
     respond @blocked 403
     php_fastcgi unix//run/php/php${PHP_VER}-fpm.sock
     file_server
