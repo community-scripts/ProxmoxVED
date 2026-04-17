@@ -38,7 +38,7 @@ if [[ -d /opt/matomo/matomo ]]; then
   find /opt/matomo/matomo -mindepth 1 -maxdepth 1 -exec mv -t /opt/matomo {} +
   rm -rf /opt/matomo/matomo
 fi
-rm -rf /opt/matomo/node_modules /opt/matomo/tests
+rm -rf /opt/matomo/tests
 mkdir -p /opt/matomo/tmp
 chown -R www-data:www-data /opt/matomo
 chmod -R 755 /opt/matomo/tmp

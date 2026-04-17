@@ -41,6 +41,10 @@ sed -i "s|^DB_PASSWORD=.*|DB_PASSWORD=${PG_DB_PASS}|" .env
 sed -i "s|^FILESYSTEM_DISK=.*|FILESYSTEM_DISK=local|" .env
 sed -i "s|^PUBLIC_FILESYSTEM_DISK=.*|PUBLIC_FILESYSTEM_DISK=public|" .env
 sed -i "s|^MAIL_MAILER=.*|MAIL_MAILER=log|" .env
+sed -i "s|^SESSION_SECURE_COOKIE=.*|SESSION_SECURE_COOKIE=false|" .env
+grep -q "^SESSION_SECURE_COOKIE=" .env || echo "SESSION_SECURE_COOKIE=false" >>.env
+sed -i "s|^APP_FORCE_HTTPS=.*|APP_FORCE_HTTPS=false|" .env
+grep -q "^APP_FORCE_HTTPS=" .env || echo "APP_FORCE_HTTPS=false" >>.env
 $STD composer install --no-dev --optimize-autoloader
 php artisan self-host:generate-keys >/tmp/solidtime.keys 2>/dev/null
 while IFS= read -r line; do

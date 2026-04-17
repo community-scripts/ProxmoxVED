@@ -28,7 +28,7 @@ function flatten_matomo_layout() {
     msg_ok "Migrated Legacy Layout"
   fi
 
-  rm -rf /opt/matomo/node_modules /opt/matomo/tests
+  rm -rf /opt/matomo/tests
 }
 
 function update_script() {

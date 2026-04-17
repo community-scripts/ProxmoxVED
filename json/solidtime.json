@@ -35,6 +35,10 @@
     {
       "text": "Create your first account by registering via the web interface.",
       "type": "info"
+    },
+    {
+      "text": "After registering, verify your account via the container shell: php /opt/solidtime/artisan admin:user:verify YOUR@EMAIL",
+      "type": "warning"
     }
   ]
 }
