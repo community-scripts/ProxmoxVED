@@ -32,7 +32,7 @@ if command -v pveversion >/dev/null 2>&1; then
   fi
 
   if [[ "${POCKETR_DB_MODE_WAS_SET}" == "no" && -t 0 && -z "${POCKETR_DB_URL:-${DB_URL:-}}" && -z "${POCKETR_DB_USERNAME:-${DB_USERNAME:-}}" && -z "${POCKETR_DB_PASSWORD:-${DB_PASSWORD:-}}" ]]; then
-    if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pocketr Database" --yesno "Use an external PostgreSQL database?\n\nDefault: No, install PostgreSQL inside this LXC." 10 68; then
+    if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pocketr Database" --defaultno --yesno "Use an external PostgreSQL database?\n\nDefault: No, install PostgreSQL inside this LXC." 10 68; then
       POCKETR_DB_MODE="external"
     fi
   fi
