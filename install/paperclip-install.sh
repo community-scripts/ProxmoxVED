@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-install_packages_with_retry \
+$STD apt install -y \
   build-essential \
   git \
   python3 \
@@ -69,9 +69,11 @@ msg_info "Bootstrapping Paperclip"
 PAPERCLIP_ONBOARD_LOG=/opt/paperclip/paperclip-onboard.log
 PAPERCLIP_BOOTSTRAP_LOG=/opt/paperclip/paperclip-bootstrap.log
 
-run_paperclip_onboard() {
+for PAPERCLIP_ONBOARD_CMD in \
+  "pnpm paperclipai onboard --yes --bind lan" \
+  "pnpm paperclipai onboard --yes"; do
   rm -f "$PAPERCLIP_ONBOARD_LOG"
-  setsid bash -c "cd /opt/paperclip && $1" >"$PAPERCLIP_ONBOARD_LOG" 2>&1 &
+  setsid bash -c "cd /opt/paperclip && ${PAPERCLIP_ONBOARD_CMD}" >"$PAPERCLIP_ONBOARD_LOG" 2>&1 &
   PAPERCLIP_ONBOARD_PID=$!
   for _ in {1..60}; do
     if [[ -f /opt/paperclip-data/instances/default/config.json ]]; then
@@ -86,13 +88,12 @@ run_paperclip_onboard() {
     kill -- -"${PAPERCLIP_ONBOARD_PID}" >/dev/null 2>&1 || true
     wait "$PAPERCLIP_ONBOARD_PID" 2>/dev/null || true
   fi
-}
-
-run_paperclip_onboard "pnpm paperclipai onboard --yes --bind lan"
-if [[ ! -f /opt/paperclip-data/instances/default/config.json ]] && grep -q "unknown option '--bind'" "$PAPERCLIP_ONBOARD_LOG"; then
+  [[ -f /opt/paperclip-data/instances/default/config.json ]] && break
+  if ! grep -q "unknown option '--bind'" "$PAPERCLIP_ONBOARD_LOG"; then
+    break
+  fi
   msg_info "Retrying Paperclip Onboarding"
-  run_paperclip_onboard "pnpm paperclipai onboard --yes"
-fi
+done
 
 if [[ ! -f /opt/paperclip-data/instances/default/config.json ]]; then
   msg_error "Failed to bootstrap Paperclip"
