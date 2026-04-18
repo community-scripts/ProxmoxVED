@@ -1,0 +1,60 @@
+{
+  "name": "Pocketr",
+  "slug": "pocketr",
+  "categories": [
+    23
+  ],
+  "date_created": "2026-04-18",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8081,
+  "documentation": "https://github.com/devdecrux/pocketr-app#readme",
+  "website": "https://github.com/devdecrux/pocketr-app",
+  "logo": "https://raw.githubusercontent.com/devdecrux/pocketr-app/master/pocketr-ui/public/favicon.ico",
+  "description": "Self-hosted personal finance and household budgeting application for tracking accounts, categories, ledger transactions, reports, and shared household workflows.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/pocketr.sh",
+      "config_path": "/opt/pocketr/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Access the app at `/frontend`; the API is served from `/api/v1` on the same port.",
+      "type": "info"
+    },
+    {
+      "text": "Create the first user by registering from the web interface.",
+      "type": "info"
+    },
+    {
+      "text": "The script installs the published Pocketr release jar, which includes the built Vue frontend.",
+      "type": "info"
+    },
+    {
+      "text": "By default the script installs PostgreSQL locally. To use an existing PostgreSQL server, run with `POCKETR_DB_MODE=external`, `POCKETR_DB_URL`, `POCKETR_DB_USERNAME`, and `POCKETR_DB_PASSWORD`; the external database must already exist and be reachable.",
+      "type": "info"
+    },
+    {
+      "text": "If an external database cannot be reached during install, the LXC is kept and `pocketr.service` is enabled but not started. Edit `/opt/pocketr/.env`, then run `systemctl start pocketr`; enabled services also start on LXC reboot.",
+      "type": "warning"
+    },
+    {
+      "text": "For local PostgreSQL installs, generated database credentials are saved to `~/pocketr.creds`. Runtime configuration is in `/opt/pocketr/.env`.",
+      "type": "info"
+    }
+  ]
+}
