@@ -19,7 +19,6 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="opentoggl" PG_DB_USER="opentoggl" setup_postgresql_db
-get_lxc_ip
 
 fetch_and_deploy_gh_release "opentoggl" "CorrectRoadH/opentoggl" "singlefile" "latest" "/usr/local/bin" "opentoggl-linux-amd64"
 chmod +x /usr/local/bin/opentoggl
@@ -54,8 +53,7 @@ User=root
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now redis
-systemctl enable -q --now opentoggl
+systemctl enable -q --now redis opentoggl
 msg_ok "Created Service"
 
 motd_ssh
