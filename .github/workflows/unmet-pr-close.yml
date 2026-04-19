@@ -29,44 +29,25 @@ jobs:
             function findLine(text) {
               return lines.find(l => l.includes(text));
             }
-            // detect if "New script" is checked
-            const newScriptLine = findLine("🆕 **New script**");
-            if (!newScriptLine || !checkboxChecked(newScriptLine)) {
-              console.log("Not a new script PR — skipping requirement check.");
-              return;
-            }
-            const requirements = [
-              "The application is **at least 6 months old**",
-              "The application is **actively maintained**",
-              "The application has **600+ GitHub stars**",
-              "Official **release tarballs** are published",
-              "I understand that not all scripts will be accepted"
-            ];
 
-            // Split the two cases: "line not present at all" vs "line present but unchecked".
-            const absent = [];
-            const unchecked = [];
-            for (const req of requirements) {
-              const line = findLine(req);
-              if (!line) {
-                absent.push(req);
-              } else if (!checkboxChecked(line)) {
-                unchecked.push(req);
-              }
-            }
-
-            // Case 1: zero requirement lines found in the body → wrong PR template was used.
-            if (absent.length === requirements.length) {
+            // --- Template presence check (runs FIRST, before anything else) ---
+            // The "📦 Application Requirements" header is unique to the ProxmoxVED template.
+            // If it's absent, the contributor used the wrong template OR no template at all.
+            // Close the PR with a clear message regardless of what else is in the body.
+            const templateSentinel = findLine("📦 Application Requirements");
+            if (!templateSentinel) {
               const message =
-                "❌ **Pull Request Closed – Wrong PR Template**\n\n" +
-                "This pull request is marked as **🆕 New script**, but the **📦 Application Requirements** section is missing from the PR description.\n\n" +
-                "It looks like this PR was opened using the **main repo's** PR template instead of the ProxmoxVED template. " +
-                "New script submissions require the additional **Application Requirements** checklist that is only present in the ProxmoxVED template.\n\n" +
+                "❌ **Pull Request Closed – PR Template Not Used**\n\n" +
+                "The PR description is missing the **📦 Application Requirements** section, which means this PR was not opened with the ProxmoxVED PR template.\n\n" +
+                "This usually happens in one of two ways:\n" +
+                "- The **main repo's** PR template was used instead of the ProxmoxVED one, or\n" +
+                "- The template was cleared or overwritten with a custom description.\n\n" +
+                "The ProxmoxVED template contains required sections (Type of Change, Code & Security Review, Application Requirements, Source) that the maintainers rely on to review submissions. A custom description — no matter how thorough — cannot replace it.\n\n" +
                 "### What to do\n" +
                 "1. Open a **new PR** in this repository.\n" +
-                "2. When the PR form loads, make sure the description contains the **📦 Application Requirements** section (with the 5 checkboxes for age, maintenance, stars, tarballs, and acceptance criteria). If it doesn't, clear the description and reload, or copy the template manually from " +
+                "2. When the PR form loads, the ProxmoxVED template should appear automatically in the description. If it doesn't, copy it manually from " +
                 "[`.github/pull_request_template.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/pull_request_template.md).\n" +
-                "3. Fill out the checklist and confirm each requirement before submitting.\n\n" +
+                "3. Fill out the checkboxes and relevant sections — you can keep your original write-up by pasting it into the Description section of the template.\n\n" +
                 "---\n\n" +
                 "⚠ **Maintainer note**\n\n" +
                 "**Please do not ping or repeatedly contact maintainers to reopen this PR.** Open a fresh PR with the correct template instead.";
@@ -82,12 +63,34 @@ jobs:
                 pull_number: context.issue.number,
                 state: "closed"
               });
-              core.setFailed("New script PR opened with the wrong template (Application Requirements section missing).");
+              core.setFailed("PR opened without the ProxmoxVED template (Application Requirements section missing).");
               return;
             }
 
-            // Case 2: correct template, but some boxes unchecked (or a partial template edit).
-            const missing = [...absent, ...unchecked];
+            // --- New script check ---
+            const newScriptLine = findLine("🆕 **New script**");
+            if (!newScriptLine || !checkboxChecked(newScriptLine)) {
+              console.log("Not a new script PR — skipping requirement check.");
+              return;
+            }
+
+            // --- Requirement checklist ---
+            const requirements = [
+              "The application is **at least 6 months old**",
+              "The application is **actively maintained**",
+              "The application has **600+ GitHub stars**",
+              "Official **release tarballs** are published",
+              "I understand that not all scripts will be accepted"
+            ];
+
+            const missing = [];
+            for (const req of requirements) {
+              const line = findLine(req);
+              if (!line || !checkboxChecked(line)) {
+                missing.push(req);
+              }
+            }
+
             if (missing.length > 0) {
               let list = "";
               for (const m of missing) {
