@@ -1,0 +1,40 @@
+{
+  "name": "Akaunting",
+  "slug": "akaunting",
+  "categories": [
+    23
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://akaunting.com/hc/docs",
+  "website": "https://akaunting.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/akaunting.webp",
+  "description": "Akaunting is a free, open-source online accounting software designed for small businesses and freelancers, featuring invoicing, expense tracking, and financial reporting.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/akaunting.sh",
+      "config_path": "/opt/akaunting/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Complete the setup wizard via the web interface on first access.",
+      "type": "info"
+    }
+  ]
+}

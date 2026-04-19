@@ -1,0 +1,44 @@
+{
+    "name": "ClickHouse",
+    "slug": "clickhouse",
+    "categories": [
+        8
+    ],
+    "date_created": "2026-04-14",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8123,
+    "documentation": "https://clickhouse.com/docs/",
+    "website": "https://clickhouse.com/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/clickhouse.webp",
+    "description": "ClickHouse is an open-source, high-performance columnar database management system designed for real-time analytics and data processing using SQL queries.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/clickhouse.sh",
+            "config_path": "/etc/clickhouse-server/config.xml",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 10,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "default",
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "The default user 'default' has no password. Set a password for production use.",
+            "type": "warning"
+        },
+        {
+            "text": "During setup you can optionally install ClickStack (HyperDX UI + OTel Collector + MongoDB) for full observability. This requires 4 CPU, 8GB RAM, and 30GB disk.",
+            "type": "info"
+        }
+    ]
+}

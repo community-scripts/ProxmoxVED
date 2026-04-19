@@ -10,7 +10,6 @@
   "privileged": false,
   "interface_port": null,
   "documentation": "https://forgejo.org/docs/latest/admin/actions/runner-installation/",
-  "config_path": "/root/.runner",
   "website": "https://forgejo.org/docs/latest/admin/actions/runner-installation/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/forgejo.webp",
   "description": "Forgejo Runner is a lightweight service that executes CI/CD jobs for Forgejo, enabling automated builds, tests, and deployments.",
@@ -18,6 +17,7 @@
     {
       "type": "default",
       "script": "ct/forgejo-runner.sh",
+      "config_path": "/root/.runner",
       "resources": {
         "cpu": 2,
         "ram": 2048,

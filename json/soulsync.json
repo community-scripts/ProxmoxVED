@@ -1,44 +1,44 @@
 {
-    "name": "SoulSync",
-    "slug": "soulsync",
-    "categories": [
-        13
-    ],
-    "date_created": "2026-04-02",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 8008,
-    "documentation": "https://github.com/Nezreka/SoulSync#readme",
-    "website": "https://github.com/Nezreka/SoulSync",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/soulsync.webp",
-    "config_path": "/opt/soulsync/config",
-    "description": "SoulSync is an intelligent music discovery and automation platform. It monitors artists, generates playlists, downloads missing tracks from multiple sources, verifies audio fingerprints, enriches metadata, and syncs with your media server.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/soulsync.sh",
-            "resources": {
-                "cpu": 2,
-                "ram": 2048,
-                "hdd": 8,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
+  "name": "SoulSync",
+  "slug": "soulsync",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-04-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8008,
+  "documentation": "https://github.com/Nezreka/SoulSync#readme",
+  "website": "https://github.com/Nezreka/SoulSync",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/soulsync.webp",
+  "description": "SoulSync is an intelligent music discovery and automation platform. It monitors artists, generates playlists, downloads missing tracks from multiple sources, verifies audio fingerprints, enriches metadata, and syncs with your media server.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/soulsync.sh",
+      "config_path": "/opt/soulsync/config",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Requires a running slskd instance for Soulseek downloads. Configure in Settings → Downloads.",
+      "type": "warning"
     },
-    "notes": [
-        {
-            "text": "Requires a running slskd instance for Soulseek downloads. Configure in Settings → Downloads.",
-            "type": "warning"
-        },
-        {
-            "text": "Spotify API credentials are optional but recommended for discovery features. Configure at `http://IP:8008` → Settings.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "Spotify API credentials are optional but recommended for discovery features. Configure at `http://IP:8008` → Settings.",
+      "type": "info"
+    }
+  ]
 }

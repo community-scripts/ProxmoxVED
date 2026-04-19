@@ -52,10 +52,43 @@ jobs:
               const hasKeepOpen = labels.includes("keep-open");
 
               // -------------------------------------------------------
-              // NEW: Auto-label PRs with no activity in the last 14 days
+              // Auto-label PRs with no activity in the last 14 days,
+              // but ONLY if a maintainer has engaged with the PR at least once.
               // -------------------------------------------------------
               if (!hasStale && !hasKeepOpen) {
-                // Find the most recent commit date
+                const author = pr.user.login;
+
+                // Fetch reviews and issue comments to determine maintainer engagement.
+                const { data: reviews } = await github.rest.pulls.listReviews({
+                  owner,
+                  repo,
+                  pull_number: pr.number,
+                  per_page: 100
+                });
+
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner,
+                  repo,
+                  issue_number: pr.number,
+                  per_page: 100
+                });
+
+                // A "maintainer touch" is any review or comment from a non-bot account
+                // that isn't the PR author.
+                const hasNonAuthorReview = reviews.some(
+                  r => r.user?.type !== "Bot" && r.user?.login !== author
+                );
+                const hasNonAuthorComment = comments.some(
+                  c => c.user?.type !== "Bot" && c.user?.login !== author
+                );
+
+                if (!hasNonAuthorReview && !hasNonAuthorComment) {
+                  // No one but the author (and bots) has touched this PR.
+                  // Don't penalize the contributor with a stale label — skip it.
+                  continue;
+                }
+
+                // --- Activity check (unchanged logic) ---
                 const { data: commits } = await github.rest.pulls.listCommits({
                   owner,
                   repo,
@@ -65,13 +98,6 @@ jobs:
                   ? new Date(commits[commits.length - 1].commit.author.date)
                   : new Date(pr.created_at);
 
-                // Find the most recent non-bot comment date
-                const { data: comments } = await github.rest.issues.listComments({
-                  owner,
-                  repo,
-                  issue_number: pr.number,
-                  per_page: 100
-                });
                 const humanComments = comments.filter(c => c.user?.type !== "Bot");
                 const lastCommentDate = humanComments.length > 0
                   ? new Date(humanComments[humanComments.length - 1].created_at)

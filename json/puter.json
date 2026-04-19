@@ -1,40 +1,40 @@
 {
-    "name": "Puter",
-    "slug": "puter",
-    "categories": [
-        0
-    ],
-    "date_created": "2026-04-04",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 4100,
-    "documentation": "https://docs.puter.com/",
-    "website": "https://puter.com/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/puter.webp",
-    "config_path": "/etc/puter",
-    "description": "Puter is an open-source personal cloud and web desktop environment that runs in your browser, providing a full desktop experience with file management, app ecosystem, and cloud storage.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/puter.sh",
-            "resources": {
-                "cpu": 2,
-                "ram": 2048,
-                "hdd": 8,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
-    },
-    "notes": [
-        {
-            "text": "Configuration is stored in /etc/puter and data in /var/puter.",
-            "type": "info"
-        }
-    ]
+  "name": "Puter",
+  "slug": "puter",
+  "categories": [
+    0
+  ],
+  "date_created": "2026-04-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 4100,
+  "documentation": "https://docs.puter.com/",
+  "website": "https://puter.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/puter.webp",
+  "description": "Puter is an open-source personal cloud and web desktop environment that runs in your browser, providing a full desktop experience with file management, app ecosystem, and cloud storage.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/puter.sh",
+      "config_path": "/etc/puter",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Configuration is stored in /etc/puter and data in /var/puter.",
+      "type": "info"
+    }
+  ]
 }

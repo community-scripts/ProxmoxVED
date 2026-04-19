@@ -1,0 +1,40 @@
+{
+  "name": "Gogs",
+  "slug": "gogs",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://gogs.io/docs",
+  "website": "https://gogs.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/gogs.webp",
+  "description": "Gogs is a painless self-hosted Git service written in Go, designed to be the easiest, fastest, and most lightweight way to set up a self-hosted Git service.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/gogs.sh",
+      "config_path": "/opt/gogs/custom/conf/app.ini",
+      "resources": {
+        "cpu": 2,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Complete the initial setup via the web installer on first access.",
+      "type": "info"
+    }
+  ]
+}

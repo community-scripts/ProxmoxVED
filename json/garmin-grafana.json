@@ -1,44 +1,44 @@
 {
-    "name": "garmin-grafana",
-    "slug": "garmin-grafana",
-    "categories": [
-        9
-    ],
-    "date_created": "2025-05-08",
-    "type": "addon",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 3000,
-    "documentation": "https://github.com/arpanghosh8453/garmin-grafana",
-    "config_path": "/opt/garmin-grafana/.env",
-    "website": "https://github.com/arpanghosh8453/garmin-grafana",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/garmin-grafana.webp",
-    "description": "A self-hosted solution to fetch data from Garmin servers and store it in a local InfluxDB database for visualization with Grafana.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "/tools/addon/garmin-grafana.sh",
-            "resources": {
-                "cpu": null,
-                "ram": null,
-                "hdd": null,
-                "os": null,
-                "version": null
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
+  "name": "garmin-grafana",
+  "slug": "garmin-grafana",
+  "categories": [
+    9
+  ],
+  "date_created": "2025-05-08",
+  "type": "addon",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://github.com/arpanghosh8453/garmin-grafana",
+  "website": "https://github.com/arpanghosh8453/garmin-grafana",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/garmin-grafana.webp",
+  "description": "A self-hosted solution to fetch data from Garmin servers and store it in a local InfluxDB database for visualization with Grafana.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "/tools/addon/garmin-grafana.sh",
+      "config_path": "/opt/garmin-grafana/.env",
+      "resources": {
+        "cpu": null,
+        "ram": null,
+        "hdd": null,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Grafana and InfluxDB credentials are stored in `/opt/garmin-grafana/.env`.",
+      "type": "info"
     },
-    "notes": [
-        {
-            "text": "Grafana and InfluxDB credentials are stored in `/opt/garmin-grafana/.env`.",
-            "type": "info"
-        },
-        {
-            "text": "`garmin-grafana` only imports the past 7 days by default. To import historical data, use `/usr/local/bin/garmin-bulk-import` after installation.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "`garmin-grafana` only imports the past 7 days by default. To import historical data, use `/usr/local/bin/garmin-bulk-import` after installation.",
+      "type": "info"
+    }
+  ]
 }

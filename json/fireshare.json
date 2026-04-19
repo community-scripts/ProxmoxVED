@@ -12,12 +12,12 @@
   "documentation": "https://github.com/ShaneIsrael/fireshare/blob/develop/README.md",
   "website": "https://github.com/ShaneIsrael/fireshare",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/fireshare.webp",
-  "config_path": "/opt/fireshare/fireshare.env",
   "description": "Fireshare is a self-hosted app that lets you share videos — particularly gaming clips — via unique links. You upload videos to a folder, and the app generates shareable URLs for each one. It's designed as a lightweight alternative to services like Medal or YouTube for people who want full control over their content without relying on third-party platforms.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/fireshare.sh",
+      "config_path": "/opt/fireshare/fireshare.env",
       "resources": {
         "cpu": 2,
         "ram": 2048,

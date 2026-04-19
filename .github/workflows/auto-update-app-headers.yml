@@ -1,0 +1,70 @@
+name: Auto Update App Headers
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "ct/**.sh"
+      - "vm/**.sh"
+      - "tools/**.sh"
+  workflow_dispatch:
+
+jobs:
+  update-app-headers:
+    if: github.repository == 'community-scripts/ProxmoxVED'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Generate app token
+        id: generate-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install figlet
+        run: sudo apt-get install -y figlet
+
+      - name: Generate app headers
+        run: |
+          chmod +x .github/workflows/scripts/generate-app-headers.sh
+          .github/workflows/scripts/generate-app-headers.sh
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --stat --cached
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          git commit -m "chore: update app headers [skip ci]"
+          git pull --rebase origin main
+          git push origin main
+
+      - name: No changes detected
+        if: steps.check_changes.outputs.changed == 'false'
+        run: echo "No changes to commit. Workflow completed successfully."

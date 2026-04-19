@@ -105,8 +105,9 @@ function uninstall_mqttx() {
 
 function update_mqttx() {
   if check_for_gh_release "mqttx" "$REPO"; then
-    msg_info "Updating ${APP}"
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "mqttx" "$REPO" "tarball" "latest" "$APP_DIR"
+
+    msg_info "Updating ${APP}"
     cd "$APP_DIR/web"
     $STD yarn install --frozen-lockfile --ignore-engines
     $STD yarn build

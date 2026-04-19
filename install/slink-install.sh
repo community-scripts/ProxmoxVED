@@ -54,17 +54,16 @@ sed -i "s|sqlite:////app/var/data|sqlite:////opt/slink/services/api/var/data|g" 
 export APP_ENV=prod
 mkdir -p /opt/slink/services/api/var/data
 mkdir -p /opt/slink/services/api/config/jwt
-openssl genpkey -algorithm RSA -out /opt/slink/services/api/config/jwt/private.pem -aes256 -pass "pass:${JWT_PASS}" 2>/dev/null
-openssl pkey -in /opt/slink/services/api/config/jwt/private.pem -out /opt/slink/services/api/config/jwt/public.pem -pubout -passin "pass:${JWT_PASS}" 2>/dev/null
 $STD composer install --no-dev --optimize-autoloader --no-interaction
 mkdir -p /opt/slink/{data,images}
 sed -i "s|'/services/api/|'/opt/slink/services/api/|" config/migrations/event_store.yaml
-php bin/console lexik:jwt:generate-keypair --skip-if-exists >/dev/null 2>&1 || true
-$STD php bin/console doctrine:database:create --connection=event_store --if-not-exists --no-interaction
-$STD php bin/console doctrine:database:create --connection=read_model --if-not-exists --no-interaction
+$STD php bin/console lexik:jwt:generate-keypair --overwrite --no-interaction
+chmod 644 /opt/slink/services/api/config/jwt/private.pem
+touch /opt/slink/services/api/var/data/slink_store.db
+touch /opt/slink/services/api/var/data/slink.db
 $STD php bin/console doctrine:migrations:migrate --no-interaction --em=read_model
-$STD php bin/console doctrine:migrations:migrate --no-interaction --configuration=config/migrations/event_store.yaml --em=event_store
 $STD php bin/console messenger:setup-transports --no-interaction
+$STD php bin/console doctrine:schema:update --force --em=event_store
 $STD php bin/console slink:admin:init --no-interaction
 $STD php bin/console cache:warm --no-optional-warmers
 msg_ok "Set up API"
@@ -88,6 +87,7 @@ PORT=3000
 NODE_ENV=production
 BODY_SIZE_LIMIT=Infinity
 ORIGIN=http://${LOCAL_IP}:3000
+API_URL=http://127.0.0.1:8080
 EOF
 cat <<'EOF' >/etc/systemd/system/slink-client.service
 [Unit]
@@ -106,7 +106,8 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now redis-server php${PHP_VER}-fpm caddy slink-client
+systemctl enable -q --now redis-server php${PHP_VER}-fpm slink-client
+systemctl restart caddy
 {
   echo "Slink Credentials"
   echo "Admin Email: admin@slink.local"

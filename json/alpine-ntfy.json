@@ -1,40 +1,40 @@
 {
-    "name": "Alpine-ntfy",
-    "slug": "alpine-ntfy",
-    "categories": [
-        18
-    ],
-    "date_created": "2025-06-10",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 80,
-    "documentation": "https://docs.ntfy.sh/",
-    "website": "https://ntfy.sh/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ntfy.webp",
-    "config_path": "/etc/ntfy/server.yml",
-    "description": "ntfy is a simple HTTP-based pub-sub notification service that lets you send push notifications to your phone or desktop via scripts, without signup or cost.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/alpine-ntfy.sh",
-            "resources": {
-                "cpu": 1,
-                "ram": 256,
-                "hdd": 2,
-                "os": "Alpine",
-                "version": "3.22"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
-    },
-    "notes": [
-        {
-            "text": "Alpine-based LXC using apk package manager.",
-            "type": "info"
-        }
-    ]
+  "name": "Alpine-ntfy",
+  "slug": "alpine-ntfy",
+  "categories": [
+    18
+  ],
+  "date_created": "2025-06-10",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://docs.ntfy.sh/",
+  "website": "https://ntfy.sh/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ntfy.webp",
+  "description": "ntfy is a simple HTTP-based pub-sub notification service that lets you send push notifications to your phone or desktop via scripts, without signup or cost.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/alpine-ntfy.sh",
+      "config_path": "/etc/ntfy/server.yml",
+      "resources": {
+        "cpu": 1,
+        "ram": 256,
+        "hdd": 2,
+        "os": "Alpine",
+        "version": "3.22"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Alpine-based LXC using apk package manager.",
+      "type": "info"
+    }
+  ]
 }

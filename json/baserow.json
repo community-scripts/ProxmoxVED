@@ -1,48 +1,48 @@
 {
-    "name": "Baserow",
-    "slug": "baserow",
-    "categories": [
-        8
-    ],
-    "date_created": "2026-03-25",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 3000,
-    "documentation": "https://baserow.io/docs/index",
-    "website": "https://baserow.io/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/baserow.webp",
-    "config_path": "/opt/baserow/.env",
-    "description": "Baserow is an open-source no-code database platform for building databases, applications, automations, and AI agents without code.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/baserow.sh",
-            "resources": {
-                "cpu": 4,
-                "ram": 8192,
-                "hdd": 15,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
+  "name": "Baserow",
+  "slug": "baserow",
+  "categories": [
+    8
+  ],
+  "date_created": "2026-03-25",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://baserow.io/docs/index",
+  "website": "https://baserow.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/baserow.webp",
+  "description": "Baserow is an open-source no-code database platform for building databases, applications, automations, and AI agents without code.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/baserow.sh",
+      "config_path": "/opt/baserow/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 15,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "First visit will prompt you to create an admin account.",
+      "type": "info"
     },
-    "notes": [
-        {
-            "text": "First visit will prompt you to create an admin account.",
-            "type": "info"
-        },
-        {
-            "text": "Building from source requires significant resources and may take 10+ minutes.",
-            "type": "warning"
-        },
-        {
-            "text": "Update BASEROW_PUBLIC_URL in /opt/baserow/.env if accessing from a different hostname.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "Building from source requires significant resources and may take 10+ minutes.",
+      "type": "warning"
+    },
+    {
+      "text": "Update BASEROW_PUBLIC_URL in /opt/baserow/.env if accessing from a different hostname.",
+      "type": "info"
+    }
+  ]
 }

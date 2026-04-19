@@ -1,0 +1,40 @@
+{
+  "name": "Matomo",
+  "slug": "matomo",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://matomo.org/docs/",
+  "website": "https://matomo.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/matomo.webp",
+  "description": "Matomo is the leading free and open-source web analytics platform, providing a privacy-respecting alternative to Google Analytics with full data ownership.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/matomo.sh",
+      "config_path": "/opt/matomo/config/config.ini.php",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Complete the setup wizard via the web interface on first access. Database credentials are stored in /opt/matomo/.mariadb-creds.",
+      "type": "info"
+    }
+  ]
+}

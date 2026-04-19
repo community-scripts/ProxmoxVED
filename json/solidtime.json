@@ -1,0 +1,44 @@
+{
+  "name": "SolidTime",
+  "slug": "solidtime",
+  "categories": [
+    25
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://docs.solidtime.io/",
+  "website": "https://www.solidtime.io/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/solidtime.webp",
+  "description": "SolidTime is a modern open-source time tracking application for freelancers and agencies, featuring project management, task tracking, billable rates, and multiple organizations.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/solidtime.sh",
+      "config_path": "/opt/solidtime/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Create your first account by registering via the web interface.",
+      "type": "info"
+    },
+    {
+      "text": "After registering, verify your account via the container shell: php /opt/solidtime/artisan admin:user:verify YOUR@EMAIL",
+      "type": "warning"
+    }
+  ]
+}

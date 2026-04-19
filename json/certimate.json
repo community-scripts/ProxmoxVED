@@ -1,0 +1,40 @@
+{
+  "name": "Certimate",
+  "slug": "certimate",
+  "categories": [
+    6
+  ],
+  "date_created": "2026-07-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8090,
+  "documentation": "https://docs.certimate.me/",
+  "website": "https://certimate.me/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/certimate.webp",
+  "description": "Certimate is an open-source SSL certificate management tool that automates the application, deployment, and renewal of SSL certificates, supporting integration with various cloud providers and deployment targets.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/certimate.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 1,
+        "ram": 256,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin@certimate.fun",
+    "password": "1234567890"
+  },
+  "notes": [
+    {
+      "text": "Change the default password after first login!",
+      "type": "warning"
+    }
+  ]
+}

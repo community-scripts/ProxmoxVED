@@ -1,48 +1,48 @@
 {
-    "name": "LobeHub",
-    "slug": "lobehub",
-    "categories": [
-        20
-    ],
-    "date_created": "2026-03-25",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 3210,
-    "documentation": "https://lobehub.com/docs",
-    "website": "https://lobehub.com/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/lobechat.webp",
-    "config_path": "/opt/lobehub/.env",
-    "description": "LobeHub is an open-source AI chat platform supporting multiple AI providers, plugins, and knowledge base with a modern interface.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/lobehub.sh",
-            "resources": {
-                "cpu": 4,
-                "ram": 8192,
-                "hdd": 15,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
+  "name": "LobeHub",
+  "slug": "lobehub",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-03-25",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3210,
+  "documentation": "https://lobehub.com/docs",
+  "website": "https://lobehub.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/lobechat.webp",
+  "description": "LobeHub is an open-source AI chat platform supporting multiple AI providers, plugins, and knowledge base with a modern interface.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/lobehub.sh",
+      "config_path": "/opt/lobehub/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 15,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Configure your AI provider API keys in /opt/lobehub/.env (e.g. OPENAI_API_KEY).",
+      "type": "info"
     },
-    "notes": [
-        {
-            "text": "Configure your AI provider API keys in /opt/lobehub/.env (e.g. OPENAI_API_KEY).",
-            "type": "info"
-        },
-        {
-            "text": "Building from source requires significant resources and may take 10+ minutes.",
-            "type": "warning"
-        },
-        {
-            "text": "Update APP_URL in /opt/lobehub/.env if accessing from a different hostname.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "Building from source requires significant resources and may take 10+ minutes.",
+      "type": "warning"
+    },
+    {
+      "text": "Update APP_URL in /opt/lobehub/.env if accessing from a different hostname.",
+      "type": "info"
+    }
+  ]
 }

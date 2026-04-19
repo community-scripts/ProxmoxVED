@@ -10,7 +10,6 @@
   "privileged": false,
   "interface_port": 80,
   "documentation": "https://caddymanager.online/#/docs",
-  "config_path": "/opt/caddymanager/caddymanager.env",
   "website": "https://caddymanager.online",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/caddymanager.webp",
   "description": "Caddy Manager is a free, open source tool to easily manage your Caddy web servers with a modern web interace. Simplify your workflow and focus on what matters.",
@@ -18,6 +17,7 @@
     {
       "type": "default",
       "script": "ct/caddymanager.sh",
+      "config_path": "/opt/caddymanager/caddymanager.env",
       "resources": {
         "cpu": 1,
         "ram": 1024,

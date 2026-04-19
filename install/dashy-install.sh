@@ -13,13 +13,12 @@ setting_up_container
 network_check
 update_os
 
-NODE_VERSION="24" setup_nodejs
-fetch_and_deploy_gh_release "dashy" "Lissy93/dashy" "tarball"
+NODE_VERSION="24" NODE_MODULE="yarn" setup_nodejs
+fetch_and_deploy_gh_release "dashy" "Lissy93/dashy" "prebuild" "latest" "/opt/dashy" "dashy-*.tar.gz"
 
 msg_info "Installing Dashy"
 cd /opt/dashy
-$STD npm install
-$STD npm run build
+$STD yarn install --ignore-engines --network-timeout 300000
 msg_ok "Installed Dashy"
 
 msg_info "Creating Service"
@@ -30,7 +29,8 @@ Description=dashy
 [Service]
 Type=simple
 WorkingDirectory=/opt/dashy
-ExecStart=/usr/bin/npm start
+Environment=NODE_OPTIONS=--openssl-legacy-provider
+ExecStart=/usr/bin/node server.js
 [Install]
 WantedBy=multi-user.target
 EOF

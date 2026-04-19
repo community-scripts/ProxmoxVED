@@ -12,12 +12,12 @@
   "documentation": "https://developers.plane.so/self-hosting/overview",
   "website": "https://plane.so",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/plane.webp",
-  "config_path": "/opt/plane/apps/api/.env",
   "description": "Open-source project tracking tool that helps teams plan, track, and manage their software projects with issues, cycles, and modules.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/plane.sh",
+      "config_path": "/opt/plane/apps/api/.env",
       "resources": {
         "cpu": 4,
         "ram": 6144,

@@ -12,12 +12,12 @@
   "documentation": "https://appriseit.com/api/",
   "website": "https://appriseit.com/api/",
   "logo": "https://appriseit.com/_s/apprise-full-logo-light.DZmBGJFz.svg",
-  "config_path": "/config",
   "description": "The Apprise API is a web-based gateway to the Apprise library.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/apprise-api.sh",
+      "config_path": "/config",
       "resources": {
         "cpu": 1,
         "ram": 512,

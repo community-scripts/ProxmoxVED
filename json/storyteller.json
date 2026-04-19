@@ -1,48 +1,48 @@
 {
-    "name": "Storyteller",
-    "slug": "storyteller",
-    "categories": [
-        13
-    ],
-    "date_created": "2026-03-25",
-    "type": "ct",
-    "updateable": true,
-    "privileged": false,
-    "interface_port": 8001,
-    "documentation": "https://storyteller-platform.dev/docs/welcome",
-    "website": "https://storyteller-platform.dev/",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/storyteller.webp",
-    "config_path": "/opt/storyteller/.env",
-    "description": "Storyteller is a self-hosted platform for creating and reading ebooks with synced narration, combining audiobooks and ebooks with automatic synchronization.",
-    "install_methods": [
-        {
-            "type": "default",
-            "script": "ct/storyteller.sh",
-            "resources": {
-                "cpu": 4,
-                "ram": 10240,
-                "hdd": 16,
-                "os": "Debian",
-                "version": "13"
-            }
-        }
-    ],
-    "default_credentials": {
-        "username": null,
-        "password": null
+  "name": "Storyteller",
+  "slug": "storyteller",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-03-25",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8001,
+  "documentation": "https://storyteller-platform.dev/docs/welcome",
+  "website": "https://storyteller-platform.dev/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/storyteller.webp",
+  "description": "Storyteller is a self-hosted platform for creating and reading ebooks with synced narration, combining audiobooks and ebooks with automatic synchronization.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/storyteller.sh",
+      "config_path": "/opt/storyteller/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 10240,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Minimum 8GB RAM recommended. AI-based transcription is resource-intensive.",
+      "type": "warning"
     },
-    "notes": [
-        {
-            "text": "Minimum 8GB RAM recommended. AI-based transcription is resource-intensive.",
-            "type": "warning"
-        },
-        {
-            "text": "Secret key is stored in `/opt/storyteller/.env`.",
-            "type": "info"
-        },
-        {
-            "text": "GPU acceleration is not available in the LXC version. Use CPU-based transcription.",
-            "type": "info"
-        }
-    ]
+    {
+      "text": "Secret key is stored in `/opt/storyteller/.env`.",
+      "type": "info"
+    },
+    {
+      "text": "GPU acceleration is not available in the LXC version. Use CPU-based transcription.",
+      "type": "info"
+    }
+  ]
 }

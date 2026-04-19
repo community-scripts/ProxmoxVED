@@ -10,7 +10,6 @@
   "privileged": false,
   "interface_port": 4141,
   "documentation": "https://foldergram.github.io/quick-start",
-  "config_path": "/opt/foldergram/foldergram.env",
   "website": "https://foldergram.github.io/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/foldergram.webp",
   "description": "Foldergram is a self-hosted web application that turns your local folders into a beautiful, instagram-style feed and profile. It turns your local folder to app folders (profiles), and serves a lightning-fast Progressive Web App (PWA).",
@@ -18,6 +17,7 @@
     {
       "type": "default",
       "script": "ct/foldergram.sh",
+      "config_path": "/opt/foldergram/foldergram.env",
       "resources": {
         "cpu": 1,
         "ram": 2048,

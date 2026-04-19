@@ -12,12 +12,12 @@
   "documentation": "https://dashy.to/docs",
   "website": "https://dashy.to/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/dashy.webp",
-  "config_path": "/opt/dashy/user-data/conf.yml",
   "description": "Dashy is a solution that helps you organize your self-hosted services by centralizing access to them through a single interface.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/dashy.sh",
+      "config_path": "/opt/dashy/user-data/conf.yml",
       "resources": {
         "cpu": 2,
         "ram": 2048,

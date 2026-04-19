@@ -86,7 +86,7 @@ cat <<EOF >/etc/default/minio
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=${MINIO_PASS}
 MINIO_VOLUMES=/opt/minio/data
-lMINIO_OPTS="--address :3200 --console-address :3201"
+MINIO_OPTS="--address :3200 --console-address :3201"
 EOF
 cat <<'EOF' >/etc/systemd/system/minio.service
 [Unit]
@@ -104,8 +104,8 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 systemctl enable -q --now minio
-sleep 3
-$STD mc alias set local http://localhost:3200 minioadmin "${MINIO_PASS}"
+sleep 5
+$STD mc alias set local http://127.0.0.1:3200 minioadmin "${MINIO_PASS}"
 $STD mc mb --ignore-existing local/b2-eu-cen
 $STD mc mb --ignore-existing local/wasabi-eu-central-2-v3
 $STD mc mb --ignore-existing local/scw-eu-fr-v3
@@ -337,10 +337,10 @@ msg_info "Creating helper scripts"
 cat <<'EOF' >/usr/local/bin/ente-get-verification
 #!/usr/bin/env bash
 echo "Searching for verification codes in museum logs..."
-journalctl -u ente-museum --no-pager | grep -oP 'SendEmailOTT.*ott:\s*\K\d+' | tail -5
-if [[ $? -ne 0 ]] || [[ -z "$(journalctl -u ente-museum --no-pager | grep -oP 'ott:\s*\K\d+' | tail -1)" ]]; then
-  echo "No codes found via ott pattern. Showing recent relevant logs:"
-  journalctl -u ente-museum --no-pager -n 50 | grep -i "verification\|verify\|code\|ott" | tail -20
+journalctl -u ente-museum --no-pager | grep -oP 'Verification code: \K\d+' | tail -5
+if [[ -z "$(journalctl -u ente-museum --no-pager | grep -oP 'Verification code: \K\d+' | tail -1)" ]]; then
+  echo "No codes found. Showing recent relevant logs:"
+  journalctl -u ente-museum --no-pager -n 50 | grep -iE "verification|ott|code|Skipping sending" | tail -20
 fi
 EOF
 chmod +x /usr/local/bin/ente-get-verification
@@ -349,6 +349,14 @@ cat <<'SETUPEOF' >/usr/local/bin/ente-setup
 #!/usr/bin/env bash
 LOCAL_IP=$(hostname -I | awk '{print $1}')
 DB_NAME="ente_db"
+
+run_psql() {
+  sudo -u postgres psql -t -d "$DB_NAME" -c "$1" 2>/dev/null | xargs
+}
+
+run_psql_exec() {
+  sudo -u postgres psql -d "$DB_NAME" -c "$1" 2>/dev/null
+}
 
 echo "=== Ente First-Time Setup ==="
 echo ""
@@ -364,55 +372,76 @@ echo "Step 1/4: Register your account"
 echo "  Open the web UI: http://${LOCAL_IP}:3000"
 echo "  Create an account with: ${EMAIL}"
 echo ""
+echo "  Make sure you click 'Don't have an account?' and complete the signup form."
+echo ""
 read -r -p "Press ENTER after you submitted the signup form..."
 
 echo ""
 echo "Step 2/4: Getting verification code from logs..."
-sleep 3
-CODE=$(journalctl -u ente-museum --no-pager -n 100 | grep -oP 'ott:\s*\K\d+' | tail -1)
+CODE=""
+for i in 1 2 3; do
+  sleep 3
+  CODE=$(journalctl -u ente-museum --no-pager -n 200 | grep -oP 'Verification code: \K\d+' | tail -1)
+  if [[ -n "$CODE" ]]; then
+    break
+  fi
+  echo "  Attempt ${i}/3: Code not found yet, waiting..."
+done
+
 if [[ -n "$CODE" ]]; then
+  echo ""
   echo "  Your verification code: ${CODE}"
   echo "  Enter this code in the web UI to complete registration."
 else
-  echo "  Could not find code automatically. Check manually:"
-  echo "  journalctl -u ente-museum --no-pager | grep -i ott"
+  echo ""
+  echo "  Could not find the verification code automatically."
+  echo "  This usually means the signup form was not submitted yet."
+  echo ""
+  echo "  Are you sure you entered '${EMAIL}' and clicked 'Create account'?"
+  echo "  You can check manually with: ente-get-verification"
 fi
 echo ""
-read -r -p "Press ENTER after you verified the code..."
-
-USER_ID=$(su -c "psql -t -d ${DB_NAME} -c \"SELECT user_id FROM users WHERE email = '$(echo "$EMAIL" | sed "s/'/''/g')';\"" postgres 2>/dev/null | xargs)
-echo "Found user ID: ${USER_ID}"
+read -r -p "Press ENTER after you verified the code in the web UI..."
 
 echo ""
-echo "Step 3/4: Whitelisting admin in museum.yaml..."
+echo "Step 3/4: Looking up user and whitelisting admin..."
+USER_ID=$(run_psql "SELECT user_id FROM users WHERE email = '${EMAIL//\'/\'\'}';")
+
+if [[ -z "$USER_ID" ]]; then
+  echo "  Warning: User '${EMAIL}' not found in database."
+  echo "  Make sure registration was completed successfully."
+  echo ""
+  echo "=== Setup incomplete ==="
+  echo "After completing registration, run ente-setup again."
+  exit 1
+fi
+echo "  Found user ID: ${USER_ID}"
+
 if grep -q "internal:" /opt/ente/server/museum.yaml; then
-  if ! grep -qF "$EMAIL" /opt/ente/server/museum.yaml; then
-    sed -i "/admins:/a\\    - ${EMAIL}" /opt/ente/server/museum.yaml
+  if ! grep -qF "${USER_ID}" /opt/ente/server/museum.yaml; then
+    sed -i "/admins:/a\\    - ${USER_ID}" /opt/ente/server/museum.yaml
   fi
 else
   cat <<ADMEOF >>/opt/ente/server/museum.yaml
 
 internal:
   admins:
-    - ${EMAIL}
+    - ${USER_ID}
 ADMEOF
 fi
 systemctl restart ente-museum
 sleep 2
-echo "Done."
+echo "  Admin whitelisted."
 
 echo ""
 echo "Step 4/4: Upgrading subscription..."
-if [[ -n "$USER_ID" ]]; then
-  su -c "psql -d ${DB_NAME} -c \"UPDATE subscriptions SET storage_in_mbs_per_plan = 10737418240, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};\"" postgres 2>/dev/null
-  ROWS=$(su -c "psql -t -d ${DB_NAME} -c \"SELECT count(*) FROM subscriptions WHERE user_id = ${USER_ID};\"" postgres 2>/dev/null | xargs)
-  if [[ "$ROWS" == "0" ]]; then
-    su -c "psql -d ${DB_NAME} -c \"INSERT INTO subscriptions (user_id, storage_in_mbs_per_plan, expiry_time, product_id, payment_provider, transaction_id, original_transaction_id) VALUES (${USER_ID}, 10737418240, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', 'admin_setup');\"" postgres 2>/dev/null
-  fi
-  echo "Subscription upgraded to unlimited storage."
+ROWS=$(run_psql "SELECT count(*) FROM subscriptions WHERE user_id = ${USER_ID};")
+if [[ "$ROWS" == "0" ]]; then
+  run_psql_exec "INSERT INTO subscriptions (user_id, storage_in_mbs_per_plan, expiry_time, product_id, payment_provider, transaction_id, original_transaction_id) VALUES (${USER_ID}, 10737418240, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', 'admin_setup');"
 else
-  echo "Warning: Could not find user ID. Try running: ente-upgrade-subscription ${EMAIL}"
+  run_psql_exec "UPDATE subscriptions SET storage_in_mbs_per_plan = 10737418240, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
 fi
+echo "  Subscription upgraded to unlimited storage."
 
 echo ""
 echo "=== Setup complete ==="
@@ -430,15 +459,17 @@ fi
 EMAIL="$1"
 DB_NAME="ente_db"
 echo "Upgrading subscription for: $EMAIL"
-USER_ID=$(su -c "psql -t -d ${DB_NAME} -c \"SELECT user_id FROM users WHERE email = '$(echo "$EMAIL" | sed "s/'/''/g')';\"" postgres 2>/dev/null | xargs)
+USER_ID=$(sudo -u postgres psql -t -d "$DB_NAME" -c "SELECT user_id FROM users WHERE email = '${EMAIL//\'/\'\'}';")
+USER_ID=$(echo "$USER_ID" | xargs)
 if [[ -z "$USER_ID" ]]; then
   echo "Error: User not found in database."
   exit 1
 fi
-su -c "psql -d ${DB_NAME} -c \"UPDATE subscriptions SET storage_in_mbs_per_plan = 10737418240, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};\"" postgres 2>/dev/null
-ROWS=$(su -c "psql -t -d ${DB_NAME} -c \"SELECT count(*) FROM subscriptions WHERE user_id = ${USER_ID};\"" postgres 2>/dev/null | xargs)
+ROWS=$(sudo -u postgres psql -t -d "$DB_NAME" -c "SELECT count(*) FROM subscriptions WHERE user_id = ${USER_ID};" | xargs)
 if [[ "$ROWS" == "0" ]]; then
-  su -c "psql -d ${DB_NAME} -c \"INSERT INTO subscriptions (user_id, storage_in_mbs_per_plan, expiry_time, product_id, payment_provider, transaction_id, original_transaction_id) VALUES (${USER_ID}, 10737418240, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', 'admin_setup');\"" postgres 2>/dev/null
+  sudo -u postgres psql -d "$DB_NAME" -c "INSERT INTO subscriptions (user_id, storage_in_mbs_per_plan, expiry_time, product_id, payment_provider, transaction_id, original_transaction_id) VALUES (${USER_ID}, 10737418240, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', 'admin_setup');"
+else
+  sudo -u postgres psql -d "$DB_NAME" -c "UPDATE subscriptions SET storage_in_mbs_per_plan = 10737418240, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
 fi
 echo "Done. Subscription upgraded to unlimited storage for: $EMAIL"
 EOF
