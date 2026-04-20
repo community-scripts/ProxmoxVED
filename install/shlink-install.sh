@@ -36,7 +36,8 @@ DB_PORT=3306
 EOF
 $STD php bin/cli db:create --no-interaction
 $STD php bin/cli db:migrate --no-interaction
-INITIAL_API_KEY=$($STD php bin/cli api-key:generate --name=default 2>&1 | grep -oP '[A-Za-z0-9_-]{20,}' | head -1)
+API_OUTPUT=$(php bin/cli api-key:generate --name=default 2>&1)
+INITIAL_API_KEY=$(echo "$API_OUTPUT" | sed -n 's/.*Generated API key: "\([^"]*\)".*/\1/p')
 if [[ -n "$INITIAL_API_KEY" ]]; then
   echo "INITIAL_API_KEY=${INITIAL_API_KEY}" >>/opt/shlink/.env
 fi
