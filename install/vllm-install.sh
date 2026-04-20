@@ -30,7 +30,7 @@ msg_info "Setting up Python Environment"
 $STD uv venv /opt/vllm/.venv
 msg_ok "Set up Python Environment"
 
-RELEASE=$(curl -fsSL https://api.github.com/repos/vllm-project/vllm/releases/latest | grep "tag_name" | awk -F '"' '{print $4}')
+RELEASE=$(get_latest_gh_tag "vllm-project/vllm")
 VLLM_VERSION="${RELEASE#v}"
 
 msg_info "Installing ${APP} ${RELEASE} (Patience — this takes 5-15 minutes)"

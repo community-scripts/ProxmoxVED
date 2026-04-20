@@ -30,7 +30,7 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/vllm-project/vllm/releases/latest | grep "tag_name" | awk -F '"' '{print $4}')
+  RELEASE=$(get_latest_gh_tag "vllm-project/vllm")
   if [[ ! -f /opt/vLLM_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/vLLM_version.txt)" ]]; then
     if [[ ! -f /opt/vLLM_version.txt ]]; then
       touch /opt/vLLM_version.txt

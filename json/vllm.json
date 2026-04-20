@@ -17,8 +17,8 @@
       "type": "default",
       "script": "ct/vllm.sh",
       "resources": {
-        "cpu": 8,
-        "ram": 16384,
+        "cpu": 2,
+        "ram": 4096,
         "hdd": 40,
         "os": "Ubuntu",
         "version": "24.04"
@@ -33,6 +33,10 @@
     {
       "text": "GPU passthrough requires a privileged LXC container with NVIDIA drivers installed on the Proxmox host. Edit /etc/vllm/vllm.env to configure model and settings before starting the service.",
       "type": "info"
+    },
+    {
+      "text": "Default resources (2 CPU, 4GB RAM) are sufficient for installation only. Running models requires significantly more: small models (1-3B) need 4+ CPU and 8GB+ RAM; large models (7B+) require a GPU with 8GB+ VRAM and 16GB+ RAM.",
+      "type": "warning"
     }
   ]
 }
