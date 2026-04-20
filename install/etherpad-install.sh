@@ -15,9 +15,6 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  git \
-  curl \
-  ca-certificates \
   build-essential \
   pkg-config \
   libsqlite3-dev
@@ -31,20 +28,10 @@ $STD corepack enable
 msg_ok "Enabled pnpm"
 
 msg_info "Creating etherpad User"
-if ! id -u etherpad >/dev/null 2>&1; then
-  useradd --system --create-home --home-dir /var/lib/etherpad --shell /usr/sbin/nologin etherpad
-fi
+useradd --system --create-home --home-dir /var/lib/etherpad --shell /usr/sbin/nologin etherpad
 msg_ok "Created etherpad User"
 
-msg_info "Cloning Etherpad"
-LATEST_TAG=$(curl -fsSL https://api.github.com/repos/ether/etherpad-lite/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+')
-if [ -z "${LATEST_TAG}" ]; then
-  msg_error "Unable to determine latest Etherpad release"
-  exit 1
-fi
-$STD git clone --depth 1 --branch "${LATEST_TAG}" https://github.com/ether/etherpad-lite.git /opt/etherpad-lite
-echo "${LATEST_TAG}" >/opt/etherpad-lite/.version
-msg_ok "Cloned Etherpad ${LATEST_TAG}"
+fetch_and_deploy_gh_release "etherpad-lite" "ether/etherpad-lite" "tarball" "latest" "/opt/etherpad-lite"
 
 msg_info "Building Etherpad"
 cd /opt/etherpad-lite

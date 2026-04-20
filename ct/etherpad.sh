@@ -11,7 +11,7 @@ var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
-var_version="${var_version:-12}"
+var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -39,16 +39,15 @@ function update_script() {
     [ -d /opt/etherpad-lite/var ] && cp -a /opt/etherpad-lite/var /opt/etherpad-var.bak
     msg_ok "Backed up Configuration"
 
-    LATEST_TAG=$(curl -fsSL https://api.github.com/repos/ether/etherpad-lite/releases/latest | grep -oP '"tag_name":\s*"\K[^"]+')
-    msg_info "Updating to ${LATEST_TAG}"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "etherpad-lite" "ether/etherpad-lite" "tarball" "latest" "/opt/etherpad-lite"
+
+    msg_info "Rebuilding Etherpad"
     cd /opt/etherpad-lite
-    $STD git fetch --tags --prune
-    $STD git checkout "${LATEST_TAG}"
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
     $STD corepack enable
     $STD pnpm install --frozen-lockfile
     $STD pnpm run build:etherpad
-    msg_ok "Updated to ${LATEST_TAG}"
+    msg_ok "Rebuilt Etherpad"
 
     msg_info "Restoring Configuration"
     [ -f /opt/etherpad-settings.json.bak ] && mv /opt/etherpad-settings.json.bak /opt/etherpad-lite/settings.json

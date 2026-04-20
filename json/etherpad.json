@@ -11,7 +11,7 @@
   "interface_port": 9001,
   "documentation": "https://etherpad.org/doc",
   "website": "https://etherpad.org",
-  "logo": "https://raw.githubusercontent.com/ether/etherpad-lite/develop/src/static/favicon.ico",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/etherpad.webp",
   "description": "Etherpad is a highly customizable real-time collaborative document editor. It lets multiple people edit the same document simultaneously in the browser, with live changes, per-user colors, chat, and a rich plugin ecosystem.",
   "install_methods": [
     {
@@ -23,7 +23,7 @@
         "ram": 2048,
         "hdd": 8,
         "os": "Debian",
-        "version": "12"
+        "version": "13"
       }
     }
   ],
