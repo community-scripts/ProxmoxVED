@@ -8,7 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "interface_port": 8080,
+    "interface_port": 3000,
     "documentation": "https://shlink.io/documentation/",
     "website": "https://shlink.io/",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/shlink.webp",
@@ -38,6 +38,10 @@
         },
         {
             "text": "Configure your short domain by editing DEFAULT_DOMAIN in /opt/shlink/.env and restarting the service.",
+            "type": "info"
+        },
+        {
+            "text": "Shlink API runs on port 8080, the Web Client (if installed) on port 3000.",
             "type": "info"
         }
     ]

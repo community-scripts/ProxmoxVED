@@ -52,13 +52,23 @@ function update_script() {
     cd /opt/shlink
     $STD php ./vendor/bin/rr get --no-interaction --location bin/
     chmod +x bin/rr
-    $STD php bin/cli db:migrate --no-interaction
+    set -a
+    source /opt/shlink/.env
+    set +a
+    $STD php vendor/bin/shlink-installer init --no-interaction --clear-db-cache --skip-download-geolite
     msg_ok "Updated Application"
 
     msg_info "Starting Service"
     systemctl start shlink
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
+  fi
+
+  if [[ -d /opt/shlink-web-client ]]; then
+    if check_for_gh_release "shlink-web-client" "shlinkio/shlink-web-client"; then
+      CLEAN_INSTALL=1 fetch_and_deploy_gh_release "shlink-web-client" "shlinkio/shlink-web-client" "prebuild" "latest" "/opt/shlink-web-client" "shlink-web-client_*_dist.zip"
+      msg_ok "Updated Web Client"
+    fi
   fi
   exit
 }
@@ -71,3 +81,4 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}
