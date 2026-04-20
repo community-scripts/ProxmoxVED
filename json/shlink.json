@@ -1,0 +1,44 @@
+{
+    "name": "Shlink",
+    "slug": "shlink",
+    "categories": [
+        0
+    ],
+    "date_created": "2026-04-20",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8080,
+    "documentation": "https://shlink.io/documentation/",
+    "website": "https://shlink.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/shlink.webp",
+    "description": "Shlink is a self-hosted URL shortener built in PHP that provides detailed analytics, a REST API, tags, expiration dates, and integrations via webhooks.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/shlink.sh",
+            "config_path": "/opt/shlink/.env",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "The initial API key is stored in /opt/shlink/.env. You need it to connect Shlink Web Client or any API consumer.",
+            "type": "warning"
+        },
+        {
+            "text": "Configure your short domain by editing DEFAULT_DOMAIN in /opt/shlink/.env and restarting the service.",
+            "type": "info"
+        }
+    ]
+}
