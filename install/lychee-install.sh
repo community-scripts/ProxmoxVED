@@ -20,11 +20,10 @@ $STD apt install -y \
   jpegoptim
 msg_ok "Installed Dependencies"
 
-PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULES="bcmath,ldap,exif,gd,intl,imagick,redis,zip,pdo_pgsql,pcntl,ldap" setup_php
+PHP_VERSION="8.4" PHP_FPM="YES" PHP_MODULES="bcmath,ldap,exif,gd,intl,imagick,redis,zip,pdo_pgsql,pcntl" setup_php
 
 setup_ffmpeg
 setup_imagemagick
-setup_gs
 
 PG_VERSION="16" setup_postgresql
 PG_DB_NAME="lychee" PG_DB_USER="lychee" setup_postgresql_db
