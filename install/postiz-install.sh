@@ -25,14 +25,15 @@ PG_VERSION="17" setup_postgresql
 PG_DB_NAME="postiz" PG_DB_USER="postiz" setup_postgresql_db
 NODE_VERSION="24" setup_nodejs
 
-msg_info "Installing pnpm"
-$STD npm install -g pnpm@10.6.1
-msg_ok "Installed pnpm"
-
 fetch_and_deploy_gh_release "temporal" "temporalio/cli" "prebuild" "latest" "/opt/temporal" "temporal_cli_*_linux_amd64.tar.gz"
 chmod +x /opt/temporal/temporal
 
 fetch_and_deploy_gh_release "postiz" "gitroomhq/postiz-app" "tarball"
+
+msg_info "Installing pnpm"
+PNPM_VERSION=$(sed -n 's/.*"packageManager":\s*"pnpm@\([^"]*\)".*/\1/p' /opt/postiz/package.json)
+$STD npm install -g "pnpm@${PNPM_VERSION}"
+msg_ok "Installed pnpm"
 
 msg_info "Configuring Application"
 JWT_SECRET=$(openssl rand -base64 32)
