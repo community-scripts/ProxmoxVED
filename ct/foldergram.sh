@@ -34,11 +34,6 @@ function update_script() {
     systemctl stop foldergram
     msg_ok "Stopped Service"
 
-    msg_info "Backing up configuration"
-    cp -r /opt/foldergram/data /opt/foldergram_data
-    cp /opt/foldergram/foldergram.env /opt/foldergram_env
-    msg_ok "Backed up configuration"
-
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "foldergram" "foldergram/foldergram" "tarball"
 
     msg_info "Installing Foldergram"
@@ -46,11 +41,6 @@ function update_script() {
     $STD pnpm install --frozen-lockfile
     $STD pnpm run build
     msg_ok "Installed Foldergram"
-
-    msg_info "Restoring configuration"
-    mv /opt/foldergram_data /opt/foldergram/data
-    mv /opt/foldergram_env /opt/foldergram/foldergram.env
-    msg_ok "Restored configuration"
 
     msg_info "Starting Service"
     systemctl start foldergram

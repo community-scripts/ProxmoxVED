@@ -27,9 +27,18 @@ $STD corepack enable
 cd /opt/foldergram
 $STD pnpm install
 $STD pnpm run build
-cat <<EOF >/opt/foldergram/foldergram.env
+mkdir -p /opt/foldergram_media
+cat <<EOF >/opt/foldergram_media/foldergram.env
 NODE_ENV=production
 SERVER_PORT=4141
+DATA_ROOT=/opt/foldergram_media
+GALLERY_ROOT=/opt/foldergram_media/gallery
+DB_DIR=/opt/foldergram_media/db
+THUMBNAILS_DIR=/opt/foldergram_media/thumbnails
+PREVIEWS_DIR=/opt/foldergram_media/previews
+IMAGE_DETAIL_SOURCE=preview
+DERIVATIVE_MODE=eager
+GALLERY_EXCLUDED_FOLDERS=
 EOF
 msg_ok "Configured Foldergram"
 
@@ -43,7 +52,7 @@ After=network.target
 WorkingDirectory=/opt/foldergram
 ExecStart=/usr/bin/pnpm start
 Restart=always
-EnvironmentFile=/opt/foldergram/foldergram.env
+EnvironmentFile=/opt/foldergram_media/foldergram.env
 
 [Install]
 WantedBy=multi-user.target

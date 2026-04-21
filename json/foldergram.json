@@ -17,7 +17,7 @@
     {
       "type": "default",
       "script": "ct/foldergram.sh",
-      "config_path": "/opt/foldergram/foldergram.env",
+      "config_path": "/opt/foldergram_media/foldergram.env",
       "resources": {
         "cpu": 1,
         "ram": 2048,
@@ -31,5 +31,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "Media data (gallery, database, thumbnails, previews) is stored under /opt/foldergram_media. Place your photos and videos in /opt/foldergram_media/gallery.",
+      "type": "info"
+    }
+  ]
 }
