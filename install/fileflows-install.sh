@@ -15,7 +15,10 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y ffmpeg
+$STD apt install -y \
+  ffmpeg \
+  pciutils \
+  libc6-dev
 msg_ok "Installed Dependencies"
 
 msg_info "Installing ASP.NET Core Runtime"
@@ -31,6 +34,7 @@ fetch_and_deploy_from_url "https://fileflows.com/downloads/zip" "/opt/fileflows"
 
 $STD ln -svf /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 $STD ln -svf /usr/bin/ffprobe /usr/local/bin/ffprobe
+$STD ln -s /lib/x86_64-linux-gnu/libdl.so.2 /opt/fileflows/Server/runtimes/linux-x64/native/libdl.so
 
 read -r -p "Do you want to install FileFlows Server or Node? (S/N): " install_server
 
