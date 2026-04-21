@@ -11,7 +11,7 @@
   "interface_port": 8080,
   "documentation": "https://fleetdm.com/docs",
   "website": "https://fleetdm.com/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/fleet.webp",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/fleet-dm.webp",
   "description": "Fleet is an open-source device management platform for IT and security teams to manage and monitor servers, laptops, and other devices with osquery.",
   "install_methods": [
     {
