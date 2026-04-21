@@ -93,7 +93,7 @@ msg_ok "Compiled ffmpeg"
 msg_info "Configuring Fireshare (Patience)"
 ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 SECRET=$(openssl rand -base64 48)
-mkdir -p /opt/fireshare-{data,videos,processed}
+mkdir -p /opt/fireshare-{data,videos,images,processed}
 cd /opt/fireshare
 $STD uv venv
 $STD .venv/bin/python -m ensurepip --upgrade
@@ -118,6 +118,7 @@ FLASK_APP="/opt/fireshare/app/server/fireshare:create_app()"
 DOMAIN=
 ENVIRONMENT=production
 DATA_DIRECTORY=/opt/fireshare-data
+IMAGE_DIRECTORY=/opt/fireshare-images
 VIDEO_DIRECTORY=/opt/fireshare-videos
 PROCESSED_DIRECTORY=/opt/fireshare-processed
 TEMPLATE_PATH=/opt/fireshare/app/server/fireshare/templates
