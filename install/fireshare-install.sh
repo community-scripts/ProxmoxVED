@@ -109,6 +109,7 @@ $STD .venv/bin/python -m pip install --no-cache-dir --break-system-packages --ig
 cp .venv/bin/fireshare /usr/local/bin/fireshare
 export FLASK_APP="/opt/fireshare/app/server/fireshare:create_app()"
 export DATA_DIRECTORY=/opt/fireshare-data
+export IMAGE_DIRECTORY=/opt/fireshare-images
 export VIDEO_DIRECTORY=/opt/fireshare-videos
 export PROCESSED_DIRECTORY=/opt/fireshare-processed
 $STD uv run flask db upgrade

@@ -28,7 +28,39 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
+
+  if check_for_gh_release "fireshare" "ShaneIsrael/fireshare"; then
+    msg_info "Stopping Service"
+    systemctl stop fireshare
+    msg_ok "Stopped Service"
+
+    mv /opt/fireshare/fireshare.env /opt
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "fireshare" "ShaneIsrael/fireshare" "tarball"
+    mv /opt/fireshare.env /opt/fireshare
+    rm -f /usr/local/bin/fireshare
+
+    msg_info "Updating Fireshare"
+    cd /opt/fireshare
+    $STD uv venv
+    $STD .venv/bin/python -m ensurepip --upgrade
+    $STD .venv/bin/python -m pip install --upgrade --break-system-packages pip
+    $STD .venv/bin/python -m pip install --no-cache-dir --break-system-packages --ignore-installed app/server
+    cp .venv/bin/fireshare /usr/local/bin/fireshare
+    export FLASK_APP="/opt/fireshare/app/server/fireshare:create_app()"
+    export DATA_DIRECTORY=/opt/fireshare-data
+    export IMAGE_DIRECTORY=/opt/fireshare-images
+    export VIDEO_DIRECTORY=/opt/fireshare-videos
+    export PROCESSED_DIRECTORY=/opt/fireshare-processed
+    $STD uv run flask db upgrade
+    msg_ok "Ran Database Migrations"
+
+    msg_info "Starting Service"
+    systemctl start fireshare
+    msg_ok "Started Service"
+    msg_ok "Updated successfully!"
+  fi
   cleanup_lxc
+
   exit
 }
 
