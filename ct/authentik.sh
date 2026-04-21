@@ -112,6 +112,38 @@ function update_script() {
 
 start
 build_container
+
+export DISK_SIZE=1
+
+if [[ -n "$CONTAINER_STORAGE" ]]; then
+  msg_info "Validating storage space for data storage"
+  if ! validate_storage_space "$CONTAINER_STORAGE" "$DISK_SIZE" "no"; then
+    local free_space
+    free_space=$(pvesm status 2>/dev/null | awk -v s="$CONTAINER_STORAGE" '$1 == s { print $6 }')
+    local free_fmt
+    free_fmt=$(numfmt --to=iec --from-unit=1024 --suffix=B --format %.1f "$free_space" 2>/dev/null || echo "${free_space}KB")
+    msg_error "Not enough space on '$CONTAINER_STORAGE'. Required: ${DISK_SIZE}GB, Available: ${free_fmt}"
+    exit 214
+  fi
+  msg_ok "Storage space validated for data storage"
+fi
+
+msg_info "Attaching data storage to container and creating directory structure"
+pct set "$CTID" -mp0 "$CONTAINER_STORAGE":"$DISK_SIZE",mp=/opt/authentik-data,backup=1
+
+lxc-attach -n "$CTID" -- bash -c "<<EOF
+mkdir -p /opt/authentik-data/{certs,media,geoip,templates}
+cp /opt/authentik/tests/GeoLite2-ASN-Test.mmdb /opt/authentik-data/geoip/GeoLite2-ASN.mmdb
+cp /opt/authentik/tests/GeoLite2-City-Test.mmdb /opt/authentik-data/geoip/GeoLite2-City.mmdb
+chown -R authentik:authentik /opt/authentik-data
+EOF
+"
+msg_ok "Data store attached, directory structure created"
+
+msg_info "Starting services"
+lxc-attach -n "$CTID" -- systemctl enable -q --now authentik-server.service authentik-worker.service
+msg_ok "Services started"
+
 description
 
 msg_ok "Completed successfully!\n"

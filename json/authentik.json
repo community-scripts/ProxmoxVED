@@ -12,7 +12,7 @@
   "documentation": "https://docs.goauthentik.io/",
   "website": "https://goauthentik.io/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/authentik.webp",
-  "description": "authentik is an IdP (Identity Provider) and SSO (Single Sign On) platform.",
+  "description": "authentik is an IdP (Identity Provider) and SSO (Single Sign On) platform that is built with security at the forefront of every piece of code, every feature, with an emphasis on flexibility and versatility.",
   "install_methods": [
     {
       "type": "default",
@@ -21,7 +21,7 @@
       "resources": {
         "cpu": 4,
         "ram": 4096,
-        "hdd": 10,
+        "hdd": 11,
         "os": "Debian",
         "version": "13"
       }
@@ -32,6 +32,10 @@
     "password": null
   },
   "notes": [
+    {
+      "text": "After the container is created, the script creates a 1GB secondary volume to store the data and attaches it to the container. This is required for Authentik's internal file manager to work, as it only works with mounted folders.",
+      "type": "info"
+    },
     {
       "text": "You will get a Not Found error if initial setup URL doesn't include the trailing forward slash /. Make sure you use the complete url (http://<your server's IP or hostname>:9000/if/flow/initial-setup/) including the trailing forward slash.",
       "type": "info"
