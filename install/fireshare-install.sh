@@ -43,6 +43,8 @@ msg_ok "Installed Dependencies"
 NODE_VERSION=24 setup_nodejs
 PYTHON_VERSION=3.14 setup_uv
 
+fetch_and_deploy_gh_release "fireshare" "ShaneIsrael/fireshare" "tarball"
+
 msg_info "Compiling SVT-AV1 (Patience)"
 cd /tmp
 $STD git clone --depth 1 --branch v1.8.0 https://gitlab.com/AOMediaCodec/SVT-AV1.git
@@ -91,12 +93,8 @@ msg_ok "Compiled ffmpeg"
 msg_info "Configuring Fireshare (Patience)"
 ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
 SECRET=$(openssl rand -base64 48)
-mkdir -p /opt/fireshare-{data,videos,processed}
-cd /opt
-$STD git clone https://github.com/ShaneIsrael/fireshare.git
+mkdir -p /opt/fireshare-{data,videos,images,processed}
 cd /opt/fireshare
-$STD git checkout -b develop origin/develop
-
 $STD uv venv
 $STD .venv/bin/python -m ensurepip --upgrade
 $STD .venv/bin/python -m pip install --upgrade --break-system-packages pip
@@ -120,6 +118,7 @@ FLASK_APP="/opt/fireshare/app/server/fireshare:create_app()"
 DOMAIN=
 ENVIRONMENT=production
 DATA_DIRECTORY=/opt/fireshare-data
+IMAGE_DIRECTORY=/opt/fireshare-images
 VIDEO_DIRECTORY=/opt/fireshare-videos
 PROCESSED_DIRECTORY=/opt/fireshare-processed
 TEMPLATE_PATH=/opt/fireshare/app/server/fireshare/templates
