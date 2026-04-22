@@ -41,7 +41,7 @@ function update_script() {
 
     msg_info "Updating Fireshare"
     cd /opt/fireshare
-    $STD uv venv
+    $STD uv venv --clear
     $STD .venv/bin/python -m ensurepip --upgrade
     $STD .venv/bin/python -m pip install --upgrade --break-system-packages pip
     $STD .venv/bin/python -m pip install --no-cache-dir --break-system-packages --ignore-installed app/server

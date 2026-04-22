@@ -43,7 +43,7 @@ function update_script() {
 
     msg_info "Updating Python Dependencies"
     cd /opt/soulsync
-    $STD uv venv /opt/soulsync/.venv --python 3.11
+    $STD uv venv --clear /opt/soulsync/.venv --python 3.11
     $STD /opt/soulsync/.venv/bin/pip install -r requirements-webui.txt
     msg_ok "Updated Python Dependencies"
 
