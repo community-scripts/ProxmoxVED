@@ -26,6 +26,8 @@ $STD apt install -y \
   libreoffice-common \
   libmagic1 \
   xvfb \
+  libsm6 \
+  libxext6 \
   libpango-1.0-0 \
   libopengl0 \
   libpangocairo-1.0-0 \
@@ -33,30 +35,22 @@ $STD apt install -y \
   libffi-dev \
   libcairo2 \
   librsvg2-bin \
-  unar \
+  unrar-free \
   python3-numpy \
   python3-lxml \
   python3-tinycss2 \
   python3-cssselect
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Pandoc"
-PANDOC_VERSION=$(get_latest_github_release "jgm/pandoc")
-curl -fsSL "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION#v}-linux-amd64.tar.gz" -o /tmp/pandoc.tar.gz
-tar -xzf /tmp/pandoc.tar.gz -C /tmp
-cp /tmp/pandoc-*/bin/pandoc /usr/local/bin/pandoc
-chmod +x /usr/local/bin/pandoc
-rm -rf /tmp/pandoc*
-msg_ok "Installed Pandoc"
-
+fetch_and_deploy_gh_release "pandoc" "jgm/pandoc" "binary" "latest" "" "pandoc-*-amd64.deb"
 fetch_and_deploy_gh_release "calibre" "kovidgoyal/calibre" "prebuild" "latest" "/opt/calibre" "calibre-*-x86_64.txz"
 ln -sf /opt/calibre/ebook-convert /usr/bin/ebook-convert
-
+fetch_and_deploy_gh_release "drawio" "jgraph/drawio-desktop" "binary" "latest" "" "drawio-amd64-*.deb"
 fetch_and_deploy_gh_release "transmute" "transmute-app/transmute" "tarball" "latest" "/opt/transmute"
 
 msg_info "Setting up Python Backend"
 cd /opt/transmute
-$STD uv venv /opt/transmute/.venv
+$STD uv venv --clear /opt/transmute/.venv
 $STD uv pip install --python /opt/transmute/.venv/bin/python -r requirements.txt
 ln -sf /opt/transmute/.venv/bin/weasyprint /usr/bin/weasyprint
 msg_ok "Set up Python Backend"
