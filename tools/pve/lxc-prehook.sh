@@ -141,6 +141,10 @@ create_main_config() {
 # Space-separated CTIDs to skip entirely
 IGNORE_IDS=""
 
+# If set to 1, CT tags are evaluated (profile_*, pkg_*, feature_*).
+# If set to 0, customization runs purely from config values below.
+USE_TAGS=0
+
 # If set to 1, customization will only run once per CT unless the marker is removed
 RUN_ONCE=1
 
@@ -216,6 +220,10 @@ ENABLE_BASHRC_TUNING=1
 ENABLE_BASH_COMPLETION_LINE=1
 ENABLE_FASTFETCH_LINE=1
 
+# Config-first feature toggles (work without tags)
+ENABLE_SHELLRC_FEATURE=0
+ENABLE_FASTFETCH_FEATURE=0
+
 # If set to 1 and nala exists, apt/apt-get aliases will be added
 ENABLE_NALA_ALIASES=0
 
@@ -269,6 +277,11 @@ create_example_override() {
 # Add extra packages regardless of tags:
 # EXTRA_PACKAGES="mc htop"
 #
+# Run without tags (recommended for normal users):
+# USE_TAGS=0
+# ENABLE_SHELLRC_FEATURE=1
+# ENABLE_FASTFETCH_FEATURE=1
+#
 # Disable shellrc tuning for this CT:
 # ENABLE_BASHRC_TUNING=0
 #
@@ -313,6 +326,7 @@ load_config() {
   fi
 
   : "${IGNORE_IDS:=}"
+  : "${USE_TAGS:=0}"
   : "${RUN_ONCE:=1}"
   : "${ALWAYS_RUN:=0}"
   : "${MARKER_DIR:=/var/lib/pve-auto-customize}"
@@ -328,6 +342,8 @@ load_config() {
   : "${ENABLE_BASHRC_TUNING:=1}"
   : "${ENABLE_BASH_COMPLETION_LINE:=1}"
   : "${ENABLE_FASTFETCH_LINE:=1}"
+  : "${ENABLE_SHELLRC_FEATURE:=0}"
+  : "${ENABLE_FASTFETCH_FEATURE:=0}"
   : "${ENABLE_NALA_ALIASES:=0}"
   : "${PROFILE_shell_PACKAGES:=bash-completion plocate}"
   : "${PROFILE_ops_PACKAGES:=curl wget unzip jq}"
@@ -399,34 +415,36 @@ resolve_requested_packages() {
     done
   fi
 
-  local tag
-  local tag_list="${tags//;/ }"
-  for tag in $tag_list; do
-    case "$tag" in
-      profile_*)
-        local profile="${tag#profile_}"
-        local var="PROFILE_${profile}_PACKAGES"
-        local profile_pkgs="${!var:-}"
-        if [[ -n "$profile_pkgs" ]]; then
-          for pkg in $profile_pkgs; do
-            if [[ ! " $seen " =~ [[:space:]]$pkg[[:space:]] ]]; then
-              pkgs+=("$pkg")
-              seen+=" $pkg"
-            fi
-          done
-        else
-          log "Profile '$profile' has no package definition"
-        fi
-        ;;
-      pkg_*)
-        local pkg="${tag#pkg_}"
-        if [[ -n "$pkg" ]] && [[ ! " $seen " =~ [[:space:]]$pkg[[:space:]] ]]; then
-          pkgs+=("$pkg")
-          seen+=" $pkg"
-        fi
-        ;;
-    esac
-  done
+  if [[ "$USE_TAGS" == "1" ]]; then
+    local tag
+    local tag_list="${tags//;/ }"
+    for tag in $tag_list; do
+      case "$tag" in
+        profile_*)
+          local profile="${tag#profile_}"
+          local var="PROFILE_${profile}_PACKAGES"
+          local profile_pkgs="${!var:-}"
+          if [[ -n "$profile_pkgs" ]]; then
+            for pkg in $profile_pkgs; do
+              if [[ ! " $seen " =~ [[:space:]]$pkg[[:space:]] ]]; then
+                pkgs+=("$pkg")
+                seen+=" $pkg"
+              fi
+            done
+          else
+            log "Profile '$profile' has no package definition"
+          fi
+          ;;
+        pkg_*)
+          local pkg="${tag#pkg_}"
+          if [[ -n "$pkg" ]] && [[ ! " $seen " =~ [[:space:]]$pkg[[:space:]] ]]; then
+            pkgs+=("$pkg")
+            seen+=" $pkg"
+          fi
+          ;;
+      esac
+    done
+  fi
 
   printf '%s\n' "${pkgs[@]:-}"
 }
@@ -488,15 +506,18 @@ run_optional_cleanup() {
 apply_shellrc_features() {
   local tags="$1"
   local tag_list="${tags//;/ }"
-  local enable_shellrc=0
-  local enable_fastfetch=0
+  local enable_shellrc="$ENABLE_SHELLRC_FEATURE"
+  local enable_fastfetch="$ENABLE_FASTFETCH_FEATURE"
 
-  for tag in $tag_list; do
-    case "$tag" in
-      feature_shellrc) enable_shellrc=1 ;;
-      feature_fastfetch) enable_fastfetch=1 ;;
-    esac
-  done
+  if [[ "$USE_TAGS" == "1" ]]; then
+    local tag
+    for tag in $tag_list; do
+      case "$tag" in
+        feature_shellrc) enable_shellrc=1 ;;
+        feature_fastfetch) enable_fastfetch=1 ;;
+      esac
+    done
+  fi
 
   if [[ "$ENABLE_BASHRC_TUNING" != "1" ]]; then
     log "Shellrc tuning globally disabled"
@@ -579,8 +600,19 @@ main() {
 
   local tags
   tags="$(get_tags)"
-  if [[ -z "$tags" && -z "${EXTRA_PACKAGES:-}" ]]; then
-    log "No tags and no EXTRA_PACKAGES configured. Nothing to do."
+  local should_process=0
+  if [[ -n "${EXTRA_PACKAGES:-}" ]]; then
+    should_process=1
+  fi
+  if [[ "$ENABLE_SHELLRC_FEATURE" == "1" || "$ENABLE_FASTFETCH_FEATURE" == "1" ]]; then
+    should_process=1
+  fi
+  if [[ "$USE_TAGS" == "1" && -n "$tags" ]]; then
+    should_process=1
+  fi
+
+  if [[ "$should_process" != "1" ]]; then
+    log "No active config/tags found. Nothing to do."
     if [[ "$RUN_ONCE" == "1" ]]; then
       write_marker
     fi
@@ -588,7 +620,7 @@ main() {
   fi
 
   log "--- Starting guest customization ---"
-  [[ "$VERBOSE" == "1" ]] && log "Tags: ${tags:-<none>}"
+  [[ "$VERBOSE" == "1" ]] && log "USE_TAGS=$USE_TAGS, Tags: ${tags:-<none>}"
 
   local package_lines
   mapfile -t package_lines < <(resolve_requested_packages "$tags")
@@ -722,6 +754,8 @@ On container start, the hookscript can optionally:
 
 Tag formats
 -----------
+Optional when USE_TAGS=1.
+
 profile_<name>
   Uses PROFILE_<name>_PACKAGES from config
 
@@ -736,6 +770,9 @@ feature_fastfetch
 
 Examples
 --------
+Config-only (no tags):
+Set USE_TAGS=0 and EXTRA_PACKAGES="fastfetch" in config or per-CT override.
+
 tags: profile_shell;profile_ops
 tags: pkg_fastfetch;pkg_jq
 tags: profile_shell;pkg_fastfetch;feature_shellrc;feature_fastfetch
@@ -859,10 +896,10 @@ print_summary() {
   echo "  /etc/systemd/system/pve-auto-customize.service"
   echo
   echo -e "${BL}Next steps:${CL}"
-  echo "  1. Edit /etc/default/pve-auto-customize if needed"
-  echo "  2. Add tags to a CT, for example:"
-  echo "     pct set 101 --tags 'profile_shell;profile_ops;pkg_fastfetch;feature_shellrc;feature_fastfetch'"
-  echo "  3. Restart the CT"
+  echo "  1. Edit /etc/default/pve-auto-customize (or /etc/pve-auto-customize/<VMID>.conf)"
+  echo "  2. For simple usage without tags: set USE_TAGS=0 and EXTRA_PACKAGES='fastfetch'"
+  echo "  3. Optional tag mode: USE_TAGS=1 and set CT tags (profile_*/pkg_*/feature_*)"
+  echo "  4. Restart the CT"
   echo
   echo -e "${BL}Useful commands:${CL}"
   echo "  pct config 101"
