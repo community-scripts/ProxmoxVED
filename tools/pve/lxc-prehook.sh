@@ -23,6 +23,16 @@
 
 set -euo pipefail
 
+SCRIPT_NAME="$(basename "$0")"
+HOOKSCRIPT_FILE="/var/lib/vz/snippets/guest-customize.sh"
+HOOKSCRIPT_VOLUME_ID="local:snippets/guest-customize.sh"
+CONFIG_FILE="/etc/default/pve-auto-customize"
+APPLICATOR_FILE="/usr/local/bin/pve-apply-guest-customize.sh"
+PATH_UNIT_FILE="/etc/systemd/system/pve-auto-customize.path"
+SERVICE_UNIT_FILE="/etc/systemd/system/pve-auto-customize.service"
+README_FILE="/etc/pve-auto-customize/README"
+EXAMPLE_OVERRIDE_FILE="/etc/pve-auto-customize/100.conf.example"
+
 function header_info() {
   clear
   cat <<"EOF"
@@ -84,6 +94,20 @@ require_pve() {
   fi
 }
 
+print_usage() {
+  cat <<EOF
+Usage: ${SCRIPT_NAME} [OPTIONS]
+
+Install or remove the Proxmox LXC guest customization hook system.
+
+Options:
+  --install       Install/update hookscript automation (default)
+  --uninstall     Remove automation and cleanup hookscript assignments
+  --status        Show current installation state
+  --help, -h      Show this help message
+EOF
+}
+
 create_directories() {
   msg_info "Creating required directories"
   mkdir -p /var/lib/vz/snippets
@@ -95,8 +119,13 @@ create_directories() {
 }
 
 create_main_config() {
+  if [[ -f "$CONFIG_FILE" ]]; then
+    msg_ok "Main configuration already exists, keeping existing file"
+    return
+  fi
+
   msg_info "Creating main configuration"
-  cat <<'EOF' >/etc/default/pve-auto-customize
+  cat <<'EOF' >"$CONFIG_FILE"
 #
 # Configuration for the Proxmox Automatic Guest Customization Hook
 #
@@ -140,10 +169,10 @@ RETRY_SLEEP=3
 # APT / PACKAGE HANDLING
 # -----------------------------------------------------------------------------
 
-# Whether to run apt-get update before package installation
+# Whether to run apt update before package installation
 APT_UPDATE=1
 
-# apt-get install options
+# apt install options
 APT_INSTALL_OPTS="-y --no-install-recommends"
 
 # Optional cleanup after installs
@@ -213,13 +242,18 @@ ENABLE_NALA_ALIASES=0
 # FASTFETCH_LOGO_PATH=""
 #
 EOF
-  chmod 0644 /etc/default/pve-auto-customize
+  chmod 0644 "$CONFIG_FILE"
   msg_ok "Created main configuration"
 }
 
 create_example_override() {
+  if [[ -f "$EXAMPLE_OVERRIDE_FILE" ]]; then
+    msg_ok "Example per-CT override already exists, keeping existing file"
+    return
+  fi
+
   msg_info "Creating example per-CT override"
-  cat <<'EOF' >/etc/pve-auto-customize/100.conf.example
+  cat <<'EOF' >"$EXAMPLE_OVERRIDE_FILE"
 #
 # Example per-CT override for CT 100
 # Rename to:
@@ -241,13 +275,13 @@ create_example_override() {
 # Force a local custom profile package definition:
 # PROFILE_shell_PACKAGES="bash-completion plocate eza"
 EOF
-  chmod 0644 /etc/pve-auto-customize/100.conf.example
+  chmod 0644 "$EXAMPLE_OVERRIDE_FILE"
   msg_ok "Created example per-CT override"
 }
 
 create_hookscript() {
   msg_info "Creating guest customization hookscript"
-  cat <<'EOF' >/var/lib/vz/snippets/guest-customize.sh
+  cat <<'EOF' >"$HOOKSCRIPT_FILE"
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -399,34 +433,55 @@ resolve_requested_packages() {
 
 run_apt_update_if_needed() {
   if [[ "$APT_UPDATE" == "1" ]]; then
-    log "Running apt-get update"
-    retry_pct_exec bash -c "export DEBIAN_FRONTEND=noninteractive; apt-get update"
+    log "Running apt update"
+    retry_pct_exec bash -c "export DEBIAN_FRONTEND=noninteractive; apt update"
   fi
+}
+
+is_valid_package_name() {
+  local pkg="$1"
+  [[ "$pkg" =~ ^[a-z0-9][a-z0-9+.-]*(:[a-z0-9-]+)?$ ]]
 }
 
 install_packages() {
   local packages=("$@")
+  local safe_packages=()
+  local pkg
+
   if (( ${#packages[@]} == 0 )); then
     log "No packages requested"
     return 0
   fi
 
-  log "Installing packages: ${packages[*]}"
+  for pkg in "${packages[@]}"; do
+    if is_valid_package_name "$pkg"; then
+      safe_packages+=("$pkg")
+    else
+      log "Skipping invalid package token: $pkg"
+    fi
+  done
+
+  if (( ${#safe_packages[@]} == 0 )); then
+    log "No valid packages left after validation"
+    return 0
+  fi
+
+  log "Installing packages: ${safe_packages[*]}"
   retry_pct_exec bash -c "
     export DEBIAN_FRONTEND=noninteractive
-    apt-get install $APT_INSTALL_OPTS ${packages[*]}
+    apt install $APT_INSTALL_OPTS ${safe_packages[*]}
   "
 }
 
 run_optional_cleanup() {
   if [[ "$APT_AUTOREMOVE" == "1" ]]; then
-    log "Running apt-get autoremove"
-    retry_pct_exec bash -c "export DEBIAN_FRONTEND=noninteractive; apt-get autoremove -y"
+    log "Running apt autoremove"
+    retry_pct_exec bash -c "export DEBIAN_FRONTEND=noninteractive; apt autoremove -y"
   fi
 
   if [[ "$APT_CLEAN" == "1" ]]; then
-    log "Running apt-get clean"
-    retry_pct_exec bash -c "apt-get clean"
+    log "Running apt clean"
+    retry_pct_exec bash -c "apt clean"
   fi
 }
 
@@ -563,13 +618,13 @@ main() {
 
 main "$@"
 EOF
-  chmod +x /var/lib/vz/snippets/guest-customize.sh
+  chmod +x "$HOOKSCRIPT_FILE"
   msg_ok "Created guest customization hookscript"
 }
 
 create_applicator_script() {
   msg_info "Creating hook applicator script"
-  cat <<'EOF' >/usr/local/bin/pve-apply-guest-customize.sh
+  cat <<'EOF' >"$APPLICATOR_FILE"
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -604,6 +659,9 @@ pct list | awk 'NR>1 {print $1}' | while read -r CTID; do
     if [[ "$current_hook" == "$HOOKSCRIPT_VOLUME_ID" ]]; then
       continue
     fi
+
+    log "CT $CTID already has another hookscript ($current_hook). Leaving unchanged"
+    continue
   fi
 
   log "Applying hookscript to CT $CTID"
@@ -611,24 +669,25 @@ pct list | awk 'NR>1 {print $1}' | while read -r CTID; do
     log "Failed to apply hookscript to CT $CTID"
 done
 EOF
-  chmod +x /usr/local/bin/pve-apply-guest-customize.sh
+  chmod +x "$APPLICATOR_FILE"
   msg_ok "Created hook applicator script"
 }
 
 create_systemd_units() {
   msg_info "Creating systemd units"
-  cat <<'EOF' >/etc/systemd/system/pve-auto-customize.path
+  cat <<'EOF' >"$PATH_UNIT_FILE"
 [Unit]
 Description=Watch for new Proxmox LXC configs and apply guest customization hook
 
 [Path]
-PathModified=/etc/pve/lxc/
+PathExistsGlob=/etc/pve/lxc/*.conf
+Unit=pve-auto-customize.service
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-  cat <<'EOF' >/etc/systemd/system/pve-auto-customize.service
+  cat <<'EOF' >"$SERVICE_UNIT_FILE"
 [Unit]
 Description=Automatically add guest customization hookscript to LXCs
 
@@ -636,12 +695,18 @@ Description=Automatically add guest customization hookscript to LXCs
 Type=oneshot
 ExecStart=/usr/local/bin/pve-apply-guest-customize.sh
 EOF
+  chmod 0644 "$PATH_UNIT_FILE" "$SERVICE_UNIT_FILE"
   msg_ok "Created systemd units"
 }
 
 create_readme() {
+  if [[ -f "$README_FILE" ]]; then
+    msg_ok "Documentation already exists, keeping existing file"
+    return
+  fi
+
   msg_info "Creating documentation"
-  cat <<'EOF' >/etc/pve-auto-customize/README
+  cat <<'EOF' >"$README_FILE"
 Proxmox Auto Guest Customize
 ============================
 
@@ -700,7 +765,7 @@ Logs
 journalctl -fu pve-auto-customize.service
 journalctl -t pve-auto-customize -n 100
 EOF
-  chmod 0644 /etc/pve-auto-customize/README
+  chmod 0644 "$README_FILE"
   msg_ok "Created documentation"
 }
 
@@ -713,9 +778,71 @@ enable_systemd() {
 
 initial_apply() {
   msg_info "Performing initial apply for existing LXCs"
-  (/usr/local/bin/pve-apply-guest-customize.sh >/dev/null 2>&1) &
+  ("$APPLICATOR_FILE" >/dev/null 2>&1) &
   spinner
   msg_ok "Initial apply complete"
+}
+
+remove_hookscript_assignments() {
+  msg_info "Removing hookscript assignment from LXCs using guest-customize"
+
+  pct list | awk 'NR>1 {print $1}' | while read -r vmid; do
+    current_hook="$(pct config "$vmid" | awk -F': ' '/^hookscript:/ {print $2}')"
+    if [[ "$current_hook" == "$HOOKSCRIPT_VOLUME_ID" ]]; then
+      pct set "$vmid" --delete hookscript >/dev/null 2>&1 && msg_ok "Removed hookscript from LXC $vmid"
+    fi
+  done
+}
+
+print_status() {
+  local installed="no"
+  local watcher_state="inactive"
+
+  [[ -f "$HOOKSCRIPT_FILE" ]] && installed="yes"
+  if systemctl is-active --quiet pve-auto-customize.path; then
+    watcher_state="active"
+  fi
+
+  echo
+  echo "pve-auto-customize status"
+  echo "-------------------------"
+  echo "Hookscript file:     $installed"
+  echo "Path watcher state:  $watcher_state"
+  echo "Config file:         $CONFIG_FILE"
+  echo "Applicator file:     $APPLICATOR_FILE"
+  echo
+}
+
+install_stack() {
+  create_directories
+  create_main_config
+  create_example_override
+  create_hookscript
+  create_applicator_script
+  create_systemd_units
+  create_readme
+  enable_systemd
+  initial_apply
+  print_summary
+}
+
+uninstall_stack() {
+  remove_hookscript_assignments
+
+  msg_info "Stopping and disabling systemd units"
+  systemctl disable --now pve-auto-customize.path >/dev/null 2>&1 || true
+  systemctl disable --now pve-auto-customize.service >/dev/null 2>&1 || true
+
+  msg_info "Removing installed files"
+  rm -f "$HOOKSCRIPT_FILE" "$APPLICATOR_FILE" "$PATH_UNIT_FILE" "$SERVICE_UNIT_FILE"
+
+  if systemctl daemon-reload >/dev/null 2>&1; then
+    msg_ok "systemd daemon reloaded"
+  else
+    msg_error "Failed to reload systemd daemon"
+  fi
+
+  msg_ok "Uninstall complete"
 }
 
 print_summary() {
@@ -750,31 +877,55 @@ main() {
   require_root
   require_pve
 
-  echo -e "\nThis script will install an optional LXC guest customization framework on this Proxmox VE host."
-  echo -e "It will create files in:"
-  echo -e "  - /var/lib/vz/snippets/"
-  echo -e "  - /usr/local/bin/"
-  echo -e "  - /etc/default/"
-  echo -e "  - /etc/pve-auto-customize/"
-  echo -e "  - /etc/systemd/system/\n"
+  local mode="install"
+  case "${1:-}" in
+  "" | --install)
+    mode="install"
+    ;;
+  --uninstall)
+    mode="uninstall"
+    ;;
+  --status)
+    print_status
+    exit 0
+    ;;
+  --help | -h)
+    print_usage
+    exit 0
+    ;;
+  *)
+    msg_error "Unknown option: $1"
+    print_usage
+    exit 1
+    ;;
+  esac
 
-  read -r -p "Do you want to proceed with the installation? (y/n): " reply
+  if [[ "$mode" == "install" ]]; then
+    echo -e "\nThis script will install an optional LXC guest customization framework on this Proxmox VE host."
+    echo -e "It will create/update files in:"
+    echo -e "  - /var/lib/vz/snippets/"
+    echo -e "  - /usr/local/bin/"
+    echo -e "  - /etc/default/"
+    echo -e "  - /etc/pve-auto-customize/"
+    echo -e "  - /etc/systemd/system/\n"
+  else
+    echo -e "\nThis will uninstall the pve-auto-customize automation and remove managed files."
+    echo -e "Existing CT hookscript assignments pointing to guest-customize will be removed.\n"
+  fi
+
+  read -r -p "Do you want to proceed? (y/n): " reply
   if [[ ! "$reply" =~ ^[Yy]$ ]]; then
-    msg_error "Installation cancelled"
+    msg_error "Operation cancelled"
     exit 1
   fi
 
   echo
-  create_directories
-  create_main_config
-  create_example_override
-  create_hookscript
-  create_applicator_script
-  create_systemd_units
-  create_readme
-  enable_systemd
-  initial_apply
-  print_summary
+
+  if [[ "$mode" == "install" ]]; then
+    install_stack
+  else
+    uninstall_stack
+  fi
 }
 
 main "$@"
