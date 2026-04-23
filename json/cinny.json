@@ -1,0 +1,41 @@
+{
+  "name": "Cinny",
+  "slug": "cinny",
+  "categories": [
+    0,
+    4
+  ],
+  "date_created": "2026-05-23",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://github.com/cinnyapp/cinny",
+  "website": "https://cinny.in/",
+  "logo": "https://cinny.in/assets/cinny.svg",
+  "description": "Yet another matrix client ",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/alpine-cinny.sh",
+      "config_path": "/usr/share/nginx/html/config.json",
+      "resources": {
+        "cpu": 1,
+        "ram": 256,
+        "hdd": 1,
+        "os": "alpine",
+        "version": "3.21"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "To see config: `cat /usr/share/nginx/html/config.json`",
+      "type": "info"
+    }
+  ]
+}
