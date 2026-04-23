@@ -10,8 +10,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/error_handler.func)
 
-source <(curl -fsSL https://raw.githubusercontent.com/heinemannj/ProxmoxVED/main/misc/admin-core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/heinemannj/ProxmoxVED/main/misc/whiptail.func)
+source <(curl -fsSL https://raw.githubusercontent.com/heinemannj/ProxmoxVED/step-admin/misc/admin-core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/heinemannj/ProxmoxVED/step-admin/misc/whiptail.func)
 
 # ==============================================================================
 # Enable error handling
