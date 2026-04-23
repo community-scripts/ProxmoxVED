@@ -23,11 +23,7 @@ msg_ok "Installed Dependencies"
 
 setup_hwaccel
 
-PYTHON_VERSION="3.12" setup_uv
-
-msg_info "Installing Open WebUI"
-$STD uv tool install --python 3.12 --constraint <(echo "numba>=0.60") open-webui[all]
-msg_ok "Installed Open WebUI"
+PYTHON_VERSION="3.11" USE_UVX=YES setup_uv
 
 read -r -p "${TAB3}Would you like to add Ollama? <y/N> " prompt
 if [[ ${prompt,,} =~ ^(y|yes)$ ]]; then
@@ -95,6 +91,7 @@ WantedBy=multi-user.target
 EOF
   systemctl enable -q --now ollama
   echo "ENABLE_OLLAMA_API=true" >/root/.env
+  echo "DATA_DIR=/root/.open-webui" >>/root/.env
   msg_ok "Installed Ollama"
 fi
 
@@ -108,7 +105,7 @@ After=network.target
 Type=simple
 EnvironmentFile=-/root/.env
 Environment=DATA_DIR=/root/.open-webui
-ExecStart=/root/.local/bin/open-webui serve
+ExecStart=uvx --python 3.11 open-webui@latest serve
 WorkingDirectory=/root
 Restart=on-failure
 RestartSec=5
