@@ -7,6 +7,7 @@
 COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
 source /dev/stdin <<<$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/api.func")
 source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/vm-core.func")
+source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/cloud-init.func") 2>/dev/null || true
 load_functions
 
 function header_info {
@@ -20,10 +21,16 @@ echo -e "\n Loading..."
 GEN_MAC=02:$(openssl rand -hex 5 | awk '{print toupper($0)}' | sed 's/\(..\)/\1:/g; s/.$//')
 RANDOM_UUID="$(cat /proc/sys/kernel/random/uuid)"
 METHOD=""
-NSAPP="Debian 12 VM"
+NSAPP="k3s-vm"
 var_os="debian"
-var_version="12"
+var_version="13"
 INSTALL_ARGOCD_BOOTSTRAP="${INSTALL_ARGOCD_BOOTSTRAP:-1}"
+DISK_SIZE="10G"
+USE_CLOUD_INIT="no"
+OS_TYPE=""
+OS_VERSION=""
+OS_CODENAME=""
+OS_DISPLAY=""
 
 THIN="discard=on,ssd=1,"
 set -e
@@ -54,6 +61,80 @@ function ssh_check() {
   fi
 }
 
+function select_os() {
+  if OS_CHOICE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "SELECT OS" --radiolist \
+    "Choose Operating System for K3s VM" 14 68 4 \
+    "debian13" "Debian 13 (Trixie) - Latest" ON \
+    "debian12" "Debian 12 (Bookworm) - Stable" OFF \
+    "ubuntu2404" "Ubuntu 24.04 LTS (Noble)" OFF \
+    "ubuntu2204" "Ubuntu 22.04 LTS (Jammy)" OFF \
+    3>&1 1>&2 2>&3); then
+    case $OS_CHOICE in
+    debian13)
+      OS_TYPE="debian"
+      OS_VERSION="13"
+      OS_CODENAME="trixie"
+      OS_DISPLAY="Debian 13 (Trixie)"
+      ;;
+    debian12)
+      OS_TYPE="debian"
+      OS_VERSION="12"
+      OS_CODENAME="bookworm"
+      OS_DISPLAY="Debian 12 (Bookworm)"
+      ;;
+    ubuntu2404)
+      OS_TYPE="ubuntu"
+      OS_VERSION="24.04"
+      OS_CODENAME="noble"
+      OS_DISPLAY="Ubuntu 24.04 LTS"
+      ;;
+    ubuntu2204)
+      OS_TYPE="ubuntu"
+      OS_VERSION="22.04"
+      OS_CODENAME="jammy"
+      OS_DISPLAY="Ubuntu 22.04 LTS"
+      ;;
+    esac
+    echo -e "${OS}${BOLD}${DGN}Operating System: ${BGN}${OS_DISPLAY}${CL}"
+  else
+    exit_script
+  fi
+}
+
+function select_cloud_init() {
+  if [ "$OS_TYPE" = "ubuntu" ]; then
+    USE_CLOUD_INIT="yes"
+    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}yes (Ubuntu requires Cloud-Init)${CL}"
+    return
+  fi
+
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLOUD-INIT" \
+    --yesno "Enable Cloud-Init for VM configuration?\n\nCloud-Init allows automatic configuration of:\n- User accounts and passwords\n- SSH keys\n- Network settings (DHCP/Static)\n- DNS configuration\n\nYou can also configure these settings later in Proxmox UI." 16 68); then
+    USE_CLOUD_INIT="yes"
+    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}yes${CL}"
+  else
+    USE_CLOUD_INIT="no"
+    echo -e "${CLOUD:-${TAB}☁️${TAB}${CL}}${BOLD}${DGN}Cloud-Init: ${BGN}no${CL}"
+  fi
+}
+
+function get_image_url() {
+  local arch
+  arch=$(dpkg --print-architecture)
+  case $OS_TYPE in
+  debian)
+    if [ "$USE_CLOUD_INIT" = "yes" ]; then
+      echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-generic-${arch}.qcow2"
+    else
+      echo "https://cloud.debian.org/images/cloud/${OS_CODENAME}/latest/debian-${OS_VERSION}-nocloud-${arch}.qcow2"
+    fi
+    ;;
+  ubuntu)
+    echo "https://cloud-images.ubuntu.com/${OS_CODENAME}/current/${OS_CODENAME}-server-cloudimg-${arch}.img"
+    ;;
+  esac
+}
+
 get_valid_nextid
 cleanup_vmid
 cleanup
@@ -66,22 +147,25 @@ ssh_check
 
 TEMP_DIR=$(mktemp -d)
 pushd $TEMP_DIR >/dev/null
-if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Debian 12 VM" --yesno "This will create a New Debian 12 VM. Proceed?" 10 58; then
+if whiptail --backtitle "Proxmox VE Helper Scripts" --title "K3s VM" --yesno "This will create a New K3s VM. Proceed?" 10 58; then
   :
 else
   header_info && exit_script
 fi
 
 function default_settings() {
+  select_os
+  select_cloud_init
+
   VMID=$(get_valid_nextid)
-  FORMAT=",efitype=4m"
-  MACHINE=""
-  DISK_SIZE="8G"
+  FORMAT=""
+  MACHINE=" -machine q35"
+  DISK_SIZE="10G"
   DISK_CACHE=""
-  HN="debian"
-  CPU_TYPE=""
+  HN="k3s"
+  CPU_TYPE=" -cpu host"
   CORE_COUNT="2"
-  RAM_SIZE="2048"
+  RAM_SIZE="4096"
   BRG="vmbr0"
   MAC="$GEN_MAC"
   VLAN=""
@@ -89,11 +173,11 @@ function default_settings() {
   START_VM="yes"
   METHOD="default"
   echo -e "${CONTAINERID}${BOLD}${DGN}Virtual Machine ID: ${BGN}${VMID}${CL}"
-  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}i440fx${CL}"
+  echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}Q35 (Modern)${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Size: ${BGN}${DISK_SIZE}${CL}"
   echo -e "${DISKSIZE}${BOLD}${DGN}Disk Cache: ${BGN}None${CL}"
   echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}${HN}${CL}"
-  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}KVM64${CL}"
+  echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
   echo -e "${CPUCORE}${BOLD}${DGN}CPU Cores: ${BGN}${CORE_COUNT}${CL}"
   echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}${RAM_SIZE}${CL}"
   echo -e "${BRIDGE}${BOLD}${DGN}Bridge: ${BGN}${BRG}${CL}"
@@ -101,10 +185,16 @@ function default_settings() {
   echo -e "${VLANTAG}${BOLD}${DGN}VLAN: ${BGN}Default${CL}"
   echo -e "${DEFAULT}${BOLD}${DGN}Interface MTU Size: ${BGN}Default${CL}"
   echo -e "${GATEWAY}${BOLD}${DGN}Start VM when completed: ${BGN}yes${CL}"
-  echo -e "${CREATING}${BOLD}${DGN}Creating a Debian 12 VM using the above default settings${CL}"
+  echo -e "${CREATING}${BOLD}${DGN}Creating a K3s VM using the above default settings${CL}"
 }
 
 function advanced_settings() {
+  select_os
+  select_cloud_init
+  if [ "$USE_CLOUD_INIT" = "yes" ] && command -v configure_cloudinit_ssh_keys >/dev/null 2>&1; then
+    configure_cloudinit_ssh_keys || true
+  fi
+
   METHOD="advanced"
   [ -z "${VMID:-}" ] && VMID=$(get_valid_nextid)
   while true; do
@@ -125,8 +215,8 @@ function advanced_settings() {
   done
 
   if MACH=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "MACHINE TYPE" --radiolist --cancel-button Exit-Script "Choose Type" 10 58 2 \
-    "i440fx" "Machine i440fx" ON \
-    "q35" "Machine q35" OFF \
+    "q35" "Machine q35" ON \
+    "i440fx" "Machine i440fx" OFF \
     3>&1 1>&2 2>&3); then
     if [ $MACH = q35 ]; then
       echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$MACH${CL}"
@@ -171,9 +261,9 @@ function advanced_settings() {
     exit_script
   fi
 
-  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 debian --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if VM_NAME=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Set Hostname" 8 58 k3s --title "HOSTNAME" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $VM_NAME ]; then
-      HN="debian"
+      HN="k3s"
       echo -e "${HOSTNAME}${BOLD}${DGN}Hostname: ${BGN}$HN${CL}"
     else
       HN=$(echo ${VM_NAME,,} | tr -d ' ')
@@ -184,8 +274,8 @@ function advanced_settings() {
   fi
 
   if CPU_TYPE1=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CPU MODEL" --radiolist "Choose" --cancel-button Exit-Script 10 58 2 \
-    "0" "KVM64 (Default)" ON \
-    "1" "Host" OFF \
+    "1" "Host (Recommended)" ON \
+    "0" "KVM64" OFF \
     3>&1 1>&2 2>&3); then
     if [ $CPU_TYPE1 = "1" ]; then
       echo -e "${OS}${BOLD}${DGN}CPU Model: ${BGN}Host${CL}"
@@ -209,9 +299,9 @@ function advanced_settings() {
     exit_script
   fi
 
-  if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 2048 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+  if RAM_SIZE=$(whiptail --backtitle "Proxmox VE Helper Scripts" --inputbox "Allocate RAM in MiB" 8 58 4096 --title "RAM" --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
     if [ -z $RAM_SIZE ]; then
-      RAM_SIZE="2048"
+      RAM_SIZE="4096"
       echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}$RAM_SIZE${CL}"
     else
       echo -e "${RAMSIZE}${BOLD}${DGN}RAM Size: ${BGN}$RAM_SIZE${CL}"
@@ -277,8 +367,8 @@ function advanced_settings() {
     START_VM="no"
   fi
 
-  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a Debian 12 VM?" --no-button Do-Over 10 58); then
-    echo -e "${CREATING}${BOLD}${DGN}Creating a Debian 12 VM using the above advanced settings${CL}"
+  if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "ADVANCED SETTINGS COMPLETE" --yesno "Ready to create a K3s VM?" --no-button Do-Over 10 58); then
+    echo -e "${CREATING}${BOLD}${DGN}Creating a K3s VM using the above advanced settings${CL}"
   else
     header_info
     echo -e "${ADVANCED}${BOLD}${RD}Using Advanced Settings${CL}"
@@ -329,8 +419,8 @@ else
 fi
 msg_ok "Using ${CL}${BL}$STORAGE${CL} ${GN}for Storage Location."
 msg_ok "Virtual Machine ID is ${CL}${BL}$VMID${CL}."
-msg_info "Retrieving the URL for the Debian 12 Qcow2 Disk Image"
-URL=https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2
+msg_info "Retrieving the URL for the ${OS_DISPLAY} image"
+URL=$(get_image_url)
 sleep 2
 msg_ok "${CL}${BL}${URL}${CL}"
 curl -f#SL "$URL" -O
@@ -360,7 +450,7 @@ for i in {0,1}; do
   eval DISK${i}_REF=${STORAGE}:${DISK_REF:-}${!disk}
 done
 
-msg_info "Creating a Debian 12 VM"
+msg_info "Creating a ${OS_DISPLAY} VM"
 qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} -cores $CORE_COUNT -memory $RAM_SIZE \
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
@@ -445,11 +535,18 @@ else
   msg_info "Skipping ArgoCD Bootstrap (INSTALL_ARGOCD_BOOTSTRAP=$INSTALL_ARGOCD_BOOTSTRAP)"
 fi
 
-msg_ok "Created a Debian 12 VM ${CL}${BL}(${HN})"
+msg_ok "Created a K3s VM ${CL}${BL}(${HN})"
+
+if [ "$USE_CLOUD_INIT" = "yes" ] && command -v setup_cloud_init >/dev/null 2>&1; then
+  msg_info "Configuring Cloud-Init"
+  setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes"
+  msg_ok "Configured Cloud-Init"
+fi
+
 if [ "$START_VM" == "yes" ]; then
-  msg_info "Starting Debian 12 VM"
+  msg_info "Starting K3s VM"
   qm start $VMID
-  msg_ok "Started Debian 12 VM"
+  msg_ok "Started K3s VM"
 fi
 
 msg_ok "Completed successfully!\n"
