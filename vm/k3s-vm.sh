@@ -23,6 +23,7 @@ METHOD=""
 NSAPP="Debian 12 VM"
 var_os="debian"
 var_version="12"
+INSTALL_ARGOCD_BOOTSTRAP="${INSTALL_ARGOCD_BOOTSTRAP:-1}"
 
 THIN="discard=on,ssd=1,"
 set -e
@@ -379,6 +380,57 @@ virt-customize -q -a "${FILE}" \
   --run-command 'echo "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> /root/.bashrc' >/dev/null
 
 msg_ok "Added in Image K3s, Helm & k9s"
+
+if [[ "$INSTALL_ARGOCD_BOOTSTRAP" == "1" ]]; then
+  msg_info "Add in Image ArgoCD Bootstrap"
+  virt-customize -q -a "${FILE}" \
+    --run-command 'mkdir -p /usr/local/sbin /etc/systemd/system /var/lib' \
+    --run-command 'cat <<"EOF" >/usr/local/sbin/bootstrap-argocd.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+for _ in $(seq 1 120); do
+  if kubectl get nodes --no-headers 2>/dev/null | grep -q " Ready "; then
+    break
+  fi
+  sleep 2
+done
+
+if ! kubectl get nodes --no-headers 2>/dev/null | grep -q " Ready "; then
+  echo "K3s is not ready yet"
+  exit 1
+fi
+
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl -n argocd rollout status deploy/argocd-server --timeout=10m
+
+touch /var/lib/argocd-bootstrap.done
+EOF' \
+    --run-command 'chmod +x /usr/local/sbin/bootstrap-argocd.sh' \
+    --run-command 'cat <<"EOF" >/etc/systemd/system/argocd-bootstrap.service
+[Unit]
+Description=ArgoCD Bootstrap
+After=network-online.target k3s.service
+Wants=network-online.target
+ConditionPathExists=!/var/lib/argocd-bootstrap.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/bootstrap-argocd.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF' \
+    --run-command 'systemctl enable argocd-bootstrap.service' >/dev/null
+
+  msg_ok "Added in Image ArgoCD Bootstrap"
+else
+  msg_info "Skipping ArgoCD Bootstrap (INSTALL_ARGOCD_BOOTSTRAP=$INSTALL_ARGOCD_BOOTSTRAP)"
+fi
 
 msg_ok "Created a Debian 12 VM ${CL}${BL}(${HN})"
 if [ "$START_VM" == "yes" ]; then

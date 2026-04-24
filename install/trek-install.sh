@@ -17,7 +17,7 @@ msg_info "Installing Dependencies"
 $STD apt install -y build-essential
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="24" setup_nodejs
+NODE_VERSION="22" setup_nodejs
 
 fetch_and_deploy_gh_release "trek" "mauriceboe/TREK" "tarball"
 
@@ -34,19 +34,24 @@ mkdir -p /opt/trek/server/public
 cp -r /opt/trek/client/dist/* /opt/trek/server/public/
 cp -r /opt/trek/client/public/fonts /opt/trek/server/public/fonts 2>/dev/null || true
 mkdir -p /opt/trek/{data/logs,uploads/{files,covers,avatars,photos}}
-ln -sf /opt/trek/data /opt/trek/server/data
-ln -sf /opt/trek/uploads /opt/trek/server/uploads
+rm -rf /opt/trek/server/data /opt/trek/server/uploads
+ln -s /opt/trek/data /opt/trek/server/data
+ln -s /opt/trek/uploads /opt/trek/server/uploads
 ENCRYPTION_KEY=$(openssl rand -hex 32)
+ADMIN_EMAIL="admin@trek.local"
 ADMIN_PASSWORD=$(openssl rand -base64 18 | tr -dc 'A-Za-z0-9' | head -c 16)
 cat <<EOF >/opt/trek/server/.env
 NODE_ENV=production
 PORT=3000
 ENCRYPTION_KEY=${ENCRYPTION_KEY}
+ADMIN_EMAIL=${ADMIN_EMAIL}
+ADMIN_PASSWORD=${ADMIN_PASSWORD}
 COOKIE_SECURE=false
 FORCE_HTTPS=false
 LOG_LEVEL=info
 TZ=UTC
 EOF
+chmod 600 /opt/trek/server/.env
 msg_ok "Set up Server"
 
 msg_info "Creating Service"
@@ -77,24 +82,16 @@ for i in $(seq 1 30); do
   fi
   sleep 1
 done
-cd /opt/trek/server
-$STD node -e "
-const Database = require('better-sqlite3');
-const bcrypt = require('bcryptjs');
-const db = new Database('./data/travel.db');
-const hash = bcrypt.hashSync('${ADMIN_PASSWORD}', 12);
-db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE email = ?').run(hash, 'admin@trek.local');
-db.close();
-"
-{
-  echo ""
-  echo "TREK Admin Credentials"
-  echo "Email:    admin@trek.local"
-  echo "Password: ${ADMIN_PASSWORD}"
-  echo ""
-} >>~/trek.creds
+if ! curl -sf http://localhost:3000/api/health >/dev/null 2>&1; then
+  msg_error "TREK failed to initialize"
+  exit
+fi
+sed -i '/^ADMIN_EMAIL=/d;/^ADMIN_PASSWORD=/d' /opt/trek/server/.env
 msg_ok "TREK initialized"
-msg_ok "Created Service"
+
+echo -e "${INFO}${YW} Default Admin Account:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}Email: ${ADMIN_EMAIL}${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}Password: ${ADMIN_PASSWORD}${CL}"
 
 motd_ssh
 customize

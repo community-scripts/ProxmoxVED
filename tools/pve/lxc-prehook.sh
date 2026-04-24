@@ -395,10 +395,12 @@ append_unique_line_in_ct() {
   local target_file="$1"
   local line="$2"
 
-  retry_pct_exec bash -c "
-    touch '$target_file'
-    grep -Fqx -- \"$line\" '$target_file' || echo \"$line\" >> '$target_file'
-  "
+  retry_pct_exec bash -c '
+    target_file="$1"
+    line="$2"
+    touch "$target_file"
+    grep -Fqx -- "$line" "$target_file" || echo "$line" >> "$target_file"
+  ' _ "$target_file" "$line"
 }
 
 resolve_requested_packages() {

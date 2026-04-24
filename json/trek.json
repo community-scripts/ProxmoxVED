@@ -28,16 +28,20 @@
     }
   ],
   "default_credentials": {
-    "username": null,
+    "username": "admin@trek.local",
     "password": null
   },
   "notes": [
     {
-      "text": "The first user to register becomes the admin.",
+      "text": "A default admin account is seeded during setup with the email admin@trek.local.",
       "type": "info"
     },
     {
-      "text": "ENCRYPTION_KEY is auto-generated during setup. See `/opt/trek/server/.env`.",
+      "text": "ENCRYPTION_KEY is auto-generated during setup and stored in `/opt/trek/server/.env`.",
+      "type": "info"
+    },
+    {
+      "text": "Set APP_URL in `/opt/trek/server/.env` if you plan to use OIDC or email-based features.",
       "type": "info"
     }
   ]

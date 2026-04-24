@@ -24,7 +24,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -f ~/.trek ]]; then
+  if [[ ! -d /opt/trek ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
@@ -53,13 +53,14 @@ function update_script() {
 
     msg_info "Installing Server Dependencies"
     cd /opt/trek/server
-    $STD npm ci --production
+    $STD npm ci
     msg_ok "Installed Server Dependencies"
 
     mv /opt/trek-data.bak /opt/trek/data
     mv /opt/trek-uploads.bak /opt/trek/uploads
-    ln -sf /opt/trek/data /opt/trek/server/data
-    ln -sf /opt/trek/uploads /opt/trek/server/uploads
+    rm -rf /opt/trek/server/data /opt/trek/server/uploads
+    ln -s /opt/trek/data /opt/trek/server/data
+    ln -s /opt/trek/uploads /opt/trek/server/uploads
     cp /opt/trek.env.bak /opt/trek/server/.env
     rm -f /opt/trek.env.bak
 
