@@ -21,16 +21,31 @@ jobs:
     steps:
       - name: Generate app token
         id: generate-token
+        continue-on-error: true
         uses: actions/create-github-app-token@v3
         with:
           client-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
+      - name: Select auth token
+        id: auth
+        run: |
+          if [ -n "${{ steps.generate-token.outputs.token }}" ]; then
+            echo "token=${{ steps.generate-token.outputs.token }}" >> "$GITHUB_OUTPUT"
+            echo "mode=app-token" >> "$GITHUB_OUTPUT"
+          else
+            echo "token=${{ github.token }}" >> "$GITHUB_OUTPUT"
+            echo "mode=github-token" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Show auth mode
+        run: echo "Using ${{ steps.auth.outputs.mode }}"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ steps.generate-token.outputs.token }}
+          token: ${{ steps.auth.outputs.token }}
 
       - name: Set up Git
         run: |
@@ -59,7 +74,7 @@ jobs:
       - name: Commit and push changes
         if: steps.check_changes.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GH_TOKEN: ${{ steps.auth.outputs.token }}
         run: |
           git commit -m "chore: update app headers [skip ci]"
           git pull --rebase origin main
