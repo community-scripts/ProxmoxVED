@@ -481,14 +481,9 @@ arm64)
   ;;
 esac
 K9S_URL="https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_${K9S_ARCH}.tar.gz"
-msg_info "Downloading k9s archive (${K9S_ARCH})"
-curl -fsSL "$K9S_URL" -o /tmp/k9s.tar.gz
-msg_ok "Downloaded k9s archive"
-
-msg_info "Add in Image K3s, Helm & k9s"
+msg_info "Add in Image K3s & Helm"
 virt-customize -q -a "${FILE}" \
   --hostname "${HN}" \
-  --upload /tmp/k9s.tar.gz:/tmp/k9s.tar.gz \
   --install curl,wget,tar,ca-certificates,gnupg,iptables \
   --run-command 'curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644' \
   --run-command 'ln -sf /usr/local/bin/k3s /usr/local/bin/kubectl' \
@@ -496,13 +491,25 @@ virt-customize -q -a "${FILE}" \
   --run-command 'tar -xzf /tmp/helm.tar.gz -C /tmp' \
   --run-command 'mv /tmp/linux-amd64/helm /usr/local/bin/helm' \
   --run-command 'chmod +x /usr/local/bin/helm' \
-  --run-command 'tar -xzf /tmp/k9s.tar.gz -C /usr/local/bin k9s' \
-  --run-command 'chmod +x /usr/local/bin/k9s' \
   --run-command 'echo "export KUBECONFIG=/etc/rancher/k3s/k3s.yaml" >> /root/.bashrc' >/dev/null
 
-rm -f /tmp/k9s.tar.gz
+msg_ok "Added in Image K3s & Helm"
 
-msg_ok "Added in Image K3s, Helm & k9s"
+msg_info "Adding k9s (${K9S_ARCH})"
+if curl -fsSL "$K9S_URL" -o /tmp/k9s.tar.gz; then
+  if virt-customize -q -a "${FILE}" \
+    --upload /tmp/k9s.tar.gz:/tmp/k9s.tar.gz \
+    --run-command 'tar -xzf /tmp/k9s.tar.gz -C /usr/local/bin k9s' \
+    --run-command 'chmod +x /usr/local/bin/k9s' \
+    --run-command 'rm -f /tmp/k9s.tar.gz' >/dev/null; then
+    msg_ok "Added k9s to image"
+  else
+    msg_warn "Could not add k9s to image. VM creation continues without k9s."
+  fi
+else
+  msg_warn "Could not download k9s archive. VM creation continues without k9s."
+fi
+rm -f /tmp/k9s.tar.gz
 
 if [[ "$INSTALL_ARGOCD_BOOTSTRAP" == "1" ]]; then
   msg_info "Add in Image ArgoCD Bootstrap"
