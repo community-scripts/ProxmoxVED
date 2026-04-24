@@ -1,0 +1,40 @@
+{
+    "name": "DDNS-Updater",
+    "slug": "ddns-updater",
+    "categories": [
+        4
+    ],
+    "date_created": "2026-04-06",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8000,
+    "documentation": "https://github.com/qdm12/ddns-updater/wiki",
+    "website": "https://github.com/qdm12/ddns-updater",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ddns-updater.webp",
+    "config_path": "/opt/ddns-updater/data/config.json",
+    "description": "Lightweight universal DDNS updater with web UI, supporting 60+ DNS providers including Cloudflare, Namecheap, GoDaddy, DuckDNS and more.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/ddns-updater.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 2,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Edit /opt/ddns-updater/data/config.json with your DNS provider settings before use.",
+            "type": "warning"
+        }
+    ]
+}
