@@ -1,0 +1,44 @@
+{
+    "name": "Dynacat",
+    "slug": "dynacat",
+    "categories": [
+        10
+    ],
+    "date_created": "2026-04-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8080,
+    "documentation": "https://dynacat.artur.zone/",
+    "website": "https://github.com/Panonim/dynacat",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/dynacat.webp",
+    "description": "Dynacat is a lightweight self-hosted dashboard focused on dynamic updates and easy integration with external services.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/dynacat.sh",
+            "config_path": "/opt/dynacat/config/dynacat.yml",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 6,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Configuration file is located at /opt/dynacat/config/dynacat.yml",
+            "type": "info"
+        },
+        {
+            "text": "Dynacat listens on port 8080 by default",
+            "type": "info"
+        }
+    ]
+}
