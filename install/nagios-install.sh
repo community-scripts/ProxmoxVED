@@ -32,6 +32,7 @@ $STD apt install -y \
   bc \
   dc \
   gawk \
+  gperf \
   gettext \
   snmp \
   unzip \
