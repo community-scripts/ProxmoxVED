@@ -15,20 +15,67 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
+  autoconf \
+  automake \
+  gcc \
+  libc6 \
+  libgd-dev \
+  libmcrypt-dev \
+  libnet-snmp-perl \
+  libssl-dev \
+  make \
+  openssl \
+  php \
+  apache2 \
   apache2-utils \
-  nagios4 \
-  nagios-plugins-contrib
+  build-essential \
+  bc \
+  dc \
+  gawk \
+  gettext \
+  snmp \
+  unzip \
+  wget
 msg_ok "Installed Dependencies"
 
+fetch_and_deploy_gh_release "nagios" "NagiosEnterprises/nagioscore" "tarball"
+
+msg_info "Building Nagios Core"
+cd /opt/nagios
+$STD ./configure --with-httpd-conf=/etc/apache2/sites-enabled
+$STD make all
+$STD make install-groups-users
+usermod -a -G nagios www-data
+$STD make install
+$STD make install-daemoninit
+$STD make install-commandmode
+$STD make install-config
+$STD make install-webconf
+a2enmod rewrite >/dev/null 2>&1
+a2enmod cgi >/dev/null 2>&1
+msg_ok "Built Nagios Core"
+
+fetch_and_deploy_gh_release "nagios-plugins" "nagios-plugins/nagios-plugins" "tarball"
+
+msg_info "Building Nagios Plugins"
+cd /opt/nagios-plugins
+$STD ./tools/setup
+$STD ./configure
+$STD make
+$STD make install
+msg_ok "Built Nagios Plugins"
+
 msg_info "Configuring Web Authentication"
-htpasswd -bc /etc/nagios4/htpasswd.users nagiosadmin nagiosadmin
-chown root:www-data /etc/nagios4/htpasswd.users
-chmod 640 /etc/nagios4/htpasswd.users
+htpasswd -bc /usr/local/nagios/etc/htpasswd.users nagiosadmin nagiosadmin
+chown root:www-data /usr/local/nagios/etc/htpasswd.users
+chmod 640 /usr/local/nagios/etc/htpasswd.users
 msg_ok "Configured Web Authentication"
 
 msg_info "Starting Services"
-systemctl enable -q --now nagios4
 systemctl enable -q --now apache2
+systemctl enable -q --now nagios
+systemctl restart apache2
+systemctl restart nagios
 msg_ok "Started Services"
 
 motd_ssh

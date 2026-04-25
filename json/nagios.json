@@ -17,7 +17,7 @@
         {
             "type": "default",
             "script": "ct/nagios.sh",
-            "config_path": "/etc/nagios4/nagios.cfg",
+            "config_path": "/usr/local/nagios/etc/nagios.cfg",
             "resources": {
                 "cpu": 2,
                 "ram": 2048,
@@ -33,11 +33,11 @@
     },
     "notes": [
         {
-            "text": "After first login, change the default web password in /etc/nagios4/htpasswd.users.",
+            "text": "After first login, change the default web password in /usr/local/nagios/etc/htpasswd.users.",
             "type": "warning"
         },
         {
-            "text": "Web UI path is /nagios4 on port 80.",
+            "text": "Web UI path is /nagios on port 80.",
             "type": "info"
         }
     ]
