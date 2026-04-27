@@ -124,7 +124,8 @@ done
 pct exec "$CTID" -- bash -c "mkdir -p /opt/authentik-data/{certs,media,geoip,templates}; \
   cp /opt/authentik/tests/GeoLite2-ASN-Test.mmdb /opt/authentik-data/geoip/GeoLite2-ASN.mmdb; \
   cp /opt/authentik/tests/GeoLite2-City-Test.mmdb /opt/authentik-data/geoip/GeoLite2-City.mmdb; \
-  chown -R authentik:authentik /opt/authentik-data"
+  chown authentik:authentik /opt/authentik-data; \
+  chown -R authentik:authentik /opt/authentik-data/{certs,media,geoip,templates}"
 msg_ok "Attached data storage volume"
 
 msg_info "Starting Services"
