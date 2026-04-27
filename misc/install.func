@@ -894,6 +894,13 @@ setting_up_container() {
   if [[ "$PKG_MANAGER" == "pacman" && -f /etc/pacman.conf ]]; then
     sed -i 's/^\s*DownloadUser\s*=.*/#&/' /etc/pacman.conf
     grep -q '^DisableSandbox' /etc/pacman.conf || sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
+
+    # Initialize pacman keyring (required for signature verification on first
+    # upgrade). The Arch base template ships without an initialized keyring.
+    if [[ ! -f /etc/pacman.d/gnupg/pubring.gpg ]] || [[ ! -s /etc/pacman.d/gnupg/pubring.gpg ]]; then
+      $STD pacman-key --init
+      $STD pacman-key --populate archlinux
+    fi
   fi
 
   # Disable network wait services for faster boot
@@ -1216,23 +1223,27 @@ EOF
         systemctl enable console-getty.service &>/dev/null || true
       fi
 
-      # Fedora/RHEL: /etc/profile.d/vte.sh sets a PROMPT_COMMAND that, combined
+      # Fedora/RHEL: /etc/profile.d/vte*.sh sets a PROMPT_COMMAND that, combined
       # with broken TIOCGWINSZ in LXC noVNC, causes CSI 6n responses to leak as
       # "R;80R" garbage at the shell prompt. Disable by renaming (chmod -x is
       # ineffective; /etc/profile sources by readability, not executable bit).
-      for _f in /etc/profile.d/vte.sh /etc/profile.d/vte.csh; do
-        [[ -f "$_f" ]] && mv "$_f" "${_f}.disabled" 2>/dev/null || true
+      # Versioned names exist on Fedora 43+ (vte-2.91.sh).
+      shopt -s nullglob
+      for _f in /etc/profile.d/vte*.sh /etc/profile.d/vte*.csh; do
+        mv "$_f" "${_f}.disabled" 2>/dev/null || true
       done
+      shopt -u nullglob
 
       # LXC pseudo-tty often reports winsize 0x0; bash readline then falls back
-      # to CSI 6n cursor-position queries whose responses leak as input. Force
-      # a sane default size at every shell start until a real size is detected.
+      # to CSI 6n cursor-position queries whose responses leak as input.
+      # Setting COLUMNS/LINES + stty makes readline skip the query entirely.
       cat >/etc/profile.d/00-lxc-term-size.sh <<'EOF'
 # community-scripts: ensure sane terminal size in LXC console
 if [ -t 0 ] && [ -t 1 ]; then
   _sz=$(stty size 2>/dev/null)
   if [ -z "$_sz" ] || [ "${_sz% *}" = "0" ]; then
     stty rows 24 cols 80 2>/dev/null
+    export LINES=24 COLUMNS=80
   fi
   unset _sz
 fi
