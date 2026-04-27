@@ -18,7 +18,12 @@ $STD apt install -y \
   sudo \
   ca-certificates \
   git \
-  build-essential
+  build-essential \
+  acl
+# acl provides setfacl, which NanoClaw's setup uses as a fallback when the
+# docker group membership isn't yet active in the current login session
+# (see setup/service.ts). Without it the host service starts in a degraded
+# state on first install and can't reach /var/run/docker.sock.
 msg_ok "Installed dependencies"
 
 NODE_VERSION="22" setup_nodejs
