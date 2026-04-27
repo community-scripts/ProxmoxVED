@@ -188,6 +188,36 @@ _bootstrap() {
 _bootstrap
 detect_os
 
+# Persist diagnostics setting inside container (exported from build.func)
+# so addon scripts running later can find the user's choice
+if [[ ! -f /usr/local/community-scripts/diagnostics ]]; then
+  mkdir -p /usr/local/community-scripts
+  echo "DIAGNOSTICS=${DIAGNOSTICS:-no}" >/usr/local/community-scripts/diagnostics
+fi
+
+# ------------------------------------------------------------------------------
+# post_progress_to_api()
+#
+# - Lightweight progress ping from inside the container
+# - Updates the existing telemetry record status
+# - Arguments:
+#   * $1: status (optional, default: "configuring")
+# - Signals that the installation is actively progressing (not stuck)
+# - Fire-and-forget: never blocks or fails the script
+# - Only executes if DIAGNOSTICS=yes and RANDOM_UUID is set
+# ------------------------------------------------------------------------------
+post_progress_to_api() {
+  command -v curl &>/dev/null || return 0
+  [[ "${DIAGNOSTICS:-no}" == "no" ]] && return 0
+  [[ -z "${RANDOM_UUID:-}" ]] && return 0
+
+  local progress_status="${1:-configuring}"
+
+  curl -fsS -m 5 -X POST "https://telemetry.community-scripts.org/telemetry" \
+    -H "Content-Type: application/json" \
+    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"lxc\",\"nsapp\":\"${app:-unknown}\",\"status\":\"${progress_status}\"}" &>/dev/null || true
+}
+
 # ==============================================================================
 # SECTION 2: PACKAGE MANAGER ABSTRACTION
 # ==============================================================================
@@ -198,6 +228,16 @@ detect_os
 # Updates package manager cache/database
 # ------------------------------------------------------------------------------
 pkg_update() {
+  # Safety: re-detect if PKG_MANAGER doesn't match available commands
+  if [[ "$PKG_MANAGER" == "apt" ]] && ! command -v apt-get &>/dev/null; then
+    msg_warn "PKG_MANAGER='apt' but apt-get not found (OS: ${OS_TYPE:-unknown}) — re-detecting"
+    detect_os
+  fi
+  if [[ "$PKG_MANAGER" == "apk" ]] && ! command -v apk &>/dev/null; then
+    msg_warn "PKG_MANAGER='apk' but apk not found (OS: ${OS_TYPE:-unknown}) — re-detecting"
+    detect_os
+  fi
+
   case "$PKG_MANAGER" in
   apt)
     if ! $STD apt-get update; then
@@ -404,6 +444,12 @@ EOF
 # Upgrades all installed packages
 # ------------------------------------------------------------------------------
 pkg_upgrade() {
+  # Safety: re-detect if PKG_MANAGER doesn't match available commands
+  if [[ "$PKG_MANAGER" == "apt" ]] && ! command -v apt-get &>/dev/null; then
+    msg_warn "PKG_MANAGER='apt' but apt-get not found (OS: ${OS_TYPE:-unknown}) — re-detecting"
+    detect_os
+  fi
+
   case "$PKG_MANAGER" in
   apt)
     $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
@@ -785,6 +831,12 @@ EOF
 setting_up_container() {
   msg_info "Setting up Container OS"
 
+  # Fix Debian 13 LXC template bug where / is owned by nobody
+  # Only attempt in privileged containers (unprivileged cannot chown /)
+  if [[ "$(stat -c '%U' /)" != "root" ]]; then
+    (chown root:root / 2>/dev/null) || true
+  fi
+
   # Wait for network
   local i
   for ((i = RETRY_NUM; i > 0; i--)); do
@@ -813,6 +865,7 @@ setting_up_container() {
 
   msg_ok "Set up Container OS"
   msg_ok "Network Connected: ${BL}$(get_ip)"
+  post_progress_to_api
 }
 
 # ------------------------------------------------------------------------------
@@ -858,7 +911,7 @@ network_check() {
   fi
 
   # DNS resolution checks
-  local GIT_HOSTS=("github.com" "raw.githubusercontent.com" "git.community-scripts.org")
+  local GIT_HOSTS=("github.com" "raw.githubusercontent.com" "api.github.com" "git.community-scripts.org")
   local GIT_STATUS="Git DNS:"
   local DNS_FAILED=false
 
@@ -913,16 +966,33 @@ update_os() {
   # Configure APT cacher proxy if enabled (Debian/Ubuntu only)
   if [[ "$PKG_MANAGER" == "apt" && "${CACHER:-}" == "yes" ]]; then
     echo 'Acquire::http::Proxy-Auto-Detect "/usr/local/bin/apt-proxy-detect.sh";' >/etc/apt/apt.conf.d/00aptproxy
+    local _proxy_raw="${CACHER_IP}"
+    local _proxy_host _proxy_port _proxy_url
+    # Parse host and port from URL or plain IP/hostname
+    _proxy_host=$(echo "$_proxy_raw" | sed -e 's|https\?://||' -e 's|/.*||' | cut -d: -f1)
+    _proxy_port=$(echo "$_proxy_raw" | sed -e 's|https\?://||' -e 's|/.*||' | cut -s -d: -f2)
+    if [[ "$_proxy_raw" =~ ^https?:// ]]; then
+      # Full URL provided — use as-is for proxy output, extract port for nc check
+      _proxy_url="$_proxy_raw"
+      _proxy_port="${_proxy_port:-80}"
+    else
+      # Legacy: plain IP or hostname — default to http + port 3142
+      _proxy_port="${_proxy_port:-3142}"
+      _proxy_url="http://${_proxy_raw}:${_proxy_port}"
+    fi
     cat <<EOF >/usr/local/bin/apt-proxy-detect.sh
 #!/bin/bash
-if nc -w1 -z "${CACHER_IP}" 3142; then
-  echo -n "http://${CACHER_IP}:3142"
+if nc -w1 -z "${_proxy_host}" ${_proxy_port}; then
+  echo -n "${_proxy_url}"
 else
   echo -n "DIRECT"
 fi
 EOF
     chmod +x /usr/local/bin/apt-proxy-detect.sh
   fi
+
+  # Re-detect OS to ensure PKG_MANAGER is correct (guards against stale env)
+  detect_os
 
   # Update and upgrade
   pkg_update
@@ -932,16 +1002,29 @@ EOF
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
 
   msg_ok "Updated Container OS"
+  post_progress_to_api
 
   # Source appropriate tools.func based on OS
+  local tools_content
   case "$OS_FAMILY" in
   alpine)
-    source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/alpine-tools.func")
+    tools_content=$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/alpine-tools.func") || {
+      msg_error "Failed to download alpine-tools.func"
+      exit 115
+    }
     ;;
   *)
-    source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/tools.func")
+    tools_content=$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/tools.func") || {
+      msg_error "Failed to download tools.func"
+      exit 115
+    }
     ;;
   esac
+  source /dev/stdin <<<"$tools_content"
+  if ! declare -f fetch_and_deploy_gh_release >/dev/null 2>&1; then
+    msg_error "tools.func loaded but incomplete — missing expected functions"
+    exit 115
+  fi
 }
 
 # ==============================================================================
@@ -1027,6 +1110,7 @@ EOF
       esac
     fi
   fi
+  post_progress_to_api
 }
 
 # ==============================================================================
@@ -1143,6 +1227,7 @@ EOF
     chmod 700 /root/.ssh
     chmod 600 /root/.ssh/authorized_keys
   fi
+  post_progress_to_api
 }
 
 # ==============================================================================
