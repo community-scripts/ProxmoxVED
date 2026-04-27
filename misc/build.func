@@ -532,7 +532,7 @@ preflight_template_available() {
   local local_match=0
   while read -r storage_name _; do
     [[ -z "$storage_name" ]] && continue
-    if pveam list "$storage_name" 2>/dev/null | awk '{print $1}' | grep -qE "^${storage_name}:vztmpl/${search_pattern}"; then
+    if pveam list "$storage_name" 2>/dev/null | awk '{print $1}' | grep -qE "^${storage_name}:vztmpl/${search_pattern}[._-]"; then
       local_match=1
       break
     fi
@@ -545,7 +545,7 @@ preflight_template_available() {
 
   # Check online catalog
   local online_match=0
-  if pveam available -section system 2>/dev/null | awk '{print $2}' | grep -qE "^${search_pattern}[.-]"; then
+  if pveam available -section system 2>/dev/null | awk '{print $2}' | grep -qE "^${search_pattern}[._-]"; then
     online_match=1
   fi
 
