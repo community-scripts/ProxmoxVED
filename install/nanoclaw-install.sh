@@ -32,8 +32,7 @@ loginctl enable-linger nanoclaw
 msg_ok "Created nanoclaw user"
 
 msg_info "Cloning NanoClaw"
-$STD git clone https://github.com/dooha333/nanoclaw /opt/nanoclaw
-chown -R nanoclaw:nanoclaw /opt/nanoclaw
+$STD sudo -u nanoclaw -H git clone https://github.com/dooha333/nanoclaw /home/nanoclaw/nanoclaw
 msg_ok "Cloned NanoClaw"
 
 msg_info "Installing Claude CLI"
@@ -45,11 +44,11 @@ cat <<'EOF' >/etc/update-motd.d/99-nanoclaw
 #!/bin/sh
 cat <<MOTD
 
-  NanoClaw is staged at /opt/nanoclaw
+  NanoClaw is staged at /home/nanoclaw/nanoclaw
 
   Finish setup:
     su - nanoclaw
-    cd /opt/nanoclaw
+    cd ~/nanoclaw
     bash nanoclaw.sh
 
   The wizard installs Docker, sets up the OneCLI vault, prompts
