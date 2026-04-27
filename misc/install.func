@@ -1077,8 +1077,18 @@ EOF
 # Configures Message of the Day and SSH settings
 # ------------------------------------------------------------------------------
 motd_ssh() {
-  # Set terminal to 256-color mode
-  grep -qxF "export TERM='xterm-256color'" /root/.bashrc 2>/dev/null || echo "export TERM='xterm-256color'" >>/root/.bashrc
+  # Set 256-color mode only for SSH sessions; LXC console gets TERM from agetty.
+  # Forcing TERM=xterm-256color on the LXC noVNC console can break readline's
+  # window-size detection and cause CSI 6n response leaks ("R;80R" garbage).
+  if ! grep -q '__cs_term_setup' /root/.bashrc 2>/dev/null; then
+    cat >>/root/.bashrc <<'EOF'
+
+# __cs_term_setup: community-scripts terminal init
+if [ -n "${SSH_CONNECTION:-}${SSH_TTY:-}" ]; then
+  export TERM='xterm-256color'
+fi
+EOF
+  fi
 
   # Get OS information
   local os_name="$OS_TYPE"
@@ -1206,11 +1216,28 @@ EOF
         systemctl enable console-getty.service &>/dev/null || true
       fi
 
-      # Fedora/RHEL: /etc/profile.d/vte.sh emits cursor-position queries (CSI 6n)
-      # whose responses leak into the shell input buffer, causing
-      # "R;80R: command not found" garbage on the first prompt. Disable it.
-      [[ -f /etc/profile.d/vte.sh ]] && chmod -x /etc/profile.d/vte.sh 2>/dev/null || true
-      [[ -f /etc/profile.d/vte.csh ]] && chmod -x /etc/profile.d/vte.csh 2>/dev/null || true
+      # Fedora/RHEL: /etc/profile.d/vte.sh sets a PROMPT_COMMAND that, combined
+      # with broken TIOCGWINSZ in LXC noVNC, causes CSI 6n responses to leak as
+      # "R;80R" garbage at the shell prompt. Disable by renaming (chmod -x is
+      # ineffective; /etc/profile sources by readability, not executable bit).
+      for _f in /etc/profile.d/vte.sh /etc/profile.d/vte.csh; do
+        [[ -f "$_f" ]] && mv "$_f" "${_f}.disabled" 2>/dev/null || true
+      done
+
+      # LXC pseudo-tty often reports winsize 0x0; bash readline then falls back
+      # to CSI 6n cursor-position queries whose responses leak as input. Force
+      # a sane default size at every shell start until a real size is detected.
+      cat >/etc/profile.d/00-lxc-term-size.sh <<'EOF'
+# community-scripts: ensure sane terminal size in LXC console
+if [ -t 0 ] && [ -t 1 ]; then
+  _sz=$(stty size 2>/dev/null)
+  if [ -z "$_sz" ] || [ "${_sz% *}" = "0" ]; then
+    stty rows 24 cols 80 2>/dev/null
+  fi
+  unset _sz
+fi
+EOF
+      chmod 644 /etc/profile.d/00-lxc-term-size.sh
 
       systemctl daemon-reload
       # Restart only what's currently active to avoid spawning duplicate gettys

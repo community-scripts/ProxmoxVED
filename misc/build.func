@@ -4602,15 +4602,20 @@ EOF
     sleep 3
     LANG=${LANG:-en_US.UTF-8}
 
+    # Force C locale inside the container until proper locales are generated.
+    # Otherwise perl/apt spam "Setting locale failed" because pct exec inherits
+    # the host's LANG (e.g. en_US.UTF-8) which isn't generated in fresh templates.
+    local _ct_env='export LC_ALL=C.UTF-8 LANG=C.UTF-8 DEBIAN_FRONTEND=noninteractive;'
+
     # Devuan templates don't include locales package by default - install it first
     if [ "$var_os" == "devuan" ]; then
-      pct exec "$CTID" -- bash -c "apt-get update >/dev/null && apt-get install -y locales >/dev/null" || true
+      pct exec "$CTID" -- bash -c "${_ct_env} apt-get update >/dev/null && apt-get install -y locales >/dev/null" || true
     fi
 
     # Only configure locale if locale.gen exists (some minimal templates don't have it)
     if pct exec "$CTID" -- test -f /etc/locale.gen 2>/dev/null; then
-      pct exec "$CTID" -- bash -c "sed -i \"/$LANG/ s/^# //\" /etc/locale.gen"
-      pct exec "$CTID" -- bash -c "locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
+      pct exec "$CTID" -- bash -c "${_ct_env} sed -i \"/$LANG/ s/^# //\" /etc/locale.gen"
+      pct exec "$CTID" -- bash -c "${_ct_env} locale_line=\$(grep -v '^#' /etc/locale.gen | grep -E '^[a-zA-Z]' | awk '{print \$1}' | head -n 1) && \
       echo LANG=\$locale_line >/etc/default/locale && \
       locale-gen >/dev/null && \
       export LANG=\$locale_line"
@@ -4624,18 +4629,18 @@ EOF
     if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
       # Set timezone using symlink (Debian 13+ compatible)
       # Create /etc/timezone for backwards compatibility with older scripts
-      pct exec "$CTID" -- bash -c "tz='$tz'; ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime && echo \"\$tz\" >/etc/timezone || true"
+      pct exec "$CTID" -- bash -c "${_ct_env} tz='$tz'; ln -sf \"/usr/share/zoneinfo/\$tz\" /etc/localtime && echo \"\$tz\" >/etc/timezone || true"
     else
       msg_warn "Skipping timezone setup – zone '$tz' not found in container"
     fi
 
     # Detect broken DNS resolver (e.g. Tailscale MagicDNS) and inject public DNS
-    if ! pct exec "$CTID" -- bash -c "getent hosts deb.debian.org >/dev/null 2>&1 && getent hosts archive.ubuntu.com >/dev/null 2>&1"; then
+    if ! pct exec "$CTID" -- bash -c "${_ct_env} getent hosts deb.debian.org >/dev/null 2>&1 && getent hosts archive.ubuntu.com >/dev/null 2>&1"; then
       msg_warn "APT repository DNS resolution failed in container, injecting public DNS servers"
       pct exec "$CTID" -- bash -c "echo -e 'nameserver 8.8.8.8\nnameserver 1.1.1.1' >/etc/resolv.conf"
     fi
 
-    pct exec "$CTID" -- bash -c "apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1" || {
+    pct exec "$CTID" -- bash -c "${_ct_env} apt-get update >/dev/null 2>&1 && apt-get install -y sudo curl mc gnupg2 jq >/dev/null 2>&1" || {
       local failed_mirror
       failed_mirror=$(pct exec "$CTID" -- bash -c "grep -m1 -oP '(?<=URIs: https?://)[^/]+' /etc/apt/sources.list.d/debian.sources 2>/dev/null || grep -m1 -oP '(?<=deb https?://)[^/]+' /etc/apt/sources.list 2>/dev/null" 2>/dev/null || echo "unknown")
       msg_warn "apt-get update failed (${failed_mirror}), trying alternate mirrors..."
