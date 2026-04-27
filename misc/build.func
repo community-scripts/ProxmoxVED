@@ -3608,7 +3608,7 @@ install_script() {
       base_settings "$VERBOSE"
       echo_default
       break
-      ;; 
+      ;;
     *)
       echo -e "${CROSS}${RD}Invalid option: $CHOICE${CL}"
       exit 1
@@ -4598,7 +4598,7 @@ EOF
         exit 1
       fi
     }
-  else
+  elif [[ "$var_os" =~ ^(debian|ubuntu|devuan)$ ]]; then
     sleep 3
     LANG=${LANG:-en_US.UTF-8}
 
@@ -4764,6 +4764,34 @@ EOF
         exit 1
       fi
     }
+  else
+    # Non-apt, non-apk systems: Fedora/Rocky/Alma/CentOS/openEuler/openSUSE/Arch/Gentoo
+    sleep 3
+
+    # Set timezone (host's timezone, falling back to UTC)
+    if [[ -z "${tz:-}" ]]; then
+      tz=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "UTC")
+    fi
+    [[ "${tz:-}" == Etc/* ]] && tz="UTC"
+    if pct exec "$CTID" -- test -e "/usr/share/zoneinfo/$tz"; then
+      pct exec "$CTID" -- bash -c "ln -sf \"/usr/share/zoneinfo/$tz\" /etc/localtime && echo \"$tz\" >/etc/timezone || true"
+    fi
+
+    # Ensure curl is present for install.func bootstrap (most templates have it, but be safe)
+    case "$var_os" in
+    fedora | rocky | rockylinux | alma | almalinux | centos | openeuler)
+      pct exec "$CTID" -- bash -c "command -v curl >/dev/null 2>&1 || (command -v dnf >/dev/null 2>&1 && dnf install -y curl >/dev/null 2>&1) || (command -v yum >/dev/null 2>&1 && yum install -y curl >/dev/null 2>&1)" || true
+      ;;
+    opensuse)
+      pct exec "$CTID" -- bash -c "command -v curl >/dev/null 2>&1 || zypper -n install curl >/dev/null 2>&1" || true
+      ;;
+    archlinux | arch)
+      pct exec "$CTID" -- bash -c "command -v curl >/dev/null 2>&1 || pacman -Sy --noconfirm curl >/dev/null 2>&1" || true
+      ;;
+    gentoo)
+      pct exec "$CTID" -- bash -c "command -v curl >/dev/null 2>&1 || emerge --quiet net-misc/curl >/dev/null 2>&1" || true
+      ;;
+    esac
   fi
 
   msg_ok "Customized LXC Container"
