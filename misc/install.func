@@ -175,16 +175,32 @@ _bootstrap() {
     elif command -v pacman &>/dev/null; then
       pacman -Sy --noconfirm curl &>/dev/null
     elif command -v emerge &>/dev/null; then
-      emerge --quiet net-misc/curl &>/dev/null
+      # Gentoo stage3 has no curl and no portage tree on first boot.
+      # Sync portage (webrsync = fast snapshot) then prefer binary package.
+      emerge-webrsync --quiet &>/dev/null || emerge --sync --quiet &>/dev/null
+      emerge --quiet --getbinpkg --usepkg net-misc/curl &>/dev/null \
+        || emerge --quiet net-misc/curl &>/dev/null
     fi
+  fi
+
+  # Last resort: if curl still missing but wget is available (Gentoo stage3),
+  # use wget for the bootstrap source fetch so we don't fail immediately.
+  local _fetch
+  if command -v curl &>/dev/null; then
+    _fetch="curl -fsSL"
+  elif command -v wget &>/dev/null; then
+    _fetch="wget -qO-"
+  else
+    echo "ERROR: neither curl nor wget available — cannot bootstrap" >&2
+    exit 1
   fi
 
   # Configurable base URL for development — override with COMMUNITY_SCRIPTS_URL
   COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
 
   # Source core functions
-  source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/core.func")
-  source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/error_handler.func")
+  source <($_fetch "$COMMUNITY_SCRIPTS_URL/misc/core.func")
+  source <($_fetch "$COMMUNITY_SCRIPTS_URL/misc/error_handler.func")
   load_functions
   catch_errors
 
