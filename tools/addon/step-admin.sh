@@ -1151,7 +1151,7 @@ function ca_maintain_menu() {
 # MAIN
 # ==============================================================================
 init_app
-header_info "$APP"
+header_info "step-admin"
 
 case "$var_x509_action" in
   bootstrap)
