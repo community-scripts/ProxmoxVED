@@ -15,6 +15,8 @@ update_os
 
 msg_info "Installing dependencies"
 $STD apt install -y \
+  sudo \
+  ca-certificates \
   git \
   build-essential \
   systemd-container
@@ -23,7 +25,7 @@ msg_ok "Installed dependencies"
 NODE_VERSION="22" setup_nodejs
 
 msg_info "Creating nanoclaw user"
-useradd -m -s /bin/bash -G sudo nanoclaw
+useradd -m -s /bin/bash nanoclaw
 echo "nanoclaw ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/nanoclaw
 chmod 440 /etc/sudoers.d/nanoclaw
 loginctl enable-linger nanoclaw
