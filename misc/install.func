@@ -1102,8 +1102,10 @@ EOF
   local os_version="$OS_VERSION"
 
   if [[ -f /etc/os-release ]]; then
-    os_name=$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '"')
-    os_version=$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+    os_name=$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '"' || true)
+    os_version=$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"' || true)
+    [[ -z "$os_name" ]] && os_name="$OS_TYPE"
+    [[ -z "$os_version" ]] && os_version="${OS_VERSION:-rolling}"
   fi
 
   # Create MOTD profile script
