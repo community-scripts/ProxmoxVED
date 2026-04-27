@@ -112,6 +112,25 @@ function update_script() {
 
 start
 build_container
+
+msg_info "Attaching data storage volume"
+pct stop "$CTID"
+pct set "$CTID" -mp0 "${CONTAINER_STORAGE}":1,mp=/opt/authentik-data,backup=1
+pct start "$CTID"
+for i in {1..10}; do
+  pct status "$CTID" | grep -q "status: running" && break
+  sleep 1
+done
+pct exec "$CTID" -- bash -c "mkdir -p /opt/authentik-data/{certs,media,geoip,templates}; \
+  cp /opt/authentik/tests/GeoLite2-ASN-Test.mmdb /opt/authentik-data/geoip/GeoLite2-ASN.mmdb; \
+  cp /opt/authentik/tests/GeoLite2-City-Test.mmdb /opt/authentik-data/geoip/GeoLite2-City.mmdb; \
+  chown -R authentik:authentik /opt/authentik-data"
+msg_ok "Attached data storage volume"
+
+msg_info "Starting Services"
+pct exec "$CTID" -- systemctl enable -q --now authentik-server.service authentik-worker.service
+msg_ok "Started Services"
+
 description
 
 msg_ok "Completed successfully!\n"

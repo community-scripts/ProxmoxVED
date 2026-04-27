@@ -84,7 +84,7 @@ msg_ok "Go proxy installed"
 
 fetch_and_deploy_gh_release "geoipupdate" "maxmind/geoipupdate" "binary"
 
-cat <<EOF>/usr/local/etc/GeoIP.conf
+cat <<EOF >/usr/local/etc/GeoIP.conf
 AccountID ChangeME
 LicenseKey ChangeME
 EditionIDs GeoLite2-ASN GeoLite2-City GeoLite2-Country
@@ -93,7 +93,7 @@ RetryFor 5m
 Parallelism 1
 EOF
 
-cat <<EOF>/tmp/crontab
+cat <<EOF >/tmp/crontab
 #39 19 * * 6,4 /usr/bin/geoipupdate -f /usr/local/etc/GeoIP.conf
 EOF
 crontab /tmp/crontab
@@ -115,7 +115,6 @@ export UV_PYTHON_INSTALL_DIR="/usr/local/bin"
 $STD uv sync --frozen --no-install-project --no-dev
 msg_ok "Installed python server"
 
-mkdir -p /opt/authentik-data/{certs,media,geoip,templates}
 cp /opt/authentik/authentik/sources/kerberos/krb5.conf /etc/krb5.conf
 
 PG_VERSION="16" setup_postgresql
@@ -135,11 +134,9 @@ yq -i ".blueprints_dir = \"/opt/authentik/blueprints\"" /etc/authentik/config.ym
 yq -i ".cert_discovery_dir = \"/opt/authentik-data/certs\"" /etc/authentik/config.yml
 yq -i ".email.template_dir = \"/opt/authentik-data/templates\"" /etc/authentik/config.yml
 yq -i ".storage.file.path = \"/opt/authentik-data\"" /etc/authentik/config.yml
-cp /opt/authentik/tests/GeoLite2-ASN-Test.mmdb /opt/authentik-data/geoip/GeoLite2-ASN.mmdb
-cp /opt/authentik/tests/GeoLite2-City-Test.mmdb /opt/authentik-data/geoip/GeoLite2-City.mmdb
 $STD useradd -U -s /usr/sbin/nologin -r -M -d /opt/authentik authentik
-chown -R authentik:authentik /opt/authentik /opt/authentik-data
-cat <<EOF>/etc/default/authentik
+chown -R authentik:authentik /opt/authentik
+cat <<EOF >/etc/default/authentik
 TMPDIR=/dev/shm/
 UV_LINK_MODE=copy
 UV_PYTHON_DOWNLOADS=0
@@ -154,7 +151,7 @@ EOF
 msg_ok "authentik config created"
 
 msg_info "Creating services"
-cat <<EOF>/etc/systemd/system/authentik-server.service
+cat <<EOF >/etc/systemd/system/authentik-server.service
 [Unit]
 Description=authentik Go Server (API Gateway)
 After=network.target
@@ -174,7 +171,7 @@ EnvironmentFile=/etc/default/authentik
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF>/etc/systemd/system/authentik-worker.service
+cat <<EOF >/etc/systemd/system/authentik-worker.service
 [Unit]
 Description=authentik Worker
 After=network.target postgresql.service
@@ -193,7 +190,6 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now authentik-server.service authentik-worker.service
 msg_ok "Services created"
 
 motd_ssh
