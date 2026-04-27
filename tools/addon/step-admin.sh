@@ -10,9 +10,6 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/error_handler.func)
 
-source <(curl -fsSL https://raw.githubusercontent.com/heinemannj/ProxmoxVED/step-admin/misc/admin-core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/heinemannj/ProxmoxVED/step-admin/misc/whiptail.func)
-
 # ==============================================================================
 # Enable error handling
 #
@@ -295,6 +292,199 @@ case "${1:-}" in
     exit 0
     ;;
 esac
+
+# ==============================================================================
+# WHIPTAIL HELPER FUNCTIONS
+# ==============================================================================
+function whiptail_msgbox() {
+  local TITLE=$1
+  local TEXT=$2
+  local LEN
+  LEN=$(echo "$TEXT" | wc -l)
+  local HIGHT=$(( LEN + 7 ))
+  (( HIGHT > 30 )) && HIGHT=30
+  local WIDTH=$(( ${#TITLE} + 16 ))
+  local WIDTH_ARRAY=( "$WIDTH" $(( ${#TEXT} + 4 )) )
+  for i in "${WIDTH_ARRAY[@]}"; do
+    (( i > WIDTH )) && WIDTH=$i
+  done
+  (( WIDTH > 150 )) && WIDTH=150
+
+  whiptail --backtitle "$APP_BACKTITLE" --title "$TITLE" --scrolltext --msgbox "$TEXT" "$HIGHT" "$WIDTH" 3>&1 1>&2 2>&3
+}
+
+function whiptail_inputbox() {
+  local TITLE=$1
+  local TEXT=$2
+  local VALUE_INIT=$3
+  local VALUE_INPUT
+  local HIGHT=10
+  local WIDTH=$(( ${#TITLE} + 16 ))
+  local WIDTH_ARRAY=( "$WIDTH" $(( ${#TEXT} + 4 )) $(( ${#VALUE_INIT} + 8 )) )
+  for i in "${WIDTH_ARRAY[@]}"; do
+    (( i > WIDTH )) && WIDTH=$i
+  done
+
+  if VALUE_INPUT=$(whiptail --backtitle "$APP_BACKTITLE" --title "$TITLE" --inputbox "\n$TEXT" \
+    "$HIGHT" "$WIDTH" "$VALUE_INIT" 3>&1 1>&2 2>&3); then
+    echo "$VALUE_INPUT"
+  else
+    echo "$VALUE_INIT"
+  fi
+}
+
+function whiptail_textbox() {
+  local TITLE=$1
+  local FILE=$2
+  local LEN
+  LEN=$(wc -l < "$FILE")
+  local HIGHT=$(( LEN + 7 ))
+  (( HIGHT > 30 )) && HIGHT=30
+  local WIDTH=150
+
+  whiptail --backtitle "$APP_BACKTITLE" --title "$TITLE" --scrolltext --textbox "$FILE" "$HIGHT" "$WIDTH" 3>&1 1>&2 2>&3
+}
+
+function whiptail_menu() {
+  local TITLE=$1
+  local TEXT="\nSelect an option:"
+  local LEN=$(( ${#OPTIONS[@]} / 2 ))
+  local HIGHT=$(( LEN + 9 ))
+  local WIDTH=$(( ${#TITLE} + 16 ))
+  local WIDTH_OFFSET=5
+  local CHOICE
+  local MAX_LEFT=0
+  local MAX_RIGHT=0
+  for ((i=0; i<${#OPTIONS[@]}; i+=2)); do
+    (( ${#OPTIONS[i]} > MAX_LEFT )) && MAX_LEFT=${#OPTIONS[i]}
+    (( ${#OPTIONS[$(( i+1 ))]} > MAX_RIGHT )) && MAX_RIGHT=${#OPTIONS[$(( i+1 ))]}
+  done
+  (( MAX_LEFT + MAX_RIGHT + WIDTH_OFFSET > WIDTH )) && WIDTH=$(( MAX_LEFT + MAX_RIGHT + WIDTH_OFFSET ))
+
+  if CHOICE=$(whiptail --backtitle "$APP_BACKTITLE" --title "$TITLE" --menu "$TEXT" \
+    "$HIGHT" "$WIDTH" "$LEN" "${OPTIONS[@]}" 3>&1 1>&2 2>&3 || true); then
+    echo "$CHOICE"
+  fi
+}
+
+function whiptail_checklist() {
+  local TITLE=$1
+  local TEXT=$2
+  local -n LIST=$3
+  local CHOICE
+  local OPTIONS=()
+  local WIDTH=$(( ${#TITLE} + 16 ))
+  local WIDTH_OFFSET=15
+  local MAX_LEFT=0
+  local MAX_RIGHT=0
+
+  for ((i=0; i<${#LIST[@]}; i+=2)); do
+    local j=$(( i+1 ))
+    (( ${#LIST[i]} > MAX_LEFT )) && MAX_LEFT=${#LIST[i]}
+    (( ${#LIST[j]} > MAX_RIGHT )) && MAX_RIGHT=${#LIST[j]}
+    OPTIONS+=("${LIST[i]}" "${LIST[j]}" "OFF")
+  done
+  (( MAX_LEFT + MAX_RIGHT + WIDTH_OFFSET > WIDTH )) && WIDTH=$(( MAX_LEFT + MAX_RIGHT + WIDTH_OFFSET ))
+  local LEN=$(( ${#OPTIONS[@]} / 2 ))
+  (( LEN > 21 )) && LEN=21
+  local HIGHT=$(( LEN + 9 ))
+
+  if CHOICE=$(whiptail --backtitle "$APP_BACKTITLE" --title "$TITLE" --scrolltext --checklist "$TEXT" \
+    "$HIGHT" "$WIDTH" "$LEN" "${OPTIONS[@]}" 3>&1 1>&2 2>&3 | tr -d '"'); then
+    echo "$CHOICE"
+  fi
+}
+
+function whiptail_radiolist() {
+  local TITLE=$1
+  local TEXT=$2
+  local -n LIST=$3
+  local CHOICE
+  local OPTIONS=()
+  local WIDTH=$(( ${#TITLE} + 16 ))
+  local WIDTH_OFFSET=15
+  local MAX_LEFT=0
+  local MAX_RIGHT=0
+
+  for ((i=0; i<${#LIST[@]}; i+=2)); do
+    local j=$(( i+1 ))
+    (( ${#LIST[i]} > MAX_LEFT )) && MAX_LEFT=${#LIST[i]}
+    (( ${#LIST[j]} > MAX_RIGHT )) && MAX_RIGHT=${#LIST[j]}
+    OPTIONS+=("${LIST[i]}" "${LIST[j]}" "OFF")
+  done
+  (( MAX_LEFT + MAX_RIGHT + WIDTH_OFFSET > WIDTH )) && WIDTH=$(( MAX_LEFT + MAX_RIGHT + WIDTH_OFFSET ))
+  local LEN=$(( ${#OPTIONS[@]} / 2 ))
+  (( LEN > 21 )) && LEN=21
+  local HIGHT=$(( LEN + 9 ))
+
+  if CHOICE=$(whiptail --backtitle "$APP_BACKTITLE" --title "$TITLE" --scrolltext --radiolist "$TEXT" \
+    "$HIGHT" "$WIDTH" "$LEN" "${OPTIONS[@]}" 3>&1 1>&2 2>&3 | tr -d '"'); then
+    echo "$CHOICE"
+  fi
+}
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+function resolve_ip() {
+  local FQDN=$1
+  local IP
+  IP=$(dig +short "$FQDN")
+ [[ -z "$IP" ]] && exit 1 || echo "$IP"
+}
+
+# ==============================================================================
+# OS DETECTION
+# ==============================================================================
+function detect_os() {
+  if grep -qi "alpine" /etc/os-release; then
+    #OS="Alpine"
+    PKG_UPDATE=""
+    PKG_INSTALL="apk add --no-cache"
+    PKG_UPGRADE="apk update"
+    PKG_UNINSTALL="apk del"
+    PKG_AUTOREMOVE=""
+  elif grep -qi "arch" /etc/os-release; then
+    #OS="Arch"
+    PKG_UPDATE=""
+    PKG_INSTALL="pacman -S"
+    PKG_UPGRADE="pacman -Syu"
+    PKG_UNINSTALL="pacman -Rs"
+    PKG_AUTOREMOVE=""
+  elif grep -qi "debian" /etc/os-release; then
+    #OS="Debian"
+    PKG_UPDATE="apt update"
+    PKG_INSTALL="apt -y install"
+    PKG_UPGRADE="apt -y upgrade"
+    PKG_UNINSTALL="apt -y --purge remove"
+    PKG_AUTOREMOVE="apt -y --purge autoremove"
+    if ! [[ -f /etc/apt/sources.list.d/smallstep.sources ]]; then
+      setup_deb822_repo \
+        "smallstep" \
+        "https://packages.smallstep.com/keys/apt/repo-signing-key.gpg" \
+        "https://packages.smallstep.com/stable/debian" \
+        "debs" \
+        "main"
+    fi
+  elif grep -qi "ubuntu" /etc/os-release; then
+    #OS="Ubuntu"
+    PKG_UPDATE="apt update"
+    PKG_INSTALL="apt -y install"
+    PKG_UPGRADE="apt -y upgrade"
+    PKG_UNINSTALL="apt -y --purge remove"
+    PKG_AUTOREMOVE="apt -y --purge autoremove"
+    if ! [[ -f /etc/apt/sources.list.d/smallstep.sources ]]; then
+      setup_deb822_repo \
+        "smallstep" \
+        "https://packages.smallstep.com/keys/apt/repo-signing-key.gpg" \
+        "https://packages.smallstep.com/stable/debian" \
+        "debs" \
+        "main"
+    fi
+  else
+    die "Unsupported OS. Exiting."
+  fi
+}
 
 # ==============================================================================
 # INSTALL
