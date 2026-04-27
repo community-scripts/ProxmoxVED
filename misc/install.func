@@ -37,7 +37,7 @@
 
 # Global variables for OS detection
 OS_TYPE=""     # debian, ubuntu, devuan, alpine, fedora, rocky, alma, centos, opensuse, gentoo, openeuler
-OS_FAMILY=""   # debian, alpine, rhel, suse, gentoo
+OS_FAMILY=""   # debian, alpine, rhel, suse, gentoo, arch
 OS_VERSION=""  # Version number
 PKG_MANAGER="" # apt, apk, dnf, yum, zypper, emerge
 INIT_SYSTEM="" # systemd, openrc, sysvinit
@@ -128,6 +128,11 @@ detect_os() {
     OS_FAMILY="suse"
     PKG_MANAGER="zypper"
     ;;
+  arch | archlinux)
+    OS_TYPE="arch"
+    OS_FAMILY="arch"
+    PKG_MANAGER="pacman"
+    ;;
   gentoo)
     OS_FAMILY="gentoo"
     PKG_MANAGER="emerge"
@@ -167,6 +172,8 @@ _bootstrap() {
       yum install -y curl &>/dev/null
     elif command -v zypper &>/dev/null; then
       zypper install -y curl &>/dev/null
+    elif command -v pacman &>/dev/null; then
+      pacman -Sy --noconfirm curl &>/dev/null
     elif command -v emerge &>/dev/null; then
       emerge --quiet net-misc/curl &>/dev/null
     fi
@@ -428,6 +435,9 @@ EOF
   zypper)
     $STD zypper refresh
     ;;
+  pacman)
+    $STD pacman -Sy --noconfirm
+    ;;
   emerge)
     $STD emerge --sync
     ;;
@@ -466,6 +476,9 @@ pkg_upgrade() {
   zypper)
     $STD zypper -n update
     ;;
+  pacman)
+    $STD pacman -Su --noconfirm
+    ;;
   emerge)
     $STD emerge --quiet --update --deep @world
     ;;
@@ -503,6 +516,9 @@ pkg_install() {
   zypper)
     $STD zypper install -y "${packages[@]}"
     ;;
+  pacman)
+    $STD pacman -S --noconfirm "${packages[@]}"
+    ;;
   emerge)
     $STD emerge --quiet "${packages[@]}"
     ;;
@@ -538,6 +554,9 @@ pkg_remove() {
   zypper)
     $STD zypper remove -y "${packages[@]}"
     ;;
+  pacman)
+    $STD pacman -R --noconfirm "${packages[@]}"
+    ;;
   emerge)
     $STD emerge --quiet --unmerge "${packages[@]}"
     ;;
@@ -571,6 +590,9 @@ pkg_clean() {
     ;;
   zypper)
     $STD zypper clean
+    ;;
+  pacman)
+    $STD pacman -Sc --noconfirm
     ;;
   emerge)
     $STD emerge --quiet --depclean
@@ -1084,6 +1106,9 @@ EOF
       zypper)
         pkg_install openssh
         ;;
+      pacman)
+        pkg_install openssh
+        ;;
       emerge)
         pkg_install net-misc/openssh
         ;;
@@ -1279,4 +1304,14 @@ os_info() {
   echo "OS Version:   $OS_VERSION"
   echo "Pkg Manager:  $PKG_MANAGER"
   echo "Init System:  $INIT_SYSTEM"
+}
+
+# ------------------------------------------------------------------------------
+# cleanup_lxc()
+#
+# Overrides core.func version to support all OS types (not just Alpine/Debian)
+# Cleans package caches and removes unnecessary packages after installation
+# ------------------------------------------------------------------------------
+cleanup_lxc() {
+  pkg_clean
 }
