@@ -888,6 +888,14 @@ setting_up_container() {
     grep -qxF 'LC_ALL=C.UTF-8' /etc/environment 2>/dev/null || echo -e 'LC_ALL=C.UTF-8\nLANG=C.UTF-8' >>/etc/environment
   fi
 
+  # Arch Linux: pacman 7+ uses Landlock sandboxing for the 'alpm' user, which
+  # requires kernel features unavailable in unprivileged LXC containers.
+  # Disabling DownloadUser falls back to running as root (safe inside an LXC).
+  if [[ "$PKG_MANAGER" == "pacman" && -f /etc/pacman.conf ]]; then
+    sed -i 's/^\s*DownloadUser\s*=.*/#&/' /etc/pacman.conf
+    grep -q '^DisableSandbox' /etc/pacman.conf || sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
+  fi
+
   # Disable network wait services for faster boot
   case "$INIT_SYSTEM" in
   systemd)
