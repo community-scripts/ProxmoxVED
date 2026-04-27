@@ -1171,35 +1171,44 @@ customize() {
       systemctl mask systemd-homed-firstboot.service &>/dev/null || true
       systemctl mask systemd-homed.service &>/dev/null || true
 
-      # Configure console-getty for auto-login in LXC containers
-      # console-getty.service is THE service that handles /dev/console in LXC
-      # It's present on all systemd distros but not enabled by default on Fedora/RHEL
+      # In LXC there are TWO possible getty paths:
+      #   - container-getty@1.service  -> /dev/tty1 (Proxmox web noVNC console)
+      #   - console-getty.service       -> /dev/console (pct console / serial)
+      # We configure both with --autologin --noissue (prevents banner spam from
+      # rapid respawns) so whichever one the user opens works.
+      local _agetty_opts='--autologin root --noclear --noissue --keep-baud'
+
+      if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
+        mkdir -p /etc/systemd/system/container-getty@1.service.d
+        cat >/etc/systemd/system/container-getty@1.service.d/override.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty ${_agetty_opts} tty%I 115200,38400,9600 - \$TERM
+EOF
+      fi
 
       if [[ -f /usr/lib/systemd/system/console-getty.service ]]; then
         mkdir -p /etc/systemd/system/console-getty.service.d
-        cat >/etc/systemd/system/console-getty.service.d/override.conf <<'EOF'
+        cat >/etc/systemd/system/console-getty.service.d/override.conf <<EOF
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud 115200,38400,9600 - $TERM
+ExecStart=-/sbin/agetty ${_agetty_opts} 115200,38400,9600 - \$TERM
 EOF
-        # Enable console-getty for LXC web console (required on Fedora/RHEL)
+        # Enable console-getty for pct console (not enabled by default on Fedora/RHEL)
         systemctl enable console-getty.service &>/dev/null || true
       fi
 
-      # Also configure container-getty@1 (Debian/Ubuntu default in LXC)
-      if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
-        mkdir -p /etc/systemd/system/container-getty@1.service.d
-        cat >/etc/systemd/system/container-getty@1.service.d/override.conf <<'EOF'
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 - $TERM
-EOF
-      fi
+      # Fedora/RHEL: /etc/profile.d/vte.sh emits cursor-position queries (CSI 6n)
+      # whose responses leak into the shell input buffer, causing
+      # "R;80R: command not found" garbage on the first prompt. Disable it.
+      [[ -f /etc/profile.d/vte.sh ]] && chmod -x /etc/profile.d/vte.sh 2>/dev/null || true
+      [[ -f /etc/profile.d/vte.csh ]] && chmod -x /etc/profile.d/vte.csh 2>/dev/null || true
 
-      # Reload systemd and restart getty services to apply auto-login
       systemctl daemon-reload
-      systemctl restart console-getty.service &>/dev/null || true
-      systemctl restart container-getty@1.service &>/dev/null || true
+      # Restart only what's currently active to avoid spawning duplicate gettys
+      systemctl is-active container-getty@1.service &>/dev/null && systemctl restart container-getty@1.service &>/dev/null || true
+      systemctl is-active console-getty.service &>/dev/null && systemctl restart console-getty.service &>/dev/null || true
+      touch /root/.hushlogin
       ;;
 
     openrc)
