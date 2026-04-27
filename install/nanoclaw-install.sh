@@ -18,8 +18,7 @@ $STD apt install -y \
   sudo \
   ca-certificates \
   git \
-  build-essential \
-  systemd-container
+  build-essential
 msg_ok "Installed dependencies"
 
 NODE_VERSION="22" setup_nodejs
