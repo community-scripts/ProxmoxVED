@@ -1136,6 +1136,23 @@ echo -e "${YW:-} IP Address: ${GN:-}\$(hostname -I 2>/dev/null | awk '{print \$1
 echo -e "${YW:-} Repository: ${GN:-}https://github.com/community-scripts/ProxmoxVED${CL:-}"
 echo ""
 EOF
+  # openSUSE's /etc/bash.bashrc sources profile.d via `[ -x ]`, not `[ -r ]`,
+  # so the MOTD script must be executable to be loaded on every distro.
+  chmod +x "$PROFILE_FILE"
+
+  # Belt-and-suspenders: also write a static /etc/motd. PAM's pam_motd reads
+  # this on every login regardless of how /etc/profile.d is sourced, so the
+  # MOTD is shown even on distros where bash login profile loading is quirky
+  # (Fedora, Arch, openSUSE, etc.). Static fields only — dynamic IP/hostname
+  # come from the profile.d script above when it's sourced.
+  cat >/etc/motd <<EOF
+
+${APPLICATION:-Container} LXC Container - DEV Repository
+WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use in production!
+ OS: ${os_name} - Version: ${os_version}
+ Repository: https://github.com/community-scripts/ProxmoxVED
+
+EOF
 
   # Disable default MOTD scripts (Debian/Ubuntu)
   [[ -d /etc/update-motd.d ]] && chmod -x /etc/update-motd.d/* 2>/dev/null || true
@@ -1266,7 +1283,7 @@ if [ -t 0 ] && [ -t 1 ]; then
   unset _sz
 fi
 EOF
-      chmod 644 /etc/profile.d/00-lxc-term-size.sh
+      chmod +x /etc/profile.d/00-lxc-term-size.sh
 
       systemctl daemon-reload
       # Restart only what's currently active to avoid spawning duplicate gettys
