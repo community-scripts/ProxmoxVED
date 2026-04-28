@@ -4782,13 +4782,15 @@ EOF
       pct exec "$CTID" -- bash -c "ln -sf \"/usr/share/zoneinfo/$tz\" /etc/localtime && echo \"$tz\" >/etc/timezone || true"
     fi
 
-    # Fix blank PVE noVNC console on distros with util-linux >= 2.40.3:
-    # newer agetty sends ESC[6n (cursor position query); the VNC terminal responds
-    # with ESC[row;colR which agetty reads as input, clears the screen and hides
-    # the MOTD/banner. Setting TERM=linux in the getty unit prevents the query.
-    # In LXC the noVNC console is served by console-getty.service (not getty@tty1).
-    # /etc/environment is also written so PAM passes TERM to the login shell before
-    # /etc/profile runs (fixes openSUSE tset "unknown terminal type" prompt).
+    # Fix blank PVE noVNC console on distros with util-linux >= 2.40.3 and
+    # bash/readline 8.2+ (Fedora 43, Arch rolling): agetty and readline both send
+    # ESC[6n (cursor position query); the VNC terminal responds with ESC[row;colR
+    # which gets read as keyboard input (shows as "R;80R;" garbage at the prompt).
+    # Three-layer fix:
+    #  1. console-getty drop-in: TERM=linux stops agetty from querying (fixes MOTD blank)
+    #  2. /etc/environment: PAM passes TERM before /etc/profile runs (fixes openSUSE tset)
+    #  3. /etc/profile.d/99-pve-console-term.sh: re-asserts TERM=linux AFTER all other
+    #     profile.d scripts, so readline never thinks CPR is supported (fixes R;80R garbage)
     case "$var_os" in
     fedora | rocky | rockylinux | alma | almalinux | centos | openeuler | opensuse | archlinux | arch)
       pct exec "$CTID" -- bash -c '
@@ -4796,10 +4798,23 @@ EOF
         printf "[Service]\nEnvironment=TERM=linux\n" >/etc/systemd/system/console-getty.service.d/pve-console-term.conf
         systemctl daemon-reload 2>/dev/null || true
         systemctl restart console-getty.service 2>/dev/null || true
-        # Ensure TERM is set for PAM login shells (e.g. openSUSE calls tset in /etc/profile)
-        if ! grep -q "^TERM=" /etc/environment 2>/dev/null; then
-          echo "TERM=linux" >>/etc/environment
-        fi
+
+        # Layer 2: PAM environment (read before /etc/profile)
+        grep -q "^TERM=" /etc/environment 2>/dev/null || echo "TERM=linux" >>/etc/environment
+
+        # Layer 3: profile.d script that runs last (99-) to override any earlier TERM changes
+        mkdir -p /etc/profile.d
+        cat >/etc/profile.d/99-pve-console-term.sh <<'"'"'PROFILE'"'"'
+# Ensure TERM=linux on PVE noVNC console to prevent ESC[6n CPR responses
+# being read as keyboard input by bash/readline 8.2+ (shows as R;80R garbage).
+_pve_t=$(tty 2>/dev/null)
+case "$_pve_t" in
+  /dev/console|/dev/tty[0-9]*)
+    export TERM=linux ;;
+esac
+unset _pve_t
+PROFILE
+        chmod 644 /etc/profile.d/99-pve-console-term.sh
       ' 2>/dev/null || true
       ;;
     esac
