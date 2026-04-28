@@ -445,6 +445,72 @@ EOF
     fi
     ;;
   dnf)
+    # Speed up DNF: enable parallel downloads if not already configured
+    if [[ -f /etc/dnf/dnf.conf ]] && ! grep -q 'max_parallel_downloads' /etc/dnf/dnf.conf; then
+      echo 'max_parallel_downloads=10' >>/etc/dnf/dnf.conf
+    fi
+    # openEuler: default repos point to repo.openeuler.org (China).
+    # Pick the fastest reachable mirror based on timezone to avoid cross-continent latency.
+    if [[ "${OS_TYPE:-}" == "openeuler" ]] && ls /etc/yum.repos.d/*.repo &>/dev/null 2>&1; then
+      if grep -ql 'repo\.openeuler\.org\|repo\.openeuler\.openatom\.cn' /etc/yum.repos.d/*.repo 2>/dev/null; then
+        local _oe_tz _oe_mirror _oe_candidates=()
+        _oe_tz=$(cat /etc/timezone 2>/dev/null || timedatectl show --property=Timezone --value 2>/dev/null || echo "UTC")
+        # Build candidate list, best-first for the region
+        case "$_oe_tz" in
+        Europe/* | Arctic/*)
+          _oe_candidates=(
+            "https://ftp.agdsn.de/openeuler/"               # Germany (TU Dresden)
+            "https://mirrors.dotsrc.org/openeuler/"         # Denmark
+            "https://mirror.accum.se/mirror/openeuler.org/" # Sweden
+            "https://ftp.belnet.be/mirror/openeuler/"       # Belgium
+          )
+          ;;
+        America/*)
+          # No dedicated Americas mirror yet — European mirrors still beat China
+          _oe_candidates=(
+            "https://ftp.agdsn.de/openeuler/"
+            "https://mirrors.dotsrc.org/openeuler/"
+            "https://ftp.belnet.be/mirror/openeuler/"
+          )
+          ;;
+        Asia/Singapore | Asia/Kuala_Lumpur | Asia/Jakarta | Asia/Bangkok | Asia/Ho_Chi_Minh)
+          _oe_candidates=(
+            "https://mirror.freedif.org/openEuler/"   # Singapore
+            "https://linux.domainesia.com/openeuler/" # Indonesia
+            "https://mirrors.aliyun.com/openeuler/"   # China (fast in SEA)
+          )
+          ;;
+        Asia/* | Australia/* | Pacific/*)
+          _oe_candidates=(
+            "https://mirrors.aliyun.com/openeuler/"
+            "https://mirrors.huaweicloud.com/openeuler/"
+            "https://mirror.freedif.org/openEuler/"
+          )
+          ;;
+        *)
+          # Unknown timezone — try EU mirrors before falling back to origin
+          _oe_candidates=(
+            "https://ftp.agdsn.de/openeuler/"
+            "https://mirrors.dotsrc.org/openeuler/"
+          )
+          ;;
+        esac
+        # Pick first mirror that responds within 3 s
+        _oe_mirror=""
+        for _m in "${_oe_candidates[@]}"; do
+          if curl -sf --head --max-time 3 "$_m" &>/dev/null; then
+            _oe_mirror="$_m"
+            break
+          fi
+        done
+        if [[ -n "$_oe_mirror" ]]; then
+          sed -i -E \
+            "s|https?://repo\.openeuler\.org/|${_oe_mirror}|g;
+             s|https?://repo\.openeuler\.openatom\.cn/|${_oe_mirror}|g" \
+            /etc/yum.repos.d/*.repo
+        fi
+      fi
+    fi
     $STD dnf makecache
     ;;
   yum)
