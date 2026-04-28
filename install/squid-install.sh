@@ -67,36 +67,22 @@ EOF
 msg_ok "Configured Squid"
 
 msg_info "Installing Dependencies"
-install_packages_with_retry squid apache2-utils
+$STD apt install -y \
+  squid \
+  apache2-utils
 msg_ok "Installed Dependencies"
 
-msg_info "Preparing Authentication"
+msg_info "Configuring Squid Authentication"
 touch /etc/squid/passwords
 chown proxy:proxy /etc/squid/passwords
 chmod 640 /etc/squid/passwords
-msg_ok "Initialized Password File"
-
-msg_info "Validating Squid Configuration"
 $STD squid -k parse
-msg_ok "Validated Squid Configuration"
+msg_ok "Configured Squid Authentication"
 
 msg_info "Starting Service"
-enable_and_start_service "squid"
+systemctl enable -q --now squid
 msg_ok "Started Service"
 
 motd_ssh
-cat <<EOF >>/etc/profile.d/00_lxc-details.sh
-echo ""
-echo -e "${BOLD}  Squid Proxy${CL}"
-echo -e "    Type: ${GN}HTTP Forward Proxy${CL}"
-echo -e "    Port: ${GN}3128${CL}"
-echo ""
-echo -e "${BOLD}  Configure Authentication:${CL}"
-echo -e "    Add user: ${GN}htpasswd /etc/squid/passwords <username>${CL}"
-EOF
-
-msg_info "Configure Proxy Authentication"
-echo -e "${TAB}${BGN}Run inside the container: htpasswd /etc/squid/passwords <username>${CL}"
-
 customize
 cleanup_lxc

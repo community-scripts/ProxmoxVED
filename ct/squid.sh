@@ -27,17 +27,18 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating ${APP}"
+  msg_info "Updating Squid"
   $STD apt update
   $STD apt upgrade -y
+  msg_ok "Updated Squid"
+
   msg_info "Validating Squid Configuration"
   $STD squid -k parse
   msg_ok "Validated Squid Configuration"
+
   msg_info "Restarting Squid"
-  safe_service_restart "squid"
+  systemctl restart squid
   msg_ok "Restarted Squid"
-  msg_ok "Updated ${APP}"
-  msg_ok "Updated successfully!"
   exit
 }
 
