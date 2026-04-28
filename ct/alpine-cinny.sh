@@ -29,15 +29,15 @@ function update_script() {
   fi
 
   if check_for_gh_release "cinny" "cinnyapp/cinny"; then
-    msg_info "Backing up Data"
-    cp /opt/cinny/config.json /tmp/cinny_config.json
-    msg_ok "Backed up Data"
+    msg_info "Backing up Configuration"
+    cp /opt/cinny/config.json /opt/cinny_config.json.bak
+    msg_ok "Backed up Configuration"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "cinny" "cinnyapp/cinny" "prebuild" "latest" "/opt/cinny" "cinny\-.*\.tar\.gz"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "cinny" "cinnyapp/cinny" "prebuild" "latest" "/opt/cinny" "cinny-.*tar.gz$"
 
     msg_info "Restoring Configuration"
-    cp /tmp/cinny_config.json /opt/cinny/config.json
-    rm -f /tmp/cinny_config.json
+    cp /opt/cinny_config.json.bak /opt/cinny/config.json
+    rm -f /opt/cinny_config.json.bak
     msg_ok "Restored Configuration"
 
     msg_info "Restarting nginx"
