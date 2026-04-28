@@ -4786,15 +4786,12 @@ EOF
     # newer agetty sends ESC[6n (cursor position query); the VNC terminal responds
     # with ESC[row;colR which agetty reads as input, clears the screen and hides
     # the MOTD/banner. Setting TERM=linux in the getty unit prevents the query.
-    # Only systemd-based distros are affected (Gentoo/openRC is not).
+    # In LXC the noVNC console is served by console-getty.service (not getty@tty1).
     case "$var_os" in
     fedora | rocky | rockylinux | alma | almalinux | centos | openeuler | opensuse | archlinux | arch)
       pct exec "$CTID" -- bash -c '
-        for unit in getty@tty1.service serial-getty@ttyS0.service; do
-          dir="/etc/systemd/system/${unit}.d"
-          mkdir -p "$dir"
-          printf "[Service]\nEnvironment=TERM=linux\n" >"${dir}/pve-console-term.conf"
-        done
+        mkdir -p /etc/systemd/system/console-getty.service.d
+        printf "[Service]\nEnvironment=TERM=linux\n" >/etc/systemd/system/console-getty.service.d/pve-console-term.conf
         systemctl daemon-reload 2>/dev/null || true
       ' 2>/dev/null || true
       ;;
@@ -6221,19 +6218,6 @@ create_lxc_container() {
     msg_error "RootFS entry missing in container config. See $LOGFILE"
     exit 216
   }
-
-  # Workaround for util-linux >= 2.40.3 agetty bug that leaks CSI 6n cursor
-  # position responses ("R;80R") into the login prompt on the noVNC tty console.
-  # Affects Fedora 43+, Arch (rolling), Rocky/Alma 10+, openSUSE Tumbleweed.
-  # Switching to /dev/console avoids the broken pty path entirely.
-  # See: https://forum.proxmox.com/threads/178350/ (util-linux commit 7b90601f)
-  case "$var_os" in
-  fedora | rocky | almalinux | centos | openeuler | opensuse | archlinux)
-    if ! grep -q '^cmode:' "/etc/pve/lxc/$CTID.conf"; then
-      echo "cmode: console" >>"/etc/pve/lxc/$CTID.conf"
-    fi
-    ;;
-  esac
 
   msg_ok "LXC Container ${BL}$CTID${CL} ${GN}was successfully created."
 }
