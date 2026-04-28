@@ -33,7 +33,7 @@ function update_script() {
     cp /opt/cinny/config.json /opt/cinny_config.json.bak
     msg_ok "Backed up Configuration"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "cinny" "cinnyapp/cinny" "prebuild" "latest" "/opt/cinny" "cinny-.*tar.gz$"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "cinny" "cinnyapp/cinny" "prebuild" "latest" "/opt/cinny" "cinny-*.tar.gz"
 
     msg_info "Restoring Configuration"
     cp /opt/cinny_config.json.bak /opt/cinny/config.json
