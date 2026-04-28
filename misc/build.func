@@ -4787,12 +4787,18 @@ EOF
     # with ESC[row;colR which agetty reads as input, clears the screen and hides
     # the MOTD/banner. Setting TERM=linux in the getty unit prevents the query.
     # In LXC the noVNC console is served by console-getty.service (not getty@tty1).
+    # /etc/environment is also written so PAM passes TERM to the login shell before
+    # /etc/profile runs (fixes openSUSE tset "unknown terminal type" prompt).
     case "$var_os" in
     fedora | rocky | rockylinux | alma | almalinux | centos | openeuler | opensuse | archlinux | arch)
       pct exec "$CTID" -- bash -c '
         mkdir -p /etc/systemd/system/console-getty.service.d
         printf "[Service]\nEnvironment=TERM=linux\n" >/etc/systemd/system/console-getty.service.d/pve-console-term.conf
         systemctl daemon-reload 2>/dev/null || true
+        # Ensure TERM is set for PAM login shells (e.g. openSUSE calls tset in /etc/profile)
+        if ! grep -q "^TERM=" /etc/environment 2>/dev/null; then
+          echo "TERM=linux" >>/etc/environment
+        fi
       ' 2>/dev/null || true
       ;;
     esac
