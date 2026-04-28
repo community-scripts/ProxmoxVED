@@ -20,7 +20,7 @@ msg_ok "Installed Dependencies"
 
 msg_info "Installing Cinny"
 
-fetch_and_deploy_gh_tag "cinny" "cinnyapp/cinny"
+fetch_and_deploy_gh_release "cinny" "cinnyapp/cinny"
 
 cat <<'EOF' >/etc/nginx/http.d/default.conf
 server {
@@ -45,7 +45,6 @@ server {
 EOF
 $STD rc-update add nginx default
 $STD rc-service nginx start
-echo "${RELEASE}" >/opt/"${APPLICATION}"_version.txt
 msg_ok "Installed Cinny"
 
 motd_ssh

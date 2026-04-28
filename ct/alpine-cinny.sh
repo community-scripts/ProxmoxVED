@@ -28,12 +28,12 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_tag "cinny" "cinnyapp/cinny"; then
+  if check_for_gh_release "cinny" "cinnyapp/cinny"; then
     msg_info "Backing up Data"
     cp /opt/cinny/config.json /tmp/cinny_config.json
     msg_ok "Backed up Data"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_tag "cinny" "cinnyapp/cinny"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "cinny" "cinnyapp/cinny"
 
     msg_info "Restoring Configuration"
     cp /tmp/cinny_config.json /opt/cinny/config.json
