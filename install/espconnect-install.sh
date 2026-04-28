@@ -55,7 +55,8 @@ EOF
 ln -sf /etc/nginx/sites-available/espconnect /etc/nginx/sites-enabled/espconnect
 rm -f /etc/nginx/sites-enabled/default
 $STD nginx -t
-systemctl enable -q --now nginx
+systemctl enable -q nginx
+systemctl restart nginx
 msg_ok "Configured Nginx"
 
 motd_ssh
