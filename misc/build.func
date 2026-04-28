@@ -4795,6 +4795,7 @@ EOF
         mkdir -p /etc/systemd/system/console-getty.service.d
         printf "[Service]\nEnvironment=TERM=linux\n" >/etc/systemd/system/console-getty.service.d/pve-console-term.conf
         systemctl daemon-reload 2>/dev/null || true
+        systemctl restart console-getty.service 2>/dev/null || true
         # Ensure TERM is set for PAM login shells (e.g. openSUSE calls tset in /etc/profile)
         if ! grep -q "^TERM=" /etc/environment 2>/dev/null; then
           echo "TERM=linux" >>/etc/environment
