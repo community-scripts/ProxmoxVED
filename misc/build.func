@@ -6067,6 +6067,32 @@ create_lxc_container() {
     fi
   fi
 
+  # openEuler templates are detected by PVE as ostype 'centos' but ship without
+  # /etc/redhat-release, which makes PVE::LXC::Setup::post_create_hook abort with
+  # "can't open '/etc/redhat-release' - No such file or directory".
+  # Patch the cached template once to inject a CentOS-compatible release file.
+  if [[ "${var_os:-}" == "openeuler" ]]; then
+    if ! tar -tf "$TEMPLATE_PATH" 2>/dev/null | grep -qE '^\.?/?etc/redhat-release$'; then
+      msg_info "Patching openEuler template (adding /etc/redhat-release)"
+      local _oe_tmp
+      _oe_tmp=$(mktemp -d) || _oe_tmp=""
+      if [[ -n "$_oe_tmp" ]] && mkdir -p "$_oe_tmp/etc"; then
+        # Content is parsed by PVE's CentOS setup plugin (expects "<name> release <ver>")
+        local _oe_ver="${var_version:-25.03}"
+        echo "CentOS Linux release ${_oe_ver} (openEuler)" >"$_oe_tmp/etc/redhat-release"
+        if xz -dc "$TEMPLATE_PATH" >"$_oe_tmp/template.tar" 2>/dev/null &&
+          tar -C "$_oe_tmp" --append -f "$_oe_tmp/template.tar" etc/redhat-release 2>/dev/null &&
+          xz -f "$_oe_tmp/template.tar" 2>/dev/null &&
+          mv -f "$_oe_tmp/template.tar.xz" "$TEMPLATE_PATH"; then
+          msg_ok "Patched openEuler template"
+        else
+          msg_warn "Failed to patch openEuler template – pct create may fail in post_create_hook"
+        fi
+        rm -rf "$_oe_tmp"
+      fi
+    fi
+  fi
+
   # Release lock after template validation - pct create has its own internal locking
   exec 9>&-
 
