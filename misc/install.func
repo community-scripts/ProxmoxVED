@@ -53,6 +53,8 @@ detect_os() {
     # shellcheck disable=SC1091
     . /etc/os-release
     OS_TYPE="${ID:-unknown}"
+    # Normalize to lowercase: some distros ship mixed-case IDs (e.g. openEuler ID="openEuler")
+    OS_TYPE="${OS_TYPE,,}"
     OS_VERSION="${VERSION_ID:-unknown}"
   elif [[ -f /etc/alpine-release ]]; then
     OS_TYPE="alpine"
@@ -178,8 +180,8 @@ _bootstrap() {
       # Gentoo stage3 has no curl and no portage tree on first boot.
       # Sync portage (webrsync = fast snapshot) then prefer binary package.
       emerge-webrsync --quiet &>/dev/null || emerge --sync --quiet &>/dev/null
-      emerge --quiet --getbinpkg --usepkg net-misc/curl &>/dev/null \
-        || emerge --quiet net-misc/curl &>/dev/null
+      emerge --quiet --getbinpkg --usepkg net-misc/curl &>/dev/null ||
+        emerge --quiet net-misc/curl &>/dev/null
     fi
   fi
 
