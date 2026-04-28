@@ -14,7 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt-get install -y caddy
+$STD apt install -y caddy
 msg_ok "Installed Dependencies"
 
 NODE_VERSION="24" setup_nodejs
