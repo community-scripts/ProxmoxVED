@@ -1181,6 +1181,26 @@ fi
 EOF
   fi
 
+  # For LXC login shells (bash_profile runs before readline initialises):
+  # lock TERM=linux on the physical console so readline never queries CPR.
+  # This must run in bash_profile, not bashrc, because login shells source
+  # bash_profile first — readline reads TERM before any profile.d script runs.
+  if ! grep -q '__cs_console_term' /root/.bash_profile 2>/dev/null; then
+    cat >>/root/.bash_profile <<'EOF'
+
+# __cs_console_term: lock TERM=linux on LXC noVNC console to prevent R;80R garbage
+# (readline 8.2+ sends ESC[6n if TERM supports CPR; linux terminfo has no CPR cap)
+if [ -z "${SSH_CONNECTION:-}${SSH_TTY:-}" ]; then
+  _ct=$(tty 2>/dev/null)
+  case "$_ct" in
+    /dev/console|/dev/tty[0-9]*)
+      export TERM=linux ;;
+  esac
+  unset _ct
+fi
+EOF
+  fi
+
   # Get OS information
   local os_name="$OS_TYPE"
   local os_version="$OS_VERSION"
