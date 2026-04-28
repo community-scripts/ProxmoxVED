@@ -7,8 +7,8 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 
 APP="vLLM"
 var_tags="${var_tags:-ai;llm}"
-var_cpu="${var_cpu:-8}"
-var_ram="${var_ram:-16384}"
+var_cpu="${var_cpu:-4}"
+var_ram="${var_ram:-8192}"
 var_disk="${var_disk:-40}"
 var_os="${var_os:-ubuntu}"
 var_version="${var_version:-24.04}"
@@ -30,27 +30,22 @@ function update_script() {
     exit
   fi
 
-  RELEASE=$(get_latest_gh_tag "vllm-project/vllm")
-  if [[ ! -f /opt/vLLM_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/vLLM_version.txt)" ]]; then
-    if [[ ! -f /opt/vLLM_version.txt ]]; then
-      touch /opt/vLLM_version.txt
-    fi
+  if check_for_gh_release "vLLM" "vllm-project/vllm"; then
+    RELEASE="${CHECK_UPDATE_RELEASE}"
+    RELEASE_VERSION="${RELEASE#v}"
 
     msg_info "Stopping Service"
     systemctl stop vllm
     msg_ok "Stopped Service"
 
     msg_info "Updating ${APP} to ${RELEASE}"
-    $STD uv pip install --python /opt/vllm/.venv/bin/python --upgrade "vllm==${RELEASE#v}"
-    echo "${RELEASE}" >/opt/vLLM_version.txt
+    $STD uv pip install --python /opt/vllm/.venv/bin/python --upgrade "vllm==${RELEASE_VERSION}"
     msg_ok "Updated ${APP} to ${RELEASE}"
 
     msg_info "Starting Service"
     systemctl start vllm
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
   exit
 }

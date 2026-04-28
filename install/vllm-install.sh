@@ -30,24 +30,27 @@ msg_info "Setting up Python Environment"
 $STD uv venv /opt/vllm/.venv
 msg_ok "Set up Python Environment"
 
-RELEASE=$(get_latest_gh_tag "vllm-project/vllm")
-VLLM_VERSION="${RELEASE#v}"
+RELEASE=$(get_latest_github_release "vllm-project/vllm")
 
-msg_info "Installing ${APP} ${RELEASE} (Patience — this takes 5-15 minutes)"
+msg_info "Installing ${APP} v${RELEASE} (Patience — this takes 5-15 minutes)"
 if nvidia-smi &>/dev/null; then
   msg_info "GPU detected — installing vLLM with CUDA support"
-  $STD uv pip install --python /opt/vllm/.venv/bin/python "vllm==${VLLM_VERSION}"
+  $STD uv pip install --python /opt/vllm/.venv/bin/python "vllm==${RELEASE}"
 else
   msg_info "No GPU detected — installing vLLM with CPU/OpenVINO backend"
-  $STD uv pip install --python /opt/vllm/.venv/bin/python "vllm==${VLLM_VERSION}" --extra-index-url https://download.pytorch.org/whl/cpu
+  $STD uv pip install --python /opt/vllm/.venv/bin/python "vllm==${RELEASE}" --extra-index-url https://download.pytorch.org/whl/cpu
 fi
-echo "${RELEASE}" >/opt/vLLM_version.txt
-msg_ok "Installed ${APP} ${RELEASE}"
+echo "v${RELEASE}" >/opt/vLLM_version.txt
+msg_ok "Installed ${APP} v${RELEASE}"
 
 msg_info "Configuring ${APP}"
 mkdir -p /etc/vllm /opt/vllm-models
 cat <<EOF >/etc/vllm/vllm.env
-MODEL="Qwen/Qwen2.5-1.5B-Instruct"
+# Set MODEL to a Hugging Face model ID before starting the service.
+# Example (small, ungated): Qwen/Qwen2.5-0.5B-Instruct
+# Example (medium):        Qwen/Qwen2.5-7B-Instruct
+# Example (gated):         meta-llama/Llama-3.1-8B-Instruct (requires HF_TOKEN)
+MODEL="Qwen/Qwen2.5-0.5B-Instruct"
 HOST="0.0.0.0"
 PORT="8000"
 GPU_MEM_UTIL="0.90"
