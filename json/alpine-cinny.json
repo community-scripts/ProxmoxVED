@@ -16,7 +16,7 @@
   "description": "Yet another matrix client ",
   "install_methods": [
     {
-      "type": "default",
+      "type": "alpine",
       "script": "ct/alpine-cinny.sh",
       "config_path": "/opt/cinny/config.json",
       "resources": {
