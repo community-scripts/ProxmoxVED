@@ -19,19 +19,16 @@ $STD apk add --no-cache \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing Cinny"
-RELEASE=$(curl -fsSL https://api.github.com/repos/cinnyapp/cinny/releases/latest | grep '"tag_name":' | cut -d '"' -f4)
-temp_file=$(mktemp)
-curl -fsSL "https://github.com/cinnyapp/cinny/releases/download/${RELEASE}/cinny-${RELEASE}.tar.gz" -o "$temp_file"
-mkdir -p /usr/share/nginx/html
-tar -xzf "$temp_file" --strip-components=1 -C /usr/share/nginx/html
-rm -f "$temp_file"
+
+fetch_and_deploy_gh_tag "cinny" "cinnyapp/cinny"
+
 cat <<'EOF' >/etc/nginx/http.d/default.conf
 server {
   listen 8080;
   server_name localhost;
 
   location / {
-        root /usr/share/nginx/html/;
+        root /opt/cinny;
 
         rewrite ^/config.json$ /config.json break;
         rewrite ^/manifest.json$ /manifest.json break;

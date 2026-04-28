@@ -18,7 +18,7 @@
     {
       "type": "default",
       "script": "ct/alpine-cinny.sh",
-      "config_path": "/usr/share/nginx/html/config.json",
+      "config_path": "/opt/cinny/config.json",
       "resources": {
         "cpu": 1,
         "ram": 256,
@@ -34,7 +34,7 @@
   },
   "notes": [
     {
-      "text": "To see config: `cat /usr/share/nginx/html/config.json`",
+      "text": "To see config: `cat /opt/cinny/config.json`",
       "type": "info"
     }
   ]

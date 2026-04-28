@@ -23,29 +23,28 @@ catch_errors
 function update_script() {
   header_info
 
-  if [ ! -d /usr/share/nginx/html ]; then
+  if [[ ! -d /opt/cinny ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  RELEASE=$(curl -fsSL https://api.github.com/repos/cinnyapp/cinny/releases/latest | grep '"tag_name":' | cut -d '"' -f4)
-  if [ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ] || [ ! -f /opt/${APP}_version.txt ]; then
-    msg_info "Updating ${APP} LXC"
-    $STD apk -U upgrade
-    temp_file=$(mktemp)
-    curl -fsSL "https://github.com/cinnyapp/cinny/releases/download/${RELEASE}/cinny-${RELEASE}.tar.gz" -o "$temp_file"
-    cp /usr/share/nginx/html/config.json /tmp/cinny_config.json
-    rm -rf /usr/share/nginx/html/*
-    tar -xzf "$temp_file" --strip-components=1 -C /usr/share/nginx/html
-    cp /tmp/cinny_config.json /usr/share/nginx/html/config.json
-    rm -f /tmp/cinny_config.json "$temp_file"
-    echo "${RELEASE}" >/opt/${APP}_version.txt
+  if check_for_gh_tag "cinny" "cinnyapp/cinny"; then
+    msg_info "Backing up Data"
+    cp /opt/cinny/config.json /tmp/cinny_config.json
+    msg_ok "Backed up Data"
+
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_tag "cinny" "cinnyapp/cinny"
+
+    msg_info "Restoring Configuration"
+    cp /tmp/cinny_config.json /opt/cinny/config.json
+    rm -f /tmp/cinny_config.json
+    msg_ok "Restored Configuration"
+
+    msg_info "Restarting nginx"
     $STD rc-service nginx restart
     msg_ok "Updated successfully!"
-  else
-    msg_ok "No update required. ${APP} is already at ${RELEASE}"
   fi
-  exit 0
+  exit
 }
 
 start
