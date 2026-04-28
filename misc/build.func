@@ -4782,6 +4782,24 @@ EOF
       pct exec "$CTID" -- bash -c "ln -sf \"/usr/share/zoneinfo/$tz\" /etc/localtime && echo \"$tz\" >/etc/timezone || true"
     fi
 
+    # Fix blank PVE noVNC console on distros with util-linux >= 2.40.3:
+    # newer agetty sends ESC[6n (cursor position query); the VNC terminal responds
+    # with ESC[row;colR which agetty reads as input, clears the screen and hides
+    # the MOTD/banner. Setting TERM=linux in the getty unit prevents the query.
+    # Only systemd-based distros are affected (Gentoo/openRC is not).
+    case "$var_os" in
+    fedora | rocky | rockylinux | alma | almalinux | centos | openeuler | opensuse | archlinux | arch)
+      pct exec "$CTID" -- bash -c '
+        for unit in getty@tty1.service serial-getty@ttyS0.service; do
+          dir="/etc/systemd/system/${unit}.d"
+          mkdir -p "$dir"
+          printf "[Service]\nEnvironment=TERM=linux\n" >"${dir}/pve-console-term.conf"
+        done
+        systemctl daemon-reload 2>/dev/null || true
+      ' 2>/dev/null || true
+      ;;
+    esac
+
     # Ensure curl is present for install.func bootstrap (most templates have it, but be safe)
     case "$var_os" in
     fedora | rocky | rockylinux | alma | almalinux | centos | openeuler)
