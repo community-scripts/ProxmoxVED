@@ -129,13 +129,23 @@ function install() {
   ip=$(get_ip)
 
   msg_info "Installing dependencies"
-  $PKG_INSTALL curl wget jq &>/dev/null
+  $PKG_INSTALL curl wget jq build-essential &>/dev/null
+  $PKG_INSTALL docker.io netcat-openbsd &>/dev/null
   msg_ok "Installed dependencies"
 
   msg_info "Installing ${APP}"
   mkdir -p "$INSTALL_PATH"
 
   fetch_and_deploy_gh_release "${APP,,}" "mostafa-wahied/portracker" "tarball"
+  cd "$INSTALL_PATH/frontend"
+  npm ci --include=dev
+  npm run build
+
+  cd "$INSTALL_PATH/backend"
+  npm ci --omit=dev
+  npm run build
+
+  mv "$INSTALL_PATH/frontend/dist" "$INSTALL_PATH/backend/public"
 
   msg_ok "Installed ${APP}"
 
@@ -148,7 +158,6 @@ function install() {
   enable_service
   msg_ok "Created and started service"
 
-  # Create update script
   create_update_script
 
   echo ""
