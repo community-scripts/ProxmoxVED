@@ -9,11 +9,11 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "interface_port": 8080,
+  "interface_port": null,
   "documentation": null,
   "website": "https://www.samba.org/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/samba.webp",
-  "description": "Turn a Proxmox LXC into a Time Machine backup server for macOS and a network backup target for Linux (Déjà Dup). Uses Samba with the 'fruit' module for native Time Machine SMB protocol support, and Avahi for automatic mDNS discovery. Supports ZFS dataset bind mount, local directory, or NFS as storage backend.",
+  "description": "Turn a Proxmox LXC into a Time Machine backup server for macOS. Uses Samba with the 'fruit' module for native Time Machine SMB protocol support, and Avahi for automatic mDNS discovery.",
   "install_methods": [
     {
       "type": "default",
@@ -33,19 +33,11 @@
   },
   "notes": [
     {
-      "text": "For ZFS bind mount, the dataset is created on the Proxmox host and mounted into the LXC — enabling native ZFS snapshots.",
+      "text": "Credentials are saved to ~/samba-timemachine.creds inside the container.",
       "type": "info"
     },
     {
       "text": "After installation, add your Mac via System Settings → Time Machine → Add Backup Disk. The share appears automatically via mDNS.",
-      "type": "info"
-    },
-    {
-      "text": "For Linux (Déjà Dup), mount the share via Nautilus (smb://LXC_IP/TimeMachine) before starting the first backup.",
-      "type": "info"
-    },
-    {
-      "text": "The optional PHP dashboard is accessible on port 8080 and shows disk usage, service status, and detected backups.",
       "type": "info"
     }
   ]

@@ -113,6 +113,10 @@ body {
   transition: background .25s, color .25s;
 }
 
+@media (max-width: 600px) {
+  body { padding: 20px 16px 40px; }
+}
+
 .wrapper { max-width: 860px; margin: 0 auto; }
 
 /* ── Header ── */
@@ -123,8 +127,16 @@ header {
   flex-wrap: wrap;
 }
 
+@media (max-width: 600px) {
+  header { flex-direction: column; align-items: flex-start; gap: 14px; }
+}
+
 .header-left  { display: flex; align-items: center; gap: 14px; }
 .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+
+@media (max-width: 600px) {
+  .header-right { align-items: flex-start; width: 100%; }
+}
 
 .app-icon {
   width: 50px; height: 50px;
@@ -140,7 +152,13 @@ h1 { font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
 .subtitle { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
 
 /* Boutons contrôle */
-.controls { display: flex; gap: 6px; align-items: center; }
+.controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+@media (max-width: 600px) {
+  .controls { gap: 5px; }
+  .ctrl-btn { padding: 5px 9px; font-size: 11px; }
+  .divider  { display: none; }
+}
 
 .ctrl-btn {
   background: var(--surface);
@@ -169,6 +187,10 @@ h1 { font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
 /* ── Grilles ── */
 .grid-top    { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
 .grid-bottom { display: grid; gap: 14px; }
+
+@media (max-width: 640px) {
+  .grid-top { grid-template-columns: 1fr; }
+}
 
 /* ── Card ── */
 .card {
@@ -199,6 +221,9 @@ h1 { font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
 .disk-value {
   font-size: 34px; font-weight: 300;
   letter-spacing: -1.5px; line-height: 1; margin-bottom: 4px;
+}
+@media (max-width: 400px) {
+  .disk-value { font-size: 26px; }
 }
 .disk-value span { font-size: 17px; font-weight: 400; color: var(--text-sec); }
 .disk-sub { font-size: 12px; color: var(--text-ter); margin-bottom: 14px; }
@@ -261,6 +286,11 @@ h1 { font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
   transition: background .15s;
 }
 .backup-row:hover { background: var(--surface3); }
+
+@media (max-width: 480px) {
+  .backup-row { flex-wrap: wrap; }
+  .backup-size { width: 100%; text-align: left; margin-top: 4px; padding-left: 56px; }
+}
 
 .backup-avatar {
   width: 42px; height: 42px; border-radius: 10px;
