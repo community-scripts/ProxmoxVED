@@ -32,21 +32,6 @@ function header_info {
 EOF
 }
 
-YW=$(echo "\033[33m")
-GN=$(echo "\033[1;92m")
-RD=$(echo "\033[01;31m")
-BL=$(echo "\033[36m")
-CL=$(echo "\033[m")
-CM="${GN}✔️${CL}"
-CROSS="${RD}✖️${CL}"
-INFO="${BL}ℹ️${CL}"
-TAB="  "
-
-function msg_info() { echo -e "${INFO} ${YW}${1}...${CL}"; }
-function msg_ok() { echo -e "${CM} ${GN}${1}${CL}"; }
-function msg_error() { echo -e "${CROSS} ${RD}${1}${CL}"; }
-function msg_warn() { echo -e "⚠️  ${YW}${1}${CL}"; }
-
 function get_ip() {
   local iface ip
   iface=$(ip -4 route | awk '/default/ {print $5; exit}')
@@ -155,7 +140,6 @@ function install() {
 
   cd "$INSTALL_PATH/backend"
   npm ci --omit=dev
-  npm run build
 
   mv "$INSTALL_PATH/frontend/dist" "$INSTALL_PATH/backend/public"
 
