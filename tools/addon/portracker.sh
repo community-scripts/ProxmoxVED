@@ -135,11 +135,11 @@ function install() {
 
   fetch_and_deploy_gh_release "${APP,,}" "mostafa-wahied/portracker" "tarball"
   cd "$INSTALL_PATH/frontend"
-  npm ci --include=dev
-  npm run build
+  $STD npm ci --include=dev
+  $STD npm run build
 
   cd "$INSTALL_PATH/backend"
-  npm ci --omit=dev
+  $STD npm ci --omit=dev
 
   mv "$INSTALL_PATH/frontend/dist" "$INSTALL_PATH/backend/public"
 
