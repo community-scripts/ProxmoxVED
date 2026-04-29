@@ -4,8 +4,12 @@
 # Author: tremor021 (Slaviša Arežina)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/mostafa-wahied/portracker
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/error_handler.func)
+
+set -Eeuo pipefail
+trap 'error_handler' ERR
 
 APP="portracker"
 APP_TYPE="addon"
@@ -13,6 +17,8 @@ INSTALL_PATH="/opt/portracker"
 BINARY_PATH="/usr/bin/npm start"
 CONFIG_PATH="/opt/portracker/portracker.env"
 DEFAULT_PORT=4999
+
+load_functions
 
 function header_info {
   clear
@@ -133,7 +139,11 @@ function install() {
   $PKG_INSTALL docker.io netcat-openbsd &>/dev/null
   msg_ok "Installed dependencies"
 
-  NODE_VERSION=24 setup_nodejs
+  if command -v node &>/dev/null; then
+    msg_ok "Node.js already installed ($(node -v))"
+  else
+    NODE_VERSION="24" setup_nodejs
+  fi
 
   msg_info "Installing ${APP}"
   mkdir -p "$INSTALL_PATH"
