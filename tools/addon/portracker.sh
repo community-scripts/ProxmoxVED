@@ -114,6 +114,7 @@ function update() {
     cd "$INSTALL_PATH/backend"
     $STD npm ci --omit=dev
     mv "$INSTALL_PATH/frontend/dist" "$INSTALL_PATH/backend/public"
+    mv /opt/portracker.env.backup "$INSTALL_PATH/portracker.env"
     start_service
     msg_ok "Updated ${APP} successfully"
   else
