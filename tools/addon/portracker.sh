@@ -133,6 +133,8 @@ function install() {
   $PKG_INSTALL docker.io netcat-openbsd &>/dev/null
   msg_ok "Installed dependencies"
 
+  NODE_VERSION=24 setup_nodejs
+
   msg_info "Installing ${APP}"
   mkdir -p "$INSTALL_PATH"
 
@@ -150,7 +152,7 @@ function install() {
   msg_ok "Installed ${APP}"
 
   msg_info "Creating configuration"
-  cp "${INSTALL_PATH}/${APP,,}/.env.example" "${CONFIG_PATH}"
+  cp "${INSTALL_PATH}/.env.example" "${CONFIG_PATH}"
   msg_ok "Created configuration"
 
   msg_info "Creating service"
