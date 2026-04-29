@@ -35,11 +35,7 @@ function update_script() {
     systemctl stop nginx
     msg_ok "Stopped Nginx"
 
-    if ! CLEAN_INSTALL=1 fetch_and_deploy_gh_release "espconnect" "thelastoutpostworkshop/ESPConnect" "prebuild" "latest" "/opt/espconnect" "dist.zip"; then
-      msg_error "Failed to update ${APP}; restarting Nginx"
-      systemctl start nginx
-      exit 1
-    fi
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "espconnect" "thelastoutpostworkshop/ESPConnect" "prebuild" "latest" "/opt/espconnect" "dist.zip"
 
     msg_info "Starting Nginx"
     systemctl start nginx
