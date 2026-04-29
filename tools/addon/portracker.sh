@@ -130,19 +130,18 @@ function install() {
     NODE_VERSION="24" setup_nodejs
   fi
 
-  msg_info "Installing ${APP}"
   mkdir -p "$INSTALL_PATH"
-
+  mkdir -p /var/lib/portracker
   fetch_and_deploy_gh_release "${APP,,}" "mostafa-wahied/portracker" "tarball"
+
+  msg_info "Installing ${APP}"
   cd "$INSTALL_PATH/frontend"
   $STD npm ci --include=dev
   $STD npm run build
 
   cd "$INSTALL_PATH/backend"
   $STD npm ci --omit=dev
-
   mv "$INSTALL_PATH/frontend/dist" "$INSTALL_PATH/backend/public"
-
   msg_ok "Installed ${APP}"
 
   msg_info "Creating configuration"
@@ -175,6 +174,8 @@ Type=simple
 User=root
 WorkingDirectory=${INSTALL_PATH}
 EnvironmentFile=${CONFIG_PATH}
+Environment=DATABASE_PATH=/var/lib/portracker/portracker.db
+Environment=NODE_ENV=production
 ExecStart=${BINARY_PATH}
 Restart=always
 RestartSec=10
