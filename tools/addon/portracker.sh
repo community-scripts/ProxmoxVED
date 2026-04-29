@@ -105,7 +105,15 @@ function update() {
   if check_for_gh_release "${APP,,}" "mostafa-wahied/portracker"; then
     msg_ok "Update available"
     stop_service
-    fetch_and_deploy_gh_release "${APP,,}" "mostafa-wahied/portracker" "tarball"
+    mv "$INSTALL_PATH/portracker.env" /opt/portracker.env.backup
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "${APP,,}" "mostafa-wahied/portracker" "tarball"
+    cd "$INSTALL_PATH/frontend"
+    $STD npm ci --include=dev
+    $STD npm run build
+
+    cd "$INSTALL_PATH/backend"
+    $STD npm ci --omit=dev
+    mv "$INSTALL_PATH/frontend/dist" "$INSTALL_PATH/backend/public"
     start_service
     msg_ok "Updated ${APP} successfully"
   else
