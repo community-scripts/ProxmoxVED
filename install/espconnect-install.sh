@@ -14,9 +14,7 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
-  nginx \
-  openssl
+$STD apt install -y nginx
 msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "espconnect" "thelastoutpostworkshop/ESPConnect" "prebuild" "latest" "/opt/espconnect" "dist.zip"
