@@ -60,7 +60,7 @@ while ! grafana-cli admin reset-admin-password "${GRAFANA_PASS}" &>/dev/null; do
   [[ $retries -ge 30 ]] && break
   sleep 2
 done
-$STD grafana-cli plugins install marcusolsson-hourly-heatmap-panel
+$STD grafana-cli --homepath /usr/share/grafana plugins install marcusolsson-hourly-heatmap-panel
 $STD systemctl restart grafana-server
 msg_ok "Configured Grafana"
 
