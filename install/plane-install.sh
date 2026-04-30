@@ -133,7 +133,7 @@ AWS_ACCESS_KEY_ID=${MINIO_ACCESS_KEY}
 AWS_SECRET_ACCESS_KEY=${MINIO_SECRET_KEY}
 AWS_S3_ENDPOINT_URL=http://localhost:9000
 AWS_S3_BUCKET_NAME=uploads
-FILE_SIZE_LIMIT=5242880
+FILE_SIZE_LIMIT=104857600
 
 USE_MINIO=1
 MINIO_ENDPOINT_SSL=0
@@ -180,6 +180,7 @@ curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/
 chmod +x /usr/local/bin/mcli
 $STD /usr/local/bin/mcli alias set plane http://localhost:9000 "${MINIO_ACCESS_KEY}" "${MINIO_SECRET_KEY}"
 $STD /usr/local/bin/mcli mb plane/uploads --ignore-existing
+$STD /usr/local/bin/mcli anonymous set download plane/uploads
 
 cat <<EOF >/etc/systemd/system/plane-api.service
 [Unit]
@@ -301,7 +302,7 @@ upstream plane-minio {
 server {
     listen 80 default_server;
     server_name _;
-    client_max_body_size 5M;
+    client_max_body_size 100M;
 
     location /api/ {
         proxy_pass http://plane-api;
