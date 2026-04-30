@@ -100,14 +100,14 @@ start
 build_container
 
 msg_info "Attaching data storage volume"
-pct stop "$CTID"
-pct set "$CTID" -mp0 "${CONTAINER_STORAGE}":1,mp=/opt/authentik-data,backup=1
-pct start "$CTID"
+$STD pct stop "$CTID"
+$STD pct set "$CTID" -mp0 "${CONTAINER_STORAGE}":1,mp=/opt/authentik-data,backup=1
+$STD pct start "$CTID"
 for i in {1..10}; do
   pct status "$CTID" | grep -q "status: running" && break
   sleep 1
 done
-pct exec "$CTID" -- bash -c "mkdir -p /opt/authentik-data/{certs,media,geoip,templates}; \
+$STD pct exec "$CTID" -- bash -c "mkdir -p /opt/authentik-data/{certs,media,geoip,templates}; \
   cp /opt/authentik/tests/GeoLite2-ASN-Test.mmdb /opt/authentik-data/geoip/GeoLite2-ASN.mmdb; \
   cp /opt/authentik/tests/GeoLite2-City-Test.mmdb /opt/authentik-data/geoip/GeoLite2-City.mmdb; \
   chown authentik:authentik /opt/authentik-data; \
