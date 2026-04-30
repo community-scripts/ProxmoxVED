@@ -99,10 +99,10 @@ echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 if [[ "${CLICKSTACK}" == "yes" ]]; then
   echo -e "${INFO}${YW} Access HyperDX UI using the following URL:${CL}"
   echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
-  echo -e "${INFO}${YW} ClickHouse HTTP API:${CL}"
+  echo -e "${INFO}${YW} ClickHouse Play UI / HTTP API:${CL}"
   echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8123${CL}"
   echo -e "${INFO}${YW} OTel Collector (gRPC: 4317, HTTP: 4318)${CL}"
 else
-  echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+  echo -e "${INFO}${YW} ClickHouse Play UI / HTTP API:${CL}"
   echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8123${CL}"
 fi
