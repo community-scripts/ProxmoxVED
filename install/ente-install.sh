@@ -19,7 +19,8 @@ $STD apt install -y \
   libsodium-dev \
   pkg-config \
   caddy \
-  gcc
+  gcc \
+  xxd
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" setup_postgresql
@@ -358,6 +359,14 @@ run_psql_exec() {
   sudo -u postgres psql -d "$DB_NAME" -c "$1" 2>/dev/null
 }
 
+compute_email_hash() {
+  local email_lower hash_b64 hash_hex
+  email_lower=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+  hash_b64=$(awk '/^key:/{f=1;next} /^[^[:space:]]/{f=0} f && /hash:/{print $2}' /opt/ente/server/museum.yaml | tr -d '"'"'")
+  hash_hex=$(printf '%s' "$hash_b64" | base64 -d | xxd -p -c 256 | tr -d '\n')
+  printf '%s' "$email_lower" | openssl dgst -sha256 -mac HMAC -macopt hexkey:"$hash_hex" -binary | base64 -w0
+}
+
 echo "=== Ente First-Time Setup ==="
 echo ""
 read -r -p "Enter your account email: " EMAIL
@@ -405,7 +414,8 @@ read -r -p "Press ENTER after you verified the code in the web UI..."
 
 echo ""
 echo "Step 3/4: Looking up user and whitelisting admin..."
-USER_ID=$(run_psql "SELECT user_id FROM users WHERE email = '${EMAIL//\'/\'\'}';")
+EMAIL_HASH=$(compute_email_hash "$EMAIL")
+USER_ID=$(run_psql "SELECT user_id FROM users WHERE email_hash = '${EMAIL_HASH//\'/\'\'}';")
 
 if [[ -z "$USER_ID" ]]; then
   echo "  Warning: User '${EMAIL}' not found in database."
@@ -458,8 +468,12 @@ if [ -z "$1" ]; then
 fi
 EMAIL="$1"
 DB_NAME="ente_db"
+EMAIL_LOWER=$(printf '%s' "$EMAIL" | tr '[:upper:]' '[:lower:]')
+HASH_B64=$(awk '/^key:/{f=1;next} /^[^[:space:]]/{f=0} f && /hash:/{print $2}' /opt/ente/server/museum.yaml | tr -d '"'"'")
+HASH_HEX=$(printf '%s' "$HASH_B64" | base64 -d | xxd -p -c 256 | tr -d '\n')
+EMAIL_HASH=$(printf '%s' "$EMAIL_LOWER" | openssl dgst -sha256 -mac HMAC -macopt hexkey:"$HASH_HEX" -binary | base64 -w0)
 echo "Upgrading subscription for: $EMAIL"
-USER_ID=$(sudo -u postgres psql -t -d "$DB_NAME" -c "SELECT user_id FROM users WHERE email = '${EMAIL//\'/\'\'}';")
+USER_ID=$(sudo -u postgres psql -t -d "$DB_NAME" -c "SELECT user_id FROM users WHERE email_hash = '${EMAIL_HASH//\'/\'\'}';")
 USER_ID=$(echo "$USER_ID" | xargs)
 if [[ -z "$USER_ID" ]]; then
   echo "Error: User not found in database."
