@@ -2376,11 +2376,12 @@ check_for_gh_release() {
 
   # For pinned versions, query the specific release tag directly
   if [[ -n "$pinned_version_in" ]]; then
+    local pinned_version_encoded="${pinned_version_in//\//%2F}"
     http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gh_check.json \
       -H 'Accept: application/vnd.github+json' \
       -H 'X-GitHub-Api-Version: 2022-11-28' \
       "${header_args[@]}" \
-      "https://api.github.com/repos/${source}/releases/tags/${pinned_version_in}" 2>/dev/null) || true
+      "https://api.github.com/repos/${source}/releases/tags/${pinned_version_encoded}" 2>/dev/null) || true
 
     if [[ "$http_code" == "200" ]] && [[ -s /tmp/gh_check.json ]]; then
       releases_json="[$(</tmp/gh_check.json)]"
@@ -2506,7 +2507,12 @@ check_for_gh_release() {
 
   # Pinned version handling
   if [[ -n "$pinned_version_in" ]]; then
-    local pin_clean="${pinned_version_in#v}"
+    local pin_clean
+    if [[ "$pinned_version_in" =~ ^v[0-9] ]]; then
+      pin_clean="${pinned_version_in:1}"
+    else
+      pin_clean="$pinned_version_in"
+    fi
     local match_raw=""
     for i in "${!clean_tags[@]}"; do
       if [[ "${clean_tags[$i]}" == "$pin_clean" ]]; then
@@ -2629,7 +2635,12 @@ check_for_codeberg_release() {
 
   # Pinned version handling
   if [[ -n "$pinned_version_in" ]]; then
-    local pin_clean="${pinned_version_in#v}"
+    local pin_clean
+    if [[ "$pinned_version_in" =~ ^v[0-9] ]]; then
+      pin_clean="${pinned_version_in:1}"
+    else
+      pin_clean="$pinned_version_in"
+    fi
     local match_raw=""
     for i in "${!clean_tags[@]}"; do
       if [[ "${clean_tags[$i]}" == "$pin_clean" ]]; then
