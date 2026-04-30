@@ -324,8 +324,13 @@ fetch_and_deploy_gh_release() {
   }
 
   get_url() {
+    # Convert glob-style pattern to awk ERE:
+    # protect existing .* → escape literal . → convert remaining * to .* → restore .*
+    local _re
+    _re=$(printf '%s' "$pattern" |
+      sed 's/\.\*/__DS__/g; s/\./\\./g; s/\*/.*/g; s/__DS__/.*/g')
     printf '%s' "$json" | jq -r '.assets[].browser_download_url' |
-      awk -v p="$pattern" 'BEGIN{IGNORECASE=1} $0 ~ p {print; exit}' |
+      awk -v p="$_re" 'BEGIN{IGNORECASE=1} $0 ~ p {print; exit}' |
       tr -d '[:cntrl:]'
   }
 
