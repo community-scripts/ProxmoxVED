@@ -35,6 +35,10 @@
     {
       "text": "Create your account on first access via the web interface.",
       "type": "info"
+    },
+    {
+      "text": "After signup, if you see 'user not found' on first login, refresh the page (F5). This is a known upstream behavior; subsequent logins work normally.",
+      "type": "warning"
     }
   ]
 }
