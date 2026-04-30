@@ -80,8 +80,6 @@ msg_ok "Web installed"
 
 msg_info "Setup go proxy"
 cd /opt/authentik
-$STD curl -fsSL "https://raw.githubusercontent.com/goauthentik/authentik/refs/tags/${AUTHENTIK_VERSION}/authentik/lib/default.yml" \
-  -o /opt/authentik/authentik/lib/default.yml
 export CGO_ENABLED="1"
 $STD go mod download
 $STD go build -o /opt/authentik/authentik-server ./cmd/server
@@ -111,7 +109,7 @@ cp /opt/authentik/authentik/sources/kerberos/krb5.conf /etc/krb5.conf
 msg_ok "Installed python server"
 
 msg_info "Creating authentik config"
-mkdir -p /etc/authentik /opt/authentik-data/geoip /opt/authentik-data/certs /opt/authentik-data/templates
+mkdir -p /etc/authentik
 mv /opt/authentik/authentik/lib/default.yml /etc/authentik/config.yml
 yq -i ".secret_key = \"$(openssl rand -base64 128 | tr -dc 'a-zA-Z0-9' | head -c64)\"" /etc/authentik/config.yml
 yq -i ".postgresql.password = \"${PG_DB_PASS}\"" /etc/authentik/config.yml
@@ -176,7 +174,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now authentik-server authentik-worker
+systemctl enable -q authentik-server authentik-worker
 msg_ok "Services created"
 
 motd_ssh
