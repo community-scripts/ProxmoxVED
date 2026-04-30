@@ -62,7 +62,6 @@ function update_script() {
 
   if check_for_gh_release "nagios-plugins" "nagios-plugins/nagios-plugins"; then
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "nagios-plugins" "nagios-plugins/nagios-plugins" "tarball"
-
     msg_info "Building Nagios Plugins"
     cd /opt/nagios-plugins
     $STD ./tools/setup
@@ -77,7 +76,7 @@ function update_script() {
   cp -a /opt/nagios-etc-backup /usr/local/nagios/etc
   rm -rf /opt/nagios-etc-backup
   msg_ok "Restored Configuration"
-
+  msg_ok "Updated successfully!"
   exit
 }
 
