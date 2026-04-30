@@ -43,11 +43,11 @@ cd /opt/invidious
 INVIDIOUS_VERSION="$(cat ~/.Invidious 2>/dev/null || echo "unknown")"
 INVIDIOUS_VERSION="${INVIDIOUS_VERSION#v}"
 sed -i \
-  -e "s|CURRENT_BRANCH  = {{ \"#{\`git branch | sed -n '/\* /s///p'\`.strip}\" }}|CURRENT_BRANCH  = \"master\"|" \
-  -e "s|CURRENT_COMMIT  = {{ \"#{\`git rev-list HEAD --max-count=1 --abbrev-commit\`.strip}\" }}|CURRENT_COMMIT  = \"\"|" \
-  -e "s|CURRENT_VERSION = {{ \"#{\`git log -1 --format=%ci | awk '{print \$1}' | sed s/-/./g\`.strip}\" }}|CURRENT_VERSION = \"${INVIDIOUS_VERSION}\"|" \
-  -e "s|CURRENT_TAG     = {{ \"#{\`git tag --points-at HEAD\`.strip}\" }}|CURRENT_TAG     = \"${INVIDIOUS_VERSION}\"|" \
-  -e "s|ASSET_COMMIT = {{ \"#{\`git rev-list HEAD --max-count=1 --abbrev-commit -- assets\`.strip}\" }}|ASSET_COMMIT = \"\"|" \
+  -e "s~^\(\s*CURRENT_BRANCH\s*=\).*~\1 \"master\"~" \
+  -e "s~^\(\s*CURRENT_COMMIT\s*=\).*~\1 \"\"~" \
+  -e "s~^\(\s*CURRENT_VERSION\s*=\).*~\1 \"${INVIDIOUS_VERSION}\"~" \
+  -e "s~^\(\s*CURRENT_TAG\s*=\).*~\1 \"${INVIDIOUS_VERSION}\"~" \
+  -e "s~^\(\s*ASSET_COMMIT\s*=\).*~\1 \"\"~" \
   src/invidious.cr
 $STD make
 msg_ok "Built Invidious"
