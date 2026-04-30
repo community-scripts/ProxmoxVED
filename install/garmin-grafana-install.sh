@@ -56,7 +56,7 @@ msg_info "Configuring Grafana"
 GRAFANA_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 retries=0
 while ! grafana-cli admin reset-admin-password "${GRAFANA_PASS}" &>/dev/null; do
-  ((retries++))
+  retries=$((retries + 1))
   [[ $retries -ge 30 ]] && break
   sleep 2
 done
