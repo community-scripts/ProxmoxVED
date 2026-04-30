@@ -80,6 +80,8 @@ msg_ok "Web installed"
 
 msg_info "Setup go proxy"
 cd /opt/authentik
+$STD curl -fsSL "https://raw.githubusercontent.com/goauthentik/authentik/refs/tags/${AUTHENTIK_VERSION}/authentik/lib/default.yml" \
+  -o /opt/authentik/authentik/lib/default.yml
 export CGO_ENABLED="1"
 $STD go mod download
 $STD go build -o /opt/authentik/authentik-server ./cmd/server
