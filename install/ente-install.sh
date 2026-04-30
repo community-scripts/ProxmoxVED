@@ -425,9 +425,9 @@ echo ""
 echo "Step 4/4: Upgrading subscription..."
 ROWS=$(run_psql "SELECT count(*) FROM subscriptions WHERE user_id = ${USER_ID};")
 if [[ "$ROWS" == "0" ]]; then
-  run_psql_exec "INSERT INTO subscriptions (user_id, storage_in_mbs_per_plan, expiry_time, product_id, payment_provider, transaction_id, original_transaction_id) VALUES (${USER_ID}, 10737418240, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', 'admin_setup');"
+  run_psql_exec "INSERT INTO subscriptions (user_id, storage, expiry_time, product_id, payment_provider, original_transaction_id, attributes) VALUES (${USER_ID}, 10995116277760, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', '{}'::jsonb);"
 else
-  run_psql_exec "UPDATE subscriptions SET storage_in_mbs_per_plan = 10737418240, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
+  run_psql_exec "UPDATE subscriptions SET storage = 10995116277760, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
 fi
 echo "  Subscription upgraded to unlimited storage."
 
@@ -471,9 +471,9 @@ fi
 
 ROWS=$(run_psql "SELECT count(*) FROM subscriptions WHERE user_id = ${USER_ID};")
 if [[ "$ROWS" == "0" ]]; then
-  run_psql_exec "INSERT INTO subscriptions (user_id, storage_in_mbs_per_plan, expiry_time, product_id, payment_provider, transaction_id, original_transaction_id) VALUES (${USER_ID}, 10737418240, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', 'admin_setup');"
+  run_psql_exec "INSERT INTO subscriptions (user_id, storage, expiry_time, product_id, payment_provider, original_transaction_id, attributes) VALUES (${USER_ID}, 10995116277760, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', '{}'::jsonb);"
 else
-  run_psql_exec "UPDATE subscriptions SET storage_in_mbs_per_plan = 10737418240, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
+  run_psql_exec "UPDATE subscriptions SET storage = 10995116277760, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
 fi
 echo "Done. Subscription upgraded to unlimited storage for user_id ${USER_ID}."
 EOF
