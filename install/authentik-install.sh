@@ -47,11 +47,19 @@ $STD apt install -y \
   git
 msg_ok "Installed Dependencies"
 
-AUTHENTIK_VERSION="version/2026.2.2"
-NODE_VERSION="24"
-XMLSEC_VERSION="1.3.9"
+NODE_VERSION="24" setup_nodejs
+setup_yq
+setup_go
+UV_PYTHON_INSTALL_DIR="/usr/local/bin" PYTHON_VERSION="3.14.3" setup_uv
+setup_rust
+PG_VERSION="17" setup_postgresql
+PG_DB_NAME="authentik" PG_DB_USER="authentik" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
 
+XMLSEC_VERSION="1.3.9"
+AUTHENTIK_VERSION="version/2026.2.2"
 fetch_and_deploy_gh_release "xmlsec" "lsh123/xmlsec" "tarball" "${XMLSEC_VERSION}" "/opt/xmlsec"
+fetch_and_deploy_gh_release "authentik" "goauthentik/authentik" "tarball" "${AUTHENTIK_VERSION}" "/opt/authentik"
+fetch_and_deploy_gh_release "geoipupdate" "maxmind/geoipupdate" "binary"
 
 msg_info "Setup xmlsec"
 cd /opt/xmlsec
@@ -59,17 +67,12 @@ $STD ./autogen.sh
 $STD make -j $(nproc)
 $STD make check
 $STD make install
-ldconfig
+$STD ldconfig
 msg_ok "xmlsec installed"
-
-setup_nodejs
-setup_go
-
-fetch_and_deploy_gh_release "authentik" "goauthentik/authentik" "tarball" "${AUTHENTIK_VERSION}" "/opt/authentik"
 
 msg_info "Setup web"
 cd /opt/authentik/web
-NODE_ENV="production"
+export NODE_ENV="production"
 $STD npm install
 $STD npm run build
 $STD npm run build:sfe
@@ -77,12 +80,10 @@ msg_ok "Web installed"
 
 msg_info "Setup go proxy"
 cd /opt/authentik
-CGO_ENABLED="1"
+export CGO_ENABLED="1"
 $STD go mod download
 $STD go build -o /opt/authentik/authentik-server ./cmd/server
 msg_ok "Go proxy installed"
-
-fetch_and_deploy_gh_release "geoipupdate" "maxmind/geoipupdate" "binary"
 
 cat <<EOF >/usr/local/etc/GeoIP.conf
 AccountID ChangeME
@@ -93,38 +94,22 @@ RetryFor 5m
 Parallelism 1
 EOF
 
-cat <<EOF >/tmp/crontab
-#39 19 * * 6,4 /usr/bin/geoipupdate -f /usr/local/etc/GeoIP.conf
-EOF
-crontab /tmp/crontab
-rm /tmp/crontab
-
-setup_uv
-
-setup_rust
+echo "#39 19 * * 6,4 /usr/bin/geoipupdate -f /usr/local/etc/GeoIP.conf" | crontab -
 
 msg_info "Setup python server"
-$STD uv python install 3.14.3 -i /usr/local/bin
-UV_NO_BINARY_PACKAGE="cryptography lxml python-kadmin-rs xmlsec"
-UV_COMPILE_BYTECODE="1"
-UV_LINK_MODE="copy"
-UV_NATIVE_TLS="1"
-RUSTUP_PERMIT_COPY_RENAME="true"
-cd /opt/authentik
+export UV_NO_BINARY_PACKAGE="cryptography lxml python-kadmin-rs xmlsec"
+export UV_COMPILE_BYTECODE="1"
+export UV_LINK_MODE="copy"
+export UV_NATIVE_TLS="1"
+export RUSTUP_PERMIT_COPY_RENAME="true"
 export UV_PYTHON_INSTALL_DIR="/usr/local/bin"
+cd /opt/authentik
 $STD uv sync --frozen --no-install-project --no-dev
+cp /opt/authentik/authentik/sources/kerberos/krb5.conf /etc/krb5.conf
 msg_ok "Installed python server"
 
-cp /opt/authentik/authentik/sources/kerberos/krb5.conf /etc/krb5.conf
-
-PG_VERSION="16" setup_postgresql
-
-PG_DB_NAME="authentik" PG_DB_USER="authentik" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
-
-setup_yq
-
 msg_info "Creating authentik config"
-mkdir -p /etc/authentik
+mkdir -p /etc/authentik /opt/authentik-data/geoip /opt/authentik-data/certs /opt/authentik-data/templates
 mv /opt/authentik/authentik/lib/default.yml /etc/authentik/config.yml
 yq -i ".secret_key = \"$(openssl rand -base64 128 | tr -dc 'a-zA-Z0-9' | head -c64)\"" /etc/authentik/config.yml
 yq -i ".postgresql.password = \"${PG_DB_PASS}\"" /etc/authentik/config.yml
@@ -189,7 +174,7 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-
+systemctl enable -q --now authentik-server authentik-worker
 msg_ok "Services created"
 
 motd_ssh
