@@ -24,88 +24,74 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  AUTHENTIK_VERSION="version/2026.2.2"
-  NODE_VERSION="24"
-  XMLSEC_VERSION="1.3.9"
-
   if [[ ! -d /opt/authentik ]]; then
     msg_error "No authentik Installation Found!"
     exit
   fi
 
-  if [[ "$AUTHENTIK_VERSION" == "$(cat $HOME/.authentik)" ]]; then
-    msg_ok "Authentik up-to-date"
-    exit
-  fi
+  NODE_VERSION="24" setup_nodejs
+  setup_go
+  UV_PYTHON_INSTALL_DIR="/usr/local/bin" PYTHON_VERSION="3.14.3" setup_uv
+  setup_rust
+
+  AUTHENTIK_VERSION="version/2026.2.2"
+  XMLSEC_VERSION="1.3.9"
 
   if check_for_gh_release "geoipupdate" "maxmind/geoipupdate"; then
     fetch_and_deploy_gh_release "geoipupdate" "maxmind/geoipupdate" "binary"
   fi
 
-  msg_info "Stopping Services"
-  systemctl stop authentik-server.service
-  systemctl stop authentik-worker.service
-  msg_ok "Stopped Services"
-
-  if check_for_gh_release "xmlsec" "lsh123/xmlsec"; then
-
+  if check_for_gh_release "xmlsec" "lsh123/xmlsec" "${XMLSEC_VERSION}"; then
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "xmlsec" "lsh123/xmlsec" "tarball" "${XMLSEC_VERSION}" "/opt/xmlsec"
 
-    msg_info "Update xmlsec"
+    msg_info "Updating xmlsec"
     cd /opt/xmlsec
     $STD ./autogen.sh
     $STD make -j $(nproc)
     $STD make check
     $STD make install
-    ldconfig
-    msg_ok "xmlsec updated"
+    $STD ldconfig
+    msg_ok "Updated xmlsec"
   fi
 
-  setup_nodejs
-  setup_go
-
   if check_for_gh_release "authentik" "goauthentik/authentik" "${AUTHENTIK_VERSION}"; then
+    msg_info "Stopping Services"
+    systemctl stop authentik-server authentik-worker
+    msg_ok "Stopped Services"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "authentik" "goauthentik/authentik" "tarball" "${AUTHENTIK_VERSION}" "/opt/authentik"
 
-    msg_info "Update web"
+    msg_info "Updating web"
     cd /opt/authentik/web
-    NODE_ENV="production"
+    export NODE_ENV="production"
     $STD npm install
     $STD npm run build
     $STD npm run build:sfe
-    msg_ok "Web updated"
+    msg_ok "Updated web"
 
-    msg_info "Update go proxy"
+    msg_info "Updating go proxy"
     cd /opt/authentik
-    CGO_ENABLED="1"
+    export CGO_ENABLED="1"
     $STD go mod download
     $STD go build -o /opt/authentik/authentik-server ./cmd/server
-    msg_ok "Go proxy updated"
+    msg_ok "Updated go proxy"
 
-    setup_uv
-
-    setup_rust
-
-    msg_info "Update python server"
-    $STD uv python install 3.14.3 -i /usr/local/bin
-    UV_NO_BINARY_PACKAGE="cryptography lxml python-kadmin-rs xmlsec"
-    UV_COMPILE_BYTECODE="1"
-    UV_LINK_MODE="copy"
-    UV_NATIVE_TLS="1"
-    RUSTUP_PERMIT_COPY_RENAME="true"
-    cd /opt/authentik
+    msg_info "Updating python server"
+    export UV_NO_BINARY_PACKAGE="cryptography lxml python-kadmin-rs xmlsec"
+    export UV_COMPILE_BYTECODE="1"
+    export UV_LINK_MODE="copy"
+    export UV_NATIVE_TLS="1"
+    export RUSTUP_PERMIT_COPY_RENAME="true"
     export UV_PYTHON_INSTALL_DIR="/usr/local/bin"
+    cd /opt/authentik
     $STD uv sync --frozen --no-install-project --no-dev
-    msg_ok "Python server updated"
-
     chown -R authentik:authentik /opt/authentik
-
+    msg_ok "Updated python server"
   fi
 
-  msg_info "Restarting services"
-  systemctl restart authentik-server.service authentik-worker.service
-  msg_ok "Started Service"
+  msg_info "Starting Services"
+  systemctl start authentik-server authentik-worker
+  msg_ok "Started Services"
   msg_ok "Updated successfully!"
   exit
 }
@@ -129,7 +115,7 @@ pct exec "$CTID" -- bash -c "mkdir -p /opt/authentik-data/{certs,media,geoip,tem
 msg_ok "Attached data storage volume"
 
 msg_info "Starting Services"
-pct exec "$CTID" -- systemctl enable -q --now authentik-server.service authentik-worker.service
+pct exec "$CTID" -- systemctl enable -q --now authentik-server authentik-worker
 msg_ok "Started Services"
 
 description
