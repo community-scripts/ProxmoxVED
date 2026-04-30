@@ -1,0 +1,46 @@
+{
+  "name": "Moltis",
+  "slug": "moltis",
+  "categories": [20],
+  "date_created": "2026-04-30",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 13131,
+  "documentation": "https://docs.moltis.org",
+  "website": "https://moltis.org",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/moltis.webp",
+  "description": "Moltis is a personal AI gateway that runs locally with a web UI, supporting multiple LLM providers and integrating with messaging platforms like WhatsApp, Telegram, Discord, and Slack.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/moltis.sh",
+      "config_path": "/etc/moltis",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "On first launch, a setup code is printed to the service logs. View it with: pct exec <CTID> -- journalctl -u moltis --no-pager | grep setup",
+      "type": "info"
+    },
+    {
+      "text": "The web UI requires HTTPS. Use a reverse proxy or access via SSH tunnel: ssh -L 13131:localhost:13131 root@<container-ip>",
+      "type": "warning"
+    },
+    {
+      "text": "For agent sandbox support (shell command execution), install Docker when prompted during setup.",
+      "type": "info"
+    }
+  ]
+}
