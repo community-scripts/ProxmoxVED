@@ -26,11 +26,9 @@ if [[ -z "$RELEASE" || -z "$ASSET_URL" ]]; then
   msg_error "Could not resolve a matching Linux x64 Companion package from the Bitfocus API."
   exit 1
 fi
-msg_ok "Found Companion v${RELEASE}"
+msg_ok "Found Companion ${RELEASE}"
 
-msg_info "Downloading Bitfocus Companion v${RELEASE}"
 fetch_and_deploy_from_url "$ASSET_URL" "/opt/bitfocus-companion"
-msg_ok "Downloaded and Extracted Bitfocus Companion v${RELEASE}"
 
 msg_info "Installing udev Rules"
 if [[ -f /opt/bitfocus-companion/50-companion-headless.rules ]]; then
