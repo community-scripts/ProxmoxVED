@@ -18,6 +18,12 @@ var_unprivileged="${var_unprivileged:-1}"
 var_nesting="${var_nesting:-1}"
 var_keyctl="${var_keyctl:-1}"
 
+# App-specific variables (not in build.func whitelist)
+# Export so they survive lxc-attach into the container
+export var_forgejo_instance="${var_forgejo_instance:-}"
+export var_forgejo_runner_token="${var_forgejo_runner_token:-}"
+export var_runner_labels="${var_runner_labels:-}"
+
 header_info "$APP"
 variables
 color
@@ -55,6 +61,20 @@ function update_script() {
   msg_ok "Updated successfully!"
   exit
 }
+
+# Fail early if running unattended without required values
+# mode is only set when the user explicitly passes it (automating);
+# bare "bash -c $(curl ...)" leaves mode empty and shows the whiptail menu
+if [[ -n "${mode:-}" ]]; then
+  if [[ -z "${var_forgejo_instance:-}" ]]; then
+    msg_error "var_forgejo_instance is required for unattended installs."
+    exit 1
+  fi
+  if [[ -z "${var_forgejo_runner_token:-}" ]]; then
+    msg_error "var_forgejo_runner_token is required for unattended installs."
+    exit 1
+  fi
+fi
 
 start
 build_container

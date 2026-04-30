@@ -12,19 +12,31 @@ setting_up_container
 network_check
 update_os
 
-# Get required configuration with sensible fallbacks for unattended mode
-# These will show a warning if defaults are used
-var_forgejo_instance=$(prompt_input_required \
-  "Forgejo Instance URL:" \
-  "${var_forgejo_instance:-https://codeberg.org}" \
-  120 \
-  "var_forgejo_instance")
+# Get required configuration — skip prompts if already set (generated/unattended mode)
+if [[ -z "${var_forgejo_instance:-}" ]]; then
+  read -r -p "${TAB3}Forgejo Instance URL (e.g. https://codeberg.org): " var_forgejo_instance
+  var_forgejo_instance="${var_forgejo_instance:-https://codeberg.org}"
+fi
 
-var_forgejo_runner_token=$(prompt_input_required \
-  "Forgejo Runner Registration Token:" \
-  "${var_forgejo_runner_token:-REPLACE_WITH_YOUR_TOKEN}" \
-  120 \
-  "var_forgejo_runner_token")
+if [[ -z "${var_forgejo_runner_token:-}" ]]; then
+  read -r -p "${TAB3}Forgejo Runner Registration Token: " var_forgejo_runner_token
+fi
+
+if [[ -z "${var_forgejo_runner_token:-}" ]]; then
+  msg_error "No runner registration token provided. Cannot continue."
+  exit 1
+fi
+
+# Runner labels — default is always included; additional labels are appended
+DEFAULT_RUNNER_LABELS="linux-amd64:docker://node:22-bookworm"
+if [[ -z "${var_runner_labels:-}" ]]; then
+  read -r -p "${TAB3}Additional runner labels (comma-separated, or leave blank for default only): " var_runner_labels
+fi
+if [[ -n "${var_runner_labels:-}" ]]; then
+  RUNNER_LABELS="${DEFAULT_RUNNER_LABELS},${var_runner_labels}"
+else
+  RUNNER_LABELS="${DEFAULT_RUNNER_LABELS}"
+fi
 
 export FORGEJO_INSTANCE="$var_forgejo_instance"
 export FORGEJO_RUNNER_TOKEN="$var_forgejo_runner_token"
@@ -48,11 +60,12 @@ msg_ok "Installed Forgejo Runner"
 
 msg_info "Registering Forgejo Runner"
 export DOCKER_HOST="unix:///run/podman/podman.sock"
+cd /root
 forgejo-runner register \
   --instance "$FORGEJO_INSTANCE" \
   --token "$FORGEJO_RUNNER_TOKEN" \
-  --name "$HOSTNAME" \
-  --labels "linux-amd64:docker://node:20-bookworm" \
+  --name "$(hostname)" \
+  --labels "$RUNNER_LABELS" \
   --no-interactive
 msg_ok "Registered Forgejo Runner"
 
@@ -78,9 +91,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now forgejo-runner
 msg_ok "Created Services"
-
-# Show warning if any required values used fallbacks
-show_missing_values_warning
 
 motd_ssh
 customize
