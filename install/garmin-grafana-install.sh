@@ -25,7 +25,10 @@ msg_info "Installing InfluxDB"
 $STD apt install -y influxdb
 msg_ok "Installed InfluxDB"
 
-fetch_and_deploy_gh_release "chronograf" "influxdata/chronograf" "binary"
+msg_info "Installing Chronograf"
+CHRONOGRAF_VERSION=$(get_latest_github_release "influxdata/chronograf")
+fetch_and_deploy_from_url "https://dl.influxdata.com/chronograf/releases/chronograf_${CHRONOGRAF_VERSION}_amd64.deb" ""
+msg_ok "Installed Chronograf"
 
 msg_info "Configuring InfluxDB"
 sed -i 's/# index-version = "inmem"/index-version = "tsi1"/' /etc/influxdb/influxdb.conf
