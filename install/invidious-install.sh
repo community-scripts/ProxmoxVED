@@ -53,7 +53,7 @@ $STD make
 msg_ok "Built Invidious"
 
 msg_info "Configuring Invidious"
-SECRET_KEY="$(openssl rand -hex 16)"
+SECRET_KEY="$(openssl rand -hex 8)"
 HMAC_KEY="$(openssl rand -hex 32)"
 sed -e '\~^db:~,\~dbname:~d' \
   -e "s~^#database_.*~database_url: postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}~" \
