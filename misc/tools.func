@@ -8681,6 +8681,233 @@ EOF
   return 0
 }
 
+# ------------------------------------------------------------------------------
+# Get latest GitLab release version.
+# Usage: get_latest_gitlab_release "owner/repo" [strip_v]
+# ------------------------------------------------------------------------------
+get_latest_gitlab_release() {
+  local repo="$1"
+  local strip_v="${2:-true}"
+
+  local repo_encoded
+  repo_encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$repo" 2>/dev/null ||
+    echo "$repo" | sed 's|/|%2F|g')
+
+  local header=()
+  [[ -n "${GITLAB_TOKEN:-}" ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
+
+  local temp_file
+  temp_file=$(mktemp)
+
+  local http_code
+  http_code=$(curl --connect-timeout 10 --max-time 30 -sSL \
+    -w "%{http_code}" -o "$temp_file" \
+    "${header[@]}" \
+    "https://gitlab.com/api/v4/projects/$repo_encoded/releases?per_page=1&order_by=released_at&sort=desc" 2>/dev/null) || true
+
+  if [[ "$http_code" != "200" ]]; then
+    rm -f "$temp_file"
+    msg_warn "GitLab API call failed for ${repo} (HTTP ${http_code})"
+    return 22
+  fi
+
+  local version
+  version=$(jq -r '.[0].tag_name // empty' "$temp_file")
+  rm -f "$temp_file"
+
+  if [[ -z "$version" ]]; then
+    msg_error "Could not determine latest version for ${repo}"
+    return 250
+  fi
+
+  if [[ "$strip_v" == "true" ]]; then
+    [[ "$version" =~ ^v[0-9] ]] && version="${version:1}"
+  fi
+
+  echo "$version"
+}
+
+# ------------------------------------------------------------------------------
+# Checks for new GitLab release (latest tag).
+#
+# Description:
+#   - Queries the GitLab API for the latest release tag
+#   - Compares it to a local cached version (~/.<app>)
+#   - If newer, sets global CHECK_UPDATE_RELEASE and returns 0
+#
+# Usage:
+#     if check_for_gl_release "myapp" "owner/repo" [optional] "v1.2.3"; then
+#       # trigger update...
+#     fi
+#     exit 0
+#     } (end of update_script not from the function)
+#
+# Notes:
+#   - Requires `jq` (auto-installed if missing)
+#   - Supports GITLAB_TOKEN env var for private/rate-limited repos
+#   - Does not modify anything, only checks version state
+# ------------------------------------------------------------------------------
+check_for_gl_release() {
+  local app="$1"
+  local source="$2"
+  local pinned_version_in="${3:-}" # optional
+  local pin_reason="${4:-}"        # optional reason shown to user
+  local app_lc="${app,,}"
+  local current_file="$HOME/.${app_lc}"
+
+  msg_info "Checking for update: ${app}"
+
+  # DNS check
+  if ! getent hosts gitlab.com >/dev/null 2>&1; then
+    msg_error "Network error: cannot resolve gitlab.com"
+    return 6
+  fi
+
+  ensure_dependencies jq
+
+  local repo_encoded
+  repo_encoded=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$source" 2>/dev/null ||
+    echo "$source" | sed 's|/|%2F|g')
+
+  local header=()
+  [[ -n "${GITLAB_TOKEN:-}" ]] && header=(-H "PRIVATE-TOKEN: $GITLAB_TOKEN")
+
+  local releases_json="" http_code=""
+
+  # For pinned versions, try to fetch the specific release tag first
+  if [[ -n "$pinned_version_in" ]]; then
+    local pinned_encoded="${pinned_version_in//\//%2F}"
+    http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gl_check.json \
+      "${header[@]}" \
+      "https://gitlab.com/api/v4/projects/$repo_encoded/releases/$pinned_encoded" 2>/dev/null) || true
+    if [[ "$http_code" == "200" ]] && [[ -s /tmp/gl_check.json ]]; then
+      releases_json="[$(</tmp/gl_check.json)]"
+    fi
+    rm -f /tmp/gl_check.json
+  fi
+
+  # Fetch full releases list if needed
+  if [[ -z "$releases_json" ]]; then
+    http_code=$(curl -sSL --max-time 20 -w "%{http_code}" -o /tmp/gl_check.json \
+      "${header[@]}" \
+      "https://gitlab.com/api/v4/projects/$repo_encoded/releases?per_page=100&order_by=released_at&sort=desc" 2>/dev/null) || true
+
+    if [[ "$http_code" == "200" ]] && [[ -s /tmp/gl_check.json ]]; then
+      releases_json=$(</tmp/gl_check.json)
+    elif [[ "$http_code" == "401" ]]; then
+      msg_error "GitLab API authentication failed (HTTP 401)."
+      if [[ -n "${GITLAB_TOKEN:-}" ]]; then
+        msg_error "Your GITLAB_TOKEN appears to be invalid or expired."
+      else
+        msg_error "The repository may require authentication. Try: export GITLAB_TOKEN=\"glpat-your_token\""
+      fi
+      rm -f /tmp/gl_check.json
+      return 22
+    elif [[ "$http_code" == "404" ]]; then
+      msg_error "GitLab project not found (HTTP 404). Ensure '${source}' is correct and publicly accessible."
+      rm -f /tmp/gl_check.json
+      return 22
+    elif [[ "$http_code" == "429" ]]; then
+      msg_error "GitLab API rate limit exceeded (HTTP 429)."
+      msg_error "To increase the limit, export a GitLab token: export GITLAB_TOKEN=\"glpat-your_token_here\""
+      rm -f /tmp/gl_check.json
+      return 22
+    elif [[ "$http_code" == "000" || -z "$http_code" ]]; then
+      msg_error "GitLab API connection failed (no response)."
+      msg_error "Check your network/DNS: curl -sSL https://gitlab.com/api/v4/version"
+      rm -f /tmp/gl_check.json
+      return 7
+    else
+      msg_error "Unable to fetch releases for ${app} (HTTP ${http_code})"
+      rm -f /tmp/gl_check.json
+      return 22
+    fi
+    rm -f /tmp/gl_check.json
+  fi
+
+  mapfile -t raw_tags < <(jq -r '.[] | .tag_name' <<<"$releases_json")
+  if ((${#raw_tags[@]} == 0)); then
+    msg_error "No releases found for ${app} on GitLab"
+    return 250
+  fi
+
+  local clean_tags=()
+  for t in "${raw_tags[@]}"; do
+    # Only strip leading 'v' when followed by a digit (e.g. v1.2.3)
+    if [[ "$t" =~ ^v[0-9] ]]; then
+      clean_tags+=("${t:1}")
+    else
+      clean_tags+=("$t")
+    fi
+  done
+
+  local latest_raw="${raw_tags[0]}"
+  local latest_clean="${clean_tags[0]}"
+
+  # current installed (stored without v)
+  local current=""
+  if [[ -f "$current_file" ]]; then
+    current="$(<"$current_file")"
+  else
+    # Migration: search for any /opt/*_version.txt
+    local legacy_files
+    mapfile -t legacy_files < <(find /opt -maxdepth 1 -type f -name "*_version.txt" 2>/dev/null)
+    if ((${#legacy_files[@]} == 1)); then
+      current="$(<"${legacy_files[0]}")"
+      echo "${current#v}" >"$current_file"
+      rm -f "${legacy_files[0]}"
+    fi
+  fi
+  if [[ "$current" =~ ^v[0-9] ]]; then
+    current="${current:1}"
+  fi
+
+  # Pinned version handling
+  if [[ -n "$pinned_version_in" ]]; then
+    local pin_clean
+    if [[ "$pinned_version_in" =~ ^v[0-9] ]]; then
+      pin_clean="${pinned_version_in:1}"
+    else
+      pin_clean="$pinned_version_in"
+    fi
+    local match_raw=""
+    for i in "${!clean_tags[@]}"; do
+      if [[ "${clean_tags[$i]}" == "$pin_clean" ]]; then
+        match_raw="${raw_tags[$i]}"
+        break
+      fi
+    done
+
+    if [[ -z "$match_raw" ]]; then
+      msg_error "Pinned version ${pinned_version_in} not found upstream"
+      return 250
+    fi
+
+    if [[ "$current" != "$pin_clean" ]]; then
+      CHECK_UPDATE_RELEASE="$match_raw"
+      msg_ok "Update available: ${app} ${current:-not installed} → ${pin_clean}"
+      return 0
+    fi
+
+    if [[ -n "$pin_reason" ]]; then
+      msg_ok "No update available: ${app} (${current}) - update held back: ${pin_reason}"
+    else
+      msg_ok "No update available: ${app} (${current}) - update temporarily held back due to issues with newer releases"
+    fi
+    return 1
+  fi
+
+  # No pinning → use latest
+  if [[ -z "$current" || "$current" != "$latest_clean" ]]; then
+    CHECK_UPDATE_RELEASE="$latest_raw"
+    msg_ok "Update available: ${app} ${current:-not installed} → ${latest_clean}"
+    return 0
+  fi
+
+  msg_ok "No update available: ${app} (${latest_clean})"
+  return 1
+}
+
 function fetch_and_deploy_gl_release() {
   local app="$1"
   local repo="$2"
