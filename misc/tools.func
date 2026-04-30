@@ -2503,7 +2503,9 @@ check_for_gh_release() {
       rm -f "${legacy_files[0]}"
     fi
   fi
-  current="${current#v}"
+  if [[ "$current" =~ ^v[0-9] ]]; then
+    current="${current:1}"
+  fi
 
   # Pinned version handling
   if [[ -n "$pinned_version_in" ]]; then
@@ -2631,7 +2633,9 @@ check_for_codeberg_release() {
       rm -f "${legacy_files[0]}"
     fi
   fi
-  current="${current#v}"
+  if [[ "$current" =~ ^v[0-9] ]]; then
+    current="${current:1}"
+  fi
 
   # Pinned version handling
   if [[ -n "$pinned_version_in" ]]; then
