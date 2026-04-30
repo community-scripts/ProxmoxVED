@@ -54,23 +54,26 @@ msg_ok "Built Invidious"
 
 msg_info "Configuring Invidious"
 SECRET_KEY="$(openssl rand -hex 16)"
-sed -e '|^db|,|dbname|d' \
-  -e "s|^#database_.*|database_url: postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}|" \
-  -e 's|^#check_.*|check_tables: true|' \
-  -e 's|^#invidious_companion:|invidious_companion:|' \
-  -e 's|^#  - private_|  - private_|' \
-  -e "s|^#invidious_companion_key:.*|inviduous_companion_key: \"${SECRET_KEY}\"|" \
-  -e "s|hmac_key:.*|hmac_key: \"$(openssl rand -hex 32)\"|" \
+HMAC_KEY="$(openssl rand -hex 32)"
+sed -e '\~^db:~,\~dbname:~d' \
+  -e "s~^#database_.*~database_url: postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}~" \
+  -e 's~^#check_tables.*~check_tables: true~' \
+  -e 's~^#invidious_companion:~invidious_companion:~' \
+  -e 's~^#  - private_~  - private_~' \
+  -e "s~^#invidious_companion_key:.*~invidious_companion_key: \"${SECRET_KEY}\"~" \
+  -e "s~^hmac_key:.*~hmac_key: \"${HMAC_KEY}\"~" \
   /opt/invidious/config/config.example.yml >/opt/invidious/config/config.yml
 chmod 600 /opt/invidious/config/config.yml
 
 cat <<EOF >/etc/logrotate.d/invidious.logrotate
-rotate 4
-weekly
-notifempty
-missingok
-compress
-minsize 1048576
+/opt/invidious/invidious.log {
+  rotate 4
+  weekly
+  notifempty
+  missingok
+  compress
+  minsize 1048576
+}
 EOF
 chmod 0644 /etc/logrotate.d/invidious.logrotate
 msg_ok "Configured Invidious"
@@ -80,12 +83,16 @@ $STD ./invidious --migrate
 msg_ok "Migrated database"
 
 msg_info "Configuring services"
-sed -e 's|=invidious|=root|' \
-  -e 's|/home|/opt|' /opt/invidious.service >/etc/systemd/system/invidious.service
+sed -e 's|^User=invidious|User=root|' \
+  -e 's|^Group=invidious|Group=root|' \
+  -e 's|/home/invidious/invidious|/opt/invidious|g' \
+  /opt/invidious/invidious.service >/etc/systemd/system/invidious.service
 curl -fsSL https://github.com/iv-org/invidious-companion/raw/refs/heads/master/invidious-companion.service -o /etc/systemd/system/invidious-companion.service
 sed -i -e "s|CHANGE_ME$|${SECRET_KEY}|" \
-  -e 's|=invidious$|=root|' \
-  -e 's|/home|/opt|' /etc/systemd/system/invidious-companion.service
+  -e 's|^User=invidious|User=root|' \
+  -e 's|^Group=invidious|Group=root|' \
+  -e 's|/home/invidious/invidious-companion|/opt/invidious-companion|g' \
+  /etc/systemd/system/invidious-companion.service
 systemctl -q enable --now invidious invidious-companion
 msg_ok "Configured services"
 
