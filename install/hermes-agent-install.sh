@@ -52,6 +52,7 @@ API_SERVER_ENABLED=true
 API_SERVER_HOST=0.0.0.0
 API_SERVER_PORT=8642
 API_SERVER_KEY=${API_SERVER_KEY}
+HERMES_REDACT_SECRETS=true
 EOF
 chmod 600 /home/hermes/.hermes/.env
 chown hermes:hermes /home/hermes/.hermes/.env
