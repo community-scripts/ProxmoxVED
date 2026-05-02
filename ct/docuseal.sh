@@ -34,15 +34,17 @@ function update_script() {
     systemctl stop docuseal docuseal-sidekiq
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Configuration"
+    msg_info "Backing up Data"
     cp /opt/docuseal/.env /opt/docuseal.env.bak
-    msg_ok "Backed up Configuration"
+    [[ -d /opt/docuseal/data ]] && mv /opt/docuseal/data /opt/docuseal_data.bak
+    msg_ok "Backed up Data"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "docuseal" "docusealco/docuseal" "tarball"
 
-    msg_info "Restoring Configuration"
+    msg_info "Restoring Data"
     mv /opt/docuseal.env.bak /opt/docuseal/.env
-    msg_ok "Restored Configuration"
+    [[ -d /opt/docuseal_data.bak ]] && mv /opt/docuseal_data.bak /opt/docuseal/data
+    msg_ok "Restored Data"
 
     msg_info "Building Application"
     cd /opt/docuseal
@@ -50,17 +52,18 @@ function update_script() {
     eval "$(rbenv init - bash)" 2>/dev/null || true
     export RAILS_ENV=production
     export NODE_ENV=production
-    export BUNDLE_WITHOUT="development:test"
     export SECRET_KEY_BASE_DUMMY=1
     set -a
     source /opt/docuseal/.env
     set +a
-    $STD bundle config set --local without 'development test'
+    $STD bundle config set --local deployment 'true'
+    $STD bundle config set --local without 'development:test'
     $STD bundle install -j"$(nproc)"
     $STD yarn install --network-timeout 1000000
     $STD ./bin/shakapacker
     $STD bundle exec rails db:migrate
     $STD bundle exec bootsnap precompile -j 1 --gemfile app/ lib/
+    chown -R docuseal:docuseal /opt/docuseal
     msg_ok "Built Application"
 
     msg_info "Starting Services"

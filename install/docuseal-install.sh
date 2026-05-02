@@ -74,8 +74,8 @@ RAILS_LOG_TO_STDOUT=true
 RAILS_SERVE_STATIC_FILES=true
 SECRET_KEY_BASE=${SECRET_KEY}
 DATABASE_URL=postgresql://docuseal:${PG_DB_PASS}@127.0.0.1:5432/docuseal
+REDIS_URL=redis://localhost:6379/0
 WORKDIR=/opt/docuseal/data
-HOME=/opt/docuseal/data
 VIPS_MAX_COORD=17000
 EOF
 msg_ok "Configured DocuSeal"
@@ -86,12 +86,12 @@ export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
 eval "$(rbenv init - bash)" 2>/dev/null || true
 export RAILS_ENV=production
 export NODE_ENV=production
-export BUNDLE_WITHOUT="development:test"
 export SECRET_KEY_BASE_DUMMY=1
 set -a
 source /opt/docuseal/.env
 set +a
-$STD bundle config set --local without 'development test'
+$STD bundle config set --local deployment 'true'
+$STD bundle config set --local without 'development:test'
 $STD bundle install -j"$(nproc)"
 $STD yarn install --network-timeout 1000000
 $STD ./bin/shakapacker
@@ -103,6 +103,13 @@ msg_info "Enabling Redis"
 systemctl enable -q --now redis-server
 msg_ok "Enabled Redis"
 
+msg_info "Creating docuseal User"
+id docuseal &>/dev/null || useradd -u 2000 -M -s /usr/sbin/nologin -d /opt/docuseal docuseal
+chmod o+x /root
+chmod -R o+rX /root/.rbenv
+chown -R docuseal:docuseal /opt/docuseal /opt/fonts
+msg_ok "Created docuseal User"
+
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/docuseal.service
 [Unit]
@@ -111,11 +118,15 @@ After=network.target postgresql.service redis-server.service
 
 [Service]
 Type=simple
-User=root
+User=docuseal
+Group=docuseal
 WorkingDirectory=/opt/docuseal
 EnvironmentFile=/opt/docuseal/.env
+Environment=HOME=/opt/docuseal
 Environment=PATH=/root/.rbenv/shims:/root/.rbenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/root/.rbenv/shims/bundle exec puma -C /opt/docuseal/config/puma.rb --dir /opt/docuseal -p 3000
+Environment=BUNDLE_GEMFILE=/opt/docuseal/Gemfile
+Environment=BUNDLE_WITHOUT=development:test
+ExecStart=/opt/docuseal/bin/bundle exec puma -C /opt/docuseal/config/puma.rb --dir /opt/docuseal -p 3000
 Restart=on-failure
 RestartSec=5
 
@@ -130,11 +141,15 @@ After=network.target postgresql.service redis-server.service
 
 [Service]
 Type=simple
-User=root
+User=docuseal
+Group=docuseal
 WorkingDirectory=/opt/docuseal
 EnvironmentFile=/opt/docuseal/.env
+Environment=HOME=/opt/docuseal
 Environment=PATH=/root/.rbenv/shims:/root/.rbenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/root/.rbenv/shims/bundle exec sidekiq
+Environment=BUNDLE_GEMFILE=/opt/docuseal/Gemfile
+Environment=BUNDLE_WITHOUT=development:test
+ExecStart=/opt/docuseal/bin/bundle exec sidekiq
 Restart=on-failure
 RestartSec=5
 
