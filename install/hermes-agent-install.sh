@@ -69,6 +69,7 @@ Wants=network-online.target
 Type=simple
 User=hermes
 Group=hermes
+UMask=0077
 WorkingDirectory=/home/hermes
 ExecStart=/home/hermes/.local/bin/hermes gateway run --replace
 Environment="HERMES_HOME=/home/hermes/.hermes"
@@ -93,6 +94,7 @@ Wants=network-online.target
 Type=simple
 User=hermes
 Group=hermes
+UMask=0077
 WorkingDirectory=/home/hermes
 ExecStart=/home/hermes/.local/bin/hermes dashboard --host 127.0.0.1 --port 9119 --no-open
 Environment="HERMES_HOME=/home/hermes/.hermes"
