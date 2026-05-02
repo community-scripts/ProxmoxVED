@@ -56,6 +56,8 @@ HERMES_REDACT_SECRETS=true
 EOF
 chmod 600 /home/hermes/.hermes/.env
 chown hermes:hermes /home/hermes/.hermes/.env
+chmod 750 /home/hermes
+chmod 700 /home/hermes/.hermes
 msg_ok "Configured API Server"
 
 msg_info "Creating Service"
