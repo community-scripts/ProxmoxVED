@@ -120,7 +120,11 @@ msg_info "Creating Hermes Shim"
 cat <<'EOF' >/usr/bin/hermes
 #!/bin/bash
 cd /home/hermes
-exec runuser -u hermes -- /home/hermes/.local/bin/hermes "$@"
+if [[ "$(id -u)" -eq 0 ]]; then
+  exec runuser -u hermes -- /home/hermes/.local/bin/hermes "$@"
+else
+  exec /home/hermes/.local/bin/hermes "$@"
+fi
 EOF
 chmod +x /usr/bin/hermes
 msg_ok "Created Hermes Shim"
