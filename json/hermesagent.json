@@ -1,6 +1,6 @@
 {
     "name": "Hermes Agent",
-    "slug": "hermes-agent",
+    "slug": "hermesagent",
     "categories": [
         20
     ],
@@ -16,7 +16,7 @@
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/hermes-agent.sh",
+            "script": "ct/hermesagent.sh",
             "config_path": "/home/hermes/.hermes/",
             "resources": {
                 "cpu": 2,
