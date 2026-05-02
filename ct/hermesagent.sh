@@ -38,7 +38,7 @@ function update_script() {
   $STD env \
     HOME=/home/hermes \
     HERMES_HOME=/home/hermes/.hermes \
-    /home/hermes/.local/bin/hermes update
+    /home/hermes/.local/bin/hermes update --yes
   chown -R hermes:hermes /home/hermes
   msg_ok "Updated ${APP}"
 
