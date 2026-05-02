@@ -76,6 +76,8 @@ Environment="HERMES_HOME=/home/hermes/.hermes"
 Environment="HOME=/home/hermes"
 Restart=on-failure
 RestartSec=5
+ProtectProc=invisible
+ProcSubset=pid
 
 [Install]
 WantedBy=multi-user.target
@@ -103,6 +105,8 @@ Environment="PATH=/home/hermes/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sb
 Environment="NODE_OPTIONS=--max-old-space-size=3072"
 Restart=on-failure
 RestartSec=5
+ProtectProc=invisible
+ProcSubset=pid
 
 [Install]
 WantedBy=multi-user.target
