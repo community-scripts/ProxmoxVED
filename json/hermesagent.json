@@ -28,7 +28,7 @@
         }
     ],
     "default_credentials": {
-        "username": "hermes",
+        "username": null,
         "password": null
     },
     "notes": [
@@ -37,7 +37,7 @@
             "type": "warning"
         },
         {
-            "text": "After container startup, SSH in as the 'hermes' user and run 'hermes setup' to configure your LLM provider (OpenRouter, Anthropic, OpenAI, Nous Portal, or custom endpoint).",
+            "text": "After container startup, SSH in as root and run 'hermes setup' to configure your LLM provider (OpenRouter, Anthropic, OpenAI, Nous Portal, or custom endpoint).",
             "type": "info"
         },
         {
@@ -45,7 +45,7 @@
             "type": "info"
         },
         {
-            "text": "Access the web dashboard via SSH tunnel: ssh -L 9119:localhost:9119 hermes@<container-ip>, then open http://localhost:9119",
+            "text": "Access the web dashboard via SSH tunnel: ssh -fNL 9119:localhost:9119 root@<container-ip>, then open http://localhost:9119",
             "type": "info"
         }
     ]
