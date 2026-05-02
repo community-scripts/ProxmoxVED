@@ -83,6 +83,9 @@ cd /opt/authentik
 export CGO_ENABLED="1"
 $STD go mod download
 $STD go build -o /opt/authentik/authentik-server ./cmd/server
+$STD go build -o /opt/authentik/ldap ./cmd/ldap
+$STD go build -o /opt/authentik/rac ./cmd/rac
+$STD go build -o /opt/authentik/radius ./cmd/radius
 msg_ok "Go proxy installed"
 
 cat <<EOF >/usr/local/etc/GeoIP.conf
@@ -133,6 +136,21 @@ PATH=/opt/authentik/lifecycle:/opt/authentik/.venv/bin:/usr/local/bin:/usr/local
 DJANGO_SETTINGS_MODULE=authentik.root.settings
 PROMETHEUS_MULTIPROC_DIR="/tmp/authentik_prometheus_tmp"
 EOF
+cat <<EOF >/etc/default/authentik_ldap
+AUTHENTIK_HOST="https://127.0.0.1:9443"
+AUTHENTIK_INSECURE="true"
+AUTHENTIK_TOKEN="token-generated-by-authentik"
+EOF
+cat <<EOF >/etc/default/authentik_rac
+AUTHENTIK_HOST="https://127.0.0.1:9443"
+AUTHENTIK_INSECURE="true"
+AUTHENTIK_TOKEN="token-generated-by-authentik"
+EOF
+cat <<EOF >/etc/default/authentik_radius
+AUTHENTIK_HOST="https://127.0.0.1:9443"
+AUTHENTIK_INSECURE="true"
+AUTHENTIK_TOKEN="token-generated-by-authentik"
+EOF
 msg_ok "authentik config created"
 
 msg_info "Creating services"
@@ -174,7 +192,64 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q authentik-server authentik-worker
+
+cat <<EOF >/etc/systemd/system/authentik-ldap.service
+[Unit]
+Description=authentik LDAP Outpost
+After=network.target
+Wants=postgresql.service
+
+[Service]
+User=authentik
+Group=authentik
+ExecStart=/opt/authentik/ldap
+WorkingDirectory=/opt/authentik/
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/default/authentik_ldap
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat <<EOF >/etc/systemd/system/authentik-rac.service
+[Unit]
+Description=authentik RAC Outpost
+After=network.target
+Wants=postgresql.service
+
+[Service]
+User=authentik
+Group=authentik
+ExecStart=/opt/authentik/rac
+WorkingDirectory=/opt/authentik/
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/default/authentik_rac
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat <<EOF >/etc/systemd/system/authentik-radius.service
+[Unit]
+Description=authentik Radius Outpost
+After=network.target
+Wants=postgresql.service
+
+[Service]
+User=authentik
+Group=authentik
+ExecStart=/opt/authentik/radius
+WorkingDirectory=/opt/authentik/
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/default/authentik_radius
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 msg_ok "Services created"
 
 motd_ssh

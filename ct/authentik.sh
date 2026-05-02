@@ -57,6 +57,15 @@ function update_script() {
   if check_for_gh_release "authentik" "goauthentik/authentik" "${AUTHENTIK_VERSION}"; then
     msg_info "Stopping Services"
     systemctl stop authentik-server authentik-worker
+	if [[ $(systemctl is-active authentik-ldap) == active ]]; then
+		systemctl stop authentik-ldap
+	fi
+	if [[ $(systemctl is-active authentik-rac) == active ]]; then
+		systemctl stop authentik-rac
+	fi
+	if [[ $(systemctl is-active authentik-radius) == active ]]; then
+		systemctl stop authentik-radius
+	fi
     msg_ok "Stopped Services"
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "authentik" "goauthentik/authentik" "tarball" "${AUTHENTIK_VERSION}" "/opt/authentik"
@@ -74,6 +83,9 @@ function update_script() {
     export CGO_ENABLED="1"
     $STD go mod download
     $STD go build -o /opt/authentik/authentik-server ./cmd/server
+	$STD go build -o /opt/authentik/ldap ./cmd/ldap
+	$STD go build -o /opt/authentik/rac ./cmd/rac
+	$STD go build -o /opt/authentik/radius ./cmd/radius
     msg_ok "Updated go proxy"
 
     msg_info "Updating python server"
@@ -91,6 +103,15 @@ function update_script() {
 
   msg_info "Starting Services"
   systemctl start authentik-server authentik-worker
+  if [[ $(systemctl is-enabled authentik-ldap) == enabled ]]; then
+  	systemctl start authentik-ldap
+  fi
+  if [[ $(systemctl is-enabled authentik-rac) == enabled ]]; then
+  	systemctl start authentik-rac
+  fi
+  if [[ $(systemctl is-enabled authentik-radius) == enabled ]]; then
+  	systemctl start authentik-radius
+  fi
   msg_ok "Started Services"
   msg_ok "Updated successfully!"
   exit
