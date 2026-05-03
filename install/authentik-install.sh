@@ -55,7 +55,7 @@ setup_rust
 PG_VERSION="17" setup_postgresql
 PG_DB_NAME="authentik" PG_DB_USER="authentik" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
 
-XMLSEC_VERSION="1.3.9"
+XMLSEC_VERSION="1.3.11"
 AUTHENTIK_VERSION="version/2026.2.2"
 fetch_and_deploy_gh_release "xmlsec" "lsh123/xmlsec" "tarball" "${XMLSEC_VERSION}" "/opt/xmlsec"
 fetch_and_deploy_gh_release "authentik" "goauthentik/authentik" "tarball" "${AUTHENTIK_VERSION}" "/opt/authentik"
@@ -122,6 +122,7 @@ yq -i ".blueprints_dir = \"/opt/authentik/blueprints\"" /etc/authentik/config.ym
 yq -i ".cert_discovery_dir = \"/opt/authentik-data/certs\"" /etc/authentik/config.yml
 yq -i ".email.template_dir = \"/opt/authentik-data/templates\"" /etc/authentik/config.yml
 yq -i ".storage.file.path = \"/opt/authentik-data\"" /etc/authentik/config.yml
+yq -i ".disable_startup_analytics = \"true\"" /etc/authentik/config.yml
 $STD useradd -U -s /usr/sbin/nologin -r -M -d /opt/authentik authentik
 chown -R authentik:authentik /opt/authentik
 cat <<EOF >/etc/default/authentik
