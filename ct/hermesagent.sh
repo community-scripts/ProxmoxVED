@@ -31,7 +31,6 @@ function update_script() {
 
   msg_info "Stopping Services"
   systemctl stop hermes-dashboard
-  systemctl stop hermes-gateway
   msg_ok "Stopped Services"
 
   msg_info "Updating ${APP}"
@@ -43,7 +42,6 @@ function update_script() {
   msg_ok "Updated ${APP}"
 
   msg_info "Starting Services"
-  systemctl start hermes-gateway
   systemctl start hermes-dashboard
   msg_ok "Started Services"
   msg_ok "Updated successfully!"
@@ -58,6 +56,7 @@ msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Connect via SSH and configure your LLM provider:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}ssh root@${IP}${CL}"
+echo -e "${TAB}${BGN}su - hermes${CL}"
 echo -e "${TAB}${BGN}hermes setup${CL}"
 echo -e "${INFO}${YW} API Server (OpenAI-compatible):${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8642/v1${CL}"

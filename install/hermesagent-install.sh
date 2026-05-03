@@ -22,6 +22,7 @@ NODE_VERSION="22" setup_nodejs
 
 msg_info "Creating Hermes User"
 useradd -m -s /bin/bash hermes
+loginctl enable-linger hermes
 msg_ok "Created Hermes User"
 
 msg_info "Installing Hermes Agent"
@@ -60,38 +61,11 @@ chmod 750 /home/hermes
 chmod 700 /home/hermes/.hermes
 msg_ok "Configured API Server"
 
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/hermes-gateway.service
-[Unit]
-Description=Hermes Agent Gateway
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=hermes
-Group=hermes
-UMask=0077
-WorkingDirectory=/home/hermes
-ExecStart=/home/hermes/.local/bin/hermes gateway run --replace
-Environment="HERMES_HOME=/home/hermes/.hermes"
-Environment="HOME=/home/hermes"
-Restart=on-failure
-RestartSec=5
-ProtectProc=invisible
-ProcSubset=pid
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable -q --now hermes-gateway
-msg_ok "Created Service"
-
 msg_info "Creating Dashboard Service"
 cat <<EOF >/etc/systemd/system/hermes-dashboard.service
 [Unit]
 Description=Hermes Agent Web Dashboard
-After=network-online.target hermes-gateway.service
+After=network-online.target
 Wants=network-online.target
 
 [Service]
@@ -116,18 +90,14 @@ EOF
 systemctl enable -q --now hermes-dashboard
 msg_ok "Created Dashboard Service"
 
-msg_info "Creating Hermes Shim"
-cat <<'EOF' >/usr/bin/hermes
-#!/bin/bash
-cd /home/hermes
+msg_info "Configuring Login Guidance"
+cat <<'EOF' >/etc/profile.d/hermes-hint.sh
 if [[ "$(id -u)" -eq 0 ]]; then
-  exec runuser -u hermes -- /home/hermes/.local/bin/hermes "$@"
-else
-  exec /home/hermes/.local/bin/hermes "$@"
+  echo "  Run 'su - hermes' to manage Hermes Agent and profiles."
+  echo "  To auto-switch on login: echo 'exec su - hermes' >> /root/.bash_profile"
 fi
 EOF
-chmod +x /usr/bin/hermes
-msg_ok "Created Hermes Shim"
+msg_ok "Configured Login Guidance"
 
 motd_ssh
 customize
