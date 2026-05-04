@@ -1,0 +1,42 @@
+{
+  "name": "NanoClaw",
+  "slug": "nanoclaw",
+  "categories": [22, 20],
+  "date_created": "2026-05-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://github.com/qwibitai/nanoclaw#readme",
+  "website": "https://github.com/qwibitai/nanoclaw",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nanoclaw.webp",
+  "description": "Self-hosted Claude Code agent that connects to Discord, Telegram, Matrix and other chat platforms. Spawns an isolated Docker container per session and routes conversations to a Claude agent runtime.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/nanoclaw.sh",
+      "config_path": "/home/nanoclaw/nanoclaw/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "After install, run the interactive setup wizard: pct enter <CT_ID> then su - nanoclaw -c 'cd nanoclaw && bash nanoclaw.sh'. The wizard configures Discord, Telegram or Matrix credentials.",
+      "type": "info"
+    },
+    {
+      "text": "Updates are handled inside the running chat session — send '/update-nanoclaw' to your NanoClaw agent. Do not run the helper-script update from the Proxmox host.",
+      "type": "warning"
+    }
+  ]
+}
