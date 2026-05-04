@@ -28,10 +28,8 @@ function update_script() {
     msg_error "No ${APP} Installation Found!"
     exit
   fi
-  msg_info "Updating $APP"
-  $STD su - nanoclaw -c "cd nanoclaw && git fetch --all --prune && git pull --ff-only"
-  $STD su - nanoclaw -c "cd nanoclaw && pnpm install --prefer-frozen-lockfile && pnpm run build"
-  msg_ok "Updated $APP"
+  msg_info "${APP} updates from inside its own chat session"
+  msg_ok  "Send '/update-nanoclaw' to your NanoClaw agent — it handles repo pull, migrations, Docker image rebuild, and service restart in one go."
   exit
 }
 
