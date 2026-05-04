@@ -34,10 +34,10 @@ fi
 VERSION="${RELEASE#v}"
 
 ARCH=$(uname -m)
-case "$ARCH" in
-  x86_64) ARCH="x86_64" ;;
+case "${ARCH}" in
+  x86_64)  ARCH="amd64" ;;
   aarch64) ARCH="arm64" ;;
-  armv7l) ARCH="armv7" ;;
+  armv7l)  ARCH="armv7" ;;
   *) msg_error "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 msg_ok "Latest release: ${RELEASE} (${ARCH})"
@@ -45,6 +45,7 @@ msg_ok "Latest release: ${RELEASE} (${ARCH})"
 msg_info "Installing act_runner ${RELEASE}"
 curl -fsSL "https://gitea.com/gitea/act_runner/releases/download/${RELEASE}/act_runner-${VERSION}-linux-${ARCH}" -o /usr/local/bin/act_runner
 chmod +x /usr/local/bin/act_runner
+ln -sf /usr/local/bin/act_runner /usr/bin/act_runner
 msg_ok "Installed act_runner"
 
 msg_info "Creating gitea-runner user"
@@ -73,7 +74,8 @@ depend() {
 }
 
 start_pre() {
-  checkpath -d -m 0755 -o gitea-runner:docker /var/lib/gitea-runner
+    export PATH="/usr/local/bin:$PATH"
+    checkpath --directory --owner gitea-runner:docker --mode 0755 /var/lib/gitea-runner
 }
 EOF
 chmod +x /etc/init.d/gitea-runner

@@ -12,7 +12,7 @@ var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-alpine}"
-var_version="${var_version:-3.21}"
+var_version="${var_version:-3.23}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -42,12 +42,12 @@ function update_script() {
   fi
 
   ARCH=$(uname -m)
-  case "$ARCH" in
-    x86_64) ARCH="x86_64" ;;
+  case "${ARCH}" in
+    x86_64)  ARCH="amd64" ;;
     aarch64) ARCH="arm64" ;;
-    armv7l) ARCH="armv7" ;;
+    armv7l)  ARCH="armv7" ;;
     *) msg_error "Unsupported architecture: $ARCH"; exit 1 ;;
-  esac
+esac
 
   VERSION="${RELEASE#v}"
 
