@@ -5,6 +5,7 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://gitea.com/gitea/act_runner
 
+# shellcheck source=/dev/null
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -56,26 +57,30 @@ chown -R gitea-runner:docker /var/lib/gitea-runner
 msg_ok "Created gitea-runner user"
 
 msg_info "Creating OpenRC service"
-cat <<'EOF' >/etc/init.d/gitea-runner
+cat <<'EOF' > /etc/init.d/gitea-runner
 #!/sbin/openrc-run
 
 name="Gitea Act Runner"
-description="Gitea Actions Runner (act_runner)"
+description="Gitea Actions Runner Daemon"
 command="/usr/local/bin/act_runner"
 command_args="daemon"
-command_user="gitea-runner"
+command_user="gitea-runner:docker"
 command_background=true
 pidfile="/run/${RC_SVCNAME}.pid"
 directory="/var/lib/gitea-runner"
 
+output_log="/var/log/gitea-runner.log"
+error_log="/var/log/gitea-runner.log"
+
 depend() {
-  need net docker
-  after docker
+    need net docker
+    after docker
 }
 
 start_pre() {
     export PATH="/usr/local/bin:$PATH"
     checkpath --directory --owner gitea-runner:docker --mode 0755 /var/lib/gitea-runner
+    checkpath --file --owner gitea-runner:docker --mode 0644 /var/log/gitea-runner.log
 }
 EOF
 chmod +x /etc/init.d/gitea-runner
