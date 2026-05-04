@@ -21,9 +21,13 @@ $STD apt-get install -y \
   ca-certificates \
   curl \
   git \
-  acl
+  acl \
+  build-essential
 # acl provides setfacl, used by setup/service.ts as a fallback when the
 # docker group membership isn't yet active in the current login session.
+# build-essential gives us make/gcc/g++ — node-gyp needs them to compile
+# better-sqlite3 (and other native pnpm deps) from source during the
+# wizard's `pnpm install` step.
 # polkitd ships /usr/bin/pkttyagent. Without it, loginctl/systemctl calls
 # that go through DBus print "Failed to execute /usr/bin/pkttyagent" — the
 # action still succeeds, but the noise looks like a failure mid-setup.
