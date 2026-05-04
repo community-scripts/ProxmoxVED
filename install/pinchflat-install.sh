@@ -19,6 +19,9 @@ $STD apt install -y \
   build-essential \
   elixir \
   erlang-dev \
+  erlang-inets \
+  erlang-os-mon \
+  erlang-runtime-tools \
   erlang-syntax-tools \
   erlang-xmerl \
   git \
