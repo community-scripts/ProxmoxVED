@@ -22,6 +22,7 @@ var_tun="${var_tun:-yes}"
 var_fuse="${var_fuse:-yes}"
 var_ssh="${var_ssh:-yes}"
 var_nesting="${var_nesting:-1}"
+var_keyctl="${var_keyctl:-1}"
 
 header_info "$APP"
 variables

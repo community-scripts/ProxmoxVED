@@ -33,16 +33,26 @@ chmod 440 /etc/sudoers.d/nanoclaw
 loginctl enable-linger nanoclaw
 msg_ok "Created nanoclaw user"
 
-msg_info "Forwarding SSH key to nanoclaw"
-# var_ssh="yes" lets the framework prompt for an authorized_key and write it
-# to /root/.ssh/authorized_keys. Mirror it onto the nanoclaw user so the
-# operator can SSH directly as nanoclaw with the same key, no password.
-if [[ -s /root/.ssh/authorized_keys ]]; then
+msg_info "Installing SSH key for nanoclaw"
+# build.func exports SSH_AUTHORIZED_KEY with the pasted key, but only writes
+# it to /root/.ssh/authorized_keys when SSH-on-root is enabled. We want the
+# nanoclaw user to get the key even when root SSH stays disabled (the safer
+# default), so read the exported var directly. Fall back to the root file in
+# case the framework already wrote it for us.
+NANOCLAW_SSH_KEY=""
+if [[ -n "${SSH_AUTHORIZED_KEY:-}" ]]; then
+  NANOCLAW_SSH_KEY="$SSH_AUTHORIZED_KEY"
+elif [[ -s /root/.ssh/authorized_keys ]]; then
+  NANOCLAW_SSH_KEY="$(cat /root/.ssh/authorized_keys)"
+fi
+if [[ -n "$NANOCLAW_SSH_KEY" ]]; then
   install -d -o nanoclaw -g nanoclaw -m 700 /home/nanoclaw/.ssh
-  install -o nanoclaw -g nanoclaw -m 600 /root/.ssh/authorized_keys /home/nanoclaw/.ssh/authorized_keys
-  msg_ok "Forwarded SSH key to nanoclaw"
+  printf '%s\n' "$NANOCLAW_SSH_KEY" >/home/nanoclaw/.ssh/authorized_keys
+  chown nanoclaw:nanoclaw /home/nanoclaw/.ssh/authorized_keys
+  chmod 600 /home/nanoclaw/.ssh/authorized_keys
+  msg_ok "Installed SSH key for nanoclaw"
 else
-  msg_ok "No SSH key to forward (root has none)"
+  msg_ok "No SSH key supplied (skipping)"
 fi
 
 msg_info "Cloning NanoClaw"
