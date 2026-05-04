@@ -13,20 +13,18 @@ setting_up_container
 network_check
 update_os
 
+setup_hwaccel
+
 msg_info "Installing dependencies"
 $STD apt install -y \
   sudo \
   ca-certificates \
+  curl \
   git \
-  build-essential \
   acl
-# acl provides setfacl, which NanoClaw's setup uses as a fallback when the
-# docker group membership isn't yet active in the current login session
-# (see setup/service.ts). Without it the host service starts in a degraded
-# state on first install and can't reach /var/run/docker.sock.
+# acl provides setfacl, used by setup/service.ts as a fallback when the docker
+# group membership isn't yet active in the current login session.
 msg_ok "Installed dependencies"
-
-NODE_VERSION="22" setup_nodejs
 
 msg_info "Creating nanoclaw user"
 useradd -m -s /bin/bash nanoclaw
@@ -35,13 +33,21 @@ chmod 440 /etc/sudoers.d/nanoclaw
 loginctl enable-linger nanoclaw
 msg_ok "Created nanoclaw user"
 
+msg_info "Forwarding SSH key to nanoclaw"
+# var_ssh="yes" lets the framework prompt for an authorized_key and write it
+# to /root/.ssh/authorized_keys. Mirror it onto the nanoclaw user so the
+# operator can SSH directly as nanoclaw with the same key, no password.
+if [[ -s /root/.ssh/authorized_keys ]]; then
+  install -d -o nanoclaw -g nanoclaw -m 700 /home/nanoclaw/.ssh
+  install -o nanoclaw -g nanoclaw -m 600 /root/.ssh/authorized_keys /home/nanoclaw/.ssh/authorized_keys
+  msg_ok "Forwarded SSH key to nanoclaw"
+else
+  msg_ok "No SSH key to forward (root has none)"
+fi
+
 msg_info "Cloning NanoClaw"
 $STD sudo -u nanoclaw -H git clone https://github.com/dooha333/nanoclaw /home/nanoclaw/nanoclaw
 msg_ok "Cloned NanoClaw"
-
-msg_info "Installing Claude CLI"
-$STD sudo -u nanoclaw -H bash -lc 'curl -fsSL https://claude.ai/install.sh | bash' || true
-msg_ok "Installed Claude CLI"
 
 msg_info "Writing setup MOTD"
 cat <<'EOF' >/etc/update-motd.d/99-nanoclaw
@@ -55,9 +61,9 @@ cat <<MOTD
     cd ~/nanoclaw
     bash nanoclaw.sh
 
-  The wizard installs Docker, sets up the OneCLI vault, prompts
-  for your Anthropic API key (or 'subscription' for Claude Code
-  login), and starts the host service.
+  The wizard installs Node, pnpm, Docker, sets up the OneCLI vault,
+  prompts for your Anthropic API key (or 'subscription' for Claude
+  Code login), and starts the host service.
 
 MOTD
 EOF
