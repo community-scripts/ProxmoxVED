@@ -1,0 +1,41 @@
+{
+  "name": "NanoClaw",
+  "slug": "nanoclaw",
+  "categories": [20, 22],
+  "date_created": "2026-05-04",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://github.com/qwibitai/nanoclaw#readme",
+  "website": "https://github.com/qwibitai/nanoclaw",
+  "logo": "https://raw.githubusercontent.com/qwibitai/nanoclaw/main/assets/nanoclaw-logo.png",
+  "description": "NanoClaw is a small, auditable Claude assistant. One Node process and a handful of files — easy to read end-to-end. Each Claude agent runs in its own Linux container with real filesystem isolation, not application-level permission checks.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/nanoclaw.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 25,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "After CT creation, run `pct enter <ID>` then `su - nanoclaw && cd ~/nanoclaw-v2 && bash nanoclaw.sh` to finish setup interactively. The wizard installs Node, pnpm, Docker, sets up the OneCLI vault, and prompts for your Anthropic API key (or 'subscription' for Claude Code login).",
+      "type": "info"
+    },
+    {
+      "text": "Update mechanism tracks the upstream `qwibitai/nanoclaw` default branch. Updates may include breaking changes; review release notes before upgrading.",
+      "type": "warning"
+    }
+  ]
+}

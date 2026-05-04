@@ -16,24 +16,27 @@ update_os
 setup_hwaccel
 
 msg_info "Installing dependencies"
-$STD apt install -y \
+$STD apt-get install -y \
   sudo \
   ca-certificates \
   curl \
   git \
-  acl \
-  polkitd
-# acl provides setfacl, used by setup/service.ts as a fallback when the docker
-# group membership isn't yet active in the current login session.
+  acl
+# acl provides setfacl, used by setup/service.ts as a fallback when the
+# docker group membership isn't yet active in the current login session.
 # polkitd ships /usr/bin/pkttyagent. Without it, loginctl/systemctl calls
 # that go through DBus print "Failed to execute /usr/bin/pkttyagent" — the
 # action still succeeds, but the noise looks like a failure mid-setup.
-# Note: package name is polkitd on Debian 13+ (Trixie); older releases used
-# the policykit-1 name.
+# Package was renamed in Debian 13 (Trixie); fall back to the Bookworm name.
+$STD apt-get install -y polkitd || $STD apt-get install -y policykit-1
 msg_ok "Installed dependencies"
 
 msg_info "Creating nanoclaw user"
 useradd -m -s /bin/bash nanoclaw
+# Blanket NOPASSWD: the wizard at ~/nanoclaw-v2/nanoclaw.sh runs unattended
+# and needs sudo for apt, systemctl, docker group setup, and polkit calls
+# that would otherwise hang on a TTY prompt. Scope is acceptable here —
+# nanoclaw is the single-tenant operator user and this LXC is not multi-user.
 echo "nanoclaw ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/nanoclaw
 chmod 440 /etc/sudoers.d/nanoclaw
 loginctl enable-linger nanoclaw
@@ -81,6 +84,11 @@ msg_info "Cloning NanoClaw from ${NANOCLAW_REPO}"
 $STD sudo -u nanoclaw -H git clone "$NANOCLAW_REPO" "$NANOCLAW_DIR"
 msg_ok "Cloned NanoClaw from ${NANOCLAW_REPO} into ${NANOCLAW_DIR}"
 
+motd_ssh
+
+# Write our MOTD AFTER motd_ssh — motd_ssh runs `chmod -x /etc/update-motd.d/*`
+# (install.func:1125) which would otherwise disable our file by removing the
+# executable bit Debian's update-motd framework requires.
 msg_info "Writing setup MOTD"
 cat >/etc/update-motd.d/99-nanoclaw <<EOF
 #!/bin/sh
@@ -102,6 +110,5 @@ EOF
 chmod +x /etc/update-motd.d/99-nanoclaw
 msg_ok "Wrote setup MOTD"
 
-motd_ssh
 customize
 cleanup_lxc

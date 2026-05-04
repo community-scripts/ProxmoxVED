@@ -10,19 +10,19 @@ source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/build.func")
 # Source: https://github.com/qwibitai/nanoclaw
 
 APP="NanoClaw"
-var_tags="${var_tags:-ai;automation}"
-var_cpu="${var_cpu:-2}"
-var_ram="${var_ram:-4096}"
-var_disk="${var_disk:-25}"
-var_os="${var_os:-debian}"
-var_version="${var_version:-13}"
-var_unprivileged="${var_unprivileged:-1}"
-var_gpu="${var_gpu:-yes}"
-var_tun="${var_tun:-yes}"
-var_fuse="${var_fuse:-yes}"
-var_ssh="${var_ssh:-yes}"
-var_nesting="${var_nesting:-1}"
-var_keyctl="${var_keyctl:-1}"
+var_tags="ai;automation"
+var_cpu="2"
+var_ram="4096"
+var_disk="25"
+var_os="debian"
+var_version="13"
+var_unprivileged="1"
+var_gpu="yes"
+var_tun="yes"
+var_fuse="yes"
+var_ssh="yes"
+var_nesting="1"
+var_keyctl="1"
 
 header_info "$APP"
 variables
@@ -36,6 +36,14 @@ function update_script() {
 
   if [[ ! -d /home/nanoclaw/nanoclaw-v2 ]]; then
     msg_error "No ${APP} Installation Found!"
+    exit
+  fi
+  # The clone exists right after install, but the interactive wizard
+  # (bash nanoclaw.sh) is what installs Node/pnpm/Docker. Without it,
+  # the update commands below would fail with confusing errors. Use
+  # pnpm presence as the proxy for "wizard ran successfully".
+  if ! sudo -u nanoclaw -H bash -lc 'command -v pnpm' &>/dev/null; then
+    msg_error "${APP} setup not finished — run 'su - nanoclaw && cd ~/nanoclaw-v2 && bash nanoclaw.sh' first"
     exit
   fi
 
