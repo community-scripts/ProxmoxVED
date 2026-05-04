@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: community-scripts
+# Author: darnodo
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://gitea.com/gitea/act_runner
 
@@ -14,7 +14,7 @@ setting_up_container
 network_check
 update_os
 
-APP="GiteaActRunner"
+APP="alpine-gitea-act-runner"
 
 msg_info "Installing Dependencies"
 $STD apk add --no-cache curl jq tar bash

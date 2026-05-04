@@ -7,7 +7,7 @@ source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://gitea.com/gitea/act_runner
 
-APP="GiteaActRunner"
+APP="alpine-gitea-act-runner"
 var_tags="${var_tags:-ci-cd;gitea;runner}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
