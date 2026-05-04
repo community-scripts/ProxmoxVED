@@ -37,6 +37,15 @@ useradd -m -s /bin/bash nanoclaw
 echo "nanoclaw ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/nanoclaw
 chmod 440 /etc/sudoers.d/nanoclaw
 loginctl enable-linger nanoclaw
+# Ensure ~/.local/bin is on PATH for every new shell. Debian's default skel
+# .bashrc only adds it when the directory already exists at sourcing time —
+# but ~/.local/bin doesn't exist until the wizard installs Claude CLI / pnpm
+# bins into it, so without this users see "claude: command not found" on
+# every login until they edit .bashrc themselves.
+if ! grep -q '\.local/bin' /home/nanoclaw/.bashrc 2>/dev/null; then
+  printf '\n# Added by nanoclaw LXC install — ~/.local/bin holds claude, pnpm globals, etc.\nexport PATH="$HOME/.local/bin:$PATH"\n' >>/home/nanoclaw/.bashrc
+  chown nanoclaw:nanoclaw /home/nanoclaw/.bashrc
+fi
 msg_ok "Created nanoclaw user"
 
 msg_info "Installing SSH key for nanoclaw"
