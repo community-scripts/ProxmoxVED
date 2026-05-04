@@ -20,6 +20,7 @@ $STD apt install -y \
   elixir \
   erlang-dev \
   erlang-syntax-tools \
+  erlang-xmerl \
   git \
   libsqlite3-dev \
   locales \
