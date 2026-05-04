@@ -21,9 +21,13 @@ $STD apt install -y \
   ca-certificates \
   curl \
   git \
-  acl
+  acl \
+  policykit-1
 # acl provides setfacl, used by setup/service.ts as a fallback when the docker
 # group membership isn't yet active in the current login session.
+# policykit-1 silences "Failed to execute /usr/bin/pkttyagent" warnings from
+# loginctl/systemctl when they go through DBus + polkit — cosmetic without it,
+# but the noise looks like a failure during the wizard's spinner output.
 msg_ok "Installed dependencies"
 
 msg_info "Creating nanoclaw user"
