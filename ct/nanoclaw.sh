@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# DEV-ONLY: point build.func's internal fetches (install script, etc.) at our
-# fork's branch. Revert this block + the source line below to the canonical
-# community-scripts URLs before opening the PR.
-export COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/dooha333/ProxmoxVED/feature/add-nanoclaw}"
-source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/build.func")
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: dooha333
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
