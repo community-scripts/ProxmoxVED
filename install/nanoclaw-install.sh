@@ -25,10 +25,13 @@ msg_ok "Installed Dependencies"
 
 NODE_VERSION="22" setup_nodejs
 
-msg_info "Activating pnpm via corepack"
+msg_info "Enabling corepack (pnpm version pinned by repo's package.json)"
+# Don't pre-pin to pnpm@latest — the repo's package.json declares its own
+# packageManager. Corepack will fetch that version on first `pnpm install`.
+# COREPACK_ENABLE_DOWNLOAD_PROMPT=0 skips the interactive Y/n prompt.
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 $STD corepack enable
-$STD corepack prepare pnpm@latest --activate
-msg_ok "Activated pnpm $(pnpm --version)"
+msg_ok "Corepack enabled (pnpm will be fetched on first install)"
 
 setup_docker
 
@@ -43,7 +46,7 @@ $STD su - nanoclaw -c "git clone https://github.com/qwibitai/nanoclaw.git /home/
 msg_ok "Cloned NanoClaw"
 
 msg_info "Installing Node dependencies"
-$STD su - nanoclaw -c "cd /home/nanoclaw/nanoclaw && pnpm install --prefer-frozen-lockfile"
+$STD su - nanoclaw -c "export COREPACK_ENABLE_DOWNLOAD_PROMPT=0; cd /home/nanoclaw/nanoclaw && pnpm install --prefer-frozen-lockfile"
 msg_ok "Installed Node dependencies"
 
 msg_info "Building NanoClaw"
