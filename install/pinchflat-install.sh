@@ -19,6 +19,7 @@ $STD apt install -y \
   build-essential \
   elixir \
   erlang-dev \
+  erlang-syntax-tools \
   git \
   libsqlite3-dev \
   locales \
