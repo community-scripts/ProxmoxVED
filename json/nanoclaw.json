@@ -18,8 +18,8 @@
       "config_path": "/home/nanoclaw/nanoclaw/.env",
       "resources": {
         "cpu": 2,
-        "ram": 4096,
-        "hdd": 20,
+        "ram": 8192,
+        "hdd": 40,
         "os": "Debian",
         "version": "13"
       }
