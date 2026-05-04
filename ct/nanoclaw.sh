@@ -17,6 +17,11 @@ var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
+var_gpu="${var_gpu:-yes}"
+var_tun="${var_tun:-yes}"
+var_fuse="${var_fuse:-yes}"
+var_ssh="${var_ssh:-yes}"
+var_nesting="${var_nesting:-1}"
 
 header_info "$APP"
 variables
