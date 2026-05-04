@@ -70,20 +70,27 @@ else
   msg_ok "No SSH key supplied (skipping)"
 fi
 
-msg_info "Cloning NanoClaw"
-$STD sudo -u nanoclaw -H git clone https://github.com/qwibitai/nanoclaw.git /home/nanoclaw/nanoclaw-v2
-msg_ok "Cloned NanoClaw"
+# Single source of truth for what we clone and where. If you change the URL,
+# also update the `# Source:` header at the top of this file (it's project-home
+# documentation, not auto-derived from this variable).
+NANOCLAW_REPO="https://github.com/qwibitai/nanoclaw.git"
+NANOCLAW_DIR="/home/nanoclaw/nanoclaw-v2"
+NANOCLAW_DIR_BASENAME="$(basename "$NANOCLAW_DIR")"
+
+msg_info "Cloning NanoClaw from ${NANOCLAW_REPO}"
+$STD sudo -u nanoclaw -H git clone "$NANOCLAW_REPO" "$NANOCLAW_DIR"
+msg_ok "Cloned NanoClaw from ${NANOCLAW_REPO} into ${NANOCLAW_DIR}"
 
 msg_info "Writing setup MOTD"
-cat <<'EOF' >/etc/update-motd.d/99-nanoclaw
+cat >/etc/update-motd.d/99-nanoclaw <<EOF
 #!/bin/sh
 cat <<MOTD
 
-  NanoClaw is staged at /home/nanoclaw/nanoclaw-v2
+  NanoClaw is staged at ${NANOCLAW_DIR}
 
   Finish setup:
     su - nanoclaw
-    cd ~/nanoclaw-v2
+    cd ~/${NANOCLAW_DIR_BASENAME}
     bash nanoclaw.sh
 
   The wizard installs Node, pnpm, Docker, sets up the OneCLI vault,
