@@ -35,7 +35,7 @@ function update_script() {
   setup_rust
 
   AUTHENTIK_VERSION="version/2026.2.2"
-  XMLSEC_VERSION="1.3.9"
+  XMLSEC_VERSION="1.3.11"
 
   if check_for_gh_release "geoipupdate" "maxmind/geoipupdate"; then
     fetch_and_deploy_gh_release "geoipupdate" "maxmind/geoipupdate" "binary"
@@ -122,7 +122,13 @@ build_container
 
 msg_info "Attaching data storage volume"
 $STD pct stop "$CTID"
-$STD pct set "$CTID" -mp0 "${CONTAINER_STORAGE}":1,mp=/opt/authentik-data,backup=1
+if [ "${PROTECT_CT:-}" == "1" ] || [ "${PROTECT_CT:-}" == "yes" ]; then
+  $STD pct set "$CTID" --protection 0
+  $STD pct set "$CTID" -mp0 "${CONTAINER_STORAGE}":1,mp=/opt/authentik-data,backup=1
+  $STD pct set "$CTID" --protection 1
+else
+  $STD pct set "$CTID" -mp0 "${CONTAINER_STORAGE}":1,mp=/opt/authentik-data,backup=1
+fi
 $STD pct start "$CTID"
 for i in {1..10}; do
   pct status "$CTID" | grep -q "status: running" && break
