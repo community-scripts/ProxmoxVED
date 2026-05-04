@@ -3,7 +3,7 @@
 source <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/build.func)
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: community-scripts
+# Author: darnodo
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://gitea.com/gitea/act_runner
 
