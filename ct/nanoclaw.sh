@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/glifocat/ProxmoxVED/feat/nanoclaw/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: glifocat
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
