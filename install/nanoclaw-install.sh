@@ -46,7 +46,7 @@ else
 fi
 
 msg_info "Cloning NanoClaw"
-$STD sudo -u nanoclaw -H git clone https://github.com/dooha333/nanoclaw /home/nanoclaw/nanoclaw
+$STD sudo -u nanoclaw -H git clone https://github.com/qwibitai/nanoclaw.git /home/nanoclaw/nanoclaw-v2
 msg_ok "Cloned NanoClaw"
 
 msg_info "Writing setup MOTD"
@@ -54,11 +54,11 @@ cat <<'EOF' >/etc/update-motd.d/99-nanoclaw
 #!/bin/sh
 cat <<MOTD
 
-  NanoClaw is staged at /home/nanoclaw/nanoclaw
+  NanoClaw is staged at /home/nanoclaw/nanoclaw-v2
 
   Finish setup:
     su - nanoclaw
-    cd ~/nanoclaw
+    cd ~/nanoclaw-v2
     bash nanoclaw.sh
 
   The wizard installs Node, pnpm, Docker, sets up the OneCLI vault,

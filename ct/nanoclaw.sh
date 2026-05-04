@@ -33,7 +33,7 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /home/nanoclaw/nanoclaw ]]; then
+  if [[ ! -d /home/nanoclaw/nanoclaw-v2 ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
@@ -41,7 +41,7 @@ function update_script() {
   msg_info "Updating ${APP}"
   $STD sudo -u nanoclaw -H bash -lc '
     set -e
-    cd ~/nanoclaw
+    cd ~/nanoclaw-v2
     git pull --ff-only
     pnpm install --frozen-lockfile
     pnpm run build
@@ -60,4 +60,4 @@ echo -e "${CREATING}${GN}${APP} is staged in CT ${BL}${CT_ID}${CL}"
 echo -e "${INFO}${YW} Finish setup interactively with:${CL}"
 echo -e "${TAB}${GN}pct enter ${CT_ID}${CL}"
 echo -e "${TAB}${GN}su - nanoclaw${CL}"
-echo -e "${TAB}${GN}cd ~/nanoclaw && bash nanoclaw.sh${CL}"
+echo -e "${TAB}${GN}cd ~/nanoclaw-v2 && bash nanoclaw.sh${CL}"
