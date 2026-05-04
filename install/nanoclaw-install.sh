@@ -41,6 +41,13 @@ $STD usermod -aG docker nanoclaw
 $STD loginctl enable-linger nanoclaw
 msg_ok "Created nanoclaw user (UID $(id -u nanoclaw), groups: $(id -nG nanoclaw))"
 
+msg_info "Installing Claude Code CLI"
+# Native installer from Anthropic — drops the binary in ~/.local/bin and
+# updates ~/.bashrc PATH. Pre-installing lets the wizard's auth + Claude-
+# assisted error recovery work out of the box without a mid-wizard download.
+$STD su - nanoclaw -c "curl -fsSL https://claude.ai/install.sh | bash"
+msg_ok "Installed Claude Code CLI"
+
 msg_info "Cloning NanoClaw v2 repository"
 $STD su - nanoclaw -c "git clone https://github.com/qwibitai/nanoclaw.git /home/nanoclaw/nanoclaw"
 msg_ok "Cloned NanoClaw"
