@@ -22,12 +22,14 @@ $STD apt install -y \
   curl \
   git \
   acl \
-  policykit-1
+  polkitd
 # acl provides setfacl, used by setup/service.ts as a fallback when the docker
 # group membership isn't yet active in the current login session.
-# policykit-1 silences "Failed to execute /usr/bin/pkttyagent" warnings from
-# loginctl/systemctl when they go through DBus + polkit — cosmetic without it,
-# but the noise looks like a failure during the wizard's spinner output.
+# polkitd ships /usr/bin/pkttyagent. Without it, loginctl/systemctl calls
+# that go through DBus print "Failed to execute /usr/bin/pkttyagent" — the
+# action still succeeds, but the noise looks like a failure mid-setup.
+# Note: package name is polkitd on Debian 13+ (Trixie); older releases used
+# the policykit-1 name.
 msg_ok "Installed dependencies"
 
 msg_info "Creating nanoclaw user"
