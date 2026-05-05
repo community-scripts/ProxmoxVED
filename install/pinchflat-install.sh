@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: nnsense
-# License: MIT | https://github.com/nnsense/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/kieraneglin/pinchflat
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -33,7 +33,6 @@ $STD apt install -y \
   pkg-config \
   procps \
   python3-mutagen \
-  unzip \
   zip
 msg_ok "Installed Dependencies"
 
@@ -68,9 +67,7 @@ fetch_and_deploy_gh_release "pinchflat" "kieraneglin/pinchflat" "tarball" "lates
 
 msg_info "Configuring Pinchflat"
 CONFIG_PATH="/opt/pinchflat/config"
-LOCAL_DOWNLOADS_PATH="/opt/pinchflat/downloads"
-DOWNLOADS_PATH="${DOWNLOADS_PATH:-$LOCAL_DOWNLOADS_PATH}"
-SECRET_KEY_BASE=$(openssl rand -base64 48)
+DOWNLOADS_PATH="${DOWNLOADS_PATH:-/opt/pinchflat/downloads}"
 
 mkdir -p \
   /etc/elixir_tzdata_data \
@@ -96,7 +93,7 @@ RUN_CONTEXT=selfhosted
 CONFIG_PATH=${CONFIG_PATH}
 MEDIA_PATH=${DOWNLOADS_PATH}
 TZ_DATA_PATH=/etc/elixir_tzdata_data
-SECRET_KEY_BASE=${SECRET_KEY_BASE}
+SECRET_KEY_BASE=$(openssl rand -base64 48)
 EOF
 msg_ok "Configured Pinchflat"
 
