@@ -15,7 +15,9 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  python3 python3-pip python3-venv
+  python3 \
+  python3-pip \
+  python3-venv
 msg_ok "Installed Dependencies"
 
 msg_info "Creating Anki User"

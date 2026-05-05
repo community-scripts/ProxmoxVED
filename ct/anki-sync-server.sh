@@ -28,21 +28,16 @@ function update_script() {
     exit
   fi
 
-  msg_info "Stopping ${APP}"
+  msg_info "Stopping anki-sync-server"
   systemctl stop anki-sync-server
-  msg_ok "Stopped ${APP}"
+  msg_ok "Stopped anki-sync-server"
 
-  msg_info "Updating LXC"
-  $STD apt update
-  $STD apt upgrade -y
-  msg_info "Updated LXC"
-
-  msg_info "Updating ${APP}"
+  msg_info "Updating anki-sync-server"
   $STD runuser -u anki -- \
     /opt/anki/venv/bin/pip install --upgrade anki
-  msg_ok "Updated ${APP}"
+  msg_ok "Updated anki-sync-server"
 
-  msg_info "Starting ${APP}"
+  msg_info "Starting anki-sync-server"
   systemctl start anki-sync-server
   msg_ok "Started Services"
   msg_ok "Updated successfully!"
