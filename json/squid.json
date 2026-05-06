@@ -1,0 +1,40 @@
+{
+  "name": "Squid",
+  "slug": "squid",
+  "categories": [
+    4
+  ],
+  "date_created": "2026-04-13",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3128,
+  "documentation": "https://wiki.squid-cache.org/SquidFaq",
+  "website": "https://www.squid-cache.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/squid.webp",
+  "config_path": "/etc/squid/squid.conf",
+  "description": "Squid is a mature caching and forwarding proxy server that can operate as an authenticated HTTP forward proxy for outbound web traffic. This container deploys Squid with basic authentication, generated initial credentials, and a guided MOTD for simple user management.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/squid.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "type": "info",
+      "text": "Create a proxy user after installation with `htpasswd /etc/squid/passwords <username>`."
+    }
+  ]
+}
