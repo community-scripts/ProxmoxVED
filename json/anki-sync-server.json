@@ -1,0 +1,39 @@
+{
+	"name": "Anki Sync Server",
+	"slug": "anki-sync-server",
+	"categories": [
+	],
+	"date_created": "2026-05-04",
+	"type": "ct",
+	"updateable": true,
+	"privileged": false,
+	"interface_port": 8080,
+	"documentation": "https://docs.ankiweb.net/sync-server.html",
+	"website": "https://docs.ankiweb.net/",
+	"logo": "https://apps.ankiweb.net/logo.svg",
+	"description": "Anki Sync Server is the self hosted alternative to AnkiWeb which synchronises data between Anki Clients. Anki itself is a flashcard program that helps you spend more time on challenging material, and less on what you already know.",
+	"install_methods": [
+		{
+			"type": "default",
+			"script": "ct/anki-sync-server.sh",
+			"config_path": "/opt/anki/.env",
+			"resources": {
+				"cpu": 1,
+				"ram": 512,
+				"hdd": 4,
+				"os": "Debian",
+				"version": "13"
+			}
+		}
+	],
+	"default_credentials": {
+		"username": "sync",
+		"password": "sync"
+	},
+	"notes": [
+		{
+			"text": "The default user 'sync' has a weak password. You should change it.",
+			"type": "warning"
+		}
+	]
+}
