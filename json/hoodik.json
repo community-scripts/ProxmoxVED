@@ -19,9 +19,9 @@
       "script": "ct/hoodik.sh",
       "config_path": "/opt/hoodik/.env",
       "resources": {
-        "cpu": 4,
-        "ram": 4096,
-        "hdd": 20,
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 5,
         "os": "Debian",
         "version": "13"
       }
@@ -37,20 +37,8 @@
       "type": "info"
     },
     {
-      "text": "Installation builds Rust backend and Vue frontend from source - takes 15-20 minutes",
-      "type": "warning"
-    },
-    {
-      "text": "Requires 4GB RAM and 20GB disk for build process",
-      "type": "warning"
-    },
-    {
       "text": "Data is stored in /opt/hoodik_data",
       "type": "info"
-    },
-    {
-      "text": "SSL is disabled by default - use a reverse proxy for HTTPS",
-      "type": "warning"
     }
   ]
 }
