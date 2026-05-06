@@ -39,10 +39,7 @@ function update_script() {
     msg_info "Building Application"
     cd /opt/puter
     $STD npm ci
-    cd /opt/puter/src/gui
     $STD npm run build
-    cd /opt/puter
-    cp -r src/gui/dist dist
     msg_ok "Built Application"
 
     msg_info "Starting Service"

@@ -26,13 +26,8 @@ fetch_and_deploy_gh_release "puter" "HeyPuter/puter" "tarball"
 
 msg_info "Building Application"
 cd /opt/puter
-node -e "const f=require('fs'),p=JSON.parse(f.readFileSync('package.json'));p.overrides={'better-sqlite3':'>=12.0.0'};f.writeFileSync('package.json',JSON.stringify(p,null,2))"
-rm -f package-lock.json
-$STD npm install
-cd /opt/puter/src/gui
+$STD npm ci
 $STD npm run build
-cd /opt/puter
-cp -r src/gui/dist dist
 msg_ok "Built Application"
 
 msg_info "Creating Directories"
@@ -67,8 +62,8 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/puter
-Environment=CONFIG_PATH=/etc/puter
-ExecStart=/usr/bin/npm start
+Environment=PUTER_CONFIG_PATH=/etc/puter/config.json
+ExecStart=/usr/bin/node --enable-source-maps -r /opt/puter/dist/src/backend/telemetry.js /opt/puter/dist/src/backend/index.js
 Restart=on-failure
 RestartSec=5
 
