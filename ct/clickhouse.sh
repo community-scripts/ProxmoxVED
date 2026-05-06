@@ -83,6 +83,7 @@ function update_script() {
   exit
 }
 
+export CLICKSTACK="no"
 if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "CLICKSTACK" --yesno "Install ClickStack observability stack?\n\n(HyperDX UI + OTel Collector + MongoDB)\nRequires: 4 CPU, 8GB RAM, 30GB Disk" 12 58); then
   export CLICKSTACK="yes"
   var_cpu="4"
