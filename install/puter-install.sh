@@ -38,10 +38,10 @@ msg_info "Configuring Application"
 cat <<EOF >/etc/puter/config.json
 {
   "config_name": "proxmox",
-  "domain": "${LOCAL_IP}",
+  "domain": "${LOCAL_IP}.nip.io",
   "protocol": "http",
   "http_port": 4100,
-  "experimental_no_subdomain": true,
+  "allow_nipio_domains": true,
   "services": {
     "database": {
       "engine": "sqlite",

@@ -33,7 +33,15 @@
   },
   "notes": [
     {
-      "text": "Configuration is stored in /etc/puter and data in /var/puter.",
+      "text": "Access via http://&lt;IP&gt;.nip.io:4100 (not the raw IP). nip.io is required for Puter's subdomain routing.",
+      "type": "info"
+    },
+    {
+      "text": "Camera, microphone, and other media capture features require HTTPS (a secure context). They will not work on the default HTTP setup.",
+      "type": "warning"
+    },
+    {
+      "text": "Configuration is stored in /etc/puter/config.json and data in /var/puter.",
       "type": "info"
     }
   ]
