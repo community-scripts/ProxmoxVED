@@ -1,0 +1,42 @@
+{
+  "name": "vLLM",
+  "slug": "vllm",
+  "categories": [
+    3
+  ],
+  "description": "vLLM is a high-throughput and memory-efficient inference and serving engine for LLMs. It provides an OpenAI-compatible API server for local LLM inference with NVIDIA GPU support.",
+  "type": "ct",
+  "privileged": true,
+  "updateable": true,
+  "interface_port": 8000,
+  "documentation": "https://docs.vllm.ai",
+  "website": "https://github.com/vllm-project/vllm",
+  "logo": "https://raw.githubusercontent.com/vllm-project/vllm/main/docs/source/assets/logos/vllm-logo-text-light.png",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/vllm.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 40,
+        "os": "Ubuntu",
+        "version": "24.04"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "GPU passthrough requires a privileged LXC container with NVIDIA drivers installed on the Proxmox host. Edit /etc/vllm/vllm.env to configure model and settings before starting the service.",
+      "type": "info"
+    },
+    {
+      "text": "Default resources (4 CPU, 8GB RAM) are sufficient for installation and small models only. Large models (7B+) require a GPU with 8GB+ VRAM and 16GB+ RAM. Edit /etc/vllm/vllm.env to configure the model before starting the service.",
+      "type": "warning"
+    }
+  ]
+}
