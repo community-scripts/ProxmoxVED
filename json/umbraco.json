@@ -1,44 +1,48 @@
 {
-    "name": "Shiori",
-    "slug": "shiori",
+    "name": "Umbraco CMS",
+    "slug": "umbraco",
     "categories": [
-        12
+        25
     ],
-    "date_created": "2026-04-25",
+    "date_created": "2026-05-06",
     "type": "ct",
     "updateable": true,
     "privileged": false,
-    "interface_port": 8080,
-    "documentation": "https://github.com/go-shiori/shiori/tree/master/docs",
-    "website": "https://github.com/go-shiori/shiori",
-    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/shiori.webp",
-    "config_path": "/opt/shiori/.env",
-    "description": "Shiori is a simple self-hosted bookmark manager with web UI and offline archive support, distributed as a single binary.",
+    "interface_port": 443,
+    "documentation": "https://docs.umbraco.com/",
+    "website": "https://umbraco.com/",
+    "logo": "https://umbraco.com/media/54xnncgt/umbraco_logo_blue05.webp?rmode=pad&width=680&quality=85&v=1dad6b6701b24f0",
+    "config_path": "",
+    "description": "Umbraco is a free, open-source .NET CMS with a friendly editing experience, beautiful backoffice, and powerful customization options. Automatically setup a Umbraco server up, as well as a FTP server so you can publish to this container from Visual Studio.",
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/shiori.sh",
+            "script": "ct/umbraco.sh",
             "resources": {
-                "cpu": 1,
-                "ram": 1024,
-                "hdd": 4,
+                "cpu": 2,
+                "ram": 500,
+                "hdd": 8,
                 "os": "Debian",
                 "version": "13"
             }
         }
     ],
     "default_credentials": {
-        "username": "shiori",
-        "password": "gopher"
+        "username": null,
+        "password": null
     },
     "notes": [
         {
-            "text": "Change the default account password after first login.",
-            "type": "warning"
+            "text": "Cridentials are saved in /root",
+            "type": "info"
         },
         {
-            "text": "Data and SQLite database are stored in /opt/shiori/data.",
+            "text": "The PostgreSQL Provider is not officially supported by Umbraco HQ.",
             "type": "info"
-        }
+        },
+        {
+            "text": "The FTPProfile.pubxml can be used to publish directly from Visual Studio, but you can also use the built-in code editor in the Umbraco backoffice.",
+            "type": "info"
+        }        
     ]
 }
