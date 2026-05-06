@@ -2,7 +2,7 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Joost van den Berg
-# License: MIT | https://github.com/montagneid/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/montagneid/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/umbraco/Umbraco-CMS
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
