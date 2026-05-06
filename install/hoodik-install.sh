@@ -23,8 +23,10 @@ DATA_DIR=/opt/hoodik_data
 HTTP_PORT=5443
 HTTP_ADDRESS=0.0.0.0
 JWT_SECRET=${JWT_SECRET}
-APP_URL=http://127.0.0.1:5443
+APP_URL=http://${LOCAL_IP}:5443
 SSL_DISABLED=true
+COOKIE_SECURE=false
+COOKIE_HTTP_ONLY=false
 MAILER_TYPE=none
 RUST_LOG=hoodik=info,error=info
 EOF
@@ -41,14 +43,14 @@ Type=simple
 User=root
 WorkingDirectory=/opt/hoodik_data
 EnvironmentFile=/opt/hoodik/.env
-ExecStart=/opt/hoodik
+ExecStart=/opt/hoodik/hoodik
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now hoodik.service
+systemctl enable -q --now hoodik
 msg_ok "Created Service"
 
 motd_ssh
