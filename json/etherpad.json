@@ -1,0 +1,48 @@
+{
+  "name": "Etherpad",
+  "slug": "etherpad",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-04-19",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 9001,
+  "documentation": "https://etherpad.org/doc",
+  "website": "https://etherpad.org",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/etherpad.webp",
+  "description": "Etherpad is a highly customizable real-time collaborative document editor. It lets multiple people edit the same document simultaneously in the browser, with live changes, per-user colors, chat, and a rich plugin ecosystem.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/etherpad.sh",
+      "config_path": "/opt/etherpad-lite/settings.json",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The default install uses the built-in DirtyDB store, intended for evaluation only. For production, edit /opt/etherpad-lite/settings.json and switch the 'dbType' to mysql or postgres.",
+      "type": "info"
+    },
+    {
+      "text": "View logs with: journalctl -u etherpad -f",
+      "type": "info"
+    },
+    {
+      "text": "Etherpad listens on port 9001. Restart the service after editing settings.json: systemctl restart etherpad",
+      "type": "info"
+    }
+  ]
+}
