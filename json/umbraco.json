@@ -1,0 +1,44 @@
+{
+    "name": "Shiori",
+    "slug": "shiori",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-04-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8080,
+    "documentation": "https://github.com/go-shiori/shiori/tree/master/docs",
+    "website": "https://github.com/go-shiori/shiori",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/shiori.webp",
+    "config_path": "/opt/shiori/.env",
+    "description": "Shiori is a simple self-hosted bookmark manager with web UI and offline archive support, distributed as a single binary.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/shiori.sh",
+            "resources": {
+                "cpu": 1,
+                "ram": 1024,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "shiori",
+        "password": "gopher"
+    },
+    "notes": [
+        {
+            "text": "Change the default account password after first login.",
+            "type": "warning"
+        },
+        {
+            "text": "Data and SQLite database are stored in /opt/shiori/data.",
+            "type": "info"
+        }
+    ]
+}
