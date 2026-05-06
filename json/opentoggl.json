@@ -1,0 +1,40 @@
+{
+  "name": "OpenToggl",
+  "slug": "opentoggl",
+  "categories": [
+    25
+  ],
+  "date_created": "2026-04-19",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8080,
+  "documentation": "https://github.com/CorrectRoadH/opentoggl",
+  "website": "https://opentoggl.com",
+  "logo": "",
+  "description": "OpenToggl is an open-source self-hosted time-tracking application, distributed as a single pre-compiled binary and backed by PostgreSQL and Redis.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/opentoggl.sh",
+      "config_path": "/opt/opentoggl/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Create your first account by registering via the web interface.",
+      "type": "info"
+    }
+  ]
+}
