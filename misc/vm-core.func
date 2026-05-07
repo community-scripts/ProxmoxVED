@@ -560,6 +560,7 @@ cleanup_vmid() {
 
 cleanup() {
   local exit_code=$?
+  stop_spinner
   if [[ "$(dirs -p | wc -l)" -gt 1 ]]; then
     popd >/dev/null || true
   fi

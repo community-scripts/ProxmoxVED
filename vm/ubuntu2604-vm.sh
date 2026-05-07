@@ -147,29 +147,18 @@ qm create $VMID -agent 1${MACHINE} -tablet 0 -localtime 1 -bios ovmf${CPU_TYPE} 
   -name $HN -tags community-script -net0 virtio,bridge=$BRG,macaddr=$MAC$VLAN$MTU -onboot 1 -ostype l26 -scsihw virtio-scsi-pci
 pvesm alloc $STORAGE $VMID $DISK0 4M 1>&/dev/null
 qm importdisk $VMID $FILE $STORAGE ${DISK_IMPORT:-} 1>&/dev/null
-if [ "$USE_CLOUD_INIT" = "yes" ]; then
-  qm set $VMID \
-    -efidisk0 ${DISK0_REF}${FORMAT} \
-    -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-    -ide2 ${STORAGE}:cloudinit \
-    -boot order=scsi0 \
-    -serial0 socket >/dev/null
-else
-  qm set $VMID \
-    -efidisk0 ${DISK0_REF}${FORMAT} \
-    -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
-    -boot order=scsi0 \
-    -serial0 socket >/dev/null
-fi
+qm set $VMID \
+  -efidisk0 ${DISK0_REF}${FORMAT} \
+  -scsi0 ${DISK1_REF},${DISK_CACHE}${THIN}size=${DISK_SIZE} \
+  -boot order=scsi0 \
+  -serial0 socket >/dev/null
 set_description
 
 msg_info "Resizing disk to $DISK_SIZE"
 qm resize $VMID scsi0 ${DISK_SIZE} >/dev/null
 
 if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f setup_cloud_init >/dev/null 2>&1; then
-  msg_info "Configuring Cloud-Init"
   setup_cloud_init "$VMID" "$STORAGE" "$HN" "yes" "${CLOUDINIT_USER:-ubuntu}" "${CLOUDINIT_NETWORK_MODE:-dhcp}" "${CLOUDINIT_IP:-}" "${CLOUDINIT_GW:-}" "${CLOUDINIT_DNS:-${CLOUDINIT_DNS_SERVERS:-1.1.1.1 8.8.8.8}}"
-  msg_ok "Configured Cloud-Init"
 fi
 
 msg_ok "Created a Ubuntu 26.04 VM ${CL}${BL}(${HN})"
