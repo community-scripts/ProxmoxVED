@@ -14,9 +14,18 @@ declare -A MSG_INFO_SHOWN
 [[ -n "${_CORE_FUNC_LOADED:-}" ]] && return
 _CORE_FUNC_LOADED=1
 
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main}"
+
+load_api_functions() {
+  if ! declare -f post_to_api_vm >/dev/null 2>&1; then
+    source /dev/stdin <<<$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/api.func")
+  fi
+}
+
 load_functions() {
   [[ -n "${__FUNCTIONS_LOADED:-}" ]] && return
   __FUNCTIONS_LOADED=1
+  load_api_functions
   color
   formatting
   icons
