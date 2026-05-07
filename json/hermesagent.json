@@ -1,0 +1,52 @@
+{
+    "name": "Hermes Agent",
+    "slug": "hermesagent",
+    "categories": [
+        20
+    ],
+    "date_created": "2026-05-02",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8642,
+    "documentation": "https://hermes-agent.nousresearch.com/docs",
+    "website": "https://hermes-agent.nousresearch.com",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/hermes.webp",
+    "description": "Self-improving AI agent by Nous Research. Connects to 15+ LLM providers, executes terminal commands, browses the web, and learns from experience. Supports 16 messaging platforms (Telegram, Discord, Slack, WhatsApp, Signal, Matrix, and more) with persistent memory and autonomous skill creation.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/hermesagent.sh",
+            "config_path": "/home/hermes/.hermes/",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 20,
+                "os": "debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Warning: Hermes can execute terminal commands. The agent runs as a dedicated 'hermes' service user for isolation.",
+            "type": "warning"
+        },
+        {
+            "text": "After container startup, SSH in as root and run 'hermes setup' to configure your LLM provider (OpenRouter, Anthropic, OpenAI, Nous Portal, or custom endpoint).",
+            "type": "info"
+        },
+        {
+            "text": "OpenAI-compatible API server available at http://<container-ip>:8642/v1. API key is stored in /home/hermes/.hermes/.env.",
+            "type": "info"
+        },
+        {
+            "text": "Access the web dashboard via SSH tunnel: ssh -fNL 9119:localhost:9119 root@<container-ip>, then open http://localhost:9119",
+            "type": "info"
+        }
+    ]
+}
