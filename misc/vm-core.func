@@ -40,6 +40,12 @@ load_functions() {
   arch_check
 }
 
+load_cloud_init_functions() {
+  if ! declare -f setup_cloud_init >/dev/null 2>&1; then
+    source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/cloud-init.func") 2>/dev/null || true
+  fi
+}
+
 # Function to download & save header files
 get_header() {
   local app_name=$(echo "${APP,,}" | tr ' ' '-')
@@ -107,6 +113,7 @@ icons() {
   DNSOK="✔️ "
   DNSFAIL="${TAB}✖️${TAB}"
   INFO="${TAB}💡${TAB}${CL}"
+  CLOUD="${TAB}☁️${TAB}${CL}"
   OS="${TAB}🖥️${TAB}${CL}"
   OSVERSION="${TAB}🌟${TAB}${CL}"
   CONTAINERTYPE="${TAB}📦${TAB}${CL}"
@@ -704,6 +711,17 @@ vm_apply_machine_type() {
   fi
 }
 
+vm_machine_type_label() {
+  case "${1:-i440fx}" in
+  q35)
+    echo "Q35 (Modern)"
+    ;;
+  *)
+    echo "i440fx"
+    ;;
+  esac
+}
+
 vm_prompt_machine_type() {
   local default_machine="${1:-i440fx}"
   local i440fx_default="ON"
@@ -720,10 +738,32 @@ vm_prompt_machine_type() {
     "q35" "Machine q35" "$q35_default" \
     3>&1 1>&2 2>&3); then
     vm_apply_machine_type "$machine_choice"
-    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}${MACHINE_TYPE}${CL}"
+    echo -e "${CONTAINERTYPE}${BOLD}${DGN}Machine Type: ${BGN}$(vm_machine_type_label "$MACHINE_TYPE")${CL}"
   else
     exit_script
   fi
+}
+
+vm_prompt_cloud_init() {
+  local default_user="${1:-root}"
+
+  USE_CLOUD_INIT="no"
+  load_cloud_init_functions
+
+  if ! declare -f configure_cloud_init_interactive >/dev/null 2>&1; then
+    echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}unavailable${CL}"
+    return 1
+  fi
+
+  configure_cloud_init_interactive "$default_user" || true
+  USE_CLOUD_INIT="${CLOUDINIT_ENABLE:-no}"
+  echo -e "${CLOUD}${BOLD}${DGN}Cloud-Init: ${BGN}${USE_CLOUD_INIT}${CL}"
+
+  if [ "$USE_CLOUD_INIT" = "yes" ] && declare -f configure_cloudinit_ssh_keys >/dev/null 2>&1; then
+    configure_cloudinit_ssh_keys || true
+  fi
+
+  return 0
 }
 
 vm_prompt_disk_size() {
