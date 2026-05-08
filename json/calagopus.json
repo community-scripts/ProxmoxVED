@@ -12,7 +12,7 @@
     "documentation": "https://calagopus.com/docs",
     "website": "https://calagopus.com",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/calagopus.webp",
-    "description": "Calagopus is a self-hostable game server management panel. It supports All-in-One (AIO) and standalone deployments via Docker, with optional heavy (extension build tools) and nightly (development) image variants.",
+    "description": "Modern game server management panel built in Rust. Deploy, monitor, and manage Minecraft, Hytale, and other game servers with industry-leading performance.",
     "install_methods": [
         {
             "type": "default",
