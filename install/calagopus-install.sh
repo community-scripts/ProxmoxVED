@@ -63,7 +63,7 @@ if [[ "${CALAGOPUS_NIGHTLY:-no}" == "yes" ]]; then
 fi
 
 # Set mandatory encryption key
-APP_ENCRYPTION_KEY=$(cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+APP_ENCRYPTION_KEY=$(openssl rand -hex 16)
 sed -i "s/CHANGEME/${APP_ENCRYPTION_KEY}/g" compose.yml
 
 # AIO requires a minimal wings config before first start
