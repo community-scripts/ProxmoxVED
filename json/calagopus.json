@@ -1,0 +1,52 @@
+{
+    "name": "Calagopus",
+    "slug": "calagopus",
+    "categories": [
+        1
+    ],
+    "date_created": "2026-05-08",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8000,
+    "documentation": "https://calagopus.com/docs/panel/installation/docker",
+    "website": "https://calagopus.com",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/calagopus.webp",
+    "description": "Calagopus is a self-hostable game server management panel. It supports All-in-One (AIO) and standalone deployments via Docker, with optional heavy (extension build tools) and nightly (development) image variants.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/calagopus.sh",
+            "config_path": "/opt/calagopus/compose.yml",
+            "resources": {
+                "cpu": 2,
+                "ram": 4096,
+                "hdd": 15,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "During installation you will be prompted to choose between All-in-One (AIO) and Standalone Panel, and whether to enable the Heavy and/or Nightly variants.",
+            "type": "info"
+        },
+        {
+            "text": "The encryption key is generated automatically and saved to ~/calagopus.info. Back it up — losing it will make existing data unreadable.",
+            "type": "warning"
+        },
+        {
+            "text": "Nightly builds contain unreleased changes and are not recommended for production environments.",
+            "type": "warning"
+        },
+        {
+            "text": "For multi-node setups (Standalone Panel), install Wings separately on each node following the Wings Docker installation guide.",
+            "type": "info"
+        }
+    ]
+}
