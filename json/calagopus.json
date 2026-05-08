@@ -9,7 +9,7 @@
     "updateable": true,
     "privileged": false,
     "interface_port": 8000,
-    "documentation": "https://calagopus.com/docs/panel/installation/docker",
+    "documentation": "https://calagopus.com/docs",
     "website": "https://calagopus.com",
     "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/calagopus.webp",
     "description": "Calagopus is a self-hostable game server management panel. It supports All-in-One (AIO) and standalone deployments via Docker, with optional heavy (extension build tools) and nightly (development) image variants.",

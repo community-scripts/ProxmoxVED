@@ -18,7 +18,6 @@ $STD apt install -y curl
 msg_ok "Installed Dependencies"
 
 setup_docker
-setup_docker_compose
 
 # Resolve image tag from install options
 IMAGE_TAG="latest"
