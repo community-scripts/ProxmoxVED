@@ -30,39 +30,27 @@ function update_script() {
   fi
 
   msg_info "Pulling Latest Images"
-  cd /opt/calagopus
-  docker compose pull
+  docker compose -f /opt/calagopus/compose.yml pull
   msg_ok "Pulled Latest Images"
 
   msg_info "Restarting Services"
-  docker compose up -d --remove-orphans
+  docker compose -f /opt/calagopus/compose.yml up -d --remove-orphans
   msg_ok "Restarted Services"
 
   msg_ok "Updated Successfully!"
   exit
 }
 
-export CALAGOPUS_AIO="yes"
-export CALAGOPUS_HEAVY="no"
-export CALAGOPUS_NIGHTLY="no"
+CHOICES=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CALAGOPUS VARIANT" \
+  --checklist "Select image options (Spacebar = toggle, Enter = confirm):" 14 60 3 \
+  "aio" "All-in-One (Panel + Wings bundled)" ON \
+  "heavy" "Heavy (includes extension build tools)" OFF \
+  "nightly" "Nightly build (not for production)" OFF \
+  3>&1 1>&2 2>&3)
 
-if ! (whiptail --backtitle "Proxmox VE Helper Scripts" --title "DEPLOYMENT TYPE" --yesno \
-  "Install as All-in-One (AIO)?\n\nYES  — Panel + Wings in a single container (recommended for single-node)\nNO   — Standalone Panel only (for multi-node / split-host setups)" \
-  12 65); then
-  export CALAGOPUS_AIO="no"
-fi
-
-if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "HEAVY VARIANT" --yesno \
-  "Enable the Heavy variant?\n\nIncludes extension build tools inside the container.\nUse this if you plan to install Calagopus extensions." \
-  10 65); then
-  export CALAGOPUS_HEAVY="yes"
-fi
-
-if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "NIGHTLY BUILD" --defaultno --yesno \
-  "Use the Nightly (development) build?\n\nNightly builds contain the latest unreleased changes.\nNot recommended for production environments." \
-  10 65); then
-  export CALAGOPUS_NIGHTLY="yes"
-fi
+[[ $CHOICES == *'"aio"'* ]] && export CALAGOPUS_AIO="yes" || export CALAGOPUS_AIO="no"
+[[ $CHOICES == *'"heavy"'* ]] && export CALAGOPUS_HEAVY="yes" || export CALAGOPUS_HEAVY="no"
+[[ $CHOICES == *'"nightly"'* ]] && export CALAGOPUS_NIGHTLY="yes" || export CALAGOPUS_NIGHTLY="no"
 
 start
 build_container
