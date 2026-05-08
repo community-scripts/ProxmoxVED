@@ -58,7 +58,7 @@ if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "HEAVY VARIANT" --y
   export CALAGOPUS_HEAVY="yes"
 fi
 
-if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "NIGHTLY BUILD" --yesno \
+if (whiptail --backtitle "Proxmox VE Helper Scripts" --title "NIGHTLY BUILD" --defaultno --yesno \
   "Use the Nightly (development) build?\n\nNightly builds contain the latest unreleased changes.\nNot recommended for production environments." \
   10 65); then
   export CALAGOPUS_NIGHTLY="yes"
