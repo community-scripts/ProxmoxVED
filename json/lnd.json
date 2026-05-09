@@ -1,0 +1,48 @@
+{
+  "name": "LND",
+  "slug": "lnd",
+  "categories": [
+    23
+  ],
+  "date_created": "2026-05-09",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://docs.lightning.engineering/lightning-network-tools/lnd/lnd",
+  "website": "https://lightning.engineering/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/bitcoin.webp",
+  "description": "LND is a Lightning Network daemon for Bitcoin. This script installs and configures LND in an LXC with optional RTL web UI, static channel backup automation, Git-backed backup sync, and Tor support.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/lnd.sh",
+      "config_path": "/data/lnd/lnd.conf",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Wallet creation remains manual by design. Run `sudo -u lnd lncli create` after installation.",
+      "type": "info"
+    },
+    {
+      "text": "If auto-unlock is enabled, the wallet password is stored in `/data/lnd/password.txt`.",
+      "type": "info"
+    },
+    {
+      "text": "RTL is optional and becomes fully usable after the LND wallet and macaroon files exist.",
+      "type": "info"
+    }
+  ]
+}
