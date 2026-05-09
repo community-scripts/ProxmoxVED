@@ -1,0 +1,44 @@
+{
+  "name": "Supabase",
+  "slug": "supabase",
+  "categories": [
+    8
+  ],
+  "date_created": "2026-05-09",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 8000,
+  "documentation": "https://supabase.com/docs/guides/self-hosting/docker",
+  "website": "https://supabase.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/supabase.webp",
+  "description": "Supabase is an open-source Firebase alternative built on PostgreSQL, providing authentication, APIs, storage, realtime subscriptions, and serverless functions.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/supabase.sh",
+      "config_path": "/opt/supabase/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 50,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "supabase",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Supabase is deployed with Docker Compose inside the LXC container and requires nesting to be enabled.",
+      "type": "info"
+    },
+    {
+      "text": "Generated passwords, API keys, and database credentials are stored in `/opt/supabase/.env`.",
+      "type": "info"
+    }
+  ]
+}
