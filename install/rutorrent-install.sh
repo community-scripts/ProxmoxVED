@@ -74,7 +74,7 @@ msg_info "Patching filedrop upload limit"
 FILEDROP_CONF=/var/www/rutorrent/plugins/filedrop/conf.php
 if [[ -f "${FILEDROP_CONF}" ]]; then
   UPLOAD_BYTES=$(( RUTORRENT_MAX_UPLOAD_MB * 1024 * 1024 ))
-  sed -i "s/\(\\$maxFileSize\s*=\s*\)[0-9]*/\1${UPLOAD_BYTES}/" "${FILEDROP_CONF}"
+  sed -i "s/\(\\\$maxFileSize\s*=\s*\)[0-9]*/\1${UPLOAD_BYTES}/" "${FILEDROP_CONF}"
 fi
 msg_ok "Patched filedrop (${RUTORRENT_MAX_UPLOAD_MB} MiB)"
 
