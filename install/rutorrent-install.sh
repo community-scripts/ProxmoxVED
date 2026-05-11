@@ -108,12 +108,12 @@ RTORRENT_RC=/var/lib/rtorrent/.rtorrent.rc
 cat <<EOF >"${RTORRENT_RC}"
 directory.default.set = /var/lib/rtorrent/downloads
 session.path.set = /var/lib/rtorrent/session
-network.scgi.open_local = /run/rtorrent.sock
+network.scgi.open_local = /run/rtorrent/rtorrent.sock
 network.port_range.set = 6881-6881
 network.port_random.set = no
 pieces.hash.on_completion.set = no
 schedule2 = watch_directory,5,5,load.start=/var/lib/rtorrent/.watch/*.torrent
-execute.nothrow = chmod,770,/run/rtorrent.sock
+execute.nothrow = chmod,770,/run/rtorrent/rtorrent.sock
 EOF
 chown torrent:torrent "${RTORRENT_RC}"
 
@@ -127,6 +127,8 @@ User=torrent
 Group=torrent
 Type=forking
 KillMode=none
+RuntimeDirectory=rtorrent
+RuntimeDirectoryMode=0750
 ExecStart=/usr/bin/screen -d -m -S rtorrent /usr/bin/rtorrent
 ExecStop=/usr/bin/bash -lc 'screen -S rtorrent -X quit || true'
 WorkingDirectory=/var/lib/rtorrent
@@ -143,7 +145,7 @@ cat <<'EOF' >/var/www/rutorrent/conf/config.php
 <?php
 $topDirectory = '/var/lib/rtorrent/downloads';
 $scgi_port = 0;
-$scgi_host = "unix:///run/rtorrent.sock";
+$scgi_host = "unix:///run/rtorrent/rtorrent.sock";
 $XMLRPCMountPoint = "/RPC2";
 $pathToExternals = array(
     "php"   => "",
@@ -200,7 +202,7 @@ if [[ "${RUTORRENT_ENABLE_RPC2}" == "yes" ]]; then
   RPC2_LOCATION="
     location /RPC2 {
         include scgi_params;
-        scgi_pass unix:///run/rtorrent.sock;
+        scgi_pass unix:///run/rtorrent/rtorrent.sock;
     }
 "
 else
@@ -246,10 +248,10 @@ systemctl start rtorrent
 
 # Wait up to 15 s for the rTorrent SCGI socket
 for i in {1..15}; do
-  [[ -S /run/rtorrent.sock ]] && break
+  [[ -S /run/rtorrent/rtorrent.sock ]] && break
   sleep 1
 done
-[[ -S /run/rtorrent.sock ]] \
+[[ -S /run/rtorrent/rtorrent.sock ]] \
   || msg_warn "rTorrent socket not found after 15 s — check 'systemctl status rtorrent'"
 
 systemctl enable -q "php${PHP_VER}-fpm"
