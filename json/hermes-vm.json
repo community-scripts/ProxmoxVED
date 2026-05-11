@@ -1,0 +1,44 @@
+{
+  "name": "Hermes Agent VM",
+  "slug": "hermes-vm",
+  "categories": [
+    2
+  ],
+  "date_created": "2026-05-11",
+  "type": "vm",
+  "updateable": false,
+  "privileged": false,
+  "interface_port": null,
+  "documentation": "https://hermes-agent.nousresearch.com/docs/getting-started/installation",
+  "website": "https://hermes-agent.nousresearch.com",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nous-research.webp",
+  "description": "Hermes Agent is an open-source AI agent by NousResearch that runs locally on your machine. It supports multi-step task execution, tool use, and integration with messaging platforms. The installer automatically sets up Python 3.11, Node.js v22, ripgrep, ffmpeg, and uv.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "vm/hermes-vm.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 20,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Hermes Agent is installed automatically on first boot. Monitor progress with: journalctl -u hermes-install.service -f",
+      "type": "info"
+    },
+    {
+      "text": "After installation completes, run 'hermes setup' to configure your LLM provider.",
+      "type": "info"
+    }
+  ]
+}
