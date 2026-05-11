@@ -43,7 +43,7 @@ PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
 
 msg_info "Creating torrent user"
 useradd -r -s /bin/false -d /var/lib/rtorrent -m torrent 2>/dev/null || true
-usermod -aG www-data torrent 2>/dev/null || true
+usermod -aG torrent www-data 2>/dev/null || true
 msg_ok "Created torrent user"
 
 msg_info "Setting up directories"
