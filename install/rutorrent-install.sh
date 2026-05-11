@@ -58,8 +58,12 @@ done
 msg_ok "Set up directories"
 
 msg_info "Cloning ruTorrent"
-RUTORRENT_RELEASE=$(curl -fsSL https://api.github.com/repos/Novik/ruTorrent/releases/latest \
+RUTORRENT_RELEASE=$(curl -fsSL https://api.github.com/repos/Novik/ruTorrent/releases/latest 2>&1 \
   | grep '"tag_name"' | cut -d'"' -f4)
+if [[ -z "${RUTORRENT_RELEASE}" ]]; then
+  msg_error "Failed to fetch ruTorrent release from GitHub API"
+  exit 1
+fi
 $STD git clone --depth 1 --branch "${RUTORRENT_RELEASE}" \
   https://github.com/Novik/ruTorrent.git /var/www/rutorrent
 echo "${RUTORRENT_RELEASE}" >/var/www/rutorrent/version.txt
