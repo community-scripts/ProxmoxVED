@@ -1,0 +1,48 @@
+{
+  "name": "LND",
+  "slug": "lnd",
+  "categories": [
+    23
+  ],
+  "date_created": "2026-05-09",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://docs.lightning.engineering/lightning-network-tools/lnd/lnd",
+  "website": "https://lightning.engineering/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/bitcoin.webp",
+  "description": "LND is a Lightning Network daemon for Bitcoin. This script installs LND in a Debian 13 LXC with optional RTL web UI, optional Tor support, and optional static channel backup automation.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/lnd.sh",
+      "config_path": "/opt/lnd/lnd.conf",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Wallet creation remains manual by design. Run `lncli create` after installation.",
+      "type": "info"
+    },
+    {
+      "text": "RTL is optional and becomes fully usable after the LND wallet and macaroon files exist.",
+      "type": "info"
+    },
+    {
+      "text": "Static channel backup automation is optional and can store backups locally or push them to a Git remote.",
+      "type": "info"
+    }
+  ]
+}
