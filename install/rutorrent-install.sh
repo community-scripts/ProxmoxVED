@@ -15,6 +15,7 @@ update_os
 
 # Passed in from ct script via build.func environment
 RUTORRENT_USER="${RUTORRENT_USER:-rutorrent}"
+RUTORRENT_PASS="${RUTORRENT_PASS:-}"
 RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS:-}"
 RUTORRENT_ENABLE_RPC2="${RUTORRENT_ENABLE_RPC2:-no}"
 RUTORRENT_MAX_UPLOAD_MB="${RUTORRENT_MAX_UPLOAD_MB:-32}"
@@ -163,7 +164,7 @@ chown www-data:www-data /var/www/rutorrent/conf/config.php
 msg_ok "Configured ruTorrent"
 
 msg_info "Setting up HTTP basic auth"
-RUTORRENT_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c 16)
+[[ -z "${RUTORRENT_PASS}" ]] && RUTORRENT_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c 16)
 htpasswd -bc /etc/nginx/.rutorrent_htpasswd "${RUTORRENT_USER}" "${RUTORRENT_PASS}"
 chmod 640 /etc/nginx/.rutorrent_htpasswd
 chown root:www-data /etc/nginx/.rutorrent_htpasswd

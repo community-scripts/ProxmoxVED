@@ -46,36 +46,33 @@ PLUGIN_DEFS=(
   "geoip|GeoIP|on"
   "history|History|on"
   "httprpc|HTTP RPC|on"
-  "ipad|iPad|off"
-  "loginmgr|Login Manager|off"
+  "ipad|iPad|on"
+  "loginmgr|Login Manager|on"
   "lookat|Look At|on"
   "mediainfo|Media Info|on"
   "ratiocolor|Ratio Color|on"
   "rpc|RPC|on"
-  "rssurlrewrite|RSS URL Rewrite|off"
+  "rssurlrewrite|RSS URL Rewrite|on"
   "scheduler|Scheduler|on"
-  "screenshots|Screenshots|off"
+  "screenshots|Screenshots|on"
   "seedingtime|Seeding Time|on"
-  "show_peers_like_wtorrent|Show Peers Like wTorrent|off"
-  "source|Source|off"
-  "spectrogram|Spectrogram (needs sox)|off"
+  "show_peers_like_wtorrent|Show Peers Like wTorrent|on"
+  "source|Source|on"
+  "spectrogram|Spectrogram|on"
   "theme|Theme|on"
   "trafic|Traffic|on"
   "unpack|Unpack|on"
-  "xmpp|XMPP|off"
-  "_cloudflare|Cloudflare (needs Python)|off"
-  "dump|Dump (needs dumptorrent)|off"
-  "throttle|Throttle (fails to start)|off"
-  "geoip2|GeoIP2 (not yet implemented)|off"
-  "pausewebui|Pause Web UI (not yet implemented)|off"
-  "quotaspace|Quota Space (not yet implemented)|off"
-  "retrackers|Retrackers (not yet implemented)|off"
-  "rutracker_check|RuTracker Check (not yet implemented)|off"
-  "uploadeta|Upload ETA (not yet implemented)|off"
+  "xmpp|XMPP|on"
+  "_cloudflare|Cloudflare|on"
+  "dump|Dump|on"
+  "throttle|Throttle|on"
+  "geoip2|GeoIP2|on"
+  "pausewebui|Pause Web UI|on"
+  "quotaspace|Quota Space|on"
+  "retrackers|Retrackers|on"
+  "rutracker_check|RuTracker Check|on"
+  "uploadeta|Upload ETA|on"
 )
-
-# Plugins not yet implemented — selected ones are warned about and left disabled
-NOT_IMPLEMENTED_PLUGINS=(geoip2 pausewebui quotaspace retrackers rutracker_check uploadeta)
 
 if [[ -z "${RUTORRENT_PLUGINS}" ]]; then
   # Username
@@ -84,7 +81,11 @@ if [[ -z "${RUTORRENT_PLUGINS}" ]]; then
     --title "Username" 3>&1 1>&2 2>&3) || exit
   [[ -z "${RUTORRENT_USER}" ]] && RUTORRENT_USER="rutorrent"
 
-  # Plugin checklist — clamp list height to terminal (PR #16)
+  RUTORRENT_PASS=$(whiptail --passwordbox \
+    "ruTorrent web UI password:\n\n(leave blank to generate a random password)" \
+    10 55 "" --title "Password" 3>&1 1>&2 2>&3) || exit
+
+  # Plugin checklist — clamp list height to terminal
   TERM_LINES=$(tput lines 2>/dev/null || echo 24)
   MAX_VISIBLE=$(( TERM_LINES - 8 ))
   [[ ${MAX_VISIBLE} -lt 5 ]] && MAX_VISIBLE=5
@@ -122,19 +123,9 @@ fi
 
 # Apply defaults for non-interactive / pre-seeded runs
 RUTORRENT_USER="${RUTORRENT_USER:-rutorrent}"
+RUTORRENT_PASS="${RUTORRENT_PASS:-}"
 RUTORRENT_ENABLE_RPC2="${RUTORRENT_ENABLE_RPC2:-no}"
 RUTORRENT_MAX_UPLOAD_MB="${RUTORRENT_MAX_UPLOAD_MB:-32}"
-
-# Warn about not-yet-implemented plugins and remove them from the selection
-for plugin in "${NOT_IMPLEMENTED_PLUGINS[@]}"; do
-  if [[ ",${RUTORRENT_PLUGINS}," == *",${plugin},"* ]]; then
-    msg_warn "Plugin '${plugin}' is not yet implemented — it will remain disabled."
-    RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS//${plugin}/}"
-    RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS//,,/,}"
-    RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS#,}"
-    RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS%,}"
-  fi
-done
 
 # Strip plugins that require a privileged container when running unprivileged.
 # Add slug names to PRIVILEGED_ONLY_PLUGINS as needed.
@@ -151,7 +142,7 @@ if [[ "${var_unprivileged}" == "1" ]] && [[ ${#PRIVILEGED_ONLY_PLUGINS[@]} -gt 0
   done
 fi
 
-export RUTORRENT_USER RUTORRENT_PLUGINS RUTORRENT_ENABLE_RPC2 RUTORRENT_MAX_UPLOAD_MB
+export RUTORRENT_USER RUTORRENT_PASS RUTORRENT_PLUGINS RUTORRENT_ENABLE_RPC2 RUTORRENT_MAX_UPLOAD_MB
 
 function update_script() {
   header_info
