@@ -40,7 +40,8 @@ $STD apt install -y \
   php-zip \
   python3 \
   python3-cloudscraper \
-  python-is-python3
+  python-is-python3 \
+  sox
 msg_ok "Installed Dependencies"
 
 PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
@@ -93,6 +94,9 @@ IFS=',' read -ra _SEL <<<"${RUTORRENT_PLUGINS}"
 for slug in "${_SEL[@]}"; do
   [[ -n "${slug}" ]] && _ENABLED["${slug}"]=1
 done
+
+# Internal dependency plugins — always on regardless of user selection
+_ENABLED["_task"]=1
 
 : >"${PLUGINS_INI}"
 for plugin_dir in "${PLUGINS_DIR}"/*/; do
