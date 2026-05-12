@@ -257,7 +257,7 @@ done
 systemctl enable -q "php${PHP_VER}-fpm"
 systemctl start "php${PHP_VER}-fpm"
 systemctl enable -q nginx
-systemctl start nginx
+systemctl restart nginx
 msg_ok "Started services"
 
 msg_info "Writing credentials"
