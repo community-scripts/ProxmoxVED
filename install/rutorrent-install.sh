@@ -95,8 +95,11 @@ for slug in "${_SEL[@]}"; do
   [[ -n "${slug}" ]] && _ENABLED["${slug}"]=1
 done
 
-# Internal dependency plugins — always on regardless of user selection
-_ENABLED["_task"]=1
+# All _-prefixed plugins are internal infrastructure — always enable them
+for plugin_dir in "${PLUGINS_DIR}"/_*/; do
+  slug=$(basename "${plugin_dir}")
+  [[ -f "${plugin_dir}/init.js" ]] && _ENABLED["${slug}"]=1
+done
 
 : >"${PLUGINS_INI}"
 for plugin_dir in "${PLUGINS_DIR}"/*/; do

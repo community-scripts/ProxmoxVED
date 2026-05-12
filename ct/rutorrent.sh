@@ -38,6 +38,7 @@ PLUGIN_DEFS=(
   "data|Data|on"
   "datadir|Data Dir|on"
   "diskspace|Disk Space|on"
+  "edit|Edit Tracker|on"
   "erasedata|Erase Data|on"
   "extratio|Extra Ratio|on"
   "extsearch|External Search|on"
@@ -47,6 +48,7 @@ PLUGIN_DEFS=(
   "history|History|on"
   "httprpc|HTTP RPC|on"
   "ipad|iPad|on"
+  "log_history|Log History|on"
   "loginmgr|Login Manager|on"
   "lookat|Look At|on"
   "mediainfo|Media Info|on"
@@ -62,6 +64,8 @@ PLUGIN_DEFS=(
   "source|Source|on"
   "spectrogram|Spectrogram|on"
   "theme|Theme|on"
+  "tracklabels|Track Labels|on"
+  "trackerstatus|Tracker Status|on"
   "trafic|Traffic|on"
   "unpack|Unpack|on"
   "xmpp|XMPP (broken: PHP 8 incompatible)|off"
@@ -71,6 +75,7 @@ PLUGIN_DEFS=(
   "retrackers|Retrackers|on"
   "rutracker_check|RuTracker Check|on"
   "uploadeta|Upload ETA|on"
+  "bulk_magnet|Bulk Magnet|on"
 )
 
 if [[ -z "${RUTORRENT_PLUGINS}" ]]; then
