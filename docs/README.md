@@ -48,7 +48,7 @@ Complete guide to all ProxmoxVED documentation - quickly find what you need.
 → Reference: [misc/tools.func/](misc/tools.func/)
 
 **VM Provisioner**
-→ Read: [vm/README.md](vm/README.md)
+→ Read: [vm/README.md](vm/README.md) and [vm/CLI.md](vm/CLI.md)
 → Reference: [misc/cloud-init.func/](misc/cloud-init.func/)
 
 **Tools Developer**
@@ -80,7 +80,7 @@ Each major project directory has documentation:
 ProxmoxVED/
 ├─ ct/                 ↔ docs/ct/ (README.md + DETAILED_GUIDE.md)
 ├─ install/           ↔ docs/install/ (README.md + DETAILED_GUIDE.md)
-├─ vm/                ↔ docs/vm/ (README.md)
+├─ vm/                ↔ docs/vm/ (README.md + CLI.md)
 ├─ tools/            ↔ docs/tools/ (README.md)
 ├─ api/              ↔ docs/api/ (README.md)
 └─ misc/             ↔ docs/misc/ (9 function libraries)
@@ -125,6 +125,7 @@ Documentation for `/vm` - VM creation scripts using cloud-init provisioning.
 
 **Includes**:
 - Overview of VM provisioning
+- Non-interactive flags and examples: [vm/CLI.md](vm/CLI.md)
 - Link to [misc/cloud-init.func/](misc/cloud-init.func/)
 - VM vs Container comparison
 - Cloud-init examples

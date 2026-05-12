@@ -12,6 +12,7 @@ VM documentation parallels container documentation but focuses on VM-specific fe
 
 ## Key Resources
 
+- **[CLI.md](CLI.md)** – Non-interactive CLI flags, examples, and porting notes
 - **[misc/cloud-init.func/](../misc/cloud-init.func/)** - Cloud-init provisioning documentation
 - **[CONTRIBUTION_GUIDE.md](../CONTRIBUTION_GUIDE.md)** - Contribution workflow
 - **[EXIT_CODES.md](../EXIT_CODES.md)** - Exit code reference
@@ -63,7 +64,9 @@ See `/vm` directory for all VM creation scripts. Examples:
 
 ## Quick Start
 
-To understand VM creation:
+**Unattended / flags:** [CLI.md](CLI.md)
+
+To understand VM creation (interactive flow):
 
 1. Read: [misc/cloud-init.func/README.md](../misc/cloud-init.func/README.md)
 2. Study: A similar existing script in `/vm`
