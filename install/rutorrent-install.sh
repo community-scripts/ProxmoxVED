@@ -255,7 +255,7 @@ done
   || msg_warn "rTorrent socket not found after 15 s — check 'systemctl status rtorrent'"
 
 systemctl enable -q "php${PHP_VER}-fpm"
-systemctl start "php${PHP_VER}-fpm"
+systemctl restart "php${PHP_VER}-fpm"
 systemctl enable -q nginx
 systemctl restart nginx
 msg_ok "Started services"
