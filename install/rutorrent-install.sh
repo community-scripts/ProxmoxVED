@@ -37,7 +37,10 @@ $STD apt install -y \
   php-curl \
   php-mbstring \
   php-xml \
-  php-zip
+  php-zip \
+  python3 \
+  python3-cloudscraper \
+  python-is-python3
 msg_ok "Installed Dependencies"
 
 PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
@@ -184,6 +187,7 @@ pm.max_children = 10
 pm.start_servers = 2
 pm.min_spare_servers = 1
 pm.max_spare_servers = 3
+php_admin_value[error_reporting] = E_ERROR
 EOF
 # Remove default www pool to avoid a duplicate / conflicting socket
 rm -f "${PHP_POOL_DIR}/www.conf"
