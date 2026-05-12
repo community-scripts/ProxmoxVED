@@ -264,7 +264,7 @@ msg_info "Writing credentials"
 {
   echo "ruTorrent Credentials"
   echo "====================="
-  echo "URL:      http://$(hostname -I | awk '{print $1}')/rutorrent"
+  echo "URL:      http://$(hostname -I | awk '{print $1}')/"
   echo "Username: ${RUTORRENT_USER}"
   echo "Password: ${RUTORRENT_PASS}"
 } >~/rutorrent.creds
