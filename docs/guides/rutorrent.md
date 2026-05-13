@@ -203,7 +203,7 @@ systemctl status php8.4-fpm   # php8.4 is the Debian 13 default; confirm with: s
 # Restart after config changes
 systemctl restart rtorrent
 systemctl restart nginx
-systemctl restart php8.4-fpm
+systemctl restart php8.4-fpm   # adjust version if needed (see status line above)
 
 # Attach to the live rTorrent session
 screen -r rtorrent
