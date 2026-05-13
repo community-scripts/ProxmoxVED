@@ -37,6 +37,10 @@
         {
             "text": "The /RPC2 XMLRPC endpoint is disabled by default. Enable it during setup if you use Sonarr, Radarr, or autodl-irssi.",
             "type": "info"
+        },
+        {
+            "text": "Real IP forwarding is disabled by default. Enable it during setup only if nginx is behind a reverse proxy (Traefik, Cloudflare, NPM, etc.).",
+            "type": "info"
         }
     ]
 }

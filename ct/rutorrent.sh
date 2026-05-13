@@ -117,6 +117,15 @@ if [[ -z "${RUTORRENT_PLUGINS}" ]]; then
     RUTORRENT_ENABLE_RPC2="no"
   fi
 
+  # Real IP (reverse proxy)
+  if whiptail --yesno \
+    "Enable real IP forwarding?\n\n(only needed if nginx is behind a reverse proxy\nsuch as Traefik, Cloudflare, or NPM)" \
+    11 60 --title "Real IP" --defaultno 3>&1 1>&2 2>&3; then
+    RUTORRENT_ENABLE_REAL_IP="yes"
+  else
+    RUTORRENT_ENABLE_REAL_IP="no"
+  fi
+
   # Upload size limit
   RUTORRENT_MAX_UPLOAD_MB=$(whiptail --inputbox \
     "Maximum upload file size in MiB:\n\n(applied to filedrop, PHP, and nginx)" \
@@ -129,6 +138,7 @@ fi
 RUTORRENT_USER="${RUTORRENT_USER:-rutorrent}"
 RUTORRENT_PASS="${RUTORRENT_PASS:-}"
 RUTORRENT_ENABLE_RPC2="${RUTORRENT_ENABLE_RPC2:-no}"
+RUTORRENT_ENABLE_REAL_IP="${RUTORRENT_ENABLE_REAL_IP:-no}"
 RUTORRENT_MAX_UPLOAD_MB="${RUTORRENT_MAX_UPLOAD_MB:-32}"
 
 # Strip plugins that require a privileged container when running unprivileged.
@@ -144,7 +154,7 @@ if [[ "${var_unprivileged}" == "1" ]] && [[ ${#PRIVILEGED_ONLY_PLUGINS[@]} -gt 0
   done
 fi
 
-export RUTORRENT_USER RUTORRENT_PASS RUTORRENT_PLUGINS RUTORRENT_ENABLE_RPC2 RUTORRENT_MAX_UPLOAD_MB
+export RUTORRENT_USER RUTORRENT_PASS RUTORRENT_PLUGINS RUTORRENT_ENABLE_RPC2 RUTORRENT_ENABLE_REAL_IP RUTORRENT_MAX_UPLOAD_MB
 
 function update_script() {
   header_info

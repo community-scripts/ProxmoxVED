@@ -18,6 +18,7 @@ RUTORRENT_USER="${RUTORRENT_USER:-rutorrent}"
 RUTORRENT_PASS="${RUTORRENT_PASS:-}"
 RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS:-}"
 RUTORRENT_ENABLE_RPC2="${RUTORRENT_ENABLE_RPC2:-no}"
+RUTORRENT_ENABLE_REAL_IP="${RUTORRENT_ENABLE_REAL_IP:-no}"
 RUTORRENT_MAX_UPLOAD_MB="${RUTORRENT_MAX_UPLOAD_MB:-32}"
 
 msg_info "Installing Dependencies"
@@ -221,6 +222,20 @@ else
   RPC2_LOCATION=""
 fi
 
+# Build optional real-IP block (for reverse proxy setups)
+if [[ "${RUTORRENT_ENABLE_REAL_IP}" == "yes" ]]; then
+  REAL_IP_BLOCK="
+    set_real_ip_from 127.0.0.1;
+    set_real_ip_from 10.0.0.0/8;
+    set_real_ip_from 172.16.0.0/12;
+    set_real_ip_from 192.168.0.0/16;
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
+"
+else
+  REAL_IP_BLOCK=""
+fi
+
 cat <<EOF >/etc/nginx/sites-available/rutorrent
 server {
     listen 80;
@@ -233,7 +248,7 @@ server {
 
     auth_basic "ruTorrent";
     auth_basic_user_file /etc/nginx/.rutorrent_htpasswd;
-${RPC2_LOCATION}
+${REAL_IP_BLOCK}${RPC2_LOCATION}
     location / {
         try_files \$uri \$uri/ =404;
     }

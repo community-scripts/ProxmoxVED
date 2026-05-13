@@ -175,6 +175,33 @@ systemctl reload nginx
 
 ---
 
+## Behind a Reverse Proxy
+
+If you access ruTorrent through a reverse proxy (Traefik, Nginx Proxy Manager, Cloudflare Tunnel, etc.), enable **Real IP forwarding** during install so nginx logs the real client IP instead of the proxy's internal address.
+
+If you skipped it during install, add this block manually inside the `server { }` block:
+
+```bash
+nano /etc/nginx/sites-available/rutorrent
+```
+
+```nginx
+    set_real_ip_from 127.0.0.1;
+    set_real_ip_from 10.0.0.0/8;
+    set_real_ip_from 172.16.0.0/12;
+    set_real_ip_from 192.168.0.0/16;
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
+```
+
+```bash
+systemctl reload nginx
+```
+
+> **Note:** Do not enable this if nginx is accessed directly. Any client could then spoof their IP via a fake `X-Forwarded-For` header.
+
+---
+
 ## Key File Locations
 
 | Purpose | Path (inside container) |
