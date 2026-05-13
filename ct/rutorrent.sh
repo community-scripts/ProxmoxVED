@@ -138,10 +138,8 @@ if [[ "${var_unprivileged}" == "1" ]] && [[ ${#PRIVILEGED_ONLY_PLUGINS[@]} -gt 0
   for plugin in "${PRIVILEGED_ONLY_PLUGINS[@]}"; do
     if [[ ",${RUTORRENT_PLUGINS}," == *",${plugin},"* ]]; then
       msg_warn "Plugin '${plugin}' requires a privileged container — disabling."
-      RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS//${plugin}/}"
-      RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS//,,/,}"
-      RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS#,}"
-      RUTORRENT_PLUGINS="${RUTORRENT_PLUGINS%,}"
+      RUTORRENT_PLUGINS=$(printf '%s' ",${RUTORRENT_PLUGINS}," \
+        | sed "s/,${plugin},/,/g" | sed 's/^,//;s/,$//')
     fi
   done
 fi
@@ -174,7 +172,7 @@ function update_script() {
   fi
 
   msg_info "Updating ruTorrent ${CURRENT} → ${LATEST}"
-  $STD git -C /var/www/rutorrent fetch --tags --force
+  $STD git -C /var/www/rutorrent fetch --depth 1 origin "refs/tags/${LATEST}:refs/tags/${LATEST}"
   $STD git -C /var/www/rutorrent checkout "${LATEST}"
   echo "${LATEST}" >/var/www/rutorrent/version.txt
   chown -R www-data:www-data /var/www/rutorrent
