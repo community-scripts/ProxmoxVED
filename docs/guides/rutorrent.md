@@ -112,6 +112,16 @@ mount -a
 
 ### 2 — Add the mount point to the container
 
+The easiest way is the **Storage Share Allrounder** tool — run it on the Proxmox host and
+choose option **9 — LXC: add bind mountpoint**. It finds the next free `mp` slot and
+runs `pct set` for you:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/pve/storage-share-helper.sh)"
+```
+
+Or manually:
+
 ```bash
 # pct set <CTID> -mpN <host-path>,mp=<container-path>,size=0
 pct set 100 -mp0 /mnt/torrents,mp=/data,size=0
@@ -243,6 +253,26 @@ screen -r rtorrent
 htpasswd /etc/nginx/.rutorrent_htpasswd <username>
 systemctl reload nginx
 ```
+
+---
+
+## Reconfiguring
+
+An interactive reconfigure tool is available to change settings after install without
+editing config files manually. Run it inside the ruTorrent container:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/tools/addon/rutorrent.sh)"
+```
+
+It provides a whiptail menu to:
+
+- Change or add web UI users and passwords
+- Toggle the `/RPC2` XMLRPC endpoint on or off
+- Toggle real IP forwarding on or off (for reverse proxy setups)
+- Change the upload size limit (nginx + PHP + filedrop kept in sync)
+- Enable or disable individual plugins via checklist
+- Show current service status and configuration at a glance
 
 ---
 
