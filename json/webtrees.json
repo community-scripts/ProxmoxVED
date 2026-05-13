@@ -1,0 +1,40 @@
+{
+  "name": "Webtrees",
+  "slug": "webtrees",
+  "categories": [
+    1
+  ],
+  "date_created": "2026-05-10",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 80,
+  "documentation": "https://webtrees.net/install/",
+  "website": "https://webtrees.net/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/webtrees.webp",
+  "description": "webtrees is the web's leading online collaborative genealogy application.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/webtrees.sh",
+      "config_path": "/opt/webtrees/data/config.ini.php",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "Admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Setup is fully automated. Login credentials are stored in '/root/webtrees.creds' inside the container.",
+      "type": "info"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "name": "Flame",
+  "slug": "flame",
+  "categories": [
+    10
+  ],
+  "date_created": "2026-05-11",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 5005,
+  "documentation": "https://github.com/pawelmalak/flame/wiki",
+  "website": "https://github.com/pawelmalak/flame",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/flame.webp",
+  "description": "Flame is a self-hosted startpage for your server. Easily manage your apps and bookmarks with built-in editors, integrated search, weather widget, and Docker integration.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/flame.sh",
+      "config_path": "/opt/flame/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Set a password by editing PASSWORD= in /opt/flame/.env and restarting the service.",
+      "type": "info"
+    }
+  ]
+}

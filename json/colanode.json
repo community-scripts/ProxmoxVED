@@ -1,0 +1,44 @@
+{
+    "name": "Colanode",
+    "slug": "colanode",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-05-12",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 4000,
+    "documentation": "https://github.com/colanode/colanode/blob/main/hosting/docker",
+    "website": "https://colanode.com/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/colanode.webp",
+    "description": "Open-source, local-first collaboration workspace — a self-hosted Slack and Notion alternative with real-time chat, rich text pages, customizable databases, and file management.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/colanode.sh",
+            "config_path": "/opt/colanode/.env",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 16,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Web UI is available at https://YOUR_IP:4000 (self-signed certificate — accept the browser warning in the browser). When adding a server inside the app, enter https://YOUR_IP:4000/config as the server URL.",
+            "type": "info"
+        },
+        {
+            "text": "Requires at least 4 GB RAM for the build process.",
+            "type": "warning"
+        }
+    ]
+}
