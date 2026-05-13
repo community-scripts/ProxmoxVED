@@ -92,8 +92,8 @@ enabled = no
 ## Adding Storage
 
 Keep the LXC on fast storage (SSD) and mount your data disk into the container as a
-bind mount. The install script automatically sets correct ownership on `/data` through
-`/data8` if those paths exist at install time.
+bind mount. You must set ownership on the host path manually before or after mounting —
+see step 3 below.
 
 ### 1 — Prepare the disk on the Proxmox host
 
