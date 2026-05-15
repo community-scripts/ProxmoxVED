@@ -1,0 +1,40 @@
+{
+  "name": "Etherpad",
+  "slug": "etherpad",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-05-14",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 9001,
+  "documentation": "https://docs.etherpad.org/",
+  "website": "https://etherpad.org/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/etherpad.webp",
+  "description": "Etherpad is a real-time collaborative editor for documents that matter. Every keystroke is attributed to its author. Every revision is preserved. The timeslider lets you scrub through a document's entire history, character by character. Author colours make collaboration visible at a glance — not buried in a menu.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/etherpad.sh",
+      "config_path": "/opt/etherpad/settings.json",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "To see admin credentials, run: `cat ~/etherpad.creds` inside LXC.",
+      "type": "info"
+    }
+  ]
+}
