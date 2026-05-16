@@ -20,53 +20,57 @@ color
 catch_errors
 
 function update_script() {
-    header_info
-    check_container_storage
-    check_container_resources
+  header_info
+  check_container_storage
+  check_container_resources
 
-    if [[ ! -d /opt/kafka ]]; then
-        msg_error "No ${APP} Installation Found!"
-        exit 1
-    fi
+  if [[ ! -d /opt/kafka ]]; then
+    msg_error "No ${APP} Installation Found!"
+    exit 1
+  fi
 
-    RELEASE=$(curl -fsSL https://downloads.apache.org/kafka/ \
-        | grep -oP '(?<=href=")[0-9]+\.[0-9]+\.[0-9]+(?=/")' \
-        | sort -V | tail -1)
-    CURRENT=$(cat /opt/kafka/.version 2>/dev/null || echo "0.0.0")
+  RELEASE=$(curl -fsSL https://downloads.apache.org/kafka/ \
+    | grep -oP '(?<=href=")[0-9]+\.[0-9]+\.[0-9]+(?=/")' \
+    | sort -V | tail -1)
+  if [[ -z "${RELEASE}" ]]; then
+    msg_error "Failed to resolve latest Kafka version"
+    exit 1
+  fi
+  CURRENT=$(cat /opt/kafka/.version 2>/dev/null || echo "0.0.0")
 
-    if [[ "$RELEASE" == "$CURRENT" ]]; then
-        msg_ok "${APP} is already at v${CURRENT}."
-        exit 0
-    fi
-
-    msg_info "Stopping ${APP}"
-    systemctl stop kafka
-    msg_ok "Stopped ${APP}"
-
-    msg_info "Backing up configuration"
-    cp -a /opt/kafka/config /tmp/kafka-config.bak
-    msg_ok "Backed up configuration"
-
-    msg_info "Updating ${APP} to v${RELEASE}"
-    cd /tmp
-    curl -fsSLO "https://downloads.apache.org/kafka/${RELEASE}/kafka_2.13-${RELEASE}.tgz"
-    rm -rf /opt/kafka.old
-    mv /opt/kafka /opt/kafka.old
-    tar -xzf "kafka_2.13-${RELEASE}.tgz" -C /opt
-    mv "/opt/kafka_2.13-${RELEASE}" /opt/kafka
-    cp -a /tmp/kafka-config.bak/. /opt/kafka/config/
-    echo "${RELEASE}" > /opt/kafka/.version
-    chown -R kafka:kafka /opt/kafka
-    rm -f "/tmp/kafka_2.13-${RELEASE}.tgz"
-    rm -rf /tmp/kafka-config.bak /opt/kafka.old
-    msg_ok "Updated ${APP} to v${RELEASE}"
-
-    msg_info "Starting ${APP}"
-    systemctl start kafka
-    msg_ok "Started ${APP}"
-
-    msg_ok "Update Complete"
+  if [[ "$RELEASE" == "$CURRENT" ]]; then
+    msg_ok "${APP} is already at v${CURRENT}."
     exit 0
+  fi
+
+  msg_info "Stopping ${APP}"
+  systemctl stop kafka
+  msg_ok "Stopped ${APP}"
+
+  msg_info "Backing up configuration"
+  cp -a /opt/kafka/config /opt/kafka-config.bak
+  msg_ok "Backed up configuration"
+
+  msg_info "Updating ${APP} to v${RELEASE}"
+  cd /tmp || exit
+  curl -fsSLO "https://downloads.apache.org/kafka/${RELEASE}/kafka_2.13-${RELEASE}.tgz"
+  rm -rf /opt/kafka.old
+  mv /opt/kafka /opt/kafka.old
+  tar -xzf "kafka_2.13-${RELEASE}.tgz" -C /opt
+  mv "/opt/kafka_2.13-${RELEASE}" /opt/kafka
+  cp -a /opt/kafka-config.bak/. /opt/kafka/config/
+  echo "${RELEASE}" >/opt/kafka/.version
+  chown -R kafka:kafka /opt/kafka
+  rm -f "/tmp/kafka_2.13-${RELEASE}.tgz"
+  rm -rf /opt/kafka-config.bak /opt/kafka.old
+  msg_ok "Updated ${APP} to v${RELEASE}"
+
+  msg_info "Starting ${APP}"
+  systemctl start kafka
+  msg_ok "Started ${APP}"
+
+  msg_ok "Update Complete"
+  exit 0
 }
 
 start
