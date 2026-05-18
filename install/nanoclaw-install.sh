@@ -3,7 +3,7 @@
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: glifocat
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/qwibitai/nanoclaw
+# Source: https://github.com/nanocoai/nanoclaw
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -48,9 +48,23 @@ msg_info "Installing Claude Code CLI"
 $STD su - nanoclaw -c "curl -fsSL https://claude.ai/install.sh | bash"
 msg_ok "Installed Claude Code CLI"
 
-msg_info "Cloning NanoClaw v2 repository"
-$STD su - nanoclaw -c "git clone https://github.com/qwibitai/nanoclaw.git /home/nanoclaw/nanoclaw"
-msg_ok "Cloned NanoClaw"
+msg_info "Fetching NanoClaw release"
+fetch_and_deploy_gh_release "nanoclaw" "nanocoai/nanoclaw" "tarball" "latest" "/home/nanoclaw/nanoclaw"
+$STD chown -R nanoclaw:nanoclaw /home/nanoclaw/nanoclaw
+msg_ok "Fetched NanoClaw release"
+
+msg_info "Initializing git for /update-nanoclaw"
+# /update-nanoclaw is git-based (needs an `upstream` remote + clean history
+# to fetch/merge upstream changes). The tarball gives us source code but no
+# git ancestry — init a repo here pointing at the deployed tag so the skill
+# works out of the box.
+NANOCLAW_VERSION=$(cat /opt/nanoclaw_version.txt)
+$STD su - nanoclaw -c "cd /home/nanoclaw/nanoclaw && \
+  git init -q && \
+  git remote add upstream https://github.com/nanocoai/nanoclaw.git && \
+  git fetch upstream --depth=1 refs/tags/${NANOCLAW_VERSION}:refs/tags/${NANOCLAW_VERSION} -q && \
+  git reset --soft refs/tags/${NANOCLAW_VERSION}"
+msg_ok "Initialized git tracking ${NANOCLAW_VERSION}"
 
 msg_info "Installing Node dependencies"
 $STD su - nanoclaw -c "export COREPACK_ENABLE_DOWNLOAD_PROMPT=0; cd /home/nanoclaw/nanoclaw && pnpm install --prefer-frozen-lockfile"

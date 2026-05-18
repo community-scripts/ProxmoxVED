@@ -3,7 +3,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: glifocat
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/qwibitai/nanoclaw
+# Source: https://github.com/nanocoai/nanoclaw
 
 APP="NanoClaw"
 var_tags="${var_tags:-ai;agent;docker}"

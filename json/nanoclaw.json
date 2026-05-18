@@ -7,8 +7,8 @@
   "updateable": true,
   "privileged": false,
   "interface_port": null,
-  "documentation": "https://github.com/qwibitai/nanoclaw#readme",
-  "website": "https://github.com/qwibitai/nanoclaw",
+  "documentation": "https://github.com/nanocoai/nanoclaw#readme",
+  "website": "https://github.com/nanocoai/nanoclaw",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nanoclaw.webp",
   "description": "Self-hosted Claude Code agent that connects to Discord, Telegram, Matrix and other chat platforms. Spawns an isolated Docker container per session and routes conversations to a Claude agent runtime.",
   "install_methods": [
