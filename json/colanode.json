@@ -33,7 +33,11 @@
     },
     "notes": [
         {
-            "text": "Web UI is available at https://YOUR_IP:4000 (self-signed certificate — accept the browser warning in the browser). When adding a server inside the app, enter https://YOUR_IP:4000/config as the server URL.",
+            "text": "Before using the app: download and import the self-signed certificate into your browser. Navigate to https://YOUR_IP:4000/colanode.crt and install it as a trusted CA. This is required for Service Worker and OPFS storage to work.",
+            "type": "warning"
+        },
+        {
+            "text": "Web UI: https://YOUR_IP:4000 — Server URL when adding a server inside the app: https://YOUR_IP:4000/config",
             "type": "info"
         },
         {

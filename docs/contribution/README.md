@@ -332,7 +332,7 @@ bash docs/contribution/setup-fork.sh
 - **GitHub**: https://github.com/community-scripts/ProxmoxVED
 - **Issues**: https://github.com/community-scripts/ProxmoxVED/issues
 - **Discussions**: https://github.com/community-scripts/ProxmoxVED/discussions
-- **Discord**: [Join Server](https://discord.gg/UHrpNWGwkH)
+- **Discord**: [Join Server](https://discord.gg/N9dsd6RT)
 
 ---
 

@@ -4,20 +4,20 @@
   "categories": [
     12
   ],
-  "date_created": "2026-05-14",
+  "date_created": "2026-04-19",
   "type": "ct",
   "updateable": true,
   "privileged": false,
   "interface_port": 9001,
-  "documentation": "https://docs.etherpad.org/",
-  "website": "https://etherpad.org/",
+  "documentation": "https://etherpad.org/doc",
+  "website": "https://etherpad.org",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/etherpad.webp",
-  "description": "Etherpad is a real-time collaborative editor for documents that matter. Every keystroke is attributed to its author. Every revision is preserved. The timeslider lets you scrub through a document's entire history, character by character. Author colours make collaboration visible at a glance — not buried in a menu.",
+  "description": "Etherpad is a highly customizable real-time collaborative document editor. It lets multiple people edit the same document simultaneously in the browser, with live changes, per-user colors, chat, and a rich plugin ecosystem.",
   "install_methods": [
     {
       "type": "default",
       "script": "ct/etherpad.sh",
-      "config_path": "/opt/etherpad/settings.json",
+      "config_path": "/opt/etherpad-lite/settings.json",
       "resources": {
         "cpu": 2,
         "ram": 2048,
@@ -33,7 +33,15 @@
   },
   "notes": [
     {
-      "text": "To see admin credentials, run: `cat ~/etherpad.creds` inside LXC.",
+      "text": "The default install uses an embedded sqlite database at /var/lib/etherpad/etherpad.db — ACID, zero-config, suitable for single-instance homelab use. To use postgres or mysql instead, edit /opt/etherpad-lite/settings.json and switch 'dbType' + 'dbSettings' (Etherpad's ueberdb abstraction supports both).",
+      "type": "info"
+    },
+    {
+      "text": "View logs with: journalctl -u etherpad -f",
+      "type": "info"
+    },
+    {
+      "text": "Etherpad listens on port 9001. Restart the service after editing settings.json: systemctl restart etherpad",
       "type": "info"
     }
   ]
