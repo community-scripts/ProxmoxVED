@@ -58,7 +58,7 @@ msg_info "Initializing git for /update-nanoclaw"
 # to fetch/merge upstream changes). The tarball gives us source code but no
 # git ancestry — init a repo here pointing at the deployed tag so the skill
 # works out of the box.
-NANOCLAW_VERSION=$(cat /var/cache/app-versions/nanoclaw_version.txt)
+NANOCLAW_VERSION=$(cat ~/.nanoclaw)
 $STD su - nanoclaw -c "cd /home/nanoclaw/nanoclaw && \
   git init -q && \
   git remote add upstream https://github.com/nanocoai/nanoclaw.git && \
