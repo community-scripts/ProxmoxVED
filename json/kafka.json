@@ -1,46 +1,48 @@
 {
-  "name": "Kafka",
-  "slug": "kafka",
-  "categories": [18],
-  "date_created": "2026-05-16",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": 9092,
-  "documentation": "https://kafka.apache.org/documentation/",
-  "website": "https://kafka.apache.org/",
-  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/apache-kafka.webp",
-  "description": "Apache Kafka is an open-source distributed event streaming platform for high-performance data pipelines, streaming analytics, and data integration. This script installs the latest stable release in KRaft mode as a single-node combined broker + controller.",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/kafka.sh",
-      "config_path": "/opt/kafka/config/server.properties",
-      "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 10,
-        "os": "Debian",
-        "version": "13"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": null,
-    "password": null
-  },
-  "notes": [
-    {
-      "text": "Runs in KRaft mode — no ZooKeeper required.",
-      "type": "info"
+    "name": "Apache Kafka",
+    "slug": "kafka",
+    "categories": [
+        18
+    ],
+    "date_created": "2026-05-16",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 9092,
+    "documentation": "https://kafka.apache.org/documentation/",
+    "website": "https://kafka.apache.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/apache-kafka.webp",
+    "description": "Apache Kafka is an open-source distributed event streaming platform for high-performance data pipelines, streaming analytics, and data integration. This script installs the latest stable release in KRaft mode as a single-node combined broker + controller.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/kafka.sh",
+            "config_path": "/opt/kafka/config/server.properties",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 10,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
     },
-    {
-      "text": "Cluster ID, bootstrap address, and paths are saved to /root/kafka.creds inside the container.",
-      "type": "info"
-    },
-    {
-      "text": "Default listener PLAINTEXT://0.0.0.0:9092 has no authentication. Add SASL/TLS before exposing beyond a trusted network.",
-      "type": "warning"
-    }
-  ]
+    "notes": [
+        {
+            "text": "Runs in KRaft mode — no ZooKeeper required.",
+            "type": "info"
+        },
+        {
+            "text": "Cluster ID, bootstrap address, and paths are saved to /root/kafka.creds inside the container.",
+            "type": "info"
+        },
+        {
+            "text": "Default listener PLAINTEXT://0.0.0.0:9092 has no authentication. Add SASL/TLS before exposing beyond a trusted network.",
+            "type": "warning"
+        }
+    ]
 }

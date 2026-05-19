@@ -13,30 +13,15 @@ setting_up_container
 network_check
 update_os
 
-# ----------------------------------------------------------------------------
-# Java runtime — Kafka 4.x requires JDK 17+
-# ----------------------------------------------------------------------------
 JAVA_VERSION="21" setup_java
 
-# ----------------------------------------------------------------------------
-# Service user
-# ----------------------------------------------------------------------------
 msg_info "Creating kafka system user"
-if ! getent group kafka >/dev/null; then
-  groupadd --system kafka
-fi
-if ! id -u kafka >/dev/null 2>&1; then
-  useradd --system --gid kafka --home-dir /opt/kafka \
-          --shell /usr/sbin/nologin kafka
-fi
+groupadd --system kafka
+useradd --system --gid kafka --home-dir /opt/kafka \
+        --shell /usr/sbin/nologin kafka
 msg_ok "Created kafka system user"
 
-# ----------------------------------------------------------------------------
-# Resolve and download latest Apache Kafka (not on GitHub Releases)
-# ----------------------------------------------------------------------------
-SCALA_VERSION="2.13"
-
-msg_info "Downloading Kafka"
+msg_info "Downloading Apache Kafka"
 KAFKA_VERSION=$(curl -fsSL https://downloads.apache.org/kafka/ \
   | grep -oP '(?<=href=")[0-9]+\.[0-9]+\.[0-9]+(?=/")' \
   | sort -V | tail -1)
@@ -44,8 +29,10 @@ if [[ -z "${KAFKA_VERSION}" ]]; then
   msg_error "Failed to resolve latest Kafka version"
   exit 1
 fi
+SCALA_VERSION=$(curl -fsSL "https://downloads.apache.org/kafka/${KAFKA_VERSION}/" \
+  | grep -oP 'kafka_\K[0-9]+\.[0-9]+(?=-)' | sort -V | tail -1)
 TARBALL="kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz"
-cd /tmp || exit
+cd /tmp
 $STD curl -fsSLO "https://downloads.apache.org/kafka/${KAFKA_VERSION}/${TARBALL}"
 tar -xzf "${TARBALL}" -C /opt
 mv "/opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}" /opt/kafka
@@ -55,14 +42,10 @@ mkdir -p /var/lib/kafka/data /var/log/kafka
 chown -R kafka:kafka /opt/kafka /var/lib/kafka /var/log/kafka
 msg_ok "Downloaded Kafka v${KAFKA_VERSION}"
 
-# ----------------------------------------------------------------------------
-# KRaft single-node config (combined broker + controller)
-# ----------------------------------------------------------------------------
 msg_info "Configuring KRaft broker"
 NODE_ID=1
 LISTENER_PORT=9092
 CONTROLLER_PORT=9093
-HOST_IP=$(hostname -I | awk '{print $1}')
 
 cat <<EOF >/opt/kafka/config/server.properties
 # ---- Process roles ---------------------------------------------------------
@@ -72,7 +55,7 @@ controller.quorum.voters=${NODE_ID}@localhost:${CONTROLLER_PORT}
 
 # ---- Listeners -------------------------------------------------------------
 listeners=PLAINTEXT://0.0.0.0:${LISTENER_PORT},CONTROLLER://0.0.0.0:${CONTROLLER_PORT}
-advertised.listeners=PLAINTEXT://${HOST_IP}:${LISTENER_PORT}
+advertised.listeners=PLAINTEXT://${LOCAL_IP}:${LISTENER_PORT}
 inter.broker.listener.name=PLAINTEXT
 controller.listener.names=CONTROLLER
 listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
@@ -107,9 +90,6 @@ EOF
 chown kafka:kafka /opt/kafka/config/server.properties
 msg_ok "Configured KRaft broker"
 
-# ----------------------------------------------------------------------------
-# Format storage with a generated cluster ID
-# ----------------------------------------------------------------------------
 msg_info "Formatting Kafka storage"
 CLUSTER_ID=$(/opt/kafka/bin/kafka-storage.sh random-uuid)
 runuser -u kafka -- /opt/kafka/bin/kafka-storage.sh format \
@@ -118,9 +98,6 @@ runuser -u kafka -- /opt/kafka/bin/kafka-storage.sh format \
   --ignore-formatted >/dev/null
 msg_ok "Formatted storage (cluster-id: ${CLUSTER_ID})"
 
-# ----------------------------------------------------------------------------
-# JVM env file
-# ----------------------------------------------------------------------------
 msg_info "Tuning JVM heap"
 cat <<'EOF' >/opt/kafka/config/kafka-env.sh
 export KAFKA_HEAP_OPTS="-Xms512M -Xmx1G"
@@ -130,9 +107,6 @@ EOF
 chown kafka:kafka /opt/kafka/config/kafka-env.sh
 msg_ok "Tuned JVM heap"
 
-# ----------------------------------------------------------------------------
-# systemd unit
-# ----------------------------------------------------------------------------
 msg_info "Creating systemd service"
 cat <<'EOF' >/etc/systemd/system/kafka.service
 [Unit]
@@ -160,24 +134,18 @@ EOF
 systemctl enable -q --now kafka
 msg_ok "Created systemd service"
 
-# ----------------------------------------------------------------------------
-# Global CLI tools
-# ----------------------------------------------------------------------------
 msg_info "Linking Kafka CLI tools into /usr/local/bin"
 for tool in /opt/kafka/bin/*.sh; do
   ln -sf "${tool}" "/usr/local/bin/$(basename "${tool}" .sh)"
 done
 msg_ok "Linked CLI tools"
 
-# ----------------------------------------------------------------------------
-# Cluster info file
-# ----------------------------------------------------------------------------
 msg_info "Saving cluster info"
 {
   echo "Kafka Version:       ${KAFKA_VERSION}"
   echo "Cluster ID:          ${CLUSTER_ID}"
   echo "Node ID:             ${NODE_ID}"
-  echo "Bootstrap Server:    ${HOST_IP}:${LISTENER_PORT}"
+  echo "Bootstrap Server:    ${LOCAL_IP}:${LISTENER_PORT}"
   echo "Controller Quorum:   ${NODE_ID}@localhost:${CONTROLLER_PORT}"
   echo "Data Directory:      /var/lib/kafka/data"
   echo "Log Directory:       /var/log/kafka"
@@ -186,9 +154,6 @@ msg_info "Saving cluster info"
 chmod 600 /root/kafka.creds
 msg_ok "Saved cluster info to /root/kafka.creds"
 
-# ----------------------------------------------------------------------------
-# Verify broker is up
-# ----------------------------------------------------------------------------
 msg_info "Verifying Kafka startup"
 sleep 5
 if ! systemctl is-active --quiet kafka; then

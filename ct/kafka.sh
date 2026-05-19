@@ -4,8 +4,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Author: tanansatpal
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://kafka.apache.org/
-
-APP="Kafka"
+APP="Apache Kafka"
 var_tags="${var_tags:-messaging;streaming;kraft}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
@@ -39,20 +38,20 @@ function update_script() {
   CURRENT=$(cat /opt/kafka/.version 2>/dev/null || echo "0.0.0")
 
   if [[ "$RELEASE" == "$CURRENT" ]]; then
-    msg_ok "${APP} is already at v${CURRENT}."
+    msg_ok "Apache Kafka is already at v${CURRENT}."
     exit 0
   fi
 
-  msg_info "Stopping ${APP}"
+  msg_info "Stopping Apache Kafka"
   systemctl stop kafka
-  msg_ok "Stopped ${APP}"
+  msg_ok "Stopped Apache Kafka"
 
   msg_info "Backing up configuration"
   cp -a /opt/kafka/config /opt/kafka-config.bak
   msg_ok "Backed up configuration"
 
-  msg_info "Updating ${APP} to v${RELEASE}"
-  cd /tmp || exit
+  msg_info "Updating Apache Kafka to v${RELEASE}"
+  cd /tmp
   curl -fsSLO "https://downloads.apache.org/kafka/${RELEASE}/kafka_2.13-${RELEASE}.tgz"
   rm -rf /opt/kafka.old
   mv /opt/kafka /opt/kafka.old
@@ -63,11 +62,11 @@ function update_script() {
   chown -R kafka:kafka /opt/kafka
   rm -f "/tmp/kafka_2.13-${RELEASE}.tgz"
   rm -rf /opt/kafka-config.bak /opt/kafka.old
-  msg_ok "Updated ${APP} to v${RELEASE}"
+  msg_ok "Updated Apache Kafka to v${RELEASE}"
 
-  msg_info "Starting ${APP}"
+  msg_info "Starting Apache Kafka"
   systemctl start kafka
-  msg_ok "Started ${APP}"
+  msg_ok "Started Apache Kafka"
 
   msg_ok "Update Complete"
   exit 0
