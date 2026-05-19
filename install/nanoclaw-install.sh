@@ -66,7 +66,7 @@ $STD su - nanoclaw -c "cd /home/nanoclaw/nanoclaw && \
   git init -q && \
   git remote add upstream https://github.com/nanocoai/nanoclaw.git && \
   git fetch upstream --depth=1 refs/tags/${NANOCLAW_TAG}:refs/tags/${NANOCLAW_TAG} -q && \
-  git reset --soft refs/tags/${NANOCLAW_TAG}"
+  git reset refs/tags/${NANOCLAW_TAG}"
 msg_ok "Initialized git tracking ${NANOCLAW_TAG}"
 
 msg_info "Installing Node dependencies"
