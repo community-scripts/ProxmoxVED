@@ -40,6 +40,10 @@ description
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been initialized!${CL}"
 echo -e "${INFO}${YW} NanoClaw needs an interactive setup wizard. Run it now:${CL}"
+# machinectl shell (not `su -`) so the user inherits a real systemd login
+# session — XDG_RUNTIME_DIR + DBUS_SESSION_BUS_ADDRESS are wired, the user
+# manager is reachable, and the wizard's systemd probes don't false-fail.
+# Linger is enabled for nanoclaw during install, which is the prerequisite.
 echo -e "${TAB}${GATEWAY}${BGN}pct enter ${CT_ID}${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}su - nanoclaw${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}machinectl shell nanoclaw@${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}cd nanoclaw && bash nanoclaw.sh${CL}"
