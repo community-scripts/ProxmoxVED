@@ -59,12 +59,15 @@ msg_info "Initializing git for /update-nanoclaw"
 # git ancestry — init a repo here pointing at the deployed tag so the skill
 # works out of the box.
 NANOCLAW_VERSION=$(cat ~/.nanoclaw)
+# fetch_and_deploy writes the bare version (e.g. "2.0.64") but the git tag
+# is "v2.0.64" — normalize so we can pass either format here.
+NANOCLAW_TAG="v${NANOCLAW_VERSION#v}"
 $STD su - nanoclaw -c "cd /home/nanoclaw/nanoclaw && \
   git init -q && \
   git remote add upstream https://github.com/nanocoai/nanoclaw.git && \
-  git fetch upstream --depth=1 refs/tags/${NANOCLAW_VERSION}:refs/tags/${NANOCLAW_VERSION} -q && \
-  git reset --soft refs/tags/${NANOCLAW_VERSION}"
-msg_ok "Initialized git tracking ${NANOCLAW_VERSION}"
+  git fetch upstream --depth=1 refs/tags/${NANOCLAW_TAG}:refs/tags/${NANOCLAW_TAG} -q && \
+  git reset --soft refs/tags/${NANOCLAW_TAG}"
+msg_ok "Initialized git tracking ${NANOCLAW_TAG}"
 
 msg_info "Installing Node dependencies"
 $STD su - nanoclaw -c "export COREPACK_ENABLE_DOWNLOAD_PROMPT=0; cd /home/nanoclaw/nanoclaw && pnpm install --prefer-frozen-lockfile"
