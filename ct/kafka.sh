@@ -4,7 +4,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Author: tanansatpal
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://kafka.apache.org/
-APP="Apache Kafka"
+APP="Kafka"
 var_tags="${var_tags:-messaging;streaming;kraft}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"
@@ -51,16 +51,18 @@ function update_script() {
   msg_ok "Backed up configuration"
 
   msg_info "Updating Apache Kafka to v${RELEASE}"
+  SCALA_VERSION=$(curl -fsSL "https://downloads.apache.org/kafka/${RELEASE}/" \
+    | grep -oP 'kafka_\K[0-9]+\.[0-9]+(?=-)' | sort -V | tail -1)
   cd /tmp
-  curl -fsSLO "https://downloads.apache.org/kafka/${RELEASE}/kafka_2.13-${RELEASE}.tgz"
+  curl -fsSLO "https://downloads.apache.org/kafka/${RELEASE}/kafka_${SCALA_VERSION}-${RELEASE}.tgz"
   rm -rf /opt/kafka.old
   mv /opt/kafka /opt/kafka.old
-  tar -xzf "kafka_2.13-${RELEASE}.tgz" -C /opt
-  mv "/opt/kafka_2.13-${RELEASE}" /opt/kafka
+  tar -xzf "kafka_${SCALA_VERSION}-${RELEASE}.tgz" -C /opt
+  mv "/opt/kafka_${SCALA_VERSION}-${RELEASE}" /opt/kafka
   cp -a /opt/kafka-config.bak/. /opt/kafka/config/
   echo "${RELEASE}" >/opt/kafka/.version
   chown -R kafka:kafka /opt/kafka
-  rm -f "/tmp/kafka_2.13-${RELEASE}.tgz"
+  rm -f "/tmp/kafka_${SCALA_VERSION}-${RELEASE}.tgz"
   rm -rf /opt/kafka-config.bak /opt/kafka.old
   msg_ok "Updated Apache Kafka to v${RELEASE}"
 

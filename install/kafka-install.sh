@@ -100,9 +100,9 @@ msg_ok "Formatted storage (cluster-id: ${CLUSTER_ID})"
 
 msg_info "Tuning JVM heap"
 cat <<'EOF' >/opt/kafka/config/kafka-env.sh
-export KAFKA_HEAP_OPTS="-Xms512M -Xmx1G"
-export KAFKA_JVM_PERFORMANCE_OPTS="-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -Djava.awt.headless=true"
-export LOG_DIR=/var/log/kafka
+KAFKA_HEAP_OPTS="-Xms512M -Xmx1G"
+KAFKA_JVM_PERFORMANCE_OPTS="-server -XX:+UseG1GC -XX:MaxGCPauseMillis=20 -XX:InitiatingHeapOccupancyPercent=35 -XX:+ExplicitGCInvokesConcurrent -XX:MaxInlineLevel=15 -Djava.awt.headless=true"
+LOG_DIR=/var/log/kafka
 EOF
 chown kafka:kafka /opt/kafka/config/kafka-env.sh
 msg_ok "Tuned JVM heap"
