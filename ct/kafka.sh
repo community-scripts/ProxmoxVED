@@ -80,7 +80,7 @@ description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-echo -e "${INFO}${YW} Kafka broker is available at:${CL}"
+echo -e "${INFO}${YW} Apache Kafka broker is available at:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}${IP}:9092${CL}"
 echo -e "${INFO}${YW} Controller listener (internal):${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}${IP}:9093${CL}"
