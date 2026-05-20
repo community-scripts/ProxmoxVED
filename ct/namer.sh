@@ -6,7 +6,8 @@
 # Source: https://github.com/Nanja-at-web/namer
 # Description: ProxmoxVED container wrapper for Namer with wizard-first NAS onboarding
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL}/misc/build.func")
 
 APP="Namer"
 var_tags="media;metadata;python"
