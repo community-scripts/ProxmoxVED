@@ -9,10 +9,10 @@
   "updateable": true,
   "privileged": false,
   "interface_port": 8081,
-  "documentation": "https://github.com/devdecrux/pocketr-app#readme",
-  "website": "https://github.com/devdecrux/pocketr-app",
+  "documentation": "https://docs.pocketr.app/",
+  "website": "https://pocketr.app/",
   "logo": "https://raw.githubusercontent.com/devdecrux/pocketr-app/master/pocketr-ui/public/favicon.ico",
-  "description": "Self-hosted personal finance and household budgeting application for tracking accounts, categories, ledger transactions, reports, and shared household workflows.",
+  "description": "Self-hosted personal finance and household budgeting app that helps individuals and families track spending, organize accounts, understand trends, and improve long-term financial health.",
   "install_methods": [
     {
       "type": "default",
@@ -33,10 +33,6 @@
   },
   "notes": [
     {
-      "text": "Access the app at `/frontend`; the API is served from `/api/v1` on the same port.",
-      "type": "info"
-    },
-    {
       "text": "Create the first user by registering from the web interface.",
       "type": "info"
     },
@@ -45,12 +41,8 @@
       "type": "info"
     },
     {
-      "text": "By default the script installs PostgreSQL locally. To use an existing PostgreSQL server, run with `POCKETR_DB_MODE=external`, `POCKETR_DB_URL`, `POCKETR_DB_USERNAME`, and `POCKETR_DB_PASSWORD`; the external database must already exist and be reachable.",
+      "text": "By default the script installs PostgreSQL locally and prompts for an optional PostgreSQL major version; leave it empty to use the shared helper default. For unattended local installs, set `POCKETR_PG_VERSION`. During setup, choose external PostgreSQL to use an existing database; for unattended external installs, set `POCKETR_DB_MODE=external`, `POCKETR_DB_URL`, `POCKETR_DB_USERNAME`, and `POCKETR_DB_PASSWORD`. The external database must already exist and pass the connection check.",
       "type": "info"
-    },
-    {
-      "text": "If an external database cannot be reached during install, the LXC is kept and `pocketr.service` is enabled but not started. Edit `/opt/pocketr/.env`, then run `systemctl start pocketr`; enabled services also start on LXC reboot.",
-      "type": "warning"
     },
     {
       "text": "For local PostgreSQL installs, generated database credentials are saved to `~/pocketr.creds`. Runtime configuration is in `/opt/pocketr/.env`.",

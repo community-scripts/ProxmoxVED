@@ -19,22 +19,41 @@ variables
 color
 catch_errors
 
-if command -v pveversion >/dev/null 2>&1; then
-  if [[ -n "${POCKETR_DB_MODE+x}" ]]; then
-    POCKETR_DB_MODE_WAS_SET="yes"
-  else
-    POCKETR_DB_MODE_WAS_SET="no"
-  fi
+function pocketr_db_settings() {
+  local pocketr_pg_version_was_set="no"
+  [[ -n "${POCKETR_PG_VERSION+x}" ]] && pocketr_pg_version_was_set="yes"
+
   POCKETR_DB_MODE="${POCKETR_DB_MODE:-internal}"
+  POCKETR_PG_VERSION="${POCKETR_PG_VERSION:-${PG_VERSION:-}}"
+
   if [[ "${POCKETR_DB_MODE}" != "internal" && "${POCKETR_DB_MODE}" != "external" ]]; then
     msg_error "POCKETR_DB_MODE must be 'internal' or 'external'"
     exit 1
   fi
 
-  if [[ "${POCKETR_DB_MODE_WAS_SET}" == "no" && -t 0 && -z "${POCKETR_DB_URL:-${DB_URL:-}}" && -z "${POCKETR_DB_USERNAME:-${DB_USERNAME:-}}" && -z "${POCKETR_DB_PASSWORD:-${DB_PASSWORD:-}}" ]]; then
+  if [[ ! -t 0 ]]; then
+    if [[ "${POCKETR_DB_MODE}" == "internal" && -n "${POCKETR_PG_VERSION}" && ! "${POCKETR_PG_VERSION}" =~ ^[0-9]+$ ]]; then
+      msg_error "POCKETR_PG_VERSION must be a PostgreSQL major version number"
+      exit 1
+    fi
+    export POCKETR_DB_MODE
+    export POCKETR_PG_VERSION
+    return
+  fi
+
+  if [[ "${POCKETR_DB_MODE}" == "internal" && -z "${POCKETR_DB_URL:-${DB_URL:-}}" && -z "${POCKETR_DB_USERNAME:-${DB_USERNAME:-}}" && -z "${POCKETR_DB_PASSWORD:-${DB_PASSWORD:-}}" ]]; then
     if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pocketr Database" --defaultno --yesno "Use an external PostgreSQL database?\n\nDefault: No, install PostgreSQL inside this LXC." 10 68; then
       POCKETR_DB_MODE="external"
     fi
+  fi
+
+  if [[ "${POCKETR_DB_MODE}" == "internal" && "${pocketr_pg_version_was_set}" == "no" ]]; then
+    POCKETR_PG_VERSION=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pocketr PostgreSQL Version" --inputbox "PostgreSQL major version to install.\n\nLeave empty to use the helper default." 11 68 "" 3>&1 1>&2 2>&3) || exit 1
+  fi
+
+  if [[ "${POCKETR_DB_MODE}" == "internal" && -n "${POCKETR_PG_VERSION}" && ! "${POCKETR_PG_VERSION}" =~ ^[0-9]+$ ]]; then
+    msg_error "POCKETR_PG_VERSION must be a PostgreSQL major version number"
+    exit 1
   fi
 
   if [[ "${POCKETR_DB_MODE}" == "external" ]]; then
@@ -59,11 +78,11 @@ if command -v pveversion >/dev/null 2>&1; then
   fi
 
   export POCKETR_DB_MODE
+  export POCKETR_PG_VERSION
   export POCKETR_DB_URL
   export POCKETR_DB_USERNAME
   export POCKETR_DB_PASSWORD
-  unset POCKETR_DB_MODE_WAS_SET
-fi
+}
 
 function update_script() {
   header_info
@@ -103,17 +122,11 @@ function update_script() {
 }
 
 start
+pocketr_db_settings
 build_container
 description
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
-if pct exec "$CTID" -- test -f /opt/pocketr/.service-not-started 2>/dev/null; then
-  echo -e "${INFO}${YW} Pocketr service is enabled but was not started because the external PostgreSQL connection failed.${CL}"
-  echo -e "${TAB}${YW} Edit /opt/pocketr/.env inside the LXC, then run:${CL}"
-  echo -e "${TAB}${GATEWAY}${BGN}systemctl start pocketr${CL}"
-  echo -e "${TAB}${YW} Enabled services also start automatically after an LXC reboot.${CL}"
-else
-  echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-  echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8081/frontend${CL}"
-fi
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8081${CL}"
