@@ -47,6 +47,7 @@ APP_WATCH="${APP_HOME}/watch"
 APP_WORK="${APP_HOME}/work"
 APP_FAILED="${APP_HOME}/failed"
 APP_DEST="${APP_HOME}/dest"
+APP_DATABASE="${APP_HOME}/database"
 APP_PIP_SPEC="${NAMER_PIP_SPEC:-git+https://github.com/Nanja-at-web/namer.git@codex/proxmox-setup-wizard}"
 
 log() {
@@ -95,6 +96,7 @@ create_layout() {
   install -d -o "${APP_USER}" -g "${APP_GROUP}" "${APP_WORK}"
   install -d -o "${APP_USER}" -g "${APP_GROUP}" "${APP_FAILED}"
   install -d -o "${APP_USER}" -g "${APP_GROUP}" "${APP_DEST}"
+  install -d -o "${APP_USER}" -g "${APP_GROUP}" "${APP_DATABASE}"
   install -d -o root -g root "${NAS_MOUNT}"
 }
 
@@ -133,6 +135,7 @@ updater = ConfigUpdater(allow_no_value=True)
 updater.read_string(config_text)
 
 updater["namer"]["porndb_token"].value = ""
+updater["namer"]["database_path"].value = "/var/lib/namer/database"
 
 updater["setup"]["is_setup_complete"].value = "False"
 updater["setup"]["setup_mode"].value = "wizard"
