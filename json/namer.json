@@ -1,0 +1,48 @@
+{
+  "name": "Namer",
+  "slug": "namer",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-05-20",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 6980,
+  "documentation": "https://github.com/Nanja-at-web/namer",
+  "website": "https://github.com/Nanja-at-web/namer",
+  "logo": "https://raw.githubusercontent.com/Nanja-at-web/namer/main/logo/namer.png",
+  "description": "Namer is a web app, watchdog service, and command-line tool for renaming and tagging adult video files using ThePornDB metadata, with a wizard-first setup flow for NAS-backed Proxmox LXC deployments.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/namer.sh",
+      "config_path": "/etc/namer/namer.cfg",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The first login flow is completed through the web setup wizard on port 6980.",
+      "type": "info"
+    },
+    {
+      "text": "This setup is designed for NAS-backed media paths, with NFS as the preferred storage mode.",
+      "type": "info"
+    },
+    {
+      "text": "Have your ThePornDB API token and NAS share details ready before starting the wizard.",
+      "type": "warning"
+    }
+  ]
+}
