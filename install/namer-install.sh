@@ -67,6 +67,7 @@ install_packages() {
   apt-get install -y \
     curl \
     ffmpeg \
+    git \
     nfs-common \
     python3-pip \
     python3 \
