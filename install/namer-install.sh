@@ -47,7 +47,7 @@ APP_WATCH="${APP_HOME}/watch"
 APP_WORK="${APP_HOME}/work"
 APP_FAILED="${APP_HOME}/failed"
 APP_DEST="${APP_HOME}/dest"
-APP_PIP_SPEC="${NAMER_PIP_SPEC:-namer}"
+APP_PIP_SPEC="${NAMER_PIP_SPEC:-git+https://github.com/Nanja-at-web/namer.git@codex/proxmox-setup-wizard}"
 
 log() {
   printf '[namer-install] %s\n' "$*"
@@ -105,7 +105,7 @@ install_namer() {
     python3 -m pip install --upgrade "${APP_PIP_SPEC}"
     "${APP_VENV}/bin/pip" install --upgrade "${APP_PIP_SPEC}"
   else
-    "${APP_VENV}/bin/pip" install "${APP_PIP_SPEC}"
+    "${APP_VENV}/bin/pip" install --upgrade "${APP_PIP_SPEC}"
   fi
   "${APP_VENV}/bin/python" - <<'PY' >"${APP_VERSION_FILE}"
 import importlib.metadata

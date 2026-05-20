@@ -38,9 +38,9 @@ function update_script() {
   fi
 
   msg_info "Checking latest ${APP} release"
-  RELEASE=$(curl -fsSL https://pypi.org/pypi/namer/json | grep '"version"' | head -n1 | awk -F'"' '{print $4}')
+  RELEASE=$(curl -fsSL https://api.github.com/repos/Nanja-at-web/namer/releases/latest | grep '"tag_name"' | head -n1 | awk -F'"' '{print $4}')
   if [[ -z "${RELEASE}" ]]; then
-    msg_error "Unable to determine latest ${APP} release from PyPI"
+    msg_error "Unable to determine latest ${APP} release from GitHub"
     exit 1
   fi
 
@@ -51,7 +51,7 @@ function update_script() {
   fi
 
   msg_info "Updating ${APP} from v${CURRENT} to v${RELEASE}"
-  if ! pct exec "$CTID" -- bash -lc 'export NAMER_PIP_SPEC="namer"; bash /opt/namer/namer-install.sh'; then
+  if ! pct exec "$CTID" -- bash -lc 'bash /opt/namer/namer-install.sh'; then
     msg_error "Failed to update ${APP}"
     exit 1
   fi
