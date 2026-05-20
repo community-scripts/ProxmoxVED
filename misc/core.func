@@ -551,13 +551,17 @@ silent() {
 # - Uses color_spinner() colors for output
 # ------------------------------------------------------------------------------
 spinner() {
+  # Reset bash's command hash table — package upgrades (dnf/pacman) may have
+  # moved /usr/bin <-> /usr/sbin during /usr-merge, leaving the parent shell
+  # with stale cached paths that get inherited by this background subshell.
+  hash -r 2>/dev/null || true
   local chars=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
   local msg="${SPINNER_MSG:-Processing...}"
   local i=0
   while true; do
     local index=$((i++ % ${#chars[@]}))
     printf "\r\033[2K%s %b" "${CS_YWB}${chars[$index]}${CS_CL}" "${CS_YWB}${msg}${CS_CL}"
-    sleep 0.1
+    sleep 0.1 2>/dev/null || command sleep 0.1 2>/dev/null || break
   done
 }
 

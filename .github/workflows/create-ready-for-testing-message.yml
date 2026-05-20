@@ -170,9 +170,25 @@ jobs:
 
           if [ -n "$THREAD_ID" ]; then
             echo "thread_exists=true" >> "$GITHUB_OUTPUT"
+            echo "thread_id=$THREAD_ID" >> "$GITHUB_OUTPUT"
           else
             echo "thread_exists=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Unlock existing Discord thread (re-labeled after deferral)
+        if: steps.check_thread.outputs.thread_exists == 'true'
+        run: |
+          curl -s -X PATCH "https://discord.com/api/v10/channels/${{ steps.check_thread.outputs.thread_id }}" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"locked": false}'
+
+      - name: Unlock GitHub issue (re-labeled after deferral)
+        if: steps.check_thread.outputs.thread_exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method DELETE /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/lock || true
 
       - name: Create a forumpost in Discord
         if: steps.check_thread.outputs.thread_exists != 'true'
@@ -197,10 +213,6 @@ jobs:
 
           STATUS_CODE=$(echo "$RESPONSE" | tail -n 1)
           if [[ "$HTTP_CODE" == "201" && -n "$THREAD_ID" ]]; then
-            LOCK_RESPONSE=$(curl -s -X PATCH "https://discord.com/api/v10/channels/$THREAD_ID" \
-              -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d '{"locked": true}')
             echo "Discord post created successfully!"
           else
             echo "Response: $RESPONSE"

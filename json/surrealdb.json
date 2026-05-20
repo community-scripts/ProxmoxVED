@@ -33,11 +33,11 @@
   },
   "notes": [
     {
-      "text": "SurrealDB web interface is available on port 8000.",
+      "text": "Accessing http://IP:8000 redirects to surrealdb.com/surrealist — this is by design. The hosted Surrealist UI connects back to your local instance. Use http://IP:8000 as the connection URL in Surrealist.",
       "type": "info"
     },
     {
-      "text": "Default credentials are saved in ~/surrealdb.creds.",
+      "text": "The generated root password is stored in /opt/surrealdb/.env.",
       "type": "info"
     }
   ]

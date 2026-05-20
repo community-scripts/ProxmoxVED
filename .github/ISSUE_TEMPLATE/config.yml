@@ -3,4 +3,7 @@ contact_links:
     - name: 🌟 new Script request
       url: https://github.com/community-scripts/ProxmoxVE/discussions/new?category=request-script
       about: For feature/script requests, please use the Discussions section.
+    - name: 🐞 Script Issue Report
+      url: https://github.com/community-scripts/ProxmoxVED/issues?q=is%3Aissue+is%3Aopen+label%3Atask
+      about: Found a bug in a script? Find the script's issue in the list and leave a comment there — do NOT open a new issue.
 

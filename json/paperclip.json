@@ -1,0 +1,48 @@
+{
+  "name": "Paperclip",
+  "slug": "paperclip",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-04-15",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3100,
+  "documentation": "https://docs.paperclip.ing/",
+  "website": "https://paperclip.ing/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/paperclip-ai.webp",
+  "description": "Paperclip is an open-source orchestration platform for managing autonomous AI agent teams with goals, routines, governance, and a browser-based control plane.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/paperclip.sh",
+      "config_path": "/opt/paperclip/.env",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 20,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Credentials and the initial CEO bootstrap invite are stored in `~/paperclip.creds`. Open the invite link to complete admin setup; generate a new one with `pnpm paperclipai auth bootstrap-ceo` from `/opt/paperclip` after sourcing `.env`.",
+      "type": "info"
+    },
+    {
+      "text": "Codex and Claude Code are preinstalled. Authenticate them as root inside the container (`codex` / `claude /login`) so Paperclip can reuse the credentials.",
+      "type": "info"
+    },
+    {
+      "text": "When accessing from a different hostname, update `PAPERCLIP_PUBLIC_URL` in `/opt/paperclip/.env`, restart the service, and run `pnpm paperclipai allowed-hostname <hostname>`.",
+      "type": "info"
+    }
+  ]
+}

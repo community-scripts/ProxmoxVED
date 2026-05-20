@@ -5,7 +5,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/bitfocus/companion
 
-APP="Bitfocus Companion"
+APP="Bitfocus-Companion"
 var_tags="${var_tags:-automation;media}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-512}"

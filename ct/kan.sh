@@ -47,11 +47,11 @@ function update_script() {
 
     msg_info "Building Application"
     cd /opt/kan
-    export NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true
     set -a && source /opt/kan/.env && set +a
+    export NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true CI=true
     $STD pnpm install
     $STD pnpm build --filter=@kan/web
-    unset NEXT_PUBLIC_USE_STANDALONE_OUTPUT
+    unset NEXT_PUBLIC_USE_STANDALONE_OUTPUT CI
     msg_ok "Built Application"
 
     msg_info "Setting up Standalone"

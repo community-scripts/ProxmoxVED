@@ -63,7 +63,7 @@ chmod -R 775 storage bootstrap/cache
 $STD php artisan storage:link
 $STD php artisan migrate --force
 $STD php artisan passport:client --personal --name="API" -n
-$STD php artisan optimize
+$STD php artisan optimize:clear
 msg_ok "Set up SolidTime"
 
 msg_info "Configuring Caddy"

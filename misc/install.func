@@ -37,7 +37,7 @@
 
 # Global variables for OS detection
 OS_TYPE=""     # debian, ubuntu, devuan, alpine, fedora, rocky, alma, centos, opensuse, gentoo, openeuler
-OS_FAMILY=""   # debian, alpine, rhel, suse, gentoo
+OS_FAMILY=""   # debian, alpine, rhel, suse, gentoo, arch
 OS_VERSION=""  # Version number
 PKG_MANAGER="" # apt, apk, dnf, yum, zypper, emerge
 INIT_SYSTEM="" # systemd, openrc, sysvinit
@@ -53,6 +53,8 @@ detect_os() {
     # shellcheck disable=SC1091
     . /etc/os-release
     OS_TYPE="${ID:-unknown}"
+    # Normalize to lowercase: some distros ship mixed-case IDs (e.g. openEuler ID="openEuler")
+    OS_TYPE="${OS_TYPE,,}"
     OS_VERSION="${VERSION_ID:-unknown}"
   elif [[ -f /etc/alpine-release ]]; then
     OS_TYPE="alpine"
@@ -128,6 +130,11 @@ detect_os() {
     OS_FAMILY="suse"
     PKG_MANAGER="zypper"
     ;;
+  arch | archlinux)
+    OS_TYPE="arch"
+    OS_FAMILY="arch"
+    PKG_MANAGER="pacman"
+    ;;
   gentoo)
     OS_FAMILY="gentoo"
     PKG_MANAGER="emerge"
@@ -167,17 +174,35 @@ _bootstrap() {
       yum install -y curl &>/dev/null
     elif command -v zypper &>/dev/null; then
       zypper install -y curl &>/dev/null
+    elif command -v pacman &>/dev/null; then
+      pacman -Sy --noconfirm curl &>/dev/null
     elif command -v emerge &>/dev/null; then
-      emerge --quiet net-misc/curl &>/dev/null
+      # Gentoo stage3 has no curl and no portage tree on first boot.
+      # Sync portage (webrsync = fast snapshot) then prefer binary package.
+      emerge-webrsync --quiet &>/dev/null || emerge --sync --quiet &>/dev/null
+      emerge --quiet --getbinpkg --usepkg net-misc/curl &>/dev/null ||
+        emerge --quiet net-misc/curl &>/dev/null
     fi
+  fi
+
+  # Last resort: if curl still missing but wget is available (Gentoo stage3),
+  # use wget for the bootstrap source fetch so we don't fail immediately.
+  local _fetch
+  if command -v curl &>/dev/null; then
+    _fetch="curl -fsSL"
+  elif command -v wget &>/dev/null; then
+    _fetch="wget -qO-"
+  else
+    echo "ERROR: neither curl nor wget available — cannot bootstrap" >&2
+    exit 1
   fi
 
   # Configurable base URL for development — override with COMMUNITY_SCRIPTS_URL
   COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
 
   # Source core functions
-  source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/core.func")
-  source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/error_handler.func")
+  source <($_fetch "$COMMUNITY_SCRIPTS_URL/misc/core.func")
+  source <($_fetch "$COMMUNITY_SCRIPTS_URL/misc/error_handler.func")
   load_functions
   catch_errors
 
@@ -187,6 +212,36 @@ _bootstrap() {
 # Run bootstrap and OS detection
 _bootstrap
 detect_os
+
+# Persist diagnostics setting inside container (exported from build.func)
+# so addon scripts running later can find the user's choice
+if [[ ! -f /usr/local/community-scripts/diagnostics ]]; then
+  mkdir -p /usr/local/community-scripts
+  echo "DIAGNOSTICS=${DIAGNOSTICS:-no}" >/usr/local/community-scripts/diagnostics
+fi
+
+# ------------------------------------------------------------------------------
+# post_progress_to_api()
+#
+# - Lightweight progress ping from inside the container
+# - Updates the existing telemetry record status
+# - Arguments:
+#   * $1: status (optional, default: "configuring")
+# - Signals that the installation is actively progressing (not stuck)
+# - Fire-and-forget: never blocks or fails the script
+# - Only executes if DIAGNOSTICS=yes and RANDOM_UUID is set
+# ------------------------------------------------------------------------------
+post_progress_to_api() {
+  command -v curl &>/dev/null || return 0
+  [[ "${DIAGNOSTICS:-no}" == "no" ]] && return 0
+  [[ -z "${RANDOM_UUID:-}" ]] && return 0
+
+  local progress_status="${1:-configuring}"
+
+  curl -fsS -m 5 -X POST "https://telemetry.community-scripts.org/telemetry" \
+    -H "Content-Type: application/json" \
+    -d "{\"random_id\":\"${RANDOM_UUID}\",\"execution_id\":\"${EXECUTION_ID:-${RANDOM_UUID}}\",\"type\":\"lxc\",\"nsapp\":\"${app:-unknown}\",\"status\":\"${progress_status}\"}" &>/dev/null || true
+}
 
 # ==============================================================================
 # SECTION 2: PACKAGE MANAGER ABSTRACTION
@@ -198,6 +253,16 @@ detect_os
 # Updates package manager cache/database
 # ------------------------------------------------------------------------------
 pkg_update() {
+  # Safety: re-detect if PKG_MANAGER doesn't match available commands
+  if [[ "$PKG_MANAGER" == "apt" ]] && ! command -v apt-get &>/dev/null; then
+    msg_warn "PKG_MANAGER='apt' but apt-get not found (OS: ${OS_TYPE:-unknown}) — re-detecting"
+    detect_os
+  fi
+  if [[ "$PKG_MANAGER" == "apk" ]] && ! command -v apk &>/dev/null; then
+    msg_warn "PKG_MANAGER='apk' but apk not found (OS: ${OS_TYPE:-unknown}) — re-detecting"
+    detect_os
+  fi
+
   case "$PKG_MANAGER" in
   apt)
     if ! $STD apt-get update; then
@@ -380,6 +445,72 @@ EOF
     fi
     ;;
   dnf)
+    # Speed up DNF: enable parallel downloads if not already configured
+    if [[ -f /etc/dnf/dnf.conf ]] && ! grep -q 'max_parallel_downloads' /etc/dnf/dnf.conf; then
+      echo 'max_parallel_downloads=10' >>/etc/dnf/dnf.conf
+    fi
+    # openEuler: default repos point to repo.openeuler.org (China).
+    # Pick the fastest reachable mirror based on timezone to avoid cross-continent latency.
+    if [[ "${OS_TYPE:-}" == "openeuler" ]] && ls /etc/yum.repos.d/*.repo &>/dev/null 2>&1; then
+      if grep -ql 'repo\.openeuler\.org\|repo\.openeuler\.openatom\.cn' /etc/yum.repos.d/*.repo 2>/dev/null; then
+        local _oe_tz _oe_mirror _oe_candidates=()
+        _oe_tz=$(cat /etc/timezone 2>/dev/null || timedatectl show --property=Timezone --value 2>/dev/null || echo "UTC")
+        # Build candidate list, best-first for the region
+        case "$_oe_tz" in
+        Europe/* | Arctic/*)
+          _oe_candidates=(
+            "https://ftp.agdsn.de/openeuler/"               # Germany (TU Dresden)
+            "https://mirrors.dotsrc.org/openeuler/"         # Denmark
+            "https://mirror.accum.se/mirror/openeuler.org/" # Sweden
+            "https://ftp.belnet.be/mirror/openeuler/"       # Belgium
+          )
+          ;;
+        America/*)
+          # No dedicated Americas mirror yet — European mirrors still beat China
+          _oe_candidates=(
+            "https://ftp.agdsn.de/openeuler/"
+            "https://mirrors.dotsrc.org/openeuler/"
+            "https://ftp.belnet.be/mirror/openeuler/"
+          )
+          ;;
+        Asia/Singapore | Asia/Kuala_Lumpur | Asia/Jakarta | Asia/Bangkok | Asia/Ho_Chi_Minh)
+          _oe_candidates=(
+            "https://mirror.freedif.org/openEuler/"   # Singapore
+            "https://linux.domainesia.com/openeuler/" # Indonesia
+            "https://mirrors.aliyun.com/openeuler/"   # China (fast in SEA)
+          )
+          ;;
+        Asia/* | Australia/* | Pacific/*)
+          _oe_candidates=(
+            "https://mirrors.aliyun.com/openeuler/"
+            "https://mirrors.huaweicloud.com/openeuler/"
+            "https://mirror.freedif.org/openEuler/"
+          )
+          ;;
+        *)
+          # Unknown timezone — try EU mirrors before falling back to origin
+          _oe_candidates=(
+            "https://ftp.agdsn.de/openeuler/"
+            "https://mirrors.dotsrc.org/openeuler/"
+          )
+          ;;
+        esac
+        # Pick first mirror that responds within 3 s
+        _oe_mirror=""
+        for _m in "${_oe_candidates[@]}"; do
+          if curl -sf --head --max-time 3 "$_m" &>/dev/null; then
+            _oe_mirror="$_m"
+            break
+          fi
+        done
+        if [[ -n "$_oe_mirror" ]]; then
+          sed -i -E \
+            "s|https?://repo\.openeuler\.org/|${_oe_mirror}|g;
+             s|https?://repo\.openeuler\.openatom\.cn/|${_oe_mirror}|g" \
+            /etc/yum.repos.d/*.repo
+        fi
+      fi
+    fi
     $STD dnf makecache
     ;;
   yum)
@@ -387,6 +518,9 @@ EOF
     ;;
   zypper)
     $STD zypper refresh
+    ;;
+  pacman)
+    $STD pacman -Sy --noconfirm
     ;;
   emerge)
     $STD emerge --sync
@@ -404,6 +538,12 @@ EOF
 # Upgrades all installed packages
 # ------------------------------------------------------------------------------
 pkg_upgrade() {
+  # Safety: re-detect if PKG_MANAGER doesn't match available commands
+  if [[ "$PKG_MANAGER" == "apt" ]] && ! command -v apt-get &>/dev/null; then
+    msg_warn "PKG_MANAGER='apt' but apt-get not found (OS: ${OS_TYPE:-unknown}) — re-detecting"
+    detect_os
+  fi
+
   case "$PKG_MANAGER" in
   apt)
     $STD apt-get -o Dpkg::Options::="--force-confold" -y dist-upgrade
@@ -419,6 +559,9 @@ pkg_upgrade() {
     ;;
   zypper)
     $STD zypper -n update
+    ;;
+  pacman)
+    $STD pacman -Su --noconfirm
     ;;
   emerge)
     $STD emerge --quiet --update --deep @world
@@ -457,6 +600,9 @@ pkg_install() {
   zypper)
     $STD zypper install -y "${packages[@]}"
     ;;
+  pacman)
+    $STD pacman -S --noconfirm "${packages[@]}"
+    ;;
   emerge)
     $STD emerge --quiet "${packages[@]}"
     ;;
@@ -492,6 +638,9 @@ pkg_remove() {
   zypper)
     $STD zypper remove -y "${packages[@]}"
     ;;
+  pacman)
+    $STD pacman -R --noconfirm "${packages[@]}"
+    ;;
   emerge)
     $STD emerge --quiet --unmerge "${packages[@]}"
     ;;
@@ -525,6 +674,9 @@ pkg_clean() {
     ;;
   zypper)
     $STD zypper clean
+    ;;
+  pacman)
+    $STD pacman -Sc --noconfirm
     ;;
   emerge)
     $STD emerge --quiet --depclean
@@ -785,6 +937,12 @@ EOF
 setting_up_container() {
   msg_info "Setting up Container OS"
 
+  # Fix Debian 13 LXC template bug where / is owned by nobody
+  # Only attempt in privileged containers (unprivileged cannot chown /)
+  if [[ "$(stat -c '%U' /)" != "root" ]]; then
+    (chown root:root / 2>/dev/null) || true
+  fi
+
   # Wait for network
   local i
   for ((i = RETRY_NUM; i > 0; i--)); do
@@ -804,6 +962,31 @@ setting_up_container() {
   # Remove Python EXTERNALLY-MANAGED restriction (Debian 12+, Ubuntu 23.04+)
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
 
+  # Fix locale warnings from perl/apt (e.g. Devuan inherits host locale but hasn't generated it)
+  # C.UTF-8 is always available without locale-gen on any Linux system
+  if [[ "$PKG_MANAGER" == "apt" ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+    export LANGUAGE=C.UTF-8
+    grep -qxF 'LC_ALL=C.UTF-8' /etc/environment 2>/dev/null || echo -e 'LC_ALL=C.UTF-8\nLANG=C.UTF-8' >>/etc/environment
+  fi
+
+  # Arch Linux: pacman 7+ uses Landlock sandboxing for the 'alpm' user, which
+  # requires kernel features unavailable in unprivileged LXC containers.
+  # Disabling DownloadUser falls back to running as root (safe inside an LXC).
+  if [[ "$PKG_MANAGER" == "pacman" && -f /etc/pacman.conf ]]; then
+    sed -i 's/^\s*DownloadUser\s*=.*/#&/' /etc/pacman.conf
+    grep -q '^DisableSandbox' /etc/pacman.conf || sed -i '/^\[options\]/a DisableSandbox' /etc/pacman.conf
+
+    # Initialize pacman keyring (required for signature verification on first
+    # upgrade). The Arch base template ships without an initialized keyring.
+    if [[ ! -f /etc/pacman.d/gnupg/pubring.gpg ]] || [[ ! -s /etc/pacman.d/gnupg/pubring.gpg ]]; then
+      $STD pacman-key --init
+      $STD pacman-key --populate archlinux
+    fi
+  fi
+
   # Disable network wait services for faster boot
   case "$INIT_SYSTEM" in
   systemd)
@@ -813,6 +996,7 @@ setting_up_container() {
 
   msg_ok "Set up Container OS"
   msg_ok "Network Connected: ${BL}$(get_ip)"
+  post_progress_to_api
 }
 
 # ------------------------------------------------------------------------------
@@ -858,7 +1042,7 @@ network_check() {
   fi
 
   # DNS resolution checks
-  local GIT_HOSTS=("github.com" "raw.githubusercontent.com" "git.community-scripts.org")
+  local GIT_HOSTS=("github.com" "raw.githubusercontent.com" "api.github.com" "git.community-scripts.org")
   local GIT_STATUS="Git DNS:"
   local DNS_FAILED=false
 
@@ -913,16 +1097,33 @@ update_os() {
   # Configure APT cacher proxy if enabled (Debian/Ubuntu only)
   if [[ "$PKG_MANAGER" == "apt" && "${CACHER:-}" == "yes" ]]; then
     echo 'Acquire::http::Proxy-Auto-Detect "/usr/local/bin/apt-proxy-detect.sh";' >/etc/apt/apt.conf.d/00aptproxy
+    local _proxy_raw="${CACHER_IP}"
+    local _proxy_host _proxy_port _proxy_url
+    # Parse host and port from URL or plain IP/hostname
+    _proxy_host=$(echo "$_proxy_raw" | sed -e 's|https\?://||' -e 's|/.*||' | cut -d: -f1)
+    _proxy_port=$(echo "$_proxy_raw" | sed -e 's|https\?://||' -e 's|/.*||' | cut -s -d: -f2)
+    if [[ "$_proxy_raw" =~ ^https?:// ]]; then
+      # Full URL provided — use as-is for proxy output, extract port for nc check
+      _proxy_url="$_proxy_raw"
+      _proxy_port="${_proxy_port:-80}"
+    else
+      # Legacy: plain IP or hostname — default to http + port 3142
+      _proxy_port="${_proxy_port:-3142}"
+      _proxy_url="http://${_proxy_raw}:${_proxy_port}"
+    fi
     cat <<EOF >/usr/local/bin/apt-proxy-detect.sh
 #!/bin/bash
-if nc -w1 -z "${CACHER_IP}" 3142; then
-  echo -n "http://${CACHER_IP}:3142"
+if nc -w1 -z "${_proxy_host}" ${_proxy_port}; then
+  echo -n "${_proxy_url}"
 else
   echo -n "DIRECT"
 fi
 EOF
     chmod +x /usr/local/bin/apt-proxy-detect.sh
   fi
+
+  # Re-detect OS to ensure PKG_MANAGER is correct (guards against stale env)
+  detect_os
 
   # Update and upgrade
   pkg_update
@@ -932,16 +1133,29 @@ EOF
   rm -rf /usr/lib/python3.*/EXTERNALLY-MANAGED 2>/dev/null || true
 
   msg_ok "Updated Container OS"
+  post_progress_to_api
 
   # Source appropriate tools.func based on OS
+  local tools_content
   case "$OS_FAMILY" in
   alpine)
-    source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/alpine-tools.func")
+    tools_content=$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/alpine-tools.func") || {
+      msg_error "Failed to download alpine-tools.func"
+      exit 115
+    }
     ;;
   *)
-    source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/tools.func")
+    tools_content=$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/tools.func") || {
+      msg_error "Failed to download tools.func"
+      exit 115
+    }
     ;;
   esac
+  source /dev/stdin <<<"$tools_content"
+  if ! declare -f fetch_and_deploy_gh_release >/dev/null 2>&1; then
+    msg_error "tools.func loaded but incomplete — missing expected functions"
+    exit 115
+  fi
 }
 
 # ==============================================================================
@@ -954,16 +1168,48 @@ EOF
 # Configures Message of the Day and SSH settings
 # ------------------------------------------------------------------------------
 motd_ssh() {
-  # Set terminal to 256-color mode
-  grep -qxF "export TERM='xterm-256color'" /root/.bashrc 2>/dev/null || echo "export TERM='xterm-256color'" >>/root/.bashrc
+  # Set 256-color mode only for SSH sessions; LXC console gets TERM from agetty.
+  # Forcing TERM=xterm-256color on the LXC noVNC console can break readline's
+  # window-size detection and cause CSI 6n response leaks ("R;80R" garbage).
+  if ! grep -q '__cs_term_setup' /root/.bashrc 2>/dev/null; then
+    cat >>/root/.bashrc <<'EOF'
+
+# __cs_term_setup: community-scripts terminal init
+if [ -n "${SSH_CONNECTION:-}${SSH_TTY:-}" ]; then
+  export TERM='xterm-256color'
+fi
+EOF
+  fi
+
+  # For LXC login shells (bash_profile runs before readline initialises):
+  # lock TERM=linux on the physical console so readline never queries CPR.
+  # This must run in bash_profile, not bashrc, because login shells source
+  # bash_profile first — readline reads TERM before any profile.d script runs.
+  if ! grep -q '__cs_console_term' /root/.bash_profile 2>/dev/null; then
+    cat >>/root/.bash_profile <<'EOF'
+
+# __cs_console_term: lock TERM=linux on LXC noVNC console to prevent R;80R garbage
+# (readline 8.2+ sends ESC[6n if TERM supports CPR; linux terminfo has no CPR cap)
+if [ -z "${SSH_CONNECTION:-}${SSH_TTY:-}" ]; then
+  _ct=$(tty 2>/dev/null)
+  case "$_ct" in
+    /dev/console|/dev/tty[0-9]*)
+      export TERM=linux ;;
+  esac
+  unset _ct
+fi
+EOF
+  fi
 
   # Get OS information
   local os_name="$OS_TYPE"
   local os_version="$OS_VERSION"
 
   if [[ -f /etc/os-release ]]; then
-    os_name=$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '"')
-    os_version=$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+    os_name=$(grep ^NAME /etc/os-release | cut -d= -f2 | tr -d '"' || true)
+    os_version=$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"' || true)
+    [[ -z "$os_name" ]] && os_name="$OS_TYPE"
+    [[ -z "$os_version" ]] && os_version="${OS_VERSION:-rolling}"
   fi
 
   # Create MOTD profile script
@@ -977,6 +1223,23 @@ echo -e "${YW:-} Hostname: ${GN:-}\$(hostname)${CL:-}"
 echo -e "${YW:-} IP Address: ${GN:-}\$(hostname -I 2>/dev/null | awk '{print \$1}' || ip -4 addr show scope global | awk '/inet /{print \$2}' | cut -d/ -f1 | head -1)${CL:-}"
 echo -e "${YW:-} Repository: ${GN:-}https://github.com/community-scripts/ProxmoxVED${CL:-}"
 echo ""
+EOF
+  # openSUSE's /etc/bash.bashrc sources profile.d via `[ -x ]`, not `[ -r ]`,
+  # so the MOTD script must be executable to be loaded on every distro.
+  chmod +x "$PROFILE_FILE"
+
+  # Belt-and-suspenders: also write a static /etc/motd. PAM's pam_motd reads
+  # this on every login regardless of how /etc/profile.d is sourced, so the
+  # MOTD is shown even on distros where bash login profile loading is quirky
+  # (Fedora, Arch, openSUSE, etc.). Static fields only — dynamic IP/hostname
+  # come from the profile.d script above when it's sourced.
+  cat >/etc/motd <<EOF
+
+${APPLICATION:-Container} LXC Container - DEV Repository
+WARNING: This is a DEVELOPMENT version (ProxmoxVED). Do NOT use in production!
+ OS: ${os_name} - Version: ${os_version}
+ Repository: https://github.com/community-scripts/ProxmoxVED
+
 EOF
 
   # Disable default MOTD scripts (Debian/Ubuntu)
@@ -999,6 +1262,9 @@ EOF
         pkg_install openssh-server
         ;;
       zypper)
+        pkg_install openssh
+        ;;
+      pacman)
         pkg_install openssh
         ;;
       emerge)
@@ -1027,6 +1293,7 @@ EOF
       esac
     fi
   fi
+  post_progress_to_api
 }
 
 # ==============================================================================
@@ -1052,35 +1319,65 @@ customize() {
       systemctl mask systemd-homed-firstboot.service &>/dev/null || true
       systemctl mask systemd-homed.service &>/dev/null || true
 
-      # Configure console-getty for auto-login in LXC containers
-      # console-getty.service is THE service that handles /dev/console in LXC
-      # It's present on all systemd distros but not enabled by default on Fedora/RHEL
+      # In LXC there are TWO possible getty paths:
+      #   - container-getty@1.service  -> /dev/tty1 (Proxmox web noVNC console)
+      #   - console-getty.service       -> /dev/console (pct console / serial)
+      # We configure both with --autologin --noissue (prevents banner spam from
+      # rapid respawns) so whichever one the user opens works.
+      local _agetty_opts='--autologin root --noclear --noissue --keep-baud'
+
+      if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
+        mkdir -p /etc/systemd/system/container-getty@1.service.d
+        cat >/etc/systemd/system/container-getty@1.service.d/override.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty ${_agetty_opts} tty%I 115200,38400,9600 - \$TERM
+EOF
+      fi
 
       if [[ -f /usr/lib/systemd/system/console-getty.service ]]; then
         mkdir -p /etc/systemd/system/console-getty.service.d
-        cat >/etc/systemd/system/console-getty.service.d/override.conf <<'EOF'
+        cat >/etc/systemd/system/console-getty.service.d/override.conf <<EOF
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud 115200,38400,9600 - $TERM
+ExecStart=-/sbin/agetty ${_agetty_opts} 115200,38400,9600 - \$TERM
 EOF
-        # Enable console-getty for LXC web console (required on Fedora/RHEL)
+        # Enable console-getty for pct console (not enabled by default on Fedora/RHEL)
         systemctl enable console-getty.service &>/dev/null || true
       fi
 
-      # Also configure container-getty@1 (Debian/Ubuntu default in LXC)
-      if [[ -f /usr/lib/systemd/system/container-getty@.service ]]; then
-        mkdir -p /etc/systemd/system/container-getty@1.service.d
-        cat >/etc/systemd/system/container-getty@1.service.d/override.conf <<'EOF'
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 - $TERM
-EOF
-      fi
+      # Fedora/RHEL: /etc/profile.d/vte*.sh sets a PROMPT_COMMAND that, combined
+      # with broken TIOCGWINSZ in LXC noVNC, causes CSI 6n responses to leak as
+      # "R;80R" garbage at the shell prompt. Disable by renaming (chmod -x is
+      # ineffective; /etc/profile sources by readability, not executable bit).
+      # Versioned names exist on Fedora 43+ (vte-2.91.sh).
+      shopt -s nullglob
+      for _f in /etc/profile.d/vte*.sh /etc/profile.d/vte*.csh; do
+        mv "$_f" "${_f}.disabled" 2>/dev/null || true
+      done
+      shopt -u nullglob
 
-      # Reload systemd and restart getty services to apply auto-login
+      # LXC pseudo-tty often reports winsize 0x0; bash readline then falls back
+      # to CSI 6n cursor-position queries whose responses leak as input.
+      # Setting COLUMNS/LINES + stty makes readline skip the query entirely.
+      cat >/etc/profile.d/00-lxc-term-size.sh <<'EOF'
+# community-scripts: ensure sane terminal size in LXC console
+if [ -t 0 ] && [ -t 1 ]; then
+  _sz=$(stty size 2>/dev/null)
+  if [ -z "$_sz" ] || [ "${_sz% *}" = "0" ]; then
+    stty rows 24 cols 80 2>/dev/null
+    export LINES=24 COLUMNS=80
+  fi
+  unset _sz
+fi
+EOF
+      chmod +x /etc/profile.d/00-lxc-term-size.sh
+
       systemctl daemon-reload
-      systemctl restart console-getty.service &>/dev/null || true
-      systemctl restart container-getty@1.service &>/dev/null || true
+      # Restart only what's currently active to avoid spawning duplicate gettys
+      systemctl is-active container-getty@1.service &>/dev/null && systemctl restart container-getty@1.service &>/dev/null || true
+      systemctl is-active console-getty.service &>/dev/null && systemctl restart console-getty.service &>/dev/null || true
+      touch /root/.hushlogin
       ;;
 
     openrc)
@@ -1092,36 +1389,30 @@ EOF
       ;;
 
     sysvinit)
-      # Devuan/older systems - modify inittab for auto-login
-      # Devuan 5 (daedalus) uses SysVinit with various inittab formats
-      # LXC can use /dev/console OR /dev/tty1 depending on how pct console connects
+      # Devuan/older SysVinit systems: modify inittab for auto-login on tty1 + console
       if [[ -f /etc/inittab ]]; then
-        # Backup original inittab
         cp /etc/inittab /etc/inittab.bak 2>/dev/null || true
 
-        # Enable autologin on tty1 (for direct access) - handle various formats
-        # Devuan uses format: 1:2345:respawn:/sbin/getty 38400 tty1
-        sed -i 's|^\(1:[0-9]*:respawn:\).*getty.*tty1.*|1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
+        # Replace the tty1 getty line with an autologin version.
+        # Devuan 5 ships: 1:2345:respawn:/sbin/agetty --noclear tty1 38400 linux
+        sed -i 's|^\(1:[0-9]*:respawn:\).*[ag]etty.*tty1.*|1:2345:respawn:/sbin/agetty --autologin root --noclear tty1 38400 linux|' /etc/inittab
 
-        # CRITICAL: Add/replace console entry for LXC - this is what pct console uses!
-        # Remove any existing console entries first (commented or not)
-        sed -i '/^[^#]*:.*:respawn:.*getty.*console/d' /etc/inittab
+        # Add/replace console entry (pct console maps to /dev/console in some configs)
+        sed -i '/^[^#]*:.*:respawn:.*[ag]etty.*console/d' /etc/inittab
         sed -i '/^# LXC console autologin/d' /etc/inittab
+        cat >>/etc/inittab <<'EOF'
 
-        # Add new console entry for LXC at the end
-        echo "" >>/etc/inittab
-        echo "# LXC console autologin (added by community-scripts)" >>/etc/inittab
-        echo "co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200 linux" >>/etc/inittab
+# LXC console autologin (added by community-scripts)
+co:2345:respawn:/sbin/agetty --autologin root --noclear console 115200 linux
+EOF
 
-        # Force a reload of inittab and respawn ALL getty processes
-        # Kill ALL getty processes to force respawn with new autologin settings
-        pkill -9 -f '[ag]etty' &>/dev/null || true
-
-        # Small delay to let init notice the dead processes
-        sleep 1
-
-        # Reload inittab - try multiple methods
+        # IMPORTANT: signal init to load the new inittab into memory FIRST,
+        # then kill the running getty — init will respawn it using the new config.
+        # (Killing first causes init to respawn with the OLD in-memory config.)
         telinit q &>/dev/null || init q &>/dev/null || kill -HUP 1 &>/dev/null || true
+        sleep 1
+        pkill -f '[ag]etty.*tty1' &>/dev/null || true
+        pkill -f '[ag]etty.*console' &>/dev/null || true
       fi
       touch /root/.hushlogin
       ;;
@@ -1143,6 +1434,7 @@ EOF
     chmod 700 /root/.ssh
     chmod 600 /root/.ssh/authorized_keys
   fi
+  post_progress_to_api
 }
 
 # ==============================================================================
@@ -1194,4 +1486,14 @@ os_info() {
   echo "OS Version:   $OS_VERSION"
   echo "Pkg Manager:  $PKG_MANAGER"
   echo "Init System:  $INIT_SYSTEM"
+}
+
+# ------------------------------------------------------------------------------
+# cleanup_lxc()
+#
+# Overrides core.func version to support all OS types (not just Alpine/Debian)
+# Cleans package caches and removes unnecessary packages after installation
+# ------------------------------------------------------------------------------
+cleanup_lxc() {
+  pkg_clean
 }

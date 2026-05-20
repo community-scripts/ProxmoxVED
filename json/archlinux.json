@@ -1,0 +1,40 @@
+{
+    "name": "Arch Linux",
+    "slug": "archlinux",
+    "categories": [
+        2
+    ],
+    "date_created": "2026-04-27",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": null,
+    "documentation": "https://wiki.archlinux.org/",
+    "website": "https://archlinux.org/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/arch-linux.webp",
+    "description": "Arch Linux is a lightweight, rolling-release Linux distribution that follows a keep-it-simple philosophy. It provides a minimalist base system that users can build upon according to their needs.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/archlinux.sh",
+            "config_path": null,
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 4,
+                "os": "Arch Linux",
+                "version": "base"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Arch Linux is a rolling-release distribution. Run 'pacman -Syu' regularly to keep the system up to date.",
+            "type": "info"
+        }
+    ]
+}

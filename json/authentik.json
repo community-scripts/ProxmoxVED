@@ -21,7 +21,7 @@
       "resources": {
         "cpu": 4,
         "ram": 4096,
-        "hdd": 10,
+        "hdd": 11,
         "os": "Debian",
         "version": "13"
       }
@@ -32,6 +32,10 @@
     "password": null
   },
   "notes": [
+    {
+      "text": "A 1 GB secondary volume is automatically created and attached to the container at /opt/authentik-data. This is required for Authentik's internal file manager to work.",
+      "type": "info"
+    },
     {
       "text": "You will get a Not Found error if initial setup URL doesn't include the trailing forward slash /. Make sure you use the complete url (http://<your server's IP or hostname>:9000/if/flow/initial-setup/) including the trailing forward slash.",
       "type": "info"

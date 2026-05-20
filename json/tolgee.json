@@ -1,0 +1,44 @@
+{
+    "name": "Tolgee",
+    "slug": "tolgee",
+    "categories": [
+        20
+    ],
+    "date_created": "2026-04-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8080,
+    "documentation": "https://docs.tolgee.io/platform/self_hosting",
+    "website": "https://tolgee.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/tolgee.webp",
+    "description": "Tolgee is an open-source localization platform that helps teams manage translations with in-context editing and collaboration features.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/tolgee.sh",
+            "config_path": "/opt/tolgee/.env",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": "Stored in /opt/tolgee/data/initial.pwd"
+    },
+    "notes": [
+        {
+            "text": "Tolgee listens on port 8080 by default.",
+            "type": "info"
+        },
+        {
+            "text": "The initial admin password is generated automatically and stored in /opt/tolgee/data/initial.pwd on first start.",
+            "type": "info"
+        }
+    ]
+}

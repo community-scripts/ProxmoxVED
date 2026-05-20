@@ -1,0 +1,44 @@
+{
+    "name": "Nezha",
+    "slug": "nezha",
+    "categories": [
+        9
+    ],
+    "date_created": "2026-04-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 8008,
+    "documentation": "https://nezha.wiki/en_US/guide/dashboard.html",
+    "website": "https://nezha.wiki/en_US/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nezha.webp",
+    "config_path": "/opt/nezha/data/config.yaml",
+    "description": "Nezha is a lightweight server and website monitoring dashboard with real-time status, alerts, and remote operation features.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/nezha.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": "admin"
+    },
+    "notes": [
+        {
+            "text": "Change the default admin password immediately after first login.",
+            "type": "warning"
+        },
+        {
+            "text": "Dashboard is exposed on port 8008 by default.",
+            "type": "info"
+        }
+    ]
+}

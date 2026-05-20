@@ -1,0 +1,44 @@
+{
+  "name": "ESPConnect",
+  "slug": "espconnect",
+  "categories": [
+    16,
+    20
+  ],
+  "date_created": "2026-04-28",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 443,
+  "documentation": "https://github.com/thelastoutpostworkshop/ESPConnect",
+  "website": "https://github.com/thelastoutpostworkshop/ESPConnect",
+  "logo": "https://avatars.githubusercontent.com/u/127616157?s=200&v=4",
+  "description": "ESPConnect is a zero-installation web application that lets you explore, back up, and manage ESP32 devices from a browser.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/espconnect.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 512,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This installs and serves the static ESPConnect web build from the latest GitHub release.",
+      "type": "info"
+    },
+    {
+      "text": "ESPConnect uses the browser Web Serial API, so the container serves HTTPS with a self-signed certificate; accept the certificate warning before using the app.",
+      "type": "warning"
+    }
+  ]
+}

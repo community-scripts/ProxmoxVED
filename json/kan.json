@@ -37,7 +37,11 @@
       "type": "warning"
     },
     {
-      "text": "Update NEXT_PUBLIC_BASE_URL in /opt/kan/.env if accessing from a different hostname.",
+      "text": "Update NEXT_PUBLIC_BASE_URL and BETTER_AUTH_TRUSTED_ORIGINS in /opt/kan/.env if accessing from a different hostname or via reverse proxy. After changing, run: rm -rf /opt/kan/apps/web/.next /opt/kan/.turbo && cd /opt/kan && NEXT_PUBLIC_USE_STANDALONE_OUTPUT=true pnpm build --filter=@kan/web && cp -r /opt/kan/apps/web/.next/static /opt/kan/apps/web/.next/standalone/apps/web/.next/ && cp -r /opt/kan/apps/web/public /opt/kan/apps/web/.next/standalone/apps/web/ && systemctl restart kan",
+      "type": "info"
+    },
+    {
+      "text": "Trello integration requires TRELLO_APP_API_KEY and TRELLO_APP_API_SECRET in /opt/kan/.env. Create a Power-Up at https://trello.com/power-ups/admin to obtain these credentials, then rebuild (see above).",
       "type": "info"
     }
   ]

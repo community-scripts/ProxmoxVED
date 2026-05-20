@@ -26,35 +26,70 @@ fetch_and_deploy_gh_release "puter" "HeyPuter/puter" "tarball"
 
 msg_info "Building Application"
 cd /opt/puter
-node -e "const f=require('fs'),p=JSON.parse(f.readFileSync('package.json'));p.overrides={'better-sqlite3':'>=12.0.0'};f.writeFileSync('package.json',JSON.stringify(p,null,2))"
-rm -f package-lock.json
-$STD npm install
-cd /opt/puter/src/gui
+$STD npm ci
 $STD npm run build
-cd /opt/puter
-cp -r src/gui/dist dist
 msg_ok "Built Application"
 
-msg_info "Creating Directories"
-mkdir -p /etc/puter /var/puter
-msg_ok "Created Directories"
-
 msg_info "Configuring Application"
+mkdir -p /etc/puter/extensions /var/puter/s3-data /var/puter/s3-storage
+JWT_SECRET=$(openssl rand -hex 64)
+URL_SIGNATURE_SECRET=$(openssl rand -hex 64)
 cat <<EOF >/etc/puter/config.json
 {
   "config_name": "proxmox",
-  "domain": "${LOCAL_IP}",
+  "env": "prod",
+  "domain": "puter.${LOCAL_IP}.nip.io",
   "protocol": "http",
-  "http_port": 4100,
-  "experimental_no_subdomain": true,
-  "services": {
-    "database": {
-      "engine": "sqlite",
-      "path": "puter-database.sqlite"
+  "port": 4100,
+  "pub_port": 4100,
+  "allow_nipio_domains": true,
+  "jwt_secret": "${JWT_SECRET}",
+  "url_signature_secret": "${URL_SIGNATURE_SECRET}",
+  "extensions": ["/etc/puter/extensions"],
+  "database": {
+    "engine": "sqlite",
+    "path": "/var/puter/puter-database.sqlite"
+  },
+  "redis": {
+    "useMock": true
+  },
+  "dynamo": {
+    "inMemory": true,
+    "bootstrapTables": true,
+    "aws": {
+      "access_key": "fake",
+      "secret_key": "fake",
+      "region": "us-east-1"
     }
+  },
+  "s3": {
+    "localConfig": {
+      "inMemory": false,
+      "dataDir": "/var/puter/s3-data",
+      "s3StorageDir": "/var/puter/s3-storage"
+    }
+  },
+  "providers": {
+    "ollama": { "enabled": false }
   }
 }
 EOF
+cat <<'EXTEOF' >/etc/puter/extensions/subdomain-fix.cjs
+'use strict';
+// Puter extension: fix Express subdomain offset for multi-part nip.io domains.
+// By default Express uses offset=2 (correct for puter.com / puter.localhost).
+// For nip.io IP domains (e.g. puter.192.168.0.151.nip.io = 7 parts) the offset
+// must equal the domain part count so the homepage route matches correctly.
+const { extension } = require('/opt/puter/dist/src/backend/extensions.js');
+const domain = (extension.config && extension.config.domain) || 'puter.localhost';
+const offset = domain.split('.').length;
+if (offset !== 2) {
+    extension.registerGlobalMiddleware(function subdomainOffsetFix(req, _res, next) {
+        req.app.set('subdomain offset', offset);
+        next();
+    });
+}
+EXTEOF
 msg_ok "Configured Application"
 
 msg_info "Creating Service"
@@ -67,8 +102,8 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/puter
-Environment=CONFIG_PATH=/etc/puter
-ExecStart=/usr/bin/npm start
+Environment=PUTER_CONFIG_PATH=/etc/puter/config.json
+ExecStart=/usr/bin/node --enable-source-maps -r /opt/puter/dist/src/backend/telemetry.js /opt/puter/dist/src/backend/index.js
 Restart=on-failure
 RestartSec=5
 

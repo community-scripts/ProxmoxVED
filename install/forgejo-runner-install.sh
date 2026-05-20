@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: Simon Friedrich
+# Author: Simon Friedrich (lengschder97)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://forgejo.org/
 
@@ -11,23 +11,47 @@ catch_errors
 setting_up_container
 network_check
 update_os
+setup_yq
 
-# Get required configuration with sensible fallbacks for unattended mode
-# These will show a warning if defaults are used
-var_forgejo_instance=$(prompt_input_required \
-  "Forgejo Instance URL:" \
-  "${var_forgejo_instance:-https://codeberg.org}" \
-  120 \
-  "var_forgejo_instance")
+# Get required configuration — skip prompts if already set (generated/unattended mode)
+if [[ -z "${var_forgejo_instance:-}" ]]; then
+  read -r -p "${TAB3}Forgejo Instance URL (e.g. https://codeberg.org): " var_forgejo_instance
+  var_forgejo_instance="${var_forgejo_instance:-https://codeberg.org}"
+fi
 
-var_forgejo_runner_token=$(prompt_input_required \
-  "Forgejo Runner Registration Token:" \
-  "${var_forgejo_runner_token:-REPLACE_WITH_YOUR_TOKEN}" \
-  120 \
-  "var_forgejo_runner_token")
+if [[ -z "${var_forgejo_runner_uuid:-}" ]]; then
+  read -r -p "${TAB3}Forgejo Runner UUID: " var_forgejo_runner_uuid
+fi
+
+if [[ -z "${var_forgejo_runner_uuid:-}" ]]; then
+  msg_error "No runner UUID provided. Cannot continue."
+  exit 1
+fi
+
+if [[ -z "${var_forgejo_runner_token:-}" ]]; then
+  read -r -p "${TAB3}Forgejo Runner Token: " var_forgejo_runner_token
+fi
+
+if [[ -z "${var_forgejo_runner_token:-}" ]]; then
+  msg_error "No runner registration token provided. Cannot continue."
+  exit 1
+fi
+
+# Runner labels — default is always included; additional labels are appended
+DEFAULT_RUNNER_LABELS="linux-amd64:docker://node:22-bookworm"
+if [[ -z "${var_runner_labels:-}" ]]; then
+  read -r -p "${TAB3}Additional runner labels (comma-separated, or leave blank for default only): " var_runner_labels
+fi
+if [[ -n "${var_runner_labels:-}" ]]; then
+  RUNNER_LABELS="${DEFAULT_RUNNER_LABELS},${var_runner_labels}"
+else
+  RUNNER_LABELS="${DEFAULT_RUNNER_LABELS}"
+fi
 
 export FORGEJO_INSTANCE="$var_forgejo_instance"
 export FORGEJO_RUNNER_TOKEN="$var_forgejo_runner_token"
+export FORGEJO_RUNNER_UUID="$var_forgejo_runner_uuid"
+export RUNNER_LABELS
 
 msg_info "Installing dependencies"
 $STD apt install -y \
@@ -48,13 +72,20 @@ msg_ok "Installed Forgejo Runner"
 
 msg_info "Registering Forgejo Runner"
 export DOCKER_HOST="unix:///run/podman/podman.sock"
-forgejo-runner register \
-  --instance "$FORGEJO_INSTANCE" \
-  --token "$FORGEJO_RUNNER_TOKEN" \
-  --name "$HOSTNAME" \
-  --labels "linux-amd64:docker://node:20-bookworm" \
-  --no-interactive
-msg_ok "Registered Forgejo Runner"
+
+msg_info "Generating Forgejo Runner Configuration"
+mkdir -p /etc/forgejo-runner
+CONFIG_FILE="/etc/forgejo-runner/config.yaml"
+forgejo-runner generate-config > $CONFIG_FILE
+yq -i '
+  .container.docker_host = strenv(DOCKER_HOST) |
+  .server.connections.forgejo.url = strenv(FORGEJO_INSTANCE) |
+  .server.connections.forgejo.uuid = strenv(FORGEJO_RUNNER_UUID) |
+  .server.connections.forgejo.token = strenv(FORGEJO_RUNNER_TOKEN) |
+  .server.connections.forgejo.labels = (strenv(RUNNER_LABELS) | split(",") | map(select(length > 0)))
+  ' $CONFIG_FILE
+msg_ok "Generated Forgejo Runner Configuration"
+
 
 msg_info "Creating Services"
 cat <<EOF >/etc/systemd/system/forgejo-runner.service
@@ -68,7 +99,7 @@ Requires=podman.socket
 User=root
 WorkingDirectory=/root
 Environment=DOCKER_HOST=unix:///run/podman/podman.sock
-ExecStart=/usr/local/bin/forgejo-runner daemon
+ExecStart=/usr/local/bin/forgejo-runner daemon -c $CONFIG_FILE
 Restart=on-failure
 RestartSec=10
 TimeoutSec=0
@@ -78,9 +109,6 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now forgejo-runner
 msg_ok "Created Services"
-
-# Show warning if any required values used fallbacks
-show_missing_values_warning
 
 motd_ssh
 customize

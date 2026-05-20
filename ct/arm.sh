@@ -43,7 +43,7 @@ function update_script() {
 
     msg_info "Rebuilding Python Environment"
     cd /opt/arm
-    $STD uv venv /opt/arm/venv
+    $STD uv venv --clear /opt/arm/venv
     $STD uv pip install --python /opt/arm/venv/bin/python \
       -r <(curl -fsSL https://raw.githubusercontent.com/automatic-ripping-machine/arm-dependencies/main/requirements.txt) \
       -r requirements.txt

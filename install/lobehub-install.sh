@@ -14,36 +14,28 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y \
-  build-essential
+$STD apt install -y build-essential
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" PG_MODULES="pgvector" setup_postgresql
 
-msg_info "Installing pg_search from ParadeDB"
-ARCH=$(dpkg --print-architecture)
 CODENAME=$(. /etc/os-release && echo "${VERSION_CODENAME:-bookworm}")
-PDB_VERSION=$(curl -fsSL "https://api.github.com/repos/paradedb/paradedb/releases/latest" | grep -oP '"tag_name":\s*"\K[^"]+')
-PDB_VERSION_NUM="${PDB_VERSION#v}"
-DEB_NAME="postgresql-17-pg-search_${PDB_VERSION_NUM}-1PARADEDB-${CODENAME}_${ARCH}.deb"
-DEB_URL="https://github.com/paradedb/paradedb/releases/download/${PDB_VERSION}/${DEB_NAME}"
-curl -fsSL -o "/tmp/${DEB_NAME}" "$DEB_URL"
-dpkg -i "/tmp/${DEB_NAME}" >/dev/null 2>&1 || $STD apt install -f -y
-rm -f "/tmp/${DEB_NAME}"
-msg_ok "Installed pg_search from ParadeDB"
+fetch_and_deploy_gh_release "paradedb" "paradedb/paradedb" "binary" "latest" "" "postgresql-17-pg-search_*-1PARADEDB-${CODENAME}_$(dpkg --print-architecture).deb"
+
+msg_info "Configuring pg_search preload library"
+if ! grep -q "shared_preload_libraries.*pg_search" /etc/postgresql/17/main/postgresql.conf; then
+  echo "shared_preload_libraries = 'pg_search'" >>/etc/postgresql/17/main/postgresql.conf
+fi
+systemctl restart postgresql
+msg_ok "Configured pg_search preload library"
 
 PG_DB_NAME="lobehub" PG_DB_USER="lobehub" PG_DB_EXTENSIONS="vector,pg_search" setup_postgresql_db
-NODE_VERSION="24" setup_nodejs
-
-msg_info "Installing pnpm"
-$STD npm install -g pnpm
-msg_ok "Installed pnpm"
+NODE_VERSION="24" NODE_MODULE="pnpm" setup_nodejs
 
 fetch_and_deploy_gh_release "lobehub" "lobehub/lobehub" "tarball"
 
 msg_info "Building Application"
 cd /opt/lobehub
-export NODE_OPTIONS="--max-old-space-size=8192"
 export DATABASE_URL="postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}"
 export DATABASE_DRIVER="node"
 export KEY_VAULTS_SECRET="$(openssl rand -base64 32)"
@@ -51,7 +43,6 @@ export AUTH_SECRET="$(openssl rand -base64 32)"
 export APP_URL="http://localhost:3210"
 $STD pnpm install
 $STD pnpm run build:docker
-unset NODE_OPTIONS
 msg_ok "Built Application"
 
 msg_info "Configuring Application"

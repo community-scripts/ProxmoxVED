@@ -12,7 +12,7 @@ var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-512}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-opensuse}"
-var_version="${var_version:-15.6}"
+var_version="${var_version:-16.0}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"

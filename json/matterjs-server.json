@@ -1,0 +1,44 @@
+{
+    "name": "MatterJS-Server",
+    "slug": "matterjs-server",
+    "categories": [
+        16
+    ],
+    "date_created": "2026-05-20",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 5580,
+    "documentation": "https://github.com/matter-js/matterjs-server",
+    "website": "https://github.com/matter-js/matterjs-server",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/matter.webp",
+    "description": "JavaScript-based Matter controller server (successor to Python Matter Server). Provides a WebSocket API compatible with the Home Assistant Matter integration.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/matterjs-server.sh",
+            "config_path": null,
+            "resources": {
+                "cpu": 2,
+                "ram": 1024,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "This is a Beta version. Not yet officially CSA-certified.",
+            "type": "warning"
+        },
+        {
+            "text": "For Matter-over-Thread (Thread Border Router), IPv6 must be enabled in the LXC container.",
+            "type": "info"
+        }
+    ]
+}

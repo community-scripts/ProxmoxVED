@@ -19,8 +19,8 @@ $STD apt install -y \
   redis-server
 msg_ok "Installed Dependencies"
 
-PG_VERSION="16" setup_postgresql
-PG_DB_NAME="twenty_db" PG_DB_USER="twenty" PG_DB_SCHEMA_PERMS="true" setup_postgresql_db
+PG_VERSION="17" PG_MODULES="pgvector" setup_postgresql
+PG_DB_NAME="twenty_db" PG_DB_USER="twenty" PG_DB_SCHEMA_PERMS="true" PG_DB_EXTENSIONS="vector" setup_postgresql_db
 NODE_VERSION="24" setup_nodejs
 
 fetch_and_deploy_gh_release "twenty" "twentyhq/twenty" "tarball"
@@ -55,20 +55,7 @@ msg_ok "Configured Application"
 msg_info "Running Database Migrations"
 cd /opt/twenty/packages/twenty-server
 set -a && source /opt/twenty/.env && set +a
-$STD su - postgres -c "psql -d ${PG_DB_NAME} -c '
-  CREATE SCHEMA IF NOT EXISTS public;
-  CREATE SCHEMA IF NOT EXISTS core;
-  ALTER SCHEMA core OWNER TO ${PG_DB_USER};
-  GRANT USAGE, CREATE ON SCHEMA public TO ${PG_DB_USER};
-  GRANT USAGE, CREATE ON SCHEMA core TO ${PG_DB_USER};
-  CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
-  CREATE EXTENSION IF NOT EXISTS unaccent;
-  CREATE OR REPLACE FUNCTION public.unaccent_immutable(input text)
-    RETURNS text LANGUAGE sql IMMUTABLE
-    AS \$func\$SELECT public.unaccent(\$\$public.unaccent\$\$::regdictionary, input)\$func\$;
-'"
-$STD npx ts-node ./scripts/setup-db.ts
-$STD npx -y typeorm migration:run -d dist/database/typeorm/core/core.datasource
+$STD yarn database:init:prod
 msg_ok "Ran Database Migrations"
 
 msg_info "Creating Services"

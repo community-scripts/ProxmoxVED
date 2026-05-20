@@ -7,8 +7,10 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Source: https://www.openeuler.org/
 
 # NOTE: openEuler has a PVE compatibility issue
-# PVE's post_create_hook expects /etc/redhat-release which openEuler doesn't have by default
-# We handle this in build.func by creating the file after container creation
+# PVE detects openEuler templates as ostype 'centos', but the templates ship
+# without /etc/redhat-release, so PVE's post_create_hook aborts pct create.
+# build.func patches the cached template once (injects /etc/redhat-release)
+# right before pct create, see template_patch step in build_container().
 
 APP="openEuler"
 var_tags="${var_tags:-os}"

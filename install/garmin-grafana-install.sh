@@ -56,20 +56,22 @@ msg_info "Configuring Grafana"
 GRAFANA_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | cut -c1-13)
 retries=0
 while ! grafana-cli admin reset-admin-password "${GRAFANA_PASS}" &>/dev/null; do
-  ((retries++))
+  retries=$((retries + 1))
   [[ $retries -ge 30 ]] && break
   sleep 2
 done
-$STD grafana-cli plugins install marcusolsson-hourly-heatmap-panel
+$STD grafana-cli --homepath /usr/share/grafana plugins install marcusolsson-hourly-heatmap-panel
 $STD systemctl restart grafana-server
 msg_ok "Configured Grafana"
 
 fetch_and_deploy_gh_release "garmin-grafana" "arpanghosh8453/garmin-grafana" "tarball"
 
-msg_info "Configuring garmin-grafana"
+msg_info "Installing Python Dependencies"
 mkdir -p /opt/garmin-grafana/.garminconnect
 $STD uv sync --locked --project /opt/garmin-grafana/
+msg_ok "Installed Python Dependencies"
 
+msg_info "Provisioning Grafana Dashboard & Datasource"
 sed -i 's/\${DS_GARMIN_STATS}/garmin_influxdb/g' /opt/garmin-grafana/Grafana_Dashboard/Garmin-Grafana-Dashboard.json
 sed -i 's/influxdb:8086/localhost:8086/' /opt/garmin-grafana/Grafana_Datasource/influxdb.yaml
 sed -i "s/influxdb_user/${INFLUXDB_USER}/" /opt/garmin-grafana/Grafana_Datasource/influxdb.yaml
@@ -77,6 +79,7 @@ sed -i "s/influxdb_secret_password/${INFLUXDB_PASSWORD}/" /opt/garmin-grafana/Gr
 sed -i "s/GarminStats/${INFLUXDB_NAME}/" /opt/garmin-grafana/Grafana_Datasource/influxdb.yaml
 cp -r /opt/garmin-grafana/Grafana_Datasource/* /etc/grafana/provisioning/datasources
 cp -r /opt/garmin-grafana/Grafana_Dashboard/* /etc/grafana/provisioning/dashboards
+msg_ok "Provisioned Grafana Dashboard & Datasource"
 
 read -rp "Are you using Garmin in mainland China? (y/N): " prompt
 if [[ "${prompt,,}" =~ ^(y|yes)$ ]]; then
@@ -85,6 +88,7 @@ else
   GARMIN_CN="False"
 fi
 
+msg_info "Writing Environment Configuration"
 cat <<EOF >/opt/garmin-grafana/.env
 INFLUXDB_HOST=localhost
 INFLUXDB_PORT=8086
@@ -97,6 +101,7 @@ TOKEN_DIR=/opt/garmin-grafana/.garminconnect
 GRAFANA_USER=admin
 GRAFANA_PASSWORD=${GRAFANA_PASS}
 EOF
+msg_ok "Wrote Environment Configuration"
 
 if [[ -z "$(ls -A /opt/garmin-grafana/.garminconnect)" ]]; then
   read -r -p "Please enter your Garmin Connect Email: " GARMIN_EMAIL
@@ -121,6 +126,7 @@ fi
 
 $STD systemctl restart grafana-server
 
+msg_info "Installing Bulk Import Helper"
 cat <<'EOF' >/usr/local/bin/garmin-bulk-import
 #!/usr/bin/env bash
 if [[ -z $1 ]]; then
@@ -135,7 +141,7 @@ MANUAL_START_DATE="${START_DATE}" MANUAL_END_DATE="${END_DATE}" uv run --env-fil
 systemctl start garmin-grafana
 EOF
 chmod +x /usr/local/bin/garmin-bulk-import
-msg_ok "Configured garmin-grafana"
+msg_ok "Installed Bulk Import Helper"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/garmin-grafana.service

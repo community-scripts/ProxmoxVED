@@ -65,7 +65,7 @@ function update_script() {
     systemctl start garmin-grafana
     $STD systemctl restart grafana-server
     msg_ok "Started Services"
-    msg_ok "Updated Successfully!"
+    msg_ok "Updated successfully!"
   fi
   exit
 }

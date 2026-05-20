@@ -360,19 +360,9 @@ run_psql_exec() {
 
 echo "=== Ente First-Time Setup ==="
 echo ""
-read -r -p "Enter your account email: " EMAIL
-
-if [[ -z "$EMAIL" ]]; then
-  echo "Error: Email is required."
-  exit 1
-fi
-
-echo ""
 echo "Step 1/4: Register your account"
 echo "  Open the web UI: http://${LOCAL_IP}:3000"
-echo "  Create an account with: ${EMAIL}"
-echo ""
-echo "  Make sure you click 'Don't have an account?' and complete the signup form."
+echo "  Click 'Don't have an account?' and submit the signup form."
 echo ""
 read -r -p "Press ENTER after you submitted the signup form..."
 
@@ -382,40 +372,38 @@ CODE=""
 for i in 1 2 3; do
   sleep 3
   CODE=$(journalctl -u ente-museum --no-pager -n 200 | grep -oP 'Verification code: \K\d+' | tail -1)
-  if [[ -n "$CODE" ]]; then
-    break
-  fi
+  [[ -n "$CODE" ]] && break
   echo "  Attempt ${i}/3: Code not found yet, waiting..."
 done
 
 if [[ -n "$CODE" ]]; then
   echo ""
   echo "  Your verification code: ${CODE}"
-  echo "  Enter this code in the web UI to complete registration."
+  echo "  Enter this code in the web UI and finish the key/passphrase setup."
 else
   echo ""
-  echo "  Could not find the verification code automatically."
-  echo "  This usually means the signup form was not submitted yet."
-  echo ""
-  echo "  Are you sure you entered '${EMAIL}' and clicked 'Create account'?"
-  echo "  You can check manually with: ente-get-verification"
+  echo "  Could not find a verification code automatically."
+  echo "  Run 'ente-get-verification' manually if needed."
 fi
 echo ""
-read -r -p "Press ENTER after you verified the code in the web UI..."
+read -r -p "Press ENTER once registration is fully complete in the web UI..."
 
 echo ""
-echo "Step 3/4: Looking up user and whitelisting admin..."
-USER_ID=$(run_psql "SELECT user_id FROM users WHERE email = '${EMAIL//\'/\'\'}';")
-
-if [[ -z "$USER_ID" ]]; then
-  echo "  Warning: User '${EMAIL}' not found in database."
-  echo "  Make sure registration was completed successfully."
-  echo ""
-  echo "=== Setup incomplete ==="
-  echo "After completing registration, run ente-setup again."
+echo "Step 3/4: Locating your user account..."
+USER_COUNT=$(run_psql "SELECT count(*) FROM users;")
+if [[ "$USER_COUNT" == "0" ]]; then
+  echo "  No users found in the database."
+  echo "  Registration was not completed. Run 'ente-setup' again after signup."
   exit 1
 fi
-echo "  Found user ID: ${USER_ID}"
+
+USER_ID=$(run_psql "SELECT user_id FROM users ORDER BY user_id DESC LIMIT 1;")
+echo "  Using most recently registered user (id: ${USER_ID})."
+echo ""
+echo "  All users in database:"
+run_psql_exec "SELECT user_id, creation_time FROM users ORDER BY user_id DESC;"
+echo ""
+read -r -p "Press ENTER to whitelist user ${USER_ID} as admin (or Ctrl-C to abort)..."
 
 if grep -q "internal:" /opt/ente/server/museum.yaml; then
   if ! grep -qF "${USER_ID}" /opt/ente/server/museum.yaml; then
@@ -437,9 +425,9 @@ echo ""
 echo "Step 4/4: Upgrading subscription..."
 ROWS=$(run_psql "SELECT count(*) FROM subscriptions WHERE user_id = ${USER_ID};")
 if [[ "$ROWS" == "0" ]]; then
-  run_psql_exec "INSERT INTO subscriptions (user_id, storage_in_mbs_per_plan, expiry_time, product_id, payment_provider, transaction_id, original_transaction_id) VALUES (${USER_ID}, 10737418240, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', 'admin_setup');"
+  run_psql_exec "INSERT INTO subscriptions (user_id, storage, expiry_time, product_id, payment_provider, original_transaction_id, attributes) VALUES (${USER_ID}, 10995116277760, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', '{}'::jsonb);"
 else
-  run_psql_exec "UPDATE subscriptions SET storage_in_mbs_per_plan = 10737418240, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
+  run_psql_exec "UPDATE subscriptions SET storage = 10995116277760, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
 fi
 echo "  Subscription upgraded to unlimited storage."
 
@@ -451,27 +439,43 @@ chmod +x /usr/local/bin/ente-setup
 
 cat <<'EOF' >/usr/local/bin/ente-upgrade-subscription
 #!/usr/bin/env bash
-if [ -z "$1" ]; then
-  echo "Usage: ente-upgrade-subscription <email>"
-  echo "Example: ente-upgrade-subscription user@example.com"
-  exit 1
-fi
-EMAIL="$1"
 DB_NAME="ente_db"
-echo "Upgrading subscription for: $EMAIL"
-USER_ID=$(sudo -u postgres psql -t -d "$DB_NAME" -c "SELECT user_id FROM users WHERE email = '${EMAIL//\'/\'\'}';")
-USER_ID=$(echo "$USER_ID" | xargs)
-if [[ -z "$USER_ID" ]]; then
-  echo "Error: User not found in database."
+
+run_psql() {
+  sudo -u postgres psql -t -d "$DB_NAME" -c "$1" 2>/dev/null | xargs
+}
+
+run_psql_exec() {
+  sudo -u postgres psql -d "$DB_NAME" -c "$1"
+}
+
+if [[ -z "$1" ]]; then
+  echo "Usage: ente-upgrade-subscription <user_id>"
+  echo ""
+  echo "Available users:"
+  run_psql_exec "SELECT user_id, creation_time FROM users ORDER BY user_id DESC;"
   exit 1
 fi
-ROWS=$(sudo -u postgres psql -t -d "$DB_NAME" -c "SELECT count(*) FROM subscriptions WHERE user_id = ${USER_ID};" | xargs)
-if [[ "$ROWS" == "0" ]]; then
-  sudo -u postgres psql -d "$DB_NAME" -c "INSERT INTO subscriptions (user_id, storage_in_mbs_per_plan, expiry_time, product_id, payment_provider, transaction_id, original_transaction_id) VALUES (${USER_ID}, 10737418240, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', 'admin_setup');"
-else
-  sudo -u postgres psql -d "$DB_NAME" -c "UPDATE subscriptions SET storage_in_mbs_per_plan = 10737418240, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
+
+USER_ID="$1"
+if ! [[ "$USER_ID" =~ ^[0-9]+$ ]]; then
+  echo "Error: user_id must be numeric."
+  exit 1
 fi
-echo "Done. Subscription upgraded to unlimited storage for: $EMAIL"
+
+EXISTS=$(run_psql "SELECT count(*) FROM users WHERE user_id = ${USER_ID};")
+if [[ "$EXISTS" != "1" ]]; then
+  echo "Error: user_id ${USER_ID} not found."
+  exit 1
+fi
+
+ROWS=$(run_psql "SELECT count(*) FROM subscriptions WHERE user_id = ${USER_ID};")
+if [[ "$ROWS" == "0" ]]; then
+  run_psql_exec "INSERT INTO subscriptions (user_id, storage, expiry_time, product_id, payment_provider, original_transaction_id, attributes) VALUES (${USER_ID}, 10995116277760, 2524608000000000, 'self_hosted_unlimited', 'admin', 'admin_setup', '{}'::jsonb);"
+else
+  run_psql_exec "UPDATE subscriptions SET storage = 10995116277760, expiry_time = 2524608000000000 WHERE user_id = ${USER_ID};"
+fi
+echo "Done. Subscription upgraded to unlimited storage for user_id ${USER_ID}."
 EOF
 chmod +x /usr/local/bin/ente-upgrade-subscription
 

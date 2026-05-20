@@ -15,7 +15,9 @@ network_check
 update_os
 
 msg_info "Installing Dependencies"
-$STD apt install -y ffmpeg
+$STD apt install -y \
+  ffmpeg \
+  pciutils
 msg_ok "Installed Dependencies"
 
 msg_info "Installing ASP.NET Core Runtime"
@@ -31,8 +33,9 @@ fetch_and_deploy_from_url "https://fileflows.com/downloads/zip" "/opt/fileflows"
 
 $STD ln -svf /usr/bin/ffmpeg /usr/local/bin/ffmpeg
 $STD ln -svf /usr/bin/ffprobe /usr/local/bin/ffprobe
+$STD rm -rf /opt/fileflows/Server/runtimes/win-*
 
-read -r -p "Do you want to install FileFlows Server or Node? (S/N): " install_server
+read -r -p "${TAB3}Do you want to install FileFlows Server or Node? (S/N): " install_server
 
 if [[ "$install_server" =~ ^[Ss]$ ]]; then
   msg_info "Installing FileFlows Server"

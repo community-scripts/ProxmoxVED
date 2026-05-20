@@ -1,0 +1,44 @@
+{
+    "name": "xyOps",
+    "slug": "xyops",
+    "categories": [
+        19
+    ],
+    "date_created": "2026-05-08",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 5522,
+    "documentation": "https://github.com/pixlcore/xyops/tree/main/docs",
+    "website": "https://github.com/pixlcore/xyops",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/xyops.webp",
+    "description": "A complete task scheduler and server monitoring system with workflow automation, multi-server management, real-time monitoring, and a built-in satellite agent (xySat) for running jobs on remote servers.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/xyops.sh",
+            "config_path": "/opt/xyops/conf/config.json",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin",
+        "password": "admin"
+    },
+    "notes": [
+        {
+            "text": "A local xySat satellite is started automatically alongside the conductor, allowing jobs to run on this server right away.",
+            "type": "info"
+        },
+        {
+            "text": "The WebSocket port 5523 is used for secure wss:// connections. Port 5522 serves the web interface and ws:// connections.",
+            "type": "info"
+        }
+    ]
+}

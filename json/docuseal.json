@@ -1,0 +1,45 @@
+{
+    "name": "DocuSeal",
+    "slug": "docuseal",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-05-02",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://www.docuseal.com/docs",
+    "website": "https://www.docuseal.com/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/docuseal.webp",
+    "config_path": "/opt/docuseal/.env",
+    "description": "DocuSeal is an open source platform that provides secure and efficient digital document signing and processing. Create PDF forms to have them filled and signed online on any device with an easy-to-use, mobile-optimized web tool.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/docuseal.sh",
+            "config_path": "/opt/docuseal/.env",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 10,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "On first access, create the initial admin account via the web UI.",
+            "type": "info"
+        },
+        {
+            "text": "The first build (bundle install + shakapacker) takes a while - be patient.",
+            "type": "warning"
+        }
+    ]
+}

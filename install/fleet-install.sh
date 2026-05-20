@@ -15,22 +15,11 @@ update_os
 
 setup_mysql
 
-msg_info "Installing Dependencies"
-$STD apt install -y \
-  redis-server
-msg_ok "Installed Dependencies"
+MYSQL_DB_NAME="fleet" MYSQL_DB_USER="fleet" setup_mysql_db
 
-msg_info "Setting up Database"
-FLEET_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c 13)
-$STD mysql -u root <<EOSQL
-CREATE DATABASE fleet;
-CREATE USER 'fleet'@'localhost' IDENTIFIED BY '${FLEET_DB_PASS}';
-GRANT ALL PRIVILEGES ON fleet.* TO 'fleet'@'localhost';
-CREATE USER 'fleet'@'127.0.0.1' IDENTIFIED BY '${FLEET_DB_PASS}';
-GRANT ALL PRIVILEGES ON fleet.* TO 'fleet'@'127.0.0.1';
-FLUSH PRIVILEGES;
-EOSQL
-msg_ok "Set up Database"
+msg_info "Installing Dependencies"
+$STD apt install -y redis-server
+msg_ok "Installed Dependencies"
 
 fetch_and_deploy_gh_release "fleet" "fleetdm/fleet" "prebuild" "latest" "/opt/fleet" "fleet_v*_linux.tar.gz"
 
@@ -41,7 +30,7 @@ cat <<EOF >/opt/fleet/.env
 FLEET_MYSQL_ADDRESS=127.0.0.1:3306
 FLEET_MYSQL_DATABASE=fleet
 FLEET_MYSQL_USERNAME=fleet
-FLEET_MYSQL_PASSWORD=${FLEET_DB_PASS}
+FLEET_MYSQL_PASSWORD=${MYSQL_DB_PASS}
 FLEET_SERVER_ADDRESS=0.0.0.0:8080
 FLEET_SERVER_TLS=false
 FLEET_SERVER_PRIVATE_KEY=${PRIVATE_KEY}
@@ -76,6 +65,31 @@ WantedBy=multi-user.target
 EOF
 systemctl enable -q --now fleet redis-server
 msg_ok "Created Service"
+
+msg_info "Initializing Fleet"
+FLEET_ADMIN_EMAIL="admin@fleet.local"
+FLEET_ADMIN_PASS="$(openssl rand -hex 8)1!"
+ELAPSED=0
+until curl -sf "http://127.0.0.1:8080/healthz" >/dev/null 2>&1; do
+  sleep 2
+  ELAPSED=$((ELAPSED + 2))
+  [[ $ELAPSED -ge 60 ]] && break
+done
+SETUP_RESPONSE=$(curl -s -X POST "http://127.0.0.1:8080/api/v1/setup" \
+  -H "Content-Type: application/json" \
+  -d "{\"admin\":{\"admin\":true,\"email\":\"${FLEET_ADMIN_EMAIL}\",\"name\":\"Admin\",\"password\":\"${FLEET_ADMIN_PASS}\"},\"org_info\":{\"org_name\":\"Fleet\",\"org_logo_url\":\"\"},\"server_url\":\"http://127.0.0.1:8080\"}")
+FLEET_TOKEN=$(echo "${SETUP_RESPONSE}" | grep -o '"token":"[^"]*"' | cut -d'"' -f4) || true
+if [[ -n "${FLEET_TOKEN}" ]]; then
+  curl -s -X PATCH "http://127.0.0.1:8080/api/latest/fleet/config" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer ${FLEET_TOKEN}" \
+    -d "{\"server_settings\":{\"server_url\":\"http://${LOCAL_IP}:8080\"}}" >/dev/null
+fi
+cat <<EOF >>/opt/fleet/.env
+FLEET_ADMIN_EMAIL=${FLEET_ADMIN_EMAIL}
+FLEET_ADMIN_PASSWORD=${FLEET_ADMIN_PASS}
+EOF
+msg_ok "Initialized Fleet"
 
 motd_ssh
 customize

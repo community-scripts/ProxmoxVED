@@ -47,11 +47,19 @@ $STD apt install -y \
   git
 msg_ok "Installed Dependencies"
 
-AUTHENTIK_VERSION="version/2026.2.2"
-NODE_VERSION="24"
-XMLSEC_VERSION="1.3.9"
+NODE_VERSION="24" setup_nodejs
+setup_yq
+setup_go
+UV_PYTHON_INSTALL_DIR="/usr/local/bin" PYTHON_VERSION="3.14.3" setup_uv
+setup_rust
+PG_VERSION="17" setup_postgresql
+PG_DB_NAME="authentik" PG_DB_USER="authentik" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
 
+XMLSEC_VERSION="1.3.11"
+AUTHENTIK_VERSION="version/2026.2.2"
 fetch_and_deploy_gh_release "xmlsec" "lsh123/xmlsec" "tarball" "${XMLSEC_VERSION}" "/opt/xmlsec"
+fetch_and_deploy_gh_release "authentik" "goauthentik/authentik" "tarball" "${AUTHENTIK_VERSION}" "/opt/authentik"
+fetch_and_deploy_gh_release "geoipupdate" "maxmind/geoipupdate" "binary"
 
 msg_info "Setup xmlsec"
 cd /opt/xmlsec
@@ -59,17 +67,12 @@ $STD ./autogen.sh
 $STD make -j $(nproc)
 $STD make check
 $STD make install
-ldconfig
+$STD ldconfig
 msg_ok "xmlsec installed"
-
-setup_nodejs
-setup_go
-
-fetch_and_deploy_gh_release "authentik" "goauthentik/authentik" "tarball" "${AUTHENTIK_VERSION}" "/opt/authentik"
 
 msg_info "Setup web"
 cd /opt/authentik/web
-NODE_ENV="production"
+export NODE_ENV="production"
 $STD npm install
 $STD npm run build
 $STD npm run build:sfe
@@ -77,14 +80,15 @@ msg_ok "Web installed"
 
 msg_info "Setup go proxy"
 cd /opt/authentik
-CGO_ENABLED="1"
+export CGO_ENABLED="1"
 $STD go mod download
 $STD go build -o /opt/authentik/authentik-server ./cmd/server
+$STD go build -o /opt/authentik/ldap ./cmd/ldap
+$STD go build -o /opt/authentik/rac ./cmd/rac
+$STD go build -o /opt/authentik/radius ./cmd/radius
 msg_ok "Go proxy installed"
 
-fetch_and_deploy_gh_release "geoipupdate" "maxmind/geoipupdate" "binary"
-
-cat <<EOF>/usr/local/etc/GeoIP.conf
+cat <<EOF >/usr/local/etc/GeoIP.conf
 AccountID ChangeME
 LicenseKey ChangeME
 EditionIDs GeoLite2-ASN GeoLite2-City GeoLite2-Country
@@ -93,36 +97,19 @@ RetryFor 5m
 Parallelism 1
 EOF
 
-cat <<EOF>/tmp/crontab
-#39 19 * * 6,4 /usr/bin/geoipupdate -f /usr/local/etc/GeoIP.conf
-EOF
-crontab /tmp/crontab
-rm /tmp/crontab
-
-setup_uv
-
-setup_rust
+echo "#39 19 * * 6,4 /usr/bin/geoipupdate -f /usr/local/etc/GeoIP.conf" | crontab -
 
 msg_info "Setup python server"
-$STD uv python install 3.14.3 -i /usr/local/bin
-UV_NO_BINARY_PACKAGE="cryptography lxml python-kadmin-rs xmlsec"
-UV_COMPILE_BYTECODE="1"
-UV_LINK_MODE="copy"
-UV_NATIVE_TLS="1"
-RUSTUP_PERMIT_COPY_RENAME="true"
-cd /opt/authentik
+export UV_NO_BINARY_PACKAGE="cryptography lxml python-kadmin-rs xmlsec"
+export UV_COMPILE_BYTECODE="1"
+export UV_LINK_MODE="copy"
+export UV_NATIVE_TLS="1"
+export RUSTUP_PERMIT_COPY_RENAME="true"
 export UV_PYTHON_INSTALL_DIR="/usr/local/bin"
+cd /opt/authentik
 $STD uv sync --frozen --no-install-project --no-dev
-msg_ok "Installed python server"
-
-mkdir -p /opt/authentik-data/{certs,media,geoip,templates}
 cp /opt/authentik/authentik/sources/kerberos/krb5.conf /etc/krb5.conf
-
-PG_VERSION="16" setup_postgresql
-
-PG_DB_NAME="authentik" PG_DB_USER="authentik" PG_DB_GRANT_SUPERUSER="true" setup_postgresql_db
-
-setup_yq
+msg_ok "Installed python server"
 
 msg_info "Creating authentik config"
 mkdir -p /etc/authentik
@@ -135,11 +122,10 @@ yq -i ".blueprints_dir = \"/opt/authentik/blueprints\"" /etc/authentik/config.ym
 yq -i ".cert_discovery_dir = \"/opt/authentik-data/certs\"" /etc/authentik/config.yml
 yq -i ".email.template_dir = \"/opt/authentik-data/templates\"" /etc/authentik/config.yml
 yq -i ".storage.file.path = \"/opt/authentik-data\"" /etc/authentik/config.yml
-cp /opt/authentik/tests/GeoLite2-ASN-Test.mmdb /opt/authentik-data/geoip/GeoLite2-ASN.mmdb
-cp /opt/authentik/tests/GeoLite2-City-Test.mmdb /opt/authentik-data/geoip/GeoLite2-City.mmdb
+yq -i ".disable_startup_analytics = \"true\"" /etc/authentik/config.yml
 $STD useradd -U -s /usr/sbin/nologin -r -M -d /opt/authentik authentik
-chown -R authentik:authentik /opt/authentik /opt/authentik-data
-cat <<EOF>/etc/default/authentik
+chown -R authentik:authentik /opt/authentik
+cat <<EOF >/etc/default/authentik
 TMPDIR=/dev/shm/
 UV_LINK_MODE=copy
 UV_PYTHON_DOWNLOADS=0
@@ -151,10 +137,25 @@ PATH=/opt/authentik/lifecycle:/opt/authentik/.venv/bin:/usr/local/bin:/usr/local
 DJANGO_SETTINGS_MODULE=authentik.root.settings
 PROMETHEUS_MULTIPROC_DIR="/tmp/authentik_prometheus_tmp"
 EOF
+cat <<EOF >/etc/default/authentik_ldap
+AUTHENTIK_HOST="https://127.0.0.1:9443"
+AUTHENTIK_INSECURE="true"
+AUTHENTIK_TOKEN="token-generated-by-authentik"
+EOF
+cat <<EOF >/etc/default/authentik_rac
+AUTHENTIK_HOST="https://127.0.0.1:9443"
+AUTHENTIK_INSECURE="true"
+AUTHENTIK_TOKEN="token-generated-by-authentik"
+EOF
+cat <<EOF >/etc/default/authentik_radius
+AUTHENTIK_HOST="https://127.0.0.1:9443"
+AUTHENTIK_INSECURE="true"
+AUTHENTIK_TOKEN="token-generated-by-authentik"
+EOF
 msg_ok "authentik config created"
 
 msg_info "Creating services"
-cat <<EOF>/etc/systemd/system/authentik-server.service
+cat <<EOF >/etc/systemd/system/authentik-server.service
 [Unit]
 Description=authentik Go Server (API Gateway)
 After=network.target
@@ -174,7 +175,7 @@ EnvironmentFile=/etc/default/authentik
 WantedBy=multi-user.target
 EOF
 
-cat <<EOF>/etc/systemd/system/authentik-worker.service
+cat <<EOF >/etc/systemd/system/authentik-worker.service
 [Unit]
 Description=authentik Worker
 After=network.target postgresql.service
@@ -193,7 +194,63 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-systemctl enable -q --now authentik-server.service authentik-worker.service
+cat <<EOF >/etc/systemd/system/authentik-ldap.service
+[Unit]
+Description=authentik LDAP Outpost
+After=network.target
+Wants=postgresql.service
+
+[Service]
+User=authentik
+Group=authentik
+ExecStart=/opt/authentik/ldap
+WorkingDirectory=/opt/authentik/
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/default/authentik_ldap
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat <<EOF >/etc/systemd/system/authentik-rac.service
+[Unit]
+Description=authentik RAC Outpost
+After=network.target
+Wants=postgresql.service
+
+[Service]
+User=authentik
+Group=authentik
+ExecStart=/opt/authentik/rac
+WorkingDirectory=/opt/authentik/
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/default/authentik_rac
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat <<EOF >/etc/systemd/system/authentik-radius.service
+[Unit]
+Description=authentik Radius Outpost
+After=network.target
+Wants=postgresql.service
+
+[Service]
+User=authentik
+Group=authentik
+ExecStart=/opt/authentik/radius
+WorkingDirectory=/opt/authentik/
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/default/authentik_radius
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 msg_ok "Services created"
 
 motd_ssh

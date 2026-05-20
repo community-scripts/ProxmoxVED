@@ -1,0 +1,44 @@
+{
+    "name": "ExcaliDash",
+    "slug": "excalidash",
+    "categories": [
+        12
+    ],
+    "date_created": "2026-05-12",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 6767,
+    "documentation": "https://github.com/ZimengXiong/ExcaliDash/blob/main/README.md",
+    "website": "https://github.com/ZimengXiong/ExcaliDash",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/excalidraw.webp",
+    "description": "Self-hosted dashboard and organizer for Excalidraw with persistent storage, real-time collaboration, version history, multi-user authentication, and scoped sharing.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/excalidash.sh",
+            "config_path": "/opt/excalidash/backend/.env",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 8,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "ExcaliDash is in BETA. Back up your data regularly.",
+            "type": "warning"
+        },
+        {
+            "text": "Create your admin account on first visit at the web UI.",
+            "type": "info"
+        }
+    ]
+}

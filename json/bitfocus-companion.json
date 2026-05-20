@@ -11,7 +11,7 @@
   "interface_port": 8000,
   "documentation": "https://user.bitfocus.io/docs",
   "website": "https://bitfocus.io/companion",
-  "logo": "https://raw.githubusercontent.com/bitfocus/companion/main/assets/icon.png",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/bitfocus-companion.webp",
   "description": "Bitfocus Companion enables the Elgato Stream Deck and other controllers to trigger actions in broadcast software. Installs headless with systemd service, fetching the latest release via the Bitfocus API.",
   "install_methods": [
     {

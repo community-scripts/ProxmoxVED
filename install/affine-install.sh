@@ -27,7 +27,7 @@ msg_ok "Installed Dependencies"
 
 PG_VERSION="16" PG_MODULES="pgvector" setup_postgresql
 PG_DB_NAME="affine" PG_DB_USER="affine" setup_postgresql_db
-NODE_VERSION="24" setup_nodejs
+NODE_VERSION="22" setup_nodejs
 setup_rust
 
 fetch_and_deploy_gh_release "affine_app" "toeverything/AFFiNE" "tarball" "latest" "/opt/affine"
@@ -43,23 +43,21 @@ cat <<EOF >/opt/affine/.env
 NODE_ENV=production
 AFFINE_SERVER_PORT=3010
 AFFINE_SERVER_HOST=${LOCAL_IP}
-AFFINE_SERVER_EXTERNAL_URL=http://${LOCAL_IP}:3010
+AFFINE_SERVER_EXTERNAL_URL=http://${LOCAL_IP}
 DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}
 REDIS_SERVER_HOST=localhost
 REDIS_SERVER_PORT=6379
 AFFINE_INDEXER_ENABLED=false
-NODE_OPTIONS=--max-old-space-size=6144
 SECRET_KEY=${SECRET_KEY}
 EOF
 msg_ok "Configured Environment"
 
-msg_info "Building AFFiNE"
+msg_info "Building AFFiNE (Patience)"
 cd /opt/affine
 source /root/.profile
 export PATH="/root/.cargo/bin:$PATH"
-set -a && source /opt/affine/.env && set +a
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-export VITE_CORE_COMMIT_SHA="v0.25.7"
+export VITE_CORE_COMMIT_SHA=$(cat ~/.affine_app)
 # # Initialize git repo (required for build process)
 $STD git init -q
 $STD git config user.email "build@local"
@@ -95,17 +93,16 @@ $STD yarn affine build -p @affine/reader
 $STD yarn affine build -p @affine/server
 export NODE_OPTIONS="--max-old-space-size=4096"
 $STD yarn affine build -p @affine/web
+$STD yarn affine build -p @affine/admin
 mkdir -p /opt/affine/packages/backend/server/static
 cp -r /opt/affine/packages/frontend/apps/web/dist/* /opt/affine/packages/backend/server/static/
+mkdir -p /opt/affine/packages/backend/server/static/admin
+cp -r /opt/affine/packages/frontend/admin/dist/* /opt/affine/packages/backend/server/static/admin/
 # Create empty mobile manifest (server expects it but we don't build mobile)
 mkdir -p /opt/affine/packages/backend/server/static/mobile
 cat <<'MANIFEST' >/opt/affine/packages/backend/server/static/mobile/assets-manifest.json
 {"publicPath":"/","js":[],"css":[],"gitHash":"","description":""}
 MANIFEST
-# Copy selfhost.html to admin directory
-mkdir -p /opt/affine/packages/backend/server/static/admin
-cp /opt/affine/packages/backend/server/static/selfhost.html \
-  /opt/affine/packages/backend/server/static/admin/selfhost.html
 msg_ok "Built AFFiNE"
 
 msg_info "Running Initial Migration"
@@ -126,6 +123,7 @@ Type=simple
 WorkingDirectory=/opt/affine/packages/backend/server
 EnvironmentFile=/opt/affine/.env
 Environment=LD_PRELOAD=libjemalloc.so.2
+Environment=NODE_OPTIONS=--max-old-space-size=1024
 ExecStart=/usr/bin/node ./dist/main.js
 Restart=always
 RestartSec=10
@@ -137,7 +135,7 @@ EOF
 cat <<EOF >/etc/systemd/system/affine-worker.service
 [Unit]
 Description=AFFiNE Background Worker
-After=network.target postgresql.service redis-server.service affine-web.service
+After=network.target postgresql.service redis-server.service
 Requires=postgresql.service redis-server.service
 
 [Service]
@@ -145,6 +143,7 @@ Type=simple
 WorkingDirectory=/opt/affine/packages/backend/server
 EnvironmentFile=/opt/affine/.env
 Environment=LD_PRELOAD=libjemalloc.so.2
+Environment=NODE_OPTIONS=--max-old-space-size=1024
 ExecStart=/usr/bin/node ./dist/main.js --worker
 Restart=always
 RestartSec=10

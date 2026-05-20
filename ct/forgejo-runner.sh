@@ -2,7 +2,7 @@
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: Simon Friedrich
+# Author: Simon Friedrich (lengschder97)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://forgejo.org/
 
@@ -17,6 +17,12 @@ var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
 var_nesting="${var_nesting:-1}"
 var_keyctl="${var_keyctl:-1}"
+
+# App-specific variables (not in build.func whitelist)
+# Export so they survive lxc-attach into the container
+export var_forgejo_instance="${var_forgejo_instance:-}"
+export var_forgejo_runner_token="${var_forgejo_runner_token:-}"
+export var_runner_labels="${var_runner_labels:-}"
 
 header_info "$APP"
 variables
@@ -55,6 +61,20 @@ function update_script() {
   msg_ok "Updated successfully!"
   exit
 }
+
+# Fail early if running unattended without required values
+# mode is only set when the user explicitly passes it (automating);
+# bare "bash -c $(curl ...)" leaves mode empty and shows the whiptail menu
+if [[ -n "${mode:-}" ]]; then
+  if [[ -z "${var_forgejo_instance:-}" ]]; then
+    msg_error "var_forgejo_instance is required for unattended installs."
+    exit 1
+  fi
+  if [[ -z "${var_forgejo_runner_token:-}" ]]; then
+    msg_error "var_forgejo_runner_token is required for unattended installs."
+    exit 1
+  fi
+fi
 
 start
 build_container

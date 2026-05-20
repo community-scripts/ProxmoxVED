@@ -40,28 +40,40 @@ fetch_and_deploy_gh_release "Invidious Companion" "iv-org/invidious-companion" "
 
 msg_info "Building Invidious"
 cd /opt/invidious
+INVIDIOUS_VERSION="$(cat ~/.invidious 2>/dev/null || echo "unknown")"
+INVIDIOUS_VERSION="${INVIDIOUS_VERSION#v}"
+sed -i \
+  -e "s~^\(\s*CURRENT_BRANCH\s*=\).*~\1 \"master\"~" \
+  -e "s~^\(\s*CURRENT_COMMIT\s*=\).*~\1 \"\"~" \
+  -e "s~^\(\s*CURRENT_VERSION\s*=\).*~\1 \"${INVIDIOUS_VERSION}\"~" \
+  -e "s~^\(\s*CURRENT_TAG\s*=\).*~\1 \"${INVIDIOUS_VERSION}\"~" \
+  -e "s~^\(\s*ASSET_COMMIT\s*=\).*~\1 \"\"~" \
+  src/invidious.cr
 $STD make
 msg_ok "Built Invidious"
 
 msg_info "Configuring Invidious"
-SECRET_KEY="$(openssl rand -hex 16)"
-sed -e '|^db|,|dbname|d' \
-  -e "s|^#database_.*|database_url: postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}|" \
-  -e 's|^#check_.*|check_tables: true|' \
-  -e 's|^#invidious_companion:|invidious_companion:|' \
-  -e 's|^#  - private_|  - private_|' \
-  -e "s|^#invidious_companion_key:.*|inviduous_companion_key: \"${SECRET_KEY}\"|" \
-  -e "s|hmac_key:.*|hmac_key: \"$(openssl rand -hex 32)\"|" \
+SECRET_KEY="$(openssl rand -hex 8)"
+HMAC_KEY="$(openssl rand -hex 32)"
+sed -e '\~^db:~,\~dbname:~d' \
+  -e "s~^#database_.*~database_url: postgres://${PG_DB_USER}:${PG_DB_PASS}@localhost:5432/${PG_DB_NAME}~" \
+  -e 's~^#check_tables.*~check_tables: true~' \
+  -e 's~^#invidious_companion:~invidious_companion:~' \
+  -e 's~^#  - private_~  - private_~' \
+  -e "s~^#invidious_companion_key:.*~invidious_companion_key: \"${SECRET_KEY}\"~" \
+  -e "s~^hmac_key:.*~hmac_key: \"${HMAC_KEY}\"~" \
   /opt/invidious/config/config.example.yml >/opt/invidious/config/config.yml
 chmod 600 /opt/invidious/config/config.yml
 
 cat <<EOF >/etc/logrotate.d/invidious.logrotate
-rotate 4
-weekly
-notifempty
-missingok
-compress
-minsize 1048576
+/opt/invidious/invidious.log {
+  rotate 4
+  weekly
+  notifempty
+  missingok
+  compress
+  minsize 1048576
+}
 EOF
 chmod 0644 /etc/logrotate.d/invidious.logrotate
 msg_ok "Configured Invidious"
@@ -71,12 +83,29 @@ $STD ./invidious --migrate
 msg_ok "Migrated database"
 
 msg_info "Configuring services"
-sed -e 's|=invidious|=root|' \
-  -e 's|/home|/opt|' /opt/invidious.service >/etc/systemd/system/invidious.service
-curl -fsSL https://github.com/iv-org/invidious-companion/raw/refs/heads/master/invidious-companion.service -o /etc/systemd/system/invidious-companion.service
-sed -i -e "s|CHANGE_ME$|${SECRET_KEY}|" \
-  -e 's|=invidious$|=root|' \
-  -e 's|/home|/opt|' /etc/systemd/system/invidious-companion.service
+sed -e 's|^User=invidious|User=root|' \
+  -e 's|^Group=invidious|Group=root|' \
+  -e 's|/home/invidious/invidious|/opt/invidious|g' \
+  /opt/invidious/invidious.service >/etc/systemd/system/invidious.service
+mkdir -p /var/tmp/youtubei.js
+cat <<EOF >/etc/systemd/system/invidious-companion.service
+[Unit]
+Description=Invidious Companion
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/invidious-companion
+Environment=SERVER_SECRET_KEY=${SECRET_KEY}
+Environment=CACHE_DIRECTORY=/var/tmp/youtubei.js
+ExecStart=/opt/invidious-companion/invidious_companion
+Restart=always
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target
+EOF
 systemctl -q enable --now invidious invidious-companion
 msg_ok "Configured services"
 

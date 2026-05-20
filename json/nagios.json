@@ -1,0 +1,44 @@
+{
+    "name": "Nagios Core",
+    "slug": "nagios",
+    "categories": [
+        9
+    ],
+    "date_created": "2026-04-25",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://assets.nagios.com/downloads/nagioscore/docs/nagioscore/4/en/quickstart.html",
+    "website": "https://www.nagios.org/projects/nagios-core/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/nagios.webp",
+    "description": "Nagios Core is an open-source monitoring platform for hosts, services, and network infrastructure with a classic web interface.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/nagios.sh",
+            "config_path": "/usr/local/nagios/etc/nagios.cfg",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 20,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "nagiosadmin",
+        "password": "nagiosadmin"
+    },
+    "notes": [
+        {
+            "text": "After first login, change the default web password in /usr/local/nagios/etc/htpasswd.users.",
+            "type": "warning"
+        },
+        {
+            "text": "Web UI path is /nagios on port 80.",
+            "type": "info"
+        }
+    ]
+}

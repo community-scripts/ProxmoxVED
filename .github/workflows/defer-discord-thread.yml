@@ -1,0 +1,92 @@
+name: Lock Discord Thread and GitHub Issue on Deferral
+
+on:
+  issues:
+    types:
+      - labeled
+      - unlabeled
+
+permissions:
+  issues: write
+
+jobs:
+  defer_discord_thread:
+    runs-on: ubuntu-latest
+    if: |
+      github.repository == 'community-scripts/ProxmoxVED' && (
+        (github.event.action == 'labeled'   && github.event.label.name == 'deferred') ||
+        (github.event.action == 'unlabeled' && github.event.label.name == 'Ready For Testing')
+      )
+    steps:
+      - name: Find Discord thread
+        id: find_thread
+        run: |
+          ISSUE_TITLE="${{ github.event.issue.title }}"
+
+          THREAD_ID=$(curl -s "https://discord.com/api/v10/guilds/${{ secrets.DISCORD_GUILD_ID }}/threads/active" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" | \
+            jq -r --arg TITLE "$ISSUE_TITLE" --arg PARENT_ID "${{ secrets.DISCORD_CHANNEL_ID }}" \
+            '.threads[] | select(.parent_id == $PARENT_ID and .name == ("Wanted Tester for " + $TITLE)) | .id')
+
+          if [ -n "$THREAD_ID" ]; then
+            echo "Found thread: $THREAD_ID"
+            echo "thread_id=$THREAD_ID" >> "$GITHUB_OUTPUT"
+          else
+            echo "No Discord thread found for: $ISSUE_TITLE"
+          fi
+
+      - name: Get last GitHub issue comment
+        if: steps.find_thread.outputs.thread_id != ''
+        id: last_comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LAST=$(gh issue view ${{ github.event.issue.number }} \
+            --repo ${{ github.repository }} \
+            --comments \
+            --json comments \
+            --jq '.comments[-1].body // empty')
+
+          if [[ -z "$LAST" ]]; then
+            LAST=$(gh issue view ${{ github.event.issue.number }} \
+              --repo ${{ github.repository }} \
+              --json body \
+              --jq '.body')
+          fi
+
+          {
+            echo "last_comment<<EOF"
+            echo "$LAST"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post deferral notice to Discord thread
+        if: steps.find_thread.outputs.thread_id != ''
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          THREAD_ID: ${{ steps.find_thread.outputs.thread_id }}
+          LAST_COMMENT: ${{ steps.last_comment.outputs.last_comment }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: |
+          MESSAGE="$(printf '⏸️ **This script has been deferred.**\n\nLast update from the issue:\n\n%s\n\n🔗 %s' "$LAST_COMMENT" "$ISSUE_URL")"
+          JSON_PAYLOAD=$(jq -n --arg content "$MESSAGE" '{content: $content}')
+          curl -s -X POST "https://discord.com/api/v10/channels/$THREAD_ID/messages" \
+            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD"
+
+      - name: Lock Discord thread
+        if: steps.find_thread.outputs.thread_id != ''
+        run: |
+          curl -s -X PATCH "https://discord.com/api/v10/channels/${{ steps.find_thread.outputs.thread_id }}" \
+            -H "Authorization: Bot ${{ secrets.DISCORD_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"locked": true}'
+
+      - name: Lock GitHub issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --method PUT /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/lock \
+            -f lock_reason=resolved

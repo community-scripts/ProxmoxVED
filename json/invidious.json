@@ -20,8 +20,8 @@
       "config_path": "/opt/invidious/config",
       "resources": {
         "cpu": 2,
-        "ram": 2048,
-        "hdd": 4,
+        "ram": 4096,
+        "hdd": 8,
         "os": "Debian",
         "version": "13"
       }

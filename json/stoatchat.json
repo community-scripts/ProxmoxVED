@@ -1,0 +1,52 @@
+{
+    "name": "Stoatchat",
+    "slug": "stoatchat",
+    "categories": [
+        22
+    ],
+    "date_created": "2026-05-08",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 80,
+    "documentation": "https://github.com/stoatchat/self-hosted",
+    "website": "https://stoat.chat",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/stoatchat.webp",
+    "description": "A self-hostable open-source chat platform and community server. Stoatchat is a fork of Revolt, featuring real-time messaging, voice channels, file sharing, and a full-featured web client. Built with Rust (backend) and SolidJS (frontend).",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/stoatchat.sh",
+            "config_path": "/Revolt.toml",
+            "resources": {
+                "cpu": 4,
+                "ram": 10240,
+                "hdd": 30,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "Initial setup takes 30-60 minutes due to Rust compilation and frontend build. Do not interrupt the process.",
+            "type": "warning"
+        },
+        {
+            "text": "The first account registered becomes the instance administrator. Registration is open by default; set invite_only = true in /Revolt.toml to restrict it.",
+            "type": "info"
+        },
+        {
+            "text": "Voice and video calls require additional LiveKit setup. See https://github.com/stoatchat/self-hosted for details.",
+            "type": "info"
+        },
+        {
+            "text": "The files encryption key in /Revolt.toml is generated during installation. Back it up — losing it will make all uploaded files unreadable.",
+            "type": "warning"
+        }
+    ]
+}
