@@ -39,13 +39,18 @@ function update_script() {
   msg_ok "Backed up Configuration"
 
   msg_info "Reinstalling Test Branch"
-  if [[ ! -f /opt/community-scripts/install.func ]]; then
-    msg_error "No ProxmoxVED install helpers found at /opt/community-scripts/install.func"
-    exit 1
-  fi
-  if ! env FUNCTIONS_FILE_PATH="$(cat /opt/community-scripts/install.func)" \
+  if ! env FUNCTIONS_FILE_PATH="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/install.func")" \
     NAMER_PIP_SPEC="git+https://github.com/Nanja-at-web/namer.git@codex/proxmox-setup-wizard" \
     bash -c "$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/install/namer-install.sh")"; then
+    msg_info "Restoring Configuration"
+    cp /opt/namer.cfg.bak /etc/namer/namer.cfg 2>/dev/null || true
+    rm -f /opt/namer.cfg.bak
+    msg_ok "Restored Configuration"
+
+    msg_info "Starting Service"
+    systemctl start namer-watchdog
+    msg_ok "Started Service"
+
     msg_error "Failed to reinstall ${APP} from the test branch"
     exit 1
   fi
