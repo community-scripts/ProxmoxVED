@@ -39,7 +39,8 @@ function update_script() {
   msg_ok "Backed up Configuration"
 
   msg_info "Reinstalling Test Branch"
-  if ! env FUNCTIONS_FILE_PATH="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/install.func")" \
+  if ! env app="namer" \
+    FUNCTIONS_FILE_PATH="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/install.func")" \
     NAMER_PIP_SPEC="git+https://github.com/Nanja-at-web/namer.git@codex/proxmox-setup-wizard" \
     bash -c "$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/install/namer-install.sh")"; then
     msg_info "Restoring Configuration"
