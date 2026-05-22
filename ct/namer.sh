@@ -44,8 +44,15 @@ function update_script() {
   msg_ok "Backed up Configuration"
 
   msg_info "Updating Test Branch Package"
-  if ! /opt/namer/.venv/bin/pip install --upgrade \
-    "git+https://github.com/Nanja-at-web/namer.git@codex/proxmox-setup-wizard"; then
+  if command -v uv >/dev/null 2>&1; then
+    UPDATE_CMD=(uv pip install --python /opt/namer/.venv/bin/python --upgrade \
+      "git+https://github.com/Nanja-at-web/namer.git@codex/proxmox-setup-wizard")
+  else
+    UPDATE_CMD=(/opt/namer/.venv/bin/python -m pip install --upgrade \
+      "git+https://github.com/Nanja-at-web/namer.git@codex/proxmox-setup-wizard")
+  fi
+
+  if ! "${UPDATE_CMD[@]}"; then
     msg_info "Restoring Configuration"
     cp /opt/namer.cfg.bak /etc/namer/namer.cfg 2>/dev/null || true
     rm -f /opt/namer.cfg.bak
