@@ -30,6 +30,11 @@ function update_script() {
     exit
   fi
 
+  if [[ ! -x /opt/namer/.venv/bin/python ]]; then
+    msg_error "No ${APP} virtual environment found at /opt/namer/.venv"
+    exit 1
+  fi
+
   msg_info "Stopping Service"
   systemctl stop namer-watchdog
   msg_ok "Stopped Service"
@@ -38,11 +43,9 @@ function update_script() {
   cp /etc/namer/namer.cfg /opt/namer.cfg.bak 2>/dev/null || true
   msg_ok "Backed up Configuration"
 
-  msg_info "Reinstalling Test Branch"
-  if ! env app="namer" \
-    FUNCTIONS_FILE_PATH="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/install.func")" \
-    NAMER_PIP_SPEC="git+https://github.com/Nanja-at-web/namer.git@codex/proxmox-setup-wizard" \
-    bash -c "$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/install/namer-install.sh")"; then
+  msg_info "Updating Test Branch Package"
+  if ! /opt/namer/.venv/bin/pip install --upgrade \
+    "git+https://github.com/Nanja-at-web/namer.git@codex/proxmox-setup-wizard"; then
     msg_info "Restoring Configuration"
     cp /opt/namer.cfg.bak /etc/namer/namer.cfg 2>/dev/null || true
     rm -f /opt/namer.cfg.bak
@@ -52,10 +55,10 @@ function update_script() {
     systemctl start namer-watchdog
     msg_ok "Started Service"
 
-    msg_error "Failed to reinstall ${APP} from the test branch"
+    msg_error "Failed to update ${APP} from the test branch"
     exit 1
   fi
-  msg_ok "Reinstalled Test Branch"
+  msg_ok "Updated Test Branch Package"
 
   msg_info "Restoring Configuration"
   cp /opt/namer.cfg.bak /etc/namer/namer.cfg 2>/dev/null || true
