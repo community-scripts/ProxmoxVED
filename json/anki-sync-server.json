@@ -32,8 +32,8 @@
   },
   "notes": [
     {
-      "text": "The default user 'sync' has a weak password. You should change it.",
-      "type": "warning"
+      "text": "The password for the default user 'sync' can be checked in the .env file.",
+      "type": "info"
     }
   ]
 }
