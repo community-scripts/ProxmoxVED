@@ -29,7 +29,7 @@ mkdir -p /opt/anki/
 mkdir -p /opt/anki/syncbase
 cat <<EOF >/opt/anki/.env
 SYNC_BASE=/opt/anki/syncbase
-SYNC_USER1=sync:sync
+SYNC_USER1=sync:$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c16)
 EOF
 chown -R anki:anki /opt/anki/
 $STD runuser -u anki -- \
