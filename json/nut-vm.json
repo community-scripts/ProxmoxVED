@@ -1,0 +1,49 @@
+{
+  "name": "NUT VM",
+  "slug": "nut-vm",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-05-24",
+  "type": "vm",
+  "updateable": false,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": null,
+  "documentation": "https://networkupstools.org/documentation.html",
+  "website": "https://github.com/JuanCF/proxmox-nut-server",
+  "logo": null,
+  "description": "Network UPS Tools (NUT) is a service for monitoring and managing uninterruptible power supplies. This VM script creates an Ubuntu 24.04 VM with NUT pre-configured in netserver mode, USB UPS passthrough, and offline disk customization via virt-customize.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "vm/nut-vm.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 8,
+        "os": "Ubuntu",
+        "version": "24.04"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Requires a USB UPS connected to the Proxmox host. The script will prompt for USB passthrough during setup.",
+      "type": "info"
+    },
+    {
+      "text": "VM credentials and NUT users are configured interactively during the installation.",
+      "type": "info"
+    },
+    {
+      "text": "On first boot, the nut-detect service scans the USB bus and auto-configures the correct UPS driver.",
+      "type": "info"
+    }
+  ]
+}
