@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 80,
   "documentation": "https://github.com/simple-login/app/blob/master/docs/",
   "website": "https://simplelogin.io/",

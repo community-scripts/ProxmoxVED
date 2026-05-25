@@ -8,6 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
+    "has_arm": false,
     "interface_port": 8008,
     "documentation": "https://nezha.wiki/en_US/guide/dashboard.html",
     "website": "https://nezha.wiki/en_US/",

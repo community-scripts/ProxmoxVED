@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 3100,
   "documentation": "https://docs.paperclip.ing/",
   "website": "https://paperclip.ing/",

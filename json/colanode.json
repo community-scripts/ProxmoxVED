@@ -8,6 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
+    "has_arm": false,
     "interface_port": 4000,
     "documentation": "https://github.com/colanode/colanode/blob/main/hosting/docker",
     "website": "https://colanode.com/",

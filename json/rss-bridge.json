@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 80,
   "documentation": "https://rss-bridge.github.io/rss-bridge/",
   "website": "https://rss-bridge.org/",

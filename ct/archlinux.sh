@@ -13,6 +13,7 @@ var_ram="${var_ram:-512}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-archlinux}"
 var_version="${var_version:-base}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"

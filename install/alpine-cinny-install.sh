@@ -18,10 +18,9 @@ $STD apk add --no-cache \
   nginx
 msg_ok "Installed Dependencies"
 
-msg_info "Installing Cinny"
-
 fetch_and_deploy_gh_release "cinny" "cinnyapp/cinny" "prebuild" "latest" "/opt/cinny" "cinny-*.tar.gz"
 
+msg_info "Configuring Cinny"
 cat <<'EOF' >/etc/nginx/http.d/default.conf
 server {
   listen 8080;
@@ -45,7 +44,7 @@ server {
 EOF
 $STD rc-update add nginx default
 $STD rc-service nginx start
-msg_ok "Installed Cinny"
+msg_ok "Configured Cinny"
 
 motd_ssh
 customize

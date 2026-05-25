@@ -12,6 +12,7 @@ var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -39,7 +40,7 @@ function update_script() {
 
     msg_info "Running Database Migrations"
     set -a && source /opt/fleet/.env && set +a
-    $STD /opt/fleet/fleet prepare db
+    $STD /opt/fleet/fleet prepare db --no-prompt
     msg_ok "Ran Database Migrations"
 
     msg_info "Starting Service"
@@ -58,3 +59,5 @@ msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
+echo -e "${INFO}${YW} Admin Email:${CL} ${BGN}admin@fleet.local${CL}"
+echo -e "${INFO}${YW} Admin Password:${CL} ${BGN}Check inside the container: cat /opt/fleet/.env${CL}"

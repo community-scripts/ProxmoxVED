@@ -1,0 +1,45 @@
+{
+    "name": "NetBird",
+    "slug": "netbird",
+    "categories": [
+        4
+    ],
+    "date_created": "2026-05-19",
+    "type": "ct",
+    "updateable": true,
+    "privileged": true,
+    "has_arm": false,
+    "interface_port": null,
+    "documentation": "https://docs.netbird.io/",
+    "website": "https://netbird.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/netbird.webp",
+    "description": "NetBird is an open-source, WireGuard-based overlay network that creates secure peer-to-peer connections between devices. The NetBird client (agent) allows this container to join a NetBird network as a routing peer, enabling secure remote access to your Proxmox network from anywhere.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/netbird.sh",
+            "config_path": "",
+            "resources": {
+                "cpu": 1,
+                "ram": 512,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "This installs the NetBird client (agent). After setup, connect the peer to your network by running: netbird up --setup-key <YOUR_SETUP_KEY>",
+            "type": "info"
+        },
+        {
+            "text": "This container runs as privileged to allow access to the TUN device required by NetBird.",
+            "type": "warning"
+        }
+    ]
+}

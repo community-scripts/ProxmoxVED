@@ -8,6 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
+    "has_arm": false,
     "interface_port": 8080,
     "documentation": "https://docs.tolgee.io/platform/self_hosting",
     "website": "https://tolgee.io/",
@@ -29,16 +30,7 @@
     ],
     "default_credentials": {
         "username": "admin",
-        "password": "Stored in /opt/tolgee/data/initial.pwd"
+        "password": "cat /opt/tolgee_data/initial.pwd"
     },
-    "notes": [
-        {
-            "text": "Tolgee listens on port 8080 by default.",
-            "type": "info"
-        },
-        {
-            "text": "The initial admin password is generated automatically and stored in /opt/tolgee/data/initial.pwd on first start.",
-            "type": "info"
-        }
-    ]
+    "notes": []
 }

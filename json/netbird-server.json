@@ -1,0 +1,49 @@
+{
+    "name": "NetBird Server",
+    "slug": "netbird-server",
+    "categories": [
+        4
+    ],
+    "date_created": "2026-05-19",
+    "type": "vm",
+    "updateable": false,
+    "privileged": false,
+    "has_arm": false,
+    "interface_port": 443,
+    "documentation": "https://docs.netbird.io/selfhosted/selfhosted-quickstart",
+    "website": "https://netbird.io/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/netbird.webp",
+    "description": "NetBird self-hosted server — the management, signal, relay and STUN services that form the backbone of a private NetBird overlay network. Deploy on a VM with a public domain and run the official getting-started wizard to complete the setup.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "vm/netbird-server.sh",
+            "config_path": "",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 10,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "After first boot, run the setup wizard inside the VM: curl -fsSL https://github.com/netbirdio/netbird/releases/latest/download/getting-started.sh | bash",
+            "type": "info"
+        },
+        {
+            "text": "Requires a public domain pointing to the VM and open ports: 80/tcp, 443/tcp, 3478/udp.",
+            "type": "warning"
+        },
+        {
+            "text": "Docker is pre-installed during image creation. The getting-started.sh wizard deploys NetBird via Docker Compose.",
+            "type": "info"
+        }
+    ]
+}

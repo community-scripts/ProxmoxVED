@@ -8,6 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
+    "has_arm": false,
     "interface_port": 443,
     "documentation": "https://docs.aliasvault.net/",
     "website": "https://aliasvault.net/",
@@ -21,9 +22,9 @@
             "resources": {
                 "cpu": 4,
                 "ram": 6144,
-                "hdd": 30,
+                "hdd": 12,
                 "os": "Debian",
-                "version": "12"
+                "version": "13"
             }
         }
     ],

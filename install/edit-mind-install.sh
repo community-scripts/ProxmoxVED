@@ -21,8 +21,6 @@ $STD apt install -y \
   nginx \
   python3 \
   python3-dev \
-  python3-venv \
-  python3-pip \
   libgomp1 \
   libglib2.0-0 \
   libgl1 \
@@ -36,6 +34,7 @@ setup_ffmpeg
 PG_VERSION="16" PG_MODULES="pgvector" setup_postgresql
 PG_DB_NAME="editmind" PG_DB_USER="editmind" setup_postgresql_db
 NODE_VERSION="22" setup_nodejs
+UV_PYTHON="3.11" setup_uv
 
 msg_info "Installing pnpm"
 $STD npm install -g pnpm@10
@@ -56,14 +55,11 @@ $STD pnpm run build:background-jobs
 msg_ok "Built Application"
 
 msg_info "Setting up Python ML Environment"
-python3 -m venv /opt/edit-mind/.venv
-$STD /opt/edit-mind/.venv/bin/pip install --upgrade pip
-$STD /opt/edit-mind/.venv/bin/pip install --no-cache-dir -r /opt/edit-mind/python/requirements.txt
+$STD uv venv --python 3.11 /opt/edit-mind/.venv
+$STD uv pip install --no-cache-dir --python /opt/edit-mind/.venv \
+  -r /opt/edit-mind/python/requirements.txt \
+  chromadb
 msg_ok "Set up Python ML Environment"
-
-msg_info "Setting up ChromaDB"
-$STD /opt/edit-mind/.venv/bin/pip install --no-cache-dir chromadb
-msg_ok "Set up ChromaDB"
 
 msg_info "Configuring Application"
 SESSION_SECRET=$(openssl rand -base64 32)

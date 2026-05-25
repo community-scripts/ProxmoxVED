@@ -12,6 +12,7 @@ var_ram="${var_ram:-6144}"
 var_disk="${var_disk:-30}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -72,6 +73,15 @@ function update_script() {
     $STD dotnet publish AliasVault.Api/AliasVault.Api.csproj -c Release -o /opt/aliasvault/api --no-restore
     $STD dotnet build AliasVault.Client/AliasVault.Client.csproj -c Release --no-restore
     $STD dotnet publish AliasVault.Client/AliasVault.Client.csproj -c Release -o /opt/aliasvault/client --no-restore
+    python3 -c "
+import json, pathlib
+p = pathlib.Path('/opt/aliasvault/client/wwwroot/appsettings.json')
+c = json.loads(p.read_text()); c['ApiUrl'] = ''; p.write_text(json.dumps(c, indent=2))
+for ext in ['.gz', '.br']:
+    q = pathlib.Path(str(p) + ext)
+    if q.exists(): q.unlink()
+"
+    mkdir -p /opt/certificates/app
     $STD dotnet publish AliasVault.Admin/AliasVault.Admin.csproj -c Release -o /opt/aliasvault/admin --no-restore
     $STD dotnet publish Services/AliasVault.SmtpService/AliasVault.SmtpService.csproj -c Release -o /opt/aliasvault/smtp --no-restore
     $STD dotnet publish Services/AliasVault.TaskRunner/AliasVault.TaskRunner.csproj -c Release -o /opt/aliasvault/taskrunner --no-restore

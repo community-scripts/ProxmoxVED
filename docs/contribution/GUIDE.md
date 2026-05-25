@@ -274,6 +274,7 @@ var_ram="2048"                       # Min RAM needed (MB)
 var_disk="10"                        # Min disk (GB)
 var_os="debian"                      # OS type
 var_version="12"                     # OS version
+var_arm64="${var_arm64:-no}"         # arm64 support (no unless verified)
 var_unprivileged="1"                 # Security (1=unprivileged)
 
 header_info "$APP"

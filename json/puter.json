@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 4100,
   "documentation": "https://docs.puter.com/",
   "website": "https://puter.com/",

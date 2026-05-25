@@ -8,6 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
+    "has_arm": false,
     "interface_port": 3745,
     "documentation": "https://github.com/IliasHad/edit-mind",
     "website": "https://github.com/IliasHad/edit-mind",

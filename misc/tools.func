@@ -898,6 +898,55 @@ EOF
     return 0
     ;;
 
+  mysql)
+    if [[ -z "$repo_url" || -z "$gpg_key_url" ]]; then
+      msg_error "MySQL repository requires repo_url and gpg_key_url"
+      return 65
+    fi
+
+    cleanup_old_repo_files "mysql"
+
+    if ! download_gpg_key "$gpg_key_url" "/etc/apt/keyrings/mysql.gpg" "dearmor"; then
+      msg_error "Failed to import MySQL GPG key"
+      return 7
+    fi
+    chmod 644 "/etc/apt/keyrings/mysql.gpg"
+
+    local distro_codename
+    distro_codename=$(awk -F= '/^VERSION_CODENAME=/{print $2}' /etc/os-release)
+
+    if [[ "$distro_id" == "debian" ]]; then
+      case "$distro_codename" in
+      bookworm | bullseye) suite="$distro_codename" ;;
+      *) suite="bookworm" ;;
+      esac
+    elif [[ "$distro_id" == "ubuntu" ]]; then
+      case "$distro_codename" in
+      noble | jammy) suite="$distro_codename" ;;
+      *) suite="noble" ;;
+      esac
+    else
+      suite=$(get_fallback_suite "$distro_id" "$distro_codename" "$repo_url")
+    fi
+
+    local component
+    if [[ "$version" == "8.4" ]]; then
+      component="mysql-8.4-lts"
+    else
+      component="mysql-${version}"
+    fi
+
+    cat >/etc/apt/sources.list.d/mysql.sources <<EOF
+Types: deb
+URIs: ${repo_url}/
+Suites: ${suite}
+Components: ${component}
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/mysql.gpg
+EOF
+    return 0
+    ;;
+
   *)
     msg_error "Unknown tool repository: $tool_name"
     return 65
@@ -6234,11 +6283,13 @@ function setup_mysql() {
     return 100
   }
 
-  # Debian 13+ Fix: MySQL 8.0 incompatible with libaio1t64, use 8.4 LTS
+  # Debian 13+ Fix: MySQL 8.0 incompatible with libaio1t64, force 8.4 LTS
+  # Trixie has native MySQL 8.4 LTS repo support; forky/sid fall back to trixie
   if [[ "$DISTRO_ID" == "debian" && "$DISTRO_CODENAME" =~ ^(trixie|forky|sid)$ ]]; then
-    msg_info "Debian ${DISTRO_CODENAME} detected → using MySQL 8.4 LTS (libaio1t64 compatible)"
+    local MYSQL_SUITE="trixie"
+    msg_info "Debian ${DISTRO_CODENAME} detected → installing MySQL 8.4 LTS"
 
-    if ! download_gpg_key "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023" "/etc/apt/keyrings/mysql.gpg" "dearmor"; then
+    if ! download_gpg_key "https://repo.mysql.com/RPM-GPG-KEY-mysql-2025" "/etc/apt/keyrings/mysql.gpg" "dearmor"; then
       msg_error "Failed to import MySQL GPG key"
       return 7
     fi
@@ -6246,7 +6297,7 @@ function setup_mysql() {
     cat >/etc/apt/sources.list.d/mysql.sources <<EOF
 Types: deb
 URIs: https://repo.mysql.com/apt/debian/
-Suites: bookworm
+Suites: ${MYSQL_SUITE}
 Components: mysql-8.4-lts
 Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/mysql.gpg
@@ -6288,7 +6339,7 @@ EOF
 
   # Setup repository
   manage_tool_repository "mysql" "$MYSQL_VERSION" "https://repo.mysql.com/apt/${DISTRO_ID}" \
-    "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023" || {
+    "https://repo.mysql.com/RPM-GPG-KEY-mysql-2025" || {
     msg_error "Failed to setup MySQL repository"
     return 100
   }
@@ -6325,6 +6376,77 @@ EOF
 
   cache_installed_version "mysql" "$MYSQL_VERSION"
   msg_ok "Setup MySQL $MYSQL_VERSION"
+}
+
+# ------------------------------------------------------------------------------
+# Creates MySQL database with user, charset and optional extra grants
+#
+# Description:
+#   - Generates password if empty
+#   - Creates database with utf8mb4_unicode_ci
+#   - Creates local user with password
+#   - Grants full access to this DB
+#   - Optional: apply extra GRANT statements (comma-separated)
+#   - Saves credentials to file
+#   - Exports variables for use in calling script
+#
+# Usage:
+#   MYSQL_DB_NAME="myapp_db" MYSQL_DB_USER="myapp_user" setup_mysql_db
+#   MYSQL_DB_NAME="fleet" MYSQL_DB_USER="fleet" setup_mysql_db
+#
+# Variables:
+#   MYSQL_DB_NAME         - Database name (required)
+#   MYSQL_DB_USER         - Database user (required)
+#   MYSQL_DB_PASS         - User password (optional, auto-generated if empty)
+#   MYSQL_DB_EXTRA_GRANTS - Comma-separated GRANT statements without trailing semicolon (optional)
+#                           Example: "GRANT SELECT ON \`mysql\`.\`time_zone_name\`"
+#   MYSQL_DB_CREDS_FILE   - Credentials file path (optional, default: ~/${APPLICATION}.creds)
+#
+# Exports:
+#   MYSQL_DB_NAME, MYSQL_DB_USER, MYSQL_DB_PASS
+# ------------------------------------------------------------------------------
+
+function setup_mysql_db() {
+  if [[ -z "${MYSQL_DB_NAME:-}" || -z "${MYSQL_DB_USER:-}" ]]; then
+    msg_error "MYSQL_DB_NAME and MYSQL_DB_USER must be set before calling setup_mysql_db"
+    return 65
+  fi
+
+  if [[ -z "${MYSQL_DB_PASS:-}" ]]; then
+    MYSQL_DB_PASS=$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c13)
+  fi
+
+  msg_info "Setting up MySQL Database"
+
+  $STD mysql -u root -e "CREATE DATABASE IF NOT EXISTS \`$MYSQL_DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+  $STD mysql -u root -e "CREATE USER IF NOT EXISTS '$MYSQL_DB_USER'@'localhost' IDENTIFIED BY '$MYSQL_DB_PASS';"
+  $STD mysql -u root -e "GRANT ALL ON \`$MYSQL_DB_NAME\`.* TO '$MYSQL_DB_USER'@'localhost';"
+
+  # Optional extra grants
+  if [[ -n "${MYSQL_DB_EXTRA_GRANTS:-}" ]]; then
+    IFS=',' read -ra G_LIST <<<"${MYSQL_DB_EXTRA_GRANTS:-}"
+    for g in "${G_LIST[@]}"; do
+      g=$(echo "$g" | xargs)
+      $STD mysql -u root -e "$g TO '$MYSQL_DB_USER'@'localhost';"
+    done
+  fi
+
+  $STD mysql -u root -e "FLUSH PRIVILEGES;"
+
+  local app_name="${APPLICATION,,}"
+  local CREDS_FILE="${MYSQL_DB_CREDS_FILE:-${HOME}/${app_name}.creds}"
+  {
+    echo "MySQL Credentials"
+    echo "Database: $MYSQL_DB_NAME"
+    echo "User: $MYSQL_DB_USER"
+    echo "Password: $MYSQL_DB_PASS"
+  } >>"$CREDS_FILE"
+
+  msg_ok "Set up MySQL Database"
+
+  export MYSQL_DB_NAME
+  export MYSQL_DB_USER
+  export MYSQL_DB_PASS
 }
 
 # ------------------------------------------------------------------------------

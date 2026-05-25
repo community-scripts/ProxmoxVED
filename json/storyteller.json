@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 8001,
   "documentation": "https://storyteller-platform.dev/docs/welcome",
   "website": "https://storyteller-platform.dev/",

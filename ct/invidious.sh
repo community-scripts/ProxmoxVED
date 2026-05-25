@@ -13,6 +13,7 @@ var_ram="${var_ram:-4096}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -46,7 +47,7 @@ function update_script() {
 
     msg_info "Rebuilding Invidious"
     cd /opt/invidious
-    INVIDIOUS_VERSION="$(cat ~/.Invidious 2>/dev/null || echo "unknown")"
+    INVIDIOUS_VERSION="$(cat ~/.invidious 2>/dev/null || echo "unknown")"
     INVIDIOUS_VERSION="${INVIDIOUS_VERSION#v}"
     sed -i \
       -e "s~^\(\s*CURRENT_BRANCH\s*=\).*~\1 \"master\"~" \
@@ -78,4 +79,4 @@ description
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8086${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:3000${CL}"

@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 8080,
   "documentation": "https://fleetdm.com/docs",
   "website": "https://fleetdm.com/",
@@ -23,7 +24,7 @@
         "ram": 2048,
         "hdd": 8,
         "os": "Debian",
-        "version": "13"
+        "version": "12"
       }
     }
   ],

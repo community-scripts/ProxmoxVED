@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 3080,
   "documentation": "https://www.librechat.ai/docs",
   "website": "https://www.librechat.ai/",

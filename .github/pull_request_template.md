@@ -16,6 +16,14 @@ Link: #
 
 ---
 
+## arm64 Support (**X** in brackets)
+
+- [ ] **arm64 supported** - Tested and supported on arm64.
+- [ ] **arm64 not tested** - Assumed to work on arm64, but testing has not been done.
+- [ ] **arm64 not supported** - Confirmed upstream dependencies or binaries do not support arm64.
+
+---
+
 ## 🛠️ Type of Change (**X** in brackets)  
 
 - [ ] 🐞 **Bug fix** – Resolves an issue without breaking functionality.  

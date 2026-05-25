@@ -80,10 +80,14 @@ $STD dotnet build AliasVault.Client/AliasVault.Client.csproj \
 $STD dotnet publish AliasVault.Client/AliasVault.Client.csproj \
   -c Release -o /opt/aliasvault/client --no-restore
 # Clear the hardcoded localhost:5092 API URL so the client uses its own origin + /api/
+# Also remove pre-compressed copies so nginx (gzip_static on) serves the patched file
 python3 -c "
 import json, pathlib
 p = pathlib.Path('/opt/aliasvault/client/wwwroot/appsettings.json')
 c = json.loads(p.read_text()); c['ApiUrl'] = ''; p.write_text(json.dumps(c, indent=2))
+for ext in ['.gz', '.br']:
+    q = pathlib.Path(str(p) + ext)
+    if q.exists(): q.unlink()
 "
 $STD dotnet publish AliasVault.Admin/AliasVault.Admin.csproj \
   -c Release -o /opt/aliasvault/admin --no-restore
@@ -168,6 +172,11 @@ server {
 
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
+
+    # .mjs files must be served as text/javascript for dynamic import() to work
+    types {
+        application/javascript mjs;
+    }
 
     gzip on;
     gzip_vary on;
