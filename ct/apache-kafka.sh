@@ -4,7 +4,7 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Author: tanansatpal
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://kafka.apache.org/
-APP="Kafka"
+APP="Apache-Kafka"
 var_tags="${var_tags:-messaging;streaming;kraft}"
 var_cpu="${var_cpu:-2}"
 var_ram="${var_ram:-2048}"

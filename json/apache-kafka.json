@@ -1,6 +1,6 @@
 {
     "name": "Apache Kafka",
-    "slug": "kafka",
+    "slug": "apache-kafka",
     "categories": [
         18
     ],
@@ -16,7 +16,7 @@
     "install_methods": [
         {
             "type": "default",
-            "script": "ct/kafka.sh",
+            "script": "ct/apache-kafka.sh",
             "config_path": "/opt/kafka/config/server.properties",
             "resources": {
                 "cpu": 2,
