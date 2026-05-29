@@ -4,6 +4,9 @@
 # Author: Trawis
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
+load_functions
+
 function header_info() {
   clear
   cat <<"EOF"
@@ -15,19 +18,6 @@ function header_info() {
                   Reconfigure
 EOF
 }
-
-YW=$(echo "\033[33m")
-GN=$(echo "\033[1;92m")
-RD=$(echo "\033[01;31m")
-BL=$(echo "\033[36m")
-CL=$(echo "\033[m")
-CM="${GN}✔${CL}"
-CROSS="${RD}✖${CL}"
-INFO="${BL}ℹ${CL}"
-
-msg_info()  { echo -e " ${INFO} ${YW}${1}${CL}"; }
-msg_ok()    { echo -e " ${CM} ${GN}${1}${CL}"; }
-msg_error() { echo -e " ${CROSS} ${RD}${1}${CL}"; }
 
 if [[ ! -d /var/www/rutorrent ]]; then
   msg_error "No ruTorrent installation found. Run this script inside the ruTorrent container."
@@ -137,7 +127,6 @@ action_change_password() {
   htpasswd -b "$HTPASSWD" "$username" "$newpass" &>/dev/null
   systemctl reload nginx
 
-  # Keep creds file in sync if this is the primary user
   local creds_user
   creds_user=$(grep "^Username:" ~/rutorrent.creds 2>/dev/null | awk '{print $2}')
   if [[ "$username" == "$creds_user" ]]; then
