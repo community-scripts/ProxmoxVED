@@ -310,7 +310,7 @@ action_show_status() {
   echo -e "  /RPC2 endpoint:   ${YW}${rpc2}${CL}"
   echo -e "  Real IP forward:  ${YW}${real_ip}${CL}"
   echo -e "  PHP version:      ${YW}${PHP_VER}${CL}"
-  echo -e "  ruTorrent:        ${YW}$(cat /var/www/rutorrent/version.txt 2>/dev/null || echo unknown)${CL}"
+  echo -e "  ruTorrent:        ${YW}$(cat ~/.rutorrent 2>/dev/null || echo unknown)${CL}"
   echo ""
   echo -e "${BL}--- Services ---${CL}"
   for svc in rtorrent nginx "php${PHP_VER}-fpm"; do
