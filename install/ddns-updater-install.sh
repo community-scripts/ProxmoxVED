@@ -21,7 +21,9 @@ cat <<EOF >/opt/ddns-updater/data/config.json
 {
   "settings": [
     {
-      "provider": ""
+      "provider": "namecheap",
+      "domain": "example.com",
+      "password": "e5322165c1d74692bfa6d807100c0310"
     }
   ]
 }

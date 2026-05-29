@@ -16,7 +16,6 @@ update_os
 msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
-  python3 \
   make \
   nginx
 msg_ok "Installed Dependencies"
@@ -39,21 +38,23 @@ $STD npm run build
 msg_ok "Built Frontend"
 
 msg_info "Configuring Application"
-mkdir -p /opt/excalidash/backend/prisma
+mkdir -p /opt/excalidash_data
 mkdir -p /var/www/excalidash
 cp -r /opt/excalidash/frontend/dist/. /var/www/excalidash/
-cat <<EOF >/opt/excalidash/backend/.env
-DATABASE_URL=file:/opt/excalidash/backend/prisma/database.db
+cat <<EOF >/opt/excalidash_data/.env
+DATABASE_URL=file:/opt/excalidash_data/database.db
 PORT=8000
 NODE_ENV=production
+FRONTEND_URL=http://${LOCAL_IP}:6767
 AUTH_MODE=local
 TRUST_PROXY=false
 RUN_MIGRATIONS=false
 JWT_SECRET=$(openssl rand -hex 32)
 CSRF_SECRET=$(openssl rand -base64 32)
 EOF
+ln -sf /opt/excalidash_data/.env /opt/excalidash/backend/.env
 cd /opt/excalidash/backend
-set -a && source /opt/excalidash/backend/.env && set +a
+set -a && source /opt/excalidash_data/.env && set +a
 $STD npx prisma migrate deploy
 msg_ok "Configured Application"
 
@@ -64,13 +65,10 @@ server {
     server_name _;
     root /var/www/excalidash;
     index index.html;
+    client_max_body_size 50M;
 
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-
-    location /api {
-        proxy_pass http://127.0.0.1:8000;
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -78,6 +76,25 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:8000/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
     }
 }
 EOF

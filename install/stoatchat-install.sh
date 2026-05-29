@@ -39,7 +39,8 @@ fetch_and_deploy_gh_release "stoatchat" "stoatchat/stoatchat" "tarball"
 
 msg_info "Building Backend (Patience)"
 cd /opt/stoatchat
-$STD cargo build --release --bins -j 2
+CARGO_PROFILE_RELEASE_LTO=thin \
+  $STD cargo build --release --bins -j 2
 msg_ok "Built Backend"
 
 NODE_VERSION="22" setup_nodejs
@@ -72,40 +73,69 @@ VITE_API_URL="http://${LOCAL_IP}/api" \
   $STD pnpm --filter client exec vite build
 msg_ok "Built Web Frontend"
 
-fetch_and_deploy_gh_release "minio" "minio/minio" "singlefile" "latest" "/opt/stoatchat" "minio_linux_amd64"
-mv /opt/stoatchat/minio_linux_amd64 /usr/local/bin/minio
-chmod +x /usr/local/bin/minio
+msg_info "Installing Garage"
+GARAGE_VERSION=$(curl -fsSL https://api.github.com/repos/deuxfleurs-org/garage/tags | jq -r '.[0].name')
+curl -fsSL "https://garagehq.deuxfleurs.fr/_releases/${GARAGE_VERSION}/x86_64-unknown-linux-musl/garage" -o /usr/local/bin/garage
+chmod +x /usr/local/bin/garage
+echo "${GARAGE_VERSION}" >~/.garage
+mkdir -p /var/lib/garage/{data,meta}
+RPC_SECRET=$(openssl rand -hex 32)
+ADMIN_TOKEN=$(openssl rand -base64 32)
+cat <<EOF >/etc/garage.toml
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+replication_factor = 1
 
-fetch_and_deploy_gh_release "mc" "minio/mc" "singlefile" "latest" "/opt/stoatchat" "mc_linux_amd64"
-mv /opt/stoatchat/mc_linux_amd64 /usr/local/bin/mc
-chmod +x /usr/local/bin/mc
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "${RPC_SECRET}"
 
-msg_info "Configuring MinIO"
-mkdir -p /opt/stoatchat/data/minio
-cat <<EOF >/etc/systemd/system/stoatchat-minio.service
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"
+
+[s3_web]
+bind_addr = "[::]:3902"
+root_domain = ".web.garage.localhost"
+index = "index.html"
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token = "${ADMIN_TOKEN}"
+EOF
+cat <<EOF >/etc/systemd/system/garage.service
 [Unit]
-Description=Stoatchat MinIO Object Storage
+Description=Garage Object Storage
 After=network.target
 
 [Service]
 Type=simple
 User=root
-Environment=MINIO_ROOT_USER=minioautumn
-Environment=MINIO_ROOT_PASSWORD=minioautumn
-ExecStart=/usr/local/bin/minio server /opt/stoatchat/data/minio --console-address :9001
+WorkingDirectory=/var/lib/garage
+ExecStart=/usr/local/bin/garage -c /etc/garage.toml server
 Restart=on-failure
 RestartSec=5
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl enable -q --now stoatchat-minio
-msg_ok "Configured MinIO"
+systemctl enable -q --now garage
+msg_ok "Installed Garage"
 
-msg_info "Creating MinIO Bucket"
-until mc alias set local http://127.0.0.1:9000 minioautumn minioautumn &>/dev/null; do sleep 1; done
-$STD mc mb local/revolt-uploads
-msg_ok "Created MinIO Bucket"
+msg_info "Configuring Garage Bucket"
+until garage status &>/dev/null; do sleep 1; done
+NODE_ID=$(garage status 2>/dev/null | awk '/^[0-9a-f]/{print $1; exit}')
+$STD garage layout assign -z dc1 -c 1G "${NODE_ID}"
+$STD garage layout apply --version 1
+$STD garage key create stoatchat-app-key
+GARAGE_ACCESS_KEY=$(garage key info stoatchat-app-key | awk '/Key ID:/{print $3}')
+GARAGE_SECRET_KEY=$(garage key info stoatchat-app-key | awk '/Secret key:/{print $3}')
+$STD garage bucket create revolt-uploads
+$STD garage bucket allow --read --write --owner revolt-uploads --key stoatchat-app-key
+msg_ok "Configured Garage Bucket"
 
 FILES_ENCRYPTION_KEY=$(openssl rand -base64 32)
 
@@ -132,11 +162,11 @@ password = "rabbitpass"
 encryption_key = "${FILES_ENCRYPTION_KEY}"
 
 [files.s3]
-endpoint = "http://127.0.0.1:9000"
+endpoint = "http://127.0.0.1:3900"
 path_style_buckets = true
-region = "minio"
-access_key_id = "minioautumn"
-secret_access_key = "minioautumn"
+region = "garage"
+access_key_id = "${GARAGE_ACCESS_KEY}"
+secret_access_key = "${GARAGE_SECRET_KEY}"
 default_bucket = "revolt-uploads"
 
 [api.registration]
@@ -152,15 +182,15 @@ server {
 
     client_max_body_size 20M;
 
-    location /api {
-        proxy_pass http://127.0.0.1:14702;
+    location /api/ {
+        proxy_pass http://127.0.0.1:14702/;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
 
     location /ws {
-        proxy_pass http://127.0.0.1:14703;
+        proxy_pass http://127.0.0.1:14703/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -168,15 +198,15 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
     }
 
-    location /autumn {
-        proxy_pass http://127.0.0.1:14704;
+    location /autumn/ {
+        proxy_pass http://127.0.0.1:14704/;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
 
-    location /january {
-        proxy_pass http://127.0.0.1:14705;
+    location /january/ {
+        proxy_pass http://127.0.0.1:14705/;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -190,7 +220,8 @@ server {
 EOF
 ln -sf /etc/nginx/sites-available/stoatchat /etc/nginx/sites-enabled/stoatchat
 rm -f /etc/nginx/sites-enabled/default
-systemctl enable -q --now nginx
+systemctl enable nginx
+$STD nginx -t && systemctl reload nginx
 msg_ok "Configured Nginx"
 
 msg_info "Creating Backend Services"
@@ -220,7 +251,7 @@ for SVC in api events autumn january crond; do
   cat <<EOF >/etc/systemd/system/stoatchat-${SVC}.service
 [Unit]
 Description=Stoatchat ${SVC} service
-After=network.target stoatchat-minio.service
+After=network.target garage.service
 
 [Service]
 Type=simple

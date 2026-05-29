@@ -38,7 +38,11 @@
             "type": "warning"
         },
         {
-            "text": "Web UI: https://YOUR_IP:4000 — Server URL when adding a server inside the app: https://YOUR_IP:4000/config",
+            "text": "Access the web interface at https://YOUR_IP:4000. When adding a server in the desktop or mobile app, enter https://YOUR_IP:4000 as the server URL.",
+            "type": "info"
+        },
+        {
+            "text": "No default credentials — open the web UI and register a new account on first access.",
             "type": "info"
         },
         {

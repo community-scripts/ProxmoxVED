@@ -45,8 +45,8 @@ function update_script() {
     msg_info "Rebuilding Frontend"
     cd /opt/bunkerm/frontend
     export NODE_OPTIONS="--max-old-space-size=4096"
-    $STD npm install
-    $STD npm run build
+    NODE_ENV=development $STD npm ci
+    AUTH_SECRET="build-time-placeholder" NEXT_TELEMETRY_DISABLED=1 $STD npm run build
     unset NODE_OPTIONS
     mkdir -p /nextjs
     cp -r /opt/bunkerm/frontend/.next/standalone/. /nextjs/

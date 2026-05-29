@@ -113,6 +113,7 @@ msg_info "Configuring Login Hints"
 cat <<'HINT' >/etc/profile.d/hermes-hint.sh
 if [[ "$(id -u)" -eq 0 ]]; then
   echo "  Run 'hermes-setup' to configure your model provider and gateway server."
+  echo "  Use 'su - hermes' (with the dash) to switch to the hermes user."
 fi
 HINT
 msg_ok "Configured Login Hints"
