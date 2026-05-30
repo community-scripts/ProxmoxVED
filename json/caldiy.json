@@ -1,0 +1,48 @@
+{
+  "name": "Cal.diy",
+  "slug": "caldiy",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-05-30",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": "https://www.cal.diy/installation",
+  "config_path": "/opt/caldiy/.env",
+  "website": "https://www.cal.diy/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons/webp/cal-com.webp",
+  "description": "Cal.diy is the open source community edition of Cal.com, a scheduling and booking platform. It lets you self-host event types, availability schedules and calendar integrations. It is community maintained and intended for personal, non-production use only.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/caldiy.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 20,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The build is a heavy Turborepo monorepo build and needs at least 8GB RAM and ~20GB disk; reduce only after a successful first build. Generated DB and secret values are saved to /root/caldiy.creds.",
+      "type": "info"
+    },
+    {
+      "text": "First boot runs Prisma migrations, so the web UI may be unavailable for a minute or two. Create the first user at http://IP:3000/auth/setup. Configuration file: /opt/caldiy/.env",
+      "type": "info"
+    },
+    {
+      "text": "Cal.diy is community maintained and strictly recommended for personal, non-production use. For commercial use see Cal.com.",
+      "type": "warning"
+    }
+  ]
+}
