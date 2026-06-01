@@ -19,13 +19,10 @@ function header_info() {
 EOF
 }
 
+root_check
+
 if [[ ! -d /var/www/rutorrent ]]; then
   msg_error "No ruTorrent installation found. Run this script inside the ruTorrent container."
-  exit 1
-fi
-
-if [[ $EUID -ne 0 ]]; then
-  msg_error "Run as root."
   exit 1
 fi
 
@@ -134,7 +131,7 @@ action_change_password() {
   fi
 
   msg_ok "Password updated for '${username}'"
-  echo -e " ${INFO} ${YW}New password: ${newpass}${CL}"
+  msg_info "New password: ${newpass}"
   echo ""
   read -rp "Press Enter to continue..."
 }
@@ -305,27 +302,27 @@ action_show_status() {
   real_ip=$(detect_real_ip)
   upload_mb=$(detect_upload_limit)
 
-  echo -e "${BL}--- Configuration ---${CL}"
-  echo -e "  Upload limit:     ${YW}${upload_mb} MiB${CL}"
-  echo -e "  /RPC2 endpoint:   ${YW}${rpc2}${CL}"
-  echo -e "  Real IP forward:  ${YW}${real_ip}${CL}"
-  echo -e "  PHP version:      ${YW}${PHP_VER}${CL}"
-  echo -e "  ruTorrent:        ${YW}$(cat ~/.rutorrent 2>/dev/null || echo unknown)${CL}"
+  msg_info "Configuration"
+  printf "  %-20s %s\n" "Upload limit:"    "${upload_mb} MiB"
+  printf "  %-20s %s\n" "/RPC2 endpoint:"  "${rpc2}"
+  printf "  %-20s %s\n" "Real IP forward:" "${real_ip}"
+  printf "  %-20s %s\n" "PHP version:"     "${PHP_VER}"
+  printf "  %-20s %s\n" "ruTorrent:"       "$(cat ~/.rutorrent 2>/dev/null || echo unknown)"
   echo ""
-  echo -e "${BL}--- Services ---${CL}"
+  msg_info "Services"
   for svc in rtorrent nginx "php${PHP_VER}-fpm"; do
     if systemctl is-active --quiet "$svc"; then
-      echo -e "  ${svc}: ${GN}active${CL}"
+      msg_ok "${svc}"
     else
-      echo -e "  ${svc}: ${RD}inactive${CL}"
+      msg_error "${svc}"
     fi
   done
   echo ""
-  echo -e "${BL}--- Credentials ---${CL}"
+  msg_info "Credentials"
   if [[ -f ~/rutorrent.creds ]]; then
     cat ~/rutorrent.creds
   else
-    echo -e "  ${YW}~/rutorrent.creds not found${CL}"
+    msg_error "~/rutorrent.creds not found"
   fi
   echo ""
   read -rp "Press Enter to continue..."
