@@ -17,7 +17,6 @@ msg_info "Installing Dependencies"
 $STD apt install -y \
   build-essential \
   git \
-  python3 \
   ripgrep
 msg_ok "Installed Dependencies"
 
@@ -28,7 +27,7 @@ PG_DB_NAME="paperclip" PG_DB_USER="paperclip" setup_postgresql_db
 fetch_and_deploy_gh_release "paperclip-ai" "paperclipai/paperclip" "tarball"
 
 msg_info "Building Paperclip"
-cd /opt/paperclip
+cd /opt/paperclip-ai
 export HUSKY=0
 export NODE_OPTIONS="--max-old-space-size=8192"
 $STD pnpm install --frozen-lockfile
@@ -43,15 +42,19 @@ $STD npm install -g \
 msg_ok "Installed Agent CLIs"
 
 msg_info "Configuring Paperclip"
+PAPERCLIP_HOME="/opt/paperclip-data"
+PAPERCLIP_CONFIG="${PAPERCLIP_HOME}/instances/default/config.json"
+
 mkdir -p /opt/paperclip-data
 mkdir -p /root/.claude /root/.codex
 BETTER_AUTH_SECRET=$(openssl rand -hex 32)
-cat <<EOF >/opt/paperclip/.env
+cat <<EOF >/opt/paperclip-ai/.env
 DATABASE_URL=postgresql://${PG_DB_USER}:${PG_DB_PASS}@127.0.0.1:5432/${PG_DB_NAME}
 HOST=0.0.0.0
 PORT=3100
 SERVE_UI=true
-PAPERCLIP_HOME=/opt/paperclip-data
+PAPERCLIP_HOME=${PAPERCLIP_HOME}
+PAPERCLIP_CONFIG=${PAPERCLIP_CONFIG}
 PAPERCLIP_INSTANCE_ID=default
 PAPERCLIP_DEPLOYMENT_MODE=authenticated
 PAPERCLIP_DEPLOYMENT_EXPOSURE=private
@@ -61,22 +64,26 @@ EOF
 msg_ok "Configured Paperclip"
 
 msg_info "Running Database Migrations"
-set -a && source /opt/paperclip/.env && set +a
+set -a && source /opt/paperclip-ai/.env && set +a
 $STD pnpm db:migrate
 msg_ok "Ran Database Migrations"
 
 msg_info "Bootstrapping Paperclip"
-PAPERCLIP_ONBOARD_LOG=/opt/paperclip/paperclip-onboard.log
-PAPERCLIP_BOOTSTRAP_LOG=/opt/paperclip/paperclip-bootstrap.log
+PAPERCLIP_ONBOARD_LOG=/opt/paperclip-ai/paperclip-onboard.log
+PAPERCLIP_BOOTSTRAP_LOG=/opt/paperclip-ai/paperclip-bootstrap.log
 
 for PAPERCLIP_ONBOARD_CMD in \
   "pnpm paperclipai onboard --yes --bind lan" \
   "pnpm paperclipai onboard --yes"; do
   rm -f "$PAPERCLIP_ONBOARD_LOG"
-  setsid bash -c "cd /opt/paperclip && ${PAPERCLIP_ONBOARD_CMD}" >"$PAPERCLIP_ONBOARD_LOG" 2>&1 &
+  setsid env \
+    PAPERCLIP_HOME="$PAPERCLIP_HOME" \
+    PAPERCLIP_CONFIG="$PAPERCLIP_CONFIG" \
+    bash -c 'cd /opt/paperclip-ai && exec "$@"' _ $PAPERCLIP_ONBOARD_CMD \
+    >"$PAPERCLIP_ONBOARD_LOG" 2>&1 &
   PAPERCLIP_ONBOARD_PID=$!
   for _ in {1..60}; do
-    if [[ -f /opt/paperclip-data/instances/default/config.json ]]; then
+    if [[ -f "$PAPERCLIP_CONFIG" ]]; then
       break
     fi
     if ! kill -0 "$PAPERCLIP_ONBOARD_PID" 2>/dev/null; then
@@ -88,19 +95,19 @@ for PAPERCLIP_ONBOARD_CMD in \
     kill -- -"${PAPERCLIP_ONBOARD_PID}" >/dev/null 2>&1 || true
     wait "$PAPERCLIP_ONBOARD_PID" 2>/dev/null || true
   fi
-  [[ -f /opt/paperclip-data/instances/default/config.json ]] && break
+  [[ -f "$PAPERCLIP_CONFIG" ]] && break
   if ! grep -q "unknown option '--bind'" "$PAPERCLIP_ONBOARD_LOG"; then
     break
   fi
   msg_info "Retrying Paperclip Onboarding"
 done
 
-if [[ ! -f /opt/paperclip-data/instances/default/config.json ]]; then
+if [[ ! -f "$PAPERCLIP_CONFIG" ]]; then
   msg_error "Failed to bootstrap Paperclip"
   exit 1
 fi
 
-if grep -q 'authenticated' /opt/paperclip-data/instances/default/config.json; then
+if grep -q 'authenticated' $PAPERCLIP_CONFIG; then
   pnpm paperclipai auth bootstrap-ceo >"$PAPERCLIP_BOOTSTRAP_LOG" 2>&1 || true
   PAPERCLIP_INVITE_URL=$(awk -F'Invite URL: ' '/Invite URL:/ {print $2; exit}' "$PAPERCLIP_BOOTSTRAP_LOG")
   PAPERCLIP_INVITE_EXPIRY=$(awk -F'Expires: ' '/Expires:/ {print $2; exit}' "$PAPERCLIP_BOOTSTRAP_LOG")
@@ -134,8 +141,8 @@ Requires=postgresql.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/paperclip
-EnvironmentFile=/opt/paperclip/.env
+WorkingDirectory=/opt/paperclip-ai
+EnvironmentFile=/opt/paperclip-ai/.env
 Environment=HOME=/root
 Environment=CODEX_HOME=/root/.codex
 Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
