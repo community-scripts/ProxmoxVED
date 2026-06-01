@@ -132,8 +132,8 @@ action_change_password() {
 
   msg_ok "Password updated for '${username}'"
   msg_info "New password: ${newpass}"
-  echo ""
-  read -rp "Press Enter to continue..."
+  msg_ok "Press Enter to return to menu"
+  read -rp ""
 }
 
 action_toggle_rpc2() {
@@ -152,13 +152,14 @@ action_toggle_rpc2() {
   fi
 
   write_nginx_conf "$(detect_upload_limit)" "$rpc2_new" "$(detect_real_ip)" || {
-    read -rp "Press Enter to continue..."
+    msg_ok "Press Enter to return to menu"
+    read -rp ""
     return
   }
   systemctl reload nginx
   msg_ok "/RPC2 endpoint $([ "$rpc2_new" = "yes" ] && echo "enabled" || echo "disabled")"
-  echo ""
-  read -rp "Press Enter to continue..."
+  msg_ok "Press Enter to return to menu"
+  read -rp ""
 }
 
 action_toggle_real_ip() {
@@ -177,13 +178,14 @@ action_toggle_real_ip() {
   fi
 
   write_nginx_conf "$(detect_upload_limit)" "$(detect_rpc2)" "$real_ip_new" || {
-    read -rp "Press Enter to continue..."
+    msg_ok "Press Enter to return to menu"
+    read -rp ""
     return
   }
   systemctl reload nginx
   msg_ok "Real IP forwarding $([ "$real_ip_new" = "yes" ] && echo "enabled" || echo "disabled")"
-  echo ""
-  read -rp "Press Enter to continue..."
+  msg_ok "Press Enter to return to menu"
+  read -rp ""
 }
 
 action_change_upload_limit() {
@@ -199,12 +201,14 @@ action_change_upload_limit() {
 
   if ! [[ "$new_mb" =~ ^[0-9]+$ ]] || [[ "$new_mb" -lt 1 ]]; then
     msg_error "Invalid value — must be a positive integer"
-    read -rp "Press Enter to continue..."
+    msg_ok "Press Enter to return to menu"
+    read -rp ""
     return
   fi
 
   write_nginx_conf "$new_mb" "$(detect_rpc2)" "$(detect_real_ip)" || {
-    read -rp "Press Enter to continue..."
+    msg_ok "Press Enter to return to menu"
+    read -rp ""
     return
   }
 
@@ -223,8 +227,8 @@ EOF
   systemctl reload nginx
   systemctl restart "php${PHP_VER}-fpm"
   msg_ok "Upload limit set to ${new_mb} MiB"
-  echo ""
-  read -rp "Press Enter to continue..."
+  msg_ok "Press Enter to return to menu"
+  read -rp ""
 }
 
 action_manage_plugins() {
@@ -232,7 +236,8 @@ action_manage_plugins() {
 
   if [[ ! -f "$PLUGINS_INI" ]]; then
     msg_error "plugins.ini not found at $PLUGINS_INI"
-    read -rp "Press Enter to continue..."
+    msg_ok "Press Enter to return to menu"
+    read -rp ""
     return
   fi
 
@@ -251,7 +256,8 @@ action_manage_plugins() {
 
   if [[ ${#slugs[@]} -eq 0 ]]; then
     msg_error "No plugins found in $PLUGINS_INI"
-    read -rp "Press Enter to continue..."
+    msg_ok "Press Enter to return to menu"
+    read -rp ""
     return
   fi
 
@@ -291,8 +297,8 @@ action_manage_plugins() {
   chown www-data:www-data "$PLUGINS_INI"
 
   msg_ok "plugins.ini updated — reload the ruTorrent browser tab to apply"
-  echo ""
-  read -rp "Press Enter to continue..."
+  msg_ok "Press Enter to return to menu"
+  read -rp ""
 }
 
 action_show_status() {
@@ -307,8 +313,7 @@ action_show_status() {
   printf "  %-20s %s\n" "/RPC2 endpoint:"  "${rpc2}"
   printf "  %-20s %s\n" "Real IP forward:" "${real_ip}"
   printf "  %-20s %s\n" "PHP version:"     "${PHP_VER}"
-  printf "  %-20s %s\n" "ruTorrent:"       "$(cat ~/.rutorrent 2>/dev/null || echo unknown)"
-  echo ""
+  printf "  %-20s %s\n" "ruTorrent:"       "$(cat ~/.rutorrent 2>/dev/null || printf unknown)"
   msg_info "Services"
   for svc in rtorrent nginx "php${PHP_VER}-fpm"; do
     if systemctl is-active --quiet "$svc"; then
@@ -317,15 +322,14 @@ action_show_status() {
       msg_error "${svc}"
     fi
   done
-  echo ""
   msg_info "Credentials"
   if [[ -f ~/rutorrent.creds ]]; then
     cat ~/rutorrent.creds
   else
     msg_error "~/rutorrent.creds not found"
   fi
-  echo ""
-  read -rp "Press Enter to continue..."
+  msg_ok "Press Enter to return to menu"
+  read -rp ""
 }
 
 # --- Main ---
