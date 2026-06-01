@@ -7979,7 +7979,7 @@ setup_postgresql_db() {
     IFS=',' read -ra EXT_LIST <<<"${PG_DB_EXTENSIONS:-}"
     for ext in "${EXT_LIST[@]}"; do
       ext=$(echo "$ext" | xargs) # Trim whitespace
-      $STD sudo -u postgres psql -d "$PG_DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS $ext;"
+      $STD sudo -u postgres psql -d "$PG_DB_NAME" -c "CREATE EXTENSION IF NOT EXISTS \"$ext\";"
     done
   fi
 
