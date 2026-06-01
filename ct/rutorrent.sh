@@ -13,6 +13,7 @@ var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
 var_unprivileged="${var_unprivileged:-1}"
+var_nesting="${var_nesting:-0}"
 
 header_info "$APP"
 variables
@@ -128,12 +129,6 @@ if [[ -z "${RUTORRENT_PLUGINS}" ]]; then
     10 55 "32" --title "Upload Limit" 3>&1 1>&2 2>&3) || exit
   [[ -z "${RUTORRENT_MAX_UPLOAD_MB}" ]] && RUTORRENT_MAX_UPLOAD_MB=32
 
-  # Service user
-  RUTORRENT_SERVICE_USER=$(whiptail --inputbox \
-    "rTorrent system service username:\n\n(a dedicated user is created with this name)" \
-    9 52 "torrent" --title "Service User" 3>&1 1>&2 2>&3) || exit
-  [[ -z "${RUTORRENT_SERVICE_USER}" ]] && RUTORRENT_SERVICE_USER="torrent"
-
 fi
 
 # Apply defaults for non-interactive / pre-seeded runs
@@ -142,8 +137,7 @@ RUTORRENT_PASS="${RUTORRENT_PASS:-}"
 RUTORRENT_ENABLE_RPC2="${RUTORRENT_ENABLE_RPC2:-no}"
 RUTORRENT_ENABLE_REAL_IP="${RUTORRENT_ENABLE_REAL_IP:-no}"
 RUTORRENT_MAX_UPLOAD_MB="${RUTORRENT_MAX_UPLOAD_MB:-32}"
-RUTORRENT_SERVICE_USER="${RUTORRENT_SERVICE_USER:-torrent}"
-[[ "${RUTORRENT_SERVICE_USER}" == "root" ]] && RUTORRENT_SERVICE_USER="torrent"
+RUTORRENT_SERVICE_USER="torrent"
 
 export RUTORRENT_USER RUTORRENT_PASS RUTORRENT_PLUGINS RUTORRENT_ENABLE_RPC2 RUTORRENT_ENABLE_REAL_IP RUTORRENT_MAX_UPLOAD_MB RUTORRENT_SERVICE_USER
 

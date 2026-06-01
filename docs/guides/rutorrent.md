@@ -46,8 +46,9 @@ The installer prompts for:
 | Disk | 8 GB |
 | OS | Debian 13 |
 
-> **Note:** The 8 GB disk covers the OS and application only. Download storage should be
-> provided via a separate mount point — see [Adding Storage](#adding-storage) below.
+> **Required:** The 8 GB disk covers the OS and application only — it is not intended for
+> downloads. Add a separate mount point before you start downloading. See
+> [Adding Storage](#adding-storage) below.
 
 ---
 
@@ -91,9 +92,12 @@ enabled = no
 
 ## Adding Storage
 
-Keep the LXC on fast storage (SSD) and mount your data disk into the container as a
-bind mount. You must set ownership on the host path manually before or after mounting —
-see step 3 below.
+> **Required if your root disk is small.** The default 8 GB covers the OS and application
+> only. The container will fill up fast without a dedicated download disk. Do this before
+> you start downloading.
+
+Keep the LXC on fast storage (SSD) and mount your data disk into the container as a bind
+mount.
 
 ### 1 — Prepare the disk on the Proxmox host
 
@@ -131,22 +135,49 @@ For additional disks use `-mp1`, `-mp2`, etc., mapping to `/data2`, `/data3`, �
 
 ### 3 — Fix ownership
 
-> **Unprivileged containers** shift UIDs by 100000. The `torrent` user (uid 999 inside
-> the container) appears as uid **100999** on the host.
+> **Unprivileged containers** shift UIDs by 100000. The `torrent` service user (uid 999
+> inside the container) appears as uid **100999** on the host. rTorrent will not be able
+> to write downloads without this step.
 
 ```bash
 # Unprivileged container (default)
 chown -R 100999:100999 /mnt/torrents
+chmod 750 /mnt/torrents
 
 # Privileged container
 chown -R 999:999 /mnt/torrents
-
 chmod 750 /mnt/torrents
 ```
 
 ### 4 — Set the download directory in ruTorrent
 
 In ruTorrent → **Settings → Downloads** → set the default directory to `/data`.
+
+### 5 — Optional: use /data as the watch directory
+
+By default rTorrent watches `/var/lib/rtorrent/.watch/` for new `.torrent` files. To use
+your data disk instead, edit `.rtorrent.rc` inside the container:
+
+```bash
+nano /var/lib/rtorrent/.rtorrent.rc
+```
+
+Change the watch schedule line to point to a directory on your mount:
+
+```
+schedule2 = watch_directory,5,5,load.start=/data/watch/*.torrent
+```
+
+Create the directory and restart rTorrent:
+
+```bash
+mkdir -p /data/watch
+chown torrent:torrent /data/watch
+systemctl restart rtorrent
+```
+
+You can then drop `.torrent` files into `/data/watch/` (e.g. via SFTP as root) and
+rTorrent will pick them up automatically.
 
 ---
 
