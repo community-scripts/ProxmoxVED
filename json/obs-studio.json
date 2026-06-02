@@ -1,0 +1,57 @@
+{
+  "name": "OBS Studio",
+  "slug": "obs-studio",
+  "categories": [
+    13
+  ],
+  "date_created": "2026-06-02",
+  "type": "ct",
+  "updateable": true,
+  "privileged": true,
+  "has_arm": false,
+  "interface_port": 5901,
+  "documentation": "https://obsproject.com/help",
+  "website": "https://obsproject.com/",
+  "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/OBS_Studio_Logo.svg/120px-OBS_Studio_Logo.svg.png",
+  "description": "OBS Studio is free and open source software for video recording and live streaming. This LXC provides a lightweight VNC-accessible desktop environment with hardware encoding support (Intel QuickSync/VAAPI) for capturing USB video devices.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/obs-studio.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": "obsstudio"
+  },
+  "notes": [
+    {
+      "text": "Connect via VNC to port 5901. Default password: obsstudio (change with: x11vnc -storepasswd)",
+      "type": "info"
+    },
+    {
+      "text": "Run 'vainfo' inside the container to verify Intel QuickSync/VAAPI availability after restart.",
+      "type": "info"
+    },
+    {
+      "text": "If vainfo shows VAEntrypointEncSlice, select 'QuickSync H.264' as encoder in OBS Settings → Output.",
+      "type": "info"
+    },
+    {
+      "text": "For Haswell (4th gen Intel) and older: uses i965-va-driver (legacy). For Broadwell (5th gen) and newer: uses intel-media-va-driver. The framework auto-detects your GPU generation.",
+      "type": "info"
+    },
+    {
+      "text": "USB capture card (/dev/video0) and GPU (/dev/dri) are passed through from the Proxmox host. Ensure the capture card is connected before starting the container.",
+      "type": "info"
+    }
+  ]
+}
