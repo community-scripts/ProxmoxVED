@@ -1,0 +1,36 @@
+{
+    "name": "Odysseus",
+    "slug": "odysseus",
+    "categories": [
+        10
+    ],
+    "date_created": "2026-06-02",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 7000,
+    "documentation": null,
+    "website": "https://github.com/pewdiepie-archdaemon/odysseus",
+    "logo": "https://raw.githubusercontent.com/pewdiepie-archdaemon/odysseus/main/docs/odysseus.jpg",
+    "description": "A self-hosted AI workspace for managing LLM workflows, knowledge bases, and automation tasks.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/odysseus.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 8,
+                "os": "debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        "Admin credentials are randomly generated and stored in /root/odysseus.creds"
+    ]
+}
