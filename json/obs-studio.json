@@ -9,11 +9,11 @@
   "updateable": true,
   "privileged": true,
   "has_arm": false,
-  "interface_port": 5901,
+  "interface_port": 5800,
   "documentation": "https://obsproject.com/help",
   "website": "https://obsproject.com/",
   "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/OBS_Studio_Logo.svg/120px-OBS_Studio_Logo.svg.png",
-  "description": "OBS Studio is free and open source software for video recording and live streaming. This LXC provides a lightweight VNC-accessible desktop environment with hardware encoding support (Intel QuickSync/VAAPI) for capturing USB video devices.",
+  "description": "OBS Studio is free and open source software for video recording and live streaming. This LXC provides a web-accessible desktop environment with hardware encoding support (Intel QuickSync/VAAPI) for capturing USB video devices.",
   "install_methods": [
     {
       "type": "default",
@@ -34,7 +34,7 @@
   },
   "notes": [
     {
-      "text": "Connect via VNC to port 5901. Default password: obsstudio (change with: x11vnc -storepasswd)",
+      "text": "Web access via http://<IP>:5800/vnc.html. VNC access via vnc://<IP>:5900 (macOS Screen Sharing compatible). Default password: obsstudio",
       "type": "info"
     },
     {

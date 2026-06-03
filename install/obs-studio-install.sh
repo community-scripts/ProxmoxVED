@@ -21,6 +21,8 @@ $STD apt install -y \
   xvfb \
   openbox \
   x11vnc \
+  novnc \
+  websockify \
   lxterminal \
   dbus \
   pulseaudio \
@@ -40,7 +42,8 @@ Xvfb :1 -screen 0 1920x1080x24 +extension GLX &
 sleep 2
 openbox &
 sleep 1
-x11vnc -display :1 -rfbauth /root/.vnc/passwd -forever -shared -rfbport 5901
+x11vnc -display :1 -rfbauth /root/.vnc/passwd -forever -shared -rfbport 5900 &
+websockify --web /usr/share/novnc 5800 localhost:5900
 EOF
 chmod +x /usr/local/bin/obs-desktop.sh
 msg_ok "Created startup script"
