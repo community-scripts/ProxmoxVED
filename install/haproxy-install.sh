@@ -27,7 +27,6 @@ global
     maxconn 256
     user haproxy
     group haproxy
-    daemon
 
 defaults
     log     global
@@ -61,3 +60,7 @@ msg_ok "Started HAProxy"
 motd_ssh
 customize
 cleanup_lxc
+
+msg_info "Restarting HAProxy"
+systemctl restart haproxy.service
+msg_ok "HAProxy restarted"
