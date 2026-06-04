@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/coma-toast/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2025 community-scripts ORG
-# Author: pwdiepie-archdaemon
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# License: MIT | https://github.com/coma-toast/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/pewdiepie-archdaemon/odysseus
 
 APP="Odysseus"
