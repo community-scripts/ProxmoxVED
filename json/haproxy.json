@@ -21,7 +21,7 @@
       "script": "ct/haproxy.sh",
       "resources": {
         "cpu": 1,
-        "ram": 512,
+        "ram": 1024,
         "hdd": 4,
         "os": "Debian",
         "version": "13"

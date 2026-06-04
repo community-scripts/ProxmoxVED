@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/Hermandev07/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: GitHub Copilot
+# Author: Hermandev07
 # License: MIT | https://github.com/Hermandev07/ProxmoxVED/raw/main/LICENSE
 # Source: https://www.haproxy.com/
 
@@ -53,6 +53,4 @@ msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} HAProxy stats are available at:${CL}"
 echo -e "${TAB}${BGN}http://${IP}:8404${CL}"
-echo -e "${INFO}${YW} Important: Change the default stats credentials in /etc/haproxy/haproxy.cfg${CL}"
-echo -e "${INFO}${YW} Login:${CL}"
-echo -e "${TAB}${BGN}admin/admin${CL}"
+
