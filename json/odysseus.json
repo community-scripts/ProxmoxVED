@@ -1,0 +1,55 @@
+{
+  "name": "Odysseus",
+  "slug": "odysseus",
+  "categories": [20],
+  "date_created": "2026-06-05",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 80,
+  "documentation": "https://pewdiepie-archdaemon.github.io/odysseus/",
+  "website": "https://github.com/pewdiepie-archdaemon/odysseus",
+  "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHBhdGggZD0iTTE2IDRMMTYgMjJMNiAyMloiIGZpbGw9IiNlMDZjNzUiLz4KICA8cGF0aCBkPSJNMTYgOEwxNiAyMkwyNCAyMloiIGZpbGw9IiNlMDZjNzUiIG9wYWNpdHk9IjAuNiIvPgogIDxwYXRoIGQ9Ik00IDI0UTEwIDIwIDE2IDI0UTIyIDI4IDI4IDI0IiBzdHJva2U9IiNlMDZjNzUiIHN0cm9rZS13aWR0aD0iMi41IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+Cg==",
+  "description": "Odysseus is a self-hosted AI workspace with chat, agents, deep research, documents, email triage, calendar, notes, and model management. Supports local and remote LLMs via Ollama, vLLM, llama.cpp, OpenAI, and more.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/odysseus.sh",
+      "config_path": "/opt/odysseus/.env",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 8,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Admin password is generated during setup and printed in the terminal. Change it after first login in Settings.",
+      "type": "warning"
+    },
+    {
+      "text": "Two usage scenarios: (1) Connect to a remote or separate LLM server — default 2 CPU / 4GB RAM / 8GB disk are sufficient. (2) Run a local LLM on the same container (e.g., Ollama, vLLM, llama.cpp) — increase CPU/RAM/disk significantly depending on model size.",
+      "type": "info"
+    },
+    {
+      "text": "tmux is installed for Cookbook background model downloads and serves.",
+      "type": "info"
+    },
+    {
+      "text": "Configure LLM providers, search, and email inside Settings after first login.",
+      "type": "info"
+    },
+    {
+      "text": "Uses SQLite by default. For production, configure an external PostgreSQL database via .env.",
+      "type": "info"
+    }
+  ]
+}
