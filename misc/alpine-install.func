@@ -6,7 +6,7 @@
 if ! command -v curl >/dev/null 2>&1; then
   apk update && apk add curl >/dev/null 2>&1
 fi
-COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/coma-toast/ProxmoxVED/add-odysseus-ct}"
 source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/core.func")
 source <(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/error_handler.func")
 load_functions

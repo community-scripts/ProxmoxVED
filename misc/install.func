@@ -198,7 +198,7 @@ _bootstrap() {
   fi
 
   # Configurable base URL for development — override with COMMUNITY_SCRIPTS_URL
-  COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}"
+  COMMUNITY_SCRIPTS_URL="${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/coma-toast/ProxmoxVED/add-odysseus-ct}"
 
   # Source core functions
   source <($_fetch "$COMMUNITY_SCRIPTS_URL/misc/core.func")
@@ -1424,7 +1424,7 @@ EOF
   # Create update script
   # Use var_os for OS-based containers, otherwise use app name
   local update_script_name="${var_os:-$app}"
-  echo "bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/ct/${update_script_name}.sh)\"" >/usr/bin/update
+  echo "bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/coma-toast/ProxmoxVED/add-odysseus-ct/ct/${update_script_name}.sh)\"" >/usr/bin/update
   chmod +x /usr/bin/update
 
   # Inject SSH authorized keys if provided
