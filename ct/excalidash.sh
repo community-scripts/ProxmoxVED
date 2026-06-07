@@ -12,6 +12,7 @@ var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -34,12 +35,9 @@ function update_script() {
     systemctl stop excalidash
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    cp /opt/excalidash/backend/.env /opt/excalidash.env.bak
-    cp /opt/excalidash/backend/prisma/database.db /opt/excalidash.db.bak 2>/dev/null || true
-    msg_ok "Backed up Data"
-
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "excalidash" "ZimengXiong/ExcaliDash" "tarball"
+
+    ln -sf /opt/excalidash_data/.env /opt/excalidash/backend/.env
 
     msg_info "Rebuilding Application"
     cd /opt/excalidash/backend
@@ -52,15 +50,9 @@ function update_script() {
     cp -r /opt/excalidash/frontend/dist/. /var/www/excalidash/
     msg_ok "Rebuilt Application"
 
-    msg_info "Restoring Data"
-    cp /opt/excalidash.env.bak /opt/excalidash/backend/.env
-    cp /opt/excalidash.db.bak /opt/excalidash/backend/prisma/database.db 2>/dev/null || true
-    rm -f /opt/excalidash.env.bak /opt/excalidash.db.bak
-    msg_ok "Restored Data"
-
     msg_info "Running Migrations"
     cd /opt/excalidash/backend
-    set -a && source /opt/excalidash/backend/.env && set +a
+    set -a && source /opt/excalidash_data/.env && set +a
     $STD npx prisma migrate deploy
     msg_ok "Ran Migrations"
 

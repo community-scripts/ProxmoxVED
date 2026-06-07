@@ -21,7 +21,7 @@ $STD apt install -y \
 msg_ok "Installed Dependencies"
 
 PG_VERSION="17" PG_MODULES="pgvector" setup_postgresql
-PG_DB_NAME="colanode_db" PG_DB_USER="colanode" setup_postgresql_db
+PG_DB_NAME="colanode_db" PG_DB_USER="colanode" PG_DB_EXTENSIONS="vector" setup_postgresql_db
 NODE_VERSION="22" setup_nodejs
 
 fetch_and_deploy_gh_release "colanode" "colanode/colanode" "tarball"

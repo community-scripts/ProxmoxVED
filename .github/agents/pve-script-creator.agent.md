@@ -36,9 +36,10 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 - All `apt` / `npm` / build commands must be prefixed with `$STD`.
 
 ### JSON Metadata
-- Must include: `name`, `slug`, `categories`, `date_created`, `type`, `updateable`, `privileged`, `interface_port`, `documentation`, `website`, `logo`, `config_path`, `description`, `install_methods`, `default_credentials`, `notes`.
+- Must include: `name`, `slug`, `categories`, `date_created`, `type`, `updateable`, `privileged`, `has_arm`, `interface_port`, `documentation`, `website`, `logo`, `config_path`, `description`, `install_methods`, `default_credentials`, `notes`.
 - `date_created` uses today's date (YYYY-MM-DD).
 - Resources in `install_methods` must match `var_*` values in the CT script.
+- CT scripts must include `var_arm64="${var_arm64:-no}"` unless arm64 support has been verified.
 - Logo URL pattern: `https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/<slug>.webp`
 
 ## Checklist (verify before finishing)
@@ -57,6 +58,8 @@ You are a specialist for creating and maintaining ProxmoxVED application scripts
 - [ ] `update_script()` present with backup/restore
 - [ ] Footer: `motd_ssh`, `customize`, `cleanup_lxc`
 - [ ] JSON metadata file matches CT script resources
+- [ ] JSON `has_arm` accurately reflects arm64 support
+- [ ] CT `var_arm64` accurately reflects arm64 support
 - [ ] Backups go to `/opt`, not `/tmp`
 
 ## Output Format

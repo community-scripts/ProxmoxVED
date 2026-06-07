@@ -12,6 +12,7 @@ var_ram="${var_ram:-8192}"
 var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -24,28 +25,28 @@ function update_script() {
   check_container_storage
   check_container_resources
 
-  if [[ ! -d /opt/paperclip ]]; then
+  if [[ ! -d /opt/paperclip-ai ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  if check_for_gh_release "paperclip" "paperclipai/paperclip"; then
+  if check_for_gh_release "paperclip-ai" "paperclipai/paperclip"; then
     msg_info "Stopping Service"
     systemctl stop paperclip
     msg_ok "Stopped Service"
 
     msg_info "Backing up Configuration"
-    cp /opt/paperclip/.env /opt/paperclip.env.bak
+    cp /opt/paperclip-ai/.env /opt/paperclip.env.bak
     msg_ok "Backed up Configuration"
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "paperclip" "paperclipai/paperclip" "tarball"
+    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "paperclip-ai" "paperclipai/paperclip" "tarball"
 
     msg_info "Restoring Configuration"
-    mv /opt/paperclip.env.bak /opt/paperclip/.env
+    mv /opt/paperclip.env.bak /opt/paperclip-ai/.env
     msg_ok "Restored Configuration"
 
     msg_info "Rebuilding Paperclip"
-    cd /opt/paperclip
+    cd /opt/paperclip-ai
     export HUSKY=0
     export NODE_OPTIONS="--max-old-space-size=8192"
     $STD pnpm install --frozen-lockfile
@@ -60,7 +61,7 @@ function update_script() {
     msg_ok "Updated Agent CLIs"
 
     msg_info "Running Database Migrations"
-    set -a && source /opt/paperclip/.env && set +a
+    set -a && source /opt/paperclip-ai/.env && set +a
     $STD pnpm db:migrate
     msg_ok "Ran Database Migrations"
 

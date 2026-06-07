@@ -12,6 +12,7 @@ var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -44,8 +45,8 @@ function update_script() {
     msg_info "Rebuilding Frontend"
     cd /opt/bunkerm/frontend
     export NODE_OPTIONS="--max-old-space-size=4096"
-    $STD npm install
-    $STD npm run build
+    NODE_ENV=development $STD npm ci
+    AUTH_SECRET="build-time-placeholder" NEXT_TELEMETRY_DISABLED=1 $STD npm run build
     unset NODE_OPTIONS
     mkdir -p /nextjs
     cp -r /opt/bunkerm/frontend/.next/standalone/. /nextjs/

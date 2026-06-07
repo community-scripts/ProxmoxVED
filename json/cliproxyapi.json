@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 8317,
   "documentation": "https://help.router-for.me/",
   "website": "https://github.com/router-for-me/CLIProxyAPI",

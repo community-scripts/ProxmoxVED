@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 5005,
   "documentation": "https://github.com/pawelmalak/flame/wiki",
   "website": "https://github.com/pawelmalak/flame",

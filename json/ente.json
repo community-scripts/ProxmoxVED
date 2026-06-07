@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": false,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 3000,
   "documentation": "https://github.com/ente-io/ente",
   "website": "https://ente.io/",

@@ -20,6 +20,8 @@ var_os="[OS]"
 # Default OS (e.g. debian, ubuntu, alpine)
 var_version="[VERSION]"
 # Default OS version (e.g. 12 for debian, 24.04 for ubuntu, 3.20 for alpine)
+var_arm64="${var_arm64:-no}"
+# arm64 support status; default to no unless verified
 var_unprivileged="[UNPRIVILEGED]"
 # 1 = unprivileged container, 0 = privileged container
 

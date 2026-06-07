@@ -91,6 +91,19 @@ jobs:
               }
             }
 
+            const architectureOptions = [
+              "**arm64 supported**",
+              "**arm64 not tested**",
+              "**arm64 not supported**"
+            ];
+            const hasArchitectureSelection = architectureOptions.some(req => {
+              const line = findLine(req);
+              return line && checkboxChecked(line);
+            });
+            if (!hasArchitectureSelection) {
+              missing.push("One arm64 support option (`arm64 supported`, `arm64 not tested`, or `arm64 not supported`) must be checked");
+            }
+
             if (missing.length > 0) {
               let list = "";
               for (const m of missing) {

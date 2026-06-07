@@ -1,0 +1,53 @@
+{
+    "name": "Waydroid",
+    "slug": "waydroid-vm",
+    "categories": [
+        20,
+        3
+    ],
+    "date_created": "2026-05-26",
+    "type": "vm",
+    "updateable": false,
+    "privileged": false,
+    "interface_port": null,
+    "documentation": "https://docs.waydro.id/",
+    "website": "https://waydro.id/",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/waydroid.webp",
+    "description": "Waydroid is a container-based approach to boot a full Android system on a regular GNU/Linux system. It uses Linux namespaces (LXC) to run Android in a container and bridges the Wayland compositor to display Android apps natively. This VM script creates a KVM virtual machine with Ubuntu 24.04 or Debian 13 as the base OS, ready for Waydroid installation.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "vm/waydroid-vm.sh",
+            "config_path": "",
+            "resources": {
+                "cpu": 4,
+                "ram": 4096,
+                "hdd": 20,
+                "os": null,
+                "version": null
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "ubuntu",
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "The OS can be selected during setup: Ubuntu 24.04 LTS or Debian 13 (Trixie). The default user is 'ubuntu' for Ubuntu and 'debian' for Debian.",
+            "type": "info"
+        },
+        {
+            "text": "Waydroid + Weston (Wayland compositor) are pre-installed. After first boot run: sudo waydroid init && sudo systemctl start waydroid-container. Then start the UI with: weston --backend=headless & && WAYLAND_DISPLAY=wayland-0 waydroid show-full-ui",
+            "type": "info"
+        },
+        {
+            "text": "Waydroid requires a running Wayland compositor. For headless setups install 'weston'. GPU acceleration requires VirtIO GPU or GPU passthrough.",
+            "type": "info"
+        },
+        {
+            "text": "Enable Cloud-Init during setup to configure SSH keys and network automatically.",
+            "type": "info"
+        }
+    ]
+}

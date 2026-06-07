@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 8000,
   "documentation": "https://docs.tubearchivist.com/",
   "website": "https://github.com/tubearchivist/tubearchivist",

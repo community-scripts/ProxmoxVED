@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": true,
+  "has_arm": false,
   "interface_port": 8080,
   "documentation": "https://github.com/automatic-ripping-machine/automatic-ripping-machine/wiki",
   "website": "https://github.com/automatic-ripping-machine/automatic-ripping-machine",

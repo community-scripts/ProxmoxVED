@@ -60,11 +60,23 @@ jobs:
             exit 1
           fi
 
-          script_name=$(echo "$filtered_issue" | jq -r '.title' | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+          issue_title=$(echo "$filtered_issue" | jq -r '.title')
           issue_nr=$(echo "$filtered_issue" | jq -r '.number')
           issue_body=$(echo "$filtered_issue" | jq -r '.body')
 
+          # script_name (slug): from the "Name of the Script" field in the issue body,
+          # normalized to the repo's lowercase + spaces->dashes convention
+          # (e.g. "Alpine Cinny" -> "alpine-cinny"). Falls back to the title if absent.
+          name_raw=$(printf '%s\n' "$issue_body" \
+            | sed -n '/^###[[:space:]]*Name of the Script/,/^###/p' \
+            | sed '1d;/^###/d;/^[[:space:]]*$/d' | head -n1)
+          if [ -z "$name_raw" ]; then
+            name_raw="$issue_title"
+          fi
+          script_name=$(echo "$name_raw" | tr -d '\r' | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]\+/-/g')
+
           echo "Script Name: $script_name"
+          echo "Issue Title: $issue_title"
           echo "Issue Number: $issue_nr"
 
           # Detect script type from issue body
@@ -90,6 +102,12 @@ jobs:
           echo "script_name=$script_name" >> $GITHUB_OUTPUT
           echo "issue_nr=$issue_nr" >> $GITHUB_OUTPUT
           echo "script_type=$script_type" >> $GITHUB_OUTPUT
+          echo "issue_title=$issue_title" >> $GITHUB_OUTPUT
+          {
+            echo "issue_body<<ISSUE_BODY_EOF"
+            echo "$issue_body"
+            echo "ISSUE_BODY_EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Check if script files exist
         id: check_files
@@ -254,15 +272,24 @@ jobs:
         id: create_pull_request
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          ISSUE_TITLE: ${{ steps.list_issues.outputs.issue_title }}
+          ISSUE_BODY: ${{ steps.list_issues.outputs.issue_body }}
+          ISSUE_NR: ${{ steps.list_issues.outputs.issue_nr }}
         run: |
-          script_name="${{ steps.list_issues.outputs.script_name }}"
-          script_type="${{ steps.list_issues.outputs.script_type }}"
+          # PR body = original issue content + automated-migration footer
+          printf '%s\n' "$ISSUE_BODY" > pr_body.md
+          {
+            echo ""
+            echo "---"
+            echo "Automated migration from ProxmoxVED (community-scripts/ProxmoxVED#${ISSUE_NR})."
+          } >> pr_body.md
+
           gh pr create \
             --repo community-scripts/ProxmoxVE \
             --head "$branch_name" \
             --base main \
-            --title "${script_name}" \
-            --body "Automated migration of **${script_name}** (type: ${script_type}) from ProxmoxVED to ProxmoxVE."
+            --title "$ISSUE_TITLE" \
+            --body-file pr_body.md
           PR_NUMBER=$(gh pr list --repo community-scripts/ProxmoxVE --head "$branch_name" --json number --jq '.[].number')
           echo "PR_NUMBER=$PR_NUMBER"
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT

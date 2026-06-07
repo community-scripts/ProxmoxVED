@@ -8,6 +8,7 @@
   "type": "vm",
   "updateable": false,
   "privileged": false,
+  "has_arm": false,
   "interface_port": null,
   "documentation": "https://allstarlink.github.io/",
   "website": "https://www.allstarlink.org/",

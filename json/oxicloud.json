@@ -9,6 +9,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 8086,
   "documentation": "https://github.com/DioCrafts/OxiCloud/tree/main/doc",
   "website": "https://github.com/DioCrafts/OxiCloud",
@@ -21,7 +22,7 @@
       "config_path": "/etc/oxicloud/.env",
       "resources": {
         "cpu": 2,
-        "ram": 3072,
+        "ram": 4096,
         "hdd": 20,
         "os": "Debian",
         "version": "13"
@@ -32,5 +33,10 @@
     "username": null,
     "password": null
   },
-  "notes": []
+  "notes": [
+    {
+      "text": "The initial installation compiles OxiCloud from source and requires at least 4GB RAM. Insufficient memory will cause the build to be killed (OOM).",
+      "type": "info"
+    }
+  ]
 }

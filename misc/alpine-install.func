@@ -39,9 +39,9 @@ trap on_interrupt INT
 trap on_terminate TERM
 
 error_handler() {
-  local exit_code="$1"
-  local line_number="$2"
-  local command="$3"
+  local exit_code="${1:-$?}"
+  local line_number="${2:-unknown}"
+  local command="${3:-unknown}"
 
   # Exitcode 0 = kein Fehler → ignorieren
   if [[ "$exit_code" -eq 0 ]]; then
@@ -113,7 +113,7 @@ network_check() {
     msg_ok "Internet: ${ipv4_status}  DNS: ${BL}${RESOLVEDIP}${CL}"
   fi
   set -e
-  trap 'error_handler $LINENO "$BASH_COMMAND"' ERR
+  trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
 }
 
 # This function updates the Container OS by running apt-get update and upgrade

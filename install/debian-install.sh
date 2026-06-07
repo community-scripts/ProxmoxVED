@@ -19,9 +19,7 @@ msg_info "Installing Base Dependencies"
 $STD apt install -y curl wget ca-certificates
 msg_ok "Installed Base Dependencies"
 
-# msg_info "Downloading and executing tools.func test suite"
-# bash <(curl -fsSL https://git.community-scripts.org/community-scripts/ProxmoxVED/raw/branch/main/misc/test-tools-func.sh)
-# msg_ok "Test suite completed"
+RUST_PROFILE="minimal" RUST_TOOLCHAIN="stable" setup_rust
 
 motd_ssh
 customize

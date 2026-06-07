@@ -8,6 +8,7 @@
     "type": "ct",
     "updateable": true,
     "privileged": false,
+    "has_arm": false,
     "interface_port": 6767,
     "documentation": "https://github.com/ZimengXiong/ExcaliDash/blob/main/README.md",
     "website": "https://github.com/ZimengXiong/ExcaliDash",
@@ -17,7 +18,7 @@
         {
             "type": "default",
             "script": "ct/excalidash.sh",
-            "config_path": "/opt/excalidash/backend/.env",
+            "config_path": "/opt/excalidash_data/.env",
             "resources": {
                 "cpu": 2,
                 "ram": 2048,
@@ -38,6 +39,10 @@
         },
         {
             "text": "Create your admin account on first visit at the web UI.",
+            "type": "info"
+        },
+        {
+            "text": "The one-time admin setup code can be retrieved with: journalctl -u excalidash | grep -i 'setup\\|bootstrap\\|code'",
             "type": "info"
         }
     ]

@@ -1,0 +1,40 @@
+{
+  "name": "Koffan",
+  "slug": "koffan",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-05-25",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "interface_port": 3000,
+  "documentation": null,
+  "website": null,
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/koffan.webp",
+  "description": "Koffan is a lightweight web application for managing shopping lists, designed for couples and families. It allows real-time synchronization between multiple devices, so everyone knows what to buy and what's already in the cart.\n\nThe app works in any browser on both mobile and desktop. Just one password to log in - no complicated registration required.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/koffan.sh",
+      "config_path": "/opt/koffan/data/.env",
+      "resources": {
+        "cpu": 1,
+        "ram": 1024,
+        "hdd": 4,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": "shopping123"
+  },
+  "notes": [
+    {
+      "text": "Credentials are saved to `~/koffan.creds`.",
+      "type": "info"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ var_ram="8192"
 var_disk="60"
 var_os="debian"
 var_version="12"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="1"
 
 header_info "$APP"

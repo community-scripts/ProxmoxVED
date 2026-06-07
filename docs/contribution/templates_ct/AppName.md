@@ -101,6 +101,7 @@ Example:
 >| `var_disk` | Disk capacity | In GB |
 >| `var_os` | Operating system | alpine, debian, ubuntu |
 >| `var_version` | OS version | e.g., 3.20, 11, 12, 20.04 |
+>| `var_arm64` | arm64 support | `no` unless arm64 support is verified |
 >| `var_unprivileged` | Container type | 1 = Unprivileged, 0 = Privileged |
 
 Example:
@@ -113,6 +114,7 @@ var_ram="2048"
 var_disk="4"
 var_os="debian"
 var_version="12"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="1"
 ```
 

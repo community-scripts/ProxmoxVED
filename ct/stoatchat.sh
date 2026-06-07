@@ -12,6 +12,7 @@ var_ram="${var_ram:-10240}"
 var_disk="${var_disk:-30}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -42,7 +43,8 @@ function update_script() {
 
     msg_info "Rebuilding Backend (Patience)"
     cd /opt/stoatchat
-    $STD cargo build --release --bins -j 2
+    CARGO_PROFILE_RELEASE_LTO=thin \
+      $STD cargo build --release --bins -j 2
     msg_ok "Rebuilt Backend"
 
     msg_info "Updating Web Frontend"

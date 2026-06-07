@@ -8,6 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
+  "has_arm": false,
   "interface_port": 8080,
   "documentation": "https://neko.m1k1o.net/docs/v3/configuration",
   "website": "https://neko.m1k1o.net/",

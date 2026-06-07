@@ -104,9 +104,9 @@ function check_root() {
 }
 
 function pve_check() {
-  if ! pveversion | grep -Eq "pve-manager/(8\.[1-3]|9\.[0-1])(\.[0-9]+)*"; then
+  if ! pveversion | grep -Eq "pve-manager/(8\.[1-3]|9\.[0-2])(\.[0-9]+)*"; then
     msg_error "This version of Proxmox Virtual Environment is not supported"
-    echo -e "Requires Proxmox Virtual Environment Version 8.1 - 8.3 or 9.0 - 9.1."
+    echo -e "Requires Proxmox Virtual Environment Version 8.1 - 8.3 or 9.0 - 9.2."
     echo -e "Exiting..."
     sleep 2
     exit

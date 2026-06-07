@@ -45,8 +45,8 @@ msg_ok "Installed Backend Dependencies"
 
 msg_info "Building Frontend"
 cd /opt/baserow/web-frontend
-$STD npm install --legacy-peer-deps
-$STD npm run build
+NODE_OPTIONS="--max-old-space-size=4096" $STD npm install --legacy-peer-deps
+NODE_OPTIONS="--max-old-space-size=4096" $STD npm run build
 msg_ok "Built Frontend"
 
 msg_info "Configuring Baserow"

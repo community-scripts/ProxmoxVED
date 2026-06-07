@@ -359,7 +359,7 @@ fetch_and_deploy_gh_release() {
     ;;
   binary)
     [ -n "$pattern" ] || pattern="*.apk"
-    url=$(get_url)
+    url=$(get_url) || true
     [ -z "$url" ] && {
       msg_error "binary asset not found for pattern: $pattern"
       rm -rf "$tmpd"
@@ -391,7 +391,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    url=$(get_url)
+    url=$(get_url) || true
     [ -z "$url" ] && {
       msg_error "asset not found for pattern: $pattern"
       rm -rf "$tmpd"
@@ -445,7 +445,7 @@ fetch_and_deploy_gh_release() {
       rm -rf "$tmpd"
       return 1
     }
-    url=$(get_url)
+    url=$(get_url) || true
     [ -z "$url" ] && {
       msg_error "asset not found for pattern: $pattern"
       rm -rf "$tmpd"

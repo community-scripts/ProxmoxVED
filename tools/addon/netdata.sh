@@ -55,29 +55,25 @@ pve_check() {
     local MINOR="${BASH_REMATCH[1]}"
     if ((MINOR < 0 || MINOR > 9)); then
       msg_error "Unsupported Proxmox VE version: $PVE_VER"
-      msg_error "Supported versions: 8.0 – 8.9 or 9.0 – 9.1"
+      msg_error "Supported versions: 8.0 – 8.9 or 9.0 – 9.2"
       exit 1
     fi
     return 0
   fi
 
-  # Proxmox VE 9.x: allow 9.0 – 9.1
+  # Proxmox VE 9.x: allow 9.0 – 9.2
   if [[ "$PVE_VER" =~ ^9\.([0-9]+)$ ]]; then
     local MINOR="${BASH_REMATCH[1]}"
-    if ((MINOR < 0 || MINOR > 1)); then
+    if ((MINOR < 0 || MINOR > 2)); then
       msg_error "Unsupported Proxmox VE version: $PVE_VER"
-      msg_error "Supported versions: 8.0 – 8.9 or 9.0 – 9.1"
+      msg_error "Supported versions: 8.0 – 8.9 or 9.0 – 9.2"
       exit 1
     fi
     return 0
   fi
 
   msg_error "Unsupported Proxmox VE version: $PVE_VER"
-  msg_error "Supported versions: 8.0 – 8.9 or 9.0 – 9.1"
-  exit 1
-}
-
-detect_codename() {
+  msg_error "Supported versions: 8.0 – 8.9 or 9.0 – 9.2"() {
   source /etc/os-release
   if [[ "$ID" != "debian" ]]; then
     msg_error "Unsupported base OS: $ID (only Proxmox VE / Debian supported)."

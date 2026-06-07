@@ -1,0 +1,41 @@
+{
+  "name": "ARR-Stack",
+  "slug": "arr-stack",
+  "categories": [
+    12
+  ],
+  "date_created": "2026-01-18",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 3010,
+  "documentation": "community-scripts/ProxmoxVED/blob/main/tools/arr-stack.sh",
+  "website": "https://community-scripts.org",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ProxmoxVE.webp",
+  "description": "Proxmox VE Helper Scripts for setting up a stack of applications for use with Prowlarr, Sonarr, Radarr, Lidarr, Seerr, and qBittorrent.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "tools/arr-stack.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 1,
+        "ram": 1,
+        "hdd": 2,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "This script will prompt you to select the applications you want to install and configure the network settings.",
+      "type": "info"
+    }
+  ]
+}
