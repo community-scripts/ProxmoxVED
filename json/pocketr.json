@@ -41,7 +41,7 @@
       "type": "info"
     },
     {
-      "text": "By default the script installs PostgreSQL locally and prompts for an optional PostgreSQL major version; leave it empty to use the shared helper default. For unattended local installs, set `POCKETR_PG_VERSION`. During setup, choose external PostgreSQL to use an existing database; for unattended external installs, set `POCKETR_DB_MODE=external`, `POCKETR_DB_URL`, `POCKETR_DB_USERNAME`, and `POCKETR_DB_PASSWORD`. The external database must already exist and pass the connection check.",
+      "text": "By default the script installs PostgreSQL locally and prompts for an optional PostgreSQL major version; leave it empty to use the shared helper default. For unattended local installs, set `POCKETR_PG_VERSION`. During setup, choose external PostgreSQL to use an existing database; for unattended external installs, set `POCKETR_DB_MODE=external`, `POCKETR_DB_URL`, `POCKETR_DB_USERNAME`, and `POCKETR_DB_PASSWORD`. The external database must already exist, accept connections, and allow the Pocketr user to create tables in the public schema.",
       "type": "info"
     },
     {

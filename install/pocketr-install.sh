@@ -27,7 +27,7 @@ internal)
   else
     setup_postgresql
   fi
-  PG_DB_NAME="pocketr_db" PG_DB_USER="pocketr_user" setup_postgresql_db
+  PG_DB_NAME="pocketr_db" PG_DB_USER="pocketr_user" PG_DB_SCHEMA_PERMS="true" setup_postgresql_db
   POCKETR_DB_URL="jdbc:postgresql://127.0.0.1:5432/${PG_DB_NAME}"
   POCKETR_DB_USERNAME="${PG_DB_USER}"
   POCKETR_DB_PASSWORD="${PG_DB_PASS}"
@@ -53,6 +53,10 @@ external)
   fi
   if ! PGPASSWORD="${POCKETR_DB_PASSWORD}" $STD psql "${POCKETR_DB_URL#jdbc:}" -U "${POCKETR_DB_USERNAME}" -v ON_ERROR_STOP=1 -c "SELECT 1"; then
     msg_error "External PostgreSQL is not reachable, database is missing, or credentials are invalid"
+    exit 1
+  fi
+  if ! PGPASSWORD="${POCKETR_DB_PASSWORD}" $STD psql "${POCKETR_DB_URL#jdbc:}" -U "${POCKETR_DB_USERNAME}" -v ON_ERROR_STOP=1 -c "CREATE TABLE public.pocketr_install_check (id integer); DROP TABLE public.pocketr_install_check;"; then
+    msg_error "External PostgreSQL user must be able to create tables in the public schema"
     exit 1
   fi
   msg_ok "Checked External Database"
