@@ -44,31 +44,24 @@ esac
 # Install Docker
 USE_DOCKER_REPO=true setup_docker
 
-# Install GPU drivers inside LXC (Intel/AMD/NVIDIA)
 setup_hwaccel
 
-# Setup NVIDIA container toolkit (Docker-level GPU support)
-setup_nvidia_container_toolkit() {
-  if ! command -v nvidia-smi &>/dev/null && ! lspci 2>/dev/null | grep -qi nvidia; then
-    return 0
+if command -v nvidia-smi &>/dev/null || lspci 2>/dev/null | grep -qi nvidia; then
+  if ! command -v nvidia-ctk &>/dev/null; then
+    msg_info "Installing NVIDIA Container Toolkit"
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg 2>/dev/null || true
+    curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list 2>/dev/null \
+      | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+      | tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null 2>&1 || true
+    $STD apt update 2>/dev/null || true
+    $STD apt install -y nvidia-container-toolkit 2>/dev/null || true
+    if command -v nvidia-ctk &>/dev/null; then
+      nvidia-ctk runtime configure --runtime=docker 2>/dev/null || true
+      systemctl restart docker 2>/dev/null || true
+    fi
+    msg_ok "NVIDIA Container Toolkit configured"
   fi
-  if command -v nvidia-ctk &>/dev/null; then
-    return 0
-  fi
-  msg_info "Installing NVIDIA Container Toolkit"
-  curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg 2>/dev/null || true
-  curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list 2>/dev/null \
-    | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
-    | tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null 2>&1 || true
-  $STD apt update 2>/dev/null || true
-  $STD apt install -y nvidia-container-toolkit 2>/dev/null || true
-  if command -v nvidia-ctk &>/dev/null; then
-    nvidia-ctk runtime configure --runtime=docker 2>/dev/null || true
-    systemctl restart docker 2>/dev/null || true
-  fi
-  msg_ok "NVIDIA Container Toolkit configured"
-}
-setup_nvidia_container_toolkit
+fi
 
 # Download release tarball for version tracking and local files
 fetch_and_deploy_gh_release "nomad" "Crosstalk-Solutions/project-nomad" "tarball"

@@ -12,7 +12,7 @@
   "interface_port": 80,
   "documentation": "https://www.projectnomad.us/install",
   "website": "https://www.projectnomad.us",
-  "logo": "https://raw.githubusercontent.com/Crosstalk-Solutions/project-nomad/main/admin/public/project_nomad_logo.webp",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/project-nomad.webp",
   "description": "Project N.O.M.A.D. is a self-contained, offline-first knowledge and education server with AI chat, Wikipedia, Khan Academy courses, maps, and more. No internet required after setup.",
   "install_methods": [
     {

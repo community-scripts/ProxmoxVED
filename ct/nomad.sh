@@ -34,10 +34,9 @@ function update_script() {
   fi
 
   if check_for_gh_release "nomad" "Crosstalk-Solutions/project-nomad"; then
-    msg_info "Updating ${APP}"
+    msg_info "Updating Nomad"
     cd /opt/project-nomad
 
-    # Extract config from current compose before tarball overwrites it
     APP_KEY=$(grep 'APP_KEY=' /opt/project-nomad/compose.yml | head -1 | sed 's/.*APP_KEY=//')
     DB_PASS=$(grep 'DB_PASSWORD=' /opt/project-nomad/compose.yml | head -1 | sed 's/.*DB_PASSWORD=//')
     DB_ROOT_PASS=$(grep 'MYSQL_ROOT_PASSWORD=' /opt/project-nomad/compose.yml | head -1 | sed 's/.*MYSQL_ROOT_PASSWORD=//')
@@ -46,14 +45,12 @@ function update_script() {
 
     fetch_and_deploy_gh_release "nomad" "Crosstalk-Solutions/project-nomad" "tarball"
 
-    # Refresh non-user files from tarball
     cp /opt/nomad/install/management_compose.yaml /opt/project-nomad/compose.yml
-    cp /opt/nomad/install/start_nomad.sh /opt/project-nomad/start_nomad.sh 2>/dev/null || true
-    cp /opt/nomad/install/stop_nomad.sh /opt/project-nomad/stop_nomad.sh 2>/dev/null || true
-    cp /opt/nomad/install/update_nomad.sh /opt/project-nomad/update_nomad.sh 2>/dev/null || true
-    chmod +x /opt/project-nomad/*.sh 2>/dev/null || true
+    cp /opt/nomad/install/start_nomad.sh /opt/project-nomad/start_nomad.sh
+    cp /opt/nomad/install/stop_nomad.sh /opt/project-nomad/stop_nomad.sh
+    cp /opt/nomad/install/update_nomad.sh /opt/project-nomad/update_nomad.sh
+    chmod +x /opt/project-nomad/*.sh
 
-    # Re-apply saved config
     sed -i "s|URL=replaceme|URL=${NOMAD_URL}|g" /opt/project-nomad/compose.yml
     [[ -n "$APP_KEY" ]] && sed -i "s|APP_KEY=replaceme|APP_KEY=${APP_KEY}|g" /opt/project-nomad/compose.yml
     [[ -n "$DB_PASS" ]] && sed -i "s|DB_PASSWORD=replaceme|DB_PASSWORD=${DB_PASS}|g" /opt/project-nomad/compose.yml
