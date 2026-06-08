@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: Arm (Sub-Creator)
+# Author: armm29393
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/3proxy/3proxy
 
@@ -24,8 +24,6 @@ function update_script() {
     exit
   fi
 
-  # 3proxy does not use gh-release versioned filenames; we have to look up the
-  # latest release ourselves and pull the matching .deb for the current arch.
   RELEASE=$(get_latest_github_release "3proxy/3proxy")
   ARCH=$(dpkg --print-architecture)
   case "$ARCH" in
@@ -54,13 +52,11 @@ function update_script() {
   msg_ok "Stopped Service"
 
   msg_info "Updating 3proxy ${INSTALLED_VERSION} -> ${RELEASE}"
-  # Backup user config (apt will leave the .cfg alone, but be safe)
   cp /etc/3proxy/3proxy.cfg /tmp/3proxy.cfg.bak
   cp /etc/3proxy/conf/passwd /tmp/3proxy.passwd.bak
   curl -fsSL -o /tmp/3proxy.deb "$DEB_URL"
   $STD dpkg -i /tmp/3proxy.deb
   rm -f /tmp/3proxy.deb
-  # Restore config in case the new .deb overwrote anything
   cp /tmp/3proxy.cfg.bak /etc/3proxy/3proxy.cfg 2>/dev/null || true
   cp /tmp/3proxy.passwd.bak /etc/3proxy/conf/passwd 2>/dev/null || true
   rm -f /tmp/3proxy.cfg.bak /tmp/3proxy.passwd.bak
