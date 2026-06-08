@@ -1,0 +1,57 @@
+{
+  "name": "Nomad",
+  "slug": "nomad",
+  "categories": [
+    10
+  ],
+  "date_created": "2026-06-07",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 80,
+  "documentation": "https://www.projectnomad.us/install",
+  "website": "https://www.projectnomad.us",
+  "logo": "https://raw.githubusercontent.com/Crosstalk-Solutions/project-nomad/main/admin/public/project_nomad_logo.webp",
+  "description": "Project N.O.M.A.D. is a self-contained, offline-first knowledge and education server with AI chat, Wikipedia, Khan Academy courses, maps, and more. No internet required after setup.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/nomad.sh",
+      "config_path": "/opt/nomad/compose.yml",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "N.O.M.A.D. has no built-in authentication. Use network-level controls to manage access. Do not expose directly to the internet.",
+      "type": "warning"
+    },
+    {
+      "text": "The AI Assistant is optional. If you don't need AI, skip it in the setup wizard and everything else still works.",
+      "type": "info"
+    },
+    {
+      "text": "Data is persisted in bind mounts on the host (default: /opt/nomad/{mysql,storage,redis}). Set NOMAD_DATA_DIR env var before install to customize, e.g. NOMAD_DATA_DIR=/mnt/storage.",
+      "type": "info"
+    },
+    {
+      "text": "GPU passthrough is enabled by default. Currently only NVIDIA GPUs are supported for AI acceleration.",
+      "type": "info"
+    },
+    {
+      "text": "Recommended specs for AI features: AMD Ryzen 7 or Intel Core i7 or better, 32 GB RAM, NVIDIA RTX 3060 or better, at least 250 GB free disk space (preferably on SSD).",
+      "type": "info"
+    }
+  ]
+}
