@@ -51,7 +51,7 @@ if [[ -n "${SPOOLMAN_URL}" ]]; then
   fi
 fi
 
-msg_info "Installing ${APP}"
+msg_info "Installing CFSync"
 git clone -q --depth 1 --branch spoolman https://github.com/koen01/CFSync.git /opt/cfsync
 python3 -m venv /opt/cfsync/venv
 /opt/cfsync/venv/bin/pip install -q --upgrade pip
@@ -66,7 +66,7 @@ cat <<EOF >/opt/cfsync/data/config.json
 }
 EOF
 git -C /opt/cfsync rev-parse --short HEAD >/opt/CFSync_version.txt
-msg_ok "Installed ${APP}"
+msg_ok "Installed CFSync"
 
 msg_info "Creating Service"
 cat <<EOF >/etc/systemd/system/cfsync.service
