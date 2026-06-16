@@ -12,6 +12,7 @@ var_ram="${var_ram:-8192}"
 var_disk="${var_disk:-32}"
 var_os="${var_os:-ubuntu}"
 var_version="${var_version:-26.04}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-0}"
 var_gpu="${var_gpu:-yes}"
 
@@ -44,8 +45,8 @@ function update_script() {
     exit
   fi
   msg_info "Updating ${APP} LXC"
-  $STD apt-get update
-  $STD apt-get -y dist-upgrade
+  $STD apt update
+  $STD apt -y full-upgrade
   msg_ok "Updated ${APP} LXC"
   exit
 }
@@ -85,8 +86,9 @@ EOF
 
 # Ask (host-side, via whiptail) for the desktop login user and password before the
 # container is built. Skipped for any value already supplied via env. A blank
-# password means the install auto-generates a strong one and saves it to the creds
-# file. The values are exported so they cross lxc-attach into the install script.
+# password is auto-generated here and shown in the final message (no creds file).
+# The values are exported so they cross lxc-attach into the install script.
+DESKTOP_PASS_GENERATED=0
 function prompt_desktop_credentials() {
   if [[ -z "$var_desktop_user" ]]; then
     var_desktop_user="$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DESKTOP USER" \
@@ -95,12 +97,14 @@ function prompt_desktop_credentials() {
   fi
 
   if [[ -z "$var_desktop_pass" ]]; then
+    local _msg="Password for '${var_desktop_user}'\n\n(leave blank to auto-generate a strong password):"
     while true; do
       local _p1 _p2
       _p1="$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DESKTOP PASSWORD" \
-        --passwordbox "Password for '${var_desktop_user}'\n\n(leave blank to auto-generate a strong password):" 11 60 3>&1 1>&2 2>&3)" || exit_script
+        --passwordbox "$_msg" 11 60 3>&1 1>&2 2>&3)" || exit_script
       if [[ -z "$_p1" ]]; then
-        var_desktop_pass=""
+        var_desktop_pass="$(openssl rand -base64 18 | tr -dc 'A-Za-z0-9' | head -c 16)"
+        DESKTOP_PASS_GENERATED=1
         break
       fi
       _p2="$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CONFIRM PASSWORD" \
@@ -150,5 +154,6 @@ msg_custom "🖥️" "${GN}" "${APP} setup has been successfully initialized!"
 echo -e "${INFO}${YW} Connect a monitor and keyboard to this Proxmox host — the LightDM login${CL}"
 echo -e "${INFO}${YW} appears on the physical console.${CL}"
 echo -e "${INFO}${YW} Desktop login user: ${BGN}${var_desktop_user}${CL}"
-echo -e "${INFO}${YW} If you left the password blank it was auto-generated and saved to${CL}"
-echo -e "${INFO}${YW} /root/ubuntu-desktop-gpu.creds inside the container.${CL}"
+if [[ "$DESKTOP_PASS_GENERATED" == "1" ]]; then
+  echo -e "${INFO}${YW} Auto-generated password: ${BGN}${var_desktop_pass}${CL}"
+fi

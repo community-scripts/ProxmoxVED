@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "The installer prompts for the desktop login username and password, and optionally adds a desktop shortcut to this node's Proxmox VE web interface (https://<node-ip>:8006). Leaving the password blank auto-generates a strong one and saves it to /root/ubuntu-desktop-gpu.creds inside the container. Locale and keymap default to en_US.UTF-8 / us and can be overridden with the CTLOCALE and CTKEYMAP environment variables at launch.",
+      "text": "The installer prompts for the desktop login username and password, and optionally adds a desktop shortcut to this node's Proxmox VE web interface (https://<node-ip>:8006). Leaving the password blank auto-generates a strong one and shows it in the final completion message. Locale and keymap default to en_US.UTF-8 / us and can be overridden with the CTLOCALE and CTKEYMAP environment variables at launch.",
       "type": "info"
     },
     {

@@ -32,7 +32,7 @@ DESK_LOCALE="${CTLOCALE:-en_US.UTF-8}"
 DESK_KEYMAP="${CTKEYMAP:-us}"
 
 msg_info "Configuring locale (${DESK_LOCALE}) and keyboard (${DESK_KEYMAP})"
-$STD apt-get install -y locales
+$STD apt install -y locales
 grep -qE "^[# ]*${DESK_LOCALE} " /etc/locale.gen || echo "${DESK_LOCALE} UTF-8" >>/etc/locale.gen
 sed -i -E "s|^# *(${DESK_LOCALE} )|\1|" /etc/locale.gen
 $STD locale-gen
@@ -47,8 +47,8 @@ msg_ok "Configured locale and keyboard"
 # VT switch that LXC can't do, so they freeze; LightDM does no VT handover.
 echo "lightdm shared/default-x-display-manager select lightdm" | debconf-set-selections
 
-msg_info "Installing KDE Plasma + LightDM (this can take a while)"
-$STD apt-get install -y \
+msg_info "Installing KDE Plasma + LightDM"
+$STD apt install -y \
   kde-plasma-desktop \
   lightdm \
   xserver-xorg \
@@ -59,11 +59,13 @@ $STD apt-get install -y \
 # The Plasma X11 session package name varies by release (plasma-session-x11 on
 # newer Ubuntu, plasma-workspace-x11 elsewhere); install whichever exists.
 for p in plasma-session-x11 plasma-workspace-x11 kwin-x11; do
-  $STD apt-get install -y "$p" || true
+  $STD apt install -y "$p" || true
 done
 # Force LightDM as the DM (kde-plasma-desktop may pull sddm). DMs have no [Install]
 # section — select via default-display-manager + the service symlink.
-echo "/usr/sbin/lightdm" >/etc/X11/default-display-manager
+cat >/etc/X11/default-display-manager <<EOF
+/usr/sbin/lightdm
+EOF
 systemctl disable --now sddm >/dev/null 2>&1 || true
 ln -sf /usr/lib/systemd/system/lightdm.service /etc/systemd/system/display-manager.service
 msg_ok "Installed KDE Plasma + LightDM"
@@ -172,26 +174,22 @@ EOF
 $STD systemctl enable display-recover.service
 msg_ok "Installed DRM-hotplug display handler"
 
+# A non-root desktop user is required (KDE Plasma will not run as root). The
+# password is set from the ct script's prompt (var_desktop_pass). As a fallback
+# for unattended runs that supplied no password, generate one and surface it in
+# the message (no separate credentials file).
 msg_info "Creating desktop user '${DESK_USER}'"
 if ! id "$DESK_USER" >/dev/null 2>&1; then
   $STD adduser --disabled-password --gecos "" "$DESK_USER"
   usermod -aG sudo "$DESK_USER"
 fi
-if [ -n "${var_desktop_pass:-}" ]; then
-  # Password chosen at the prompt — set it, but don't store it in plaintext.
+if [ -z "${var_desktop_pass:-}" ]; then
+  var_desktop_pass="$(openssl rand -base64 18 | tr -dc 'A-Za-z0-9' | head -c 16)"
   echo "${DESK_USER}:${var_desktop_pass}" | chpasswd
-  msg_ok "Created desktop user '${DESK_USER}' (password set during install)"
+  msg_ok "Created desktop user '${DESK_USER}' (generated password: ${var_desktop_pass})"
 else
-  # No password chosen — generate a strong one and save it to the creds file.
-  DESK_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c 16)"
-  echo "${DESK_USER}:${DESK_PASS}" | chpasswd
-  {
-    echo "Ubuntu-Desktop-GPU Credentials"
-    echo "Console/SSH user: ${DESK_USER}"
-    echo "Password: ${DESK_PASS}"
-  } >/root/ubuntu-desktop-gpu.creds
-  chmod 600 /root/ubuntu-desktop-gpu.creds
-  msg_ok "Created desktop user '${DESK_USER}' (auto-generated password saved to /root/ubuntu-desktop-gpu.creds)"
+  echo "${DESK_USER}:${var_desktop_pass}" | chpasswd
+  msg_ok "Created desktop user '${DESK_USER}'"
 fi
 
 # Optional: a desktop shortcut to the Proxmox VE web UI (asked in the ct script).
