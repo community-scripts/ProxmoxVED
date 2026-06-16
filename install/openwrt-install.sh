@@ -27,6 +27,6 @@ uci set network.wan.proto='dhcp'
 uci set network.wan.device='eth1'
 uci commit network
 
-if [ -x /etc/init.d/network ]; then
-  /etc/init.d/network restart
+if command -v ubus >/dev/null 2>&1 && ubus list network >/dev/null 2>&1 && [ -x /etc/init.d/network ]; then
+  /etc/init.d/network reload >/dev/null 2>&1 || true
 fi
