@@ -33,7 +33,7 @@
   },
   "notes": [
     {
-      "text": "A desktop user (default: 'desktop') and a generated password are saved to /root/ubuntu-desktop-gpu.creds inside the container. Override the user/locale/keymap with the CTUSER, CTLOCALE and CTKEYMAP environment variables at launch.",
+      "text": "The installer prompts for the desktop login username and password. Leaving the password blank auto-generates a strong one and saves it to /root/ubuntu-desktop-gpu.creds inside the container. Locale and keymap default to en_US.UTF-8 / us and can be overridden with the CTLOCALE and CTKEYMAP environment variables at launch.",
       "type": "info"
     },
     {

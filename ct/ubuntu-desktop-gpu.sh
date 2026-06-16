@@ -15,6 +15,12 @@ var_version="${var_version:-26.04}"
 var_unprivileged="${var_unprivileged:-0}"
 var_gpu="${var_gpu:-yes}"
 
+# App-specific variables (not in build.func whitelist).
+# Export so they survive lxc-attach into the install script. Filled by the
+# whiptail prompt below, or supplied up front via env for unattended installs.
+export var_desktop_user="${var_desktop_user:-}"
+export var_desktop_pass="${var_desktop_pass:-}"
+
 header_info "$APP"
 variables
 color
@@ -69,7 +75,42 @@ EOF
   msg_ok "Rebooted ${APP}"
 }
 
+# Ask (host-side, via whiptail) for the desktop login user and password before the
+# container is built. Skipped for any value already supplied via env. A blank
+# password means the install auto-generates a strong one and saves it to the creds
+# file. The values are exported so they cross lxc-attach into the install script.
+function prompt_desktop_credentials() {
+  if [[ -z "$var_desktop_user" ]]; then
+    var_desktop_user="$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DESKTOP USER" \
+      --inputbox "Username for the desktop login:" 10 60 "desktop" 3>&1 1>&2 2>&3)" || exit_script
+    [[ -z "$var_desktop_user" ]] && var_desktop_user="desktop"
+  fi
+
+  if [[ -z "$var_desktop_pass" ]]; then
+    while true; do
+      local _p1 _p2
+      _p1="$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "DESKTOP PASSWORD" \
+        --passwordbox "Password for '${var_desktop_user}'\n\n(leave blank to auto-generate a strong password):" 11 60 3>&1 1>&2 2>&3)" || exit_script
+      if [[ -z "$_p1" ]]; then
+        var_desktop_pass=""
+        break
+      fi
+      _p2="$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "CONFIRM PASSWORD" \
+        --passwordbox "Re-enter the password for '${var_desktop_user}':" 10 60 3>&1 1>&2 2>&3)" || exit_script
+      if [[ "$_p1" == "$_p2" ]]; then
+        var_desktop_pass="$_p1"
+        break
+      fi
+      whiptail --backtitle "Proxmox VE Helper Scripts" --title "MISMATCH" \
+        --msgbox "Passwords did not match — please try again." 8 50
+    done
+  fi
+
+  export var_desktop_user var_desktop_pass
+}
+
 start
+prompt_desktop_credentials
 build_container
 configure_console_passthrough
 description
@@ -77,5 +118,7 @@ description
 msg_ok "Completed successfully!\n"
 msg_custom "🖥️" "${GN}" "${APP} setup has been successfully initialized!"
 echo -e "${INFO}${YW} Switch the host's monitor/keyboard (KVM) to this Proxmox node — the LightDM${CL}"
-echo -e "${INFO}${YW} login appears on the physical console. Desktop user + password are saved in${CL}"
+echo -e "${INFO}${YW} login appears on the physical console.${CL}"
+echo -e "${INFO}${YW} Desktop login user: ${BGN}${var_desktop_user}${CL}"
+echo -e "${INFO}${YW} If you left the password blank it was auto-generated and saved to${CL}"
 echo -e "${INFO}${YW} /root/ubuntu-desktop-gpu.creds inside the container.${CL}"

@@ -25,8 +25,9 @@ if [ -n "$UID_MAP_HOST" ] && [ "$UID_MAP_HOST" != "0" ]; then
   exit 1
 fi
 
-# Optional overrides (set via env at launch, e.g. CTUSER=alice CTLOCALE=en_GB.UTF-8)
-DESK_USER="${CTUSER:-desktop}"
+# Desktop login user/password come from the ct script's whiptail prompt
+# (var_desktop_user / var_desktop_pass). Locale and keymap are env-overridable.
+DESK_USER="${var_desktop_user:-desktop}"
 DESK_LOCALE="${CTLOCALE:-en_US.UTF-8}"
 DESK_KEYMAP="${CTKEYMAP:-us}"
 
@@ -174,15 +175,22 @@ if ! id "$DESK_USER" >/dev/null 2>&1; then
   $STD adduser --disabled-password --gecos "" "$DESK_USER"
   usermod -aG sudo "$DESK_USER"
 fi
-DESK_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c 16)"
-echo "${DESK_USER}:${DESK_PASS}" | chpasswd
-{
-  echo "Ubuntu-Desktop-GPU Credentials"
-  echo "Console/SSH user: ${DESK_USER}"
-  echo "Password: ${DESK_PASS}"
-} >/root/ubuntu-desktop-gpu.creds
-chmod 600 /root/ubuntu-desktop-gpu.creds
-msg_ok "Created desktop user '${DESK_USER}' (password saved to /root/ubuntu-desktop-gpu.creds)"
+if [ -n "${var_desktop_pass:-}" ]; then
+  # Password chosen at the prompt — set it, but don't store it in plaintext.
+  echo "${DESK_USER}:${var_desktop_pass}" | chpasswd
+  msg_ok "Created desktop user '${DESK_USER}' (password set during install)"
+else
+  # No password chosen — generate a strong one and save it to the creds file.
+  DESK_PASS="$(openssl rand -base64 18 | tr -dc 'a-zA-Z0-9' | head -c 16)"
+  echo "${DESK_USER}:${DESK_PASS}" | chpasswd
+  {
+    echo "Ubuntu-Desktop-GPU Credentials"
+    echo "Console/SSH user: ${DESK_USER}"
+    echo "Password: ${DESK_PASS}"
+  } >/root/ubuntu-desktop-gpu.creds
+  chmod 600 /root/ubuntu-desktop-gpu.creds
+  msg_ok "Created desktop user '${DESK_USER}' (auto-generated password saved to /root/ubuntu-desktop-gpu.creds)"
+fi
 
 motd_ssh
 customize
