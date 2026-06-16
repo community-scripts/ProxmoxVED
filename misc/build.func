@@ -532,6 +532,20 @@ preflight_template_connectivity() {
   return 0
 }
 
+openwrt_normalize_release() {
+  local requested="${1:-latest}"
+  case "$requested" in
+  "" | latest | stable) echo "latest" ;;
+  snapshot) echo "snapshot" ;;
+  [0-9]*.[0-9]*.[0-9]*) echo "${requested%.*}" ;;
+  *) echo "$requested" ;;
+  esac
+}
+
+openwrt_latest_stable_release() {
+  awk -F';' '$1 == "openwrt" && $2 != "snapshot" { print $2 }' | sort -uV | tail -n1
+}
+
 # ------------------------------------------------------------------------------
 # preflight_template_available()
 #
@@ -541,7 +555,7 @@ preflight_template_connectivity() {
 # ------------------------------------------------------------------------------
 preflight_template_available() {
   if [[ "${var_os:-}" == "openwrt" ]]; then
-    local lxc_arch line
+    local lxc_arch openwrt_index index requested_release release line
     case "$(dpkg --print-architecture)" in
     amd64 | arm64) lxc_arch="$(dpkg --print-architecture)" ;;
     *)
@@ -549,11 +563,28 @@ preflight_template_available() {
       return 0
       ;;
     esac
-    line=$(curl -fsSL "https://images.linuxcontainers.org/meta/1.0/index-system" | awk -F';' -v release="${var_version:-24.10}" -v arch="$lxc_arch" '$1 == "openwrt" && $2 == release && $3 == arch && $4 == "default" { selected = $0 } END { print selected }')
-    if [[ -n "$line" ]]; then
-      preflight_pass "Template available online for OpenWrt ${var_version:-24.10} (${lxc_arch})"
+    openwrt_index="https://images.linuxcontainers.org/meta/1.0/index-system"
+    index=$(curl -fsSL "$openwrt_index") || {
+      preflight_fail "LinuxContainers template index unreachable" 222
+      echo -e "    ${TAB}${INFO} Check internet connectivity or manually upload the OpenWrt rootfs template"
+      return 0
+    }
+    requested_release="$(openwrt_normalize_release "${var_version:-latest}")"
+    if [[ "$requested_release" == "latest" ]]; then
+      release="$(printf "%s\n" "$index" | openwrt_latest_stable_release)"
     else
-      preflight_fail "No OpenWrt ${var_version:-24.10} ${lxc_arch} template found in LinuxContainers index" 225
+      release="$requested_release"
+    fi
+    if [[ -z "$release" ]]; then
+      preflight_fail "No stable OpenWrt release found in LinuxContainers index" 225
+      return 0
+    fi
+    line=$(awk -F';' -v release="$release" -v arch="$lxc_arch" '$1 == "openwrt" && $2 == release && $3 == arch && $4 == "default" { selected = $0 } END { print selected }' <<<"$index")
+    if [[ -n "$line" ]]; then
+      var_version="$release"
+      preflight_pass "Template available online for OpenWrt ${release} (${lxc_arch})"
+    else
+      preflight_fail "No OpenWrt ${release} ${lxc_arch} template found in LinuxContainers index" 225
     fi
     return 0
   fi
@@ -5867,20 +5898,37 @@ create_lxc_container() {
   }
 
   resolve_openwrt_template() {
-    local lxc_arch openwrt_index line template_path build_id
+    local lxc_arch openwrt_index index requested_release release line template_path build_id
     lxc_arch="$(linuxcontainers_arch)" || {
       msg_error "No OpenWrt LinuxContainers template mapping for architecture ${ARCH}"
       exit 207
     }
     openwrt_index="https://images.linuxcontainers.org/meta/1.0/index-system"
-    line=$(curl -fsSL "$openwrt_index" | awk -F';' -v release="${PCT_OSVERSION:-24.10}" -v arch="$lxc_arch" '$1 == "openwrt" && $2 == release && $3 == arch && $4 == "default" { selected = $0 } END { print selected }')
-    [[ -n "$line" ]] || {
-      msg_error "No OpenWrt ${PCT_OSVERSION:-24.10} ${lxc_arch} template found in LinuxContainers index"
+    index=$(curl -fsSL "$openwrt_index") || {
+      msg_error "Failed to read OpenWrt LinuxContainers index"
+      exit 222
+    }
+    requested_release="$(openwrt_normalize_release "${PCT_OSVERSION:-latest}")"
+    if [[ "$requested_release" == "latest" ]]; then
+      release="$(printf "%s\n" "$index" | openwrt_latest_stable_release)"
+    else
+      release="$requested_release"
+    fi
+    [[ -n "$release" ]] || {
+      msg_error "No stable OpenWrt release found in LinuxContainers index"
       exit 225
     }
+    line=$(awk -F';' -v release="$release" -v arch="$lxc_arch" '$1 == "openwrt" && $2 == release && $3 == arch && $4 == "default" { selected = $0 } END { print selected }' <<<"$index")
+    [[ -n "$line" ]] || {
+      msg_error "No OpenWrt ${release} ${lxc_arch} template found in LinuxContainers index"
+      exit 225
+    }
+    PCT_OSVERSION="$release"
+    var_version="$release"
+    export PCT_OSVERSION var_version
     template_path=$(awk -F';' '{print $6}' <<<"$line")
     build_id=$(awk -F';' '{print $5}' <<<"$line" | tr ':/' '--')
-    TEMPLATE="openwrt-${PCT_OSVERSION:-24.10}-${lxc_arch}-${build_id}-rootfs.tar.xz"
+    TEMPLATE="openwrt-${release}-${lxc_arch}-${build_id}-rootfs.tar.xz"
     TEMPLATE_SOURCE="linuxcontainers"
     OPENWRT_TEMPLATE_URL="https://images.linuxcontainers.org${template_path}rootfs.tar.xz"
   }
