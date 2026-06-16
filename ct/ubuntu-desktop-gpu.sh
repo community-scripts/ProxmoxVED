@@ -21,6 +21,12 @@ var_gpu="${var_gpu:-yes}"
 export var_desktop_user="${var_desktop_user:-}"
 export var_desktop_pass="${var_desktop_pass:-}"
 
+# Run the host-side helper steps under C.UTF-8 so build.func's `pct exec` calls
+# don't emit "cannot change locale" warnings when the host's LC_ALL (e.g.
+# en_US.UTF-8) isn't yet generated in the fresh container. The desktop's real
+# locale is set later in the install script.
+export LC_ALL=C.UTF-8
+
 header_info "$APP"
 variables
 color
