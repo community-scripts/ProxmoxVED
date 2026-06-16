@@ -72,8 +72,10 @@ msg_info "Enabling in-container udevd (console input hotplug)"
 # Xorg only reacts to processed UDEV events, and the host udevd's output doesn't
 # cross the container netns — so input needs the container's own udevd. Pairs with
 # 'lxc.mount.auto: sys:rw' added to the CT config by the ct script.
+# Container templates ship udevd masked; unmasking is the operative step — the
+# service is static (no [Install]) and starts via its sockets/sysinit on boot,
+# so do NOT `systemctl enable` it (that only prints a no-op warning).
 systemctl unmask systemd-udevd systemd-udevd-control.socket systemd-udevd-kernel.socket >/dev/null 2>&1 || true
-$STD systemctl enable systemd-udevd
 msg_ok "Enabled in-container udevd"
 
 msg_info "Writing LightDM configuration"
