@@ -13,6 +13,18 @@ setting_up_container
 network_check
 update_os
 
+# This desktop needs a PRIVILEGED container: it relies on AppArmor unconfined +
+# /sys rw so the container's own udevd can drive console input hotplug — an
+# unprivileged container can't do that and you'd get a black screen at login.
+# A privileged CT maps root 1:1 (uid_map "0 0 ..."); an unprivileged one maps
+# root to a high host uid ("0 100000 ..."). Bail early with a clear message.
+UID_MAP_HOST="$(awk 'NR==1{print $2}' /proc/self/uid_map 2>/dev/null)"
+if [ -n "$UID_MAP_HOST" ] && [ "$UID_MAP_HOST" != "0" ]; then
+  msg_error "This script requires a PRIVILEGED container (var_unprivileged=0)."
+  msg_error "Re-create it with Advanced settings -> Container Type: Privileged."
+  exit 1
+fi
+
 # Optional overrides (set via env at launch, e.g. CTUSER=alice CTLOCALE=en_GB.UTF-8)
 DESK_USER="${CTUSER:-desktop}"
 DESK_LOCALE="${CTLOCALE:-en_US.UTF-8}"
