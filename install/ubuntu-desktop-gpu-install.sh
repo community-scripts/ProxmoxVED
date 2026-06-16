@@ -55,7 +55,8 @@ $STD apt install -y \
   x11-xserver-utils \
   mesa-utils \
   mesa-va-drivers \
-  vainfo
+  vainfo \
+  falkon
 # The Plasma X11 session package name varies by release (plasma-session-x11 on
 # newer Ubuntu, plasma-workspace-x11 elsewhere); install whichever exists.
 for p in plasma-session-x11 plasma-workspace-x11 kwin-x11; do
@@ -191,6 +192,23 @@ else
   echo "${DESK_USER}:${var_desktop_pass}" | chpasswd
   msg_ok "Created desktop user '${DESK_USER}'"
 fi
+
+# kde-plasma-desktop ships no browser, so http(s) URLs have no handler — links
+# (incl. the optional PVE shortcut) would otherwise be fetched by KIO and opened
+# in Kate. Make Falkon the default handler so links open in the browser.
+msg_info "Setting the default web browser"
+USER_CFG="/home/${DESK_USER}/.config"
+install -d -o "$DESK_USER" -g "$DESK_USER" "$USER_CFG"
+cat >"${USER_CFG}/mimeapps.list" <<EOF
+[Default Applications]
+text/html=org.kde.falkon.desktop
+x-scheme-handler/http=org.kde.falkon.desktop
+x-scheme-handler/https=org.kde.falkon.desktop
+EOF
+chown "$DESK_USER:$DESK_USER" "${USER_CFG}/mimeapps.list"
+update-alternatives --install /usr/bin/x-www-browser x-www-browser /usr/bin/falkon 100 >/dev/null 2>&1 || true
+update-alternatives --set x-www-browser /usr/bin/falkon >/dev/null 2>&1 || true
+msg_ok "Set the default web browser"
 
 # Optional: a desktop shortcut to the Proxmox VE web UI (asked in the ct script).
 if [ "${var_desktop_pve_link:-no}" = "yes" ] && [ -n "${var_pve_url:-}" ]; then
