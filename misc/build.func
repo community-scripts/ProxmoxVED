@@ -488,6 +488,18 @@ preflight_container_id() {
 # - Warns but does not fail (local templates may be available)
 # ------------------------------------------------------------------------------
 preflight_template_connectivity() {
+  if [[ "${var_os:-}" == "openwrt" ]]; then
+    local http_code
+    http_code=$(curl -sS -o /dev/null -w "%{http_code}" -m 5 "https://images.linuxcontainers.org/meta/1.0/index-system" 2>/dev/null) || http_code="000"
+    if [[ "$http_code" =~ ^2[0-9]{2}$ || "$http_code" =~ ^3[0-9]{2}$ ]]; then
+      preflight_pass "Template server reachable (images.linuxcontainers.org)"
+    else
+      preflight_fail "LinuxContainers template index unreachable" 222
+      echo -e "    ${TAB}${INFO} Check internet connectivity or manually upload the OpenWrt rootfs template"
+    fi
+    return 0
+  fi
+
   # ARM64 uses custom template sources (GitHub/jenkins), not the pveam catalog
   if [[ "$(dpkg --print-architecture)" == "arm64" ]]; then
     preflight_pass "Template connectivity check skipped (ARM64 uses custom template source)"
@@ -528,6 +540,24 @@ preflight_template_connectivity() {
 # - Fails if no matching template can be found anywhere
 # ------------------------------------------------------------------------------
 preflight_template_available() {
+  if [[ "${var_os:-}" == "openwrt" ]]; then
+    local lxc_arch line
+    case "$(dpkg --print-architecture)" in
+    amd64 | arm64) lxc_arch="$(dpkg --print-architecture)" ;;
+    *)
+      preflight_fail "No OpenWrt LinuxContainers template mapping for architecture $(dpkg --print-architecture)" 207
+      return 0
+      ;;
+    esac
+    line=$(curl -fsSL "https://images.linuxcontainers.org/meta/1.0/index-system" | awk -F';' -v release="${var_version:-24.10}" -v arch="$lxc_arch" '$1 == "openwrt" && $2 == release && $3 == arch && $4 == "default" { selected = $0 } END { print selected }')
+    if [[ -n "$line" ]]; then
+      preflight_pass "Template available online for OpenWrt ${var_version:-24.10} (${lxc_arch})"
+    else
+      preflight_fail "No OpenWrt ${var_version:-24.10} ${lxc_arch} template found in LinuxContainers index" 225
+    fi
+    return 0
+  fi
+
   # ARM64 uses custom template sources (GitHub/jenkins), not the pveam catalog
   if [[ "$(dpkg --print-architecture)" == "arm64" ]]; then
     preflight_pass "Template check skipped (ARM64 uses custom template source)"
@@ -4078,53 +4108,90 @@ start() {
 build_container() {
   #  if [ "$VERBOSE" == "yes" ]; then set -x; fi
 
-  NET_STRING="-net0 name=eth0,bridge=${BRG:-vmbr0}"
+  if [ "$var_os" == "openwrt" ]; then
+    local lan_bridge="${var_lan_bridge:-${BRG:-vmbr0}}"
+    local wan_bridge="${var_wan_bridge:-${BRG:-vmbr0}}"
+    local lan_vlan="${var_lan_vlan:-}"
+    local wan_vlan="${var_wan_vlan:-${VLAN:-}}"
+    local openwrt_mtu="${var_openwrt_mtu:-${MTU:-}}"
+    local lan_options=""
+    local wan_options=""
 
-  # MAC
-  if [[ -n "$MAC" ]]; then
-    case "$MAC" in
-    ,hwaddr=*) NET_STRING+="$MAC" ;;
-    *) NET_STRING+=",hwaddr=$MAC" ;;
+    if [[ -n "$lan_vlan" ]]; then
+      case "$lan_vlan" in
+      ,tag=*) lan_options+="$lan_vlan" ;;
+      *) lan_options+=",tag=$lan_vlan" ;;
+      esac
+    fi
+    if [[ -n "$wan_vlan" ]]; then
+      case "$wan_vlan" in
+      ,tag=*) wan_options+="$wan_vlan" ;;
+      *) wan_options+=",tag=$wan_vlan" ;;
+      esac
+    fi
+    if [[ -n "$openwrt_mtu" ]]; then
+      case "$openwrt_mtu" in
+      ,mtu=*)
+        lan_options+="$openwrt_mtu"
+        wan_options+="$openwrt_mtu"
+        ;;
+      *)
+        lan_options+=",mtu=$openwrt_mtu"
+        wan_options+=",mtu=$openwrt_mtu"
+        ;;
+      esac
+    fi
+
+    NET_STRING="-net0 name=eth0,bridge=${lan_bridge},ip=manual${lan_options} -net1 name=eth1,bridge=${wan_bridge},ip=dhcp${wan_options}"
+  else
+    NET_STRING="-net0 name=eth0,bridge=${BRG:-vmbr0}"
+
+    # MAC
+    if [[ -n "$MAC" ]]; then
+      case "$MAC" in
+      ,hwaddr=*) NET_STRING+="$MAC" ;;
+      *) NET_STRING+=",hwaddr=$MAC" ;;
+      esac
+    fi
+
+    # IP (always required, default dhcp)
+    NET_STRING+=",ip=${NET:-dhcp}"
+
+    # Gateway
+    if [[ -n "$GATE" ]]; then
+      case "$GATE" in
+      ,gw=*) NET_STRING+="$GATE" ;;
+      *) NET_STRING+=",gw=$GATE" ;;
+      esac
+    fi
+
+    # VLAN
+    if [[ -n "$VLAN" ]]; then
+      case "$VLAN" in
+      ,tag=*) NET_STRING+="$VLAN" ;;
+      *) NET_STRING+=",tag=$VLAN" ;;
+      esac
+    fi
+
+    # MTU
+    if [[ -n "$MTU" ]]; then
+      case "$MTU" in
+      ,mtu=*) NET_STRING+="$MTU" ;;
+      *) NET_STRING+=",mtu=$MTU" ;;
+      esac
+    fi
+
+    # IPv6 Handling
+    case "$IPV6_METHOD" in
+    auto) NET_STRING="$NET_STRING,ip6=auto" ;;
+    dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
+    static)
+      NET_STRING="$NET_STRING,ip6=$IPV6_ADDR"
+      [ -n "$IPV6_GATE" ] && NET_STRING="$NET_STRING,gw6=$IPV6_GATE"
+      ;;
+    none) ;;
     esac
   fi
-
-  # IP (always required, default dhcp)
-  NET_STRING+=",ip=${NET:-dhcp}"
-
-  # Gateway
-  if [[ -n "$GATE" ]]; then
-    case "$GATE" in
-    ,gw=*) NET_STRING+="$GATE" ;;
-    *) NET_STRING+=",gw=$GATE" ;;
-    esac
-  fi
-
-  # VLAN
-  if [[ -n "$VLAN" ]]; then
-    case "$VLAN" in
-    ,tag=*) NET_STRING+="$VLAN" ;;
-    *) NET_STRING+=",tag=$VLAN" ;;
-    esac
-  fi
-
-  # MTU
-  if [[ -n "$MTU" ]]; then
-    case "$MTU" in
-    ,mtu=*) NET_STRING+="$MTU" ;;
-    *) NET_STRING+=",mtu=$MTU" ;;
-    esac
-  fi
-
-  # IPv6 Handling
-  case "$IPV6_METHOD" in
-  auto) NET_STRING="$NET_STRING,ip6=auto" ;;
-  dhcp) NET_STRING="$NET_STRING,ip6=dhcp" ;;
-  static)
-    NET_STRING="$NET_STRING,ip6=$IPV6_ADDR"
-    [ -n "$IPV6_GATE" ] && NET_STRING="$NET_STRING,gw6=$IPV6_GATE"
-    ;;
-  none) ;;
-  esac
 
   # Build FEATURES string based on container type and user choices
   FEATURES=""
@@ -4148,7 +4215,9 @@ build_container() {
   # Build PCT_OPTIONS as string for export
   TEMP_DIR=$(mktemp -d)
   pushd "$TEMP_DIR" >/dev/null
-  if [ "$var_os" == "alpine" ]; then
+  if [ "$var_os" == "openwrt" ]; then
+    export FUNCTIONS_FILE_PATH=""
+  elif [ "$var_os" == "alpine" ]; then
     export FUNCTIONS_FILE_PATH="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/alpine-install.func")"
   else
     export FUNCTIONS_FILE_PATH="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/misc/install.func")"
@@ -4235,6 +4304,11 @@ $PCT_OPTIONS_STRING"
   -cores $CORE_COUNT
   -memory $RAM_SIZE
   -unprivileged $CT_TYPE"
+
+  if [ "$var_os" == "openwrt" ]; then
+    PCT_OPTIONS_STRING="$PCT_OPTIONS_STRING
+  -ostype unmanaged"
+  fi
 
   # Protection flag (if var_protection was set)
   if [ "${PROTECT_CT:-}" == "1" ] || [ "${PROTECT_CT:-}" == "yes" ]; then
@@ -4362,6 +4436,10 @@ $PCT_OPTIONS_STRING"
   # Configure USB passthrough for privileged containers
   configure_usb_passthrough() {
     if [[ "$CT_TYPE" != "0" ]]; then
+      return 0
+    fi
+    if [[ "${var_os:-}" == "openwrt" ]]; then
+      msg_info "Skipping automatic USB passthrough for OpenWrt"
       return 0
     fi
 
@@ -4525,8 +4603,8 @@ EOF
     fi
   done
 
-  # Wait for network (skip for Alpine initially)
-  if [ "$var_os" != "alpine" ]; then
+  # Wait for network (skip for Alpine/OpenWrt initially)
+  if [[ "$var_os" != "alpine" && "$var_os" != "openwrt" ]]; then
     msg_info "Waiting for network in LXC container"
 
     # Wait for IP assignment (IPv4 or IPv6)
@@ -4601,7 +4679,9 @@ EOF
 
   msg_info "Customizing LXC Container"
   # Continue with standard container setup
-  if [ "$var_os" == "alpine" ]; then
+  if [ "$var_os" == "openwrt" ]; then
+    sleep 3
+  elif [ "$var_os" == "alpine" ]; then
     sleep 3
     pct exec "$CTID" -- /bin/sh -c 'cat <<EOF >/etc/apk/repositories
 http://dl-cdn.alpinelinux.org/alpine/latest-stable/main
@@ -4906,7 +4986,11 @@ PROFILE
 
   local _install_script
   _install_script="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/install/${var_install}.sh")"
-  lxc-attach -n "$CTID" -- bash -c "$_install_script"
+  if [ "$var_os" == "openwrt" ]; then
+    lxc-attach -n "$CTID" -- /bin/ash -c "$_install_script"
+  else
+    lxc-attach -n "$CTID" -- bash -c "$_install_script"
+  fi
   local lxc_exit=$?
 
   set -Eeuo pipefail       # Re-enable error handling
@@ -5775,9 +5859,51 @@ create_lxc_container() {
     msg_ok "Downloaded ARM64 LXC template"
   }
 
+  linuxcontainers_arch() {
+    case "$ARCH" in
+    amd64 | arm64) echo "$ARCH" ;;
+    *) return 1 ;;
+    esac
+  }
+
+  resolve_openwrt_template() {
+    local lxc_arch openwrt_index line template_path build_id
+    lxc_arch="$(linuxcontainers_arch)" || {
+      msg_error "No OpenWrt LinuxContainers template mapping for architecture ${ARCH}"
+      exit 207
+    }
+    openwrt_index="https://images.linuxcontainers.org/meta/1.0/index-system"
+    line=$(curl -fsSL "$openwrt_index" | awk -F';' -v release="${PCT_OSVERSION:-24.10}" -v arch="$lxc_arch" '$1 == "openwrt" && $2 == release && $3 == arch && $4 == "default" { selected = $0 } END { print selected }')
+    [[ -n "$line" ]] || {
+      msg_error "No OpenWrt ${PCT_OSVERSION:-24.10} ${lxc_arch} template found in LinuxContainers index"
+      exit 225
+    }
+    template_path=$(awk -F';' '{print $6}' <<<"$line")
+    build_id=$(awk -F';' '{print $5}' <<<"$line" | tr ':/' '--')
+    TEMPLATE="openwrt-${PCT_OSVERSION:-24.10}-${lxc_arch}-${build_id}-rootfs.tar.xz"
+    TEMPLATE_SOURCE="linuxcontainers"
+    OPENWRT_TEMPLATE_URL="https://images.linuxcontainers.org${template_path}rootfs.tar.xz"
+  }
+
+  download_openwrt_template() {
+    local dest="$1"
+    mkdir -p "$(dirname "$dest")" || {
+      msg_error "Cannot create OpenWrt template dir."
+      exit 207
+    }
+    msg_info "Downloading OpenWrt rootfs.tar.xz"
+    if ! curl -fsSL -o "$dest" "$OPENWRT_TEMPLATE_URL"; then
+      msg_error "Failed to download OpenWrt template from: $OPENWRT_TEMPLATE_URL"
+      exit 222
+    fi
+    msg_ok "Downloaded OpenWrt LXC template"
+  }
+
   download_template() {
     local dest="${1:-$TEMPLATE_PATH}"
-    if [[ "$ARCH" == "arm64" ]]; then
+    if [[ "$PCT_OSTYPE" == "openwrt" ]]; then
+      download_openwrt_template "$dest"
+    elif [[ "$ARCH" == "arm64" ]]; then
       download_arm64_template "$dest"
     else
       pveam download "$TEMPLATE_STORAGE" "$TEMPLATE" >>"${BUILD_LOG:-/dev/null}" 2>&1 || {
@@ -5902,7 +6028,30 @@ create_lxc_container() {
   # ------------------------------------------------------------------------------
   CUSTOM_TEMPLATE_VARIANT=""
 
-  if [[ "$ARCH" == "arm64" ]]; then
+  if [[ "$PCT_OSTYPE" == "openwrt" ]]; then
+    msg_info "Preparing OpenWrt template"
+    resolve_openwrt_template
+    TEMPLATE_PATH="$(pvesm path "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" 2>/dev/null || true)"
+    if [[ -z "$TEMPLATE_PATH" ]]; then
+      local _tpl_base
+      _tpl_base=$(awk -v s="$TEMPLATE_STORAGE" '
+        $0 ~ "^[^:]+:[[:space:]]*" s "$" {f=1; next}
+        f && /^[^[:space:]]/ {f=0}
+        f && $1 == "path" {print $2; exit}
+      ' /etc/pve/storage.cfg)
+      TEMPLATE_PATH="${_tpl_base:-/var/lib/vz}/template/cache/$TEMPLATE"
+    fi
+    if [[ ! -f "$TEMPLATE_PATH" ]]; then
+      download_openwrt_template "$TEMPLATE_PATH"
+    elif [[ "$(stat -c%s "$TEMPLATE_PATH")" -lt 1000000 ]] || ! tar -tf "$TEMPLATE_PATH" &>/dev/null; then
+      msg_warn "Local OpenWrt template invalid - re-downloading."
+      rm -f "$TEMPLATE_PATH"
+      download_openwrt_template "$TEMPLATE_PATH"
+    else
+      msg_ok "Template ${BL}$TEMPLATE${CL} found locally."
+    fi
+
+  elif [[ "$ARCH" == "arm64" ]]; then
     # ARM64: use custom template download from linuxcontainers.org / GitHub
     msg_info "Preparing ARM64 template"
 
@@ -6185,7 +6334,7 @@ create_lxc_container() {
       done
     fi
 
-    if ! pveam list "$TEMPLATE_STORAGE" 2>/dev/null | grep -q "$TEMPLATE"; then
+    if [[ "$PCT_OSTYPE" != "openwrt" ]] && ! pveam list "$TEMPLATE_STORAGE" 2>/dev/null | grep -q "$TEMPLATE"; then
       msg_error "Template $TEMPLATE not available in storage $TEMPLATE_STORAGE after download."
       exit 223
     fi
