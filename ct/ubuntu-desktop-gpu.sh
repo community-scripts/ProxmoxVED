@@ -20,6 +20,8 @@ var_gpu="${var_gpu:-yes}"
 # whiptail prompt below, or supplied up front via env for unattended installs.
 export var_desktop_user="${var_desktop_user:-}"
 export var_desktop_pass="${var_desktop_pass:-}"
+export var_desktop_pve_link="${var_desktop_pve_link:-}"
+export var_pve_url="${var_pve_url:-}"
 
 # Run the host-side helper steps under C.UTF-8 so build.func's `pct exec` calls
 # don't emit "cannot change locale" warnings when the host's LC_ALL (e.g.
@@ -115,8 +117,30 @@ function prompt_desktop_credentials() {
   export var_desktop_user var_desktop_pass
 }
 
+# Optionally drop a desktop shortcut to this node's Proxmox VE web UI. Asked
+# host-side; the URL is auto-detected from the node's primary IP (override by
+# pre-setting var_pve_url, e.g. to use a hostname). Honour env for unattended use.
+function prompt_pve_link() {
+  if [[ -z "$var_desktop_pve_link" ]]; then
+    if whiptail --backtitle "Proxmox VE Helper Scripts" --title "PROXMOX VE SHORTCUT" \
+      --yesno "Add a shortcut to the Proxmox VE web interface on the desktop?" 9 64; then
+      var_desktop_pve_link="yes"
+    else
+      var_desktop_pve_link="no"
+    fi
+  fi
+  if [[ "$var_desktop_pve_link" == "yes" && -z "$var_pve_url" ]]; then
+    local _ip
+    _ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}' | head -1)"
+    [[ -z "$_ip" ]] && _ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    var_pve_url="${_ip:+https://${_ip}:8006}"
+  fi
+  export var_desktop_pve_link var_pve_url
+}
+
 start
 prompt_desktop_credentials
+prompt_pve_link
 build_container
 configure_console_passthrough
 description

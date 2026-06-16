@@ -194,6 +194,23 @@ else
   msg_ok "Created desktop user '${DESK_USER}' (auto-generated password saved to /root/ubuntu-desktop-gpu.creds)"
 fi
 
+# Optional: a desktop shortcut to the Proxmox VE web UI (asked in the ct script).
+if [ "${var_desktop_pve_link:-no}" = "yes" ] && [ -n "${var_pve_url:-}" ]; then
+  msg_info "Adding Proxmox VE desktop shortcut"
+  DESK_DIR="/home/${DESK_USER}/Desktop"
+  install -d -o "$DESK_USER" -g "$DESK_USER" "$DESK_DIR"
+  cat >"${DESK_DIR}/proxmox-ve.desktop" <<EOF
+[Desktop Entry]
+Type=Link
+Name=Proxmox VE
+URL=${var_pve_url}
+Icon=internet-web-browser
+EOF
+  chown "$DESK_USER:$DESK_USER" "${DESK_DIR}/proxmox-ve.desktop"
+  chmod 0755 "${DESK_DIR}/proxmox-ve.desktop"
+  msg_ok "Added Proxmox VE desktop shortcut (${var_pve_url})"
+fi
+
 motd_ssh
 customize
 cleanup_lxc
