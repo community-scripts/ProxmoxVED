@@ -117,8 +117,8 @@ description
 
 msg_ok "Completed successfully!\n"
 msg_custom "🖥️" "${GN}" "${APP} setup has been successfully initialized!"
-echo -e "${INFO}${YW} Switch the host's monitor/keyboard (KVM) to this Proxmox node — the LightDM${CL}"
-echo -e "${INFO}${YW} login appears on the physical console.${CL}"
+echo -e "${INFO}${YW} Connect a monitor and keyboard to this Proxmox host — the LightDM login${CL}"
+echo -e "${INFO}${YW} appears on the physical console.${CL}"
 echo -e "${INFO}${YW} Desktop login user: ${BGN}${var_desktop_user}${CL}"
 echo -e "${INFO}${YW} If you left the password blank it was auto-generated and saved to${CL}"
 echo -e "${INFO}${YW} /root/ubuntu-desktop-gpu.creds inside the container.${CL}"
