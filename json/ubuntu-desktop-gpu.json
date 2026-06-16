@@ -1,0 +1,48 @@
+{
+  "name": "Ubuntu Desktop (GPU)",
+  "slug": "ubuntu-desktop-gpu",
+  "categories": [
+    2
+  ],
+  "date_created": "2026-06-16",
+  "type": "ct",
+  "updateable": true,
+  "privileged": true,
+  "interface_port": null,
+  "documentation": "https://userbase.kde.org/Plasma",
+  "website": "https://ubuntu.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/ubuntu.webp",
+  "description": "Ubuntu 26.04 KDE Plasma (X11) desktop in a privileged LXC container, displayed on the Proxmox host's physical console with GPU passthrough. Uses LightDM (GDM/SDDM freeze in LXC), runs the container's own udevd for console input hotplug, and ships a DRM-hotplug handler so the login screen appears when a monitor is connected after a headless boot.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/ubuntu-desktop-gpu.sh",
+      "config_path": "/etc/lightdm/lightdm.conf",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 32,
+        "os": "Ubuntu",
+        "version": "26.04"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "A desktop user (default: 'desktop') and a generated password are saved to /root/ubuntu-desktop-gpu.creds inside the container. Override the user/locale/keymap with the CTUSER, CTLOCALE and CTKEYMAP environment variables at launch.",
+      "type": "info"
+    },
+    {
+      "text": "Requires a privileged container with AppArmor unconfined and /sys mounted rw so the container's udevd can handle console input hotplug. This lowers isolation and is not a security boundary.",
+      "type": "warning"
+    },
+    {
+      "text": "Connect a monitor/keyboard to the Proxmox host (e.g. via KVM) to use the desktop on the physical console. Tested with Intel Arc (Battlemage); AMD should work via the generic modesetting driver; NVIDIA additionally needs its userspace driver installed in the container.",
+      "type": "info"
+    }
+  ]
+}
