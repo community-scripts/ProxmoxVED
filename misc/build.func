@@ -5011,12 +5011,18 @@ PROFILE
   # Start timer for duration tracking
   start_install_timer
 
+  local _install_script
+  local _install_script_url="$COMMUNITY_SCRIPTS_URL/install/${var_install}.sh"
+  _install_script="$(curl -fsSL "$_install_script_url")" || {
+    local _download_exit=$?
+    msg_error "Failed to download install script from: $_install_script_url"
+    return "$_download_exit"
+  }
+
   # Disable error trap - container errors are handled internally via flag file
   set +Eeuo pipefail # Disable ALL error handling temporarily
   trap - ERR         # Remove ERR trap completely
 
-  local _install_script
-  _install_script="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/install/${var_install}.sh")"
   if [ "$var_os" == "openwrt" ]; then
     lxc-attach -n "$CTID" -- /bin/ash -c "$_install_script"
   else
@@ -5340,11 +5346,16 @@ PROFILE
           msg_info "Re-running installation script..."
 
           # Re-run install script in existing container (don't destroy/recreate)
+          local _install_script
+          local _install_script_url="$COMMUNITY_SCRIPTS_URL/install/${var_install}.sh"
+          _install_script="$(curl -fsSL "$_install_script_url")" || {
+            local _download_exit=$?
+            msg_error "Failed to download install script from: $_install_script_url"
+            return "$_download_exit"
+          }
           set +Eeuo pipefail
           trap - ERR
           local _LXC_CAPTURE_LOG="/tmp/.install-capture-${SESSION_ID}.log"
-          local _install_script
-          _install_script="$(curl -fsSL "https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/${var_install}.sh")"
           lxc-attach -n "$CTID" -- bash -c "$_install_script" 2>&1 | tee "$_LXC_CAPTURE_LOG"
           local apt_retry_exit=${PIPESTATUS[0]}
           set -Eeuo pipefail

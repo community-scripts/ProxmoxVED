@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-source <(curl -fsSL "${BUILD_FUNC_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func}")
+if [[ -n "${BUILD_FUNC_URL:-}" && -z "${COMMUNITY_SCRIPTS_URL:-}" && "$BUILD_FUNC_URL" == */misc/build.func ]]; then
+  export COMMUNITY_SCRIPTS_URL="${BUILD_FUNC_URL%/misc/build.func}"
+fi
+source <(curl -fsSL "${BUILD_FUNC_URL:-${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func}")
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: community-scripts ORG
