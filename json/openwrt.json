@@ -25,7 +25,7 @@
         "ram": 256,
         "hdd": 1,
         "os": "OpenWrt",
-        "version": "24.10"
+        "version": "25.12"
       }
     }
   ],

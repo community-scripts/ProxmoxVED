@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL "${BUILD_FUNC_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func}")
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: community-scripts ORG
@@ -12,7 +12,7 @@ var_cpu="${var_cpu:-1}"
 var_ram="${var_ram:-256}"
 var_disk="${var_disk:-1}"
 var_os="${var_os:-openwrt}"
-var_version="${var_version:-24.10}"
+var_version="${var_version:-25.12}"
 var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 var_tun="${var_tun:-yes}"
