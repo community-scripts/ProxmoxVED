@@ -21,6 +21,8 @@ var_unprivileged="${var_unprivileged:-1}"
 var_tun="${var_tun:-yes}"
 var_lan_bridge="${var_lan_bridge:-vmbr0}"
 var_wan_bridge="${var_wan_bridge:-vmbr0}"
+var_interface="${var_interface:-yes}"
+var_interface_packages="${var_interface_packages:-luci}"
 
 header_info "$APP"
 variables

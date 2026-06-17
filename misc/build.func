@@ -1622,7 +1622,7 @@ load_vars_file() {
 
   # Allowed var_* keys
   local VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_gpu var_keyctl
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_gpu var_interface var_interface_packages var_keyctl
     var_gateway var_hostname var_ipv6_method var_mac var_mknod var_mount_fs var_mtu
     var_net var_nesting var_ns var_protection var_pw var_ram var_tags var_timezone var_tun var_unprivileged
     var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
@@ -1761,7 +1761,7 @@ load_vars_file() {
             fi
           fi
           ;;
-        var_fuse | var_tun | var_gpu | var_ssh | var_verbose | var_protection)
+        var_fuse | var_interface | var_tun | var_gpu | var_ssh | var_verbose | var_protection)
           if [[ "$var_val" != "yes" && "$var_val" != "no" ]]; then
             msg_warn "Invalid boolean '$var_val' for $var_key in $file (must be yes/no), ignoring"
             continue
@@ -1800,7 +1800,7 @@ default_var_settings() {
   # Allowed var_* keys (alphabetically sorted)
   # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
   local VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_gpu var_keyctl
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_gpu var_interface var_interface_packages var_keyctl
     var_gateway var_hostname var_ipv6_method var_mac var_mknod var_mount_fs var_mtu
     var_net var_nesting var_ns var_protection var_pw var_ram var_tags var_timezone var_tun var_unprivileged
     var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
@@ -1962,7 +1962,7 @@ get_app_defaults_path() {
 if ! declare -p VAR_WHITELIST >/dev/null 2>&1; then
   # Note: Removed var_ctid (can only exist once), var_ipv6_static (static IPs are unique)
   declare -ag VAR_WHITELIST=(
-    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_gpu
+    var_apt_cacher var_apt_cacher_ip var_brg var_cpu var_disk var_fuse var_gpu var_interface var_interface_packages
     var_gateway var_hostname var_ipv6_method var_mac var_mtu
     var_net var_ns var_pw var_ram var_tags var_tun var_unprivileged
     var_verbose var_vlan var_ssh var_ssh_authorized_key var_container_storage var_template_storage
@@ -4296,6 +4296,8 @@ build_container() {
   export DEV_MODE_BREAKPOINT="${DEV_MODE_BREAKPOINT:-false}"
   export DEV_MODE_LOGS="${DEV_MODE_LOGS:-false}"
   export DEV_MODE_DRYRUN="${DEV_MODE_DRYRUN:-false}"
+  export OPENWRT_INTERFACE="${var_interface:-yes}"
+  export OPENWRT_INTERFACE_PACKAGES="${var_interface_packages:-luci}"
 
   # MODE export for unattended detection in install scripts
   # This tells install scripts whether to prompt for input or use defaults
