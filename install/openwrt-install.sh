@@ -5,11 +5,14 @@
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://openwrt.org/
 
+lan_ipaddr="${OPENWRT_LAN_IPADDR:-${var_lan_ipaddr:-192.168.1.1}}"
+lan_netmask="${OPENWRT_LAN_NETMASK:-${var_lan_netmask:-255.255.255.0}}"
+
 uci set network.lan='interface' &&
   uci set network.lan.proto='static' &&
   uci set network.lan.device='eth0' &&
-  uci set network.lan.ipaddr='192.168.1.1' &&
-  uci set network.lan.netmask='255.255.255.0' &&
+  uci set network.lan.ipaddr="$lan_ipaddr" &&
+  uci set network.lan.netmask="$lan_netmask" &&
   uci set network.wan='interface' &&
   uci set network.wan.proto='dhcp' &&
   uci set network.wan.device='eth1' &&

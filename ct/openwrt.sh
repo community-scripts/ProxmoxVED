@@ -20,6 +20,8 @@ var_tun="${var_tun:-yes}"
 var_lan_bridge="${var_lan_bridge:-vmbr0}"
 var_wan_bridge="${var_wan_bridge:-vmbr0}"
 var_allow_same_bridge="${var_allow_same_bridge:-no}"
+var_lan_ipaddr="${var_lan_ipaddr:-192.168.1.1}"
+var_lan_netmask="${var_lan_netmask:-255.255.255.0}"
 var_interface="${var_interface:-yes}"
 var_interface_packages="${var_interface_packages:-luci}"
 
@@ -375,6 +377,8 @@ function openwrt_run_install_script() {
 
   export OPENWRT_INTERFACE="${var_interface:-yes}"
   export OPENWRT_INTERFACE_PACKAGES="${var_interface_packages:-luci}"
+  export OPENWRT_LAN_IPADDR="${var_lan_ipaddr:-192.168.1.1}"
+  export OPENWRT_LAN_NETMASK="${var_lan_netmask:-255.255.255.0}"
 
   start_install_timer
   set +Eeuo pipefail
