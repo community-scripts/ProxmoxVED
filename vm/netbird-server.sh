@@ -74,6 +74,11 @@ function configure_netbird_setup() {
           --msgbox "Please enter a valid domain name." 8 50
         continue
       fi
+      if [[ ! "$NETBIRD_DOMAIN_INPUT" =~ ^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$ ]]; then
+        whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID DOMAIN" \
+          --msgbox "Please enter a valid public domain name." 8 50
+        continue
+      fi
       echo -e "${INFO}${BOLD}${DGN}NetBird Domain: ${BGN}${NETBIRD_DOMAIN_INPUT}${CL}"
       break
     else
@@ -81,35 +86,29 @@ function configure_netbird_setup() {
     fi
   done
 
-  if NETBIRD_PROXY_TYPE_INPUT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "REVERSE PROXY" --radiolist \
-    "Select the reverse proxy for NetBird" 14 70 4 \
-    "0" "Traefik (recommended, built-in with auto TLS)" ON \
-    "2" "Nginx (generates config template)" OFF \
-    "3" "Nginx Proxy Manager" OFF \
-    "5" "Other/Manual" OFF \
-    3>&1 1>&2 2>&3); then
-    echo -e "${INFO}${BOLD}${DGN}Reverse Proxy: ${BGN}${NETBIRD_PROXY_TYPE_INPUT}${CL}"
-  else
-    exit_script
-  fi
+  NETBIRD_PROXY_TYPE_INPUT="0"
+  echo -e "${INFO}${BOLD}${DGN}Reverse Proxy: ${BGN}Traefik (built-in with auto TLS)${CL}"
 
-  if [[ "$NETBIRD_PROXY_TYPE_INPUT" == "0" ]]; then
-    while true; do
-      if NETBIRD_EMAIL_INPUT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LETSENCRYPT EMAIL" \
-        --inputbox "Enter your email for Let's Encrypt certificates:" 8 65 "" \
-        --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
-        if [[ -z "$NETBIRD_EMAIL_INPUT" ]]; then
-          whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID EMAIL" \
-            --msgbox "Email is required for Let's Encrypt." 8 50
-          continue
-        fi
-        echo -e "${INFO}${BOLD}${DGN}Let's Encrypt Email: ${BGN}${NETBIRD_EMAIL_INPUT}${CL}"
-        break
-      else
-        exit_script
+  while true; do
+    if NETBIRD_EMAIL_INPUT=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "LETSENCRYPT EMAIL" \
+      --inputbox "Enter your email for Let's Encrypt certificates:" 8 65 "" \
+      --cancel-button Exit-Script 3>&1 1>&2 2>&3); then
+      if [[ -z "$NETBIRD_EMAIL_INPUT" ]]; then
+        whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID EMAIL" \
+          --msgbox "Email is required for Let's Encrypt." 8 50
+        continue
       fi
-    done
-  fi
+      if [[ ! "$NETBIRD_EMAIL_INPUT" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}$ ]]; then
+        whiptail --backtitle "Proxmox VE Helper Scripts" --title "INVALID EMAIL" \
+          --msgbox "Please enter a valid email address." 8 50
+        continue
+      fi
+      echo -e "${INFO}${BOLD}${DGN}Let's Encrypt Email: ${BGN}${NETBIRD_EMAIL_INPUT}${CL}"
+      break
+    else
+      exit_script
+    fi
+  done
 }
 
 # ==============================================================================
@@ -531,8 +530,8 @@ export LIBGUESTFS_BACKEND_SETTINGS=dns=8.8.8.8,1.1.1.1
 
 DOCKER_PREINSTALLED="no"
 
-msg_info "Installing base packages (qemu-guest-agent, curl, ca-certificates, jq)"
-if virt-customize -a "$WORK_FILE" --install qemu-guest-agent,curl,ca-certificates,jq >/dev/null 2>&1; then
+msg_info "Installing base packages (qemu-guest-agent, curl, ca-certificates, jq, openssl)"
+if virt-customize -a "$WORK_FILE" --install qemu-guest-agent,curl,ca-certificates,jq,openssl >/dev/null 2>&1; then
   msg_ok "Installed base packages"
 
   msg_info "Installing Docker (this may take 2-5 minutes)"
@@ -564,13 +563,13 @@ fi
 # Write NetBird env file (host variables expanded into the image)
 msg_info "Writing NetBird configuration"
 NETBIRD_ENV_TMP=$(mktemp)
-cat >"$NETBIRD_ENV_TMP" <<ENVEOF
-NETBIRD_DOMAIN="${NETBIRD_DOMAIN_INPUT}"
-NETBIRD_AUTO_PROXY_TYPE="${NETBIRD_PROXY_TYPE_INPUT}"
-NETBIRD_AUTO_EMAIL="${NETBIRD_EMAIL_INPUT}"
-NETBIRD_AUTO_ENABLE_PROXY="false"
-NETBIRD_AUTO_ENABLE_CROWDSEC="false"
-ENVEOF
+{
+  printf 'NETBIRD_DOMAIN=%q\n' "$NETBIRD_DOMAIN_INPUT"
+  printf 'NETBIRD_AUTO_PROXY_TYPE=%q\n' "$NETBIRD_PROXY_TYPE_INPUT"
+  printf 'NETBIRD_AUTO_EMAIL=%q\n' "$NETBIRD_EMAIL_INPUT"
+  printf 'NETBIRD_AUTO_ENABLE_PROXY=%q\n' "false"
+  printf 'NETBIRD_AUTO_ENABLE_CROWDSEC=%q\n' "false"
+} >"$NETBIRD_ENV_TMP"
 virt-customize -q -a "$WORK_FILE" --upload "${NETBIRD_ENV_TMP}:/root/netbird.env" >/dev/null 2>&1
 rm -f "$NETBIRD_ENV_TMP"
 
@@ -578,7 +577,6 @@ rm -f "$NETBIRD_ENV_TMP"
 NETBIRD_SETUP_TMP=$(mktemp)
 cat >"$NETBIRD_SETUP_TMP" <<'SETUPEOF'
 #!/bin/bash
-exec > /var/log/netbird-setup.log 2>&1
 set -e
 
 echo "[$(date)] Starting NetBird automated setup"
@@ -594,6 +592,8 @@ docker info >/dev/null 2>&1 || { echo "[$(date)] ERROR: Docker not ready after 5
 set -a
 source /root/netbird.env
 set +a
+
+cd /root
 
 # Download getting-started.sh
 curl -fsSL https://github.com/netbirdio/netbird/releases/latest/download/getting-started.sh \
@@ -620,24 +620,38 @@ rm -f "$NETBIRD_SETUP_TMP"
 
 # Write first-boot systemd service
 NETBIRD_SVC_TMP=$(mktemp)
-cat >"$NETBIRD_SVC_TMP" <<'SVCEOF'
+{
+  cat <<'SVCEOF'
 [Unit]
 Description=NetBird Initial Setup
+SVCEOF
+  if [ "$DOCKER_PREINSTALLED" = "no" ]; then
+    cat <<'SVCEOF'
+Requires=install-docker.service
+After=network-online.target install-docker.service docker.service
+SVCEOF
+  else
+    cat <<'SVCEOF'
 After=network-online.target docker.service
+SVCEOF
+  fi
+  cat <<'SVCEOF'
 Wants=network-online.target
 ConditionPathExists=!/root/.netbird-setup-done
 
 [Service]
 Type=oneshot
+WorkingDirectory=/root
 ExecStart=/root/netbird-setup.sh
 RemainAfterExit=yes
 StandardOutput=journal+console
 StandardError=journal+console
-TimeoutStartSec=600
+TimeoutStartSec=0
 
 [Install]
 WantedBy=multi-user.target
 SVCEOF
+} >"$NETBIRD_SVC_TMP"
 virt-customize -q -a "$WORK_FILE" \
   --upload "${NETBIRD_SVC_TMP}:/etc/systemd/system/netbird-setup.service" \
   --run-command "systemctl enable netbird-setup.service" >/dev/null 2>&1
@@ -666,14 +680,14 @@ if [ "$DOCKER_PREINSTALLED" = "no" ]; then
   DOCKER_INSTALL_TMP=$(mktemp)
   cat >"$DOCKER_INSTALL_TMP" <<'DOCKEREOF'
 #!/bin/bash
-exec > /var/log/install-docker.log 2>&1
+set -e
 echo "[$(date)] Starting Docker installation"
 for i in {1..30}; do
   ping -c 1 8.8.8.8 >/dev/null 2>&1 && break
   sleep 2
 done
-apt-get update
-apt-get install -y qemu-guest-agent curl ca-certificates jq
+apt update
+apt install -y qemu-guest-agent curl ca-certificates jq openssl
 curl -fsSL https://get.docker.com | sh
 systemctl enable docker
 systemctl start docker
@@ -686,12 +700,16 @@ DOCKEREOF
 Description=Install Docker on First Boot
 After=network-online.target
 Wants=network-online.target
+Before=netbird-setup.service
 ConditionPathExists=!/root/.docker-installed
 
 [Service]
 Type=oneshot
 ExecStart=/root/install-docker.sh
 RemainAfterExit=yes
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=0
 
 [Install]
 WantedBy=multi-user.target
@@ -792,7 +810,7 @@ echo -e "${TAB}${DGN}OS: ${BGN}${OS_DISPLAY}${CL}"
 if [ "$DOCKER_PREINSTALLED" = "yes" ]; then
   echo -e "${TAB}${DGN}Docker: ${BGN}Pre-installed${CL}"
 else
-  echo -e "${TAB}${DGN}Docker: ${BGN}Installing on first boot — check: ${BL}journalctl -u netbird-setup${CL}"
+  echo -e "${TAB}${DGN}Docker: ${BGN}Installing on first boot — check: ${BL}journalctl -u install-docker -f${CL}"
 fi
 
 echo -e ""

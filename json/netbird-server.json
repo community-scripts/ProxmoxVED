@@ -1,0 +1,58 @@
+{
+  "name": "NetBird Server",
+  "slug": "netbird-server",
+  "categories": [
+    4,
+    6
+  ],
+  "date_created": "2026-06-16",
+  "type": "vm",
+  "updateable": false,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 443,
+  "documentation": "https://docs.netbird.io/selfhosted/selfhosted-quickstart",
+  "website": "https://netbird.io",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/netbird.webp",
+  "description": "NetBird Server is a self-hosted zero-trust networking platform that provides a WireGuard-based overlay network, web dashboard, management API, relay, and embedded identity provider for private infrastructure access.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "vm/netbird-server.sh",
+      "config_path": "/root/config.yaml",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": null,
+        "version": null
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Requires a public DNS record pointing to the VM and open ports 80/tcp, 443/tcp, and 3478/udp.",
+      "type": "info"
+    },
+    {
+      "text": "The VM uses NetBird's built-in Traefik reverse proxy with automatic Let's Encrypt certificates.",
+      "type": "info"
+    },
+    {
+      "text": "After setup completes, open the configured HTTPS domain and create the first admin account on the /setup page.",
+      "type": "info"
+    },
+    {
+      "text": "First-boot setup logs are available with `journalctl -u netbird-setup -f` inside the VM.",
+      "type": "info"
+    },
+    {
+      "text": "If Docker installs on first boot, Docker setup logs are available with `journalctl -u install-docker -f` inside the VM.",
+      "type": "info"
+    }
+  ]
+}
