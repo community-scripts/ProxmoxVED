@@ -51,6 +51,10 @@
       "type": "warning"
     },
     {
+      "text": "This script does not change Proxmox host network interface, bridge CIDR, or gateway settings; it only attaches the new container NICs to the selected existing bridges.",
+      "type": "info"
+    },
+    {
       "text": "Default networking configures LAN on eth0 as 192.168.1.1/255.255.255.0 and WAN on eth1 via DHCP. Override the LAN address with var_lan_ipaddr and var_lan_netmask.",
       "type": "info"
     },
