@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-if [[ -n "${BUILD_FUNC_URL:-}" && -z "${COMMUNITY_SCRIPTS_URL:-}" && "$BUILD_FUNC_URL" == */misc/build.func ]]; then
-  export COMMUNITY_SCRIPTS_URL="${BUILD_FUNC_URL%/misc/build.func}"
-fi
-source <(curl -fsSL "${BUILD_FUNC_URL:-${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func}")
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: community-scripts ORG
+# Author: Mihael Zamin Sousa (mihazs)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://openwrt.org/
 
@@ -16,8 +13,9 @@ var_ram="${var_ram:-256}"
 var_disk="${var_disk:-1}"
 var_os="${var_os:-openwrt}"
 var_version="${var_version:-25.12}"
-var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
+
+var_arm64="${var_arm64:-no}"
 var_tun="${var_tun:-yes}"
 var_lan_bridge="${var_lan_bridge:-vmbr0}"
 var_wan_bridge="${var_wan_bridge:-vmbr0}"
@@ -41,7 +39,7 @@ start
 build_container
 description
 
-msg_ok "Completed successfully!\n"
-msg_custom "🚀" "${GN}" "${APP} setup has been successfully initialized!"
-echo -e "${INFO}${YW} Review WAN/LAN bridge assignments before routing production traffic.${CL}"
-echo -e "${INFO}${YW} If you set VLAN tags, ensure the selected Proxmox bridge is VLAN-aware.${CL}"
+msg_ok "Completed Successfully!\n"
+echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
+echo -e "${INFO}${YW} Access it using the following URL:${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"

@@ -1,35 +1,21 @@
 #!/usr/bin/env ash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# Author: community-scripts ORG
+# Author: Mihael Zamin Sousa (mihazs)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://openwrt.org/
 
-set -eu
+uci set network.lan='interface' &&
+  uci set network.lan.proto='static' &&
+  uci set network.lan.device='eth0' &&
+  uci set network.lan.ipaddr='192.168.1.1' &&
+  uci set network.lan.netmask='255.255.255.0' &&
+  uci set network.wan='interface' &&
+  uci set network.wan.proto='dhcp' &&
+  uci set network.wan.device='eth1' &&
+  uci commit network || exit 1
 
-command -v uci >/dev/null 2>&1 || {
-  printf '%s\n' "uci is required to configure OpenWrt networking" >&2
-  exit 1
-}
-
-test -f /etc/config/network || {
-  printf '%s\n' "/etc/config/network is required to configure OpenWrt networking" >&2
-  exit 1
-}
-
-uci set network.lan='interface'
-uci set network.lan.proto='static'
-uci set network.lan.device='eth0'
-uci set network.lan.ipaddr='192.168.1.1'
-uci set network.lan.netmask='255.255.255.0'
-uci set network.wan='interface'
-uci set network.wan.proto='dhcp'
-uci set network.wan.device='eth1'
-uci commit network
-
-if command -v ubus >/dev/null 2>&1 && ubus list network >/dev/null 2>&1 && [ -x /etc/init.d/network ]; then
-  /etc/init.d/network reload >/dev/null 2>&1 || true
-fi
+/etc/init.d/network reload >/dev/null 2>&1 || printf '%s\n' "OpenWrt network reload failed; package feed update will verify connectivity" >&2
 
 var_interface="${OPENWRT_INTERFACE:-${var_interface:-yes}}"
 var_interface_packages="${OPENWRT_INTERFACE_PACKAGES:-${var_interface_packages:-luci}}"
@@ -54,21 +40,21 @@ yes | true | 1 | on)
       printf '%s\n' "OpenWrt package feed update failed after applying network configuration; verify WAN bridge, DHCP, DNS, and internet connectivity" >&2
       exit 1
     }
-    opkg install "$@"
+    opkg install "$@" || exit 1
   elif command -v apk >/dev/null 2>&1; then
     apk update || {
       printf '%s\n' "OpenWrt package feed update failed after applying network configuration; verify WAN bridge, DHCP, DNS, and internet connectivity" >&2
       exit 1
     }
-    apk add "$@"
+    apk add "$@" || exit 1
   else
     printf '%s\n' "opkg or apk is required to install OpenWrt interface packages" >&2
     exit 1
   fi
 
   if [ -x /etc/init.d/uhttpd ]; then
-    /etc/init.d/uhttpd enable
-    /etc/init.d/uhttpd start
+    /etc/init.d/uhttpd enable || exit 1
+    /etc/init.d/uhttpd start || exit 1
   fi
   ;;
 no | false | 0 | off)
