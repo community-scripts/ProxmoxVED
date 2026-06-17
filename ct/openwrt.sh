@@ -25,6 +25,13 @@ var_lan_netmask="${var_lan_netmask:-255.255.255.0}"
 var_interface="${var_interface:-yes}"
 var_interface_packages="${var_interface_packages:-luci}"
 
+OPENWRT_TEMPLATE_INDEX_URL="https://images.linuxcontainers.org/meta/1.0/index-system"
+
+function openwrt_fetch_template_index() {
+  curl -fsSL --connect-timeout 10 --max-time 30 "$OPENWRT_TEMPLATE_INDEX_URL" 2>/dev/null ||
+    curl -4 -fsSL --connect-timeout 10 --max-time 30 "$OPENWRT_TEMPLATE_INDEX_URL" 2>/dev/null
+}
+
 function openwrt_normalize_release() {
   local requested="${1:-latest}"
   case "$requested" in
@@ -56,7 +63,7 @@ function openwrt_resolve_template() {
     return 207
   }
 
-  index="$(curl -fsSL https://images.linuxcontainers.org/meta/1.0/index-system)" || {
+  index="$(openwrt_fetch_template_index)" || {
     msg_error "Failed to read OpenWrt LinuxContainers template index"
     return 222
   }
@@ -91,9 +98,7 @@ function openwrt_resolve_template() {
 }
 
 function preflight_template_connectivity() {
-  local http_code
-  http_code="$(curl -sS -o /dev/null -w "%{http_code}" -m 5 https://images.linuxcontainers.org/meta/1.0/index-system 2>/dev/null)" || http_code="000"
-  if [[ "$http_code" =~ ^[23][0-9]{2}$ ]]; then
+  if openwrt_fetch_template_index >/dev/null; then
     preflight_pass "Template server reachable (images.linuxcontainers.org)"
   else
     preflight_fail "LinuxContainers template index unreachable" 222
