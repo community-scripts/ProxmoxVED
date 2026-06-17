@@ -27,6 +27,10 @@ uci set network.wan.proto='dhcp'
 uci set network.wan.device='eth1'
 uci commit network
 
+if command -v ubus >/dev/null 2>&1 && ubus list network >/dev/null 2>&1 && [ -x /etc/init.d/network ]; then
+  /etc/init.d/network reload >/dev/null 2>&1 || true
+fi
+
 var_interface="${OPENWRT_INTERFACE:-${var_interface:-yes}}"
 var_interface_packages="${OPENWRT_INTERFACE_PACKAGES:-${var_interface_packages:-luci}}"
 
@@ -46,10 +50,16 @@ yes | true | 1 | on)
   fi
 
   if command -v opkg >/dev/null 2>&1; then
-    opkg update
+    opkg update || {
+      printf '%s\n' "OpenWrt package feed update failed after applying network configuration; verify WAN bridge, DHCP, DNS, and internet connectivity" >&2
+      exit 1
+    }
     opkg install "$@"
   elif command -v apk >/dev/null 2>&1; then
-    apk update
+    apk update || {
+      printf '%s\n' "OpenWrt package feed update failed after applying network configuration; verify WAN bridge, DHCP, DNS, and internet connectivity" >&2
+      exit 1
+    }
     apk add "$@"
   else
     printf '%s\n' "opkg or apk is required to install OpenWrt interface packages" >&2
@@ -68,7 +78,3 @@ no | false | 0 | off)
   exit 1
   ;;
 esac
-
-if command -v ubus >/dev/null 2>&1 && ubus list network >/dev/null 2>&1 && [ -x /etc/init.d/network ]; then
-  /etc/init.d/network reload >/dev/null 2>&1 || true
-fi
