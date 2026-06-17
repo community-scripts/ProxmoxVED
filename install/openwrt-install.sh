@@ -12,9 +12,12 @@ openwrt_update_package_feeds() {
   package_manager="$1"
   attempt=1
   max_attempts=6
+  package_update_log="/tmp/openwrt-package-feed-update.log"
 
   while [ "$attempt" -le "$max_attempts" ]; do
-    if "$package_manager" update; then
+    if "$package_manager" update >"$package_update_log" 2>&1; then
+      cat "$package_update_log"
+      rm -f "$package_update_log"
       return 0
     fi
 
@@ -25,6 +28,8 @@ openwrt_update_package_feeds() {
     attempt=$((attempt + 1))
   done
 
+  cat "$package_update_log" >&2
+  rm -f "$package_update_log"
   printf '%s\n' "OpenWrt package feed update failed after applying network configuration; verify WAN bridge, DHCP, DNS, and internet connectivity" >&2
   return 1
 }
