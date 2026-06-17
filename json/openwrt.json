@@ -10,7 +10,7 @@
   "updateable": false,
   "privileged": false,
   "has_arm": false,
-  "interface_port": null,
+  "interface_port": 80,
   "documentation": "https://openwrt.org/docs/start",
   "website": "https://openwrt.org/",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/openwrt.webp",
@@ -51,7 +51,7 @@
       "type": "info"
     },
     {
-      "text": "LuCI is not installed by default; configure OpenWrt from the console or install a web interface after validating network access.",
+      "text": "LuCI is installed by default. Set var_interface=no to skip the web interface, or set var_interface_packages to choose packages such as luci or jerrykuku/luci-theme-argon.",
       "type": "info"
     }
   ]
