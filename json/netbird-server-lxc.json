@@ -1,0 +1,55 @@
+{
+  "name": "NetBird Server LXC",
+  "slug": "netbird-server-lxc",
+  "categories": [
+    3,
+    4,
+    6
+  ],
+  "date_created": "2026-06-16",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 443,
+  "documentation": "https://docs.netbird.io/selfhosted/selfhosted-quickstart",
+  "website": "https://netbird.io",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/netbird.webp",
+  "description": "NetBird Server LXC is a self-hosted zero-trust networking platform that runs the official NetBird Docker Compose stack inside an Alpine container.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/netbird-server-lxc.sh",
+      "config_path": "/opt/netbird-server/config.yaml",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 10,
+        "os": "Alpine",
+        "version": "3.22"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Requires a public DNS record pointing to the LXC and open ports 80/tcp, 443/tcp, and 3478/udp.",
+      "type": "info"
+    },
+    {
+      "text": "This LXC enables nesting and keyctl so Docker can run inside the container.",
+      "type": "info"
+    },
+    {
+      "text": "The installer uses NetBird's built-in Traefik reverse proxy with automatic Let's Encrypt certificates.",
+      "type": "info"
+    },
+    {
+      "text": "After setup completes, open the configured HTTPS domain and create the first admin account on the /setup page.",
+      "type": "info"
+    }
+  ]
+}
