@@ -8,6 +8,27 @@
 lan_ipaddr="${OPENWRT_LAN_IPADDR:-${var_lan_ipaddr:-192.168.1.1}}"
 lan_netmask="${OPENWRT_LAN_NETMASK:-${var_lan_netmask:-255.255.255.0}}"
 
+openwrt_update_package_feeds() {
+  package_manager="$1"
+  attempt=1
+  max_attempts=6
+
+  while [ "$attempt" -le "$max_attempts" ]; do
+    if "$package_manager" update; then
+      return 0
+    fi
+
+    if [ "$attempt" -lt "$max_attempts" ]; then
+      printf 'OpenWrt package feed update failed; retrying in 5 seconds (%s/%s)\n' "$attempt" "$max_attempts" >&2
+      sleep 5
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  printf '%s\n' "OpenWrt package feed update failed after applying network configuration; verify WAN bridge, DHCP, DNS, and internet connectivity" >&2
+  return 1
+}
+
 uci set network.lan='interface' &&
   uci set network.lan.proto='static' &&
   uci set network.lan.device='eth0' &&
@@ -39,16 +60,10 @@ yes | true | 1 | on)
   fi
 
   if command -v opkg >/dev/null 2>&1; then
-    opkg update || {
-      printf '%s\n' "OpenWrt package feed update failed after applying network configuration; verify WAN bridge, DHCP, DNS, and internet connectivity" >&2
-      exit 1
-    }
+    openwrt_update_package_feeds opkg || exit 1
     opkg install "$@" || exit 1
   elif command -v apk >/dev/null 2>&1; then
-    apk update || {
-      printf '%s\n' "OpenWrt package feed update failed after applying network configuration; verify WAN bridge, DHCP, DNS, and internet connectivity" >&2
-      exit 1
-    }
+    openwrt_update_package_feeds apk || exit 1
     apk add "$@" || exit 1
   else
     printf '%s\n' "opkg or apk is required to install OpenWrt interface packages" >&2
