@@ -44,7 +44,7 @@ uci set network.lan='interface' &&
   uci set network.wan.device='eth1' &&
   uci commit network || exit 1
 
-/etc/init.d/network reload >/dev/null 2>&1 || printf '%s\n' "OpenWrt network reload failed; package feed update will verify connectivity" >&2
+/etc/init.d/network reload >/dev/null 2>&1 || true
 
 var_interface="${OPENWRT_INTERFACE:-${var_interface:-yes}}"
 var_interface_packages="${OPENWRT_INTERFACE_PACKAGES:-${var_interface_packages:-luci}}"
