@@ -19,6 +19,7 @@ var_arm64="${var_arm64:-no}"
 var_tun="${var_tun:-yes}"
 var_lan_bridge="${var_lan_bridge:-vmbr0}"
 var_wan_bridge="${var_wan_bridge:-vmbr0}"
+var_allow_same_bridge="${var_allow_same_bridge:-no}"
 var_interface="${var_interface:-yes}"
 var_interface_packages="${var_interface_packages:-luci}"
 
@@ -120,7 +121,11 @@ function openwrt_template_path() {
     found && /^[^[:space:]]/ { found = 0 }
     found && $1 == "path" { print $2; exit }
   ' /etc/pve/storage.cfg)"
-  echo "${template_base:-/var/lib/vz}/template/cache/${TEMPLATE}"
+  [[ -n "$template_base" ]] || {
+    msg_error "Could not resolve OpenWrt template path for storage ${TEMPLATE_STORAGE}."
+    return 213
+  }
+  echo "${template_base}/template/cache/${TEMPLATE}"
 }
 
 function openwrt_download_template() {
@@ -140,9 +145,11 @@ function openwrt_download_template() {
 }
 
 function openwrt_prepare_template() {
-  openwrt_resolve_template || exit $?
+  if [[ -z "${TEMPLATE:-}" || -z "${OPENWRT_TEMPLATE_URL:-}" ]]; then
+    openwrt_resolve_template || exit $?
+  fi
 
-  TEMPLATE_PATH="$(openwrt_template_path)"
+  TEMPLATE_PATH="$(openwrt_template_path)" || exit $?
   export TEMPLATE_PATH
 
   if [[ ! -f "$TEMPLATE_PATH" ]]; then
@@ -174,6 +181,24 @@ function openwrt_net_option() {
   fi
 
   echo "bridge=${bridge},ip=${ip_mode}${options}"
+}
+
+function openwrt_validate_network_bridges() {
+  local lan_bridge="$1" wan_bridge="$2"
+
+  if [[ "$lan_bridge" != "$wan_bridge" ]]; then
+    return 0
+  fi
+
+  case "${var_allow_same_bridge:-no}" in
+  yes | true | 1 | on)
+    msg_warn "OpenWrt LAN and WAN both use bridge ${lan_bridge}; continuing because var_allow_same_bridge is enabled."
+    ;;
+  *)
+    msg_error "OpenWrt LAN and WAN bridges are both set to ${lan_bridge}. Set var_lan_bridge and var_wan_bridge to different bridges, or set var_allow_same_bridge=yes after reviewing the topology."
+    exit 1
+    ;;
+  esac
 }
 
 function openwrt_select_storages() {
@@ -219,6 +244,8 @@ function openwrt_build_pct_options() {
   local openwrt_mtu="${var_openwrt_mtu:-${MTU:-}}"
   local features=""
   local extra_options=()
+
+  openwrt_validate_network_bridges "$lan_bridge" "$wan_bridge"
 
   if [[ "${ENABLE_NESTING:-1}" == "1" ]]; then
     features="nesting=1"
@@ -286,10 +313,7 @@ function openwrt_create_lxc() {
   fi
 
   openwrt_select_storages
-  openwrt_prepare_template
-  openwrt_build_pct_options
-
-  lockfile="/tmp/template.${TEMPLATE}.lock"
+  lockfile="/tmp/template.openwrt.lock"
   exec 9>"$lockfile" || {
     msg_error "Failed to create lock file '$lockfile'."
     exit 200
@@ -298,6 +322,10 @@ function openwrt_create_lxc() {
     msg_error "Timeout while waiting for template lock."
     exit 211
   }
+
+  openwrt_resolve_template || exit $?
+  openwrt_prepare_template
+  openwrt_build_pct_options
 
   logfile="/tmp/pct_create_${CTID}_$(date +%Y%m%d_%H%M%S)_${SESSION_ID}.log"
   LOGFILE="$logfile"

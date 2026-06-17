@@ -39,6 +39,10 @@
       "type": "warning"
     },
     {
+      "text": "The rootfs template is downloaded from LinuxContainers at images.linuxcontainers.org, not from official OpenWrt release artifacts; trust that third-party template source before routing production traffic.",
+      "type": "warning"
+    },
+    {
       "text": "Review WAN and LAN bridge assignments before routing production traffic, and never expose an unreviewed WAN bridge to untrusted networks.",
       "type": "warning"
     },
