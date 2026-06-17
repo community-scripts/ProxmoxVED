@@ -1,0 +1,53 @@
+{
+  "name": "Monitoring Stack",
+  "slug": "monitoring-stack",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-06-17",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 3000,
+  "documentation": "https://grafana.com/docs/",
+  "website": "https://grafana.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/grafana.webp",
+  "config_path": "/opt/monitoring-stack/.env",
+  "description": "A bare-metal monitoring stack for Proxmox LXC with Grafana, Prometheus, Loki, Alertmanager, Alloy, and a local node_exporter target.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/monitoring-stack.sh",
+      "resources": {
+        "cpu": 4,
+        "ram": 4096,
+        "hdd": 16,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "admin",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Grafana credentials are stored in `/opt/monitoring-stack/.env`.",
+      "type": "info"
+    },
+    {
+      "text": "Grafana, Prometheus, and Alertmanager are exposed on the container IP; Loki, node_exporter, and Alloy remain local-only.",
+      "type": "info"
+    },
+    {
+      "text": "Use the standard `update` command inside the container to upgrade the installed monitoring packages and restore the managed configuration files.",
+      "type": "info"
+    },
+    {
+      "text": "`cAdvisor` is intentionally not included in this container profile.",
+      "type": "info"
+    }
+  ]
+}
