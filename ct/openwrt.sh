@@ -26,6 +26,7 @@ var_interface="${var_interface:-yes}"
 var_interface_packages="${var_interface_packages:-luci}"
 
 OPENWRT_TEMPLATE_INDEX_URL="https://images.linuxcontainers.org/meta/1.0/index-system"
+OPENWRT_INSTALL_FALLBACK_URL="${OPENWRT_INSTALL_FALLBACK_URL:-https://raw.githubusercontent.com/mihazs/ProxmoxVED/add-openwrt-lxc}"
 
 function openwrt_fetch_template_index() {
   curl -fsSL --connect-timeout 10 --max-time 30 "$OPENWRT_TEMPLATE_INDEX_URL" 2>/dev/null ||
@@ -208,6 +209,28 @@ function openwrt_validate_network_bridges() {
   esac
 }
 
+function openwrt_fetch_install_script() {
+  local primary_url fallback_url install_url fetched_script failed_urls=()
+
+  primary_url="${COMMUNITY_SCRIPTS_URL%/}/install/${var_install:?}.sh"
+  fallback_url="${OPENWRT_INSTALL_FALLBACK_URL%/}/install/${var_install:?}.sh"
+
+  for install_url in "$primary_url" "$fallback_url"; do
+    [[ "$install_url" == "$primary_url" && "${#failed_urls[@]}" -gt 0 ]] && continue
+    if fetched_script="$(curl -fsSL "$install_url" 2>/dev/null)" && [[ -n "$fetched_script" ]]; then
+      OPENWRT_INSTALL_SCRIPT="$fetched_script"
+      return 0
+    fi
+    failed_urls+=("$install_url")
+  done
+
+  for install_url in "${failed_urls[@]}"; do
+    msg_warn "Unavailable OpenWrt install script: ${install_url}"
+  done
+  msg_error "Failed to download OpenWrt install script"
+  return 222
+}
+
 function openwrt_select_storages() {
   check_storage_support "rootdir" || {
     msg_error "No valid storage found for 'rootdir' [Container]"
@@ -386,9 +409,15 @@ function openwrt_run_install_script() {
   export OPENWRT_LAN_NETMASK="${var_lan_netmask:-255.255.255.0}"
 
   start_install_timer
+  openwrt_fetch_install_script || {
+    install_exit_code=$?
+    post_update_to_api "failed" "$install_exit_code"
+    exit "$install_exit_code"
+  }
+  install_script="$OPENWRT_INSTALL_SCRIPT"
+
   set +Eeuo pipefail
   trap - ERR
-  install_script="$(curl -fsSL "$COMMUNITY_SCRIPTS_URL/install/${var_install:?}.sh")"
   lxc-attach -n "$CTID" -- /bin/ash -c "$install_script"
   lxc_exit=$?
   set -Eeuo pipefail
@@ -496,6 +525,7 @@ function update_script() {
 start
 build_container
 description
+IP="${IP:-${var_lan_ipaddr:-192.168.1.1}}"
 
 msg_ok "Completed Successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
