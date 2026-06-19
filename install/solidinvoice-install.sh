@@ -26,6 +26,7 @@ msg_info "Configuring SolidInvoice"
 cat <<'EOF' >/etc/solidinvoice/solidinvoice.env
 # SolidInvoice environment configuration
 SOLIDINVOICE_CONFIG_DIR=/etc/solidinvoice
+SOLIDINVOICE_INSTALL_TYPE=proxmox-community-scripts
 #SOLIDINVOICE_PORT=8765
 #SOLIDINVOICE_SERVER_IP=0.0.0.0
 #SOLIDINVOICE_DOMAIN=
