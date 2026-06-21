@@ -46,7 +46,7 @@ SNELL_PSK="${SNELL_PSK:-$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c
 mkdir -p /etc/snell
 cat <<EOF >/etc/snell/snell-server.conf
 [snell-server]
-listen = ::0:${SNELL_PORT}
+listen = 0.0.0.0:${SNELL_PORT}
 psk = ${SNELL_PSK}
 ipv6 = true
 EOF
