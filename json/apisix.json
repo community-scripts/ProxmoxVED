@@ -1,0 +1,49 @@
+{
+  "name": "Apache APISIX",
+  "slug": "apisix",
+  "categories": [
+    21
+  ],
+  "date_created": "2026-06-22",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 9080,
+  "documentation": "https://apisix.apache.org/docs/apisix/installation-guide/",
+  "website": "https://apisix.apache.org/",
+  "logo": "https://apisix.apache.org/img/logo2.png",
+  "config_path": "/usr/local/apisix/conf/config.yaml",
+  "description": "Apache APISIX is a dynamic, high-performance API gateway. This container installs APISIX with local etcd by default, or can point APISIX at custom external etcd hosts using APISIX_ETCD_HOSTS.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/apisix.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "The Admin API listens on port 9180, the control API on 9092, and Prometheus metrics on 9091. The generated admin key is stored in /usr/local/apisix/conf/config.yaml.",
+      "type": "warning"
+    },
+    {
+      "text": "Set APISIX_ETCD_HOSTS to a comma-separated list such as http://etcd1.intra.ryanbuu.dev:2379,http://etcd2.intra.ryanbuu.dev:2379,http://etcd3.intra.ryanbuu.dev:2379 to use external etcd instead of the local etcd service.",
+      "type": "info"
+    },
+    {
+      "text": "Optional overrides: APISIX_ADMIN_KEY, APISIX_ETCD_PREFIX, and APISIX_ETCD_TIMEOUT.",
+      "type": "info"
+    }
+  ]
+}
