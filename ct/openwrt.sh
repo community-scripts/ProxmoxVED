@@ -14,8 +14,8 @@ var_disk="${var_disk:-1}"
 var_os="${var_os:-openwrt}"
 var_version="${var_version:-25.12}"
 var_unprivileged="${var_unprivileged:-1}"
-
 var_arm64="${var_arm64:-no}"
+
 var_tun="${var_tun:-yes}"
 var_lan_bridge="${var_lan_bridge:-vmbr0}"
 var_wan_bridge="${var_wan_bridge:-vmbr0}"
