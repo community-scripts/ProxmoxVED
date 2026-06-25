@@ -1,0 +1,53 @@
+{
+  "name": "Lemonade Server",
+  "slug": "lemonade-server",
+  "categories": [
+    20
+  ],
+  "date_created": "2026-06-25",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": 13305,
+  "documentation": "https://lemonade-server.ai/docs/",
+  "website": "https://lemonade-server.ai/",
+  "logo": "https://cdn.jsdelivr.net/gh/lemonade-sdk/lemonade@main/docs/assets/logo.png",
+  "description": "Lemonade Server is an open-source local AI runtime with OpenAI-compatible APIs for chat, vision, image generation, transcription, and speech. It auto-detects GPU and NPU hardware and provides a web control panel for model management.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/lemonade-server.sh",
+      "config_path": "",
+      "resources": {
+        "cpu": 4,
+        "ram": 8192,
+        "hdd": 80,
+        "os": "Debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "GPU passthrough is enabled by default. AMD `/dev/kfd` passthrough is supported for compute workloads.",
+      "type": "info"
+    },
+    {
+      "text": "Remote access is configured with `host=0.0.0.0`. Set `LEMONADE_API_KEY` via a systemd override at `/etc/systemd/system/lemond.service.d/override.conf` before exposing the service.",
+      "type": "warning"
+    },
+    {
+      "text": "Models download on demand — increase disk size if you plan to run large models.",
+      "type": "info"
+    },
+    {
+      "text": "Installs the official `lemonade-server_*-debian13_amd64.deb` from GitHub releases. amd64 only.",
+      "type": "info"
+    }
+  ]
+}
