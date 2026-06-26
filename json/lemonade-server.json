@@ -18,7 +18,7 @@
     {
       "type": "default",
       "script": "ct/lemonade-server.sh",
-      "config_path": "",
+      "config_path": "/etc/lemonade/conf.d/*.conf",
       "resources": {
         "cpu": 4,
         "ram": 8192,
