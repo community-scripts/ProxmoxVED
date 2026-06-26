@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2021-2026 community-scripts ORG
-# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
+# Author: Jamie (jamiej)
+# # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/lemonade-sdk/lemonade
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
@@ -30,10 +31,7 @@ msg_ok "Installed Lemonade Server dependencies"
 setup_hwaccel
 
 msg_info "Installing Lemonade Server"
-if ! fetch_and_deploy_gh_release "lemonade-server" "lemonade-sdk/lemonade" "binary" "latest" "/tmp" "lemonade-server_*-debian13_amd64.deb"; then
-  msg_error "Failed to download or deploy Lemonade Server – check network connectivity and GitHub API availability"
-  exit 250
-fi
+fetch_and_deploy_gh_release "lemonade-server" "lemonade-sdk/lemonade" "binary" "latest" "/tmp" "lemonade-server_*-debian13_amd64.deb"
 msg_ok "Installed Lemonade Server"
 
 msg_info "Configuring Remote Access"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 source <(curl -fsSL "${COMMUNITY_SCRIPTS_URL:-https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main}/misc/build.func")
 # Copyright (c) 2021-2026 community-scripts ORG
+# Author: Jamie (jamiej)
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://github.com/lemonade-sdk/lemonade
 
@@ -34,11 +35,7 @@ function update_script() {
     systemctl stop lemond
     msg_ok "Stopped Service"
 
-    if ! fetch_and_deploy_gh_release "lemonade-server" "lemonade-sdk/lemonade" "binary" "latest" "/tmp" "lemonade-server_*-debian13_amd64.deb"; then
-      msg_error "Download or deployment failed – check network connectivity and GitHub API availability"
-      systemctl start lemond
-      exit 250
-    fi
+    fetch_and_deploy_gh_release "lemonade-server" "lemonade-sdk/lemonade" "binary" "latest" "/tmp" "lemonade-server_*-debian13_amd64.deb"
     msg_ok "Updated Lemonade Server"
 
     msg_info "Starting Service"
