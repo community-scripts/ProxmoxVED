@@ -34,10 +34,6 @@
   },
   "notes": [
     {
-      "text": "GPU passthrough is enabled by default. AMD `/dev/kfd` passthrough is supported for compute workloads.",
-      "type": "info"
-    },
-    {
       "text": "Remote access is configured with `host=0.0.0.0`. Set `LEMONADE_API_KEY` via a systemd override at `/etc/systemd/system/lemond.service.d/override.conf` before exposing the service.",
       "type": "warning"
     },
