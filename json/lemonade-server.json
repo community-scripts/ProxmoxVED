@@ -44,10 +44,6 @@
     {
       "text": "Models download on demand — increase disk size if you plan to run large models.",
       "type": "info"
-    },
-    {
-      "text": "Installs the official `lemonade-server_*-debian13_amd64.deb` from GitHub releases. amd64 only.",
-      "type": "info"
     }
   ]
 }
