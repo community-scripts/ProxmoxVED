@@ -13,12 +13,12 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Enabling Debian Backports"
-cat <<'EOF' >/etc/apt/sources.list.d/backports.list
-deb http://deb.debian.org/debian trixie-backports main
-EOF
-$STD apt update
-msg_ok "Enabled Debian Backports"
+setup_deb822_repo \
+  "backports" \
+  "https://ftp-master.debian.org/keys/archive-key-13.asc" \
+  "http://deb.debian.org/debian" \
+  "trixie-backports" \
+  "main"
 
 msg_info "Installing Lemonade Server dependencies"
 $STD apt install -y \
