@@ -47,7 +47,7 @@ function update_script() {
     $STD corepack enable
     $STD corepack prepare yarn@4.11.0 --activate
     $STD yarn config set enableTelemetry 0
-    $STD yarn install --network-timeout 99999999
+    $STD yarn install --network-timeout 300000
     $STD yarn turbo build --concurrency=1
     cp -r apps/ui/dist apps/server/dist/ui
     cp -r apps/server/assets apps/server/dist/assets
