@@ -41,19 +41,9 @@ function update_script() {
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "maintainerr" "Maintainerr/Maintainerr" "tarball" "latest" "/opt/maintainerr"
 
     msg_info "Rebuilding Maintainerr (Patience)"
-    $STD apt install -y \
-      build-essential \
-      python3 \
-      pkg-config \
-      libcairo2-dev \
-      libpango1.0-dev \
-      libjpeg-dev \
-      libgif-dev \
-      libpixman-1-dev \
-      librsvg2-dev
     cd /opt/maintainerr
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-    export NODE_OPTIONS="--max-old-space-size=768"
+    export NODE_OPTIONS="--max-old-space-size=1024"
     $STD corepack enable
     $STD corepack prepare yarn@4.11.0 --activate
     $STD yarn config set enableTelemetry 0
@@ -64,16 +54,6 @@ function update_script() {
     find apps/server/dist/ui -type f -not -path '*/node_modules/*' -print0 | xargs -0 sed -i "s,/__PATH_PREFIX__,,g"
     $STD yarn workspaces focus --all --production
     rm -rf /opt/maintainerr/.yarn/cache /opt/maintainerr/.turbo /opt/maintainerr/apps/ui
-    # Do NOT purge python3: NodeSource nodejs depends on it (purging cascades node out).
-    $STD apt purge -y \
-      build-essential \
-      pkg-config \
-      libcairo2-dev \
-      libpango1.0-dev \
-      libjpeg-dev \
-      libgif-dev \
-      libpixman-1-dev \
-      librsvg2-dev
     $STD apt autoremove -y
     msg_ok "Rebuilt Maintainerr"
 

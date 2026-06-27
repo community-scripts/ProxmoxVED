@@ -37,10 +37,6 @@
     {
       "text": "Complete the setup wizard via the web interface on first access, then connect Maintainerr to your media servers (Plex/Jellyfin/Emby) and to Radarr/Sonarr/Seerr.",
       "type": "info"
-    },
-    {
-      "text": "Maintainerr is built from source, so the 2048 MB default is sized for the build (Vite UI + native canvas compile). Runtime needs far less — you can reduce RAM after the install completes.",
-      "type": "warning"
     }
   ]
 }
