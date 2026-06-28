@@ -17,18 +17,16 @@ ARCH=$(get_system_arch dpkg)
 fetch_and_deploy_gh_release "newt" "fosrl/newt" "singlefile" "latest" "/opt/newt" "newt_linux_${ARCH}"
 ln -sf /opt/newt/newt /usr/local/bin/newt
 
-ensure_whiptail
-NEWT_ID="${NEWT_ID:-$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-  --title "Newt Site ID" \
-  --inputbox "Newt ID (from your Pangolin dashboard)" 8 70 3>&1 1>&2 2>&3)}"
-
-NEWT_SECRET="${NEWT_SECRET:-$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-  --title "Newt Secret" \
-  --passwordbox "Newt Secret" 8 70 3>&1 1>&2 2>&3)}"
-
-PANGOLIN_ENDPOINT="${PANGOLIN_ENDPOINT:-$(whiptail --backtitle "Proxmox VE Helper Scripts" \
-  --title "Pangolin Endpoint" \
-  --inputbox "Pangolin server URL (e.g. https://pangolin.example.com)" 8 70 3>&1 1>&2 2>&3)}"
+if [[ -z "${NEWT_ID:-}" ]]; then
+  read -rp "Newt ID (from your Pangolin dashboard): " NEWT_ID
+fi
+if [[ -z "${NEWT_SECRET:-}" ]]; then
+  read -rsp "Newt Secret: " NEWT_SECRET
+  echo
+fi
+if [[ -z "${PANGOLIN_ENDPOINT:-}" ]]; then
+  read -rp "Pangolin endpoint (e.g. https://pangolin.example.com): " PANGOLIN_ENDPOINT
+fi
 
 if [[ -z "$NEWT_ID" || -z "$NEWT_SECRET" || -z "$PANGOLIN_ENDPOINT" ]]; then
   msg_error "Newt ID, Secret and Endpoint are all required. Aborting."
