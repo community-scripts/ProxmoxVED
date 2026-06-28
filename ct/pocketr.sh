@@ -12,6 +12,7 @@ var_ram="${var_ram:-2048}"
 var_disk="${var_disk:-8}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -41,13 +42,13 @@ function pocketr_db_settings() {
     return
   fi
 
-  if [[ "${POCKETR_DB_MODE}" == "internal" && -z "${POCKETR_DB_URL:-${DB_URL:-}}" && -z "${POCKETR_DB_USERNAME:-${DB_USERNAME:-}}" && -z "${POCKETR_DB_PASSWORD:-${DB_PASSWORD:-}}" ]]; then
+  if [[ "${METHOD:-default}" == "advanced" && "${POCKETR_DB_MODE}" == "internal" && -z "${POCKETR_DB_URL:-${DB_URL:-}}" && -z "${POCKETR_DB_USERNAME:-${DB_USERNAME:-}}" && -z "${POCKETR_DB_PASSWORD:-${DB_PASSWORD:-}}" ]]; then
     if whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pocketr Database" --defaultno --yesno "Use an external PostgreSQL database?\n\nDefault: No, install PostgreSQL inside this LXC." 10 68; then
       POCKETR_DB_MODE="external"
     fi
   fi
 
-  if [[ "${POCKETR_DB_MODE}" == "internal" && "${pocketr_pg_version_was_set}" == "no" ]]; then
+  if [[ "${METHOD:-default}" == "advanced" && "${POCKETR_DB_MODE}" == "internal" && "${pocketr_pg_version_was_set}" == "no" ]]; then
     POCKETR_PG_VERSION=$(whiptail --backtitle "Proxmox VE Helper Scripts" --title "Pocketr PostgreSQL Version" --inputbox "PostgreSQL major version to install.\n\nLeave empty to use the helper default." 11 68 "" 3>&1 1>&2 2>&3) || exit 1
   fi
 
