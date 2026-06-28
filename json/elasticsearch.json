@@ -1,0 +1,45 @@
+{
+  "name": "Elasticsearch",
+  "slug": "elasticsearch",
+  "categories": [
+    8
+  ],
+  "date_created": "2026-06-28",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 9200,
+  "documentation": "https://www.elastic.co/guide/en/elasticsearch/reference/current/install-elasticsearch.html",
+  "website": "https://www.elastic.co/elasticsearch",
+  "logo": "https://raw.githubusercontent.com/selfhst/icons/main/png/elasticsearch.png",
+  "config_path": "/etc/elasticsearch/elasticsearch.yml",
+  "description": "Elasticsearch is a distributed, RESTful search and analytics engine. This container installs a single-node deployment from the official Elastic APT repository with X-Pack security enabled.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/elasticsearch.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 4096,
+        "hdd": 12,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "elastic",
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Security is enabled, so the HTTP API is served over HTTPS with a self-signed certificate (use curl -k). The generated 'elastic' superuser password is stored in /root/elasticsearch.creds.",
+      "type": "warning"
+    },
+    {
+      "text": "Reset the password at any time with: /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic",
+      "type": "info"
+    }
+  ]
+}
