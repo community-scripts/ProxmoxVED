@@ -1,0 +1,49 @@
+{
+  "name": "Kibana",
+  "slug": "kibana",
+  "categories": [
+    9
+  ],
+  "date_created": "2026-06-28",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 5601,
+  "documentation": "https://www.elastic.co/guide/en/kibana/current/install.html",
+  "website": "https://www.elastic.co/kibana",
+  "logo": "https://raw.githubusercontent.com/selfhst/icons/main/png/kibana.png",
+  "config_path": "/etc/kibana/kibana.yml",
+  "description": "Kibana is the data visualization and management dashboard for Elasticsearch. This container installs Kibana from the official Elastic APT repository and connects it to an Elasticsearch node via enrollment token or explicit credentials.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/kibana.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "os": "debian",
+        "version": "12"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Kibana requires a running Elasticsearch node. The easiest setup is to pass KIBANA_ENROLLMENT_TOKEN, generated on the Elasticsearch node with: bin/elasticsearch-create-enrollment-token -s kibana",
+      "type": "warning"
+    },
+    {
+      "text": "Without an enrollment token, set KIBANA_ES_HOSTS (e.g. https://es.intra.ryanbuu.dev:9200) plus KIBANA_ES_USERNAME (default kibana_system) and KIBANA_ES_PASSWORD to connect manually.",
+      "type": "info"
+    },
+    {
+      "text": "Log in to the web UI at http://IP:5601 with the Elasticsearch 'elastic' superuser credentials.",
+      "type": "info"
+    }
+  ]
+}
