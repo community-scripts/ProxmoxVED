@@ -13,8 +13,7 @@ setting_up_container
 network_check
 update_os
 
-ARCH=$(get_system_arch dpkg)
-fetch_and_deploy_gh_release "newt" "fosrl/newt" "singlefile" "latest" "/opt/newt" "newt_linux_${ARCH}"
+fetch_and_deploy_gh_release "newt" "fosrl/newt" "singlefile" "latest" "/opt/newt" "newt_linux_$(arch_resolve)"
 ln -sf /opt/newt/newt /usr/local/bin/newt
 
 if [[ -z "${NEWT_ID:-}" ]]; then

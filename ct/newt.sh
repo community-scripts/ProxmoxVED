@@ -35,8 +35,7 @@ function update_script() {
     systemctl stop newt
     msg_ok "Stopped Service"
 
-    ARCH=$(get_system_arch dpkg)
-    fetch_and_deploy_gh_release "newt" "fosrl/newt" "singlefile" "latest" "/opt/newt" "newt_linux_${ARCH}"
+    fetch_and_deploy_gh_release "newt" "fosrl/newt" "singlefile" "latest" "/opt/newt" "newt_linux_$(arch_resolve)"
     ln -sf /opt/newt/newt /usr/local/bin/newt
 
     msg_info "Starting Service"
