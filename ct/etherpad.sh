@@ -35,26 +35,24 @@ function update_script() {
     systemctl stop etherpad
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Configuration"
-    [ -f /opt/etherpad-lite/settings.json ] && cp /opt/etherpad-lite/settings.json /opt/etherpad-settings.json.bak
-    [ -d /opt/etherpad-lite/var ] && cp -a /opt/etherpad-lite/var /opt/etherpad-var.bak
-    msg_ok "Backed up Configuration"
+    create_backup /opt/etherpad/.env \
+      /opt/etherpad/APIKEY.txt
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "etherpad-lite" "ether/etherpad" "tarball"
 
     msg_info "Rebuilding Etherpad"
-    cd /opt/etherpad-lite
     export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
     $STD corepack enable
-    $STD pnpm install --frozen-lockfile
-    $STD pnpm run build:etherpad
+    # Rebuild AS the etherpad user so the pnpm store is created under
+    # /var/lib/etherpad (not root's home). A root-built store makes the
+    # service user's startup `pnpm ls` fail with EACCES/exit 243 — see the
+    # install script for the full rationale.
+    chown -R etherpad:etherpad /opt/etherpad-lite
+    $STD runuser -u etherpad -- env HOME=/var/lib/etherpad COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+      bash -c 'cd /opt/etherpad-lite && pnpm install --frozen-lockfile && pnpm run build:etherpad'
     msg_ok "Rebuilt Etherpad"
 
-    msg_info "Restoring Configuration"
-    [ -f /opt/etherpad-settings.json.bak ] && mv /opt/etherpad-settings.json.bak /opt/etherpad-lite/settings.json
-    [ -d /opt/etherpad-var.bak ] && rm -rf /opt/etherpad-lite/var && mv /opt/etherpad-var.bak /opt/etherpad-lite/var
-    chown -R etherpad:etherpad /opt/etherpad-lite
-    msg_ok "Restored Configuration"
+    restore_backup
 
     msg_info "Starting Service"
     systemctl start etherpad

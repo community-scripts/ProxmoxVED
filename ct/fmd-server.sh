@@ -4,12 +4,12 @@ source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxV
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: Slaviša Arežina (tremor021)
 # License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
-# Source: https://github.com/caddymanager/caddymanager
+# Source: https://gitlab.com/fmd-foss/fmd-server
 
-APP="CaddyManager"
-var_tags="${var_tags:-}"
+APP="FMD-Server"
+var_tags="${var_tags:-FMD}"
 var_cpu="${var_cpu:-1}"
-var_ram="${var_ram:-1024}"
+var_ram="${var_ram:-512}"
 var_disk="${var_disk:-4}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
@@ -25,36 +25,30 @@ function update_script() {
   header_info
   check_container_storage
   check_container_resources
-  if [[ ! -d /opt/caddymanager ]]; then
+  if [[ ! -d /opt/fmd-server ]]; then
     msg_error "No ${APP} Installation Found!"
     exit
   fi
 
-  if check_for_gh_release "caddymanager" "caddymanager/caddymanager"; then
+  if check_for_gl_release "fmd-server" "fmd-foss/fmd-server"; then
     msg_info "Stopping Service"
-    systemctl stop caddymanager-backend
-    systemctl stop caddymanager-frontend
+    systemctl stop fmd-server
     msg_ok "Stopped Service"
 
-    create_backup /opt/caddymanager/caddymanager.env \
-                  /opt/caddymanager/caddymanager.sqlite \
-                  /opt/caddymanager/frontend/Caddyfile
+    create_backup /opt/fmd-server/config.yml \
+      /opt/fmd-server/db/
 
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "caddymanager" "caddymanager/caddymanager" "tarball"
+    CLEAN_INSTALL=1 fetch_and_deploy_gl_release "fmd-server" "fmd-foss/fmd-server" "prebuild" "latest" "/opt/fmd-server" "fmd-server-*.zip"
 
-    msg_info "Installing CaddyManager"
-    cd /opt/caddymanager/backend
-    $STD npm install
-    cd /opt/caddymanager/frontend
-    $STD npm install
-    $STD npm run build
-    msg_ok "Installed CaddyManager"
+    msg_info "Configuring FMD-Server"
+    cd /opt/fmd-server
+    chmod +x fmd-server-*
+    msg_ok "Configured FMD-Server"
 
     restore_backup
 
     msg_info "Starting Service"
-    systemctl start caddymanager-backend
-    systemctl start caddymanager-frontend
+    systemctl start fmd-server
     msg_ok "Started Service"
     msg_ok "Updated successfully!"
   fi
@@ -69,4 +63,4 @@ description
 msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}http://${IP}${CL}"
+echo -e "${TAB}${GATEWAY}${BGN}https://${IP}:8443${CL}"

@@ -35,11 +35,7 @@ function update_script() {
     systemctl stop nezha
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    if [[ -d /opt/nezha/data ]]; then
-      cp -r /opt/nezha/data /opt/nezha_data_backup
-    fi
-    msg_ok "Backed up Data"
+    create_backup /opt/nezha/data
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "nezha" "nezhahq/nezha" "prebuild" "latest" "/opt/nezha" "dashboard-linux-amd64.zip"
 
@@ -48,12 +44,7 @@ function update_script() {
       chmod +x /opt/nezha/dashboard
     fi
 
-    msg_info "Restoring Data"
-    if [[ -d /opt/nezha_data_backup ]]; then
-      cp -r /opt/nezha_data_backup/. /opt/nezha/data
-      rm -rf /opt/nezha_data_backup
-    fi
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Starting Service"
     systemctl start nezha

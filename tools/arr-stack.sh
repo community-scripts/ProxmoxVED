@@ -2,10 +2,10 @@
 
 # Copyright (c) 2021-2026 community-scripts ORG
 # Author: community-scripts
-# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/core.func)
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/tools.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/core.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/tools.func)
 
 set -eEo pipefail
 
@@ -31,8 +31,11 @@ var_bridge="${var_bridge:-}"
 var_gateway="${var_gateway:-}"
 var_cidr="${var_cidr:-24}"
 var_start_ctid="${var_start_ctid:-}"
-var_repo="${var_repo:-ProxmoxVED}"
+var_repo="${var_repo:-ProxmoxVE}"
+var_qbt_password="${var_qbt_password:-}"
 SUMMARY_FILE="${SUMMARY_FILE:-/root/arr-stack-summary.txt}"
+
+QBT_PERMANENT=0
 
 BACKTITLE="Proxmox VE Helper Scripts — arr Stack"
 
@@ -51,18 +54,7 @@ _on_exit() {
 }
 trap _on_exit EXIT
 
-declare -A CTID_BY_SLUG
-declare -A IP_BY_SLUG
-declare -A PORT_BY_SLUG
-declare -A APIKEY_BY_SLUG
-declare -A USER_BY_SLUG
-declare -A PASS_BY_SLUG
-declare -A SCRIPT_BY_SLUG
-declare -A IMPL_BY_SLUG
-declare -A KIND_BY_SLUG
-declare -A ARR_API_VER_BY_SLUG
-declare -A NAME_BY_SLUG
-declare -A CONFIG_CONTRACT_BY_SLUG
+declare -A APP
 
 SELECTED_ARRS=""
 SELECTED_CLIENTS=""
@@ -79,10 +71,10 @@ header_info() {
   clear
   cat <<"EOF"
                               _             _
-   __ _ _ __ _ __       ___| |_ __ _  ___| | __
-  / _` | '__| '__|____ / __| __/ _` |/ __| |/ /
- | (_| | |  | | |_____|\__ \ || (_| | (__|   <
-  \__,_|_|  |_|       |___/\__\__,_|\___|_|\_\
+   __ _ _ __ _ __         ___| |_ __ _  ___| | __
+  / _` | '__| '__| ____  / __| __/ _` |/ __| |/ /
+ | (_| | |  | |   |____| \__ \ || (_| | (__|   <
+  \__,_|_|  |_|          |___/\__\__,_|\___|_|\_\
 
 EOF
 }
@@ -123,16 +115,26 @@ is_valid_ipv4() {
   return 0
 }
 
+form_input_program() {
+  if command -v dialog >/dev/null 2>&1; then
+    echo "dialog"
+  elif whiptail --help 2>&1 | grep -q -- '--form'; then
+    echo "whiptail"
+  else
+    echo "none"
+  fi
+}
+
 seed_catalog() {
   while IFS='|' read -r slug script port impl apiver kind name contract; do
     [[ -z "$slug" ]] && continue
-    SCRIPT_BY_SLUG[$slug]="$script"
-    PORT_BY_SLUG[$slug]="$port"
-    IMPL_BY_SLUG[$slug]="$impl"
-    ARR_API_VER_BY_SLUG[$slug]="$apiver"
-    KIND_BY_SLUG[$slug]="$kind"
-    NAME_BY_SLUG[$slug]="$name"
-    CONFIG_CONTRACT_BY_SLUG[$slug]="$contract"
+    APP[$slug.script]="$script"
+    APP[$slug.port]="$port"
+    APP[$slug.impl]="$impl"
+    APP[$slug.apiver]="$apiver"
+    APP[$slug.kind]="$kind"
+    APP[$slug.name]="$name"
+    APP[$slug.contract]="$contract"
   done <<'EOF'
 prowlarr|prowlarr.sh|9696||v1|indexer|Prowlarr|
 sonarr|sonarr.sh|8989|Sonarr|v3|arr|Sonarr|SonarrSettings
@@ -198,11 +200,19 @@ pick_network_defaults() {
       "${options[@]}" 3>&1 1>&2 2>&3) || cancelled "bridge pick"
   fi
 
+  local default_gw
+  default_gw=$(ip -4 route show default | awk '{print $3}' | head -n1)
+
   while [[ -z "$var_gateway" ]] || ! is_valid_ipv4 "$var_gateway"; do
     var_gateway=$(whiptail --backtitle "$BACKTITLE" \
       --title "Gateway" \
-      --inputbox "IPv4 gateway for the container subnet:" 10 60 \
-      "${var_gateway:-}" 3>&1 1>&2 2>&3) || cancelled "gateway prompt"
+      --inputbox "IPv4 gateway for the container subnet (leave blank for default: $default_gw):" 10 70 \
+      "${var_gateway:-$default_gw}" 3>&1 1>&2 2>&3) || cancelled "gateway prompt"
+
+    if [[ -z "$var_gateway" && -n "$default_gw" ]]; then
+      var_gateway="$default_gw"
+    fi
+
     if ! is_valid_ipv4 "$var_gateway"; then
       whiptail --backtitle "$BACKTITLE" --title "Invalid" \
         --msgbox "Not a valid IPv4 address: ${var_gateway}" 8 60
@@ -262,6 +272,55 @@ pick_clients() {
   SELECTED_CLIENTS=$(echo "$choice" | tr -d '"')
 }
 
+_gen_password() {
+  local p
+  p=$(openssl rand -base64 18 2>/dev/null | tr -dc 'A-Za-z0-9' | cut -c1-16)
+  [[ -z "$p" ]] && p="ChangeMe${RANDOM}${RANDOM}"
+  printf '%s' "$p"
+}
+
+pick_qbittorrent_password() {
+  [[ " $SELECTED_CLIENTS " == *" qbittorrent "* ]] || return
+  [[ -n "$var_qbt_password" ]] && { msg_info "qBittorrent password (from env) will be used."; return; }
+
+  local choice
+  choice=$(whiptail --backtitle "$BACKTITLE" \
+    --title "qBittorrent WebUI Password" \
+    --menu "Set the qBittorrent admin password:" 15 70 2 \
+    "generate" "Auto-generate a strong random password (recommended)" \
+    "manual"   "Enter my own password" \
+    3>&1 1>&2 2>&3) || cancelled "qBittorrent password pick"
+
+  if [[ "$choice" == "generate" ]]; then
+    var_qbt_password=$(_gen_password)
+    msg_info "A random qBittorrent password was generated (shown in the final summary)."
+    return
+  fi
+
+  local pw1 pw2
+  while true; do
+    pw1=$(whiptail --backtitle "$BACKTITLE" --title "qBittorrent Password" \
+      --passwordbox "Enter a WebUI password (min 6 chars):" 10 60 \
+      3>&1 1>&2 2>&3) || cancelled "qBittorrent password entry"
+    pw2=$(whiptail --backtitle "$BACKTITLE" --title "Confirm Password" \
+      --passwordbox "Re-enter the password:" 10 60 \
+      3>&1 1>&2 2>&3) || cancelled "qBittorrent password confirm"
+
+    if [[ "$pw1" != "$pw2" ]]; then
+      whiptail --backtitle "$BACKTITLE" --title "Mismatch" \
+        --msgbox "Passwords do not match. Try again." 8 50
+      continue
+    fi
+    if (( ${#pw1} < 6 )); then
+      whiptail --backtitle "$BACKTITLE" --title "Too short" \
+        --msgbox "Password must be at least 6 characters." 8 50
+      continue
+    fi
+    var_qbt_password="$pw1"
+    return
+  done
+}
+
 compute_ordered_slugs() {
   ORDERED_SLUGS=("prowlarr")
   local s
@@ -282,115 +341,19 @@ pick_ip_mode_and_ips() {
     local mode
     mode=$(whiptail --backtitle "$BACKTITLE" \
       --title "IP Entry Mode" \
-      --menu "How would you like to enter IP addresses?" 15 75 3 \
-      "list"       "Enter all IPs at once (space- or comma-separated)" \
-      "one_by_one" "Prompt per container" \
-      "auto"       "Auto-pick free IPs from a starting IP or range(s)" \
+      --menu "How would you like to enter IP addresses?" 15 75 2 \
+      "list" "Enter all IPs at once (space- or comma-separated)" \
+      "form" "Enter each IP in a form" \
       3>&1 1>&2 2>&3) || cancelled "IP entry mode pick"
 
     case "$mode" in
-      list)       _collect_ips_list_mode; return ;;
-      one_by_one) _collect_ips_one_by_one; return ;;
-      auto)       _collect_ips_auto && return ;;
+      list) _collect_ips_list_mode; return ;;
+      form)
+        if _collect_ips_one_by_one; then
+          return
+        fi
+        ;;
     esac
-  done
-}
-
-_parse_ip_ranges() {
-  local expr=$1
-  local -a segments
-  IFS=',' read -ra segments <<<"$expr"
-  local seg prefix start end i
-  for seg in "${segments[@]}"; do
-    seg="${seg// /}"
-    [[ -z "$seg" ]] && continue
-    if [[ "$seg" =~ ^([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)-([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)$ ]]; then
-      if [[ "${BASH_REMATCH[1]}" != "${BASH_REMATCH[3]}" ]]; then
-        echo "ERR: cross-subnet range not supported: $seg" >&2; return 1
-      fi
-      prefix=${BASH_REMATCH[1]}; start=${BASH_REMATCH[2]}; end=${BASH_REMATCH[4]}
-    elif [[ "$seg" =~ ^([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)-([0-9]+)$ ]]; then
-      prefix=${BASH_REMATCH[1]}; start=${BASH_REMATCH[2]}; end=${BASH_REMATCH[3]}
-    elif [[ "$seg" =~ ^([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)$ ]]; then
-      prefix=${BASH_REMATCH[1]}; start=${BASH_REMATCH[2]}; end=254
-    else
-      echo "ERR: invalid segment: $seg" >&2; return 1
-    fi
-    if (( start > end || start < 0 || end > 255 )); then
-      echo "ERR: out-of-range octet: $seg" >&2; return 1
-    fi
-    for ((i=start; i<=end; i++)); do
-      echo "${prefix}${i}"
-    done
-  done
-}
-
-_ip_is_free() {
-  local ip=$1
-  [[ "$ip" == "$var_gateway" ]] && return 1
-  if ping -c 1 -W 1 "$ip" >/dev/null 2>&1; then
-    return 1
-  fi
-  return 0
-}
-
-_collect_ips_auto() {
-  local expected_n=${#ORDERED_SLUGS[@]}
-  local hint="Examples:"$'\n'"  10.0.0.50                       (start, scans upward to .254)"$'\n'"  10.0.0.50-99                    (single range)"$'\n'"  10.0.0.50-60,10.0.0.80-99       (multiple ranges)"
-
-  while true; do
-    local expr
-    expr=$(whiptail --backtitle "$BACKTITLE" \
-      --title "Auto IP allocation" \
-      --inputbox "Need ${expected_n} free IPs. Enter a starting IP or range expression:"$'\n\n'"${hint}" \
-      16 78 "" 3>&1 1>&2 2>&3) || return 1
-
-    local -a parsed=()
-    while IFS= read -r ip; do
-      [[ -n "$ip" ]] && parsed+=("$ip")
-    done < <(_parse_ip_ranges "$expr" 2>/dev/null)
-
-    if (( ${#parsed[@]} == 0 )); then
-      whiptail --backtitle "$BACKTITLE" --title "Invalid" \
-        --msgbox "Could not parse any IPs from: ${expr}"$'\n\n'"Try a starting IP, a range like 10.0.0.50-99, or comma-separated ranges." 12 70
-      continue
-    fi
-
-    msg_info "Pinging ${#parsed[@]} candidate(s) for ${expected_n} free IP(s)..."
-    local -a found=()
-    local ip already used
-    for ip in "${parsed[@]}"; do
-      (( ${#found[@]} >= expected_n )) && break
-      already=0
-      for used in "${IP_BY_SLUG[@]}"; do
-        [[ "$used" == "$ip" ]] && { already=1; break; }
-      done
-      (( already )) && continue
-      if _ip_is_free "$ip"; then
-        found+=("$ip")
-        echo "  free: ${ip}"
-      fi
-    done
-
-    if (( ${#found[@]} < expected_n )); then
-      whiptail --backtitle "$BACKTITLE" --title "Not enough free IPs" \
-        --msgbox "Found ${#found[@]}/${expected_n} free IPs in the range. Widen the range and try again." 10 70
-      continue
-    fi
-
-    local lines="" i
-    for i in "${!ORDERED_SLUGS[@]}"; do
-      lines+="  $(printf '%-12s -> %s' "${ORDERED_SLUGS[$i]}" "${found[$i]}")"$'\n'
-    done
-    if ! whiptail --backtitle "$BACKTITLE" --title "Confirm auto-assigned IPs" \
-         --yesno "Free IPs found:"$'\n\n'"${lines}"$'\n'"Use these?" 22 70; then
-      continue
-    fi
-
-    for i in "${!ORDERED_SLUGS[@]}"; do
-      IP_BY_SLUG[${ORDERED_SLUGS[$i]}]=${found[$i]}
-    done
-    return 0
   done
 }
 
@@ -441,20 +404,166 @@ _collect_ips_list_mode() {
     fi
 
     for i in "${!ORDERED_SLUGS[@]}"; do
-      IP_BY_SLUG[${ORDERED_SLUGS[$i]}]=${ips[$i]}
+      APP[${ORDERED_SLUGS[$i]}.ip]=${ips[$i]}
     done
     return
   done
 }
 
 _collect_ips_one_by_one() {
-  local slug ip running=""
-  for slug in "${ORDERED_SLUGS[@]}"; do
+  local ui
+  ui=$(form_input_program)
+
+  if [[ "$ui" == "dialog" ]]; then
+    local expected_n=${#ORDERED_SLUGS[@]}
+    local -a form_fields=()
+    local slug
+
+    for slug in "${ORDERED_SLUGS[@]}"; do
+      form_fields+=("$slug" "")
+    done
+
     while true; do
+      local raw_values
+      if ! raw_values=$(dialog --backtitle "$BACKTITLE" \
+        --title "Container IP Addresses" \
+        --form "Enter an IPv4 address for each container:" 22 78 0 \
+        "${form_fields[@]}" 2>&1 >/dev/tty); then
+        msg_warn "IP form entry cancelled."
+        return 1
+      fi
+
+      local -a ips=()
+      mapfile -t ips <<< "$raw_values"
+
+      if (( ${#ips[@]} != expected_n )); then
+        whiptail --backtitle "$BACKTITLE" --title "Wrong count" \
+          --msgbox "Expected ${expected_n} IPs, got ${#ips[@]}. Please re-enter." 8 60
+        continue
+      fi
+
+      local ok=1 i
+      for i in "${!ips[@]}"; do
+        local ip="${ips[$i]}"
+        if ! is_valid_ipv4 "$ip"; then
+          whiptail --backtitle "$BACKTITLE" --title "Invalid" \
+            --msgbox "Entry $((i+1)) is not a valid IPv4: ${ip}" 8 60
+          ok=0
+          break
+        fi
+        if [[ "$ip" == "$var_gateway" ]]; then
+          whiptail --backtitle "$BACKTITLE" --title "Invalid" \
+            --msgbox "Entry $((i+1)) collides with the gateway: ${ip}" 8 60
+          ok=0
+          break
+        fi
+        if ping -c 1 -W 1 "$ip" >/dev/null 2>&1; then
+          whiptail --backtitle "$BACKTITLE" --title "IP In Use" \
+            --msgbox "Entry $((i+1)) is already in use by another device: ${ip}" 8 60
+          ok=0
+          break
+        fi
+      done
+      (( ok == 0 )) && continue
+
+      local dup
+      dup=$(printf '%s\n' "${ips[@]}" | sort | uniq -d | head -n1)
+      if [[ -n "$dup" ]]; then
+        whiptail --backtitle "$BACKTITLE" --title "Duplicate IP" \
+          --msgbox "IP appears more than once: ${dup}" 8 60
+        continue
+      fi
+
+      for i in "${!ORDERED_SLUGS[@]}"; do
+        APP[${ORDERED_SLUGS[$i]}.ip]=${ips[$i]}
+      done
+      return 0
+    done
+  fi
+
+  if [[ "$ui" == "whiptail" ]]; then
+    local expected_n=${#ORDERED_SLUGS[@]}
+    local -a form_fields=()
+    local slug
+
+    for slug in "${ORDERED_SLUGS[@]}"; do
+      form_fields+=("$slug" "")
+    done
+
+    while true; do
+      local raw_values
+      if ! raw_values=$(whiptail --backtitle "$BACKTITLE" \
+        --title "Container IP Addresses" \
+        --separate-output \
+        --form "Enter an IPv4 address for each container:" 22 78 "$((expected_n + 4))" \
+        "${form_fields[@]}" 3>&1 1>&2 2>&3); then
+        msg_warn "IP form entry cancelled."
+        return 1
+      fi
+
+      local -a ips=()
+      mapfile -t ips <<< "$raw_values"
+
+      if (( ${#ips[@]} != expected_n )); then
+        whiptail --backtitle "$BACKTITLE" --title "Wrong count" \
+          --msgbox "Expected ${expected_n} IPs, got ${#ips[@]}. Please re-enter." 8 60
+        continue
+      fi
+
+      local ok=1 i
+      for i in "${!ips[@]}"; do
+        local ip="${ips[$i]}"
+        if ! is_valid_ipv4 "$ip"; then
+          whiptail --backtitle "$BACKTITLE" --title "Invalid" \
+            --msgbox "Entry $((i+1)) is not a valid IPv4: ${ip}" 8 60
+          ok=0
+          break
+        fi
+        if [[ "$ip" == "$var_gateway" ]]; then
+          whiptail --backtitle "$BACKTITLE" --title "Invalid" \
+            --msgbox "Entry $((i+1)) collides with the gateway: ${ip}" 8 60
+          ok=0
+          break
+        fi
+        if ping -c 1 -W 1 "$ip" >/dev/null 2>&1; then
+          whiptail --backtitle "$BACKTITLE" --title "IP In Use" \
+            --msgbox "Entry $((i+1)) is already in use by another device: ${ip}" 8 60
+          ok=0
+          break
+        fi
+      done
+      (( ok == 0 )) && continue
+
+      local dup
+      dup=$(printf '%s\n' "${ips[@]}" | sort | uniq -d | head -n1)
+      if [[ -n "$dup" ]]; then
+        whiptail --backtitle "$BACKTITLE" --title "Duplicate IP" \
+          --msgbox "IP appears more than once: ${dup}" 8 60
+        continue
+      fi
+
+      for i in "${!ORDERED_SLUGS[@]}"; do
+        APP[${ORDERED_SLUGS[$i]}.ip]=${ips[$i]}
+      done
+      return 0
+    done
+  fi
+
+  local slug ip running="" last_ip="" default_ip=""
+  for slug in "${ORDERED_SLUGS[@]}"; do
+    if [[ -n "$last_ip" ]]; then
+      local prefix="${last_ip%.*}"
+      local host="${last_ip##*.}"
+      if [[ "$host" =~ ^[0-9]+$ ]] && (( host < 254 )); then
+        default_ip="${prefix}.$((host + 1))"
+      fi
+    fi
+    while true; do
+      local prompt="Enter IPv4 for ${slug}:"
+      [[ -n "$running" ]] && prompt+=$'\n\nAlready assigned:'"$running"
       ip=$(whiptail --backtitle "$BACKTITLE" \
-        --title "IP for ${slug}" \
-        --inputbox "Enter IPv4 for ${slug}.${running:+$'\n\nAlready assigned:'}${running}" \
-        16 60 "" 3>&1 1>&2 2>&3) || cancelled "IP prompt for ${slug}"
+        --title "Container IP Addresses" \
+        --inputbox "$prompt" 16 60 "$default_ip" 3>&1 1>&2 2>&3) || { msg_warn "IP entry cancelled."; return 1; }
 
       if ! is_valid_ipv4 "$ip"; then
         whiptail --backtitle "$BACKTITLE" --title "Invalid" \
@@ -466,9 +575,12 @@ _collect_ips_one_by_one() {
           --msgbox "Collides with the gateway: ${ip}" 8 60
         continue
       fi
-      local dup=0 other
-      for other in "${IP_BY_SLUG[@]}"; do
-        [[ "$other" == "$ip" ]] && { dup=1; break; }
+
+      local dup=0 other_slug other_ip
+      for other_slug in "${ORDERED_SLUGS[@]}"; do
+        [[ "$other_slug" == "$slug" ]] && continue
+        other_ip="${APP[${other_slug}.ip]:-}"
+        [[ -n "$other_ip" && "$other_ip" == "$ip" ]] && { dup=1; break; }
       done
       if (( dup )); then
         whiptail --backtitle "$BACKTITLE" --title "Duplicate" \
@@ -476,11 +588,14 @@ _collect_ips_one_by_one() {
         continue
       fi
 
-      IP_BY_SLUG[$slug]=$ip
+      APP[$slug.ip]=$ip
       running+=$'\n  '"${slug} -> ${ip}"
+      last_ip=$ip
       break
     done
   done
+
+  return 0
 }
 
 pick_start_ctid() {
@@ -508,7 +623,7 @@ pick_start_ctid() {
       id=$((id + 1))
       (( id > 999999 )) && { msg_error "Ran out of CTID space."; exit 1; }
     done
-    CTID_BY_SLUG[$s]=$id
+    APP[$s.ctid]=$id
     id=$((id + 1))
   done
 }
@@ -517,7 +632,7 @@ confirm_summary() {
   local lines="" s
   for s in "${ORDERED_SLUGS[@]}"; do
     lines+="  $(printf '%-12s ctid=%-5s ip=%-16s port=%s' \
-      "$s" "${CTID_BY_SLUG[$s]}" "${IP_BY_SLUG[$s]}" "${PORT_BY_SLUG[$s]}")"$'\n'
+      "$s" "${APP[$s.ctid]}" "${APP[$s.ip]}" "${APP[$s.port]}")"$'\n'
   done
 
   local body="About to create these containers and wire them together:"$'\n\n'"${lines}"$'\n'"Storage: ${var_container_storage} | Bridge: ${var_bridge} | Gateway: ${var_gateway} | Mask: /${var_cidr}"
@@ -531,7 +646,7 @@ orphan_report() {
   msg_error "Containers already created (to clean up, run):"
   local s
   for s in "${INSTALLED_SLUGS[@]}"; do
-    echo "  pct stop ${CTID_BY_SLUG[$s]} && pct destroy ${CTID_BY_SLUG[$s]}   # ${s}"
+    echo "  pct stop ${APP[$s.ctid]} && pct destroy ${APP[$s.ctid]}   # ${s}"
   done
 }
 
@@ -539,24 +654,33 @@ install_loop() {
   local total=${#ORDERED_SLUGS[@]} idx=0
   local s script_file ip ctid port
 
+  exec 4> >(whiptail --backtitle "$BACKTITLE" --title "Installing Containers" --gauge "Starting installation..." 10 70 0)
+
   for s in "${ORDERED_SLUGS[@]}"; do
     idx=$((idx + 1))
-    ip="${IP_BY_SLUG[$s]}"
-    ctid="${CTID_BY_SLUG[$s]}"
-    port="${PORT_BY_SLUG[$s]}"
+    ip="${APP[$s.ip]}"
+    ctid="${APP[$s.ctid]}"
+    port="${APP[$s.port]}"
     script_file="$TEMP_DIR/${s}.sh"
 
-    msg_step "[${idx}/${total}] Downloading ct/${s}.sh"
+    local base_pct=$(( (idx - 1) * 100 / total ))
+    local half_pct=$(( base_pct + (50 / total) ))
+    local full_pct=$(( idx * 100 / total ))
+
+    echo -e "XXX\n${base_pct}\n[${idx}/${total}] Downloading ct/${s}.sh...\nXXX" >&4
+
     $STD curl -fsSL \
       "https://raw.githubusercontent.com/community-scripts/${var_repo}/main/ct/${s}.sh" \
       -o "$script_file"
 
     if [[ ! -s "$script_file" ]]; then
+      exec 4>&-
       msg_error "Empty/failed download for ${s}"
       exit 1
     fi
 
-    msg_step "[${idx}/${total}] Installing ${s} -> ctid=${ctid} ip=${ip}/${var_cidr}"
+    echo -e "XXX\n${half_pct}\n[${idx}/${total}] Installing ${s} -> ctid=${ctid} ip=${ip}/${var_cidr}\nXXX" >&4
+
     $STD env \
       MODE=generated mode=generated PHS_SILENT=1 \
       var_ctid="$ctid" \
@@ -569,14 +693,23 @@ install_loop() {
       bash "$script_file"
 
     INSTALLED_SLUGS+=("$s")
-    msg_ok "Installed ${s}"
 
-    if [[ "${KIND_BY_SLUG[$s]}" == "arr" || "${KIND_BY_SLUG[$s]}" == "indexer" ]]; then
-      msg_info "Waiting for ${s} to listen on ${port}..."
+    if [[ "${APP[$s.kind]}" == "arr" || "${APP[$s.kind]}" == "indexer" ]]; then
+      echo -e "XXX\n${half_pct}\n[${idx}/${total}] Waiting for ${s} to listen on ${port}...\nXXX" >&4
       if ! wait_for_port "$ip" "$port" 90; then
-        msg_warn "${s} did not open ${port} within 90s; will retry during key extraction."
+        # Handled silently; warning is re-issued during extraction
+        :
       fi
     fi
+
+    echo -e "XXX\n${full_pct}\n[${idx}/${total}] Installed ${s}\nXXX" >&4
+  done
+
+  exec 4>&-
+  sleep 0.1
+
+  for s in "${ORDERED_SLUGS[@]}"; do
+    msg_ok "Installed ${s}"
   done
 }
 
@@ -599,8 +732,126 @@ extract_arr_key() {
     msg_error "Failed to extract API key for ${slug} (config: ${config_dir})"
     return 1
   fi
-  APIKEY_BY_SLUG[$slug]="$key"
+  APP[$slug.apikey]="$key"
   msg_ok "${slug} apikey extracted (${key:0:6}…)"
+}
+
+extract_qbittorrent_password() {
+  local ctid=$1 ip=$2
+  APP[qbittorrent.user]="admin"
+
+  msg_info "Waiting for qbittorrent on ${ip}:8090..."
+  if ! wait_for_port "$ip" 8090 240; then
+    msg_warn "qbittorrent never opened 8090; assuming legacy default admin/adminadmin."
+    APP[qbittorrent.pass]="adminadmin"
+    return 1
+  fi
+
+  # The community-script installs qBittorrent with a hardcoded adminadmin password.
+  # We skip searching for a temporary password to prevent a 60s hang,
+  # since we will overwrite the password with the user's custom one anyway.
+  APP[qbittorrent.pass]="adminadmin"
+}
+
+qbt_password_hash() {
+  # qBittorrent WebUI password format: @ByteArray(<b64 salt>:<b64 key>)
+  # PBKDF2-HMAC-SHA512, 100000 iterations, 16-byte salt, 64-byte derived key.
+  # Pure Perl (Digest::SHA + MIME::Base64 are core modules, always present on PVE).
+  local plain=$1
+  PW="$plain" perl -e '
+    use strict; use warnings;
+    use Digest::SHA qw(hmac_sha512);
+    use MIME::Base64 qw(encode_base64);
+    my $pw = $ENV{PW};
+    open(my $r, "<", "/dev/urandom") or die "urandom: $!";
+    my $salt; read($r, $salt, 16) == 16 or die "salt read"; close($r);
+    my $iter = 100000;
+    # dkLen (64) == hLen (64), so only block T_1 is needed.
+    my $u = hmac_sha512($salt . pack("N", 1), $pw);
+    my $t = $u;
+    for (2 .. $iter) { $u = hmac_sha512($u, $pw); $t ^= $u; }
+    print "\@ByteArray(" . encode_base64($salt, "") . ":" . encode_base64($t, "") . ")";
+  ' 2>/dev/null
+}
+
+set_qbittorrent_permanent_password() {
+  local ctid=$1 plain=$2
+  local conf hashval localconf edited meta uid gid perms pushed=1
+
+  conf=$(pct exec "$ctid" -- bash -c 'find /root /home /opt /var/lib -name qBittorrent.conf 2>/dev/null | head -n1' 2>/dev/null || true)
+  if [[ -z "$conf" ]]; then
+    msg_warn "qBittorrent.conf not found in ctid ${ctid}; keeping temporary password."
+    return 1
+  fi
+
+  hashval=$(qbt_password_hash "$plain")
+  if [[ -z "$hashval" ]]; then
+    msg_warn "Could not compute qBittorrent password hash; keeping temporary password."
+    return 1
+  fi
+
+  localconf="$TEMP_DIR/qBittorrent.conf"
+  if ! pct pull "$ctid" "$conf" "$localconf" >/dev/null 2>&1; then
+    msg_warn "Could not read ${conf} from ctid ${ctid}; keeping temporary password."
+    return 1
+  fi
+
+  meta=$(pct exec "$ctid" -- stat -c '%u %g %a' "$conf" 2>/dev/null || true)
+  read -r uid gid perms <<<"$meta"
+
+  # qbittorrent-nox rewrites its conf on shutdown, so stop it before editing.
+  pct exec "$ctid" -- systemctl stop qbittorrent-nox >/dev/null 2>&1 || true
+
+  # Insert/replace WebUI\Password_PBKDF2 under [Preferences], preserving the rest.
+  # Done in Perl so the literal backslash in the key is unambiguous.
+  edited="$TEMP_DIR/qBittorrent.conf.new"
+  if ! QBT_HASH="$hashval" QBT_SRC="$localconf" QBT_DST="$edited" perl -e '
+    use strict; use warnings;
+    my $key  = q{WebUI\Password_PBKDF2};
+    my $hash = $ENV{QBT_HASH};
+    open(my $in, "<", $ENV{QBT_SRC}) or die "read: $!";
+    my @lines = <$in>; close($in);
+    my @out; my $inprefs = 0; my $done = 0;
+    for my $ln (@lines) {
+      if ($ln =~ /^\[/) {
+        if ($inprefs && !$done) { push @out, qq{$key="$hash"\n}; $done = 1; }
+        $inprefs = ($ln =~ /^\[Preferences\]\s*$/) ? 1 : 0;
+      }
+      if ($inprefs && index($ln, "$key=") == 0) {
+        if (!$done) { push @out, qq{$key="$hash"\n}; $done = 1; }
+        next;
+      }
+      push @out, $ln;
+    }
+    unless ($done) {
+      push @out, "[Preferences]\n" unless $inprefs;
+      push @out, qq{$key="$hash"\n};
+    }
+    open(my $o, ">", $ENV{QBT_DST}) or die "write: $!";
+    print $o @out; close($o);
+  '; then
+    msg_warn "Failed to edit qBittorrent.conf; restarting service with temporary password."
+    pct exec "$ctid" -- systemctl start qbittorrent-nox >/dev/null 2>&1 || true
+    return 1
+  fi
+
+  if [[ -n "$uid" && -n "$gid" && -n "$perms" ]]; then
+    pct push "$ctid" "$edited" "$conf" --user "$uid" --group "$gid" --perms "$perms" >/dev/null 2>&1 || pushed=0
+  else
+    pct push "$ctid" "$edited" "$conf" >/dev/null 2>&1 || pushed=0
+  fi
+
+  pct exec "$ctid" -- systemctl start qbittorrent-nox >/dev/null 2>&1 || true
+
+  if (( pushed == 0 )); then
+    msg_warn "Could not write updated qBittorrent.conf to ctid ${ctid}; keeping temporary password."
+    return 1
+  fi
+
+  PASS_BY_SLUG[qbittorrent]="$plain"
+  APP[qbittorrent.pass]="$plain"
+  QBT_PERMANENT=1
+  msg_ok "qBittorrent permanent WebUI password set."
 }
 
 extract_sabnzbd_key() {
@@ -631,30 +882,26 @@ extract_sabnzbd_key() {
     msg_warn "sabnzbd api_key not yet written. Open the web wizard once at http://${ip}:7777 and rerun wiring."
     return 1
   fi
-  APIKEY_BY_SLUG[sabnzbd]="$key"
+  APP[sabnzbd.apikey]="$key"
   msg_ok "sabnzbd apikey extracted (${key:0:6}…)"
 }
 
 wait_and_extract_keys() {
   msg_step "Extracting credentials & API keys"
-  local s ctid ip port tmp
+  local s ctid ip port
   for s in "${ORDERED_SLUGS[@]}"; do
-    ctid="${CTID_BY_SLUG[$s]}"
-    ip="${IP_BY_SLUG[$s]}"
-    port="${PORT_BY_SLUG[$s]}"
-    case "${KIND_BY_SLUG[$s]}" in
+    ctid="${APP[$s.ctid]}"
+    ip="${APP[$s.ip]}"
+    port="${APP[$s.port]}"
+    case "${APP[$s.kind]}" in
       indexer|arr)
         extract_arr_key "$s" "$ctid" "$ip" "$port" || true
         ;;
       client)
         if [[ "$s" == "qbittorrent" ]]; then
-          USER_BY_SLUG[qbittorrent]="admin"
-          PASS_BY_SLUG[qbittorrent]="adminadmin"
-          tmp=$(pct exec "$ctid" -- bash -c "journalctl -u qbittorrent-nox --no-pager 2>/dev/null | grep -i 'temporary password' | tail -n1" 2>/dev/null || true)
-          if [[ -n "$tmp" ]]; then
-            msg_warn "qBittorrent journalctl mentioned a temporary password — see summary."
-            PASS_BY_SLUG[qbittorrent]="<see journal: $tmp>"
-          fi
+          extract_qbittorrent_password "$ctid" "$ip" || true
+          [[ -z "$var_qbt_password" ]] && var_qbt_password=$(_gen_password)
+          set_qbittorrent_permanent_password "$ctid" "$var_qbt_password" || true
         elif [[ "$s" == "sabnzbd" ]]; then
           extract_sabnzbd_key "$ctid" "$ip" || true
         fi
@@ -693,18 +940,18 @@ api_post() {
 }
 
 probe_lidarr_api_version() {
-  if [[ -z "${APIKEY_BY_SLUG[lidarr]:-}" ]]; then return; fi
-  local ip="${IP_BY_SLUG[lidarr]}" key="${APIKEY_BY_SLUG[lidarr]}"
+  if [[ -z "${APP[lidarr.apikey]:-}" ]]; then return; fi
+  local ip="${APP[lidarr.ip]}" key="${APP[lidarr.apikey]}"
   if curl -fsS --max-time 10 -H "X-Api-Key: $key" \
        "http://${ip}:8686/api/v3/system/status" >/dev/null 2>&1; then
-    ARR_API_VER_BY_SLUG[lidarr]="v3"
+    APP[lidarr.apiver]="v3"
     msg_info "Lidarr supports /api/v3 — using v3 for wiring."
   fi
 }
 
 wire_arrs_into_prowlarr() {
-  local prowlarr_ip="${IP_BY_SLUG[prowlarr]}"
-  local prowlarr_key="${APIKEY_BY_SLUG[prowlarr]:-}"
+  local prowlarr_ip="${APP[prowlarr.ip]}"
+  local prowlarr_key="${APP[prowlarr.apikey]:-}"
   if [[ -z "$prowlarr_key" ]]; then
     msg_warn "Skipping Prowlarr wiring — no Prowlarr API key."
     return
@@ -713,9 +960,9 @@ wire_arrs_into_prowlarr() {
   local s sync_cats payload
   for s in $SELECTED_ARRS; do
     [[ "$s" == "seerr" ]] && continue
-    local key="${APIKEY_BY_SLUG[$s]:-}"
+    local key="${APP[$s.apikey]:-}"
     if [[ -z "$key" ]]; then
-      record_failure "Prowlarr -> ${NAME_BY_SLUG[$s]}  FAIL (no apikey)"
+      record_failure "Prowlarr -> ${APP[$s.name]}  FAIL (no apikey)"
       continue
     fi
 
@@ -727,11 +974,11 @@ wire_arrs_into_prowlarr() {
     esac
 
     payload=$(jq -n \
-      --arg name "${NAME_BY_SLUG[$s]}" \
-      --arg impl "${IMPL_BY_SLUG[$s]}" \
-      --arg contract "${CONFIG_CONTRACT_BY_SLUG[$s]}" \
+      --arg name "${APP[$s.name]}" \
+      --arg impl "${APP[$s.impl]}" \
+      --arg contract "${APP[$s.contract]}" \
       --arg prowlarr_url "http://${prowlarr_ip}:9696" \
-      --arg base_url "http://${IP_BY_SLUG[$s]}:${PORT_BY_SLUG[$s]}" \
+      --arg base_url "http://${APP[$s.ip]}:${APP[$s.port]}" \
       --arg apikey "$key" \
       --argjson sync_cats "$sync_cats" \
       '{
@@ -751,7 +998,7 @@ wire_arrs_into_prowlarr() {
 
     api_post "http://${prowlarr_ip}:9696/api/v1/applications" \
       "$prowlarr_key" "$payload" \
-      "Prowlarr -> ${NAME_BY_SLUG[$s]}" || true
+      "Prowlarr -> ${APP[$s.name]}" || true
   done
 }
 
@@ -760,14 +1007,14 @@ wire_clients_into_arrs() {
 
   for arr in $SELECTED_ARRS; do
     [[ "$arr" == "seerr" ]] && continue
-    arr_key="${APIKEY_BY_SLUG[$arr]:-}"
+    arr_key="${APP[$arr.apikey]:-}"
     if [[ -z "$arr_key" ]]; then
       msg_warn "Skipping download-client wiring for ${arr} — no API key."
       continue
     fi
-    arr_ip="${IP_BY_SLUG[$arr]}"
-    arr_port="${PORT_BY_SLUG[$arr]}"
-    api_ver="${ARR_API_VER_BY_SLUG[$arr]}"
+    arr_ip="${APP[$arr.ip]}"
+    arr_port="${APP[$arr.port]}"
+    api_ver="${APP[$arr.apiver]}"
 
     case "$arr" in
       sonarr) category_field="tvCategory";    category_name="tv-sonarr" ;;
@@ -776,14 +1023,14 @@ wire_clients_into_arrs() {
     esac
 
     for client in $SELECTED_CLIENTS; do
-      url="http://${arr_ip}:${arr_port}/api/${api_ver}/downloadclient"
+      url="http://${arr_ip}:${arr_port}/api/${api_ver}/downloadclient?forceSave=true"
 
       if [[ "$client" == "qbittorrent" ]]; then
         payload=$(jq -n \
-          --arg host "${IP_BY_SLUG[qbittorrent]}" \
+          --arg host "${APP[qbittorrent.ip]}" \
           --argjson port 8090 \
-          --arg user "${USER_BY_SLUG[qbittorrent]}" \
-          --arg pass "${PASS_BY_SLUG[qbittorrent]}" \
+          --arg user "${APP[qbittorrent.user]}" \
+          --arg pass "${APP[qbittorrent.pass]}" \
           --arg category_field "$category_field" \
           --arg category_name "$category_name" \
           '{
@@ -803,16 +1050,16 @@ wire_clients_into_arrs() {
             ]
           }')
         api_post "$url" "$arr_key" "$payload" \
-          "${NAME_BY_SLUG[$arr]} -> qBittorrent" || true
+          "${APP[$arr.name]} -> qBittorrent" || true
 
       elif [[ "$client" == "sabnzbd" ]]; then
-        sab_key="${APIKEY_BY_SLUG[sabnzbd]:-}"
+        sab_key="${APP[sabnzbd.apikey]:-}"
         if [[ -z "$sab_key" ]]; then
-          record_failure "${NAME_BY_SLUG[$arr]} -> SABnzbd  FAIL (no sab apikey)"
+          record_failure "${APP[$arr.name]} -> SABnzbd  FAIL (no sab apikey)"
           continue
         fi
         payload=$(jq -n \
-          --arg host "${IP_BY_SLUG[sabnzbd]}" \
+          --arg host "${APP[sabnzbd.ip]}" \
           --argjson port 7777 \
           --arg apikey "$sab_key" \
           --arg category_field "$category_field" \
@@ -833,7 +1080,7 @@ wire_clients_into_arrs() {
             ]
           }')
         api_post "$url" "$arr_key" "$payload" \
-          "${NAME_BY_SLUG[$arr]} -> SABnzbd" || true
+          "${APP[$arr.name]} -> SABnzbd" || true
       fi
     done
   done
@@ -856,15 +1103,10 @@ write_summary() {
   local now host
   now=$(date '+%Y-%m-%d %H:%M:%S %Z')
   host=$(hostname)
-
-  local -a lines=()
-  lines+=( "============================================================" )
-  lines+=( "  arr Stack — Provisioning Summary" )
-  lines+=( "  Generated: ${now}" )
-  lines+=( "  Host:      ${host}" )
-  lines+=( "============================================================" )
+  local lines=()
+  lines+=( "\e[1;36m============================================================\e[0m" )
   lines+=( "" )
-  lines+=( "[Shared settings]" )
+  lines+=( "\e[1;33m[Shared settings]\e[0m" )
   lines+=( "  Bridge:     ${var_bridge}" )
   lines+=( "  Gateway:    ${var_gateway}" )
   lines+=( "  CIDR:       /${var_cidr}" )
@@ -872,86 +1114,85 @@ write_summary() {
   lines+=( "  Template:   ${var_template_storage}" )
   lines+=( "" )
 
-  lines+=( "[Containers]" )
+  lines+=( "\e[1;33m[Containers]\e[0m" )
   local s
   for s in "${ORDERED_SLUGS[@]}"; do
-    lines+=( "$(printf '  %-12s ctid=%-5s ip=%-16s url=http://%s:%s' \
-      "$s" "${CTID_BY_SLUG[$s]}" "${IP_BY_SLUG[$s]}" "${IP_BY_SLUG[$s]}" "${PORT_BY_SLUG[$s]}")" )
+    lines+=( "$(printf '  \e[1m%-12s\e[0m ctid=%-5s ip=%-16s \e[4murl=http://%s:%s\e[0m' \
+      "$s" "${APP[$s.ctid]}" "${APP[$s.ip]}" "${APP[$s.ip]}" "${APP[$s.port]}")" )
   done
   lines+=( "" )
 
-  lines+=( "[Credentials & API keys]" )
+  lines+=( "\e[1;33m[Credentials & API keys]\e[0m" )
   for s in "${ORDERED_SLUGS[@]}"; do
-    case "${KIND_BY_SLUG[$s]}" in
+    case "${APP[$s.kind]}" in
       indexer|arr)
-        if [[ -n "${APIKEY_BY_SLUG[$s]:-}" ]]; then
-          lines+=( "$(printf '  %-12s apikey: %s' "$s" "${APIKEY_BY_SLUG[$s]}")" )
+        if [[ -n "${APP[$s.apikey]:-}" ]]; then
+          lines+=( "$(printf '  %-12s apikey: \e[32m%s\e[0m' "$s" "${APP[$s.apikey]}")" )
         else
-          lines+=( "$(printf '  %-12s apikey: (not extracted)' "$s")" )
+          lines+=( "$(printf '  %-12s apikey: \e[31m(not extracted)\e[0m' "$s")" )
         fi
         ;;
       client)
         if [[ "$s" == "qbittorrent" ]]; then
-          lines+=( "$(printf '  %-12s user:   %s' "$s" "${USER_BY_SLUG[qbittorrent]:-admin}")" )
-          lines+=( "$(printf '  %-12s pass:   %s   (CHANGE THIS!)' "" "${PASS_BY_SLUG[qbittorrent]:-adminadmin}")" )
+          lines+=( "$(printf '  %-12s user:   \e[32m%s\e[0m' "$s" "${APP[qbittorrent.user]:-admin}")" )
         elif [[ "$s" == "sabnzbd" ]]; then
-          if [[ -n "${APIKEY_BY_SLUG[sabnzbd]:-}" ]]; then
-            lines+=( "$(printf '  %-12s apikey: %s' "$s" "${APIKEY_BY_SLUG[sabnzbd]}")" )
+          if [[ -n "${APP[sabnzbd.apikey]:-}" ]]; then
+            lines+=( "$(printf '  %-12s apikey: \e[32m%s\e[0m' "$s" "${APP[sabnzbd.apikey]}")" )
           else
-            lines+=( "$(printf '  %-12s apikey: (open web wizard at http://%s:7777 once)' "$s" "${IP_BY_SLUG[sabnzbd]}")" )
+            lines+=( "$(printf '  %-12s apikey: \e[33m(open web wizard at http://%s:7777 once)\e[0m' "$s" "${APP[sabnzbd.ip]}")" )
           fi
         fi
         ;;
       requests)
-        lines+=( "$(printf '  %-12s (set during first-run web wizard)' "$s")" )
+        lines+=( "$(printf '  %-12s \e[33m(set during first-run web wizard)\e[0m' "$s")" )
         ;;
     esac
   done
   lines+=( "" )
 
-  lines+=( "[Wired automatically]" )
+  lines+=( "\e[1;33m[Wired automatically]\e[0m" )
   if (( ${#WIRING_RESULTS[@]} == 0 )); then
     lines+=( "  (nothing)" )
   else
     local w
-    for w in "${WIRING_RESULTS[@]}"; do lines+=( "  ${w}" ); done
+    for w in "${WIRING_RESULTS[@]}"; do lines+=( "  \e[32m✔ ${w}\e[0m" ); done
   fi
   lines+=( "" )
 
-  lines+=( "[Wiring failures]" )
-  if (( ${#WIRING_FAILURES[@]} == 0 )); then
-    lines+=( "  (none)" )
-  else
+  if (( ${#WIRING_FAILURES[@]} > 0 )); then
+    lines+=( "\e[1;31m[Wiring failures]\e[0m" )
     local f
-    for f in "${WIRING_FAILURES[@]}"; do lines+=( "  ${f}" ); done
+    for f in "${WIRING_FAILURES[@]}"; do lines+=( "  \e[31m✖ ${f}\e[0m" ); done
+    lines+=( "" )
   fi
-  lines+=( "" )
 
-  lines+=( "[Manual steps still required]" )
-  lines+=( "  1. Prowlarr: add indexers (none ship by default)." )
-  lines+=( "  2. Sonarr/Radarr/Lidarr: set root folders and at least one quality profile." )
-  if [[ " $SELECTED_CLIENTS " == *" qbittorrent "* ]]; then
-    lines+=( "  3. qBittorrent: change admin password (default admin/adminadmin)." )
+  lines+=( "\e[1;41;37m !!! MANUAL STEPS STILL REQUIRED !!! \e[0m" )
+  lines+=( "\e[1;31m------------------------------------------------------------\e[0m" )
+  lines+=( "  - \e[1mProwlarr:\e[0m Add indexers (none ship by default)." )
+  lines+=( "  - \e[1mSonarr/Radarr/Lidarr:\e[0m Set root folders and at least one quality profile." )
+  if [[ " $SELECTED_CLIENTS " == *" sabnzbd "* ]]; then
+    lines+=( "  - \e[1mSABnzbd:\e[0m Open \e[4mhttp://${APP[sabnzbd.ip]}:7777\e[0m and complete the web wizard." )
   fi
   if [[ " $SELECTED_ARRS " == *" seerr "* ]]; then
-    lines+=( "  4. Seerr: open http://${IP_BY_SLUG[seerr]}:5055, complete the first-run wizard, then add:" )
+    lines+=( "  - \e[1mSeerr:\e[0m Open \e[4mhttp://${APP[seerr.ip]}:5055\e[0m, complete the wizard, then add:" )
     for s in $SELECTED_ARRS; do
-      [[ "$s" == "seerr" ]] && continue
-      [[ "$s" == "lidarr" ]] && continue
-      lines+=( "       ${NAME_BY_SLUG[$s]} at http://${IP_BY_SLUG[$s]}:${PORT_BY_SLUG[$s]}  apikey: ${APIKEY_BY_SLUG[$s]:-<missing>}" )
+      [[ "$s" == "seerr" ]] || [[ "$s" == "lidarr" ]] && continue
+      lines+=( "       -> \e[1m${APP[$s.name]}\e[0m at \e[4mhttp://${APP[$s.ip]}:${APP[$s.port]}\e[0m  (API Key: \e[32m${APP[$s.apikey]:-<missing>}\e[0m)" )
     done
   fi
+  lines+=( "\e[1;31m------------------------------------------------------------\e[0m" )
   lines+=( "" )
-  lines+=( "Summary written to ${SUMMARY_FILE} (chmod 600)." )
-  lines+=( "============================================================" )
+  lines+=( "Summary written to \e[36m${SUMMARY_FILE}\e[0m (chmod 600)." )
+  lines+=( "\e[1;36m============================================================\e[0m" )
 
   local body
   body=$(printf '%s\n' "${lines[@]}")
 
   echo
-  echo "$body"
+  echo -e "$body"
 
-  ( umask 077; printf '%s\n' "$body" > "$SUMMARY_FILE" )
+  # Write raw summary without colors
+  ( umask 077; echo -e "$body" | sed 's/\x1b\[[0-9;]*m//g' > "$SUMMARY_FILE" )
   chmod 600 "$SUMMARY_FILE" 2>/dev/null || true
 
   msg_ok "Wrote ${SUMMARY_FILE}"
@@ -967,6 +1208,7 @@ main() {
   pick_network_defaults
   pick_apps
   pick_clients
+  pick_qbittorrent_password
   compute_ordered_slugs
   pick_ip_mode_and_ips
   pick_start_ctid

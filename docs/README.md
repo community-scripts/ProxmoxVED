@@ -1,290 +1,238 @@
-# 📚 ProxmoxVED Documentation
+# 📚 Proxmox VE Community Scripts Documentation
 
-Complete guide to all ProxmoxVED documentation - quickly find what you need.
+Official documentation for using, understanding, developing, and contributing to the Proxmox VE Community Scripts project.
 
----
-
-## 🎯 **Quick Navigation by Goal**
-
-### 👤 **I want to...**
-
-**Contribute a new application**
-→ Start with: [contribution/README.md](contribution/README.md)
-→ Then: [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) + [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
-
-**Understand the architecture**
-→ Read: [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)
-→ Then: [misc/README.md](misc/README.md)
-
-**Debug a failed installation**
-→ Check: [EXIT_CODES.md](EXIT_CODES.md)
-→ Then: [DEV_MODE.md](DEV_MODE.md)
-→ See also: [misc/error_handler.func/](misc/error_handler.func/)
-
-**Configure system defaults**
-→ Read: [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md)
-
-**Develop a function library**
-→ Study: [misc/](misc/) documentation
+> [!IMPORTANT]
+> The latest documentation is always published on our website:
+>
+> **https://community-scripts.org/docs**
+>
+> The website is the canonical documentation source. Repository files may represent source content or implementation details, but the published documentation should always be used as the current reference.
 
 ---
 
-## 👤 **Quick Start by Role**
+## 🚀 Start Here
 
-### **I'm a...**
+Choose the area that best matches what you want to do:
 
-**New Contributor**
-→ Start: [contribution/README.md](contribution/README.md)
-→ Then: Choose your path below
-
-**Container Creator**
-→ Read: [ct/README.md](ct/README.md)
-→ Deep Dive: [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md)
-→ Reference: [misc/build.func/](misc/build.func/)
-
-**Installation Script Developer**
-→ Read: [install/README.md](install/README.md)
-→ Deep Dive: [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
-→ Reference: [misc/tools.func/](misc/tools.func/)
-
-**VM Provisioner**
-→ Read: [vm/README.md](vm/README.md)
-→ Reference: [misc/cloud-init.func/](misc/cloud-init.func/)
-
-**Tools Developer**
-→ Read: [tools/README.md](tools/README.md)
-→ Reference: [misc/build.func/](misc/build.func/)
-
-**API Integrator**
-→ Read: [api/README.md](api/README.md)
-→ Reference: [misc/api.func/](misc/api.func/)
-
-**System Operator**
-→ Start: [EXIT_CODES.md](EXIT_CODES.md)
-→ Then: [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md)
-→ Debug: [DEV_MODE.md](DEV_MODE.md)
-
-**Architect**
-→ Read: [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)
-→ Deep Dive: [misc/README.md](misc/README.md)
+| Goal                                         | Documentation                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------------- |
+| Create or understand LXC container scripts   | [Container Scripts](https://community-scripts.org/docs/ct/readme)             |
+| Develop installation scripts                 | [Installation Scripts](https://community-scripts.org/docs/install/readme)     |
+| Create or understand virtual machine scripts | [VM Scripts](https://community-scripts.org/docs/vm/readme)                    |
+| Configure deployments and defaults           | [Configuration Guides](https://community-scripts.org/docs/guides/readme)      |
+| Use management tools and add-ons             | [Tools & Add-ons](https://community-scripts.org/docs/tools/readme)            |
+| Contribute scripts or project changes        | [Contribution Guide](https://community-scripts.org/docs/contribution/readme)  |
+| Understand shared Bash libraries             | [Function Libraries](https://community-scripts.org/docs/misc/readme)          |
+| Understand API and telemetry integration     | [API Integration](https://community-scripts.org/docs/api/readme)              |
+| Study the internal architecture              | [Technical Reference](https://community-scripts.org/docs/technical_reference) |
+| Troubleshoot an error                        | [Exit Codes Reference](https://community-scripts.org/docs/exit_codes)         |
+| Enable development and debugging features    | [Development Mode Guide](https://community-scripts.org/docs/dev_mode)         |
 
 ---
 
-## 📂 **Documentation Structure**
+## 📖 Documentation Areas
 
-### Project-Mirrored Directories
+### Container Scripts
 
-Each major project directory has documentation:
+Documentation for host-side scripts in `ct/` that create and configure Proxmox LXC containers.
 
-```
-ProxmoxVED/
-├─ ct/                 ↔ docs/ct/ (README.md + DETAILED_GUIDE.md)
-├─ install/           ↔ docs/install/ (README.md + DETAILED_GUIDE.md)
-├─ vm/                ↔ docs/vm/ (README.md)
-├─ tools/            ↔ docs/tools/ (README.md)
-├─ api/              ↔ docs/api/ (README.md)
-└─ misc/             ↔ docs/misc/ (9 function libraries)
-```
+Topics include:
 
-### Core Documentation
+* Container creation flow
+* Script structure and conventions
+* Default and advanced settings
+* Integration with `build.func`
+* Container and installation script interaction
+* Templates and practical examples
 
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| [contribution/README.md](contribution/README.md) | How to contribute | Contributors |
-| [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) | Create ct scripts | Container developers |
-| [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md) | Create install scripts | Installation developers |
-| [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md) | Architecture deep-dive | Architects, advanced users |
-| [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md) | Configuration system | Operators, power users |
-| [EXIT_CODES.md](EXIT_CODES.md) | Exit code reference | Troubleshooters |
-| [DEV_MODE.md](DEV_MODE.md) | Debugging tools | Developers |
+➡️ [Open Container Scripts Documentation](https://community-scripts.org/docs/ct/readme)
 
 ---
 
-## 📂 **Directory Guide**
+### Installation Scripts
 
-### [ct/](ct/) - Container Scripts
-Documentation for `/ct` - Container creation scripts that run on the Proxmox host.
+Documentation for scripts in `install/` that run inside containers and install applications.
 
-**Includes**:
-- Overview of container creation process
-- Deep dive: [DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md) - Complete reference with examples
-- Reference to [misc/build.func/](misc/build.func/)
-- Quick start for creating new containers
+Topics include:
 
-### [install/](install/) - Installation Scripts
-Documentation for `/install` - Scripts that run inside containers to install applications.
+* Installation workflow and setup phases
+* Debian, Ubuntu, and Alpine patterns
+* Runtime and database installation
+* Application deployment
+* Configuration and service creation
+* Update and migration logic
+* Integration with helper functions
 
-**Includes**:
-- Overview of 10-phase installation pattern
-- Deep dive: [DETAILED_GUIDE.md](install/DETAILED_GUIDE.md) - Complete reference with examples
-- Reference to [misc/tools.func/](misc/tools.func/)
-- Alpine vs Debian differences
-
-### [vm/](vm/) - Virtual Machine Scripts
-Documentation for `/vm` - VM creation scripts using cloud-init provisioning.
-
-**Includes**:
-- Overview of VM provisioning
-- Link to [misc/cloud-init.func/](misc/cloud-init.func/)
-- VM vs Container comparison
-- Cloud-init examples
-
-### [tools/](tools/) - Tools & Utilities
-Documentation for `/tools` - Management tools and add-ons.
-
-**Includes**:
-- Overview of tools structure
-- Integration points
-- Contributing new tools
-- Common operations
-
-### [api/](api/) - API Integration
-Documentation for `/api` - Telemetry and API backend.
-
-**Includes**:
-- API overview
-- Integration methods
-- API endpoints
-- Privacy information
-
-### [misc/](misc/) - Function Libraries
-Documentation for `/misc` - 9 core function libraries with complete references.
-
-**Contains**:
-- **build.func/** - Container orchestration (7 files)
-- **core.func/** - Utilities and messaging (5 files)
-- **error_handler.func/** - Error handling (5 files)
-- **api.func/** - API integration (5 files)
-- **install.func/** - Container setup (5 files)
-- **tools.func/** - Package installation (6 files)
-- **alpine-install.func/** - Alpine setup (5 files)
-- **alpine-tools.func/** - Alpine tools (5 files)
-- **cloud-init.func/** - VM provisioning (5 files)
+➡️ [Open Installation Scripts Documentation](https://community-scripts.org/docs/install/readme)
 
 ---
 
-## 🎓 **Learning Paths**
+### VM Scripts
 
-### Path 1: First-Time Contributor (2-3 hours)
+Documentation for scripts in `vm/` that create QEMU/KVM virtual machines.
 
-1. [contribution/README.md](contribution/README.md) - Quick Start
-2. Pick your area:
-   - Containers → [ct/README.md](ct/README.md) + [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md)
-   - Installation → [install/README.md](install/README.md) + [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
-   - VMs → [vm/README.md](vm/README.md)
-3. Study existing similar script
-4. Create your contribution
-5. Submit PR
+Topics include:
 
-### Path 2: Intermediate Developer (4-6 hours)
+* VM provisioning
+* Cloud-init workflows
+* Image handling
+* Storage and disk configuration
+* Network configuration
+* VM-specific contribution guidance
 
-1. [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)
-2. Dive into function libraries:
-   - [misc/build.func/README.md](misc/build.func/README.md)
-   - [misc/tools.func/README.md](misc/tools.func/README.md)
-   - [misc/install.func/README.md](misc/install.func/README.md)
-3. Study advanced examples
-4. Create complex applications
-
-### Path 3: Advanced Architect (8+ hours)
-
-1. All of Intermediate Path
-2. Study all 9 function libraries in depth
-3. [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md) - Configuration system
-4. [DEV_MODE.md](DEV_MODE.md) - Debugging and development
-5. Design new features or function libraries
-
-### Path 4: Troubleshooter (30 minutes - 1 hour)
-
-1. [EXIT_CODES.md](EXIT_CODES.md) - Find error code
-2. [DEV_MODE.md](DEV_MODE.md) - Run with debugging
-3. Check relevant function library docs
-4. Review logs and fix
+➡️ [Open VM Scripts Documentation](https://community-scripts.org/docs/vm/readme)
 
 ---
 
-## 📊 **By the Numbers**
+### Configuration Guides
 
-| Metric | Count |
-|--------|:---:|
-| **Documentation Files** | 63 |
-| **Total Lines** | 15,000+ |
-| **Function Libraries** | 9 |
-| **Functions Documented** | 150+ |
-| **Code Examples** | 50+ |
-| **Flowcharts** | 15+ |
-| **Do/Don't Sections** | 20+ |
-| **Real-World Examples** | 30+ |
+Guides for configuring and automating Community Scripts deployments.
 
----
+Topics include:
 
-## 🔍 **Find It Fast**
+* Configuration variables
+* Default settings
+* Per-script overrides
+* Storage and network configuration
+* Unattended deployments
+* Environment-variable-based provisioning
 
-### By Feature
-- **How do I create a container?** → [ct/DETAILED_GUIDE.md](ct/DETAILED_GUIDE.md)
-- **How do I create an install script?** → [install/DETAILED_GUIDE.md](install/DETAILED_GUIDE.md)
-- **How do I create a VM?** → [vm/README.md](vm/README.md)
-- **How do I install Node.js?** → [misc/tools.func/](misc/tools.func/)
-- **How do I debug?** → [DEV_MODE.md](DEV_MODE.md)
-
-### By Error
-- **Exit code 206?** → [EXIT_CODES.md](EXIT_CODES.md)
-- **Network failed?** → [misc/install.func/](misc/install.func/)
-- **Package error?** → [misc/tools.func/](misc/tools.func/)
-
-### By Role
-- **Contributor** → [contribution/README.md](contribution/README.md)
-- **Operator** → [DEFAULTS_SYSTEM_GUIDE.md](DEFAULTS_SYSTEM_GUIDE.md)
-- **Developer** → [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)
-- **Architect** → [misc/README.md](misc/README.md)
+➡️ [Open Configuration Guides](https://community-scripts.org/docs/guides/readme)
 
 ---
 
-## ✅ **Documentation Features**
+### Tools & Add-ons
 
-- ✅ **Project-mirrored structure** - Organized like the actual project
-- ✅ **Complete function references** - Every function documented
-- ✅ **Real-world examples** - Copy-paste ready code
-- ✅ **Visual flowcharts** - ASCII diagrams of workflows
-- ✅ **Integration guides** - How components connect
-- ✅ **Troubleshooting** - Common issues and solutions
-- ✅ **Best practices** - DO/DON'T sections throughout
-- ✅ **Learning paths** - Structured curriculum by role
-- ✅ **Quick references** - Fast lookup by error code
-- ✅ **Comprehensive navigation** - This page
+Documentation for Proxmox VE management utilities, administration helpers, and optional add-ons.
+
+➡️ [Open Tools & Add-ons Documentation](https://community-scripts.org/docs/tools/readme)
 
 ---
 
-## 🚀 **Start Here**
+### Function Libraries
 
-**New to ProxmoxVED?** → [contribution/README.md](contribution/README.md)
+Technical documentation for the shared Bash libraries under `misc/`.
 
-**Looking for something specific?** → Choose your role above or browse by directory
+The documented libraries include:
 
-**Need to debug?** → [EXIT_CODES.md](EXIT_CODES.md)
+* `build.func`
+* `core.func`
+* `error_handler.func`
+* `api.func`
+* `install.func`
+* `tools.func`
+* `alpine-install.func`
+* `alpine-tools.func`
+* `cloud-init.func`
 
-**Want to understand architecture?** → [TECHNICAL_REFERENCE.md](TECHNICAL_REFERENCE.md)
+The documentation explains individual functions, dependencies between libraries, execution flows, error handling, telemetry, logging, package management, and provisioning behavior.
 
----
-
-## 🤝 **Contributing Documentation**
-
-Found an error? Want to improve docs?
-
-1. See: [contribution/README.md](contribution/README.md) for full contribution guide
-2. Open issue: [GitHub Issues](https://github.com/community-scripts/ProxmoxVED/issues)
-3. Or submit PR with improvements
-
----
-
-## 📝 **Status**
-
-- **Last Updated**: December 2025
-- **Version**: 2.3 (Consolidated & Reorganized)
-- **Completeness**: ✅ 100% - All components documented
-- **Quality**: ✅ Production-ready
-- **Structure**: ✅ Clean and organized
+➡️ [Open Function Libraries Documentation](https://community-scripts.org/docs/misc/readme)
 
 ---
 
-**Welcome to ProxmoxVED! Start with [CONTRIBUTION_GUIDE.md](CONTRIBUTION_GUIDE.md) or choose your role above.** 🚀
+### API Integration
+
+Documentation for the website API, telemetry services, diagnostics, metadata handling, and related integration points.
+
+➡️ [Open API Documentation](https://community-scripts.org/docs/api/readme)
+
+---
+
+## 🤝 Contributing
+
+The contribution documentation contains the current requirements, templates, coding standards, and review guidance for submitting changes.
+
+### Main resources
+
+* [Contribution Overview](https://community-scripts.org/docs/contribution/readme)
+* [Contribution Guide](https://community-scripts.org/docs/contribution/contributing)
+* [Script Templates](https://community-scripts.org/docs/contribution/templates_ct/appname)
+* [AI Coding Agent Guidelines](https://community-scripts.org/docs/contribution/agents)
+
+Before submitting a pull request:
+
+1. Read the current contribution guide.
+2. Review the relevant script documentation.
+3. Start from an official template where available.
+4. Compare your implementation with similar existing scripts.
+5. Test the complete creation, installation, update, and error-handling flow.
+
+---
+
+## 🛠 Troubleshooting
+
+For failed installations or unexpected behavior, start with:
+
+1. [Exit Codes Reference](https://community-scripts.org/docs/exit_codes)
+2. [Development Mode Guide](https://community-scripts.org/docs/dev_mode)
+3. [Function Libraries](https://community-scripts.org/docs/misc/readme)
+4. The documentation for the affected script type
+
+When reporting an issue, include:
+
+* Proxmox VE version
+* Script name
+* Exact command used
+* Complete error output
+* Exit code
+* Relevant debug or verbose logs
+* Whether default or advanced settings were used
+
+---
+
+## 🏗 Technical Reference
+
+Advanced implementation details are documented separately:
+
+* [Technical Reference](https://community-scripts.org/docs/technical_reference)
+* [Function Libraries](https://community-scripts.org/docs/misc/readme)
+* [API Integration](https://community-scripts.org/docs/api/readme)
+* [Development Mode](https://community-scripts.org/docs/dev_mode)
+* [Exit Codes](https://community-scripts.org/docs/exit_codes)
+
+These sections cover architecture, configuration precedence, execution flow, helper-library relationships, telemetry, error handling, and development internals.
+
+---
+
+## 🔍 Search the Documentation
+
+The documentation website provides full-text search.
+
+Open:
+
+**https://community-scripts.org/docs**
+
+Then use the search field or press:
+
+* `Ctrl + K` on Windows and Linux
+* `⌘ + K` on macOS
+
+---
+
+## 📝 Documentation Updates
+
+Documentation is maintained continuously and published through the central documentation website.
+
+Do not rely on hard-coded document counts, line counts, version labels, completeness percentages, or last-updated dates in this README. These values become outdated quickly and do not represent the current state of the published documentation.
+
+For the latest content, navigation, examples, and references, always use:
+
+## **https://community-scripts.org/docs**
+
+---
+
+## 💬 Support and Feedback
+
+Found an error or missing information?
+
+* [Open a GitHub issue](https://github.com/community-scripts/ProxmoxVE/issues)
+* Submit a pull request with documentation improvements
+* Join the [Community Scripts Discord](https://discord.gg/UHrpNWGwkH)
+
+---
+
+**Proxmox VE Community Scripts Documentation**
+
+[Open Documentation](https://community-scripts.org/docs) · [View Scripts](https://community-scripts.org) · [Contribute](https://community-scripts.org/docs/contribution/readme)

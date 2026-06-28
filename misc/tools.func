@@ -1124,6 +1124,94 @@ create_temp_dir() {
 }
 
 # ------------------------------------------------------------------------------
+# create_backup <path> [<path> ...] / restore_backup
+#
+# Standardized data backup helpers for update_script(). They replace the
+# hand-rolled "cp/mv to a sibling dir, update, copy back, rm" dance that is
+# duplicated across the ct/*.sh update functions.
+#
+# create_backup <path> [<path> ...]
+#   - Copies each given file/directory into a persistent store at
+#     /opt/<NSAPP>.backup, mirroring its absolute path inside the store, and
+#     records it in a manifest so restore_backup needs no arguments.
+#   - Idempotent: if a store from a previous (failed) run already exists, it is
+#     left untouched and no new backup is taken. This keeps the last-known-good
+#     data instead of overwriting it with now-partially-updated data on retry.
+#   - Missing source paths are skipped with a warning (not fatal).
+#   - Aborts the update on copy failure: if any file/dir cannot be backed up,
+#     the half-written store is removed and the script exits, so the update
+#     never runs against unprotected data (and a retry re-attempts a clean
+#     backup rather than skipping it).
+#
+# restore_backup
+#   - Copies every path recorded in the manifest back to its origin (replacing
+#     whatever the update left there), then deletes the store.
+#   - No-op (with a warning) if no store exists.
+#
+# Override the store location with BACKUP_DIR if the default does not fit.
+# ------------------------------------------------------------------------------
+create_backup() {
+  local store manifest path dest
+  store="${BACKUP_DIR:-/opt/${NSAPP:-app}.backup}"
+  manifest="${store}/.manifest"
+
+  [[ $# -eq 0 ]] && {
+    msg_warn "create_backup called without any paths"
+    return 0
+  }
+
+  if [[ -f "$manifest" ]]; then
+    msg_ok "Existing backup found at ${store}, skipping backup"
+    return 0
+  fi
+
+  msg_info "Backing up data"
+  if ! mkdir -p "$store" || ! : >"$manifest"; then
+    msg_error "Backup failed: could not create store at ${store} - aborting update"
+    rm -rf "$store"
+    exit 1
+  fi
+  for path in "$@"; do
+    path="${path%/}"
+    if [[ ! -e "$path" ]]; then
+      msg_warn "Skipping backup of '${path}' (not found)"
+      continue
+    fi
+    dest="${store}/files${path}"
+    if ! mkdir -p "$(dirname "$dest")" || ! cp -a "$path" "$dest"; then
+      msg_error "Backup of '${path}' failed - aborting update"
+      rm -rf "$store"
+      exit 1
+    fi
+    echo "$path" >>"$manifest"
+  done
+  msg_ok "Backed up data to ${store}"
+}
+
+restore_backup() {
+  local store manifest path src
+  store="${BACKUP_DIR:-/opt/${NSAPP:-app}.backup}"
+  manifest="${store}/.manifest"
+
+  if [[ ! -f "$manifest" ]]; then
+    msg_warn "No backup found to restore"
+    return 0
+  fi
+
+  msg_info "Restoring data"
+  while IFS= read -r path; do
+    [[ -z "$path" ]] && continue
+    src="${store}/files${path}"
+    [[ -e "$src" ]] || continue
+    mkdir -p "$(dirname "$path")"
+    rm -rf "$path"
+    cp -a "$src" "$path"
+  done <"$manifest"
+  rm -rf "$store"
+  msg_ok "Restored data"
+}
+
+# ------------------------------------------------------------------------------
 # Check if package is installed (supports both Debian and Alpine)
 # ------------------------------------------------------------------------------
 is_package_installed() {
@@ -3157,10 +3245,14 @@ fetch_and_deploy_codeberg_release() {
     # Fall back to architecture heuristic
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
-        if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
-          url_match="$u"
-          break
+        [[ "$u" =~ \.deb$ ]] || continue
+        if [[ "${arch,,}" =~ ^(amd64|x86_64)$ ]]; then
+          [[ "$u" =~ (amd64|x86_64).*\.deb$ ]] || continue
+        elif [[ "${arch,,}" =~ ^(arm64|aarch64)$ ]]; then
+          [[ "$u" =~ (arm64|aarch64).*\.deb$ ]] || continue
         fi
+        url_match="$u"
+        break
       done
     fi
 
@@ -3457,7 +3549,11 @@ _gh_scan_older_releases() {
         done)
       fi
       if [[ "$has_match" != "true" ]]; then
-        has_match=$(echo "$releases_list" | jq -r ".[$i].assets[].browser_download_url" | grep -qE "($arch|amd64|x86_64|aarch64|arm64).*\.deb$" && echo true)
+        if [[ "${arch,,}" =~ ^(amd64|x86_64)$ ]]; then
+          has_match=$(echo "$releases_list" | jq -r ".[$i].assets[].browser_download_url" | grep -qE '(amd64|x86_64).*\.deb$' && echo true)
+        elif [[ "${arch,,}" =~ ^(arm64|aarch64)$ ]]; then
+          has_match=$(echo "$releases_list" | jq -r ".[$i].assets[].browser_download_url" | grep -qE '(arm64|aarch64).*\.deb$' && echo true)
+        fi
       fi
       if [[ "$has_match" != "true" ]]; then
         has_match=$(echo "$releases_list" | jq -r ".[$i].assets[].browser_download_url" | grep -qE '\.deb$' && echo true)
@@ -3663,10 +3759,14 @@ fetch_and_deploy_gh_release() {
     # If no match via explicit pattern, fall back to architecture heuristic
     if [[ -z "$url_match" ]]; then
       for u in $assets; do
-        if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
-          url_match="$u"
-          break
+        [[ "$u" =~ \.deb$ ]] || continue
+        if [[ "${arch,,}" =~ ^(amd64|x86_64)$ ]]; then
+          [[ "$u" =~ (amd64|x86_64).*\.deb$ ]] || continue
+        elif [[ "${arch,,}" =~ ^(arm64|aarch64)$ ]]; then
+          [[ "$u" =~ (arm64|aarch64).*\.deb$ ]] || continue
         fi
+        url_match="$u"
+        break
       done
     fi
 
@@ -3697,10 +3797,14 @@ fetch_and_deploy_gh_release() {
         fi
         if [[ -z "$url_match" ]]; then
           for u in $assets; do
-            if [[ "$u" =~ ($arch|amd64|x86_64|aarch64|arm64).*\.deb$ ]]; then
-              url_match="$u"
-              break
+            [[ "$u" =~ \.deb$ ]] || continue
+            if [[ "${arch,,}" =~ ^(amd64|x86_64)$ ]]; then
+              [[ "$u" =~ (amd64|x86_64).*\.deb$ ]] || continue
+            elif [[ "${arch,,}" =~ ^(arm64|aarch64)$ ]]; then
+              [[ "$u" =~ (arm64|aarch64).*\.deb$ ]] || continue
             fi
+            url_match="$u"
+            break
           done
         fi
         if [[ -z "$url_match" ]]; then
@@ -4458,7 +4562,12 @@ setup_ffmpeg() {
 
   # Binary fallback mode
   if [[ "$TYPE" == "binary" ]]; then
-    if ! CURL_TIMEOUT=300 curl_with_retry "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" "$TMP_DIR/ffmpeg.tar.xz"; then
+    local ffmpeg_arch
+    case "$(dpkg --print-architecture 2>/dev/null || echo amd64)" in
+    arm64) ffmpeg_arch="arm64" ;;
+    *) ffmpeg_arch="amd64" ;;
+    esac
+    if ! CURL_TIMEOUT=300 curl_with_retry "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${ffmpeg_arch}-static.tar.xz" "$TMP_DIR/ffmpeg.tar.xz"; then
       msg_error "Failed to download FFmpeg binary"
       msg_error "Hint: Check connectivity to johnvansickle.com/ffmpeg (static builds, may be slow — large file)"
       rm -rf "$TMP_DIR"
@@ -4546,7 +4655,17 @@ setup_ffmpeg() {
   # If no source download (either VERSION empty or download failed), use binary
   if [[ -z "$VERSION" ]]; then
     msg_info "Setup FFmpeg from pre-built binary"
-    if ! CURL_TIMEOUT=300 curl_with_retry "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" "$TMP_DIR/ffmpeg.tar.xz"; then
+    local ffmpeg_arch detected_arch
+    detected_arch="$(dpkg --print-architecture 2>/dev/null || true)"
+    if [[ -z "$detected_arch" ]]; then
+      detected_arch="$(uname -m 2>/dev/null || true)"
+    fi
+    case "$detected_arch" in
+    arm64 | aarch64) ffmpeg_arch="arm64" ;;
+    amd64 | x86_64) ffmpeg_arch="amd64" ;;
+    *) ffmpeg_arch="amd64" ;;
+    esac
+    if ! CURL_TIMEOUT=300 curl_with_retry "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-${ffmpeg_arch}-static.tar.xz" "$TMP_DIR/ffmpeg.tar.xz"; then
       msg_error "Failed to download FFmpeg pre-built binary"
       msg_error "Hint: Check connectivity to johnvansickle.com/ffmpeg (large file, may timeout on slow connections)"
       rm -rf "$TMP_DIR"
@@ -8576,7 +8695,19 @@ setup_yq() {
     msg_info "Setup yq $LATEST_VERSION"
   fi
 
-  if ! curl_with_retry "https://github.com/${GITHUB_REPO}/releases/download/v${LATEST_VERSION}/yq_linux_amd64" "$TMP_DIR/yq"; then
+  local yq_arch detected_arch
+  if command -v dpkg &>/dev/null; then
+    detected_arch="$(dpkg --print-architecture 2>/dev/null)"
+  else
+    detected_arch="$(uname -m 2>/dev/null)"
+  fi
+
+  case "$detected_arch" in
+  arm64 | aarch64) yq_arch="arm64" ;;
+  amd64 | x86_64) yq_arch="amd64" ;;
+  *) yq_arch="amd64" ;;
+  esac
+  if ! curl_with_retry "https://github.com/${GITHUB_REPO}/releases/download/v${LATEST_VERSION}/yq_linux_${yq_arch}" "$TMP_DIR/yq"; then
     msg_error "Failed to download yq"
     msg_error "Hint: Check connectivity to github.com/${GITHUB_REPO} — set GITHUB_TOKEN to avoid rate-limiting"
     rm -rf "$TMP_DIR"
@@ -9592,4 +9723,45 @@ setup_nltk() {
   done
 
   return $rc
+}
+
+# ------------------------------------------------------------------------------
+# Edit a key-value pair in a YAML configuration file.
+#
+# Description:
+#   - Finds the first occurrence of the given key in the YAML file and replaces
+#     its value in-place using sed.
+#   - Handles both quoted and unquoted values on the same line.
+#   - The key is matched at the start of a line (optionally preceded by spaces),
+#     followed by a colon and optional whitespace.
+#   - If the key is not found, the function exits with a non-zero status and
+#     prints an error message.
+#
+# Usage:
+#   edit_yaml_config "/opt/myapp/config.yml" "database_host" "localhost"
+#   edit_yaml_config "/opt/myapp/config.yml" "port" "5432"
+#
+# Parameters:
+#   $1 - Path to the YAML file
+#   $2 - Key to find (e.g. "database_host")
+#   $3 - New value to set (e.g. "localhost")
+#
+# Returns: 0 on success, 1 if the file does not exist or the key is not found
+# ------------------------------------------------------------------------------
+edit_yaml_config() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+
+  if [[ ! -f "$file" ]]; then
+    msg_error "edit_yaml_config: file not found: $file"
+    return 1
+  fi
+
+  if ! grep -qE "^[[:space:]]*${key}[[:space:]]*:" "$file"; then
+    msg_error "edit_yaml_config: key '${key}' not found in $file"
+    return 1
+  fi
+
+  sed -i "s|^\([[:space:]]*${key}[[:space:]]*:\).*|\1 ${value}|" "$file"
 }

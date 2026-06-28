@@ -35,19 +35,12 @@ function update_script() {
     systemctl stop flame
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    cp -r /opt/flame/data /opt/flame_data_backup
-    cp /opt/flame/.env /opt/flame.env.bak
-    msg_ok "Backed up Data"
+    create_backup /opt/flame/.env \
+                  /opt/flame/data
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "flame" "pawelmalak/flame" "tarball"
 
-    msg_info "Restoring Data"
-    cp -r /opt/flame_data_backup/. /opt/flame/data
-    cp /opt/flame.env.bak /opt/flame/.env
-    sed -i "s/^VERSION=.*/VERSION=$(cat ~/.flame)/" /opt/flame/.env
-    rm -rf /opt/flame_data_backup /opt/flame.env.bak
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Rebuilding Application"
     cd /opt/flame

@@ -42,6 +42,17 @@ Link: #
 - [ ] **Uses correct script structure (`AppName.sh`, `AppName-install.sh`, `AppName.json`)**  
 - [ ] **No hardcoded credentials**  
 
+---
+
+## 🤖 AI Assistance (**X** in brackets)
+
+> If you used an AI tool (GitHub Copilot, Claude, ChatGPT, etc.) to write or generate any scripts in this PR, you **must** confirm compliance below.  
+> Select exactly one option.
+
+- [ ] **No AI used** – Scripts were written without AI assistance.
+- [ ] **AI was used** – I confirm the scripts were built using [`AGENTS.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/AGENTS.md) and [`.github/agents/pve-script-creator.agent.md`](https://github.com/community-scripts/ProxmoxVED/blob/main/.github/agents/pve-script-creator.agent.md) as guidance, and the output has been reviewed and corrected to match those guidelines.
+
+---
 
 ## 📋 Additional Information (optional)  
 <!-- Add any extra context, screenshots, or references. -->  

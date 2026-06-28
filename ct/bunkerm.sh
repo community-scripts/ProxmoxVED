@@ -35,10 +35,8 @@ function update_script() {
     systemctl stop bunkerm
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Data"
-    cp /etc/bunkerm/bunkerm.env /opt/bunkerm.env.bak
-    cp /var/lib/mosquitto/dynamic-security.json /opt/bunkerm.dynsec.bak 2>/dev/null || true
-    msg_ok "Backed up Data"
+    create_backup /etc/bunkerm/bunkerm.env \
+                  /var/lib/mosquitto/dynamic-security.json
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "bunkerm" "bunkeriot/BunkerM" "tarball"
 
@@ -60,11 +58,7 @@ function update_script() {
     touch /app/monitor/__init__.py
     msg_ok "Updated Backend"
 
-    msg_info "Restoring Data"
-    cp /opt/bunkerm.env.bak /etc/bunkerm/bunkerm.env
-    cp /opt/bunkerm.dynsec.bak /var/lib/mosquitto/dynamic-security.json 2>/dev/null || true
-    rm -f /opt/bunkerm.env.bak /opt/bunkerm.dynsec.bak
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Starting Services"
     systemctl start bunkerm

@@ -35,19 +35,12 @@ function update_script() {
     systemctl stop caddy
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Data"
-    cp /opt/akaunting/.env /opt/akaunting.env.bak
-    cp -r /opt/akaunting/storage /opt/akaunting_storage_backup
-    msg_ok "Backed up Data"
+    create_backup /opt/akaunting/.env \
+                  /opt/akaunting/storage
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "akaunting" "akaunting/akaunting" "tarball"
 
-    msg_info "Restoring Data"
-    cp /opt/akaunting.env.bak /opt/akaunting/.env
-    rm -f /opt/akaunting.env.bak
-    cp -r /opt/akaunting_storage_backup/. /opt/akaunting/storage
-    rm -rf /opt/akaunting_storage_backup
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Updating Application"
     cd /opt/akaunting

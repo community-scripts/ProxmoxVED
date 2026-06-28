@@ -583,6 +583,120 @@ function regenerate_cloud_init() {
 }
 
 # ------------------------------------------------------------------------------
+# Creates a custom Cloud-Init network configuration without renaming the NIC.
+#
+# Workaround for Ubuntu 26.04 / cloud-init 26.1 / netplan 1.2:
+# Prevents the failing ens18 -> eth0 rename by matching the interface by MAC only.
+#
+# Parameters:
+#   $1 - VMID
+#   $2 - MAC address
+#   $3 - Static IP in CIDR format
+#   $4 - Gateway
+#   $5 - Space-separated DNS servers
+#   $6 - Search domain
+#
+# Optional:
+#   CLOUDINIT_SNIPPET_STORAGE - Proxmox storage supporting snippets
+# ------------------------------------------------------------------------------
+function setup_cloud_init_network_no_rename() {
+  local vmid="$1"
+  local mac="$2"
+  local static_ip="$3"
+  local gateway="$4"
+  local nameservers="${5:-$CLOUDINIT_DNS_SERVERS}"
+  local search_domain="${6:-$CLOUDINIT_SEARCH_DOMAIN}"
+
+  local snippet_storage="${CLOUDINIT_SNIPPET_STORAGE:-}"
+  local snippet_name="vm-${vmid}-network.yaml"
+  local snippet_volid
+  local snippet_path
+  local existing_cicustom
+  local dns
+
+  if ! validate_ip_cidr "$static_ip"; then
+    _ci_msg_error "Invalid static IP format: $static_ip"
+    return 1
+  fi
+
+  if ! validate_ip "$gateway"; then
+    _ci_msg_error "Invalid gateway format: $gateway"
+    return 1
+  fi
+
+  if [[ -z "$snippet_storage" ]]; then
+    snippet_storage="$(
+      pvesm status -content snippets 2>/dev/null |
+        awk 'NR > 1 && $3 == "active" {print $1; exit}'
+    )"
+  fi
+
+  if [[ -z "$snippet_storage" ]]; then
+    _ci_msg_error "No active Proxmox storage supporting snippets was found"
+    return 1
+  fi
+
+  snippet_volid="${snippet_storage}:snippets/${snippet_name}"
+  snippet_path="$(pvesm path "$snippet_volid")"
+
+  mkdir -p "$(dirname "$snippet_path")"
+
+  {
+    cat <<EOF
+version: 2
+ethernets:
+  primary:
+    match:
+      macaddress: "${mac,,}"
+    dhcp4: false
+    addresses:
+      - "${static_ip}"
+    routes:
+      - to: default
+        via: "${gateway}"
+    nameservers:
+      addresses:
+EOF
+
+    for dns in $nameservers; do
+      printf '        - "%s"\n' "$dns"
+    done
+
+    if [[ -n "$search_domain" ]]; then
+      cat <<EOF
+      search:
+        - "${search_domain}"
+EOF
+    fi
+  } >"$snippet_path"
+
+  chmod 600 "$snippet_path"
+
+  # Preserve existing custom user/vendor/meta configuration.
+  existing_cicustom="$(
+    qm config "$vmid" |
+      sed -n 's/^cicustom: //p' |
+      tr ',' '\n' |
+      grep -v '^network=' |
+      paste -sd, - || true
+  )"
+
+  if [[ -n "$existing_cicustom" ]]; then
+    existing_cicustom+=","
+  fi
+
+  qm set "$vmid" \
+    --cicustom "${existing_cicustom}network=${snippet_volid}" \
+    >/dev/null
+
+  qm cloudinit update "$vmid" >/dev/null
+
+  export CLOUDINIT_NETWORK_SNIPPET="$snippet_volid"
+
+  _ci_msg_ok "Configured Cloud-Init network without interface renaming"
+}
+
+# ------------------------------------------------------------------------------
 # get_vm_ip - Get VM IP address via qemu-guest-agent
 # ------------------------------------------------------------------------------
 function get_vm_ip() {

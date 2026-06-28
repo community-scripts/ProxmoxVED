@@ -31,16 +31,11 @@ function update_script() {
   fi
 
   if check_for_gh_release "rss-bridge" "RSS-Bridge/rss-bridge"; then
-    msg_info "Backing up Data"
-    cp /opt/rss-bridge/config.ini.php /opt/rss-bridge_config.bak 2>/dev/null
-    msg_ok "Backed up Data"
+    create_backup /opt/rss-bridge/config.ini.php
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rss-bridge" "RSS-Bridge/rss-bridge" "tarball"
 
-    msg_info "Restoring Data"
-    cp /opt/rss-bridge_config.bak /opt/rss-bridge/config.ini.php 2>/dev/null
-    rm -f /opt/rss-bridge_config.bak
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Updating Application"
     cd /opt/rss-bridge

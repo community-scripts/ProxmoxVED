@@ -37,10 +37,7 @@ function update_script() {
     systemctl stop aliasvault-api aliasvault-admin aliasvault-smtp aliasvault-taskrunner
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Configuration"
-    cp /opt/aliasvault/.env /opt/aliasvault_env.bak
-    cp -r /opt/aliasvault/certificates /opt/aliasvault_certs.bak
-    msg_ok "Backed up Configuration"
+    create_backup /opt/aliasvault/.env /opt/aliasvault/certificates
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "aliasvault" "aliasvault/aliasvault" "tarball"
 
@@ -87,12 +84,7 @@ for ext in ['.gz', '.br']:
     $STD dotnet publish Services/AliasVault.TaskRunner/AliasVault.TaskRunner.csproj -c Release -o /opt/aliasvault/taskrunner --no-restore
     msg_ok "Built AliasVault Applications"
 
-    msg_info "Restoring Configuration"
-    cp /opt/aliasvault_env.bak /opt/aliasvault/.env
-    cp -r /opt/aliasvault_certs.bak/. /opt/aliasvault/certificates/
-    rm -f /opt/aliasvault_env.bak
-    rm -rf /opt/aliasvault_certs.bak
-    msg_ok "Restored Configuration"
+    restore_backup
 
     msg_info "Starting Services"
     systemctl start aliasvault-api aliasvault-admin aliasvault-smtp aliasvault-taskrunner

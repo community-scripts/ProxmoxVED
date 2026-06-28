@@ -36,19 +36,12 @@ function update_script() {
     systemctl stop garmin-grafana
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Data"
-    cp /opt/garmin-grafana/.env /opt/garmin-grafana.env.bak
-    cp -r /opt/garmin-grafana/.garminconnect /opt/garmin-grafana-tokens.bak
-    msg_ok "Backed up Data"
+    create_backup /opt/garmin-grafana/.env \
+                  /opt/garmin-grafana/.garminconnect
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "garmin-grafana" "arpanghosh8453/garmin-grafana" "tarball"
 
-    msg_info "Restoring Data"
-    cp /opt/garmin-grafana.env.bak /opt/garmin-grafana/.env
-    cp -r /opt/garmin-grafana-tokens.bak /opt/garmin-grafana/.garminconnect
-    rm -f /opt/garmin-grafana.env.bak
-    rm -rf /opt/garmin-grafana-tokens.bak
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Updating Dependencies"
     source /opt/garmin-grafana/.env

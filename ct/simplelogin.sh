@@ -36,13 +36,11 @@ function update_script() {
     systemctl stop simplelogin-webapp simplelogin-email simplelogin-job
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Data"
-    cp /opt/simplelogin/.env /opt/simplelogin_env.bak
-    cp -r /opt/simplelogin/uploads /opt/simplelogin_uploads.bak 2>/dev/null || true
-    cp -r /opt/simplelogin/dkim /opt/simplelogin_dkim.bak 2>/dev/null || true
-    cp /opt/simplelogin/openid-rsa.key /opt/simplelogin_openid-rsa.key.bak 2>/dev/null || true
-    cp /opt/simplelogin/openid-rsa.pub /opt/simplelogin_openid-rsa.pub.bak 2>/dev/null || true
-    msg_ok "Backed up Data"
+    create_backup /opt/simplelogin/.env \
+                  /opt/simplelogin/dkim \
+                  /opt/simplelogin/openid-rsa.key \
+                  /opt/simplelogin/openid-rsa.pub \
+                  /opt/simplelogin/uploads
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "simplelogin" "simple-login/app"
 
@@ -57,15 +55,7 @@ function update_script() {
     $STD .venv/bin/alembic upgrade head
     msg_ok "Ran Database Migrations"
 
-    msg_info "Restoring Data"
-    mkdir -p /opt/simplelogin/uploads
-    cp -r /opt/simplelogin_uploads.bak/. /opt/simplelogin/uploads 2>/dev/null || true
-    cp -r /opt/simplelogin_dkim.bak/. /opt/simplelogin/dkim 2>/dev/null || true
-    cp /opt/simplelogin_openid-rsa.key.bak /opt/simplelogin/openid-rsa.key 2>/dev/null || true
-    cp /opt/simplelogin_openid-rsa.pub.bak /opt/simplelogin/openid-rsa.pub 2>/dev/null || true
-    rm -f /opt/simplelogin_env.bak /opt/simplelogin_openid-rsa.key.bak /opt/simplelogin_openid-rsa.pub.bak
-    rm -rf /opt/simplelogin_uploads.bak /opt/simplelogin_dkim.bak
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Starting Services"
     systemctl start simplelogin-webapp simplelogin-email simplelogin-job

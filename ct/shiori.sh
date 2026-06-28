@@ -35,22 +35,13 @@ function update_script() {
     systemctl stop shiori
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    if [[ -d /opt/shiori/data ]]; then
-      cp -r /opt/shiori/data /opt/shiori_data_backup
-    fi
-    msg_ok "Backed up Data"
+    create_backup /opt/shiori/data
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "shiori" "go-shiori/shiori" "prebuild" "latest" "/opt/shiori" "*Linux_x86_64.tar.gz"
 
     chmod +x /opt/shiori/shiori
 
-    msg_info "Restoring Data"
-    if [[ -d /opt/shiori_data_backup ]]; then
-      cp -r /opt/shiori_data_backup/. /opt/shiori/data
-      rm -rf /opt/shiori_data_backup
-    fi
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Starting Service"
     systemctl start shiori

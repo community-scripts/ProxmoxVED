@@ -40,9 +40,7 @@ function update_script() {
   systemctl stop discourse
   msg_ok "Stopped Service"
 
-  msg_info "Backing up Data"
-  cp /opt/discourse/.env /opt/discourse_env.bak
-  msg_ok "Backed up Data"
+  create_backup /opt/discourse/.env
 
   msg_info "Updating Discourse"
   PG_VERSION="16" PG_MODULES="pgvector" setup_postgresql
@@ -55,9 +53,7 @@ function update_script() {
   $STD bundle exec rails db:migrate
   msg_ok "Updated Discourse"
 
-  msg_info "Restoring Configuration"
-  mv /opt/discourse_env.bak /opt/discourse/.env
-  msg_ok "Restored Configuration"
+    restore_backup
 
   msg_info "Starting Service"
   systemctl start discourse

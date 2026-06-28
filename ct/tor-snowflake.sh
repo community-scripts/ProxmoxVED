@@ -39,13 +39,9 @@ function update_script() {
     msg_ok "Stopped Service"
 
     setup_go
+    fetch_and_deploy_from_url "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz" "/opt/tor-snowflake"
 
     msg_info "Updating Snowflake"
-    $STD curl -fsSL "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/-/archive/v${RELEASE}/snowflake-v${RELEASE}.tar.gz" -o /opt/snowflake.tar.gz
-    tar -xzf /opt/snowflake.tar.gz -C /opt
-    rm -rf /opt/snowflake.tar.gz
-    rm -rf /opt/tor-snowflake
-    mv /opt/snowflake-v${RELEASE} /opt/tor-snowflake
     cd /opt/tor-snowflake/proxy
     $STD go build -o snowflake-proxy .
     echo "${RELEASE}" >~/.tor-snowflake

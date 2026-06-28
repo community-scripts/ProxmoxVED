@@ -34,9 +34,7 @@ function update_script() {
     systemctl stop koffan
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    cp -r /opt/koffan/data /opt/koffan_data_backup
-    msg_ok "Backed up Data"
+    create_backup /opt/koffan/data
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "koffan" "PanSalut/Koffan" "tarball"
 
@@ -45,10 +43,7 @@ function update_script() {
     go build -o koffan main.go
     msg_ok "Rebuild Koffan"
 
-    msg_info "Restoring Data"
-    cp -r /opt/koffan_data_backup/. /opt/koffan/data/
-    rm -rf /opt/koffan_data_backup
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Starting Service"
     systemctl start koffan

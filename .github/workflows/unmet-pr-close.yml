@@ -104,6 +104,18 @@ jobs:
               missing.push("One arm64 support option (`arm64 supported`, `arm64 not tested`, or `arm64 not supported`) must be checked");
             }
 
+            const aiOptions = [
+              "**No AI used**",
+              "**AI was used**"
+            ];
+            const hasAISelection = aiOptions.some(opt => {
+              const line = findLine(opt);
+              return line && checkboxChecked(line);
+            });
+            if (!hasAISelection) {
+              missing.push("One AI assistance option (`No AI used` or `AI was used – confirmed compliance with AGENTS.md and pve-script-creator.agent.md`) must be checked");
+            }
+
             if (missing.length > 0) {
               let list = "";
               for (const m of missing) {

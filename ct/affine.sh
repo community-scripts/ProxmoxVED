@@ -36,10 +36,7 @@ function update_script() {
     systemctl stop affine-web affine-worker
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Data"
-    cp -r /root/.affine/storage /root/.affine_storage_backup 2>/dev/null || true
-    cp -r /root/.affine/config /root/.affine_config_backup 2>/dev/null || true
-    msg_ok "Backed up Data"
+    create_backup /root/.affine/config /root/.affine/storage
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "affine_app" "toeverything/AFFiNE" "tarball" "latest" "/opt/affine"
 
@@ -111,11 +108,7 @@ TURBO
     set -a && source /opt/affine/.env && set +a
     $STD node ./scripts/self-host-predeploy.js
 
-    msg_info "Restoring Data"
-    cp -r /root/.affine_storage_backup/. /root/.affine/storage/ 2>/dev/null || true
-    cp -r /root/.affine_config_backup/. /root/.affine/config/ 2>/dev/null || true
-    rm -rf /root/.affine_storage_backup /root/.affine_config_backup
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Starting Services"
     systemctl start affine-web affine-worker

@@ -35,10 +35,8 @@ function update_script() {
     systemctl stop edit-mind-web edit-mind-jobs
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Data"
-    cp /opt/edit-mind/.env /opt/edit-mind.env.bak
-    cp /opt/edit-mind/.env.system /opt/edit-mind.env.system.bak
-    msg_ok "Backed up Data"
+    create_backup /opt/edit-mind/.env \
+                  /opt/edit-mind/.env.system
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "edit-mind" "IliasHad/edit-mind" "tarball"
 
@@ -51,11 +49,7 @@ function update_script() {
     $STD pnpm run build:background-jobs
     msg_ok "Rebuilt Application"
 
-    msg_info "Restoring Data"
-    cp /opt/edit-mind.env.bak /opt/edit-mind/.env
-    cp /opt/edit-mind.env.system.bak /opt/edit-mind/.env.system
-    rm -f /opt/edit-mind.env.bak /opt/edit-mind.env.system.bak
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Running Migrations"
     cd /opt/edit-mind

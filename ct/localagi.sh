@@ -36,19 +36,12 @@ function update_script() {
     systemctl stop localagi
     msg_ok "Stopped Service"
 
-    if [[ -f /opt/localagi/.env ]]; then
-      msg_info "Backing up existing LocalAGI configuration"
-      cp /opt/localagi/.env /opt/localagi.env
-      msg_ok "Backed up LocalAGI configuration"
-    fi
+    create_backup /opt/localagi/.env
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "localagi" "mudler/LocalAGI" "tarball" "latest" "/opt/localagi"
 
-    if [[ -f /opt/localagi.env ]]; then
-      msg_info "Restoring LocalAGI configuration"
-      cp /opt/localagi.env /opt/localagi/.env
-      msg_ok "Restored LocalAGI configuration"
-    fi
+    restore_backup
+
 
     msg_info "Building LocalAGI"
     cd /opt/localagi/webui/react-ui

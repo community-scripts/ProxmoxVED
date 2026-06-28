@@ -36,16 +36,11 @@ function update_script() {
     systemctl stop skylite-ux
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Data"
-    cp /opt/skylite-ux/.env /opt/skylite-ux.env.bak
-    msg_ok "Backed up Data"
+    create_backup /opt/skylite-ux/.env
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "skylite-ux" "Wetzel402/Skylite-UX" "tarball"
 
-    msg_info "Restoring Data"
-    cp /opt/skylite-ux.env.bak /opt/skylite-ux/.env
-    rm -f /opt/skylite-ux.env.bak
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Building Skylite-UX"
     cd /opt/skylite-ux

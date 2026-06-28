@@ -3,7 +3,9 @@ contact_links:
     - name: 🌟 new Script request
       url: https://github.com/community-scripts/ProxmoxVE/discussions/new?category=request-script
       about: For feature/script requests, please use the Discussions section.
-    - name: 🐞 Script Issue Report
-      url: https://github.com/community-scripts/ProxmoxVED/issues?q=is%3Aissue+is%3Aopen+label%3Atask
-      about: Found a bug in a script? Find the script's issue in the list and leave a comment there — do NOT open a new issue.
-
+    - name: 🤔 Questions and Help
+      url: https://github.com/community-scripts/ProxmoxVE/discussions
+      about: For suggestions or questions, please use the Discussions section.
+    - name: 💻 Discord
+      url: https://discord.gg/jsYVk5JBxq
+      about: Join our Discord server to chat with other users in the Proxmox Helper Scripts community.

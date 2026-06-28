@@ -344,12 +344,17 @@ pve_check() {
 # - Provides link to ARM64-compatible scripts
 # ------------------------------------------------------------------------------
 arch_check() {
-  if [ "$(dpkg --print-architecture)" != "amd64" ]; then
-    echo -e "\n ${INFO}${YWB}This script will not work with PiMox! \n"
-    echo -e "\n ${YWB}Visit https://github.com/asylumexp/Proxmox for ARM64 support. \n"
-    echo -e "Exiting..."
+  local arch
+  arch="$(dpkg --print-architecture)"
+  if [[ "$arch" != "amd64" && "$arch" != "arm64" ]]; then
+    msg_error "This script requires amd64 or arm64 (detected: $arch)."
     sleep 2
-    exit
+    exit 106
+  fi
+  if [[ "$arch" == "arm64" && "${var_arm64:-}" != "yes" ]]; then
+    msg_error "This script does not yet support arm64."
+    sleep 2
+    exit 106
   fi
 }
 
@@ -1650,6 +1655,38 @@ function get_lxc_ip() {
   export LOCAL_IP
 }
 
+# ------------------------------------------------------------------------------
+# ensure_whiptail()
+#
+# - Ensures whiptail is installed
+# - Some ARM64 systems will not have whiptail installed
+# - Exits with error message if installation fails
+# ------------------------------------------------------------------------------
+ensure_whiptail() {
+  command -v whiptail >/dev/null 2>&1 && return 0
+
+  msg_info "Installing whiptail"
+  apt_update_safe
+  $STD apt-get install -y whiptail || {
+    msg_error "Failed to install whiptail"
+    exit 100
+  }
+  msg_ok "Installed whiptail"
+}
+
+# ------------------------------------------------------------------------------
+# arm64_notice()
+#
+# - Shows a short warning when running scripts on ARM64 systems
+# ------------------------------------------------------------------------------
+arm64_notice() {
+  [[ "$(dpkg --print-architecture)" == "arm64" ]] || return 0
+
+  whiptail --backtitle "Proxmox VE Helper Scripts" \
+    --title "ARM64 SUPPORT" \
+    --ok-button "Continue" \
+    --msgbox "ARM64 support is in active development.\n\nSome scripts, packages, or application releases may not be fully tested or working yet." 10 68
+}
 # ==============================================================================
 # SIGNAL TRAPS
 # ==============================================================================
@@ -1664,6 +1701,27 @@ function get_lxc_ip() {
 on_hup_keepalive() {
   stop_spinner
   log_msg "[WARN] Received SIGHUP (terminal hangup). Continuing execution in background."
+}
+
+# ------------------------------------------------------------------------------
+# arch_resolve()
+#
+# - Selects an architecture-specific value while preserving amd64 defaults
+# - Usage: arch_resolve "amd64-value" "arm64-value"
+# - Defaults: amd64="amd64", arm64="arm64"
+# ------------------------------------------------------------------------------
+arch_resolve() {
+  local amd64_val="${1:-amd64}"
+  local arm64_val="${2:-arm64}"
+  local arch="${PCT_ARCH:-$(dpkg --print-architecture 2>/dev/null || uname -m)}"
+  case "$arch" in
+  amd64 | x86_64) echo "$amd64_val" ;;
+  arm64 | aarch64) echo "$arm64_val" ;;
+  *)
+    msg_error "Unsupported architecture: $arch"
+    return 106
+    ;;
+  esac
 }
 
 trap 'on_hup_keepalive' HUP

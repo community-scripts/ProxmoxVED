@@ -20,6 +20,7 @@ $STD apt install -y \
   python3-venv \
   git
 msg_ok "Installed Dependencies"
+
 NODE_VERSION="22" NODE_MODULE="yarn@latest" setup_nodejs
 fetch_and_deploy_gh_release "grist" "gristlabs/grist-core" "tarball"
 
@@ -35,6 +36,7 @@ $STD yarn install
 $STD yarn run install:ee -y
 $STD yarn run build:prod
 $STD yarn run install:python
+
 cat <<EOF >/opt/grist/.env
 NODE_ENV=production
 GRIST_HOST=0.0.0.0
@@ -49,14 +51,13 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/grist 
+WorkingDirectory=/opt/grist
 ExecStart=/usr/bin/yarn run start:prod
 EnvironmentFile=-/opt/grist/.env
 
 [Install]
 WantedBy=multi-user.target
 EOF
-
 systemctl enable -q --now grist
 msg_ok "Created Service"
 

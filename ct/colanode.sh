@@ -35,9 +35,7 @@ function update_script() {
     systemctl stop colanode-server
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Data"
-    cp /opt/colanode/.env /opt/colanode.env.bak
-    msg_ok "Backed up Data"
+    create_backup /opt/colanode/.env
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "colanode" "colanode/colanode" "tarball"
 
@@ -56,10 +54,7 @@ function update_script() {
     unset NODE_OPTIONS
     msg_ok "Rebuilt Application"
 
-    msg_info "Restoring Data"
-    cp /opt/colanode.env.bak /opt/colanode/.env
-    rm -f /opt/colanode.env.bak
-    msg_ok "Restored Data"
+    restore_backup
 
     msg_info "Starting Services"
     systemctl start colanode-server

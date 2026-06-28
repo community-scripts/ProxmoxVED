@@ -32,39 +32,27 @@ $STD apt install -y \
   g++
 msg_ok "Installed Dependencies"
 
-NODE_VERSION="22" setup_nodejs
-setup_uv
-
+PYTHON_VERSION="3.11" setup_uv
+NODE_VERSION="22" NODE_MODULE="pnpm" setup_nodejs
 fetch_and_deploy_gh_release "caire" "esimov/caire" "prebuild" "latest" "/usr/local/bin" "caire-*-linux-amd64.tar.gz"
-
-msg_info "Enabling pnpm"
-$STD corepack enable
-$STD corepack prepare pnpm@9.15.4 --activate
-msg_ok "Enabled pnpm"
-
-fetch_and_deploy_gh_release "snapotter" "snapotter-hq/SnapOtter" "tarball"
-
-msg_info "Configuring Application Paths"
-ln -sf /opt/snapotter /app
-sed -i 's/mediapipe==0.10.21/mediapipe>=0.10.21/' /opt/snapotter/docker/feature-manifest.json
-msg_ok "Configured Application Paths"
+fetch_and_deploy_gh_release "snapotter" "snapotter-hq/SnapOtter" "prebuild" "latest" "/opt/snapotter" "snapotter-*-linux-amd64.tar.gz"
 
 msg_info "Setting up Python Environment"
 mkdir -p /opt/snapotter_data/ai/models/rembg
-$STD uv venv --seed /opt/snapotter_data/ai/venv
-BASE_PKGS=$(jq -r '.basePackages | join(" ")' /opt/snapotter/docker/feature-manifest.json)
-$STD uv pip install --python /opt/snapotter_data/ai/venv/bin/python ${BASE_PKGS}
+$STD uv python install 3.11
+$STD uv venv --seed --python 3.11 /opt/snapotter_data/ai/venv
+#if [[ -f /opt/snapotter/packages/ai/python/requirements.txt ]]; then
+#  $STD uv pip install \
+#    --python /opt/snapotter_data/ai/venv/bin/python \
+#    -r /opt/snapotter/packages/ai/python/requirements.txt
+#fi
+ln -sfn /opt/snapotter /app
 msg_ok "Set up Python Environment"
 
-msg_info "Building SnapOtter"
-mkdir -p /opt/snapotter_data/files
-cd /opt/snapotter
-$STD npm pkg delete scripts.prepare
-$STD pnpm install --frozen-lockfile
-$STD pnpm --filter @snapotter/web build
-msg_ok "Built SnapOtter"
-
 msg_info "Configuring SnapOtter"
+mkdir -p /opt/snapotter_data/files
+mkdir -p /tmp/snapotter-workspace
+
 cat <<EOF >/opt/snapotter_data/.env
 PORT=1349
 NODE_ENV=production
@@ -83,12 +71,12 @@ LOG_LEVEL=info
 TRUST_PROXY=true
 FILE_MAX_AGE_HOURS=72
 CLEANUP_INTERVAL_MINUTES=60
+ANALYTICS_ENABLED=false
 EOF
-mkdir -p /tmp/snapotter-workspace
 msg_ok "Configured SnapOtter"
 
 msg_info "Creating Service"
-PNPM_BIN=$(which pnpm)
+PNPM_BIN="$(command -v pnpm)"
 cat <<EOF >/etc/systemd/system/snapotter.service
 [Unit]
 Description=SnapOtter Service

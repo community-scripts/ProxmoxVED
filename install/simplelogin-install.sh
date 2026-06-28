@@ -42,7 +42,6 @@ cd /opt/simplelogin
 $STD uv venv
 $STD uv pip install setuptools hatchling editables
 $STD uv sync --locked --no-dev --no-build-isolation --no-install-package newrelic
-
 VENV_SITE=$(/opt/simplelogin/.venv/bin/python -c "import site; print(site.getsitepackages()[0])")
 mkdir -p "${VENV_SITE}/newrelic"
 cat <<'STUB' >"${VENV_SITE}/newrelic/__init__.py"
@@ -62,9 +61,10 @@ msg_info "Configuring SimpleLogin"
 FLASK_SECRET=$(openssl rand -hex 32)
 
 mkdir -p /opt/simplelogin/dkim
-$STD opendkim-genkey -b 2048 -d example.com -s dkim -D /opt/simplelogin/dkim
-chmod 600 /opt/simplelogin/dkim/dkim.private
-
+cd /opt/simplelogin/dkim
+$STD openssl genrsa -traditional -out dkim.private 2048
+$STD head -1 dkim.private
+$STD echo "v=DKIM1; k=rsa; p=$(openssl rsa -in /opt/simplelogin/dkim/dkim.private -pubout 2>/dev/null | grep -v '^-----' | tr -d '\n')"
 $STD openssl genrsa -out /opt/simplelogin/openid-rsa.key 2048
 $STD openssl rsa -in /opt/simplelogin/openid-rsa.key -pubout -out /opt/simplelogin/openid-rsa.pub
 

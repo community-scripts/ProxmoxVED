@@ -47,13 +47,7 @@ function update_script() {
     systemctl stop onetimesecret
     msg_ok "Stopped Service"
 
-    msg_info "Backing up Configuration"
-    cp /opt/onetimesecret/.env /opt/onetimesecret.env.bak
-    mkdir -p /opt/onetimesecret_etc_backup
-    for FILE in auth.yaml config.yaml logging.yaml puma.rb; do
-      [[ -f /opt/onetimesecret/etc/${FILE} ]] && cp "/opt/onetimesecret/etc/${FILE}" "/opt/onetimesecret_etc_backup/${FILE}"
-    done
-    msg_ok "Backed up Configuration"
+    create_backup /opt/onetimesecret/.env
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "onetimesecret" "onetimesecret/onetimesecret" "tarball"
 
@@ -64,35 +58,7 @@ function update_script() {
     NODE_VERSION=$(tr -d ' \n' </opt/onetimesecret/.nvmrc 2>/dev/null)
     NODE_VERSION="${NODE_VERSION:-25}" NODE_MODULE="pnpm@${PNPM_VERSION:-11.1.2}" setup_nodejs
 
-    msg_info "Restoring Configuration"
-    cp /opt/onetimesecret.env.bak /opt/onetimesecret/.env
-    mkdir -p /opt/onetimesecret/etc
-    for FILE in auth.yaml config.yaml logging.yaml puma.rb; do
-      [[ -f /opt/onetimesecret_etc_backup/${FILE} ]] && cp "/opt/onetimesecret_etc_backup/${FILE}" "/opt/onetimesecret/etc/${FILE}"
-    done
-    if [[ -n "${OTS_HOST:-}" ]]; then
-      sed -i "s|^HOST=.*|HOST=${OTS_HOST//&/\\&}|" /opt/onetimesecret/.env
-    fi
-    if [[ -n "${SSL_VALUE}" ]]; then
-      sed -i "s|^SSL=.*|SSL=${SSL_VALUE}|" /opt/onetimesecret/.env
-    fi
-    if grep -q '^RACK_ENV=' /opt/onetimesecret/.env; then
-      sed -i 's|^RACK_ENV=.*|RACK_ENV=production|' /opt/onetimesecret/.env
-    else
-      echo "RACK_ENV=production" >>/opt/onetimesecret/.env
-    fi
-    if grep -q '^AUTHENTICATION_MODE=' /opt/onetimesecret/.env; then
-      sed -i 's|^AUTHENTICATION_MODE=.*|AUTHENTICATION_MODE=simple|' /opt/onetimesecret/.env
-    else
-      echo "AUTHENTICATION_MODE=simple" >>/opt/onetimesecret/.env
-    fi
-    if ! grep -q '^PORT=' /opt/onetimesecret/.env; then
-      echo "PORT=3000" >>/opt/onetimesecret/.env
-    fi
-    chmod 600 /opt/onetimesecret/.env
-    rm -f /opt/onetimesecret.env.bak
-    rm -rf /opt/onetimesecret_etc_backup
-    msg_ok "Restored Configuration"
+    restore_backup
 
     msg_info "Reconciling Application"
     systemctl enable -q --now redis-server

@@ -35,11 +35,9 @@ function update_script() {
     systemctl stop slink-client caddy
     msg_ok "Stopped Services"
 
-    msg_info "Backing up Data"
-    cp /opt/slink/services/api/.env /opt/slink-api.env.bak
-    mv /opt/slink/data /opt/slink-data.bak
-    mv /opt/slink/images /opt/slink-images.bak
-    msg_ok "Backed up Data"
+    create_backup /opt/slink/data \
+                  /opt/slink/images \
+                  /opt/slink/services/api/.env
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "slink" "andrii-kryvoviaz/slink" "tarball"
 

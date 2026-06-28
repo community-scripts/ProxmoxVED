@@ -36,9 +36,7 @@ function update_script() {
     $STD systemctl stop invidious-companion invidious
     msg_ok "Stopped services"
 
-    msg_info "Backing up config"
-    cp /opt/invidious/config/config.yml /opt/invidious-config.yml
-    msg_ok "Backed up config"
+    create_backup /opt/invidious/config/config.yml
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "Invidious" "iv-org/invidious" "tarball" "latest" "/opt/invidious"
     if check_for_gh_release "Invidious-Companion" "iv-org/invidious-companion"; then
@@ -59,10 +57,7 @@ function update_script() {
     $STD make
     msg_ok "Rebuilt Invidious"
 
-    msg_info "Restoring config"
-    cp /opt/invidious-config.yml /opt/invidious/config/config.yml
-    rm -f /opt/invidious-config.yml
-    msg_ok "Restored config"
+    restore_backup
 
     msg_info "Starting services"
     $STD systemctl start invidious invidious-companion

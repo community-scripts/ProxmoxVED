@@ -36,19 +36,12 @@ function update_script() {
     systemctl stop pixelfed-horizon pixelfed-scheduler.timer
     msg_ok "Services stopped"
 
-    msg_info "Backing up Configuration"
-    cp /opt/pixelfed/.env /opt/pixelfed.env.bak
-    cp -r /opt/pixelfed/storage /opt/pixelfed-storage.bak
-    msg_ok "Configuration backed up"
+    create_backup /opt/pixelfed/.env \
+        /opt/pixelfed/storage
 
     CLEAN_INSTALL=1 fetch_and_deploy_gh_release "pixelfed" "pixelfed/pixelfed" "tarball" "latest" "/opt/pixelfed"
 
-    msg_info "Restoring Configuration"
-    cp /opt/pixelfed.env.bak /opt/pixelfed/.env
-    cp -r /opt/pixelfed-storage.bak /opt/pixelfed/storage
-    rm -f /opt/pixelfed.env.bak
-    rm -rf /opt/pixelfed-storage.bak
-    msg_ok "Configuration restored"
+    restore_backup
 
     msg_info "Updating Pixelfed"
     chown -R pixelfed:pixelfed /opt/pixelfed
