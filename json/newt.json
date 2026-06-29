@@ -35,7 +35,7 @@
   "notes": [
     {
       "text": "Requires a running Pangolin server to connect to.",
-      "type": "warning"
+      "type": "info"
     },
     {
       "text": "Requires a Newt ID, Newt Secret and Pangolin endpoint, which can be obtained by creating a site/node in your Pangolin dashboard.",
