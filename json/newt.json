@@ -8,7 +8,7 @@
   "type": "ct",
   "updateable": true,
   "privileged": false,
-  "has_arm": true,
+  "has_arm": false,
   "interface_port": null,
   "documentation": "https://docs.pangolin.net/manage/sites/install-site",
   "config_path": "/etc/newt/newt.env",
