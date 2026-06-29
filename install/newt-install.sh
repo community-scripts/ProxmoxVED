@@ -34,16 +34,16 @@ fi
 
 msg_info "Configuring Newt"
 mkdir -p /etc/newt
-cat >/etc/newt/newt.env <<ENVEOF
+cat <<EOF >/etc/newt/newt.env
 NEWT_ID=${NEWT_ID}
 NEWT_SECRET=${NEWT_SECRET}
 PANGOLIN_ENDPOINT=${PANGOLIN_ENDPOINT}
-ENVEOF
+EOF
 chmod 600 /etc/newt/newt.env
 msg_ok "Configured Newt"
 
 msg_info "Creating Service"
-cat >/etc/systemd/system/newt.service <<SVCEOF
+cat <<EOF >/etc/systemd/system/newt.service
 [Unit]
 Description=Newt (Pangolin tunnel client)
 Wants=network-online.target
@@ -60,7 +60,7 @@ PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
-SVCEOF
+EOF
 systemctl enable -q --now newt
 msg_ok "Created Service"
 
