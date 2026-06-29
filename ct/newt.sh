@@ -51,5 +51,4 @@ build_container
 description
 
 msg_ok "Completed Successfully!\n"
-echo -e "${INFO}${YW} Newt is a headless tunnel client — there is no web interface.${CL}"
 echo -e "${INFO}${YW} Check the site status in your Pangolin dashboard.${CL}"
