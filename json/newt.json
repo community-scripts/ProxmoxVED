@@ -34,7 +34,7 @@
   },
   "notes": [
     {
-      "text": "Requires a running Pangolin server (self-hosted or Pangolin Cloud) to connect to. Newt is the client component only and does nothing on its own.",
+      "text": "Requires a running Pangolin server to connect to.",
       "type": "warning"
     },
     {
