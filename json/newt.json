@@ -38,7 +38,7 @@
       "type": "warning"
     },
     {
-      "text": "Get the Newt ID, Newt Secret and Pangolin endpoint by creating a site/node in your Pangolin dashboard; see the documentation link for the exact steps. The installer prompts for these, or set NEWT_ID / NEWT_SECRET / PANGOLIN_ENDPOINT as environment variables for an unattended install.",
+      "text": "Requires a Newt ID, Newt Secret and Pangolin endpoint, which can be obtained by creating a site/node in your Pangolin dashboard.",
       "type": "info"
     }
   ]
