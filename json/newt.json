@@ -14,7 +14,7 @@
   "config_path": "/etc/newt/newt.env",
   "website": "https://pangolin.net",
   "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/pangolin.webp",
-  "description": "Newt is a lightweight, fully user-space WireGuard tunnel client and TCP/UDP proxy for Pangolin. It connects a site to a Pangolin server to securely expose private resources without port forwarding or opening inbound firewall ports. Headless service with no web interface.",
+  "description": "Newt is a lightweight, headless, fully user-space WireGuard tunnel client and TCP/UDP proxy for Pangolin. It connects a site to a Pangolin server to securely expose private resources without port forwarding or opening inbound firewall ports.",
   "install_methods": [
     {
       "type": "default",
