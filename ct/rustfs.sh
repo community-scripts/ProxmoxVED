@@ -34,6 +34,10 @@ function update_script() {
   systemctl stop rustfs
   msg_ok "Stopped Service"
 
+  msg_info "Backing up Data"
+  cp -r /opt/rustfs/data /opt/rustfs/data.backup
+  msg_ok "Backed up Data"
+
   msg_info "Updating ${APP}"
   ARCH=$(dpkg --print-architecture)
   if [[ "$ARCH" == "amd64" ]]; then
@@ -56,6 +60,10 @@ function update_script() {
   rm rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip
   chmod +x rustfs
   msg_ok "Updated to ${RELEASE}"
+
+  msg_info "Cleaning up Backup"
+  rm -rf /opt/rustfs/data.backup
+  msg_ok "Cleaned up Backup"
 
   msg_info "Starting Service"
   systemctl start rustfs

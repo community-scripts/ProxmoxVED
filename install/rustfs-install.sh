@@ -13,10 +13,6 @@ setting_up_container
 network_check
 update_os
 
-msg_info "Installing Dependencies"
-$STD apt-get install -y curl unzip
-msg_ok "Installed Dependencies"
-
 msg_info "Installing RustFS"
 ARCH=$(dpkg --print-architecture)
 if [[ "$ARCH" == "amd64" ]]; then

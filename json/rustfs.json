@@ -1,0 +1,49 @@
+{
+  "name": "RustFS",
+  "slug": "rustfs",
+  "categories": [
+    "storage"
+  ],
+  "date_created": "2026-06-30",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": true,
+  "interface_port": 9001,
+  "documentation": "https://docs.rustfs.com/",
+  "website": "https://rustfs.com/",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/rustfs.webp",
+  "config_path": "/opt/rustfs/.env",
+  "description": "RustFS is a high-performance, distributed object storage system built in Rust. It offers S3-compatible APIs, OpenStack Swift support, and is optimized for data lakes, AI, and big data workloads.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/rustfs.sh",
+      "resources": {
+        "cpu": 2,
+        "ram": 2048,
+        "hdd": 8,
+        "swap": 512
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": "rustfsadmin",
+    "password": "rustfsadmin"
+  },
+  "notes": {
+    "installation": [
+      "RustFS runs as a native binary (no Docker required)",
+      "Supports both amd64 and arm64 architectures",
+      "Console UI accessible on port 9001",
+      "S3-compatible API on port 9000"
+    ],
+    "post_install": [
+      "Access the console at http://[IP]:9001",
+      "Default credentials: rustfsadmin / rustfsadmin",
+      "Change default credentials immediately after first login",
+      "Data stored in /opt/rustfs/data",
+      "Logs available in /opt/rustfs/logs"
+    ]
+  }
+}
