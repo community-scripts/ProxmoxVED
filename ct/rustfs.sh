@@ -30,21 +30,32 @@ function update_script() {
     exit
   fi
 
-  if check_for_gh_release "rustfs" "rustfs/rustfs"; then
-    msg_info "Stopping Service"
-    systemctl stop rustfs
-    msg_ok "Stopped Service"
+  msg_info "Stopping Service"
+  systemctl stop rustfs
+  msg_ok "Stopped Service"
 
-    create_backup /opt/rustfs/data
-    CLEAN_INSTALL=1 fetch_and_deploy_gh_release "rustfs" "rustfs/rustfs" "prebuild" "latest" "/opt/rustfs" "rustfs-linux-$(dpkg --print-architecture).tar.gz"
-    chmod +x /opt/rustfs/rustfs
-    restore_backup
-
-    msg_info "Starting Service"
-    systemctl start rustfs
-    msg_ok "Started Service"
-    msg_ok "Updated successfully!"
+  msg_info "Updating ${APP}"
+  ARCH=$(dpkg --print-architecture)
+  if [[ "$ARCH" == "amd64" ]]; then
+    RUSTFS_ARCH="x86_64"
+  elif [[ "$ARCH" == "arm64" ]]; then
+    RUSTFS_ARCH="aarch64"
+  else
+    msg_error "Unsupported architecture: $ARCH"
+    exit 1
   fi
+  
+  cd /opt/rustfs || exit
+  RELEASE=$(curl -s https://api.github.com/repos/rustfs/rustfs/releases/latest | grep "tag_name" | cut -d '"' -f 4)
+  wget -q "https://github.com/rustfs/rustfs/releases/download/${RELEASE}/rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip"
+  unzip -qo rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip
+  rm rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip
+  chmod +x rustfs
+  msg_ok "Updated to ${RELEASE}"
+
+  msg_info "Starting Service"
+  systemctl start rustfs
+  msg_ok "Started Service"
   exit
 }
 

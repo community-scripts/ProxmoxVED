@@ -13,17 +13,37 @@ setting_up_container
 network_check
 update_os
 
-fetch_and_deploy_gh_release "rustfs" "rustfs/rustfs" "prebuild" "latest" "/opt/rustfs" "rustfs-linux-$(dpkg --print-architecture).tar.gz"
+msg_info "Installing Dependencies"
+$STD apt-get install -y curl unzip
+msg_ok "Installed Dependencies"
+
+msg_info "Installing RustFS"
+ARCH=$(dpkg --print-architecture)
+if [[ "$ARCH" == "amd64" ]]; then
+  RUSTFS_ARCH="x86_64"
+elif [[ "$ARCH" == "arm64" ]]; then
+  RUSTFS_ARCH="aarch64"
+else
+  msg_error "Unsupported architecture: $ARCH"
+  exit 1
+fi
+
+mkdir -p /opt/rustfs
+cd /opt/rustfs || exit
+RELEASE=$(curl -s https://api.github.com/repos/rustfs/rustfs/releases/latest | grep "tag_name" | cut -d '"' -f 4)
+wget -q "https://github.com/rustfs/rustfs/releases/download/${RELEASE}/rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip"
+unzip -q rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip
+rm rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip
+chmod +x rustfs
+msg_ok "Installed RustFS ${RELEASE}"
 
 msg_info "Configuring RustFS"
 mkdir -p /opt/rustfs/data /opt/rustfs/logs
-RUSTFS_ROOT_USER=$(tr -d '-' </proc/sys/kernel/random/uuid | cut -c1-16)
-RUSTFS_ROOT_PASSWORD=$(tr -d '-' </proc/sys/kernel/random/uuid)
+RUSTFS_ROOT_USER=rustfsadmin
+RUSTFS_ROOT_PASSWORD=rustfsadmin
 cat <<EOF >/opt/rustfs/.env
 RUSTFS_ROOT_USER=${RUSTFS_ROOT_USER}
 RUSTFS_ROOT_PASSWORD=${RUSTFS_ROOT_PASSWORD}
-RUSTFS_VOLUMES=/opt/rustfs/data
-RUSTFS_OPTS="--console-address :9001"
 EOF
 chmod 0600 /opt/rustfs/.env
 msg_ok "Configured RustFS"
@@ -41,7 +61,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/rustfs
 EnvironmentFile=/opt/rustfs/.env
-ExecStart=/opt/rustfs/rustfs server \$RUSTFS_VOLUMES \$RUSTFS_OPTS
+ExecStart=/opt/rustfs/rustfs server /opt/rustfs/data --console-address :9001
 Restart=on-failure
 RestartSec=5
 StandardOutput=append:/opt/rustfs/logs/rustfs.log
@@ -50,6 +70,7 @@ StandardError=append:/opt/rustfs/logs/rustfs.log
 [Install]
 WantedBy=multi-user.target
 EOF
+systemctl daemon-reload
 systemctl enable -q --now rustfs
 msg_ok "Created Service"
 
