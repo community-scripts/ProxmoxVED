@@ -30,7 +30,11 @@ fi
 
 mkdir -p /opt/rustfs
 cd /opt/rustfs || exit
-RELEASE=$(curl -s https://api.github.com/repos/rustfs/rustfs/releases/latest | grep "tag_name" | cut -d '"' -f 4)
+RELEASE=$(curl -sL https://api.github.com/repos/rustfs/rustfs/releases | grep -o '"tag_name": *"[^"]*"' | head -1 | cut -d'"' -f4)
+if [[ -z "$RELEASE" ]]; then
+  msg_error "Failed to fetch latest release version"
+  exit 1
+fi
 wget -q "https://github.com/rustfs/rustfs/releases/download/${RELEASE}/rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip"
 unzip -q rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip
 rm rustfs-linux-${RUSTFS_ARCH}-gnu-latest.zip
