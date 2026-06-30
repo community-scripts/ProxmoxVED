@@ -12,7 +12,7 @@ var_ram="${var_ram:-1024}"
 var_disk="${var_disk:-10}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-13}"
-var_arm64="${var_arm64:-yes}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
@@ -33,27 +33,18 @@ function update_script() {
   if check_for_gh_release "safebucket" "safebucket/safebucket"; then
     local ARCH
     ARCH=$(dpkg --print-architecture)
-    case "$ARCH" in
-      amd64 | arm64) ;;
-      *)
-        msg_error "Unsupported architecture: ${ARCH}"
-        exit 1
-        ;;
-    esac
 
     msg_info "Stopping Service"
     systemctl stop safebucket
     msg_ok "Stopped Service"
 
-    create_backup /opt/safebucket/config.yaml \
-      /opt/safebucket/data/
+    create_backup /opt/safebucket/config.yaml /opt/safebucket/data/
 
     fetch_and_deploy_gh_release "safebucket" "safebucket/safebucket" "singlefile" "latest" "/opt/safebucket" "safebucket-linux-${ARCH}"
 
     restore_backup
 
     msg_info "Configuring Safebucket"
-    chmod +x /opt/safebucket/safebucket
     chown -R safebucket:safebucket /opt/safebucket
     msg_ok "Configured Safebucket"
 
@@ -74,6 +65,3 @@ msg_ok "Completed successfully!\n"
 echo -e "${CREATING}${GN}${APP} setup has been successfully initialized!${CL}"
 echo -e "${INFO}${YW} Access it using the following URL:${CL}"
 echo -e "${TAB}${GATEWAY}${BGN}http://${IP}:8080${CL}"
-echo -e "${INFO}${YW} Admin credentials:${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}Email: admin@safebucket.io${CL}"
-echo -e "${TAB}${GATEWAY}${BGN}Password: stored in /opt/safebucket/config.yaml${CL}"

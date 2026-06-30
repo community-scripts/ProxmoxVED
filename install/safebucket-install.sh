@@ -17,10 +17,6 @@ ARCH=$(dpkg --print-architecture)
 case "$ARCH" in
   amd64) GARAGE_ARCH="x86_64-unknown-linux-musl" ;;
   arm64) GARAGE_ARCH="aarch64-unknown-linux-musl" ;;
-  *)
-    msg_error "Unsupported architecture: ${ARCH}"
-    exit 1
-    ;;
 esac
 
 msg_info "Installing Dependencies"
@@ -102,7 +98,6 @@ fi
 GARAGE_CAPACITY="${GARAGE_CAPACITY:-$(df -BG --output=avail /opt/garage | awk 'NR==2{gsub(/G/,"",$1); v=$1-1; print (v<1?1:v)"G"}')}"
 $STD garage -c /opt/garage/garage.toml layout assign -z dc1 -c "${GARAGE_CAPACITY}" "${NODE_ID}"
 $STD garage -c /opt/garage/garage.toml layout apply --version 1
-# Capture the secret from `key create` output: `key info` redacts it on Garage >= 1.0 (needs --show-secret)
 GARAGE_KEY_INFO=$(garage -c /opt/garage/garage.toml key create safebucket-key)
 GARAGE_ACCESS_KEY=$(echo "$GARAGE_KEY_INFO" | awk '/Key ID:/{print $3}')
 GARAGE_SECRET_KEY=$(echo "$GARAGE_KEY_INFO" | awk '/Secret key:/{print $3}')
@@ -111,9 +106,6 @@ $STD garage -c /opt/garage/garage.toml bucket allow --read --write --owner safeb
 msg_ok "Configured Garage Bucket"
 
 msg_info "Applying CORS Policy to Bucket"
-# NOTE: Browser direct upload/download relies on bucket CORS. Garage S3 PutBucketCors
-# support is version-dependent and unvalidated (see docs/safebucket-prd.md §9), so this
-# step is non-fatal: if it fails the container still comes up and CORS can be set later.
 export AWS_ACCESS_KEY_ID="${GARAGE_ACCESS_KEY}"
 export AWS_SECRET_ACCESS_KEY="${GARAGE_SECRET_KEY}"
 export AWS_DEFAULT_REGION="garage"
@@ -129,7 +121,6 @@ unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
 
 msg_info "Installing Safebucket"
 fetch_and_deploy_gh_release "safebucket" "safebucket/safebucket" "singlefile" "latest" "/opt/safebucket" "safebucket-linux-${ARCH}"
-chmod +x /opt/safebucket/safebucket
 msg_ok "Installed Safebucket"
 
 msg_info "Configuring Safebucket"
