@@ -1,0 +1,45 @@
+{
+  "name": "Newt",
+  "slug": "newt",
+  "categories": [
+    4
+  ],
+  "date_created": "2026-06-26",
+  "type": "ct",
+  "updateable": true,
+  "privileged": false,
+  "has_arm": false,
+  "interface_port": null,
+  "documentation": "https://docs.pangolin.net/manage/sites/install-site",
+  "config_path": "/etc/newt/newt.env",
+  "website": "https://pangolin.net",
+  "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/pangolin.webp",
+  "description": "Newt is a lightweight, headless, fully user-space WireGuard tunnel client and TCP/UDP proxy for Pangolin. It connects a site to a Pangolin server to securely expose private resources without port forwarding or opening inbound firewall ports.",
+  "install_methods": [
+    {
+      "type": "default",
+      "script": "ct/newt.sh",
+      "resources": {
+        "cpu": 1,
+        "ram": 256,
+        "hdd": 2,
+        "os": "debian",
+        "version": "13"
+      }
+    }
+  ],
+  "default_credentials": {
+    "username": null,
+    "password": null
+  },
+  "notes": [
+    {
+      "text": "Requires a running Pangolin server to connect to.",
+      "type": "info"
+    },
+    {
+      "text": "Requires a Newt ID, Newt Secret and Pangolin endpoint, which can be obtained by creating a site/node in your Pangolin dashboard.",
+      "type": "info"
+    }
+  ]
+}
