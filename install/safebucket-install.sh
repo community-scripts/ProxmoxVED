@@ -13,15 +13,11 @@ setting_up_container
 network_check
 update_os
 
-ARCH=$(dpkg --print-architecture)
-case "$ARCH" in
-  amd64) GARAGE_ARCH="x86_64-unknown-linux-musl" ;;
-  arm64) GARAGE_ARCH="aarch64-unknown-linux-musl" ;;
-esac
+ARCH=$(arch_resolve)
+GARAGE_ARCH=$(arch_resolve "x86_64-unknown-linux-musl" "aarch64-unknown-linux-musl")
 
 msg_info "Installing Dependencies"
 $STD apt install -y \
-  jq \
   awscli
 msg_ok "Installed Dependencies"
 
@@ -115,7 +111,7 @@ if aws s3api put-bucket-cors \
   --cors-configuration '{"CORSRules":[{"AllowedHeaders":["*"],"AllowedMethods":["GET","PUT","POST","DELETE","HEAD"],"AllowedOrigins":["http://'"${LOCAL_IP}"':8080"],"ExposeHeaders":["ETag"]}]}' &>/dev/null; then
   msg_ok "Applied CORS Policy to Bucket"
 else
-  msg_warn "Could not apply CORS policy automatically; direct browser uploads may fail until CORS is configured manually (see docs/safebucket-prd.md §9)"
+  msg_warn "Could not apply CORS policy automatically; direct browser uploads may fail until CORS is configured manually"
 fi
 unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
 

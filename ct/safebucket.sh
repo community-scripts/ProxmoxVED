@@ -32,7 +32,7 @@ function update_script() {
 
   if check_for_gh_release "safebucket" "safebucket/safebucket"; then
     local ARCH
-    ARCH=$(dpkg --print-architecture)
+    ARCH=$(arch_resolve)
 
     msg_info "Stopping Service"
     systemctl stop safebucket
