@@ -318,7 +318,17 @@ incus_build_container() {
   incus_base_settings
 
   if [[ -z "${MODE:-}" ]]; then
-    if prompt_confirm "Use Default Settings? (No = Advanced)" "y" 60; then
+    if command -v whiptail >/dev/null 2>&1; then
+      if whiptail --backtitle "Incus Helper Scripts" --title "SETTINGS" --yesno "Use Default Settings?" --no-button "Advanced" 10 58; then
+        MODE="default"
+        METHOD="default"
+        msg_custom "⚙️" "${BL}" "Using Default Settings"
+      else
+        MODE="advanced"
+        METHOD="advanced"
+        msg_custom "🧩" "${RD}" "Using Advanced Settings"
+      fi
+    elif prompt_confirm "Use Default Settings? (No = Advanced)" "y" 60; then
       MODE="default"
       METHOD="default"
       msg_custom "⚙️" "${BL}" "Using Default Settings"
@@ -333,10 +343,13 @@ incus_build_container() {
     advanced_settings
   fi
 
-  if [[ "${INCUS_SKIP_PRECHECKS:-0}" == "1" || "${var_skip_prechecks:-no}" == "yes" ]]; then
+  # Pre-flight is disabled by default for now. Enable only when explicitly requested.
+  if [[ "${INCUS_RUN_PRECHECKS:-0}" == "1" || "${var_prechecks:-no}" == "yes" ]]; then
+    incus_run_preflight
+  elif [[ "${INCUS_SKIP_PRECHECKS:-0}" == "1" || "${var_skip_prechecks:-no}" == "yes" ]]; then
     msg_warn "Skipping Incus pre-flight checks (requested)"
   else
-    incus_run_preflight
+    msg_warn "Skipping Incus pre-flight checks (default)"
   fi
 
   incus_echo_config
@@ -451,68 +464,137 @@ api_exit_script() { :; }
 dev_mode_menu() { msg_warn "dev_mode_menu is not implemented for Incus build flow"; }
 diagnostics_menu() { msg_warn "diagnostics_menu is not implemented for Incus build flow"; }
 settings_menu() { msg_warn "settings_menu is not implemented for Incus build flow"; }
+
+incus_advanced_step_selection() {
+  if ! command -v whiptail >/dev/null 2>&1; then
+    echo "all"
+    return
+  fi
+
+  whiptail --backtitle "Incus Helper Scripts" --title "ADVANCED SETTINGS STEPS" --checklist \
+    "Choose the steps you want to edit" 24 86 16 \
+    "name" "Container Name" ON \
+    "cpu" "CPU Cores" ON \
+    "ram" "RAM (MiB)" ON \
+    "disk" "Disk (GiB)" ON \
+    "profile" "Incus Profile" ON \
+    "network" "Network Bridge" ON \
+    "ip4" "IPv4 Address/DHCP" ON \
+    "ip6" "IPv6 Address/Auto" OFF \
+    "mac" "MAC Address" OFF \
+    "vlan" "VLAN Tag" OFF \
+    "mtu" "MTU" OFF \
+    "storage" "Storage Pool" ON \
+    "tags" "Tags" ON \
+    "features" "Nesting/FUSE/TUN/GPU/Privileged" ON \
+    "ssh" "SSH Key Injection" OFF \
+    "preflight" "Run Preflight Checks" OFF \
+    3>&1 1>&2 2>&3 || true
+}
+
 advanced_settings() {
   msg_info "Applying advanced settings"
 
-  local v
-  v=$(prompt_input "Container Name" "${CT_NAME}" 30)
-  [[ -n "$v" ]] && CT_NAME=$(echo "${v,,}" | tr -d ' ' | tr '_' '-')
+  local selected
+  selected="$(incus_advanced_step_selection)"
 
-  v=$(prompt_input "CPU Cores" "${CORE_COUNT}" 30)
-  [[ "$v" =~ ^[0-9]+$ ]] && CORE_COUNT="$v" || msg_warn "Invalid CPU value, keeping ${CORE_COUNT}"
-
-  v=$(prompt_input "RAM (MiB)" "${RAM_SIZE}" 30)
-  [[ "$v" =~ ^[0-9]+$ ]] && RAM_SIZE="$v" || msg_warn "Invalid RAM value, keeping ${RAM_SIZE}"
-
-  v=$(prompt_input "Disk (GiB)" "${DISK_SIZE}" 30)
-  [[ "$v" =~ ^[0-9]+$ ]] && DISK_SIZE="$v" || msg_warn "Invalid Disk value, keeping ${DISK_SIZE}"
-
-  v=$(prompt_input "Profile" "${PROFILE}" 30)
-  [[ -n "$v" ]] && PROFILE="$v"
-
-  BRG="$(incus_select_network "${BRG}")"
-  echo -e "${BRIDGE}${BOLD}${DGN}Network Bridge: ${BGN}${BRG}${CL}"
-
-  v=$(prompt_input "IPv4 (dhcp or x.x.x.x)" "${NET}" 30)
-  [[ -n "$v" ]] && NET="$v"
-
-  v=$(prompt_input "IPv6 (auto/none/or address)" "${IPV6_ADDR}" 30)
-  [[ -n "$v" ]] && IPV6_ADDR="$v"
-
-  v=$(prompt_input "MAC Address (empty=auto)" "${MAC}" 30)
-  [[ -n "$v" ]] && MAC="$v"
-
-  v=$(prompt_input "VLAN Tag (empty=none)" "${VLAN_TAG}" 30)
-  [[ -n "$v" ]] && VLAN_TAG="$v"
-
-  v=$(prompt_input "MTU (empty=default)" "${MTU}" 30)
-  [[ -n "$v" ]] && MTU="$v"
-
-  v=$(prompt_input "Storage Pool" "${STORAGE_POOL}" 30)
-  [[ -n "$v" ]] && STORAGE_POOL="$v"
-
-  v=$(prompt_input "Tags (; separated)" "${TAGS}" 30)
-  [[ -n "$v" ]] && TAGS="$v"
-
-  if prompt_confirm "Enable nesting?" "$([[ "${ENABLE_NESTING}" == "1" ]] && echo y || echo n)" 20; then ENABLE_NESTING=1; else ENABLE_NESTING=0; fi
-  if prompt_confirm "Enable FUSE?" "$([[ "${ENABLE_FUSE}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_FUSE=yes; else ENABLE_FUSE=no; fi
-  if prompt_confirm "Enable TUN?" "$([[ "${ENABLE_TUN}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_TUN=yes; else ENABLE_TUN=no; fi
-  if prompt_confirm "Enable GPU passthrough flag?" "$([[ "${ENABLE_GPU}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_GPU=yes; else ENABLE_GPU=no; fi
-  if prompt_confirm "Use unprivileged container?" "$([[ "${UNPRIVILEGED}" == "1" ]] && echo y || echo n)" 20; then UNPRIVILEGED=1; else UNPRIVILEGED=0; fi
-
-  if prompt_confirm "Inject SSH key?" "$([[ "${SSH}" == "yes" ]] && echo y || echo n)" 20; then
-    SSH=yes
-    if [[ -z "${SSH_AUTHORIZED_KEY:-}" ]]; then
-      v=$(prompt_input "Public SSH key (single line)" "" 60)
-      [[ -n "$v" ]] && SSH_AUTHORIZED_KEY="$v"
-    fi
-  else
-    SSH=no
+  if [[ "$selected" == "all" ]]; then
+    selected='"name" "cpu" "ram" "disk" "profile" "network" "ip4" "ip6" "mac" "vlan" "mtu" "storage" "tags" "features" "ssh" "preflight"'
   fi
 
-  if prompt_confirm "Skip pre-flight checks for this run?" "n" 20; then
-    INCUS_SKIP_PRECHECKS=1
-    export INCUS_SKIP_PRECHECKS
+  local has_step
+  has_step() { [[ " $selected " == *" \"$1\" "* ]]; }
+
+  local v
+  if has_step "name"; then
+    v=$(prompt_input "Container Name" "${CT_NAME}" 30)
+    [[ -n "$v" ]] && CT_NAME=$(echo "${v,,}" | tr -d ' ' | tr '_' '-')
+  fi
+
+  if has_step "cpu"; then
+    v=$(prompt_input "CPU Cores" "${CORE_COUNT}" 30)
+    [[ "$v" =~ ^[0-9]+$ ]] && CORE_COUNT="$v" || msg_warn "Invalid CPU value, keeping ${CORE_COUNT}"
+  fi
+
+  if has_step "ram"; then
+    v=$(prompt_input "RAM (MiB)" "${RAM_SIZE}" 30)
+    [[ "$v" =~ ^[0-9]+$ ]] && RAM_SIZE="$v" || msg_warn "Invalid RAM value, keeping ${RAM_SIZE}"
+  fi
+
+  if has_step "disk"; then
+    v=$(prompt_input "Disk (GiB)" "${DISK_SIZE}" 30)
+    [[ "$v" =~ ^[0-9]+$ ]] && DISK_SIZE="$v" || msg_warn "Invalid Disk value, keeping ${DISK_SIZE}"
+  fi
+
+  if has_step "profile"; then
+    v=$(prompt_input "Profile" "${PROFILE}" 30)
+    [[ -n "$v" ]] && PROFILE="$v"
+  fi
+
+  if has_step "network"; then
+    BRG="$(incus_select_network "${BRG}")"
+    echo -e "${BRIDGE}${BOLD}${DGN}Network Bridge: ${BGN}${BRG}${CL}"
+  fi
+
+  if has_step "ip4"; then
+    v=$(prompt_input "IPv4 (dhcp or x.x.x.x)" "${NET}" 30)
+    [[ -n "$v" ]] && NET="$v"
+  fi
+
+  if has_step "ip6"; then
+    v=$(prompt_input "IPv6 (auto/none/or address)" "${IPV6_ADDR}" 30)
+    [[ -n "$v" ]] && IPV6_ADDR="$v"
+  fi
+
+  if has_step "mac"; then
+    v=$(prompt_input "MAC Address (empty=auto)" "${MAC}" 30)
+    [[ -n "$v" ]] && MAC="$v"
+  fi
+
+  if has_step "vlan"; then
+    v=$(prompt_input "VLAN Tag (empty=none)" "${VLAN_TAG}" 30)
+    [[ -n "$v" ]] && VLAN_TAG="$v"
+  fi
+
+  if has_step "mtu"; then
+    v=$(prompt_input "MTU (empty=default)" "${MTU}" 30)
+    [[ -n "$v" ]] && MTU="$v"
+  fi
+
+  if has_step "storage"; then
+    v=$(prompt_input "Storage Pool" "${STORAGE_POOL}" 30)
+    [[ -n "$v" ]] && STORAGE_POOL="$v"
+  fi
+
+  if has_step "tags"; then
+    v=$(prompt_input "Tags (; separated)" "${TAGS}" 30)
+    [[ -n "$v" ]] && TAGS="$v"
+  fi
+
+  if has_step "features"; then
+    if prompt_confirm "Enable nesting?" "$([[ "${ENABLE_NESTING}" == "1" ]] && echo y || echo n)" 20; then ENABLE_NESTING=1; else ENABLE_NESTING=0; fi
+    if prompt_confirm "Enable FUSE?" "$([[ "${ENABLE_FUSE}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_FUSE=yes; else ENABLE_FUSE=no; fi
+    if prompt_confirm "Enable TUN?" "$([[ "${ENABLE_TUN}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_TUN=yes; else ENABLE_TUN=no; fi
+    if prompt_confirm "Enable GPU passthrough flag?" "$([[ "${ENABLE_GPU}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_GPU=yes; else ENABLE_GPU=no; fi
+    if prompt_confirm "Use unprivileged container?" "$([[ "${UNPRIVILEGED}" == "1" ]] && echo y || echo n)" 20; then UNPRIVILEGED=1; else UNPRIVILEGED=0; fi
+  fi
+
+  if has_step "ssh"; then
+    if prompt_confirm "Inject SSH key?" "$([[ "${SSH}" == "yes" ]] && echo y || echo n)" 20; then
+      SSH=yes
+      if [[ -z "${SSH_AUTHORIZED_KEY:-}" ]]; then
+        v=$(prompt_input "Public SSH key (single line)" "" 60)
+        [[ -n "$v" ]] && SSH_AUTHORIZED_KEY="$v"
+      fi
+    else
+      SSH=no
+    fi
+  fi
+
+  if has_step "preflight"; then
+    INCUS_RUN_PRECHECKS=1
+  else
+    INCUS_RUN_PRECHECKS=0
   fi
 
   msg_ok "Applied advanced settings"
