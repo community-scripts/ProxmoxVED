@@ -299,8 +299,21 @@ check_container_resources() {
 }
 
 header_info() {
+  local app_name
+  local header_content=""
+  app_name=$(echo "${APP,,}" | tr -d ' ')
+  APP_TYPE="${APP_TYPE:-ct}"
+
+  if declare -f get_header >/dev/null 2>&1; then
+    header_content=$(get_header "$app_name" 2>/dev/null || true)
+  fi
+
   clear
-  echo -e "${INCUS_HEADER:-Incus :: ${APP:-Container}}"
+  if [[ -n "$header_content" ]]; then
+    echo "$header_content"
+  else
+    echo -e "${INCUS_HEADER:-Incus :: ${APP:-Container}}"
+  fi
 }
 
 detect_os

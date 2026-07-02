@@ -209,8 +209,15 @@ export INCUS_FUNCTIONS=\$FUNCTIONS_FILE_PATH" >>"$INCUS_BUILD_LOG" 2>&1 || { msg
 }
 
 incus_build_container() {
-  incus_run_preflight
+  if [[ "${INCUS_SKIP_PRECHECKS:-0}" == "1" || "${var_skip_prechecks:-no}" == "yes" ]]; then
+    msg_warn "Skipping Incus pre-flight checks (requested)"
+  else
+    incus_run_preflight
+  fi
   incus_base_settings
+  if [[ "${MODE:-default}" == "advanced" || "${var_advanced:-no}" == "yes" ]]; then
+    advanced_settings
+  fi
   incus_echo_config
   [[ "${MODE:-default}" != "advanced" ]] && { echo -e "\n${INFO}${YW}Press Enter to create the container or Ctrl+C to abort...${CL}"; read -r; }
   incus_create_container
@@ -323,7 +330,32 @@ api_exit_script() { :; }
 dev_mode_menu() { msg_warn "dev_mode_menu is not implemented for Incus build flow"; }
 diagnostics_menu() { msg_warn "diagnostics_menu is not implemented for Incus build flow"; }
 settings_menu() { msg_warn "settings_menu is not implemented for Incus build flow"; }
-advanced_settings() { msg_warn "advanced_settings is not implemented for Incus build flow"; }
+advanced_settings() {
+  msg_info "Applying advanced settings"
+
+  local v
+  v=$(prompt_input "CPU Cores" "${CORE_COUNT}" 30)
+  [[ "$v" =~ ^[0-9]+$ ]] && CORE_COUNT="$v" || msg_warn "Invalid CPU value, keeping ${CORE_COUNT}"
+
+  v=$(prompt_input "RAM (MiB)" "${RAM_SIZE}" 30)
+  [[ "$v" =~ ^[0-9]+$ ]] && RAM_SIZE="$v" || msg_warn "Invalid RAM value, keeping ${RAM_SIZE}"
+
+  v=$(prompt_input "Disk (GiB)" "${DISK_SIZE}" 30)
+  [[ "$v" =~ ^[0-9]+$ ]] && DISK_SIZE="$v" || msg_warn "Invalid Disk value, keeping ${DISK_SIZE}"
+
+  v=$(prompt_input "Network Bridge" "${BRG}" 30)
+  [[ -n "$v" ]] && BRG="$v"
+
+  v=$(prompt_input "Storage Pool" "${STORAGE_POOL}" 30)
+  [[ -n "$v" ]] && STORAGE_POOL="$v"
+
+  if prompt_confirm "Skip pre-flight checks for this run?" "n" 20; then
+    INCUS_SKIP_PRECHECKS=1
+    export INCUS_SKIP_PRECHECKS
+  fi
+
+  msg_ok "Applied advanced settings"
+}
 edit_default_storage() { msg_warn "edit_default_storage is not implemented for Incus build flow"; }
 configure_ssh_settings() { :; }
 ensure_storage_selection_for_vars_file() { :; }
