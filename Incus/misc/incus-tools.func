@@ -304,5 +304,11 @@ header_info() {
 }
 
 detect_os
+if [[ -z "${APPLICATION:-}" && -n "${APP:-}" ]]; then
+  APPLICATION="$APP"
+fi
+if [[ -z "${app:-}" && -n "${NSAPP:-}" ]]; then
+  app="$NSAPP"
+fi
 LOCAL_IP=$(get_lxc_ip 2>/dev/null || echo "unknown")
 : "${STD:=silent}"

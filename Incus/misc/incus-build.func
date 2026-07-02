@@ -187,7 +187,9 @@ export INCUS_FUNCTIONS=\$FUNCTIONS_FILE_PATH" >>"$INCUS_BUILD_LOG" 2>&1 || { msg
     export VERBOSE='${VERBOSE}'
     export STD='silent'
     export APP='${APP}'
+    export APPLICATION='${APP}'
     export NSAPP='${NSAPP}'
+    export app='${NSAPP}'
     export INCUS_HEADER='Incus :: ${APP}'
     bash <(curl -fsSL '${INCUS_COMMUNITY_SCRIPTS_URL}/Incus/install/${var_install}.sh')
   " 2>&1 | tee -a "$INCUS_BUILD_LOG" || { msg_error "Installation failed inside container"; exit 1; }
