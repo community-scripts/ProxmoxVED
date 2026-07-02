@@ -91,11 +91,13 @@ incus_base_settings() {
   local requested_name="${var_hostname:-$NSAPP}"
   requested_name=$(echo "${requested_name,,}" | tr -d ' ' | tr '_' '-')
   CT_NAME=$(incus_get_next_name "$requested_name")
-  BRG=${var_brg:-"incusbr0"}; NET=${var_net:-"dhcp"}; GATE=${var_gateway:-""}; MAC=${var_mac:-""}
+  BRG=${var_brg:-"incusbr0"}; NET=${var_net:-"dhcp"}; IPV6_ADDR=${var_ip6:-"auto"}; GATE=${var_gateway:-""}; MAC=${var_mac:-""}
+  VLAN_TAG=${var_vlan:-""}; MTU=${var_mtu:-""}
   SSH=${var_ssh:-"no"}; SSH_AUTHORIZED_KEY=${var_ssh_authorized_key:-""}
-  ENABLE_NESTING=${var_nesting:-"1"}; ENABLE_FUSE=${var_fuse:-"no"}; ENABLE_TUN=${var_tun:-"no"}; ENABLE_GPU=${var_gpu:-"no"}
+  ENABLE_NESTING=${var_nesting:-"1"}; ENABLE_FUSE=${var_fuse:-"no"}; ENABLE_TUN=${var_tun:-"no"}; ENABLE_GPU=${var_gpu:-"no"}; UNPRIVILEGED=${var_unprivileged:-"1"}
   IMAGE_OS="${var_os:-debian}"; IMAGE_VERSION="${var_version:-13}"
   TAGS="${var_tags:-}"
+  PROFILE="${var_profile:-default}"
   STORAGE_POOL="${var_storage:-}"
   [[ -z "$STORAGE_POOL" ]] && STORAGE_POOL=$(incus storage list -f csv,noheader 2>/dev/null | head -1 | cut -d, -f1)
 }
@@ -108,6 +110,9 @@ incus_echo_config() {
   echo -e "${BL}║${CL}  ${CONTAINERTYPE}Image: ${GN}${IMAGE_OS}-${IMAGE_VERSION}${CL}"
   echo -e "${BL}║${CL}  ${CPUCORE}CPU: ${GN}${CORE_COUNT}${CL}   ${RAMSIZE}RAM: ${GN}${RAM_SIZE} MiB${CL}   ${DISKSIZE}Disk: ${GN}${DISK_SIZE} GB${CL}"
   echo -e "${BL}║${CL}  ${BRIDGE}Network: ${GN}${BRG}${CL}   ${NETWORK}IP: ${GN}${NET}${CL}"
+  echo -e "${BL}║${CL}  Profile: ${GN}${PROFILE}${CL}   Privileged: ${GN}$([[ \"${UNPRIVILEGED}\" == \"1\" ]] && echo no || echo yes)${CL}"
+  [[ -n "${MAC}" || -n "${VLAN_TAG}" || -n "${MTU}" ]] && echo -e "${BL}║${CL}  MAC: ${GN}${MAC:-auto}${CL}   VLAN: ${GN}${VLAN_TAG:-none}${CL}   MTU: ${GN}${MTU:-default}${CL}"
+  [[ -n "${TAGS}" ]] && echo -e "${BL}║${CL}  Tags: ${GN}${TAGS}${CL}"
   echo -e "${BL}╚══════════════════════════════════════════════════════════════╝${CL}"
 }
 
@@ -118,9 +123,12 @@ incus_create_container() {
   local launch_args=()
   launch_args+=("--config" "limits.cpu=${CORE_COUNT}")
   launch_args+=("--config" "limits.memory=${RAM_SIZE}MiB")
+  [[ -n "${PROFILE:-}" ]] && launch_args+=("--profile" "${PROFILE}")
   launch_args+=("--network" "${BRG}")
   [[ "$ENABLE_NESTING" == "1" ]] && launch_args+=("--config" "security.nesting=true")
-  [[ "$ENABLE_FUSE" == "yes" || "$ENABLE_TUN" == "yes" ]] && launch_args+=("--config" "security.privileged=true")
+  if [[ "$UNPRIVILEGED" != "1" || "$ENABLE_FUSE" == "yes" || "$ENABLE_TUN" == "yes" ]]; then
+    launch_args+=("--config" "security.privileged=true")
+  fi
   launch_args+=("--storage" "${STORAGE_POOL}")
   launch_args+=("--device" "root,size=${DISK_SIZE}GiB")
   incus launch "${image_name}" "${CT_NAME}" "${launch_args[@]}" >>"$INCUS_BUILD_LOG" 2>&1 || {
@@ -132,6 +140,39 @@ incus_create_container() {
   local waited=0
   while ! incus exec "${CT_NAME}" -- true &>/dev/null; do sleep 2; waited=$((waited + 2)); [[ "$waited" -ge 60 ]] && { msg_error "Container not ready"; exit 1; }; done
   msg_ok "Container ${CT_NAME} is ready"
+
+  # Apply extended NIC options (closest mapping to Proxmox advanced network settings).
+  local net_reconfigure=0
+  if [[ -n "${MAC:-}" ]]; then
+    incus config device set "${CT_NAME}" eth0 hwaddr "${MAC}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply MAC (${MAC})"
+    net_reconfigure=1
+  fi
+  if [[ -n "${VLAN_TAG:-}" ]]; then
+    incus config device set "${CT_NAME}" eth0 vlan "${VLAN_TAG}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply VLAN (${VLAN_TAG})"
+    net_reconfigure=1
+  fi
+  if [[ -n "${MTU:-}" ]]; then
+    incus config device set "${CT_NAME}" eth0 mtu "${MTU}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply MTU (${MTU})"
+    net_reconfigure=1
+  fi
+  if [[ -n "${NET:-}" && "${NET}" != "dhcp" ]]; then
+    incus config device set "${CT_NAME}" eth0 ipv4.address "${NET}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply IPv4 (${NET})"
+    net_reconfigure=1
+  fi
+  if [[ -n "${IPV6_ADDR:-}" && "${IPV6_ADDR}" != "auto" ]]; then
+    incus config device set "${CT_NAME}" eth0 ipv6.address "${IPV6_ADDR}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply IPv6 (${IPV6_ADDR})"
+    net_reconfigure=1
+  fi
+  if [[ -n "${TAGS:-}" ]]; then
+    incus config set "${CT_NAME}" user.tags "${TAGS}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Could not apply tags"
+  fi
+
+  if [[ "$net_reconfigure" -eq 1 ]]; then
+    msg_info "Reconfiguring network settings"
+    incus restart "${CT_NAME}" >>"$INCUS_BUILD_LOG" 2>&1 || msg_warn "Restart after network reconfiguration failed"
+    msg_ok "Network settings applied"
+  fi
+
   local container_ip; container_ip=$(incus exec "${CT_NAME}" -- hostname -I 2>/dev/null | awk '{print $1}')
   [[ -n "$container_ip" ]] && { msg_ok "Container IP: ${container_ip}"; export IP="$container_ip"; } || { msg_warn "IP unknown, DHCP may be in progress"; export IP="unknown"; }
 }
@@ -334,6 +375,9 @@ advanced_settings() {
   msg_info "Applying advanced settings"
 
   local v
+  v=$(prompt_input "Container Name" "${CT_NAME}" 30)
+  [[ -n "$v" ]] && CT_NAME=$(echo "${v,,}" | tr -d ' ' | tr '_' '-')
+
   v=$(prompt_input "CPU Cores" "${CORE_COUNT}" 30)
   [[ "$v" =~ ^[0-9]+$ ]] && CORE_COUNT="$v" || msg_warn "Invalid CPU value, keeping ${CORE_COUNT}"
 
@@ -343,11 +387,48 @@ advanced_settings() {
   v=$(prompt_input "Disk (GiB)" "${DISK_SIZE}" 30)
   [[ "$v" =~ ^[0-9]+$ ]] && DISK_SIZE="$v" || msg_warn "Invalid Disk value, keeping ${DISK_SIZE}"
 
+  v=$(prompt_input "Profile" "${PROFILE}" 30)
+  [[ -n "$v" ]] && PROFILE="$v"
+
   v=$(prompt_input "Network Bridge" "${BRG}" 30)
   [[ -n "$v" ]] && BRG="$v"
 
+  v=$(prompt_input "IPv4 (dhcp or x.x.x.x)" "${NET}" 30)
+  [[ -n "$v" ]] && NET="$v"
+
+  v=$(prompt_input "IPv6 (auto/none/or address)" "${IPV6_ADDR}" 30)
+  [[ -n "$v" ]] && IPV6_ADDR="$v"
+
+  v=$(prompt_input "MAC Address (empty=auto)" "${MAC}" 30)
+  [[ -n "$v" ]] && MAC="$v"
+
+  v=$(prompt_input "VLAN Tag (empty=none)" "${VLAN_TAG}" 30)
+  [[ -n "$v" ]] && VLAN_TAG="$v"
+
+  v=$(prompt_input "MTU (empty=default)" "${MTU}" 30)
+  [[ -n "$v" ]] && MTU="$v"
+
   v=$(prompt_input "Storage Pool" "${STORAGE_POOL}" 30)
   [[ -n "$v" ]] && STORAGE_POOL="$v"
+
+  v=$(prompt_input "Tags (; separated)" "${TAGS}" 30)
+  [[ -n "$v" ]] && TAGS="$v"
+
+  if prompt_confirm "Enable nesting?" "$([[ "${ENABLE_NESTING}" == "1" ]] && echo y || echo n)" 20; then ENABLE_NESTING=1; else ENABLE_NESTING=0; fi
+  if prompt_confirm "Enable FUSE?" "$([[ "${ENABLE_FUSE}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_FUSE=yes; else ENABLE_FUSE=no; fi
+  if prompt_confirm "Enable TUN?" "$([[ "${ENABLE_TUN}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_TUN=yes; else ENABLE_TUN=no; fi
+  if prompt_confirm "Enable GPU passthrough flag?" "$([[ "${ENABLE_GPU}" == "yes" ]] && echo y || echo n)" 20; then ENABLE_GPU=yes; else ENABLE_GPU=no; fi
+  if prompt_confirm "Use unprivileged container?" "$([[ "${UNPRIVILEGED}" == "1" ]] && echo y || echo n)" 20; then UNPRIVILEGED=1; else UNPRIVILEGED=0; fi
+
+  if prompt_confirm "Inject SSH key?" "$([[ "${SSH}" == "yes" ]] && echo y || echo n)" 20; then
+    SSH=yes
+    if [[ -z "${SSH_AUTHORIZED_KEY:-}" ]]; then
+      v=$(prompt_input "Public SSH key (single line)" "" 60)
+      [[ -n "$v" ]] && SSH_AUTHORIZED_KEY="$v"
+    fi
+  else
+    SSH=no
+  fi
 
   if prompt_confirm "Skip pre-flight checks for this run?" "n" 20; then
     INCUS_SKIP_PRECHECKS=1
